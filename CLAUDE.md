@@ -40,6 +40,12 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   design „Volt" ze strony głównej, dokumentacja w
   `docs/dokumentacja-techniczna/d1/`, `straznik-granic` + `straznik-ci`,
   job CI lint→tsc→build. Wersje pakietów jak na stronie głównej (next pinned).
+- Decyzja właściciela (2026-08-17): wejście do `/szkolenia` z paska menu
+  strony głównej. Na podglądzie: **lokalna, NIEcommitowana** zmiana w klonie
+  (`data/navigation.ts` — link `http://localhost:3001/szkolenia`; repo
+  strony głównej pozostaje read-only, nic nie pushujemy). Przy finalnym
+  merge do matthewplugins.pl dopisać `{ label: "Szkolenia", href: "/szkolenia" }`
+  do `navLinks`.
 - **NASTĘPNY KROK: bramka B1** — ocena właściciela na `localhost:3001`
   (wygląd zgodny ze stroną główną?). Po akceptacji B1 → **Dział 2**:
   baza `db1_kursy` (PostgreSQL w Dockerze, migracje SQL, triggery audytu
