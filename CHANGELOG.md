@@ -5,6 +5,22 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.3.0] — 2026-08-16
+
+Diagram Pluginu 1 do oceny właściciela.
+
+### Dodane
+- [docs/plugin-1/DIAGRAM.md](docs/plugin-1/DIAGRAM.md) — podział Pluginu 1
+  na 7 działów z bramkami jakości B1–B7 po każdym dziale, diagram przepływu
+  danych wg zasady **BAZA → DZIAŁ → STRONA** (konwencja
+  z mp-offer-automation-suite), schemat ERD bazy `db1_kursy` z changelogiem
+  pisanym triggerami, plan dokumentacji technicznej per dział (WYTYCZNE N2)
+  i plan nowych strażników (granic, migracji, CI).
+- Ustalenie: agenci AI tylko jako bramki jakości (przegląd agent+krytyk
+  w B7), codzienna kontrola należy do skryptów — strażników, testów, goldenów.
+- Localhost do oceny wyglądu: strona główna z klonu na porcie 3000,
+  Plugin 1 będzie na 3001.
+
 ## [0.2.0] — 2026-08-16
 
 Wytyczne właściciela + licencja. Nadal bez kodu aplikacji.
