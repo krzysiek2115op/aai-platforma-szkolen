@@ -6,18 +6,23 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --env-file-if-exists=.env --test \"modules/**/*.test.ts\"",
+    "db1:up": "podman compose up -d db1",
+    "db1:migruj": "node --env-file-if-exists=.env modules/m1-sklep/db/migruj.ts"
   },
   "dependencies": {
     "geist": "^1.7.2",
     "lucide-react": "^1.31.0",
     "next": "16.3.1",
+    "pg": "^8.16.3",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^26",
+    "@types/pg": "^8",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

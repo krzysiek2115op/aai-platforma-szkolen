@@ -5,6 +5,40 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.5.0] — 2026-08-17
+
+Dział 2 Pluginu 1 — baza `db1_kursy` (bramka B2: testy dowodzą, że
+migracje wstają od zera i triggery logują każdą operację; golden schematu).
+
+### Dodane
+- **Baza db1_kursy w kontenerze** ([docker-compose.yml](docker-compose.yml),
+  postgres:17-alpine; lokalnym silnikiem jest podman — `npm run db1:up`);
+  [.env.example](.env.example) z `DB1_URL` (sekrety tylko w ignorowanym `.env`).
+- **Migracje czystym SQL** ([modules/m1-sklep/db/migrations/](modules/m1-sklep/db/migrations/)):
+  `001-tabele.sql` — courses, course_sections, course_modules,
+  course_lessons, course_changelog (wg ERD z DIAGRAMU) + indeksy;
+  `002-triggery-audytu.sql` — wspólna funkcja `m1_audyt()` na WSZYSTKICH
+  czterech tabelach treści (create/update/delete → stan przed/po w JSONB,
+  aktor z `app.actor`), auto-`updated_at`, changelog niezmienny
+  (UPDATE/DELETE/TRUNCATE odrzucane triggerem).
+- **Runner migracji** ([modules/m1-sklep/db/migruj.ts](modules/m1-sklep/db/migruj.ts)):
+  transakcje per migracja, sha256 w tabeli `_migracje` — zmieniona po
+  fakcie migracja zatrzymuje przebieg. Klient puli pg tylko w module
+  ([modules/m1-sklep/db/klient.ts](modules/m1-sklep/db/klient.ts)).
+- **Testy B2** ([modules/m1-sklep/db/migracje.test.ts](modules/m1-sklep/db/migracje.test.ts),
+  `npm test`, node --test): od zera, idempotencja, audyt wszystkich tabel
+  (lekcje dostają course_id z lookupu), niezmienność changelogu oraz
+  **golden schematu** [goldeny/d2-schemat.json](goldeny/d2-schemat.json)
+  (odtworzenie po świadomej zmianie: `GOLDEN_ZAPISZ=1 npm test`).
+- **straznik-migracji** — numeracja NNN bez dziur, MANIFEST.json z sha256:
+  migracja zmieniona po fakcie nie przejdzie pre-commita ani CI.
+- CI: job „Baza db1_kursy" z usługą postgres — `npm test` na każdym PR.
+- Dokumentacja techniczna D2 (WYTYCZNE N2) w
+  [docs/dokumentacja-techniczna/d2/](docs/dokumentacja-techniczna/d2/):
+  CREATE TRIGGER, plpgsql (NEW/OLD/TG_OP), JSONB, CREATE FUNCTION,
+  node-postgres (Pool, zapytania parametryzowane), obraz Dockera postgres
+  + ZRODLA.md (PostgreSQL 18, pg 8.23).
+
 ## [0.4.0] — 2026-08-17
 
 Dział 1 Pluginu 1 — fundament aplikacji (do bramki B1: ocena właściciela

@@ -35,22 +35,28 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   właściciela (tory → wystrzał → +kanał JSON).
 - Localhost: strona główna `:3000` (klon, podgląd wyglądu); Plugin 1 → `:3001`
   (`npm run dev`, strona `/szkolenia`).
-- **Dział 1 ZBUDOWANY** (branch `feat/d1-fundament` → PR do
-  `plugin-1-sklep-kursow`): szkielet Next.js 16.3.1 + TS + Tailwind 4,
-  design „Volt" ze strony głównej, dokumentacja w
-  `docs/dokumentacja-techniczna/d1/`, `straznik-granic` + `straznik-ci`,
-  job CI lint→tsc→build. Wersje pakietów jak na stronie głównej (next pinned).
+- **B1 zaliczona** (właściciel, 2026-08-17) po poprawkach: stopka 1:1
+  (FooterScene/Reveal/wordmark), horyzont kratki hero. **Dział 2 ZBUDOWANY,
+  B2 zaliczona testami**: baza `db1_kursy` w kontenerze (podman compose,
+  postgres:17-alpine), migracje SQL + triggery audytu (`m1_audyt` na 4
+  tabelach, changelog niezmienny), runner migruj.ts (sha256 w `_migracje`),
+  testy `npm test` (7/7) + golden `goldeny/d2-schemat.json`,
+  `straznik-migracji`, job CI „baza" z usługą postgres. Docker NIE jest
+  zainstalowany — używamy **podmana** (`npm run db1:up`).
 - Decyzja właściciela (2026-08-17): wejście do `/szkolenia` z paska menu
   strony głównej. Na podglądzie: **lokalna, NIEcommitowana** zmiana w klonie
   (`data/navigation.ts` — link `http://localhost:3001/szkolenia`; repo
   strony głównej pozostaje read-only, nic nie pushujemy). Przy finalnym
   merge do matthewplugins.pl dopisać `{ label: "Szkolenia", href: "/szkolenia" }`
   do `navLinks`.
-- **NASTĘPNY KROK: bramka B1** — ocena właściciela na `localhost:3001`
-  (wygląd zgodny ze stroną główną?). Po akceptacji B1 → **Dział 2**:
-  baza `db1_kursy` (PostgreSQL w Dockerze, migracje SQL, triggery audytu
-  → `course_changelog`) + dokumentacja D2 (PostgreSQL triggery/plpgsql/JSONB,
-  node-postgres) do `docs/dokumentacja-techniczna/d2/`; 🏷 release po B2.
+- Pustka na `/szkolenia` jest zaplanowana: treść wejdzie z bazy w D4–D5,
+  kursy właściciela w D7 — placeholderów nie dopracowujemy ręcznie.
+- **NASTĘPNY KROK: Dział 3 — dyspozytor** (warstwa DZIAŁ, WYTYCZNE §8):
+  kanał JSON (odczyt serwerowy: lista + szczegóły) i JEDEN AJAX-wystrzał
+  (akcje zapisz/usun/publikuj) w `modules/m1-sklep/`, walidacja Zod na
+  granicach, `straznik-ajax`, goldeny odpowiedzi JSON, audyt widoczny
+  w course_changelog (bramka B3). Przedtem: dokumentacja D3 (Next.js
+  Route Handlers, Zod) do `docs/dokumentacja-techniczna/d3/`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
