@@ -1,0 +1,334 @@
+{
+  "kolumny": [
+    {
+      "table_name": "course_changelog",
+      "column_name": "id",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_changelog",
+      "column_name": "course_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_changelog",
+      "column_name": "tabela",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_changelog",
+      "column_name": "action",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_changelog",
+      "column_name": "stan_przed",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_changelog",
+      "column_name": "stan_po",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_changelog",
+      "column_name": "actor",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_changelog",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "ma_default": true
+    },
+    {
+      "table_name": "course_lessons",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ma_default": true
+    },
+    {
+      "table_name": "course_lessons",
+      "column_name": "module_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_lessons",
+      "column_name": "position",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_lessons",
+      "column_name": "title",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_lessons",
+      "column_name": "duration_min",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_lessons",
+      "column_name": "preview",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "ma_default": true
+    },
+    {
+      "table_name": "course_modules",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ma_default": true
+    },
+    {
+      "table_name": "course_modules",
+      "column_name": "course_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_modules",
+      "column_name": "position",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_modules",
+      "column_name": "title",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_modules",
+      "column_name": "summary",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_sections",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ma_default": true
+    },
+    {
+      "table_name": "course_sections",
+      "column_name": "course_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_sections",
+      "column_name": "kind",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_sections",
+      "column_name": "position",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_sections",
+      "column_name": "content",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "ma_default": true
+    },
+    {
+      "table_name": "courses",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "ma_default": true
+    },
+    {
+      "table_name": "courses",
+      "column_name": "slug",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "courses",
+      "column_name": "title",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "courses",
+      "column_name": "type",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "courses",
+      "column_name": "short_desc",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ma_default": false
+    },
+    {
+      "table_name": "courses",
+      "column_name": "price_grosze",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "ma_default": false
+    },
+    {
+      "table_name": "courses",
+      "column_name": "cover_url",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ma_default": false
+    },
+    {
+      "table_name": "courses",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "ma_default": true
+    },
+    {
+      "table_name": "courses",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "ma_default": true
+    },
+    {
+      "table_name": "courses",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "ma_default": true
+    }
+  ],
+  "triggery": [
+    {
+      "tabela": "course_changelog",
+      "trigger_name": "trg_changelog_niezmienny",
+      "event_manipulation": "DELETE",
+      "action_timing": "BEFORE"
+    },
+    {
+      "tabela": "course_changelog",
+      "trigger_name": "trg_changelog_niezmienny",
+      "event_manipulation": "UPDATE",
+      "action_timing": "BEFORE"
+    },
+    {
+      "tabela": "course_lessons",
+      "trigger_name": "trg_audyt_course_lessons",
+      "event_manipulation": "DELETE",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "course_lessons",
+      "trigger_name": "trg_audyt_course_lessons",
+      "event_manipulation": "INSERT",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "course_lessons",
+      "trigger_name": "trg_audyt_course_lessons",
+      "event_manipulation": "UPDATE",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "course_modules",
+      "trigger_name": "trg_audyt_course_modules",
+      "event_manipulation": "DELETE",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "course_modules",
+      "trigger_name": "trg_audyt_course_modules",
+      "event_manipulation": "INSERT",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "course_modules",
+      "trigger_name": "trg_audyt_course_modules",
+      "event_manipulation": "UPDATE",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "course_sections",
+      "trigger_name": "trg_audyt_course_sections",
+      "event_manipulation": "DELETE",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "course_sections",
+      "trigger_name": "trg_audyt_course_sections",
+      "event_manipulation": "INSERT",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "course_sections",
+      "trigger_name": "trg_audyt_course_sections",
+      "event_manipulation": "UPDATE",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "courses",
+      "trigger_name": "trg_audyt_courses",
+      "event_manipulation": "DELETE",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "courses",
+      "trigger_name": "trg_audyt_courses",
+      "event_manipulation": "INSERT",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "courses",
+      "trigger_name": "trg_audyt_courses",
+      "event_manipulation": "UPDATE",
+      "action_timing": "AFTER"
+    },
+    {
+      "tabela": "courses",
+      "trigger_name": "trg_updated_at_courses",
+      "event_manipulation": "UPDATE",
+      "action_timing": "BEFORE"
+    }
+  ]
+}

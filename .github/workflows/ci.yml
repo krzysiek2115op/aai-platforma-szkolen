@@ -48,8 +48,37 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Testy (npm test) wejdą tu od Działu 2 — pilnuje straznik-ci:
-      # gdy package.json dostanie skrypt "test", CI musi go uruchamiać.
+  baza:
+    name: Baza db1_kursy (migracje + triggery + goldeny)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: kursy
+          POSTGRES_PASSWORD: kursy-dev
+          POSTGRES_DB: db1_kursy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kursy -d db1_kursy"
+          --health-interval 3s --health-timeout 3s --health-retries 15
+    env:
+      DB1_URL: postgres://kursy:kursy-dev@localhost:5432/db1_kursy
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalacja zależności
+        run: npm ci
+
+      # Dowód B2: migracje od zera, audyt triggerów, golden schematu.
+      - name: Testy modułów
+        run: npm test
 
   security:
     name: Skan sekretów
