@@ -5,6 +5,19 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.3.2] — 2026-08-16
+
+### Dodane
+- **WYTYCZNE §8 „Wystrzał"** (nowa wytyczna właściciela): z jednej bazy
+  danych idzie tylko JEDEN kanał AJAX — jeden plugin = jeden AJAX;
+  dział-dyspozytor jako jedyny rozmawia z bazą i rozdziela JSON stronom.
+  Pilnować będzie `straznik-ajax`.
+
+### Zmienione
+- Diagram przepływu Pluginu 1: trzy tory zastąpione JEDNYM wystrzałem
+  BAZA —AJAX→ DZIAŁ-DYSPOZYTOR —JSON→ 3 strony; Dział 3 to teraz
+  dyspozytor (akcje: lista/szczegoly/zapisz/usun/publikuj).
+
 ## [0.3.1] — 2026-08-16
 
 ### Zmienione

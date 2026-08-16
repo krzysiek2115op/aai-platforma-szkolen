@@ -25,10 +25,10 @@ flowchart TB
     end
     B2{{"B2: migracje wstają od zera, triggery logują<br/>każdą operację — test dowodzi, goldeny schematu"}}
 
-    subgraph D3["DZIAŁ 3 — API kursów (warstwa DZIAŁ)"]
-        d3[endpointy odczytu: lista + szczegóły kursu<br/>endpointy kreatora: CRUD + publikacja<br/>walidacja Zod na każdej granicy]
+    subgraph D3["DZIAŁ 3 — Dyspozytor (warstwa DZIAŁ, jeden AJAX)"]
+        d3[JEDEN endpoint AJAX pluginu — wystrzał<br/>akcje: lista, szczegoly, zapisz, usun, publikuj<br/>walidacja Zod na każdej granicy]
     end
-    B3{{"B3: testy API zielone, goldeny odpowiedzi JSON,<br/>audyt CRUD widoczny w course_changelog"}}
+    B3{{"B3: testy dyspozytora zielone, goldeny odpowiedzi JSON,<br/>straznik-ajax potwierdza jeden kanał,<br/>audyt CRUD widoczny w course_changelog"}}
 
     subgraph D4["DZIAŁ 4 — Katalog /szkolenia"]
         d4[siatka kart kursów<br/>okładka, tytuł, opis, cena, badge typu, CTA]
@@ -57,45 +57,44 @@ flowchart TB
 🏷 Release'y pośrednie: po B2 (baza działa) i po B5 (sklep widoczny) —
 większe kroki wg CONTRIBUTING.
 
-## 2. Przepływ danych — każdy dział ma WŁASNY TOR (poprawka właściciela)
+## 2. Przepływ danych — WYSTRZAŁ: jeden AJAX na plugin (WYTYCZNE §8)
 
-Jak w mp-offer-automation-suite: dane idą **BAZA —AJAX→ DZIAŁ —JSON→
-STRONA**, a każdy dział ma swój **osobny tor** i nie dotyka torów innych
-działów. Nie ma jednego wspólnego kanału z bazy do wszystkich — baza
-rozmawia z KAŻDYM działem osobno, dział oddaje JSON tylko SWOJEJ stronie.
-
-```mermaid
-flowchart LR
-    subgraph TOR1["TOR KATALOGU — nie dotyka innych torów"]
-        B1[("db1_kursy")] ---|"AJAX"| A1["DZIAŁ: endpoint listy kursów<br/>+ walidacja Zod"] ---|"JSON"| S1["STRONA /szkolenia"]
-    end
-```
+Z jednej bazy danych idzie tylko **JEDEN kanał AJAX** — wystrzał.
+Dane idą jak w mp-offer-automation-suite: **BAZA —AJAX→ DZIAŁ —JSON→
+STRONA**, ale kanał AJAX jest jeden na cały plugin. Dział-dyspozytor jako
+jedyny rozmawia z bazą, a strony dostają od niego JSON — każda swoją akcją.
 
 ```mermaid
 flowchart LR
-    subgraph TOR2["TOR STRONY SPRZEDAŻOWEJ — nie dotyka innych torów"]
-        B2[("db1_kursy")] ---|"AJAX"| A2["DZIAŁ: endpoint szczegółów kursu<br/>+ walidacja Zod"] ---|"JSON"| S2["STRONA /szkolenia/[slug]"]
-    end
+    BAZA[("BAZA db1_kursy<br/>courses, sections,<br/>modules, lessons<br/>+ course_changelog<br/>pisany TRIGGERAMI")]
+
+    DZIAL["DZIAŁ-DYSPOZYTOR<br/>JEDEN endpoint AJAX pluginu<br/>akcje: lista | szczegoly | zapisz | usun | publikuj<br/>walidacja Zod na wejściu i wyjściu"]
+
+    S1["STRONA /szkolenia<br/>(akcja: lista)"]
+    S2["STRONA /szkolenia/[slug]<br/>(akcja: szczegoly)"]
+    S3["STRONA /szkolenia/kreator<br/>(akcje: zapisz/usun/publikuj)"]
+
+    BAZA ===|"AJAX — WYSTRZAŁ<br/>(jedyny kanał do bazy)"| DZIAL
+    DZIAL -->|"JSON"| S1
+    DZIAL -->|"JSON"| S2
+    DZIAL -->|"JSON"| S3
 ```
 
-```mermaid
-flowchart LR
-    subgraph TOR3["TOR KREATORA — nie dotyka innych torów"]
-        B3[("db1_kursy<br/>+ course_changelog<br/>pisany triggerami")] ---|"AJAX"| A3["DZIAŁ: endpointy CRUD kursów<br/>+ walidacja Zod"] ---|"JSON"| S3["STRONA /szkolenia/kreator"]
-    end
-```
-
-Twarde zasady torów:
-- **strona nigdy nie rozmawia z bazą** — zawsze przez swój dział;
-- **tor nie przecina toru** — endpoint katalogu nie obsługuje kreatora,
-  strona kreatora nie woła endpointu katalogu; awaria/zmiana jednego toru
-  nie rusza pozostałych;
-- dostęp do SQL ma wyłącznie katalog `modules/m1-sklep/db/`; przypilnuje
-  tego **straznik-granic** (powstanie w Dziale 1);
+Twarde zasady wystrzału:
+- **jedna baza = jeden AJAX** — na cały plugin jeden kanał; nie potrzeba
+  trzech (WYTYCZNE §8);
+- **strona nigdy nie rozmawia z bazą** — prosi dyspozytora o akcję,
+  dyspozytor odpowiada JSON-em tylko stronie, która pytała;
+- akcje nie mieszają się nawzajem — dyspozytor rozdziela je ostro
+  (lista nie dotyka zapisu), więc awaria jednej akcji nie kładzie innych;
+- dostęp do SQL ma wyłącznie dyspozytor (`modules/m1-sklep/`); przypilnują
+  tego **straznik-granic** i **straznik-ajax** (jeden endpoint dotykający
+  bazy na moduł) — powstaną w Dziale 1;
 - `course_changelog` piszą triggery PostgreSQL — kod aplikacji nie umie go
   ominąć ani sfałszować;
-- przyszłe moduły (2, 3) rozmawiają z modułem 1 przez jego API,
-  nigdy przez jego tabele.
+- przyszłe moduły (2, 3) rozmawiają z modułem 1 przez jego dyspozytor,
+  nigdy przez jego tabele; każdy z nich będzie miał WŁASNY pojedynczy
+  wystrzał do WŁASNEJ bazy.
 
 ## 3. Baza db1_kursy — schemat
 
@@ -170,9 +169,10 @@ Każda bramka B1–B7 to ten sam zestaw, rosnący z projektem:
 | Agent + KRYTYK | przegląd kodu przed zamknięciem pluginu | tylko B7 (zgodnie z ustaleniem: agenci to bramki, nie stała obsada) |
 
 Nowi strażnicy planowani w tym pluginie: `straznik-granic` (strony nie
-importują klienta bazy), `straznik-migracji` (migracje numerowane, bez dziur,
-niemodyfikowane po fakcie), `straznik-ci` (gdy wejdzie package.json — kroki
-lint/tsc/test/build podpięte w CI).
+importują klienta bazy), `straznik-ajax` (jeden endpoint dotykający bazy
+na moduł — WYTYCZNE §8), `straznik-migracji` (migracje numerowane, bez
+dziur, niemodyfikowane po fakcie), `straznik-ci` (gdy wejdzie package.json
+— kroki lint/tsc/test/build podpięte w CI).
 
 ## 5. Dokumentacja techniczna per dział (WYTYCZNE N2)
 

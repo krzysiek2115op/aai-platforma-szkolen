@@ -77,6 +77,26 @@ Gdy potrzebna jest wiedza techniczna (API bramki płatności, Next.js,
 PostgreSQL...), pobieramy ORYGINALNĄ dokumentację z sieci i zapisujemy
 w repo, zamiast polegać na pamięci.
 
+## 8. Wystrzał — JEDEN AJAX na plugin (dopisane 2026-08-16)
+
+**Z jednej bazy danych idzie tylko JEDEN kanał AJAX.** Wystrzał to
+informacje obok systemu, które idą do działu i od razu do pluginu przez
+AJAX. Na jeden plugin jeden AJAX wystarczy — nie potrzeba ich trzech.
+
+W praktyce:
+
+```
+BAZA ——(JEDEN AJAX, „wystrzał")——> DZIAŁ-DYSPOZYTOR ——JSON——> strony pluginu
+```
+
+- każdy plugin ma **jeden endpoint AJAX** (dyspozytor); strony mówią mu,
+  jakiej akcji potrzebują (`lista`, `szczegoly`, `zapisz`, …), a dyspozytor
+  jako jedyny rozmawia z bazą i oddaje JSON właściwej stronie;
+- zero drugiego i trzeciego kanału do tej samej bazy — mniej punktów
+  awarii, jedna walidacja, jeden log;
+- pilnuje tego strażnik (`straznik-ajax`): w module może istnieć tylko
+  jeden endpoint dotykający bazy.
+
 ---
 
 # NAJWAŻNIEJSZE (zasady nadrzędne)
