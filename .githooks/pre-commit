@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+#
+# Szybka kontrola przed commitem. Ma trwać sekundy — wolny hak jest
+# omijany przez --no-verify i wtedy nie chroni przed niczym.
+# (Lekcja z matthewplugins.pl.)
+#
+# Robi dwie rzeczy:
+#   1. blokuje commit plików .env i jawnych sekretów (tokeny, klucze),
+#   2. uruchamia strażników (tools/straznicy/) — na razie dokumentacyjnych.
+#
+# Ominięcie (świadome, np. commit roboczy):
+#   git commit --no-verify
+
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+# --- 1. Sekrety -------------------------------------------------------------
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if echo "$STAGED" | grep -qE '(^|/)\.env(\..+)?$' && ! echo "$STAGED" | grep -qE '\.env\.example$'; then
+  echo "pre-commit: ZABLOKOWANO — plik .env nie może trafić do repo." >&2
+  exit 1
+fi
+
+if [ -n "$STAGED" ]; then
+  # jawne wzorce tokenów w treści dodawanych linii
+  if git diff --cached -U0 | grep -E '^\+' | grep -qE 'ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN( RSA| OPENSSH)? PRIVATE KEY'; then
+    echo "pre-commit: ZABLOKOWANO — w commicie wygląda na jawny sekret (token/klucz)." >&2
+    echo "Usuń go z kodu; sekrety żyją w .env (ignorowanym przez git)." >&2
+    exit 1
+  fi
+fi
+
+# --- 2. Strażnicy -----------------------------------------------------------
+
+if command -v node >/dev/null 2>&1; then
+  node tools/straznicy/uruchom-wszystkie.mjs
+else
+  echo "pre-commit: brak node — strażników sprawdzi CI." >&2
+fi
