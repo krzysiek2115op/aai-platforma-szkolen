@@ -26,7 +26,7 @@ flowchart TB
     B2{{"B2: migracje wstają od zera, triggery logują<br/>każdą operację — test dowodzi, goldeny schematu"}}
 
     subgraph D3["DZIAŁ 3 — Dyspozytor (warstwa DZIAŁ, jeden AJAX)"]
-        d3[JEDEN endpoint AJAX pluginu — wystrzał<br/>akcje: lista, szczegoly, zapisz, usun, publikuj<br/>walidacja Zod na każdej granicy]
+        d3[kanał JSON: odczyt serwerowy lista + szczegoly<br/>kanał AJAX — wystrzał: akcje zapisz, usun, publikuj<br/>walidacja Zod na każdej granicy]
     end
     B3{{"B3: testy dyspozytora zielone, goldeny odpowiedzi JSON,<br/>straznik-ajax potwierdza jeden kanał,<br/>audyt CRUD widoczny w course_changelog"}}
 
@@ -57,39 +57,50 @@ flowchart TB
 🏷 Release'y pośrednie: po B2 (baza działa) i po B5 (sklep widoczny) —
 większe kroki wg CONTRIBUTING.
 
-## 2. Przepływ danych — WYSTRZAŁ: jeden AJAX na plugin (WYTYCZNE §8)
+## 2. Przepływ danych — wystrzał AJAX + kanał JSON obok (WYTYCZNE §8)
 
-Z jednej bazy danych idzie tylko **JEDEN kanał AJAX** — wystrzał.
-Dane idą jak w mp-offer-automation-suite: **BAZA —AJAX→ DZIAŁ —JSON→
-STRONA**, ale kanał AJAX jest jeden na cały plugin. Dział-dyspozytor jako
-jedyny rozmawia z bazą, a strony dostają od niego JSON — każda swoją akcją.
+Dwa kanały, zgodnie z rysunkiem właściciela:
+
+- **kanał JSON (serwerowy odczyt)** — dział czyta bazę i oddaje stronom
+  gotowe dane już przy renderowaniu; tędy idzie katalog i strona
+  sprzedażowa → szybsze ładowanie i pełne SEO;
+- **kanał AJAX — WYSTRZAŁ, JEDEN na plugin** — akcje wykonywane po
+  załadowaniu strony (kreator: zapisz/usun/publikuj), przez jednego
+  dyspozytora.
 
 ```mermaid
 flowchart LR
     BAZA[("BAZA db1_kursy<br/>courses, sections,<br/>modules, lessons<br/>+ course_changelog<br/>pisany TRIGGERAMI")]
 
-    DZIAL["DZIAŁ-DYSPOZYTOR<br/>JEDEN endpoint AJAX pluginu<br/>akcje: lista | szczegoly | zapisz | usun | publikuj<br/>walidacja Zod na wejściu i wyjściu"]
+    DZIAL["DZIAŁ m1-sklep<br/>jedyna warstwa z dostępem do SQL<br/>walidacja Zod na wejściu i wyjściu"]
 
-    S1["STRONA /szkolenia<br/>(akcja: lista)"]
-    S2["STRONA /szkolenia/[slug]<br/>(akcja: szczegoly)"]
-    S3["STRONA /szkolenia/kreator<br/>(akcje: zapisz/usun/publikuj)"]
+    subgraph AKCJE["dyspozytor — JEDEN AJAX"]
+        DY["akcje: zapisz | usun | publikuj"]
+    end
 
-    BAZA ===|"AJAX — WYSTRZAŁ<br/>(jedyny kanał do bazy)"| DZIAL
+    S1["STRONA /szkolenia"]
+    S2["STRONA /szkolenia/[slug]"]
+    S3["STRONA /szkolenia/kreator"]
+
+    BAZA ---|"JSON — odczyt serwerowy"| DZIAL
     DZIAL -->|"JSON"| S1
     DZIAL -->|"JSON"| S2
-    DZIAL -->|"JSON"| S3
+    DZIAL -->|"JSON (stan kursów)"| S3
+    BAZA ===|"AJAX — WYSTRZAŁ<br/>(jedyny AJAX pluginu)"| DY
+    DY <-->|"JSON odpowiedzi"| S3
 ```
 
-Twarde zasady wystrzału:
-- **jedna baza = jeden AJAX** — na cały plugin jeden kanał; nie potrzeba
-  trzech (WYTYCZNE §8);
-- **strona nigdy nie rozmawia z bazą** — prosi dyspozytora o akcję,
-  dyspozytor odpowiada JSON-em tylko stronie, która pytała;
-- akcje nie mieszają się nawzajem — dyspozytor rozdziela je ostro
-  (lista nie dotyka zapisu), więc awaria jednej akcji nie kładzie innych;
-- dostęp do SQL ma wyłącznie dyspozytor (`modules/m1-sklep/`); przypilnują
-  tego **straznik-granic** i **straznik-ajax** (jeden endpoint dotykający
-  bazy na moduł) — powstaną w Dziale 1;
+Twarde zasady kanałów:
+- **jedna baza = jeden AJAX** — wystrzał obsługuje wszystkie akcje pluginu;
+  drugi AJAX nie powstanie (WYTYCZNE §8);
+- **kanał JSON obok** — odczyt serwerowy dla stron, które mają być szybkie
+  i widoczne w Google; nie dubluje AJAX-a (odczyt ≠ akcje);
+- **strona nigdy nie rozmawia z bazą** — oba kanały przechodzą przez dział;
+- akcje nie mieszają się nawzajem — dyspozytor rozdziela je ostro,
+  awaria jednej akcji nie kładzie innych;
+- dostęp do SQL ma wyłącznie dział (`modules/m1-sklep/`); przypilnują
+  tego **straznik-granic** i **straznik-ajax** (jeden endpoint AJAX
+  dotykający bazy na moduł) — powstaną w Dziale 1;
 - `course_changelog` piszą triggery PostgreSQL — kod aplikacji nie umie go
   ominąć ani sfałszować;
 - przyszłe moduły (2, 3) rozmawiają z modułem 1 przez jego dyspozytor,

@@ -5,6 +5,14 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.3.3] — 2026-08-16
+
+### Zmienione
+- WYTYCZNE §8 doprecyzowane przez właściciela: AJAX nie musi być jedynym
+  kanałem do bazy — obok idzie **kanał JSON** (odczyt serwerowy przy
+  renderowaniu: szybciej + SEO). AJAX zostaje JEDEN i obsługuje akcje
+  po załadowaniu strony (kreator). Diagram przepływu zaktualizowany.
+
 ## [0.3.2] — 2026-08-16
 
 ### Dodane

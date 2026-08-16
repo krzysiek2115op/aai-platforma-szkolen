@@ -90,12 +90,17 @@ BAZA ——(JEDEN AJAX, „wystrzał")——> DZIAŁ-DYSPOZYTOR ——JSON——
 ```
 
 - każdy plugin ma **jeden endpoint AJAX** (dyspozytor); strony mówią mu,
-  jakiej akcji potrzebują (`lista`, `szczegoly`, `zapisz`, …), a dyspozytor
-  jako jedyny rozmawia z bazą i oddaje JSON właściwej stronie;
-- zero drugiego i trzeciego kanału do tej samej bazy — mniej punktów
-  awarii, jedna walidacja, jeden log;
+  jakiej akcji potrzebują (`zapisz`, `usun`, …), a dyspozytor oddaje JSON
+  właściwej stronie;
+- AJAX **nie musi być jedynym kanałem do bazy** (doprecyzowanie właściciela
+  2026-08-16): obok może iść **kanał JSON** — odczyt serwerowy, w którym
+  dział czyta bazę i oddaje stronie gotowe dane już przy renderowaniu
+  (szybciej, lepsze SEO); AJAX-a to nie dubluje, bo AJAX zostaje JEDEN
+  i służy akcjom po załadowaniu strony;
+- nie mnożymy kanałów ponad te dwa — mniej punktów awarii, jedna
+  walidacja, jeden log;
 - pilnuje tego strażnik (`straznik-ajax`): w module może istnieć tylko
-  jeden endpoint dotykający bazy.
+  jeden endpoint AJAX dotykający bazy.
 
 ---
 
