@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+#
+# Blokada bezpośredniego pusha na main — zmiany na main idą przez PR.
+#
+# UWAGA: to zabezpieczenie po stronie klienta, nie ochrona brancha.
+# Działa u osoby z włączonym `core.hooksPath .githooks` i da się je
+# ominąć przez `git push --no-verify`. Ruleset po stronie GitHuba nie jest
+# dostępny na prywatnym repo w darmowym planie organizacji (wymaga Team).
+#
+# Włączenie w swoim klonie (raz):
+#   git config core.hooksPath .githooks
+#
+# Awaryjne ominięcie, świadome i jednorazowe:
+#   ALLOW_MAIN_PUSH=1 git push origin main
+
+set -euo pipefail
+
+PROTECTED="refs/heads/main"
+
+if [ "${ALLOW_MAIN_PUSH:-}" = "1" ]; then
+  echo "pre-push: ALLOW_MAIN_PUSH=1 — pomijam blokadę main" >&2
+  exit 0
+fi
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  if [ "$remote_ref" = "$PROTECTED" ]; then
+    cat >&2 <<'EOF'
+
+  ZABLOKOWANO: bezpośredni push na main.
+
+  Zmiany na main idą przez pull request:
+
+      git switch -c moja-zmiana
+      git push -u origin moja-zmiana
+
+  Awaryjnie (hotfix, świadoma decyzja):
+
+      ALLOW_MAIN_PUSH=1 git push origin main
+
+EOF
+    exit 1
+  fi
+done
+
+exit 0
