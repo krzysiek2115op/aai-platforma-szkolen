@@ -15,6 +15,10 @@ next-env.d.ts
 *.sqlite
 pgdata/
 
+# kopie robocze naprawy wstecznej (docs/WYTYCZNE.md §1) — migawką jest
+# gałąź bak/<data>-<opis>, pliki .bak nie wchodzą do repo
+*.bak
+
 # systemowe / edytor
 .DS_Store
 *.log

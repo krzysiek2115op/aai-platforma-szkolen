@@ -7,8 +7,10 @@ katalog kursów, strony sprzedażowe, płatności z dostawą na e-mail
 i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 [Plan projektu](docs/PLAN.md) ·
+[Wytyczne](docs/WYTYCZNE.md) ·
 [Współpraca i workflow](CONTRIBUTING.md) ·
-[Dziennik zmian](CHANGELOG.md)
+[Dziennik zmian](CHANGELOG.md) ·
+[Licencja GPL-2.0](LICENSE)
 
 </div>
 
@@ -18,9 +20,10 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.1.0** |
-| **Etap** | fundament repo + plan; kod aplikacji jeszcze nie powstał |
-| **Aktywny moduł** | żaden — wytyczne do modułu 1 w przygotowaniu u właściciela |
+| **Wersja** | **0.2.0** |
+| **Etap** | fundament repo + plan + wytyczne; kod aplikacji jeszcze nie powstał |
+| **Aktywny moduł** | żaden — czekamy na diagram planu od właściciela |
+| **Licencja** | GPL-2.0 ([LICENSE](LICENSE)) |
 | **Produkcja** | brak — docelowo hosting Node.js/VPS, merge do repo strony głównej po akceptacji całości |
 
 > [!IMPORTANT]
@@ -57,6 +60,21 @@ było zwykłym merge, nie przepisywaniem.
 | Walidacja | Zod na granicach API |
 | Hosting | docelowo wykupiony hosting Node.js / VPS |
 
+## Wytyczne projektu
+
+Wiążące zasady od właściciela — pełna treść w [docs/WYTYCZNE.md](docs/WYTYCZNE.md):
+
+- **naprawa wsteczna `.bak`** — błąd z przeszłości naprawiamy z migawki
+  (gałąź `bak/…`), bez kolizji, z wpisem do [rejestru błędów](rejestr/znane-bledy.json)
+  i nowym strażnikiem przeciw nawrotom;
+- **statusy GitHuba są wiążące** — czerwone CI/audyt = stop, żadnego merge;
+- **goldeny** — wzorcowe wyniki chronią naprawy przed psuciem reszty,
+  a agentów przed spadkiem jakości;
+- **każdy agent ma krytyka** — nigdy agent sam;
+- **każdy dział dostaje oryginalną dokumentację techniczną** pobraną z sieci
+  (`docs/dokumentacja-techniczna/<dział>/`);
+- **weryfikacja co każdy krok** — workflow Weryfikacja-PR poniżej.
+
 ## Jak tu się pracuje
 
 Pełny opis: [CONTRIBUTING.md](CONTRIBUTING.md). W skrócie — **Weryfikacja-PR**:
@@ -80,6 +98,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 |---|---|---|
 | `straznik-wersji` | pre-commit + CI | rozjazd wersji README ↔ CHANGELOG |
 | `straznik-linkow` | pre-commit + CI | martwe linki względne w Markdown |
+| `straznik-licencji` | pre-commit + CI | brak/podmiana LICENSE (GPL-2.0), brak deklaracji w README |
 | blokada sekretów | pre-commit | pliki `.env`, tokeny/klucze w diffie |
 | gitleaks (pinowany po SHA-256) | CI | sekrety w całej historii repo |
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
