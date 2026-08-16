@@ -5,6 +5,7 @@ node_modules/
 .next/
 out/
 next-env.d.ts
+*.tsbuildinfo
 
 # środowisko — sekrety NIGDY do repo
 .env
