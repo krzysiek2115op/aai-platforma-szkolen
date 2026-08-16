@@ -20,10 +20,10 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.3.4** |
-| **Etap** | diagram Pluginu 1 gotowy do oceny właściciela; kod aplikacji jeszcze nie powstał |
+| **Wersja** | **0.4.0** |
+| **Etap** | Dział 1 Pluginu 1 zbudowany (szkielet Next.js 16 + Tailwind 4, design „Volt") — bramka B1: ocena właściciela na `localhost:3001` |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
-| **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (od Działu 1) |
+| **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Licencja** | GPL-2.0 ([LICENSE](LICENSE)) |
 | **Produkcja** | brak — docelowo hosting Node.js/VPS, merge do repo strony głównej po akceptacji całości |
 
@@ -40,7 +40,7 @@ Moduły nie sięgają do cudzych tabel.
 
 | # | Moduł | Branch | Baza | Zakres | Stan |
 |---|-------|--------|------|--------|------|
-| 1 | Sklep z kursami | `plugin-1-sklep-kursow` | `db1_kursy` | katalog `/szkolenia`, strona sprzedażowa kursu, kreator kursów, dziennik zmian (audyt CRUD) | ⏳ oczekuje na wytyczne |
+| 1 | Sklep z kursami | `plugin-1-sklep-kursow` | `db1_kursy` | katalog `/szkolenia`, strona sprzedażowa kursu, kreator kursów, dziennik zmian (audyt CRUD) | 🔨 Dział 1/7 — bramka B1 |
 | 2 | Płatności | `plugin-2-platnosci` | `db2_klienci` | bramka płatności (adapter operatora), zamówienia, wysyłka kursu i potwierdzenia na e-mail | 🔒 po module 1 |
 | 3 | Panel admina | `plugin-3-admin-panel` | `db3_monitoring` | podstrona tylko dla admina, log logowań (kto, kiedy, skąd), timer wizyt na stronie | 🔒 po module 2 |
 
@@ -100,18 +100,20 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-wersji` | pre-commit + CI | rozjazd wersji README ↔ CHANGELOG |
 | `straznik-linkow` | pre-commit + CI | martwe linki względne w Markdown |
 | `straznik-licencji` | pre-commit + CI | brak/podmiana LICENSE (GPL-2.0), brak deklaracji w README |
+| `straznik-granic` | pre-commit + CI | klient SQL / connection string poza `modules/`, importy między modułami, import z bebechów modułu (BAZA → DZIAŁ → STRONA) |
+| `straznik-ci` | pre-commit + CI | package.json bez kroków `npm ci` → lint → tsc → build w CI (i testów, gdy dojdą) |
 | blokada sekretów | pre-commit | pliki `.env`, tokeny/klucze w diffie |
 | gitleaks (pinowany po SHA-256) | CI | sekrety w całej historii repo |
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
 
-Po dojściu kodu aplikacji CI rozrośnie się o `lint → tsc → test → build → smoke`.
+CI uruchamia też job „Kod aplikacji": `npm ci` → lint → tsc → build
+(testy dojdą od Działu 2 — pilnuje `straznik-ci`).
 
 ## Szybki start (po sklonowaniu)
 
 ```bash
 git config core.hooksPath .githooks   # włącza haki — raz, obowiązkowo
+npm ci                                # zależności (Node 24+)
+npm run dev                           # Plugin 1 → http://localhost:3001/szkolenia
 node tools/straznicy/uruchom-wszystkie.mjs   # ręczne odpalenie strażników
 ```
-
-Kod aplikacji (Next.js, `npm ci`, `npm run dev`) pojawi się wraz z modułem 1
-— ta sekcja zostanie wtedy rozbudowana.

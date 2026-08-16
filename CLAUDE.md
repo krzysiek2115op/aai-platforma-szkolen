@@ -33,11 +33,31 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 
 - Wersja: patrz CHANGELOG. Diagram Pluginu 1 zatwierdzony po 3 poprawkach
   właściciela (tory → wystrzał → +kanał JSON).
-- Localhost: strona główna `:3000` (klon, podgląd wyglądu); Plugin 1 → `:3001`.
-- **NASTĘPNY KROK: Dział 1 Pluginu 1** na branchu `plugin-1-sklep-kursow`:
-  1. pobrać dokumentację (Next.js 16 App Router, Tailwind 4) do
-     `docs/dokumentacja-techniczna/d1/` + `ZRODLA.md` (URL, data, wersja),
-  2. szkielet Next.js 16 + TS + Tailwind 4, design wg strony głównej,
-     dev na porcie **3001**,
-  3. strażnicy: `straznik-granic`, `straznik-ci`,
-  4. bramka B1 = build + ocena właściciela na localhost.
+- Localhost: strona główna `:3000` (klon, podgląd wyglądu); Plugin 1 → `:3001`
+  (`npm run dev`, strona `/szkolenia`).
+- **Dział 1 ZBUDOWANY** (branch `feat/d1-fundament` → PR do
+  `plugin-1-sklep-kursow`): szkielet Next.js 16.3.1 + TS + Tailwind 4,
+  design „Volt" ze strony głównej, dokumentacja w
+  `docs/dokumentacja-techniczna/d1/`, `straznik-granic` + `straznik-ci`,
+  job CI lint→tsc→build. Wersje pakietów jak na stronie głównej (next pinned).
+- Decyzja właściciela (2026-08-17): wejście do `/szkolenia` z paska menu
+  strony głównej. Na podglądzie: **lokalna, NIEcommitowana** zmiana w klonie
+  (`data/navigation.ts` — link `http://localhost:3001/szkolenia`; repo
+  strony głównej pozostaje read-only, nic nie pushujemy). Przy finalnym
+  merge do matthewplugins.pl dopisać `{ label: "Szkolenia", href: "/szkolenia" }`
+  do `navLinks`.
+- **NASTĘPNY KROK: bramka B1** — ocena właściciela na `localhost:3001`
+  (wygląd zgodny ze stroną główną?). Po akceptacji B1 → **Dział 2**:
+  baza `db1_kursy` (PostgreSQL w Dockerze, migracje SQL, triggery audytu
+  → `course_changelog`) + dokumentacja D2 (PostgreSQL triggery/plpgsql/JSONB,
+  node-postgres) do `docs/dokumentacja-techniczna/d2/`; 🏷 release po B2.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
