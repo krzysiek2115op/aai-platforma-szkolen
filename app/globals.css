@@ -160,6 +160,57 @@
   top: 1rem;
 }
 
+/*
+ * Wejścia elementów w widok (components/ui/Reveal.tsx) — stan ukryty
+ * istnieje tylko pod html.js: brak JavaScriptu = treść widoczna od razu.
+ * Klasę `js` dokłada inline skrypt z layout.tsx i zdejmuje ją, gdy
+ * hydratacja nie nastąpi w zadanym czasie.
+ */
+html.js .reveal {
+  opacity: 0;
+  transform: var(--reveal-from, translateY(26px));
+}
+
+html.js .reveal-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.3s ease-out var(--reveal-delay, 0s),
+    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) var(--reveal-delay, 0s);
+}
+
+/* Przejście między podstronami (app/template.tsx). */
+html.js .page-enter {
+  animation: page-enter 0.3s ease-out both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/*
+ * Impuls zasilania w stopce (components/Footer.tsx). Rect z gradientem
+ * przejeżdża przez maskę SVG (szyna + wordmark) i znika za prawą
+ * krawędzią. Jednostki px w transformie SVG = jednostki viewBoxu:
+ * 1760 = 1200 (szerokość viewBoxu) + 560 (szerokość rectu).
+ */
+.fw-impuls {
+  animation: fw-impuls 7s cubic-bezier(0.7, 0.05, 0.3, 0.95) infinite;
+}
+
+@keyframes fw-impuls {
+  0% {
+    transform: translateX(0);
+  }
+  38%,
+  100% {
+    transform: translateX(1760px);
+  }
+}
+
 /* Pulsująca kropka statusu (stopka HUD). */
 .status-dot {
   animation: puls-statusu 2.4s ease-out infinite;
@@ -177,10 +228,36 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .status-dot {
-    animation: none;
+  .status-dot,
+  /* rect impulsu zostaje w pozycji startowej poza kadrem — wordmark statyczny */
+  .fw-impuls {
+    animation: none !important;
   }
   .btn-sheen::after {
     transition: none;
+    display: none;
+  }
+  /* treść od razu na miejscu, bez ruchu i bez czekania na obserwator */
+  html.js .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  html.js .reveal-in {
+    transition: none;
+  }
+  html.js .page-enter {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  /*
+   * Dekoracyjny wordmark w stopce: system wymusiłby na tekście SVG kolor
+   * CanvasText i z cienia marki zrobiłby drugi, gigantyczny napis.
+   * Canvas z pyłem danych to czysta dekoracja — znika razem z nim.
+   */
+  .fw-svg,
+  .fw-canvas {
+    display: none;
   }
 }

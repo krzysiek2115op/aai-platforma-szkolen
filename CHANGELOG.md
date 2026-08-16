@@ -19,8 +19,11 @@ na localhost:3001).
   utilities `container-site`/`bg-grid`/`panel`/maski, efekty CTA.
 - Strona [/szkolenia](app/szkolenia/page.tsx): hero wg wzorca PageHero,
   siatka kart-placeholderów (prawdziwe kursy z bazy od Działu 4), pasek CTA;
-  korzeń `/` przekierowuje na `/szkolenia`. Nagłówek i stopka wg strony
-  głównej ([components/](components/)).
+  korzeń `/` przekierowuje na `/szkolenia`. Nagłówek wg strony głównej;
+  **stopka przejęta 1:1** (uwaga właściciela przy B1): HUD statusu,
+  statement, SVG wordmark na szynie zasilającej z impulsem, scena canvas
+  „pył danych" (FooterScene), animacje wejść Reveal z wyłącznikiem
+  bezpieczeństwa `html.js` i przejścia stron (template.tsx).
 - Stub publicznego API modułu ([modules/m1-sklep/index.ts](modules/m1-sklep/index.ts))
   — jedyna przyszła warstwa z dostępem do bazy.
 - **straznik-granic** — klient SQL i connection stringi tylko w `modules/`,

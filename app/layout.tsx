@@ -28,6 +28,20 @@ export default function RootLayout({
       className={`${GeistSans.variable} ${GeistMono.variable}`}
     >
       <body>
+        {/*
+          Wyłącznik bezpieczeństwa animacji (wzorzec strony głównej):
+          klasa `js` włącza stany ukryte animacji wejść; jeśli hydratacja
+          nie potwierdzi się w 4 s (template.tsx ustawia data-hydrated),
+          klasa znika i treść jest widoczna bez animacji.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){var d=document.documentElement;d.classList.add('js');" +
+              "setTimeout(function(){if(!d.hasAttribute('data-hydrated'))" +
+              "d.classList.remove('js')},4000)})()",
+          }}
+        />
         <a href="#tresc" className="skip-link">
           Przejdź do treści
         </a>
