@@ -20,9 +20,10 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.2.0** |
-| **Etap** | fundament repo + plan + wytyczne; kod aplikacji jeszcze nie powstał |
-| **Aktywny moduł** | żaden — czekamy na diagram planu od właściciela |
+| **Wersja** | **0.3.0** |
+| **Etap** | diagram Pluginu 1 gotowy do oceny właściciela; kod aplikacji jeszcze nie powstał |
+| **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
+| **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (od Działu 1) |
 | **Licencja** | GPL-2.0 ([LICENSE](LICENSE)) |
 | **Produkcja** | brak — docelowo hosting Node.js/VPS, merge do repo strony głównej po akceptacji całości |
 
