@@ -5,6 +5,15 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.3.4] — 2026-08-17
+
+### Dodane
+- [CLAUDE.md](CLAUDE.md) — strażnik ciągłości kontekstu: auto-ładowany
+  w każdej sesji, wskazuje dokumenty źródłowe, twarde zasady i NASTĘPNY
+  KROK; aktualizowany przy każdym kroku zmieniającym stan projektu.
+  Uzupełnia goldena przed-clear (pamięć Claude): przed każdym /clear
+  sweep rozmowy — decyzje na nośnik trwały, zero strat.
+
 ## [0.3.3] — 2026-08-16
 
 ### Zmienione
