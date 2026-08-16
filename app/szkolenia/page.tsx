@@ -36,8 +36,9 @@ export default function StronaSzkolenia() {
         <div aria-hidden className="bg-grid mask-fade-y absolute inset-0" />
         <div
           aria-hidden
-          className="absolute -top-32 right-[8%] size-[26rem] rounded-full bg-volt/[0.06] blur-[110px]"
+          className="glow-breathe absolute -top-32 right-[8%] size-[26rem] rounded-full bg-volt/[0.06] blur-[110px]"
         />
+        <div aria-hidden className="grain absolute inset-0 opacity-[0.04]" />
         <div className="container-site relative pt-28 pb-10 md:pt-36 md:pb-14">
           <p className="font-mono text-xs tracking-[0.25em] text-volt uppercase">
             [ Szkolenia ]
@@ -52,8 +53,13 @@ export default function StronaSzkolenia() {
         </div>
       </header>
 
-      {/* Katalog — siatka kart (placeholder do Działu 4) */}
-      <section id="katalog" className="container-site pb-16 md:pb-24">
+      {/* Katalog — siatka kart (placeholder do Działu 4). Linia border-t
+          w kontenerze to „horyzont", na którym kończy się kratka hero —
+          ten sam wzorzec co lista na /realizacje strony głównej. */}
+      <section
+        id="katalog"
+        className="container-site border-t border-line pt-8 pb-16 md:pt-10 md:pb-24"
+      >
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-volt">
           [ 01 · Katalog ]
         </p>
