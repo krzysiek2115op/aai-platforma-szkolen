@@ -20,7 +20,7 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.3.0** |
+| **Wersja** | **0.3.1** |
 | **Etap** | diagram Pluginu 1 gotowy do oceny właściciela; kod aplikacji jeszcze nie powstał |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (od Działu 1) |

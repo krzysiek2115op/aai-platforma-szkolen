@@ -57,46 +57,44 @@ flowchart TB
 🏷 Release'y pośrednie: po B2 (baza działa) i po B5 (sklep widoczny) —
 większe kroki wg CONTRIBUTING.
 
-## 2. Przepływ danych — zasada BAZA → DZIAŁ → STRONA
+## 2. Przepływ danych — każdy dział ma WŁASNY TOR (poprawka właściciela)
 
-Jak w mp-offer-automation-suite: strona (przeglądarka) NIGDY nie gada
-z bazą. Każde żądanie AJAX idzie do warstwy działu (API), dział czyta bazę,
-odpowiedź wraca tą samą drogą.
+Jak w mp-offer-automation-suite: dane idą **BAZA —AJAX→ DZIAŁ —JSON→
+STRONA**, a każdy dział ma swój **osobny tor** i nie dotyka torów innych
+działów. Nie ma jednego wspólnego kanału z bazy do wszystkich — baza
+rozmawia z KAŻDYM działem osobno, dział oddaje JSON tylko SWOJEJ stronie.
 
 ```mermaid
 flowchart LR
-    subgraph STRONA["STRONA (przeglądarka)"]
-        S1["/szkolenia<br/>katalog"]
-        S2["/szkolenia/[slug]<br/>strona sprzedażowa"]
-        S3["/szkolenia/kreator<br/>panel tworzenia"]
+    subgraph TOR1["TOR KATALOGU — nie dotyka innych torów"]
+        B1[("db1_kursy")] ---|"AJAX"| A1["DZIAŁ: endpoint listy kursów<br/>+ walidacja Zod"] ---|"JSON"| S1["STRONA /szkolenia"]
     end
-
-    subgraph DZIAL["DZIAŁ (API modułu m1-sklep)"]
-        A1["GET /api/szkolenia/courses"]
-        A2["GET /api/szkolenia/courses/[slug]"]
-        A3["POST/PUT/DELETE<br/>/api/szkolenia/admin/courses"]
-        Z["walidacja Zod<br/>na wejściu i wyjściu"]
-    end
-
-    subgraph BAZA["BAZA db1_kursy (PostgreSQL)"]
-        T1[(courses)]
-        T2[(course_sections<br/>course_modules<br/>course_lessons)]
-        T3[(course_changelog<br/>— pisany TRIGGERAMI,<br/>nie kodem aplikacji)]
-    end
-
-    BAZA -->|"wiersze"| DZIAL -->|"JSON po walidacji"| STRONA
-    STRONA -.->|"żądanie AJAX/fetch"| DZIAL -.->|"SQL (tylko własna baza)"| BAZA
-    T1 --- T3
-    T2 --- T3
 ```
 
-Twarde konsekwencje:
-- komponenty stron nie importują klienta bazy — dostęp do SQL ma wyłącznie
-  katalog `modules/m1-sklep/db/`; przypilnuje tego **straznik-granic**
-  (powstanie w Dziale 1);
+```mermaid
+flowchart LR
+    subgraph TOR2["TOR STRONY SPRZEDAŻOWEJ — nie dotyka innych torów"]
+        B2[("db1_kursy")] ---|"AJAX"| A2["DZIAŁ: endpoint szczegółów kursu<br/>+ walidacja Zod"] ---|"JSON"| S2["STRONA /szkolenia/[slug]"]
+    end
+```
+
+```mermaid
+flowchart LR
+    subgraph TOR3["TOR KREATORA — nie dotyka innych torów"]
+        B3[("db1_kursy<br/>+ course_changelog<br/>pisany triggerami")] ---|"AJAX"| A3["DZIAŁ: endpointy CRUD kursów<br/>+ walidacja Zod"] ---|"JSON"| S3["STRONA /szkolenia/kreator"]
+    end
+```
+
+Twarde zasady torów:
+- **strona nigdy nie rozmawia z bazą** — zawsze przez swój dział;
+- **tor nie przecina toru** — endpoint katalogu nie obsługuje kreatora,
+  strona kreatora nie woła endpointu katalogu; awaria/zmiana jednego toru
+  nie rusza pozostałych;
+- dostęp do SQL ma wyłącznie katalog `modules/m1-sklep/db/`; przypilnuje
+  tego **straznik-granic** (powstanie w Dziale 1);
 - `course_changelog` piszą triggery PostgreSQL — kod aplikacji nie umie go
   ominąć ani sfałszować;
-- inne moduły (2, 3) w przyszłości też rozmawiają z działem 1 przez API,
+- przyszłe moduły (2, 3) rozmawiają z modułem 1 przez jego API,
   nigdy przez jego tabele.
 
 ## 3. Baza db1_kursy — schemat

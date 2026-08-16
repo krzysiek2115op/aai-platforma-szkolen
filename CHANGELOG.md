@@ -5,6 +5,14 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.3.1] — 2026-08-16
+
+### Zmienione
+- Diagram przepływu danych Pluginu 1 przerysowany po uwadze właściciela:
+  **każdy dział ma własny tor** BAZA —AJAX→ DZIAŁ —JSON→ STRONA i nie
+  dotyka torów innych działów; nie istnieje wspólny kanał z bazy do
+  wszystkich działów.
+
 ## [0.3.0] — 2026-08-16
 
 Diagram Pluginu 1 do oceny właściciela.
