@@ -1,0 +1,20 @@
+{
+  "_o_pliku": [
+    "Rejestr bledow, ktore REALNIE wystapily w tym projekcie.",
+    "Schemat przejety z projektu egzaminacyjnego '3 pluginy 3 bazy danych':",
+    "opisuje pomylki, ktore juz sie zdarzyly, wiec moga zdarzyc sie ponownie.",
+    "",
+    "Kazdy wpis odpowiada na cztery pytania:",
+    "  klasa    — do jakiej RODZINY pomylek nalezy (po tym szukamy nastepnych),",
+    "  dowod    — co konkretnie bylo zle,",
+    "  skutek   — co widzial uzytkownik / co sie psulo,",
+    "  test     — ktory test/golden wykrywa nawrot; pusty = brak, i to jest ustalenie.",
+    "",
+    "Pole `straznik` mowi, ktory straznik ma dzis wylapac ten blad automatycznie.",
+    "Pusty straznik przy klasie wykrywalnej automatycznie = zaleglosc do nadrobienia.",
+    "",
+    "Procedura naprawy wstecznej (.bak): docs/WYTYCZNE.md §1."
+  ],
+  "wersja": 1,
+  "bledy": []
+}
