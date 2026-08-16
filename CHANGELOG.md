@@ -5,6 +5,41 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.6.0] — 2026-08-17
+
+Dział 3 Pluginu 1 — dyspozytor (bramka B3: testy zielone, goldeny JSON,
+straznik-ajax potwierdza jeden kanał, audyt CRUD w changelogu).
+
+### Dodane
+- **Kanał JSON** (odczyt serwerowy — [modules/m1-sklep/odczyt.ts](modules/m1-sklep/odczyt.ts)):
+  `listaKursow` (katalog, tylko opublikowane), `szczegolyKursu`
+  (pełny kurs z sekcjami/modułami/lekcjami), `listaKursowKreatora`;
+  wyjście walidowane Zod-em.
+- **Dyspozytor — JEDEN AJAX** ([modules/m1-sklep/dyspozytor.ts](modules/m1-sklep/dyspozytor.ts)):
+  akcje `zapisz` (insert/edycja + pełna podmiana sekcji i modułów),
+  `usun`, `publikuj` — każda w osobnej transakcji z aktorem audytu
+  (`app.actor`); usuwanie jawnie od dołu, żeby każdy wpis changelogu
+  znał kurs; walidacja Zod na wejściu (czytelne błędy: `walidacja`,
+  `brak-dostepu`, `nie-znaleziono`, `duplikat`); dostęp tymczasowo
+  tokenem `KREATOR_TOKEN` (pełny auth da Plugin 3).
+- **Endpoint HTTP** [app/api/szkolenia/route.ts](app/api/szkolenia/route.ts) —
+  jedyny AJAX pluginu (POST), cienka warstwa nad dyspozytorem, bez SQL.
+- **Kontrakty Zod** ([modules/m1-sklep/typy.ts](modules/m1-sklep/typy.ts)):
+  karty/szczegóły kursu, akcje jako `discriminatedUnion`, typy TS
+  wyprowadzane ze schematów.
+- **straznik-ajax** — w app/api może istnieć tylko jeden endpoint na
+  moduł i żaden endpoint-sierota (WYTYCZNE §8).
+- **Testy B3** ([modules/m1-sklep/dyspozytor.test.ts](modules/m1-sklep/dyspozytor.test.ts),
+  razem 15/15): walidacja, token, zapis z audytem wszystkich tabel,
+  duplikat sluga, publikacja, edycja z podmianą modułów, usuwanie +
+  **golden odpowiedzi JSON** [goldeny/d3-odczyt.json](goldeny/d3-odczyt.json);
+  testy biegną sekwencyjnie (`--test-concurrency=1`, wspólna baza).
+- Dokumentacja techniczna D3 (WYTYCZNE N2) w
+  [docs/dokumentacja-techniczna/d3/](docs/dokumentacja-techniczna/d3/):
+  Next.js Route Handlers (reference + guide), Zod 4 (podstawy, API,
+  błędy) + ZRODLA.md.
+- `.env.example`: `KREATOR_TOKEN` (sekret lokalnie w `.env`).
+
 ## [0.5.0] — 2026-08-17
 
 Dział 2 Pluginu 1 — baza `db1_kursy` (bramka B2: testy dowodzą, że

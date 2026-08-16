@@ -2,11 +2,21 @@
  * Publiczne API modułu m1-sklep (Plugin 1 — sklep z kursami).
  *
  * To JEDYNE miejsce, z którego kod spoza modułu (app/, przyszłe moduły)
- * może importować — pilnuje straznik-granic. Moduł jest też jedyną
- * warstwą z dostępem do bazy db1_kursy (DB1_URL), zgodnie z przepływem
- * BAZA → DZIAŁ → STRONA (WYTYCZNE §8, DIAGRAM Pluginu 1).
+ * może importować — pilnuje straznik-granic. Moduł jest jedyną warstwą
+ * z dostępem do bazy db1_kursy, zgodnie z przepływem BAZA → DZIAŁ →
+ * STRONA (WYTYCZNE §8, DIAGRAM Pluginu 1).
  *
- * Dział 1 zostawia moduł pusty: klient bazy dojdzie w Dziale 2,
- * kanał JSON (odczyt serwerowy) i dyspozytor AJAX — w Dziale 3.
+ * Dwa kanały (i tylko dwa):
+ *  - kanał JSON (odczyt serwerowy przy renderowaniu): listaKursow,
+ *    szczegolyKursu, listaKursowKreatora,
+ *  - kanał AJAX „wystrzał" (akcje po załadowaniu strony): obsluzAkcje —
+ *    podpięty pod JEDYNY endpoint app/api/szkolenia (straznik-ajax).
  */
-export {};
+export { listaKursow, listaKursowKreatora, szczegolyKursu } from "./odczyt.ts";
+export { obsluzAkcje } from "./dyspozytor.ts";
+export {
+  KartaKursu,
+  SzczegolyKursu,
+  AkcjaDyspozytora,
+  type WynikDyspozytora,
+} from "./typy.ts";
