@@ -23,10 +23,14 @@ export default function SekcjaPozycjonowanie({
       etykieta={etykieta}
       tytul={
         <>
-          <span className="block text-steel">
+          {/* obie linie pełnym kolorem — właściciel odrzucił wyszarzenie
+              pierwszej linii jako zbędny efekt (feedback B5) */}
+          <span className="block">
             To NIE jest kolejny {typ} do odhaczenia.
           </span>
-          <span className="block">To system pracy, który zostaje z Tobą.</span>
+          <span className="block text-volt">
+            To system pracy, który zostaje z Tobą.
+          </span>
         </>
       }
     >

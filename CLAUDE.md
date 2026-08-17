@@ -114,12 +114,21 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   wszystkich sekcjach, hover-lift .unos, płynne akordeony
   (interpolate-size), micro-interakcje CTA — wszystko wyłączane przez
   prefers-reduced-motion.
+- **Druga tura feedbacku B5 wdrożona (0.12.0)**: (1) nagłówek
+  „Pozycjonowanie" bez wyszarzonej pierwszej linii (właściciel:
+  „przezroczystość = niepotrzebny dodatek") — obie linie pełnym
+  kolorem, druga volt; (2) sekcja Prowadzący rozbudowana (cytat
+  „dlaczego zrobiłem ten kurs", chipy „czym się zajmuje", atuty jako
+  karty, link do portfolio; TrescAutor +cytat/czym_sie_zajmuje/link);
+  (3) sekcja Dołącz mocno wyeksponowana — własne tło+ramka volt, pełne
+  punkty pakietu z opisami, sticky karta oferty z listą „w cenie"
+  i domknięciem, kotwica + gwarancja (TrescPakiet +w_cenie/domkniecie).
+  Treść obu kursów rozbudowana (robocza, zero zmyślonych warunków).
 - **NASTĘPNY KROK: bramka B5 = ocena właściciela na localhost:3001**
-  (dev działa; baza dev zaseedowana nową treścią). Jeśli „coś nie tak
-  z czcionką" nadal widoczne — poprosić właściciela o wskazanie
-  miejsca (infra fontów = 1:1 strona główna). Po zaliczeniu B5:
-  merge PR #12 + tag/release v0.11.0, potem Dział 6 (kreator,
-  z polami badge/level i WSZYSTKIMI rodzajami sekcji).
+  (dev działa; baza dev zaseedowana najnowszą treścią). Po zaliczeniu
+  B5: merge PR #12 + tag/release v0.12.0, potem Dział 6 (kreator,
+  z polami badge/level i WSZYSTKIMI rodzajami sekcji — w tym nowymi
+  polami autora i pakietu).
 - Stan PR: #12 (feat/d5-strona-sprzedazowa → plugin-1-sklep-kursow)
   otwarty; #13 zmergowany do feat/d5. Testy na db1_kursy_test.
 

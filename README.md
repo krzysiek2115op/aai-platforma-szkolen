@@ -20,7 +20,7 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.11.0** |
+| **Wersja** | **0.12.0** |
 | **Etap** | Dział 5 Pluginu 1 + redesign premium podstrony wg briefu właściciela — bramka B5 czeka na ocenę na `localhost:3001` |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |

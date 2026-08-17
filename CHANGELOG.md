@@ -5,6 +5,34 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.12.0] — 2026-08-17
+
+Trzy poprawki wg feedbacku właściciela do B5 (nagłówek pozycjonowania,
+sekcja Prowadzący, sekcja Dołącz).
+
+### Zmienione
+- **Nagłówek sekcji „Pozycjonowanie" bez wyszarzenia**: pierwsza linia
+  szła w `text-steel` i czytała się jak przezroczysty efekt — teraz obie
+  linie pełnym kolorem (druga akcentem volt).
+- **Sekcja „Prowadzący" rozbudowana** ([SekcjaAutor](components/kurs/SekcjaAutor.tsx)):
+  dwukolumnowy układ — wizytówka z bio i **cytatem „dlaczego zrobiłem
+  ten kurs"**, obok **czym zajmuje się na co dzień** (chipy) i atuty
+  jako osobne karty z kaskadą; link do portfolio. Kontrakt `TrescAutor`
+  + opcjonalne `cytat`, `czym_sie_zajmuje`, `link {url, etykieta}`.
+- **Sekcja „Dołącz" mocno wyeksponowana** ([SekcjaCena](components/kurs/SekcjaCena.tsx)):
+  wychodzi z rytmu strony — własne tło (grid + dwa dryfujące gradienty),
+  ramka volt, nagłówek „Co dokładnie dostajesz za X zł?" z realnymi
+  liczbami z bazy; lewa kolumna to **pełne punkty pakietu z opisami**,
+  prawa to sticky karta oferty: badge „Pełny dostęp", cena 5–6xl, lista
+  **„w cenie"**, zdanie domykające, CTA pełnej szerokości i link
+  powrotny do programu; pod spodem kotwica cenowa i gwarancja obok
+  siebie. Kontrakt `TrescPakiet` + opcjonalne `w_cenie`, `domkniecie`.
+- **Treść obu kursów rozbudowana** (robocza, bez zmyślonych warunków):
+  pakiety z konkretnymi opisami (6 pozycji na kurs), mocniejsze kotwice
+  cenowe, po 6 punktów „w cenie" (dostęp od razu, materiały od
+  pierwszego dnia, aktualizacje bez dopłat, dostęp bez limitu, kontakt,
+  gwarancja) oraz rozbudowane wizytówki prowadzącego.
+
 ## [0.11.0] — 2026-08-17
 
 Poprawki Course Detail System wg feedbacku właściciela do B5

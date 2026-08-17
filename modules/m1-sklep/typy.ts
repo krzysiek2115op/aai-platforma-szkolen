@@ -119,6 +119,10 @@ export const TrescPakiet = z.object({
   ),
   /** kotwica cenowa — z czym porównać cenę kursu */
   kotwica: z.string().optional(),
+  /** konkrety warunków zakupu pokazywane w sekcji oferty (co w cenie) */
+  w_cenie: z.array(z.string()).optional(),
+  /** zdanie domykające ofertę tuż nad CTA */
+  domkniecie: z.string().optional(),
 });
 
 export const TrescAutor = z.object({
@@ -126,6 +130,12 @@ export const TrescAutor = z.object({
   rola: z.string().optional(),
   bio: z.string(),
   atuty: z.array(z.string()).optional(),
+  /** osobisty powód stworzenia kursu — buduje zaufanie mocniej niż bio */
+  cytat: z.string().optional(),
+  /** czym zajmuje się na co dzień: konkretne obszary pracy */
+  czym_sie_zajmuje: z.array(z.string()).optional(),
+  /** dokąd zajrzeć po dowody (np. portfolio) */
+  link: z.object({ url: z.url(), etykieta: z.string() }).optional(),
 });
 
 /** „Dlaczego ten kurs" — sprzedajemy zmianę: problem → rozwiązanie → rezultat. */

@@ -152,14 +152,43 @@ const KURSY = [
         position: 0,
         content: {
           punkty: [
-            { tytul: "7 modułów wideo", opis: "Każdy krok pokazany na ekranie, bez skrótów." },
-            { tytul: "Biblioteka promptów", opis: "Gotowe prompty pod oferty, analizy i dokumenty." },
-            { tytul: "Szablony i checklisty", opis: "Pliki do pobrania — wdrażasz tego samego dnia." },
-            { tytul: "Dostęp bez limitu", opis: "Kupujesz raz, wracasz zawsze; aktualizacje w cenie." },
-            { tytul: "Gwarancja 30 dni", opis: "Nie działa u Ciebie? Oddajemy pieniądze." },
+            {
+              tytul: "7 modułów wideo (31 lekcji)",
+              opis: "Od pierwszej rozmowy po automatyzacje — każdy krok pokazany na ekranie, bez skrótów i bez „resztę doczytaj sam”.",
+            },
+            {
+              tytul: "Biblioteka promptów",
+              opis: "Gotowe prompty pod oferty, analizy dokumentów, maile i raporty — kopiujesz, podmieniasz dane firmy, używasz.",
+            },
+            {
+              tytul: "Szablony i checklisty",
+              opis: "Instrukcje projektów, zasady bezpieczeństwa danych i plan wdrożenia na 30 dni — do pobrania w plikach.",
+            },
+            {
+              tytul: "Ćwiczenia na Twoich plikach",
+              opis: "Nie na przykładowych „firmach ABC”, tylko na umowach, cennikach i raportach, z którymi pracujesz naprawdę.",
+            },
+            {
+              tytul: "Dostęp bez limitu + aktualizacje",
+              opis: "Kupujesz raz i wracasz zawsze. Gdy Claude się zmienia, nagrywamy poprawki — dostajesz je bez dopłat.",
+            },
+            {
+              tytul: "Gwarancja 30 dni",
+              opis: "Nie oszczędza Ci czasu? Piszesz jedno zdanie, oddajemy pieniądze — bez pytań o powód.",
+            },
           ],
           kotwica:
-            "Godzina konsultacji AI kosztuje więcej niż ten kurs — a kurs zostaje z Tobą na zawsze.",
+            "Jedna godzina konsultacji wdrożeniowej AI kosztuje w Polsce zwykle więcej niż ten kurs. Konsultacja się kończy — kurs, prompty i szablony zostają z Tobą na zawsze.",
+          w_cenie: [
+            "Dostęp od razu po zakupie, bez czekania na start edycji",
+            "Wszystkie 31 lekcji i materiały do pobrania od pierwszego dnia",
+            "Aktualizacje kursu bez dopłat",
+            "Dostęp bez limitu czasu — także po zmianie komputera",
+            "Pytania przed zakupem i po nim: odpowiadam osobiście",
+            "Gwarancja zwrotu przez 30 dni",
+          ],
+          domkniecie:
+            "Płacisz raz. Jeśli kurs oszczędzi Ci choć godzinę pracy tygodniowo, zwróci się szybciej niż jeden wieczór spędzony na szukaniu poradników.",
         },
       },
       {
@@ -169,11 +198,24 @@ const KURSY = [
           imie: "Matthew",
           rola: "MatthewPlugins.pl — AI i automatyzacje dla firm",
           bio: "Buduję systemy AI i automatyzacje, które realnie pracują w polskich firmach. W kursie pokazuję dokładnie ten warsztat, którego używam u klientów — bez teorii, której nie stosuję.",
+          cytat:
+            "Zrobiłem ten kurs, bo mam dość patrzenia, jak ktoś płaci za AI i dalej pisze wszystko ręcznie. Nie chodzi o narzędzie — chodzi o metodę, której nikt nie pokazuje.",
+          czym_sie_zajmuje: [
+            "wdrożenia AI w firmach",
+            "automatyzacje procesów",
+            "własne narzędzia i integracje",
+            "szkolenia zespołów",
+          ],
           atuty: [
             "wdrożenia AI w realnych firmach, nie na slajdach",
-            "własne narzędzia i integracje (portfolio na matthewplugins.pl)",
+            "własne narzędzia i integracje — kod, nie same slajdy",
             "uczę metodą „patrz i rób” — ekran, nie prezentacja",
+            "odpowiadam na pytania kursantów osobiście",
           ],
+          link: {
+            url: "https://matthewplugins.pl",
+            etykieta: "Zobacz moje projekty na matthewplugins.pl",
+          },
         },
       },
       {
@@ -453,28 +495,42 @@ const KURSY = [
         content: {
           punkty: [
             {
-              tytul: "6 modułów wideo",
-              opis: "Każdy krok na ekranie — od pustego folderu po zmergowany pull request.",
+              tytul: "6 modułów wideo (26 lekcji)",
+              opis: "Od pustego folderu po zmergowany pull request — cała droga na ekranie, komenda po komendzie.",
             },
             {
               tytul: "Ściągi komend",
-              opis: "Najważniejsze polecenia z opisem, KIEDY ich użyć — do pobrania.",
+              opis: "Najważniejsze polecenia z opisem, KIEDY ich użyć — jedna kartka zamiast dziesięciu zakładek w przeglądarce.",
             },
             {
               tytul: "Ćwiczenia na prawdziwym repozytorium",
-              opis: "Nie klikasz po slajdach — commitujesz, branchujesz i mergujesz naprawdę.",
+              opis: "Nie klikasz po slajdach — commitujesz, branchujesz, rozwiązujesz konflikt i mergujesz naprawdę.",
             },
             {
-              tytul: "Dostęp bez limitu",
-              opis: "Kupujesz raz, wracasz zawsze; aktualizacje w cenie.",
+              tytul: "Moduł ratunkowy",
+              opis: "Restore, revert, reset i najczęstsze „zepsułem repo” — wiesz, co zrobić, zanim wpadniesz w panikę.",
+            },
+            {
+              tytul: "Dostęp bez limitu + aktualizacje",
+              opis: "Kupujesz raz, wracasz zawsze. Zmienia się interfejs GitHuba? Poprawki dostajesz bez dopłat.",
             },
             {
               tytul: "Gwarancja 30 dni",
-              opis: "Nie działa u Ciebie? Oddajemy pieniądze.",
+              opis: "Nie czujesz się pewnie z commitami i pull requestami? Oddajemy pieniądze — bez pytań.",
             },
           ],
           kotwica:
-            "Jedna zgubiona wersja projektu kosztuje więcej nerwów niż ten kurs pieniędzy.",
+            "Jeden wieczór odzyskiwania nadpisanej pracy kosztuje więcej nerwów niż ten kurs pieniędzy — a bez systemu taki wieczór wraca co kilka miesięcy.",
+          w_cenie: [
+            "Dostęp od razu po zakupie, bez czekania na start edycji",
+            "Wszystkie 26 lekcji i ściągi do pobrania od pierwszego dnia",
+            "Ćwiczeniowe repozytorium do pracy krok po kroku",
+            "Aktualizacje kursu bez dopłat",
+            "Dostęp bez limitu czasu — wracasz, kiedy zapomnisz komendy",
+            "Gwarancja zwrotu przez 30 dni",
+          ],
+          domkniecie:
+            "Płacisz raz i przestajesz bać się własnego projektu. Pierwsze cofnięte zmiany zamiast straconej pracy zwracają ten wydatek natychmiast.",
         },
       },
       {
@@ -484,11 +540,24 @@ const KURSY = [
           imie: "Matthew",
           rola: "MatthewPlugins.pl — narzędzia i automatyzacje",
           bio: "Prowadzę projekty na GitHubie na co dzień — od własnych narzędzi po pracę z klientami. W kursie pokazuję dokładnie ten przepływ pracy, którego sam używam, z wpadkami, które sam zaliczyłem.",
+          cytat:
+            "Pamiętam swój folder „projekt_final_v7”. Nikt mi wtedy nie powiedział, że wystarczy kilka komend, żeby przestać się bać o własną pracę — ten kurs jest po to, żebyś Ty nie stracił na to roku.",
+          czym_sie_zajmuje: [
+            "projekty open source i klienckie",
+            "praca zespołowa przez pull requesty",
+            "automatyzacja publikowania",
+            "code review",
+          ],
           atuty: [
             "codzienna praca na GitHubie przy własnych i klienckich projektach",
-            "publicznie dostępne narzędzia (portfolio na matthewplugins.pl)",
+            "publicznie dostępne repozytoria — możesz sprawdzić, jak pracuję",
             "uczę metodą „patrz i rób” — ekran, nie prezentacja",
+            "pokazuję też, jak wyjść z sytuacji, gdy coś pójdzie nie tak",
           ],
+          link: {
+            url: "https://matthewplugins.pl",
+            etykieta: "Zobacz moje projekty na matthewplugins.pl",
+          },
         },
       },
       {
