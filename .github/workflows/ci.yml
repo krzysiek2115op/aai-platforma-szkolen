@@ -80,6 +80,13 @@ jobs:
       - name: Testy modułów
         run: npm test
 
+      # Dowód B4: produkcyjny serwer renderuje katalog Z BAZY (golden HTML).
+      - name: Build pod smoke
+        run: npm run build
+
+      - name: Smoke katalogu /szkolenia
+        run: node tools/smoke/smoke-d4.ts
+
   security:
     name: Skan sekretów
     runs-on: ubuntu-latest
