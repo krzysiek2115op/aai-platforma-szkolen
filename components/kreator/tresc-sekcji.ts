@@ -48,17 +48,33 @@ export function trescDoFormularza(opis: OpisSekcji, zBazy: unknown): Tresc {
       wynik[pole.pole] = pustaWartoscPola(pole);
       continue;
     }
+    // Kształt z bazy bierzemy z ograniczonym zaufaniem: to JSONB, a do
+    // bazy pisze też seed i (kiedyś) ręczny SQL. Wartość w złym
+    // kształcie zamieniamy na pustą — edytor ma pozwolić NAPRAWIĆ taki
+    // rekord, a nie wysypać się przy jego wczytywaniu.
     if (pole.typ === "obiekt") {
-      const obiekt = wartosc as Record<string, unknown>;
+      const obiekt =
+        typeof wartosc === "object" && !Array.isArray(wartosc)
+          ? (wartosc as Record<string, unknown>)
+          : {};
       wynik[pole.pole] = Object.fromEntries(
         pole.pola.map((p) => [p.pole, obiekt[p.pole] ?? ""])
       );
     } else if (pole.typ === "lista-obiektow") {
-      wynik[pole.pole] = (wartosc as Array<Record<string, unknown>>).map((el) =>
-        Object.fromEntries(pole.pola.map((p) => [p.pole, el[p.pole] ?? ""]))
+      const lista = Array.isArray(wartosc)
+        ? (wartosc as Array<Record<string, unknown>>)
+        : [];
+      wynik[pole.pole] = lista.map((el) =>
+        Object.fromEntries(
+          pole.pola.map((p) => [p.pole, (el ?? {})[p.pole] ?? ""])
+        )
       );
+    } else if (pole.typ === "lista-tekstow") {
+      wynik[pole.pole] = Array.isArray(wartosc)
+        ? wartosc.map((t) => String(t ?? ""))
+        : [];
     } else {
-      wynik[pole.pole] = wartosc;
+      wynik[pole.pole] = typeof wartosc === "string" ? wartosc : "";
     }
   }
   return wynik;
@@ -130,8 +146,34 @@ export function brakujacePola(opis: OpisSekcji, stan: Tresc): string[] {
   const braki: string[] = [];
 
   for (const pole of opis.pola) {
-    if (!pole.wymagane) continue;
     const wartosc = stan[pole.pole];
+
+    // Pole OPCJONALNE, ale ZACZĘTE, musi być dokończone: obiekt `link`
+    // autora z samą etykietą i bez adresu przechodzi przez „opcjonalne",
+    // a kontrakt go odrzuci — sekcja świeciłaby „gotowa", a zapis by
+    // padał. Pusty w całości → nadal opcjonalny, zero hałasu.
+    if (!pole.wymagane) {
+      if (pole.typ === "obiekt") {
+        const obiekt = (wartosc as Record<string, unknown>) ?? {};
+        const zaczety = pole.pola.some((p) => !pustyTekst(obiekt[p.pole]) && obiekt[p.pole] !== undefined);
+        if (zaczety && pole.pola.some((p) => p.wymagane && pustyTekst(obiekt[p.pole]))) {
+          braki.push(pole.etykieta);
+        }
+      } else if (pole.typ === "lista-obiektow") {
+        const lista = (wartosc as Array<Record<string, unknown>>) ?? [];
+        const zaczete = lista.filter((el) =>
+          pole.pola.some((p) => !pustyTekst(el?.[p.pole]) && el?.[p.pole] !== undefined)
+        );
+        if (
+          zaczete.some((el) =>
+            pole.pola.some((p) => p.wymagane && pustyTekst(el?.[p.pole]))
+          )
+        ) {
+          braki.push(pole.etykieta);
+        }
+      }
+      continue;
+    }
 
     if (pole.typ === "lista-tekstow") {
       const lista = ((wartosc as string[]) ?? []).filter((t) => t?.trim());

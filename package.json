@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint",
-    "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"modules/**/*.test.ts\"",
+    "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"modules/**/*.test.ts\" \"components/**/*.test.ts\" \"lib/**/*.test.ts\"",
     "db1:up": "podman compose up -d db1",
     "db1:migruj": "node --env-file-if-exists=.env modules/m1-sklep/db/migruj.ts",
     "db1:seed": "node --env-file-if-exists=.env tools/seed/seed-przyklady.ts"

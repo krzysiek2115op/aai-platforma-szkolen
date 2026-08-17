@@ -71,8 +71,17 @@ const KURS_WEJSCIE = {
   price_grosze: 49900,
   cover_url: null,
   sections: [
-    { kind: "hero", position: 0, content: { naglowek: "Zbuduj system AI" } },
-    { kind: "faq", position: 0, content: { pytanie: "Dla kogo?" } },
+    // treść zgodna z kontraktem SWOJEGO rodzaju — dyspozytor sprawdza
+    // to od 0.16.1 (wcześniej wpuszczał dowolny obiekt, a sekcja
+    // znikała potem ze strony bez słowa wyjaśnienia)
+    { kind: "hero", position: 0, content: { obietnica: "Zbuduj system AI" } },
+    {
+      kind: "faq",
+      position: 0,
+      content: {
+        pytania: [{ pytanie: "Dla kogo?", odpowiedz: "Dla praktyków." }],
+      },
+    },
   ],
   modules: [
     {
@@ -93,6 +102,31 @@ test("walidacja Zod: śmieciowe wejście → czytelny błąd, bez dotykania bazy
   const wynik = await obsluzAkcje({ akcja: "zapisz", token: TOKEN, kurs: { title: 42 } });
   assert.equal(wynik.ok, false);
   assert.equal(!wynik.ok && wynik.blad, "walidacja");
+});
+
+test("sekcja o treści niezgodnej z jej rodzajem → odrzucona ze ścieżką do pola", { skip: !JEST_BAZA }, async () => {
+  const wynik = await obsluzAkcje({
+    akcja: "zapisz",
+    token: TOKEN,
+    kurs: {
+      slug: "sekcja-nie-do-pary",
+      title: "Sekcja nie do pary",
+      type: "kurs",
+      price_grosze: 100,
+      // hero bez obietnicy: strona i tak pominęłaby taką sekcję,
+      // więc baza nie ma prawa jej przyjąć
+      sections: [{ kind: "hero", position: 0, content: { cokolwiek: 1 } }],
+    },
+  });
+  assert.equal(wynik.ok, false);
+  assert.equal(!wynik.ok && wynik.blad, "walidacja");
+  const pola = (!wynik.ok ? (wynik.szczegoly as Array<{ pole: string }>) : []).map(
+    (s) => s.pole
+  );
+  assert.ok(
+    pola.includes("kurs.sections.0.content.obietnica"),
+    `błąd ma wskazywać konkretne pole sekcji, dostałem: ${JSON.stringify(pola)}`
+  );
 });
 
 test("zły token → brak-dostepu", { skip: !JEST_BAZA }, async () => {

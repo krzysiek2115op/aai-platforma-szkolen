@@ -5,6 +5,54 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.16.1] — 2026-08-17
+
+Naprawy z przeglądu kodu całego Działu 6 (przed bramką B6). Zgodnie
+z zasadą właściciela: **każdy błąd dostaje strażnika albo test**, żeby
+nie miał jak wrócić.
+
+### Naprawione
+- **BLAD-005 — pole ceny kasowało wpis w trakcie pisania.** Kontrolka
+  była sterowana wartością przeliczoną z groszy, więc stan pośredni
+  („199,") wracał jako pusty string, `Number("")` dawało 0 i pole samo
+  czyściło wpis: ceny z groszami były nie do wpisania, a kurs mógł
+  zostać zapisany za 0 zł. Przeliczanie wydzielone do
+  `components/kreator/cena.ts` (`naGrosze` oddaje `null` dla stanu
+  w połowie pisania — zapisanej ceny wtedy nie ruszamy), przecinek
+  równoważny kropce. **Test**: runda grosze → tekst → grosze.
+- **BLAD-006 — dyspozytor przyjmował treść sekcji niezgodną z jej
+  rodzajem.** Kształt `content` sprawdzała dopiero strona (safeParse),
+  więc zapis „przechodził", a sekcja po cichu znikała ze strony bez
+  słowa wyjaśnienia. Teraz `SekcjaWejscie` waliduje treść schematem
+  swojego rodzaju i zwraca **ścieżkę do konkretnego pola**; kreator
+  tłumaczy pozycję w tablicy na rodzaj sekcji i przeskakuje na
+  właściwą zakładkę. **Test**: odrzucenie hero bez obietnicy ze
+  ścieżką `kurs.sections.0.content.obietnica`.
+- **Slug: nie dało się wpisać myślnika** — pełna normalizacja przy
+  każdym znaku ucinała końcowy myślnik, więc „moj-kurs" stawało się
+  „mojkurs". Przy pisaniu działa łagodniejsza normalizacja, porządki
+  robią się przy opuszczeniu pola i przy zapisie.
+- **Sekcja świeciła „gotowa", a zapis padał** — zaczęte pole
+  opcjonalne (np. link autora z etykietą, bez adresu) nie było liczone
+  jako brak. Teraz jest: puste w całości pozostaje opcjonalne, zaczęte
+  musi być dokończone.
+- **Zły kształt treści w bazie wysadzał edytor** (500 na
+  `.map` nie-tablicy), czyli rekordu nie dało się naprawić z panelu.
+  Wczytywanie traktuje JSONB z ograniczonym zaufaniem.
+- **Ręczna odmiana liczebników** w nagłówku kreatora („3 w bazie") →
+  `lib/odmiana.ts`. Nowy **`straznik-odmiany`** wyłapuje ternary
+  odmieniające polskie słowa na piechotę (dwie formy nigdy nie
+  wystarczą — polski ma trzy).
+
+### Zmienione
+- `npm test` obejmuje teraz także `components/**` i `lib/**` — błędy
+  z warstwy panelu (pola formularza) nie były widoczne ani dla testów
+  modułu, ani dla smoke'ów.
+- Fixtury sekcji w testach D3 poprawione do zgodnych z kontraktem;
+  golden `goldeny/d3-odczyt.json` odtworzony świadomie (diff obejmuje
+  wyłącznie te dwie sekcje). Sprawdzone, że zaostrzenie nie koliduje
+  z seedem właściciela — seed przechodzi na bazie `db1_kursy_test`.
+
 ## [0.16.0] — 2026-08-17
 
 Dział 6, krok 3 z 3: podgląd przed publikacją i instrukcja obsługi.

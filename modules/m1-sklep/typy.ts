@@ -227,11 +227,34 @@ export type SekcjaRodzajNazwa = keyof typeof SCHEMATY_SEKCJI;
 
 /* ————— kanał AJAX (wystrzał — akcje dyspozytora) ————— */
 
-const SekcjaWejscie = z.object({
-  kind: SekcjaRodzaj,
-  position: z.int().nonnegative(),
-  content: z.record(z.string(), z.unknown()).default({}),
-});
+/**
+ * Sekcja z kreatora. `content` NIE jest workiem na cokolwiek: musi
+ * przejść schemat SWOJEGO rodzaju.
+ *
+ * DLACZEGO TAK OSTRO. Strona sprzedażowa czyta sekcje przez safeParse
+ * i po cichu pomija te o złym kształcie — to dobra decyzja dla strony
+ * (jeden zły rekord nie wysadza całego kursu), ale fatalna jako jedyna
+ * kontrola: zapis „przechodził", a sekcja znikała ze strony bez słowa
+ * wyjaśnienia. Teraz zła treść nie ma prawa wejść do bazy, a kreator
+ * dostaje ścieżkę do konkretnego pola.
+ */
+const SekcjaWejscie = z
+  .object({
+    kind: SekcjaRodzaj,
+    position: z.int().nonnegative(),
+    content: z.record(z.string(), z.unknown()).default({}),
+  })
+  .superRefine((sekcja, ctx) => {
+    const wynik = SCHEMATY_SEKCJI[sekcja.kind].safeParse(sekcja.content);
+    if (wynik.success) return;
+    for (const problem of wynik.error.issues) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["content", ...problem.path],
+        message: problem.message,
+      });
+    }
+  });
 
 const LekcjaWejscie = z.object({
   position: z.int().nonnegative(),

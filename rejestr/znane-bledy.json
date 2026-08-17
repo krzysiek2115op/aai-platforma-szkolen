@@ -56,6 +56,26 @@
       "naprawa": "Wypelnienie `both` -> `backwards`: ten sam fade 0.3 s przy wejsciu na podstrone, ale po zakonczeniu animacji kontekst ukladania znika. Migawka sprzed naprawy: galaz bak/2026-08-17-pigulka-admina-pod-stopka.",
       "test": "pomiar w przegladarce (puppeteer-core + systemowy Firefox, scratchpad sesji): document.elementFromPoint w srodku pigulki po zescrollowaniu na sam dol oddaje link kreatora. Kontrola negatywna z `both` oddawala DIV stopki — pomiar wykrywa nawrot.",
       "straznik": "straznik-fixed (animacja z wypelnieniem forwards/both na klasie opakowujacej tresc; zweryfikowany testem negatywnym)"
+    },
+    {
+      "id": "BLAD-005",
+      "data": "2026-08-17",
+      "klasa": "formularz/pole-sterowane-liczba-kasuje-wpis-w-trakcie-pisania",
+      "dowod": "Pole ceny w kreatorze (components/kreator/Pola.tsx) bylo sterowane WARTOSCIA przeliczona z groszy: value={grosze/100}, a onChange robil Number(e.target.value). W trakcie pisania „199,90\" input type=number oddaje pusty string dla stanu posredniego („199,\"), Number(\"\") to 0 — pole samo kasowalo wpis. Ceny z groszami byly nie do wpisania, a wlasciciel mogl zapisac 0 zl w przekonaniu, ze wpisal 199,90 zl.",
+      "skutek": "Cicha strata pieniedzy: kurs opublikowany z bledna cena. Nie lapaly tego ani testy modulu (baza dostaje juz gotowa liczbe), ani smoke (HTML z serwera) — blad zyje wylacznie pod palcami piszacego.",
+      "naprawa": "Kontrolka trzyma WLASNY tekst, a przeliczanie wydzielone do components/kreator/cena.ts (zGroszy/naGrosze). `naGrosze` oddaje null dla stanu w polowie pisania — zapisanej ceny wtedy nie ruszamy. Przecinek rownowazny kropce (polska klawiatura numeryczna).",
+      "test": "components/kreator/kreator.test.ts — 3 testy ceny, w tym runda grosze -> tekst -> grosze; npm test obejmuje teraz takze components/** i lib/**",
+      "straznik": ""
+    },
+    {
+      "id": "BLAD-006",
+      "data": "2026-08-17",
+      "klasa": "kontrakt/walidacja-tylko-po-stronie-odczytu",
+      "dowod": "Dyspozytor przyjmowal `content` sekcji jako dowolny obiekt (z.record), bo ksztalt tresci sprawdzala dopiero strona sprzedazowa przez safeParse. Zapis „przechodzil\", baza przyjmowala tresc niezgodna z kontraktem rodzaju sekcji, a strona po cichu POMIJALA taka sekcje (co dla strony jest dobra decyzja: jeden zly rekord nie wysadza calego kursu). Dowod na zywym kodzie: sekcja `author` z etykieta linku i pustym adresem — kreator pokazywal „gotowa\", zapis konczyl sie sukcesem, a TrescAutor.safeParse zwracalo false, wiec sekcja nie pojawiala sie na stronie.",
+      "skutek": "Wlasciciel wpisuje tresc, zapisuje bez bledu i nie widzi jej na stronie — bez zadnej wskazowki, co jest nie tak. Stare fixtury testu D3 (hero z polem `naglowek`, faq z polem `pytanie`) byly wlasnie takimi rekordami-widmami.",
+      "naprawa": "SekcjaWejscie.superRefine w modules/m1-sklep/typy.ts sprawdza `content` schematem ze SCHEMATY_SEKCJI i zglasza bledy ze sciezka do konkretnego pola (kurs.sections.N.content.pole). Kreator tlumaczy pozycje w tablicy na rodzaj sekcji (components/kreator/formularz-logika.ts) i przeskakuje na wlasciwa zakladke. Fixtury D3 poprawione, golden d3-odczyt.json odtworzony swiadomie. Sprawdzone, ze zaostrzenie nie kolidowalo z seedem wlasciciela: seed uruchomiony na bazie db1_kursy_test przeszedl bez zmian.",
+      "test": "modules/m1-sklep/dyspozytor.test.ts — „sekcja o tresci niezgodnej z jej rodzajem → odrzucona ze sciezka do pola\"; components/kreator/kreator.test.ts — braki dla zacznietych pol opcjonalnych i mapowanie bledow na rodzaj sekcji",
+      "straznik": "straznik-kreatora (rozjazd kontrakt ↔ panel)"
     }
   ]
 }

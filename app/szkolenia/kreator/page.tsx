@@ -8,6 +8,7 @@ import ListaKursow, {
 import PasekKreatora from "@/components/kreator/PasekKreatora";
 import { Reveal } from "@/components/ui/Reveal";
 import { czyKreator } from "@/lib/kreator-dostep";
+import { odmien } from "@/lib/odmiana";
 import { listaKursowKreatora } from "@/modules/m1-sklep";
 
 export const metadata: Metadata = {
@@ -78,9 +79,12 @@ export default async function KreatorPage() {
                 <Link href="/szkolenia" className="text-fg underline decoration-line underline-offset-4 hover:decoration-volt">
                   /szkolenia
                 </Link>
-                , pochodzi stąd. {pozycje.length}{" "}
-                {pozycje.length === 1 ? "kurs" : "w bazie"}
-                {pozycje.length > 0 ? `, opublikowanych: ${opublikowane}` : ""}.
+                , pochodzi stąd. W bazie{" "}
+                {odmien(pozycje.length, "kurs", "kursy", "kursów")}
+                {pozycje.length > 0
+                  ? `, opublikowanych: ${opublikowane}`
+                  : ""}
+                .
               </p>
             </div>
 

@@ -17,6 +17,11 @@ import {
 } from "@/components/kreator/Pola";
 import { OPIS_WG_RODZAJU } from "@/components/kreator/opis-sekcji";
 import { oczyscTresc } from "@/components/kreator/tresc-sekcji";
+import {
+  przemapujBledySekcji,
+  slugWTrakcie,
+  slugZTytulu,
+} from "@/components/kreator/formularz-logika";
 import { bledyPol, komunikat, wystrzel } from "@/components/kreator/wystrzal";
 
 /**
@@ -77,19 +82,6 @@ const TYPY = [
   { wartosc: "ebook", tekst: "Ebook" },
 ];
 
-/** Tytuł → slug: właściciel nie musi go wymyślać ręcznie. */
-function slugZTytulu(tytul: string): string {
-  const znaki: Record<string, string> = {
-    ą: "a", ć: "c", ę: "e", ł: "l", ń: "n", ó: "o", ś: "s", ź: "z", ż: "z",
-  };
-  return tytul
-    .toLowerCase()
-    .replace(/[ąćęłńóśźż]/g, (z) => znaki[z] ?? z)
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120);
-}
-
 export default function FormularzKursu({
   poczatkowy,
 }: {
@@ -120,6 +112,7 @@ export default function FormularzKursu({
 
     // Tablice sections/modules = PEŁNA podmiana treści kursu (kontrakt
     // dyspozytora) — dlatego kreator zawsze wysyła komplet, a nie różnicę.
+    const kolejnoscSekcji = Object.keys(kurs.sekcje);
     const sections = Object.entries(kurs.sekcje).map(([kind, tresc]) => ({
       kind,
       position: 0, // strona bierze po jednej sekcji każdego rodzaju
@@ -157,8 +150,16 @@ export default function FormularzKursu({
     setZapisuje(false);
 
     if (!wynik.ok) {
+      const przemapowane = przemapujBledySekcji(bledyPol(wynik), kolejnoscSekcji);
       setBlad(komunikat(wynik));
-      setBledy(bledyPol(wynik));
+      setBledy(przemapowane);
+      // przeskocz na zakładkę, w której naprawdę jest problem — inaczej
+      // „popraw zaznaczone pola" wyświetla się nad formularzem, w którym
+      // nic nie jest zaznaczone
+      const klucze = Object.keys(przemapowane);
+      if (klucze.some((k) => k.startsWith("sections."))) setZakladka("sekcje");
+      else if (klucze.some((k) => k.startsWith("modules."))) setZakladka("program");
+      else if (klucze.length > 0) setZakladka("podstawy");
       return;
     }
     setZapisano(true);
@@ -254,8 +255,9 @@ export default function FormularzKursu({
             wartosc={kurs.slug}
             zmien={(v) => {
               setSlugAuto(false);
-              ustaw("slug", slugZTytulu(v));
+              ustaw("slug", slugWTrakcie(v));
             }}
+            przyOpuszczeniu={() => ustaw("slug", slugZTytulu(kurs.slug))}
             placeholder="jak-korzystac-z-claude"
             podpowiedz={`Strona kursu: /szkolenia/${kurs.slug || "…"}`}
             blad={bledy.slug}

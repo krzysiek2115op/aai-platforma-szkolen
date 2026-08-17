@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { naGrosze, zGroszy } from "@/components/kreator/cena";
 import { cn } from "@/lib/utils";
 
 /**
@@ -66,7 +67,8 @@ export function PoleTekst({
   placeholder,
   klasa,
   typ = "text",
-}: WspolneProps & { typ?: "text" | "url" }) {
+  przyOpuszczeniu,
+}: WspolneProps & { typ?: "text" | "url"; przyOpuszczeniu?: () => void }) {
   return (
     <label className={cn("block", klasa)}>
       <Etykieta wymagane={wymagane}>{etykieta}</Etykieta>
@@ -74,6 +76,7 @@ export function PoleTekst({
         type={typ}
         value={wartosc}
         onChange={(e) => zmien(e.target.value)}
+        onBlur={przyOpuszczeniu}
         placeholder={placeholder}
         aria-invalid={blad ? true : undefined}
         className={cn(KLASA_POLA, blad && "border-red-500/60")}
@@ -146,6 +149,13 @@ export function PoleWybor({
 /**
  * Cena po ludzku: właściciel wpisuje złotówki, baza trzyma grosze
  * (int — bez błędów zaokrągleń na kwotach).
+ *
+ * UWAGA NA POLE STEROWANE LICZBĄ. Kontrolka trzyma WŁASNY tekst, a nie
+ * wartość przeliczoną z groszy. Inaczej w trakcie pisania „199,90"
+ * przeglądarka na chwilę oddaje pusty string (stan „199,"), z pustego
+ * robi się 0 i pole samo kasuje to, co się właśnie wpisuje — cena
+ * z groszami byłaby nie do wpisania, a właściciel mógłby zapisać
+ * 0 zł w przekonaniu, że wpisał 199,90.
  */
 export function PoleCena({
   etykieta,
@@ -162,19 +172,35 @@ export function PoleCena({
   blad?: string;
   klasa?: string;
 }) {
+  const [tekst, setTekst] = useState(() => zGroszy(grosze));
+
+  // kurs przeładowany z serwera (np. po zapisie) — pole ma pokazać
+  // stan z bazy, ale nie w trakcie pisania przez właściciela
+  const [ostatnieGrosze, setOstatnieGrosze] = useState(grosze);
+  if (grosze !== ostatnieGrosze) {
+    setOstatnieGrosze(grosze);
+    if (naGrosze(tekst) !== grosze) setTekst(zGroszy(grosze));
+  }
+
   return (
     <label className={cn("block", klasa)}>
       <Etykieta wymagane>{etykieta}</Etykieta>
       <div className="relative">
         <input
-          type="number"
-          min={0}
-          step="0.01"
-          value={grosze === 0 ? "0" : String(grosze / 100)}
+          type="text"
+          inputMode="decimal"
+          value={tekst}
           onChange={(e) => {
-            const zlote = Number(e.target.value);
-            zmien(Number.isFinite(zlote) ? Math.round(zlote * 100) : 0);
+            // przecinek jak na polskiej klawiaturze numerycznej
+            const wpisane = e.target.value.replace(/[^\d.,]/g, "");
+            setTekst(wpisane);
+            const grosze = naGrosze(wpisane);
+            // null = stan w połowie pisania („199,”) — zapisanej ceny
+            // nie ruszamy, żeby pole nie kasowało tego, co się wpisuje
+            if (grosze !== null) zmien(grosze);
+            else if (wpisane === "") zmien(0);
           }}
+          onBlur={() => setTekst(zGroszy(grosze))}
           aria-invalid={blad ? true : undefined}
           className={cn(KLASA_POLA, "pr-12", blad && "border-red-500/60")}
         />
