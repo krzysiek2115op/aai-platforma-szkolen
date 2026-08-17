@@ -24,8 +24,9 @@ const GOLDEN = "goldeny/d4-katalog.html";
 
 // Konfigurację bazy sprawdza sam moduł (klient.ts) — przy braku
 // środowiska pierwszy seed padnie z czytelnym komunikatem.
-const { obsluzAkcje } = await import("../../modules/m1-sklep/index.ts");
-const { zamknijDb1 } = await import("../../modules/m1-sklep/db/klient.ts");
+const { obsluzAkcje, zamknijDb1 } = await import(
+  "../../modules/m1-sklep/index.ts"
+);
 
 const KURS_SMOKE = {
   slug: "smoke-d4-kurs",
@@ -73,9 +74,14 @@ try {
   assert.ok(html.includes("199,00"), "brak sformatowanej ceny w HTML");
   assert.ok(html.includes("/szkolenia/smoke-d4-kurs"), "brak linku do strony kursu");
 
-  // golden markupu siatki (od data-katalog do zamknięcia listy)
-  const siatka = html.match(/<ul[^>]*data-katalog[^>]*>[\s\S]*?<\/ul>/)?.[0];
-  assert.ok(siatka, "brak siatki [data-katalog] w HTML");
+  // golden PIERWSZEJ karty siatki (kurs smoke jest najnowszy → pierwszy);
+  // cała siatka nie nadaje się na golden, bo lokalna baza może mieć
+  // dodatkowe opublikowane kursy (seed przykładów do oceny)
+  const siatka = html.match(
+    /<ul[^>]*data-katalog[^>]*>\s*<li>[\s\S]*?<\/li>/
+  )?.[0];
+  assert.ok(siatka, "brak siatki [data-katalog] z kartą w HTML");
+  assert.ok(siatka.includes("smoke-d4-kurs"), "pierwsza karta to nie kurs smoke");
 
   if (process.env.GOLDEN_ZAPISZ) {
     writeFileSync(GOLDEN, siatka + "\n");

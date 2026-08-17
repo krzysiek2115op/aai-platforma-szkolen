@@ -5,6 +5,256 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.12.1] — 2026-08-17
+
+**Bramka B5 zaliczona przez właściciela (2026-08-17)** — Dział 5
+(katalog + strona sprzedażowa kursu) domknięty; następny krok:
+Dział 6 (kreator kursów).
+
+### Naprawione
+- **Pasek menu kursu znikał po zescrollowaniu w dół** (zgłosił właściciel
+  przy B5; rejestr: **BLAD-003**). Przyczyna nie była w samym pasku:
+  `@keyframes page-enter` animowały `transform`, a klasa `.page-enter`
+  z [app/template.tsx](app/template.tsx) opakowuje CAŁĄ treść podstrony —
+  element z animowanym transformem staje się układem odniesienia dla
+  `position: fixed` potomków, więc pasek i tło strony kursu były
+  przypięte do treści zamiast do okna. Navbar z layoutu działał
+  poprawnie (stoi poza `template`), co maskowało źródło.
+  Naprawa: przejście między podstronami animuje wyłącznie `opacity`.
+  Pomiar w headless Firefoxie: przed naprawą pasek po scrollu miał
+  `top: -9353px`, po naprawie `top: 0` przy `scrollY: 9353`.
+- Przy okazji wraca do poprawnej pracy poświata tła strony kursu
+  (`TloKursu`) — również `position: fixed`.
+
+### Dodane
+- `tools/straznicy/straznik-fixed.mjs` — blokuje powrót
+  `transform`/`filter`/`perspective` do klatek i reguł klasy
+  opakowującej treść (strażników jest teraz 10); zweryfikowany testem
+  negatywnym (po przywróceniu starego CSS zgłasza błąd i zwraca 1).
+- Wpis **BLAD-003** w [rejestr/znane-bledy.json](rejestr/znane-bledy.json);
+  migawka sprzed naprawy: gałąź `bak/2026-08-17-pasek-fixed-transform`
+  (procedura WYTYCZNE §1).
+
+## [0.12.0] — 2026-08-17
+
+Trzy poprawki wg feedbacku właściciela do B5 (nagłówek pozycjonowania,
+sekcja Prowadzący, sekcja Dołącz).
+
+### Zmienione
+- **Nagłówek sekcji „Pozycjonowanie" bez wyszarzenia**: pierwsza linia
+  szła w `text-steel` i czytała się jak przezroczysty efekt — teraz obie
+  linie pełnym kolorem (druga akcentem volt).
+- **Sekcja „Prowadzący" rozbudowana** ([SekcjaAutor](components/kurs/SekcjaAutor.tsx)):
+  dwukolumnowy układ — wizytówka z bio i **cytatem „dlaczego zrobiłem
+  ten kurs"**, obok **czym zajmuje się na co dzień** (chipy) i atuty
+  jako osobne karty z kaskadą; link do portfolio. Kontrakt `TrescAutor`
+  + opcjonalne `cytat`, `czym_sie_zajmuje`, `link {url, etykieta}`.
+- **Sekcja „Dołącz" mocno wyeksponowana** ([SekcjaCena](components/kurs/SekcjaCena.tsx)):
+  wychodzi z rytmu strony — własne tło (grid + dwa dryfujące gradienty),
+  ramka volt, nagłówek „Co dokładnie dostajesz za X zł?" z realnymi
+  liczbami z bazy; lewa kolumna to **pełne punkty pakietu z opisami**,
+  prawa to sticky karta oferty: badge „Pełny dostęp", cena 5–6xl, lista
+  **„w cenie"**, zdanie domykające, CTA pełnej szerokości i link
+  powrotny do programu; pod spodem kotwica cenowa i gwarancja obok
+  siebie. Kontrakt `TrescPakiet` + opcjonalne `w_cenie`, `domkniecie`.
+- **Treść obu kursów rozbudowana** (robocza, bez zmyślonych warunków):
+  pakiety z konkretnymi opisami (6 pozycji na kurs), mocniejsze kotwice
+  cenowe, po 6 punktów „w cenie" (dostęp od razu, materiały od
+  pierwszego dnia, aktualizacje bez dopłat, dostęp bez limitu, kontakt,
+  gwarancja) oraz rozbudowane wizytówki prowadzącego.
+
+## [0.11.0] — 2026-08-17
+
+Poprawki Course Detail System wg feedbacku właściciela do B5
+(5 punktów: czcionka/typografia, FAQ, pasek menu kursu, dłuższy
+program, animacje premium).
+
+### Dodane
+- **Pasek menu KURSU** ([PasekKursu](components/kurs/PasekKursu.tsx)
+  przeprojektowany): na stronie kursu globalny navbar ZNIKA
+  ([NavbarPrzelacznik](components/NavbarPrzelacznik.tsx)), zamiast
+  niego pływająca pigułka widoczna OD WEJŚCIA — znacznik „MP"
+  (powrót do katalogu), zakładki sekcji z podświetleniem aktywnej
+  (IntersectionObserver) i CTA „Dołącz"; bez JS pasek stoi (to jedyna
+  nawigacja strony kursu), animowany wjazd.
+- **Żywe tło strony kursu** ([TloKursu](components/kurs/TloKursu.tsx)):
+  poświata podążająca za kursorem (jedna pętla rAF, transform-only)
+  + dwa dryfujące bloby (keyframes CSS) pod całą treścią.
+- **Animacje premium** (globals.css): hover-lift kart `.unos`
+  (uniesienie + glow), płynne otwieranie akordeonów
+  (`interpolate-size` — progressive enhancement), micro-interaction
+  CTA (uniesienie przy hover, dociśnięcie przy kliknięciu), dryf
+  gradientów `.dryf-a/.dryf-b`, wjazd paska `.pasek-wjazd`; wejścia
+  Reveal/Cascade (fade + slide-up ze staggerem) we WSZYSTKICH
+  sekcjach strony kursu; całość wyłączana przez
+  `prefers-reduced-motion`.
+- **Polska odmiana liczebników** ([lib/odmiana.ts](lib/odmiana.ts)):
+  „2 moduły · 4 lekcje · 48 min materiału" zamiast „2 modułów ·
+  4 lekcji · 0.8 h materiału" — katalog (karty + HUD), hero kursu
+  i sekcja programu.
+
+### Zmienione
+- **FAQ rozbudowane do 10 pytań-obiekcji na kurs** (wzorzec stron
+  kursowych: dostęp od kiedy/na jak długo, ile czasu zajmie, „czy
+  dam radę", różnica vs darmowe materiały, bezpieczeństwo danych,
+  aktualizacje, gwarancja) — treść ROBOCZA, spójna z resztą oferty.
+- **Program znacznie dłuższy** (treść ROBOCZA pod szczegółowe
+  omówienie tematów): kurs Claude 7 modułów / 31 lekcji (~6,5 h),
+  kurs GitHub 6 modułów / 26 lekcji (~5 h); pakiety i korzyści
+  zaktualizowane do nowych liczb.
+- Golden `d5-program.html` odtworzony (Cascade + odmiana w programie);
+  `d4-katalog.html` bez zmian.
+
+## [0.10.0] — 2026-08-17
+
+Course Detail System wg wiążącego briefu właściciela
+([docs/plugin-1/BRIEF-STRONA-KURSU.md](docs/plugin-1/BRIEF-STRONA-KURSU.md),
+B5 iteracja 3): strona kursu = premium product page + sales page + mini
+sklep, złożona z reusable komponentów.
+
+### Dodane
+- **Reusable Course Detail System — [components/kurs/*](components/kurs/)**
+  (16 komponentów): `Wspolne` (Etykieta, CtaZakupu, szkielet sekcji),
+  `HeroKursu` (badge z realnymi liczbami z bazy, obietnica, „dla kogo",
+  cena, 2 CTA, OknoKursu), `PasekKursu` (sticky nawigacja po scrollu:
+  kotwice + aktywna sekcja z IntersectionObservera + CTA; progressive
+  enhancement — bez JS strona kompletna), `SekcjaProblem` (wstęp-empatia
+  + PROBLEM → ROZWIĄZANIE → REZULTAT), `SekcjaKorzysci`, `SekcjaPakiet`
+  (+ kotwica cenowa), `SekcjaProgram` (akordeon z czasem modułów),
+  `SekcjaPlatforma` („tak wygląda produkt po zakupie" — OknoKursu
+  z prawdziwych danych), `SekcjaPozycjonowanie` (to NIE jest / to JEST),
+  `SekcjaDlaKogo`, `SekcjaTransformacja` (przed / po), `SekcjaOpinie`,
+  `SekcjaAutor`, `SekcjaCena` („ZA X ZŁ OTRZYMUJESZ ✓…" + gwarancja
+  przy cenie + link powrotny do programu), `SekcjaPorownanie`
+  (samodzielna nauka vs kurs, nieagresywnie), `SekcjaFaq` (+ kontakt
+  pod FAQ), `FinalCta`. Kolejność sekcji = psychologia scrolla briefu;
+  sekcje bez treści w bazie znikają, numeracja liczy się dynamicznie.
+- Kontrakty: `SzczegolyKursu` + `badge`/`level` (hero pokazuje poziom),
+  `TrescHero` + opcjonalne `dla_kogo`.
+- Utility `scrollbar-none` (pas kotwic sticky nav na mobile).
+- Smoke D5 sprawdza dodatkowo: sekcję `problem` (kind z migracji 005
+  przechodzi całą drogę baza → strona), sticky nawigację i sekcję #cena.
+
+### Zmienione
+- **[app/szkolenia/[slug]/page.tsx](app/szkolenia/[slug]/page.tsx)** —
+  przebudowana na CIENKĄ kompozycję komponentów `components/kurs/*`
+  (cały markup sekcji wyniesiony do komponentów).
+- **Katalog: karty RÓWNE** (decyzja właściciela — bez karty wyróżnionej):
+  jedna `Karta` w siatce `md:grid-cols-2`, pełny opis bez ucinania,
+  CTA „Sprawdź ofertę" na każdej karcie.
+- Seedy: dłuższe opisy kart „dlaczego my, a nie inni"; oba kursy mają
+  komplet sekcji CDS (problem/positioning/transformation/comparison,
+  kurs GitHub dodatkowo for_whom/package/author/opinions/guarantee/faq)
+  — treść ROBOCZA, bez zmyślonych danych (opinie = jawny placeholder).
+- Goldeny odtworzone po zmianie markupu: `d3-odczyt.json` (badge/level
+  w szczegółach), `d4-katalog.html` (karta równa), `d5-program.html`
+  (program w szkielecie sekcji CDS).
+
+## [0.9.0] — 2026-08-17
+
+Redesign premium podstrony szkoleń wg briefu właściciela (B5, iteracja 2):
+„digital product experience", nie podstrona informacyjna.
+
+### Zmienione
+- **Katalog [/szkolenia](app/szkolenia/page.tsx) przeprojektowany od zera**:
+  - hero z dwukolumnowym układem: mocny headline („Szkolenia, które
+    zamieniają AI w przewagę."), dwa CTA (Poznaj szkolenia / Zobacz,
+    co dostajesz) i HUD z PRAWDZIWYMI liczbami z bazy (produkty,
+    moduły, lekcje, godziny);
+  - **wizual produktu zamiast pustki**: mockup okna kursu zbudowany
+    z realnych danych ([OknoKursu](components/szkolenia/OknoKursu.tsx)
+    — sidebar modułów, lekcje, paski postępu) + floating cards
+    (prompt z biblioteki, gwarancja 30 dni);
+  - **interaktywność** ([HeroMotion](components/szkolenia/HeroMotion.tsx)):
+    światło spotlight za kursorem, parallax 3 warstw, floaty — jedna
+    pętla rAF, transform-only, `prefers-reduced-motion` wyłącza całość,
+    bez JS treść kompletna;
+  - pas tematów marquee (wzorzec strony głównej);
+  - sekcja **„Nie kupujesz kolejnego kursu. Dostajesz gotowy system
+    pracy."** — sticky statement + mockup i 6 warstw systemu
+    (01 Wiedza → 06 Materiały) wjeżdżających kaskadą;
+  - **katalog premium**: karta wyróżniona (najnowszy produkt na całą
+    szerokość) + siatka; karty z okładką (hover-zoom), numerem /01,
+    badge z bazy, typem, metadanymi z bazy (moduły · lekcje · godziny ·
+    poziom), ceną i CTA.
+- **Strona kursu**: nowe sekcje **„Pakiet"** (co dokładnie dostajesz +
+  kotwica cenowa) i **„Prowadzący"**; „Dla kogo" dostała uczciwą kolumnę
+  „a NIE jest, jeśli…"; numeracja sekcji liczona dynamicznie.
+
+### Dodane
+- Migracje: `003-rodzaje-sekcji` (kinds `package`, `author`),
+  `004-karta-katalogu` (kolumny `badge`, `level`); dyspozytor i kreator
+  zapisują nowe pola; kanał JSON `listaKursow` zwraca statystyki liczone
+  w bazie (moduły/lekcje/czas).
+- Okładki SVG w języku Volt ([public/okladki/](public/okladki/)) —
+  robocze, do podmiany kreatorem w D6.
+- Kontrakty Zod: `KartaKatalogu`, `TrescPakiet`, `TrescAutor`,
+  `nie_dla` w `TrescDlaKogo`.
+- Goldeny odtworzone świadomie: schemat d2 (nowe kolumny), karta
+  katalogu d4 (nowa karta), program d5 (dynamiczna numeracja).
+
+## [0.8.1] — 2026-08-17
+
+Naprawy z pierwszej oceny B5 (procedura WYTYCZNE §1: migawka
+`bak/2026-08-17-hydratacja-fontow` → branch fix → rejestr → strażnik).
+
+### Naprawione
+- **BLAD-001 — błąd hydratacji na każdej stronie**: pakiet `geist`
+  generował różne klasy CSS fontów na serwerze i kliencie. Fonty idą
+  teraz z lokalnych subsetów woff2 przez `next/font/local`
+  ([lib/fonts.ts](lib/fonts.ts) + [assets/fonts/](assets/fonts/)) —
+  wzorzec 1:1 ze strony głównej; pakiet `geist` usunięty. Nawrotów
+  pilnuje nowy **straznik-fontow** (zakaz importu `geist` i zależności
+  w package.json).
+- **BLAD-002 — testy kasowały dane dev**: `npm test` robił
+  `DROP SCHEMA` na wspólnej bazie `db1_kursy` — po testach katalog
+  świecił pustką, a strony kursów dawały 404. Testy przełączają się
+  teraz na osobną bazę `db1_kursy_test`
+  ([modules/m1-sklep/db/testowa-baza.ts](modules/m1-sklep/db/testowa-baza.ts))
+  z bezpiecznikiem: operacje niszczące wyłącznie na bazie `*_test`.
+- Oba błędy w [rejestr/znane-bledy.json](rejestr/znane-bledy.json)
+  (klasa/dowód/skutek/naprawa/strażnik).
+
+## [0.8.0] — 2026-08-17
+
+Dział 5 Pluginu 1 — strona sprzedażowa `/szkolenia/[slug]`
+(bramka B5: golden HTML + smoke; czeka na ocenę właściciela; po
+akceptacji 🏷 release).
+
+### Dodane
+- **Strona sprzedażowa** ([app/szkolenia/[slug]/page.tsx](app/szkolenia/[slug]/page.tsx))
+  w pełni z bazy (kanał JSON `szczegolyKursu`): hero z obietnicą
+  (sekcja `hero`) + cena i CTA od pierwszego ekranu → korzyści →
+  **program z akordeonem modułów i lekcji** (czas trwania, badge
+  „podgląd"; `<details>` — zero JS) → dla kogo → opinie → cena+CTA →
+  gwarancja → FAQ → domykające CTA. Sekcje o złym/nieobecnym `content`
+  są pomijane (safeParse), nie wysadzają strony; nieistniejący slug → 404.
+  CTA zakupu = placeholder do Pluginu 2 (prowadzi do kontaktu);
+  napis w 1. osobie („Dołączam…") wg analizy wzoru.
+- **Kontrakty treści sekcji** (Zod, [modules/m1-sklep/typy.ts](modules/m1-sklep/typy.ts)):
+  TrescHero/Korzysci/DlaKogo/Opinie/Gwarancja/Faq — kreator (D6)
+  dostanie gotowe schematy.
+- **Analiza wzoru sprzedażowego**
+  [docs/plugin-1/WZOR-STRONA-SPRZEDAZOWA.md](docs/plugin-1/WZOR-STRONA-SPRZEDAZOWA.md)
+  (claudedlafirm.pl — inspiracja, nie kopia): checklista wzorców
+  perswazji dla treści kursów w D7.
+- **Smoke test D5** ([tools/smoke/smoke-d5.ts](tools/smoke/smoke-d5.ts)):
+  pełny kurs seedem → produkcyjny serwer → hero/korzyści/program/cena/
+  FAQ obecne, 404 dla śmieci, **golden sekcji programu**
+  [goldeny/d5-program.html](goldeny/d5-program.html); podpięty w CI.
+- **Seed przykładów** ([tools/seed/seed-przyklady.ts](tools/seed/seed-przyklady.ts),
+  `npm run db1:seed`): dwa docelowe kursy właściciela (decyzja
+  2026-08-17) z treścią ROBOCZĄ do oceny wyglądu — „Jak poprawnie
+  korzystać z Claude" (pełne sekcje) i „Jak poprawnie używać GitHuba";
+  opinie to jawne placeholdery (bez zmyślonych recenzji). Finalna
+  treść powstanie kreatorem w D7 (+ dokumentacja Claude i GitHuba).
+
+### Zmienione
+- `zamknijDb1` w publicznym API modułu (skrypty smoke/seed nie sięgają
+  już do wnętrza modułu — wymusił straznik-granic).
+- Golden katalogu (smoke D4) zawężony do karty kursu smoke — cała
+  siatka pękała, gdy lokalna baza miała seedy przykładów.
+
 ## [0.7.0] — 2026-08-17
 
 Dział 4 Pluginu 1 — katalog `/szkolenia` renderowany Z BAZY

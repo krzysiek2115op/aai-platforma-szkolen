@@ -71,12 +71,55 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   sprzedażowe mają maksymalnie zachęcać do zakupu; WZÓR (inspiracja,
   nie kopia): https://claudedlafirm.pl — analiza wzoru w
   `docs/plugin-1/WZOR-STRONA-SPRZEDAZOWA.md`.
-- **NASTĘPNY KROK: Dział 5 — strona sprzedażowa `/szkolenia/[slug]`**
-  (kanał JSON `szczegolyKursu`; sekcje hero → korzyści → program
-  (akordeon) → dla kogo → opinie → cena+CTA → gwarancja → FAQ; wzór
-  claudedlafirm.pl; golden HTML + smoke; bramka B5 = ocena właściciela)
-  → 🏷 release v0.8.0 po B5. Dokumentacja techniczna D5 = ta z d4
-  (fetch/cache — wg DIAGRAMU D4–D5 wspólna).
+- **Dział 5 ZBUDOWANY** (PR feat/d5-strona-sprzedazowa): strona
+  sprzedażowa `/szkolenia/[slug]` w pełni z bazy (hero+cena+CTA →
+  korzyści → program-akordeon `<details>` → dla kogo → opinie →
+  cena+CTA → gwarancja → FAQ → CTA; safeParse sekcji, 404 dla śmieci;
+  CTA 1. osoby, zakup = placeholder→kontakt do Pluginu 2). Kontrakty
+  treści sekcji w typy.ts (dla kreatora D6). Smoke D5 + golden
+  programu w CI. Seed `npm run db1:seed`: 2 docelowe kursy (Claude,
+  GitHub) z treścią ROBOCZĄ. Analiza wzoru:
+  docs/plugin-1/WZOR-STRONA-SPRZEDAZOWA.md.
+- **B5 ZALICZONA (właściciel, 2026-08-17)** — Dział 5 zamknięty na
+  wersji **0.12.1** (redesign premium 0.9.0 → Course Detail System
+  0.10.0 → 3 tury poprawek właściciela). Szczegóły każdej tury:
+  CHANGELOG 0.9.0–0.12.1; brief wiążący:
+  [docs/plugin-1/BRIEF-STRONA-KURSU.md](docs/plugin-1/BRIEF-STRONA-KURSU.md).
+  Co jest na stronie: katalog = digital product experience (hero
+  z mockupem OknoKursu z realnych danych, marquee, sekcja „system
+  pracy", karty RÓWNE z badge/poziomem/statystykami z bazy); strona
+  kursu = cienka kompozycja ~18 reusable komponentów
+  `components/kurs/*` + własny pływający pasek menu kursu
+  (NavbarPrzelacznik chowa globalny navbar na `/szkolenia/[slug]`)
+  + TloKursu (poświata za kursorem, dryf blobów) + Reveal/Cascade,
+  hover-lift `.unos`, płynne akordeony; wszystko pod
+  prefers-reduced-motion. Sekcje bez treści w bazie znikają.
+- **LEKCJE z D5 (nie powtarzać)**: (1) `node skrypt | tail` maskuje kod
+  wyjścia — smoke'i weryfikować po exit code; (2) `transform` na
+  przodku łamie `position: fixed` potomków (BLAD-003, `.page-enter`
+  z template.tsx) — pilnuje `straznik-fixed`; (3) layout weryfikować
+  POMIAREM, nie na oko: playwright-core + firefox instalowane
+  w scratchpadzie sesji, NIGDY w package.json projektu; (4) polskie
+  liczebniki przez `lib/odmiana.ts`, nie ręcznie.
+- **Kontrakty gotowe pod kreator (D6)** — kreator MUSI umieć ustawić
+  wszystko, co strona już renderuje: kolumny `badge`, `level`
+  (migracje 004) oraz WSZYSTKIE rodzaje sekcji z migracji 003/005
+  (hero, benefits, for_whom, faq, guarantee, opinions, package,
+  author, problem, positioning, transformation, comparison) wraz
+  z polami dodanymi przy B5: `TrescHero.dla_kogo`, `TrescAutor`
+  (+cytat, czym_sie_zajmuje, link), `TrescPakiet` (+w_cenie,
+  domkniecie), `TrescDlaKogo.nie_dla`. Kształty w
+  `modules/m1-sklep/typy.ts`.
+- **NASTĘPNY KROK: Dział 6 — KREATOR kursów** (panel do wprowadzania
+  treści przez właściciela, jedyny AJAX = `app/api/szkolenia`
+  + `obsluzAkcje`, dostęp na `KREATOR_TOKEN`). Po D6: Dział 7 = TREŚĆ
+  docelowa obu kursów (Claude z dokumentacji Anthropic, GitHub
+  z dokumentacji GitHuba) — obecna treść w seedach jest ROBOCZA
+  i jest do zastąpienia. Nowa gałąź: `feat/d6-kreator` od
+  `plugin-1-sklep-kursow`.
+- Stan repo: PR #12 zmergowany do `plugin-1-sklep-kursow`, tag
+  `v0.12.1` + release. Migawki `.bak`: gałęzie `bak/*` (nie kasować).
+  Testy chodzą na osobnej bazie `db1_kursy_test`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

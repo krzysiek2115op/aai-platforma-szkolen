@@ -22,6 +22,16 @@
   --text-label: 0.65rem;
   --text-label-sm: 0.62rem;
   --text-micro: 0.55rem;
+
+  --animate-marquee: marquee 40s linear infinite;
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }
 
 @layer base {
@@ -90,6 +100,14 @@
   );
 }
 
+/* Poziomy pas kotwic w sticky nawigacji kursu — przewijalny bez scrollbara. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Karta/panel — jedyny promień w systemie. */
 @utility panel {
   background-color: var(--color-panel);
@@ -97,7 +115,7 @@
   border-radius: 0.625rem;
 }
 
-/* Efekty CTA — dokładane do przycisków primary. */
+/* Efekty CTA — dokładane do przycisków primary (+ micro-interaction). */
 .btn-glow {
   box-shadow:
     0 0 0 1px rgba(191, 255, 56, 0.25),
@@ -105,13 +123,18 @@
     0 8px 32px rgba(191, 255, 56, 0.1);
   transition:
     box-shadow 0.35s ease,
-    background-color 0.2s ease;
+    background-color 0.2s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .btn-glow:hover {
+  transform: translateY(-1px);
   box-shadow:
     0 0 0 1px rgba(191, 255, 56, 0.4),
     0 0 34px rgba(191, 255, 56, 0.28),
     0 10px 44px rgba(191, 255, 56, 0.16);
+}
+.btn-glow:active {
+  transform: translateY(0) scale(0.98);
 }
 .btn-sheen {
   position: relative;
@@ -179,7 +202,16 @@ html.js .reveal-in {
     transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) var(--reveal-delay, 0s);
 }
 
-/* Przejście między podstronami (app/template.tsx). */
+/*
+ * Przejście między podstronami (app/template.tsx).
+ *
+ * UWAGA: te klatki NIE MOGĄ animować `transform` (ani filter/perspective).
+ * `.page-enter` opakowuje CAŁĄ treść strony, a element z animowanym
+ * transformem staje się układem odniesienia dla `position: fixed`
+ * potomków — pasek menu kursu i tło strony kursu przestawały wtedy
+ * trzymać się ekranu i uciekały przy scrollu (BLAD-003).
+ * Pilnuje tego tools/straznicy/straznik-fixed.mjs.
+ */
 html.js .page-enter {
   animation: page-enter 0.3s ease-out both;
 }
@@ -187,7 +219,6 @@ html.js .page-enter {
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
 }
 
@@ -233,6 +264,176 @@ html.js .page-enter {
   background-size: 160px 160px;
 }
 
+/* ————— motion premium podstrony /szkolenia —————
+ * HeroMotion (client) ustawia na kontenerze zmienne:
+ *   --mx/--my  — pozycja kursora w %, dla światła spotlight,
+ *   --par-x/--par-y — znormalizowane odchylenie kursora (-1..1)
+ * Wszystko na transformach i opacity (kompozytor, bez layoutu);
+ * prefers-reduced-motion wyłącza całość — treść zostaje. */
+
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    26rem circle at var(--mx, 72%) var(--my, 28%),
+    rgba(191, 255, 56, 0.09),
+    transparent 68%
+  );
+  transition: opacity 0.4s ease;
+}
+
+.parallax-1,
+.parallax-2,
+.parallax-3 {
+  transform: translate3d(
+    calc(var(--par-x, 0) * var(--par-sila, 6px)),
+    calc(var(--par-y, 0) * var(--par-sila, 6px)),
+    0
+  );
+  transition: transform 0.25s ease-out;
+  will-change: transform;
+}
+.parallax-2 {
+  --par-sila: 14px;
+}
+.parallax-3 {
+  --par-sila: -9px;
+}
+
+.float-a {
+  animation: float-a 7s ease-in-out infinite;
+}
+.float-b {
+  animation: float-b 9s ease-in-out infinite;
+}
+.float-c {
+  animation: float-a 11s ease-in-out infinite reverse;
+}
+@keyframes float-a {
+  50% {
+    transform: translateY(-9px);
+  }
+}
+@keyframes float-b {
+  50% {
+    transform: translateY(7px);
+  }
+}
+
+/* karta katalogu: okładka delikatnie rośnie, ramka łapie akcent */
+.karta-okladka {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.group\/karta:hover .karta-okladka {
+  transform: scale(1.035);
+}
+
+/* pasek postępu w mockupie okna kursu */
+.pasek-postepu {
+  background: linear-gradient(90deg, #bfff38, #d3ff70);
+  border-radius: 999px;
+  height: 4px;
+}
+
+/* ————— Course Detail System: animacje premium (feedback B5) —————
+ * Wszystko na transform/opacity (kompozytor); prefers-reduced-motion
+ * wyłącza całość w bloku niżej. */
+
+/* wjazd pływającego paska menu kursu */
+.pasek-wjazd {
+  animation: pasek-wjazd 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes pasek-wjazd {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+/* karty lekko unoszą się i rozświetlają przy hoverze */
+.unos {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+.unos:hover {
+  transform: translateY(-4px);
+  border-color: rgba(191, 255, 56, 0.25);
+  box-shadow:
+    0 14px 44px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(191, 255, 56, 0.07);
+}
+
+/* płynne akordeony (program, FAQ) — progressive enhancement:
+ * przeglądarki bez interpolate-size otwierają natychmiast, jak dotąd */
+details.panel {
+  interpolate-size: allow-keywords;
+}
+details.panel::details-content {
+  opacity: 0;
+  block-size: 0;
+  overflow-y: clip;
+  transition:
+    content-visibility 0.35s allow-discrete,
+    opacity 0.3s ease,
+    block-size 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+details.panel[open]::details-content {
+  opacity: 1;
+  block-size: auto;
+}
+
+/* dryf gradientowych blobów w tle — powolny, ledwo zauważalny parallax */
+.dryf-a {
+  animation: dryf-a 22s ease-in-out infinite;
+}
+.dryf-b {
+  animation: dryf-b 28s ease-in-out infinite;
+}
+@keyframes dryf-a {
+  50% {
+    transform: translate3d(30px, -22px, 0) scale(1.06);
+  }
+}
+@keyframes dryf-b {
+  50% {
+    transform: translate3d(-26px, 28px, 0) scale(0.96);
+  }
+}
+
+/* poświata podążająca za kursorem na stronie kursu (TloKursu mierzy,
+ * ten element tylko jedzie na transformie) */
+.kursor-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 34rem;
+  height: 34rem;
+  margin: -17rem 0 0 -17rem;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    rgba(191, 255, 56, 0.055),
+    transparent 65%
+  );
+  filter: blur(70px);
+  will-change: transform;
+}
+
+/* Migający kursor (karta promptu w hero). */
+.cursor-blink {
+  animation: blink 1.2s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 /* Pulsująca kropka statusu (stopka HUD). */
 .status-dot {
   animation: puls-statusu 2.4s ease-out infinite;
@@ -252,9 +453,45 @@ html.js .page-enter {
 @media (prefers-reduced-motion: reduce) {
   .status-dot,
   .glow-breathe,
+  .float-a,
+  .float-b,
+  .float-c,
+  .cursor-blink,
+  .animate-marquee,
+  .pasek-wjazd,
+  .dryf-a,
+  .dryf-b,
   /* rect impulsu zostaje w pozycji startowej poza kadrem — wordmark statyczny */
   .fw-impuls {
     animation: none !important;
+  }
+  .unos,
+  .unos:hover {
+    transform: none;
+    transition: none;
+  }
+  details.panel::details-content {
+    transition: none;
+  }
+  .btn-glow,
+  .btn-glow:hover,
+  .btn-glow:active {
+    transform: none;
+  }
+  .kursor-glow {
+    display: none;
+  }
+  .parallax-1,
+  .parallax-2,
+  .parallax-3 {
+    transform: none;
+    transition: none;
+  }
+  .spotlight::before {
+    display: none;
+  }
+  .karta-okladka {
+    transition: none;
   }
   .btn-sheen::after {
     transition: none;

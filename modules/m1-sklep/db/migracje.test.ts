@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 import type { PoolClient } from "pg";
 import { pulaDb1, zamknijDb1 } from "./klient.ts";
 import { migruj } from "./migruj.ts";
+import {
+  przelaczNaBazeTestowa,
+  upewnijSieZeBazaTestowa,
+} from "./testowa-baza.ts";
 
 /**
  * Dowód bramki B2: migracje wstają OD ZERA, triggery logują KAŻDĄ
@@ -31,6 +35,8 @@ let klient: PoolClient;
 
 before(async () => {
   if (!JEST_BAZA) return;
+  // osobna baza testowa — dane dev (seedy właściciela) są nietykalne
+  upewnijSieZeBazaTestowa(await przelaczNaBazeTestowa());
   klient = await pulaDb1().connect();
   // od zera: czyścimy schemat public i stawiamy wszystko na nowo
   await klient.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");

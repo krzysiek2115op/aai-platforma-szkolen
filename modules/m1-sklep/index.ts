@@ -14,9 +14,24 @@
  */
 export { listaKursow, listaKursowKreatora, szczegolyKursu } from "./odczyt.ts";
 export { obsluzAkcje } from "./dyspozytor.ts";
+/** dla skryptów CLI/testów spoza modułu — domyka pulę połączeń */
+export { zamknijDb1 } from "./db/klient.ts";
 export {
   KartaKursu,
+  KartaKatalogu,
   SzczegolyKursu,
   AkcjaDyspozytora,
+  TrescHero,
+  TrescKorzysci,
+  TrescDlaKogo,
+  TrescOpinie,
+  TrescGwarancja,
+  TrescFaq,
+  TrescPakiet,
+  TrescAutor,
+  TrescProblem,
+  TrescPozycjonowanie,
+  TrescTransformacja,
+  TrescPorownanie,
   type WynikDyspozytora,
 } from "./typy.ts";

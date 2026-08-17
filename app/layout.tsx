@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
-import Navbar from "@/components/Navbar";
+import { GeistSansSubset, GeistMonoSubset } from "@/lib/fonts";
+import NavbarPrzelacznik from "@/components/NavbarPrzelacznik";
 import Footer from "@/components/Footer";
 import "./globals.css";
 
@@ -25,7 +24,12 @@ export default function RootLayout({
   return (
     <html
       lang="pl"
-      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      className={`${GeistSansSubset.variable} ${GeistMonoSubset.variable}`}
+      // Inline skrypt niżej dokłada klasę `js` do <html> PRZED hydratacją
+      // (wyłącznik bezpieczeństwa animacji) — bez tego tłumika React
+      // zgłasza mismatch atrybutów na <html> (BLAD-001); wzorzec 1:1
+      // ze strony głównej.
+      suppressHydrationWarning
     >
       <body>
         {/*
@@ -45,7 +49,7 @@ export default function RootLayout({
         <a href="#tresc" className="skip-link">
           Przejdź do treści
         </a>
-        <Navbar />
+        <NavbarPrzelacznik />
         <main id="tresc">{children}</main>
         <Footer />
       </body>

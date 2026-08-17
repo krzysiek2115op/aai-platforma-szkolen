@@ -55,7 +55,7 @@ async function zapisz(dane: AkcjaZapisz, aktor: string): Promise<string> {
     if (kurs.id) {
       const { rows } = await k.query(
         `UPDATE courses SET slug=$2, title=$3, type=$4, short_desc=$5,
-                            price_grosze=$6, cover_url=$7
+                            price_grosze=$6, cover_url=$7, badge=$8, level=$9
          WHERE id=$1 RETURNING id`,
         [
           kurs.id,
@@ -65,14 +65,17 @@ async function zapisz(dane: AkcjaZapisz, aktor: string): Promise<string> {
           kurs.short_desc ?? null,
           kurs.price_grosze,
           kurs.cover_url ?? null,
+          kurs.badge ?? null,
+          kurs.level ?? null,
         ]
       );
       if (rows.length === 0) throw new BladDyspozytora("nie-znaleziono");
       id = rows[0].id;
     } else {
       const { rows } = await k.query(
-        `INSERT INTO courses (slug, title, type, short_desc, price_grosze, cover_url)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        `INSERT INTO courses (slug, title, type, short_desc, price_grosze,
+                              cover_url, badge, level)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
         [
           kurs.slug,
           kurs.title,
@@ -80,6 +83,8 @@ async function zapisz(dane: AkcjaZapisz, aktor: string): Promise<string> {
           kurs.short_desc ?? null,
           kurs.price_grosze,
           kurs.cover_url ?? null,
+          kurs.badge ?? null,
+          kurs.level ?? null,
         ]
       );
       id = rows[0].id;
