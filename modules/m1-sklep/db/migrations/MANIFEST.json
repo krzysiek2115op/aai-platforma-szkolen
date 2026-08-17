@@ -2,5 +2,6 @@
   "001-tabele.sql": "59a6b0d70ea3d0a56d5854221edf0ff95e003a5051d3015ff6e10648d7e2992a",
   "002-triggery-audytu.sql": "18c1ebcd3a802d263e1ce477ba1a09abfc37924a1e542f5294ebb81ca1ba805a",
   "003-rodzaje-sekcji.sql": "7ef858d65c442fe3046276f9c9c53851c0279414a7233edefb7e7fcdb660efca",
-  "004-karta-katalogu.sql": "f76c82ac349652a33ceb6f4fffaca293a270800044774d1468d6066b1f3db232"
+  "004-karta-katalogu.sql": "f76c82ac349652a33ceb6f4fffaca293a270800044774d1468d6066b1f3db232",
+  "005-sekcje-sprzedazowe.sql": "53d6c4a1f15a59889e123c4362ac29025d66a898161d09096a2bacae78654ba7"
 }

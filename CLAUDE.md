@@ -89,14 +89,28 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   003). Motion: rAF+transform-only, prefers-reduced-motion respektowane.
   UWAGA-LEKCJA: `node skrypt | tail` maskuje kod wyjścia — smoke'i
   weryfikować po exit code, nie po obecności napisu.
-- **NASTĘPNY KROK: bramka B5 = OCENA WŁAŚCICIELA na :3001**
-  (katalog /szkolenia + /szkolenia/jak-korzystac-z-claude). Po
-  akceptacji: 🏷 release v0.9.0, potem **Dział 6 — kreator kursów**
-  (/szkolenia/kreator: lista + formularz tworzenia/edycji,
-  moduły/lekcje/sekcje + NOWE pola badge/level/pakiet/autor, upload
-  okładki, dostęp tokenem; dokumentacja D6: Server Actions/formularze/
-  upload do docs/dokumentacja-techniczna/d6/; bramka B6 = CRUD
-  end-to-end ze śladem w changelogu).
+- **NASTĘPNY KROK: Course Detail System wg briefu właściciela** —
+  PEŁNY brief: [docs/plugin-1/BRIEF-STRONA-KURSU.md](docs/plugin-1/BRIEF-STRONA-KURSU.md)
+  (WIĄŻĄCY; przeczytać PRZED pracą). W skrócie: (1) katalog — karty
+  RÓWNE (bez wyróżnionej) + dłuższe opisy „dlaczego my"; (2) strona
+  kursu = premium sales page / mini sklep: sticky nav, sekcje problem/
+  pozycjonowanie/transformacja/porównanie + istniejące, reusable
+  komponenty `components/kurs/*`, psychologia scrolla, mobile, SEO,
+  a11y, zero zmyślonych danych. GRUNT JUŻ POŁOŻONY na branchu
+  `feat/d5-strona-sprzedazowa` (niecommitowane w chwili zapisu →
+  commit „grunt CDS"): migracja 005 (kinds problem/positioning/
+  transformation/comparison) + schematy Zod TrescProblem/
+  TrescPozycjonowanie/TrescTransformacja/TrescPorownanie w typy.ts
+  + eksporty w index.ts. DO ZROBIENIA: manifest migracji (--zapisz),
+  db1:migruj, komponenty kurs/*, przebudowa [slug]/page.tsx, wyrównanie
+  kart katalogu, dłuższe opisy w seedach + treść nowych sekcji,
+  goldeny d4/d5 (regen po zmianach), testy/smoke/CI, wersja 0.10.0,
+  push do PR #12. Bramka B5 = ocena właściciela. Po B5: release,
+  potem Dział 6 (kreator, z polami badge/level i WSZYSTKIMI rodzajami
+  sekcji).
+- Stan PR: #12 (feat/d5-strona-sprzedazowa → plugin-1-sklep-kursow)
+  otwarty, CI zielone dla 0.9.0; #13 zmergowany do feat/d5. Dev :3001
+  działa; baza dev zmigrowna do 004, testy na db1_kursy_test.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

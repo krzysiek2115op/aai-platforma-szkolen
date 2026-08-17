@@ -29,5 +29,9 @@ export {
   TrescFaq,
   TrescPakiet,
   TrescAutor,
+  TrescProblem,
+  TrescPozycjonowanie,
+  TrescTransformacja,
+  TrescPorownanie,
   type WynikDyspozytora,
 } from "./typy.ts";

@@ -17,6 +17,10 @@ export const SekcjaRodzaj = z.enum([
   "opinions",
   "package",
   "author",
+  "problem",
+  "positioning",
+  "transformation",
+  "comparison",
 ]);
 
 /* ————— kanał JSON (odczyt serwerowy) ————— */
@@ -118,6 +122,33 @@ export const TrescAutor = z.object({
   rola: z.string().optional(),
   bio: z.string(),
   atuty: z.array(z.string()).optional(),
+});
+
+/** „Dlaczego ten kurs" — sprzedajemy zmianę: problem → rozwiązanie → rezultat. */
+export const TrescProblem = z.object({
+  wstep: z.string(),
+  problem: z.string(),
+  rozwiazanie: z.string(),
+  rezultat: z.string(),
+});
+
+/** „To NIE jest / to JEST" — pozycjonowanie produktu. */
+export const TrescPozycjonowanie = z.object({
+  nie_jest: z.array(z.string()),
+  jest: z.array(z.string()),
+});
+
+/** Efekt przed / po — transformacja klienta. */
+export const TrescTransformacja = z.object({
+  przed: z.array(z.string()),
+  po: z.array(z.string()),
+});
+
+/** Samodzielna nauka vs kurs — porównanie bez taniego marketingu. */
+export const TrescPorownanie = z.object({
+  alternatywa_nazwa: z.string(),
+  alternatywa: z.array(z.string()),
+  kurs: z.array(z.string()),
 });
 
 export const TrescOpinie = z.object({
