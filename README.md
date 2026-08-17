@@ -10,7 +10,7 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 [Wytyczne](docs/WYTYCZNE.md) ·
 [Współpraca i workflow](CONTRIBUTING.md) ·
 [Dziennik zmian](CHANGELOG.md) ·
-[Licencja GPL-2.0](LICENSE)
+[Licencja MIT](LICENSE)
 
 </div>
 
@@ -24,7 +24,7 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 | **Etap** | diagram Pluginu 1 gotowy do oceny właściciela; kod aplikacji jeszcze nie powstał |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (od Działu 1) |
-| **Licencja** | GPL-2.0 ([LICENSE](LICENSE)) |
+| **Licencja** | MIT ([LICENSE](LICENSE)) |
 | **Produkcja** | brak — docelowo hosting Node.js/VPS, merge do repo strony głównej po akceptacji całości |
 
 > [!IMPORTANT]
@@ -99,7 +99,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 |---|---|---|
 | `straznik-wersji` | pre-commit + CI | rozjazd wersji README ↔ CHANGELOG |
 | `straznik-linkow` | pre-commit + CI | martwe linki względne w Markdown |
-| `straznik-licencji` | pre-commit + CI | brak/podmiana LICENSE (GPL-2.0), brak deklaracji w README |
+| `straznik-licencji` | pre-commit + CI | brak/podmiana LICENSE (MIT), brak deklaracji w README, brak noty OFL przy plikach fontów |
 | blokada sekretów | pre-commit | pliki `.env`, tokeny/klucze w diffie |
 | gitleaks (pinowany po SHA-256) | CI | sekrety w całej historii repo |
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
