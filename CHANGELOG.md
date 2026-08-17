@@ -5,6 +5,51 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.10.0] — 2026-08-17
+
+Course Detail System wg wiążącego briefu właściciela
+([docs/plugin-1/BRIEF-STRONA-KURSU.md](docs/plugin-1/BRIEF-STRONA-KURSU.md),
+B5 iteracja 3): strona kursu = premium product page + sales page + mini
+sklep, złożona z reusable komponentów.
+
+### Dodane
+- **Reusable Course Detail System — [components/kurs/*](components/kurs/)**
+  (16 komponentów): `Wspolne` (Etykieta, CtaZakupu, szkielet sekcji),
+  `HeroKursu` (badge z realnymi liczbami z bazy, obietnica, „dla kogo",
+  cena, 2 CTA, OknoKursu), `PasekKursu` (sticky nawigacja po scrollu:
+  kotwice + aktywna sekcja z IntersectionObservera + CTA; progressive
+  enhancement — bez JS strona kompletna), `SekcjaProblem` (wstęp-empatia
+  + PROBLEM → ROZWIĄZANIE → REZULTAT), `SekcjaKorzysci`, `SekcjaPakiet`
+  (+ kotwica cenowa), `SekcjaProgram` (akordeon z czasem modułów),
+  `SekcjaPlatforma` („tak wygląda produkt po zakupie" — OknoKursu
+  z prawdziwych danych), `SekcjaPozycjonowanie` (to NIE jest / to JEST),
+  `SekcjaDlaKogo`, `SekcjaTransformacja` (przed / po), `SekcjaOpinie`,
+  `SekcjaAutor`, `SekcjaCena` („ZA X ZŁ OTRZYMUJESZ ✓…" + gwarancja
+  przy cenie + link powrotny do programu), `SekcjaPorownanie`
+  (samodzielna nauka vs kurs, nieagresywnie), `SekcjaFaq` (+ kontakt
+  pod FAQ), `FinalCta`. Kolejność sekcji = psychologia scrolla briefu;
+  sekcje bez treści w bazie znikają, numeracja liczy się dynamicznie.
+- Kontrakty: `SzczegolyKursu` + `badge`/`level` (hero pokazuje poziom),
+  `TrescHero` + opcjonalne `dla_kogo`.
+- Utility `scrollbar-none` (pas kotwic sticky nav na mobile).
+- Smoke D5 sprawdza dodatkowo: sekcję `problem` (kind z migracji 005
+  przechodzi całą drogę baza → strona), sticky nawigację i sekcję #cena.
+
+### Zmienione
+- **[app/szkolenia/[slug]/page.tsx](app/szkolenia/[slug]/page.tsx)** —
+  przebudowana na CIENKĄ kompozycję komponentów `components/kurs/*`
+  (cały markup sekcji wyniesiony do komponentów).
+- **Katalog: karty RÓWNE** (decyzja właściciela — bez karty wyróżnionej):
+  jedna `Karta` w siatce `md:grid-cols-2`, pełny opis bez ucinania,
+  CTA „Sprawdź ofertę" na każdej karcie.
+- Seedy: dłuższe opisy kart „dlaczego my, a nie inni"; oba kursy mają
+  komplet sekcji CDS (problem/positioning/transformation/comparison,
+  kurs GitHub dodatkowo for_whom/package/author/opinions/guarantee/faq)
+  — treść ROBOCZA, bez zmyślonych danych (opinie = jawny placeholder).
+- Goldeny odtworzone po zmianie markupu: `d3-odczyt.json` (badge/level
+  w szczegółach), `d4-katalog.html` (karta równa), `d5-program.html`
+  (program w szkielecie sekcji CDS).
+
 ## [0.9.0] — 2026-08-17
 
 Redesign premium podstrony szkoleń wg briefu właściciela (B5, iteracja 2):

@@ -55,7 +55,7 @@ export async function szczegolyKursu(
 ): Promise<SzczegolyKursu | null> {
   const pula = pulaDb1();
   const { rows } = await pula.query(
-    `SELECT ${KOLUMNY_KARTY} FROM courses
+    `SELECT ${KOLUMNY_KARTY}, badge, level FROM courses
      WHERE slug = $1 ${opcje.takzeSzkice ? "" : "AND status = 'published'"}`,
     [slug]
   );

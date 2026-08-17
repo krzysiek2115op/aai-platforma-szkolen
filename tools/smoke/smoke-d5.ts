@@ -40,6 +40,18 @@ const KURS_SMOKE = {
       content: { punkty: [{ tytul: "Korzyść smoke", opis: "Opis korzyści." }] },
     },
     {
+      // sekcja Course Detail System (migracja 005) — dowód, że nowe
+      // rodzaje sekcji przechodzą całą drogę baza → strona
+      kind: "problem" as const,
+      position: 0,
+      content: {
+        wstep: "Wstęp problemu smoke.",
+        problem: "Problem smoke.",
+        rozwiazanie: "Rozwiązanie smoke.",
+        rezultat: "Rezultat smoke.",
+      },
+    },
+    {
       kind: "faq" as const,
       position: 0,
       content: { pytania: [{ pytanie: "Pytanie smoke?", odpowiedz: "Odpowiedź smoke." }] },
@@ -97,6 +109,12 @@ try {
   assert.ok(html.includes("Lekcja pierwsza"), "brak lekcji w programie");
   assert.ok(html.includes("299,00"), "brak ceny");
   assert.ok(html.includes("Pytanie smoke?"), "brak FAQ");
+
+  // Course Detail System (B5 iteracja 3): sekcja `problem` z bazy,
+  // sticky nawigacja i oferta „za cenę otrzymujesz"
+  assert.ok(html.includes("Rozwiązanie smoke."), "brak sekcji problem (CDS)");
+  assert.ok(html.includes("data-pasek-kursu"), "brak sticky nawigacji kursu");
+  assert.ok(html.includes('id="cena"'), "brak sekcji oferty #cena");
 
   // 404 dla nieistniejącego sluga
   const brak = await fetch(`http://localhost:${PORT}/szkolenia/nie-istnieje`);

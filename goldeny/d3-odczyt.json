@@ -7,6 +7,8 @@
   "price_grosze": 49900,
   "cover_url": null,
   "status": "published",
+  "badge": null,
+  "level": null,
   "sections": [
     {
       "id": "<uuid>",

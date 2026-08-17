@@ -141,94 +141,45 @@ function Okladka({ kurs }: { kurs: KartaKatalogu }) {
   );
 }
 
-/** Karta wyróżniona — pierwszy (najnowszy) produkt na całą szerokość. */
-function KartaGlowna({ kurs, numer }: { kurs: KartaKatalogu; numer: string }) {
-  return (
-    <article className="group/karta panel relative overflow-hidden transition-colors duration-300 hover:border-volt/30">
-      <div
-        aria-hidden
-        className="absolute -top-24 right-[10%] size-[22rem] rounded-full bg-volt/[0.05] blur-[100px]"
-      />
-      <div className="grid lg:grid-cols-2">
-        <div className="relative order-2 min-h-56 overflow-hidden border-t border-line lg:order-1 lg:border-t-0 lg:border-r">
-          <Okladka kurs={kurs} />
-        </div>
-        <div className="relative order-1 flex flex-col p-6 md:p-9 lg:order-2">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex flex-wrap gap-2">
-              {kurs.badge ? <Badge tekst={kurs.badge} akcent /> : null}
-              <Badge tekst={kurs.type} />
-            </div>
-            <span className="font-mono text-xs text-steel tabular-nums">
-              /{numer}
-            </span>
-          </div>
-          <h3 className="mt-5 text-2xl font-semibold leading-tight tracking-tight transition-colors group-hover/karta:text-volt md:text-3xl">
-            {kurs.title}
-          </h3>
-          {kurs.short_desc ? (
-            <p className="mt-3 max-w-lg text-sm leading-relaxed text-steel md:text-base">
-              {kurs.short_desc}
-            </p>
-          ) : null}
-          <div className="mt-5">
-            <MetaKursu kurs={kurs} />
-          </div>
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-4 pt-7">
-            <p className="text-2xl font-semibold tracking-tight text-volt tabular-nums">
-              {CENA.format(kurs.price_grosze / 100)}
-            </p>
-            <Link
-              href={`/szkolenia/${kurs.slug}`}
-              className="btn-glow btn-sheen group/cta inline-flex h-11 items-center gap-2 rounded-md bg-volt px-5 text-sm font-medium text-void transition-colors hover:bg-[#d3ff70]"
-            >
-              Sprawdź ofertę
-              <ArrowRight
-                aria-hidden
-                className="size-4 transition-transform group-hover/cta:translate-x-0.5"
-              />
-            </Link>
-          </div>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function KartaZwykla({ kurs, numer }: { kurs: KartaKatalogu; numer: string }) {
+/**
+ * Karta katalogu — wszystkie produkty RÓWNE (decyzja właściciela,
+ * brief CDS pkt 1–2): bez karty wyróżnionej, z pełnym opisem
+ * „dlaczego my, a nie inni" zamiast uciętych dwóch linii.
+ */
+function Karta({ kurs, numer }: { kurs: KartaKatalogu; numer: string }) {
   return (
     <article className="group/karta panel relative flex h-full flex-col overflow-hidden transition-colors duration-300 hover:border-volt/30">
-      <div className="relative h-44 overflow-hidden border-b border-line">
+      <div className="relative h-48 overflow-hidden border-b border-line md:h-52">
         <Okladka kurs={kurs} />
         <span className="absolute top-3 right-3 font-mono text-xs text-steel tabular-nums">
           /{numer}
         </span>
       </div>
-      <div className="flex flex-1 flex-col p-4 md:p-5">
+      <div className="flex flex-1 flex-col p-5 md:p-7">
         <div className="flex flex-wrap gap-2">
           {kurs.badge ? <Badge tekst={kurs.badge} akcent /> : null}
           <Badge tekst={kurs.type} />
         </div>
-        <h3 className="mt-3 text-lg leading-snug font-semibold tracking-tight transition-colors group-hover/karta:text-volt">
+        <h3 className="mt-4 text-xl leading-snug font-semibold tracking-tight transition-colors group-hover/karta:text-volt md:text-2xl">
           {kurs.title}
         </h3>
         {kurs.short_desc ? (
-          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-steel">
+          <p className="mt-2.5 text-sm leading-relaxed text-steel md:text-base">
             {kurs.short_desc}
           </p>
         ) : null}
-        <div className="mt-3">
+        <div className="mt-4">
           <MetaKursu kurs={kurs} />
         </div>
-        <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-          <p className="text-lg font-semibold tracking-tight text-volt tabular-nums">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-4 pt-6">
+          <p className="text-xl font-semibold tracking-tight text-volt tabular-nums md:text-2xl">
             {CENA.format(kurs.price_grosze / 100)}
           </p>
           <Link
             href={`/szkolenia/${kurs.slug}`}
-            className="group/cta inline-flex items-center gap-1.5 text-sm font-medium text-volt underline-offset-4 hover:underline"
+            className="btn-glow btn-sheen group/cta inline-flex h-11 items-center gap-2 rounded-md bg-volt px-5 text-sm font-medium text-void transition-colors hover:bg-[#d3ff70]"
           >
-            Sprawdź
+            Sprawdź ofertę
             <ArrowRight
               aria-hidden
               className="size-4 transition-transform group-hover/cta:translate-x-0.5"
@@ -455,24 +406,12 @@ export default async function StronaSzkolenia() {
             </p>
           </div>
         ) : (
-          <ul data-katalog className="mt-8 grid gap-5">
-            <li>
-              <KartaGlowna kurs={kursy[0]} numer="01" />
-            </li>
-            {kursy.length > 1 ? (
-              <li>
-                <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {kursy.slice(1).map((kurs, i) => (
-                    <li key={kurs.id}>
-                      <KartaZwykla
-                        kurs={kurs}
-                        numer={String(i + 2).padStart(2, "0")}
-                      />
-                    </li>
-                  ))}
-                </ul>
+          <ul data-katalog className="mt-8 grid items-stretch gap-5 md:grid-cols-2">
+            {kursy.map((kurs, i) => (
+              <li key={kurs.id}>
+                <Karta kurs={kurs} numer={String(i + 1).padStart(2, "0")} />
               </li>
-            ) : null}
+            ))}
           </ul>
         )}
       </section>

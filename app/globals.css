@@ -100,6 +100,14 @@
   );
 }
 
+/* Poziomy pas kotwic w sticky nawigacji kursu — przewijalny bez scrollbara. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Karta/panel — jedyny promień w systemie. */
 @utility panel {
   background-color: var(--color-panel);

@@ -89,28 +89,25 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   003). Motion: rAF+transform-only, prefers-reduced-motion respektowane.
   UWAGA-LEKCJA: `node skrypt | tail` maskuje kod wyjścia — smoke'i
   weryfikować po exit code, nie po obecności napisu.
-- **NASTĘPNY KROK: Course Detail System wg briefu właściciela** —
-  PEŁNY brief: [docs/plugin-1/BRIEF-STRONA-KURSU.md](docs/plugin-1/BRIEF-STRONA-KURSU.md)
-  (WIĄŻĄCY; przeczytać PRZED pracą). W skrócie: (1) katalog — karty
-  RÓWNE (bez wyróżnionej) + dłuższe opisy „dlaczego my"; (2) strona
-  kursu = premium sales page / mini sklep: sticky nav, sekcje problem/
-  pozycjonowanie/transformacja/porównanie + istniejące, reusable
-  komponenty `components/kurs/*`, psychologia scrolla, mobile, SEO,
-  a11y, zero zmyślonych danych. GRUNT JUŻ POŁOŻONY na branchu
-  `feat/d5-strona-sprzedazowa` (niecommitowane w chwili zapisu →
-  commit „grunt CDS"): migracja 005 (kinds problem/positioning/
-  transformation/comparison) + schematy Zod TrescProblem/
-  TrescPozycjonowanie/TrescTransformacja/TrescPorownanie w typy.ts
-  + eksporty w index.ts. DO ZROBIENIA: manifest migracji (--zapisz),
-  db1:migruj, komponenty kurs/*, przebudowa [slug]/page.tsx, wyrównanie
-  kart katalogu, dłuższe opisy w seedach + treść nowych sekcji,
-  goldeny d4/d5 (regen po zmianach), testy/smoke/CI, wersja 0.10.0,
-  push do PR #12. Bramka B5 = ocena właściciela. Po B5: release,
-  potem Dział 6 (kreator, z polami badge/level i WSZYSTKIMI rodzajami
-  sekcji).
+- **Course Detail System ZBUDOWANY (0.10.0)** wg wiążącego briefu
+  [docs/plugin-1/BRIEF-STRONA-KURSU.md](docs/plugin-1/BRIEF-STRONA-KURSU.md):
+  katalog z kartami RÓWNYMI + dłuższe opisy „dlaczego my"; strona kursu
+  = cienka kompozycja 16 reusable komponentów `components/kurs/*`
+  (HeroKursu, PasekKursu — sticky nav, SekcjaProblem/Korzysci/Pakiet/
+  Program/Platforma/Pozycjonowanie/DlaKogo/Transformacja/Opinie/Autor/
+  Cena+gwarancja/Porownanie/Faq, FinalCta); kolejność = psychologia
+  scrolla briefu, sekcje bez treści w bazie znikają, numeracja
+  dynamiczna. Kontrakty: SzczegolyKursu +badge/level, TrescHero
+  +dla_kogo. Seedy: komplet sekcji CDS dla obu kursów (treść ROBOCZA,
+  zero zmyślonych danych — opinie to jawny placeholder). Goldeny
+  d3/d4/d5 odtworzone; smoke D5 sprawdza dodatkowo sekcję problem,
+  sticky nav i #cena. Testy 15/15, strażnicy 9/9, lint/tsc/build czyste.
+- **NASTĘPNY KROK: bramka B5 = ocena właściciela na localhost:3001**
+  (dev działa; baza dev zmigrowana do 005 i zaseedowana nową treścią).
+  Po zaliczeniu B5: merge PR #12 + tag/release v0.10.0, potem Dział 6
+  (kreator, z polami badge/level i WSZYSTKIMI rodzajami sekcji).
 - Stan PR: #12 (feat/d5-strona-sprzedazowa → plugin-1-sklep-kursow)
-  otwarty, CI zielone dla 0.9.0; #13 zmergowany do feat/d5. Dev :3001
-  działa; baza dev zmigrowna do 004, testy na db1_kursy_test.
+  otwarty; #13 zmergowany do feat/d5. Testy na db1_kursy_test.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

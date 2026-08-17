@@ -81,6 +81,8 @@ export const SekcjaKursu = z.object({
 });
 
 export const SzczegolyKursu = KartaKursu.extend({
+  badge: z.string().nullable(),
+  level: PoziomKursu.nullable(),
   sections: z.array(SekcjaKursu),
   modules: z.array(ModulKursu),
 });
@@ -95,6 +97,8 @@ export const TrescHero = z.object({
   obietnica: z.string(),
   /** krótkie rozwinięcie pod tytułem */
   rozwiniecie: z.string().optional(),
+  /** jednozdaniowe „dla kogo" w hero (brief CDS: hero odpowiada od razu) */
+  dla_kogo: z.string().optional(),
 });
 
 export const TrescKorzysci = z.object({
