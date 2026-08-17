@@ -20,12 +20,12 @@
     {
       "id": "BLAD-001",
       "data": "2026-08-17",
-      "klasa": "hydratacja/niedeterministyczny-markup-serwer-vs-klient",
-      "dowod": "Pakiet `geist` (geist/font/sans, geist/font/mono) generowal rozne klasy CSS fontow w renderze serwera i klienta (className na <html> w app/layout.tsx) — konsola przegladarki zglaszala blad hydratacji na kazdej stronie (wykryte przez wlasciciela przy bramce B5).",
-      "skutek": "Czerwony 'Console Error: A tree hydrated but some attributes...' w dev overlay na kazdej stronie; ryzyko niedeterministycznych roznic serwer/klient na produkcji.",
-      "naprawa": "Fonty z lokalnych subsetow woff2 przez next/font/local (lib/fonts.ts + assets/fonts) — wzorzec 1:1 ze strony glownej; pakiet geist usuniety z dependencies. Migawka stanu sprzed naprawy: galaz bak/2026-08-17-hydratacja-fontow.",
+      "klasa": "hydratacja/mutacja-html-przed-hydratacja-bez-tlumika",
+      "dowod": "Inline skrypt wylacznika animacji (app/layout.tsx, wzorzec strony glownej) doklada klase `js` do <html> PRZED hydratacja Reacta, a <html> nie mial suppressHydrationWarning — atrybut className po stronie klienta rozni sie od HTML serwera. Pierwsza diagnoza (pakiet geist) byla bledna: po przejsciu na next/font/local klasy fontow byly identyczne po obu stronach, a blad zostal — roznica siedziala w obcietej koncowce diffa (dokladana klasa `js`). Wykryte dwukrotnie przez wlasciciela przy bramce B5.",
+      "skutek": "Czerwony 'Console Error: A tree hydrated but some attributes...' w dev overlay na kazdej stronie.",
+      "naprawa": "suppressHydrationWarning na <html> w app/layout.tsx — dokladnie jak na stronie glownej, ktora dla tego samego skryptu ma ten tlumik. Dodatkowo (higiena, tez wzorzec strony glownej): fonty z lokalnych subsetow woff2 przez next/font/local zamiast pakietu geist. Migawka sprzed naprawy: galaz bak/2026-08-17-hydratacja-fontow.",
       "test": "",
-      "straznik": "straznik-fontow"
+      "straznik": "straznik-hydratacji (mutacja <html> bez tlumika) + straznik-fontow (powrot pakietu geist)"
     },
     {
       "id": "BLAD-002",
