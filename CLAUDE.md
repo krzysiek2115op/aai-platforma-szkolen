@@ -143,19 +143,29 @@ przy każdym kroku zmieniającym stan projektu (jak README).
     układania i chowała elementy `fixed` pod stopką → `backwards`
     + rozszerzony `straznik-fixed`.
   - Stan dowodów: strażnicy 11/11, testy 27/27, smoke D4/D5/D6 zielone.
-- Po D6: Dział 7 = TREŚĆ docelowa obu kursów (Claude z dokumentacji
-  Anthropic, GitHub z dokumentacji GitHuba — najpierw pobrać do
-  `docs/dokumentacja-techniczna/d7/` z `ZRODLA.md`, potem pisać;
-  każda lekcja ma źródło). Wymóg właściciela: kursy **w 100% zgodne
+- **NASTĘPNY KROK: Dział 7 — TREŚĆ docelowa obu kursów.** Kolejność:
+  (1) domknąć D6 na GitHubie (PR/merge/tag — patrz „Stan repo"),
+  (2) nowa gałąź `feat/d7-tresc` od `plugin-1-sklep-kursow`,
+  (3) NAJPIERW pobrać oryginalną dokumentację do
+  `docs/dokumentacja-techniczna/d7/` z `ZRODLA.md` (WYTYCZNE N2):
+  dokumentacja Anthropic/Claude dla kursu 1, dokumentacja GitHuba dla
+  kursu 2, (4) dopiero potem pisać treść — każda lekcja ma wskazane
+  źródło, zero zmyślania. Wymóg właściciela: kursy **w 100% zgodne
   z programem** — moduły/lekcje to spis treści realnego materiału,
   strona nie obiecuje niczego spoza programu; do tego golden treści
-  obu kursów. Obecna treść w seedach jest ROBOCZA, do zastąpienia.
+  obu kursów (ochrona przed cichą utratą tekstu). Treść wprowadzamy
+  **kreatorem** (to był sens D6), nie przez seed; obecna treść
+  w `tools/seed/seed-przyklady.ts` jest ROBOCZA i do zastąpienia.
+  Opinie w seedach to jawne placeholdery — prawdziwe dopiero po
+  pierwszych sprzedażach, niczego nie zmyślamy.
 - Stan repo: PR #12 zmergowany do `plugin-1-sklep-kursow`, tag
   `v0.12.1` + release. Gałąź `feat/d6-kreator` wypchnięta (kroki 1–3)
-  — **PR jeszcze NIE otwarty**: `gh` jest już zainstalowany
-  (`~/.local/bin/gh`, 2.97.0), ale wymaga jednorazowego
-  `gh auth login` przez właściciela (token musi mieć zakresy
-  `repo`, `workflow`, `read:org`). 2026-08-17 GitHub miał awarię.
+  — **PR/tag/release DO ZROBIENIA** (2026-08-17 GitHub miał awarię;
+  gotowy opis: `docs/plugin-1/PR-D6.md`). `gh` jest zainstalowany
+  (`~/.local/bin/gh`, 2.97.0), ale wymaga jednorazowego logowania:
+  właściciel zapisuje token (zakresy `repo`, `workflow`, `read:org`)
+  do `~/.gh-token`, agent robi `gh auth login --with-token` i kasuje
+  plik. Czytanie `~/.git-credentials` jest zablokowane — nie próbować.
   Migawki `.bak`: gałęzie `bak/*` (nie kasować). Testy chodzą na
   osobnej bazie `db1_kursy_test`.
 - Pomiar layoutu w tej sesji: **puppeteer-core + SYSTEMOWY Firefox**
