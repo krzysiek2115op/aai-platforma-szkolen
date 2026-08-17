@@ -10,7 +10,7 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 [Wytyczne](docs/WYTYCZNE.md) ·
 [Współpraca i workflow](CONTRIBUTING.md) ·
 [Dziennik zmian](CHANGELOG.md) ·
-[Licencja GPL-2.0](LICENSE)
+[Licencja MIT](LICENSE)
 
 </div>
 
@@ -20,11 +20,11 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.12.1** |
-| **Etap** | Dział 5 Pluginu 1 + redesign premium podstrony wg briefu właściciela — bramka B5 czeka na ocenę na `localhost:3001` |
+| **Wersja** | **0.13.0** |
+| **Etap** | Działy 1–5 Pluginu 1 gotowe (B1–B5 zaliczone przez właściciela) — katalog i strona sprzedażowa kursu; następny krok: Dział 6 (kreator kursów) |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
-| **Licencja** | GPL-2.0 ([LICENSE](LICENSE)) |
+| **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([assets/fonts/LICENSE-Geist-OFL.txt](assets/fonts/LICENSE-Geist-OFL.txt)) |
 | **Produkcja** | brak — docelowo hosting Node.js/VPS, merge do repo strony głównej po akceptacji całości |
 
 > [!IMPORTANT]
@@ -99,7 +99,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 |---|---|---|
 | `straznik-wersji` | pre-commit + CI | rozjazd wersji README ↔ CHANGELOG |
 | `straznik-linkow` | pre-commit + CI | martwe linki względne w Markdown |
-| `straznik-licencji` | pre-commit + CI | brak/podmiana LICENSE (GPL-2.0), brak deklaracji w README |
+| `straznik-licencji` | pre-commit + CI | brak/podmiana LICENSE (MIT), brak deklaracji w README, brak noty OFL przy plikach fontów |
 | `straznik-granic` | pre-commit + CI | klient SQL / connection string poza `modules/`, importy między modułami, import z bebechów modułu (BAZA → DZIAŁ → STRONA) |
 | `straznik-ci` | pre-commit + CI | package.json bez kroków `npm ci` → lint → tsc → build → test w CI |
 | `straznik-migracji` | pre-commit + CI | migracje SQL z dziurą w numeracji albo zmienione po fakcie (sha256 ↔ MANIFEST.json) |

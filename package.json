@@ -1,7 +1,7 @@
 {
   "name": "pod-strona-szkolenia",
   "private": true,
-  "license": "GPL-2.0",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",

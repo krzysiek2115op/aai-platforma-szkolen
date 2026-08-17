@@ -35,8 +35,20 @@ Statusy (checks) przy commitach/PR-ach są wiążące:
 
 ## 3. Licencja
 
-Projekt na licencji **GPL-2.0** — plik [LICENSE](../LICENSE) w korzeniu,
+Projekt na licencji **MIT** — plik [LICENSE](../LICENSE) w korzeniu,
 deklaracja w README. Pilnuje `straznik-licencji`.
+
+Decyzja właściciela (2026-08-17): zmiana z GPL-2.0 na MIT, żeby licencja
+zgadzała się z repozytorium strony głównej `matthewplugins.pl` (też MIT).
+Powód praktyczny: kod tej podstrony docelowo trafia do repo strony
+głównej — przy GPL-2.0 przeniesienie wymagałoby relicencjonowania,
+przy MIT jest bezproblemowe. Wszystkie zależności produkcyjne są
+permisywne (MIT/ISC), więc nic nie wymusza copyleftu.
+
+Osobno: pliki fontów Geist w `assets/fonts/` są na **SIL OFL 1.1**
+(licencja projektu ich nie obejmuje) — tekst licencji leży obok plików
+w [assets/fonts/LICENSE-Geist-OFL.txt](../assets/fonts/LICENSE-Geist-OFL.txt)
+i musi tam zostać przy każdej redystrybucji.
 
 ## 4. Agenci: skill + golden dla ważnych zadań
 

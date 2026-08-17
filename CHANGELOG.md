@@ -5,6 +5,31 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.13.0] — 2026-08-17
+
+### Zmienione
+- **Licencja projektu: GPL-2.0 → MIT** (decyzja właściciela). Powód:
+  zgodność z repozytorium strony głównej `matthewplugins.pl`, które jest
+  na MIT — kod tej podstrony docelowo tam trafia, a przy copyleftcie
+  wymagałoby to relicencjonowania. Nic nie wymuszało GPL: projekt nie
+  jest pluginem WordPressa (czysty Next.js), a wszystkie zależności
+  produkcyjne są permisywne (next/react/pg/zod — MIT, lucide-react —
+  ISC). Zmiana objęła `LICENSE`, `package.json`, `package-lock.json`,
+  README i wytyczną [WYTYCZNE §3](docs/WYTYCZNE.md) (z zapisanym
+  uzasadnieniem decyzji).
+
+### Dodane
+- **Licencja fontów obok plików fontów**:
+  [assets/fonts/LICENSE-Geist-OFL.txt](assets/fonts/LICENSE-Geist-OFL.txt)
+  — Geist jest na SIL OFL 1.1 i licencja projektu (wcześniej GPL, teraz
+  MIT) NIGDY go nie obejmowała; przy redystrybucji plików `.woff2` tekst
+  OFL musi jechać razem z nimi. Tekst pobrany z oficjalnego repozytorium
+  `vercel/geist-font`.
+- `straznik-licencji` przepisany: pilnuje MIT w LICENSE, README
+  i `package.json` (metadane pakietu potrafiły zostać po staremu),
+  wyłapuje pozostałości „GPL-2.0" w README oraz brak tekstu OFL przy
+  plikach fontów. Zweryfikowany testami negatywnymi.
+
 ## [0.12.1] — 2026-08-17
 
 **Bramka B5 zaliczona przez właściciela (2026-08-17)** — Dział 5
