@@ -20,7 +20,7 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.16.1** |
+| **Wersja** | **0.16.2** |
 | **Etap** | Działy 1–5 Pluginu 1 gotowe (B1–B5 zaliczone przez właściciela); Dział 6 (kreator kursów) kompletny — czeka na bramkę B6; następny krok: Dział 7 (treść obu kursów) |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |

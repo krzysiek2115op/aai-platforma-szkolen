@@ -60,13 +60,37 @@ export default function EdytorSekcji({
     zmien({ ...sekcje, [rodzaj]: { ...sekcje[rodzaj], [pole]: wartosc } });
   }
 
+  const uzyte = OPIS_SEKCJI.filter((o) => sekcje[o.rodzaj] !== undefined).length;
+  const komplet = uzyte === OPIS_SEKCJI.length;
+
   return (
     <div className="mt-6 grid gap-3">
-      <p className="text-sm leading-relaxed text-steel">
-        Sekcje bez treści nie pojawiają się na stronie kursu. Kolejność
-        poniżej to kolejność, w jakiej zobaczy je kupujący — jest stała,
-        bo wynika z układu strony sprzedażowej.
-      </p>
+      {/* Panel musi sam tłumaczyć swoją logikę: lista NIŻEJ to komplet
+          rodzajów, jakie strona kursu potrafi wyrenderować. Brak
+          przycisku „Dodaj" przy komplecie mylił („nie mogę nigdzie
+          dodać sekcji") — teraz jest napisane wprost. */}
+      <div className="rounded-xl border border-line bg-panel/40 px-5 py-4">
+        <p className="text-sm leading-relaxed text-steel">
+          Niżej jest <strong className="text-fg">komplet {OPIS_SEKCJI.length} rodzajów</strong>{" "}
+          sekcji, jakie potrafi pokazać strona kursu. Każdy rodzaj
+          występuje raz: dodajesz go przyciskiem <strong className="text-volt">Dodaj</strong>,
+          a zdejmujesz koszem. Sekcja, której nie dodasz, nie pojawia się
+          na stronie. Kolejność jest stała — wynika z układu strony
+          sprzedażowej, nie z panelu.
+        </p>
+        <p className="mt-3 font-mono text-label uppercase tracking-[0.2em]">
+          {komplet ? (
+            <span className="text-volt">
+              masz komplet {uzyte}/{OPIS_SEKCJI.length} — nie ma już czego dodać
+            </span>
+          ) : (
+            <span className="text-steel">
+              na stronie: {uzyte}/{OPIS_SEKCJI.length} · do dodania:{" "}
+              <span className="text-amber-400">{OPIS_SEKCJI.length - uzyte}</span>
+            </span>
+          )}
+        </p>
+      </div>
 
       {OPIS_SEKCJI.map((opis, i) => {
         const tresc = sekcje[opis.rodzaj];
@@ -141,14 +165,19 @@ export default function EdytorSekcji({
                   </button>
                 </>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => dodaj(opis)}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-volt/30 bg-volt/10 px-4 text-sm text-volt transition-colors hover:bg-volt/20"
-                >
-                  <Plus aria-hidden className="size-3.5" />
-                  Dodaj
-                </button>
+                <>
+                  <span className="font-mono text-label uppercase tracking-[0.15em] text-steel/60">
+                    nie ma jej na stronie
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => dodaj(opis)}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-volt/30 bg-volt/10 px-4 text-sm text-volt transition-colors hover:bg-volt/20"
+                  >
+                    <Plus aria-hidden className="size-3.5" />
+                    Dodaj
+                  </button>
+                </>
               )}
             </header>
 

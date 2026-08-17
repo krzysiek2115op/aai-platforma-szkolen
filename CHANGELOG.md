@@ -5,6 +5,21 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.16.2] — 2026-08-17
+
+### Naprawione
+- **„Sekcji strony nie mogę nigdzie dodać"** (zgłosił właściciel przy
+  ocenie kreatora). Panel działał poprawnie — kurs miał już komplet
+  12 rodzajów, więc przycisk „Dodaj" nie miał się gdzie pojawić — ale
+  nigdzie tego nie mówił. Zakładka sekcji ma teraz nagłówek
+  tłumaczący zasadę (lista niżej to komplet rodzajów, jakie potrafi
+  pokazać strona; każdy występuje raz) i licznik stanu: „na stronie:
+  11/12 · do dodania: 1" albo „masz komplet 12/12 — nie ma już czego
+  dodać". Rodzaj zdjęty ze strony jest wprost oznaczony („nie ma jej
+  na stronie") obok przycisku „Dodaj".
+- Pomiar w przeglądarce potwierdził pełny cykl: komplet → kosz →
+  „Dodaj" wraca i licznik schodzi na 11/12 → dodanie wraca na 12/12.
+
 ## [0.16.1] — 2026-08-17
 
 Naprawy z przeglądu kodu całego Działu 6 (przed bramką B6). Zgodnie
