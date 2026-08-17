@@ -129,6 +129,9 @@ node tools/straznicy/uruchom-wszystkie.mjs   # ręczne odpalenie strażników
 ### Kreator kursów (Dział 6)
 
 Panel treści właściciela: `http://localhost:3001/szkolenia/kreator`.
+Po zalogowaniu wejście jest też pod ręką na samych stronach sklepu —
+dyskretna pigułka w rogu `/szkolenia` i strony kursu, widoczna
+wyłącznie dla zalogowanego (gość nie ma jej nawet w źródle strony).
 Wejście na token z `.env` (`KREATOR_TOKEN`) — trafia do ciastka
 HttpOnly, więc nie ma go w JavaScripcie strony; pełne logowanie da
 Plugin 3. Kreator czyta bazę kanałem JSON, a zmienia ją **wyłącznie**

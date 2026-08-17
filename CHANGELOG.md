@@ -30,6 +30,11 @@ lekcje) dochodzą w kroku 2.
   w stałym czasie (`timingSafeEqual`) + kara czasowa za zły token.
   Flaga `Secure` zależy od protokołu żądania, nie od `NODE_ENV` —
   produkcyjny build oglądany na localhoście po http też się loguje.
+- **Wejście do kreatora ze stron sklepu** (decyzja właściciela):
+  dyskretna pigułka w rogu `/szkolenia` i strony kursu, renderowana
+  WYŁĄCZNIE przy ważnym ciastku bramy — gość nie ma jej nawet
+  w źródle strony. Na stronie kursu prowadzi wprost do edycji tego
+  kursu. To wygoda, nie zabezpieczenie: dostępu pilnuje token.
 - **Kanał JSON kreatora**: `szczegolyKursuPoId()` (edycja po id — slug
   bywa właśnie zmieniany) i `listaKursowKreatora()` rozszerzona
   o badge, poziom, datę zmiany i liczniki treści (kontrakt

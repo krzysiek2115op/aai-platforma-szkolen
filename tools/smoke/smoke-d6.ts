@@ -138,6 +138,26 @@ try {
   const katalog = await (await html("/szkolenia")).text();
   assert.ok(katalog.includes(KURS_SMOKE.title), "opublikowany kurs nie wszedł do katalogu");
 
+  // 6a. Wejście do kreatora z katalogu: dla GOŚCIA nie ma go nawet
+  // w źródle strony, dla właściciela jest. Ukrycie linku to wygoda,
+  // nie ochrona — ale link widoczny dla wszystkich byłby zaproszeniem.
+  assert.ok(
+    !katalog.includes("data-wejscie-admina"),
+    "gość widzi wejście do kreatora w źródle katalogu"
+  );
+  const katalogAdmina = await (await html("/szkolenia", CIASTKO)).text();
+  assert.ok(
+    katalogAdmina.includes("data-wejscie-admina"),
+    "właściciel nie ma wejścia do kreatora w katalogu"
+  );
+  const stronaKursuAdmina = await (
+    await html(`/szkolenia/${KURS_SMOKE.slug}`, CIASTKO)
+  ).text();
+  assert.ok(
+    stronaKursuAdmina.includes(`/szkolenia/kreator/${idKursu}`),
+    "brak skrótu do edycji tego kursu na jego stronie"
+  );
+
   // 7. Usunięcie z ciastka — i kursu nie ma ani w kreatorze, ani na stronie.
   const usuniecie = await ajax({ akcja: "usun", id: idKursu }, CIASTKO);
   assert.equal(usuniecie.status, 200, "usunięcie z kreatora nie przeszło");

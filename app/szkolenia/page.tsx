@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, ShieldCheck, Sparkles } from "lucide-react";
+import WejscieAdmina from "@/components/kreator/WejscieAdmina";
 import HeroMotion from "@/components/szkolenia/HeroMotion";
 import OknoKursu from "@/components/szkolenia/OknoKursu";
 import { Reveal, Cascade, CascadeItem } from "@/components/ui/Reveal";
@@ -440,6 +441,11 @@ export default async function StronaSzkolenia() {
           </a>
         </div>
       </section>
+
+      {/* Widoczne WYŁĄCZNIE dla zalogowanego właściciela — gość nie ma
+          tego elementu nawet w źródle strony. Wygoda, nie ochrona:
+          dostępu pilnuje token, nie ukrycie linku. */}
+      <WejscieAdmina />
     </>
   );
 }

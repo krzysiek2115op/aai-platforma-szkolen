@@ -18,6 +18,7 @@ import SekcjaProblem from "@/components/kurs/SekcjaProblem";
 import SekcjaProgram from "@/components/kurs/SekcjaProgram";
 import SekcjaTransformacja from "@/components/kurs/SekcjaTransformacja";
 import TloKursu from "@/components/kurs/TloKursu";
+import WejscieAdmina from "@/components/kreator/WejscieAdmina";
 import {
   szczegolyKursu,
   TrescHero,
@@ -162,6 +163,9 @@ export default async function StronaKursu({ params }: Props) {
       {faq ? <SekcjaFaq etykieta={numer("FAQ")} tresc={faq} /> : null}
 
       <FinalCta kurs={kurs} />
+
+      {/* skrót do edycji TEGO kursu — widzi go tylko zalogowany właściciel */}
+      <WejscieAdmina edytujId={kurs.id} />
     </div>
   );
 }
