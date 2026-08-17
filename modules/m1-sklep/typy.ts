@@ -57,6 +57,21 @@ export const KartaKatalogu = KartaKursu.extend({
 });
 export type KartaKatalogu = z.infer<typeof KartaKatalogu>;
 
+/**
+ * Karta na liście kreatora: kurs w KAŻDYM statusie + licznik tego, co
+ * już w nim jest (sekcje/moduły/lekcje). Właściciel na jednym ekranie
+ * widzi, który kurs jest pusty, a który gotowy do publikacji.
+ */
+export const KartaKreatora = KartaKursu.extend({
+  badge: z.string().nullable(),
+  level: PoziomKursu.nullable(),
+  updated_at: z.date(),
+  sections_count: z.int().nonnegative(),
+  modules_count: z.int().nonnegative(),
+  lessons_count: z.int().nonnegative(),
+});
+export type KartaKreatora = z.infer<typeof KartaKreatora>;
+
 export const LekcjaKursu = z.object({
   id: z.uuid(),
   position: z.int().nonnegative(),
@@ -186,13 +201,60 @@ export const TrescFaq = z.object({
   ),
 });
 
+/**
+ * Rodzaj sekcji → jej schemat treści. JEDNA prawda dla obu stron:
+ * strona sprzedażowa parsuje tym `content` z bazy, a kreator z tego
+ * samego miejsca wie, jakie pola pokazać. Nowy rodzaj sekcji dopisany
+ * do `SekcjaRodzaj` bez wpisu tutaj nie skompiluje się (Record wymaga
+ * kompletu), a bez edytora — nie przejdzie `straznik-kreatora`.
+ */
+export const SCHEMATY_SEKCJI = {
+  hero: TrescHero,
+  problem: TrescProblem,
+  benefits: TrescKorzysci,
+  package: TrescPakiet,
+  positioning: TrescPozycjonowanie,
+  for_whom: TrescDlaKogo,
+  transformation: TrescTransformacja,
+  opinions: TrescOpinie,
+  author: TrescAutor,
+  guarantee: TrescGwarancja,
+  comparison: TrescPorownanie,
+  faq: TrescFaq,
+} as const satisfies Record<z.infer<typeof SekcjaRodzaj>, z.ZodObject>;
+
+export type SekcjaRodzajNazwa = keyof typeof SCHEMATY_SEKCJI;
+
 /* ————— kanał AJAX (wystrzał — akcje dyspozytora) ————— */
 
-const SekcjaWejscie = z.object({
-  kind: SekcjaRodzaj,
-  position: z.int().nonnegative(),
-  content: z.record(z.string(), z.unknown()).default({}),
-});
+/**
+ * Sekcja z kreatora. `content` NIE jest workiem na cokolwiek: musi
+ * przejść schemat SWOJEGO rodzaju.
+ *
+ * DLACZEGO TAK OSTRO. Strona sprzedażowa czyta sekcje przez safeParse
+ * i po cichu pomija te o złym kształcie — to dobra decyzja dla strony
+ * (jeden zły rekord nie wysadza całego kursu), ale fatalna jako jedyna
+ * kontrola: zapis „przechodził", a sekcja znikała ze strony bez słowa
+ * wyjaśnienia. Teraz zła treść nie ma prawa wejść do bazy, a kreator
+ * dostaje ścieżkę do konkretnego pola.
+ */
+const SekcjaWejscie = z
+  .object({
+    kind: SekcjaRodzaj,
+    position: z.int().nonnegative(),
+    content: z.record(z.string(), z.unknown()).default({}),
+  })
+  .superRefine((sekcja, ctx) => {
+    const wynik = SCHEMATY_SEKCJI[sekcja.kind].safeParse(sekcja.content);
+    if (wynik.success) return;
+    for (const problem of wynik.error.issues) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["content", ...problem.path],
+        message: problem.message,
+      });
+    }
+  });
 
 const LekcjaWejscie = z.object({
   position: z.int().nonnegative(),

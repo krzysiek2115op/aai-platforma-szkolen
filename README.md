@@ -20,8 +20,8 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.13.0** |
-| **Etap** | Działy 1–5 Pluginu 1 gotowe (B1–B5 zaliczone przez właściciela) — katalog i strona sprzedażowa kursu; następny krok: Dział 6 (kreator kursów) |
+| **Wersja** | **0.16.2** |
+| **Etap** | Działy 1–6 Pluginu 1 gotowe — **B1–B6 zaliczone przez właściciela** (B6: 2026-08-17, kreator kursów); następny krok: Dział 7 — treść obu kursów z oryginalnej dokumentacji |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([assets/fonts/LICENSE-Geist-OFL.txt](assets/fonts/LICENSE-Geist-OFL.txt)) |
@@ -40,7 +40,7 @@ Moduły nie sięgają do cudzych tabel.
 
 | # | Moduł | Branch | Baza | Zakres | Stan |
 |---|-------|--------|------|--------|------|
-| 1 | Sklep z kursami | `plugin-1-sklep-kursow` | `db1_kursy` | katalog `/szkolenia`, strona sprzedażowa kursu, kreator kursów, dziennik zmian (audyt CRUD) | 🔨 Dział 6/7: B1–B5 ✓ (katalog + strona kursu gotowe), następny krok: kreator kursów |
+| 1 | Sklep z kursami | `plugin-1-sklep-kursow` | `db1_kursy` | katalog `/szkolenia`, strona sprzedażowa kursu, kreator kursów, dziennik zmian (audyt CRUD) | 🔨 Dział 7/7: B1–B6 ✓ (katalog, strona kursu i kreator gotowe), następny krok: treść obu kursów |
 | 2 | Płatności | `plugin-2-platnosci` | `db2_klienci` | bramka płatności (adapter operatora), zamówienia, wysyłka kursu i potwierdzenia na e-mail | 🔒 po module 1 |
 | 3 | Panel admina | `plugin-3-admin-panel` | `db3_monitoring` | podstrona tylko dla admina, log logowań (kto, kiedy, skąd), timer wizyt na stronie | 🔒 po module 2 |
 
@@ -105,7 +105,9 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-migracji` | pre-commit + CI | migracje SQL z dziurą w numeracji albo zmienione po fakcie (sha256 ↔ MANIFEST.json) |
 | `straznik-ajax` | pre-commit + CI | drugi endpoint AJAX modułu albo endpoint poza działem (WYTYCZNE §8: jedna baza = jeden wystrzał) |
 | `straznik-fontow` | pre-commit + CI | import pakietu `geist` (psuł hydratację — BLAD-001); fonty tylko przez next/font/local |
-| `straznik-fixed` | pre-commit + CI | `transform`/`filter` w klasie opakowującej treść — łamie `position: fixed` potomków, przez co pasek menu kursu znikał przy scrollu (BLAD-003) |
+| `straznik-fixed` | pre-commit + CI | `transform`/`filter` w klasie opakowującej treść — łamie `position: fixed` potomków (BLAD-003); a także animacja z wypełnieniem `forwards`/`both`, która zostawia trwały kontekst układania i chowa te elementy pod stopką (BLAD-004) |
+| `straznik-odmiany` | pre-commit + CI | ręczna odmiana polskich liczebników (ternar „kurs"/„kursy") zamiast `lib/odmiana.ts` — dwie formy nie wystarczą, polski ma trzy |
+| `straznik-kreatora` | pre-commit + CI | pole lub rodzaj sekcji, który strona kursu potrafi wyrenderować, a kreator nie pozwala go wypełnić (rozjazd `SCHEMATY_SEKCJI` ↔ opis pól panelu, także w polach zagnieżdżonych) |
 | blokada sekretów | pre-commit | pliki `.env`, tokeny/klucze w diffie |
 | gitleaks (pinowany po SHA-256) | CI | sekrety w całej historii repo |
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
@@ -125,3 +127,22 @@ npm run dev                           # Plugin 1 → http://localhost:3001/szkol
 npm test                              # testy modułów (wymagają bazy)
 node tools/straznicy/uruchom-wszystkie.mjs   # ręczne odpalenie strażników
 ```
+
+### Kreator kursów (Dział 6)
+
+Panel treści właściciela: `http://localhost:3001/szkolenia/kreator`.
+Po zalogowaniu wejście jest też pod ręką na samych stronach sklepu —
+dyskretna pigułka w rogu `/szkolenia` i strony kursu, widoczna
+wyłącznie dla zalogowanego (gość nie ma jej nawet w źródle strony).
+Pełna instrukcja obsługi: [docs/plugin-1/KREATOR.md](docs/plugin-1/KREATOR.md).
+Wejście na token z `.env` (`KREATOR_TOKEN`) — trafia do ciastka
+HttpOnly, więc nie ma go w JavaScripcie strony; pełne logowanie da
+Plugin 3. Kreator czyta bazę kanałem JSON, a zmienia ją **wyłącznie**
+przez jedyny wystrzał AJAX `app/api/szkolenia` — każda operacja
+zostawia ślad w `course_changelog` (triggery bazy).
+
+> [!IMPORTANT]
+> Przy wdrożeniu za reverse proxy (nginx/Caddy) proxy MUSI przekazywać
+> nagłówek `X-Forwarded-Proto` — z niego bierze się flaga `Secure`
+> ciastka kreatora. Bez niego, gdy proxy przepisuje `Host` na
+> `localhost`, ciastko z tokenem poleciałoby po https bez `Secure`.

@@ -20,6 +20,14 @@ jobs:
         with:
           node-version: 24
 
+      # Część strażników czyta KONTRAKTY z kodu (straznik-kreatora
+      # importuje schematy Zod modułu), więc potrzebuje zależności.
+      # Na gałęziach bez package-lock.json (np. sam fundament repo na
+      # `main`) krok się pomija, a strażnicy dalej chodzą „na sucho".
+      - name: Instalacja zależności (strażnicy czytający kontrakty)
+        if: hashFiles('package-lock.json') != ''
+        run: npm ci
+
       # Runner sam znajduje wszystkich strażników (straznik-*.mjs) —
       # nowego strażnika nie da się „zapomnieć podpiąć".
       - name: Uruchom strażników
@@ -95,6 +103,14 @@ jobs:
       # Dowód B5: pełna strona sprzedażowa z bazy (golden sekcji programu).
       - name: Smoke strony sprzedażowej /szkolenia/[slug]
         run: node tools/smoke/smoke-d5.ts
+
+      # Dowód B6: brama kreatora nie wypuszcza szkiców, wystrzał AJAX
+      # działa z samego ciastka, a cykl szkic → publikacja → katalog →
+      # usunięcie przechodzi po HTTP.
+      - name: Smoke kreatora /szkolenia/kreator
+        env:
+          KREATOR_TOKEN: smoke-d6-ci
+        run: node tools/smoke/smoke-d6.ts
 
   security:
     name: Skan sekretów

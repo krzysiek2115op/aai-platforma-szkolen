@@ -1,5 +1,5 @@
 import { pulaDb1 } from "./db/klient.ts";
-import { KartaKatalogu, KartaKursu, SzczegolyKursu } from "./typy.ts";
+import { KartaKatalogu, KartaKreatora, SzczegolyKursu } from "./typy.ts";
 
 /**
  * Kanał JSON — odczyt serwerowy (WYTYCZNE §8, doprecyzowanie 2026-08-16):
@@ -36,12 +36,25 @@ export async function listaKursow(): Promise<KartaKatalogu[]> {
   return rows.map((r) => KartaKatalogu.parse(r));
 }
 
-/** Kreator: wszystkie kursy niezależnie od statusu. */
-export async function listaKursowKreatora(): Promise<KartaKursu[]> {
+/**
+ * Kreator: wszystkie kursy niezależnie od statusu, z licznikami treści.
+ * Liczy baza — kreator nigdy nie zgaduje, ile kurs ma już materiału.
+ */
+export async function listaKursowKreatora(): Promise<KartaKreatora[]> {
   const { rows } = await pulaDb1().query(
-    `SELECT ${KOLUMNY_KARTY} FROM courses ORDER BY created_at DESC`
+    `SELECT c.id, c.slug, c.title, c.type, c.short_desc, c.price_grosze,
+            c.cover_url, c.status, c.badge, c.level, c.updated_at,
+            (SELECT count(*) FROM course_sections s WHERE s.course_id = c.id)::int
+              AS sections_count,
+            (SELECT count(*) FROM course_modules m WHERE m.course_id = c.id)::int
+              AS modules_count,
+            (SELECT count(*) FROM course_lessons l
+              JOIN course_modules m ON m.id = l.module_id
+              WHERE m.course_id = c.id)::int AS lessons_count
+     FROM courses c
+     ORDER BY c.updated_at DESC`
   );
-  return rows.map((r) => KartaKursu.parse(r));
+  return rows.map((r) => KartaKreatora.parse(r));
 }
 
 /**
@@ -53,15 +66,33 @@ export async function szczegolyKursu(
   slug: string,
   opcje: { takzeSzkice?: boolean } = {}
 ): Promise<SzczegolyKursu | null> {
-  const pula = pulaDb1();
-  const { rows } = await pula.query(
+  const { rows } = await pulaDb1().query(
     `SELECT ${KOLUMNY_KARTY}, badge, level FROM courses
      WHERE slug = $1 ${opcje.takzeSzkice ? "" : "AND status = 'published'"}`,
     [slug]
   );
-  const kurs = rows[0];
-  if (!kurs) return null;
+  return rows[0] ? dolozTresc(rows[0]) : null;
+}
 
+/**
+ * Kreator edytuje kurs po id (slug bywa właśnie zmieniany, więc nie
+ * nadaje się na klucz edycji) i widzi kurs w każdym statusie.
+ */
+export async function szczegolyKursuPoId(
+  id: string
+): Promise<SzczegolyKursu | null> {
+  const { rows } = await pulaDb1().query(
+    `SELECT ${KOLUMNY_KARTY}, badge, level FROM courses WHERE id = $1`,
+    [id]
+  );
+  return rows[0] ? dolozTresc(rows[0]) : null;
+}
+
+/** Wspólny rdzeń obu odczytów: do wiersza kursu dokłada sekcje i program. */
+async function dolozTresc(
+  kurs: Record<string, unknown>
+): Promise<SzczegolyKursu> {
+  const pula = pulaDb1();
   const [sekcje, moduly] = await Promise.all([
     pula.query(
       `SELECT id, kind, position, content FROM course_sections

@@ -17,7 +17,10 @@
  *
  * Użycie: node tools/straznicy/straznik-ci.mjs
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
+const KATALOG_STRAZNIKOW = join("tools", "straznicy");
 
 if (!existsSync("package.json")) process.exit(0);
 
@@ -49,6 +52,30 @@ if (ci) {
     bledy.push(
       `${SCIEZKA_CI}: package.json ma skrypt "test", ale CI go nie uruchamia.`
     );
+  }
+
+  // Strażnik czytający KONTRAKTY z kodu (import z modules/) potrzebuje
+  // zależności — inaczej pada w CI na „ERR_MODULE_NOT_FOUND: zod",
+  // choć lokalnie jest zielony (bo tu node_modules są). Zdarzyło się
+  // to przy straznik-kreatora na PR #18.
+  const czytajaKod = readdirSync(KATALOG_STRAZNIKOW)
+    // pomijamy siebie: wzorzec „modules/" występuje tu jako reguła
+    // wykrywania, nie jako prawdziwy import
+    .filter((n) => /^straznik-.*\.mjs$/.test(n) && n !== "straznik-ci.mjs")
+    .filter((n) =>
+      // statyczny `from "…/modules/…"` ORAZ dynamiczny `import("…/modules/…")`
+      // — strażnicy czytający kontrakty używają tej drugiej formy
+      /(?:from\s+|import\(\s*)["'][^"']*modules\//.test(
+        readFileSync(join(KATALOG_STRAZNIKOW, n), "utf8")
+      )
+    );
+  if (czytajaKod.length > 0) {
+    const jobStraznikow = ci.split(/^  \w[\w-]*:/m).find((j) => /straznic|uruchom-wszystkie/i.test(j));
+    if (jobStraznikow && !/npm ci\b/.test(jobStraznikow)) {
+      bledy.push(
+        `${SCIEZKA_CI}: ${czytajaKod.join(", ")} czyta kontrakty z modules/, więc wymaga zależności — job strażników nie ma kroku „npm ci" i padnie w CI mimo zielonych strażników lokalnie.`
+      );
+    }
   }
 }
 

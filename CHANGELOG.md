@@ -5,6 +5,204 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.16.2] — 2026-08-17
+
+### Naprawione
+- **„Sekcji strony nie mogę nigdzie dodać"** (zgłosił właściciel przy
+  ocenie kreatora). Panel działał poprawnie — kurs miał już komplet
+  12 rodzajów, więc przycisk „Dodaj" nie miał się gdzie pojawić — ale
+  nigdzie tego nie mówił. Zakładka sekcji ma teraz nagłówek
+  tłumaczący zasadę (lista niżej to komplet rodzajów, jakie potrafi
+  pokazać strona; każdy występuje raz) i licznik stanu: „na stronie:
+  11/12 · do dodania: 1" albo „masz komplet 12/12 — nie ma już czego
+  dodać". Rodzaj zdjęty ze strony jest wprost oznaczony („nie ma jej
+  na stronie") obok przycisku „Dodaj".
+- Pomiar w przeglądarce potwierdził pełny cykl: komplet → kosz →
+  „Dodaj" wraca i licznik schodzi na 11/12 → dodanie wraca na 12/12.
+
+## [0.16.1] — 2026-08-17
+
+Naprawy z przeglądu kodu całego Działu 6 (przed bramką B6). Zgodnie
+z zasadą właściciela: **każdy błąd dostaje strażnika albo test**, żeby
+nie miał jak wrócić.
+
+### Naprawione
+- **BLAD-005 — pole ceny kasowało wpis w trakcie pisania.** Kontrolka
+  była sterowana wartością przeliczoną z groszy, więc stan pośredni
+  („199,") wracał jako pusty string, `Number("")` dawało 0 i pole samo
+  czyściło wpis: ceny z groszami były nie do wpisania, a kurs mógł
+  zostać zapisany za 0 zł. Przeliczanie wydzielone do
+  `components/kreator/cena.ts` (`naGrosze` oddaje `null` dla stanu
+  w połowie pisania — zapisanej ceny wtedy nie ruszamy), przecinek
+  równoważny kropce. **Test**: runda grosze → tekst → grosze.
+- **BLAD-006 — dyspozytor przyjmował treść sekcji niezgodną z jej
+  rodzajem.** Kształt `content` sprawdzała dopiero strona (safeParse),
+  więc zapis „przechodził", a sekcja po cichu znikała ze strony bez
+  słowa wyjaśnienia. Teraz `SekcjaWejscie` waliduje treść schematem
+  swojego rodzaju i zwraca **ścieżkę do konkretnego pola**; kreator
+  tłumaczy pozycję w tablicy na rodzaj sekcji i przeskakuje na
+  właściwą zakładkę. **Test**: odrzucenie hero bez obietnicy ze
+  ścieżką `kurs.sections.0.content.obietnica`.
+- **Slug: nie dało się wpisać myślnika** — pełna normalizacja przy
+  każdym znaku ucinała końcowy myślnik, więc „moj-kurs" stawało się
+  „mojkurs". Przy pisaniu działa łagodniejsza normalizacja, porządki
+  robią się przy opuszczeniu pola i przy zapisie.
+- **Sekcja świeciła „gotowa", a zapis padał** — zaczęte pole
+  opcjonalne (np. link autora z etykietą, bez adresu) nie było liczone
+  jako brak. Teraz jest: puste w całości pozostaje opcjonalne, zaczęte
+  musi być dokończone.
+- **Zły kształt treści w bazie wysadzał edytor** (500 na
+  `.map` nie-tablicy), czyli rekordu nie dało się naprawić z panelu.
+  Wczytywanie traktuje JSONB z ograniczonym zaufaniem.
+- **Ręczna odmiana liczebników** w nagłówku kreatora („3 w bazie") →
+  `lib/odmiana.ts`. Nowy **`straznik-odmiany`** wyłapuje ternary
+  odmieniające polskie słowa na piechotę (dwie formy nigdy nie
+  wystarczą — polski ma trzy).
+
+### Zmienione
+- `npm test` obejmuje teraz także `components/**` i `lib/**` — błędy
+  z warstwy panelu (pola formularza) nie były widoczne ani dla testów
+  modułu, ani dla smoke'ów.
+- Fixtury sekcji w testach D3 poprawione do zgodnych z kontraktem;
+  golden `goldeny/d3-odczyt.json` odtworzony świadomie (diff obejmuje
+  wyłącznie te dwie sekcje). Sprawdzone, że zaostrzenie nie koliduje
+  z seedem właściciela — seed przechodzi na bazie `db1_kursy_test`.
+
+## [0.16.0] — 2026-08-17
+
+Dział 6, krok 3 z 3: podgląd przed publikacją i instrukcja obsługi.
+Kreator kompletny — gotowy pod bramkę B6.
+
+### Dodane
+- **Podgląd szkicu** — właściciel z ważnym ciastkiem bramy ogląda
+  stronę kursu przed publikacją (`/szkolenia/[slug]` przepuszcza wtedy
+  szkice), z ostrzeżeniem w rogu: „Szkic — podgląd tylko dla Ciebie".
+  Dla gościa ten sam adres to dalej **404**: kanał JSON filtruje po
+  statusie, więc nie ma tam treści do wycieku. Smoke D6 pilnuje obu
+  stron tej granicy naraz.
+- Wejście do podglądu z dwóch miejsc: przycisk „Podgląd" przy każdym
+  kursie na liście kreatora (wcześniej tylko przy opublikowanych)
+  i „Podgląd strony kursu" w pasku zapisu edytora.
+- **[docs/plugin-1/KREATOR.md](docs/plugin-1/KREATOR.md)** — instrukcja
+  obsługi panelu dla właściciela: wejście, stany kursu, kolejność
+  pracy, czego kreator NIE zrobi (stała kolejność sekcji, okładka jako
+  adres pliku, cena w złotówkach) i tabela „gdy coś nie działa"
+  z rozwiązaniem błędu „Nieprawidłowy token" po zmianie `.env`.
+
+## [0.15.0] — 2026-08-17
+
+Dział 6, krok 2 z 3: pełna treść kursu z panelu — 12 rodzajów sekcji
+sprzedażowych i program (moduły + lekcje).
+
+### Dodane
+- **Edytor sekcji sprzedażowych** — wszystkie 12 rodzajów obsługiwane
+  JEDNYM komponentem sterowanym opisem pól, nie dwunastoma
+  formularzami: `components/kreator/opis-sekcji.ts` mówi, jaka
+  kontrolka i etykieta, a kształt treści dalej pilnują schematy Zod.
+  Karty w kolejności, w jakiej sekcje pojawiają się na stronie kursu;
+  każda ma stan „gotowa" / „brakuje: …" liczony z pól obowiązkowych,
+  więc widać braki bez zapisywania. Sekcja bez treści nie trafia na
+  stronę.
+- **`SCHEMATY_SEKCJI`** w `modules/m1-sklep/typy.ts` — mapa rodzaj →
+  schemat treści; jedna prawda dla strony sprzedażowej i kreatora.
+  Rodzaj bez wpisu nie skompiluje się.
+- **Edytor programu** — moduły i lekcje z kolejnością na strzałki
+  (pozycje liczone przy zapisie, więc numeracja nie ma jak się
+  rozjechać), czasem lekcji i flagą zapowiedzi; nagłówek liczy moduły,
+  lekcje i łączny czas polską odmianą (`lib/odmiana.ts`).
+- **Zakładki w edytorze kursu**: Dane podstawowe / Sekcje strony
+  (licznik X/12) / Program (moduły/lekcje). Zapis obejmuje całość —
+  tablice `sections` i `modules` to pełna podmiana treści (kontrakt
+  dyspozytora z D3).
+- **`straznik-kreatora`** — pilnuje, że właściciel ma dostęp do
+  KAŻDEGO pola, które strona potrafi wyrenderować: rodzaj sekcji bez
+  edytora, pole w kontrakcie bez pola w panelu (i odwrotnie) oraz
+  rozjazd wymagalności, także w polach zagnieżdżonych (listy obiektów,
+  obiekt `link` autora). Zweryfikowany trzema testami negatywnymi.
+- **Goldeny D6**: `goldeny/d6-kreator.json` (pełny opis formularza)
+  i `goldeny/d6-runda.json` (kurs z KOMPLETEM pól po przejściu przez
+  bazę). Testy `kreator-tresc.test.ts` (6) generują przykładową treść
+  **z opisu pól**, więc nowe pole automatycznie wchodzi do rundy
+  zapis → odczyt — nie da się dołożyć pola, które po cichu ginie.
+  Dowód rundy: treść każdej z 12 sekcji wraca z bazy identyczna.
+- Logika treści wydzielona do `components/kreator/tresc-sekcji.ts`
+  (pusta treść, treść z bazy → formularz, czyszczenie przed zapisem,
+  braki) — puste pole opcjonalne nie idzie do bazy, puste obowiązkowe
+  idzie i wraca czytelnym błędem przy tym polu.
+
+## [0.14.0] — 2026-08-17
+
+Dział 6 (kreator kursów), krok 1 z 3: brama dostępu, lista kursów
+i dane podstawowe. Treść sekcji sprzedażowych i program (moduły +
+lekcje) dochodzą w kroku 2.
+
+### Dodane
+- **Kreator `/szkolenia/kreator`** — panel treści właściciela w języku
+  wizualnym strony (własny pływający pasek `PasekKreatora`, Reveal/
+  Cascade, `unos` na kartach): lista WSZYSTKICH kursów z licznikami
+  treści liczonymi w bazie (sekcje / moduły / lekcje — zero na
+  pomarańczowo, więc od razu widać, czego brakuje), publikacja,
+  ukrycie, usuwanie z potwierdzeniem i podgląd strony kursu.
+- **Edytor danych podstawowych `/szkolenia/kreator/[id]`** — slug
+  (podpowiadany z tytułu, ale tylko dla NOWEGO kursu, żeby edycja nie
+  zmieniła adresu opublikowanej strony), tytuł, typ, opis na kartę,
+  cena wpisywana w złotówkach (baza trzyma grosze), okładka,
+  **badge** i **poziom**. Błędy walidacji z dyspozytora wracają
+  przypięte do konkretnych pól.
+- **Brama na token** (`lib/kreator-dostep.ts` + akcje serwerowe
+  `app/szkolenia/kreator/akcje.ts`): token trafia do ciastka
+  **HttpOnly**, więc nie istnieje w JavaScripcie strony; porównanie
+  w stałym czasie (`timingSafeEqual`) + kara czasowa za zły token.
+  Flaga `Secure` zależy od protokołu żądania, nie od `NODE_ENV` —
+  produkcyjny build oglądany na localhoście po http też się loguje.
+- **Wejście do kreatora ze stron sklepu** (decyzja właściciela):
+  dyskretna pigułka w rogu `/szkolenia` i strony kursu, renderowana
+  WYŁĄCZNIE przy ważnym ciastku bramy — gość nie ma jej nawet
+  w źródle strony. Na stronie kursu prowadzi wprost do edycji tego
+  kursu. To wygoda, nie zabezpieczenie: dostępu pilnuje token.
+- **Kanał JSON kreatora**: `szczegolyKursuPoId()` (edycja po id — slug
+  bywa właśnie zmieniany) i `listaKursowKreatora()` rozszerzona
+  o badge, poziom, datę zmiany i liczniki treści (kontrakt
+  `KartaKreatora`).
+- **Smoke `tools/smoke/smoke-d6.ts`** (CI, job „baza"): na produkcyjnym
+  `next start` dowodzi, że bez ciastka kreator NIE pokazuje szkiców
+  i AJAX odpowiada 403, a z ciastkiem przechodzi pełny cykl
+  szkic → publikacja → katalog → usunięcie.
+- **Testy `modules/m1-sklep/kreator.test.ts`** (6): szkic widoczny dla
+  kreatora, liczniki z bazy, edycja po id, zmiana sluga bez gubienia
+  kursu, ślad każdej operacji w `course_changelog`.
+- Dokumentacja techniczna działu:
+  [docs/dokumentacja-techniczna/d6](docs/dokumentacja-techniczna/d6/ZRODLA.md)
+  — Server Actions, formularze i `cookies()` skopiowane z pakietu
+  `next@16.3.1` (dokładnie ta wersja, na której chodzi aplikacja).
+
+### Naprawione
+- **BLAD-004 — pigułka kreatora chowała się pod stopką** (zgłosił
+  właściciel). Klasa `.page-enter` opakowująca całą treść strony miała
+  animację `opacity` z wypełnieniem `both`; wypełniana animacja stosuje
+  swoją wartość także PO zakończeniu, więc kontekst układania zostawał
+  na stałe i zamykał w sobie każdy element `position: fixed` z treści —
+  stopka (późniejsze rodzeństwo) malowała się na wierzchu, a `z-index`
+  nie miał jak pomóc. Wypełnienie zmienione na `backwards`: ten sam
+  fade 0,3 s, kontekst znika po animacji. `straznik-fixed` rozszerzony
+  o wypełnienia `forwards`/`both` (zweryfikowany testem negatywnym),
+  wpis w [rejestrze błędów](rejestr/znane-bledy.json), migawka:
+  gałąź `bak/2026-08-17-pigulka-admina-pod-stopka`. Dowód: pomiar
+  w przeglądarce (`elementFromPoint` w środku pigułki po zescrollowaniu
+  na dół oddaje link kreatora; przed naprawą oddawał DIV stopki).
+
+### Zmienione
+- **Dyspozytor sprawdza token PRZED walidacją kształtu** — żądanie bez
+  tokenu dostaje `brak-dostepu` (403) zamiast mapy pól kontraktu
+  w odpowiedzi `walidacja` (400). Obcy nie dostaje podpowiedzi, jak
+  zbudować poprawne żądanie.
+- **Jedyny AJAX bierze token z ciastka**, gdy nie ma go w treści
+  żądania — endpoint pozostaje jeden (WYTYCZNE §8), a autoryzacja dalej
+  należy wyłącznie do dyspozytora.
+- `NavbarPrzelacznik` wyłącza globalny navbar na CAŁYM poddrzewie
+  kreatora — inaczej lista kursów (pasuje do wzorca `[slug]`) byłaby
+  bez navbara, a edycja kursu miałaby dwa paski naraz.
+
 ## [0.13.0] — 2026-08-17
 
 ### Zmienione

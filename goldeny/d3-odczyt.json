@@ -15,7 +15,12 @@
       "kind": "faq",
       "position": 0,
       "content": {
-        "pytanie": "Dla kogo?"
+        "pytania": [
+          {
+            "pytanie": "Dla kogo?",
+            "odpowiedz": "Dla praktyków."
+          }
+        ]
       }
     },
     {
@@ -23,7 +28,7 @@
       "kind": "hero",
       "position": 0,
       "content": {
-        "naglowek": "Zbuduj system AI"
+        "obietnica": "Zbuduj system AI"
       }
     }
   ],
