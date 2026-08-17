@@ -13,7 +13,6 @@
     "db1:seed": "node --env-file-if-exists=.env tools/seed/seed-przyklady.ts"
   },
   "dependencies": {
-    "geist": "^1.7.2",
     "lucide-react": "^1.31.0",
     "next": "16.3.1",
     "pg": "^8.16.3",

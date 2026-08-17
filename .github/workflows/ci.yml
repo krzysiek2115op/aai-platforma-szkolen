@@ -80,6 +80,11 @@ jobs:
       - name: Testy modułów
         run: npm test
 
+      # Testy chodzą na osobnej bazie db1_kursy_test (BLAD-002) —
+      # baza główna dla smoke'ów wymaga własnych migracji.
+      - name: Migracje bazy głównej (pod smoke)
+        run: npm run db1:migruj
+
       # Dowód B4: produkcyjny serwer renderuje katalog Z BAZY (golden HTML).
       - name: Build pod smoke
         run: npm run build

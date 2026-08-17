@@ -16,5 +16,26 @@
     "Procedura naprawy wstecznej (.bak): docs/WYTYCZNE.md §1."
   ],
   "wersja": 1,
-  "bledy": []
+  "bledy": [
+    {
+      "id": "BLAD-001",
+      "data": "2026-08-17",
+      "klasa": "hydratacja/mutacja-html-przed-hydratacja-bez-tlumika",
+      "dowod": "Inline skrypt wylacznika animacji (app/layout.tsx, wzorzec strony glownej) doklada klase `js` do <html> PRZED hydratacja Reacta, a <html> nie mial suppressHydrationWarning — atrybut className po stronie klienta rozni sie od HTML serwera. Pierwsza diagnoza (pakiet geist) byla bledna: po przejsciu na next/font/local klasy fontow byly identyczne po obu stronach, a blad zostal — roznica siedziala w obcietej koncowce diffa (dokladana klasa `js`). Wykryte dwukrotnie przez wlasciciela przy bramce B5.",
+      "skutek": "Czerwony 'Console Error: A tree hydrated but some attributes...' w dev overlay na kazdej stronie.",
+      "naprawa": "suppressHydrationWarning na <html> w app/layout.tsx — dokladnie jak na stronie glownej, ktora dla tego samego skryptu ma ten tlumik. Dodatkowo (higiena, tez wzorzec strony glownej): fonty z lokalnych subsetow woff2 przez next/font/local zamiast pakietu geist. Migawka sprzed naprawy: galaz bak/2026-08-17-hydratacja-fontow.",
+      "test": "",
+      "straznik": "straznik-hydratacji (mutacja <html> bez tlumika) + straznik-fontow (powrot pakietu geist)"
+    },
+    {
+      "id": "BLAD-002",
+      "data": "2026-08-17",
+      "klasa": "testy/niszcza-wspolna-baze-dev",
+      "dowod": "Testy modulow (migracje.test.ts, dyspozytor.test.ts) robily DROP SCHEMA public CASCADE na TEJ SAMEJ bazie db1_kursy, ktorej uzywa dev — po `npm test` znikaly zasiane kursy wlasciciela.",
+      "skutek": "Pusty katalog /szkolenia ('Katalog w przygotowaniu') i 404 na stronach kursow podczas oceny wlasciciela przy bramce B5.",
+      "naprawa": "Testy przelaczaja proces na osobna baze db1_kursy_test (modules/m1-sklep/db/testowa-baza.ts: tworzenie bazy + podmiana DB1_URL przed pierwszym polaczeniem) z bezpiecznikiem: operacje niszczace tylko na bazie *_test.",
+      "test": "modules/m1-sklep/db/testowa-baza.ts (upewnijSieZeBazaTestowa) — DROP poza baza *_test rzuca bledem; posrednio oba pliki testow",
+      "straznik": ""
+    }
+  ]
 }

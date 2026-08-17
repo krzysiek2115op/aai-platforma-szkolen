@@ -5,6 +5,28 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.8.1] — 2026-08-17
+
+Naprawy z pierwszej oceny B5 (procedura WYTYCZNE §1: migawka
+`bak/2026-08-17-hydratacja-fontow` → branch fix → rejestr → strażnik).
+
+### Naprawione
+- **BLAD-001 — błąd hydratacji na każdej stronie**: pakiet `geist`
+  generował różne klasy CSS fontów na serwerze i kliencie. Fonty idą
+  teraz z lokalnych subsetów woff2 przez `next/font/local`
+  ([lib/fonts.ts](lib/fonts.ts) + [assets/fonts/](assets/fonts/)) —
+  wzorzec 1:1 ze strony głównej; pakiet `geist` usunięty. Nawrotów
+  pilnuje nowy **straznik-fontow** (zakaz importu `geist` i zależności
+  w package.json).
+- **BLAD-002 — testy kasowały dane dev**: `npm test` robił
+  `DROP SCHEMA` na wspólnej bazie `db1_kursy` — po testach katalog
+  świecił pustką, a strony kursów dawały 404. Testy przełączają się
+  teraz na osobną bazę `db1_kursy_test`
+  ([modules/m1-sklep/db/testowa-baza.ts](modules/m1-sklep/db/testowa-baza.ts))
+  z bezpiecznikiem: operacje niszczące wyłącznie na bazie `*_test`.
+- Oba błędy w [rejestr/znane-bledy.json](rejestr/znane-bledy.json)
+  (klasa/dowód/skutek/naprawa/strażnik).
+
 ## [0.8.0] — 2026-08-17
 
 Dział 5 Pluginu 1 — strona sprzedażowa `/szkolenia/[slug]`
