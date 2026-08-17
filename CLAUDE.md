@@ -120,6 +120,13 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 - Stan repo: PR #12 zmergowany do `plugin-1-sklep-kursow`, tag
   `v0.12.1` + release. Migawki `.bak`: gałęzie `bak/*` (nie kasować).
   Testy chodzą na osobnej bazie `db1_kursy_test`.
+- **Licencja: MIT** (decyzja właściciela 2026-08-17, wersja 0.13.0,
+  PR #14/#15/#16) — zmiana z GPL-2.0 dla zgodności z repo strony
+  głównej, do którego kod docelowo trafia. Zmienione na `main`
+  I na gałęzi modułu (GitHub czyta licencję z gałęzi domyślnej).
+  Fonty Geist mają WŁASNĄ licencję SIL OFL 1.1 —
+  `assets/fonts/LICENSE-Geist-OFL.txt` musi zostać przy plikach
+  `.woff2`; pilnuje `straznik-licencji`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
