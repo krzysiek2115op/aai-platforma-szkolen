@@ -57,6 +57,21 @@ export const KartaKatalogu = KartaKursu.extend({
 });
 export type KartaKatalogu = z.infer<typeof KartaKatalogu>;
 
+/**
+ * Karta na liście kreatora: kurs w KAŻDYM statusie + licznik tego, co
+ * już w nim jest (sekcje/moduły/lekcje). Właściciel na jednym ekranie
+ * widzi, który kurs jest pusty, a który gotowy do publikacji.
+ */
+export const KartaKreatora = KartaKursu.extend({
+  badge: z.string().nullable(),
+  level: PoziomKursu.nullable(),
+  updated_at: z.date(),
+  sections_count: z.int().nonnegative(),
+  modules_count: z.int().nonnegative(),
+  lessons_count: z.int().nonnegative(),
+});
+export type KartaKreatora = z.infer<typeof KartaKreatora>;
+
 export const LekcjaKursu = z.object({
   id: z.uuid(),
   position: z.int().nonnegative(),

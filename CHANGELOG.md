@@ -5,6 +5,59 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.14.0] — 2026-08-17
+
+Dział 6 (kreator kursów), krok 1 z 3: brama dostępu, lista kursów
+i dane podstawowe. Treść sekcji sprzedażowych i program (moduły +
+lekcje) dochodzą w kroku 2.
+
+### Dodane
+- **Kreator `/szkolenia/kreator`** — panel treści właściciela w języku
+  wizualnym strony (własny pływający pasek `PasekKreatora`, Reveal/
+  Cascade, `unos` na kartach): lista WSZYSTKICH kursów z licznikami
+  treści liczonymi w bazie (sekcje / moduły / lekcje — zero na
+  pomarańczowo, więc od razu widać, czego brakuje), publikacja,
+  ukrycie, usuwanie z potwierdzeniem i podgląd strony kursu.
+- **Edytor danych podstawowych `/szkolenia/kreator/[id]`** — slug
+  (podpowiadany z tytułu, ale tylko dla NOWEGO kursu, żeby edycja nie
+  zmieniła adresu opublikowanej strony), tytuł, typ, opis na kartę,
+  cena wpisywana w złotówkach (baza trzyma grosze), okładka,
+  **badge** i **poziom**. Błędy walidacji z dyspozytora wracają
+  przypięte do konkretnych pól.
+- **Brama na token** (`lib/kreator-dostep.ts` + akcje serwerowe
+  `app/szkolenia/kreator/akcje.ts`): token trafia do ciastka
+  **HttpOnly**, więc nie istnieje w JavaScripcie strony; porównanie
+  w stałym czasie (`timingSafeEqual`) + kara czasowa za zły token.
+  Flaga `Secure` zależy od protokołu żądania, nie od `NODE_ENV` —
+  produkcyjny build oglądany na localhoście po http też się loguje.
+- **Kanał JSON kreatora**: `szczegolyKursuPoId()` (edycja po id — slug
+  bywa właśnie zmieniany) i `listaKursowKreatora()` rozszerzona
+  o badge, poziom, datę zmiany i liczniki treści (kontrakt
+  `KartaKreatora`).
+- **Smoke `tools/smoke/smoke-d6.ts`** (CI, job „baza"): na produkcyjnym
+  `next start` dowodzi, że bez ciastka kreator NIE pokazuje szkiców
+  i AJAX odpowiada 403, a z ciastkiem przechodzi pełny cykl
+  szkic → publikacja → katalog → usunięcie.
+- **Testy `modules/m1-sklep/kreator.test.ts`** (6): szkic widoczny dla
+  kreatora, liczniki z bazy, edycja po id, zmiana sluga bez gubienia
+  kursu, ślad każdej operacji w `course_changelog`.
+- Dokumentacja techniczna działu:
+  [docs/dokumentacja-techniczna/d6](docs/dokumentacja-techniczna/d6/ZRODLA.md)
+  — Server Actions, formularze i `cookies()` skopiowane z pakietu
+  `next@16.3.1` (dokładnie ta wersja, na której chodzi aplikacja).
+
+### Zmienione
+- **Dyspozytor sprawdza token PRZED walidacją kształtu** — żądanie bez
+  tokenu dostaje `brak-dostepu` (403) zamiast mapy pól kontraktu
+  w odpowiedzi `walidacja` (400). Obcy nie dostaje podpowiedzi, jak
+  zbudować poprawne żądanie.
+- **Jedyny AJAX bierze token z ciastka**, gdy nie ma go w treści
+  żądania — endpoint pozostaje jeden (WYTYCZNE §8), a autoryzacja dalej
+  należy wyłącznie do dyspozytora.
+- `NavbarPrzelacznik` wyłącza globalny navbar na CAŁYM poddrzewie
+  kreatora — inaczej lista kursów (pasuje do wzorca `[slug]`) byłaby
+  bez navbara, a edycja kursu miałaby dwa paski naraz.
+
 ## [0.13.0] — 2026-08-17
 
 ### Zmienione

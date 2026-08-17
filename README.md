@@ -20,8 +20,8 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.13.0** |
-| **Etap** | Działy 1–5 Pluginu 1 gotowe (B1–B5 zaliczone przez właściciela) — katalog i strona sprzedażowa kursu; następny krok: Dział 6 (kreator kursów) |
+| **Wersja** | **0.14.0** |
+| **Etap** | Działy 1–5 Pluginu 1 gotowe (B1–B5 zaliczone przez właściciela); Dział 6 w budowie — kreator kursów: brama na token, lista kursów i dane podstawowe (krok 1 z 3) |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([assets/fonts/LICENSE-Geist-OFL.txt](assets/fonts/LICENSE-Geist-OFL.txt)) |
@@ -125,3 +125,18 @@ npm run dev                           # Plugin 1 → http://localhost:3001/szkol
 npm test                              # testy modułów (wymagają bazy)
 node tools/straznicy/uruchom-wszystkie.mjs   # ręczne odpalenie strażników
 ```
+
+### Kreator kursów (Dział 6)
+
+Panel treści właściciela: `http://localhost:3001/szkolenia/kreator`.
+Wejście na token z `.env` (`KREATOR_TOKEN`) — trafia do ciastka
+HttpOnly, więc nie ma go w JavaScripcie strony; pełne logowanie da
+Plugin 3. Kreator czyta bazę kanałem JSON, a zmienia ją **wyłącznie**
+przez jedyny wystrzał AJAX `app/api/szkolenia` — każda operacja
+zostawia ślad w `course_changelog` (triggery bazy).
+
+> [!IMPORTANT]
+> Przy wdrożeniu za reverse proxy (nginx/Caddy) proxy MUSI przekazywać
+> nagłówek `X-Forwarded-Proto` — z niego bierze się flaga `Secure`
+> ciastka kreatora. Bez niego, gdy proxy przepisuje `Host` na
+> `localhost`, ciastko z tokenem poleciałoby po https bez `Secure`.

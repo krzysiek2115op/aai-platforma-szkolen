@@ -96,6 +96,14 @@ jobs:
       - name: Smoke strony sprzedażowej /szkolenia/[slug]
         run: node tools/smoke/smoke-d5.ts
 
+      # Dowód B6: brama kreatora nie wypuszcza szkiców, wystrzał AJAX
+      # działa z samego ciastka, a cykl szkic → publikacja → katalog →
+      # usunięcie przechodzi po HTTP.
+      - name: Smoke kreatora /szkolenia/kreator
+        env:
+          KREATOR_TOKEN: smoke-d6-ci
+        run: node tools/smoke/smoke-d6.ts
+
   security:
     name: Skan sekretów
     runs-on: ubuntu-latest

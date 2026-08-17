@@ -12,13 +12,24 @@
  *  - kanał AJAX „wystrzał" (akcje po załadowaniu strony): obsluzAkcje —
  *    podpięty pod JEDYNY endpoint app/api/szkolenia (straznik-ajax).
  */
-export { listaKursow, listaKursowKreatora, szczegolyKursu } from "./odczyt.ts";
+export {
+  listaKursow,
+  listaKursowKreatora,
+  szczegolyKursu,
+  szczegolyKursuPoId,
+} from "./odczyt.ts";
 export { obsluzAkcje } from "./dyspozytor.ts";
 /** dla skryptów CLI/testów spoza modułu — domyka pulę połączeń */
 export { zamknijDb1 } from "./db/klient.ts";
 export {
   KartaKursu,
   KartaKatalogu,
+  KartaKreatora,
+  PoziomKursu,
+  KursTyp,
+  KursStatus,
+  SekcjaRodzaj,
+  KursWejscie,
   SzczegolyKursu,
   AkcjaDyspozytora,
   TrescHero,

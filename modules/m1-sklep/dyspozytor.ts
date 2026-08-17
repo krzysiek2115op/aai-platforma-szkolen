@@ -179,6 +179,14 @@ export async function obsluzAkcje(
   wejscie: unknown,
   opcje: { aktor?: string } = {}
 ): Promise<WynikDyspozytora> {
+  // NAJPIERW dostęp, potem kształt: obcy nie dostaje w odpowiedzi mapy
+  // pól kontraktu (i nie odróżnia „zły token" od „brak tokenu").
+  const surowe = wejscie as { token?: unknown } | null;
+  const token = typeof surowe?.token === "string" ? surowe.token : "";
+  if (!tokenPoprawny(token)) {
+    return { ok: false, blad: "brak-dostepu" };
+  }
+
   const parsowanie = AkcjaDyspozytora.safeParse(wejscie);
   if (!parsowanie.success) {
     return {
@@ -192,9 +200,6 @@ export async function obsluzAkcje(
     };
   }
   const akcja = parsowanie.data;
-  if (!tokenPoprawny(akcja.token)) {
-    return { ok: false, blad: "brak-dostepu" };
-  }
 
   const aktor = opcje.aktor ?? "kreator";
   try {
