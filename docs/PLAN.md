@@ -10,13 +10,41 @@
 
 ### Stan obecny głównej strony
 - strona główna Automatic AI (`MatthewPlugins/automatic-ai`, dawniej `matthewplugins.pl`) = **Next.js 16 + React 19 + TypeScript + Tailwind 4**, tryb `output: "export"` (statyczny), publikacja na GitHub Pages.
-- GitHub Pages to **hosting tymczasowy (podgląd)** — decyzja właściciela: docelowo strona przejdzie na **wykupiony hosting z Node.js / VPS**.
+- GitHub Pages to **hosting tymczasowy (podgląd)**.
 
-### Decyzje (ustalone 2026-08-16)
+### DECYZJA ZESPOŁU 2026-08-18 — produkcja na WordPressie (zastępuje plan „hosting Node.js / VPS")
+
+Strona finalnie stanie na **WordPressie, na wykupionym hostingu i domenie**
+(nie na VPS z Node.js, jak zakładał plan z 2026-08-16). Konsekwencje dla
+tego projektu:
+
+1. **Sklep z kursami zostanie przepisany na wtyczkę WordPress (PHP + MySQL).**
+   Obecny kod Next.js + PostgreSQL (Działy 1–6) staje się
+   **prototypem-specyfikacją**: design, kontrakty treści sekcji, przepływ
+   BAZA → DZIAŁ → STRONA, jeden AJAX (w WP: jeden endpoint `admin-ajax`/REST),
+   audyt zmian i kreator mają być odtworzone 1:1 w PHP.
+2. **Kolejność (decyzja właściciela 2026-08-18): NAJPIERW Dział 7**
+   (treść obu kursów wprowadzona kreatorem do prototypu — właściciel
+   ocenia gotowe strony sprzedażowe), **potem etap przepisywania na WP**.
+   Treść to dane — przy przepisywaniu wyeksportujemy ją z PostgreSQL
+   do MySQL skryptem migracyjnym.
+3. **Dokumentacja etapu WP (WYTYCZNE N2)**: przed startem przepisywania
+   do repo trafia **celowany komplet** oryginalnej dokumentacji
+   (`docs/dokumentacja-techniczna/wordpress/` + `ZRODLA.md`):
+   WP Plugin Handbook, `$wpdb`/dbDelta/własne tabele, REST API,
+   bezpieczeństwo (nonces, sanitizacja, capabilities) oraz z manuala
+   MySQL: typy danych, indeksy, transakcje, triggery (odpowiednik
+   naszego audytu `course_changelog`). Nie zrzucamy całych manuali
+   do repo — agent czyta szeroko w sieci, repo dostaje to, czego
+   dział używa.
+4. Zasady WYTYCZNE (Weryfikacja-PR, strażnicy, goldeny, jeden AJAX,
+   BAZA → DZIAŁ → STRONA) **obowiązują w wersji WP tak samo**.
+
+### Decyzje (ustalone 2026-08-16; pozycje hostingowe zaktualizowane 2026-08-18)
 | Temat | Decyzja |
 |---|---|
-| Backend | **Next.js (ten sam codebase co strona główna)** — API Routes / Server Actions, TypeScript |
-| Bazy danych | **3 osobne bazy PostgreSQL** (lokalnie: Docker; produkcyjnie: VPS lub Neon/Supabase) |
+| Backend | **prototyp: Next.js** (API Routes / Server Actions, TypeScript); **produkcja: wtyczka WordPress (PHP)** — decyzja 2026-08-18 wyżej |
+| Bazy danych | **3 osobne bazy PostgreSQL** w prototypie (lokalnie: podman); produkcyjnie **MySQL** przy WordPressie (migracja danych skryptem na etapie WP) |
 | „Pluginy" | 3 **odizolowane moduły** w kodzie — każdy z własnym katalogiem, własną bazą, własnym API |
 | Bramka płatności | wybór odłożony do prac nad Pluginem 2 — kod pisany pod **abstrakcję operatora** (adapter), żeby dało się podpiąć Stripe / P24 / Tpay bez przeróbek |
 | Design | dziedziczymy ze strony głównej Automatic AI (Tailwind 4, fonty Geist, komponenty UI) — podstrona ma wyglądać jak część głównej strony |
