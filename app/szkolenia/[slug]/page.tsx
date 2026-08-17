@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowRight, Check, ChevronDown, Play } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Play, X } from "lucide-react";
 import type { z } from "zod";
 import {
   szczegolyKursu,
@@ -10,6 +10,8 @@ import {
   TrescOpinie,
   TrescGwarancja,
   TrescFaq,
+  TrescPakiet,
+  TrescAutor,
   type SzczegolyKursu,
 } from "@/modules/m1-sklep";
 
@@ -83,7 +85,13 @@ export default async function StronaKursu({ params }: Props) {
   const opinie = trescSekcji(kurs, "opinions", TrescOpinie);
   const gwarancja = trescSekcji(kurs, "guarantee", TrescGwarancja);
   const faq = trescSekcji(kurs, "faq", TrescFaq);
+  const pakiet = trescSekcji(kurs, "package", TrescPakiet);
+  const autor = trescSekcji(kurs, "author", TrescAutor);
   const liczbaLekcji = kurs.modules.reduce((n, m) => n + m.lessons.length, 0);
+
+  // sekcje są opcjonalne — numeracja etykiet liczy się dynamicznie
+  let licznikSekcji = 0;
+  const numer = () => String(++licznikSekcji).padStart(2, "0");
 
   return (
     <div data-kurs>
@@ -121,7 +129,7 @@ export default async function StronaKursu({ params }: Props) {
       {/* KORZYŚCI — efekt, nie cecha */}
       {korzysci ? (
         <section className="container-site border-t border-line pt-8 pb-14 md:pt-10 md:pb-20">
-          <Etykieta>01 · Czego się nauczysz</Etykieta>
+          <Etykieta>{numer()} · Czego się nauczysz</Etykieta>
           <h2 className="mt-3 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight md:text-4xl">
             Konkretne umiejętności, nie teoria
           </h2>
@@ -149,7 +157,7 @@ export default async function StronaKursu({ params }: Props) {
           id="program"
           className="container-site border-t border-line pt-8 pb-14 md:pt-10 md:pb-20"
         >
-          <Etykieta>02 · Program</Etykieta>
+          <Etykieta>{numer()} · Program</Etykieta>
           <h2 className="mt-3 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight md:text-4xl">
             Dokładnie wiesz, co dostajesz
           </h2>
@@ -210,25 +218,45 @@ export default async function StronaKursu({ params }: Props) {
       {/* DLA KOGO */}
       {dlaKogo ? (
         <section className="container-site border-t border-line pt-8 pb-14 md:pt-10 md:pb-20">
-          <Etykieta>03 · Dla kogo</Etykieta>
+          <Etykieta>{numer()} · Dla kogo</Etykieta>
           <h2 className="mt-3 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight md:text-4xl">
             Ten {kurs.type} jest dla Ciebie, jeśli…
           </h2>
-          <ul className="mt-8 grid max-w-3xl gap-3">
-            {dlaKogo.punkty.map((punkt) => (
-              <li key={punkt} className="flex items-start gap-3">
-                <Check aria-hidden className="mt-0.5 size-5 shrink-0 text-volt" />
-                <span className="text-base leading-relaxed text-fg">{punkt}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-8 grid max-w-5xl gap-8 md:grid-cols-2">
+            <ul className="grid gap-3">
+              {dlaKogo.punkty.map((punkt) => (
+                <li key={punkt} className="flex items-start gap-3">
+                  <Check aria-hidden className="mt-0.5 size-5 shrink-0 text-volt" />
+                  <span className="text-base leading-relaxed text-fg">{punkt}</span>
+                </li>
+              ))}
+            </ul>
+            {dlaKogo.nie_dla && dlaKogo.nie_dla.length > 0 ? (
+              <div className="panel h-fit p-5 md:p-6">
+                {/* uczciwość sprzedaje: mówimy też, komu NIE pomożemy */}
+                <p className="font-mono text-label tracking-[0.25em] text-steel uppercase">
+                  A NIE jest, jeśli…
+                </p>
+                <ul className="mt-4 grid gap-3">
+                  {dlaKogo.nie_dla.map((punkt) => (
+                    <li key={punkt} className="flex items-start gap-3">
+                      <X aria-hidden className="mt-0.5 size-5 shrink-0 text-steel" />
+                      <span className="text-sm leading-relaxed text-steel">
+                        {punkt}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
         </section>
       ) : null}
 
       {/* OPINIE */}
       {opinie ? (
         <section className="container-site border-t border-line pt-8 pb-14 md:pt-10 md:pb-20">
-          <Etykieta>04 · Opinie</Etykieta>
+          <Etykieta>{numer()} · Opinie</Etykieta>
           <h2 className="mt-3 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight md:text-4xl">
             Nie wierz nam na słowo
           </h2>
@@ -248,12 +276,47 @@ export default async function StronaKursu({ params }: Props) {
         </section>
       ) : null}
 
+      {/* PAKIET — co dokładnie dostajesz (+ kotwica cenowa) */}
+      {pakiet ? (
+        <section className="container-site border-t border-line pt-8 pb-14 md:pt-10 md:pb-20">
+          <Etykieta>{numer()} · Pakiet</Etykieta>
+          <h2 className="mt-3 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight md:text-4xl">
+            Wszystko, co znajdziesz w środku
+          </h2>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pakiet.punkty.map((p, i) => (
+              <li
+                key={p.tytul}
+                className="panel relative overflow-hidden p-5 transition-colors duration-300 hover:border-volt/25"
+              >
+                <span className="font-mono text-xs text-volt/80 tabular-nums">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <h3 className="mt-2 text-base font-semibold tracking-tight">
+                  {p.tytul}
+                </h3>
+                {p.opis ? (
+                  <p className="mt-1.5 text-sm leading-relaxed text-steel">
+                    {p.opis}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {pakiet.kotwica ? (
+            <p className="mt-6 max-w-2xl border-l-2 border-volt pl-4 text-base leading-relaxed text-fg">
+              {pakiet.kotwica}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
       {/* CENA + CTA */}
       <section
         id="cena"
         className="container-site border-t border-line pt-8 pb-14 md:pt-10 md:pb-20"
       >
-        <Etykieta>05 · Dołącz</Etykieta>
+        <Etykieta>{numer()} · Dołącz</Etykieta>
         <div className="panel mt-8 flex flex-col items-start gap-8 p-6 md:flex-row md:items-center md:justify-between md:p-10">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
@@ -274,7 +337,7 @@ export default async function StronaKursu({ params }: Props) {
       {/* GWARANCJA */}
       {gwarancja ? (
         <section className="container-site border-t border-line pt-8 pb-14 md:pt-10 md:pb-20">
-          <Etykieta>06 · Gwarancja</Etykieta>
+          <Etykieta>{numer()} · Gwarancja</Etykieta>
           <div className="mt-8 max-w-3xl">
             <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
               {gwarancja.naglowek}
@@ -286,10 +349,48 @@ export default async function StronaKursu({ params }: Props) {
         </section>
       ) : null}
 
+      {/* PROWADZĄCY */}
+      {autor ? (
+        <section className="container-site border-t border-line pt-8 pb-14 md:pt-10 md:pb-20">
+          <Etykieta>{numer()} · Prowadzący</Etykieta>
+          <div className="panel mt-8 grid max-w-4xl gap-6 p-6 md:grid-cols-[auto_1fr] md:p-8">
+            <div
+              aria-hidden
+              className="bg-grid flex size-20 items-center justify-center rounded-full border border-volt/30 text-2xl font-semibold text-volt"
+            >
+              {autor.imie.slice(0, 1)}
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
+                {autor.imie}
+              </h2>
+              {autor.rola ? (
+                <p className="mt-1 font-mono text-label tracking-[0.18em] text-volt uppercase">
+                  {autor.rola}
+                </p>
+              ) : null}
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-steel md:text-base">
+                {autor.bio}
+              </p>
+              {autor.atuty && autor.atuty.length > 0 ? (
+                <ul className="mt-4 grid gap-2">
+                  {autor.atuty.map((atut) => (
+                    <li key={atut} className="flex items-start gap-3">
+                      <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-volt" />
+                      <span className="text-sm leading-relaxed text-fg">{atut}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {/* FAQ */}
       {faq ? (
         <section className="container-site border-t border-line pt-8 pb-16 md:pt-10 md:pb-24">
-          <Etykieta>07 · FAQ</Etykieta>
+          <Etykieta>{numer()} · FAQ</Etykieta>
           <h2 className="mt-3 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight md:text-4xl">
             Pytania, które zadałbyś i Ty
           </h2>

@@ -80,10 +80,20 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   programu w CI. Seed `npm run db1:seed`: 2 docelowe kursy (Claude,
   GitHub) z treścią ROBOCZĄ. Analiza wzoru:
   docs/plugin-1/WZOR-STRONA-SPRZEDAZOWA.md.
+- **Redesign premium (0.9.0)** wg briefu właściciela: katalog =
+  digital product experience (hero z mockupem OknoKursu z realnych
+  danych + floating cards + spotlight/parallax w HeroMotion, marquee,
+  sekcja „system pracy" sticky+kaskada, katalog z kartą wyróżnioną
+  i badge/poziomem/statystykami z bazy — migracja 004); strona kursu
+  + sekcje Pakiet (kotwica cenowa) i Prowadzący + „nie dla" (migracja
+  003). Motion: rAF+transform-only, prefers-reduced-motion respektowane.
+  UWAGA-LEKCJA: `node skrypt | tail` maskuje kod wyjścia — smoke'i
+  weryfikować po exit code, nie po obecności napisu.
 - **NASTĘPNY KROK: bramka B5 = OCENA WŁAŚCICIELA na :3001**
-  (/szkolenia/jak-korzystac-z-claude). Po akceptacji: 🏷 release
-  v0.8.0, potem **Dział 6 — kreator kursów** (/szkolenia/kreator:
-  lista + formularz tworzenia/edycji, moduły/lekcje/sekcje, upload
+  (katalog /szkolenia + /szkolenia/jak-korzystac-z-claude). Po
+  akceptacji: 🏷 release v0.9.0, potem **Dział 6 — kreator kursów**
+  (/szkolenia/kreator: lista + formularz tworzenia/edycji,
+  moduły/lekcje/sekcje + NOWE pola badge/level/pakiet/autor, upload
   okładki, dostęp tokenem; dokumentacja D6: Server Actions/formularze/
   upload do docs/dokumentacja-techniczna/d6/; bramka B6 = CRUD
   end-to-end ze śladem w changelogu).

@@ -23,6 +23,9 @@ const KURSY = [
     short_desc:
       "Praktyczny kurs pracy z Claude — od pierwszej rozmowy po własne automatyzacje w Twojej firmie.",
     price_grosze: 49900,
+    cover_url: "/okladki/jak-korzystac-z-claude.svg",
+    badge: "PRAKTYCZNY",
+    level: "podstawowy" as const,
     sections: [
       {
         kind: "hero" as const,
@@ -70,6 +73,40 @@ const KURSY = [
             "codziennie piszesz maile, oferty albo raporty, które wyglądają tak samo,",
             "próbowałeś ChatGPT/Claude i wyszło „meh” — bo nikt nie pokazał Ci metody,",
             "chcesz konkretów na swoich plikach, nie teorii na cudzych przykładach.",
+          ],
+          nie_dla: [
+            "szukasz „zarobku z AI bez pracy” — tu się pracuje,",
+            "chcesz teorii akademickiej o sieciach neuronowych,",
+            "Twoja praca nie dotyka tekstu, dokumentów ani komputera.",
+          ],
+        },
+      },
+      {
+        kind: "package" as const,
+        position: 0,
+        content: {
+          punkty: [
+            { tytul: "3 moduły wideo", opis: "Każdy krok pokazany na ekranie, bez skrótów." },
+            { tytul: "Biblioteka promptów", opis: "Gotowe prompty pod oferty, analizy i dokumenty." },
+            { tytul: "Szablony i checklisty", opis: "Pliki do pobrania — wdrażasz tego samego dnia." },
+            { tytul: "Dostęp bez limitu", opis: "Kupujesz raz, wracasz zawsze; aktualizacje w cenie." },
+            { tytul: "Gwarancja 30 dni", opis: "Nie działa u Ciebie? Oddajemy pieniądze." },
+          ],
+          kotwica:
+            "Godzina konsultacji AI kosztuje więcej niż ten kurs — a kurs zostaje z Tobą na zawsze.",
+        },
+      },
+      {
+        kind: "author" as const,
+        position: 0,
+        content: {
+          imie: "Matthew",
+          rola: "MatthewPlugins.pl — AI i automatyzacje dla firm",
+          bio: "Buduję systemy AI i automatyzacje, które realnie pracują w polskich firmach. W kursie pokazuję dokładnie ten warsztat, którego używam u klientów — bez teorii, której nie stosuję.",
+          atuty: [
+            "wdrożenia AI w realnych firmach, nie na slajdach",
+            "własne narzędzia i integracje (portfolio na matthewplugins.pl)",
+            "uczę metodą „patrz i rób” — ekran, nie prezentacja",
           ],
         },
       },
@@ -159,6 +196,9 @@ const KURSY = [
     short_desc:
       "Od pierwszego repozytorium po pull requesty i współpracę w zespole — GitHub bez strachu.",
     price_grosze: 39900,
+    cover_url: "/okladki/jak-uzywac-githuba.svg",
+    badge: "NOWOŚĆ",
+    level: "podstawowy" as const,
     sections: [
       {
         kind: "hero" as const,

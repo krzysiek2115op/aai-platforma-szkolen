@@ -20,8 +20,8 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.8.1** |
-| **Etap** | Dział 5 Pluginu 1: strona sprzedażowa `/szkolenia/[slug]` z bazy — bramka B5 czeka na ocenę właściciela na `localhost:3001` |
+| **Wersja** | **0.9.0** |
+| **Etap** | Dział 5 Pluginu 1 + redesign premium podstrony wg briefu właściciela — bramka B5 czeka na ocenę na `localhost:3001` |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Licencja** | GPL-2.0 ([LICENSE](LICENSE)) |

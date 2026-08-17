@@ -22,6 +22,16 @@
   --text-label: 0.65rem;
   --text-label-sm: 0.62rem;
   --text-micro: 0.55rem;
+
+  --animate-marquee: marquee 40s linear infinite;
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }
 
 @layer base {
@@ -233,6 +243,90 @@ html.js .page-enter {
   background-size: 160px 160px;
 }
 
+/* ————— motion premium podstrony /szkolenia —————
+ * HeroMotion (client) ustawia na kontenerze zmienne:
+ *   --mx/--my  — pozycja kursora w %, dla światła spotlight,
+ *   --par-x/--par-y — znormalizowane odchylenie kursora (-1..1)
+ * Wszystko na transformach i opacity (kompozytor, bez layoutu);
+ * prefers-reduced-motion wyłącza całość — treść zostaje. */
+
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    26rem circle at var(--mx, 72%) var(--my, 28%),
+    rgba(191, 255, 56, 0.09),
+    transparent 68%
+  );
+  transition: opacity 0.4s ease;
+}
+
+.parallax-1,
+.parallax-2,
+.parallax-3 {
+  transform: translate3d(
+    calc(var(--par-x, 0) * var(--par-sila, 6px)),
+    calc(var(--par-y, 0) * var(--par-sila, 6px)),
+    0
+  );
+  transition: transform 0.25s ease-out;
+  will-change: transform;
+}
+.parallax-2 {
+  --par-sila: 14px;
+}
+.parallax-3 {
+  --par-sila: -9px;
+}
+
+.float-a {
+  animation: float-a 7s ease-in-out infinite;
+}
+.float-b {
+  animation: float-b 9s ease-in-out infinite;
+}
+.float-c {
+  animation: float-a 11s ease-in-out infinite reverse;
+}
+@keyframes float-a {
+  50% {
+    transform: translateY(-9px);
+  }
+}
+@keyframes float-b {
+  50% {
+    transform: translateY(7px);
+  }
+}
+
+/* karta katalogu: okładka delikatnie rośnie, ramka łapie akcent */
+.karta-okladka {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.group\/karta:hover .karta-okladka {
+  transform: scale(1.035);
+}
+
+/* pasek postępu w mockupie okna kursu */
+.pasek-postepu {
+  background: linear-gradient(90deg, #bfff38, #d3ff70);
+  border-radius: 999px;
+  height: 4px;
+}
+
+/* Migający kursor (karta promptu w hero). */
+.cursor-blink {
+  animation: blink 1.2s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 /* Pulsująca kropka statusu (stopka HUD). */
 .status-dot {
   animation: puls-statusu 2.4s ease-out infinite;
@@ -252,9 +346,26 @@ html.js .page-enter {
 @media (prefers-reduced-motion: reduce) {
   .status-dot,
   .glow-breathe,
+  .float-a,
+  .float-b,
+  .float-c,
+  .cursor-blink,
+  .animate-marquee,
   /* rect impulsu zostaje w pozycji startowej poza kadrem — wordmark statyczny */
   .fw-impuls {
     animation: none !important;
+  }
+  .parallax-1,
+  .parallax-2,
+  .parallax-3 {
+    transform: none;
+    transition: none;
+  }
+  .spotlight::before {
+    display: none;
+  }
+  .karta-okladka {
+    transition: none;
   }
   .btn-sheen::after {
     transition: none;

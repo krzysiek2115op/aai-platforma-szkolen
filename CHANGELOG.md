@@ -5,6 +5,49 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.9.0] — 2026-08-17
+
+Redesign premium podstrony szkoleń wg briefu właściciela (B5, iteracja 2):
+„digital product experience", nie podstrona informacyjna.
+
+### Zmienione
+- **Katalog [/szkolenia](app/szkolenia/page.tsx) przeprojektowany od zera**:
+  - hero z dwukolumnowym układem: mocny headline („Szkolenia, które
+    zamieniają AI w przewagę."), dwa CTA (Poznaj szkolenia / Zobacz,
+    co dostajesz) i HUD z PRAWDZIWYMI liczbami z bazy (produkty,
+    moduły, lekcje, godziny);
+  - **wizual produktu zamiast pustki**: mockup okna kursu zbudowany
+    z realnych danych ([OknoKursu](components/szkolenia/OknoKursu.tsx)
+    — sidebar modułów, lekcje, paski postępu) + floating cards
+    (prompt z biblioteki, gwarancja 30 dni);
+  - **interaktywność** ([HeroMotion](components/szkolenia/HeroMotion.tsx)):
+    światło spotlight za kursorem, parallax 3 warstw, floaty — jedna
+    pętla rAF, transform-only, `prefers-reduced-motion` wyłącza całość,
+    bez JS treść kompletna;
+  - pas tematów marquee (wzorzec strony głównej);
+  - sekcja **„Nie kupujesz kolejnego kursu. Dostajesz gotowy system
+    pracy."** — sticky statement + mockup i 6 warstw systemu
+    (01 Wiedza → 06 Materiały) wjeżdżających kaskadą;
+  - **katalog premium**: karta wyróżniona (najnowszy produkt na całą
+    szerokość) + siatka; karty z okładką (hover-zoom), numerem /01,
+    badge z bazy, typem, metadanymi z bazy (moduły · lekcje · godziny ·
+    poziom), ceną i CTA.
+- **Strona kursu**: nowe sekcje **„Pakiet"** (co dokładnie dostajesz +
+  kotwica cenowa) i **„Prowadzący"**; „Dla kogo" dostała uczciwą kolumnę
+  „a NIE jest, jeśli…"; numeracja sekcji liczona dynamicznie.
+
+### Dodane
+- Migracje: `003-rodzaje-sekcji` (kinds `package`, `author`),
+  `004-karta-katalogu` (kolumny `badge`, `level`); dyspozytor i kreator
+  zapisują nowe pola; kanał JSON `listaKursow` zwraca statystyki liczone
+  w bazie (moduły/lekcje/czas).
+- Okładki SVG w języku Volt ([public/okladki/](public/okladki/)) —
+  robocze, do podmiany kreatorem w D6.
+- Kontrakty Zod: `KartaKatalogu`, `TrescPakiet`, `TrescAutor`,
+  `nie_dla` w `TrescDlaKogo`.
+- Goldeny odtworzone świadomie: schemat d2 (nowe kolumny), karta
+  katalogu d4 (nowa karta), program d5 (dynamiczna numeracja).
+
 ## [0.8.1] — 2026-08-17
 
 Naprawy z pierwszej oceny B5 (procedura WYTYCZNE §1: migawka

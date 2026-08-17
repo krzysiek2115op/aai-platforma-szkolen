@@ -1,5 +1,5 @@
 import { pulaDb1 } from "./db/klient.ts";
-import { KartaKursu, SzczegolyKursu } from "./typy.ts";
+import { KartaKatalogu, KartaKursu, SzczegolyKursu } from "./typy.ts";
 
 /**
  * Kanał JSON — odczyt serwerowy (WYTYCZNE §8, doprecyzowanie 2026-08-16):
@@ -15,13 +15,25 @@ import { KartaKursu, SzczegolyKursu } from "./typy.ts";
 const KOLUMNY_KARTY =
   "id, slug, title, type, short_desc, price_grosze, cover_url, status";
 
-/** Katalog /szkolenia: wyłącznie kursy opublikowane, najnowsze pierwsze. */
-export async function listaKursow(): Promise<KartaKursu[]> {
+/**
+ * Katalog /szkolenia: wyłącznie kursy opublikowane, najnowsze pierwsze.
+ * Karta premium — statystyki (moduły/lekcje/czas) liczy baza, nie strona.
+ */
+export async function listaKursow(): Promise<KartaKatalogu[]> {
   const { rows } = await pulaDb1().query(
-    `SELECT ${KOLUMNY_KARTY} FROM courses
-     WHERE status = 'published' ORDER BY created_at DESC`
+    `SELECT c.id, c.slug, c.title, c.type, c.short_desc, c.price_grosze,
+            c.cover_url, c.status, c.badge, c.level,
+            count(DISTINCT m.id)::int  AS modules_count,
+            count(l.id)::int           AS lessons_count,
+            COALESCE(sum(l.duration_min), 0)::int AS total_min
+     FROM courses c
+     LEFT JOIN course_modules m ON m.course_id = c.id
+     LEFT JOIN course_lessons l ON l.module_id = m.id
+     WHERE c.status = 'published'
+     GROUP BY c.id
+     ORDER BY c.created_at DESC`
   );
-  return rows.map((r) => KartaKursu.parse(r));
+  return rows.map((r) => KartaKatalogu.parse(r));
 }
 
 /** Kreator: wszystkie kursy niezależnie od statusu. */

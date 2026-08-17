@@ -237,6 +237,20 @@
       "data_type": "timestamp with time zone",
       "is_nullable": "NO",
       "ma_default": true
+    },
+    {
+      "table_name": "courses",
+      "column_name": "badge",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ma_default": false
+    },
+    {
+      "table_name": "courses",
+      "column_name": "level",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ma_default": false
     }
   ],
   "triggery": [

@@ -18,6 +18,7 @@ export { obsluzAkcje } from "./dyspozytor.ts";
 export { zamknijDb1 } from "./db/klient.ts";
 export {
   KartaKursu,
+  KartaKatalogu,
   SzczegolyKursu,
   AkcjaDyspozytora,
   TrescHero,
@@ -26,5 +27,7 @@ export {
   TrescOpinie,
   TrescGwarancja,
   TrescFaq,
+  TrescPakiet,
+  TrescAutor,
   type WynikDyspozytora,
 } from "./typy.ts";
