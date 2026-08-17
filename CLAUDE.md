@@ -110,8 +110,12 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   (+cytat, czym_sie_zajmuje, link), `TrescPakiet` (+w_cenie,
   domkniecie), `TrescDlaKogo.nie_dla`. Kształty w
   `modules/m1-sklep/typy.ts`.
-- **Dział 6 KOMPLETNY (wersja 0.16.0, gałąź `feat/d6-kreator`) —
-  czeka na bramkę B6 (ocena właściciela na localhoście)**. Decyzje
+- **B6 ZALICZONA (właściciel, 2026-08-17)** — Dział 6 zamknięty na
+  wersji **0.16.2** (kroki 1–3 + naprawy z przeglądu kodu + poprawka
+  komunikacji zakładki sekcji). Gałąź `feat/d6-kreator` wypchnięta,
+  **PR/tag/release CZEKAJĄ na powrót GitHuba** (awaria 2026-08-17);
+  gotowy opis PR: `docs/plugin-1/PR-D6.md`.
+- **Dział 6 (wersja 0.16.2, gałąź `feat/d6-kreator`)**. Decyzje
   właściciela: wygląd **premium, jak reszta `/szkolenia`**; okładka =
   **pole URL/ścieżka, bez uploadu**; wejście do kreatora **z podstrony
   `/szkolenia`** (pigułka widoczna tylko dla zalogowanego).

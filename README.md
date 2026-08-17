@@ -21,7 +21,7 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 | | |
 |---|---|
 | **Wersja** | **0.16.2** |
-| **Etap** | Działy 1–5 Pluginu 1 gotowe (B1–B5 zaliczone przez właściciela); Dział 6 (kreator kursów) kompletny — czeka na bramkę B6; następny krok: Dział 7 (treść obu kursów) |
+| **Etap** | Działy 1–6 Pluginu 1 gotowe — **B1–B6 zaliczone przez właściciela** (B6: 2026-08-17, kreator kursów); następny krok: Dział 7 — treść obu kursów z oryginalnej dokumentacji |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([assets/fonts/LICENSE-Geist-OFL.txt](assets/fonts/LICENSE-Geist-OFL.txt)) |
@@ -40,7 +40,7 @@ Moduły nie sięgają do cudzych tabel.
 
 | # | Moduł | Branch | Baza | Zakres | Stan |
 |---|-------|--------|------|--------|------|
-| 1 | Sklep z kursami | `plugin-1-sklep-kursow` | `db1_kursy` | katalog `/szkolenia`, strona sprzedażowa kursu, kreator kursów, dziennik zmian (audyt CRUD) | 🔨 Dział 6/7: B1–B5 ✓ (katalog + strona kursu gotowe), następny krok: kreator kursów |
+| 1 | Sklep z kursami | `plugin-1-sklep-kursow` | `db1_kursy` | katalog `/szkolenia`, strona sprzedażowa kursu, kreator kursów, dziennik zmian (audyt CRUD) | 🔨 Dział 7/7: B1–B6 ✓ (katalog, strona kursu i kreator gotowe), następny krok: treść obu kursów |
 | 2 | Płatności | `plugin-2-platnosci` | `db2_klienci` | bramka płatności (adapter operatora), zamówienia, wysyłka kursu i potwierdzenia na e-mail | 🔒 po module 1 |
 | 3 | Panel admina | `plugin-3-admin-panel` | `db3_monitoring` | podstrona tylko dla admina, log logowań (kto, kiedy, skąd), timer wizyt na stronie | 🔒 po module 2 |
 
