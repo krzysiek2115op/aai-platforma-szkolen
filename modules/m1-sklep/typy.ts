@@ -201,6 +201,30 @@ export const TrescFaq = z.object({
   ),
 });
 
+/**
+ * Rodzaj sekcji → jej schemat treści. JEDNA prawda dla obu stron:
+ * strona sprzedażowa parsuje tym `content` z bazy, a kreator z tego
+ * samego miejsca wie, jakie pola pokazać. Nowy rodzaj sekcji dopisany
+ * do `SekcjaRodzaj` bez wpisu tutaj nie skompiluje się (Record wymaga
+ * kompletu), a bez edytora — nie przejdzie `straznik-kreatora`.
+ */
+export const SCHEMATY_SEKCJI = {
+  hero: TrescHero,
+  problem: TrescProblem,
+  benefits: TrescKorzysci,
+  package: TrescPakiet,
+  positioning: TrescPozycjonowanie,
+  for_whom: TrescDlaKogo,
+  transformation: TrescTransformacja,
+  opinions: TrescOpinie,
+  author: TrescAutor,
+  guarantee: TrescGwarancja,
+  comparison: TrescPorownanie,
+  faq: TrescFaq,
+} as const satisfies Record<z.infer<typeof SekcjaRodzaj>, z.ZodObject>;
+
+export type SekcjaRodzajNazwa = keyof typeof SCHEMATY_SEKCJI;
+
 /* ————— kanał AJAX (wystrzał — akcje dyspozytora) ————— */
 
 const SekcjaWejscie = z.object({

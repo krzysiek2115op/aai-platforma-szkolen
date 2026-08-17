@@ -5,6 +5,47 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.15.0] — 2026-08-17
+
+Dział 6, krok 2 z 3: pełna treść kursu z panelu — 12 rodzajów sekcji
+sprzedażowych i program (moduły + lekcje).
+
+### Dodane
+- **Edytor sekcji sprzedażowych** — wszystkie 12 rodzajów obsługiwane
+  JEDNYM komponentem sterowanym opisem pól, nie dwunastoma
+  formularzami: `components/kreator/opis-sekcji.ts` mówi, jaka
+  kontrolka i etykieta, a kształt treści dalej pilnują schematy Zod.
+  Karty w kolejności, w jakiej sekcje pojawiają się na stronie kursu;
+  każda ma stan „gotowa" / „brakuje: …" liczony z pól obowiązkowych,
+  więc widać braki bez zapisywania. Sekcja bez treści nie trafia na
+  stronę.
+- **`SCHEMATY_SEKCJI`** w `modules/m1-sklep/typy.ts` — mapa rodzaj →
+  schemat treści; jedna prawda dla strony sprzedażowej i kreatora.
+  Rodzaj bez wpisu nie skompiluje się.
+- **Edytor programu** — moduły i lekcje z kolejnością na strzałki
+  (pozycje liczone przy zapisie, więc numeracja nie ma jak się
+  rozjechać), czasem lekcji i flagą zapowiedzi; nagłówek liczy moduły,
+  lekcje i łączny czas polską odmianą (`lib/odmiana.ts`).
+- **Zakładki w edytorze kursu**: Dane podstawowe / Sekcje strony
+  (licznik X/12) / Program (moduły/lekcje). Zapis obejmuje całość —
+  tablice `sections` i `modules` to pełna podmiana treści (kontrakt
+  dyspozytora z D3).
+- **`straznik-kreatora`** — pilnuje, że właściciel ma dostęp do
+  KAŻDEGO pola, które strona potrafi wyrenderować: rodzaj sekcji bez
+  edytora, pole w kontrakcie bez pola w panelu (i odwrotnie) oraz
+  rozjazd wymagalności, także w polach zagnieżdżonych (listy obiektów,
+  obiekt `link` autora). Zweryfikowany trzema testami negatywnymi.
+- **Goldeny D6**: `goldeny/d6-kreator.json` (pełny opis formularza)
+  i `goldeny/d6-runda.json` (kurs z KOMPLETEM pól po przejściu przez
+  bazę). Testy `kreator-tresc.test.ts` (6) generują przykładową treść
+  **z opisu pól**, więc nowe pole automatycznie wchodzi do rundy
+  zapis → odczyt — nie da się dołożyć pola, które po cichu ginie.
+  Dowód rundy: treść każdej z 12 sekcji wraca z bazy identyczna.
+- Logika treści wydzielona do `components/kreator/tresc-sekcji.ts`
+  (pusta treść, treść z bazy → formularz, czyszczenie przed zapisem,
+  braki) — puste pole opcjonalne nie idzie do bazy, puste obowiązkowe
+  idzie i wraca czytelnym błędem przy tym polu.
+
 ## [0.14.0] — 2026-08-17
 
 Dział 6 (kreator kursów), krok 1 z 3: brama dostępu, lista kursów

@@ -5,6 +5,9 @@ import FormularzKursu, {
   PUSTY_KURS,
   type StanKursu,
 } from "@/components/kreator/FormularzKursu";
+import type { StanSekcji } from "@/components/kreator/EdytorSekcji";
+import { OPIS_WG_RODZAJU } from "@/components/kreator/opis-sekcji";
+import { trescDoFormularza } from "@/components/kreator/tresc-sekcji";
 import PasekKreatora from "@/components/kreator/PasekKreatora";
 import { Reveal } from "@/components/ui/Reveal";
 import { czyKreator } from "@/lib/kreator-dostep";
@@ -35,6 +38,15 @@ export default async function EdycjaKursuPage({
   const kurs = nowy ? null : await szczegolyKursuPoId(id);
   if (!nowy && !kurs) notFound();
 
+  // Sekcje z bazy → stan formularza. Rodzaj bez opisu w kreatorze
+  // pomijamy świadomie: straznik-kreatora nie dopuści takiej sytuacji,
+  // a gdyby powstała, lepiej pokazać resztę niż wysypać panel.
+  const sekcje: StanSekcji = {};
+  for (const sekcja of kurs?.sections ?? []) {
+    const opis = OPIS_WG_RODZAJU.get(sekcja.kind);
+    if (opis) sekcje[sekcja.kind] = trescDoFormularza(opis, sekcja.content);
+  }
+
   const stan: StanKursu = kurs
     ? {
         id: kurs.id,
@@ -46,6 +58,16 @@ export default async function EdycjaKursuPage({
         cover_url: kurs.cover_url ?? "",
         badge: kurs.badge ?? "",
         level: kurs.level ?? "",
+        sekcje,
+        moduly: kurs.modules.map((m) => ({
+          title: m.title,
+          summary: m.summary ?? "",
+          lessons: m.lessons.map((l) => ({
+            title: l.title,
+            duration_min: l.duration_min ? String(l.duration_min) : "",
+            preview: l.preview,
+          })),
+        })),
       }
     : PUSTY_KURS;
 

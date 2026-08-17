@@ -1,0 +1,206 @@
+{
+  "badge": "Runda",
+  "level": "zaawansowany",
+  "sekcje": [
+    {
+      "kind": "author",
+      "content": {
+        "bio": "author.bio — treść",
+        "imie": "author.imie — treść",
+        "link": {
+          "url": "https://przyklad.pl/author.link.url",
+          "etykieta": "author.link.etykieta — treść"
+        },
+        "rola": "author.rola — treść",
+        "atuty": [
+          "author.atuty 1",
+          "author.atuty 2"
+        ],
+        "cytat": "author.cytat — treść",
+        "czym_sie_zajmuje": [
+          "author.czym_sie_zajmuje 1",
+          "author.czym_sie_zajmuje 2"
+        ]
+      }
+    },
+    {
+      "kind": "benefits",
+      "content": {
+        "punkty": [
+          {
+            "opis": "benefits.punkty.1.opis — treść",
+            "tytul": "benefits.punkty.1.tytul — treść"
+          },
+          {
+            "opis": "benefits.punkty.2.opis — treść",
+            "tytul": "benefits.punkty.2.tytul — treść"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "comparison",
+      "content": {
+        "kurs": [
+          "comparison.kurs 1",
+          "comparison.kurs 2"
+        ],
+        "alternatywa": [
+          "comparison.alternatywa 1",
+          "comparison.alternatywa 2"
+        ],
+        "alternatywa_nazwa": "comparison.alternatywa_nazwa — treść"
+      }
+    },
+    {
+      "kind": "faq",
+      "content": {
+        "pytania": [
+          {
+            "pytanie": "faq.pytania.1.pytanie — treść",
+            "odpowiedz": "faq.pytania.1.odpowiedz — treść"
+          },
+          {
+            "pytanie": "faq.pytania.2.pytanie — treść",
+            "odpowiedz": "faq.pytania.2.odpowiedz — treść"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "for_whom",
+      "content": {
+        "punkty": [
+          "for_whom.punkty 1",
+          "for_whom.punkty 2"
+        ],
+        "nie_dla": [
+          "for_whom.nie_dla 1",
+          "for_whom.nie_dla 2"
+        ]
+      }
+    },
+    {
+      "kind": "guarantee",
+      "content": {
+        "tekst": "guarantee.tekst — treść",
+        "naglowek": "guarantee.naglowek — treść"
+      }
+    },
+    {
+      "kind": "hero",
+      "content": {
+        "dla_kogo": "hero.dla_kogo — treść",
+        "obietnica": "hero.obietnica — treść",
+        "rozwiniecie": "hero.rozwiniecie — treść"
+      }
+    },
+    {
+      "kind": "opinions",
+      "content": {
+        "opinie": [
+          {
+            "rola": "opinions.opinie.1.rola — treść",
+            "autor": "opinions.opinie.1.autor — treść",
+            "tekst": "opinions.opinie.1.tekst — treść"
+          },
+          {
+            "rola": "opinions.opinie.2.rola — treść",
+            "autor": "opinions.opinie.2.autor — treść",
+            "tekst": "opinions.opinie.2.tekst — treść"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "package",
+      "content": {
+        "punkty": [
+          {
+            "opis": "package.punkty.1.opis — treść",
+            "tytul": "package.punkty.1.tytul — treść"
+          },
+          {
+            "opis": "package.punkty.2.opis — treść",
+            "tytul": "package.punkty.2.tytul — treść"
+          }
+        ],
+        "kotwica": "package.kotwica — treść",
+        "w_cenie": [
+          "package.w_cenie 1",
+          "package.w_cenie 2"
+        ],
+        "domkniecie": "package.domkniecie — treść"
+      }
+    },
+    {
+      "kind": "positioning",
+      "content": {
+        "jest": [
+          "positioning.jest 1",
+          "positioning.jest 2"
+        ],
+        "nie_jest": [
+          "positioning.nie_jest 1",
+          "positioning.nie_jest 2"
+        ]
+      }
+    },
+    {
+      "kind": "problem",
+      "content": {
+        "wstep": "problem.wstep — treść",
+        "problem": "problem.problem — treść",
+        "rezultat": "problem.rezultat — treść",
+        "rozwiazanie": "problem.rozwiazanie — treść"
+      }
+    },
+    {
+      "kind": "transformation",
+      "content": {
+        "po": [
+          "transformation.po 1",
+          "transformation.po 2"
+        ],
+        "przed": [
+          "transformation.przed 1",
+          "transformation.przed 2"
+        ]
+      }
+    }
+  ],
+  "moduly": [
+    {
+      "position": 0,
+      "title": "Moduł pierwszy",
+      "summary": "Opis modułu pierwszego",
+      "lessons": [
+        {
+          "position": 0,
+          "title": "Lekcja 1.1",
+          "duration_min": 12,
+          "preview": true
+        },
+        {
+          "position": 1,
+          "title": "Lekcja 1.2",
+          "duration_min": 8,
+          "preview": false
+        }
+      ]
+    },
+    {
+      "position": 1,
+      "title": "Moduł drugi",
+      "summary": null,
+      "lessons": [
+        {
+          "position": 0,
+          "title": "Lekcja 2.1",
+          "duration_min": null,
+          "preview": false
+        }
+      ]
+    }
+  ]
+}

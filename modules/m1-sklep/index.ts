@@ -29,6 +29,8 @@ export {
   KursTyp,
   KursStatus,
   SekcjaRodzaj,
+  SCHEMATY_SEKCJI,
+  type SekcjaRodzajNazwa,
   KursWejscie,
   SzczegolyKursu,
   AkcjaDyspozytora,

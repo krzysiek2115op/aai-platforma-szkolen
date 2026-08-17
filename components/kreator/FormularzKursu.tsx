@@ -3,12 +3,20 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Save } from "lucide-react";
+import EdytorProgramu, {
+  type StanModulu,
+} from "@/components/kreator/EdytorProgramu";
+import EdytorSekcji, {
+  type StanSekcji,
+} from "@/components/kreator/EdytorSekcji";
 import {
   PoleCena,
   PoleObszar,
   PoleTekst,
   PoleWybor,
 } from "@/components/kreator/Pola";
+import { OPIS_WG_RODZAJU } from "@/components/kreator/opis-sekcji";
+import { oczyscTresc } from "@/components/kreator/tresc-sekcji";
 import { bledyPol, komunikat, wystrzel } from "@/components/kreator/wystrzal";
 
 /**
@@ -32,6 +40,8 @@ export type StanKursu = {
   cover_url: string;
   badge: string;
   level: string;
+  sekcje: StanSekcji;
+  moduly: StanModulu[];
 };
 
 export const PUSTY_KURS: StanKursu = {
@@ -43,7 +53,17 @@ export const PUSTY_KURS: StanKursu = {
   cover_url: "",
   badge: "",
   level: "",
+  sekcje: {},
+  moduly: [],
 };
+
+type Zakladka = "podstawy" | "sekcje" | "program";
+
+const ZAKLADKI: Array<{ id: Zakladka; nazwa: string }> = [
+  { id: "podstawy", nazwa: "Dane podstawowe" },
+  { id: "sekcje", nazwa: "Sekcje strony" },
+  { id: "program", nazwa: "Program" },
+];
 
 const POZIOMY = [
   { wartosc: "", tekst: "— nie pokazuj poziomu —" },
@@ -82,6 +102,7 @@ export default function FormularzKursu({
   const [zapisano, setZapisano] = useState(false);
   const [zapisuje, setZapisuje] = useState(false);
   const [odswiezanie, startOdswiezania] = useTransition();
+  const [zakladka, setZakladka] = useState<Zakladka>("podstawy");
   // slug „idzie za tytułem" tylko w nowym kursie i tylko dopóki
   // właściciel sam go nie tknął — inaczej edycja zmieniałaby adres
   // opublikowanej strony pod nogami.
@@ -97,6 +118,26 @@ export default function FormularzKursu({
     setBlad(null);
     setBledy({});
 
+    // Tablice sections/modules = PEŁNA podmiana treści kursu (kontrakt
+    // dyspozytora) — dlatego kreator zawsze wysyła komplet, a nie różnicę.
+    const sections = Object.entries(kurs.sekcje).map(([kind, tresc]) => ({
+      kind,
+      position: 0, // strona bierze po jednej sekcji każdego rodzaju
+      content: oczyscTresc(OPIS_WG_RODZAJU.get(kind as never)!, tresc),
+    }));
+
+    const modules = kurs.moduly.map((m, i) => ({
+      position: i, // kolejność z listy, nie z ręcznie wpisywanych numerów
+      title: m.title,
+      summary: m.summary || null,
+      lessons: m.lessons.map((l, j) => ({
+        position: j,
+        title: l.title,
+        duration_min: l.duration_min ? Number(l.duration_min) : null,
+        preview: l.preview,
+      })),
+    }));
+
     const wynik = await wystrzel({
       akcja: "zapisz",
       kurs: {
@@ -109,6 +150,8 @@ export default function FormularzKursu({
         cover_url: kurs.cover_url || null,
         badge: kurs.badge || null,
         level: kurs.level || null,
+        sections,
+        modules,
       },
     });
     setZapisuje(false);
@@ -130,10 +173,68 @@ export default function FormularzKursu({
 
   const zajety = zapisuje || odswiezanie;
 
+  const liczbaSekcji = Object.keys(kurs.sekcje).length;
+  const liczbaLekcji = kurs.moduly.reduce((n, m) => n + m.lessons.length, 0);
+  const licznik: Record<Zakladka, string> = {
+    podstawy: "",
+    sekcje: `${liczbaSekcji}/12`,
+    program: `${kurs.moduly.length}/${liczbaLekcji}`,
+  };
+
   return (
     <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="rounded-xl border border-line bg-panel/40 p-6 md:p-8">
-        <div className="grid gap-5 md:grid-cols-2">
+      <div>
+        {/* Zakładki: jeden kurs, trzy warstwy treści — dane karty,
+            strona sprzedażowa, program. Zapis zawsze obejmuje całość. */}
+        <div
+          role="tablist"
+          aria-label="Zakres edycji kursu"
+          className="flex flex-wrap gap-1 rounded-full border border-line bg-panel/40 p-1"
+        >
+          {ZAKLADKI.map((z) => (
+            <button
+              key={z.id}
+              role="tab"
+              type="button"
+              aria-selected={zakladka === z.id}
+              onClick={() => setZakladka(z.id)}
+              className={`inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm transition-colors ${
+                zakladka === z.id
+                  ? "bg-volt/10 text-volt"
+                  : "text-steel hover:bg-fg/[0.04] hover:text-fg"
+              }`}
+            >
+              {z.nazwa}
+              {licznik[z.id] ? (
+                <span className="font-mono text-label tabular-nums opacity-70">
+                  {licznik[z.id]}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+
+        {zakladka === "sekcje" ? (
+          <EdytorSekcji
+            sekcje={kurs.sekcje}
+            zmien={(s) => ustaw("sekcje", s)}
+            bledy={bledy}
+          />
+        ) : null}
+
+        {zakladka === "program" ? (
+          <EdytorProgramu
+            moduly={kurs.moduly}
+            zmien={(m) => ustaw("moduly", m)}
+          />
+        ) : null}
+
+        <div
+          className={`mt-6 rounded-xl border border-line bg-panel/40 p-6 md:p-8 ${
+            zakladka === "podstawy" ? "" : "hidden"
+          }`}
+        >
+          <div className="grid gap-5 md:grid-cols-2">
           <PoleTekst
             etykieta="Tytuł kursu"
             wymagane
@@ -214,6 +315,7 @@ export default function FormularzKursu({
             blad={bledy.cover_url}
             klasa="md:col-span-2"
           />
+          </div>
         </div>
       </div>
 

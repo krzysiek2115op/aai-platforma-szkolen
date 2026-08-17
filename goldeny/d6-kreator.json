@@ -1,0 +1,255 @@
+[
+  {
+    "rodzaj": "hero",
+    "nazwa": "Hero — pierwszy ekran",
+    "pola": [
+      {
+        "pole": "obietnica",
+        "typ": "tekst",
+        "wymagane": true
+      },
+      {
+        "pole": "rozwiniecie",
+        "typ": "akapit",
+        "wymagane": false
+      },
+      {
+        "pole": "dla_kogo",
+        "typ": "tekst",
+        "wymagane": false
+      }
+    ]
+  },
+  {
+    "rodzaj": "problem",
+    "nazwa": "Dlaczego ten kurs",
+    "pola": [
+      {
+        "pole": "wstep",
+        "typ": "akapit",
+        "wymagane": true
+      },
+      {
+        "pole": "problem",
+        "typ": "akapit",
+        "wymagane": true
+      },
+      {
+        "pole": "rozwiazanie",
+        "typ": "akapit",
+        "wymagane": true
+      },
+      {
+        "pole": "rezultat",
+        "typ": "akapit",
+        "wymagane": true
+      }
+    ]
+  },
+  {
+    "rodzaj": "benefits",
+    "nazwa": "Korzyści",
+    "pola": [
+      {
+        "pole": "punkty",
+        "typ": "lista-obiektow",
+        "wymagane": true,
+        "podpola": [
+          "tytul",
+          "opis"
+        ]
+      }
+    ]
+  },
+  {
+    "rodzaj": "package",
+    "nazwa": "Co otrzymujesz (oferta)",
+    "pola": [
+      {
+        "pole": "punkty",
+        "typ": "lista-obiektow",
+        "wymagane": true,
+        "podpola": [
+          "tytul",
+          "opis"
+        ]
+      },
+      {
+        "pole": "kotwica",
+        "typ": "akapit",
+        "wymagane": false
+      },
+      {
+        "pole": "w_cenie",
+        "typ": "lista-tekstow",
+        "wymagane": false
+      },
+      {
+        "pole": "domkniecie",
+        "typ": "akapit",
+        "wymagane": false
+      }
+    ]
+  },
+  {
+    "rodzaj": "positioning",
+    "nazwa": "To NIE jest / to JEST",
+    "pola": [
+      {
+        "pole": "nie_jest",
+        "typ": "lista-tekstow",
+        "wymagane": true
+      },
+      {
+        "pole": "jest",
+        "typ": "lista-tekstow",
+        "wymagane": true
+      }
+    ]
+  },
+  {
+    "rodzaj": "for_whom",
+    "nazwa": "Dla kogo",
+    "pola": [
+      {
+        "pole": "punkty",
+        "typ": "lista-tekstow",
+        "wymagane": true
+      },
+      {
+        "pole": "nie_dla",
+        "typ": "lista-tekstow",
+        "wymagane": false
+      }
+    ]
+  },
+  {
+    "rodzaj": "transformation",
+    "nazwa": "Przed / po",
+    "pola": [
+      {
+        "pole": "przed",
+        "typ": "lista-tekstow",
+        "wymagane": true
+      },
+      {
+        "pole": "po",
+        "typ": "lista-tekstow",
+        "wymagane": true
+      }
+    ]
+  },
+  {
+    "rodzaj": "opinions",
+    "nazwa": "Opinie",
+    "pola": [
+      {
+        "pole": "opinie",
+        "typ": "lista-obiektow",
+        "wymagane": true,
+        "podpola": [
+          "tekst",
+          "autor",
+          "rola"
+        ]
+      }
+    ]
+  },
+  {
+    "rodzaj": "author",
+    "nazwa": "Autor",
+    "pola": [
+      {
+        "pole": "imie",
+        "typ": "tekst",
+        "wymagane": true
+      },
+      {
+        "pole": "rola",
+        "typ": "tekst",
+        "wymagane": false
+      },
+      {
+        "pole": "bio",
+        "typ": "akapit",
+        "wymagane": true
+      },
+      {
+        "pole": "cytat",
+        "typ": "akapit",
+        "wymagane": false
+      },
+      {
+        "pole": "atuty",
+        "typ": "lista-tekstow",
+        "wymagane": false
+      },
+      {
+        "pole": "czym_sie_zajmuje",
+        "typ": "lista-tekstow",
+        "wymagane": false
+      },
+      {
+        "pole": "link",
+        "typ": "obiekt",
+        "wymagane": false,
+        "podpola": [
+          "url",
+          "etykieta"
+        ]
+      }
+    ]
+  },
+  {
+    "rodzaj": "guarantee",
+    "nazwa": "Gwarancja",
+    "pola": [
+      {
+        "pole": "naglowek",
+        "typ": "tekst",
+        "wymagane": true
+      },
+      {
+        "pole": "tekst",
+        "typ": "akapit",
+        "wymagane": true
+      }
+    ]
+  },
+  {
+    "rodzaj": "comparison",
+    "nazwa": "Porównanie z alternatywą",
+    "pola": [
+      {
+        "pole": "alternatywa_nazwa",
+        "typ": "tekst",
+        "wymagane": true
+      },
+      {
+        "pole": "alternatywa",
+        "typ": "lista-tekstow",
+        "wymagane": true
+      },
+      {
+        "pole": "kurs",
+        "typ": "lista-tekstow",
+        "wymagane": true
+      }
+    ]
+  },
+  {
+    "rodzaj": "faq",
+    "nazwa": "FAQ",
+    "pola": [
+      {
+        "pole": "pytania",
+        "typ": "lista-obiektow",
+        "wymagane": true,
+        "podpola": [
+          "pytanie",
+          "odpowiedz"
+        ]
+      }
+    ]
+  }
+]

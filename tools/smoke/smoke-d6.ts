@@ -121,6 +121,13 @@ try {
   assert.ok(edytor.includes("Poziom"), "edytor nie ma pola poziomu");
   assert.ok(edytor.includes("Badge"), "edytor nie ma pola badge");
 
+  // 3a. Trzy warstwy edycji z licznikami stanu treści z bazy:
+  // sekcje X/12 i moduły/lekcje — właściciel widzi braki bez klikania.
+  assert.ok(edytor.includes("Dane podstawowe"), "brak zakładki danych podstawowych");
+  assert.ok(edytor.includes("Sekcje strony"), "brak zakładki sekcji");
+  assert.ok(edytor.includes("Program"), "brak zakładki programu");
+  assert.ok(edytor.includes("1/12"), "licznik sekcji nie liczy z bazy");
+
   const smiec = await html("/szkolenia/kreator/nie-jest-uuid", CIASTKO);
   assert.equal(smiec.status, 404, "śmieciowy adres edytora powinien dać 404");
 
