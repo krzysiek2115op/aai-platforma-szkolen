@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import OknoKursu from "@/components/szkolenia/OknoKursu";
-import { Reveal } from "@/components/ui/Reveal";
+import { Cascade, CascadeItem, Reveal } from "@/components/ui/Reveal";
 import type { SzczegolyKursu } from "@/modules/m1-sklep";
 import { Sekcja } from "./Wspolne";
 
@@ -32,14 +32,14 @@ export default function SekcjaPlatforma({
         <Reveal from="up">
           <OknoKursu kurs={kurs} />
         </Reveal>
-        <ul className="grid gap-4">
+        <Cascade as="ul" interval={0.09} className="grid gap-4">
           {punkty.map((punkt) => (
-            <li key={punkt} className="flex items-start gap-3">
+            <CascadeItem key={punkt} as="li" from="right" className="flex items-start gap-3">
               <Check aria-hidden className="mt-0.5 size-5 shrink-0 text-volt" />
               <span className="text-base leading-relaxed text-fg">{punkt}</span>
-            </li>
+            </CascadeItem>
           ))}
-        </ul>
+        </Cascade>
       </div>
     </Sekcja>
   );

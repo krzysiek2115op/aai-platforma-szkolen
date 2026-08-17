@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { Check, ShieldCheck } from "lucide-react";
+import { Reveal } from "@/components/ui/Reveal";
 import type { SzczegolyKursu, TrescGwarancja, TrescPakiet } from "@/modules/m1-sklep";
 import { CtaZakupu, Sekcja, formatujCene } from "./Wspolne";
 
@@ -22,10 +23,13 @@ export default function SekcjaCena({
 }) {
   return (
     <Sekcja id="cena" etykieta={etykieta} tytul="Co dostajesz za tę cenę?">
-      <div className="panel relative mt-8 max-w-4xl overflow-hidden border-volt/20 p-6 md:p-10">
+      <Reveal
+        from="up"
+        className="panel relative mt-8 max-w-4xl overflow-hidden border-volt/20 p-6 md:p-10"
+      >
         <div
           aria-hidden
-          className="absolute -top-24 -right-24 size-72 rounded-full bg-volt/[0.06] blur-[80px]"
+          className="dryf-b absolute -top-24 -right-24 size-72 rounded-full bg-volt/[0.06] blur-[80px]"
         />
         <div className="relative grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-center">
           <div>
@@ -77,7 +81,7 @@ export default function SekcjaCena({
             </div>
           </div>
         ) : null}
-      </div>
+      </Reveal>
     </Sekcja>
   );
 }

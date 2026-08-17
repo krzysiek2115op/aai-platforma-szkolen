@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { ChevronDown } from "lucide-react";
+import { Cascade, CascadeItem } from "@/components/ui/Reveal";
 import type { TrescFaq } from "@/modules/m1-sklep";
 import { Sekcja } from "./Wspolne";
 
@@ -16,9 +17,10 @@ export default function SekcjaFaq({
 }) {
   return (
     <Sekcja id="faq" etykieta={etykieta} tytul="Pytania, które zadałbyś i Ty">
-      <div className="mt-8 flex max-w-3xl flex-col gap-3">
+      <Cascade interval={0.05} className="mt-8 flex max-w-3xl flex-col gap-3">
         {tresc.pytania.map((p) => (
-          <details key={p.pytanie} className="panel group/faq">
+          <CascadeItem key={p.pytanie}>
+            <details className="panel group/faq">
             <summary className="flex cursor-pointer list-none items-center gap-4 p-4 md:p-5 [&::-webkit-details-marker]:hidden">
               <span className="flex-1 text-base font-medium">{p.pytanie}</span>
               <ChevronDown
@@ -26,12 +28,13 @@ export default function SekcjaFaq({
                 className="size-4 shrink-0 text-steel transition-transform group-open/faq:rotate-180"
               />
             </summary>
-            <p className="border-t border-line px-4 py-4 text-sm leading-relaxed text-steel md:px-5">
-              {p.odpowiedz}
-            </p>
-          </details>
+              <p className="border-t border-line px-4 py-4 text-sm leading-relaxed text-steel md:px-5">
+                {p.odpowiedz}
+              </p>
+            </details>
+          </CascadeItem>
         ))}
-      </div>
+      </Cascade>
       <p className="mt-6 max-w-3xl text-sm leading-relaxed text-steel">
         Masz inne pytanie?{" "}
         <a

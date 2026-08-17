@@ -1,45 +1,27 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export type PozycjaPaska = { id: string; tekst: string };
 
 /**
- * Sticky course navigation (brief CDS pkt 2): subtelne mini-menu, które
- * pojawia się po przescrollowaniu hero — kotwice do sekcji + CTA.
+ * Pasek menu KURSU (feedback właściciela do B5): na stronie kursu
+ * globalny navbar znika (NavbarPrzelacznik), a jego miejsce zajmuje
+ * pływająca pigułka widoczna OD WEJŚCIA — na pierwszy rzut oka mówi,
+ * co jest w środku, i oprowadza po sekcjach (kotwice + aktywna sekcja
+ * podświetlana z IntersectionObservera) aż do CTA „Dołącz".
  *
- * Progressive enhancement: pasek to udogodnienie, nie treść — bez
- * JavaScriptu pozostaje schowany, strona jest kompletna. Scroll mierzony
- * w rAF (bez layout thrashing), aktywna sekcja z jednego
- * IntersectionObservera; prefers-reduced-motion = brak animacji wjazdu.
+ * Bez JavaScriptu pasek też stoi (to jedyna nawigacja strony kursu) —
+ * JS dokłada tylko podświetlenie aktywnej sekcji.
  */
 export default function PasekKursu({
   pozycje,
-  progOdslony = 420,
 }: {
   pozycje: PozycjaPaska[];
-  /** po ilu px scrolla pasek się pojawia (mniej więcej wysokość hero) */
-  progOdslony?: number;
 }) {
-  const [widoczny, setWidoczny] = useState(false);
   const [aktywna, setAktywna] = useState<string | null>(null);
-  const tykaRef = useRef(false);
-
-  useEffect(() => {
-    const zmierz = () => {
-      tykaRef.current = false;
-      setWidoczny(window.scrollY > progOdslony);
-    };
-    const onScroll = () => {
-      if (tykaRef.current) return;
-      tykaRef.current = true;
-      requestAnimationFrame(zmierz);
-    };
-    zmierz();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [progOdslony]);
 
   useEffect(() => {
     const sekcje = pozycje
@@ -61,28 +43,33 @@ export default function PasekKursu({
   }, [pozycje]);
 
   return (
-    <div
+    <header
       data-pasek-kursu
-      className={`fixed inset-x-0 top-[4.5rem] z-40 border-b border-line bg-void/85 backdrop-blur-md transition-[transform,opacity] duration-300 motion-reduce:transition-none ${
-        widoczny
-          ? "translate-y-0 opacity-100"
-          : "pointer-events-none -translate-y-3 opacity-0"
-      }`}
+      className="pasek-wjazd fixed inset-x-0 top-0 z-50 px-3 pt-3 md:pt-4"
     >
       <nav
         aria-label="Nawigacja kursu"
-        className="container-site flex h-12 items-center gap-4"
+        className="mx-auto flex h-12 w-full max-w-4xl items-center gap-1.5 rounded-full border border-line bg-void/80 px-2 shadow-[0_12px_48px_rgba(0,0,0,0.55)] backdrop-blur-md md:h-13 md:gap-2"
       >
-        <ul className="scrollbar-none -mx-1 flex flex-1 items-center gap-1 overflow-x-auto px-1">
+        <Link
+          href="/szkolenia"
+          aria-label="Wróć do katalogu szkoleń"
+          className="group/wroc flex size-9 shrink-0 items-center justify-center rounded-full border border-volt/25 bg-volt/10 font-mono text-xs font-semibold text-volt transition-colors hover:bg-volt hover:text-void"
+        >
+          <span className="group-hover/wroc:hidden">MP</span>
+          <ArrowLeft aria-hidden className="hidden size-4 group-hover/wroc:block" />
+        </Link>
+
+        <ul className="scrollbar-none flex flex-1 items-center gap-0.5 overflow-x-auto px-1 md:gap-1">
           {pozycje.map((p) => (
             <li key={p.id} className="shrink-0">
               <a
                 href={`#${p.id}`}
                 aria-current={aktywna === p.id ? "true" : undefined}
-                className={`inline-flex h-8 items-center rounded-full px-3 font-mono text-label tracking-[0.14em] uppercase transition-colors ${
+                className={`inline-flex h-9 items-center rounded-full px-3 text-sm transition-colors md:px-3.5 ${
                   aktywna === p.id
                     ? "bg-volt/10 text-volt"
-                    : "text-steel hover:text-fg"
+                    : "text-steel hover:bg-fg/[0.04] hover:text-fg"
                 }`}
               >
                 {p.tekst}
@@ -90,17 +77,18 @@ export default function PasekKursu({
             </li>
           ))}
         </ul>
+
         <a
           href="#cena"
-          className="group inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-volt px-3.5 text-xs font-medium text-void transition-colors hover:bg-[#d3ff70]"
+          className="btn-glow group inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-volt px-4 text-sm font-medium text-void transition-colors hover:bg-[#d3ff70]"
         >
-          Dołącz do kursu
+          Dołącz
           <ArrowRight
             aria-hidden
             className="size-3.5 transition-transform group-hover:translate-x-0.5"
           />
         </a>
       </nav>
-    </div>
+    </header>
   );
 }

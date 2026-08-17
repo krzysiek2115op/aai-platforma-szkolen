@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { MoveRight } from "lucide-react";
-import { Cascade, CascadeItem } from "@/components/ui/Reveal";
+import { Cascade, CascadeItem, Reveal } from "@/components/ui/Reveal";
 import type { TrescProblem } from "@/modules/m1-sklep";
 import { Sekcja } from "./Wspolne";
 
@@ -24,9 +24,11 @@ export default function SekcjaProblem({
 }) {
   return (
     <Sekcja id="poznaj" etykieta={etykieta} tytul="Dlaczego ten kurs?">
-      <p className="mt-6 max-w-3xl text-lg leading-relaxed text-fg md:text-xl">
-        {tresc.wstep}
-      </p>
+      <Reveal from="up" delay={0.08}>
+        <p className="mt-6 max-w-3xl text-lg leading-relaxed text-fg md:text-xl">
+          {tresc.wstep}
+        </p>
+      </Reveal>
       <Cascade as="ol" interval={0.12} className="mt-8 grid gap-3 md:grid-cols-3 md:gap-0">
         {KROKI.map((krok, i) => (
           <CascadeItem
@@ -34,7 +36,7 @@ export default function SekcjaProblem({
             as="li"
             className="relative md:px-3 md:first:pl-0 md:last:pr-0"
           >
-            <div className="panel relative h-full overflow-hidden p-5 transition-colors duration-300 hover:border-volt/25 md:p-6">
+            <div className="panel unos relative h-full overflow-hidden p-5 md:p-6">
               <div
                 aria-hidden
                 className={`absolute -top-10 -right-10 size-32 rounded-full blur-[50px] ${

@@ -2,6 +2,7 @@ import type { z } from "zod";
 import HeroMotion from "@/components/szkolenia/HeroMotion";
 import OknoKursu from "@/components/szkolenia/OknoKursu";
 import type { SzczegolyKursu, TrescHero } from "@/modules/m1-sklep";
+import { lekcje, moduly } from "@/lib/odmiana";
 import { CtaZakupu, Etykieta, formatujCene } from "./Wspolne";
 
 const POZIOM: Record<string, string> = {
@@ -27,8 +28,8 @@ export default function HeroKursu({
   const liczbaLekcji = kurs.modules.reduce((n, m) => n + m.lessons.length, 0);
   const badge = [
     kurs.type,
-    kurs.modules.length > 0 ? `${kurs.modules.length} modułów` : null,
-    liczbaLekcji > 0 ? `${liczbaLekcji} lekcji` : "premiera wkrótce",
+    kurs.modules.length > 0 ? moduly(kurs.modules.length) : null,
+    liczbaLekcji > 0 ? lekcje(liczbaLekcji) : "premiera wkrótce",
     kurs.level ? `poziom ${POZIOM[kurs.level] ?? kurs.level}` : null,
   ]
     .filter(Boolean)

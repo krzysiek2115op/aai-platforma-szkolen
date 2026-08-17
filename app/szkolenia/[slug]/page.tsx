@@ -17,6 +17,7 @@ import SekcjaPozycjonowanie from "@/components/kurs/SekcjaPozycjonowanie";
 import SekcjaProblem from "@/components/kurs/SekcjaProblem";
 import SekcjaProgram from "@/components/kurs/SekcjaProgram";
 import SekcjaTransformacja from "@/components/kurs/SekcjaTransformacja";
+import TloKursu from "@/components/kurs/TloKursu";
 import {
   szczegolyKursu,
   TrescHero,
@@ -103,6 +104,8 @@ export default async function StronaKursu({ params }: Props) {
 
   return (
     <div data-kurs>
+      {/* żywe tło całej strony: poświata za kursorem + dryfujące bloby */}
+      <TloKursu />
       <PasekKursu pozycje={pozycjePaska} />
       <HeroKursu kurs={kurs} hero={hero} />
 

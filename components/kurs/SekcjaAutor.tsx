@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { Check } from "lucide-react";
+import { Reveal } from "@/components/ui/Reveal";
 import type { TrescAutor } from "@/modules/m1-sklep";
 import { Sekcja } from "./Wspolne";
 
@@ -13,7 +14,10 @@ export default function SekcjaAutor({
 }) {
   return (
     <Sekcja etykieta={etykieta} tytul="Kto prowadzi ten kurs?">
-      <div className="panel mt-8 grid max-w-4xl gap-6 p-6 md:grid-cols-[auto_1fr] md:p-8">
+      <Reveal
+        from="up"
+        className="panel unos mt-8 grid max-w-4xl gap-6 p-6 md:grid-cols-[auto_1fr] md:p-8"
+      >
         <div
           aria-hidden
           className="bg-grid flex size-20 items-center justify-center rounded-full border border-volt/30 text-2xl font-semibold text-volt"
@@ -43,7 +47,7 @@ export default function SekcjaAutor({
             </ul>
           ) : null}
         </div>
-      </div>
+      </Reveal>
     </Sekcja>
   );
 }

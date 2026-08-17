@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSansSubset, GeistMonoSubset } from "@/lib/fonts";
-import Navbar from "@/components/Navbar";
+import NavbarPrzelacznik from "@/components/NavbarPrzelacznik";
 import Footer from "@/components/Footer";
 import "./globals.css";
 
@@ -49,7 +49,7 @@ export default function RootLayout({
         <a href="#tresc" className="skip-link">
           Przejdź do treści
         </a>
-        <Navbar />
+        <NavbarPrzelacznik />
         <main id="tresc">{children}</main>
         <Footer />
       </body>

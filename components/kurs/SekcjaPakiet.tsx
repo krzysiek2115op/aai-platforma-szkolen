@@ -27,7 +27,7 @@ export default function SekcjaPakiet({
           <CascadeItem
             key={p.tytul}
             as="li"
-            className="group/pakiet panel relative overflow-hidden p-5 transition-colors duration-300 hover:border-volt/25"
+            className="group/pakiet panel unos relative overflow-hidden p-5"
           >
             <div
               aria-hidden

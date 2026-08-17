@@ -9,6 +9,7 @@ import {
   szczegolyKursu,
   type KartaKatalogu,
 } from "@/modules/m1-sklep";
+import { czasMaterialu, lekcje, moduly, slowo } from "@/lib/odmiana";
 
 export const metadata: Metadata = {
   title: "Szkolenia",
@@ -107,9 +108,9 @@ function Badge({ tekst, akcent = false }: { tekst: string; akcent?: boolean }) {
 
 function MetaKursu({ kurs }: { kurs: KartaKatalogu }) {
   const czesci = [
-    kurs.modules_count > 0 ? `${kurs.modules_count} modułów` : null,
-    kurs.lessons_count > 0 ? `${kurs.lessons_count} lekcji` : null,
-    kurs.total_min > 0 ? `${Math.round(kurs.total_min / 60)}h materiału` : null,
+    kurs.modules_count > 0 ? moduly(kurs.modules_count) : null,
+    kurs.lessons_count > 0 ? lekcje(kurs.lessons_count) : null,
+    kurs.total_min > 0 ? `${czasMaterialu(kurs.total_min)} materiału` : null,
     kurs.level ? POZIOM[kurs.level] : null,
   ].filter(Boolean);
   if (czesci.length === 0) return null;
@@ -253,10 +254,10 @@ export default async function StronaSzkolenia() {
             {stat.kursy > 0 ? (
               <dl className="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-line pt-6">
                 {[
-                  [stat.kursy, stat.kursy === 1 ? "produkt" : "produkty"],
-                  [stat.moduly, "modułów"],
-                  [stat.lekcje, "lekcji"],
-                  [stat.godziny, "godzin materiału"],
+                  [stat.kursy, slowo(stat.kursy, "produkt", "produkty", "produktów")],
+                  [stat.moduly, slowo(stat.moduly, "moduł", "moduły", "modułów")],
+                  [stat.lekcje, slowo(stat.lekcje, "lekcja", "lekcje", "lekcji")],
+                  [stat.godziny, slowo(stat.godziny, "godzina", "godziny", "godzin") + " materiału"],
                 ]
                   .filter(([n]) => Number(n) > 0)
                   .map(([n, etykieta]) => (

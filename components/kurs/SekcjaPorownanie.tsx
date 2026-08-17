@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { Check, Minus } from "lucide-react";
+import { Reveal } from "@/components/ui/Reveal";
 import type { TrescPorownanie } from "@/modules/m1-sklep";
 import { Sekcja } from "./Wspolne";
 
@@ -21,7 +22,7 @@ export default function SekcjaPorownanie({
       opis="Wszystko z tego kursu znajdziesz w internecie za darmo — rozsypane po setkach źródeł. Płacisz za kolejność, selekcję i czas."
     >
       <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <div className="panel p-5 md:p-6">
+        <Reveal from="left" className="panel unos p-5 md:p-6">
           <p className="font-mono text-label tracking-[0.25em] text-steel uppercase">
             {tresc.alternatywa_nazwa}
           </p>
@@ -35,11 +36,14 @@ export default function SekcjaPorownanie({
               </li>
             ))}
           </ul>
-        </div>
-        <div className="panel relative overflow-hidden border-volt/20 p-5 md:p-6">
+        </Reveal>
+        <Reveal
+          from="right"
+          className="panel unos relative overflow-hidden border-volt/20 p-5 md:p-6"
+        >
           <div
             aria-hidden
-            className="absolute -top-14 -right-14 size-40 rounded-full bg-volt/[0.07] blur-[60px]"
+            className="dryf-a absolute -top-14 -right-14 size-40 rounded-full bg-volt/[0.07] blur-[60px]"
           />
           <p className="font-mono text-label tracking-[0.25em] text-volt uppercase">
             Z tym kursem
@@ -54,7 +58,7 @@ export default function SekcjaPorownanie({
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
       </div>
     </Sekcja>
   );

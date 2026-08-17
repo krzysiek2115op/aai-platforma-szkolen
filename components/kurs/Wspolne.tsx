@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import { Reveal } from "@/components/ui/Reveal";
 
 /**
  * Wspólne cegiełki Course Detail System (brief właściciela, B5 iteracja 3):
@@ -75,15 +76,18 @@ export function Sekcja({
       id={id}
       className="container-site border-t border-line pt-8 pb-14 md:pt-10 md:pb-20"
     >
-      <Etykieta>{etykieta}</Etykieta>
-      <h2 className="mt-3 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight md:text-4xl">
-        {tytul}
-      </h2>
-      {opis ? (
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-steel">
-          {opis}
-        </p>
-      ) : null}
+      {/* nagłówek sekcji wjeżdża przy scrollu (Reveal — fade + slide-up) */}
+      <Reveal from="up">
+        <Etykieta>{etykieta}</Etykieta>
+        <h2 className="mt-3 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight md:text-4xl">
+          {tytul}
+        </h2>
+        {opis ? (
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-steel">
+            {opis}
+          </p>
+        ) : null}
+      </Reveal>
       {children}
     </section>
   );

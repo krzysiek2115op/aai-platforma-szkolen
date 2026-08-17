@@ -102,10 +102,24 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   zero zmyślonych danych — opinie to jawny placeholder). Goldeny
   d3/d4/d5 odtworzone; smoke D5 sprawdza dodatkowo sekcję problem,
   sticky nav i #cena. Testy 15/15, strażnicy 9/9, lint/tsc/build czyste.
+- **Feedback właściciela do B5 wdrożony (0.11.0)**: (1) typografia —
+  polska odmiana liczebników (lib/odmiana.ts; fonty zweryfikowane:
+  identyczne 1:1 ze stroną główną, pełne pokrycie PL + wght 400–700);
+  (2) FAQ rozbudowane do 10 pytań-obiekcji na kurs; (3) NOWY pasek
+  menu kursu — pływająca pigułka zamiast globalnego navbara
+  (NavbarPrzelacznik chowa go na /szkolenia/[slug]), zakładki sekcji
+  + aktywna + CTA; (4) program dłuższy: Claude 7 modułów/31 lekcji,
+  GitHub 6/26 (treść ROBOCZA, finał w D7); (5) animacje premium:
+  TloKursu (poświata za kursorem + dryf blobów), Reveal/Cascade we
+  wszystkich sekcjach, hover-lift .unos, płynne akordeony
+  (interpolate-size), micro-interakcje CTA — wszystko wyłączane przez
+  prefers-reduced-motion.
 - **NASTĘPNY KROK: bramka B5 = ocena właściciela na localhost:3001**
-  (dev działa; baza dev zmigrowana do 005 i zaseedowana nową treścią).
-  Po zaliczeniu B5: merge PR #12 + tag/release v0.10.0, potem Dział 6
-  (kreator, z polami badge/level i WSZYSTKIMI rodzajami sekcji).
+  (dev działa; baza dev zaseedowana nową treścią). Jeśli „coś nie tak
+  z czcionką" nadal widoczne — poprosić właściciela o wskazanie
+  miejsca (infra fontów = 1:1 strona główna). Po zaliczeniu B5:
+  merge PR #12 + tag/release v0.11.0, potem Dział 6 (kreator,
+  z polami badge/level i WSZYSTKIMI rodzajami sekcji).
 - Stan PR: #12 (feat/d5-strona-sprzedazowa → plugin-1-sklep-kursow)
   otwarty; #13 zmergowany do feat/d5. Testy na db1_kursy_test.
 

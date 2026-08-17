@@ -26,7 +26,7 @@ export default function SekcjaKorzysci({
           <CascadeItem
             key={p.tytul}
             as="li"
-            className="group/korzysc panel relative flex flex-col overflow-hidden p-4 transition-colors duration-300 hover:border-volt/25 md:p-5"
+            className="group/korzysc panel unos relative flex flex-col overflow-hidden p-4 md:p-5"
           >
             <div
               aria-hidden

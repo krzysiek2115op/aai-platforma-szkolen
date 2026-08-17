@@ -1,5 +1,7 @@
 import { ChevronDown, Play } from "lucide-react";
+import { Cascade, CascadeItem } from "@/components/ui/Reveal";
 import type { SzczegolyKursu } from "@/modules/m1-sklep";
+import { czasMaterialu, lekcje, moduly } from "@/lib/odmiana";
 import { Sekcja } from "./Wspolne";
 
 /**
@@ -20,9 +22,9 @@ export default function SekcjaProgram({
     0
   );
   const opis = [
-    `${kurs.modules.length} modułów`,
-    `${liczbaLekcji} lekcji`,
-    lacznyCzas > 0 ? `${Math.round((lacznyCzas / 60) * 10) / 10} h materiału` : null,
+    moduly(kurs.modules.length),
+    lekcje(liczbaLekcji),
+    lacznyCzas > 0 ? `${czasMaterialu(lacznyCzas)} materiału` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -34,14 +36,15 @@ export default function SekcjaProgram({
       tytul="Program: dokładnie wiesz, co dostajesz"
       opis={`${opis} — każdy tytuł lekcji widzisz przed zakupem, żadnych niespodzianek.`}
     >
-      <div className="mt-8 flex flex-col gap-3">
+      <Cascade interval={0.05} className="mt-8 flex flex-col gap-3">
         {kurs.modules.map((modul, i) => {
           const czasModulu = modul.lessons.reduce(
             (s, l) => s + (l.duration_min ?? 0),
             0
           );
           return (
-            <details key={modul.id} className="panel group/mod" open={i === 0}>
+            <CascadeItem key={modul.id}>
+              <details className="panel group/mod" open={i === 0}>
               <summary className="flex cursor-pointer list-none items-center gap-4 p-4 md:p-5 [&::-webkit-details-marker]:hidden">
                 <span className="font-mono text-xs text-steel tabular-nums">
                   {String(i + 1).padStart(2, "0")}
@@ -57,7 +60,7 @@ export default function SekcjaProgram({
                   ) : null}
                 </span>
                 <span className="hidden font-mono text-label tracking-[0.12em] text-steel uppercase sm:inline">
-                  {modul.lessons.length} lekcji
+                  {lekcje(modul.lessons.length)}
                   {czasModulu > 0 ? ` · ${czasModulu} min` : ""}
                 </span>
                 <ChevronDown
@@ -88,10 +91,11 @@ export default function SekcjaProgram({
                   ))}
                 </ul>
               ) : null}
-            </details>
+              </details>
+            </CascadeItem>
           );
         })}
-      </div>
+      </Cascade>
     </Sekcja>
   );
 }

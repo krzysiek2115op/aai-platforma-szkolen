@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { MoveRight } from "lucide-react";
+import { Reveal } from "@/components/ui/Reveal";
 import type { TrescTransformacja } from "@/modules/m1-sklep";
 import { Sekcja } from "./Wspolne";
 
@@ -17,7 +18,7 @@ export default function SekcjaTransformacja({
   return (
     <Sekcja etykieta={etykieta} tytul="Efekt: przed i po kursie">
       <div className="relative mt-8 grid gap-4 md:grid-cols-2 md:gap-8">
-        <div className="panel p-5 md:p-6">
+        <Reveal from="left" className="panel unos p-5 md:p-6">
           <p className="font-mono text-label tracking-[0.25em] text-steel uppercase">
             Przed
           </p>
@@ -34,17 +35,20 @@ export default function SekcjaTransformacja({
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
 
         <MoveRight
           aria-hidden
           className="absolute top-1/2 left-1/2 z-10 hidden size-6 -translate-x-1/2 -translate-y-1/2 text-volt md:block"
         />
 
-        <div className="panel relative overflow-hidden border-volt/20 p-5 md:p-6">
+        <Reveal
+          from="right"
+          className="panel unos relative overflow-hidden border-volt/20 p-5 md:p-6"
+        >
           <div
             aria-hidden
-            className="absolute -top-14 -right-14 size-40 rounded-full bg-volt/[0.07] blur-[60px]"
+            className="dryf-b absolute -top-14 -right-14 size-40 rounded-full bg-volt/[0.07] blur-[60px]"
           />
           <p className="font-mono text-label tracking-[0.25em] text-volt uppercase">
             Po
@@ -62,7 +66,7 @@ export default function SekcjaTransformacja({
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
       </div>
     </Sekcja>
   );

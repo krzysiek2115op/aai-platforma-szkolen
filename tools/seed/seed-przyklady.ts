@@ -152,7 +152,7 @@ const KURSY = [
         position: 0,
         content: {
           punkty: [
-            { tytul: "3 moduły wideo", opis: "Każdy krok pokazany na ekranie, bez skrótów." },
+            { tytul: "7 modułów wideo", opis: "Każdy krok pokazany na ekranie, bez skrótów." },
             { tytul: "Biblioteka promptów", opis: "Gotowe prompty pod oferty, analizy i dokumenty." },
             { tytul: "Szablony i checklisty", opis: "Pliki do pobrania — wdrażasz tego samego dnia." },
             { tytul: "Dostęp bez limitu", opis: "Kupujesz raz, wracasz zawsze; aktualizacje w cenie." },
@@ -203,6 +203,7 @@ const KURSY = [
         kind: "faq" as const,
         position: 0,
         content: {
+          // FAQ = realne obiekcje przed zakupem (wzorzec z analizy wzoru §6)
           pytania: [
             {
               pytanie: "Nie znam się na technologii. Dam radę?",
@@ -212,45 +213,133 @@ const KURSY = [
             {
               pytanie: "Czy potrzebuję płatnego konta Claude?",
               odpowiedz:
-                "Zaczniesz na darmowym. Pokazujemy też, co realnie daje plan płatny i kiedy się zwraca.",
+                "Zaczniesz na darmowym. Pokazujemy też, co realnie daje plan płatny i kiedy się zwraca — decyzję podejmujesz świadomie, nie w ciemno.",
+            },
+            {
+              pytanie: "Kiedy dostanę dostęp do kursu?",
+              odpowiedz:
+                "Od razu po zakupie. Logujesz się i zaczynasz od pierwszej lekcji — bez czekania na „start edycji”.",
+            },
+            {
+              pytanie: "Ile czasu zajmie mi przejście kursu?",
+              odpowiedz:
+                "Sam materiał to kilka godzin wideo, ale największą wartość daje robienie ćwiczeń na własnych plikach. Godzina dziennie przez dwa tygodnie w zupełności wystarczy, żeby wdrożyć system u siebie.",
+            },
+            {
+              pytanie: "Prowadzę jednoosobową firmę. Czy to nie „za duży” kurs dla mnie?",
+              odpowiedz:
+                "Przeciwnie — im mniejszy zespół, tym więcej zyskujesz, bo Claude przejmuje pracę, na którą nie masz ludzi. Wszystkie przykłady działają także w pojedynkę.",
+            },
+            {
+              pytanie: "Czym ten kurs różni się od darmowych poradników na YouTube?",
+              odpowiedz:
+                "Kolejnością i selekcją. Zamiast stu przypadkowych trików dostajesz jedną ścieżkę: od pierwszej rozmowy po automatyzacje, z gotowymi promptami i szablonami do pobrania.",
+            },
+            {
+              pytanie: "Czy moje dane firmowe są bezpieczne przy pracy z AI?",
+              odpowiedz:
+                "Temu poświęcamy osobne lekcje: czego nie wklejać, jak przygotować dokumenty i jakie zasady ustawić sobie oraz zespołowi. Zero teorii — konkretne reguły.",
+            },
+            {
+              pytanie: "Co, jeśli Claude się zmieni i lekcje się zestarzeją?",
+              odpowiedz:
+                "Aktualizacje są w cenie — gdy interfejs lub możliwości Claude się zmieniają, nagrywamy poprawki, a Ty dostajesz je bez dopłat.",
             },
             {
               pytanie: "Jak długo mam dostęp?",
-              odpowiedz: "Bez limitu — kupujesz raz, wracasz kiedy chcesz, aktualizacje w cenie.",
+              odpowiedz:
+                "Bez limitu — kupujesz raz, wracasz kiedy chcesz, aktualizacje w cenie.",
+            },
+            {
+              pytanie: "Co, jeśli kurs u mnie nie zadziała?",
+              odpowiedz:
+                "Masz 30 dni gwarancji. Przerób kurs — jeśli nie zaoszczędzi Ci ani godziny pracy, oddajemy pieniądze bez pytań.",
             },
           ],
         },
       },
     ],
+    // program ROBOCZY (feedback B5: dłuższy, szczegółowy) — finalne
+    // treści lekcji powstaną w D7 na bazie pełnej dokumentacji Claude
     modules: [
       {
         position: 0,
         title: "Start: Claude bez tajemnic",
-        summary: "Konto, interfejs, pierwsza rozmowa z metodą",
+        summary: "Konto, interfejs i pierwsza rozmowa z metodą",
         lessons: [
           { position: 0, title: "Czym Claude różni się od reszty AI", duration_min: 9, preview: true },
-          { position: 1, title: "Konto i ustawienia, które mają znaczenie", duration_min: 12, preview: false },
-          { position: 2, title: "Pierwsza rozmowa: metoda zamiast zgadywania", duration_min: 16, preview: false },
+          { position: 1, title: "Konto, plany i ustawienia, które mają znaczenie", duration_min: 12, preview: false },
+          { position: 2, title: "Interfejs bez zgadywania: czaty, projekty, artefakty", duration_min: 10, preview: false },
+          { position: 3, title: "Pierwsza rozmowa: metoda zamiast zgadywania", duration_min: 16, preview: false },
+          { position: 4, title: "Najczęstsze błędy początkujących — i jak ich uniknąć", duration_min: 11, preview: false },
         ],
       },
       {
         position: 1,
-        title: "Prompty, które pracują za Ciebie",
-        summary: "Struktura, kontekst, iteracja — na Twoich zadaniach",
+        title: "Metoda: prompty, które dowożą wynik",
+        summary: "Struktura, kontekst i iteracja — na Twoich zadaniach",
         lessons: [
           { position: 0, title: "Anatomia dobrego promptu", duration_min: 14, preview: false },
-          { position: 1, title: "Kontekst firmowy: dokumenty i dane", duration_min: 18, preview: false },
-          { position: 2, title: "Biblioteka promptów Twojej firmy", duration_min: 15, preview: false },
+          { position: 1, title: "Kontekst: jak podać firmę, cel i ograniczenia", duration_min: 13, preview: false },
+          { position: 2, title: "Iteracja: z „meh” do „dokładnie o to chodziło”", duration_min: 12, preview: false },
+          { position: 3, title: "Style, tony i formaty odpowiedzi", duration_min: 10, preview: false },
+          { position: 4, title: "Budujesz bibliotekę promptów swojej firmy", duration_min: 15, preview: false },
         ],
       },
       {
         position: 2,
-        title: "Automatyzacje i codzienna praca",
-        summary: "Projekty, artefakty, zespół i bezpieczeństwo",
+        title: "Dokumenty i dane firmowe w Claude",
+        summary: "Umowy, cenniki, raporty — prawdziwe pliki, prawdziwa praca",
         lessons: [
-          { position: 0, title: "Projekty: Claude z pamięcią Twojej firmy", duration_min: 17, preview: false },
-          { position: 1, title: "Artefakty: dokumenty i narzędzia na zawołanie", duration_min: 13, preview: false },
-          { position: 2, title: "Czego nie wklejać do AI — zasady zespołu", duration_min: 11, preview: false },
+          { position: 0, title: "Wczytywanie plików: co Claude umie przeczytać", duration_min: 9, preview: false },
+          { position: 1, title: "Analiza umowy krok po kroku", duration_min: 16, preview: false },
+          { position: 2, title: "Oferta i wycena prosto z cennika", duration_min: 14, preview: false },
+          { position: 3, title: "Raporty i zestawienia: liczby pod kontrolą", duration_min: 13, preview: false },
+          { position: 4, title: "Długie dokumenty: streszczenia i porównania", duration_min: 12, preview: false },
+        ],
+      },
+      {
+        position: 3,
+        title: "Projekty: Claude z pamięcią Twojej firmy",
+        summary: "Stała wiedza firmowa zamiast tłumaczenia od zera",
+        lessons: [
+          { position: 0, title: "Czym są Projekty i kiedy ich używać", duration_min: 10, preview: false },
+          { position: 1, title: "Budujesz bazę wiedzy: dokumenty i instrukcje", duration_min: 14, preview: false },
+          { position: 2, title: "Instrukcje projektu: Claude w roli Twojego działu", duration_min: 13, preview: false },
+          { position: 3, title: "Projekty w praktyce: obsługa klienta i sprzedaż", duration_min: 15, preview: false },
+        ],
+      },
+      {
+        position: 4,
+        title: "Artefakty: dokumenty i narzędzia na zawołanie",
+        summary: "Od notatki po działające mini-narzędzia",
+        lessons: [
+          { position: 0, title: "Artefakty: co to jest i po co", duration_min: 8, preview: false },
+          { position: 1, title: "Dokumenty, tabele i szablony wielokrotnego użytku", duration_min: 13, preview: false },
+          { position: 2, title: "Mini-narzędzia dla firmy bez programowania", duration_min: 16, preview: false },
+          { position: 3, title: "Publikowanie i udostępnianie efektów pracy", duration_min: 9, preview: false },
+        ],
+      },
+      {
+        position: 5,
+        title: "Automatyzacje i integracje",
+        summary: "Claude pracuje, gdy Ty robisz co innego",
+        lessons: [
+          { position: 0, title: "Powtarzalne zadania: od ręcznej pracy do szablonu", duration_min: 12, preview: false },
+          { position: 1, title: "Łączenie Claude z narzędziami, których używasz", duration_min: 15, preview: false },
+          { position: 2, title: "Przepływ pracy: od szkicu do wdrożenia", duration_min: 14, preview: false },
+          { position: 3, title: "Kiedy automatyzować, a kiedy nie warto", duration_min: 9, preview: false },
+        ],
+      },
+      {
+        position: 6,
+        title: "Zespół, bezpieczeństwo i wdrożenie",
+        summary: "Zasady, które chronią firmę i skalują efekty",
+        lessons: [
+          { position: 0, title: "Czego NIE wklejać do AI — zasady danych", duration_min: 11, preview: false },
+          { position: 1, title: "Ustawiasz standardy pracy zespołu", duration_min: 13, preview: false },
+          { position: 2, title: "Plan wdrożenia na pierwsze 30 dni", duration_min: 14, preview: false },
+          { position: 3, title: "Jak mierzyć, czy AI naprawdę oszczędza czas", duration_min: 10, preview: false },
         ],
       },
     ],
@@ -364,7 +453,7 @@ const KURSY = [
         content: {
           punkty: [
             {
-              tytul: "2 moduły wideo",
+              tytul: "6 modułów wideo",
               opis: "Każdy krok na ekranie — od pustego folderu po zmergowany pull request.",
             },
             {
@@ -429,6 +518,7 @@ const KURSY = [
         kind: "faq" as const,
         position: 0,
         content: {
+          // FAQ = realne obiekcje przed zakupem (wzorzec z analizy wzoru §6)
           pytania: [
             {
               pytanie: "Czy muszę umieć programować?",
@@ -436,14 +526,49 @@ const KURSY = [
                 "Nie. Git i GitHub to narzędzia do wersjonowania plików — kurs zaczyna od zera i nie wymaga pisania kodu.",
             },
             {
+              pytanie: "Terminal mnie przeraża. Poradzę sobie?",
+              odpowiedz:
+                "Tak — każdą komendę wpisujemy razem, na ekranie, z wyjaśnieniem co robi i dlaczego. Do najczęstszych masz ściągę do pobrania.",
+            },
+            {
               pytanie: "Mam Windowsa / Maca — zadziała?",
               odpowiedz:
                 "Tak. Wszystko pokazujemy w narzędziach dostępnych na obu systemach.",
             },
             {
+              pytanie: "Nauczę się Gita czy GitHuba?",
+              odpowiedz:
+                "Obu — i w dobrej kolejności: najpierw Git lokalnie (commity, branche), potem GitHub (zdalne repozytorium, pull requesty, współpraca).",
+            },
+            {
+              pytanie: "Pracuję sam. Po co mi branche i pull requesty?",
+              odpowiedz:
+                "Bo porządek i możliwość cofnięcia zmian przydają się najbardziej, gdy nikt Cię nie pilnuje. A gdy dołączysz do zespołu, będziesz gotowy od pierwszego dnia.",
+            },
+            {
+              pytanie: "Kiedy dostanę dostęp do kursu?",
+              odpowiedz:
+                "Od razu po zakupie. Logujesz się i zaczynasz od pierwszej lekcji.",
+            },
+            {
+              pytanie: "Ile czasu zajmie mi kurs?",
+              odpowiedz:
+                "Materiał to kilka godzin wideo plus ćwiczenia na prawdziwym repozytorium. Pracując po godzinie dziennie, w tydzień–dwa przejdziesz całość i zaczniesz pracować po nowemu.",
+            },
+            {
+              pytanie: "Czym różni się kurs od darmowej dokumentacji i tutoriali?",
+              odpowiedz:
+                "Dokumentacja opisuje wszystko, ale bez kolejności i bez Twojego kontekstu. Tu dostajesz jedną ścieżkę przez prawdziwy projekt — z typowymi wpadkami pokazanymi, ZANIM je popełnisz.",
+            },
+            {
               pytanie: "Jak długo mam dostęp?",
               odpowiedz:
                 "Bez limitu — kupujesz raz, wracasz kiedy chcesz, aktualizacje w cenie.",
+            },
+            {
+              pytanie: "Co, jeśli kurs nie jest dla mnie?",
+              odpowiedz:
+                "Masz 30 dni gwarancji. Jeśli po przerobieniu kursu nie poczujesz się pewnie z commitami i pull requestami, oddajemy pieniądze bez pytań.",
             },
           ],
         },
@@ -456,27 +581,81 @@ const KURSY = [
             { tytul: "Repozytorium pod kontrolą", opis: "Zakładasz, porządkujesz i nie gubisz pracy — nigdy więcej „final_v7_poprawione”." },
             { tytul: "Commity i branche z sensem", opis: "Historia zmian, którą da się czytać i cofać bez paniki." },
             { tytul: "Pull requesty i współpraca", opis: "Review, konflikty, merge — współpraca zamiast nadpisywania sobie plików." },
+            { tytul: "Projekt w chmurze", opis: "Push, pull i praca z dowolnego komputera — GitHub jako bezpieczna kopia Twojej pracy." },
+            { tytul: "Ratunek z opresji", opis: "Restore, revert, reset — wiesz, którego użyć, zanim wpadniesz w panikę." },
           ],
         },
       },
     ],
+    // program ROBOCZY (feedback B5: dłuższy, szczegółowy) — finalne
+    // treści lekcji powstaną w D7 na bazie pełnej dokumentacji GitHuba
     modules: [
       {
         position: 0,
-        title: "Fundamenty: repozytorium i commity",
-        summary: "Git i GitHub od pierwszego dnia",
+        title: "Start: po co komu kontrola wersji",
+        summary: "Od chaosu plików do porządku w projekcie",
         lessons: [
           { position: 0, title: "Po co komu kontrola wersji", duration_min: 8, preview: true },
-          { position: 1, title: "Pierwsze repozytorium i pierwszy commit", duration_min: 14, preview: false },
+          { position: 1, title: "Instalacja Gita i konto na GitHubie", duration_min: 12, preview: false },
+          { position: 2, title: "Konfiguracja, która oszczędza nerwy", duration_min: 9, preview: false },
+          { position: 3, title: "Mapa pojęć: repo, commit, branch, remote", duration_min: 10, preview: false },
         ],
       },
       {
         position: 1,
-        title: "Współpraca: branche i pull requesty",
-        summary: "Praca zespołowa bez deptania sobie po plikach",
+        title: "Repozytorium i commity",
+        summary: "Historia zmian, którą da się czytać",
+        lessons: [
+          { position: 0, title: "Pierwsze repozytorium i pierwszy commit", duration_min: 14, preview: false },
+          { position: 1, title: "Status, diff i staging: co właściwie zapisuję?", duration_min: 13, preview: false },
+          { position: 2, title: "Dobre opisy commitów — list do przyszłego siebie", duration_min: 9, preview: false },
+          { position: 3, title: ".gitignore: co NIE powinno trafić do repo", duration_min: 8, preview: false },
+          { position: 4, title: "Historia: przeglądanie i powrót do starych wersji", duration_min: 12, preview: false },
+        ],
+      },
+      {
+        position: 2,
+        title: "Branche i merge",
+        summary: "Bezpieczna przestrzeń na każdą zmianę",
         lessons: [
           { position: 0, title: "Branch: bezpieczna przestrzeń na zmiany", duration_min: 12, preview: false },
-          { position: 1, title: "Pull request i code review", duration_min: 16, preview: false },
+          { position: 1, title: "Przełączanie i porządek w gałęziach", duration_min: 10, preview: false },
+          { position: 2, title: "Merge bez strachu", duration_min: 13, preview: false },
+          { position: 3, title: "Konflikty: skąd się biorą i jak je rozwiązywać", duration_min: 15, preview: false },
+        ],
+      },
+      {
+        position: 3,
+        title: "GitHub: Twoje repozytorium w chmurze",
+        summary: "Push, pull i praca z każdego miejsca",
+        lessons: [
+          { position: 0, title: "Łączysz lokalny projekt z GitHubem", duration_min: 11, preview: false },
+          { position: 1, title: "Push i pull: synchronizacja bez niespodzianek", duration_min: 12, preview: false },
+          { position: 2, title: "README, opis i porządek w repozytorium", duration_min: 9, preview: false },
+          { position: 3, title: "Klonowanie i praca na dwóch komputerach", duration_min: 10, preview: false },
+        ],
+      },
+      {
+        position: 4,
+        title: "Pull requesty i code review",
+        summary: "Współpraca jak w prawdziwym zespole",
+        lessons: [
+          { position: 0, title: "Pull request i code review", duration_min: 16, preview: false },
+          { position: 1, title: "Fork vs branch: dwa modele współpracy", duration_min: 11, preview: false },
+          { position: 2, title: "Review: jak komentować i przyjmować uwagi", duration_min: 12, preview: false },
+          { position: 3, title: "Merge pull requesta i sprzątanie po pracy", duration_min: 9, preview: false },
+          { position: 4, title: "Issues i tablice: praca zespołu w jednym miejscu", duration_min: 13, preview: false },
+        ],
+      },
+      {
+        position: 5,
+        title: "Ratunek z opresji i dobre nawyki",
+        summary: "Cofanie zmian i porządek na co dzień",
+        lessons: [
+          { position: 0, title: "Cofanie zmian: restore, revert, reset — bez paniki", duration_min: 15, preview: false },
+          { position: 1, title: "„Zepsułem repo” — najczęstsze wpadki i wyjścia", duration_min: 14, preview: false },
+          { position: 2, title: "Nawyki, które doceni każdy zespół", duration_min: 10, preview: false },
+          { position: 3, title: "Twój przepływ pracy od jutra: checklista", duration_min: 8, preview: false },
         ],
       },
     ],

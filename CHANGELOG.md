@@ -5,6 +5,48 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.11.0] — 2026-08-17
+
+Poprawki Course Detail System wg feedbacku właściciela do B5
+(5 punktów: czcionka/typografia, FAQ, pasek menu kursu, dłuższy
+program, animacje premium).
+
+### Dodane
+- **Pasek menu KURSU** ([PasekKursu](components/kurs/PasekKursu.tsx)
+  przeprojektowany): na stronie kursu globalny navbar ZNIKA
+  ([NavbarPrzelacznik](components/NavbarPrzelacznik.tsx)), zamiast
+  niego pływająca pigułka widoczna OD WEJŚCIA — znacznik „MP"
+  (powrót do katalogu), zakładki sekcji z podświetleniem aktywnej
+  (IntersectionObserver) i CTA „Dołącz"; bez JS pasek stoi (to jedyna
+  nawigacja strony kursu), animowany wjazd.
+- **Żywe tło strony kursu** ([TloKursu](components/kurs/TloKursu.tsx)):
+  poświata podążająca za kursorem (jedna pętla rAF, transform-only)
+  + dwa dryfujące bloby (keyframes CSS) pod całą treścią.
+- **Animacje premium** (globals.css): hover-lift kart `.unos`
+  (uniesienie + glow), płynne otwieranie akordeonów
+  (`interpolate-size` — progressive enhancement), micro-interaction
+  CTA (uniesienie przy hover, dociśnięcie przy kliknięciu), dryf
+  gradientów `.dryf-a/.dryf-b`, wjazd paska `.pasek-wjazd`; wejścia
+  Reveal/Cascade (fade + slide-up ze staggerem) we WSZYSTKICH
+  sekcjach strony kursu; całość wyłączana przez
+  `prefers-reduced-motion`.
+- **Polska odmiana liczebników** ([lib/odmiana.ts](lib/odmiana.ts)):
+  „2 moduły · 4 lekcje · 48 min materiału" zamiast „2 modułów ·
+  4 lekcji · 0.8 h materiału" — katalog (karty + HUD), hero kursu
+  i sekcja programu.
+
+### Zmienione
+- **FAQ rozbudowane do 10 pytań-obiekcji na kurs** (wzorzec stron
+  kursowych: dostęp od kiedy/na jak długo, ile czasu zajmie, „czy
+  dam radę", różnica vs darmowe materiały, bezpieczeństwo danych,
+  aktualizacje, gwarancja) — treść ROBOCZA, spójna z resztą oferty.
+- **Program znacznie dłuższy** (treść ROBOCZA pod szczegółowe
+  omówienie tematów): kurs Claude 7 modułów / 31 lekcji (~6,5 h),
+  kurs GitHub 6 modułów / 26 lekcji (~5 h); pakiety i korzyści
+  zaktualizowane do nowych liczb.
+- Golden `d5-program.html` odtworzony (Cascade + odmiana w programie);
+  `d4-katalog.html` bez zmian.
+
 ## [0.10.0] — 2026-08-17
 
 Course Detail System wg wiążącego briefu właściciela

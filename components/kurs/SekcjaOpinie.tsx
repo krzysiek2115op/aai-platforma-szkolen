@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { Cascade, CascadeItem } from "@/components/ui/Reveal";
 import type { TrescOpinie } from "@/modules/m1-sklep";
 import { Sekcja } from "./Wspolne";
 
@@ -16,9 +17,9 @@ export default function SekcjaOpinie({
 }) {
   return (
     <Sekcja id="opinie" etykieta={etykieta} tytul="Nie wierz nam na słowo">
-      <ul className="mt-8 grid gap-4 md:grid-cols-2">
+      <Cascade as="ul" interval={0.08} className="mt-8 grid gap-4 md:grid-cols-2">
         {tresc.opinie.map((op) => (
-          <li key={op.autor} className="panel flex flex-col p-5">
+          <CascadeItem key={op.autor} as="li" className="panel unos flex flex-col p-5">
             <p className="flex-1 text-sm leading-relaxed text-fg">
               „{op.tekst}”
             </p>
@@ -26,9 +27,9 @@ export default function SekcjaOpinie({
               <span className="text-volt/90">{op.autor}</span>
               {op.rola ? <span> · {op.rola}</span> : null}
             </p>
-          </li>
+          </CascadeItem>
         ))}
-      </ul>
+      </Cascade>
     </Sekcja>
   );
 }

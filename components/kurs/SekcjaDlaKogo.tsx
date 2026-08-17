@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { Check, X } from "lucide-react";
+import { Cascade, CascadeItem, Reveal } from "@/components/ui/Reveal";
 import type { TrescDlaKogo } from "@/modules/m1-sklep";
 import { Sekcja } from "./Wspolne";
 
@@ -24,16 +25,16 @@ export default function SekcjaDlaKogo({
       tytul={`Ten ${typ} jest dla Ciebie, jeśli…`}
     >
       <div className="mt-8 grid max-w-5xl gap-8 md:grid-cols-2">
-        <ul className="grid gap-3">
+        <Cascade as="ul" interval={0.07} className="grid gap-3">
           {tresc.punkty.map((punkt) => (
-            <li key={punkt} className="flex items-start gap-3">
+            <CascadeItem key={punkt} as="li" from="left" className="flex items-start gap-3">
               <Check aria-hidden className="mt-0.5 size-5 shrink-0 text-volt" />
               <span className="text-base leading-relaxed text-fg">{punkt}</span>
-            </li>
+            </CascadeItem>
           ))}
-        </ul>
+        </Cascade>
         {tresc.nie_dla && tresc.nie_dla.length > 0 ? (
-          <div className="panel h-fit p-5 md:p-6">
+          <Reveal from="right" className="panel unos h-fit p-5 md:p-6">
             {/* uczciwość sprzedaje: mówimy też, komu NIE pomożemy */}
             <p className="font-mono text-label tracking-[0.25em] text-steel uppercase">
               A NIE jest, jeśli…
@@ -48,7 +49,7 @@ export default function SekcjaDlaKogo({
                 </li>
               ))}
             </ul>
-          </div>
+          </Reveal>
         ) : null}
       </div>
     </Sekcja>

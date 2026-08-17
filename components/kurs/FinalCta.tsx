@@ -10,7 +10,7 @@ export default function FinalCta({ kurs }: { kurs: SzczegolyKursu }) {
     <section className="relative overflow-hidden border-t border-line bg-panel/30">
       <div
         aria-hidden
-        className="absolute -bottom-32 left-1/2 size-[24rem] -translate-x-1/2 rounded-full bg-volt/[0.05] blur-[100px]"
+        className="glow-breathe absolute -bottom-32 left-1/2 size-[24rem] -translate-x-1/2 rounded-full bg-volt/[0.05] blur-[100px]"
       />
       <div className="container-site relative flex flex-col gap-6 py-14 md:flex-row md:items-center md:justify-between md:py-20">
         <div>
