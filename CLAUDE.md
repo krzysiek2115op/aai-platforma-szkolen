@@ -160,12 +160,15 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   pierwszych sprzedażach, niczego nie zmyślamy.
 - Stan repo: PR #12 zmergowany do `plugin-1-sklep-kursow`, tag
   `v0.12.1` + release. Gałąź `feat/d6-kreator` wypchnięta (kroki 1–3)
-  — **PR/tag/release DO ZROBIENIA** (2026-08-17 GitHub miał awarię;
-  gotowy opis: `docs/plugin-1/PR-D6.md`). `gh` jest zainstalowany
-  (`~/.local/bin/gh`, 2.97.0), ale wymaga jednorazowego logowania:
-  właściciel zapisuje token (zakresy `repo`, `workflow`, `read:org`)
-  do `~/.gh-token`, agent robi `gh auth login --with-token` i kasuje
-  plik. Czytanie `~/.git-credentials` jest zablokowane — nie próbować.
+  — zmergowana (PR #18), tag `v0.16.2` + release.
+  `gh` zainstalowany (`~/.local/bin/gh`, 2.97.0) i ZALOGOWANY —
+  agent otwiera PR-y sam. Gdy token wygaśnie: właściciel zapisuje nowy
+  (zakresy `repo`, `workflow`, `read:org`) do `~/.gh-token`, agent robi
+  `gh auth login --with-token` i kasuje plik. Czytanie
+  `~/.git-credentials` jest zablokowane — nie próbować.
+  LEKCJA z CI: strażnik czytający kontrakty z `modules/` wymaga
+  `npm ci` w jobie strażników (lokalnie zielony, w CI czerwony) —
+  pilnuje tego teraz `straznik-ci`.
   Migawki `.bak`: gałęzie `bak/*` (nie kasować). Testy chodzą na
   osobnej bazie `db1_kursy_test`.
 - Pomiar layoutu w tej sesji: **puppeteer-core + SYSTEMOWY Firefox**
