@@ -50,13 +50,17 @@ if (/GPL-2\.0/.test(readme)) {
   );
 }
 
-try {
-  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
-  if (pkg.license !== "MIT") {
-    bledy.push(`package.json: "license": "${pkg.license}" — powinno być "MIT".`);
+// package.json istnieje tylko na gałęziach z kodem aplikacji —
+// na `main` (fundament repo) go nie ma i to jest w porządku.
+if (existsSync("package.json")) {
+  try {
+    const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+    if (pkg.license !== "MIT") {
+      bledy.push(`package.json: "license": "${pkg.license}" — powinno być "MIT".`);
+    }
+  } catch {
+    bledy.push("package.json istnieje, ale nie da się go sparsować.");
   }
-} catch {
-  bledy.push("Nie udało się odczytać package.json.");
 }
 
 // Fonty mają własną licencję (SIL OFL) — tekst musi jechać razem z plikami.
