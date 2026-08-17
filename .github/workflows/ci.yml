@@ -20,6 +20,14 @@ jobs:
         with:
           node-version: 24
 
+      # Część strażników czyta KONTRAKTY z kodu (straznik-kreatora
+      # importuje schematy Zod modułu), więc potrzebuje zależności.
+      # Na gałęziach bez package-lock.json (np. sam fundament repo na
+      # `main`) krok się pomija, a strażnicy dalej chodzą „na sucho".
+      - name: Instalacja zależności (strażnicy czytający kontrakty)
+        if: hashFiles('package-lock.json') != ''
+        run: npm ci
+
       # Runner sam znajduje wszystkich strażników (straznik-*.mjs) —
       # nowego strażnika nie da się „zapomnieć podpiąć".
       - name: Uruchom strażników
