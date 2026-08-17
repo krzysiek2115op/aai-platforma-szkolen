@@ -51,6 +51,21 @@ lekcje) dochodzą w kroku 2.
   — Server Actions, formularze i `cookies()` skopiowane z pakietu
   `next@16.3.1` (dokładnie ta wersja, na której chodzi aplikacja).
 
+### Naprawione
+- **BLAD-004 — pigułka kreatora chowała się pod stopką** (zgłosił
+  właściciel). Klasa `.page-enter` opakowująca całą treść strony miała
+  animację `opacity` z wypełnieniem `both`; wypełniana animacja stosuje
+  swoją wartość także PO zakończeniu, więc kontekst układania zostawał
+  na stałe i zamykał w sobie każdy element `position: fixed` z treści —
+  stopka (późniejsze rodzeństwo) malowała się na wierzchu, a `z-index`
+  nie miał jak pomóc. Wypełnienie zmienione na `backwards`: ten sam
+  fade 0,3 s, kontekst znika po animacji. `straznik-fixed` rozszerzony
+  o wypełnienia `forwards`/`both` (zweryfikowany testem negatywnym),
+  wpis w [rejestrze błędów](rejestr/znane-bledy.json), migawka:
+  gałąź `bak/2026-08-17-pigulka-admina-pod-stopka`. Dowód: pomiar
+  w przeglądarce (`elementFromPoint` w środku pigułki po zescrollowaniu
+  na dół oddaje link kreatora; przed naprawą oddawał DIV stopki).
+
 ### Zmienione
 - **Dyspozytor sprawdza token PRZED walidacją kształtu** — żądanie bez
   tokenu dostaje `brak-dostepu` (403) zamiast mapy pól kontraktu

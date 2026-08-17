@@ -46,6 +46,16 @@
       "naprawa": "Klatki page-enter animuja wylacznie `opacity` (opacity tworzy stacking context, ale NIE containing block dla fixed). Przejscie miedzy podstronami zostaje jako fade.",
       "test": "",
       "straznik": "straznik-fixed (transform/filter/perspective w klatkach page-enter i w klasach opakowujacych tresc)"
+    },
+    {
+      "id": "BLAD-004",
+      "data": "2026-08-17",
+      "klasa": "css/wypelniana-animacja-tworzy-trwaly-kontekst-ukladania",
+      "dowod": "Naprawa BLAD-003 zostawila `html.js .page-enter { animation: page-enter 0.3s ease-out both; }` z klatkami animujacymi `opacity`. Opacity NIE tworzy ukladu odniesienia dla `fixed` (dlatego pasek kursu dzialal), ale tworzy KONTEKST UKLADANIA — a wypelnienie `both`/`forwards` stosuje wartosc animacji takze PO jej zakonczeniu, wiec kontekst zostaje na stale. Kazdy `position: fixed` potomek tresci strony jest w nim zamkniety i przegrywa ze stopka (pozniejsze rodzenstwo w app/layout.tsx) — zaden z-index tego nie przebije.",
+      "skutek": "Pigulka wejscia do kreatora (components/kreator/WejscieAdmina.tsx, fixed z-50) chowala sie pod stopka po zescrollowaniu na dol katalogu — zglosil wlasciciel przy ocenie kroku 1 Dzialu 6.",
+      "naprawa": "Wypelnienie `both` -> `backwards`: ten sam fade 0.3 s przy wejsciu na podstrone, ale po zakonczeniu animacji kontekst ukladania znika. Migawka sprzed naprawy: galaz bak/2026-08-17-pigulka-admina-pod-stopka.",
+      "test": "pomiar w przegladarce (puppeteer-core + systemowy Firefox, scratchpad sesji): document.elementFromPoint w srodku pigulki po zescrollowaniu na sam dol oddaje link kreatora. Kontrola negatywna z `both` oddawala DIV stopki — pomiar wykrywa nawrot.",
+      "straznik": "straznik-fixed (animacja z wypelnieniem forwards/both na klasie opakowujacej tresc; zweryfikowany testem negatywnym)"
     }
   ]
 }

@@ -211,9 +211,19 @@ html.js .reveal-in {
  * potomków — pasek menu kursu i tło strony kursu przestawały wtedy
  * trzymać się ekranu i uciekały przy scrollu (BLAD-003).
  * Pilnuje tego tools/straznicy/straznik-fixed.mjs.
+ *
+ * UWAGA 2 (BLAD-004): wypełnienie `both`/`forwards` też jest zakazane.
+ * Animacja `opacity` nie tworzy układu odniesienia dla `fixed`, ale
+ * tworzy KONTEKST UKŁADANIA — a przy wypełnieniu `forwards`/`both`
+ * animacja stosuje wartość również PO zakończeniu, więc kontekst
+ * zostaje na zawsze. Wszystko, co `fixed` w środku (pigułka kreatora),
+ * jest wtedy zamknięte w tym kontekście i przegrywa ze stopką, która
+ * jest późniejszym rodzeństwem — żaden `z-index` tego nie przebije.
+ * `backwards` daje ten sam efekt wizualny (0.3 s fade), ale po
+ * zakończeniu animacji kontekst znika.
  */
 html.js .page-enter {
-  animation: page-enter 0.3s ease-out both;
+  animation: page-enter 0.3s ease-out backwards;
 }
 
 @keyframes page-enter {

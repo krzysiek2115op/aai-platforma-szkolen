@@ -51,6 +51,21 @@ if (existsSync(CSS)) {
           `${CSS}: reguła .${klasa} ustawia transform/filter/perspective/will-change — to samo łamie position: fixed potomków (BLAD-003).`
         );
       }
+      // BLAD-004: animacja wypełniana (forwards/both) stosuje swoją
+      // wartość TAKŻE po zakończeniu, więc kontekst układania od
+      // `opacity` zostaje na stałe. Fixed potomek jest w nim zamknięty
+      // i przegrywa z późniejszym rodzeństwem (stopka) — bez szans
+      // na ratunek z-indexem.
+      if (/animation[^;]*\b(forwards|both)\b/.test(cialo)) {
+        bledy.push(
+          `${CSS}: reguła .${klasa} ma animację z wypełnieniem forwards/both — kontekst układania zostaje po animacji i chowa potomków position: fixed pod stopką (BLAD-004). Użyj wypełnienia "backwards".`
+        );
+      }
+      if (/animation-fill-mode\s*:[^;]*\b(forwards|both)\b/.test(cialo)) {
+        bledy.push(
+          `${CSS}: reguła .${klasa} ustawia animation-fill-mode: forwards/both — patrz BLAD-004.`
+        );
+      }
     }
   }
 }
