@@ -5,6 +5,20 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.17.1] — 2026-08-18
+
+### Zmienione
+- **Zapis decyzji zespołu: produkcja na WordPressie** (hosting
+  + domena zamiast VPS/Node.js). PLAN.md dostał sekcję „DECYZJA
+  ZESPOŁU 2026-08-18": kod Next.js D1–D6 to prototyp-specyfikacja,
+  po Dziale 7 sklep zostanie przepisany na wtyczkę WP (PHP + MySQL)
+  z migracją danych z PostgreSQL skryptem; zasady WYTYCZNYCH
+  obowiązują w wersji WP bez zmian. Kolejność zatwierdzona przez
+  właściciela: najpierw D7 (treść w prototypie), potem etap WP.
+  README: wiersze Produkcja/Stack opisują prototyp i cel osobno.
+  Przed startem etapu WP do repo trafi celowany komplet oryginalnej
+  dokumentacji WordPressa i MySQL (WYTYCZNE N2).
+
 ## [0.17.0] — 2026-08-18
 
 ### Zmienione

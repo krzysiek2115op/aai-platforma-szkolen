@@ -29,12 +29,12 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.17.0** |
+| **Wersja** | **0.17.1** |
 | **Etap** | Działy 1–6 Pluginu 1 gotowe — **B1–B6 zaliczone przez właściciela** (B6: 2026-08-17, kreator kursów); następny krok: Dział 7 — treść obu kursów z oryginalnej dokumentacji |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([assets/fonts/LICENSE-Geist-OFL.txt](assets/fonts/LICENSE-Geist-OFL.txt)) |
-| **Produkcja** | brak — docelowo hosting Node.js/VPS, merge do repo strony głównej po akceptacji całości |
+| **Produkcja** | brak — **docelowo WordPress na wykupionym hostingu i domenie** (decyzja zespołu 2026-08-18): sklep zostanie przepisany na wtyczkę WP (PHP + MySQL), a obecny kod Next.js jest prototypem-specyfikacją ([szczegóły](docs/PLAN.md#decyzja-zespołu-2026-08-18--produkcja-na-wordpressie-zastępuje-plan-hosting-nodejs--vps)) |
 
 > [!IMPORTANT]
 > To repozytorium jest budowane OSOBNO od strony głównej.
@@ -59,17 +59,18 @@ Szczegóły — schematy tabel, podstrony, kryteria ukończenia — w
 
 ## Stack
 
-Decyzja z 2026-08-16: ten sam stack co strona główna, żeby finalne wgranie
-było zwykłym merge, nie przepisywaniem.
+Prototyp budujemy na stacku strony głównej; produkcyjnie (decyzja zespołu
+2026-08-18) sklep zostanie przepisany na **wtyczkę WordPress (PHP + MySQL)**
+— prototyp jest wtedy specyfikacją wyglądu i zachowania 1:1.
 
-| Warstwa | Technologia |
-|---|---|
-| Framework | Next.js 16 — App Router, **z serwerem** (API routes / Server Actions) |
-| Język | TypeScript (`strict`) |
-| UI | React 19 + Tailwind CSS 4, design dziedziczony ze strony głównej Automatic AI |
-| Bazy | PostgreSQL ×3 (lokalnie Docker, produkcyjnie VPS/managed) |
-| Walidacja | Zod na granicach API |
-| Hosting | docelowo wykupiony hosting Node.js / VPS |
+| Warstwa | Technologia (prototyp) | Docelowo (etap WP) |
+|---|---|---|
+| Framework | Next.js 16 — App Router, **z serwerem** (API routes / Server Actions) | wtyczka WordPress (PHP) |
+| Język | TypeScript (`strict`) | PHP |
+| UI | React 19 + Tailwind CSS 4, design dziedziczony ze strony głównej Automatic AI | ten sam design, szablony wtyczki |
+| Bazy | PostgreSQL ×3 (lokalnie podman) | MySQL (hosting WP), migracja danych skryptem |
+| Walidacja | Zod na granicach API | sanitizacja/walidacja WP |
+| Hosting | localhost (dev) | wykupiony hosting z WordPressem + domena |
 
 ## Wytyczne projektu
 

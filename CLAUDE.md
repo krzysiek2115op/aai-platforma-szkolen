@@ -144,8 +144,27 @@ przy każdym kroku zmieniającym stan projektu (jak README).
     układania i chowała elementy `fixed` pod stopką → `backwards`
     + rozszerzony `straznik-fixed`.
   - Stan dowodów: strażnicy 11/11, testy 27/27, smoke D4/D5/D6 zielone.
+- **REBRANDING (2026-08-18, PR #20, tag v0.17.0)**: strona główna
+  przemianowana **MatthewPlugins.pl → Automatic AI** (repo
+  `MatthewPlugins/automatic-ai`; org GitHuba bez zmian). W podstronie:
+  sygnet `components/brand/AutomaticMark.tsx` + napis w navbarze,
+  wordmark stopki, metadane, adresy `automaticai.pl` (domena docelowa,
+  jeszcze niekupiona — jak `data/site.ts` strony głównej), seedy,
+  placeholdery kreatora, dokumentacja. README ma podgląd katalogu
+  (`docs/zrzuty/podglad-szkolenia.png`, robiony na produkcyjnym
+  `next start` — bez dev-indicatora).
+- **DECYZJA ZESPOŁU (2026-08-18): produkcja na WordPressie** (hosting
+  + domena, NIE VPS/Node) — szczegóły i konsekwencje w
+  [docs/PLAN.md](docs/PLAN.md) (sekcja „DECYZJA ZESPOŁU 2026-08-18").
+  Skrót: kod Next.js D1–D6 = prototyp-specyfikacja; po D7 sklep
+  zostanie przepisany na wtyczkę WP (PHP + MySQL) z migracją danych
+  z Postgresa skryptem; kolejność zatwierdzona przez właściciela:
+  **najpierw D7 w prototypie, potem etap WP**. Dokumentacja etapu WP:
+  do repo celowany komplet (Plugin Handbook, $wpdb/dbDelta, REST,
+  bezpieczeństwo, MySQL: typy/indeksy/transakcje/triggery) —
+  NIE zrzucamy całych manuali; agent czyta szeroko w sieci.
 - **NASTĘPNY KROK: Dział 7 — TREŚĆ docelowa obu kursów.** Kolejność:
-  (1) domknąć D6 na GitHubie (PR/merge/tag — patrz „Stan repo"),
+  (1) ~~domknąć D6 na GitHubie~~ ZROBIONE (PR #18, v0.16.2),
   (2) nowa gałąź `feat/d7-tresc` od `plugin-1-sklep-kursow`,
   (3) NAJPIERW pobrać oryginalną dokumentację do
   `docs/dokumentacja-techniczna/d7/` z `ZRODLA.md` (WYTYCZNE N2):
