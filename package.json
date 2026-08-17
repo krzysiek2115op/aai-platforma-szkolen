@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint",
-    "test": "node --env-file-if-exists=.env --test \"modules/**/*.test.ts\"",
+    "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"modules/**/*.test.ts\"",
     "db1:up": "podman compose up -d db1",
     "db1:migruj": "node --env-file-if-exists=.env modules/m1-sklep/db/migruj.ts"
   },
@@ -17,7 +17,8 @@
     "next": "16.3.1",
     "pg": "^8.16.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

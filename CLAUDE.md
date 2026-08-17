@@ -51,12 +51,21 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   do `navLinks`.
 - Pustka na `/szkolenia` jest zaplanowana: treść wejdzie z bazy w D4–D5,
   kursy właściciela w D7 — placeholderów nie dopracowujemy ręcznie.
-- **NASTĘPNY KROK: Dział 3 — dyspozytor** (warstwa DZIAŁ, WYTYCZNE §8):
-  kanał JSON (odczyt serwerowy: lista + szczegóły) i JEDEN AJAX-wystrzał
-  (akcje zapisz/usun/publikuj) w `modules/m1-sklep/`, walidacja Zod na
-  granicach, `straznik-ajax`, goldeny odpowiedzi JSON, audyt widoczny
-  w course_changelog (bramka B3). Przedtem: dokumentacja D3 (Next.js
-  Route Handlers, Zod) do `docs/dokumentacja-techniczna/d3/`.
+- **Dział 3 ZBUDOWANY, B3 zaliczona testami** (15/15 + goldeny):
+  kanał JSON (`odczyt.ts`: lista/szczegóły/kreator, wyjście przez Zod),
+  dyspozytor (`dyspozytor.ts`: zapisz/usun/publikuj w transakcjach
+  z aktorem, usuwanie jawnie od dołu — audyt zna kurs), jedyny AJAX
+  `app/api/szkolenia/route.ts`, kontrakty Zod 4 (`typy.ts`,
+  discriminatedUnion), `straznik-ajax`, golden `goldeny/d3-odczyt.json`,
+  dostęp tokenem KREATOR_TOKEN (w .env). Testy sekwencyjnie
+  (`--test-concurrency=1` — wspólna baza).
+- **NASTĘPNY KROK: Dział 4 — katalog /szkolenia Z BAZY** (kanał JSON:
+  `listaKursow()` w page.tsx zamiast placeholderów; puste stany;
+  golden HTML, smoke test; dokumentacja D4: Next.js fetch/cache/
+  rewalidacja do `docs/dokumentacja-techniczna/d4/`). Bramka B4 =
+  strona renderuje kursy z bazy + OCENA WŁAŚCICIELA na :3001
+  (potrzebny kurs testowy w bazie do pokazania). Potem D5 (strona
+  sprzedażowa, wzór claudedlafirm.pl/#poznaj) → 🏷 release po B5.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
