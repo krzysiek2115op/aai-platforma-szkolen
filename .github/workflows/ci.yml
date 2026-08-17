@@ -87,6 +87,10 @@ jobs:
       - name: Smoke katalogu /szkolenia
         run: node tools/smoke/smoke-d4.ts
 
+      # Dowód B5: pełna strona sprzedażowa z bazy (golden sekcji programu).
+      - name: Smoke strony sprzedażowej /szkolenia/[slug]
+        run: node tools/smoke/smoke-d5.ts
+
   security:
     name: Skan sekretów
     runs-on: ubuntu-latest

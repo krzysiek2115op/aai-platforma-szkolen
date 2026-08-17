@@ -71,12 +71,22 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   sprzedażowe mają maksymalnie zachęcać do zakupu; WZÓR (inspiracja,
   nie kopia): https://claudedlafirm.pl — analiza wzoru w
   `docs/plugin-1/WZOR-STRONA-SPRZEDAZOWA.md`.
-- **NASTĘPNY KROK: Dział 5 — strona sprzedażowa `/szkolenia/[slug]`**
-  (kanał JSON `szczegolyKursu`; sekcje hero → korzyści → program
-  (akordeon) → dla kogo → opinie → cena+CTA → gwarancja → FAQ; wzór
-  claudedlafirm.pl; golden HTML + smoke; bramka B5 = ocena właściciela)
-  → 🏷 release v0.8.0 po B5. Dokumentacja techniczna D5 = ta z d4
-  (fetch/cache — wg DIAGRAMU D4–D5 wspólna).
+- **Dział 5 ZBUDOWANY** (PR feat/d5-strona-sprzedazowa): strona
+  sprzedażowa `/szkolenia/[slug]` w pełni z bazy (hero+cena+CTA →
+  korzyści → program-akordeon `<details>` → dla kogo → opinie →
+  cena+CTA → gwarancja → FAQ → CTA; safeParse sekcji, 404 dla śmieci;
+  CTA 1. osoby, zakup = placeholder→kontakt do Pluginu 2). Kontrakty
+  treści sekcji w typy.ts (dla kreatora D6). Smoke D5 + golden
+  programu w CI. Seed `npm run db1:seed`: 2 docelowe kursy (Claude,
+  GitHub) z treścią ROBOCZĄ. Analiza wzoru:
+  docs/plugin-1/WZOR-STRONA-SPRZEDAZOWA.md.
+- **NASTĘPNY KROK: bramka B5 = OCENA WŁAŚCICIELA na :3001**
+  (/szkolenia/jak-korzystac-z-claude). Po akceptacji: 🏷 release
+  v0.8.0, potem **Dział 6 — kreator kursów** (/szkolenia/kreator:
+  lista + formularz tworzenia/edycji, moduły/lekcje/sekcje, upload
+  okładki, dostęp tokenem; dokumentacja D6: Server Actions/formularze/
+  upload do docs/dokumentacja-techniczna/d6/; bramka B6 = CRUD
+  end-to-end ze śladem w changelogu).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

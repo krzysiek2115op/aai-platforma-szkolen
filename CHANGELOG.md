@@ -5,6 +5,46 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.8.0] — 2026-08-17
+
+Dział 5 Pluginu 1 — strona sprzedażowa `/szkolenia/[slug]`
+(bramka B5: golden HTML + smoke; czeka na ocenę właściciela; po
+akceptacji 🏷 release).
+
+### Dodane
+- **Strona sprzedażowa** ([app/szkolenia/[slug]/page.tsx](app/szkolenia/[slug]/page.tsx))
+  w pełni z bazy (kanał JSON `szczegolyKursu`): hero z obietnicą
+  (sekcja `hero`) + cena i CTA od pierwszego ekranu → korzyści →
+  **program z akordeonem modułów i lekcji** (czas trwania, badge
+  „podgląd"; `<details>` — zero JS) → dla kogo → opinie → cena+CTA →
+  gwarancja → FAQ → domykające CTA. Sekcje o złym/nieobecnym `content`
+  są pomijane (safeParse), nie wysadzają strony; nieistniejący slug → 404.
+  CTA zakupu = placeholder do Pluginu 2 (prowadzi do kontaktu);
+  napis w 1. osobie („Dołączam…") wg analizy wzoru.
+- **Kontrakty treści sekcji** (Zod, [modules/m1-sklep/typy.ts](modules/m1-sklep/typy.ts)):
+  TrescHero/Korzysci/DlaKogo/Opinie/Gwarancja/Faq — kreator (D6)
+  dostanie gotowe schematy.
+- **Analiza wzoru sprzedażowego**
+  [docs/plugin-1/WZOR-STRONA-SPRZEDAZOWA.md](docs/plugin-1/WZOR-STRONA-SPRZEDAZOWA.md)
+  (claudedlafirm.pl — inspiracja, nie kopia): checklista wzorców
+  perswazji dla treści kursów w D7.
+- **Smoke test D5** ([tools/smoke/smoke-d5.ts](tools/smoke/smoke-d5.ts)):
+  pełny kurs seedem → produkcyjny serwer → hero/korzyści/program/cena/
+  FAQ obecne, 404 dla śmieci, **golden sekcji programu**
+  [goldeny/d5-program.html](goldeny/d5-program.html); podpięty w CI.
+- **Seed przykładów** ([tools/seed/seed-przyklady.ts](tools/seed/seed-przyklady.ts),
+  `npm run db1:seed`): dwa docelowe kursy właściciela (decyzja
+  2026-08-17) z treścią ROBOCZĄ do oceny wyglądu — „Jak poprawnie
+  korzystać z Claude" (pełne sekcje) i „Jak poprawnie używać GitHuba";
+  opinie to jawne placeholdery (bez zmyślonych recenzji). Finalna
+  treść powstanie kreatorem w D7 (+ dokumentacja Claude i GitHuba).
+
+### Zmienione
+- `zamknijDb1` w publicznym API modułu (skrypty smoke/seed nie sięgają
+  już do wnętrza modułu — wymusił straznik-granic).
+- Golden katalogu (smoke D4) zawężony do karty kursu smoke — cała
+  siatka pękała, gdy lokalna baza miała seedy przykładów.
+
 ## [0.7.0] — 2026-08-17
 
 Dział 4 Pluginu 1 — katalog `/szkolenia` renderowany Z BAZY

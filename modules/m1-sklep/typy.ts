@@ -60,6 +60,48 @@ export const SzczegolyKursu = KartaKursu.extend({
 });
 export type SzczegolyKursu = z.infer<typeof SzczegolyKursu>;
 
+/* ————— treść sekcji strony sprzedażowej (content JSONB) —————
+ * Strona parsuje content przez safeParse — sekcja o złym kształcie
+ * jest pomijana zamiast wysadzać render (dane wpisze kreator w D6). */
+
+export const TrescHero = z.object({
+  /** nagłówek nad tytułem kursu, np. obietnica efektu */
+  obietnica: z.string(),
+  /** krótkie rozwinięcie pod tytułem */
+  rozwiniecie: z.string().optional(),
+});
+
+export const TrescKorzysci = z.object({
+  punkty: z.array(
+    z.object({ tytul: z.string(), opis: z.string().optional() })
+  ),
+});
+
+export const TrescDlaKogo = z.object({
+  punkty: z.array(z.string()),
+});
+
+export const TrescOpinie = z.object({
+  opinie: z.array(
+    z.object({
+      tekst: z.string(),
+      autor: z.string(),
+      rola: z.string().optional(),
+    })
+  ),
+});
+
+export const TrescGwarancja = z.object({
+  naglowek: z.string(),
+  tekst: z.string(),
+});
+
+export const TrescFaq = z.object({
+  pytania: z.array(
+    z.object({ pytanie: z.string(), odpowiedz: z.string() })
+  ),
+});
+
 /* ————— kanał AJAX (wystrzał — akcje dyspozytora) ————— */
 
 const SekcjaWejscie = z.object({
