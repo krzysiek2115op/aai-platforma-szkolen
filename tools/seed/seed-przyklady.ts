@@ -196,7 +196,7 @@ const KURSY = [
         position: 0,
         content: {
           imie: "Matthew",
-          rola: "MatthewPlugins.pl — AI i automatyzacje dla firm",
+          rola: "Automatic AI — AI i automatyzacje dla firm",
           bio: "Buduję systemy AI i automatyzacje, które realnie pracują w polskich firmach. W kursie pokazuję dokładnie ten warsztat, którego używam u klientów — bez teorii, której nie stosuję.",
           cytat:
             "Zrobiłem ten kurs, bo mam dość patrzenia, jak ktoś płaci za AI i dalej pisze wszystko ręcznie. Nie chodzi o narzędzie — chodzi o metodę, której nikt nie pokazuje.",
@@ -213,8 +213,8 @@ const KURSY = [
             "odpowiadam na pytania kursantów osobiście",
           ],
           link: {
-            url: "https://matthewplugins.pl",
-            etykieta: "Zobacz moje projekty na matthewplugins.pl",
+            url: "https://automaticai.pl",
+            etykieta: "Zobacz moje projekty na automaticai.pl",
           },
         },
       },
@@ -538,7 +538,7 @@ const KURSY = [
         position: 0,
         content: {
           imie: "Matthew",
-          rola: "MatthewPlugins.pl — narzędzia i automatyzacje",
+          rola: "Automatic AI — narzędzia i automatyzacje",
           bio: "Prowadzę projekty na GitHubie na co dzień — od własnych narzędzi po pracę z klientami. W kursie pokazuję dokładnie ten przepływ pracy, którego sam używam, z wpadkami, które sam zaliczyłem.",
           cytat:
             "Pamiętam swój folder „projekt_final_v7”. Nikt mi wtedy nie powiedział, że wystarczy kilka komend, żeby przestać się bać o własną pracę — ten kurs jest po to, żebyś Ty nie stracił na to roku.",
@@ -555,8 +555,8 @@ const KURSY = [
             "pokazuję też, jak wyjść z sytuacji, gdy coś pójdzie nie tak",
           ],
           link: {
-            url: "https://matthewplugins.pl",
-            etykieta: "Zobacz moje projekty na matthewplugins.pl",
+            url: "https://automaticai.pl",
+            etykieta: "Zobacz moje projekty na automaticai.pl",
           },
         },
       },

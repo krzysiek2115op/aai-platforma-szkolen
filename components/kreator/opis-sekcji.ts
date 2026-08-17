@@ -257,7 +257,7 @@ export const OPIS_SEKCJI: OpisSekcji[] = [
     cel: "Dlaczego akurat Ty uczysz tego tematu.",
     pola: [
       { pole: "imie", etykieta: "Imię i nazwisko", typ: "tekst", wymagane: true },
-      { pole: "rola", etykieta: "Rola", typ: "tekst", placeholder: "Twórca MatthewPlugins" },
+      { pole: "rola", etykieta: "Rola", typ: "tekst", placeholder: "Twórca Automatic AI" },
       { pole: "bio", etykieta: "Bio", typ: "akapit", wymagane: true },
       {
         pole: "cytat",
@@ -288,7 +288,7 @@ export const OPIS_SEKCJI: OpisSekcji[] = [
             etykieta: "Adres",
             typ: "url",
             wymagane: true,
-            placeholder: "https://matthewplugins.pl",
+            placeholder: "https://automaticai.pl",
           },
           {
             pole: "etykieta",

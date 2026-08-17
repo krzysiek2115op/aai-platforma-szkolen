@@ -6,12 +6,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Szkolenia — MatthewPlugins.pl",
-    template: "%s — MatthewPlugins.pl",
+    default: "Szkolenia — Automatic AI",
+    template: "%s — Automatic AI",
   },
   description:
-    "Kursy i ebooki MatthewPlugins — praktyczna wiedza o AI, agentach i automatyzacji procesów.",
-  // Aplikacja przedprodukcyjna (localhost/VPS testowy) — indeksowanie
+    "Kursy i ebooki Automatic AI — praktyczna wiedza o AI, agentach i automatyzacji procesów.",
+  // Aplikacja przedprodukcyjna (localhost/hosting testowy) — indeksowanie
   // włączymy dopiero po merge do strony głównej.
   robots: { index: false, follow: false },
 };

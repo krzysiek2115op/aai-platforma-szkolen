@@ -1,7 +1,7 @@
 /**
  * Uruchamia WSZYSTKICH strażników po kolei.
  *
- * PO CO TO ISTNIEJE. Lekcja z projektu matthewplugins.pl (verify-pipeline.mjs):
+ * PO CO TO ISTNIEJE. Lekcja z projektu strony głównej — dziś automatic-ai (verify-pipeline.mjs):
  * kontrola jest warta tyle, ile jej podpięcie. Strażnik, który istnieje w repo,
  * ale nie jest wywoływany przez CI, nie chroni przed niczym — a jego brak
  * wygląda dokładnie tak samo jak zielony build.

@@ -38,7 +38,7 @@ export default function SekcjaFaq({
       <p className="mt-6 max-w-3xl text-sm leading-relaxed text-steel">
         Masz inne pytanie?{" "}
         <a
-          href="https://matthewplugins.pl/kontakt"
+          href="https://automaticai.pl/kontakt"
           className="text-fg underline underline-offset-4 transition-colors hover:text-volt"
         >
           Napisz do nas

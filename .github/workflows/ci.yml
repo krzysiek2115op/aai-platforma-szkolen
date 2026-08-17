@@ -123,7 +123,7 @@ jobs:
 
       # Binarka MIT zamiast gitleaks-action (licencja komercyjna od v2,
       # odpytuje zewnętrzny serwis). Wersja przypięta + SHA-256 —
-      # ta sama praktyka co w repo matthewplugins.pl.
+      # ta sama praktyka co w repo strony głównej (automatic-ai).
       - name: Gitleaks
         env:
           GITLEAKS_VERSION: 8.30.1

@@ -11,8 +11,11 @@ import { FooterScene } from "@/components/footer/FooterScene";
  * oraz linki do reszty serwisu jako adresy bezwzględne (osobny serwer).
  */
 
-const STRONA_GLOWNA = "https://matthewplugins.pl";
-const EMAIL = "hello@matthewplugins.pl";
+// Rebranding 2026-08-18: MatthewPlugins.pl → Automatic AI. Adresy jak w
+// data/site.ts strony głównej — domena docelowa (jeszcze przed startem),
+// sociale to placeholdery do podmiany razem ze stroną główną.
+const STRONA_GLOWNA = "https://automaticai.pl";
+const EMAIL = "hello@automaticai.pl";
 
 const footerNavLinks = [
   { label: "Szkolenia", href: "/szkolenia" },
@@ -24,9 +27,9 @@ const footerNavLinks = [
 ];
 
 const socialLinks = [
-  { label: "LinkedIn", href: "https://www.linkedin.com/company/matthewplugins" },
-  { label: "Instagram", href: "https://www.instagram.com/matthewplugins" },
-  { label: "X", href: "https://x.com/matthewplugins" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/company/automaticai" },
+  { label: "Instagram", href: "https://www.instagram.com/automaticai" },
+  { label: "X", href: "https://x.com/automaticai" },
 ];
 
 const legalLinks = [
@@ -80,7 +83,7 @@ function PowerlineWordmark() {
               fill="#fff"
               style={{ fontFamily: "var(--font-sans)" }}
             >
-              MATTHEWPLUGINS
+              AUTOMATIC AI
             </text>
           </mask>
         </defs>
@@ -106,7 +109,7 @@ function PowerlineWordmark() {
           fill="url(#fw-baza)"
           style={{ fontFamily: "var(--font-sans)" }}
         >
-          MATTHEWPLUGINS
+          AUTOMATIC AI
         </text>
         {/* przebieg impulsu — widoczny wyłącznie przez maskę liter i szyny */}
         <g mask="url(#fw-maska)">
@@ -250,7 +253,7 @@ export default function Footer() {
         {/* szyna wordmarku pełni rolę separatora — bez drugiej linii pod spodem */}
         <div>
           <div className="container-site flex flex-col gap-3 pt-4 pb-6 font-mono text-label text-steel sm:flex-row sm:items-center sm:justify-between">
-            <p>© {year} MatthewPlugins.pl — wszystkie prawa zastrzeżone</p>
+            <p>© {year} Automatic AI — wszystkie prawa zastrzeżone</p>
             <p className="flex flex-wrap gap-x-4 gap-y-1">
               {legalLinks.map((link) => (
                 <a

@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { AutomaticMark } from "@/components/brand/AutomaticMark";
 
 // Adres produkcyjny strony głównej — na localhost ta aplikacja żyje osobno
 // (port 3001), więc powrót do reszty serwisu prowadzi na domenę główną.
-const STRONA_GLOWNA = "https://matthewplugins.pl";
+// Domena docelowa marki Automatic AI (rebranding 2026-08-18); do czasu
+// jej uruchomienia strona główna żyje na podglądzie GitHub Pages.
+const STRONA_GLOWNA = "https://automaticai.pl";
 
 /**
  * Nagłówek w stylu strony głównej (uproszczony na Dział 1: bez mega menu
@@ -20,9 +23,12 @@ export default function Navbar() {
         >
           <a
             href={STRONA_GLOWNA}
-            className="text-lg font-semibold tracking-tight"
+            className="inline-flex items-center gap-2.5 text-lg font-semibold tracking-tight"
           >
-            MatthewPlugins<span className="text-volt">.pl</span>
+            <AutomaticMark className="size-8 shrink-0" />
+            <span>
+              Automatic <span className="text-volt">AI</span>
+            </span>
           </a>
 
           <ul className="hidden items-center gap-7 sm:flex">
