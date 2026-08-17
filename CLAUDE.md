@@ -59,13 +59,17 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   discriminatedUnion), `straznik-ajax`, golden `goldeny/d3-odczyt.json`,
   dostęp tokenem KREATOR_TOKEN (w .env). Testy sekwencyjnie
   (`--test-concurrency=1` — wspólna baza).
-- **NASTĘPNY KROK: Dział 4 — katalog /szkolenia Z BAZY** (kanał JSON:
-  `listaKursow()` w page.tsx zamiast placeholderów; puste stany;
-  golden HTML, smoke test; dokumentacja D4: Next.js fetch/cache/
-  rewalidacja do `docs/dokumentacja-techniczna/d4/`). Bramka B4 =
-  strona renderuje kursy z bazy + OCENA WŁAŚCICIELA na :3001
-  (potrzebny kurs testowy w bazie do pokazania). Potem D5 (strona
-  sprzedażowa, wzór claudedlafirm.pl/#poznaj) → 🏷 release po B5.
+- **Dział 4 ZBUDOWANY** (PR feat/d4-katalog): `/szkolenia` renderuje
+  kursy z bazy (`listaKursow()`, force-dynamic), pusty stan, 404 Volt,
+  smoke test na produkcyjnym `next start` + golden
+  `goldeny/d4-katalog.html` (CI: build+smoke w jobie baza).
+  W lokalnej bazie 2 przykładowe kursy do oceny (seed dyspozytorem).
+- **NASTĘPNY KROK: bramka B4 = OCENA WŁAŚCICIELA na :3001** (katalog
+  z kursami z bazy). Po akceptacji → **Dział 5: strona sprzedażowa
+  `/szkolenia/[slug]`** (kanał JSON `szczegolyKursu`; sekcje hero →
+  korzyści → program (akordeon) → dla kogo → opinie → cena+CTA →
+  gwarancja → FAQ; wzór claudedlafirm.pl/#poznaj; golden HTML + smoke;
+  bramka B5 = ocena właściciela) → 🏷 release v0.8.0 po B5.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

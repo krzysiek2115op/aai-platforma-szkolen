@@ -5,6 +5,33 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.7.0] — 2026-08-17
+
+Dział 4 Pluginu 1 — katalog `/szkolenia` renderowany Z BAZY
+(bramka B4: golden HTML + smoke test na produkcyjnym serwerze;
+czeka na ocenę właściciela na localhost:3001).
+
+### Zmienione
+- [/szkolenia](app/szkolenia/page.tsx): siatka kart czyta kursy z bazy
+  kanałem JSON działu (`listaKursow()`, tylko opublikowane) — koniec
+  placeholderów; karta: okładka (lub siatka „blueprint"), badge typu,
+  cena z `Intl` (PLN), opis, CTA „Sprawdź ofertę" → `/szkolenia/[slug]`;
+  pusty stan „Katalog w przygotowaniu"; strona dynamiczna
+  (`force-dynamic` — bez zapiekania listy w buildzie).
+
+### Dodane
+- [app/not-found.tsx](app/not-found.tsx) — 404 w języku Volt
+  (nieistniejące kursy wracają do katalogu).
+- **Smoke test D4** ([tools/smoke/smoke-d4.ts](tools/smoke/smoke-d4.ts)):
+  seed przez dyspozytor → produkcyjny `next start` → katalog zawiera
+  kurs, cenę i link → **golden markupu siatki**
+  [goldeny/d4-katalog.html](goldeny/d4-katalog.html) → sprzątanie.
+  Podpięty w CI (job „baza": build + smoke).
+- Dokumentacja techniczna D4 (WYTYCZNE N2) w
+  [docs/dokumentacja-techniczna/d4/](docs/dokumentacja-techniczna/d4/):
+  pobieranie danych, cache/rewalidacja, tryby renderowania, not-found,
+  next/image + ZRODLA.md.
+
 ## [0.6.0] — 2026-08-17
 
 Dział 3 Pluginu 1 — dyspozytor (bramka B3: testy zielone, goldeny JSON,

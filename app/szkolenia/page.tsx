@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { listaKursow, type KartaKursu } from "@/modules/m1-sklep";
 
 export const metadata: Metadata = {
   title: "Szkolenia",
@@ -7,28 +9,73 @@ export const metadata: Metadata = {
     "Katalog kursów i ebooków MatthewPlugins — AI, agenci i automatyzacja w praktyce.",
 };
 
-// Dział 1: szkielet wyglądu (bramka B1 — ocena właściciela).
-// Karty to placeholdery — prawdziwe kursy przyjdą Z BAZY przez kanał JSON
-// działu (D2–D4); strona nigdy nie sięgnie do bazy sama (straznik-granic).
-const PLACEHOLDERY = [
-  {
-    typ: "kurs",
-    tytul: "Miejsce na pierwszy kurs",
-    opis: "Okładka, tytuł, opis i cena wejdą z bazy db1_kursy w Dziale 4.",
-  },
-  {
-    typ: "ebook",
-    tytul: "Miejsce na ebooka",
-    opis: "Badge typu, cena w złotówkach i CTA — dane z kanału JSON działu.",
-  },
-  {
-    typ: "kurs",
-    tytul: "Miejsce na kolejny kurs",
-    opis: "Kreator kursów (Dział 6) pozwoli dodać go bez dotykania kodu.",
-  },
-] as const;
+// Katalog czyta bazę przy KAŻDYM żądaniu (kanał JSON działu — WYTYCZNE §8);
+// bez tego build zapiekłby listę kursów z chwili builda.
+export const dynamic = "force-dynamic";
 
-export default function StronaSzkolenia() {
+const CENA = new Intl.NumberFormat("pl-PL", {
+  style: "currency",
+  currency: "PLN",
+});
+
+function KartaKatalogu({ kurs }: { kurs: KartaKursu }) {
+  return (
+    <article className="panel group flex h-full flex-col overflow-hidden transition-colors duration-300 hover:border-volt/25">
+      {kurs.cover_url ? (
+        // Zwykły <img>: okładki będą lokalnymi plikami z kreatora (D6) —
+        // wtedy przejście na next/image z konfiguracją rozmiarów.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={kurs.cover_url}
+          alt=""
+          className="h-36 w-full border-b border-line object-cover"
+        />
+      ) : (
+        <div
+          aria-hidden
+          className="bg-grid mask-fade-y flex h-36 items-center justify-center border-b border-line"
+        >
+          <span className="font-mono text-label tracking-[0.25em] text-steel uppercase">
+            [ okładka ]
+          </span>
+        </div>
+      )}
+      <div className="flex flex-1 flex-col p-4 md:p-5">
+        <p className="font-mono text-label tracking-[0.12em] text-steel uppercase">
+          <span className="text-volt/90">{kurs.type}</span>
+          <span aria-hidden> · </span>
+          <span className="tabular-nums">{CENA.format(kurs.price_grosze / 100)}</span>
+        </p>
+        <h3 className="mt-2 text-base leading-snug font-semibold tracking-tight transition-colors group-hover:text-volt md:text-lg">
+          {kurs.title}
+        </h3>
+        {kurs.short_desc ? (
+          <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-steel">
+            {kurs.short_desc}
+          </p>
+        ) : null}
+        <p className="mt-auto pt-4">
+          <Link
+            href={`/szkolenia/${kurs.slug}`}
+            className="group/cta inline-flex items-center gap-2 text-sm font-medium text-volt underline-offset-4 hover:underline"
+          >
+            Sprawdź ofertę
+            <ArrowRight
+              aria-hidden
+              className="size-4 transition-transform group-hover/cta:translate-x-0.5"
+            />
+          </Link>
+        </p>
+      </div>
+    </article>
+  );
+}
+
+export default async function StronaSzkolenia() {
+  // Kanał JSON: dział czyta bazę i oddaje stronie gotowe dane przy
+  // renderowaniu. Strona NIE dotyka SQL (straznik-granic).
+  const kursy = await listaKursow();
+
   return (
     <>
       {/* Hero — wzorzec PageHero strony głównej */}
@@ -53,9 +100,7 @@ export default function StronaSzkolenia() {
         </div>
       </header>
 
-      {/* Katalog — siatka kart (placeholder do Działu 4). Linia border-t
-          w kontenerze to „horyzont", na którym kończy się kratka hero —
-          ten sam wzorzec co lista na /realizacje strony głównej. */}
+      {/* Katalog — kursy Z BAZY (linia border-t = horyzont kratki hero) */}
       <section
         id="katalog"
         className="container-site border-t border-line pt-8 pb-16 md:pt-10 md:pb-24"
@@ -67,35 +112,25 @@ export default function StronaSzkolenia() {
           Wybierz swoją ścieżkę
         </h2>
 
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PLACEHOLDERY.map((kurs) => (
-            <li key={kurs.tytul}>
-              <article className="panel group flex h-full flex-col overflow-hidden transition-colors duration-300 hover:border-volt/25">
-                <div
-                  aria-hidden
-                  className="bg-grid mask-fade-y flex h-36 items-center justify-center border-b border-line"
-                >
-                  <span className="font-mono text-label tracking-[0.25em] text-steel uppercase">
-                    [ okładka ]
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col p-4 md:p-5">
-                  <p className="font-mono text-label tracking-[0.12em] text-steel uppercase">
-                    <span className="text-volt/90">{kurs.typ}</span>
-                    <span aria-hidden> · </span>
-                    <span>wkrótce</span>
-                  </p>
-                  <h3 className="mt-2 text-base leading-snug font-semibold tracking-tight transition-colors group-hover:text-volt md:text-lg">
-                    {kurs.tytul}
-                  </h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-steel">
-                    {kurs.opis}
-                  </p>
-                </div>
-              </article>
-            </li>
-          ))}
-        </ul>
+        {kursy.length === 0 ? (
+          <div className="panel mt-8 px-6 py-10 text-center">
+            <p className="font-mono text-label tracking-[0.25em] text-volt uppercase">
+              [ Katalog w przygotowaniu ]
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-steel">
+              Pierwsze kursy pojawią się tu wkrótce. Masz pytanie już teraz?
+              Napisz do nas.
+            </p>
+          </div>
+        ) : (
+          <ul data-katalog className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {kursy.map((kurs) => (
+              <li key={kurs.id}>
+                <KartaKatalogu kurs={kurs} />
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* Pasek CTA — wzorzec CtaStrip strony głównej */}
