@@ -5,6 +5,27 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.16.0] — 2026-08-17
+
+Dział 6, krok 3 z 3: podgląd przed publikacją i instrukcja obsługi.
+Kreator kompletny — gotowy pod bramkę B6.
+
+### Dodane
+- **Podgląd szkicu** — właściciel z ważnym ciastkiem bramy ogląda
+  stronę kursu przed publikacją (`/szkolenia/[slug]` przepuszcza wtedy
+  szkice), z ostrzeżeniem w rogu: „Szkic — podgląd tylko dla Ciebie".
+  Dla gościa ten sam adres to dalej **404**: kanał JSON filtruje po
+  statusie, więc nie ma tam treści do wycieku. Smoke D6 pilnuje obu
+  stron tej granicy naraz.
+- Wejście do podglądu z dwóch miejsc: przycisk „Podgląd" przy każdym
+  kursie na liście kreatora (wcześniej tylko przy opublikowanych)
+  i „Podgląd strony kursu" w pasku zapisu edytora.
+- **[docs/plugin-1/KREATOR.md](docs/plugin-1/KREATOR.md)** — instrukcja
+  obsługi panelu dla właściciela: wejście, stany kursu, kolejność
+  pracy, czego kreator NIE zrobi (stała kolejność sekcji, okładka jako
+  adres pliku, cena w złotówkach) i tabela „gdy coś nie działa"
+  z rozwiązaniem błędu „Nieprawidłowy token" po zmianie `.env`.
+
 ## [0.15.0] — 2026-08-17
 
 Dział 6, krok 2 z 3: pełna treść kursu z panelu — 12 rodzajów sekcji

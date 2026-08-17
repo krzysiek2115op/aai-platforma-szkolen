@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Save } from "lucide-react";
+import { Check, ExternalLink, Loader2, Save } from "lucide-react";
 import EdytorProgramu, {
   type StanModulu,
 } from "@/components/kreator/EdytorProgramu";
@@ -347,6 +347,18 @@ export default function FormularzKursu({
             )}
             {zajety ? "Zapisuję…" : zapisano ? "Zapisane" : "Zapisz kurs"}
           </button>
+
+          {kurs.id && kurs.slug ? (
+            <a
+              href={`/szkolenia/${kurs.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-line text-sm text-steel transition-colors hover:border-volt/40 hover:text-volt"
+            >
+              <ExternalLink aria-hidden className="size-3.5" />
+              Podgląd strony kursu
+            </a>
+          ) : null}
 
           {blad ? (
             <p

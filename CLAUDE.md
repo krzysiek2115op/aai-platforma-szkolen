@@ -110,26 +110,35 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   (+cytat, czym_sie_zajmuje, link), `TrescPakiet` (+w_cenie,
   domkniecie), `TrescDlaKogo.nie_dla`. Kształty w
   `modules/m1-sklep/typy.ts`.
-- **Dział 6 W BUDOWIE — KREATOR kursów, 3 kroki (decyzja właściciela
-  2026-08-17)**. Wygląd: **premium, jak reszta `/szkolenia`** (nie
-  „prosty panel"). Okładka: **pole URL/ścieżka, bez uploadu**.
-  - **KROK 1 ZROBIONY** (gałąź `feat/d6-kreator`, wersja 0.14.0):
-    brama na token (ciastko HttpOnly, `lib/kreator-dostep.ts`
-    + akcje serwerowe `app/szkolenia/kreator/akcje.ts` — BEZ dostępu
-    do bazy, więc „jeden AJAX" zostaje), lista `/szkolenia/kreator`
-    z licznikami z bazy, edytor `/szkolenia/kreator/[id]` (dane
-    podstawowe + badge + poziom), `szczegolyKursuPoId`,
-    `KartaKreatora`, testy 21/21, `tools/smoke/smoke-d6.ts` w CI.
-    Dyspozytor sprawdza token PRZED walidacją (403, nie 400 z mapą
-    pól). Jedyny AJAX bierze token z ciastka.
-  - **KROK 2 (następny)**: edytor WSZYSTKICH 12 rodzajów sekcji
-    + moduły/lekcje; `SCHEMATY_SEKCJI` w `typy.ts` (kind → schemat),
-    opis pól UI w `components/kreator/opis-sekcji.ts`, **nowy
-    `straznik-kreatora`** (każdy rodzaj ma edytor, pola = klucze
-    schematu Zod) i goldeny: `d6-kreator.json` (opis formularza),
-    `d6-runda.json` (round-trip: kurs z kompletem pól → zapis →
-    odczyt), `d6-formularz.html`.
-  - **KROK 3**: podgląd szkicu, domknięcie dokumentacji, tag po B6.
+- **Dział 6 KOMPLETNY (wersja 0.16.0, gałąź `feat/d6-kreator`) —
+  czeka na bramkę B6 (ocena właściciela na localhoście)**. Decyzje
+  właściciela: wygląd **premium, jak reszta `/szkolenia`**; okładka =
+  **pole URL/ścieżka, bez uploadu**; wejście do kreatora **z podstrony
+  `/szkolenia`** (pigułka widoczna tylko dla zalogowanego).
+  Instrukcja obsługi: [docs/plugin-1/KREATOR.md](docs/plugin-1/KREATOR.md).
+  - **Krok 1 (0.14.0)**: brama na token (ciastko HttpOnly,
+    `lib/kreator-dostep.ts` + akcje serwerowe
+    `app/szkolenia/kreator/akcje.ts` — BEZ dostępu do bazy, więc
+    „jeden AJAX" zostaje), lista `/szkolenia/kreator` z licznikami
+    z bazy, edytor `/szkolenia/kreator/[id]`, `szczegolyKursuPoId`,
+    `KartaKreatora`. Dyspozytor sprawdza token PRZED walidacją (403,
+    nie 400 z mapą pól); jedyny AJAX bierze token z ciastka.
+  - **Krok 2 (0.15.0)**: edytor WSZYSTKICH 12 rodzajów sekcji
+    + program (moduły/lekcje), sterowany opisem pól
+    (`components/kreator/opis-sekcji.ts` + `tresc-sekcji.ts`), mapa
+    `SCHEMATY_SEKCJI` w `typy.ts`, **`straznik-kreatora`** (pole
+    w kontrakcie bez pola w panelu = czerwone CI; sprawdzony testami
+    negatywnymi), goldeny `d6-kreator.json` i `d6-runda.json`.
+    KLUCZOWE: przykładowa treść w testach jest GENEROWANA Z OPISU PÓL,
+    więc nowe pole samo wchodzi do rundy zapis → odczyt.
+  - **Krok 3 (0.16.0)**: podgląd szkicu (`/szkolenia/[slug]`
+    przepuszcza szkice właścicielowi, gościowi dalej 404 — smoke
+    pilnuje obu stron), przyciski podglądu w kreatorze, KREATOR.md.
+  - **BLAD-004** naprawiony po drodze (zgłosił właściciel): wypełniana
+    animacja `.page-enter` (`both`) zostawiała trwały kontekst
+    układania i chowała elementy `fixed` pod stopką → `backwards`
+    + rozszerzony `straznik-fixed`.
+  - Stan dowodów: strażnicy 11/11, testy 27/27, smoke D4/D5/D6 zielone.
 - Po D6: Dział 7 = TREŚĆ docelowa obu kursów (Claude z dokumentacji
   Anthropic, GitHub z dokumentacji GitHuba — najpierw pobrać do
   `docs/dokumentacja-techniczna/d7/` z `ZRODLA.md`, potem pisać;
@@ -138,10 +147,17 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   strona nie obiecuje niczego spoza programu; do tego golden treści
   obu kursów. Obecna treść w seedach jest ROBOCZA, do zastąpienia.
 - Stan repo: PR #12 zmergowany do `plugin-1-sklep-kursow`, tag
-  `v0.12.1` + release. Gałąź `feat/d6-kreator` wypchnięta (krok 1) —
-  **PR trzeba otworzyć ręcznie: `gh` NIE jest zainstalowany**
-  w systemie. Migawki `.bak`: gałęzie `bak/*` (nie kasować).
-  Testy chodzą na osobnej bazie `db1_kursy_test`.
+  `v0.12.1` + release. Gałąź `feat/d6-kreator` wypchnięta (kroki 1–3)
+  — **PR jeszcze NIE otwarty**: `gh` jest już zainstalowany
+  (`~/.local/bin/gh`, 2.97.0), ale wymaga jednorazowego
+  `gh auth login` przez właściciela (token musi mieć zakresy
+  `repo`, `workflow`, `read:org`). 2026-08-17 GitHub miał awarię.
+  Migawki `.bak`: gałęzie `bak/*` (nie kasować). Testy chodzą na
+  osobnej bazie `db1_kursy_test`.
+- Pomiar layoutu w tej sesji: **puppeteer-core + SYSTEMOWY Firefox**
+  (`/usr/bin/firefox`, protokół webDriverBiDi) w scratchpadzie —
+  nie trzeba pobierać przeglądarki jak przy playwright. Ciastko
+  ustawiać PO pierwszym `goto` na domenę.
 - **Licencja: MIT** (decyzja właściciela 2026-08-17, wersja 0.13.0,
   PR #14/#15/#16) — zmiana z GPL-2.0 dla zgodności z repo strony
   głównej, do którego kod docelowo trafia. Zmienione na `main`

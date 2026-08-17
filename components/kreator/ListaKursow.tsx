@@ -165,15 +165,18 @@ export default function ListaKursow({ kursy }: { kursy: PozycjaListy[] }) {
                     Edytuj
                   </Link>
 
+                  {/* podgląd działa też dla szkicu — właściciel ogląda
+                      stronę przed publikacją (dla gościa ten adres to 404) */}
+                  <Link
+                    href={`/szkolenia/${kurs.slug}`}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-4 text-sm text-steel transition-colors hover:border-fg/20 hover:text-fg"
+                  >
+                    <PlayCircle aria-hidden className="size-3.5" />
+                    {kurs.status === "published" ? "Zobacz stronę" : "Podgląd"}
+                  </Link>
+
                   {kurs.status === "published" ? (
                     <>
-                      <Link
-                        href={`/szkolenia/${kurs.slug}`}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-4 text-sm text-steel transition-colors hover:border-fg/20 hover:text-fg"
-                      >
-                        <PlayCircle aria-hidden className="size-3.5" />
-                        Zobacz stronę
-                      </Link>
                       <button
                         type="button"
                         disabled={zajety}

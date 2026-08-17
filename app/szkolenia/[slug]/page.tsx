@@ -19,6 +19,7 @@ import SekcjaProgram from "@/components/kurs/SekcjaProgram";
 import SekcjaTransformacja from "@/components/kurs/SekcjaTransformacja";
 import TloKursu from "@/components/kurs/TloKursu";
 import WejscieAdmina from "@/components/kreator/WejscieAdmina";
+import { czyKreator } from "@/lib/kreator-dostep";
 import {
   szczegolyKursu,
   TrescHero,
@@ -43,7 +44,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const kurs = await szczegolyKursu(slug);
+  const kurs = await szczegolyKursu(slug, { takzeSzkice: await czyKreator() });
   if (!kurs) return { title: "Nie znaleziono" };
   return { title: kurs.title, description: kurs.short_desc ?? undefined };
 }
@@ -71,7 +72,13 @@ function trescSekcji<S extends z.ZodType>(
  */
 export default async function StronaKursu({ params }: Props) {
   const { slug } = await params;
-  const kurs = await szczegolyKursu(slug);
+  // Właściciel z ważnym ciastkiem bramy ogląda też SZKICE — inaczej nie
+  // miałby jak zobaczyć kursu przed publikacją (a publikacja „w ciemno"
+  // to publikacja z literówkami). Dla wszystkich innych szkic dalej
+  // nie istnieje: kanał JSON filtruje po statusie, więc nie ma tu
+  // żadnej treści do wycieku.
+  const kreator = await czyKreator();
+  const kurs = await szczegolyKursu(slug, { takzeSzkice: kreator });
   if (!kurs) notFound();
 
   const hero = trescSekcji(kurs, "hero", TrescHero);
@@ -165,7 +172,7 @@ export default async function StronaKursu({ params }: Props) {
       <FinalCta kurs={kurs} />
 
       {/* skrót do edycji TEGO kursu — widzi go tylko zalogowany właściciel */}
-      <WejscieAdmina edytujId={kurs.id} />
+      <WejscieAdmina edytujId={kurs.id} status={kurs.status} />
     </div>
   );
 }

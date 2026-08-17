@@ -20,8 +20,8 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.15.0** |
-| **Etap** | Działy 1–5 Pluginu 1 gotowe (B1–B5 zaliczone przez właściciela); Dział 6 w budowie — kreator kursów: brama, lista, dane podstawowe (krok 1) + edytor 12 rodzajów sekcji i programu (krok 2 z 3) |
+| **Wersja** | **0.16.0** |
+| **Etap** | Działy 1–5 Pluginu 1 gotowe (B1–B5 zaliczone przez właściciela); Dział 6 (kreator kursów) kompletny — czeka na bramkę B6; następny krok: Dział 7 (treść obu kursów) |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([assets/fonts/LICENSE-Geist-OFL.txt](assets/fonts/LICENSE-Geist-OFL.txt)) |
@@ -133,6 +133,7 @@ Panel treści właściciela: `http://localhost:3001/szkolenia/kreator`.
 Po zalogowaniu wejście jest też pod ręką na samych stronach sklepu —
 dyskretna pigułka w rogu `/szkolenia` i strony kursu, widoczna
 wyłącznie dla zalogowanego (gość nie ma jej nawet w źródle strony).
+Pełna instrukcja obsługi: [docs/plugin-1/KREATOR.md](docs/plugin-1/KREATOR.md).
 Wejście na token z `.env` (`KREATOR_TOKEN`) — trafia do ciastka
 HttpOnly, więc nie ma go w JavaScripcie strony; pełne logowanie da
 Plugin 3. Kreator czyta bazę kanałem JSON, a zmienia ją **wyłącznie**

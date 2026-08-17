@@ -131,6 +131,20 @@ try {
   const smiec = await html("/szkolenia/kreator/nie-jest-uuid", CIASTKO);
   assert.equal(smiec.status, 404, "śmieciowy adres edytora powinien dać 404");
 
+  // 3b. PODGLĄD SZKICU: właściciel widzi stronę kursu przed publikacją,
+  // gość dostaje 404 — ta sama treść, dwa różne światy.
+  const szkicDlaGoscia = await html(`/szkolenia/${KURS_SMOKE.slug}`);
+  assert.equal(szkicDlaGoscia.status, 404, "WYCIEK: gość widzi stronę szkicu");
+
+  const szkicDlaAdmina = await html(`/szkolenia/${KURS_SMOKE.slug}`, CIASTKO);
+  assert.equal(szkicDlaAdmina.status, 200, "właściciel nie ma podglądu szkicu");
+  const trescPodgladu = await szkicDlaAdmina.text();
+  assert.ok(trescPodgladu.includes("Obietnica D6"), "podgląd bez treści z bazy");
+  assert.ok(
+    trescPodgladu.includes("data-podglad-szkicu"),
+    "brak ostrzeżenia, że to podgląd szkicu"
+  );
+
   // 4. Wystrzał bez tokenu i bez ciastka → 403 (nie 500, nie 200).
   const bezDostepu = await ajax({ akcja: "publikuj", id: idKursu });
   assert.equal(bezDostepu.status, 403, "AJAX wpuścił żądanie bez tokenu");
