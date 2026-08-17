@@ -110,15 +110,37 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   (+cytat, czym_sie_zajmuje, link), `TrescPakiet` (+w_cenie,
   domkniecie), `TrescDlaKogo.nie_dla`. Kształty w
   `modules/m1-sklep/typy.ts`.
-- **NASTĘPNY KROK: Dział 6 — KREATOR kursów** (panel do wprowadzania
-  treści przez właściciela, jedyny AJAX = `app/api/szkolenia`
-  + `obsluzAkcje`, dostęp na `KREATOR_TOKEN`). Po D6: Dział 7 = TREŚĆ
-  docelowa obu kursów (Claude z dokumentacji Anthropic, GitHub
-  z dokumentacji GitHuba) — obecna treść w seedach jest ROBOCZA
-  i jest do zastąpienia. Nowa gałąź: `feat/d6-kreator` od
-  `plugin-1-sklep-kursow`.
+- **Dział 6 W BUDOWIE — KREATOR kursów, 3 kroki (decyzja właściciela
+  2026-08-17)**. Wygląd: **premium, jak reszta `/szkolenia`** (nie
+  „prosty panel"). Okładka: **pole URL/ścieżka, bez uploadu**.
+  - **KROK 1 ZROBIONY** (gałąź `feat/d6-kreator`, wersja 0.14.0):
+    brama na token (ciastko HttpOnly, `lib/kreator-dostep.ts`
+    + akcje serwerowe `app/szkolenia/kreator/akcje.ts` — BEZ dostępu
+    do bazy, więc „jeden AJAX" zostaje), lista `/szkolenia/kreator`
+    z licznikami z bazy, edytor `/szkolenia/kreator/[id]` (dane
+    podstawowe + badge + poziom), `szczegolyKursuPoId`,
+    `KartaKreatora`, testy 21/21, `tools/smoke/smoke-d6.ts` w CI.
+    Dyspozytor sprawdza token PRZED walidacją (403, nie 400 z mapą
+    pól). Jedyny AJAX bierze token z ciastka.
+  - **KROK 2 (następny)**: edytor WSZYSTKICH 12 rodzajów sekcji
+    + moduły/lekcje; `SCHEMATY_SEKCJI` w `typy.ts` (kind → schemat),
+    opis pól UI w `components/kreator/opis-sekcji.ts`, **nowy
+    `straznik-kreatora`** (każdy rodzaj ma edytor, pola = klucze
+    schematu Zod) i goldeny: `d6-kreator.json` (opis formularza),
+    `d6-runda.json` (round-trip: kurs z kompletem pól → zapis →
+    odczyt), `d6-formularz.html`.
+  - **KROK 3**: podgląd szkicu, domknięcie dokumentacji, tag po B6.
+- Po D6: Dział 7 = TREŚĆ docelowa obu kursów (Claude z dokumentacji
+  Anthropic, GitHub z dokumentacji GitHuba — najpierw pobrać do
+  `docs/dokumentacja-techniczna/d7/` z `ZRODLA.md`, potem pisać;
+  każda lekcja ma źródło). Wymóg właściciela: kursy **w 100% zgodne
+  z programem** — moduły/lekcje to spis treści realnego materiału,
+  strona nie obiecuje niczego spoza programu; do tego golden treści
+  obu kursów. Obecna treść w seedach jest ROBOCZA, do zastąpienia.
 - Stan repo: PR #12 zmergowany do `plugin-1-sklep-kursow`, tag
-  `v0.12.1` + release. Migawki `.bak`: gałęzie `bak/*` (nie kasować).
+  `v0.12.1` + release. Gałąź `feat/d6-kreator` wypchnięta (krok 1) —
+  **PR trzeba otworzyć ręcznie: `gh` NIE jest zainstalowany**
+  w systemie. Migawki `.bak`: gałęzie `bak/*` (nie kasować).
   Testy chodzą na osobnej bazie `db1_kursy_test`.
 - **Licencja: MIT** (decyzja właściciela 2026-08-17, wersja 0.13.0,
   PR #14/#15/#16) — zmiana z GPL-2.0 dla zgodności z repo strony
