@@ -1,7 +1,7 @@
 # Praca w tym repo
 
 Konkrety specyficzne dla tego projektu. Konwencje przejęte z
-[matthewplugins.pl](https://github.com/MatthewPlugins/matthewplugins.pl)
+[automatic-ai](https://github.com/MatthewPlugins/automatic-ai)
 i z projektu egzaminacyjnego „3 pluginy 3 bazy danych".
 
 ## Pierwsze uruchomienie
@@ -57,7 +57,7 @@ refactor: zmiana kodu bez zmiany zachowania
 
 ## Strażnicy
 
-Katalog `tools/straznicy/`. Zasada z matthewplugins.pl: **kontrola jest
+Katalog `tools/straznicy/`. Zasada ze strony głównej Automatic AI: **kontrola jest
 warta tyle, ile jej podpięcie** — dlatego runner `uruchom-wszystkie.mjs`
 sam znajduje każdy plik `straznik-*.mjs`. Nowy strażnik = nowy plik w tym
 katalogu, nic więcej. CI i pre-commit uruchamiają runnera, nie pojedyncze
@@ -71,7 +71,7 @@ node tools/straznicy/uruchom-wszystkie.mjs
 
 ## Zasady twarde
 
-- Repo `MatthewPlugins/matthewplugins.pl` — **tylko do odczytu** (wzorce,
+- Repo `MatthewPlugins/automatic-ai` (strona główna) — **tylko do odczytu** (wzorce,
   design, konwencje). Żadnych pushy tam do końca projektu.
 - Sekrety wyłącznie w `.env` (ignorowany); wzorcem jest `.env.example`.
 - Moduł łączy się tylko ze SWOJĄ bazą; komunikacja między modułami przez

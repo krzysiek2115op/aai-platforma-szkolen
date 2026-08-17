@@ -21,7 +21,7 @@ export default function OknoKursu({ kurs }: { kurs: SzczegolyKursu }) {
         <span aria-hidden className="size-2.5 rounded-full bg-steel/40" />
         <span aria-hidden className="size-2.5 rounded-full bg-volt/70" />
         <span className="ml-3 truncate font-mono text-label tracking-[0.12em] text-steel">
-          matthewplugins.pl/szkolenia/{kurs.slug}
+          automaticai.pl/szkolenia/{kurs.slug}
         </span>
       </div>
 

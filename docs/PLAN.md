@@ -1,7 +1,7 @@
-# Plan projektu — Podstrona „Szkolenia" (matthewplugins.pl/szkolenia)
+# Plan projektu — Podstrona „Szkolenia" (automaticai.pl/szkolenia)
 
 > Repo: `MatthewPlugins/Pod-strona-Szkolenia` (prywatne).
-> Po ukończeniu i akceptacji całości → merge do `MatthewPlugins/matthewplugins.pl`.
+> Po ukończeniu i akceptacji całości → merge do `MatthewPlugins/automatic-ai` (strona główna; dawniej `matthewplugins.pl`).
 > Repo głównej strony jest w tym projekcie **tylko do odczytu** (czerpiemy stack, design, konwencje).
 
 ---
@@ -9,7 +9,7 @@
 ## 1. Kontekst i decyzje architektoniczne
 
 ### Stan obecny głównej strony
-- `matthewplugins.pl` = **Next.js 16 + React 19 + TypeScript + Tailwind 4**, tryb `output: "export"` (statyczny), publikacja na GitHub Pages.
+- strona główna Automatic AI (`MatthewPlugins/automatic-ai`, dawniej `matthewplugins.pl`) = **Next.js 16 + React 19 + TypeScript + Tailwind 4**, tryb `output: "export"` (statyczny), publikacja na GitHub Pages.
 - GitHub Pages to **hosting tymczasowy (podgląd)** — decyzja właściciela: docelowo strona przejdzie na **wykupiony hosting z Node.js / VPS**.
 
 ### Decyzje (ustalone 2026-08-16)
@@ -19,7 +19,7 @@
 | Bazy danych | **3 osobne bazy PostgreSQL** (lokalnie: Docker; produkcyjnie: VPS lub Neon/Supabase) |
 | „Pluginy" | 3 **odizolowane moduły** w kodzie — każdy z własnym katalogiem, własną bazą, własnym API |
 | Bramka płatności | wybór odłożony do prac nad Pluginem 2 — kod pisany pod **abstrakcję operatora** (adapter), żeby dało się podpiąć Stripe / P24 / Tpay bez przeróbek |
-| Design | dziedziczymy z matthewplugins.pl (Tailwind 4, fonty Geist, komponenty UI) — podstrona ma wyglądać jak część głównej strony |
+| Design | dziedziczymy ze strony głównej Automatic AI (Tailwind 4, fonty Geist, komponenty UI) — podstrona ma wyglądać jak część głównej strony |
 
 ### Struktura modułów (monorepo, izolacja jak „wtyczki")
 ```
@@ -70,7 +70,7 @@ Tabele:
 - [ ] Kreator: dodanie, edycja, usunięcie, publikacja kursu działa end-to-end
 - [ ] Każda operacja zostawia wpis w `course_changelog` (weryfikacja triggerów)
 - [ ] 2 kursy utworzone i wyświetlone
-- [ ] Design spójny z matthewplugins.pl
+- [ ] Design spójny ze stroną główną Automatic AI
 
 ---
 
@@ -91,9 +91,9 @@ Tabele:
 ## 5. Workflow (ustalony z właścicielem)
 1. Praca nad każdym pluginem na **dedykowanym branchu**: `plugin-1-sklep-kursow` → `plugin-2-platnosci` → `plugin-3-admin-panel`; po ukończeniu i akceptacji merge do `main`.
 2. Pluginy robimy **po kolei** — teraz wyłącznie Plugin 1.
-3. Testy lokalne mogą używać sklonowanej strony matthewplugins.pl; **tamtego repo nie modyfikujemy**.
-4. Finał: właściciel ocenia całość → dopiero wtedy wgranie do repo `matthewplugins.pl`.
+3. Testy lokalne mogą używać sklonowanej strony głównej Automatic AI; **tamtego repo nie modyfikujemy**.
+4. Finał: właściciel ocenia całość → dopiero wtedy wgranie do repo strony głównej (`automatic-ai`).
 5. Commity przy każdym większym kroku, po polsku, opisowe.
 
 ## 6. Stack — podsumowanie
-Next.js 16 · React 19 · TypeScript · Tailwind 4 · PostgreSQL ×3 (Docker lokalnie) · Zod · node-pg (bez ciężkiego ORM — migracje czystym SQL, jak lubi audyt) · fonty Geist i komponenty wzorowane na matthewplugins.pl
+Next.js 16 · React 19 · TypeScript · Tailwind 4 · PostgreSQL ×3 (Docker lokalnie) · Zod · node-pg (bez ciężkiego ORM — migracje czystym SQL, jak lubi audyt) · fonty Geist i komponenty wzorowane na stronie głównej Automatic AI

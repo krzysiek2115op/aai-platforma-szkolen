@@ -2,15 +2,24 @@
 
 # Pod strona Szkolenia
 
-**Sklep z kursami i ebookami dla matthewplugins.pl** — podstrona `/szkolenia`:
-katalog kursów, strony sprzedażowe, płatności z dostawą na e-mail
-i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
+**Sklep z kursami i ebookami dla Automatic AI** (dawniej matthewplugins.pl)
+— podstrona `/szkolenia`: katalog kursów, strony sprzedażowe, płatności
+z dostawą na e-mail i panel administratora. Trzy odizolowane moduły,
+trzy osobne bazy danych.
 
 [Plan projektu](docs/PLAN.md) ·
 [Wytyczne](docs/WYTYCZNE.md) ·
 [Współpraca i workflow](CONTRIBUTING.md) ·
 [Dziennik zmian](CHANGELOG.md) ·
 [Licencja MIT](LICENSE)
+
+<br>
+
+[![Podgląd katalogu /szkolenia](docs/zrzuty/podglad-szkolenia.png)](http://localhost:3001/szkolenia)
+
+*Podgląd lokalny: [`http://localhost:3001/szkolenia`](http://localhost:3001/szkolenia)
+— `npm run db1:up && npm run db1:migruj && npm run dev`
+([pełny start](#szybki-start-po-sklonowaniu))*
 
 </div>
 
@@ -20,7 +29,7 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.16.2** |
+| **Wersja** | **0.17.0** |
 | **Etap** | Działy 1–6 Pluginu 1 gotowe — **B1–B6 zaliczone przez właściciela** (B6: 2026-08-17, kreator kursów); następny krok: Dział 7 — treść obu kursów z oryginalnej dokumentacji |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
@@ -29,9 +38,10 @@ i panel administratora. Trzy odizolowane moduły, trzy osobne bazy danych.
 
 > [!IMPORTANT]
 > To repozytorium jest budowane OSOBNO od strony głównej.
-> Repo [matthewplugins.pl](https://github.com/MatthewPlugins/matthewplugins.pl)
-> służy wyłącznie jako źródło wzorców (stack, design, strażnicy) — **nie
-> wprowadzamy tam żadnych zmian** do czasu ukończenia i oceny tego projektu.
+> Repo [automatic-ai](https://github.com/MatthewPlugins/automatic-ai)
+> (dawniej `matthewplugins.pl`) służy wyłącznie jako źródło wzorców
+> (stack, design, strażnicy) — **nie wprowadzamy tam żadnych zmian**
+> do czasu ukończenia i oceny tego projektu.
 
 ## Moduły („pluginy")
 
@@ -56,7 +66,7 @@ było zwykłym merge, nie przepisywaniem.
 |---|---|
 | Framework | Next.js 16 — App Router, **z serwerem** (API routes / Server Actions) |
 | Język | TypeScript (`strict`) |
-| UI | React 19 + Tailwind CSS 4, design dziedziczony z matthewplugins.pl |
+| UI | React 19 + Tailwind CSS 4, design dziedziczony ze strony głównej Automatic AI |
 | Bazy | PostgreSQL ×3 (lokalnie Docker, produkcyjnie VPS/managed) |
 | Walidacja | Zod na granicach API |
 | Hosting | docelowo wykupiony hosting Node.js / VPS |
@@ -91,7 +101,7 @@ branch → commit → push → PR → CI zielone → merge → (release, deploy 
 
 ## Strażnicy i CI
 
-Zasada przejęta z matthewplugins.pl: *kontrola jest warta tyle, ile jej
+Zasada przejęta ze strony głównej Automatic AI: *kontrola jest warta tyle, ile jej
 podpięcie*. Runner `tools/straznicy/uruchom-wszystkie.mjs` sam wykrywa
 każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć podpiąć".
 

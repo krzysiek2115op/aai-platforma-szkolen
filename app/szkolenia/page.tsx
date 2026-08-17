@@ -15,7 +15,7 @@ import { czasMaterialu, lekcje, moduly, slowo } from "@/lib/odmiana";
 export const metadata: Metadata = {
   title: "Szkolenia",
   description:
-    "Kursy i ebooki MatthewPlugins — systemy pracy z AI, Claude i GitHubem, nie kolejne nagrania do obejrzenia.",
+    "Kursy i ebooki Automatic AI — systemy pracy z AI, Claude i GitHubem, nie kolejne nagrania do obejrzenia.",
 };
 
 // Katalog czyta bazę przy KAŻDYM żądaniu (kanał JSON działu — WYTYCZNE §8).
@@ -222,7 +222,7 @@ export default async function StronaSzkolenia() {
         <div className="container-site relative grid items-center gap-12 pt-28 pb-14 md:pt-36 lg:grid-cols-[1.05fr_1fr] lg:gap-8">
           <div>
             <p className="font-mono text-xs tracking-[0.25em] text-volt uppercase">
-              [ Szkolenia · MatthewPlugins ]
+              [ Szkolenia · Automatic AI ]
             </p>
             <h1 className="text-soft-gradient mt-4 text-page-title leading-[1.02] font-semibold tracking-[-0.03em]">
               Szkolenia, które zamieniają AI w&nbsp;przewagę.
@@ -430,7 +430,7 @@ export default async function StronaSzkolenia() {
             </p>
           </div>
           <a
-            href="https://matthewplugins.pl/kontakt"
+            href="https://automaticai.pl/kontakt"
             className="btn-glow btn-sheen group inline-flex h-13 shrink-0 items-center justify-center gap-2 rounded-md bg-volt px-7 text-base font-medium text-void transition-colors hover:bg-[#d3ff70]"
           >
             Porozmawiajmy

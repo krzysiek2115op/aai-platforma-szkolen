@@ -18,7 +18,7 @@ export function formatujCene(grosze: number): string {
 
 // CTA zakupu = placeholder do Pluginu 2 (bramka płatności) — do tego
 // czasu zainteresowani piszą przez kontakt strony głównej.
-export const CTA_ZAKUPU = "https://matthewplugins.pl/kontakt";
+export const CTA_ZAKUPU = "https://automaticai.pl/kontakt";
 
 export function Etykieta({ children }: { children: React.ReactNode }) {
   return (

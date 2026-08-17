@@ -65,7 +65,7 @@ Komponenty wspólne, dane per kurs z ISTNIEJĄCEJ bazy (course_sections
 
 ## Zasady twarde
 
-- DNA MatthewPlugins (dark premium, volt, grid, cienkie linie, glow,
+- DNA Automatic AI (dark premium, volt, grid, cienkie linie, glow,
   minimalizm) — poziom wyżej: PREMIUM/TECH/EDITORIAL/MINIMAL/CONFIDENT.
   NIE: tandetne gradienty, przypadkowe animacje, neonoza, generyczny
   „AI SaaS landing", przesadny glassmorphism, klon Claude.

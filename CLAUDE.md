@@ -20,8 +20,10 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   (wystrzał, akcje kreatora) + kanał JSON (odczyt serwerowy) obok.
   Strona nigdy nie dotyka bazy.
 - README i ten plik zawsze aktualne; wersja = top CHANGELOG (strażnik pilnuje).
-- Repo `MatthewPlugins/matthewplugins.pl` **TYLKO do odczytu**
-  (lokalny klon: `/home/krzysiek/Strona internetowa FIrma ` — ze spacją).
+- Repo strony głównej `MatthewPlugins/automatic-ai` (dawniej
+  `matthewplugins.pl`; rebranding marki → **Automatic AI**) **TYLKO do
+  odczytu** (lokalny klon: `/home/krzysiek/Strona internetowa FIrma `
+  — ze spacją).
 - Naprawy błędów: procedura `.bak` (WYTYCZNE §1) + wpis do
   [rejestr/znane-bledy.json](rejestr/znane-bledy.json) + strażnik przeciw nawrotom.
 - Agenci AI tylko jako bramki jakości (z KRYTYKIEM — nigdy sami); codzienna
@@ -47,8 +49,7 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   strony głównej. Na podglądzie: **lokalna, NIEcommitowana** zmiana w klonie
   (`data/navigation.ts` — link `http://localhost:3001/szkolenia`; repo
   strony głównej pozostaje read-only, nic nie pushujemy). Przy finalnym
-  merge do matthewplugins.pl dopisać `{ label: "Szkolenia", href: "/szkolenia" }`
-  do `navLinks`.
+  wdrożeniu dopisać wejście „Szkolenia" do nawigacji strony głównej.
 - Pustka na `/szkolenia` jest zaplanowana: treść wejdzie z bazy w D4–D5,
   kursy właściciela w D7 — placeholderów nie dopracowujemy ręcznie.
 - **Dział 3 ZBUDOWANY, B3 zaliczona testami** (15/15 + goldeny):

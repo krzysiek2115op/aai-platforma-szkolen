@@ -5,6 +5,27 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.17.0] — 2026-08-18
+
+### Zmienione
+- **Rebranding: MatthewPlugins.pl → Automatic AI** — w ślad za stroną
+  główną (repo `MatthewPlugins/matthewplugins.pl` przemianowane na
+  `MatthewPlugins/automatic-ai`, PR #84 tamtego repo; organizacja
+  GitHuba zostaje `MatthewPlugins`). W podstronie: nowe logo w navbarze
+  (sygnet `components/brand/AutomaticMark.tsx` skopiowany 1:1 ze strony
+  głównej + napis „Automatic AI"), wordmark stopki `AUTOMATIC AI`
+  na szynie zasilającej, copyright, metadane (`layout.tsx`,
+  `/szkolenia`), pasek adresu w mockupie `OknoKursu`, adresy CTA
+  i stopki na domenę docelową `automaticai.pl` (jak `data/site.ts`
+  strony głównej — domena przed startem, sociale to placeholdery),
+  placeholdery kreatora, seedy autora oraz cała dokumentacja
+  (README, PLAN, CONTRIBUTING, BRIEF, CLAUDE.md).
+
+### Dodane
+- **Podgląd w README**: zrzut katalogu `/szkolenia`
+  (`docs/zrzuty/podglad-szkolenia.png`) podlinkowany do
+  `http://localhost:3001/szkolenia` + skrót komend startu.
+
 ## [0.16.2] — 2026-08-17
 
 ### Naprawione
