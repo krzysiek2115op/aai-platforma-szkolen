@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 import type { PoolClient } from "pg";
 import { pulaDb1, zamknijDb1 } from "./db/klient.ts";
 import { migruj } from "./db/migruj.ts";
+import {
+  przelaczNaBazeTestowa,
+  upewnijSieZeBazaTestowa,
+} from "./db/testowa-baza.ts";
 import { obsluzAkcje } from "./dyspozytor.ts";
 import { listaKursow, szczegolyKursu } from "./odczyt.ts";
 
@@ -30,6 +34,8 @@ let klient: PoolClient;
 before(async () => {
   if (!JEST_BAZA) return;
   process.env.KREATOR_TOKEN = TOKEN;
+  // osobna baza testowa — dane dev (seedy właściciela) są nietykalne
+  upewnijSieZeBazaTestowa(await przelaczNaBazeTestowa());
   klient = await pulaDb1().connect();
   await klient.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
   await migruj(klient);

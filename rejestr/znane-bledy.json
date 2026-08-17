@@ -16,5 +16,26 @@
     "Procedura naprawy wstecznej (.bak): docs/WYTYCZNE.md §1."
   ],
   "wersja": 1,
-  "bledy": []
+  "bledy": [
+    {
+      "id": "BLAD-001",
+      "data": "2026-08-17",
+      "klasa": "hydratacja/niedeterministyczny-markup-serwer-vs-klient",
+      "dowod": "Pakiet `geist` (geist/font/sans, geist/font/mono) generowal rozne klasy CSS fontow w renderze serwera i klienta (className na <html> w app/layout.tsx) — konsola przegladarki zglaszala blad hydratacji na kazdej stronie (wykryte przez wlasciciela przy bramce B5).",
+      "skutek": "Czerwony 'Console Error: A tree hydrated but some attributes...' w dev overlay na kazdej stronie; ryzyko niedeterministycznych roznic serwer/klient na produkcji.",
+      "naprawa": "Fonty z lokalnych subsetow woff2 przez next/font/local (lib/fonts.ts + assets/fonts) — wzorzec 1:1 ze strony glownej; pakiet geist usuniety z dependencies. Migawka stanu sprzed naprawy: galaz bak/2026-08-17-hydratacja-fontow.",
+      "test": "",
+      "straznik": "straznik-fontow"
+    },
+    {
+      "id": "BLAD-002",
+      "data": "2026-08-17",
+      "klasa": "testy/niszcza-wspolna-baze-dev",
+      "dowod": "Testy modulow (migracje.test.ts, dyspozytor.test.ts) robily DROP SCHEMA public CASCADE na TEJ SAMEJ bazie db1_kursy, ktorej uzywa dev — po `npm test` znikaly zasiane kursy wlasciciela.",
+      "skutek": "Pusty katalog /szkolenia ('Katalog w przygotowaniu') i 404 na stronach kursow podczas oceny wlasciciela przy bramce B5.",
+      "naprawa": "Testy przelaczaja proces na osobna baze db1_kursy_test (modules/m1-sklep/db/testowa-baza.ts: tworzenie bazy + podmiana DB1_URL przed pierwszym polaczeniem) z bezpiecznikiem: operacje niszczace tylko na bazie *_test.",
+      "test": "modules/m1-sklep/db/testowa-baza.ts (upewnijSieZeBazaTestowa) — DROP poza baza *_test rzuca bledem; posrednio oba pliki testow",
+      "straznik": ""
+    }
+  ]
 }
