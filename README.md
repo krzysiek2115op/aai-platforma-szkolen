@@ -29,9 +29,10 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.17.1** |
-| **Etap** | Działy 1–6 Pluginu 1 gotowe — **B1–B6 zaliczone przez właściciela** (B6: 2026-08-17, kreator kursów); następny krok: Dział 7 — treść obu kursów z oryginalnej dokumentacji |
+| **Wersja** | **0.21.0** |
+| **Etap** | Działy 1–6 Pluginu 1 gotowe (**B1–B6 zaliczone przez właściciela**), **Dział 7: treść obu kursów KOMPLETNA — 91 scenariuszy nagrań** pisanych wyłącznie z oryginalnej dokumentacji, każda teza z tabelą zgodności; następny krok: finalna treść stron sprzedażowych wprowadzona kreatorem, potem etap WordPressa |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
+| **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([assets/fonts/LICENSE-Geist-OFL.txt](assets/fonts/LICENSE-Geist-OFL.txt)) |
 | **Produkcja** | brak — **docelowo WordPress na wykupionym hostingu i domenie** (decyzja zespołu 2026-08-18): sklep zostanie przepisany na wtyczkę WP (PHP + MySQL), a obecny kod Next.js jest prototypem-specyfikacją ([szczegóły](docs/PLAN.md#decyzja-zespołu-2026-08-18--produkcja-na-wordpressie-zastępuje-plan-hosting-nodejs--vps)) |
@@ -119,6 +120,8 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-fixed` | pre-commit + CI | `transform`/`filter` w klasie opakowującej treść — łamie `position: fixed` potomków (BLAD-003); a także animacja z wypełnieniem `forwards`/`both`, która zostawia trwały kontekst układania i chowa te elementy pod stopką (BLAD-004) |
 | `straznik-odmiany` | pre-commit + CI | ręczna odmiana polskich liczebników (ternar „kurs"/„kursy") zamiast `lib/odmiana.ts` — dwie formy nie wystarczą, polski ma trzy |
 | `straznik-kreatora` | pre-commit + CI | pole lub rodzaj sekcji, który strona kursu potrafi wyrenderować, a kreator nie pozwala go wypełnić (rozjazd `SCHEMATY_SEKCJI` ↔ opis pól panelu, także w polach zagnieżdżonych) |
+| `straznik-scenariuszy` | pre-commit + CI | scenariusz lekcji D7 bez kompletnej metryki, ze wskazaniem na nieistniejący plik cytatów albo źródła, bez którejś z pięciu sekcji, bez ani jednej narracji do kamery, z tabelą „Zgodność ze źródłem" krótszą niż 8 wierszy albo ze śmieciami po zapisie pliku (`</content>`, `</invoke>` poza blokiem kodu — BLAD-008); warunek bezpieczeństwa dla równoległego pisania treści |
+| `straznik-wagi-dokumentacji` | pre-commit + CI | masa dokumentacji producentów (55 MB, ~2200 plików) wpuszczona do gita — także przez `git add -f`; git trzyma każdą wersję na stałe, więc pomyłka jest nieodwracalna |
 | blokada sekretów | pre-commit | pliki `.env`, tokeny/klucze w diffie |
 | gitleaks (pinowany po SHA-256) | CI | sekrety w całej historii repo |
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
@@ -138,6 +141,33 @@ npm run dev                           # Plugin 1 → http://localhost:3001/szkol
 npm test                              # testy modułów (wymagają bazy)
 node tools/straznicy/uruchom-wszystkie.mjs   # ręczne odpalenie strażników
 ```
+
+### Dokumentacja źródłowa kursów (Dział 7)
+
+Treść kursów powstaje wyłącznie z oryginalnej dokumentacji Anthropic
+i GitHuba (WYTYCZNE §7 i N2). Same pliki — 2219 stron, 55 MB — **nie są
+w repozytorium**: git przechowuje każdą wersję na stałe, więc obciążałyby
+każde klonowanie już zawsze. Zamiast nich jedzie skrypt, który odtwarza
+komplet co do pliku:
+
+```bash
+node tools/pobierz-dokumentacje-d7.mjs   # ~15 min; pomija to, co już jest
+```
+
+Zakres i uzasadnienie cięć (GitHub: 1466 z 3192 artykułów):
+[docs/dokumentacja-techniczna/d7/ZRODLA.md](docs/dokumentacja-techniczna/d7/ZRODLA.md).
+
+Do pisania scenariuszy źródła przepuszcza się przez odchudzacz — zostaje
+proza, tabele i jeden przykład kodu na sekcję, znikają blobki SVG ikon,
+odsyłacze do zrzutów, powtórzone warianty tej samej instrukcji
+(`ghd-tool`) i ten sam przykład w ośmiu językach:
+
+```bash
+node tools/wyciag-zrodla.mjs --do /tmp/wyciag <plik.md …>   # −38% na module 4 K2
+```
+
+Narzędzie niczego nie streszcza — każde cięcie zostawia ślad w tekście
+albo w stopce pliku, więc widać, że czyta się wersję odchudzoną.
 
 ### Kreator kursów (Dział 6)
 

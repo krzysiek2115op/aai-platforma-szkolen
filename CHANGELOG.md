@@ -5,6 +5,254 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.21.0] — 2026-08-18
+
+> [!WARNING]
+> **Odstępstwo od reguły „czerwony check = STOP" (WYTYCZNE §1), decyzja
+> właściciela 2026-08-18.** Ta wersja została zmergowana i otagowana przy
+> CZERWONYM CI, bo CI **nie ruszył**: organizacja `MatthewPlugins` jest na
+> planie Free (2000 minut Actions/miesiąc na repozytoria prywatne) i w
+> sierpniu zużyła **2072 minuty** — z czego 1753 spaliło repo strony
+> głównej `automatic-ai`, a nasze 253. Po przekroczeniu limitu każde
+> zadanie pada 2 sekundy po starcie, z zerem kroków i bez logów. Limit
+> odnawia się **1 września 2026**.
+>
+> W zamian pracę CI odtworzono LOKALNIE, kod wyjścia sprawdzany bez potoku
+> (`node skrypt | tail` maskuje kod wyjścia — lekcja z Działu 5):
+> strażnicy **16/16**, testy **36/36**, `npm run lint` czysto,
+> `npm run build` przechodzi, smoke **D4/D5/D6** zielone. Dowód wisi
+> w komentarzu przy PR #22. Jedyne, czego nie odtworzono lokalnie, to
+> **skan sekretów (gitleaks)** — do potwierdzenia, gdy CI wróci.
+
+### Dodane
+- **TREŚĆ DZIAŁU 7 KOMPLETNA — 91 z 91 scenariuszy nagrań** (Kurs 1
+  „Jak poprawnie korzystać z Claude": 6 modułów / 41 lekcji; Kurs 2
+  „Jak poprawnie używać GitHuba": 7 modułów / 50 lekcji). W tej wersji
+  domykają dział **trzy ostatnie moduły Kursu 2**:
+  - **Moduł 5 „Automatyzacja: GitHub Actions" — 7 scenariuszy**
+    (czym są Actions, pierwszy workflow, continuous integration,
+    anatomia workflow, zmienne i konteksty, sekrety, continuous
+    deployment). Cytaty: `cytowane/github--modul-5.md`.
+  - **Moduł 6 „Bezpieczeństwo konta i kodu" — 6 scenariuszy**
+    (2FA, klucze SSH, katalog funkcji bezpieczeństwa, włączanie ich
+    w repozytorium, Dependabot, secret scanning). Cytaty:
+    `cytowane/github--modul-6.md`.
+  - **Moduł 7 „Ponad podstawy" — 5 scenariuszy** (GitHub CLI, GitHub
+    Pages, Codespaces, wyszukiwanie, Discussions). Cytaty:
+    `cytowane/github--modul-7.md`.
+- **Golden treści obu kursów** (`goldeny/d7-tresc.json`
+  + `straznik-goldenu-tresci`) — ochrona przed **cichą** utratą tekstu.
+  Dla każdej lekcji suma kontrolna i cztery miary (bajty, wiersze,
+  sceny, wiersze tabeli zgodności); strażnik pokazuje różnicę per pole
+  („sceny: 9 → 7 (−2)"). Regeneracja wymaga podania powodu, więc golden
+  jest zarazem dziennikiem zmian treści. Stan zapisany: **91 lekcji,
+  506 scen, 1917 wierszy zgodności, 1307 kB**.
+- **`straznik-odsylaczy-kursu`** — pilnuje wierności **własnemu
+  kursowi**, a nie dokumentacji producenta: (A) odsyłacz „lekcja N.M"
+  wskazuje lekcję, która istnieje w tym kursie; (B) zdanie mówiące
+  o module nie wymienia tematu należącego do innego modułu. Mapa
+  tematów powstaje z pól `lekcja:` w metrykach, więc aktualizuje się
+  razem z kursem.
+- **`tools/wyciag-zrodla.mjs`** — odchudza plik dokumentacji do prozy,
+  tabel i jednego przykładu kodu na sekcję (wycina blobki SVG, odsyłacze
+  do zrzutów, powtórzone warianty `<div class="ghd-tool …">`, ten sam
+  przykład w ośmiu językach). Na źródłach modułu 4 Kursu 2: −38%.
+  Każde cięcie zostawia ślad w stopce pliku.
+- **`straznik-scenariuszy`** — mechaniczna kontrola każdego scenariusza:
+  kompletna metryka zgodna ze ścieżką pliku, istnienie plików z `zrodla:`
+  i niepustego pliku z `cytowane:`, obecność pięciu wymaganych sekcji,
+  minimum 8 wierszy tabeli „Zgodność ze źródłem", przynajmniej jeden
+  znacznik `[NARRACJA]`.
+
+### Zmienione
+- **Tryb produkcji treści: RÓWNOLEGŁY** (decyzja właściciela
+  2026-08-18) — moduły 4, 5, 6 i 7 Kursu 2 powstały brefem agenta
+  głównego + falami subagentów piszących po jednej lekcji.
+  **Ani razu nie zaszedł warunek powrotu do trybu ręcznego**; oceny
+  wszystkich czterech modułów wg czterech sygnałów jakości i koszty:
+  `tresc-kursow/POSTEP.md`. Briefy modułów zostają w repo jako dowód
+  produkcji i punkt odniesienia przy ocenie.
+- **Plik cytatów powstaje osobnym przebiegiem subagenta PO całym module
+  i jest traktowany jako DRUGA BRAMKA JAKOŚCI**, nie jako porządki —
+  autor cytatów szuka zdania w oryginale, więc widzi, czego tam nie ma.
+  Moduł 6: 4 wyłapane usterki, moduł 7: 10 (w tym 286 zweryfikowanych
+  wierszy tabel zgodności co do numeru akapitu).
+- **Cienkie źródła z programu (poniżej ~4 kB) uzupełniane plikami, które
+  same wskazują jako dalszą lekturę** — w module 7 dotyczyło to czterech
+  lekcji z pięciu (`about-codespaces.md` ma 785 B i jest samym spisem
+  odsyłaczy): 23 pliki źródłowe zamiast 7 z programu. Dopisane ścieżki
+  lądują w `zrodla:` i w tabeli zgodności.
+
+### Naprawione
+- **Nowa klasa usterki: wierność własnemu kursowi.** Finał Kursu 2
+  (lekcja 7.5) streszcza siedem modułów i przypisał trzy tematy do
+  złych: `.gitignore` modułowi 3 (jest w 2.4), gałęzie chronione
+  modułowi 4 (są w 3.5), konflikty scalania modułowi 2 (są w 4.8).
+  Nie łapał tego żaden strażnik ani tabela zgodności, bo to nie jest
+  teza ze źródła. Naprawione, a przeciw nawrotom stoi
+  `straznik-odsylaczy-kursu` (testy negatywne: łapie wszystkie trzy
+  pomyłki, w tym wariant eliptyczny „Czwarty — jedenaście lekcji…",
+  oraz odsyłacz do nieistniejącej lekcji). Audyt całego korpusu przed
+  napisaniem strażnika: 0 martwych odsyłaczy w 91 scenariuszach.
+- **Dziewięć usterek treści modułu 7** z przebiegu cytatów: dwie tezy
+  bez pokrycia w źródle, dwa zgubione zawężenia (restart z karty
+  przeglądarki tylko przy pracy w przeglądarce; rozszerzenia
+  z Marketplace tylko w desktopowym VS Code albo kliencie webowym),
+  trzy nieprecyzyjne wskazania w tabelach zgodności, dwa uogólnienia
+  szersze niż źródło.
+- **BLAD-008: artefakt narzędzia zapisu w 31 plikach treści** —
+  wyczyszczone, strażnik przeciw nawrotom w `straznik-scenariuszy`
+  (pomija bloki kodu, bo tam te znaczniki bywają treścią promptu).
+- **`straznik-linkow` pomija bloki kodu i kod inline** — scenariusze
+  uczące składni Markdowna zawierają przykłady `[tekst](sciezka)`, które
+  nie są klikalnymi odsyłaczami. Sprawdzone testem negatywnym: prawdziwy
+  martwy odsyłacz w prozie nadal wywala strażnika.
+
+## [0.20.0] — 2026-08-18
+
+### Dodane
+- **Kurs 2 / Moduł 4 „Współpraca: issues i pull requesty" — 11 scenariuszy**
+  (GitHub flow w zespole, issues i ich zakładanie, czym jest i jak się
+  tworzy pull requesta, prośba o przegląd i praca z uwagami, robienie
+  przeglądu, konflikty scalania, merge/squash/rebase, forki, wiązanie
+  PR-a z issue). Cytaty źródłowe:
+  `docs/dokumentacja-techniczna/d7/cytowane/github--modul-4.md`.
+  **Stan treści D7: 73 z 91 scenariuszy (80%).**
+- **Pierwszy moduł napisany trybem RÓWNOLEGŁYM** (decyzja właściciela
+  2026-08-18). Przebieg: brief całego modułu z granicami tematów
+  i callbackami → trzy fale subagentów (4 + 4 + 3), każdy pisze jedną
+  lekcję → przelot spójności agenta głównego. Pierwsza fala została
+  obejrzana PRZED puszczeniem kolejnych — wada systemowa nie miałaby
+  jak powielić się na jedenaście lekcji. Brief zostaje w repo
+  (`tresc-kursow/jak-uzywac-githuba/modul-4/BRIEF-modulu.md`), bo to on
+  jest powodem, dla którego równoległe lekcje składają się w kurs.
+  Ocena wg czterech sygnałów jakości i decyzja o kontynuowaniu trybu:
+  `tresc-kursow/POSTEP.md`, sekcja „Jak wypadł moduł 4".
+
+### Naprawione
+- **BLAD-008: artefakt narzędzia zapisu w 31 plikach treści.** Pliki
+  kończyły się dwiema liniami-śmieciami `</content>` i `</invoke>` —
+  większość scenariuszy Kursu 2 (moduły 1–3), moduł 6 Kursu 1 i pięć
+  plików cytatów źródłowych. Zgłosili to niezależnie dwaj subagenci
+  piszący lekcje 4.7 i 4.9, którzy podglądali format w sąsiednich
+  plikach — czyli artefakt zaczynał się już PROPAGOWAĆ do nowej treści.
+  Wyczyszczone wszystkie 31; jedno wystąpienie `</content>` w lekcji 6.5
+  Kursu 1 zostaje świadomie, bo jest w bloku kodu jako część szablonu
+  promptu. Strażnik przeciw nawrotom: `straznik-scenariuszy` łapie te
+  znaczniki w prozie scenariusza i w pliku cytatów, pomijając bloki kodu
+  (sprawdzone testem negatywnym w obie strony).
+
+## [0.19.0] — 2026-08-18
+
+### Dodane
+- **`tools/wyciag-zrodla.mjs`** — odchudzacz źródeł dokumentacji.
+  Zostawia prozę, tabele i JEDEN przykład kodu na sekcję; wycina blobki
+  `<svg>` ikon (jedna ikona to ~1,5 tys. znaków ścieżek wektorowych
+  wklejonych w środek zdania), odsyłacze do zrzutów ekranu, powtórzone
+  warianty tej samej instrukcji (`<div class="ghd-tool webui|cli|mac|…">`)
+  i ścieżki wewnętrznych odsyłaczy (tytuł zostaje w cudzysłowie).
+  Na źródłach modułu 4 Kursu 2: 104 kB → 64 kB (**−38%**; najbardziej
+  zaśmiecone pliki −62%). Po co: od tego modułu lekcje pisze kilku
+  subagentów RÓWNOLEGLE, więc każdy bajt śmiecia mnoży się przez liczbę
+  agentów. Narzędzie niczego nie streszcza ani nie przepisuje — każde
+  cięcie zostawia ślad w tekście albo w stopce pliku, bo cichy skrót
+  byłby gorszy od braku narzędzia: agent nie wiedziałby, że czyta wersję
+  niepełną.
+- **`straznik-scenariuszy`** — mechaniczna kontrola KAŻDEGO scenariusza
+  lekcji: kompletna metryka zgodna ze ścieżką pliku, istniejący
+  i niepusty plik z `cytowane:`, istniejące pliki z `zrodla:`, komplet
+  pięciu sekcji, przynajmniej jedna narracja do kamery oraz tabela
+  „Zgodność ze źródłem" z minimum 8 wierszami. To warunek bezpieczeństwa
+  dla pracy równoległej: w trybie ręcznym jeden agent widział wszystkie
+  lekcje po kolei, w równoległym nie widzi ich nikt — więc część „na oko"
+  zamieniamy na czerwone CI. Sprawdzony testami negatywnymi na każdej
+  gałęzi (brak tabeli, tabela za krótka, martwy plik cytatów, rozjazd
+  numeru modułu, brak `zrodla:`, scenariusz bez `[NARRACJA]`). Kontrola
+  istnienia plików z `zrodla:` włącza się tylko wtedy, gdy dokumentacja
+  jest rozpakowana lokalnie — w CI jej nie ma z założenia (55 MB poza
+  gitem), a strażnik mówi wprost, że tę część pominął.
+
+### Naprawione
+- **13 scenariuszy wskazywało plik z cytatami, którego nie ma.** Moduły 1
+  i 3 Kursu 1 pokazywały na `cytowane/claude-platform--pricing.md`,
+  `cytowane/claude-code--pamiec.md` i podobne, podczas gdy cytaty zostały
+  po drodze scalone do plików per moduł. Usterka niewidoczna gołym okiem
+  i dokładnie tego rodzaju, po który powstał `straznik-scenariuszy`: bez
+  niej po roku nie dałoby się sprawdzić, skąd wzięła się teza, bez
+  pobierania 55 MB źródeł. Wskazania poprawione, a brakujące cytaty do
+  lekcji 1.6 (słowniczek) dopisane jako `cytowane/claude-platform--glossary.md`.
+- **Trzy tabele „Zgodność ze źródłem" były płytsze niż materiał lekcji**
+  (K1/M1/L1, K1/M2/L1, K1/M5/L1 — 5–7 wierszy przy kilkunastu tezach
+  w narracji). Uzupełnione o tezy, które w lekcjach padają, a w tabeli
+  ich nie było: pola odpowiedzi API (`content` jako lista bloków,
+  `stop_reason`, `usage`), rozbicie rodziny modeli i dwóch dróg budowania
+  na osobne wiersze, trzy warunki wstępne prompt engineeringu.
+
+## [0.18.0] — 2026-08-18
+
+### Dodane
+- **Źródła Działu 7 pobrane: 2219 stron oryginalnej dokumentacji**
+  (WYTYCZNE §7 i N2) — Anthropic `claude-platform` 566/566
+  i `claude-code` 187/187 (komplety), GitHub 1466 artykułów.
+- **`tools/pobierz-dokumentacje-d7.mjs`** — idempotentny skrypt
+  odtwarzający komplet źródeł jedną komendą. Tempo celowo wolne
+  (2 wątki, przerwy, honorowanie `Retry-After`): pierwsze podejście
+  szło 6 wątkami i `docs.github.com` odrzuciło HTTP 429 połowę
+  z 2800 żądań, zostawiając dokumentację dziurawą — a to gorsze niż
+  jej brak, bo nie widać, czego brakuje. Zakres GitHuba zapisany
+  w kodzie (`SEKCJE_GITHUBA`), więc rozszerzenie kursu to dopisanie
+  sekcji i ponowne uruchomienie.
+- **`straznik-wagi-dokumentacji`** — pilnuje, żeby masa dokumentacji
+  producentów nie weszła do gita, także przez `git add -f`.
+  Zweryfikowany testami negatywnymi (obie gałęzie: pliki masowe
+  i przekroczony budżet wagi).
+
+### Zmienione
+- **Gałąź domyślna repozytorium: `main` → `plugin-1-sklep-kursow`**
+  (decyzja właściciela). GitHub renderuje stronę repozytorium z gałęzi
+  domyślnej, a `main` stoi na wersji 0.3.4 — 34 commity w tyle, sprzed
+  rebrandingu i bez podglądu katalogu. Odwiedzający widział projekt
+  sprzed miesiąca pracy. Reguła PLAN.md §5 zostaje nienaruszona: na
+  `main` nadal nic nie wchodzi przed ukończeniem Pluginu 1, a `main`
+  jest od teraz CELOWO nieaktualny i nie jest źródłem prawdy o stanie
+  projektu. Po domknięciu modułu: merge na `main` i powrót domyślnej.
+- **Dokumentacja Działu 7 zostaje LOKALNIE, poza repozytorium**
+  (decyzja właściciela). To 55 MB i ~2200 plików, a git przechowuje
+  każdą wersję na stałe — raz wpuszczone ciążyłyby każdemu klonowaniu
+  już zawsze, a odkręcenie wymagałoby przepisania historii. Do repo
+  wchodzi to, co czyni źródła weryfikowalnymi: `ZRODLA.md` (z zakresem
+  i uzasadnieniem cięć), skrypt odtwarzający i strażnik. Sens wytycznej
+  zachowany: agent pracuje na oryginale, nie na pamięci modelu.
+  WYTYCZNE N2 dostały doprecyzowanie „dokumentacja wielkiej skali"
+  (próg 8 MB) — wytyczna powstała przy działach o kilkunastu plikach.
+- **Zakres dokumentacji GitHuba przycięty: 3192 → 1466 stron.**
+  Odpadły sekcje spoza kursu: `copilot` (551 — konkurencyjne narzędzie
+  AI, o pracy z AI uczy kurs 1), `rest`/`graphql`/`apps` (428 — API dla
+  autorów integracji), how-tos i reference GitHub Advanced Security
+  (~390 — funkcje na licencji, których kursant nie ma) oraz rozliczenia,
+  regulaminy i programy (~440). Uzasadnienie każdego cięcia w `ZRODLA.md`.
+- `straznik-linkow` pomija `docs/dokumentacja-techniczna/` — to
+  dosłowna dokumentacja producentów, a jej linki są absolutne względem
+  serwisu źródłowego (`/en/webhooks/…`), więc jako ścieżki w repo nigdy
+  nie istnieją. „Naprawienie" ich znaczyłoby zmienić oryginał, czego
+  WYTYCZNE N2 zabraniają. Zweryfikowany testem negatywnym: martwy link
+  w NASZEJ dokumentacji nadal zatrzymuje commit.
+
+### Naprawione
+- **BLAD-007: podgląd strony głównej wynosił link do prywatnego
+  localhosta.** Klon repo strony głównej miał lokalną, NIEcommitowaną
+  zmianę `data/navigation.ts` (wpis „Szkolenia" → `localhost:3001`),
+  zapisaną wcześniej w CLAUDE.md jako bezpieczną, „bo nic nie
+  pushujemy". Tymczasem `scripts/deploy.sh` buduje z KATALOGU
+  ROBOCZEGO, nie z commitów — zmiana trafiła do statycznego eksportu
+  i została wypchnięta na publiczne GitHub Pages, gdzie stała na
+  wszystkich 215 stronach (navbar jest na każdej). Zgłosił właściciel.
+  Naprawa: zmiana schowana do stasha (nie skasowana), publikacja
+  ponowiona z czystego drzewa, zweryfikowana na żywym adresie
+  (0 wystąpień na stronie głównej i podstronach). W CLAUDE.md sposób
+  podglądu zastąpiony ZAKAZEM zostawiania jakichkolwiek zmian
+  w klonie — podgląd podstrony żyje wyłącznie w tym repo.
+
 ## [0.17.1] — 2026-08-18
 
 ### Zmienione

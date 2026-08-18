@@ -1,0 +1,650 @@
+{
+  "opis": "Golden treści kursów D7 — miary każdego scenariusza. Regeneracja: node tools/straznicy/straznik-goldenu-tresci.mjs --zapisz \"powód\"",
+  "powod": "komplet D7 — 91 scenariuszy (Kurs 1: 41, Kurs 2: 50), po naprawach z przebiegu cytatów modułu 7",
+  "poprzednioLekcji": 91,
+  "podsumowanie": {
+    "lekcje": 91,
+    "bajty": 1337881,
+    "sceny": 506,
+    "wierszeZgodnosci": 1917
+  },
+  "lekcje": {
+    "tresc-kursow/jak-korzystac-z-claude/modul-1/lekcja-1-czym-jest-claude.md": {
+      "sha256": "bfdd087c4bcbdfc6",
+      "bajty": 7172,
+      "wiersze": 147,
+      "sceny": 6,
+      "wierszeZgodnosci": 15
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-1/lekcja-2-rodzina-modeli.md": {
+      "sha256": "61c1af0f9ed795e2",
+      "bajty": 6134,
+      "wiersze": 131,
+      "sceny": 6,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-1/lekcja-3-dobor-modelu.md": {
+      "sha256": "e67d5731085329fb",
+      "bajty": 7297,
+      "wiersze": 144,
+      "sceny": 6,
+      "wierszeZgodnosci": 9
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-1/lekcja-4-cennik.md": {
+      "sha256": "c0fbb6d5b8f20b88",
+      "bajty": 5833,
+      "wiersze": 122,
+      "sceny": 5,
+      "wierszeZgodnosci": 10
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-1/lekcja-5-okno-kontekstu.md": {
+      "sha256": "0fa996fc7f65a3aa",
+      "bajty": 7201,
+      "wiersze": 144,
+      "sceny": 6,
+      "wierszeZgodnosci": 13
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-1/lekcja-6-slowniczek.md": {
+      "sha256": "361406935cae8917",
+      "bajty": 5931,
+      "wiersze": 124,
+      "sceny": 5,
+      "wierszeZgodnosci": 13
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-2/lekcja-1-zasady-dobrego-promptu.md": {
+      "sha256": "416f82edd0923801",
+      "bajty": 6428,
+      "wiersze": 128,
+      "sceny": 5,
+      "wierszeZgodnosci": 15
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-2/lekcja-2-najlepsze-praktyki.md": {
+      "sha256": "fde72b223a5d373d",
+      "bajty": 7292,
+      "wiersze": 147,
+      "sceny": 5,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-2/lekcja-3-promptowanie-najnowszych-modeli.md": {
+      "sha256": "8ff3616c5b01049b",
+      "bajty": 8437,
+      "wiersze": 157,
+      "sceny": 5,
+      "wierszeZgodnosci": 14
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-2/lekcja-4-myslenie.md": {
+      "sha256": "2fc67e0ecb74c6bb",
+      "bajty": 7828,
+      "wiersze": 147,
+      "sceny": 5,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-2/lekcja-5-halucynacje-i-spojnosc.md": {
+      "sha256": "8ce1565d011878d6",
+      "bajty": 7911,
+      "wiersze": 152,
+      "sceny": 5,
+      "wierszeZgodnosci": 13
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-3/lekcja-1-jak-dziala-claude-code.md": {
+      "sha256": "167aad11b3fafe32",
+      "bajty": 7318,
+      "wiersze": 151,
+      "sceny": 6,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-3/lekcja-2-instalacja-i-pierwsza-sesja.md": {
+      "sha256": "bd76ac398bae4fb7",
+      "bajty": 7096,
+      "wiersze": 147,
+      "sceny": 6,
+      "wierszeZgodnosci": 14
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-3/lekcja-3-codzienne-przeplywy.md": {
+      "sha256": "defc01d0350a437f",
+      "bajty": 6904,
+      "wiersze": 143,
+      "sceny": 6,
+      "wierszeZgodnosci": 10
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-3/lekcja-4-najlepsze-praktyki-agenta.md": {
+      "sha256": "48e6f15cf6417861",
+      "bajty": 9005,
+      "wiersze": 170,
+      "sceny": 5,
+      "wierszeZgodnosci": 14
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-3/lekcja-5-pamiec-projektu.md": {
+      "sha256": "2e3198ea50c1b20c",
+      "bajty": 7707,
+      "wiersze": 156,
+      "sceny": 5,
+      "wierszeZgodnosci": 17
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-3/lekcja-6-tryb-interaktywny-i-komendy.md": {
+      "sha256": "5050e0fb938055ad",
+      "bajty": 6207,
+      "wiersze": 128,
+      "sceny": 4,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-3/lekcja-7-uprawnienia.md": {
+      "sha256": "ccaf556eb5a18ab8",
+      "bajty": 7211,
+      "wiersze": 142,
+      "sceny": 5,
+      "wierszeZgodnosci": 13
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-3/lekcja-8-konfiguracja.md": {
+      "sha256": "1763db99dced9f9f",
+      "bajty": 6674,
+      "wiersze": 141,
+      "sceny": 5,
+      "wierszeZgodnosci": 13
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-4/lekcja-1-subagenci.md": {
+      "sha256": "f8af3f0112cc89ca",
+      "bajty": 7712,
+      "wiersze": 153,
+      "sceny": 5,
+      "wierszeZgodnosci": 14
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-4/lekcja-2-skille.md": {
+      "sha256": "bc35a98715cd3464",
+      "bajty": 7725,
+      "wiersze": 154,
+      "sceny": 5,
+      "wierszeZgodnosci": 13
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-4/lekcja-3-hooki.md": {
+      "sha256": "3b62d1745e2ce6f4",
+      "bajty": 6980,
+      "wiersze": 140,
+      "sceny": 5,
+      "wierszeZgodnosci": 12
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-4/lekcja-4-mcp.md": {
+      "sha256": "fe7403f6261fed8c",
+      "bajty": 7491,
+      "wiersze": 150,
+      "sceny": 5,
+      "wierszeZgodnosci": 13
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-4/lekcja-5-pluginy.md": {
+      "sha256": "41703b9a4eceeccd",
+      "bajty": 6209,
+      "wiersze": 128,
+      "sceny": 4,
+      "wierszeZgodnosci": 14
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-4/lekcja-6-claude-w-ci.md": {
+      "sha256": "fb7ffdf6b1b46f1d",
+      "bajty": 7613,
+      "wiersze": 151,
+      "sceny": 5,
+      "wierszeZgodnosci": 15
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-4/lekcja-7-worktrees-i-sesje.md": {
+      "sha256": "18c08b722035b51c",
+      "bajty": 7094,
+      "wiersze": 140,
+      "sceny": 4,
+      "wierszeZgodnosci": 16
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-4/lekcja-8-punkty-kontrolne.md": {
+      "sha256": "fc06de50589458ae",
+      "bajty": 5926,
+      "wiersze": 117,
+      "sceny": 3,
+      "wierszeZgodnosci": 14
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-5/lekcja-1-pierwsze-wywolanie-api.md": {
+      "sha256": "20db23dca0568ef6",
+      "bajty": 5744,
+      "wiersze": 121,
+      "sceny": 5,
+      "wierszeZgodnosci": 13
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-5/lekcja-2-klucz-i-messages.md": {
+      "sha256": "cf7a670188f6241c",
+      "bajty": 6800,
+      "wiersze": 139,
+      "sceny": 5,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-5/lekcja-3-tool-use.md": {
+      "sha256": "728a0135a48108aa",
+      "bajty": 7675,
+      "wiersze": 153,
+      "sceny": 5,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-5/lekcja-4-ustrukturyzowane-odpowiedzi.md": {
+      "sha256": "c00fd13c36c2582c",
+      "bajty": 6144,
+      "wiersze": 122,
+      "sceny": 4,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-5/lekcja-5-streaming.md": {
+      "sha256": "139c3cb049cac7a0",
+      "bajty": 6500,
+      "wiersze": 130,
+      "sceny": 5,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-5/lekcja-6-agent-skills.md": {
+      "sha256": "decd13a5ac558556",
+      "bajty": 6211,
+      "wiersze": 128,
+      "sceny": 4,
+      "wierszeZgodnosci": 13
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-5/lekcja-7-pliki-i-pdf.md": {
+      "sha256": "31608869cd9a7bb4",
+      "bajty": 6204,
+      "wiersze": 123,
+      "sceny": 4,
+      "wierszeZgodnosci": 9
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-5/lekcja-8-vision.md": {
+      "sha256": "8f3b65de6fa333e8",
+      "bajty": 7521,
+      "wiersze": 147,
+      "sceny": 5,
+      "wierszeZgodnosci": 14
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-6/lekcja-1-prompt-caching.md": {
+      "sha256": "07332046afd0a236",
+      "bajty": 11327,
+      "wiersze": 210,
+      "sceny": 6,
+      "wierszeZgodnosci": 18
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-6/lekcja-2-batch-api.md": {
+      "sha256": "c6a36cf7bde94d11",
+      "bajty": 9724,
+      "wiersze": 189,
+      "sceny": 5,
+      "wierszeZgodnosci": 18
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-6/lekcja-3-liczenie-tokenow.md": {
+      "sha256": "04c657aa4d18f0f8",
+      "bajty": 7217,
+      "wiersze": 145,
+      "sceny": 4,
+      "wierszeZgodnosci": 12
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-6/lekcja-4-testy-i-ewaluacje.md": {
+      "sha256": "904e413cd1c8d554",
+      "bajty": 10881,
+      "wiersze": 210,
+      "sceny": 5,
+      "wierszeZgodnosci": 17
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-6/lekcja-5-jailbreaki-i-wyciek-promptu.md": {
+      "sha256": "1675d765efb6b643",
+      "bajty": 12550,
+      "wiersze": 245,
+      "sceny": 4,
+      "wierszeZgodnosci": 20
+    },
+    "tresc-kursow/jak-korzystac-z-claude/modul-6/lekcja-6-bezpieczenstwo-claude-code.md": {
+      "sha256": "58a181eaa555f6d6",
+      "bajty": 14300,
+      "wiersze": 257,
+      "sceny": 5,
+      "wierszeZgodnosci": 25
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-1/lekcja-1-czym-jest-github.md": {
+      "sha256": "f9e401eb0838d253",
+      "bajty": 7721,
+      "wiersze": 160,
+      "sceny": 5,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-1/lekcja-2-hello-world.md": {
+      "sha256": "b1473d1d788a070b",
+      "bajty": 10658,
+      "wiersze": 222,
+      "sceny": 6,
+      "wierszeZgodnosci": 20
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-1/lekcja-3-konfiguracja-gita.md": {
+      "sha256": "cda5dfe73f190b5c",
+      "bajty": 9140,
+      "wiersze": 192,
+      "sceny": 5,
+      "wierszeZgodnosci": 16
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-1/lekcja-4-repozytorium-projektu.md": {
+      "sha256": "cfecfb434b73302e",
+      "bajty": 7821,
+      "wiersze": 178,
+      "sceny": 5,
+      "wierszeZgodnosci": 14
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-1/lekcja-5-polacz-lokalny-kod.md": {
+      "sha256": "8548e20c824e972e",
+      "bajty": 7629,
+      "wiersze": 167,
+      "sceny": 5,
+      "wierszeZgodnosci": 13
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-1/lekcja-6-git-od-srodka.md": {
+      "sha256": "e1bf9a00cf78caa0",
+      "bajty": 10603,
+      "wiersze": 219,
+      "sceny": 5,
+      "wierszeZgodnosci": 18
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-2/lekcja-1-przeplywy-pracy-git.md": {
+      "sha256": "af5f2734a970545e",
+      "bajty": 8870,
+      "wiersze": 187,
+      "sceny": 4,
+      "wierszeZgodnosci": 15
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-2/lekcja-2-wypychanie-commitow.md": {
+      "sha256": "2662887e7dc220f3",
+      "bajty": 7379,
+      "wiersze": 154,
+      "sceny": 4,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-2/lekcja-3-pobieranie-zmian.md": {
+      "sha256": "df89e1704d7b86ae",
+      "bajty": 6682,
+      "wiersze": 146,
+      "sceny": 4,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-2/lekcja-4-gitignore.md": {
+      "sha256": "8f00ea4f1c24948c",
+      "bajty": 7240,
+      "wiersze": 157,
+      "sceny": 4,
+      "wierszeZgodnosci": 10
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-2/lekcja-5-zdalne-repozytoria.md": {
+      "sha256": "021c2db118729681",
+      "bajty": 8955,
+      "wiersze": 184,
+      "sceny": 4,
+      "wierszeZgodnosci": 14
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-2/lekcja-6-rebase-bez-strachu.md": {
+      "sha256": "e00ed26d163a7a11",
+      "bajty": 11520,
+      "wiersze": 245,
+      "sceny": 6,
+      "wierszeZgodnosci": 17
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-2/lekcja-7-sciaga-komend.md": {
+      "sha256": "1f021e86c7722599",
+      "bajty": 8231,
+      "wiersze": 171,
+      "sceny": 3,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-3/lekcja-1-dobre-praktyki-repozytoriow.md": {
+      "sha256": "ee97dc5061059f0d",
+      "bajty": 8358,
+      "wiersze": 177,
+      "sceny": 5,
+      "wierszeZgodnosci": 15
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-3/lekcja-2-readme.md": {
+      "sha256": "57344ff514e36863",
+      "bajty": 8592,
+      "wiersze": 190,
+      "sceny": 5,
+      "wierszeZgodnosci": 17
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-3/lekcja-3-markdown.md": {
+      "sha256": "d04235d22fba8a60",
+      "bajty": 12393,
+      "wiersze": 262,
+      "sceny": 6,
+      "wierszeZgodnosci": 19
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-3/lekcja-4-licencja.md": {
+      "sha256": "d4c467807365223d",
+      "bajty": 8154,
+      "wiersze": 171,
+      "sceny": 4,
+      "wierszeZgodnosci": 11
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-3/lekcja-5-galezie-chronione.md": {
+      "sha256": "67a422f48bd06f1d",
+      "bajty": 12730,
+      "wiersze": 245,
+      "sceny": 4,
+      "wierszeZgodnosci": 24
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-3/lekcja-6-releasy-i-tagi.md": {
+      "sha256": "399c565ef6eb95b7",
+      "bajty": 10895,
+      "wiersze": 228,
+      "sceny": 4,
+      "wierszeZgodnosci": 23
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-3/lekcja-7-duze-pliki.md": {
+      "sha256": "4e5b7cb778cf9f5b",
+      "bajty": 9535,
+      "wiersze": 197,
+      "sceny": 4,
+      "wierszeZgodnosci": 17
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-3/lekcja-8-szablony-repozytoriow.md": {
+      "sha256": "f146f1309269adcf",
+      "bajty": 7408,
+      "wiersze": 157,
+      "sceny": 3,
+      "wierszeZgodnosci": 17
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-1-github-flow-w-zespole.md": {
+      "sha256": "587ee4a153aaeb7c",
+      "bajty": 16114,
+      "wiersze": 309,
+      "sceny": 5,
+      "wierszeZgodnosci": 21
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-10-forki.md": {
+      "sha256": "76511ca5fa446938",
+      "bajty": 21997,
+      "wiersze": 381,
+      "sceny": 5,
+      "wierszeZgodnosci": 21
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-11-laczenie-pr-z-issue.md": {
+      "sha256": "71d94b38243f1ded",
+      "bajty": 19207,
+      "wiersze": 345,
+      "sceny": 4,
+      "wierszeZgodnosci": 21
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-2-issues-planowanie-pracy.md": {
+      "sha256": "5b1082896b4e902e",
+      "bajty": 18225,
+      "wiersze": 335,
+      "sceny": 5,
+      "wierszeZgodnosci": 26
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-3-tworzenie-i-prowadzenie-issue.md": {
+      "sha256": "1b5e5f11907ad7ed",
+      "bajty": 18189,
+      "wiersze": 311,
+      "sceny": 4,
+      "wierszeZgodnosci": 22
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-4-czym-jest-pull-request.md": {
+      "sha256": "996c982825d0bb23",
+      "bajty": 17509,
+      "wiersze": 327,
+      "sceny": 5,
+      "wierszeZgodnosci": 28
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-5-tworzenie-pull-requesta.md": {
+      "sha256": "34d92407908c0ad0",
+      "bajty": 19056,
+      "wiersze": 347,
+      "sceny": 5,
+      "wierszeZgodnosci": 21
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-6-prosba-o-review-i-uwagi.md": {
+      "sha256": "a6fc5e19039bbbe4",
+      "bajty": 21524,
+      "wiersze": 374,
+      "sceny": 5,
+      "wierszeZgodnosci": 20
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-7-dobre-code-review.md": {
+      "sha256": "4212e4e80aea1102",
+      "bajty": 27451,
+      "wiersze": 486,
+      "sceny": 6,
+      "wierszeZgodnosci": 35
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-8-konflikty-scalania.md": {
+      "sha256": "8725297983fe2921",
+      "bajty": 23985,
+      "wiersze": 448,
+      "sceny": 6,
+      "wierszeZgodnosci": 25
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-4/lekcja-9-merge-squash-rebase.md": {
+      "sha256": "1f2d2be90bddf53c",
+      "bajty": 25268,
+      "wiersze": 424,
+      "sceny": 5,
+      "wierszeZgodnosci": 25
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-5/lekcja-1-zrozum-github-actions.md": {
+      "sha256": "3abe6e66676c47c6",
+      "bajty": 27285,
+      "wiersze": 496,
+      "sceny": 7,
+      "wierszeZgodnosci": 37
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-5/lekcja-2-pierwszy-workflow.md": {
+      "sha256": "eb18b557146d1bd0",
+      "bajty": 24269,
+      "wiersze": 421,
+      "sceny": 7,
+      "wierszeZgodnosci": 32
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-5/lekcja-3-continuous-integration.md": {
+      "sha256": "39f0b33fbd95170c",
+      "bajty": 25661,
+      "wiersze": 469,
+      "sceny": 7,
+      "wierszeZgodnosci": 31
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-5/lekcja-4-anatomia-workflow.md": {
+      "sha256": "478f59de58e3b3fc",
+      "bajty": 28762,
+      "wiersze": 515,
+      "sceny": 8,
+      "wierszeZgodnosci": 32
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-5/lekcja-5-zmienne-i-konteksty.md": {
+      "sha256": "9053fb251bcf063c",
+      "bajty": 29408,
+      "wiersze": 471,
+      "sceny": 6,
+      "wierszeZgodnosci": 28
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-5/lekcja-6-sekrety-w-workflow.md": {
+      "sha256": "683bd6fb180473ec",
+      "bajty": 32611,
+      "wiersze": 506,
+      "sceny": 7,
+      "wierszeZgodnosci": 37
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-5/lekcja-7-continuous-deployment.md": {
+      "sha256": "02067bb0d786f99a",
+      "bajty": 28881,
+      "wiersze": 452,
+      "sceny": 7,
+      "wierszeZgodnosci": 37
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-6/lekcja-1-dwuskladnikowe-uwierzytelnianie.md": {
+      "sha256": "aa92dff31955405b",
+      "bajty": 34352,
+      "wiersze": 487,
+      "sceny": 7,
+      "wierszeZgodnosci": 46
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-6/lekcja-2-klucze-ssh.md": {
+      "sha256": "c392e83a3fca4dcb",
+      "bajty": 41191,
+      "wiersze": 672,
+      "sceny": 10,
+      "wierszeZgodnosci": 55
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-6/lekcja-3-funkcje-bezpieczenstwa-githuba.md": {
+      "sha256": "9eeaea14a0620fa6",
+      "bajty": 32483,
+      "wiersze": 477,
+      "sceny": 7,
+      "wierszeZgodnosci": 40
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-6/lekcja-4-zabezpiecz-swoje-repozytorium.md": {
+      "sha256": "7ef3403b2f4be62b",
+      "bajty": 35569,
+      "wiersze": 576,
+      "sceny": 11,
+      "wierszeZgodnosci": 45
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-6/lekcja-5-dependabot.md": {
+      "sha256": "7523f2504de87688",
+      "bajty": 30780,
+      "wiersze": 529,
+      "sceny": 8,
+      "wierszeZgodnosci": 37
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-6/lekcja-6-secret-scanning.md": {
+      "sha256": "6389bf9b7a864815",
+      "bajty": 23152,
+      "wiersze": 361,
+      "sceny": 7,
+      "wierszeZgodnosci": 28
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-7/lekcja-1-github-cli.md": {
+      "sha256": "83fad46028c40515",
+      "bajty": 45332,
+      "wiersze": 669,
+      "sceny": 11,
+      "wierszeZgodnosci": 74
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-7/lekcja-2-github-pages.md": {
+      "sha256": "47abc80063140f60",
+      "bajty": 40682,
+      "wiersze": 602,
+      "sceny": 11,
+      "wierszeZgodnosci": 58
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-7/lekcja-3-codespaces.md": {
+      "sha256": "09b602d50a2261a1",
+      "bajty": 54428,
+      "wiersze": 680,
+      "sceny": 10,
+      "wierszeZgodnosci": 73
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-7/lekcja-4-wyszukiwanie.md": {
+      "sha256": "beb38e344e828d8e",
+      "bajty": 40356,
+      "wiersze": 582,
+      "sceny": 12,
+      "wierszeZgodnosci": 47
+    },
+    "tresc-kursow/jak-uzywac-githuba/modul-7/lekcja-5-discussions.md": {
+      "sha256": "f97e3fa9c3980d79",
+      "bajty": 32506,
+      "wiersze": 470,
+      "sceny": 10,
+      "wierszeZgodnosci": 39
+    }
+  }
+}

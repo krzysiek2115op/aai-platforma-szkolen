@@ -46,10 +46,18 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   `straznik-migracji`, job CI „baza" z usługą postgres. Docker NIE jest
   zainstalowany — używamy **podmana** (`npm run db1:up`).
 - Decyzja właściciela (2026-08-17): wejście do `/szkolenia` z paska menu
-  strony głównej. Na podglądzie: **lokalna, NIEcommitowana** zmiana w klonie
-  (`data/navigation.ts` — link `http://localhost:3001/szkolenia`; repo
-  strony głównej pozostaje read-only, nic nie pushujemy). Przy finalnym
-  wdrożeniu dopisać wejście „Szkolenia" do nawigacji strony głównej.
+  strony głównej — dopiero przy **finalnym wdrożeniu**.
+  **ZAKAZ (właściciel, 2026-08-18, po BLAD-007): w klonie strony głównej
+  NIE ZOSTAWIAMY ŻADNYCH zmian — także niecommitowanych.** Poprzedni
+  sposób podglądu (dopisany link `http://localhost:3001/szkolenia`
+  w `data/navigation.ts`) wyciekł na publiczny podgląd GitHub Pages, bo
+  `npm run deploy` buduje z KATALOGU ROBOCZEGO, nie z commitów — czysty
+  `git status` w repo źródłowym niczego nie gwarantuje. Podgląd podstrony
+  żyje wyłącznie tutaj: `:3001` i zrzut w naszym README. Zmiana schowana
+  w klonie do `stash@{0}` (nie skasowana). Kontekst: repo strony głównej
+  NIE MA sekretu `PAGES_DEPLOY_TOKEN`, więc workflow `deploy.yml` pomija
+  publikację (przebiegi 7 s) i podgląd wgrywa się WYŁĄCZNIE ręcznym
+  `npm run deploy` z czyjegoś katalogu roboczego — stąd cała klasa błędu.
 - Pustka na `/szkolenia` jest zaplanowana: treść wejdzie z bazy w D4–D5,
   kursy właściciela w D7 — placeholderów nie dopracowujemy ręcznie.
 - **Dział 3 ZBUDOWANY, B3 zaliczona testami** (15/15 + goldeny):
@@ -143,7 +151,8 @@ przy każdym kroku zmieniającym stan projektu (jak README).
     animacja `.page-enter` (`both`) zostawiała trwały kontekst
     układania i chowała elementy `fixed` pod stopką → `backwards`
     + rozszerzony `straznik-fixed`.
-  - Stan dowodów: strażnicy 11/11, testy 27/27, smoke D4/D5/D6 zielone.
+  - Stan dowodów: strażnicy 14/14 (doszły straznik-wagi-dokumentacji
+    i straznik-scenariuszy), testy 27/27, smoke D4/D5/D6 zielone.
 - **REBRANDING (2026-08-18, PR #20, tag v0.17.0)**: strona główna
   przemianowana **MatthewPlugins.pl → Automatic AI** (repo
   `MatthewPlugins/automatic-ai`; org GitHuba bez zmian). W podstronie:
@@ -163,14 +172,28 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   do repo celowany komplet (Plugin Handbook, $wpdb/dbDelta, REST,
   bezpieczeństwo, MySQL: typy/indeksy/transakcje/triggery) —
   NIE zrzucamy całych manuali; agent czyta szeroko w sieci.
-- **NASTĘPNY KROK: Dział 7 — TREŚĆ docelowa obu kursów.** Kolejność:
+- **Dział 7 — TREŚĆ docelowa obu kursów (ZROBIONE).** Kolejność prac była:
   (1) ~~domknąć D6 na GitHubie~~ ZROBIONE (PR #18, v0.16.2),
   (2) nowa gałąź `feat/d7-tresc` od `plugin-1-sklep-kursow`,
-  (3) NAJPIERW pobrać oryginalną dokumentację do
-  `docs/dokumentacja-techniczna/d7/` z `ZRODLA.md` (WYTYCZNE N2):
-  dokumentacja Anthropic/Claude dla kursu 1, dokumentacja GitHuba dla
-  kursu 2, (4) dopiero potem pisać treść — każda lekcja ma wskazane
-  źródło, zero zmyślania. Wymóg właściciela: kursy **w 100% zgodne
+  (3) ~~pobrać oryginalną dokumentację~~ **ZROBIONE**: 2219 plików
+  (claude-platform 566, claude-code 187, github 1466 z 3192 — zakres
+  cięty pod kurs). Pliki leżą LOKALNIE w
+  `docs/dokumentacja-techniczna/d7/` i są **poza gitem** (55 MB;
+  decyzja właściciela 2026-08-18, doprecyzowanie WYTYCZNE N2). W repo:
+  `ZRODLA.md` + `tools/pobierz-dokumentacje-d7.mjs` (odtwarza komplet
+  jedną komendą, idempotentnie) + `straznik-wagi-dokumentacji`.
+  **Po `git clean` albo na nowej maszynie: najpierw uruchom skrypt,
+  potem pisz treść.**
+  (4) **NAJPIERW PROGRAM obu kursów do zatwierdzenia przez właściciela**
+  (moduły + lekcje, każda ze wskazanym plikiem źródłowym) — dopiero po
+  jego akceptacji piszemy treść. Kolejność jest wymuszona wymogiem
+  właściciela: strona nie może obiecywać niczego spoza programu, więc
+  program musi być ustalony pierwszy.
+  (5) treść lekcji — każda ze wskazanym
+  źródłem, zero zmyślania; cytowane fragmenty kopiować do
+  `docs/dokumentacja-techniczna/d7/cytowane/` (ten katalog wchodzi
+  do repo, żeby dało się sprawdzić lekcję bez pobierania 55 MB).
+  Wymóg właściciela: kursy **w 100% zgodne
   z programem** — moduły/lekcje to spis treści realnego materiału,
   strona nie obiecuje niczego spoza programu; do tego golden treści
   obu kursów (ochrona przed cichą utratą tekstu). Treść wprowadzamy
@@ -178,6 +201,115 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   w `tools/seed/seed-przyklady.ts` jest ROBOCZA i do zastąpienia.
   Opinie w seedach to jawne placeholdery — prawdziwe dopiero po
   pierwszych sprzedażach, niczego nie zmyślamy.
+- **DECYZJE WŁAŚCICIELA przy D7 (2026-08-18)** — pełnia w
+  [docs/plugin-1/PROGRAM-KURSOW-D7.md](docs/plugin-1/PROGRAM-KURSOW-D7.md)
+  (sekcja „Decyzje właściciela"): (a) propozycja programu obu kursów
+  (Kurs 1: 6 modułów/41 lekcji, Kurs 2: 7 modułów/50 lekcji, każda
+  lekcja ze zweryfikowanym źródłem) — **ZAAKCEPTOWANA 2026-08-18**;
+  (b) styl premium jak strona — każdy punkt styku klienta;
+  (c) **pełnoprawny kurs, NIE e-book**: materiał kursu NIE jest publiczny
+  na stronie (katalog + strony sprzedażowe zostają), po zakupie mail
+  z linkiem do logowania, kurs = LEKCJE WIDEO + instrukcje + prompty na
+  platformie szkoleniowej za logowaniem (etap WP, Plugin 2/3), PDF-y
+  tylko jako dodatki; (d) podział pracy: agent pisze ze źródeł
+  scenariusze nagrań (kroki na ekranie + narracja + prompty),
+  właściciel nagrywa wideo. Scenariusze żyją w repo.
+- **D7 KOMPLETNY — 91 z 91 scenariuszy (2026-08-18).** Program
+  ZATWIERDZONY i wprowadzony do bazy dyspozytorem (Kurs 1: 6 modułów/41
+  lekcji/720 min; Kurs 2: 7/50/745 — widać na `/szkolenia`). Scenariusze
+  nagrań leżą w `tresc-kursow/<slug>/modul-N/lekcja-M-<temat>.md`, cytaty
+  źródłowe w `docs/dokumentacja-techniczna/d7/cytowane/`.
+  **Licznik i historia produkcji: [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md)**
+  — Kurs 1 gotowy (41/41), Kurs 2 gotowy (50/50, moduł 7 „Ponad podstawy"
+  zamknięty 2026-08-18). Strażnicy 14/14, `straznik-scenariuszy`
+  potwierdza 91 scenariuszy.
+  **NASTĘPNY KROK: domknięcie działu** — wpis do CHANGELOG, **PR gałęzi
+  `feat/d7-tresc`** do `plugin-1-sklep-kursow` wg CONTRIBUTING (moduły
+  lądowały bezpośrednio na gałęzi, jeden commit na moduł — PR zamyka
+  cały dział), potem **etap WordPressa** z [docs/PLAN.md](docs/PLAN.md).
+  Do rozważenia przy domknięciu: golden treści obu kursów (ochrona przed
+  cichą utratą tekstu) — zapowiedziany w PROGRAM-KURSOW-D7.md, jeszcze
+  nie zrobiony.
+  Zasady, które obowiązywały i mają obowiązywać przy każdej korekcie
+  treści: commit po KAŻDYM module, każda teza z tabelą „Zgodność ze
+  źródłem", zero zmyślania.
+  Korekta źródła przy L2.4 Kursu 1: `extended-thinking.md` jest
+  w dokumentacji DEPRECATED (4.7+ zwraca 400), więc rdzeń to
+  `thinking.md`.
+  Podział materiału w Kursie 2: lekcja 2.1 bierze z GitHub flow tylko
+  **rytm pracy własnej**, strona **zespołowa** (przeglądy, scalanie,
+  gałęzie chronione) należy do lekcji **4.1** — nie powtarzać.
+  **TRYB RÓWNOLEGŁY (decyzja właściciela 2026-08-18) — cztery moduły
+  Kursu 2 (4, 5, 6, 7) powstały tym trybem i ANI RAZU nie zaszedł
+  warunek powrotu do trybu ręcznego.** Przepis, narzędzia
+  (`tools/wyciag-zrodla.mjs`, `straznik-scenariuszy`), oceny wszystkich
+  czterech modułów wg czterech sygnałów jakości i koszty — sekcja „Tryb
+  produkcji" w POSTEP.md. Co się sprawdziło i ma zostać, gdyby doszła
+  nowa treść: brief PRZED falami (zostaje w repo, np.
+  `tresc-kursow/jak-uzywac-githuba/modul-7/BRIEF-modulu.md`), wzorzec
+  formatu jako FRAGMENT gotowej lekcji, tylko własna sekcja briefu przy
+  PEŁNEJ tabeli granic, przegląd pierwszej fali przed puszczeniem
+  drugiej, **dosłowne zdanie zamykające poprzedniej lekcji w prompcie**
+  (poprawka z modułu 6 — w module 7 zadziałała: wszystkie cztery
+  przejścia trzymają się co do zdania) oraz **plik cytatów osobnym
+  przebiegiem subagenta PO całym module, traktowany jako DRUGA BRAMKA
+  JAKOŚCI, nie porządki** (moduł 6: 4 usterki, moduł 7: 10 usterek — w
+  tym błędne przypisanie trzech tematów do modułów w podsumowaniu
+  CAŁEGO kursu; wszystkie naprawione przed commitem).
+  **LEKCJA z modułu 7 (nowa klasa usterki):** podsumowania odwołujące
+  się do wcześniejszych modułów trzeba weryfikować przeciw REALNYM
+  tytułom lekcji (`grep -h "^lekcja:" modul-*/*.md`), a nie pisać
+  z pamięci — autor finału kursu przypisał `.gitignore` modułowi 3
+  (jest w 2), gałęzie chronione modułowi 4 (są w 3) i konflikty
+  scalania modułowi 2 (są w 4).
+  **DECYZJA WŁAŚCICIELA (2026-08-18): subagenci treści zostają na
+  OPUSIE.** Propozycja agenta, żeby przy tanim materiale modułu 7 zejść
+  na Sonneta, została odrzucona — jakość trybu równoległego stoi na tym,
+  że subagent sam pilnuje granic, odmawia tez bez pokrycia i sięga do
+  oryginału. Nie zmieniać modelu bez nowej decyzji właściciela.
+  Cienkie źródła z programu (poniżej ~4 kB) uzupełniamy plikami
+  wskazanymi w nich jako dalsza lektura — w module 5 dotyczyło to lekcji
+  5.3–5.7, w module 6 lekcji 6.2, a w module 7 **czterech lekcji z pięciu**
+  (7.1, 7.2, 7.3, 7.4 — `about-codespaces.md` ma 785 B i jest samym
+  spisem odsyłaczy); dopisane ścieżki lądują we frontmatterze `zrodla:`
+  i w tabeli zgodności.
+  **BLAD-008 (2026-08-18):** 31 plików treści kończyło się śmieciem po
+  narzędziu zapisu (`</content>`, `</invoke>`); wyczyszczone, strażnik
+  przeciw nawrotom w `straznik-scenariuszy` (pomija bloki kodu, bo tam
+  te znaczniki bywają treścią promptu).
+  **LEKCJA (2026-08-18):** `straznik-linkow` pomija teraz bloki kodu
+  i kod inline — scenariusze uczące składni Markdowna zawierają
+  przykłady `[tekst](sciezka)`, które nie są klikalnymi linkami.
+  Zmiana sprawdzona testem negatywnym: prawdziwy martwy link w prozie
+  nadal wywala strażnika.
+- **CI STOI OD 2026-08-18 — wyczerpany limit minut Actions.** Organizacja
+  `MatthewPlugins` jest na planie **Free = 2000 minut/miesiąc** na
+  repozytoria prywatne (wszystkie cztery są prywatne), a w sierpniu
+  zużyła **2072 minuty**: `automatic-ai` 1753, `Pod-strona-Szkolenia`
+  253, `matthewplugins.github.io` 63, `czarodziejski-dworek` 3. Objaw:
+  każde zadanie pada **2 sekundy po starcie, z zerem kroków i bez
+  logów** — łatwo pomylić z awarią kodu, więc sprawdzaj to NAJPIERW:
+  `gh api "/organizations/MatthewPlugins/settings/billing/usage?year=RRRR&month=M"`
+  (wystarczy zakres `admin:org`, który token już ma; stary endpoint
+  `/settings/billing/actions` zwraca 410 — został przeniesiony).
+  **Limit odnawia się 1 września 2026.** Decyzja właściciela: wersja
+  0.21.0 (Dział 7) zmergowana i otagowana przy czerwonym CI, na dowodzie
+  odtworzonym lokalnie — uzasadnienie w CHANGELOG przy 0.21.0. Po
+  powrocie CI: potwierdzić **skan sekretów (gitleaks)**, bo jako jedyny
+  nie ma lokalnego odpowiednika.
+- **Platforma kursu — kierunek (2026-08-18):** materiał NIE będzie
+  hostowany własnym kodem; do rozważenia gotowy LMS na WordPressie
+  (Publigo — polskie płatności/faktury, albo Tutor LMS), ostyłowany
+  naszym design systemem. Wybór konkretnego LMS-a: przy etapie WP,
+  po D7. Scenariusze i materiały są przenośne — nie blokują decyzji.
+- **GAŁĄŹ DOMYŚLNA repo to `plugin-1-sklep-kursow`** (zmiana 2026-08-18,
+  decyzja właściciela). Powód: GitHub pokazuje na stronie repozytorium
+  README z gałęzi domyślnej, a `main` stoi na wersji 0.3.4 — 34 commity
+  w tyle, bez rebrandingu i bez podglądu. Reguła PLAN.md §5 zostaje
+  nienaruszona (nic nie mergujemy na `main` przed ukończeniem Pluginu 1);
+  po domknięciu modułu: merge na `main` i powrót gałęzi domyślnej.
+  **`main` jest więc CELOWO nieaktualny — nie traktować go jako źródła
+  prawdy o stanie projektu.**
 - Stan repo: PR #12 zmergowany do `plugin-1-sklep-kursow`, tag
   `v0.12.1` + release. Gałąź `feat/d6-kreator` wypchnięta (kroki 1–3)
   — zmergowana (PR #18), tag `v0.16.2` + release.
