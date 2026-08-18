@@ -43,7 +43,7 @@ pierwszą złotówkę.
 | 1 | Zasady dobrego promptu | 15 min | `claude-platform/build-with-claude/prompt-engineering/overview.md` |
 | 2 | Najlepsze praktyki promptowania Claude | 25 min | `claude-platform/build-with-claude/prompt-engineering/claude-prompting-best-practices.md` |
 | 3 | Promptowanie najnowszych modeli (Opus 5, Sonnet 5) | 20 min | `claude-platform/build-with-claude/prompt-engineering/prompting-claude-opus-5.md`, `claude-platform/build-with-claude/prompt-engineering/prompting-claude-sonnet-5.md` |
-| 4 | Rozszerzone myślenie: kiedy dać modelowi czas | 20 min | `claude-platform/build-with-claude/extended-thinking.md` |
+| 4 | Rozszerzone myślenie: kiedy dać modelowi czas | 20 min | `claude-platform/build-with-claude/thinking.md` (rdzeń — myślenie adaptacyjne), `claude-platform/build-with-claude/extended-thinking.md` (tryb ręczny, w źródle DEPRECATED) |
 | 5 | Mniej halucynacji, więcej spójności | 20 min | `claude-platform/test-and-evaluate/strengthen-guardrails/reduce-hallucinations.md`, `claude-platform/test-and-evaluate/strengthen-guardrails/increase-consistency.md` |
 
 ### Moduł 3. Claude Code: start i codzienna praca (~2 h 25 min)
