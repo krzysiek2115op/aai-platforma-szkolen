@@ -1,8 +1,8 @@
-# Program obu kursów — Dział 7 (PROPOZYCJA do akceptacji właściciela)
+# Program obu kursów — Dział 7 (ZATWIERDZONY)
 
-Status: **CZEKA NA AKCEPTACJĘ**. Dopóki właściciel nie zatwierdzi tego
-programu, żadna treść lekcji nie powstaje (wymóg właściciela przy B4:
-strona nie obiecuje niczego spoza programu, więc program jest pierwszy).
+Status: **ZAAKCEPTOWANY przez właściciela 2026-08-18**. Ten plik jest
+źródłem prawdy o programie: strona nie obiecuje niczego spoza niego,
+a każda zmiana programu wymaga ponownej akceptacji właściciela.
 
 Zasady, według których powstał (ZRODLA.md, pkt „Zasady użycia"):
 

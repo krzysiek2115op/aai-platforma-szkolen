@@ -203,8 +203,8 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 - **DECYZJE WŁAŚCICIELA przy D7 (2026-08-18)** — pełnia w
   [docs/plugin-1/PROGRAM-KURSOW-D7.md](docs/plugin-1/PROGRAM-KURSOW-D7.md)
   (sekcja „Decyzje właściciela"): (a) propozycja programu obu kursów
-  NAPISANA (Kurs 1: 6 modułów/41 lekcji, Kurs 2: 7 modułów/50 lekcji,
-  każda lekcja ze zweryfikowanym źródłem) — **CZEKA NA AKCEPTACJĘ**;
+  (Kurs 1: 6 modułów/41 lekcji, Kurs 2: 7 modułów/50 lekcji, każda
+  lekcja ze zweryfikowanym źródłem) — **ZAAKCEPTOWANA 2026-08-18**;
   (b) styl premium jak strona — każdy punkt styku klienta;
   (c) **pełnoprawny kurs, NIE e-book**: materiał kursu NIE jest publiczny
   na stronie (katalog + strony sprzedażowe zostają), po zakupie mail
