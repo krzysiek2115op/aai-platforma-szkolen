@@ -231,6 +231,12 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   **rytm pracy własnej**, strona **zespołowa** (przeglądy, scalanie,
   gałęzie chronione) należy do lekcji **4.1** — nie powtarzać (notatka
   też w POSTEP.md).
+  **DECYZJA WŁAŚCICIELA (2026-08-18): od modułu 4 Kursu 2 tryb
+  RÓWNOLEGŁY** — najpierw `tools/wyciag-zrodla.mjs` (odchudzanie
+  źródeł) i `straznik-scenariuszy`, potem w każdym module: brief od
+  agenta głównego → 3–4 subagentów pisze po lekcji → przelot
+  spójności + cytaty + commit. Warunek powrotu do trybu ręcznego
+  i sygnały spadku jakości: sekcja „Tryb produkcji" w POSTEP.md.
   **LEKCJA (2026-08-18):** `straznik-linkow` pomija teraz bloki kodu
   i kod inline — scenariusze uczące składni Markdowna zawierają
   przykłady `[tekst](sciezka)`, które nie są klikalnymi linkami.
