@@ -48,7 +48,14 @@ fi
 
 # --- 3. build podglądu ----------------------------------------------
 echo "deploy: buduję podgląd statyczny (basePath ${PAGES_BASE_PATH})…"
-PODGLAD_STATYCZNY=1 npx next build
+# Wołamy KOMENDĘ Z package.json, a nie `next build` wprost. Powód nie jest
+# kosmetyczny: `build:podglad` uruchamia po buildzie `og-rozszerzenie.mjs`,
+# który nadaje miniaturom OG rozszerzenie `.png`. Pierwsza wersja tego
+# skryptu wołała `next build` bezpośrednio, więc krok nie zachodził
+# i opublikowany podgląd oddawał 404 na KAŻDEJ miniaturze — build był
+# zielony, weryfikacja żywego adresu też. Jedna komenda = jedna prawda
+# o tym, jak powstaje podgląd.
+npm run build:podglad
 
 # --- 4. dowód, że build nadaje się do upublicznienia -----------------
 # Kolejność jest istotna: sprawdzamy PRZED wysłaniem. Po wysłaniu
@@ -59,6 +66,34 @@ if grep -rlq "szkolenia/kreator" out --include="*.html"; then
   echo "deploy: w out/ jest odnośnik do kreatora — PRZERYWAM." >&2
   exit 1
 fi
+
+# Każdy adres miniatury OG w HTML-u musi wskazywać na PLIK, który
+# naprawdę leży w out/. Ten test dopisano po tym, jak opublikowany
+# podgląd oddał 404 na wszystkich czterech miniaturach: HTML wskazywał
+# `.png`, a pliki `.png` nie powstały. Sprawdzanie „czy build przeszedł"
+# tego nie widziało — sprawdzamy więc ARTEFAKT, nie proces.
+#
+# UWAGA NA WZORZEC: Next dokleja do adresu miniatury sygnaturę
+# (`…opengraph-image.png?455fcc13`). Pierwsza wersja tego testu miała
+# w klasie znaków `[^"?]*`, więc nie dopasowywała NICZEGO i pętla
+# przebiegała po pustce — test „przechodził" nie sprawdzając nic.
+# Zapytanie ucinamy dopiero po dopasowaniu.
+BRAKI=0
+while read -r adres; do
+  SCIEZKA="out${adres#"${PAGES_BASE_PATH}"}"
+  if [ ! -f "$SCIEZKA" ]; then
+    echo "deploy: og:image wskazuje na nieistniejący plik: $SCIEZKA" >&2
+    BRAKI=$((BRAKI + 1))
+  fi
+done < <(grep -rho 'property="og:image" content="[^"]*"' out --include="*.html" \
+         | sed 's/.*content="//; s/"$//' \
+         | sed 's/?.*$//' \
+         | sed 's#^https\?://[^/]*##' | sort -u)
+if [ "$BRAKI" -gt 0 ]; then
+  echo "deploy: $BRAKI miniatur OG bez pliku — PRZERYWAM." >&2
+  exit 1
+fi
+echo "deploy: miniatury OG mają swoje pliki."
 
 SHA=$(git rev-parse --short HEAD)
 
