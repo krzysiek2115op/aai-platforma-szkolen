@@ -220,9 +220,10 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   `tresc-kursow/<slug>/modul-N/lekcja-M-<temat>.md`, cytaty źródłowe
   w `docs/dokumentacja-techniczna/d7/cytowane/`.
   **Licznik i przepis wznowienia: [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md)**
-  (stan 2026-08-18: **80/91** — **CAŁY Kurs 1 gotowy: 41/41** oraz
-  moduły 1–5 Kursu 2; następny — **moduł 6 Kursu 2** „Bezpieczeństwo
-  konta i kodu" (6 lekcji), potem moduł 7 (5 lekcji)). Zasady:
+  (stan 2026-08-18: **86/91** — **CAŁY Kurs 1 gotowy: 41/41** oraz
+  moduły 1–6 Kursu 2; następny i OSTATNI — **moduł 7 Kursu 2**
+  „Ponad podstawy" (5 lekcji: GitHub CLI, Pages, Codespaces,
+  wyszukiwanie, Discussions)). Zasady:
   commit po KAŻDYM module, każda teza z tabelą „Zgodność ze źródłem",
   zero zmyślania.
   Korekta źródła przy L2.4 Kursu 1: `extended-thinking.md` jest
@@ -252,10 +253,27 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   briefu dla danej lekcji przy pełnej tabeli granic. **Do promptu
   subagenta przy module 6 dopisać: druga osoba WIELKĄ literą (Ty, Ci,
   Twój)** — dwie lekcje pisały ją małą i trzeba było ujednolicać ręcznie.
+  **Moduł 6 PRZESZEDŁ tym trybem (2 fale: 3 + 3 subagentów)** — ocena
+  w POSTEP.md, sekcja „Jak wypadł moduł 6": **cztery sygnały czysto**
+  (jedna poprawka mostka między lekcjami), tryb zostaje; obie poprawki
+  z modułu 5 weszły do promptów i zadziałały — zero drugiej osoby małą
+  literą. Koszt ~490 tys. tokenów na 6 lekcji (~82 tys. na subagenta).
+  Nowość do powtórzenia: **plik cytatów `cytowane/…` powstaje osobnym
+  przebiegiem subagenta PO całym module**, nie przez autorów lekcji
+  (uniknięcie równoległych zapisów do jednego pliku) — i jest zarazem
+  NIEZALEŻNĄ KONTROLĄ: w module 6 wyłapał 4 usterki lekcji (zawężenia
+  windowsowe podane jako rada uniwersalna, jedno zdanie bez kotwicy
+  w źródle, wariant monitu, sprzeczność w samym źródle), wszystkie
+  naprawione przed commitem.
+  **Do promptu przy module 7 dopisać: każdej lekcji podać WPROST zdanie
+  zamykające poprzedniej** — w module 6 lekcja bez tego (6.3) jako
+  jedyna wymagała ręcznego mostka.
   Cienkie źródła z programu (poniżej ~4 kB) uzupełniamy plikami
   wskazanymi w nich jako dalsza lektura — w module 5 dotyczyło to lekcji
-  5.3, 5.4, 5.5, 5.6 i 5.7; dopisane ścieżki lądują we frontmatterze
-  `zrodla:` i w tabeli zgodności.
+  5.3, 5.4, 5.5, 5.6 i 5.7, w module 6 tylko lekcji 6.2 (`about-ssh.md`
+  ma 3,3 kB → doszły `adding-a-new-ssh-key-to-your-github-account.md`
+  i `working-with-ssh-key-passphrases.md`); dopisane ścieżki lądują we
+  frontmatterze `zrodla:` i w tabeli zgodności.
   **BLAD-008 (2026-08-18):** 31 plików treści kończyło się śmieciem po
   narzędziu zapisu (`</content>`, `</invoke>`); wyczyszczone, strażnik
   przeciw nawrotom w `straznik-scenariuszy` (pomija bloki kodu, bo tam
