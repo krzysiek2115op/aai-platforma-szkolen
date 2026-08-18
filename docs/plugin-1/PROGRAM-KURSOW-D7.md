@@ -193,11 +193,22 @@ Serce kursu — tak pracują zespoły na GitHubie.
 
 ---
 
+## Decyzje właściciela przy D7
+
+- **2026-08-18, styl:** kurs ma być w stylu graficznym naszej strony —
+  wszystko ma wyglądać na **produkt premium**. Realizacja: treść wchodzi
+  kreatorem (D6) do bazy, a renderuje ją design system zatwierdzony przy
+  B5 (`components/kurs/*`, TloKursu, Reveal/Cascade, `.unos`); strony
+  materiału lekcji (gdy powstaną) używają TEGO SAMEGO design systemu.
+
 ## Po akceptacji (kolejność prac D7)
 
 1. Właściciel zatwierdza / koryguje program (ten plik = źródło prawdy).
 2. Program wchodzi do bazy **kreatorem** (zakładka „Program") — zastępuje
    roboczy program z seedów.
-3. Treść lekcji — lekcja po lekcji, wyłącznie ze wskazanych źródeł;
+3. Migracja: pole treści lekcji w bazie + edytor tej treści w kreatorze
+   (`straznik-kreatora` wymusi komplet pól) + strona materiału lekcji
+   w design systemie B5.
+4. Treść lekcji — lekcja po lekcji, wyłącznie ze wskazanych źródeł;
    cytowane fragmenty do `docs/dokumentacja-techniczna/d7/cytowane/`.
-4. Golden treści obu kursów (ochrona przed cichą utratą tekstu).
+5. Golden treści obu kursów (ochrona przed cichą utratą tekstu).
