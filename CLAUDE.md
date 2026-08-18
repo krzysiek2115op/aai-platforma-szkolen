@@ -219,11 +219,23 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   `tresc-kursow/<slug>/modul-N/lekcja-M-<temat>.md`, cytaty źródłowe
   w `docs/dokumentacja-techniczna/d7/cytowane/`.
   **Licznik i przepis wznowienia: [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md)**
-  (stan 2026-08-18: **35/91**, gotowe moduły 1–5 Kursu 1; następny —
-  moduł 6 Kursu 1, potem cały Kurs 2). Zasady: commit po KAŻDYM module,
-  każda teza z tabelą „Zgodność ze źródłem", zero zmyślania.
-  Korekta źródła przy L2.4: `extended-thinking.md` jest w dokumentacji
-  DEPRECATED (4.7+ zwraca 400), więc rdzeń to `thinking.md`.
+  (stan 2026-08-18: **62/91** — **CAŁY Kurs 1 gotowy: 41/41** oraz
+  moduły 1–3 Kursu 2; następny — **moduł 4 Kursu 2** „Współpraca:
+  issues i pull requesty" (11 lekcji), potem moduły 5–7). Zasady:
+  commit po KAŻDYM module, każda teza z tabelą „Zgodność ze źródłem",
+  zero zmyślania.
+  Korekta źródła przy L2.4 Kursu 1: `extended-thinking.md` jest
+  w dokumentacji DEPRECATED (4.7+ zwraca 400), więc rdzeń to
+  `thinking.md`.
+  Podział materiału w Kursie 2: lekcja 2.1 bierze z GitHub flow tylko
+  **rytm pracy własnej**, strona **zespołowa** (przeglądy, scalanie,
+  gałęzie chronione) należy do lekcji **4.1** — nie powtarzać (notatka
+  też w POSTEP.md).
+  **LEKCJA (2026-08-18):** `straznik-linkow` pomija teraz bloki kodu
+  i kod inline — scenariusze uczące składni Markdowna zawierają
+  przykłady `[tekst](sciezka)`, które nie są klikalnymi linkami.
+  Zmiana sprawdzona testem negatywnym: prawdziwy martwy link w prozie
+  nadal wywala strażnika.
 - **Platforma kursu — kierunek (2026-08-18):** materiał NIE będzie
   hostowany własnym kodem; do rozważenia gotowy LMS na WordPressie
   (Publigo — polskie płatności/faktury, albo Tutor LMS), ostyłowany
