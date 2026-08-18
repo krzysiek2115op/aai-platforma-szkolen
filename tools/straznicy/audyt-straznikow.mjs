@@ -122,6 +122,44 @@ const MUTACJE = [
       return m ? s.replace(`**${m[1]}**`, "**9.9.9**") : null;
     },
   },
+  // --- straznik-podgladu ---
+  // Reguła 0.22.0: nowy strażnik = nowa mutacja. Tu mutacje są cztery,
+  // bo strażnik pilnuje czterech niezależnych sposobów, na jakie panel
+  // właściciela mógłby trafić do publicznego podglądu.
+  {
+    straznik: "straznik-podgladu",
+    opis: "trasa kreatora jako zwykłe page.tsx (weszłaby do eksportu)",
+    nowyPlik: {
+      sciezka: "app/szkolenia/kreator/page.tsx",
+      tresc: "export default function Mutacja() {\n  return null;\n}\n",
+    },
+  },
+  {
+    straznik: "straznik-podgladu",
+    opis: "brama kreatora przestaje odcinać się w trybie podglądu",
+    plik: "lib/kreator-dostep.ts",
+    zmien: (s) =>
+      s.includes("if (PODGLAD_STATYCZNY) return false;")
+        ? s.replace("  if (PODGLAD_STATYCZNY) return false;\n", "")
+        : null,
+  },
+  {
+    straznik: "straznik-podgladu",
+    opis: "lista pageExtensions podglądu wpuszcza warianty serwerowe",
+    plik: "next.config.ts",
+    zmien: (s) =>
+      s.includes('pageExtensions: ["statyczny.tsx"')
+        ? s.replace('pageExtensions: ["statyczny.tsx"', 'pageExtensions: ["serwer.tsx", "statyczny.tsx"')
+        : null,
+  },
+  {
+    straznik: "straznik-podgladu",
+    opis: "drugie miejsce czytające process.env.PODGLAD_STATYCZNY (rozjazd trybu)",
+    nowyPlik: {
+      sciezka: "lib/audyt-mutacja-tymczasowa.ts",
+      tresc: "export const tryb = process.env.PODGLAD_STATYCZNY === \"1\";\n",
+    },
+  },
   // --- straznik-granic ---
   {
     straznik: "straznik-granic",

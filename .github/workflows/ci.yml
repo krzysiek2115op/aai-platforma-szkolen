@@ -168,6 +168,17 @@ jobs:
           KREATOR_TOKEN: smoke-d6-ci
         run: node tools/smoke/smoke-d6.ts
 
+      # Podgląd statyczny trafia do PUBLICZNEGO repo, więc pytanie nie
+      # brzmi „czy się zbudował", tylko „co w nim jest". Smoke buduje
+      # własny eksport CELOWO z tokenem kreatora w środowisku — czyli
+      # w warunkach, w których zepsuta brama wpisałaby nieopublikowane
+      # kursy do publicznych plików — i sprawdza, że tego nie zrobiła.
+      # Uwaga: nadpisuje out/, dlatego stoi jako OSTATNI smoke.
+      - name: Smoke podglądu statycznego (out/)
+        env:
+          KREATOR_TOKEN: smoke-podglad-ci
+        run: node tools/smoke/smoke-podglad.ts
+
   security:
     name: Skan sekretów
     runs-on: ubuntu-latest

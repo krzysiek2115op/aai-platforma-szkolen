@@ -37,10 +37,7 @@ import {
   type SzczegolyKursu,
 } from "@/modules/m1-sklep";
 
-// Strona sprzedażowa czyta bazę przy każdym żądaniu (kanał JSON działu).
-export const dynamic = "force-dynamic";
-
-type Props = { params: Promise<{ slug: string }> };
+export type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
