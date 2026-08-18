@@ -5,6 +5,40 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.20.0] — 2026-08-18
+
+### Dodane
+- **Kurs 2 / Moduł 4 „Współpraca: issues i pull requesty" — 11 scenariuszy**
+  (GitHub flow w zespole, issues i ich zakładanie, czym jest i jak się
+  tworzy pull requesta, prośba o przegląd i praca z uwagami, robienie
+  przeglądu, konflikty scalania, merge/squash/rebase, forki, wiązanie
+  PR-a z issue). Cytaty źródłowe:
+  `docs/dokumentacja-techniczna/d7/cytowane/github--modul-4.md`.
+  **Stan treści D7: 73 z 91 scenariuszy (80%).**
+- **Pierwszy moduł napisany trybem RÓWNOLEGŁYM** (decyzja właściciela
+  2026-08-18). Przebieg: brief całego modułu z granicami tematów
+  i callbackami → trzy fale subagentów (4 + 4 + 3), każdy pisze jedną
+  lekcję → przelot spójności agenta głównego. Pierwsza fala została
+  obejrzana PRZED puszczeniem kolejnych — wada systemowa nie miałaby
+  jak powielić się na jedenaście lekcji. Brief zostaje w repo
+  (`tresc-kursow/jak-uzywac-githuba/modul-4/BRIEF-modulu.md`), bo to on
+  jest powodem, dla którego równoległe lekcje składają się w kurs.
+  Ocena wg czterech sygnałów jakości i decyzja o kontynuowaniu trybu:
+  `tresc-kursow/POSTEP.md`, sekcja „Jak wypadł moduł 4".
+
+### Naprawione
+- **BLAD-008: artefakt narzędzia zapisu w 31 plikach treści.** Pliki
+  kończyły się dwiema liniami-śmieciami `</content>` i `</invoke>` —
+  większość scenariuszy Kursu 2 (moduły 1–3), moduł 6 Kursu 1 i pięć
+  plików cytatów źródłowych. Zgłosili to niezależnie dwaj subagenci
+  piszący lekcje 4.7 i 4.9, którzy podglądali format w sąsiednich
+  plikach — czyli artefakt zaczynał się już PROPAGOWAĆ do nowej treści.
+  Wyczyszczone wszystkie 31; jedno wystąpienie `</content>` w lekcji 6.5
+  Kursu 1 zostaje świadomie, bo jest w bloku kodu jako część szablonu
+  promptu. Strażnik przeciw nawrotom: `straznik-scenariuszy` łapie te
+  znaczniki w prozie scenariusza i w pliku cytatów, pomijając bloki kodu
+  (sprawdzone testem negatywnym w obie strony).
+
 ## [0.19.0] — 2026-08-18
 
 ### Dodane

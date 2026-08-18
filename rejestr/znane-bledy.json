@@ -86,6 +86,16 @@
       "naprawa": "Zmiana schowana w klonie do stasha (`stash@{0}`, opisany — nie skasowana), drzewo robocze przywrocone do stanu origin/main (4058d73), ponowny `npm run deploy` z czystego drzewa. Weryfikacja na zywym adresie: 0 wystapien `localhost:3001` na stronie glownej oraz na /uslugi, /kontakt, /faq, /proces. W CLAUDE.md sposob podgladu zastapiony ZAKAZEM zostawiania jakichkolwiek zmian w klonie — podglad podstrony zyje wylacznie w tym repo (`:3001` + zrzut w README).",
       "test": "",
       "straznik": "brak po naszej stronie i to jest swiadome ustalenie: docelowy straznik to odmowa publikacji przy brudnym drzewie roboczym w `scripts/deploy.sh`, a ten plik lezy w repo strony glownej, ktore mamy TYLKO DO ODCZYTU (WYTYCZNE). Do dopisania w tym samym ruchu, w ktorym bedziemy mieli prawo zapisu do tamtego repo. U nas zabezpiecza zapis w CLAUDE.md (zakaz zmian w klonie)."
+    },
+    {
+      "id": "BLAD-008",
+      "data": "2026-08-18",
+      "klasa": "tresc/artefakt-narzedzia-zapisu-w-materiale-kursu",
+      "dowod": "31 plikow tresci D7 konczylo sie dwiema liniami-smieciami: `</content>` i `</invoke>` — pozostalosc po narzedziu zapisujacym plik w sesjach z 2026-08-18. Dotknieta byla wiekszosc scenariuszy Kursu 2 (moduly 1-3), moduł 6 Kursu 1 oraz PIEC plikow cytatow zrodlowych w docs/dokumentacja-techniczna/d7/cytowane/. Znalezli to niezaleznie dwaj subagenci piszacy lekcje 4.7 i 4.9, ktorzy kopiowali format z sasiednich plikow — czyli artefakt zaczynal sie juz PROPAGOWAC do nowej tresci.",
+      "skutek": "Smiec w materiale, ktory trafia do kursanta: scenariusz nagrania konczy sie dwoma znacznikami XML bez znaczenia. Zaden straznik tego nie lapal, bo pliki tresci nie byly wczesniej niczym kontrolowane — usterka mogla dojechac do produkcji kursu.",
+      "naprawa": "Wszystkie 31 plikow wyczyszczone skryptem sprawdzajacym, ze artefakt jest DOKLADNIE na koncu pliku (zaden nie mial go w srodku). Jedno pozostale wystapienie `</content>` w lekcji 6.5 Kursu 1 zostawione swiadomie: jest w bloku kodu jako czesc szablonu promptu, czyli prawdziwa tresc lekcji.",
+      "test": "Test negatywny przy straznik-scenariuszy: dopisanie `</content>`/`</invoke>` na koncu kopii scenariusza daje kod wyjscia 1; te same znaczniki w bloku kodu przechodza (sprawdzone na lekcji 6.5 Kursu 1, ktora je zawiera i jest zielona).",
+      "straznik": "straznik-scenariuszy — kontrola nr 6: `</content>`, `</invoke>`, `</invoke>` i `</function_calls>` w prozie scenariusza albo w pliku cytatow = czerwone CI. Bloki kodu i kod w linii sa pomijane (ta sama lekcja co przy straznik-linkow)."
     }
   ]
 }

@@ -19,7 +19,11 @@
  *   4. komplet sekcji scenariusza + narracja do kamery,
  *   5. tabela „Zgodność ze źródłem" z min. 8 wierszami — lekcja bez pokrycia
  *      tez w źródle to dokładnie to, czego właściciel zakazał („zero
- *      zmyślania"), a próg wyłapuje tabelę dopisaną pro forma.
+ *      zmyślania"), a próg wyłapuje tabelę dopisaną pro forma,
+ *   6. brak śmieci po zapisie pliku (`</content>`, `</invoke>` w prozie) —
+ *      artefakt narzędzia, który wyciekł do 31 plików treści, zanim ktoś go
+ *      zauważył; w kodzie lekcji o promptach te znaczniki bywają PRAWDZIWĄ
+ *      treścią, więc kontrola pomija bloki kodu.
  *
  * CZEGO NIE SPRAWDZA: czy cytat zgadza się ze źródłem co do słowa. Tego
  * maszyna nie rozstrzygnie — to jeden z czterech sygnałów jakości, które
@@ -34,6 +38,10 @@ const KATALOG = "tresc-kursow";
 const KATALOG_ZRODEL = join("docs", "dokumentacja-techniczna", "d7");
 const KATALOGI_MASOWE = ["claude-platform", "claude-code", "github"];
 const MIN_WIERSZY_ZGODNOSCI = 8;
+
+// Znaczniki, które potrafi zostawić narzędzie zapisujące plik. W prozie
+// scenariusza nie mają prawa bytu; w blokach kodu bywają treścią lekcji.
+const SMIECI_PO_ZAPISIE = /^<\/(content|invoke|antml:invoke|function_calls)>\s*$/m;
 
 const KLUCZE_METRYKI = ["kurs", "modul", "lekcja", "czas_wideo", "zrodla", "cytowane"];
 const WYMAGANE_SEKCJE = [
@@ -180,6 +188,8 @@ for (const plik of scenariusze) {
       zle(`plik z cytatami nie istnieje: ${cyt}`);
     } else if (statSync(cyt).size === 0) {
       zle(`plik z cytatami jest pusty: ${cyt}`);
+    } else if (SMIECI_PO_ZAPISIE.test(bezKodu(readFileSync(cyt, "utf8")))) {
+      zle(`plik z cytatami ma śmieci po zapisie (</content> lub </invoke>): ${cyt}`);
     }
   }
 
@@ -195,6 +205,11 @@ for (const plik of scenariusze) {
   }
 
   const proza = bezKodu(tresc);
+
+  if (SMIECI_PO_ZAPISIE.test(proza)) {
+    zle("śmieci po zapisie pliku (</content> albo </invoke>) poza blokiem kodu.");
+  }
+
   for (const sekcja of WYMAGANE_SEKCJE) {
     if (!new RegExp(`^## ${sekcja}`, "m").test(proza)) {
       zle(`brak sekcji „## ${sekcja}".`);
