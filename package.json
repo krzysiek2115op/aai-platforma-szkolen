@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint",
+    "pretest": "node tools/db1-gotowa.mjs",
     "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"modules/**/*.test.ts\" \"components/**/*.test.ts\" \"lib/**/*.test.ts\"",
     "db1:up": "podman compose up -d db1",
     "db1:migruj": "node --env-file-if-exists=.env modules/m1-sklep/db/migruj.ts",

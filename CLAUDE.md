@@ -303,12 +303,53 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 - **KOLEJNOŚĆ PRAC USTALONA PRZEZ WŁAŚCICIELA (2026-08-18):**
   1. ~~merge D7 + sprawa tokenu/CI~~ **ZROBIONE** (0.21.0; token nie był
      potrzebny — `admin:org` wystarczył do diagnozy rozliczeń);
-  2. **dopracowanie repo + wskazówki właściciela** ← **NASTĘPNY KROK**
-     (czekamy na jego uwagi; przed pracą nad kursami);
+  2. **dopracowanie repo + wskazówki właściciela** ← W TOKU. Pierwsza
+     tura wskazówek WYKONANA (2026-08-19, wersja 0.22.0, gałąź
+     `fix/mp-monogram-i-dopracowanie-repo`): naprawa monogramu „MP"
+     (ostatni ślad starej marki — paski kursu i kreatora), oszczędzanie
+     minut CI (cancel-in-progress + job „Zakres zmian" + timeouty),
+     `npm test` jedną komendą (pretest `tools/db1-gotowa.mjs` —
+     port z docker-compose.yml, NIE z konfiguracji aplikacji, bo
+     pierwszą wersję zatrzymał straznik-granic), nagłówki
+     bezpieczeństwa z serwera (nosniff, X-Frame-Options DENY +
+     frame-ancestors 'none', Referrer-Policy, Permissions-Policy;
+     smoke D4 sprawdza je na żywym `next start` — UWAGA: nagłówki
+     Nexta zapisują się do manifestu PRZY BUILDZIE, po zmianie
+     next.config trzeba przebudować), docs/security-checklist.md
+     (legenda pięciostanowa ✅/🟡/🔧/⛔/⏳; sekcja 8 = specyfikacja
+     bezpieczeństwa wtyczki WP), lifting README (spis treści, Skrypty,
+     „SEO i bezpieczeństwo" — haczyk tylko z dowodem, „Szybki start
+     nowa maszyna", ramki z historiami błędów), `straznik-readme`
+     (liczby w README pilnowane maszynowo — przy pierwszym uruchomieniu
+     złapał własną nieobecność w tabeli) oraz
+     `tools/straznicy/audyt-straznikow.mjs` (mutacyjny audyt
+     strażników, 17 mutacji + kontrprzykłady; przy pierwszym
+     uruchomieniu znalazł realną dziurę: wzorzec `eslint` straznika-ci
+     pasował do filtra ścieżek nowego joba CI — wzorce kotwiczone
+     teraz do `run:`; REGUŁA: nowy strażnik = nowa mutacja).
+     Przegląd repo strony głównej (v3.1.0), z którego wzięto wzorce:
+     raport w opisie PR; w tamtym repo jest też katalog `wordpress/`
+     (kompletny motyw WP + import + skrypty + wzorce ODDANIA projektu
+     klientowi) — ZŁOTO przy kroku 4. Czekamy na dalsze wskazówki
+     właściciela;
   3. stworzenie kursów w narzędziu: rozszerzenie kreatora o lekcje
      i nagrania, złożenie obu kursów, dopracowanie + **akcept właściciela**;
   4. zaplanowanie przejścia na WordPressa (strona docelowo na WP,
      my robimy wtyczki).
+- **DECYZJA WŁAŚCICIELA (2026-08-19): porządek gałęzi PO Pluginie 1.**
+  Po ukończeniu CAŁEGO Pluginu 1 i rozmowie o przeniesieniu strony
+  głównej na WP scalamy/sprzątamy gałęzie robocze, żeby repo nie było
+  zaśmiecone. NIE robić tego wcześniej ani kawałkami. Gałęzie `bak/*`
+  to migawki procedury napraw (WYTYCZNE §1) — o ich losie też decyduje
+  właściciel przy tym sprzątaniu, domyślnie zostają.
+  **OD TERAZ (higiena wzorem strony głównej, gdzie na zdalnym repo żyje
+  wyłącznie `main` + tagi): każdy NOWY merge PR-a robimy z kasowaniem
+  gałęzi (`gh pr merge --delete-branch`)** — stare gałęzie czekają na
+  zaplanowane sprzątanie, ale nowych śmieci nie przybywa. Z przeglądu
+  historii commitów strony głównej do naśladowania też: temat commita
+  opisuje SKUTEK, nie czynność („prefetch przestaje wracać z 404"),
+  a ciało commita naprawy dokumentacji ma sekcje „co było nieprawdą /
+  czego nie zmieniłem, bo było prawdą" z pomiarami.
 - **CI STOI OD 2026-08-18 — wyczerpany limit minut Actions.** Organizacja
   `MatthewPlugins` jest na planie **Free = 2000 minut/miesiąc** na
   repozytoria prywatne (wszystkie cztery są prywatne), a w sierpniu

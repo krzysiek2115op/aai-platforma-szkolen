@@ -1,0 +1,234 @@
+/**
+ * Audyt strażników: dowód, że każdy strażnik UMIE zapalić się na czerwono.
+ *
+ * PO CO. Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że
+ * potrafi być czerwona — strażnik z wzorcem, który przestał pasować,
+ * wygląda IDENTYCZNIE jak strażnik, który nie ma nic do zgłoszenia.
+ * Wzorzec ze strony głównej automatic-ai (tam audyt złapał 5 dziurawych
+ * strażników jednego dnia, w tym kontrolę CSP sprawdzającą hashe, ale
+ * nie samą politykę). U nas testy negatywne robiło się dotąd RĘCZNIE
+ * przy tworzeniu strażnika (odsylacze-kursu, goldenu-tresci, readme) —
+ * ten plik utrwala je jako powtarzalne narzędzie.
+ *
+ * MECHANIZM. Każda mutacja psuje kopię stanu (plik przywracany
+ * w finally, kontrola sha256 po przywróceniu), uruchamia JEDNEGO
+ * strażnika i oczekuje kodu wyjścia != 0. Trzy wyniki, nie dwa:
+ *   - ZŁAPANE      — strażnik zapalił się na czerwono, jak powinien,
+ *   - PRZEOCZONE   — dziura w strażniku (audyt kończy się błędem),
+ *   - MARTWA       — mutacja nie zaszła (wzorzec przestał pasować do
+ *                    pliku) — TEŻ kończy audyt błędem, bo martwa
+ *                    mutacja niczego nie testuje, a wygląda na zieloną.
+ * KONTRPRZYKŁADY (oczekiwane: false) pilnują, żeby strażnik NIE
+ * oskarżał niewinnych — obie nasze udokumentowane reguły tego typu
+ * (linki w blokach kodu, znaczniki zapisu w treści promptu) są tu.
+ *
+ * REGUŁA: dopisujesz strażnika → dopisujesz tu mutację. Strażnik bez
+ * mutacji jest deklaracją, nie kontrolą.
+ *
+ * Użycie (ręcznie, nie w potoku CI — audyt chwilowo psuje pliki):
+ *   node tools/straznicy/audyt-straznikow.mjs
+ */
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+
+const L51 = "tresc-kursow/jak-uzywac-githuba/modul-5/lekcja-1-zrozum-github-actions.md";
+const L75 = "tresc-kursow/jak-uzywac-githuba/modul-7/lekcja-5-discussions.md";
+
+/**
+ * pola mutacji:
+ *  straznik — plik strażnika (bez ścieżki i rozszerzenia),
+ *  opis     — co psujemy,
+ *  plik     — który plik mutujemy (null = mutacja tworzy nowy plik),
+ *  zmien    — (tekst) => tekst | null; null = wzorzec nie pasuje → MARTWA,
+ *  nowyPlik — { sciezka, tresc } zamiast mutacji istniejącego,
+ *  oczekujCzerwonego — false dla kontrprzykładów (domyślnie true).
+ */
+const MUTACJE = [
+  // --- straznik-scenariuszy ---
+  {
+    straznik: "straznik-scenariuszy",
+    opis: "scenariusz bez ani jednego znacznika [NARRACJA]",
+    plik: L51,
+    zmien: (s) => (s.includes("[NARRACJA]") ? s.replaceAll("[NARRACJA]", "[NARR_]") : null),
+  },
+  {
+    straznik: "straznik-scenariuszy",
+    opis: "śmieć po narzędziu zapisu (BLAD-008) na końcu prozy scenariusza",
+    plik: L51,
+    zmien: (s) => s + "\n</content>\n",
+  },
+  {
+    straznik: "straznik-scenariuszy",
+    opis: "KONTRPRZYKŁAD: `</invoke>` wewnątrz bloku kodu to treść promptu, nie śmieć",
+    plik: L51,
+    zmien: (s) => s + "\n```text\nprzykładowy prompt kończy się znacznikiem </invoke>\n```\n",
+    oczekujCzerwonego: false,
+  },
+  // --- straznik-odsylaczy-kursu ---
+  {
+    straznik: "straznik-odsylaczy-kursu",
+    opis: "odsyłacz do lekcji 3.12, której nie ma w kursie",
+    plik: L75,
+    zmien: (s) => s + "\nO tym mówiliśmy w lekcji 3.12.\n",
+  },
+  {
+    straznik: "straznik-odsylaczy-kursu",
+    opis: "temat przypisany do złego modułu (oryginalna pomyłka finału kursu)",
+    plik: L75,
+    zmien: (s) => {
+      const cel = "wstyd kogoś zaprosić: README, licencja, Markdown, gałęzie chronione, releasy";
+      return s.includes(cel)
+        ? s.replace(cel, "wstyd kogoś zaprosić: README, licencja, `.gitignore`, Markdown, releasy")
+        : null;
+    },
+  },
+  // --- straznik-goldenu-tresci ---
+  {
+    straznik: "straznik-goldenu-tresci",
+    opis: "cicha utrata treści: lekcja obcięta o końcowe 30 wierszy",
+    plik: L51,
+    zmien: (s) => s.split("\n").slice(0, -30).join("\n") + "\n",
+  },
+  // --- straznik-readme ---
+  {
+    straznik: "straznik-readme",
+    opis: "wiersz strażnika usunięty z tabeli README",
+    plik: "README.md",
+    zmien: (s) =>
+      s.includes("straznik-hydratacji")
+        ? s.split("\n").filter((l) => !l.includes("straznik-hydratacji")).join("\n")
+        : null,
+  },
+  {
+    straznik: "straznik-readme",
+    opis: "martwy wiersz w tabeli — strażnik, którego nie ma na dysku",
+    plik: "README.md",
+    zmien: (s) => s.replace("| `straznik-readme` |", "| `straznik-widmo` | — | — |\n| `straznik-readme` |"),
+  },
+  {
+    straznik: "straznik-readme",
+    opis: "README podaje liczbę scenariuszy niezgodną z dyskiem",
+    plik: "README.md",
+    zmien: (s) => (s.includes("91 scenariusz") ? s.replace(/91(\s+scenariusz)/, "90$1") : null),
+  },
+  // --- straznik-wersji ---
+  {
+    straznik: "straznik-wersji",
+    opis: "README deklaruje inną wersję niż top CHANGELOG",
+    plik: "README.md",
+    zmien: (s) => {
+      const m = /\*\*(\d+\.\d+\.\d+)\*\*/.exec(s);
+      return m ? s.replace(`**${m[1]}**`, "**9.9.9**") : null;
+    },
+  },
+  // --- straznik-granic ---
+  {
+    straznik: "straznik-granic",
+    opis: "connection string bazy w pliku strony (poza modules/)",
+    nowyPlik: {
+      sciezka: "app/audyt-mutacja-tymczasowa.ts",
+      tresc: 'export const zle = process.env.DB1_URL;\n',
+    },
+  },
+  {
+    straznik: "straznik-granic",
+    opis: "klient SQL importowany w app/",
+    nowyPlik: {
+      sciezka: "app/audyt-mutacja-tymczasowa.ts",
+      tresc: 'import pg from "pg";\nexport default pg;\n',
+    },
+  },
+  // --- straznik-linkow ---
+  {
+    straznik: "straznik-linkow",
+    opis: "martwy link względny w prozie Markdowna",
+    plik: "docs/security-checklist.md",
+    zmien: (s) => s + "\nPatrz też [widmo](nie-ma-takiego-pliku.md).\n",
+  },
+  {
+    straznik: "straznik-linkow",
+    opis: "KONTRPRZYKŁAD: [tekst](sciezka) w bloku kodu to lekcja składni, nie link",
+    plik: "docs/security-checklist.md",
+    zmien: (s) => s + "\n```markdown\n[przykład składni](nie-ma-takiego-pliku.md)\n```\n",
+    oczekujCzerwonego: false,
+  },
+  // --- straznik-ci ---
+  {
+    straznik: "straznik-ci",
+    opis: "workflow CI bez kroku lint",
+    plik: ".github/workflows/ci.yml",
+    zmien: (s) => (s.includes("npm run lint") ? s.replaceAll("npm run lint", "echo lint-wyciety") : null),
+  },
+  // --- straznik-licencji ---
+  {
+    straznik: "straznik-licencji",
+    opis: "nota OFL fontów usunięta",
+    plik: "assets/fonts/LICENSE-Geist-OFL.txt",
+    zmien: () => "", // pusty plik = brak licencji przy .woff2
+  },
+  // --- straznik-wagi-dokumentacji ---
+  {
+    straznik: "straznik-wagi-dokumentacji",
+    opis: "plik masowej dokumentacji producenta dodany do indeksu gita",
+    nowyPlik: {
+      sciezka: "docs/dokumentacja-techniczna/d7/github/audyt-mutacja.md",
+      tresc: "# mutacja audytu\n",
+      dodajDoGita: true,
+    },
+  },
+];
+
+const sha = (t) => createHash("sha256").update(t).digest("hex");
+const zlapane = [], przeoczone = [], martwe = [];
+
+for (const m of MUTACJE) {
+  const oczekuj = m.oczekujCzerwonego !== false;
+  let przygotowane = false;
+  let oryginal = null;
+
+  try {
+    if (m.nowyPlik) {
+      writeFileSync(m.nowyPlik.sciezka, m.nowyPlik.tresc);
+      if (m.nowyPlik.dodajDoGita) spawnSync("git", ["add", "-f", m.nowyPlik.sciezka]);
+      przygotowane = true;
+    } else {
+      if (!existsSync(m.plik)) { martwe.push(`${m.straznik}: ${m.opis} — BRAK PLIKU ${m.plik}`); continue; }
+      oryginal = readFileSync(m.plik, "utf8");
+      const zmutowany = m.zmien(oryginal);
+      if (zmutowany === null || zmutowany === oryginal) {
+        martwe.push(`${m.straznik}: ${m.opis} — wzorzec już nie pasuje do ${m.plik}`);
+        continue;
+      }
+      writeFileSync(m.plik, zmutowany);
+      przygotowane = true;
+    }
+
+    const wynik = spawnSync("node", [`tools/straznicy/${m.straznik}.mjs`], { encoding: "utf8" });
+    const czerwony = wynik.status !== 0;
+    if (czerwony === oczekuj) {
+      zlapane.push(`${m.straznik}: ${m.opis}${oczekuj ? "" : " (słusznie przemilczane)"}`);
+    } else {
+      przeoczone.push(
+        `${m.straznik}: ${m.opis} — ${oczekuj ? "strażnik PRZEPUŚCIŁ mutację" : "strażnik OSKARŻYŁ niewinnego"}`,
+      );
+    }
+  } finally {
+    if (przygotowane && m.nowyPlik) {
+      if (m.nowyPlik.dodajDoGita) spawnSync("git", ["rm", "--cached", "-q", "-f", m.nowyPlik.sciezka]);
+      unlinkSync(m.nowyPlik.sciezka);
+    } else if (przygotowane && oryginal !== null) {
+      writeFileSync(m.plik, oryginal);
+      if (sha(readFileSync(m.plik, "utf8")) !== sha(oryginal)) {
+        console.error(`KRYTYCZNE: nie odtworzono ${m.plik} — sprawdź git status!`);
+        process.exit(2);
+      }
+    }
+  }
+}
+
+console.log(`\naudyt-straznikow: ${zlapane.length} złapanych, ${przeoczone.length} przeoczonych, ${martwe.length} martwych (mutacji: ${MUTACJE.length})`);
+for (const z of zlapane) console.log(`  ✓ ${z}`);
+if (martwe.length) { console.error("\nMARTWE MUTACJE (nic nie testują, a wyglądają na zielone):"); for (const x of martwe) console.error(`  ⚠ ${x}`); }
+if (przeoczone.length) { console.error("\nDZIURY:"); for (const x of przeoczone) console.error(`  ✘ ${x}`); }
+process.exitCode = przeoczone.length || martwe.length ? 1 : 0;

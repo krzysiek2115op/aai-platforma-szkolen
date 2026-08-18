@@ -35,11 +35,15 @@ if (!existsSync(SCIEZKA_CI)) {
 }
 
 if (ci) {
+  // Wzorce kotwiczone do `run:` — sama OBECNOŚĆ słowa w pliku to za
+  // mało (audyt mutacyjny 2026-08-19: po wycięciu kroku lint strażnik
+  // dalej był zielony, bo filtr ścieżek joba „zakres" zawiera tekst
+  // „eslint.config" — słowo pasowało, krok nie istniał).
   const wymagane = [
-    ["npm ci", /npm ci\b/],
-    ["lint", /npm run lint\b|next lint\b|eslint\b/],
-    ["tsc (kontrola typów)", /tsc\b/],
-    ["build", /npm run build\b|next build\b/],
+    ["npm ci", /run:\s*.*npm ci\b/],
+    ["lint", /run:\s*.*(npm run lint\b|next lint\b|eslint\b)/],
+    ["tsc (kontrola typów)", /run:\s*.*tsc\b/],
+    ["build", /run:\s*.*(npm run build\b|next build\b)/],
   ];
   for (const [nazwa, wzorzec] of wymagane) {
     if (!wzorzec.test(ci)) {

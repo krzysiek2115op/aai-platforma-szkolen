@@ -5,6 +5,62 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.22.0] — 2026-08-19
+
+Dopracowanie repo po domknięciu treści D7 (decyzja właściciela:
+najpierw porządek w repo i przekazanie wiedzy, potem kursy w narzędziu).
+Wzorce przeniesione z przeglądu repo strony głównej `automatic-ai`
+(v3.1.0) — jako IDEE dopasowane do naszej architektury (serwer + baza),
+nie kopie: pełna mapa przeglądu i ranking lekcji w opisie PR.
+
+### Naprawione
+- **Monogram „MP" w paskach kursu i kreatora** (zgłosił właściciel) —
+  ostatnia pozostałość po rebrandingu MatthewPlugins → Automatic AI
+  (PR #20 podmienił navbar, stopkę i metadane, ale nie przycisk powrotu
+  w dwóch pływających paskach). Teraz oba renderują sygnet
+  `AutomaticMark`. Sprawdzone na żywej stronie: zero „MP" w HTML.
+- **README kłamało w trzech miejscach**: tabela strażników wymieniała
+  13 z 16, moduł 1 miał „następny krok: treść obu kursów" (kompletna
+  od 0.21.0), a CI rzekomo „testy dojdą od Działu 2" (jest ich 36).
+  Naprawione — a przeciw nawrotom patrz `straznik-readme` niżej.
+
+### Dodane
+- **Nagłówki bezpieczeństwa z serwera** (`next.config.ts`): nosniff,
+  `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` (kreator
+  chodzi na ciastku — to obrona przed clickjackingiem), Referrer-Policy,
+  Permissions-Policy. Strona główna musi wstrzykiwać CSP w HTML po
+  buildzie (GitHub Pages nie daje nagłówków); my mamy serwer, więc
+  przenieśliśmy IDEĘ, nie implementację. **Smoke D4 sprawdza nagłówki
+  na produkcyjnym `next start`** — konfiguracja bez dowodu to deklaracja.
+- **`docs/security-checklist.md`** — lista kontrolna bezpieczeństwa
+  i SEO z pięciostanową legendą (✅ z dowodem / 🟡 / 🔧 poza repo /
+  ⛔ nie dotyczy Z POWODEM / ⏳ etap WP). Struktura ze strony głównej,
+  wypełnienie ODWROTNE: u nich backend „fizycznie nie istnieje",
+  u nas istnieje i wymaga pokrycia. Sekcja 8 = gotowa specyfikacja
+  bezpieczeństwa wtyczki WP (zbiera wszystkie ⏳).
+- **`npm test` jedną komendą**: pretest `tools/db1-gotowa.mjs` sam
+  podnosi kontener bazy, gdy port milczy; port czyta z
+  docker-compose.yml i rozmawia wyłącznie z podmanem — pierwszą wersję,
+  która czytała konfigurację aplikacji, słusznie zatrzymał
+  `straznik-granic` (WYTYCZNE §8 obronione przed własnym narzędziem).
+- **CI oszczędza minuty organizacji** (po sierpniowym wyczerpaniu
+  limitu 2000 min — 1753 zużyła strona główna): `cancel-in-progress`,
+  job „Zakres zmian" (zwykły `git diff`, bez akcji zewnętrznych) pomija
+  build i smoke'i przy commitach czysto treściowych, `timeout-minutes`
+  na każdym jobie. Strażnicy i skan sekretów chodzą ZAWSZE.
+- **README po liftingu**: spis treści, sekcja „Skrypty" (komendy
+  opisane pytaniem, na które odpowiadają), sekcja „SEO
+  i bezpieczeństwo" (haczyk tylko tam, gdzie stoi strażnik/test/smoke),
+  „Szybki start (nowa maszyna, od zera)" z weryfikacją zdrowia
+  maszyny, ramki TIP/NOTE niosące historie realnych błędów
+  (maskowanie kodów wyjścia potokiem, limit minut Actions).
+
+### Zapisane decyzje właściciela (2026-08-19)
+- porządek gałęzi dopiero PO ukończeniu Pluginu 1;
+- właściciel NIE nagrywa wideo — kursy powstaną w narzędziu (kreator
+  przejmie lekcje i nagrania; sposób produkcji materiału do osobnej
+  propozycji z opcjami); B7 = ocena GOTOWYCH kursów.
+
 ## [0.21.0] — 2026-08-18
 
 > [!WARNING]
