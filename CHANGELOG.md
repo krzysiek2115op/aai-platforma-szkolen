@@ -5,6 +5,63 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.18.0] — 2026-08-18
+
+### Dodane
+- **Źródła Działu 7 pobrane: 2219 stron oryginalnej dokumentacji**
+  (WYTYCZNE §7 i N2) — Anthropic `claude-platform` 566/566
+  i `claude-code` 187/187 (komplety), GitHub 1466 artykułów.
+- **`tools/pobierz-dokumentacje-d7.mjs`** — idempotentny skrypt
+  odtwarzający komplet źródeł jedną komendą. Tempo celowo wolne
+  (2 wątki, przerwy, honorowanie `Retry-After`): pierwsze podejście
+  szło 6 wątkami i `docs.github.com` odrzuciło HTTP 429 połowę
+  z 2800 żądań, zostawiając dokumentację dziurawą — a to gorsze niż
+  jej brak, bo nie widać, czego brakuje. Zakres GitHuba zapisany
+  w kodzie (`SEKCJE_GITHUBA`), więc rozszerzenie kursu to dopisanie
+  sekcji i ponowne uruchomienie.
+- **`straznik-wagi-dokumentacji`** — pilnuje, żeby masa dokumentacji
+  producentów nie weszła do gita, także przez `git add -f`.
+  Zweryfikowany testami negatywnymi (obie gałęzie: pliki masowe
+  i przekroczony budżet wagi).
+
+### Zmienione
+- **Dokumentacja Działu 7 zostaje LOKALNIE, poza repozytorium**
+  (decyzja właściciela). To 55 MB i ~2200 plików, a git przechowuje
+  każdą wersję na stałe — raz wpuszczone ciążyłyby każdemu klonowaniu
+  już zawsze, a odkręcenie wymagałoby przepisania historii. Do repo
+  wchodzi to, co czyni źródła weryfikowalnymi: `ZRODLA.md` (z zakresem
+  i uzasadnieniem cięć), skrypt odtwarzający i strażnik. Sens wytycznej
+  zachowany: agent pracuje na oryginale, nie na pamięci modelu.
+  WYTYCZNE N2 dostały doprecyzowanie „dokumentacja wielkiej skali"
+  (próg 8 MB) — wytyczna powstała przy działach o kilkunastu plikach.
+- **Zakres dokumentacji GitHuba przycięty: 3192 → 1466 stron.**
+  Odpadły sekcje spoza kursu: `copilot` (551 — konkurencyjne narzędzie
+  AI, o pracy z AI uczy kurs 1), `rest`/`graphql`/`apps` (428 — API dla
+  autorów integracji), how-tos i reference GitHub Advanced Security
+  (~390 — funkcje na licencji, których kursant nie ma) oraz rozliczenia,
+  regulaminy i programy (~440). Uzasadnienie każdego cięcia w `ZRODLA.md`.
+- `straznik-linkow` pomija `docs/dokumentacja-techniczna/` — to
+  dosłowna dokumentacja producentów, a jej linki są absolutne względem
+  serwisu źródłowego (`/en/webhooks/…`), więc jako ścieżki w repo nigdy
+  nie istnieją. „Naprawienie" ich znaczyłoby zmienić oryginał, czego
+  WYTYCZNE N2 zabraniają. Zweryfikowany testem negatywnym: martwy link
+  w NASZEJ dokumentacji nadal zatrzymuje commit.
+
+### Naprawione
+- **BLAD-007: podgląd strony głównej wynosił link do prywatnego
+  localhosta.** Klon repo strony głównej miał lokalną, NIEcommitowaną
+  zmianę `data/navigation.ts` (wpis „Szkolenia" → `localhost:3001`),
+  zapisaną wcześniej w CLAUDE.md jako bezpieczną, „bo nic nie
+  pushujemy". Tymczasem `scripts/deploy.sh` buduje z KATALOGU
+  ROBOCZEGO, nie z commitów — zmiana trafiła do statycznego eksportu
+  i została wypchnięta na publiczne GitHub Pages, gdzie stała na
+  wszystkich 215 stronach (navbar jest na każdej). Zgłosił właściciel.
+  Naprawa: zmiana schowana do stasha (nie skasowana), publikacja
+  ponowiona z czystego drzewa, zweryfikowana na żywym adresie
+  (0 wystąpień na stronie głównej i podstronach). W CLAUDE.md sposób
+  podglądu zastąpiony ZAKAZEM zostawiania jakichkolwiek zmian
+  w klonie — podgląd podstrony żyje wyłącznie w tym repo.
+
 ## [0.17.1] — 2026-08-18
 
 ### Zmienione

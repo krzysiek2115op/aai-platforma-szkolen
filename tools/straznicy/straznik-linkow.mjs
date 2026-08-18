@@ -11,12 +11,22 @@
  * http(s) i kotwic `#sekcja` nie dotyka — ich weryfikacja wymaga sieci
  * i nie jest zadaniem na pre-commit.
  *
+ * CZEGO NIE SPRAWDZA I DLACZEGO: `docs/dokumentacja-techniczna/` to
+ * dokumentacja producentów pobrana z sieci (WYTYCZNE N2) i leży tam
+ * DOSŁOWNIE, w postaci, w jakiej ją wydano. Jej linki są absolutne
+ * względem serwisu źródłowego (`/en/webhooks/...` u GitHuba), więc jako
+ * ścieżki w naszym repo nigdy nie istnieją. Strażnik ma pilnować NASZEJ
+ * dokumentacji; „naprawienie" cudzych linków znaczyłoby zmienić oryginał,
+ * czego wytyczna zabrania — dlatego ten katalog jest poza zakresem.
+ *
  * Użycie: node tools/straznicy/straznik-linkow.mjs
  */
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 
 const POMIJANE = new Set(["node_modules", ".git", ".next", "out", "vendor"]);
+// Katalog z dosłowną dokumentacją producentów — patrz komentarz wyżej.
+const DOKUMENTACJA_OBCA = join("docs", "dokumentacja-techniczna");
 
 function plikiMd(katalog) {
   const wynik = [];
@@ -33,6 +43,7 @@ function plikiMd(katalog) {
 const bledy = [];
 
 for (const plik of plikiMd(".")) {
+  if (plik.replace(/^\.[/\\]/, "").startsWith(DOKUMENTACJA_OBCA)) continue;
   const tresc = readFileSync(plik, "utf8");
   // [tekst](cel) — bez obrazków z adresami zewnętrznymi i bez mailto
   for (const m of tresc.matchAll(/\[[^\]]*\]\(([^)#\s]+)(#[^)\s]*)?\)/g)) {

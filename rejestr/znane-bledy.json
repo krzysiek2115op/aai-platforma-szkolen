@@ -76,6 +76,16 @@
       "naprawa": "SekcjaWejscie.superRefine w modules/m1-sklep/typy.ts sprawdza `content` schematem ze SCHEMATY_SEKCJI i zglasza bledy ze sciezka do konkretnego pola (kurs.sections.N.content.pole). Kreator tlumaczy pozycje w tablicy na rodzaj sekcji (components/kreator/formularz-logika.ts) i przeskakuje na wlasciwa zakladke. Fixtury D3 poprawione, golden d3-odczyt.json odtworzony swiadomie. Sprawdzone, ze zaostrzenie nie kolidowalo z seedem wlasciciela: seed uruchomiony na bazie db1_kursy_test przeszedl bez zmian.",
       "test": "modules/m1-sklep/dyspozytor.test.ts — „sekcja o tresci niezgodnej z jej rodzajem → odrzucona ze sciezka do pola\"; components/kreator/kreator.test.ts — braki dla zacznietych pol opcjonalnych i mapowanie bledow na rodzaj sekcji",
       "straznik": "straznik-kreatora (rozjazd kontrakt ↔ panel)"
+    },
+    {
+      "id": "BLAD-007",
+      "data": "2026-08-18",
+      "klasa": "publikacja/build-z-katalogu-roboczego-wynosi-zmiany-lokalne",
+      "dowod": "Klon repo strony glownej (read-only) miał w `data/navigation.ts` LOKALNA, niecommitowana zmiane dopisujaca do menu wpis „Szkolenia\" z adresem http://localhost:3001/szkolenia — sposob podgladu zapisany wowczas w CLAUDE.md jako bezpieczny, bo „nic nie pushujemy\". Tymczasem `scripts/deploy.sh` (npm run deploy) buduje `PAGES_PREVIEW=1 npm run build` z KATALOGU ROBOCZEGO, a nie z commitow, i wypycha gotowy `out/` sila na galaz gh-pages PUBLICZNEGO repo matthewplugins.github.io. Zmiany nie bylo w zadnym commicie (`git show HEAD:data/navigation.ts` jej nie zna), a mimo to trafila do statycznego HTML-a. Zglosil wlasciciel po zobaczeniu wpisu „Szkolenia\" na zywym podgladzie marki.",
+      "skutek": "Publiczny podglad https://matthewplugins.github.io/ serwowal na WSZYSTKICH 215 zbudowanych stronach (navbar jest na kazdej) link do prywatnego localhosta wlasciciela — martwy dla kazdego innego odwiedzajacego i ujawniajacy istnienie nieopublikowanej podstrony. Deploy z 2026-08-17 22:43 GMT.",
+      "naprawa": "Zmiana schowana w klonie do stasha (`stash@{0}`, opisany — nie skasowana), drzewo robocze przywrocone do stanu origin/main (4058d73), ponowny `npm run deploy` z czystego drzewa. Weryfikacja na zywym adresie: 0 wystapien `localhost:3001` na stronie glownej oraz na /uslugi, /kontakt, /faq, /proces. W CLAUDE.md sposob podgladu zastapiony ZAKAZEM zostawiania jakichkolwiek zmian w klonie — podglad podstrony zyje wylacznie w tym repo (`:3001` + zrzut w README).",
+      "test": "",
+      "straznik": "brak po naszej stronie i to jest swiadome ustalenie: docelowy straznik to odmowa publikacji przy brudnym drzewie roboczym w `scripts/deploy.sh`, a ten plik lezy w repo strony glownej, ktore mamy TYLKO DO ODCZYTU (WYTYCZNE). Do dopisania w tym samym ruchu, w ktorym bedziemy mieli prawo zapisu do tamtego repo. U nas zabezpiecza zapis w CLAUDE.md (zakaz zmian w klonie)."
     }
   ]
 }

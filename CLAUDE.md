@@ -46,10 +46,14 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   `straznik-migracji`, job CI „baza" z usługą postgres. Docker NIE jest
   zainstalowany — używamy **podmana** (`npm run db1:up`).
 - Decyzja właściciela (2026-08-17): wejście do `/szkolenia` z paska menu
-  strony głównej. Na podglądzie: **lokalna, NIEcommitowana** zmiana w klonie
-  (`data/navigation.ts` — link `http://localhost:3001/szkolenia`; repo
-  strony głównej pozostaje read-only, nic nie pushujemy). Przy finalnym
-  wdrożeniu dopisać wejście „Szkolenia" do nawigacji strony głównej.
+  strony głównej — dopiero przy **finalnym wdrożeniu**.
+  **ZAKAZ (właściciel, 2026-08-18, po BLAD-007): w klonie strony głównej
+  NIE ZOSTAWIAMY ŻADNYCH zmian — także niecommitowanych.** Poprzedni
+  sposób podglądu (dopisany link `http://localhost:3001/szkolenia`
+  w `data/navigation.ts`) wyciekł na publiczny podgląd GitHub Pages, bo
+  `npm run deploy` buduje z KATALOGU ROBOCZEGO, nie z commitów — czysty
+  `git status` w repo źródłowym niczego nie gwarantuje. Podgląd podstrony
+  żyje wyłącznie tutaj: `:3001` i zrzut w naszym README.
 - Pustka na `/szkolenia` jest zaplanowana: treść wejdzie z bazy w D4–D5,
   kursy właściciela w D7 — placeholderów nie dopracowujemy ręcznie.
 - **Dział 3 ZBUDOWANY, B3 zaliczona testami** (15/15 + goldeny):
@@ -166,11 +170,19 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 - **NASTĘPNY KROK: Dział 7 — TREŚĆ docelowa obu kursów.** Kolejność:
   (1) ~~domknąć D6 na GitHubie~~ ZROBIONE (PR #18, v0.16.2),
   (2) nowa gałąź `feat/d7-tresc` od `plugin-1-sklep-kursow`,
-  (3) NAJPIERW pobrać oryginalną dokumentację do
-  `docs/dokumentacja-techniczna/d7/` z `ZRODLA.md` (WYTYCZNE N2):
-  dokumentacja Anthropic/Claude dla kursu 1, dokumentacja GitHuba dla
-  kursu 2, (4) dopiero potem pisać treść — każda lekcja ma wskazane
-  źródło, zero zmyślania. Wymóg właściciela: kursy **w 100% zgodne
+  (3) ~~pobrać oryginalną dokumentację~~ **ZROBIONE**: 2219 plików
+  (claude-platform 566, claude-code 187, github 1466 z 3192 — zakres
+  cięty pod kurs). Pliki leżą LOKALNIE w
+  `docs/dokumentacja-techniczna/d7/` i są **poza gitem** (55 MB;
+  decyzja właściciela 2026-08-18, doprecyzowanie WYTYCZNE N2). W repo:
+  `ZRODLA.md` + `tools/pobierz-dokumentacje-d7.mjs` (odtwarza komplet
+  jedną komendą, idempotentnie) + `straznik-wagi-dokumentacji`.
+  **Po `git clean` albo na nowej maszynie: najpierw uruchom skrypt,
+  potem pisz treść.**
+  (4) dopiero potem pisać treść — każda lekcja ma wskazane
+  źródło, zero zmyślania; cytowane fragmenty kopiować do
+  `docs/dokumentacja-techniczna/d7/cytowane/` (ten katalog wchodzi
+  do repo, żeby dało się sprawdzić lekcję bez pobierania 55 MB). Wymóg właściciela: kursy **w 100% zgodne
   z programem** — moduły/lekcje to spis treści realnego materiału,
   strona nie obiecuje niczego spoza programu; do tego golden treści
   obu kursów (ochrona przed cichą utratą tekstu). Treść wprowadzamy

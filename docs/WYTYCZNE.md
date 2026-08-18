@@ -137,6 +137,27 @@ docs/dokumentacja-techniczna/<dzial>/
 
 Agent pracujący w dziale korzysta z NIEJ, nie z ogólnej pamięci modelu.
 
+### Doprecyzowanie (właściciel, 2026-08-18): dokumentacja wielkiej skali
+
+Wytyczna powstała przy działach, których dokumentacja to kilka–kilkanaście
+plików. Dział 7 pokazał drugi przypadek: komplet dokumentacji Anthropic
+i GitHuba to **2219 plików i 55 MB**. Git przechowuje każdą wersję na
+stałe, więc taka masa obciążyłaby każde klonowanie repozytorium już na
+zawsze, a odkręcenie wymagałoby przepisania historii.
+
+Gdy dokumentacja działu przekracza **8 MB**, do repozytorium wchodzi:
+
+- `ZRODLA.md` — źródła, data, zakres i **uzasadnienie cięć**,
+- **skrypt pobierający** (`tools/pobierz-dokumentacje-<dzial>.mjs`),
+  idempotentny, z zakresem zapisanym w kodzie,
+- podkatalog `cytowane/` — fragmenty faktycznie przywoływane przez treść,
+  żeby dało się sprawdzić zgodność ze źródłem bez pobierania całości;
+
+a same pliki źródłowe zostają **lokalnie** (`.gitignore`). Sens wytycznej
+jest zachowany: agent nadal pracuje na oryginale, nie na pamięci modelu,
+a każdy może odtworzyć dokładnie ten sam zestaw jedną komendą. Pilnuje
+tego `straznik-wagi-dokumentacji`.
+
 ## N3. Diagram właściciela
 
 Przed budową właściciel przysyła schemat/diagram swojego planu.
