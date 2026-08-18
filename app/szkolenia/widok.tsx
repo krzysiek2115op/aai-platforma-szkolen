@@ -12,11 +12,26 @@ import {
 } from "@/modules/m1-sklep";
 import { czasMaterialu, lekcje, moduly, slowo } from "@/lib/odmiana";
 import { zasob } from "@/lib/podglad";
+import { adres } from "@/lib/seo";
+import JsonLd from "@/components/seo/JsonLd";
+import { listaKatalogu, okruszki } from "@/lib/jsonld";
+
+const OPIS_KATALOGU =
+  "Kursy i ebooki Automatic AI — systemy pracy z AI, Claude i GitHubem, nie kolejne nagrania do obejrzenia.";
 
 export const metadata: Metadata = {
   title: "Szkolenia",
-  description:
-    "Kursy i ebooki Automatic AI — systemy pracy z AI, Claude i GitHubem, nie kolejne nagrania do obejrzenia.",
+  description: OPIS_KATALOGU,
+  // Kanonik sklejamy pełnym adresem (lib/seo.ts), bo przy podglądzie
+  // baza ma podkatalog, który `metadataBase` po cichu by zgubił.
+  alternates: { canonical: adres("/szkolenia") },
+  openGraph: {
+    type: "website",
+    url: adres("/szkolenia"),
+    title: "Szkolenia",
+    description: OPIS_KATALOGU,
+  },
+  twitter: { title: "Szkolenia", description: OPIS_KATALOGU },
 };
 
 const CENA = new Intl.NumberFormat("pl-PL", {
@@ -208,6 +223,16 @@ export default async function StronaSzkolenia() {
 
   return (
     <>
+      {/* Dane strukturalne: te same kursy i ta sama kolejność co w siatce
+          niżej — JSON-LD nie twierdzi niczego, czego nie widać na stronie. */}
+      <JsonLd dane={listaKatalogu(kursy)} />
+      <JsonLd
+        dane={okruszki([
+          { nazwa: "Automatic AI", adres: adres("/") },
+          { nazwa: "Szkolenia", adres: adres("/szkolenia") },
+        ])}
+      />
+
       {/* ————— HERO: digital product experience ————— */}
       <HeroMotion className="spotlight relative overflow-hidden">
         <div aria-hidden className="bg-grid mask-fade-y absolute inset-0" />

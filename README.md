@@ -46,7 +46,7 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.23.0** |
+| **Wersja** | **0.24.0** |
 | **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**, treść kursów kompletna: 91 scenariuszy). Następne kroki wg [planu domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): **SEO i wydajność na żywym adresie** → pełne zabezpieczenia → kursy złożone w narzędziu (**B7**) → WordPress |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
@@ -144,6 +144,7 @@ Narzędzia uruchamiane ręcznie:
 | `node tools/smoke/smoke-d4.ts` | katalog renderuje kursy z bazy na produkcyjnym serwerze + golden + nagłówki bezpieczeństwa |
 | `node tools/smoke/smoke-d5.ts` | strona sprzedażowa renderuje pełny kurs z bazy + golden programu |
 | `node tools/smoke/smoke-d6.ts` | brama kreatora (403), wystrzał AJAX z ciastka, cykl szkic → publikacja → usunięcie |
+| `node tools/smoke/smoke-seo.ts` | SEO na zbudowanych plikach: robots/sitemapa spójne z przełącznikiem, kanonik = własny adres, jeden `h1`, obraz OG istnieje, **dane strukturalne zgodne z bazą** (cena, tytuł, liczba modułów) |
 | `node tools/smoke/smoke-podglad.ts` | statyczny podgląd: szkic NIE wycieka do publicznych plików, kreator i AJAX nieobecni, `basePath` spójny (buduje sam) |
 | `node tools/pobierz-dokumentacje-d7.mjs` | odtwarza 55 MB dokumentacji źródłowej kursów (jest poza gitem) |
 | `node tools/wyciag-zrodla.mjs --do <kat> <plik…>` | odchudza źródło do prozy i tabel przed pisaniem scenariusza |
@@ -164,7 +165,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 21 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć")
+> 27 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć")
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie
@@ -188,6 +189,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-odsylaczy-kursu` | pre-commit + CI | wierność WŁASNEMU kursowi: odsyłacz „lekcja N.M" do lekcji, której nie ma, albo temat przypisany do złego modułu (finał Kursu 2 pomylił trzy — mapa tematów czyta się z metryk lekcji, więc nie starzeje się) |
 | `straznik-goldenu-tresci` | pre-commit + CI | CICHA utrata treści kursów: suma kontrolna + bajty/wiersze/sceny/wiersze zgodności każdej z 91 lekcji przeciw `goldeny/d7-tresc.json`; różnica pokazywana per pole, regeneracja wymaga powodu |
 | `straznik-podgladu` | pre-commit + CI | statyczny podgląd zabierający ze sobą panel właściciela: trasa kreatora lub AJAX bez wariantu `serwer.*`, wariant `statyczny.*` bez pary, pomieszane listy `pageExtensions`, brama kreatora nieodcinająca się w podglądzie (build z tokenem wypisałby SZKICE do publicznych plików) oraz drugie miejsce czytające `PODGLAD_STATYCZNY` |
+| `straznik-seo` | pre-commit + CI | ciche zniknięcie SEO: widok bez kanonika lub bez OpenGraphu, własny blok `application/ld+json` z pominięciem ucieczki znaków (treść z `</script>` zamknęłaby blok skryptu), drugie miejsce czytające przełącznik indeksowania (rozjazd metatagu z `robots.txt`), obraz OG bez `contentType`/`size`, układ bez `metadataBase` |
 | `straznik-readme` | pre-commit + CI | README kłamiące o stanie repo: strażnik bez wiersza w tabeli (i martwe wiersze), skrypt npm poza sekcją „Skrypty", zła liczba scenariuszy, kotwica spisu treści donikąd — złapał własną nieobecność w tej tabeli przy pierwszym uruchomieniu |
 | `straznik-wagi-dokumentacji` | pre-commit + CI | masa dokumentacji producentów (55 MB, ~2200 plików) wpuszczona do gita — także przez `git add -f`; git trzyma każdą wersję na stałe, więc pomyłka jest nieodwracalna |
 | blokada sekretów | pre-commit | pliki `.env`, tokeny/klucze w diffie |
@@ -224,14 +226,44 @@ repo / ⛔ nie dotyczy z powodem / ⏳ etap WP). Skrót:
 | Nagłówki: nosniff, X-Frame-Options DENY + `frame-ancestors 'none'`, Referrer-Policy, Permissions-Policy | ✅ | `next.config.ts`, **smoke D4 sprawdza je na żywym serwerze** |
 | Sekrety: gitleaks (pełna historia, pinowany SHA-256), `.env` poza repo | ✅ | job CI „Skan sekretów" |
 | Pełne CSP z nonce, rate limiting, HTTPS/HSTS, RODO | ⏳ | specyfikacja wtyczki WP — sekcja 8 checklisty |
-| SEO produkcyjne (robots, sitemapa, JSON-LD, Lighthouse ≥90/95/90/90) | ⏳ | wymaga domeny; progi zapisane już dziś w checkliście |
+| SEO na stronie: `robots.txt`, sitemapa, kanoniki, OpenGraph + miniatury, JSON-LD (Organization, ItemList, Course+Offer, BreadcrumbList, FAQPage) | ✅ | `straznik-seo` (6 niezmienników, 6 mutacji), **smoke SEO porównuje dane strukturalne Z BAZĄ** |
+| Pomiar Lighthouse 100/100/100/100 na żywym adresie | ⏳ | protokół i tabela niżej — liczby wpisujemy dopiero po pomiarze |
 
 > [!NOTE]
 > Tabela mówi „✅" wyłącznie tam, gdzie stoi za tym strażnik, test albo
-> smoke — deklaracja bez dowodu nie dostaje haczyka. Pomiar Lighthouse
-> wejdzie dopiero na publicznym adresie (etap WP); wpisywanie wyników
+> smoke — deklaracja bez dowodu nie dostaje haczyka. Wpisywanie wyników
 > „na oko" łamałoby zasadę zero zmyślania, tę samą, która obowiązuje
 > treść kursów.
+
+### Pomiar wydajności i SEO — protokół
+
+Cel właściciela: **100 w każdej kolumnie**, mierzone narzędziami Google
+na żywym adresie, a wynik wpisany tutaj tabelą.
+
+**Pomiar rozchodzi się na dwa buildy i trzeba wiedzieć dlaczego.** Podgląd
+chodzi z `noindex` (decyzja właściciela — treść stron sprzedażowych jest
+jeszcze robocza, a opinie to jawne placeholdery). Lighthouse **punktuje**
+audyt „Page is blocked from indexing", więc na żywym adresie kolumna SEO
+nigdy nie pokaże 100, choćby wszystko inne było bez zarzutu. Mierzymy więc:
+
+| Co | Gdzie | Dlaczego tam |
+|---|---|---|
+| Wydajność, dostępność, dobre praktyki, LCP/CLS/TBT | żywy adres podglądu (z `noindex`) | prawda o sieci, hostingu i realnym transferze |
+| SEO | build z `SEO_INDEKSOWANIE=1`, lokalnie na `next start` / serwowanym `out/` | wynik nieprzykryty naszym własnym ustawieniem |
+
+Wynik jest ważny dopiero, gdy narzędzie pokaże go **trzy razy z rzędu**.
+
+| Podstrona | Wydajność | Dostępność | Dobre praktyki | SEO | LCP | CLS | TBT |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `/szkolenia` | — | — | — | — | — | — | — |
+| `/szkolenia/[slug]` | — | — | — | — | — | — | — |
+
+> Myślniki znaczą **niezmierzone**, nie „zero" i nie „nie wiadomo".
+> Liczby wchodzą tu z zapisanego przebiegu Lighthouse'a, razem z datą
+> i warunkami pomiaru. Dla porównania: strona główna przy tym samym
+> reżimie ma 94–98 na wydajności i najniżej wypadają szablony
+> z okładkami — bo obraz jest elementem LCP. Nasz katalog to siatka
+> okładek plus animowany hero, czyli przypadek trudniejszy.
 
 ## Szybki start (nowa maszyna, od zera)
 

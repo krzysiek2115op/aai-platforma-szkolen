@@ -5,6 +5,83 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.24.0] — 2026-08-19
+
+Krok 1 planu domknięcia Pluginu 1, **część 2 z 3: SEO na stronie**.
+Przed tym wpisem podstrona nie miała ANI JEDNEGO tagu OpenGraph, ani
+jednego adresu kanonicznego, żadnego `robots.txt`, sitemapy ani danych
+strukturalnych — sprawdzone w zbudowanym HTML-u, nie założone. Pomiary
+Lighthouse'em są częścią 3; tu powstaje to, co będzie mierzone.
+
+### Dodane
+- **`lib/seo.ts`** — jedno miejsce rozstrzygające, GDZIE ta wersja stoi
+  i CZY wolno ją indeksować. Kanonik, OpenGraph, `robots.txt`, sitemapa
+  i JSON-LD muszą mówić o tym samym adresie; rozjazd między nimi to
+  błąd bez objawu.
+- **Adresy kanoniczne i OpenGraph** na katalogu i stronach kursów,
+  `metadataBase` w układzie strony.
+- **`app/robots.ts` i `app/sitemap.ts`** — generowane, nie pisane ręcznie,
+  żeby nie mogły rozjechać się z metatagiem `robots`. Sitemapa czyta te
+  same kursy co katalog. **Bez `lastModified`**: kuszące `new Date()`
+  mówiłoby „treść się zmieniła" po każdym buildzie, także gdy zmienił
+  się sam CSS — a to zmyślanie, tyle że w metadanych.
+- **Miniatury Open Graph** (`next/og`): jedna wspólna dla korzenia
+  i katalogu, **własna dla każdego kursu** — z tytułem, poziomem, liczbą
+  lekcji, czasem materiału i ceną, wszystko z bazy. Bez nich każdy
+  wklejony link wyglądał identycznie.
+- **JSON-LD** — największy nieodrobiony zysk SEO dla sklepu z kursami:
+  `Organization`, `BreadcrumbList`, `ItemList` (katalog), `Course`
+  z `syllabusSections` i `hasCourseInstance`, `Offer` oraz `FAQPage`.
+  Budowane z TEGO SAMEGO obiektu, który renderuje stronę.
+- **`straznik-seo`** (19. strażnik, 6 niezmienników) + **6 mutacji**.
+- **`tools/smoke/smoke-seo.ts`** w CI — sprawdza ZBUDOWANE pliki:
+  kanonik = własny adres, dokładnie jeden `h1`, komplet OG, obraz OG
+  istnieje na dysku, a **cena, tytuł i liczba modułów w danych
+  strukturalnych zgadzają się z bazą**.
+- **`tools/og-rozszerzenie.mjs`** — patrz „Naprawione".
+- **Protokół pomiaru w README** wraz z pustą tabelą wyników. Myślniki
+  znaczą „niezmierzone", nie „zero"; liczby wejdą z zapisanego przebiegu
+  Lighthouse'a w części 3.
+
+### Naprawione
+- **Miniatury OG szłyby w świat jako `application/octet-stream`.**
+  Konwencja `opengraph-image.tsx` przy `output: "export"` produkuje plik
+  BEZ rozszerzenia, a hosting statyczny dobiera typ po rozszerzeniu —
+  scrapery Facebooka, LinkedIna i X-a wymagają `image/*`, więc link
+  poszedłby bez miniatury przy w pełni poprawnie wyglądającej stronie.
+  Lekcja przejęta z repo strony głównej (tam zweryfikowana na żywym
+  adresie); `tools/og-rozszerzenie.mjs` dokłada `.png` i przestawia
+  odwołania w HTML-u ORAZ w ładunkach RSC.
+- **Katalog `/szkolenia` nie dostawał miniatury w ogóle** — konwencja
+  plikowa Next NIE dziedziczy się w dół, więc obraz z `app/` obsłużył
+  korzeń, ale nie trasę potomną. Wykryte przy oglądaniu zbudowanego
+  HTML-u. Rysunek wydzielony do komponentu, dwie cienkie trasy nad nim.
+- **Liczebnik na miniaturze kursu odmieniany ręcznie** („41 lekcji")
+  — poprawne dla 41, błędne dla 22. Przeszło przez `straznik-odmiany`,
+  bo nie było ternarem. Teraz przez `lib/odmiana.ts`.
+
+### Zmienione
+- `robots: { index: false }` przestało być wpisane na sztywno w układzie
+  strony — decyduje przełącznik `INDEKSOWANIE` z `lib/seo.ts`, wspólny
+  dla metatagu, `robots.txt` i sitemapy. **Domyślnie nadal NIE
+  indeksujemy.** `SEO_INDEKSOWANIE=1` służy dziś do jednego: zmierzenia
+  kolumny SEO w Lighthousie, którą `noindex` punktowo zaniża.
+- `app/robots.ts` i `app/sitemap.ts` mają `dynamic = "force-static"` —
+  `output: "export"` wymaga tego jawnie. Ta sama wartość pasuje do trybu
+  serwerowego, a przy wyłączonym indeksowaniu sitemapa NIE dotyka bazy,
+  więc `npm run build` nadal przechodzi bez Postgresa (sprawdzone
+  buildem z martwym adresem bazy).
+
+### Świadome decyzje
+- **`Offer.availability` = `PreOrder`, nie `InStock`.** Zakup jest dziś
+  placeholderem prowadzącym do kontaktu — płatności przychodzą
+  z Pluginem 2. `InStock` byłoby deklaracją, że da się kupić od ręki.
+  Smoke pilnuje tej wartości; zmieniamy ją w tym samym kroku, w którym
+  ruszy koszyk.
+- **Miniatury OG bez firmowego kroju.** Satori nie czyta woff2, a my
+  mamy subsety Geista właśnie w tym formacie. Krój systemowy jest
+  kompromisem na obrazku podglądu, nie w identyfikacji.
+
 ## [0.23.0] — 2026-08-19
 
 Krok 1 planu domknięcia Pluginu 1, część pierwsza: **tryb podglądu

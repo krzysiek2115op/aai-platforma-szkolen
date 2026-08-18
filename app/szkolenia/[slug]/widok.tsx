@@ -20,6 +20,9 @@ import SekcjaTransformacja from "@/components/kurs/SekcjaTransformacja";
 import TloKursu from "@/components/kurs/TloKursu";
 import WejscieAdmina from "@/components/kreator/WejscieAdmina";
 import { czyKreator } from "@/lib/kreator-dostep";
+import { adres } from "@/lib/seo";
+import JsonLd from "@/components/seo/JsonLd";
+import { faq as faqJsonLd, kurs as kursJsonLd, okruszki } from "@/lib/jsonld";
 import {
   szczegolyKursu,
   TrescHero,
@@ -42,8 +45,24 @@ export type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const kurs = await szczegolyKursu(slug, { takzeSzkice: await czyKreator() });
-  if (!kurs) return { title: "Nie znaleziono" };
-  return { title: kurs.title, description: kurs.short_desc ?? undefined };
+  // Strona, której nie ma, nie ma też prawa mieć kanonika ani OpenGraphu —
+  // inaczej podsuwalibyśmy wyszukiwarce adres oddający 404.
+  if (!kurs) return { title: "Nie znaleziono", robots: { index: false, follow: false } };
+
+  const opis = kurs.short_desc ?? undefined;
+  const wlasnyAdres = adres(`/szkolenia/${kurs.slug}`);
+  return {
+    title: kurs.title,
+    description: opis,
+    alternates: { canonical: wlasnyAdres },
+    openGraph: {
+      type: "website",
+      url: wlasnyAdres,
+      title: kurs.title,
+      description: opis,
+    },
+    twitter: { title: kurs.title, description: opis },
+  };
 }
 
 /** content JSONB sekcji przez safeParse — zła treść pomija sekcję, nie wysadza strony. */
@@ -109,6 +128,19 @@ export default async function StronaKursu({ params }: Props) {
 
   return (
     <div data-kurs>
+      {/* Dane strukturalne budowane z TEGO SAMEGO obiektu, który renderuje
+          stronę — cena, poziom i program nie mogą się rozjechać z treścią.
+          FAQ wchodzi tylko wtedy, gdy sekcja FAQ naprawdę jest na stronie. */}
+      <JsonLd dane={kursJsonLd(kurs)} />
+      <JsonLd
+        dane={okruszki([
+          { nazwa: "Automatic AI", adres: adres("/") },
+          { nazwa: "Szkolenia", adres: adres("/szkolenia") },
+          { nazwa: kurs.title, adres: adres(`/szkolenia/${kurs.slug}`) },
+        ])}
+      />
+      {faq && faq.pytania.length > 0 ? <JsonLd dane={faqJsonLd(faq.pytania)} /> : null}
+
       {/* żywe tło całej strony: poświata za kursorem + dryfujące bloby */}
       <TloKursu />
       <PasekKursu pozycje={pozycjePaska} />

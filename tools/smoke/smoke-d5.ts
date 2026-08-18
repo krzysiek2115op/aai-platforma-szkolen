@@ -120,6 +120,21 @@ try {
   const brak = await fetch(`http://localhost:${PORT}/szkolenia/nie-istnieje`);
   assert.equal(brak.status, 404, "nieistniejący kurs nie zwraca 404");
 
+  // Miniatura OG kursu NA SERWERZE — najkruchsza ścieżka całego SEO.
+  // W trybie serwerowym `generateStaticParams` obrazu zwraca pustą listę
+  // (build musi przechodzić bez bazy, tak chodzi CI), więc obrazek MUSI
+  // powstać na żądanie. Gdyby przestał, każdy link do kursu szedłby
+  // w świat bez miniatury, a build byłby dalej zielony.
+  const miniatura = await fetch(
+    `http://localhost:${PORT}/szkolenia/smoke-d5-kurs/opengraph-image`
+  );
+  assert.equal(miniatura.status, 200, "miniatura OG kursu nie powstaje na żądanie");
+  assert.equal(
+    miniatura.headers.get("content-type"),
+    "image/png",
+    "miniatura OG kursu nie jest obrazem PNG"
+  );
+
   // golden sekcji programu (deterministyczna przy seedzie smoke)
   const program = html.match(/<section id="program"[\s\S]*?<\/section>/)?.[0];
   assert.ok(program, "brak sekcji #program w HTML");

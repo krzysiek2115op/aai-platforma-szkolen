@@ -160,6 +160,60 @@ const MUTACJE = [
       tresc: "export const tryb = process.env.PODGLAD_STATYCZNY === \"1\";\n",
     },
   },
+  // --- straznik-seo ---
+  // Reguła 0.22.0: nowy strażnik = nowa mutacja. SEO psuje się bez
+  // objawu, więc każdy z sześciu niezmienników ma tu swój test.
+  {
+    straznik: "straznik-seo",
+    opis: "widok publiczny traci kanoniczny adres",
+    plik: "app/szkolenia/widok.tsx",
+    zmien: (s) =>
+      s.includes("alternates: { canonical")
+        ? s.replace(/  alternates: \{ canonical[^\n]*\n/, "")
+        : null,
+  },
+  {
+    straznik: "straznik-seo",
+    opis: "własny blok application/ld+json z pominięciem ucieczki znaków",
+    nowyPlik: {
+      sciezka: "components/audyt-mutacja-tymczasowa.tsx",
+      tresc:
+        'export default function Zle() {\n' +
+        '  return <script type="application/ld+json">{"{}"}</script>;\n' +
+        '}\n',
+    },
+  },
+  {
+    straznik: "straznik-seo",
+    opis: "drugie miejsce czytające SEO_INDEKSOWANIE (rozjazd robots ↔ metatag)",
+    nowyPlik: {
+      sciezka: "lib/audyt-mutacja-tymczasowa.ts",
+      tresc: 'export const indeks = process.env.SEO_INDEKSOWANIE === "1";\n',
+    },
+  },
+  {
+    straznik: "straznik-seo",
+    opis: "robots.txt przestaje pytać o przełącznik indeksowania",
+    plik: "app/robots.ts",
+    zmien: (s) =>
+      s.includes("INDEKSOWANIE") ? s.replaceAll("INDEKSOWANIE", "PRAWDA_ZAWSZE") : null,
+  },
+  {
+    straznik: "straznik-seo",
+    opis: "obraz OG bez deklaracji contentType",
+    plik: "app/opengraph-image.tsx",
+    zmien: (s) =>
+      s.includes("export const contentType")
+        ? s.replace(/export const contentType[^\n]*\n/, "")
+        : null,
+  },
+  {
+    straznik: "straznik-seo",
+    opis: "układ strony bez metadataBase",
+    plik: "app/layout.tsx",
+    zmien: (s) =>
+      s.includes("metadataBase") ? s.replace(/  metadataBase[^\n]*\n/, "") : null,
+  },
   // --- straznik-granic ---
   {
     straznik: "straznik-granic",

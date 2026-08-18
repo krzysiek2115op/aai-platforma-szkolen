@@ -323,8 +323,32 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      (`lib/podglad.ts`), pilnuje tego `straznik-podgladu` + 4 mutacje
      + `smoke-podglad` (buduje CELOWO z tokenem w środowisku, żeby
      udowodnić, że szkice nie wchodzą do publicznych plików).
-     Pozostało w kroku 2: **SEO** (robots.ts, sitemap.ts, kanoniczne,
-     OG-obrazy, JSON-LD) i **wydajność + pomiary**.
+     **Część 2/3 ZROBIONA (0.24.0, gałąź `feat/seo-podstrony`): SEO na
+     stronie.** `lib/seo.ts` = jedno źródło prawdy o adresie i o tym, czy
+     wolno indeksować (`INDEKSOWANIE`, domyślnie NIE; `SEO_INDEKSOWANIE=1`
+     wyłącznie do pomiaru kolumny SEO, którą `noindex` punktowo zaniża).
+     Doszły: kanoniki + OpenGraph, `app/robots.ts`, `app/sitemap.ts`
+     (bez `lastModified` — nie mamy prawdziwej daty zmiany treści),
+     miniatury OG przez `next/og` (własna per kurs), JSON-LD
+     (Organization, ItemList, Course+Offer, BreadcrumbList, FAQPage),
+     `straznik-seo` + 6 mutacji, `smoke-seo` (porównuje dane
+     strukturalne Z BAZĄ). **Trzy pułapki, które kosztowały czas i mogą
+     wrócić:** (1) `opengraph-image.tsx` w eksporcie daje plik BEZ
+     rozszerzenia → Pages podaje `octet-stream` → scrapery odrzucają
+     miniaturę; naprawia `tools/og-rozszerzenie.mjs` po buildzie;
+     (2) konwencja plikowa Next **nie dziedziczy się w dół** — `/szkolenia`
+     nie dostało obrazka z `app/opengraph-image.tsx`, trzeba było osobnej
+     trasy; (3) `app/robots.ts` i `app/sitemap.ts` MUSZĄ mieć
+     `dynamic = "force-static"`, inaczej `output: export` pada.
+     **DECYZJA: `Offer.availability` = `PreOrder`**, bo zakup to dziś
+     placeholder — na `InStock` zmieniamy dopiero z płatnościami
+     (Plugin 2); pilnuje tego smoke.
+     Pozostało w kroku 2: **część 3/3 — wydajność i pomiary**
+     (Lighthouse ×3, PageSpeed, Rich Results, Search Console) oraz
+     wypełnienie tabeli w README (dziś myślniki = niezmierzone).
+     **Właściciel (2026-08-19): PR-y części 1–3 mergujemy DOPIERO, gdy
+     pomiary pokażą 100 w każdej kolumnie.** PR-y stackowane:
+     #26 (podgląd) ← `feat/seo-podstrony` ← część 3.
      Oryginalny opis kroku: Wrzucić
      podstronę na GitHub Pages, zrobić całe SEO, testować **narzędziami
      Google** (Lighthouse, PageSpeed Insights, Rich Results, Search
