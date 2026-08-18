@@ -172,7 +172,7 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   do repo celowany komplet (Plugin Handbook, $wpdb/dbDelta, REST,
   bezpieczeństwo, MySQL: typy/indeksy/transakcje/triggery) —
   NIE zrzucamy całych manuali; agent czyta szeroko w sieci.
-- **NASTĘPNY KROK: Dział 7 — TREŚĆ docelowa obu kursów.** Kolejność:
+- **Dział 7 — TREŚĆ docelowa obu kursów (ZROBIONE).** Kolejność prac była:
   (1) ~~domknąć D6 na GitHubie~~ ZROBIONE (PR #18, v0.16.2),
   (2) nowa gałąź `feat/d7-tresc` od `plugin-1-sklep-kursow`,
   (3) ~~pobrać oryginalną dokumentację~~ **ZROBIONE**: 2219 plików
@@ -214,60 +214,54 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   tylko jako dodatki; (d) podział pracy: agent pisze ze źródeł
   scenariusze nagrań (kroki na ekranie + narracja + prompty),
   właściciel nagrywa wideo. Scenariusze żyją w repo.
-- **D7 W TOKU — scenariusze lekcji.** Program ZATWIERDZONY i wprowadzony
-  do bazy dyspozytorem (Kurs 1: 6 modułów/41 lekcji/720 min; Kurs 2:
-  7/50/745 — widać na `/szkolenia`). Powstają scenariusze nagrań:
-  `tresc-kursow/<slug>/modul-N/lekcja-M-<temat>.md`, cytaty źródłowe
-  w `docs/dokumentacja-techniczna/d7/cytowane/`.
-  **Licznik i przepis wznowienia: [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md)**
-  (stan 2026-08-18: **86/91** — **CAŁY Kurs 1 gotowy: 41/41** oraz
-  moduły 1–6 Kursu 2; następny i OSTATNI — **moduł 7 Kursu 2**
-  „Ponad podstawy" (5 lekcji: GitHub CLI, Pages, Codespaces,
-  wyszukiwanie, Discussions)). Zasady:
-  commit po KAŻDYM module, każda teza z tabelą „Zgodność ze źródłem",
-  zero zmyślania.
+- **D7 KOMPLETNY — 91 z 91 scenariuszy (2026-08-18).** Program
+  ZATWIERDZONY i wprowadzony do bazy dyspozytorem (Kurs 1: 6 modułów/41
+  lekcji/720 min; Kurs 2: 7/50/745 — widać na `/szkolenia`). Scenariusze
+  nagrań leżą w `tresc-kursow/<slug>/modul-N/lekcja-M-<temat>.md`, cytaty
+  źródłowe w `docs/dokumentacja-techniczna/d7/cytowane/`.
+  **Licznik i historia produkcji: [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md)**
+  — Kurs 1 gotowy (41/41), Kurs 2 gotowy (50/50, moduł 7 „Ponad podstawy"
+  zamknięty 2026-08-18). Strażnicy 14/14, `straznik-scenariuszy`
+  potwierdza 91 scenariuszy.
+  **NASTĘPNY KROK: domknięcie działu** — wpis do CHANGELOG, **PR gałęzi
+  `feat/d7-tresc`** do `plugin-1-sklep-kursow` wg CONTRIBUTING (moduły
+  lądowały bezpośrednio na gałęzi, jeden commit na moduł — PR zamyka
+  cały dział), potem **etap WordPressa** z [docs/PLAN.md](docs/PLAN.md).
+  Do rozważenia przy domknięciu: golden treści obu kursów (ochrona przed
+  cichą utratą tekstu) — zapowiedziany w PROGRAM-KURSOW-D7.md, jeszcze
+  nie zrobiony.
+  Zasady, które obowiązywały i mają obowiązywać przy każdej korekcie
+  treści: commit po KAŻDYM module, każda teza z tabelą „Zgodność ze
+  źródłem", zero zmyślania.
   Korekta źródła przy L2.4 Kursu 1: `extended-thinking.md` jest
   w dokumentacji DEPRECATED (4.7+ zwraca 400), więc rdzeń to
   `thinking.md`.
   Podział materiału w Kursie 2: lekcja 2.1 bierze z GitHub flow tylko
   **rytm pracy własnej**, strona **zespołowa** (przeglądy, scalanie,
-  gałęzie chronione) należy do lekcji **4.1** — nie powtarzać (notatka
-  też w POSTEP.md).
-  **DECYZJA WŁAŚCICIELA (2026-08-18): od modułu 4 Kursu 2 tryb
-  RÓWNOLEGŁY** — najpierw `tools/wyciag-zrodla.mjs` (odchudzanie
-  źródeł) i `straznik-scenariuszy`, potem w każdym module: brief od
-  agenta głównego → 3–4 subagentów pisze po lekcji → przelot
-  spójności + cytaty + commit. Warunek powrotu do trybu ręcznego
-  i sygnały spadku jakości: sekcja „Tryb produkcji" w POSTEP.md.
-  **Oba narzędzia GOTOWE (v0.19.0), moduł 4 PRZESZEDŁ tym trybem
-  (v0.20.0) i cztery sygnały jakości wypadły czysto** — ocena w POSTEP.md,
-  sekcja „Jak wypadł moduł 4"; tryb zostaje na moduły 5–7. Przepis,
-  który zadziałał: brief PRZED falami (zostaje w repo, np.
-  `tresc-kursow/jak-uzywac-githuba/modul-4/BRIEF-modulu.md`), wzorzec
-  formatu podany subagentowi jako KONKRETNY plik lekcji, przegląd
-  pierwszej fali przed puszczeniem reszty.
-  **Moduł 5 PRZESZEDŁ tym samym trybem (2 fale: 3 + 4 subagentów)** —
-  ocena w POSTEP.md, sekcja „Jak wypadł moduł 5": trzy sygnały czysto,
-  jeden (ton) = jedna poprawka, tryb zostaje. Zastosowane obie
-  oszczędności z modułu 4 — wzorzec jako FRAGMENT lekcji + tylko sekcja
-  briefu dla danej lekcji przy pełnej tabeli granic. **Do promptu
-  subagenta przy module 6 dopisać: druga osoba WIELKĄ literą (Ty, Ci,
-  Twój)** — dwie lekcje pisały ją małą i trzeba było ujednolicać ręcznie.
-  **Moduł 6 PRZESZEDŁ tym trybem (2 fale: 3 + 3 subagentów)** — ocena
-  w POSTEP.md, sekcja „Jak wypadł moduł 6": **cztery sygnały czysto**
-  (jedna poprawka mostka między lekcjami), tryb zostaje; obie poprawki
-  z modułu 5 weszły do promptów i zadziałały — zero drugiej osoby małą
-  literą. Koszt ~490 tys. tokenów na 6 lekcji (~82 tys. na subagenta).
-  Nowość do powtórzenia: **plik cytatów `cytowane/…` powstaje osobnym
-  przebiegiem subagenta PO całym module**, nie przez autorów lekcji
-  (uniknięcie równoległych zapisów do jednego pliku) — i jest zarazem
-  NIEZALEŻNĄ KONTROLĄ: w module 6 wyłapał 4 usterki lekcji (zawężenia
-  windowsowe podane jako rada uniwersalna, jedno zdanie bez kotwicy
-  w źródle, wariant monitu, sprzeczność w samym źródle), wszystkie
-  naprawione przed commitem.
-  **Do promptu przy module 7 dopisać: każdej lekcji podać WPROST zdanie
-  zamykające poprzedniej** — w module 6 lekcja bez tego (6.3) jako
-  jedyna wymagała ręcznego mostka.
+  gałęzie chronione) należy do lekcji **4.1** — nie powtarzać.
+  **TRYB RÓWNOLEGŁY (decyzja właściciela 2026-08-18) — cztery moduły
+  Kursu 2 (4, 5, 6, 7) powstały tym trybem i ANI RAZU nie zaszedł
+  warunek powrotu do trybu ręcznego.** Przepis, narzędzia
+  (`tools/wyciag-zrodla.mjs`, `straznik-scenariuszy`), oceny wszystkich
+  czterech modułów wg czterech sygnałów jakości i koszty — sekcja „Tryb
+  produkcji" w POSTEP.md. Co się sprawdziło i ma zostać, gdyby doszła
+  nowa treść: brief PRZED falami (zostaje w repo, np.
+  `tresc-kursow/jak-uzywac-githuba/modul-7/BRIEF-modulu.md`), wzorzec
+  formatu jako FRAGMENT gotowej lekcji, tylko własna sekcja briefu przy
+  PEŁNEJ tabeli granic, przegląd pierwszej fali przed puszczeniem
+  drugiej, **dosłowne zdanie zamykające poprzedniej lekcji w prompcie**
+  (poprawka z modułu 6 — w module 7 zadziałała: wszystkie cztery
+  przejścia trzymają się co do zdania) oraz **plik cytatów osobnym
+  przebiegiem subagenta PO całym module, traktowany jako DRUGA BRAMKA
+  JAKOŚCI, nie porządki** (moduł 6: 4 usterki, moduł 7: 10 usterek — w
+  tym błędne przypisanie trzech tematów do modułów w podsumowaniu
+  CAŁEGO kursu; wszystkie naprawione przed commitem).
+  **LEKCJA z modułu 7 (nowa klasa usterki):** podsumowania odwołujące
+  się do wcześniejszych modułów trzeba weryfikować przeciw REALNYM
+  tytułom lekcji (`grep -h "^lekcja:" modul-*/*.md`), a nie pisać
+  z pamięci — autor finału kursu przypisał `.gitignore` modułowi 3
+  (jest w 2), gałęzie chronione modułowi 4 (są w 3) i konflikty
+  scalania modułowi 2 (są w 4).
   **DECYZJA WŁAŚCICIELA (2026-08-18): subagenci treści zostają na
   OPUSIE.** Propozycja agenta, żeby przy tanim materiale modułu 7 zejść
   na Sonneta, została odrzucona — jakość trybu równoległego stoi na tym,
@@ -275,10 +269,10 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   oryginału. Nie zmieniać modelu bez nowej decyzji właściciela.
   Cienkie źródła z programu (poniżej ~4 kB) uzupełniamy plikami
   wskazanymi w nich jako dalsza lektura — w module 5 dotyczyło to lekcji
-  5.3, 5.4, 5.5, 5.6 i 5.7, w module 6 tylko lekcji 6.2 (`about-ssh.md`
-  ma 3,3 kB → doszły `adding-a-new-ssh-key-to-your-github-account.md`
-  i `working-with-ssh-key-passphrases.md`); dopisane ścieżki lądują we
-  frontmatterze `zrodla:` i w tabeli zgodności.
+  5.3–5.7, w module 6 lekcji 6.2, a w module 7 **czterech lekcji z pięciu**
+  (7.1, 7.2, 7.3, 7.4 — `about-codespaces.md` ma 785 B i jest samym
+  spisem odsyłaczy); dopisane ścieżki lądują we frontmatterze `zrodla:`
+  i w tabeli zgodności.
   **BLAD-008 (2026-08-18):** 31 plików treści kończyło się śmieciem po
   narzędziu zapisu (`</content>`, `</invoke>`); wyczyszczone, strażnik
   przeciw nawrotom w `straznik-scenariuszy` (pomija bloki kodu, bo tam
