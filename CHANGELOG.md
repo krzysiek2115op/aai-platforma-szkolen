@@ -25,6 +25,14 @@ Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projekt
   i przekroczony budżet wagi).
 
 ### Zmienione
+- **Gałąź domyślna repozytorium: `main` → `plugin-1-sklep-kursow`**
+  (decyzja właściciela). GitHub renderuje stronę repozytorium z gałęzi
+  domyślnej, a `main` stoi na wersji 0.3.4 — 34 commity w tyle, sprzed
+  rebrandingu i bez podglądu katalogu. Odwiedzający widział projekt
+  sprzed miesiąca pracy. Reguła PLAN.md §5 zostaje nienaruszona: na
+  `main` nadal nic nie wchodzi przed ukończeniem Pluginu 1, a `main`
+  jest od teraz CELOWO nieaktualny i nie jest źródłem prawdy o stanie
+  projektu. Po domknięciu modułu: merge na `main` i powrót domyślnej.
 - **Dokumentacja Działu 7 zostaje LOKALNIE, poza repozytorium**
   (decyzja właściciela). To 55 MB i ~2200 plików, a git przechowuje
   każdą wersję na stałe — raz wpuszczone ciążyłyby każdemu klonowaniu

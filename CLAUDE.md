@@ -53,7 +53,11 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   w `data/navigation.ts`) wyciekł na publiczny podgląd GitHub Pages, bo
   `npm run deploy` buduje z KATALOGU ROBOCZEGO, nie z commitów — czysty
   `git status` w repo źródłowym niczego nie gwarantuje. Podgląd podstrony
-  żyje wyłącznie tutaj: `:3001` i zrzut w naszym README.
+  żyje wyłącznie tutaj: `:3001` i zrzut w naszym README. Zmiana schowana
+  w klonie do `stash@{0}` (nie skasowana). Kontekst: repo strony głównej
+  NIE MA sekretu `PAGES_DEPLOY_TOKEN`, więc workflow `deploy.yml` pomija
+  publikację (przebiegi 7 s) i podgląd wgrywa się WYŁĄCZNIE ręcznym
+  `npm run deploy` z czyjegoś katalogu roboczego — stąd cała klasa błędu.
 - Pustka na `/szkolenia` jest zaplanowana: treść wejdzie z bazy w D4–D5,
   kursy właściciela w D7 — placeholderów nie dopracowujemy ręcznie.
 - **Dział 3 ZBUDOWANY, B3 zaliczona testami** (15/15 + goldeny):
@@ -179,10 +183,16 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   jedną komendą, idempotentnie) + `straznik-wagi-dokumentacji`.
   **Po `git clean` albo na nowej maszynie: najpierw uruchom skrypt,
   potem pisz treść.**
-  (4) dopiero potem pisać treść — każda lekcja ma wskazane
-  źródło, zero zmyślania; cytowane fragmenty kopiować do
+  (4) **NAJPIERW PROGRAM obu kursów do zatwierdzenia przez właściciela**
+  (moduły + lekcje, każda ze wskazanym plikiem źródłowym) — dopiero po
+  jego akceptacji piszemy treść. Kolejność jest wymuszona wymogiem
+  właściciela: strona nie może obiecywać niczego spoza programu, więc
+  program musi być ustalony pierwszy.
+  (5) treść lekcji — każda ze wskazanym
+  źródłem, zero zmyślania; cytowane fragmenty kopiować do
   `docs/dokumentacja-techniczna/d7/cytowane/` (ten katalog wchodzi
-  do repo, żeby dało się sprawdzić lekcję bez pobierania 55 MB). Wymóg właściciela: kursy **w 100% zgodne
+  do repo, żeby dało się sprawdzić lekcję bez pobierania 55 MB).
+  Wymóg właściciela: kursy **w 100% zgodne
   z programem** — moduły/lekcje to spis treści realnego materiału,
   strona nie obiecuje niczego spoza programu; do tego golden treści
   obu kursów (ochrona przed cichą utratą tekstu). Treść wprowadzamy
