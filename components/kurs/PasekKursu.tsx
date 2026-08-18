@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { AutomaticMark } from "@/components/brand/AutomaticMark";
 
 export type PozycjaPaska = { id: string; tekst: string };
 
@@ -56,7 +57,7 @@ export default function PasekKursu({
           aria-label="Wróć do katalogu szkoleń"
           className="group/wroc flex size-9 shrink-0 items-center justify-center rounded-full border border-volt/25 bg-volt/10 font-mono text-xs font-semibold text-volt transition-colors hover:bg-volt hover:text-void"
         >
-          <span className="group-hover/wroc:hidden">MP</span>
+          <AutomaticMark className="size-4 group-hover/wroc:hidden" />
           <ArrowLeft aria-hidden className="hidden size-4 group-hover/wroc:block" />
         </Link>
 

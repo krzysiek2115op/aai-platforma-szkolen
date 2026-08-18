@@ -9,10 +9,60 @@ on:
 permissions:
   contents: read
 
+# Kolejny push do tej samej gałęzi/PR-a ANULUJE trwający przebieg —
+# minuty Actions są wspólne dla całej organizacji (plan Free: 2000/mies.
+# na repozytoria prywatne; w sierpniu 2026 limit padł i CI stanęło),
+# więc nie płacimy za przebiegi, których wynik nikogo już nie obchodzi.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # Ustala, czy zmiany dotykają KODU, czy tylko treści/dokumentacji.
+  # W tym repo większość commitów to treść kursów (tresc-kursow/,
+  # docs/, *.md) — lint, tsc, build i smoke'i niczego wtedy nie
+  # sprawdzają, a kosztują ~7-8 minut na przebieg. Strażnicy i skan
+  # sekretów chodzą ZAWSZE (to one pilnują treści). Bez akcji
+  # zewnętrznych — zwykły git diff, jak wszystko w tym repo.
+  zakres:
+    name: Zakres zmian (kod czy tylko treść?)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      kod: ${{ steps.diff.outputs.kod }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Porównaj zmienione ścieżki z listą ścieżek kodu
+        id: diff
+        env:
+          BAZA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ -z "$BAZA" ]; then
+            # push na main — zawsze pełny przebieg
+            echo "kod=true" >> "$GITHUB_OUTPUT"
+            echo "push na main -> pełny przebieg"
+            exit 0
+          fi
+          ZMIENIONE=$(git diff --name-only "$BAZA"...HEAD)
+          echo "$ZMIENIONE"
+          # Ścieżki, których zmiana wymaga lint/tsc/build/testów/smoke'ów.
+          # Kod kontroli jakości (tools/ poza smoke i seed) oraz treść
+          # NIE są na liście — pilnuje ich osobny job, który chodzi zawsze.
+          if echo "$ZMIENIONE" | grep -qE '^(app/|components/|lib/|modules/|assets/|public/|goldeny/|tools/(smoke|seed)/|package(-lock)?\.json|next\.config\.ts|tsconfig\.json|postcss\.config|eslint\.config|docker-compose\.yml|\.github/workflows/)'; then
+            echo "kod=true" >> "$GITHUB_OUTPUT"
+            echo "zmiany dotykają kodu -> pełny przebieg"
+          else
+            echo "kod=false" >> "$GITHUB_OUTPUT"
+            echo "tylko treść/dokumentacja -> pomijam joby kodu"
+          fi
+
   straznicy:
     name: Strażnicy
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -35,7 +85,10 @@ jobs:
 
   aplikacja:
     name: Kod aplikacji (lint → tsc → build)
+    needs: zakres
+    if: needs.zakres.outputs.kod == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -58,7 +111,10 @@ jobs:
 
   baza:
     name: Baza db1_kursy (migracje + triggery + goldeny)
+    needs: zakres
+    if: needs.zakres.outputs.kod == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17-alpine
@@ -115,6 +171,7 @@ jobs:
   security:
     name: Skan sekretów
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
