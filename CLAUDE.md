@@ -151,7 +151,8 @@ przy każdym kroku zmieniającym stan projektu (jak README).
     animacja `.page-enter` (`both`) zostawiała trwały kontekst
     układania i chowała elementy `fixed` pod stopką → `backwards`
     + rozszerzony `straznik-fixed`.
-  - Stan dowodów: strażnicy 11/11, testy 27/27, smoke D4/D5/D6 zielone.
+  - Stan dowodów: strażnicy 14/14 (doszły straznik-wagi-dokumentacji
+    i straznik-scenariuszy), testy 27/27, smoke D4/D5/D6 zielone.
 - **REBRANDING (2026-08-18, PR #20, tag v0.17.0)**: strona główna
   przemianowana **MatthewPlugins.pl → Automatic AI** (repo
   `MatthewPlugins/automatic-ai`; org GitHuba bez zmian). W podstronie:
@@ -219,9 +220,9 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   `tresc-kursow/<slug>/modul-N/lekcja-M-<temat>.md`, cytaty źródłowe
   w `docs/dokumentacja-techniczna/d7/cytowane/`.
   **Licznik i przepis wznowienia: [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md)**
-  (stan 2026-08-18: **62/91** — **CAŁY Kurs 1 gotowy: 41/41** oraz
-  moduły 1–3 Kursu 2; następny — **moduł 4 Kursu 2** „Współpraca:
-  issues i pull requesty" (11 lekcji), potem moduły 5–7). Zasady:
+  (stan 2026-08-18: **73/91** — **CAŁY Kurs 1 gotowy: 41/41** oraz
+  moduły 1–4 Kursu 2; następny — **moduł 5 Kursu 2** „Automatyzacja:
+  GitHub Actions" (7 lekcji), potem moduły 6–7). Zasady:
   commit po KAŻDYM module, każda teza z tabelą „Zgodność ze źródłem",
   zero zmyślania.
   Korekta źródła przy L2.4 Kursu 1: `extended-thinking.md` jest
@@ -237,6 +238,17 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   agenta głównego → 3–4 subagentów pisze po lekcji → przelot
   spójności + cytaty + commit. Warunek powrotu do trybu ręcznego
   i sygnały spadku jakości: sekcja „Tryb produkcji" w POSTEP.md.
+  **Oba narzędzia GOTOWE (v0.19.0), moduł 4 PRZESZEDŁ tym trybem
+  (v0.20.0) i cztery sygnały jakości wypadły czysto** — ocena w POSTEP.md,
+  sekcja „Jak wypadł moduł 4"; tryb zostaje na moduły 5–7. Przepis,
+  który zadziałał: brief PRZED falami (zostaje w repo, np.
+  `tresc-kursow/jak-uzywac-githuba/modul-4/BRIEF-modulu.md`), wzorzec
+  formatu podany subagentowi jako KONKRETNY plik lekcji, przegląd
+  pierwszej fali przed puszczeniem reszty.
+  **BLAD-008 (2026-08-18):** 31 plików treści kończyło się śmieciem po
+  narzędziu zapisu (`</content>`, `</invoke>`); wyczyszczone, strażnik
+  przeciw nawrotom w `straznik-scenariuszy` (pomija bloki kodu, bo tam
+  te znaczniki bywają treścią promptu).
   **LEKCJA (2026-08-18):** `straznik-linkow` pomija teraz bloki kodu
   i kod inline — scenariusze uczące składni Markdowna zawierają
   przykłady `[tekst](sciezka)`, które nie są klikalnymi linkami.
