@@ -220,9 +220,9 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   `tresc-kursow/<slug>/modul-N/lekcja-M-<temat>.md`, cytaty źródłowe
   w `docs/dokumentacja-techniczna/d7/cytowane/`.
   **Licznik i przepis wznowienia: [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md)**
-  (stan 2026-08-18: **73/91** — **CAŁY Kurs 1 gotowy: 41/41** oraz
-  moduły 1–4 Kursu 2; następny — **moduł 5 Kursu 2** „Automatyzacja:
-  GitHub Actions" (7 lekcji), potem moduły 6–7). Zasady:
+  (stan 2026-08-18: **80/91** — **CAŁY Kurs 1 gotowy: 41/41** oraz
+  moduły 1–5 Kursu 2; następny — **moduł 6 Kursu 2** „Bezpieczeństwo
+  konta i kodu" (6 lekcji), potem moduł 7 (5 lekcji)). Zasady:
   commit po KAŻDYM module, każda teza z tabelą „Zgodność ze źródłem",
   zero zmyślania.
   Korekta źródła przy L2.4 Kursu 1: `extended-thinking.md` jest
@@ -245,6 +245,17 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   `tresc-kursow/jak-uzywac-githuba/modul-4/BRIEF-modulu.md`), wzorzec
   formatu podany subagentowi jako KONKRETNY plik lekcji, przegląd
   pierwszej fali przed puszczeniem reszty.
+  **Moduł 5 PRZESZEDŁ tym samym trybem (2 fale: 3 + 4 subagentów)** —
+  ocena w POSTEP.md, sekcja „Jak wypadł moduł 5": trzy sygnały czysto,
+  jeden (ton) = jedna poprawka, tryb zostaje. Zastosowane obie
+  oszczędności z modułu 4 — wzorzec jako FRAGMENT lekcji + tylko sekcja
+  briefu dla danej lekcji przy pełnej tabeli granic. **Do promptu
+  subagenta przy module 6 dopisać: druga osoba WIELKĄ literą (Ty, Ci,
+  Twój)** — dwie lekcje pisały ją małą i trzeba było ujednolicać ręcznie.
+  Cienkie źródła z programu (poniżej ~4 kB) uzupełniamy plikami
+  wskazanymi w nich jako dalsza lektura — w module 5 dotyczyło to lekcji
+  5.3, 5.4, 5.5, 5.6 i 5.7; dopisane ścieżki lądują we frontmatterze
+  `zrodla:` i w tabeli zgodności.
   **BLAD-008 (2026-08-18):** 31 plików treści kończyło się śmieciem po
   narzędziu zapisu (`</content>`, `</invoke>`); wyczyszczone, strażnik
   przeciw nawrotom w `straznik-scenariuszy` (pomija bloki kodu, bo tam
