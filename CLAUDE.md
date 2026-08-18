@@ -342,6 +342,14 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   zaśmiecone. NIE robić tego wcześniej ani kawałkami. Gałęzie `bak/*`
   to migawki procedury napraw (WYTYCZNE §1) — o ich losie też decyduje
   właściciel przy tym sprzątaniu, domyślnie zostają.
+  **OD TERAZ (higiena wzorem strony głównej, gdzie na zdalnym repo żyje
+  wyłącznie `main` + tagi): każdy NOWY merge PR-a robimy z kasowaniem
+  gałęzi (`gh pr merge --delete-branch`)** — stare gałęzie czekają na
+  zaplanowane sprzątanie, ale nowych śmieci nie przybywa. Z przeglądu
+  historii commitów strony głównej do naśladowania też: temat commita
+  opisuje SKUTEK, nie czynność („prefetch przestaje wracać z 404"),
+  a ciało commita naprawy dokumentacji ma sekcje „co było nieprawdą /
+  czego nie zmieniłem, bo było prawdą" z pomiarami.
 - **CI STOI OD 2026-08-18 — wyczerpany limit minut Actions.** Organizacja
   `MatthewPlugins` jest na planie **Free = 2000 minut/miesiąc** na
   repozytoria prywatne (wszystkie cztery są prywatne), a w sierpniu
