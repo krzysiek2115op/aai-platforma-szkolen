@@ -282,6 +282,33 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   przykłady `[tekst](sciezka)`, które nie są klikalnymi linkami.
   Zmiana sprawdzona testem negatywnym: prawdziwy martwy link w prozie
   nadal wywala strażnika.
+- **DZIAŁ 7 ZAMKNIĘTY W REPO (2026-08-18, wersja 0.21.0).** PR #22
+  zmergowany do `plugin-1-sklep-kursow`, tag `v0.21.0` + release.
+  Treść: 91 scenariuszy, golden treści, strażnicy 16/16.
+  **B7 jeszcze NIE zaliczona** — właściciel ocenia dopiero GOTOWE KURSY
+  (patrz decyzja niżej), nie same scenariusze.
+- **ZMIANA DECYZJI WŁAŚCICIELA (2026-08-18, wieczór) — WŁAŚCICIEL NIE
+  NAGRYWA WIDEO.** To unieważnia wcześniejszy podział pracy z D7
+  („agent pisze scenariusze, nagrywa właściciel", PROGRAM-KURSOW-D7.md,
+  decyzja (d) z 2026-08-18). Kurs ma powstać **bez nagrań właściciela**:
+  materiał trzeba **wygenerować albo znaleźć inne rozwiązanie** —
+  sposób NIE jest jeszcze wybrany i wymaga osobnej propozycji z opcjami
+  (koszt, jakość, prawa, aktualizowalność). Scenariusze z D7 zostają
+  podstawą materiału niezależnie od wybranej drogi.
+  **Kreator (D6) ma przejąć także LEKCJE i NAGRANIA** — dziś obsługuje
+  kurs, program i sekcje sprzedażowe; dojdzie treść lekcji i materiał
+  wideo. To rozszerzenie kontraktów w `modules/m1-sklep/typy.ts`,
+  migracje i panel — czyli **ciąg dalszy Działu 6**, nie nowy moduł.
+  Cel: **dwa kompletne kursy gotowe do sprzedaży**, złożone w narzędziu.
+- **KOLEJNOŚĆ PRAC USTALONA PRZEZ WŁAŚCICIELA (2026-08-18):**
+  1. ~~merge D7 + sprawa tokenu/CI~~ **ZROBIONE** (0.21.0; token nie był
+     potrzebny — `admin:org` wystarczył do diagnozy rozliczeń);
+  2. **dopracowanie repo + wskazówki właściciela** ← **NASTĘPNY KROK**
+     (czekamy na jego uwagi; przed pracą nad kursami);
+  3. stworzenie kursów w narzędziu: rozszerzenie kreatora o lekcje
+     i nagrania, złożenie obu kursów, dopracowanie + **akcept właściciela**;
+  4. zaplanowanie przejścia na WordPressa (strona docelowo na WP,
+     my robimy wtyczki).
 - **CI STOI OD 2026-08-18 — wyczerpany limit minut Actions.** Organizacja
   `MatthewPlugins` jest na planie **Free = 2000 minut/miesiąc** na
   repozytoria prywatne (wszystkie cztery są prywatne), a w sierpniu

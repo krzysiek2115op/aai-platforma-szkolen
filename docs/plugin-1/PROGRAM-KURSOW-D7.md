@@ -216,8 +216,15 @@ Serce kursu — tak pracują zespoły na GitHubie.
   konta klientów), zgodnie z decyzją zespołu o WordPressie.
 - **Podział pracy nad lekcją wideo:** agent pisze ze źródeł kompletny
   SCENARIUSZ nagrania (kroki na ekranie + narracja + prompty do pokazania)
-  oraz materiały dodatkowe; **nagrywa właściciel**. Scenariusze żyją
+  oraz materiały dodatkowe; ~~**nagrywa właściciel**~~. Scenariusze żyją
   w repo (nośnik trwały do czasu platformy).
+  > **KOREKTA (2026-08-18, wieczór):** właściciel **NIE będzie nagrywał
+  > wideo**. Materiał trzeba wygenerować albo znaleźć inne rozwiązanie —
+  > sposób do wyboru, wymaga osobnej propozycji z opcjami. Scenariusze
+  > (91 sztuk, gotowe) zostają podstawą materiału niezależnie od drogi.
+  > Kreator ma dodatkowo przejąć **lekcje i nagrania**, żeby oba kursy
+  > dało się złożyć w narzędziu i sprzedawać. Szczegóły i kolejność prac:
+  > CLAUDE.md.
 
 ## Po akceptacji (kolejność prac D7)
 
