@@ -5,6 +5,52 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.19.0] — 2026-08-18
+
+### Dodane
+- **`tools/wyciag-zrodla.mjs`** — odchudzacz źródeł dokumentacji.
+  Zostawia prozę, tabele i JEDEN przykład kodu na sekcję; wycina blobki
+  `<svg>` ikon (jedna ikona to ~1,5 tys. znaków ścieżek wektorowych
+  wklejonych w środek zdania), odsyłacze do zrzutów ekranu, powtórzone
+  warianty tej samej instrukcji (`<div class="ghd-tool webui|cli|mac|…">`)
+  i ścieżki wewnętrznych odsyłaczy (tytuł zostaje w cudzysłowie).
+  Na źródłach modułu 4 Kursu 2: 104 kB → 64 kB (**−38%**; najbardziej
+  zaśmiecone pliki −62%). Po co: od tego modułu lekcje pisze kilku
+  subagentów RÓWNOLEGLE, więc każdy bajt śmiecia mnoży się przez liczbę
+  agentów. Narzędzie niczego nie streszcza ani nie przepisuje — każde
+  cięcie zostawia ślad w tekście albo w stopce pliku, bo cichy skrót
+  byłby gorszy od braku narzędzia: agent nie wiedziałby, że czyta wersję
+  niepełną.
+- **`straznik-scenariuszy`** — mechaniczna kontrola KAŻDEGO scenariusza
+  lekcji: kompletna metryka zgodna ze ścieżką pliku, istniejący
+  i niepusty plik z `cytowane:`, istniejące pliki z `zrodla:`, komplet
+  pięciu sekcji, przynajmniej jedna narracja do kamery oraz tabela
+  „Zgodność ze źródłem" z minimum 8 wierszami. To warunek bezpieczeństwa
+  dla pracy równoległej: w trybie ręcznym jeden agent widział wszystkie
+  lekcje po kolei, w równoległym nie widzi ich nikt — więc część „na oko"
+  zamieniamy na czerwone CI. Sprawdzony testami negatywnymi na każdej
+  gałęzi (brak tabeli, tabela za krótka, martwy plik cytatów, rozjazd
+  numeru modułu, brak `zrodla:`, scenariusz bez `[NARRACJA]`). Kontrola
+  istnienia plików z `zrodla:` włącza się tylko wtedy, gdy dokumentacja
+  jest rozpakowana lokalnie — w CI jej nie ma z założenia (55 MB poza
+  gitem), a strażnik mówi wprost, że tę część pominął.
+
+### Naprawione
+- **13 scenariuszy wskazywało plik z cytatami, którego nie ma.** Moduły 1
+  i 3 Kursu 1 pokazywały na `cytowane/claude-platform--pricing.md`,
+  `cytowane/claude-code--pamiec.md` i podobne, podczas gdy cytaty zostały
+  po drodze scalone do plików per moduł. Usterka niewidoczna gołym okiem
+  i dokładnie tego rodzaju, po który powstał `straznik-scenariuszy`: bez
+  niej po roku nie dałoby się sprawdzić, skąd wzięła się teza, bez
+  pobierania 55 MB źródeł. Wskazania poprawione, a brakujące cytaty do
+  lekcji 1.6 (słowniczek) dopisane jako `cytowane/claude-platform--glossary.md`.
+- **Trzy tabele „Zgodność ze źródłem" były płytsze niż materiał lekcji**
+  (K1/M1/L1, K1/M2/L1, K1/M5/L1 — 5–7 wierszy przy kilkunastu tezach
+  w narracji). Uzupełnione o tezy, które w lekcjach padają, a w tabeli
+  ich nie było: pola odpowiedzi API (`content` jako lista bloków,
+  `stop_reason`, `usage`), rozbicie rodziny modeli i dwóch dróg budowania
+  na osobne wiersze, trzy warunki wstępne prompt engineeringu.
+
 ## [0.18.0] — 2026-08-18
 
 ### Dodane
