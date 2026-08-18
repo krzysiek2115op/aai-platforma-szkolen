@@ -309,6 +309,12 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      i nagrania, złożenie obu kursów, dopracowanie + **akcept właściciela**;
   4. zaplanowanie przejścia na WordPressa (strona docelowo na WP,
      my robimy wtyczki).
+- **DECYZJA WŁAŚCICIELA (2026-08-19): porządek gałęzi PO Pluginie 1.**
+  Po ukończeniu CAŁEGO Pluginu 1 i rozmowie o przeniesieniu strony
+  głównej na WP scalamy/sprzątamy gałęzie robocze, żeby repo nie było
+  zaśmiecone. NIE robić tego wcześniej ani kawałkami. Gałęzie `bak/*`
+  to migawki procedury napraw (WYTYCZNE §1) — o ich losie też decyduje
+  właściciel przy tym sprzątaniu, domyślnie zostają.
 - **CI STOI OD 2026-08-18 — wyczerpany limit minut Actions.** Organizacja
   `MatthewPlugins` jest na planie **Free = 2000 minut/miesiąc** na
   repozytoria prywatne (wszystkie cztery są prywatne), a w sierpniu
