@@ -282,6 +282,21 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   przykłady `[tekst](sciezka)`, które nie są klikalnymi linkami.
   Zmiana sprawdzona testem negatywnym: prawdziwy martwy link w prozie
   nadal wywala strażnika.
+- **CI STOI OD 2026-08-18 — wyczerpany limit minut Actions.** Organizacja
+  `MatthewPlugins` jest na planie **Free = 2000 minut/miesiąc** na
+  repozytoria prywatne (wszystkie cztery są prywatne), a w sierpniu
+  zużyła **2072 minuty**: `automatic-ai` 1753, `Pod-strona-Szkolenia`
+  253, `matthewplugins.github.io` 63, `czarodziejski-dworek` 3. Objaw:
+  każde zadanie pada **2 sekundy po starcie, z zerem kroków i bez
+  logów** — łatwo pomylić z awarią kodu, więc sprawdzaj to NAJPIERW:
+  `gh api "/organizations/MatthewPlugins/settings/billing/usage?year=RRRR&month=M"`
+  (wystarczy zakres `admin:org`, który token już ma; stary endpoint
+  `/settings/billing/actions` zwraca 410 — został przeniesiony).
+  **Limit odnawia się 1 września 2026.** Decyzja właściciela: wersja
+  0.21.0 (Dział 7) zmergowana i otagowana przy czerwonym CI, na dowodzie
+  odtworzonym lokalnie — uzasadnienie w CHANGELOG przy 0.21.0. Po
+  powrocie CI: potwierdzić **skan sekretów (gitleaks)**, bo jako jedyny
+  nie ma lokalnego odpowiednika.
 - **Platforma kursu — kierunek (2026-08-18):** materiał NIE będzie
   hostowany własnym kodem; do rozważenia gotowy LMS na WordPressie
   (Publigo — polskie płatności/faktury, albo Tutor LMS), ostyłowany

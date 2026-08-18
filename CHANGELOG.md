@@ -7,6 +7,23 @@ Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projekt
 
 ## [0.21.0] — 2026-08-18
 
+> [!WARNING]
+> **Odstępstwo od reguły „czerwony check = STOP" (WYTYCZNE §1), decyzja
+> właściciela 2026-08-18.** Ta wersja została zmergowana i otagowana przy
+> CZERWONYM CI, bo CI **nie ruszył**: organizacja `MatthewPlugins` jest na
+> planie Free (2000 minut Actions/miesiąc na repozytoria prywatne) i w
+> sierpniu zużyła **2072 minuty** — z czego 1753 spaliło repo strony
+> głównej `automatic-ai`, a nasze 253. Po przekroczeniu limitu każde
+> zadanie pada 2 sekundy po starcie, z zerem kroków i bez logów. Limit
+> odnawia się **1 września 2026**.
+>
+> W zamian pracę CI odtworzono LOKALNIE, kod wyjścia sprawdzany bez potoku
+> (`node skrypt | tail` maskuje kod wyjścia — lekcja z Działu 5):
+> strażnicy **16/16**, testy **36/36**, `npm run lint` czysto,
+> `npm run build` przechodzi, smoke **D4/D5/D6** zielone. Dowód wisi
+> w komentarzu przy PR #22. Jedyne, czego nie odtworzono lokalnie, to
+> **skan sekretów (gitleaks)** — do potwierdzenia, gdy CI wróci.
+
 ### Dodane
 - **TREŚĆ DZIAŁU 7 KOMPLETNA — 91 z 91 scenariuszy nagrań** (Kurs 1
   „Jak poprawnie korzystać z Claude": 6 modułów / 41 lekcji; Kurs 2
