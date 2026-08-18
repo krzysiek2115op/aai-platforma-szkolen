@@ -300,42 +300,45 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   wideo. To rozszerzenie kontraktów w `modules/m1-sklep/typy.ts`,
   migracje i panel — czyli **ciąg dalszy Działu 6**, nie nowy moduł.
   Cel: **dwa kompletne kursy gotowe do sprzedaży**, złożone w narzędziu.
-- **KOLEJNOŚĆ PRAC USTALONA PRZEZ WŁAŚCICIELA (2026-08-18):**
-  1. ~~merge D7 + sprawa tokenu/CI~~ **ZROBIONE** (0.21.0; token nie był
-     potrzebny — `admin:org` wystarczył do diagnozy rozliczeń);
-  2. **dopracowanie repo + wskazówki właściciela** ← W TOKU. Pierwsza
-     tura wskazówek WYKONANA (2026-08-19, wersja 0.22.0, gałąź
-     `fix/mp-monogram-i-dopracowanie-repo`): naprawa monogramu „MP"
-     (ostatni ślad starej marki — paski kursu i kreatora), oszczędzanie
-     minut CI (cancel-in-progress + job „Zakres zmian" + timeouty),
-     `npm test` jedną komendą (pretest `tools/db1-gotowa.mjs` —
-     port z docker-compose.yml, NIE z konfiguracji aplikacji, bo
-     pierwszą wersję zatrzymał straznik-granic), nagłówki
-     bezpieczeństwa z serwera (nosniff, X-Frame-Options DENY +
-     frame-ancestors 'none', Referrer-Policy, Permissions-Policy;
-     smoke D4 sprawdza je na żywym `next start` — UWAGA: nagłówki
-     Nexta zapisują się do manifestu PRZY BUILDZIE, po zmianie
-     next.config trzeba przebudować), docs/security-checklist.md
-     (legenda pięciostanowa ✅/🟡/🔧/⛔/⏳; sekcja 8 = specyfikacja
-     bezpieczeństwa wtyczki WP), lifting README (spis treści, Skrypty,
-     „SEO i bezpieczeństwo" — haczyk tylko z dowodem, „Szybki start
-     nowa maszyna", ramki z historiami błędów), `straznik-readme`
-     (liczby w README pilnowane maszynowo — przy pierwszym uruchomieniu
-     złapał własną nieobecność w tabeli) oraz
-     `tools/straznicy/audyt-straznikow.mjs` (mutacyjny audyt
-     strażników, 17 mutacji + kontrprzykłady; przy pierwszym
-     uruchomieniu znalazł realną dziurę: wzorzec `eslint` straznika-ci
-     pasował do filtra ścieżek nowego joba CI — wzorce kotwiczone
-     teraz do `run:`; REGUŁA: nowy strażnik = nowa mutacja).
-     Przegląd repo strony głównej (v3.1.0), z którego wzięto wzorce:
-     raport w opisie PR; w tamtym repo jest też katalog `wordpress/`
-     (kompletny motyw WP + import + skrypty + wzorce ODDANIA projektu
-     klientowi) — ZŁOTO przy kroku 4. Czekamy na dalsze wskazówki
-     właściciela;
-  3. stworzenie kursów w narzędziu: rozszerzenie kreatora o lekcje
-     i nagrania, złożenie obu kursów, dopracowanie + **akcept właściciela**;
-  4. zaplanowanie przejścia na WordPressa (strona docelowo na WP,
-     my robimy wtyczki).
+- **PLAN DOMKNIĘCIA PLUGINU 1 — CZTERY KROKI (właściciel, 2026-08-19).**
+  Pełna treść z decyzjami do podjęcia, przeszkodami technicznymi
+  i bramkami: **[docs/plugin-1/PLAN-FINAL-PLUGINU-1.md](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md)**
+  — CZYTAĆ PRZED PRACĄ. Skrót:
+  1. ~~merge D7 + dopracowanie repo (tura 1)~~ **ZROBIONE** (0.21.0,
+     0.22.0). Właściciel może dosłać kolejne wskazówki do repo.
+  2. **← NASTĘPNY KROK: SEO i wydajność na żywym adresie.** Wrzucić
+     podstronę na GitHub Pages, zrobić całe SEO, testować **narzędziami
+     Google** (Lighthouse, PageSpeed Insights, Rich Results, Search
+     Console), dojść do **100 w każdej kolumnie** (wydajność,
+     dostępność, dobre praktyki, SEO + LCP/CLS/TBT), a wynik wpisać
+     tabelą do README — SEO odhaczone dopiero, gdy jest perfekcyjne.
+     **UWAGA — PRZESZKODA: `/szkolenia` NIE JEST STATYCZNE.** Wszystkie
+     4 strony mają `force-dynamic` i czytają Postgresa przy żądaniu,
+     kreator stoi na ciastku i akcjach serwerowych, jedyny AJAX mutuje
+     bazę, a repo jest PRYWATNE (Pages z prywatnego repo = plan płatny).
+     Dlatego krok zaczyna się od **trybu eksportu statycznego**
+     (katalog + strony kursów z bazy w czasie builda, kreator i AJAX
+     wykluczone) i publikacji do **osobnego PUBLICZNEGO repo** — tak
+     robi strona główna. Trzy decyzje właściciela na starcie: gdzie
+     publikujemy, `noindex` na czas prac (REKOMENDACJA: tak — treść
+     sprzedażowa jest robocza, opinie to placeholdery), czy podgląd ma
+     mieć finalną treść (jeśli tak, ten krok idzie za krok 4).
+     Największy nieodrobiony zysk SEO: **JSON-LD** (Course, Product+Offer,
+     BreadcrumbList, FAQPage, Organization) — dziś go NIE MA.
+  3. **Pełne zabezpieczenia** — domknięcie pozycji ⏳/🔧
+     z `docs/security-checklist.md` możliwych w prototypie: pełne CSP
+     nagłówkiem + strażnik polityki, rate limiting, limity wejścia,
+     przegląd komunikatów błędów.
+  4. **Kursy zrobione do końca, w narzędziu** (kreator przejmuje lekcje
+     i nagrania; właściciel NIE nagrywa wideo — potrzebna propozycja
+     opcji produkcji materiału z kosztami i prawami; finalna treść
+     sprzedażowa kreatorem zamiast seedów) → **B7 = ocena GOTOWYCH
+     kursów przez właściciela**.
+  5. **Rozmowa o WordPressie** + co z niej wyniknie, sprzątanie gałęzi,
+     merge na `main`, koniec Pluginu 1. Ściąga: katalog `wordpress/`
+     w repo strony głównej (kompletny motyw WP, docker-compose,
+     idempotentne importy, `verify-wordpress.mjs`, wzorce oddania
+     projektu klientowi).
 - **DECYZJA WŁAŚCICIELA (2026-08-19): porządek gałęzi PO Pluginie 1.**
   Po ukończeniu CAŁEGO Pluginu 1 i rozmowie o przeniesieniu strony
   głównej na WP scalamy/sprzątamy gałęzie robocze, żeby repo nie było
