@@ -4,44 +4,46 @@
  * GitHub Pages przebudowuje się z opóźnieniem i potrafi jeszcze przez
  * chwilę serwować POPRZEDNI build — albo 404, jeśli publikacja nie
  * doszła. Ten skrypt czeka, aż żywy adres zacznie oddawać dokładnie ten
- * build, który właśnie wysłaliśmy, i dopiero wtedy pozwala ogłosić
- * sukces. Wzorzec ze strony głównej (scripts/verify-live.mjs).
+ * build, który właśnie wysłaliśmy. Idea ze strony głównej
+ * (scripts/verify-live.mjs), realizacja inna — patrz niżej.
  *
- * Rozpoznajemy build po znaczniku, który jest w każdej stronie Next
- * i zmienia się z każdym buildem: identyfikatorze paczki w ścieżkach
- * /_next/static/<id>/. Porównanie „czy HTML jest identyczny" nie
- * zadziała, bo Pages dokłada własne nagłówki i potrafi zmienić
- * kodowanie.
+ * JAK ROZPOZNAJEMY BUILD: porównaniem CAŁEJ treści, bajt w bajt.
+ * Pages serwuje statyczne pliki bez żadnej obróbki, więc odpowiedź jest
+ * identyczna z plikiem w `out/` — sprawdzone pomiarem, nie założeniem
+ * (99 232 bajty po obu stronach).
+ *
+ * PIERWSZA WERSJA TEGO SKRYPTU BYŁA DZIURAWA i warto pamiętać jak:
+ * szukała identyfikatora buildu wzorcem `/_next/static/<coś>/`, a ten
+ * pasuje do `/_next/static/chunks/` — czyli do słowa „chunks", które
+ * jest takie samo w KAŻDYM buildzie Next. Weryfikacja przechodziła na
+ * zielono, potwierdzając wyłącznie to, że pod adresem stoi jakakolwiek
+ * strona Next. Prawdziwy identyfikator buildu (katalog `out/_next/<id>`)
+ * w ogóle nie występuje w HTML-u, więc nie było czego szukać.
  *
  * Użycie: node tools/sprawdz-zywy.mjs <adres> <plik-lokalny> [sekundy]
  */
-const [adres, plikLokalny, sekundy = "240"] = process.argv.slice(2);
+import { readFileSync } from "node:fs";
+
+const [adres, plikLokalny, sekundy = "300"] = process.argv.slice(2);
 if (!adres || !plikLokalny) {
   console.error("użycie: node tools/sprawdz-zywy.mjs <adres> <plik-lokalny> [sekundy]");
   process.exit(1);
 }
 
-const { readFileSync } = await import("node:fs");
-const lokalny = readFileSync(plikLokalny, "utf8");
-const znacznik = lokalny.match(/\/_next\/static\/([^/"']+)\//)?.[1];
-if (!znacznik) {
-  console.error(`sprawdz-zywy: w ${plikLokalny} nie ma identyfikatora buildu — nie ma po czym rozpoznać wersji.`);
-  process.exit(1);
-}
-
+const oczekiwany = readFileSync(plikLokalny);
 const koniec = Date.now() + Number(sekundy) * 1000;
-let ostatni = "start";
+let ostatni = "jeszcze nie pytałem";
 
 while (Date.now() < koniec) {
   try {
     const odp = await fetch(adres, { cache: "no-store" });
     if (odp.ok) {
-      const html = await odp.text();
-      if (html.includes(znacznik)) {
-        console.log(`✔ żywy adres serwuje ten build (${znacznik}): ${adres}`);
+      const zywy = Buffer.from(await odp.arrayBuffer());
+      if (zywy.equals(oczekiwany)) {
+        console.log(`✔ żywy adres serwuje DOKŁADNIE ten build (${zywy.length} B): ${adres}`);
         process.exit(0);
       }
-      ostatni = `stary build (szukam ${znacznik})`;
+      ostatni = `inna treść (żywy ${zywy.length} B, lokalny ${oczekiwany.length} B) — Pages jeszcze przebudowuje`;
     } else {
       ostatni = `HTTP ${odp.status}`;
     }

@@ -39,7 +39,13 @@ a pomiary powtórzymy po złożeniu finalnych kursów w kreatorze.
   pracy z brudnego drzewa i przy leżącej bazie.
 - **`tools/sprawdz-zywy.mjs`** — „wysłałem pliki" to nie to samo co
   „strona działa": czeka, aż żywy adres zacznie serwować DOKŁADNIE ten
-  build (rozpoznanie po identyfikatorze paczki `/_next/static/<id>/`).
+  build, porównując treść **bajt w bajt** (Pages serwuje pliki statyczne
+  bez obróbki — zmierzone: 99 232 B po obu stronach). Pierwsza wersja
+  szukała identyfikatora buildu wzorcem `/_next/static/<coś>/` i była
+  **dziurawa**: wzorzec pasował do słowa `chunks`, takiego samego
+  w każdym buildzie Next, więc weryfikacja potwierdzała jedynie, że pod
+  adresem stoi jakakolwiek strona Next. Złapane przy pierwszej realnej
+  publikacji, po tym, jak skrypt wypisał „✔ ten build (chunks)".
 - **`straznik-podgladu`** (18. strażnik) + **4 mutacje** w audycie —
   pięć niezmienników, w tym ten najważniejszy: brama kreatora musi
   odciąć się w podglądzie PRZED sięgnięciem po ciastko.
@@ -78,6 +84,14 @@ a pomiary powtórzymy po złożeniu finalnych kursów w kreatorze.
   kreatora zaczęło wywracać render błędem `DYNAMIC_SERVER_USAGE`.
   Dopiero rozdział na warianty przywrócił **identyczną** tablicę tras
   trybu serwerowego; potwierdzają to smoke'i D4/D5/D6.
+
+### Opublikowane
+- Podgląd żyje pod
+  [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia)
+  (publiczne repo `MatthewPlugins/szkolenia-podglad`, gałąź `gh-pages`).
+  Sprawdzone na żywym adresie: strony publiczne 200, kreator 404,
+  `/api/szkolenia` 404, nieznany slug 404, okładki 200, tytuły kursów
+  zgodne z bazą.
 
 ### Znane ograniczenia
 - **`noindex` obniża wynik SEO w Lighthousie** (audyt „Page is blocked
