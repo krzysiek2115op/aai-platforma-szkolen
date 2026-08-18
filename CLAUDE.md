@@ -268,6 +268,11 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   **Do promptu przy module 7 dopisać: każdej lekcji podać WPROST zdanie
   zamykające poprzedniej** — w module 6 lekcja bez tego (6.3) jako
   jedyna wymagała ręcznego mostka.
+  **DECYZJA WŁAŚCICIELA (2026-08-18): subagenci treści zostają na
+  OPUSIE.** Propozycja agenta, żeby przy tanim materiale modułu 7 zejść
+  na Sonneta, została odrzucona — jakość trybu równoległego stoi na tym,
+  że subagent sam pilnuje granic, odmawia tez bez pokrycia i sięga do
+  oryginału. Nie zmieniać modelu bez nowej decyzji właściciela.
   Cienkie źródła z programu (poniżej ~4 kB) uzupełniamy plikami
   wskazanymi w nich jako dalsza lektura — w module 5 dotyczyło to lekcji
   5.3, 5.4, 5.5, 5.6 i 5.7, w module 6 tylko lekcji 6.2 (`about-ssh.md`
