@@ -55,12 +55,14 @@ try {
   serwer.stderr?.on("data", (d) => process.stderr.write(d));
 
   let html = "";
+  let naglowki: Headers | null = null;
   for (let proba = 0; proba < 60; proba++) {
     await new Promise((r) => setTimeout(r, 1000));
     try {
       const odp = await fetch(`http://localhost:${PORT}/szkolenia`);
       if (odp.ok) {
         html = await odp.text();
+        naglowki = odp.headers;
         break;
       }
     } catch {
@@ -68,6 +70,21 @@ try {
     }
   }
   assert.ok(html, "serwer nie wstał w 60 s");
+
+  // Nagłówki bezpieczeństwa z next.config.ts — dowód, że produkcyjny
+  // serwer je NAPRAWDĘ wysyła (konfiguracja bez smoke'a to deklaracja).
+  // Komplet i uzasadnienia: docs/security-checklist.md.
+  for (const [naglowek, wartosc] of [
+    ["x-content-type-options", "nosniff"],
+    ["x-frame-options", "DENY"],
+    ["referrer-policy", "strict-origin-when-cross-origin"],
+  ] as const) {
+    assert.equal(
+      naglowki?.get(naglowek),
+      wartosc,
+      `serwer nie wysyła nagłówka ${naglowek}: ${wartosc}`,
+    );
+  }
 
   // strona renderuje kurs Z BAZY
   assert.ok(html.includes("Kurs smoke D4"), "brak tytułu kursu w HTML");

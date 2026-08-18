@@ -25,11 +25,28 @@ trzy osobne bazy danych.
 
 ---
 
+<details>
+<summary><b>Spis treści</b></summary>
+
+- [Stan projektu](#stan-projektu)
+- [Moduły („pluginy")](#moduły-pluginy)
+- [Stack](#stack)
+- [Wytyczne projektu](#wytyczne-projektu)
+- [Jak tu się pracuje](#jak-tu-się-pracuje)
+- [Skrypty](#skrypty)
+- [Strażnicy i CI](#strażnicy-i-ci)
+- [SEO i bezpieczeństwo](#seo-i-bezpieczeństwo)
+- [Szybki start (nowa maszyna, od zera)](#szybki-start-nowa-maszyna-od-zera)
+- [Treść kursów (Dział 7)](#treść-kursów-dział-7)
+- [Kreator kursów (Dział 6)](#kreator-kursów-dział-6)
+
+</details>
+
 ## Stan projektu
 
 | | |
 |---|---|
-| **Wersja** | **0.21.0** |
+| **Wersja** | **0.22.0** |
 | **Etap** | Działy 1–6 Pluginu 1 gotowe (**B1–B6 zaliczone przez właściciela**), **Dział 7: treść obu kursów KOMPLETNA — 91 scenariuszy nagrań** pisanych wyłącznie z oryginalnej dokumentacji, każda teza z tabelą zgodności; następny krok: finalna treść stron sprzedażowych wprowadzona kreatorem, potem etap WordPressa |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
@@ -51,7 +68,7 @@ Moduły nie sięgają do cudzych tabel.
 
 | # | Moduł | Branch | Baza | Zakres | Stan |
 |---|-------|--------|------|--------|------|
-| 1 | Sklep z kursami | `plugin-1-sklep-kursow` | `db1_kursy` | katalog `/szkolenia`, strona sprzedażowa kursu, kreator kursów, dziennik zmian (audyt CRUD) | 🔨 Dział 7/7: B1–B6 ✓ (katalog, strona kursu i kreator gotowe), następny krok: treść obu kursów |
+| 1 | Sklep z kursami | `plugin-1-sklep-kursow` | `db1_kursy` | katalog `/szkolenia`, strona sprzedażowa kursu, kreator kursów, dziennik zmian (audyt CRUD) | 🔨 B1–B6 ✓, treść D7 kompletna (91 scenariuszy, golden treści); zostaje: kursy złożone w narzędziu + B7 |
 | 2 | Płatności | `plugin-2-platnosci` | `db2_klienci` | bramka płatności (adapter operatora), zamówienia, wysyłka kursu i potwierdzenia na e-mail | 🔒 po module 1 |
 | 3 | Panel admina | `plugin-3-admin-panel` | `db3_monitoring` | podstrona tylko dla admina, log logowań (kto, kiedy, skąd), timer wizyt na stronie | 🔒 po module 2 |
 
@@ -101,11 +118,53 @@ branch → commit → push → PR → CI zielone → merge → (release, deploy 
 - README jest aktualizowane przy każdym kroku, który zmienia stan projektu
   — pilnuje tego strażnik wersji.
 
+## Skrypty
+
+Codzienne — opisane pytaniem, na które odpowiadają:
+
+| Komenda | Na jakie pytanie odpowiada |
+|---|---|
+| `npm run dev` | jak wygląda strona teraz? → `http://localhost:3001/szkolenia` |
+| `npm test` | czy logika modułów działa? (**sam podnosi bazę**, gdy kontener leży — pretest `tools/db1-gotowa.mjs`) |
+| `npm run build` | czy produkcyjny build w ogóle przechodzi? |
+| `npm run start` | jak strona zachowuje się na produkcyjnym serwerze? (`:3001`) |
+| `npm run lint` | ESLint |
+| `npm run db1:up` | postaw kontener bazy (podman compose) |
+| `npm run db1:migruj` | doprowadź schemat bazy do aktualnego stanu (sha256 w `_migracje`) |
+| `npm run db1:seed` | wgraj przykładowe kursy (treść ROBOCZA — do oceny wyglądu) |
+
+Narzędzia uruchamiane ręcznie:
+
+| Komenda | Co sprawdza / robi |
+|---|---|
+| `node tools/straznicy/uruchom-wszystkie.mjs` | wszyscy strażnicy naraz (runner sam znajduje pliki `straznik-*.mjs`) |
+| `node tools/smoke/smoke-d4.ts` | katalog renderuje kursy z bazy na produkcyjnym serwerze + golden + nagłówki bezpieczeństwa |
+| `node tools/smoke/smoke-d5.ts` | strona sprzedażowa renderuje pełny kurs z bazy + golden programu |
+| `node tools/smoke/smoke-d6.ts` | brama kreatora (403), wystrzał AJAX z ciastka, cykl szkic → publikacja → usunięcie |
+| `node tools/pobierz-dokumentacje-d7.mjs` | odtwarza 55 MB dokumentacji źródłowej kursów (jest poza gitem) |
+| `node tools/wyciag-zrodla.mjs --do <kat> <plik…>` | odchudza źródło do prozy i tabel przed pisaniem scenariusza |
+| `node tools/straznicy/straznik-goldenu-tresci.mjs --zapisz "powód"` | świadoma regeneracja goldenu treści (wymaga podania powodu) |
+| `node tools/straznicy/audyt-straznikow.mjs` | czy strażnicy NAPRAWDĘ łapią to, co deklarują (mutacje + kontrprzykłady; chwilowo psuje pliki, więc tylko ręcznie) |
+
+> [!NOTE]
+> Kody wyjścia smoke'ów sprawdzaj bez potoku — `node skrypt \| tail`
+> maskuje kod wyjścia (lekcja z Działu 5, potwierdzona ponownie przy
+> nagłówkach bezpieczeństwa: smoke „wyglądał na zielony", a padał).
+
 ## Strażnicy i CI
 
 Zasada przejęta ze strony głównej Automatic AI: *kontrola jest warta tyle, ile jej
 podpięcie*. Runner `tools/straznicy/uruchom-wszystkie.mjs` sam wykrywa
 każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć podpiąć".
+
+> [!TIP]
+> Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
+> się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
+> 17 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć")
+> i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
+> dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
+> bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie
+> „Zakres zmian". Reguła: dopisujesz strażnika → dopisujesz mutację.
 
 | Kontrola | Gdzie działa | Co łapie |
 |---|---|---|
@@ -120,29 +179,96 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-fixed` | pre-commit + CI | `transform`/`filter` w klasie opakowującej treść — łamie `position: fixed` potomków (BLAD-003); a także animacja z wypełnieniem `forwards`/`both`, która zostawia trwały kontekst układania i chowa te elementy pod stopką (BLAD-004) |
 | `straznik-odmiany` | pre-commit + CI | ręczna odmiana polskich liczebników (ternar „kurs"/„kursy") zamiast `lib/odmiana.ts` — dwie formy nie wystarczą, polski ma trzy |
 | `straznik-kreatora` | pre-commit + CI | pole lub rodzaj sekcji, który strona kursu potrafi wyrenderować, a kreator nie pozwala go wypełnić (rozjazd `SCHEMATY_SEKCJI` ↔ opis pól panelu, także w polach zagnieżdżonych) |
+| `straznik-hydratacji` | pre-commit + CI | wzorce psujące hydratację Reacta (rozjazd HTML serwera i klienta) |
 | `straznik-scenariuszy` | pre-commit + CI | scenariusz lekcji D7 bez kompletnej metryki, ze wskazaniem na nieistniejący plik cytatów albo źródła, bez którejś z pięciu sekcji, bez ani jednej narracji do kamery, z tabelą „Zgodność ze źródłem" krótszą niż 8 wierszy albo ze śmieciami po zapisie pliku (`</content>`, `</invoke>` poza blokiem kodu — BLAD-008); warunek bezpieczeństwa dla równoległego pisania treści |
+| `straznik-odsylaczy-kursu` | pre-commit + CI | wierność WŁASNEMU kursowi: odsyłacz „lekcja N.M" do lekcji, której nie ma, albo temat przypisany do złego modułu (finał Kursu 2 pomylił trzy — mapa tematów czyta się z metryk lekcji, więc nie starzeje się) |
+| `straznik-goldenu-tresci` | pre-commit + CI | CICHA utrata treści kursów: suma kontrolna + bajty/wiersze/sceny/wiersze zgodności każdej z 91 lekcji przeciw `goldeny/d7-tresc.json`; różnica pokazywana per pole, regeneracja wymaga powodu |
+| `straznik-readme` | pre-commit + CI | README kłamiące o stanie repo: strażnik bez wiersza w tabeli (i martwe wiersze), skrypt npm poza sekcją „Skrypty", zła liczba scenariuszy, kotwica spisu treści donikąd — złapał własną nieobecność w tej tabeli przy pierwszym uruchomieniu |
 | `straznik-wagi-dokumentacji` | pre-commit + CI | masa dokumentacji producentów (55 MB, ~2200 plików) wpuszczona do gita — także przez `git add -f`; git trzyma każdą wersję na stałe, więc pomyłka jest nieodwracalna |
 | blokada sekretów | pre-commit | pliki `.env`, tokeny/klucze w diffie |
 | gitleaks (pinowany po SHA-256) | CI | sekrety w całej historii repo |
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
 
-CI uruchamia też job „Kod aplikacji": `npm ci` → lint → tsc → build
-(testy dojdą od Działu 2 — pilnuje `straznik-ci`).
+CI: cztery joby — strażnicy i skan sekretów chodzą ZAWSZE; „Kod
+aplikacji" (lint → tsc → build) i „Baza" (36 testów na osobnej bazie
+`db1_kursy_test`, migracje, build, trzy smoke'i) tylko gdy zmiana
+dotyka kodu. Rozstrzyga job „Zakres zmian" zwykłym `git diff` — commit
+czysto treściowy (większość commitów D7) nie pali minut na build.
 
-## Szybki start (po sklonowaniu)
+> [!NOTE]
+> Minuty Actions są wspólne dla całej organizacji (plan Free:
+> 2000/mies. na repozytoria prywatne). W sierpniu 2026 limit padł —
+> 2072 minuty, z czego 1753 zużyła strona główna — i każde zadanie
+> „padało" 2 sekundy po starcie bez logów, co do złudzenia przypomina
+> awarię kodu. Stąd `cancel-in-progress`, job „Zakres zmian"
+> i `timeout-minutes` na każdym jobie. Diagnoza limitu:
+> `gh api "/organizations/MatthewPlugins/settings/billing/usage"`.
+
+## SEO i bezpieczeństwo
+
+Stan utrzymywany w [docs/security-checklist.md](docs/security-checklist.md)
+(legenda pięciostanowa: ✅ w kodzie z dowodem / 🟡 częściowo / 🔧 poza
+repo / ⛔ nie dotyczy z powodem / ⏳ etap WP). Skrót:
+
+| Obszar | Stan | Dowód |
+|---|---|---|
+| Walidacja wejścia i wyjścia (Zod na granicach, 400 z mapą pól) | ✅ | testy dyspozytora, `straznik-kreatora` |
+| SQL tylko parametryzowany, tylko w `modules/` | ✅ | `straznik-granic` |
+| Audyt mutacji w bazie (niezmienny changelog, triggery) | ✅ | testy migracji, golden schematu |
+| Brama kreatora: ciastko HttpOnly, porównanie w stałym czasie, kara czasowa | ✅ | smoke D6 |
+| Nagłówki: nosniff, X-Frame-Options DENY + `frame-ancestors 'none'`, Referrer-Policy, Permissions-Policy | ✅ | `next.config.ts`, **smoke D4 sprawdza je na żywym serwerze** |
+| Sekrety: gitleaks (pełna historia, pinowany SHA-256), `.env` poza repo | ✅ | job CI „Skan sekretów" |
+| Pełne CSP z nonce, rate limiting, HTTPS/HSTS, RODO | ⏳ | specyfikacja wtyczki WP — sekcja 8 checklisty |
+| SEO produkcyjne (robots, sitemapa, JSON-LD, Lighthouse ≥90/95/90/90) | ⏳ | wymaga domeny; progi zapisane już dziś w checkliście |
+
+> [!NOTE]
+> Tabela mówi „✅" wyłącznie tam, gdzie stoi za tym strażnik, test albo
+> smoke — deklaracja bez dowodu nie dostaje haczyka. Pomiar Lighthouse
+> wejdzie dopiero na publicznym adresie (etap WP); wpisywanie wyników
+> „na oko" łamałoby zasadę zero zmyślania, tę samą, która obowiązuje
+> treść kursów.
+
+## Szybki start (nowa maszyna, od zera)
+
+Wymagania: Node 24+, podman (albo docker) compose, git. Kolejność jest
+istotna — każdy krok zakłada poprzednie:
 
 ```bash
+git clone <repo> && cd <repo>         # gałąź domyślna = plugin-1-sklep-kursow
 git config core.hooksPath .githooks   # włącza haki — raz, obowiązkowo
 npm ci                                # zależności (Node 24+)
-cp .env.example .env                  # lokalna konfiguracja (DB1_URL)
-npm run db1:up                        # baza db1_kursy (podman/docker compose)
-npm run db1:migruj                    # migracje SQL + triggery audytu
-npm run dev                           # Plugin 1 → http://localhost:3001/szkolenia
-npm test                              # testy modułów (wymagają bazy)
-node tools/straznicy/uruchom-wszystkie.mjs   # ręczne odpalenie strażników
+cp .env.example .env                  # lokalna konfiguracja (baza, KREATOR_TOKEN)
+npm run db1:migruj                    # migracje + triggery (bazę podniesie pretest)
+npm test                              # 36 testów; sam podnosi kontener bazy
+npm run db1:seed                      # 2 przykładowe kursy (treść ROBOCZA)
+npm run dev                           # → http://localhost:3001/szkolenia
 ```
 
-### Dokumentacja źródłowa kursów (Dział 7)
+Weryfikacja, że maszyna jest zdrowa (to samo, co robi CI):
+
+```bash
+node tools/straznicy/uruchom-wszystkie.mjs   # komplet strażników
+npm run build                                # produkcyjny build
+node --env-file-if-exists=.env tools/smoke/smoke-d4.ts   # katalog + nagłówki
+```
+
+Do pracy nad TREŚCIĄ kursów dodatkowo:
+
+```bash
+node tools/pobierz-dokumentacje-d7.mjs   # ~15 min, 55 MB źródeł (poza gitem)
+```
+
+> [!TIP]
+> Po `git clean`, na świeżym klonie i po każdym `/clear` agenta
+> obowiązuje ta sama zasada: najpierw ten przepis, potem praca.
+> Przewodnikiem stanu projektu jest CLAUDE.md (czyta się automatycznie),
+> licznikiem treści — [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md).
+>
+> Podgląd „wywalił się"? Prawie na pewno nikt go nie uruchomił po
+> restarcie: `npm run db1:up && npm run dev` stawia wszystko z powrotem.
+
+
+## Treść kursów (Dział 7)
 
 Treść kursów powstaje wyłącznie z oryginalnej dokumentacji Anthropic
 i GitHuba (WYTYCZNE §7 i N2). Same pliki — 2219 stron, 55 MB — **nie są
@@ -169,7 +295,7 @@ node tools/wyciag-zrodla.mjs --do /tmp/wyciag <plik.md …>   # −38% na module
 Narzędzie niczego nie streszcza — każde cięcie zostawia ślad w tekście
 albo w stopce pliku, więc widać, że czyta się wersję odchudzoną.
 
-### Kreator kursów (Dział 6)
+## Kreator kursów (Dział 6)
 
 Panel treści właściciela: `http://localhost:3001/szkolenia/kreator`.
 Po zalogowaniu wejście jest też pod ręką na samych stronach sklepu —

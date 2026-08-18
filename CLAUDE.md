@@ -303,8 +303,35 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 - **KOLEJNOŚĆ PRAC USTALONA PRZEZ WŁAŚCICIELA (2026-08-18):**
   1. ~~merge D7 + sprawa tokenu/CI~~ **ZROBIONE** (0.21.0; token nie był
      potrzebny — `admin:org` wystarczył do diagnozy rozliczeń);
-  2. **dopracowanie repo + wskazówki właściciela** ← **NASTĘPNY KROK**
-     (czekamy na jego uwagi; przed pracą nad kursami);
+  2. **dopracowanie repo + wskazówki właściciela** ← W TOKU. Pierwsza
+     tura wskazówek WYKONANA (2026-08-19, wersja 0.22.0, gałąź
+     `fix/mp-monogram-i-dopracowanie-repo`): naprawa monogramu „MP"
+     (ostatni ślad starej marki — paski kursu i kreatora), oszczędzanie
+     minut CI (cancel-in-progress + job „Zakres zmian" + timeouty),
+     `npm test` jedną komendą (pretest `tools/db1-gotowa.mjs` —
+     port z docker-compose.yml, NIE z konfiguracji aplikacji, bo
+     pierwszą wersję zatrzymał straznik-granic), nagłówki
+     bezpieczeństwa z serwera (nosniff, X-Frame-Options DENY +
+     frame-ancestors 'none', Referrer-Policy, Permissions-Policy;
+     smoke D4 sprawdza je na żywym `next start` — UWAGA: nagłówki
+     Nexta zapisują się do manifestu PRZY BUILDZIE, po zmianie
+     next.config trzeba przebudować), docs/security-checklist.md
+     (legenda pięciostanowa ✅/🟡/🔧/⛔/⏳; sekcja 8 = specyfikacja
+     bezpieczeństwa wtyczki WP), lifting README (spis treści, Skrypty,
+     „SEO i bezpieczeństwo" — haczyk tylko z dowodem, „Szybki start
+     nowa maszyna", ramki z historiami błędów), `straznik-readme`
+     (liczby w README pilnowane maszynowo — przy pierwszym uruchomieniu
+     złapał własną nieobecność w tabeli) oraz
+     `tools/straznicy/audyt-straznikow.mjs` (mutacyjny audyt
+     strażników, 17 mutacji + kontrprzykłady; przy pierwszym
+     uruchomieniu znalazł realną dziurę: wzorzec `eslint` straznika-ci
+     pasował do filtra ścieżek nowego joba CI — wzorce kotwiczone
+     teraz do `run:`; REGUŁA: nowy strażnik = nowa mutacja).
+     Przegląd repo strony głównej (v3.1.0), z którego wzięto wzorce:
+     raport w opisie PR; w tamtym repo jest też katalog `wordpress/`
+     (kompletny motyw WP + import + skrypty + wzorce ODDANIA projektu
+     klientowi) — ZŁOTO przy kroku 4. Czekamy na dalsze wskazówki
+     właściciela;
   3. stworzenie kursów w narzędziu: rozszerzenie kreatora o lekcje
      i nagrania, złożenie obu kursów, dopracowanie + **akcept właściciela**;
   4. zaplanowanie przejścia na WordPressa (strona docelowo na WP,
