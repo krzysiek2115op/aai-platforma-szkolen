@@ -190,6 +190,14 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   w `tools/seed/seed-przyklady.ts` jest ROBOCZA i do zastąpienia.
   Opinie w seedach to jawne placeholdery — prawdziwe dopiero po
   pierwszych sprzedażach, niczego nie zmyślamy.
+- **GAŁĄŹ DOMYŚLNA repo to `plugin-1-sklep-kursow`** (zmiana 2026-08-18,
+  decyzja właściciela). Powód: GitHub pokazuje na stronie repozytorium
+  README z gałęzi domyślnej, a `main` stoi na wersji 0.3.4 — 34 commity
+  w tyle, bez rebrandingu i bez podglądu. Reguła PLAN.md §5 zostaje
+  nienaruszona (nic nie mergujemy na `main` przed ukończeniem Pluginu 1);
+  po domknięciu modułu: merge na `main` i powrót gałęzi domyślnej.
+  **`main` jest więc CELOWO nieaktualny — nie traktować go jako źródła
+  prawdy o stanie projektu.**
 - Stan repo: PR #12 zmergowany do `plugin-1-sklep-kursow`, tag
   `v0.12.1` + release. Gałąź `feat/d6-kreator` wypchnięta (kroki 1–3)
   — zmergowana (PR #18), tag `v0.16.2` + release.
