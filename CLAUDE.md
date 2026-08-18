@@ -213,6 +213,22 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   tylko jako dodatki; (d) podział pracy: agent pisze ze źródeł
   scenariusze nagrań (kroki na ekranie + narracja + prompty),
   właściciel nagrywa wideo. Scenariusze żyją w repo.
+- **D7 W TOKU — scenariusze lekcji.** Program ZATWIERDZONY i wprowadzony
+  do bazy dyspozytorem (Kurs 1: 6 modułów/41 lekcji/720 min; Kurs 2:
+  7/50/745 — widać na `/szkolenia`). Powstają scenariusze nagrań:
+  `tresc-kursow/<slug>/modul-N/lekcja-M-<temat>.md`, cytaty źródłowe
+  w `docs/dokumentacja-techniczna/d7/cytowane/`.
+  **Licznik i przepis wznowienia: [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md)**
+  (stan 2026-08-18: **35/91**, gotowe moduły 1–5 Kursu 1; następny —
+  moduł 6 Kursu 1, potem cały Kurs 2). Zasady: commit po KAŻDYM module,
+  każda teza z tabelą „Zgodność ze źródłem", zero zmyślania.
+  Korekta źródła przy L2.4: `extended-thinking.md` jest w dokumentacji
+  DEPRECATED (4.7+ zwraca 400), więc rdzeń to `thinking.md`.
+- **Platforma kursu — kierunek (2026-08-18):** materiał NIE będzie
+  hostowany własnym kodem; do rozważenia gotowy LMS na WordPressie
+  (Publigo — polskie płatności/faktury, albo Tutor LMS), ostyłowany
+  naszym design systemem. Wybór konkretnego LMS-a: przy etapie WP,
+  po D7. Scenariusze i materiały są przenośne — nie blokują decyzji.
 - **GAŁĄŹ DOMYŚLNA repo to `plugin-1-sklep-kursow`** (zmiana 2026-08-18,
   decyzja właściciela). Powód: GitHub pokazuje na stronie repozytorium
   README z gałęzi domyślnej, a `main` stoi na wersji 0.3.4 — 34 commity
