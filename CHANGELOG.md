@@ -5,6 +5,92 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.21.0] — 2026-08-18
+
+### Dodane
+- **TREŚĆ DZIAŁU 7 KOMPLETNA — 91 z 91 scenariuszy nagrań** (Kurs 1
+  „Jak poprawnie korzystać z Claude": 6 modułów / 41 lekcji; Kurs 2
+  „Jak poprawnie używać GitHuba": 7 modułów / 50 lekcji). W tej wersji
+  domykają dział **trzy ostatnie moduły Kursu 2**:
+  - **Moduł 5 „Automatyzacja: GitHub Actions" — 7 scenariuszy**
+    (czym są Actions, pierwszy workflow, continuous integration,
+    anatomia workflow, zmienne i konteksty, sekrety, continuous
+    deployment). Cytaty: `cytowane/github--modul-5.md`.
+  - **Moduł 6 „Bezpieczeństwo konta i kodu" — 6 scenariuszy**
+    (2FA, klucze SSH, katalog funkcji bezpieczeństwa, włączanie ich
+    w repozytorium, Dependabot, secret scanning). Cytaty:
+    `cytowane/github--modul-6.md`.
+  - **Moduł 7 „Ponad podstawy" — 5 scenariuszy** (GitHub CLI, GitHub
+    Pages, Codespaces, wyszukiwanie, Discussions). Cytaty:
+    `cytowane/github--modul-7.md`.
+- **Golden treści obu kursów** (`goldeny/d7-tresc.json`
+  + `straznik-goldenu-tresci`) — ochrona przed **cichą** utratą tekstu.
+  Dla każdej lekcji suma kontrolna i cztery miary (bajty, wiersze,
+  sceny, wiersze tabeli zgodności); strażnik pokazuje różnicę per pole
+  („sceny: 9 → 7 (−2)"). Regeneracja wymaga podania powodu, więc golden
+  jest zarazem dziennikiem zmian treści. Stan zapisany: **91 lekcji,
+  506 scen, 1917 wierszy zgodności, 1307 kB**.
+- **`straznik-odsylaczy-kursu`** — pilnuje wierności **własnemu
+  kursowi**, a nie dokumentacji producenta: (A) odsyłacz „lekcja N.M"
+  wskazuje lekcję, która istnieje w tym kursie; (B) zdanie mówiące
+  o module nie wymienia tematu należącego do innego modułu. Mapa
+  tematów powstaje z pól `lekcja:` w metrykach, więc aktualizuje się
+  razem z kursem.
+- **`tools/wyciag-zrodla.mjs`** — odchudza plik dokumentacji do prozy,
+  tabel i jednego przykładu kodu na sekcję (wycina blobki SVG, odsyłacze
+  do zrzutów, powtórzone warianty `<div class="ghd-tool …">`, ten sam
+  przykład w ośmiu językach). Na źródłach modułu 4 Kursu 2: −38%.
+  Każde cięcie zostawia ślad w stopce pliku.
+- **`straznik-scenariuszy`** — mechaniczna kontrola każdego scenariusza:
+  kompletna metryka zgodna ze ścieżką pliku, istnienie plików z `zrodla:`
+  i niepustego pliku z `cytowane:`, obecność pięciu wymaganych sekcji,
+  minimum 8 wierszy tabeli „Zgodność ze źródłem", przynajmniej jeden
+  znacznik `[NARRACJA]`.
+
+### Zmienione
+- **Tryb produkcji treści: RÓWNOLEGŁY** (decyzja właściciela
+  2026-08-18) — moduły 4, 5, 6 i 7 Kursu 2 powstały brefem agenta
+  głównego + falami subagentów piszących po jednej lekcji.
+  **Ani razu nie zaszedł warunek powrotu do trybu ręcznego**; oceny
+  wszystkich czterech modułów wg czterech sygnałów jakości i koszty:
+  `tresc-kursow/POSTEP.md`. Briefy modułów zostają w repo jako dowód
+  produkcji i punkt odniesienia przy ocenie.
+- **Plik cytatów powstaje osobnym przebiegiem subagenta PO całym module
+  i jest traktowany jako DRUGA BRAMKA JAKOŚCI**, nie jako porządki —
+  autor cytatów szuka zdania w oryginale, więc widzi, czego tam nie ma.
+  Moduł 6: 4 wyłapane usterki, moduł 7: 10 (w tym 286 zweryfikowanych
+  wierszy tabel zgodności co do numeru akapitu).
+- **Cienkie źródła z programu (poniżej ~4 kB) uzupełniane plikami, które
+  same wskazują jako dalszą lekturę** — w module 7 dotyczyło to czterech
+  lekcji z pięciu (`about-codespaces.md` ma 785 B i jest samym spisem
+  odsyłaczy): 23 pliki źródłowe zamiast 7 z programu. Dopisane ścieżki
+  lądują w `zrodla:` i w tabeli zgodności.
+
+### Naprawione
+- **Nowa klasa usterki: wierność własnemu kursowi.** Finał Kursu 2
+  (lekcja 7.5) streszcza siedem modułów i przypisał trzy tematy do
+  złych: `.gitignore` modułowi 3 (jest w 2.4), gałęzie chronione
+  modułowi 4 (są w 3.5), konflikty scalania modułowi 2 (są w 4.8).
+  Nie łapał tego żaden strażnik ani tabela zgodności, bo to nie jest
+  teza ze źródła. Naprawione, a przeciw nawrotom stoi
+  `straznik-odsylaczy-kursu` (testy negatywne: łapie wszystkie trzy
+  pomyłki, w tym wariant eliptyczny „Czwarty — jedenaście lekcji…",
+  oraz odsyłacz do nieistniejącej lekcji). Audyt całego korpusu przed
+  napisaniem strażnika: 0 martwych odsyłaczy w 91 scenariuszach.
+- **Dziewięć usterek treści modułu 7** z przebiegu cytatów: dwie tezy
+  bez pokrycia w źródle, dwa zgubione zawężenia (restart z karty
+  przeglądarki tylko przy pracy w przeglądarce; rozszerzenia
+  z Marketplace tylko w desktopowym VS Code albo kliencie webowym),
+  trzy nieprecyzyjne wskazania w tabelach zgodności, dwa uogólnienia
+  szersze niż źródło.
+- **BLAD-008: artefakt narzędzia zapisu w 31 plikach treści** —
+  wyczyszczone, strażnik przeciw nawrotom w `straznik-scenariuszy`
+  (pomija bloki kodu, bo tam te znaczniki bywają treścią promptu).
+- **`straznik-linkow` pomija bloki kodu i kod inline** — scenariusze
+  uczące składni Markdowna zawierają przykłady `[tekst](sciezka)`, które
+  nie są klikalnymi odsyłaczami. Sprawdzone testem negatywnym: prawdziwy
+  martwy odsyłacz w prozie nadal wywala strażnika.
+
 ## [0.20.0] — 2026-08-18
 
 ### Dodane

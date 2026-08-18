@@ -29,8 +29,8 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.20.0** |
-| **Etap** | Działy 1–6 Pluginu 1 gotowe — **B1–B6 zaliczone przez właściciela** (B6: 2026-08-17, kreator kursów); następny krok: Dział 7 — treść obu kursów z oryginalnej dokumentacji |
+| **Wersja** | **0.21.0** |
+| **Etap** | Działy 1–6 Pluginu 1 gotowe (**B1–B6 zaliczone przez właściciela**), **Dział 7: treść obu kursów KOMPLETNA — 91 scenariuszy nagrań** pisanych wyłącznie z oryginalnej dokumentacji, każda teza z tabelą zgodności; następny krok: finalna treść stron sprzedażowych wprowadzona kreatorem, potem etap WordPressa |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
