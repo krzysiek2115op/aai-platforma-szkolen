@@ -200,6 +200,19 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   w `tools/seed/seed-przyklady.ts` jest ROBOCZA i do zastąpienia.
   Opinie w seedach to jawne placeholdery — prawdziwe dopiero po
   pierwszych sprzedażach, niczego nie zmyślamy.
+- **DECYZJE WŁAŚCICIELA przy D7 (2026-08-18)** — pełnia w
+  [docs/plugin-1/PROGRAM-KURSOW-D7.md](docs/plugin-1/PROGRAM-KURSOW-D7.md)
+  (sekcja „Decyzje właściciela"): (a) propozycja programu obu kursów
+  NAPISANA (Kurs 1: 6 modułów/41 lekcji, Kurs 2: 7 modułów/50 lekcji,
+  każda lekcja ze zweryfikowanym źródłem) — **CZEKA NA AKCEPTACJĘ**;
+  (b) styl premium jak strona — każdy punkt styku klienta;
+  (c) **pełnoprawny kurs, NIE e-book**: materiał kursu NIE jest publiczny
+  na stronie (katalog + strony sprzedażowe zostają), po zakupie mail
+  z linkiem do logowania, kurs = LEKCJE WIDEO + instrukcje + prompty na
+  platformie szkoleniowej za logowaniem (etap WP, Plugin 2/3), PDF-y
+  tylko jako dodatki; (d) podział pracy: agent pisze ze źródeł
+  scenariusze nagrań (kroki na ekranie + narracja + prompty),
+  właściciel nagrywa wideo. Scenariusze żyją w repo.
 - **GAŁĄŹ DOMYŚLNA repo to `plugin-1-sklep-kursow`** (zmiana 2026-08-18,
   decyzja właściciela). Powód: GitHub pokazuje na stronie repozytorium
   README z gałęzi domyślnej, a `main` stoi na wersji 0.3.4 — 34 commity

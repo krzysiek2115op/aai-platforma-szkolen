@@ -196,19 +196,38 @@ Serce kursu — tak pracują zespoły na GitHubie.
 ## Decyzje właściciela przy D7
 
 - **2026-08-18, styl:** kurs ma być w stylu graficznym naszej strony —
-  wszystko ma wyglądać na **produkt premium**. Realizacja: treść wchodzi
-  kreatorem (D6) do bazy, a renderuje ją design system zatwierdzony przy
-  B5 (`components/kurs/*`, TloKursu, Reveal/Cascade, `.unos`); strony
-  materiału lekcji (gdy powstaną) używają TEGO SAMEGO design systemu.
+  wszystko ma wyglądać na **produkt premium**. Dotyczy to każdego punktu
+  styku klienta: strony sprzedażowej, maili, platformy szkoleniowej
+  i materiałów dodatkowych.
+- **2026-08-18, model dostarczania — pełnoprawny kurs, NIE e-book:**
+  1. materiał kursu **NIE wyświetla się publicznie na stronie** — na
+     `/szkolenia` zostają katalog i strony sprzedażowe (tam klient kupuje);
+  2. po zakupie klient dostaje **maila**: potwierdzenie zakupu + link do
+     logowania;
+  3. kurs żyje na **platformie szkoleniowej za logowaniem**: uporządkowane
+     **lekcje wideo** (pokaz ekranu z obsługi narzędzi), instrukcje krok
+     po kroku, gotowe prompty;
+  4. **PDF-y tylko jako dodatki** (ściągawki, listy narzędzi, workbooki)
+     — uzupełnienie, nie rdzeń kursu; sam plik PDF to byłby „tani e-book",
+     a tego nie robimy;
+  5. materiały mają być **aktualizowane** (kolejny argument za platformą,
+     nie plikiem).
+  Realizacja platformy: etap WP (Plugin 2 — zakup/płatności, Plugin 3 —
+  konta klientów), zgodnie z decyzją zespołu o WordPressie.
+- **Podział pracy nad lekcją wideo:** agent pisze ze źródeł kompletny
+  SCENARIUSZ nagrania (kroki na ekranie + narracja + prompty do pokazania)
+  oraz materiały dodatkowe; **nagrywa właściciel**. Scenariusze żyją
+  w repo (nośnik trwały do czasu platformy).
 
 ## Po akceptacji (kolejność prac D7)
 
 1. Właściciel zatwierdza / koryguje program (ten plik = źródło prawdy).
 2. Program wchodzi do bazy **kreatorem** (zakładka „Program") — zastępuje
    roboczy program z seedów.
-3. Migracja: pole treści lekcji w bazie + edytor tej treści w kreatorze
-   (`straznik-kreatora` wymusi komplet pól) + strona materiału lekcji
-   w design systemie B5.
-4. Treść lekcji — lekcja po lekcji, wyłącznie ze wskazanych źródeł;
-   cytowane fragmenty do `docs/dokumentacja-techniczna/d7/cytowane/`.
-5. Golden treści obu kursów (ochrona przed cichą utratą tekstu).
+3. Treść lekcji = **scenariusz lekcji wideo** (kroki na ekranie +
+   narracja + gotowe prompty) + materiały dodatkowe — lekcja po lekcji,
+   wyłącznie ze wskazanych źródeł; cytowane fragmenty do
+   `docs/dokumentacja-techniczna/d7/cytowane/`. Scenariusze w repo.
+4. Golden treści obu kursów (ochrona przed cichą utratą tekstu).
+5. Platforma szkoleniowa (logowanie, wideo, aktualizacje) — etap WP
+   (Plugin 2/3); NIE wchodzi w zakres D7.
