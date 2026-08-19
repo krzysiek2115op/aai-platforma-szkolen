@@ -164,6 +164,37 @@ try {
   assert.equal(bezDostepu.status, 403, "AJAX wpuścił żądanie bez tokenu");
   assert.equal(bezDostepu.body.blad, "brak-dostepu");
 
+  // 4b. SUFIT CIAŁA ŻĄDANIA: dwie drogi, bo obie są realne.
+  // Najpierw uczciwie zadeklarowany rozmiar (odrzucany po nagłówku,
+  // bez czytania), potem ciało BEZ `content-length` — transfer
+  // porcjowany, przy którym liczy się tylko licznik bajtów w trasie.
+  const zaDuze = await fetch(`${BAZOWY}/api/szkolenia`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ akcja: "publikuj", id: idKursu, x: "z".repeat(3_000_000) }),
+  });
+  assert.equal(zaDuze.status, 413, "ciało ponad sufit powinno dać 413");
+
+  const porcjami = new ReadableStream<Uint8Array>({
+    start(kontroler) {
+      const kawalek = new TextEncoder().encode("z".repeat(256 * 1024));
+      for (let i = 0; i < 12; i++) kontroler.enqueue(kawalek);
+      kontroler.close();
+    },
+  });
+  const bezDeklaracji = await fetch(`${BAZOWY}/api/szkolenia`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: porcjami,
+    // @ts-expect-error duplex jest wymagany przy ciele strumieniowym i nie ma go w typach DOM
+    duplex: "half",
+  }).catch((blad: unknown) => ({ status: `zerwane połączenie: ${blad}` }));
+  assert.equal(
+    bezDeklaracji.status,
+    413,
+    "ciało bez content-length musi być mierzone licznikiem w trasie"
+  );
+
   // 4a. BRAMA TEMPA: zgadywanie tokenu przestaje być darmowe. Chybione
   // próby idą na osobny, ostry licznik — po jego wyczerpaniu odpowiedź
   // to 429 z Retry-After, a nie kolejne 403 do woli.

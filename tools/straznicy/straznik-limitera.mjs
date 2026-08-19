@@ -88,12 +88,18 @@ if (!trasa) {
     );
   }
   const pozycjaLimitu = kodTrasy.indexOf("limiter.odnotuj");
-  const pozycjaParsowania = kodTrasy.indexOf("request.json()");
-  if (
-    pozycjaLimitu >= 0 &&
-    pozycjaParsowania >= 0 &&
-    pozycjaLimitu > pozycjaParsowania
-  ) {
+  // Pierwsze DOTKNIĘCIE ciała żądania, jakąkolwiek drogą. Wzorzec
+  // `request.json()` sam w sobie by nie wystarczył: od 0.28.0 trasa
+  // czyta ciało strumieniem z sufitem, więc sprawdzenie wiązane
+  // z jedną nazwą metody przestałoby cokolwiek znaczyć — i przestało,
+  // co złapał dopiero audyt mutacyjny przy PR 3.
+  const pozycjaParsowania = Math.min(
+    ...["await cialoZSufitem(", "request.json()", "request.text()", "JSON.parse("]
+      .map((wzorzec) => kodTrasy.indexOf(wzorzec))
+      .filter((i) => i >= 0)
+      .concat(Infinity)
+  );
+  if (pozycjaLimitu >= 0 && pozycjaLimitu > pozycjaParsowania) {
     bledy.push(
       `${TRASA}: limit tempa sprawdzany PO parsowaniu ciała żądania — ` +
         "zalew dużych JSON-ów kosztowałby nas pracę, zanim limiter zdąży " +

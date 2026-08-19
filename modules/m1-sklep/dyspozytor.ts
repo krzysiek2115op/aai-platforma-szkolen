@@ -247,13 +247,26 @@ export async function obsluzAkcje(
     if (blad instanceof BladDyspozytora) {
       return { ok: false, blad: blad.message };
     }
-    // Konflikt unikalności (np. slug zajęty) — czytelnie dla kreatora.
+    // Konflikt unikalności (np. slug zajęty) — czytelnie dla kreatora,
+    // ale NASZYMI słowami. Surowy komunikat Postgresa niesie nazwy
+    // ograniczeń, tabel i kolumn („duplicate key value violates unique
+    // constraint \"courses_slug_key\"") — czyli rysunek schematu bazy
+    // dla kogoś, kto go nie powinien dostać. Szczegół idzie do logu
+    // serwera, gdzie jest potrzebny przy diagnozie.
     if (
       typeof blad === "object" &&
       blad !== null &&
       (blad as { code?: string }).code === "23505"
     ) {
-      return { ok: false, blad: "duplikat", szczegoly: String((blad as Error).message) };
+      console.error(
+        "dyspozytor: konflikt unikalności —",
+        String((blad as Error).message)
+      );
+      return {
+        ok: false,
+        blad: "duplikat",
+        szczegoly: "Taki kurs już istnieje — slug musi być unikalny.",
+      };
     }
     throw blad; // prawdziwa awaria — niech route odda 500 i trafi do logów
   }

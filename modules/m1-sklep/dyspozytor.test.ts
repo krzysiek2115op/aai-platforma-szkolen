@@ -12,6 +12,12 @@ import {
 } from "./db/testowa-baza.ts";
 import { obsluzAkcje } from "./dyspozytor.ts";
 import { listaKursow, szczegolyKursu } from "./odczyt.ts";
+import {
+  LIMIT_AKAPIT,
+  LIMIT_LEKCJI,
+  LIMIT_SEKCJI,
+  SUFIT_CENY,
+} from "./typy.ts";
 
 /**
  * Dowód bramki B3: dyspozytor (JEDEN AJAX) obsługuje zapisz/usun/publikuj
@@ -227,4 +233,153 @@ test("usun: kurs znika, ponowna próba → nie-znaleziono", { skip: !JEST_BAZA }
 
   const ponownie = await obsluzAkcje({ akcja: "usun", token: TOKEN, id: idKursu });
   assert.deepEqual(ponownie, { ok: false, blad: "nie-znaleziono" });
+});
+
+/* ————— limity wejścia (0.28.0) —————
+ * Kontrakt bez górnej granicy nie objawia się błędem: zapis „działa",
+ * dopóki ktoś nie wyśle pola na megabajt. Te testy są jedynym miejscem,
+ * gdzie granice są widoczne. Liczby biorą się z pomiaru bazy — patrz
+ * komentarz przy stałych w typy.ts. */
+
+test("tekst ponad limit akapitu → odrzucony ze ścieżką do pola", { skip: !JEST_BAZA }, async () => {
+  const wynik = await obsluzAkcje({
+    akcja: "zapisz",
+    token: TOKEN,
+    kurs: {
+      slug: "limit-tekstu",
+      title: "Limit tekstu",
+      type: "kurs",
+      price_grosze: 100,
+      sections: [
+        {
+          kind: "hero",
+          position: 0,
+          content: { obietnica: "x".repeat(LIMIT_AKAPIT + 1) },
+        },
+      ],
+    },
+  });
+  assert.equal(!wynik.ok && wynik.blad, "walidacja");
+  const pola = (!wynik.ok ? (wynik.szczegoly as Array<{ pole: string }>) : []).map(
+    (s) => s.pole
+  );
+  assert.ok(
+    pola.includes("kurs.sections.0.content.obietnica"),
+    `limit ma wskazać konkretne pole, dostałem: ${JSON.stringify(pola)}`
+  );
+});
+
+test("liczność: więcej sekcji niż limit i więcej lekcji niż limit → odrzucone", { skip: !JEST_BAZA }, async () => {
+  const zaDuzoSekcji = await obsluzAkcje({
+    akcja: "zapisz",
+    token: TOKEN,
+    kurs: {
+      slug: "limit-sekcji",
+      title: "Limit sekcji",
+      type: "kurs",
+      price_grosze: 100,
+      sections: Array.from({ length: LIMIT_SEKCJI + 1 }, (_, i) => ({
+        kind: "guarantee" as const,
+        position: i,
+        content: { naglowek: "Gwarancja", tekst: "Treść gwarancji." },
+      })),
+    },
+  });
+  assert.equal(!zaDuzoSekcji.ok && zaDuzoSekcji.blad, "walidacja");
+
+  const zaDuzoLekcji = await obsluzAkcje({
+    akcja: "zapisz",
+    token: TOKEN,
+    kurs: {
+      slug: "limit-lekcji",
+      title: "Limit lekcji",
+      type: "kurs",
+      price_grosze: 100,
+      modules: [
+        {
+          position: 0,
+          title: "Moduł z nadmiarem",
+          lessons: Array.from({ length: LIMIT_LEKCJI + 1 }, (_, i) => ({
+            position: i,
+            title: `Lekcja ${i}`,
+            preview: false,
+          })),
+        },
+      ],
+    },
+  });
+  assert.equal(!zaDuzoLekcji.ok && zaDuzoLekcji.blad, "walidacja");
+});
+
+test("cena ponad sufit → odrzucona walidacją, nie błędem kolumny integer", { skip: !JEST_BAZA }, async () => {
+  const wynik = await obsluzAkcje({
+    akcja: "zapisz",
+    token: TOKEN,
+    kurs: {
+      slug: "limit-ceny",
+      title: "Limit ceny",
+      type: "kurs",
+      // bez sufitu ta wartość przeszłaby kontrakt i wywróciła się dopiero
+      // w bazie (`integer` kończy się na 2 147 483 647) — czyli surowym
+      // błędem Postgresa zamiast czytelnej walidacji
+      price_grosze: SUFIT_CENY + 1,
+    },
+  });
+  assert.equal(!wynik.ok && wynik.blad, "walidacja");
+});
+
+test("klucz spoza kontraktu nie wchodzi do bazy razem z treścią sekcji", { skip: !JEST_BAZA }, async () => {
+  const zapis = await obsluzAkcje({
+    akcja: "zapisz",
+    token: TOKEN,
+    kurs: {
+      slug: "tresc-oczyszczona",
+      title: "Treść oczyszczona",
+      type: "kurs",
+      price_grosze: 100,
+      status: "published",
+      sections: [
+        {
+          kind: "guarantee",
+          position: 0,
+          content: {
+            naglowek: "Gwarancja",
+            tekst: "Treść gwarancji.",
+            // pole, którego kontrakt nie zna: bez oczyszczania wchodziło
+            // do JSONB bez żadnego limitu i bez szans trafienia na stronę
+            przemyt: "y".repeat(5000),
+          },
+        },
+      ],
+    },
+  });
+  assert.equal(zapis.ok, true, JSON.stringify(zapis));
+
+  await obsluzAkcje({
+    akcja: "publikuj",
+    token: TOKEN,
+    id: (zapis as { id: string }).id,
+    status: "published",
+  });
+  const kurs = await szczegolyKursu("tresc-oczyszczona");
+  const tresc = kurs?.sections[0].content as Record<string, unknown>;
+  assert.deepEqual(Object.keys(tresc).sort(), ["naglowek", "tekst"]);
+});
+
+test("duplikat sluga: odpowiedź nie niesie komunikatu Postgresa", { skip: !JEST_BAZA }, async () => {
+  const kurs = {
+    slug: "tresc-oczyszczona",
+    title: "Ten sam slug",
+    type: "kurs" as const,
+    price_grosze: 100,
+  };
+  const wynik = await obsluzAkcje({ akcja: "zapisz", token: TOKEN, kurs });
+  assert.equal(!wynik.ok && wynik.blad, "duplikat");
+  const szczegoly = String(!wynik.ok ? wynik.szczegoly : "");
+  for (const zdradliwe of ["constraint", "duplicate key", "courses_slug"]) {
+    assert.ok(
+      !szczegoly.toLowerCase().includes(zdradliwe),
+      `odpowiedź zdradza wnętrze bazy („${zdradliwe}"): ${szczegoly}`
+    );
+  }
 });
