@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import JsonLd from "@/components/seo/JsonLd";
 import { organizacja } from "@/lib/jsonld";
 import { ADRES_BAZOWY, INDEKSOWANIE, MARKA } from "@/lib/seo";
+import { nonceCsp } from "@/lib/csp-nonce";
 import "./globals.css";
 
 const OPIS =
@@ -53,9 +54,13 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#08090b" };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Nonce bieżącego żądania dla znaczników, którym Next go nie nada:
+  // arkusza @font-face i wyłącznika animacji (lib/csp-nonce.ts).
+  // W podglądzie statycznym `undefined` — tam politykę niosą hashe.
+  const nonce = await nonceCsp();
   return (
     <html
       lang="pl"
@@ -85,6 +90,13 @@ export default function RootLayout({
             crossOrigin="anonymous"
           />
         ))}
+        {/*
+          BEZ `nonce` — i to nie jest przeoczenie. React hoistuje ten
+          arkusz do <head> i przy okazji ZDEJMUJE atrybut nonce (widać
+          w wygenerowanym HTML-u: zostaje data-precedence i data-href).
+          Dlatego `style-src` stoi na `unsafe-inline`, a nie na nonce —
+          pełne uzasadnienie w lib/csp.ts.
+        */}
         <style href="geist-font-face" precedence="default">
           {FONT_FACE_CSS}
         </style>
@@ -95,6 +107,7 @@ export default function RootLayout({
           klasa znika i treść jest widoczna bez animacji.
         */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html:
               "(function(){var d=document.documentElement;d.classList.add('js');" +

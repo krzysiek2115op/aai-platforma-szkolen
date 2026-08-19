@@ -6,6 +6,7 @@ nośnikiem trwałym. Podstawa: [PLAN-FINAL-PLUGINU-1.md](PLAN-FINAL-PLUGINU-1.md
 (sekcja „Krok 2") i [docs/security-checklist.md](../security-checklist.md).
 
 Stan: **w toku od 2026-08-19**. Aktualizować przy każdym domkniętym PR.
+Zrobione: **PR 1 (CSP) — 0.26.0**. Następny: PR 2 (`feat/brama-ajax`).
 
 ## Korekta stanu wejściowego
 
@@ -79,36 +80,33 @@ Spike z 2026-08-19 (plik spike'u skasowany, oba buildy z kodem wyjścia 0):
    dostaną nonce normalną drogą. Strona 404 nonce'a dostać nie może —
    to jedyne miejsce wymagające decyzji przy pisaniu polityki.
 
-## Pytania techniczne do rozstrzygnięcia W TRAKCIE (nie na sucho)
+## Pytania techniczne — jak się rozstrzygnęły (PR 1, pomiarem)
 
-Każde rozstrzygać pomiarem na produkcyjnym `next start`, nie rozumowaniem:
-
-- **404 pod `strict-dynamic`.** `strict-dynamic` unieważnia `'self'` dla
-  skryptów, więc na stronie statycznej nie załadują się nawet zewnętrzne
-  chunki. Do sprawdzenia, co realnie dzieje się z `/_not-found`, i wybór:
-  rozdzielenie `not-found` na łuski `serwer/statyczny` nad wspólnym
-  widokiem (wzorzec repo) albo polityka bez `strict-dynamic`.
-- **Nonce na hoistowanym `<style>`.** `app/layout.tsx` wstawia
-  `<style href="geist-font-face" precedence="default">` z krojami.
-  Do sprawdzenia, czy Next nadaje mu nonce; jeśli nie — hash zamiast
-  nonce'a. **Nie przenosić `@font-face` do `globals.css`** bez pomiaru:
-  ten układ jest częścią wyniku 100/100 z 0.25.0.
-- **`img-src` a okładki spoza serwisu.** Kreator przyjmuje okładkę jako
-  dowolny URL (decyzja właściciela z D6). `img-src 'self'` po cichu
-  zepsułby taką okładkę. Wstępnie `'self' data: blob: https:` — decyzja
-  do zapisania w komentarzu polityki.
-- **`upgrade-insecure-requests` na localhoście.** Smoke'i chodzą po
-  http; dyrektywę wystawiać zależnie od protokołu żądania, tak jak już
-  robi to flaga `secure` ciastka (`przezHttps()`).
-- **Adres IP za proxy.** `x-forwarded-for` bez zaufanego proxy jest do
-  podrobienia — limiter ma to zakładać wprost i mieć to zapisane, żeby
-  specyfikacja WP nie odziedziczyła fałszywego poczucia bezpieczeństwa.
+- **404 pod `strict-dynamic`** — pomiar potwierdził najgorszy wariant:
+  24 skrypty, **zero nonce'ów**, bo strona szła z prerenderu. Rozwiązane
+  BEZ rozdzielania `not-found` na łuski: odczyt nagłówków w układzie
+  korzenia (`lib/csp-nonce.ts`, bramka podglądu jak w `kreator-dostep`)
+  przestawił `/_not-found` i `/` na renderowanie na żądanie. W tabeli
+  tras `○` zmieniło się na `ƒ`; statyczne zostały tylko trasy bez HTML-a.
+- **Nonce na hoistowanym `<style>`** — React go ZDEJMUJE przy hoistowaniu
+  (w HTML-u zostaje sam `data-precedence`). Razem z 19 atrybutami
+  `style="…"`, których nonce nie obejmuje z definicji, przesądziło to
+  o `style-src 'self' 'unsafe-inline'`. Wariant „ostry" zmierzony:
+  **21 naruszeń** i zgaszone kroje pisma. `@font-face` NIE przeniesiony
+  do `globals.css` — układ z 0.25.0 nietknięty.
+- **`img-src`** — `'self' data: blob: https:`, zgodnie z propozycją;
+  `http:` zablokowany. Uzasadnienie w `lib/csp.ts`.
+- **`upgrade-insecure-requests`** — wystawiane wyłącznie dla żądań po
+  https, dokładnie jak flaga `secure` ciastka kreatora.
+- **Adres IP za proxy** — zostaje do PR 2 (limiter); założenie
+  „`x-forwarded-for` jest do podrobienia" ma trafić do kodu i do
+  specyfikacji WP, nie tylko do rozmowy.
 
 ## Kolejność PR-ów
 
 | PR | Gałąź | Zawartość |
 |---|---|---|
-| 1 | `feat/csp-pelne` | `proxy.serwer.ts` z nonce, polityka, wstrzykiwanie meta+hashy do podglądu (`tools/csp-podglad.mjs` wołany z `build:podglad`), `straznik-csp` + mutacje, smoke sprawdzający ARTEFAKT (nagłówek i wygenerowany HTML), nie proces |
+| 1 ✅ | `feat/csp-pelne` | **ZROBIONE, wersja 0.26.0.** `proxy.serwer.ts` z nonce, `lib/csp.ts` (jedno źródło polityki), `lib/csp-nonce.ts`, `tools/csp-podglad.mjs` (meta+hashe dla podglądu), `straznik-csp` (9 niezmienników, 10 mutacji), `smoke-csp` (nagłówek + hashe w plikach). Po drodze: **BLAD-012** — `smoke-podglad` wołał `npx next build` zamiast komendy, więc oglądał artefakt, którego nikt nie wydaje; `straznik-seo` przestał oskarżać komentarze |
 | 2 | `feat/brama-ajax` | Rate limiting okno-przesuwne po IP+akcja (AJAX i logowanie), `timingSafeEqual` w dyspozytorze, kara czasowa poza formularzem, testy |
 | 3 | `feat/limity-wejscia` | Limity długości i liczności w kontraktach, sufit `price_grosze`, limit rozmiaru ciała żądania przed parsowaniem, generyczny komunikat zamiast surowego błędu Postgresa, `straznik-limitow` |
 | 4 | `docs/krok-2-domkniecie` | Checklista bez pozycji 🚧, CHANGELOG, README, `rejestr/znane-bledy.json`, wersja + tag |
