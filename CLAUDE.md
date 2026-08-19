@@ -355,7 +355,7 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      sprawdzić testem negatywnym; deploy woła tę samą komendę co
      człowiek.**
 
-     ### CZĘŚĆ 3/3 — WYDAJNOŚĆ I POMIARY (ZROBIONA, 0.25.0, gałąź `feat/wydajnosc-pomiary`)
+     ### CZĘŚĆ 3/3 — WYDAJNOŚĆ I POMIARY (ZROBIONA I ZMERGOWANA, 0.25.0, tag `v0.25.0`)
 
      **Stan końcowy (PSI, mediana z 5, golden `goldeny/pomiary-lighthouse.json`,
      tabela w README + przepisany protokół):** desktop **100/100/100/100 na
@@ -408,12 +408,16 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      - `pkill -f "next start"` trafia własną powłokę (wzorzec w linii
        komendy) — używać `fuser -k <port>/tcp`.
 
-     **CO ZOSTAŁO:** PR `feat/wydajnosc-pomiary` → `feat/seo-podstrony`
-     (stack #26 ← #27 ← ten PR; commity części 3 przeniesione z
-     `feat/seo-podstrony` na własną gałąź — origin `feat/seo-podstrony`
-     nietknięty). Merge całego stacka wg decyzji właściciela (kolejność:
-     od najstarszego, `--delete-branch`). Tag `v0.25.0` + release po
-     merge'u. Pomiary powtórzyć po złożeniu kursów w kreatorze (krok 4).
+     **KROK 1 DOMKNIĘTY (2026-08-19):** stack #26 → #27 → #28 zmergowany
+     do `plugin-1-sklep-kursow` od najstarszego z `--delete-branch`
+     (decyzja właściciela: na dowodach lokalnych, CI stoi do 1 września
+     jak przy 0.21.0 — po powrocie CI potwierdzić gitleaks). Tag
+     `v0.25.0` + release. PUŁAPKA GITHUBA zanotowana: merge przez API
+     z `--delete-branch` ZAMYKA stackowanego PR-a zamiast przepiąć mu
+     bazę (web robi to sam) — #27 trzeba było przywrócić (push gałęzi
+     bazowej ze stale trackingu → reopen → edit base → merge), a #28
+     przepiąłem na `plugin-1-sklep-kursow` PRZED merge'em #27.
+     Pomiary powtórzyć po złożeniu kursów w kreatorze (krok 4).
 
      **Żywy podgląd:** `https://matthewplugins.github.io/szkolenia-podglad/szkolenia`
      — serwuje build 0.25.0 (zweryfikowany co do chunka), preloady
