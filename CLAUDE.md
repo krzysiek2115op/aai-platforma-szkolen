@@ -548,10 +548,20 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      tekst do przepisania), pliki `tresc-kursow/<kurs>/modul-N/proza-M-*.md`
      są ŹRÓDŁEM PRAWDY, do bazy wgrywa je `npm run db1:tresc` drogą
      kreatora (jedyny AJAX, akcja `zapisz-tresc-lekcji`). Format
-     zaakceptowany przez właściciela na lekcji 1.1; moduł 1 Kursu 1
-     wyprodukowany (6 lekcji, 81 935 znaków). Rytm oceny: **przystanek
-     po każdym module**. Koszt zmierzony: ~152 tys. tokenów na lekcję,
+     zaakceptowany przez właściciela na lekcji 1.1. **Moduł 1 Kursu 1
+     ZAMKNIĘTY (6 lekcji, 82 965 znaków, wgrany do bazy)** — przebieg
+     cytatów sprawdził 195 wierszy zgodności przy dziewięciu źródłach
+     i naprawił 7 usterek, wszystkie tego samego gatunku: **zgubione
+     zawężenie** (reguła ze źródła bez warunku, przy którym obowiązuje).
+     To pierwsza rzecz do sprawdzania w kolejnych modułach. Czeka na
+     ocenę właściciela w kreatorze — rytm oceny to **przystanek po
+     każdym module**. Koszt zmierzony: ~152 tys. tokenów na lekcję,
      czyli 13–14 mln na komplet — największa pozycja kosztowa Pluginu 1.
+     **NASTĘPNY: moduł 2 Kursu 1** (prompt engineering, 5 lekcji) tym
+     samym trybem: brief → fale → przelot spójności → przebieg cytatów.
+     Uwaga organizacyjna z modułu 1: `/clear` zabiera raport subagenta,
+     ale NIE zabiera samego subagenta — czysty `git status` nie dowodzi,
+     że przebieg w tle przepadł, tylko że jeszcze nie zapisał.
   **Krok 3 ma WŁASNY worktree**: `/home/krzysiek/Pod-strona-Szkolenia-krok3`
      (gałąź `docs/krok-3-produkcja-materialu`). Reguła po incydencie
      z 2026-08-19: żaden czat nie przełącza gałęzi w cudzym katalogu —

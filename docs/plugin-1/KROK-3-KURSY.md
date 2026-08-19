@@ -154,19 +154,20 @@ wzorcem `lekcja-*.md` i zażądaliby od prozy scen oraz tabeli zgodności
 scenariusza. Inny przedrostek nie zmusza do rozluźniania działających
 strażników.
 
-### Moduł 1 Kursu 1 — WYPRODUKOWANY (2026-08-20), czeka na domknięcie
+### Moduł 1 Kursu 1 — ZAMKNIĘTY I WGRANY (2026-08-20)
 
-Sześć lekcji, **81 935 znaków prozy dla klienta** (scenariusze tego
-samego modułu to 38 kB razem ze scenami i tabelami):
+Sześć lekcji, **82 965 znaków prozy dla klienta** (scenariusze tego
+samego modułu to 38 kB razem ze scenami i tabelami). Liczby poniżej są
+PO przebiegu cytatów, czyli tym, co realnie siedzi w bazie:
 
 | Lekcja | Znaków | Wierszy zgodności |
 |---|---|---|
-| 1.1 Czym jest Claude i co potrafi (WZORZEC) | 11 203 | 27 |
-| 1.2 Rodzina modeli | 14 746 | 33 |
-| 1.3 Jak dobrać model | 13 995 | 34 |
+| 1.1 Czym jest Claude i co potrafi (WZORZEC) | 11 346 | 25 |
+| 1.2 Rodzina modeli | 15 073 | 33 |
+| 1.3 Jak dobrać model | 14 112 | 34 |
 | 1.4 Cennik | 13 999 | 35 |
-| 1.5 Okno kontekstu | 13 993 | 35 |
-| 1.6 Słowniczek | 13 999 | 33 |
+| 1.5 Okno kontekstu | 14 019 | 35 |
+| 1.6 Słowniczek | 14 416 | 34 |
 
 Tryb: równoległy z briefem (`modul-1/BRIEF-prozy-modulu.md`), fale 3 + 2,
 przegląd pierwszej fali przed puszczeniem drugiej. Przelot spójności:
@@ -181,35 +182,77 @@ scenariuszach D7. Powód: autorzy czytają źródła w CAŁOŚCI i w oryginale
 największa pojedyncza pozycja kosztowa Pluginu 1. Właściciel zna tę
 liczbę i podtrzymuje decyzję o Opusie dla subagentów.
 
-### CO ZOSTAŁO DO ZROBIENIA W MODULE 1 (następny krok po /clear)
+### Przebieg cytatów modułu 1 — WYNIK (2026-08-20)
 
-1. **Sprawdzić wynik przebiegu cytatów** (druga bramka jakości) —
-   uruchomiony 2026-08-20, edytował pliki prozy i katalog
-   `docs/dokumentacja-techniczna/d7/cytowane/`. Jego raport przepadł
-   z kontekstem sesji, więc weryfikacja idzie z repo: `git status`
-   i `git diff` na `tresc-kursow/jak-korzystac-z-claude/modul-1/`
-   (co poprawił) oraz `ls docs/dokumentacja-techniczna/d7/cytowane/`
-   (miały dojść cztery pliki: models--overview, models--choosing-a-model,
-   models--optimizing-for-cost-and-intelligence, pricing, context-windows;
-   istniały tylko `claude-platform--intro.md` i `--glossary.md`).
-2. `node tools/straznicy/straznik-prozy.mjs` → 0, potem `npm test`
-   i `node tools/straznicy/uruchom-wszystkie.mjs`.
-3. **Wgrać moduł:** `npm run db1:tresc` (wymaga `npm run dev` na :3001).
-4. Jeden commit na moduł, temat = skutek.
-5. Pokazać właścicielowi w kreatorze — taki jest ustalony rytm oceny.
-6. Dopisać ocenę modułu do `tresc-kursow/POSTEP.md` (sekcja o produkcji prozy).
+Druga bramka jakości zamknięta. **195 sprawdzonych wierszy** tabel
+zgodności (25/33/34/35/35/34) przy dziewięciu źródłach przeczytanych
+w całości i w oryginale. Wynik: **7 usterek naprawionych**, zero tez bez
+pokrycia, zero błędnych liczb — wszystkie ceny, mnożniki cache, progi
+zwrotu, tokeny narzędzi i daty zgadzają się co do cyfry.
+
+Wszystkie siedem to **ten sam gatunek usterki: zgubione zawężenie** —
+proza brała regułę ze źródła i gubiła warunek, przy którym ta reguła
+obowiązuje. To jest klasa do pilnowania w kolejnych modułach:
+
+| Lekcja | Co gubiło warunek |
+|---|---|
+| 1.2 | „przetwarzanie wsadowe ma wyższy sufit" — źródło daje 300k wyjścia **tylko** Opusowi 5/4.8/4.7/4.6 i Sonnetowi 5/4.6, i **tylko** z nagłówkiem beta `output-300k-2026-03-24`; Fable 5 i Haiku 4.5 na liście nie ma |
+| 1.5 | „nowsze modele Opus i Sonnet zachowują bloki myślenia" — źródło podaje twarde progi: Opus 4.5+, Sonnet 4.6+ (oraz Fable 5, Mythos 5, Mythos Preview) |
+| 1.3 | czas 4,5 vs 7,9 minuty przypisany całej czwórce testów — źródło mierzy to na **DeepWideSearch** |
+| 1.3 | macierz wyboru: urwane „advanced research, knowledge work" (Opus 5) i „and extended thinking" (Haiku 4.5) |
+| 1.1 | „infrastruktura zarządzana **przez Anthropic**" — źródło mówi „managed infrastructure", a środowiskiem może być **self-hosted sandbox na własnej infrastrukturze**; ta sama usterka widziana z drugiej strony to pominięta szósta pozycja listy „kiedy to ma sens" |
+| 1.1 | „tutaj zaczyna **99% ludzi**" — liczby nie ma w żadnym ze źródeł |
+| 1.1 | „Claude jest **najlepszy** w…" wobec „excels at …, **and more**"; „wszystko, co Claude oferuje" wobec „Claude's **API surface** is organized into five areas" |
+
+Doszło **siedem plików cytatów** (`claude-platform--managed-agents--overview.md`,
+`--build-with-claude--overview.md`, `--about-claude--models--overview.md`,
+`--models--choosing-a-model.md`, `--models--optimizing-for-cost-and-intelligence.md`,
+`--about-claude--pricing.md`, `--build-with-claude--context-windows.md`),
+a `--intro.md` i `--glossary.md` zostały uzupełnione. Uwaga do wcześniejszej
+notatki: istniał też `claude-platform--models-i-cennik.md` z czasów
+scenariuszy (7 kB, sekcje L1.2–L1.5) — za cienki pod prozę o 33–35
+wierszach zgodności, ale nie była to pustka.
+
+**LEKCJA ORGANIZACYJNA — raport przepadł, PRACA NIE.** Notatka sprzed
+`/clear` mówiła, że przebieg cytatów „edytował pliki", a repo pokazywało
+czysty `git status`, pusty `git stash` i zero plików w commicie. Wniosek
+„przebieg nie zostawił śladu" był **fałszywy**: subagent wciąż żył w tle
+i zameldował się kwadrans później, w następnej sesji. Zdążyłem w tym
+czasie puścić trzy własne przeglądy tych samych plików — zderzenia
+zapisów nie było tylko dlatego, że obie strony edytowały punktowo,
+w rozłączne linie.
+
+**Reguła na przyszłość: zanim uznasz przebieg w tle za przepadły
+i puścisz go od nowa, sprawdź, czy nie żyje.** Czysty `git status` nie
+dowodzi, że agent nie pracuje — dowodzi, że jeszcze nie zapisał.
+Objawem żywego przebiegu są świeże czasy modyfikacji plików
+(`ls --time-style=+%H:%M:%S`) mimo czystego drzewa.
+
+### Domknięcie modułu 1 — ZROBIONE (2026-08-20)
+
+1. ~~Sprawdzić wynik przebiegu cytatów~~ — wynik wyżej.
+2. ~~Strażnicy i testy~~ — **25/25** i **75/75**, kody wyjścia bez potoku.
+3. ~~Wgrać moduł~~ — `npm run db1:tresc`: 6 lekcji, 6 wgranych, 0 bez zmian.
+4. ~~Jeden commit na moduł~~.
+5. **Pokazać właścicielowi w kreatorze** — ustalony rytm oceny, przystanek
+   po KAŻDYM module. To jedyna pozycja czekająca na człowieka.
+6. ~~Dopisać ocenę modułu do `tresc-kursow/POSTEP.md`~~.
 
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 
 | Znalezisko | Skąd | Co z tym |
 |---|---|---|
-| **Cena wprowadzająca Sonneta 5 wygasa 31 sierpnia 2026** — notatka mówi też o odwołanej podwyżce z 1 września | `pricing.md` | **Sprawdzić przed publikacją kursu**; lekcja 1.4 podaje ceny z migawki i mówi, gdzie sprawdzić aktualne |
+| **Cena wprowadzająca Sonneta 5 wygasa 31 sierpnia 2026** — notatka mówi też o odwołanej podwyżce z 1 września | `pricing.md` | **Sprawdzić przed publikacją kursu, i to po 1 września 2026** — migawka jest z sierpnia, więc zdanie o odwołanej podwyżce jest w niej obietnicą na przyszłość; lekcja 1.4 podaje ceny z migawki i mówi, gdzie sprawdzić aktualne |
 | Dokumentacja opisuje **Sonneta 5 dwoma różnymi zdaniami** (`intro.md` vs `overview.md`); dla pozostałych modeli opisy są zgodne | oba pliki | Rozbrojone jawnie w lekcji 1.2 — kurs cytuje oba brzmienia i nazywa rozjazd (wzorem lekcji 5.7 Kursu 2 przy skrócie CD) |
 | Kompakcja kontekstu jest w źródle „podstawową strategią" i **jednocześnie w becie**, tylko dla modeli 4.6+ | `context-windows.md` | Napisane wprost, z ostrzeżeniem przed opieraniem na tym firmowego procesu |
 | **Najmocniejsze modele NIE mają świadomości kontekstu** (mają: Sonnet 5, Haiku 4.5; nie mają: Opus 4.7+, Fable 5, Mythos 5) | `context-windows.md` | Kontrintuicyjne wobec narracji „biorę najmocniejszy" — zostawione jako oznaczone zaskoczenie |
 | **Przykład „10 000 zgłoszeń ≈ $37" w dokumentacji się nie domyka** (wychodzi tylko przy policzeniu całości po stawce wejścia, mimo podanej stawki wyjścia) | `pricing.md` | Liczba przepisana wiernie; usterka jest po stronie Anthropica |
 | Modele legacy bywają **droższe** od aktualnych następców (Sonnet 4.6/4.5 $3/$15 wobec Sonnet 5 $2/$10) | `models/overview.md` | Użyte w 1.2 jako argument za migracją |
 | Fable 5 używa tokenizera od Opus 4.7 — ten sam tekst to **~30% więcej tokenów** niż na starszych modelach | `models/overview.md` | Podkopuje naiwne porównywanie cen za MTok między pokoleniami |
+| **Przelicznik tokena rozjeżdża się w dwóch plikach**: „3.5 English characters" (`glossary.md`) kontra „approximately 4 characters or 0.75 words" (`pricing.md` FAQ) | przebieg cytatów | **Rozbrojone redakcyjnie w 1.6**: lekcja nazywa rozjazd wprost i odsyła po twardą liczbę do narzędzia liczenia tokenów; sprzeczność zostaje po stronie Anthropica |
+| **Zakres zniżki „regional/multi-region 10%"** opisany dwiema różnymi listami modeli (`pricing.md` kontra `models/overview.md`) | przebieg cytatów | Sens ten sam, brzmienie inne — przy aktualizacji treści łatwo o rozbieżność; trzymać się `pricing.md` |
+| **Macierz wyboru reklamuje wycofywany parametr**: `choosing-a-model.md` sprzedaje Haiku 4.5 hasłem „extended thinking", a `extended-thinking` jest DEPRECATED i na 4.7+ zwraca 400 | przebieg cytatów | Formalnie zgodne (Haiku 4.5 jest sprzed 4.7), ale mylące; ta sama pułapka co korekta źródła przy L2.4 |
+| **Artefakty migawki w `models/overview.md`**: numery przypisów przyklejone do wartości („Jan 20262", „claude-fable-53") | przebieg cytatów | Do prozy nie weszły; **ostrzec autorów kolejnych modułów**, żeby nie przepisali ich jako części identyfikatora albo daty |
 
 ## Etap 2 — co już jest (commit „lekcja umie nieść treść kursu")
 
