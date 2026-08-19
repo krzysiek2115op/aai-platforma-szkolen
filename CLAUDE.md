@@ -443,13 +443,35 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      trzy poza repo. Checklista ma teraz szósty stan **🚧 = w robocie
      w kroku 2**.
   4. **Kursy zrobione do końca, w narzędziu — RÓWNOLEGLE, w osobnym
-     czacie** (decyzja właściciela 2026-08-19; kreator przejmuje lekcje
-     i nagrania; właściciel NIE nagrywa wideo — najpierw propozycja
-     opcji produkcji materiału z kosztami i prawami, dopiero potem kod;
-     finalna treść sprzedażowa kreatorem zamiast seedów) → **B7 = ocena
-     GOTOWYCH kursów przez właściciela**. Podział terytoriów między oba
-     czaty (i protokół dla wspólnego `modules/m1-sklep/typy.ts`) —
-     sekcja „Praca równoległa" w KROK-2-ZABEZPIECZENIA.md.
+     czacie** (decyzja właściciela 2026-08-19) → **B7 = ocena GOTOWYCH
+     kursów przez właściciela**. Podział terytoriów między oba czaty
+     (i protokół dla wspólnego `modules/m1-sklep/typy.ts`) — sekcja
+     „Praca równoległa" w KROK-2-ZABEZPIECZENIA.md.
+     **DECYZJE WŁAŚCICIELA 2026-08-19 o produkcji materiału (punkt 1
+     kroku odhaczony) — pełnia z liczbami i odrzuconymi opcjami:
+     [docs/plugin-1/PRODUKCJA-MATERIALU-KROK-3.md](docs/plugin-1/PRODUKCJA-MATERIALU-KROK-3.md):**
+     - **NIE ROBIMY WIDEO. Produkt = kurs tekstowy na platformie za
+       logowaniem + PDF jako DODATEK** (nie rdzeń). Sam PDF do pobrania
+       rozważony i ODRZUCONY (cena nie do obrony, wyciek pliku kończy
+       sprzedaż, aktualizacje trzeba dostarczać ręcznie). To nie jest
+       odwrót od decyzji „NIE e-book" z 2026-08-18 — tamta stała na
+       założeniu, że właściciel nagrywa; założenie upadło tego samego
+       wieczoru. Scenariusze zostają ważne co do zdania: wideo da się
+       dorobić później z tych samych plików, odwrotnie nie działa.
+     - **Kreator dostaje TREŚĆ LEKCJI i MATERIAŁY DODATKOWE, a NIE
+       kontrakt nagrania wideo** (żadnego hostingu, czasu trwania filmu
+       ani napisów — to unieważnia wcześniejszy zapis „kreator przejmuje
+       lekcje i nagrania").
+     - **Kurs 1 zostaje DOGĘSZCZONY** trybem równoległym z briefami:
+       ma 91 stron prozy przy 292 stronach Kursu 2 (pomiar 2026-08-19),
+       a kosztuje więcej. Odrzucone: obniżenie obietnicy i obniżenie ceny.
+     - **`duration_min` zostaje i znaczy „czas przerobienia lekcji"**,
+       nie długość filmu. Program z 2026-08-18 NIE wymaga ponownej
+       akceptacji, statystyki katalogu i goldeny bez zmian — zmienia się
+       podpis na stronie.
+     - Otwarte świadomie: **517 miejsc `[EKRAN]`** → bloki terminala
+       tekstem, zrzuty interfejsu osobnym przelotem NA KOŃCU (najszybciej
+       się starzeją).
   5. **Rozmowa o WordPressie** + co z niej wyniknie, sprzątanie gałęzi,
      merge na `main`, koniec Pluginu 1. Ściąga: katalog `wordpress/`
      w repo strony głównej (kompletny motyw WP, docker-compose,
