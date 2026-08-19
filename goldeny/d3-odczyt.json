@@ -44,14 +44,16 @@
           "position": 0,
           "title": "Pierwszy prompt",
           "duration_min": 12,
-          "preview": true
+          "preview": true,
+          "ma_tresc": false
         },
         {
           "id": "<uuid>",
           "position": 1,
           "title": "Kontekst",
           "duration_min": 18,
-          "preview": false
+          "preview": false,
+          "ma_tresc": false
         }
       ]
     }

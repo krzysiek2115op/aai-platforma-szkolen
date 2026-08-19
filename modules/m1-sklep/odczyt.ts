@@ -1,5 +1,10 @@
 import { pulaDb1 } from "./db/klient.ts";
-import { KartaKatalogu, KartaKreatora, SzczegolyKursu } from "./typy.ts";
+import {
+  KartaKatalogu,
+  KartaKreatora,
+  LekcjaZTrescia,
+  SzczegolyKursu,
+} from "./typy.ts";
 
 /**
  * Kanał JSON — odczyt serwerowy (WYTYCZNE §8, doprecyzowanie 2026-08-16):
@@ -50,7 +55,12 @@ export async function listaKursowKreatora(): Promise<KartaKreatora[]> {
               AS modules_count,
             (SELECT count(*) FROM course_lessons l
               JOIN course_modules m ON m.id = l.module_id
-              WHERE m.course_id = c.id)::int AS lessons_count
+              WHERE m.course_id = c.id)::int AS lessons_count,
+            (SELECT count(*) FROM course_lessons l
+              JOIN course_modules m ON m.id = l.module_id
+              WHERE m.course_id = c.id
+                AND l.content IS NOT NULL AND l.content <> '')::int
+              AS lessons_tresc_count
      FROM courses c
      ORDER BY c.updated_at DESC`
   );
@@ -105,7 +115,8 @@ async function dolozTresc(
                 jsonb_agg(
                   jsonb_build_object(
                     'id', l.id, 'position', l.position, 'title', l.title,
-                    'duration_min', l.duration_min, 'preview', l.preview
+                    'duration_min', l.duration_min, 'preview', l.preview,
+                    'ma_tresc', (l.content IS NOT NULL AND l.content <> '')
                   ) ORDER BY l.position
                 ) FILTER (WHERE l.id IS NOT NULL),
                 '[]'::jsonb
@@ -123,4 +134,22 @@ async function dolozTresc(
     sections: sekcje.rows,
     modules: moduly.rows,
   });
+}
+
+/**
+ * Treść JEDNEJ lekcji — wyłącznie dla kreatora.
+ *
+ * DLACZEGO OSOBNO, a nie w szczegolyKursu(). Materiał kursu żyje za
+ * logowaniem, a `dolozTresc` karmi katalog i stronę sprzedażową:
+ * doładowanie tam tekstu 91 lekcji wysłałoby materiał zza bramki do
+ * publicznego HTML-a i skasowało wynik wydajności z 0.25.0. Strona
+ * dostaje więc samą flagę `ma_tresc`, a pełny tekst tylko ta funkcja.
+ */
+export async function trescLekcji(id: string): Promise<LekcjaZTrescia | null> {
+  const { rows } = await pulaDb1().query(
+    `SELECT id, title, COALESCE(content, '') AS tresc, materials AS materialy
+     FROM course_lessons WHERE id = $1`,
+    [id]
+  );
+  return rows[0] ? LekcjaZTrescia.parse(rows[0]) : null;
 }

@@ -69,6 +69,9 @@ export const KartaKreatora = KartaKursu.extend({
   sections_count: z.int().nonnegative(),
   modules_count: z.int().nonnegative(),
   lessons_count: z.int().nonnegative(),
+  /** ile lekcji ma już napisaną treść — postęp największej roboty
+   *  kroku 3 widoczny bez wchodzenia w kurs */
+  lessons_tresc_count: z.int().nonnegative(),
 });
 export type KartaKreatora = z.infer<typeof KartaKreatora>;
 
@@ -76,8 +79,14 @@ export const LekcjaKursu = z.object({
   id: z.uuid(),
   position: z.int().nonnegative(),
   title: z.string(),
+  /** ile zajmie PRZEROBIENIE lekcji (decyzja właściciela 2026-08-19:
+   *  kurs jest tekstowy, więc to nie jest długość filmu) */
   duration_min: z.int().positive().nullable(),
   preview: z.boolean(),
+  /** czy lekcja ma już treść — SAMA flaga, nigdy tekst: strona
+   *  sprzedażowa i katalog nie mają prawa ciągnąć materiału zza
+   *  logowania (i nie zapłacą za to wydajnością) */
+  ma_tresc: z.boolean(),
 });
 
 export const ModulKursu = z.object({
@@ -225,6 +234,46 @@ export const SCHEMATY_SEKCJI = {
 
 export type SekcjaRodzajNazwa = keyof typeof SCHEMATY_SEKCJI;
 
+/* ————— treść lekcji (materiał kursu, kolumny z migracji 006) —————
+ * Decyzja właściciela z 2026-08-19: kurs jest TEKSTOWY (lekcje na
+ * platformie za logowaniem + PDF jako dodatek), więc kontrakt nagrania
+ * wideo tu NIE POWSTAJE — żadnego hostingu, długości filmu ani napisów.
+ * Uzasadnienie i odrzucone opcje: docs/plugin-1/PRODUKCJA-MATERIALU-KROK-3.md. */
+
+/** Dodatek do lekcji: ściągawka, workbook, odsyłacz do dokumentacji. */
+export const MaterialLekcji = z.object({
+  rodzaj: z.enum(["pdf", "plik", "link"]),
+  tytul: z.string().min(1).max(160),
+  /** adres pliku w `public/` albo pełny URL — jak okładka kursu
+   *  (decyzja właściciela z D6: adres, nie wgrywanie) */
+  url: z.string().min(1).max(500),
+  opis: z.string().max(400).optional(),
+});
+export type MaterialLekcji = z.infer<typeof MaterialLekcji>;
+
+/**
+ * Treść jednej lekcji. Markdown, bo tym są scenariusze z D7 i tym
+ * będzie import do WordPressa — konwersja po drodze byłaby stratą.
+ *
+ * Limit 120 000 znaków to ~66 stron znormalizowanych na lekcję, przy
+ * najdłuższej dzisiejszej lekcji poniżej 20 000. Bierze się z limitu
+ * rozmiaru żądania (krok 2), nie z fantazji.
+ */
+export const TrescLekcji = z.object({
+  tresc: z.string().max(120_000),
+  materialy: z.array(MaterialLekcji).max(12).default([]),
+});
+export type TrescLekcji = z.infer<typeof TrescLekcji>;
+
+/** Co kreator dostaje, otwierając lekcję do pisania. */
+export const LekcjaZTrescia = z.object({
+  id: z.uuid(),
+  title: z.string(),
+  tresc: z.string(),
+  materialy: z.array(MaterialLekcji),
+});
+export type LekcjaZTrescia = z.infer<typeof LekcjaZTrescia>;
+
 /* ————— kanał AJAX (wystrzał — akcje dyspozytora) ————— */
 
 /**
@@ -256,7 +305,18 @@ const SekcjaWejscie = z
     }
   });
 
+/**
+ * DLACZEGO LEKCJA I MODUŁ MAJĄ `id`. Do 0.26.0 zapis programu robił
+ * pełną podmianę (DELETE + INSERT), więc każdy zapis nadawał lekcjom
+ * NOWE identyfikatory. Póki lekcja była samym tytułem, nie bolało.
+ * Od chwili, gdy wisi na niej treść kursu (migracja 006), byłaby to
+ * pułapka na utratę danych: przestawienie kolejności modułów kasowałoby
+ * dorobek 91 lekcji. Kreator odsyła więc id wczytanych wierszy, a
+ * dyspozytor je AKTUALIZUJE; znikają tylko te, których w wejściu nie ma.
+ * Brak id = nowy wiersz (tak dodaje się lekcję w panelu).
+ */
 const LekcjaWejscie = z.object({
+  id: z.uuid().optional(),
   position: z.int().nonnegative(),
   title: z.string().min(1),
   duration_min: z.int().positive().nullish(),
@@ -264,6 +324,7 @@ const LekcjaWejscie = z.object({
 });
 
 const ModulWejscie = z.object({
+  id: z.uuid().optional(),
   position: z.int().nonnegative(),
   title: z.string().min(1),
   summary: z.string().nullish(),
@@ -293,6 +354,18 @@ export const KursWejscie = z.object({
 export const AkcjaDyspozytora = z.discriminatedUnion("akcja", [
   z.object({ akcja: z.literal("zapisz"), token: z.string(), kurs: KursWejscie }),
   z.object({ akcja: z.literal("usun"), token: z.string(), id: z.uuid() }),
+  /**
+   * Treść lekcji jedzie OSOBNĄ akcją, nie w zapisie kursu. Powód jest
+   * dwojaki: ładunek (41 lekcji tekstu to setki kilobajtów w jednym
+   * żądaniu, przy limicie rozmiaru ciała z kroku 2) i ryzyko (pisanie
+   * lekcji nie ma prawa przepisywać przy okazji całego programu).
+   */
+  z.object({
+    akcja: z.literal("zapisz-tresc-lekcji"),
+    token: z.string(),
+    id: z.uuid(),
+    tresc: TrescLekcji,
+  }),
   z.object({
     akcja: z.literal("publikuj"),
     token: z.string(),

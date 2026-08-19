@@ -99,6 +99,20 @@
       "ma_default": true
     },
     {
+      "table_name": "course_lessons",
+      "column_name": "content",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "ma_default": false
+    },
+    {
+      "table_name": "course_lessons",
+      "column_name": "materials",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "ma_default": true
+    },
+    {
       "table_name": "course_modules",
       "column_name": "id",
       "data_type": "uuid",
