@@ -44,9 +44,48 @@ Wspólne z krokiem 2 zostają: baza `db1_kursy`, baza testowa
 | # | Etap | Stan |
 |---|---|---|
 | 1 | Propozycja produkcji materiału → decyzja właściciela | ✅ zrobione (PR #32) |
-| 2 | Kreator przejmuje treść lekcji i materiały | ✅ zrobione (0.27.0) — warstwa danych + panel |
-| 3 | Dogęszczenie Kursu 1 + redakcja 91 lekcji, treść wchodzi kreatorem | ⏳ |
+| 2 | Kreator przejmuje treść lekcji i materiały | ✅ zrobione (0.28.0) — warstwa danych + panel; **PR #36 OTWARTY** |
+| 3 | Dogęszczenie Kursu 1 + redakcja 91 lekcji, treść wchodzi kreatorem | ⏳ — dwie decyzje do podjęcia, niżej |
 | 4 | Finalna treść stron sprzedażowych kreatorem → B7 | ⏳ |
+
+## Stan na 2026-08-19 wieczorem — co czeka na właściciela
+
+**PR #36 (`feat/kreator-tresc-lekcji` → `plugin-1-sklep-kursow`) jest
+OTWARTY.** Dowody są lokalne i komplet: testy 57/57, strażnicy 23/23,
+audyt mutacji 58/58 (0 przeoczonych, 0 martwych), tsc i lint czyste,
+oba buildy zielone, siedem smoke'ów zielonych, każdy nowy test
+sprawdzony testem negatywnym. **CI stoi do 1 września** (wyczerpane
+minuty Actions organizacji), więc merge jest DECYZJĄ WŁAŚCICIELA na
+dowodach lokalnych — tak jak przy 0.21.0 i 0.25.0. Po powrocie CI
+zostaje do potwierdzenia skan sekretów (gitleaks), bo jako jedyny nie
+ma lokalnego odpowiednika.
+
+Wersja wydania to **0.28.0**, nie 0.27.0: krok 2 zmergował PR #35
+pierwszy i wziął tamten numer (protokół pracy równoległej z
+KROK-2-ZABEZPIECZENIA.md — kto merguje pierwszy, ten wygrywa). Baza
+z limiterem jest już scalona w tej gałęzi, smoke pisania lekcji
+przechodzi z nowym ograniczaniem tempa.
+
+## Etap 3 — dwie decyzje PRZED pisaniem
+
+1. **Czym wprowadzić treść 91 lekcji.** Decyzja właściciela mówi:
+   treść wchodzi **kreatorem, nie seedem** (to był sens D6). Panel jest
+   gotowy, ale klikanie 91 lekcji ręcznie to praca sama w sobie. Do
+   rozstrzygnięcia: czy właściciel wkleja lekcje w panelu, czy powstaje
+   skrypt, który wysyła je **tą samą drogą co kreator** (jedyny AJAX
+   `/api/szkolenia`, akcja `zapisz-tresc-lekcji`, token z `.env`).
+   Drugie NIE jest seedem — omija panel, ale nie omija kontraktu ani
+   dyspozytora; pierwsze jest wierniejsze decyzji. Wybór należy do
+   właściciela.
+2. **Skąd bierze się treść lekcji.** Scenariusze z D7 są zapisem
+   NAGRANIA (`[EKRAN]`, `[NARRACJA]`, sceny), a kurs jest tekstowy —
+   więc lekcja na platformie to nie jest wklejony scenariusz, tylko
+   proza pisana z niego i ze źródeł. Do tego dochodzi dogęszczenie
+   Kursu 1 (91 stron prozy przeciw 292 Kursu 2) trybem równoległym
+   z briefami — przepis w `tresc-kursow/POSTEP.md`, sekcja „Tryb
+   produkcji". Otwarte zostaje też 517 miejsc `[EKRAN]` → zrzuty
+   interfejsu osobnym przelotem NA KOŃCU (decyzja z
+   PRODUKCJA-MATERIALU-KROK-3.md).
 
 ## Etap 2 — co już jest (commit „lekcja umie nieść treść kursu")
 
