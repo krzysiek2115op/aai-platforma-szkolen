@@ -136,6 +136,16 @@
       "naprawa": "smoke-podglad wola `npm run build:podglad`, czyli te sama komende co czlowiek i co deploy; zmienne srodowiskowe przekazywane jak dotad. Zasada zapisana w CONTRIBUTING i w naglowku smoke'a: jedna komenda = jedna prawda o tym, jak powstaje artefakt.",
       "test": "tools/smoke/smoke-csp.ts — czesc 2 przelicza hashe wszystkich skryptow z GOTOWYCH plikow out/ i wymaga ich w polityce; build wywolany z pominieciem kroku po buildzie nie przechodzi (sprawdzone testem negatywnym: pominiecie hashy danych strukturalnych daje czerwony smoke).",
       "straznik": "straznik-csp — pilnuje, ze `build:podglad` zawiera krok csp-podglad.mjs I ze biegnie on PO og-rozszerzenie.mjs (odwrocenie kolejnosci unicestwia policzone hashe)."
+    },
+    {
+      "id": "BLAD-013",
+      "data": "2026-08-19",
+      "klasa": "weryfikacja/straznik-zwiazany-z-nazwa-metody-zamiast-z-zachowaniem",
+      "dowod": "straznik-limitera (0.27.0) sprawdzal, czy limit tempa stoi PRZED czytaniem ciala, porownujac pozycje wywolania limitera z pozycja wzorca `request.json()`. W 0.28.0 trasa przestala uzywac tej metody (czyta cialo strumieniem z licznikiem bajtow), wiec warunek `pozycjaParsowania >= 0` przestal byc prawdziwy i CALE sprawdzenie zamilklo. Straznik pozostawal zielony przy mutacji, ktora wczesniej lapal — wykryl to dopiero audyt mutacyjny przy PR 3. W tym samym przebiegu druga sztuka tej samej klasy: nowy straznik-limitow porownywal pozycje nazwy `cialoZSufitem` i trafial w DEFINICJE funkcji na gorze pliku zamiast w jej wywolanie, wiec tez przepuszczal przeniesienie sufitu pod parsowanie.",
+      "skutek": "Kontrola przestaje kontrolowac bez zadnego objawu: straznik zielony, CI zielone, a niezmiennik, ktorego mial pilnowac, mozna zlamac. Grozniejsze niz brak straznika, bo tworzy falszywe poczucie pokrycia — dokladnie ta klasa, przed ktora powolano audyt mutacyjny.",
+      "naprawa": "Wzorce celuja w ZACHOWANIE, nie w nazwe API: straznik-limitera szuka PIERWSZEGO dotkniecia ciala jakakolwiek droga (minimum z pozycji `await cialoZSufitem(`, `request.json()`, `request.text()`, `JSON.parse(`), a straznik-limitow porownuje pozycje WYWOLANIA, nie samej nazwy funkcji. Regula przy kazdym nowym strazniku: jesli wzorzec zawiera nazwe konkretnego API, zapytaj, co sie stanie, gdy kod przejdzie na inne — czy straznik wtedy krzyknie, czy zamilknie.",
+      "test": "audyt-straznikow: mutacje „limit tempa sprawdzany PO parsowaniu ciala zadania\" i „sufit ciala sprawdzany PO sparsowaniu JSON-a\" — obie przed naprawa PRZEOCZONE (audyt czerwony, 62 z 64), po naprawie ZLAPANE (64 z 64, 0 przeoczonych, 0 martwych).",
+      "straznik": "audyt-straznikow.mjs — to on jest tu kontrola: straznik pilnuje kodu, a audyt pilnuje straznikow. Bez okresowego uruchamiania audytu ta klasa bledu jest niewykrywalna."
     }
   ]
 }

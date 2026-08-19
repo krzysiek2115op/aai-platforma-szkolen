@@ -431,7 +431,8 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      (kody wyjścia BEZ potoku), pomiar:
      `PAGESPEED_KLUCZ` w `.env` → `node tools/pomiar-psi.mjs`.
 
-  3. **PEŁNE ZABEZPIECZENIA — W TOKU** (od 2026-08-19). Podział pozycji
+  3. **PEŁNE ZABEZPIECZENIA — ZAMKNIĘTE 2026-08-19** (0.26.0 → 0.29.0:
+     CSP → brama AJAX → limity wejścia → domknięcie). Podział pozycji
      ⏳/🔧 zrobiony i ZATWIERDZONY przez właściciela, razem z wynikami
      spike'u i kolejnością PR-ów:
      **[docs/plugin-1/KROK-2-ZABEZPIECZENIA.md](docs/plugin-1/KROK-2-ZABEZPIECZENIA.md)**
@@ -483,10 +484,17 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      dotknięcie ciała), nie w nazwę metody. Drugi taki przypadek w tym
      samym przebiegu: porównanie pozycji `cialoZSufitem` trafiało
      w definicję funkcji zamiast w wywołanie.
-     **NASTĘPNY: PR 4** — domknięcie checklisty (bez pozycji 🚧),
-     CHANGELOG, README, `rejestr/znane-bledy.json`, tag. Sufit ciała
-     przeliczyć POMIAREM, gdy kreator dostanie treść lekcji (krok 3):
-     proza obu kursów waży dziś 1307 kB.
+     **PR 4 z 4 ZROBIONY — wersja 0.29.0**: checklista bez ani jednej
+     pozycji 🚧, **BLAD-013** w rejestrze, bilans kroku w CHANGELOG.
+     Stan dowodów na koniec kroku: strażnicy 23/23, audyt mutacyjny
+     64/64 (0 przeoczonych, 0 martwych), testy 49/49, smoke
+     D4/D5/D6/CSP/SEO/podgląd zielone.
+     **CO ZOSTAJE OTWARTE ŚWIADOMIE** (tabela w KROK-2-ZABEZPIECZENIA.md):
+     RODO i konta klientów (Plugin 2/3), HTTPS/HSTS i poczta (hosting
+     + domena), 2FA i branch protection (decyzje właściciela), stan
+     limitera poza pamięcią procesu (nośnik WP) oraz **sufit ciała
+     2 MB — przeliczyć POMIAREM, gdy kreator dostanie treść lekcji
+     (krok 3): proza obu kursów waży dziś 1307 kB**.
   4. **Kursy zrobione do końca, w narzędziu — RÓWNOLEGLE, w osobnym
      czacie** (decyzja właściciela 2026-08-19) → **B7 = ocena GOTOWYCH
      kursów przez właściciela**. Podział terytoriów między oba czaty

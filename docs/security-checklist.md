@@ -1,7 +1,9 @@
 # Lista kontrolna bezpieczeństwa — Plugin 1 (podstrona `/szkolenia`)
 
-Stan na v0.28.0 (2026-08-19, krok 2 planu domknięcia: PR 1 — CSP,
-PR 2 — brama jedynego AJAX-a, PR 3 — limity wejścia). Wzorzec: `docs/security-checklist.md`
+Stan na v0.29.0 (2026-08-19, **krok 2 planu domknięcia ZAMKNIĘTY**:
+0.26.0 CSP, 0.27.0 brama jedynego AJAX-a, 0.28.0 limity wejścia).
+Ani jedna pozycja możliwa do zrobienia w prototypie nie została
+otwarta — to była bramka tego kroku. Wzorzec: `docs/security-checklist.md`
 strony głównej — przeniesiony jako STRUKTURA, nie wypełnienie, bo
 architektury są przeciwne: strona główna nie ma backendu, więc całe
 klasy ataków tam „fizycznie nie istnieją" — u nas ISTNIEJĄ (serwer,
@@ -23,13 +25,16 @@ zostanie przepisany na PHP, byłoby udawaniem, ale muszą być na liście,
 | 🔧 | MANUAL — wymaga konfiguracji poza repo (hosting, DNS, konto) |
 | ⛔ | nie dotyczy TEJ architektury — z powodem, nie ciszą |
 | ⏳ | świadomie odłożone do etapu WP — wchodzi do specyfikacji wtyczki |
-| 🚧 | w robocie TERAZ, w kroku 2 planu domknięcia — z gałęzią |
+| 🚧 | było w robocie w kroku 2 — po jego zamknięciu nie opisuje żadnej pozycji |
 
 „Niezaznaczone" nie istnieje: każda pozycja ma stan i powód.
 
-Stan 🚧 doszedł 2026-08-19: przegląd otwierający krok 2 rozdzielił
-pozycje ⏳ na te, które da się domknąć jeszcze w prototypie, i te,
-które naprawdę należą do wtyczki WP. Podział i jego uzasadnienie:
+Stan 🚧 doszedł 2026-08-19 (przegląd otwierający krok 2 rozdzielił
+pozycje ⏳ na te do domknięcia w prototypie i te naprawdę należące do
+wtyczki WP) i po zamknięciu kroku **nie opisuje już żadnej pozycji** —
+wszystkie pięć zostało zrobionych w 0.26.0–0.28.0. Znak zostaje
+w legendzie, bo przyda się przy kolejnym takim przeglądzie. Podział
+i jego uzasadnienie:
 [docs/plugin-1/KROK-2-ZABEZPIECZENIA.md](plugin-1/KROK-2-ZABEZPIECZENIA.md).
 
 ## 1. Aplikacja (serwer + formularze)
@@ -119,8 +124,8 @@ się jako specyfikacja treści:
 Przy przepisywaniu na WordPressa ta sekcja staje się listą wymagań
 wejściowych — nie „dobrymi praktykami do rozważenia". Po przeglądzie
 otwierającym krok 2 zbiera wyłącznie pozycje ⏳ (naprawdę należące do
-WP); to, co dostało 🚧, powstaje w prototypie i przejdzie tam jako
-działający wzorzec, nie jako postulat:
+WP); to, co dostało 🚧, JUŻ POWSTAŁO w prototypie (0.26.0–0.28.0)
+i przechodzi tam jako działający wzorzec, nie jako postulat:
 
 1. walidacja server-side każdego pola (odpowiednik kontraktów Zod
    po stronie PHP), nonce WP na każdą akcję zapisu;

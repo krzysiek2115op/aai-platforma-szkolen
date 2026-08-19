@@ -5,6 +5,50 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.29.0] — 2026-08-19
+
+**Krok 2 planu domknięcia Pluginu 1 ZAMKNIĘTY.** To wydanie nie zmienia
+kodu — domyka krok: checklista bezpieczeństwa nie ma już ani jednej
+pozycji możliwej do zrobienia w prototypie i pozostawionej otwartej.
+
+Cztery wydania kroku: **0.26.0** pełne CSP z nonce'em, **0.27.0** brama
+jedynego AJAX-a (limit tempa, kara czasowa, stały czas porównania
+tokenu), **0.28.0** twarde limity wejścia, **0.29.0** domknięcie.
+
+Bilans wejściowy z przeglądu: 14 otwartych pozycji (nie 18 — tamta
+liczba liczyła linie z legendą, nie wiersze tabel), z czego dwie
+okazały się zrobione w 0.24.0/0.25.0, pięć trafiło do prototypu,
+pięć do specyfikacji wtyczki WP, trzy poza repo (decyzje właściciela:
+2FA, branch protection, domena). Wszystkie pięć prototypowych zostało
+zrobionych.
+
+### Dodane
+
+- **BLAD-013** w rejestrze: strażnik wiązany z NAZWĄ API zamiast
+  z zachowaniem. `straznik-limitera` sprawdzał „limit tempa przed
+  czytaniem ciała", opierając się na `request.json()`; gdy trasa
+  przeszła na czytanie strumieniem, warunek zamilkł i strażnik
+  zzieleniał na mutacji, którą wcześniej łapał. Wykrył to dopiero
+  audyt mutacyjny — bez okresowego uruchamiania audytu ta klasa błędu
+  jest NIEWYKRYWALNA, bo nie ma żadnego objawu.
+
+### Zmienione
+
+- Checklista bezpieczeństwa: stan 🚧 („w robocie w kroku 2") nie
+  opisuje już żadnej pozycji; sekcja specyfikacji WP mówi o tych
+  wzorcach w czasie przeszłym — istnieją w kodzie, nie w planach.
+- `KROK-2-ZABEZPIECZENIA.md` i `CLAUDE.md` odnotowują domknięcie kroku
+  wraz z tym, co świadomie ZOSTAJE otwarte: pozycje należące do
+  wtyczki WP (RODO, konta klientów, honeypot, SPF/DKIM/DMARC, HTTPS
+  i HSTS) oraz trzy decyzje właściciela poza repo.
+
+### Stan dowodów na koniec kroku
+
+Strażnicy **23/23**, audyt mutacyjny **64 złapane / 0 przeoczonych /
+0 martwych**, testy **49/49**, smoke D4/D5/D6/CSP/SEO/podgląd zielone,
+lint bez błędów. Wszystko odtwarzane lokalnie — CI organizacji stoi do
+1 września (wyczerpany limit minut Actions).
+
 ## [0.28.0] — 2026-08-19
 
 Krok 2 planu domknięcia Pluginu 1, **część 3: twarde limity wejścia**.
