@@ -5,6 +5,82 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.27.0] — 2026-08-19
+
+Krok 3 planu domknięcia Pluginu 1, **etap 2: kreator przejmuje treść
+lekcji**. Warstwa danych weszła wcześniej (migracja 006, kontrakty,
+akcja dyspozytora); to wydanie dokłada PANEL - czyli miejsce, w którym
+właściciel naprawdę napisze materiał obu kursów.
+
+Materiał kursu jest towarem: kupujący płaci za dostęp po zalogowaniu.
+Dlatego pełny tekst czyta WYŁĄCZNIE nowa trasa kreatora, a katalog
+i strona sprzedażowa dostają z bazy samą flagę „lekcja ma treść".
+
+### Dodane
+
+- **`/szkolenia/kreator/lekcja/[id]`** - pisanie treści JEDNEJ lekcji
+  (Markdown + materiały dodatkowe), za bramą tokenu, z `noindex`.
+  Osobna trasa, nie czwarta zakładka kursu: lekcja mieści 120 000
+  znaków, więc formularz kursu woziłby przy każdym wejściu materiał
+  wszystkich 41 lekcji.
+- **Wejście z zakładki Program** - przycisk „Treść" przy lekcji (stan
+  z bazy: napisana albo pusta) i licznik „Z treścią" nad listą modułów.
+- **Licznik „Treść lekcji X/Y" na liście kursów** - postęp największej
+  roboty kroku 3 widać bez wchodzenia w kurs; liczy baza (indeks
+  częściowy z migracji 006), nie panel.
+- **`components/kreator/opis-lekcji.ts`** - opis pól lekcji na wzór
+  `opis-sekcji.ts`, wraz z limitami z kontraktu.
+- **`straznik-tresci-lekcji`** - materiał zza logowania nie ma prawa
+  wyjść wspólnym odczytem strony. Domyka lukę zapisaną przy warstwie
+  danych: test „strona widzi flagę, nigdy tekstu" dowodził, że KONTRAKT
+  obcina treść, ale nie że zapytanie jej nie pobiera.
+- **`tools/smoke/smoke-lekcje.ts`** (+ krok w CI) - dowód po HTTP:
+  brama, wystrzał treści z samego ciastka, 404 na śmieciach, BRAK
+  materiału w katalogu i na stronie sprzedażowej OPUBLIKOWANEGO kursu
+  oraz to, że zapis programu nie kasuje napisanej treści.
+- Golden `goldeny/d6-lekcja.json` (opis pól lekcji) i runda
+  „panel → baza → panel" dla treści lekcji w testach D6.
+
+### Naprawione
+
+- **Panel nie odsyłał identyfikatorów modułów i lekcji.** Warstwa
+  danych umiała je utrzymać od 0.26.0, ale formularz kursu wysyłał
+  program bez `id` - a dyspozytor kasuje wiersze spoza wejścia. Pierwszy
+  zapis kursu skasowałby treść wszystkich lekcji i wstawił program od
+  nowa. Teraz `id` jedzie w obie strony.
+- **Formularz nie przyjmował stanu po zapisie.** Nowa lekcja dostaje
+  `id` dopiero w bazie; bez przyjęcia odświeżonych danych z serwera
+  drugi zapis powtarzałby błąd wyżej, a przycisk „Treść" nie pojawiał
+  się aż do przeładowania strony.
+- **Mutacja `straznik-wagi-dokumentacji` była ślepa w worktree** -
+  `git add` odmawia dodania pliku „przez dowiązanie", więc audyt
+  raportował dziurę w strażniku, której nie ma. Mutacja celuje teraz
+  w ścieżkę bez dowiązania i sprząta po sobie katalog.
+
+### Zmienione
+
+- Kontrolki sterowane opisem pól wyprowadzone z `EdytorSekcji` do
+  `components/kreator/PolaOpisane.tsx`, a typy opisu do `opis-pol.ts` -
+  jeden renderer dla sekcji i lekcji. Inaczej `straznik-kreatora`
+  pilnowałby zgodności z kontraktem tylko w jednym z dwóch edytorów.
+- `straznik-kreatora` obejmuje treść lekcji i sprawdza dodatkowo listy
+  zamknięte: opcje w panelu muszą być tym samym zbiorem co enum
+  kontraktu (panel nie ma prawa podpowiadać wartości, której baza nie
+  przyjmie, ani chować tej, którą przyjmuje).
+- `trescLekcji()` oddaje też kontekst (kurs, moduł, numer w programie) -
+  edytor lekcji to osobna trasa i bez tego nie miałby jak nazwać tego,
+  co właściciel pisze, ani dokąd wrócić.
+
+### Dowody
+
+Testy 49/49, strażnicy 22/22, audyt mutacji 44/44 (0 przeoczonych,
+0 martwych), smoke D4/D5/D6/lekcje/podgląd zielone na produkcyjnym
+`next start`. Każdy nowy test sprawdzony testem negatywnym: 5 mutacji
+logiki panelu i rundy przez bazę, 2 mutacje smoke'a (zdjęta brama =
+czerwony, formularz bez `id` lekcji = czerwony). CI stoi do 1 września
+(wyczerpane minuty Actions) - dowody są lokalne, jak przy 0.21.0
+i 0.25.0.
+
 ## [0.26.0] — 2026-08-19
 
 Krok 2 planu domknięcia Pluginu 1, **część 1: pełna polityka

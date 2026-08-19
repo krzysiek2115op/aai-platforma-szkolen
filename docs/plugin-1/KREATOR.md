@@ -46,8 +46,50 @@ mowy o przypadkowym wycieku niedokończonej treści.
    z niego strona liczy statystyki katalogu (moduły, lekcje, czas).
    Kolejność ustawiasz strzałkami; numeracja liczy się sama.
 4. **Zapisz kurs** — zapis obejmuje wszystkie trzy zakładki naraz.
-5. **Podgląd strony kursu** — zobacz efekt przed publikacją.
-6. **Opublikuj**, gdy strona wygląda tak, jak ma wyglądać.
+5. **Treść lekcji** — osobny ekran, opisany niżej.
+6. **Podgląd strony kursu** — zobacz efekt przed publikacją.
+7. **Opublikuj**, gdy strona wygląda tak, jak ma wyglądać.
+
+## Pisanie lekcji (materiał kursu)
+
+Program to spis treści; **treść lekcji to sam kurs** — to, co kupujący
+czyta po zalogowaniu. Pisze się ją osobno, lekcja po lekcji.
+
+1. Wejdź w kurs → zakładka **Program**.
+2. Przy lekcji kliknij **Treść**. Przycisk pojawia się dopiero, gdy
+   lekcja **jest zapisana** — do pisania potrzebny jest jej
+   identyfikator z bazy. Świeżo dodana lekcja ma w tym miejscu napis
+   „zapisz kurs".
+3. Pisz w **Markdownie** — dokładnie tym samym, w którym leżą
+   scenariusze w `tresc-kursow/`. Nic nie trzeba konwertować.
+4. **Materiały dodatkowe** (PDF, ściągawka, odsyłacz) to adres pliku
+   w `public/` albo pełny link — jak okładka kursu. Maksymalnie 12 na
+   lekcję.
+5. **Zapisz lekcję**. Zapis dotyczy WYŁĄCZNIE tej lekcji: program
+   kursu i strona sprzedażowa zostają nietknięte.
+
+Postęp widać w dwóch miejscach bez wchodzenia w lekcje: na liście
+kursów (**Treść lekcji 12/41**) i w zakładce Program (**Z treścią**).
+
+### Czego ten ekran NIE robi
+
+- **Nie renderuje Markdowna.** Przycisk „Podgląd" pokazuje tekst
+  z zachowanymi łamaniami i mówi o tym wprost. Prawdziwy skład przyjdzie
+  z platformą kursu; udawanie go tutaj kłamałoby o wyglądzie gotowej
+  lekcji.
+- **Nie przyjmuje wideo.** Kurs jest tekstowy (decyzja właściciela
+  z 2026-08-19) — nie ma pól na hosting, długość filmu ani napisy.
+- **Nie zapisuje sam.** Wyjście ze strony z niezapisaną lekcją
+  przeglądarka zatrzyma pytaniem — ale zapisuje się przyciskiem.
+
+### Gdzie ta treść trafia, a gdzie NIE
+
+Materiał lekcji jest towarem: kupujący płaci za dostęp do niego.
+Dlatego katalog `/szkolenia` i strona sprzedażowa `/szkolenia/[slug]`
+dostają z bazy **samą informację, że lekcja ma treść** — nigdy tekstu.
+Pełny materiał czyta wyłącznie ten ekran, za bramą tokenu. Pilnują tego
+`straznik-tresci-lekcji` (kontrakt i zapytanie) oraz `tools/smoke/smoke-lekcje.ts`
+(sprawdza po HTTP, że treści nie ma w publicznych stronach).
 
 ## Czego kreator NIE zrobi za Ciebie
 
@@ -79,3 +121,5 @@ mowy o przypadkowym wycieku niedokończonej treści.
 | „Ten adres (slug) jest już zajęty" | inny kurs ma ten sam adres | zmień slug |
 | „Sesja kreatora wygasła" | minęło 8 godzin | zaloguj się ponownie |
 | Sekcja nie pojawia się na stronie | brak pola obowiązkowego | wejdź w sekcję, uzupełnij „brakuje: …" |
+| Przy lekcji nie ma przycisku „Treść" | lekcja jeszcze nie jest w bazie | zapisz kurs i wróć do zakładki Program |
+| „Formularz ma błędy" przy zapisie lekcji | zaczęty materiał bez tytułu lub adresu | uzupełnij materiał albo usuń go koszem |

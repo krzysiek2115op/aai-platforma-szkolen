@@ -95,6 +95,19 @@ export default function FormularzKursu({
   const [zapisuje, setZapisuje] = useState(false);
   const [odswiezanie, startOdswiezania] = useTransition();
   const [zakladka, setZakladka] = useState<Zakladka>("podstawy");
+  // Po zapisie serwer przerenderowuje trasę i przysyła stan Z BAZY:
+  // świeże `id` dopiero co dodanych lekcji i flagi „ma treść". Bez
+  // przyjęcia tego stanu formularz dalej trzymałby lekcje bez id —
+  // a drugi zapis skasowałby je i wstawił od nowa, razem z treścią.
+  const [zSerwera, setZSerwera] = useState(poczatkowy);
+  const [czekamNaOdswiezenie, setCzekamNaOdswiezenie] = useState(false);
+  if (poczatkowy !== zSerwera) {
+    setZSerwera(poczatkowy);
+    if (czekamNaOdswiezenie) {
+      setCzekamNaOdswiezenie(false);
+      setKurs(poczatkowy);
+    }
+  }
   // slug „idzie za tytułem" tylko w nowym kursie i tylko dopóki
   // właściciel sam go nie tknął — inaczej edycja zmieniałaby adres
   // opublikowanej strony pod nogami.
@@ -119,11 +132,17 @@ export default function FormularzKursu({
       content: oczyscTresc(OPIS_WG_RODZAJU.get(kind as never)!, tresc),
     }));
 
+    // `id` MUSI wrócić do dyspozytora: wiersze, których nie ma
+    // w wejściu, są kasowane — a na lekcji wisi treść kursu. Formularz
+    // bez identyfikatorów kazałby bazie skasować cały materiał i
+    // wstawić program od nowa. Brak `id` = świadomie nowy wiersz.
     const modules = kurs.moduly.map((m, i) => ({
+      ...(m.id ? { id: m.id } : {}),
       position: i, // kolejność z listy, nie z ręcznie wpisywanych numerów
       title: m.title,
       summary: m.summary || null,
       lessons: m.lessons.map((l, j) => ({
+        ...(l.id ? { id: l.id } : {}),
         position: j,
         title: l.title,
         duration_min: l.duration_min ? Number(l.duration_min) : null,
@@ -164,6 +183,7 @@ export default function FormularzKursu({
     }
     setZapisano(true);
     setSlugAuto(false);
+    setCzekamNaOdswiezenie(true);
     if (!kurs.id) {
       // nowy kurs dostał id — dalsza praca to już edycja tego kursu
       router.replace(`/szkolenia/kreator/${wynik.id}`);

@@ -147,8 +147,14 @@ async function dolozTresc(
  */
 export async function trescLekcji(id: string): Promise<LekcjaZTrescia | null> {
   const { rows } = await pulaDb1().query(
-    `SELECT id, title, COALESCE(content, '') AS tresc, materials AS materialy
-     FROM course_lessons WHERE id = $1`,
+    `SELECT l.id, l.title, COALESCE(l.content, '') AS tresc,
+            l.materials AS materialy,
+            c.id AS kurs_id, c.title AS kurs_tytul, m.title AS modul_tytul,
+            ((m.position + 1) || '.' || (l.position + 1)) AS numer
+     FROM course_lessons l
+     JOIN course_modules m ON m.id = l.module_id
+     JOIN courses c ON c.id = m.course_id
+     WHERE l.id = $1`,
     [id]
   );
   return rows[0] ? LekcjaZTrescia.parse(rows[0]) : null;

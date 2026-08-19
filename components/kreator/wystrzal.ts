@@ -14,6 +14,9 @@ import type { WynikDyspozytora } from "@/modules/m1-sklep";
 export type Akcja =
   | { akcja: "zapisz"; kurs: Record<string, unknown> }
   | { akcja: "usun"; id: string }
+  /** treść JEDNEJ lekcji — osobno od zapisu kursu (ładunek i ryzyko
+   *  przepisania programu przy okazji pisania lekcji, patrz typy.ts) */
+  | { akcja: "zapisz-tresc-lekcji"; id: string; tresc: Record<string, unknown> }
   | { akcja: "publikuj"; id: string; status?: "published" | "archived" };
 
 export async function wystrzel(akcja: Akcja): Promise<WynikDyspozytora> {

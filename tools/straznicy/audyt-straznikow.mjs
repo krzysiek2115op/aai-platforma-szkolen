@@ -28,7 +28,15 @@
  * Użycie (ręcznie, nie w potoku CI — audyt chwilowo psuje pliki):
  *   node tools/straznicy/audyt-straznikow.mjs
  */
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  unlinkSync,
+  mkdirSync,
+  rmdirSync,
+} from "node:fs";
+import { dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
@@ -264,7 +272,11 @@ const MUTACJE = [
     straznik: "straznik-wagi-dokumentacji",
     opis: "plik masowej dokumentacji producenta dodany do indeksu gita",
     nowyPlik: {
-      sciezka: "docs/dokumentacja-techniczna/d7/github/audyt-mutacja.md",
+      // Ścieżka celowo BEZ katalogu d7/: w worktree kroku 3 katalogi
+      // źródeł D7 są dowiązaniami, a git odmawia dodania pliku „przez
+      // dowiązanie" — mutacja wyglądałaby wtedy na dziurę w strażniku,
+      // którą nie jest. Reguła jest ta sama: segment „github" w ścieżce.
+      sciezka: "docs/dokumentacja-techniczna/github/audyt-mutacja.md",
       tresc: "# mutacja audytu\n",
       dodajDoGita: true,
     },
@@ -379,6 +391,71 @@ const MUTACJE = [
       tresc: "export default function proxy() {}\n",
     },
   },
+  // --- straznik-kreatora ---
+  {
+    straznik: "straznik-kreatora",
+    opis: "pole sekcji z kontraktu zapomniane w panelu (klasa błędu z B5: dla_kogo)",
+    plik: "components/kreator/opis-sekcji.ts",
+    zmien: (s) =>
+      s.includes('pole: "dla_kogo",')
+        ? s.replace(/\s*\{\s*pole: "dla_kogo",[\s\S]*?\},/, "")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora",
+    opis: "pole treści lekcji zniknięte z panelu (nie ma czym pisać kursu)",
+    plik: "components/kreator/opis-lekcji.ts",
+    zmien: (s) =>
+      s.includes('pole: "tresc",')
+        ? s.replace('pole: "tresc",', 'pole: "tresc_lekcji",')
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora",
+    opis: "lista zamknięta w panelu uboższa niż enum kontraktu (materiał bez „link”)",
+    plik: "components/kreator/opis-lekcji.ts",
+    zmien: (s) =>
+      s.includes('{ wartosc: "link", tekst: "Odsyłacz" },')
+        ? s.replace('{ wartosc: "link", tekst: "Odsyłacz" },', "")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora",
+    opis: "rozjazd wymagalności: materiały opcjonalne w kontrakcie, obowiązkowe w panelu",
+    plik: "components/kreator/opis-lekcji.ts",
+    zmien: (s) =>
+      s.includes('etykieta: "Materiały dodatkowe",')
+        ? s.replace(
+            'etykieta: "Materiały dodatkowe",',
+            'etykieta: "Materiały dodatkowe",\n      wymagane: true,'
+          )
+        : null,
+  },
+  // --- straznik-tresci-lekcji ---
+  {
+    straznik: "straznik-tresci-lekcji",
+    opis: "materiał zza logowania dołożony do wspólnego odczytu strony (wyciek 91 lekcji)",
+    plik: "modules/m1-sklep/odczyt.ts",
+    zmien: (s) =>
+      s.includes("'ma_tresc', (l.content IS NOT NULL AND l.content <> '')")
+        ? s.replace(
+            "'ma_tresc', (l.content IS NOT NULL AND l.content <> '')",
+            "'ma_tresc', (l.content IS NOT NULL AND l.content <> ''),\n                    'content', l.content"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-tresci-lekcji",
+    opis: "kontrakt strony przestaje obcinać treść (LekcjaKursu z polem tresc)",
+    plik: "modules/m1-sklep/typy.ts",
+    zmien: (s) =>
+      s.includes("export const LekcjaKursu = z.object({\n  id: z.uuid(),")
+        ? s.replace(
+            "export const LekcjaKursu = z.object({\n  id: z.uuid(),",
+            "export const LekcjaKursu = z.object({\n  id: z.uuid(),\n  tresc: z.string(),"
+          )
+        : null,
+  },
 ];
 
 const sha = (t) => createHash("sha256").update(t).digest("hex");
@@ -391,6 +468,9 @@ for (const m of MUTACJE) {
 
   try {
     if (m.nowyPlik) {
+      // katalog mutacji bywa nieistniejący (mutacja tworzy ścieżkę, nie
+      // tylko plik) — sprzątamy go w finally, o ile zostanie pusty
+      mkdirSync(dirname(m.nowyPlik.sciezka), { recursive: true });
       writeFileSync(m.nowyPlik.sciezka, m.nowyPlik.tresc);
       if (m.nowyPlik.dodajDoGita) spawnSync("git", ["add", "-f", m.nowyPlik.sciezka]);
       przygotowane = true;
@@ -419,6 +499,11 @@ for (const m of MUTACJE) {
     if (przygotowane && m.nowyPlik) {
       if (m.nowyPlik.dodajDoGita) spawnSync("git", ["rm", "--cached", "-q", "-f", m.nowyPlik.sciezka]);
       unlinkSync(m.nowyPlik.sciezka);
+      try {
+        rmdirSync(dirname(m.nowyPlik.sciezka));
+      } catch {
+        // katalog istniał przed mutacją albo nie jest pusty — zostaje
+      }
     } else if (przygotowane && oryginal !== null) {
       writeFileSync(m.plik, oryginal);
       if (sha(readFileSync(m.plik, "utf8")) !== sha(oryginal)) {

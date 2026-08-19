@@ -17,6 +17,7 @@ export {
   listaKursowKreatora,
   szczegolyKursu,
   szczegolyKursuPoId,
+  trescLekcji,
 } from "./odczyt.ts";
 export { obsluzAkcje } from "./dyspozytor.ts";
 /** dla skryptów CLI/testów spoza modułu — domyka pulę połączeń */
@@ -46,5 +47,8 @@ export {
   TrescPozycjonowanie,
   TrescTransformacja,
   TrescPorownanie,
+  TrescLekcji,
+  MaterialLekcji,
+  LekcjaZTrescia,
   type WynikDyspozytora,
 } from "./typy.ts";

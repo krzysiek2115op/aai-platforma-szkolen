@@ -15,10 +15,26 @@ Osobny worktree **`/home/krzysiek/Pod-strona-Szkolenia-krok3`**, gałąź
 z 2026-08-19: **żaden czat nie przełącza gałęzi w cudzym katalogu.**
 
 W worktree są dowiązania (poza gitem, wykluczone lokalnie
-w `.git/worktrees/*/info/exclude`): `node_modules`, `.env` oraz trzy
-katalogi źródeł D7 (`claude-code`, `claude-platform`, `github`).
-Po świeżym `git worktree add` trzeba je odtworzyć, inaczej
-`straznik-scenariuszy` mówi, że pominął kontrolę źródeł.
+w `.git/worktrees/*/info/exclude`): `.env` oraz trzy katalogi źródeł D7
+(`claude-code`, `claude-platform`, `github`). Po świeżym
+`git worktree add` trzeba je odtworzyć, inaczej `straznik-scenariuszy`
+mówi, że pominął kontrolę źródeł.
+
+**`node_modules` musi być KOPIĄ, nie dowiązaniem** (zapisane
+2026-08-19, kosztowało jeden nieudany build): Turbopack odrzuca
+dowiązanie wychodzące poza katalog projektu —
+`Symlink [project]/node_modules is invalid, it points out of the
+filesystem root`, i `npm run build` pada, choć testy i strażnicy chodzą.
+Tanio i bez drugiego `npm ci`:
+`cp -al "/home/krzysiek/Pod strona Szkolenia /node_modules" node_modules`
+(twarde dowiązania — 425 MB zajmuje raz, nie dwa).
+
+Druga pułapka worktree, złapana testem negatywnym: `git add` odmawia
+dodania pliku „przez dowiązanie", więc mutacja
+`straznik-wagi-dokumentacji` celująca w `d7/github/` wyglądała na
+**dziurę w strażniku**, którą nie jest. Mutacja celuje teraz w ścieżkę
+bez dowiązania (`docs/dokumentacja-techniczna/github/`) i sprząta po
+sobie także katalog.
 
 Wspólne z krokiem 2 zostają: baza `db1_kursy`, baza testowa
 `db1_kursy_test` i port 3001.
@@ -28,7 +44,7 @@ Wspólne z krokiem 2 zostają: baza `db1_kursy`, baza testowa
 | # | Etap | Stan |
 |---|---|---|
 | 1 | Propozycja produkcji materiału → decyzja właściciela | ✅ zrobione (PR #32) |
-| 2 | Kreator przejmuje treść lekcji i materiały | 🚧 w toku — warstwa danych gotowa, panel następny |
+| 2 | Kreator przejmuje treść lekcji i materiały | ✅ zrobione (0.27.0) — warstwa danych + panel |
 | 3 | Dogęszczenie Kursu 1 + redakcja 91 lekcji, treść wchodzi kreatorem | ⏳ |
 | 4 | Finalna treść stron sprzedażowych kreatorem → B7 | ⏳ |
 
@@ -74,18 +90,51 @@ Test „strona widzi FLAGĘ, nigdy tekstu lekcji" dowodzi, że **kontrakt**
 przy każdym renderze katalogu, a test dalej byłby zielony. Kandydat na
 strażnika przy panelu.
 
-## Etap 2 — co zostało
+## Etap 2 — panel (0.27.0, domknięty)
 
-- panel: wybór modułu → lekcji, pole treści (markdown), lista
-  materiałów, zapis nową akcją; podgląd **bez nowej zależności**
-  (w projekcie nie ma renderera markdowna i nie dokładamy go —
-  podgląd jako tekst z zachowanymi łamaniami);
-- opis pól lekcji w `components/kreator/` na wzór `opis-sekcji.ts`,
-  żeby **`straznik-kreatora` objął też treść lekcji** (dziś pilnuje
-  wyłącznie sekcji sprzedażowych) + nowa mutacja w
-  `audyt-straznikow.mjs`;
-- `KREATOR.md`: rozdział o pisaniu lekcji;
-- licznik „ile lekcji ma treść" na liście kursów (dane już są).
+- **osobna trasa `/szkolenia/kreator/lekcja/[id]`** zamiast czwartej
+  zakładki kursu. Powód jest ilościowy: lekcja mieści 120 000 znaków,
+  więc formularz kursu woziłby przy każdym wejściu materiał 41 lekcji.
+  Kanał JSON czyta DOKŁADNIE jedną lekcję (`trescLekcji`), zapis idzie
+  osobną akcją;
+- **wejście z zakładki Program** — przycisk „Treść" przy lekcji, ze
+  stanem z bazy (`ma_tresc`), plus licznik „Z treścią" nad listą;
+- **opis pól lekcji** `components/kreator/opis-lekcji.ts` na wzór
+  `opis-sekcji.ts`; typy opisu przeniesione do wspólnego `opis-pol.ts`,
+  a kontrolki do `PolaOpisane.tsx` (dotąd siedziały w `EdytorSekcji`) —
+  jeden renderer na oba edytory, inaczej `straznik-kreatora` pilnowałby
+  zgodności z kontraktem tylko w jednym z nich;
+- **`straznik-kreatora` obejmuje treść lekcji** i dodatkowo sprawdza
+  listy zamknięte: opcje w panelu muszą być tym samym zbiorem co enum
+  kontraktu (4 nowe mutacje w audycie);
+- **nowy `straznik-tresci-lekcji`** (2 mutacje) — domyka „uczciwą
+  granicę" opisaną niżej: pilnuje, że wspólny odczyt strony nie wybiera
+  z lekcji `content`/`materials` i że `LekcjaKursu` nie ma pola treści;
+- **`tools/smoke/smoke-lekcje.ts`** — dowód po HTTP: brama, wystrzał
+  treści z samego ciastka, BRAK materiału w katalogu i na stronie
+  sprzedażowej opublikowanego kursu, 404 na śmieciach, a zapis programu
+  nie kasuje napisanej treści. Sprawdzony dwoma testami negatywnymi
+  (zdjęta brama → czerwony; formularz bez `id` lekcji → czerwony);
+- `KREATOR.md`: rozdział „Pisanie lekcji"; goldeny: `d6-lekcja.json`.
+
+### Luka, którą trzeba było domknąć przy panelu
+
+Warstwa danych umiała trzymać identyfikatory, ale **panel ich nie
+odsyłał** — formularz kursu wysyłał moduły i lekcje bez `id`. Przy
+dyspozytorze kasującym wiersze spoza wejścia znaczyło to tyle, że
+pierwszy zapis kursu skasowałby treść wszystkich lekcji i wstawił
+program od nowa. Teraz `id` jedzie w obie strony, a po zapisie
+formularz **przyjmuje stan z serwera** (świeże `id` dopiero co dodanych
+lekcji), bo inaczej drugi zapis powtarzałby ten sam błąd.
+
+## Etap 2 — czego świadomie NIE ma
+
+- **renderera Markdowna** — podgląd pokazuje tekst z zachowanymi
+  łamaniami i mówi o tym wprost; skład przyjdzie z platformą kursu,
+  a udawanie go w panelu kłamałoby o wyglądzie gotowej lekcji;
+- **pól wideo** — kurs jest tekstowy (decyzja z 2026-08-19);
+- **przenoszenia lekcji między modułami** i wgrywania plików —
+  materiały to adres, jak okładka kursu (decyzja z D6).
 
 ## Terytoria i pliki wspólne
 
@@ -96,7 +145,9 @@ lekcji przechodzi przez ścieżkę zapisu:
 |---|---|---|
 | `modules/m1-sklep/dyspozytor.ts` | krok 2 | nowa akcja + stabilne id (zmiany dopisane, nic nie usunięte) |
 | `modules/m1-sklep/typy.ts` | wspólny | nowe kontrakty; **wszystkie pola tekstowe mają `.max()`, tablice mają górną granicę** — pod `straznik-limitow` z PR 3 kroku 2 |
-| `modules/m1-sklep/odczyt.ts` | niczyj wg tabeli | flaga `ma_tresc`, licznik, `trescLekcji()` |
+| `modules/m1-sklep/odczyt.ts` | niczyj wg tabeli | flaga `ma_tresc`, licznik, `trescLekcji()` (+ kontekst kursu/modułu dla panelu) |
+| `tools/straznicy/audyt-straznikow.mjs` | wspólny | 6 nowych mutacji + naprawa mutacji ślepej w worktree |
+| `.github/workflows/ci.yml` | wspólny | krok „Smoke pisania lekcji" |
 
 Konflikty przy scalaniu będą tekstowe. Zasada bez zmian: zachować
 OBIE zmiany.

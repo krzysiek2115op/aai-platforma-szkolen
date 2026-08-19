@@ -1,6 +1,7 @@
 /**
  * Strażnik kreatora: właściciel musi mieć dostęp do KAŻDEGO pola,
- * które strona sprzedażowa potrafi wyrenderować.
+ * które kontrakt pozwala zapisać — w sekcjach sprzedażowych
+ * I w treści lekcji (krok 3).
  *
  * PO CO. Treść stron kursów siedzi w JSONB (`course_sections.content`),
  * a jej kształt opisują schematy Zod modułu (SCHEMATY_SEKCJI). Strona
@@ -20,7 +21,14 @@
  *   3. rozjazd wymagalności: pole obowiązkowe w Zod, a opcjonalne
  *      w kreatorze (właściciel zapisze sekcję, której baza nie przyjmie)
  *      lub odwrotnie,
- *   4. to samo dla pól zagnieżdżonych (listy obiektów, obiekt `link`).
+ *   4. to samo dla pól zagnieżdżonych (listy obiektów, obiekt `link`),
+ *   5. treść lekcji: `TrescLekcji` ↔ components/kreator/opis-lekcji.ts
+ *      (te same cztery reguły co wyżej — materiał kursu jest towarem,
+ *      więc pole, którego właściciel nie ma czym wypełnić, to dziura
+ *      w produkcie),
+ *   6. lista zamknięta („wybor") bez opcji albo z opcjami innymi niż
+ *      enum kontraktu — panel podpowiadałby wartość, której baza nie
+ *      przyjmie, albo ukrywał wartość, którą przyjmuje.
  *
  * Dopóki nie ma pliku opisu, strażnik przechodzi — pilnuje kodu,
  * nie planów.
@@ -30,6 +38,7 @@
 import { existsSync } from "node:fs";
 
 const OPIS = "components/kreator/opis-sekcji.ts";
+const OPIS_LEKCJI_PLIK = "components/kreator/opis-lekcji.ts";
 const bledy = [];
 
 if (existsSync(OPIS)) {
@@ -67,8 +76,16 @@ if (existsSync(OPIS)) {
     }
   }
 
+  /** Wartości enuma z kontraktu (Zod 4 trzyma je w `def.entries`). */
+  const wartosciEnuma = (schemat) => {
+    const entries = schemat?.def?.entries;
+    if (entries) return Object.values(entries);
+    return Array.isArray(schemat?.options) ? schemat.options : null;
+  };
+
   /** Porównuje zestaw pól schematu Zod z zestawem pól opisanym w kreatorze. */
-  function porownajPola(gdzie, ksztaltZod, polaOpisu) {
+  function porownajPola(gdzie, ksztaltZod, polaOpisu, plikOpisu = OPIS) {
+    const OPIS = plikOpisu;
     const wZod = Object.keys(ksztaltZod);
     const wOpisie = polaOpisu.map((p) => p.pole);
 
@@ -102,6 +119,38 @@ if (existsSync(OPIS)) {
         );
       }
 
+      // lista zamknięta: opcje panelu MUSZĄ być tym samym zbiorem co
+      // enum kontraktu — inaczej panel albo podpowiada wartość, której
+      // baza nie przyjmie, albo chowa wartość, którą przyjmuje
+      if (opisPola.typ === "wybor") {
+        const dozwolone = wartosciEnuma(rdzen(schemat));
+        const wPanelu = (opisPola.opcje ?? []).map((o) => o.wartosc);
+        if (wPanelu.length === 0) {
+          bledy.push(
+            `${OPIS}: ${gdzie} — pole "${opisPola.pole}" ma typ "wybor" bez listy opcji; panel pokazałby pustą listę.`
+          );
+        } else if (dozwolone === null) {
+          bledy.push(
+            `${OPIS}: ${gdzie} — pole "${opisPola.pole}" jest listą zamkniętą w panelu, a kontrakt nie jest enumem; jedno z dwóch kłamie.`
+          );
+        } else {
+          for (const wartosc of dozwolone) {
+            if (!wPanelu.includes(wartosc)) {
+              bledy.push(
+                `${OPIS}: ${gdzie} — kontrakt dopuszcza "${wartosc}" w polu "${opisPola.pole}", a panel nie daje takiej opcji.`
+              );
+            }
+          }
+          for (const wartosc of wPanelu) {
+            if (!dozwolone.includes(wartosc)) {
+              bledy.push(
+                `${OPIS}: ${gdzie} — panel podpowiada "${wartosc}" w polu "${opisPola.pole}", czego kontrakt nie przyjmie.`
+              );
+            }
+          }
+        }
+      }
+
       // zagnieżdżenia: lista obiektów → element tablicy; obiekt → wprost
       const wewnetrzny = rdzen(schemat);
       if (opisPola.typ === "lista-obiektow") {
@@ -110,14 +159,16 @@ if (existsSync(OPIS)) {
           porownajPola(
             `${gdzie} → element listy "${opisPola.pole}"`,
             element.def.shape,
-            opisPola.pola
+            opisPola.pola,
+            plikOpisu
           );
         }
       } else if (opisPola.typ === "obiekt" && wewnetrzny?.def?.shape) {
         porownajPola(
           `${gdzie} → obiekt "${opisPola.pole}"`,
           wewnetrzny.def.shape,
-          opisPola.pola
+          opisPola.pola,
+          plikOpisu
         );
       }
     }
@@ -127,6 +178,20 @@ if (existsSync(OPIS)) {
     const opis = opisy.get(rodzaj);
     if (!opis) continue;
     porownajPola(`sekcja "${rodzaj}"`, schemat.def.shape, opis.pola);
+  }
+
+  // --- treść lekcji (krok 3) ---
+  // Ta sama reguła, inny kontrakt: materiał kursu też wchodzi kreatorem,
+  // więc pole bez miejsca w panelu jest tak samo groźne jak w sekcji.
+  if (existsSync(OPIS_LEKCJI_PLIK)) {
+    const { TrescLekcji } = await import("../../modules/m1-sklep/typy.ts");
+    const { OPIS_LEKCJI } = await import("../../components/kreator/opis-lekcji.ts");
+    porownajPola(
+      "treść lekcji",
+      TrescLekcji.def.shape,
+      OPIS_LEKCJI.pola,
+      OPIS_LEKCJI_PLIK
+    );
   }
 }
 

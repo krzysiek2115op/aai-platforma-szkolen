@@ -265,12 +265,24 @@ export const TrescLekcji = z.object({
 });
 export type TrescLekcji = z.infer<typeof TrescLekcji>;
 
-/** Co kreator dostaje, otwierając lekcję do pisania. */
+/**
+ * Co kreator dostaje, otwierając lekcję do pisania.
+ *
+ * Poza samą treścią jedzie KONTEKST (kurs, moduł, numer w programie).
+ * Nie jest ozdobą: edytor lekcji to osobna trasa, więc bez tego panel
+ * nie miałby jak nazwać tego, co właściciel pisze, ani dokąd wrócić —
+ * a przy 91 lekcjach pomyłka o jedną lekcję kosztuje godzinę pracy.
+ */
 export const LekcjaZTrescia = z.object({
   id: z.uuid(),
   title: z.string(),
   tresc: z.string(),
   materialy: z.array(MaterialLekcji),
+  kurs_id: z.uuid(),
+  kurs_tytul: z.string(),
+  modul_tytul: z.string(),
+  /** numeracja jak w programie na stronie: „3.4" */
+  numer: z.string(),
 });
 export type LekcjaZTrescia = z.infer<typeof LekcjaZTrescia>;
 

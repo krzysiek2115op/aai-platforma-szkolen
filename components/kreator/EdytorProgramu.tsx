@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowDown, ArrowUp, FileText, Plus, Trash2, X } from "lucide-react";
 import { PoleObszar, PolePrzelacznik, PoleTekst } from "@/components/kreator/Pola";
 import { czasMaterialu, slowo } from "@/lib/odmiana";
 
@@ -12,21 +13,40 @@ import { czasMaterialu, slowo } from "@/lib/odmiana";
  * Kolejność wynika z ustawienia na liście (position liczymy przy
  * zapisie), dlatego edytor daje strzałki, a nie pole „numer" —
  * numeracji nie da się rozjechać.
+ *
+ * IDENTYFIKATORY SĄ TU NAJWAŻNIEJSZĄ RZECZĄ (krok 3). Na lekcji wisi
+ * treść kursu, a dyspozytor kasuje wiersze, których NIE MA w wejściu.
+ * Formularz, który nie odesłałby `id`, kazałby bazie skasować wszystkie
+ * lekcje i wstawić je od nowa — razem z materiałem, który właściciel
+ * pisał godzinami. Dlatego `id` jedzie tam i z powrotem, a nowa lekcja
+ * (bez `id`) jest jedynym przypadkiem wstawienia.
  */
 
 export type StanLekcji = {
+  /** z bazy; brak = lekcja dopiero co dodana w panelu */
+  id?: string;
   title: string;
   duration_min: string;
   preview: boolean;
+  /** czy lekcja ma już napisaną treść — flaga z bazy, nigdy sam tekst */
+  ma_tresc: boolean;
 };
 
 export type StanModulu = {
+  id?: string;
   title: string;
   summary: string;
   lessons: StanLekcji[];
 };
 
 export const PUSTY_MODUL: StanModulu = { title: "", summary: "", lessons: [] };
+
+export const PUSTA_LEKCJA: StanLekcji = {
+  title: "",
+  duration_min: "",
+  preview: false,
+  ma_tresc: false,
+};
 
 function przesun<T>(lista: T[], skad: number, dokad: number): T[] {
   if (dokad < 0 || dokad >= lista.length) return lista;
@@ -44,6 +64,10 @@ export default function EdytorProgramu({
   zmien: (moduly: StanModulu[]) => void;
 }) {
   const liczbaLekcji = moduly.reduce((n, m) => n + m.lessons.length, 0);
+  const zTrescia = moduly.reduce(
+    (n, m) => n + m.lessons.filter((l) => l.ma_tresc).length,
+    0
+  );
   const minuty = moduly.reduce(
     (n, m) =>
       n + m.lessons.reduce((s, l) => s + (Number(l.duration_min) || 0), 0),
@@ -57,9 +81,12 @@ export default function EdytorProgramu({
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-panel/40 px-5 py-4">
-        <p className="text-sm leading-relaxed text-steel">
+        <p className="max-w-xl text-sm leading-relaxed text-steel">
           Program to spis treści materiału — z niego strona liczy
-          statystyki kursu.
+          statystyki kursu. Treść lekcji pisze się osobno: przycisk{" "}
+          <strong className="text-fg">Treść</strong> przy lekcji. Nowa
+          lekcja dostaje go dopiero po zapisaniu kursu, bo do pisania
+          potrzebny jest jej identyfikator z bazy.
         </p>
         <dl className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-label uppercase tracking-[0.2em] text-steel">
           <div className="flex gap-2">
@@ -73,6 +100,12 @@ export default function EdytorProgramu({
           <div className="flex gap-2">
             <dt>Czas</dt>
             <dd className="text-fg">{czasMaterialu(minuty)}</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt>Z treścią</dt>
+            <dd className={zTrescia === 0 ? "text-amber-400" : "text-fg"}>
+              {zTrescia}/{liczbaLekcji}
+            </dd>
           </div>
         </dl>
       </div>
@@ -133,7 +166,7 @@ export default function EdytorProgramu({
               {modul.lessons.map((lekcja, j) => (
                 <li
                   key={j}
-                  className="grid items-center gap-2 md:grid-cols-[auto_1fr_7rem_auto_auto]"
+                  className="grid items-center gap-2 md:grid-cols-[auto_1fr_7rem_auto_auto_auto]"
                 >
                   <span className="font-mono text-label text-steel tabular-nums">
                     {i + 1}.{j + 1}
@@ -166,6 +199,28 @@ export default function EdytorProgramu({
                       min
                     </span>
                   </div>
+                  {lekcja.id ? (
+                    <Link
+                      href={`/szkolenia/kreator/lekcja/${lekcja.id}`}
+                      title={
+                        lekcja.ma_tresc
+                          ? "Ta lekcja ma już treść — otwórz do poprawek"
+                          : "Lekcja jeszcze bez treści — napisz materiał"
+                      }
+                      className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors ${
+                        lekcja.ma_tresc
+                          ? "border-volt/30 bg-volt/10 text-volt hover:bg-volt/20"
+                          : "border-line text-steel hover:border-volt/40 hover:text-volt"
+                      }`}
+                    >
+                      <FileText aria-hidden className="size-3.5" />
+                      Treść
+                    </Link>
+                  ) : (
+                    <span className="font-mono text-label uppercase tracking-[0.15em] text-steel/50">
+                      zapisz kurs
+                    </span>
+                  )}
                   <PolePrzelacznik
                     etykieta="zapowiedź"
                     wlaczone={lekcja.preview}
@@ -197,10 +252,7 @@ export default function EdytorProgramu({
               onClick={() =>
                 ustawModul(i, {
                   ...modul,
-                  lessons: [
-                    ...modul.lessons,
-                    { title: "", duration_min: "", preview: false },
-                  ],
+                  lessons: [...modul.lessons, { ...PUSTA_LEKCJA }],
                 })
               }
               className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-4 text-sm text-steel transition-colors hover:border-volt/40 hover:text-volt"

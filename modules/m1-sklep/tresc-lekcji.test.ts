@@ -83,6 +83,12 @@ test("treść lekcji: zapis i odczyt w obie strony", { skip: !JEST_BAZA }, async
     title: "Lekcja pierwsza",
     tresc: "",
     materialy: [],
+    // kontekst dla panelu: edytor lekcji to osobna trasa, więc musi
+    // wiedzieć, czyją lekcję otworzył i dokąd wraca
+    kurs_id: idKursu,
+    kurs_tytul: "Kurs treści",
+    modul_tytul: "Moduł pierwszy",
+    numer: "1.1",
   });
 
   const wynik = await obsluzAkcje({
