@@ -1,0 +1,42 @@
+{
+  "nazwa": "Treść lekcji",
+  "pola": [
+    {
+      "pole": "tresc",
+      "typ": "akapit",
+      "wymagane": true
+    },
+    {
+      "pole": "materialy",
+      "typ": "lista-obiektow",
+      "wymagane": false,
+      "podpola": [
+        {
+          "pole": "rodzaj",
+          "typ": "wybor",
+          "wymagane": true,
+          "opcje": [
+            "pdf",
+            "plik",
+            "link"
+          ]
+        },
+        {
+          "pole": "tytul",
+          "typ": "tekst",
+          "wymagane": true
+        },
+        {
+          "pole": "url",
+          "typ": "url",
+          "wymagane": true
+        },
+        {
+          "pole": "opis",
+          "typ": "tekst",
+          "wymagane": false
+        }
+      ]
+    }
+  ]
+}

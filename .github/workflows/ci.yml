@@ -168,6 +168,15 @@ jobs:
           KREATOR_TOKEN: smoke-d6-ci
         run: node tools/smoke/smoke-d6.ts
 
+      # Krok 3: materiał kursu jest towarem zza logowania. Smoke pisze
+      # treść lekcji wystrzałem AJAX i sprawdza, że widać ją WYŁĄCZNIE
+      # w kreatorze z ciastkiem — nie w katalogu ani na stronie
+      # sprzedażowej opublikowanego kursu.
+      - name: Smoke pisania lekcji /szkolenia/kreator/lekcja/[id]
+        env:
+          KREATOR_TOKEN: smoke-lekcje-ci
+        run: node tools/smoke/smoke-lekcje.ts
+
       # Polityka CSP sprawdzana na ARTEFAKCIE: nagłówek z nonce'em na
       # żywym serwerze (także na 404 — tam prerender zostawiłby skrypty
       # bez nonce'a) oraz komplet hashy w plikach podglądu. Stoi po

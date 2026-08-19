@@ -55,6 +55,7 @@ export default async function KreatorPage() {
     sekcje: k.sections_count,
     moduly: k.modules_count,
     lekcje: k.lessons_count,
+    lekcjeZTrescia: k.lessons_tresc_count,
     zmieniono: DATA.format(k.updated_at),
   }));
 

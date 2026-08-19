@@ -59,13 +59,21 @@ export default async function EdycjaKursuPage({
         badge: kurs.badge ?? "",
         level: kurs.level ?? "",
         sekcje,
+        // `id` i `ma_tresc` jadą do formularza świadomie: pierwsze
+        // decyduje o tym, czy zapis programu AKTUALIZUJE lekcję, czy
+        // kasuje ją razem z treścią; drugie pokazuje, gdzie materiału
+        // jeszcze nie ma. Sam TEKST lekcji nie wchodzi tu nigdy —
+        // czyta go osobna trasa /szkolenia/kreator/lekcja/[id].
         moduly: kurs.modules.map((m) => ({
+          id: m.id,
           title: m.title,
           summary: m.summary ?? "",
           lessons: m.lessons.map((l) => ({
+            id: l.id,
             title: l.title,
             duration_min: l.duration_min ? String(l.duration_min) : "",
             preview: l.preview,
+            ma_tresc: l.ma_tresc,
           })),
         })),
       }

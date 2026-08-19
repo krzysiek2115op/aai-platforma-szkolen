@@ -34,6 +34,8 @@ export type PozycjaListy = {
   sekcje: number;
   moduly: number;
   lekcje: number;
+  /** ile lekcji ma napisaną treść — postęp największej roboty kroku 3 */
+  lekcjeZTrescia: number;
   zmieniono: string;
 };
 
@@ -148,6 +150,23 @@ export default function ListaKursow({ kursy }: { kursy: PozycjaListy[] }) {
                     <dt>Lekcje</dt>
                     <dd className={kurs.lekcje === 0 ? "text-amber-400" : "text-fg"}>
                       {kurs.lekcje}
+                    </dd>
+                  </div>
+                  {/* Postęp materiału widać BEZ wchodzenia w kurs —
+                      liczy go baza (indeks częściowy z migracji 006),
+                      nie panel. */}
+                  <div className="flex gap-2">
+                    <dt>Treść lekcji</dt>
+                    <dd
+                      className={
+                        kurs.lekcjeZTrescia === 0
+                          ? "text-amber-400"
+                          : kurs.lekcjeZTrescia === kurs.lekcje
+                            ? "text-volt"
+                            : "text-fg"
+                      }
+                    >
+                      {kurs.lekcjeZTrescia}/{kurs.lekcje}
                     </dd>
                   </div>
                   <div className="flex gap-2">

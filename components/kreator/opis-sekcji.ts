@@ -17,43 +17,10 @@ import type { SekcjaRodzajNazwa } from "@/modules/m1-sklep";
  * kolejność da się przestawiać.
  */
 
-export type PoleProste = {
-  pole: string;
-  etykieta: string;
-  typ: "tekst" | "akapit" | "url";
-  podpowiedz?: string;
-  wymagane?: boolean;
-  placeholder?: string;
-};
+import type { OpisPol, PoleProste, PoleSekcji } from "./opis-pol";
 
-export type PoleSekcji =
-  | PoleProste
-  | {
-      pole: string;
-      etykieta: string;
-      typ: "lista-tekstow";
-      podpowiedz?: string;
-      wymagane?: boolean;
-      placeholder?: string;
-      nazwaElementu: string;
-    }
-  | {
-      pole: string;
-      etykieta: string;
-      typ: "lista-obiektow";
-      podpowiedz?: string;
-      wymagane?: boolean;
-      nazwaElementu: string;
-      pola: PoleProste[];
-    }
-  | {
-      pole: string;
-      etykieta: string;
-      typ: "obiekt";
-      podpowiedz?: string;
-      wymagane?: boolean;
-      pola: PoleProste[];
-    };
+/** Typy opisu pól mieszkają w opis-pol.ts — dzieli je z opisem lekcji. */
+export type { OpisPol, PoleProste, PoleSekcji };
 
 export type OpisSekcji = {
   rodzaj: SekcjaRodzajNazwa;

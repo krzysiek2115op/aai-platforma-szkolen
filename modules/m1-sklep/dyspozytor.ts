@@ -3,6 +3,7 @@ import type { PoolClient } from "pg";
 import { pulaDb1 } from "./db/klient.ts";
 import {
   AkcjaDyspozytora,
+  type TrescLekcji,
   type WynikDyspozytora,
 } from "./typy.ts";
 
@@ -130,34 +131,118 @@ async function zapisz(dane: AkcjaZapisz, aktor: string): Promise<string> {
       }
     }
     if (kurs.modules) {
-      // Od dołu (lekcje → moduły), nie kaskadą: trigger audytu lekcji
-      // wylicza course_id z ISTNIEJĄCEGO jeszcze modułu — wpis w
-      // changelogu zawsze wskazuje kurs. Kaskada FK zostaje jako
+      // PROGRAM: aktualizacja po id, nie pełna podmiana.
+      //
+      // Do 0.26.0 była tu para DELETE + INSERT, przez co każdy zapis
+      // nadawał modułom i lekcjom NOWE identyfikatory. Odkąd na lekcji
+      // wisi treść kursu (migracja 006), byłaby to pułapka na utratę
+      // danych: przestawienie kolejności modułów kasowałoby dorobek
+      // 91 lekcji. Teraz wiersz z wejścia jest aktualizowany, nowy —
+      // wstawiany, a znikają wyłącznie te, których w wejściu nie ma.
+      //
+      // SET CONSTRAINTS ALL DEFERRED, bo (course_id, position) i
+      // (module_id, position) są unikalne: przy zamianie miejscami
+      // dwóch modułów stan pośredni łamie ograniczenie. Dlatego oba
+      // są DEFERRABLE od migracji 001.
+      await k.query("SET CONSTRAINTS ALL DEFERRED");
+
+      const zostajeModuly = kurs.modules
+        .map((m) => m.id)
+        .filter((x): x is string => Boolean(x));
+
+      // Kasujemy od dołu (lekcje → moduły), nie kaskadą: trigger audytu
+      // lekcji wylicza course_id z ISTNIEJĄCEGO jeszcze modułu — wpis
+      // w changelogu zawsze wskazuje kurs. Kaskada FK zostaje jako
       // siatka bezpieczeństwa.
       await k.query(
         `DELETE FROM course_lessons
-         WHERE module_id IN (SELECT id FROM course_modules WHERE course_id=$1)`,
-        [id]
+         WHERE module_id IN (
+           SELECT id FROM course_modules
+           WHERE course_id=$1 AND NOT (id = ANY($2::uuid[]))
+         )`,
+        [id, zostajeModuly]
       );
-      await k.query("DELETE FROM course_modules WHERE course_id=$1", [id]);
+      await k.query(
+        `DELETE FROM course_modules
+         WHERE course_id=$1 AND NOT (id = ANY($2::uuid[]))`,
+        [id, zostajeModuly]
+      );
+
       for (const m of kurs.modules) {
-        const {
-          rows: [{ id: modulId }],
-        } = await k.query(
-          `INSERT INTO course_modules (course_id, position, title, summary)
-           VALUES ($1, $2, $3, $4) RETURNING id`,
-          [id, m.position, m.title, m.summary ?? null]
-        );
-        for (const l of m.lessons) {
-          await k.query(
-            `INSERT INTO course_lessons (module_id, position, title, duration_min, preview)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [modulId, l.position, l.title, l.duration_min ?? null, l.preview]
+        let modulId: string;
+        if (m.id) {
+          const { rows } = await k.query(
+            `UPDATE course_modules SET position=$3, title=$4, summary=$5
+             WHERE id=$1 AND course_id=$2 RETURNING id`,
+            [m.id, id, m.position, m.title, m.summary ?? null]
           );
+          // Zero wierszy = kreator odsyła id modułu, którego w tym
+          // kursie nie ma (nieświeży widok albo cudzy identyfikator).
+          // Wstawienie „na wszelki wypadek" dorobiłoby duplikat, więc
+          // wolimy czytelny błąd.
+          if (rows.length === 0) throw new BladDyspozytora("nie-znaleziono");
+          modulId = rows[0].id;
+        } else {
+          const { rows } = await k.query(
+            `INSERT INTO course_modules (course_id, position, title, summary)
+             VALUES ($1, $2, $3, $4) RETURNING id`,
+            [id, m.position, m.title, m.summary ?? null]
+          );
+          modulId = rows[0].id;
+        }
+
+        const zostajeLekcje = m.lessons
+          .map((l) => l.id)
+          .filter((x): x is string => Boolean(x));
+        await k.query(
+          `DELETE FROM course_lessons
+           WHERE module_id=$1 AND NOT (id = ANY($2::uuid[]))`,
+          [modulId, zostajeLekcje]
+        );
+
+        for (const l of m.lessons) {
+          if (l.id) {
+            // Treści i materiałów NIE ruszamy — zapis programu zmienia
+            // spis treści, nie materiał (od tego jest osobna akcja).
+            const { rows } = await k.query(
+              `UPDATE course_lessons
+               SET position=$3, title=$4, duration_min=$5, preview=$6
+               WHERE id=$1 AND module_id=$2 RETURNING id`,
+              [l.id, modulId, l.position, l.title, l.duration_min ?? null, l.preview]
+            );
+            if (rows.length === 0) throw new BladDyspozytora("nie-znaleziono");
+          } else {
+            await k.query(
+              `INSERT INTO course_lessons (module_id, position, title, duration_min, preview)
+               VALUES ($1, $2, $3, $4, $5)`,
+              [modulId, l.position, l.title, l.duration_min ?? null, l.preview]
+            );
+          }
         }
       }
     }
     return id;
+  });
+}
+
+/**
+ * Treść jednej lekcji. Osobna akcja, nie część zapisu kursu — powód
+ * przy AkcjaDyspozytora w typy.ts (ładunek i ryzyko przepisania
+ * programu przy okazji pisania lekcji).
+ */
+async function zapiszTrescLekcji(
+  id: string,
+  tresc: TrescLekcji,
+  aktor: string
+): Promise<string> {
+  return wTransakcji(aktor, async (k) => {
+    const { rows } = await k.query(
+      `UPDATE course_lessons SET content=$2, materials=$3 WHERE id=$1
+       RETURNING id`,
+      [id, tresc.tresc, JSON.stringify(tresc.materialy)]
+    );
+    if (rows.length === 0) throw new BladDyspozytora("nie-znaleziono");
+    return rows[0].id;
   });
 }
 
@@ -234,6 +319,12 @@ export async function obsluzAkcje(
     switch (akcja.akcja) {
       case "zapisz":
         return { ok: true, akcja: "zapisz", id: await zapisz(akcja, aktor) };
+      case "zapisz-tresc-lekcji":
+        return {
+          ok: true,
+          akcja: "zapisz-tresc-lekcji",
+          id: await zapiszTrescLekcji(akcja.id, akcja.tresc, aktor),
+        };
       case "usun":
         return { ok: true, akcja: "usun", id: await usun(akcja.id, aktor) };
       case "publikuj":
