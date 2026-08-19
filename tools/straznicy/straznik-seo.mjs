@@ -69,9 +69,17 @@ if (!existsSync(KOMPONENT_JSONLD)) {
 } else if (!readFileSync(KOMPONENT_JSONLD, "utf8").includes("\\\\u003c")) {
   bledy.push(`${KOMPONENT_JSONLD}: komponent nie ucieka znaku "<" — treść zawierająca </script> zamknęłaby blok skryptu.`);
 }
+// Komentarze wycinamy — inaczej strażnik oskarża OPISY. Ta sama reguła,
+// co w straznik-linkow (przykłady składni w blokach kodu to nie linki):
+// kontrola, która karze za wyjaśnienie własnego mechanizmu, jest kontrolą,
+// którą się w końcu wyłącza. Prawdziwy blok w kodzie nadal wywala strażnika
+// — pilnują tego mutacja i kontrprzykład w audyt-straznikow.
+const bezKomentarzy = (tresc) =>
+  tresc.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
 for (const plik of wszystkie) {
   if (plik === KOMPONENT_JSONLD || plik.startsWith(KATALOG_STRAZNIKOW)) continue;
-  if (readFileSync(plik, "utf8").includes("application/ld+json")) {
+  if (bezKomentarzy(readFileSync(plik, "utf8")).includes("application/ld+json")) {
     bledy.push(`${plik}: własny blok application/ld+json — dane strukturalne wstawia WYŁĄCZNIE components/seo/JsonLd.tsx (tam jest ucieczka znaków).`);
   }
 }

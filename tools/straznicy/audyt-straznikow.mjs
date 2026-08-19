@@ -269,6 +269,116 @@ const MUTACJE = [
       dodajDoGita: true,
     },
   },
+
+  {
+    straznik: "straznik-seo",
+    opis: "KONTRPRZYKŁAD: wzmianka o application/ld+json w KOMENTARZU to opis, nie blok danych",
+    nowyPlik: {
+      sciezka: "lib/audyt-kontrprzyklad-tymczasowy.ts",
+      tresc:
+        "// Ten plik tylko WSPOMINA o application/ld+json w komentarzu —\n" +
+        "// żadnych danych strukturalnych nie wstawia.\n" +
+        "export const nic = null;\n",
+    },
+    oczekujCzerwonego: false,
+  },
+
+  // --- straznik-csp ---
+  {
+    straznik: "straznik-csp",
+    opis: "eksport proxy nazwany zamiast domyślnego (Next 16 go nie widzi)",
+    plik: "proxy.serwer.ts",
+    zmien: (s) =>
+      s.includes("export default function proxy")
+        ? s.replace("export default function proxy", "export function proxy")
+        : null,
+  },
+  {
+    straznik: "straznik-csp",
+    opis: "script-src traci 'strict-dynamic' (zostaje samo 'self')",
+    plik: "proxy.serwer.ts",
+    zmien: (s) =>
+      s.includes("'strict-dynamic'")
+        ? s.replace(" 'strict-dynamic'", "")
+        : null,
+  },
+  {
+    straznik: "straznik-csp",
+    opis: "'unsafe-inline' dopisane do script-src (kasuje działanie nonce'a)",
+    plik: "proxy.serwer.ts",
+    zmien: (s) =>
+      s.includes("skrypty: `'self'")
+        ? s.replace("skrypty: `'self'", "skrypty: `'self' 'unsafe-inline'")
+        : null,
+  },
+  {
+    straznik: "straznik-csp",
+    opis: "'unsafe-eval' w script-src poza gałęzią deweloperską",
+    plik: "proxy.serwer.ts",
+    zmien: (s) =>
+      s.includes("${dev ? \" 'unsafe-eval'\" : \"\"}")
+        ? s.replace("${dev ? \" 'unsafe-eval'\" : \"\"}", " 'unsafe-eval'")
+        : null,
+  },
+  {
+    straznik: "straznik-csp",
+    opis: "wspólna polityka traci dyrektywę object-src 'none'",
+    plik: "lib/csp.ts",
+    zmien: (s) =>
+      s.includes('"object-src \'none\'",')
+        ? s.replace('    "object-src \'none\'",\n', "")
+        : null,
+  },
+  {
+    straznik: "straznik-csp",
+    opis: "podgląd przestaje dostawać politykę (krok wypada z build:podglad)",
+    plik: "package.json",
+    zmien: (s) =>
+      s.includes(" && node tools/csp-podglad.mjs out")
+        ? s.replace(" && node tools/csp-podglad.mjs out", "")
+        : null,
+  },
+  {
+    straznik: "straznik-csp",
+    opis: "wstrzyknięcie polityki PRZED nadaniem rozszerzeń OG (martwe hashe)",
+    plik: "package.json",
+    zmien: (s) =>
+      s.includes("node tools/og-rozszerzenie.mjs out && node tools/csp-podglad.mjs out")
+        ? s.replace(
+            "node tools/og-rozszerzenie.mjs out && node tools/csp-podglad.mjs out",
+            "node tools/csp-podglad.mjs out && node tools/og-rozszerzenie.mjs out"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-csp",
+    opis: "wyłącznik animacji traci nonce (polityka wycięłaby go bez śladu)",
+    plik: "app/layout.tsx",
+    zmien: (s) =>
+      s.includes("<script\n          nonce={nonce}")
+        ? s.replace("<script\n          nonce={nonce}", "<script")
+        : null,
+  },
+  {
+    straznik: "straznik-csp",
+    opis: "druga, konkurencyjna polityka w nagłówkach statycznych",
+    plik: "next.config.ts",
+    zmien: (s) =>
+      s.includes('value: "frame-ancestors \'none\'"')
+        ? s.replace(
+            'value: "frame-ancestors \'none\'"',
+            'value: "frame-ancestors \'none\'; script-src \'unsafe-inline\'"'
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-csp",
+    opis: "plik proxy.ts w korzeniu (wywraca build podglądu)",
+    nowyPlik: {
+      sciezka: "proxy.ts",
+      tresc: "export default function proxy() {}\n",
+    },
+  },
 ];
 
 const sha = (t) => createHash("sha256").update(t).digest("hex");

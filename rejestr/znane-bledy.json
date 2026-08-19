@@ -126,6 +126,16 @@
       "naprawa": "IntersectionObserver w FooterScene (ta sama bramka, ktora od 0.24.0 trzyma prewarm pylu) ustawia na scenie atrybut data-na-ekranie; CSS wstrzymuje animacje i zdejmuje malowanie grupy maskowanej (visibility: hidden), dopoki stopka nie wejdzie w widok. Bramka wisi pod html.js — bez JavaScriptu nie ma komu ustawic atrybutu, wiec dekoracja dziala jak dotad, a wylacznik bezpieczenstwa (4 s bez hydratacji zdejmuje klase js) tez ja przywraca.",
       "test": "Pomiar w przegladarce na produkcyjnym buildzie (412x823): na gorze strony paused + visibility hidden, po zjezdzie do stopki running + visible, po powrocie na gore znowu paused; przy wylaczonym JavaScripcie running. Tekst spoczynkowy wordmarku widoczny w kazdym z tych stanow. Lista kandydatow LCP z PerformanceObserver po naprawie nie zawiera juz elementu maski.",
       "straznik": ""
+    },
+    {
+      "id": "BLAD-012",
+      "data": "2026-08-19",
+      "klasa": "weryfikacja/test-omija-komende-i-sprawdza-inny-artefakt-niz-wydany",
+      "dowod": "smoke-podglad.ts budowal podglad wywolaniem `npx next build` zamiast komendy `npm run build:podglad`. Kroki po buildzie wisza na komendzie, nie na buildzie, wiec smoke sprawdzal katalog out/ BEZ nadanych rozszerzen .png miniatur OG — czyli inny artefakt niz ten, ktory wydaje deploy. Ta sama pomylka w skrypcie deploya wypuscila w 0.24.0 podglad z czterema martwymi miniaturami (404 na kazdej), przy zielonym buildzie i zielonej weryfikacji. Nawrot znaleziony przy dokladaniu wstrzykiwania polityki CSP: po zmianie smoke ogladalby takze pliki bez CSP.",
+      "skutek": "Najgrozniejszy mozliwy: test przechodzi i tworzy wrazenie pokrycia, a sprawdza cos, czego nikt nigdy nie opublikuje. Kazdy kolejny krok po buildzie (dzis: rozszerzenia OG i polityka CSP) jest dla takiego testu niewidzialny.",
+      "naprawa": "smoke-podglad wola `npm run build:podglad`, czyli te sama komende co czlowiek i co deploy; zmienne srodowiskowe przekazywane jak dotad. Zasada zapisana w CONTRIBUTING i w naglowku smoke'a: jedna komenda = jedna prawda o tym, jak powstaje artefakt.",
+      "test": "tools/smoke/smoke-csp.ts — czesc 2 przelicza hashe wszystkich skryptow z GOTOWYCH plikow out/ i wymaga ich w polityce; build wywolany z pominieciem kroku po buildzie nie przechodzi (sprawdzone testem negatywnym: pominiecie hashy danych strukturalnych daje czerwony smoke).",
+      "straznik": "straznik-csp — pilnuje, ze `build:podglad` zawiera krok csp-podglad.mjs I ze biegnie on PO og-rozszerzenie.mjs (odwrocenie kolejnosci unicestwia policzone hashe)."
     }
   ]
 }

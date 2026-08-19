@@ -88,7 +88,13 @@ try {
   await zamknijDb1();
 
   // --- build podglądu, celowo Z TOKENEM w środowisku ---
-  const build = spawnSync("npx", ["next", "build"], {
+  // TĄ SAMĄ komendą, którą woła człowiek i deploy. Wcześniej stało tu
+  // `npx next build`, czyli sam build bez kroków po nim — dokładnie ta
+  // pomyłka wypuściła w 0.24.0 podgląd z czterema martwymi miniaturami
+  // OG (skrypt nadający rozszerzenie .png wisi na komendzie, nie na
+  // buildzie). Odkąd po buildzie wstrzykiwana jest jeszcze polityka CSP,
+  // ten smoke sprawdzałby katalog `out/`, którego nikt nigdy nie wyda.
+  const build = spawnSync("npm", ["run", "build:podglad"], {
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, PODGLAD_STATYCZNY: "1", PAGES_BASE_PATH: BAZOWA },
   });
