@@ -442,6 +442,21 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      błędów + `timingSafeEqual` w dyspozytorze), pięć do specyfikacji WP,
      trzy poza repo. Checklista ma teraz szósty stan **🚧 = w robocie
      w kroku 2**.
+     **PR 1 z 4 ZROBIONY — wersja 0.26.0** (PR #33, tag `v0.26.0`):
+     pełne CSP z jednorazowym nonce'em w trybie serwerowym
+     (`proxy.serwer.ts`) i `<meta>` z hashami w podglądzie
+     (`tools/csp-podglad.mjs`), `straznik-csp` + `smoke-csp`.
+     Zapamiętać: `/_not-found` szło z prerenderu (24 skrypty, zero
+     nonce'ów) — naprawił to odczyt nagłówków w układzie korzenia;
+     `style-src` MUSI mieć `unsafe-inline` (React zdejmuje nonce
+     z hoistowanego `@font-face`, a strona ma 19 atrybutów `style`);
+     Next 16.3.1 wymaga w pliku proxy eksportu DOMYŚLNEGO.
+     **BLAD-012**: smoke podglądu wołał `npx next build` zamiast komendy
+     — nawrót klasy błędu z 0.24.0.
+     **NASTĘPNY: PR 2 `feat/brama-ajax`** — limiter, `timingSafeEqual`
+     w dyspozytorze, kara czasowa poza formularzem. Decyzje projektowe
+     są już zapisane w KROK-2-ZABEZPIECZENIA.md (sekcja „PR 2 —
+     decyzje podjęte przed pisaniem") — nie wyprowadzać ich od nowa.
   4. **Kursy zrobione do końca, w narzędziu — RÓWNOLEGLE, w osobnym
      czacie** (decyzja właściciela 2026-08-19) → **B7 = ocena GOTOWYCH
      kursów przez właściciela**. Podział terytoriów między oba czaty
@@ -472,6 +487,11 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      - Otwarte świadomie: **517 miejsc `[EKRAN]`** → bloki terminala
        tekstem, zrzuty interfejsu osobnym przelotem NA KOŃCU (najszybciej
        się starzeją).
+     **Krok 3 ma WŁASNY worktree**: `/home/krzysiek/Pod-strona-Szkolenia-krok3`
+     (gałąź `docs/krok-3-produkcja-materialu`). Reguła po incydencie
+     z 2026-08-19: żaden czat nie przełącza gałęzi w cudzym katalogu —
+     inaczej commit ląduje na obcej gałęzi, a `gh pr create` mówi
+     mylące „No commits between". Baza i port 3001 zostają wspólne.
   5. **Rozmowa o WordPressie** + co z niej wyniknie, sprzątanie gałęzi,
      merge na `main`, koniec Pluginu 1. Ściąga: katalog `wordpress/`
      w repo strony głównej (kompletny motyw WP, docker-compose,

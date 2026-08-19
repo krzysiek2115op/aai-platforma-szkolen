@@ -5,6 +5,84 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.26.0] — 2026-08-19
+
+Krok 2 planu domknięcia Pluginu 1, **część 1: pełna polityka
+bezpieczeństwa treści (CSP)**. Do tej wersji wysyłaliśmy sam
+`frame-ancestors 'none'`, a resztę checklista odkładała do etapu
+WordPressa z uzasadnieniem „w prototypie byłaby teatrem".
+
+**Ta ocena była nieprawdziwa i to jest główna zmiana tego wydania.**
+Jedynym realnym kosztem nonce'ów jest wymuszenie renderowania na
+żądanie — a wszystkie nasze trasy z treścią są `force-dynamic` od D4/D5.
+Płaciliśmy więc ten koszt od dawna, nie biorąc nic w zamian.
+
+### Dodane
+
+- `proxy.serwer.ts` — polityka nagłówkiem HTTP, nonce inny w każdym
+  żądaniu. Nazwa z `serwer.*` nie jest kosmetyką: Proxy jest na liście
+  „Unsupported Features" eksportu statycznego, więc plik `proxy.ts`
+  wywróciłby `build:podglad`. Ten sam trik `pageExtensions`, którym
+  rozdzielamy trasy kreatora i AJAX-a.
+- `lib/csp.ts` — jedno źródło polityki dla obu trybów budowania
+  (bez importów z `next/*`, bo czyta go też zwykły skrypt Node'a).
+- `lib/csp-nonce.ts` — nonce dla znaczników, którym Next go nie nadaje.
+- `tools/csp-podglad.mjs` — polityka dla podglądu w `<meta http-equiv>`
+  z hashami skryptów, liczonymi z GOTOWYCH plików `out/`.
+- `straznik-csp` (9 niezmienników, 10 mutacji) i `tools/smoke/smoke-csp.ts`
+  (nagłówek na żywym serwerze + hashe w plikach podglądu).
+
+### Zmienione zachowanie
+
+- **Strona 404 i korzeń są renderowane na żądanie**, nie z prerenderu.
+  To nie efekt uboczny, tylko warunek poprawności: pomiar pokazał
+  24 skrypty na `/_not-found` i **zero nonce'ów** — pod `strict-dynamic`
+  (który unieważnia `'self'`) nie wykonałby się żaden. Odczyt nagłówków
+  w układzie korzenia przestawia te trasy na renderowanie na żądanie.
+- `next.config.ts` zostaje z nagłówkami niezależnymi od żądania;
+  wpis `frame-ancestors 'none'` jest tam teraz WARSTWĄ dla ścieżek poza
+  zasięgiem proxy (pliki statyczne, prefetch), a nie polityką dokumentów.
+
+### Decyzje zapisane w kodzie, nie w głowie
+
+- **`style-src` stoi na `unsafe-inline` — świadomie.** React hoistuje
+  arkusz `@font-face` i przy tym ZDEJMUJE mu `nonce`, a strona renderuje
+  19 atrybutów `style="…"`, których nonce nie obejmuje z definicji.
+  Obecność nonce'a w `style-src` kasuje `unsafe-inline`, więc wybór był
+  binarny. Zmierzone: wariant „ostry" daje **21 naruszeń** na samym
+  katalogu i gasi kroje pisma, czyli cofa pracę nad CLS z 0.25.0.
+  Realną ochroną jest `script-src` i to jego pilnuje strażnik.
+- `img-src` dopuszcza `https:`, bo kreator przyjmuje okładkę jako
+  dowolny adres (decyzja właściciela z D6); `http:` zostaje zablokowany.
+- Podgląd nie dostaje `strict-dynamic` (w eksporcie znaczniki
+  `<script src>` stoją wprost w HTML-u) ani `frame-ancestors`
+  (w `<meta>` ignorowane) — obie różnice są udokumentowanym kosztem
+  hostingu bez nagłówków, nie przeoczeniem.
+
+### Naprawione
+
+- **BLAD-012**: `smoke-podglad` budował podgląd przez `npx next build`
+  zamiast komendy `npm run build:podglad`, więc oglądał katalog `out/`
+  BEZ kroków po buildzie — czyli inny artefakt niż ten, który wydaje
+  deploy. Nawrót klasy błędu, która w 0.24.0 wypuściła podgląd
+  z czterema martwymi miniaturami OG.
+- `straznik-seo` oskarżał o „własny blok `application/ld+json`" pliki,
+  które wspominają o nim w KOMENTARZU. Teraz pomija komentarze — jak
+  `straznik-linkow` pomija bloki kodu. Reguła przypięta kontrprzykładem
+  w audycie mutacyjnym.
+
+### Dowody (CI stoi do 1 września — odtworzone lokalnie)
+
+- strażnicy **21/21**, audyt mutacyjny: wszystkie mutacje ZŁAPANE,
+  kontrprzykłady przemilczane;
+- `smoke-csp` zielony, oba testy negatywne czerwone tam, gdzie trzeba
+  (błędny nonce → „1 z 42 skryptów bez nonce'a"; pominięty hash →
+  „skrypt bez swojego hasha w polityce");
+- pomiar w prawdziwej przeglądarce (Firefox, `securitypolicyviolation`):
+  **0 naruszeń i 0 błędów konsoli** na `/szkolenia`, stronie kursu, 404
+  i kreatorze, w obu trybach budowania; hydratacja przechodzi, 4 reguły
+  `@font-face` na miejscu, dane strukturalne nienaruszone.
+
 ## [0.25.0] — 2026-08-19
 
 Krok 1 planu domknięcia Pluginu 1, **część 3 z 3: wydajność i pomiary**.

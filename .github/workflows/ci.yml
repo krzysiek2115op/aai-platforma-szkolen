@@ -168,6 +168,14 @@ jobs:
           KREATOR_TOKEN: smoke-d6-ci
         run: node tools/smoke/smoke-d6.ts
 
+      # Polityka CSP sprawdzana na ARTEFAKCIE: nagłówek z nonce'em na
+      # żywym serwerze (także na 404 — tam prerender zostawiłby skrypty
+      # bez nonce'a) oraz komplet hashy w plikach podglądu. Stoi po
+      # smoke'ach serwerowych, bo jego druga część buduje podgląd
+      # i nadpisuje .next.
+      - name: Smoke polityki CSP
+        run: node tools/smoke/smoke-csp.ts
+
       # Podgląd statyczny trafia do PUBLICZNEGO repo, więc pytanie nie
       # brzmi „czy się zbudował", tylko „co w nim jest". Smoke buduje
       # własny eksport CELOWO z tokenem kreatora w środowisku — czyli

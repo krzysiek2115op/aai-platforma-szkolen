@@ -46,16 +46,24 @@ const podglad = process.env.PODGLAD_STATYCZNY === "1";
 const bazowaSciezka = process.env.PAGES_BASE_PATH;
 
 /**
- * NAGŁÓWKI BEZPIECZEŃSTWA (wzorzec ze strony głównej przeniesiony jako
- * IDEA, nie implementacja): strona główna musi wstrzykiwać CSP w HTML
- * po buildzie, bo GitHub Pages nie pozwala ustawić żadnego nagłówka
- * HTTP. My na serwerze mamy nagłówki normalną drogą. Zestaw celowo
- * MINIMALNY i bez pełnego CSP: polityka z nonce'ami to decyzja etapu WP.
- * Stan i plan: docs/security-checklist.md.
+ * NAGŁÓWKI BEZPIECZEŃSTWA niezależne od żądania.
+ *
+ * PEŁNA POLITYKA CSP NIE JEST TUTAJ — wysyła ją `proxy.serwer.ts`,
+ * bo nonce musi być inny przy każdym żądaniu, a te nagłówki są stałe.
+ * Zostaje tu `frame-ancestors 'none'` jako warstwa dla ścieżek, których
+ * proxy celowo nie obsługuje (pliki statyczne, prefetch). Na dokumentach
+ * polityka z proxy nadpisuje tę wartość — sprawdza to smoke-csp, który
+ * pyta o nagłówki i stronę, i zasób statyczny.
+ *
+ * Ta sekcja nie ma prawa urosnąć w drugą pełną politykę: dwie polityki
+ * CSP obowiązują JEDNOCZEŚNIE (przecięcie), więc taka „poprawka"
+ * blokowałaby stronę bez czytelnego powodu. Pilnuje straznik-csp.
  *
  * W trybie podglądu tej sekcji NIE MA — `output: "export"` nie wspiera
- * `headers()`, a Pages i tak by ich nie wysłał. To jest znany koszt
- * podglądu, wpisany do docs/security-checklist.md, a nie przeoczenie.
+ * `headers()`, a Pages i tak by ich nie wysłał. Podgląd dostaje politykę
+ * w `<meta>` po buildzie (tools/csp-podglad.mjs); czego meta nie umie
+ * (frame-ancestors), zostaje udokumentowanym kosztem hostingu bez
+ * nagłówków — docs/security-checklist.md.
  */
 const naglowkiBezpieczenstwa = [
   // Przeglądarka nie zgaduje typów plików (obrona przed podrzuceniem

@@ -55,11 +55,11 @@ które naprawdę należą do wtyczki WP. Podział i jego uzasadnienie:
 | Stan | Pozycja | Dowód / powód |
 |---|---|---|
 | ✅ | `X-Content-Type-Options: nosniff` | `next.config.ts`; smoke D4 sprawdza na produkcyjnym `next start` |
-| ✅ | `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` — kreator chodzi na ciastku, clickjacking to atak dokładnie na taki panel | jw. |
+| ✅ | `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` — kreator chodzi na ciastku, clickjacking to atak dokładnie na taki panel | jw.; od 0.26.0 pełną politykę dokumentów wysyła proxy, a wpis w `next.config.ts` zostaje warstwą dla ścieżek poza jego zasięgiem (pliki statyczne, prefetch) — sprawdza to `smoke-csp` |
 | ✅ | `Referrer-Policy: strict-origin-when-cross-origin` | jw. |
 | ✅ | `Permissions-Policy` odcina kamerę/mikrofon/geolokalizację | `next.config.ts` |
-| 🚧 | Pełne CSP (`script-src` z nonce, bez `unsafe-inline`) | Ocena „w prototypie to teatr" była błędna: wszystkie trasy serwerowe są już `force-dynamic`, więc nonce nie kosztuje wydajności (jedyny realny koszt nonce'ów wg dokumentacji Next), a `proxy.serwer.ts` chowa się przed eksportem statycznym tym samym trikiem `pageExtensions`, co reszta trybu serwerowego — sprawdzone spike'em. Krok 2, PR `feat/csp-pelne` |
-| 🚧 | CSP w PUBLICZNYM PODGLĄDZIE (GitHub Pages) — meta `http-equiv` z hashami wstrzykiwane po buildzie | Decyzja właściciela 2026-08-19: podgląd, który pokazujemy ludziom, ma mieć realną politykę. Pages nie wyśle żadnego nagłówka, więc wzorzec strony głównej; `frame-ancestors` w meta nie działa i to zostaje udokumentowaną luką podglądu |
+| ✅ | Pełne CSP: `script-src 'self' 'nonce-…' 'strict-dynamic'`, bez `unsafe-inline` i bez `unsafe-eval` w produkcji; polityka z `proxy.serwer.ts`, nonce inny w każdym żądaniu | 0.26.0. `straznik-csp` (9 niezmienników, 10 mutacji), `smoke-csp` (nagłówek + KAŻDY skrypt z nonce'em, także na 404), pomiar w przeglądarce: 0 naruszeń na 4 trasach. Wywołanie `headers()` w układzie korzenia przestawiło 404 z prerenderu na renderowanie na żądanie — bez tego jej 24 skrypty nie miały nonce'a |
+| ✅ | CSP w PUBLICZNYM PODGLĄDZIE — `<meta http-equiv>` z hashami wszystkich skryptów, wstrzykiwane po buildzie (`tools/csp-podglad.mjs`) | 0.26.0. Hashe liczone z GOTOWYCH plików, nie ze źródeł; `smoke-csp` przelicza je niezależnie i wymaga kompletu. Bez `strict-dynamic` (w eksporcie znaczniki `<script src>` stoją w HTML-u) i bez `frame-ancestors` (w `<meta>` ignorowane) — na serwerze pilnują tego `frame-ancestors` i `X-Frame-Options` naraz |
 | 🔧 | HTTPS + HSTS — decyduje hosting (domena `automaticai.pl` jeszcze niekupiona) | etap WP: hosting z wymuszonym HTTPS, HSTS dopiero po potwierdzeniu certyfikatów na subdomenach |
 | ✅ | Ciastko kreatora: HttpOnly (niewidoczne dla JS strony), `Secure` zależnie od protokołu żądania | `lib/kreator-dostep.ts` z D6 |
 
