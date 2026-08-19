@@ -5,6 +5,134 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.25.0] — 2026-08-19
+
+Krok 1 planu domknięcia Pluginu 1, **część 3 z 3: wydajność i pomiary**.
+Liczby w tabeli README pochodzą z PageSpeed Insights (Lighthouse na
+serwerach Google), mediana z 5 przebiegów, i są przypięte goldenem —
+`straznik-progow` nie przepuści liczby bez pokrycia w zapisanym
+przebiegu. Wynik: **desktop 100/100/100/100 na obu stronach (po 5
+przebiegów z rzędu), mobile 96–97 wydajności** przy komplecie 100
+w dostępności, dobrych praktykach i SEO. Mobilne 96–97 to artefakt
+symulacji Lantern (dolicza łańcuch webfontu do tekstowego LCP;
+obserwowane LCP na serwerach Google to ~450 ms) — **przyjęte decyzją
+właściciela (2026-08-19), łagodzącą warunek „100 w każdej kolumnie"**.
+
+### Naprawione (każda usterka znaleziona i potwierdzona pomiarem)
+
+- **Podmiana fontu przesuwała stronę i opóźniała LCP** (desktop CLS
+  0,137–0,166, mobile LCP przy dojeździe fontu). `next/font/local` nie
+  emituje `<link rel="preload">` w tym projekcie w ogóle, więc font
+  jechał łańcuchem HTML → CSS → font; statystyki hero łamały się
+  fontem zastępczym na dwie linie i wskakiwały w jedną Geistem
+  (widoczne na klatkach filmu z pomiaru PSI). Teraz: fonty
+  z `public/fonts` własnym `@font-face` + jawny preload w layoucie
+  (React hoistuje do `<head>`; `crossorigin` obowiązkowy, bo pobrania
+  fontów są CORS-owe). **CLS = 0 na wszystkich czterech pomiarach.**
+  To NIE jest nawrót BLAD-001 (tam winne były klasy CSS pakietu
+  `geist` różne między serwerem a klientem; tu klas nie ma, a pakiet
+  dalej blokuje `straznik-fontow`).
+- **Korekta metryk zastępnika była martwa na Linuksie**: twarze
+  fallbacku od next/font stały wyłącznie na `local(Arial)`, którego
+  na Linuksie (w tym na serwerach pomiarowych Google) nie ma — tekst
+  zastępczy renderował się o 8–11% węższy (zmierzone), więc dojazd
+  Geista poszerzał bloki i Chrome rejestrował nowego kandydata LCP
+  w chwili podmiany. `local()` dostał też **Liberation Sans**
+  (metryczny bliźniak Ariala): geometria zastępnika = geometria
+  Geista na każdej platformie.
+- **Impuls wordmarku stopki udawał największą treść strony**: animacja
+  chodziła od załadowania (stopka 4 ekrany niżej), a jej pierwszy
+  przelot przez maskę tekstową Chrome rejestrował jako kandydata LCP
+  o rozmiarze 183 600 px² — stąd LCP obu stron przybite do ~2,2 s na
+  elemencie, którego nikt nie widział. Teraz `IntersectionObserver`
+  FooterScene (ta sama bramka, która od 0.24.0 trzyma prewarm pyłu)
+  ustawia `data-na-ekranie`, a CSS wstrzymuje animację
+  (`animation-play-state: paused`) i zdejmuje malowanie grupy
+  maskowanej (`visibility: hidden`), dopóki stopka nie wejdzie
+  w widok. Bez JS bramki nie ma — dekoracja działa jak dotąd; przy
+  porażce hydratacji wyłącznik 4 s przywraca całość. Zmierzone
+  w przeglądarce: paused/hidden na górze, running/visible przy
+  stopce, z powrotem paused po odjeździe.
+- **Weryfikacja deploya była ślepa na zmiany w chunkach** (trzeci
+  przedstawiciel klasy „weryfikacja ślepa na artefakt", drugi w samym
+  skrypcie weryfikacji): nazwy chunków w tej wersji Next NIE pochodzą
+  z treści, więc zmiana samego CSS dawała HTML bajt w bajt identyczny
+  z poprzednim deploymentem — porównanie jednego pliku przechodziło
+  przeciw STAREMU buildowi, a edge cache Pages (`max-age=600`) oddawał
+  starą treść i **pomiar PSI zmierzył poprzednią wersję strony**.
+  Wykryte, bo mobilne LCP nie drgnęło co do milisekundy po naprawie,
+  która musiała je ruszyć. `sprawdz-zywy.mjs` porównuje teraz stronę
+  wejściową ORAZ KAŻDY chunk (zapytania znaczone parametrem omijają
+  krawędzie CDN — dowodzą stanu originu); protokół pomiaru nakazuje
+  odczekać ≥10 minut po deployu.
+
+### Dodane
+
+- **`tools/pomiar-psi.mjs`** — pomiar na serwerach Google (klucz
+  w `.env` jako `PAGESPEED_KLUCZ`), mediana z 5 przebiegów, zapis do
+  `goldeny/pomiary-lighthouse.json` z datą i warunkami; kolumna SEO
+  osobno z builda `SEO_INDEKSOWANIE=1` (nasz `noindex` zaniża ją o 31%
+  kategorii), golden notuje to jawnie. Zmierzone: **SEO 100/100 na
+  wszystkich czterech stronach × trybach, zero niezaliczonych audytów.**
+- **`tools/pomiar-lighthouse.mjs`** — wariant lokalny do szybkiej pętli
+  przy optymalizacji (lokalny Lighthouse mierzy także maszynę: ta sama
+  strona dawała TBT 96–257 ms zależnie od obciążenia laptopa — do
+  tabeli wchodzi wyłącznie PSI).
+- **`straznik-progow`** — liczba w tabeli README musi zgadzać się co do
+  jednostki z zapisanym przebiegiem; wiersz z myślnikami znaczy
+  „niezmierzone" i niczego nie twierdzi; golden bez wiersza w tabeli
+  = błąd (wynik istnieje, dokumentacja go ukrywa). Sprawdzony testami
+  negatywnymi w obie strony.
+- **Smoke'i pilnują fontów jako artefaktu** (lekcja miniatur OG
+  z 0.24.0): `smoke-podglad` sprawdza w każdym publicznym HTML-u dwa
+  RÓŻNE preloady fontów z `crossorigin`, z basePath i z plikiem
+  istniejącym pod dokładnie tym adresem ze znacznika; `smoke-d4` to
+  samo w trybie serwerowym. Oba potwierdzone testem negatywnym
+  (preload→prefetch wywala oba).
+- **Sekcja „Pomiar wydajności i SEO — protokół" w README przepisana**
+  o lekcje sesji: PSI zamiast lokalnego Lighthouse'a, spokojna maszyna
+  przy pętli lokalnej, deploy weryfikujący chunki, odczekanie ≥10 min
+  po deployu, mediana z 5, tabela tylko z goldenu.
+
+### Zmienione
+
+- **Animacja `page-enter` tylko przy nawigacji klienckiej** (naprawa
+  NO_FCP z 8986ec8, decyzja właściciela: fade przy pierwszym wejściu
+  zostaje usunięty): `.page-enter` opakowuje całą treść od
+  `opacity: 0`, a strona kursu nie ma poza nim żadnej treści — Chrome
+  wstrzymuje animacje CSS w niewidocznym dokumencie i PSI zgłaszał
+  NO_FCP („strona nie namalowała treści") na serwerach Google. Po
+  naprawie strona kursu: 4/4 udane przebiegi desktop, wydajność 100.
+  Obalony przy okazji komentarz w kodzie: `template.tsx` NIE remontuje
+  się przy nawigacji w tej wersji Next, więc fade przejścia i tak nie
+  działał — rozpoznanie nawigacji po `data-hydrated` (flaga modułowa
+  nie przeżywa podziału na chunki).
+- **Stopka liczy pył dopiero w widoku** (`prewarm()` FooterScene za
+  bramką IntersectionObservera; dowód licznikiem jasnych pikseli:
+  stary kod 237→261, nowy 0→252 po przewinięciu) i **impuls wordmarku
+  chodzi tylko w widoku** (wyżej).
+- **`app/icon.svg`** — bez niej przeglądarka pytała o `/favicon.ico`
+  w korzeniu domeny (poza basePath) i dostawała 404; jedyny ubytek
+  „dobrych praktyk": 96 → **100**.
+- **Opisowe `alt` okładek** (tytuł Z BAZY — kursy z kreatora dostaną
+  je same) i **tytuł katalogu 24 → 54 znaki** (obie usterki zgłosił
+  audyt zewnętrzny; tytuł żyje w `app/szkolenia/widok.tsx`, layout ma
+  tylko wartość domyślną).
+- **Fonty przeniesione `assets/fonts` → `public/fonts`** (muszą być
+  serwowane): nota SIL OFL jedzie z plikami, `straznik-licencji`
+  i mutacja w audycie strażników patrzą na nową ścieżkę, odnośniki
+  w dokumentacji zaktualizowane.
+
+### Decyzje właściciela (2026-08-19)
+
+- Fade przy pierwszym wejściu: **usunięty świadomie** (przy nawigacji
+  i tak nie działał; naprawa NO_FCP go wymagała).
+- Fonty: **self-hosting + preload** (wygląd bez zmian) zamiast
+  `font-display: optional` (ryzyko pierwszej wizyty bez Geista).
+- Mobile 96–97: **przyjęte jako artefakt symulacji** — warunek „100
+  w każdej kolumnie" złagodzony; obserwowane LCP ~450 ms, wszystkie
+  realne usterki naprawione pomiarem.
+
 ## [0.24.0] — 2026-08-19
 
 Krok 1 planu domknięcia Pluginu 1, **część 2 z 3: SEO na stronie**.

@@ -46,7 +46,7 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.24.0** |
+| **Wersja** | **0.25.0** |
 | **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**, treść kursów kompletna: 91 scenariuszy). Następne kroki wg [planu domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): **SEO i wydajność na żywym adresie** → pełne zabezpieczenia → kursy złożone w narzędziu (**B7**) → WordPress |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
@@ -228,7 +228,7 @@ repo / ⛔ nie dotyczy z powodem / ⏳ etap WP). Skrót:
 | Sekrety: gitleaks (pełna historia, pinowany SHA-256), `.env` poza repo | ✅ | job CI „Skan sekretów" |
 | Pełne CSP z nonce, rate limiting, HTTPS/HSTS, RODO | ⏳ | specyfikacja wtyczki WP — sekcja 8 checklisty |
 | SEO na stronie: `robots.txt`, sitemapa, kanoniki, OpenGraph + miniatury, JSON-LD (Organization, ItemList, Course+Offer, BreadcrumbList, FAQPage) | ✅ | `straznik-seo` (6 niezmienników, 6 mutacji), **smoke SEO porównuje dane strukturalne Z BAZĄ** |
-| Pomiar Lighthouse 100/100/100/100 na żywym adresie | ⏳ | protokół i tabela niżej — liczby wpisujemy dopiero po pomiarze |
+| Pomiar narzędziami Google na żywym adresie | ✅ | desktop 100/100/100/100; mobile 96–97 wydajności = artefakt symulacji Lantern przyjęty decyzją właściciela (tabela i protokół niżej), reszta kolumn 100 |
 
 > [!NOTE]
 > Tabela mówi „✅" wyłącznie tam, gdzie stoi za tym strażnik, test albo
@@ -281,18 +281,28 @@ Rytuał pomiaru (kolejność jest treścią protokołu):
 
 | Podstrona | Tryb | Wydajność | Dostępność | Dobre praktyki | SEO | LCP | CLS | TBT |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `/szkolenia` | mobile | — | — | — | — | — | — | — |
-| `/szkolenia` | desktop | — | — | — | — | — | — | — |
-| `/szkolenia/[slug]` | mobile | — | — | — | — | — | — | — |
-| `/szkolenia/[slug]` | desktop | — | — | — | — | — | — | — |
+| `/szkolenia` | mobile | 97 | 100 | 100 | 100 | 2101 ms | 0 | 23 ms |
+| `/szkolenia` | desktop | 100 | 100 | 100 | 100 | 500 ms | 0 | 6 ms |
+| `/szkolenia/[slug]` | mobile | 96 | 100 | 100 | 100 | 2179 ms | 0 | 0 ms |
+| `/szkolenia/[slug]` | desktop | 100 | 100 | 100 | 100 | 476 ms | 0 | 19 ms |
 
-> Myślniki znaczą **niezmierzone**, nie „zero" i nie „nie wiadomo".
-> Liczby wchodzą tu wyłącznie z zapisanego przebiegu
-> (`goldeny/pomiary-lighthouse.json`) — pilnuje tego `straznik-progow`,
-> co do jednostki. Dla porównania: strona główna przy tym samym
-> reżimie ma 94–98 na wydajności i najniżej wypadają szablony
-> z okładkami — bo obraz jest elementem LCP. Nasz katalog to siatka
-> okładek plus animowany hero, czyli przypadek trudniejszy.
+> Pomiar: PageSpeed Insights (Lighthouse 13.4.1), 2026-08-19, mediana z 5
+> przebiegów na stronę i tryb, żywy adres podglądu. Liczby wchodzą tu
+> wyłącznie z zapisanego przebiegu (`goldeny/pomiary-lighthouse.json`)
+> — pilnuje tego `straznik-progow`, co do jednostki.
+>
+> **Mobilne 96–97 to artefakt symulacji, przyjęty świadomie** (decyzja
+> właściciela, 2026-08-19, łagodząca warunek „100 w każdej kolumnie"):
+> raportowane LCP ~2,1 s liczy symulator Lantern, doliczając do tekstu
+> pełen łańcuch webfontu; LCP OBSERWOWANE na serwerach Google to
+> ~450 ms (TTFB 3 ms + render 444 ms), a wartość symulowana była
+> identyczna co do milisekundy w czterech różnych buildach — to
+> właściwość modelu, nie strony. Każda realna usterka z tej listy
+> została naprawiona pomiarem: CLS 0,137–0,166 → 0 (fonty z preloadem
+> i uzbrojoną korektą metryk), TBT ≤ 27 ms, dostępność, dobre praktyki
+> i SEO = 100 wszędzie, desktop 100 w dziesięciu przebiegach z rzędu.
+> Dla porównania: strona główna przy tym samym reżimie ma 94–98
+> na wydajności.
 
 ## Szybki start (nowa maszyna, od zera)
 
