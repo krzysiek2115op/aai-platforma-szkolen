@@ -547,11 +547,27 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      z 2026-08-19: żaden czat nie przełącza gałęzi w cudzym katalogu —
      inaczej commit ląduje na obcej gałęzi, a `gh pr create` mówi
      mylące „No commits between". Baza i port 3001 zostają wspólne.
-  5. **Rozmowa o WordPressie** + co z niej wyniknie, sprzątanie gałęzi,
-     merge na `main`, koniec Pluginu 1. Ściąga: katalog `wordpress/`
-     w repo strony głównej (kompletny motyw WP, docker-compose,
-     idempotentne importy, `verify-wordpress.mjs`, wzorce oddania
-     projektu klientowi).
+  5. **Rozmowa o WordPressie — ODBYTA 2026-08-19.** Ustalenia,
+     ceny LMS-ów i pytania otwarte:
+     **[docs/ETAP-WP.md](docs/ETAP-WP.md)** — CZYTAĆ PRZED ETAPEM WP.
+     Skrót: wszystko na WP (strona główna Automatic AI **jest już
+     przekonwertowana**), `/szkolenia` wchodzi jako **WTYCZKA** dodająca
+     pozycję w menu i dopasowująca się do strony; tą samą drogą później
+     Pluginy 2 i 3. **Podział odpowiedzialności zamiast przepisywania
+     wszystkiego**: nasza wtyczka = katalog, strony sprzedażowe, kreator,
+     audyt; **Tutor LMS (darmowy core) + WooCommerce** = konta, koszyk,
+     płatności, faktury, dostęp do materiału za logowaniem. Plan B:
+     Publigo BOX 1797 zł netto (Publigo GO odpada — nie wpuszcza własnych
+     wtyczek). Kolejność: **dokumentacja i research teraz, kod wtyczki
+     dopiero po ocenie kursów (B7)**.
+     **KOREKTA ŚCIĄGI:** wcześniejszy zapis mówił o katalogu `wordpress/`
+     „w repo strony głównej" — TAM GO NIE MA. Realne wzorce leżą w:
+     `/home/krzysiek/mp-test-env` (nasze własne środowisko WP: wtyczki
+     `mp-*` z pełną strukturą, WooCommerce, worktree, narzędzia i testy),
+     `/home/krzysiek/zlecenia stron internetowych/czarodziejski-dworek/wordpress`
+     (motyw + PACZKA-DLA-KLIENTA + blueprint) oraz
+     `/home/krzysiek/kredyt-kompas-wp`.
+     Potem: sprzątanie gałęzi, merge na `main`, koniec Pluginu 1.
 - **DECYZJA WŁAŚCICIELA (2026-08-19): porządek gałęzi PO Pluginie 1.**
   Po ukończeniu CAŁEGO Pluginu 1 i rozmowie o przeniesieniu strony
   głównej na WP scalamy/sprzątamy gałęzie robocze, żeby repo nie było

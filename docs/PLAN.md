@@ -40,6 +40,16 @@ tego projektu:
 4. Zasady WYTYCZNE (Weryfikacja-PR, strażnicy, goldeny, jeden AJAX,
    BAZA → DZIAŁ → STRONA) **obowiązują w wersji WP tak samo**.
 
+> **DOPRECYZOWANIE 2026-08-19 — [docs/ETAP-WP.md](ETAP-WP.md).** Punkt 1
+> wyżej („przepisany 1:1") był w sprzeczności z decyzją o gotowym LMS
+> z tego samego dnia. Rozmowa rozstrzygnęła to PODZIAŁEM
+> ODPOWIEDZIALNOŚCI: nasza wtyczka renderuje katalog, strony sprzedażowe
+> i kreator (tam jest nasz design i treść), a **Tutor LMS + WooCommerce**
+> biorą konta, koszyk, płatności, faktury i dostęp do materiału za
+> logowaniem. Strona główna Automatic AI jest już przekonwertowana na WP;
+> `/szkolenia` wchodzi tam jako WTYCZKA (tą samą drogą później Pluginy 2
+> i 3). Szczegóły, ceny rozważanych LMS-ów i pytania otwarte: ETAP-WP.md.
+
 ### Decyzje (ustalone 2026-08-16; pozycje hostingowe zaktualizowane 2026-08-18)
 | Temat | Decyzja |
 |---|---|
