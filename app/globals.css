@@ -13,8 +13,17 @@
   --color-volt: #bfff38;
   --color-line: rgba(245, 245, 245, 0.08);
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+  /*
+   * Rodziny wprost z @font-face (lib/fonts.ts + layout), nie przez
+   * zmienne next/font — uzasadnienie w lib/fonts.ts. „Geist Fallback"
+   * to zastępnik z korektą metryk na czas ładowania pliku.
+   */
+  --font-sans:
+    "Geist", "Geist Fallback", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    "Geist Mono", "Geist Mono Fallback", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, "Liberation Mono", monospace;
 
   --text-hero: clamp(3rem, 7vw, 7.25rem);
   --text-page-title: clamp(2.5rem, 5.5vw, 4.5rem);
@@ -240,6 +249,40 @@ html.js .page-enter {
  */
 .fw-impuls {
   animation: fw-impuls 7s cubic-bezier(0.7, 0.05, 0.3, 0.95) infinite;
+}
+
+/*
+ * Impuls stoi, dopóki stopka nie wejdzie w widok (atrybut ustawia
+ * IntersectionObserver w FooterScene). Powód jest pomiarowy i realny
+ * naraz: animacja poza ekranem to ciągłe przemalowywanie, którego nikt
+ * nie ogląda, a jej pierwszy przelot przez maskę tekstową wordmarku
+ * Chrome liczył jako LCP (~2,2 s) na OBU stronach — bo malowanie
+ * „tekstu" maski to największa treść w śladzie. Bramka tylko pod
+ * html.js: bez JavaScriptu nie ma komu ustawić atrybutu, więc impuls
+ * po prostu chodzi jak dotąd (dekoracja działa bez JS).
+ */
+html.js .fw-impuls {
+  animation-play-state: paused;
+}
+html.js [data-na-ekranie] .fw-impuls {
+  animation-play-state: running;
+}
+
+/*
+ * …a grupa maskowana w ogóle się nie maluje, dopóki stopka nie wejdzie
+ * w widok. Samo wstrzymanie animacji nie wystarczało: Chrome i tak
+ * rejestrował tekst maski (mask#fw-maska > text) jako kandydata LCP
+ * o rozmiarze 183 600 px² — większego niż jakakolwiek PRAWDZIWA treść
+ * strony — w chwili dojazdu fontu. LCP obu stron było przybite do
+ * niewidzialnego elementu. visibility: hidden zdejmuje malowanie,
+ * więc kandydat znika; bez JS bramki nie ma i wordmark działa jak
+ * dotąd.
+ */
+html.js .fw-svg g[mask] {
+  visibility: hidden;
+}
+html.js [data-na-ekranie] .fw-svg g[mask] {
+  visibility: visible;
 }
 
 @keyframes fw-impuls {

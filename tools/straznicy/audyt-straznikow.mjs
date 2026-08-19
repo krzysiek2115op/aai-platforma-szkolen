@@ -256,7 +256,7 @@ const MUTACJE = [
   {
     straznik: "straznik-licencji",
     opis: "nota OFL fontów usunięta",
-    plik: "assets/fonts/LICENSE-Geist-OFL.txt",
+    plik: "public/fonts/LICENSE-Geist-OFL.txt",
     zmien: () => "", // pusty plik = brak licencji przy .woff2
   },
   // --- straznik-wagi-dokumentacji ---

@@ -19,8 +19,18 @@ import { listaKatalogu, okruszki } from "@/lib/jsonld";
 const OPIS_KATALOGU =
   "Kursy i ebooki Automatic AI — systemy pracy z AI, Claude i GitHubem, nie kolejne nagrania do obejrzenia.";
 
+/*
+ * Tytuł mówi, CZEGO uczą kursy, a nie tylko że to „szkolenia".
+ *
+ * Sam „Szkolenia" dawał w wynikach wyszukiwania „Szkolenia — Automatic AI"
+ * (24 znaki) — nazwa kategorii bez tematu; audyt SEO na żywym adresie
+ * zgłosił go jako za krótki. Z szablonem z layoutu wychodzi 54 znaki,
+ * czyli mieści się w całości w tym, co Google pokazuje (~60).
+ */
+const TYTUL_KATALOGU = "Szkolenia z AI i automatyzacji procesów";
+
 export const metadata: Metadata = {
-  title: "Szkolenia",
+  title: TYTUL_KATALOGU,
   description: OPIS_KATALOGU,
   // Kanonik sklejamy pełnym adresem (lib/seo.ts), bo przy podglądzie
   // baza ma podkatalog, który `metadataBase` po cichu by zgubił.
@@ -28,10 +38,10 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: adres("/szkolenia"),
-    title: "Szkolenia",
+    title: TYTUL_KATALOGU,
     description: OPIS_KATALOGU,
   },
-  twitter: { title: "Szkolenia", description: OPIS_KATALOGU },
+  twitter: { title: TYTUL_KATALOGU, description: OPIS_KATALOGU },
 };
 
 const CENA = new Intl.NumberFormat("pl-PL", {
@@ -138,10 +148,17 @@ function MetaKursu({ kurs }: { kurs: KartaKatalogu }) {
 function Okladka({ kurs }: { kurs: KartaKatalogu }) {
   return kurs.cover_url ? (
     // Okładki to lokalne SVG z /public (docelowo z kreatora D6).
+    //
+    // Opis alternatywny bierze tytuł Z BAZY, więc kurs dodany kreatorem
+    // dostaje go sam — tekst wpisany na sztywno zestarzałby się przy
+    // pierwszym nowym kursie. Pusty `alt` też był poprawny (tytuł stoi
+    // w tekście karty obok, więc obraz jest wtedy dekoracją i Lighthouse
+    // go przepuszczał), ale audyty SEO czytają pusty `alt` jako brak
+    // opisu i zgłaszają usterkę — zgłosił to Semrush na żywym adresie.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={zasob(kurs.cover_url)}
-      alt=""
+      alt={`Okładka kursu: ${kurs.title}`}
       className="karta-okladka h-full w-full object-cover"
     />
   ) : (

@@ -200,8 +200,51 @@ try {
   const sitemap = readFileSync(join("out", "sitemap.xml"), "utf8");
   assert.ok(!sitemap.includes("<loc>"), "sitemapa podglądu nie jest pusta mimo noindex");
 
+  // --- 8. fonty jadą z preloadem i pliki NAPRAWDĘ istnieją -----------
+  // Bez preloadu font jechał łańcuchem HTML → CSS → font i jego podmiana
+  // przesuwała układ (PSI: CLS 0,14 na desktopie) oraz opóźniała LCP na
+  // mobile. Lekcja od miniatur OG (0.24.0) obowiązuje i tu: sprawdzamy
+  // ARTEFAKT, nie proces — znacznik w zbudowanym HTML-u ORAZ plik pod
+  // dokładnie tym adresem, który znacznik podaje.
+  for (const [plik, zawartosc] of tresc) {
+    if (!plik.endsWith(".html") || plik.endsWith("404.html")) continue;
+    const preloady = [...zawartosc.matchAll(/<link[^>]*rel="preload"[^>]*as="font"[^>]*>/g)].map(
+      (m) => m[0]
+    );
+    // Duplikaty tego samego adresu są nieszkodliwe (przeglądarka scala
+    // po URL-u; strona błędu renderuje shell + treść, stąd bywają 4
+    // znaczniki) — niezmiennik to DWA RÓŻNE pliki: sans + mono.
+    const rozne = new Set(preloady.map((z) => z.match(/href="([^"]+)"/)?.[1]));
+    assert.equal(
+      rozne.size,
+      2,
+      `${plik}: oczekuję preloadu DWÓCH RÓŻNYCH fontów (sans + mono), są: ${[...rozne].join(", ") || "żadne"}`
+    );
+    for (const znacznik of preloady) {
+      assert.ok(
+        znacznik.includes('crossorigin="anonymous"') || znacznik.includes('crossOrigin="anonymous"'),
+        `${plik}: preload fontu bez crossorigin — przeglądarka pobrałaby plik dwa razy`
+      );
+      const href = znacznik.match(/href="([^"]+)"/)?.[1];
+      assert.ok(href, `${plik}: preload fontu bez href`);
+      assert.ok(
+        href!.startsWith(`${BAZOWA}/`),
+        `${plik}: preload fontu bez basePath: ${href}`
+      );
+      const naDysku = join("out", href!.slice(BAZOWA.length));
+      assert.ok(
+        existsSync(naDysku),
+        `${plik}: preload wskazuje ${href}, a pliku ${naDysku} nie ma — martwy preload nie przyspiesza niczego`
+      );
+    }
+    assert.ok(
+      zawartosc.includes("@font-face"),
+      `${plik}: brak @font-face w HTML-u — preload bez deklaracji fontu nic nie daje`
+    );
+  }
+
   console.log(
-    `smoke-podglad: OK — ${pliki.length} plików, szkic nie wyciekł, kreator i AJAX nieobecni, basePath i stan noindex spójne.`
+    `smoke-podglad: OK — ${pliki.length} plików, szkic nie wyciekł, kreator i AJAX nieobecni, basePath i stan noindex spójne, fonty z preloadem i plikami.`
   );
 } catch (blad) {
   console.error("smoke-podglad: PORAŻKA —", blad instanceof Error ? blad.message : blad);

@@ -125,6 +125,6 @@ rm -rf .git
 cd ..
 
 echo "deploy: czekam, aż GitHub Pages przebuduje…"
-node tools/sprawdz-zywy.mjs "${ADRES}szkolenia" out/szkolenia.html 300
+node tools/sprawdz-zywy.mjs "${ADRES}" out szkolenia.html 300
 
 echo "✔ Podgląd opublikowany i zweryfikowany: ${ADRES}szkolenia"

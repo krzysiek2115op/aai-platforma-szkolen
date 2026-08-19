@@ -86,6 +86,18 @@ try {
     );
   }
 
+  // Fonty z preloadem — także w trybie SERWEROWYM. Bez preloadu font
+  // jechał łańcuchem HTML → CSS → font, a jego podmiana przesuwała układ
+  // (PSI: CLS 0,14) i opóźniała LCP; artefakt statyczny sprawdza
+  // smoke-podglad, ten pilnuje builda serwerowego.
+  const preloadyFontow = [...html.matchAll(/<link[^>]*rel="preload"[^>]*as="font"[^>]*>/g)];
+  assert.equal(
+    preloadyFontow.length,
+    2,
+    `oczekuję preloadu DWÓCH fontów (sans + mono), jest ${preloadyFontow.length}`,
+  );
+  assert.ok(html.includes("@font-face"), "brak @font-face w HTML-u — fonty nie mają deklaracji");
+
   // strona renderuje kurs Z BAZY
   assert.ok(html.includes("Kurs smoke D4"), "brak tytułu kursu w HTML");
   assert.ok(html.includes("199,00"), "brak sformatowanej ceny w HTML");

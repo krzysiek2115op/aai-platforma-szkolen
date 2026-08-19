@@ -355,76 +355,76 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      sprawdzić testem negatywnym; deploy woła tę samą komendę co
      człowiek.**
 
-     ### ← NASTĘPNY KROK: CZĘŚĆ 3/3 — WYDAJNOŚĆ I POMIARY
+     ### CZĘŚĆ 3/3 — WYDAJNOŚĆ I POMIARY (ZROBIONA, 0.25.0, gałąź `feat/wydajnosc-pomiary`)
 
-     **Cel:** wypełnić tabelę w README zmierzonymi liczbami (dziś
-     myślniki = NIEZMIERZONE, nie „zero") i dojść do 100/100/100/100.
+     **Stan końcowy (PSI, mediana z 5, golden `goldeny/pomiary-lighthouse.json`,
+     tabela w README + przepisany protokół):** desktop **100/100/100/100 na
+     obu stronach** (po 5 przebiegów z rzędu), mobile **96–97 wydajności**
+     przy 100 w dostępności/praktykach/SEO wszędzie, CLS = 0 na czterech
+     pomiarach, TBT ≤ 27 ms. **Mobilne 96–97 = artefakt symulacji Lantern**
+     (dolicza łańcuch webfontu do tekstowego LCP; obserwowane LCP na
+     serwerach Google ~450 ms; wartość symulowana identyczna co do
+     milisekundy w 4 różnych buildach) — **DECYZJA WŁAŚCICIELA 2026-08-19:
+     przyjęte, warunek „100 w każdej kolumnie" złagodzony**; opcja
+     `font-display: optional` na mobile odrzucona (część pierwszych wizyt
+     bez Geista), fonty inline w HTML odrzucone (klasa inlineCss).
+     Decyzje po drodze: fade pierwszego wejścia usunięty świadomie;
+     fonty self-host + preload.
 
-     Co po kolei:
-     1. **Chrome/Lighthouse w scratchpadzie sesji, NIGDY w
-        `package.json`** (lekcja z D5 o playwrighcie).
-     2. **Audyt 14 komponentów `"use client"`** — główny podejrzany
-        o TBT: `components/kurs/TloKursu.tsx` (poświata za kursorem,
-        dryf blobów) oraz `HeroMotion`/`OknoKursu` w katalogu.
-        **DECYZJA WŁAŚCICIELA (2026-08-19): ten audyt robić czytając
-        CAŁE PLIKI, nie fragmentami — „mamy dużo tokenów".** Nie
-        oszczędzać tu kontekstu kosztem dokładności.
-     3. **Obrazy**: okładki kursów to lokalne SVG w `public/okladki/`
-        renderowane zwykłym `<img>` (NIE `next/image` — nie ma go
-        w projekcie w ogóle). Element LCP katalogu trzeba USTALIĆ
-        POMIAREM, nie zgadywać. Brakujące `width`/`height` = ryzyko CLS.
-     4. **Protokół pomiaru — dwa buildy, opisany w README:** wydajność,
-        dostępność, dobre praktyki i Core Web Vitals na ŻYWYM adresie
-        (z `noindex`); kolumna SEO na buildzie
-        `SEO_INDEKSOWANIE=1 PAGES_BASE_PATH=… npm run build:podglad`
-        serwowanym lokalnie — bo `noindex` jest punktowanym audytem
-        Lighthouse'a i zaniżyłby SEO niezależnie od jakości strony.
-     5. **Wynik ważny dopiero po TRZECH zgodnych przebiegach.**
-        Rich Results Test na JSON-LD (działa z wklejonego kodu, więc
-        `noindex` mu nie przeszkadza), PageSpeed Insights, weryfikacja
-        własności w Search Console.
-     6. Jeśli wydajność utknie poniżej 100 — **przyjść do właściciela
-        z listą kompromisów** (najpewniej wokół animowanego hero
-        i `TloKursu`), NIE wpisywać zaokrąglonej liczby.
-     7. Domknięcie: strażnik progów pilnujący, żeby tabela nie
-        zdezaktualizowała się po cichu + CHANGELOG 0.25.0 + PR
-        stackowany na `feat/seo-podstrony`.
+     **Historia napraw (wszystkie potwierdzone pomiarem; szczegóły
+     w CHANGELOG 0.25.0):** (1) NO_FCP strony kursu — `.page-enter` tylko
+     przy nawigacji (8986ec8); (2) prewarm stopki za bramką widoku
+     (1d6ca0b); (3) icon.svg → praktyki 96→100; (4) alt okładek + tytuł
+     katalogu (adc6dd5); (5) fonty: next/font NIE emituje preloadu →
+     własny @font-face z `public/fonts` + jawny preload w layoucie,
+     CLS 0,14–0,17→0 (e97b269); (6) korekta metryk zastępnika była MARTWA
+     na Linuksie (`local(Arial)` bez Ariala) → dopisany Liberation Sans,
+     metryczny bliźniak (bb09551); (7) impuls wordmarku malował
+     niewidzialnego kandydata LCP 183 600 px² → `animation-play-state:
+     paused` + `visibility: hidden` grupy maskowanej do wejścia stopki
+     w widok, bramka `data-na-ekranie` z IO FooterScene (25df69f,
+     bb09551); (8) weryfikacja deploya ślepa na chunki → `sprawdz-zywy`
+     porównuje KAŻDY chunk (614996d).
 
-     **Właściciel (2026-08-19): PR-y części 1–3 mergujemy DOPIERO, gdy
-     pomiary pokażą 100 w każdej kolumnie — nie po kolei.** PR-y
-     stackowane: **#26** (`feat/podglad-statyczny`, 0.23.0) ← **#27**
-     (`feat/seo-podstrony`, 0.24.0) ← część 3. Baza #26 to
-     `plugin-1-sklep-kursow`; baza #27 to `feat/podglad-statyczny`.
-     Merge robimy `--delete-branch`, od najstarszego.
+     **LEKCJE tej części (nie powtarzać):**
+     - **Nazwy chunków Next NIE pochodzą z treści** — zmiana samego CSS
+       zostawia identyczny HTML i identyczne nazwy plików. Weryfikacja
+       po jednym pliku przechodzi przeciw STAREMU deploymentowi, a edge
+       cache Pages (`max-age=600`) oddaje starą treść ≤10 min. Po
+       deployu przed pomiarem odczekać ≥10 minut; podejrzanie stabilny
+       wynik (co do milisekundy) to sygnał, że mierzysz nie to.
+     - **Fallback `local()` musi istnieć na maszynie pomiarowej**:
+       next/font wiąże korekty metryk tylko z Arialem, na Linuksie
+       twarz przepada w całości. Liberation Sans = metryczny bliźniak.
+     - **Chrome rejestruje tekst maski SVG jako kandydata LCP** nawet
+       przy wstrzymanej animacji konsumenta maski; zdejmuje go dopiero
+       `visibility: hidden` na grupie maskowanej.
+     - **PSI miewa czkawkę infrastruktury** (seria 72/97 z TBT 1263 ms
+       przy realnym ~100 ms skryptu na stronie) — sondy kontrolne przed
+       wnioskami.
+     - Porty 3005–3007 zajmowane przez moje serwery pomiarowe ubijać
+       PRZED smoke'ami (`fuser -k`); padnięty smoke zostawia kursy
+       `smoke-podglad-*` w bazie — sprzątnąć przed powtórką.
+     - `pkill -f "next start"` trafia własną powłokę (wzorzec w linii
+       komendy) — używać `fuser -k <port>/tcp`.
 
-     **Żywy podgląd (działa, sprawdzony curl-em):**
-     `https://matthewplugins.github.io/szkolenia-podglad/szkolenia`
-     — strony publiczne 200, kreator/`api`/nieznany slug 404, cztery
-     miniatury OG 200 `image/png`, `robots.txt` blokuje (noindex),
-     sitemapa pusta (spójnie z noindex).
+     **CO ZOSTAŁO:** PR `feat/wydajnosc-pomiary` → `feat/seo-podstrony`
+     (stack #26 ← #27 ← ten PR; commity części 3 przeniesione z
+     `feat/seo-podstrony` na własną gałąź — origin `feat/seo-podstrony`
+     nietknięty). Merge całego stacka wg decyzji właściciela (kolejność:
+     od najstarszego, `--delete-branch`). Tag `v0.25.0` + release po
+     merge'u. Pomiary powtórzyć po złożeniu kursów w kreatorze (krok 4).
 
-     **Komendy, które będą potrzebne:** `npm run db1:up` (podman),
-     `npm run dev` → `:3001`, `npm run build:podglad`,
-     `npm run deploy:podglad` (wymaga CZYSTEGO drzewa i żywej bazy),
-     smoke'i: `d4`, `d5`, `d6`, `podglad`, `seo` (kody wyjścia
-     sprawdzać BEZ potoku).
-     Cel kroku (niezmieniony): dojść do **100 w każdej kolumnie**
-     (wydajność, dostępność, dobre praktyki, SEO + LCP/CLS/TBT)
-     mierzone **narzędziami Google**, a wynik wpisać tabelą do README.
-     ~~PRZESZKODA: `/szkolenia` nie jest statyczne~~ — **ROZWIĄZANA
-     w części 1/3** (tryb podglądu statycznego).
-     **DECYZJE PODJĘTE (właściciel, 2026-08-19):** (a) publikujemy do
-     nowego PUBLICZNEGO repo `MatthewPlugins/szkolenia-podglad`
-     (adres `matthewplugins.github.io/szkolenia-podglad/szkolenia`,
-     basePath `/szkolenia-podglad`); (b) `noindex` TAK, z zastrzeżeniem
-     właściciela, że tabela pomiarów w README ma to uwzględnić —
-     `noindex` jest punktowanym audytem Lighthouse'a, więc SEO mierzymy
-     na buildzie BEZ niego, a resztę na żywym adresie; (c) treść
-     ROBOCZA, pomiary powtarzamy po złożeniu kursów w kreatorze
-     (krok 4).
-     ~~Największy nieodrobiony zysk SEO: JSON-LD~~ — **ZROBIONE
-     w części 2/3** (Organization, ItemList, Course+Offer,
-     BreadcrumbList, FAQPage; `smoke-seo` porównuje je z bazą).
+     **Żywy podgląd:** `https://matthewplugins.github.io/szkolenia-podglad/szkolenia`
+     — serwuje build 0.25.0 (zweryfikowany co do chunka), preloady
+     fontów w HTML, cztery miniatury OG `image/png` 200.
+
+     **Komendy:** `npm run db1:up`, `npm run dev` → `:3001`,
+     `npm run build:podglad`, `npm run deploy:podglad` (wymaga czystego
+     drzewa i bazy; sam weryfikuje chunki), smoke'i `d4/d5/d6/podglad/seo`
+     (kody wyjścia BEZ potoku), pomiar:
+     `PAGESPEED_KLUCZ` w `.env` → `node tools/pomiar-psi.mjs`.
+
   3. **Pełne zabezpieczenia** — domknięcie pozycji ⏳/🔧
      z `docs/security-checklist.md` możliwych w prototypie: pełne CSP
      nagłówkiem + strażnik polityki, rate limiting, limity wejścia,
@@ -503,7 +503,7 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   głównej, do którego kod docelowo trafia. Zmienione na `main`
   I na gałęzi modułu (GitHub czyta licencję z gałęzi domyślnej).
   Fonty Geist mają WŁASNĄ licencję SIL OFL 1.1 —
-  `assets/fonts/LICENSE-Geist-OFL.txt` musi zostać przy plikach
+  `public/fonts/LICENSE-Geist-OFL.txt` musi zostać przy plikach
   `.woff2`; pilnuje `straznik-licencji`.
 
 <!-- BEGIN:nextjs-agent-rules -->

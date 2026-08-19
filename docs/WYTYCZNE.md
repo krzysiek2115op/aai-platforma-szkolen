@@ -45,9 +45,9 @@ głównej — przy GPL-2.0 przeniesienie wymagałoby relicencjonowania,
 przy MIT jest bezproblemowe. Wszystkie zależności produkcyjne są
 permisywne (MIT/ISC), więc nic nie wymusza copyleftu.
 
-Osobno: pliki fontów Geist w `assets/fonts/` są na **SIL OFL 1.1**
+Osobno: pliki fontów Geist w `public/fonts/` są na **SIL OFL 1.1**
 (licencja projektu ich nie obejmuje) — tekst licencji leży obok plików
-w [assets/fonts/LICENSE-Geist-OFL.txt](../assets/fonts/LICENSE-Geist-OFL.txt)
+w [public/fonts/LICENSE-Geist-OFL.txt](../public/fonts/LICENSE-Geist-OFL.txt)
 i musi tam zostać przy każdej redystrybucji.
 
 ## 4. Agenci: skill + golden dla ważnych zadań

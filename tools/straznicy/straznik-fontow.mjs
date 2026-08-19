@@ -5,9 +5,10 @@
  * PO CO. Realny błąd z bramki B5 (rejestr/znane-bledy.json: BLAD-001):
  * pakiet `geist` potrafił wygenerować RÓŻNE klasy CSS fontu w renderze
  * serwera i klienta, co wywalało błąd hydratacji na <html> (widoczny
- * w konsoli na każdej stronie). Strona główna z tego samego powodu
- * ładuje fonty lokalnie przez next/font/local (lib/fonts.ts + subsety
- * woff2 w assets/fonts) — u nas obowiązuje ten sam wzorzec.
+ * w konsoli na każdej stronie). U nas fonty idą z własnych subsetów
+ * woff2 w public/fonts przez własny @font-face + jawny preload
+ * (lib/fonts.ts — tam uzasadnienie, czemu nie next/font/local:
+ * nie emitował preloadu i podmiana fontu psuła CLS/LCP).
  *
  * CO ŁAPIE: każdy import z pakietu `geist` (geist/font/sans itd.)
  * w plikach źródłowych oraz obecność `geist` w dependencies
@@ -46,7 +47,7 @@ function pliki(katalog) {
 for (const plik of pliki(process.cwd())) {
   if (IMPORT_GEIST.test(readFileSync(plik, "utf8"))) {
     bledy.push(
-      `${relative(process.cwd(), plik)}: import z pakietu geist — fonty ładujemy przez next/font/local (lib/fonts.ts), pakiet geist psuł hydratację (BLAD-001).`
+      `${relative(process.cwd(), plik)}: import z pakietu geist — fonty ładujemy własnym @font-face z public/fonts (lib/fonts.ts), pakiet geist psuł hydratację (BLAD-001).`
     );
   }
 }
@@ -55,7 +56,7 @@ if (existsSync("package.json")) {
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
   if (pkg.dependencies?.geist || pkg.devDependencies?.geist) {
     bledy.push(
-      "package.json: zależność `geist` — usuń; fonty idą z assets/fonts przez next/font/local (BLAD-001)."
+      "package.json: zależność `geist` — usuń; fonty idą z public/fonts własnym @font-face (BLAD-001)."
     );
   }
 }

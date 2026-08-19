@@ -46,13 +46,13 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.24.0** |
+| **Wersja** | **0.25.0** |
 | **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**, treść kursów kompletna: 91 scenariuszy). Następne kroki wg [planu domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): **SEO i wydajność na żywym adresie** → pełne zabezpieczenia → kursy złożone w narzędziu (**B7**) → WordPress |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Podgląd na żywo** | [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia) — statyczny eksport katalogu i stron kursów (`npm run deploy:podglad`), **bez kreatora i AJAX-a**, z `noindex` na czas prac. Służy do pomiarów SEO i wydajności narzędziami Google; treść kursów jest jeszcze ROBOCZA |
-| **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([assets/fonts/LICENSE-Geist-OFL.txt](assets/fonts/LICENSE-Geist-OFL.txt)) |
+| **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([public/fonts/LICENSE-Geist-OFL.txt](public/fonts/LICENSE-Geist-OFL.txt)) |
 | **Produkcja** | brak — **docelowo WordPress na wykupionym hostingu i domenie** (decyzja zespołu 2026-08-18): sklep zostanie przepisany na wtyczkę WP (PHP + MySQL), a obecny kod Next.js jest prototypem-specyfikacją ([szczegóły](docs/PLAN.md#decyzja-zespołu-2026-08-18--produkcja-na-wordpressie-zastępuje-plan-hosting-nodejs--vps)) |
 
 > [!IMPORTANT]
@@ -192,6 +192,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-seo` | pre-commit + CI | ciche zniknięcie SEO: widok bez kanonika lub bez OpenGraphu, własny blok `application/ld+json` z pominięciem ucieczki znaków (treść z `</script>` zamknęłaby blok skryptu), drugie miejsce czytające przełącznik indeksowania (rozjazd metatagu z `robots.txt`), obraz OG bez `contentType`/`size`, układ bez `metadataBase` |
 | `straznik-readme` | pre-commit + CI | README kłamiące o stanie repo: strażnik bez wiersza w tabeli (i martwe wiersze), skrypt npm poza sekcją „Skrypty", zła liczba scenariuszy, kotwica spisu treści donikąd — złapał własną nieobecność w tej tabeli przy pierwszym uruchomieniu |
 | `straznik-wagi-dokumentacji` | pre-commit + CI | masa dokumentacji producentów (55 MB, ~2200 plików) wpuszczona do gita — także przez `git add -f`; git trzyma każdą wersję na stałe, więc pomyłka jest nieodwracalna |
+| `straznik-progow` | pre-commit + CI | liczba w tabeli pomiarów wpisana „na oko": każda ocena w README musi zgadzać się co do jednostki z `goldeny/pomiary-lighthouse.json`, golden musi mieć metryczkę (narzędzie, data, adres, liczba przebiegów) i co najmniej 5 przebiegów, a wiersz tabeli i wpis w goldenie muszą istnieć oba naraz — wynik, który zniknął z dokumentacji, jest tak samo groźny jak zmyślony |
 | blokada sekretów | pre-commit | pliki `.env`, tokeny/klucze w diffie |
 | gitleaks (pinowany po SHA-256) | CI | sekrety w całej historii repo |
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
@@ -227,7 +228,7 @@ repo / ⛔ nie dotyczy z powodem / ⏳ etap WP). Skrót:
 | Sekrety: gitleaks (pełna historia, pinowany SHA-256), `.env` poza repo | ✅ | job CI „Skan sekretów" |
 | Pełne CSP z nonce, rate limiting, HTTPS/HSTS, RODO | ⏳ | specyfikacja wtyczki WP — sekcja 8 checklisty |
 | SEO na stronie: `robots.txt`, sitemapa, kanoniki, OpenGraph + miniatury, JSON-LD (Organization, ItemList, Course+Offer, BreadcrumbList, FAQPage) | ✅ | `straznik-seo` (6 niezmienników, 6 mutacji), **smoke SEO porównuje dane strukturalne Z BAZĄ** |
-| Pomiar Lighthouse 100/100/100/100 na żywym adresie | ⏳ | protokół i tabela niżej — liczby wpisujemy dopiero po pomiarze |
+| Pomiar narzędziami Google na żywym adresie | ✅ | desktop 100/100/100/100; mobile 96–97 wydajności = artefakt symulacji Lantern przyjęty decyzją właściciela (tabela i protokół niżej), reszta kolumn 100 |
 
 > [!NOTE]
 > Tabela mówi „✅" wyłącznie tam, gdzie stoi za tym strażnik, test albo
@@ -240,6 +241,17 @@ repo / ⛔ nie dotyczy z powodem / ⏳ etap WP). Skrót:
 Cel właściciela: **100 w każdej kolumnie**, mierzone narzędziami Google
 na żywym adresie, a wynik wpisany tutaj tabelą.
 
+**Liczby do tabeli robi PageSpeed Insights** (`tools/pomiar-psi.mjs`,
+klucz API w `.env` jako `PAGESPEED_KLUCZ`), czyli Lighthouse uruchamiany
+NA SERWERACH GOOGLE — **nie lokalny Lighthouse**. Lokalny mierzy także
+maszynę, na której chodzi: ta sama strona, ten sam build dawały TBT 96,
+102 i 257 ms w trzech seriach (raz winowajcą był zawieszony proces
+zajmujący cały rdzeń), a seria dziewięciu przebiegów pokazała rozrzut
+88–98 z opadaniem w czasie — profil throttlingu termicznego laptopa.
+Lokalny wariant (`tools/pomiar-lighthouse.mjs`) zostaje do szybkiej
+pętli przy optymalizacji; przed jego użyciem sprawdzić
+`ps -eo pcpu,comm --sort=-pcpu`, czy maszyna jest spokojna.
+
 **Pomiar rozchodzi się na dwa buildy i trzeba wiedzieć dlaczego.** Podgląd
 chodzi z `noindex` (decyzja właściciela — treść stron sprzedażowych jest
 jeszcze robocza, a opinie to jawne placeholdery). Lighthouse **punktuje**
@@ -248,22 +260,49 @@ nigdy nie pokaże 100, choćby wszystko inne było bez zarzutu. Mierzymy więc:
 
 | Co | Gdzie | Dlaczego tam |
 |---|---|---|
-| Wydajność, dostępność, dobre praktyki, LCP/CLS/TBT | żywy adres podglądu (z `noindex`) | prawda o sieci, hostingu i realnym transferze |
-| SEO | build z `SEO_INDEKSOWANIE=1`, lokalnie na `next start` / serwowanym `out/` | wynik nieprzykryty naszym własnym ustawieniem |
+| Wydajność, dostępność, dobre praktyki, LCP/CLS/TBT | żywy adres podglądu (z `noindex`), przez PSI | prawda o sieci, hostingu i realnym transferze — zmierzona poza naszą maszyną |
+| SEO | build z `SEO_INDEKSOWANIE=1`, lokalnie na `next start` | wynik nieprzykryty naszym własnym ustawieniem; audyty SEO patrzą na znaczniki, nie na czasy, więc lokalny pomiar tu nie kłamie |
 
-Wynik jest ważny dopiero, gdy narzędzie pokaże go **trzy razy z rzędu**.
+Rytuał pomiaru (kolejność jest treścią protokołu):
 
-| Podstrona | Wydajność | Dostępność | Dobre praktyki | SEO | LCP | CLS | TBT |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `/szkolenia` | — | — | — | — | — | — | — |
-| `/szkolenia/[slug]` | — | — | — | — | — | — | — |
+1. `npm run deploy:podglad` — deploy sam weryfikuje, że żywy adres
+   oddaje DOKŁADNIE ten build, **łącznie z każdym chunkiem** (nazwy
+   chunków nie pochodzą z treści, więc porównanie samego HTML-a
+   przechodziło kiedyś na zielono przeciw staremu deploymentowi).
+2. **Odczekać ≥10 minut.** Edge cache Pages ma `max-age=600` i spod
+   niezmienionych adresów oddaje starą treść; do tego zimny cache CDN
+   zaniża wynik tuż po publikacji (widziane 91 tam, gdzie po chwili
+   wychodziło 100). Pomiar minutę po deployu mierzy nie tę stronę.
+3. `PAGESPEED_KLUCZ=… node tools/pomiar-psi.mjs` — **mediana z 5
+   przebiegów** na stronę i tryb (mobile + desktop), zapis do
+   `goldeny/pomiary-lighthouse.json` razem z datą i warunkami.
+4. Kolumnę SEO mierzy się osobno na buildzie bez `noindex`
+   i podaje przez `SEO_KATALOG`/`SEO_KURS` — golden notuje to jawnie.
 
-> Myślniki znaczą **niezmierzone**, nie „zero" i nie „nie wiadomo".
-> Liczby wchodzą tu z zapisanego przebiegu Lighthouse'a, razem z datą
-> i warunkami pomiaru. Dla porównania: strona główna przy tym samym
-> reżimie ma 94–98 na wydajności i najniżej wypadają szablony
-> z okładkami — bo obraz jest elementem LCP. Nasz katalog to siatka
-> okładek plus animowany hero, czyli przypadek trudniejszy.
+| Podstrona | Tryb | Wydajność | Dostępność | Dobre praktyki | SEO | LCP | CLS | TBT |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `/szkolenia` | mobile | 97 | 100 | 100 | 100 | 2101 ms | 0 | 23 ms |
+| `/szkolenia` | desktop | 100 | 100 | 100 | 100 | 500 ms | 0 | 6 ms |
+| `/szkolenia/[slug]` | mobile | 96 | 100 | 100 | 100 | 2179 ms | 0 | 0 ms |
+| `/szkolenia/[slug]` | desktop | 100 | 100 | 100 | 100 | 476 ms | 0 | 19 ms |
+
+> Pomiar: PageSpeed Insights (Lighthouse 13.4.1), 2026-08-19, mediana z 5
+> przebiegów na stronę i tryb, żywy adres podglądu. Liczby wchodzą tu
+> wyłącznie z zapisanego przebiegu (`goldeny/pomiary-lighthouse.json`)
+> — pilnuje tego `straznik-progow`, co do jednostki.
+>
+> **Mobilne 96–97 to artefakt symulacji, przyjęty świadomie** (decyzja
+> właściciela, 2026-08-19, łagodząca warunek „100 w każdej kolumnie"):
+> raportowane LCP ~2,1 s liczy symulator Lantern, doliczając do tekstu
+> pełen łańcuch webfontu; LCP OBSERWOWANE na serwerach Google to
+> ~450 ms (TTFB 3 ms + render 444 ms), a wartość symulowana była
+> identyczna co do milisekundy w czterech różnych buildach — to
+> właściwość modelu, nie strony. Każda realna usterka z tej listy
+> została naprawiona pomiarem: CLS 0,137–0,166 → 0 (fonty z preloadem
+> i uzbrojoną korektą metryk), TBT ≤ 27 ms, dostępność, dobre praktyki
+> i SEO = 100 wszędzie, desktop 100 w dziesięciu przebiegach z rzędu.
+> Dla porównania: strona główna przy tym samym reżimie ma 94–98
+> na wydajności.
 
 ## Szybki start (nowa maszyna, od zera)
 
