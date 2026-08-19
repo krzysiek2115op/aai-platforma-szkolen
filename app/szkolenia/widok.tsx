@@ -11,15 +11,13 @@ import {
   type KartaKatalogu,
 } from "@/modules/m1-sklep";
 import { czasMaterialu, lekcje, moduly, slowo } from "@/lib/odmiana";
+import { zasob } from "@/lib/podglad";
 
 export const metadata: Metadata = {
   title: "Szkolenia",
   description:
     "Kursy i ebooki Automatic AI — systemy pracy z AI, Claude i GitHubem, nie kolejne nagrania do obejrzenia.",
 };
-
-// Katalog czyta bazę przy KAŻDYM żądaniu (kanał JSON działu — WYTYCZNE §8).
-export const dynamic = "force-dynamic";
 
 const CENA = new Intl.NumberFormat("pl-PL", {
   style: "currency",
@@ -127,7 +125,7 @@ function Okladka({ kurs }: { kurs: KartaKatalogu }) {
     // Okładki to lokalne SVG z /public (docelowo z kreatora D6).
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={kurs.cover_url}
+      src={zasob(kurs.cover_url)}
       alt=""
       className="karta-okladka h-full w-full object-cover"
     />

@@ -5,6 +5,109 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.23.0] — 2026-08-19
+
+Krok 1 planu domknięcia Pluginu 1, część pierwsza: **tryb podglądu
+statycznego**. Cel właściciela to SEO i wydajność mierzone narzędziami
+Google na ŻYWYM adresie, a `/szkolenia` nie dawało się tam wystawić —
+wszystkie trasy czytały bazę przy żądaniu, kreator stoi na ciastku,
+a repo jest prywatne (Pages z prywatnego repo = plan płatny). Ten wpis
+zdejmuje tę przeszkodę. Samego SEO i pomiarów tu jeszcze NIE MA — to
+osobne kroki, żeby dowód każdego z nich dało się ocenić z osobna.
+
+Decyzje właściciela na starcie kroku 1: publikujemy do nowego
+**publicznego** repo `MatthewPlugins/szkolenia-podglad`; podgląd chodzi
+z `noindex` (z zastrzeżeniem, że tabela pomiarów w README ma to
+odnotować — patrz „Znane ograniczenia"); mierzymy na treści ROBOCZEJ,
+a pomiary powtórzymy po złożeniu finalnych kursów w kreatorze.
+
+### Dodane
+- **Dwa tryby budowania z jednego kodu** (`next.config.ts`): serwerowy
+  (bez zmian — Plugin 1 tak działa naprawdę) oraz podgląd statyczny
+  `npm run build:podglad` → `out/`, z katalogiem i stronami kursów
+  wyrenderowanymi **z bazy w czasie builda**. Rozdziela je
+  `pageExtensions`: trasy tylko-serwerowe nazywają się `*.serwer.*`,
+  warianty prerenderowane `*.statyczny.*`, a każdy tryb widzi wyłącznie
+  swoje. Kreator i jedyny AJAX w eksporcie **nie istnieją** — nie ma
+  trasy, nie ma pliku, nie ma czego wyciec.
+- **`lib/podglad.ts`** — jedno źródło prawdy o trybie plus `zasob()`:
+  Next poprawia `basePath` w `next/link` i imporcie statycznym, ale NIE
+  w zwykłym `src`, a okładki kursów przychodzą ścieżką Z BAZY.
+- **`tools/deploy-podglad.sh`** (`npm run deploy:podglad`) — publikacja
+  wyłącznie zbudowanego `out/` do publicznego repo, ręcznie (limit minut
+  Actions organizacji jest wyczerpany do 1 września). Skrypt ODMAWIA
+  pracy z brudnego drzewa i przy leżącej bazie.
+- **`tools/sprawdz-zywy.mjs`** — „wysłałem pliki" to nie to samo co
+  „strona działa": czeka, aż żywy adres zacznie serwować DOKŁADNIE ten
+  build, porównując treść **bajt w bajt** (Pages serwuje pliki statyczne
+  bez obróbki — zmierzone: 99 232 B po obu stronach). Pierwsza wersja
+  szukała identyfikatora buildu wzorcem `/_next/static/<coś>/` i była
+  **dziurawa**: wzorzec pasował do słowa `chunks`, takiego samego
+  w każdym buildzie Next, więc weryfikacja potwierdzała jedynie, że pod
+  adresem stoi jakakolwiek strona Next. Złapane przy pierwszej realnej
+  publikacji, po tym, jak skrypt wypisał „✔ ten build (chunks)".
+- **`straznik-podgladu`** (18. strażnik) + **4 mutacje** w audycie —
+  pięć niezmienników, w tym ten najważniejszy: brama kreatora musi
+  odciąć się w podglądzie PRZED sięgnięciem po ciastko.
+- **`tools/smoke/smoke-podglad.ts`** w CI — buduje własny eksport
+  **celowo z `KREATOR_TOKEN` w środowisku** (czyli w warunkach, w których
+  zepsuta brama wpisałaby nieopublikowane kursy do publicznych plików)
+  i sprawdza, że szkic nie wyciekł, kreatora i AJAX-a nie ma, a `basePath`
+  dochodzi też do zasobów z bazy. Test negatywny potwierdził, że smoke
+  umie zapalić się na czerwono.
+
+### Naprawione
+- **`straznik-ajax` przechodziłby PUSTO** po zmianie nazwy endpointu na
+  `route.serwer.ts` — jego wzorzec nazwy szukał wyłącznie `route.ts`,
+  więc nie znalazłby ani jednego endpointu i wyglądałby dokładnie tak
+  samo jak wtedy, gdy naprawdę nie ma nic do zgłoszenia. Wzorzec
+  rozszerzony, sprawdzony testem negatywnym (drugi endpoint → czerwony).
+- **Korzeń `/` w eksporcie oddawał stronę błędu Reacta.** `redirect()`
+  wymaga serwera, ale w eksporcie **nie psuje builda** — cicho produkuje
+  `out/index.html` z `__next_error__`. Wariant podglądu przekierowuje
+  nagłówkiem `refresh` i daje zwykły odnośnik pod spodem; smoke sprawdza
+  korzeń wprost.
+- Linki w CHANGELOG-u do przeniesionych plików (`app/szkolenia/page.tsx`
+  → `widok.tsx`, `route.ts` → `route.serwer.ts`) — treść wpisów bez
+  zmian, poprawione wyłącznie cele odnośników.
+
+### Zmienione
+- Konfiguracja segmentu tras rozeszła się na cienkie łuski
+  (`page.serwer.tsx` / `page.statyczny.tsx`) nad wspólnym `widok.tsx`.
+  Powód jest twardy: kompilator Next parsuje `dynamic`,
+  `dynamicParams` i `generateStaticParams` **statycznie** i odrzuca
+  nawet zwykły warunek („can't recognize the exported `dynamic` field…
+  It needs to be a static string"). Pierwsze podejście — jeden plik
+  z warunkiem — nie skompilowało się; drugie, z `connection()` zamiast
+  `dynamic`, skompilowało się, ale dodanie `generateStaticParams`
+  przestawiło stronę kursu z `ƒ` na `●` (SSG) i `cookies()` z bramy
+  kreatora zaczęło wywracać render błędem `DYNAMIC_SERVER_USAGE`.
+  Dopiero rozdział na warianty przywrócił **identyczną** tablicę tras
+  trybu serwerowego; potwierdzają to smoke'i D4/D5/D6.
+
+### Opublikowane
+- Podgląd żyje pod
+  [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia)
+  (publiczne repo `MatthewPlugins/szkolenia-podglad`, gałąź `gh-pages`).
+  Sprawdzone na żywym adresie: strony publiczne 200, kreator 404,
+  `/api/szkolenia` 404, nieznany slug 404, okładki 200, tytuły kursów
+  zgodne z bazą.
+
+### Znane ograniczenia
+- **`noindex` obniża wynik SEO w Lighthousie** (audyt „Page is blocked
+  from indexing" jest punktowany). Pomiar rozejdzie się więc na dwa:
+  wydajność/dostępność/dobre praktyki i Core Web Vitals na żywym
+  adresie z `noindex`, a SEO na buildzie bez niego. Tabela w README
+  dostanie kolumnę „warunki pomiaru" — inaczej byłaby prawdziwa
+  liczbowo i myląca w treści.
+- Podgląd **nie ma nagłówków bezpieczeństwa** — `output: "export"` nie
+  wspiera `headers()`, a Pages i tak by ich nie wysłał. Prototyp
+  serwerowy ma je bez zmian (dowodzi smoke D4). To znany koszt
+  podglądu, nie regres.
+- `robots: noindex` siedzi jeszcze na sztywno w `app/layout.tsx` —
+  przełącznikiem stanie się w części SEO, razem z `robots.ts`,
+  `sitemap.ts`, kanonicznymi adresami i JSON-LD.
+
 ## [0.22.0] — 2026-08-19
 
 Dopracowanie repo po domknięciu treści D7 (decyzja właściciela:
@@ -718,7 +821,7 @@ Redesign premium podstrony szkoleń wg briefu właściciela (B5, iteracja 2):
 „digital product experience", nie podstrona informacyjna.
 
 ### Zmienione
-- **Katalog [/szkolenia](app/szkolenia/page.tsx) przeprojektowany od zera**:
+- **Katalog [/szkolenia](app/szkolenia/widok.tsx) przeprojektowany od zera**:
   - hero z dwukolumnowym układem: mocny headline („Szkolenia, które
     zamieniają AI w przewagę."), dwa CTA (Poznaj szkolenia / Zobacz,
     co dostajesz) i HUD z PRAWDZIWYMI liczbami z bazy (produkty,
@@ -824,7 +927,7 @@ Dział 4 Pluginu 1 — katalog `/szkolenia` renderowany Z BAZY
 czeka na ocenę właściciela na localhost:3001).
 
 ### Zmienione
-- [/szkolenia](app/szkolenia/page.tsx): siatka kart czyta kursy z bazy
+- [/szkolenia](app/szkolenia/widok.tsx): siatka kart czyta kursy z bazy
   kanałem JSON działu (`listaKursow()`, tylko opublikowane) — koniec
   placeholderów; karta: okładka (lub siatka „blueprint"), badge typu,
   cena z `Intl` (PLN), opis, CTA „Sprawdź ofertę" → `/szkolenia/[slug]`;
@@ -861,7 +964,7 @@ straznik-ajax potwierdza jeden kanał, audyt CRUD w changelogu).
   znał kurs; walidacja Zod na wejściu (czytelne błędy: `walidacja`,
   `brak-dostepu`, `nie-znaleziono`, `duplikat`); dostęp tymczasowo
   tokenem `KREATOR_TOKEN` (pełny auth da Plugin 3).
-- **Endpoint HTTP** [app/api/szkolenia/route.ts](app/api/szkolenia/route.ts) —
+- **Endpoint HTTP** [app/api/szkolenia/route.serwer.ts](app/api/szkolenia/route.serwer.ts) —
   jedyny AJAX pluginu (POST), cienka warstwa nad dyspozytorem, bez SQL.
 - **Kontrakty Zod** ([modules/m1-sklep/typy.ts](modules/m1-sklep/typy.ts)):
   karty/szczegóły kursu, akcje jako `discriminatedUnion`, typy TS
@@ -925,7 +1028,7 @@ na localhost:3001).
 - Design system „Volt" przejęty ze strony głównej ([app/globals.css](app/globals.css)):
   tokeny `@theme` (void/panel/fg/steel/volt/line, fonty Geist, skala typo),
   utilities `container-site`/`bg-grid`/`panel`/maski, efekty CTA.
-- Strona [/szkolenia](app/szkolenia/page.tsx): hero wg wzorca PageHero,
+- Strona [/szkolenia](app/szkolenia/widok.tsx): hero wg wzorca PageHero,
   siatka kart-placeholderów (prawdziwe kursy z bazy od Działu 4), pasek CTA;
   korzeń `/` przekierowuje na `/szkolenia`. Nagłówek wg strony głównej;
   **stopka przejęta 1:1** (uwaga właściciela przy B1): HUD statusu,

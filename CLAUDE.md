@@ -306,7 +306,26 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   — CZYTAĆ PRZED PRACĄ. Skrót:
   1. ~~merge D7 + dopracowanie repo (tura 1)~~ **ZROBIONE** (0.21.0,
      0.22.0). Właściciel może dosłać kolejne wskazówki do repo.
-  2. **← NASTĘPNY KROK: SEO i wydajność na żywym adresie.** Wrzucić
+  2. **← W TOKU: SEO i wydajność na żywym adresie.**
+     **Część 1/3 ZROBIONA (0.23.0, gałąź `feat/podglad-statyczny`): tryb
+     podglądu statycznego.** `npm run build:podglad` → `out/` (katalog
+     i strony kursów z bazy w czasie builda), `npm run deploy:podglad`
+     → publiczne repo `MatthewPlugins/szkolenia-podglad`. Kluczowe do
+     zapamiętania: oba tryby rozdziela **`pageExtensions`** —
+     `*.serwer.*` widzi tylko tryb serwerowy, `*.statyczny.*` tylko
+     podgląd, wspólna treść siedzi w `widok.tsx`. Tak, a nie `if`-em
+     w jednym pliku, bo **kompilator Next parsuje `dynamic`,
+     `dynamicParams` i `generateStaticParams` STATYCZNIE i odrzuca
+     wyrażenia** (sprawdzone dwukrotnie: wariant z warunkiem się nie
+     kompiluje, wariant z `connection()` kompiluje się, ale
+     `generateStaticParams` przestawia trasę na SSG i `cookies()`
+     wywala `DYNAMIC_SERVER_USAGE`). Tryb ma JEDNO źródło prawdy
+     (`lib/podglad.ts`), pilnuje tego `straznik-podgladu` + 4 mutacje
+     + `smoke-podglad` (buduje CELOWO z tokenem w środowisku, żeby
+     udowodnić, że szkice nie wchodzą do publicznych plików).
+     Pozostało w kroku 2: **SEO** (robots.ts, sitemap.ts, kanoniczne,
+     OG-obrazy, JSON-LD) i **wydajność + pomiary**.
+     Oryginalny opis kroku: Wrzucić
      podstronę na GitHub Pages, zrobić całe SEO, testować **narzędziami
      Google** (Lighthouse, PageSpeed Insights, Rich Results, Search
      Console), dojść do **100 w każdej kolumnie** (wydajność,
@@ -323,6 +342,15 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      publikujemy, `noindex` na czas prac (REKOMENDACJA: tak — treść
      sprzedażowa jest robocza, opinie to placeholdery), czy podgląd ma
      mieć finalną treść (jeśli tak, ten krok idzie za krok 4).
+     **DECYZJE PODJĘTE (właściciel, 2026-08-19):** (a) publikujemy do
+     nowego PUBLICZNEGO repo `MatthewPlugins/szkolenia-podglad`
+     (adres `matthewplugins.github.io/szkolenia-podglad/szkolenia`,
+     basePath `/szkolenia-podglad`); (b) `noindex` TAK, z zastrzeżeniem
+     właściciela, że tabela pomiarów w README ma to uwzględnić —
+     `noindex` jest punktowanym audytem Lighthouse'a, więc SEO mierzymy
+     na buildzie BEZ niego, a resztę na żywym adresie; (c) treść
+     ROBOCZA, pomiary powtarzamy po złożeniu kursów w kreatorze
+     (krok 4).
      Największy nieodrobiony zysk SEO: **JSON-LD** (Course, Product+Offer,
      BreadcrumbList, FAQPage, Organization) — dziś go NIE MA.
   3. **Pełne zabezpieczenia** — domknięcie pozycji ⏳/🔧

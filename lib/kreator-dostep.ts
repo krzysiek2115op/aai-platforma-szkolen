@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import { timingSafeEqual } from "node:crypto";
+import { PODGLAD_STATYCZNY } from "@/lib/podglad";
 
 /**
  * Brama kreatora — tymczasowy dostęp na token (KREATOR_TOKEN w .env);
@@ -67,7 +68,21 @@ export async function tokenZCiastka(): Promise<string | null> {
   return (await cookies()).get(CIASTKO_KREATORA)?.value ?? null;
 }
 
-/** Czy bieżące żądanie ma prawo widzieć i zmieniać kursy. */
+/**
+ * Czy bieżące żądanie ma prawo widzieć i zmieniać kursy.
+ *
+ * W PODGLĄDZIE STATYCZNYM odpowiedź brzmi ZAWSZE „nie" i musi paść
+ * PRZED dotknięciem ciastek — z dwóch niezależnych powodów:
+ *
+ *  1. Techniczny: w eksporcie nie ma żądania, więc `cookies()` nie ma
+ *     czego przeczytać i build by się wywrócił.
+ *  2. Ważniejszy — bezpieczeństwa: gdyby ktoś zbudował podgląd mając
+ *     w środowisku token, właściciel „byłby zalogowany" w czasie
+ *     builda, a wtedy do PUBLICZNYCH plików w `out/` weszłyby SZKICE
+ *     kursów i skrót do kreatora. Statyczny podgląd to zawsze widok
+ *     gościa; kto ma tylko pliki, nie ma się przed czym uwierzytelnić.
+ */
 export async function czyKreator(): Promise<boolean> {
+  if (PODGLAD_STATYCZNY) return false;
   return tokenPasuje(await tokenZCiastka());
 }

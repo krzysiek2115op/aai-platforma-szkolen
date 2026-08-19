@@ -6,11 +6,20 @@
  * i drugi log; wytyczna zabrania ich wprost. Obok wolno istnieć TYLKO
  * kanałowi JSON (odczyt serwerowy w renderowaniu — to nie jest AJAX).
  *
- * CO ŁAPIE (w plikach route.* pod app/api/):
+ * CO ŁAPIE (w plikach route.* pod app/api/ — także w wariancie
+ * `route.serwer.ts`, patrz niżej):
  *   1. więcej niż JEDEN plik route importujący z danego modułu
  *      (modules/mX-…) — czyli drugi endpoint AJAX tego samego pluginu,
  *   2. plik route nieprzypisany do żadnego modułu (endpoint-sierota:
  *      API poza działem nie ma prawa istnieć — logika żyje w modułach).
+ *
+ * WARIANTY TRYBU. Od trybu podglądu statycznego jedyny AJAX nazywa się
+ * `route.serwer.ts` — rozszerzenie `serwer.*` wyklucza go z eksportu
+ * (next.config.ts). Wzorzec nazwy MUSI to obejmować: gdyby został na
+ * samym `route.ts`, strażnik nie znalazłby ani jednego endpointu
+ * i przeszedłby PUSTO — czyli wyglądałby dokładnie tak samo jak wtedy,
+ * gdy naprawdę nie ma nic do zgłoszenia. Dokładnie ta pułapka zdarzyła
+ * się przy wprowadzaniu podglądu i dlatego stoi tu ten akapit.
  *
  * Dopóki nie ma katalogu app/api, strażnik przechodzi.
  *
@@ -27,7 +36,8 @@ function trasy(katalog) {
   for (const nazwa of readdirSync(katalog)) {
     const pelna = join(katalog, nazwa);
     if (statSync(pelna).isDirectory()) wynik.push(...trasy(pelna));
-    else if (/^route\.(ts|tsx|js|jsx|mjs)$/.test(nazwa)) wynik.push(pelna);
+    else if (/^route(\.(serwer|statyczny))?\.(ts|tsx|js|jsx|mjs)$/.test(nazwa))
+      wynik.push(pelna);
   }
   return wynik;
 }
