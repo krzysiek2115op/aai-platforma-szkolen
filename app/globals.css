@@ -251,6 +251,23 @@ html.js .page-enter {
   animation: fw-impuls 7s cubic-bezier(0.7, 0.05, 0.3, 0.95) infinite;
 }
 
+/*
+ * Impuls stoi, dopóki stopka nie wejdzie w widok (atrybut ustawia
+ * IntersectionObserver w FooterScene). Powód jest pomiarowy i realny
+ * naraz: animacja poza ekranem to ciągłe przemalowywanie, którego nikt
+ * nie ogląda, a jej pierwszy przelot przez maskę tekstową wordmarku
+ * Chrome liczył jako LCP (~2,2 s) na OBU stronach — bo malowanie
+ * „tekstu" maski to największa treść w śladzie. Bramka tylko pod
+ * html.js: bez JavaScriptu nie ma komu ustawić atrybutu, więc impuls
+ * po prostu chodzi jak dotąd (dekoracja działa bez JS).
+ */
+html.js .fw-impuls {
+  animation-play-state: paused;
+}
+html.js [data-na-ekranie] .fw-impuls {
+  animation-play-state: running;
+}
+
 @keyframes fw-impuls {
   0% {
     transform: translateX(0);

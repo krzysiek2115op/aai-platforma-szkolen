@@ -326,6 +326,18 @@ export function FooterScene({ children }: { children: ReactNode }) {
       ([entry]) => {
         if (!entry) return;
         inView = entry.isIntersecting;
+        /*
+         * Atrybut dla CSS: impuls wordmarku (.fw-impuls) rusza dopiero,
+         * gdy stopka NAPRAWDĘ jest na ekranie. Bez tej bramki animacja
+         * chodziła od załadowania strony — niewidoczna dla człowieka
+         * (stopka leży 4 ekrany niżej), ale nie dla przeglądarki:
+         * pierwszy przelot impulsu przez maskę tekstową malował
+         * „największą treść" i Chrome ogłaszał LCP ~2,2 s na elemencie,
+         * którego nikt nie widział (PSI: elementRenderDelay ≈ 2,3 s na
+         * mask#fw-maska > text, na OBU stronach). Ta sama klasa
+         * marnotrawstwa co prewarm() pyłu: praca przed wejściem w widok.
+         */
+        root!.toggleAttribute("data-na-ekranie", inView);
         if (!inView) {
           stop();
           return;
