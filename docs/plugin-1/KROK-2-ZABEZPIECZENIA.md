@@ -6,7 +6,8 @@ nośnikiem trwałym. Podstawa: [PLAN-FINAL-PLUGINU-1.md](PLAN-FINAL-PLUGINU-1.md
 (sekcja „Krok 2") i [docs/security-checklist.md](../security-checklist.md).
 
 Stan: **w toku od 2026-08-19**. Aktualizować przy każdym domkniętym PR.
-Zrobione: **PR 1 (CSP) — 0.26.0**. Następny: PR 2 (`feat/brama-ajax`).
+Zrobione: **PR 1 (CSP) — 0.26.0**, **PR 2 (brama AJAX) — 0.27.0**.
+Następny: PR 3 (`feat/limity-wejscia`).
 
 ## Korekta stanu wejściowego
 
@@ -107,7 +108,7 @@ Spike z 2026-08-19 (plik spike'u skasowany, oba buildy z kodem wyjścia 0):
 | PR | Gałąź | Zawartość |
 |---|---|---|
 | 1 ✅ | `feat/csp-pelne` | **ZROBIONE, wersja 0.26.0.** `proxy.serwer.ts` z nonce, `lib/csp.ts` (jedno źródło polityki), `lib/csp-nonce.ts`, `tools/csp-podglad.mjs` (meta+hashe dla podglądu), `straznik-csp` (9 niezmienników, 10 mutacji), `smoke-csp` (nagłówek + hashe w plikach). Po drodze: **BLAD-012** — `smoke-podglad` wołał `npx next build` zamiast komendy, więc oglądał artefakt, którego nikt nie wydaje; `straznik-seo` przestał oskarżać komentarze |
-| 2 | `feat/brama-ajax` | Rate limiting okno-przesuwne po IP+akcja (AJAX i logowanie), `timingSafeEqual` w dyspozytorze, kara czasowa poza formularzem, testy |
+| 2 ✅ | `feat/brama-ajax` | **ZROBIONE, wersja 0.27.0.** `lib/limiter.ts` (moduł czysty + 8 testów jednostkowych), limit wystrzału i OSOBNY licznik chybionych uwierzytelnień w `route.serwer.ts` (429 z `Retry-After`), limit prób logowania w `akcje.ts`, `timingSafeEqual` jako helper lokalny dyspozytora, kara czasowa w obu kanałach, `straznik-limitera` (11 niezmienników, 14 mutacji), smoke D6 wywołuje limit po HTTP |
 | 3 | `feat/limity-wejscia` | Limity długości i liczności w kontraktach, sufit `price_grosze`, limit rozmiaru ciała żądania przed parsowaniem, generyczny komunikat zamiast surowego błędu Postgresa, `straznik-limitow` |
 | 4 | `docs/krok-2-domkniecie` | Checklista bez pozycji 🚧, CHANGELOG, README, `rejestr/znane-bledy.json`, wersja + tag |
 
@@ -145,6 +146,28 @@ Zapisane, żeby nowa sesja nie wyprowadzała ich od nowa:
 - Dowody jak w PR 1: `straznik-limitera` + mutacje w `audyt-straznikow`,
   rozszerzenie smoke'a o wywołanie limitu (seria złych tokenów → 429,
   normalne użycie nietknięte) i **test negatywny każdego nowego testu**.
+
+## PR 2 — co dopisało samo pisanie kodu
+
+Żadna z zatwierdzonych decyzji nie okazała się zła (nie było więc
+o czym meldować w trakcie). Doszło pięć rozstrzygnięć, których tamta
+lista nie obejmowała — zapisane, bo każde zmienia zachowanie:
+
+- **429 z licznika chybionych prób dotyczy WYŁĄCZNIE prób chybionych.**
+  Trasa pyta o wynik dyspozytora i dopiero wtedy odnotowuje porażkę,
+  więc poprawny token przechodzi nawet przy wyczerpanym liczniku.
+  Wymóg „normalne użycie nietknięte" inaczej nie dałby się spełnić przy
+  jednym adresie (localhost, jeden właściciel za jednym łączem).
+- **Odrzucone próby nie wchodzą do okna** — inaczej dobijanie się
+  przesuwa termin w nieskończoność i `Retry-After` kłamie. Limiter
+  ogranicza tempo, nie karze.
+- **Po przekroczeniu limitu odpowiadamy natychmiast, bez kary 700 ms** —
+  trzymanie połączenia przy zalewie jest kosztem naszym, nie atakującego.
+- **Sufit pamięci limitera** (10 000 kluczy + przycięcie adresu do
+  45 znaków): mapa rosnąca po nagłówku sterowanym przez klienta byłaby
+  sama w sobie wektorem wyczerpania pamięci.
+- **Audyt strażników dostał mutację „skasuj plik"** (`usunPlik`) —
+  bez niej niezmiennik „test limitera musi istnieć" byłby deklaracją.
 
 ## Bramka kroku
 

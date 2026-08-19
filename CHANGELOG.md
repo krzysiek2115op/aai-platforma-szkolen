@@ -5,6 +5,89 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.27.0] — 2026-08-19
+
+Krok 2 planu domknięcia Pluginu 1, **część 2: brama jedynego AJAX-a**.
+Do tej wersji zgadywanie tokenu kosztowało cokolwiek WYŁĄCZNIE
+w formularzu logowania (700 ms kary od D6). Kanał sieciowy
+`/api/szkolenia` — ten JEDYNY wystawiony na świat — nie miał ani kary,
+ani limitu, ani nawet porównania tokenu w stałym czasie.
+
+**Checklista mówiła w tym miejscu „✅" i nie kłamała — mówiła prawdę
+o formularzu.** Wiersz nie zauważał, że obok stoją drugie drzwi, które
+robią to samo bez żadnej z tych trzech ochron. Całe wydanie sprowadza
+się do wyrównania obu wejść do tego samego zamka.
+
+### Dodane
+
+- `lib/limiter.ts` — okno przesuwne po adresie i akcji. Moduł CZYSTY
+  (bez importów z `next/*`), więc granice okna sprawdza test jednostkowy
+  z wstrzykniętym czasem, zamiast zgadywania ze zrzutów żywego serwera
+  — ten sam układ, co `lib/csp.ts`. Dwa progi, bo bronią przed dwiema
+  różnymi rzeczami: 60 wystrzałów na minutę z adresu (zalew) i 5
+  CHYBIONYCH uwierzytelnień na 10 minut (zgadywanie).
+- `lib/limiter.test.ts` — osiem dowodów: liczba przepuszczonych prób,
+  granica okna co do milisekundy, prawdziwość `Retry-After`, brak
+  przesuwania okna przez odrzucone próby, rozdział kluczy, zerowanie,
+  sufit pamięci i czytanie adresu z nagłówków.
+- `straznik-limitera` — 11 niezmienników, 14 mutacji w audycie (w tym
+  kontrprzykład: `token === wzorzec` zacytowane w KOMENTARZU ma być
+  przemilczane, bo strażnik oskarżający opisy jest strażnikiem,
+  którego się wyłącza).
+- Smoke D6 dowodzi bramy tempa **po HTTP**: seria chybionych tokenów
+  kończy się odpowiedzią 429 z `Retry-After`, a poprawny token z tego
+  samego adresu przechodzi mimo wyczerpanego licznika chybionych prób.
+- Audyt strażników umie teraz mutację „skasuj plik" (`usunPlik`) — bez
+  tego niezmiennika „test limitera musi istnieć" nie dałoby się
+  sprawdzić inaczej niż deklaracją.
+
+### Zmienione zachowanie
+
+- Jedyny AJAX odmawia kodem **429 z nagłówkiem `Retry-After`** (RFC
+  6585), treść generyczna — klient wie, że ma zwolnić, ale nie wie,
+  w który licznik trafił.
+- **Kara czasowa 700 ms działa też poza formularzem.** Stała
+  przeprowadziła się do `lib/limiter.ts`, żeby oba kanały liczyły tak
+  samo, a nie „tak samo z pamięci".
+- Udane uwierzytelnienie **zeruje** licznik chybionych prób z tego
+  adresu — właściciel, który raz wkleił zły token, nie pracuje dalej
+  z licznikiem na skraju wyczerpania.
+
+### Decyzje zapisane w kodzie, nie w głowie
+
+- **Licznik chybionych prób pyta o WYNIK dyspozytora, zamiast oceniać
+  token sam.** Dzięki temu żądanie z poprawnym tokenem nie ma jak w niego
+  wpaść, choćby ktoś przed sekundą zgadywał z tego samego adresu (a
+  zgadującego to nie ratuje — on z definicji poprawnego tokenu nie ma).
+  Trasa dalej niczego nie autoryzuje: dowiaduje się z odpowiedzi.
+- **Odrzucone próby nie wchodzą do okna.** Inaczej dobijanie się do
+  zamkniętych drzwi przesuwałoby termin zwolnienia w nieskończoność,
+  a `Retry-After` byłby zmyśloną liczbą. Limiter ogranicza TEMPO,
+  nie karze.
+- **Po wyczerpaniu limitu odpowiadamy natychmiast, bez kary czasowej** —
+  700 ms trzymanego połączenia przy zalewie jest kosztem naszym, nie
+  atakującego.
+- **`x-forwarded-for` jest do podrobienia**, dopóki nie stoi przed nami
+  proxy, które ten nagłówek nadpisuje. Zdanie stoi w kodzie i w
+  specyfikacji wtyczki WP: limit po adresie podnosi KOSZT ataku i nie
+  jest granicą bezpieczeństwa. Granicą jest porównanie tokenu w stałym
+  czasie, docelowo uwierzytelnianie z Pluginu 3.
+- **`timingSafeEqual` w dyspozytorze to KOPIA sześciu linii, nie import
+  z `lib/`** — moduł ma zostać samowystarczalny jak wtyczka (WYTYCZNE
+  §8), a `lib/kreator-dostep.ts` ciągnie `next/headers`.
+- **Stan limitera siedzi w pamięci procesu** — świadomie, na czas
+  prototypu. Do specyfikacji WP idzie REGUŁA (okno przesuwne po adresie
+  i akcji), nie ta implementacja; tam nośnikiem będzie baza albo obiekt
+  cache WordPressa.
+
+### Naprawione
+
+- **`modules/m1-sklep/dyspozytor.ts` porównywał token operatorem `===`.**
+  Porównanie kończy się na pierwszym różnym bajcie, więc mierzalny czas
+  odpowiedzi zdradzał, ile pierwszych znaków zgadło się poprawnie — a to
+  zamienia zgadywanie tokenu w zgadywanie znak po znaku. Formularz
+  liczył w stałym czasie od D6; wystawiony na świat kanał sieciowy nie.
+
 ## [0.26.0] — 2026-08-19
 
 Krok 2 planu domknięcia Pluginu 1, **część 1: pełna polityka

@@ -12,6 +12,12 @@ import assert from "node:assert/strict";
  * przy renderowaniu, więc dziura w bramie oznaczałaby wyciek
  * nieopublikowanej treści właściciela.
  *
+ * OD 0.27.0 smoke dowodzi też BRAMY TEMPA: seria chybionych tokenów
+ * kończy się odpowiedzią 429 z `Retry-After`, a mimo wyczerpanego
+ * licznika chybionych prób żądanie z POPRAWNYM tokenem z tego samego
+ * adresu przechodzi normalnie. Limit ma kosztować zgadującego, nie
+ * właściciela — i to jest sprawdzane po HTTP, nie w pamięci testu.
+ *
  * Wymaga: `npm run build` + skonfigurowanej bazy (jak testy modułów).
  * Uruchomienie: node tools/smoke/smoke-d6.ts   (liczy się KOD WYJŚCIA)
  */
@@ -50,7 +56,11 @@ const KURS_SMOKE = {
 async function ajax(
   tresc: Record<string, unknown>,
   ciastko?: string
-): Promise<{ status: number; body: { ok?: boolean; blad?: string } }> {
+): Promise<{
+  status: number;
+  body: { ok?: boolean; blad?: string };
+  ponowPo: string | null;
+}> {
   const odp = await fetch(`${BAZOWY}/api/szkolenia`, {
     method: "POST",
     headers: {
@@ -59,7 +69,11 @@ async function ajax(
     },
     body: JSON.stringify(tresc),
   });
-  return { status: odp.status, body: await odp.json() };
+  return {
+    status: odp.status,
+    body: await odp.json(),
+    ponowPo: odp.headers.get("retry-after"),
+  };
 }
 
 async function html(sciezka: string, ciastko?: string): Promise<Response> {
@@ -150,7 +164,34 @@ try {
   assert.equal(bezDostepu.status, 403, "AJAX wpuścił żądanie bez tokenu");
   assert.equal(bezDostepu.body.blad, "brak-dostepu");
 
+  // 4a. BRAMA TEMPA: zgadywanie tokenu przestaje być darmowe. Chybione
+  // próby idą na osobny, ostry licznik — po jego wyczerpaniu odpowiedź
+  // to 429 z Retry-After, a nie kolejne 403 do woli.
+  let odmowa: { status: number; ponowPo: string | null } | undefined;
+  for (let proba = 0; proba < 8 && !odmowa; proba++) {
+    const zla = await ajax({
+      akcja: "publikuj",
+      id: idKursu,
+      token: `zly-token-smoke-${proba}`,
+    });
+    if (zla.status === 429) odmowa = zla;
+    else
+      assert.equal(
+        zla.status,
+        403,
+        `chybiony token dał ${zla.status} zamiast 403 lub 429`
+      );
+  }
+  assert.ok(odmowa, "seria chybionych tokenów NIE wywołała limitu — zgadywanie jest darmowe");
+  assert.ok(
+    Number(odmowa.ponowPo) >= 1,
+    `429 bez sensownego Retry-After (dostaliśmy: ${odmowa.ponowPo})`
+  );
+
   // 5. Wystrzał z SAMYM ciastkiem — token nigdy nie musi być w JS strony.
+  // Zarazem dowód, że limit trafia w zgadującego, a nie w pracę: licznik
+  // chybionych prób z tego adresu jest właśnie wyczerpany, a poprawne
+  // uwierzytelnienie i tak przechodzi.
   const publikacja = await ajax({ akcja: "publikuj", id: idKursu }, CIASTKO);
   assert.equal(publikacja.status, 200, "publikacja z ciastka nie przeszła");
   assert.equal(publikacja.body.ok, true);

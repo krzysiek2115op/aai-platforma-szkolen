@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import type { PoolClient } from "pg";
 import { pulaDb1 } from "./db/klient.ts";
 import {
@@ -21,9 +22,36 @@ import {
  * uwierzytelnianie da Plugin 3 (PLAN §2.3).
  */
 
+/**
+ * Porównanie tokenu W STAŁYM CZASIE.
+ *
+ * Zwykłe `===` na łańcuchach kończy się na pierwszym różnym bajcie,
+ * więc czas odpowiedzi zdradza, ile pierwszych znaków zgadło się
+ * poprawnie — a zgadywanie znak po znaku jest o rzędy wielkości tańsze
+ * niż zgadywanie całego tokenu. Brama formularza (`lib/kreator-dostep.ts`)
+ * liczyła tak od D6; dyspozytor porównywał operatorem `===` do 0.26.0,
+ * czyli akurat ten kanał, który JAKO JEDYNY jest wystawiony na świat,
+ * nie miał ochrony, którą miał formularz obok.
+ *
+ * DLACZEGO KOPIA, A NIE IMPORT Z `lib/`. Moduł ma być samowystarczalny
+ * jak wtyczka (WYTYCZNE §8): dostaje surowe wejście i sam decyduje,
+ * niezależnie od tego, kto go woła — dziś Next, jutro PHP WordPressa.
+ * Poza tym `lib/kreator-dostep.ts` ciągnie `next/headers`, więc importu
+ * i tak nie dałoby się zrobić bez wciągnięcia frameworka do modułu.
+ * Sześć linii duplikatu jest tańsze niż ta zależność.
+ *
+ * Różnica długości wychodzi wcześniej i tego nie ukrywamy: `timingSafeEqual`
+ * wymaga równych buforów, a długość losowego tokenu nie jest sekretem
+ * (sekretem jest jego treść). Tak samo liczy brama formularza — dwie
+ * różne semantyki byłyby gorsze niż jedno znane ograniczenie.
+ */
 function tokenPoprawny(token: string): boolean {
   const wzorzec = process.env.KREATOR_TOKEN;
-  return Boolean(wzorzec) && token === wzorzec;
+  if (!wzorzec) return false;
+  const podany = Buffer.from(token, "utf8");
+  const oczekiwany = Buffer.from(wzorzec, "utf8");
+  if (podany.length !== oczekiwany.length) return false;
+  return timingSafeEqual(podany, oczekiwany);
 }
 
 /** Transakcja z aktorem audytu — triggery zapisują, KTO zmienił. */
