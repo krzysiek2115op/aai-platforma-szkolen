@@ -465,6 +465,16 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      **Dokument roboczy kroku (stan, etapy, pułapki):
      [docs/plugin-1/KROK-3-KURSY.md](docs/plugin-1/KROK-3-KURSY.md)
      — CZYTAĆ PRZED PRACĄ.**
+     **Etapy 1 i 2 ZROBIONE** (PR #32 — decyzje o produkcji materiału;
+     PR #36, wersja 0.28.0 — kreator przejmuje treść lekcji: warstwa
+     danych + panel `/szkolenia/kreator/lekcja/[id]`, licznik postępu,
+     `straznik-tresci-lekcji`, `smoke-lekcje`). **NASTĘPNY: etap 3 —
+     dogęszczenie Kursu 1 i redakcja 91 lekcji, treść wchodzi
+     KREATOREM, nie seedem.** Zapamiętać z etapu 2: panel MUSI odsyłać
+     `id` modułów i lekcji (dyspozytor kasuje wiersze spoza wejścia —
+     bez tego zapis kursu kasuje materiał), a w worktree kroku 3
+     `node_modules` musi być KOPIĄ (`cp -al`), bo Turbopack odrzuca
+     dowiązanie wychodzące poza projekt i `npm run build` pada.
      **DECYZJE WŁAŚCICIELA 2026-08-19 o produkcji materiału (punkt 1
      kroku odhaczony) — pełnia z liczbami i odrzuconymi opcjami:
      [docs/plugin-1/PRODUKCJA-MATERIALU-KROK-3.md](docs/plugin-1/PRODUKCJA-MATERIALU-KROK-3.md):**
