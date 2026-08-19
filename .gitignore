@@ -36,6 +36,16 @@ docs/dokumentacja-techniczna/*/claude-platform/
 docs/dokumentacja-techniczna/*/claude-code/
 docs/dokumentacja-techniczna/*/github/
 
+# Etap WordPress — ta sama zasada, inny zapis: zamiast wyliczać dziesięć
+# katalogów po nazwie, ignorujemy CAŁĄ zawartość działu i wpuszczamy z powrotem
+# tylko to, co ma być w repo. Dzięki temu dopisanie nowego źródła do skryptu
+# nie wymaga pamiętania o .gitignore — nowy katalog jest ignorowany od razu.
+#
+# Odtworzenie po świeżym klonie: node tools/pobierz-dokumentacje-wp.mjs
+docs/dokumentacja-techniczna/wordpress/*
+!docs/dokumentacja-techniczna/wordpress/ZRODLA.md
+!docs/dokumentacja-techniczna/wordpress/cytowane/
+
 # systemowe / edytor
 .DS_Store
 *.log

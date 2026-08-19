@@ -118,12 +118,17 @@ zobaczymy to na własnym środowisku, nie na produkcji kolegi.
 
 1. Poprosić kolegę o katalog motywu (bez bazy i treści) — do czasu, aż
    przyjdzie, pracujemy agnostycznie wobec motywu (sekcja wyżej).
-2. **Celowany komplet dokumentacji WP do repo** (WYTYCZNE N2,
-   `docs/dokumentacja-techniczna/wordpress/` + `ZRODLA.md`): Plugin
-   Handbook, `$wpdb`/`dbDelta`/własne tabele, REST API, bezpieczeństwo
-   (nonces, sanitizacja, capabilities), z manuala MySQL: typy, indeksy,
-   transakcje, triggery. Nie zrzucamy całych manuali — tylko to, czego
-   dział używa; skrypt pobierający jak `tools/pobierz-dokumentacje-d7.mjs`.
+2. ~~Celowany komplet dokumentacji WP~~ **ZROBIONE 2026-08-19**:
+   947 plików (9,6 MB) w `docs/dokumentacja-techniczna/wordpress/`,
+   poza gitem; w repo `ZRODLA.md` z zakresem i uzasadnieniem cięć oraz
+   `tools/pobierz-dokumentacje-wp.mjs` (odtwarza komplet jedną komendą,
+   idempotentnie). Zakres: pięć podręczników developer.wordpress.org
+   w całości (wtyczki, motywy, Common APIs, REST, standardy kodu),
+   theme.json i motywy blokowe z Block Editor Handbook, 102 hasła Code
+   Reference wybrane imiennie (klasa `wpdb`, `dbDelta`, nonce'y,
+   uprawnienia, sanitizacja, trasy i szablony), dokumentacja dewelopera
+   WooCommerce, Tutor LMS i wybór z manuala MySQL (typy, `utf8mb4`,
+   indeksy, transakcje, wyzwalacze pod audyt).
 3. Postawić lokalnie WP + Tutor LMS + WooCommerce i wrzucić jeden nasz
    kurs — **decyzja o LMS zapada na dowodach, nie na ulotkach**.
 4. Dopiero potem kod wtyczki, wg Weryfikacji-PR i z tymi samymi

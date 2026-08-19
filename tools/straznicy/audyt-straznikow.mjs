@@ -271,18 +271,37 @@ const MUTACJE = [
     zmien: () => "", // pusty plik = brak licencji przy .woff2
   },
   // --- straznik-wagi-dokumentacji ---
+  // Strażnik ma teraz cztery kontrole i każda dostaje własną mutację.
+  // Ścieżki celowo z katalogu `wordpress/`, nie `d7/`: w worktree kroku 3
+  // katalogi źródeł D7 są dowiązaniami, a git odmawia dodania pliku „przez
+  // dowiązanie" — mutacja wyglądałaby wtedy na dziurę w strażniku, którą
+  // nie jest. Korpusu WordPressa żaden worktree nie dowiązuje.
   {
     straznik: "straznik-wagi-dokumentacji",
     opis: "plik masowej dokumentacji producenta dodany do indeksu gita",
     nowyPlik: {
-      // Ścieżka celowo BEZ katalogu d7/: w worktree kroku 3 katalogi
-      // źródeł D7 są dowiązaniami, a git odmawia dodania pliku „przez
-      // dowiązanie" — mutacja wyglądałaby wtedy na dziurę w strażniku,
-      // którą nie jest. Reguła jest ta sama: segment „github" w ścieżce.
-      sciezka: "docs/dokumentacja-techniczna/github/audyt-mutacja.md",
+      sciezka: "docs/dokumentacja-techniczna/wordpress/mysql/audyt-mutacja.md",
       tresc: "# mutacja audytu\n",
       dodajDoGita: true,
     },
+  },
+  {
+    straznik: "straznik-wagi-dokumentacji",
+    opis: "skrypt pobierający przestaje eksportować manifest katalogów masowych",
+    plik: "tools/pobierz-dokumentacje-wp.mjs",
+    zmien: (s) =>
+      s.includes("export const KATALOGI_MASOWE")
+        ? s.replace("export const KATALOGI_MASOWE", "const KATALOGI_MASOWE")
+        : null,
+  },
+  {
+    straznik: "straznik-wagi-dokumentacji",
+    opis: "reguła .gitignore dla korpusu WordPressa skasowana",
+    plik: ".gitignore",
+    zmien: (s) =>
+      s.includes("docs/dokumentacja-techniczna/wordpress/*\n")
+        ? s.replace("docs/dokumentacja-techniczna/wordpress/*\n", "")
+        : null,
   },
 
   {
