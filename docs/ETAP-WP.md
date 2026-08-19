@@ -77,18 +77,18 @@ Rozmowa rozstrzygnęła to podziałem odpowiedzialności (niżej).
 
 ## Pytania otwarte — do rozstrzygnięcia przed pisaniem kodu
 
-1. **Jak zdobyć motyw strony głównej?** Konwersja jest u kolegi
-   z zespołu, lokalnie jej nie mamy (sprawdzone: `mp-test-env` niesie
-   motyw `kredyt-kompas`, nie Automatic AI). Do pracy wystarczy SAM
-   KATALOG MOTYWU — `style.css`, `theme.json`, szablony — bez bazy,
-   treści i uploadów. Kilka megabajtów, a odblokowuje wszystkie decyzje
-   warstwy widoku.
-2. **Motyw blokowy (FSE) czy klasyczny?** Od tego zależy wszystko
-   w warstwie widoku: czy wtyczka wstawia szablony blokami, czy
-   przechwytuje `template_include`, i jak dokłada pozycję do menu.
-3. **Co konkretnie znaczy „dopasowuje się do strony"?** Dziedziczenie
-   zmiennych CSS z motywu, `theme.json`, czy własny design system
-   wtyczki? Odpowiedź decyduje, ile z `components/kurs/*` przenosimy 1:1.
+1. ~~Jak zdobyć motyw strony głównej?~~ **MAMY GO 2026-08-20** — kolega
+   z zespołu wypchnął całą konwersję do repo `MatthewPlugins/automatic-ai`,
+   gałąź `main`, katalog `wordpress/`. Szczegóły i konsekwencje: sekcja
+   „Motyw Automatic AI" niżej.
+2. ~~Motyw blokowy (FSE) czy klasyczny?~~ **KLASYCZNY** — `header.php`,
+   `footer.php`, `front-page.php`, `page.php`, zero `theme.json`
+   i zero `templates/`. Wtyczka przechwytuje `template_include`.
+3. ~~Co znaczy „dopasowuje się do strony"?~~ **Własny arkusz wtyczki
+   z tymi samymi wartościami** — nie dziedziczenie, bo nie ma czego
+   dziedziczyć: motyw nie ma `theme.json`, a jego CSS to skompilowany
+   Tailwind (157 zmiennych, wszystkie `--tw-*`, czyli wewnętrzne
+   Tailwinda, nie tokeny designu). Uzasadnienie niżej.
 4. ~~Tutor LMS na realnej treści~~ **SPRAWDZONE 2026-08-19** — uniesie
    (59 kB lekcja renderuje się w 6,6 ms, cały Kurs 2 wszedł bez ubytku),
    da się ostylować (własne zmienne `--tutor-*` + szablony do nadpisania),
@@ -99,6 +99,11 @@ Rozmowa rozstrzygnęła to podziałem odpowiedzialności (niżej).
 
 ## Praca bez dostępu do motywu (ustalenie 2026-08-19)
 
+> **Nieaktualne od 2026-08-20 — motyw mamy** (sekcja „Motyw Automatic AI").
+> Sekcja zostaje, bo jej rozstrzygnięcia dalej obowiązują: wtyczka ma być
+> agnostyczna wobec motywu i testowana na dwóch rodzajach naraz. Jeden
+> wiersz tabeli okazał się nieprawdziwy i jest poprawiony niżej.
+
 Nie czekamy z założonymi rękami — projektujemy wtyczkę **agnostycznie
 wobec motywu**, żeby wpięcie u kolegi było wpięciem, a nie przepisywaniem:
 
@@ -108,13 +113,119 @@ wobec motywu**, żeby wpięcie u kolegi było wpięciem, a nie przepisywaniem:
 | Kontrakty treści, migracja Postgres → MySQL | **nie** | robimy od razu |
 | Kreator w kokpicie WP (ekran + REST/nonce) | **nie** | kokpit ma własny wygląd, niezależny od motywu frontu |
 | Szablony katalogu i stron sprzedażowych | **tak** | własne style z fallbackiem; jeśli motyw ma `theme.json`, dziedziczymy jego zmienne (kolory, typografia, odstępy) |
-| Pozycja „Szkolenia" w menu | prawie nie | standardowe API WP działa i w motywach blokowych, i w klasycznych |
+| Pozycja „Szkolenia" w menu | **TAK — i to bardziej, niż sądziliśmy** | ~~standardowe API WP~~ **nieprawda dla tego motywu**: nawigacja jest wpisana na sztywno w `header.php`, bez `wp_nav_menu()`. Pozycja wchodzi zmianą w źródle Next.js + regeneracją motywu — patrz „Motyw Automatic AI" |
 
 **Warunek bezpieczeństwa: testujemy na DWÓCH rodzajach motywu naraz.**
 W `mp-test-env` są już oba: `twentytwentyfive` (blokowy, FSE) oraz
 `kredyt-kompas` (klasyczny). Wtyczka, która wygląda poprawnie na obu,
 wejdzie w motyw Automatic AI bez niespodzianek — a jeśli nie wejdzie,
 zobaczymy to na własnym środowisku, nie na produkcji kolegi.
+
+## Motyw Automatic AI — mamy go (2026-08-20)
+
+Kolega z zespołu wypchnął całą konwersję: **repo `MatthewPlugins/automatic-ai`,
+gałąź `main`, katalog `wordpress/`** — motyw, treść i skrypty (216 plików,
+6,1 MB). To **koryguje zapis z 2026-08-19**, że takiego katalogu tam nie ma:
+wtedy faktycznie go nie było, teraz jest.
+
+> Repo strony głównej pozostaje **tylko do odczytu** (WYTYCZNE, zakaz po
+> BLAD-007 — także dla zmian niecommitowanych). Motyw bierzemy przez
+> sparse checkout do katalogu roboczego; lokalnego klonu nie dotykamy.
+
+### Co tam leży
+
+| Ścieżka | Co to |
+|---|---|
+| `wp/theme/automatic-ai/` | motyw: `header.php`, `footer.php`, `front-page.php` (80 kB), `functions.php`, `index.php`, `page.php`, `style.css`, `static/` |
+| `import/*.json` | treść strony wyeksportowana z builda (strony, wpisy, blog, menu) |
+| `skrypty/` | `start.sh` (Docker: WP + MariaDB, `:8890`), importy PHP, eksport statyczny, **`generuj-motyw.mjs`** |
+| `docker-compose.yml`, `README.md` | warsztat i instrukcja |
+
+### Siedem faktów, które przesądzają o projekcie wtyczki
+
+1. **Motyw jest KLASYCZNY.** `index.php` i `page.php` to dosłownie
+   `get_header()` → `<main id="tresc">` → `get_footer()`. Nasza wtyczka
+   wchodzi przez `template_include` i renderuje własny `<main>` — dokładnie
+   tak, jak `/szkolenia` działa dziś w prototypie.
+2. **Motyw jest GENEROWANY** przez `skrypty/generuj-motyw.mjs` z builda
+   Next.js, a `style.css` mówi wprost: *„nie edytować ręcznie"*. Cokolwiek
+   dopiszemy do motywu, zniknie przy następnej regeneracji — **wszystko musi
+   siedzieć we wtyczce**.
+3. **Nie ma `theme.json`.** Nie ma więc presetów `--wp--preset--*` do
+   dziedziczenia, a `functions.php` dodatkowo robi
+   `wp_dequeue_style('global-styles')`.
+4. **CSS to skompilowany Tailwind** (jeden chunk, 87 kB): 157 zmiennych,
+   wszystkie `--tw-*` — czyli wewnętrzne zmienne Tailwinda, nie tokeny
+   designu. Tailwind emituje reguły **tylko dla klas użytych w źródle**,
+   więc wtyczka nie może „użyć klas motywu": klasy, której nie ma na stronie
+   głównej, po prostu nie ma w arkuszu. **Wniosek: wtyczka wnosi własny
+   arkusz**, a „dopasowanie" znaczy te same wartości (kolory, typografia,
+   promienie, cienie), nie wspólny mechanizm.
+5. **Nawigacja jest wpisana na sztywno w `header.php`** — zero
+   `wp_nav_menu()`, zero `register_nav_menu()`. To **obala wcześniejszy zapis
+   z tabeli „Praca bez dostępu do motywu"**, że pozycję w menu doda
+   standardowe API WP. Nie doda. Pozycja „Szkolenia" wymaga zmiany
+   w **źródle Next.js** i regeneracji motywu — czyli prośby do kolegi albo
+   PR-a do repo strony głównej, nie kodu w naszej wtyczce.
+6. **Motyw przejmuje SEO i `<head>`**: usuwa `rel_canonical`, `wp_shortlink`,
+   ustawia własny tytuł przez `pre_get_document_title`, a kanoniki i Open
+   Graph wypycha z post meta `_aai_*`. Nasze strony kursów **nie dostaną
+   kanonika od WordPressa** — wtyczka musi go dodać sama (mamy to gotowe
+   z kroku 1: `lib/seo.ts`, kanoniki, OG, JSON-LD).
+7. **Motyw usuwa `wpautop` i `wptexturize`** z `the_content`. Treść lekcji
+   z naszego kreatora musi wejść jako **gotowy HTML** — puste linie nie zamienią
+   się w akapity.
+
+Dobra wiadomość: `wp_head()` jest na miejscu, a struktura
+`get_header()` / `<main>` / `get_footer()` jest dokładnie tym, czego
+potrzebuje wtyczka renderująca własne strony.
+
+### Tutor LMS na PRAWDZIWYM motywie — sprawdzone
+
+Motyw wgrany do naszego środowiska oceny (obok `twentytwentyfive`
+i `twentytwentyone`) i włączony:
+
+| Strona | Wynik |
+|---|---|
+| strona kursu (50 lekcji) | HTTP 200, 111 kB, **0,096 s** |
+| lekcja 59 kB, zalogowany | HTTP 200, 192 kB, **0,136 s**, treść widoczna |
+| nawigacja Automatic AI na stronie kursu | **jest** — Tutor renderuje się wewnątrz motywu |
+| arkusze | motyw + trzy arkusze Tutora obok siebie |
+
+**Ale zrzuty pokazują dwie różne sytuacje** — i to jest najważniejszy wniosek
+tego dnia:
+
+![strona kursu Tutora na motywie Automatic AI](zrzuty/tutor-na-motywie-kurs.png)
+
+**Strona kursu** wchodzi w motyw i tam się z nim **gryzie**: Automatic AI jest
+ciemny, a Tutor wstawia jasne karty („Free / Enroll Now", program, placeholder
+okładki) i ciemny tekst nagłówków, który na ciemnym tle prawie znika. Interfejs
+jest po angielsku. To jednak **teren naszej wtyczki** — katalog i strony
+sprzedażowe robimy sami, więc tej strony Tutora po prostu nie użyjemy.
+
+![widok lekcji Tutora](zrzuty/tutor-na-motywie-lekcja.png)
+
+**Widok lekcji za logowaniem to osobny, pełnoekranowy ekran Tutora** — nie
+wchodzi w motyw wcale (brak nagłówka Automatic AI) i dzięki temu jest spójny
+sam w sobie: pasek z tytułem kursu, panel programu z 7 modułami, treść,
+Previous/Next. **Nasza treść renderuje się w nim poprawnie.** To teren Tutora
+i tam jego wygląd jest do zaakceptowania — do dociągnięcia zmiennymi
+`--tutor-*` i tłumaczeniem interfejsu.
+
+> **Uczciwie o zrzucie lekcji:** gołe gwiazdki i akapit-na-linię to usterka
+> mojego prowizorycznego konwertera Markdown → HTML użytego do wrzucenia
+> treści (wytłuszczenie przez wiele linii, `<p>` na każdą linię), **nie wina
+> Tutora**. Docelowo treść przychodzi z naszego kreatora jako gotowy HTML.
+
+Do wyłączenia przy wdrożeniu: onboardingowy modal Tutora („Take the Tour")
+zasłaniający materiał przy pierwszym wejściu.
+
+### Co z tego wynika dla podziału odpowiedzialności
+
+Podział z tego dokumentu **broni się na dowodach**: strony sprzedażowe i katalog
+zostają nasze (bo tam Tutor nie pasuje wizualnie i tak czy owak nie ma tam nic,
+czego byśmy nie mieli lepiej), a materiał za logowaniem bierze Tutor (bo tam ma
+własny, spójny ekran, konta i ograniczenie dostępu z pudełka).
 
 ## Tutor LMS na realnej treści — pomiar, nie ulotka (2026-08-19)
 

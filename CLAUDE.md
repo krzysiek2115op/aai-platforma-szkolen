@@ -562,8 +562,23 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      Publigo BOX 1797 zł netto (Publigo GO odpada — nie wpuszcza własnych
      wtyczek). Kolejność: **dokumentacja i research teraz, kod wtyczki
      dopiero po ocenie kursów (B7)**.
-     **KOREKTA ŚCIĄGI:** wcześniejszy zapis mówił o katalogu `wordpress/`
-     „w repo strony głównej" — TAM GO NIE MA. Realne wzorce leżą w:
+     **KATALOG `wordpress/` JEST W REPO STRONY GŁÓWNEJ (od 2026-08-20)** —
+     kolega z zespołu wypchnął całą konwersję: `MatthewPlugins/automatic-ai`,
+     gałąź `main`, katalog `wordpress/` (motyw + treść + skrypty, 6,1 MB).
+     Zapis z 2026-08-19, że „tam go nie ma", był prawdziwy w chwili
+     sprawdzania i jest już nieaktualny. **Motyw jest KLASYCZNY** (`header.php`
+     /`footer.php`/`page.php`, zero `theme.json`), **generowany**
+     (`skrypty/generuj-motyw.mjs` — „nie edytować ręcznie"), jego CSS to
+     skompilowany **Tailwind** (same zmienne `--tw-*`, nie tokeny), a
+     **nawigacja jest wpisana na sztywno, bez `wp_nav_menu()`** — pozycja
+     „Szkolenia" wymaga zmiany w źródle Next.js i regeneracji motywu, nie
+     kodu wtyczki. Motyw przejmuje też `<head>` (usuwa `rel_canonical`,
+     własny tytuł i OG z post meta `_aai_*`) i kasuje `wpautop` — treść
+     lekcji musi wchodzić jako gotowy HTML. Siedem faktów z konsekwencjami
+     i zrzuty Tutora na TYM motywie: [docs/ETAP-WP.md](docs/ETAP-WP.md),
+     sekcja „Motyw Automatic AI". **Repo strony głównej dalej TYLKO DO
+     ODCZYTU** — motyw bierzemy sparse checkoutem, klonu nie dotykamy.
+     Inne realne wzorce leżą w:
      `/home/krzysiek/mp-test-env` (nasze własne środowisko WP: wtyczki
      `mp-*` z pełną strukturą, WooCommerce, worktree, narzędzia i testy),
      `/home/krzysiek/zlecenia stron internetowych/czarodziejski-dworek/wordpress`
