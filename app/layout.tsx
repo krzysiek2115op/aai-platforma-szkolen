@@ -10,10 +10,27 @@ import "./globals.css";
 const OPIS =
   "Kursy i ebooki Automatic AI — praktyczna wiedza o AI, agentach i automatyzacji procesów.";
 
+/*
+ * Tytuł DOMYŚLNY — dla stron, które nie ustawiają własnego. Sam katalog
+ * i strony kursów mają swoje (app/szkolenia/widok.tsx, [slug]/widok.tsx),
+ * więc ten wchodzi na stronę wejściową.
+ *
+ * Opisuje temat, a nie kategorię: „Szkolenia — Automatic AI" (24 znaki)
+ * nie mówiło wyszukiwarce ani człowiekowi nic o tym, czego uczymy —
+ * audyt SEO na żywym adresie zgłosił go jako za krótki.
+ *
+ * Dotyczy WYŁĄCZNIE tej podstrony. Tytuł strony głównej Automatic AI
+ * żyje w jej własnym repozytorium, które jest u nas tylko do odczytu.
+ */
+const TYTUL_DOMYSLNY = `Szkolenia z AI i automatyzacji procesów — ${MARKA}`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(ADRES_BAZOWY),
   title: {
-    default: `Szkolenia — ${MARKA}`,
+    default: TYTUL_DOMYSLNY,
+    // Strony kursów podstawiają własną nazwę: „Jak poprawnie korzystać
+    // z Claude — Automatic AI". Szablon zostaje bez zmian, bo tytuł
+    // kursu sam w sobie niesie temat.
     template: `%s — ${MARKA}`,
   },
   description: OPIS,
@@ -28,10 +45,10 @@ export const metadata: Metadata = {
     type: "website",
     siteName: MARKA,
     locale: "pl_PL",
-    title: `Szkolenia — ${MARKA}`,
+    title: TYTUL_DOMYSLNY,
     description: OPIS,
   },
-  twitter: { card: "summary_large_image", title: `Szkolenia — ${MARKA}`, description: OPIS },
+  twitter: { card: "summary_large_image", title: TYTUL_DOMYSLNY, description: OPIS },
 };
 
 export const viewport: Viewport = { themeColor: "#08090b" };
