@@ -21,8 +21,21 @@ import {
 
 const SCIEZKA = "tresc-kursow/jak-korzystac-z-claude/modul-1/proza-1-czym-jest.md";
 
-function plik(naglowki: string, tresc = "Pierwszy akapit lekcji.") {
-  return `---\n${naglowki}\n---\n\n${tresc}\n`;
+/** Tabela zgodności jest obowiązkowa, więc każdy przykład ją niesie. */
+const ZGODNOSC = [
+  "## Zgodność ze źródłem",
+  "",
+  "| Teza z lekcji | Miejsce w źródle |",
+  "|---|---|",
+  ...Array.from({ length: 8 }, (_, i) => `| Teza ${i + 1} | \`intro.md\` — sekcja ${i + 1} |`),
+].join("\n");
+
+function plik(
+  naglowki: string,
+  tresc = "Pierwszy akapit lekcji.",
+  zgodnosc = ZGODNOSC
+) {
+  return `---\n${naglowki}\n---\n\n${tresc}\n\n${zgodnosc}\n`;
 }
 
 const POPRAWNY = plik(
@@ -53,6 +66,10 @@ test("czyta plik prozy: numery, tytuły i treść bez frontmatteru", () => {
   assert.equal(proza.lekcja, 1);
   assert.equal(proza.tytulLekcji, "Czym jest Claude i co potrafi");
   assert.equal(proza.tresc, "Pierwszy akapit lekcji.");
+  assert.ok(
+    !proza.tresc.includes("Zgodność ze źródłem"),
+    "dowód dla nas nie ma prawa pojechać do klienta"
+  );
   assert.deepEqual(proza.materialy, []);
 });
 
@@ -85,8 +102,53 @@ test("odrzuca frontmatter kłócący się ze ścieżką pliku", () => {
 });
 
 test("odrzuca plik bez treści pod frontmatterem", () => {
-  const pusty = `---\nkurs: jak-korzystac-z-claude\nmodul: 1 — A\nlekcja: 1 — Czym jest Claude i co potrafi\n---\n\n   \n`;
+  const pusty = plik(
+    [
+      "kurs: jak-korzystac-z-claude",
+      "modul: 1 — Fundamenty: poznaj Claude",
+      "lekcja: 1 — Czym jest Claude i co potrafi",
+    ].join("\n"),
+    "   "
+  );
   assert.throws(() => czytajProze(pusty, SCIEZKA), BladProzy);
+});
+
+test("odrzuca lekcję bez tabeli zgodności ze źródłem", () => {
+  const bezDowodu = plik(
+    [
+      "kurs: jak-korzystac-z-claude",
+      "modul: 1 — Fundamenty: poznaj Claude",
+      "lekcja: 1 — Czym jest Claude i co potrafi",
+    ].join("\n"),
+    "Treść, której nikt nie sprawdził przeciw dokumentacji.",
+    ""
+  );
+  assert.throws(
+    () => czytajProze(bezDowodu, SCIEZKA),
+    (b: Error) => b instanceof BladProzy && /pokrycia źródłem/.test(b.message)
+  );
+});
+
+test("odrzuca tabelę zgodności płytszą niż próg", () => {
+  const plytka = plik(
+    [
+      "kurs: jak-korzystac-z-claude",
+      "modul: 1 — Fundamenty: poznaj Claude",
+      "lekcja: 1 — Czym jest Claude i co potrafi",
+    ].join("\n"),
+    "Treść lekcji.",
+    [
+      "## Zgodność ze źródłem",
+      "",
+      "| Teza z lekcji | Miejsce w źródle |",
+      "|---|---|",
+      "| Jedyna teza | `intro.md` |",
+    ].join("\n")
+  );
+  assert.throws(
+    () => czytajProze(plytka, SCIEZKA),
+    (b: Error) => b instanceof BladProzy && /próg/.test(b.message)
+  );
 });
 
 test("odrzuca treść ponad sufit kontraktu, zamiast czekać na 400 z serwera", () => {

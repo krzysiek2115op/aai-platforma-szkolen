@@ -34,6 +34,25 @@ import { TrescLekcji, type MaterialLekcji } from "../modules/m1-sklep/index.ts";
 /** Rozpoznanie pliku prozy po nazwie — jedno miejsce na ten wzorzec. */
 export const WZORZEC_PROZY = /^proza-(\d+)-.*\.md$/;
 
+/**
+ * Dowód pokrycia tez źródłem — sekcja OBOWIĄZKOWA, ucinana przed wysyłką.
+ *
+ * Zasada „każda teza ma pokrycie w źródle" (tresc-kursow/POSTEP.md,
+ * „Zasady pracy") rządziła 91 scenariuszami i musi rządzić prozą, bo to
+ * proza trafia do klienta. Tabela jest jednak dowodem dla NAS, nie
+ * materiałem kursu, więc żyje w tym samym pliku (obok tez, które
+ * uzasadnia — inaczej nikt jej nie aktualizuje), ale kończy się na
+ * granicy: wszystko od tego nagłówka w dół NIE jedzie do bazy.
+ *
+ * Brak sekcji zatrzymuje wgrywanie. Nie jest to formalizm: lekcja bez
+ * tabeli to lekcja, której nikt nie sprawdził przeciw dokumentacji,
+ * a kurs sprzedajemy na obietnicy zgodności ze źródłami.
+ */
+export const NAGLOWEK_ZGODNOSCI = "## Zgodność ze źródłem";
+
+/** Tyle samo co u scenariuszy (`straznik-scenariuszy`) — próg, nie cel. */
+export const MIN_WIERSZY_ZGODNOSCI = 8;
+
 /** Co niesie jeden plik prozy po odczytaniu i sprawdzeniu. */
 export type ProzaPliku = {
   /** slug kursu, np. „jak-korzystac-z-claude" */
@@ -44,7 +63,7 @@ export type ProzaPliku = {
   lekcja: number;
   tytulModulu: string;
   tytulLekcji: string;
-  /** treść dla klienta: markdown bez frontmatteru */
+  /** treść dla klienta: markdown bez frontmatteru i bez tabeli zgodności */
   tresc: string;
   materialy: MaterialLekcji[];
 };
@@ -150,7 +169,24 @@ export function czytajProze(surowy: string, sciezka: string): ProzaPliku {
     }
   }
 
-  const tresc = reszta.trim();
+  const granica = reszta.indexOf(NAGLOWEK_ZGODNOSCI);
+  if (granica === -1) {
+    throw new BladProzy(
+      `brak sekcji „${NAGLOWEK_ZGODNOSCI}" — lekcja bez dowodu pokrycia źródłem nie jedzie do bazy`
+    );
+  }
+  const wiersze = reszta
+    .slice(granica)
+    .split("\n")
+    .filter((l) => l.trimStart().startsWith("|") && !/^\s*\|[\s|:-]+\|\s*$/.test(l));
+  // nagłówek tabeli to też wiersz — liczymy same tezy
+  if (wiersze.length - 1 < MIN_WIERSZY_ZGODNOSCI) {
+    throw new BladProzy(
+      `tabela zgodności ma ${Math.max(wiersze.length - 1, 0)} tez, a próg to ${MIN_WIERSZY_ZGODNOSCI}`
+    );
+  }
+
+  const tresc = reszta.slice(0, granica).trim();
   if (tresc === "") throw new BladProzy("plik nie ma treści pod frontmatterem");
 
   const sprawdzone = TrescLekcji.safeParse({

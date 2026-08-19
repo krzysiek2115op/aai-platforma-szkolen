@@ -434,6 +434,44 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-prozy ---
+  {
+    straznik: "straznik-prozy",
+    opis: "scenariusz nagrania wklejony jako proza dla klienta",
+    plik: "tresc-kursow/jak-korzystac-z-claude/modul-1/proza-1-czym-jest-claude.md",
+    zmien: (s) =>
+      s.includes("## Czego się nauczysz")
+        ? s.replace("## Czego się nauczysz", "**[NARRACJA]** „Cześć!”\n\n## Czego się nauczysz")
+        : null,
+  },
+  {
+    straznik: "straznik-prozy",
+    opis: "lekcja bez dowodu pokrycia źródłem (usunięta tabela zgodności)",
+    plik: "tresc-kursow/jak-korzystac-z-claude/modul-1/proza-1-czym-jest-claude.md",
+    zmien: (s) =>
+      s.includes("## Zgodność ze źródłem")
+        ? s.slice(0, s.indexOf("## Zgodność ze źródłem"))
+        : null,
+  },
+  {
+    straznik: "straznik-prozy",
+    opis: "proza podpięta pod cudzą lekcję (frontmatter rozjeżdża się ze ścieżką)",
+    plik: "tresc-kursow/jak-korzystac-z-claude/modul-1/proza-1-czym-jest-claude.md",
+    zmien: (s) =>
+      s.includes("lekcja: 1 — Czym jest Claude i co potrafi")
+        ? s.replace("lekcja: 1 — Czym jest Claude i co potrafi", "lekcja: 3 — Czym jest Claude i co potrafi")
+        : null,
+  },
+  {
+    straznik: "straznik-prozy",
+    opis: "niedomknięty znacznik zrzutu — przelot końcowy by go przeoczył",
+    plik: "tresc-kursow/jak-korzystac-z-claude/modul-1/proza-1-czym-jest-claude.md",
+    zmien: (s) =>
+      s.includes(" -->")
+        ? s.replace("<!-- ZRZUT: pusta rozmowa na claude.ai — pole promptu i przełącznik modelu -->",
+                    "<!-- ZRZUT: pusta rozmowa na claude.ai — pole promptu i przełącznik modelu")
+        : null,
+  },
   // --- straznik-tresci-lekcji ---
   {
     straznik: "straznik-tresci-lekcji",
