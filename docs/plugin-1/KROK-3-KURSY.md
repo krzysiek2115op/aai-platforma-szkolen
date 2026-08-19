@@ -234,9 +234,29 @@ Objawem żywego przebiegu są świeże czasy modyfikacji plików
 2. ~~Strażnicy i testy~~ — **25/25** i **75/75**, kody wyjścia bez potoku.
 3. ~~Wgrać moduł~~ — `npm run db1:tresc`: 6 lekcji, 6 wgranych, 0 bez zmian.
 4. ~~Jeden commit na moduł~~.
-5. **Pokazać właścicielowi w kreatorze** — ustalony rytm oceny, przystanek
-   po KAŻDYM module. To jedyna pozycja czekająca na człowieka.
+5. **Pokazać właścicielowi w kreatorze** — zrobione 2026-08-20, moduł
+   jest w bazie i czeka na ocenę.
 6. ~~Dopisać ocenę modułu do `tresc-kursow/POSTEP.md`~~.
+
+### DECYZJA WŁAŚCICIELA (2026-08-20): moduł 2 powstaje RÓWNOLEGLE z oceną modułu 1
+
+Rytm „przystanek po KAŻDYM module" zostaje jako zasada, ale **przy
+module 2 właściciel świadomie go zawiesił**: moduł 2 (prompt engineering,
+5 lekcji) ma powstać w CAŁOŚCI — brief, fale autorów, przelot spójności,
+przebieg cytatów — nie czekając, aż właściciel obejrzy moduł 1
+w kreatorze.
+
+Przedstawione i odrzucone: wariant „sam brief, fale po ocenie" (tańszy
+o ryzyko przeróbek) oraz całkowity postój. Właściciel zna cenę tej
+decyzji: **~760 tys. tokenów powstaje, zanim zobaczy modułowi 1
+poprawki przebiegu cytatów**, i jeżeli jego ocena zmieni format albo
+ton, przeróbka obejmie pięć gotowych lekcji, a nie jeden tani dokument.
+Przesłanka za: format lekcji 1.1 został już wcześniej zaakceptowany bez
+poprawek, więc ryzyko zmiany formatu jest małe.
+
+**Czego ta decyzja NIE zmienia:** przy module 3 i dalszych wracamy do
+pytania właściciela — to była zgoda punktowa na moduł 2, nie zniesienie
+rytmu.
 
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 

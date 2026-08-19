@@ -559,6 +559,10 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      czyli 13–14 mln na komplet — największa pozycja kosztowa Pluginu 1.
      **NASTĘPNY: moduł 2 Kursu 1** (prompt engineering, 5 lekcji) tym
      samym trybem: brief → fale → przelot spójności → przebieg cytatów.
+     **Decyzja właściciela 2026-08-20: moduł 2 powstaje W CAŁOŚCI
+     RÓWNOLEGLE z jego oceną modułu 1** — rytm „przystanek po każdym
+     module" zawieszony PUNKTOWO, tylko na ten moduł; przy module 3
+     znowu pytamy. Właściciel zna cenę (~760 tys. tokenów przed oceną).
      Uwaga organizacyjna z modułu 1: `/clear` zabiera raport subagenta,
      ale NIE zabiera samego subagenta — czysty `git status` nie dowodzi,
      że przebieg w tle przepadł, tylko że jeszcze nie zapisał.

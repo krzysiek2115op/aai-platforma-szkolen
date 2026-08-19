@@ -88,7 +88,27 @@ Rozmowa rozstrzygnęła to podziałem odpowiedzialności (niżej).
    zanim wybór zostanie zamknięty (czy uniesie długie lekcje tekstowe,
    czy da się ostylować, jak wygląda dostęp po zakupie).
 5. Czy e-booki są osobnym produktem, czy dodatkiem do kursu (wpływa na
-   układ katalogu i na to, co widzi WooCommerce).
+   układ katalogu i na to, co widzi WooCommerce). **Właściciel zapytał
+   o to wprost 2026-08-20** („czy PDF idzie na maila kupującego") —
+   pytanie zostaje otwarte do etapu WP.
+
+### Jak wygląda dostarczenie kursu po zakupie (odpowiedź udzielona 2026-08-20)
+
+Właściciel zapytał, czy po zakupie idzie PDF na maila plus link i hasło.
+Odpowiedź z zapisanych decyzji, żeby nie wyprowadzać jej od nowa:
+
+- **Hasła NIE wysyłamy mailem.** Kupujący zakłada konto przy kasie
+  WooCommerce i sam ustawia hasło (albo dostaje link do jego ustawienia).
+- Po zaksięgowaniu płatności WooCommerce zapisuje go na kurs w Tutorze,
+  a mail po zakupie niesie potwierdzenie, fakturę i link „przejdź do
+  kursu". Materiał czyta **za logowaniem**, nie z załącznika.
+- **PDF to dodatek do pobrania** (link w koncie kupującego), nie rdzeń —
+  powody odrzucenia PDF-a jako produktu: PRODUKCJA-MATERIALU-KROK-3.md.
+
+**Czego jeszcze NIE sprawdziliśmy:** ścieżki „zapłata → automatyczny
+zapis na kurs" na naszym środowisku. Pomiar z 2026-08-19 potwierdził
+tylko, że Tutor unosi długie lekcje i że dostęp za logowaniem działa
+z pudełka. Komenda generująca PDF też jeszcze nie istnieje.
 
 ## Następne kroki
 
