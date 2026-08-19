@@ -306,7 +306,9 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   — CZYTAĆ PRZED PRACĄ. Skrót:
   1. ~~merge D7 + dopracowanie repo (tura 1)~~ **ZROBIONE** (0.21.0,
      0.22.0). Właściciel może dosłać kolejne wskazówki do repo.
-  2. **← W TOKU: SEO i wydajność na żywym adresie.**
+  2. ~~SEO i wydajność na żywym adresie~~ **ZROBIONE** (0.23.0–0.25.0,
+     stack PR #26/#27/#28 zmergowany, tag `v0.25.0`; szczegóły w częściach
+     1–3 niżej — CZĘŚĆ 3/3 niesie lekcje warte przeczytania przed pomiarami).
      **Część 1/3 ZROBIONA (0.23.0, gałąź `feat/podglad-statyczny`): tryb
      podglądu statycznego.** `npm run build:podglad` → `out/` (katalog
      i strony kursów z bazy w czasie builda), `npm run deploy:podglad`
@@ -429,10 +431,13 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      (kody wyjścia BEZ potoku), pomiar:
      `PAGESPEED_KLUCZ` w `.env` → `node tools/pomiar-psi.mjs`.
 
-  3. **Pełne zabezpieczenia** — domknięcie pozycji ⏳/🔧
-     z `docs/security-checklist.md` możliwych w prototypie: pełne CSP
-     nagłówkiem + strażnik polityki, rate limiting, limity wejścia,
-     przegląd komunikatów błędów.
+  3. **← NASTĘPNY KROK: pełne zabezpieczenia** — domknięcie pozycji ⏳/🔧
+     z `docs/security-checklist.md` możliwych w prototypie (18 otwartych
+     pozycji): pełne CSP nagłówkiem + strażnik polityki, rate limiting,
+     limity wejścia, przegląd komunikatów błędów. Zacząć od przeczytania
+     `docs/security-checklist.md` i rozdzielenia pozycji na „możliwe
+     w prototypie Next" i „dopiero we wtyczce WP" — to drugie idzie do
+     specyfikacji etapu WP, nie do kodu.
   4. **Kursy zrobione do końca, w narzędziu** (kreator przejmuje lekcje
      i nagrania; właściciel NIE nagrywa wideo — potrzebna propozycja
      opcji produkcji materiału z kosztami i prawami; finalna treść
