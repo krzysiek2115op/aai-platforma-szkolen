@@ -737,7 +737,7 @@ lekcje) dochodzą w kroku 2.
 
 ### Dodane
 - **Licencja fontów obok plików fontów**:
-  [assets/fonts/LICENSE-Geist-OFL.txt](assets/fonts/LICENSE-Geist-OFL.txt)
+  [public/fonts/LICENSE-Geist-OFL.txt](public/fonts/LICENSE-Geist-OFL.txt)
   — Geist jest na SIL OFL 1.1 i licencja projektu (wcześniej GPL, teraz
   MIT) NIGDY go nie obejmowała; przy redystrybucji plików `.woff2` tekst
   OFL musi jechać razem z nimi. Tekst pobrany z oficjalnego repozytorium
@@ -944,7 +944,7 @@ Naprawy z pierwszej oceny B5 (procedura WYTYCZNE §1: migawka
 - **BLAD-001 — błąd hydratacji na każdej stronie**: pakiet `geist`
   generował różne klasy CSS fontów na serwerze i kliencie. Fonty idą
   teraz z lokalnych subsetów woff2 przez `next/font/local`
-  ([lib/fonts.ts](lib/fonts.ts) + [assets/fonts/](assets/fonts/)) —
+  ([lib/fonts.ts](lib/fonts.ts) + [public/fonts/](public/fonts/)) —
   wzorzec 1:1 ze strony głównej; pakiet `geist` usunięty. Nawrotów
   pilnuje nowy **straznik-fontow** (zakaz importu `geist` i zależności
   w package.json).

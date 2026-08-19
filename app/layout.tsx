@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSansSubset, GeistMonoSubset } from "@/lib/fonts";
+import { FONT_FACE_CSS, PLIKI_FONTOW } from "@/lib/fonts";
 import NavbarPrzelacznik from "@/components/NavbarPrzelacznik";
 import Footer from "@/components/Footer";
 import JsonLd from "@/components/seo/JsonLd";
@@ -59,7 +59,6 @@ export default function RootLayout({
   return (
     <html
       lang="pl"
-      className={`${GeistSansSubset.variable} ${GeistMonoSubset.variable}`}
       // Inline skrypt niżej dokłada klasę `js` do <html> PRZED hydratacją
       // (wyłącznik bezpieczeństwa animacji) — bez tego tłumika React
       // zgłasza mismatch atrybutów na <html> (BLAD-001); wzorzec 1:1
@@ -67,6 +66,28 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body>
+        {/*
+          Fonty: preload PRZED wszystkim + własny @font-face (lib/fonts.ts —
+          tam pełne uzasadnienie). React hoistuje oba do <head>, więc font
+          jedzie równolegle z CSS zamiast po nim; bez preloadu podmiana
+          fontu przesuwała układ (CLS 0,14 na desktopie) i opóźniała LCP
+          na mobile (~2,0 s przy FCP 1,05 s) — zmierzone przez PSI.
+          crossOrigin obowiązkowy: pobrania fontów są zawsze CORS-owe,
+          bez niego przeglądarka ściąga plik DRUGI raz.
+        */}
+        {PLIKI_FONTOW.map((href) => (
+          <link
+            key={href}
+            rel="preload"
+            as="font"
+            type="font/woff2"
+            href={href}
+            crossOrigin="anonymous"
+          />
+        ))}
+        <style href="geist-font-face" precedence="default">
+          {FONT_FACE_CSS}
+        </style>
         {/*
           Wyłącznik bezpieczeństwa animacji (wzorzec strony głównej):
           klasa `js` włącza stany ukryte animacji wejść; jeśli hydratacja

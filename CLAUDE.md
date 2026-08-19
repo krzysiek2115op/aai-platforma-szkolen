@@ -566,7 +566,7 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   głównej, do którego kod docelowo trafia. Zmienione na `main`
   I na gałęzi modułu (GitHub czyta licencję z gałęzi domyślnej).
   Fonty Geist mają WŁASNĄ licencję SIL OFL 1.1 —
-  `assets/fonts/LICENSE-Geist-OFL.txt` musi zostać przy plikach
+  `public/fonts/LICENSE-Geist-OFL.txt` musi zostać przy plikach
   `.woff2`; pilnuje `straznik-licencji`.
 
 <!-- BEGIN:nextjs-agent-rules -->

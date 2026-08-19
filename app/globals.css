@@ -13,8 +13,17 @@
   --color-volt: #bfff38;
   --color-line: rgba(245, 245, 245, 0.08);
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+  /*
+   * Rodziny wprost z @font-face (lib/fonts.ts + layout), nie przez
+   * zmienne next/font — uzasadnienie w lib/fonts.ts. „Geist Fallback"
+   * to zastępnik z korektą metryk na czas ładowania pliku.
+   */
+  --font-sans:
+    "Geist", "Geist Fallback", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    "Geist Mono", "Geist Mono Fallback", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, "Liberation Mono", monospace;
 
   --text-hero: clamp(3rem, 7vw, 7.25rem);
   --text-page-title: clamp(2.5rem, 5.5vw, 4.5rem);

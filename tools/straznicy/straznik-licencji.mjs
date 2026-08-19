@@ -7,7 +7,7 @@
  * na MIT dla zgodności z repo strony głównej). Plik LICENSE łatwo zgubić
  * przy porządkach, deklarację w README — przy przepisywaniu tabeli,
  * a `license` w package.json zostaje po staremu i kłamie w metadanych
- * pakietu. Osobna pułapka: pliki fontów Geist w assets/fonts/ są na
+ * pakietu. Osobna pułapka: pliki fontów Geist w public/fonts/ są na
  * SIL OFL 1.1 — licencja projektu ich NIE obejmuje, więc tekst OFL musi
  * leżeć obok nich przy każdej redystrybucji.
  *
@@ -64,7 +64,7 @@ if (existsSync("package.json")) {
 }
 
 // Fonty mają własną licencję (SIL OFL) — tekst musi jechać razem z plikami.
-const KATALOG_FONTOW = "assets/fonts";
+const KATALOG_FONTOW = "public/fonts";
 if (existsSync(KATALOG_FONTOW)) {
   const pliki = readdirSync(KATALOG_FONTOW);
   const saFonty = pliki.some((p) => /\.(woff2?|ttf|otf)$/i.test(p));
