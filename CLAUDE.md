@@ -542,7 +542,17 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      - Otwarte świadomie: **517 miejsc `[EKRAN]`** → bloki terminala
        tekstem, zrzuty interfejsu osobnym przelotem NA KOŃCU (najszybciej
        się starzeją).
-     **Krok 3 ma WŁASNY worktree**: `/home/krzysiek/Pod-strona-Szkolenia-krok3`
+     **ETAP 3 W PRODUKCJI (2026-08-20)** — sześć decyzji właściciela
+     i pełny stan w [docs/plugin-1/KROK-3-KURSY.md](docs/plugin-1/KROK-3-KURSY.md).
+     Skrót: proza lekcji pisana ZE ŹRÓDEŁ (scenariusz D7 = brief, nie
+     tekst do przepisania), pliki `tresc-kursow/<kurs>/modul-N/proza-M-*.md`
+     są ŹRÓDŁEM PRAWDY, do bazy wgrywa je `npm run db1:tresc` drogą
+     kreatora (jedyny AJAX, akcja `zapisz-tresc-lekcji`). Format
+     zaakceptowany przez właściciela na lekcji 1.1; moduł 1 Kursu 1
+     wyprodukowany (6 lekcji, 81 935 znaków). Rytm oceny: **przystanek
+     po każdym module**. Koszt zmierzony: ~152 tys. tokenów na lekcję,
+     czyli 13–14 mln na komplet — największa pozycja kosztowa Pluginu 1.
+  **Krok 3 ma WŁASNY worktree**: `/home/krzysiek/Pod-strona-Szkolenia-krok3`
      (gałąź `docs/krok-3-produkcja-materialu`). Reguła po incydencie
      z 2026-08-19: żaden czat nie przełącza gałęzi w cudzym katalogu —
      inaczej commit ląduje na obcej gałęzi, a `gh pr create` mówi

@@ -131,6 +131,86 @@ scenariusz ma 54 kB, więc każda lekcja mieści się w limicie
   to jedno żądanie, więc sufit nie jest zagrożony; przeliczyć dopiero,
   gdyby kiedyś wgrywać moduł hurtem.
 
+## Etap 3 — stan produkcji (aktualizować po KAŻDYM module)
+
+### Narzędzia i ochrona — ZROBIONE (2026-08-20)
+
+| Co | Gdzie | Dowód |
+|---|---|---|
+| `npm run db1:tresc` — proza wchodzi drogą kreatora | `tools/wgraj-tresc-lekcji.ts` | 3 testy negatywne po HTTP: zły token, rozjazd tytułu, niezgodność ze ścieżką — każdy kończy się kodem 1 BEZ wysłania czegokolwiek |
+| czysta warstwa czytająca prozę | `lib/proza-lekcji.ts` + testy | audyt mutacyjny 6/6 (numeracja, tytuł, ścieżka, sufit kontraktu, porównanie z bazą) + 3/3 (tabela zgodności) |
+| `straznik-prozy` | `tools/straznicy/straznik-prozy.mjs` | 4 mutacje w audycie, wszystkie łapane |
+
+**Format pliku prozy** (`tresc-kursow/<kurs>/modul-N/proza-M-<temat>.md`):
+frontmatter (`kurs`, `modul: N — tytuł`, `lekcja: M — tytuł`, `zrodla`,
+opcjonalnie `materialy` jako tablica JSON) → treść dla klienta →
+`## Zgodność ze źródłem`. **Wszystko od nagłówka zgodności w dół jest
+ucinane przed wysyłką do bazy**, ale jego BRAK zatrzymuje wgrywanie.
+Miejsca na zrzuty: `<!-- ZRZUT: opis -->` (niewidoczne dla czytającego,
+znajdowalne dla przelotu zrzutów na końcu produkcji).
+
+**Nazwa `proza-`, nie `lekcja-`**: trzej strażnicy treści zbierają pliki
+wzorcem `lekcja-*.md` i zażądaliby od prozy scen oraz tabeli zgodności
+scenariusza. Inny przedrostek nie zmusza do rozluźniania działających
+strażników.
+
+### Moduł 1 Kursu 1 — WYPRODUKOWANY (2026-08-20), czeka na domknięcie
+
+Sześć lekcji, **81 935 znaków prozy dla klienta** (scenariusze tego
+samego modułu to 38 kB razem ze scenami i tabelami):
+
+| Lekcja | Znaków | Wierszy zgodności |
+|---|---|---|
+| 1.1 Czym jest Claude i co potrafi (WZORZEC) | 11 203 | 27 |
+| 1.2 Rodzina modeli | 14 746 | 33 |
+| 1.3 Jak dobrać model | 13 995 | 34 |
+| 1.4 Cennik | 13 999 | 35 |
+| 1.5 Okno kontekstu | 13 993 | 35 |
+| 1.6 Słowniczek | 13 999 | 33 |
+
+Tryb: równoległy z briefem (`modul-1/BRIEF-prozy-modulu.md`), fale 3 + 2,
+przegląd pierwszej fali przed puszczeniem drugiej. Przelot spójności:
+łańcuch mostów trzyma się **co do zdania**, zero wycieków tematów przez
+granice, zero drugiej osoby małą literą, zero znaczników nagrania w prozie.
+
+**KOSZT — POMIAR, nie szacunek:** 107 + 199 + 151 + 139 + 173 tys.
+tokenów na pięć lekcji = **~152 tys. na lekcję**, wobec ~90 tys. przy
+scenariuszach D7. Powód: autorzy czytają źródła w CAŁOŚCI i w oryginale
+(cennik 41 kB, dobór modelu 85 kB w dwóch plikach) i budują tabele po
+33–35 wierszy. Ekstrapolacja na 91 lekcji: **13–14 mln tokenów** —
+największa pojedyncza pozycja kosztowa Pluginu 1. Właściciel zna tę
+liczbę i podtrzymuje decyzję o Opusie dla subagentów.
+
+### CO ZOSTAŁO DO ZROBIENIA W MODULE 1 (następny krok po /clear)
+
+1. **Sprawdzić wynik przebiegu cytatów** (druga bramka jakości) —
+   uruchomiony 2026-08-20, edytował pliki prozy i katalog
+   `docs/dokumentacja-techniczna/d7/cytowane/`. Jego raport przepadł
+   z kontekstem sesji, więc weryfikacja idzie z repo: `git status`
+   i `git diff` na `tresc-kursow/jak-korzystac-z-claude/modul-1/`
+   (co poprawił) oraz `ls docs/dokumentacja-techniczna/d7/cytowane/`
+   (miały dojść cztery pliki: models--overview, models--choosing-a-model,
+   models--optimizing-for-cost-and-intelligence, pricing, context-windows;
+   istniały tylko `claude-platform--intro.md` i `--glossary.md`).
+2. `node tools/straznicy/straznik-prozy.mjs` → 0, potem `npm test`
+   i `node tools/straznicy/uruchom-wszystkie.mjs`.
+3. **Wgrać moduł:** `npm run db1:tresc` (wymaga `npm run dev` na :3001).
+4. Jeden commit na moduł, temat = skutek.
+5. Pokazać właścicielowi w kreatorze — taki jest ustalony rytm oceny.
+6. Dopisać ocenę modułu do `tresc-kursow/POSTEP.md` (sekcja o produkcji prozy).
+
+### Znaleziska z modułu 1 do decyzji przy publikacji kursu
+
+| Znalezisko | Skąd | Co z tym |
+|---|---|---|
+| **Cena wprowadzająca Sonneta 5 wygasa 31 sierpnia 2026** — notatka mówi też o odwołanej podwyżce z 1 września | `pricing.md` | **Sprawdzić przed publikacją kursu**; lekcja 1.4 podaje ceny z migawki i mówi, gdzie sprawdzić aktualne |
+| Dokumentacja opisuje **Sonneta 5 dwoma różnymi zdaniami** (`intro.md` vs `overview.md`); dla pozostałych modeli opisy są zgodne | oba pliki | Rozbrojone jawnie w lekcji 1.2 — kurs cytuje oba brzmienia i nazywa rozjazd (wzorem lekcji 5.7 Kursu 2 przy skrócie CD) |
+| Kompakcja kontekstu jest w źródle „podstawową strategią" i **jednocześnie w becie**, tylko dla modeli 4.6+ | `context-windows.md` | Napisane wprost, z ostrzeżeniem przed opieraniem na tym firmowego procesu |
+| **Najmocniejsze modele NIE mają świadomości kontekstu** (mają: Sonnet 5, Haiku 4.5; nie mają: Opus 4.7+, Fable 5, Mythos 5) | `context-windows.md` | Kontrintuicyjne wobec narracji „biorę najmocniejszy" — zostawione jako oznaczone zaskoczenie |
+| **Przykład „10 000 zgłoszeń ≈ $37" w dokumentacji się nie domyka** (wychodzi tylko przy policzeniu całości po stawce wejścia, mimo podanej stawki wyjścia) | `pricing.md` | Liczba przepisana wiernie; usterka jest po stronie Anthropica |
+| Modele legacy bywają **droższe** od aktualnych następców (Sonnet 4.6/4.5 $3/$15 wobec Sonnet 5 $2/$10) | `models/overview.md` | Użyte w 1.2 jako argument za migracją |
+| Fable 5 używa tokenizera od Opus 4.7 — ten sam tekst to **~30% więcej tokenów** niż na starszych modelach | `models/overview.md` | Podkopuje naiwne porównywanie cen za MTok między pokoleniami |
+
 ## Etap 2 — co już jest (commit „lekcja umie nieść treść kursu")
 
 Warstwa danych, testy 45/45, strażnicy 21/21:
