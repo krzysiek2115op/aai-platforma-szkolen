@@ -37,6 +37,64 @@ import {
  * Zgadującego to nie ratuje — on z definicji nie ma poprawnego tokenu.
  */
 
+/**
+ * Sufit ciała żądania. Pomiar z 2026-08-19: największy dzisiejszy zapis
+ * kursu (treść sekcji + program 7 modułów / 50 lekcji) ma **17 kB**,
+ * więc 2 MB to ponad stukrotny zapas. Nie jest to liczba z sufitu:
+ * proza obu kursów waży dziś 1307 kB, a kreator ma dostać TREŚĆ LEKCJI
+ * (krok 3 planu domknięcia) — wtedy jeden zapis realnie zbliży się do
+ * megabajta. Gdy to nastąpi, sufit przeliczyć POMIAREM albo rozbić
+ * zapis na akcję per lekcja; limit ma odcinać nadużycie, nie pracę.
+ */
+const MAKS_CIALO_B = 2 * 1024 * 1024;
+
+/**
+ * Ciało żądania z twardym sufitem, czytane STRUMIENIEM.
+ *
+ * `content-length` sprawdzamy najpierw, bo tanio odrzuca uczciwie
+ * zadeklarowany zalew — ale mu nie ufamy: nagłówek może kłamać, a przy
+ * transferze porcjowanym w ogóle go nie ma. Dlatego liczymy bajty
+ * naprawdę i przerywamy W TRAKCIE, zamiast wczytać wszystko do pamięci
+ * i dopiero wtedy zmierzyć (to ostatnie byłoby limitem, który sam
+ * wykonuje atak).
+ *
+ * Zwraca `null`, gdy ciało przekroczyło sufit.
+ */
+async function cialoZSufitem(
+  request: Request,
+  maks: number
+): Promise<string | null> {
+  const zadeklarowana = Number(request.headers.get("content-length"));
+  if (Number.isFinite(zadeklarowana) && zadeklarowana > maks) return null;
+  if (!request.body) return "";
+
+  const czytnik = request.body.getReader();
+  const kawalki: Uint8Array[] = [];
+  let rozmiar = 0;
+  try {
+    for (;;) {
+      const { done, value } = await czytnik.read();
+      if (done) break;
+      rozmiar += value.byteLength;
+      if (rozmiar > maks) {
+        await czytnik.cancel();
+        return null;
+      }
+      kawalki.push(value);
+    }
+  } finally {
+    czytnik.releaseLock();
+  }
+
+  const scalone = new Uint8Array(rozmiar);
+  let przesuniecie = 0;
+  for (const kawalek of kawalki) {
+    scalone.set(kawalek, przesuniecie);
+    przesuniecie += kawalek.byteLength;
+  }
+  return new TextDecoder().decode(scalone);
+}
+
 /** Odmowa z powodu tempa — treść generyczna, powód w `Retry-After`. */
 function odmowaTempa(ponowZaS: number): NextResponse {
   return NextResponse.json(
@@ -51,9 +109,17 @@ export async function POST(request: Request): Promise<NextResponse> {
   const tempo = limiter.odnotuj(`wystrzal:${adres}`, LIMIT_WYSTRZALU);
   if (!tempo.dozwolone) return odmowaTempa(tempo.ponowZaS);
 
+  const surowe = await cialoZSufitem(request, MAKS_CIALO_B);
+  if (surowe === null) {
+    return NextResponse.json(
+      { ok: false, blad: "za-duze-zadanie" },
+      { status: 413 }
+    );
+  }
+
   let dane: unknown;
   try {
-    dane = await request.json();
+    dane = JSON.parse(surowe);
   } catch {
     return NextResponse.json(
       { ok: false, blad: "nieprawidlowy-json" },
