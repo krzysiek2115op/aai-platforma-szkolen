@@ -25,10 +25,17 @@ import { zasob } from "@/lib/podglad";
  *
  * ZASTĘPNIKI Z KOREKTĄ METRYK. Wartości ascent/descent/size-adjust są
  * przepisane 1:1 z tego, co generował next/font (liczone z metryk
- * realnych plików .woff2). Stoją na local(Arial) — tam, gdzie Ariala
- * nie ma (Linux, w tym serwery pomiarowe Google), korekta przepada
- * i stos leci dalej. Dlatego rdzeniem naprawy jest preload, a korekta
- * metryk tylko siatką bezpieczeństwa na wolne łącza.
+ * realnych plików .woff2). next/font wiązał je WYŁĄCZNIE z local(Arial)
+ * — na Linuksie (w tym na serwerach pomiarowych Google) Ariala nie ma,
+ * twarz przepadała w całości i tekst zastępczy renderował się BEZ
+ * korekty, o 8–11% węższy (zmierzone). Skutek na wolnym łączu: podmiana
+ * na Geista POSZERZA bloki tekstu, a Chrome rejestruje wtedy nowego,
+ * większego kandydata LCP — LCP wypada w chwili dojazdu fontu zamiast
+ * przy pierwszym malowaniu. Dlatego lista local() ma też Liberation
+ * Sans: to metryczny bliźniak Ariala (ta sama szerokość znaków,
+ * zaprojektowany jako zamiennik) obecny na Linuksie. Z nim korekta
+ * działa wszędzie, geometria zastępnika = geometria Geista, i podmiana
+ * fontu przestaje być zdarzeniem układu.
  *
  * Adresy przechodzą przez zasob(): w podglądzie statycznym pliki
  * z public/ żyją pod basePath GitHub Pages (jak okładki kursów).
@@ -50,7 +57,7 @@ export const FONT_FACE_CSS = `
 }
 @font-face {
   font-family: "Geist Fallback";
-  src: local("Arial");
+  src: local("Arial"), local("Liberation Sans");
   ascent-override: 94.56%;
   descent-override: 27.76%;
   line-gap-override: 0%;
@@ -64,7 +71,7 @@ export const FONT_FACE_CSS = `
 }
 @font-face {
   font-family: "Geist Mono Fallback";
-  src: local("Arial");
+  src: local("Arial"), local("Liberation Sans");
   ascent-override: 76.43%;
   descent-override: 22.43%;
   line-gap-override: 0%;

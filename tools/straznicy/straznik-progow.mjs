@@ -50,9 +50,12 @@ if (!existsSync(GOLDEN)) {
    * uczciwym i strażnik ma ją przepuścić; dopiero wpisana liczba bez
    * pokrycia w zapisanym przebiegu jest błędem.
    */
-  if (wiersze.length > 0) {
+  const twierdzace = wiersze.filter(
+    ([, , , reszta]) => !reszta.split("|").map((k) => k.trim()).slice(0, 4).every((k) => k === "—" || k === "-")
+  );
+  if (twierdzace.length > 0) {
     bledy.push(
-      `${README}: tabela podaje ${wiersze.length} wyników, a ${GOLDEN} nie istnieje — liczby nie mają czym się wylegitymować. Uruchom: node tools/pomiar-psi.mjs`
+      `${README}: tabela podaje ${twierdzace.length} wyników, a ${GOLDEN} nie istnieje — liczby nie mają czym się wylegitymować. Uruchom: node tools/pomiar-psi.mjs`
     );
   }
 } else {
@@ -83,6 +86,17 @@ if (!existsSync(GOLDEN)) {
 
   for (const [, sciezka, tryb, reszta] of wiersze) {
     const klucz = `${sciezka}|${tryb}`;
+
+    /*
+     * Wiersz z samymi myślnikami znaczy „niezmierzone" i NICZEGO nie
+     * twierdzi — nie wchodzi do porównania z goldenem. Dzięki temu
+     * tabela-szkielet (format gotowy, liczb brak) jest stanem uczciwym,
+     * a golden bez wiersza w tabeli dalej jest błędem: wynik istnieje,
+     * dokumentacja go ukrywa.
+     */
+    const komorkiWiersza = reszta.split("|").map((k) => k.trim());
+    if (komorkiWiersza.slice(0, 4).every((k) => k === "—" || k === "-")) continue;
+
     wReadme.add(klucz);
 
     const dane = golden.strony?.[sciezka]?.[tryb];

@@ -241,6 +241,17 @@ repo / ⛔ nie dotyczy z powodem / ⏳ etap WP). Skrót:
 Cel właściciela: **100 w każdej kolumnie**, mierzone narzędziami Google
 na żywym adresie, a wynik wpisany tutaj tabelą.
 
+**Liczby do tabeli robi PageSpeed Insights** (`tools/pomiar-psi.mjs`,
+klucz API w `.env` jako `PAGESPEED_KLUCZ`), czyli Lighthouse uruchamiany
+NA SERWERACH GOOGLE — **nie lokalny Lighthouse**. Lokalny mierzy także
+maszynę, na której chodzi: ta sama strona, ten sam build dawały TBT 96,
+102 i 257 ms w trzech seriach (raz winowajcą był zawieszony proces
+zajmujący cały rdzeń), a seria dziewięciu przebiegów pokazała rozrzut
+88–98 z opadaniem w czasie — profil throttlingu termicznego laptopa.
+Lokalny wariant (`tools/pomiar-lighthouse.mjs`) zostaje do szybkiej
+pętli przy optymalizacji; przed jego użyciem sprawdzić
+`ps -eo pcpu,comm --sort=-pcpu`, czy maszyna jest spokojna.
+
 **Pomiar rozchodzi się na dwa buildy i trzeba wiedzieć dlaczego.** Podgląd
 chodzi z `noindex` (decyzja właściciela — treść stron sprzedażowych jest
 jeszcze robocza, a opinie to jawne placeholdery). Lighthouse **punktuje**
@@ -249,19 +260,36 @@ nigdy nie pokaże 100, choćby wszystko inne było bez zarzutu. Mierzymy więc:
 
 | Co | Gdzie | Dlaczego tam |
 |---|---|---|
-| Wydajność, dostępność, dobre praktyki, LCP/CLS/TBT | żywy adres podglądu (z `noindex`) | prawda o sieci, hostingu i realnym transferze |
-| SEO | build z `SEO_INDEKSOWANIE=1`, lokalnie na `next start` / serwowanym `out/` | wynik nieprzykryty naszym własnym ustawieniem |
+| Wydajność, dostępność, dobre praktyki, LCP/CLS/TBT | żywy adres podglądu (z `noindex`), przez PSI | prawda o sieci, hostingu i realnym transferze — zmierzona poza naszą maszyną |
+| SEO | build z `SEO_INDEKSOWANIE=1`, lokalnie na `next start` | wynik nieprzykryty naszym własnym ustawieniem; audyty SEO patrzą na znaczniki, nie na czasy, więc lokalny pomiar tu nie kłamie |
 
-Wynik jest ważny dopiero, gdy narzędzie pokaże go **trzy razy z rzędu**.
+Rytuał pomiaru (kolejność jest treścią protokołu):
 
-| Podstrona | Wydajność | Dostępność | Dobre praktyki | SEO | LCP | CLS | TBT |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `/szkolenia` | — | — | — | — | — | — | — |
-| `/szkolenia/[slug]` | — | — | — | — | — | — | — |
+1. `npm run deploy:podglad` — deploy sam weryfikuje, że żywy adres
+   oddaje DOKŁADNIE ten build, **łącznie z każdym chunkiem** (nazwy
+   chunków nie pochodzą z treści, więc porównanie samego HTML-a
+   przechodziło kiedyś na zielono przeciw staremu deploymentowi).
+2. **Odczekać ≥10 minut.** Edge cache Pages ma `max-age=600` i spod
+   niezmienionych adresów oddaje starą treść; do tego zimny cache CDN
+   zaniża wynik tuż po publikacji (widziane 91 tam, gdzie po chwili
+   wychodziło 100). Pomiar minutę po deployu mierzy nie tę stronę.
+3. `PAGESPEED_KLUCZ=… node tools/pomiar-psi.mjs` — **mediana z 5
+   przebiegów** na stronę i tryb (mobile + desktop), zapis do
+   `goldeny/pomiary-lighthouse.json` razem z datą i warunkami.
+4. Kolumnę SEO mierzy się osobno na buildzie bez `noindex`
+   i podaje przez `SEO_KATALOG`/`SEO_KURS` — golden notuje to jawnie.
+
+| Podstrona | Tryb | Wydajność | Dostępność | Dobre praktyki | SEO | LCP | CLS | TBT |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `/szkolenia` | mobile | — | — | — | — | — | — | — |
+| `/szkolenia` | desktop | — | — | — | — | — | — | — |
+| `/szkolenia/[slug]` | mobile | — | — | — | — | — | — | — |
+| `/szkolenia/[slug]` | desktop | — | — | — | — | — | — | — |
 
 > Myślniki znaczą **niezmierzone**, nie „zero" i nie „nie wiadomo".
-> Liczby wchodzą tu z zapisanego przebiegu Lighthouse'a, razem z datą
-> i warunkami pomiaru. Dla porównania: strona główna przy tym samym
+> Liczby wchodzą tu wyłącznie z zapisanego przebiegu
+> (`goldeny/pomiary-lighthouse.json`) — pilnuje tego `straznik-progow`,
+> co do jednostki. Dla porównania: strona główna przy tym samym
 > reżimie ma 94–98 na wydajności i najniżej wypadają szablony
 > z okładkami — bo obraz jest elementem LCP. Nasz katalog to siatka
 > okładek plus animowany hero, czyli przypadek trudniejszy.

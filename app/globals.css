@@ -268,6 +268,23 @@ html.js [data-na-ekranie] .fw-impuls {
   animation-play-state: running;
 }
 
+/*
+ * …a grupa maskowana w ogóle się nie maluje, dopóki stopka nie wejdzie
+ * w widok. Samo wstrzymanie animacji nie wystarczało: Chrome i tak
+ * rejestrował tekst maski (mask#fw-maska > text) jako kandydata LCP
+ * o rozmiarze 183 600 px² — większego niż jakakolwiek PRAWDZIWA treść
+ * strony — w chwili dojazdu fontu. LCP obu stron było przybite do
+ * niewidzialnego elementu. visibility: hidden zdejmuje malowanie,
+ * więc kandydat znika; bez JS bramki nie ma i wordmark działa jak
+ * dotąd.
+ */
+html.js .fw-svg g[mask] {
+  visibility: hidden;
+}
+html.js [data-na-ekranie] .fw-svg g[mask] {
+  visibility: visible;
+}
+
 @keyframes fw-impuls {
   0% {
     transform: translateX(0);
