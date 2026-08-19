@@ -10,7 +10,8 @@ Stan: **w toku od 2026-08-19.** Aktualizować przy każdym domkniętym etapie.
 ## Gdzie pracujemy
 
 Osobny worktree **`/home/krzysiek/Pod-strona-Szkolenia-krok3`**, gałąź
-`feat/kreator-tresc-lekcji`. Krok 2 siedzi w katalogu głównym
+`feat/tresc-lekcji-kursow` (etap 3; etap 2 zamknięty na `feat/kreator-tresc-lekcji`).
+Krok 2 siedzi w katalogu głównym
 (`/home/krzysiek/Pod strona Szkolenia `). Reguła po incydencie
 z 2026-08-19: **żaden czat nie przełącza gałęzi w cudzym katalogu.**
 
@@ -45,7 +46,7 @@ Wspólne z krokiem 2 zostają: baza `db1_kursy`, baza testowa
 |---|---|---|
 | 1 | Propozycja produkcji materiału → decyzja właściciela | ✅ zrobione (PR #32) |
 | 2 | Kreator przejmuje treść lekcji i materiały | ✅ zrobione (0.30.0, PR #36 zmergowany) |
-| 3 | Dogęszczenie Kursu 1 + redakcja 91 lekcji, treść wchodzi kreatorem | ⏳ — dwie decyzje do podjęcia, niżej |
+| 3 | Dogęszczenie Kursu 1 + proza 91 lekcji, treść wchodzi skryptem przez AJAX kreatora | 🚧 w robocie — sześć decyzji podjętych, niżej |
 | 4 | Finalna treść stron sprzedażowych kreatorem → B7 | ⏳ |
 
 ## Stan na 2026-08-19 wieczorem
@@ -68,26 +69,67 @@ doszło przeniesienie `MaterialLekcji` i `LekcjaZTrescia` do odczytowej
 części `typy.ts` (konwencja `straznik-limitow`: region limitów to samo
 wejście), a sufity pól materiału przejął `straznik-tresci-lekcji`.
 
-## Etap 3 — dwie decyzje PRZED pisaniem
+## Etap 3 — sześć decyzji PODJĘTYCH (właściciel, 2026-08-19 wieczorem)
 
-1. **Czym wprowadzić treść 91 lekcji.** Decyzja właściciela mówi:
-   treść wchodzi **kreatorem, nie seedem** (to był sens D6). Panel jest
-   gotowy, ale klikanie 91 lekcji ręcznie to praca sama w sobie. Do
-   rozstrzygnięcia: czy właściciel wkleja lekcje w panelu, czy powstaje
-   skrypt, który wysyła je **tą samą drogą co kreator** (jedyny AJAX
-   `/api/szkolenia`, akcja `zapisz-tresc-lekcji`, token z `.env`).
-   Drugie NIE jest seedem — omija panel, ale nie omija kontraktu ani
-   dyspozytora; pierwsze jest wierniejsze decyzji. Wybór należy do
-   właściciela.
-2. **Skąd bierze się treść lekcji.** Scenariusze z D7 są zapisem
-   NAGRANIA (`[EKRAN]`, `[NARRACJA]`, sceny), a kurs jest tekstowy —
-   więc lekcja na platformie to nie jest wklejony scenariusz, tylko
-   proza pisana z niego i ze źródeł. Do tego dochodzi dogęszczenie
-   Kursu 1 (91 stron prozy przeciw 292 Kursu 2) trybem równoległym
-   z briefami — przepis w `tresc-kursow/POSTEP.md`, sekcja „Tryb
-   produkcji". Otwarte zostaje też 517 miejsc `[EKRAN]` → zrzuty
-   interfejsu osobnym przelotem NA KOŃCU (decyzja z
-   PRODUKCJA-MATERIALU-KROK-3.md).
+Rozstrzygnięte po pytaniach agenta, przed napisaniem choćby zdania treści.
+Zapisane z uzasadnieniami, bo za pół roku nikt nie odtworzy, dlaczego wybór
+wypadł tak, a nie inaczej.
+
+1. **Produkt BEZ ZMIAN: platforma za logowaniem + PDF jako dodatek.**
+   Właściciel podniósł wątpliwość — „czemu w ogóle wprowadzać lekcje do
+   bazy, skoro można złożyć e-booki gotowym narzędziem z internetu".
+   Rozstrzygnięta po wyjaśnieniu: narzędzia typu Canva / Designrr /
+   Beacon **składają** tekst, a nie piszą go, więc nie zdejmują ani
+   godziny z pisania prozy — zmieniają wyłącznie to, gdzie ląduje gotowy
+   tekst. Powody odrzucenia PDF-a jako rdzenia (cena nie do obrony,
+   wyciek pliku kończy sprzedaż, aktualizacje dostarczane ręcznie, ginie
+   design premium) zostają w mocy, a doszedł jeszcze jeden: przy
+   produkcie-pliku sklep i kreator nie mają czego obsługiwać.
+2. **Proza lekcji powstaje ZE ŹRÓDEŁ, scenariusz jest BRIEFEM** (tezy,
+   granice, callbacki, zdanie zamykające) — nie redakcją scenariusza
+   i nie mechaniczną konwersją znaczników. Tylko ta droga dogęszcza
+   Kurs 1 i daje tekst do czytania zamiast zapisu nagrania.
+3. **Źródłem prawdy są PLIKI W REPO**, baza dostaje kopię. Proza żyje
+   obok scenariusza, wchodzi PR-em (da się recenzować), chroni ją golden
+   — jak scenariusze z D7. Utrata bazy nie kasuje pracy.
+4. **Treść wprowadza SKRYPT idący tą samą drogą co kreator** —
+   `tools/wgraj-tresc-lekcji.mjs` → jedyny AJAX `/api/szkolenia`, akcja
+   `zapisz-tresc-lekcji`, token z `.env`. To **nie jest seed**: bazy nie
+   dotyka wprost, przechodzi przez kontrakt Zod, limity wejścia i
+   dyspozytora dokładnie tak jak panel, więc zasada „jedna baza = jeden
+   AJAX" zostaje nienaruszona. Panel zostaje do oglądania i drobnych
+   poprawek, ale **poprawki merytoryczne robimy w pliku i wgrywamy
+   ponownie** — inaczej repo i baza się rozjadą.
+5. **Kurs 1 dogęszczamy tylko na poziomie PROZY.** Scenariusze Kursu 1
+   zostają jak są (ślad D7 i podstawa pod ewentualne wideo); gęstość
+   dokłada się przy pisaniu prozy, prosto ze wskazanych w programie
+   źródeł. Jeden przelot zamiast dwóch.
+6. **PDF generowany z tych samych plików JEDNĄ KOMENDĄ** (krok builda,
+   szablon w naszej typografii) — nie składany ręcznie w zewnętrznym
+   narzędziu. Powód wprost z decyzji 3: skład poza repo oznaczałby
+   wklejanie 91 lekcji do przeglądarki przy każdej korekcie, bez PR-a
+   i bez goldena.
+
+### Pomiar, na którym stoi decyzja 5 (2026-08-19)
+
+| Kurs | Scenariuszy | Objętość scenariuszy |
+|---|---|---|
+| Jak poprawnie korzystać z Claude | 41 | **311 kB** |
+| Jak poprawnie używać GitHuba | 50 | **1027 kB** |
+
+Kurs 1 jest **3,3× chudszy na lekcję**, nie tylko „91 stron kontra 292" —
+i to on kosztuje więcej (499 zł kontra 399 zł). Najdłuższy dzisiejszy
+scenariusz ma 54 kB, więc każda lekcja mieści się w limicie
+`TrescLekcji` (120 000 znaków) i w jednym żądaniu z zapasem.
+
+### Co zostaje otwarte świadomie
+
+- **517 miejsc `[EKRAN]`** — bloki terminala wchodzą tekstem od razu,
+  zrzuty interfejsu osobnym przelotem NA KOŃCU (decyzja z
+  PRODUKCJA-MATERIALU-KROK-3.md; to najszybciej starzejąca się część).
+- **Sufit ciała żądania 2 MB** (krok 2) — przy wgrywaniu jedna lekcja
+  to jedno żądanie, więc sufit nie jest zagrożony; przeliczyć dopiero,
+  gdyby kiedyś wgrywać moduł hurtem.
 
 ## Etap 2 — co już jest (commit „lekcja umie nieść treść kursu")
 
