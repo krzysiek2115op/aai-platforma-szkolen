@@ -453,10 +453,40 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      Next 16.3.1 wymaga w pliku proxy eksportu DOMYŚLNEGO.
      **BLAD-012**: smoke podglądu wołał `npx next build` zamiast komendy
      — nawrót klasy błędu z 0.24.0.
-     **NASTĘPNY: PR 2 `feat/brama-ajax`** — limiter, `timingSafeEqual`
-     w dyspozytorze, kara czasowa poza formularzem. Decyzje projektowe
-     są już zapisane w KROK-2-ZABEZPIECZENIA.md (sekcja „PR 2 —
-     decyzje podjęte przed pisaniem") — nie wyprowadzać ich od nowa.
+     **PR 2 z 4 ZROBIONY — wersja 0.27.0** (PR #35, tag `v0.27.0`):
+     brama jedynego AJAX-a. `lib/limiter.ts` (okno przesuwne po
+     IP+akcja, moduł CZYSTY — bez `next/*`, więc testowalny z
+     wstrzykniętym czasem), limit 60 POST-ów/min + OSOBNY licznik
+     5 chybionych uwierzytelnień/10 min, 429 z `Retry-After`, kara
+     700 ms także poza formularzem, `timingSafeEqual` w dyspozytorze
+     (helper LOKALNY — moduł zostaje samowystarczalny),
+     `straznik-limitera`. Zapamiętać: **licznik chybionych prób pyta
+     o WYNIK dyspozytora**, więc poprawny token nigdy nie wpada w 429;
+     **odrzucone próby nie wchodzą do okna** (inaczej `Retry-After`
+     kłamie); po przekroczeniu limitu odpowiadamy BEZ kary czasowej.
+     `x-forwarded-for` jest do podrobienia — zapisane w kodzie i w
+     specyfikacji WP.
+     **PR 3 z 4 ZROBIONY — wersja 0.28.0** (tag `v0.28.0`):
+     twarde limity wejścia. Sufity długości i liczności w każdym polu
+     kontraktu (liczby z POMIARU bazy: najdłuższy tekst 191 znaków,
+     lista 10 pozycji, pełny zapis kursu 17 kB), sufit `price_grosze`,
+     **2 MB na ciało żądania mierzone STRUMIENIEM przed parsowaniem**
+     (413; `content-length` sprawdzany, ale nieufnie), oczyszczanie
+     treści sekcji schematem przed zapisem (bez tego jeden nieznany
+     klucz omijał wszystkie limity), generyczny komunikat zamiast
+     surowego błędu Postgresa, `straznik-limitow`.
+     **LEKCJA (2026-08-19):** audyt mutacyjny złapał REGRESJĘ kontroli
+     — `straznik-limitera` wiązał sprawdzenie „limit przed czytaniem
+     ciała" z nazwą `request.json()`, której trasa po PR 3 już nie
+     używa; strażnik zzieleniał na mutacji, którą wcześniej łapał.
+     Wzorce w strażnikach mają celować w ZACHOWANIE (pierwsze
+     dotknięcie ciała), nie w nazwę metody. Drugi taki przypadek w tym
+     samym przebiegu: porównanie pozycji `cialoZSufitem` trafiało
+     w definicję funkcji zamiast w wywołanie.
+     **NASTĘPNY: PR 4** — domknięcie checklisty (bez pozycji 🚧),
+     CHANGELOG, README, `rejestr/znane-bledy.json`, tag. Sufit ciała
+     przeliczyć POMIAREM, gdy kreator dostanie treść lekcji (krok 3):
+     proza obu kursów waży dziś 1307 kB.
   4. **Kursy zrobione do końca, w narzędziu — RÓWNOLEGLE, w osobnym
      czacie** (decyzja właściciela 2026-08-19) → **B7 = ocena GOTOWYCH
      kursów przez właściciela**. Podział terytoriów między oba czaty

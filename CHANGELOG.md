@@ -5,6 +5,65 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.28.0] — 2026-08-19
+
+Krok 2 planu domknięcia Pluginu 1, **część 3: twarde limity wejścia**.
+Kontrakty ograniczały pola kursu (slug 120, title 200, short_desc 500)
+i to wyglądało na komplet. Nie było: treść sekcji była gołym
+`z.string()`, tablice `sections`/`modules`/`lessons` nie miały sufitu
+liczności, `price_grosze` mieściło wszystko aż do granicy kolumny
+`integer`, a trasa wczytywała **całe ciało żądania do pamięci**, zanim
+cokolwiek je zmierzyła.
+
+Wszystkie liczby w tym wydaniu wzięły się z pomiaru bazy, nie z
+przeczucia: najdłuższy tekst w treści sekcji ma **191 znaków**,
+najliczniejsza lista **10 pozycji**, kurs ma najwyżej 12 sekcji,
+7 modułów i 11 lekcji w module, a pełny zapis kursu waży **17 kB**.
+Limity stoją rząd wielkości wyżej — mają odcinać nadużycie, nie pracę.
+
+### Dodane
+
+- Sufity długości i liczności w KAŻDYM polu wejścia: aliasy
+  `krotki()` / `akapit()` / `lista()` w `modules/m1-sklep/typy.ts`
+  plus nazwane stałe (`LIMIT_KROTKI`, `LIMIT_AKAPIT`, `LIMIT_LISTY`,
+  `LIMIT_SEKCJI`, `LIMIT_MODULOW`, `LIMIT_LEKCJI`, `LIMIT_POZYCJI`,
+  `LIMIT_CZASU_MIN`, `LIMIT_TOKENU`, `SUFIT_CENY`).
+- **Sufit ciała żądania: 2 MB, mierzony STRUMIENIEM** przed
+  parsowaniem JSON-a; przekroczenie to 413. `content-length`
+  sprawdzamy najpierw, ale mu nie ufamy — może kłamać, a przy
+  transferze porcjowanym w ogóle go nie ma.
+- `straznik-limitow` — 10 niezmienników, 12 mutacji w audycie (w tym
+  kontrprzykład: `z.string()` w kanale ODCZYTU sufitu nie potrzebuje,
+  bo tamte dane przychodzą z naszej bazy).
+- Pięć testów limitów w `dyspozytor.test.ts` i dwa dowody 413 w smoke
+  D6 (ciało z zadeklarowanym rozmiarem oraz ciało bez `content-length`).
+
+### Zmienione zachowanie
+
+- **Treść sekcji jest OCZYSZCZANA schematem przed zapisem.** Do tej
+  wersji `content` szedł do JSONB w całości, a schemat rodzaju tylko go
+  sprawdzał — więc klucz spoza kontraktu wchodził do bazy bez żadnego
+  limitu i bez szans pojawienia się na stronie. Same `.max()` byłyby
+  przy tym dekoracją: limity omijało jedno nieznane pole.
+- **Konflikt unikalności nie oddaje już komunikatu Postgresa.**
+  Surowy tekst niesie nazwy ograniczeń, tabel i kolumn — czyli rysunek
+  schematu bazy. Klient dostaje zdanie napisane przez nas, szczegół
+  idzie do logu serwera, gdzie jest potrzebny przy diagnozie.
+- Cena ponad sufit jest odrzucana walidacją, a nie błędem kolumny
+  `integer` (2 147 483 647).
+
+### Naprawione
+
+- **Audyt mutacyjny złapał regresję kontroli z poprzedniego wydania:**
+  `straznik-limitera` wiązał sprawdzenie „limit tempa PRZED czytaniem
+  ciała" z nazwą `request.json()`. Ta trasa czyta teraz ciało
+  strumieniem, więc warunek przestał cokolwiek znaczyć — strażnik
+  pozostawał zielony przy mutacji, którą wcześniej łapał. Wzorzec
+  patrzy teraz na pierwsze DOTKNIĘCIE ciała, jakąkolwiek drogą.
+- `straznik-limitow` porównywał pozycję nazwy `cialoZSufitem`, trafiając
+  w jej definicję na górze pliku zamiast w wywołanie — ta sama klasa
+  błędu, złapana tym samym audytem, w tym samym przebiegu.
+
 ## [0.27.0] — 2026-08-19
 
 Krok 2 planu domknięcia Pluginu 1, **część 2: brama jedynego AJAX-a**.

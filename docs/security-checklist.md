@@ -1,7 +1,7 @@
 # Lista kontrolna bezpieczeństwa — Plugin 1 (podstrona `/szkolenia`)
 
-Stan na v0.27.0 (2026-08-19, krok 2 planu domknięcia: PR 1 — CSP,
-PR 2 — brama jedynego AJAX-a). Wzorzec: `docs/security-checklist.md`
+Stan na v0.28.0 (2026-08-19, krok 2 planu domknięcia: PR 1 — CSP,
+PR 2 — brama jedynego AJAX-a, PR 3 — limity wejścia). Wzorzec: `docs/security-checklist.md`
 strony głównej — przeniesiony jako STRUKTURA, nie wypełnienie, bo
 architektury są przeciwne: strona główna nie ma backendu, więc całe
 klasy ataków tam „fizycznie nie istnieją" — u nas ISTNIEJĄ (serwer,
@@ -45,9 +45,9 @@ które naprawdę należą do wtyczki WP. Podział i jego uzasadnienie:
 | ✅ | To samo w KANALE AJAX: `timingSafeEqual` w dyspozytorze (helper LOKALNY — moduł zostaje samowystarczalny), kara czasowa 700 ms i limit chybionych prób | 0.27.0. `straznik-limitera` (11 niezmienników, 14 mutacji), smoke D6 wywołuje 429 po serii chybionych tokenów. Wiersz wyżej mówił prawdę o formularzu — i tylko o nim; kanał sieciowy jako jedyny jest wystawiony na świat |
 | ✅ | Dyspozytor sprawdza token PRZED walidacją — nieuwierzytelniony nie dostaje nawet mapy błędnych pól (nie zwiedza kontraktu) | zmiana z D6 (403 zamiast 400), smoke D6 |
 | ✅ | Rate limiting na akcjach zapisu (okno przesuwne po IP+akcja) | 0.27.0, `lib/limiter.ts` (moduł czysty, 8 testów jednostkowych z wstrzykniętym czasem) wpięty w OBA kanały: jedyny AJAX (60 POST-ów/min z adresu + osobny licznik 5 chybionych uwierzytelnień/10 min, odmowa 429 z `Retry-After`) i formularz logowania. **Limit po adresie podnosi koszt ataku, nie jest granicą** — `x-forwarded-for` da się podrobić bez zaufanego proxy; zdanie stoi w kodzie i w sekcji specyfikacji WP niżej |
-| 🚧 | Twarde limity wejścia: długości pól treści sekcji, liczność tablic (`sections`/`modules`/`lessons`), sufit `price_grosze`, limit rozmiaru ciała żądania PRZED parsowaniem | Pozycji brakowało na tej liście, choć jest w planie kroku 2. Kontrakty ograniczają dziś pola kursu (slug 120, title 200, short_desc 500), ale treść sekcji to gołe `z.string()`, a trasa parsuje całe ciało przed sprawdzeniem tokenu. Krok 2, PR `feat/limity-wejscia` |
+| ✅ | Twarde limity wejścia: długości pól treści sekcji, liczność tablic (`sections`/`modules`/`lessons`), sufit `price_grosze`, limit rozmiaru ciała żądania PRZED parsowaniem | 0.28.0. Liczby z POMIARU bazy (najdłuższy tekst 191 znaków, największa lista 10 pozycji, pełny zapis kursu 17 kB) — limity rząd wielkości wyżej. Ciało: 2 MB mierzone strumieniem, 413; `content-length` sprawdzany, ale nieufnie (może kłamać albo go nie być). Treść sekcji jest OCZYSZCZANA schematem przed zapisem — bez tego jeden nieznany klucz omijał wszystkie limity. `straznik-limitow` (10 niezmienników, 12 mutacji), 5 testów, 2 dowody 413 w smoke D6 |
 | ⏳ | Honeypot + pomiar czasu wypełnienia w formularzach klienta | formularze klienta (zakup, kontakt) powstają dopiero w Pluginie 2 |
-| 🚧 | Generyczne komunikaty błędów NA ZEWNĄTRZ (klient), szczegóły tylko w logu | Mapa pól dla właściciela zostaje (feature panelu), ale dyspozytor przy konflikcie unikalności oddaje SUROWY komunikat Postgresa (`String(blad.message)`) — nazwy ograniczeń i kolumn na zewnątrz. Krok 2, PR `feat/limity-wejscia` |
+| ✅ | Generyczne komunikaty błędów NA ZEWNĄTRZ (klient), szczegóły tylko w logu | 0.28.0. Mapa pól dla uwierzytelnionego właściciela zostaje (to feature panelu), ale konflikt unikalności oddaje zdanie napisane przez NAS; surowy komunikat Postgresa (nazwy ograniczeń, tabel i kolumn) idzie do logu serwera. Pilnuje `straznik-limitow`, dowodzi test „duplikat sluga: odpowiedź nie niesie komunikatu Postgresa" |
 | ⛔ | Upload plików — kreator przyjmuje okładkę wyłącznie jako URL/ścieżkę (decyzja właściciela przy D6), więc walidacji uploadu nie ma czego dotyczyć | wraca przy WP, jeśli wtyczka dostanie media |
 
 ## 2. Nagłówki / transport

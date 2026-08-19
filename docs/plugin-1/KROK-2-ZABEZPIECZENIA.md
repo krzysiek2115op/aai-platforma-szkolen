@@ -6,8 +6,8 @@ nośnikiem trwałym. Podstawa: [PLAN-FINAL-PLUGINU-1.md](PLAN-FINAL-PLUGINU-1.md
 (sekcja „Krok 2") i [docs/security-checklist.md](../security-checklist.md).
 
 Stan: **w toku od 2026-08-19**. Aktualizować przy każdym domkniętym PR.
-Zrobione: **PR 1 (CSP) — 0.26.0**, **PR 2 (brama AJAX) — 0.27.0**.
-Następny: PR 3 (`feat/limity-wejscia`).
+Zrobione: **PR 1 (CSP) — 0.26.0**, **PR 2 (brama AJAX) — 0.27.0**,
+**PR 3 (limity wejścia) — 0.28.0**. Następny: PR 4 — domknięcie kroku.
 
 ## Korekta stanu wejściowego
 
@@ -109,7 +109,7 @@ Spike z 2026-08-19 (plik spike'u skasowany, oba buildy z kodem wyjścia 0):
 |---|---|---|
 | 1 ✅ | `feat/csp-pelne` | **ZROBIONE, wersja 0.26.0.** `proxy.serwer.ts` z nonce, `lib/csp.ts` (jedno źródło polityki), `lib/csp-nonce.ts`, `tools/csp-podglad.mjs` (meta+hashe dla podglądu), `straznik-csp` (9 niezmienników, 10 mutacji), `smoke-csp` (nagłówek + hashe w plikach). Po drodze: **BLAD-012** — `smoke-podglad` wołał `npx next build` zamiast komendy, więc oglądał artefakt, którego nikt nie wydaje; `straznik-seo` przestał oskarżać komentarze |
 | 2 ✅ | `feat/brama-ajax` | **ZROBIONE, wersja 0.27.0.** `lib/limiter.ts` (moduł czysty + 8 testów jednostkowych), limit wystrzału i OSOBNY licznik chybionych uwierzytelnień w `route.serwer.ts` (429 z `Retry-After`), limit prób logowania w `akcje.ts`, `timingSafeEqual` jako helper lokalny dyspozytora, kara czasowa w obu kanałach, `straznik-limitera` (11 niezmienników, 14 mutacji), smoke D6 wywołuje limit po HTTP |
-| 3 | `feat/limity-wejscia` | Limity długości i liczności w kontraktach, sufit `price_grosze`, limit rozmiaru ciała żądania przed parsowaniem, generyczny komunikat zamiast surowego błędu Postgresa, `straznik-limitow` |
+| 3 ✅ | `feat/limity-wejscia` | **ZROBIONE, wersja 0.28.0.** Sufity długości i liczności we wszystkich polach wejścia (liczby z pomiaru bazy), sufit `price_grosze`, 2 MB na ciało żądania mierzone STRUMIENIEM przed parsowaniem (413), oczyszczanie treści sekcji schematem przed zapisem, generyczny komunikat zamiast błędu Postgresa, `straznik-limitow` (10 niezmienników, 12 mutacji), 5 testów limitów, 2 dowody 413 w smoke D6. Po drodze audyt złapał REGRESJĘ kontroli z PR 2 (`straznik-limitera` wiązał sprawdzenie z nazwą `request.json()`, której trasa już nie używa) |
 | 4 | `docs/krok-2-domkniecie` | Checklista bez pozycji 🚧, CHANGELOG, README, `rejestr/znane-bledy.json`, wersja + tag |
 
 ## PR 2 (`feat/brama-ajax`) — decyzje podjęte przed pisaniem
