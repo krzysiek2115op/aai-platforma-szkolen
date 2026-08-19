@@ -97,6 +97,52 @@ export const ModulKursu = z.object({
   lessons: z.array(LekcjaKursu),
 });
 
+/* ————— treść lekcji (materiał kursu, kolumny z migracji 006) —————
+ * Decyzja właściciela z 2026-08-19: kurs jest TEKSTOWY (lekcje na
+ * platformie za logowaniem + PDF jako dodatek), więc kontrakt nagrania
+ * wideo tu NIE POWSTAJE — żadnego hostingu, długości filmu ani napisów.
+ * Uzasadnienie i odrzucone opcje: docs/plugin-1/PRODUKCJA-MATERIALU-KROK-3.md.
+ *
+ * Kształt materiału stoi TUTAJ, w części odczytowej, bo czyta go kreator
+ * (`trescLekcji`). Wejście — czyli to, co panel WYSYŁA — opisuje
+ * `TrescLekcji` niżej, pod stałymi limitów, gdzie widzi je
+ * `straznik-limitow`. Limitu na odczycie świadomie nie ma: dane
+ * przyszły z naszej bazy, a sufit w tym miejscu kończyłby się
+ * zniknięciem lekcji przy pierwszej rozbieżności.
+ */
+
+/** Dodatek do lekcji: ściągawka, workbook, odsyłacz do dokumentacji. */
+export const MaterialLekcji = z.object({
+  rodzaj: z.enum(["pdf", "plik", "link"]),
+  tytul: z.string().min(1).max(160),
+  /** adres pliku w `public/` albo pełny URL — jak okładka kursu
+   *  (decyzja właściciela z D6: adres, nie wgrywanie) */
+  url: z.string().min(1).max(500),
+  opis: z.string().max(400).optional(),
+});
+export type MaterialLekcji = z.infer<typeof MaterialLekcji>;
+
+/**
+ * Co kreator dostaje, otwierając lekcję do pisania.
+ *
+ * Poza samą treścią jedzie KONTEKST (kurs, moduł, numer w programie).
+ * Nie jest ozdobą: edytor lekcji to osobna trasa, więc bez tego panel
+ * nie miałby jak nazwać tego, co właściciel pisze, ani dokąd wrócić —
+ * a przy 91 lekcjach pomyłka o jedną lekcję kosztuje godzinę pracy.
+ */
+export const LekcjaZTrescia = z.object({
+  id: z.uuid(),
+  title: z.string(),
+  tresc: z.string(),
+  materialy: z.array(MaterialLekcji),
+  kurs_id: z.uuid(),
+  kurs_tytul: z.string(),
+  modul_tytul: z.string(),
+  /** numeracja jak w programie na stronie: „3.4" */
+  numer: z.string(),
+});
+export type LekcjaZTrescia = z.infer<typeof LekcjaZTrescia>;
+
 export const SekcjaKursu = z.object({
   id: z.uuid(),
   kind: SekcjaRodzaj,
@@ -112,102 +158,135 @@ export const SzczegolyKursu = KartaKursu.extend({
 });
 export type SzczegolyKursu = z.infer<typeof SzczegolyKursu>;
 
+/* ————— limity wejścia —————
+ *
+ * Kontrakty ograniczały dotąd pola KURSU (slug 120, title 200,
+ * short_desc 500), ale treść sekcji była gołym `z.string()`, a tablice
+ * `sections`/`modules`/`lessons` nie miały górnej granicy. Jedyny AJAX
+ * jest wystawiony na świat, więc „bez granicy" znaczyło tyle, co
+ * „ile zmieści się w ciele żądania".
+ *
+ * Liczby nie są wzięte z sufitu — pomiar bazy z 2026-08-19: najdłuższy
+ * tekst w treści sekcji ma 191 znaków, najliczniejsza lista 10 pozycji,
+ * kurs ma najwyżej 12 sekcji, 7 modułów i 11 lekcji w module. Limity
+ * stoją rząd wielkości wyżej: mają odcinać nadużycie, nie pracę.
+ *
+ * TE SAME SCHEMATY CZYTA STRONA (safeParse treści z bazy), więc limit
+ * za ciasny nie objawiłby się błędem zapisu, tylko ZNIKNIĘCIEM sekcji
+ * ze strony sprzedażowej. Stąd duży zapas — i stąd reguła: obniżenie
+ * któregoś limitu wymaga ponownego pomiaru bazy, nie samego przeczucia.
+ */
+export const LIMIT_KROTKI = 200; // tytuły, etykiety, nazwy, autorzy
+export const LIMIT_AKAPIT = 2000; // opisy, bio, odpowiedzi, cytaty
+export const LIMIT_ADRESU = 500; // adresy (okładka, link autora)
+export const LIMIT_LISTY = 50; // pozycji w liście wewnątrz sekcji
+export const LIMIT_SEKCJI = 50; // sekcji na kurs (rodzajów jest 12)
+export const LIMIT_MODULOW = 50; // modułów na kurs
+export const LIMIT_LEKCJI = 200; // lekcji w jednym module
+export const LIMIT_POZYCJI = 999; // wartość pola `position`
+export const LIMIT_CZASU_MIN = 24 * 60; // lekcja nie trwa dłużej niż dobę
+export const LIMIT_TOKENU = 500; // token przychodzi z sieci jak każde pole
+/** 100 000 zł w groszach. Kolumna to `integer`, więc bez sufitu wartość
+ *  powyżej 2 147 483 647 kończyłaby się błędem BAZY, a nie walidacji. */
+export const SUFIT_CENY = 10_000_000;
+
+const krotki = () => z.string().max(LIMIT_KROTKI);
+const akapit = () => z.string().max(LIMIT_AKAPIT);
+const lista = <T extends z.ZodType>(element: T) =>
+  z.array(element).max(LIMIT_LISTY);
+
 /* ————— treść sekcji strony sprzedażowej (content JSONB) —————
  * Strona parsuje content przez safeParse — sekcja o złym kształcie
- * jest pomijana zamiast wysadzać render (dane wpisze kreator w D6). */
+ * jest pomijana zamiast wysadzać render (dane wpisuje kreator z D6). */
 
 export const TrescHero = z.object({
   /** nagłówek nad tytułem kursu, np. obietnica efektu */
-  obietnica: z.string(),
+  obietnica: akapit(),
   /** krótkie rozwinięcie pod tytułem */
-  rozwiniecie: z.string().optional(),
+  rozwiniecie: akapit().optional(),
   /** jednozdaniowe „dla kogo" w hero (brief CDS: hero odpowiada od razu) */
-  dla_kogo: z.string().optional(),
+  dla_kogo: akapit().optional(),
 });
 
 export const TrescKorzysci = z.object({
-  punkty: z.array(
-    z.object({ tytul: z.string(), opis: z.string().optional() })
-  ),
+  punkty: lista(z.object({ tytul: krotki(), opis: akapit().optional() })),
 });
 
 export const TrescDlaKogo = z.object({
-  punkty: z.array(z.string()),
+  punkty: lista(akapit()),
   /** uczciwe „to NIE jest dla Ciebie, jeśli…" — wzorzec z analizy wzoru */
-  nie_dla: z.array(z.string()).optional(),
+  nie_dla: lista(akapit()).optional(),
 });
 
 export const TrescPakiet = z.object({
-  punkty: z.array(
-    z.object({ tytul: z.string(), opis: z.string().optional() })
-  ),
+  punkty: lista(z.object({ tytul: krotki(), opis: akapit().optional() })),
   /** kotwica cenowa — z czym porównać cenę kursu */
-  kotwica: z.string().optional(),
+  kotwica: akapit().optional(),
   /** konkrety warunków zakupu pokazywane w sekcji oferty (co w cenie) */
-  w_cenie: z.array(z.string()).optional(),
+  w_cenie: lista(akapit()).optional(),
   /** zdanie domykające ofertę tuż nad CTA */
-  domkniecie: z.string().optional(),
+  domkniecie: akapit().optional(),
 });
 
 export const TrescAutor = z.object({
-  imie: z.string(),
-  rola: z.string().optional(),
-  bio: z.string(),
-  atuty: z.array(z.string()).optional(),
+  imie: krotki(),
+  rola: krotki().optional(),
+  bio: akapit(),
+  atuty: lista(akapit()).optional(),
   /** osobisty powód stworzenia kursu — buduje zaufanie mocniej niż bio */
-  cytat: z.string().optional(),
+  cytat: akapit().optional(),
   /** czym zajmuje się na co dzień: konkretne obszary pracy */
-  czym_sie_zajmuje: z.array(z.string()).optional(),
+  czym_sie_zajmuje: lista(akapit()).optional(),
   /** dokąd zajrzeć po dowody (np. portfolio) */
-  link: z.object({ url: z.url(), etykieta: z.string() }).optional(),
+  link: z
+    .object({ url: z.url().max(LIMIT_ADRESU), etykieta: krotki() })
+    .optional(),
 });
 
 /** „Dlaczego ten kurs" — sprzedajemy zmianę: problem → rozwiązanie → rezultat. */
 export const TrescProblem = z.object({
-  wstep: z.string(),
-  problem: z.string(),
-  rozwiazanie: z.string(),
-  rezultat: z.string(),
+  wstep: akapit(),
+  problem: akapit(),
+  rozwiazanie: akapit(),
+  rezultat: akapit(),
 });
 
 /** „To NIE jest / to JEST" — pozycjonowanie produktu. */
 export const TrescPozycjonowanie = z.object({
-  nie_jest: z.array(z.string()),
-  jest: z.array(z.string()),
+  nie_jest: lista(akapit()),
+  jest: lista(akapit()),
 });
 
 /** Efekt przed / po — transformacja klienta. */
 export const TrescTransformacja = z.object({
-  przed: z.array(z.string()),
-  po: z.array(z.string()),
+  przed: lista(akapit()),
+  po: lista(akapit()),
 });
 
 /** Samodzielna nauka vs kurs — porównanie bez taniego marketingu. */
 export const TrescPorownanie = z.object({
-  alternatywa_nazwa: z.string(),
-  alternatywa: z.array(z.string()),
-  kurs: z.array(z.string()),
+  alternatywa_nazwa: krotki(),
+  alternatywa: lista(akapit()),
+  kurs: lista(akapit()),
 });
 
 export const TrescOpinie = z.object({
-  opinie: z.array(
+  opinie: lista(
     z.object({
-      tekst: z.string(),
-      autor: z.string(),
-      rola: z.string().optional(),
+      tekst: akapit(),
+      autor: krotki(),
+      rola: krotki().optional(),
     })
   ),
 });
 
 export const TrescGwarancja = z.object({
-  naglowek: z.string(),
-  tekst: z.string(),
+  naglowek: krotki(),
+  tekst: akapit(),
 });
 
 export const TrescFaq = z.object({
-  pytania: z.array(
-    z.object({ pytanie: z.string(), odpowiedz: z.string() })
-  ),
+  pytania: lista(z.object({ pytanie: krotki(), odpowiedz: akapit() })),
 });
 
 /**
@@ -240,16 +319,6 @@ export type SekcjaRodzajNazwa = keyof typeof SCHEMATY_SEKCJI;
  * wideo tu NIE POWSTAJE — żadnego hostingu, długości filmu ani napisów.
  * Uzasadnienie i odrzucone opcje: docs/plugin-1/PRODUKCJA-MATERIALU-KROK-3.md. */
 
-/** Dodatek do lekcji: ściągawka, workbook, odsyłacz do dokumentacji. */
-export const MaterialLekcji = z.object({
-  rodzaj: z.enum(["pdf", "plik", "link"]),
-  tytul: z.string().min(1).max(160),
-  /** adres pliku w `public/` albo pełny URL — jak okładka kursu
-   *  (decyzja właściciela z D6: adres, nie wgrywanie) */
-  url: z.string().min(1).max(500),
-  opis: z.string().max(400).optional(),
-});
-export type MaterialLekcji = z.infer<typeof MaterialLekcji>;
 
 /**
  * Treść jednej lekcji. Markdown, bo tym są scenariusze z D7 i tym
@@ -264,27 +333,6 @@ export const TrescLekcji = z.object({
   materialy: z.array(MaterialLekcji).max(12).default([]),
 });
 export type TrescLekcji = z.infer<typeof TrescLekcji>;
-
-/**
- * Co kreator dostaje, otwierając lekcję do pisania.
- *
- * Poza samą treścią jedzie KONTEKST (kurs, moduł, numer w programie).
- * Nie jest ozdobą: edytor lekcji to osobna trasa, więc bez tego panel
- * nie miałby jak nazwać tego, co właściciel pisze, ani dokąd wrócić —
- * a przy 91 lekcjach pomyłka o jedną lekcję kosztuje godzinę pracy.
- */
-export const LekcjaZTrescia = z.object({
-  id: z.uuid(),
-  title: z.string(),
-  tresc: z.string(),
-  materialy: z.array(MaterialLekcji),
-  kurs_id: z.uuid(),
-  kurs_tytul: z.string(),
-  modul_tytul: z.string(),
-  /** numeracja jak w programie na stronie: „3.4" */
-  numer: z.string(),
-});
-export type LekcjaZTrescia = z.infer<typeof LekcjaZTrescia>;
 
 /* ————— kanał AJAX (wystrzał — akcje dyspozytora) ————— */
 
@@ -302,8 +350,11 @@ export type LekcjaZTrescia = z.infer<typeof LekcjaZTrescia>;
 const SekcjaWejscie = z
   .object({
     kind: SekcjaRodzaj,
-    position: z.int().nonnegative(),
-    content: z.record(z.string(), z.unknown()).default({}),
+    position: z.int().nonnegative().max(LIMIT_POZYCJI),
+    // Klucz rekordu też przychodzi z sieci: bez sufitu dałoby się
+    // przysłać nazwę pola na megabajt (odpadnie przy oczyszczaniu
+    // treści, ale najpierw wyląduje w pamięci procesu).
+    content: z.record(z.string().max(LIMIT_KROTKI), z.unknown()).default({}),
   })
   .superRefine((sekcja, ctx) => {
     const wynik = SCHEMATY_SEKCJI[sekcja.kind].safeParse(sekcja.content);
@@ -315,7 +366,22 @@ const SekcjaWejscie = z
         message: problem.message,
       });
     }
-  });
+  })
+  .transform((sekcja) => ({
+    ...sekcja,
+    /**
+     * Do bazy idzie WYNIK schematu, nie surowy obiekt. Bez tego kroku
+     * limity długości dałoby się obejść jednym nieznanym kluczem:
+     * `content` jest workiem `Record<string, unknown>`, schemat rodzaju
+     * tylko go SPRAWDZAŁ, a zapisywaliśmy całość — więc pole, którego
+     * kontrakt nie zna, wchodziło do JSONB bez żadnej granicy i bez
+     * szans pojawienia się na stronie.
+     */
+    content: SCHEMATY_SEKCJI[sekcja.kind].parse(sekcja.content) as Record<
+      string,
+      unknown
+    >,
+  }));
 
 /**
  * DLACZEGO LEKCJA I MODUŁ MAJĄ `id`. Do 0.26.0 zapis programu robił
@@ -329,18 +395,18 @@ const SekcjaWejscie = z
  */
 const LekcjaWejscie = z.object({
   id: z.uuid().optional(),
-  position: z.int().nonnegative(),
-  title: z.string().min(1),
-  duration_min: z.int().positive().nullish(),
+  position: z.int().nonnegative().max(LIMIT_POZYCJI),
+  title: z.string().min(1).max(LIMIT_KROTKI),
+  duration_min: z.int().positive().max(LIMIT_CZASU_MIN).nullish(),
   preview: z.boolean().default(false),
 });
 
 const ModulWejscie = z.object({
   id: z.uuid().optional(),
-  position: z.int().nonnegative(),
-  title: z.string().min(1),
-  summary: z.string().nullish(),
-  lessons: z.array(LekcjaWejscie).default([]),
+  position: z.int().nonnegative().max(LIMIT_POZYCJI),
+  title: z.string().min(1).max(LIMIT_KROTKI),
+  summary: z.string().max(LIMIT_AKAPIT).nullish(),
+  lessons: z.array(LekcjaWejscie).max(LIMIT_LEKCJI).default([]),
 });
 
 export const KursWejscie = z.object({
@@ -354,18 +420,18 @@ export const KursWejscie = z.object({
   title: z.string().min(1).max(200),
   type: KursTyp,
   short_desc: z.string().max(500).nullish(),
-  price_grosze: z.int().nonnegative(),
-  cover_url: z.string().max(500).nullish(),
+  price_grosze: z.int().nonnegative().max(SUFIT_CENY),
+  cover_url: z.string().max(LIMIT_ADRESU).nullish(),
   badge: z.string().max(40).nullish(),
   level: PoziomKursu.nullish(),
   /** podanie tablicy = pełna podmiana sekcji/modułów kursu */
-  sections: z.array(SekcjaWejscie).optional(),
-  modules: z.array(ModulWejscie).optional(),
+  sections: z.array(SekcjaWejscie).max(LIMIT_SEKCJI).optional(),
+  modules: z.array(ModulWejscie).max(LIMIT_MODULOW).optional(),
 });
 
 export const AkcjaDyspozytora = z.discriminatedUnion("akcja", [
-  z.object({ akcja: z.literal("zapisz"), token: z.string(), kurs: KursWejscie }),
-  z.object({ akcja: z.literal("usun"), token: z.string(), id: z.uuid() }),
+  z.object({ akcja: z.literal("zapisz"), token: z.string().max(LIMIT_TOKENU), kurs: KursWejscie }),
+  z.object({ akcja: z.literal("usun"), token: z.string().max(LIMIT_TOKENU), id: z.uuid() }),
   /**
    * Treść lekcji jedzie OSOBNĄ akcją, nie w zapisie kursu. Powód jest
    * dwojaki: ładunek (41 lekcji tekstu to setki kilobajtów w jednym
@@ -374,13 +440,13 @@ export const AkcjaDyspozytora = z.discriminatedUnion("akcja", [
    */
   z.object({
     akcja: z.literal("zapisz-tresc-lekcji"),
-    token: z.string(),
+    token: z.string().max(LIMIT_TOKENU),
     id: z.uuid(),
     tresc: TrescLekcji,
   }),
   z.object({
     akcja: z.literal("publikuj"),
-    token: z.string(),
+    token: z.string().max(LIMIT_TOKENU),
     id: z.uuid(),
     status: KursStatus.exclude(["draft"]).default("published"),
   }),

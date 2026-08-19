@@ -431,7 +431,8 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      (kody wyjścia BEZ potoku), pomiar:
      `PAGESPEED_KLUCZ` w `.env` → `node tools/pomiar-psi.mjs`.
 
-  3. **PEŁNE ZABEZPIECZENIA — W TOKU** (od 2026-08-19). Podział pozycji
+  3. **PEŁNE ZABEZPIECZENIA — ZAMKNIĘTE 2026-08-19** (0.26.0 → 0.29.0:
+     CSP → brama AJAX → limity wejścia → domknięcie). Podział pozycji
      ⏳/🔧 zrobiony i ZATWIERDZONY przez właściciela, razem z wynikami
      spike'u i kolejnością PR-ów:
      **[docs/plugin-1/KROK-2-ZABEZPIECZENIA.md](docs/plugin-1/KROK-2-ZABEZPIECZENIA.md)**
@@ -453,10 +454,47 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      Next 16.3.1 wymaga w pliku proxy eksportu DOMYŚLNEGO.
      **BLAD-012**: smoke podglądu wołał `npx next build` zamiast komendy
      — nawrót klasy błędu z 0.24.0.
-     **NASTĘPNY: PR 2 `feat/brama-ajax`** — limiter, `timingSafeEqual`
-     w dyspozytorze, kara czasowa poza formularzem. Decyzje projektowe
-     są już zapisane w KROK-2-ZABEZPIECZENIA.md (sekcja „PR 2 —
-     decyzje podjęte przed pisaniem") — nie wyprowadzać ich od nowa.
+     **PR 2 z 4 ZROBIONY — wersja 0.27.0** (PR #35, tag `v0.27.0`):
+     brama jedynego AJAX-a. `lib/limiter.ts` (okno przesuwne po
+     IP+akcja, moduł CZYSTY — bez `next/*`, więc testowalny z
+     wstrzykniętym czasem), limit 60 POST-ów/min + OSOBNY licznik
+     5 chybionych uwierzytelnień/10 min, 429 z `Retry-After`, kara
+     700 ms także poza formularzem, `timingSafeEqual` w dyspozytorze
+     (helper LOKALNY — moduł zostaje samowystarczalny),
+     `straznik-limitera`. Zapamiętać: **licznik chybionych prób pyta
+     o WYNIK dyspozytora**, więc poprawny token nigdy nie wpada w 429;
+     **odrzucone próby nie wchodzą do okna** (inaczej `Retry-After`
+     kłamie); po przekroczeniu limitu odpowiadamy BEZ kary czasowej.
+     `x-forwarded-for` jest do podrobienia — zapisane w kodzie i w
+     specyfikacji WP.
+     **PR 3 z 4 ZROBIONY — wersja 0.28.0** (PR #37, tag `v0.28.0`):
+     twarde limity wejścia. Sufity długości i liczności w każdym polu
+     kontraktu (liczby z POMIARU bazy: najdłuższy tekst 191 znaków,
+     lista 10 pozycji, pełny zapis kursu 17 kB), sufit `price_grosze`,
+     **2 MB na ciało żądania mierzone STRUMIENIEM przed parsowaniem**
+     (413; `content-length` sprawdzany, ale nieufnie), oczyszczanie
+     treści sekcji schematem przed zapisem (bez tego jeden nieznany
+     klucz omijał wszystkie limity), generyczny komunikat zamiast
+     surowego błędu Postgresa, `straznik-limitow`.
+     **LEKCJA (2026-08-19):** audyt mutacyjny złapał REGRESJĘ kontroli
+     — `straznik-limitera` wiązał sprawdzenie „limit przed czytaniem
+     ciała" z nazwą `request.json()`, której trasa po PR 3 już nie
+     używa; strażnik zzieleniał na mutacji, którą wcześniej łapał.
+     Wzorce w strażnikach mają celować w ZACHOWANIE (pierwsze
+     dotknięcie ciała), nie w nazwę metody. Drugi taki przypadek w tym
+     samym przebiegu: porównanie pozycji `cialoZSufitem` trafiało
+     w definicję funkcji zamiast w wywołanie.
+     **PR 4 z 4 ZROBIONY — wersja 0.29.0**: checklista bez ani jednej
+     pozycji 🚧, **BLAD-013** w rejestrze, bilans kroku w CHANGELOG.
+     Stan dowodów na koniec kroku: strażnicy 23/23, audyt mutacyjny
+     64/64 (0 przeoczonych, 0 martwych), testy 49/49, smoke
+     D4/D5/D6/CSP/SEO/podgląd zielone.
+     **CO ZOSTAJE OTWARTE ŚWIADOMIE** (tabela w KROK-2-ZABEZPIECZENIA.md):
+     RODO i konta klientów (Plugin 2/3), HTTPS/HSTS i poczta (hosting
+     + domena), 2FA i branch protection (decyzje właściciela), stan
+     limitera poza pamięcią procesu (nośnik WP) oraz **sufit ciała
+     2 MB — przeliczyć POMIAREM, gdy kreator dostanie treść lekcji
+     (krok 3): proza obu kursów waży dziś 1307 kB**.
   4. **Kursy zrobione do końca, w narzędziu — RÓWNOLEGLE, w osobnym
      czacie** (decyzja właściciela 2026-08-19) → **B7 = ocena GOTOWYCH
      kursów przez właściciela**. Podział terytoriów między oba czaty
@@ -465,12 +503,12 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      **Dokument roboczy kroku (stan, etapy, pułapki):
      [docs/plugin-1/KROK-3-KURSY.md](docs/plugin-1/KROK-3-KURSY.md)
      — CZYTAĆ PRZED PRACĄ.**
-     **Etap 1 ZROBIONY** (PR #32 — decyzje o produkcji materiału).
-     **Etap 2 zbudowany i udowodniony, ale PR #36 (wersja 0.28.0) CZEKA
-     OTWARTY na decyzję właściciela o merge'u przy stojącym CI** —
-     kreator przejmuje treść lekcji: warstwa danych + panel
-     `/szkolenia/kreator/lekcja/[id]`, licznik postępu,
-     `straznik-tresci-lekcji`, `smoke-lekcje`. **NASTĘPNY: etap 3 —
+     **Etapy 1 i 2 ZROBIONE**: PR #32 (decyzje o produkcji materiału)
+     i **PR #36, wersja 0.30.0** — kreator przejmuje treść lekcji
+     (warstwa danych + panel `/szkolenia/kreator/lekcja/[id]`, licznik
+     postępu, `straznik-tresci-lekcji`, `smoke-lekcje`); zmergowany
+     2026-08-19 na dowodach lokalnych, decyzją właściciela, bo CI stoi
+     do 1 września. **NASTĘPNY: etap 3 —
      dogęszczenie Kursu 1 i redakcja 91 lekcji, treść wchodzi
      KREATOREM, nie seedem — ale PRZED pisaniem dwie decyzje
      właściciela (czym wprowadzić 91 lekcji i skąd bierze się ich

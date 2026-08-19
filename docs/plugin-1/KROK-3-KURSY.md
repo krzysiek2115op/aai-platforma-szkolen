@@ -44,27 +44,29 @@ Wspólne z krokiem 2 zostają: baza `db1_kursy`, baza testowa
 | # | Etap | Stan |
 |---|---|---|
 | 1 | Propozycja produkcji materiału → decyzja właściciela | ✅ zrobione (PR #32) |
-| 2 | Kreator przejmuje treść lekcji i materiały | ✅ zrobione (0.28.0) — warstwa danych + panel; **PR #36 OTWARTY** |
+| 2 | Kreator przejmuje treść lekcji i materiały | ✅ zrobione (0.30.0, PR #36 zmergowany) |
 | 3 | Dogęszczenie Kursu 1 + redakcja 91 lekcji, treść wchodzi kreatorem | ⏳ — dwie decyzje do podjęcia, niżej |
 | 4 | Finalna treść stron sprzedażowych kreatorem → B7 | ⏳ |
 
-## Stan na 2026-08-19 wieczorem — co czeka na właściciela
+## Stan na 2026-08-19 wieczorem
 
-**PR #36 (`feat/kreator-tresc-lekcji` → `plugin-1-sklep-kursow`) jest
-OTWARTY.** Dowody są lokalne i komplet: testy 57/57, strażnicy 23/23,
-audyt mutacji 58/58 (0 przeoczonych, 0 martwych), tsc i lint czyste,
-oba buildy zielone, siedem smoke'ów zielonych, każdy nowy test
-sprawdzony testem negatywnym. **CI stoi do 1 września** (wyczerpane
-minuty Actions organizacji), więc merge jest DECYZJĄ WŁAŚCICIELA na
-dowodach lokalnych — tak jak przy 0.21.0 i 0.25.0. Po powrocie CI
-zostaje do potwierdzenia skan sekretów (gitleaks), bo jako jedyny nie
-ma lokalnego odpowiednika.
+**Etap 2 zamknięty: PR #36 zmergowany, wersja 0.30.0.** Decyzja
+właściciela z 2026-08-19: merge na DOWODACH LOKALNYCH, bo CI stoi do
+1 września (wyczerpane minuty Actions organizacji) — tak samo jak przy
+0.21.0 i 0.25.0. Po powrocie CI zostaje do potwierdzenia skan sekretów
+(gitleaks), jako jedyny bez lokalnego odpowiednika.
 
-Wersja wydania to **0.28.0**, nie 0.27.0: krok 2 zmergował PR #35
-pierwszy i wziął tamten numer (protokół pracy równoległej z
-KROK-2-ZABEZPIECZENIA.md — kto merguje pierwszy, ten wygrywa). Baza
-z limiterem jest już scalona w tej gałęzi, smoke pisania lekcji
-przechodzi z nowym ograniczaniem tempa.
+Dowody przy merge'u: testy 62/62, strażnicy 24/24, audyt mutacji 71/71
+(0 przeoczonych, 0 martwych), tsc i lint czyste, oba buildy zielone,
+siedem smoke'ów zielonych, każdy nowy test sprawdzony testem negatywnym.
+
+Numer to 0.30.0, nie 0.28.0: krok 2 domknął się w międzyczasie trzema
+wydaniami (0.27.0 brama AJAX-a, 0.28.0 limity wejścia, 0.29.0 zamknięcie
+kroku). Ta gałąź scalała bazę DWA razy — protokół pracy równoległej
+z KROK-2-ZABEZPIECZENIA.md działa, ale kosztuje: przy drugim scaleniu
+doszło przeniesienie `MaterialLekcji` i `LekcjaZTrescia` do odczytowej
+części `typy.ts` (konwencja `straznik-limitow`: region limitów to samo
+wejście), a sufity pól materiału przejął `straznik-tresci-lekcji`.
 
 ## Etap 3 — dwie decyzje PRZED pisaniem
 

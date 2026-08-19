@@ -5,7 +5,7 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
-## [0.28.0] — 2026-08-19
+## [0.30.0] — 2026-08-19
 
 Krok 3 planu domknięcia Pluginu 1, **etap 2: kreator przejmuje treść
 lekcji**. Warstwa danych weszła wcześniej (migracja 006, kontrakty,
@@ -73,7 +73,7 @@ i strona sprzedażowa dostają z bazy samą flagę „lekcja ma treść".
 
 ### Dowody
 
-Testy 57/57, strażnicy 23/23, audyt mutacji 58/58 (0 przeoczonych,
+Testy 62/62, strażnicy 24/24, audyt mutacji 71/71 (0 przeoczonych,
 0 martwych), smoke D4/D5/D6/lekcje/podgląd zielone na produkcyjnym
 `next start`. Każdy nowy test sprawdzony testem negatywnym: 5 mutacji
 logiki panelu i rundy przez bazę, 2 mutacje smoke'a (zdjęta brama =
@@ -81,10 +81,122 @@ czerwony, formularz bez `id` lekcji = czerwony). CI stoi do 1 września
 (wyczerpane minuty Actions) - dowody są lokalne, jak przy 0.21.0
 i 0.25.0.
 
-Numer wydania to 0.28.0, a nie 0.27.0: krok 2 zmergował swoją część
-pierwszy i wziął tamten numer. Protokół pracy równoległej
-(docs/plugin-1/KROK-2-ZABEZPIECZENIA.md) mówi wprost — kto merguje
-pierwszy, ten wygrywa; drugi scala bazę u siebie i przenumerowuje.
+Numer wydania to 0.30.0: krok 2 domknął się w międzyczasie trzema
+wydaniami (0.27.0 brama AJAX-a, 0.28.0 limity wejścia, 0.29.0 zamknięcie
+kroku), a protokół pracy równoległej mówi wprost — kto merguje pierwszy,
+ten bierze numer; drugi scala bazę u siebie i przenumerowuje. Ta gałąź
+scaliła bazę DWA razy i za każdym razem przeszła komplet dowodów.
+
+Skutek scalenia z limitami wejścia (0.28.0) widać w `typy.ts`: kształt
+`MaterialLekcji` i kontrakt odczytu `LekcjaZTrescia` stoją teraz
+w części ODCZYTOWEJ pliku, zgodnie z konwencją `straznik-limitow`
+(region limitów zaczyna się przy stałych i obejmuje wyłącznie wejście).
+`TrescLekcji` — czyli to, co panel WYSYŁA — zostaje pod limitami, gdzie
+strażnik ją widzi. Materiał lekcji przychodzi z sieci, a wypadł poza ten
+region, więc sufity jego pól pilnuje odtąd `straznik-tresci-lekcji`
+(czwarty niezmiennik + mutacja).
+## [0.29.0] — 2026-08-19
+
+**Krok 2 planu domknięcia Pluginu 1 ZAMKNIĘTY.** To wydanie nie zmienia
+kodu — domyka krok: checklista bezpieczeństwa nie ma już ani jednej
+pozycji możliwej do zrobienia w prototypie i pozostawionej otwartej.
+
+Cztery wydania kroku: **0.26.0** pełne CSP z nonce'em, **0.27.0** brama
+jedynego AJAX-a (limit tempa, kara czasowa, stały czas porównania
+tokenu), **0.28.0** twarde limity wejścia, **0.29.0** domknięcie.
+
+Bilans wejściowy z przeglądu: 14 otwartych pozycji (nie 18 — tamta
+liczba liczyła linie z legendą, nie wiersze tabel), z czego dwie
+okazały się zrobione w 0.24.0/0.25.0, pięć trafiło do prototypu,
+pięć do specyfikacji wtyczki WP, trzy poza repo (decyzje właściciela:
+2FA, branch protection, domena). Wszystkie pięć prototypowych zostało
+zrobionych.
+
+### Dodane
+
+- **BLAD-013** w rejestrze: strażnik wiązany z NAZWĄ API zamiast
+  z zachowaniem. `straznik-limitera` sprawdzał „limit tempa przed
+  czytaniem ciała", opierając się na `request.json()`; gdy trasa
+  przeszła na czytanie strumieniem, warunek zamilkł i strażnik
+  zzieleniał na mutacji, którą wcześniej łapał. Wykrył to dopiero
+  audyt mutacyjny — bez okresowego uruchamiania audytu ta klasa błędu
+  jest NIEWYKRYWALNA, bo nie ma żadnego objawu.
+
+### Zmienione
+
+- Checklista bezpieczeństwa: stan 🚧 („w robocie w kroku 2") nie
+  opisuje już żadnej pozycji; sekcja specyfikacji WP mówi o tych
+  wzorcach w czasie przeszłym — istnieją w kodzie, nie w planach.
+- `KROK-2-ZABEZPIECZENIA.md` i `CLAUDE.md` odnotowują domknięcie kroku
+  wraz z tym, co świadomie ZOSTAJE otwarte: pozycje należące do
+  wtyczki WP (RODO, konta klientów, honeypot, SPF/DKIM/DMARC, HTTPS
+  i HSTS) oraz trzy decyzje właściciela poza repo.
+
+### Stan dowodów na koniec kroku
+
+Strażnicy **23/23**, audyt mutacyjny **64 złapane / 0 przeoczonych /
+0 martwych**, testy **49/49**, smoke D4/D5/D6/CSP/SEO/podgląd zielone,
+lint bez błędów. Wszystko odtwarzane lokalnie — CI organizacji stoi do
+1 września (wyczerpany limit minut Actions).
+
+## [0.28.0] — 2026-08-19
+
+Krok 2 planu domknięcia Pluginu 1, **część 3: twarde limity wejścia**.
+Kontrakty ograniczały pola kursu (slug 120, title 200, short_desc 500)
+i to wyglądało na komplet. Nie było: treść sekcji była gołym
+`z.string()`, tablice `sections`/`modules`/`lessons` nie miały sufitu
+liczności, `price_grosze` mieściło wszystko aż do granicy kolumny
+`integer`, a trasa wczytywała **całe ciało żądania do pamięci**, zanim
+cokolwiek je zmierzyła.
+
+Wszystkie liczby w tym wydaniu wzięły się z pomiaru bazy, nie z
+przeczucia: najdłuższy tekst w treści sekcji ma **191 znaków**,
+najliczniejsza lista **10 pozycji**, kurs ma najwyżej 12 sekcji,
+7 modułów i 11 lekcji w module, a pełny zapis kursu waży **17 kB**.
+Limity stoją rząd wielkości wyżej — mają odcinać nadużycie, nie pracę.
+
+### Dodane
+
+- Sufity długości i liczności w KAŻDYM polu wejścia: aliasy
+  `krotki()` / `akapit()` / `lista()` w `modules/m1-sklep/typy.ts`
+  plus nazwane stałe (`LIMIT_KROTKI`, `LIMIT_AKAPIT`, `LIMIT_LISTY`,
+  `LIMIT_SEKCJI`, `LIMIT_MODULOW`, `LIMIT_LEKCJI`, `LIMIT_POZYCJI`,
+  `LIMIT_CZASU_MIN`, `LIMIT_TOKENU`, `SUFIT_CENY`).
+- **Sufit ciała żądania: 2 MB, mierzony STRUMIENIEM** przed
+  parsowaniem JSON-a; przekroczenie to 413. `content-length`
+  sprawdzamy najpierw, ale mu nie ufamy — może kłamać, a przy
+  transferze porcjowanym w ogóle go nie ma.
+- `straznik-limitow` — 10 niezmienników, 12 mutacji w audycie (w tym
+  kontrprzykład: `z.string()` w kanale ODCZYTU sufitu nie potrzebuje,
+  bo tamte dane przychodzą z naszej bazy).
+- Pięć testów limitów w `dyspozytor.test.ts` i dwa dowody 413 w smoke
+  D6 (ciało z zadeklarowanym rozmiarem oraz ciało bez `content-length`).
+
+### Zmienione zachowanie
+
+- **Treść sekcji jest OCZYSZCZANA schematem przed zapisem.** Do tej
+  wersji `content` szedł do JSONB w całości, a schemat rodzaju tylko go
+  sprawdzał — więc klucz spoza kontraktu wchodził do bazy bez żadnego
+  limitu i bez szans pojawienia się na stronie. Same `.max()` byłyby
+  przy tym dekoracją: limity omijało jedno nieznane pole.
+- **Konflikt unikalności nie oddaje już komunikatu Postgresa.**
+  Surowy tekst niesie nazwy ograniczeń, tabel i kolumn — czyli rysunek
+  schematu bazy. Klient dostaje zdanie napisane przez nas, szczegół
+  idzie do logu serwera, gdzie jest potrzebny przy diagnozie.
+- Cena ponad sufit jest odrzucana walidacją, a nie błędem kolumny
+  `integer` (2 147 483 647).
+
+### Naprawione
+
+- **Audyt mutacyjny złapał regresję kontroli z poprzedniego wydania:**
+  `straznik-limitera` wiązał sprawdzenie „limit tempa PRZED czytaniem
+  ciała" z nazwą `request.json()`. Ta trasa czyta teraz ciało
+  strumieniem, więc warunek przestał cokolwiek znaczyć — strażnik
+  pozostawał zielony przy mutacji, którą wcześniej łapał. Wzorzec
+  patrzy teraz na pierwsze DOTKNIĘCIE ciała, jakąkolwiek drogą.
+- `straznik-limitow` porównywał pozycję nazwy `cialoZSufitem`, trafiając
+  w jej definicję na górze pliku zamiast w wywołanie — ta sama klasa
+  błędu, złapana tym samym audytem, w tym samym przebiegu.
 
 ## [0.27.0] — 2026-08-19
 

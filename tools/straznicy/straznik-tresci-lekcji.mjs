@@ -23,7 +23,13 @@
  *      to `boolean`, nie tekst),
  *   2. kontrakt `LekcjaKursu` (kształt widziany przez STRONĘ) nie ma pola
  *      `tresc` ani `materialy`,
- *   3. pełną treść oddaje dokładnie JEDNA funkcja odczytu — `trescLekcji`.
+ *   3. pełną treść oddaje dokładnie JEDNA funkcja odczytu — `trescLekcji`,
+ *   4. `MaterialLekcji` ma sufit na każdym polu tekstowym. Ten kształt
+ *      przychodzi Z SIECI (panel wysyła go w `TrescLekcji`), ale stoi
+ *      w odczytowej części typy.ts — bo czyta go też kreator — więc
+ *      `straznik-limitow` go NIE widzi (jego region zaczyna się przy
+ *      stałych limitów). Bez tej kontroli materiał byłby jedynym
+ *      polem wejścia bez górnej granicy.
  *
  * Użycie: node tools/straznicy/straznik-tresci-lekcji.mjs
  */
@@ -86,6 +92,27 @@ if (existsSync("modules/m1-sklep/typy.ts")) {
       bledy.push(
         `modules/m1-sklep/typy.ts: LekcjaKursu (kształt widziany przez STRONĘ) ma pole "${pole}" — kontrakt przestałby obcinać materiał kursu.`
       );
+    }
+  }
+}
+
+// --- 4. materiał lekcji: wejście bez sufitu ---
+if (existsSync("modules/m1-sklep/typy.ts")) {
+  const zrodlo = readFileSync("modules/m1-sklep/typy.ts", "utf8");
+  const start = zrodlo.indexOf("export const MaterialLekcji = z.object({");
+  if (start === -1) {
+    bledy.push(
+      "modules/m1-sklep/typy.ts: nie znaleziono kontraktu MaterialLekcji — strażnik straciłby cel, więc nie przechodzi po cichu."
+    );
+  } else {
+    const cialo = zrodlo.slice(start, zrodlo.indexOf("});", start));
+    for (const [, pole, definicja] of cialo.matchAll(/^\s*(\w+):\s*(z\.[^,\n]*)/gm)) {
+      const tekstowe = /z\.string\(|z\.url\(/.test(definicja);
+      if (tekstowe && !definicja.includes(".max(")) {
+        bledy.push(
+          `modules/m1-sklep/typy.ts: MaterialLekcji.${pole} przychodzi z sieci bez .max() — straznik-limitow nie widzi tego kształtu (stoi w części odczytowej), więc pilnuje go ten strażnik.`
+        );
+      }
     }
   }
 }
