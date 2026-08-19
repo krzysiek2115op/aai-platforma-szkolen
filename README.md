@@ -135,6 +135,7 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run db1:up` | postaw kontener bazy (podman compose) |
 | `npm run db1:migruj` | doprowadź schemat bazy do aktualnego stanu (sha256 w `_migracje`) |
 | `npm run db1:seed` | wgraj przykładowe kursy (treść ROBOCZA — do oceny wyglądu) |
+| `npm run db1:tresc` | wgraj prozę lekcji z `tresc-kursow/**/proza-*.md` do bazy — drogą kreatora (jedyny AJAX); `-- --sprawdz` sam sprawdza, nic nie wysyła |
 
 Narzędzia uruchamiane ręcznie:
 
