@@ -569,6 +569,22 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      `/home/krzysiek/zlecenia stron internetowych/czarodziejski-dworek/wordpress`
      (motyw + PACZKA-DLA-KLIENTA + blueprint) oraz
      `/home/krzysiek/kredyt-kompas-wp`.
+     **DOKUMENTACJA WP POBRANA (2026-08-19):** 947 plików, 9,6 MB
+     w `docs/dokumentacja-techniczna/wordpress/` — **poza gitem**, tak jak
+     przy D7. W repo są `ZRODLA.md` (zakres + uzasadnienie cięć) i
+     `tools/pobierz-dokumentacje-wp.mjs`. **Po `git clean` albo na nowej
+     maszynie: najpierw uruchom skrypt, potem pisz kod wtyczki.** Kanały:
+     REST API WordPressa (developer.wordpress.org i docs.themeum.com same
+     stoją na WP), markdown wprost z monorepo WooCommerce, HTML dla manuala
+     MySQL i Code Reference. **Zapamiętać dwie pułapki konwersji:** typy
+     `wp-parser-*` w REST NIE mają pola `content` (Code Reference trzeba
+     brać z HTML), a WordPress generuje spisy treści z NIEDOMKNIĘTYMI
+     `<li>` — dopasowanie pary „otwarcie–zamknięcie" połyka wtedy resztę
+     dokumentu i spłaszcza ją do jednej linii.
+     `straznik-wagi-dokumentacji` czyta teraz MANIFEST ze skryptów
+     pobierających (`KATALOG_DZIALU` + `KATALOGI_MASOWE`) zamiast trzymać
+     własną listę nazw — nowy skrypt pobierający MUSI eksportować manifest,
+     inaczej strażnik czerwieni się celowo.
      Potem: sprzątanie gałęzi, merge na `main`, koniec Pluginu 1.
 - **DECYZJA WŁAŚCICIELA (2026-08-19): porządek gałęzi PO Pluginie 1.**
   Po ukończeniu CAŁEGO Pluginu 1 i rozmowie o przeniesieniu strony
