@@ -179,6 +179,15 @@ jobs:
           KREATOR_TOKEN: smoke-podglad-ci
         run: node tools/smoke/smoke-podglad.ts
 
+      # SEO sprawdzamy na ZBUDOWANYCH plikach, nie na deklaracjach w kodzie:
+      # kanoniki, robots, sitemapa, miniatury OG i dane strukturalne
+      # porównane Z BAZĄ (cena i tytuł w JSON-LD nie mogą rozjechać się
+      # z ofertą). Buduje z SEO_INDEKSOWANIE=1, bo domyślny stan `noindex`
+      # zasłania połowę tej powierzchni. Nadpisuje out/, więc idzie po
+      # smoke'u podglądu.
+      - name: Smoke SEO (kanoniki, robots, sitemapa, JSON-LD)
+        run: node tools/smoke/smoke-seo.ts
+
   security:
     name: Skan sekretów
     runs-on: ubuntu-latest

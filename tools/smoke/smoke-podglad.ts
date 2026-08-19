@@ -182,8 +182,26 @@ try {
   const panel = await fetch(`http://localhost:${PORT}${BAZOWA}/szkolenia/kreator`);
   assert.equal(panel.status, 404, "kreator odpowiada w publicznym podglądzie");
 
+  // --- 7. stan „nie indeksuj" jest spójny w TRZECH miejscach ---------
+  // Metatag, robots.txt i sitemapa muszą mówić to samo. Rozjazd między
+  // nimi nie daje żadnego objawu na stronie, a wystarczy, żeby robocza
+  // treść trafiła do wyników wyszukiwania. Pełną powierzchnię SEO
+  // (stan WŁĄCZONY) sprawdza osobno smoke-seo.
+  assert.ok(
+    /<meta name="robots" content="[^"]*noindex/.test(katalog),
+    "katalog podglądu bez metatagu noindex — treść jest jeszcze robocza"
+  );
+  const robots = readFileSync(join("out", "robots.txt"), "utf8");
+  assert.ok(/Disallow: \//.test(robots), "robots.txt podglądu nie blokuje robotów");
+  assert.ok(
+    !robots.includes("Sitemap:"),
+    "robots.txt podglądu wskazuje sitemapę, na którą roboty nie mają wstępu — sygnał sprzeczny"
+  );
+  const sitemap = readFileSync(join("out", "sitemap.xml"), "utf8");
+  assert.ok(!sitemap.includes("<loc>"), "sitemapa podglądu nie jest pusta mimo noindex");
+
   console.log(
-    `smoke-podglad: OK — ${pliki.length} plików, szkic nie wyciekł, kreator i AJAX nieobecni, basePath spójny.`
+    `smoke-podglad: OK — ${pliki.length} plików, szkic nie wyciekł, kreator i AJAX nieobecni, basePath i stan noindex spójne.`
   );
 } catch (blad) {
   console.error("smoke-podglad: PORAŻKA —", blad instanceof Error ? blad.message : blad);

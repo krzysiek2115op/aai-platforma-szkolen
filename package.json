@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
-    "build:podglad": "PODGLAD_STATYCZNY=1 next build",
+    "build:podglad": "PODGLAD_STATYCZNY=1 next build && node tools/og-rozszerzenie.mjs out",
     "deploy:podglad": "bash tools/deploy-podglad.sh",
     "start": "next start -p 3001",
     "lint": "eslint",

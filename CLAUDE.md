@@ -323,25 +323,96 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      (`lib/podglad.ts`), pilnuje tego `straznik-podgladu` + 4 mutacje
      + `smoke-podglad` (buduje CELOWO z tokenem w środowisku, żeby
      udowodnić, że szkice nie wchodzą do publicznych plików).
-     Pozostało w kroku 2: **SEO** (robots.ts, sitemap.ts, kanoniczne,
-     OG-obrazy, JSON-LD) i **wydajność + pomiary**.
-     Oryginalny opis kroku: Wrzucić
-     podstronę na GitHub Pages, zrobić całe SEO, testować **narzędziami
-     Google** (Lighthouse, PageSpeed Insights, Rich Results, Search
-     Console), dojść do **100 w każdej kolumnie** (wydajność,
-     dostępność, dobre praktyki, SEO + LCP/CLS/TBT), a wynik wpisać
-     tabelą do README — SEO odhaczone dopiero, gdy jest perfekcyjne.
-     **UWAGA — PRZESZKODA: `/szkolenia` NIE JEST STATYCZNE.** Wszystkie
-     4 strony mają `force-dynamic` i czytają Postgresa przy żądaniu,
-     kreator stoi na ciastku i akcjach serwerowych, jedyny AJAX mutuje
-     bazę, a repo jest PRYWATNE (Pages z prywatnego repo = plan płatny).
-     Dlatego krok zaczyna się od **trybu eksportu statycznego**
-     (katalog + strony kursów z bazy w czasie builda, kreator i AJAX
-     wykluczone) i publikacji do **osobnego PUBLICZNEGO repo** — tak
-     robi strona główna. Trzy decyzje właściciela na starcie: gdzie
-     publikujemy, `noindex` na czas prac (REKOMENDACJA: tak — treść
-     sprzedażowa jest robocza, opinie to placeholdery), czy podgląd ma
-     mieć finalną treść (jeśli tak, ten krok idzie za krok 4).
+     **Część 2/3 ZROBIONA (0.24.0, gałąź `feat/seo-podstrony`): SEO na
+     stronie.** `lib/seo.ts` = jedno źródło prawdy o adresie i o tym, czy
+     wolno indeksować (`INDEKSOWANIE`, domyślnie NIE; `SEO_INDEKSOWANIE=1`
+     wyłącznie do pomiaru kolumny SEO, którą `noindex` punktowo zaniża).
+     Doszły: kanoniki + OpenGraph, `app/robots.ts`, `app/sitemap.ts`
+     (bez `lastModified` — nie mamy prawdziwej daty zmiany treści),
+     miniatury OG przez `next/og` (własna per kurs), JSON-LD
+     (Organization, ItemList, Course+Offer, BreadcrumbList, FAQPage),
+     `straznik-seo` + 6 mutacji, `smoke-seo` (porównuje dane
+     strukturalne Z BAZĄ). **Trzy pułapki, które kosztowały czas i mogą
+     wrócić:** (1) `opengraph-image.tsx` w eksporcie daje plik BEZ
+     rozszerzenia → Pages podaje `octet-stream` → scrapery odrzucają
+     miniaturę; naprawia `tools/og-rozszerzenie.mjs` po buildzie;
+     (2) konwencja plikowa Next **nie dziedziczy się w dół** — `/szkolenia`
+     nie dostało obrazka z `app/opengraph-image.tsx`, trzeba było osobnej
+     trasy; (3) `app/robots.ts` i `app/sitemap.ts` MUSZĄ mieć
+     `dynamic = "force-static"`, inaczej `output: export` pada.
+     **DECYZJA: `Offer.availability` = `PreOrder`**, bo zakup to dziś
+     placeholder — na `InStock` zmieniamy dopiero z płatnościami
+     (Plugin 2); pilnuje tego smoke.
+     **BŁĄD ZŁAPANY DOPIERO NA ŻYWYM ADRESIE (0.24.0) — klasa do
+     zapamiętania:** opublikowany podgląd oddawał **404 na wszystkich
+     czterech miniaturach OG**, bo skrypt deploya wołał `npx next build`
+     wprost, a krok nadający rozszerzenie `.png` wisi na komendzie
+     `build:podglad`. Build zielony, weryfikacja żywego adresu zielona
+     — obie sprawdzały PROCES, nie ARTEFAKT. Gorzej: dopisany test
+     miniatur sam był ślepy (wzorzec `[^"?]*`, a Next dokleja do adresu
+     sygnaturę `?455fcc13` — grep nie łapał niczego i pętla przebiegała
+     po pustce). Wykryte testem negatywnym. **REGUŁA: każdy nowy test
+     sprawdzić testem negatywnym; deploy woła tę samą komendę co
+     człowiek.**
+
+     ### ← NASTĘPNY KROK: CZĘŚĆ 3/3 — WYDAJNOŚĆ I POMIARY
+
+     **Cel:** wypełnić tabelę w README zmierzonymi liczbami (dziś
+     myślniki = NIEZMIERZONE, nie „zero") i dojść do 100/100/100/100.
+
+     Co po kolei:
+     1. **Chrome/Lighthouse w scratchpadzie sesji, NIGDY w
+        `package.json`** (lekcja z D5 o playwrighcie).
+     2. **Audyt 14 komponentów `"use client"`** — główny podejrzany
+        o TBT: `components/kurs/TloKursu.tsx` (poświata za kursorem,
+        dryf blobów) oraz `HeroMotion`/`OknoKursu` w katalogu.
+        **DECYZJA WŁAŚCICIELA (2026-08-19): ten audyt robić czytając
+        CAŁE PLIKI, nie fragmentami — „mamy dużo tokenów".** Nie
+        oszczędzać tu kontekstu kosztem dokładności.
+     3. **Obrazy**: okładki kursów to lokalne SVG w `public/okladki/`
+        renderowane zwykłym `<img>` (NIE `next/image` — nie ma go
+        w projekcie w ogóle). Element LCP katalogu trzeba USTALIĆ
+        POMIAREM, nie zgadywać. Brakujące `width`/`height` = ryzyko CLS.
+     4. **Protokół pomiaru — dwa buildy, opisany w README:** wydajność,
+        dostępność, dobre praktyki i Core Web Vitals na ŻYWYM adresie
+        (z `noindex`); kolumna SEO na buildzie
+        `SEO_INDEKSOWANIE=1 PAGES_BASE_PATH=… npm run build:podglad`
+        serwowanym lokalnie — bo `noindex` jest punktowanym audytem
+        Lighthouse'a i zaniżyłby SEO niezależnie od jakości strony.
+     5. **Wynik ważny dopiero po TRZECH zgodnych przebiegach.**
+        Rich Results Test na JSON-LD (działa z wklejonego kodu, więc
+        `noindex` mu nie przeszkadza), PageSpeed Insights, weryfikacja
+        własności w Search Console.
+     6. Jeśli wydajność utknie poniżej 100 — **przyjść do właściciela
+        z listą kompromisów** (najpewniej wokół animowanego hero
+        i `TloKursu`), NIE wpisywać zaokrąglonej liczby.
+     7. Domknięcie: strażnik progów pilnujący, żeby tabela nie
+        zdezaktualizowała się po cichu + CHANGELOG 0.25.0 + PR
+        stackowany na `feat/seo-podstrony`.
+
+     **Właściciel (2026-08-19): PR-y części 1–3 mergujemy DOPIERO, gdy
+     pomiary pokażą 100 w każdej kolumnie — nie po kolei.** PR-y
+     stackowane: **#26** (`feat/podglad-statyczny`, 0.23.0) ← **#27**
+     (`feat/seo-podstrony`, 0.24.0) ← część 3. Baza #26 to
+     `plugin-1-sklep-kursow`; baza #27 to `feat/podglad-statyczny`.
+     Merge robimy `--delete-branch`, od najstarszego.
+
+     **Żywy podgląd (działa, sprawdzony curl-em):**
+     `https://matthewplugins.github.io/szkolenia-podglad/szkolenia`
+     — strony publiczne 200, kreator/`api`/nieznany slug 404, cztery
+     miniatury OG 200 `image/png`, `robots.txt` blokuje (noindex),
+     sitemapa pusta (spójnie z noindex).
+
+     **Komendy, które będą potrzebne:** `npm run db1:up` (podman),
+     `npm run dev` → `:3001`, `npm run build:podglad`,
+     `npm run deploy:podglad` (wymaga CZYSTEGO drzewa i żywej bazy),
+     smoke'i: `d4`, `d5`, `d6`, `podglad`, `seo` (kody wyjścia
+     sprawdzać BEZ potoku).
+     Cel kroku (niezmieniony): dojść do **100 w każdej kolumnie**
+     (wydajność, dostępność, dobre praktyki, SEO + LCP/CLS/TBT)
+     mierzone **narzędziami Google**, a wynik wpisać tabelą do README.
+     ~~PRZESZKODA: `/szkolenia` nie jest statyczne~~ — **ROZWIĄZANA
+     w części 1/3** (tryb podglądu statycznego).
      **DECYZJE PODJĘTE (właściciel, 2026-08-19):** (a) publikujemy do
      nowego PUBLICZNEGO repo `MatthewPlugins/szkolenia-podglad`
      (adres `matthewplugins.github.io/szkolenia-podglad/szkolenia`,
@@ -351,8 +422,9 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      na buildzie BEZ niego, a resztę na żywym adresie; (c) treść
      ROBOCZA, pomiary powtarzamy po złożeniu kursów w kreatorze
      (krok 4).
-     Największy nieodrobiony zysk SEO: **JSON-LD** (Course, Product+Offer,
-     BreadcrumbList, FAQPage, Organization) — dziś go NIE MA.
+     ~~Największy nieodrobiony zysk SEO: JSON-LD~~ — **ZROBIONE
+     w części 2/3** (Organization, ItemList, Course+Offer,
+     BreadcrumbList, FAQPage; `smoke-seo` porównuje je z bazą).
   3. **Pełne zabezpieczenia** — domknięcie pozycji ⏳/🔧
      z `docs/security-checklist.md` możliwych w prototypie: pełne CSP
      nagłówkiem + strażnik polityki, rate limiting, limity wejścia,

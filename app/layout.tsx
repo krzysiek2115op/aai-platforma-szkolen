@@ -2,18 +2,36 @@ import type { Metadata, Viewport } from "next";
 import { GeistSansSubset, GeistMonoSubset } from "@/lib/fonts";
 import NavbarPrzelacznik from "@/components/NavbarPrzelacznik";
 import Footer from "@/components/Footer";
+import JsonLd from "@/components/seo/JsonLd";
+import { organizacja } from "@/lib/jsonld";
+import { ADRES_BAZOWY, INDEKSOWANIE, MARKA } from "@/lib/seo";
 import "./globals.css";
 
+const OPIS =
+  "Kursy i ebooki Automatic AI — praktyczna wiedza o AI, agentach i automatyzacji procesów.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(ADRES_BAZOWY),
   title: {
-    default: "Szkolenia — Automatic AI",
-    template: "%s — Automatic AI",
+    default: `Szkolenia — ${MARKA}`,
+    template: `%s — ${MARKA}`,
   },
-  description:
-    "Kursy i ebooki Automatic AI — praktyczna wiedza o AI, agentach i automatyzacji procesów.",
-  // Aplikacja przedprodukcyjna (localhost/hosting testowy) — indeksowanie
-  // włączymy dopiero po merge do strony głównej.
-  robots: { index: false, follow: false },
+  description: OPIS,
+  // Indeksowanie DOMYŚLNIE WYŁĄCZONE — treść stron sprzedażowych jest
+  // jeszcze robocza, a opinie to jawne placeholdery. Decyduje jedna
+  // stała (lib/seo.ts), wspólna z robots.txt i sitemapą; trzy niezależne
+  // ustawienia prędzej czy później powiedziałyby co innego.
+  robots: INDEKSOWANIE
+    ? { index: true, follow: true }
+    : { index: false, follow: false },
+  openGraph: {
+    type: "website",
+    siteName: MARKA,
+    locale: "pl_PL",
+    title: `Szkolenia — ${MARKA}`,
+    description: OPIS,
+  },
+  twitter: { card: "summary_large_image", title: `Szkolenia — ${MARKA}`, description: OPIS },
 };
 
 export const viewport: Viewport = { themeColor: "#08090b" };
@@ -46,6 +64,8 @@ export default function RootLayout({
               "d.classList.remove('js')},4000)})()",
           }}
         />
+        {/* Wizytówka marki — jedna na cały serwis, nie po jednej na stronę. */}
+        <JsonLd dane={organizacja()} />
         <a href="#tresc" className="skip-link">
           Przejdź do treści
         </a>
