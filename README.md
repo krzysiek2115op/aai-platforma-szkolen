@@ -46,7 +46,7 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.28.0** |
+| **Wersja** | **0.29.0** |
 | **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**, treść kursów kompletna: 91 scenariuszy). Następne kroki wg [planu domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): **SEO i wydajność na żywym adresie** → pełne zabezpieczenia → kursy złożone w narzędziu (**B7**) → WordPress |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
