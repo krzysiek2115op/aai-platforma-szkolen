@@ -462,6 +462,9 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      kursów przez właściciela**. Podział terytoriów między oba czaty
      (i protokół dla wspólnego `modules/m1-sklep/typy.ts`) — sekcja
      „Praca równoległa" w KROK-2-ZABEZPIECZENIA.md.
+     **Dokument roboczy kroku (stan, etapy, pułapki):
+     [docs/plugin-1/KROK-3-KURSY.md](docs/plugin-1/KROK-3-KURSY.md)
+     — CZYTAĆ PRZED PRACĄ.**
      **DECYZJE WŁAŚCICIELA 2026-08-19 o produkcji materiału (punkt 1
      kroku odhaczony) — pełnia z liczbami i odrzuconymi opcjami:
      [docs/plugin-1/PRODUKCJA-MATERIALU-KROK-3.md](docs/plugin-1/PRODUKCJA-MATERIALU-KROK-3.md):**
