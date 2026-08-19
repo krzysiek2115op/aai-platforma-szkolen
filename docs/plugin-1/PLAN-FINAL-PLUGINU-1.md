@@ -13,12 +13,41 @@ scenariusze).
 
 ## Krok 1 — SEO i wydajność mierzone na żywym adresie
 
+> **STAN 2026-08-19: krok w toku, podzielony na trzy części.**
+> Podział wyszedł z pracy, nie z planowania: każda część ma własny
+> dowód, który da się ocenić osobno.
+>
+> | Część | Stan | Wersja / gałąź | PR |
+> |---|---|---|---|
+> | 1/3 — tryb podglądu statycznego | **zrobiona** | 0.23.0 · `feat/podglad-statyczny` | [#26](https://github.com/MatthewPlugins/Pod-strona-Szkolenia/pull/26) |
+> | 2/3 — SEO na stronie | **zrobiona** | 0.24.0 · `feat/seo-podstrony` | [#27](https://github.com/MatthewPlugins/Pod-strona-Szkolenia/pull/27) |
+> | 3/3 — wydajność i pomiary | **← następna** | — | — |
+>
+> **Decyzja właściciela (2026-08-19): wszystkie trzy PR-y mergujemy
+> dopiero, gdy pomiary pokażą 100 w każdej kolumnie** — nie po kolei.
+> PR-y są stackowane (#27 stoi na gałęzi #26), więc merge idzie
+> od najstarszego, z `--delete-branch`.
+>
+> **Żywy podgląd:**
+> <https://matthewplugins.github.io/szkolenia-podglad/szkolenia>
+>
+> Decyzje właściciela podjęte na starcie kroku: publikujemy do nowego
+> **publicznego** repo `MatthewPlugins/szkolenia-podglad`; `noindex`
+> **TAK** na czas prac (z zastrzeżeniem, że tabela pomiarów ma to
+> odnotować — `noindex` jest punktowanym audytem Lighthouse'a); treść
+> **robocza**, pomiary powtarzamy po złożeniu kursów w kreatorze.
+>
+> Szczegóły techniczne obu gotowych części, wraz z pułapkami, które
+> mogą wrócić — w [CLAUDE.md](../../CLAUDE.md) (sekcja „Stan i następny
+> krok") oraz w CHANGELOG 0.23.0 i 0.24.0. Protokół pomiaru i pusta
+> tabela wyników: [README](../../README.md#seo-i-bezpieczeństwo).
+
 **Cel właściciela (2026-08-19):** wrzucić podstronę na GitHub Pages,
 zrobić „całe SEO", przetestować **narzędziami Google**, dojść do
 **100 w każdej kolumnie** i dopiero wtedy odhaczyć SEO tabelą w repo —
 wzorem tabeli Lighthouse ze strony głównej.
 
-### Przeszkoda techniczna, którą trzeba rozwiązać NAJPIERW
+### Przeszkoda techniczna, którą trzeba rozwiązać NAJPIERW — ✅ ROZWIĄZANA w części 1/3
 
 `/szkolenia` **nie jest stroną statyczną**:
 
@@ -36,7 +65,7 @@ kursów z danymi zaciągniętymi z bazy w czasie builda, bez kreatora
 i bez AJAX-a. Prototyp z serwerem zostaje bez zmian — tryb podglądu
 jest dodatkiem do pomiarów i prezentacji, nie zamianą architektury.
 
-### Decyzje do podjęcia przez właściciela (na starcie kroku 1)
+### Decyzje do podjęcia przez właściciela (na starcie kroku 1) — ✅ PODJĘTE 2026-08-19
 
 1. **Gdzie publikujemy?** Propozycja: nowe **publiczne** repo
    `MatthewPlugins/szkolenia-podglad` (albo gałąź `gh-pages` w takim
