@@ -258,6 +258,35 @@ poprawek, więc ryzyko zmiany formatu jest małe.
 pytania właściciela — to była zgoda punktowa na moduł 2, nie zniesienie
 rytmu.
 
+### DECYZJA WŁAŚCICIELA (2026-08-20): moduł 3 rusza w TRZECIM czacie, równolegle
+
+Zapowiedziane pytanie „przy module 3 pytamy ponownie" zostało rozstrzygnięte
+zanim padło: właściciel poprosił o **prompt startowy dla równoległego czatu**,
+który weźmie moduł 3, podczas gdy ten czat kończy moduł 2. To znaczy, że rytm
+„przystanek po każdym module" jest zawieszony także przy module 3 — i że
+produkcja idzie teraz DWOMA torami naraz.
+
+Cena tej decyzji, znana właścicielowi: moduł 3 ma **osiem lekcji**, czyli około
+**1,2 mln tokenów** (po ~152 tys. na lekcję z pomiaru modułu 1). Razem
+z modułem 2 (~760 tys.) powstaje więc blisko **2 mln tokenów treści, zanim
+właściciel oceni moduł 1**. Przesłanka za: format lekcji 1.1 przeszedł bez
+poprawek, więc ryzyko przeróbki formatu jest małe; przeróbka merytoryczna
+i tak dotknęłaby pojedynczych zdań, nie struktury.
+
+**Podział terytoriów przy trzech czatach jednego repo:**
+
+| Czat | Katalog | Gałąź | Teren |
+|---|---|---|---|
+| krok 2 / główny | `/home/krzysiek/Pod strona Szkolenia ` | `plugin-1-sklep-kursow` | wszystko poza treścią kursów |
+| moduł 2 | `/home/krzysiek/Pod-strona-Szkolenia-krok3` | `feat/tresc-lekcji-kursow` | `tresc-kursow/…/modul-2/**` |
+| moduł 3 | `/home/krzysiek/Pod-strona-Szkolenia-modul3` | `feat/tresc-lekcji-modul-3` (od `feat/tresc-lekcji-kursow`) | `tresc-kursow/…/modul-3/**` |
+
+Reguła bez zmian: **żaden czat nie przełącza gałęzi w cudzym katalogu.**
+Pliki wspólne (`POSTEP.md`, ten dokument) każdy dopisuje NA KOŃCU własną
+sekcją; konflikt przy scalaniu jest tekstowy, zasada — zachować OBIE zmiany.
+Baza `db1_kursy` i tokeny są wspólne, ale `npm run db1:tresc` wysyła wyłącznie
+pliki, które się zmieniły, więc czaty nie kasują sobie lekcji.
+
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 
 | Znalezisko | Skąd | Co z tym |
