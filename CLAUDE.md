@@ -466,7 +466,7 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      kłamie); po przekroczeniu limitu odpowiadamy BEZ kary czasowej.
      `x-forwarded-for` jest do podrobienia — zapisane w kodzie i w
      specyfikacji WP.
-     **PR 3 z 4 ZROBIONY — wersja 0.28.0** (tag `v0.28.0`):
+     **PR 3 z 4 ZROBIONY — wersja 0.28.0** (PR #37, tag `v0.28.0`):
      twarde limity wejścia. Sufity długości i liczności w każdym polu
      kontraktu (liczby z POMIARU bazy: najdłuższy tekst 191 znaków,
      lista 10 pozycji, pełny zapis kursu 17 kB), sufit `price_grosze`,
