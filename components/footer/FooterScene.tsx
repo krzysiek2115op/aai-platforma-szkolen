@@ -65,7 +65,13 @@ export function FooterScene({ children }: { children: ReactNode }) {
     let particles: Pyl[] = [];
     let raf = 0;
     let running = false;
-    let inView = true;
+    // Startowo false: stan ustala IntersectionObserver niżej. Gdyby
+    // ustawić true, `start()` z pierwszego zdarzenia (np. przebudowa
+    // przy zmianie rozmiaru) rozgrzałby scenę, zanim ktokolwiek ją zobaczy
+    // — czyli dokładnie to, czego ta bramka ma unikać. Canvas jest
+    // dekoracją oznaczoną aria-hidden, więc brak wpisu z obserwatora
+    // oznacza „stopka bez pyłu", nigdy „stopka bez treści".
+    let inView = false;
     let last = performance.now();
     let time = 0;
     let resizeTimer = 0;
@@ -209,6 +215,28 @@ export function FooterScene({ children }: { children: ReactNode }) {
       for (let i = 0; i < 90; i++) step(0.016);
     }
 
+    /*
+     * Rozgrzewka kosztuje 90 przebiegów `step` po całej puli cząstek —
+     * to najdłuższe pojedyncze zadanie, jakie ta strona wykonuje na
+     * wątku głównym. Wykonywana przy montowaniu doliczała się do
+     * Total Blocking Time (waga 30/100 w wydajności Lighthouse'a),
+     * mimo że stopka leży wtedy kilka ekranów niżej i nikt jej nie widzi.
+     *
+     * Dlatego scena przygotowuje się dopiero przy pierwszym wejściu
+     * w widok — tak samo, jak od zawsze bramkowana jest sama pętla
+     * animacji. Efekt wizualny bez zmian: rozgrzewka kończy się przed
+     * pierwszą klatką, więc pył nadal „opada od dawna", gdy stopka
+     * pojawia się na ekranie.
+     */
+    let przygotowane = false;
+
+    function przygotuj() {
+      if (przygotowane) return;
+      przygotowane = true;
+      makeParticles();
+      prewarm();
+    }
+
     function frame(now: number) {
       if (!running) return;
       const dt = Math.min((now - last) / 1000, 0.033);
@@ -219,6 +247,7 @@ export function FooterScene({ children }: { children: ReactNode }) {
 
     function start() {
       if (running || reduce || !inView || document.hidden) return;
+      przygotuj();
       running = true;
       last = performance.now();
       raf = requestAnimationFrame(frame);
@@ -229,10 +258,9 @@ export function FooterScene({ children }: { children: ReactNode }) {
       cancelAnimationFrame(raf);
     }
 
+    // Samo tło maluje się od razu (jeden fillRect) — cząstek jeszcze nie
+    // ma, bo te czekają na wejście stopki w widok (patrz `przygotuj`).
     applySize();
-    makeParticles();
-    prewarm();
-    if (!reduce) start();
 
     const onPointerMove = (e: PointerEvent) => {
       const rect = root!.getBoundingClientRect();
@@ -281,8 +309,14 @@ export function FooterScene({ children }: { children: ReactNode }) {
       resizeTimer = window.setTimeout(() => {
         stop();
         applySize();
-        makeParticles();
-        prewarm();
+        // Przebudowa puli tylko wtedy, gdy scena już raz się przygotowała.
+        // Zmiana rozmiaru zdarza się także wtedy, gdy stopka wciąż jest
+        // poza widokiem (rozwijany akordeon wyżej, obrót telefonu) —
+        // przygotowanie jej tutaj obchodziłoby bramkę widoku bokiem.
+        if (przygotowane) {
+          makeParticles();
+          prewarm();
+        }
         start();
       }, 160);
     });
@@ -292,8 +326,15 @@ export function FooterScene({ children }: { children: ReactNode }) {
       ([entry]) => {
         if (!entry) return;
         inView = entry.isIntersecting;
-        if (inView) start();
-        else stop();
+        if (!inView) {
+          stop();
+          return;
+        }
+        // Przy prefers-reduced-motion `start()` z założenia nic nie robi,
+        // a scena ma być narysowana raz i stać — więc rozgrzewkę trzeba
+        // tu odpalić wprost. Bez tego reduced-motion dostałoby pusty canvas.
+        if (reduce) przygotuj();
+        else start();
       },
       { threshold: 0.05 },
     );
