@@ -551,7 +551,9 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      ceny LMS-ów i pytania otwarte:
      **[docs/ETAP-WP.md](docs/ETAP-WP.md)** — CZYTAĆ PRZED ETAPEM WP.
      Skrót: wszystko na WP (strona główna Automatic AI **jest już
-     przekonwertowana**), `/szkolenia` wchodzi jako **WTYCZKA** dodająca
+     przekonwertowana — ale konwersję ma KOLEGA Z ZESPOŁU u siebie,
+     my jej nie mamy**; do pracy wystarczyłby sam katalog motywu),
+     `/szkolenia` wchodzi jako **WTYCZKA** dodająca
      pozycję w menu i dopasowująca się do strony; tą samą drogą później
      Pluginy 2 i 3. **Podział odpowiedzialności zamiast przepisywania
      wszystkiego**: nasza wtyczka = katalog, strony sprzedażowe, kreator,
