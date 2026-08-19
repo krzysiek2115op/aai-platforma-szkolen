@@ -505,7 +505,135 @@ const MUTACJE = [
     zmien: (s) => "// Kiedyś stało tu `token === wzorzec` — patrz komentarz niżej.\n" + s,
     oczekujCzerwonego: false,
   },
+
+  // --- straznik-limitow ---
+  // Limity psują się w ciszy: kontrakt bez `.max(` wygląda identycznie
+  // jak kontrakt z limitem, dopóki ktoś nie wyśle pola na megabajt.
+  {
+    straznik: "straznik-limitow",
+    opis: "alias tekstu akapitowego traci sufit długości",
+    plik: "modules/m1-sklep/typy.ts",
+    zmien: (s) =>
+      s.includes("const akapit = () => z.string().max(LIMIT_AKAPIT);")
+        ? s.replace("const akapit = () => z.string().max(LIMIT_AKAPIT);", "const akapit = () => z.string();")
+        : null,
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "listy w sekcjach tracą sufit liczności",
+    plik: "modules/m1-sklep/typy.ts",
+    zmien: (s) =>
+      s.includes("  z.array(element).max(LIMIT_LISTY);")
+        ? s.replace("  z.array(element).max(LIMIT_LISTY);", "  z.array(element);")
+        : null,
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "adres w danych autora bez sufitu (z.url() to też pole tekstowe)",
+    plik: "modules/m1-sklep/typy.ts",
+    zmien: (s) =>
+      s.includes("url: z.url().max(LIMIT_ADRESU)")
+        ? s.replace("url: z.url().max(LIMIT_ADRESU)", "url: z.url()")
+        : null,
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "cena bez sufitu (kolumna integer wywali się surowym błędem bazy)",
+    plik: "modules/m1-sklep/typy.ts",
+    zmien: (s) =>
+      s.includes("price_grosze: z.int().nonnegative().max(SUFIT_CENY),")
+        ? s.replace("price_grosze: z.int().nonnegative().max(SUFIT_CENY),", "price_grosze: z.int().nonnegative(),")
+        : null,
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "token z sieci bez sufitu długości",
+    plik: "modules/m1-sklep/typy.ts",
+    zmien: (s) =>
+      s.includes("token: z.string().max(LIMIT_TOKENU)")
+        ? s.replaceAll("token: z.string().max(LIMIT_TOKENU)", "token: z.string()")
+        : null,
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "treść sekcji zapisywana bez oczyszczania schematem (limity do obejścia jednym kluczem)",
+    plik: "modules/m1-sklep/typy.ts",
+    zmien: (s) =>
+      s.includes("content: SCHEMATY_SEKCJI[sekcja.kind].parse(sekcja.content) as Record<")
+        ? s.replace(
+            "content: SCHEMATY_SEKCJI[sekcja.kind].parse(sekcja.content) as Record<",
+            "content: sekcja.content as Record<"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "ciało ponad sufit udaje błąd składni JSON-a zamiast 413",
+    plik: "app/api/szkolenia/route.serwer.ts",
+    zmien: (s) =>
+      s.includes("{ status: 413 }") ? s.replace("{ status: 413 }", "{ status: 400 }") : null,
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "powrót do request.json() — całe ciało w pamięci przed pomiarem",
+    plik: "app/api/szkolenia/route.serwer.ts",
+    zmien: (s) =>
+      s.includes("dane = JSON.parse(surowe);")
+        ? s.replace("dane = JSON.parse(surowe);", "dane = await request.json();")
+        : null,
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "sufit ciała sprawdzany PO sparsowaniu JSON-a",
+    plik: "app/api/szkolenia/route.serwer.ts",
+    zmien: (s) => {
+      const sufit =
+        "  const surowe = await cialoZSufitem(request, MAKS_CIALO_B);\n" +
+        "  if (surowe === null) {\n" +
+        "    return NextResponse.json(\n" +
+        "      { ok: false, blad: \"za-duze-zadanie\" },\n" +
+        "      { status: 413 }\n" +
+        "    );\n" +
+        "  }\n\n";
+      if (!s.includes(sufit) || !s.includes("dane = JSON.parse(surowe);")) return null;
+      return s
+        .replace(sufit, "")
+        .replace("dane = JSON.parse(surowe);", "dane = JSON.parse(await request.text());")
+        .replace("  if (dane && typeof dane", sufit + "  if (dane && typeof dane");
+    },
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "surowy komunikat Postgresa wraca do odpowiedzi dyspozytora",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) =>
+      s.includes('szczegoly: "Taki kurs już istnieje — slug musi być unikalny.",')
+        ? s.replace(
+            'szczegoly: "Taki kurs już istnieje — slug musi być unikalny.",',
+            "szczegoly: String((blad as Error).message),"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "testy limitów skasowane",
+    usunPlik: "modules/m1-sklep/dyspozytor.test.ts",
+  },
+  {
+    straznik: "straznik-limitow",
+    opis: "KONTRPRZYKŁAD: z.string() w kanale ODCZYTU nie potrzebuje sufitu (dane z naszej bazy)",
+    plik: "modules/m1-sklep/typy.ts",
+    zmien: (s) =>
+      s.includes("export const LekcjaKursu = z.object({")
+        ? s.replace(
+            "export const LekcjaKursu = z.object({",
+            "export const LekcjaKursu = z.object({\n  notatka_audytu: z.string().optional(),"
+          )
+        : null,
+    oczekujCzerwonego: false,
+  },
 ];
+
 
 const sha = (t) => createHash("sha256").update(t).digest("hex");
 const zlapane = [], przeoczone = [], martwe = [];
