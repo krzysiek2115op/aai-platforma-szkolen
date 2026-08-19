@@ -111,6 +111,41 @@ Spike z 2026-08-19 (plik spike'u skasowany, oba buildy z kodem wyjścia 0):
 | 3 | `feat/limity-wejscia` | Limity długości i liczności w kontraktach, sufit `price_grosze`, limit rozmiaru ciała żądania przed parsowaniem, generyczny komunikat zamiast surowego błędu Postgresa, `straznik-limitow` |
 | 4 | `docs/krok-2-domkniecie` | Checklista bez pozycji 🚧, CHANGELOG, README, `rejestr/znane-bledy.json`, wersja + tag |
 
+## PR 2 (`feat/brama-ajax`) — decyzje podjęte przed pisaniem
+
+Zapisane, żeby nowa sesja nie wyprowadzała ich od nowa:
+
+- **Limiter mieszka w `lib/limiter.ts` i jest CZYSTY** — bez importów
+  z `next/*`. Powód praktyczny: `npm test` obejmuje `lib/**/*.test.ts`,
+  więc okno przesuwne da się przetestować jednostkowo (granice okna,
+  zwolnienie po czasie, rozdział kluczy), zamiast zgadywać z żywego
+  serwera. To ten sam układ, co `lib/csp.ts`.
+- **Wpięcie w DWÓCH miejscach warstwy HTTP, nie w module.** Adres IP
+  jest pojęciem transportu; dyspozytor ma zostać niezależny od tego,
+  kto go woła (dziś HTTP, w WP — PHP):
+  1. `app/api/szkolenia/route.serwer.ts` — limit wszystkich POST-ów po
+     IP oraz OSOBNY, ostrzejszy licznik nieudanych uwierzytelnień
+     (odpowiedź 429 z `Retry-After`, treść generyczna);
+  2. `app/szkolenia/kreator/akcje.ts` — próby logowania po IP.
+- **`timingSafeEqual` w dyspozytorze jako HELPER LOKALNY**, a nie import
+  z `lib/`. Moduł ma być samowystarczalny jak wtyczka (WYTYCZNE §8),
+  a `lib/kreator-dostep.ts` ciągnie `next/headers`, więc i tak nie da
+  się go stamtąd wziąć. Sześć linii duplikatu z komentarzem, dlaczego.
+- **Kara czasowa także poza formularzem** — dziś 700 ms ma tylko
+  logowanie, a jedyny kanał wystawiony na świat (AJAX) nie ma nic.
+- **`x-forwarded-for` jest do podrobienia**, dopóki nie stoi przed nami
+  zaufany proxy. Ma to być napisane W KODZIE i w specyfikacji WP —
+  limiter po IP jest podniesieniem kosztu ataku, nie granicą
+  bezpieczeństwa. Bez tego zdania WP odziedziczy fałszywe poczucie
+  ochrony.
+- **Stan limitera jest w pamięci procesu.** Dla prototypu z jednym
+  właścicielem to wystarcza; do specyfikacji WP idzie REGUŁA (okno
+  przesuwne po IP+akcja), nie implementacja — tam nośnikiem będzie
+  baza albo obiekt cache WordPressa.
+- Dowody jak w PR 1: `straznik-limitera` + mutacje w `audyt-straznikow`,
+  rozszerzenie smoke'a o wywołanie limitu (seria złych tokenów → 429,
+  normalne użycie nietknięte) i **test negatywny każdego nowego testu**.
+
 ## Bramka kroku
 
 Checklista bez ani jednej pozycji możliwej do zrobienia w prototypie
@@ -130,6 +165,26 @@ po plikach:
 | `app/api/szkolenia/route.serwer.ts`, `modules/m1-sklep/dyspozytor.ts`, `app/szkolenia/kreator/akcje.ts` | krok 2 |
 | `components/kreator/*`, `app/szkolenia/kreator/page.serwer.tsx` i `[id]`, migracje SQL, `tools/seed/*`, `tresc-kursow/` | krok 3 |
 | **`modules/m1-sklep/typy.ts`** | **OBA** — konflikt pewny, protokół niżej |
+
+### Jeden katalog roboczy to za mało — każdy czat ma swój worktree
+
+Zapisane po incydencie z 2026-08-19: obie sesje pracowały początkowo
+w TYM SAMYM checkoucie. Druga przełączyła w nim gałąź, więc commit
+pierwszej wylądował na `plugin-1-sklep-kursow` zamiast na gałęzi funkcji,
+a `git push` wypchnął gałąź bez zmian. Objaw był mylący — `gh pr create`
+odpowiedział „No commits between", co brzmi jak problem z PR-em, a nie
+z tym, że ktoś przestawił HEAD pod spodem. Nic nie zginęło (naprawa:
+`git branch -f` na właściwy commit), ale to jest dokładnie ta klasa
+błędu, która przy mniej uważnym sprawdzeniu kończy się utratą pracy.
+
+REGUŁA: **każda równoległa sesja pracuje we WŁASNYM worktree i nigdy
+nie przełącza gałęzi w cudzym.** Krok 3 ma swój:
+`/home/krzysiek/Pod-strona-Szkolenia-krok3`. Zakładanie:
+`git worktree add ../Pod-strona-Szkolenia-<nazwa> -b <gałąź>`.
+Uwaga praktyczna: worktree dzielą jedno repo, więc gałąź wypożyczoną
+przez inny worktree widać w `git branch -v` ze znakiem `+` i nie da się
+jej tam wyewidencjonować drugi raz. Baza `db1_kursy` i port 3001
+zostają wspólne dla obu — to się nie klonuje.
 
 `typy.ts`: krok 2 dopisuje `.max()` i limity liczności do
 ISTNIEJĄCYCH schematów, krok 3 dodaje NOWE kontrakty (lekcje, nagrania).
