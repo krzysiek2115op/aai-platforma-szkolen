@@ -355,40 +355,103 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      sprawdzić testem negatywnym; deploy woła tę samą komendę co
      człowiek.**
 
-     ### ← NASTĘPNY KROK: CZĘŚĆ 3/3 — WYDAJNOŚĆ I POMIARY
+     ### CZĘŚĆ 3/3 — WYDAJNOŚĆ I POMIARY (W TOKU, sesja 2026-08-19)
 
-     **Cel:** wypełnić tabelę w README zmierzonymi liczbami (dziś
-     myślniki = NIEZMIERZONE, nie „zero") i dojść do 100/100/100/100.
+     **Zrobione i OPUBLIKOWANE** (podgląd zweryfikowany na żywo):
+     - `perf: stopka przestaje liczyć pył…` — `prewarm()` w FooterScene
+       liczył 90 klatek × ~240 cząstek PRZY MONTOWANIU, choć stopka leży
+       4 ekrany niżej. Teraz czeka na wejście w widok. Dowód, że efekt
+       ocalał (licznik jasnych pikseli canvasu, 412×823): stary kod 237
+       pikseli PRZED przewinięciem → 261 po; nowy 0 → 252.
+     - Ikona `app/icon.svg` — bez niej przeglądarka pytała o `/favicon.ico`
+       w KORZENIU domeny (poza basePath) i dostawała 404. To był jedyny
+       ubytek „dobrych praktyk": **96 → 100**.
+     - `seo:` opisowe `alt` okładek (tytuł Z BAZY, więc kursy z kreatora
+       dostaną go same) + tytuł katalogu 24 → 54 znaki. Obie usterki
+       zgłosił Semrush; tytuł katalogu żyje w `app/szkolenia/widok.tsx`,
+       NIE w layoucie (layout ma tylko wartość domyślną).
+     - `fix: strona kursu przestaje bywać niewidzialna…` — patrz niżej,
+       to najważniejsze znalezisko tej sesji. NIEZDEPLOYOWANE.
 
-     Co po kolei:
-     1. **Chrome/Lighthouse w scratchpadzie sesji, NIGDY w
-        `package.json`** (lekcja z D5 o playwrighcie).
-     2. **Audyt 14 komponentów `"use client"`** — główny podejrzany
-        o TBT: `components/kurs/TloKursu.tsx` (poświata za kursorem,
-        dryf blobów) oraz `HeroMotion`/`OknoKursu` w katalogu.
-        **DECYZJA WŁAŚCICIELA (2026-08-19): ten audyt robić czytając
-        CAŁE PLIKI, nie fragmentami — „mamy dużo tokenów".** Nie
-        oszczędzać tu kontekstu kosztem dokładności.
-     3. **Obrazy**: okładki kursów to lokalne SVG w `public/okladki/`
-        renderowane zwykłym `<img>` (NIE `next/image` — nie ma go
-        w projekcie w ogóle). Element LCP katalogu trzeba USTALIĆ
-        POMIAREM, nie zgadywać. Brakujące `width`/`height` = ryzyko CLS.
-     4. **Protokół pomiaru — dwa buildy, opisany w README:** wydajność,
-        dostępność, dobre praktyki i Core Web Vitals na ŻYWYM adresie
-        (z `noindex`); kolumna SEO na buildzie
-        `SEO_INDEKSOWANIE=1 PAGES_BASE_PATH=… npm run build:podglad`
-        serwowanym lokalnie — bo `noindex` jest punktowanym audytem
-        Lighthouse'a i zaniżyłby SEO niezależnie od jakości strony.
-     5. **Wynik ważny dopiero po TRZECH zgodnych przebiegach.**
-        Rich Results Test na JSON-LD (działa z wklejonego kodu, więc
-        `noindex` mu nie przeszkadza), PageSpeed Insights, weryfikacja
-        własności w Search Console.
-     6. Jeśli wydajność utknie poniżej 100 — **przyjść do właściciela
-        z listą kompromisów** (najpewniej wokół animowanego hero
-        i `TloKursu`), NIE wpisywać zaokrąglonej liczby.
-     7. Domknięcie: strażnik progów pilnujący, żeby tabela nie
-        zdezaktualizowała się po cichu + CHANGELOG 0.25.0 + PR
-        stackowany na `feat/seo-podstrony`.
+     **BŁĄD ZŁAPANY PRZEZ GOOGLE (commit 8986ec8) — klasa do zapamiętania.**
+     PageSpeed Insights odmawiał zmierzenia strony kursu: `NO_FCP`
+     („strona nie namalowała treści"), trzy razy z rzędu, NA SERWERACH
+     GOOGLE — więc nie artefakt naszej maszyny. Przyczyna: `.page-enter`
+     opakowuje CAŁĄ treść i startuje od `opacity: 0`. Katalog przeżywał
+     to przypadkiem (globalny navbar renderuje się POZA opakowaniem),
+     ale strona kursu ma pasek WEWNĄTRZ treści (`NavbarPrzelacznik`
+     zwraca tam `null`), więc poza `.page-enter` nie było NIC. Chrome
+     wstrzymuje animacje CSS w niewidocznym dokumencie → strona zostawała
+     pusta. **Przy okazji obalony komentarz w kodzie**: `template.tsx`
+     NIE remontuje się przy nawigacji w tej wersji Next (sprawdzone
+     `getAnimations()` na żywym adresie), więc `page-enter` była animacją
+     PIERWSZEGO WEJŚCIA, nie przejścia. Naprawa: animacja tylko po
+     nawigacji (rozpoznawanej po `data-hydrated` — flaga modułowa NIE
+     przeżywa podziału na chunki, sprawdzone). Pomiar strony kursu
+     desktop: przed NO_FCP w większości przebiegów → po **4/4 udane,
+     wydajność 100, FCP 0,4 s, LCP 0,6 s**.
+     **DO DECYZJI WŁAŚCICIELA: ta naprawa USUWA fade przy wejściu na
+     stronę** (przy nawigacji i tak nie działał). Odwracalne.
+
+     **CZEGO NIE MIERZYĆ LOKALNIE — LEKCJA SESJI.** Lokalny Lighthouse
+     mierzy także maszynę. Ta sama strona, ten sam build: TBT **96, 102
+     i 257 ms** w trzech seriach; seria 9 przebiegów dała rozrzut
+     **88–98** z opadaniem w czasie (profil throttlingu termicznego).
+     Winowajcą był m.in. zawieszony `pavucontrol` na 99% rdzenia —
+     sprawdzać `ps -eo pcpu,comm --sort=-pcpu` PRZED pomiarem. Do tabeli
+     w README wchodzą liczby z **PageSpeed Insights** (`tools/pomiar-psi.mjs`,
+     liczy na serwerach Google). Lokalny `tools/pomiar-lighthouse.mjs`
+     zostaje do szybkiej pętli przy optymalizacji.
+     **Klucz API PageSpeed leży w `.env` jako `PAGESPEED_KLUCZ`** (poza
+     gitem; wygenerowany przez właściciela 2026-08-19, ograniczony do
+     jednego API, kasowalny w console.cloud.google.com).
+
+     **LICZBY, KTÓRE JUŻ ZNAMY** (Lighthouse 13.4.1):
+     - Wagi wydajności: **TBT 30, LCP 25, CLS 25, FCP 10, SI 10, INP 0**.
+     - Progi na 100 pkt (mobile): **FCP ≤ 1074 ms, LCP ≤ 1555 ms,
+       TBT ≤ 65 ms, SI ≤ 1967 ms, CLS ≤ 0,039** (policzone z krzywej
+       log-normalnej Lighthouse'a, nie zgadnięte).
+     - **`noindex` zaniża SEO do 69** (`is-crawlable` waży 93/23 ≈ 31%
+       kategorii) i do **66** tam, gdzie `image-alt` jest nieużywany
+       (mniejszy mianownik). Zmierzone bez `noindex`: **SEO 100/100**.
+     - Element LCP katalogu to **tekst w masce SVG wordmarku stopki**,
+       nie okładka i nie hero. Na stronie kursu — tekstowy blok hero.
+     - W LH 13 audyt `largest-contentful-paint-element` JUŻ NIE ISTNIEJE
+       — zastąpiły go `lcp-breakdown-insight` / `lcp-discovery-insight`.
+
+     **SPRAWDZONE I ODRZUCONE** (nie powtarzać):
+     - Przeniesienie loadera fontów z `lib/fonts.ts` do layoutu **nie
+       przywraca preloadu** — Next 16 nie emituje `<link as="font">`
+       w tym projekcie w ogóle (ani w eksporcie, ani serwerowo).
+     - `experimental.inlineCss` **pogarsza LCP**: gzip HTML rośnie z 16
+       do 51 kB (duplikacja CSS w RSC payload) i zjada zysk z usuniętego
+       round-tripu. FCP i TBT w dół, LCP w górę, wynik bez zmian.
+     - `content-visibility: auto` NIE ZASTOSOWANE i wymaga ostrożności:
+       implikuje `contain: paint`, czyli tworzy układ odniesienia dla
+       `position: fixed` — dokładnie mechanizm BLAD-003 (znikający pasek
+       kursu). `straznik-fixed` tego wariantu NIE pilnuje.
+
+     **CO ZOSTAŁO DO ZROBIENIA:**
+     1. **Decyzja właściciela o zniknięciu fade'u** przy wejściu (wyżej).
+     2. `npm run deploy:podglad` (deploy autoryzowany bez pytania —
+        decyzja właściciela 2026-08-19), potem ODCZEKAĆ: pomiar tuż po
+        publikacji jest zaniżony zimnym cache CDN (widziane 91 tam, gdzie
+        po chwili wychodziło 100).
+     3. `PAGESPEED_KLUCZ=… SEO_KATALOG=100 SEO_KURS=100 node tools/pomiar-psi.mjs`
+        → tworzy `goldeny/pomiary-lighthouse.json`.
+     4. Wypełnić tabelę w README (dziś myślniki) — `straznik-progow`
+        pilnuje, żeby każda liczba zgadzała się z goldenem co do
+        jednostki, i przepuszcza tabelę z myślnikami, dopóki golden
+        nie istnieje.
+     5. Przepisać sekcję „Pomiar wydajności i SEO — protokół" w README
+        o lekcje wyżej (PSI zamiast lokalnego, spokojna maszyna, odczekać
+        po deployu, mediana z 5).
+     6. CHANGELOG **0.25.0** + PR stackowany na `feat/seo-podstrony`.
+
+     **Ostatni znany stan pomiarów** (PSI, pojedyncze przebiegi, PRZED
+     naprawą NO_FCP): katalog mobile 96–97, kurs mobile 98, TBT **0–40 ms**
+     (tam, gdzie lokalnie wychodziło 150–250 — dowód, że lokalny pomiar
+     kłamał). Dostępność i dobre praktyki **100** wszędzie.
 
      **Właściciel (2026-08-19): PR-y części 1–3 mergujemy DOPIERO, gdy
      pomiary pokażą 100 w każdej kolumnie — nie po kolei.** PR-y
