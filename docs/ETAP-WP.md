@@ -16,7 +16,10 @@ Rozmowa rozstrzygnęła to podziałem odpowiedzialności (niżej).
 
 1. **Wszystko na WordPressie.** Strona główna Automatic AI **jest już
    przekonwertowana na WP** i tam będzie docelowo hostowana (hosting
-   + domena, nie VPS/Node).
+   + domena, nie VPS/Node). **Doprecyzowanie 2026-08-19:** konwersję
+   zrobił kolega z zespołu i ma ją u siebie lokalnie — **my jej nie
+   mamy** ani w repo, ani na dysku. To nie zmienia kierunku, zmienia
+   kolejność pracy (patrz „Praca bez dostępu do motywu").
 2. **Podstrona `/szkolenia` to WTYCZKA do tej strony.** Po wpięciu
    wtyczki w menu pojawia się pozycja „Szkolenia", a pod nią katalog,
    strony sprzedażowe i e-booki. Wtyczka ma się **dopasowywać** do
@@ -74,10 +77,12 @@ Rozmowa rozstrzygnęła to podziałem odpowiedzialności (niżej).
 
 ## Pytania otwarte — do rozstrzygnięcia przed pisaniem kodu
 
-1. **Gdzie leży konwersja strony głównej na WP?** Ścieżka lokalna albo
-   repo — potrzebna, żeby wtyczka miała się do czego dopasować.
-   *(Nie znaleziono lokalnie: `mp-test-env` niesie motyw `kredyt-kompas`,
-   nie Automatic AI.)*
+1. **Jak zdobyć motyw strony głównej?** Konwersja jest u kolegi
+   z zespołu, lokalnie jej nie mamy (sprawdzone: `mp-test-env` niesie
+   motyw `kredyt-kompas`, nie Automatic AI). Do pracy wystarczy SAM
+   KATALOG MOTYWU — `style.css`, `theme.json`, szablony — bez bazy,
+   treści i uploadów. Kilka megabajtów, a odblokowuje wszystkie decyzje
+   warstwy widoku.
 2. **Motyw blokowy (FSE) czy klasyczny?** Od tego zależy wszystko
    w warstwie widoku: czy wtyczka wstawia szablony blokami, czy
    przechwytuje `template_include`, i jak dokłada pozycję do menu.
@@ -90,9 +95,29 @@ Rozmowa rozstrzygnęła to podziałem odpowiedzialności (niżej).
 5. Czy e-booki są osobnym produktem, czy dodatkiem do kursu (wpływa na
    układ katalogu i na to, co widzi WooCommerce).
 
+## Praca bez dostępu do motywu (ustalenie 2026-08-19)
+
+Nie czekamy z założonymi rękami — projektujemy wtyczkę **agnostycznie
+wobec motywu**, żeby wpięcie u kolegi było wpięciem, a nie przepisywaniem:
+
+| Warstwa | Czy zależy od motywu | Co robimy teraz |
+|---|---|---|
+| Dokumentacja WP, `$wpdb`, własne tabele, audyt | **nie** | robimy od razu |
+| Kontrakty treści, migracja Postgres → MySQL | **nie** | robimy od razu |
+| Kreator w kokpicie WP (ekran + REST/nonce) | **nie** | kokpit ma własny wygląd, niezależny od motywu frontu |
+| Szablony katalogu i stron sprzedażowych | **tak** | własne style z fallbackiem; jeśli motyw ma `theme.json`, dziedziczymy jego zmienne (kolory, typografia, odstępy) |
+| Pozycja „Szkolenia" w menu | prawie nie | standardowe API WP działa i w motywach blokowych, i w klasycznych |
+
+**Warunek bezpieczeństwa: testujemy na DWÓCH rodzajach motywu naraz.**
+W `mp-test-env` są już oba: `twentytwentyfive` (blokowy, FSE) oraz
+`kredyt-kompas` (klasyczny). Wtyczka, która wygląda poprawnie na obu,
+wejdzie w motyw Automatic AI bez niespodzianek — a jeśli nie wejdzie,
+zobaczymy to na własnym środowisku, nie na produkcji kolegi.
+
 ## Następne kroki
 
-1. Wskazać lokalizację WP strony głównej i ustalić rodzaj motywu (1–3 wyżej).
+1. Poprosić kolegę o katalog motywu (bez bazy i treści) — do czasu, aż
+   przyjdzie, pracujemy agnostycznie wobec motywu (sekcja wyżej).
 2. **Celowany komplet dokumentacji WP do repo** (WYTYCZNE N2,
    `docs/dokumentacja-techniczna/wordpress/` + `ZRODLA.md`): Plugin
    Handbook, `$wpdb`/`dbDelta`/własne tabele, REST API, bezpieczeństwo
