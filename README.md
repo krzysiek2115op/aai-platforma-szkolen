@@ -46,7 +46,7 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.27.0** |
+| **Wersja** | **0.28.0** |
 | **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**, treść kursów kompletna: 91 scenariuszy). Następne kroki wg [planu domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): **SEO i wydajność na żywym adresie** → pełne zabezpieczenia → kursy złożone w narzędziu (**B7**) → WordPress |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
@@ -143,7 +143,7 @@ Narzędzia uruchamiane ręcznie:
 | `node tools/straznicy/uruchom-wszystkie.mjs` | wszyscy strażnicy naraz (runner sam znajduje pliki `straznik-*.mjs`) |
 | `node tools/smoke/smoke-d4.ts` | katalog renderuje kursy z bazy na produkcyjnym serwerze + golden + nagłówki bezpieczeństwa |
 | `node tools/smoke/smoke-d5.ts` | strona sprzedażowa renderuje pełny kurs z bazy + golden programu |
-| `node tools/smoke/smoke-d6.ts` | brama kreatora (403), wystrzał AJAX z ciastka, cykl szkic → publikacja → usunięcie |
+| `node tools/smoke/smoke-d6.ts` | brama kreatora (403), wystrzał AJAX z ciastka, cykl szkic → publikacja → usunięcie, **brama tempa**: seria chybionych tokenów → 429 z `Retry-After`, a poprawny token z tego samego adresu przechodzi |
 | `node tools/smoke/smoke-seo.ts` | SEO na zbudowanych plikach: robots/sitemapa spójne z przełącznikiem, kanonik = własny adres, jeden `h1`, obraz OG istnieje, **dane strukturalne zgodne z bazą** (cena, tytuł, liczba modułów) |
 | `node tools/smoke/smoke-csp.ts` | polityka CSP na ARTEFAKCIE: nagłówek z jednorazowym nonce'em na każdej trasie HTML (także 404 — prerender zostawiłby skrypty bez nonce'a), zero słów unieważniających ochronę w `script-src`, komplet hashy skryptów w plikach podglądu (buduje sam) |
 | `node tools/smoke/smoke-podglad.ts` | statyczny podgląd: szkic NIE wycieka do publicznych plików, kreator i AJAX nieobecni, `basePath` spójny (buduje sam) |
@@ -166,7 +166,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 44 sposoby (mutacje + kontrprzykłady „strażnik ma milczeć")
+> 58 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć")
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie
@@ -191,6 +191,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-goldenu-tresci` | pre-commit + CI | CICHA utrata treści kursów: suma kontrolna + bajty/wiersze/sceny/wiersze zgodności każdej z 91 lekcji przeciw `goldeny/d7-tresc.json`; różnica pokazywana per pole, regeneracja wymaga powodu |
 | `straznik-podgladu` | pre-commit + CI | statyczny podgląd zabierający ze sobą panel właściciela: trasa kreatora lub AJAX bez wariantu `serwer.*`, wariant `statyczny.*` bez pary, pomieszane listy `pageExtensions`, brama kreatora nieodcinająca się w podglądzie (build z tokenem wypisałby SZKICE do publicznych plików) oraz drugie miejsce czytające `PODGLAD_STATYCZNY` |
 | `straznik-csp` | pre-commit + CI | osłabienie polityki bezpieczeństwa treści: `script-src` bez nonce'a lub bez `strict-dynamic`, `unsafe-inline`/`unsafe-eval` w skryptach, brak dyrektywy zamykającej we wspólnej polityce, `proxy.ts` zamiast `proxy.serwer.ts` (wywraca build podglądu), nazwany eksport zamiast domyślnego (Next 16 go nie widzi), podgląd bez kroku wstrzykującego politykę albo z krokiem w złej kolejności (martwe hashe), nasz `<script>` bez `nonce`, druga polityka w `next.config.ts` |
+| `straznik-limitera` | pre-commit + CI | brama AJAX bez kosztu: jedyny wystrzał bez limitu tempa (albo z limitem sprawdzanym dopiero PO sparsowaniu ciała) lub bez OSOBNEGO licznika chybionych uwierzytelnień, odmowa bez 429 z `Retry-After`, chybione uwierzytelnienie bez kary czasowej, logowanie bez limitu prób, dyspozytor porównujący token operatorem `===` zamiast w stałym czasie albo tracący samowystarczalność (import z `lib/`), limiter wciągający `next/*` (przestaje dać się testować jednostkowo), znikające ostrzeżenie o podrabianiu `x-forwarded-for` |
 | `straznik-seo` | pre-commit + CI | ciche zniknięcie SEO: widok bez kanonika lub bez OpenGraphu, własny blok `application/ld+json` z pominięciem ucieczki znaków (treść z `</script>` zamknęłaby blok skryptu), drugie miejsce czytające przełącznik indeksowania (rozjazd metatagu z `robots.txt`), obraz OG bez `contentType`/`size`, układ bez `metadataBase` |
 | `straznik-readme` | pre-commit + CI | README kłamiące o stanie repo: strażnik bez wiersza w tabeli (i martwe wiersze), skrypt npm poza sekcją „Skrypty", zła liczba scenariuszy, kotwica spisu treści donikąd — złapał własną nieobecność w tej tabeli przy pierwszym uruchomieniu |
 | `straznik-wagi-dokumentacji` | pre-commit + CI | masa dokumentacji producentów (55 MB, ~2200 plików) wpuszczona do gita — także przez `git add -f`; git trzyma każdą wersję na stałe, więc pomyłka jest nieodwracalna |
@@ -201,8 +202,8 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
 
 CI: cztery joby — strażnicy i skan sekretów chodzą ZAWSZE; „Kod
-aplikacji" (lint → tsc → build) i „Baza" (49 testów na osobnej bazie
-`db1_kursy_test`, migracje, build, sześć smoke'ów) tylko gdy zmiana
+aplikacji" (lint → tsc → build) i „Baza" (57 testów na osobnej bazie
+`db1_kursy_test`, migracje, build, siedem smoke'ów) tylko gdy zmiana
 dotyka kodu. Rozstrzyga job „Zakres zmian" zwykłym `git diff` — commit
 czysto treściowy (większość commitów D7) nie pali minut na build.
 
@@ -226,11 +227,12 @@ repo / ⛔ nie dotyczy z powodem / ⏳ etap WP). Skrót:
 | Walidacja wejścia i wyjścia (Zod na granicach, 400 z mapą pól) | ✅ | testy dyspozytora, `straznik-kreatora` |
 | SQL tylko parametryzowany, tylko w `modules/` | ✅ | `straznik-granic` |
 | Audyt mutacji w bazie (niezmienny changelog, triggery) | ✅ | testy migracji, golden schematu |
-| Brama kreatora: ciastko HttpOnly, porównanie w stałym czasie, kara czasowa | ✅ | smoke D6 |
+| Brama kreatora: ciastko HttpOnly, porównanie w stałym czasie, kara czasowa — **w OBU kanałach** (formularz i AJAX) od 0.27.0 | ✅ | smoke D6, `straznik-limitera` |
 | Nagłówki: nosniff, X-Frame-Options DENY + `frame-ancestors 'none'`, Referrer-Policy, Permissions-Policy | ✅ | `next.config.ts`, **smoke D4 sprawdza je na żywym serwerze** |
 | Sekrety: gitleaks (pełna historia, pinowany SHA-256), `.env` poza repo | ✅ | job CI „Skan sekretów" |
 | Pełne CSP: `script-src` z jednorazowym nonce'em i `strict-dynamic`, bez `unsafe-inline` (tryb serwerowy nagłówkiem, podgląd statyczny przez `<meta>` z hashami) | ✅ | `straznik-csp` (9 niezmienników, 10 mutacji), **smoke CSP sprawdza nagłówek i pliki**, zero naruszeń w przeglądarce na 4 trasach |
-| Rate limiting, limity wejścia, HTTPS/HSTS, RODO | 🚧/⏳ | dwie pierwsze pozycje w kroku 2 (PR-y `feat/brama-ajax`, `feat/limity-wejscia`), reszta = specyfikacja wtyczki WP |
+| Ograniczanie tempa na akcjach zapisu (okno przesuwne po IP+akcja, 429 z `Retry-After`) | ✅ | `straznik-limitera` (11 niezmienników, 14 mutacji), 8 testów jednostkowych limitera, **smoke D6 wywołuje limit po HTTP** |
+| Limity wejścia, HTTPS/HSTS, RODO | 🚧/⏳ | limity wejścia w kroku 2 (PR `feat/limity-wejscia`), reszta = specyfikacja wtyczki WP |
 | SEO na stronie: `robots.txt`, sitemapa, kanoniki, OpenGraph + miniatury, JSON-LD (Organization, ItemList, Course+Offer, BreadcrumbList, FAQPage) | ✅ | `straznik-seo` (6 niezmienników, 6 mutacji), **smoke SEO porównuje dane strukturalne Z BAZĄ** |
 | Pomiar narzędziami Google na żywym adresie | ✅ | desktop 100/100/100/100; mobile 96–97 wydajności = artefakt symulacji Lantern przyjęty decyzją właściciela (tabela i protokół niżej), reszta kolumn 100 |
 
@@ -319,7 +321,7 @@ git config core.hooksPath .githooks   # włącza haki — raz, obowiązkowo
 npm ci                                # zależności (Node 24+)
 cp .env.example .env                  # lokalna konfiguracja (baza, KREATOR_TOKEN)
 npm run db1:migruj                    # migracje + triggery (bazę podniesie pretest)
-npm test                              # 49 testów; sam podnosi kontener bazy
+npm test                              # 57 testów; sam podnosi kontener bazy
 npm run db1:seed                      # 2 przykładowe kursy (treść ROBOCZA)
 npm run dev                           # → http://localhost:3001/szkolenia
 ```

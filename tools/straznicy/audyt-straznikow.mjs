@@ -50,6 +50,9 @@ const L75 = "tresc-kursow/jak-uzywac-githuba/modul-7/lekcja-5-discussions.md";
  *  plik     — który plik mutujemy (null = mutacja tworzy nowy plik),
  *  zmien    — (tekst) => tekst | null; null = wzorzec nie pasuje → MARTWA,
  *  nowyPlik — { sciezka, tresc } zamiast mutacji istniejącego,
+ *  usunPlik — ścieżka pliku KASOWANEGO na czas próby (przywracany
+ *             w finally jak każda inna mutacja) — do niezmienników
+ *             typu „ten plik musi istnieć",
  *  oczekujCzerwonego — false dla kontrprzykładów (domyślnie true).
  */
 const MUTACJE = [
@@ -456,6 +459,128 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-limitera ---
+  // Reguła: nowy strażnik = nowe mutacje. Ograniczanie tempa psuje się
+  // BEZ OBJAWU (strona działa tak samo, tylko zgadywanie znów jest tanie),
+  // więc każdy niezmiennik ma tu swoją próbę.
+  {
+    straznik: "straznik-limitera",
+    opis: "limiter znika (pusty plik) — oba kanały zostają bez licznika",
+    plik: "lib/limiter.ts",
+    zmien: () => "",
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "limiter wciąga next/* — przestaje dać się przetestować jednostkowo",
+    plik: "lib/limiter.ts",
+    zmien: (s) => 'import { NextResponse } from "next/server";\n' + s,
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "test jednostkowy limitera skasowany",
+    usunPlik: "lib/limiter.test.ts",
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "ostrzeżenie o podrabianiu x-forwarded-for wycięte z kodu",
+    plik: "lib/limiter.ts",
+    zmien: (s) => (/podrobi/i.test(s) ? s.replace(/podrobi/gi, "sprawdzi") : null),
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "jedyny AJAX przestaje liczyć tempo wystrzału",
+    plik: "app/api/szkolenia/route.serwer.ts",
+    zmien: (s) => {
+      const blok =
+        "  const tempo = limiter.odnotuj(`wystrzal:${adres}`, LIMIT_WYSTRZALU);\n" +
+        "  if (!tempo.dozwolone) return odmowaTempa(tempo.ponowZaS);\n";
+      return s.includes(blok) ? s.replace(blok, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "limit tempa sprawdzany PO parsowaniu ciała żądania",
+    plik: "app/api/szkolenia/route.serwer.ts",
+    zmien: (s) => {
+      const blok =
+        "  const tempo = limiter.odnotuj(`wystrzal:${adres}`, LIMIT_WYSTRZALU);\n" +
+        "  if (!tempo.dozwolone) return odmowaTempa(tempo.ponowZaS);\n";
+      const kotwica = "  if (dane && typeof dane === \"object\"";
+      return s.includes(blok) && s.includes(kotwica)
+        ? s.replace(blok, "").replace(kotwica, blok + "\n" + kotwica)
+        : null;
+    },
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "osobny licznik chybionych uwierzytelnień zlany z ogólnym",
+    plik: "app/api/szkolenia/route.serwer.ts",
+    zmien: (s) =>
+      s.includes("`uwierzytelnienie:${adres}`")
+        ? s.replaceAll("`uwierzytelnienie:${adres}`", "`wystrzal:${adres}`")
+        : null,
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "odmowa 429 bez nagłówka Retry-After",
+    plik: "app/api/szkolenia/route.serwer.ts",
+    zmien: (s) =>
+      s.includes('{ status: 429, headers: { "Retry-After": String(ponowZaS) } }')
+        ? s.replace('{ status: 429, headers: { "Retry-After": String(ponowZaS) } }', "{ status: 429 }")
+        : null,
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "kara czasowa wycięta z AJAX-a, choć import stałej został (dziura pozorna)",
+    plik: "app/api/szkolenia/route.serwer.ts",
+    zmien: (s) =>
+      s.includes("    await new Promise((r) => setTimeout(r, KARA_MS));\n")
+        ? s.replace("    await new Promise((r) => setTimeout(r, KARA_MS));\n", "")
+        : null,
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "formularz logowania przestaje liczyć próby po adresie",
+    plik: "app/szkolenia/kreator/akcje.ts",
+    zmien: (s) =>
+      s.includes("const proba = limiter.odnotuj(klucz, LIMIT_UWIERZYTELNIEN);")
+        ? s.replace(
+            "const proba = limiter.odnotuj(klucz, LIMIT_UWIERZYTELNIEN);",
+            "const proba = { dozwolone: true, ponowZaS: 0 };"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "dyspozytor wraca do porównania w zmiennym czasie",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) =>
+      s.includes("return timingSafeEqual(podany, oczekiwany);")
+        ? s.replace("return timingSafeEqual(podany, oczekiwany);", "return podany.equals(oczekiwany);")
+        : null,
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "skrót `token === wzorzec` dopisany przed porównaniem w stałym czasie",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) =>
+      s.includes("  if (!wzorzec) return false;")
+        ? s.replace("  if (!wzorzec) return false;", "  if (!wzorzec) return false;\n  if (token === wzorzec) return true;")
+        : null,
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "moduł traci samowystarczalność — import z lib/ w dyspozytorze",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) => 'import { KARA_MS } from "@/lib/limiter";\n' + s,
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "KONTRPRZYKŁAD: `token === wzorzec` zacytowane w KOMENTARZU to opis historii, nie kod",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) => "// Kiedyś stało tu `token === wzorzec` — patrz komentarz niżej.\n" + s,
+    oczekujCzerwonego: false,
+  },
 ];
 
 const sha = (t) => createHash("sha256").update(t).digest("hex");
@@ -473,6 +598,11 @@ for (const m of MUTACJE) {
       mkdirSync(dirname(m.nowyPlik.sciezka), { recursive: true });
       writeFileSync(m.nowyPlik.sciezka, m.nowyPlik.tresc);
       if (m.nowyPlik.dodajDoGita) spawnSync("git", ["add", "-f", m.nowyPlik.sciezka]);
+      przygotowane = true;
+    } else if (m.usunPlik) {
+      if (!existsSync(m.usunPlik)) { martwe.push(`${m.straznik}: ${m.opis} — BRAK PLIKU ${m.usunPlik}`); continue; }
+      oryginal = readFileSync(m.usunPlik, "utf8");
+      unlinkSync(m.usunPlik);
       przygotowane = true;
     } else {
       if (!existsSync(m.plik)) { martwe.push(`${m.straznik}: ${m.opis} — BRAK PLIKU ${m.plik}`); continue; }
@@ -505,9 +635,10 @@ for (const m of MUTACJE) {
         // katalog istniał przed mutacją albo nie jest pusty — zostaje
       }
     } else if (przygotowane && oryginal !== null) {
-      writeFileSync(m.plik, oryginal);
-      if (sha(readFileSync(m.plik, "utf8")) !== sha(oryginal)) {
-        console.error(`KRYTYCZNE: nie odtworzono ${m.plik} — sprawdź git status!`);
+      const cel = m.plik ?? m.usunPlik;
+      writeFileSync(cel, oryginal);
+      if (sha(readFileSync(cel, "utf8")) !== sha(oryginal)) {
+        console.error(`KRYTYCZNE: nie odtworzono ${cel} — sprawdź git status!`);
         process.exit(2);
       }
     }

@@ -1,7 +1,7 @@
 # Lista kontrolna bezpieczeństwa — Plugin 1 (podstrona `/szkolenia`)
 
-Stan na v0.25.0 (2026-08-19, przegląd otwierający krok 2 planu
-domknięcia). Wzorzec: `docs/security-checklist.md`
+Stan na v0.27.0 (2026-08-19, krok 2 planu domknięcia: PR 1 — CSP,
+PR 2 — brama jedynego AJAX-a). Wzorzec: `docs/security-checklist.md`
 strony głównej — przeniesiony jako STRUKTURA, nie wypełnienie, bo
 architektury są przeciwne: strona główna nie ma backendu, więc całe
 klasy ataków tam „fizycznie nie istnieją" — u nas ISTNIEJĄ (serwer,
@@ -42,9 +42,9 @@ które naprawdę należą do wtyczki WP. Podział i jego uzasadnienie:
 | ✅ | Mutacje bazy w transakcjach z aktorem; usuwanie jawnie od dołu, żeby audyt znał kurs | `dyspozytor.ts`, testy „każda akcja zostawia ślad w changelogu" |
 | ✅ | Niezmienny dziennik zmian w bazie (trigger `m1_audyt` na 4 tabelach) — próba edycji/kasowania wpisu audytu pada na poziomie Postgresa | testy migracji, golden `goldeny/d2-schemat.json` |
 | ✅ | Brama kreatora (FORMULARZ): porównanie tokenu w stałym czasie + kara czasowa za zły token | `lib/kreator-dostep.ts`, smoke D6 sprawdza 403 |
-| 🚧 | To samo w KANALE AJAX — `dyspozytor.ts` porównuje token operatorem `===`, bez stałego czasu i bez kary | Znalezione przy przeglądzie otwierającym krok 2. Wiersz wyżej mówił prawdę o formularzu, ale to kanał sieciowy jest wystawiony na świat. Krok 2, PR `feat/brama-ajax` |
+| ✅ | To samo w KANALE AJAX: `timingSafeEqual` w dyspozytorze (helper LOKALNY — moduł zostaje samowystarczalny), kara czasowa 700 ms i limit chybionych prób | 0.27.0. `straznik-limitera` (11 niezmienników, 14 mutacji), smoke D6 wywołuje 429 po serii chybionych tokenów. Wiersz wyżej mówił prawdę o formularzu — i tylko o nim; kanał sieciowy jako jedyny jest wystawiony na świat |
 | ✅ | Dyspozytor sprawdza token PRZED walidacją — nieuwierzytelniony nie dostaje nawet mapy błędnych pól (nie zwiedza kontraktu) | zmiana z D6 (403 zamiast 400), smoke D6 |
-| 🚧 | Rate limiting na akcjach zapisu (okno przesuwne po IP+akcja) | Idzie do prototypu, nie do WP — powód mocniejszy, niż zapisano tu wcześniej: kara czasowa 700 ms siedzi WYŁĄCZNIE w formularzu logowania (`akcje.ts`), a jedyny AJAX `/api/szkolenia` nie ma ani kary, ani limitu. Zgadywanie tokenu tą drogą jest dziś darmowe. Krok 2, PR `feat/brama-ajax` |
+| ✅ | Rate limiting na akcjach zapisu (okno przesuwne po IP+akcja) | 0.27.0, `lib/limiter.ts` (moduł czysty, 8 testów jednostkowych z wstrzykniętym czasem) wpięty w OBA kanały: jedyny AJAX (60 POST-ów/min z adresu + osobny licznik 5 chybionych uwierzytelnień/10 min, odmowa 429 z `Retry-After`) i formularz logowania. **Limit po adresie podnosi koszt ataku, nie jest granicą** — `x-forwarded-for` da się podrobić bez zaufanego proxy; zdanie stoi w kodzie i w sekcji specyfikacji WP niżej |
 | 🚧 | Twarde limity wejścia: długości pól treści sekcji, liczność tablic (`sections`/`modules`/`lessons`), sufit `price_grosze`, limit rozmiaru ciała żądania PRZED parsowaniem | Pozycji brakowało na tej liście, choć jest w planie kroku 2. Kontrakty ograniczają dziś pola kursu (slug 120, title 200, short_desc 500), ale treść sekcji to gołe `z.string()`, a trasa parsuje całe ciało przed sprawdzeniem tokenu. Krok 2, PR `feat/limity-wejscia` |
 | ⏳ | Honeypot + pomiar czasu wypełnienia w formularzach klienta | formularze klienta (zakup, kontakt) powstają dopiero w Pluginie 2 |
 | 🚧 | Generyczne komunikaty błędów NA ZEWNĄTRZ (klient), szczegóły tylko w logu | Mapa pól dla właściciela zostaje (feature panelu), ale dyspozytor przy konflikcie unikalności oddaje SUROWY komunikat Postgresa (`String(blad.message)`) — nazwy ograniczeń i kolumn na zewnątrz. Krok 2, PR `feat/limity-wejscia` |
@@ -125,8 +125,14 @@ działający wzorzec, nie jako postulat:
 1. walidacja server-side każdego pola (odpowiednik kontraktów Zod
    po stronie PHP), nonce WP na każdą akcję zapisu;
 2. rate limiting okno-przesuwne po IP+akcja na endpointach zapisu —
-   **wzorzec do przeniesienia z prototypu** (krok 2), nie do wymyślenia
-   od nowa; w PHP zmienia się nośnik stanu, nie reguła;
+   **wzorzec do przeniesienia z prototypu** (0.27.0, `lib/limiter.ts`),
+   nie do wymyślenia od nowa; w PHP zmienia się NOŚNIK stanu (baza albo
+   obiekt cache WP zamiast pamięci procesu), nie reguła. Wymaganie
+   wchodzi razem z zastrzeżeniem: **adres klienta wolno brać wyłącznie
+   z nagłówka, który NADPISUJE hosting** — `x-forwarded-for` przysłany
+   przez klienta jest do podrobienia, więc limit po nim podnosi koszt
+   ataku i nie jest granicą bezpieczeństwa. Bez tego zdania wtyczka
+   odziedziczy fałszywe poczucie ochrony;
 3. honeypot + pomiar czasu wypełnienia w formularzach klienta;
 4. generyczne błędy na zewnątrz, szczegóły w logu bez PII — prototyp
    pokazuje granicę: mapa pól dla uwierzytelnionego właściciela TAK,
