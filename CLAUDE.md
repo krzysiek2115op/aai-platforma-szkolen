@@ -431,18 +431,25 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      (kody wyjścia BEZ potoku), pomiar:
      `PAGESPEED_KLUCZ` w `.env` → `node tools/pomiar-psi.mjs`.
 
-  3. **← NASTĘPNY KROK: pełne zabezpieczenia** — domknięcie pozycji ⏳/🔧
-     z `docs/security-checklist.md` możliwych w prototypie (18 otwartych
-     pozycji): pełne CSP nagłówkiem + strażnik polityki, rate limiting,
-     limity wejścia, przegląd komunikatów błędów. Zacząć od przeczytania
-     `docs/security-checklist.md` i rozdzielenia pozycji na „możliwe
-     w prototypie Next" i „dopiero we wtyczce WP" — to drugie idzie do
-     specyfikacji etapu WP, nie do kodu.
-  4. **Kursy zrobione do końca, w narzędziu** (kreator przejmuje lekcje
-     i nagrania; właściciel NIE nagrywa wideo — potrzebna propozycja
-     opcji produkcji materiału z kosztami i prawami; finalna treść
-     sprzedażowa kreatorem zamiast seedów) → **B7 = ocena GOTOWYCH
-     kursów przez właściciela**.
+  3. **PEŁNE ZABEZPIECZENIA — W TOKU** (od 2026-08-19). Podział pozycji
+     ⏳/🔧 zrobiony i ZATWIERDZONY przez właściciela, razem z wynikami
+     spike'u i kolejnością PR-ów:
+     **[docs/plugin-1/KROK-2-ZABEZPIECZENIA.md](docs/plugin-1/KROK-2-ZABEZPIECZENIA.md)**
+     — czytać zamiast wyprowadzania podziału od nowa. Skrót: otwartych
+     pozycji było 14 (nie 18 — tamta liczba liczyła linie, nie wiersze
+     tabel), dwie okazały się zrobione w 0.24.0/0.25.0, do prototypu
+     idzie pięć (CSP + rate limiting + limity wejścia + komunikaty
+     błędów + `timingSafeEqual` w dyspozytorze), pięć do specyfikacji WP,
+     trzy poza repo. Checklista ma teraz szósty stan **🚧 = w robocie
+     w kroku 2**.
+  4. **Kursy zrobione do końca, w narzędziu — RÓWNOLEGLE, w osobnym
+     czacie** (decyzja właściciela 2026-08-19; kreator przejmuje lekcje
+     i nagrania; właściciel NIE nagrywa wideo — najpierw propozycja
+     opcji produkcji materiału z kosztami i prawami, dopiero potem kod;
+     finalna treść sprzedażowa kreatorem zamiast seedów) → **B7 = ocena
+     GOTOWYCH kursów przez właściciela**. Podział terytoriów między oba
+     czaty (i protokół dla wspólnego `modules/m1-sklep/typy.ts`) —
+     sekcja „Praca równoległa" w KROK-2-ZABEZPIECZENIA.md.
   5. **Rozmowa o WordPressie** + co z niej wyniknie, sprzątanie gałęzi,
      merge na `main`, koniec Pluginu 1. Ściąga: katalog `wordpress/`
      w repo strony głównej (kompletny motyw WP, docker-compose,

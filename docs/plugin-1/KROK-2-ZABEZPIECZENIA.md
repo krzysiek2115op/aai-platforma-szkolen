@@ -1,0 +1,142 @@
+# Krok 2 planu domknięcia — pełne zabezpieczenia
+
+Dokument roboczy kroku. Powstał, bo zatwierdzony podział pozycji
+i wyniki spike'u żyły wyłącznie w rozmowie — a rozmowa nie jest
+nośnikiem trwałym. Podstawa: [PLAN-FINAL-PLUGINU-1.md](PLAN-FINAL-PLUGINU-1.md)
+(sekcja „Krok 2") i [docs/security-checklist.md](../security-checklist.md).
+
+Stan: **w toku od 2026-08-19**. Aktualizować przy każdym domkniętym PR.
+
+## Korekta stanu wejściowego
+
+Plan mówił o „18 otwartych pozycjach ⏳/🔧". To liczba **linii** z tymi
+znakami w całym pliku — łapie też legendę i zdania z prozy. W tabelach
+stoi **9 ⏳ + 5 🔧 = 14 pozycji**, a z nich **dwie były już zrobione**,
+tylko checklista tego nie odnotowała (jej nagłówek mówił „stan na
+v0.22.0", a repo stało na 0.25.0):
+
+| Pozycja | Realny stan | Dowód |
+|---|---|---|
+| §6 robots.txt, sitemapa, kanoniki, JSON-LD, OpenGraph | ✅ od 0.24.0 | `straznik-seo` (6 niezmienników + 6 mutacji), `smoke-seo` porównuje dane strukturalne z bazą |
+| §6 Pomiar Lighthouse z progami | ✅ od 0.25.0 | PSI, golden `goldeny/pomiary-lighthouse.json`, tabela w README |
+
+Do rozdzielenia zostało **12 pozycji**.
+
+## Podział zatwierdzony przez właściciela (2026-08-19)
+
+### A. Do zrobienia w prototypie Next — 4 pozycje z listy + 1 spoza
+
+| # | Pozycja | Dlaczego wykonalna tutaj |
+|---|---|---|
+| A1 | **Pełne CSP** (§2) | Wszystkie trasy serwerowe są już `force-dynamic`, więc nonce nie kosztuje wydajności — a to jedyny realny koszt nonce'ów wg dokumentacji Next. Podgląd statyczny dostaje politykę osobną drogą (niżej) |
+| A2 | **Rate limiting na akcjach zapisu** (§1) | Argument mocniejszy niż w checkliście: kara czasowa 700 ms siedzi **tylko w formularzu logowania** (`app/szkolenia/kreator/akcje.ts`). Jedyny AJAX `/api/szkolenia` nie ma ani kary, ani limitu — zgadywanie tokenu tą drogą jest dziś darmowe i nieograniczone |
+| A3 | **Komunikaty błędów** (§1) | Mapa pól dla właściciela zostaje (to feature panelu), ale `dyspozytor.ts` przy konflikcie unikalności oddaje **surowy komunikat Postgresa** (`szczegoly: String(blad.message)`) — nazwy ograniczeń i kolumn na zewnątrz |
+| A4 | **Twarde limity wejścia** — pozycji NIE BYŁO w checkliście, jest w planie kroku | `KursWejscie` ogranicza pola kursu (slug 120, title 200, short_desc 500…), ale tablice `sections`/`modules`/`lessons` nie mają górnej granicy, treść sekcji to gołe `z.string()` bez `max`, `price_grosze` jest bez sufitu, a trasa parsuje **całe ciało żądania przed sprawdzeniem tokenu** |
+| A5 | **Porównanie tokenu w stałym czasie w dyspozytorze** — znalezione przy audycie | `lib/kreator-dostep.ts` używa `timingSafeEqual`, ale `dyspozytor.ts` porównuje `===`. Checklista miała to jako ✅ i była to prawda **o formularzu**, nie o kanale sieciowym, który jako jedyny jest wystawiony na świat |
+
+### B. Do specyfikacji wtyczki WP — nie do kodu (5 pozycji)
+
+| Pozycja | Powód |
+|---|---|
+| Honeypot + pomiar czasu wypełnienia (§1) | Nie ma do czego przypiąć — formularze klienta powstają w Pluginie 2 |
+| Polityka prywatności + RODO (§3) | Dane osobowe pojawiają się z płatnościami i kontami (Plugin 2/3) |
+| Konta klientów, sesje, reset hasła, brute force (§5) | Plugin 3 + LMS za logowaniem |
+| SPF / DKIM / DMARC / DNSSEC (§7) | Wymaga domeny i wybranego dostawcy poczty |
+| 🔧 HTTPS + HSTS (§2) | Decyduje hosting; HSTS dopiero po potwierdzeniu certyfikatów na subdomenach |
+
+### C. Poza repo — decyzje i czynności właściciela (3 pozycje)
+
+| Pozycja | Stan |
+|---|---|
+| 2FA wymuszone w organizacji + na kontach zespołu (§4, §5) | Do zrobienia, gdy właściciel zdecyduje. **Uwaga: włączenie wymogu automatycznie usuwa z organizacji członków bez 2FA.** Procedura krok po kroku jest w naszym własnym kursie 2, moduł 6 |
+| Branch protection (§4) | Zablokowane planem Free dla repo prywatnych (sprawdzone 2026-08-18, HTTP 403). Zostaje dyscyplina Weryfikacji-PR |
+| Domena `automaticai.pl` (§7) | Decyzja zakupowa |
+
+### Decyzja o zakresie
+
+Właściciel zatwierdził **pełne A (A1–A5)** oraz **objęcie polityką CSP
+także publicznego podglądu statycznego** — meta `http-equiv` z hashami
+wstrzykiwane po buildzie (wzorzec strony głównej, bo GitHub Pages nie
+wyśle żadnego nagłówka HTTP).
+
+## Co zweryfikowano pomiarem przed pisaniem kodu
+
+Spike z 2026-08-19 (plik spike'u skasowany, oba buildy z kodem wyjścia 0):
+
+1. **`proxy.serwer.ts` działa jak reszta architektury dwóch trybów.**
+   Plik proxy honoruje `pageExtensions`, więc w trybie serwerowym Next
+   go widzi (`ƒ Proxy (Middleware)` w tabeli tras), a w trybie podglądu
+   NIE — i `output: export` przechodzi. To istotne, bo Proxy jest na
+   liście „Unsupported Features" eksportu statycznego: gdyby nazywał się
+   `proxy.ts`, wywracałby `build:podglad`.
+2. **Next 16.3.1 nie przyjmuje nazwanego eksportu `proxy`** w pliku
+   o niestandardowym rozszerzeniu, choć dokumentacja tak każe. Build pada
+   na „Middleware is missing expected function export name". Działa
+   **eksport domyślny** (`export default function proxy(...)`).
+3. **Jedyną prerenderowaną statycznie stroną ze skryptami jest
+   `/_not-found`.** Wszystkie trasy HTML z treścią (`/szkolenia`,
+   `/szkolenia/[slug]`, obie trasy kreatora) są `force-dynamic`, więc
+   dostaną nonce normalną drogą. Strona 404 nonce'a dostać nie może —
+   to jedyne miejsce wymagające decyzji przy pisaniu polityki.
+
+## Pytania techniczne do rozstrzygnięcia W TRAKCIE (nie na sucho)
+
+Każde rozstrzygać pomiarem na produkcyjnym `next start`, nie rozumowaniem:
+
+- **404 pod `strict-dynamic`.** `strict-dynamic` unieważnia `'self'` dla
+  skryptów, więc na stronie statycznej nie załadują się nawet zewnętrzne
+  chunki. Do sprawdzenia, co realnie dzieje się z `/_not-found`, i wybór:
+  rozdzielenie `not-found` na łuski `serwer/statyczny` nad wspólnym
+  widokiem (wzorzec repo) albo polityka bez `strict-dynamic`.
+- **Nonce na hoistowanym `<style>`.** `app/layout.tsx` wstawia
+  `<style href="geist-font-face" precedence="default">` z krojami.
+  Do sprawdzenia, czy Next nadaje mu nonce; jeśli nie — hash zamiast
+  nonce'a. **Nie przenosić `@font-face` do `globals.css`** bez pomiaru:
+  ten układ jest częścią wyniku 100/100 z 0.25.0.
+- **`img-src` a okładki spoza serwisu.** Kreator przyjmuje okładkę jako
+  dowolny URL (decyzja właściciela z D6). `img-src 'self'` po cichu
+  zepsułby taką okładkę. Wstępnie `'self' data: blob: https:` — decyzja
+  do zapisania w komentarzu polityki.
+- **`upgrade-insecure-requests` na localhoście.** Smoke'i chodzą po
+  http; dyrektywę wystawiać zależnie od protokołu żądania, tak jak już
+  robi to flaga `secure` ciastka (`przezHttps()`).
+- **Adres IP za proxy.** `x-forwarded-for` bez zaufanego proxy jest do
+  podrobienia — limiter ma to zakładać wprost i mieć to zapisane, żeby
+  specyfikacja WP nie odziedziczyła fałszywego poczucia bezpieczeństwa.
+
+## Kolejność PR-ów
+
+| PR | Gałąź | Zawartość |
+|---|---|---|
+| 1 | `feat/csp-pelne` | `proxy.serwer.ts` z nonce, polityka, wstrzykiwanie meta+hashy do podglądu (`tools/csp-podglad.mjs` wołany z `build:podglad`), `straznik-csp` + mutacje, smoke sprawdzający ARTEFAKT (nagłówek i wygenerowany HTML), nie proces |
+| 2 | `feat/brama-ajax` | Rate limiting okno-przesuwne po IP+akcja (AJAX i logowanie), `timingSafeEqual` w dyspozytorze, kara czasowa poza formularzem, testy |
+| 3 | `feat/limity-wejscia` | Limity długości i liczności w kontraktach, sufit `price_grosze`, limit rozmiaru ciała żądania przed parsowaniem, generyczny komunikat zamiast surowego błędu Postgresa, `straznik-limitow` |
+| 4 | `docs/krok-2-domkniecie` | Checklista bez pozycji 🚧, CHANGELOG, README, `rejestr/znane-bledy.json`, wersja + tag |
+
+## Bramka kroku
+
+Checklista bez ani jednej pozycji możliwej do zrobienia w prototypie
+i pozostawionej otwartej + akceptacja właściciela. Dowody odtwarzane
+lokalnie, bo CI stoi do 1 września (limit minut organizacji) — komplet
+dowodów wkleić do opisu PR-a, tak jak przy 0.21.0.
+
+## Praca równoległa — terytoria
+
+Krok 3 (kursy w narzędziu) idzie **równolegle, w osobnym czacie**
+(decyzja właściciela 2026-08-19). Żeby dwa czaty nie deptały sobie
+po plikach:
+
+| Obszar | Czyje |
+|---|---|
+| `proxy.serwer.ts`, `next.config.ts`, `tools/csp-podglad.mjs`, `tools/straznicy/straznik-csp.mjs`, `straznik-limitow.mjs`, `tools/smoke/*` | krok 2 |
+| `app/api/szkolenia/route.serwer.ts`, `modules/m1-sklep/dyspozytor.ts`, `app/szkolenia/kreator/akcje.ts` | krok 2 |
+| `components/kreator/*`, `app/szkolenia/kreator/page.serwer.tsx` i `[id]`, migracje SQL, `tools/seed/*`, `tresc-kursow/` | krok 3 |
+| **`modules/m1-sklep/typy.ts`** | **OBA** — konflikt pewny, protokół niżej |
+
+`typy.ts`: krok 2 dopisuje `.max()` i limity liczności do
+ISTNIEJĄCYCH schematów, krok 3 dodaje NOWE kontrakty (lekcje, nagrania).
+Konflikty będą tekstowe, nie logiczne — przy scalaniu zachować obie
+zmiany. **Nowe pola z kroku 3 też muszą dostać limity**, bo `straznik-limitow`
+z PR-a 3 zapali się na polu tekstowym bez `max`. Kto merguje pierwszy,
+ten wygrywa; drugi robi `git merge plugin-1-sklep-kursow` u siebie
+i rozwiązuje konflikt przed swoim PR-em.
