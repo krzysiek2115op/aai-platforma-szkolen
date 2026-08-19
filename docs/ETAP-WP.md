@@ -89,9 +89,11 @@ Rozmowa rozstrzygnęła to podziałem odpowiedzialności (niżej).
 3. **Co konkretnie znaczy „dopasowuje się do strony"?** Dziedziczenie
    zmiennych CSS z motywu, `theme.json`, czy własny design system
    wtyczki? Odpowiedź decyduje, ile z `components/kurs/*` przenosimy 1:1.
-4. **Tutor LMS na realnej treści** — sprawdzić na JEDNYM naszym kursie,
-   zanim wybór zostanie zamknięty (czy uniesie długie lekcje tekstowe,
-   czy da się ostylować, jak wygląda dostęp po zakupie).
+4. ~~Tutor LMS na realnej treści~~ **SPRAWDZONE 2026-08-19** — uniesie
+   (59 kB lekcja renderuje się w 6,6 ms, cały Kurs 2 wszedł bez ubytku),
+   da się ostylować (własne zmienne `--tutor-*` + szablony do nadpisania),
+   dostęp za logowaniem działa z pudełka. Liczby: sekcja „Tutor LMS na
+   realnej treści" niżej. Zostaje ścieżka zakupu przez WooCommerce.
 5. Czy e-booki są osobnym produktem, czy dodatkiem do kursu (wpływa na
    układ katalogu i na to, co widzi WooCommerce).
 
@@ -114,6 +116,64 @@ W `mp-test-env` są już oba: `twentytwentyfive` (blokowy, FSE) oraz
 wejdzie w motyw Automatic AI bez niespodzianek — a jeśli nie wejdzie,
 zobaczymy to na własnym środowisku, nie na produkcji kolegi.
 
+## Tutor LMS na realnej treści — pomiar, nie ulotka (2026-08-19)
+
+Punkt 4 „Pytań otwartych" rozstrzygnięty na dowodach: postawiliśmy lokalnie
+WordPressa 7.0.1 z **Tutor LMS 4.0.6 (darmowy core)** i **WooCommerce 11.0.1**,
+i wrzuciliśmy **cały Kurs 2 — 7 modułów, 50 lekcji, 1143 kB treści**
+(prawdziwe scenariusze z `tresc-kursow/jak-uzywac-githuba/`, nie atrapy).
+
+Środowisko stoi obok istniejących instalacji `mp-test-env`, niczego w nich
+nie ruszając: `/home/krzysiek/mp-test-env/wp-tutor/`, kontenery `tutor-wp`
+i `tutor-db` (podman, sieć `tutor-net`), adres `http://localhost:8091`,
+logowanie `admin` / `admin123`.
+
+### Czy uniesie długie lekcje tekstowe — TAK
+
+| Pomiar | Wynik |
+|---|---|
+| najdłuższa lekcja (Codespaces) | 59 kB treści, render `the_content` **6,6 ms** |
+| ta sama lekcja end-to-end, zalogowany | HTTP 200, 209 kB, **0,32 s** |
+| strona kursu z programem 50 lekcji | HTTP 200, 138 kB, **0,89 s** |
+| kreator kursu Tutora z 50 lekcjami | HTTP 200, **0,23 s** |
+| lista lekcji w kokpicie | HTTP 200, 0,48 s |
+| `post_content` w MySQL | `longtext` — sufit 4 GB, nasze 59 kB to 0,001% |
+| `max_allowed_packet` | 16 MB (domyślne) — z zapasem na najdłuższą lekcję |
+
+Treść przeżywa filtry WordPressa bez ubytku (59 kB wejścia → 60 kB wyjścia,
+16 nagłówków i bloki kodu na miejscu). Tutor widzi **7 modułów i 50 lekcji**,
+czyli nasza struktura kurs → moduł → lekcja mapuje się 1:1 na jego
+`courses` → `topics` → `lesson`.
+
+**Dostęp za logowaniem działa z pudełka:** gość dostaje stronę lekcji
+z HTTP 200, ale **bez treści** — w jej miejscu jest wezwanie do zapisu na
+kurs. To dokładnie ta funkcja, której nie mamy wcale i której nie chcemy
+pisać sami.
+
+### Czy da się ostylować — TAK, ale nie „samo z siebie"
+
+| Sprawdzone | Wynik |
+|---|---|
+| motyw blokowy (Twenty Twenty-Five, FSE) | kurs i lekcja renderują się poprawnie |
+| motyw klasyczny (Twenty Twenty-One) | to samo, ten sam program (29 znaczników programu w obu) |
+| czy Tutor czyta `theme.json` | **NIE** — zero odwołań do `--wp--preset--*` w jego CSS |
+| własny system zmiennych | **21 zmiennych `--tutor-*`** (kolory, odstępy, typografia) |
+| nadpisywanie szablonów | `tutor/templates/` w motywie (albo filtr ścieżki z naszej wtyczki) |
+
+Wniosek dla wtyczki: Tutor wnosi własny arkusz (`tutor-front.min.css`,
+139 kB) i **nie dziedziczy wyglądu motywu automatycznie**. Spięcie z naszym
+designem to przemapowanie tokenów na zmienne `--tutor-*` plus nadpisanie
+szablonów tam, gdzie układ ma się różnić — robota policzalna, nie przepisywanie
+LMS-u. To potwierdza podział odpowiedzialności z tego dokumentu: Tutor bierze
+konta i dostęp, wygląd zostaje nasz.
+
+### Czego NIE sprawdzono
+
+- pełnej ścieżki zakupu (WooCommerce → zapis na kurs) — wymaga skonfigurowanej
+  bramki i produktu; następny krok po decyzji o LMS,
+- zachowania przy wielu kursach i wielu użytkownikach naraz,
+- Publigo BOX (plan B) — nie ma darmowej wersji do postawienia obok.
+
 ## Następne kroki
 
 1. Poprosić kolegę o katalog motywu (bez bazy i treści) — do czasu, aż
@@ -129,7 +189,10 @@ zobaczymy to na własnym środowisku, nie na produkcji kolegi.
    uprawnienia, sanitizacja, trasy i szablony), dokumentacja dewelopera
    WooCommerce, Tutor LMS i wybór z manuala MySQL (typy, `utf8mb4`,
    indeksy, transakcje, wyzwalacze pod audyt).
-3. Postawić lokalnie WP + Tutor LMS + WooCommerce i wrzucić jeden nasz
-   kurs — **decyzja o LMS zapada na dowodach, nie na ulotkach**.
+3. ~~Postawić lokalnie WP + Tutor LMS + WooCommerce i wrzucić jeden nasz
+   kurs~~ **ZROBIONE 2026-08-19** — środowisko stoi
+   (`/home/krzysiek/mp-test-env/wp-tutor/`, `podman start tutor-db tutor-wp`,
+   `http://localhost:8091`), Kurs 2 w środku, pomiary wyżej. Do domknięcia
+   decyzji o LMS zostaje ścieżka zakupu WooCommerce → zapis na kurs.
 4. Dopiero potem kod wtyczki, wg Weryfikacji-PR i z tymi samymi
    strażnikami co prototyp.

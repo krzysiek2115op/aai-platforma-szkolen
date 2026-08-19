@@ -585,6 +585,16 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      pobierających (`KATALOG_DZIALU` + `KATALOGI_MASOWE`) zamiast trzymać
      własną listę nazw — nowy skrypt pobierający MUSI eksportować manifest,
      inaczej strażnik czerwieni się celowo.
+     **TUTOR LMS SPRAWDZONY NA DOWODACH (2026-08-19)** — środowisko
+     `/home/krzysiek/mp-test-env/wp-tutor/` (podman: `tutor-db` + `tutor-wp`,
+     `http://localhost:8091`, admin/admin123), WP 7.0.1 + Tutor LMS 4.0.6
+     + WooCommerce 11.0.1, cały Kurs 2 (50 lekcji, 1143 kB) w środku.
+     Wyniki i czego NIE sprawdzono: sekcja „Tutor LMS na realnej treści"
+     w [docs/ETAP-WP.md](docs/ETAP-WP.md). Skrót: długie lekcje unosi
+     (59 kB → 6,6 ms renderu), struktura kurs→moduł→lekcja mapuje się 1:1
+     na `courses`→`topics`→`lesson`, dostęp za logowaniem działa z pudełka,
+     ale **Tutor NIE czyta `theme.json`** — ma własne 21 zmiennych
+     `--tutor-*` i szablony do nadpisania w `tutor/templates/`.
      Potem: sprzątanie gałęzi, merge na `main`, koniec Pluginu 1.
 - **DECYZJA WŁAŚCICIELA (2026-08-19): porządek gałęzi PO Pluginie 1.**
   Po ukończeniu CAŁEGO Pluginu 1 i rozmowie o przeniesieniu strony
