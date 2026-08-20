@@ -476,3 +476,31 @@ Co z tego wynika:
   nie należy do terytorium czatu modułu 3 (to pole kursu, nie treść
   lekcji) — wchodzi kreatorem albo dyspozytorem, gdy właściciel poda
   wysokość. **Do odhaczenia przed bramką B7.**
+
+### Moduł 3 — ZAMKNIĘTY I WGRANY (2026-08-20)
+
+Osiem lekcji, **148 086 znaków prozy**, wgrane `npm run db1:tresc`
+drogą kreatora (8 wgranych, 0 bez zmian). Pełny rozpis lekcji, sygnałów
+jakości i kosztu: [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md),
+sekcja „Moduł 3 Kursu 1".
+
+**DECYZJE WŁAŚCICIELA (2026-08-20) o zakresie bramki cytatów:**
+
+1. Bramka objęła **tylko lekcje 3.7 i 3.8** (nie osiem) — ze względu na
+   koszt. Wynik: 70 wierszy sprawdzonych, **13 usterek naprawionych**.
+2. Po poznaniu tego wyniku właściciel został zapytany ponownie, bo
+   liczba zmieniła rachunek: **trafność bramki wyniosła 18,6% wobec
+   3,6% w module 1** — pięć razy więcej. Decyzja: **sześciu lekcji
+   3.1–3.6 NIE sprawdzamy; właściciel przejrzy je sam w kreatorze.**
+
+**Co z tego wynika i o czym trzeba pamiętać przy B7:** usterki tej klasy
+są niewidoczne przy zwykłym czytaniu. Zdanie brzmi sensownie i JEST
+prawdziwe — brakuje mu tylko warunku ze źródła (plan, wersja, system,
+tryb, zakres ustawień), a tego nie da się wykryć bez zajrzenia do
+dokumentacji. Lekcje 3.1–3.6 idą więc do oceny właściciela z jawnie
+zapisanym ryzykiem, a nie jako materiał po dwóch bramkach.
+
+**Wniosek do zaplanowania modułu 4** (ta sama klasa źródeł — subagenci,
+skille, hooki, MCP, pluginy, CI): przy dokumentacji Claude Code bramka
+cytatów nie jest formalnością, tylko wykrywa co piątą tezę. Warto ją
+wliczyć w koszt modułu z góry, zamiast decydować po fakcie.
