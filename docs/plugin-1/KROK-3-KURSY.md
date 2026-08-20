@@ -328,6 +328,59 @@ powstaje równolegle w osobnym czacie. **Przy module 4 wraca pytanie
 o rytm** — zgoda na pracę bez przystanku była punktowa (moduł 2), a przy
 module 3 właściciel przedłużył ją decyzją o trzecim torze.
 
+### DECYZJA WŁAŚCICIELA (2026-08-20): krótsze kursy zamiast dłuższych, niższa cena
+
+**To jest odwrócenie decyzji nr 2 z PRODUKCJA-MATERIALU-KROK-3.md.** Tam
+obniżenie ceny było jawnie ODRZUCONE, a Kurs 1 miał zostać dogęszczony.
+Po dwóch modułach (11 lekcji, ~1,9 mln tokenów, 152 → 172 tys. na lekcję)
+właściciel uznał, że produkcja trwa za długo, i wybrał tamtą odrzuconą
+opcję.
+
+| Pozycja | Było | Jest |
+|---|---|---|
+| Cena Kursu 1 | 499 zł | **299 zł** |
+| Cena Kursu 2 | 399 zł | **349 zł** |
+| Program Kursu 2 | 7 modułów / 50 lekcji | **CIĘTY — mniej lekcji** |
+| Widełki prozy | 12 000–16 000 znaków | **8 000–12 000 znaków** |
+| Dogęszczanie Kursu 1 | tak | **nie** |
+
+**Co jest już zrobione:** ceny w `tools/seed/seed-przyklady.ts` (29900
+i 34900 groszy), widełki w `POSTEP.md`, odwrócenie zapisane w obu
+dokumentach decyzyjnych i w CLAUDE.md.
+
+**Co zostaje OTWARTE i wymaga roboty przed startem prozy Kursu 2:**
+
+1. **Cena w BAZIE jest nadal stara** (49900 i 39900). Zmiana idzie
+   kreatorem — zapis kursu wysyła też program, więc **nie robić tego
+   skryptem seedującym**: `npm run db1:seed` wgrywa treść ROBOCZĄ
+   i skasowałby wgraną prozę. Właściwe miejsca: panel kreatora albo
+   etap 4 (finalne strony sprzedażowe).
+2. **Które lekcje Kursu 2 wypadają** — decyzja nie zapadła. Potrzebna
+   propozycja agenta: co wyciąć z 50 lekcji, żeby kurs dalej trzymał
+   obietnicę ze strony sprzedażowej. Cięcie pociąga za sobą: nowy
+   program w bazie (dyspozytorem), zmianę statystyk katalogu (dziś
+   7 modułów / 50 lekcji / 745 min), korektę goldenów treści i liczników
+   „91 scenariuszy" u strażników. **Scenariusze wyciętych lekcji zostają
+   w repo jako ślad D7** — kasowanie ich niczego nie oszczędza,
+   a `straznik-scenariuszy` liczy pliki.
+3. **Nierówność gęstości** — moduły 1 i 2 Kursu 1 mają 14–18 tys. znaków
+   na lekcję, dalsze będą miały 8–12 tys. Kurs będzie na początku
+   gęstszy niż dalej. Świadomy koszt decyzji; przepisywanie modułów 1–2
+   w dół kosztowałoby drugi raz tyle, co ich napisanie.
+
+### NASTĘPNY KROK: moduł 4 Kursu 1
+
+Moduł 3 powstaje równolegle w osobnym czacie (worktree
+`Pod-strona-Szkolenia-modul3`), więc ten tor bierze **moduł 4 — „Claude
+Code: systemy pracy, które skalują"** (6 lekcji: subagenci, skille,
+hooki, MCP, pluginy, Agent Skills na platformie). Przepis bez zmian:
+brief z dosłownymi mostami → fale autorów → przegląd pierwszej fali →
+przelot spójności → bramka cytatów → `npm run db1:tresc` → commit.
+**Nowe widełki 8–12 tys. wchodzą do briefu modułu 4.**
+
+Most z modułu 3 trzeba będzie wziąć z drugiego czatu — jego lekcja 3.8
+kończy się zdaniem prowadzącym do modułu 4.
+
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 
 | Znalezisko | Skąd | Co z tym |

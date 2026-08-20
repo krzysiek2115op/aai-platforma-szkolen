@@ -35,13 +35,28 @@ jeżeli wideo kiedyś wróci, dokłada się kontrakty nagrań do tych samych
 lekcji i nagrywa z tych samych plików. Odwrotna kolejność oznaczałaby
 wydanie pieniędzy i czasu, zanim wiadomo, czy kursy się sprzedają.
 
-### 2. Kurs 1 zostaje dogęszczony
+### 2. ~~Kurs 1 zostaje dogęszczony~~ — DECYZJA ODWRÓCONA 2026-08-20
 
-91 stron prozy w Kursie 1 kontra 292 w Kursie 2 to nie różnica stylu.
-Kurs za 499 zł nie może być chudszy niż ten za 399 zł. Kurs 1 przechodzi
-przelot **trybem równoległym z briefami** (przepis: `tresc-kursow/POSTEP.md`,
-sekcja „Tryb produkcji"), wyłącznie ze wskazanych w programie źródeł.
-Odrzucone: skorygowanie obietnicy w dół i zrównanie ceny w dół.
+**Nieaktualne od 2026-08-20.** Pierwotnie: 91 stron prozy w Kursie 1
+kontra 292 w Kursie 2 to nie różnica stylu, kurs za 499 zł nie może być
+chudszy niż ten za 399 zł — więc Kurs 1 miał zostać dogęszczony, a
+obniżenie ceny było jawnie ODRZUCONE.
+
+**Po dwóch modułach właściciel wybrał dokładnie tę odrzuconą opcję.**
+Powód jest z pomiaru, nie z gustu: moduł 1 kosztował ~152 tys. tokenów
+na lekcję, moduł 2 ~172 tys., a produkcja trwa za długo. Nowa decyzja
+(2026-08-20):
+
+| Co | Było | Jest |
+|---|---|---|
+| Kurs 1 „Jak poprawnie korzystać z Claude" | 499 zł, do dogęszczenia | **299 zł**, bez dogęszczania |
+| Kurs 2 „Jak poprawnie używać GitHuba" | 399 zł, 50 lekcji | **349 zł, program CIĘTY** — mniej lekcji |
+| Objętość prozy na lekcję | 12 000–16 000 znaków | **8 000–12 000 znaków** |
+
+Kurs 1 zostaje więc taki, jaki wynika ze źródeł, a proporcję ceny do
+objętości prostuje cennik zamiast dopisywania treści. Moduły 1 i 2 są
+już napisane gęściej (14–18 tys. znaków na lekcję) i **zostają jak są**
+— przepisywanie ich w dół kosztowałoby drugi raz tyle, co napisanie.
 
 ### 3. Jednostka zostaje czasem — „czas przerobienia lekcji"
 

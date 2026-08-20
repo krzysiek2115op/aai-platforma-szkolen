@@ -510,9 +510,10 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      2026-08-19 na dowodach lokalnych, decyzją właściciela, bo CI stoi
      do 1 września. **NASTĘPNY: etap 3 —
      dogęszczenie Kursu 1 i redakcja 91 lekcji, treść wchodzi
-     KREATOREM, nie seedem — ale PRZED pisaniem dwie decyzje
-     właściciela (czym wprowadzić 91 lekcji i skąd bierze się ich
-     proza), spisane w KROK-3-KURSY.md.** Zapamiętać z etapu 2: panel MUSI odsyłać
+     KREATOREM, nie seedem.** Stan prozy: **moduły 1 i 2 Kursu 1
+     ZAMKNIĘTE i w bazie** (11 z 91 lekcji, 160 928 znaków), moduł 3
+     powstaje w osobnym czacie, moduł 4 następny. Rytm, tryb produkcji
+     i gatunki usterek: `tresc-kursow/POSTEP.md`. Zapamiętać z etapu 2: panel MUSI odsyłać
      `id` modułów i lekcji (dyspozytor kasuje wiersze spoza wejścia —
      bez tego zapis kursu kasuje materiał), a w worktree kroku 3
      `node_modules` musi być KOPIĄ (`cp -al`), bo Turbopack odrzuca
@@ -532,9 +533,19 @@ przy każdym kroku zmieniającym stan projektu (jak README).
        kontrakt nagrania wideo** (żadnego hostingu, czasu trwania filmu
        ani napisów — to unieważnia wcześniejszy zapis „kreator przejmuje
        lekcje i nagrania").
-     - **Kurs 1 zostaje DOGĘSZCZONY** trybem równoległym z briefami:
-       ma 91 stron prozy przy 292 stronach Kursu 2 (pomiar 2026-08-19),
-       a kosztuje więcej. Odrzucone: obniżenie obietnicy i obniżenie ceny.
+     - ~~**Kurs 1 zostaje DOGĘSZCZONY**~~ — **DECYZJA ODWRÓCONA
+       2026-08-20 (właściciel).** Po dwóch modułach produkcja okazała się
+       za wolna i za droga (152 → 172 tys. tokenów na lekcję), więc
+       właściciel wybrał opcję wcześniej odrzuconą: **nie poszerzamy
+       Kursu 1, tylko schodzimy z ceną.** Kurs 1 **499 → 299 zł**,
+       Kurs 2 **399 → 349 zł** i **program Kursu 2 zostaje CIĘTY**
+       (mniej lekcji — które, do rozstrzygnięcia propozycją agenta przed
+       startem prozy Kursu 2). Widełki prozy **12–16 tys. → 8–12 tys.
+       znaków** na lekcję. Moduły 1 i 2 Kursu 1 zostają w dotychczasowej
+       gęstości (14–18 tys.) — przepisywanie ich w dół kosztowałoby
+       drugi raz tyle, co napisanie. **Cena w bazie jeszcze NIE zmieniona**
+       (baza: 49900 i 39900 groszy) — zmiana idzie kreatorem, przy
+       etapie 4; w seedzie już poprawiona.
      - **`duration_min` zostaje i znaczy „czas przerobienia lekcji"**,
        nie długość filmu. Program z 2026-08-18 NIE wymaga ponownej
        akceptacji, statystyki katalogu i goldeny bez zmian — zmienia się
