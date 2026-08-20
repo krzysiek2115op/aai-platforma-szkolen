@@ -287,6 +287,51 @@ sekcją; konflikt przy scalaniu jest tekstowy, zasada — zachować OBIE zmiany.
 Baza `db1_kursy` i tokeny są wspólne, ale `npm run db1:tresc` wysyła wyłącznie
 pliki, które się zmieniły, więc czaty nie kasują sobie lekcji.
 
+### STAN MODUŁU 2 — przerwa na limit usage (2026-08-20, 02:20)
+
+Miejsce, w którym przerwano pracę, i co dokładnie zrobić po wznowieniu.
+Worktree `/home/krzysiek/Pod-strona-Szkolenia-krok3`, gałąź
+`feat/tresc-lekcji-kursow`.
+
+| Lekcja | Stan | Znaków | Wierszy zgodności |
+|---|---|---|---|
+| 2.1 Zasady dobrego promptu | ✅ napisana, przejrzana, w commicie | 14 005 | 35 |
+| 2.2 Najlepsze praktyki | ✅ napisana, przejrzana, w commicie | 15 998 | 34 |
+| 2.3 Promptowanie najnowszych modeli | 🚧 **autor PISZE w tle** (plik ruszał się 45 s przed przerwą) | — | — |
+| 2.4 Rozszerzone myślenie | ⬜ fala 2 | — | — |
+| 2.5 Halucynacje i spójność | ⬜ fala 2 | — | — |
+
+**PO WZNOWIENIU — kolejność:**
+1. **Najpierw sprawdź, czy autor 2.3 nie żyje dalej** (`ls --time-style=+%H:%M:%S`
+   na `modul-2/proza-3-*.md`). Jeżeli plik jest kompletny (ma tabelę
+   zgodności i zamyka się DOSŁOWNIE zdaniem z briefu) — przejrzyj go
+   i zacommituj. Jeżeli urwany — pisz 2.3 od nowa z briefu, nie łataj.
+   Przy przerwaniu miał 26 tys. znaków przy widełkach 12–16 tys., więc
+   **spodziewaj się, że wymaga przycięcia**.
+2. **Fala 2: lekcje 2.4 i 2.5** — dwa osobne przebiegi autorskie na
+   OPUSIE, prompt buduje się z sekcji briefu (`### 2.4`, `### 2.5`),
+   wzorca `modul-1/proza-1-czym-jest-claude.md` i scenariusza jako
+   briefu tez. Mosty są w briefie, dosłownie.
+3. Przelot spójności całego modułu → **przebieg cytatów jako druga
+   bramka** → `node tools/straznicy/straznik-prozy.mjs` →
+   `npm run db1:tresc` → jeden commit domykający moduł.
+
+**LEKCJA ORGANIZACYJNA (mój błąd, 2026-08-20): nie wolno commitować
+katalogu, gdy w środku piszą autorzy.** `git add -A <katalog-modułu>`
+przy commicie lekcji 2.1 zgarnął WERSJE POŚREDNIE lekcji 2.2 i 2.3
+(commit f42a06f). Nic nie przepadło — finalne wersje leżały w drzewie
+roboczym — ale w historii siedzi teraz commit z treścią, której nikt
+nie przejrzał. **Przy równoległych autorach dodawać do commitu PLIK PO
+PLIKU**, nigdy katalogiem.
+
+**Znalezisko do rozstrzygnięcia przy domknięciu modułu:** scenariusz D7
+lekcji 2.1 (scena 2) twierdzi więcej niż źródło — „najpierw właściwy
+model i effort, potem prompt", podczas gdy `overview.md` mówi tylko, że
+opóźnienie i koszt CZASEM łatwiej poprawić zmianą modelu (`effort` nie
+występuje w tym pliku). Do prozy nie weszło. Scenariusz jest pod
+goldenem `straznik-goldenu-tresci`, więc poprawka wymaga regeneracji
+goldenu — decyzja właściciela.
+
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 
 | Znalezisko | Skąd | Co z tym |
