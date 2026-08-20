@@ -287,50 +287,46 @@ sekcją; konflikt przy scalaniu jest tekstowy, zasada — zachować OBIE zmiany.
 Baza `db1_kursy` i tokeny są wspólne, ale `npm run db1:tresc` wysyła wyłącznie
 pliki, które się zmieniły, więc czaty nie kasują sobie lekcji.
 
-### STAN MODUŁU 2 — przerwa na limit usage (2026-08-20, 02:20)
+### Moduł 2 Kursu 1 — ZAMKNIĘTY I WGRANY (2026-08-20)
 
-Miejsce, w którym przerwano pracę, i co dokładnie zrobić po wznowieniu.
-Worktree `/home/krzysiek/Pod-strona-Szkolenia-krok3`, gałąź
-`feat/tresc-lekcji-kursow`.
+Pięć lekcji, **77 963 znaki prozy dla klienta**, 164 wiersze zgodności.
+Wgrane `npm run db1:tresc` (5 wgranych, 6 bez zmian). Pełny rozbiór
+przebiegu — cztery sygnały jakości, gatunki usterek, koszt i to, co
+z trybu ma zostać — w [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md),
+sekcja „Jak wypadł moduł 2 Kursu 1".
 
-| Lekcja | Stan | Znaków | Wierszy zgodności |
-|---|---|---|---|
-| 2.1 Zasady dobrego promptu | ✅ napisana, przejrzana, w commicie | 14 005 | 35 |
-| 2.2 Najlepsze praktyki | ✅ napisana, przejrzana, w commicie | 15 998 | 34 |
-| 2.3 Promptowanie najnowszych modeli | 🚧 **autor PISZE w tle** (plik ruszał się 45 s przed przerwą) | — | — |
-| 2.4 Rozszerzone myślenie | ⬜ fala 2 | — | — |
-| 2.5 Halucynacje i spójność | ⬜ fala 2 | — | — |
+Trzy rzeczy, które muszą przetrwać `/clear`:
 
-**PO WZNOWIENIU — kolejność:**
-1. **Najpierw sprawdź, czy autor 2.3 nie żyje dalej** (`ls --time-style=+%H:%M:%S`
-   na `modul-2/proza-3-*.md`). Jeżeli plik jest kompletny (ma tabelę
-   zgodności i zamyka się DOSŁOWNIE zdaniem z briefu) — przejrzyj go
-   i zacommituj. Jeżeli urwany — pisz 2.3 od nowa z briefu, nie łataj.
-   Przy przerwaniu miał 26 tys. znaków przy widełkach 12–16 tys., więc
-   **spodziewaj się, że wymaga przycięcia**.
-2. **Fala 2: lekcje 2.4 i 2.5** — dwa osobne przebiegi autorskie na
-   OPUSIE, prompt buduje się z sekcji briefu (`### 2.4`, `### 2.5`),
-   wzorca `modul-1/proza-1-czym-jest-claude.md` i scenariusza jako
-   briefu tez. Mosty są w briefie, dosłownie.
-3. Przelot spójności całego modułu → **przebieg cytatów jako druga
-   bramka** → `node tools/straznicy/straznik-prozy.mjs` →
-   `npm run db1:tresc` → jeden commit domykający moduł.
+1. **Bramka cytatów znalazła 10 usterek i ani jednej złej liczby.**
+   Zgubione zawężenie dalej dominuje (4 z 10), ale doszły gatunki, których
+   moduł 1 nie miał: teza bez pokrycia (autor dopowiada wniosek, którego
+   źródło nie orzeka), wiersz osierocony (tabela dowodzi tezy usuniętej
+   z prozy) i zły adres sekcji. **Przy kolejnych modułach szukać wszystkich
+   czterech**, nie samych zawężeń.
+2. **Dokumentacja bywa sprzeczna sama ze sobą i to jest pułapka na autora.**
+   `effort.md` mówi w jednej sekcji, że effort obejmuje wszystkie tokeny
+   odpowiedzi, a w sekcji Opus 5 — że nie steruje długością widocznej
+   odpowiedzi. Autor 2.3 uogólnił to drugie zdanie na wszystkie modele.
+   Sześć takich rozjazdów spisano w raporcie bramki (m.in. prefill, którego
+   strona o spójności nadal uczy, a strona najlepszych praktyk uznaje za
+   usunięty).
+3. **Błąd może siedzieć w BRIEFIE, nie w autorze.** Brief modułu 2 podawał
+   jako tezę ze źródła hierarchię „najpierw model i effort, potem prompt".
+   Autor 2.1 odmówił jej napisania i miał rację; to samo zdanie stoi
+   w scenariuszu D7 (lekcja 2.1, scena 2), który jest pod goldenem —
+   **poprawka scenariusza czeka na decyzję właściciela.**
 
-**LEKCJA ORGANIZACYJNA (mój błąd, 2026-08-20): nie wolno commitować
-katalogu, gdy w środku piszą autorzy.** `git add -A <katalog-modułu>`
-przy commicie lekcji 2.1 zgarnął WERSJE POŚREDNIE lekcji 2.2 i 2.3
-(commit f42a06f). Nic nie przepadło — finalne wersje leżały w drzewie
-roboczym — ale w historii siedzi teraz commit z treścią, której nikt
-nie przejrzał. **Przy równoległych autorach dodawać do commitu PLIK PO
-PLIKU**, nigdy katalogiem.
+**Lekcja organizacyjna:** nie commitować katalogu, gdy w środku piszą
+autorzy (`git add -A <katalog>` zgarnął wersje pośrednie dwóch lekcji).
+Plik po pliku. Druga: autor, który padnie na limicie sesji z kompletnym
+plikiem, **nie wymaga powtórki** — 2.3 została dokończona przeglądem
+zamiast pisana od nowa, co oszczędziło ~150 tys. tokenów.
 
-**Znalezisko do rozstrzygnięcia przy domknięciu modułu:** scenariusz D7
-lekcji 2.1 (scena 2) twierdzi więcej niż źródło — „najpierw właściwy
-model i effort, potem prompt", podczas gdy `overview.md` mówi tylko, że
-opóźnienie i koszt CZASEM łatwiej poprawić zmianą modelu (`effort` nie
-występuje w tym pliku). Do prozy nie weszło. Scenariusz jest pod
-goldenem `straznik-goldenu-tresci`, więc poprawka wymaga regeneracji
-goldenu — decyzja właściciela.
+**Stan po module 2:** proza 11 z 91 lekcji. Następny w tym torze —
+moduł 4 Kursu 1 („Claude Code: systemy pracy, które skalują"), bo moduł 3
+powstaje równolegle w osobnym czacie. **Przy module 4 wraca pytanie
+o rytm** — zgoda na pracę bez przystanku była punktowa (moduł 2), a przy
+module 3 właściciel przedłużył ją decyzją o trzecim torze.
 
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 
