@@ -406,3 +406,73 @@ lekcji przechodzi przez ścieżkę zapisu:
 
 Konflikty przy scalaniu będą tekstowe. Zasada bez zmian: zachować
 OBIE zmiany.
+
+## Moduł 3 Kursu 1 — trzeci tor (czat modułu 3, od 2026-08-20)
+
+Worktree `/home/krzysiek/Pod-strona-Szkolenia-modul3`, gałąź
+`feat/tresc-lekcji-modul-3` (od `feat/tresc-lekcji-kursow`). Osiem
+lekcji, trzy fale (3 + 3 + 2). Brief:
+[modul-3/BRIEF-prozy-modulu.md](../../tresc-kursow/jak-korzystac-z-claude/modul-3/BRIEF-prozy-modulu.md).
+
+### Co brief modułu 3 wnosi ponad brief modułu 1
+
+Materiał wymusił dwie rzeczy, których przy module 1 nie było:
+
+- **podział CZTERECH grubych źródeł** między lekcje: `settings.md`
+  (334 kB), `commands.md` (154 kB, sama tabela komend ma 108 wierszy),
+  `permissions.md` + `permission-modes.md` (131 kB razem) oraz
+  `best-practices.md` (39 kB, czytany przez trzy lekcje naraz). Bez tego
+  lekcja 3.8 byłaby przedrukiem tabeli ustawień, a 3.6 katalogiem komend;
+- **trzynaście imiennie wypisanych siedlisk „zgubionego zawężenia"** —
+  jedynej klasy usterki, jaką przebieg cytatów znalazł w module 1 (7 z 7).
+  W tej dokumentacji wracają jako: na jakim systemie, w jakim trybie
+  uprawnień, na jakim planie, od której wersji Claude Code, w którym
+  zakresie ustawień, w którym terminalu.
+
+### Fala 1 (lekcje 3.1–3.3) — ZROBIONA, oceniona
+
+Napisana ze źródeł `how-claude-code-works.md`, `quickstart.md` + `setup.md`
+i `common-workflows.md`, czytanych w oryginale i w całości. Przegląd:
+
+| Sygnał jakości | Wynik |
+|---|---|
+| Mosty | **czysto** — każda lekcja kończy się dosłownie zdaniem z briefu, 3.1 otwiera się podjęciem końcówki modułu 2 |
+| Tabele zgodności | 47 / 39 / 39 wierszy przy progu 8 |
+| Zawężenia | utrzymane te trudne: „inteligencja kodu wymaga wtyczek", chmura = Anthropic **albo** self-hosted organizacji, punkty kontrolne pomijają dowiązania i nie obejmują systemów zdalnych, MEMORY.md ładuje 200 linii **albo** 25 kB — co wypadnie wcześniej |
+| Lanie wody | brak — każda sekcja odpowiada sekcji źródła |
+
+### LEKCJA: widełki objętości potrafią wyciąć rusztowanie dla adresata
+
+Brief dawał 12–16 tys. znaków, lekcje wyszły na 21–23 tys. Autorzy
+**sami zaczęli przycinać** — i w chwili wyczerpania limitu sesji mieli
+już wycięte: definicję terminala i katalogu roboczego, wyjaśnienia „co
+to są testy", „co to jest refaktoryzacja", „co to jest pull request",
+rozpoznanie PowerShell kontra CMD oraz zawężenie o samoczynnych
+aktualizacjach tylko instalacji natywnych. Czyli **dokładnie to, czego
+brief od nich żądał dla adresata-nieprogramisty**.
+
+Cięcie cofnięte (`git checkout` do commitu fali 1). Wniosek do briefów
+kolejnych modułów: **widełki są budżetem, nie limitem** — przy kolizji
+wygrywa zawężenie ze źródła i wyjaśnienie dla adresata, a nie liczba
+znaków. Zapisane w briefie modułu 3 jako reguła nadrzędna.
+
+### DECYZJA WŁAŚCICIELA (2026-08-20): niższa cena zamiast dogęszczania
+
+Właściciel **odwołał dogęszczanie Kursu 1** i wybrał **obniżenie ceny**.
+To zmiana decyzji z 2026-08-19
+([PRODUKCJA-MATERIALU-KROK-3.md](PRODUKCJA-MATERIALU-KROK-3.md)), gdzie
+dogęszczenie wybrano właśnie po to, żeby ceny nie ruszać, a obniżkę
+jawnie odrzucono. Powód zmiany: koszt pracy.
+
+Co z tego wynika:
+
+- widełki dla lekcji **3.4–3.8**: 12–16 tys. znaków (reguła nadrzędna
+  wyżej zostaje);
+- **fala 1 zostaje bez przycinania** — przerabianie gotowego tekstu to
+  ten sam koszt, którego decyzja unika; moduł będzie lekko nierówny
+  i to jest świadome;
+- **cena w bazie NIE jest jeszcze zmieniona.** Kurs 1 stoi na 499 zł
+  wobec 399 zł Kursu 2. Nowa kwota nie została podana, a zmiana ceny
+  nie należy do terytorium czatu modułu 3 (to pole kursu, nie treść
+  lekcji) — wchodzi kreatorem albo dyspozytorem, gdy właściciel poda
+  wysokość. **Do odhaczenia przed bramką B7.**
