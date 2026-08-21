@@ -547,6 +547,18 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      z 2026-08-19: żaden czat nie przełącza gałęzi w cudzym katalogu —
      inaczej commit ląduje na obcej gałęzi, a `gh pr create` mówi
      mylące „No commits between". Baza i port 3001 zostają wspólne.
+  4b. **DECYZJE WŁAŚCICIELA (2026-08-21) o tym, czego NIE planujemy teraz.**
+     (a) Rzeczy spoza modułów — domena `automaticai.pl`, hosting, HTTPS/HSTS,
+     poczta, RODO, 2FA, branch protection — **spinamy na bieżąco po
+     modułach**, bez osobnego etapu w planie. (b) **Zakres Pluginów 2 i 3
+     jest ZMIENNY**: opisy w PLAN.md §3–§4 powstały przed decyzją o Tutor
+     LMS + WooCommerce, więc część zaplanowanego kodu (klienci, zamówienia,
+     webhooki, tokeny pobrań, checkout, faktury, logowanie admina)
+     prawdopodobnie przejmują gotowe wtyczki; naprawdę nasze zostaje
+     `page_visits`. **Niczego z tych sekcji NIE KASUJEMY** — służą jako
+     lista kontrolna „czego Woo/Tutor NIE robi". Zakres doprecyzujemy
+     **pytaniami do właściciela przed startem każdego z tych modułów**,
+     nie wcześniej.
   5. **Rozmowa o WordPressie — ODBYTA 2026-08-19.** Ustalenia,
      ceny LMS-ów i pytania otwarte:
      **[docs/ETAP-WP.md](docs/ETAP-WP.md)** — CZYTAĆ PRZED ETAPEM WP.
