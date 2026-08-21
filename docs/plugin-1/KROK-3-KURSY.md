@@ -565,6 +565,85 @@ w bazie dyspozytorem → **3 czaty równoległe** na pozostałe moduły
 w briefach z góry, pliki cytatów przydzielane rozłącznie, `db1:tresc`
 zawsze z filtrem `--kurs --modul --sprawdz`).
 
+### PROPOZYCJA MOCNEGO CIĘCIA KURSU 2 (2026-08-22) — czeka na akceptację po kalibracji
+
+Przygotowana na decyzję właściciela „tnij mocno, głębokość ostatecznie po
+pomiarze". **Program w bazie zmieniamy DOPIERO po akceptacji ostatecznej
+listy** — kalibracja modułu 1 idzie przed nią, bo moduł 1 nie jest ruszany
+żadnym wariantem.
+
+**Jawne kryteria cięcia** (w tej kolejności):
+
+1. **Rdzeń obietnicy sprzedażowej** — hero+benefits: commity, gałęzie,
+   historia, pull requesty i współpraca, GitHub jako bezpieczna kopia,
+   podstawowe bezpieczeństwo. Lekcja poza rdzeniem = kandydat.
+2. **Adresat** — samouk/przedsiębiorca bez programowania, najczęściej
+   pracujący sam (FAQ obiecuje „nie musisz umieć programować" i odpowiada
+   na „pracuję sam"). Tematy czysto korporacyjno-deweloperskie wypadają.
+3. **Koszt produkcji jako tiebreaker** — scenariusze modułu 7 ważą
+   43 kB/lekcję (moduły 1–3: 10–12 kB/lekcję).
+
+**Proponowana lista — z 50 do 31 lekcji (19 wypada), ~480 min:**
+
+| Moduł | Zostaje | Wypada (powód: kryterium) |
+|---|---|---|
+| 1. Start (6→5) | 1.1–1.5 | 1.6 „Git od środka" (2: teoria internals zbędna nieprogramiście) |
+| 2. Codzienna praca (7→6) | 2.1–2.5, 2.7 (ściąga = obietnica z `package`) | 2.6 „Rebase bez strachu" (2: zaawansowane; decyzyjny kawałek zostaje w 4.9) |
+| 3. Repo profesjonalisty (8→5) | 3.1, 3.2, 3.3, 3.5, 3.6 | 3.4 Licencja, 3.7 LFS, 3.8 Szablony (1+2: poza rdzeniem, niszowe) |
+| 4. Współpraca (11→7) | 4.1, 4.2, 4.4, 4.5, 4.6, 4.8, 4.9 | 4.3 Prowadzenie issue (nadmiar obok 4.2), 4.7 Robienie review (2: solo-adresat), 4.10 Forki (1: wkład w OSS poza rdzeniem), 4.11 PR↔issue (drobiazg do wzmianki w 4.5) |
+| 5. Actions (7→4) | 5.1, 5.2, 5.3, 5.6 (sekrety=bezpieczeństwo) | 5.4 Anatomia, 5.5 Zmienne i konteksty (referencyjne), 5.7 CD (2: deploy nieprogramisty nie idzie przez Actions) |
+| 6. Bezpieczeństwo (6→4) | 6.1, 6.2, 6.4, 6.6 | 6.3 Przegląd funkcji (nadmiar obok konkretów), 6.5 Dependabot (2: bez własnych zależności) |
+| 7. Ponad podstawy (5→0) | — | cały moduł (3: z definicji dodatek, najdroższy na lekcję; 7.3 Codespaces ma źródło 785 B) |
+
+**Mikro-wariant do rozważenia:** uratować 7.2 „GitHub Pages" jako ostatnią
+lekcję modułu 3 (realna wartość dla przedsiębiorcy: strona z repozytorium)
+— wtedy 32 lekcje, ~495 min.
+
+**Sprawdzenie 12 sekcji strony przeciw nowemu programowi — wynik:**
+rdzeń obietnicy (hero, benefits, positioning, transformation, comparison,
+for_whom, faq) jest pokryty przez 31 lekcji. **ALE roboczy `package`
+kłamie już DZIŚ przy 50 lekcjach**: obiecuje „6 modułów wideo (26 lekcji)"
+(kurs jest tekstowy i ma 7 modułów), a `package`+`benefits` obiecują
+„moduł ratunkowy: restore/revert/reset", którego nie niesie ŻADEN tytuł
+z 50. Wniosek: sekcje sprzedażowe są rozjechane niezależnie od cięcia
+i będą pisane od nowa w etapie 4 pod ostateczny program — to tam
+rozstrzygnie się też los obietnicy restore/revert/reset (przepisać
+obietnicę albo dodać lekcję ratunkową do programu).
+
+**Co cięcie pociąga technicznie** (bez zmian wobec punktu startowego
+z 2026-08-21): program dyspozytorem (nie seedem!), statystyki katalogu
+zmienią się same, `tools/seed/seed-przyklady.ts` do korekty, scenariusze
+wyciętych lekcji ZOSTAJĄ w repo (golden i straznik-scenariuszy bez zmian),
+cena w bazie nadal do zmiany kreatorem (29900/34900).
+
+### KALIBRACJA — moduł 1 K2 z testem A/B Opus vs Sonnet (decyzja właściciela 2026-08-22)
+
+**Decyzja właściciela 2026-08-22 zmienia ustawienie modelu autorów
+z 2026-08-18 w trybie POMIAROWYM:** kalibracyjny moduł 1 K2 (6 lekcji,
+nieruszany cięciem) piszą autorzy w podziale **3 lekcje Opus 5 + 3 lekcje
+Sonnet 5**; bramka cytatów na kalibracji jest **PEŁNA (wszystkie 6 lekcji,
+jednorazowo jako przyrząd pomiarowy ~600 tys. tokenów)** — potem wraca
+wyrywkowa 2/moduł. Bramka-weryfikator ZAWSZE na Opusie.
+
+Cele kalibracji (wszystkie naraz):
+1. **TON i wzorzec formatu K2** — pierwsza gotowa lekcja = wzorzec dla
+   3 czatów (jak lekcja 1.1 w K1); akceptuje właściciel.
+2. **Pomiar realnego kosztu lekcji K2** (źródła GitHuba są ~10× cieńsze
+   niż Claude w K1 — 170–270 tys./lekcję z K1 może być zawyżone).
+3. **Test A/B modelu autorów**: porównanie trafności bramki, 4 sygnałów
+   i kosztu między ramionami. Sonnet przejmuje resztę K2 tylko przy
+   jakości bez spadku — inaczej zostaje Opus (decyzja z 2026-08-18).
+4. **Test grupowania**: jeśli brief znajdzie parę lekcji o wspólnym
+   źródle, jeden autor pisze obie (czyta źródło raz) — po jednej parze
+   na ramię, żeby nie mylić efektu modelu z efektem grupowania.
+
+Przydział lekcji do ramion robi brief (dopasować trudnością, nie
+kolejnością). Ostateczną listę cięć i wybór modelu właściciel klepie
+PO kalibracji, z liczbami. Potem: program dyspozytorem → **3 czaty**
+na modułы 2–6 (worktree per czat, gałęzie `feat/tresc-k2-modul-N`,
+mosty dosłowne w briefach, pliki cytatów rozłącznie, `db1:tresc`
+zawsze z filtrem).
+
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 
 | Znalezisko | Skąd | Co z tym |
