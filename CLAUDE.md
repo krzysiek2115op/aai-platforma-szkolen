@@ -509,29 +509,10 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      postępu, `straznik-tresci-lekcji`, `smoke-lekcje`); zmergowany
      2026-08-19 na dowodach lokalnych, decyzją właściciela, bo CI stoi
      do 1 września. **NASTĘPNY: etap 3 —
-     redakcja 91 lekcji, treść wchodzi
-     KREATOREM, nie seedem.** Stan prozy (2026-08-21): **proza 27 z 91
-     lekcji** — Kurs 1 ma **moduły 1–4 ZAMKNIĘTE i w bazie**, zostają
-     moduł 5 (API, 8 lekcji) i moduł 6 (koszty i bezpieczeństwo,
-     6 lekcji); Kurs 2 nie ma jeszcze ani jednej lekcji prozy. Moduł 3
-     powstał w osobnym czacie, moduł 4 w tym. Rytm, tryb produkcji
-     i gatunki usterek: `tresc-kursow/POSTEP.md`.
-     **POMIAR, KTÓRY ZMIENIA PLANOWANIE (moduł 4, 2026-08-21):
-     ~267 tys. tokenów na lekcję wobec 172 tys. w module 2, MIMO lekcji
-     krótszych o jedną trzecią — o koszcie decyduje GRUBOŚĆ ŹRÓDŁA,
-     nie długość lekcji.** Decyzja o krótszych kursach zostaje w mocy,
-     ale oszczędności trzeba szukać gdzie indziej.
-     Reguły wypracowane przy module 4, obowiązujące w kolejnych:
-     brief NIE MOŻE żądać tezy ze źródła spoza listy źródeł lekcji;
-     listy „ma pokryć" pisać pod widełki (pełne pokrycie jednej lekcji
-     dawało 19,8 tys. znaków przy suficie 12 tys.); objętość mierzyć
-     **`wc -m`, nie `wc -c`** (`-c` liczy bajty i na polskim tekście
-     zawyża o ~4,5%); budżet znaków egzekwować POMIAREM po każdej
-     sekcji, bo sama instrukcja w prompcie nie działa; przy pracy
-     równoległej pamiętać, że `straznik-prozy` działa na CAŁYM drzewie
-     (jeden niedokończony plik blokuje każdy commit) i że dwa przebiegi
-     bramki cytujące ten sam plik źródłowy NADPISZĄ sobie plik
-     w `cytowane/`. Zapamiętać z etapu 2: panel MUSI odsyłać
+     dogęszczenie Kursu 1 i redakcja 91 lekcji, treść wchodzi
+     KREATOREM, nie seedem — ale PRZED pisaniem dwie decyzje
+     właściciela (czym wprowadzić 91 lekcji i skąd bierze się ich
+     proza), spisane w KROK-3-KURSY.md.** Zapamiętać z etapu 2: panel MUSI odsyłać
      `id` modułów i lekcji (dyspozytor kasuje wiersze spoza wejścia —
      bez tego zapis kursu kasuje materiał), a w worktree kroku 3
      `node_modules` musi być KOPIĄ (`cp -al`), bo Turbopack odrzuca
@@ -551,19 +532,9 @@ przy każdym kroku zmieniającym stan projektu (jak README).
        kontrakt nagrania wideo** (żadnego hostingu, czasu trwania filmu
        ani napisów — to unieważnia wcześniejszy zapis „kreator przejmuje
        lekcje i nagrania").
-     - ~~**Kurs 1 zostaje DOGĘSZCZONY**~~ — **DECYZJA ODWRÓCONA
-       2026-08-20 (właściciel).** Po dwóch modułach produkcja okazała się
-       za wolna i za droga (152 → 172 tys. tokenów na lekcję), więc
-       właściciel wybrał opcję wcześniej odrzuconą: **nie poszerzamy
-       Kursu 1, tylko schodzimy z ceną.** Kurs 1 **499 → 299 zł**,
-       Kurs 2 **399 → 349 zł** i **program Kursu 2 zostaje CIĘTY**
-       (mniej lekcji — które, do rozstrzygnięcia propozycją agenta przed
-       startem prozy Kursu 2). Widełki prozy **12–16 tys. → 8–12 tys.
-       znaków** na lekcję. Moduły 1 i 2 Kursu 1 zostają w dotychczasowej
-       gęstości (14–18 tys.) — przepisywanie ich w dół kosztowałoby
-       drugi raz tyle, co napisanie. **Cena w bazie jeszcze NIE zmieniona**
-       (baza: 49900 i 39900 groszy) — zmiana idzie kreatorem, przy
-       etapie 4; w seedzie już poprawiona.
+     - **Kurs 1 zostaje DOGĘSZCZONY** trybem równoległym z briefami:
+       ma 91 stron prozy przy 292 stronach Kursu 2 (pomiar 2026-08-19),
+       a kosztuje więcej. Odrzucone: obniżenie obietnicy i obniżenie ceny.
      - **`duration_min` zostaje i znaczy „czas przerobienia lekcji"**,
        nie długość filmu. Program z 2026-08-18 NIE wymaga ponownej
        akceptacji, statystyki katalogu i goldeny bez zmian — zmienia się
@@ -571,40 +542,48 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      - Otwarte świadomie: **517 miejsc `[EKRAN]`** → bloki terminala
        tekstem, zrzuty interfejsu osobnym przelotem NA KOŃCU (najszybciej
        się starzeją).
-     **ETAP 3 W PRODUKCJI (2026-08-20)** — sześć decyzji właściciela
-     i pełny stan w [docs/plugin-1/KROK-3-KURSY.md](docs/plugin-1/KROK-3-KURSY.md).
-     Skrót: proza lekcji pisana ZE ŹRÓDEŁ (scenariusz D7 = brief, nie
-     tekst do przepisania), pliki `tresc-kursow/<kurs>/modul-N/proza-M-*.md`
-     są ŹRÓDŁEM PRAWDY, do bazy wgrywa je `npm run db1:tresc` drogą
-     kreatora (jedyny AJAX, akcja `zapisz-tresc-lekcji`). Format
-     zaakceptowany przez właściciela na lekcji 1.1. **Moduł 1 Kursu 1
-     ZAMKNIĘTY (6 lekcji, 82 965 znaków, wgrany do bazy)** — przebieg
-     cytatów sprawdził 195 wierszy zgodności przy dziewięciu źródłach
-     i naprawił 7 usterek, wszystkie tego samego gatunku: **zgubione
-     zawężenie** (reguła ze źródła bez warunku, przy którym obowiązuje).
-     To pierwsza rzecz do sprawdzania w kolejnych modułach. Czeka na
-     ocenę właściciela w kreatorze — rytm oceny to **przystanek po
-     każdym module**. Koszt zmierzony: ~152 tys. tokenów na lekcję,
-     czyli 13–14 mln na komplet — największa pozycja kosztowa Pluginu 1.
-     **NASTĘPNY: moduł 2 Kursu 1** (prompt engineering, 5 lekcji) tym
-     samym trybem: brief → fale → przelot spójności → przebieg cytatów.
-     **Decyzja właściciela 2026-08-20: moduł 2 powstaje W CAŁOŚCI
-     RÓWNOLEGLE z jego oceną modułu 1** — rytm „przystanek po każdym
-     module" zawieszony PUNKTOWO, tylko na ten moduł; przy module 3
-     znowu pytamy. Właściciel zna cenę (~760 tys. tokenów przed oceną).
-     Uwaga organizacyjna z modułu 1: `/clear` zabiera raport subagenta,
-     ale NIE zabiera samego subagenta — czysty `git status` nie dowodzi,
-     że przebieg w tle przepadł, tylko że jeszcze nie zapisał.
-  **Krok 3 ma WŁASNY worktree**: `/home/krzysiek/Pod-strona-Szkolenia-krok3`
-     (gałąź `docs/krok-3-produkcja-materialu`). Reguła po incydencie
+     **KURS 1 KOMPLETNY I SCALONY (2026-08-22, wersja 0.31.0):** 41/41
+     lekcji prozy (565 394 znaki) na `plugin-1-sklep-kursow` i w bazie
+     (weryfikacja dwustronna: pliki + SQL). PR #51 (moduł 3) i #52
+     (moduł 5) zmergowane do trunku treści `feat/tresc-lekcji-kursow`,
+     a trunk do gałęzi głównej modułu; zdalne gałęzie modułowe skasowane.
+     **17 lekcji bez bramki cytatów (3.1–3.6, 5.1–5.3, 5.5–5.7,
+     6.1–6.5) zostaje — decyzja właściciela 2026-08-22**: usterki tej
+     klasy dotykają wyłącznie treści lekcji, nie systemu ani strony
+     sprzedażowej. **Decyzje pod Kurs 2 (2026-08-22):** cięcie MOCNE
+     (~33–38 lekcji) z ostateczną głębokością PO pomiarze kalibracją
+     (moduł 1 K2, bezpieczny od cięcia); wejście autora = wyciąg
+     + podział sekcji (bez samych fragmentów); eksperyment grupowania
+     lekcji o wspólnym źródle u jednego autora w kalibracji; bramka
+     cytatów K2 wyrywkowa (2 najgęstsze lekcje/moduł). Kolejność robót
+     K2 i pełnia decyzji: KROK-3-KURSY.md, sekcja „KONSOLIDACJA".
+     Worktree'y `krok3`/`modul3`/`modul5`/`modul6` zostają lokalnie
+     (gałęzie w nich są już zmergowane); **istnienie worktree nie
+     znaczy, że trwa w nim praca** — stan czytaj z `git log`.
+     Konwencja gałęzi Kursu 2: `feat/tresc-k2-modul-N`.
+     Aktualną listę daje `git worktree list`, nie ten plik. Reguła po incydencie
      z 2026-08-19: żaden czat nie przełącza gałęzi w cudzym katalogu —
      inaczej commit ląduje na obcej gałęzi, a `gh pr create` mówi
      mylące „No commits between". Baza i port 3001 zostają wspólne.
+  4b. **DECYZJE WŁAŚCICIELA (2026-08-21) o tym, czego NIE planujemy teraz.**
+     (a) Rzeczy spoza modułów — domena `automaticai.pl`, hosting, HTTPS/HSTS,
+     poczta, RODO, 2FA, branch protection — **spinamy na bieżąco po
+     modułach**, bez osobnego etapu w planie. (b) **Zakres Pluginów 2 i 3
+     jest ZMIENNY**: opisy w PLAN.md §3–§4 powstały przed decyzją o Tutor
+     LMS + WooCommerce, więc część zaplanowanego kodu (klienci, zamówienia,
+     webhooki, tokeny pobrań, checkout, faktury, logowanie admina)
+     prawdopodobnie przejmują gotowe wtyczki; naprawdę nasze zostaje
+     `page_visits`. **Niczego z tych sekcji NIE KASUJEMY** — służą jako
+     lista kontrolna „czego Woo/Tutor NIE robi". Zakres doprecyzujemy
+     **pytaniami do właściciela przed startem każdego z tych modułów**,
+     nie wcześniej.
   5. **Rozmowa o WordPressie — ODBYTA 2026-08-19.** Ustalenia,
      ceny LMS-ów i pytania otwarte:
      **[docs/ETAP-WP.md](docs/ETAP-WP.md)** — CZYTAĆ PRZED ETAPEM WP.
      Skrót: wszystko na WP (strona główna Automatic AI **jest już
-     przekonwertowana**), `/szkolenia` wchodzi jako **WTYCZKA** dodająca
+     przekonwertowana — ale konwersję ma KOLEGA Z ZESPOŁU u siebie,
+     my jej nie mamy**; do pracy wystarczyłby sam katalog motywu),
+     `/szkolenia` wchodzi jako **WTYCZKA** dodająca
      pozycję w menu i dopasowująca się do strony; tą samą drogą później
      Pluginy 2 i 3. **Podział odpowiedzialności zamiast przepisywania
      wszystkiego**: nasza wtyczka = katalog, strony sprzedażowe, kreator,
@@ -613,13 +592,62 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      Publigo BOX 1797 zł netto (Publigo GO odpada — nie wpuszcza własnych
      wtyczek). Kolejność: **dokumentacja i research teraz, kod wtyczki
      dopiero po ocenie kursów (B7)**.
-     **KOREKTA ŚCIĄGI:** wcześniejszy zapis mówił o katalogu `wordpress/`
-     „w repo strony głównej" — TAM GO NIE MA. Realne wzorce leżą w:
+     **KATALOG `wordpress/` JEST W REPO STRONY GŁÓWNEJ (od 2026-08-20)** —
+     kolega z zespołu wypchnął całą konwersję: `MatthewPlugins/automatic-ai`,
+     gałąź `main`, katalog `wordpress/` (motyw + treść + skrypty, 6,1 MB).
+     Zapis z 2026-08-19, że „tam go nie ma", był prawdziwy w chwili
+     sprawdzania i jest już nieaktualny. **Motyw jest KLASYCZNY** (`header.php`
+     /`footer.php`/`page.php`, zero `theme.json`), **generowany**
+     (`skrypty/generuj-motyw.mjs` — „nie edytować ręcznie"), jego CSS to
+     skompilowany **Tailwind** (same zmienne `--tw-*`, nie tokeny), a
+     **nawigacja jest wpisana na sztywno, bez `wp_nav_menu()`** — pozycja
+     „Szkolenia" wymaga zmiany w źródle Next.js i regeneracji motywu, nie
+     kodu wtyczki. Motyw przejmuje też `<head>` (usuwa `rel_canonical`,
+     własny tytuł i OG z post meta `_aai_*`) i kasuje `wpautop` — treść
+     lekcji musi wchodzić jako gotowy HTML. Siedem faktów z konsekwencjami
+     i zrzuty Tutora na TYM motywie: [docs/ETAP-WP.md](docs/ETAP-WP.md),
+     sekcja „Motyw Automatic AI". **DECYZJA WŁAŚCICIELA (2026-08-21): po
+     ukończeniu WSZYSTKICH wtyczek testujemy komplet także na lokalnym WP
+     z warsztatu `wordpress/`** (`bash skrypty/start.sh` → `:8890`, motyw
+     + treść 1:1; warsztat zakłada Dockera — u nas podman, sprawdzić
+     `podman-compose` przed testem). Menu „Szkolenia": pięć dróg spisanych
+     w ETAP-WP.md (rekomendacja: jednorazowy hak `do_action` w generatorze
+     motywu), wybór drogi NIE zapadł — wejście do menu i tak dopiero przy
+     finalnym wdrożeniu (decyzja 2026-08-17). **Repo strony głównej dalej
+     TYLKO DO ODCZYTU** — motyw bierzemy sparse checkoutem, klonu nie
+     dotykamy.
+     Inne realne wzorce leżą w:
      `/home/krzysiek/mp-test-env` (nasze własne środowisko WP: wtyczki
      `mp-*` z pełną strukturą, WooCommerce, worktree, narzędzia i testy),
      `/home/krzysiek/zlecenia stron internetowych/czarodziejski-dworek/wordpress`
      (motyw + PACZKA-DLA-KLIENTA + blueprint) oraz
      `/home/krzysiek/kredyt-kompas-wp`.
+     **DOKUMENTACJA WP POBRANA (2026-08-19):** 947 plików, 9,6 MB
+     w `docs/dokumentacja-techniczna/wordpress/` — **poza gitem**, tak jak
+     przy D7. W repo są `ZRODLA.md` (zakres + uzasadnienie cięć) i
+     `tools/pobierz-dokumentacje-wp.mjs`. **Po `git clean` albo na nowej
+     maszynie: najpierw uruchom skrypt, potem pisz kod wtyczki.** Kanały:
+     REST API WordPressa (developer.wordpress.org i docs.themeum.com same
+     stoją na WP), markdown wprost z monorepo WooCommerce, HTML dla manuala
+     MySQL i Code Reference. **Zapamiętać dwie pułapki konwersji:** typy
+     `wp-parser-*` w REST NIE mają pola `content` (Code Reference trzeba
+     brać z HTML), a WordPress generuje spisy treści z NIEDOMKNIĘTYMI
+     `<li>` — dopasowanie pary „otwarcie–zamknięcie" połyka wtedy resztę
+     dokumentu i spłaszcza ją do jednej linii.
+     `straznik-wagi-dokumentacji` czyta teraz MANIFEST ze skryptów
+     pobierających (`KATALOG_DZIALU` + `KATALOGI_MASOWE`) zamiast trzymać
+     własną listę nazw — nowy skrypt pobierający MUSI eksportować manifest,
+     inaczej strażnik czerwieni się celowo.
+     **TUTOR LMS SPRAWDZONY NA DOWODACH (2026-08-19)** — środowisko
+     `/home/krzysiek/mp-test-env/wp-tutor/` (podman: `tutor-db` + `tutor-wp`,
+     `http://localhost:8091`, admin/admin123), WP 7.0.1 + Tutor LMS 4.0.6
+     + WooCommerce 11.0.1, cały Kurs 2 (50 lekcji, 1143 kB) w środku.
+     Wyniki i czego NIE sprawdzono: sekcja „Tutor LMS na realnej treści"
+     w [docs/ETAP-WP.md](docs/ETAP-WP.md). Skrót: długie lekcje unosi
+     (59 kB → 6,6 ms renderu), struktura kurs→moduł→lekcja mapuje się 1:1
+     na `courses`→`topics`→`lesson`, dostęp za logowaniem działa z pudełka,
+     ale **Tutor NIE czyta `theme.json`** — ma własne 21 zmiennych
+     `--tutor-*` i szablony do nadpisania w `tutor/templates/`.
      Potem: sprzątanie gałęzi, merge na `main`, koniec Pluginu 1.
 - **DECYZJA WŁAŚCICIELA (2026-08-19): porządek gałęzi PO Pluginie 1.**
   Po ukończeniu CAŁEGO Pluginu 1 i rozmowie o przeniesieniu strony

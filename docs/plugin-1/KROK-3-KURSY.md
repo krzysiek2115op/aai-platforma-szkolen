@@ -20,6 +20,11 @@ w `.git/worktrees/*/info/exclude`): `.env` oraz trzy katalogi źródeł D7
 (`claude-code`, `claude-platform`, `github`). Po świeżym
 `git worktree add` trzeba je odtworzyć, inaczej `straznik-scenariuszy`
 mówi, że pominął kontrolę źródeł.
+**Od 2026-08-22 katalogi źródeł D7 odtwarzać jako KOPIE twardymi
+dowiązaniami (`cp -al`), NIE symlinkami** — nowy `straznik-wagi-dokumentacji`
+(z 5aa914d) pyta `git check-ignore`, a git odmawia ścieżek „przez
+dowiązanie" (kod 128) i strażnik czerwieni się fałszywie. `.env` może
+zostać symlinkiem — strażnik go nie sprawdza.
 
 **`node_modules` musi być KOPIĄ, nie dowiązaniem** (zapisane
 2026-08-19, kosztowało jeden nieudany build): Turbopack odrzuca

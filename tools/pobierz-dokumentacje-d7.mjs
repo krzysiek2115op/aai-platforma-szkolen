@@ -27,11 +27,24 @@
  * Użycie: node tools/pobierz-dokumentacje-d7.mjs
  */
 import { mkdir, writeFile, access } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const KORZEN = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CEL = join(KORZEN, "docs", "dokumentacja-techniczna", "d7");
+
+/**
+ * MANIFEST — jedyne źródło prawdy o tym, co ten skrypt kładzie na dysku.
+ *
+ * Czyta go `straznik-wagi-dokumentacji`, żeby wiedzieć, które katalogi mają
+ * zostać poza gitem. Dzięki temu strażnik nie trzyma własnej kopii listy,
+ * która milczkiem rozjechałaby się ze skryptem po dopisaniu nowego źródła.
+ * Skrypt jest z tego powodu bezpieczny do zaimportowania: pobieranie rusza
+ * dopiero po sprawdzeniu, czy plik uruchomiono wprost (na dole).
+ */
+export const KATALOG_DZIALU = "docs/dokumentacja-techniczna/d7";
+export const KATALOGI_MASOWE = ["claude-platform", "claude-code", "github"];
+const [CLAUDE_PLATFORM, CLAUDE_CODE, GITHUB] = KATALOGI_MASOWE;
 
 /*
  * Sekcje docs.github.com w zakresie kursu 2. Wzorce są dopasowywane do
@@ -129,40 +142,47 @@ async function zIndeksuLlms(indeksUrl, prefiks, podkatalog) {
   });
 }
 
-let bledy = 0;
+/*
+ * Pobieranie rusza WYŁĄCZNIE przy uruchomieniu wprost. Import (robi to
+ * straznik-wagi-dokumentacji, żeby odczytać manifest) nie może ściągać
+ * 55 MB z sieci ani kończyć procesu kodem błędu.
+ */
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  let bledy = 0;
 
-bledy += await pula(
-  await zIndeksuLlms("https://docs.claude.com/llms.txt", "https://platform.claude.com/docs/en/", "claude-platform"),
-  "claude-platform",
-);
+  bledy += await pula(
+    await zIndeksuLlms("https://docs.claude.com/llms.txt", "https://platform.claude.com/docs/en/", CLAUDE_PLATFORM),
+    CLAUDE_PLATFORM,
+  );
 
-bledy += await pula(
-  await zIndeksuLlms("https://code.claude.com/docs/llms.txt", "https://code.claude.com/docs/en/", "claude-code"),
-  "claude-code",
-);
+  bledy += await pula(
+    await zIndeksuLlms("https://code.claude.com/docs/llms.txt", "https://code.claude.com/docs/en/", CLAUDE_CODE),
+    CLAUDE_CODE,
+  );
 
-// GitHub: lista artykułów z Page List API, potem treść markdownem z Article API
-const lista = await pobierz("https://docs.github.com/api/pagelist/en/free-pro-team@latest");
-if (!lista) throw new Error("nie udało się pobrać listy artykułów GitHuba");
-const wszystkie = lista.split("\n").map((s) => s.trim()).filter((s) => s.startsWith("/en/"));
-const wZakresie = wszystkie.filter((p) => SEKCJE_GITHUBA.some((re) => re.test(p)));
-console.log(`github: ${wZakresie.length} artykułów w zakresie kursu (z ${wszystkie.length} wszystkich)`);
+  // GitHub: lista artykułów z Page List API, potem treść markdownem z Article API
+  const lista = await pobierz("https://docs.github.com/api/pagelist/en/free-pro-team@latest");
+  if (!lista) throw new Error("nie udało się pobrać listy artykułów GitHuba");
+  const wszystkie = lista.split("\n").map((s) => s.trim()).filter((s) => s.startsWith("/en/"));
+  const wZakresie = wszystkie.filter((p) => SEKCJE_GITHUBA.some((re) => re.test(p)));
+  console.log(`github: ${wZakresie.length} artykułów w zakresie kursu (z ${wszystkie.length} wszystkich)`);
 
-bledy += await pula(
-  wZakresie.map((p) => async () => {
-    const plik = join(CEL, "github", p.replace(/^\/en\//, "") + ".md");
-    if (await istnieje(plik)) return "jest";
-    const t = await pobierz("https://docs.github.com/api/article/body?pathname=" + encodeURIComponent(p));
-    if (!t) return "brak";
-    await zapisz(plik, t);
-    return "ok";
-  }),
-  "github",
-);
+  bledy += await pula(
+    wZakresie.map((p) => async () => {
+      const plik = join(CEL, GITHUB, p.replace(/^\/en\//, "") + ".md");
+      if (await istnieje(plik)) return "jest";
+      const t = await pobierz("https://docs.github.com/api/article/body?pathname=" + encodeURIComponent(p));
+      if (!t) return "brak";
+      await zapisz(plik, t);
+      return "ok";
+    }),
+    GITHUB,
+  );
 
-if (bledy > 0) {
-  console.error(`\nNIEKOMPLETNE: ${bledy} stron się nie pobrało. Uruchom ponownie —`);
-  console.error("skrypt pomija to, co już jest, więc dobierze tylko braki.");
-  process.exit(1);
+  if (bledy > 0) {
+    console.error(`\nNIEKOMPLETNE: ${bledy} stron się nie pobrało. Uruchom ponownie —`);
+    console.error("skrypt pomija to, co już jest, więc dobierze tylko braki.");
+    process.exit(1);
+  }
+  console.log("\nGotowe — komplet dokumentacji dla Działu 7.");
 }
-console.log("\nGotowe — komplet dokumentacji dla Działu 7.");

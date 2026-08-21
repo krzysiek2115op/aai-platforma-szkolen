@@ -50,6 +50,15 @@ tego projektu:
 > `/szkolenia` wchodzi tam jako WTYCZKA (tą samą drogą później Pluginy 2
 > i 3). Szczegóły, ceny rozważanych LMS-ów i pytania otwarte: ETAP-WP.md.
 
+> **DOPRECYZOWANIE 2026-08-21 — reszta spinana na bieżąco.** Rzeczy spoza
+> modułów (zakup domeny `automaticai.pl`, hosting, HTTPS + HSTS, poczta
+> i rekordy SPF/DKIM/DMARC, RODO i polityka prywatności, 2FA w organizacji,
+> branch protection) **nie dostają osobnego etapu w planie** — decyzją
+> właściciela spinamy je na bieżąco, gdy moduły będą gotowe. Lista pozycji
+> wraz z powodem, dla którego każda czeka, stoi w
+> [plugin-1/KROK-2-ZABEZPIECZENIA.md](plugin-1/KROK-2-ZABEZPIECZENIA.md),
+> sekcja „Co ZOSTAJE otwarte po kroku 2".
+
 ### Decyzje (ustalone 2026-08-16; pozycje hostingowe zaktualizowane 2026-08-18)
 | Temat | Decyzja |
 |---|---|
@@ -111,6 +120,32 @@ Tabele:
 - [ ] Design spójny ze stroną główną Automatic AI
 
 ---
+
+> ### ZAKRES PLUGINÓW 2 i 3 JEST ZMIENNY (2026-08-21)
+>
+> Opisy w sekcjach 3 i 4 powstały **2026-08-16**, czyli zanim zapadła
+> decyzja o **Tutor LMS + WooCommerce** (2026-08-19,
+> [ETAP-WP.md](ETAP-WP.md)). Część tego, co tu zaplanowano jako nasz kod,
+> gotowe wtyczki mają z pudełka.
+>
+> **Obserwacja agenta — do potwierdzenia, NIE decyzja:**
+>
+> | Zaplanowane u nas | Prawdopodobnie przejmuje |
+> |---|---|
+> | `customers`, `orders`, `payments`, `download_tokens`, checkout, webhooki, mail z dostępem, faktury | **WooCommerce** |
+> | dostęp do materiału po zakupie, postęp kursanta | **Tutor LMS** |
+> | logowanie admina, sesje, hasła | **WordPress** |
+> | widok sprzedaży i zamówień | **WooCommerce** |
+> | `page_visits` — „timer" wejść na podstronę | **zostaje nasze** |
+>
+> **Nic tu nie kasujemy.** Ten opis zostaje jako zapis pierwotnego zamiaru
+> i lista kontrolna: przy przepisywaniu trzeba sprawdzić pozycja po pozycji,
+> czego Woo/Tutor NIE robi — inaczej po cichu wypadnie coś, czego nikt
+> potem nie odtworzy z pamięci.
+>
+> **Decyzja właściciela (2026-08-21):** zakres obu modułów doprecyzujemy
+> **pytaniami przed startem każdego z nich**, nie teraz. Do tego czasu
+> sekcje 3 i 4 czytać jako kierunek, nie jako specyfikację.
 
 ## 3. Plugin 2 — Płatności + dostawa (branch `plugin-2-platnosci`, później)
 - Wybór operatora płatności → decyzja na starcie tego etapu; kod przez interfejs `PaymentProvider` (adapter).
