@@ -545,8 +545,11 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      **Krok 3 pracuje w WIELU worktree — po jednym na moduł kursu**
      (stan 2026-08-21): `Pod-strona-Szkolenia-krok3` (gałąź
      `feat/tresc-lekcji-kursow` — moduły 1, 2 i 4),
-     `Pod-strona-Szkolenia-modul3` (`feat/tresc-lekcji-modul-3`),
-     `Pod-strona-Szkolenia-modul5` (`feat/tresc-lekcji-modul-5`).
+     `Pod-strona-Szkolenia-modul3` (`feat/tresc-lekcji-modul-3` — praca
+     ZAMKNIĘTA, proza 8/8 wgrana do bazy; worktree został, ale nikt tam
+     nie siedzi), `Pod-strona-Szkolenia-modul5` (`feat/tresc-lekcji-modul-5`).
+     **Istnienie worktree nie znaczy, że trwa w nim praca** — stan modułu
+     czytaj z `git log` jego gałęzi, nie z tej listy.
      Konwencja gałęzi: `feat/tresc-lekcji-modul-N`. Wcześniejszy zapis
      o jednym worktree na gałęzi `docs/krok-3-produkcja-materialu` jest
      NIEAKTUALNY — ta gałąź stoi na PR #32 i nie niesie prozy.
