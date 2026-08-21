@@ -46,7 +46,7 @@ Wspólne z krokiem 2 zostają: baza `db1_kursy`, baza testowa
 |---|---|---|
 | 1 | Propozycja produkcji materiału → decyzja właściciela | ✅ zrobione (PR #32) |
 | 2 | Kreator przejmuje treść lekcji i materiały | ✅ zrobione (0.30.0, PR #36 zmergowany) |
-| 3 | Dogęszczenie Kursu 1 + proza 91 lekcji, treść wchodzi skryptem przez AJAX kreatora | 🚧 w robocie — sześć decyzji podjętych, niżej |
+| 3 | Dogęszczenie Kursu 1 + proza 91 lekcji, treść wchodzi skryptem przez AJAX kreatora | 🚧 w robocie — **proza 27 z 91** (Kurs 1: moduły 1–4 zamknięte, zostają 5 i 6) |
 | 4 | Finalna treść stron sprzedażowych kreatorem → B7 | ⏳ |
 
 ## Stan na 2026-08-19 wieczorem
@@ -380,6 +380,79 @@ przelot spójności → bramka cytatów → `npm run db1:tresc` → commit.
 
 Most z modułu 3 trzeba będzie wziąć z drugiego czatu — jego lekcja 3.8
 kończy się zdaniem prowadzącym do modułu 4.
+
+### Moduł 4 Kursu 1 — ZAMKNIĘTY I WGRANY (2026-08-21)
+
+Osiem lekcji, **92 453 znaki prozy dla klienta**, 236 wierszy zgodności.
+Wgrane `npm run db1:tresc` (8 wgranych, 11 bez zmian) i **zweryfikowane
+w bazie zapytaniem, nie w logu narzędzia**. Pełny rozbiór — cztery
+sygnały jakości, gatunki usterek, koszt i pułapki narzędziowe — w
+[tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md), sekcja „Jak
+wypadł moduł 4 Kursu 1".
+
+**Stan po module 4: proza 27 z 91 lekcji.** Kurs 1 ma cztery moduły
+z sześciu — moduł 3 domknął równolegle drugi czat.
+
+Pięć rzeczy, które muszą przetrwać `/clear`:
+
+1. **KOSZT ROŚNIE, A NIE MALEJE — decyzja z 2026-08-20 nie przyniosła
+   oszczędności.** Moduł 4 kosztował **~267 tys. tokenów na lekcję**
+   wobec 172 tys. w module 2, mimo lekcji krótszych o jedną trzecią.
+   Pomiar, nie szacunek: 2,14 mln na osiem lekcji z bramką. **O koszcie
+   decyduje GRUBOŚĆ ŹRÓDŁA, nie długość lekcji** — autor czyta 95–345 kB
+   w oryginale niezależnie od tego, ile z tego napisze. Moduły 5–6
+   Kursu 1 i Kurs 2 mają źródła cieńsze, więc ta liczba nie musi się
+   powtórzyć; **ale gdyby właściciel liczył na oszczędność wprost
+   z krótszych lekcji, to założenie się nie potwierdziło.**
+2. **Bramka cytatów znalazła 16 usterek** (moduł 1: 7, moduł 2: 10) przy
+   239 wierszach i **zero złych adresów sekcji**. Zgubione zawężenie
+   dalej dominuje (11 z 16). Doszła **nowa klasa: instrukcja, która by
+   nie zadziałała** — lekcja kazała sprzątać worktree komendą, którą
+   Claude Code blokuje. Przy kolejnych modułach sprawdzać nie tylko, czy
+   zdanie jest prawdziwe, ale **czy podana komenda wykona się
+   u czytelnika**.
+3. **Brief pomylił się cztery razy, autorzy mieli rację cztery razy.**
+   Stąd reguła, która wchodzi do wszystkich następnych briefów: **brief
+   nie może żądać tezy ze źródła spoza listy źródeł danej lekcji.** Druga:
+   listy „ma pokryć" trzeba pisać pod widełki — pełne pokrycie lekcji 4.1
+   dawało 19 809 znaków przy suficie 12 000.
+4. **`wc -c` liczy bajty.** Polskie diakrytyki podwajają się, więc pomiar
+   objętości zawyża o ~4,5%. Trzy lekcje fali 1 są przez to ~2% ponad
+   sufitem (12 207–12 281 znaków) — **świadomie nie przycięte**, zapisane
+   jawnie, żeby nikt nie odkrył tego później jako ukrytej niezgodności.
+   Kontrakt `TrescLekcji` liczy znaki, więc miarą jest `wc -m`.
+5. **Pułapki pracy równoległej, obie zmaterializowane:** strażnik prozy
+   działa na całym drzewie, więc jeden niedokończony plik autora blokuje
+   KAŻDY commit; a dwa równoległe przebiegi bramki cytujące ten sam plik
+   źródłowy **nadpisały sobie nawzajem** plik w `cytowane/` mimo
+   ostrzeżenia w nagłówku. Pliki cytatów przydzielać przebiegom
+   rozłącznie.
+
+### NASTĘPNY KROK po module 4
+
+Kurs 1 ma jeszcze **moduł 5** („Claude przez API: pierwsze integracje",
+8 lekcji) i **moduł 6** („Koszty, jakość i bezpieczeństwo w produkcji",
+6 lekcji). Przepis bez zmian: brief z dosłownymi mostami → fale autorów
+→ przegląd pierwszej fali → przelot spójności → bramka cytatów →
+`npm run db1:tresc` → commit.
+
+**Most z modułu 4 jest już ustalony** — lekcja 4.8 kończy się dosłownie:
+„Masz komplet systemów, które sprawiają, że Claude Code skaluje się poza
+jedną sesję i jedną osobę. W module piątym wychodzimy poza gotowe
+narzędzia i pukamy do Claude bezpośrednio: API, czyli Claude wpięty
+w Twoje własne oprogramowanie."
+
+**Granica do pilnowania w module 5:** lekcja 5.6 „Agent Skills na
+platformie" jest osobna od lekcji 4.2 o skillach w Claude Code — 4.2
+dostała na ten temat jedno zdanie i odesłanie, więc 5.6 ma pełne pole.
+Podobnie 5.3 „Tool use" wobec 4.4 (MCP).
+
+**Dwie pozycje otwarte, niezależne od modułów** (bez zmian od 2026-08-20):
+cena w BAZIE jest nadal stara (49900 i 39900 groszy — zmiana kreatorem
+albo w etapie 4, **nie** `npm run db1:seed`, bo seed wgrałby treść
+roboczą na miejsce prozy); oraz **program Kursu 2 ma zostać CIĘTY** i
+decyzja, które lekcje wypadają, wciąż nie zapadła — wymaga propozycji
+przed startem prozy Kursu 2.
 
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 
