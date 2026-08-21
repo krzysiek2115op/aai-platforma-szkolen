@@ -542,8 +542,15 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      - Otwarte świadomie: **517 miejsc `[EKRAN]`** → bloki terminala
        tekstem, zrzuty interfejsu osobnym przelotem NA KOŃCU (najszybciej
        się starzeją).
-     **Krok 3 ma WŁASNY worktree**: `/home/krzysiek/Pod-strona-Szkolenia-krok3`
-     (gałąź `docs/krok-3-produkcja-materialu`). Reguła po incydencie
+     **Krok 3 pracuje w WIELU worktree — po jednym na moduł kursu**
+     (stan 2026-08-21): `Pod-strona-Szkolenia-krok3` (gałąź
+     `feat/tresc-lekcji-kursow` — moduły 1, 2 i 4),
+     `Pod-strona-Szkolenia-modul3` (`feat/tresc-lekcji-modul-3`),
+     `Pod-strona-Szkolenia-modul5` (`feat/tresc-lekcji-modul-5`).
+     Konwencja gałęzi: `feat/tresc-lekcji-modul-N`. Wcześniejszy zapis
+     o jednym worktree na gałęzi `docs/krok-3-produkcja-materialu` jest
+     NIEAKTUALNY — ta gałąź stoi na PR #32 i nie niesie prozy.
+     Aktualną listę daje `git worktree list`, nie ten plik. Reguła po incydencie
      z 2026-08-19: żaden czat nie przełącza gałęzi w cudzym katalogu —
      inaczej commit ląduje na obcej gałęzi, a `gh pr create` mówi
      mylące „No commits between". Baza i port 3001 zostają wspólne.
