@@ -509,11 +509,29 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      postępu, `straznik-tresci-lekcji`, `smoke-lekcje`); zmergowany
      2026-08-19 na dowodach lokalnych, decyzją właściciela, bo CI stoi
      do 1 września. **NASTĘPNY: etap 3 —
-     dogęszczenie Kursu 1 i redakcja 91 lekcji, treść wchodzi
-     KREATOREM, nie seedem.** Stan prozy: **moduły 1 i 2 Kursu 1
-     ZAMKNIĘTE i w bazie** (11 z 91 lekcji, 160 928 znaków), moduł 3
-     powstaje w osobnym czacie, moduł 4 następny. Rytm, tryb produkcji
-     i gatunki usterek: `tresc-kursow/POSTEP.md`. Zapamiętać z etapu 2: panel MUSI odsyłać
+     redakcja 91 lekcji, treść wchodzi
+     KREATOREM, nie seedem.** Stan prozy (2026-08-21): **proza 27 z 91
+     lekcji** — Kurs 1 ma **moduły 1–4 ZAMKNIĘTE i w bazie**, zostają
+     moduł 5 (API, 8 lekcji) i moduł 6 (koszty i bezpieczeństwo,
+     6 lekcji); Kurs 2 nie ma jeszcze ani jednej lekcji prozy. Moduł 3
+     powstał w osobnym czacie, moduł 4 w tym. Rytm, tryb produkcji
+     i gatunki usterek: `tresc-kursow/POSTEP.md`.
+     **POMIAR, KTÓRY ZMIENIA PLANOWANIE (moduł 4, 2026-08-21):
+     ~267 tys. tokenów na lekcję wobec 172 tys. w module 2, MIMO lekcji
+     krótszych o jedną trzecią — o koszcie decyduje GRUBOŚĆ ŹRÓDŁA,
+     nie długość lekcji.** Decyzja o krótszych kursach zostaje w mocy,
+     ale oszczędności trzeba szukać gdzie indziej.
+     Reguły wypracowane przy module 4, obowiązujące w kolejnych:
+     brief NIE MOŻE żądać tezy ze źródła spoza listy źródeł lekcji;
+     listy „ma pokryć" pisać pod widełki (pełne pokrycie jednej lekcji
+     dawało 19,8 tys. znaków przy suficie 12 tys.); objętość mierzyć
+     **`wc -m`, nie `wc -c`** (`-c` liczy bajty i na polskim tekście
+     zawyża o ~4,5%); budżet znaków egzekwować POMIAREM po każdej
+     sekcji, bo sama instrukcja w prompcie nie działa; przy pracy
+     równoległej pamiętać, że `straznik-prozy` działa na CAŁYM drzewie
+     (jeden niedokończony plik blokuje każdy commit) i że dwa przebiegi
+     bramki cytujące ten sam plik źródłowy NADPISZĄ sobie plik
+     w `cytowane/`. Zapamiętać z etapu 2: panel MUSI odsyłać
      `id` modułów i lekcji (dyspozytor kasuje wiersze spoza wejścia —
      bez tego zapis kursu kasuje materiał), a w worktree kroku 3
      `node_modules` musi być KOPIĄ (`cp -al`), bo Turbopack odrzuca
