@@ -542,17 +542,25 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      - Otwarte świadomie: **517 miejsc `[EKRAN]`** → bloki terminala
        tekstem, zrzuty interfejsu osobnym przelotem NA KOŃCU (najszybciej
        się starzeją).
-     **Krok 3 pracuje w WIELU worktree — po jednym na moduł kursu**
-     (stan 2026-08-21): `Pod-strona-Szkolenia-krok3` (gałąź
-     `feat/tresc-lekcji-kursow` — moduły 1, 2 i 4),
-     `Pod-strona-Szkolenia-modul3` (`feat/tresc-lekcji-modul-3` — praca
-     ZAMKNIĘTA, proza 8/8 wgrana do bazy; worktree został, ale nikt tam
-     nie siedzi), `Pod-strona-Szkolenia-modul5` (`feat/tresc-lekcji-modul-5`).
-     **Istnienie worktree nie znaczy, że trwa w nim praca** — stan modułu
-     czytaj z `git log` jego gałęzi, nie z tej listy.
-     Konwencja gałęzi: `feat/tresc-lekcji-modul-N`. Wcześniejszy zapis
-     o jednym worktree na gałęzi `docs/krok-3-produkcja-materialu` jest
-     NIEAKTUALNY — ta gałąź stoi na PR #32 i nie niesie prozy.
+     **KURS 1 KOMPLETNY I SCALONY (2026-08-22, wersja 0.31.0):** 41/41
+     lekcji prozy (565 394 znaki) na `plugin-1-sklep-kursow` i w bazie
+     (weryfikacja dwustronna: pliki + SQL). PR #51 (moduł 3) i #52
+     (moduł 5) zmergowane do trunku treści `feat/tresc-lekcji-kursow`,
+     a trunk do gałęzi głównej modułu; zdalne gałęzie modułowe skasowane.
+     **17 lekcji bez bramki cytatów (3.1–3.6, 5.1–5.3, 5.5–5.7,
+     6.1–6.5) zostaje — decyzja właściciela 2026-08-22**: usterki tej
+     klasy dotykają wyłącznie treści lekcji, nie systemu ani strony
+     sprzedażowej. **Decyzje pod Kurs 2 (2026-08-22):** cięcie MOCNE
+     (~33–38 lekcji) z ostateczną głębokością PO pomiarze kalibracją
+     (moduł 1 K2, bezpieczny od cięcia); wejście autora = wyciąg
+     + podział sekcji (bez samych fragmentów); eksperyment grupowania
+     lekcji o wspólnym źródle u jednego autora w kalibracji; bramka
+     cytatów K2 wyrywkowa (2 najgęstsze lekcje/moduł). Kolejność robót
+     K2 i pełnia decyzji: KROK-3-KURSY.md, sekcja „KONSOLIDACJA".
+     Worktree'y `krok3`/`modul3`/`modul5`/`modul6` zostają lokalnie
+     (gałęzie w nich są już zmergowane); **istnienie worktree nie
+     znaczy, że trwa w nim praca** — stan czytaj z `git log`.
+     Konwencja gałęzi Kursu 2: `feat/tresc-k2-modul-N`.
      Aktualną listę daje `git worktree list`, nie ten plik. Reguła po incydencie
      z 2026-08-19: żaden czat nie przełącza gałęzi w cudzym katalogu —
      inaczej commit ląduje na obcej gałęzi, a `gh pr create` mówi

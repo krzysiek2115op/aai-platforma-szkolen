@@ -5,6 +5,49 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.31.0] — 2026-08-22
+
+Krok 3, etap 3 w części Kursu 1: **komplet prozy w narzędziu — 41 z 41
+lekcji, 565 394 znaki dla klienta, sześć modułów, wszystko w bazie drogą
+kreatora i w repozytorium na jednej gałęzi.** Kurs 2 (0 z 50) czeka na
+cięcie programu — decyzje niżej.
+
+### Dodane
+
+- proza modułu 3 „Claude Code: start i codzienna praca" (8 lekcji,
+  148 086 znaków; PR #51) i modułu 5 „Claude przez API" (8 lekcji,
+  93 079 znaków, ton „mapa dla decydenta"; PR #52) dociągnięte na trunk
+  treści — dotąd żyły w worktree'ach swoich czatów, moduł 5 bez ani
+  jednej kopii poza dyskiem;
+- tabela postępu prozy w POSTEP.md pokazuje stan po scaleniu
+  (41/91 lekcji projektu, Kurs 1 KOMPLETNY) zamiast stanu sprzed
+  konsolidacji.
+
+### Decyzje właściciela (2026-08-21/22)
+
+- **17 lekcji bez bramki cytatów zostaje** (3.1–3.6, 5.1–5.3, 5.5–5.7,
+  6.1–6.5): usterki tej klasy dotykają wyłącznie treści lekcji — nie
+  systemu i nie strony sprzedażowej (strona nigdy nie renderuje treści
+  lekcji; pilnuje `straznik-tresci-lekcji`);
+- **program Kursu 2: cięcie MOCNE (~33–38 lekcji), ostateczna głębokość
+  po pomiarze** — kalibracyjny moduł 1 K2 zmierzy realny koszt lekcji
+  (źródła K2 są ~10× cieńsze na lekcję niż w K1, więc koszty K1 mogą
+  być zawyżonym prognostykiem);
+- **wejście autora**: wyciąg źródeł (−38%) + podział sekcji w briefie;
+  BEZ cięcia do samych fragmentów (ochrona przed zgubionymi
+  zawężeniami);
+- **eksperyment grupowania w kalibracji**: jeden autor pisze dwie
+  lekcje dzielące to samo źródło (czyta je raz);
+- **bramka cytatów K2: wyrywkowa** — 2 najgęstsze lekcje na moduł.
+
+### Dowody
+
+Strażnicy 25/25 i testy 75/75 na każdym scalanym punkcie; weryfikacja
+kompletu DWUSTRONNA: 41 plików prozy na gałęzi (6+5+8+8+8+6) i 41
+lekcji z treścią w bazie zapytaniem SQL, nie logiem narzędzia. CI stoi
+do 1 września (limit minut Actions) — merge na dowodach lokalnych, po
+powrocie CI do potwierdzenia gitleaks.
+
 ## [0.30.0] — 2026-08-19
 
 Krok 3 planu domknięcia Pluginu 1, **etap 2: kreator przejmuje treść
