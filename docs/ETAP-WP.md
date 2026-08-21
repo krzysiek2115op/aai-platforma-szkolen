@@ -166,7 +166,8 @@ wtedy faktycznie go nie było, teraz jest.
    z tabeli „Praca bez dostępu do motywu"**, że pozycję w menu doda
    standardowe API WP. Nie doda. Pozycja „Szkolenia" wymaga zmiany
    w **źródle Next.js** i regeneracji motywu — czyli prośby do kolegi albo
-   PR-a do repo strony głównej, nie kodu w naszej wtyczce.
+   PR-a do repo strony głównej, nie kodu w naszej wtyczce. Pięć możliwych
+   dróg z oceną: sekcja „Pozycja »Szkolenia« w menu" na końcu rozdziału.
 6. **Motyw przejmuje SEO i `<head>`**: usuwa `rel_canonical`, `wp_shortlink`,
    ustawia własny tytuł przez `pre_get_document_title`, a kanoniki i Open
    Graph wypycha z post meta `_aai_*`. Nasze strony kursów **nie dostaną
@@ -226,6 +227,53 @@ Podział z tego dokumentu **broni się na dowodach**: strony sprzedażowe i kata
 zostają nasze (bo tam Tutor nie pasuje wizualnie i tak czy owak nie ma tam nic,
 czego byśmy nie mieli lepiej), a materiał za logowaniem bierze Tutor (bo tam ma
 własny, spójny ekran, konta i ograniczenie dostępu z pudełka).
+
+### Pozycja „Szkolenia" w menu — pięć dróg (2026-08-21)
+
+W tym motywie WordPress nie ma się gdzie wpiąć: jedyny hak w całym
+`header.php` to `wp_head()` — zero `wp_nav_menu()`, zero `wp_body_open()`,
+zero `do_action`/`apply_filters` w okolicy nawigacji. Filtr
+`wp_nav_menu_items`, którym wtyczka normalnie dokłada pozycję, odpala się
+tylko wtedy, gdy motyw woła `wp_nav_menu()` — a ten nie woła. Stąd pięć
+realnych dróg:
+
+| Droga | Ocena |
+|---|---|
+| 1. Zmiana w źródle Next.js + regeneracja motywu | czysto i trwale, ale to zmiana w cudzym repo (u nas read-only) — i każdy kolejny moduł znaczy kolejną prośbę |
+| 2. **Jednorazowy hak w generatorze**: `do_action('aai_nawigacja_dodatkowa')` przed `</nav>` (w headerze i w szablonie menu mobilnego) | **REKOMENDACJA** — jedna drobna prośba do kolegi, po której każdy nasz moduł (Plugin 1–3) dokłada pozycję własnym kodem, bez wracania do repo głównego |
+| 3. Motyw-dziecko nadpisujący `header.php` | przesuwa problem zamiast go rozwiązać: motyw jest generowany, więc każda regeneracja rodzica = ręczne przenoszenie zmian do dziecka |
+| 4. Bufor wyjścia (`ob_start`) i podmiana HTML nagłówka we wtyczce | bez ruszania repo głównego, ale kruche — regeneracja zmienia klasy Tailwinda i pozycja znika PO CICHU |
+| 5. JavaScript dopisujący pozycję do DOM | menu miga przy wczytaniu, gorzej dla SEO i czytników ekranu |
+
+**Wybór drogi jeszcze NIE zapadł** — i nie musi: decyzją właściciela
+z 2026-08-17 wejście do `/szkolenia` z paska menu robimy dopiero przy
+finalnym wdrożeniu. Do tego czasu podstrona żyje pod własnym adresem.
+Droga 2 jest rekomendacją agenta, bo jest w duchu decyzji „cała
+automatyzacja jako wtyczki jednej instalacji": raz otwarta furtka
+w motywie służy wszystkim trzem pluginom.
+
+### Test finalny wtyczek — na lokalnej kopii strony (decyzja właściciela, 2026-08-21)
+
+Gdy wszystkie wtyczki będą gotowe (Plugin 1 — sklep, Plugin 2 — płatności,
+Plugin 3 — panel), testujemy je **także na lokalnym WP z warsztatu
+w `wordpress/`** — `bash skrypty/start.sh` stawia tam WP + MariaDB na
+`:8890` z motywem Automatic AI i treścią strony 1:1. To najbliższa
+produkcji kopia, jaką mamy: prawdziwy motyw, prawdziwa treść, prawdziwe
+menu.
+
+Matryca testów się przez to nie kurczy, tylko wydłuża:
+
+1. **w trakcie budowy** — jak dotąd, dwa rodzaje motywu naraz
+   (`twentytwentyfive` blokowy + klasyczny): wtyczka zostaje agnostyczna
+   wobec motywu;
+2. **po komplecie wtyczek** — test całości na lokalnej kopii strony
+   (warsztat `wordpress/`), jako ostatnia bramka przed wdrożeniem na
+   hosting.
+
+Zastrzeżenie techniczne do sprawdzenia przed testem finalnym: warsztat
+zakłada **Dockera** (`docker-compose.yml`, `docker compose run --rm cli`),
+a u nas Dockera nie ma — używamy podmana. Albo `podman-compose` łyknie ich
+plik, albo stawiamy odpowiednik podmanem (jak środowisko oceny Tutora).
 
 ## Tutor LMS na realnej treści — pomiar, nie ulotka (2026-08-19)
 
@@ -287,8 +335,8 @@ konta i dostęp, wygląd zostaje nasz.
 
 ## Następne kroki
 
-1. Poprosić kolegę o katalog motywu (bez bazy i treści) — do czasu, aż
-   przyjdzie, pracujemy agnostycznie wobec motywu (sekcja wyżej).
+1. ~~Poprosić kolegę o katalog motywu~~ **NIEAKTUALNE 2026-08-20** —
+   kolega wypchnął CAŁĄ konwersję do repo (sekcja „Motyw Automatic AI").
 2. ~~Celowany komplet dokumentacji WP~~ **ZROBIONE 2026-08-19**:
    947 plików (9,6 MB) w `docs/dokumentacja-techniczna/wordpress/`,
    poza gitem; w repo `ZRODLA.md` z zakresem i uzasadnieniem cięć oraz
@@ -307,3 +355,5 @@ konta i dostęp, wygląd zostaje nasz.
    decyzji o LMS zostaje ścieżka zakupu WooCommerce → zapis na kurs.
 4. Dopiero potem kod wtyczki, wg Weryfikacji-PR i z tymi samymi
    strażnikami co prototyp.
+5. Po ukończeniu WSZYSTKICH wtyczek — test całości na lokalnym WP
+   z warsztatu `wordpress/` (sekcja „Test finalny wtyczek" wyżej).

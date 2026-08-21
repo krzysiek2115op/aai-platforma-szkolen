@@ -576,8 +576,16 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      własny tytuł i OG z post meta `_aai_*`) i kasuje `wpautop` — treść
      lekcji musi wchodzić jako gotowy HTML. Siedem faktów z konsekwencjami
      i zrzuty Tutora na TYM motywie: [docs/ETAP-WP.md](docs/ETAP-WP.md),
-     sekcja „Motyw Automatic AI". **Repo strony głównej dalej TYLKO DO
-     ODCZYTU** — motyw bierzemy sparse checkoutem, klonu nie dotykamy.
+     sekcja „Motyw Automatic AI". **DECYZJA WŁAŚCICIELA (2026-08-21): po
+     ukończeniu WSZYSTKICH wtyczek testujemy komplet także na lokalnym WP
+     z warsztatu `wordpress/`** (`bash skrypty/start.sh` → `:8890`, motyw
+     + treść 1:1; warsztat zakłada Dockera — u nas podman, sprawdzić
+     `podman-compose` przed testem). Menu „Szkolenia": pięć dróg spisanych
+     w ETAP-WP.md (rekomendacja: jednorazowy hak `do_action` w generatorze
+     motywu), wybór drogi NIE zapadł — wejście do menu i tak dopiero przy
+     finalnym wdrożeniu (decyzja 2026-08-17). **Repo strony głównej dalej
+     TYLKO DO ODCZYTU** — motyw bierzemy sparse checkoutem, klonu nie
+     dotykamy.
      Inne realne wzorce leżą w:
      `/home/krzysiek/mp-test-env` (nasze własne środowisko WP: wtyczki
      `mp-*` z pełną strukturą, WooCommerce, worktree, narzędzia i testy),
