@@ -46,7 +46,7 @@ Wspólne z krokiem 2 zostają: baza `db1_kursy`, baza testowa
 |---|---|---|
 | 1 | Propozycja produkcji materiału → decyzja właściciela | ✅ zrobione (PR #32) |
 | 2 | Kreator przejmuje treść lekcji i materiały | ✅ zrobione (0.30.0, PR #36 zmergowany) |
-| 3 | Dogęszczenie Kursu 1 + proza 91 lekcji, treść wchodzi skryptem przez AJAX kreatora | 🚧 w robocie — **proza 27 z 91** (Kurs 1: moduły 1–4 zamknięte, zostają 5 i 6) |
+| 3 | Proza lekcji, treść wchodzi skryptem przez AJAX kreatora (dogęszczenie K1 odwołane 2026-08-20) | 🚧 w robocie — **Kurs 1 KOMPLETNY (41/41, v0.31.0)**; Kurs 2 czeka na cięcie + kalibrację |
 | 4 | Finalna treść stron sprzedażowych kreatorem → B7 | ⏳ |
 
 ## Stan na 2026-08-19 wieczorem
@@ -519,6 +519,47 @@ napisaniem lekcji, która wypadnie.
 — najbogatszy z dotychczasowych (tabele podziału grubych źródeł, sześć
 postaci zawężenia, procedura budżetu przez pomiar, tabela znalezisk).
 
+### KONSOLIDACJA KURSU 1 — ZROBIONA (2026-08-22) i decyzje pod Kurs 2
+
+**Kurs 1 jest kompletny i scalony**: PR #51 (moduł 3) i PR #52
+(moduł 5) weszły na trunk treści; zweryfikowane DWUSTRONNIE — 41 plików
+prozy na gałęzi i 41 lekcji z treścią w bazie (SQL, nie log narzędzia).
+Wersja 0.31.0. Konflikty scalania (POSTEP.md, KROK-3-KURSY.md) częściowo
+PRZEPLECIONE przez wspólny boilerplate sekcji — rozwiązane rekonstrukcją
+pełnych sekcji, nie kasowaniem znaczników w miejscu.
+
+**Decyzje właściciela z 2026-08-21/22** (pytania po zbadaniu gruntu;
+wszystkie cztery odpowiedzi = rekomendacje agenta):
+
+1. **Bramka cytatów 17 lekcji Kursu 1: zostaje jak jest** (0 tokenów).
+   Warunek właściciela sprawdzony w kodzie: usterki dotykają WYŁĄCZNIE
+   treści lekcji — nie systemu, nie strony sprzedażowej.
+2. **Cięcie K2: MOCNE (~33–38 lekcji), głębokość ostatecznie po
+   pomiarze.** Propozycja cięcia powstaje od razu; kalibracyjny moduł 1
+   K2 mierzy realny koszt lekcji; ostateczną listę cięć właściciel
+   klepie z liczbami w ręku. Moduł 1 jest bezpieczny — żaden wariant
+   cięcia go nie rusza.
+3. **Wejście autora: wyciąg + podział sekcji** (jak od modułu 4 K1);
+   BEZ podawania samych fragmentów — zgubione zawężenia żyją
+   w kontekście wokół fragmentu.
+4. **Grupowanie lekcji o wspólnym źródle u jednego autora —
+   PRZETESTOWAĆ w kalibracji.** Jakość mierzona jak zwykle (4 sygnały
+   + bramka); trzyma → reguła dla K2, nie trzyma → powrót do
+   1 autor = 1 lekcja.
+5. **Bramka cytatów K2: wyrywkowa** — 2 najgęstsze lekcje na moduł
+   (~200 tys. tokenów/moduł), reszta lekcji z jawnie zapisanym
+   ryzykiem, jak w K1.
+
+**Kolejność robót K2** (aktualizuje kolejność z sekcji „PLANOWANIE
+KURSU 2" wyżej — kalibracja wchodzi PRZED ostateczną akceptacją cięcia):
+propozycja cięcia (agent) → **kalibracja: moduł 1 K2 w jednym czacie**
+(ton + wzorzec formatu K2 + pomiar kosztu + test grupowania) →
+akceptacja wzorca i OSTATECZNEJ listy cięć przez właściciela → program
+w bazie dyspozytorem → **3 czaty równoległe** na pozostałe moduły
+(worktree per czat, gałęzie `feat/tresc-k2-modul-N`, mosty dosłowne
+w briefach z góry, pliki cytatów przydzielane rozłącznie, `db1:tresc`
+zawsze z filtrem `--kurs --modul --sprawdz`).
+
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 
 | Znalezisko | Skąd | Co z tym |
@@ -789,6 +830,10 @@ obrazów). Lekcje rozbrajają je jawnie, wzorem lekcji 1.2. Gdyby powstał
 słowniczek kursu, to są gotowe hasła.
 
 ### Moduł 6 Kursu 1 — W TOKU (stan 2026-08-21 wieczorem)
+
+> **NIEAKTUALNE — moduł 6 ZAMKNIĘTY 2026-08-21** (PR #49/#50, 6 lekcji,
+> 70 848 znaków; pełny rozbiór w POSTEP.md). Sekcja zostaje jako zapis
+> stanu z wieczora przed domknięciem.
 
 Worktree `/home/krzysiek/Pod-strona-Szkolenia-modul6`, gałąź
 `feat/tresc-lekcji-modul-6` (od `feat/tresc-lekcji-kursow`), port **3010**.
