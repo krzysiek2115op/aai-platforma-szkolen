@@ -736,6 +736,58 @@ zapisanym ryzykiem, a nie jako materiał po dwóch bramkach.
 skille, hooki, MCP, pluginy, CI): przy dokumentacji Claude Code bramka
 cytatów nie jest formalnością, tylko wykrywa co piątą tezę. Warto ją
 wliczyć w koszt modułu z góry, zamiast decydować po fakcie.
+### Moduł 5 Kursu 1 — ZAMKNIĘTY I WGRANY (2026-08-21, czwarty tor)
+
+Osiem lekcji, **93 tys. znaków prozy**, wgrane `npm run db1:tresc` drogą
+kreatora. Pełny rozbiór — cztery sygnały jakości, wynik bramki, koszt,
+pięć usterek scenariuszy D7 — w [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md),
+sekcja „Moduł 5 Kursu 1". Brief:
+[modul-5/BRIEF-prozy-modulu.md](../../tresc-kursow/jak-korzystac-z-claude/modul-5/BRIEF-prozy-modulu.md).
+
+**Stan prozy: 35 z 91 lekcji** (Kurs 1 kompletny w modułach 1–5; moduł 4
+domknął się równolegle w drugim torze).
+
+Cztery rzeczy, które muszą przetrwać `/clear`:
+
+1. **DECYZJA WŁAŚCICIELA (2026-08-21): moduł o API jest MAPĄ DLA
+   DECYDENTA.** Zero instrukcji wykonawczych, kod wyłącznie jako
+   ilustracja do rozpoznania, `Pytania do wykonawcy` zamiast promptów
+   tam, gdzie prompt nie działa w czacie. Odrzucono wariant
+   „czytelnik uruchamia pierwsze wywołanie" i pełny kurs techniczny.
+   **Skutek uboczny wart zapamiętania: przy tym tonie widełki
+   8–12 tys. znaków są wykonalne** — moduł 3, pisany instruktażowo,
+   przy tej samej klasie źródeł dawał 17–23 tys. Gdyby kolejny moduł
+   znów rozpychał się ponad widełki, pierwsze pytanie brzmi: czy to
+   materiał, czy instruktaż.
+2. **Bramka cytatów znów zawężona przez właściciela do dwóch lekcji**
+   (5.4 i 5.8): 69 wierszy, **13 usterek**, trafność 20,0% i 11,8%.
+   Sześć lekcji bez bramki, z ryzykiem zapisanym jawnie — tak samo jak
+   3.1–3.6.
+3. **NOWY PODGATUNEK USTERKI: gubione modalności angielskie.** `might`,
+   `can`, `up to` tłumaczone jako pewniki — „can use **up to** three
+   times more" stało się „mniej więcej trzy razy więcej", czyli sufit
+   zamienił się w wartość typową. Wszystkie dziewięć usterek lekcji 5.8
+   było tym wzorcem. **Przy każdej kolejnej prozie z angielskiego źródła
+   szukać tego osobno**, bo po polsku jest niewidoczne.
+4. **PUŁAPKA PRACY RÓWNOLEGŁEJ — `npm run db1:tresc` bez filtra wgrywa
+   CUDZE moduły.** Narzędzie zbiera wszystkie zmienione pliki prozy
+   w worktree, a każdy worktree niesie kopie cudzych modułów sprzed
+   swojego odgałęzienia. Przy wgrywaniu modułu 5 nadpisałem w bazie
+   lekcje **4.1 i 4.3** wersjami starszymi o dwie godziny (pliki w repo
+   sąsiada nietknięte — ucierpiała tylko baza; naprawione w dwie minuty
+   ponownym wgraniem z jego worktree). **Odtąd wgrywamy zawsze
+   z filtrem i po suchym biegu:**
+   `npm run db1:tresc -- --kurs jak-korzystac-z-claude --modul N --sprawdz`,
+   a dopiero potem bez `--sprawdz`. Filtr istniał od początku — to była
+   pomyłka operatora, nie wada narzędzia.
+
+**Do rozważenia przy domykaniu Kursu 1:** dokumentacja platformy okazała
+się sprzeczna sama ze sobą w czterech miejscach (dostępność skilli
+między powierzchniami, liczba nagłówków beta przy skillach, status ZDR
+plików kontra PDF-ów, „per message" kontra „per turn" przy limicie
+obrazów). Lekcje rozbrajają je jawnie, wzorem lekcji 1.2. Gdyby powstał
+słowniczek kursu, to są gotowe hasła.
+
 ### Moduł 6 Kursu 1 — W TOKU (stan 2026-08-21 wieczorem)
 
 Worktree `/home/krzysiek/Pod-strona-Szkolenia-modul6`, gałąź
