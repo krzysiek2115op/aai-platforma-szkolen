@@ -500,3 +500,34 @@ lekcji przechodzi przez ścieżkę zapisu:
 
 Konflikty przy scalaniu będą tekstowe. Zasada bez zmian: zachować
 OBIE zmiany.
+
+### Moduł 6 Kursu 1 — W TOKU (stan 2026-08-21 wieczorem)
+
+Worktree `/home/krzysiek/Pod-strona-Szkolenia-modul6`, gałąź
+`feat/tresc-lekcji-modul-6` (od `feat/tresc-lekcji-kursow`), port **3010**.
+Pełny rozbiór przebiegu — cztery sygnały jakości, poprawki przepisu, koszty
+i to, co zostaje do zrobienia — w [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md),
+sekcja „Moduł 6 Kursu 1".
+
+**Pięć z sześciu lekcji zamkniętych** (11 483–11 993 znaków, 26–33 wiersze
+zgodności): `3b0e50c`, `cafe25d`, `442657f`, `d99aa33`, `d7f527f`, przy
+briefie w `42128c3`. **Lekcja 6.6 napisana, ale nieskrócona** (20 267 znaków
+przy sufycie 12 000) i niezacommitowana.
+
+Trzy rzeczy, które muszą przetrwać `/clear`:
+
+1. **Decyzja właściciela o tonie (2026-08-21): ton idzie za tematem, nie za
+   numerem modułu.** 6.1–6.4 to „mapa dla decydenta" jak moduł 5, 6.5 mapa
+   z gotowymi promptami, **6.6 lekcja WYKONAWCZA jak moduły 3–4** — bo
+   Claude Code to narzędzie, w którym czytelnik siedzi sam od modułu 3.
+2. **Największa granica tego modułu jest WSTECZNA.** Bufor, wsad i pola
+   `usage` są już w lekcjach 1.4 i 1.5, i to z liczbami. Brief odgradza je
+   jawnie: mnożniki i procent zniżki są w 6.1/6.2 **callbackiem**, nie
+   odkryciem, a cały budżet znaków idzie na mechanikę. Przy każdej korekcie
+   treści tego modułu sprawdzać tę granicę jako pierwszą.
+3. **Scenariusze modułu mają siedem znanych usterek** (spis w briefie,
+   sprawdzone w oryginale). Autorzy żadnej nie powielili. Poprawek samych
+   scenariuszy NIE robimy — są pod goldenem, decyduje właściciel.
+
+**Następny krok:** skrócić 6.6 do widełek, przelot spójności, bramka
+cytatów, `straznik-prozy`, wgranie `npm run db1:tresc` na porcie 3010.
