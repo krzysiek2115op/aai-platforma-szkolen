@@ -46,7 +46,7 @@ Wspólne z krokiem 2 zostają: baza `db1_kursy`, baza testowa
 |---|---|---|
 | 1 | Propozycja produkcji materiału → decyzja właściciela | ✅ zrobione (PR #32) |
 | 2 | Kreator przejmuje treść lekcji i materiały | ✅ zrobione (0.30.0, PR #36 zmergowany) |
-| 3 | Dogęszczenie Kursu 1 + proza 91 lekcji, treść wchodzi skryptem przez AJAX kreatora | 🚧 w robocie — sześć decyzji podjętych, niżej |
+| 3 | Dogęszczenie Kursu 1 + proza 91 lekcji, treść wchodzi skryptem przez AJAX kreatora | 🚧 w robocie — **proza 27 z 91** (Kurs 1: moduły 1–4 zamknięte, zostają 5 i 6) |
 | 4 | Finalna treść stron sprzedażowych kreatorem → B7 | ⏳ |
 
 ## Stan na 2026-08-19 wieczorem
@@ -287,6 +287,238 @@ sekcją; konflikt przy scalaniu jest tekstowy, zasada — zachować OBIE zmiany.
 Baza `db1_kursy` i tokeny są wspólne, ale `npm run db1:tresc` wysyła wyłącznie
 pliki, które się zmieniły, więc czaty nie kasują sobie lekcji.
 
+### Moduł 2 Kursu 1 — ZAMKNIĘTY I WGRANY (2026-08-20)
+
+Pięć lekcji, **77 963 znaki prozy dla klienta**, 164 wiersze zgodności.
+Wgrane `npm run db1:tresc` (5 wgranych, 6 bez zmian). Pełny rozbiór
+przebiegu — cztery sygnały jakości, gatunki usterek, koszt i to, co
+z trybu ma zostać — w [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md),
+sekcja „Jak wypadł moduł 2 Kursu 1".
+
+Trzy rzeczy, które muszą przetrwać `/clear`:
+
+1. **Bramka cytatów znalazła 10 usterek i ani jednej złej liczby.**
+   Zgubione zawężenie dalej dominuje (4 z 10), ale doszły gatunki, których
+   moduł 1 nie miał: teza bez pokrycia (autor dopowiada wniosek, którego
+   źródło nie orzeka), wiersz osierocony (tabela dowodzi tezy usuniętej
+   z prozy) i zły adres sekcji. **Przy kolejnych modułach szukać wszystkich
+   czterech**, nie samych zawężeń.
+2. **Dokumentacja bywa sprzeczna sama ze sobą i to jest pułapka na autora.**
+   `effort.md` mówi w jednej sekcji, że effort obejmuje wszystkie tokeny
+   odpowiedzi, a w sekcji Opus 5 — że nie steruje długością widocznej
+   odpowiedzi. Autor 2.3 uogólnił to drugie zdanie na wszystkie modele.
+   Sześć takich rozjazdów spisano w raporcie bramki (m.in. prefill, którego
+   strona o spójności nadal uczy, a strona najlepszych praktyk uznaje za
+   usunięty).
+3. **Błąd może siedzieć w BRIEFIE, nie w autorze.** Brief modułu 2 podawał
+   jako tezę ze źródła hierarchię „najpierw model i effort, potem prompt".
+   Autor 2.1 odmówił jej napisania i miał rację; to samo zdanie stoi
+   w scenariuszu D7 (lekcja 2.1, scena 2), który jest pod goldenem —
+   **poprawka scenariusza czeka na decyzję właściciela.**
+
+**Lekcja organizacyjna:** nie commitować katalogu, gdy w środku piszą
+autorzy (`git add -A <katalog>` zgarnął wersje pośrednie dwóch lekcji).
+Plik po pliku. Druga: autor, który padnie na limicie sesji z kompletnym
+plikiem, **nie wymaga powtórki** — 2.3 została dokończona przeglądem
+zamiast pisana od nowa, co oszczędziło ~150 tys. tokenów.
+
+**Stan po module 2:** proza 11 z 91 lekcji. Następny w tym torze —
+moduł 4 Kursu 1 („Claude Code: systemy pracy, które skalują"), bo moduł 3
+powstaje równolegle w osobnym czacie. **Przy module 4 wraca pytanie
+o rytm** — zgoda na pracę bez przystanku była punktowa (moduł 2), a przy
+module 3 właściciel przedłużył ją decyzją o trzecim torze.
+
+### DECYZJA WŁAŚCICIELA (2026-08-20): krótsze kursy zamiast dłuższych, niższa cena
+
+**To jest odwrócenie decyzji nr 2 z PRODUKCJA-MATERIALU-KROK-3.md.** Tam
+obniżenie ceny było jawnie ODRZUCONE, a Kurs 1 miał zostać dogęszczony.
+Po dwóch modułach (11 lekcji, ~1,9 mln tokenów, 152 → 172 tys. na lekcję)
+właściciel uznał, że produkcja trwa za długo, i wybrał tamtą odrzuconą
+opcję.
+
+| Pozycja | Było | Jest |
+|---|---|---|
+| Cena Kursu 1 | 499 zł | **299 zł** |
+| Cena Kursu 2 | 399 zł | **349 zł** |
+| Program Kursu 2 | 7 modułów / 50 lekcji | **CIĘTY — mniej lekcji** |
+| Widełki prozy | 12 000–16 000 znaków | **8 000–12 000 znaków** |
+| Dogęszczanie Kursu 1 | tak | **nie** |
+
+**Co jest już zrobione:** ceny w `tools/seed/seed-przyklady.ts` (29900
+i 34900 groszy), widełki w `POSTEP.md`, odwrócenie zapisane w obu
+dokumentach decyzyjnych i w CLAUDE.md.
+
+**Co zostaje OTWARTE i wymaga roboty przed startem prozy Kursu 2:**
+
+1. **Cena w BAZIE jest nadal stara** (49900 i 39900). Zmiana idzie
+   kreatorem — zapis kursu wysyła też program, więc **nie robić tego
+   skryptem seedującym**: `npm run db1:seed` wgrywa treść ROBOCZĄ
+   i skasowałby wgraną prozę. Właściwe miejsca: panel kreatora albo
+   etap 4 (finalne strony sprzedażowe).
+2. **Które lekcje Kursu 2 wypadają** — decyzja nie zapadła. Potrzebna
+   propozycja agenta: co wyciąć z 50 lekcji, żeby kurs dalej trzymał
+   obietnicę ze strony sprzedażowej. Cięcie pociąga za sobą: nowy
+   program w bazie (dyspozytorem), zmianę statystyk katalogu (dziś
+   7 modułów / 50 lekcji / 745 min), korektę goldenów treści i liczników
+   „91 scenariuszy" u strażników. **Scenariusze wyciętych lekcji zostają
+   w repo jako ślad D7** — kasowanie ich niczego nie oszczędza,
+   a `straznik-scenariuszy` liczy pliki.
+3. **Nierówność gęstości** — moduły 1 i 2 Kursu 1 mają 14–18 tys. znaków
+   na lekcję, dalsze będą miały 8–12 tys. Kurs będzie na początku
+   gęstszy niż dalej. Świadomy koszt decyzji; przepisywanie modułów 1–2
+   w dół kosztowałoby drugi raz tyle, co ich napisanie.
+
+### NASTĘPNY KROK: moduł 4 Kursu 1
+
+Moduł 3 powstaje równolegle w osobnym czacie (worktree
+`Pod-strona-Szkolenia-modul3`), więc ten tor bierze **moduł 4 — „Claude
+Code: systemy pracy, które skalują"** (6 lekcji: subagenci, skille,
+hooki, MCP, pluginy, Agent Skills na platformie). Przepis bez zmian:
+brief z dosłownymi mostami → fale autorów → przegląd pierwszej fali →
+przelot spójności → bramka cytatów → `npm run db1:tresc` → commit.
+**Nowe widełki 8–12 tys. wchodzą do briefu modułu 4.**
+
+Most z modułu 3 trzeba będzie wziąć z drugiego czatu — jego lekcja 3.8
+kończy się zdaniem prowadzącym do modułu 4.
+
+### Moduł 4 Kursu 1 — ZAMKNIĘTY I WGRANY (2026-08-21)
+
+Osiem lekcji, **92 453 znaki prozy dla klienta**, 236 wierszy zgodności.
+Wgrane `npm run db1:tresc` (8 wgranych, 11 bez zmian) i **zweryfikowane
+w bazie zapytaniem, nie w logu narzędzia**. Pełny rozbiór — cztery
+sygnały jakości, gatunki usterek, koszt i pułapki narzędziowe — w
+[tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md), sekcja „Jak
+wypadł moduł 4 Kursu 1".
+
+**Stan po module 4: proza 27 z 91 lekcji.** Kurs 1 ma cztery moduły
+z sześciu — moduł 3 domknął równolegle drugi czat.
+
+Pięć rzeczy, które muszą przetrwać `/clear`:
+
+1. **KOSZT ROŚNIE, A NIE MALEJE — decyzja z 2026-08-20 nie przyniosła
+   oszczędności.** Moduł 4 kosztował **~267 tys. tokenów na lekcję**
+   wobec 172 tys. w module 2, mimo lekcji krótszych o jedną trzecią.
+   Pomiar, nie szacunek: 2,14 mln na osiem lekcji z bramką. **O koszcie
+   decyduje GRUBOŚĆ ŹRÓDŁA, nie długość lekcji** — autor czyta 95–345 kB
+   w oryginale niezależnie od tego, ile z tego napisze. Moduły 5–6
+   Kursu 1 i Kurs 2 mają źródła cieńsze, więc ta liczba nie musi się
+   powtórzyć; **ale gdyby właściciel liczył na oszczędność wprost
+   z krótszych lekcji, to założenie się nie potwierdziło.**
+2. **Bramka cytatów znalazła 16 usterek** (moduł 1: 7, moduł 2: 10) przy
+   239 wierszach i **zero złych adresów sekcji**. Zgubione zawężenie
+   dalej dominuje (11 z 16). Doszła **nowa klasa: instrukcja, która by
+   nie zadziałała** — lekcja kazała sprzątać worktree komendą, którą
+   Claude Code blokuje. Przy kolejnych modułach sprawdzać nie tylko, czy
+   zdanie jest prawdziwe, ale **czy podana komenda wykona się
+   u czytelnika**.
+3. **Brief pomylił się cztery razy, autorzy mieli rację cztery razy.**
+   Stąd reguła, która wchodzi do wszystkich następnych briefów: **brief
+   nie może żądać tezy ze źródła spoza listy źródeł danej lekcji.** Druga:
+   listy „ma pokryć" trzeba pisać pod widełki — pełne pokrycie lekcji 4.1
+   dawało 19 809 znaków przy suficie 12 000.
+4. **`wc -c` liczy bajty.** Polskie diakrytyki podwajają się, więc pomiar
+   objętości zawyża o ~4,5%. Trzy lekcje fali 1 są przez to ~2% ponad
+   sufitem (12 207–12 281 znaków) — **świadomie nie przycięte**, zapisane
+   jawnie, żeby nikt nie odkrył tego później jako ukrytej niezgodności.
+   Kontrakt `TrescLekcji` liczy znaki, więc miarą jest `wc -m`.
+5. **Pułapki pracy równoległej, obie zmaterializowane:** strażnik prozy
+   działa na całym drzewie, więc jeden niedokończony plik autora blokuje
+   KAŻDY commit; a dwa równoległe przebiegi bramki cytujące ten sam plik
+   źródłowy **nadpisały sobie nawzajem** plik w `cytowane/` mimo
+   ostrzeżenia w nagłówku. Pliki cytatów przydzielać przebiegom
+   rozłącznie.
+
+### NASTĘPNY KROK po module 4
+
+Kurs 1 ma jeszcze **moduł 5** („Claude przez API: pierwsze integracje",
+8 lekcji) i **moduł 6** („Koszty, jakość i bezpieczeństwo w produkcji",
+6 lekcji). Przepis bez zmian: brief z dosłownymi mostami → fale autorów
+→ przegląd pierwszej fali → przelot spójności → bramka cytatów →
+`npm run db1:tresc` → commit.
+
+**Most z modułu 4 jest już ustalony** — lekcja 4.8 kończy się dosłownie:
+„Masz komplet systemów, które sprawiają, że Claude Code skaluje się poza
+jedną sesję i jedną osobę. W module piątym wychodzimy poza gotowe
+narzędzia i pukamy do Claude bezpośrednio: API, czyli Claude wpięty
+w Twoje własne oprogramowanie."
+
+**Granica do pilnowania w module 5:** lekcja 5.6 „Agent Skills na
+platformie" jest osobna od lekcji 4.2 o skillach w Claude Code — 4.2
+dostała na ten temat jedno zdanie i odesłanie, więc 5.6 ma pełne pole.
+Podobnie 5.3 „Tool use" wobec 4.4 (MCP).
+
+**Dwie pozycje otwarte, niezależne od modułów** (bez zmian od 2026-08-20):
+cena w BAZIE jest nadal stara (49900 i 39900 groszy — zmiana kreatorem
+albo w etapie 4, **nie** `npm run db1:seed`, bo seed wgrałby treść
+roboczą na miejsce prozy); oraz **program Kursu 2 ma zostać CIĘTY** i
+decyzja, które lekcje wypadają, wciąż nie zapadła — wymaga propozycji
+przed startem prozy Kursu 2.
+
+### PLANOWANIE KURSU 2 — punkt startowy (przygotowane 2026-08-21)
+
+**Stan torów po module 4:** moduły 5 i 6 Kursu 1 powstają w OSOBNYCH
+czatach (decyzja właściciela 2026-08-21). Ten tor bierze **cięcie
+programu Kursu 2** — pozycję otwartą od 2026-08-20, blokującą start
+prozy Kursu 2.
+
+**Program dziś w bazie** (`jak-uzywac-githuba`, 0 lekcji z prozą):
+
+| # | Moduł | Lekcji | Minut |
+|---|---|---|---|
+| 1 | Start: Git, GitHub i pierwsze repozytorium | 6 | 95 |
+| 2 | Codzienna praca z Gitem | 7 | 90 |
+| 3 | Repozytorium jak u profesjonalisty | 8 | 115 |
+| 4 | Współpraca: issues i pull requesty | 11 | 165 |
+| 5 | Automatyzacja: GitHub Actions | 7 | 120 |
+| 6 | Bezpieczeństwo konta i kodu | 6 | 95 |
+| 7 | Ponad podstawy: narzędzia, które przyspieszają | 5 | 65 |
+| | **razem** | **50** | **745** |
+
+**Dlaczego cięcie w ogóle jest na stole — liczba, nie przeczucie.**
+Przy zmierzonym koszcie z modułu 4 (267 tys. tokenów na lekcję) pełne
+50 lekcji to **~13 mln tokenów**; przy koszcie modułu 2 (172 tys.) —
+~8,6 mln. Scenariusze Kursu 2 są przy tym **3,3× grubsze na lekcję** niż
+Kursu 1 (1027 kB kontra 311 kB), więc dolna granica jest mało prawdopodobna.
+Każda wycięta lekcja to realne 170–270 tys. tokenów mniej.
+
+**Czego wymaga propozycja cięcia** (do przedstawienia właścicielowi):
+
+1. **Które lekcje wypadają i dlaczego** — z jawnym kryterium, nie „ta
+   wygląda mniej ważnie". Kandydaci narzucający się z samej struktury:
+   moduł 4 ma 11 lekcji przy średniej 7, moduł 7 („Ponad podstawy") jest
+   z definicji dodatkiem, a `about-codespaces.md` ma 785 B i jest samym
+   spisem odsyłaczy (patrz CLAUDE.md, uwagi o cienkich źródłach modułu 7).
+2. **Sprawdzenie obietnicy strony sprzedażowej.** Wymóg właściciela
+   z D7: **strona nie może obiecywać niczego spoza programu.** Strona
+   Kursu 2 ma 12 sekcji w bazie (`hero`, `problem`, `positioning`,
+   `transformation`, `comparison`, `for_whom`, `package`, `author`,
+   `opinions`, `guarantee`, `faq`, `benefits`) — **każdą trzeba
+   przeczytać przeciw nowemu programowi**, bo to ona jest umową
+   z klientem. Sekcja `package` i `benefits` są najbardziej narażone.
+3. **Co cięcie pociąga technicznie** (sprawdzone, nie zgadnięte):
+
+| Co | Gdzie | Uwaga |
+|---|---|---|
+| program w bazie | dyspozytorem, nie seedem | `npm run db1:seed` wgrałby treść ROBOCZĄ na miejsce prozy — **nie używać** |
+| statystyki katalogu (7 modułów / 50 lekcji / 745 min) | renderowane z bazy na `/szkolenia` | zmienią się same po zmianie programu |
+| `tools/seed/seed-przyklady.ts` | seed | trzyma ten sam program — rozjedzie się z bazą, jeśli go nie poprawić |
+| `goldeny/d7-tresc.json` | golden treści | pilnuje 91 scenariuszy; **scenariusze wyciętych lekcji ZOSTAJĄ w repo** jako ślad D7 (decyzja z 2026-08-18), więc golden i `straznik-scenariuszy` (91) **nie zmieniają się** |
+| `docs/plugin-1/PROGRAM-KURSOW-D7.md` | dokument programu | zaakceptowany 2026-08-18 — cięcie wymaga **nowej akceptacji właściciela**, tak jak wtedy |
+
+4. **Czego cięcie NIE zmienia:** ceny (299/349 zł — decyzja z 2026-08-20),
+   widełek prozy (8–12 tys. znaków), reguły „każda teza ma pokrycie
+   w źródle", bramki cytatów ani trybu równoległego.
+
+**Kolejność, która wynika z zależności:** propozycja cięcia → akceptacja
+właściciela → program w bazie dyspozytorem → **dopiero potem** brief
+i proza pierwszego modułu Kursu 2. Pisanie prozy przed cięciem groziłoby
+napisaniem lekcji, która wypadnie.
+
+**Wzorzec briefu do wykorzystania:**
+[`tresc-kursow/jak-korzystac-z-claude/modul-4/BRIEF-prozy-modulu.md`](../../tresc-kursow/jak-korzystac-z-claude/modul-4/BRIEF-prozy-modulu.md)
+— najbogatszy z dotychczasowych (tabele podziału grubych źródeł, sześć
+postaci zawężenia, procedura budżetu przez pomiar, tabela znalezisk).
+
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 
 | Znalezisko | Skąd | Co z tym |
@@ -504,3 +736,33 @@ zapisanym ryzykiem, a nie jako materiał po dwóch bramkach.
 skille, hooki, MCP, pluginy, CI): przy dokumentacji Claude Code bramka
 cytatów nie jest formalnością, tylko wykrywa co piątą tezę. Warto ją
 wliczyć w koszt modułu z góry, zamiast decydować po fakcie.
+### Moduł 6 Kursu 1 — W TOKU (stan 2026-08-21 wieczorem)
+
+Worktree `/home/krzysiek/Pod-strona-Szkolenia-modul6`, gałąź
+`feat/tresc-lekcji-modul-6` (od `feat/tresc-lekcji-kursow`), port **3010**.
+Pełny rozbiór przebiegu — cztery sygnały jakości, poprawki przepisu, koszty
+i to, co zostaje do zrobienia — w [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md),
+sekcja „Moduł 6 Kursu 1".
+
+**Pięć z sześciu lekcji zamkniętych** (11 483–11 993 znaków, 26–33 wiersze
+zgodności): `3b0e50c`, `cafe25d`, `442657f`, `d99aa33`, `d7f527f`, przy
+briefie w `42128c3`. **Lekcja 6.6 napisana, ale nieskrócona** (20 267 znaków
+przy sufycie 12 000) i niezacommitowana.
+
+Trzy rzeczy, które muszą przetrwać `/clear`:
+
+1. **Decyzja właściciela o tonie (2026-08-21): ton idzie za tematem, nie za
+   numerem modułu.** 6.1–6.4 to „mapa dla decydenta" jak moduł 5, 6.5 mapa
+   z gotowymi promptami, **6.6 lekcja WYKONAWCZA jak moduły 3–4** — bo
+   Claude Code to narzędzie, w którym czytelnik siedzi sam od modułu 3.
+2. **Największa granica tego modułu jest WSTECZNA.** Bufor, wsad i pola
+   `usage` są już w lekcjach 1.4 i 1.5, i to z liczbami. Brief odgradza je
+   jawnie: mnożniki i procent zniżki są w 6.1/6.2 **callbackiem**, nie
+   odkryciem, a cały budżet znaków idzie na mechanikę. Przy każdej korekcie
+   treści tego modułu sprawdzać tę granicę jako pierwszą.
+3. **Scenariusze modułu mają siedem znanych usterek** (spis w briefie,
+   sprawdzone w oryginale). Autorzy żadnej nie powielili. Poprawek samych
+   scenariuszy NIE robimy — są pod goldenem, decyduje właściciel.
+
+**Następny krok:** skrócić 6.6 do widełek, przelot spójności, bramka
+cytatów, `straznik-prozy`, wgranie `npm run db1:tresc` na porcie 3010.

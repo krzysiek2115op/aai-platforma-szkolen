@@ -23,7 +23,7 @@ const KURSY = [
     // dłuższy opis karty katalogu — „dlaczego my, a nie inni" (brief CDS pkt 2)
     short_desc:
       "Nie kolejne nagrania o AI, tylko system pracy: prowadzisz Claude metodą, na plikach i zadaniach Twojej firmy. Uczysz się od praktyka, który wdraża AI w polskich firmach — i wychodzisz z promptami, szablonami i workflow do użycia tego samego dnia, nie z notatkami.",
-    price_grosze: 49900,
+    price_grosze: 29900,
     cover_url: "/okladki/jak-korzystac-z-claude.svg",
     badge: "PRAKTYCZNY",
     level: "podstawowy" as const,
@@ -393,7 +393,7 @@ const KURSY = [
     // dłuższy opis karty katalogu — „dlaczego my, a nie inni" (brief CDS pkt 2)
     short_desc:
       "GitHub wytłumaczony po ludzku, na prawdziwym projekcie — nie na slajdach. Repozytoria, commity, branche i pull requesty w kolejności, w której naprawdę się ich używa, z miejscami, w których wszyscy się wykładają. Po kursie pracujesz jak zespół, a nie jak archiwum „final_v7”.",
-    price_grosze: 39900,
+    price_grosze: 34900,
     cover_url: "/okladki/jak-uzywac-githuba.svg",
     badge: "NOWOŚĆ",
     level: "podstawowy" as const,
