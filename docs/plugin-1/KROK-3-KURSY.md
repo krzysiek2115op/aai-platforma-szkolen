@@ -454,6 +454,71 @@ roboczą na miejsce prozy); oraz **program Kursu 2 ma zostać CIĘTY** i
 decyzja, które lekcje wypadają, wciąż nie zapadła — wymaga propozycji
 przed startem prozy Kursu 2.
 
+### PLANOWANIE KURSU 2 — punkt startowy (przygotowane 2026-08-21)
+
+**Stan torów po module 4:** moduły 5 i 6 Kursu 1 powstają w OSOBNYCH
+czatach (decyzja właściciela 2026-08-21). Ten tor bierze **cięcie
+programu Kursu 2** — pozycję otwartą od 2026-08-20, blokującą start
+prozy Kursu 2.
+
+**Program dziś w bazie** (`jak-uzywac-githuba`, 0 lekcji z prozą):
+
+| # | Moduł | Lekcji | Minut |
+|---|---|---|---|
+| 1 | Start: Git, GitHub i pierwsze repozytorium | 6 | 95 |
+| 2 | Codzienna praca z Gitem | 7 | 90 |
+| 3 | Repozytorium jak u profesjonalisty | 8 | 115 |
+| 4 | Współpraca: issues i pull requesty | 11 | 165 |
+| 5 | Automatyzacja: GitHub Actions | 7 | 120 |
+| 6 | Bezpieczeństwo konta i kodu | 6 | 95 |
+| 7 | Ponad podstawy: narzędzia, które przyspieszają | 5 | 65 |
+| | **razem** | **50** | **745** |
+
+**Dlaczego cięcie w ogóle jest na stole — liczba, nie przeczucie.**
+Przy zmierzonym koszcie z modułu 4 (267 tys. tokenów na lekcję) pełne
+50 lekcji to **~13 mln tokenów**; przy koszcie modułu 2 (172 tys.) —
+~8,6 mln. Scenariusze Kursu 2 są przy tym **3,3× grubsze na lekcję** niż
+Kursu 1 (1027 kB kontra 311 kB), więc dolna granica jest mało prawdopodobna.
+Każda wycięta lekcja to realne 170–270 tys. tokenów mniej.
+
+**Czego wymaga propozycja cięcia** (do przedstawienia właścicielowi):
+
+1. **Które lekcje wypadają i dlaczego** — z jawnym kryterium, nie „ta
+   wygląda mniej ważnie". Kandydaci narzucający się z samej struktury:
+   moduł 4 ma 11 lekcji przy średniej 7, moduł 7 („Ponad podstawy") jest
+   z definicji dodatkiem, a `about-codespaces.md` ma 785 B i jest samym
+   spisem odsyłaczy (patrz CLAUDE.md, uwagi o cienkich źródłach modułu 7).
+2. **Sprawdzenie obietnicy strony sprzedażowej.** Wymóg właściciela
+   z D7: **strona nie może obiecywać niczego spoza programu.** Strona
+   Kursu 2 ma 12 sekcji w bazie (`hero`, `problem`, `positioning`,
+   `transformation`, `comparison`, `for_whom`, `package`, `author`,
+   `opinions`, `guarantee`, `faq`, `benefits`) — **każdą trzeba
+   przeczytać przeciw nowemu programowi**, bo to ona jest umową
+   z klientem. Sekcja `package` i `benefits` są najbardziej narażone.
+3. **Co cięcie pociąga technicznie** (sprawdzone, nie zgadnięte):
+
+| Co | Gdzie | Uwaga |
+|---|---|---|
+| program w bazie | dyspozytorem, nie seedem | `npm run db1:seed` wgrałby treść ROBOCZĄ na miejsce prozy — **nie używać** |
+| statystyki katalogu (7 modułów / 50 lekcji / 745 min) | renderowane z bazy na `/szkolenia` | zmienią się same po zmianie programu |
+| `tools/seed/seed-przyklady.ts` | seed | trzyma ten sam program — rozjedzie się z bazą, jeśli go nie poprawić |
+| `goldeny/d7-tresc.json` | golden treści | pilnuje 91 scenariuszy; **scenariusze wyciętych lekcji ZOSTAJĄ w repo** jako ślad D7 (decyzja z 2026-08-18), więc golden i `straznik-scenariuszy` (91) **nie zmieniają się** |
+| `docs/plugin-1/PROGRAM-KURSOW-D7.md` | dokument programu | zaakceptowany 2026-08-18 — cięcie wymaga **nowej akceptacji właściciela**, tak jak wtedy |
+
+4. **Czego cięcie NIE zmienia:** ceny (299/349 zł — decyzja z 2026-08-20),
+   widełek prozy (8–12 tys. znaków), reguły „każda teza ma pokrycie
+   w źródle", bramki cytatów ani trybu równoległego.
+
+**Kolejność, która wynika z zależności:** propozycja cięcia → akceptacja
+właściciela → program w bazie dyspozytorem → **dopiero potem** brief
+i proza pierwszego modułu Kursu 2. Pisanie prozy przed cięciem groziłoby
+napisaniem lekcji, która wypadnie.
+
+**Wzorzec briefu do wykorzystania:**
+[`tresc-kursow/jak-korzystac-z-claude/modul-4/BRIEF-prozy-modulu.md`](../../tresc-kursow/jak-korzystac-z-claude/modul-4/BRIEF-prozy-modulu.md)
+— najbogatszy z dotychczasowych (tabele podziału grubych źródeł, sześć
+postaci zawężenia, procedura budżetu przez pomiar, tabela znalezisk).
+
 ### Znaleziska z modułu 1 do decyzji przy publikacji kursu
 
 | Znalezisko | Skąd | Co z tym |
