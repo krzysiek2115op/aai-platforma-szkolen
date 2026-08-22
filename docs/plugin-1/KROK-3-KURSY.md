@@ -1193,13 +1193,18 @@ oraz **pięć lekcji prozy modułu 4**: 4.2, 4.3, 4.4, 4.5, 4.6 —
 11 269–11 988 znaków mierzonych kontraktem, 24–37 tez w tabelach
 zgodności, strażnicy 25/25.
 
-**W locie w chwili zatrzymania:** lekcja **4.7 „Merge, squash czy
-rebase?"** — autor pisał ją, gdy przyszło polecenie zatrzymania.
-Plik `modul-4/proza-7-merge-squash-rebase.md` istnieje i **nie jest
-zacommitowany**; po powrocie SPRAWDZIĆ go kontrolami przeglądu
-(objętość kontraktem, most wyjściowy co do znaku, zero numerów lekcji,
-zero pierwszej osoby, zero callbacku do `git rebase`), a nie zakładać,
-że jest gotowy.
+**Lekcja 4.7 „Merge, squash czy rebase?" — DOSZŁA i jest sprawdzona**
+(11 985 znaków, 27 tez). Autor oddał ją 198 znaków ponad sufit widełek
+i **zgłosił to sam, zamiast zadeklarować zgodność** — to jest zachowanie
+pożądane i warte zapamiętania. Cięcie zrobił agent główny, bo autor miał
+rację, że reszta masy to treść obowiązkowa (cytaty plus obie listy wad).
+Przy okazji wyszła usterka, której nie miał żaden inny autor: lekcja
+**cytowała zdanie zamykające poprzednią lekcję co do znaku**, zamiast je
+podjąć — czytelnik dostawał ten sam akapit dwa razy pod rząd. Most ma
+być PODJĘTY, nie przepisany; warto to sprawdzać osobno przy każdej fali.
+
+**Moduł 4 ma więc komplet sześciu lekcji (4.2–4.7).** Brakuje wyłącznie
+4.1 — patrz blokady niżej.
 
 **Zablokowane na czacie A (dwie rzeczy):**
 1. **Lekcja 4.1** — otwiera się podjęciem zdania, którym czat A zamyka
@@ -1248,7 +1253,7 @@ w briefach; tu skrót, bo to jest rzecz, którą łatwo przeoczyć):
   sprawdzenia podsumowania, bo autor finału Kursu 1 pomylił moduły
   trzy razy w jednym akapicie.
 
-**Następny krok po powrocie:** sprawdzić i domknąć 4.7 → przelot
-spójności modułu 4 → bramka cytatów wyrywkowa (wskazanie: 4.4 i 4.7,
-weryfikator na Opusie) → 4.1, gdy będzie zdanie od czatu A → dopiero
-potem fala 1 modułu 5 (lekcje 5.1 i 5.2 wg briefu).
+**Następny krok po powrocie:** przelot spójności modułu 4 → bramka
+cytatów wyrywkowa (wskazanie: 4.4 i 4.7, weryfikator na Opusie) → 4.1,
+gdy będzie zdanie od czatu A → dopiero potem fala 1 modułu 5 (lekcje
+5.1 i 5.2 wg briefu).
