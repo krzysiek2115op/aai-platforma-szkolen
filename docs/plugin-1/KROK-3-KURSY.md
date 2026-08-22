@@ -1590,3 +1590,62 @@ to, czego nie da się zrobić w pojedynkę:
    [`tresc-kursow/AUDYT-KONCOWY.md`](../../tresc-kursow/AUDYT-KONCOWY.md)
    — pięć nowych, w tym ścieżki kliknięć niesprawdzone wobec żywego
    interfejsu (do przelotu zrzutów) i cudzysłów zamykający.
+
+### ⬛ WARUNEK STARTU PRZELOTU ZRZUTÓW SPEŁNIONY (2026-08-23, czat A)
+
+Właściciel potwierdził, że **czat B też skończył**, więc proza OBU kursów jest
+kompletna i **zaczyna się przelot zrzutów — na czacie A**, zgodnie z decyzją
+zapisaną przez czat B w sekcji „DECYZJA WŁAŚCICIELA (2026-08-23): zrzuty
+dopiero po OBU kursach, na czacie A".
+
+**Kolejność dalszych prac — decyzja właściciela 2026-08-23:**
+przelot zrzutów → **ocena wizualna właściciela** (chce dostać linki do obu
+kursów i przejrzeć je własnymi oczami) → **audyt końcowy obu kursów**
+(`tresc-kursow/AUDYT-KONCOWY.md`) → zaplanowana zmiana dotycząca Pluginu 1.
+**Do audytu ani do innych zadań NIE przechodzimy przed oceną właściciela.**
+
+**Zmierzone 2026-08-23 (nie przepisywać z pamięci, przeliczyć przed pracą):**
+
+| Gdzie | Miejsc `<!-- ZRZUT: … -->` |
+|---|---|
+| Kurs 1 (Claude), moduły 1–6 | **73** (12, 10, 22, 13, 9, 7) |
+| Kurs 2, moduły 1–3 (czat A) | **55** (21, 18, 16) |
+| Kurs 2, moduły 4–6 (czat B) | **42** (16, 12, 14) |
+| **Razem** | **170** |
+
+`straznik-prozy` liczy je dla całej gałęzi („miejsc na zrzuty do przelotu
+końcowego") — na gałęzi czatu A pokazuje 128, bo nie widzi modułów 4–6.
+
+**517 miejsc `[EKRAN]` to CO INNEGO** — siedzą w scenariuszach D7
+(`lekcja-*.md`), nie w prozie, i nie są przedmiotem tego przelotu.
+
+**Trzy rzeczy, które zablokują przelot, jeśli się ich nie rozstrzygnie
+NAJPIERW** (dwie pierwsze zapisał czat B, trzecia wychodzi z pomiaru):
+1. **Nie ma czego fotografować bez realnego repozytorium `stargazers-log`**
+   z issues, pull requestami, przebiegami Actions, włączonym 2FA, kluczem SSH
+   i włączonymi funkcjami bezpieczeństwa. Kurs 1 potrzebuje analogicznie
+   realnych ekranów Claude'a (claude.ai, konsola, Claude Code).
+2. **Dwa podpisy nazywają napisy, których dokumentacja nie zna** — 6.1
+   `Enter this text code instead` i 6.2 `randomart image`; `grep` po całym
+   `d7/github/` nie znajduje ani jednego. Do sprawdzenia w ŻYWYM interfejsie.
+   **Klasa do sprawdzenia hurtem: podpis zrzutu nazywa napis, którego
+   dokumentacja nie zna.**
+3. **Gdzie właściciel ma to obejrzeć.** Treść lekcji nie jest publiczna
+   (decyzja o produkcie), więc jedyny widok prozy to panel kreatora
+   `/szkolenia/kreator/lekcja/[id]` za ciastkiem tokenu; `/szkolenia`
+   i `/szkolenia/<slug>` pokazują katalog i strony sprzedażowe, a podgląd
+   statyczny na GitHub Pages nie niesie treści lekcji.
+
+**Stan bazy w chwili tej decyzji** (odczyt 2026-08-23): Kurs 2 ma 32 lekcje,
+**17 z treścią** (moduły 1–3, 184 828 znaków). **Moduły 4–6 NIE SĄ WGRANE** —
+blokują je dziury w `position` opisane w sekcji „⚠️ DZIURY W POZYCJACH LEKCJI
+W BAZIE"; pozycje w bazie to 4: `0,1,3,4,5,7,8`, 5: `0,1,2,5`, 6: `0,1,3,5`,
+a czat B nazwał pliki ciągle (`proza-1…N`). To ta sama sprawa co „⚠️ CZATY
+ROZJECHAŁY SIĘ NA TEJ DECYZJI" — **rozstrzygnięcie należy do właściciela
+i musi paść przed scaleniem gałęzi.**
+
+**Otwarte po stronie czatu B, do niezgubienia:** fala 2 punktów kontroli
+U1–U4 dla lekcji **5.1, 5.2, 6.1 i 6.4** (tabela stanu w sekcji „PUNKTY
+KONTROLI U1–U4, fala 1"). Fala 1 dała 16 usterek istotnych i 38 drobnych
+w czterech lekcjach modułu 4 — wniosek czatu B brzmiał: **bramka wyrywkowa
+nie zastępuje przejścia po lekcjach, których nikt nie sprawdzał.**
