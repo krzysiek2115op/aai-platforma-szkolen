@@ -1180,80 +1180,151 @@ i przekazuje je czatowi B, zanim B napisze lekcję 4.1.**
   restore/revert/reset", którego nie niesie żaden tytuł). Pisane od nowa
   w etapie 4, pod program 32-lekcyjny.
 - **Przelot zrzutów ekranu** na końcu produkcji: 94 miejsca w prozie.
-
-### CZAT B Kursu 2 (moduły 4, 5, 6) — stan na 2026-08-22, przed /clear
+### CZAT B Kursu 2 (moduły 4, 5, 6) — stan na 2026-08-22, po przeglądzie modułu 4 i fali 1 modułu 5
 
 Worktree `/home/krzysiek/Pod-strona-Szkolenia-k2-B`, gałąź
 `feat/tresc-k2-modul-4-6` (od `feat/tresc-k2-modul-1`), port dev 3013.
 `node_modules` i trzy katalogi `docs/dokumentacja-techniczna/d7/*` są
-KOPIAMI (`cp -al`), `.env` dowiązaniem. Dwa commity na gałęzi.
+KOPIAMI (`cp -al`), `.env` dowiązaniem.
 
-**Zrobione:** briefy prozy modułów **4, 5 i 6** (w repo, przy modułach)
-oraz **pięć lekcji prozy modułu 4**: 4.2, 4.3, 4.4, 4.5, 4.6 —
-11 269–11 988 znaków mierzonych kontraktem, 24–37 tez w tabelach
-zgodności, strażnicy 25/25.
+**Moduł 4 — sześć lekcji (4.2–4.7) po przeglądzie i po bramce cytatów.**
+Objętości mierzone kontraktem: 11 639 / 11 909 / 11 802 / 11 945 /
+11 988 / 11 944 znaków. Domknięcia zgodne z tabelą mostów co do znaku,
+mosty wejściowe podjęte (próg: żaden wspólny ciąg dłuższy niż 40 znaków).
 
-**Lekcja 4.7 „Merge, squash czy rebase?" — DOSZŁA i jest sprawdzona**
-(11 985 znaków, 27 tez). Autor oddał ją 198 znaków ponad sufit widełek
-i **zgłosił to sam, zamiast zadeklarować zgodność** — to jest zachowanie
-pożądane i warte zapamiętania. Cięcie zrobił agent główny, bo autor miał
-rację, że reszta masy to treść obowiązkowa (cytaty plus obie listy wad).
-Przy okazji wyszła usterka, której nie miał żaden inny autor: lekcja
-**cytowała zdanie zamykające poprzednią lekcję co do znaku**, zamiast je
-podjąć — czytelnik dostawał ten sam akapit dwa razy pod rząd. Most ma
-być PODJĘTY, nie przepisany; warto to sprawdzać osobno przy każdej fali.
+**Moduł 5 — fala 1 gotowa i przejrzana**: 5.1 „Zrozum GitHub Actions"
+(11 876) i 5.2 „Pierwszy workflow w 10 minut" (11 780). Oba mosty
+podjęte, domknięcia co do znaku, strażnicy zieleni.
 
-**Moduł 4 ma więc komplet sześciu lekcji (4.2–4.7).** Brakuje wyłącznie
-4.1 — patrz blokady niżej.
-
-**Zablokowane na czacie A (dwie rzeczy):**
+**Zablokowane na czacie A (bez zmian, sprawdzone 2026-08-22):**
 1. **Lekcja 4.1** — otwiera się podjęciem zdania, którym czat A zamyka
-   moduł 3. Dopóki tego zdania nie ma, lekcji nie piszemy; w briefie
-   modułu 4 stoi `⛔ CZEKA NA CZAT A`. To jedyny szew między czatami.
-2. **Wgrywanie treści do bazy** (`npm run db1:tresc -- --kurs
-   jak-uzywac-githuba --modul N --sprawdz`, potem bez `--sprawdz`,
-   z `--adres http://localhost:3013`) — ma sens dopiero po tym, jak
-   czat A wprowadzi **cięty program** do bazy. Dziś w bazie stoi stary
-   program 50-lekcyjny, więc dopasowanie po pozycji i tytule odrzuci
-   prozę (i dobrze — to ten strażnik, nie usterka).
+   moduł 3. W briefie modułu 4 stoi `⛔ CZEKA NA CZAT A`. Czat A nie ma
+   jeszcze ANI JEDNEJ lekcji prozy modułu 3 (w jego worktree leżą same
+   scenariusze `lekcja-*.md`) ani briefu prozy tego modułu, więc zdania
+   nie będzie prędko. Reszta modułu 4 go nie potrzebuje.
+2. **Wgrywanie treści do bazy** — ma sens dopiero po tym, jak czat A
+   wprowadzi cięty program. Dziś w bazie stoi stary program 50-lekcyjny,
+   więc dopasowanie po pozycji i tytule odrzuci prozę (i dobrze — to ten
+   strażnik, nie usterka). Komenda, gdy przyjdzie pora:
+   `npm run db1:tresc -- --kurs jak-uzywac-githuba --modul N --sprawdz`,
+   potem bez `--sprawdz`, zawsze z `--adres http://localhost:3013`.
 
-**Trzy ustalenia, które kosztowały czas i mają zostać:**
+#### Co dał przelot spójności modułu 4 (trzy usterki, wszystkie naprawione)
+
+Najważniejsze: **usterka „most przepisany, nie podjęty" nie była
+jednorazowa.** Wyszła w 4.7, a przelot znalazł ją jeszcze dwa razy —
+4.2 przepisywała domknięcie 4.1 ciągiem 121 znaków (całe pierwsze
+zdanie) plus 100 znaków z drugiego, a 4.4 domknięcie 4.3 ciągiem
+88 znaków, z dopisanym jednym słowem „już". Trzech autorów na sześciu.
+**Wniosek na następne fale: to trzeba sprawdzać MASZYNOWO** — próg
+40 znaków wspólnego ciągu między domknięciem poprzedniej lekcji
+a pierwszym akapitem następnej. Prompt autora dostał od tej pory jawne
+ostrzeżenie i zapowiedź takiego sprawdzenia; w fali 1 modułu 5 usterka
+nie wystąpiła ani razu (autor 5.2 zgłosił nawet, że złapał ją u siebie
+w pierwszym szkicu i przepisał akapit).
+
+Poza tym: ćwiczenie 4.4 odsyłało po numer issue „do poprzedniej lekcji",
+a issue zakłada się w 4.2 — po cięciu programu poprzednia to 4.3.
+**Klasa usterki do zapamiętania: odsyłacz „poprzednia lekcja" trzeba
+sprawdzać przeciw NOWEJ numeracji, nie przeciw scenariuszom.**
+Lekcja 4.6 jako jedyna zamykała cudzysłowy znakiem `”` zamiast `"`
+(33 wystąpienia) — konwencja Kursu 2 to `„tekst"`, wzięta z modułu 1.
+
+#### Bramka cytatów modułu 4 — wyrywkowa, 4.4 i 4.7, weryfikatory na Opusie
+
+**4.7: dwie usterki istotne, cztery drobne.** Największa: rada „kasuj
+gałąź od razu po scaleniu" była **wnioskiem autora podanym jako teza
+dokumentacji** — źródło nie mówi o kasowaniu gałęzi ani słowa, a rada
+zdążyła rozejść się na cztery miejsca (proza, ćwiczenie, ściąga,
+„Zapamiętaj"). Druga: „zawsze wyrzuca puste" rozszerzało źródło, które
+mówi o commitach pustych OD POCZĄTKU. Drobne: zgubione „deviates
+slightly", mylnie przetłumaczone „on top of an ancestor commit", sekcja
+„Jak wybierać" przecząca własnej lekcji („liniowość z zachowanymi
+commitami"), wniosek o podpisach i objaśnienie `--no-ff` udające treść
+dokumentacji.
+
+**4.4: pięć usterek istotnych.** W bloku cytatu stało **dopisane zdanie
+diagnozy**, którego w źródle nie ma — formatowanie sugerowało, że
+cytuje dokumentację. Dwie tezy o zachowaniu GitHuba bez pokrycia
+(odwrócony base/compare, rzekomo proponowana nowa gałąź przy edycji
+z **Files changed**). Wypadła druga ścieżka słowa kluczowego — **w treści
+commita**, wraz z zastrzeżeniem, że taki pull request NIE zostanie
+wypisany jako powiązany. Wiersz tabeli zgodności opisywał treść, której
+w lekcji nie ma. Dopisane ze wskazanej sekcji: warianty zapisu
+(`Closes: #10`, `CLOSES #10`) i reguła odpinania.
+
+**Trzy rzeczy warte zapamiętania z tej bramki:**
+1. **Wniosek autora podany jako teza dokumentacji to najgroźniejszy
+   gatunek** — brzmi sensownie, więc przechodzi przez przelot spójności
+   i rozmnaża się do podsumowań. Oba weryfikatory znalazły po jednym
+   takim przypadku, w dwóch niezależnych lekcjach.
+2. **Dopisane zdanie WEWNĄTRZ bloku cytatu** to nowa odmiana tej samej
+   klasy — warto szukać jej osobno, bo formatowanie kłamie.
+3. **Cytaty weryfikatora sprawdziłem sam w oryginale przed wpisaniem**
+   (cztery zdania w źródle 4.4, `grep`). Zgadzały się co do słowa, ale
+   pierwszy `grep` ich nie znalazł przez wielkość liter — brak trafienia
+   nie dowodzi, że zdania nie ma.
+
+**Objętość: naprawy potrafią wypchnąć lekcję ponad sufit.** 4.7 po
+poprawkach wyszło na 12 275 znaków i wróciło pod 12 000 przez cięcie
+prozy redakcyjnej (zdania powtarzającego punkt z „Gdy coś nie działa",
+rozwlekłych przeformułowań) — **nie treści ze źródła**. Przy lekcjach
+oddawanych blisko sufitu trzeba na to budżet.
+
+#### Fala 1 modułu 5 — co poprawił agent główny
+
+Obie lekcje bez usterek klasy „teza bez pokrycia". Trzy poprawki
+granic i jedna redakcyjna:
+- **5.1** miała zrzut poświęcony liście szablonów workflow — to
+  wyłączność 5.2; zrzut usunięty (zostały 2, w widełkach 2–4).
+- **5.1** obiecywała, że o wdrażaniu „będzie mowa w całym module" —
+  a lekcja o wdrożeniach wypadła z programu. Przepisane na opis
+  („ten moduł zajmuje się sprawdzaniem zmian; wdrażanie zostawiamy
+  jako to, co tym samym mechanizmem robią inni").
+- **5.1** wspominała runnery samodzielnie hostowane dwa razy, a brief
+  dopuszcza jedno zdanie — pierwsza wzmianka skrócona.
+- **5.2** wymieniała pięć kategorii szablonów, w tym **Pages** —
+  a tabela odniesień zakazuje wymieniania Pages, Codespaces, CLI
+  i Discussions choćby jednym słowem (moduł 7 wypadł w całości).
+  Zdanie zastąpione odesłaniem do `actions/starter-workflows`;
+  osierocony wiersz tabeli zgodności usunięty.
+- **5.2** miała w jednym bloku cytatu trzy zdania z różnym
+  cudzysłowieniem — wszystkie trzy są z tej samej ramki Note źródła,
+  więc blok znormalizowany. To ta sama klasa co usterka 4.4, tyle że
+  bez skutku merytorycznego.
+
+#### Trzy ustalenia z poprzedniego przebiegu, które nadal obowiązują
 
 1. **Numer prozy to pozycja w NOWYM programie, nie numer scenariusza.**
-   `lib/proza-lekcji.ts` wylicza pozycję w bazie z numeru w nazwie
-   pliku i dodatkowo porównuje tytuł. Przeliczenie dla obu czatów jest
-   w tabelach na początku każdego briefu. Skutek uboczny: `proza-3-…`
-   w module 4 to scenariusz `lekcja-4-…` i tak już zostanie.
+   `lib/proza-lekcji.ts` wylicza pozycję z numeru w nazwie pliku
+   i dodatkowo porównuje tytuł. Przeliczenie jest w tabeli na początku
+   każdego briefu. Skutek uboczny: `proza-3-…` w module 4 to scenariusz
+   `lekcja-4-…` i tak już zostanie.
 2. **`straznik-prozy` był na to ślepy** — wiązał prozę ze scenariuszem
    po numerze, więc po cięciu potwierdzał istnienie CUDZEJ lekcji.
-   Naprawione (commit „Strażnik prozy przestaje mylić lekcje po cięciu
-   programu"): dopasowanie po TYTULE, test negatywny, nowa mutacja,
-   audyt 78/78. **Czat A ma ten sam rozjazd w modułach 2 i 3** —
-   po scaleniu gałęzi dostanie naprawę za darmo, ale do tego czasu
-   jego strażnik kłamie.
-3. **Lekcja 4.1 jest PODGLĄDOWA** (`preview = true` w bazie; w całym
-   Kursie 2 są dwie takie: 1.1 i 4.1). Musi bronić się bez kontekstu
-   przed kimś, kto jeszcze nie kupił, i jednocześnie podjąć most
-   z modułu 3. Sposób pogodzenia tych dwóch rzeczy jest w briefie.
+   Naprawione (dopasowanie po TYTULE, test negatywny, nowa mutacja).
+   **Czat A ma ten sam rozjazd w modułach 2 i 3** — po scaleniu gałęzi
+   dostanie naprawę za darmo, ale do tego czasu jego strażnik kłamie.
+3. **Lekcja 4.1 jest PODGLĄDOWA** (`preview = true`; w Kursie 2 są dwie
+   takie: 1.1 i 4.1). Musi bronić się bez kontekstu przed kimś, kto
+   jeszcze nie kupił, i jednocześnie podjąć most z modułu 3. Sposób
+   pogodzenia tych dwóch rzeczy jest w briefie.
 
-**Dziury po lekcjach wyciętych — kto je przejmuje** (pełne tabele
-w briefach; tu skrót, bo to jest rzecz, którą łatwo przeoczyć):
-- moduł 4: nikt nie uczy robienia przeglądu (4.7 wypadła) ani forków
-  (4.10); lista słów kluczowych zamykających issue weszła do 4.4
-  jednym podrozdziałem (po 4.11); **czytelnik nie zna `git rebase`**,
-  więc lekcja 4.7 tłumaczy przycisk **Rebase and merge** wyłącznie
-  przez to, co robi z commitami;
-- moduł 5: czytanie pliku workflow linia po linii przechodzi z wyciętej
-  „Anatomii" do lekcji o CI; składnię `${{ … }}` wprowadza CI przy
-  `matrix`; „środowisko" to jedno zdanie definicji w lekcji o sekretach;
-  wdrożenie (CD) wypada z kursu bez śladu;
-- moduł 6: katalog funkcji bezpieczeństwa wypada, Dependabot zostaje
-  przez lekcję „Zabezpiecz swoje repozytorium", a **ostatnia lekcja
-  modułu domyka CAŁY kurs** — w briefie leży tabela 32 lekcji do
-  sprawdzenia podsumowania, bo autor finału Kursu 1 pomylił moduły
-  trzy razy w jednym akapicie.
+**Dziury po lekcjach wyciętych — kto je przejmuje**: pełne tabele
+w briefach prozy modułów 4, 5 i 6. Rzecz, którą najłatwiej przeoczyć
+w module 5: czytanie pliku workflow linia po linii przechodzi z wyciętej
+„Anatomii" do lekcji o CI, składnię `${{ … }}` wprowadza CI przy
+`matrix`, „środowisko" to jedno zdanie definicji w lekcji o sekretach,
+a wdrożenie (CD) wypada z kursu bez śladu.
 
-**Następny krok po powrocie:** przelot spójności modułu 4 → bramka
-cytatów wyrywkowa (wskazanie: 4.4 i 4.7, weryfikator na Opusie) → 4.1,
-gdy będzie zdanie od czatu A → dopiero potem fala 1 modułu 5 (lekcje
-5.1 i 5.2 wg briefu).
+**Następny krok po powrocie: fala 2 modułu 5 — lekcje 5.3 „Continuous
+Integration" i 5.4 „Sekrety w workflow"** (dwóch autorów na Sonnecie
+równolegle, jeden autor = jedna lekcja, komenda mierząca objętość
+w prompcie KAŻDEGO autora, jawne ostrzeżenie o moście podjętym zamiast
+przepisanego). Potem przelot spójności modułu 5 i **bramka cytatów
+wyrywkowa na 5.4 i 5.3** (weryfikatory na Opusie) — 5.4 jest najgęstsza
+w module (liczby, limity, precedencja, cztery zastrzeżenia), a 5.3
+niesie definicje plus czytany plik. Uwaga budżetowa z briefu: **bloki
+kodu liczą się do widełek**, a plik `use-secrets.md` ma 28,9 kB
+i przepisany w całości rozsadzi lekcję. Dopiero po module 5 — moduł 6.
+Lekcja 4.1 czeka na czat A niezależnie od tego wszystkiego.
