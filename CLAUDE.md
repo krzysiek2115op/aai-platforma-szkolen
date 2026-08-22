@@ -550,13 +550,20 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      **17 lekcji bez bramki cytatów (3.1–3.6, 5.1–5.3, 5.5–5.7,
      6.1–6.5) zostaje — decyzja właściciela 2026-08-22**: usterki tej
      klasy dotykają wyłącznie treści lekcji, nie systemu ani strony
-     sprzedażowej. **Decyzje pod Kurs 2 (2026-08-22):** cięcie MOCNE
-     (~33–38 lekcji) z ostateczną głębokością PO pomiarze kalibracją
-     (moduł 1 K2, bezpieczny od cięcia); wejście autora = wyciąg
-     + podział sekcji (bez samych fragmentów); eksperyment grupowania
-     lekcji o wspólnym źródle u jednego autora w kalibracji; bramka
-     cytatów K2 wyrywkowa (2 najgęstsze lekcje/moduł). Kolejność robót
-     K2 i pełnia decyzji: KROK-3-KURSY.md, sekcja „KONSOLIDACJA".
+     sprzedażowej. **KURS 2 PO KALIBRACJI (2026-08-22): program ucięty do
+     32 lekcji, autorzy na Sonnecie 5 pod warunkiem komendy mierzącej
+     objętość w prompcie, jeden autor = jedna lekcja, bramka cytatów
+     wyrywkowa (2 najgęstsze lekcje na moduł), dwa czaty równoległe —
+     A: moduły 2–3 (`feat/tresc-k2-modul-2-3`, port 3012), B: moduły 4–6
+     (`feat/tresc-k2-modul-4-6`).** Proza Kursu 2: **12 z 32 lekcji**
+     (moduły 1 i 2 zamknięte i w bazie, 127 555 znaków). **REGUŁA
+     WŁAŚCICIELA 2026-08-22: gdy dokumentacja GitHuba rozjeżdża się
+     z podręcznikiem samego narzędzia, dokładamy podręcznik jako drugie
+     źródło i odnotowujemy to w tabeli zgodności** — kurs nie powtarza
+     nieprawdy, ale korekta musi mieć własne, wskazane źródło. Kolejność
+     robót K2, trzy klasy usterek niewidzialnych dla strażników i pełnia
+     decyzji: KROK-3-KURSY.md, sekcje „KONSOLIDACJA" i „MODUŁ 2 KURSU 2
+     — ZAMKNIĘTY I WGRANY".
      Worktree'y `krok3`/`modul3`/`modul5`/`modul6` zostają lokalnie
      (gałęzie w nich są już zmergowane); **istnienie worktree nie
      znaczy, że trwa w nim praca** — stan czytaj z `git log`.
