@@ -1233,3 +1233,34 @@ bez zmian), cena.
 w repo w komplecie 50 lekcji. Odsyłacz do lekcji **wyciętej** przejdzie
 więc przez strażnika. Nie ma tu dla nas siatki — pilnuje tego tabela
 granic w briefie modułu.
+
+#### Most z modułu 3 do modułu 4 — DOSŁOWNIE (dla czatu B)
+
+Czat A ustalił zdanie zamykające moduł 3. **Lekcja 4.1 otwiera się jego
+podjęciem**, tak jak 2.1 otwiera się zdaniem z 1.6:
+
+> „Twoje repozytorium wygląda jak repozytorium profesjonalisty: ma
+> czytelne README, opis złożony w Markdownie, chronioną gałąź główną
+> i wydania z numerem wersji. W module czwartym otwierasz je na innych
+> ludzi: poznajesz GitHub flow od strony zespołu, planujesz pracę
+> w zgłoszeniach (ang. *issues*) i uczysz się proponować zmiany pull
+> requestem."
+
+Zdanie wymienia dokładnie to, co niosą pierwsze trzy lekcje modułu 4 po
+cięciu (4.1 GitHub Flow, 4.2 Issues, 4.4 Czym jest pull request).
+
+**Stan czytelnika wchodzącego do modułu 4** (do briefu czatu B):
+
+- projekt przewodni `stargazers-log`, gałąź `add-starred-list` założona
+  w lekcji 2.1 i wypchnięta na GitHuba;
+- ma za sobą pełny rytm pracy własnej z terminala: gałąź → zmiana →
+  `git add` → `git commit` → `git push`, a także `fetch`/`merge`/`pull`;
+- zna `.gitignore` (trzy poziomy) i komendy `git remote …`;
+- ma ściągę komend z lekcji 2.7 i wie, że po szczegóły wraca do lekcji;
+- **NIE zna rebase** (2.6 wycięta) i nie zna forków (4.10 wycięta) —
+  w module 4 nie wolno się na nie powoływać jako na rzecz „znaną";
+- **strona ZESPOŁOWA GitHub flow jest nietknięta i czeka na 4.1**:
+  lekcja 2.1 wzięła z `github-flow.md` wyłącznie sekcje „Introduction",
+  „Prerequisites", „Create a branch" i „Make changes". Sekcje „Create
+  a pull request", „Address review comments", „Merge your pull request"
+  i „Delete your branch" **należą do 4.1** i nie zostały zużyte.
