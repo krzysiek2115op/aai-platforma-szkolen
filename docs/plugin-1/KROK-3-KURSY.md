@@ -1759,3 +1759,39 @@ i kontrakt prozy przepuszczą nowe pole.
 **Stan dowodów po obu bramkach:** strażnicy 25/25, `cytaty-zgodne` 115/115
 fragmentów dosłownych, mosty 27 i 19 przy progu 40, objętości 11 835 (5.3)
 i 11 798 (5.4).
+
+#### NASTĘPNY KROK czatu B (stan na koniec 2026-08-22)
+
+**Moduł 5 jest domknięty od strony treści i dowodów.** Cztery lekcje po
+przelocie spójności, bramce cytatów prozy (5.4 i 5.3) i bramce pliku cytatów.
+Objętości 11 876 / 11 780 / 11 835 / 11 798. Strażnicy 25/25,
+`cytaty-zgodne` 115/115.
+
+**Do zrobienia dalej, w tej kolejności:**
+
+1. **Moduł 6 wg jego briefu** (`tresc-kursow/jak-uzywac-githuba/modul-6/BRIEF-prozy-modulu.md`)
+   — reguły produkcji 1–10, w tym **trzy nowe, dopisane po bramkach modułu 5**
+   (doklejka za myślnikiem; modalność źródła jako treść; `## Gdy coś nie
+   działa` czytane przeciw źródłu pozycja po pozycji w KAŻDEJ lekcji).
+   Autorzy na Sonnecie, jeden autor = jedna lekcja, bramki na Opusie.
+   **Uwaga: lekcja 6.4 zamyka CAŁY KURS** — jej podsumowanie trzeba
+   weryfikować przeciw REALNYM tytułom lekcji
+   (`grep -h "^lekcja:" modul-*/*.md`), nie z pamięci; to lekcja z modułu 7
+   Kursu 2, gdzie autor finału przypisał trzy tematy do złych modułów.
+2. **Bramka cytatów prozy** dwóch najgęstszych lekcji modułu 6 + **bramka
+   pliku cytatów** (`github--modul-6.md`) narzędziem `tools/cytaty-zgodne.mjs`.
+   Plik modułu 6 najpewniej ma **ten sam rozjazd numeracji** co moduł 5
+   (powstał dla programu D7 sprzed cięcia) — sprawdzić i przenumerować tym
+   samym wzorcem `D7-…` + tabela przelicznika.
+3. **Lekcja 4.1** — nadal czeka na zdanie zamykające moduł 3 od czatu A.
+4. **Wgranie treści do bazy** — czeka na czat A: cięty program ORAZ
+   **przenumerowanie pozycji lekcji na ciągłe `0…N-1`** (patrz sekcja
+   „DZIURY W POZYCJACH LEKCJI W BAZIE" wyżej — dotyczy modułów 4 i 5).
+5. **`POSTEP.md`** — ruszamy dopiero przy zamknięciu modułów; wpis obejmie
+   moduły 4, 5 i 6 razem, wraz z nieaktualnym wierszem tabeli „Kurs 2
+   (7 modułów) | 50 | — | ⬜ przed startem".
+
+**Czego NIE robić:** nie dotykać programu w bazie, nie przełączać gałęzi
+w cudzych katalogach, nie zamykać punktów kontroli U1–U4 (zamykają się
+dopiero po przejściu przez lekcje, których bramka dotąd nie objęła:
+4.2, 4.3, 4.5, 4.6 oraz 5.1, 5.2).
