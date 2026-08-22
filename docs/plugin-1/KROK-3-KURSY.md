@@ -1929,3 +1929,106 @@ za blokiem kodu i tak zostaje.
 6.1 i 6.4 sprawdził tylko przelot agenta głównego, a z modułów 4 i 5 nadal
 nie mają bramki lekcje 4.2, 4.3, 4.5, 4.6 oraz 5.1 i 5.2. U3 i U4 wyszły
 w tym module ponownie (6.3 i 6.4), co daje im trzecie potwierdzenie z rzędu.
+
+#### Bramka pliku cytatów modułu 6 — ZROBIONA (2026-08-23), zero braków pokrycia
+
+Trzy weryfikatory na Opusie równolegle: pokrycie 6.1+6.2, pokrycie 6.3+6.4
+oraz zaległy czwarty przebieg bramki prozy 6.3. Plik przenumerowany wzorcem
+z modułu 5 (`L6.x` → `D7-6.x`, tabela przelicznika, ostrzeżenia przy sekcjach
+lekcji wyciętych `D7-6.3` i `D7-6.5`); `cytaty-zgodne` zielony na **195
+fragmentach**.
+
+**Pokrycie: 0 braków w czterech lekcjach** (6.1 21/21, 6.2 45/45, 6.3 33/33,
+6.4 13/13). To odwrotnie niż w module 5, gdzie ta sama bramka dała 15 usterek
+istotnych. **Powód jest w danych, nie w jakości prozy:** sekcje `D7-6.4`
+i `D7-6.6` są praktycznie pełnym transkryptem swoich plików źródłowych — poza
+plikiem cytatów zostały z nich DWA zdania, oba czysto odsyłaczowe. Moduł 5
+cytował wybiórczo i stąd dziury. **Wniosek na kolejne moduły: ryzyko braku
+pokrycia zależy od tego, jak wybiórczo powstawał plik cytatów w czasach
+scenariuszy D7, a nie od tego, jak napisano prozę.** Warto to sprawdzić
+najpierw — jeden `wc` na sekcji kontra `wc` na oryginale mówi, czego się
+spodziewać.
+
+##### Wierność cytatów: 12 rozjazdów, z tego 8 prawdziwych
+
+Osiem to **ciche skróty** — cytat urywał punkt listy albo przeskakiwał blok
+kodu bez `[…]`. Poprawione znakiem pominięcia; w jednym miejscu podmieniony
+apostrof (`'` zamiast źródłowego `’`). Cztery pozostałe były szumem
+normalizacji i dały narzędziu **trzy reguły SYMETRYCZNE** (stosowane tak samo
+do oryginału i cytatu, więc niezdolne zamaskować różnicy w treści): znaczniki
+HTML wariantów platformowych (`<span class="platform-mac">`), atrybut `copy`
+we wskaźniku bloku kodu (```` ```text copy ````), odstęp zostawiony po
+usuniętym octiconie (`select **Set up** <svg…/>, then click`).
+
+**PUŁAPKA, która kosztowała jeden przebieg:** pierwsza wersja reguły HTML
+(`<[^>]+>`) zjadała znak `<` w komendach powłoki (`pbcopy < plik`), łącząc go
+w parę ze znacznikiem `>` cytatu blokowego z NASTĘPNEGO wiersza. Rozjazd
+powstawał wyłącznie po stronie cytatu, więc wyglądał na usterkę treści.
+Reguła musi stać ZA zdejmowaniem `>` i wymagać litery po `<`.
+
+##### LUKA W SAMYM NARZĘDZIU, znaleziona testem negatywnym
+
+`cytaty-zgodne` nie sprawdzał **bloków kodu stojących bez `> `** — widział
+tylko cytaty blokowe. Podmiana `ubuntu-latest` → `ubuntu-newest` w czterech
+miejscach modułu 5 przechodziła na zielono. Moduł 6 nie ma takich bloków
+(sprawdzone: 0), więc jego bramki to nie dotyczyło, ale moduł 5 miał ich
+sześć. Wszystkie sześć okazało się dosłowne, więc domknięcie luki było darmowe
+— moduł 5 sprawdza teraz **121 fragmentów zamiast 115**.
+
+**Pierwszy przebieg tego testu był ŚLEPY** (`sed` nie trafił wzorca, kod 0 nic
+nie znaczył). To trzeci raz w tym repo, gdy brak trafienia udaje dowód.
+Powtórzony na realnym wierszu — dopiero wtedy pokazał lukę.
+
+##### Czwarty przebieg bramki prozy 6.3 — 4 usterki istotne, 6 drobnych
+
+Najgroźniejsza to **nawrót naprawy, która nie objęła sekcji pomocniczych**:
+sekcja 3 mówiła poprawnie, że alerty Dependabota włącza się przez ustawienia
+KONTA, a ćwiczenie kazało kliknąć je w ekranie repozytorium, gdzie postawiły
+czytelnika kroki 1–2. Ta sama mechanika co „naprawa terminu musi objąć nagłówki
+punktów" z modułu 5. **Reguła: po naprawie prozy przejść ćwiczenie, „Zapamiętaj",
+„Czego się nauczysz", gotowce i tabelę zgodności — naprawa sekcji merytorycznej
+nie jest naprawą lekcji.**
+
+Druga istotna pokazała, że **kierunki „lekcja → tabela" i „tabela → lekcja"
+potrafią wskazać tę samą dziurę z dwóch stron**: „Czego się nauczysz"
+obiecywało różnicę między aktualizacjami bezpieczeństwa a wersji, lekcja jej
+nie stawiała, a wiersz tabeli ją opisywał. Jedno dopisane zdanie ze źródła
+zamknęło oba kierunki.
+
+Pozostałe dwie istotne to teza bez pokrycia w dopisku „żeby repozytorium było
+bezpieczne" oraz **reguła 9 w kierunku wzmacniającym** w sekcjach skrótowych
+(„nie trzeba" zamiast źródłowego „możesz nie potrzebować") — mimo że proza
+miała to już poprawione.
+
+**Objętość: reguła 5 briefu potwierdzona trzeci raz z rzędu.** Naprawy
+wypchnęły 6.3 z 11 942 na **12 560**; margines odzyskany cięciem prozy
+redakcyjnej (nie treści ze źródła) do **11 945**.
+
+##### Dowody na koniec modułu 6
+
+Strażnicy 25/25, `cytaty-zgodne` 195/195 (moduł 6) i 121/121 (moduł 5), mosty
+26 / 26 / 14 przy progu 40, objętości 11 760 / 11 963 / 11 945 / 12 497
+(6.4 ma widełki 8 000–13 000, bo zamyka kurs), zero znaków `”`.
+
+##### Dwie rzeczy do zrobienia PRZY ZRZUTACH (nie teraz)
+
+Weryfikator 6.1/6.2 zauważył, że dwie podpowiedzi zrzutów odwołują się do
+napisów, których w migawce dokumentacji nie ma: `Enter this text code instead`
+(6.1) i `randomart image` (6.2). `grep` po całym `d7/github/` nie znajduje ani
+jednego. To nie są tezy prozy — ale kto będzie robił zrzuty, musi te napisy
+sprawdzić w ŻYWYM interfejsie, nie w pliku cytatów.
+
+##### NASTĘPNY KROK czatu B
+
+**Terytorium czatu B jest oddane w całości poza lekcją 4.1** — 14 lekcji,
+166 688 znaków, wszystkie bramki zamknięte. Zostaje:
+
+1. **Lekcja 4.1** — czeka na zdanie zamykające moduł 3 od czatu A.
+2. **Wgranie treści do bazy** — czeka na czat A podwójnie: cięty program ORAZ
+   przenumerowanie pozycji lekcji na ciągłe `0…N-1`.
+3. **Punkty kontroli U1–U4 zostają OTWARTE.** Bramka modułu 6 objęła 6.2 i 6.3;
+   bez bramki prozy są nadal 6.1, 6.4 oraz 4.2, 4.3, 4.5, 4.6, 5.1 i 5.2.
+   U3 i U4 wyszły w trzecim module z rzędu.
+4. **`POSTEP.md` — ZROBIONE** (wpis obejmuje moduły 4, 5 i 6; nieaktualny
+   wiersz „Kurs 2 (7 modułów) | 50 | — | ⬜ przed startem" zastąpiony wierszami
+   modułów, z jawnym wskazaniem, że moduły 1–3 to terytorium czatu A).
