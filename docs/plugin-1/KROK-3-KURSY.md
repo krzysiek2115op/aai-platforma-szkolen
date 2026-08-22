@@ -1643,3 +1643,119 @@ ekranu, a nie ze źródła. **Rekomendacja na moduł 6: nie czekać na
 bramkę wyrywkową — przelot spójności ma czytać `## Gdy coś nie działa`
 KAŻDEJ lekcji przeciw źródłu, pozycja po pozycji.** To najtańsze
 miejsce, w którym te dwie klasy dają się złapać hurtem.
+
+#### ⚠️ DZIURY W POZYCJACH LEKCJI W BAZIE — blokada wgrywania treści (2026-08-22)
+
+**Zgłosił czat A dla modułu 4; sprawdziłem i dotyczy TAKŻE modułu 5.**
+Cięcie programu skasowało lekcje, ale **nie przenumerowało pozostałych**,
+więc `position` ma dziury. Stan w bazie (odczyt 2026-08-22, kurs
+`jak-uzywac-githuba`):
+
+| Moduł | `position` lekcji w bazie | Pliki prozy | Skutek |
+|---|---|---|---|
+| 4 | 0, 1, **3, 4, 5**, **7, 8** | `proza-2`…`proza-7` | rozjazd od trzeciej lekcji |
+| 5 | 0, 1, 2, **5** | `proza-1`…`proza-4` | rozjazd na `proza-4` (Sekrety) |
+
+**Mechanizm** (`lib/proza-lekcji.ts`, `dopasujDoProgramu`): pozycja liczona
+jest z nazwy pliku jako `proza.lekcja - 1`, a potem sprawdzany jest TYTUŁ.
+Plik `proza-4-sekrety-w-workflow.md` szuka więc `position === 3`, a „Sekrety
+w workflow" stoją w bazie na `position === 5`.
+
+**Wgrywanie wywali się głośno i niczego nie zepsuje** — to działa jak
+strażnik, zgodnie z projektem. Ale komunikat jest **mylący i kosztuje rundę
+debugowania**: dla modułu 5 powie „moduł 5 nie ma lekcji 4 (ma 4)" — czyli
+zaprzeczy istnieniu lekcji i w tym samym zdaniu poda, że lekcji jest cztery.
+Kto tego nie wie, zacznie szukać błędu w nazwie pliku albo w tytule.
+
+**Czyja to robota:** program w bazie należy do **czatu A** — ten czat go nie
+dotyka. Do zrobienia po stronie czatu A przy cięciu programu:
+**przenumerować pozycje na ciągłe `0…N-1`** w modułach 4 i 5 (a przy okazji
+sprawdzić pozostałe moduły Kursu 2 tym samym zapytaniem). Dopiero potem
+`npm run db1:tresc -- --kurs jak-uzywac-githuba --modul N --sprawdz`.
+
+**Do rozważenia niezależnie od kolejności prac:** komunikat błędu w
+`dopasujDoProgramu` powinien wypisywać **dostępne pozycje i tytuły**, a nie
+samą liczbę lekcji. Wtedy dziura w numeracji diagnozuje się sama, zamiast
+wyglądać na błąd nazwy pliku. To zmiana w `lib/`, czyli **teren wspólny obu
+czatów** — nie robię jej jednostronnie.
+
+#### Plik cytatów modułu 5 — DRUGA BRAMKA, ZROBIONA (2026-08-22)
+
+Dwa weryfikatory na Opusie, podział po lekcjach (5.1+5.2 i 5.3+5.4). Efekt:
+**15 usterek istotnych i 8 drobnych naprawionych**, plik przenumerowany,
+narzędzie sprawdzające utrwalone w repo.
+
+**Główny wniosek, do powtórzenia przy module 6: plik cytatów nie zdawał
+swojego jedynego zadania.** Wierność samych cytatów była wzorowa (5.1 — 35/35
+tez pokrytych, wszystkie cytaty co do słowa; 5.3 i 5.4 — 38/38 bloków zgodnych,
+zero zgubionej modalności). Zawodziło **POKRYCIE**: 24 tezy postawione
+w lekcjach nie miały w pliku ani jednego zdania. Nie przypadkowe —
+z wyraźnym wzorem:
+
+- **kroki interfejsu i listy wypadały, treść wykładowa zostawała.** Brakowało
+  całej listy „Prerequisites", zdania wprowadzającego krok 1 wraz z pierwszym
+  wariantem, kroków 3–4 („Commit changes", okno „Propose changes"), ścieżki
+  **Actions → New workflow → „Choose a workflow"**, kroków 6–8 zakładania
+  sekretu repozytorium i całej ścieżki sekretu środowiska. Czyli dokładnie
+  tego, co proza podaje jako instrukcję DO WYKONANIA;
+- **brakowało artefaktów, które lekcja omawia najdokładniej**: pliku
+  `Node.js CI`, który 5.3 czyta linia po linii (w pliku stał INNY przykład,
+  z `npm install`), oraz przykładu Bash z 5.4, wklejonego w prozie dosłownie
+  i będącego wzorcem dla promptu lekcji;
+- **elipsa `[…]` wycinała akurat zdanie niosące tezę**: „GitHub Actions also
+  redacts information that is recognized as sensitive" oraz dwa punkty limitu
+  („All 100 repository secrets", „All 100 environment secrets");
+- **cytat urywał się o zdanie za wcześnie** — blok o szablonach kończył się
+  przed zdaniem o `actions/starter-workflows`, którego proza używa. To ta sama
+  klasa co U1, tyle że po stronie pliku cytatów. Luka jest **odziedziczona po
+  scenariuszu D7** i przetrwała pierwszą bramkę.
+
+**Numeracja pliku naprawiona.** Sekcje miały starą numerację siedmiu lekcji,
+więc „5.4" znaczyło dwie różne rzeczy (wyciętą „Anatomię workflow" i dzisiejsze
+„Sekrety w workflow", których cytaty stoją pod `L5.6`). Rozwiązanie:
+przedrostek **`D7-`** na starej numeracji + **tabela przelicznika** w nagłówku
++ ostrzeżenie przy każdej sekcji lekcji wyciętej. Cytatów lekcji wyciętych NIE
+kasujemy — powołują się na nie scenariusze D7. Sprawdzone: nikt w repo nie
+linkuje do kotwic sekcji, więc zmiana nagłówków niczego nie zepsuła.
+
+**NOWE NARZĘDZIE: `tools/cytaty-zgodne.mjs`** — sprawdza maszynowo, czy każdy
+cytat stoi DOSŁOWNIE w oryginale (normalizuje ikony SVG, odsyłacze, punktory,
+pogrubienia i łamanie wierszy). Wymaga pobranej dokumentacji, więc jest
+NARZĘDZIEM, nie strażnikiem CI. Wywołanie dla modułu 5:
+
+```
+node tools/cytaty-zgodne.mjs \
+  docs/dokumentacja-techniczna/d7/cytowane/github--modul-5.md \
+  docs/dokumentacja-techniczna/d7/github/actions \
+  D7-5.1 D7-5.2 D7-5.3 D7-5.6
+```
+
+**Co złapało to narzędzie, a czego nie złapali weryfikatorzy: CICHY SKRÓT.**
+Dwa miejsca, w których cytat urywał punkt listy bez `[…]` — jedno wklejone
+przeze mnie w tej samej turze, jedno odziedziczone (cztery punkty ramki Note
+o sekretach). Każde zdanie z osobna było prawdziwe; niecytowany był OGON
+punktu, więc oko tego nie łapie. Dlatego narzędzie skleja cały blok `>`
+w jeden ciąg i wymaga ciągłości w oryginale, a `[…]` jawnie dzieli blok na
+kawałki sprawdzane osobno. Sprawdzone dwoma testami negatywnymi (podmiana
+słowa „job" → „run" i skrócenie „Or, you can" → „Or you can": kod 1).
+
+**Usterka prozy złapana przy okazji:** 5.4 miała w `## Gdy coś nie działa`
+nagłówek „W logu widzisz pustkę zamiast **gwiazdek**" — bramka cytatów 5.4
+zdjęła „gwiazdki" z ciała lekcji, ale nagłówek został. Naprawione. **Klasa
+do zapamiętania: naprawa terminu w prozie musi objąć NAGŁÓWKI punktów, nie
+tylko zdania.** Mój własny `grep` dał tu fałszywie negatywny wynik (szukałem
+rdzenia „gwiazdk", a słowo brzmi „gwiazdek") — kolejne potwierdzenie reguły,
+że brak trafienia niczego nie dowodzi.
+
+**OTWARTA DECYZJA (teren wspólny obu czatów, NIE ruszam jednostronnie):**
+pliki prozy nie mają we frontmatterze pola `cytowane:` — mają je wyłącznie
+scenariusze `lekcja-*.md`. Sprawdzone: żaden z 16 plików prozy Kursu 2 go nie
+ma, więc to konwencja całego kursu. Skutek jest realny: czytelnik prozy nie
+dowie się z pliku, że plik cytatów istnieje, i pójdzie po 55 MB — czyli
+dokładnie w to, czemu plik cytatów miał zapobiec. Do rozstrzygnięcia razem
+z czatem A (dotyczy też modułów 1–3) i po sprawdzeniu, czy `straznik-prozy`
+i kontrakt prozy przepuszczą nowe pole.
+
+**Stan dowodów po obu bramkach:** strażnicy 25/25, `cytaty-zgodne` 115/115
+fragmentów dosłownych, mosty 27 i 19 przy progu 40, objętości 11 835 (5.3)
+i 11 798 (5.4).
