@@ -2608,3 +2608,63 @@ U1–U4 dla lekcji **5.1, 5.2, 6.1 i 6.4** (tabela stanu w sekcji „PUNKTY
 KONTROLI U1–U4, fala 1"). Fala 1 dała 16 usterek istotnych i 38 drobnych
 w czterech lekcjach modułu 4 — wniosek czatu B brzmiał: **bramka wyrywkowa
 nie zastępuje przejścia po lekcjach, których nikt nie sprawdzał.**
+
+### PRZELOT ZRZUTÓW — DECYZJE WŁAŚCICIELA NA STARCIE (2026-08-23, czat A)
+
+Cztery blokady rozstrzygnięte PRZED pierwszym zrzutem (pytania i odpowiedzi
+w rozmowie czatu A):
+
+1. **Ekrany GitHuba: konto właściciela (krzysiek2115op) + realne repo
+   `stargazers-log`** zbudowane przez `gh` (issues, PR-y, Actions, release,
+   ochrona gałęzi). Ekrany za logowaniem: właściciel loguje się w sterowanym
+   oknie Firefoksa, agent jedzie automatem po liście zrzutów.
+   **REGUŁA PRYWATNOŚCI (wiążąca dla każdego zrzutu):** tam, gdzie w kadrze
+   wystąpiłyby dane właściciela (lista jego repozytoriów, e-maile, itp.),
+   zrzut jest PRZEGENEROWANY tak, żeby ich nie było — kadrowanie, a gdy
+   lista/dana jest tematem zrzutu: podmiana w DOM-ie na przykładowe wartości
+   PRZED zrobieniem zrzutu (chrom interfejsu pozostaje prawdziwy, dane są
+   przykładowe). Nazwa użytkownika w kadrach neutralizowana tą samą drogą.
+2. **Ekrany Claude: użyczenie sesji + Workbench** — rozmowy claude.ai
+   prowadzone realnie wg promptów z lekcji, odpowiedzi API pokazywane
+   w Workbenchu (bez osobnego klucza). Claude Code (TUI) i dokumentację
+   agent robi sam.
+3. **Przegląd właściciela: lokalny podgląd renderowany W STYLU STRONY**
+   (kursy mają pasować wizualnie do strony sprzedażowej), serwowany tylko
+   na localhost; do tego link do kreatora. **DECYZJA NA KONIEC PROJEKTU:
+   oba kursy shostowane jako HTML przez GitHub Pages, linki-podglądy
+   w README repo** — jak podgląd `/szkolenia` (szkolenia-podglad).
+   Zapisana z uwagą zgłoszoną właścicielowi: to publikuje pełną treść
+   płatnego kursu; właściciel zdecydował świadomie (cel: oddanie repo
+   do oceny).
+4. **Synteza numeracji ZATWIERDZONA i WYKONANA:** scalenie
+   `feat/tresc-k2-modul-4-6` → gałąź czatu A (commit 63c4ed0, unia obu
+   stron zweryfikowana nagłówek po nagłówku), 8 plików czatu B
+   przemianowanych na numery z dziurami (m4: 4→ , 5, 6, 8, 9; m5: 6;
+   m6: 4, 6) + 8 linii frontmatteru, strażnik czatu B (dopasowanie po
+   TYTULE) obowiązuje. **Moduły 4–6 WGRANE do bazy** (`--sprawdz`
+   przed każdym): Kurs 2 ma w bazie 31 z 32 lekcji, 351 276 znaków.
+   Jedyna pusta: **4.1** (proza nie istniała — czat B czekał na most;
+   most jest, proza 4.1 powstaje w tym przelocie pipeline'em
+   z kalibracji).
+
+**Konwersja numeracji dla fali 2 punktów kontroli** (lista czatu B była
+w jego numeracji CIĄGŁEJ): „5.1, 5.2, 6.1, 6.4" znaczy w numeracji
+programu **5.1, 5.2, 6.1, 6.6** — bramkę cytatów w module 6 przeszły
+6.2 (klucze SSH) i 6.4 (zabezpiecz repo, u czatu B „6.3"), niesprawdzone
+jest 6.6 (secret scanning, u czatu B „6.4").
+
+**Blokada 2 po weryfikacji:** podpis 6.2 „randomart image" POTWIERDZONY
+(`ssh-keygen` drukuje `The key's randomart image is:` — zrzut terminala,
+bez GitHuba). Podpis 6.1 „Enter this text code instead" — brak i w migawce,
+i w ŻYWEJ dokumentacji (ta mówi „setup key"); brzmienie ustali żywy ekran
+2FA przy zrzucie. Klasa „podpis nazywa napis spoza dokumentacji" jest
+w tym trybie sprawdzana z natury procesu: każdy zrzut powstaje z żywego
+ekranu, więc podpis niezgodny z ekranem nie może przejść — rozjazdy
+poprawiamy w podpisie I w prozie od razu.
+
+**Gdzie żyją pliki zrzutów:** `tresc-kursow/<slug>/zrzuty/modul-N/*.webp`
+— świadomie POZA `public/`, bo `public/` wchodzi w całości do eksportu
+statycznego podglądu i lekcyjne zrzuty by wyciekły (ta sama klasa co
+BLAD-007). W Markdownie lekcji: `![opis](zrzuty/modul-N/plik.webp)` —
+ścieżka względna od katalogu kursu; import do WP przepisze ją jedną
+regułą na adresy biblioteki mediów.
