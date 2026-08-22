@@ -561,6 +561,20 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      (gałęzie w nich są już zmergowane); **istnienie worktree nie
      znaczy, że trwa w nim praca** — stan czytaj z `git log`.
      Konwencja gałęzi Kursu 2: `feat/tresc-k2-modul-N`.
+    **KALIBRACJA K2 ZROBIONA (2026-08-22): moduł 1 Kursu 2 gotowy** — 6 lekcji,
+    64 418 znaków, w repo (gałąź `feat/tresc-k2-modul-1`) i w bazie, po pełnej
+    bramce cytatów. **Cztery decyzje właściciela po kalibracji, WIĄŻĄCE dla
+    modułów 2–6** (pełnia w KROK-3-KURSY.md, sekcja „DECYZJE WŁAŚCICIELA PO
+    KALIBRACJI"): (1) **cięcie mocne zatwierdzone, program 32 lekcje**, 26 do
+    napisania, moduł 7 znika, lekcja 1.6 zostaje; (2) **autorzy na SONNECIE 5**
+    — zmiana decyzji z 2026-08-18 na dowodach (bramka nie odróżniła ramion:
+    20 usterek na 89 wierszy u Opusa, 20 na 90 u Sonneta), pod warunkiem
+    komendy mierzącej kontraktem w promptcie autora; weryfikatory bramki
+    zostają na Opusie; (3) **dwa czaty równoległe**: A = moduły 2–3,
+    B = moduły 4–6; (4) **koniec grupowania lekcji** — 1 autor = 1 lekcja
+    (druga lekcja w sesji kosztowała +45–63%). **NASTĘPNY KROK: czat A wprowadza
+    cięty program do bazy — operacja niebezpieczna, dyspozytor kasuje wiersze
+    spoza wejścia, więc zapis bez `id` skasuje prozę modułu 1.**
      Aktualną listę daje `git worktree list`, nie ten plik. Reguła po incydencie
      z 2026-08-19: żaden czat nie przełącza gałęzi w cudzym katalogu —
      inaczej commit ląduje na obcej gałęzi, a `gh pr create` mówi

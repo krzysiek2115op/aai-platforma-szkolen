@@ -1077,3 +1077,106 @@ z cięciem programu cały pozostały Kurs 2 mieści się w **5,6–6,3 mln** zam
 w oryginale zamiast w wyciągu, tabeli zgodności 20–30 wierszy, dosłownych
 mostów między lekcjami i przeglądu pierwszej fali przed drugą. Każda z tych
 rzeczy zapłaciła za siebie w tym module co najmniej raz.
+
+### DECYZJE WŁAŚCICIELA PO KALIBRACJI (2026-08-22 wieczorem) — WIĄŻĄCE dla modułów 2–6
+
+Podjęte z liczbami z kalibracji w ręku. **Czytać przed startem każdego czatu Kursu 2.**
+
+1. **CIĘCIE MOCNE ZATWIERDZONE, program ma 32 lekcje.** Propozycja z tego
+   dokumentu wchodzi w całości w modułach 2–7 (moduł 7 znika), a **moduł 1
+   zachowuje sześć lekcji — lekcja 1.6 „Git od środka" ZOSTAJE**, bo jest już
+   napisana, sprawdzona bramką i wgrana, więc jej wycięcie nie oszczędza ani
+   jednego tokena, a domyka progresję definicji i jako jedyna tłumaczy
+   dwuetapowy zapis `add` → `commit`. **Do napisania zostaje 26 lekcji.**
+
+| Moduł | Lekcji po cięciu | Które zostają |
+|---|---|---|
+| 1 Start | 6 (gotowe) | 1.1–1.6 |
+| 2 Codzienna praca | 6 | 2.1–2.5, 2.7 |
+| 3 Repozytorium profesjonalisty | 5 | 3.1, 3.2, 3.3, 3.5, 3.6 |
+| 4 Współpraca | 7 | 4.1, 4.2, 4.4, 4.5, 4.6, 4.8, 4.9 |
+| 5 Actions | 4 | 5.1, 5.2, 5.3, 5.6 |
+| 6 Bezpieczeństwo | 4 | 6.1, 6.2, 6.4, 6.6 |
+| 7 Ponad podstawy | 0 | — |
+| **razem** | **32** | **26 do napisania** |
+
+2. **AUTORZY NA SONNECIE 5** — zmiana decyzji z 2026-08-18, na dowodach
+   kalibracji (bramka nie odróżniła ramion: 20 usterek na 89 wierszy u Opusa,
+   20 na 90 u Sonneta, po 8 ciężkich). **Warunek konieczny, bez którego decyzja
+   nie obowiązuje: w promptcie KAŻDEGO autora musi być komenda mierząca
+   objętość kontraktem** (niżej) — Sonnet pisze krócej i raz wypadł pod dolną
+   granicę widełek, czego jego autor nie zauważył.
+   **Weryfikatory bramki cytatów zostają na OPUSIE.**
+
+3. **DWA CZATY RÓWNOLEGŁE**, podział minimalizujący liczbę szwów między czatami
+   (tylko jeden most przechodzi przez granicę czatów):
+
+| Czat | Moduły | Lekcji | Gałąź | Worktree |
+|---|---|---|---|---|
+| A | 2 i 3 | 11 | `feat/tresc-k2-modul-2-3` | `../Pod-strona-Szkolenia-k2-A` |
+| B | 4, 5 i 6 | 15 | `feat/tresc-k2-modul-4-6` | `../Pod-strona-Szkolenia-k2-B` |
+
+4. **KONIEC GRUPOWANIA: 1 autor = 1 lekcja.** Test wypadł negatywnie w obu
+   ramionach (druga lekcja w sesji: +45% u Sonneta, +63% u Opusa).
+
+#### Obowiązkowe w promptcie każdego autora (wynik kalibracji)
+
+```
+node --input-type=module -e 'import {czytajProze} from "./lib/proza-lekcji.ts"; import {readFileSync} from "node:fs"; const p=process.argv[1]; console.log([...czytajProze(readFileSync(p,"utf8"),p).tresc].length);' <plik>
+```
+
+Autorzy mierzą `wc -m` własnym wycinkiem pliku i mylą się do 900 znaków —
+liczy się wyłącznie pomiar kontraktu (bez frontmatteru i bez tabeli zgodności).
+Procedura bez zmian: pisz sekcję → zmierz → przytnij natychmiast.
+
+#### ⚠️ PIERWSZE ZADANIE CZATU A — wprowadzenie ciętego programu do bazy
+
+**NIEBEZPIECZNA OPERACJA, przeczytać w całości przed wykonaniem.** Dyspozytor
+**kasuje wiersze spoza wejścia**, więc zapis kursu bez identyfikatorów modułów
+i lekcji **skasuje treść, która już jest w bazie** — w tym całą prozę modułu 1
+Kursu 2 (6 lekcji, 64 418 znaków) . Zasady:
+
+1. Najpierw **odczytaj obecny program z bazy razem z `id`** (kanał JSON
+   kreatora, `szczegolyKursuPoId`), nie odtwarzaj go z pliku.
+2. Wyślij strukturę **z zachowanymi `id` wszystkich lekcji, które zostają** —
+   wtedy dyspozytor je aktualizuje zamiast tworzyć na nowo.
+3. Lekcje wycinane po prostu **nie wchodzą do wejścia** — dyspozytor je usunie.
+4. **NIE UŻYWAĆ `npm run db1:seed`** — wgrałby treść roboczą na miejsce prozy.
+5. Po operacji sprawdzić SQL-em, że lekcje modułu 1 nadal mają treść
+   (`length(content)` sześć razy niezerowe), a katalog `/szkolenia` pokazuje
+   32 lekcje.
+6. Poprawić `tools/seed/seed-przyklady.ts`, żeby seed nie rozjechał się
+   z bazą, i statystyki w `PROGRAM-KURSOW-D7.md`.
+
+#### Most z modułu 1 do modułu 2 — DOSŁOWNIE
+
+Moduł 1 kończy się zdaniem, którego podjęciem **musi** otworzyć się lekcja 2.1:
+
+„Masz konto, narzędzia, repozytorium na GitHubie i jego kopię na dysku, a do
+tego rozumiesz, co Git robi pod spodem: migawki, gałęzie i dwuetapowy zapis.
+W module drugim zamieniamy to w codzienny rytm pracy: gałąź, zmiana, commit,
+wypchnięcie na GitHuba i pobranie zmian z powrotem."
+
+Szew między czatami: **czat A ustala zdanie zamykające moduł 3 w swoim briefie
+i przekazuje je czatowi B, zanim B napisze lekcję 4.1.**
+
+#### Stan czytelnika wchodzącego do modułu 2
+
+- Projekt przewodni: `hello-world` (piaskownica z 1.2, do wyrzucenia)
+  i `stargazers-log` (projekt kursu od 1.4, sklonowany na dysk w 1.5).
+- Ma za sobą **jeden wykonany `git push`** z terminala (ćwiczenie 1.6).
+- Zna dziewięć komend Gita z 1.6, ale tylko z opisu — ściąga jest w 2.7.
+- Definicja repozytorium **domknięta w 1.6** — moduł 2 nie zaczyna jej od nowa.
+- Termin **„stagizować"** wprowadzony w 1.6 jako kalka z angielskim w nawiasie.
+- Tożsamość Gita ustawiona dwa razy (komendą w 1.3, kreatorem Desktopa w 1.5).
+
+#### Otwarte świadomie
+
+- **Dependabot zostaje w kursie przez lekcję 6.4** („Zabezpiecz swoje
+  repozytorium" — graf zależności, alerty, przeglądy zależności). Z listy
+  zakazanych obietnic **zdejmujemy Dependabota**; wypada tylko dedykowana 6.5.
+- **Sekcje sprzedażowe Kursu 2 są rozjechane niezależnie od cięcia** (roboczy
+  `package` obiecuje „6 modułów wideo (26 lekcji)" i „moduł ratunkowy
+  restore/revert/reset", którego nie niesie żaden tytuł). Pisane od nowa
+  w etapie 4, pod program 32-lekcyjny.
+- **Przelot zrzutów ekranu** na końcu produkcji: 94 miejsca w prozie.
