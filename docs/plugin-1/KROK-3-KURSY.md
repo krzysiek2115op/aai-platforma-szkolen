@@ -947,3 +947,133 @@ Trzy rzeczy, które muszą przetrwać `/clear`:
 
 **Następny krok:** skrócić 6.6 do widełek, przelot spójności, bramka
 cytatów, `straznik-prozy`, wgranie `npm run db1:tresc` na porcie 3010.
+
+### KALIBRACJA — WYNIK (2026-08-22): moduł 1 Kursu 2 zamknięty, trzy decyzje czekają
+
+Moduł 1 Kursu 2 gotowy i w bazie (6 lekcji, 64 418 znaków — szczegóły
+w [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md)). Poniżej to, po co
+kalibracja była robiona: **liczby do trzech decyzji właściciela.**
+
+#### 1. Test A/B Opus kontra Sonnet — JAKOŚĆ NIE DO ODRÓŻNIENIA
+
+Przydział: Opus pisał 1.1, 1.3, 1.6; Sonnet 1.2, 1.4, 1.5. Waga źródeł
+rdzennych prawie równa (20,2 kB kontra 19,6 kB), każde ramię dostało jedną
+lekcję gęstą od definicji. Bramka cytatów: trzy weryfikatory na Opusie, każdy
+z jedną lekcją z każdego ramienia.
+
+| Miara | Opus 5 | Sonnet 5 |
+|---|---|---|
+| Tokeny na lekcję | **232 379** | **214 349** (−8,4%) |
+| Czas łącznie | 69,7 min | **41,9 min** (−40%) |
+| Sprawdzonych wierszy zgodności | 89 | 90 |
+| **Usterek znalezionych przez bramkę** | **20** | **20** |
+| w tym zmieniających treść dla klienta | 8 | 8 |
+| Średnia długość lekcji | **11 745 znaków** | 9 330 znaków |
+| Lekcje pod sufitem/podłogą widełek | 3× blisko sufitu | 1× **poniżej podłogi** (7 760), autor nie zauważył |
+
+**Wniosek: bramka nie odróżnia ramion.** Ani liczbą usterek (20 kontra 20 przy
+niemal identycznej liczbie sprawdzonych wierszy), ani ich ciężarem (8 kontra 8
+zmieniających treść). Obaj autorzy odmawiali tez bez pokrycia, obaj sami
+zgłaszali sprzeczności w dokumentacji, obaj czytali oryginały.
+
+**Różnice są gdzie indziej i są realne:**
+- **Opus pisze o 26% dłuższe lekcje za 8% wyższą cenę** — czyli tańszy na znak.
+  Sonnet trzyma się dolnej granicy widełek i raz z niej wypadł.
+- **Sonnet jest o 40% szybszy** — to liczy się przy pracy równoległej.
+- **Opus raportuje głębiej** (9 udokumentowanych pułapek przy lekcji 1.3 kontra
+  1–2 na lekcję u Sonneta), ale **na jakość oddanego tekstu to się nie przełożyło**.
+- **Autorzy obu modeli mierzą objętość własnym wycinkiem pliku i mylą się do 900
+  znaków.** Do promptu każdego autora MUSI wejść komenda mierząca kontraktem:
+  `node --input-type=module -e 'import {czytajProze} from "./lib/proza-lekcji.ts"; import {readFileSync} from "node:fs"; const p=process.argv[1]; console.log([...czytajProze(readFileSync(p,"utf8"),p).tresc].length);' <plik>`
+
+#### 2. Test grupowania — WYNIK NEGATYWNY, NIE POWTARZAĆ
+
+Po jednej parze na ramię, obie pisane w JEDNEJ sesji autora (kontynuacja, nie
+nowy subagent). W obu ramionach druga lekcja pary okazała się **najdroższą
+lekcją swojego ramienia**:
+
+| Para | 1. lekcja | 2. lekcja | wzrost |
+|---|---|---|---|
+| Sonnet 1.4 → 1.5 | 194 137 | 281 702 | **+45%** |
+| Opus 1.1 → 1.6 | 189 698 | 310 116 | **+63%** |
+
+Mechanizm: druga lekcja dopłaca za przesyłanie narosłego kontekstu w każdej
+turze (lekcja 1.5 miała tylko 13 wywołań narzędzi i najwyższy rachunek ramienia).
+Grupowanie **daje czas i spójność** (−30% czasu, autorzy potwierdzili, że
+rozpoznali wzorzec serii bez analizy od zera), ale **kosztuje tokeny**.
+**Rekomendacja: 1 autor = 1 lekcja.** Oszczędność jest większa niż cokolwiek,
+co da wybór modelu.
+
+#### 3. Zmierzony koszt lekcji Kursu 2 — podstawa ostatecznej listy cięć
+
+| Pozycja | Tokeny |
+|---|---|
+| Autorzy, 6 lekcji | 1 340 186 |
+| Pełna bramka cytatów (3 weryfikatory) | 533 837 |
+| **Razem moduł 1** | **1 874 023** |
+| Na lekcję z PEŁNĄ bramką | 312 337 |
+| **Na lekcję z bramką WYRYWKOWĄ (2/moduł, jak w planie)** | **~253 000** |
+
+Przy 1 autorze = 1 lekcji (bez grupowania) koszt lekcji spada do **~195 000**
+autorsko + ~30 000 bramki ≈ **225 000**.
+
+**Co to znaczy dla listy cięć** (moduł 1 już zrobiony, liczby dotyczą reszty):
+
+| Wariant | Lekcji zostaje | Do napisania | Szacunek tokenów |
+|---|---|---|---|
+| bez cięcia | 50 | 44 | **9,9–13,7 mln** |
+| cięcie mocne (propozycja) | 31 | 25 | **5,6–7,8 mln** |
+| cięcie mocne + ratunek 7.2 Pages | 32 | 26 | 5,9–8,1 mln |
+
+Widełki biorą się z rozrzutu: dolna granica przy 1 autorze = 1 lekcji i bramce
+wyrywkowej, górna przy dzisiejszym trybie.
+
+#### 4. Korekta listy zakazanych obietnic (znalezisko bramki A)
+
+Lista zakazów wymieniała **Dependabota**, ale lekcja **6.4 „Zabezpiecz swoje
+repozytorium" ZOSTAJE** w najostrzejszym wariancie cięcia, a to ona niesie graf
+zależności, alerty Dependabota i przeglądy zależności (46 wystąpień nazwy).
+Wypada tylko dedykowana 6.5. **Do rozstrzygnięcia: albo zdjąć Dependabota
+z listy zakazów, albo wyciąć także 6.4.**
+
+#### 5. Do przekazania czatom modułów 2–6
+
+- Most wyjściowy modułu 1, DOSŁOWNIE (moduł 2 otwiera się jego podjęciem):
+  „Masz konto, narzędzia, repozytorium na GitHubie i jego kopię na dysku, a do
+  tego rozumiesz, co Git robi pod spodem: migawki, gałęzie i dwuetapowy zapis.
+  W module drugim zamieniamy to w codzienny rytm pracy: gałąź, zmiana, commit,
+  wypchnięcie na GitHuba i pobranie zmian z powrotem."
+- Czytelnik wchodzi do modułu 2 **z jednym wykonanym `git push`** (ćwiczenie 1.6).
+- Projekt przewodni: `hello-world` (piaskownica z 1.2) i `stargazers-log`
+  (projekt kursu od 1.4, sklonowany na dysk w 1.5).
+- Definicja repozytorium rosła przez cztery lekcje i jest **domknięta** w 1.6 —
+  moduł 2 nie zaczyna jej od nowa.
+- Termin **„stagizować"** wprowadzony w 1.6 jako kalka z angielskim w nawiasie;
+  jeśli ma być polska nazwa, decyzja obowiązuje cały Kurs 2.
+- **Uzasadnienie polecenia oddzielać od treści polecenia** — autor przepisze je
+  do prozy jako tezę dokumentacji (zdarzyło się przy 1.4).
+
+#### 6. CO OSZCZĘDZA TOKENY BEZ UTRATY JAKOŚCI — ranking z pomiaru
+
+Uporządkowane wg zmierzonego wpływu, nie wg przeczucia. Pierwsze trzy pozycje
+mają **zerowy koszt jakościowy** — wynikają wprost z liczb tego modułu.
+
+| # | Zmiana | Oszczędność | Koszt jakości |
+|---|---|---|---|
+| 1 | **Cięcie programu** (44 lekcje → 25) | **4,3–5,9 mln tokenów** | decyzja właściciela o zakresie kursu, nie o jakości lekcji |
+| 2 | **1 autor = 1 lekcja** (koniec grupowania) | ~40% na lekcjach, które byłyby drugie w parze; przy 25 lekcjach ok. **1,2 mln** | **żaden** — jakość obu par była równa reszcie; tracimy tylko 30% czasu i trochę spójności, którą i tak wymusza brief |
+| 3 | **Bramka wyrywkowa 2 lekcje/moduł** (zamiast pełnej) | **~355 tys. na moduł sześciolekcyjny** | znany i przyjęty: reszta lekcji z jawnie zapisanym ryzykiem, jak w Kursie 1 |
+| 4 | **Komenda mierząca kontraktem w prompcie autora** | 1–7 przelotów cięcia mniej na lekcję (1.6 potrzebowała **siedmiu**, 1.3 trzech) | **żaden** — przeciwnie, usuwa lekcje spod widełek |
+| 5 | **Węższy przydział źródeł w briefie** | lekcja 1.3 przeczytała 6 plików i pierwszą wersję miała o 66% za długą | uwaga: to samo cięcie źródeł zabrało 1.5 materiał i wypadła pod podłogę — ciąć źródła, nie tematy |
+| 6 | **Drobne poprawki robi agent główny, nie autor** | wybudzenie autora kosztuje 90–280 tys.; poprawka redakcyjna kosztuje kilka tysięcy | **żaden**, dopóki poprawka jest chirurgiczna i sprawdzona przeciw źródłu |
+| 7 | **Sonnet zamiast Opusa** | 8,4% | **pozorna** — Sonnet pisze o 26% krótsze lekcje, więc NA ZNAK jest droższy. Sensowna dopiero razem z pozycją 4, która wymusza długość |
+
+**Pakiet rekomendowany dla modułu sześciolekcyjnego:** dziś 1,87 mln → po
+zmianach 1–4 około **1,35 mln (−28%)**, przy tej samej bramce jakości. Razem
+z cięciem programu cały pozostały Kurs 2 mieści się w **5,6–6,3 mln** zamiast
+9,9–13,7 mln.
+
+**Czego NIE oszczędzać** (to są dźwignie jakości, nie kosztu): czytania źródeł
+w oryginale zamiast w wyciągu, tabeli zgodności 20–30 wierszy, dosłownych
+mostów między lekcjami i przeglądu pierwszej fali przed drugą. Każda z tych
+rzeczy zapłaciła za siebie w tym module co najmniej raz.
