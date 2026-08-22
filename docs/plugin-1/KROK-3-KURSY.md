@@ -1180,3 +1180,56 @@ i przekazuje je czatowi B, zanim B napisze lekcję 4.1.**
   restore/revert/reset", którego nie niesie żaden tytuł). Pisane od nowa
   w etapie 4, pod program 32-lekcyjny.
 - **Przelot zrzutów ekranu** na końcu produkcji: 94 miejsca w prozie.
+
+### CIĘTY PROGRAM W BAZIE — ZROBIONE (2026-08-22, czat A)
+
+Pierwsze zadanie czatu A wykonane wg procedury wyżej. **Proza modułu 1
+przeżyła w komplecie.**
+
+| Dowód | Wynik |
+|---|---|
+| droga zapisu | jedyny AJAX `POST /api/szkolenia`, akcja `zapisz`, HTTP 200 — nie seed, nie SQL |
+| id w wejściu | wszystkie 32 lekcje i 6 modułów z zachowanym `id` (skrypt odmawiał wysyłki przy pierwszym braku) |
+| bezpiecznik | skrypt przerywał, gdyby z programu wypadła lekcja z `ma_tresc` — sprawdzane przed wysłaniem, nie po |
+| kopia zapasowa | `pg_dump` czterech tabel przed operacją (700 kB, w scratchpadzie sesji) |
+| SQL po operacji | 6 lekcji modułu 1 z treścią: 11 816 + 10 430 + 11 956 + 9 559 + 8 758 + 11 899 = **64 418 znaków** — co do znaku tyle, ile przed cięciem |
+| SQL po operacji | **6 modułów, 32 lekcje, 495 min**; sekcji sprzedażowych nadal **12**; Kurs 1 nadal **41 lekcji z treścią** |
+| katalog `/szkolenia` | „6 modułów · 32 lekcje · 8 h 15 min materiału" |
+| strażnicy | 25/25 zielonych po zmianach w dokumencie programu i w seedzie |
+
+**DECYZJA TECHNICZNA, KTÓRA WIĄŻE TAKŻE CZAT B: numeracja lekcji zostaje
+ORYGINALNA, a `position` ma dziury.** Moduł 2 to lekcje 1,2,3,4,5,**7**;
+moduł 3 — 1,2,3,**5,6**; moduł 4 — 1,2,**4,5,6**,**8,9**; moduł 5 —
+1,2,3,**6**; moduł 6 — 1,2,**4**,**6**. Powód nie jest kosmetyczny:
+`lib/proza-lekcji.ts` wiąże numer pliku prozy z `position + 1`, a
+`straznik-prozy` szuka scenariusza wzorcem `lekcja-<numer>-*.md` — po
+przenumerowaniu `proza-6-*` w module 2 dopasowałaby się do scenariusza
+*Rebase bez strachu* i przeszłaby przez strażnika bez słowa. Klient
+numerów nie widzi (`SekcjaProgram` renderuje same tytuły, a proza modułu 1
+odsyła słowami: „w poprzedniej lekcji", „w lekcji o konfiguracji Gita" —
+nigdy „w lekcji 2.5"). Skutek dla obu czatów: **plik prozy nosi numer
+z PROGRAM-KURSOW-D7.md**, czyli ściąga modułu 2 to `proza-7-sciaga-komend.md`,
+a gałęzie chronione to `proza-5-galezie-chronione.md`.
+
+**Czego cięcie NIE zmieniło** (sprawdzone, nie założone): sekcje
+sprzedażowe (12, nietknięte — `zapisz` bez pola `sections` ich nie rusza),
+treść lekcji Kursu 1, scenariusze D7 (91, golden i `straznik-scenariuszy`
+bez zmian), cena.
+
+**Dwie rzeczy zostają otwarte i NIE są robotą czatów treści:**
+
+1. **Cena w bazie to nadal 39 900 gr**, a decyzja z 2026-08-20 mówi
+   299/349 zł (29 900 / 34 900). Zmiana idzie kreatorem, przy sekcjach
+   sprzedażowych — nie przy programie.
+2. **Sekcje sprzedażowe Kursu 2 są rozjechane z programem** (roboczy
+   `package` obiecuje „6 modułów wideo (26 lekcji)" i moduł ratunkowy
+   restore/revert/reset, którego nie niesie żaden tytuł). Pisane od nowa
+   w etapie 4, pod program 32-lekcyjny. `tools/seed/seed-przyklady.ts`
+   dostał już nowy program (lustro bazy, z dziurami w pozycjach), ale
+   jego sekcje zostają robocze — komentarz w pliku mówi to wprost.
+
+**Uwaga o `straznik-odsylaczy-kursu`:** kontrola A sprawdza, czy odsyłacz
+„lekcja N.M" wskazuje lekcję istniejącą **w scenariuszach**, a te zostają
+w repo w komplecie 50 lekcji. Odsyłacz do lekcji **wyciętej** przejdzie
+więc przez strażnika. Nie ma tu dla nas siatki — pilnuje tego tabela
+granic w briefie modułu.
