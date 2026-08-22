@@ -1180,7 +1180,7 @@ i przekazuje je czatowi B, zanim B napisze lekcję 4.1.**
   restore/revert/reset", którego nie niesie żaden tytuł). Pisane od nowa
   w etapie 4, pod program 32-lekcyjny.
 - **Przelot zrzutów ekranu** na końcu produkcji: 94 miejsca w prozie.
-### CZAT B Kursu 2 (moduły 4, 5, 6) — stan na 2026-08-22, po przeglądzie modułu 4 i fali 1 modułu 5
+### CZAT B Kursu 2 (moduły 4, 5, 6) — stan na 2026-08-22, po fali 2 modułu 5
 
 Worktree `/home/krzysiek/Pod-strona-Szkolenia-k2-B`, gałąź
 `feat/tresc-k2-modul-4-6` (od `feat/tresc-k2-modul-1`), port dev 3013.
@@ -1347,3 +1347,78 @@ niesie definicje plus czytany plik. Uwaga budżetowa z briefu: **bloki
 kodu liczą się do widełek**, a plik `use-secrets.md` ma 28,9 kB
 i przepisany w całości rozsadzi lekcję. Dopiero po module 5 — moduł 6.
 Lekcja 4.1 czeka na czat A niezależnie od tego wszystkiego.
+
+
+#### Fala 2 modułu 5 (2026-08-22) — 5.3 i 5.4 napisane, przejrzane, bramka cytatów TYLKO na 5.4
+
+Moduł 5 ma komplet czterech lekcji. Objętości kontraktem: 11 876 /
+11 780 / 11 709 / 11 788. Mosty wszystkie podjęte (LCS z domknięciem
+poprzedniej lekcji: 26 z modułu 4 → 5.1, potem 36, 27, 19 przy progu 40),
+domknięcia zgodne z tabelą briefu co do znaku, zrzuty 2–4 na lekcję,
+strażnicy 25/25.
+
+**PRZERWANE ŚWIADOMIE (limit usage właściciela): bramka cytatów lekcji
+5.3 NIE ZOSTAŁA WYKONANA.** Weryfikator na Opusie został zatrzymany
+w trakcie; zdążył potwierdzić jedno: **oba bloki YAML w 5.3 są
+bajt w bajt zgodne ze źródłem**. Reszta pięciu przebiegów (wniosek
+autora jako teza dokumentacji, dopiski w blokach cytatu, rozszerzenia
+zakresu, tabela zgodności) czeka. **To jest następny krok modułu 5.**
+
+**Bramka cytatów 5.4 — zrobiona, 1 usterka istotna i 3 drobne, wszystkie
+naprawione.** Warte zapamiętania:
+1. **ISTOTNA, nowa odmiana gatunku (a): cytat urwany w pół warunku.**
+   Lekcja przytaczała ze źródła zdanie „job nie uzyska dostępu do
+   sekretów środowiska bez zgody zatwierdzających", gubiąc zdanie
+   POPRZEDNIE — „you **can enable** required reviewers". Bramka
+   zatwierdzania jest OPCJĄ do włączenia, a nie właściwością sekretów
+   środowiska. Usterka zdążyła rozejść się do „Zapamiętaj" i do tabeli
+   zgodności. **Klasa do sprawdzania osobno: cytat jest prawdziwy, ale
+   zaczyna się o zdanie za późno.**
+2. Teza „`::add-mask::` wrzuca wartość do logu jako **gwiazdki**" —
+   żadne z trzech źródeł nie mówi o gwiazdkach, tylko o „redacted".
+   Gwiazdki to obserwacja z ekranu, nie teza dokumentacji.
+3. Diagnozy w „Gdy coś nie działa" opisywały **widoczność elementów
+   interfejsu** („nie widzisz przycisku"), a źródło mówi wyłącznie
+   o uprawnieniu do ZAŁOŻENIA sekretu. Przepisane na „nie możesz założyć".
+4. Poradnik mówił, że nazwa sekretu musi zgadzać się „co do liter",
+   podczas gdy sekcja 3 tej samej lekcji poprawnie podaje, że nazwy są
+   nieczułe na wielkość liter. **Sprzeczność wewnątrz jednej lekcji —
+   warto o nią pytać wprost.**
+
+**Przelot spójności modułu 5 — dwa znaleziska poza bramką:**
+- **Powtórzenie 5.2 ↔ 5.3**: obie lekcje wykładały, że GitHub analizuje
+  repozytorium i podsuwa szablony workflow. Szablony są na wyłączność
+  5.2, więc 5.3 dostała powołanie zamiast drugiego wykładu. Tabela
+  kolizji w briefie tego ryzyka nie wymieniała — wymieniała plik
+  workflow i sześć pojęć.
+- **Poprawki wypchnęły 5.4 ponad sufit** (12 016), wróciła cięciem prozy
+  redakcyjnej do 11 844, a po bramce cytatów stoi na 11 788. Reguła 5
+  briefu sprawdziła się co do joty.
+
+**Sprawdzanie mostów jest już maszynowe.** Skrypt liczy najdłuższy
+wspólny ciąg ciągły między sekcją `## Co dalej` poprzedniej lekcji
+a pierwszym akapitem następnej (po normalizacji białych znaków), próg
+40 znaków, sprawdzony testem negatywnym (sztuczna lekcja przepisująca
+domknięcie: 284 znaki, kod wyjścia 1). **Leży w scratchpadzie sesji,
+NIE w repo** — do `tools/` warto go przenieść przy domykaniu modułu,
+bo `tools/` jest wspólne z czatem A. Przy przenoszeniu: ostatnią lekcję
+poprzedniego modułu ma brać z odczytu katalogu, nie z ręcznie podanej
+ścieżki — przy pierwszym pomiarze porównałem 5.1 z `proza-6` modułu 4,
+a ostatnia lekcja tego modułu to `proza-7` (wynik i tak wyszedł
+zielony, więc pomyłka była niewidoczna).
+
+**Autorzy sprawdzają mosty sami i trafnie** — obaj podali LCS (27 i 19),
+obie liczby potwierdzone moim skryptem. Ostrzeżenie w prompcie działa
+drugą falę z rzędu: usterka „most przepisany" nie wystąpiła ani razu
+od chwili jego dopisania.
+
+**Blokady bez zmian:** lekcja 4.1 czeka na zdanie zamykające moduł 3 od
+czatu A; wgrywanie treści do bazy czeka na cięty program od czatu A
+(`npm run db1:tresc -- --kurs jak-uzywac-githuba --modul N --sprawdz`,
+potem bez `--sprawdz`, zawsze z `--adres http://localhost:3013`).
+
+**NASTĘPNY KROK po powrocie: bramka cytatów 5.3** (weryfikator na
+Opusie, pięć osobnych przebiegów, do tego pytanie o cytat urwany w pół
+warunku — punkt 1 wyżej), potem plik cytatów modułu 5
+(`docs/dokumentacja-techniczna/d7/cytowane/github--modul-5.md` istnieje
+od czasów scenariuszy D7 i wymaga przejrzenia pod prozę), potem moduł 6.
