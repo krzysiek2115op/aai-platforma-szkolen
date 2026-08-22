@@ -38,18 +38,38 @@ if (!plikCytatow || !katalogZrodel) {
   process.exit(2);
 }
 
-/** Sprowadza oryginał i cytat do wspólnej postaci: bez ikon, odsyłaczy,
- *  punktorów, pogrubień i łamania wierszy. Sens zostaje, formatowanie nie. */
+/** Sprowadza oryginał i cytat do wspólnej postaci: bez ikon, znaczników
+ *  HTML, odsyłaczy, punktorów, pogrubień i łamania wierszy. Sens zostaje,
+ *  formatowanie nie.
+ *
+ *  Trzy reguły dopisane przy module 6 (2026-08-22) — wszystkie SYMETRYCZNE,
+ *  czyli stosowane tak samo do oryginału i do cytatu, więc nie potrafią
+ *  zamaskować różnicy w TREŚCI:
+ *  1. znaczniki HTML — dokumentacja GitHuba oznacza warianty platformowe
+ *     `<span class="platform-mac">…`, a lekcje 6.1–6.2 stoją na plikach
+ *     naszpikowanych nimi. Reguła `<svg>` była szczególnym przypadkiem tej.
+ *     PUŁAPKA: reguła musi stać ZA zdejmowaniem `>` cytatu blokowego i musi
+ *     wymagać litery po `<`, inaczej w komendzie `pbcopy < plik` znak `<`
+ *     łączy się w parę ze znacznikiem `>` następnego wiersza i zjada tekst
+ *     — po stronie cytatu, a nie oryginału, czyli tworzy fałszywy rozjazd;
+ *  2. atrybut `copy` we wskaźniku bloku kodu (```text copy) — to polecenie
+ *     dla generatora strony, nie treść;
+ *  3. odstęp przed przecinkiem/kropką — zostaje po usunięciu octiconu
+ *     (`select **Set up** <svg…/>, then click **Default**`).
+ */
 function normalizuj(s) {
   return s
     .replace(/<svg[\s\S]*?<\/svg>/g, " ")
     .replace(/^\s*>\s?/gm, "")
+    .replace(/<\/?[a-zA-Z][^<>]*>/g, " ")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\\\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\]/g, "")
+    .replace(/```([a-z]*) copy/g, "```$1")
     .replace(/\*\*/g, "")
     .replace(/^\s*[*-]\s+/gm, " ")
     .replace(/^\s*\d+\.\s+/gm, " ")
     .replace(/\s+/g, " ")
+    .replace(/\s+([,.;:])/g, "$1")
     .trim();
 }
 
@@ -79,7 +99,16 @@ for (const czesc of czesci) {
   // Blok kończy się na gołej linii `>` — to akapit, a nie ciąg dalszy.
   // Bez tego dwa akapity źródła sklejają się w jeden ciąg, którego
   // w oryginale nie ma, i narzędzie zgłasza rozjazd tam, gdzie go nie ma.
-  for (const blok of czesc.match(/^> .*(?:\n> .*)*/gm) ?? []) {
+  // Bloki kodu stojące SAMODZIELNIE (bez `> `) też są cytatem z oryginału —
+  // do 2026-08-22 narzędzie ich nie widziało. Luka wyszła testem negatywnym:
+  // podmiana `ubuntu-latest` → `ubuntu-newest` w czterech miejscach modułu 5
+  // przechodziła na zielono. Sprawdzone: wszystkie sześć takich bloków
+  // modułu 5 stoi w oryginale dosłownie, więc domknięcie nic nie psuje.
+  const bloki = [
+    ...(czesc.match(/^> .*(?:\n> .*)*/gm) ?? []),
+    ...(czesc.match(/^```[a-z]*\n[\s\S]*?^```/gm) ?? []),
+  ];
+  for (const blok of bloki) {
     const surowy = blok.replace(/^> ?/gm, "");
     // pomijamy własne komentarze redakcyjne w cudzysłowie blokowym
     if (/^\*\*/.test(surowy.trim())) continue;
