@@ -1795,3 +1795,137 @@ Objętości 11 876 / 11 780 / 11 835 / 11 798. Strażnicy 25/25,
 w cudzych katalogach, nie zamykać punktów kontroli U1–U4 (zamykają się
 dopiero po przejściu przez lekcje, których bramka dotąd nie objęła:
 4.2, 4.3, 4.5, 4.6 oraz 5.1, 5.2).
+
+#### MODUŁ 6 NAPISANY — Kurs 2 ma komplet prozy (2026-08-22, czat B)
+
+**Cztery lekcje, commit `09ecf0b`.** Objętości kontraktem: 11 760 (6.1 2FA) /
+11 963 (6.2 klucze SSH) / 11 942 (6.3 zabezpiecz repozytorium) / 12 497
+(6.4 secret scanning — ta jedna ma widełki 8 000–13 000, bo zamyka kurs).
+Mosty 26 / 26 / 14 przy progu 40, domknięcia 6.1–6.3 zgodne z tabelą briefu
+co do znaku, zrzuty 4/3/4/3, strażnicy 25/25.
+
+**Podsumowanie kursu w 6.4 sprawdzone osobno** przeciw tabeli 32 lekcji
+z briefu (to procedura po module, punkt 2): wszystkie sześć modułów opisane
+po nazwie, żadnego tematu z listy zakazanej, zero obietnic dalszych części.
+Klasa usterki z finału Kursu 1 nie wystąpiła.
+
+##### Co znalazł przelot spójności (agent główny, przed bramką)
+
+Czytanie przeciw ORYGINAŁOWI — nie przeciw tabeli autora — dało 16 usterek,
+w tym 5 istotnych. Powtórzenie wniosku z modułu 5: autorzy na Sonnecie
+oddają czystą mechanikę (objętość, most, domknięcie, cudzysłów — wszystko
+za pierwszym razem u wszystkich czterech), a mylą się tam, gdzie trzeba
+przeczytać źródło.
+
+1. **6.1 — teza rozszerzona na sąsiedni mechanizm (ISTOTNA).** Passkey
+   opisany jako „dostępny dopiero po TOTP albo SMS", bo tak jest z kluczem
+   bezpieczeństwa i GitHub Mobile; źródło mówi wprost coś innego („If you
+   don't use 2FA, using a passkey will skip the requirement to verify a new
+   device via email"). Zdążyło wejść do „Zapamiętaj".
+2. **6.3 — ścieżka interfejsu przeniesiona od sąsiada (ISTOTNA).** Alerty
+   Dependabota włącza się według źródła przez ustawienia **konta** („Click
+   your profile picture, then click Settings"); wszystkie inne sekcje tego
+   samego pliku zaczynają się od „From the main page of your repository".
+   Autor uogólnił ścieżkę na wszystkie przełączniki.
+3. **6.4 — sprzeczność wewnątrz lekcji (ISTOTNA, U4 trzeci raz z rzędu).**
+   Sekcja 1 powoływała się na przełącznik włączony w lekcji poprzedniej,
+   sekcja 4 pisała, że publiczne repozytorium ma skanowanie „bez żadnego
+   przełącznika do szukania".
+4. **6.2 — modalność OSŁABIONA (ISTOTNA).** Patrz osobny akapit niżej.
+5. Drobne: doklejki za myślnikiem (6.1, 6.4 ×2), zgubione zawężenia
+   (`--apple-use-keychain` bez hasła, `exec ssh-agent bash`, „depending on
+   the programming languages"), przykład wartości spolszczony („mój laptop"
+   zamiast źródłowego `Personal laptop`), „jedyny wyjątek", który wyjątkiem
+   nie był.
+
+##### NOWY KIERUNEK REGUŁY 9: modalność bywa OSŁABIANA, nie tylko wzmacniana
+
+Reguła 9 opisywała dotąd jeden kierunek — „can" zamieniane w tryb
+oznajmujący albo w „musisz". W module 6 wyszedł kierunek odwrotny, dwa razy
+i w dwóch lekcjach: 6.2 zamieniła `you will need to modify your ~/.ssh/config`
+w „dokumentacja **zaleca**", a 6.3 przepisała w **bloku cytatu**
+`you may not need to enable every feature` jako „**nie musisz** włączać
+każdej funkcji". Skutek jest gorszy niż przy wzmacnianiu: czytelnik pomija
+krok, który dokumentacja stawia jako wymóg. **Do promptu autora i
+weryfikatora: oba kierunki są usterką.** Wpisane do promptów fali 2 i do
+wszystkich ośmiu weryfikatorów tego modułu.
+
+##### Bramka cytatów — osiem przebiegów, po cztery na dwie najgęstsze lekcje
+
+Wskazanie briefu (6.2 i 6.3) utrzymane. Zamiast pięciu pytań jak w module 5
+— cztery na lekcję, przez połączenie gatunku (a) z doklejką za myślnikiem:
+(1) teza bez pokrycia + doklejka + obserwacja z ekranu; (2) bloki cytatu
+zdanie po zdaniu + cytat urwany w pół warunku; (3) zakres, modalność w obie
+strony, liczby, warunki, przekład, zawężenia systemowe; (4) tabela zgodności
+w trzy strony + sekcje pomocnicze. **Siedem przebiegów skończyło się,
+ósmy (6.3, tabela i sekcje pomocnicze) padł na limicie usage** — to jedyna
+niezrobiona część bramki prozy tego modułu.
+
+Wynik: **26 usterek zgłoszonych, wszystkie realne naprawione**; zero
+fałszywych alarmów, w odróżnieniu od modułu 5 (tam dwa) — bo prompt niósł
+listę rzeczy już naprawionych z zakazem cofania oraz polecenie sprawdzenia,
+czy kurs nie wprowadził tezy wcześniej z innego źródła. Weryfikatorzy z tego
+korzystali i jawnie odnotowywali, czego nie zgłaszają.
+
+**Dwie nowe klasy usterek, warte przeniesienia do kolejnych bramek:**
+
+- **TABELA ZGODNOŚCI NIE NADĄŻA ZA NAPRAWĄ PROZY.** Trzy niezależne przebiegi
+  zgłosiły ten sam wiersz 6.2: proza miała już poprawione `Personal laptop`,
+  a tabela dalej przypisywała dokumentacji przykład „mój laptop". To skutek
+  uboczny NASZYCH napraw, nie pracy autora — **po każdej naprawie prozy
+  trzeba przejść tabelę**. Ta sama mechanika co „naprawa terminu musi objąć
+  nagłówki punktów" z modułu 5.
+- **ŚCIĄGAWKA „Prompty z tej lekcji" MUSI ZNAĆ OSTRZEŻENIA WŁASNEJ LEKCJI.**
+  Blok Windows w 6.2 podawał `clip < …` jako gotową komendę do wklejenia,
+  podczas gdy sekcja merytoryczna tej samej lekcji ostrzegała, że w
+  PowerShell/Windows Terminal zwraca ona `ParseError`. Sekcja z gotowcami
+  jest czytana bez kontekstu — sprawdzać ją osobno przeciw poradnikowi.
+
+**Zbieżność niezależnych przebiegów znów była najlepszym filtrem:** usterkę
+istotną 6.3 (warunek grafu zależności rozciągnięty na „aktualizacje" i „resztę
+łańcucha bezpieczeństwa", gdy źródło wiąże go tylko z alertami i przeglądem
+zależności) zgłosiły dwa przebiegi niezależnie, a wiersz tabeli z „mój
+laptop" — trzy.
+
+**Weryfikatorzy zgłosili też cztery miejsca, w których ŹRÓDŁO SAMO JEST
+NIEJEDNOZNACZNE** i słusznie ich nie rozstrzygnęli: czy przegląd zależności
+włącza się sam z grafem czy wymaga Code Security; czy push protection jest
+częścią Secret Protection czy funkcją do dobrania; czy „part of a team"
+znaczy plan GitHub Team czy zespół w organizacji; czy publiczne repozytorium
+w ogóle wymaga kliknięcia „Enable". Lekcja podaje w tych miejscach obie
+wersje za źródłem — **nie rozstrzygać ich bez nowego źródła.** Osobno:
+źródło SSH przeczy samo sobie przy `IgnoreUnknown UseKeychain` (proza mówi
+`Host *.github.com`, blok do skopiowania — `Host github.com`); lekcja poszła
+za blokiem kodu i tak zostaje.
+
+##### NASTĘPNY KROK czatu B
+
+1. **Bramka pliku cytatów modułu 6** — `docs/dokumentacja-techniczna/d7/cytowane/github--modul-6.md`
+   (66 kB). **Sprawdzone: ma stary układ D7** — sekcje `L6.1`–`L6.6`, więc
+   dzisiejsza lekcja 6.3 („Zabezpiecz swoje repozytorium") stoi pod `L6.4`,
+   a 6.4 („Secret scanning") pod `L6.6`; `L6.3` i `L6.5` to lekcje wycięte
+   z programu. Przenumerować wzorcem z modułu 5: przedrostek **`D7-`** na
+   starej numeracji + tabela przelicznika w nagłówku + ostrzeżenie przy
+   sekcjach lekcji wyciętych (cytatów lekcji wyciętych NIE kasujemy —
+   powołują się na nie scenariusze D7). Potem narzędzie:
+   `node tools/cytaty-zgodne.mjs docs/dokumentacja-techniczna/d7/cytowane/github--modul-6.md docs/dokumentacja-techniczna/d7/github D7-6.1 D7-6.2 D7-6.4 D7-6.6`
+   (uwaga: źródła modułu 6 leżą w dwóch gałęziach drzewa — `github/authentication`
+   dla 6.1–6.2 i `github/code-security` dla 6.3–6.4; sprawdzić, czy narzędzie
+   przyjmie katalog `github` jako korzeń). Wzorzec z modułu 5 mówi, że ta
+   bramka jest DRUGĄ BRAMKĄ JAKOŚCI, nie porządkami: w module 5 dała
+   15 usterek istotnych, głównie **braków pokrycia** (kroki interfejsu i listy
+   wypadały, treść wykładowa zostawała).
+2. **Czwarty przebieg bramki 6.3** (tabela zgodności w trzy strony + sekcje
+   pomocnicze) — padł na limicie usage, do powtórzenia. Pozostałe trzy
+   przebiegi tej lekcji są zrobione.
+3. **`POSTEP.md`** — wpis obejmie moduły 4, 5 i 6 razem, wraz z nieaktualnym
+   wierszem tabeli „Kurs 2 (7 modułów) | 50 | — | ⬜ przed startem".
+4. **Lekcja 4.1** — nadal czeka na zdanie zamykające moduł 3 od czatu A.
+5. **Wgranie treści do bazy** — czeka na czat A podwójnie: cięty program ORAZ
+   przenumerowanie pozycji lekcji na ciągłe `0…N-1` (sekcja „DZIURY
+   W POZYCJACH LEKCJI W BAZIE" wyżej).
+
+**Punkty kontroli U1–U4 zostają OTWARTE.** Bramka modułu 6 objęła 6.2 i 6.3;
+6.1 i 6.4 sprawdził tylko przelot agenta głównego, a z modułów 4 i 5 nadal
+nie mają bramki lekcje 4.2, 4.3, 4.5, 4.6 oraz 5.1 i 5.2. U3 i U4 wyszły
+w tym module ponownie (6.3 i 6.4), co daje im trzecie potwierdzenie z rzędu.
