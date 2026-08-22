@@ -1265,7 +1265,7 @@ cięciu (4.1 GitHub Flow, 4.2 Issues, 4.4 Czym jest pull request).
   a pull request", „Address review comments", „Merge your pull request"
   i „Delete your branch" **należą do 4.1** i nie zostały zużyte.
 
-### MODUŁ 2 KURSU 2 — STAN NA 2026-08-22 (czat A, przerwa na /clear)
+### MODUŁ 2 KURSU 2 — stan w połowie modułu (zapis historyczny; moduł ZAMKNIĘTY, patrz sekcja na końcu dokumentu)
 
 **Fala 1 ZROBIONA I ZREDAGOWANA: lekcje 2.1, 2.2, 2.3.** Trzej autorzy na
 Sonnecie 5, jeden autor = jedna lekcja, każdy z komendą mierzącą
@@ -1385,3 +1385,98 @@ odtworzenie zajmuje chwilę, bo wszystkie wzorce stoją w briefie modułu.
   zginęło; różnica bierze się z innej metody liczenia (całe pliki wobec
   samej treści dla klienta). Przy następnym porównaniu plik–baza używać
   pomiaru kontraktowego, inaczej wychodzi fałszywy alarm.
+
+### MODUŁ 2 KURSU 2 — ZAMKNIĘTY I WGRANY (2026-08-22, czat A)
+
+Sześć lekcji (2.1–2.5 + 2.7), **63 137 znaków** pomiaru kontraktowego,
+w bazie i w repo. Pełne liczby, cztery sygnały jakości, koszty na lekcję
+i wnioski z bramki: **[tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md)**,
+sekcja „Moduł 2 Kursu 2".
+
+**Weryfikacja dwustronna po wgraniu** (`db1:tresc` bez potoku, kod wyjścia 0):
+Kurs 2 ma w bazie 6 modułów, 32 lekcje, 12 z treścią, 127 555 znaków.
+**Proza modułu 1 nietknięta — 64 418 znaków co do znaku, tyle samo co przed
+operacją.** Numeracja modułu 2 ma celową dziurę na pozycji 6 (wycięta lekcja
+o rebase); plik ściągi nazywa się `proza-7-`, bo kontrakt wiąże numer pliku
+z `position + 1`.
+
+Trzy decyzje z kalibracji zdały pierwszy sprawdzian na pełnym module:
+**żadna z sześciu lekcji nie wypadła z widełek przy pierwszym oddaniu** —
+komenda mierząca w prompcie każdego autora działa. Autor 2.5 sam przyciął
+szkic z 14 929 do 11 467 znaków w trzynastu mierzonych przebiegach.
+
+#### DECYZJA WŁAŚCICIELA (2026-08-22) — REGUŁA NA CAŁY KURS
+
+**Gdy dokumentacja GitHuba rozjedzie się z podręcznikiem samego narzędzia,
+dokładamy podręcznik jako drugie źródło i odnotowujemy to w tabeli
+zgodności.** Kurs nie powtarza nieprawdy tylko dlatego, że stoi w migawce
+dokumentacji — ale też niczego nie zmyśla: korekta musi mieć własne,
+wskazane źródło.
+
+Powód: dokumentacja GitHuba twierdzi, że `git push` bez argumentów wysyła
+wszystkie pasujące gałęzie. Podręcznik Gita mówi, że tryb działający w ten
+sposób (`matching`) „przestał być domyślny w Gicie 2.0", a domyślny jest
+`simple` — wypycha samą bieżącą gałąź (sprawdzone na Gicie 2.55.0,
+`git help config`, hasło `push.default`). Lekcja 2.2 budowała na tym
+kontrast, którego czytelnik u siebie nie zobaczy.
+
+Zastosowane w sześciu miejscach (trzy w 2.2, trzy w ściądze 2.7), z podręcznikiem
+Gita zadeklarowanym w `zrodla:` lekcji 2.2. **Wpisać do briefu każdego
+kolejnego modułu**, sekcja „Reguły wspólne" — jest już w briefie modułu 2.
+
+#### Trzy klasy usterek, których nie łapie żaden strażnik
+
+Warte przeniesienia do briefu modułu 3 i do promptów weryfikatorów:
+
+1. **Fałszywa pamięć kursu.** Lekcja powołuje się na ćwiczenie z wcześniejszej
+   lekcji i myli się co do tego, co czytelnik tam zrobił (2.2 twierdziła, że
+   w ćwiczeniu 1.6 padło `git push origin main`; padło gołe `git push` —
+   a rozróżnienie tych form jest sercem lekcji 2.2). Weryfikować przeciw
+   REALNEJ prozie poprzednich lekcji, nie z pamięci.
+2. **Licznik wewnętrzny.** Lekcja trzy razy obiecuje pięć komunikatów błędu,
+   a przy piątym pisze „trzeci i ostatni" — bo pięć operacji nie mapuje się
+   1:1 na pięć błędów.
+3. **Zawężenie żyjące w tabeli, a zgubione w prozie** — trzy razy w tym
+   module. Autor pisze wiersz tabeli dokładnie, a w prozie skraca.
+   **Sprawdzać prozę PRZECIW własnej tabeli autora, nie tylko przeciw źródłu.**
+
+#### Ujednolicone oznaczenia zmiennych (do odwrócenia jedną komendą)
+
+Moduł miał dwie konwencje: 2.3 używała angielskich `REMOTE-NAME`/`BRANCH-NAME`
+(i wprost to czytelnikowi deklarowała), a 2.2 i 2.5 polskich
+`NAZWA-ZDALNEGO`/`NAZWA-GAŁĘZI` dla tych samych pojęć. Zgłosił to autor ściągi,
+bo na jednej kartce widać to najmocniej. Ujednolicone na **polskie** — tak mówi
+reguła 7 briefu i tak robiły trzy lekcje z czterech. Tabele zgodności zachowują
+notację źródła; `USERNAME/REPOSITORY` zostaje po angielsku, bo dokładnie tak
+wygląda w adresach i w komunikatach Gita. **Obowiązuje w module 3.**
+
+#### NASTĘPNY KROK CZATU A (dokładnie od tego zacząć)
+
+1. **Brief prozy modułu 3** (`tresc-kursow/jak-uzywac-githuba/modul-3/BRIEF-prozy-modulu.md`)
+   na wzór modułu 2, z trzema klasami usterek wyżej i regułą o podręczniku
+   narzędzia w „Regułach wspólnych".
+   **Uwaga: w module 3 problemem jest NADMIAR źródła, nie niedobór** —
+   źródło o Markdownie ma 30 kB, o gałęziach chronionych 21 kB. Rozpiska
+   „co pomijasz" waży tam więcej niż w module 2, gdzie źródła miały 0,3–8,3 kB.
+2. Moduł 3 po cięciu ma **pięć lekcji: 3.1, 3.2, 3.3, 3.5, 3.6** (wycięte 3.4
+   o licencji i 3.7 o dużych plikach — obu NIE WOLNO obiecywać w prozie).
+3. Most wejściowy jest już ustalony i **musi** zostać podjęty przez 3.1 —
+   ostatnie zdanie lekcji 2.7: „Masz codzienny rytm pracy i jedną kartkę
+   z komendami, po którą sięgniesz, gdy któraś wypadnie Ci z głowy. W module
+   trzecim zajmiemy się tym, jak Twoje repozytorium wygląda z zewnątrz:
+   dobrymi praktykami, README, formatowaniem w Markdownie, ochroną gałęzi
+   głównej i wydaniami z numerem wersji."
+4. **Szew między czatami: czat A ustala zdanie zamykające moduł 3 w swoim
+   briefie i przekazuje je czatowi B, zanim B napisze lekcję 4.1.**
+5. Bramka cytatów modułu 3: wyrywkowa, dwie najgęstsze lekcje, weryfikatory
+   na Opusie.
+
+**Czym pracować:** worktree `/home/krzysiek/Pod-strona-Szkolenia-k2-A`, gałąź
+`feat/tresc-k2-modul-2-3`, port **3012** (`fuser -k 3012/tcp`, potem
+`npx next dev -p 3012`). Przelot mechaniczny modułu (objętość kontraktem,
+mosty co do znaku z autokontrolą przeciw briefowi, tematy wycięte, obietnice
+lekcji, druga osoba małą literą, znaczniki zrzutów, tabela zgodności, nawrót
+BLAD-008) był skryptem w scratchpadzie sesji — odtworzenie zajmuje chwilę,
+bo wszystkie wzorce stoją w briefie modułu. **Nowy test sprawdzić testem
+negatywnym**: przy tym skrypcie podrzucenie sześciu usterek wykryło, że
+pierwotny wzorzec „lekcja o…" wywalał się na dozwolonych odsyłaczach WSTECZ.
