@@ -2032,3 +2032,27 @@ sprawdzić w ŻYWYM interfejsie, nie w pliku cytatów.
 4. **`POSTEP.md` — ZROBIONE** (wpis obejmuje moduły 4, 5 i 6; nieaktualny
    wiersz „Kurs 2 (7 modułów) | 50 | — | ⬜ przed startem" zastąpiony wierszami
    modułów, z jawnym wskazaniem, że moduły 1–3 to terytorium czatu A).
+
+#### DECYZJA WŁAŚCICIELA (2026-08-23): zrzuty dopiero po OBU kursach, na czacie A
+
+Zapytany przy domykaniu modułów 4–6, właściciel rozstrzygnął: **teraz nie
+robimy nic ze zrzutami** — ani samych zrzutów, ani audytu podpisów. **Przelot
+zrzutów odbędzie się NA KOŃCU WSZYSTKICH KURSÓW, na czacie A, gdy skończy
+swoją pracę.** To potwierdza i doprecyzowuje decyzję z 2026-08-19 (zrzuty
+osobnym przelotem na końcu, bo starzeją się najszybciej): dochodzi wskazanie
+CZATU i warunku startu — komplet prozy obu kursów.
+
+**Stan do przekazania temu przelotowi:**
+- miejsc `<!-- ZRZUT: … -->` w terytorium czatu B: **42** (moduł 4 — 16,
+  moduł 5 — 12, moduł 6 — 14). `straznik-prozy` liczy je dla całej gałęzi
+  („miejsc na zrzuty do przelotu końcowego"), więc licznik jest pod ręką;
+- **prawdziwych zrzutów nie da się zrobić bez realnego repozytorium
+  `stargazers-log`** z issues, pull requestami, przebiegami Actions, włączonym
+  2FA, kluczem SSH i włączonymi funkcjami bezpieczeństwa — przelot końcowy
+  musi to uwzględnić w budżecie;
+- **dwa podpisy są już podejrzane** (znalazł weryfikator bramki 6.1/6.2):
+  `Enter this text code instead` w 6.1 i `randomart image` w 6.2 — `grep` po
+  całym `d7/github/` nie znajduje ani jednego. Nie są tezami prozy, ale przy
+  robieniu zrzutu trzeba je sprawdzić w ŻYWYM interfejsie, nie w migawce
+  dokumentacji. **Klasa do sprawdzenia hurtem przy tamtym przelocie: podpis
+  zrzutu nazywa napis, którego dokumentacja nie zna.**
