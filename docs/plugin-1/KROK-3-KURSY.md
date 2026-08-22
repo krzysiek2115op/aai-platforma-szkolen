@@ -1452,9 +1452,14 @@ wygląda w adresach i w komunikatach Gita. **Obowiązuje w module 3.**
 
 #### NASTĘPNY KROK CZATU A (dokładnie od tego zacząć)
 
-1. **Brief prozy modułu 3** (`tresc-kursow/jak-uzywac-githuba/modul-3/BRIEF-prozy-modulu.md`)
-   na wzór modułu 2, z trzema klasami usterek wyżej i regułą o podręczniku
-   narzędzia w „Regułach wspólnych".
+1. ~~**Brief prozy modułu 3**~~ **ZROBIONE 2026-08-22** —
+   [tresc-kursow/jak-uzywac-githuba/modul-3/BRIEF-prozy-modulu.md](../../tresc-kursow/jak-uzywac-githuba/modul-3/BRIEF-prozy-modulu.md)
+   (56 kB): trzy klasy usterek z modułu 2, reguła o podręczniku narzędzia,
+   sekcja o NADMIARZE ŹRÓDŁA z wiążącą selekcją dla 3.3 (13 sekcji z 25)
+   i 3.5 (3 ustawienia rozwinięte z 13), stan czytelnika sprawdzony
+   `grep`-em w gotowej prozie, oba mosty zweryfikowane programowo.
+   **Następne: fala 1 — lekcje 3.1, 3.2, 3.3 równolegle, trzej autorzy
+   na Sonnecie, przegląd fali przed puszczeniem 3.5 i 3.6.**
    **Uwaga: w module 3 problemem jest NADMIAR źródła, nie niedobór** —
    źródło o Markdownie ma 30 kB, o gałęziach chronionych 21 kB. Rozpiska
    „co pomijasz" waży tam więcej niż w module 2, gdzie źródła miały 0,3–8,3 kB.
