@@ -2056,3 +2056,84 @@ CZATU i warunku startu — komplet prozy obu kursów.
   robieniu zrzutu trzeba je sprawdzić w ŻYWYM interfejsie, nie w migawce
   dokumentacji. **Klasa do sprawdzenia hurtem przy tamtym przelocie: podpis
   zrzutu nazywa napis, którego dokumentacja nie zna.**
+
+#### PUNKTY KONTROLI U1–U4, fala 1 (2026-08-23): moduł 4, lekcje 4.2, 4.3, 4.5, 4.6
+
+Cztery weryfikatory na Opusie, po jednym na lekcję, każdy z U1–U4 jako CZTEREMA
+osobnymi pytaniami. Wynik: **16 usterek istotnych i 38 drobnych, wszystkie
+naprawione** (commit `d9cd4dd`).
+
+**Główny wniosek: założenie, że te klasy wyczerpały się w module 5, było
+błędne — wszystkie cztery wystąpiły w KAŻDEJ z czterech lekcji.** Bramka
+wyrywkowa nie zastępuje przejścia po lekcjach, których nikt nie sprawdzał.
+
+**U3 pozostaje najgroźniejsza i wychodzi w czwartym module z rzędu.** Dwa
+przypadki warte zapamiętania:
+- 4.2 miała w `## Gdy coś nie działa` pozycję **w całości wymyśloną przy
+  biurku** — „Przycisk Submit new issue jest nieaktywny. Upewnij się, że pole
+  Title nie jest puste". Dokumentacja nie mówi ani o nieaktywnym przycisku,
+  ani o tym, że tytuł jest polem wymaganym; pozycja nie miała też wiersza
+  w tabeli zgodności, więc **przeszła obok wszystkich dotychczasowych kontroli**;
+- 4.6 tłumaczyła szary przycisk „Resolve conflicts" przyczyną, której źródło
+  nie podaje („konflikt za trudny na edytor"), i **kategorycznie wykluczała
+  brak uprawnień** — a to realna przyczyna przy pull requeście z cudzego forka.
+  Źródło podaje wyłącznie wyjście, nie przyczynę.
+
+**U4 w 4.2 — obietnica kontrolki, której czytelnik nie zobaczy.** Sekcja 3
+poprawnie umieszcza typy issue na poziomie organizacji, a sekcja 6 kazała
+ustawić typ w `stargazers-log` — prywatnym repozytorium na koncie osobistym.
+
+**NOWA ODMIANA U1: „must" ROZCIĄGNIĘTE NA SĄSIEDNI PRZYPADEK.** 4.6 przeniosła
+źródłowe „If the head branch is protected, you **must** create a new branch" na
+gałąź domyślną, dla której źródło wprost dopuszcza aktualizację head. Z rady
+zrobiła się twarda reguła — w checkliście z nagłówkiem „każda pozycja wprost ze
+źródła". **Do sprawdzania osobno: czy imperatyw źródła nie objął przypadku
+sąsiedniego.**
+
+**Wzorzec, który powtórzył się w dwóch lekcjach: ZAMYKANIE LISTY OTWARTEJ
+W ŹRÓDLE.** „dokładnie dwa przypadki" z „Merge conflicts **often happen**"
+(4.6) oraz „pięć części, z których składa się **każdy** pull request" (4.3) —
+przy czym drugie źródło tej samej lekcji wylicza jeszcze zakładkę **Findings**,
+której lekcja nie zna, a ćwiczenie kazało znaleźć „wszystkie pięć".
+
+**Klasa specyficzna dla lekcji bez bloków `>`:** żadna z czterech lekcji nie
+używa cytatu blokowego — przytoczenia stoją kursywą z atrybucją („Dokumentacja
+mówi…"). Weryfikatorzy sprawdzali je jako 13–28 osobnych tez na lekcję.
+**Wniosek: `cytaty-zgodne` tych lekcji nie obejmuje** (narzędzie czyta bloki `>`
+i bloki kodu), więc jedyną kontrolą wierności jest tu czytanie przez człowieka
+albo weryfikatora.
+
+**PUŁAPKA, W KTÓRĄ WPADŁEM SAM:** poprawka zdania zamykającego 4.3 („jedna
+reguła" → „twarde reguły", bo 4.4 mówi o dwóch warunkach) sprawiła, że
+domknięcie zaczęło dzielić **46 znaków** z pierwszym akapitem 4.4 przy progu 40
+— `most-lekcji` zaświecił „MOST PRZEPISANY". Przeredagowane na „na których
+wykłada się większość pierwszych prób", brief zsynchronizowany co do znaku.
+**Reguła: zmiana zdania mostowego wymaga ponownego pomiaru mostu, nawet gdy
+zmiana jest merytoryczna, a nie stylistyczna.**
+
+**Objętość — reguła 5 czwarty raz z rzędu.** Naprawy wypchnęły CZTERY lekcje
+ponad sufit naraz (12 427 / 12 512 / 12 529 / 12 600). Margines odzyskany
+cięciem prozy redakcyjnej: ram przed cytatami („Zdanie warte zapamiętania
+dosłownie, bo… Cytuję:" → „Cytuję:"), parafraz cytatu stojącego bezpośrednio
+obok i dopowiedzeń skutku. Wynik: 11 787 / 11 785 / 11 791 / 11 885.
+**Trymowanie zlecone osobnemu subagentowi z jawną listą tego, czego NIE wolno
+ruszać** (cytaty, warunki, modalności, świeże naprawy, pierwszy akapit,
+`## Co dalej`, komentarze `ZRZUT`) — sprawdziło się i przy okazji złapało moje
+własne zdanie z błędem składniowym, wprowadzone przy naprawie U3 w 4.6.
+
+##### Stan punktów kontroli po fali 1
+
+| # | Objęte bramką | Zostaje do sprawdzenia |
+|---|---|---|
+| U1 | 4.2, 4.3, 4.5, 4.6 + 4.4, 4.7, 5.3, 5.4, 6.2, 6.3 | **5.1, 5.2, 6.1, 6.4** |
+| U2 | j.w. | j.w. |
+| U3 | j.w. | j.w. |
+| U4 | j.w. | j.w. |
+
+**FALA 2 — NASTĘPNY KROK czatu B: lekcje 5.1, 5.2, 6.1 i 6.4**, tym samym
+przepisem (jeden weryfikator na lekcję, Opus, U1–U4 jako cztery osobne
+pytania, zakaz edycji plików, polecenie sprawdzenia legalnych odwołań wstecz).
+Po niej punkty kontroli **zamykają się dla całego terytorium czatu B** —
+14 lekcji modułów 4–6. Budżet: fala 1 kosztowała ~380 tys. tokenów subagentów
+plus ~130 tys. na trymowanie; fala 2 będzie tańsza (cztery lekcje zamiast
+czterech dłuższych, moduły 5 i 6 mają krótsze źródła).
