@@ -1234,6 +1234,50 @@ w repo w komplecie 50 lekcji. Odsyłacz do lekcji **wyciętej** przejdzie
 więc przez strażnika. Nie ma tu dla nas siatki — pilnuje tego tabela
 granic w briefie modułu.
 
+#### ⚠️ CZATY ROZJECHAŁY SIĘ NA TEJ DECYZJI — do rozstrzygnięcia przed scaleniem gałęzi (znalezisko czatu A, 2026-08-22)
+
+Decyzja wyżej („numeracja ORYGINALNA, `position` ma dziury") wiąże oba
+czaty, ale **czat B ponumerował prozę modułu 4 CIĄGLE** — sprawdzone
+w `../Pod-strona-Szkolenia-k2-B` 2026-08-22.
+
+| | czat A (moduły 2, 3) | czat B (moduł 4) |
+|---|---|---|
+| konwencja | numer z PROGRAM-KURSOW-D7.md, dziury zachowane | numer = pozycja w ciętym programie, bez dziur |
+| pliki | `proza-1…5`, `proza-7` (moduł 2) | `proza-2…7` (moduł 4) |
+| `straznik-prozy`, kontrola 2 | dopasowanie prozy do scenariusza **po numerze** | **przepisana na dopasowanie po TYTULE** |
+
+**Co z tego wynika twardo** (nie hipoteza — `dopasujDoProgramu`
+w `lib/proza-lekcji.ts` szuka lekcji po `position + 1`, a potem żąda
+zgodności tytułu co do znaku):
+
+- baza ma dziś w module 4 pozycje **0,1,3,4,5,7,8** (sprawdzone SQL-em
+  2026-08-22), czyli numery plików **2,4,5,6,8,9**;
+- z sześciu plików prozy czatu B **wgra się jeden** (`proza-2`, bo
+  „Issues: planowanie pracy" stoi na pozycji 1 i tam dziury jeszcze nie
+  ma). Pozostałe pięć **odbije się z błędem** „moduł 4 nie ma lekcji N";
+- **nic się nie zepsuje po cichu** — tytuły są rozłączne, więc nie da się
+  wgrać treści pod niewłaściwą lekcję. Awaria jest głośna i pusta
+  (`Nie wysłałem NICZEGO`).
+
+**Rekomendacja czatu A — synteza, nie wybór jednej strony:**
+
+1. **Numeracja: zostaje wersja z dziurami.** Nie z pierwszeństwa, tylko
+   dlatego, że tak stoi baza i tak stoi już wgrana proza modułów 1 i 2
+   Kursu 2 — odwrócenie znaczy przenumerowanie bazy pod treścią, która
+   w niej leży. Koszt drugiej drogi: czat B zmienia **6 nazw plików
+   i 6 linii frontmatteru**, mechanicznie.
+2. **Poprawka strażnika czatu B ZOSTAJE.** Dopasowanie po tytule jest
+   lepsze od dopasowania po numerze i domyka dziurę, którą czat A opisał
+   w briefie modułu 3: plik `proza-4-licencja.md` przechodzi dziś przez
+   `straznik-prozy` bez słowa, bo scenariusz wyciętej lekcji leży
+   w katalogu. Po scaleniu gałęzi **wersja czatu B wygrywa w tym pliku**.
+3. Do sprawdzenia przy scaleniu: `tools/straznicy/straznik-prozy.mjs`
+   rozjechał się między gałęziami i **będzie konfliktem** — to jedyny
+   znany wspólny plik obu czatów poza dokumentacją.
+
+**Decyzja należy do właściciela albo do czatu, który scala gałęzie** —
+żaden czat treści nie zmienia numeracji w cudzym module.
+
 #### Most z modułu 3 do modułu 4 — DOSŁOWNIE (dla czatu B)
 
 Czat A ustalił zdanie zamykające moduł 3. **Lekcja 4.1 otwiera się jego
