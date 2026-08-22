@@ -1317,6 +1317,25 @@ w module 5: czytanie pliku workflow linia po linii przechodzi z wyciętej
 `matrix`, „środowisko" to jedno zdanie definicji w lekcji o sekretach,
 a wdrożenie (CD) wypada z kursu bez śladu.
 
+#### Gdzie wylądowały wnioski (żeby nie szukać)
+
+**Pięć reguł produkcji** wyprowadzonych z modułu 4 stoi w briefach prozy
+modułów **5 i 6**, w sekcji „Reguły produkcji dopisane po module 4" tuż
+przed „Fale i kolejność": most podjęty a nie przepisany (z progiem
+40 znaków i wymogiem, żeby ostrzeżenie było w prompcie KAŻDEGO autora),
+konwencja cudzysłowu `„tekst"`, dwa gatunki usterek dla bramki, odsyłacz
+„poprzednia lekcja" kontra nowa numeracja, zapas pod sufitem widełek.
+Tabela „Znaleziska przebiegu" w briefie modułu 4 jest uzupełniona
+o siedem wierszy z tego przebiegu.
+
+**`POSTEP.md` świadomie NIE jest jeszcze ruszony.** Wpisy powstają tam
+przy zamknięciu modułu, a moduł 4 nie jest zamknięty (brakuje 4.1)
+i moduł 5 jest w połowie. Drugi powód: `POSTEP.md` to plik wspólny obu
+czatów Kursu 2 i edytowanie go w połowie pracy zaprasza konflikt przy
+scalaniu gałęzi. Do zrobienia razem z zamknięciem modułu — łącznie
+z wierszem tabeli „Kurs 2 (7 modułów) | 50 | — | ⬜ przed startem",
+który jest nieaktualny od cięcia programu.
+
 **Następny krok po powrocie: fala 2 modułu 5 — lekcje 5.3 „Continuous
 Integration" i 5.4 „Sekrety w workflow"** (dwóch autorów na Sonnecie
 równolegle, jeden autor = jedna lekcja, komenda mierząca objętość
