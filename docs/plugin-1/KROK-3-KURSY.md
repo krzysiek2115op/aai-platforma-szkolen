@@ -1520,3 +1520,126 @@ autora — łapie to przed bramką i taniej niż Opus.
 **`POSTEP.md` nadal świadomie nietknięty**: wpis powstaje przy ZAMKNIĘCIU
 modułu, a moduł 5 nie jest zamknięty (bramka 5.3 przerwana), tak samo
 moduł 4 (brak lekcji 4.1 zablokowanej na czacie A).
+
+#### Bramka cytatów 5.3 „Continuous Integration" — ZROBIONA (2026-08-22)
+
+Pięć weryfikatorów na Opusie, równolegle, **każdy z jednym pytaniem**:
+(1) wniosek autora jako teza dokumentacji + obserwacja z ekranu [U2];
+(2) bloki cytatu `>` zdanie po zdaniu + cytat urwany w pół warunku [U1];
+(3) zakres tez — kwantyfikatory, modalność, warunki, liczby, przekład;
+(4) tabela zgodności wiersz po wierszu w TRZY strony (wiersz→źródło,
+wiersz→lekcja, **lekcja→tabela**); (5) sekcje pomocnicze [U3, U4],
+ćwiczenie, etykiety treści własnych. Każdy dostał zakaz edycji plików,
+listę czterech rozjazdów naprawionych wcześniej przelotem (z zakazem
+cofania) i informację, że bloki YAML są już potwierdzone bajt w bajt.
+Wynik: **2 usterki istotne i 17 drobnych naprawionych**, 2 zgłoszenia
+odrzucone jako fałszywy alarm.
+
+**Rozdzielenie pytań opłaciło się mierzalnie — żadna z dwóch usterek
+istotnych nie została znaleziona przez wszystkich pięciu.** Zbieżność
+niezależnych przebiegów była za to najlepszym filtrem: siedem tez
+zgłosiło po dwóch–trzech weryfikatorów i wszystkie siedem się obroniło.
+
+**Usterka istotna 1 — `matrix` mnoży JOBY, nie „przebiegi".** Znalazły
+niezależnie trzy przebiegi (1, 3, 5). Źródło: „Each version of Node.js
+specified in the `node-version` array creates a **job** that runs the
+same steps". Lekcja rozszerzała to raz na „uruchomi **cały plik**
+dwukrotnie", raz na „**przebiegi**" — a `matrix` daje N jobów w JEDNYM
+przebiegu. Skutek najgorszy z możliwych w poradniku: punkt
+`## Gdy coś nie działa` obiecywał objaw, **który nigdy nie wystąpi**
+(„Widzę dwa albo trzy przebiegi dla tego samego commita"), i przeczył
+własnemu wyjaśnieniu dwa słowa dalej („osobny job"). Kurs ma na to
+twardy słownik: 5.1 wprowadziła „przebieg" = *workflow run* ze swojego
+źródła, więc to nie była luźna synonimia. Tabela zgodności była tu
+akurat POPRAWNA — czyli tabela nie wyłapie usterki, której proza nie
+zgłasza do sprawdzenia.
+
+**Usterka istotna 2 — odsyłacz po NUMERZE modułu.** „znaczki, które
+widziałeś na pull requestach **w module czwartym**" przy tabeli
+odniesień briefu, która dla tego samego tematu podaje formę „widziałeś
+je w module o współpracy" — a sama lekcja dziesięć linii niżej odsyła
+poprawnie, po nazwie. Poprawione na formę z briefu.
+
+**Nowa klasa usterki, warta zapamiętania: DOKLEJKA ZA MYŚLNIKIEM
+w zdaniu otwartym formułą „Dokumentacja mówi wprost".** Trafiła się
+trzy razy w jednej lekcji: „…jedna z wypchniętych zmian mogła być
+przyczyną — **wracaj do ostatniego commita, nie do samego workflow**"
+(źródło zostawia inne przyczyny otwarte, a błąd w samym pliku workflow
+to typowa przyczyna czerwonego przebiegu); „instaluje zależności
+z `package.json` — **ale bez tej samej gwarancji dokładnych wersji**"
+(źródło o `npm install` mówi JEDNO zdanie opisowe i nic nie porównuje);
+„budują kod **(jeśli projekt w ogóle ma taki krok)**" (semantyka
+`--if-present` to wiedza o npm, nie teza dokumentacji GitHuba). Gatunek
+(a) z briefu opisuje CAŁE zdanie bez pokrycia; ta odmiana chowa się
+w ogonie zdania, którego pierwsza połowa jest wierna co do słowa —
+i dlatego przechodzi przez czytanie „czy to zdanie jest w źródle".
+
+**Rodzina usterek, która wyszła seryjnie: ZDJĘTA MODALNOŚĆ.** Pięć
+miejsc, w których źródłowe „can / you can" zamieniło się w tryb
+oznajmujący: „who **can** spend" → „programista spędza"; „workflows
+that **can** build" → „workflow budują"; „**You can configure**" →
+„konfigurujesz"; „**You can use** npm … to install dependencies" →
+„workflow **musi mieć** zainstalowane zależności"; „You can build and
+test updates **locally before pushing code**" → „serwera **lokalnego**"
+(z tego ostatniego wyparował cały warunek: pierwszy wariant źródła to
+robota u siebie PRZED pushem, a nie drugi rodzaj serwera). Każde
+z osobna wygląda na stylistykę; razem robią z możliwości — wymóg.
+**Do promptu autora na kolejne fale: modalność źródła jest treścią,
+nie ozdobnikiem.**
+
+**Trzeci wniosek: kierunek „lekcja → tabela" to jedyny, który coś
+znalazł.** Wiersze tabeli wskazywały istniejące sekcje i opisywały
+realną treść lekcji (kierunki 1 i 2 czyste, 20 wierszy), ale **dziewięć
+tez postawionych w lekcji nie miało w tabeli wiersza** — w tym trzy
+niosące ciężar: mechanizm polecania szablonów (na nim stoi pierwszy
+punkt „Gdy coś nie działa"), ciągłe budowanie i testowanie po commicie
+oraz semantyka `${{ … }}`, obiecana w „Czego się nauczysz"
+i powtórzona w „Zapamiętaj". Dopisane sześć wierszy, w tym **dwa
+z jawną etykietą „poza C i N"**: jeden dla `${{ … }}` (brief zleca to
+zdanie 5.3, więc treść zostaje — brakowało oznaczenia, że źródło mówi
+w tym miejscu wyłącznie o kontekście `matrix`), drugi dla runnera
+startującego czysto i akcji `checkout`.
+
+**Dwa zgłoszenia ODRZUCONE po sprawdzeniu w oryginale** — i to jest
+lekcja o samej bramce. Dwa przebiegi zgłosiły runner „świeży przy
+każdym przebiegu" i `checkout` „pobiera repozytorium na runner" jako
+tezy bez pokrycia, bo w źródłach 5.3 ich nie ma. Są **legalnymi
+odwołaniami wstecz**: 5.1 podaje oba z własnego źródła
+(`understand-github-actions.md`, „Runners" i „Actions") i ma je
+w swojej tabeli zgodności. Znalazł to jedyny weryfikator, który
+przeczytał lekcje SĄSIEDNIE. **Wniosek do promptu weryfikatora:
+zanim zgłosisz tezę bez pokrycia, sprawdź, czy kurs nie wprowadził jej
+wcześniej z innego źródła** — inaczej bramka zaczyna kasować wiedzę
+zbudowaną w poprzednich lekcjach. Zamiast usuwać, dopisaliśmy im
+wiersze tabeli z etykietą pochodzenia.
+
+**Objętość — reguła 5 briefu potwierdzona po raz drugi z rzędu.**
+Naprawy wypchnęły lekcję z 11 709 na **11 999** (jeden znak pod
+sufitem), więc margines odzyskany cięciem **prozy redakcyjnej**, nie
+treści ze źródła: **11 835**. Tabela zgodności NIE liczy się do widełek
+(`lib/proza-lekcji.ts`: `tresc` = markdown bez frontmatteru i bez
+tabeli), więc wiersze dowodowe są darmowe — warto o tym pamiętać,
+bo dopisanie sześciu wierszy wyglądało na wydatek, a nie było nim.
+
+**Dowody po bramce:** strażnicy 25/25, mosty 27 (5.2→5.3) i 19
+(5.3→5.4) przy progu 40, domknięcie `## Co dalej` zgodne z tabelą
+mostów briefu co do znaku, zero znaków `”`.
+
+##### Punkty kontroli U1–U4 — stan po bramce 5.3 (NADAL OTWARTE)
+
+Weryfikatorzy dostali U1–U4 jako osobne pytania. Wynik:
+
+| # | Co wyszło w 5.3 | Stan klasy |
+|---|---|---|
+| **U1** cytat urwany w pół warunku | wewnątrz trzech bloków `>` **nie wystąpił** — wszystkie trzy to wierne przekłady ciągłych fragmentów jednego akapitu źródła, bez sklejek. Wystąpiła za to **łagodniejsza odmiana poza blokami**: zgubiony warunek „locally **before pushing code**" i pięć zdjętych „can" | OTWARTA — nie sprawdzono 5.1, 5.2 ani 4.2, 4.3, 4.5, 4.6 |
+| **U2** obserwacja z ekranu jako teza | nie wystąpiła w tej postaci; wystąpił za to jej krewny — **wiedza o npm** (`--if-present`) i **wniosek o `npm install`** podane jako teza dokumentacji | OTWARTA — j.w. |
+| **U3** diagnoza opisuje widoczność interfejsu | **wystąpiła i była to usterka ISTOTNA** — „Widzę dwa albo trzy przebiegi", czyli opis ekranu, którego źródło nie opisuje i którego użytkownik nie zobaczy. Druga: „na podstawie faktycznej zawartości repozytorium" zamiast źródłowego „języka i frameworka" | OTWARTA, **potwierdzona jako realna w drugiej lekcji z rzędu** |
+| **U4** sprzeczność wewnątrz lekcji | **wystąpiła** — nagłówek punktu poradnika („przebiegi") przeczył własnemu wyjaśnieniu („osobny job") w tej samej linii | OTWARTA, potwierdzona w drugiej lekcji z rzędu |
+
+**U3 i U4 wyszły teraz dwa razy pod rząd, w lekcjach dwóch różnych
+autorów.** To przestaje wyglądać na przypadek: obie klasy osiadają
+w sekcji `## Gdy coś nie działa`, bo autor pisze ją z wyobrażenia
+ekranu, a nie ze źródła. **Rekomendacja na moduł 6: nie czekać na
+bramkę wyrywkową — przelot spójności ma czytać `## Gdy coś nie działa`
+KAŻDEJ lekcji przeciw źródłu, pozycja po pozycji.** To najtańsze
+miejsce, w którym te dwie klasy dają się złapać hurtem.
