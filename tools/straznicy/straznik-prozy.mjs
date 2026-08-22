@@ -20,8 +20,15 @@
  *      źródłem" o wymaganej głębokości i mieści się w kontrakcie
  *      `TrescLekcji`. Ta sama funkcja, której używa narzędzie wgrywania,
  *      więc CI odrzuca dokładnie to, co odrzuciłby serwer;
- *   2. do każdej prozy istnieje scenariusz tej samej lekcji — proza nie
- *      wymyśla lekcji spoza programu;
+ *   2. do każdej prozy istnieje scenariusz o TYM SAMYM TYTULE — proza nie
+ *      wymyśla lekcji spoza programu. Po tytule, nie po numerze: cięcie
+ *      Kursu 2 (decyzja właściciela 2026-08-22) usunęło z programu
+ *      dziewiętnaście lekcji, więc numer prozy to pozycja w NOWYM
+ *      programie, a numer scenariusza został przy starym. Dopasowanie po
+ *      numerze świeciło się wtedy na zielono, dowodząc istnienia CUDZEJ
+ *      lekcji (`proza-3-czym-jest-pull-request.md` znajdowało
+ *      `lekcja-3-tworzenie-i-prowadzenie-issue.md`) — czyli kontrola
+ *      celowała w nazwę pliku zamiast w to, czego naprawdę pilnuje;
  *   3. proza nie niesie znaczników nagrania (`[EKRAN]`, `[NARRACJA]`) —
  *      to sygnał, że ktoś wkleił scenariusz zamiast napisać tekst;
  *   4. znaczniki miejsc na zrzuty są domknięte (`<!-- ZRZUT: … -->`),
@@ -68,12 +75,23 @@ if (existsSync(KATALOG)) {
         }
 
         // --- 2. proza nie wymyśla lekcji spoza programu ---
-        const scenariusz = readdirSync(mp).some((s) =>
-          new RegExp(`^lekcja-${numer}-.*\\.md$`).test(s)
-        );
+        const tytulProzy = /^lekcja:\s*\d+\s*[—-]\s*(.+)$/m
+          .exec(surowy.slice(0, surowy.indexOf("\n---", 4)))?.[1]
+          ?.trim();
+        const scenariusz = readdirSync(mp)
+          .filter((s) => /^lekcja-\d+-.*\.md$/.test(s))
+          .some((s) => {
+            const tekst = readFileSync(join(mp, s), "utf8");
+            const koniec = tekst.indexOf("\n---", 4);
+            if (koniec === -1) return false;
+            const tytul = /^lekcja:\s*\d+\s*[—-]\s*(.+)$/m
+              .exec(tekst.slice(0, koniec))?.[1]
+              ?.trim();
+            return tytul !== undefined && tytul === tytulProzy;
+          });
         if (!scenariusz) {
           bledy.push(
-            `${sciezka}: nie ma scenariusza lekcji ${numer} w tym module — proza opisuje lekcję, której program nie zna.`
+            `${sciezka}: żaden scenariusz w tym module nie nosi tytułu „${tytulProzy ?? "?"}” — proza opisuje lekcję, której program nie zna.`
           );
         }
 

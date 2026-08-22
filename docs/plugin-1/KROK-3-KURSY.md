@@ -1194,6 +1194,7 @@ i przekazuje je czatowi B, zanim B napisze lekcję 4.1.**
   w etapie 4, pod program 32-lekcyjny.
 - **Przelot zrzutów ekranu** na końcu produkcji: 94 miejsca w prozie.
 
+
 ### CIĘTY PROGRAM W BAZIE — ZROBIONE (2026-08-22, czat A)
 
 Pierwsze zadanie czatu A wykonane wg procedury wyżej. **Proza modułu 1
@@ -1590,6 +1591,964 @@ to, czego nie da się zrobić w pojedynkę:
    [`tresc-kursow/AUDYT-KONCOWY.md`](../../tresc-kursow/AUDYT-KONCOWY.md)
    — pięć nowych, w tym ścieżki kliknięć niesprawdzone wobec żywego
    interfejsu (do przelotu zrzutów) i cudzysłów zamykający.
+
+### CZAT B Kursu 2 (moduły 4, 5, 6) — stan na 2026-08-22, po fali 2 modułu 5
+
+Worktree `/home/krzysiek/Pod-strona-Szkolenia-k2-B`, gałąź
+`feat/tresc-k2-modul-4-6` (od `feat/tresc-k2-modul-1`), port dev 3013.
+`node_modules` i trzy katalogi `docs/dokumentacja-techniczna/d7/*` są
+KOPIAMI (`cp -al`), `.env` dowiązaniem.
+
+**Moduł 4 — sześć lekcji (4.2–4.7) po przeglądzie i po bramce cytatów.**
+Objętości mierzone kontraktem: 11 639 / 11 909 / 11 802 / 11 945 /
+11 988 / 11 944 znaków. Domknięcia zgodne z tabelą mostów co do znaku,
+mosty wejściowe podjęte (próg: żaden wspólny ciąg dłuższy niż 40 znaków).
+
+**Moduł 5 — fala 1 gotowa i przejrzana**: 5.1 „Zrozum GitHub Actions"
+(11 876) i 5.2 „Pierwszy workflow w 10 minut" (11 780). Oba mosty
+podjęte, domknięcia co do znaku, strażnicy zieleni.
+
+**Zablokowane na czacie A (bez zmian, sprawdzone 2026-08-22):**
+1. **Lekcja 4.1** — otwiera się podjęciem zdania, którym czat A zamyka
+   moduł 3. W briefie modułu 4 stoi `⛔ CZEKA NA CZAT A`. Czat A nie ma
+   jeszcze ANI JEDNEJ lekcji prozy modułu 3 (w jego worktree leżą same
+   scenariusze `lekcja-*.md`) ani briefu prozy tego modułu, więc zdania
+   nie będzie prędko. Reszta modułu 4 go nie potrzebuje.
+2. **Wgrywanie treści do bazy** — ma sens dopiero po tym, jak czat A
+   wprowadzi cięty program. Dziś w bazie stoi stary program 50-lekcyjny,
+   więc dopasowanie po pozycji i tytule odrzuci prozę (i dobrze — to ten
+   strażnik, nie usterka). Komenda, gdy przyjdzie pora:
+   `npm run db1:tresc -- --kurs jak-uzywac-githuba --modul N --sprawdz`,
+   potem bez `--sprawdz`, zawsze z `--adres http://localhost:3013`.
+
+#### Co dał przelot spójności modułu 4 (trzy usterki, wszystkie naprawione)
+
+Najważniejsze: **usterka „most przepisany, nie podjęty" nie była
+jednorazowa.** Wyszła w 4.7, a przelot znalazł ją jeszcze dwa razy —
+4.2 przepisywała domknięcie 4.1 ciągiem 121 znaków (całe pierwsze
+zdanie) plus 100 znaków z drugiego, a 4.4 domknięcie 4.3 ciągiem
+88 znaków, z dopisanym jednym słowem „już". Trzech autorów na sześciu.
+**Wniosek na następne fale: to trzeba sprawdzać MASZYNOWO** — próg
+40 znaków wspólnego ciągu między domknięciem poprzedniej lekcji
+a pierwszym akapitem następnej. Prompt autora dostał od tej pory jawne
+ostrzeżenie i zapowiedź takiego sprawdzenia; w fali 1 modułu 5 usterka
+nie wystąpiła ani razu (autor 5.2 zgłosił nawet, że złapał ją u siebie
+w pierwszym szkicu i przepisał akapit).
+
+Poza tym: ćwiczenie 4.4 odsyłało po numer issue „do poprzedniej lekcji",
+a issue zakłada się w 4.2 — po cięciu programu poprzednia to 4.3.
+**Klasa usterki do zapamiętania: odsyłacz „poprzednia lekcja" trzeba
+sprawdzać przeciw NOWEJ numeracji, nie przeciw scenariuszom.**
+Lekcja 4.6 jako jedyna zamykała cudzysłowy znakiem `”` zamiast `"`
+(33 wystąpienia) — konwencja Kursu 2 to `„tekst"`, wzięta z modułu 1.
+
+#### Bramka cytatów modułu 4 — wyrywkowa, 4.4 i 4.7, weryfikatory na Opusie
+
+**4.7: dwie usterki istotne, cztery drobne.** Największa: rada „kasuj
+gałąź od razu po scaleniu" była **wnioskiem autora podanym jako teza
+dokumentacji** — źródło nie mówi o kasowaniu gałęzi ani słowa, a rada
+zdążyła rozejść się na cztery miejsca (proza, ćwiczenie, ściąga,
+„Zapamiętaj"). Druga: „zawsze wyrzuca puste" rozszerzało źródło, które
+mówi o commitach pustych OD POCZĄTKU. Drobne: zgubione „deviates
+slightly", mylnie przetłumaczone „on top of an ancestor commit", sekcja
+„Jak wybierać" przecząca własnej lekcji („liniowość z zachowanymi
+commitami"), wniosek o podpisach i objaśnienie `--no-ff` udające treść
+dokumentacji.
+
+**4.4: pięć usterek istotnych.** W bloku cytatu stało **dopisane zdanie
+diagnozy**, którego w źródle nie ma — formatowanie sugerowało, że
+cytuje dokumentację. Dwie tezy o zachowaniu GitHuba bez pokrycia
+(odwrócony base/compare, rzekomo proponowana nowa gałąź przy edycji
+z **Files changed**). Wypadła druga ścieżka słowa kluczowego — **w treści
+commita**, wraz z zastrzeżeniem, że taki pull request NIE zostanie
+wypisany jako powiązany. Wiersz tabeli zgodności opisywał treść, której
+w lekcji nie ma. Dopisane ze wskazanej sekcji: warianty zapisu
+(`Closes: #10`, `CLOSES #10`) i reguła odpinania.
+
+**Trzy rzeczy warte zapamiętania z tej bramki:**
+1. **Wniosek autora podany jako teza dokumentacji to najgroźniejszy
+   gatunek** — brzmi sensownie, więc przechodzi przez przelot spójności
+   i rozmnaża się do podsumowań. Oba weryfikatory znalazły po jednym
+   takim przypadku, w dwóch niezależnych lekcjach.
+2. **Dopisane zdanie WEWNĄTRZ bloku cytatu** to nowa odmiana tej samej
+   klasy — warto szukać jej osobno, bo formatowanie kłamie.
+3. **Cytaty weryfikatora sprawdziłem sam w oryginale przed wpisaniem**
+   (cztery zdania w źródle 4.4, `grep`). Zgadzały się co do słowa, ale
+   pierwszy `grep` ich nie znalazł przez wielkość liter — brak trafienia
+   nie dowodzi, że zdania nie ma.
+
+**Objętość: naprawy potrafią wypchnąć lekcję ponad sufit.** 4.7 po
+poprawkach wyszło na 12 275 znaków i wróciło pod 12 000 przez cięcie
+prozy redakcyjnej (zdania powtarzającego punkt z „Gdy coś nie działa",
+rozwlekłych przeformułowań) — **nie treści ze źródła**. Przy lekcjach
+oddawanych blisko sufitu trzeba na to budżet.
+
+#### Fala 1 modułu 5 — co poprawił agent główny
+
+Obie lekcje bez usterek klasy „teza bez pokrycia". Trzy poprawki
+granic i jedna redakcyjna:
+- **5.1** miała zrzut poświęcony liście szablonów workflow — to
+  wyłączność 5.2; zrzut usunięty (zostały 2, w widełkach 2–4).
+- **5.1** obiecywała, że o wdrażaniu „będzie mowa w całym module" —
+  a lekcja o wdrożeniach wypadła z programu. Przepisane na opis
+  („ten moduł zajmuje się sprawdzaniem zmian; wdrażanie zostawiamy
+  jako to, co tym samym mechanizmem robią inni").
+- **5.1** wspominała runnery samodzielnie hostowane dwa razy, a brief
+  dopuszcza jedno zdanie — pierwsza wzmianka skrócona.
+- **5.2** wymieniała pięć kategorii szablonów, w tym **Pages** —
+  a tabela odniesień zakazuje wymieniania Pages, Codespaces, CLI
+  i Discussions choćby jednym słowem (moduł 7 wypadł w całości).
+  Zdanie zastąpione odesłaniem do `actions/starter-workflows`;
+  osierocony wiersz tabeli zgodności usunięty.
+- **5.2** miała w jednym bloku cytatu trzy zdania z różnym
+  cudzysłowieniem — wszystkie trzy są z tej samej ramki Note źródła,
+  więc blok znormalizowany. To ta sama klasa co usterka 4.4, tyle że
+  bez skutku merytorycznego.
+
+#### Trzy ustalenia z poprzedniego przebiegu, które nadal obowiązują
+
+1. **Numer prozy to pozycja w NOWYM programie, nie numer scenariusza.**
+   `lib/proza-lekcji.ts` wylicza pozycję z numeru w nazwie pliku
+   i dodatkowo porównuje tytuł. Przeliczenie jest w tabeli na początku
+   każdego briefu. Skutek uboczny: `proza-3-…` w module 4 to scenariusz
+   `lekcja-4-…` i tak już zostanie.
+2. **`straznik-prozy` był na to ślepy** — wiązał prozę ze scenariuszem
+   po numerze, więc po cięciu potwierdzał istnienie CUDZEJ lekcji.
+   Naprawione (dopasowanie po TYTULE, test negatywny, nowa mutacja).
+   **Czat A ma ten sam rozjazd w modułach 2 i 3** — po scaleniu gałęzi
+   dostanie naprawę za darmo, ale do tego czasu jego strażnik kłamie.
+3. **Lekcja 4.1 jest PODGLĄDOWA** (`preview = true`; w Kursie 2 są dwie
+   takie: 1.1 i 4.1). Musi bronić się bez kontekstu przed kimś, kto
+   jeszcze nie kupił, i jednocześnie podjąć most z modułu 3. Sposób
+   pogodzenia tych dwóch rzeczy jest w briefie.
+
+**Dziury po lekcjach wyciętych — kto je przejmuje**: pełne tabele
+w briefach prozy modułów 4, 5 i 6. Rzecz, którą najłatwiej przeoczyć
+w module 5: czytanie pliku workflow linia po linii przechodzi z wyciętej
+„Anatomii" do lekcji o CI, składnię `${{ … }}` wprowadza CI przy
+`matrix`, „środowisko" to jedno zdanie definicji w lekcji o sekretach,
+a wdrożenie (CD) wypada z kursu bez śladu.
+
+#### Gdzie wylądowały wnioski (żeby nie szukać)
+
+**Pięć reguł produkcji** wyprowadzonych z modułu 4 stoi w briefach prozy
+modułów **5 i 6**, w sekcji „Reguły produkcji dopisane po module 4" tuż
+przed „Fale i kolejność": most podjęty a nie przepisany (z progiem
+40 znaków i wymogiem, żeby ostrzeżenie było w prompcie KAŻDEGO autora),
+konwencja cudzysłowu `„tekst"`, dwa gatunki usterek dla bramki, odsyłacz
+„poprzednia lekcja" kontra nowa numeracja, zapas pod sufitem widełek.
+Tabela „Znaleziska przebiegu" w briefie modułu 4 jest uzupełniona
+o siedem wierszy z tego przebiegu.
+
+**`POSTEP.md` świadomie NIE jest jeszcze ruszony.** Wpisy powstają tam
+przy zamknięciu modułu, a moduł 4 nie jest zamknięty (brakuje 4.1)
+i moduł 5 jest w połowie. Drugi powód: `POSTEP.md` to plik wspólny obu
+czatów Kursu 2 i edytowanie go w połowie pracy zaprasza konflikt przy
+scalaniu gałęzi. Do zrobienia razem z zamknięciem modułu — łącznie
+z wierszem tabeli „Kurs 2 (7 modułów) | 50 | — | ⬜ przed startem",
+który jest nieaktualny od cięcia programu.
+
+**Następny krok po powrocie: fala 2 modułu 5 — lekcje 5.3 „Continuous
+Integration" i 5.4 „Sekrety w workflow"** (dwóch autorów na Sonnecie
+równolegle, jeden autor = jedna lekcja, komenda mierząca objętość
+w prompcie KAŻDEGO autora, jawne ostrzeżenie o moście podjętym zamiast
+przepisanego). Potem przelot spójności modułu 5 i **bramka cytatów
+wyrywkowa na 5.4 i 5.3** (weryfikatory na Opusie) — 5.4 jest najgęstsza
+w module (liczby, limity, precedencja, cztery zastrzeżenia), a 5.3
+niesie definicje plus czytany plik. Uwaga budżetowa z briefu: **bloki
+kodu liczą się do widełek**, a plik `use-secrets.md` ma 28,9 kB
+i przepisany w całości rozsadzi lekcję. Dopiero po module 5 — moduł 6.
+Lekcja 4.1 czeka na czat A niezależnie od tego wszystkiego.
+
+
+#### Fala 2 modułu 5 (2026-08-22) — 5.3 i 5.4 napisane, przejrzane, bramka cytatów TYLKO na 5.4
+
+Moduł 5 ma komplet czterech lekcji. Objętości kontraktem: 11 876 /
+11 780 / 11 709 / 11 788. Mosty wszystkie podjęte (LCS z domknięciem
+poprzedniej lekcji: 26 z modułu 4 → 5.1, potem 36, 27, 19 przy progu 40),
+domknięcia zgodne z tabelą briefu co do znaku, zrzuty 2–4 na lekcję,
+strażnicy 25/25.
+
+**PRZERWANE ŚWIADOMIE (limit usage właściciela): bramka cytatów lekcji
+5.3 NIE ZOSTAŁA WYKONANA.** Weryfikator na Opusie został zatrzymany
+w trakcie; zdążył potwierdzić jedno: **oba bloki YAML w 5.3 są
+bajt w bajt zgodne ze źródłem**. Reszta pięciu przebiegów (wniosek
+autora jako teza dokumentacji, dopiski w blokach cytatu, rozszerzenia
+zakresu, tabela zgodności) czeka. **To jest następny krok modułu 5.**
+
+**Bramka cytatów 5.4 — zrobiona, 1 usterka istotna i 3 drobne, wszystkie
+naprawione.** Warte zapamiętania:
+1. **ISTOTNA, nowa odmiana gatunku (a): cytat urwany w pół warunku.**
+   Lekcja przytaczała ze źródła zdanie „job nie uzyska dostępu do
+   sekretów środowiska bez zgody zatwierdzających", gubiąc zdanie
+   POPRZEDNIE — „you **can enable** required reviewers". Bramka
+   zatwierdzania jest OPCJĄ do włączenia, a nie właściwością sekretów
+   środowiska. Usterka zdążyła rozejść się do „Zapamiętaj" i do tabeli
+   zgodności. **Klasa do sprawdzania osobno: cytat jest prawdziwy, ale
+   zaczyna się o zdanie za późno.**
+2. Teza „`::add-mask::` wrzuca wartość do logu jako **gwiazdki**" —
+   żadne z trzech źródeł nie mówi o gwiazdkach, tylko o „redacted".
+   Gwiazdki to obserwacja z ekranu, nie teza dokumentacji.
+3. Diagnozy w „Gdy coś nie działa" opisywały **widoczność elementów
+   interfejsu** („nie widzisz przycisku"), a źródło mówi wyłącznie
+   o uprawnieniu do ZAŁOŻENIA sekretu. Przepisane na „nie możesz założyć".
+4. Poradnik mówił, że nazwa sekretu musi zgadzać się „co do liter",
+   podczas gdy sekcja 3 tej samej lekcji poprawnie podaje, że nazwy są
+   nieczułe na wielkość liter. **Sprzeczność wewnątrz jednej lekcji —
+   warto o nią pytać wprost.**
+
+**Przelot spójności modułu 5 — dwa znaleziska poza bramką:**
+- **Powtórzenie 5.2 ↔ 5.3**: obie lekcje wykładały, że GitHub analizuje
+  repozytorium i podsuwa szablony workflow. Szablony są na wyłączność
+  5.2, więc 5.3 dostała powołanie zamiast drugiego wykładu. Tabela
+  kolizji w briefie tego ryzyka nie wymieniała — wymieniała plik
+  workflow i sześć pojęć.
+- **Poprawki wypchnęły 5.4 ponad sufit** (12 016), wróciła cięciem prozy
+  redakcyjnej do 11 844, a po bramce cytatów stoi na 11 788. Reguła 5
+  briefu sprawdziła się co do joty.
+
+**Sprawdzanie mostów jest już maszynowe.** Skrypt liczy najdłuższy
+wspólny ciąg ciągły między sekcją `## Co dalej` poprzedniej lekcji
+a pierwszym akapitem następnej (po normalizacji białych znaków), próg
+40 znaków, sprawdzony testem negatywnym (sztuczna lekcja przepisująca
+domknięcie: 284 znaki, kod wyjścia 1). **Leży w scratchpadzie sesji,
+NIE w repo** — do `tools/` warto go przenieść przy domykaniu modułu,
+bo `tools/` jest wspólne z czatem A. Przy przenoszeniu: ostatnią lekcję
+poprzedniego modułu ma brać z odczytu katalogu, nie z ręcznie podanej
+ścieżki — przy pierwszym pomiarze porównałem 5.1 z `proza-6` modułu 4,
+a ostatnia lekcja tego modułu to `proza-7` (wynik i tak wyszedł
+zielony, więc pomyłka była niewidoczna).
+
+**Autorzy sprawdzają mosty sami i trafnie** — obaj podali LCS (27 i 19),
+obie liczby potwierdzone moim skryptem. Ostrzeżenie w prompcie działa
+drugą falę z rzędu: usterka „most przepisany" nie wystąpiła ani razu
+od chwili jego dopisania.
+
+**Blokady bez zmian:** lekcja 4.1 czeka na zdanie zamykające moduł 3 od
+czatu A; wgrywanie treści do bazy czeka na cięty program od czatu A
+(`npm run db1:tresc -- --kurs jak-uzywac-githuba --modul N --sprawdz`,
+potem bez `--sprawdz`, zawsze z `--adres http://localhost:3013`).
+
+**NASTĘPNY KROK po powrocie: bramka cytatów 5.3** (weryfikator na
+Opusie, pięć osobnych przebiegów, do tego pytanie o cytat urwany w pół
+warunku — punkt 1 wyżej), potem plik cytatów modułu 5
+(`docs/dokumentacja-techniczna/d7/cytowane/github--modul-5.md` istnieje
+od czasów scenariuszy D7 i wymaga przejrzenia pod prozę), potem moduł 6.
+
+#### ⚠️ PUNKTY KONTROLI — OTWARTE (założone 2026-08-22, czat B)
+
+Cztery usterki znalezione bramką cytatów w lekcji 5.4 są **naprawione
+w pliku**, ale **klasa każdej z nich zostaje otwarta jako punkt
+kontroli** — decyzja właściciela z 2026-08-22: nie wolno ich zgubić
+przy `/clear` ani przy kolejnym sweepie. Naprawa jednej lekcji nie
+zamyka klasy, bo bramki cytatów są WYRYWKOWE: w module 4 objęły 2 lekcje
+z 6, w module 5 — 1 z 4 (5.3 przerwana na limicie usage).
+
+| # | Usterka | Waga | Stan naprawy | **Co pozostaje do sprawdzenia** |
+|---|---|---|---|---|
+| U1 | **Cytat urwany w pół warunku** — przytoczone „job nie uzyska dostępu do sekretów środowiska bez zgody zatwierdzających" gubiło poprzedzające `you can enable required reviewers`; opcja wyglądała na właściwość mechanizmu | **ISTOTNA** | ✅ naprawione w **3 miejscach** (proza, „Zapamiętaj", tabela zgodności); brak nawrotu potwierdzony grepem | czy ta sama klasa nie siedzi w **5.1–5.3** (8 bloków cytatu razem) i w **czterech lekcjach modułu 4, których bramka nie objęła** (4.2, 4.3, 4.5, 4.6) |
+| U2 | **Obserwacja z ekranu jako teza dokumentacji** — „`::add-mask::` wrzuca wartość do logu jako gwiazdki"; źródła mówią wyłącznie o zamazywaniu | drobna | ✅ naprawione w prozie i w opisie zrzutu | czy inne lekcje nie przypisują dokumentacji tego, co autor tylko zakłada, że zobaczy na ekranie |
+| U3 | **Diagnoza opisuje widoczność interfejsu zamiast uprawnienia** — „Nie widzisz przycisku New repository secret", gdy źródło mówi o prawie do ZAŁOŻENIA sekretu | drobna | ✅ naprawione (2 pozycje w `## Gdy coś nie działa`) | sekcje `## Gdy coś nie działa` w pozostałych lekcjach modułów 4 i 5 — to typowe miejsce osiadania takich tez |
+| U4 | **Sprzeczność wewnątrz jednej lekcji** — poradnik żądał nazwy zgodnej „co do liter", a sekcja merytoryczna tej samej lekcji podawała, że nazwy są nieczułe na wielkość liter | drobna | ✅ naprawione | czy poradnik i „Zapamiętaj" nie przeczą sekcjom merytorycznym w innych lekcjach |
+
+**Jak te punkty zamknąć** (nie robić tego przed dokończeniem modułu 6 —
+kolejność prac zostaje): przy bramce cytatów każdej kolejnej lekcji
+weryfikator dostaje U1–U4 jako **osobne pytania** (są już wpisane do
+briefu modułu 6 jako reguły produkcji 6 i 7 plus pytanie kontrolne
+o sprzeczność wewnętrzną). Punkt zamyka się dopiero wtedy, gdy przejdzie
+przez lekcje, których dotąd nikt nie sprawdzał — a nie wtedy, gdy
+naprawiono lekcję, w której go znaleziono.
+
+**Czego świadomie NIE obejmują**: 17 lekcji Kursu 1 bez bramki cytatów
+(3.1–3.6, 5.1–5.3, 5.5–5.7, 6.1–6.5) — właściciel zdecydował 2026-08-22,
+że zostają bez sprawdzenia. Ten zapis tamtej decyzji nie zmienia.
+
+#### Narzędzie: `tools/most-lekcji.mjs` (w repo od 2026-08-22)
+
+Skrypt liczy najdłuższy wspólny ciąg ciągły między sekcją `## Co dalej`
+poprzedniej lekcji a pierwszym akapitem następnej (po normalizacji
+białych znaków); próg 40 znaków, kod wyjścia 1 przy przekroczeniu.
+Sprawdzony testem negatywnym (sztuczna lekcja przepisująca domknięcie:
+284 znaki, wyjście 1) i pozytywnym na parach modułu 5. Był wcześniej
+w scratchpadzie sesji — utrwalony, bo po `/clear` przepadał.
+W nagłówku pliku stoi ostrzeżenie o pułapce, która raz już dała
+fałszywie zielony pomiar (ręcznie podana ścieżka `proza-6` zamiast
+ostatniej lekcji modułu, którą jest `proza-7`).
+
+#### Modele w tej fali — dowód, nie domysł
+
+Autorzy na **Sonnecie 5** (~155 i ~198 tys. tokenów na lekcję): mechanika
+czysta od pierwszego strzału u obu — objętość w widełkach, most podjęty
+i policzony przez autora, domknięcie co do znaku, konwencja cudzysłowu.
+Usterki, które zostały, były **merytoryczne i wychodziły dopiero przy
+czytaniu źródła** — czyli tam, gdzie pracuje weryfikator na **Opusie**
+(~98 tys. tokenów na lekcję). To potwierdza podział z kalibracji
+modułu 1 K2: autorzy Sonnet, bramka Opus. Nie schodzić z autorami
+niżej i nie podnosić ich do Opusa bez nowej decyzji właściciela.
+
+#### Co poprawił PRZELOT (przed bramką cytatów) — żeby weryfikator 5.3 nie liczył tego jako nowe
+
+Agent główny czytał obie lekcje fali 2 przeciw źródłom w oryginale
+i znalazł osiem rozjazdów, których żaden autor nie zgłosił. **Bramka
+cytatów 5.3 jeszcze się nie odbyła — to jest lista rzeczy już
+naprawionych w tej lekcji**, więc nie należy ich odkrywać po raz drugi
+ani cofać.
+
+**5.3 „Continuous Integration" — 4 poprawki (+ zdjęte powtórzenie o szablonach):**
+- „`npm ci` **wymaga** pliku `package-lock.json`; bez niego zadziała
+  `npm install`" — źródło mówi wyłącznie, CO która komenda instaluje.
+  To był wniosek autora podany jak teza dokumentacji (gatunek (a)),
+  prawdziwy w rzeczywistości, ale bez pokrycia w źródle;
+- „instaluje wersje i **nie pozwala ich zmienić**" → źródło:
+  `prevents updates to the **lock file**` (chroniony jest plik
+  blokujący, nie wersje);
+- „x… dopasowuje najnowsze wydanie **danej gałęzi wersji**" → źródło:
+  `latest **minor and patch** release`;
+- „runnery mają zainstalowane **menedżery npm**" → źródło: `npm **and
+  Yarn** dependency managers`; zawężenie do npm jest zgodne z briefem,
+  ale zdanie wyszło niegramatyczne i mówiło co innego.
+Dwa wiersze tabeli zgodności opisywały starą treść — poprawione razem
+z prozą.
+
+**5.4 „Sekrety w workflow" — 4 poprawki przelotem (przed czterema z bramki):**
+- limit sekretów organizacji podany jako reguła bezwzględna, gdy źródło
+  warunkuje go progiem: `If the repository is assigned access to **more
+  than 100** organization secrets`;
+- „gdy workflow wyzwala **pull request** z forka" → źródło:
+  `when a workflow is triggered from a forked repository`;
+- „proces widoczny poleceniem `ps` **ujawnia parametry wywołania**" →
+  źródło: `may be visible to other users (using the ps command)`, plus
+  zgubiona lista alternatyw (`STDIN`, inne mechanizmy);
+- krok YAML w „Prompty z tej lekcji" nie był oznaczony jako
+  **Propozycja kursu** — w pozostałych lekcjach modułu taka etykieta
+  stoi przy każdej treści spoza dokumentacji.
+
+**Wniosek na przyszłe fale:** autorzy na Sonnecie oddają czystą
+mechanikę, ale **rozszerzają tezy źródła w miejscach, które brzmią
+oczywiście** („wymaga", „zawsze", dopowiedziany skutek). Przelot
+spójności czytany przeciw ORYGINAŁOWI — nie przeciw tabeli zgodności
+autora — łapie to przed bramką i taniej niż Opus.
+
+**`POSTEP.md` nadal świadomie nietknięty**: wpis powstaje przy ZAMKNIĘCIU
+modułu, a moduł 5 nie jest zamknięty (bramka 5.3 przerwana), tak samo
+moduł 4 (brak lekcji 4.1 zablokowanej na czacie A).
+
+#### Bramka cytatów 5.3 „Continuous Integration" — ZROBIONA (2026-08-22)
+
+Pięć weryfikatorów na Opusie, równolegle, **każdy z jednym pytaniem**:
+(1) wniosek autora jako teza dokumentacji + obserwacja z ekranu [U2];
+(2) bloki cytatu `>` zdanie po zdaniu + cytat urwany w pół warunku [U1];
+(3) zakres tez — kwantyfikatory, modalność, warunki, liczby, przekład;
+(4) tabela zgodności wiersz po wierszu w TRZY strony (wiersz→źródło,
+wiersz→lekcja, **lekcja→tabela**); (5) sekcje pomocnicze [U3, U4],
+ćwiczenie, etykiety treści własnych. Każdy dostał zakaz edycji plików,
+listę czterech rozjazdów naprawionych wcześniej przelotem (z zakazem
+cofania) i informację, że bloki YAML są już potwierdzone bajt w bajt.
+Wynik: **2 usterki istotne i 17 drobnych naprawionych**, 2 zgłoszenia
+odrzucone jako fałszywy alarm.
+
+**Rozdzielenie pytań opłaciło się mierzalnie — żadna z dwóch usterek
+istotnych nie została znaleziona przez wszystkich pięciu.** Zbieżność
+niezależnych przebiegów była za to najlepszym filtrem: siedem tez
+zgłosiło po dwóch–trzech weryfikatorów i wszystkie siedem się obroniło.
+
+**Usterka istotna 1 — `matrix` mnoży JOBY, nie „przebiegi".** Znalazły
+niezależnie trzy przebiegi (1, 3, 5). Źródło: „Each version of Node.js
+specified in the `node-version` array creates a **job** that runs the
+same steps". Lekcja rozszerzała to raz na „uruchomi **cały plik**
+dwukrotnie", raz na „**przebiegi**" — a `matrix` daje N jobów w JEDNYM
+przebiegu. Skutek najgorszy z możliwych w poradniku: punkt
+`## Gdy coś nie działa` obiecywał objaw, **który nigdy nie wystąpi**
+(„Widzę dwa albo trzy przebiegi dla tego samego commita"), i przeczył
+własnemu wyjaśnieniu dwa słowa dalej („osobny job"). Kurs ma na to
+twardy słownik: 5.1 wprowadziła „przebieg" = *workflow run* ze swojego
+źródła, więc to nie była luźna synonimia. Tabela zgodności była tu
+akurat POPRAWNA — czyli tabela nie wyłapie usterki, której proza nie
+zgłasza do sprawdzenia.
+
+**Usterka istotna 2 — odsyłacz po NUMERZE modułu.** „znaczki, które
+widziałeś na pull requestach **w module czwartym**" przy tabeli
+odniesień briefu, która dla tego samego tematu podaje formę „widziałeś
+je w module o współpracy" — a sama lekcja dziesięć linii niżej odsyła
+poprawnie, po nazwie. Poprawione na formę z briefu.
+
+**Nowa klasa usterki, warta zapamiętania: DOKLEJKA ZA MYŚLNIKIEM
+w zdaniu otwartym formułą „Dokumentacja mówi wprost".** Trafiła się
+trzy razy w jednej lekcji: „…jedna z wypchniętych zmian mogła być
+przyczyną — **wracaj do ostatniego commita, nie do samego workflow**"
+(źródło zostawia inne przyczyny otwarte, a błąd w samym pliku workflow
+to typowa przyczyna czerwonego przebiegu); „instaluje zależności
+z `package.json` — **ale bez tej samej gwarancji dokładnych wersji**"
+(źródło o `npm install` mówi JEDNO zdanie opisowe i nic nie porównuje);
+„budują kod **(jeśli projekt w ogóle ma taki krok)**" (semantyka
+`--if-present` to wiedza o npm, nie teza dokumentacji GitHuba). Gatunek
+(a) z briefu opisuje CAŁE zdanie bez pokrycia; ta odmiana chowa się
+w ogonie zdania, którego pierwsza połowa jest wierna co do słowa —
+i dlatego przechodzi przez czytanie „czy to zdanie jest w źródle".
+
+**Rodzina usterek, która wyszła seryjnie: ZDJĘTA MODALNOŚĆ.** Pięć
+miejsc, w których źródłowe „can / you can" zamieniło się w tryb
+oznajmujący: „who **can** spend" → „programista spędza"; „workflows
+that **can** build" → „workflow budują"; „**You can configure**" →
+„konfigurujesz"; „**You can use** npm … to install dependencies" →
+„workflow **musi mieć** zainstalowane zależności"; „You can build and
+test updates **locally before pushing code**" → „serwera **lokalnego**"
+(z tego ostatniego wyparował cały warunek: pierwszy wariant źródła to
+robota u siebie PRZED pushem, a nie drugi rodzaj serwera). Każde
+z osobna wygląda na stylistykę; razem robią z możliwości — wymóg.
+**Do promptu autora na kolejne fale: modalność źródła jest treścią,
+nie ozdobnikiem.**
+
+**Trzeci wniosek: kierunek „lekcja → tabela" to jedyny, który coś
+znalazł.** Wiersze tabeli wskazywały istniejące sekcje i opisywały
+realną treść lekcji (kierunki 1 i 2 czyste, 20 wierszy), ale **dziewięć
+tez postawionych w lekcji nie miało w tabeli wiersza** — w tym trzy
+niosące ciężar: mechanizm polecania szablonów (na nim stoi pierwszy
+punkt „Gdy coś nie działa"), ciągłe budowanie i testowanie po commicie
+oraz semantyka `${{ … }}`, obiecana w „Czego się nauczysz"
+i powtórzona w „Zapamiętaj". Dopisane sześć wierszy, w tym **dwa
+z jawną etykietą „poza C i N"**: jeden dla `${{ … }}` (brief zleca to
+zdanie 5.3, więc treść zostaje — brakowało oznaczenia, że źródło mówi
+w tym miejscu wyłącznie o kontekście `matrix`), drugi dla runnera
+startującego czysto i akcji `checkout`.
+
+**Dwa zgłoszenia ODRZUCONE po sprawdzeniu w oryginale** — i to jest
+lekcja o samej bramce. Dwa przebiegi zgłosiły runner „świeży przy
+każdym przebiegu" i `checkout` „pobiera repozytorium na runner" jako
+tezy bez pokrycia, bo w źródłach 5.3 ich nie ma. Są **legalnymi
+odwołaniami wstecz**: 5.1 podaje oba z własnego źródła
+(`understand-github-actions.md`, „Runners" i „Actions") i ma je
+w swojej tabeli zgodności. Znalazł to jedyny weryfikator, który
+przeczytał lekcje SĄSIEDNIE. **Wniosek do promptu weryfikatora:
+zanim zgłosisz tezę bez pokrycia, sprawdź, czy kurs nie wprowadził jej
+wcześniej z innego źródła** — inaczej bramka zaczyna kasować wiedzę
+zbudowaną w poprzednich lekcjach. Zamiast usuwać, dopisaliśmy im
+wiersze tabeli z etykietą pochodzenia.
+
+**Objętość — reguła 5 briefu potwierdzona po raz drugi z rzędu.**
+Naprawy wypchnęły lekcję z 11 709 na **11 999** (jeden znak pod
+sufitem), więc margines odzyskany cięciem **prozy redakcyjnej**, nie
+treści ze źródła: **11 835**. Tabela zgodności NIE liczy się do widełek
+(`lib/proza-lekcji.ts`: `tresc` = markdown bez frontmatteru i bez
+tabeli), więc wiersze dowodowe są darmowe — warto o tym pamiętać,
+bo dopisanie sześciu wierszy wyglądało na wydatek, a nie było nim.
+
+**Dowody po bramce:** strażnicy 25/25, mosty 27 (5.2→5.3) i 19
+(5.3→5.4) przy progu 40, domknięcie `## Co dalej` zgodne z tabelą
+mostów briefu co do znaku, zero znaków `”`.
+
+##### Punkty kontroli U1–U4 — stan po bramce 5.3 (NADAL OTWARTE)
+
+Weryfikatorzy dostali U1–U4 jako osobne pytania. Wynik:
+
+| # | Co wyszło w 5.3 | Stan klasy |
+|---|---|---|
+| **U1** cytat urwany w pół warunku | wewnątrz trzech bloków `>` **nie wystąpił** — wszystkie trzy to wierne przekłady ciągłych fragmentów jednego akapitu źródła, bez sklejek. Wystąpiła za to **łagodniejsza odmiana poza blokami**: zgubiony warunek „locally **before pushing code**" i pięć zdjętych „can" | OTWARTA — nie sprawdzono 5.1, 5.2 ani 4.2, 4.3, 4.5, 4.6 |
+| **U2** obserwacja z ekranu jako teza | nie wystąpiła w tej postaci; wystąpił za to jej krewny — **wiedza o npm** (`--if-present`) i **wniosek o `npm install`** podane jako teza dokumentacji | OTWARTA — j.w. |
+| **U3** diagnoza opisuje widoczność interfejsu | **wystąpiła i była to usterka ISTOTNA** — „Widzę dwa albo trzy przebiegi", czyli opis ekranu, którego źródło nie opisuje i którego użytkownik nie zobaczy. Druga: „na podstawie faktycznej zawartości repozytorium" zamiast źródłowego „języka i frameworka" | OTWARTA, **potwierdzona jako realna w drugiej lekcji z rzędu** |
+| **U4** sprzeczność wewnątrz lekcji | **wystąpiła** — nagłówek punktu poradnika („przebiegi") przeczył własnemu wyjaśnieniu („osobny job") w tej samej linii | OTWARTA, potwierdzona w drugiej lekcji z rzędu |
+
+**U3 i U4 wyszły teraz dwa razy pod rząd, w lekcjach dwóch różnych
+autorów.** To przestaje wyglądać na przypadek: obie klasy osiadają
+w sekcji `## Gdy coś nie działa`, bo autor pisze ją z wyobrażenia
+ekranu, a nie ze źródła. **Rekomendacja na moduł 6: nie czekać na
+bramkę wyrywkową — przelot spójności ma czytać `## Gdy coś nie działa`
+KAŻDEJ lekcji przeciw źródłu, pozycja po pozycji.** To najtańsze
+miejsce, w którym te dwie klasy dają się złapać hurtem.
+
+#### ⚠️ DZIURY W POZYCJACH LEKCJI W BAZIE — blokada wgrywania treści (2026-08-22)
+
+**Zgłosił czat A dla modułu 4; sprawdziłem i dotyczy TAKŻE modułu 5.**
+Cięcie programu skasowało lekcje, ale **nie przenumerowało pozostałych**,
+więc `position` ma dziury. Stan w bazie (odczyt 2026-08-22, kurs
+`jak-uzywac-githuba`):
+
+| Moduł | `position` lekcji w bazie | Pliki prozy | Skutek |
+|---|---|---|---|
+| 4 | 0, 1, **3, 4, 5**, **7, 8** | `proza-2`…`proza-7` | rozjazd od trzeciej lekcji |
+| 5 | 0, 1, 2, **5** | `proza-1`…`proza-4` | rozjazd na `proza-4` (Sekrety) |
+
+**Mechanizm** (`lib/proza-lekcji.ts`, `dopasujDoProgramu`): pozycja liczona
+jest z nazwy pliku jako `proza.lekcja - 1`, a potem sprawdzany jest TYTUŁ.
+Plik `proza-4-sekrety-w-workflow.md` szuka więc `position === 3`, a „Sekrety
+w workflow" stoją w bazie na `position === 5`.
+
+**Wgrywanie wywali się głośno i niczego nie zepsuje** — to działa jak
+strażnik, zgodnie z projektem. Ale komunikat jest **mylący i kosztuje rundę
+debugowania**: dla modułu 5 powie „moduł 5 nie ma lekcji 4 (ma 4)" — czyli
+zaprzeczy istnieniu lekcji i w tym samym zdaniu poda, że lekcji jest cztery.
+Kto tego nie wie, zacznie szukać błędu w nazwie pliku albo w tytule.
+
+**Czyja to robota:** program w bazie należy do **czatu A** — ten czat go nie
+dotyka. Do zrobienia po stronie czatu A przy cięciu programu:
+**przenumerować pozycje na ciągłe `0…N-1`** w modułach 4 i 5 (a przy okazji
+sprawdzić pozostałe moduły Kursu 2 tym samym zapytaniem). Dopiero potem
+`npm run db1:tresc -- --kurs jak-uzywac-githuba --modul N --sprawdz`.
+
+**Do rozważenia niezależnie od kolejności prac:** komunikat błędu w
+`dopasujDoProgramu` powinien wypisywać **dostępne pozycje i tytuły**, a nie
+samą liczbę lekcji. Wtedy dziura w numeracji diagnozuje się sama, zamiast
+wyglądać na błąd nazwy pliku. To zmiana w `lib/`, czyli **teren wspólny obu
+czatów** — nie robię jej jednostronnie.
+
+#### Plik cytatów modułu 5 — DRUGA BRAMKA, ZROBIONA (2026-08-22)
+
+Dwa weryfikatory na Opusie, podział po lekcjach (5.1+5.2 i 5.3+5.4). Efekt:
+**15 usterek istotnych i 8 drobnych naprawionych**, plik przenumerowany,
+narzędzie sprawdzające utrwalone w repo.
+
+**Główny wniosek, do powtórzenia przy module 6: plik cytatów nie zdawał
+swojego jedynego zadania.** Wierność samych cytatów była wzorowa (5.1 — 35/35
+tez pokrytych, wszystkie cytaty co do słowa; 5.3 i 5.4 — 38/38 bloków zgodnych,
+zero zgubionej modalności). Zawodziło **POKRYCIE**: 24 tezy postawione
+w lekcjach nie miały w pliku ani jednego zdania. Nie przypadkowe —
+z wyraźnym wzorem:
+
+- **kroki interfejsu i listy wypadały, treść wykładowa zostawała.** Brakowało
+  całej listy „Prerequisites", zdania wprowadzającego krok 1 wraz z pierwszym
+  wariantem, kroków 3–4 („Commit changes", okno „Propose changes"), ścieżki
+  **Actions → New workflow → „Choose a workflow"**, kroków 6–8 zakładania
+  sekretu repozytorium i całej ścieżki sekretu środowiska. Czyli dokładnie
+  tego, co proza podaje jako instrukcję DO WYKONANIA;
+- **brakowało artefaktów, które lekcja omawia najdokładniej**: pliku
+  `Node.js CI`, który 5.3 czyta linia po linii (w pliku stał INNY przykład,
+  z `npm install`), oraz przykładu Bash z 5.4, wklejonego w prozie dosłownie
+  i będącego wzorcem dla promptu lekcji;
+- **elipsa `[…]` wycinała akurat zdanie niosące tezę**: „GitHub Actions also
+  redacts information that is recognized as sensitive" oraz dwa punkty limitu
+  („All 100 repository secrets", „All 100 environment secrets");
+- **cytat urywał się o zdanie za wcześnie** — blok o szablonach kończył się
+  przed zdaniem o `actions/starter-workflows`, którego proza używa. To ta sama
+  klasa co U1, tyle że po stronie pliku cytatów. Luka jest **odziedziczona po
+  scenariuszu D7** i przetrwała pierwszą bramkę.
+
+**Numeracja pliku naprawiona.** Sekcje miały starą numerację siedmiu lekcji,
+więc „5.4" znaczyło dwie różne rzeczy (wyciętą „Anatomię workflow" i dzisiejsze
+„Sekrety w workflow", których cytaty stoją pod `L5.6`). Rozwiązanie:
+przedrostek **`D7-`** na starej numeracji + **tabela przelicznika** w nagłówku
++ ostrzeżenie przy każdej sekcji lekcji wyciętej. Cytatów lekcji wyciętych NIE
+kasujemy — powołują się na nie scenariusze D7. Sprawdzone: nikt w repo nie
+linkuje do kotwic sekcji, więc zmiana nagłówków niczego nie zepsuła.
+
+**NOWE NARZĘDZIE: `tools/cytaty-zgodne.mjs`** — sprawdza maszynowo, czy każdy
+cytat stoi DOSŁOWNIE w oryginale (normalizuje ikony SVG, odsyłacze, punktory,
+pogrubienia i łamanie wierszy). Wymaga pobranej dokumentacji, więc jest
+NARZĘDZIEM, nie strażnikiem CI. Wywołanie dla modułu 5:
+
+```
+node tools/cytaty-zgodne.mjs \
+  docs/dokumentacja-techniczna/d7/cytowane/github--modul-5.md \
+  docs/dokumentacja-techniczna/d7/github/actions \
+  D7-5.1 D7-5.2 D7-5.3 D7-5.6
+```
+
+**Co złapało to narzędzie, a czego nie złapali weryfikatorzy: CICHY SKRÓT.**
+Dwa miejsca, w których cytat urywał punkt listy bez `[…]` — jedno wklejone
+przeze mnie w tej samej turze, jedno odziedziczone (cztery punkty ramki Note
+o sekretach). Każde zdanie z osobna było prawdziwe; niecytowany był OGON
+punktu, więc oko tego nie łapie. Dlatego narzędzie skleja cały blok `>`
+w jeden ciąg i wymaga ciągłości w oryginale, a `[…]` jawnie dzieli blok na
+kawałki sprawdzane osobno. Sprawdzone dwoma testami negatywnymi (podmiana
+słowa „job" → „run" i skrócenie „Or, you can" → „Or you can": kod 1).
+
+**Usterka prozy złapana przy okazji:** 5.4 miała w `## Gdy coś nie działa`
+nagłówek „W logu widzisz pustkę zamiast **gwiazdek**" — bramka cytatów 5.4
+zdjęła „gwiazdki" z ciała lekcji, ale nagłówek został. Naprawione. **Klasa
+do zapamiętania: naprawa terminu w prozie musi objąć NAGŁÓWKI punktów, nie
+tylko zdania.** Mój własny `grep` dał tu fałszywie negatywny wynik (szukałem
+rdzenia „gwiazdk", a słowo brzmi „gwiazdek") — kolejne potwierdzenie reguły,
+że brak trafienia niczego nie dowodzi.
+
+**OTWARTA DECYZJA (teren wspólny obu czatów, NIE ruszam jednostronnie):**
+pliki prozy nie mają we frontmatterze pola `cytowane:` — mają je wyłącznie
+scenariusze `lekcja-*.md`. Sprawdzone: żaden z 16 plików prozy Kursu 2 go nie
+ma, więc to konwencja całego kursu. Skutek jest realny: czytelnik prozy nie
+dowie się z pliku, że plik cytatów istnieje, i pójdzie po 55 MB — czyli
+dokładnie w to, czemu plik cytatów miał zapobiec. Do rozstrzygnięcia razem
+z czatem A (dotyczy też modułów 1–3) i po sprawdzeniu, czy `straznik-prozy`
+i kontrakt prozy przepuszczą nowe pole.
+
+**Stan dowodów po obu bramkach:** strażnicy 25/25, `cytaty-zgodne` 115/115
+fragmentów dosłownych, mosty 27 i 19 przy progu 40, objętości 11 835 (5.3)
+i 11 798 (5.4).
+
+#### NASTĘPNY KROK czatu B (stan na koniec 2026-08-22)
+
+**Moduł 5 jest domknięty od strony treści i dowodów.** Cztery lekcje po
+przelocie spójności, bramce cytatów prozy (5.4 i 5.3) i bramce pliku cytatów.
+Objętości 11 876 / 11 780 / 11 835 / 11 798. Strażnicy 25/25,
+`cytaty-zgodne` 115/115.
+
+**Do zrobienia dalej, w tej kolejności:**
+
+1. **Moduł 6 wg jego briefu** (`tresc-kursow/jak-uzywac-githuba/modul-6/BRIEF-prozy-modulu.md`)
+   — reguły produkcji 1–10, w tym **trzy nowe, dopisane po bramkach modułu 5**
+   (doklejka za myślnikiem; modalność źródła jako treść; `## Gdy coś nie
+   działa` czytane przeciw źródłu pozycja po pozycji w KAŻDEJ lekcji).
+   Autorzy na Sonnecie, jeden autor = jedna lekcja, bramki na Opusie.
+   **Uwaga: lekcja 6.4 zamyka CAŁY KURS** — jej podsumowanie trzeba
+   weryfikować przeciw REALNYM tytułom lekcji
+   (`grep -h "^lekcja:" modul-*/*.md`), nie z pamięci; to lekcja z modułu 7
+   Kursu 2, gdzie autor finału przypisał trzy tematy do złych modułów.
+2. **Bramka cytatów prozy** dwóch najgęstszych lekcji modułu 6 + **bramka
+   pliku cytatów** (`github--modul-6.md`) narzędziem `tools/cytaty-zgodne.mjs`.
+   Plik modułu 6 najpewniej ma **ten sam rozjazd numeracji** co moduł 5
+   (powstał dla programu D7 sprzed cięcia) — sprawdzić i przenumerować tym
+   samym wzorcem `D7-…` + tabela przelicznika.
+3. **Lekcja 4.1** — nadal czeka na zdanie zamykające moduł 3 od czatu A.
+4. **Wgranie treści do bazy** — czeka na czat A: cięty program ORAZ
+   **przenumerowanie pozycji lekcji na ciągłe `0…N-1`** (patrz sekcja
+   „DZIURY W POZYCJACH LEKCJI W BAZIE" wyżej — dotyczy modułów 4 i 5).
+5. **`POSTEP.md`** — ruszamy dopiero przy zamknięciu modułów; wpis obejmie
+   moduły 4, 5 i 6 razem, wraz z nieaktualnym wierszem tabeli „Kurs 2
+   (7 modułów) | 50 | — | ⬜ przed startem".
+
+**Czego NIE robić:** nie dotykać programu w bazie, nie przełączać gałęzi
+w cudzych katalogach, nie zamykać punktów kontroli U1–U4 (zamykają się
+dopiero po przejściu przez lekcje, których bramka dotąd nie objęła:
+4.2, 4.3, 4.5, 4.6 oraz 5.1, 5.2).
+
+#### MODUŁ 6 NAPISANY — Kurs 2 ma komplet prozy (2026-08-22, czat B)
+
+**Cztery lekcje, commit `09ecf0b`.** Objętości kontraktem: 11 760 (6.1 2FA) /
+11 963 (6.2 klucze SSH) / 11 942 (6.3 zabezpiecz repozytorium) / 12 497
+(6.4 secret scanning — ta jedna ma widełki 8 000–13 000, bo zamyka kurs).
+Mosty 26 / 26 / 14 przy progu 40, domknięcia 6.1–6.3 zgodne z tabelą briefu
+co do znaku, zrzuty 4/3/4/3, strażnicy 25/25.
+
+**Podsumowanie kursu w 6.4 sprawdzone osobno** przeciw tabeli 32 lekcji
+z briefu (to procedura po module, punkt 2): wszystkie sześć modułów opisane
+po nazwie, żadnego tematu z listy zakazanej, zero obietnic dalszych części.
+Klasa usterki z finału Kursu 1 nie wystąpiła.
+
+##### Co znalazł przelot spójności (agent główny, przed bramką)
+
+Czytanie przeciw ORYGINAŁOWI — nie przeciw tabeli autora — dało 16 usterek,
+w tym 5 istotnych. Powtórzenie wniosku z modułu 5: autorzy na Sonnecie
+oddają czystą mechanikę (objętość, most, domknięcie, cudzysłów — wszystko
+za pierwszym razem u wszystkich czterech), a mylą się tam, gdzie trzeba
+przeczytać źródło.
+
+1. **6.1 — teza rozszerzona na sąsiedni mechanizm (ISTOTNA).** Passkey
+   opisany jako „dostępny dopiero po TOTP albo SMS", bo tak jest z kluczem
+   bezpieczeństwa i GitHub Mobile; źródło mówi wprost coś innego („If you
+   don't use 2FA, using a passkey will skip the requirement to verify a new
+   device via email"). Zdążyło wejść do „Zapamiętaj".
+2. **6.3 — ścieżka interfejsu przeniesiona od sąsiada (ISTOTNA).** Alerty
+   Dependabota włącza się według źródła przez ustawienia **konta** („Click
+   your profile picture, then click Settings"); wszystkie inne sekcje tego
+   samego pliku zaczynają się od „From the main page of your repository".
+   Autor uogólnił ścieżkę na wszystkie przełączniki.
+3. **6.4 — sprzeczność wewnątrz lekcji (ISTOTNA, U4 trzeci raz z rzędu).**
+   Sekcja 1 powoływała się na przełącznik włączony w lekcji poprzedniej,
+   sekcja 4 pisała, że publiczne repozytorium ma skanowanie „bez żadnego
+   przełącznika do szukania".
+4. **6.2 — modalność OSŁABIONA (ISTOTNA).** Patrz osobny akapit niżej.
+5. Drobne: doklejki za myślnikiem (6.1, 6.4 ×2), zgubione zawężenia
+   (`--apple-use-keychain` bez hasła, `exec ssh-agent bash`, „depending on
+   the programming languages"), przykład wartości spolszczony („mój laptop"
+   zamiast źródłowego `Personal laptop`), „jedyny wyjątek", który wyjątkiem
+   nie był.
+
+##### NOWY KIERUNEK REGUŁY 9: modalność bywa OSŁABIANA, nie tylko wzmacniana
+
+Reguła 9 opisywała dotąd jeden kierunek — „can" zamieniane w tryb
+oznajmujący albo w „musisz". W module 6 wyszedł kierunek odwrotny, dwa razy
+i w dwóch lekcjach: 6.2 zamieniła `you will need to modify your ~/.ssh/config`
+w „dokumentacja **zaleca**", a 6.3 przepisała w **bloku cytatu**
+`you may not need to enable every feature` jako „**nie musisz** włączać
+każdej funkcji". Skutek jest gorszy niż przy wzmacnianiu: czytelnik pomija
+krok, który dokumentacja stawia jako wymóg. **Do promptu autora i
+weryfikatora: oba kierunki są usterką.** Wpisane do promptów fali 2 i do
+wszystkich ośmiu weryfikatorów tego modułu.
+
+##### Bramka cytatów — osiem przebiegów, po cztery na dwie najgęstsze lekcje
+
+Wskazanie briefu (6.2 i 6.3) utrzymane. Zamiast pięciu pytań jak w module 5
+— cztery na lekcję, przez połączenie gatunku (a) z doklejką za myślnikiem:
+(1) teza bez pokrycia + doklejka + obserwacja z ekranu; (2) bloki cytatu
+zdanie po zdaniu + cytat urwany w pół warunku; (3) zakres, modalność w obie
+strony, liczby, warunki, przekład, zawężenia systemowe; (4) tabela zgodności
+w trzy strony + sekcje pomocnicze. **Siedem przebiegów skończyło się,
+ósmy (6.3, tabela i sekcje pomocnicze) padł na limicie usage** — to jedyna
+niezrobiona część bramki prozy tego modułu.
+
+Wynik: **26 usterek zgłoszonych, wszystkie realne naprawione**; zero
+fałszywych alarmów, w odróżnieniu od modułu 5 (tam dwa) — bo prompt niósł
+listę rzeczy już naprawionych z zakazem cofania oraz polecenie sprawdzenia,
+czy kurs nie wprowadził tezy wcześniej z innego źródła. Weryfikatorzy z tego
+korzystali i jawnie odnotowywali, czego nie zgłaszają.
+
+**Dwie nowe klasy usterek, warte przeniesienia do kolejnych bramek:**
+
+- **TABELA ZGODNOŚCI NIE NADĄŻA ZA NAPRAWĄ PROZY.** Trzy niezależne przebiegi
+  zgłosiły ten sam wiersz 6.2: proza miała już poprawione `Personal laptop`,
+  a tabela dalej przypisywała dokumentacji przykład „mój laptop". To skutek
+  uboczny NASZYCH napraw, nie pracy autora — **po każdej naprawie prozy
+  trzeba przejść tabelę**. Ta sama mechanika co „naprawa terminu musi objąć
+  nagłówki punktów" z modułu 5.
+- **ŚCIĄGAWKA „Prompty z tej lekcji" MUSI ZNAĆ OSTRZEŻENIA WŁASNEJ LEKCJI.**
+  Blok Windows w 6.2 podawał `clip < …` jako gotową komendę do wklejenia,
+  podczas gdy sekcja merytoryczna tej samej lekcji ostrzegała, że w
+  PowerShell/Windows Terminal zwraca ona `ParseError`. Sekcja z gotowcami
+  jest czytana bez kontekstu — sprawdzać ją osobno przeciw poradnikowi.
+
+**Zbieżność niezależnych przebiegów znów była najlepszym filtrem:** usterkę
+istotną 6.3 (warunek grafu zależności rozciągnięty na „aktualizacje" i „resztę
+łańcucha bezpieczeństwa", gdy źródło wiąże go tylko z alertami i przeglądem
+zależności) zgłosiły dwa przebiegi niezależnie, a wiersz tabeli z „mój
+laptop" — trzy.
+
+**Weryfikatorzy zgłosili też cztery miejsca, w których ŹRÓDŁO SAMO JEST
+NIEJEDNOZNACZNE** i słusznie ich nie rozstrzygnęli: czy przegląd zależności
+włącza się sam z grafem czy wymaga Code Security; czy push protection jest
+częścią Secret Protection czy funkcją do dobrania; czy „part of a team"
+znaczy plan GitHub Team czy zespół w organizacji; czy publiczne repozytorium
+w ogóle wymaga kliknięcia „Enable". Lekcja podaje w tych miejscach obie
+wersje za źródłem — **nie rozstrzygać ich bez nowego źródła.** Osobno:
+źródło SSH przeczy samo sobie przy `IgnoreUnknown UseKeychain` (proza mówi
+`Host *.github.com`, blok do skopiowania — `Host github.com`); lekcja poszła
+za blokiem kodu i tak zostaje.
+
+##### NASTĘPNY KROK czatu B
+
+1. **Bramka pliku cytatów modułu 6** — `docs/dokumentacja-techniczna/d7/cytowane/github--modul-6.md`
+   (66 kB). **Sprawdzone: ma stary układ D7** — sekcje `L6.1`–`L6.6`, więc
+   dzisiejsza lekcja 6.3 („Zabezpiecz swoje repozytorium") stoi pod `L6.4`,
+   a 6.4 („Secret scanning") pod `L6.6`; `L6.3` i `L6.5` to lekcje wycięte
+   z programu. Przenumerować wzorcem z modułu 5: przedrostek **`D7-`** na
+   starej numeracji + tabela przelicznika w nagłówku + ostrzeżenie przy
+   sekcjach lekcji wyciętych (cytatów lekcji wyciętych NIE kasujemy —
+   powołują się na nie scenariusze D7). Potem narzędzie:
+   `node tools/cytaty-zgodne.mjs docs/dokumentacja-techniczna/d7/cytowane/github--modul-6.md docs/dokumentacja-techniczna/d7/github D7-6.1 D7-6.2 D7-6.4 D7-6.6`
+   (uwaga: źródła modułu 6 leżą w dwóch gałęziach drzewa — `github/authentication`
+   dla 6.1–6.2 i `github/code-security` dla 6.3–6.4; sprawdzić, czy narzędzie
+   przyjmie katalog `github` jako korzeń). Wzorzec z modułu 5 mówi, że ta
+   bramka jest DRUGĄ BRAMKĄ JAKOŚCI, nie porządkami: w module 5 dała
+   15 usterek istotnych, głównie **braków pokrycia** (kroki interfejsu i listy
+   wypadały, treść wykładowa zostawała).
+2. **Czwarty przebieg bramki 6.3** (tabela zgodności w trzy strony + sekcje
+   pomocnicze) — padł na limicie usage, do powtórzenia. Pozostałe trzy
+   przebiegi tej lekcji są zrobione.
+3. **`POSTEP.md`** — wpis obejmie moduły 4, 5 i 6 razem, wraz z nieaktualnym
+   wierszem tabeli „Kurs 2 (7 modułów) | 50 | — | ⬜ przed startem".
+4. **Lekcja 4.1** — nadal czeka na zdanie zamykające moduł 3 od czatu A.
+5. **Wgranie treści do bazy** — czeka na czat A podwójnie: cięty program ORAZ
+   przenumerowanie pozycji lekcji na ciągłe `0…N-1` (sekcja „DZIURY
+   W POZYCJACH LEKCJI W BAZIE" wyżej).
+
+**Punkty kontroli U1–U4 zostają OTWARTE.** Bramka modułu 6 objęła 6.2 i 6.3;
+6.1 i 6.4 sprawdził tylko przelot agenta głównego, a z modułów 4 i 5 nadal
+nie mają bramki lekcje 4.2, 4.3, 4.5, 4.6 oraz 5.1 i 5.2. U3 i U4 wyszły
+w tym module ponownie (6.3 i 6.4), co daje im trzecie potwierdzenie z rzędu.
+
+#### Bramka pliku cytatów modułu 6 — ZROBIONA (2026-08-23), zero braków pokrycia
+
+Trzy weryfikatory na Opusie równolegle: pokrycie 6.1+6.2, pokrycie 6.3+6.4
+oraz zaległy czwarty przebieg bramki prozy 6.3. Plik przenumerowany wzorcem
+z modułu 5 (`L6.x` → `D7-6.x`, tabela przelicznika, ostrzeżenia przy sekcjach
+lekcji wyciętych `D7-6.3` i `D7-6.5`); `cytaty-zgodne` zielony na **195
+fragmentach**.
+
+**Pokrycie: 0 braków w czterech lekcjach** (6.1 21/21, 6.2 45/45, 6.3 33/33,
+6.4 13/13). To odwrotnie niż w module 5, gdzie ta sama bramka dała 15 usterek
+istotnych. **Powód jest w danych, nie w jakości prozy:** sekcje `D7-6.4`
+i `D7-6.6` są praktycznie pełnym transkryptem swoich plików źródłowych — poza
+plikiem cytatów zostały z nich DWA zdania, oba czysto odsyłaczowe. Moduł 5
+cytował wybiórczo i stąd dziury. **Wniosek na kolejne moduły: ryzyko braku
+pokrycia zależy od tego, jak wybiórczo powstawał plik cytatów w czasach
+scenariuszy D7, a nie od tego, jak napisano prozę.** Warto to sprawdzić
+najpierw — jeden `wc` na sekcji kontra `wc` na oryginale mówi, czego się
+spodziewać.
+
+##### Wierność cytatów: 12 rozjazdów, z tego 8 prawdziwych
+
+Osiem to **ciche skróty** — cytat urywał punkt listy albo przeskakiwał blok
+kodu bez `[…]`. Poprawione znakiem pominięcia; w jednym miejscu podmieniony
+apostrof (`'` zamiast źródłowego `’`). Cztery pozostałe były szumem
+normalizacji i dały narzędziu **trzy reguły SYMETRYCZNE** (stosowane tak samo
+do oryginału i cytatu, więc niezdolne zamaskować różnicy w treści): znaczniki
+HTML wariantów platformowych (`<span class="platform-mac">`), atrybut `copy`
+we wskaźniku bloku kodu (```` ```text copy ````), odstęp zostawiony po
+usuniętym octiconie (`select **Set up** <svg…/>, then click`).
+
+**PUŁAPKA, która kosztowała jeden przebieg:** pierwsza wersja reguły HTML
+(`<[^>]+>`) zjadała znak `<` w komendach powłoki (`pbcopy < plik`), łącząc go
+w parę ze znacznikiem `>` cytatu blokowego z NASTĘPNEGO wiersza. Rozjazd
+powstawał wyłącznie po stronie cytatu, więc wyglądał na usterkę treści.
+Reguła musi stać ZA zdejmowaniem `>` i wymagać litery po `<`.
+
+##### LUKA W SAMYM NARZĘDZIU, znaleziona testem negatywnym
+
+`cytaty-zgodne` nie sprawdzał **bloków kodu stojących bez `> `** — widział
+tylko cytaty blokowe. Podmiana `ubuntu-latest` → `ubuntu-newest` w czterech
+miejscach modułu 5 przechodziła na zielono. Moduł 6 nie ma takich bloków
+(sprawdzone: 0), więc jego bramki to nie dotyczyło, ale moduł 5 miał ich
+sześć. Wszystkie sześć okazało się dosłowne, więc domknięcie luki było darmowe
+— moduł 5 sprawdza teraz **121 fragmentów zamiast 115**.
+
+**Pierwszy przebieg tego testu był ŚLEPY** (`sed` nie trafił wzorca, kod 0 nic
+nie znaczył). To trzeci raz w tym repo, gdy brak trafienia udaje dowód.
+Powtórzony na realnym wierszu — dopiero wtedy pokazał lukę.
+
+##### Czwarty przebieg bramki prozy 6.3 — 4 usterki istotne, 6 drobnych
+
+Najgroźniejsza to **nawrót naprawy, która nie objęła sekcji pomocniczych**:
+sekcja 3 mówiła poprawnie, że alerty Dependabota włącza się przez ustawienia
+KONTA, a ćwiczenie kazało kliknąć je w ekranie repozytorium, gdzie postawiły
+czytelnika kroki 1–2. Ta sama mechanika co „naprawa terminu musi objąć nagłówki
+punktów" z modułu 5. **Reguła: po naprawie prozy przejść ćwiczenie, „Zapamiętaj",
+„Czego się nauczysz", gotowce i tabelę zgodności — naprawa sekcji merytorycznej
+nie jest naprawą lekcji.**
+
+Druga istotna pokazała, że **kierunki „lekcja → tabela" i „tabela → lekcja"
+potrafią wskazać tę samą dziurę z dwóch stron**: „Czego się nauczysz"
+obiecywało różnicę między aktualizacjami bezpieczeństwa a wersji, lekcja jej
+nie stawiała, a wiersz tabeli ją opisywał. Jedno dopisane zdanie ze źródła
+zamknęło oba kierunki.
+
+Pozostałe dwie istotne to teza bez pokrycia w dopisku „żeby repozytorium było
+bezpieczne" oraz **reguła 9 w kierunku wzmacniającym** w sekcjach skrótowych
+(„nie trzeba" zamiast źródłowego „możesz nie potrzebować") — mimo że proza
+miała to już poprawione.
+
+**Objętość: reguła 5 briefu potwierdzona trzeci raz z rzędu.** Naprawy
+wypchnęły 6.3 z 11 942 na **12 560**; margines odzyskany cięciem prozy
+redakcyjnej (nie treści ze źródła) do **11 945**.
+
+##### Dowody na koniec modułu 6
+
+Strażnicy 25/25, `cytaty-zgodne` 195/195 (moduł 6) i 121/121 (moduł 5), mosty
+26 / 26 / 14 przy progu 40, objętości 11 760 / 11 963 / 11 945 / 12 497
+(6.4 ma widełki 8 000–13 000, bo zamyka kurs), zero znaków `”`.
+
+##### Dwie rzeczy do zrobienia PRZY ZRZUTACH (nie teraz)
+
+Weryfikator 6.1/6.2 zauważył, że dwie podpowiedzi zrzutów odwołują się do
+napisów, których w migawce dokumentacji nie ma: `Enter this text code instead`
+(6.1) i `randomart image` (6.2). `grep` po całym `d7/github/` nie znajduje ani
+jednego. To nie są tezy prozy — ale kto będzie robił zrzuty, musi te napisy
+sprawdzić w ŻYWYM interfejsie, nie w pliku cytatów.
+
+##### NASTĘPNY KROK czatu B
+
+**Terytorium czatu B jest oddane w całości poza lekcją 4.1** — 14 lekcji,
+166 688 znaków, wszystkie bramki zamknięte. Zostaje:
+
+1. **Lekcja 4.1** — czeka na zdanie zamykające moduł 3 od czatu A.
+2. **Wgranie treści do bazy** — czeka na czat A podwójnie: cięty program ORAZ
+   przenumerowanie pozycji lekcji na ciągłe `0…N-1`.
+3. **Punkty kontroli U1–U4 zostają OTWARTE.** Bramka modułu 6 objęła 6.2 i 6.3;
+   bez bramki prozy są nadal 6.1, 6.4 oraz 4.2, 4.3, 4.5, 4.6, 5.1 i 5.2.
+   U3 i U4 wyszły w trzecim module z rzędu.
+4. **`POSTEP.md` — ZROBIONE** (wpis obejmuje moduły 4, 5 i 6; nieaktualny
+   wiersz „Kurs 2 (7 modułów) | 50 | — | ⬜ przed startem" zastąpiony wierszami
+   modułów, z jawnym wskazaniem, że moduły 1–3 to terytorium czatu A).
+
+#### DECYZJA WŁAŚCICIELA (2026-08-23): zrzuty dopiero po OBU kursach, na czacie A
+
+Zapytany przy domykaniu modułów 4–6, właściciel rozstrzygnął: **teraz nie
+robimy nic ze zrzutami** — ani samych zrzutów, ani audytu podpisów. **Przelot
+zrzutów odbędzie się NA KOŃCU WSZYSTKICH KURSÓW, na czacie A, gdy skończy
+swoją pracę.** To potwierdza i doprecyzowuje decyzję z 2026-08-19 (zrzuty
+osobnym przelotem na końcu, bo starzeją się najszybciej): dochodzi wskazanie
+CZATU i warunku startu — komplet prozy obu kursów.
+
+**Stan do przekazania temu przelotowi:**
+- miejsc `<!-- ZRZUT: … -->` w terytorium czatu B: **42** (moduł 4 — 16,
+  moduł 5 — 12, moduł 6 — 14). `straznik-prozy` liczy je dla całej gałęzi
+  („miejsc na zrzuty do przelotu końcowego"), więc licznik jest pod ręką;
+- **prawdziwych zrzutów nie da się zrobić bez realnego repozytorium
+  `stargazers-log`** z issues, pull requestami, przebiegami Actions, włączonym
+  2FA, kluczem SSH i włączonymi funkcjami bezpieczeństwa — przelot końcowy
+  musi to uwzględnić w budżecie;
+- **dwa podpisy są już podejrzane** (znalazł weryfikator bramki 6.1/6.2):
+  `Enter this text code instead` w 6.1 i `randomart image` w 6.2 — `grep` po
+  całym `d7/github/` nie znajduje ani jednego. Nie są tezami prozy, ale przy
+  robieniu zrzutu trzeba je sprawdzić w ŻYWYM interfejsie, nie w migawce
+  dokumentacji. **Klasa do sprawdzenia hurtem przy tamtym przelocie: podpis
+  zrzutu nazywa napis, którego dokumentacja nie zna.**
+
+#### PUNKTY KONTROLI U1–U4, fala 1 (2026-08-23): moduł 4, lekcje 4.2, 4.3, 4.5, 4.6
+
+Cztery weryfikatory na Opusie, po jednym na lekcję, każdy z U1–U4 jako CZTEREMA
+osobnymi pytaniami. Wynik: **16 usterek istotnych i 38 drobnych, wszystkie
+naprawione** (commit `d9cd4dd`).
+
+**Główny wniosek: założenie, że te klasy wyczerpały się w module 5, było
+błędne — wszystkie cztery wystąpiły w KAŻDEJ z czterech lekcji.** Bramka
+wyrywkowa nie zastępuje przejścia po lekcjach, których nikt nie sprawdzał.
+
+**U3 pozostaje najgroźniejsza i wychodzi w czwartym module z rzędu.** Dwa
+przypadki warte zapamiętania:
+- 4.2 miała w `## Gdy coś nie działa` pozycję **w całości wymyśloną przy
+  biurku** — „Przycisk Submit new issue jest nieaktywny. Upewnij się, że pole
+  Title nie jest puste". Dokumentacja nie mówi ani o nieaktywnym przycisku,
+  ani o tym, że tytuł jest polem wymaganym; pozycja nie miała też wiersza
+  w tabeli zgodności, więc **przeszła obok wszystkich dotychczasowych kontroli**;
+- 4.6 tłumaczyła szary przycisk „Resolve conflicts" przyczyną, której źródło
+  nie podaje („konflikt za trudny na edytor"), i **kategorycznie wykluczała
+  brak uprawnień** — a to realna przyczyna przy pull requeście z cudzego forka.
+  Źródło podaje wyłącznie wyjście, nie przyczynę.
+
+**U4 w 4.2 — obietnica kontrolki, której czytelnik nie zobaczy.** Sekcja 3
+poprawnie umieszcza typy issue na poziomie organizacji, a sekcja 6 kazała
+ustawić typ w `stargazers-log` — prywatnym repozytorium na koncie osobistym.
+
+**NOWA ODMIANA U1: „must" ROZCIĄGNIĘTE NA SĄSIEDNI PRZYPADEK.** 4.6 przeniosła
+źródłowe „If the head branch is protected, you **must** create a new branch" na
+gałąź domyślną, dla której źródło wprost dopuszcza aktualizację head. Z rady
+zrobiła się twarda reguła — w checkliście z nagłówkiem „każda pozycja wprost ze
+źródła". **Do sprawdzania osobno: czy imperatyw źródła nie objął przypadku
+sąsiedniego.**
+
+**Wzorzec, który powtórzył się w dwóch lekcjach: ZAMYKANIE LISTY OTWARTEJ
+W ŹRÓDLE.** „dokładnie dwa przypadki" z „Merge conflicts **often happen**"
+(4.6) oraz „pięć części, z których składa się **każdy** pull request" (4.3) —
+przy czym drugie źródło tej samej lekcji wylicza jeszcze zakładkę **Findings**,
+której lekcja nie zna, a ćwiczenie kazało znaleźć „wszystkie pięć".
+
+**Klasa specyficzna dla lekcji bez bloków `>`:** żadna z czterech lekcji nie
+używa cytatu blokowego — przytoczenia stoją kursywą z atrybucją („Dokumentacja
+mówi…"). Weryfikatorzy sprawdzali je jako 13–28 osobnych tez na lekcję.
+**Wniosek: `cytaty-zgodne` tych lekcji nie obejmuje** (narzędzie czyta bloki `>`
+i bloki kodu), więc jedyną kontrolą wierności jest tu czytanie przez człowieka
+albo weryfikatora.
+
+**PUŁAPKA, W KTÓRĄ WPADŁEM SAM:** poprawka zdania zamykającego 4.3 („jedna
+reguła" → „twarde reguły", bo 4.4 mówi o dwóch warunkach) sprawiła, że
+domknięcie zaczęło dzielić **46 znaków** z pierwszym akapitem 4.4 przy progu 40
+— `most-lekcji` zaświecił „MOST PRZEPISANY". Przeredagowane na „na których
+wykłada się większość pierwszych prób", brief zsynchronizowany co do znaku.
+**Reguła: zmiana zdania mostowego wymaga ponownego pomiaru mostu, nawet gdy
+zmiana jest merytoryczna, a nie stylistyczna.**
+
+**Objętość — reguła 5 czwarty raz z rzędu.** Naprawy wypchnęły CZTERY lekcje
+ponad sufit naraz (12 427 / 12 512 / 12 529 / 12 600). Margines odzyskany
+cięciem prozy redakcyjnej: ram przed cytatami („Zdanie warte zapamiętania
+dosłownie, bo… Cytuję:" → „Cytuję:"), parafraz cytatu stojącego bezpośrednio
+obok i dopowiedzeń skutku. Wynik: 11 787 / 11 785 / 11 791 / 11 885.
+**Trymowanie zlecone osobnemu subagentowi z jawną listą tego, czego NIE wolno
+ruszać** (cytaty, warunki, modalności, świeże naprawy, pierwszy akapit,
+`## Co dalej`, komentarze `ZRZUT`) — sprawdziło się i przy okazji złapało moje
+własne zdanie z błędem składniowym, wprowadzone przy naprawie U3 w 4.6.
+
+##### Stan punktów kontroli po fali 1
+
+| # | Objęte bramką | Zostaje do sprawdzenia |
+|---|---|---|
+| U1 | 4.2, 4.3, 4.5, 4.6 + 4.4, 4.7, 5.3, 5.4, 6.2, 6.3 | **5.1, 5.2, 6.1, 6.4** |
+| U2 | j.w. | j.w. |
+| U3 | j.w. | j.w. |
+| U4 | j.w. | j.w. |
+
+**FALA 2 — NASTĘPNY KROK czatu B: lekcje 5.1, 5.2, 6.1 i 6.4**, tym samym
+przepisem (jeden weryfikator na lekcję, Opus, U1–U4 jako cztery osobne
+pytania, zakaz edycji plików, polecenie sprawdzenia legalnych odwołań wstecz).
+Po niej punkty kontroli **zamykają się dla całego terytorium czatu B** —
+14 lekcji modułów 4–6. Budżet: fala 1 kosztowała ~380 tys. tokenów subagentów
+plus ~130 tys. na trymowanie; fala 2 będzie tańsza (cztery lekcje zamiast
+czterech dłuższych, moduły 5 i 6 mają krótsze źródła).
 
 ### ⬛ WARUNEK STARTU PRZELOTU ZRZUTÓW SPEŁNIONY (2026-08-23, czat A)
 
