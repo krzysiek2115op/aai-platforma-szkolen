@@ -483,6 +483,21 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-prozy",
+    // Kontrola po TYTULE, nie po numerze: po cięciu Kursu 2 numer prozy
+    // (pozycja w nowym programie) rozjeżdża się z numerem scenariusza,
+    // więc dopasowanie po nazwie pliku dowodziłoby istnienia cudzej lekcji.
+    opis: "proza opisuje lekcję, której nie zna żaden scenariusz modułu",
+    plik: "tresc-kursow/jak-korzystac-z-claude/modul-1/proza-1-czym-jest-claude.md",
+    zmien: (s) =>
+      s.includes("lekcja: 1 — Czym jest Claude i co potrafi")
+        ? s.replace(
+            "lekcja: 1 — Czym jest Claude i co potrafi",
+            "lekcja: 1 — Temat, ktorego program nie zna"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-prozy",
     opis: "niedomknięty znacznik zrzutu — przelot końcowy by go przeoczył",
     plik: "tresc-kursow/jak-korzystac-z-claude/modul-1/proza-1-czym-jest-claude.md",
     zmien: (s) =>
