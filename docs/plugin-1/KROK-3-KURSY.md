@@ -1264,3 +1264,75 @@ cięciu (4.1 GitHub Flow, 4.2 Issues, 4.4 Czym jest pull request).
   „Prerequisites", „Create a branch" i „Make changes". Sekcje „Create
   a pull request", „Address review comments", „Merge your pull request"
   i „Delete your branch" **należą do 4.1** i nie zostały zużyte.
+
+### MODUŁ 2 KURSU 2 — STAN NA 2026-08-22 (czat A, przerwa na /clear)
+
+**Fala 1 ZROBIONA I ZREDAGOWANA: lekcje 2.1, 2.2, 2.3.** Trzej autorzy na
+Sonnecie 5, jeden autor = jedna lekcja, każdy z komendą mierzącą
+kontraktem w prompcie.
+
+| Lekcja | Znaków | Wierszy zgodności | Zrzutów | Koszt autora |
+|---|---|---|---|---|
+| 2.1 Przepływy pracy Git | 11 757 | 25 | 3 | 245 tys. |
+| 2.2 Wypychanie commitów | 10 166 | 24 | 3 | 190 tys. |
+| 2.3 Pobieranie zmian | 10 093 | 22 | 3 | 195 tys. |
+
+**Komenda mierząca DZIAŁA** — to pierwszy przebieg, w którym żadna lekcja
+nie wypadła z widełek 8 000–12 000 przy pierwszym oddaniu (w kalibracji
+Sonnet raz zszedł do 7 760 i autor tego nie zauważył). Każdy z trzech
+autorów sam zgłosił, ile razy przycinał.
+
+**Autorzy odmówili tez bez pokrycia — trzy razy, wszystkie słusznie:**
+cały wątek forków ze scenariusza 2.2 (`git remote add upstream`), „99%
+przypadków" przy wyborze drogi odblokowania pusha (źródło nie stopniuje),
+oraz draft-PR ze scenariusza 2.1 (teza prawdziwa, ale należy do lekcji
+4.1). Autor 2.1 znalazł przy tym **sprzeczność w samym scenariuszu D7**:
+zapowiada zatrzymanie przed pull requestami i zdanie dalej i tak zdradza
+draft-PR.
+
+**Poprawki agenta głównego (chirurgiczne, bez budzenia autorów):**
+
+| Co | Gdzie | Dlaczego |
+|---|---|---|
+| most w `## Co dalej` wyjęty z cudzysłowu | 2.2 | moduł 1 podaje go prozą — cudzysłów wyglądał jak cytat z kogoś |
+| „pokażę" → „pokazuje następna lekcja" | 2.2 | w całym module 1 nie ma 1. osoby liczby pojedynczej poza „cytuję" |
+| „o której pisałem" → „o której była mowa" | 2.3 | jw. |
+| „wymeldowywana jest gałąź" → „gałąź zostaje wybrana do pracy (ang. *checked out*)" | 2.3 | moduł 1 oddaje `checkout` jako przełączenie/wybór, nie „wymeldowanie" |
+| **dopisany krok `git checkout main` w ćwiczeniu** | 2.3 | **usterka ciągłości**: po ćwiczeniu 2.2 czytelnik stoi na `add-starred-list`, a proza mówiła „scalasz ze swoim lokalnym `main`". Instrukcja była niewykonalna zgodnie z opisem |
+| dopisana droga terminalowa dla systemów bez GitHub Desktop | 2.1 | ćwiczenie było wyłącznie w Desktopie, a dokumentacja podaje go tylko dla Windowsa i macOS (zawężenie znane z lekcji 1.5). Doszły dwa źródła i dwa wiersze zgodności |
+| „Kroki 3 i 4 … nieodwracalnie" → „Krok 4 i krok 8 … da się usunąć" | 2.1 | zdanie było nieprawdziwe w obie strony: krok 8 też zmienia GitHuba, a gałąź zdalną kasuje się jedną komendą (uczy tego 2.2) |
+
+**ZNALEZISKO DLA WŁAŚCICIELA — dotyczy CAŁEGO kursu, nie tego modułu.**
+Nagłówek `## Zrób to teraz (N minut)` bywa dłuższy niż czas całej lekcji
+z programu: 2.3 to lekcja 10-minutowa z ćwiczeniem na 15 minut, a
+w module 1 lekcja 1.5 (15 min) ma ćwiczenie na 20 minut. Odkąd
+`duration_min` znaczy „czas przerobienia lekcji" (decyzja 2026-08-19),
+to sprzeczność, którą klient widzi na stronie sprzedażowej.
+**Nie poprawiałem punktowo** — 41 lekcji Kursu 1 i moduł 1 Kursu 2 mają
+ten sam wzorzec i są już zaakceptowane; poprawka ma sens tylko jako
+jeden przelot po całości albo jako świadome „zostaje".
+
+#### NASTĘPNY KROK (dokładnie od tego zacząć)
+
+1. **Fala 2: lekcje 2.4 i 2.5** — dwaj autorzy na Sonnecie 5, po jednej
+   lekcji, prompty budowane tak jak przy fali 1 (rozpiska źródeł i mosty
+   są w briefie modułu, sekcje „2.4" i „2.5" oraz tabela mostów).
+2. **Fala 3: lekcja 2.7** dopiero po 2.4 i 2.5 — ściąga zbiera komendy
+   z GOTOWEJ prozy lekcji 1.1–2.5 i niczego nie uczy od nowa.
+3. Przelot spójności całego modułu, potem **bramka cytatów na 2.2 i 2.5**
+   (weryfikatory na Opusie, plik
+   `docs/dokumentacja-techniczna/d7/cytowane/github--modul-2.md`).
+4. `npm run db1:tresc -- --kurs jak-uzywac-githuba --modul 2 --adres http://localhost:3012 --sprawdz`,
+   potem bez `--sprawdz`.
+5. Wpis do `tresc-kursow/POSTEP.md` i jeden commit domykający moduł.
+6. Dopiero potem brief modułu 3 (uwaga: źródło Markdownu ma 30 kB,
+   a gałęzie chronione 21 kB — tam problemem jest NADMIAR źródła, więc
+   rozpiska „co pomijasz" waży więcej niż w module 2).
+
+**Czym pracować:** serwer deweloperski tego czatu stawiasz komendą
+`cd /home/krzysiek/Pod-strona-Szkolenia-k2-A && npx next dev -p 3012`
+(port 3012 należy do czatu A; przed startem `fuser -k 3012/tcp`).
+Przelot mechaniczny (objętość kontraktem, mosty co do znaku, słowa
+zakazane, druga osoba małą literą, domknięte znaczniki zrzutów,
+odsyłacze numerem lekcji) był skryptem w scratchpadzie sesji —
+odtworzenie zajmuje chwilę, bo wszystkie wzorce stoją w briefie modułu.
