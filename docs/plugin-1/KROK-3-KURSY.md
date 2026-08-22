@@ -1082,6 +1082,19 @@ rzeczy zapłaciła za siebie w tym module co najmniej raz.
 
 Podjęte z liczbami z kalibracji w ręku. **Czytać przed startem każdego czatu Kursu 2.**
 
+**DECYZJA WŁAŚCICIELA 2026-08-23 — AUDYT KOŃCOWY OBU KURSÓW.** Po dopisaniu
+ostatniej lekcji Kursu 2 robimy **audyt spójności całości**: osobny przebieg
+na Kursie 2 (32 lekcje) i osobny na Kursie 1 (41). Szuka wyłącznie tego, czego
+przegląd modułowy zobaczyć nie mógł — dryfu terminologii między modułami
+pisanymi przez różne czaty, obietnic składanych w jednym module a spełnianych
+w innym, powtórzeń, ciągłości stanu repozytorium czytelnika i mostów
+międzymodułowych. **Nie powtarza bramki cytatów i nie cofa długu 17 lekcji
+Kursu 1.** Druga część decyzji: **tropy zbieramy OD ZARAZ**, przy domykaniu
+każdego modułu, do
+[`tresc-kursow/AUDYT-KONCOWY.md`](../../tresc-kursow/AUDYT-KONCOWY.md) —
+jeden wiersz = jedno podejrzenie z adresem, gdzie je sprawdzić. Dotyczy obu
+czatów; plik założył czat A na gałęzi `feat/tresc-k2-modul-2-3`.
+
 1. **CIĘCIE MOCNE ZATWIERDZONE, program ma 32 lekcje.** Propozycja z tego
    dokumentu wchodzi w całości w modułach 2–7 (moduł 7 znika), a **moduł 1
    zachowuje sześć lekcji — lekcja 1.6 „Git od środka" ZOSTAJE**, bo jest już
@@ -1494,7 +1507,7 @@ reguła 7 briefu i tak robiły trzy lekcje z czterech. Tabele zgodności zachowu
 notację źródła; `USERNAME/REPOSITORY` zostaje po angielsku, bo dokładnie tak
 wygląda w adresach i w komunikatach Gita. **Obowiązuje w module 3.**
 
-#### NASTĘPNY KROK CZATU A (dokładnie od tego zacząć)
+#### NASTĘPNY KROK CZATU A — ZROBIONE 2026-08-23 (zapis historyczny; aktualny stan na końcu dokumentu)
 
 1. ~~**Brief prozy modułu 3**~~ **ZROBIONE 2026-08-22** —
    [tresc-kursow/jak-uzywac-githuba/modul-3/BRIEF-prozy-modulu.md](../../tresc-kursow/jak-uzywac-githuba/modul-3/BRIEF-prozy-modulu.md)
@@ -1529,3 +1542,51 @@ BLAD-008) był skryptem w scratchpadzie sesji — odtworzenie zajmuje chwilę,
 bo wszystkie wzorce stoją w briefie modułu. **Nowy test sprawdzić testem
 negatywnym**: przy tym skrypcie podrzucenie sześciu usterek wykryło, że
 pierwotny wzorzec „lekcja o…" wywalał się na dozwolonych odsyłaczach WSTECZ.
+
+### MODUŁ 3 KURSU 2 — ZAMKNIĘTY I WGRANY (2026-08-23, czat A)
+
+Pięć lekcji (3.1–3.3 + 3.5, 3.6), **57 273 znaki** pomiaru kontraktowego,
+w bazie i w repo. Pełne liczby, cztery sygnały jakości i znaleziska:
+**[tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md)**, sekcja
+„Moduł 3 Kursu 2".
+
+**Weryfikacja dwustronna po wgraniu** (`db1:tresc --sprawdz` bez potoku,
+kod wyjścia 0, „Bez zmian: 5. Do wgrania: 0."): Kurs 2 ma w bazie 6 modułów,
+32 lekcje, **17 z treścią, 184 828 znaków**. **Proza modułów 1 i 2 nietknięta
+co do znaku — 64 418 i 63 137, tyle samo co przed operacją.** Numeracja
+modułu 3 ma celową dziurę na pozycji 4 (wycięta lekcja o licencji).
+
+**Bramka cytatów (3.3 i 3.5, Opus) dała dwie usterki BLOKUJĄCE** — obie
+takie, których nie złapałby żaden strażnik ani przelot mechaniczny, bo
+zdanie jest prawdziwe w połowie przypadków. Opis w POSTEP.md; tu tylko
+wniosek, który dotyczy dalszej pracy obu czatów:
+
+> **Błąd w briefie wchodzi do prozy jako teza, bo autor pisze wiernie za
+> briefem.** W tym module z briefu przyszły: błędny licznik ustawień
+> („trzynaście" zamiast dwunastu), nieprawda o tym, co robi „Do not allow
+> bypassing", i flaga `--force`, której nie ma w żadnym ze źródeł lekcji.
+> Autorzy przepisali wszystkie trzy. **Liczby i zdania „co robi ta rzecz"
+> sprawdzać przeciw źródłu W CHWILI PISANIA BRIEFU** — przy przeglądzie
+> prozy brief jest już traktowany jak wzorzec, więc nikt go nie kwestionuje.
+
+Druga rzecz warta przeniesienia: **poprawki bramki kosztują znaki**,
+a widełki są twarde. Płacimy **selekcją, nie ściskaniem zdań** — w 3.5
+wyleciało zdanie dublujące kolumnę tabeli obok i ściąga dublująca
+„Zapamiętaj" (−432 znaki), w 3.3 wycięliśmy wzmianki zespołowe zamiast
+dopisywać ich składnię (czytelnik pracuje sam).
+
+#### NASTĘPNY KROK CZATU A (dokładnie od tego zacząć)
+
+Czat A **skończył swoje terytorium**: moduły 2 i 3 Kursu 2 są napisane,
+wgrane i zacommitowane na `feat/tresc-k2-modul-2-3`. Do zrobienia zostaje
+to, czego nie da się zrobić w pojedynkę:
+
+1. **Gałąź czeka na scalenie** — moduły 4–6 pisze czat B na własnej gałęzi;
+   scalać wtedy, gdy obie strony są gotowe (patrz „CZATY ROZJECHAŁY SIĘ NA
+   TEJ DECYZJI" wyżej — numeracja plików prozy).
+2. **Most 3.6 → 4.1 stoi w prozie co do znaku.** Czat B pisze otwarcie
+   modułu 4 pod to zdanie. Nic więcej nie przekazujemy.
+3. **Tropy do audytu końcowego** dopisane do
+   [`tresc-kursow/AUDYT-KONCOWY.md`](../../tresc-kursow/AUDYT-KONCOWY.md)
+   — pięć nowych, w tym ścieżki kliknięć niesprawdzone wobec żywego
+   interfejsu (do przelotu zrzutów) i cudzysłów zamykający.
