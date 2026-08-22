@@ -1336,3 +1336,52 @@ Przelot mechaniczny (objętość kontraktem, mosty co do znaku, słowa
 zakazane, druga osoba małą literą, domknięte znaczniki zrzutów,
 odsyłacze numerem lekcji) był skryptem w scratchpadzie sesji —
 odtworzenie zajmuje chwilę, bo wszystkie wzorce stoją w briefie modułu.
+
+### CZTERY DECYZJE WŁAŚCICIELA (2026-08-22, przed przerwą czatu A)
+
+1. **CENY ZMIENIONE W BAZIE — ZROBIONE.** Kurs 1 **49 900 → 29 900 gr**,
+   Kurs 2 **39 900 → 34 900 gr**, zgodnie z decyzją z 2026-08-20.
+   Polecenie właściciela brzmiało „zmień teraz, ale sprawdź szczegółowo,
+   czy to z niczym nie koliduje" — więc co zostało sprawdzone:
+
+| Sprawdzone | Wynik |
+|---|---|
+| gdzie żyje cena na stronie | **wyłącznie `price_grosze`** — żadna z 24 sekcji sprzedażowych obu kursów nie ma ceny wpisanej w treść, więc nie było czego poprawiać ręcznie |
+| co poszło do dyspozytora | akcja `zapisz` **bez pola `sections` i bez `modules`** — program, sekcje i treść lekcji nietykane z definicji, nie z ostrożności |
+| golden `d3-odczyt.json` (ma 49900) | to golden kursu **testowego** `ai-w-praktyce` w bazie testowej — nie dotyczy |
+| testy i smoke'i z cenami | własne kursy fixture (`smoke-d5`, `smoke-podglad`, testy dyspozytora) — nie czytają kursów produkcyjnych |
+| `tools/seed/seed-przyklady.ts` | **już miał nowe ceny** (29900 / 34900) — po zmianie seed i baza wreszcie się zgadzają |
+| katalog `/szkolenia` | **nie pokazuje ceny w ogóle** → zrzut `docs/zrzuty/podglad-szkolenia.png` w README NIE zdezaktualizował się |
+| strony kursów i dane strukturalne | `"price":"299.00"` i `"price":"349.00"` w JSON-LD; miniatury OG liczą cenę z bazy, więc odświeżą się przy najbliższym buildzie |
+| `Offer.availability` | bez zmian — nadal `PreOrder`, bo zakup to placeholder |
+| stan po operacji (SQL) | K1: 6 modułów, 41 lekcji, 41 z treścią, 562 960 znaków, 12 sekcji; K2: 6 modułów, 32 lekcje, 6 z treścią, 64 418 znaków, 12 sekcji |
+| strażnicy | 25/25 |
+
+   Kopia `courses` sprzed operacji leży w scratchpadzie sesji.
+   **Jedyna przyszła konsekwencja: publiczny podgląd statyczny nadal
+   serwuje stare ceny, dopóki ktoś nie uruchomi `npm run deploy:podglad`.**
+
+2. **Sekcje sprzedażowe pisze etap 4, po obu czatach treści** — pod
+   program, którego brzmienie będzie już znane w całości.
+3. **Obietnica „moduł ratunkowy: restore/revert/reset" zostaje
+   SKREŚLONA ze strony**, nie dopisujemy lekcji. Program zostaje na
+   32 lekcjach i nie wymaga ponownej akceptacji.
+4. **Sprzeczność „Zrób to teraz (N minut)" kontra czas lekcji z programu
+   naprawia JEDEN PRZELOT po całości na końcu produkcji** — razem
+   z przelotem zrzutów ekranu, po 91 lekcjach naraz. Nie poprawiamy
+   punktowo w trakcie pisania.
+
+#### Dwa znaleziska z tej weryfikacji (do etapu 4)
+
+- **Sekcje sprzedażowe KURSU 1 kłamią tak samo jak Kursu 2**, a dotąd
+  wiedzieliśmy tylko o Kursie 2. `package` obiecuje „7 modułów wideo
+  (31 lekcji)" i „Wszystkie 31 lekcji", a kurs ma **6 modułów i 41 lekcji
+  tekstu**; `faq` obu kursów mówi o „kilku godzinach wideo", choć wideo
+  nie będzie (decyzja 2026-08-19). **Etap 4 obejmuje więc OBA kursy**,
+  nie tylko Kurs 2.
+- **Liczba 565 394 znaków Kursu 1 z CLAUDE.md nie jest pomiarem
+  kontraktowym.** Pomiar przez `czytajProze` daje **562 960 znaków
+  w 41 plikach — co do znaku tyle samo, ile stoi w bazie**. Nic nie
+  zginęło; różnica bierze się z innej metody liczenia (całe pliki wobec
+  samej treści dla klienta). Przy następnym porównaniu plik–baza używać
+  pomiaru kontraktowego, inaczej wychodzi fałszywy alarm.
