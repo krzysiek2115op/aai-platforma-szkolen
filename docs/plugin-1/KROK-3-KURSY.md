@@ -1422,3 +1422,101 @@ Opusie, pięć osobnych przebiegów, do tego pytanie o cytat urwany w pół
 warunku — punkt 1 wyżej), potem plik cytatów modułu 5
 (`docs/dokumentacja-techniczna/d7/cytowane/github--modul-5.md` istnieje
 od czasów scenariuszy D7 i wymaga przejrzenia pod prozę), potem moduł 6.
+
+#### ⚠️ PUNKTY KONTROLI — OTWARTE (założone 2026-08-22, czat B)
+
+Cztery usterki znalezione bramką cytatów w lekcji 5.4 są **naprawione
+w pliku**, ale **klasa każdej z nich zostaje otwarta jako punkt
+kontroli** — decyzja właściciela z 2026-08-22: nie wolno ich zgubić
+przy `/clear` ani przy kolejnym sweepie. Naprawa jednej lekcji nie
+zamyka klasy, bo bramki cytatów są WYRYWKOWE: w module 4 objęły 2 lekcje
+z 6, w module 5 — 1 z 4 (5.3 przerwana na limicie usage).
+
+| # | Usterka | Waga | Stan naprawy | **Co pozostaje do sprawdzenia** |
+|---|---|---|---|---|
+| U1 | **Cytat urwany w pół warunku** — przytoczone „job nie uzyska dostępu do sekretów środowiska bez zgody zatwierdzających" gubiło poprzedzające `you can enable required reviewers`; opcja wyglądała na właściwość mechanizmu | **ISTOTNA** | ✅ naprawione w **3 miejscach** (proza, „Zapamiętaj", tabela zgodności); brak nawrotu potwierdzony grepem | czy ta sama klasa nie siedzi w **5.1–5.3** (8 bloków cytatu razem) i w **czterech lekcjach modułu 4, których bramka nie objęła** (4.2, 4.3, 4.5, 4.6) |
+| U2 | **Obserwacja z ekranu jako teza dokumentacji** — „`::add-mask::` wrzuca wartość do logu jako gwiazdki"; źródła mówią wyłącznie o zamazywaniu | drobna | ✅ naprawione w prozie i w opisie zrzutu | czy inne lekcje nie przypisują dokumentacji tego, co autor tylko zakłada, że zobaczy na ekranie |
+| U3 | **Diagnoza opisuje widoczność interfejsu zamiast uprawnienia** — „Nie widzisz przycisku New repository secret", gdy źródło mówi o prawie do ZAŁOŻENIA sekretu | drobna | ✅ naprawione (2 pozycje w `## Gdy coś nie działa`) | sekcje `## Gdy coś nie działa` w pozostałych lekcjach modułów 4 i 5 — to typowe miejsce osiadania takich tez |
+| U4 | **Sprzeczność wewnątrz jednej lekcji** — poradnik żądał nazwy zgodnej „co do liter", a sekcja merytoryczna tej samej lekcji podawała, że nazwy są nieczułe na wielkość liter | drobna | ✅ naprawione | czy poradnik i „Zapamiętaj" nie przeczą sekcjom merytorycznym w innych lekcjach |
+
+**Jak te punkty zamknąć** (nie robić tego przed dokończeniem modułu 6 —
+kolejność prac zostaje): przy bramce cytatów każdej kolejnej lekcji
+weryfikator dostaje U1–U4 jako **osobne pytania** (są już wpisane do
+briefu modułu 6 jako reguły produkcji 6 i 7 plus pytanie kontrolne
+o sprzeczność wewnętrzną). Punkt zamyka się dopiero wtedy, gdy przejdzie
+przez lekcje, których dotąd nikt nie sprawdzał — a nie wtedy, gdy
+naprawiono lekcję, w której go znaleziono.
+
+**Czego świadomie NIE obejmują**: 17 lekcji Kursu 1 bez bramki cytatów
+(3.1–3.6, 5.1–5.3, 5.5–5.7, 6.1–6.5) — właściciel zdecydował 2026-08-22,
+że zostają bez sprawdzenia. Ten zapis tamtej decyzji nie zmienia.
+
+#### Narzędzie: `tools/most-lekcji.mjs` (w repo od 2026-08-22)
+
+Skrypt liczy najdłuższy wspólny ciąg ciągły między sekcją `## Co dalej`
+poprzedniej lekcji a pierwszym akapitem następnej (po normalizacji
+białych znaków); próg 40 znaków, kod wyjścia 1 przy przekroczeniu.
+Sprawdzony testem negatywnym (sztuczna lekcja przepisująca domknięcie:
+284 znaki, wyjście 1) i pozytywnym na parach modułu 5. Był wcześniej
+w scratchpadzie sesji — utrwalony, bo po `/clear` przepadał.
+W nagłówku pliku stoi ostrzeżenie o pułapce, która raz już dała
+fałszywie zielony pomiar (ręcznie podana ścieżka `proza-6` zamiast
+ostatniej lekcji modułu, którą jest `proza-7`).
+
+#### Modele w tej fali — dowód, nie domysł
+
+Autorzy na **Sonnecie 5** (~155 i ~198 tys. tokenów na lekcję): mechanika
+czysta od pierwszego strzału u obu — objętość w widełkach, most podjęty
+i policzony przez autora, domknięcie co do znaku, konwencja cudzysłowu.
+Usterki, które zostały, były **merytoryczne i wychodziły dopiero przy
+czytaniu źródła** — czyli tam, gdzie pracuje weryfikator na **Opusie**
+(~98 tys. tokenów na lekcję). To potwierdza podział z kalibracji
+modułu 1 K2: autorzy Sonnet, bramka Opus. Nie schodzić z autorami
+niżej i nie podnosić ich do Opusa bez nowej decyzji właściciela.
+
+#### Co poprawił PRZELOT (przed bramką cytatów) — żeby weryfikator 5.3 nie liczył tego jako nowe
+
+Agent główny czytał obie lekcje fali 2 przeciw źródłom w oryginale
+i znalazł osiem rozjazdów, których żaden autor nie zgłosił. **Bramka
+cytatów 5.3 jeszcze się nie odbyła — to jest lista rzeczy już
+naprawionych w tej lekcji**, więc nie należy ich odkrywać po raz drugi
+ani cofać.
+
+**5.3 „Continuous Integration" — 4 poprawki (+ zdjęte powtórzenie o szablonach):**
+- „`npm ci` **wymaga** pliku `package-lock.json`; bez niego zadziała
+  `npm install`" — źródło mówi wyłącznie, CO która komenda instaluje.
+  To był wniosek autora podany jak teza dokumentacji (gatunek (a)),
+  prawdziwy w rzeczywistości, ale bez pokrycia w źródle;
+- „instaluje wersje i **nie pozwala ich zmienić**" → źródło:
+  `prevents updates to the **lock file**` (chroniony jest plik
+  blokujący, nie wersje);
+- „x… dopasowuje najnowsze wydanie **danej gałęzi wersji**" → źródło:
+  `latest **minor and patch** release`;
+- „runnery mają zainstalowane **menedżery npm**" → źródło: `npm **and
+  Yarn** dependency managers`; zawężenie do npm jest zgodne z briefem,
+  ale zdanie wyszło niegramatyczne i mówiło co innego.
+Dwa wiersze tabeli zgodności opisywały starą treść — poprawione razem
+z prozą.
+
+**5.4 „Sekrety w workflow" — 4 poprawki przelotem (przed czterema z bramki):**
+- limit sekretów organizacji podany jako reguła bezwzględna, gdy źródło
+  warunkuje go progiem: `If the repository is assigned access to **more
+  than 100** organization secrets`;
+- „gdy workflow wyzwala **pull request** z forka" → źródło:
+  `when a workflow is triggered from a forked repository`;
+- „proces widoczny poleceniem `ps` **ujawnia parametry wywołania**" →
+  źródło: `may be visible to other users (using the ps command)`, plus
+  zgubiona lista alternatyw (`STDIN`, inne mechanizmy);
+- krok YAML w „Prompty z tej lekcji" nie był oznaczony jako
+  **Propozycja kursu** — w pozostałych lekcjach modułu taka etykieta
+  stoi przy każdej treści spoza dokumentacji.
+
+**Wniosek na przyszłe fale:** autorzy na Sonnecie oddają czystą
+mechanikę, ale **rozszerzają tezy źródła w miejscach, które brzmią
+oczywiście** („wymaga", „zawsze", dopowiedziany skutek). Przelot
+spójności czytany przeciw ORYGINAŁOWI — nie przeciw tabeli zgodności
+autora — łapie to przed bramką i taniej niż Opus.
+
+**`POSTEP.md` nadal świadomie nietknięty**: wpis powstaje przy ZAMKNIĘCIU
+modułu, a moduł 5 nie jest zamknięty (bramka 5.3 przerwana), tak samo
+moduł 4 (brak lekcji 4.1 zablokowanej na czacie A).
