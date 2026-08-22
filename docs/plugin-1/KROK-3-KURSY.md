@@ -1180,3 +1180,75 @@ i przekazuje je czatowi B, zanim B napisze lekcję 4.1.**
   restore/revert/reset", którego nie niesie żaden tytuł). Pisane od nowa
   w etapie 4, pod program 32-lekcyjny.
 - **Przelot zrzutów ekranu** na końcu produkcji: 94 miejsca w prozie.
+
+### CZAT B Kursu 2 (moduły 4, 5, 6) — stan na 2026-08-22, przed /clear
+
+Worktree `/home/krzysiek/Pod-strona-Szkolenia-k2-B`, gałąź
+`feat/tresc-k2-modul-4-6` (od `feat/tresc-k2-modul-1`), port dev 3013.
+`node_modules` i trzy katalogi `docs/dokumentacja-techniczna/d7/*` są
+KOPIAMI (`cp -al`), `.env` dowiązaniem. Dwa commity na gałęzi.
+
+**Zrobione:** briefy prozy modułów **4, 5 i 6** (w repo, przy modułach)
+oraz **pięć lekcji prozy modułu 4**: 4.2, 4.3, 4.4, 4.5, 4.6 —
+11 269–11 988 znaków mierzonych kontraktem, 24–37 tez w tabelach
+zgodności, strażnicy 25/25.
+
+**W locie w chwili zatrzymania:** lekcja **4.7 „Merge, squash czy
+rebase?"** — autor pisał ją, gdy przyszło polecenie zatrzymania.
+Plik `modul-4/proza-7-merge-squash-rebase.md` istnieje i **nie jest
+zacommitowany**; po powrocie SPRAWDZIĆ go kontrolami przeglądu
+(objętość kontraktem, most wyjściowy co do znaku, zero numerów lekcji,
+zero pierwszej osoby, zero callbacku do `git rebase`), a nie zakładać,
+że jest gotowy.
+
+**Zablokowane na czacie A (dwie rzeczy):**
+1. **Lekcja 4.1** — otwiera się podjęciem zdania, którym czat A zamyka
+   moduł 3. Dopóki tego zdania nie ma, lekcji nie piszemy; w briefie
+   modułu 4 stoi `⛔ CZEKA NA CZAT A`. To jedyny szew między czatami.
+2. **Wgrywanie treści do bazy** (`npm run db1:tresc -- --kurs
+   jak-uzywac-githuba --modul N --sprawdz`, potem bez `--sprawdz`,
+   z `--adres http://localhost:3013`) — ma sens dopiero po tym, jak
+   czat A wprowadzi **cięty program** do bazy. Dziś w bazie stoi stary
+   program 50-lekcyjny, więc dopasowanie po pozycji i tytule odrzuci
+   prozę (i dobrze — to ten strażnik, nie usterka).
+
+**Trzy ustalenia, które kosztowały czas i mają zostać:**
+
+1. **Numer prozy to pozycja w NOWYM programie, nie numer scenariusza.**
+   `lib/proza-lekcji.ts` wylicza pozycję w bazie z numeru w nazwie
+   pliku i dodatkowo porównuje tytuł. Przeliczenie dla obu czatów jest
+   w tabelach na początku każdego briefu. Skutek uboczny: `proza-3-…`
+   w module 4 to scenariusz `lekcja-4-…` i tak już zostanie.
+2. **`straznik-prozy` był na to ślepy** — wiązał prozę ze scenariuszem
+   po numerze, więc po cięciu potwierdzał istnienie CUDZEJ lekcji.
+   Naprawione (commit „Strażnik prozy przestaje mylić lekcje po cięciu
+   programu"): dopasowanie po TYTULE, test negatywny, nowa mutacja,
+   audyt 78/78. **Czat A ma ten sam rozjazd w modułach 2 i 3** —
+   po scaleniu gałęzi dostanie naprawę za darmo, ale do tego czasu
+   jego strażnik kłamie.
+3. **Lekcja 4.1 jest PODGLĄDOWA** (`preview = true` w bazie; w całym
+   Kursie 2 są dwie takie: 1.1 i 4.1). Musi bronić się bez kontekstu
+   przed kimś, kto jeszcze nie kupił, i jednocześnie podjąć most
+   z modułu 3. Sposób pogodzenia tych dwóch rzeczy jest w briefie.
+
+**Dziury po lekcjach wyciętych — kto je przejmuje** (pełne tabele
+w briefach; tu skrót, bo to jest rzecz, którą łatwo przeoczyć):
+- moduł 4: nikt nie uczy robienia przeglądu (4.7 wypadła) ani forków
+  (4.10); lista słów kluczowych zamykających issue weszła do 4.4
+  jednym podrozdziałem (po 4.11); **czytelnik nie zna `git rebase`**,
+  więc lekcja 4.7 tłumaczy przycisk **Rebase and merge** wyłącznie
+  przez to, co robi z commitami;
+- moduł 5: czytanie pliku workflow linia po linii przechodzi z wyciętej
+  „Anatomii" do lekcji o CI; składnię `${{ … }}` wprowadza CI przy
+  `matrix`; „środowisko" to jedno zdanie definicji w lekcji o sekretach;
+  wdrożenie (CD) wypada z kursu bez śladu;
+- moduł 6: katalog funkcji bezpieczeństwa wypada, Dependabot zostaje
+  przez lekcję „Zabezpiecz swoje repozytorium", a **ostatnia lekcja
+  modułu domyka CAŁY kurs** — w briefie leży tabela 32 lekcji do
+  sprawdzenia podsumowania, bo autor finału Kursu 1 pomylił moduły
+  trzy razy w jednym akapicie.
+
+**Następny krok po powrocie:** sprawdzić i domknąć 4.7 → przelot
+spójności modułu 4 → bramka cytatów wyrywkowa (wskazanie: 4.4 i 4.7,
+weryfikator na Opusie) → 4.1, gdy będzie zdanie od czatu A → dopiero
+potem fala 1 modułu 5 (lekcje 5.1 i 5.2 wg briefu).
