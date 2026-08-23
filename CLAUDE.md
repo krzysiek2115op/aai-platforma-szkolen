@@ -633,11 +633,19 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      Zadanie otwarte na koncie: skasować ~12 rozmów demonstracyjnych
      z historii claude.ai, gdy wróci dostęp — po potwierdzeniu listy
      z właścicielem.
-     **NASTĘPNY KROK (kolejność właściciela): PR gałęzi
-     `feat/tresc-k2-modul-2-3` → merge → tag → release** (CI stoi do
-     1 września, więc na dowodach lokalnych, jak przy 0.21.0 i 0.25.0; po
-     powrocie CI potwierdzić gitleaks). Potem — i dopiero potem — audyt kursów
-     i higiena repo, które właściciel chce OMÓWIĆ OSOBNO.
+     **PR #55 ZMERGOWANY (2026-08-23), tag `v0.32.0` + release** — na
+     dowodach lokalnych (strażnicy 26/26, audyt mutacyjny 85/85, testy
+     75/75; CI stoi do 1 września — po powrocie potwierdzić gitleaks).
+     Zdalna gałąź PR-a skasowana; `feat/tresc-k2-modul-4-6` (czatu B,
+     w pełni scalona) czeka na zaplanowane sprzątanie po Pluginie 1.
+     Przy PR wgrane też 64 lekcje wgrywarką (w tym proza 4.1 K2, która
+     leżała TYLKO w plikach) — baza i pliki zgodne co do znaku.
+     **NASTĘPNY KROK: audyt kursów i higiena repo — właściciel chce je
+     OMÓWIĆ OSOBNO; NIE planować ich ani nie zaczynać z własnej
+     inicjatywy.** Otwarte drobiazgi poza tym: skasować ~12 rozmów
+     demonstracyjnych z konta claude.ai po powrocie dostępu (za
+     potwierdzeniem listy); worktree'y `k2-A`/`zrzuty-k1` zostają lokalnie
+     (gałęzie zmergowane — istnienie worktree nie znaczy, że trwa praca).
     **KALIBRACJA K2 ZROBIONA (2026-08-22): moduł 1 Kursu 2 gotowy** — 6 lekcji,
     64 418 znaków, w repo (gałąź `feat/tresc-k2-modul-1`) i w bazie, po pełnej
     bramce cytatów. **Cztery decyzje właściciela po kalibracji, WIĄŻĄCE dla
