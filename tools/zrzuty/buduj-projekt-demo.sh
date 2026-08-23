@@ -173,6 +173,23 @@ cat > .mcp.json <<'EOF'
 }
 EOF
 
+# DOWIĄZANIE SYMBOLICZNE — potrzebne do ekranu K1 4.8 („Restored the code, but
+# skipped N files"). Sprawdzone w kodzie Claude Code 2.1.241: licznik pominiętych
+# plików rośnie, gdy śledzona ścieżka jest dowiązaniem symbolicznym, twardym albo
+# plikiem nieregularnym — a NIE wtedy, gdy plik zmieniła komenda powłoki. Bez
+# takiego pliku ostrzeżenia nie da się wywołać, więc projekt demonstracyjny ma
+# realny przypadek z prozy: plik wciągnięty dowiązaniem ze wspólnego katalogu.
+WSPOLNE="$(dirname "$KAT")/wspolne"
+mkdir -p "$WSPOLNE"
+cat > "$WSPOLNE/formaty.js" <<'EOF'
+// Wspólne formatowanie kwot — plik dzielony między projektami,
+// wciągany do repozytorium dowiązaniem symbolicznym.
+export function naZlotowki(grosze) {
+  return (grosze / 100).toFixed(2) + " zł";
+}
+EOF
+ln -sfn "$WSPOLNE/formaty.js" "$KAT/lib/formaty.js"
+
 git init -q
 git config user.email "oliwia@przyklad.pl"      # LOKALNIE — nigdy --global (brief §5)
 git config user.name "Oliwia"

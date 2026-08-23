@@ -1,0 +1,15 @@
+{
+  "_podpis": "transkrypt z wierszem delegowania do subagenta code-improver i treścią zleconego promptu",
+  "_lekcja": "K1 4.1 (proza-1-subagenci.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-subagenci-i-skill.txt",
+  "raw": "model-d.raw",
+  "doZnacznika": "transkrypt-delegowanie-1",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-4/zrzuty/z02-transkrypt-wierszem-delegowania-code.webp",
+  "przytnijOd": 13,
+  "przytnijDo": 26,
+  "wymagaTekstu": [
+    "code-improver(",
+    "Backgrounded agent",
+    "Prompt:"
+  ]
+}
