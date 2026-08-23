@@ -1,0 +1,19 @@
+# Ekran logowania Claude Code (lekcja 3.2) — terminal czeka na dokończenie
+# uwierzytelnienia w przeglądarce.
+#
+# JEDYNY scenariusz przelotu wołany ze ŚWIEŻYM `HOME`:
+#   rm -rf /tmp/oliwia-swieze && mkdir -p /tmp/oliwia-swieze
+#   HOME=/tmp/oliwia-swieze bash tools/zrzuty/sesja-tui.sh …
+# Powód: ekran logowania widać wyłącznie wtedy, gdy poświadczeń NIE MA, a
+# `/login` w sesji właściciela wylogowałoby jego konto. Świeży `HOME` daje ten
+# sam ekran i nie dotyka niczyjego uwierzytelnienia. Przebieg zatrzymujemy na
+# ekranie oczekiwania — żadnego kodu nie wklejamy, więc żadne konto nie powstaje.
+#
+# Onboarding ma dwa kroki przed logowaniem: wybór motywu i wybór sposobu
+# logowania. Oba zatwierdzamy Enterem na podświetlonej pozycji domyślnej.
+CZEKAJ 15
+ENTER
+CZEKAJ 4
+ENTER
+CZEKAJ 8
+ZNACZNIK czeka-na-przegladarke

@@ -53,9 +53,13 @@ SCEN=${1:?scenariusz}; WY=${2:?wyjscie.raw}; KAT=${3:-/tmp/oliwia-demo}
 # przełącznik. Tak zniknął właścicielowi `autoCompactEnabled` (2026-08-23).
 # Dlatego robimy migawkę PRZED i przywracamy PO — zmiana ustawień właściciela
 # nigdy nie jest celem nagrania.
+# MIGAWKA_JEST rozróżnia „migawka pusta" od „migawki nie było". Bez tego
+# `mktemp` (który tworzy plik ZAWSZE) kazałby przywracać PUSTY plik tam, gdzie
+# ustawień wcześniej nie było — czyli kasować je zamiast chronić.
 USTAWIENIA="$HOME/.claude/settings.json"
 MIGAWKA=$(mktemp /tmp/sesja-tui-ustawienia-XXXX.json)
-[ -f "$USTAWIENIA" ] && cp "$USTAWIENIA" "$MIGAWKA"
+MIGAWKA_JEST=0
+if [ -f "$USTAWIENIA" ]; then cp "$USTAWIENIA" "$MIGAWKA"; MIGAWKA_JEST=1; fi
 KOLUMNY=${TUI_KOLUMNY:-120}; WIERSZE=${TUI_WIERSZE:-40}
 FIFO=$(mktemp -u /tmp/tui-in-XXXX); mkfifo "$FIFO"; rm -f "$WY" "$WY.znaczniki"
 
@@ -121,7 +125,7 @@ if [ "$NAGLOWEK" -gt 0 ] && [ -f "$WY.znaczniki" ]; then
       "$WY.znaczniki" > "$WY.znaczniki.tmp" && mv "$WY.znaczniki.tmp" "$WY.znaczniki"
   printf 'znaczniki przesunięte o nagłówek script (-%s B)\n' "$NAGLOWEK"
 fi
-if [ -f "$MIGAWKA" ] && [ -f "$USTAWIENIA" ] && ! cmp -s "$MIGAWKA" "$USTAWIENIA"; then
+if [ "$MIGAWKA_JEST" = 1 ] && [ -f "$USTAWIENIA" ] && ! cmp -s "$MIGAWKA" "$USTAWIENIA"; then
   cp "$MIGAWKA" "$USTAWIENIA"
   echo "sesja-tui: UWAGA — sesja zmieniła $USTAWIENIA; przywrócono stan sprzed nagrania." >&2
   echo "sesja-tui: to znaczy, że scenariusz nie domknął panelu i ENTER trafił w przełącznik." >&2

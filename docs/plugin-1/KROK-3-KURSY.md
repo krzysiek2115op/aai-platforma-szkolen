@@ -2828,13 +2828,31 @@ Sprawdzone: suma kontrolna pliku przed i po kolejnym nagraniu jest ta sama.
 
 ### Następny krok
 
-1. **Trzy ekrany lokalne, których jeszcze nie ma:** logowanie (K1 3.2 — robić
-   na **świeżym `HOME`**, żeby NIE ruszyć uwierzytelnienia właściciela; `/login`
-   w jego sesji jest wykluczone), sesja we własnym worktree i pytanie o zgodę
-   przy worktree spoza `.claude/worktrees/` (K1 4.7).
-2. **Dwa spoza TUI:** strona „Prompting Claude Opus 5" (K1 2.3) i arkusz
-   porównania modeli (K1 1.3).
-3. **Jedenaście wymagających odpowiedzi modelu** (sekwencja wywołań narzędzi,
-   wynik testów jako dowód, podgląd zmiany ze zgodą, transkrypt `Ctrl+O`,
-   panel subagentów, `/summarize-changes`, `/rewind` z prawdziwymi promptami,
-   ostrzeżenie o pominiętych plikach) — dopiero po odnowieniu limitu sesji.
+1. ~~Ekrany lokalne~~ **ZROBIONE — 32/73, zostaje 14 na teraz.** Doszły
+   logowanie (K1 3.2) i sesja we własnym worktree (K1 4.7), scenariusze
+   `logowanie.txt` i `sesja-w-worktree.txt`.
+2. **Dwa spoza TUI:** strona „Prompting Claude Opus 5" (K1 2.3, przeglądarka)
+   i arkusz porównania modeli (K1 1.3, do zbudowania).
+3. **Dwanaście wymagających odpowiedzi modelu** — sekwencja wywołań narzędzi,
+   wynik testów jako dowód, podgląd zmiany ze zgodą, pytanie o zgodę na komendę
+   powłoki z `Ctrl+E`, transkrypt `Ctrl+O`, panel subagentów, wiersz delegowania,
+   `/summarize-changes`, `/rewind` z prawdziwymi promptami, ostrzeżenie
+   o pominiętych plikach, lista czytanych plików oraz **pytanie o zgodę przy
+   wejściu w worktree spoza `.claude/worktrees/`** (K1 4.7 — wymaga, żeby model
+   sam wywołał `EnterWorktree`, więc nie jest ekranem lokalnym, jak zakładałem).
+   Wszystkie po odnowieniu limitu sesji.
+
+### Dwa ustalenia z tej partii
+
+- **Ekran logowania robimy na ŚWIEŻYM `HOME`** (`/tmp/oliwia-swieze`), nie
+  komendą `/login` — ta wylogowałaby konto właściciela. Świeży `HOME` daje ten
+  sam ekran onboardingu (motyw → sposób logowania → oczekiwanie na przeglądarkę),
+  a przebieg zatrzymujemy przed wklejeniem kodu, więc żadne konto nie powstaje.
+  Adres OAuth na zrzucie zostaje prawdziwy: nie ma w nim danych właściciela,
+  a `code_challenge` i `state` to jednorazowe wartości porzuconego przebiegu.
+- **Strażnik konfiguracji miał własną usterkę i sam ją pokazał.** `mktemp`
+  tworzy plik ZAWSZE, więc gdy ustawień wcześniej nie było, „przywracanie"
+  kopiowało PUSTĄ migawkę — czyli kasowało plik zamiast go chronić. Trafiło to
+  na jednorazowy `HOME` (`settings.json` = 0 B), nie na konfigurację
+  właściciela. Naprawione flagą `MIGAWKA_JEST`; sprawdzone ponownym przebiegiem:
+  plik świeżego `HOME` ma po nim 22 B, nie zero.
