@@ -2718,3 +2718,44 @@ dla `/config`, `/status`, `/permissions`, `/memory`, `/context`,
 4. Dokadrować (`przytnijOd`/`przytnijDo` w spec.json), wpiąć `wepnij.mjs`,
    sprawdzić stykówką, commit po każdym domkniętym module.
 5. Dopiero potem scenariusze wymagające modelu.
+
+### Sweep repo przed `/clear` — czat B, 2026-08-23
+
+**Premisa „36/36 zrzutów gotowych" NIE była spełniona** — `manifest.mjs --kurs K1`
+podaje 36 miejsc do zrobienia i **0 wpiętych**. Gałąź „zweryfikuj kompletność
+zrzutów" nie miała więc czego weryfikować; sweep objął to, co istnieje: repo,
+rig i podpisy będące specyfikacją przyszłych zrzutów.
+
+**Znaleziono 6, naprawiono 6, kolizji i regresji 0.**
+
+| # | Co | Klasa | Naprawa |
+|---|---|---|---|
+| 1 | Podpisy w 3.1 i 3.7 obiecywały „**menu** trybów uprawnień po `Shift+Tab`" | podpis kontra żywy ekran | `Shift+Tab` przełącza tryb cyklicznie i zmienia pasek stanu — żadne menu nie wstaje; podpisy mówią teraz o pasku stanu |
+| 2 | Podpis w 3.2 obiecywał przeglądarkę **i terminal obok** | podpis opisujący montaż (zakaz z zasady 1 briefu) | podpis nazywa jeden ekran: terminal w trakcie logowania |
+| 3 | Podpis w 4.7 obiecywał **dwa terminale obok siebie** | jw. | podpis nazywa jedną sesję we własnym worktree |
+| 4 | `wepnij.mjs` **padał** na wyjściu `manifest.mjs --json` (`obraz_plan` kontra `obraz`) | ukryty defekt wspólnego rigu — trafiłby OBA czaty przy wpinaniu | przyjmuje `obraz_plan ?? obraz`, a przy braku planu mówi „czeka", zamiast rzucać `ERR_INVALID_ARG_TYPE` |
+| 5 | Scenariusz `panele-lokalne.txt` czyścił pole **jednym** Esc | scenariusz nieodtwarzalny | dwa Esc (tak mówi sam panel pomocy); bez tego komendy sklejały się w `/co/sum@/hooks` i szły do modelu jako zapytanie |
+| 6 | Świeży worktree bez `.env` **po cichu pomija 37 testów bazy** i kończy się zielono | zielony przebieg, który niczego nie dowodzi (klasa z 0.24.0) | `.env` skopiowany lokalnie (jest w `.gitignore`); bez niego `npm test` daje 38/75 „pass" i kod 0 |
+
+**Kontrola kolizji przed poprawkami:** gałąź czatu A poszła od mojej bazy
+o 4 commity, ale **żaden nie dotyka moich 5 plików** (`git log --all 9b4abb2.. -- <plik>`
+= 0 dla każdego). Czat A zmienił za to `manifest.mjs` (nowa reguła kubła
+`github-logged`, funkcja `slug()`), więc poprawione podpisy sprawdziłem
+**dwoma zestawami reguł** — moim i ich: w obu podział wychodzi identycznie
+(36 teraz / 27 po zalogowaniu, `tui` 33). Zmiana podpisu **przed** zrobieniem
+zrzutu jest przy tym właściwą kolejnością: `slug()` wyprowadza nazwę pliku
+z podpisu, więc poprawka po zrzucie wymusiłaby przemianowanie.
+
+**Walidacja po poprawkach:** strażnicy **25/25**, testy **75/75** (kod wyjścia 0,
+bez potoku), `wepnij.mjs` sprawdzony testem negatywnym (wyjście manifestu —
+nie pada, zgłasza 63 czekające) i pozytywnym (plan z `obraz_plan` + istniejący
+plik — wpina i podmienia znacznik na `![…](…)`).
+
+**Ponowny sweep:** `git status` czysty, licznik zrzutów bez zmian po poprawkach,
+cudze worktree (`k2-A`, `k2-B`, główny) i klon strony głównej bez ani jednej
+zmiany.
+
+**Do scalenia — znane, nie defekt:** oba czaty dopisywały własne sekcje na
+KOŃCU `PRZELOT-ZRZUTOW.md`, `ZNALEZISKA-PRZELOTU-ZRZUTOW.md` i tego pliku,
+więc git pokaże konflikt tekstowy w ogonie. Treściowo to unia — rozwiązać
+zostawiając obie sekcje.

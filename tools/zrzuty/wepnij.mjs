@@ -25,12 +25,17 @@ for (const [plik, pozycje] of wgPliku) {
     const i = poz.linia - 1;
     const linia = linie[i];
     if (!linia?.includes('<!-- ZRZUT:')) continue;             // już wpięty albo przesunięty
-    const obraz = join(katLekcji, poz.obraz_plan);
+    // Nazwa pliku bierze się z planu (`obraz_plan`). Wyjście `manifest.mjs --json`
+    // planu NIE zawiera — ma `obraz` (null, póki zrzutu nie ma). Bez tego wiersza
+    // wepnij PADAŁO na `join(kat, undefined)` zamiast powiedzieć, czego mu brak.
+    const planowany = poz.obraz_plan ?? poz.obraz;
+    if (!planowany) { czeka++; continue; }
+    const obraz = join(katLekcji, planowany);
     if (!existsSync(obraz)) { czeka++; continue; }
     const podpis = linia.replace(/^.*<!-- ZRZUT:\s*/, '').replace(/\s*-->.*$/, '').trim();
     if (!podpis) { brakPodpisu++; continue; }
     const alt = podpis.replace(/\[/g, '(').replace(/\]/g, ')');
-    linie[i] = `![${alt}](${poz.obraz_plan})`;
+    linie[i] = `![${alt}](${planowany})`;
     zmiana = true; wpiete++;
   }
   if (zmiana && !sprawdz) writeFileSync(pelna, linie.join('\n'));
