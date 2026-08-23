@@ -6,8 +6,13 @@ import { puppeteer, sharp } from './zaleznosci.mjs';
 import { readFileSync } from 'node:fs';
 
 const spec = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+// ZRZUTY_PROFIL = trwały profil przeglądarki (scratchpad sesji): sesja właściciela
+// przeżywa między zrzutami, więc partia „po zalogowaniu" idzie bez okna.
+// ZRZUTY_WIDOCZNY=1 pokazuje okno, gdy trzeba coś kliknąć ręcznie.
 const b = await puppeteer.launch({
-  browser: 'firefox', executablePath: '/usr/bin/firefox', headless: true,
+  browser: 'firefox', executablePath: '/usr/bin/firefox',
+  headless: !process.env.ZRZUTY_WIDOCZNY,
+  ...(process.env.ZRZUTY_PROFIL ? { userDataDir: process.env.ZRZUTY_PROFIL } : {}),
   protocol: 'webDriverBiDi', args: ['-width', '1680', '-height', '1050'],
 });
 try {
@@ -42,6 +47,10 @@ try {
     if (a.typ === 'scrollY') await page.evaluate(y => window.scrollTo(0, y), a.y);
     if (a.typ === 'czekaj') await new Promise(r => setTimeout(r, a.ms));
     if (a.typ === 'eval') await page.evaluate(a.kod);
+    // `wpisz` wypełnia pole tak, jak zrobiłby to uczeń — z ogniskiem na polu.
+    // Podstawienie `value` z JS daje ten sam tekst, ale bez obwódki ogniska,
+    // a część podpisów obiecuje pole „z wpisanym…", czyli pole aktywne.
+    if (a.typ === 'wpisz') { await page.click(a.selektor); await page.type(a.selektor, a.tekst, { delay: 25 }); }
     await new Promise(r => setTimeout(r, a.poMs ?? 350));
   }
 
@@ -62,6 +71,13 @@ try {
     for (const el of document.querySelectorAll('[title],[aria-label],[alt],[value]'))
       for (const p of patche) for (const at of ['title','aria-label','alt','value'])
         if (el.getAttribute(at)?.includes(p.z)) el.setAttribute(at, el.getAttribute(at).split(p.z).join(p.na));
+    // Pola formularzy wypełnione JAVASCRIPTEM (np. „Generate release notes")
+    // NIE mają węzła tekstowego ani atrybutu `value` — treść siedzi we
+    // WŁAŚCIWOŚCI `.value`. Bez tej pętli login właściciela wychodzi na zrzucie
+    // mimo poprawnej podmiany w DOM (złapane stykówką przy module 3).
+    for (const el of document.querySelectorAll('input,textarea'))
+      for (const p of patche)
+        if (typeof el.value === 'string' && el.value.includes(p.z)) el.value = el.value.split(p.z).join(p.na);
     // awatary właściciela -> neutralny identikon (szare kółko z inicjałem)
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="%23d0d7de"/><text x="32" y="42" font-family="sans-serif" font-size="30" fill="%2357606a" text-anchor="middle">o</text></svg>`;
     for (const img of document.querySelectorAll('img[src*="avatars.githubusercontent.com"]'))
