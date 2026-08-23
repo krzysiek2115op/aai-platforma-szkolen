@@ -639,9 +639,37 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      w pełni scalona) czeka na zaplanowane sprzątanie po Pluginie 1.
      Przy PR wgrane też 64 lekcje wgrywarką (w tym proza 4.1 K2, która
      leżała TYLKO w plikach) — baza i pliki zgodne co do znaku.
-     **NASTĘPNY KROK: audyt kursów i higiena repo — właściciel chce je
-     OMÓWIĆ OSOBNO; NIE planować ich ani nie zaczynać z własnej
-     inicjatywy.** Rozmowy demonstracyjne z konta claude.ai **skasowane**
+     **AUDYT KURSÓW ZROBIONY I ZNALEZISKA NAPRAWIONE (2026-08-24, wersja
+     0.33.0, gałąź `fix/naprawy-audytu-kursow`).** Zakres audytu ustalił
+     właściciel: tropy z [tresc-kursow/AUDYT-KONCOWY.md](tresc-kursow/AUDYT-KONCOWY.md)
+     + prawda o produkcie + domknięcie miejsc na zrzuty; bramki cytatów
+     audyt NIE cofa. **Proza okazała się zdrowa** (73 mosty trzymają się co
+     do zdania, zero powtórzeń, spójny stan repozytorium czytelnika,
+     poprawne podsumowania kursów), a rozjazd siedział POZA nią:
+     - **strony sprzedażowe obu kursów obiecywały inny produkt** (wideo,
+       złe liczby lekcji, nieistniejący „moduł ratunkowy”, „Projekty
+       i artefakty”, pliki do pobrania, odwrotna kolejność nauki w FAQ K2)
+       — przepisane na stan faktyczny w seedzie i wgrane do bazy
+       **bez klucza `modules`**, więc program i treść lekcji nietknięte;
+     - **program Kursu 1 w seedzie był sprzed D7** — odtworzony z bazy;
+     - **seed wykonywał się przy imporcie** (a zaczyna od kasowania kursów)
+       — dołożona bramka main-module i eksport `KURSY_SEED`;
+     - **BLAD-014**: `manifest.mjs`, `test-asercji.mjs` i `kolejka.mjs`
+       brały adres URL za ścieżkę — w katalogu ze spacją manifest MILCZAŁ
+       z kodem 0. Naprawione, pilnuje `straznik-sciezek`;
+     - **BLAD-016**: bramka prywatności zrzutów przepuszczała dane
+       właściciela rozbite na dwa elementy; test negatywny istniał, ale był
+       martwy przez BLAD-014. Naprawione, testy asercji 15/15;
+     - **dwanaście otwartych znaczników zrzutów usuniętych** — manifest
+       liczy teraz **148 miejsc, 148 zrobionych, 0 otwartych**.
+     Stan dowodów: strażnicy **28/28**, audyt mutacyjny **90/90**, testy
+     **75/75**, smoke'i **6/6**, pliki prozy zgodne z bazą **73/73**.
+     **ZOSTAJE DO DECYZJI WŁAŚCICIELA:** zobowiązania handlowe na stronach
+     sprzedażowych (gwarancja 30 dni, dostęp bez limitu, aktualizacje bez
+     dopłat, „odpowiadam osobiście”) — wymagają Pluginu 2/3, więc audyt ich
+     nie ruszał.
+     **NASTĘPNY KROK: higiena repo — właściciel chce ją OMÓWIĆ OSOBNO;
+     NIE planować jej ani nie zaczynać z własnej inicjatywy.** Rozmowy demonstracyjne z konta claude.ai **skasowane**
      (23 sztuki, 2026-08-23 — zgoda właściciela na „wszystkie pozostałości";
      wykaz brany z API po `created_at`, nie zgadywany z tytułów, bo lista
      w DOM-ie jest wirtualizowana i daty nie oddaje); worktree'y `k2-A`/`zrzuty-k1` zostają lokalnie

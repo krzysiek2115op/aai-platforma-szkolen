@@ -9,7 +9,8 @@
  * node tools/zrzuty/manifest.mjs --json     — pełna lista na stdout
  */
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const KORZEN = process.env.ZRZUTY_KORZEN ?? process.cwd();
 export const KURSY = { K1: "jak-korzystac-z-claude", K2: "jak-uzywac-githuba" };
@@ -86,7 +87,10 @@ export function zbierz() {
   return poz;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Porównujemy ŚCIEŻKI, nie łańcuchy URL: `import.meta.url` koduje spacje jako %20,
+// więc sklejka `file://${argv[1]}` nie zgadza się w katalogu ze spacją w nazwie
+// i blok CLI milczał, kończąc się kodem 0 (BLAD-014).
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   let poz = zbierz();
   const filtr = process.argv.indexOf("--kurs");
   if (filtr > -1) poz = poz.filter((p) => p.kurs === process.argv[filtr + 1]);

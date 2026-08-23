@@ -314,7 +314,7 @@ try {
     }
     return kawalki.join('\n');
   }, { selektor: spec.selektor ?? null, clip: spec.clip ?? null, pelna: !!spec.pelnaStrona });
-  sprawdzPrywatnosc(tekstEkranu, 'zrzut');
+  sprawdzPrywatnosc(tekstEkranu, 'zrzut', patche.map((p) => p.na));
   sprawdzAsercje(tekstEkranu, WYMAGANE, 'zrzut');
   // BRAMKA STRUKTURALNA — „na zrzucie JEST odpowiedź modelu".
   // Treści odpowiedzi nie da się zadeklarować z góry (model nie powtarza się

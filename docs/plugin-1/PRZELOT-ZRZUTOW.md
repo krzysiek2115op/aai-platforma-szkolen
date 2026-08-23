@@ -898,3 +898,33 @@ z wykazu sprawdzonego chwilę wcześniej, nigdy dopasowaniem po tytule w locie.
 Wejście automatu na claude.ai wymagało wcześniej przejścia weryfikacji
 Cloudflare w ZWYKŁYM oknie na tym samym profilu (`zaloguj.mjs claude
 --recznie`) — po zamknięciu okna sterowana przeglądarka przeszła.
+
+
+---
+
+## Domknięcie dwunastu otwartych miejsc (naprawy audytu, 2026-08-24)
+
+Właściciel zamknął przelot na 148 ze 160 miejsc (decyzja 2026-08-23), a przy
+naprawach po audycie kursów **dwanaście otwartych znaczników `<!-- ZRZUT: … -->`
+zostało USUNIĘTYCH z prozy**. Powód: zostawione znaczniki są długiem widocznym
+w narzędziach (manifest liczył je jako „do zrobienia”, a mutacja strażnika prozy
+o nie zahaczała), a sama proza ich nie potrzebuje — sprawdzone miejsce po
+miejscu: **żadne zdanie nie odsyła do zrzutu** („jak widać niżej”, „na obrazku”),
+więc usunięcie znacznika niczego nie łamie.
+
+Stan po zmianie liczy ta sama komenda co zawsze:
+
+```
+export ZRZUTY_KORZEN=$PWD && node tools/zrzuty/manifest.mjs
+→ Miejsc na zrzuty: 148 / zrobione: 148 / do zrobienia: 0
+```
+
+Gdyby któreś z tych miejsc miało kiedyś dostać obraz (płatne wywołania API,
+klucz w Konsoli, aplikacja Claude na repozytorium demonstracyjnym), wraca się
+tu przez dopisanie znacznika w prozie — manifest wyprowadza stan z treści, więc
+nie ma osobnej listy do zaktualizowania.
+
+**Uwaga na narzędzie:** do 2026-08-24 `node tools/zrzuty/manifest.mjs`
+**nie wypisywał NIC** w katalogu roboczym ze spacją w nazwie i kończył się
+kodem 0 (BLAD-014). Jeśli komenda milczy — to nie znaczy, że nie ma miejsc.
+Pilnuje tego teraz `straznik-sciezek`.

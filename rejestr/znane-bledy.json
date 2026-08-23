@@ -146,6 +146,36 @@
       "naprawa": "Wzorce celuja w ZACHOWANIE, nie w nazwe API: straznik-limitera szuka PIERWSZEGO dotkniecia ciala jakakolwiek droga (minimum z pozycji `await cialoZSufitem(`, `request.json()`, `request.text()`, `JSON.parse(`), a straznik-limitow porownuje pozycje WYWOLANIA, nie samej nazwy funkcji. Regula przy kazdym nowym strazniku: jesli wzorzec zawiera nazwe konkretnego API, zapytaj, co sie stanie, gdy kod przejdzie na inne — czy straznik wtedy krzyknie, czy zamilknie.",
       "test": "audyt-straznikow: mutacje „limit tempa sprawdzany PO parsowaniu ciala zadania\" i „sufit ciala sprawdzany PO sparsowaniu JSON-a\" — obie przed naprawa PRZEOCZONE (audyt czerwony, 62 z 64), po naprawie ZLAPANE (64 z 64, 0 przeoczonych, 0 martwych).",
       "straznik": "audyt-straznikow.mjs — to on jest tu kontrola: straznik pilnuje kodu, a audyt pilnuje straznikow. Bez okresowego uruchamiania audytu ta klasa bledu jest niewykrywalna."
+    },
+    {
+      "id": "BLAD-014",
+      "data": "2026-08-24",
+      "klasa": "narzedzia/adres-url-pliku-uzyty-jako-sciezka-systemowa",
+      "dowod": "Katalog roboczy nazywa sie „Pod strona Szkolenia ” — ze spacjami, a `import.meta.url` koduje spacje jako %20. Trzy narzedzia braly adres URL za sciezke: (1) `tools/zrzuty/manifest.mjs` mial blok CLI za warunkiem ``import.meta.url === `file://${process.argv[1]}` `` — warunek NIGDY nie byl prawdziwy, wiec komenda konczyla sie kodem 0 nie wypisawszy ANI JEDNEJ linii, mimo ze CLAUDE.md kazal liczyc nia stan przelotu zrzutow; (2) `tools/zrzuty/test-asercji.mjs` budowal sciezke narzedzia przez `new URL(n, import.meta.url).pathname`, wiec 15 testow asercji padalo na „module not found”; (3) `tools/zrzuty/kolejka.mjs` tak samo podawal spawnowi sciezke z %20. Wykryte audytem kursow 2026-08-24, przy probie policzenia otwartych miejsc na zrzuty.",
+      "skutek": "Narzedzie kontrolne milczy zamiast liczyc — cisza wyglada jak zieleń. Manifest byl JEDYNYM zrodlem prawdy o stanie przelotu zrzutow (osobnego pliku stanu celowo nie ma), wiec w katalogu glownym nie dalo sie odczytac stanu wcale; w worktree bez spacji dzialal, co maskowalo usterke. Testy asercji, ktore chronia prywatnosc zrzutow zza logowania, byly w calosci martwe.",
+      "naprawa": "fileURLToPath(import.meta.url) porownywane z resolve(process.argv[1]) w manifescie; fileURLToPath(new URL(...)) zamiast .pathname w kolejce i tescie asercji. Ta sama bramka main-module doszla do `tools/seed/seed-przyklady.ts`, ktory wykonywal sie przy samym imporcie (a zaczyna od kasowania kursow — razem z trescia 73 lekcji).",
+      "test": "straznik-sciezek (2 wzorce, test negatywny na podrzuconym pliku) + dwie mutacje w audyt-straznikow: „manifest zrzutow wraca do sklejki file:// + argv[1]” i „kolejka zrzutow wraca do .pathname z URL-a pliku”. Dowod wykonaniem: test-asercji przeszedl z 15 porazek na 12 (reszta to brak rigu puppeteera), manifest wypisuje 148/148 w katalogu ze spacja.",
+      "straznik": "tools/straznicy/straznik-sciezek.mjs"
+    },
+    {
+      "id": "BLAD-015",
+      "data": "2026-08-24",
+      "klasa": "tresc/strona-sprzedazowa-obiecuje-produkt-sprzed-zmiany-programu",
+      "dowod": "Sekcje sprzedazowe powstaly przy B4/B5 jako TRESC ROBOCZA, przed Dzialem 7. Program obu kursow zmienil sie potem dwa razy (D7, potem ciecie Kursu 2 z 50 do 32 lekcji), a teksty sprzedazowe zostaly. Publiczny podglad (GitHub Pages, potwierdzone curl-em 2026-08-24) obiecywal: „7 modulow wideo (31 lekcji)” przy 6 modulach i 41 lekcjach; „6 modulow wideo (26 lekcji)” przy 32 lekcjach; „Modul ratunkowy: Restore, revert, reset”, choc te trzy komendy nie padaja w Kursie 2 ANI RAZU; „kilka godzin wideo” i „nagrywamy poprawki”, choc decyzja wlasciciela z 2026-08-19 kurs jest TEKSTOWY; „Projekty, artefakty” w Kursie 1, ktorych kurs nie uczy (weszly ze starego programu, ktory zostal w seedzie); „szablony do pobrania w plikach”, ktorych nie ma. Do tego FAQ Kursu 2 podawalo kolejnosc nauki ODWROTNA do faktycznej („najpierw Git lokalnie, potem GitHub” — kurs zaczyna w przegladarce).",
+      "skutek": "Kupujacy dostaje inny produkt, niz obiecuje strona — a wymog wlasciciela brzmi „strona nie moze obiecywac niczego spoza programu”. Zaden straznik ani test tego nie widzial: sekcje to dane w bazie i w seedzie, nie kod. Blad byl widoczny publicznie na zywym podgladzie.",
+      "naprawa": "Sekcje przepisane w `tools/seed/seed-przyklady.ts` na stan faktyczny (liczby z bazy, zero wideo, obietnice zastapione tym, co kurs realnie dowozi) i wgrane do bazy dyspozytorem BEZ klucza `modules`, wiec program i tresc 73 lekcji zostaly nietkniete. Przy okazji odtworzony z bazy program Kursu 1 w seedzie — niosl jeszcze wersje sprzed D7, z ktorej wziely sie obietnice o „czatach, projektach i artefaktach”.",
+      "test": "straznik-obietnic (5 kontroli: wideo, liczba modulow, liczba lekcji, minuty, zrzuty, obietnice podzbioru) + 3 mutacje w audyt-straznikow. Piec testow negatywnych przy powstaniu: kazda podmieniona liczba i wrocone „wideo” zapala straznika na czerwono.",
+      "straznik": "tools/straznicy/straznik-obietnic.mjs"
+    },
+    {
+      "id": "BLAD-016",
+      "data": "2026-08-24",
+      "klasa": "prywatnosc/podmiana-danych-per-wezel-tekstowy-omijana-przez-rozbicie-na-elementy",
+      "dowod": "Rig zrzutow podmienia dane wlasciciela chodzac po WEZLACH TEKSTOWYCH DOM-u. Adres rozbity na dwa elementy (`<span>krzysztof2006</span><span>oskar@wp.pl</span>`) dostaje podmiane tylko w pierwszym wezle (bo tam pasuje wzorzec „krzysztof”), wiec na ekranie zostaje „oliwia2006oskar@wp.pl” — fragment prawdziwego adresu. Bramka `sprawdzPrywatnosc` szukala CALYCH ciagow z listy wlasciciela, wiec takiego zrzutu nie zatrzymywala. Test negatywny na to istnial od 2026-08-23, ale NIE DZIALAL: caly `test-asercji.mjs` padal na BLAD-014 (sciezka z %20), wiec 15 porazek wygladalo na problem srodowiska. Usterka wyszla dopiero po naprawie sciezek.",
+      "skutek": "Zrzut zza logowania mogl trafic do repo z rozpoznawalnym fragmentem adresu wlasciciela — a to jest dokladnie to, czemu bramka mia zapobiegac. Ryzyko realne w kazdym miejscu, gdzie interfejs sklada tozsamosc z kilku elementow (naglowki kont, listy uzytkownikow).",
+      "naprawa": "sprawdzPrywatnosc przyjmuje liste ZASTEPNIKOW uzytych przy podmianie i odrzuca zrzut, gdy zastepnik przykleil sie do innych znakow slowa — to znaczy, ze podmiana weszla w srodek wiekszego tokenu, ktorego nie widziala w calosci. `zrob-zrzut.mjs` podaje jej wlasna liste patchy, wiec nie ma drugiego zrodla prawdy do rozjechania.",
+      "test": "tools/zrzuty/test-asercji.mjs — „NEGATYWNY: adres wlasciciela sklejony z dwoch elementow → brak obrazu”. Przed naprawa: kod wyjscia 0 i plik POWSTAWAL (oczekiwano 9 i braku pliku). Po naprawie: 15/15 testow asercji zielonych, kod wyjscia 0 sprawdzony BEZ potoku.",
+      "straznik": "tools/zrzuty/test-asercji.mjs (+ straznik-asercji pilnuje, ze specyfikacje maja asercje)"
     }
   ]
 }

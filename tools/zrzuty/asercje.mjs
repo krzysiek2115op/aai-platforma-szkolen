@@ -111,6 +111,8 @@ export function sprawdzAsercje(tekstEkranu, wymagane, narzedzie) {
  * działa na cudzej maszynie tak samo — plus dwa znane na stałe (login GitHuba
  * i adres e-mail), których w środowisku nie ma.
  */
+const escapujRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export function daneWlasciciela() {
   // Imię własne dochodzi do listy, bo claude.ai wita nim wprost („Evening,
   // krzysztof"), a Konsola stawia je w nagłówku konta — a w środowisku go nie ma.
@@ -122,9 +124,27 @@ export function daneWlasciciela() {
   return [...dane];
 }
 
-export function sprawdzPrywatnosc(tekstEkranu, narzedzie) {
+/**
+ * `zastepniki` = wartości, którymi rig podmienił dane właściciela w DOM-ie.
+ *
+ * PO CO (2026-08-24). Podmiana chodzi po WĘZŁACH TEKSTOWYCH, więc dane rozbite
+ * na dwa elementy (`<span>krzysztof2006</span><span>oskar@wp.pl</span>`) łata
+ * tylko w połowie: na ekranie zostaje „oliwia2006oskar@wp.pl”, czyli fragment
+ * prawdziwego adresu. Sam ciąg z listy właściciela już tam nie występuje, więc
+ * kontrola całych ciągów przepuszczała taki zrzut. Rozpoznajemy to po tym, że
+ * ZASTĘPNIK przykleił się do innych znaków słowa — znaczy, że podmiana weszła
+ * w środek większego tokenu, którego nie widziała w całości. Test negatywny
+ * „adres właściciela sklejony z dwóch elementów” w tools/zrzuty/test-asercji.mjs.
+ */
+export function sprawdzPrywatnosc(tekstEkranu, narzedzie, zastepniki = []) {
   const ekran = normalizuj(tekstEkranu);
   const znalezione = daneWlasciciela().filter((d) => ekran.includes(d));
+  for (const z of zastepniki) {
+    if (!z || z.length < 4) continue;
+    const przyklejony = new RegExp(`(?:[0-9A-Za-z@._%+-]${escapujRe(z)}|${escapujRe(z)}[0-9A-Za-z@._%+-])`);
+    const trafienie = ekran.match(przyklejony);
+    if (trafienie && !znalezione.includes(trafienie[0])) znalezione.push(trafienie[0]);
+  }
   if (znalezione.length === 0) return;
   console.error(`${narzedzie}: NA EKRANIE SĄ DANE WŁAŚCICIELA — obrazu NIE ZAPISANO (brief, zasada 4):`);
   for (const d of znalezione) console.error(`  ${JSON.stringify(d)}`);

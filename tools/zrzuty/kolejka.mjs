@@ -20,12 +20,15 @@ import { readFileSync, readdirSync, statSync, writeFileSync, mkdtempSync, rmSync
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const cel = process.argv[2];
 if (!cel) { console.error('kolejka: podaj katalog ze specyfikacjami albo plik specyfikacji'); process.exit(2); }
 
 const KAT_TMP = mkdtempSync(join(tmpdir(), 'kolejka-'));
-const narzedzie = (spec) => new URL(spec.raw ? 'tui.mjs' : 'zrob-zrzut.mjs', import.meta.url).pathname;
+// fileURLToPath, nie .pathname — ten drugi zwraca adres URL-owy (%20 zamiast spacji),
+// więc w katalogu ze spacją spawn dostawał ścieżkę, której nie ma (BLAD-014).
+const narzedzie = (spec) => fileURLToPath(new URL(spec.raw ? 'tui.mjs' : 'zrob-zrzut.mjs', import.meta.url));
 
 /** [{nazwa, spec}] — z katalogu, z pojedynczego pliku albo ze starej tablicy. */
 function zebrane() {

@@ -554,15 +554,17 @@ const MUTACJE = [
   {
     straznik: "straznik-prozy",
     opis: "niedomknięty znacznik zrzutu — przelot końcowy by go przeoczył",
-    // Plik CELOWO taki, w którym znacznik zostaje otwarty długo (zrzut z Konsoli
-    // wymaga płatnych wywołań API). Mutacja jest OGÓLNA — psuje PIERWSZY znacznik
-    // w pliku, jaki znajdzie. Poprzednia wersja wskazywała konkretny podpis w
-    // module 1; po wpięciu tamtego zrzutu przestała się w ogóle nakładać i
-    // strażnik zieleniał NA PUSTO (złapał to audyt 2026-08-23).
+    // Mutacja WSTAWIA znacznik, zamiast psuć istniejący. Poprzednie dwie wersje
+    // wskazywały najpierw konkretny podpis, potem „pierwszy znacznik w pliku” —
+    // i obie umarły, gdy znaczniki znikały: raz po wpięciu zrzutu (2026-08-23),
+    // raz po zamknięciu przelotu (audyt 2026-08-24 usunął ostatnie dwanaście).
+    // Wstawianie nie zależy od stanu treści, więc nie ma jak zzielenieć na pusto.
     plik: "tresc-kursow/jak-korzystac-z-claude/modul-6/proza-2-batch-api.md",
     zmien: (s) => {
-      const m = s.match(/<!-- ZRZUT: [^\n]*? -->/);
-      return m ? s.replace(m[0], m[0].slice(0, -4)) : null;
+      const koniec = s.indexOf("\n---\n", 4);
+      return koniec < 0
+        ? null
+        : s.slice(0, koniec + 5) + "\n<!-- ZRZUT: podpis bez domknięcia\n" + s.slice(koniec + 5);
     },
   },
   // --- straznik-tresci-lekcji ---
@@ -847,6 +849,59 @@ const MUTACJE = [
           )
         : null,
     oczekujCzerwonego: false,
+  },
+  // --- straznik-sciezek (BLAD-014) ---
+  {
+    straznik: "straznik-sciezek",
+    opis: "manifest zrzutów wraca do sklejki `file://` + argv[1]",
+    plik: "tools/zrzuty/manifest.mjs",
+    zmien: (s) =>
+      s.includes("resolve(process.argv[1]) === fileURLToPath(import.meta.url)")
+        ? s.replace(
+            "process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)",
+            "import.meta.url === `file://${process.argv[1]}`",
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-sciezek",
+    opis: "kolejka zrzutów wraca do `.pathname` z URL-a pliku",
+    plik: "tools/zrzuty/kolejka.mjs",
+    zmien: (s) =>
+      s.includes("fileURLToPath(new URL(spec.raw")
+        ? s.replace(
+            "fileURLToPath(new URL(spec.raw ? 'tui.mjs' : 'zrob-zrzut.mjs', import.meta.url))",
+            "new URL(spec.raw ? 'tui.mjs' : 'zrob-zrzut.mjs', import.meta.url).pathname",
+          )
+        : null,
+  },
+  // --- straznik-obietnic (audyt 2026-08-24) ---
+  {
+    straznik: "straznik-obietnic",
+    opis: "pakiet sprzedażowy znów obiecuje inną liczbę lekcji niż program",
+    plik: "tools/seed/seed-przyklady.ts",
+    zmien: (s) =>
+      s.includes('tytul: "6 modułów tekstowych (41 lekcji)"')
+        ? s.replace('tytul: "6 modułów tekstowych (41 lekcji)"', 'tytul: "6 modułów tekstowych (31 lekcji)"')
+        : null,
+  },
+  {
+    straznik: "straznik-obietnic",
+    opis: "sprzedaż znów obiecuje wideo w kursie tekstowym",
+    plik: "tools/seed/seed-przyklady.ts",
+    zmien: (s) =>
+      s.includes('tytul: "6 modułów tekstowych (32 lekcje)"')
+        ? s.replace('tytul: "6 modułów tekstowych (32 lekcje)"', 'tytul: "6 modułów wideo (32 lekcje)"')
+        : null,
+  },
+  {
+    straznik: "straznik-obietnic",
+    opis: "obietnica podzbioru (prompty w N lekcjach) zawyżona",
+    plik: "tools/seed/seed-przyklady.ts",
+    zmien: (s) =>
+      s.includes("Gotowe prompty w 35 lekcjach")
+        ? s.replace("Gotowe prompty w 35 lekcjach", "Gotowe prompty w 41 lekcjach")
+        : null,
   },
 ];
 

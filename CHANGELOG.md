@@ -5,6 +5,98 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.33.0] — 2026-08-24
+
+**Audyt obu kursów i naprawa jego znalezisk.** Audyt (zakres ustalony przez
+właściciela: tropy z `tresc-kursow/AUDYT-KONCOWY.md` + prawda o produkcie +
+domknięcie miejsc na zrzuty) potwierdził, że treść jest zdrowa — 73 mosty
+między lekcjami trzymają się co do zdania, powtórzeń nie ma, stan repozytorium
+czytelnika jest spójny, podsumowania obu kursów przypisują tematy modułom
+poprawnie — a rozjazd siedział **poza prozą**: w tekstach sprzedażowych,
+w seedzie i w trzech narzędziach.
+
+### Naprawione
+
+- **Strony sprzedażowe obu kursów obiecywały inny produkt (BLAD-015).**
+  Sekcje pochodziły z roboczych seedów sprzed Działu 7 i nigdy nie nadążyły
+  za dwiema zmianami programu. Publiczny podgląd obiecywał „7 modułów wideo
+  (31 lekcji)” przy 6 modułach i 41 lekcjach, „6 modułów wideo (26 lekcji)”
+  przy 32 lekcjach Kursu 2, „moduł ratunkowy: restore, revert, reset” (te trzy
+  komendy **nie padają w Kursie 2 ani razu**), „kilka godzin wideo”
+  i „nagrywamy poprawki” (kurs jest TEKSTOWY — decyzja 2026-08-19), „Projekty
+  i artefakty” w Kursie 1 (kurs ich nie uczy), „szablony do pobrania w plikach”
+  (nie ma takich plików) oraz FAQ Kursu 2 z **odwrotną** kolejnością nauki
+  („najpierw Git lokalnie” — kurs zaczyna w przeglądarce). Wszystko przepisane
+  na stan faktyczny: liczby z bazy, obietnice zastąpione tym, co kurs realnie
+  dowozi (ćwiczenie w każdej lekcji, prompty w 35 lekcjach, 10 lekcji z sekcją
+  „Pytania do wykonawcy”, 88 zrzutów z prawdziwego GitHuba, tabela zgodności
+  ze źródłem pod każdą lekcją). Sekcje wgrane do bazy dyspozytorem **bez
+  klucza `modules`**, więc program i treść 73 lekcji zostały nietknięte.
+- **Program Kursu 1 w seedzie był sprzed Działu 7** — to z niego wzięły się
+  obietnice o „czatach, projektach i artefaktach”. Odtworzony z bazy, tak jak
+  program Kursu 2 (seed ma być lustrem bazy, inaczej odtworzenie z niego
+  rozjeżdża prozę z lekcjami).
+- **Seed wykonywał się przy samym imporcie**, a zaczyna od kasowania kursów —
+  czyli import pliku skasowałby treść 73 lekcji. Dołożona bramka
+  main-module i eksport danych (`KURSY_SEED`).
+- **Trzy narzędzia brały adres URL za ścieżkę systemową (BLAD-014).**
+  W katalogu ze spacją w nazwie `import.meta.url` koduje ją jako `%20`, więc:
+  `tools/zrzuty/manifest.mjs` — jedyne źródło prawdy o stanie przelotu zrzutów
+  — **milczał i kończył się kodem 0**; `tools/zrzuty/test-asercji.mjs` padał
+  na komplecie 15 testów; `tools/zrzuty/kolejka.mjs` podawał spawnowi ścieżkę
+  z `%20`. Wszystkie trzy na `fileURLToPath`.
+- **Bramka prywatności zrzutów przepuszczała dane rozbite na dwa elementy
+  (BLAD-016).** Podmiana danych właściciela chodzi po węzłach tekstowych, więc
+  adres w dwóch `<span>`-ach dostawał ją tylko w połowie, a na ekranie zostawał
+  czytelny fragment. Test negatywny na to istniał od 2026-08-23, ale **był
+  martwy**, bo cały plik testów padał na BLAD-014. Bramka dostaje teraz listę
+  zastępników i odrzuca zrzut, gdy zastępnik przykleił się do innych znaków
+  słowa. Testy asercji: 15/15, kod wyjścia sprawdzony bez potoku.
+- **Obietnica z lekcji 3.1 Kursu 2 była niedowieziona:** zapowiadała, że moduł
+  o bezpieczeństwie nauczy włączać *sześć* rzeczy, a moduł 6 dowozi pięć —
+  prywatnego zgłaszania podatności nie ma w nim ani razu. Zapowiedź zawężona
+  do stanu faktycznego (bez dopisywania treści, której kurs nie ma).
+- Drobne: cudzysłów zamykający `”` w dwóch plikach i jedno `«…»` poza
+  cytatem zagnieżdżonym → jednolite `„…"` w całej prozie; angielski zastępnik
+  `BRANCH-NAME` w bloku kodu lekcji 4.8 → `NAZWA-GAŁĘZI` (kurs ma 93 polskie
+  zastępniki i objaśnia je wprost).
+
+### Zmienione
+
+- **Powtarzana formuła zastrzeżenia źródłowego zdjęta z 20 lekcji Kursu 2.**
+  Była jedynym powtórzeniem między lekcjami w całym materiale (i jedynym
+  trafieniem w pomiarze podobieństwa), stała w 20 z 32 lekcji Kursu 2 i w 0
+  z 41 lekcji Kursu 1. Gwarancję, którą niosła, daje tabela „Zgodność ze
+  źródłem” pod KAŻDĄ z 73 lekcji — z dokładnością do miejsca w dokumentacji.
+  Podobieństwo najbliższej pary spadło z 2,75% do 2,03%.
+- **Dwanaście otwartych znaczników `<!-- ZRZUT: … -->` usuniętych** z prozy
+  Kursu 1 (przelot zamknięty decyzją właściciela 2026-08-23). Sprawdzone
+  miejsce po miejscu: żadne zdanie nie odsyłało do brakującego obrazu.
+  Manifest liczy teraz 148 miejsc i 148 zrobionych.
+- Mutacja `straznik-prozy` o niedomkniętym znaczniku zrzutu **wstawia** teraz
+  znacznik, zamiast psuć istniejący — po usunięciu ostatnich dwunastu umarła
+  po raz drugi (pierwszy raz 2026-08-23). Audyt mutacyjny złapał to od razu.
+
+### Dodane
+
+- `straznik-obietnic` — sprzedaż nie ma prawa obiecywać czegoś spoza produktu:
+  porównuje liczbę modułów, lekcji, minut i zrzutów deklarowaną w sekcjach
+  z programem kursu i z prozą, zakazuje twierdzeń o wideo i sprawdza obietnice
+  podzbioru („prompty w N lekcjach”). 3 mutacje, 5 testów negatywnych.
+- `straznik-sciezek` — łapie klasę BLAD-014 (sklejka `file://` z `argv[1]`
+  i `.pathname` z URL-a pliku) w całym repo. 2 mutacje, test negatywny.
+- Wpisy **BLAD-014**, **BLAD-015** i **BLAD-016** w rejestrze znanych błędów.
+
+### Dowody (CI stoi do 1 września — limit minut Actions)
+
+Strażnicy **28/28**, audyt mutacyjny **90/90 złapanych, 0 przeoczonych,
+0 martwych**, testy **75/75**, smoke'i D4/D5/D6/lekcje/SEO/CSP **6/6**
+(kody wyjścia bez potoku), testy asercji zrzutów **15/15**, pliki prozy
+zgodne z bazą **73/73**. Sweep regresyjny przed/po: zmieniły się dokładnie
+34 lekcje, **73 mosty identyczne** po odjęciu dwóch świadomych zmian,
+167 cytatów źródłowych bez zmian, 148 obrazów bez zmian, 0 martwych
+odwołań, tabele zgodności bez zmian (1440 + 1011 wierszy).
+
 ## [0.32.0] — 2026-08-23
 
 Krok 3 domknięty w warstwie treści: **oba kursy mają komplet prozy

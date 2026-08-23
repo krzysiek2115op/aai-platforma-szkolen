@@ -15,7 +15,7 @@ trzy osobne bazy danych.
 
 <br>
 
-[![Podgląd katalogu /szkolenia](docs/zrzuty/podglad-szkolenia.png)](http://localhost:3001/szkolenia)
+[![Podgląd katalogu /szkolenia](docs/zrzuty/podglad-szkolenia.png)](https://matthewplugins.github.io/szkolenia-podglad/szkolenia)
 
 *Podgląd lokalny: [`http://localhost:3001/szkolenia`](http://localhost:3001/szkolenia)
 — `npm run db1:up && npm run db1:migruj && npm run dev`
@@ -46,12 +46,12 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.32.0** |
-| **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**). [Plan domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): kroki 1–2 zamknięte (0.25.0, 0.29.0); krok 3: **oba kursy KOMPLETNE w narzędziu** (Kurs 1: 41/41, Kurs 2: 32/32 lekcji prozy po cięciu mocnym) + przelot zrzutów zamknięty (148/160, reszta decyzją właściciela) → **B7** → WordPress |
+| **Wersja** | **0.33.0** |
+| **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**). [Plan domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): kroki 1–2 zamknięte (0.25.0, 0.29.0); krok 3: **oba kursy KOMPLETNE w narzędziu** (Kurs 1: 41/41, Kurs 2: 32/32 lekcji prozy po cięciu mocnym) + przelot zrzutów zamknięty (**148 zrzutów, 148 miejsc** — dwanaście miejsc bez zrzutu zamknięto usunięciem znaczników przy naprawach audytu 2026-08-24) → **B7** → WordPress |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
-| **Podgląd na żywo** | [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia) — statyczny eksport katalogu i stron kursów (`npm run deploy:podglad`), **bez kreatora i AJAX-a**, z `noindex` na czas prac. Służy do pomiarów SEO i wydajności narzędziami Google; treść kursów jest jeszcze ROBOCZA |
+| **Podgląd na żywo** | [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia) — statyczny eksport katalogu i stron kursów (`npm run deploy:podglad`), **bez kreatora i AJAX-a**, z `noindex` na czas prac. Służy do pomiarów SEO i wydajności narzędziami Google; **oba kursy są kompletne** (73 lekcje), a teksty sprzedażowe zgodne z produktem (0.33.0) — placeholderami zostają wyłącznie opinie, do pierwszych sprzedaży |
 | **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([public/fonts/LICENSE-Geist-OFL.txt](public/fonts/LICENSE-Geist-OFL.txt)) |
 | **Produkcja** | brak — **docelowo WordPress na wykupionym hostingu i domenie** (decyzja zespołu 2026-08-18): sklep zostanie przepisany na wtyczkę WP (PHP + MySQL), a obecny kod Next.js jest prototypem-specyfikacją ([szczegóły](docs/PLAN.md#decyzja-zespołu-2026-08-18--produkcja-na-wordpressie-zastępuje-plan-hosting-nodejs--vps)) |
 
@@ -134,7 +134,7 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run lint` | ESLint |
 | `npm run db1:up` | postaw kontener bazy (podman compose) |
 | `npm run db1:migruj` | doprowadź schemat bazy do aktualnego stanu (sha256 w `_migracje`) |
-| `npm run db1:seed` | wgraj przykładowe kursy (treść ROBOCZA — do oceny wyglądu) |
+| `npm run db1:seed` | odtwórz oba kursy od zera: program (lustro bazy) + sekcje sprzedażowe. **UWAGA: najpierw KASUJE kursy o tych slugach**, czyli razem z prozą 73 lekcji — po nim trzeba wgrać treść `npm run db1:tresc` |
 | `npm run db1:tresc` | wgraj prozę lekcji z `tresc-kursow/**/proza-*.md` do bazy — drogą kreatora (jedyny AJAX); `-- --sprawdz` sam sprawdza, nic nie wysyła |
 
 Narzędzia uruchamiane ręcznie:
@@ -196,6 +196,8 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-limitera` | pre-commit + CI | brama AJAX bez kosztu: jedyny wystrzał bez limitu tempa (albo z limitem sprawdzanym dopiero PO sparsowaniu ciała) lub bez OSOBNEGO licznika chybionych uwierzytelnień, odmowa bez 429 z `Retry-After`, chybione uwierzytelnienie bez kary czasowej, logowanie bez limitu prób, dyspozytor porównujący token operatorem `===` zamiast w stałym czasie albo tracący samowystarczalność (import z `lib/`), limiter wciągający `next/*` (przestaje dać się testować jednostkowo), znikające ostrzeżenie o podrabianiu `x-forwarded-for` |
 | `straznik-limitow` | pre-commit + CI | pole wejścia bez górnej granicy: `z.string()`, `z.array(` albo `z.url()` bez `.max(` w kontraktach WEJŚCIA (kanał odczytu świadomie pominięty), cena bez sufitu (kolumna `integer` wywaliłaby się surowym błędem bazy), token bez limitu długości, treść sekcji zapisywana bez oczyszczania schematem (jeden nieznany klucz omija wszystkie limity), trasa bez odpowiedzi 413, `request.json()` zamiast czytania strumieniem z licznikiem, sufit ciała sprawdzany po parsowaniu, surowy komunikat Postgresa w odpowiedzi, brak testów limitów |
 | `straznik-seo` | pre-commit + CI | ciche zniknięcie SEO: widok bez kanonika lub bez OpenGraphu, własny blok `application/ld+json` z pominięciem ucieczki znaków (treść z `</script>` zamknęłaby blok skryptu), drugie miejsce czytające przełącznik indeksowania (rozjazd metatagu z `robots.txt`), obraz OG bez `contentType`/`size`, układ bez `metadataBase` |
+| `straznik-obietnic` | pre-commit + CI | strona sprzedażowa obiecująca coś spoza produktu: liczba modułów, lekcji, minut albo zrzutów rozjechana z programem kursu, obietnica wideo w kursie TEKSTOWYM (decyzja 2026-08-19), zawyżona obietnica podzbioru („prompty w N lekcjach”, „N lekcji z pytaniami do wykonawcy”) — klasa wykryta audytem 2026-08-24, gdy publiczny podgląd obiecywał „7 modułów wideo (31 lekcji)” przy 6 modułach i 41 lekcjach |
+| `straznik-sciezek` | pre-commit + CI | adres URL pliku użyty jako ścieżka systemowa: sklejka `file://${process.argv[1]}` i `.pathname` z `new URL(…, import.meta.url)`. W katalogu ze spacją (`Pod strona Szkolenia `) narzędzie milczy z kodem 0 albo nie znajduje własnych plików — tak zamilkł `manifest.mjs`, jedyne źródło prawdy o stanie zrzutów (BLAD-014) |
 | `straznik-readme` | pre-commit + CI | README kłamiące o stanie repo: strażnik bez wiersza w tabeli (i martwe wiersze), skrypt npm poza sekcją „Skrypty", zła liczba scenariuszy, kotwica spisu treści donikąd — złapał własną nieobecność w tej tabeli przy pierwszym uruchomieniu |
 | `straznik-wagi-dokumentacji` | pre-commit + CI | masa dokumentacji producentów (55 MB, ~2200 plików) wpuszczona do gita — także przez `git add -f`; git trzyma każdą wersję na stałe, więc pomyłka jest nieodwracalna |
 | `straznik-tresci-lekcji` | pre-commit + CI | materiał kursu wychodzący zza bramki: wspólny odczyt strony wybierający z lekcji `content`/`materials` (wyciek treści 91 lekcji do publicznego HTML-a katalogu i strony sprzedażowej) albo kontrakt `LekcjaKursu` z polem treści; pełny tekst oddaje wyłącznie `trescLekcji()` |
@@ -265,8 +267,8 @@ pętli przy optymalizacji; przed jego użyciem sprawdzić
 `ps -eo pcpu,comm --sort=-pcpu`, czy maszyna jest spokojna.
 
 **Pomiar rozchodzi się na dwa buildy i trzeba wiedzieć dlaczego.** Podgląd
-chodzi z `noindex` (decyzja właściciela — treść stron sprzedażowych jest
-jeszcze robocza, a opinie to jawne placeholdery). Lighthouse **punktuje**
+chodzi z `noindex` (decyzja właściciela — sklep nie ma jeszcze płatności
+ani domeny docelowej, a opinie to jawne placeholdery). Lighthouse **punktuje**
 audyt „Page is blocked from indexing", więc na żywym adresie kolumna SEO
 nigdy nie pokaże 100, choćby wszystko inne było bez zarzutu. Mierzymy więc:
 
@@ -327,8 +329,8 @@ git config core.hooksPath .githooks   # włącza haki — raz, obowiązkowo
 npm ci                                # zależności (Node 24+)
 cp .env.example .env                  # lokalna konfiguracja (baza, KREATOR_TOKEN)
 npm run db1:migruj                    # migracje + triggery (bazę podniesie pretest)
-npm test                              # 62 testy; sam podnosi kontener bazy
-npm run db1:seed                      # 2 przykładowe kursy (treść ROBOCZA)
+npm test                              # 75 testów; sam podnosi kontener bazy
+npm run db1:seed                      # program + sekcje sprzedażowe (UWAGA: kasuje kursy)
 npm run dev                           # → http://localhost:3001/szkolenia
 ```
 
