@@ -723,17 +723,19 @@ claude.ai: dwa okna obok siebie, podgląd myślenia, wgrany obraz, komentarz
 `{"is_harmful": true}`). Każdy taki zrzut zostawia ślad w historii konta
 i kosztuje — stąd osobna sesja i osobna zgoda.
 
-### Prompt startowy sesji dokańczającej Kurs 1 (do skopiowania po /clear)
+### Prompt startowy OSTATNIEJ FAZY przelotu (do skopiowania po /clear)
 
 ```
-Jesteś czatem przelotu zrzutów — DOKOŃCZENIE KURSU 1: 23 miejsca zza
-logowania (claude.ai 16, API 5, Console 2). Worktree
+Jesteś czatem OSTATNIEJ FAZY przelotu zrzutów do obu kursów. Przelot jest
+prawie skończony: zostały 23 miejsca, wszystkie w KURSIE 1 (claude.ai 16,
+API 5, Console 2). Kurs 2 jest ZAMKNIĘTY (88/88). Worktree
 /home/krzysiek/Pod-strona-Szkolenia-k2-A, gałąź feat/tresc-k2-modul-2-3
-(wypchnięta, zawiera scalony dorobek obu czatów), drzewo czyste,
-strażnicy 26/26.
+(wypchnięta, zawiera SCALONY dorobek obu czatów — jedna gałąź, jeden PR),
+drzewo czyste, strażnicy 26/26.
 
 PRZECZYTAJ NAJPIERW: docs/plugin-1/PRZELOT-ZRZUTOW.md — sekcje „Wspólne
-posiedzenie (czat A)" i ta; potem CLAUDE.md.
+posiedzenie (czat A)", „Co zostało z całego przelotu" i „Dwie pułapki rigu";
+potem CLAUDE.md.
 
 STAN LICZ KOMENDĄ, nigdy z pamięci:
   export ZRZUTY_KORZEN=$PWD
@@ -753,17 +755,39 @@ BRAMKA (reguła właściciela): każda specyfikacja leży w repo
 `tools/zrzuty/spec/k1/*.json` i deklaruje `wymagaTekstu` — fragmenty
 wyprowadzone Z PODPISU, nigdy z tego, co akurat wyszło. Narzędzie odmawia
 zapisu obrazu, gdy ekranu nie ma w treści. Pilnuje tego straznik-asercji.
+W akcjach `eval` używać `var`, nie `const` (kolejne evaluate biegną w tym
+samym zasięgu strony i `const` wywala się na redeklaracji).
 
 PRYWATNOŚĆ — na claude.ai KRYTYCZNA: pasek boczny pokazuje TYTUŁY PRYWATNYCH
 ROZMÓW właściciela. Trzeba je podmienić albo schować PRZED zrzutem. W Konsoli
 podmieniać dodatkowo IMIĘ w nagłówku konta i SALDO w USD — bramka
 `sprawdzPrywatnosc` zna tylko login, e-mail, $USER i $HOME.
 
-ZGODA NA KOSZTY: 16 zrzutów claude.ai wymaga prowadzenia rozmów na koncie
-właściciela (ślad w historii, zużycie limitu), 5+2 wymaga płatnych wywołań
-API. Ustal z właścicielem zakres i klucz PRZED pierwszym wywołaniem.
+ZGODA NA KOSZTY — USTALIĆ PRZED PIERWSZYM WYWOŁANIEM: 16 zrzutów claude.ai
+wymaga PROWADZENIA ROZMÓW na koncie właściciela (ślad w historii, zużycie
+limitu), 5 zrzutów API i 2 z Konsoli (lista wsadów, Workbench) wymagają
+PŁATNYCH wywołań i klucza API. Konto nie ma dziś żadnego klucza i zerowy
+ruch — to widać na zrzutach, które już powstały.
 
-PO PARTII: wepnij.mjs, stykówka, commit po każdym module, potem
-PR gałęzi feat/tresc-k2-modul-2-3 → merge → tag → release (CI stoi do
-1 września — dowody lokalne), audyt kursów, higiena repo.
+PO OSTATNIEJ FAZIE — kolejność właściciela (2026-08-23):
+1. PR gałęzi feat/tresc-k2-modul-2-3 → merge → tag → release
+   (CI stoi do 1 września — merge na dowodach lokalnych, jak przy 0.21.0
+   i 0.25.0; po powrocie CI potwierdzić gitleaks).
+2. Audyt kursów i higiena repo — **właściciel chce je OMÓWIĆ OSOBNO.
+   NIE planować ich ani nie zaczynać z własnej inicjatywy.**
 ```
+
+### Dwie pułapki rigu, które kosztowały przebiegi (czat A, posiedzenie)
+
+- **`const` w akcji `eval` zostaje w globalnym zasięgu strony.** Puppeteer po
+  webDriverBiDi wykonuje kolejne `evaluate` w TYM SAMYM zasięgu, więc druga
+  akcja deklarująca `const d` wywala się na `SyntaxError: redeclaration of
+  const d` — a wygląda to jak błąd selektora. W specyfikacjach używać `var`
+  i nazw opisowych (`naglowek2fa`, `guzikKlucz`), nie jednoliterowych.
+- **Zmyślony token GitHuba musi mieć POPRAWNĄ SUMĘ KONTROLNĄ**, inaczej
+  skaner go nie widzi i push przechodzi (pierwsza próba przeszła bez blokady,
+  co łatwo wziąć za „push protection nie działa"). Format: `ghp_` + 30 znaków
+  + 6 znaków sumy, gdzie suma to CRC32 rdzenia zapisany w base62 alfabetem
+  **cyfry → WIELKIE → małe** (odwrotna kolejność alfabetu daje ciąg, którego
+  GitHub ignoruje). Sprawdzone wykonaniem: przy poprawnej sumie push wraca
+  z `GH013: Repository rule violations found`.

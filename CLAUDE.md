@@ -516,12 +516,27 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      `export ZRZUTY_KORZEN=$PWD && node tools/zrzuty/manifest.mjs` —
      manifest wyprowadza się z prozy (znacznik `<!-- ZRZUT: … -->` = do
      zrobienia, `![…](zrzuty/…)` z istniejącym plikiem = zrobione), więc
-     nie ma osobnego pliku stanu, który mógłby skłamać. Na 2026-08-23:
-     **173 miejsca, 33 zrobione, 72 do zrobienia bez logowania, 68 po
-     zalogowaniu** (wcześniejsze „170" i „96/44" są nieaktualne).
-     Kolejność dalszych prac (decyzja właściciela): przelot zrzutów →
-     **lokalny podgląd obu kursów W STYLU STRONY** (jeszcze nie zbudowany)
-     → ocena wizualna właściciela → audyt końcowy → etap WordPressa. Zapamiętać z etapu 2: panel MUSI odsyłać
+     nie ma osobnego pliku stanu, który mógłby skłamać.
+     **STAN NA 2026-08-23, wieczór: 160 miejsc, 137 zrobionych, 23 otwarte —
+     wszystkie w Kursie 1** (claude.ai 16, API 5, Console 2). **Kurs 2
+     ZAMKNIĘTY: 88/88.** Wcześniejsze liczby („173/33/72/68", „170", „96/44")
+     są nieaktualne — przelot usunął po drodze miejsca niewykonalne, więc
+     spadła też suma.
+     **GAŁĘZIE SCALONE W JEDNĄ:** dorobek czatu B (`feat/zrzuty-k1`) wszedł
+     do `feat/tresc-k2-modul-2-3`, żeby poszedł JEDEN PR zamiast stosu dwóch
+     (stackowane PR-y już raz zamknęły się nawzajem — notatka przy 0.25.0).
+     **NASTĘPNY KROK: OSTATNIA FAZA PRZELOTU — 23 miejsca Kursu 1.** To inna
+     klasa pracy niż reszta: prowadzenie prawdziwych rozmów na koncie
+     właściciela i PŁATNE wywołania API, więc wymaga osobnej zgody na koszty.
+     Prompt startowy tej sesji leży w
+     [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md),
+     sekcja „Co zostało z całego przelotu".
+     Kolejność dalszych prac (decyzja właściciela 2026-08-23): ostatnia faza
+     zrzutów → **PR → merge → tag → release** → **audyt kursów i higiena repo
+     — OMÓWIMY OSOBNO, nie planować tego teraz** → etap WordPressa.
+     Nierozstrzygnięte: **lokalny podgląd obu kursów w stylu strony**
+     (`tools/podglad-kursow.mjs` istnieje, ocena wizualna właściciela jeszcze
+     się nie odbyła). Zapamiętać z etapu 2: panel MUSI odsyłać
      `id` modułów i lekcji (dyspozytor kasuje wiersze spoza wejścia —
      bez tego zapis kursu kasuje materiał), a w worktree kroku 3
      `node_modules` musi być KOPIĄ (`cp -al`), bo Turbopack odrzuca
