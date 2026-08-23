@@ -2689,7 +2689,7 @@ wiersze 11–14.
 
 Skrót: **23 zrzuty Kursu 2 zrobione i zacommitowane, ale jeszcze NIE wpięte**
 w prozę (znaczniki `<!-- ZRZUT: -->` czekają) — bo najpierw idą poprawki trzech
-podpisów. **Siedem miejsc przeniesionych do partii „po zalogowaniu"**: anonimowa
+podpisów. **Osiem miejsc przeniesionych do partii „po zalogowaniu"**: anonimowa
 przeglądarka nie widzi merge boxa, przycisków scalania ani logów Actions
 (sprawdzone wykonaniem). Kolejność dalszej pracy zatwierdzona przez właściciela:
 **poprawki podpisów → `wepnij.mjs` → GitHub Desktop (4) → edytor kodu (1) →

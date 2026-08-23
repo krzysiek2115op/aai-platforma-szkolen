@@ -16,6 +16,12 @@ export const KURSY = { K1: "jak-korzystac-z-claude", K2: "jak-uzywac-githuba" };
 
 /** Kubeł mówi, CZEGO zrzut wymaga — a więc kto i kiedy może go zrobić. */
 const REGULY = [
+  // Sprawdzone WYKONANIEM 2026-08-23 (czat A): anonimowa przeglądarka NIE WIDZI merge boxa
+  // ani przycisków scalania — GitHub pokazuje je dopiero komuś z prawem zapisu. Tak samo
+  // logi przebiegu Actions („Sign in to view logs") i żółty baner o świeżo wypchniętej
+  // gałęzi. W GitHub Desktop za logowaniem stoi ekran „Let's get started!" z listą repozytoriów.
+  // Reguła jest PIERWSZA, bo inaczej kubły „desktop"/„github-public" obiecują niemożliwe.
+  ["github-logged", /merge box|merge boxa|merge boxem|restore branch|compare & pull request|w logu|nieaktywnym przyciskiem|listą sprawdzeń|opcji scalania|let.s get started|your repositories/i],
   ["arkusz", /arkusz/i],
   ["tui", /claude code|sesj[ai] claude|\/config|\/status|\/context|\/memory|\/permissions|\/mcp|\/hooks|\/rewind|\/sandbox|\/plugin|\/summarize|shift\+tab|ctrl\+[eo]|dwukrotnym esc|znak zachęty|menu komend|panel pomocy|panel subagent|transkryp|podgląd proponowanej zmiany|pytanie o zgodę|worktree|restored the code|menu podpowiedzi ścieżek|uruchomionym `claude`|plan mode|menu `\/`|tryb(ów)? uprawnie|pasek stanu/i],
   ["api", /\busage\b|tool_use|input_tokens|cache_(read|creation)|błędu 400|output_config/i],
@@ -24,10 +30,6 @@ const REGULY = [
   ["desktop", /github desktop|ekran powitalny|let.s get started|menu repository/i],
   ["terminal", /terminal|ssh-keygen/i],
   ["docs", /w dokumentacji|strona „|sekcja „|tabela „|glossary|pricing|git-scm|training\.github|github skills|blok ostrzeżenia/i],
-  // Sprawdzone wykonaniem 2026-08-23 (czat A): anonimowa przeglądarka NIE WIDZI merge boxa
-  // ani przycisków scalania — GitHub pokazuje je dopiero komuś z prawem zapisu. Tak samo
-  // logi przebiegu Actions („Sign in to view logs") i żółty baner o świeżo wypchniętej gałęzi.
-  ["github-logged", /merge box|merge boxa|merge boxem|restore branch|compare & pull request|w logu|nieaktywnym przyciskiem|listą sprawdzeń|opcji scalania/i],
   ["github-logged", /settings|ustawie|danger zone|branch protection|branch name pattern|require a pull request|do not allow bypassing|secret|sekret|dependabot|codeql|advanced security|security polic|two-factor|dwuskładnik|2fa|qr|recovery code|setup key|text code|ssh and gpg|new ssh key|formularz|create new file|okno dialogowe commit|commit changes|propose changes|push protection|reviewers|commit suggestion|add suggestion|new issue|zak(ł|l)adania konta|rozwijane menu main|delete branch|edytor konfliktów|opcji nad plikiem|describe this release|przełączniki|pre-release|generate release notes|alert o wykrytym|zakładka security and quality|prośbą o zalogowanie|edytor pliku .* na githubie/i],
 ];
 /** Kubły, których nie da się obsłużyć bez ZALOGOWANEJ przeglądarki właściciela. */

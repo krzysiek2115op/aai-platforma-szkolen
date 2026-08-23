@@ -16,8 +16,9 @@ znacznikiem `<!-- ZRZUT: … -->` jest do zrobienia, miejsce z
 się rozjechać licznika z rzeczywistością — i dlatego **nie trzymamy
 osobnego pliku stanu**.
 
-Stan na 2026-08-23 po pierwszej partii: **173 miejsca, 33 zrobione,
-72 do zrobienia teraz, 68 po zalogowaniu.**
+Stan po pierwszej partii (2026-08-23, **liczba historyczna** — kubły zmieniły
+się w turze 2, patrz niżej): 173 miejsca, 33 zrobione, 72 do zrobienia teraz,
+68 po zalogowaniu.
 
 ## Podział terytoriów — ROZŁĄCZNY, po KURSACH
 
@@ -261,7 +262,11 @@ całego modułu, więc fallback sparował 40 pozycji zamiast 23 — w tym cudze.
   Dzięki temu każda sesja wylicza tę samą nazwę pliku i nie robi zrzutu drugi raz
   pod inną nazwą.
 - **`manifest.mjs`** zna wzorce miejsc niemożliwych bez logowania (merge box,
-  `Restore branch`, `Compare & pull request`, opcje scalania, log przebiegu).
+  `Restore branch`, `Compare & pull request`, opcje scalania, log przebiegu oraz
+  ekran „Let's get started!" w GitHub Desktop). Reguła stoi **pierwsza** na
+  liście kubłów — inaczej „desktop" i „github-public" łapią te miejsca wcześniej
+  i licznik obiecuje zrzut, którego nie da się zrobić. Po turze 2 odłożonych
+  jest **osiem** miejsc Kursu 2.
 - **`zrob-zrzut.mjs`** ma kadr „od elementu do elementu": `kadrOd` / `kadrDo`
   (selektory; elementy oznacza się wcześniej akcją `eval`, samo `id` niczego nie
   przesuwa) oraz `margines` jako liczba **albo** `{gora,dol,lewo,prawo}` — ikona
