@@ -2679,3 +2679,20 @@ statycznego podglądu i lekcyjne zrzuty by wyciekły (ta sama klasa co
 BLAD-007). W Markdownie lekcji: `![opis](zrzuty/plik.webp)` —
 ścieżka względna od pliku lekcji (tak żąda `straznik-linkow`); import do WP przepisze ją jedną
 regułą na adresy biblioteki mediów.
+
+### PRZELOT ZRZUTÓW — STAN PO TURZE 2 CZATU A (2026-08-23)
+
+Stan i przepisy: **[PRZELOT-ZRZUTOW.md](PRZELOT-ZRZUTOW.md)**, sekcja „Czat A,
+tura 2" — tam są pułapki, przepis na zrzuty pulpitu i lista zmian w repozytorium
+demonstracyjnym. Znaleziska tury: `tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md`,
+wiersze 11–14.
+
+Skrót: **23 zrzuty Kursu 2 zrobione i zacommitowane, ale jeszcze NIE wpięte**
+w prozę (znaczniki `<!-- ZRZUT: -->` czekają) — bo najpierw idą poprawki trzech
+podpisów. **Siedem miejsc przeniesionych do partii „po zalogowaniu"**: anonimowa
+przeglądarka nie widzi merge boxa, przycisków scalania ani logów Actions
+(sprawdzone wykonaniem). Kolejność dalszej pracy zatwierdzona przez właściciela:
+**poprawki podpisów → `wepnij.mjs` → GitHub Desktop (4) → edytor kodu (1) →
+lokalny podgląd obu kursów w stylu strony.**
+
+Stan **zawsze** liczyć komendą (`manifest.mjs`), nigdy z tego akapitu.

@@ -88,7 +88,26 @@ try {
   await new Promise(r => setTimeout(r, 300));
 
   let png;
-  if (spec.selektor) {
+  if (spec.kadrOd) {
+    // Kadr „od elementu do elementu": część podpisów obiecuje wycinek, którego nie
+    // obejmuje żaden pojedynczy selektor (trzy osobne nagłówki, pasek zakładek).
+    // Elementy oznaczamy wcześniej akcją `eval` (samo `id` niczego nie przesuwa).
+    const kadr = await page.evaluate((od, doo, m) => {
+      const a = document.querySelector(od), b = document.querySelector(doo) || a;
+      if (!a) throw new Error('kadrOd nie trafia w żaden element: ' + od);
+      a.scrollIntoView({ block: 'center' });
+      const z = typeof m === 'number' ? { gora: m, dol: m, lewo: m, prawo: m } : m;
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(ra.left, rb.left) - z.lewo + scrollX),
+        y: Math.max(0, Math.min(ra.top, rb.top) - z.gora + scrollY),
+        width: Math.max(ra.right, rb.right) - Math.min(ra.left, rb.left) + z.lewo + z.prawo,
+        height: Math.max(ra.bottom, rb.bottom) - Math.min(ra.top, rb.top) + z.gora + z.dol,
+      };
+    }, spec.kadrOd, spec.kadrDo ?? spec.kadrOd, spec.margines ?? 14);
+    await new Promise(r => setTimeout(r, 400));
+    png = await page.screenshot({ type: 'png', captureBeyondViewport: true, clip: kadr });
+  } else if (spec.selektor) {
     const el = await page.waitForSelector(spec.selektor, { timeout: 15000 });
     png = await el.screenshot({ type: 'png' });
   } else {

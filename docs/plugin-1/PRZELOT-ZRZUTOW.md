@@ -211,3 +211,116 @@ Workbench, surowe odpowiedzi API); audytu kursów; znaczników [EKRAN].
 `tresc-kursow/POSTEP.md`, `tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md`)
 każdy czat dopisuje WŁASNĄ sekcję z nazwą czatu w nagłówku i nie
 przepisuje cudzych — wtedy scalenie jest unią, nie konfliktem treści.
+
+## Czat A, tura 2 (2026-08-23) — stan, pułapki i kolejność dalszej pracy
+
+**Stan liczy komenda, nie ten rozdział:**
+
+```bash
+export ZRZUTY_KORZEN=$PWD
+node tools/zrzuty/manifest.mjs --kurs K2                       # bilans kubłów
+node tools/zrzuty/manifest.mjs --json > /tmp/m.json
+node tools/zrzuty/wepnij.mjs /tmp/m.json --sprawdz             # ile plików czeka na wpięcie
+```
+
+Na koniec tury: **23 zrzuty Kursu 2 leżą na dysku i czekają na wpięcie**
+(12 terminala + 11 widoków GitHuba), `--sprawdz` potwierdza dopasowanie 23/23
+i **ani jednego pliku Kursu 1** — terytoria pozostały rozłączne.
+
+### Kolejność dalszej pracy — ZATWIERDZONA przez właściciela 2026-08-23
+
+1. **Poprawić trzy podpisy/prozę** (znaleziska 11–13) — dopiero potem wpinać.
+2. **`wepnij.mjs`** — zamienia znaczniki na obrazy.
+3. **GitHub Desktop, 4 zrzuty** (przepis na kompozytor niżej).
+4. **Zrzut edytora kodu** (VS Code) — M1 lekcja 5.
+
+Potem dopiero **lokalny podgląd obu kursów w stylu strony** — właściciel chce
+ocenić kursy wzrokowo. To wciąż NIE jest zrobione.
+
+### PUŁAPKA: poprawka podpisu zmienia nazwę pliku zrzutu
+
+`manifest.mjs` wyprowadza `obraz_plan` **z podpisu** (`z<NR>-cztery-pierwsze-słowa`).
+Poprawiasz podpis → zmienia się oczekiwana nazwa pliku → `wepnij.mjs` przestaje
+widzieć gotowy zrzut i zostawia znacznik, jakby pracy nie było. **Po każdej
+poprawce podpisu przemianuj plik** na nazwę, którą podaje manifest:
+
+```bash
+node tools/zrzuty/manifest.mjs --json | grep -A2 '"linia": 33'   # obraz_plan dla tej pozycji
+git mv <stara-nazwa>.webp <nowa-nazwa>.webp
+```
+
+Dotyczy to dwóch plików ze znalezisk 12 i 13 (zakładka Actions, plik workflow).
+Automatyczne dopasowanie „po samym numerze" było próbowane i **odrzucone**:
+numeracja `zNN` leci w obrębie PLIKU lekcji, a katalog `zrzuty/` jest wspólny dla
+całego modułu, więc fallback sparował 40 pozycji zamiast 23 — w tym cudze.
+
+### Czego rig nauczył się w tej turze (jest w kodzie, nie trzeba wyprowadzać)
+
+- **`manifest.mjs`** liczy teraz `id` i `obraz_plan` (funkcja `slug`, polskie „ł"
+  osobno — NFD go nie rozkłada i w nazwach robiły się dziury typu `nag-owek`).
+  Dzięki temu każda sesja wylicza tę samą nazwę pliku i nie robi zrzutu drugi raz
+  pod inną nazwą.
+- **`manifest.mjs`** zna wzorce miejsc niemożliwych bez logowania (merge box,
+  `Restore branch`, `Compare & pull request`, opcje scalania, log przebiegu).
+- **`zrob-zrzut.mjs`** ma kadr „od elementu do elementu": `kadrOd` / `kadrDo`
+  (selektory; elementy oznacza się wcześniej akcją `eval`, samo `id` niczego nie
+  przesuwa) oraz `margines` jako liczba **albo** `{gora,dol,lewo,prawo}` — ikona
+  kotwicy nagłówka siedzi POZA jego pudełkiem, więc zapas z lewej musi być inny
+  niż z dołu.
+- **Nagrywanie terminala:** `LC_ALL=C` (kurs cytuje angielskie brzmienia za
+  dokumentacją) **oraz `TERM=xterm-256color`** — bez `TERM` Git uznaje terminal za
+  „dumb" i gasi kolory, a jeden z podpisów wprost obiecuje kolorowe wyjście.
+- **Po nagraniu trzeba oczyścić sterowanie:** zostawiamy wyłącznie sekwencje SGR,
+  a `\r` w środku linii **nadpisuje** linię (paski postępu `git fetch`), inaczej
+  w obrazie zostaje sklejony bełkot `Counting objects: 20%...40%...`.
+- **`ssh-keygen` nagrany w kontenerze** (`podman`, alpine, użytkownik `oliwia`):
+  narzędzie bierze katalog domowy z `getpwuid`, **nie z `HOME`**, więc na maszynie
+  właściciela pokazałoby jego ścieżkę i zapisało klucz w jego `~/.ssh`. Hasło do
+  klucza trzeba podawać **z opóźnieniem** — `ssh-keygen` czyści bufor wejścia
+  między pytaniami (`TCSAFLUSH`), więc trzy `\n` wysłane naraz przepadają.
+
+### Zrzuty pulpitu — przepis (GitHub Desktop, VS Code)
+
+Decyzja właściciela 2026-08-23: **GitHub Desktop bierzemy z forka na Flathubie**
+(`io.github.shiftey.Desktop`, ten sam kod przebudowany na Linuksa) — oficjalny
+build jest tylko na Windowsa i macOS. **Jest już zainstalowany.** Cztery zrzuty
+robimy bez logowania (ekran powitalny, menu `Repository`, panel commitu, menu
+`Current Branch`); piąty — „Let's get started!" z listą `Your repositories` —
+wymaga zalogowania i dołącza do wspólnego posiedzenia.
+
+Okna otwieramy w **zagnieżdżonym kompozytorze**, żeby nie zaśmiecać ekranu
+właściciela i żeby `grim` łapał wyłącznie nasz pulpit:
+
+```bash
+Hyprland -c <scratchpad>/hypr/hyprland.conf &      # wychodzi jako okno klasy `aquamarine`
+hyprctl dispatch setfloating class:aquamarine       # w instancji WŁAŚCICIELA
+hyprctl dispatch resizewindowpixel exact 1440 900,class:aquamarine
+WAYLAND_DISPLAY=wayland-2 grim zrzut.png            # łapie TYLKO zagnieżdżony pulpit
+pkill -f "Hyprland -c <scratchpad>"                 # ubić po robocie!
+```
+
+`AQ_BACKENDS=headless` u nas **nie działa** — Hyprland i tak startuje na backendzie
+wayland i wychodzi jako okno; dlatego trzeba je zamknąć, a nie zostawiać.
+VS Code uruchamiać z osobnym `--user-data-dir`, żeby nie pokazać ustawień ani
+historii właściciela, a repozytorium klonować do katalogu o nazwie
+`stargazers-log` (VS Code pokazuje nazwę katalogu, nie pełną ścieżkę) na commicie
+`4bc1b45` — wtedy w drzewku są dokładnie `index.html` i `README.md`, tak jak
+obiecuje podpis.
+
+### Co zmieniło się w repozytorium demonstracyjnym
+
+Wszystko w granicach zasady 6 (wolno ruszać **wyłącznie** `stargazers-log`):
+
+- trzy commity na `main`: dopisek do `notatki.md`, założenie `notatki2.md`
+  (jedno i drugie po to, żeby `git fetch`/`merge`/`pull` miały co pobierać —
+  zmiany „kolegi z zespołu" robione przez API, jak przez edytor na GitHubie)
+  oraz **trzy poziomy nagłówka w placu zabaw Markdownu** w `README.md`
+  (bez nich nie było czego zrzucić w lekcji o Markdownie);
+- gałąź **`ci-nodejs`** z plikiem `.github/workflows/nodejs-ci.yml` — dokładnie
+  tym, który cytuje lekcja o CI; commit ma w temacie `[skip ci]`, więc nie
+  odpalił przebiegu (plik bez `package.json` by go wywrócił). **Gałęzi nie
+  kasować** — to źródło zrzutu z tej lekcji;
+- gałąź `test-nazwy` założona i skasowana w ramach ćwiczenia z lekcji o
+  wypychaniu — tak jak każe proza.
+
+Konfiguracja Gita właściciela i jego `~/.ssh` **nietknięte**.

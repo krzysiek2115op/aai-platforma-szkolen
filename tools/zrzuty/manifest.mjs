@@ -24,6 +24,10 @@ const REGULY = [
   ["desktop", /github desktop|ekran powitalny|let.s get started|menu repository/i],
   ["terminal", /terminal|ssh-keygen/i],
   ["docs", /w dokumentacji|strona „|sekcja „|tabela „|glossary|pricing|git-scm|training\.github|github skills|blok ostrzeżenia/i],
+  // Sprawdzone wykonaniem 2026-08-23 (czat A): anonimowa przeglądarka NIE WIDZI merge boxa
+  // ani przycisków scalania — GitHub pokazuje je dopiero komuś z prawem zapisu. Tak samo
+  // logi przebiegu Actions („Sign in to view logs") i żółty baner o świeżo wypchniętej gałęzi.
+  ["github-logged", /merge box|merge boxa|merge boxem|restore branch|compare & pull request|w logu|nieaktywnym przyciskiem|listą sprawdzeń|opcji scalania/i],
   ["github-logged", /settings|ustawie|danger zone|branch protection|branch name pattern|require a pull request|do not allow bypassing|secret|sekret|dependabot|codeql|advanced security|security polic|two-factor|dwuskładnik|2fa|qr|recovery code|setup key|text code|ssh and gpg|new ssh key|formularz|create new file|okno dialogowe commit|commit changes|propose changes|push protection|reviewers|commit suggestion|add suggestion|new issue|zak(ł|l)adania konta|rozwijane menu main|delete branch|edytor konfliktów|opcji nad plikiem|describe this release|przełączniki|pre-release|generate release notes|alert o wykrytym|zakładka security and quality|prośbą o zalogowanie|edytor pliku .* na githubie/i],
 ];
 /** Kubły, których nie da się obsłużyć bez ZALOGOWANEJ przeglądarki właściciela. */
@@ -32,6 +36,14 @@ export const WYMAGA_LOGOWANIA = new Set(["github-logged", "claude-ai", "console"
 function kubel(podpis, kurs) {
   for (const [nazwa, wzorzec] of REGULY) if (wzorzec.test(podpis)) return nazwa;
   return kurs === "K2" ? "github-public" : "claude-ai";
+}
+
+/** Nazwa pliku obrazu: `zNN-cztery-pierwsze-slowa-podpisu`. Polskie „ł" nie rozkłada się
+ *  w NFD, więc idzie osobno — bez tego w nazwach zostawały dziury („nag-owek"). */
+export function slug(podpis) {
+  return podpis.replace(/ł/g, "l").replace(/Ł/g, "L")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).slice(0, 4).join("-");
 }
 
 export function zbierz() {
@@ -58,6 +70,16 @@ export function zbierz() {
         });
       }
     }
+  }
+  // Numer w nazwie liczy się w OBRĘBIE PLIKU lekcji, po kolei od góry; zrobiony zrzut
+  // zachowuje swoją nazwę, a `obraz_plan` mówi wepnij.mjs, pod jaką nazwą szukać nowego.
+  const licznik = new Map();
+  for (const p of poz) {
+    const n = (licznik.get(p.plik) ?? 0) + 1;
+    licznik.set(p.plik, n);
+    const nr = String(n).padStart(2, "0");
+    p.id = `${p.kurs.toLowerCase()}-m${p.modul}-z${nr}`;
+    p.obraz_plan = p.obraz ?? `zrzuty/z${nr}-${slug(p.podpis)}.webp`;
   }
   return poz;
 }
