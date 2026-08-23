@@ -15,7 +15,7 @@ trzy osobne bazy danych.
 
 <br>
 
-[![Podgląd katalogu /szkolenia](docs/zrzuty/podglad-szkolenia.png)](http://localhost:3001/szkolenia)
+[![Podgląd katalogu /szkolenia](docs/zrzuty/podglad-szkolenia.png)](https://matthewplugins.github.io/szkolenia-podglad/szkolenia)
 
 *Podgląd lokalny: [`http://localhost:3001/szkolenia`](http://localhost:3001/szkolenia)
 — `npm run db1:up && npm run db1:migruj && npm run dev`
@@ -51,7 +51,7 @@ trzy osobne bazy danych.
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
-| **Podgląd na żywo** | [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia) — statyczny eksport katalogu i stron kursów (`npm run deploy:podglad`), **bez kreatora i AJAX-a**, z `noindex` na czas prac. Służy do pomiarów SEO i wydajności narzędziami Google; treść kursów jest jeszcze ROBOCZA |
+| **Podgląd na żywo** | [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia) — statyczny eksport katalogu i stron kursów (`npm run deploy:podglad`), **bez kreatora i AJAX-a**, z `noindex` na czas prac. Służy do pomiarów SEO i wydajności narzędziami Google; **oba kursy są kompletne** (73 lekcje), a teksty sprzedażowe zgodne z produktem (0.33.0) — placeholderami zostają wyłącznie opinie, do pierwszych sprzedaży |
 | **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([public/fonts/LICENSE-Geist-OFL.txt](public/fonts/LICENSE-Geist-OFL.txt)) |
 | **Produkcja** | brak — **docelowo WordPress na wykupionym hostingu i domenie** (decyzja zespołu 2026-08-18): sklep zostanie przepisany na wtyczkę WP (PHP + MySQL), a obecny kod Next.js jest prototypem-specyfikacją ([szczegóły](docs/PLAN.md#decyzja-zespołu-2026-08-18--produkcja-na-wordpressie-zastępuje-plan-hosting-nodejs--vps)) |
 
@@ -134,7 +134,7 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run lint` | ESLint |
 | `npm run db1:up` | postaw kontener bazy (podman compose) |
 | `npm run db1:migruj` | doprowadź schemat bazy do aktualnego stanu (sha256 w `_migracje`) |
-| `npm run db1:seed` | wgraj przykładowe kursy (treść ROBOCZA — do oceny wyglądu) |
+| `npm run db1:seed` | odtwórz oba kursy od zera: program (lustro bazy) + sekcje sprzedażowe. **UWAGA: najpierw KASUJE kursy o tych slugach**, czyli razem z prozą 73 lekcji — po nim trzeba wgrać treść `npm run db1:tresc` |
 | `npm run db1:tresc` | wgraj prozę lekcji z `tresc-kursow/**/proza-*.md` do bazy — drogą kreatora (jedyny AJAX); `-- --sprawdz` sam sprawdza, nic nie wysyła |
 
 Narzędzia uruchamiane ręcznie:
@@ -267,8 +267,8 @@ pętli przy optymalizacji; przed jego użyciem sprawdzić
 `ps -eo pcpu,comm --sort=-pcpu`, czy maszyna jest spokojna.
 
 **Pomiar rozchodzi się na dwa buildy i trzeba wiedzieć dlaczego.** Podgląd
-chodzi z `noindex` (decyzja właściciela — treść stron sprzedażowych jest
-jeszcze robocza, a opinie to jawne placeholdery). Lighthouse **punktuje**
+chodzi z `noindex` (decyzja właściciela — sklep nie ma jeszcze płatności
+ani domeny docelowej, a opinie to jawne placeholdery). Lighthouse **punktuje**
 audyt „Page is blocked from indexing", więc na żywym adresie kolumna SEO
 nigdy nie pokaże 100, choćby wszystko inne było bez zarzutu. Mierzymy więc:
 
@@ -329,8 +329,8 @@ git config core.hooksPath .githooks   # włącza haki — raz, obowiązkowo
 npm ci                                # zależności (Node 24+)
 cp .env.example .env                  # lokalna konfiguracja (baza, KREATOR_TOKEN)
 npm run db1:migruj                    # migracje + triggery (bazę podniesie pretest)
-npm test                              # 62 testy; sam podnosi kontener bazy
-npm run db1:seed                      # 2 przykładowe kursy (treść ROBOCZA)
+npm test                              # 75 testów; sam podnosi kontener bazy
+npm run db1:seed                      # program + sekcje sprzedażowe (UWAGA: kasuje kursy)
 npm run dev                           # → http://localhost:3001/szkolenia
 ```
 
