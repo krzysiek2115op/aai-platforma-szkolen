@@ -630,9 +630,8 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      ZAMKNIĘTY na 148/160 — do robienia zrzutów NIE WRACAMY.** Te dwanaście
      miejsc rozstrzygamy przy domykaniu kursu: poprawką podpisu i prozy albo
      usunięciem znacznika (jak przy czterech ekranach GitHub Desktopu).
-     Zadanie otwarte na koncie: skasować ~12 rozmów demonstracyjnych
-     z historii claude.ai, gdy wróci dostęp — po potwierdzeniu listy
-     z właścicielem.
+     Rozmowy demonstracyjne z konta claude.ai **skasowane 2026-08-23**
+     (23 sztuki, kontrola po kasowaniu: zero rozmów z okna partii).
      **PR #55 ZMERGOWANY (2026-08-23), tag `v0.32.0` + release** — na
      dowodach lokalnych (strażnicy 26/26, audyt mutacyjny 85/85, testy
      75/75; CI stoi do 1 września — po powrocie potwierdzić gitleaks).
@@ -642,9 +641,10 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      leżała TYLKO w plikach) — baza i pliki zgodne co do znaku.
      **NASTĘPNY KROK: audyt kursów i higiena repo — właściciel chce je
      OMÓWIĆ OSOBNO; NIE planować ich ani nie zaczynać z własnej
-     inicjatywy.** Otwarte drobiazgi poza tym: skasować ~12 rozmów
-     demonstracyjnych z konta claude.ai po powrocie dostępu (za
-     potwierdzeniem listy); worktree'y `k2-A`/`zrzuty-k1` zostają lokalnie
+     inicjatywy.** Rozmowy demonstracyjne z konta claude.ai **skasowane**
+     (23 sztuki, 2026-08-23 — zgoda właściciela na „wszystkie pozostałości";
+     wykaz brany z API po `created_at`, nie zgadywany z tytułów, bo lista
+     w DOM-ie jest wirtualizowana i daty nie oddaje); worktree'y `k2-A`/`zrzuty-k1` zostają lokalnie
      (gałęzie zmergowane — istnienie worktree nie znaczy, że trwa praca).
     **KALIBRACJA K2 ZROBIONA (2026-08-22): moduł 1 Kursu 2 gotowy** — 6 lekcji,
     64 418 znaków, w repo (gałąź `feat/tresc-k2-modul-1`) i w bazie, po pełnej

@@ -180,6 +180,40 @@ Do zrobienia:
 Opinie klientów zostają jawnymi placeholderami do pierwszych sprzedaży —
 niczego nie zmyślamy.
 
+### Kolejność domykania kroku 3 (ustalona przez właściciela 2026-08-23)
+
+Po zamknięciu treści i przelotu zrzutów (0.32.0) idziemy w tej kolejności
+i **nie zaczynamy niczego z tej listy z własnej inicjatywy** — właściciel
+otwiera każdy temat osobno:
+
+1. **Audyt kursów** — właściciel omawia zakres osobno.
+2. **Higiena repo** — jw.
+3. **Dopracowanie WIDOKU TREŚCI KURSU** (nowa pozycja, decyzja właściciela
+   2026-08-23). Problem w jego słowach: *strona z kursami wygląda tanio
+   i słabo wypada w porównaniu do strony sprzedażowej*. Chodzi o **widok
+   lekcji**, czyli to, co klient dostaje PO zakupie — dziś składany przez
+   `tools/podglad-kursow.mjs` (strona wejściowa z bilansem, strona kursu
+   z modułami, po jednej stronie na lekcję, treść przez `czytajProze`).
+   Punkt odniesienia jest w repo i jest wysoki: strona sprzedażowa
+   `/szkolenia/[slug]` po B5 (wersja 0.12.1) — ~18 komponentów
+   `components/kurs/*`, własny pasek menu kursu, `TloKursu` z poświatą za
+   kursorem, `Reveal`/`Cascade`, hover-lift `.unos`, płynne akordeony,
+   wszystko pod `prefers-reduced-motion`; brief wiążący:
+   [BRIEF-STRONA-KURSU.md](BRIEF-STRONA-KURSU.md).
+   Co trzeba rozstrzygnąć na starcie tej pozycji (pytania do właściciela,
+   nie założenia agenta): czy widok lekcji ma być **stroną w aplikacji**
+   (dziś treść lekcji renderuje wyłącznie kreator), czy dalej **eksportem
+   HTML**; jak ma wyglądać nawigacja po 73 lekcjach i pasek postępu; oraz
+   czy dopracowanie robimy **przed** etapem WP, czy dopiero na docelowym
+   LMS-ie (Tutor LMS ma własne szablony i 21 zmiennych `--tutor-*`, więc
+   praca zrobiona tu może wymagać przeniesienia).
+   Twarde ograniczenie, które zostaje niezależnie od odpowiedzi: **treść
+   lekcji nie może wyciec do eksportu statycznego** — `public/` wchodzi
+   w całości do `out/` (klasa BLAD-007), a `tools/podglad-kursow.mjs`
+   **odmawia zapisu do wnętrza repo** właśnie dlatego. Publikacja obu
+   kursów jako HTML na Pages (decyzja 2026-08-23) jest świadomym wyjątkiem
+   do oceny repo, nie zgodą na wystawienie towaru.
+
 **Bramka kroku 3:** B7 — właściciel ocenia gotowe kursy.
 
 ---

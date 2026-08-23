@@ -883,9 +883,18 @@ Desktopu). Trzech miejsc zablokowanych przez Cloudflare (2.4, 5.6, 5.8) **nie
 próbujemy już odblokowywać** — mimo że specyfikacje i przepis zostają w repo,
 więc gdyby ktoś kiedyś chciał, wystarczy jedna komenda.
 
-**Zadanie otwarte na koncie właściciela:** partia zostawiła w historii
-claude.ai około dwunastu rozmów demonstracyjnych (oferta „Kwiaciarni Malwa",
-panel analityczny, przypadki testowe, plan szkoleń, klasyfikacja zgłoszenia,
-audyt polityki prywatności). Właściciel prosi o ich **skasowanie, gdy wróci
-dostęp do claude.ai** — z **potwierdzeniem listy przed usunięciem**, bo
-kasowanie po tytułach w cudzej historii jest nieodwracalne.
+**Konto posprzątane (2026-08-23).** Partia zostawiła w historii claude.ai
+**23 rozmowy demonstracyjne** (nie ~12, jak szacowałem z pamięci) — wszystkie
+skasowane za zgodą właściciela, kontrola po kasowaniu: zero rozmów z okna
+partii, licznik 51 → 28.
+
+**Jak to zrobić powtarzalnie, gdyby wróciło:** listę bierzemy z **API**
+(`/api/organizations` → `/api/organizations/{org}/chat_conversations?limit=200`)
+i filtrujemy po `created_at`, a NIE po tytułach z paska bocznego — lista
+rozmów jest **wirtualizowana i nie oddaje daty w DOM-ie**, więc filtr
+świeżości oparty na tekście wiersza nie dopasował ani jednej pozycji (i dobrze:
+zablokował kasowanie zamiast zgadywać). Kasujemy wyłącznie identyfikatory
+z wykazu sprawdzonego chwilę wcześniej, nigdy dopasowaniem po tytule w locie.
+Wejście automatu na claude.ai wymagało wcześniej przejścia weryfikacji
+Cloudflare w ZWYKŁYM oknie na tym samym profilu (`zaloguj.mjs claude
+--recznie`) — po zamknięciu okna sterowana przeglądarka przeszła.
