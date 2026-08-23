@@ -72,6 +72,71 @@ try {
     // Podstawienie `value` z JS daje ten sam tekst, ale bez obwódki ogniska,
     // a część podpisów obiecuje pole „z wpisanym…", czyli pole aktywne.
     if (a.typ === 'wpisz') { await page.click(a.selektor); await page.type(a.selektor, a.tekst, { delay: 25 }); }
+    // `wpiszWiersze` — prompt wielowierszowy w polu czatu. ENTER W CZACIE WYSYŁA
+    // WIADOMOŚĆ, więc zwykłe `page.type` z '\n' wystrzeliłoby prompt w połowie
+    // (a przy prompcie z tagami XML — po pierwszej linijce). Nowy wiersz robi
+    // Shift+Enter, dokładnie jak u ucznia.
+    if (a.typ === 'wpiszWiersze') {
+      await page.click(a.selektor);
+      const wiersze = a.tekst.split('\n');
+      for (let i = 0; i < wiersze.length; i++) {
+        if (i) { await page.keyboard.down('Shift'); await page.keyboard.press('Enter'); await page.keyboard.up('Shift'); }
+        if (wiersze[i]) await page.keyboard.type(wiersze[i], { delay: 6 });
+      }
+    }
+    // `czekajNaTekst` — odpowiedź modelu przychodzi w nieznanym czasie. Sztywne
+    // `czekaj` albo marnuje minutę, albo kadruje odpowiedź w połowie zdania.
+    if (a.typ === 'czekajNaTekst') {
+      const koniec = Date.now() + (a.limitMs ?? 180000);
+      let jest = false;
+      while (!jest && Date.now() < koniec) {
+        jest = await page.evaluate((f) => (document.body.innerText || '').includes(f), a.tekst);
+        if (!jest) await new Promise(r => setTimeout(r, 1500));
+      }
+      if (!jest) { console.error(`zrzut: w limicie ${a.limitMs ?? 180000} ms nie pojawiło się ${JSON.stringify(a.tekst)}`); process.exit(10); }
+    }
+    // `czekajNaKoniec` — model skończył pisać. Pierwsza wersja pytała tylko
+    // o zniknięcie przycisku zatrzymania i dawała FAŁSZYWE „gotowe": zaraz po
+    // kliknięciu wysyłki przycisku jeszcze NIE MA, więc druga wymiana w rozmowie
+    // szła na obraz po 201 znakach odpowiedzi (złapała to bramka `wymagaOdpowiedzi`).
+    // Dlatego mierzymy STABILNOŚĆ TEKSTU ostatniej odpowiedzi — sygnał niezależny
+    // od tego, jak interfejs nazywa swoje przyciski.
+    if (a.typ === 'czekajNaKoniec') {
+      const sel = a.selektorOdpowiedzi ?? '.font-claude-response';
+      const koniec = Date.now() + (a.limitMs ?? 300000);
+      const dlugosc = () => page.evaluate((s) => {
+        const el = [...document.querySelectorAll(s)];
+        return el.length ? (el[el.length - 1].innerText || '').trim().length : 0;
+      }, sel);
+      // Sam tekst nie wystarcza przy ARTEFAKTACH: odpowiedź w transkrypcie ma
+      // wtedy dwa zdania i stoi w miejscu, podczas gdy artefakt dopiero się pisze.
+      // Dlatego drugi sygnał — „interfejs wciąż generuje".
+      const generuje = () => page.evaluate(() =>
+        !!document.querySelector('[data-is-streaming="true"]') ||
+        !!document.querySelector('[data-testid="stop-button"]') ||
+        [...document.querySelectorAll('button')].some((b) => /stop/i.test(b.getAttribute('aria-label') || '')));
+      let poprzednia = -1, stabilnych = 0, ile = 0, wTrakcie = true;
+      while (Date.now() < koniec) {
+        await new Promise(r => setTimeout(r, 1500));
+        ile = await dlugosc();
+        wTrakcie = await generuje();
+        if (ile > 0 && ile === poprzednia && !wTrakcie) stabilnych++; else stabilnych = 0;
+        poprzednia = ile;
+        if (stabilnych >= (a.stabilnych ?? 3) && ile >= (a.minZnakow ?? 120)) break;
+      }
+      if (!(stabilnych >= (a.stabilnych ?? 3) && ile >= (a.minZnakow ?? 120))) {
+        console.error(`zrzut: odpowiedź nie ustabilizowała się w limicie czasu (${ile} zn.)`);
+        process.exit(10);
+      }
+      await new Promise(r => setTimeout(r, a.poMs ?? 1200));
+    }
+    // `wgrajPlik` — obraz wchodzi do rozmowy przez ukryte `input[type=file]`,
+    // bo okna wyboru pliku systemu nie da się obsłużyć z automatu.
+    if (a.typ === 'wgrajPlik') {
+      const wejscie = await page.waitForSelector(a.selektor ?? 'input[type=file]', { timeout: 15000 });
+      const sciezka = a.plik.startsWith('/') ? a.plik : join(process.env.ZRZUTY_KORZEN ?? process.cwd(), a.plik);
+      await wejscie.uploadFile(sciezka);
+    }
     await new Promise(r => setTimeout(r, a.poMs ?? 350));
   }
 
@@ -81,6 +146,11 @@ try {
     { z: 'Krzysztof Leszczyński', na: 'oliwia-dev' },
     { z: 'krzysztof leszczyński', na: 'oliwia-dev' },
     { z: 'krzysztof2006oskar@wp.pl', na: 'oliwia-dev@users.noreply.github.com' },
+    // Samo IMIĘ — claude.ai wita nim wprost („Evening, krzysztof"), a Konsola
+    // stawia je w nagłówku konta. Bramka `sprawdzPrywatnosc` zna login, e-mail,
+    // $USER i $HOME; imienia nie zna, więc bez tej podmiany wychodzi na zrzucie.
+    { z: 'Krzysztof', na: 'Oliwia' },
+    { z: 'krzysztof', na: 'oliwia' },
     ...(process.env.USER && process.env.USER.length > 2 ? [{ z: process.env.USER, na: 'oliwia' }] : []),
     ...(spec.patch ?? [])];
   await page.evaluate((patche) => {
@@ -104,7 +174,54 @@ try {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="%23d0d7de"/><text x="32" y="42" font-family="sans-serif" font-size="30" fill="%2357606a" text-anchor="middle">o</text></svg>`;
     for (const img of document.querySelectorAll('img[src*="avatars.githubusercontent.com"]'))
       img.src = `data:image/svg+xml;utf8,${svg}`;
+    // claude.ai: pasek boczny wypisuje TYTUŁY PRYWATNYCH ROZMÓW właściciela —
+    // i robi to DWA RAZY: w tekście odnośnika oraz w `aria-label` przycisku
+    // („More options for <tytuł>"). Podmieniamy jedno i drugie na przykładowe
+    // tematy firmowe; chrom interfejsu zostaje prawdziwy (brief, zasada 4).
+    if (location.hostname.endsWith('claude.ai')) {
+      const przykladowe = ['Oferta dla klienta — skrót', 'Analiza umowy najmu', 'Plan newslettera na wrzesień',
+        'Podsumowanie spotkania zespołu', 'Opis produktu do sklepu', 'Odpowiedź na reklamację',
+        'Checklista wdrożenia nowego pracownika', 'Notatka z rozmowy z dostawcą', 'Harmonogram szkoleń',
+        'Porównanie ofert hostingu', 'Regulamin sklepu — uwagi', 'Skrót raportu sprzedaży'];
+      const tytul = (i) => przykladowe[i % przykladowe.length];
+      [...document.querySelectorAll('a[href^="/chat/"], a[href^="/project/"]')].forEach((a, i) => {
+        const wezly = [];
+        const ch = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
+        let n; while ((n = ch.nextNode())) if (n.nodeValue.trim()) wezly.push(n);
+        if (wezly.length) wezly[0].nodeValue = tytul(i);
+        for (let k = 1; k < wezly.length; k++) if (wezly[k].nodeValue.length > 12) wezly[k].nodeValue = tytul(i);
+      });
+      [...document.querySelectorAll('[aria-label^="More options for"], [aria-label^="Więcej opcji"]')]
+        .forEach((b, i) => b.setAttribute('aria-label', `More options for ${tytul(i)}`));
+      // Awatar konta to INICJAŁ IMIENIA właściciela (kółko z „K" nad nazwą planu).
+      // Podmiana tekstowa go nie rusza, bo to pojedyncza litera — bierzemy go
+      // punktowo, po elemencie menu konta, żeby nie tknąć liter w treści strony.
+      const menuKonta = document.querySelector('[data-testid="user-menu-button"]');
+      if (menuKonta) {
+        const ch = document.createTreeWalker(menuKonta, NodeFilter.SHOW_TEXT);
+        let n; while ((n = ch.nextNode())) if (/^\s*[A-ZĄĆĘŁŃÓŚŹŻ]\s*$/.test(n.nodeValue)) n.nodeValue = 'O';
+      }
+    }
   }, patche);
+  // KONTROLA po podmianie — tytuły rozmów są danymi, których bramka
+  // `sprawdzPrywatnosc` nie ma jak znać (nie ma ich w środowisku). Sprawdzamy
+  // więc STRUKTURALNIE: każdy odnośnik do rozmowy musi nieść tytuł z listy
+  // przykładowych. Komunikat CELOWO nie wypisuje tytułu — to dana prywatna.
+  const nieprzykladowe = await page.evaluate(() => {
+    if (!location.hostname.endsWith('claude.ai')) return 0;
+    const przykladowe = ['Oferta dla klienta — skrót', 'Analiza umowy najmu', 'Plan newslettera na wrzesień',
+      'Podsumowanie spotkania zespołu', 'Opis produktu do sklepu', 'Odpowiedź na reklamację',
+      'Checklista wdrożenia nowego pracownika', 'Notatka z rozmowy z dostawcą', 'Harmonogram szkoleń',
+      'Porównanie ofert hostingu', 'Regulamin sklepu — uwagi', 'Skrót raportu sprzedaży'];
+    return [...document.querySelectorAll('a[href^="/chat/"]')]
+      .filter(a => (a.innerText || '').trim() && !przykladowe.some(t => (a.innerText || '').includes(t))).length;
+  });
+  if (nieprzykladowe > 0) {
+    console.error(`zrzut: ${nieprzykladowe} odnośników do rozmów NIE MA przykładowego tytułu — obrazu NIE ZAPISANO.`);
+    console.error('  Pasek boczny claude.ai niesie tytuły prywatnych rozmów właściciela (brief, zasada 4).');
+    process.exit(9);
+  }
+
   const ukryj = [...(spec.bezChromu === false ? [] : ['header[role="banner"]', '.AppHeader', 'footer', '[data-testid="footer"]']), ...(spec.ukryj ?? [])];
   for (const s of ukryj) await page.evaluate(sel => { document.querySelectorAll(sel).forEach(e => e.style.display = 'none'); }, s);
   // Banner zgód bywa doklejany z opóźnieniem, PO naszym odrzuceniu — drugi przelot tuż przed zrzutem.
@@ -162,6 +279,12 @@ try {
     }, spec.kadrOd, spec.kadrDo ?? spec.kadrOd, spec.margines ?? 14);
     await new Promise(r => setTimeout(r, 400));
     png = await page.screenshot({ type: 'png', captureBeyondViewport: true, clip: kadr });
+    // Asercja MUSI liczyć tekst z tego samego prostokąta, który poszedł na obraz.
+    // Bez tej linijki `kadrOd` kadruje wycinek dokumentu, a asercja sprawdza
+    // OKNO — czyli dowodzi napisów, których na zrzucie może nie być (dokładnie
+    // ta klasa, dla której bramka powstała). Żadna wcześniejsza specyfikacja
+    // `kadrOd` nie używała, więc dziura nie zdążyła ugryźć.
+    spec.clip = kadr;
   } else if (spec.selektor) {
     const el = await page.waitForSelector(spec.selektor, { timeout: 15000 });
     png = await el.screenshot({ type: 'png' });
@@ -193,6 +316,29 @@ try {
   }, { selektor: spec.selektor ?? null, clip: spec.clip ?? null, pelna: !!spec.pelnaStrona });
   sprawdzPrywatnosc(tekstEkranu, 'zrzut');
   sprawdzAsercje(tekstEkranu, WYMAGANE, 'zrzut');
+  // BRAMKA STRUKTURALNA — „na zrzucie JEST odpowiedź modelu".
+  // Treści odpowiedzi nie da się zadeklarować z góry (model nie powtarza się
+  // słowo w słowo), a `wymagaTekstu` sprawdza tylko napisy. Podpisy w rodzaju
+  // „odpowiedź Claude na drugi prompt" obiecują jednak SAM FAKT odpowiedzi —
+  // i to jest sprawdzalne: element odpowiedzi musi leżeć w kadrze i nieść
+  // co najmniej tyle znaków, ile podano.
+  if (spec.wymagaOdpowiedzi) {
+    const minZnakow = typeof spec.wymagaOdpowiedzi === 'number' ? spec.wymagaOdpowiedzi : 200;
+    const dlugosc = await page.evaluate(({ sel, clip, min }) => {
+      const el = [...document.querySelectorAll(sel)].filter((e) => {
+        if (!clip) return true;
+        const r = e.getBoundingClientRect();
+        const gora = r.top + scrollY, dol = r.bottom + scrollY;
+        return dol > clip.y && gora < clip.y + clip.height;
+      });
+      return Math.max(0, ...el.map((e) => (e.innerText || '').trim().length), 0);
+    }, { sel: spec.selektorOdpowiedzi ?? '.font-claude-response', clip: spec.clip ?? null, min: minZnakow });
+    if (dlugosc < minZnakow) {
+      console.error(`zrzut: w kadrze NIE MA odpowiedzi modelu (${dlugosc} zn., wymagane ${minZnakow}) — obrazu NIE ZAPISANO.`);
+      process.exit(11);
+    }
+    console.log(`odpowiedź modelu w kadrze: ${dlugosc} zn. (wymagane ${minZnakow})`);
+  }
 
   // Normalizacja: 1600 px szerokości wystarcza do czytania na ekranie i nie
   // wpuszcza do repo dziesiątek megabajtów (zrzut 2x ma ~2880 px).

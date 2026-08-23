@@ -1,0 +1,19 @@
+# SESJA (Kurs 1, lekcja 4.3): hook PreToolUse blokuje edycję .env.
+#
+# Katalog roboczy: /tmp/oliwia-hooki — OSOBNY od /tmp/oliwia-demo, bo projektowe
+# `.claude/settings.json` z hookiem zmieniłoby zachowanie sesji, na których stoją
+# pozostałe zrzuty modułu 3. Sesja startuje z `--setting-sources project`, więc
+# hook z tego katalogu JEST wczytywany, a ustawienia właściciela nie.
+#
+# DLACZEGO PROSIMY WPROST O NARZĘDZIE EDIT (sprawdzone nagraniem 2026-08-23):
+# przy zwykłym „zmień w pliku .env…" Claude sięgnął po KOMENDĘ POWŁOKI i plik
+# zmienił się mimo hooka — dopasowanie `Edit|Write` takiej drogi nie widzi.
+# To dokładnie zawężenie, które lekcja podaje zaraz pod tym zrzutem, ale podpis
+# obiecuje ekran z BLOKADĄ, więc scenariusz kieruje model na narzędzie edycji.
+CZEKAJ 16
+ENTER
+CZEKAJ 12
+WPISZ narzędziem Edit zmień w pliku .env wartość APP_ENV z development na production
+ENTER
+CZEKAJ 55
+ZNACZNIK blokada-env

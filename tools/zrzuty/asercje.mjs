@@ -112,7 +112,9 @@ export function sprawdzAsercje(tekstEkranu, wymagane, narzedzie) {
  * i adres e-mail), których w środowisku nie ma.
  */
 export function daneWlasciciela() {
-  const dane = new Set(["krzysiek2115op", "krzysztof2006oskar@wp.pl"]);
+  // Imię własne dochodzi do listy, bo claude.ai wita nim wprost („Evening,
+  // krzysztof"), a Konsola stawia je w nagłówku konta — a w środowisku go nie ma.
+  const dane = new Set(["krzysiek2115op", "krzysztof2006oskar@wp.pl", "krzysztof", "Krzysztof"]);
   const uzytkownik = process.env.USER ?? process.env.LOGNAME;
   if (uzytkownik && uzytkownik.length > 2) dane.add(uzytkownik);
   const dom = process.env.HOME;

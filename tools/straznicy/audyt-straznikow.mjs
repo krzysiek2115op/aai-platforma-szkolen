@@ -554,12 +554,16 @@ const MUTACJE = [
   {
     straznik: "straznik-prozy",
     opis: "niedomknięty znacznik zrzutu — przelot końcowy by go przeoczył",
-    plik: "tresc-kursow/jak-korzystac-z-claude/modul-1/proza-1-czym-jest-claude.md",
-    zmien: (s) =>
-      s.includes(" -->")
-        ? s.replace("<!-- ZRZUT: pusta rozmowa na claude.ai — pole promptu i przełącznik modelu -->",
-                    "<!-- ZRZUT: pusta rozmowa na claude.ai — pole promptu i przełącznik modelu")
-        : null,
+    // Plik CELOWO taki, w którym znacznik zostaje otwarty długo (zrzut z Konsoli
+    // wymaga płatnych wywołań API). Mutacja jest OGÓLNA — psuje PIERWSZY znacznik
+    // w pliku, jaki znajdzie. Poprzednia wersja wskazywała konkretny podpis w
+    // module 1; po wpięciu tamtego zrzutu przestała się w ogóle nakładać i
+    // strażnik zieleniał NA PUSTO (złapał to audyt 2026-08-23).
+    plik: "tresc-kursow/jak-korzystac-z-claude/modul-6/proza-2-batch-api.md",
+    zmien: (s) => {
+      const m = s.match(/<!-- ZRZUT: [^\n]*? -->/);
+      return m ? s.replace(m[0], m[0].slice(0, -4)) : null;
+    },
   },
   // --- straznik-tresci-lekcji ---
   {

@@ -1,0 +1,42 @@
+{
+  "_podpis": "odpowiedź Claude na drugi prompt, z widocznym wklejonym tekstem użytkownika",
+  "_lekcja": "K1 1.1 (proza-1-czym-jest-claude.md) — drugi prompt z sekcji „Prompty z tej lekcji\"",
+  "url": "https://claude.ai/new",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-1/zrzuty/z02-odpowiedz-claude-na-drugi.webp",
+  "czekajMs": 8000,
+  "wymagaTekstu": [
+    "Streść to w 3 zdaniach dla osoby nietechnicznej",
+    "3 rzeczy, które wymagają mojej decyzji",
+    "Kwiaciarnia Malwa",
+    "14 800 zł netto"
+  ],
+  "wymagaOdpowiedzi": 400,
+  "kadrOd": "[data-testid=\"user-message\"]",
+  "kadrDo": ".font-claude-response",
+  "margines": 20,
+  "akcje": [
+    {
+      "typ": "wpiszWiersze",
+      "selektor": "[contenteditable=\"true\"]",
+      "tekst": "Poniżej wklejam ofertę.\nStreść to w 3 zdaniach dla osoby nietechnicznej, a potem wypisz\n3 rzeczy, które wymagają mojej decyzji.\n\nOFERTA — Kwiaciarnia Malwa, wdrożenie sklepu internetowego\nZakres: sklep na 120 produktów, płatności online, integracja z kurierem.\nCena: 14 800 zł netto, płatne w dwóch transzach (50% zaliczki).\nTermin: 45 dni roboczych od podpisania, pod warunkiem dostarczenia zdjęć produktów w 7 dni.\nUtrzymanie: 350 zł netto miesięcznie, umowa na 24 miesiące, wypowiedzenie 3-miesięczne.\nPoprawki: dwie rundy w cenie, każda kolejna 180 zł netto za godzinę.",
+      "poMs": 900
+    },
+    {
+      "typ": "klik",
+      "selektor": "[data-testid=\"chat-input-send\"]",
+      "poMs": 2500
+    },
+    {
+      "typ": "czekajNaKoniec",
+      "poMs": 2500
+    },
+    {
+      "typ": "eval",
+      "kod": "var pole=document.querySelector('[data-testid=\"chat-input\"]'); var w=pole; while(w && w!==document.body){var st=getComputedStyle(w); if(st.position==='fixed'||st.position==='sticky'){w.id='pole-czatu'; break;} w=w.parentElement;} var dol=[...document.querySelectorAll('button')].find(function(e){return /scroll to bottom|do dołu/i.test(e.getAttribute('aria-label')||'');}); if(dol) dol.id='do-dolu';"
+    }
+  ],
+  "ukryj": [
+    "#pole-czatu",
+    "#do-dolu"
+  ]
+}

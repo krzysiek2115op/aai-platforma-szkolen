@@ -1,0 +1,65 @@
+{
+  "_podpis": "dwa prompty w jednej rozmowie — najpierw „Stwórz panel analityczny\", pod spodem ta sama prośba z dopisanym wymaganiem pełnego wyposażenia",
+  "_lekcja": "K1 2.1 (proza-1-zasady-dobrego-promptu.md) — przykład panelu analitycznego z dokumentacji",
+  "url": "https://claude.ai/new",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-2/zrzuty/z02-dwa-prompty-w-jednej.webp",
+  "czekajMs": 8000,
+  "viewport": {
+    "width": 1280,
+    "height": 3800
+  },
+  "wymagaTekstu": [
+    "Stwórz panel analityczny",
+    "Uwzględnij jak najwięcej istotnych funkcji i interakcji",
+    "Wyjdź poza podstawy"
+  ],
+  "wymagaOdpowiedzi": 60,
+  "kadrOd": "#pierwszy-prompt",
+  "kadrDo": "#ostatnia-odpowiedz",
+  "margines": 20,
+  "ukryj": [
+    "#pole-czatu",
+    "#do-dolu"
+  ],
+  "akcje": [
+    {
+      "typ": "wpiszWiersze",
+      "selektor": "[contenteditable=\"true\"]",
+      "tekst": "Stwórz panel analityczny.",
+      "poMs": 900
+    },
+    {
+      "typ": "klik",
+      "selektor": "[data-testid=\"chat-input-send\"]",
+      "poMs": 2500
+    },
+    {
+      "typ": "czekajNaKoniec",
+      "poMs": 2500,
+      "minZnakow": 60,
+      "limitMs": 420000
+    },
+    {
+      "typ": "wpiszWiersze",
+      "selektor": "[contenteditable=\"true\"]",
+      "tekst": "Stwórz panel analityczny. Uwzględnij jak najwięcej istotnych funkcji i interakcji.\nWyjdź poza podstawy i zrób w pełni wyposażoną wersję.",
+      "poMs": 900
+    },
+    {
+      "typ": "klik",
+      "selektor": "[data-testid=\"chat-input-send\"]",
+      "poMs": 2500
+    },
+    {
+      "typ": "czekajNaKoniec",
+      "poMs": 2500,
+      "minZnakow": 60,
+      "limitMs": 420000
+    },
+    {
+      "typ": "eval",
+      "kod": "var uzytk=document.querySelectorAll('[data-testid=\"user-message\"]'); if(!uzytk.length) throw new Error('brak wiadomosci uzytkownika'); uzytk[0].id='pierwszy-prompt'; var odp=document.querySelectorAll('.font-claude-response'); if(!odp.length) throw new Error('brak odpowiedzi'); odp[odp.length-1].id='ostatnia-odpowiedz'; var pole=document.querySelector('[data-testid=\"chat-input\"]'); var w=pole; while(w && w!==document.body){var st=getComputedStyle(w); if(st.position==='fixed'||st.position==='sticky'){w.id='pole-czatu'; break;} w=w.parentElement;} var dol=[...document.querySelectorAll('button')].find(function(e){return /scroll to bottom|do dolu/i.test(e.getAttribute('aria-label')||'');}); if(dol) dol.id='do-dolu';"
+    }
+  ],
+  "_uwaga": "PODPIS POPRAWIONY (zasada 2): oryginał obiecywał „dwa okna czatu obok siebie\", a claude.ai nie ma widoku dzielonego — składanie obrazu z dwóch zrzutów łamie zasadę 1. Ekran pokazuje obie prośby w jednej rozmowie. Wysokie okno JEST konieczne: transkrypt claude.ai jest wirtualizowany (transcript-list/transcript-row), więc wymiana poza oknem nie istnieje w DOM-ie i kadr się urywa. Prośba o panel kończy się ARTEFAKTEM, więc tekst w transkrypcie jest krótki (dwa zdania) — stąd niski próg; o dokończeniu decyduje sygnał generowania, nie długość."
+}

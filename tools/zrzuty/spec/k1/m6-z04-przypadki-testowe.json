@@ -1,0 +1,25 @@
+{
+  "_podpis": "rozmowa na claude.ai, w której z pięciu przykładowych zgłoszeń Claude generuje kolejne przypadki testowe, w tym brzegowe",
+  "_lekcja": "K1 6.4 (proza-4-testy-i-ewaluacje.md) — „poproś Claude, żeby pomógł wygenerować kolejne z bazowego zestawu\"",
+  "url": "https://claude.ai/new",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-6/zrzuty/z01-rozmowa-na-claude-ai.webp",
+  "czekajMs": 8000,
+  "wymagaTekstu": [
+    "Poniżej pięć prawdziwych zgłoszeń",
+    "Wygeneruj kolejne przypadki testowe",
+    "re:[Bb]rzegow"
+  ],
+  "wymagaOdpowiedzi": 500,
+  "kadrOd": "[data-testid=\"user-message\"]",
+  "kadrDo": ".font-claude-response",
+  "margines": 20,
+  "ukryj": ["#pole-czatu", "#do-dolu"],
+  "akcje": [
+    { "typ": "wpiszWiersze", "selektor": "[contenteditable=\"true\"]",
+      "tekst": "Buduję klasyfikator zgłoszeń do obsługi klienta.\nPoniżej pięć prawdziwych zgłoszeń z naszej skrzynki.\nWygeneruj kolejne przypadki testowe do tego samego zbioru — w tym brzegowe.\n\n1. Zamówienie 4471 nie dotarło, minęło 12 dni.\n2. Chcę zwrócić buty, są za małe. Paragon mam.\n3. Faktura ma zły NIP, proszę o korektę.\n4. Czy wysyłacie do Niemiec i ile to kosztuje?\n5. Płatność przeszła dwa razy, proszę o zwrot nadpłaty.",
+      "poMs": 900 },
+    { "typ": "klik", "selektor": "[data-testid=\"chat-input-send\"]", "poMs": 2500 },
+    { "typ": "czekajNaKoniec", "poMs": 2500 },
+    { "typ": "eval", "kod": "var pole=document.querySelector('[data-testid=\"chat-input\"]'); var w=pole; while(w && w!==document.body){var st=getComputedStyle(w); if(st.position==='fixed'||st.position==='sticky'){w.id='pole-czatu'; break;} w=w.parentElement;} var dol=[...document.querySelectorAll('button')].find(function(e){return /scroll to bottom|do dołu/i.test(e.getAttribute('aria-label')||'');}); if(dol) dol.id='do-dolu';" }
+  ]
+}
