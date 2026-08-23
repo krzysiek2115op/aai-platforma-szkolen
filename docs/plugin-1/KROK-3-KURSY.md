@@ -2696,3 +2696,15 @@ przeglądarka nie widzi merge boxa, przycisków scalania ani logów Actions
 lokalny podgląd obu kursów w stylu strony.**
 
 Stan **zawsze** liczyć komendą (`manifest.mjs`), nigdy z tego akapitu.
+
+
+### Czat A — wspólne posiedzenie (2026-08-23): Kurs 2 DOMKNIĘTY
+
+Manifest: **K2 88/88, zero miejsc otwartych**. Gałąź `feat/tresc-k2-modul-2-3`
+wypchnięta (`14a9747`), strażnicy 25/25. Partia zalogowana przyniosła
+znaleziska 16–28 (rejestr) — w tym dziesięć rozjazdów dokumentacja↔ekran
+naprawionych w prozie i sześć miejsc usuniętych decyzją właściciela jako
+niewykonalne (CAPTCHA rejestracji, okno GCM, trzy ekrany 2FA, alert
+z komentarza issue). Przepis na zalogowany rig i pułapki: PRZELOT-ZRZUTOW.md,
+sekcja „Wspólne posiedzenie". Zostało z całego przelotu: **K1 — 27 miejsc
+zza logowania + 16 miejsc czatu B** (jego gałąź `feat/zrzuty-k1`).

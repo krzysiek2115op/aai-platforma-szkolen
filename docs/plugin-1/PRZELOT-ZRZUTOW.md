@@ -542,3 +542,78 @@ i 0.25.0; gitleaks po powrocie CI) → audyt kursów → higiena repo.
 Przy scalaniu z czatem B: konflikty TYLKO w 3 wspólnych dokumentach,
 rozwiązywać jako unię sekcji; liczbę zrzutów przeliczyć PO scaleniu.
 ```
+
+## Wspólne posiedzenie (czat A, 2026-08-23) — KURS 2 DOMKNIĘTY: 88/88
+
+**Stan liczy komenda** (`node tools/zrzuty/manifest.mjs --kurs K2`):
+88 zrobionych, zero do zrobienia, zero po zalogowaniu. Gałąź
+`feat/tresc-k2-modul-2-3` wypchnięta (commit `14a9747`), strażnicy 25/25.
+Znaleziska posiedzenia: wiersze 16–28 rejestru.
+
+### Jak rig wszedł za logowanie (do powtórzenia przy K1)
+
+- **Trwały profil przeglądarki** w scratchpadzie: `ZRZUTY_PROFIL` wskazuje
+  katalog profilu; `zrob-zrzut.mjs` bierze go opcjonalnie (bez zmiennej działa
+  po staremu), a sesja przeżywa między uruchomieniami.
+- **Google odmawia logowania w przeglądarce sterowanej WebDriverem**
+  („Ta przeglądarka lub aplikacja może nie być bezpieczna") — a właściciel
+  loguje się kontem Google. Rozwiązanie: `zaloguj.mjs --recznie` otwiera
+  ZWYKŁY Firefox (`-profile <profil> -no-remote -new-instance`) na tym samym
+  katalogu profilu; właściciel loguje się bez automatu, zamyka okno, a rig
+  dziedziczy sesję. Puppeteer dokłada do profilu własne prefy, ciasteczek nie
+  rusza (sprawdzone dwukrotnym uruchomieniem z kontrolnym ciastkiem).
+- **Zamknięcie przeglądarki musi być czyste** (`b.close()`), inaczej Firefox
+  nie zrzuca `cookies.sqlite` na dysk.
+- **`ZRZUTY_WIDOCZNY=1`** pokazuje okno rigu, gdyby trzeba było coś kliknąć
+  ręcznie przy zrzucie.
+
+### Czego rig nauczył się na tej partii (jest w kodzie)
+
+- **Podmiana prywatności obejmuje `.value` pól formularzy** — treść wstawiana
+  JavaScriptem (notatki wydania po „Generate release notes") nie siedzi ani
+  w węźle tekstowym, ani w atrybucie, więc stara podmiana ją omijała; login
+  właściciela wyszedł na zrzucie i złapała go dopiero stykówka.
+- **Akcja `przeladuj`**: GitHub liczy scalalność PR-a leniwie — pierwsze
+  wejście pokazuje „Checking for the ability to merge automatically…";
+  bez przeładowania kadr kłamie o stanie gałęzi.
+- **Akcja `wpisz`** (klik + type): pola wypełnione przez `.value` nie mają
+  obwódki ogniska, a podpisy obiecują pole aktywne.
+- Okna dialogowe Reacta GitHuba (`prc-Dialog-*`) NIE są elementem `<dialog>`
+  ani `[role=dialog]` — szukać po klasie `prc-Dialog-Body` albo od przycisku
+  potwierdzenia w górę.
+- Adresy e-mail na stronach ustawień podmieniać WZORCEM w przeglądarce
+  (regex na węzłach tekstowych + atrybutach + `.value`), bez czytania ich
+  przez agenta; numer konta siedzi też w adresie `noreply`.
+
+### Zmiany w repozytorium demonstracyjnym (zasada 6, stan po sprzątaniu)
+
+- **PR #5** (`dodaj-instrukcje-uruchomienia`, plik `URUCHOMIENIE.md`) —
+  otwarty, scalony, gałąź usunięta i przywrócona (para zrzutów Delete/Restore
+  branch); w historii `main` zostaje merge commit i plik.
+- **Sekret repozytorium `DEMO_SECRET`** + krok „Pokaż, że sekret jest
+  zamaskowany" w `github-actions-demo.yml` (przebieg 32642979982 = źródło
+  zrzutów logu z `***`).
+- **Gałąź `proba-sekretu`** ze ZMYŚLONYM tokenem (poprawna suma kontrolna,
+  do niczego nie uprawnia): wywołała blokadę pusha, potem alert (dopuszczona
+  jako „I'll fix it later") — gałąź już skasowana, **alert #1 zostaje otwarty
+  celowo** (to treść zrzutu szczegółów alertu).
+- Komentarz z sugestią w PR #2 (źródło zrzutu Apply suggestion) — zostaje.
+- Zdalne gałęzie po sprzątaniu: `main`, `add-starred-list` (PR #2),
+  `poprawa-opisu` (PR #3, konflikt — celowo), `ci-nodejs`.
+
+### PUŁAPKA na przyszłość: PR-y demonstracyjne się starzeją
+
+„Otwarty pull request" i „scalenie odblokowane" NIE mogą pochodzić z PR #2/#3:
+oba mają dziś konflikt z `main` (main poszedł do przodu o commity innych
+lekcji). Świeży, bezkolizyjny PR (#5) powstał WŁAŚNIE po to; przy ponownym
+nagrywaniu tych ekranów trzeba założyć kolejny — stany PR-ów w repozytorium
+demonstracyjnym są jednorazowe.
+
+### Co dalej
+
+Wg kolejności właściciela (sekcja „Co dalej" wyżej): teraz **K1 — 27 miejsc
+zza logowania (claude.ai 16, Console 6, api 5)**, ale DOPIERO po ustaleniu
+z właścicielem, czy czat B oddał prozę Kursu 1 (jego 16 miejsc na
+`feat/zrzuty-k1`) — pliki K1 to terytorium czatu B i równoległa edycja
+= konflikt. Potem: PR czatu A (pierwszy), merge → tag → release, audyt
+kursów, higiena repo.
