@@ -2668,3 +2668,53 @@ statycznego podglądu i lekcyjne zrzuty by wyciekły (ta sama klasa co
 BLAD-007). W Markdownie lekcji: `![opis](zrzuty/plik.webp)` —
 ścieżka względna od pliku lekcji (tak żąda `straznik-linkow`); import do WP przepisze ją jedną
 regułą na adresy biblioteki mediów.
+
+---
+
+## Przelot zrzutów — CZAT B (Kurs 1) — stan na 2026-08-23
+
+Worktree `/home/krzysiek/Pod-strona-Szkolenia-zrzuty-k1`, gałąź `feat/zrzuty-k1`.
+
+**Gałąź odbita od `9b4abb2` (czubek gałęzi czatu A), a nie od
+`plugin-1-sklep-kursow` — świadome odstępstwo od promptu startowego.** Powód:
+rig przelotu (`tools/zrzuty/*`), brief i **10 gotowych zrzutów Kursu 1**
+(moduły 1, 2, 5) leżą wyłącznie na gałęzi czatu A. Odbicie od gałęzi modułu
+dałoby worktree bez rigu, a manifest policzyłby tamte 10 jako do zrobienia →
+powtórzona praca i konflikt w prozie Kursu 1.
+
+### Ile zrobione
+
+Stan liczy `node tools/zrzuty/manifest.mjs --kurs K1` (36 do zrobienia teraz,
+27 po zalogowaniu). **Wpiętych w prozę: 0** — zrzuty czekają na kadrowanie
+i weryfikację wzrokową, więc licznik jeszcze się nie ruszył.
+
+Materiał nagrany i sprawdzony stykówką (surowe strumienie w scratchpadzie
+sesji, odtwarzalne komendą — patrz niżej): **ekrany gotowe do kadrowania**
+dla `/config`, `/status`, `/permissions`, `/memory`, `/context`,
+`/context all`, panelu pomocy `?`, `/mcp`, `/plugin` (zakładka Discover),
+`/sandbox`, paska stanu po `Shift+Tab` oraz ekranu startowego sesji.
+
+### Co blokuje resztę
+
+1. **Konto jest na 98 % limitu sesji** (pasek Claude Code: „You've used 98 %
+   of your session limit · resets 3:30am Europe/Warsaw"). Zrzuty wymagające
+   ODPOWIEDZI MODELU — sekwencja wywołań narzędzi, wynik testów jako dowód,
+   podgląd zmiany z pytaniem o zgodę, transkrypt `Ctrl+O`, panel subagentów,
+   `/summarize-changes`, `/rewind` — czekają na odnowienie limitu.
+   **To ten sam limit, z którego korzysta czat pracujący nad zrzutami**, więc
+   nagrywanie ich teraz konkuruje z własną sesją.
+2. Trzy podpisy wymagają decyzji, bo opisują montaż albo nieistniejące menu —
+   znaleziska **B1–B3** w `tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md`.
+
+### Następny krok (po odnowieniu limitu)
+
+1. `bash tools/zrzuty/buduj-projekt-demo.sh` — projekt demonstracyjny żyje
+   w `/tmp` i nie przeżywa restartu maszyny.
+2. `(cd "$ZRZUTY_RIG" && npm i puppeteer-core sharp @xterm/xterm)`.
+3. Powtórzyć `tools/zrzuty/scenariusze/k1/panele-lokalne.txt` **z poprawką:
+   pole wpisywania czyszczą DWA Esc, nie jeden** (przez to markery
+   `menu-komend`, `menu-skille` i `sciezki` są zanieczyszczone sklejonym
+   tekstem `/co/sum@/hooks`).
+4. Dokadrować (`przytnijOd`/`przytnijDo` w spec.json), wpiąć `wepnij.mjs`,
+   sprawdzić stykówką, commit po każdym domkniętym module.
+5. Dopiero potem scenariusze wymagające modelu.

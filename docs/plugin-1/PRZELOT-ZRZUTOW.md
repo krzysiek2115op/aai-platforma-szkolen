@@ -130,3 +130,57 @@ Czat B pracuje na SWOIM worktree, nie na cudzym.
   wspólne posiedzenie z właścicielem.
 - **Nie ruszamy `[EKRAN]`** — 517 takich miejsc siedzi w scenariuszach
   D7 (`lekcja-*.md`), nie w prozie, i nie są przedmiotem przelotu.
+
+---
+
+## Rig zrzutów TUI — dopisek CZATU B (Kurs 1)
+
+Kurs 1 ma 33 zrzuty **interfejsu Claude Code**, a rig z pierwszej partii
+umie tylko przeglądarkę (`zrob-zrzut.mjs`) i nagrane pary komenda/wyjście
+(`terminal.mjs`). TUI przerysowuje ekran w miejscu, więc żadne z tych dwóch
+narzędzi go nie odda. Doszły więc dwa narzędzia i jeden skrypt:
+
+| Narzędzie | Do czego |
+|---|---|
+| `tools/zrzuty/sesja-tui.sh` | nagrywa REALNĄ sesję Claude Code przez PTY (`script`) wg scenariusza klawiszy |
+| `tools/zrzuty/tui.mjs` | odtwarza nagrany strumień w prawdziwym emulatorze (xterm.js w Firefoksie) i zrzuca ekran |
+| `tools/zrzuty/buduj-projekt-demo.sh` | odtwarza projekt demonstracyjny (padające testy, hooki, skill, subagent, serwer MCP) |
+| `tools/zrzuty/scenariusze/k1/` | scenariusze klawiszy — zrzut jest odtwarzalny komendą, nie z pamięci |
+
+Rig potrzebuje dodatkowo `@xterm/xterm` (nadal **poza** `package.json`):
+
+```bash
+(cd "$ZRZUTY_RIG" && npm i puppeteer-core sharp @xterm/xterm)
+```
+
+**Dlaczego przez emulator, a nie przez własne parsowanie ANSI:** jedynym
+wiernym „ekranem" TUI jest stan prawdziwego emulatora po odtworzeniu całego
+strumienia. Stąd też bierze się `ZNACZNIK`: nagrywarka zapisuje przesunięcia
+bajtów, a `tui.mjs` renderuje prefiks strumienia — **jedna sesja daje kilkanaście
+ekranów**, zamiast kilkunastu startów po ~15 s każdy.
+
+### Ustalenia, które kosztowały czas (nie wyprowadzać od nowa)
+
+1. **`HOME` musi zostać PRAWDZIWY** — tylko w nim żyje uwierzytelnienie.
+   Sprawdzone: `HOME=/tmp/oliwia claude -p …` odpowiada `Not logged in`.
+   Neutralność daje więc **katalog roboczy** `/tmp/oliwia/projekt-demo`,
+   a nie podmiana tekstu.
+2. **Podmiana danych w TUI musi zachowywać SZEROKOŚĆ.** Ramki paneli są
+   rysowane znakami, więc krótszy tekst rozjeżdża prawą krawędź. `tui.mjs`
+   dopełnia spacjami i **przerywa z błędem**, gdy podmiana jest dłuższa od
+   oryginału. Adres właściciela zamieniamy na `oliwia.dev@przyklady.com`
+   (dokładnie ta sama długość — 24 znaki).
+3. **Sesje startują z `--setting-sources project`** — inaczej w kadr wchodzą
+   statusline, hooki i skille właściciela. Skutek uboczny: `/status` pokazuje
+   wtedy `Setting sources: Shared project settings` i to jest w tej sesji prawda.
+4. **`script` dokleja własny nagłówek i stopkę** („Skrypt uruchomiony…") —
+   trafiały na ekran zrzutu. Nagrywarka je usuwa.
+5. **Esc NIE czyści pola wpisywania — czyszczą DWA Esc** (mówi to sam panel
+   pomocy: „double tap esc to clear input"). Scenariusz z pojedynczym Esc
+   sklejał kolejne komendy w `/co/sum@/hooks`, co wysłało do modelu prawdziwe
+   zapytanie zamiast otworzyć panel.
+6. **`.mcp.json` wymaga zatwierdzenia w oknie startowym** i ładuje się
+   dopiero z `--mcp-config .mcp.json`; bez tego `/mcp` mówi „No MCP servers
+   configured". Zatwierdzenie jest trwałe.
+7. **Okno zaufania do katalogu** („Is this a project you created or one you
+   trust?") przechwytuje pierwsze klawisze sesji. Trzeba je zatwierdzić raz.
