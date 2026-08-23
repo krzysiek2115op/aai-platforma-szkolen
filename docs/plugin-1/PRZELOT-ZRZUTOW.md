@@ -491,3 +491,54 @@ Meldunek czatu B sprawdzony komendami po stronie czatu A, nie przepisany na wiar
 `feat/zrzuty-k1` jest odbita od gałęzi czatu A, więc **PR czatu A idzie
 pierwszy**; czat B dokańcza swoje 16 miejsc na własnej gałęzi i dopiero
 potem otwiera swój PR.
+
+## Prompt startowy WSPÓLNEGO POSIEDZENIA (po /clear czatu A) — 76 zrzutów zza logowania
+
+Zapisany w repo, bo po /clear nie ma z czego go odtworzyć.
+
+```
+Jesteś czatem A przelotu zrzutów — WSPÓLNE POSIEDZENIE z właścicielem:
+76 zrzutów zza logowania (K1 27 + K2 49). Worktree
+/home/krzysiek/Pod-strona-Szkolenia-k2-A, gałąź feat/tresc-k2-modul-2-3
+(wypchnięta, f9d6f69), drzewo czyste, strażnicy 25/25.
+
+PRZECZYTAJ NAJPIERW: docs/plugin-1/PRZELOT-ZRZUTOW.md (brief WIĄŻĄCY —
+zwłaszcza sekcje „Aktualizacja po sygnale czatu B" i tę) oraz CLAUDE.md.
+
+STAN LICZ KOMENDĄ, nigdy z pamięci:
+  export ZRZUTY_KORZEN=$PWD
+  node tools/zrzuty/manifest.mjs
+
+RIG (nowa sesja = nowy scratchpad = instalacja od zera):
+  export ZRZUTY_RIG=<scratchpad-sesji>/rig
+  mkdir -p "$ZRZUTY_RIG" && (cd "$ZRZUTY_RIG" && npm init -y && npm i puppeteer-core sharp marked)
+Przeglądarka: systemowy Firefox (webDriverBiDi), nic nie pobieramy.
+
+KOLEJNOŚĆ NA POSIEDZENIU:
+1. NAJPIERW K2 (49 miejsc, github-logged) — to terytorium czatu A, zero
+   ryzyka konfliktu. Zaloguj się w przeglądarce rigu, gdy poprosi.
+2. K1 (27: claude-ai 16, console 6, api 5) DOPIERO po ustaleniu
+   z właścicielem, czy czat B oddał już prozę Kursu 1 (jego 16 miejsc
+   dokańczanych na feat/zrzuty-k1) — pliki K1 to jego terytorium i
+   równoległa edycja = konflikt. Najczyściej: jego PR albo przynajmniej
+   ostatni commit prozy K1 PRZED naszymi wpięciami K1.
+
+REGUŁA PRYWATNOŚCI — PRZY ZALOGOWANIU KRYTYCZNA: zalogowany GitHub
+i claude.ai pokazują login, awatar i e-mail właściciela W KAŻDYM ROGU
+EKRANU. Rig podmienia dane na `oliwia-dev` w DOM PRZED zrzutem — przy
+nowym rodzaju danych (menu konta, stopka Console, billing) DOPISZ
+podmianę, nie kadruj na ślepo. Niczego z ustawień konta nie zmieniamy
+(zasada 6): ekrany 2FA/kluczy SSH robimy jako PODGLĄD formularzy.
+
+NARZĘDZIA: kadrowanie przez kadrOdSelektora (wersja czatu B — jeśli
+jeszcze niescalona, kadrOd/kadrDo z mojej). Weryfikacja stykówką
+(tools/zrzuty/stykowka.mjs), wepnij.mjs po każdej domkniętej partii,
+commit po każdym module, strażnicy zieloni przed commitem.
+
+PO POSIEDZENIU (kolejność właściciela): push → PR czatu A (PIERWSZY,
+bo feat/zrzuty-k1 jest odbity od naszej gałęzi) → merge → tag → release
+(CI stoi do 1 września — merge na dowodach lokalnych, jak przy 0.21.0
+i 0.25.0; gitleaks po powrocie CI) → audyt kursów → higiena repo.
+Przy scalaniu z czatem B: konflikty TYLKO w 3 wspólnych dokumentach,
+rozwiązywać jako unię sekcji; liczbę zrzutów przeliczyć PO scaleniu.
+```
