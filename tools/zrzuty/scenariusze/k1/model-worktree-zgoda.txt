@@ -1,0 +1,26 @@
+# SESJA E (Kurs 1, 4.7): pytanie o zgodę przy wejściu w worktree SPOZA
+# katalogu `.claude/worktrees/` repozytorium.
+#
+# Proza 4.7 mówi, dlaczego to pytanie w ogóle jest: taka przeprowadzka zabiera
+# katalog roboczy sesji, prawo zapisu i konfigurację projektu (CLAUDE.md,
+# ustawienia). Pytania nie wyłącza ani reguła uprawnień dla `EnterWorktree`,
+# ani „nie pytaj więcej" — pomija je wyłącznie `bypassPermissions`.
+#
+# Ścieżka celowo leży poza repozytorium demonstracyjnym. Zgody NIE udzielamy
+# (Esc) — interesuje nas pytanie, a nie przeprowadzka.
+CZEKAJ 16
+ENTER
+CZEKAJ 12
+
+WPISZ przenieś swoją pracę do worktree w katalogu /tmp/oliwia/worktree-demo (narzędzie EnterWorktree)
+ENTER
+CZEKAJ 25
+ZNACZNIK zgoda-worktree-1
+CZEKAJ 15
+ZNACZNIK zgoda-worktree-2
+CZEKAJ 15
+ZNACZNIK zgoda-worktree-3
+CZEKAJ 20
+ZNACZNIK zgoda-worktree-4
+KLAWISZ esc
+CZEKAJ 3

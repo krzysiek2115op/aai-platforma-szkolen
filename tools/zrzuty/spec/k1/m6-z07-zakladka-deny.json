@@ -1,0 +1,15 @@
+{
+  "_podpis": "zakładka Deny w ekranie /permissions — lista reguł blokujących wywołania",
+  "_lekcja": "K1 6.6 (proza-6-bezpieczenstwo-claude-code.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/cztery-pod-asercjami.txt",
+  "raw": "cztery.raw",
+  "doZnacznika": "perm-deny",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-6/zrzuty/z07-zakladka-deny-ekranie-permissions.webp",
+  "przytnijOd": 29,
+  "przytnijDo": 40,
+  "wymagaTekstu": [
+    "Allow   Ask   Deny",
+    "Claude Code will always reject requests to use denied tools.",
+    "Bash(rm -rf:*)"
+  ]
+}

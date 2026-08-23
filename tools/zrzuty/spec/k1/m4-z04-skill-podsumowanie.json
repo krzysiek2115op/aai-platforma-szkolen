@@ -1,0 +1,16 @@
+{
+  "_podpis": "terminal po `/summarize-changes` — podsumowanie zmian i lista ryzyk",
+  "_lekcja": "K1 4.2 (proza-2-skille.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-subagenci-i-skill.txt",
+  "raw": "model-d.raw",
+  "doZnacznika": "skill-3",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-4/zrzuty/z04-terminal-summarize-changes-podsumowanie.webp",
+  "przytnijOd": 3,
+  "przytnijDo": 26,
+  "wymagaTekstu": [
+    "Podsumowanie zmian",
+    "Zmienione pliki",
+    "Ryzyka",
+    "lib/koszyk.js"
+  ]
+}

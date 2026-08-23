@@ -2680,6 +2680,376 @@ BLAD-007). W Markdownie lekcji: `![opis](zrzuty/plik.webp)` —
 ścieżka względna od pliku lekcji (tak żąda `straznik-linkow`); import do WP przepisze ją jedną
 regułą na adresy biblioteki mediów.
 
+---
+
+## Przelot zrzutów — CZAT B (Kurs 1) — stan na 2026-08-23
+
+Worktree `/home/krzysiek/Pod-strona-Szkolenia-zrzuty-k1`, gałąź `feat/zrzuty-k1`.
+
+**Gałąź odbita od `9b4abb2` (czubek gałęzi czatu A), a nie od
+`plugin-1-sklep-kursow` — świadome odstępstwo od promptu startowego.** Powód:
+rig przelotu (`tools/zrzuty/*`), brief i **10 gotowych zrzutów Kursu 1**
+(moduły 1, 2, 5) leżą wyłącznie na gałęzi czatu A. Odbicie od gałęzi modułu
+dałoby worktree bez rigu, a manifest policzyłby tamte 10 jako do zrobienia →
+powtórzona praca i konflikt w prozie Kursu 1.
+
+### Ile zrobione
+
+Stan liczy `node tools/zrzuty/manifest.mjs --kurs K1` (36 do zrobienia teraz,
+27 po zalogowaniu). **Wpiętych w prozę: 0** — zrzuty czekają na kadrowanie
+i weryfikację wzrokową, więc licznik jeszcze się nie ruszył.
+
+Materiał nagrany i sprawdzony stykówką (surowe strumienie w scratchpadzie
+sesji, odtwarzalne komendą — patrz niżej): **ekrany gotowe do kadrowania**
+dla `/config`, `/status`, `/permissions`, `/memory`, `/context`,
+`/context all`, panelu pomocy `?`, `/mcp`, `/plugin` (zakładka Discover),
+`/sandbox`, paska stanu po `Shift+Tab` oraz ekranu startowego sesji.
+
+### Co blokuje resztę
+
+1. **Konto jest na 98 % limitu sesji** (pasek Claude Code: „You've used 98 %
+   of your session limit · resets 3:30am Europe/Warsaw"). Zrzuty wymagające
+   ODPOWIEDZI MODELU — sekwencja wywołań narzędzi, wynik testów jako dowód,
+   podgląd zmiany z pytaniem o zgodę, transkrypt `Ctrl+O`, panel subagentów,
+   `/summarize-changes`, `/rewind` — czekają na odnowienie limitu.
+   **To ten sam limit, z którego korzysta czat pracujący nad zrzutami**, więc
+   nagrywanie ich teraz konkuruje z własną sesją.
+2. Trzy podpisy wymagają decyzji, bo opisują montaż albo nieistniejące menu —
+   znaleziska **B1–B3** w `tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md`.
+
+### Następny krok (po odnowieniu limitu)
+
+1. `bash tools/zrzuty/buduj-projekt-demo.sh` — projekt demonstracyjny żyje
+   w `/tmp` i nie przeżywa restartu maszyny.
+2. `(cd "$ZRZUTY_RIG" && npm i puppeteer-core sharp @xterm/xterm)`.
+3. Powtórzyć `tools/zrzuty/scenariusze/k1/panele-lokalne.txt` **z poprawką:
+   pole wpisywania czyszczą DWA Esc, nie jeden** (przez to markery
+   `menu-komend`, `menu-skille` i `sciezki` są zanieczyszczone sklejonym
+   tekstem `/co/sum@/hooks`).
+4. Dokadrować (`przytnijOd`/`przytnijDo` w spec.json), wpiąć `wepnij.mjs`,
+   sprawdzić stykówką, commit po każdym domkniętym module.
+5. Dopiero potem scenariusze wymagające modelu.
+
+### Sweep repo przed `/clear` — czat B, 2026-08-23
+
+**Premisa „36/36 zrzutów gotowych" NIE była spełniona** — `manifest.mjs --kurs K1`
+podaje 36 miejsc do zrobienia i **0 wpiętych**. Gałąź „zweryfikuj kompletność
+zrzutów" nie miała więc czego weryfikować; sweep objął to, co istnieje: repo,
+rig i podpisy będące specyfikacją przyszłych zrzutów.
+
+**Znaleziono 6, naprawiono 6, kolizji i regresji 0.**
+
+| # | Co | Klasa | Naprawa |
+|---|---|---|---|
+| 1 | Podpisy w 3.1 i 3.7 obiecywały „**menu** trybów uprawnień po `Shift+Tab`" | podpis kontra żywy ekran | `Shift+Tab` przełącza tryb cyklicznie i zmienia pasek stanu — żadne menu nie wstaje; podpisy mówią teraz o pasku stanu |
+| 2 | Podpis w 3.2 obiecywał przeglądarkę **i terminal obok** | podpis opisujący montaż (zakaz z zasady 1 briefu) | podpis nazywa jeden ekran: terminal w trakcie logowania |
+| 3 | Podpis w 4.7 obiecywał **dwa terminale obok siebie** | jw. | podpis nazywa jedną sesję we własnym worktree |
+| 4 | `wepnij.mjs` **padał** na wyjściu `manifest.mjs --json` (`obraz_plan` kontra `obraz`) | ukryty defekt wspólnego rigu — trafiłby OBA czaty przy wpinaniu | przyjmuje `obraz_plan ?? obraz`, a przy braku planu mówi „czeka", zamiast rzucać `ERR_INVALID_ARG_TYPE` |
+| 5 | Scenariusz `panele-lokalne.txt` czyścił pole **jednym** Esc | scenariusz nieodtwarzalny | dwa Esc (tak mówi sam panel pomocy); bez tego komendy sklejały się w `/co/sum@/hooks` i szły do modelu jako zapytanie |
+| 6 | Świeży worktree bez `.env` **po cichu pomija 37 testów bazy** i kończy się zielono | zielony przebieg, który niczego nie dowodzi (klasa z 0.24.0) | `.env` skopiowany lokalnie (jest w `.gitignore`); bez niego `npm test` daje 38/75 „pass" i kod 0 |
+
+**Kontrola kolizji przed poprawkami:** gałąź czatu A poszła od mojej bazy
+o 4 commity, ale **żaden nie dotyka moich 5 plików** (`git log --all 9b4abb2.. -- <plik>`
+= 0 dla każdego). Czat A zmienił za to `manifest.mjs` (nowa reguła kubła
+`github-logged`, funkcja `slug()`), więc poprawione podpisy sprawdziłem
+**dwoma zestawami reguł** — moim i ich: w obu podział wychodzi identycznie
+(36 teraz / 27 po zalogowaniu, `tui` 33). Zmiana podpisu **przed** zrobieniem
+zrzutu jest przy tym właściwą kolejnością: `slug()` wyprowadza nazwę pliku
+z podpisu, więc poprawka po zrzucie wymusiłaby przemianowanie.
+
+**Walidacja po poprawkach:** strażnicy **25/25**, testy **75/75** (kod wyjścia 0,
+bez potoku), `wepnij.mjs` sprawdzony testem negatywnym (wyjście manifestu —
+nie pada, zgłasza 63 czekające) i pozytywnym (plan z `obraz_plan` + istniejący
+plik — wpina i podmienia znacznik na `![…](…)`).
+
+**Ponowny sweep:** `git status` czysty, licznik zrzutów bez zmian po poprawkach,
+cudze worktree (`k2-A`, `k2-B`, główny) i klon strony głównej bez ani jednej
+zmiany.
+
+**Do scalenia — znane, nie defekt:** oba czaty dopisywały własne sekcje na
+KOŃCU `PRZELOT-ZRZUTOW.md`, `ZNALEZISKA-PRZELOTU-ZRZUTOW.md` i tego pliku,
+więc git pokaże konflikt tekstowy w ogonie. Treściowo to unia — rozwiązać
+zostawiając obie sekcje.
+
+## Przelot zrzutów — CZAT B, druga partia (2026-08-23)
+
+**Stan: `manifest.mjs --kurs K1` daje 30 zrobionych i 16 do zrobienia teraz**
+(tui 14, docs 1, arkusz 1) plus 27 po zalogowaniu. Wpiąłem **20 paneli
+lokalnych** Claude Code 2.1.241, nagranych jedną sesją w projekcie
+demonstracyjnym (`/tmp/oliwia/projekt-demo`), scenariusz
+`tools/zrzuty/scenariusze/k1/panele-lokalne.txt`.
+
+### Trzy defekty WSPÓLNEGO RIGU — naprawione, każdy z testem
+
+Wszystkie trzy dawały wynik **zielony i nieprawdziwy**, więc trafiłyby też
+czat A, gdyby sięgnął po te narzędzia.
+
+1. **`sesja-tui.sh` przesuwał wszystkie znaczniki.** `script -q` **mimo `-q`
+   pisze nagłówek** („Skrypt uruchomiony…", u nas 165 B), a sprzątający go
+   `sed -i` na końcu **przesuwał cały strumień w lewo** — zapisane wcześniej
+   przesunięcia wskazywały o tyle bajtów za daleko i **każdy ekran był o krok
+   późniejszy** (kadr „pusta sesja" miał już wpisaną komendę, panele wychodziły
+   rozdarte w połowie przerysowania). Teraz nagłówek jest mierzony przed
+   usunięciem i odejmowany od znaczników. Test: prefiks znacznika „pole puste"
+   ma 0 wystąpień komendy, znacznik „komenda wpisana" — 2.
+2. **`tui.mjs` nie kadrował.** `przytnijOd/przytnijDo` chowały wiersze przez
+   `display:none`, ale wysokość obrazu bierze się z elementu `.xterm`, który
+   xterm.js wylicza z LICZBY WIERSZY — kadr znikał po cichu, a wszystkie zrzuty
+   wychodziły pełnowymiarowe (1600×1420, co do piksela tyle samo — to był
+   właśnie sygnał). Teraz kadrujemy przycięciem kontenera i przesunięciem taśmy
+   wierszy, a kadr obejmujący zero wierszy **kończy się kodem 5**. Test
+   pozytywny: 4 wiersze → 227 px wobec 1420 px pełnego ekranu; negatywny:
+   `przytnijOd: 90` na 40-wierszowym ekranie wywala narzędzie.
+3. **Czyszczenie pola wpisywania było nieodtwarzalne.** Poprzednia poprawka
+   („dwa Esc, nie jeden") była niepełna: **liczy się double-TAP**, a dwa wiersze
+   `KLAWISZ esc` dzieli 0,6 s i para się nie składa. Doszły dwa polecenia
+   scenariusza: `WYCZYSC` (oba Esc jednym zapisem) i **`KASUJ <n>`** (n
+   backspace'ów) — i to `KASUJ` jest domyślne, bo `WYCZYSC` zachowuje się
+   różnie zależnie od tego, co wisi nad polem.
+
+### Reguły obsługi TUI wyprowadzone pomiarem (nie zmieniać na oko)
+
+- **Panel z polem wyszukiwania** (`/config`, `/status`, `/permissions`,
+  `/plugin`) **nie zamyka się jednym Esc** — pierwszy czyści wyszukiwanie
+  („Esc to clear" w stopce). Po panelach stoją **TRZY** `KLAWISZ esc`.
+- **`WYCZYSC` na PUSTYM polu otwiera menu cofania** (Rewind) i połyka
+  wszystko, co wpiszemy dalej. Wołamy je raz, świadomie — właśnie po ten ekran.
+- **Menu podpowiedzi połyka pierwszy Esc**, więc po `/co`, `/sum`, `@`
+  sprzątamy `KLAWISZ esc` + `KASUJ <n>`.
+
+### INCYDENT: sesja nagraniowa zmieniła konfigurację właściciela
+
+Scenariusz z jednym Esc po `/config` zostawił panel otwarty; kolejne `WPISZ`
+poszło do **pola wyszukiwania panelu**, a `ENTER` **przełączył podświetlony
+przełącznik** — w `~/.claude/settings.json` właściciela pojawiło się
+`"autoCompactEnabled": false`. Wykryte przez porównanie dwóch zrzutów, które
+wyszły identyczne (`z21` i `z22` pokazywały tę samą zakładkę Config), i
+potwierdzone wpisem `⎿ Disabled auto-compact` w nagranym transkrypcie.
+**Przywrócone na `true`** (wartość sprzed zmiany, widoczna na zrzucie `z21`,
+i zarazem domyślna); `diff` potwierdza, że poza tym jednym kluczem plik jest
+identyczny. Kopii zapasowej nie było — `~/.claude/settings.json` nie jest
+w gicie i nie ma go w `~/.claude/backups/` (tam leżą tylko migawki
+`.claude.json`).
+
+**Zabezpieczenie:** `sesja-tui.sh` robi teraz **migawkę
+`~/.claude/settings.json` przed nagraniem i przywraca ją po**, głośno pisząc,
+że scenariusz nie domknął panelu. To rozszerzenie zasady 5 briefu („nic
+w globalnej konfiguracji"), która dotąd pilnowała tylko `git config --global`.
+Sprawdzone: suma kontrolna pliku przed i po kolejnym nagraniu jest ta sama.
+
+### Następny krok
+
+1. ~~Ekrany lokalne~~ **ZROBIONE — 32/73, zostaje 14 na teraz.** Doszły
+   logowanie (K1 3.2) i sesja we własnym worktree (K1 4.7), scenariusze
+   `logowanie.txt` i `sesja-w-worktree.txt`.
+2. ~~Dwa spoza TUI~~ **ZAMKNIĘTE.** Strona „Prompting Claude Opus 5" (K1 2.3)
+   wpięta. Arkusz porównania modeli (K1 1.3) **decyzją właściciela z 2026-08-23
+   przestał być zrzutem** — w prozie stoi teraz prawdziwa tabela do wypełnienia
+   własnymi pomiarami (znalezisko B8). Powód: nie ma lokalnie arkusza
+   kalkulacyjnego, tabela w HTML udająca arkusz łamałaby zakaz rysowania
+   interfejsów, a liczby byłyby zmyślone.
+3. **Dwanaście wymagających odpowiedzi modelu — CAŁA POZOSTAŁA PRACA
+   partii „teraz" (stan: 33 zrobione, 12 zostaje, 27 po zalogowaniu).
+   Decyzja właściciela 2026-08-23: robić je w OSOBNEJ SESJI po odnowieniu
+   limitu**, nie doklejać do sesji, która sama ten limit zjada. Nagranie musi
+   pójść **za jednym razem**, bo jedna sesja daje kilkanaście ekranów —
+   przerwanie w połowie oznacza powtórzenie całości. Lista: — sekwencja wywołań narzędzi,
+   wynik testów jako dowód, podgląd zmiany ze zgodą, pytanie o zgodę na komendę
+   powłoki z `Ctrl+E`, transkrypt `Ctrl+O`, panel subagentów, wiersz delegowania,
+   `/summarize-changes`, `/rewind` z prawdziwymi promptami, ostrzeżenie
+   o pominiętych plikach, lista czytanych plików oraz **pytanie o zgodę przy
+   wejściu w worktree spoza `.claude/worktrees/`** (K1 4.7 — wymaga, żeby model
+   sam wywołał `EnterWorktree`, więc nie jest ekranem lokalnym, jak zakładałem).
+   Projekt demonstracyjny (`bash tools/zrzuty/buduj-projekt-demo.sh`) ma pod nie
+   gotowe podkłady: dwa naprawdę padające testy, skill `/summarize-changes`,
+   subagenta `code-improver`, 11 hooków i dwa serwery MCP.
+
+### Dwa ustalenia z tej partii
+
+- **Ekran logowania robimy na ŚWIEŻYM `HOME`** (`/tmp/oliwia-swieze`), nie
+  komendą `/login` — ta wylogowałaby konto właściciela. Świeży `HOME` daje ten
+  sam ekran onboardingu (motyw → sposób logowania → oczekiwanie na przeglądarkę),
+  a przebieg zatrzymujemy przed wklejeniem kodu, więc żadne konto nie powstaje.
+  Adres OAuth na zrzucie zostaje prawdziwy: nie ma w nim danych właściciela,
+  a `code_challenge` i `state` to jednorazowe wartości porzuconego przebiegu.
+- **Strażnik konfiguracji miał własną usterkę i sam ją pokazał.** `mktemp`
+  tworzy plik ZAWSZE, więc gdy ustawień wcześniej nie było, „przywracanie"
+  kopiowało PUSTĄ migawkę — czyli kasowało plik zamiast go chronić. Trafiło to
+  na jednorazowy `HOME` (`settings.json` = 0 B), nie na konfigurację
+  właściciela. Naprawione flagą `MIGAWKA_JEST`; sprawdzone ponownym przebiegiem:
+  plik świeżego `HOME` ma po nim 22 B, nie zero.
+
+## WERDYKT WŁAŚCICIELA o partii lokalnej czatu B (2026-08-23)
+
+**Cztery ekrany są UNIEWAŻNIONE jako dowód i idą do ponownego wykonania.**
+Powód nie jest taki, że obrazy są na pewno złe — powód jest taki, że **proces,
+który je wyprodukował, dawał wyniki zielone i niewiarygodne**, a jedyną
+weryfikacją było moje jednorazowe spojrzenie na stykówkę. Trzy usterki rigu
+(przesunięte znaczniki, martwe kadrowanie, martwe `scrollDo`), zmiana globalnej
+konfiguracji właściciela w trakcie nagrania i cztery podpisy wyprzedzające
+ekran złożyły się na to, że **zieleń niczego nie dowodziła**. Konfigurację
+przywrócono, obrazy przerenderowano z czystego nagrania — ale to nadal jest
+„sprawdziłem wzrokiem", nie dowód.
+
+Unieważnione są dokładnie te cztery, powiązane ze znaleziskami B4–B7:
+
+| Ekran | Lekcja | Co podpis obiecuje — i co MUSI być na ekranie |
+|---|---|---|
+| `modul-3/zrzuty/z20-zakladka-allow-ekranie-permissions.webp` | K1 3.7 | pasek zakładek z podświetloną **Allow**, zdanie `Claude Code won't ask before using allowed tools.`, co najmniej jedna reguła `Bash(` |
+| `modul-6/zrzuty/z07-zakladka-deny-ekranie-permissions.webp` | K1 6.6 | podświetlona **Deny**, zdanie `Claude Code will always reject requests to use denied tools.`, reguła `Bash(rm -rf:*)` |
+| `modul-3/zrzuty/z12-ekran-cofania-wybraniu-wiadomosci.webp` | K1 3.4 | `Summarize from here` **i** `Summarize up to here` (dosłownie), obok `Restore conversation` |
+| `modul-3/zrzuty/z13-wynik-komendy-context-all.webp` | K1 3.5 | `Memory files` **i** `CLAUDE.md` w tej samej sekcji |
+
+Kolumna trzecia jest wyprowadzona **z podpisu, nie z obrazu** — właśnie po to,
+żeby ponowne wykonanie sprawdzało obietnicę lekcji, a nie utrwalało to, co
+akurat wyszło.
+
+### Poprawka procesu — DO ZROBIENIA PRZED ponownym nagraniem
+
+1. **`wymagaTekstu` w `tui.mjs` i `zrob-zrzut.mjs`.** Specyfikacja zrzutu
+   dostaje listę fragmentów, które ekran musi zawierać; narzędzie sprawdza je
+   na wyrenderowanym ekranie (w TUI — na buforze emulatora, w przeglądarce — na
+   `innerText` kadrowanego obszaru) i przy braku **kończy się błędem zamiast
+   zapisywać obraz**. Dzięki temu „zrzut powstał" znaczy „zrzut zawiera to, co
+   obiecuje podpis". Każdą asercję sprawdzić testem negatywnym — celowo złym
+   znacznikiem albo celowo złym fragmentem.
+2. **Asercje wpisać do scenariuszy/specyfikacji w repo**, nie do sesyjnego
+   scratchpada — inaczej po `/clear` znów nie ma czego powtórzyć.
+3. **Ponownie nagrać i przerenderować cztery ekrany z tabeli wyżej**, już pod
+   asercjami. Jeśli któryś nie przejdzie — poprawiamy **podpis i prozę**, nie
+   asercję.
+4. Dopiero potem wracać do 12 zrzutów wymagających odpowiedzi modelu.
+
+**Reguła, która z tego zostaje na stałe** (weszła też do briefu, zasada 9):
+zrzut bez maszynowej asercji treści **nie jest dowodem** i nie liczy się jako
+zrobiony.
+
+### Wykonanie poprawki procesu (2026-08-23, czat B)
+
+Punkty 1–3 zrobione w tej kolejności, w jednej sesji.
+
+**1. Bramka asercji.** `tools/zrzuty/asercje.mjs` (wspólny dla obu rigów) plus
+wywołania w `tui.mjs` i `zrob-zrzut.mjs`. Specyfikacja bez `wymagaTekstu` kończy
+się kodem **7** jeszcze przed uruchomieniem przeglądarki; ekran bez obiecanego
+fragmentu — kodem **8** i **bez zapisu pliku**. Asercja liczona jest na tym, co
+naprawdę weszło w kadr (w TUI: wiersze bufora z `przytnijOd/przytnijDo`,
+w przeglądarce: węzły tekstowe przecinające `clip`/selektor) — inaczej
+przechodziłaby dla napisów wyciętych z obrazu. Normalizacja skleja zdanie
+pocięte ramką panelu i sprowadza typograficzne apostrofy do ASCII; fragment
+`re:…` jest wzorcem (dla obietnic bez stałego brzmienia, np. znacznika czasu).
+
+**Testy negatywne — 12 prób, `tools/zrzuty/test-asercji.mjs`** (pełna droga obu
+narzędzi, nie sam moduł): fragment nieobecny, fragment **poza kadrem**, fragment
+**z innej sekcji niż kadrowana**, fragment **poza `clip`**, wzorzec bez pokrycia,
+brak `wymagaTekstu`, puste `wymagaTekstu` — każdy z parą pozytywną, żeby zieleń
+nie znaczyła „narzędzie nie doszło do porównania". Do tego **test negatywny na
+prawdziwym nagraniu**: ten sam strumień wyrenderowany do znacznika `cofanie`
+zamiast `cofanie-opcje` **odmówił zapisu**, bo na tamtym ekranie nie ma jeszcze
+opcji streszczania — dokładnie klasa „przesunięty znacznik" z werdyktu.
+
+**2. Asercje w repo.** `tools/zrzuty/spec/k1/*.json` — podpis, scenariusz,
+znacznik, kadr i lista asercji. `kolejka.mjs` renderuje cały katalog, `wepnij.mjs`
+wpina po PODPISIE (nie po numerze wiersza — podpisy bywają poprawiane), a
+`straznik-asercji` pilnuje, żeby żadna specyfikacja nie została bez asercji
+(5 mutacji w audycie, wszystkie łapane; audyt: 84/84, 0 przeoczonych, 0 martwych).
+
+**3. Cztery ekrany nagrane ponownie** scenariuszem
+`tools/zrzuty/scenariusze/k1/cztery-pod-asercjami.txt` (sesja zaczyna się od
+prawdziwego promptu, bo menu `/rewind` wymienia prompty sesji — bez żadnego nie
+ma czego wybrać). Wszystkie cztery przeszły asercje wyprowadzone z podpisów.
+Licznik: **33 zrobione, 12 do zrobienia teraz** (same ekrany wymagające
+odpowiedzi modelu), 27 po zalogowaniu.
+
+**Znalezisko przy okazji (B9):** `/permissions` **nie podświetla aktywnej
+zakładki** — pasek „Permissions · Recently denied · Allow · Ask · Deny ·
+Workspace" wygląda tak samo na każdej z nich (`/config` swoją aktywną zakładkę
+podświetla, więc to nie artefakt rigu). Tym, co odróżnia zakładkę, jest zdanie
+pod paskiem („Claude Code won't ask before using allowed tools." kontra
+„…will always reject requests to use denied tools.") i lista reguł — i to one
+są asercją. Podpisy w prozie niczego takiego nie obiecywały, więc proza została
+bez zmian; zapis jest po to, żeby nikt nie dopisał „podświetlona" w przyszłości.
+
+**Nazwa pliku ekranu K1 3.4** poszła za poprawionym podpisem:
+`z12-ekran-rewind-wybraniu-wiadomosci.webp` (nie `…-cofania-…`, jak brzmiała
+nazwa skasowanego pliku) — nazwa wywodzi się z podpisu, a podpis zmienił się
+przy naprawie B6.
+
+### Dwanaście ekranów wymagających modelu — ZROBIONE (2026-08-23, czat B)
+
+Kurs 1 nie ma już ani jednego zrzutu do zrobienia bez logowania:
+**45 zrobionych, 0 na teraz, 27 po zalogowaniu** (`manifest.mjs --kurs K1`).
+Pięć sesji nagraniowych, wszystkie scenariusze w repo, wszystkie ekrany pod
+asercjami z podpisów. Cały komplet odtwarza się jedną komendą
+(`kolejka.mjs tools/zrzuty/spec/k1` — 16/16 OK przy kontrolnym przebiegu).
+
+**Cztery rzeczy wyprowadzone POMIAREM, nie z dokumentacji** (każda kosztowała
+nagranie, każda jest zapisana w nagłówku scenariusza, żeby nie kosztowała drugi
+raz):
+
+1. **Sesja startuje w trybie AUTO**, w którym pytania o zgodę nie powstają.
+   Ekrany 3.2 i 3.7 wymagają zejścia `Shift+Tab` do trybu ręcznego.
+2. **Reguła `ask` pyta w KAŻDYM trybie** — także w „accept edits". Dwie sesje
+   poległy na tym, że scenariusz sprzątał pole podwójnym Esc, a ten ANULOWAŁ
+   wiszące pytanie o zgodę; edycja nigdy nie powstawała, więc nie było czego
+   przywracać. Scenariusz musi te pytania zatwierdzać Enterem.
+3. **`ls -la` nie pyta o zgodę** (wbudowany zestaw odczytowy — mówi to sama
+   proza 3.7), więc ekran „pytanie o komendę powłoki" wymusza dopiero komenda
+   zapisująca. Przy okazji: wyjście `ls -la` wypisuje właściciela pliku, czyli
+   NAZWĘ UŻYTKOWNIKA SYSTEMU — stąd bramka prywatności (niżej).
+4. **Ostrzeżenie „Restored the code, but skipped N files" powstaje przy
+   DOWIĄZANIU**, nie przy zmianie zrobionej komendą powłoki. Warunek wzięty
+   z kodu Claude Code 2.1.241 (`skippedLinks`: „files NOT restored… because
+   a symlink, hard link, or other non-regular file was detected at the tracked
+   path"), a nie zgadnięty — dwie sesje na złej hipotezie skończyły się ekranem
+   „The code will be unchanged" bez opcji przywrócenia kodu. Projekt
+   demonstracyjny ma teraz plik wciągany dowiązaniem symbolicznym.
+
+**Bramka prywatności (nowa).** Reguła 4 briefu mówi, że danych właściciela
+w materiale nie ma i robi to rig automatycznie — a pilnowała tego wyłącznie
+lista podmian, czyli to, co ktoś przewidział. Nagranie z `ls -la` pokazało
+nazwę użytkownika w kolumnie właściciela pliku. Rig podmienia ją teraz
+(z zachowaniem szerokości), a **kontrola patrzy na GOTOWY EKRAN** i odmawia
+zapisu (kod 9), gdy niesie identyfikator właściciela; identyfikatory bierze
+ze środowiska, więc działa na cudzej maszynie. Testy negatywne biorą przypadki,
+których podmiana z definicji nie widzi: nazwę rozbitą sekwencją ustawiania
+kursora i adres pocięty na dwa elementy DOM.
+
+**Znaleziska:** B9 (`/permissions` nie podświetla aktywnej zakładki),
+B10 (główny widok zwija wywołania narzędzi — sekwencja jest w transkrypcie
+`Ctrl+O`), B11 (wiersz delegowania pokazuje opis ZADANIA, nie pole
+`description` subagenta — przykład w prozie był spisany z dokumentacji zamiast
+z ekranu). Proza 4.8 dostała przy okazji pełne brzmienie komunikatu: sam
+ekran wymienia **trzy** powody pominięcia, nie jeden.
+
+**Czego NIE ma w repo i dlaczego:** surowych nagrań sesji (~0,5 MB strumieni
+ANSI). Niosą wyjście komend z nazwą użytkownika systemu — a raz wpuszczone do
+gita zostają tam na zawsze. Odtworzenie idzie więc przez ponowne nagranie
+scenariuszem wskazanym w polu `scenariusz` każdej specyfikacji; nazwy znaczników
+są stabilne (definiuje je scenariusz), przesunąć mogą się tylko wiersze kadru —
+a wtedy **asercja odmówi zapisu**, zamiast po cichu wypuścić zły obraz.
+
+### Skutek werdyktu w liczniku
+
+Cztery unieważnione ekrany są **wycofane z prozy do znaczników, a pliki obrazów
+usunięte** — licznik nie może liczyć jako zrobione czegoś, co nie jest dowodem.
+Stan po wycofaniu: **29 zrobionych, 16 do zrobienia teraz** (12 modelowych + 4
+do ponownego wykonania pod asercjami), 27 po zalogowaniu.
+
+Przy wycofywaniu wyszła **czwarta klasa usterki podpisu**: poprawka podpisu
+potrafi **przełożyć miejsce do innego kubła**, bo kubeł (jak nazwa pliku)
+wyprowadza się z podpisu. Podpis B6 stracił przy poprawce słowa „dwukrotnym
+Esc", więc wypadł z reguły `tui` i wpadł w domyślny `claude-ai` — licznik
+„po zalogowaniu" urósł z 27 na 28, choć ekran jest lokalny. Naprawione
+nazwaniem komendy w podpisie („ekran /rewind…"). **Po każdej poprawce podpisu
+sprawdzać manifestem, że kubeł się nie przesunął.**
+
+### Sprostowanie liczby zrzutów zza logowania
+
+W kolejce czatu A figuruje „49 zrzutów zza logowania". **Manifest podaje 68**
+(`node tools/zrzuty/manifest.mjs` bez filtra): K1 — 27 (claude-ai 16, console 6,
+api 5), K2 — 41 (github-logged). Liczbę trzeba uzgodnić **przed** wspólnym
+posiedzeniem z właścicielem, bo 68 to zupełnie inny rozmiar spotkania niż 49.
+Stan zawsze liczyć komendą, nigdy z notatki.
 ### PRZELOT ZRZUTÓW — STAN PO TURZE 2 CZATU A (2026-08-23)
 
 Stan i przepisy: **[PRZELOT-ZRZUTOW.md](PRZELOT-ZRZUTOW.md)**, sekcja „Czat A,

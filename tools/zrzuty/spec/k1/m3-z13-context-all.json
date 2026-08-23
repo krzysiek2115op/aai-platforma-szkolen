@@ -1,0 +1,14 @@
+{
+  "_podpis": "wynik komendy /context all z rozwiniętą sekcją Memory files i widocznym plikiem CLAUDE.md",
+  "_lekcja": "K1 3.5 (proza-5-pamiec-projektu.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/cztery-pod-asercjami.txt",
+  "raw": "cztery.raw",
+  "doZnacznika": "context-all",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-3/zrzuty/z13-wynik-komendy-context-all.webp",
+  "przytnijOd": 1,
+  "przytnijDo": 16,
+  "wymagaTekstu": [
+    "Memory files",
+    "CLAUDE.md"
+  ]
+}

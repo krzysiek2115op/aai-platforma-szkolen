@@ -1,0 +1,11 @@
+{
+  "_podpis": "sesja Claude Code z wynikiem uruchomionych testów pokazanym jako dowód wykonania zadania",
+  "_lekcja": "K1 3.4 (proza-4-najlepsze-praktyki-agenta.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-transkrypt-i-zgody.txt",
+  "raw": "model-b.raw",
+  "doZnacznika": "transkrypt-1",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-3/zrzuty/z10-sesja-claude-code-wynikiem.webp",
+  "przytnijOd": 17,
+  "przytnijDo": 30,
+  "wymagaTekstu": ["Bash(npm test", "pass 3", "fail 0"]
+}

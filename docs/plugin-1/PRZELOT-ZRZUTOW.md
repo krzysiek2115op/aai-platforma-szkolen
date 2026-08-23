@@ -20,6 +20,13 @@ Stan po pierwszej partii (2026-08-23, **liczba historyczna** — kubły zmienił
 się w turze 2, patrz niżej): 173 miejsca, 33 zrobione, 72 do zrobienia teraz,
 68 po zalogowaniu.
 
+Stan na 2026-08-23 wieczorem, na gałęzi `feat/zrzuty-k1` (czat B): **172 miejsca**
+(jedno zniknęło z prozy przy znalezisku B8), **68 zrobionych, 36 do zrobienia
+teraz, 68 po zalogowaniu**. **Kurs 1 nie ma już ani jednego zrzutu do zrobienia
+bez logowania** — 45 zrobionych, 27 czeka na wspólne posiedzenie z właścicielem.
+Pozostałe 36 to Kurs 2, czyli terytorium czatu A; liczba na TEJ gałęzi nie widzi
+jego najnowszych commitów, więc po scaleniu przelicz komendą.
+
 ## Podział terytoriów — ROZŁĄCZNY, po KURSACH
 
 | | Czat A (worktree `…-k2-A`, gałąź `feat/tresc-k2-modul-2-3`) | Czat B (własny worktree i gałąź) |
@@ -74,11 +81,18 @@ w cudzym katalogu.**
    statycznego i treść lekcji by wyciekła (klasa BLAD-007).
 8. **Rozmiar:** rig skaluje do 1600 px i zapisuje webp q82 (~40–90 kB).
    Nie wrzucamy zrzutów 2x — 173 pliki po 240 kB to 40 MB w repo.
-9. **Weryfikacja wzrokowa jest obowiązkowa** i robi się ją **stykówką**
-   (`tools/zrzuty/stykowka.mjs`), nie plikiem po pliku. Pierwsza partia
-   miała 3 klasy usterek widoczne wyłącznie na obrazie: baner zgód na
-   ciasteczka, zły adres strony (404) i kadr ucięty przed tabelą,
-   o którą prosił podpis.
+9. **Weryfikacja wzrokowa jest obowiązkowa, ale NIE WYSTARCZA** (zaostrzone
+   2026-08-23, decyzja właściciela). Stykówkę (`tools/zrzuty/stykowka.mjs`)
+   robimy dalej — pierwsza partia miała 3 klasy usterek widoczne wyłącznie na
+   obrazie: baner zgód na ciasteczka, zły adres strony (404) i kadr ucięty
+   przed tabelą, o którą prosił podpis. Ale oglądanie stykówki jest
+   **jednorazowe i nieodtwarzalne**: nie złapie przesuniętego znacznika ani
+   obrazu wyrenderowanego ze starego nagrania, a po zakończeniu sesji nikt tego
+   nie powtórzy. Dlatego **każdy zrzut musi mieć maszynową asercję treści**:
+   w specyfikacji podajemy `wymagaTekstu` — fragmenty, które podpis obiecuje —
+   a narzędzie **odmawia zapisu obrazu**, gdy ekran ich nie zawiera. Asercję
+   wyprowadzamy Z PODPISU, nigdy z obrazu, bo inaczej zabetonuje błąd.
+   **Zrzut bez asercji nie jest dowodem** i nie wolno go liczyć jako zrobiony.
 10. **Kod wyjścia bez potoku**, commit po każdym domkniętym kawałku,
     strażnicy zieloni przed commitem (hook uruchamia 25).
 
@@ -98,6 +112,9 @@ nie trzeba nic pobierać.
 | Narzędzie | Do czego |
 |---|---|
 | `tools/zrzuty/manifest.mjs` | stan przelotu, wyprowadzony z prozy |
+| `tools/zrzuty/asercje.mjs` | porównanie `wymagaTekstu` z tekstem ekranu (zasada 9) |
+| `tools/zrzuty/spec/` | **specyfikacje w repo** — podpis, kadr i asercje jednego zrzutu |
+| `tools/zrzuty/test-asercji.mjs` | testy negatywne bramki asercji (wymaga riga) |
 | `tools/zrzuty/zrob-zrzut.mjs` | jeden zrzut ze specyfikacji JSON (odrzuca zgody na ciasteczka, podmienia dane, zdejmuje chrom) |
 | `tools/zrzuty/kolejka.mjs` | partia zrzutów; nie przerywa na błędzie, podaje bilans |
 | `tools/zrzuty/terminal.mjs` | renderuje **nagrane** wyjście terminala (ANSI → obraz) |
@@ -108,6 +125,24 @@ nie trzeba nic pobierać.
 
 `wepnij.mjs` zostawia znacznik tam, gdzie obrazu nie ma — dlatego licznik
 `straznik-prozy` podaje pozostałą pracę wprost.
+
+### Odtworzenie zrzutu — jedna komenda, nie rekonstrukcja z pamięci
+
+Specyfikacja (podpis, nagranie, kadr, asercje) leży w `tools/zrzuty/spec/<kurs>/`,
+więc każdy zrzut da się zrobić ponownie bez wiedzy z sesji:
+
+```bash
+export ZRZUTY_KORZEN=$PWD ZRZUTY_RIG=<scratchpad>/rig ZRZUTY_RAW=<scratchpad>/raw
+bash tools/zrzuty/sesja-tui.sh <scenariusz z pola "scenariusz"> "$ZRZUTY_RAW/<raw>.raw" /tmp/oliwia/projekt-demo
+node tools/zrzuty/kolejka.mjs tools/zrzuty/spec/k1     # renderuje WSZYSTKIE specyfikacje
+node tools/zrzuty/wepnij.mjs tools/zrzuty/spec/k1      # wpina po PODPISIE, nie po numerze wiersza
+```
+
+`wymagaTekstu` jest **obowiązkowe** — narzędzie bez niego nie ruszy (kod 7),
+a przy niespełnionej asercji kończy się kodem 8 i **nie zapisuje obrazu**.
+Pilnuje tego `straznik-asercji` (5 mutacji w audycie) i testy negatywne
+`test-asercji.mjs` (12 prób, w tym „fragment poza kadrem" i „fragment z innej
+sekcji niż kadrowana").
 
 ## Repozytorium demonstracyjne
 
@@ -132,6 +167,59 @@ Czat B pracuje na SWOIM worktree, nie na cudzym.
 - **Nie ruszamy `[EKRAN]`** — 517 takich miejsc siedzi w scenariuszach
   D7 (`lekcja-*.md`), nie w prozie, i nie są przedmiotem przelotu.
 
+---
+
+## Rig zrzutów TUI — dopisek CZATU B (Kurs 1)
+
+Kurs 1 ma 33 zrzuty **interfejsu Claude Code**, a rig z pierwszej partii
+umie tylko przeglądarkę (`zrob-zrzut.mjs`) i nagrane pary komenda/wyjście
+(`terminal.mjs`). TUI przerysowuje ekran w miejscu, więc żadne z tych dwóch
+narzędzi go nie odda. Doszły więc dwa narzędzia i jeden skrypt:
+
+| Narzędzie | Do czego |
+|---|---|
+| `tools/zrzuty/sesja-tui.sh` | nagrywa REALNĄ sesję Claude Code przez PTY (`script`) wg scenariusza klawiszy |
+| `tools/zrzuty/tui.mjs` | odtwarza nagrany strumień w prawdziwym emulatorze (xterm.js w Firefoksie) i zrzuca ekran |
+| `tools/zrzuty/buduj-projekt-demo.sh` | odtwarza projekt demonstracyjny (padające testy, hooki, skill, subagent, serwer MCP) |
+| `tools/zrzuty/scenariusze/k1/` | scenariusze klawiszy — zrzut jest odtwarzalny komendą, nie z pamięci |
+
+Rig potrzebuje dodatkowo `@xterm/xterm` (nadal **poza** `package.json`):
+
+```bash
+(cd "$ZRZUTY_RIG" && npm i puppeteer-core sharp @xterm/xterm)
+```
+
+**Dlaczego przez emulator, a nie przez własne parsowanie ANSI:** jedynym
+wiernym „ekranem" TUI jest stan prawdziwego emulatora po odtworzeniu całego
+strumienia. Stąd też bierze się `ZNACZNIK`: nagrywarka zapisuje przesunięcia
+bajtów, a `tui.mjs` renderuje prefiks strumienia — **jedna sesja daje kilkanaście
+ekranów**, zamiast kilkunastu startów po ~15 s każdy.
+
+### Ustalenia, które kosztowały czas (nie wyprowadzać od nowa)
+
+1. **`HOME` musi zostać PRAWDZIWY** — tylko w nim żyje uwierzytelnienie.
+   Sprawdzone: `HOME=/tmp/oliwia claude -p …` odpowiada `Not logged in`.
+   Neutralność daje więc **katalog roboczy** `/tmp/oliwia/projekt-demo`,
+   a nie podmiana tekstu.
+2. **Podmiana danych w TUI musi zachowywać SZEROKOŚĆ.** Ramki paneli są
+   rysowane znakami, więc krótszy tekst rozjeżdża prawą krawędź. `tui.mjs`
+   dopełnia spacjami i **przerywa z błędem**, gdy podmiana jest dłuższa od
+   oryginału. Adres właściciela zamieniamy na `oliwia.dev@przyklady.com`
+   (dokładnie ta sama długość — 24 znaki).
+3. **Sesje startują z `--setting-sources project`** — inaczej w kadr wchodzą
+   statusline, hooki i skille właściciela. Skutek uboczny: `/status` pokazuje
+   wtedy `Setting sources: Shared project settings` i to jest w tej sesji prawda.
+4. **`script` dokleja własny nagłówek i stopkę** („Skrypt uruchomiony…") —
+   trafiały na ekran zrzutu. Nagrywarka je usuwa.
+5. **Esc NIE czyści pola wpisywania — czyszczą DWA Esc** (mówi to sam panel
+   pomocy: „double tap esc to clear input"). Scenariusz z pojedynczym Esc
+   sklejał kolejne komendy w `/co/sum@/hooks`, co wysłało do modelu prawdziwe
+   zapytanie zamiast otworzyć panel.
+6. **`.mcp.json` wymaga zatwierdzenia w oknie startowym** i ładuje się
+   dopiero z `--mcp-config .mcp.json`; bez tego `/mcp` mówi „No MCP servers
+   configured". Zatwierdzenie jest trwałe.
+7. **Okno zaufania do katalogu** („Is this a project you created or one you
+   trust?") przechwytuje pierwsze klawisze sesji. Trzeba je zatwierdzić raz.
 ## Prompty startowe obu czatów (do skopiowania po `/clear`)
 
 Zapisane w repo świadomie: po `/clear` nie ma z czego ich odtworzyć,
