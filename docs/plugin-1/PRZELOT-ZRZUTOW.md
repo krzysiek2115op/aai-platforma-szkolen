@@ -430,3 +430,28 @@ i **10 plików `.webp`** Kursu 1 (te same, co wspólny przodek), a jej worktree
 `…-zrzuty-k1` nie ma niczego niezacommitowanego poza dwoma plikami rigu.
 Manifest liczy w Kursie 1 **36 miejsc wciąż do zrobienia**. W podglądzie widać
 to jako 63 dziury w Kursie 1 wobec 53 w Kursie 2.
+
+## Co dalej — kolejność ustalona przez właściciela (2026-08-23, po turze 3)
+
+Zapisane, bo to sekwencja decyzji, a nie oczywistość do wyprowadzenia od nowa.
+
+1. **Czekamy na czat B.** Kurs 1 ma wciąż 36 miejsc do zrobienia (sprawdzone
+   manifestem i gałęzią, nie pamięcią — patrz sekcja tury 3). Właściciel daje
+   znać, gdy czat B skończy.
+2. **Push gałęzi na GitHuba** robi czat A — dopiero po tym sygnale, nie
+   wcześniej. Dziś `feat/tresc-k2-modul-2-3` jest o 38 commitów przed zdalną.
+3. **49 zrzutów po zalogowaniu robimy RAZEM z właścicielem** — to ta partia,
+   której anonimowa przeglądarka nie widzi (merge box, przyciski scalania,
+   `Restore branch`, baner `Compare & pull request`, logi Actions, ekrany
+   konta) plus ekran „Let's get started!" z GitHub Desktopu. Manifest sam je
+   odkłada, więc licznik pokaże je jako jedyną pozostałą pracę.
+4. **Domknięcie: push → PR → merge → tag → release** wg CONTRIBUTING.
+   **Uwaga na CI:** limit minut Actions organizacji odnawia się 1 września
+   2026, więc do tego czasu merge idzie na dowodach lokalnych (strażnicy,
+   testy, smoke'i) — tak samo jak przy 0.21.0 i 0.25.0, decyzją właściciela.
+   Po powrocie CI zostaje do potwierdzenia skan sekretów (gitleaks) — jako
+   jedyny nie ma lokalnego odpowiednika.
+5. **Audyt kursów** (`tresc-kursow/AUDYT-KONCOWY.md`) — dopiero teraz, zgodnie
+   z zasadą „nie audytujemy w trakcie przelotu".
+6. **Higiena repo** — sprzątanie gałęzi wg decyzji właściciela z 2026-08-19
+   (scalone gałęzie do skasowania, `bak/*` domyślnie zostają).
