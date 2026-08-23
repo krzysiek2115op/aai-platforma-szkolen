@@ -36,7 +36,7 @@ import { readdirSync, readFileSync, existsSync, writeFileSync, mkdtempSync, rmSy
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
-import { brakujace } from "../zrzuty/asercje.mjs";
+import { brakujace, daneWlasciciela } from "../zrzuty/asercje.mjs";
 
 const KAT_SPEC = "tools/zrzuty/spec";
 const NARZEDZIA = ["tools/zrzuty/tui.mjs", "tools/zrzuty/zrob-zrzut.mjs"];
@@ -76,8 +76,30 @@ if (brakujace(EKRAN, ["re:Bash\\(npm test\\)"]).length !== 0)
 if (brakujace(EKRAN, ["re:\\d{1,2}:\\d{2}"]).length !== 1)
   bledy.push("asercje.mjs: wzorzec re: przechodzi mimo braku pokrycia na ekranie");
 
-// ── 3. narzędzia odmawiają startu bez asercji ─────────────────────────────
+// ── 2b. kontrola prywatności widzi dane właściciela na gotowym ekranie ────
+// Reguła 4 briefu mówi, że danych właściciela w materiale nie ma. Do 2026-08-23
+// pilnowała tego wyłącznie lista podmian w rigu — i przepuściła nazwę użytkownika
+// systemu w wyjściu `ls -la`. Kontrola patrzy więc na GOTOWY EKRAN.
+//
+// Wołamy PRAWDZIWĄ bramkę w osobnym procesie, bo kończy się ona `process.exit`.
+// Sprawdzanie funkcji pomocniczych zamiast bramki wygląda tak samo na zielono,
+// a przepuszcza mutację jej wnętrza — złapane audytem 2026-08-23.
 const KAT = mkdtempSync(join(tmpdir(), "straznik-asercji-"));
+function bramkaPrywatnosci(tekst) {
+  const kod = `import { sprawdzPrywatnosc } from ${JSON.stringify(new URL("../zrzuty/asercje.mjs", import.meta.url).href)};` +
+    `sprawdzPrywatnosc(${JSON.stringify(tekst)}, "straż");`;
+  return spawnSync(process.execPath, ["--input-type=module", "-e", kod], { encoding: "utf8", timeout: 30000 }).status;
+}
+if (daneWlasciciela().length < 2)
+  bledy.push("asercje.mjs: lista danych właściciela jest pusta — kontrola prywatności nie ma czego szukać");
+for (const dana of daneWlasciciela()) {
+  if (bramkaPrywatnosci(`wynik komendy: ${dana} plik.txt`) !== 9)
+    bledy.push(`asercje.mjs: bramka prywatności PRZEPUSZCZA ${JSON.stringify(dana)} na ekranie`);
+}
+if (bramkaPrywatnosci("oliwia-dev · oliwia.dev@przyklady.com · /tmp/oliwia/projekt-demo") !== 0)
+  bledy.push("asercje.mjs: bramka prywatności oskarża dane PRZYKŁADOWE — tak zablokuje każdy poprawny zrzut");
+
+// ── 3. narzędzia odmawiają startu bez asercji ─────────────────────────────
 try {
   const specBez = join(KAT, "bez-asercji.json");
   writeFileSync(specBez, JSON.stringify({ raw: "/dev/null", url: "about:blank", wyjscie: join(KAT, "nie-powinno-powstac.webp") }));

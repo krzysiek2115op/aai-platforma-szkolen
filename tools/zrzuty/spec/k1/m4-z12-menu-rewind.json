@@ -1,0 +1,16 @@
+{
+  "_podpis": "menu /rewind z listą promptów wysłanych w sesji i podświetloną jedną pozycją",
+  "_lekcja": "K1 4.8 (proza-8-punkty-kontrolne.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-transkrypt-i-zgody.txt",
+  "raw": "model-b.raw",
+  "doZnacznika": "rewind-lista-2",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-4/zrzuty/z12-menu-rewind-lista-promptow.webp",
+  "przytnijOd": 24,
+  "przytnijDo": 40,
+  "wymagaTekstu": [
+    "Rewind",
+    "Restore the code and/or conversation to the point before",
+    "napraw failujące testy",
+    "re:❯ \\S"
+  ]
+}

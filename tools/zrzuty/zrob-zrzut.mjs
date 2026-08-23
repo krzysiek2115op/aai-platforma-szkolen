@@ -1,4 +1,4 @@
-import { wymagajDeklaracji, sprawdzAsercje } from './asercje.mjs';
+import { wymagajDeklaracji, sprawdzAsercje, sprawdzPrywatnosc } from './asercje.mjs';
 // Strzelba do zrzutów: node zrob-zrzut.mjs <spec.json>
 // Spec: { wyjscie, url, wymagaTekstu: [...], viewport?, czekajMs?,
 //         selektor? | clip? | kadrOdSelektora?, pelnaStrona?,
@@ -68,6 +68,7 @@ try {
     { z: 'Krzysztof Leszczyński', na: 'oliwia-dev' },
     { z: 'krzysztof leszczyński', na: 'oliwia-dev' },
     { z: 'krzysztof2006oskar@wp.pl', na: 'oliwia-dev@users.noreply.github.com' },
+    ...(process.env.USER && process.env.USER.length > 2 ? [{ z: process.env.USER, na: 'oliwia' }] : []),
     ...(spec.patch ?? [])];
   await page.evaluate((patche) => {
     const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -151,6 +152,7 @@ try {
     }
     return kawalki.join('\n');
   }, { selektor: spec.selektor ?? null, clip: spec.clip ?? null, pelna: !!spec.pelnaStrona });
+  sprawdzPrywatnosc(tekstEkranu, 'zrzut');
   sprawdzAsercje(tekstEkranu, WYMAGANE, 'zrzut');
 
   // Normalizacja: 1600 px szerokości wystarcza do czytania na ekranie i nie

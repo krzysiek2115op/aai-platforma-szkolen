@@ -1,4 +1,4 @@
-import { wymagajDeklaracji, sprawdzAsercje } from './asercje.mjs';
+import { wymagajDeklaracji, sprawdzAsercje, sprawdzPrywatnosc } from './asercje.mjs';
 /**
  * Renderuje SUROWY strumień terminala (nagrany przez sesja-tui.sh) na obraz.
  *
@@ -55,9 +55,14 @@ if (spec.doZnacznika) {
 }
 // REGUŁA PRYWATNOŚCI. Podmiany MUSZĄ zachować długość — TUI rysuje ramki,
 // więc krótszy tekst rozjeżdża prawą krawędź panelu.
+// Kolejność ma znaczenie: dłuższe identyfikatory PRZED krótszymi, bo nazwa
+// użytkownika systemu bywa przedrostkiem loginu GitHuba.
 const PODMIANY = [
   ['krzysztof2006oskar@wp.pl', 'oliwia.dev@przyklady.com'],
   ['krzysiek2115op', 'oliwia-dev'],
+  // Nazwa użytkownika systemu wychodzi na ekran wszędzie tam, gdzie komenda
+  // wypisuje właściciela pliku albo ścieżkę domową (`ls -la`, `ps`, `git config`).
+  ...(process.env.USER && process.env.USER.length > 2 ? [[process.env.USER, 'oliwia']] : []),
   ...(spec.patch ?? []).map((p) => [p.z, p.na]),
 ];
 let tekst = surowy.toString('latin1');
@@ -155,6 +160,7 @@ try {
     for (let y = pierwszy; y < ostatni; y++) wiersze.push(bufor.getLine(bufor.baseY + y)?.translateToString(true) ?? '');
     return wiersze.join('\n');
   }, { od: spec.przytnijOd ?? 0, doW: spec.przytnijDo ?? 0 });
+  sprawdzPrywatnosc(tekstEkranu, 'tui');
   sprawdzAsercje(tekstEkranu, WYMAGANE, 'tui');
 
   const el = await page.$('#obudowa');

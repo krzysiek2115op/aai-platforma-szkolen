@@ -66,6 +66,27 @@ proba("NEGATYWNY: specyfikacja bez wymagaTekstu → brak obrazu", "tui.mjs",
 proba("NEGATYWNY: wymagaTekstu puste → brak obrazu", "tui.mjs",
   tui({ wymagaTekstu: [] }), { kodWyjscia: 7, plikMaByc: false });
 
+// ── prywatność (brief, zasada 4) ───────────────────────────────────────────
+// Nazwa użytkownika ROZBITA sekwencją ustawiania kursora: podmiana w strumieniu
+// jej nie widzi (bajty się nie sklejają), a na wyrenderowanym ekranie stoi jak
+// byk. To jest dokładnie ten przypadek, dla którego kontrola patrzy na EKRAN,
+// nie na wejście.
+const uzytkownik = process.env.USER ?? process.env.LOGNAME ?? "";
+if (uzytkownik.length > 2) {
+  const rozbity = join(KAT, "rozbity.raw");
+  const glowa = uzytkownik.slice(0, 2), ogon = uzytkownik.slice(2);
+  writeFileSync(rozbity, `${glowa}\u001b[3G${ogon} plik\r\n`);   // kursor na kolumnę 3 = sklejenie na ekranie
+  console.log("prywatność:");
+  proba("NEGATYWNY: nazwa użytkownika sklejona dopiero na ekranie → brak obrazu", "tui.mjs",
+    { raw: rozbity, wyjscie: join(KAT, "tui.webp"), kolumny: 40, wiersze: 4, wymagaTekstu: ["plik"] },
+    { kodWyjscia: 9, plikMaByc: false });
+  const czysty = join(KAT, "czysty.raw");
+  writeFileSync(czysty, `${uzytkownik} plik\r\n`);                 // ciągły napis — rig go podmienia
+  proba("nazwa użytkownika w jednym kawałku → rig ją podmienia, obraz powstaje", "tui.mjs",
+    { raw: czysty, wyjscie: join(KAT, "tui.webp"), kolumny: 40, wiersze: 4, wymagaTekstu: ["plik"] },
+    { kodWyjscia: 0, plikMaByc: true });
+}
+
 // ── przeglądarka ───────────────────────────────────────────────────────────
 const strona = join(KAT, "strona.html");
 writeFileSync(strona, `<!doctype html><meta charset="utf-8"><style>body{margin:0;font:16px sans-serif}
@@ -89,6 +110,17 @@ proba("NEGATYWNY: fragment poza CLIP-em → brak obrazu", "zrob-zrzut.mjs",
   { kodWyjscia: 8, plikMaByc: false });
 proba("NEGATYWNY: specyfikacja bez wymagaTekstu → brak obrazu", "zrob-zrzut.mjs",
   www({ selektor: "#gora" }), { kodWyjscia: 7, plikMaByc: false });
+
+// Adres właściciela POCIĘTY na dwa elementy tak, żeby ŻADEN kawałek nie pasował
+// do podmiany z osobna: w węzłach tekstowych nie ma czego podmienić, a `innerText`
+// skleja całość — i to kontrola prywatności musi zobaczyć.
+const stronaZLoginem = join(KAT, "login.html");
+writeFileSync(stronaZLoginem, `<!doctype html><meta charset="utf-8">
+ <div id="gora"><span>krzysztof2006</span><span>oskar@wp.pl</span> — Memory files</div>`);
+proba("NEGATYWNY: adres właściciela sklejony z dwóch elementów → brak obrazu", "zrob-zrzut.mjs",
+  { url: `file://${stronaZLoginem}`, wyjscie: join(KAT, "www.webp"), czekajMs: 200,
+    viewport: { width: 600, height: 200 }, selektor: "#gora", wymagaTekstu: ["Memory files"] },
+  { kodWyjscia: 9, plikMaByc: false });
 
 rmSync(KAT, { recursive: true, force: true });
 if (porazki) { console.error(`\nTesty asercji: ${porazki} NIEZALICZONYCH.`); process.exit(1); }

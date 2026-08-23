@@ -494,6 +494,15 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-asercji",
+    opis: "kontrola prywatności przepuszcza dane właściciela na gotowym ekranie",
+    plik: "tools/zrzuty/asercje.mjs",
+    zmien: (s) =>
+      s.includes("const znalezione = daneWlasciciela().filter((d) => ekran.includes(d));")
+        ? s.replace("const znalezione = daneWlasciciela().filter((d) => ekran.includes(d));", "const znalezione = [];")
+        : null,
+  },
+  {
+    straznik: "straznik-asercji",
     opis: "KONTRPRZYKŁAD: pole opisowe dodane do specyfikacji to nie usterka",
     plik: "tools/zrzuty/spec/k1/m3-z13-context-all.json",
     zmien: (s) => s.replace('{\n  "_podpis"', '{\n  "_uwaga": "kadr dobrany po wierszach",\n  "_podpis"'),

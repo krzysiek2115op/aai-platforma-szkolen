@@ -96,3 +96,36 @@ export function sprawdzAsercje(tekstEkranu, wymagane, narzedzie) {
   console.error(`  Ekran (znormalizowany, ${normalizuj(tekstEkranu).length} zn.): ${normalizuj(tekstEkranu).slice(0, 600)}`);
   process.exit(8);
 }
+
+/**
+ * REGUŁA PRYWATNOŚCI (brief, zasada 4) — sprawdzana MASZYNOWO, nie okiem.
+ *
+ * Rig podmienia dane właściciela na przykładowe, ale podmiana działa tylko na
+ * to, co ktoś przewidział: lista miała login GitHuba i adres e-mail, a nie
+ * NAZWĘ UŻYTKOWNIKA SYSTEMU — i pierwsze `ls -la` w nagraniu wypisało ją
+ * w kolumnie właściciela pliku (2026-08-23). Dlatego zamiast ufać liście,
+ * sprawdzamy GOTOWY EKRAN: jeśli po podmianach nadal niesie identyfikator
+ * właściciela, obraz NIE POWSTAJE.
+ *
+ * Identyfikatory bierzemy ze ŚRODOWISKA (`USER`, katalog domowy), więc kontrola
+ * działa na cudzej maszynie tak samo — plus dwa znane na stałe (login GitHuba
+ * i adres e-mail), których w środowisku nie ma.
+ */
+export function daneWlasciciela() {
+  const dane = new Set(["krzysiek2115op", "krzysztof2006oskar@wp.pl"]);
+  const uzytkownik = process.env.USER ?? process.env.LOGNAME;
+  if (uzytkownik && uzytkownik.length > 2) dane.add(uzytkownik);
+  const dom = process.env.HOME;
+  if (dom) dane.add(dom);
+  return [...dane];
+}
+
+export function sprawdzPrywatnosc(tekstEkranu, narzedzie) {
+  const ekran = normalizuj(tekstEkranu);
+  const znalezione = daneWlasciciela().filter((d) => ekran.includes(d));
+  if (znalezione.length === 0) return;
+  console.error(`${narzedzie}: NA EKRANIE SĄ DANE WŁAŚCICIELA — obrazu NIE ZAPISANO (brief, zasada 4):`);
+  for (const d of znalezione) console.error(`  ${JSON.stringify(d)}`);
+  console.error("  Dopisz podmianę w rigu (w TUI musi zachować SZEROKOŚĆ) albo nagraj ekran bez tej danej.");
+  process.exit(9);
+}
