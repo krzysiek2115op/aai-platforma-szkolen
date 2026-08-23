@@ -46,6 +46,10 @@ try {
     if (a.typ === 'scrollDo') await page.evaluate(s => document.querySelector(s)?.scrollIntoView({ block: a?.blok ?? 'center' }), a.selektor);
     if (a.typ === 'scrollY') await page.evaluate(y => window.scrollTo(0, y), a.y);
     if (a.typ === 'czekaj') await new Promise(r => setTimeout(r, a.ms));
+    // GitHub liczy scalalność pull requesta LENIWIE: pierwsze wejście pokazuje
+    // „Checking for the ability to merge automatically…", a stan konfliktu
+    // widać dopiero po przeładowaniu. Bez tego kadr kłamie o stanie gałęzi.
+    if (a.typ === 'przeladuj') await page.reload({ waitUntil: 'networkidle2', timeout: 90000 });
     if (a.typ === 'eval') await page.evaluate(a.kod);
     // `wpisz` wypełnia pole tak, jak zrobiłby to uczeń — z ogniskiem na polu.
     // Podstawienie `value` z JS daje ten sam tekst, ale bez obwódki ogniska,
