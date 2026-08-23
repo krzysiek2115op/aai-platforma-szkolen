@@ -872,3 +872,20 @@ node tools/zrzuty/wepnij.mjs tools/zrzuty/spec/k1
 ```
 Każdy zrzut rozmowy prowadzi rozmowę OD NOWA (nowa rozmowa na koncie), więc
 odtworzenie zostawia ślad w historii konta — to koszt, nie usterka.
+
+### DECYZJA WŁAŚCICIELA (2026-08-23, po ostatniej fazie): PRZELOT ZAMKNIĘTY
+
+Przelot kończy się na **148 z 160 miejsc** i **nie wracamy do robienia
+zrzutów**. Dwanaście otwartych miejsc rozstrzygamy **przy domykaniu kursu**:
+w każdym albo poprawiamy podpis i prozę tak, żeby nie obiecywały ekranu,
+którego nie ma, albo usuwamy znacznik (jak przy czterech ekranach GitHub
+Desktopu). Trzech miejsc zablokowanych przez Cloudflare (2.4, 5.6, 5.8) **nie
+próbujemy już odblokowywać** — mimo że specyfikacje i przepis zostają w repo,
+więc gdyby ktoś kiedyś chciał, wystarczy jedna komenda.
+
+**Zadanie otwarte na koncie właściciela:** partia zostawiła w historii
+claude.ai około dwunastu rozmów demonstracyjnych (oferta „Kwiaciarni Malwa",
+panel analityczny, przypadki testowe, plan szkoleń, klasyfikacja zgłoszenia,
+audyt polityki prywatności). Właściciel prosi o ich **skasowanie, gdy wróci
+dostęp do claude.ai** — z **potwierdzeniem listy przed usunięciem**, bo
+kasowanie po tytułach w cudzej historii jest nieodwracalne.

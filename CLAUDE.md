@@ -626,9 +626,13 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      Claude na repozytorium demonstracyjnym dla `@claude` w lekcji 4.6), trzy
      dlatego, że **Cloudflare zablokował sterowaną przeglądarkę** na claude.ai
      (podgląd myślenia 2.4, ustawienia 5.6, wgrany obraz 5.8) — ręczne okno na
-     tym samym profilu przechodzi, więc do powtórzenia po przerwie. Przy
-     domykaniu kursu w tych miejscach albo powstaje zrzut, albo poprawiamy
-     podpis i prozę; dziś są jawną, policzalną dziurą w manifeście.
+     tym samym profilu przechodzi. **DECYZJA WŁAŚCICIELA (2026-08-23): przelot
+     ZAMKNIĘTY na 148/160 — do robienia zrzutów NIE WRACAMY.** Te dwanaście
+     miejsc rozstrzygamy przy domykaniu kursu: poprawką podpisu i prozy albo
+     usunięciem znacznika (jak przy czterech ekranach GitHub Desktopu).
+     Zadanie otwarte na koncie: skasować ~12 rozmów demonstracyjnych
+     z historii claude.ai, gdy wróci dostęp — po potwierdzeniu listy
+     z właścicielem.
      **NASTĘPNY KROK (kolejność właściciela): PR gałęzi
      `feat/tresc-k2-modul-2-3` → merge → tag → release** (CI stoi do
      1 września, więc na dowodach lokalnych, jak przy 0.21.0 i 0.25.0; po
