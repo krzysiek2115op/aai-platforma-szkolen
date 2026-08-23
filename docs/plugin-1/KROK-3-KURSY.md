@@ -2662,9 +2662,9 @@ w tym trybie sprawdzana z natury procesu: każdy zrzut powstaje z żywego
 ekranu, więc podpis niezgodny z ekranem nie może przejść — rozjazdy
 poprawiamy w podpisie I w prozie od razu.
 
-**Gdzie żyją pliki zrzutów:** `tresc-kursow/<slug>/zrzuty/modul-N/*.webp`
+**Gdzie żyją pliki zrzutów:** `tresc-kursow/<slug>/modul-N/zrzuty/*.webp`
 — świadomie POZA `public/`, bo `public/` wchodzi w całości do eksportu
 statycznego podglądu i lekcyjne zrzuty by wyciekły (ta sama klasa co
-BLAD-007). W Markdownie lekcji: `![opis](zrzuty/modul-N/plik.webp)` —
-ścieżka względna od katalogu kursu; import do WP przepisze ją jedną
+BLAD-007). W Markdownie lekcji: `![opis](zrzuty/plik.webp)` —
+ścieżka względna od pliku lekcji (tak żąda `straznik-linkow`); import do WP przepisze ją jedną
 regułą na adresy biblioteki mediów.
