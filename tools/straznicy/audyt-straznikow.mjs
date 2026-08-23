@@ -453,6 +453,52 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-asercji ---
+  {
+    straznik: "straznik-asercji",
+    opis: "specyfikacja zrzutu bez asercji treści (zrzut przestaje być dowodem)",
+    plik: "tools/zrzuty/spec/k1/m3-z13-context-all.json",
+    zmien: (s) => (s.includes('"wymagaTekstu"') ? s.replace(/,\s*"wymagaTekstu":\s*\[[^\]]*\]/, "") : null),
+  },
+  {
+    straznik: "straznik-asercji",
+    opis: "asercja pusta — deklaracja jest, treści nie ma",
+    plik: "tools/zrzuty/spec/k1/m3-z13-context-all.json",
+    zmien: (s) => (s.includes('"wymagaTekstu"') ? s.replace(/"wymagaTekstu":\s*\[[^\]]*\]/, '"wymagaTekstu": []') : null),
+  },
+  {
+    straznik: "straznik-asercji",
+    opis: "porównanie przepuszcza fragment, którego na ekranie nie ma",
+    plik: "tools/zrzuty/asercje.mjs",
+    zmien: (s) => (s.includes("return wymagane.filter") ? s.replace("return wymagane.filter", "return [].filter") : null),
+  },
+  {
+    straznik: "straznik-asercji",
+    opis: "bramka deklaracji wyjęta z narzędzia terminalowego",
+    plik: "tools/zrzuty/tui.mjs",
+    zmien: (s) =>
+      s.includes("wymagajDeklaracji(spec, 'tui')")
+        ? s.replace("wymagajDeklaracji(spec, 'tui')", "(spec.wymagaTekstu ?? [])")
+        : null,
+  },
+  {
+    straznik: "straznik-asercji",
+    opis: "asercja przeniesiona ZA zapis obrazu (plik zostaje mimo niezgodności)",
+    plik: "tools/zrzuty/zrob-zrzut.mjs",
+    zmien: (s) =>
+      s.includes("sprawdzAsercje(tekstEkranu, WYMAGANE, 'zrzut');")
+        ? s.replace("sprawdzAsercje(tekstEkranu, WYMAGANE, 'zrzut');", "")
+             .replace("  const m = await sharp(spec.wyjscie).metadata();",
+                      "  sprawdzAsercje(tekstEkranu, WYMAGANE, 'zrzut');\n  const m = await sharp(spec.wyjscie).metadata();")
+        : null,
+  },
+  {
+    straznik: "straznik-asercji",
+    opis: "KONTRPRZYKŁAD: pole opisowe dodane do specyfikacji to nie usterka",
+    plik: "tools/zrzuty/spec/k1/m3-z13-context-all.json",
+    zmien: (s) => s.replace('{\n  "_podpis"', '{\n  "_uwaga": "kadr dobrany po wierszach",\n  "_podpis"'),
+    oczekujCzerwonego: false,
+  },
   // --- straznik-prozy ---
   {
     straznik: "straznik-prozy",

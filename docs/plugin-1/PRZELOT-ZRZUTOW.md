@@ -104,6 +104,9 @@ nie trzeba nic pobierać.
 | Narzędzie | Do czego |
 |---|---|
 | `tools/zrzuty/manifest.mjs` | stan przelotu, wyprowadzony z prozy |
+| `tools/zrzuty/asercje.mjs` | porównanie `wymagaTekstu` z tekstem ekranu (zasada 9) |
+| `tools/zrzuty/spec/` | **specyfikacje w repo** — podpis, kadr i asercje jednego zrzutu |
+| `tools/zrzuty/test-asercji.mjs` | testy negatywne bramki asercji (wymaga riga) |
 | `tools/zrzuty/zrob-zrzut.mjs` | jeden zrzut ze specyfikacji JSON (odrzuca zgody na ciasteczka, podmienia dane, zdejmuje chrom) |
 | `tools/zrzuty/kolejka.mjs` | partia zrzutów; nie przerywa na błędzie, podaje bilans |
 | `tools/zrzuty/terminal.mjs` | renderuje **nagrane** wyjście terminala (ANSI → obraz) |
@@ -114,6 +117,24 @@ nie trzeba nic pobierać.
 
 `wepnij.mjs` zostawia znacznik tam, gdzie obrazu nie ma — dlatego licznik
 `straznik-prozy` podaje pozostałą pracę wprost.
+
+### Odtworzenie zrzutu — jedna komenda, nie rekonstrukcja z pamięci
+
+Specyfikacja (podpis, nagranie, kadr, asercje) leży w `tools/zrzuty/spec/<kurs>/`,
+więc każdy zrzut da się zrobić ponownie bez wiedzy z sesji:
+
+```bash
+export ZRZUTY_KORZEN=$PWD ZRZUTY_RIG=<scratchpad>/rig ZRZUTY_RAW=<scratchpad>/raw
+bash tools/zrzuty/sesja-tui.sh <scenariusz z pola "scenariusz"> "$ZRZUTY_RAW/<raw>.raw" /tmp/oliwia/projekt-demo
+node tools/zrzuty/kolejka.mjs tools/zrzuty/spec/k1     # renderuje WSZYSTKIE specyfikacje
+node tools/zrzuty/wepnij.mjs tools/zrzuty/spec/k1      # wpina po PODPISIE, nie po numerze wiersza
+```
+
+`wymagaTekstu` jest **obowiązkowe** — narzędzie bez niego nie ruszy (kod 7),
+a przy niespełnionej asercji kończy się kodem 8 i **nie zapisuje obrazu**.
+Pilnuje tego `straznik-asercji` (5 mutacji w audycie) i testy negatywne
+`test-asercji.mjs` (12 prób, w tym „fragment poza kadrem" i „fragment z innej
+sekcji niż kadrowana").
 
 ## Repozytorium demonstracyjne
 

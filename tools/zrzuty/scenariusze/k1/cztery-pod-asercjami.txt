@@ -1,0 +1,58 @@
+# CZTERY EKRANY UNIEWAŻNIONE WERDYKTEM WŁAŚCICIELA (2026-08-23), nagrane
+# ponownie pod maszynowymi asercjami treści (brief, zasada 9):
+#   perm-allow    → K1 3.7  zakładka Allow w /permissions
+#   perm-deny     → K1 6.6  zakładka Deny w /permissions
+#   cofanie-opcje → K1 3.4  ekran /rewind PO wybraniu wiadomości
+#   context-all   → K1 3.5  /context all z sekcją Memory files
+#
+# DLACZEGO SESJA ZACZYNA SIĘ OD PRAWDZIWEGO PROMPTU. Menu /rewind wymienia
+# PROMPTY WYSŁANE W SESJI — w sesji bez ani jednego promptu nie ma czego
+# wybrać, a bez wybrania wiadomości nie pokazują się opcje streszczania
+# („Summarize from here" / „up to here", znalezisko B6). Prompt jest przy
+# okazji materiałem na ekran K1 3.3 (przegląd projektu).
+#
+# Reguły domykania paneli — patrz nagłówek panele-lokalne.txt: panel z polem
+# wyszukiwania zamykają TRZY Esc, a WYCZYSC na PUSTYM polu otwiera menu cofania.
+CZEKAJ 16
+ENTER
+CZEKAJ 12
+
+WPISZ zrób krótki przegląd tego projektu: co robi biblioteka i co widzisz w testach
+ENTER
+CZEKAJ 100
+ZNACZNIK przeglad
+
+WPISZ /permissions
+CZEKAJ 2
+ENTER
+CZEKAJ 5
+ZNACZNIK perm-allow
+KLAWISZ right
+CZEKAJ 2
+KLAWISZ right
+CZEKAJ 2
+ZNACZNIK perm-deny
+KLAWISZ esc
+CZEKAJ 1
+KLAWISZ esc
+CZEKAJ 1
+KLAWISZ esc
+CZEKAJ 2
+
+WPISZ /context all
+CZEKAJ 2
+ENTER
+CZEKAJ 10
+ZNACZNIK context-all
+CZEKAJ 2
+
+# Puste pole + podwójny Esc = menu cofania z listą promptów sesji.
+WYCZYSC
+CZEKAJ 3
+ZNACZNIK cofanie
+KLAWISZ up
+CZEKAJ 2
+ENTER
+CZEKAJ 3
+ZNACZNIK cofanie-opcje
+CZEKAJ 2

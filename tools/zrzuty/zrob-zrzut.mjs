@@ -1,12 +1,22 @@
-import { puppeteer, sharp } from './zaleznosci.mjs';
+import { wymagajDeklaracji, sprawdzAsercje } from './asercje.mjs';
 // Strzelba do zrzutów: node zrob-zrzut.mjs <spec.json>
-// Spec: { wyjscie, url, viewport?, czekajMs?, selektor? | clip? | kadrOdSelektora?,
-//         pelnaStrona?,
+// Spec: { wyjscie, url, wymagaTekstu: [...], viewport?, czekajMs?,
+//         selektor? | clip? | kadrOdSelektora?, pelnaStrona?,
 //         patch?: [{z, na}], ukryj?: [selektory], akcje?: [{typ, selektor?, x?, y?}],
 //         zoom?, jakosc? }
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync } from 'node:fs';
+import { dirname, isAbsolute, join } from 'node:path';
 
 const spec = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+// Bramka PRZED odpaleniem przeglądarki (brief, zasada 9): zrzut bez maszynowej
+// asercji treści nie jest dowodem, więc specyfikacja bez niej nie rusza z miejsca.
+const WYMAGANE = wymagajDeklaracji(spec, 'zrzut');
+// Rig PO bramce — patrz komentarz bliźniaczy w tui.mjs.
+const { puppeteer, sharp } = await import('./zaleznosci.mjs');
+// `wyjscie` liczone od korzenia worktree — specyfikacja w repo nie może nieść
+// ścieżki z czyjegoś katalogu domowego.
+if (!isAbsolute(spec.wyjscie)) spec.wyjscie = join(process.env.ZRZUTY_KORZEN ?? process.cwd(), spec.wyjscie);
+mkdirSync(dirname(spec.wyjscie), { recursive: true });
 const b = await puppeteer.launch({
   browser: 'firefox', executablePath: '/usr/bin/firefox', headless: true,
   protocol: 'webDriverBiDi', args: ['-width', '1680', '-height', '1050'],
@@ -118,6 +128,31 @@ try {
   } else {
     png = await page.screenshot({ type: 'png', fullPage: !!spec.pelnaStrona, ...(spec.clip ? { clip: spec.clip } : {}) });
   }
+  // ASERCJA TREŚCI — na tekście DOKŁADNIE TEGO obszaru, który poszedł na obraz.
+  // Gdyby liczyć `document.body.innerText`, asercja przechodziłaby dla napisów
+  // leżących poza kadrem — czyli dowodziłaby czegoś, czego na zrzucie nie ma.
+  const tekstEkranu = await page.evaluate(({ selektor, clip, pelna }) => {
+    if (selektor) return document.querySelector(selektor)?.innerText ?? '';
+    if (pelna && !clip) return document.body.innerText;
+    const r = clip ?? { x: window.scrollX, y: window.scrollY, width: window.innerWidth, height: window.innerHeight };
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const kawalki = []; let n;
+    while ((n = w.nextNode())) {
+      if (!n.nodeValue.trim()) continue;
+      const zakres = document.createRange();
+      zakres.selectNodeContents(n);
+      const p = zakres.getBoundingClientRect();
+      if (!p.width || !p.height) continue;                       // ukryte elementy
+      const gora = p.top + window.scrollY, dol = p.bottom + window.scrollY;
+      const lewo = p.left + window.scrollX, prawo = p.right + window.scrollX;
+      if (dol <= r.y || gora >= r.y + r.height) continue;
+      if (prawo <= r.x || lewo >= r.x + r.width) continue;
+      kawalki.push(n.nodeValue);
+    }
+    return kawalki.join('\n');
+  }, { selektor: spec.selektor ?? null, clip: spec.clip ?? null, pelna: !!spec.pelnaStrona });
+  sprawdzAsercje(tekstEkranu, WYMAGANE, 'zrzut');
+
   // Normalizacja: 1600 px szerokości wystarcza do czytania na ekranie i nie
   // wpuszcza do repo dziesiątek megabajtów (zrzut 2x ma ~2880 px).
   await sharp(png).resize({ width: spec.szerokoscDocelowa ?? 1600, withoutEnlargement: true })

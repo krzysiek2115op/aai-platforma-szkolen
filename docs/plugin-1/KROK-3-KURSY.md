@@ -2913,6 +2913,56 @@ akurat wyszło.
 zrzut bez maszynowej asercji treści **nie jest dowodem** i nie liczy się jako
 zrobiony.
 
+### Wykonanie poprawki procesu (2026-08-23, czat B)
+
+Punkty 1–3 zrobione w tej kolejności, w jednej sesji.
+
+**1. Bramka asercji.** `tools/zrzuty/asercje.mjs` (wspólny dla obu rigów) plus
+wywołania w `tui.mjs` i `zrob-zrzut.mjs`. Specyfikacja bez `wymagaTekstu` kończy
+się kodem **7** jeszcze przed uruchomieniem przeglądarki; ekran bez obiecanego
+fragmentu — kodem **8** i **bez zapisu pliku**. Asercja liczona jest na tym, co
+naprawdę weszło w kadr (w TUI: wiersze bufora z `przytnijOd/przytnijDo`,
+w przeglądarce: węzły tekstowe przecinające `clip`/selektor) — inaczej
+przechodziłaby dla napisów wyciętych z obrazu. Normalizacja skleja zdanie
+pocięte ramką panelu i sprowadza typograficzne apostrofy do ASCII; fragment
+`re:…` jest wzorcem (dla obietnic bez stałego brzmienia, np. znacznika czasu).
+
+**Testy negatywne — 12 prób, `tools/zrzuty/test-asercji.mjs`** (pełna droga obu
+narzędzi, nie sam moduł): fragment nieobecny, fragment **poza kadrem**, fragment
+**z innej sekcji niż kadrowana**, fragment **poza `clip`**, wzorzec bez pokrycia,
+brak `wymagaTekstu`, puste `wymagaTekstu` — każdy z parą pozytywną, żeby zieleń
+nie znaczyła „narzędzie nie doszło do porównania". Do tego **test negatywny na
+prawdziwym nagraniu**: ten sam strumień wyrenderowany do znacznika `cofanie`
+zamiast `cofanie-opcje` **odmówił zapisu**, bo na tamtym ekranie nie ma jeszcze
+opcji streszczania — dokładnie klasa „przesunięty znacznik" z werdyktu.
+
+**2. Asercje w repo.** `tools/zrzuty/spec/k1/*.json` — podpis, scenariusz,
+znacznik, kadr i lista asercji. `kolejka.mjs` renderuje cały katalog, `wepnij.mjs`
+wpina po PODPISIE (nie po numerze wiersza — podpisy bywają poprawiane), a
+`straznik-asercji` pilnuje, żeby żadna specyfikacja nie została bez asercji
+(5 mutacji w audycie, wszystkie łapane; audyt: 84/84, 0 przeoczonych, 0 martwych).
+
+**3. Cztery ekrany nagrane ponownie** scenariuszem
+`tools/zrzuty/scenariusze/k1/cztery-pod-asercjami.txt` (sesja zaczyna się od
+prawdziwego promptu, bo menu `/rewind` wymienia prompty sesji — bez żadnego nie
+ma czego wybrać). Wszystkie cztery przeszły asercje wyprowadzone z podpisów.
+Licznik: **33 zrobione, 12 do zrobienia teraz** (same ekrany wymagające
+odpowiedzi modelu), 27 po zalogowaniu.
+
+**Znalezisko przy okazji (B9):** `/permissions` **nie podświetla aktywnej
+zakładki** — pasek „Permissions · Recently denied · Allow · Ask · Deny ·
+Workspace" wygląda tak samo na każdej z nich (`/config` swoją aktywną zakładkę
+podświetla, więc to nie artefakt rigu). Tym, co odróżnia zakładkę, jest zdanie
+pod paskiem („Claude Code won't ask before using allowed tools." kontra
+„…will always reject requests to use denied tools.") i lista reguł — i to one
+są asercją. Podpisy w prozie niczego takiego nie obiecywały, więc proza została
+bez zmian; zapis jest po to, żeby nikt nie dopisał „podświetlona" w przyszłości.
+
+**Nazwa pliku ekranu K1 3.4** poszła za poprawionym podpisem:
+`z12-ekran-rewind-wybraniu-wiadomosci.webp` (nie `…-cofania-…`, jak brzmiała
+nazwa skasowanego pliku) — nazwa wywodzi się z podpisu, a podpis zmienił się
+przy naprawie B6.
+
 ### Skutek werdyktu w liczniku
 
 Cztery unieważnione ekrany są **wycofane z prozy do znaczników, a pliki obrazów

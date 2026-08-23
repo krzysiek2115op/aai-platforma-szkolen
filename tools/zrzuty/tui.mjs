@@ -1,10 +1,10 @@
-import { puppeteer, sharp } from './zaleznosci.mjs';
+import { wymagajDeklaracji, sprawdzAsercje } from './asercje.mjs';
 /**
  * Renderuje SUROWY strumień terminala (nagrany przez sesja-tui.sh) na obraz.
  *
  *   node tui.mjs <spec.json>
- *   spec: { raw, wyjscie, kolumny?, wiersze?, tytul?, przytnijOd?, przytnijDo?,
- *           patch?: [{z, na}], jakosc? }
+ *   spec: { raw, wyjscie, wymagaTekstu: [...], kolumny?, wiersze?, tytul?,
+ *           przytnijOd?, przytnijDo?, patch?: [{z, na}], jakosc? }
  *
  * Dlaczego przez xterm.js, a nie przez własne parsowanie ANSI: TUI Claude Code
  * przerysowuje ekran w miejscu (kursor, czyszczenie linii, kolory 256), więc
@@ -15,10 +15,28 @@ import { puppeteer, sharp } from './zaleznosci.mjs';
  * przytnijOd/przytnijDo tną WIERSZE gotowego ekranu (1-indeksowane, włącznie) —
  * kadr robimy po treści, a nie pikselami na oko.
  */
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, isAbsolute, join } from 'node:path';
 
 const spec = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+// Bramka PRZED odpaleniem przeglądarki: specyfikacja bez asercji jest błędem,
+// nie wariantem domyślnym (brief, zasada 9).
+const WYMAGANE = wymagajDeklaracji(spec, 'tui');
+// Rig wczytujemy DOPIERO PO bramce — dzięki temu odmowa „brak wymagaTekstu"
+// jest sprawdzalna bez zainstalowanego Firefoksa i sharpa (robi to
+// straznik-asercji przy każdym commicie), a nie tylko na maszynie z rigiem.
+const { puppeteer, sharp } = await import('./zaleznosci.mjs');
+// Specyfikacja ma być PRZENOŚNA: `raw` wskazuje nagranie w ZRZUTY_RAW (katalog
+// sesji), `wyjscie` — plik w ZRZUTY_KORZEN (worktree). Absolutna ścieżka do
+// scratchpada w pliku repo byłaby dobra przez jedną sesję i martwa po /clear.
+const wzgledem = (sciezka, katalog) => (isAbsolute(sciezka) ? sciezka : join(katalog, sciezka));
+spec.raw = wzgledem(spec.raw, process.env.ZRZUTY_RAW ?? process.cwd());
+spec.wyjscie = wzgledem(spec.wyjscie, process.env.ZRZUTY_KORZEN ?? process.cwd());
+if (!existsSync(spec.raw)) {
+  console.error(`tui: brak nagrania ${spec.raw}\n  nagraj je scenariuszem: bash ${spec.scenariusz ?? 'tools/zrzuty/scenariusze/k1/<scenariusz>.txt'} → $ZRZUTY_RAW/${spec.raw.split('/').pop()}`);
+  process.exit(6);
+}
+mkdirSync(dirname(spec.wyjscie), { recursive: true });
 const RIG = process.env.ZRZUTY_RIG;
 const xtermJs = join(RIG, 'node_modules/@xterm/xterm/lib/xterm.js');
 const xtermCss = join(RIG, 'node_modules/@xterm/xterm/css/xterm.css');
@@ -115,6 +133,30 @@ try {
     }, { od: spec.przytnijOd ?? 0, doW: spec.przytnijDo ?? 0 });
     if (!kadr.wierszy) { console.error('tui: kadr przytnijOd/przytnijDo nie objął ani jednego wiersza'); process.exit(5); }
   }
+  // Podgląd ekranu z NUMERAMI WIERSZY — po to, żeby przytnijOd/przytnijDo
+  // wybierać liczbami z odczytu, a nie na oko z obrazka:
+  //   TUI_POKAZ_TEKST=1 node tools/zrzuty/tui.mjs spec.json
+  if (process.env.TUI_POKAZ_TEKST) {
+    const pelny = await page.evaluate(() => {
+      const t = window.__term, b = t.buffer.active, w = [];
+      for (let y = 0; y < t.rows; y++) w.push(b.getLine(b.baseY + y)?.translateToString(true) ?? '');
+      return w;
+    });
+    pelny.forEach((w, i) => console.error(String(i + 1).padStart(3) + ' │ ' + w.replace(/\s+$/, '')));
+  }
+  // ASERCJA TREŚCI — na buforze emulatora, ale TYLKO w granicach kadru.
+  // Sprawdzanie całego bufora byłoby kłamstwem: fragment wycięty kadrem nie
+  // trafia na obraz, a asercja i tak świeciłaby na zielono.
+  const tekstEkranu = await page.evaluate(({ od, doW }) => {
+    const t = window.__term, bufor = t.buffer.active;
+    const pierwszy = od ? od - 1 : 0;
+    const ostatni = doW ? Math.min(doW, t.rows) : t.rows;
+    const wiersze = [];
+    for (let y = pierwszy; y < ostatni; y++) wiersze.push(bufor.getLine(bufor.baseY + y)?.translateToString(true) ?? '');
+    return wiersze.join('\n');
+  }, { od: spec.przytnijOd ?? 0, doW: spec.przytnijDo ?? 0 });
+  sprawdzAsercje(tekstEkranu, WYMAGANE, 'tui');
+
   const el = await page.$('#obudowa');
   const png = await el.screenshot({ type: 'png' });
   await sharp(png).resize({ width: spec.szerokoscDocelowa ?? 1600, withoutEnlargement: true })
