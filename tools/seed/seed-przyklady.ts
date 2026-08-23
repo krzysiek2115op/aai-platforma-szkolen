@@ -13,6 +13,17 @@ import { obsluzAkcje, zamknijDb1 } from "../../modules/m1-sklep/index.ts";
  * Użycie: npm run db1:seed  (wymaga bazy i KREATOR_TOKEN w .env)
  */
 
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+
+/**
+ * URUCHOMIENIE tylko z wiersza poleceń. Bez tej bramki sam IMPORT pliku
+ * kasował kursy (blok wykonawczy stoi na górnym poziomie), a razem z nimi
+ * treść 73 lekcji. Porównujemy ŚCIEŻKI, nie łańcuchy URL — patrz BLAD-014.
+ */
+const URUCHOMIONY_WPROST =
+  Boolean(process.argv[1]) && resolve(process.argv[1]!) === fileURLToPath(import.meta.url);
+
 const TOKEN = process.env.KREATOR_TOKEN ?? "";
 
 const KURSY = [
@@ -22,7 +33,7 @@ const KURSY = [
     type: "kurs" as const,
     // dłuższy opis karty katalogu — „dlaczego my, a nie inni" (brief CDS pkt 2)
     short_desc:
-      "Nie kolejne nagrania o AI, tylko system pracy: prowadzisz Claude metodą, na plikach i zadaniach Twojej firmy. Uczysz się od praktyka, który wdraża AI w polskich firmach — i wychodzisz z promptami, szablonami i workflow do użycia tego samego dnia, nie z notatkami.",
+      "Nie kolejne nagrania o AI, tylko system pracy: prowadzisz Claude metodą, na plikach i zadaniach Twojej firmy. Uczysz się od praktyka, który wdraża AI w polskich firmach — i wychodzisz z promptami i gotowymi przepisami pracy do użycia tego samego dnia, nie z notatkami.",
     price_grosze: 29900,
     cover_url: "/okladki/jak-korzystac-z-claude.svg",
     badge: "PRAKTYCZNY",
@@ -34,9 +45,9 @@ const KURSY = [
         content: {
           obietnica: "Opanuj Claude i oddaj AI powtarzalną połowę swojej pracy",
           rozwiniecie:
-            "Bez teorii wziętej z kosmosu: siadasz, robisz, wdrażasz. Po kursie Claude pisze z Tobą oferty, analizuje dokumenty i pilnuje Twoich procesów.",
+            "Bez teorii wziętej z kosmosu: siadasz, robisz, wdrażasz. Sześć modułów prowadzi od pierwszej rozmowy, przez Claude Code na Twoim komputerze, po API i koszty w produkcji.",
           dla_kogo:
-            "Dla przedsiębiorców i zespołów, które chcą oddać AI powtarzalną robotę — bez programowania i bez akademickiej teorii.",
+            "Dla przedsiębiorców i zespołów, które chcą wdrożyć Claude u siebie — od rozmowy w przeglądarce po własne integracje.",
         },
       },
       {
@@ -64,8 +75,8 @@ const KURSY = [
           ],
           jest: [
             "systemem pracy z Claude — od pierwszej rozmowy po automatyzacje,",
-            "warsztatem na prawdziwych plikach firmowych: umowach, cennikach, raportach,",
-            "biblioteką promptów i szablonów, która zostaje z Tobą po kursie.",
+            "kursem tekstowym z ćwiczeniem „Zrób to teraz” w każdej lekcji i zrzutami z prawdziwych ekranów,",
+            "biblioteką promptów, która zostaje z Tobą po kursie.",
           ],
         },
       },
@@ -98,7 +109,7 @@ const KURSY = [
           kurs: [
             "jedna przemyślana ścieżka: od pierwszej rozmowy do automatyzacji,",
             "typowe błędy pokazane na ekranie, zanim popełnisz je u siebie,",
-            "gotowe prompty i szablony zamiast pustej kartki.",
+            "gotowe prompty zamiast pustej kartki.",
           ],
         },
       },
@@ -116,12 +127,12 @@ const KURSY = [
               opis: "Zbudujesz bibliotekę promptów pod swoje zadania — oferty, maile, analizy, raporty.",
             },
             {
-              tytul: "Dokumenty i dane w Claude",
-              opis: "Przerobisz prawdziwe pliki firmowe: umowy, cenniki, zestawienia.",
+              tytul: "Dokumenty, pliki i obrazy",
+              opis: "Nauczysz się podawać Claude pliki, PDF-y i obrazy — i liczyć, ile to kosztuje.",
             },
             {
-              tytul: "Automatyzacje bez programowania",
-              opis: "Poznasz Projekty, artefakty i integracje, które pracują, gdy Ty śpisz.",
+              tytul: "Automatyzacje wokół Claude",
+              opis: "Poznasz subagentów, skille, hooki i MCP — mechanizmy Claude Code, które pracują za Ciebie.",
             },
             {
               tytul: "Bezpieczeństwo i dobre praktyki",
@@ -153,24 +164,24 @@ const KURSY = [
         content: {
           punkty: [
             {
-              tytul: "7 modułów wideo (31 lekcji)",
-              opis: "Od pierwszej rozmowy po automatyzacje — każdy krok pokazany na ekranie, bez skrótów i bez „resztę doczytaj sam”.",
+              tytul: "6 modułów tekstowych (41 lekcji)",
+              opis: "Od pierwszej rozmowy po wywołania API — każda lekcja z ćwiczeniem „Zrób to teraz”, bez skrótów i bez „resztę doczytaj sam”.",
             },
             {
               tytul: "Biblioteka promptów",
-              opis: "Gotowe prompty pod oferty, analizy dokumentów, maile i raporty — kopiujesz, podmieniasz dane firmy, używasz.",
+              opis: "Gotowe prompty w 35 lekcjach — kopiujesz, podstawiasz własne dane, używasz.",
             },
             {
-              tytul: "Szablony i checklisty",
-              opis: "Instrukcje projektów, zasady bezpieczeństwa danych i plan wdrożenia na 30 dni — do pobrania w plikach.",
+              tytul: "Pytania do wykonawcy",
+              opis: "10 lekcji o API i produkcji kończy się listą pytań do firmy wdrażającej — oceniasz ofertę, nie pisząc kodu.",
             },
             {
-              tytul: "Ćwiczenia na Twoich plikach",
-              opis: "Nie na przykładowych „firmach ABC”, tylko na umowach, cennikach i raportach, z którymi pracujesz naprawdę.",
+              tytul: "Ćwiczenie w każdej lekcji",
+              opis: "Każda lekcja kończy się krokami „Zrób to teraz” — tam, gdzie to ma sens, na Twoich własnych plikach i zadaniach.",
             },
             {
               tytul: "Dostęp bez limitu + aktualizacje",
-              opis: "Kupujesz raz i wracasz zawsze. Gdy Claude się zmienia, nagrywamy poprawki — dostajesz je bez dopłat.",
+              opis: "Kupujesz raz i wracasz zawsze. Gdy Claude się zmienia, poprawiamy lekcje — dostajesz je bez dopłat.",
             },
             {
               tytul: "Gwarancja 30 dni",
@@ -178,10 +189,10 @@ const KURSY = [
             },
           ],
           kotwica:
-            "Jedna godzina konsultacji wdrożeniowej AI kosztuje w Polsce zwykle więcej niż ten kurs. Konsultacja się kończy — kurs, prompty i szablony zostają z Tobą na zawsze.",
+            "Jedna godzina konsultacji wdrożeniowej AI kosztuje w Polsce zwykle więcej niż ten kurs. Konsultacja się kończy — kurs i prompty zostają z Tobą na zawsze.",
           w_cenie: [
             "Dostęp od razu po zakupie, bez czekania na start edycji",
-            "Wszystkie 31 lekcji i materiały do pobrania od pierwszego dnia",
+            "Wszystkie 41 lekcji od pierwszego dnia",
             "Aktualizacje kursu bez dopłat",
             "Dostęp bez limitu czasu — także po zmianie komputera",
             "Pytania przed zakupem i po nim: odpowiadam osobiście",
@@ -250,12 +261,12 @@ const KURSY = [
             {
               pytanie: "Nie znam się na technologii. Dam radę?",
               odpowiedz:
-                "Tak — kurs zaczyna się od zera i każdy krok pokazujemy na ekranie. Jeśli piszesz maile, umiesz wystarczająco dużo.",
+                "Pierwsze dwa moduły — na pewno: zaczynają się od zera, w przeglądarce. Dalej wchodzi terminal i klucz API; prowadzimy przez to krok po kroku, a lekcje o API są napisane dla osoby, która ZAMAWIA wdrożenie, nie pisze kodu.",
             },
             {
               pytanie: "Czy potrzebuję płatnego konta Claude?",
               odpowiedz:
-                "Zaczniesz na darmowym. Pokazujemy też, co realnie daje plan płatny i kiedy się zwraca — decyzję podejmujesz świadomie, nie w ciemno.",
+                "Moduły 1–2 przejdziesz na darmowym koncie. Claude Code i wywołania API są płatne, dlatego osobna lekcja pierwszego modułu jest o cenniku — liczysz koszt, zanim zaczniesz.",
             },
             {
               pytanie: "Kiedy dostanę dostęp do kursu?",
@@ -265,7 +276,7 @@ const KURSY = [
             {
               pytanie: "Ile czasu zajmie mi przejście kursu?",
               odpowiedz:
-                "Sam materiał to kilka godzin wideo, ale największą wartość daje robienie ćwiczeń na własnych plikach. Godzina dziennie przez dwa tygodnie w zupełności wystarczy, żeby wdrożyć system u siebie.",
+                "Materiał to 12 godzin czytania (720 minut na 41 lekcji), a największą wartość daje robienie ćwiczeń na własnych plikach. Godzina dziennie przez dwa tygodnie w zupełności wystarczy, żeby wdrożyć system u siebie.",
             },
             {
               pytanie: "Prowadzę jednoosobową firmę. Czy to nie „za duży” kurs dla mnie?",
@@ -275,7 +286,7 @@ const KURSY = [
             {
               pytanie: "Czym ten kurs różni się od darmowych poradników na YouTube?",
               odpowiedz:
-                "Kolejnością i selekcją. Zamiast stu przypadkowych trików dostajesz jedną ścieżkę: od pierwszej rozmowy po automatyzacje, z gotowymi promptami i szablonami do pobrania.",
+                "Kolejnością, selekcją i sprawdzalnością. Zamiast stu przypadkowych trików dostajesz jedną ścieżkę — od pierwszej rozmowy po produkcję — a każda lekcja kończy się tabelą, która pokazuje, z którego miejsca dokumentacji pochodzi każda teza.",
             },
             {
               pytanie: "Czy moje dane firmowe są bezpieczne przy pracy z AI?",
@@ -285,7 +296,7 @@ const KURSY = [
             {
               pytanie: "Co, jeśli Claude się zmieni i lekcje się zestarzeją?",
               odpowiedz:
-                "Aktualizacje są w cenie — gdy interfejs lub możliwości Claude się zmieniają, nagrywamy poprawki, a Ty dostajesz je bez dopłat.",
+                "Aktualizacje są w cenie — gdy interfejs lub możliwości Claude się zmieniają, poprawiamy lekcje, a Ty dostajesz je bez dopłat.",
             },
             {
               pytanie: "Jak długo mam dostęp?",
@@ -301,87 +312,92 @@ const KURSY = [
         },
       },
     ],
-    // program ROBOCZY (feedback B5: dłuższy, szczegółowy) — finalne
-    // treści lekcji powstaną w D7 na bazie pełnej dokumentacji Claude
+    // Program Kursu 1 PO DZIALE 7 — lustro tego, co stoi w bazie
+    // (audyt 2026-08-24: seed niósł jeszcze program ROBOCZY sprzed D7,
+    // z lekcjami, których kurs nie ma — a to z niego brały się obietnice
+    // o „czatach, projektach i artefaktach” na stronie sprzedażowej).
     modules: [
       {
         position: 0,
-        title: "Start: Claude bez tajemnic",
-        summary: "Konto, interfejs i pierwsza rozmowa z metodą",
+        title: "Fundamenty: poznaj Claude",
+        summary: "Czym jest Claude, jakie są modele i ile to kosztuje — zanim wydasz pierwszą złotówkę.",
         lessons: [
-          { position: 0, title: "Czym Claude różni się od reszty AI", duration_min: 9, preview: true },
-          { position: 1, title: "Konto, plany i ustawienia, które mają znaczenie", duration_min: 12, preview: false },
-          { position: 2, title: "Interfejs bez zgadywania: czaty, projekty, artefakty", duration_min: 10, preview: false },
-          { position: 3, title: "Pierwsza rozmowa: metoda zamiast zgadywania", duration_min: 16, preview: false },
-          { position: 4, title: "Najczęstsze błędy początkujących — i jak ich uniknąć", duration_min: 11, preview: false },
+          { position: 0, title: "Czym jest Claude i co potrafi", duration_min: 15, preview: true },
+          { position: 1, title: "Rodzina modeli: Opus, Sonnet, Haiku", duration_min: 20, preview: false },
+          { position: 2, title: "Jak dobrać model do zadania (i nie przepłacać)", duration_min: 20, preview: false },
+          { position: 3, title: "Cennik: za co naprawdę płacisz", duration_min: 15, preview: false },
+          { position: 4, title: "Okno kontekstu w praktyce", duration_min: 20, preview: false },
+          { position: 5, title: "Słowniczek pojęć — mów językiem AI", duration_min: 10, preview: false },
         ],
       },
       {
         position: 1,
-        title: "Metoda: prompty, które dowożą wynik",
-        summary: "Struktura, kontekst i iteracja — na Twoich zadaniach",
+        title: "Prompt engineering: mów tak, żeby Claude robił to, co chcesz",
+        summary: null,
         lessons: [
-          { position: 0, title: "Anatomia dobrego promptu", duration_min: 14, preview: false },
-          { position: 1, title: "Kontekst: jak podać firmę, cel i ograniczenia", duration_min: 13, preview: false },
-          { position: 2, title: "Iteracja: z „meh” do „dokładnie o to chodziło”", duration_min: 12, preview: false },
-          { position: 3, title: "Style, tony i formaty odpowiedzi", duration_min: 10, preview: false },
-          { position: 4, title: "Budujesz bibliotekę promptów swojej firmy", duration_min: 15, preview: false },
+          { position: 0, title: "Zasady dobrego promptu", duration_min: 15, preview: false },
+          { position: 1, title: "Najlepsze praktyki promptowania Claude", duration_min: 25, preview: false },
+          { position: 2, title: "Promptowanie najnowszych modeli (Opus 5, Sonnet 5)", duration_min: 20, preview: false },
+          { position: 3, title: "Rozszerzone myślenie: kiedy dać modelowi czas", duration_min: 20, preview: false },
+          { position: 4, title: "Mniej halucynacji, więcej spójności", duration_min: 20, preview: false },
         ],
       },
       {
         position: 2,
-        title: "Dokumenty i dane firmowe w Claude",
-        summary: "Umowy, cenniki, raporty — prawdziwe pliki, prawdziwa praca",
+        title: "Claude Code: start i codzienna praca",
+        summary: null,
         lessons: [
-          { position: 0, title: "Wczytywanie plików: co Claude umie przeczytać", duration_min: 9, preview: false },
-          { position: 1, title: "Analiza umowy krok po kroku", duration_min: 16, preview: false },
-          { position: 2, title: "Oferta i wycena prosto z cennika", duration_min: 14, preview: false },
-          { position: 3, title: "Raporty i zestawienia: liczby pod kontrolą", duration_min: 13, preview: false },
-          { position: 4, title: "Długie dokumenty: streszczenia i porównania", duration_min: 12, preview: false },
+          { position: 0, title: "Jak działa Claude Code", duration_min: 15, preview: true },
+          { position: 1, title: "Instalacja i pierwsza sesja", duration_min: 20, preview: false },
+          { position: 2, title: "Codzienne przepływy pracy", duration_min: 25, preview: false },
+          { position: 3, title: "Najlepsze praktyki pracy z agentem", duration_min: 25, preview: false },
+          { position: 4, title: "Pamięć projektu: CLAUDE.md", duration_min: 15, preview: false },
+          { position: 5, title: "Tryb interaktywny i komendy", duration_min: 15, preview: false },
+          { position: 6, title: "Uprawnienia: co Claude może, a czego nie", duration_min: 15, preview: false },
+          { position: 7, title: "Konfiguracja pod siebie: settings.json", duration_min: 15, preview: false },
         ],
       },
       {
         position: 3,
-        title: "Projekty: Claude z pamięcią Twojej firmy",
-        summary: "Stała wiedza firmowa zamiast tłumaczenia od zera",
+        title: "Claude Code: systemy pracy, które skalują",
+        summary: null,
         lessons: [
-          { position: 0, title: "Czym są Projekty i kiedy ich używać", duration_min: 10, preview: false },
-          { position: 1, title: "Budujesz bazę wiedzy: dokumenty i instrukcje", duration_min: 14, preview: false },
-          { position: 2, title: "Instrukcje projektu: Claude w roli Twojego działu", duration_min: 13, preview: false },
-          { position: 3, title: "Projekty w praktyce: obsługa klienta i sprzedaż", duration_min: 15, preview: false },
+          { position: 0, title: "Subagenci: deleguj pracę", duration_min: 20, preview: false },
+          { position: 1, title: "Skille: wiedza wielokrotnego użytku", duration_min: 20, preview: false },
+          { position: 2, title: "Hooki: automatyzacja wokół agenta", duration_min: 20, preview: false },
+          { position: 3, title: "MCP: podłącz narzędzia zewnętrzne", duration_min: 20, preview: false },
+          { position: 4, title: "Pluginy: gotowe zestawy możliwości", duration_min: 15, preview: false },
+          { position: 5, title: "Claude Code w CI: GitHub Actions", duration_min: 20, preview: false },
+          { position: 6, title: "Praca równoległa: worktrees i sesje", duration_min: 15, preview: false },
+          { position: 7, title: "Punkty kontrolne: cofanie zmian bez stresu", duration_min: 10, preview: false },
         ],
       },
       {
         position: 4,
-        title: "Artefakty: dokumenty i narzędzia na zawołanie",
-        summary: "Od notatki po działające mini-narzędzia",
+        title: "Claude przez API: pierwsze integracje",
+        summary: "Dla firm, które chcą zbudować własne rozwiązanie na Claude.",
         lessons: [
-          { position: 0, title: "Artefakty: co to jest i po co", duration_min: 8, preview: false },
-          { position: 1, title: "Dokumenty, tabele i szablony wielokrotnego użytku", duration_min: 13, preview: false },
-          { position: 2, title: "Mini-narzędzia dla firmy bez programowania", duration_min: 16, preview: false },
-          { position: 3, title: "Publikowanie i udostępnianie efektów pracy", duration_min: 9, preview: false },
+          { position: 0, title: "Pierwsze wywołanie API", duration_min: 20, preview: false },
+          { position: 1, title: "Klucz API i praca z Messages", duration_min: 20, preview: false },
+          { position: 2, title: "Tool use: Claude używa Twoich narzędzi", duration_min: 25, preview: false },
+          { position: 3, title: "Ustrukturyzowane odpowiedzi (JSON)", duration_min: 15, preview: false },
+          { position: 4, title: "Streaming: odpowiedź na żywo", duration_min: 15, preview: false },
+          { position: 5, title: "Agent Skills na platformie", duration_min: 15, preview: false },
+          { position: 6, title: "Praca z plikami i PDF-ami", duration_min: 15, preview: false },
+          { position: 7, title: "Vision: Claude patrzy na obrazy", duration_min: 15, preview: false },
         ],
       },
       {
         position: 5,
-        title: "Automatyzacje i integracje",
-        summary: "Claude pracuje, gdy Ty robisz co innego",
+        title: "Koszty, jakość i bezpieczeństwo w produkcji",
+        summary: null,
         lessons: [
-          { position: 0, title: "Powtarzalne zadania: od ręcznej pracy do szablonu", duration_min: 12, preview: false },
-          { position: 1, title: "Łączenie Claude z narzędziami, których używasz", duration_min: 15, preview: false },
-          { position: 2, title: "Przepływ pracy: od szkicu do wdrożenia", duration_min: 14, preview: false },
-          { position: 3, title: "Kiedy automatyzować, a kiedy nie warto", duration_min: 9, preview: false },
-        ],
-      },
-      {
-        position: 6,
-        title: "Zespół, bezpieczeństwo i wdrożenie",
-        summary: "Zasady, które chronią firmę i skalują efekty",
-        lessons: [
-          { position: 0, title: "Czego NIE wklejać do AI — zasady danych", duration_min: 11, preview: false },
-          { position: 1, title: "Ustawiasz standardy pracy zespołu", duration_min: 13, preview: false },
-          { position: 2, title: "Plan wdrożenia na pierwsze 30 dni", duration_min: 14, preview: false },
-          { position: 3, title: "Jak mierzyć, czy AI naprawdę oszczędza czas", duration_min: 10, preview: false },
+          { position: 0, title: "Prompt caching: płać mniej za powtarzany kontekst", duration_min: 20, preview: false },
+          { position: 1, title: "Batch API: połowa ceny, gdy nie ma pośpiechu", duration_min: 15, preview: false },
+          { position: 2, title: "Liczenie tokenów przed wysyłką", duration_min: 10, preview: false },
+          { position: 3, title: "Testy i ewaluacje jakości odpowiedzi", duration_min: 20, preview: false },
+          { position: 4, title: "Ochrona przed jailbreakami i wyciekiem promptu", duration_min: 15, preview: false },
+          { position: 5, title: "Bezpieczeństwo Claude Code w firmie", duration_min: 15, preview: false },
         ],
       },
     ],
@@ -484,7 +500,7 @@ const KURSY = [
           ],
           nie_dla: [
             "na co dzień prowadzisz zespół przez zaawansowane strategie gałęzi,",
-            "szukasz kursu CI/CD i administracji — tu są fundamenty pracy z kodem,",
+            "szukasz zaawansowanego CI/CD i administracji serwerami — piąty moduł daje wstęp do GitHub Actions, nie kurs DevOps,",
             "nie planujesz pracować z kodem ani plikami projektu.",
           ],
         },
@@ -495,11 +511,11 @@ const KURSY = [
         content: {
           punkty: [
             {
-              tytul: "6 modułów wideo (26 lekcji)",
+              tytul: "6 modułów tekstowych (32 lekcje)",
               opis: "Od pustego folderu po zmergowany pull request — cała droga na ekranie, komenda po komendzie.",
             },
             {
-              tytul: "Ściągi komend",
+              tytul: "Ściąga komend",
               opis: "Najważniejsze polecenia z opisem, KIEDY ich użyć — jedna kartka zamiast dziesięciu zakładek w przeglądarce.",
             },
             {
@@ -507,8 +523,8 @@ const KURSY = [
               opis: "Nie klikasz po slajdach — commitujesz, branchujesz, rozwiązujesz konflikt i mergujesz naprawdę.",
             },
             {
-              tytul: "Moduł ratunkowy",
-              opis: "Restore, revert, reset i najczęstsze „zepsułem repo” — wiesz, co zrobić, zanim wpadniesz w panikę.",
+              tytul: "88 zrzutów z prawdziwego GitHuba",
+              opis: "Każdy klikany krok pokazany na ekranie — dokładnie ten, który zobaczysz u siebie.",
             },
             {
               tytul: "Dostęp bez limitu + aktualizacje",
@@ -523,8 +539,8 @@ const KURSY = [
             "Jeden wieczór odzyskiwania nadpisanej pracy kosztuje więcej nerwów niż ten kurs pieniędzy — a bez systemu taki wieczór wraca co kilka miesięcy.",
           w_cenie: [
             "Dostęp od razu po zakupie, bez czekania na start edycji",
-            "Wszystkie 26 lekcji i ściągi do pobrania od pierwszego dnia",
-            "Ćwiczeniowe repozytorium do pracy krok po kroku",
+            "Wszystkie 32 lekcje od pierwszego dnia",
+            "Ćwiczenia na repozytorium, które zakładasz w pierwszym module",
             "Aktualizacje kursu bez dopłat",
             "Dostęp bez limitu czasu — wracasz, kiedy zapomnisz komendy",
             "Gwarancja zwrotu przez 30 dni",
@@ -597,7 +613,7 @@ const KURSY = [
             {
               pytanie: "Terminal mnie przeraża. Poradzę sobie?",
               odpowiedz:
-                "Tak — każdą komendę wpisujemy razem, na ekranie, z wyjaśnieniem co robi i dlaczego. Do najczęstszych masz ściągę do pobrania.",
+                "Tak — każdą komendę wpisujemy razem, ze zrzutem ekranu i wyjaśnieniem, co robi i dlaczego. Najważniejsze zbiera osobna lekcja-ściąga, do której wracasz w każdej chwili.",
             },
             {
               pytanie: "Mam Windowsa / Maca — zadziała?",
@@ -607,7 +623,7 @@ const KURSY = [
             {
               pytanie: "Nauczę się Gita czy GitHuba?",
               odpowiedz:
-                "Obu — i w dobrej kolejności: najpierw Git lokalnie (commity, branche), potem GitHub (zdalne repozytorium, pull requesty, współpraca).",
+                "Obu. Zaczynasz w przeglądarce — pierwszy pełny cykl przechodzisz bez instalowania czegokolwiek — potem instalujesz Gita i schodzisz na własny komputer, a od czwartego modułu pracujesz jak zespół: issues, pull requesty, przeglądy.",
             },
             {
               pytanie: "Pracuję sam. Po co mi branche i pull requesty?",
@@ -622,7 +638,7 @@ const KURSY = [
             {
               pytanie: "Ile czasu zajmie mi kurs?",
               odpowiedz:
-                "Materiał to kilka godzin wideo plus ćwiczenia na prawdziwym repozytorium. Pracując po godzinie dziennie, w tydzień–dwa przejdziesz całość i zaczniesz pracować po nowemu.",
+                "Materiał to 8 godzin i 15 minut czytania (495 minut na 32 lekcje) plus ćwiczenia na prawdziwym repozytorium. Pracując po godzinie dziennie, w tydzień–dwa przejdziesz całość i zaczniesz pracować po nowemu.",
             },
             {
               pytanie: "Czym różni się kurs od darmowej dokumentacji i tutoriali?",
@@ -651,7 +667,7 @@ const KURSY = [
             { tytul: "Commity i branche z sensem", opis: "Historia zmian, którą da się czytać i cofać bez paniki." },
             { tytul: "Pull requesty i współpraca", opis: "Review, konflikty, merge — współpraca zamiast nadpisywania sobie plików." },
             { tytul: "Projekt w chmurze", opis: "Push, pull i praca z dowolnego komputera — GitHub jako bezpieczna kopia Twojej pracy." },
-            { tytul: "Ratunek z opresji", opis: "Restore, revert, reset — wiesz, którego użyć, zanim wpadniesz w panikę." },
+            { tytul: "Konflikty bez paniki", opis: "Rozbrajasz konflikt scalania w przeglądarce i wiesz, co zrobić, gdy `git push` zostanie odrzucony." },
           ],
         },
       },
@@ -666,9 +682,10 @@ const KURSY = [
     // straznik-prozy szuka scenariusza po tym samym numerze —
     // przenumerowanie po cięciu wskazałoby prozie CUDZY scenariusz.
     //
-    // Sekcje sprzedażowe WYŻEJ są nadal ROBOCZE i rozjechane z programem
-    // (obiecują „6 modułów wideo (26 lekcji)" i moduł ratunkowy
-    // restore/revert/reset) — pisane od nowa w etapie 4 kroku 3.
+    // Sekcje sprzedażowe WYŻEJ zostały zsynchronizowane z produktem
+    // (audyt 2026-08-24): liczby modułów i lekcji pochodzą z bazy, znikło
+    // słowo „wideo” (nie nagrywamy — decyzja 2026-08-19) i moduł ratunkowy,
+    // którego kurs nie ma. Pilnuje tego `straznik-obietnic`.
     modules: [
       {
         position: 0,
@@ -757,30 +774,36 @@ async function idPoSlugu(slug: string): Promise<string | null> {
   return lista.find((k) => k.slug === slug)?.id ?? null;
 }
 
-let kod = 0;
-try {
-  for (const slug of [...STARE_SLUGI, ...KURSY.map((k) => k.slug)]) {
-    const id = await idPoSlugu(slug);
-    if (id) await obsluzAkcje({ akcja: "usun", token: TOKEN, id });
+if (URUCHOMIONY_WPROST) {
+  let kod = 0;
+  try {
+    for (const slug of [...STARE_SLUGI, ...KURSY.map((k) => k.slug)]) {
+      const id = await idPoSlugu(slug);
+      if (id) await obsluzAkcje({ akcja: "usun", token: TOKEN, id });
+    }
+    for (const kurs of KURSY) {
+      const zapis = await obsluzAkcje(
+        { akcja: "zapisz", token: TOKEN, kurs },
+        { aktor: "seed-przyklady" }
+      );
+      if (!zapis.ok) throw new Error(`seed ${kurs.slug}: ${JSON.stringify(zapis)}`);
+      const pub = await obsluzAkcje({
+        akcja: "publikuj",
+        token: TOKEN,
+        id: (zapis as { id: string }).id,
+      });
+      if (!pub.ok) throw new Error(`publikacja ${kurs.slug}: ${JSON.stringify(pub)}`);
+      console.log(`seed: ${kurs.slug} — OK`);
+    }
+  } catch (blad) {
+    console.error("seed: PORAŻKA —", blad instanceof Error ? blad.message : blad);
+    kod = 1;
+  } finally {
+    await zamknijDb1();
   }
-  for (const kurs of KURSY) {
-    const zapis = await obsluzAkcje(
-      { akcja: "zapisz", token: TOKEN, kurs },
-      { aktor: "seed-przyklady" }
-    );
-    if (!zapis.ok) throw new Error(`seed ${kurs.slug}: ${JSON.stringify(zapis)}`);
-    const pub = await obsluzAkcje({
-      akcja: "publikuj",
-      token: TOKEN,
-      id: (zapis as { id: string }).id,
-    });
-    if (!pub.ok) throw new Error(`publikacja ${kurs.slug}: ${JSON.stringify(pub)}`);
-    console.log(`seed: ${kurs.slug} — OK`);
-  }
-} catch (blad) {
-  console.error("seed: PORAŻKA —", blad instanceof Error ? blad.message : blad);
-  kod = 1;
-} finally {
-  await zamknijDb1();
+  process.exit(kod);
 }
-process.exit(kod);
+
+/** Dane seeda do ponownego użycia przez narzędzia (bez uruchamiania zapisu). */
+export const KURSY_SEED = KURSY;
+

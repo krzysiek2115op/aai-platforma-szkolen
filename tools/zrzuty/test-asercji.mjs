@@ -19,9 +19,11 @@ import { writeFileSync, existsSync, rmSync, mkdtempSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 
 const KAT = mkdtempSync(join(tmpdir(), "test-asercji-"));
-const NARZ = (n) => new URL(n, import.meta.url).pathname;
+// fileURLToPath zamiast .pathname — patrz BLAD-014 (spacja w ścieżce → %20 → moduł nie do znalezienia).
+const NARZ = (n) => fileURLToPath(new URL(n, import.meta.url));
 let porazki = 0;
 
 function proba(nazwa, narzedzie, spec, { kodWyjscia, plikMaByc }) {
