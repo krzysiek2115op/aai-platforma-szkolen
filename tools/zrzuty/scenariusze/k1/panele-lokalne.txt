@@ -1,7 +1,30 @@
+# Panele LOKALNE Claude Code — ekrany, które nie wymagają odpowiedzi modelu.
+# Jedna sesja daje wszystkie: ZNACZNIK zapisuje przesunięcie w strumieniu,
+# a tui.mjs renderuje prefiks do znacznika.
+#
+# TRZY REGUŁY WYPROWADZONE POMIAREM (2026-08-23), nie zmieniać na oko:
+#  * PANEL Z POLEM WYSZUKIWANIA (`/config`, `/status`, `/permissions`,
+#    `/plugin`) NIE zamyka się jednym Esc — pierwszy czyści wyszukiwanie
+#    („Esc to clear" w stopce panelu). Jeden Esc zostawia panel otwarty,
+#    kolejne `WPISZ` ląduje w polu wyszukiwania, a `ENTER` PRZEŁĄCZA
+#    podświetlone ustawienie — tak zniknął właścicielowi `autoCompactEnabled`
+#    (2026-08-23). Dlatego po każdym panelu stoją TRZY Esc. Trzy osobne
+#    `KLAWISZ esc` dzieli 0,6 s, więc nie składają się w double-tap i nie
+#    otwierają menu cofania;
+#  * TEKST zostawiony w polu NIE znika od pojedynczego Esc. Bez posprzątania
+#    kolejne komendy DOKLEJAJĄ się do poprzednich (`/co` + `/sum` + `@` =
+#    `/co/sum@`), a taka skleina zostaje WYSŁANA DO MODELU zamiast otworzyć
+#    panel. Sprzątamy więc `KLAWISZ esc` (zamyka menu podpowiedzi) + `KASUJ <n>`.
+#  * WYCZYSC przy PUSTYM polu OTWIERA MENU COFANIA i połyka wszystko, co
+#    wpiszemy dalej — dlatego po sobie sprzątamy `KASUJ <n>` (tyle
+#    backspace'ów, ile znaków wpisaliśmy), a WYCZYSC wołamy raz, świadomie,
+#    właśnie po to menu cofania.
+
 CZEKAJ 16
 ENTER
 CZEKAJ 12
 ZNACZNIK banner
+
 WPISZ /config
 CZEKAJ 2
 ENTER
@@ -13,6 +36,7 @@ KLAWISZ esc
 CZEKAJ 1
 KLAWISZ esc
 CZEKAJ 2
+
 WPISZ /status
 CZEKAJ 2
 ENTER
@@ -24,32 +48,47 @@ KLAWISZ esc
 CZEKAJ 1
 KLAWISZ esc
 CZEKAJ 2
+
 WPISZ /permissions
 CZEKAJ 2
 ENTER
 CZEKAJ 5
-ZNACZNIK perm-1
+ZNACZNIK perm-allow
 KLAWISZ right
 CZEKAJ 2
-ZNACZNIK perm-2
+ZNACZNIK perm-ask
 KLAWISZ right
 CZEKAJ 2
-ZNACZNIK perm-3
+ZNACZNIK perm-deny
 KLAWISZ right
 CZEKAJ 2
-ZNACZNIK perm-4
-KLAWISZ right
-CZEKAJ 2
-ZNACZNIK perm-5
-KLAWISZ right
-CZEKAJ 2
-ZNACZNIK perm-6
+ZNACZNIK perm-workspace
 KLAWISZ esc
 CZEKAJ 1
 KLAWISZ esc
 CZEKAJ 1
 KLAWISZ esc
 CZEKAJ 2
+
+# Druga wizyta: schodzimy w listę reguł — sprawdzamy, czy interfejs w ogóle
+# pokazuje PLIK ŹRÓDŁOWY reguły (obiecuje to podpis w lekcji 3.7).
+WPISZ /permissions
+CZEKAJ 2
+ENTER
+CZEKAJ 5
+KLAWISZ down
+CZEKAJ 2
+ZNACZNIK perm-lista
+KLAWISZ down
+CZEKAJ 2
+ZNACZNIK perm-lista-2
+KLAWISZ esc
+CZEKAJ 1
+KLAWISZ esc
+CZEKAJ 1
+KLAWISZ esc
+CZEKAJ 2
+
 WPISZ /memory
 CZEKAJ 2
 ENTER
@@ -61,52 +100,49 @@ KLAWISZ esc
 CZEKAJ 1
 KLAWISZ esc
 CZEKAJ 2
+
 WPISZ /context
 CZEKAJ 2
 ENTER
 CZEKAJ 6
 ZNACZNIK context
-KLAWISZ esc
-CZEKAJ 1
-KLAWISZ esc
 CZEKAJ 2
+
 WPISZ /context all
 CZEKAJ 2
 ENTER
-CZEKAJ 7
+CZEKAJ 8
 ZNACZNIK context-all
-KLAWISZ esc
-CZEKAJ 1
-KLAWISZ esc
 CZEKAJ 2
+
 WPISZ ?
 CZEKAJ 3
 ZNACZNIK pomoc
 KLAWISZ esc
-CZEKAJ 1
-KLAWISZ esc
+KASUJ 1
 CZEKAJ 2
+
 WPISZ /co
 CZEKAJ 3
 ZNACZNIK menu-komend
 KLAWISZ esc
-CZEKAJ 1
-KLAWISZ esc
+KASUJ 3
 CZEKAJ 2
+
 WPISZ /sum
 CZEKAJ 3
 ZNACZNIK menu-skille
 KLAWISZ esc
-CZEKAJ 1
-KLAWISZ esc
+KASUJ 4
 CZEKAJ 2
+
 WPISZ @
 CZEKAJ 3
 ZNACZNIK sciezki
 KLAWISZ esc
-CZEKAJ 1
-KLAWISZ esc
+KASUJ 1
 CZEKAJ 2
+
 WPISZ /hooks
 CZEKAJ 2
 ENTER
@@ -118,6 +154,7 @@ KLAWISZ esc
 CZEKAJ 1
 KLAWISZ esc
 CZEKAJ 2
+
 WPISZ /mcp
 CZEKAJ 2
 ENTER
@@ -129,10 +166,11 @@ KLAWISZ esc
 CZEKAJ 1
 KLAWISZ esc
 CZEKAJ 2
+
 WPISZ /plugin
 CZEKAJ 2
 ENTER
-CZEKAJ 10
+CZEKAJ 12
 ZNACZNIK plugin
 KLAWISZ esc
 CZEKAJ 1
@@ -140,6 +178,7 @@ KLAWISZ esc
 CZEKAJ 1
 KLAWISZ esc
 CZEKAJ 2
+
 WPISZ /sandbox
 CZEKAJ 2
 ENTER
@@ -151,16 +190,37 @@ KLAWISZ esc
 CZEKAJ 1
 KLAWISZ esc
 CZEKAJ 2
+
+# Świadome użycie WYCZYSC na PUSTYM polu — tak otwiera się menu cofania.
+WYCZYSC
+CZEKAJ 3
+ZNACZNIK cofanie
+# Opcje streszczania rozmowy („Summarize from here" / „up to here") pokazują się
+# dopiero PO wybraniu wiadomości — sama lista ich nie ma.
+KLAWISZ up
+CZEKAJ 2
+ENTER
+CZEKAJ 3
+ZNACZNIK cofanie-opcje
+KLAWISZ esc
+CZEKAJ 1
+KLAWISZ esc
+CZEKAJ 1
+KLAWISZ esc
+CZEKAJ 1
+KLAWISZ esc
+CZEKAJ 2
+
 KLAWISZ shift-tab
 CZEKAJ 2
-ZNACZNIK tryb-1
+ZNACZNIK tryb-manual
 KLAWISZ shift-tab
 CZEKAJ 2
-ZNACZNIK tryb-2
+ZNACZNIK tryb-accept-edits
 KLAWISZ shift-tab
 CZEKAJ 2
-ZNACZNIK tryb-3
+ZNACZNIK tryb-plan
 KLAWISZ shift-tab
 CZEKAJ 2
-ZNACZNIK tryb-4
+ZNACZNIK tryb-auto
 CZEKAJ 1

@@ -92,11 +92,28 @@ try {
   }
   await new Promise((r) => setTimeout(r, 900));
   // Kadrowanie PO TREŚCI: podajemy numery wierszy ekranu, nie piksele.
+  // UWAGA (BLAD złapany 2026-08-23): `display:none` na wierszach NIE kadruje —
+  // wysokość bierze się z elementu `.xterm`, który xterm.js wylicza z liczby
+  // wierszy, więc obraz wychodził pełnowymiarowy, a kadr znikał po cichu
+  // (wszystkie zrzuty miały identyczną wysokość). Kadrujemy więc przycięciem
+  // kontenera i przesunięciem taśmy wierszy, a funkcja ZWRACA liczbę wierszy,
+  // żeby dało się sprawdzić, że kadr w ogóle zadziałał.
   if (spec.przytnijOd || spec.przytnijDo) {
-    await page.evaluate(({ od, doW }) => {
+    const kadr = await page.evaluate(({ od, doW }) => {
       const wiersze = [...document.querySelectorAll('.xterm-rows > div')];
-      wiersze.forEach((w, i) => { const n = i + 1; if ((od && n < od) || (doW && n > doW)) w.style.display = 'none'; });
+      if (!wiersze.length) return { wierszy: 0 };
+      const wysokosc = wiersze[0].getBoundingClientRect().height;
+      const pierwszy = od ? od - 1 : 0;
+      const ostatni = doW ? Math.min(doW, wiersze.length) : wiersze.length;
+      if (ostatni <= pierwszy) return { wierszy: 0 };
+      const xterm = document.querySelector('.xterm');
+      const tasma = document.querySelector('.xterm-rows');
+      tasma.style.transform = `translateY(${-pierwszy * wysokosc}px)`;
+      xterm.style.height = `${(ostatni - pierwszy) * wysokosc}px`;
+      xterm.style.overflow = 'hidden';
+      return { wierszy: ostatni - pierwszy };
     }, { od: spec.przytnijOd ?? 0, doW: spec.przytnijDo ?? 0 });
+    if (!kadr.wierszy) { console.error('tui: kadr przytnijOd/przytnijDo nie objął ani jednego wiersza'); process.exit(5); }
   }
   const el = await page.$('#obudowa');
   const png = await el.screenshot({ type: 'png' });

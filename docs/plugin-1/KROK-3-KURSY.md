@@ -2759,3 +2759,82 @@ zmiany.
 KOŃCU `PRZELOT-ZRZUTOW.md`, `ZNALEZISKA-PRZELOTU-ZRZUTOW.md` i tego pliku,
 więc git pokaże konflikt tekstowy w ogonie. Treściowo to unia — rozwiązać
 zostawiając obie sekcje.
+
+## Przelot zrzutów — CZAT B, druga partia (2026-08-23)
+
+**Stan: `manifest.mjs --kurs K1` daje 30 zrobionych i 16 do zrobienia teraz**
+(tui 14, docs 1, arkusz 1) plus 27 po zalogowaniu. Wpiąłem **20 paneli
+lokalnych** Claude Code 2.1.241, nagranych jedną sesją w projekcie
+demonstracyjnym (`/tmp/oliwia/projekt-demo`), scenariusz
+`tools/zrzuty/scenariusze/k1/panele-lokalne.txt`.
+
+### Trzy defekty WSPÓLNEGO RIGU — naprawione, każdy z testem
+
+Wszystkie trzy dawały wynik **zielony i nieprawdziwy**, więc trafiłyby też
+czat A, gdyby sięgnął po te narzędzia.
+
+1. **`sesja-tui.sh` przesuwał wszystkie znaczniki.** `script -q` **mimo `-q`
+   pisze nagłówek** („Skrypt uruchomiony…", u nas 165 B), a sprzątający go
+   `sed -i` na końcu **przesuwał cały strumień w lewo** — zapisane wcześniej
+   przesunięcia wskazywały o tyle bajtów za daleko i **każdy ekran był o krok
+   późniejszy** (kadr „pusta sesja" miał już wpisaną komendę, panele wychodziły
+   rozdarte w połowie przerysowania). Teraz nagłówek jest mierzony przed
+   usunięciem i odejmowany od znaczników. Test: prefiks znacznika „pole puste"
+   ma 0 wystąpień komendy, znacznik „komenda wpisana" — 2.
+2. **`tui.mjs` nie kadrował.** `przytnijOd/przytnijDo` chowały wiersze przez
+   `display:none`, ale wysokość obrazu bierze się z elementu `.xterm`, który
+   xterm.js wylicza z LICZBY WIERSZY — kadr znikał po cichu, a wszystkie zrzuty
+   wychodziły pełnowymiarowe (1600×1420, co do piksela tyle samo — to był
+   właśnie sygnał). Teraz kadrujemy przycięciem kontenera i przesunięciem taśmy
+   wierszy, a kadr obejmujący zero wierszy **kończy się kodem 5**. Test
+   pozytywny: 4 wiersze → 227 px wobec 1420 px pełnego ekranu; negatywny:
+   `przytnijOd: 90` na 40-wierszowym ekranie wywala narzędzie.
+3. **Czyszczenie pola wpisywania było nieodtwarzalne.** Poprzednia poprawka
+   („dwa Esc, nie jeden") była niepełna: **liczy się double-TAP**, a dwa wiersze
+   `KLAWISZ esc` dzieli 0,6 s i para się nie składa. Doszły dwa polecenia
+   scenariusza: `WYCZYSC` (oba Esc jednym zapisem) i **`KASUJ <n>`** (n
+   backspace'ów) — i to `KASUJ` jest domyślne, bo `WYCZYSC` zachowuje się
+   różnie zależnie od tego, co wisi nad polem.
+
+### Reguły obsługi TUI wyprowadzone pomiarem (nie zmieniać na oko)
+
+- **Panel z polem wyszukiwania** (`/config`, `/status`, `/permissions`,
+  `/plugin`) **nie zamyka się jednym Esc** — pierwszy czyści wyszukiwanie
+  („Esc to clear" w stopce). Po panelach stoją **TRZY** `KLAWISZ esc`.
+- **`WYCZYSC` na PUSTYM polu otwiera menu cofania** (Rewind) i połyka
+  wszystko, co wpiszemy dalej. Wołamy je raz, świadomie — właśnie po ten ekran.
+- **Menu podpowiedzi połyka pierwszy Esc**, więc po `/co`, `/sum`, `@`
+  sprzątamy `KLAWISZ esc` + `KASUJ <n>`.
+
+### INCYDENT: sesja nagraniowa zmieniła konfigurację właściciela
+
+Scenariusz z jednym Esc po `/config` zostawił panel otwarty; kolejne `WPISZ`
+poszło do **pola wyszukiwania panelu**, a `ENTER` **przełączył podświetlony
+przełącznik** — w `~/.claude/settings.json` właściciela pojawiło się
+`"autoCompactEnabled": false`. Wykryte przez porównanie dwóch zrzutów, które
+wyszły identyczne (`z21` i `z22` pokazywały tę samą zakładkę Config), i
+potwierdzone wpisem `⎿ Disabled auto-compact` w nagranym transkrypcie.
+**Przywrócone na `true`** (wartość sprzed zmiany, widoczna na zrzucie `z21`,
+i zarazem domyślna); `diff` potwierdza, że poza tym jednym kluczem plik jest
+identyczny. Kopii zapasowej nie było — `~/.claude/settings.json` nie jest
+w gicie i nie ma go w `~/.claude/backups/` (tam leżą tylko migawki
+`.claude.json`).
+
+**Zabezpieczenie:** `sesja-tui.sh` robi teraz **migawkę
+`~/.claude/settings.json` przed nagraniem i przywraca ją po**, głośno pisząc,
+że scenariusz nie domknął panelu. To rozszerzenie zasady 5 briefu („nic
+w globalnej konfiguracji"), która dotąd pilnowała tylko `git config --global`.
+Sprawdzone: suma kontrolna pliku przed i po kolejnym nagraniu jest ta sama.
+
+### Następny krok
+
+1. **Trzy ekrany lokalne, których jeszcze nie ma:** logowanie (K1 3.2 — robić
+   na **świeżym `HOME`**, żeby NIE ruszyć uwierzytelnienia właściciela; `/login`
+   w jego sesji jest wykluczone), sesja we własnym worktree i pytanie o zgodę
+   przy worktree spoza `.claude/worktrees/` (K1 4.7).
+2. **Dwa spoza TUI:** strona „Prompting Claude Opus 5" (K1 2.3) i arkusz
+   porównania modeli (K1 1.3).
+3. **Jedenaście wymagających odpowiedzi modelu** (sekwencja wywołań narzędzi,
+   wynik testów jako dowód, podgląd zmiany ze zgodą, transkrypt `Ctrl+O`,
+   panel subagentów, `/summarize-changes`, `/rewind` z prawdziwymi promptami,
+   ostrzeżenie o pominiętych plikach) — dopiero po odnowieniu limitu sesji.
