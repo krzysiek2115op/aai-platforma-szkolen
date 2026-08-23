@@ -186,8 +186,13 @@ Po zamknięciu treści i przelotu zrzutów (0.32.0) idziemy w tej kolejności
 i **nie zaczynamy niczego z tej listy z własnej inicjatywy** — właściciel
 otwiera każdy temat osobno:
 
-1. **Audyt kursów** — właściciel omawia zakres osobno.
-2. **Higiena repo** — jw.
+1. ~~**Audyt kursów**~~ **ZROBIONY I NAPRAWIONY (0.33.0, 2026-08-24).**
+   Zakres ustalił właściciel; raport i rozliczenie napraw:
+   [tresc-kursow/AUDYT-KONCOWY.md](../../tresc-kursow/AUDYT-KONCOWY.md).
+   Proza okazała się zdrowa — rozjazd siedział w tekstach sprzedażowych
+   (BLAD-015), w seedzie i w narzędziach (BLAD-014, BLAD-016). Publiczny
+   podgląd przebudowany za zgodą właściciela.
+2. **Higiena repo** — właściciel omawia zakres osobno.
 3. **Dopracowanie WIDOKU TREŚCI KURSU** (nowa pozycja, decyzja właściciela
    2026-08-23). Problem w jego słowach: *strona z kursami wygląda tanio
    i słabo wypada w porównaniu do strony sprzedażowej*. Chodzi o **widok

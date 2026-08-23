@@ -422,7 +422,10 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      Pomiary powtórzyć po złożeniu kursów w kreatorze (krok 4).
 
      **Żywy podgląd:** `https://matthewplugins.github.io/szkolenia-podglad/szkolenia`
-     — serwuje build 0.25.0 (zweryfikowany co do chunka), preloady
+     — **od 2026-08-24 serwuje build 0.33.0** (publikacja za zgodą właściciela
+     po naprawach audytu; skrypt sam zweryfikował zgodność co do chunka,
+     a kontrola na żywym adresie dała 0 trafień na wzorce nieprawd).
+     Wcześniej stał na 0.25.0. Preloady
      fontów w HTML, cztery miniatury OG `image/png` 200.
 
      **Komendy:** `npm run db1:up`, `npm run dev` → `:3001`,

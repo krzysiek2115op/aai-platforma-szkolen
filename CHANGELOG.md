@@ -77,6 +77,20 @@ w seedzie i w trzech narzędziach.
   znacznik, zamiast psuć istniejący — po usunięciu ostatnich dwunastu umarła
   po raz drugi (pierwszy raz 2026-08-23). Audyt mutacyjny złapał to od razu.
 
+- **README kłamał w pięciu miejscach o własnym projekcie.** Zrzut katalogu
+  w nagłówku linkował do `http://localhost:3001/szkolenia`, więc czytelnik na
+  GitHubie trafiał we własny, nieuruchomiony serwer (publiczny adres podglądu
+  istniał w repo od 0.23.0, tyle że w tabeli niżej). Sam zrzut był z 18 sierpnia
+  i reklamował „13 MODUŁÓW · 57 LEKCJI · 11 GODZIN" przy realnych 12 · 73 · 20 —
+  odtworzony z produkcyjnego `next start`, z asercją na liczby przed zapisem
+  pliku. Do tego: „treść kursów jeszcze ROBOCZA" przy podglądzie na żywo,
+  uzasadnienie `noindex` oparte na roboczej treści, „62 testy" przy 75 realnych
+  i opis `npm run db1:seed`, który nie ostrzegał, że komenda NAJPIERW KASUJE
+  kursy — czyli razem z prozą 73 lekcji.
+- **Podgląd publiczny przebudowany** (zgoda właściciela 2026-08-24): żywy adres
+  serwuje 0.33.0, kontrola po deployu daje **0 trafień** na wzorce nieprawd na
+  obu stronach sprzedażowych, a katalog pokazuje 2 · 12 · 73 · 20.
+
 ### Dodane
 
 - `straznik-obietnic` — sprzedaż nie ma prawa obiecywać czegoś spoza produktu:

@@ -137,11 +137,20 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run db1:seed` | odtwórz oba kursy od zera: program (lustro bazy) + sekcje sprzedażowe. **UWAGA: najpierw KASUJE kursy o tych slugach**, czyli razem z prozą 73 lekcji — po nim trzeba wgrać treść `npm run db1:tresc` |
 | `npm run db1:tresc` | wgraj prozę lekcji z `tresc-kursow/**/proza-*.md` do bazy — drogą kreatora (jedyny AJAX); `-- --sprawdz` sam sprawdza, nic nie wysyła |
 
+> [!NOTE]
+> **Baza nie jest źródłem prawdy — jest kopią roboczą, z której renderuje
+> się strona.** Źródłem prozy są pliki `tresc-kursow/**/proza-*.md` (decyzja
+> właściciela 2026-08-19), a programu i sekcji sprzedażowych —
+> `tools/seed/seed-przyklady.ts`. Utrata wolumenu bazy nic nie kosztuje:
+> `db1:migruj` → `db1:seed` → `db1:tresc` odtwarzają całość z repo.
+> Dlatego poprawki idą NAJPIERW do repo, dopiero stamtąd do bazy.
+
 Narzędzia uruchamiane ręcznie:
 
 | Komenda | Co sprawdza / robi |
 |---|---|
 | `node tools/straznicy/uruchom-wszystkie.mjs` | wszyscy strażnicy naraz (runner sam znajduje pliki `straznik-*.mjs`) |
+| `ZRZUTY_RIG=<katalog> node tools/zrzuty/test-asercji.mjs` | 15 testów bramek rigu zrzutów (asercja treści i prywatność — BLAD-016). Rig to katalog spoza repo z `puppeteer-core`, `sharp`, `@xterm/xterm` i `@xterm/addon-serialize`; przeglądarka jest systemowa (`/usr/bin/firefox`), więc nic się nie pobiera. Bez `ZRZUTY_RIG` testy padają na braku rigu, nie na kodzie |
 | `node tools/zrzuty/manifest.mjs` | stan przelotu zrzutów ekranu w kursach — liczony z prozy, nie z osobnej listy (brief: [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md)) |
 | `node tools/smoke/smoke-d4.ts` | katalog renderuje kursy z bazy na produkcyjnym serwerze + golden + nagłówki bezpieczeństwa |
 | `node tools/smoke/smoke-d5.ts` | strona sprzedażowa renderuje pełny kurs z bazy + golden programu |
