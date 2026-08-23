@@ -137,48 +137,48 @@ Czat B pracuje na SWOIM worktree, nie na cudzym.
 Zapisane w repo świadomie: po `/clear` nie ma z czego ich odtworzyć,
 a oba czaty muszą wystartować z tym samym kompletem ustaleń.
 
-### Czat A — Kurs 2 (`jak-uzywac-githuba`), 36 miejsc
+### Czat A — Kurs 2 (`jak-uzywac-githuba`), stan po turze 2
 
 ```
-Jesteś CZATEM A przelotu zrzutów. Terytorium: KURS 2
-(tresc-kursow/jak-uzywac-githuba) — 36 miejsc do zrobienia BEZ logowania:
-19 publicznych widoków GitHuba, 12 terminala, 5 GitHub Desktop.
+Jesteś CZATEM A przelotu zrzutów, tura 3. Terytorium: KURS 2
+(tresc-kursow/jak-uzywac-githuba). Worktree /home/krzysiek/Pod-strona-Szkolenia-k2-A,
+gałąź feat/tresc-k2-modul-2-3, drzewo czyste, strażnicy 25/25.
 
-Worktree /home/krzysiek/Pod-strona-Szkolenia-k2-A, gałąź
-feat/tresc-k2-modul-2-3 (ma już SCALONĄ prozę obu kursów). Baza: podman,
-`npm run db1:up`. Port 3012, gdyby był potrzebny serwer.
-
-PRZECZYTAJ NAJPIERW, nie wyprowadzaj niczego od nowa:
-- docs/plugin-1/PRZELOT-ZRZUTOW.md — brief WIĄŻĄCY (zasady, rig, podział,
-  czego nie robimy). To instrukcja, nie materiał do streszczania.
-- tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md — 10 znalezisk, w tym
-  TRZY DO POPRAWKI w tej turze (wiersze 8–10: zrzuty z1.5 z04, 1.4 z10,
-  3.2 z02).
+PRZECZYTAJ NAJPIERW (to instrukcje, nie materiał do streszczania):
+- docs/plugin-1/PRZELOT-ZRZUTOW.md — brief WIĄŻĄCY, a w nim sekcja
+  „Czat A, tura 2": stan, PUŁAPKI, przepis na zrzuty pulpitu, zmiany
+  w repozytorium demonstracyjnym.
+- tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md — wiersze 11–13 to trzy
+  poprawki do zrobienia W PIERWSZEJ KOLEJNOŚCI.
 - CLAUDE.md — zasady projektu.
 
 STAN LICZ KOMENDĄ, nigdy z pamięci:
   export ZRZUTY_KORZEN=$PWD
   node tools/zrzuty/manifest.mjs --kurs K2
+  node tools/zrzuty/manifest.mjs --json > /tmp/m.json
+  node tools/zrzuty/wepnij.mjs /tmp/m.json --sprawdz
+
+KOLEJNOŚĆ ZATWIERDZONA PRZEZ WŁAŚCICIELA — odchaczać po kolei:
+1. Poprawić trzy podpisy/prozę (znaleziska 11–13). UWAGA na pułapkę:
+   poprawka podpisu zmienia oczekiwaną nazwę pliku zrzutu, więc po
+   każdej poprawce PRZEMIANOWAĆ plik na nazwę z manifestu — inaczej
+   wepnij zostawi znacznik, jakby zrzutu nie było.
+2. wepnij.mjs — 23 gotowe zrzuty wchodzą do prozy.
+3. GitHub Desktop, 4 zrzuty (fork z Flathuba JEST zainstalowany;
+   przepis na zagnieżdżony kompozytor w briefie — okno ubić po robocie).
+4. Zrzut edytora kodu (VS Code), M1 lekcja 5 — klon na commicie 4bc1b45.
+Potem: lokalny podgląd OBU kursów W STYLU STRONY do oceny wzrokowej
+właściciela. To jeszcze NIE jest zrobione.
 
 RIG (zależności POZA package.json — lekcja z D5):
   export ZRZUTY_RIG=<scratchpad-sesji>/rig
   mkdir -p "$ZRZUTY_RIG" && (cd "$ZRZUTY_RIG" && npm init -y && npm i puppeteer-core sharp)
 Przeglądarka: systemowy Firefox, nic nie pobieramy.
 
-Repozytorium demonstracyjne github.com/krzysiek2115op/stargazers-log
-JUŻ ISTNIEJE ze wszystkimi stanami; odtwarza je
-`tools/zrzuty/buduj-stargazers-log.sh` (etapy: m1 m2 m3 m4 m5 pr konflikt
-scalony). Klon roboczy skryptu żyje w scratchpadzie POPRZEDNIEJ sesji —
-jeśli go nie ma, sklonuj repo na nowo, nie przebudowuj repozytorium.
-
-CZEGO NIE RUSZASZ: katalogu tresc-kursow/jak-korzystac-z-claude (to czat B);
-zrzutów wymagających logowania (42 miejsca Kursu 2 — Settings, ochrona
-gałęzi, sekrety, formularze, 2FA, klucze SSH — czekają na wspólne
-posiedzenie z właścicielem); audytu kursów; znaczników [EKRAN]
-w scenariuszach D7.
-
-Po skończeniu 36: zbuduj lokalny podgląd obu kursów W STYLU STRONY
-(właściciel chce ocenić wizualnie) — to jeszcze NIE jest zrobione.
+CZEGO NIE RUSZASZ: tresc-kursow/jak-korzystac-z-claude (to czat B);
+49 miejsc Kursu 2 odłożonych na wspólne posiedzenie z właścicielem
+(manifest sam je odkłada — nie próbować ich robić); audytu kursów;
+znaczników [EKRAN] w scenariuszach D7.
 ```
 
 ### Czat B — Kurs 1 (`jak-korzystac-z-claude`), 36 miejsc
