@@ -19,6 +19,13 @@ osobnego pliku stanu**.
 Stan na 2026-08-23 po pierwszej partii: **173 miejsca, 33 zrobione,
 72 do zrobienia teraz, 68 po zalogowaniu.**
 
+Stan na 2026-08-23 wieczorem, na gałęzi `feat/zrzuty-k1` (czat B): **172 miejsca**
+(jedno zniknęło z prozy przy znalezisku B8), **68 zrobionych, 36 do zrobienia
+teraz, 68 po zalogowaniu**. **Kurs 1 nie ma już ani jednego zrzutu do zrobienia
+bez logowania** — 45 zrobionych, 27 czeka na wspólne posiedzenie z właścicielem.
+Pozostałe 36 to Kurs 2, czyli terytorium czatu A; liczba na TEJ gałęzi nie widzi
+jego najnowszych commitów, więc po scaleniu przelicz komendą.
+
 ## Podział terytoriów — ROZŁĄCZNY, po KURSACH
 
 | | Czat A (worktree `…-k2-A`, gałąź `feat/tresc-k2-modul-2-3`) | Czat B (własny worktree i gałąź) |

@@ -13,28 +13,30 @@
 # wspólnego katalogu. Prompt każe zmienić OBA pliki narzędziem do edycji:
 # zwykły plik da się przywrócić, dowiązanie zostanie pominięte.
 #
-# TRYB „ACCEPT EDITS" (dwa razy Shift+Tab z trybu startowego: auto → manual →
-# accept edits). Powód wyprowadzony pomiarem: reguła `ask` na `Edit(./lib/**)`
-# z ustawień projektu zatrzymuje edycję PYTANIEM nawet w trybie auto, a
-# scenariusz sprząta potem pole podwójnym Esc — który to pytanie ANULUJE.
-# Pierwsze podejście (sesja G) skończyło się więc bez ani jednej edycji i bez
-# menu cofania. Tryb „accept edits" zatwierdza edycje plików sam, więc
-# scenariusz nie musi trafiać Enterem w okno, którego czasu pojawienia się
-# nie zna.
+# ZGODY TRZEBA ZATWIERDZAĆ ENTEREM — i to jest sedno tego scenariusza.
+# Reguła `ask` na `Edit(./lib/**)` z ustawień projektu pyta w KAŻDYM trybie:
+# ani „auto", ani „accept edits" jej nie omijają (na tym polega `ask`).
+# Dwie wcześniejsze próby poległy na tym samym: podwójny Esc, którym scenariusz
+# sprząta pole przed otwarciem menu cofania, ANULOWAŁ wiszące pytanie o zgodę,
+# więc żadna edycja nie powstała i nie było czego przywracać. Dlatego po
+# wysłaniu promptu scenariusz wysyła kilka Enterów rozłożonych w czasie:
+# każdy zatwierdza podświetlone „Yes", a Enter na pustym polu nic nie robi,
+# więc nadmiarowy jest nieszkodliwy.
 CZEKAJ 16
 ENTER
 CZEKAJ 12
-KLAWISZ shift-tab
-CZEKAJ 2
-KLAWISZ shift-tab
-CZEKAJ 2
-ZNACZNIK tryb
 
 WPISZ dopisz narzędziem Edit na początku plików lib/koszyk.js oraz lib/formaty.js komentarz // sprawdzone
 ENTER
-CZEKAJ 70
-ZNACZNIK po-edycji-1
+CZEKAJ 35
+ENTER
+CZEKAJ 20
+ENTER
+CZEKAJ 20
+ENTER
 CZEKAJ 25
+ZNACZNIK po-edycji-1
+CZEKAJ 20
 ZNACZNIK po-edycji-2
 
 WYCZYSC
@@ -45,7 +47,9 @@ CZEKAJ 2
 ZNACZNIK rewind-wybor
 ENTER
 CZEKAJ 4
-ZNACZNIK rewind-opcje
+ZNACZNIK rewind-opcje-1
+CZEKAJ 3
+ZNACZNIK rewind-opcje-2
 ENTER
 CZEKAJ 6
 ZNACZNIK po-przywroceniu-1

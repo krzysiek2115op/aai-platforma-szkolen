@@ -2963,6 +2963,60 @@ bez zmian; zapis jest po to, żeby nikt nie dopisał „podświetlona" w przysz�
 nazwa skasowanego pliku) — nazwa wywodzi się z podpisu, a podpis zmienił się
 przy naprawie B6.
 
+### Dwanaście ekranów wymagających modelu — ZROBIONE (2026-08-23, czat B)
+
+Kurs 1 nie ma już ani jednego zrzutu do zrobienia bez logowania:
+**45 zrobionych, 0 na teraz, 27 po zalogowaniu** (`manifest.mjs --kurs K1`).
+Pięć sesji nagraniowych, wszystkie scenariusze w repo, wszystkie ekrany pod
+asercjami z podpisów. Cały komplet odtwarza się jedną komendą
+(`kolejka.mjs tools/zrzuty/spec/k1` — 16/16 OK przy kontrolnym przebiegu).
+
+**Cztery rzeczy wyprowadzone POMIAREM, nie z dokumentacji** (każda kosztowała
+nagranie, każda jest zapisana w nagłówku scenariusza, żeby nie kosztowała drugi
+raz):
+
+1. **Sesja startuje w trybie AUTO**, w którym pytania o zgodę nie powstają.
+   Ekrany 3.2 i 3.7 wymagają zejścia `Shift+Tab` do trybu ręcznego.
+2. **Reguła `ask` pyta w KAŻDYM trybie** — także w „accept edits". Dwie sesje
+   poległy na tym, że scenariusz sprzątał pole podwójnym Esc, a ten ANULOWAŁ
+   wiszące pytanie o zgodę; edycja nigdy nie powstawała, więc nie było czego
+   przywracać. Scenariusz musi te pytania zatwierdzać Enterem.
+3. **`ls -la` nie pyta o zgodę** (wbudowany zestaw odczytowy — mówi to sama
+   proza 3.7), więc ekran „pytanie o komendę powłoki" wymusza dopiero komenda
+   zapisująca. Przy okazji: wyjście `ls -la` wypisuje właściciela pliku, czyli
+   NAZWĘ UŻYTKOWNIKA SYSTEMU — stąd bramka prywatności (niżej).
+4. **Ostrzeżenie „Restored the code, but skipped N files" powstaje przy
+   DOWIĄZANIU**, nie przy zmianie zrobionej komendą powłoki. Warunek wzięty
+   z kodu Claude Code 2.1.241 (`skippedLinks`: „files NOT restored… because
+   a symlink, hard link, or other non-regular file was detected at the tracked
+   path"), a nie zgadnięty — dwie sesje na złej hipotezie skończyły się ekranem
+   „The code will be unchanged" bez opcji przywrócenia kodu. Projekt
+   demonstracyjny ma teraz plik wciągany dowiązaniem symbolicznym.
+
+**Bramka prywatności (nowa).** Reguła 4 briefu mówi, że danych właściciela
+w materiale nie ma i robi to rig automatycznie — a pilnowała tego wyłącznie
+lista podmian, czyli to, co ktoś przewidział. Nagranie z `ls -la` pokazało
+nazwę użytkownika w kolumnie właściciela pliku. Rig podmienia ją teraz
+(z zachowaniem szerokości), a **kontrola patrzy na GOTOWY EKRAN** i odmawia
+zapisu (kod 9), gdy niesie identyfikator właściciela; identyfikatory bierze
+ze środowiska, więc działa na cudzej maszynie. Testy negatywne biorą przypadki,
+których podmiana z definicji nie widzi: nazwę rozbitą sekwencją ustawiania
+kursora i adres pocięty na dwa elementy DOM.
+
+**Znaleziska:** B9 (`/permissions` nie podświetla aktywnej zakładki),
+B10 (główny widok zwija wywołania narzędzi — sekwencja jest w transkrypcie
+`Ctrl+O`), B11 (wiersz delegowania pokazuje opis ZADANIA, nie pole
+`description` subagenta — przykład w prozie był spisany z dokumentacji zamiast
+z ekranu). Proza 4.8 dostała przy okazji pełne brzmienie komunikatu: sam
+ekran wymienia **trzy** powody pominięcia, nie jeden.
+
+**Czego NIE ma w repo i dlaczego:** surowych nagrań sesji (~0,5 MB strumieni
+ANSI). Niosą wyjście komend z nazwą użytkownika systemu — a raz wpuszczone do
+gita zostają tam na zawsze. Odtworzenie idzie więc przez ponowne nagranie
+scenariuszem wskazanym w polu `scenariusz` każdej specyfikacji; nazwy znaczników
+są stabilne (definiuje je scenariusz), przesunąć mogą się tylko wiersze kadru —
+a wtedy **asercja odmówi zapisu**, zamiast po cichu wypuścić zły obraz.
+
 ### Skutek werdyktu w liczniku
 
 Cztery unieważnione ekrany są **wycofane z prozy do znaczników, a pliki obrazów
