@@ -705,3 +705,65 @@ z właścicielem, czy czat B oddał prozę Kursu 1 (jego 16 miejsc na
 `feat/zrzuty-k1`) — pliki K1 to terytorium czatu B i równoległa edycja
 = konflikt. Potem: PR czatu A (pierwszy), merge → tag → release, audyt
 kursów, higiena repo.
+
+## Co zostało z całego przelotu: 23 miejsca Kursu 1 (stan na 2026-08-23, wieczór)
+
+**Stan liczy komenda**, nie ten rozdział: `node tools/zrzuty/manifest.mjs`
+→ 160 miejsc, 137 zrobionych, 23 po zalogowaniu (K1: claude-ai 16, api 5,
+console 2). Kurs 2 zamknięty (88/88). Jedna gałąź: `feat/tresc-k2-modul-2-3`
+(scalone `feat/zrzuty-k1` czatu B).
+
+Te 23 miejsca to **inna klasa pracy niż reszta przelotu** i dlatego zostały
+odłożone decyzją właściciela: nie są nawigacją po interfejsie, tylko
+**prowadzeniem prawdziwych rozmów na koncie właściciela** (16 zrzutów
+claude.ai: dwa okna obok siebie, podgląd myślenia, wgrany obraz, komentarz
+`@claude` pod zgłoszeniem) i **płatnymi wywołaniami API** (5 zrzutów: pole
+`usage`, blok `tool_use`, błąd 400 przy prefillu, prompt caching; plus dwa
+„console", które też wymagają ruchu: lista wsadów i Workbench z odpowiedzią
+`{"is_harmful": true}`). Każdy taki zrzut zostawia ślad w historii konta
+i kosztuje — stąd osobna sesja i osobna zgoda.
+
+### Prompt startowy sesji dokańczającej Kurs 1 (do skopiowania po /clear)
+
+```
+Jesteś czatem przelotu zrzutów — DOKOŃCZENIE KURSU 1: 23 miejsca zza
+logowania (claude.ai 16, API 5, Console 2). Worktree
+/home/krzysiek/Pod-strona-Szkolenia-k2-A, gałąź feat/tresc-k2-modul-2-3
+(wypchnięta, zawiera scalony dorobek obu czatów), drzewo czyste,
+strażnicy 26/26.
+
+PRZECZYTAJ NAJPIERW: docs/plugin-1/PRZELOT-ZRZUTOW.md — sekcje „Wspólne
+posiedzenie (czat A)" i ta; potem CLAUDE.md.
+
+STAN LICZ KOMENDĄ, nigdy z pamięci:
+  export ZRZUTY_KORZEN=$PWD
+  node tools/zrzuty/manifest.mjs --kurs K1
+
+RIG (nowa sesja = nowy scratchpad = instalacja i LOGOWANIE OD NOWA):
+  export ZRZUTY_RIG=<scratchpad-sesji>/rig
+  export ZRZUTY_PROFIL=<scratchpad-sesji>/profil
+  mkdir -p "$ZRZUTY_RIG" && (cd "$ZRZUTY_RIG" && npm init -y && npm i puppeteer-core sharp marked)
+  node tools/zrzuty/zaloguj.mjs claude --recznie     # claude.ai
+  /usr/bin/firefox -profile "$ZRZUTY_PROFIL" -no-remote -new-instance https://platform.claude.com/login
+Właściciel loguje się SAM, w zwykłym oknie: Google odmawia logowania
+w przeglądarce sterowanej WebDriverem. Okno trzeba ZAMKNĄĆ, żeby Firefox
+zrzucił ciasteczka na dysk.
+
+BRAMKA (reguła właściciela): każda specyfikacja leży w repo
+`tools/zrzuty/spec/k1/*.json` i deklaruje `wymagaTekstu` — fragmenty
+wyprowadzone Z PODPISU, nigdy z tego, co akurat wyszło. Narzędzie odmawia
+zapisu obrazu, gdy ekranu nie ma w treści. Pilnuje tego straznik-asercji.
+
+PRYWATNOŚĆ — na claude.ai KRYTYCZNA: pasek boczny pokazuje TYTUŁY PRYWATNYCH
+ROZMÓW właściciela. Trzeba je podmienić albo schować PRZED zrzutem. W Konsoli
+podmieniać dodatkowo IMIĘ w nagłówku konta i SALDO w USD — bramka
+`sprawdzPrywatnosc` zna tylko login, e-mail, $USER i $HOME.
+
+ZGODA NA KOSZTY: 16 zrzutów claude.ai wymaga prowadzenia rozmów na koncie
+właściciela (ślad w historii, zużycie limitu), 5+2 wymaga płatnych wywołań
+API. Ustal z właścicielem zakres i klucz PRZED pierwszym wywołaniem.
+
+PO PARTII: wepnij.mjs, stykówka, commit po każdym module, potem
+PR gałęzi feat/tresc-k2-modul-2-3 → merge → tag → release (CI stoi do
+1 września — dowody lokalne), audyt kursów, higiena repo.
+```
