@@ -5,6 +5,68 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.32.0] — 2026-08-23
+
+Krok 3 domknięty w warstwie treści: **oba kursy mają komplet prozy
+w narzędziu i przelot zrzutów zamknięty**. Kurs 1: 41/41 lekcji, 566 221
+znaków dla klienta; Kurs 2: 32/32 lekcje po cięciu mocnym, 367 412 znaków
+— wszystko wgrane kreatorem (wgrywarka HTTP) i zweryfikowane dwustronnie
+per lekcja (pliki ↔ SQL, zgodność co do znaku; różnica 7 znaków w sumach
+to znaki spoza BMP — Postgres liczy znaki, JS jednostki UTF-16). Zrzuty:
+**148 z 160 miejsc**, wszystkie pod bramkami rigu; 12 miejsc otwartych
+DECYZJĄ właściciela (niżej).
+
+### Dodane
+
+- **proza modułów 2–6 Kursu 2** (26 lekcji ponad kalibracyjny moduł 1;
+  dorobek obu czatów scalony na jedną gałąź `feat/tresc-k2-modul-2-3`)
+  wraz z briefami modułów i mostami między lekcjami;
+- **148 zrzutów ekranu w prozie obu kursów** (`tresc-kursow/**/zrzuty/*.webp`,
+  ~40–90 kB każdy): Kurs 2 komplet 88/88, Kurs 1 60/72 — GitHub za
+  logowaniem, panele Claude Code ze scenariuszy PTY, dokumentacja,
+  rozmowy prowadzone na koncie właściciela (za jego zgodą, prompty
+  DOSŁOWNIE z sekcji „Prompty z tej lekcji");
+- **rig zrzutów w repo** (`tools/zrzuty/`): specyfikacje JSON z obowiązkową
+  maszynową asercją treści (`wymagaTekstu` — fragmenty Z PODPISU, nigdy
+  z tego, co wyszło; narzędzie ODMAWIA zapisu obrazu bez nich), bramka
+  prywatności (`sprawdzPrywatnosc` + strukturalna kontrola tytułów rozmów
+  na claude.ai), bramka `wymagaOdpowiedzi` (w kadrze MUSI leżeć odpowiedź
+  modelu), akcje prowadzenia rozmowy (`wpiszWiersze` przez Shift+Enter,
+  `czekajNaKoniec` po stabilności tekstu, `wgrajPlik`), rig TUI
+  (scenariusze PTY + znaczniki + render xterm) i `wepnij.mjs` wpinający
+  obrazy PO PODPISIE, nie po numerze wiersza;
+- strażnicy: `straznik-asercji` (specyfikacja bez asercji = czerwone CI)
+  i `straznik-odsylaczy-kursu`; razem 26, audyt mutacyjny 85/85;
+- rejestr znalezisk przelotu (`tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md`,
+  35 pozycji): podpisy wyprzedzające ekran poprawiane W PROZIE, nigdy
+  w asercji.
+
+### Zmienione
+
+- pięć podpisów zrzutów w Kursie 1 przestało obiecywać „dwa okna obok
+  siebie" — claude.ai nie ma widoku dzielonego, a składanie ekranów
+  z fragmentów łamie zasadę „zero zmyślania"; te same porównania
+  pokazuje jedna rozmowa z dwoma promptami (znalezisko 31);
+- lekcja 4.3 Kursu 1: scenariusz blokady `.env` prosi wprost o narzędzie
+  Edit, bo przy zwykłej prośbie Claude zmienia plik komendą powłoki
+  i hook `Edit|Write` nie ma czego blokować — dokładnie zawężenie, które
+  ta lekcja podaje (znalezisko 33).
+
+### Decyzje właściciela (2026-08-23)
+
+- **przelot zrzutów ZAMKNIĘTY na 148/160 — do robienia zrzutów nie
+  wracamy.** Dziewięć miejsc odrzucone z powodu kosztów (klucz API
+  i doładowanie Konsoli: 5 × `api`, 2 × Konsola, strumieniowanie 5.5;
+  aplikacja Claude na repozytorium demonstracyjnym dla `@claude` 4.6),
+  trzy zablokował Cloudflare (2.4, 5.6, 5.8 — wyzwanie dla sterowanej
+  przeglądarki nie mija; ręczne okno przechodzi). Te 12 miejsc
+  rozstrzygamy przy domykaniu kursu poprawką podpisu i prozy albo
+  usunięciem znacznika;
+- **rozmowy demonstracyjne z konta claude.ai skasować, gdy wróci dostęp**
+  — po potwierdzeniu listy z właścicielem;
+- rozmowy na koncie właściciela prowadził agent (zgoda z początku fazy);
+  klucz API NIE powstał, konto bez ruchu — widać to na zrzutach Konsoli.
+
 ## [0.31.0] — 2026-08-22
 
 Krok 3, etap 3 w części Kursu 1: **komplet prozy w narzędziu — 41 z 41

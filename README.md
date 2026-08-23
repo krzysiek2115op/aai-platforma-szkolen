@@ -46,8 +46,8 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.31.0** |
-| **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**). [Plan domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): kroki 1–2 zamknięte (0.25.0, 0.29.0); krok 3 w toku — **Kurs 1 KOMPLETNY w narzędziu (41/41 lekcji prozy)**, Kurs 2 przed startem (cięcie programu + kalibracja) → **B7** → WordPress |
+| **Wersja** | **0.32.0** |
+| **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**). [Plan domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): kroki 1–2 zamknięte (0.25.0, 0.29.0); krok 3: **oba kursy KOMPLETNE w narzędziu** (Kurs 1: 41/41, Kurs 2: 32/32 lekcji prozy po cięciu mocnym) + przelot zrzutów zamknięty (148/160, reszta decyzją właściciela) → **B7** → WordPress |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
