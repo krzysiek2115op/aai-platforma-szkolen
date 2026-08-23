@@ -1,6 +1,7 @@
 import { puppeteer, sharp } from './zaleznosci.mjs';
 // Strzelba do zrzutów: node zrob-zrzut.mjs <spec.json>
-// Spec: { wyjscie, url, viewport?, czekajMs?, selektor? | clip?, pelnaStrona?,
+// Spec: { wyjscie, url, viewport?, czekajMs?, selektor? | clip? | kadrOdSelektora?,
+//         pelnaStrona?,
 //         patch?: [{z, na}], ukryj?: [selektory], akcje?: [{typ, selektor?, x?, y?}],
 //         zoom?, jakosc? }
 import { readFileSync } from 'node:fs';
@@ -38,7 +39,13 @@ try {
   for (const a of spec.akcje ?? []) {
     if (a.typ === 'klik') await page.click(a.selektor);
     if (a.typ === 'hover') await page.hover(a.selektor);
-    if (a.typ === 'scrollDo') await page.evaluate(s => document.querySelector(s)?.scrollIntoView({ block: a?.blok ?? 'center' }), a.selektor);
+    // UWAGA: ciało `evaluate` biegnie W PRZEGLĄDARCE, gdzie `a` nie istnieje —
+    // wcześniejsza wersja sięgała po `a.blok` w tym ciele i akcja `scrollDo`
+    // wywalała się z ReferenceError przy KAŻDYM użyciu. Wszystko, czego
+    // potrzebuje strona, przekazujemy argumentem.
+    if (a.typ === 'scrollDo') await page.evaluate(
+      ({ selektor, blok }) => document.querySelector(selektor)?.scrollIntoView({ block: blok }),
+      { selektor: a.selektor, blok: a.blok ?? 'center' });
     if (a.typ === 'scrollY') await page.evaluate(y => window.scrollTo(0, y), a.y);
     if (a.typ === 'czekaj') await new Promise(r => setTimeout(r, a.ms));
     if (a.typ === 'eval') await page.evaluate(a.kod);
@@ -86,6 +93,23 @@ try {
     zawiera().forEach(e => e.remove());
   });
   await new Promise(r => setTimeout(r, 300));
+
+  // `clip` Puppeteera liczy się od początku DOKUMENTU, nie od okna — samo
+  // przewinięcie do sekcji niczego nie kadruje (pierwsza próba oddała górę
+  // strony). Dlatego kadr od sekcji wyliczamy z jej pozycji w dokumencie.
+  if (spec.kadrOdSelektora) {
+    const k = spec.kadrOdSelektora;
+    const prostokat = await page.evaluate(({ selektor, margines }) => {
+      const el = document.querySelector(selektor);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: 0, y: Math.max(0, r.top + window.scrollY - (margines ?? 24)),
+               szerokoscStrony: document.documentElement.scrollWidth };
+    }, { selektor: k.selektor, margines: k.marginesGora });
+    if (!prostokat) { console.error(`zrzut: nie ma elementu "${k.selektor}" — nie ma czego kadrować`); process.exit(6); }
+    spec.clip = { x: prostokat.x, y: prostokat.y,
+                  width: k.szerokosc ?? prostokat.szerokoscStrony, height: k.wysokosc ?? 700 };
+  }
 
   let png;
   if (spec.selektor) {
