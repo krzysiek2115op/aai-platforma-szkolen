@@ -2831,16 +2831,27 @@ Sprawdzone: suma kontrolna pliku przed i po kolejnym nagraniu jest ta sama.
 1. ~~Ekrany lokalne~~ **ZROBIONE — 32/73, zostaje 14 na teraz.** Doszły
    logowanie (K1 3.2) i sesja we własnym worktree (K1 4.7), scenariusze
    `logowanie.txt` i `sesja-w-worktree.txt`.
-2. **Dwa spoza TUI:** strona „Prompting Claude Opus 5" (K1 2.3, przeglądarka)
-   i arkusz porównania modeli (K1 1.3, do zbudowania).
-3. **Dwanaście wymagających odpowiedzi modelu** — sekwencja wywołań narzędzi,
+2. ~~Dwa spoza TUI~~ **ZAMKNIĘTE.** Strona „Prompting Claude Opus 5" (K1 2.3)
+   wpięta. Arkusz porównania modeli (K1 1.3) **decyzją właściciela z 2026-08-23
+   przestał być zrzutem** — w prozie stoi teraz prawdziwa tabela do wypełnienia
+   własnymi pomiarami (znalezisko B8). Powód: nie ma lokalnie arkusza
+   kalkulacyjnego, tabela w HTML udająca arkusz łamałaby zakaz rysowania
+   interfejsów, a liczby byłyby zmyślone.
+3. **Dwanaście wymagających odpowiedzi modelu — CAŁA POZOSTAŁA PRACA
+   partii „teraz" (stan: 33 zrobione, 12 zostaje, 27 po zalogowaniu).
+   Decyzja właściciela 2026-08-23: robić je w OSOBNEJ SESJI po odnowieniu
+   limitu**, nie doklejać do sesji, która sama ten limit zjada. Nagranie musi
+   pójść **za jednym razem**, bo jedna sesja daje kilkanaście ekranów —
+   przerwanie w połowie oznacza powtórzenie całości. Lista: — sekwencja wywołań narzędzi,
    wynik testów jako dowód, podgląd zmiany ze zgodą, pytanie o zgodę na komendę
    powłoki z `Ctrl+E`, transkrypt `Ctrl+O`, panel subagentów, wiersz delegowania,
    `/summarize-changes`, `/rewind` z prawdziwymi promptami, ostrzeżenie
    o pominiętych plikach, lista czytanych plików oraz **pytanie o zgodę przy
    wejściu w worktree spoza `.claude/worktrees/`** (K1 4.7 — wymaga, żeby model
    sam wywołał `EnterWorktree`, więc nie jest ekranem lokalnym, jak zakładałem).
-   Wszystkie po odnowieniu limitu sesji.
+   Projekt demonstracyjny (`bash tools/zrzuty/buduj-projekt-demo.sh`) ma pod nie
+   gotowe podkłady: dwa naprawdę padające testy, skill `/summarize-changes`,
+   subagenta `code-improver`, 11 hooków i dwa serwery MCP.
 
 ### Dwa ustalenia z tej partii
 
