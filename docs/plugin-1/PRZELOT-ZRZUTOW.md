@@ -329,3 +329,100 @@ Wszystko w granicach zasady 6 (wolno ruszać **wyłącznie** `stargazers-log`):
   wypychaniu — tak jak każe proza.
 
 Konfiguracja Gita właściciela i jego `~/.ssh` **nietknięte**.
+
+## Czat A, tura 3 (2026-08-23) — co domknięte, co zablokowane
+
+**Stan liczy komenda** (`node tools/zrzuty/manifest.mjs --kurs K2`): 47 zrobionych,
+**4 do zrobienia** (same ekrany GitHub Desktopu), 49 po zalogowaniu.
+
+Odchaczone z kolejności zatwierdzonej przez właściciela: (1) trzy poprawki
+podpisów i prozy ze znalezisk 11–13, (2) wpięcie 23 zrzutów, (4) zrzut edytora
+kodu. Punkt (3) — GitHub Desktop — **stoi na przeszkodzie technicznej opisanej
+niżej** i czeka na decyzję właściciela.
+
+### GitHub Desktop nie startuje na tej maszynie (nie „nie umiem zrobić zrzutu")
+
+Flatpak `io.github.shiftey.Desktop` 3.4.13 **uruchamia się, rozwidla procesy
+potomne Electrona i kończy z kodem 0, nie mapując ANI JEDNEGO okna** — tak samo
+w zagnieżdżonym kompozytorze, jak i na pulpicie właściciela. Sprawdzone
+i wykluczone: brak katalogu `TMPDIR` z jego skryptu startowego (istnieje),
+zrzut pamięci po awarii (`coredumpctl` — brak), usługa sekretów (aktywowalna,
+`org.kde.secretservicecompat`), blokada pojedynczej instancji (nigdzie nie ma
+katalogu danych aplikacji), uprawnienia sandboxa (`sockets=wayland;x11`).
+Aplikacja **nie wypisuje ani bajtu** ani na stdout, ani na stderr, także
+z `ELECTRON_ENABLE_LOGGING=1`, i **nie zakłada własnego katalogu konfiguracji**
+— umiera bardzo wcześnie w procesie głównym. Argumentów wiersza poleceń nie da
+się jej podać: własny parser odrzuca każdą nieznaną opcję
+(`bad option: --remote-debugging-port`), więc droga przez CDP jest zamknięta.
+**Do decyzji właściciela:** zrzuty pulpitu z GitHub Desktopu robimy na innej
+maszynie (Windows/macOS — tam jest build oficjalny), przenosimy te cztery
+miejsca do partii „po zalogowaniu" (piąte i tak tam jest), albo próbujemy
+starszej wersji z Flathuba.
+
+### Zrzut edytora kodu — przepis, który zadziałał
+
+Code - OSS 1.131 w zagnieżdżonym kompozytorze, klon `stargazers-log` na
+commicie `4bc1b45`. Trzy rzeczy, bez których kadr kłamie:
+
+- **`--user-data-dir` i `--extensions-dir` w scratchpadzie** — zero ustawień
+  i historii właściciela w kadrze;
+- **`chat.disableAIFeatures: true` w `User/settings.json`** zdejmuje panel
+  czatu i modal „Welcome to VS Code / Sign in to use GitHub Copilot"; **NIE**
+  używać do tego `--disable-extensions`, bo wtedy w kadrze siada dymek
+  „All installed extensions are temporarily disabled" — artefakt uruchomienia,
+  nie interfejs;
+- **`git update-ref refs/remotes/origin/main <commit lekcji>`** po
+  `git reset --hard` — inaczej pasek stanu pokazuje „14↓", czego uczeń zaraz
+  po sklonowaniu nie zobaczy.
+
+Zrzut zdjęty przez **CDP** (`--remote-debugging-port` + `puppeteer-core`,
+`page.screenshot()`), bo to jedyna droga niezależna od tego, czy kompozytor
+akurat rysuje.
+
+### PUŁAPKA: zagnieżdżony Hyprland rysuje tylko wtedy, gdy jego okno jest widoczne
+
+`grim` na `WAYLAND_DISPLAY=wayland-2` **wisi w nieskończoność**, kiedy okno
+klasy `aquamarine` siedzi na workspace, którego właściciel akurat nie ogląda:
+rodzic nie wysyła `frame callback`, zagnieżdżony kompozytor nie renderuje,
+a screencopy czeka na klatkę, która nie nadejdzie. Kiedy okno jest widoczne,
+`grim` zwraca obraz **tła, bez okien klientów**. Wyjście headless
+(`hyprctl output create headless`) pomaga tylko czasem — raz oddało poprawną
+klatkę, potem znów wisiało. **Wniosek: do zrzutów aplikacji pulpitu nie
+polegać na screencopy zagnieżdżonego kompozytora, tylko zdejmować obraz
+z samej aplikacji (CDP dla Electrona).**
+
+Dwie pomniejsze rzeczy z tej samej tury:
+
+- konfiguracja zagnieżdżonego Hyprlanda **musi być bezbłędna** — przy błędzie
+  składni kompozytor rysuje czerwoną nakładkę i rezerwuje pasek u góry
+  (`hyprctl configerrors` pokazuje co); w 0.56 `blur`/`shadow` to bloki, nie
+  pola, a `windowrulev2` jest wycofane;
+- `pkill -f` / `pgrep -f` z pełną ścieżką **trafia własną powłokę agenta**
+  (wzorzec jest w jej wierszu poleceń) — to ta sama klasa co lekcja
+  z `next start` w CLAUDE.md. Ratuje wzorzec w klasie znaków: `'[v]scode-ext'`.
+
+### Podgląd obu kursów w stylu strony — `tools/podglad-kursow.mjs`
+
+```bash
+export ZRZUTY_RIG=<scratchpad>/rig      # tam dodatkowo: npm i marked
+node tools/podglad-kursow.mjs --wyjscie /tmp/podglad-kursow
+```
+
+Składa statyczny podgląd obu kursów w design systemie „Volt": strona wejściowa
+z bilansem, strona kursu z modułami i lekcjami, po jednej stronie na lekcję
+(74 znaki na wiersz, fonty Geist z `public/fonts`). Treść bierze **`czytajProze`
+z `lib/proza-lekcji.ts`** — tę samą funkcję, którą wgrywarka wysyła lekcje do
+bazy — więc podgląd pokazuje dokładnie to, co dostanie uczeń: bez frontmatteru
+i bez tabeli „Zgodność ze źródłem". Miejsca bez zrzutu zostają **widoczną,
+opisaną dziurą**: ocena wzrokowa ma pokazywać także braki. Katalog docelowy
+podaje się jawnie i **narzędzie odmawia zapisu do wnętrza repo** (klasa
+BLAD-007: `public/` wchodzi w całości do eksportu statycznego, a treść kursu
+jest towarem). `marked` siedzi w rigu, nie w `package.json`.
+
+### Kurs 1: 36 zrzutów czatu B NIE MA jeszcze w repozytorium
+
+Sprawdzone komendą, nie z pamięci: gałąź `feat/zrzuty-k1` ma dwa commity
+i **10 plików `.webp`** Kursu 1 (te same, co wspólny przodek), a jej worktree
+`…-zrzuty-k1` nie ma niczego niezacommitowanego poza dwoma plikami rigu.
+Manifest liczy w Kursie 1 **36 miejsc wciąż do zrobienia**. W podglądzie widać
+to jako 63 dziury w Kursie 1 wobec 53 w Kursie 2.
