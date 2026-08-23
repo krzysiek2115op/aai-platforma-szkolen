@@ -142,6 +142,7 @@ Narzędzia uruchamiane ręcznie:
 | Komenda | Co sprawdza / robi |
 |---|---|
 | `node tools/straznicy/uruchom-wszystkie.mjs` | wszyscy strażnicy naraz (runner sam znajduje pliki `straznik-*.mjs`) |
+| `node tools/zrzuty/manifest.mjs` | stan przelotu zrzutów ekranu w kursach — liczony z prozy, nie z osobnej listy (brief: [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md)) |
 | `node tools/smoke/smoke-d4.ts` | katalog renderuje kursy z bazy na produkcyjnym serwerze + golden + nagłówki bezpieczeństwa |
 | `node tools/smoke/smoke-d5.ts` | strona sprzedażowa renderuje pełny kurs z bazy + golden programu |
 | `node tools/smoke/smoke-d6.ts` | brama kreatora (403), wystrzał AJAX z ciastka, cykl szkic → publikacja → usunięcie, **brama tempa**: seria chybionych tokenów → 429 z `Retry-After`, a poprawny token z tego samego adresu przechodzi, **sufit ciała**: 413 dla żądania ponad 2 MB — także bez `content-length` |
