@@ -354,10 +354,14 @@ z `ELECTRON_ENABLE_LOGGING=1`, i **nie zakłada własnego katalogu konfiguracji*
 — umiera bardzo wcześnie w procesie głównym. Argumentów wiersza poleceń nie da
 się jej podać: własny parser odrzuca każdą nieznaną opcję
 (`bad option: --remote-debugging-port`), więc droga przez CDP jest zamknięta.
-**Do decyzji właściciela:** zrzuty pulpitu z GitHub Desktopu robimy na innej
-maszynie (Windows/macOS — tam jest build oficjalny), przenosimy te cztery
-miejsca do partii „po zalogowaniu" (piąte i tak tam jest), albo próbujemy
-starszej wersji z Flathuba.
+**DECYZJA WŁAŚCICIELA 2026-08-23: te cztery miejsca WYPADAJĄ Z PROZY** —
+bez szukania obejścia. Znaczniki usunięte (ekran powitalny, menu `Repository`,
+panel commitu, menu `Current Branch`); proza ich nie przywoływała, więc
+zostaje bez zmian poza scaleniem listy numerowanej rozbitej w lekcji 2.1.
+Odrzucone warianty: inna maszyna, starsza wersja z Flathuba, przeniesienie do
+partii po zalogowaniu. **Do rozstrzygnięcia na wspólnym posiedzeniu:** piąty
+ekran tej samej aplikacji („Let's get started!", lekcja 1.5) siedzi w partii
+po zalogowaniu, a jest na tej maszynie tak samo niewykonalny.
 
 ### Zrzut edytora kodu — przepis, który zadziałał
 
