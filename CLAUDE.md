@@ -508,11 +508,20 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      (warstwa danych + panel `/szkolenia/kreator/lekcja/[id]`, licznik
      postępu, `straznik-tresci-lekcji`, `smoke-lekcje`); zmergowany
      2026-08-19 na dowodach lokalnych, decyzją właściciela, bo CI stoi
-     do 1 września. **NASTĘPNY: etap 3 —
-     dogęszczenie Kursu 1 i redakcja 91 lekcji, treść wchodzi
-     KREATOREM, nie seedem — ale PRZED pisaniem dwie decyzje
-     właściciela (czym wprowadzić 91 lekcji i skąd bierze się ich
-     proza), spisane w KROK-3-KURSY.md.** Zapamiętać z etapu 2: panel MUSI odsyłać
+     do 1 września. **Etap 3 (proza obu kursów) ZROBIONY — patrz niżej.**
+     **NASTĘPNY KROK: PRZELOT ZRZUTÓW EKRANU — brief wiążący
+     [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md),
+     CZYTAĆ PRZED PRACĄ** (są tam też gotowe prompty startowe obu czatów).
+     Stan przelotu **liczy się komendą, nigdy z pamięci**:
+     `export ZRZUTY_KORZEN=$PWD && node tools/zrzuty/manifest.mjs` —
+     manifest wyprowadza się z prozy (znacznik `<!-- ZRZUT: … -->` = do
+     zrobienia, `![…](zrzuty/…)` z istniejącym plikiem = zrobione), więc
+     nie ma osobnego pliku stanu, który mógłby skłamać. Na 2026-08-23:
+     **173 miejsca, 33 zrobione, 72 do zrobienia bez logowania, 68 po
+     zalogowaniu** (wcześniejsze „170" i „96/44" są nieaktualne).
+     Kolejność dalszych prac (decyzja właściciela): przelot zrzutów →
+     **lokalny podgląd obu kursów W STYLU STRONY** (jeszcze nie zbudowany)
+     → ocena wizualna właściciela → audyt końcowy → etap WordPressa. Zapamiętać z etapu 2: panel MUSI odsyłać
      `id` modułów i lekcji (dyspozytor kasuje wiersze spoza wejścia —
      bez tego zapis kursu kasuje materiał), a w worktree kroku 3
      `node_modules` musi być KOPIĄ (`cp -al`), bo Turbopack odrzuca
@@ -542,6 +551,29 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      - Otwarte świadomie: **517 miejsc `[EKRAN]`** → bloki terminala
        tekstem, zrzuty interfejsu osobnym przelotem NA KOŃCU (najszybciej
        się starzeją).
+     **PROZA OBU KURSÓW KOMPLETNA I NA JEDNEJ GAŁĘZI (2026-08-23):**
+     73 z 73 lekcji, wszystko w bazie. Gałąź czatu B
+     (`feat/tresc-k2-modul-4-6`) **zmergowana** do
+     `feat/tresc-k2-modul-2-3` w worktree
+     `/home/krzysiek/Pod-strona-Szkolenia-k2-A` — tam jest dziś praca;
+     worktree `…-k2-B` niesie gałąź JUŻ ZMERGOWANĄ. Kurs 2 ma **32/32**
+     lekcje: ostatnią, **4.1 „GitHub Flow: jak pracują zespoły"**,
+     napisał czat A po scaleniu, bo dopiero wtedy istniał drugi koniec
+     mostu z modułu 3. Rozjazd numeracji ROZSTRZYGNIĘTY przez
+     właściciela: **dziury w `position` zostają**, osiem plików czatu B
+     przemianowano na numery z programu (wraz z frontmatterem),
+     a poprawka czatu B w `straznik-prozy` (dopasowanie po TYTULE)
+     obowiązuje. Moduły 4–6 **wgrane do bazy**.
+     **REGUŁA Z PRZELOTU (dotyczy każdej przyszłej treści): komunikat
+     narzędzia cytujemy z WYKONANIA komendy, nie z dokumentacji** —
+     docs GitHuba podają starsze brzmienia i w lekcji 2.5 Kursu 2 były
+     przez to CZTERY nieprawdziwe komunikaty (`fatal:` zamiast
+     `error:`). Rejestr rozjazdów:
+     [tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md](tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md).
+     **DECYZJA WŁAŚCICIELA (2026-08-23): na koniec projektu oba kursy
+     lądują jako HTML na GitHub Pages, z linkami-podglądami w README** —
+     jak dzisiejszy podgląd `/szkolenia`.
+
      **KURS 1 KOMPLETNY I SCALONY (2026-08-22, wersja 0.31.0):** 41/41
      lekcji prozy (565 394 znaki) na `plugin-1-sklep-kursow` i w bazie
      (weryfikacja dwustronna: pliki + SQL). PR #51 (moduł 3) i #52

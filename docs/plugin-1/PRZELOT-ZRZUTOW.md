@@ -130,3 +130,84 @@ Czat B pracuje na SWOIM worktree, nie na cudzym.
   wspólne posiedzenie z właścicielem.
 - **Nie ruszamy `[EKRAN]`** — 517 takich miejsc siedzi w scenariuszach
   D7 (`lekcja-*.md`), nie w prozie, i nie są przedmiotem przelotu.
+
+## Prompty startowe obu czatów (do skopiowania po `/clear`)
+
+Zapisane w repo świadomie: po `/clear` nie ma z czego ich odtworzyć,
+a oba czaty muszą wystartować z tym samym kompletem ustaleń.
+
+### Czat A — Kurs 2 (`jak-uzywac-githuba`), 36 miejsc
+
+```
+Jesteś CZATEM A przelotu zrzutów. Terytorium: KURS 2
+(tresc-kursow/jak-uzywac-githuba) — 36 miejsc do zrobienia BEZ logowania:
+19 publicznych widoków GitHuba, 12 terminala, 5 GitHub Desktop.
+
+Worktree /home/krzysiek/Pod-strona-Szkolenia-k2-A, gałąź
+feat/tresc-k2-modul-2-3 (ma już SCALONĄ prozę obu kursów). Baza: podman,
+`npm run db1:up`. Port 3012, gdyby był potrzebny serwer.
+
+PRZECZYTAJ NAJPIERW, nie wyprowadzaj niczego od nowa:
+- docs/plugin-1/PRZELOT-ZRZUTOW.md — brief WIĄŻĄCY (zasady, rig, podział,
+  czego nie robimy). To instrukcja, nie materiał do streszczania.
+- tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md — 10 znalezisk, w tym
+  TRZY DO POPRAWKI w tej turze (wiersze 8–10: zrzuty z1.5 z04, 1.4 z10,
+  3.2 z02).
+- CLAUDE.md — zasady projektu.
+
+STAN LICZ KOMENDĄ, nigdy z pamięci:
+  export ZRZUTY_KORZEN=$PWD
+  node tools/zrzuty/manifest.mjs --kurs K2
+
+RIG (zależności POZA package.json — lekcja z D5):
+  export ZRZUTY_RIG=<scratchpad-sesji>/rig
+  mkdir -p "$ZRZUTY_RIG" && (cd "$ZRZUTY_RIG" && npm init -y && npm i puppeteer-core sharp)
+Przeglądarka: systemowy Firefox, nic nie pobieramy.
+
+Repozytorium demonstracyjne github.com/krzysiek2115op/stargazers-log
+JUŻ ISTNIEJE ze wszystkimi stanami; odtwarza je
+`tools/zrzuty/buduj-stargazers-log.sh` (etapy: m1 m2 m3 m4 m5 pr konflikt
+scalony). Klon roboczy skryptu żyje w scratchpadzie POPRZEDNIEJ sesji —
+jeśli go nie ma, sklonuj repo na nowo, nie przebudowuj repozytorium.
+
+CZEGO NIE RUSZASZ: katalogu tresc-kursow/jak-korzystac-z-claude (to czat B);
+zrzutów wymagających logowania (42 miejsca Kursu 2 — Settings, ochrona
+gałęzi, sekrety, formularze, 2FA, klucze SSH — czekają na wspólne
+posiedzenie z właścicielem); audytu kursów; znaczników [EKRAN]
+w scenariuszach D7.
+
+Po skończeniu 36: zbuduj lokalny podgląd obu kursów W STYLU STRONY
+(właściciel chce ocenić wizualnie) — to jeszcze NIE jest zrobione.
+```
+
+### Czat B — Kurs 1 (`jak-korzystac-z-claude`), 36 miejsc
+
+```
+Jesteś CZATEM B przelotu zrzutów. Terytorium: KURS 1
+(tresc-kursow/jak-korzystac-z-claude) — 36 miejsc: 33 zrzuty Claude Code
+(TUI), 1 dokumentacja, 1 terminal, 1 arkusz.
+
+PRZECZYTAJ NAJPIERW: docs/plugin-1/PRZELOT-ZRZUTOW.md (brief WIĄŻĄCY)
+oraz CLAUDE.md.
+
+STAN LICZ KOMENDĄ:
+  export ZRZUTY_KORZEN=$PWD
+  node tools/zrzuty/manifest.mjs --kurs K1
+
+WORKTREE: załóż WŁASNY (`git worktree add`) z gałęzi
+plugin-1-sklep-kursow, gałąź `feat/zrzuty-k1`. NIE pracuj w
+…-k2-A ani …-k2-B i NIE przełączaj gałęzi w cudzym katalogu.
+W worktree `node_modules` musi być KOPIĄ (`cp -al`) — Turbopack odrzuca
+dowiązanie wychodzące poza projekt.
+
+RIG: jak w briefie (ZRZUTY_RIG + puppeteer-core i sharp w scratchpadzie).
+
+CZEGO NIE RUSZASZ: katalogu tresc-kursow/jak-uzywac-githuba (to czat A);
+zrzutów wymagających logowania (27 miejsc Kursu 1 — claude.ai, Console,
+Workbench, surowe odpowiedzi API); audytu kursów; znaczników [EKRAN].
+```
+
+**Do wspólnych plików** (`docs/plugin-1/KROK-3-KURSY.md`,
+`tresc-kursow/POSTEP.md`, `tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md`)
+każdy czat dopisuje WŁASNĄ sekcję z nazwą czatu w nagłówku i nie
+przepisuje cudzych — wtedy scalenie jest unią, nie konfliktem treści.

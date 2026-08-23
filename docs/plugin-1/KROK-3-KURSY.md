@@ -2572,6 +2572,14 @@ kursów i przejrzeć je własnymi oczami) → **audyt końcowy obu kursów**
 | Kurs 2, moduły 4–6 (czat B) | **42** (16, 12, 14) |
 | **Razem** | **170** |
 
+> **KOREKTA (2026-08-23, po starcie przelotu):** miejsc jest **173**, nie
+> 170 — dopisana lekcja 4.1 wniosła trzy. **Liczby wyżej są historyczne;
+> stan liczy `node tools/zrzuty/manifest.mjs` wprost z prozy** i nie da
+> się go rozjechać z rzeczywistością. Drugą korektą jest podział pracy:
+> bez zalogowanej przeglądarki da się zrobić **72** miejsca, a **68**
+> wymaga sesji właściciela (pierwsze oszacowanie 96/44 brało ekrany
+> ustawień GitHuba za publiczne).
+
 `straznik-prozy` liczy je dla całej gałęzi („miejsc na zrzuty do przelotu
 końcowego") — na gałęzi czatu A pokazuje 128, bo nie widzi modułów 4–6.
 
@@ -2616,7 +2624,10 @@ w rozmowie czatu A):
 
 1. **Ekrany GitHuba: konto właściciela (krzysiek2115op) + realne repo
    `stargazers-log`** zbudowane przez `gh` (issues, PR-y, Actions, release,
-   ochrona gałęzi). Ekrany za logowaniem: właściciel loguje się w sterowanym
+   ochrona gałęzi). **ZAKRES ZMIAN (doprecyzowanie właściciela 2026-08-23):
+   wolno zmieniać WYŁĄCZNIE repozytorium `stargazers-log`. Ustawień konta
+   — 2FA, klucze SSH — NIE włączamy;** te ekrany robimy jako podgląd
+   formularzy przy partii po zalogowaniu. Ekrany za logowaniem: właściciel loguje się w sterowanym
    oknie Firefoksa, agent jedzie automatem po liście zrzutów.
    **REGUŁA PRYWATNOŚCI (wiążąca dla każdego zrzutu):** tam, gdzie w kadrze
    wystąpiłyby dane właściciela (lista jego repozytoriów, e-maile, itp.),
