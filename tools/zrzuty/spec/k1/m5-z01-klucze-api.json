@@ -1,0 +1,22 @@
+{
+  "_podpis": "strona Settings → API keys w Console, na koncie bez żadnego klucza — pusty stan i przycisk Create key",
+  "_lekcja": "K1 5.2 (proza-2-klucz-i-messages.md)",
+  "url": "https://platform.claude.com/settings/keys",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-5/zrzuty/z01-strona-settings-api-keys.webp",
+  "czekajMs": 12000,
+  "wymagaTekstu": [
+    "API keys",
+    "Create an API key",
+    "Create key"
+  ],
+  "akcje": [
+    {
+      "typ": "eval",
+      "kod": "var wezly=[],ch=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),n;while((n=ch.nextNode())) wezly.push(n);for (var i=0;i<wezly.length;i++){var w=wezly[i]; w.nodeValue=w.nodeValue.replace(/krzysztof/gi,'oliwia');}var puduelka=[...document.querySelectorAll('*')].filter(function(e){return e.children.length===0 && /^\\s*\\d+[.,]\\d+\\s*USD\\s*$/.test(e.textContent||'');});puduelka.forEach(function(e){e.textContent='12,00 USD';});"
+    },
+    {
+      "typ": "czekaj",
+      "ms": 600
+    }
+  ]
+}
