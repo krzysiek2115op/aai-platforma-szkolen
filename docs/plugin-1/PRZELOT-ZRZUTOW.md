@@ -455,3 +455,39 @@ Zapisane, bo to sekwencja decyzji, a nie oczywistość do wyprowadzenia od nowa.
    z zasadą „nie audytujemy w trakcie przelotu".
 6. **Higiena repo** — sprzątanie gałęzi wg decyzji właściciela z 2026-08-19
    (scalone gałęzie do skasowania, `bak/*` domyślnie zostają).
+
+### Aktualizacja po sygnale czatu B (2026-08-23, wieczór) — czat A
+
+**Sygnał odebrany: czat B dał zielone światło, gałąź `feat/tresc-k2-modul-2-3`
+idzie na GitHuba** (pkt 2 kolejności właściciela). Sekcja tury 3 mówiąca, że
+36 zrzutów Kursu 1 nie ma w repo, jest już HISTORYCZNA: gałąź `feat/zrzuty-k1`
+ma 6 nowych commitów i 29 plików `.webp` Kursu 1; wg meldunku czatu B na jego
+gałęzi zostają do dokończenia „4 ekrany + 12 modelowych" — przed JEGO PR-em.
+
+Meldunek czatu B sprawdzony komendami po stronie czatu A, nie przepisany na wiarę:
+
+1. **Próbne scalenie potwierdzone**: `git merge-tree --write-tree HEAD
+   feat/zrzuty-k1` u mnie pokazuje konflikty wyłącznie w trzech wspólnych
+   dokumentach (PRZELOT-ZRZUTOW, KROK-3-KURSY, ZNALEZISKA) — znana unia
+   sekcji, rozwiązywać zostawiając obie strony. Narzędzia (`zrob-zrzut.mjs`,
+   `manifest.mjs`) scalają się czysto.
+2. **Liczba wspólnego posiedzenia: 76, nie 68 i nie 49.** Moje wcześniejsze
+   „49" liczyło tylko Kurs 2. Sprostowanie czatu B („68 = K1 27 + K2 41")
+   jest mierzone manifestem sprzed tury 2 — jego gałąź odeszła od mojej PRZED
+   commitami, w których manifest nauczył się ośmiu wzorców miejsc K2
+   niemożliwych bez logowania (merge box, `Restore branch`, `Compare & pull
+   request`, opcje scalania, log przebiegu, „Let's get started!"). Na tej
+   gałęzi manifest bez filtra liczy dziś: **K1 27 + K2 49 = 76 po
+   zalogowaniu**. LEKCJA: komenda liczy dobrze tylko na gałęzi z AKTUALNYM
+   manifestem — liczbę ostateczną policzyć jeszcze raz PO scaleniu, na
+   scalonym stanie (proza czatu B mogła też przesunąć własne kubły, np.
+   commit „Lekcja 1.3 dostaje tabelę zamiast obiecanego arkusza").
+3. **Po scaleniu kadrować przez `kadrOdSelektora`** — czat B naprawił martwe
+   `scrollDo` i dodał kadrowanie od selektora w swojej kopii
+   `zrob-zrzut.mjs`; nie blokuje niczego przed scaleniem, ale po nim nie
+   liczyć już `clip` ręcznie.
+
+**Kolejność PR-ów (ustalenie czatu B, zgodne z topologią gałęzi):**
+`feat/zrzuty-k1` jest odbita od gałęzi czatu A, więc **PR czatu A idzie
+pierwszy**; czat B dokańcza swoje 16 miejsc na własnej gałęzi i dopiero
+potem otwiera swój PR.
