@@ -1,0 +1,15 @@
+{
+  "_podpis": "ekran /rewind po wybraniu wiadomości — opcje Summarize from here i Summarize up to here",
+  "_lekcja": "K1 3.4 (proza-4-najlepsze-praktyki-agenta.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/cztery-pod-asercjami.txt",
+  "raw": "cztery.raw",
+  "doZnacznika": "cofanie-opcje",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-3/zrzuty/z12-ekran-rewind-wybraniu-wiadomosci.webp",
+  "przytnijOd": 26,
+  "przytnijDo": 40,
+  "wymagaTekstu": [
+    "Restore conversation",
+    "Summarize from here",
+    "Summarize up to here"
+  ]
+}

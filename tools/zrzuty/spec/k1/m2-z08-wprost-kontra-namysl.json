@@ -1,0 +1,61 @@
+{
+  "_podpis": "dwie odpowiedzi na to samo pytanie — najpierw z dopiskiem „odpowiedz wprost\", pod spodem z „zastanów się dobrze\"",
+  "_lekcja": "K1 2.4 (proza-4-myslenie.md) — formuły tłumienia i zachęty do myślenia",
+  "url": "https://claude.ai/new",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-2/zrzuty/z02-dwie-odpowiedzi-na-to.webp",
+  "czekajMs": 8000,
+  "viewport": {
+    "width": 1280,
+    "height": 3200
+  },
+  "wymagaTekstu": [
+    "Odpowiedz wprost, bez rozważania",
+    "Zastanów się dobrze",
+    "trzy magazyny"
+  ],
+  "wymagaOdpowiedzi": 300,
+  "kadrOd": "#pierwszy-prompt",
+  "kadrDo": "#ostatnia-odpowiedz",
+  "margines": 20,
+  "ukryj": [
+    "#pole-czatu",
+    "#do-dolu"
+  ],
+  "akcje": [
+    {
+      "typ": "wpiszWiersze",
+      "selektor": "[contenteditable=\"true\"]",
+      "tekst": "Mamy trzy magazyny: Poznań (2100 palet), Łódź (1400 palet) i Lublin (900 palet).\nKtóry zamknąć, jeśli chcemy ściąć koszty o 30% przy dostawach do całej Polski?\nOdpowiedz wprost, bez rozważania.",
+      "poMs": 900
+    },
+    {
+      "typ": "klik",
+      "selektor": "[data-testid=\"chat-input-send\"]",
+      "poMs": 2500
+    },
+    {
+      "typ": "czekajNaKoniec",
+      "poMs": 2000
+    },
+    {
+      "typ": "wpiszWiersze",
+      "selektor": "[contenteditable=\"true\"]",
+      "tekst": "To samo pytanie o trzy magazyny — Poznań (2100 palet), Łódź (1400), Lublin (900) — i to samo\nkryterium: ściąć koszty o 30% przy dostawach do całej Polski.\nTo zadanie wymaga wielokrokowego rozumowania. Zastanów się dobrze, zanim odpowiesz.",
+      "poMs": 900
+    },
+    {
+      "typ": "klik",
+      "selektor": "[data-testid=\"chat-input-send\"]",
+      "poMs": 2500
+    },
+    {
+      "typ": "czekajNaKoniec",
+      "poMs": 2000
+    },
+    {
+      "typ": "eval",
+      "kod": "var uzytk=document.querySelectorAll('[data-testid=\"user-message\"]'); if(!uzytk.length) throw new Error('brak wiadomosci uzytkownika'); uzytk[0].id='pierwszy-prompt'; var odp=document.querySelectorAll('.font-claude-response'); if(!odp.length) throw new Error('brak odpowiedzi'); odp[odp.length-1].id='ostatnia-odpowiedz'; var pole=document.querySelector('[data-testid=\"chat-input\"]'); var w=pole; while(w && w!==document.body){var st=getComputedStyle(w); if(st.position==='fixed'||st.position==='sticky'){w.id='pole-czatu'; break;} w=w.parentElement;} var dol=[...document.querySelectorAll('button')].find(function(e){return /scroll to bottom|do dolu/i.test(e.getAttribute('aria-label')||'');}); if(dol) dol.id='do-dolu';"
+    }
+  ],
+  "_uwaga": "PODPIS POPRAWIONY (zasada 2) — patrz uwaga w m2-z02. Wysokie okno JEST konieczne: transkrypt claude.ai jest wirtualizowany (transcript-list/transcript-row), więc wymiana poza oknem nie istnieje w DOM-ie i kadr się urywa."
+}

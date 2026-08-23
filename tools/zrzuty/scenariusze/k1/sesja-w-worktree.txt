@@ -1,0 +1,18 @@
+# Sesja Claude Code uruchomiona we WŁASNYM worktree (lekcja 4.7).
+# Wołać z: CLAUDE_DODATKOWE="--worktree feature-auth"
+# Ekran ma pokazać katalog roboczy inny niż główny katalog projektu —
+# `.claude/worktrees/feature-auth` w nagłówku sesji.
+# Nowy worktree to dla Claude Code NOWY katalog projektu, więc okno
+# „2 new MCP servers found in this project" wstaje tu jeszcze raz — ENTER je
+# zatwierdza. Bez tego okno połyka wszystkie kolejne klawisze.
+CZEKAJ 18
+ENTER
+CZEKAJ 12
+ZNACZNIK worktree-start
+KLAWISZ esc
+CZEKAJ 1
+WPISZ /status
+CZEKAJ 2
+ENTER
+CZEKAJ 6
+ZNACZNIK worktree-status

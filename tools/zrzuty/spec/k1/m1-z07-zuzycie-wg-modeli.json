@@ -1,0 +1,23 @@
+{
+  "_podpis": "widok zużycia w Claude Console — przełącznik Group by ustawiony na Model i liczniki tokenów; na koncie bez ruchu przez API wszystkie stoją na zerze",
+  "_lekcja": "K1 1.4 (proza-4-cennik.md)",
+  "url": "https://platform.claude.com/usage?tab=models",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-1/zrzuty/z02-widok-zuzycia-w-claude.webp",
+  "czekajMs": 16000,
+  "wymagaTekstu": [
+    "Usage",
+    "Group by",
+    "Model",
+    "Total tokens in"
+  ],
+  "akcje": [
+    {
+      "typ": "eval",
+      "kod": "var wezly=[],ch=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),n;while((n=ch.nextNode())) wezly.push(n);for (var i=0;i<wezly.length;i++){var w=wezly[i]; w.nodeValue=w.nodeValue.replace(/krzysztof/gi,'oliwia');}var kwoty=[...document.querySelectorAll('*')].filter(function(e){return e.children.length===0 && /^\\s*\\d+[.,]\\d+\\s*USD\\s*$/.test(e.textContent||'');});kwoty.forEach(function(e){e.textContent='12,00 USD';});"
+    },
+    {
+      "typ": "czekaj",
+      "ms": 800
+    }
+  ]
+}

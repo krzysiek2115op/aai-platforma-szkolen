@@ -656,75 +656,92 @@ const KURSY = [
         },
       },
     ],
-    // program ROBOCZY (feedback B5: dłuższy, szczegółowy) — finalne
-    // treści lekcji powstaną w D7 na bazie pełnej dokumentacji GitHuba
+    // Program Kursu 2 PO CIĘCIU (32 lekcje, decyzja właściciela
+    // 2026-08-22) — lustro tego, co stoi w bazie. Seed nie może
+    // rozjechać się z programem: po odtworzeniu bazy z seeda proza
+    // z `tresc-kursow/` musi trafić w te same lekcje.
+    //
+    // POZYCJE MAJĄ DZIURY I TAK MA BYĆ (moduł 2: 0..4 i 6). Numer pliku
+    // prozy jest związany z `position+1` (lib/proza-lekcji.ts), a
+    // straznik-prozy szuka scenariusza po tym samym numerze —
+    // przenumerowanie po cięciu wskazałoby prozie CUDZY scenariusz.
+    //
+    // Sekcje sprzedażowe WYŻEJ są nadal ROBOCZE i rozjechane z programem
+    // (obiecują „6 modułów wideo (26 lekcji)" i moduł ratunkowy
+    // restore/revert/reset) — pisane od nowa w etapie 4 kroku 3.
     modules: [
       {
         position: 0,
-        title: "Start: po co komu kontrola wersji",
-        summary: "Od chaosu plików do porządku w projekcie",
+        title: "Start: Git, GitHub i pierwsze repozytorium",
+        summary: null,
         lessons: [
-          { position: 0, title: "Po co komu kontrola wersji", duration_min: 8, preview: true },
-          { position: 1, title: "Instalacja Gita i konto na GitHubie", duration_min: 12, preview: false },
-          { position: 2, title: "Konfiguracja, która oszczędza nerwy", duration_min: 9, preview: false },
-          { position: 3, title: "Mapa pojęć: repo, commit, branch, remote", duration_min: 10, preview: false },
+          { position: 0, title: "Czym jest GitHub (i czym jest Git)", duration_min: 15, preview: true },
+          { position: 1, title: "Hello World: pierwszy projekt w przeglądarce", duration_min: 20, preview: false },
+          { position: 2, title: "Konfiguracja Gita na Twoim komputerze", duration_min: 15, preview: false },
+          { position: 3, title: "Repozytorium dla Twojego projektu", duration_min: 15, preview: false },
+          { position: 4, title: "Połącz lokalny kod z GitHubem", duration_min: 15, preview: false },
+          { position: 5, title: "Git od środka: jak to działa", duration_min: 15, preview: false },
         ],
       },
       {
         position: 1,
-        title: "Repozytorium i commity",
-        summary: "Historia zmian, którą da się czytać",
+        title: "Codzienna praca z Gitem",
+        summary: null,
         lessons: [
-          { position: 0, title: "Pierwsze repozytorium i pierwszy commit", duration_min: 14, preview: false },
-          { position: 1, title: "Status, diff i staging: co właściwie zapisuję?", duration_min: 13, preview: false },
-          { position: 2, title: "Dobre opisy commitów — list do przyszłego siebie", duration_min: 9, preview: false },
-          { position: 3, title: ".gitignore: co NIE powinno trafić do repo", duration_min: 8, preview: false },
-          { position: 4, title: "Historia: przeglądanie i powrót do starych wersji", duration_min: 12, preview: false },
+          { position: 0, title: "Przepływy pracy Git", duration_min: 15, preview: false },
+          { position: 1, title: "Wypychanie commitów", duration_min: 10, preview: false },
+          { position: 2, title: "Pobieranie zmian ze zdalnego repozytorium", duration_min: 10, preview: false },
+          { position: 3, title: ".gitignore: czego nie commitować", duration_min: 10, preview: false },
+          { position: 4, title: "Zdalne repozytoria pod kontrolą", duration_min: 15, preview: false },
+          { position: 6, title: "Ściąga komend Gita", duration_min: 10, preview: false },
         ],
       },
       {
         position: 2,
-        title: "Branche i merge",
-        summary: "Bezpieczna przestrzeń na każdą zmianę",
+        title: "Repozytorium jak u profesjonalisty",
+        summary: null,
         lessons: [
-          { position: 0, title: "Branch: bezpieczna przestrzeń na zmiany", duration_min: 12, preview: false },
-          { position: 1, title: "Przełączanie i porządek w gałęziach", duration_min: 10, preview: false },
-          { position: 2, title: "Merge bez strachu", duration_min: 13, preview: false },
-          { position: 3, title: "Konflikty: skąd się biorą i jak je rozwiązywać", duration_min: 15, preview: false },
+          { position: 0, title: "Dobre praktyki repozytoriów", duration_min: 15, preview: false },
+          { position: 1, title: "README, które sprzedaje projekt", duration_min: 15, preview: false },
+          { position: 2, title: "Markdown: formatowanie na GitHubie", duration_min: 20, preview: false },
+          { position: 4, title: "Gałęzie chronione", duration_min: 15, preview: false },
+          { position: 5, title: "Releasy i tagi: wersjonuj jak dorośli", duration_min: 20, preview: false },
         ],
       },
       {
         position: 3,
-        title: "GitHub: Twoje repozytorium w chmurze",
-        summary: "Push, pull i praca z każdego miejsca",
+        title: "Współpraca: issues i pull requesty",
+        summary: "Serce kursu — tak pracują zespoły na GitHubie.",
         lessons: [
-          { position: 0, title: "Łączysz lokalny projekt z GitHubem", duration_min: 11, preview: false },
-          { position: 1, title: "Push i pull: synchronizacja bez niespodzianek", duration_min: 12, preview: false },
-          { position: 2, title: "README, opis i porządek w repozytorium", duration_min: 9, preview: false },
-          { position: 3, title: "Klonowanie i praca na dwóch komputerach", duration_min: 10, preview: false },
+          { position: 0, title: "GitHub Flow: jak pracują zespoły", duration_min: 15, preview: true },
+          { position: 1, title: "Issues: planowanie pracy", duration_min: 15, preview: false },
+          { position: 3, title: "Czym jest pull request", duration_min: 15, preview: false },
+          { position: 4, title: "Tworzenie pull requesta", duration_min: 15, preview: false },
+          { position: 5, title: "Prośba o review i praca z uwagami", duration_min: 15, preview: false },
+          { position: 7, title: "Konflikty scalania: bez paniki", duration_min: 20, preview: false },
+          { position: 8, title: "Merge, squash czy rebase?", duration_min: 15, preview: false },
         ],
       },
       {
         position: 4,
-        title: "Pull requesty i code review",
-        summary: "Współpraca jak w prawdziwym zespole",
+        title: "Automatyzacja: GitHub Actions",
+        summary: null,
         lessons: [
-          { position: 0, title: "Pull request i code review", duration_min: 16, preview: false },
-          { position: 1, title: "Fork vs branch: dwa modele współpracy", duration_min: 11, preview: false },
-          { position: 2, title: "Review: jak komentować i przyjmować uwagi", duration_min: 12, preview: false },
-          { position: 3, title: "Merge pull requesta i sprzątanie po pracy", duration_min: 9, preview: false },
-          { position: 4, title: "Issues i tablice: praca zespołu w jednym miejscu", duration_min: 13, preview: false },
+          { position: 0, title: "Zrozum GitHub Actions", duration_min: 20, preview: false },
+          { position: 1, title: "Pierwszy workflow w 10 minut", duration_min: 20, preview: false },
+          { position: 2, title: "Continuous Integration", duration_min: 15, preview: false },
+          { position: 5, title: "Sekrety w workflow", duration_min: 15, preview: false },
         ],
       },
       {
         position: 5,
-        title: "Ratunek z opresji i dobre nawyki",
-        summary: "Cofanie zmian i porządek na co dzień",
+        title: "Bezpieczeństwo konta i kodu",
+        summary: null,
         lessons: [
-          { position: 0, title: "Cofanie zmian: restore, revert, reset — bez paniki", duration_min: 15, preview: false },
-          { position: 1, title: "„Zepsułem repo” — najczęstsze wpadki i wyjścia", duration_min: 14, preview: false },
-          { position: 2, title: "Nawyki, które doceni każdy zespół", duration_min: 10, preview: false },
-          { position: 3, title: "Twój przepływ pracy od jutra: checklista", duration_min: 8, preview: false },
+          { position: 0, title: "Dwuskładnikowe uwierzytelnianie (2FA)", duration_min: 15, preview: false },
+          { position: 1, title: "Klucze SSH: logowanie bez haseł", duration_min: 20, preview: false },
+          { position: 3, title: "Zabezpiecz swoje repozytorium", duration_min: 20, preview: false },
+          { position: 5, title: "Secret scanning: sekrety poza repo", duration_min: 10, preview: false },
         ],
       },
     ],

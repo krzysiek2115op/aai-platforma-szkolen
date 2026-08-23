@@ -102,9 +102,26 @@ Dla firm, które chcą zbudować własne rozwiązanie na Claude.
 
 ## Kurs 2 — „Jak poprawnie używać GitHuba"
 
-Źródła: `github/`. 7 modułów, 50 lekcji, ~12,5 h.
+~~Źródła: `github/`. 7 modułów, 50 lekcji, ~12,5 h.~~
+Źródła: `github/`. **6 modułów, 32 lekcje, ~8 h 15 min** (495 min).
 
-### Moduł 1. Start: Git, GitHub i pierwsze repozytorium (~1 h 35 min)
+> **CIĘCIE (2026-08-22, decyzja właściciela).** Program Kursu 2 został
+> skrócony z 50 do **32 lekcji** — kryteria cięcia, pełne uzasadnienie
+> każdej wyciętej lekcji i liczby z kalibracji stoją w
+> [KROK-3-KURSY.md](KROK-3-KURSY.md) („PROPOZYCJA MOCNEGO CIĘCIA" +
+> „DECYZJE WŁAŚCICIELA PO KALIBRACJI"). Lekcje wycięte zostają w tabelach
+> **przekreślone**, żeby było widać, czego kurs NIE obiecuje. Ich
+> scenariusze z D7 **zostają w repo** (decyzja z 2026-08-18) — golden
+> treści i `straznik-scenariuszy` dalej liczą 91 scenariuszy.
+>
+> **Numeracja lekcji NIE zmienia się po cięciu**: w bazie `position`
+> ma dziury (moduł 2: 1,2,3,4,5,7), bo numer pliku prozy jest związany
+> z `position+1` (`lib/proza-lekcji.ts`), a `straznik-prozy` szuka po tym
+> samym numerze scenariusza — przenumerowanie wskazałoby prozie CUDZY
+> scenariusz. Klient numerów lekcji nie widzi (strona renderuje same
+> tytuły), więc dziury są wyłącznie wewnętrzne.
+
+### Moduł 1. Start: Git, GitHub i pierwsze repozytorium (6 lekcji, ~1 h 35 min)
 
 | # | Lekcja | Czas | Źródło |
 |---|---|---|---|
@@ -115,7 +132,7 @@ Dla firm, które chcą zbudować własne rozwiązanie na Claude.
 | 5 | Połącz lokalny kod z GitHubem | 15 min | `github/get-started/start-your-journey/connecting-to-your-code-locally.md` |
 | 6 | Git od środka: jak to działa | 15 min | `github/get-started/using-git/about-git.md` |
 
-### Moduł 2. Codzienna praca z Gitem (~1 h 30 min)
+### Moduł 2. Codzienna praca z Gitem (6 lekcji, ~1 h 10 min)
 
 | # | Lekcja | Czas | Źródło |
 |---|---|---|---|
@@ -124,23 +141,23 @@ Dla firm, które chcą zbudować własne rozwiązanie na Claude.
 | 3 | Pobieranie zmian ze zdalnego repozytorium | 10 min | `github/get-started/using-git/getting-changes-from-a-remote-repository.md` |
 | 4 | .gitignore: czego nie commitować | 10 min | `github/get-started/git-basics/ignoring-files.md` |
 | 5 | Zdalne repozytoria pod kontrolą | 15 min | `github/get-started/git-basics/managing-remote-repositories.md` |
-| 6 | Rebase bez strachu | 20 min | `github/get-started/using-git/about-git-rebase.md`, `github/get-started/using-git/using-git-rebase-on-the-command-line.md` |
+| 6 | ~~Rebase bez strachu~~ *(wycięta 2026-08-22)* | 20 min | `github/get-started/using-git/about-git-rebase.md`, `github/get-started/using-git/using-git-rebase-on-the-command-line.md` |
 | 7 | Ściąga komend Gita | 10 min | `github/get-started/git-basics/git-cheatsheet.md` |
 
-### Moduł 3. Repozytorium jak u profesjonalisty (~1 h 55 min)
+### Moduł 3. Repozytorium jak u profesjonalisty (5 lekcji, ~1 h 25 min)
 
 | # | Lekcja | Czas | Źródło |
 |---|---|---|---|
 | 1 | Dobre praktyki repozytoriów | 15 min | `github/repositories/creating-and-managing-repositories/best-practices-for-repositories.md` |
 | 2 | README, które sprzedaje projekt | 15 min | `github/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes.md` |
 | 3 | Markdown: formatowanie na GitHubie | 20 min | `github/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax.md` |
-| 4 | Licencja repozytorium | 10 min | `github/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository.md` |
+| 4 | ~~Licencja repozytorium~~ *(wycięta 2026-08-22)* | 10 min | `github/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository.md` |
 | 5 | Gałęzie chronione | 15 min | `github/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches.md` |
 | 6 | Releasy i tagi: wersjonuj jak dorośli | 20 min | `github/repositories/releasing-projects-on-github/about-releases.md`, `github/repositories/releasing-projects-on-github/managing-releases-in-a-repository.md` |
-| 7 | Duże pliki: limity i Git LFS | 10 min | `github/repositories/working-with-files/managing-large-files/about-large-files-on-github.md` |
-| 8 | Szablony repozytoriów | 10 min | `github/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template.md` |
+| 7 | ~~Duże pliki: limity i Git LFS~~ *(wycięta 2026-08-22)* | 10 min | `github/repositories/working-with-files/managing-large-files/about-large-files-on-github.md` |
+| 8 | ~~Szablony repozytoriów~~ *(wycięta 2026-08-22)* | 10 min | `github/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template.md` |
 
-### Moduł 4. Współpraca: issues i pull requesty (~2 h 45 min)
+### Moduł 4. Współpraca: issues i pull requesty (7 lekcji, ~1 h 50 min)
 
 Serce kursu — tak pracują zespoły na GitHubie.
 
@@ -148,48 +165,48 @@ Serce kursu — tak pracują zespoły na GitHubie.
 |---|---|---|---|
 | 1 | GitHub Flow: jak pracują zespoły *(podgląd)* | 15 min | `github/get-started/using-github/github-flow.md` |
 | 2 | Issues: planowanie pracy | 15 min | `github/issues/tracking-your-work-with-issues/learning-about-issues/about-issues.md` |
-| 3 | Tworzenie i prowadzenie issue | 10 min | `github/issues/tracking-your-work-with-issues/using-issues/creating-an-issue.md` |
+| 3 | ~~Tworzenie i prowadzenie issue~~ *(wycięta 2026-08-22)* | 10 min | `github/issues/tracking-your-work-with-issues/using-issues/creating-an-issue.md` |
 | 4 | Czym jest pull request | 15 min | `github/pull-requests/get-started/about-pull-requests.md` |
 | 5 | Tworzenie pull requesta | 15 min | `github/pull-requests/how-tos/create-pull-requests/creating-a-pull-request.md` |
 | 6 | Prośba o review i praca z uwagami | 15 min | `github/pull-requests/how-tos/create-pull-requests/requesting-a-pull-request-review.md`, `github/pull-requests/how-tos/review-pull-requests/incorporating-feedback-in-your-pull-request.md` |
-| 7 | Jak robić dobre code review | 20 min | `github/pull-requests/how-tos/review-pull-requests/reviewing-proposed-changes-in-a-pull-request.md` |
+| 7 | ~~Jak robić dobre code review~~ *(wycięta 2026-08-22)* | 20 min | `github/pull-requests/how-tos/review-pull-requests/reviewing-proposed-changes-in-a-pull-request.md` |
 | 8 | Konflikty scalania: bez paniki | 20 min | `github/pull-requests/reference/merge-conflicts.md`, `github/pull-requests/how-tos/merge-and-close-pull-requests/resolving-a-merge-conflict-on-github.md` |
 | 9 | Merge, squash czy rebase? | 15 min | `github/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github.md` |
-| 10 | Forki: wkład w cudze projekty | 15 min | `github/pull-requests/get-started/about-forks.md`, `github/pull-requests/how-tos/create-pull-requests/creating-a-pull-request-from-a-fork.md` |
-| 11 | Łączenie PR z issue | 10 min | `github/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue.md` |
+| 10 | ~~Forki: wkład w cudze projekty~~ *(wycięta 2026-08-22)* | 15 min | `github/pull-requests/get-started/about-forks.md`, `github/pull-requests/how-tos/create-pull-requests/creating-a-pull-request-from-a-fork.md` |
+| 11 | ~~Łączenie PR z issue~~ *(wycięta 2026-08-22)* | 10 min | `github/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue.md` |
 
-### Moduł 5. Automatyzacja: GitHub Actions (~2 h)
+### Moduł 5. Automatyzacja: GitHub Actions (4 lekcje, ~1 h 10 min)
 
 | # | Lekcja | Czas | Źródło |
 |---|---|---|---|
 | 1 | Zrozum GitHub Actions | 20 min | `github/actions/get-started/understand-github-actions.md` |
 | 2 | Pierwszy workflow w 10 minut | 20 min | `github/actions/get-started/quickstart.md` |
 | 3 | Continuous Integration | 15 min | `github/actions/get-started/continuous-integration.md` |
-| 4 | Anatomia workflow | 20 min | `github/actions/concepts/workflows-and-actions/workflows.md` |
-| 5 | Zmienne i konteksty | 15 min | `github/actions/concepts/workflows-and-actions/variables.md`, `github/actions/concepts/workflows-and-actions/contexts.md` |
+| 4 | ~~Anatomia workflow~~ *(wycięta 2026-08-22)* | 20 min | `github/actions/concepts/workflows-and-actions/workflows.md` |
+| 5 | ~~Zmienne i konteksty~~ *(wycięta 2026-08-22)* | 15 min | `github/actions/concepts/workflows-and-actions/variables.md`, `github/actions/concepts/workflows-and-actions/contexts.md` |
 | 6 | Sekrety w workflow | 15 min | `github/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets.md` |
-| 7 | Continuous Deployment | 15 min | `github/actions/get-started/continuous-deployment.md` |
+| 7 | ~~Continuous Deployment~~ *(wycięta 2026-08-22)* | 15 min | `github/actions/get-started/continuous-deployment.md` |
 
-### Moduł 6. Bezpieczeństwo konta i kodu (~1 h 35 min)
+### Moduł 6. Bezpieczeństwo konta i kodu (4 lekcje, ~1 h 5 min)
 
 | # | Lekcja | Czas | Źródło |
 |---|---|---|---|
 | 1 | Dwuskładnikowe uwierzytelnianie (2FA) | 15 min | `github/authentication/securing-your-account-with-two-factor-authentication-2fa/about-two-factor-authentication.md`, `github/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication.md` |
 | 2 | Klucze SSH: logowanie bez haseł | 20 min | `github/authentication/connecting-to-github-with-ssh/about-ssh.md`, `github/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent.md` |
-| 3 | Funkcje bezpieczeństwa GitHuba | 15 min | `github/code-security/getting-started/github-security-features.md` |
+| 3 | ~~Funkcje bezpieczeństwa GitHuba~~ *(wycięta 2026-08-22)* | 15 min | `github/code-security/getting-started/github-security-features.md` |
 | 4 | Zabezpiecz swoje repozytorium | 20 min | `github/code-security/getting-started/quickstart-for-securing-your-repository.md` |
-| 5 | Dependabot: łatanie zależności | 15 min | `github/code-security/concepts/supply-chain-security/dependabot-alerts.md` |
+| 5 | ~~Dependabot: łatanie zależności~~ *(wycięta 2026-08-22)* | 15 min | `github/code-security/concepts/supply-chain-security/dependabot-alerts.md` |
 | 6 | Secret scanning: sekrety poza repo | 10 min | `github/code-security/concepts/secret-security/secret-scanning.md` |
 
-### Moduł 7. Ponad podstawy: narzędzia, które przyspieszają (~1 h 5 min)
+### ~~Moduł 7. Ponad podstawy: narzędzia, które przyspieszają~~ — CAŁY WYCIĘTY (2026-08-22)
 
 | # | Lekcja | Czas | Źródło |
 |---|---|---|---|
-| 1 | GitHub CLI: GitHub z terminala | 15 min | `github/github-cli/github-cli/about-github-cli.md`, `github/github-cli/github-cli/quickstart.md` |
-| 2 | GitHub Pages: strona prosto z repozytorium | 15 min | `github/pages/quickstart.md`, `github/pages/getting-started-with-github-pages.md` |
-| 3 | Codespaces: środowisko w chmurze | 15 min | `github/codespaces/about-codespaces.md` |
-| 4 | Wyszukiwanie na GitHubie | 10 min | `github/search-github/getting-started-with-searching-on-github.md` |
-| 5 | Discussions: rozmowy wokół projektu | 10 min | `github/discussions/quickstart.md` |
+| 1 | ~~GitHub CLI: GitHub z terminala~~ *(wycięta 2026-08-22)* | 15 min | `github/github-cli/github-cli/about-github-cli.md`, `github/github-cli/github-cli/quickstart.md` |
+| 2 | ~~GitHub Pages: strona prosto z repozytorium~~ *(wycięta 2026-08-22)* | 15 min | `github/pages/quickstart.md`, `github/pages/getting-started-with-github-pages.md` |
+| 3 | ~~Codespaces: środowisko w chmurze~~ *(wycięta 2026-08-22)* | 15 min | `github/codespaces/about-codespaces.md` |
+| 4 | ~~Wyszukiwanie na GitHubie~~ *(wycięta 2026-08-22)* | 10 min | `github/search-github/getting-started-with-searching-on-github.md` |
+| 5 | ~~Discussions: rozmowy wokół projektu~~ *(wycięta 2026-08-22)* | 10 min | `github/discussions/quickstart.md` |
 
 ---
 

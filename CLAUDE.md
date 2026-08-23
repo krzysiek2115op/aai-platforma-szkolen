@@ -508,11 +508,35 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      (warstwa danych + panel `/szkolenia/kreator/lekcja/[id]`, licznik
      postępu, `straznik-tresci-lekcji`, `smoke-lekcje`); zmergowany
      2026-08-19 na dowodach lokalnych, decyzją właściciela, bo CI stoi
-     do 1 września. **NASTĘPNY: etap 3 —
-     dogęszczenie Kursu 1 i redakcja 91 lekcji, treść wchodzi
-     KREATOREM, nie seedem — ale PRZED pisaniem dwie decyzje
-     właściciela (czym wprowadzić 91 lekcji i skąd bierze się ich
-     proza), spisane w KROK-3-KURSY.md.** Zapamiętać z etapu 2: panel MUSI odsyłać
+     do 1 września. **Etap 3 (proza obu kursów) ZROBIONY — patrz niżej.**
+     **NASTĘPNY KROK: PRZELOT ZRZUTÓW EKRANU — brief wiążący
+     [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md),
+     CZYTAĆ PRZED PRACĄ** (są tam też gotowe prompty startowe obu czatów).
+     Stan przelotu **liczy się komendą, nigdy z pamięci**:
+     `export ZRZUTY_KORZEN=$PWD && node tools/zrzuty/manifest.mjs` —
+     manifest wyprowadza się z prozy (znacznik `<!-- ZRZUT: … -->` = do
+     zrobienia, `![…](zrzuty/…)` z istniejącym plikiem = zrobione), więc
+     nie ma osobnego pliku stanu, który mógłby skłamać.
+     **STAN NA 2026-08-23, wieczór: 160 miejsc, 137 zrobionych, 23 otwarte —
+     wszystkie w Kursie 1** (claude.ai 16, API 5, Console 2). **Kurs 2
+     ZAMKNIĘTY: 88/88.** Wcześniejsze liczby („173/33/72/68", „170", „96/44")
+     są nieaktualne — przelot usunął po drodze miejsca niewykonalne, więc
+     spadła też suma.
+     **GAŁĘZIE SCALONE W JEDNĄ:** dorobek czatu B (`feat/zrzuty-k1`) wszedł
+     do `feat/tresc-k2-modul-2-3`, żeby poszedł JEDEN PR zamiast stosu dwóch
+     (stackowane PR-y już raz zamknęły się nawzajem — notatka przy 0.25.0).
+     **NASTĘPNY KROK: OSTATNIA FAZA PRZELOTU — 23 miejsca Kursu 1.** To inna
+     klasa pracy niż reszta: prowadzenie prawdziwych rozmów na koncie
+     właściciela i PŁATNE wywołania API, więc wymaga osobnej zgody na koszty.
+     Prompt startowy tej sesji leży w
+     [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md),
+     sekcja „Co zostało z całego przelotu".
+     Kolejność dalszych prac (decyzja właściciela 2026-08-23): ostatnia faza
+     zrzutów → **PR → merge → tag → release** → **audyt kursów i higiena repo
+     — OMÓWIMY OSOBNO, nie planować tego teraz** → etap WordPressa.
+     Nierozstrzygnięte: **lokalny podgląd obu kursów w stylu strony**
+     (`tools/podglad-kursow.mjs` istnieje, ocena wizualna właściciela jeszcze
+     się nie odbyła). Zapamiętać z etapu 2: panel MUSI odsyłać
      `id` modułów i lekcji (dyspozytor kasuje wiersze spoza wejścia —
      bez tego zapis kursu kasuje materiał), a w worktree kroku 3
      `node_modules` musi być KOPIĄ (`cp -al`), bo Turbopack odrzuca
@@ -542,6 +566,29 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      - Otwarte świadomie: **517 miejsc `[EKRAN]`** → bloki terminala
        tekstem, zrzuty interfejsu osobnym przelotem NA KOŃCU (najszybciej
        się starzeją).
+     **PROZA OBU KURSÓW KOMPLETNA I NA JEDNEJ GAŁĘZI (2026-08-23):**
+     73 z 73 lekcji, wszystko w bazie. Gałąź czatu B
+     (`feat/tresc-k2-modul-4-6`) **zmergowana** do
+     `feat/tresc-k2-modul-2-3` w worktree
+     `/home/krzysiek/Pod-strona-Szkolenia-k2-A` — tam jest dziś praca;
+     worktree `…-k2-B` niesie gałąź JUŻ ZMERGOWANĄ. Kurs 2 ma **32/32**
+     lekcje: ostatnią, **4.1 „GitHub Flow: jak pracują zespoły"**,
+     napisał czat A po scaleniu, bo dopiero wtedy istniał drugi koniec
+     mostu z modułu 3. Rozjazd numeracji ROZSTRZYGNIĘTY przez
+     właściciela: **dziury w `position` zostają**, osiem plików czatu B
+     przemianowano na numery z programu (wraz z frontmatterem),
+     a poprawka czatu B w `straznik-prozy` (dopasowanie po TYTULE)
+     obowiązuje. Moduły 4–6 **wgrane do bazy**.
+     **REGUŁA Z PRZELOTU (dotyczy każdej przyszłej treści): komunikat
+     narzędzia cytujemy z WYKONANIA komendy, nie z dokumentacji** —
+     docs GitHuba podają starsze brzmienia i w lekcji 2.5 Kursu 2 były
+     przez to CZTERY nieprawdziwe komunikaty (`fatal:` zamiast
+     `error:`). Rejestr rozjazdów:
+     [tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md](tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md).
+     **DECYZJA WŁAŚCICIELA (2026-08-23): na koniec projektu oba kursy
+     lądują jako HTML na GitHub Pages, z linkami-podglądami w README** —
+     jak dzisiejszy podgląd `/szkolenia`.
+
      **KURS 1 KOMPLETNY I SCALONY (2026-08-22, wersja 0.31.0):** 41/41
      lekcji prozy (565 394 znaki) na `plugin-1-sklep-kursow` i w bazie
      (weryfikacja dwustronna: pliki + SQL). PR #51 (moduł 3) i #52
@@ -550,17 +597,61 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      **17 lekcji bez bramki cytatów (3.1–3.6, 5.1–5.3, 5.5–5.7,
      6.1–6.5) zostaje — decyzja właściciela 2026-08-22**: usterki tej
      klasy dotykają wyłącznie treści lekcji, nie systemu ani strony
-     sprzedażowej. **Decyzje pod Kurs 2 (2026-08-22):** cięcie MOCNE
-     (~33–38 lekcji) z ostateczną głębokością PO pomiarze kalibracją
-     (moduł 1 K2, bezpieczny od cięcia); wejście autora = wyciąg
-     + podział sekcji (bez samych fragmentów); eksperyment grupowania
-     lekcji o wspólnym źródle u jednego autora w kalibracji; bramka
-     cytatów K2 wyrywkowa (2 najgęstsze lekcje/moduł). Kolejność robót
-     K2 i pełnia decyzji: KROK-3-KURSY.md, sekcja „KONSOLIDACJA".
+     sprzedażowej. **KURS 2 PO KALIBRACJI (2026-08-22): program ucięty do
+     32 lekcji, autorzy na Sonnecie 5 pod warunkiem komendy mierzącej
+     objętość w prompcie, jeden autor = jedna lekcja, bramka cytatów
+     wyrywkowa (2 najgęstsze lekcje na moduł), dwa czaty równoległe —
+     A: moduły 2–3 (`feat/tresc-k2-modul-2-3`, port 3012), B: moduły 4–6
+     (`feat/tresc-k2-modul-4-6`).** Proza Kursu 2: **12 z 32 lekcji**
+     (moduły 1 i 2 zamknięte i w bazie, 127 555 znaków). **REGUŁA
+     WŁAŚCICIELA 2026-08-22: gdy dokumentacja GitHuba rozjeżdża się
+     z podręcznikiem samego narzędzia, dokładamy podręcznik jako drugie
+     źródło i odnotowujemy to w tabeli zgodności** — kurs nie powtarza
+     nieprawdy, ale korekta musi mieć własne, wskazane źródło. Kolejność
+     robót K2, trzy klasy usterek niewidzialnych dla strażników i pełnia
+     decyzji: KROK-3-KURSY.md, sekcje „KONSOLIDACJA" i „MODUŁ 2 KURSU 2
+     — ZAMKNIĘTY I WGRANY".
      Worktree'y `krok3`/`modul3`/`modul5`/`modul6` zostają lokalnie
      (gałęzie w nich są już zmergowane); **istnienie worktree nie
      znaczy, że trwa w nim praca** — stan czytaj z `git log`.
      Konwencja gałęzi Kursu 2: `feat/tresc-k2-modul-N`.
+     **PRZELOT ZRZUTÓW — FAZA OSTATNIA ZAMKNIĘTA (2026-08-23).** Stan liczy
+     komenda `node tools/zrzuty/manifest.mjs`, nigdy pamięć: **148 z 160 miejsc
+     zrobionych** (Kurs 2 komplet 88/88, Kurs 1 60/72). Brief z przepisem,
+     pułapkami i prompem startowym: [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md),
+     znaleziska: [tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md](tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md).
+     **Dwanaście miejsc zostaje otwartych** i to jest stan docelowy, nie dług:
+     dziewięć z DECYZJI właściciela (2026-08-23 — płatne wywołania API i klucz
+     w Konsoli: 5 × `api`, 2 × Konsola, strumieniowanie 5.5; oraz aplikacja
+     Claude na repozytorium demonstracyjnym dla `@claude` w lekcji 4.6), trzy
+     dlatego, że **Cloudflare zablokował sterowaną przeglądarkę** na claude.ai
+     (podgląd myślenia 2.4, ustawienia 5.6, wgrany obraz 5.8) — ręczne okno na
+     tym samym profilu przechodzi. **DECYZJA WŁAŚCICIELA (2026-08-23): przelot
+     ZAMKNIĘTY na 148/160 — do robienia zrzutów NIE WRACAMY.** Te dwanaście
+     miejsc rozstrzygamy przy domykaniu kursu: poprawką podpisu i prozy albo
+     usunięciem znacznika (jak przy czterech ekranach GitHub Desktopu).
+     Zadanie otwarte na koncie: skasować ~12 rozmów demonstracyjnych
+     z historii claude.ai, gdy wróci dostęp — po potwierdzeniu listy
+     z właścicielem.
+     **NASTĘPNY KROK (kolejność właściciela): PR gałęzi
+     `feat/tresc-k2-modul-2-3` → merge → tag → release** (CI stoi do
+     1 września, więc na dowodach lokalnych, jak przy 0.21.0 i 0.25.0; po
+     powrocie CI potwierdzić gitleaks). Potem — i dopiero potem — audyt kursów
+     i higiena repo, które właściciel chce OMÓWIĆ OSOBNO.
+    **KALIBRACJA K2 ZROBIONA (2026-08-22): moduł 1 Kursu 2 gotowy** — 6 lekcji,
+    64 418 znaków, w repo (gałąź `feat/tresc-k2-modul-1`) i w bazie, po pełnej
+    bramce cytatów. **Cztery decyzje właściciela po kalibracji, WIĄŻĄCE dla
+    modułów 2–6** (pełnia w KROK-3-KURSY.md, sekcja „DECYZJE WŁAŚCICIELA PO
+    KALIBRACJI"): (1) **cięcie mocne zatwierdzone, program 32 lekcje**, 26 do
+    napisania, moduł 7 znika, lekcja 1.6 zostaje; (2) **autorzy na SONNECIE 5**
+    — zmiana decyzji z 2026-08-18 na dowodach (bramka nie odróżniła ramion:
+    20 usterek na 89 wierszy u Opusa, 20 na 90 u Sonneta), pod warunkiem
+    komendy mierzącej kontraktem w promptcie autora; weryfikatory bramki
+    zostają na Opusie; (3) **dwa czaty równoległe**: A = moduły 2–3,
+    B = moduły 4–6; (4) **koniec grupowania lekcji** — 1 autor = 1 lekcja
+    (druga lekcja w sesji kosztowała +45–63%). **NASTĘPNY KROK: czat A wprowadza
+    cięty program do bazy — operacja niebezpieczna, dyspozytor kasuje wiersze
+    spoza wejścia, więc zapis bez `id` skasuje prozę modułu 1.**
      Aktualną listę daje `git worktree list`, nie ten plik. Reguła po incydencie
      z 2026-08-19: żaden czat nie przełącza gałęzi w cudzym katalogu —
      inaczej commit ląduje na obcej gałęzi, a `gh pr create` mówi

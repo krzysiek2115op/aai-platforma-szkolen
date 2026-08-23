@@ -1,0 +1,52 @@
+# SESJA C (Kurs 1): pytanie o zgodę na KOMENDĘ POWŁOKI (3.7) i skill (4.2).
+#
+# DOBÓR KOMENDY JEST CELOWY. `ls -la lib` NIE PYTA — należy do wbudowanego
+# zestawu odczytowego, który działa bez pytania w każdym trybie (mówi o tym
+# sama proza 3.7). Pytanie wymusza dopiero komenda ZAPISUJĄCA, stąd `touch`.
+# Przy okazji: wyjście `ls -la` wypisuje właściciela pliku, czyli nazwę
+# użytkownika systemu — od 2026-08-23 rig ją podmienia, a kontrola prywatności
+# sprawdza gotowy ekran.
+#
+# Zgodę zatwierdzamy (nie odrzucamy), bo utworzony plik daje `/summarize-changes`
+# realny materiał: bez zmian w drzewie skill nie ma czego streszczać.
+CZEKAJ 16
+ENTER
+CZEKAJ 12
+KLAWISZ shift-tab
+CZEKAJ 2
+
+WPISZ napraw failujące testy
+ENTER
+CZEKAJ 35
+ZNACZNIK zgoda-edycja
+ENTER
+CZEKAJ 45
+ZNACZNIK po-naprawie
+
+WPISZ utwórz pusty plik NOTATKA.md komendą powłoki touch
+ENTER
+CZEKAJ 25
+ZNACZNIK zgoda-powloka-1
+CZEKAJ 12
+ZNACZNIK zgoda-powloka-2
+KLAWISZ ctrl-e
+CZEKAJ 6
+ZNACZNIK zgoda-powloka-rozwinieta-1
+CZEKAJ 6
+ZNACZNIK zgoda-powloka-rozwinieta-2
+ENTER
+CZEKAJ 25
+ZNACZNIK po-touch
+
+WPISZ /summarize-changes
+CZEKAJ 3
+ENTER
+CZEKAJ 5
+ENTER
+CZEKAJ 60
+ZNACZNIK skill-1
+CZEKAJ 30
+ZNACZNIK skill-2
+CZEKAJ 30
+ZNACZNIK skill-3
+CZEKAJ 5

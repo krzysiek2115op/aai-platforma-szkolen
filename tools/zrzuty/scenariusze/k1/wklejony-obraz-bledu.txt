@@ -1,0 +1,18 @@
+# SESJA (Kurs 1, lekcja 3.3): wklejony zrzut błędu i odwołanie [Image #1].
+#
+# PRZED nagraniem obraz MUSI być w schowku Waylanda. Powstaje z REALNEGO
+# wykonania (zasada 1), nie z rysunku:
+#   cd /tmp/oliwia-demo && npm test > blad.txt 2>&1        # test naprawdę pada
+#   node tools/zrzuty/terminal.mjs <sesja z tym wyjściem>  # ANSI → obraz
+#   wl-copy --type image/png < blad-testu.png
+# Ctrl+V to \x16 — Claude Code sam sięga po schowek i wstawia w pole [Image #1].
+CZEKAJ 16
+ENTER
+CZEKAJ 10
+SUROWO \x16
+CZEKAJ 4
+ZNACZNIK wklejony-obraz
+WPISZ  co powoduje ten błąd? odpowiedz w dwóch zdaniach, bez poprawiania kodu
+ENTER
+CZEKAJ 60
+ZNACZNIK odpowiedz-na-obraz

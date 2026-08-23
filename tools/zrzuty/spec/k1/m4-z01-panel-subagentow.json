@@ -1,0 +1,16 @@
+{
+  "_podpis": "panel subagentów pod polem promptu z działającym Explore",
+  "_lekcja": "K1 4.1 (proza-1-subagenci.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-subagenci-i-skill.txt",
+  "raw": "model-d.raw",
+  "doZnacznika": "subagent-panel-2",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-4/zrzuty/z01-panel-subagentow-pod-polem.webp",
+  "przytnijOd": 24,
+  "przytnijDo": 40,
+  "wymagaTekstu": [
+    "Explore(",
+    "Backgrounded agent",
+    "Waiting for 1 background agent to finish",
+    "↓ to manage"
+  ]
+}

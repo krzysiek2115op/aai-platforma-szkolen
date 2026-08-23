@@ -1,0 +1,16 @@
+{
+  "_podpis": "pytanie o zgodę na komendę powłoki z rozwiniętym wyjaśnieniem po Ctrl+E i etykietą ryzyka",
+  "_lekcja": "K1 3.7 (proza-7-uprawnienia.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-zgoda-powloki-i-skill.txt",
+  "raw": "model-c.raw",
+  "doZnacznika": "zgoda-powloka-rozwinieta-2",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-3/zrzuty/z18-pytanie-zgode-komende-powloki.webp",
+  "przytnijOd": 22,
+  "przytnijDo": 40,
+  "wymagaTekstu": [
+    "Bash command",
+    "Do you want to proceed?",
+    "re:(Low|Med|High) risk",
+    "ctrl+e to hide"
+  ]
+}

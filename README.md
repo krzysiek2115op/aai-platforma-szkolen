@@ -46,8 +46,8 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.31.0** |
-| **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**). [Plan domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): kroki 1–2 zamknięte (0.25.0, 0.29.0); krok 3 w toku — **Kurs 1 KOMPLETNY w narzędziu (41/41 lekcji prozy)**, Kurs 2 przed startem (cięcie programu + kalibracja) → **B7** → WordPress |
+| **Wersja** | **0.32.0** |
+| **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**). [Plan domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): kroki 1–2 zamknięte (0.25.0, 0.29.0); krok 3: **oba kursy KOMPLETNE w narzędziu** (Kurs 1: 41/41, Kurs 2: 32/32 lekcji prozy po cięciu mocnym) + przelot zrzutów zamknięty (148/160, reszta decyzją właściciela) → **B7** → WordPress |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
@@ -142,6 +142,7 @@ Narzędzia uruchamiane ręcznie:
 | Komenda | Co sprawdza / robi |
 |---|---|
 | `node tools/straznicy/uruchom-wszystkie.mjs` | wszyscy strażnicy naraz (runner sam znajduje pliki `straznik-*.mjs`) |
+| `node tools/zrzuty/manifest.mjs` | stan przelotu zrzutów ekranu w kursach — liczony z prozy, nie z osobnej listy (brief: [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md)) |
 | `node tools/smoke/smoke-d4.ts` | katalog renderuje kursy z bazy na produkcyjnym serwerze + golden + nagłówki bezpieczeństwa |
 | `node tools/smoke/smoke-d5.ts` | strona sprzedażowa renderuje pełny kurs z bazy + golden programu |
 | `node tools/smoke/smoke-d6.ts` | brama kreatora (403), wystrzał AJAX z ciastka, cykl szkic → publikacja → usunięcie, **brama tempa**: seria chybionych tokenów → 429 z `Retry-After`, a poprawny token z tego samego adresu przechodzi, **sufit ciała**: 413 dla żądania ponad 2 MB — także bez `content-length` |
@@ -199,6 +200,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-wagi-dokumentacji` | pre-commit + CI | masa dokumentacji producentów (55 MB, ~2200 plików) wpuszczona do gita — także przez `git add -f`; git trzyma każdą wersję na stałe, więc pomyłka jest nieodwracalna |
 | `straznik-tresci-lekcji` | pre-commit + CI | materiał kursu wychodzący zza bramki: wspólny odczyt strony wybierający z lekcji `content`/`materials` (wyciek treści 91 lekcji do publicznego HTML-a katalogu i strony sprzedażowej) albo kontrakt `LekcjaKursu` z polem treści; pełny tekst oddaje wyłącznie `trescLekcji()` |
 | `straznik-prozy` | pre-commit + CI | proza lekcji dla klienta (`tresc-kursow/**/proza-*.md`) bez kompletnego frontmatteru zgodnego ze ścieżką, bez tabeli „Zgodność ze źródłem" o wymaganej głębokości, poza limitami kontraktu `TrescLekcji`, bez odpowiadającego jej scenariusza, ze znacznikami nagrania (`[EKRAN]`, `[NARRACJA]`) zamiast tekstu, z niedomkniętym znacznikiem `<!-- ZRZUT: … -->` albo ze śmieciami po zapisie pliku (BLAD-008) |
+| `straznik-asercji` | pre-commit + CI | zrzut kursu bez maszynowej asercji treści: specyfikacja w `tools/zrzuty/spec/` bez niepustego `wymagaTekstu` albo z wyjściem poza `tresc-kursow/**/zrzuty/*.webp`, porównanie z `asercje.mjs` przepuszczające fragment nieobecny na ekranie (albo odrzucające zdanie pocięte ramką panelu), narzędzie zrzutu ruszające mimo braku asercji i asercja postawiona ZA zapisem obrazu — „zrzut powstał" ma znaczyć „zrzut zawiera to, co obiecuje podpis" |
 | `straznik-progow` | pre-commit + CI | liczba w tabeli pomiarów wpisana „na oko": każda ocena w README musi zgadzać się co do jednostki z `goldeny/pomiary-lighthouse.json`, golden musi mieć metryczkę (narzędzie, data, adres, liczba przebiegów) i co najmniej 5 przebiegów, a wiersz tabeli i wpis w goldenie muszą istnieć oba naraz — wynik, który zniknął z dokumentacji, jest tak samo groźny jak zmyślony |
 | blokada sekretów | pre-commit | pliki `.env`, tokeny/klucze w diffie |
 | gitleaks (pinowany po SHA-256) | CI | sekrety w całej historii repo |

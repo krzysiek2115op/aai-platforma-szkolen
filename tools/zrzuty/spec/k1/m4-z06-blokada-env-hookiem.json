@@ -1,0 +1,17 @@
+{
+  "_podpis": "rozmowa z zablokowaną edycją .env i komunikatem hooka podanym Claude",
+  "_lekcja": "K1 4.3 (proza-3-hooki.md) — blokada plików chronionych na PreToolUse",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/hook-blokada-env.txt",
+  "raw": "hook-env.raw",
+  "doZnacznika": "blokada-env",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-4/zrzuty/z02-rozmowa-z-zablokowana-edycja.webp",
+  "wymagaTekstu": [
+    "PreToolUse:Edit",
+    "Zablokowane przez hook projektu",
+    ".env to plik chroniony",
+    "Zmiana została zablokowana przez hook projektu"
+  ],
+  "przytnijOd": 14,
+  "przytnijDo": 36,
+  "_uwaga": "Kadr od wiersza 14: powyżej stoi baner powitalny z IMIENIEM właściciela („Welcome back …\"), którego bramka prywatności — słusznie — nie przepuszcza. Podpis mówi o rozmowie, nie o banerze."
+}
