@@ -791,3 +791,84 @@ PO OSTATNIEJ FAZIE — kolejność właściciela (2026-08-23):
   **cyfry → WIELKIE → małe** (odwrotna kolejność alfabetu daje ciąg, którego
   GitHub ignoruje). Sprawdzone wykonaniem: przy poprawnej sumie push wraca
   z `GH013: Repository rule violations found`.
+
+## Ostatnia faza (2026-08-23, wieczór) — 11 zrzutów Kursu 1, 12 miejsc otwartych
+
+**Stan liczy komenda**: `node tools/zrzuty/manifest.mjs --kurs K1` → 72 miejsca,
+**60 zrobionych, 12 po zalogowaniu**. Powstało 11 obrazów: dziewięć z rozmów na
+claude.ai i dwa z sesji Claude Code. Strażnicy 26/26, audyt mutacyjny 85/85.
+
+**Decyzje właściciela z tej fazy (przed pierwszym wywołaniem):**
+- rozmowy na koncie claude.ai — **TAK**, agent prowadzi je sam;
+- klucz API i doładowanie Konsoli — **NIE**, w całości; pięć zrzutów `api`,
+  dwa z Konsoli i strumieniowanie 5.5 zostają otwarte;
+- aplikacja Claude na repozytorium demonstracyjnym (`@claude` pod zgłoszeniem,
+  lekcja 4.6) — **NIE**, pojedynczy ekran nie jest wart konfiguracji.
+
+### Czego rig się nauczył (jest w kodzie, nie trzeba wyprowadzać)
+
+- **`wpiszWiersze`** — prompt wielowierszowy przez Shift+Enter. Enter w polu
+  czatu WYSYŁA, więc `page.type` z `\n` wystrzeliwał prompt po pierwszej linijce
+  (przy prompcie z tagami XML widać to od razu).
+- **`czekajNaKoniec`** mierzy **stabilność tekstu** ostatniej odpowiedzi, a nie
+  obecność przycisku „stop". Pytanie o przycisk daje FAŁSZYWE „gotowe" tuż po
+  kliknięciu wysyłki — druga wymiana w rozmowie szła na obraz po 201 znakach.
+  Drugim sygnałem jest `[data-is-streaming="true"]`, bo przy **artefaktach** tekst
+  w transkrypcie stoi w miejscu, gdy artefakt się jeszcze pisze.
+- **`wymagaOdpowiedzi`** — bramka strukturalna „w kadrze JEST odpowiedź modelu
+  o zadanej długości". Treści odpowiedzi nie da się zadeklarować z góry, a
+  `wymagaTekstu` sprawdza tylko napisy; to ta bramka złapała urwaną odpowiedź.
+- **`kadrOd` rządzi teraz także obszarem asercji** (`spec.clip = kadr`). Wcześniej
+  kadr brał wycinek dokumentu, a asercja liczyła tekst z OKNA — mogła więc
+  dowodzić napisów spoza zrzutu. Dziura nie zdążyła ugryźć, bo żadna wcześniejsza
+  specyfikacja `kadrOd` nie używała.
+- **`wgrajPlik`** — obraz do rozmowy przez ukryte `input[type=file]`.
+
+### Pułapki tej partii (kosztowały przebiegi)
+
+- **Transkrypt claude.ai jest WIRTUALIZOWANY** (`transcript-list`, `transcript-row`):
+  wymiana poza oknem nie istnieje w DOM-ie, więc kadr od pierwszego promptu do
+  ostatniej odpowiedzi urywa się w połowie. Lekarstwo: wysokie okno
+  (`viewport.height` 2600–3800), a nie przewijanie.
+- **Asercji nie wolno spełniać własnym promptem.** Wzorzec `myśl|rozumow` przy
+  podglądzie myślenia trafił w słowo „rozumowania" z MOJEGO polskiego promptu
+  i przepuścił zrzut, na którym żadnego bloku myślenia nie było. Przy rozmowach
+  asercja musi celować w **napis interfejsu** (u nas: angielski) albo w tekst,
+  którego prompt nie zawiera.
+- **„Sonda nic nie znalazła" to nie dowód nieistnienia.** Na tej podstawie
+  zapisałem był, że claude.ai nie renderuje bloku myślenia — a etykieta
+  **„Thought process"** stoi na zrzucie 6.4 z tej samej partii. Filtr sondy
+  szukał przycisków z mniej niż trojgiem dzieci; etykieta nim nie jest.
+  Wniosek: zanim uznasz, że czegoś nie ma, poszukaj tego na zrzutach, które
+  już masz.
+- **Zwykła prośba nie uruchamia hooka `Edit|Write`.** Przy „zmień w pliku .env…"
+  Claude sięgnął po komendę powłoki i plik zmienił się mimo hooka — to dokładnie
+  zawężenie, które lekcja 4.3 podaje pod tym zrzutem. Scenariusz kieruje model
+  na narzędzie Edit.
+- **CLOUDFLARE.** Po serii automatycznych wejść claude.ai wystawia sterowanej
+  przeglądarce wyzwanie „Przeprowadzanie weryfikacji zabezpieczeń", które **nie
+  mija** ani po dwóch minutach, ani po przeładowaniu, ani po kwadransie przerwy.
+  Ręczne okno na tym samym profilu przechodzi. **Nie obchodzimy tego** —
+  do dokończenia trzech miejsc trzeba otworzyć profil zwykłym Firefoksem
+  (`node tools/zrzuty/zaloguj.mjs claude --recznie`), zamknąć okno i spróbować
+  ponownie; jeśli i to nie pomoże, zrzuty poczekają na dłuższą przerwę.
+
+### Prywatność claude.ai — trzy dane, których bramka nie znała
+
+Pasek boczny wypisuje **tytuły prywatnych rozmów** właściciela i w tekście
+odnośnika, i w `aria-label` przycisku („More options for …"); ekran startowy
+wita **imieniem**; awatar konta niesie **inicjał**. Wszystkie trzy podmienia
+teraz `zrob-zrzut.mjs`, `sprawdzPrywatnosc` zna imię, a rig **odmawia zapisu**,
+gdy któryś odnośnik do rozmowy nie ma tytułu z listy przykładowych. Komunikat
+odmowy celowo NIE wypisuje tytułu.
+
+### Odtworzenie tej partii
+
+```bash
+export ZRZUTY_KORZEN=$PWD ZRZUTY_RIG=<scratchpad>/rig ZRZUTY_PROFIL=<scratchpad>/profil
+node tools/zrzuty/zaloguj.mjs claude --recznie          # właściciel loguje się sam
+node tools/zrzuty/zrob-zrzut.mjs tools/zrzuty/spec/k1/m1-z02-odpowiedz-na-drugi-prompt.json
+node tools/zrzuty/wepnij.mjs tools/zrzuty/spec/k1
+```
+Każdy zrzut rozmowy prowadzi rozmowę OD NOWA (nowa rozmowa na koncie), więc
+odtworzenie zostawia ślad w historii konta — to koszt, nie usterka.

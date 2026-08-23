@@ -615,6 +615,25 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      (gałęzie w nich są już zmergowane); **istnienie worktree nie
      znaczy, że trwa w nim praca** — stan czytaj z `git log`.
      Konwencja gałęzi Kursu 2: `feat/tresc-k2-modul-N`.
+     **PRZELOT ZRZUTÓW — FAZA OSTATNIA ZAMKNIĘTA (2026-08-23).** Stan liczy
+     komenda `node tools/zrzuty/manifest.mjs`, nigdy pamięć: **148 z 160 miejsc
+     zrobionych** (Kurs 2 komplet 88/88, Kurs 1 60/72). Brief z przepisem,
+     pułapkami i prompem startowym: [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md),
+     znaleziska: [tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md](tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md).
+     **Dwanaście miejsc zostaje otwartych** i to jest stan docelowy, nie dług:
+     dziewięć z DECYZJI właściciela (2026-08-23 — płatne wywołania API i klucz
+     w Konsoli: 5 × `api`, 2 × Konsola, strumieniowanie 5.5; oraz aplikacja
+     Claude na repozytorium demonstracyjnym dla `@claude` w lekcji 4.6), trzy
+     dlatego, że **Cloudflare zablokował sterowaną przeglądarkę** na claude.ai
+     (podgląd myślenia 2.4, ustawienia 5.6, wgrany obraz 5.8) — ręczne okno na
+     tym samym profilu przechodzi, więc do powtórzenia po przerwie. Przy
+     domykaniu kursu w tych miejscach albo powstaje zrzut, albo poprawiamy
+     podpis i prozę; dziś są jawną, policzalną dziurą w manifeście.
+     **NASTĘPNY KROK (kolejność właściciela): PR gałęzi
+     `feat/tresc-k2-modul-2-3` → merge → tag → release** (CI stoi do
+     1 września, więc na dowodach lokalnych, jak przy 0.21.0 i 0.25.0; po
+     powrocie CI potwierdzić gitleaks). Potem — i dopiero potem — audyt kursów
+     i higiena repo, które właściciel chce OMÓWIĆ OSOBNO.
     **KALIBRACJA K2 ZROBIONA (2026-08-22): moduł 1 Kursu 2 gotowy** — 6 lekcji,
     64 418 znaków, w repo (gałąź `feat/tresc-k2-modul-1`) i w bazie, po pełnej
     bramce cytatów. **Cztery decyzje właściciela po kalibracji, WIĄŻĄCE dla
