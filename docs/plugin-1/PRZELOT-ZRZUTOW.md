@@ -73,11 +73,18 @@ w cudzym katalogu.**
    statycznego i treść lekcji by wyciekła (klasa BLAD-007).
 8. **Rozmiar:** rig skaluje do 1600 px i zapisuje webp q82 (~40–90 kB).
    Nie wrzucamy zrzutów 2x — 173 pliki po 240 kB to 40 MB w repo.
-9. **Weryfikacja wzrokowa jest obowiązkowa** i robi się ją **stykówką**
-   (`tools/zrzuty/stykowka.mjs`), nie plikiem po pliku. Pierwsza partia
-   miała 3 klasy usterek widoczne wyłącznie na obrazie: baner zgód na
-   ciasteczka, zły adres strony (404) i kadr ucięty przed tabelą,
-   o którą prosił podpis.
+9. **Weryfikacja wzrokowa jest obowiązkowa, ale NIE WYSTARCZA** (zaostrzone
+   2026-08-23, decyzja właściciela). Stykówkę (`tools/zrzuty/stykowka.mjs`)
+   robimy dalej — pierwsza partia miała 3 klasy usterek widoczne wyłącznie na
+   obrazie: baner zgód na ciasteczka, zły adres strony (404) i kadr ucięty
+   przed tabelą, o którą prosił podpis. Ale oglądanie stykówki jest
+   **jednorazowe i nieodtwarzalne**: nie złapie przesuniętego znacznika ani
+   obrazu wyrenderowanego ze starego nagrania, a po zakończeniu sesji nikt tego
+   nie powtórzy. Dlatego **każdy zrzut musi mieć maszynową asercję treści**:
+   w specyfikacji podajemy `wymagaTekstu` — fragmenty, które podpis obiecuje —
+   a narzędzie **odmawia zapisu obrazu**, gdy ekran ich nie zawiera. Asercję
+   wyprowadzamy Z PODPISU, nigdy z obrazu, bo inaczej zabetonuje błąd.
+   **Zrzut bez asercji nie jest dowodem** i nie wolno go liczyć jako zrobiony.
 10. **Kod wyjścia bez potoku**, commit po każdym domkniętym kawałku,
     strażnicy zieloni przed commitem (hook uruchamia 25).
 

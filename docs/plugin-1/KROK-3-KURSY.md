@@ -2867,3 +2867,71 @@ Sprawdzone: suma kontrolna pliku przed i po kolejnym nagraniu jest ta sama.
   na jednorazowy `HOME` (`settings.json` = 0 B), nie na konfigurację
   właściciela. Naprawione flagą `MIGAWKA_JEST`; sprawdzone ponownym przebiegiem:
   plik świeżego `HOME` ma po nim 22 B, nie zero.
+
+## WERDYKT WŁAŚCICIELA o partii lokalnej czatu B (2026-08-23)
+
+**Cztery ekrany są UNIEWAŻNIONE jako dowód i idą do ponownego wykonania.**
+Powód nie jest taki, że obrazy są na pewno złe — powód jest taki, że **proces,
+który je wyprodukował, dawał wyniki zielone i niewiarygodne**, a jedyną
+weryfikacją było moje jednorazowe spojrzenie na stykówkę. Trzy usterki rigu
+(przesunięte znaczniki, martwe kadrowanie, martwe `scrollDo`), zmiana globalnej
+konfiguracji właściciela w trakcie nagrania i cztery podpisy wyprzedzające
+ekran złożyły się na to, że **zieleń niczego nie dowodziła**. Konfigurację
+przywrócono, obrazy przerenderowano z czystego nagrania — ale to nadal jest
+„sprawdziłem wzrokiem", nie dowód.
+
+Unieważnione są dokładnie te cztery, powiązane ze znaleziskami B4–B7:
+
+| Ekran | Lekcja | Co podpis obiecuje — i co MUSI być na ekranie |
+|---|---|---|
+| `modul-3/zrzuty/z20-zakladka-allow-ekranie-permissions.webp` | K1 3.7 | pasek zakładek z podświetloną **Allow**, zdanie `Claude Code won't ask before using allowed tools.`, co najmniej jedna reguła `Bash(` |
+| `modul-6/zrzuty/z07-zakladka-deny-ekranie-permissions.webp` | K1 6.6 | podświetlona **Deny**, zdanie `Claude Code will always reject requests to use denied tools.`, reguła `Bash(rm -rf:*)` |
+| `modul-3/zrzuty/z12-ekran-cofania-wybraniu-wiadomosci.webp` | K1 3.4 | `Summarize from here` **i** `Summarize up to here` (dosłownie), obok `Restore conversation` |
+| `modul-3/zrzuty/z13-wynik-komendy-context-all.webp` | K1 3.5 | `Memory files` **i** `CLAUDE.md` w tej samej sekcji |
+
+Kolumna trzecia jest wyprowadzona **z podpisu, nie z obrazu** — właśnie po to,
+żeby ponowne wykonanie sprawdzało obietnicę lekcji, a nie utrwalało to, co
+akurat wyszło.
+
+### Poprawka procesu — DO ZROBIENIA PRZED ponownym nagraniem
+
+1. **`wymagaTekstu` w `tui.mjs` i `zrob-zrzut.mjs`.** Specyfikacja zrzutu
+   dostaje listę fragmentów, które ekran musi zawierać; narzędzie sprawdza je
+   na wyrenderowanym ekranie (w TUI — na buforze emulatora, w przeglądarce — na
+   `innerText` kadrowanego obszaru) i przy braku **kończy się błędem zamiast
+   zapisywać obraz**. Dzięki temu „zrzut powstał" znaczy „zrzut zawiera to, co
+   obiecuje podpis". Każdą asercję sprawdzić testem negatywnym — celowo złym
+   znacznikiem albo celowo złym fragmentem.
+2. **Asercje wpisać do scenariuszy/specyfikacji w repo**, nie do sesyjnego
+   scratchpada — inaczej po `/clear` znów nie ma czego powtórzyć.
+3. **Ponownie nagrać i przerenderować cztery ekrany z tabeli wyżej**, już pod
+   asercjami. Jeśli któryś nie przejdzie — poprawiamy **podpis i prozę**, nie
+   asercję.
+4. Dopiero potem wracać do 12 zrzutów wymagających odpowiedzi modelu.
+
+**Reguła, która z tego zostaje na stałe** (weszła też do briefu, zasada 9):
+zrzut bez maszynowej asercji treści **nie jest dowodem** i nie liczy się jako
+zrobiony.
+
+### Skutek werdyktu w liczniku
+
+Cztery unieważnione ekrany są **wycofane z prozy do znaczników, a pliki obrazów
+usunięte** — licznik nie może liczyć jako zrobione czegoś, co nie jest dowodem.
+Stan po wycofaniu: **29 zrobionych, 16 do zrobienia teraz** (12 modelowych + 4
+do ponownego wykonania pod asercjami), 27 po zalogowaniu.
+
+Przy wycofywaniu wyszła **czwarta klasa usterki podpisu**: poprawka podpisu
+potrafi **przełożyć miejsce do innego kubła**, bo kubeł (jak nazwa pliku)
+wyprowadza się z podpisu. Podpis B6 stracił przy poprawce słowa „dwukrotnym
+Esc", więc wypadł z reguły `tui` i wpadł w domyślny `claude-ai` — licznik
+„po zalogowaniu" urósł z 27 na 28, choć ekran jest lokalny. Naprawione
+nazwaniem komendy w podpisie („ekran /rewind…"). **Po każdej poprawce podpisu
+sprawdzać manifestem, że kubeł się nie przesunął.**
+
+### Sprostowanie liczby zrzutów zza logowania
+
+W kolejce czatu A figuruje „49 zrzutów zza logowania". **Manifest podaje 68**
+(`node tools/zrzuty/manifest.mjs` bez filtra): K1 — 27 (claude-ai 16, console 6,
+api 5), K2 — 41 (github-logged). Liczbę trzeba uzgodnić **przed** wspólnym
+posiedzeniem z właścicielem, bo 68 to zupełnie inny rozmiar spotkania niż 49.
+Stan zawsze liczyć komendą, nigdy z notatki.
