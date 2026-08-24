@@ -22,7 +22,7 @@
     "db1:tresc": "node --env-file-if-exists=.env tools/wgraj-tresc-lekcji.ts"
   },
   "dependencies": {
-    "lucide-react": "^1.31.0",
+    "lucide-react": "^1.33.0",
     "next": "16.3.1",
     "pg": "^8.16.3",
     "react": "19.2.8",
