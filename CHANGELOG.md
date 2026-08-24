@@ -97,6 +97,17 @@ i uzasadnienia odrzuconych wariantów:
   `position` przy sekcjach, pięć pozycji UX panelu (w tym **przenoszenie lekcji
   między modułami**, którego builder Tutora wymaga, a nasz dyspozytor nie umie).
 
+### Domknięcie modułu
+
+**Plugin 1 scalony na `main`** (PR #62), **gałąź domyślna wróciła na `main`**,
+tag `v0.37.0` + release. `main` stał celowo 326 commitów w tyle, na 0.3.4 —
+wg [PLAN.md §5](docs/PLAN.md) moduł wchodzi na gałąź główną dopiero po
+ukończeniu i akceptacji całości. Trzy konflikty merge'a (README, WYTYCZNE,
+`straznik-licencji`) rozwiązane wersją gałęzi modułu; drzewo scalenia
+sprawdzone jako identyczne z `plugin-1-sklep-kursow`. Zmergowany też
+**PR #59** (Dependabot: `lucide-react` 1.31 → 1.33, `@types/pg` 8.21 → 8.23.1)
+— po pełnym `npm run check` lokalnie, bo CI stoi.
+
 ### Stan dowodów (CI stoi do 1 września — odtworzone lokalnie)
 
 Strażnicy **29/29** (doszły 3 niezmienniki: własne okno klucza, siła tokenu

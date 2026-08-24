@@ -983,14 +983,22 @@ przy każdym kroku zmieniającym stan projektu (jak README).
   (Publigo — polskie płatności/faktury, albo Tutor LMS), ostyłowany
   naszym design systemem. Wybór konkretnego LMS-a: przy etapie WP,
   po D7. Scenariusze i materiały są przenośne — nie blokują decyzji.
-- **GAŁĄŹ DOMYŚLNA repo to `plugin-1-sklep-kursow`** (zmiana 2026-08-18,
-  decyzja właściciela). Powód: GitHub pokazuje na stronie repozytorium
-  README z gałęzi domyślnej, a `main` stoi na wersji 0.3.4 — 34 commity
-  w tyle, bez rebrandingu i bez podglądu. Reguła PLAN.md §5 zostaje
-  nienaruszona (nic nie mergujemy na `main` przed ukończeniem Pluginu 1);
-  po domknięciu modułu: merge na `main` i powrót gałęzi domyślnej.
-  **`main` jest więc CELOWO nieaktualny — nie traktować go jako źródła
-  prawdy o stanie projektu.**
+- **GAŁĄŹ DOMYŚLNA repo to znowu `main`** (2026-08-25) — wróciła razem ze
+  scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0` + release).
+  **`main` jest od tej chwili źródłem prawdy o stanie projektu**; jego drzewo
+  jest identyczne z `plugin-1-sklep-kursow` (sprawdzone `git diff`, nie
+  założone). Gałąź modułu zostaje jako historia — o jej losie i o pozostałych
+  gałęziach decyduje właściciel przy sprzątaniu.
+  Zapis historyczny: od 2026-08-18 do 2026-08-25 domyślną była
+  `plugin-1-sklep-kursow`, bo GitHub pokazuje README z gałęzi domyślnej,
+  a `main` stał celowo na 0.3.4 (PLAN.md §5: nic nie wchodzi na `main` przed
+  ukończeniem modułu).
+  **PRZY MERGE'U DO `main` BYŁY TRZY KONFLIKTY** (README, WYTYCZNE,
+  straznik-licencji) — wszystkie z commita zmiany licencji, który poszedł na
+  `main` osobno (#16). Rozwiązane wersją gałęzi modułu, bo `main` nie niósł
+  niczego, czego moduł by nie miał. Gdyby taka operacja się powtórzyła:
+  weryfikować ARTEFAKT — `git diff --cached <gałąź>` musi być puste — a nie
+  sam fakt, że merge się udał.
 - Stan repo: PR #12 zmergowany do `plugin-1-sklep-kursow`, tag
   `v0.12.1` + release. Gałąź `feat/d6-kreator` wypchnięta (kroki 1–3)
   — zmergowana (PR #18), tag `v0.16.2` + release.
