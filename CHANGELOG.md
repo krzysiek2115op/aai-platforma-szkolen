@@ -82,6 +82,27 @@ gałęzi.
 - Pierwsza wersja wzorca „na NN sposobów" w `straznik-readme` była MARTWA
   (fraza łamie się w blockquote) — złapana testem negatywnym przed commitem.
 
+### Drugi audyt złapał dwie usterki w pracy tego kroku
+
+Powtórny przebieg po wszystkich zmianach (zasada: nie zakładaj, że skoro
+zmieniłeś, to naprawiłeś) wykrył dwie rzeczy w kontrolach dopisanych wyżej:
+
+- **Mutacja przypięta do konkretnej liczby umarła**, gdy README zmieniło
+  93 → 95 sposobów. To ta sama klasa, co regresja z 0.28.0: wzorzec ma
+  celować w ZACHOWANIE, nie w wartość. Obie mutacje liczbowe biorą teraz
+  liczbę z tekstu i podbijają ją same.
+- **Wzorzec `test\w*` w `straznik-readme` NIGDY nie pasował do formy
+  „testów"** — `\w` w JavaScripcie nie obejmuje polskich znaków, więc
+  kontrola milczała na prawdziwej treści README i tylko wyglądała na
+  działającą. Maskowała to stara mutacja, która wpisywała formę „testy"
+  (bez „ó"). Po zmianie mutacji na formę z ogonkiem audyt od razu
+  zaraportował „strażnik PRZEPUŚCIŁ". Wzorce czytają teraz `\p{L}` z flagą
+  `u`; sprawdzone testem negatywnym w obie strony.
+
+Wniosek do zapamiętania: **mutacja, która maskuje ślepotę strażnika, jest
+groźniejsza niż jej brak** — zielony audyt utwierdzał w tym, że kontrola
+działa.
+
 ### Świadomie NIE zrobione
 
 - **`"type": "module"` w package.json** — uciszyłoby ostrzeżenia

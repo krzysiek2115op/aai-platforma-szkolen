@@ -143,13 +143,18 @@ const MUTACJE = [
     opis: "liczba testów w README rozjechana ze zliczeniem test()/it() na dysku",
     plik: "README.md",
     zmien: (s) =>
-      s.includes("testów na osobnej bazie") ? s.replace(/\((\d+) testów na osobnej bazie/, "(62 testy na osobnej bazie") : null,
+      s.includes("testów na osobnej bazie")
+        ? s.replace(/\((\d+) testów na osobnej bazie/, (_, n) => `(${Number(n) + 13} testów na osobnej bazie`)
+        : null,
   },
   {
     straznik: "straznik-readme",
     opis: "liczba sposobów audytu mutacyjnego w README rozjechana z liczbą wpisów MUTACJE",
     plik: "README.md",
-    zmien: (s) => (/na\n?>? ?93 sposoby/.test(s) ? s.replace("93 sposoby", "71 sposobów") : null),
+    zmien: (s) => {
+      const m = s.match(/na[\s>]+(\d+) sposob/);
+      return m ? s.replace(m[0], m[0].replace(m[1], String(Number(m[1]) + 7))) : null;
+    },
   },
   // --- straznik-podgladu-kursow ---
   // Kontrole 1-4 działają na WYGENEROWANYM artefakcie poza repo, więc nie da

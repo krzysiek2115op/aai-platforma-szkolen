@@ -148,8 +148,8 @@ function policzTesty(katalog) {
     .filter((k) => existsSync(k))
     .reduce((suma, k) => suma + policzTesty(k), 0);
   const frazy = [
-    ...readme.matchAll(/\((\d+) test\w* na osobnej bazie/g),
-    ...readme.matchAll(/# (\d+) testów?;/g),
+    ...readme.matchAll(/\((\d+) test\p{L}* na osobnej bazie/gu),
+    ...readme.matchAll(/# (\d+) test\p{L}*;/gu),
   ];
   for (const [, liczba] of frazy) {
     if (Number(liczba) !== testowNaDysku) {
