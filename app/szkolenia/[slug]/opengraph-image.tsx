@@ -120,7 +120,7 @@ export default async function ObrazOgKursu({
             {/* Polski ma trzy formy liczebnika — odmiana idzie przez
                 lib/odmiana.ts, nigdy ręcznie (straznik-odmiany). */}
             {lekcji > 0
-              ? `${lekcji} ${lekcje(lekcji)} · ${czasMaterialu(minut)} materiału`
+              ? `${lekcje(lekcji)} · ${czasMaterialu(minut)} materiału`
               : "Kurs online"}
           </span>
           <span style={{ color: VOLT, fontWeight: 700 }}>

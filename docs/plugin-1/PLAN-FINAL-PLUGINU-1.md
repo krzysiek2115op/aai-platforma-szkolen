@@ -240,13 +240,22 @@ otwiera każdy temat osobno:
 1. Przegadanie z właścicielem przejścia na WP (hosting, domena
    `automaticai.pl` — jeszcze niekupiona, wybór LMS: Publigo albo
    Tutor LMS, zakres wtyczek: Plugin 2 płatności, Plugin 3 konta).
-2. Wykonanie tego, co z rozmowy wyjdzie jako należące jeszcze do
-   Pluginu 1 (najpewniej: specyfikacja przeniesienia + skrypt migracji
-   danych Postgres → MySQL).
-3. **Sprzątanie gałęzi** (decyzja właściciela: dopiero teraz) — dziś
-   26 gałęzi zdalnych, 13 zmergowanych. Od 0.22.0 nowe PR-y mergujemy
-   z `--delete-branch`, więc lista już nie rośnie.
-4. Merge modułu na `main`, przywrócenie gałęzi domyślnej, tag + release.
+2. ~~Wykonanie tego, co z rozmowy wyjdzie jako należące jeszcze do
+   Pluginu 1 (specyfikacja przeniesienia + skrypt migracji danych
+   Postgres → MySQL)~~ **ZROBIONE (0.36.0, 2026-08-25).** Decyzja
+   właściciela: skrypt powstaje jeszcze w Pluginie 1, ale po wcześniejszym
+   poznaniu docelowego schematu MySQL. Mapowanie pole po polu wyprowadzone
+   z żywej instalacji: [MIGRACJA-DO-WP.md](MIGRACJA-DO-WP.md).
+   Dowód: import 1 → 87 utworzonych, importy 2 i 3 → 0/0/87 bez zmian,
+   treść 73/73 zgodne co do znaku.
+3. ~~**Sprzątanie gałęzi**~~ **ZROBIONE (0.35.0, 2026-08-24)** — zdalnie
+   zostały 4 gałęzie zamiast 33, wszystkie 8 worktree usunięte. Każda
+   skasowana miała MERGED PR; `bak/*` zostają (WYTYCZNE §1).
+4. **← TO ZOSTAŁO:** merge modułu na `main`, przywrócenie gałęzi domyślnej,
+   tag + release. Do tego dwie drobne pozycje porządkowe: odhaczenie
+   checkboxów w [PLAN.md §2.4](../PLAN.md) (sześć pozycji zrobionych, ale
+   nigdy niezaznaczonych) i zdjęcie 🚧 z etapu 3 w
+   [KROK-3-KURSY.md](KROK-3-KURSY.md) — proza kompletna od 0.32.0.
 
 **ZŁOTO NA TEN KROK:** repo strony głównej ma katalog `wordpress/` —
 kompletny motyw WP wygenerowany ze statycznego builda Next, docker-compose
@@ -258,6 +267,16 @@ podwójna licencja GPL/MIT, workflow celowo wyłączony do decyzji
 odbiorcy). To gotowa ściąga — czytać przed pisaniem czegokolwiek.
 
 **Bramka kroku 4:** koniec Pluginu 1.
+
+> **B7 ZALICZONA przez właściciela 2026-08-25.** Przegląd pary agent+krytyk,
+> którego wymaga DIAGRAM.md przy tej bramce, został wykonany mimo zaliczenia
+> (polecenie właściciela) — pięć znalezisk naprawionych, sześć zostawionych
+> do jego decyzji: [PRZEGLAD-B7.md](PRZEGLAD-B7.md). Jedna z tych sześciu
+> (**`UNIQUE` sekcji**) musi zostać rozstrzygnięta PRZED pisaniem schematu
+> MySQL we wtyczce.
+>
+> **Kolejność po Pluginie 1 (decyzja właściciela 2026-08-25): etap
+> WordPressa, NIE Plugin 2.**
 
 ---
 

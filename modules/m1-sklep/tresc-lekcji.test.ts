@@ -183,6 +183,54 @@ test(
   }
 );
 
+test("ten sam id modułu dwa razy → odmowa, treść ocalona", { skip: !JEST_BAZA }, async () => {
+  // Regresja z przeglądu agent+krytyk (B7, 2026-08-25). Przed naprawą drugi
+  // wpis o tym samym id kasował lekcje zachowane przez pierwszy, transakcja
+  // się commitowała, a odpowiedź brzmiała `ok: true` — cicha utrata treści.
+  const kurs = await szczegolyKursuPoId(idKursu);
+  const modul = kurs!.modules.find((m) => m.id === idModulu)!;
+  const lekcja = modul.lessons[0]!;
+  const wynik = await obsluzAkcje({
+    akcja: "zapisz",
+    token: TOKEN,
+    kurs: {
+      ...KURS,
+      id: idKursu,
+      modules: [
+        { id: modul.id, position: 0, title: "Moduł pierwszy", lessons: [
+          { id: lekcja.id, position: 0, title: lekcja.title, preview: false },
+        ] },
+        { id: modul.id, position: 1, title: "Ten sam moduł znowu", lessons: [] },
+      ],
+    },
+  });
+  assert.equal(wynik.ok, false, "powtórzone id modułu musi zostać odrzucone");
+  assert.equal(wynik.ok === false && wynik.blad, "walidacja");
+  assert.notEqual(await trescLekcji(lekcja.id), null, "treść lekcji ma przeżyć odmowę");
+});
+
+test("ta sama lekcja dwa razy w module → odmowa", { skip: !JEST_BAZA }, async () => {
+  const kurs = await szczegolyKursuPoId(idKursu);
+  const modul = kurs!.modules.find((m) => m.id === idModulu)!;
+  const lekcja = modul.lessons[0]!;
+  const wynik = await obsluzAkcje({
+    akcja: "zapisz",
+    token: TOKEN,
+    kurs: {
+      ...KURS,
+      id: idKursu,
+      modules: [
+        { id: modul.id, position: 0, title: "Moduł pierwszy", lessons: [
+          { id: lekcja.id, position: 0, title: lekcja.title, preview: false },
+          { id: lekcja.id, position: 1, title: "Ta sama lekcja", preview: false },
+        ] },
+      ],
+    },
+  });
+  assert.equal(wynik.ok, false, "powtórzone id lekcji musi zostać odrzucone");
+  assert.notEqual(await trescLekcji(lekcja.id), null);
+});
+
 test("lekcja bez id w wejściu znika razem z treścią", { skip: !JEST_BAZA }, async () => {
   const kurs = await szczegolyKursuPoId(idKursu);
   const modul = kurs!.modules.find((m) => m.id === idModulu)!;

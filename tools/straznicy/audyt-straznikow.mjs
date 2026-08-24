@@ -182,6 +182,24 @@ const MUTACJE = [
       tresc: "RIFF____WEBPVP8 (atrapa — liczy się istnienie pliku, nie jego treść)",
     },
   },
+  {
+    straznik: "straznik-obietnic",
+    opis: "widok katalogu obiecuje lekcje WIDEO przy kursie tekstowym (klasa z przeglądu B7)",
+    plik: "app/szkolenia/widok.tsx",
+    zmien: (s) =>
+      s.includes("Lekcje tekstowe krok po kroku")
+        ? s.replace("Lekcje tekstowe krok po kroku", "Lekcje wideo krok po kroku")
+        : null,
+  },
+  {
+    straznik: "straznik-obietnic",
+    opis: "widok katalogu obiecuje pliki źródłowe do pobrania, których nie ma ani jednego",
+    plik: "app/szkolenia/widok.tsx",
+    zmien: (s) =>
+      s.includes("bez pobierania czegokolwiek")
+        ? s.replace("bez pobierania czegokolwiek", "pliki źródłowe do pobrania")
+        : null,
+  },
   // --- straznik-wersji ---
   {
     straznik: "straznik-wersji",

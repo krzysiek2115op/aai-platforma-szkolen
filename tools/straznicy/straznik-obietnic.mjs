@@ -27,6 +27,15 @@
  *   5. obietnica „prompty w N lekcjach” zgadza się z liczbą lekcji, które
  *      naprawdę mają sekcję „Prompty z tej lekcji”.
  *
+ * CO SPRAWDZA POZA SEEDEM (dopisane 2026-08-25, po przeglądzie agent+krytyk
+ * przy bramce B7). Sekcje sprzedażowe to nie jedyne miejsce, w którym strona
+ * coś obiecuje: teksty marketingowe siedzą też WPROST W KODZIE widoków.
+ * Przegląd znalazł tam dwie nieprawdy, których ten strażnik nie widział, bo
+ * czytał wyłącznie seed: katalog `/szkolenia` obiecywał „Lekcje wideo krok po
+ * kroku” przy kursie TEKSTOWYM oraz „pliki źródłowe — do pobrania”, podczas
+ * gdy 0 z 73 lekcji ma jakikolwiek materiał (sprawdzone w bazie). Dlatego
+ * te same wzorce lecą teraz po `app/**` i `components/**`.
+ *
  * Użycie: node tools/straznicy/straznik-obietnic.mjs
  */
 import { readdirSync, readFileSync, existsSync } from "node:fs";
@@ -101,9 +110,54 @@ for (const kurs of KURSY_SEED) {
   }
 }
 
+// ---- 6. obietnice zaszyte w KODZIE widoków, nie w seedzie ----
+// Tekst w JSX jest tak samo widoczny dla klienta jak tekst z bazy.
+const PLIKI_WIDOKOW = [];
+(function zbierz(kat) {
+  if (!existsSync(kat)) return;
+  for (const wpis of readdirSync(kat, { withFileTypes: true })) {
+    const pelna = join(kat, wpis.name);
+    if (wpis.isDirectory()) zbierz(pelna);
+    else if (/\.tsx$/.test(wpis.name)) PLIKI_WIDOKOW.push(pelna);
+  }
+})("app");
+(function zbierz(kat) {
+  if (!existsSync(kat)) return;
+  for (const wpis of readdirSync(kat, { withFileTypes: true })) {
+    const pelna = join(kat, wpis.name);
+    if (wpis.isDirectory()) zbierz(pelna);
+    else if (/\.tsx$/.test(wpis.name)) PLIKI_WIDOKOW.push(pelna);
+  }
+})("components");
+
+/** Obietnice, których produkt nie dowozi — sprawdzane w tekście widoków. */
+const OBIETNICE_SPOZA_PRODUKTU = [
+  ...WIDEO,
+  // „do pobrania” obiecuje załącznik; materiałów jest 0 na 73 lekcje, a decyzja
+  // właściciela z 2026-08-19 mówi: PDF to ewentualny DODATEK, nie rdzeń.
+  /plik\w*\s+(?:źródłow\w*|do\s+pobrania)/i,
+  /do\s+pobrania\s+i\s+u[żz]ycia/i,
+];
+
+for (const plik of PLIKI_WIDOKOW) {
+  const tresc = readFileSync(plik, "utf8");
+  // Komentarze mówią o kodzie, nie do klienta — pomijamy je, żeby strażnik
+  // nie oskarżał własnego uzasadnienia (lekcja z straznik-seo, 0.26.0).
+  const bezKomentarzy = tresc.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  for (const wzor of OBIETNICE_SPOZA_PRODUKTU) {
+    const trafienie = bezKomentarzy.match(wzor);
+    if (trafienie) {
+      bledy.push(
+        `${plik}: widok obiecuje „${trafienie[0].trim()}" — kurs jest TEKSTOWY (decyzja 2026-08-19), ` +
+          `a materiałów do pobrania nie ma ani jednego.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-obietnic:");
   for (const b of bledy) console.error(`  - ${b}`);
   process.exit(1);
 }
-console.log(`straznik-obietnic: OK (kursów: ${KURSY_SEED.length})`);
+console.log(`straznik-obietnic: OK (kursów: ${KURSY_SEED.length}, widoków: ${PLIKI_WIDOKOW.length})`);

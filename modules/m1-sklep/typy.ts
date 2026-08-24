@@ -409,6 +409,40 @@ const ModulWejscie = z.object({
   lessons: z.array(LekcjaWejscie).max(LIMIT_LEKCJI).default([]),
 });
 
+/**
+ * Powtórzony identyfikator w jednym zapisie = CICHA UTRATA TREŚCI.
+ *
+ * Dyspozytor przechodzi moduły pętlą i po każdym kasuje lekcje spoza wejścia
+ * (`NOT (id = ANY(...))`) — to celowa, udokumentowana mechanika pełnej podmiany
+ * programu. Ale gdy ten sam `id` modułu przyjdzie DWA RAZY, drugi przebieg
+ * kasuje lekcje zachowane przez pierwszy, transakcja się commituje, a odpowiedź
+ * brzmi `ok: true`. Sprawdzone uruchomieniowo przy przeglądzie B7 (2026-08-25):
+ * lekcja z treścią zniknęła bez śladu w odpowiedzi.
+ *
+ * Kontrakt jest jedyną drogą do bazy (straznik-granic), więc to jest właściwe
+ * miejsce na tę blokadę — i przenosi się na wtyczkę WP, gdzie builder Tutora
+ * wysyła całą strukturę kursu przy każdym zapisie.
+ */
+function bezPowtorzonychId(
+  wartosci: Array<{ id?: string }>,
+  ctx: z.RefinementCtx,
+  co: string,
+  sciezka: (string | number)[] = []
+): void {
+  const widziane = new Set<string>();
+  wartosci.forEach((w, i) => {
+    if (!w.id) return;
+    if (widziane.has(w.id)) {
+      ctx.addIssue({
+        code: "custom",
+        path: [...sciezka, i, "id"],
+        message: `ten sam ${co} podany dwa razy w jednym zapisie — drugi wpis skasowałby treść zapisaną przez pierwszy`,
+      });
+    }
+    widziane.add(w.id);
+  });
+}
+
 export const KursWejscie = z.object({
   /** brak id = nowy kurs; id = edycja istniejącego */
   id: z.uuid().optional(),
@@ -427,6 +461,12 @@ export const KursWejscie = z.object({
   /** podanie tablicy = pełna podmiana sekcji/modułów kursu */
   sections: z.array(SekcjaWejscie).max(LIMIT_SEKCJI).optional(),
   modules: z.array(ModulWejscie).max(LIMIT_MODULOW).optional(),
+}).superRefine((kurs, ctx) => {
+  if (!kurs.modules) return;
+  bezPowtorzonychId(kurs.modules, ctx, "moduł", ["modules"]);
+  kurs.modules.forEach((m, i) =>
+    bezPowtorzonychId(m.lessons ?? [], ctx, "lekcja", ["modules", i, "lessons"])
+  );
 });
 
 export const AkcjaDyspozytora = z.discriminatedUnion("akcja", [

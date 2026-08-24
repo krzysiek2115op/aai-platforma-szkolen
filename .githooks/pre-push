@@ -15,7 +15,13 @@
 
 set -euo pipefail
 
+# Chronimy main ORAZ gałąź domyślną repozytorium. Od 0.18.0 domyślną jest
+# `plugin-1-sklep-kursow` i to na nią idą wszystkie merge'e — hak pilnujący
+# samego `main` przepuszczał więc bezpośredni push na gałąź, na której stoi
+# cały projekt. Znalezione w przeglądzie agent+krytyk przy bramce B7.
+GALAZ_DOMYSLNA=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
 PROTECTED="refs/heads/main"
+PROTECTED_DOMYSLNA="${GALAZ_DOMYSLNA:+refs/heads/$GALAZ_DOMYSLNA}"
 
 if [ "${ALLOW_MAIN_PUSH:-}" = "1" ]; then
   echo "pre-push: ALLOW_MAIN_PUSH=1 — pomijam blokadę main" >&2
@@ -23,10 +29,10 @@ if [ "${ALLOW_MAIN_PUSH:-}" = "1" ]; then
 fi
 
 while read -r _local_ref _local_sha remote_ref _remote_sha; do
-  if [ "$remote_ref" = "$PROTECTED" ]; then
+  if [ "$remote_ref" = "$PROTECTED" ] || { [ -n "$PROTECTED_DOMYSLNA" ] && [ "$remote_ref" = "$PROTECTED_DOMYSLNA" ]; }; then
     cat >&2 <<'EOF'
 
-  ZABLOKOWANO: bezpośredni push na main.
+  ZABLOKOWANO: bezpośredni push na gałąź chronioną (main lub domyślną).
 
   Zmiany na main idą przez pull request:
 

@@ -46,7 +46,7 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.35.0** |
+| **Wersja** | **0.36.0** |
 | **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**). [Plan domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): kroki 1–2 zamknięte (0.25.0, 0.29.0); krok 3: **oba kursy KOMPLETNE w narzędziu** (Kurs 1: 41/41, Kurs 2: 32/32 lekcji prozy po cięciu mocnym) + przelot zrzutów zamknięty (**148 zrzutów, 148 miejsc** — dwanaście miejsc bez zrzutu zamknięto usunięciem znaczników przy naprawach audytu 2026-08-24) → **B7** → WordPress |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
@@ -181,7 +181,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 95 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 97 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie
@@ -223,7 +223,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
 
 CI: cztery joby — strażnicy i skan sekretów chodzą ZAWSZE; „Kod
-aplikacji" (lint → tsc → build) i „Baza" (75 testów na osobnej bazie
+aplikacji" (lint → tsc → build) i „Baza" (77 testów na osobnej bazie
 `db1_kursy_test`, migracje, build, siedem smoke'ów) tylko gdy zmiana
 dotyka kodu. Rozstrzyga job „Zakres zmian" zwykłym `git diff` — commit
 czysto treściowy (większość commitów D7) nie pali minut na build.
@@ -343,7 +343,7 @@ git config core.hooksPath .githooks   # włącza haki — raz, obowiązkowo
 npm ci                                # zależności (Node 24+)
 cp .env.example .env                  # lokalna konfiguracja (baza, KREATOR_TOKEN)
 npm run db1:migruj                    # migracje + triggery (bazę podniesie pretest)
-npm test                              # 75 testów; sam podnosi kontener bazy
+npm test                              # 77 testów; sam podnosi kontener bazy
 npm run db1:seed                      # program + sekcje sprzedażowe (UWAGA: kasuje kursy)
 npm run dev                           # → http://localhost:3001/szkolenia
 ```
