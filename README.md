@@ -128,6 +128,8 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run dev` | jak wygląda strona teraz? → `http://localhost:3001/szkolenia` |
 | `npm test` | czy logika modułów działa? (**sam podnosi bazę**, gdy kontener leży — pretest `tools/db1-gotowa.mjs`) |
 | `npm run build` | czy produkcyjny build w ogóle przechodzi? |
+| `npm run check` | czy WSZYSTKO naraz jest zdrowe? — jedna bramka: strażnicy → lint → tsc → testy → build → wszystkie smoke'i (to, co przechodzi CI, jedną komendą; praktyka z repo strony głównej) |
+| `npm run smoke` | siedem smoke'ów po kolei (d4 → d5 → d6 → lekcje → csp → podgląd → seo, kolejność jak w CI — dwa ostatnie nadpisują `out/`); wymaga wcześniejszego `npm run build` i bazy |
 | `npm run build:podglad` | jak wygląda podstrona jako STATYCZNE pliki? → `out/` (katalog i strony kursów z bazy w czasie builda, **bez kreatora i AJAX-a**; po buildzie: rozszerzenia miniatur OG i wstrzyknięcie polityki CSP — dlatego zawsze ta komenda, nigdy `next build` wprost) |
 | `npm run deploy:podglad` | opublikuj podgląd na GitHub Pages (wymaga czystego drzewa i działającej bazy) |
 | `npm run start` | jak strona zachowuje się na produkcyjnym serwerze? (`:3001`) |
