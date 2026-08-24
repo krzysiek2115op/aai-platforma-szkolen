@@ -53,7 +53,13 @@ const L75 = "tresc-kursow/jak-uzywac-githuba/modul-7/lekcja-5-discussions.md";
  *  usunPlik — ścieżka pliku KASOWANEGO na czas próby (przywracany
  *             w finally jak każda inna mutacja) — do niezmienników
  *             typu „ten plik musi istnieć",
- *  oczekujCzerwonego — false dla kontrprzykładów (domyślnie true).
+ *  oczekujCzerwonego — false dla kontrprzykładów (domyślnie true),
+ *  wymaga   — () => boolean; false = mutacja POMINIĘTA (nie martwa,
+ *             nie przeoczona). Dla strażników warunkowych, którzy przy
+ *             braku materiału świadomie milczą — jak straznik-scenariuszy
+ *             bez dokumentacji D7 albo straznik-podgladu-kursow bez
+ *             wygenerowanego podglądu. Bez tego pola audyt na maszynie
+ *             bez materiału raportowałby fałszywe „PRZEPUŚCIŁ mutację".
  */
 const MUTACJE = [
   // --- straznik-scenariuszy ---
@@ -144,6 +150,32 @@ const MUTACJE = [
     opis: "liczba sposobów audytu mutacyjnego w README rozjechana z liczbą wpisów MUTACJE",
     plik: "README.md",
     zmien: (s) => (/na\n?>? ?93 sposoby/.test(s) ? s.replace("93 sposoby", "71 sposobów") : null),
+  },
+  // --- straznik-podgladu-kursow ---
+  // Kontrole 1-4 działają na WYGENEROWANYM artefakcie poza repo, więc nie da
+  // się ich zmutować edycją pliku w repo — udowodnione ręcznie pięcioma
+  // mutacjami na kopii podglądu (2026-08-24): skasowany font → martwy
+  // odsyłacz, obraz bez width/height, &amp;quot; w podpisie, lekcja bez
+  // odsyłacza ze spisu, skasowana strona lekcji. Wszystkie exit 1, czysty
+  // artefakt exit 0 (kody sprawdzone BEZ potoku). Tutaj mutujemy to, co
+  // strażnik czyta z REPO: komplet stron i zrzutów wobec źródła.
+  {
+    straznik: "straznik-podgladu-kursow",
+    opis: "lekcja prozy, która nie ma swojej strony w podglądzie",
+    wymaga: () => existsSync("/tmp/podglad-kursow/index.html"),
+    nowyPlik: {
+      sciezka: "tresc-kursow/jak-uzywac-githuba/modul-1/proza-9-widmo.md",
+      tresc: "---\nlekcja: widmo\n---\n\nLekcja, której podgląd nie zna.\n",
+    },
+  },
+  {
+    straznik: "straznik-podgladu-kursow",
+    opis: "zrzut w źródle, którego nie ma w zasobach podglądu (cicha utrata pliku)",
+    wymaga: () => existsSync("/tmp/podglad-kursow/index.html"),
+    nowyPlik: {
+      sciezka: "tresc-kursow/jak-uzywac-githuba/modul-1/zrzuty/z99-widmo.webp",
+      tresc: "RIFF____WEBPVP8 (atrapa — liczy się istnienie pliku, nie jego treść)",
+    },
   },
   // --- straznik-wersji ---
   {
@@ -929,9 +961,13 @@ const MUTACJE = [
 
 
 const sha = (t) => createHash("sha256").update(t).digest("hex");
-const zlapane = [], przeoczone = [], martwe = [];
+const zlapane = [], przeoczone = [], martwe = [], pominiete = [];
 
 for (const m of MUTACJE) {
+  if (m.wymaga && !m.wymaga()) {
+    pominiete.push(`${m.straznik}: ${m.opis} — brak materiału do próby`);
+    continue;
+  }
   const oczekuj = m.oczekujCzerwonego !== false;
   let przygotowane = false;
   let oryginal = null;
@@ -990,7 +1026,12 @@ for (const m of MUTACJE) {
   }
 }
 
-console.log(`\naudyt-straznikow: ${zlapane.length} złapanych, ${przeoczone.length} przeoczonych, ${martwe.length} martwych (mutacji: ${MUTACJE.length})`);
+console.log(
+  `\naudyt-straznikow: ${zlapane.length} złapanych, ${przeoczone.length} przeoczonych, ${martwe.length} martwych` +
+    (pominiete.length ? `, ${pominiete.length} pominiętych (brak materiału)` : "") +
+    ` (mutacji: ${MUTACJE.length})`,
+);
+for (const p of pominiete) console.log(`  · ${p}`);
 for (const z of zlapane) console.log(`  ✓ ${z}`);
 if (martwe.length) { console.error("\nMARTWE MUTACJE (nic nie testują, a wyglądają na zielone):"); for (const x of martwe) console.error(`  ⚠ ${x}`); }
 if (przeoczone.length) { console.error("\nDZIURY:"); for (const x of przeoczone) console.error(`  ✘ ${x}`); }
