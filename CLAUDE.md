@@ -699,10 +699,11 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      w sąsiednich wierszach markdown = jeden akapit, a dopasowanie brało tylko
      obraz sam w akapicie), 29 podpisów pokazywało dosłowne `&quot;`
      (podwójna ucieczka znaków).
-     **PUŁAPKA DO ZAPAMIĘTANIA:** cały arkusz w `style.mjs` jest jednym
-     literałem szablonowym — pojedynczy odwrócony apostrof w komentarzu CSS
-     zamyka literał i node wywala się w losowym miejscu pliku. Kosztowało to
-     trzy przebiegi; ostrzeżenie stoi w nagłówku pliku.
+     **PUŁAPKA JUŻ NIEAKTUALNA (zapis historyczny):** arkusz był jednym
+     literałem szablonowym w `style.mjs` i pojedynczy odwrócony apostrof
+     w komentarzu CSS wywalał node w losowym miejscu pliku (trzy przebiegi).
+     Od 0.34.0 arkusz jest prawdziwym plikiem `tools/podglad-kursow/styl.css`,
+     a `style.mjs` (23 linie) tylko go wczytuje — przyczyna zniknęła.
      Wydajność: arkusz i skrypt wyciągnięte do `zasoby/` (wspólne dla 76
      stron, strona lekcji 77 kB → 30 kB), wymiary 148 zrzutów czytane
      z nagłówka WebP (`wymiary.mjs`) → CLS bez ruchu, zero nowych zależności.
@@ -730,12 +731,49 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      z repo `ZRZUTY_RIG=/tmp/rig node tools/podglad-kursow.mjs --wyjscie
      /tmp/podglad-kursow` i `cd /tmp/podglad-kursow && python3 -m http.server 3011`.
      Katalog wyjściowy MUSI być poza repo — narzędzie odmawia zapisu do środka.
-     **NASTĘPNY KROK: higiena repo — właściciel chce ją OMÓWIĆ OSOBNO;
-     NIE planować jej ani nie zaczynać z własnej inicjatywy.** Rozmowy demonstracyjne z konta claude.ai **skasowane**
+     **HIGIENA REPO ZROBIONA (2026-08-24, wersja 0.35.0, gałąź
+     `chore/higiena-repo`)** — pełny audyt od A do Z na polecenie właściciela,
+     z repo `automatic-ai` jako wzorcem praktyk (bez kopiowania).
+     Zero pozycji CRITICAL: martwego kodu nie ma (6 podejrzanych plików
+     używają testy i narzędzia), sekretów nie ma, `npm audit` 0, żadnych
+     plików-śmieci ani duplikatów. Rozjazd siedział w LICZBACH: README
+     mówiło „62 testy" (75) i audyt „na 71 sposobów" (90), miało martwą
+     kotwicę `#szybki-start-po-sklonowaniu`, POSTEP.md wskazywał jako
+     „następny krok" domknięcie D7 zrobione w v0.21.0, PR-D6/D7 kazały
+     otwierać dawno zmergowane PR-y, a opis repo na GitHubie był sprzed
+     rebrandingu. Wszystko naprawione; liczb pilnuje teraz rozszerzony
+     `straznik-readme` (każda kotwica w prozie, nie tylko w spisie treści;
+     liczba testów ze zliczenia `test()`/`it()`; liczba mutacji z wpisów
+     w audycie).
+     **DOSZŁO:** 29. strażnik **`straznik-podgladu-kursow`** (widok kupionego
+     kursu: martwe odsyłacze, `width`/`height` na 148 obrazach, podwójna
+     ucieczka w podpisach, klikalność spis↔lekcja, komplet wobec źródła;
+     warunkowy — bez wygenerowanego podglądu mówi, że pominął),
+     **`npm run check`** (jedna bramka = to, co przechodzi CI) i `npm run
+     smoke`, `.gitattributes` / `.editorconfig` / `.nvmrc` / `engines`,
+     szablon PR i `dependabot.yml` (sufity PR-ów, bo ich PR-y palą minuty
+     CI — włączy się realnie po 1 września), pole **`wymaga`** w audycie
+     mutacyjnym (mutacja strażnika warunkowego pomijana zamiast fałszywego
+     „PRZEPUŚCIŁ"). CONTRIBUTING opisuje wreszcie PRAWDZIWĄ konwencję
+     commitów (temat = SKUTEK; prefiksy dozwolone dla drobnicy).
+     **LEKCJA Z DRUGIEGO PRZEBIEGU AUDYTU (nowa klasa):** mutacja przypięta
+     do WARTOŚCI („93 sposoby") umiera po zmianie liczby, a groźniejsze —
+     wzorzec `test\w*` w strażniku NIGDY nie pasował do formy „testów",
+     bo `\w` w JS nie obejmuje polskich znaków; maskowała to mutacja
+     używająca formy „testy" bez ogonka. **Mutacja, która maskuje ślepotę
+     strażnika, jest groźniejsza niż jej brak.** W polskich wzorcach
+     używać `\p{L}` z flagą `u`.
+     **GAŁĘZIE POSPRZĄTANE (decyzja właściciela 2026-08-24, wcześniej niż
+     krok 4 planu):** zdalnie zostały **4** (`plugin-1-sklep-kursow`, `main`,
+     2 × `bak/*`) zamiast 33; lokalnie 7; **wszystkie 8 worktree usunięte**
+     (`/home/krzysiek/Pod-strona-Szkolenia-*` już nie istnieją). Każda
+     skasowana gałąź miała MERGED PR — sprawdzone `gh pr list` co do sztuki;
+     dwie squash-merged (#12, #13) odtwarzalne z `refs/pull/N/head`, które
+     GitHub trzyma po kasowaniu. Gałęzie `bak/*` zostają (WYTYCZNE §1).
+     Rozmowy demonstracyjne z konta claude.ai **skasowane**
      (23 sztuki, 2026-08-23 — zgoda właściciela na „wszystkie pozostałości";
      wykaz brany z API po `created_at`, nie zgadywany z tytułów, bo lista
-     w DOM-ie jest wirtualizowana i daty nie oddaje); worktree'y `k2-A`/`zrzuty-k1` zostają lokalnie
-     (gałęzie zmergowane — istnienie worktree nie znaczy, że trwa praca).
+     w DOM-ie jest wirtualizowana i daty nie oddaje).
     **KALIBRACJA K2 ZROBIONA (2026-08-22): moduł 1 Kursu 2 gotowy** — 6 lekcji,
     64 418 znaków, w repo (gałąź `feat/tresc-k2-modul-1`) i w bazie, po pełnej
     bramce cytatów. **Cztery decyzje właściciela po kalibracji, WIĄŻĄCE dla
