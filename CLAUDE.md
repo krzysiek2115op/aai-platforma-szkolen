@@ -731,6 +731,57 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      z repo `ZRZUTY_RIG=/tmp/rig node tools/podglad-kursow.mjs --wyjscie
      /tmp/podglad-kursow` i `cd /tmp/podglad-kursow && python3 -m http.server 3011`.
      Katalog wyjściowy MUSI być poza repo — narzędzie odmawia zapisu do środka.
+     **═══ STAN NA 2026-08-25: CO ZOSTAŁO DO ZAMKNIĘCIA PLUGINU 1 ═══**
+     Sprawdzone wobec definicji ukończenia (PLAN.md §2.4), bramek z DIAGRAM.md
+     i kroków PLAN-FINAL-PLUGINU-1.md. **Wszystkie 6 pozycji definicji
+     ukończenia jest zrobionych merytorycznie**, B1–B6 zaliczone,
+     **B7 ZALICZONA przez właściciela 2026-08-25**, przegląd agent+krytyk
+     WYKONANY (0.36.0). Zostają TRZY rzeczy, wszystkie z kroku 4 planu:
+     1. **Merge `plugin-1-sklep-kursow` → `main`**, przywrócenie gałęzi
+        domyślnej na `main`, tag + release. (`main` stoi 320+ commitów w tyle,
+        na 0.3.4 — celowo, wg PLAN.md §5.)
+     2. **Odhaczenie checkboxów w PLAN.md §2.4** (sześć pozycji `- [ ]`, które
+        są zrobione, ale nigdy nie zaznaczone) i **zdjęcie 🚧 z etapu 3
+        w KROK-3-KURSY.md:54** (proza kompletna od 0.32.0).
+     3. **Decyzje właściciela o sześciu pozycjach z przeglądu B7** —
+        [docs/plugin-1/PRZEGLAD-B7.md](docs/plugin-1/PRZEGLAD-B7.md), sekcja
+        „ZOSTAWIONE DO DECYZJI". Jedna z nich (**`UNIQUE` sekcji**) MUSI zapaść
+        PRZED pisaniem schematu MySQL.
+     **Potem: etap WordPressa** (decyzja właściciela 2026-08-25: po Pluginie 1
+     idzie etap WP, NIE Plugin 2; zakres Pluginów 2/3 doprecyzowujemy pytaniami
+     przed startem każdego z nich — decyzja 2026-08-21).
+
+     **PRZEGLĄD B7 + MIGRACJA DO WP ZROBIONE (2026-08-25, wersja 0.36.0).**
+     Przegląd pary agent+krytyk (trzech recenzentów na rozłącznych obszarach,
+     krytykiem agent główny — żadne znalezisko bez niezależnego potwierdzenia).
+     **Naprawione pięć**: (1) CICHA UTRATA TREŚCI — ten sam `id` modułu dwa razy
+     w zapisie kasował lekcje i zwracał `ok: true` (kontrakt odrzuca teraz
+     duplikaty, 2 testy regresji); (2) katalog obiecywał „lekcje wideo" i „pliki
+     do pobrania" przy kursie tekstowym z 0 materiałami na 73 lekcje —
+     `straznik-obietnic` czytał tylko seed, teraz czyta 56 widoków; (3) miniatura
+     OG pokazywała „41 41 lekcji"; (4) pula bazy bez `on("error")` ubijała CAŁY
+     proces przy restarcie bazy; (5) `pre-push` chronił `main` zamiast gałęzi
+     domyślnej. **Sześć zostawionych do decyzji** — PRZEGLAD-B7.md.
+     **Migracja danych (krok 4.2) ZROBIONA I UDOWODNIONA**:
+     `tools/eksport-wp.mjs` (czyta przez publiczne API modułu) +
+     `wordpress/import-kursy.php` (idempotentny, klucz `_aai_zrodlo_uuid`, NIE
+     slug) + [docs/plugin-1/MIGRACJA-DO-WP.md](docs/plugin-1/MIGRACJA-DO-WP.md)
+     z mapowaniem pole po polu z ŻYWEJ instalacji. Dowód: import 1 → 87
+     utworzonych, importy 2 i 3 → **0/0/87 bez zmian**, treść **73/73 zgodne co
+     do znaku**. Struktura kurs→moduł→lekcja mapuje się 1:1 na
+     `courses`→`topics`→`lesson`; **Tutor pokrywa 4 z naszych 12 sekcji, osiem
+     zostaje w naszej wtyczce** — to mierzalne uzasadnienie podziału z ETAP-WP.
+     Środowisko dowodowe: `podman start tutor-db tutor-wp`, `:8091`
+     (WP 7.0.1 + Tutor 4.0.6 + Woo 11.0.1); WP-CLI doinstalowany do kontenera.
+     **DWIE PUŁAPKI DO ZAPAMIĘTANIA:** (a) **WordPress zjada backslashe w meta**
+     — `update_post_meta` puszcza wartość przez `wp_unslash`, więc bez
+     `wp_slash` ginie każdy `\` (ścieżki `C:\Users`, sekwencje `\n` w kursie
+     o Gicie); wykryte WYŁĄCZNIE testem idempotencji, bo pierwszy import
+     wyglądał na udany; (b) **`LENGTH()` w MySQL liczy BAJTY, a `.length` w JS
+     jednostki UTF-16** — porównanie sum pokazało „utratę" 47 tys. znaków,
+     a po `CHAR_LENGTH()` została różnica 7 = siedem emoji spoza BMP.
+     **Sumy porównuj ostrożnie, treść porównuj znak w znak.**
+
      **HIGIENA REPO ZROBIONA (2026-08-24, wersja 0.35.0, gałąź
      `chore/higiena-repo`)** — pełny audyt od A do Z na polecenie właściciela,
      z repo `automatic-ai` jako wzorcem praktyk (bez kopiowania).

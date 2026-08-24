@@ -5,6 +5,82 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.36.0] — 2026-08-25
+
+**Przegląd agent + krytyk przed bramką B7 i udowodniona droga danych do
+WordPressa.** Właściciel zaliczył B7 (2026-08-25), ale polecił wykonać przegląd
+mimo to — DIAGRAM.md wymaga go przy tej jednej bramce, a nigdy się nie odbył.
+Decyzją tej samej rozmowy skrypt migracji Postgres → MySQL powstaje jeszcze
+w Pluginie 1, po wcześniejszym poznaniu docelowego schematu.
+
+### Naprawione — pięć znalezisk przeglądu, każde potwierdzone niezależnie
+
+- **CICHA UTRATA TREŚCI: ten sam `id` modułu dwa razy w jednym zapisie.**
+  Drugi przebieg pętli dyspozytora kasował lekcje zachowane przez pierwszy,
+  transakcja się commitowała, a odpowiedź brzmiała `ok: true`. Sprawdzone
+  uruchomieniowo na bazie testowej — lekcja z treścią znikała bez śladu.
+  Kontrakt `KursWejscie` odrzuca teraz powtórzone identyfikatory modułów
+  i lekcji; dwa testy regresji. To zabezpieczenie jest **potrzebne także we
+  wtyczce WP**, bo builder Tutora wysyła całą strukturę kursu przy każdym zapisie.
+- **Katalog obiecywał produkt, którego nie ma** — „Lekcje wideo krok po kroku"
+  i „pliki źródłowe do pobrania" przy kursie TEKSTOWYM, w którym 0 z 73 lekcji
+  ma jakikolwiek materiał. Ta sama klasa co BLAD-015, ale `straznik-obietnic`
+  czytał wyłącznie seed, więc tekst zaszyty w kodzie widoku był poza jego
+  zasięgiem. Strażnik obejmuje teraz 56 widoków z `app/` i `components/`.
+- **Miniatura OpenGraph pokazywała „41 41 lekcji"** — `lekcje()` zwraca liczbę
+  razem ze słowem, a szablon dokładał ją drugi raz. Obrazek idzie w świat przy
+  każdym udostępnieniu linku; `smoke-seo` czyta JSON-LD, nie treść PNG.
+- **Pula połączeń bez nasłuchiwacza `error`** — restart bazy albo reaper
+  połączeń hostingu ubijał CAŁY proces Nexta, nie jedno żądanie.
+- **Hak `pre-push` chronił `main`**, a praca od 0.18.0 idzie na gałąź domyślną
+  `plugin-1-sklep-kursow`; bezpośredni push na nią przechodził bez słowa,
+  omijając Weryfikację-PR bez śladu.
+
+### Dodane — migracja danych do WordPressa (krok 4.2 planu)
+
+- **`tools/eksport-wp.mjs`** — czyta bazę wyłącznie przez publiczne API modułu
+  (więc kontrakty Zod walidują to, co wyjeżdża) i wykłada JSON.
+- **`wordpress/import-kursy.php`** — idempotentny import przez WP-CLI, kluczem
+  jest `_aai_zrodlo_uuid`, nie slug: slug kursu wolno zmienić w kreatorze,
+  a moduły i lekcje slugów nie mają w ogóle.
+- **[docs/plugin-1/MIGRACJA-DO-WP.md](docs/plugin-1/MIGRACJA-DO-WP.md)** —
+  mapowanie pole po polu, wyprowadzone z ŻYWEJ instalacji (WP 7.0.1 + Tutor LMS
+  4.0.6 + WooCommerce 11.0.1), z kluczami meta odczytanymi z KODU wtyczki.
+
+**Dowód na czystej instalacji:** import 1 → 87 utworzonych (2 kursy, 12 modułów,
+73 lekcje); importy 2 i 3 → 0/0/**87 bez zmian**; treść **73 z 73 zgodne CO DO
+ZNAKU**. Struktura kurs → moduł → lekcja mapuje się 1:1; Tutor pokrywa cztery
+z naszych dwunastu rodzajów sekcji, pozostałe osiem zostaje w naszej wtyczce —
+to mierzalne uzasadnienie podziału odpowiedzialności z ETAP-WP.md.
+
+### Dwie pułapki warte zapamiętania
+
+- **WordPress zjada backslashe w meta** (`update_post_meta` puszcza wartość przez
+  `wp_unslash`). Bez `wp_slash` ginie każdy `\` — czyli ścieżki `C:\Users`
+  i sekwencje `\n` w kursie o Gicie. **Wykryte wyłącznie testem idempotencji:**
+  pierwszy import wyglądał na w pełni udany.
+- **`LENGTH()` w MySQL liczy bajty, a `.length` w JS jednostki UTF-16.** Pierwsze
+  porównanie sum pokazało 977 625 wobec 929 838 i wyglądało jak utrata danych; po
+  `CHAR_LENGTH()` została różnica 7 znaków — siedem emoji spoza BMP. **Sumy
+  porównuj ostrożnie, treść porównuj znak w znak.**
+
+### Zostawione do decyzji właściciela
+
+Sześć pozycji z przeglądu, żadna nie ruszona z własnej inicjatywy — wszystkie
+z uzasadnieniem w **[docs/plugin-1/PRZEGLAD-B7.md](docs/plugin-1/PRZEGLAD-B7.md)**:
+sprzątanie limitera zdejmujące aktywną blokadę uwierzytelnień, brak kontroli siły
+`KREATOR_TOKEN`, `UNIQUE` sekcji niepasujący do sposobu ich czytania (**do
+rozstrzygnięcia PRZED schematem MySQL**), brak drugiej warstwy przy pełnej
+podmianie programu, retencja dziennika audytu (4152 kB przy 908 kB treści)
+i siedem drobiazgów UX kreatora.
+
+### Co przegląd potwierdził jako zdrowe
+
+Parametryzacja SQL pełna, granica modułu trzyma, kolejność „dostęp przed
+kształtem" działa, treść lekcji nie ma jak wyciec, nonce CSP naprawdę
+jednorazowy, licznika chybionych prób nie da się wyzerować śmieciowym żądaniem,
+kontrakty zgodne ze schematem SQL, panel pokrywa kontrakt w 100%.
+
 ## [0.35.0] — 2026-08-24
 
 **Higiena repozytorium — pełny audyt od A do Z.** Polecenie właściciela:
