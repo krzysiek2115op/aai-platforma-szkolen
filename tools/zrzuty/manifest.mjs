@@ -8,7 +8,7 @@
  * node tools/zrzuty/manifest.mjs --kurs K1  — tylko jeden kurs
  * node tools/zrzuty/manifest.mjs --json     — pełna lista na stdout
  */
-import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 

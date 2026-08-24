@@ -20,7 +20,7 @@
  *
  * Użycie: node tools/og-rozszerzenie.mjs [katalog=out]
  */
-import { copyFileSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, sep } from "node:path";
 
 const KATALOG = process.argv[2] ?? "out";

@@ -20,8 +20,19 @@
  *      do wołania ręcznie).
  *   3. Liczba scenariuszy podana w README (wzorzec „NN scenariuszy")
  *      = liczba plików lekcja-*.md w tresc-kursow/.
- *   4. Spis treści w <details> wskazuje istniejące nagłówki `##`
- *      (kotwice liczone tak, jak robi to GitHub).
+ *   4. KAŻDA kotwica `](#…)` w README — nie tylko spis treści —
+ *      wskazuje istniejący nagłówek `##`/`###` (kotwice liczone jak
+ *      u GitHuba; bloki kodu pominięte). Klasa złapana 2026-08-24:
+ *      link „pełny start" pod podglądem wskazywał
+ *      #szybki-start-po-sklonowaniu, nagłówek dawno się nazywał
+ *      inaczej, a kontrola patrzyła wyłącznie w <details>.
+ *   5. Liczba testów w README („NN testów na osobnej bazie" i komentarz
+ *      przy `npm test` w szybkim starcie) = statyczne zliczenie
+ *      wywołań test()/it() w plikach *.test.ts. Obie frazy podawały
+ *      62 przy stanie 75 — liczba wpisana raz, prawdziwa raz.
+ *   6. Liczba sposobów audytu mutacyjnego („na NN sposobów") =
+ *      liczba wpisów `straznik:` w audyt-straznikow.mjs. README
+ *      podawało 71 przy stanie 90.
  *
  * CZEGO NIE SPRAWDZA: wersji (straznik-wersji), linków do plików
  * (straznik-linkow) — jeden fakt, jeden strażnik.
@@ -93,12 +104,73 @@ function kotwica(naglowek) {
     .trim()
     .replace(/\s+/g, "-");
 }
-const naglowki = [...readme.matchAll(/^## (.+)$/gm)].map((m) => kotwica(m[1]));
-const spis = readme.match(/<details>[\s\S]*?<\/details>/);
-if (spis) {
-  for (const [, cel] of spis[0].matchAll(/\]\(#([^)]+)\)/g)) {
-    if (!naglowki.includes(cel)) {
-      bledy.push(`README, spis treści: kotwica #${cel} nie wskazuje żadnego nagłówka ##.`);
+/** Druga forma — GitHub zamienia KAŻDĄ spację na myślnik osobno, więc
+ *  nagłówek z „ — " daje dwa myślniki; akceptujemy obie formy. */
+function kotwicaPojedynczo(naglowek) {
+  return naglowek
+    .toLowerCase()
+    .replace(/[`*_]/g, "")
+    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    .trim()
+    .replace(/ /g, "-");
+}
+const naglowki = new Set(
+  [...readme.matchAll(/^###? (.+)$/gm)].flatMap((m) => [kotwica(m[1]), kotwicaPojedynczo(m[1])]),
+);
+// Bloki kodu poza kontrolą — przykłady składni Markdowna nie są linkami
+// (ta sama lekcja co w straznik-linkow).
+const bezKodu = readme.replace(/```[\s\S]*?```/g, "");
+for (const [, cel] of bezKodu.matchAll(/\]\(#([^)]+)\)/g)) {
+  if (!naglowki.has(cel)) {
+    bledy.push(`README: kotwica #${cel} nie wskazuje żadnego nagłówka ##/### — martwy link wewnętrzny.`);
+  }
+}
+
+// ---- 5. liczba testów ----
+// Dwie frazy CELOWANE (nie każde „NN testów" — README wymienia też
+// podzbiory per obszar, np. „8 testów jednostkowych limitera", których
+// suma nie równa się całości). Gdy fraza zniknie z README, kontrola
+// po prostu nie ma czego sprawdzać — jak wzorzec scenariuszy wyżej.
+function policzTesty(katalog) {
+  let n = 0;
+  for (const wpis of readdirSync(katalog)) {
+    const pelna = join(katalog, wpis);
+    if (wpis === "node_modules" || wpis.startsWith(".")) continue;
+    if (statSync(pelna).isDirectory()) n += policzTesty(pelna);
+    else if (/\.test\.ts$/.test(wpis)) {
+      n += (readFileSync(pelna, "utf8").match(/^\s*(?:test|it)\(/gm) ?? []).length;
+    }
+  }
+  return n;
+}
+{
+  const testowNaDysku = ["modules", "components", "lib"]
+    .filter((k) => existsSync(k))
+    .reduce((suma, k) => suma + policzTesty(k), 0);
+  const frazy = [
+    ...readme.matchAll(/\((\d+) test\p{L}* na osobnej bazie/gu),
+    ...readme.matchAll(/# (\d+) test\p{L}*;/gu),
+  ];
+  for (const [, liczba] of frazy) {
+    if (Number(liczba) !== testowNaDysku) {
+      bledy.push(
+        `README podaje „${liczba} testów", a wywołań test()/it() w plikach *.test.ts jest ${testowNaDysku}.`,
+      );
+    }
+  }
+}
+
+// ---- 6. liczba sposobów audytu mutacyjnego ----
+{
+  const audyt = join("tools", "straznicy", "audyt-straznikow.mjs");
+  if (existsSync(audyt)) {
+    const mutacji = (readFileSync(audyt, "utf8").match(/^\s*straznik:/gm) ?? []).length;
+    for (const [, liczba] of readme.matchAll(/na[\s>]+(\d+) sposob/g)) {
+      if (Number(liczba) !== mutacji) {
+        bledy.push(
+          `README podaje audyt „na ${liczba} sposobów", a mutacji w audyt-straznikow.mjs jest ${mutacji}.`,
+        );
+      }
     }
   }
 }
@@ -113,5 +185,5 @@ if (bledy.length > 0) {
   process.exit(1);
 }
 console.log(
-  `straznik-readme: README zgodne ze stanem repo (${naDysku.length} strażników w tabeli, skrypty npm pokryte, kotwice spisu treści całe).`,
+  `straznik-readme: README zgodne ze stanem repo (${naDysku.length} strażników w tabeli, skrypty npm pokryte, kotwice i liczby testów/mutacji zgodne).`,
 );

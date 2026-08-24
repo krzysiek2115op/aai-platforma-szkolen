@@ -19,7 +19,7 @@ trzy osobne bazy danych.
 
 *Podgląd lokalny: [`http://localhost:3001/szkolenia`](http://localhost:3001/szkolenia)
 — `npm run db1:up && npm run db1:migruj && npm run dev`
-([pełny start](#szybki-start-po-sklonowaniu))*
+([pełny start](#szybki-start-nowa-maszyna-od-zera))*
 
 </div>
 
@@ -46,7 +46,7 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.34.0** |
+| **Wersja** | **0.35.0** |
 | **Etap** | Działy 1–7 Pluginu 1 gotowe (**B1–B6 zaliczone**). [Plan domknięcia](docs/plugin-1/PLAN-FINAL-PLUGINU-1.md): kroki 1–2 zamknięte (0.25.0, 0.29.0); krok 3: **oba kursy KOMPLETNE w narzędziu** (Kurs 1: 41/41, Kurs 2: 32/32 lekcji prozy po cięciu mocnym) + przelot zrzutów zamknięty (**148 zrzutów, 148 miejsc** — dwanaście miejsc bez zrzutu zamknięto usunięciem znaczników przy naprawach audytu 2026-08-24) → **B7** → WordPress |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `plugin-1-sklep-kursow` — tu żyje aktualny stan projektu. `main` jest **celowo nieaktualny** (wersja 0.3.4): moduł wchodzi na niego dopiero po ukończeniu i akceptacji całości ([PLAN.md §5](docs/PLAN.md)) |
@@ -128,6 +128,8 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run dev` | jak wygląda strona teraz? → `http://localhost:3001/szkolenia` |
 | `npm test` | czy logika modułów działa? (**sam podnosi bazę**, gdy kontener leży — pretest `tools/db1-gotowa.mjs`) |
 | `npm run build` | czy produkcyjny build w ogóle przechodzi? |
+| `npm run check` | czy WSZYSTKO naraz jest zdrowe? — jedna bramka: strażnicy → lint → tsc → testy → build → wszystkie smoke'i (to, co przechodzi CI, jedną komendą; praktyka z repo strony głównej) |
+| `npm run smoke` | siedem smoke'ów po kolei (d4 → d5 → d6 → lekcje → csp → podgląd → seo, kolejność jak w CI — dwa ostatnie nadpisują `out/`); wymaga wcześniejszego `npm run build` i bazy |
 | `npm run build:podglad` | jak wygląda podstrona jako STATYCZNE pliki? → `out/` (katalog i strony kursów z bazy w czasie builda, **bez kreatora i AJAX-a**; po buildzie: rozszerzenia miniatur OG i wstrzyknięcie polityki CSP — dlatego zawsze ta komenda, nigdy `next build` wprost) |
 | `npm run deploy:podglad` | opublikuj podgląd na GitHub Pages (wymaga czystego drzewa i działającej bazy) |
 | `npm run start` | jak strona zachowuje się na produkcyjnym serwerze? (`:3001`) |
@@ -152,6 +154,7 @@ Narzędzia uruchamiane ręcznie:
 | `node tools/straznicy/uruchom-wszystkie.mjs` | wszyscy strażnicy naraz (runner sam znajduje pliki `straznik-*.mjs`) |
 | `ZRZUTY_RIG=<katalog> node tools/zrzuty/test-asercji.mjs` | 15 testów bramek rigu zrzutów (asercja treści i prywatność — BLAD-016). Rig to katalog spoza repo z `puppeteer-core`, `sharp`, `@xterm/xterm` i `@xterm/addon-serialize`; przeglądarka jest systemowa (`/usr/bin/firefox`), więc nic się nie pobiera. Bez `ZRZUTY_RIG` testy padają na braku rigu, nie na kodzie |
 | `ZRZUTY_RIG=<katalog> node tools/podglad-kursow.mjs --wyjscie <katalog poza repo>` | składa **widok treści kursu** — to, co klient dostaje PO zakupie — z tych samych plików `tresc-kursow/`, przez tę samą funkcję, którą wgrywarka wysyła lekcje do bazy. Wygląd w design systemie „Volt”, tokeny 1:1 z `app/globals.css`; arkusz i szablony mieszkają w [tools/podglad-kursow/](tools/podglad-kursow/) — `styl.css` jest zwykłym plikiem CSS, żeby dało się go przenieść do szablonów Tutora przez skopiowanie. Rig potrzebuje tylko `marked`. **Katalog wyjściowy MUSI być poza repo** — narzędzie odmawia zapisu do drzewa projektu, bo `public/` wchodzi w całości do eksportu statycznego (klasa BLAD-007), a treść kursu jest towarem |
+| `PODGLAD_KURSOW=<katalog> node tools/straznicy/straznik-podgladu-kursow.mjs` | sprawdza WYGENEROWANY podgląd kursów (odsyłacze, wymiary obrazów, podpisy, klikalność, komplet wobec źródła). Bez wskazanego katalogu szuka `/tmp/podglad-kursow`; bez podglądu pomija się zamiast kłamać zielenią |
 | `node tools/zrzuty/manifest.mjs` | stan przelotu zrzutów ekranu w kursach — liczony z prozy, nie z osobnej listy (brief: [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md)) |
 | `node tools/smoke/smoke-d4.ts` | katalog renderuje kursy z bazy na produkcyjnym serwerze + golden + nagłówki bezpieczeństwa |
 | `node tools/smoke/smoke-d5.ts` | strona sprzedażowa renderuje pełny kurs z bazy + golden programu |
@@ -178,7 +181,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 71 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 95 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie
@@ -202,6 +205,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-odsylaczy-kursu` | pre-commit + CI | wierność WŁASNEMU kursowi: odsyłacz „lekcja N.M" do lekcji, której nie ma, albo temat przypisany do złego modułu (finał Kursu 2 pomylił trzy — mapa tematów czyta się z metryk lekcji, więc nie starzeje się) |
 | `straznik-goldenu-tresci` | pre-commit + CI | CICHA utrata treści kursów: suma kontrolna + bajty/wiersze/sceny/wiersze zgodności każdej z 91 lekcji przeciw `goldeny/d7-tresc.json`; różnica pokazywana per pole, regeneracja wymaga powodu |
 | `straznik-podgladu` | pre-commit + CI | statyczny podgląd zabierający ze sobą panel właściciela: trasa kreatora lub AJAX bez wariantu `serwer.*`, wariant `statyczny.*` bez pary, pomieszane listy `pageExtensions`, brama kreatora nieodcinająca się w podglądzie (build z tokenem wypisałby SZKICE do publicznych plików) oraz drugie miejsce czytające `PODGLAD_STATYCZNY` |
+| `straznik-podgladu-kursow` | pre-commit + CI (warunkowo) | usterki w WYGENEROWANYM widoku treści kursu — tym, co klient dostaje po zakupie: martwy odsyłacz (strona wejściowa bez fontu — `../zasoby/` z korzenia celowało poza katalog wyjściowy), `<img>` bez `width`/`height` (148 zrzutów przesuwałoby treść, a README obiecuje CLS = 0), podwójna ucieczka w podpisie (`&amp;quot;` widoczne jako tekst), lekcja bez odsyłacza ze spisu albo bez powrotu do spisu, liczba stron/zrzutów rozjechana ze źródłem. Wymaga wygenerowanego podglądu (`marked` z riga); bez niego mówi wprost, że pominął — jak `straznik-scenariuszy` bez dokumentacji D7 |
 | `straznik-csp` | pre-commit + CI | osłabienie polityki bezpieczeństwa treści: `script-src` bez nonce'a lub bez `strict-dynamic`, `unsafe-inline`/`unsafe-eval` w skryptach, brak dyrektywy zamykającej we wspólnej polityce, `proxy.ts` zamiast `proxy.serwer.ts` (wywraca build podglądu), nazwany eksport zamiast domyślnego (Next 16 go nie widzi), podgląd bez kroku wstrzykującego politykę albo z krokiem w złej kolejności (martwe hashe), nasz `<script>` bez `nonce`, druga polityka w `next.config.ts` |
 | `straznik-limitera` | pre-commit + CI | brama AJAX bez kosztu: jedyny wystrzał bez limitu tempa (albo z limitem sprawdzanym dopiero PO sparsowaniu ciała) lub bez OSOBNEGO licznika chybionych uwierzytelnień, odmowa bez 429 z `Retry-After`, chybione uwierzytelnienie bez kary czasowej, logowanie bez limitu prób, dyspozytor porównujący token operatorem `===` zamiast w stałym czasie albo tracący samowystarczalność (import z `lib/`), limiter wciągający `next/*` (przestaje dać się testować jednostkowo), znikające ostrzeżenie o podrabianiu `x-forwarded-for` |
 | `straznik-limitow` | pre-commit + CI | pole wejścia bez górnej granicy: `z.string()`, `z.array(` albo `z.url()` bez `.max(` w kontraktach WEJŚCIA (kanał odczytu świadomie pominięty), cena bez sufitu (kolumna `integer` wywaliłaby się surowym błędem bazy), token bez limitu długości, treść sekcji zapisywana bez oczyszczania schematem (jeden nieznany klucz omija wszystkie limity), trasa bez odpowiedzi 413, `request.json()` zamiast czytania strumieniem z licznikiem, sufit ciała sprawdzany po parsowaniu, surowy komunikat Postgresa w odpowiedzi, brak testów limitów |
@@ -219,7 +223,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
 
 CI: cztery joby — strażnicy i skan sekretów chodzą ZAWSZE; „Kod
-aplikacji" (lint → tsc → build) i „Baza" (62 testy na osobnej bazie
+aplikacji" (lint → tsc → build) i „Baza" (75 testów na osobnej bazie
 `db1_kursy_test`, migracje, build, siedem smoke'ów) tylko gdy zmiana
 dotyka kodu. Rozstrzyga job „Zakres zmian" zwykłym `git diff` — commit
 czysto treściowy (większość commitów D7) nie pali minut na build.

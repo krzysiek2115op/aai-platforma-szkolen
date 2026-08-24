@@ -2,6 +2,9 @@
   "name": "pod-strona-szkolenia",
   "private": true,
   "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
@@ -9,6 +12,8 @@
     "deploy:podglad": "bash tools/deploy-podglad.sh",
     "start": "next start -p 3001",
     "lint": "eslint",
+    "smoke": "node --env-file-if-exists=.env tools/smoke/smoke-d4.ts && node --env-file-if-exists=.env tools/smoke/smoke-d5.ts && node --env-file-if-exists=.env tools/smoke/smoke-d6.ts && node --env-file-if-exists=.env tools/smoke/smoke-lekcje.ts && node --env-file-if-exists=.env tools/smoke/smoke-csp.ts && node --env-file-if-exists=.env tools/smoke/smoke-podglad.ts && node --env-file-if-exists=.env tools/smoke/smoke-seo.ts",
+    "check": "node tools/straznicy/uruchom-wszystkie.mjs && npm run lint && npx tsc --noEmit && npm test && npm run build && npm run smoke",
     "pretest": "node tools/db1-gotowa.mjs",
     "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"modules/**/*.test.ts\" \"components/**/*.test.ts\" \"lib/**/*.test.ts\"",
     "db1:up": "podman compose up -d db1",
