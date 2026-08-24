@@ -109,8 +109,8 @@ test("audyt obejmuje sekcje, moduły i lekcje (lekcja dostaje course_id z lookup
      VALUES ('kurs-struktura', 'Kurs ze strukturą', 'kurs', 9900) RETURNING id`
   );
   await klient.query(
-    `INSERT INTO course_sections (course_id, kind, position, content)
-     VALUES ($1, 'hero', 0, '{"naglowek":"x"}')`,
+    `INSERT INTO course_sections (course_id, kind, content)
+     VALUES ($1, 'hero', '{"naglowek":"x"}')`,
     [kurs.id]
   );
   const {

@@ -29,7 +29,12 @@
  *      w odczytowej części typy.ts — bo czyta go też kreator — więc
  *      `straznik-limitow` go NIE widzi (jego region zaczyna się przy
  *      stałych limitów). Bez tej kontroli materiał byłby jedynym
- *      polem wejścia bez górnej granicy.
+ *      polem wejścia bez górnej granicy,
+ *   5. zapis kursu NIE kasuje lekcji z napisaną treścią bez jawnej
+ *      zgody (`pozwol_skasowac_tresc`). Pełna podmiana programu jest
+ *      celowa, ale do 0.36.0 jedynym, co chroniło 908 kB prozy, była
+ *      pamięć panelu o odsyłaniu `id` — jedno żądanie z pustą listą
+ *      modułów czyściło kurs i odpowiadało `ok: true`.
  *
  * Użycie: node tools/straznicy/straznik-tresci-lekcji.mjs
  */
@@ -114,6 +119,34 @@ if (existsSync("modules/m1-sklep/typy.ts")) {
         );
       }
     }
+  }
+}
+
+/* --- 5. bramka nad kasowaniem napisanej treści --- */
+const DYSPOZYTOR = "modules/m1-sklep/dyspozytor.ts";
+if (existsSync(DYSPOZYTOR)) {
+  // Bez komentarzy: powód tej bramki jest w kodzie opisany szeroko,
+  // a strażnik ma pytać o ZACHOWANIE, nie o opis.
+  const kod = readFileSync(DYSPOZYTOR, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+
+  const pytaOTresc =
+    /content IS NOT NULL AND l?\.?content <> ''/.test(kod) ||
+    /content\s*IS\s*NOT\s*NULL/.test(kod);
+  const wymagaZgody = /pozwol_skasowac_tresc/.test(kod);
+  const kasujeLekcje = /DELETE FROM course_lessons/.test(kod);
+
+  if (kasujeLekcje && (!pytaOTresc || !wymagaZgody)) {
+    bledy.push(
+      `${DYSPOZYTOR}: zapis kursu kasuje lekcje spoza wejścia, ale nie liczy, ile z nich ma NAPISANĄ treść, ani nie żąda jawnej zgody. Jedno żądanie z pustą listą modułów czyści wtedy cały materiał kursu i wraca z ok: true.`
+    );
+  }
+  const KONTRAKT = "modules/m1-sklep/typy.ts";
+  if (existsSync(KONTRAKT) && !/pozwol_skasowac_tresc/.test(readFileSync(KONTRAKT, "utf8"))) {
+    bledy.push(
+      `${KONTRAKT}: brak pola pozwol_skasowac_tresc w akcji zapisu — zgoda na skasowanie treści musi być częścią KONTRAKTU (jedynej drogi do bazy), nie umowy między panelem a dyspozytorem.`
+    );
   }
 }
 

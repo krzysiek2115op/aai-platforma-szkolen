@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
  * GOLDEN_ZAPISZ=1 node tools/smoke/smoke-d5.ts
  */
 
-process.env.KREATOR_TOKEN ??= "smoke-d5";
+process.env.KREATOR_TOKEN ??= "smoke-d5-token-testowy-nie-sekret";
 const TOKEN = process.env.KREATOR_TOKEN;
 const PORT = 3003;
 const GOLDEN = "goldeny/d5-program.html";

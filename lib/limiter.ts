@@ -122,24 +122,71 @@ export type Limiter = {
  * `maksKluczy` chroni przed drugą stroną tego samego problemu: mapa
  * rosnąca po adresie jest sama w sobie wektorem wyczerpania pamięci.
  * Po przekroczeniu progu wyrzucamy najpierw klucze wygasłe, a gdy to
- * nie wystarczy — najstarsze (Map trzyma kolejność wstawiania). To jest
- * świadomy kompromis: rozproszony atak z tysięcy adresów wymyka się
- * takiej amnestii, ale wtedy granicą i tak jest hosting albo CDN,
- * a nie ten plik.
+ * nie wystarczy — najdawniej aktywne. To jest świadomy kompromis:
+ * rozproszony atak z tysięcy adresów wymyka się takiej amnestii, ale
+ * wtedy granicą i tak jest hosting albo CDN, a nie ten plik.
+ *
+ * DLACZEGO KLUCZ PAMIĘTA DŁUGOŚĆ SWOJEGO OKNA (poprawka 0.37.0,
+ * znalezisko A przeglądu B7). Do 0.36.0 sprzątanie dostawało okno
+ * BIEŻĄCEGO żądania i tym oknem mierzyło WSZYSTKIE klucze. Ponieważ
+ * ruch idzie głównie wystrzałem (okno 60 s), zalew kluczy sprzątał
+ * blokady uwierzytelnień (okno 10 min) już po minucie bezczynności —
+ * czyli kasował ochronę na dziewięć minut przed terminem, który sam
+ * podał klientowi w `Retry-After`. Drugie pół tej samej usterki:
+ * eksmisja przy przepełnieniu szła po kolejności WSTAWIENIA (`Map`),
+ * więc świeżo nałożona blokada wypadała przed martwym kluczem sprzed
+ * godziny. Od 0.37.0 każdy klucz jest mierzony WŁASNYM oknem,
+ * a wypadają najdawniej aktywne. Reguła idzie w tej postaci do
+ * specyfikacji wtyczki WP — z zastrzeżeniem, że tam nośnikiem musi być
+ * TABELA, nie cache: obiekt cache eksmituje wpisy po swojemu i wraca
+ * dokładnie ten sam problem.
  */
+type Wpis = {
+  /** znaczniki czasu prób mieszczących się w oknie */
+  znaczniki: number[];
+  /** długość okna TEGO klucza — sprzątanie mierzy każdy jego własnym */
+  oknoMs: number;
+  /** próg TEGO klucza — po nim widać, czy klucz trzyma czynną blokadę */
+  proby: number;
+};
+
+const ostatniaProba = (wpis: Wpis): number =>
+  wpis.znaczniki[wpis.znaczniki.length - 1] ?? 0;
+
+/**
+ * Klucz, który wyczerpał swój limit, TRZYMA czynną blokadę — jego
+ * usunięcie nie zwalnia pamięci po kimś nieaktywnym, tylko zdejmuje
+ * karę zgadującemu. Dlatego przy przepełnieniu wypada dopiero po
+ * wszystkich pozostałych.
+ */
+const trzymaBlokade = (wpis: Wpis): boolean =>
+  wpis.znaczniki.length >= wpis.proby;
+
 export function utworzLimiter(opcje: { maksKluczy?: number } = {}): Limiter {
   const maksKluczy = opcje.maksKluczy ?? 10_000;
-  const okna = new Map<string, number[]>();
+  const okna = new Map<string, Wpis>();
 
-  function posprzataj(teraz: number, najdluzszeOknoMs: number): void {
-    for (const [klucz, znaczniki] of okna) {
-      if (znaczniki[znaczniki.length - 1] <= teraz - najdluzszeOknoMs) {
-        okna.delete(klucz);
-      }
+  function posprzataj(teraz: number): void {
+    // 1. Wygasłe — każdy klucz mierzony WŁASNYM oknem.
+    for (const [klucz, wpis] of okna) {
+      if (ostatniaProba(wpis) <= teraz - wpis.oknoMs) okna.delete(klucz);
     }
-    // Nadal za dużo → najstarsze wpisy wypadają pierwsze.
-    for (const klucz of okna.keys()) {
-      if (okna.size <= maksKluczy) break;
+    if (okna.size <= maksKluczy) return;
+
+    // 2. Nadal za dużo → wypadają NAJDAWNIEJ AKTYWNE, a nie najdawniej
+    //    wstawione. Blokada nałożona przed chwilą przeżywa zalew kluczy;
+    //    bez tego wystarczyło zasypać limiter adresami, żeby zdjąć sobie
+    //    karę za zgadywanie tokenu.
+    //    Zwalniamy z zapasem (do 90% progu), żeby przy trwającym zalewie
+    //    sortowanie nie powtarzało się przy każdym kolejnym żądaniu.
+    const cel = Math.floor(maksKluczy * 0.9);
+    const kolejnoscOfiar = [...okna].sort(
+      (a, b) =>
+        Number(trzymaBlokade(a[1])) - Number(trzymaBlokade(b[1])) ||
+        ostatniaProba(a[1]) - ostatniaProba(b[1])
+    );
+    for (const [klucz] of kolejnoscOfiar) {
+      if (okna.size <= cel) break;
       okna.delete(klucz);
     }
   }
@@ -147,7 +194,15 @@ export function utworzLimiter(opcje: { maksKluczy?: number } = {}): Limiter {
   return {
     odnotuj(klucz, limit, teraz = Date.now()): WynikLimitu {
       const poczatekOkna = teraz - limit.oknoMs;
-      const swieze = (okna.get(klucz) ?? []).filter((t) => t > poczatekOkna);
+      const poprzedni = okna.get(klucz);
+      const swieze = (poprzedni?.znaczniki ?? []).filter(
+        (t) => t > poczatekOkna
+      );
+      // Ten sam klucz zawsze przychodzi z tym samym limitem (klucz to
+      // `<akcja>:<adres>`), ale gdyby kiedyś przyszedł z dwoma — do
+      // sprzątania bierzemy DŁUŻSZE okno. Pomyłka w tę stronę zostawia
+      // klucz o chwilę za długo; w drugą kasowałaby czynną blokadę.
+      const oknoMs = Math.max(limit.oknoMs, poprzedni?.oknoMs ?? 0);
 
       if (swieze.length >= limit.proby) {
         // Odrzuconej próby NIE dopisujemy. Gdyby dopisywać, ktoś walący
@@ -155,7 +210,7 @@ export function utworzLimiter(opcje: { maksKluczy?: number } = {}): Limiter {
         // nieskończoność, a `Retry-After` byłby zmyśloną liczbą. Tak
         // limiter ogranicza TEMPO (proby/okno) zamiast karać — i ma
         // z definicji ograniczoną pamięć: najwyżej `proby` znaczników.
-        okna.set(klucz, swieze);
+        okna.set(klucz, { znaczniki: swieze, oknoMs, proby: limit.proby });
         return {
           dozwolone: false,
           pozostalo: 0,
@@ -167,8 +222,8 @@ export function utworzLimiter(opcje: { maksKluczy?: number } = {}): Limiter {
       }
 
       swieze.push(teraz);
-      okna.set(klucz, swieze);
-      if (okna.size > maksKluczy) posprzataj(teraz, limit.oknoMs);
+      okna.set(klucz, { znaczniki: swieze, oknoMs, proby: limit.proby });
+      if (okna.size > maksKluczy) posprzataj(teraz);
       return {
         dozwolone: true,
         pozostalo: limit.proby - swieze.length,

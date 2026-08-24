@@ -105,8 +105,8 @@ async function dolozTresc(
   const pula = pulaDb1();
   const [sekcje, moduly] = await Promise.all([
     pula.query(
-      `SELECT id, kind, position, content FROM course_sections
-       WHERE course_id = $1 ORDER BY kind, position`,
+      `SELECT id, kind, content FROM course_sections
+       WHERE course_id = $1 ORDER BY kind`,
       [kurs.id]
     ),
     pula.query(

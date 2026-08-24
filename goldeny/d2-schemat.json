@@ -170,13 +170,6 @@
     },
     {
       "table_name": "course_sections",
-      "column_name": "position",
-      "data_type": "integer",
-      "is_nullable": "NO",
-      "ma_default": false
-    },
-    {
-      "table_name": "course_sections",
       "column_name": "content",
       "data_type": "jsonb",
       "is_nullable": "NO",

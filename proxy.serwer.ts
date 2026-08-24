@@ -40,10 +40,20 @@ export const config = {
       // niezależne od żądania (nosniff, X-Frame-Options, Referrer-Policy,
       // Permissions-Policy) obejmują te ścieżki i tak — są w next.config.ts.
       source: "/((?!_next/static|_next/image|favicon.ico).*)",
-      missing: [
-        { type: "header", key: "next-router-prefetch" },
-        { type: "header", key: "purpose", value: "prefetch" },
-      ],
+      // POMIJAMY WYŁĄCZNIE PREFETCH ROUTERA, nie każde żądanie z nagłówkiem
+      // `purpose: prefetch` (znalezisko F przeglądu B7, 2026-08-25).
+      //
+      // Przewodnik Next zaleca oba wyjątki i tak było tu do 0.36.0 — ale te
+      // dwa nagłówki znaczą co innego. `next-router-prefetch` wysyła TYLKO
+      // `next/link` i odpowiedzią jest ładunek RSC, nie dokument; nonce
+      // zapisany w takim ładunku i tak byłby nieaktualny przy nawigacji.
+      // Samo `purpose: prefetch` (bez tamtego) wysyła PRZEGLĄDARKA przy
+      // `<link rel="prefetch">` i reguły spekulacyjne — i dostaje wtedy
+      // pełny DOKUMENT HTML, który potem ląduje przed oczami użytkownika.
+      // Ten dokument szedł BEZ polityki. `next/link` wysyła oba nagłówki
+      // naraz, więc pominięcie po samym `next-router-prefetch` zachowuje
+      // zalecenie Nexta i zamyka dokument bez CSP.
+      missing: [{ type: "header", key: "next-router-prefetch" }],
     },
   ],
 };

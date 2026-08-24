@@ -146,7 +146,6 @@ export type LekcjaZTrescia = z.infer<typeof LekcjaZTrescia>;
 export const SekcjaKursu = z.object({
   id: z.uuid(),
   kind: SekcjaRodzaj,
-  position: z.int().nonnegative(),
   content: z.record(z.string(), z.unknown()),
 });
 
@@ -350,7 +349,6 @@ export type TrescLekcji = z.infer<typeof TrescLekcji>;
 const SekcjaWejscie = z
   .object({
     kind: SekcjaRodzaj,
-    position: z.int().nonnegative().max(LIMIT_POZYCJI),
     // Klucz rekordu też przychodzi z sieci: bez sufitu dałoby się
     // przysłać nazwę pola na megabajt (odpadnie przy oczyszczaniu
     // treści, ale najpierw wyląduje w pamięci procesu).
@@ -462,6 +460,23 @@ export const KursWejscie = z.object({
   sections: z.array(SekcjaWejscie).max(LIMIT_SEKCJI).optional(),
   modules: z.array(ModulWejscie).max(LIMIT_MODULOW).optional(),
 }).superRefine((kurs, ctx) => {
+  // Jedna sekcja danego RODZAJU na kurs (migracja 008, decyzja właściciela
+  // 2026-08-25). Bez tego sprawdzenia powtórzony rodzaj dojeżdżałby do bazy
+  // i wracał jako „duplikat" — komunikat mówiący o slugu, czyli o czymś
+  // zupełnie innym niż faktyczna pomyłka.
+  if (kurs.sections) {
+    const widziane = new Set<string>();
+    kurs.sections.forEach((s, i) => {
+      if (widziane.has(s.kind)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["sections", i, "kind"],
+          message: `sekcja „${s.kind}" podana dwa razy — strona pokazuje po jednej sekcji każdego rodzaju, więc druga i tak by przepadła`,
+        });
+      }
+      widziane.add(s.kind);
+    });
+  }
   if (!kurs.modules) return;
   bezPowtorzonychId(kurs.modules, ctx, "moduł", ["modules"]);
   kurs.modules.forEach((m, i) =>
@@ -470,7 +485,32 @@ export const KursWejscie = z.object({
 });
 
 export const AkcjaDyspozytora = z.discriminatedUnion("akcja", [
-  z.object({ akcja: z.literal("zapisz"), token: z.string().max(LIMIT_TOKENU), kurs: KursWejscie }),
+  z.object({
+    akcja: z.literal("zapisz"),
+    token: z.string().max(LIMIT_TOKENU),
+    kurs: KursWejscie,
+    /**
+     * ZGODA NA SKASOWANIE NAPISANEJ TREŚCI (znalezisko D przeglądu B7,
+     * decyzja właściciela 2026-08-25).
+     *
+     * Zapis programu to pełna podmiana: lekcja, której nie ma w wejściu,
+     * znika razem z treścią. To celowa mechanika i panel o niej pamięta,
+     * odsyłając `id` wczytanych wierszy — ale jedynym zabezpieczeniem
+     * 908 kB prozy była właśnie ta pamięć panelu. Jedno żądanie
+     * `{"akcja":"zapisz","kurs":{"id":…,"modules":[]}}` czyściło program
+     * razem z materiałem i odpowiadało `ok: true`.
+     *
+     * Odtąd dyspozytor liczy, ile lekcji Z TREŚCIĄ wypadłoby z kursu,
+     * i bez tej flagi odmawia. Flaga jest opcjonalna i domyślnie fałszywa,
+     * więc każdy istniejący klient zachowuje się jak dotąd — poza tym
+     * jednym przypadkiem, w którym miał zniszczyć pracę.
+     *
+     * Usuwanie CAŁEGO kursu (`akcja: "usun"`) świadomie tej bramki nie ma:
+     * tam intencja jest wyrażona wprost, a nie jest skutkiem ubocznym
+     * zapisu spisu treści.
+     */
+    pozwol_skasowac_tresc: z.boolean().default(false),
+  }),
   z.object({ akcja: z.literal("usun"), token: z.string().max(LIMIT_TOKENU), id: z.uuid() }),
   /**
    * Treść lekcji jedzie OSOBNĄ akcją, nie w zapisie kursu. Powód jest

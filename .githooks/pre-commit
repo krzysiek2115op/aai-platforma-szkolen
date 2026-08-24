@@ -18,8 +18,14 @@ cd "$(git rev-parse --show-toplevel)"
 
 STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
 
-if echo "$STAGED" | grep -qE '(^|/)\.env(\..+)?$' && ! echo "$STAGED" | grep -qE '\.env\.example$'; then
-  echo "pre-commit: ZABLOKOWANO — plik .env nie może trafić do repo." >&2
+# Blokada .env liczona PLIK PO PLIKU. Do 0.36.0 warunek brzmiał „są pliki
+# .env I NIE MA .env.example" — czyli dopisanie .env.example do tego samego
+# commita wyłączało całą blokadę (znalezisko F przeglądu B7). Wzorzec musi
+# celować w plik, nie w skład commita.
+ZABRONIONE=$(echo "$STAGED" | grep -E '(^|/)\.env(\..+)?$' | grep -vE '(^|/)\.env\.example$' || true)
+if [ -n "$ZABRONIONE" ]; then
+  echo "pre-commit: ZABLOKOWANO — plik .env nie może trafić do repo:" >&2
+  echo "$ZABRONIONE" | sed 's/^/  /' >&2
   exit 1
 fi
 
@@ -28,6 +34,29 @@ if [ -n "$STAGED" ]; then
   if git diff --cached -U0 | grep -E '^\+' | grep -qE 'ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN( RSA| OPENSSH)? PRIVATE KEY'; then
     echo "pre-commit: ZABLOKOWANO — w commicie wygląda na jawny sekret (token/klucz)." >&2
     echo "Usuń go z kodu; sekrety żyją w .env (ignorowanym przez git)." >&2
+    exit 1
+  fi
+
+  # NASZE sekrety: hasło do panelu i hasło do bazy w adresie połączenia.
+  # Wzorce wyżej znają tokeny GitHuba, OpenAI i AWS, ale nie znały ani
+  # KREATOR_TOKEN-a, ani `postgres://user:haslo@host` — czyli akurat tych
+  # dwóch, które w tym repo są prawdziwymi sekretami.
+  #
+  # Ten skan pomija docs/, .env.example i .githooks/ ŚWIADOMIE: dokumentacja
+  # cytuje adresy z manuali, przykład konfiguracji z założenia pokazuje kształt
+  # wartości, a TEN PLIK z definicji zawiera wzorce, których szuka (bez tego
+  # wyjątku hak blokuje własną zmianę — sprawdzone przy pisaniu go). Hak, który
+  # krzyczy na cudzy cytat albo na siebie, kończy jako `--no-verify`.
+  # Adresy lokalne (localhost, kontener) nie są sekretem.
+  PODEJRZANE=$(git diff --cached -U0 -- . ':(exclude)docs/**' ':(exclude).env.example' ':(exclude).githooks/**' \
+    | grep -E '^\+' \
+    | grep -E 'KREATOR_TOKEN=[^[:space:]]{8,}|postgres(ql)?://[^:/[:space:]]+:[^@[:space:]]+@' \
+    | grep -vE 'KREATOR_TOKEN=ustaw-wlasny-token|@(localhost|127\.0\.0\.1|db1?|postgres)[:/]' || true)
+  if [ -n "$PODEJRZANE" ]; then
+    echo "pre-commit: ZABLOKOWANO — w commicie wygląda na NASZ sekret" >&2
+    echo "(token kreatora albo hasło w adresie bazy):" >&2
+    echo "$PODEJRZANE" | cut -c1-100 | sed 's/^/  /' >&2
+    echo "Sekrety żyją w .env (ignorowanym przez git)." >&2
     exit 1
   fi
 fi

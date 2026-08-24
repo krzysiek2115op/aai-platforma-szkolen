@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
  * Uruchomienie: node tools/smoke/smoke-lekcje.ts   (liczy się KOD WYJŚCIA)
  */
 
-process.env.KREATOR_TOKEN ??= "smoke-lekcje";
+process.env.KREATOR_TOKEN ??= "smoke-lekcje-token-testowy-nie-sekret";
 const TOKEN = process.env.KREATOR_TOKEN;
 const PORT = 3008;
 const BAZOWY = `http://localhost:${PORT}`;

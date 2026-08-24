@@ -20,7 +20,7 @@ import { listaKursowKreatora, szczegolyKursuPoId } from "./odczyt.ts";
  */
 
 const JEST_BAZA = Boolean(process.env.DB1_URL);
-const TOKEN = "token-testowy-d6";
+const TOKEN = "token-testowy-d6-min-24-znaki";
 
 let klient: PoolClient;
 let idKursu: string;
@@ -48,7 +48,7 @@ const KURS = {
   badge: "Nowość",
   level: "sredniozaawansowany" as const,
   sections: [
-    { kind: "hero" as const, position: 0, content: { obietnica: "Obietnica" } },
+    { kind: "hero" as const, content: { obietnica: "Obietnica" } },
   ],
   modules: [
     {

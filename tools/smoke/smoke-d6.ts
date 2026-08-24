@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
  * Uruchomienie: node tools/smoke/smoke-d6.ts   (liczy się KOD WYJŚCIA)
  */
 
-process.env.KREATOR_TOKEN ??= "smoke-d6";
+process.env.KREATOR_TOKEN ??= "smoke-d6-token-testowy-nie-sekret";
 const TOKEN = process.env.KREATOR_TOKEN;
 const PORT = 3004;
 const BAZOWY = `http://localhost:${PORT}`;
@@ -41,7 +41,7 @@ const KURS_SMOKE = {
   badge: "Smoke",
   level: "podstawowy" as const,
   sections: [
-    { kind: "hero" as const, position: 0, content: { obietnica: "Obietnica D6" } },
+    { kind: "hero" as const, content: { obietnica: "Obietnica D6" } },
   ],
   modules: [
     {

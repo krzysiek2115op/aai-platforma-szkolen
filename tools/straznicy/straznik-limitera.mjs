@@ -21,7 +21,13 @@
  *   9. AJAX nakłada karę czasową za chybione uwierzytelnienie,
  *  10. formularz logowania też liczy próby po adresie,
  *  11. dyspozytor porównuje token w stałym czasie i pozostaje
- *      samowystarczalny (bez importu z `lib/` i z `next/*`).
+ *      samowystarczalny (bez importu z `lib/` i z `next/*`),
+ *  12. sprzątanie limitera mierzy każdy klucz JEGO WŁASNYM oknem
+ *      (inaczej ruch wystrzałowy kasuje blokady uwierzytelnień przed
+ *      terminem, który limiter sam podał w `Retry-After`),
+ *  13. OBA kanały odrzucają skonfigurowany token, który jest wartością
+ *      z `.env.example` albo jest za krótki — hasło do panelu nie może
+ *      pochodzić z publicznego pliku.
  *
  * Użycie: node tools/straznicy/straznik-limitera.mjs
  */
@@ -69,6 +75,54 @@ if (!limiter) {
         "podrobienia bez zaufanego proxy. Limit po adresie podnosi KOSZT " +
         "ataku i nie jest granicą bezpieczeństwa — bez tego zdania " +
         "specyfikacja wtyczki WP odziedziczy fałszywe poczucie ochrony"
+    );
+  }
+}
+
+/* 12: sprzątanie po WŁASNYM oknie klucza */
+if (limiter) {
+  const kodLimitera = kod(limiter);
+  // Wzorzec celuje w ZACHOWANIE: wpis w mapie musi nieść długość swojego
+  // okna i sprzątanie musi się nią posługiwać. Wiązanie z nazwą funkcji
+  // („posprzataj") przestałoby cokolwiek znaczyć po pierwszym refaktorze —
+  // ta lekcja kosztowała regresję kontroli przy PR 3 kroku 2.
+  const pamietaOkno = /oknoMs\s*[,:}]/.test(kodLimitera);
+  // Porównanie „czy klucz wygasł" musi brać okno Z WPISU. Sam wzorzec
+  // `teraz - <coś>.oknoMs` nie wystarczał: trafiał też w `limit.oknoMs`
+  // z liczenia bieżącego okna w `odnotuj` i przepuszczał mutację —
+  // złapał to audyt mutacyjny, nie oko.
+  const mierzyWlasnym = /(<=|<|>=|>)\s*teraz\s*-\s*(?!limit\b)\w+\.oknoMs/.test(
+    kodLimitera
+  );
+  // …i nie wolno mierzyć twardą liczbą: tak wyglądała usterka sprzed 0.37.0,
+  // gdzie wszystkie klucze mierzono oknem bieżącego żądania.
+  const twardaLiczba = /(<=|<|>=|>)\s*teraz\s*-\s*\d/.test(kodLimitera);
+  if (!pamietaOkno || !mierzyWlasnym || twardaLiczba) {
+    bledy.push(
+      `${LIMITER}: sprzątanie nie mierzy klucza JEGO WŁASNYM oknem. ` +
+        "Do 0.36.0 brało okno bieżącego żądania (60 s dla wystrzału) " +
+        "i tym kasowało blokady uwierzytelnień z oknem dziesięciokrotnie " +
+        "dłuższym — ochrona znikała dziewięć minut przed terminem, który " +
+        "limiter sam podał klientowi w `Retry-After`"
+    );
+  }
+}
+
+/* 13: brama nie przyjmuje tokenu z przykładu ani za krótkiego */
+for (const [plik, tresc] of [
+  ["lib/kreator-dostep.ts", czytaj("lib/kreator-dostep.ts")],
+  ["modules/m1-sklep/dyspozytor.ts", czytaj("modules/m1-sklep/dyspozytor.ts")],
+]) {
+  if (!tresc) continue;
+  const kodBramy = kod(tresc);
+  const znaPrzyklad = /ustaw-wlasny-token/.test(kodBramy);
+  const maMinimum = /MIN_DLUGOSC_TOKENU/.test(kodBramy);
+  if (!znaPrzyklad || !maMinimum) {
+    bledy.push(
+      `${plik}: brama przyjmuje DOWOLNY skonfigurowany token. Po ` +
+        "`cp .env.example .env` hasłem do zapisu, publikacji i usuwania " +
+        "kursów zostaje wtedy łańcuch leżący w repozytorium — a cisza " +
+        "wygląda dokładnie jak działający panel"
     );
   }
 }

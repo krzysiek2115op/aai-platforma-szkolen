@@ -24,7 +24,7 @@ import {
  */
 
 const JEST_BAZA = Boolean(process.env.DB1_URL);
-const TOKEN = "token-testowy-tresc";
+const TOKEN = "token-testowy-tresc-min-24-znaki";
 
 let klient: PoolClient;
 let idKursu = "";
@@ -234,9 +234,14 @@ test("ta sama lekcja dwa razy w module → odmowa", { skip: !JEST_BAZA }, async 
 test("lekcja bez id w wejściu znika razem z treścią", { skip: !JEST_BAZA }, async () => {
   const kurs = await szczegolyKursuPoId(idKursu);
   const modul = kurs!.modules.find((m) => m.id === idModulu)!;
+  // Od 0.37.0 skasowanie lekcji Z TREŚCIĄ wymaga jawnej zgody (znalezisko
+  // D przeglądu B7). Ten test dokumentuje samą mechanikę pełnej podmiany,
+  // więc zgodę niesie wprost — że BEZ niej dyspozytor odmawia, pilnuje
+  // osobny test w dyspozytor.test.ts.
   const wynik = await obsluzAkcje({
     akcja: "zapisz",
     token: TOKEN,
+    pozwol_skasowac_tresc: true,
     kurs: {
       ...KURS,
       id: idKursu,
@@ -255,6 +260,10 @@ test("obce id modułu → nie-znaleziono, bez cichego duplikatu", { skip: !JEST_
   const wynik = await obsluzAkcje({
     akcja: "zapisz",
     token: TOKEN,
+    // Bramka treści stoi PRZED sprawdzeniem id modułu i bez tej zgody
+    // odpowiedziałaby pierwsza — a ten test bada co innego: że obcy
+    // identyfikator nie dorabia cichego duplikatu.
+    pozwol_skasowac_tresc: true,
     kurs: {
       ...KURS,
       id: idKursu,

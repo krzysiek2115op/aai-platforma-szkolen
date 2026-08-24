@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
  * wyglądu karty: GOLDEN_ZAPISZ=1 node tools/smoke/smoke-d4.ts
  */
 
-process.env.KREATOR_TOKEN ??= "smoke-d4";
+process.env.KREATOR_TOKEN ??= "smoke-d4-token-testowy-nie-sekret";
 const TOKEN = process.env.KREATOR_TOKEN;
 const PORT = 3002;
 const GOLDEN = "goldeny/d4-katalog.html";

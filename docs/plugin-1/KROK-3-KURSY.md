@@ -51,8 +51,8 @@ Wspólne z krokiem 2 zostają: baza `db1_kursy`, baza testowa
 |---|---|---|
 | 1 | Propozycja produkcji materiału → decyzja właściciela | ✅ zrobione (PR #32) |
 | 2 | Kreator przejmuje treść lekcji i materiały | ✅ zrobione (0.30.0, PR #36 zmergowany) |
-| 3 | Proza lekcji, treść wchodzi skryptem przez AJAX kreatora (dogęszczenie K1 odwołane 2026-08-20) | 🚧 w robocie — **Kurs 1 KOMPLETNY (41/41, v0.31.0)**; Kurs 2 czeka na cięcie + kalibrację |
-| 4 | Finalna treść stron sprzedażowych kreatorem → B7 | ⏳ |
+| 3 | Proza lekcji, treść wchodzi skryptem przez AJAX kreatora (dogęszczenie K1 odwołane 2026-08-20) | ✅ zrobione (v0.32.0) — **73 z 73 lekcji**: Kurs 1 41/41, Kurs 2 32/32; pliki zgodne z bazą co do znaku |
+| 4 | Finalna treść stron sprzedażowych kreatorem → B7 | ✅ zrobione — strony przepisane na stan faktyczny w audycie (v0.33.0), **B7 zaliczona przez właściciela 2026-08-25** |
 
 ## Stan na 2026-08-19 wieczorem
 

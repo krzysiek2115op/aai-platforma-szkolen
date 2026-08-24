@@ -180,8 +180,8 @@ lista nie obejmowała — zapisane, bo każde zmienia zachowanie:
 | RODO, konta klientów, honeypot w formularzach | nie ma do czego przypiąć przed płatnościami i kontami (Plugin 2/3) |
 | HTTPS + HSTS, SPF/DKIM/DMARC, DNSSEC | decyduje hosting i dostawca poczty, po zakupie domeny |
 | 2FA w organizacji, branch protection, domena | decyzje właściciela poza repo (branch protection blokuje plan Free dla repo prywatnych) |
-| Stan limitera poza pamięcią procesu | do WP idzie REGUŁA (okno przesuwne po IP+akcja), nie ta implementacja |
-| Sufit ciała 2 MB przy treści lekcji | przeliczyć POMIAREM, gdy kreator dostanie treść lekcji (krok 3): proza obu kursów waży dziś 1307 kB |
+| Stan limitera poza pamięcią procesu | do WP idzie REGUŁA (okno przesuwne po IP+akcja), nie ta implementacja. **Doprecyzowanie z 0.37.0** (znalezisko A przeglądu B7): w PHP licznik chybionych prób ma stać w TABELI, nie w cache'u — obiekt cache eksmituje wpisy po swojemu i blokada „5 prób / 10 minut" znów przestaje znaczyć to, co mówi |
+| ~~Sufit ciała 2 MB przy treści lekcji~~ **ZAMKNIĘTE POMIAREM 2026-08-25** | Pomiar bazy po wprowadzeniu całej prozy: **najdłuższa lekcja ma 21 790 znaków / 22 951 bajtów UTF-8**, mediana 11 848 znaków. Treść jedzie OSOBNĄ akcją (jedna lekcja na żądanie), więc 1307 kB całej prozy nigdy nie leci naraz. Sufit 2 MB stoi ~90× nad największym realnym żądaniem, a kontraktowy limit lekcji (120 000 znaków) i tak odcina wcześniej. Bez zmian |
 
 ## Bramka kroku
 

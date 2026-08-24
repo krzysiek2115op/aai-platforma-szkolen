@@ -91,6 +91,12 @@ Struktury sekcji zapisujemy jako JSON, nie jako tekst z nowymi liniami
 (czego Tutor używa w swoim UI) — nasza wtyczka i tak renderuje te sekcje
 sama, a spłaszczenie do tekstu byłoby bezpowrotną utratą struktury.
 
+**Sekcja NIE MA już pozycji** (decyzja właściciela 2026-08-25, migracja 008):
+jeden rodzaj = jedna sekcja na kurs, `UNIQUE (course_id, kind)`. W MySQL
+odpowiednikiem jest `UNIQUE KEY (course_id, kind)` — bez kolumny `position`
+i bez odpowiadającego jej `menu_order`. Kolejność sekcji na stronie jest
+kompozycją widoku, nie danymi; eksport oddaje `{rodzaj, tresc}`.
+
 ### Czego migracja świadomie NIE przenosi
 
 - **`course_changelog`** — audyt prototypu zostaje w prototypie. Wtyczka WP
@@ -158,6 +164,21 @@ jak utrata danych; po przejściu na `CHAR_LENGTH()` zostało 7 znaków różnicy
 To **siedem emoji spoza BMP**, które JS liczy podwójnie — zero utraty.
 Wniosek ogólny: **sumy porównuj ostrożnie, treść porównuj znak w znak.**
 Dowodem migracji jest tabela „73 z 73 zgodne co do znaku", nie zgodność sum.
+
+## Wymagania przeniesione z przeglądu B7 (decyzje właściciela 2026-08-25)
+
+Pozycje, których świadomie NIE naprawiamy w prototypie, bo ich miejsce jest
+w docelowej wtyczce. Pełen kontekst: [PRZEGLAD-B7.md](PRZEGLAD-B7.md).
+
+| # | Wymaganie dla wtyczki | Dlaczego nie w prototypie |
+|---|---|---|
+| A | Licznik chybionych uwierzytelnień w **TABELI**, nie w cache'u; każdy klucz mierzony własnym oknem, a klucz z czynną blokadą eksmitowany ostatni | Obiekt cache eksmituje po swojemu — reguła „5 prób / 10 minut" znów przestałaby znaczyć to, co mówi |
+| B | Uwierzytelnia **WordPress** (role + nonce); własny token znika razem z prototypem | Kontrola siły tokenu przestaje mieć przedmiot |
+| F | Błędy pól widoczne w edytorze programu i w listach sekcji | Panel zastępuje **builder Tutora** — to jego UI, nie nasz |
+| F | Ostrzeżenie przed utratą niezapisanej pracy w formularzu kursu | jw. |
+| F | Konflikt unikalności rozróżniany po ograniczeniu, nie zawsze jako „slug zajęty" | W MySQL nazwy ograniczeń są inne; mapowanie powstaje razem ze schematem |
+| F | **Przenoszenie lekcji między modułami** (`module_id` zmienia rodzica) | Builder Tutora na to pozwala, więc port MUSI to obsłużyć — dziś `WHERE module_id=` nigdy nie zmienia rodzica |
+| F | Ważność sesji egzekwowana po stronie serwera, nie samym ciastkiem | W WP robi to warstwa sesji |
 
 ## Co z tego wynika dla etapu WP
 

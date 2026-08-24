@@ -46,9 +46,31 @@ import {
  * (sekretem jest jego treść). Tak samo liczy brama formularza — dwie
  * różne semantyki byłyby gorsze niż jedno znane ograniczenie.
  */
+/**
+ * Ta sama reguła co w bramie formularza (`lib/kreator-dostep.ts`)
+ * i z tego samego powodu skopiowana, co porównanie w stałym czasie:
+ * moduł ma być samowystarczalny jak wtyczka (WYTYCZNE §8).
+ *
+ * Znalezisko B przeglądu B7 (2026-08-25): dosłowna wartość z
+ * `.env.example` przechodziła bramę, więc po `cp .env.example .env`
+ * hasłem do zapisu, publikacji i USUWANIA kursów zostawał łańcuch
+ * z repozytorium. Odrzucamy KONFIGURACJĘ, nie podany token — dopóki
+ * wzorzec jest słaby, dyspozytor nie wpuszcza nikogo.
+ */
+const MIN_DLUGOSC_TOKENU = 24;
+const TOKEN_PRZYKLADOWY = "ustaw-wlasny-token";
+
+function wzorzecMocny(wzorzec: string | undefined): wzorzec is string {
+  return (
+    Boolean(wzorzec) &&
+    wzorzec !== TOKEN_PRZYKLADOWY &&
+    (wzorzec as string).length >= MIN_DLUGOSC_TOKENU
+  );
+}
+
 function tokenPoprawny(token: string): boolean {
   const wzorzec = process.env.KREATOR_TOKEN;
-  if (!wzorzec) return false;
+  if (!wzorzecMocny(wzorzec)) return false;
   const podany = Buffer.from(token, "utf8");
   const oczekiwany = Buffer.from(wzorzec, "utf8");
   if (podany.length !== oczekiwany.length) return false;
@@ -124,9 +146,9 @@ async function zapisz(dane: AkcjaZapisz, aktor: string): Promise<string> {
       await k.query("DELETE FROM course_sections WHERE course_id=$1", [id]);
       for (const s of kurs.sections) {
         await k.query(
-          `INSERT INTO course_sections (course_id, kind, position, content)
-           VALUES ($1, $2, $3, $4)`,
-          [id, s.kind, s.position, JSON.stringify(s.content)]
+          `INSERT INTO course_sections (course_id, kind, content)
+           VALUES ($1, $2, $3)`,
+          [id, s.kind, JSON.stringify(s.content)]
         );
       }
     }
@@ -145,6 +167,42 @@ async function zapisz(dane: AkcjaZapisz, aktor: string): Promise<string> {
       // dwóch modułów stan pośredni łamie ograniczenie. Dlatego oba
       // są DEFERRABLE od migracji 001.
       await k.query("SET CONSTRAINTS ALL DEFERRED");
+
+      /**
+       * DRUGA WARSTWA OBRONY NAD NAPISANĄ TREŚCIĄ (znalezisko D przeglądu
+       * B7, decyzja właściciela 2026-08-25).
+       *
+       * Pełna podmiana programu jest udokumentowaną cechą, ale do 0.36.0
+       * jedynym, co chroniło 908 kB prozy, była pamięć panelu o odsyłaniu
+       * `id`. Jedno żądanie z pustą listą modułów czyściło kurs razem
+       * z materiałem i wracało z `ok: true`.
+       *
+       * Liczymy więc, ile lekcji Z TREŚCIĄ wypadłoby z tego kursu, i bez
+       * jawnej zgody odmawiamy — ZANIM cokolwiek skasujemy. Pytamy o stan
+       * bazy, nie o wejście: liczy się to, co naprawdę zniknie.
+       */
+      const zostajeLekcjeCalyKurs = kurs.modules
+        .flatMap((m) => m.lessons.map((l) => l.id))
+        .filter((x): x is string => Boolean(x));
+      const { rows: zagrozone } = await k.query(
+        `SELECT count(*)::int AS ile
+           FROM course_lessons l
+           JOIN course_modules m ON m.id = l.module_id
+          WHERE m.course_id = $1
+            AND l.content IS NOT NULL AND l.content <> ''
+            AND NOT (l.id = ANY($2::uuid[]))`,
+        [id, zostajeLekcjeCalyKurs]
+      );
+      const ileZTrescia: number = zagrozone[0].ile;
+      if (ileZTrescia > 0 && !dane.pozwol_skasowac_tresc) {
+        throw new BladDyspozytora("tresc-do-skasowania", {
+          lekcje_z_trescia: ileZTrescia,
+          wiadomosc:
+            `Ten zapis skasowałby napisaną treść ${ileZTrescia} ` +
+            "lekcji. Jeśli naprawdę o to chodzi, powtórz żądanie " +
+            "z `pozwol_skasowac_tresc: true`.",
+        });
+      }
 
       const zostajeModuly = kurs.modules
         .map((m) => m.id)
@@ -281,7 +339,17 @@ async function publikuj(
   });
 }
 
-class BladDyspozytora extends Error {}
+class BladDyspozytora extends Error {
+  // Pole zwykłe, nie „parameter property": Node uruchamia nasz TypeScript
+  // w trybie strip-only i na skróconym zapisie wywraca się przy starcie
+  // (`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`). `tsc --noEmit` tego nie widzi.
+  readonly szczegoly?: unknown;
+
+  constructor(komunikat: string, szczegoly?: unknown) {
+    super(komunikat);
+    this.szczegoly = szczegoly;
+  }
+}
 
 /**
  * Jedyne wejście dyspozytora. Przyjmuje surowy JSON (unknown!),
@@ -336,7 +404,9 @@ export async function obsluzAkcje(
     }
   } catch (blad) {
     if (blad instanceof BladDyspozytora) {
-      return { ok: false, blad: blad.message };
+      return blad.szczegoly === undefined
+        ? { ok: false, blad: blad.message }
+        : { ok: false, blad: blad.message, szczegoly: blad.szczegoly };
     }
     // Konflikt unikalności (np. slug zajęty) — czytelnie dla kreatora,
     // ale NASZYMI słowami. Surowy komunikat Postgresa niesie nazwy

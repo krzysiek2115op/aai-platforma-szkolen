@@ -51,11 +51,59 @@ export async function przezHttps(): Promise<boolean> {
 }
 
 /**
+ * MINIMALNA DŁUGOŚĆ SKONFIGUROWANEGO TOKENU.
+ *
+ * 24 znaki z alfabetu, jakiego używa `openssl rand -hex 16` czy
+ * `uuidgen`, to sekret nie do zgadnięcia przy limicie 5 prób na
+ * 10 minut. Poniżej tej granicy porównanie w stałym czasie i limiter
+ * chronią hasło, którego i tak da się dobrać.
+ */
+export const MIN_DLUGOSC_TOKENU = 24;
+
+/** Dosłowna wartość z `.env.example` — nigdy nie jest hasłem. */
+export const TOKEN_PRZYKLADOWY = "ustaw-wlasny-token";
+
+let ostrzezono = false;
+
+/**
+ * Czy KONFIGURACJA tokenu w ogóle nadaje się na hasło do panelu.
+ *
+ * Znalezisko B przeglądu B7 (2026-08-25): nic nie sprawdzało, czy
+ * `KREATOR_TOKEN` przestał być wartością z przykładu. Scenariusz jest
+ * banalny i cichy — `cp .env.example .env`, uzupełnienie adresu bazy,
+ * zapomniany token — a hasłem do zapisu, publikacji i USUWANIA kursów
+ * zostaje wtedy łańcuch leżący w repozytorium. Odmowa jest po stronie
+ * KONFIGURACJI, nie podanego tokenu: dopóki wzorzec jest słaby, brama
+ * nie wpuszcza NIKOGO (także właściciela), bo inaczej cisza wyglądałaby
+ * jak działający panel.
+ *
+ * W etapie WordPressa ta reguła znika razem z własnym tokenem —
+ * uwierzytelnia WP (role i nonce). Do tego czasu jest jedynym
+ * sprawdzeniem, że hasło do panelu nie pochodzi z publicznego pliku.
+ */
+export function wzorzecTokenuMocny(wzorzec: string | undefined): boolean {
+  const mocny =
+    Boolean(wzorzec) &&
+    wzorzec !== TOKEN_PRZYKLADOWY &&
+    (wzorzec as string).length >= MIN_DLUGOSC_TOKENU;
+  if (!mocny && !ostrzezono) {
+    ostrzezono = true;
+    console.error(
+      "kreator: KREATOR_TOKEN jest pusty, przykładowy albo krótszy niż " +
+        `${MIN_DLUGOSC_TOKENU} znaki — brama kreatora nie wpuści nikogo. ` +
+        "Ustaw własny token w .env (np. `openssl rand -hex 16`)."
+    );
+  }
+  return mocny;
+}
+
+/**
  * Porównanie w stałym czasie — czas odpowiedzi nie zdradza, ile
  * pierwszych znaków tokenu zgadło się przy zgadywaniu.
  */
 export function tokenPasuje(token: string | null | undefined): boolean {
   const wzorzec = process.env.KREATOR_TOKEN;
+  if (!wzorzecTokenuMocny(wzorzec)) return false;
   if (!wzorzec || !token) return false;
   const podany = Buffer.from(token, "utf8");
   const oczekiwany = Buffer.from(wzorzec, "utf8");
