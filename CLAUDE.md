@@ -537,9 +537,9 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      Kolejność dalszych prac (decyzja właściciela 2026-08-23): ostatnia faza
      zrzutów → **PR → merge → tag → release** → **audyt kursów i higiena repo
      — OMÓWIMY OSOBNO, nie planować tego teraz** → etap WordPressa.
-     Nierozstrzygnięte: **lokalny podgląd obu kursów w stylu strony**
-     (`tools/podglad-kursow.mjs` istnieje, ocena wizualna właściciela jeszcze
-     się nie odbyła). Zapamiętać z etapu 2: panel MUSI odsyłać
+     ~~Nierozstrzygnięte: lokalny podgląd obu kursów w stylu strony~~
+     **ROZSTRZYGNIĘTE 2026-08-24: podgląd przebudowany (0.34.0) i ZAAKCEPTOWANY
+     przez właściciela** („redesign jest dobry"). Zapamiętać z etapu 2: panel MUSI odsyłać
      `id` modułów i lekcji (dyspozytor kasuje wiersze spoza wejścia —
      bez tego zapis kursu kasuje materiał), a w worktree kroku 3
      `node_modules` musi być KOPIĄ (`cp -al`), bo Turbopack odrzuca
@@ -709,7 +709,27 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      Dowody: strażnicy 28/28, testy 75/75, audyt mutacyjny 90/90, kontrola
      całego wyjścia (76 stron) bez martwych odsyłaczy i przepełnień, widok
      sprawdzony też BEZ `widok.js` i przez `file://`.
-     **B7 NADAL OTWARTA — właściciel ma ocenić wygląd wzrokowo.**
+     **WYGLĄD OCENIONY I PRZYJĘTY (właściciel, 2026-08-24): „redesign jest
+     dobry".** Pozycja 3 z „Kolejności domykania kroku 3" jest tym samym
+     ZAMKNIĘTA. B7 zostaje otwarta osobno — dotyczy oceny GOTOWYCH KURSÓW,
+     nie wyglądu narzędzia.
+     **TRZY RZECZY ODDANE DO OCENY I PRZYJĘTE JAK SĄ — nie otwierać ich
+     z własnej inicjatywy:** siła akcentu volt na sekcji „Zrób to teraz",
+     jasne zrzuty interfejsów na ciemnym tle (celowo nieprzyciemniane —
+     przyciemnienie zafałszowałoby to, co klient zobaczy u siebie) oraz
+     poświata za kursorem na stronie lekcji.
+     **PUŁAPKA ŚRODOWISKA (kosztowała pół godziny 2026-08-24, wróci):**
+     działający `npm run dev` pisze do tego samego `.next`, co produkcyjny
+     `npm run build` — smoke'i padają wtedy na braku nagłówka
+     `x-content-type-options` i wygląda to jak regresja kodu, którego się nie
+     tknęło. Przed smoke'ami: `fuser -k 3001/tcp`, `rm -rf .next`,
+     `npm run build`. Smoke'i uruchamiać z `node --env-file=.env` — bez tego
+     padają na braku `DB1_URL` (w CI zmienne daje workflow).
+     **Odtworzenie podglądu kursów po `/clear` albo na nowej maszynie:**
+     `mkdir -p /tmp/rig && cd /tmp/rig && npm init -y && npm i marked`, potem
+     z repo `ZRZUTY_RIG=/tmp/rig node tools/podglad-kursow.mjs --wyjscie
+     /tmp/podglad-kursow` i `cd /tmp/podglad-kursow && python3 -m http.server 3011`.
+     Katalog wyjściowy MUSI być poza repo — narzędzie odmawia zapisu do środka.
      **NASTĘPNY KROK: higiena repo — właściciel chce ją OMÓWIĆ OSOBNO;
      NIE planować jej ani nie zaczynać z własnej inicjatywy.** Rozmowy demonstracyjne z konta claude.ai **skasowane**
      (23 sztuki, 2026-08-23 — zgoda właściciela na „wszystkie pozostałości";
