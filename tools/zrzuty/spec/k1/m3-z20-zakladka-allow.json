@@ -1,0 +1,15 @@
+{
+  "_podpis": "zakładka Allow w ekranie /permissions — lista reguł pozwalających bez pytania",
+  "_lekcja": "K1 3.7 (proza-7-uprawnienia.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/cztery-pod-asercjami.txt",
+  "raw": "cztery.raw",
+  "doZnacznika": "perm-allow",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-3/zrzuty/z20-zakladka-allow-ekranie-permissions.webp",
+  "przytnijOd": 27,
+  "przytnijDo": 40,
+  "wymagaTekstu": [
+    "Allow   Ask   Deny",
+    "Claude Code won't ask before using allowed tools.",
+    "Bash(npm test)"
+  ]
+}

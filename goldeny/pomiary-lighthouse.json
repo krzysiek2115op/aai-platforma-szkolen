@@ -1,0 +1,83 @@
+{
+  "narzedzie": "PageSpeed Insights (Lighthouse 13.4.1)",
+  "data": "2026-08-19",
+  "adres": "https://matthewplugins.github.io/szkolenia-podglad",
+  "przebiegow": 5,
+  "agregat": "mediana",
+  "uwagaSeo": "Kolumna SEO pochodzi z builda SEO_INDEKSOWANIE=1 serwowanego lokalnie; na żywym podglądzie zaniża ją nasz własny noindex (audyt is-crawlable = 31% wagi kategorii).",
+  "uwagaPomiaru": "Pomiar wykonany na serwerach Google (PageSpeed Insights), nie na maszynie roboczej — lokalny Lighthouse mierzy także obciążenie komputera (ta sama strona dawała TBT 96–257 ms).",
+  "strony": {
+    "/szkolenia": {
+      "mobile": {
+        "wydajnosc": 97,
+        "dostepnosc": 100,
+        "praktyki": 100,
+        "seo": 100,
+        "LCP": 2101,
+        "CLS": 0,
+        "TBT": 23,
+        "FCP": 1377,
+        "wszystkieWydajnosci": [
+          97,
+          97,
+          97,
+          97,
+          97
+        ]
+      },
+      "desktop": {
+        "wydajnosc": 100,
+        "dostepnosc": 100,
+        "praktyki": 100,
+        "seo": 100,
+        "LCP": 500,
+        "CLS": 0,
+        "TBT": 6,
+        "FCP": 250,
+        "wszystkieWydajnosci": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ]
+      }
+    },
+    "/szkolenia/[slug]": {
+      "mobile": {
+        "wydajnosc": 96,
+        "dostepnosc": 100,
+        "praktyki": 100,
+        "seo": 100,
+        "LCP": 2179,
+        "CLS": 0,
+        "TBT": 0,
+        "FCP": 1506,
+        "wszystkieWydajnosci": [
+          96,
+          96,
+          96,
+          96,
+          96
+        ]
+      },
+      "desktop": {
+        "wydajnosc": 100,
+        "dostepnosc": 100,
+        "praktyki": 100,
+        "seo": 100,
+        "LCP": 476,
+        "CLS": 0,
+        "TBT": 19,
+        "FCP": 281,
+        "wszystkieWydajnosci": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ]
+      }
+    }
+  }
+}

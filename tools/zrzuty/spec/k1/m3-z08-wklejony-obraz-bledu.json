@@ -1,0 +1,15 @@
+{
+  "_podpis": "odpowiedź Claude z odwołaniem [Image #1] po wklejeniu zrzutu błędu",
+  "_lekcja": "K1 3.3 (proza-3-codzienne-przeplywy.md) — obrazy w rozmowie",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/wklejony-obraz-bledu.txt",
+  "raw": "obraz-bledu.raw",
+  "doZnacznika": "odpowiedz-na-obraz",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-3/zrzuty/z02-odpowiedz-claude-z-odwolaniem.webp",
+  "przytnijOd": 14,
+  "przytnijDo": 27,
+  "wymagaTekstu": [
+    "[Image #1]",
+    "co powoduje ten błąd?",
+    "re:koszyk\\.js"
+  ]
+}

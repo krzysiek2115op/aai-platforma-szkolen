@@ -1,0 +1,11 @@
+{
+  "_podpis": "terminal z uruchomionym `claude` w katalogu projektu, widoczna sekwencja wywołań narzędzi po zadaniu \"napraw failujące testy\"",
+  "_lekcja": "K1 3.1 (proza-1-jak-dziala-claude-code.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-transkrypt-i-zgody.txt",
+  "raw": "model-b.raw",
+  "doZnacznika": "po-zgodzie-1",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-3/zrzuty/z01-terminal-uruchomionym-claude-katalogu.webp",
+  "przytnijOd": 14,
+  "przytnijDo": 35,
+  "wymagaTekstu": ["napraw failujące testy", "Update(lib/koszyk.js)", "Ran 1 shell command"]
+}

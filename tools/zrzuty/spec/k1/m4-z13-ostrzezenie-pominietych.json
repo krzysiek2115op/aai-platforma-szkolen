@@ -1,0 +1,15 @@
+{
+  "_podpis": "ostrzeżenie „Restored the code, but skipped N files\" po przywróceniu kodu",
+  "_lekcja": "K1 4.8 (proza-8-punkty-kontrolne.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-rewind-pominiete.txt",
+  "raw": "model-i.raw",
+  "doZnacznika": "po-przywroceniu-1",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-4/zrzuty/z13-ostrzezenie-restored-the-code.webp",
+  "przytnijOd": 31,
+  "przytnijDo": 37,
+  "wymagaTekstu": [
+    "Restored the code, but skipped 1 file",
+    "Skipped files were left untouched",
+    "run with --debug for the paths"
+  ]
+}

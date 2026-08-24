@@ -1,0 +1,63 @@
+# Cotygodniowy skan aktualizacji zależności i akcji CI.
+# Podatności bezpieczeństwa dostają PR-y natychmiast, niezależnie od harmonogramu.
+#
+# UWAGA O KOSZCIE — powód, dla którego ten plik powstał dopiero teraz.
+# Sam Dependabot nie zużywa minut Actions, ale KAŻDY jego PR odpala nasze CI,
+# a minuty są wspólne dla całej organizacji (plan Free: 2000/mies. na
+# repozytoria prywatne). W sierpniu 2026 limit padł i CI stoi do 1 września.
+# Dlatego: harmonogram tygodniowy, twardy sufit otwartych PR-ów i grupowanie
+# drobnicy w jeden PR. Gdyby to nadal było za dużo — zmień `weekly` na
+# `monthly`, zamiast wyłączać skan.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      # drobne aktualizacje jednym PR-em — mniej szumu i mniej przebiegów CI
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # ───────────────────────────────────────────────────────────────────
+      # ESLint 10 — blokada NIE jest po naszej stronie. eslint-config-next
+      # (przypięty do wersji Nexta) ciągnie eslint-plugin-react, która wciąż
+      # deklaruje peer `eslint: ^9` i woła API usunięte w dziesiątce.
+      # Dependabot proponowałby ten skok co tydzień, a każdy taki PR byłby
+      # czerwony z tego samego powodu — PR-y, których nikt nie może scalić,
+      # uczą ignorowania PR-ów.
+      #
+      # KIEDY TO USUNĄĆ: gdy `npm view eslint-plugin-react peerDependencies`
+      # pokaże `^10`. Wtedy skasuj wpis i podnieś ESLint normalnie.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+
+      # TypeScript 7 — typescript-eslint wprost odmawia pracy z TS 7.0,
+      # a `npm run lint` kończy się wtedy błędem. Wsparcie celuje w TS >= 7.1.
+      #
+      # KIEDY TO USUNĄĆ: gdy typescript-eslint ogłosi wsparcie dla TS 7.x.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+
+      # Next i React trzymamy na wersjach sprawdzonych z całym potokiem
+      # (dwa tryby budowania, CSP z nonce'em w proxy.serwer.ts, siedem
+      # smoke'ów). Skok major wymaga przejścia przez `npm run check`
+      # i przeczytania guide'ów z node_modules/next/dist/docs — to praca
+      # na osobny PR z decyzją, nie automat.
+      #
+      # KIEDY TO USUNĄĆ: przy świadomej migracji na kolejny major Nexta.
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2

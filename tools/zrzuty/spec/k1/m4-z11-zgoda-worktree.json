@@ -1,0 +1,15 @@
+{
+  "_podpis": "pytanie o zgodę przy wejściu w worktree spoza .claude/worktrees/",
+  "_lekcja": "K1 4.7 (proza-7-worktrees-i-sesje.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-worktree-zgoda.txt",
+  "raw": "model-e.raw",
+  "doZnacznika": "zgoda-worktree-3",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-4/zrzuty/z11-pytanie-zgode-przy-wejsciu.webp",
+  "przytnijOd": 13,
+  "przytnijDo": 27,
+  "wymagaTekstu": [
+    "Entering worktree(/tmp/oliwia/worktree-demo)",
+    "outside .claude/worktrees/",
+    "Do you want to proceed?"
+  ]
+}

@@ -1,0 +1,35 @@
+import type { z } from "zod";
+import { Cascade, CascadeItem } from "@/components/ui/Reveal";
+import type { TrescOpinie } from "@/modules/m1-sklep";
+import { Sekcja } from "./Wspolne";
+
+/**
+ * Opinie (brief CDS pkt 11) — zero zmyślania: komponent gotowy do
+ * uzupełnienia prawdziwymi opiniami po pierwszych sprzedażach;
+ * do tego czasu treść z bazy mówi wprost, że to miejsce na nie.
+ */
+export default function SekcjaOpinie({
+  etykieta,
+  tresc,
+}: {
+  etykieta: string;
+  tresc: z.infer<typeof TrescOpinie>;
+}) {
+  return (
+    <Sekcja id="opinie" etykieta={etykieta} tytul="Nie wierz nam na słowo">
+      <Cascade as="ul" interval={0.08} className="mt-8 grid gap-4 md:grid-cols-2">
+        {tresc.opinie.map((op) => (
+          <CascadeItem key={op.autor} as="li" className="panel unos flex flex-col p-5">
+            <p className="flex-1 text-sm leading-relaxed text-fg">
+              „{op.tekst}”
+            </p>
+            <p className="mt-4 font-mono text-label tracking-[0.12em] text-steel uppercase">
+              <span className="text-volt/90">{op.autor}</span>
+              {op.rola ? <span> · {op.rola}</span> : null}
+            </p>
+          </CascadeItem>
+        ))}
+      </Cascade>
+    </Sekcja>
+  );
+}

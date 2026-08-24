@@ -15,6 +15,167 @@
     "",
     "Procedura naprawy wstecznej (.bak): docs/WYTYCZNE.md §1."
   ],
-  "wersja": 1,
-  "bledy": []
+  "wersja": "0.25.0",
+  "bledy": [
+    {
+      "id": "BLAD-001",
+      "data": "2026-08-17",
+      "klasa": "hydratacja/mutacja-html-przed-hydratacja-bez-tlumika",
+      "dowod": "Inline skrypt wylacznika animacji (app/layout.tsx, wzorzec strony glownej) doklada klase `js` do <html> PRZED hydratacja Reacta, a <html> nie mial suppressHydrationWarning — atrybut className po stronie klienta rozni sie od HTML serwera. Pierwsza diagnoza (pakiet geist) byla bledna: po przejsciu na next/font/local klasy fontow byly identyczne po obu stronach, a blad zostal — roznica siedziala w obcietej koncowce diffa (dokladana klasa `js`). Wykryte dwukrotnie przez wlasciciela przy bramce B5.",
+      "skutek": "Czerwony 'Console Error: A tree hydrated but some attributes...' w dev overlay na kazdej stronie.",
+      "naprawa": "suppressHydrationWarning na <html> w app/layout.tsx — dokladnie jak na stronie glownej, ktora dla tego samego skryptu ma ten tlumik. Dodatkowo (higiena, tez wzorzec strony glownej): fonty z lokalnych subsetow woff2 przez next/font/local zamiast pakietu geist. Migawka sprzed naprawy: galaz bak/2026-08-17-hydratacja-fontow.",
+      "test": "",
+      "straznik": "straznik-hydratacji (mutacja <html> bez tlumika) + straznik-fontow (powrot pakietu geist)"
+    },
+    {
+      "id": "BLAD-002",
+      "data": "2026-08-17",
+      "klasa": "testy/niszcza-wspolna-baze-dev",
+      "dowod": "Testy modulow (migracje.test.ts, dyspozytor.test.ts) robily DROP SCHEMA public CASCADE na TEJ SAMEJ bazie db1_kursy, ktorej uzywa dev — po `npm test` znikaly zasiane kursy wlasciciela.",
+      "skutek": "Pusty katalog /szkolenia ('Katalog w przygotowaniu') i 404 na stronach kursow podczas oceny wlasciciela przy bramce B5.",
+      "naprawa": "Testy przelaczaja proces na osobna baze db1_kursy_test (modules/m1-sklep/db/testowa-baza.ts: tworzenie bazy + podmiana DB1_URL przed pierwszym polaczeniem) z bezpiecznikiem: operacje niszczace tylko na bazie *_test.",
+      "test": "modules/m1-sklep/db/testowa-baza.ts (upewnijSieZeBazaTestowa) — DROP poza baza *_test rzuca bledem; posrednio oba pliki testow",
+      "straznik": ""
+    },
+    {
+      "id": "BLAD-003",
+      "data": "2026-08-17",
+      "klasa": "css/transform-na-przodku-lamie-position-fixed",
+      "dowod": "Klatki @keyframes page-enter (app/globals.css) animowaly `transform: translateY(10px)`, a klasa `.page-enter` z app/template.tsx opakowuje CALA tresc kazdej podstrony. Element z animowanym transformem tworzy uklad odniesienia (containing block) dla `position: fixed` potomkow, wiec pasek menu kursu (components/kurs/PasekKursu.tsx) i tlo strony kursu (components/kurs/TloKursu.tsx) byly pozycjonowane wzgledem tresci, a nie okna. Navbar w app/layout.tsx nie byl dotkniety, bo stoi POZA template — stad mylace wrazenie, ze fixed dziala.",
+      "skutek": "Pasek menu kursu przewijal sie razem ze strona i znikal po zescrollowaniu w dol (zglosil wlasciciel przy bramce B5); poswiata tla za kursorem byla przesunieta wzgledem widoku.",
+      "naprawa": "Klatki page-enter animuja wylacznie `opacity` (opacity tworzy stacking context, ale NIE containing block dla fixed). Przejscie miedzy podstronami zostaje jako fade.",
+      "test": "",
+      "straznik": "straznik-fixed (transform/filter/perspective w klatkach page-enter i w klasach opakowujacych tresc)"
+    },
+    {
+      "id": "BLAD-004",
+      "data": "2026-08-17",
+      "klasa": "css/wypelniana-animacja-tworzy-trwaly-kontekst-ukladania",
+      "dowod": "Naprawa BLAD-003 zostawila `html.js .page-enter { animation: page-enter 0.3s ease-out both; }` z klatkami animujacymi `opacity`. Opacity NIE tworzy ukladu odniesienia dla `fixed` (dlatego pasek kursu dzialal), ale tworzy KONTEKST UKLADANIA — a wypelnienie `both`/`forwards` stosuje wartosc animacji takze PO jej zakonczeniu, wiec kontekst zostaje na stale. Kazdy `position: fixed` potomek tresci strony jest w nim zamkniety i przegrywa ze stopka (pozniejsze rodzenstwo w app/layout.tsx) — zaden z-index tego nie przebije.",
+      "skutek": "Pigulka wejscia do kreatora (components/kreator/WejscieAdmina.tsx, fixed z-50) chowala sie pod stopka po zescrollowaniu na dol katalogu — zglosil wlasciciel przy ocenie kroku 1 Dzialu 6.",
+      "naprawa": "Wypelnienie `both` -> `backwards`: ten sam fade 0.3 s przy wejsciu na podstrone, ale po zakonczeniu animacji kontekst ukladania znika. Migawka sprzed naprawy: galaz bak/2026-08-17-pigulka-admina-pod-stopka.",
+      "test": "pomiar w przegladarce (puppeteer-core + systemowy Firefox, scratchpad sesji): document.elementFromPoint w srodku pigulki po zescrollowaniu na sam dol oddaje link kreatora. Kontrola negatywna z `both` oddawala DIV stopki — pomiar wykrywa nawrot.",
+      "straznik": "straznik-fixed (animacja z wypelnieniem forwards/both na klasie opakowujacej tresc; zweryfikowany testem negatywnym)"
+    },
+    {
+      "id": "BLAD-005",
+      "data": "2026-08-17",
+      "klasa": "formularz/pole-sterowane-liczba-kasuje-wpis-w-trakcie-pisania",
+      "dowod": "Pole ceny w kreatorze (components/kreator/Pola.tsx) bylo sterowane WARTOSCIA przeliczona z groszy: value={grosze/100}, a onChange robil Number(e.target.value). W trakcie pisania „199,90\" input type=number oddaje pusty string dla stanu posredniego („199,\"), Number(\"\") to 0 — pole samo kasowalo wpis. Ceny z groszami byly nie do wpisania, a wlasciciel mogl zapisac 0 zl w przekonaniu, ze wpisal 199,90 zl.",
+      "skutek": "Cicha strata pieniedzy: kurs opublikowany z bledna cena. Nie lapaly tego ani testy modulu (baza dostaje juz gotowa liczbe), ani smoke (HTML z serwera) — blad zyje wylacznie pod palcami piszacego.",
+      "naprawa": "Kontrolka trzyma WLASNY tekst, a przeliczanie wydzielone do components/kreator/cena.ts (zGroszy/naGrosze). `naGrosze` oddaje null dla stanu w polowie pisania — zapisanej ceny wtedy nie ruszamy. Przecinek rownowazny kropce (polska klawiatura numeryczna).",
+      "test": "components/kreator/kreator.test.ts — 3 testy ceny, w tym runda grosze -> tekst -> grosze; npm test obejmuje teraz takze components/** i lib/**",
+      "straznik": ""
+    },
+    {
+      "id": "BLAD-006",
+      "data": "2026-08-17",
+      "klasa": "kontrakt/walidacja-tylko-po-stronie-odczytu",
+      "dowod": "Dyspozytor przyjmowal `content` sekcji jako dowolny obiekt (z.record), bo ksztalt tresci sprawdzala dopiero strona sprzedazowa przez safeParse. Zapis „przechodzil\", baza przyjmowala tresc niezgodna z kontraktem rodzaju sekcji, a strona po cichu POMIJALA taka sekcje (co dla strony jest dobra decyzja: jeden zly rekord nie wysadza calego kursu). Dowod na zywym kodzie: sekcja `author` z etykieta linku i pustym adresem — kreator pokazywal „gotowa\", zapis konczyl sie sukcesem, a TrescAutor.safeParse zwracalo false, wiec sekcja nie pojawiala sie na stronie.",
+      "skutek": "Wlasciciel wpisuje tresc, zapisuje bez bledu i nie widzi jej na stronie — bez zadnej wskazowki, co jest nie tak. Stare fixtury testu D3 (hero z polem `naglowek`, faq z polem `pytanie`) byly wlasnie takimi rekordami-widmami.",
+      "naprawa": "SekcjaWejscie.superRefine w modules/m1-sklep/typy.ts sprawdza `content` schematem ze SCHEMATY_SEKCJI i zglasza bledy ze sciezka do konkretnego pola (kurs.sections.N.content.pole). Kreator tlumaczy pozycje w tablicy na rodzaj sekcji (components/kreator/formularz-logika.ts) i przeskakuje na wlasciwa zakladke. Fixtury D3 poprawione, golden d3-odczyt.json odtworzony swiadomie. Sprawdzone, ze zaostrzenie nie kolidowalo z seedem wlasciciela: seed uruchomiony na bazie db1_kursy_test przeszedl bez zmian.",
+      "test": "modules/m1-sklep/dyspozytor.test.ts — „sekcja o tresci niezgodnej z jej rodzajem → odrzucona ze sciezka do pola\"; components/kreator/kreator.test.ts — braki dla zacznietych pol opcjonalnych i mapowanie bledow na rodzaj sekcji",
+      "straznik": "straznik-kreatora (rozjazd kontrakt ↔ panel)"
+    },
+    {
+      "id": "BLAD-007",
+      "data": "2026-08-18",
+      "klasa": "publikacja/build-z-katalogu-roboczego-wynosi-zmiany-lokalne",
+      "dowod": "Klon repo strony glownej (read-only) miał w `data/navigation.ts` LOKALNA, niecommitowana zmiane dopisujaca do menu wpis „Szkolenia\" z adresem http://localhost:3001/szkolenia — sposob podgladu zapisany wowczas w CLAUDE.md jako bezpieczny, bo „nic nie pushujemy\". Tymczasem `scripts/deploy.sh` (npm run deploy) buduje `PAGES_PREVIEW=1 npm run build` z KATALOGU ROBOCZEGO, a nie z commitow, i wypycha gotowy `out/` sila na galaz gh-pages PUBLICZNEGO repo matthewplugins.github.io. Zmiany nie bylo w zadnym commicie (`git show HEAD:data/navigation.ts` jej nie zna), a mimo to trafila do statycznego HTML-a. Zglosil wlasciciel po zobaczeniu wpisu „Szkolenia\" na zywym podgladzie marki.",
+      "skutek": "Publiczny podglad https://matthewplugins.github.io/ serwowal na WSZYSTKICH 215 zbudowanych stronach (navbar jest na kazdej) link do prywatnego localhosta wlasciciela — martwy dla kazdego innego odwiedzajacego i ujawniajacy istnienie nieopublikowanej podstrony. Deploy z 2026-08-17 22:43 GMT.",
+      "naprawa": "Zmiana schowana w klonie do stasha (`stash@{0}`, opisany — nie skasowana), drzewo robocze przywrocone do stanu origin/main (4058d73), ponowny `npm run deploy` z czystego drzewa. Weryfikacja na zywym adresie: 0 wystapien `localhost:3001` na stronie glownej oraz na /uslugi, /kontakt, /faq, /proces. W CLAUDE.md sposob podgladu zastapiony ZAKAZEM zostawiania jakichkolwiek zmian w klonie — podglad podstrony zyje wylacznie w tym repo (`:3001` + zrzut w README).",
+      "test": "",
+      "straznik": "brak po naszej stronie i to jest swiadome ustalenie: docelowy straznik to odmowa publikacji przy brudnym drzewie roboczym w `scripts/deploy.sh`, a ten plik lezy w repo strony glownej, ktore mamy TYLKO DO ODCZYTU (WYTYCZNE). Do dopisania w tym samym ruchu, w ktorym bedziemy mieli prawo zapisu do tamtego repo. U nas zabezpiecza zapis w CLAUDE.md (zakaz zmian w klonie)."
+    },
+    {
+      "id": "BLAD-008",
+      "data": "2026-08-18",
+      "klasa": "tresc/artefakt-narzedzia-zapisu-w-materiale-kursu",
+      "dowod": "31 plikow tresci D7 konczylo sie dwiema liniami-smieciami: `</content>` i `</invoke>` — pozostalosc po narzedziu zapisujacym plik w sesjach z 2026-08-18. Dotknieta byla wiekszosc scenariuszy Kursu 2 (moduly 1-3), moduł 6 Kursu 1 oraz PIEC plikow cytatow zrodlowych w docs/dokumentacja-techniczna/d7/cytowane/. Znalezli to niezaleznie dwaj subagenci piszacy lekcje 4.7 i 4.9, ktorzy kopiowali format z sasiednich plikow — czyli artefakt zaczynal sie juz PROPAGOWAC do nowej tresci.",
+      "skutek": "Smiec w materiale, ktory trafia do kursanta: scenariusz nagrania konczy sie dwoma znacznikami XML bez znaczenia. Zaden straznik tego nie lapal, bo pliki tresci nie byly wczesniej niczym kontrolowane — usterka mogla dojechac do produkcji kursu.",
+      "naprawa": "Wszystkie 31 plikow wyczyszczone skryptem sprawdzajacym, ze artefakt jest DOKLADNIE na koncu pliku (zaden nie mial go w srodku). Jedno pozostale wystapienie `</content>` w lekcji 6.5 Kursu 1 zostawione swiadomie: jest w bloku kodu jako czesc szablonu promptu, czyli prawdziwa tresc lekcji.",
+      "test": "Test negatywny przy straznik-scenariuszy: dopisanie `</content>`/`</invoke>` na koncu kopii scenariusza daje kod wyjscia 1; te same znaczniki w bloku kodu przechodza (sprawdzone na lekcji 6.5 Kursu 1, ktora je zawiera i jest zielona).",
+      "straznik": "straznik-scenariuszy — kontrola nr 6: `</content>`, `</invoke>`, `</invoke>` i `</function_calls>` w prozie scenariusza albo w pliku cytatow = czerwone CI. Bloki kodu i kod w linii sa pomijane (ta sama lekcja co przy straznik-linkow)."
+    },
+    {
+      "id": "BLAD-009",
+      "data": "2026-08-19",
+      "klasa": "wydajnosc/font-bez-preloadu-i-martwa-korekta-metryk-zastepnika",
+      "dowod": "next/font/local NIE emituje `<link rel=preload>` w tym projekcie w ogole — manifest .next/server/next-font-manifest.json zna oba pliki, znacznik nie powstaje ani w trybie serwerowym, ani w statycznym (sprawdzone w zbudowanym HTML-u). Font jechal wiec lancuchem HTML → CSS → font i dojezdzal PO pierwszym malowaniu. Drugie dno: twarze zastepcze z korekta metryk generowane przez next/font staly wylacznie na `local(Arial)`, a na Linuksie (w tym na serwerach pomiarowych Google) Ariala nie ma — twarz przepadala w calosci i tekst zastepczy szedl BEZ korekty, o 8-11% wezszy niz Geist (zmierzone: probka mono 520 px Geistem vs 477,6 px zastepnikiem, sans 317 vs 282,1).",
+      "skutek": "Podmiana fontu byla zdarzeniem UKLADU, nie kosmetyka: statystyki hero („2 produkty · 13 modulow · 91 lekcji · 24 godziny materialu\") lamaly sie fontem zastepczym na dwie linie i wskakiwaly w jedna Geistem, wiec lewa kolumna kurczyla sie o wiersz, a wysrodkowany mockup zjezdzal. PSI na serwerach Google: CLS 0,137 (katalog) i 0,166 (strona kursu) na desktopie; na mobile ten sam mechanizm przestawial LCP na chwile dojazdu fontu. NIE DALO SIE tego odtworzyc lokalnie: fontconfig podstawia za Ariala Liberation Sans, metrycznie zgodny, wiec na maszynie roboczej korekta dzialala i CLS wynosil 0,0022.",
+      "naprawa": "Fonty przeniesione do public/fonts i ladowane wlasnym @font-face + JAWNYM preloadem w layoucie (React hoistuje do <head>; crossorigin obowiazkowy, bo pobrania fontow sa CORS-owe — bez niego drugi transfer). Lista local() zastepnikow dostala Liberation Sans obok Ariala, wiec korekta metryk dziala takze na Linuksie. Po naprawie CLS = 0 na wszystkich czterech pomiarach (2 strony × 2 tryby).",
+      "test": "Test negatywny: zamiana rel=\"preload\" na rel=\"prefetch\" w layoucie wywala smoke-podglad („oczekuje preloadu DWOCH ROZNYCH fontow… sa: zadne\") i smoke-d4 („…jest 0\"). Oba sprawdzone.",
+      "straznik": "smoke-podglad (kontrola nr 8: w KAZDYM publicznym HTML-u dwa ROZNE preloady fontow z crossorigin, z basePath i z plikiem istniejacym pod dokladnie tym adresem ze znacznika) + smoke-d4 (to samo w trybie serwerowym). Sprawdzamy ARTEFAKT, nie proces — ta sama lekcja co przy miniaturach OG."
+    },
+    {
+      "id": "BLAD-010",
+      "data": "2026-08-19",
+      "klasa": "weryfikacja/porownanie-jednego-pliku-slepe-na-zmiany-w-chunkach",
+      "dowod": "tools/sprawdz-zywy.mjs potwierdzal poprawnosc deploya, porownujac bajt w bajt JEDEN plik: out/szkolenia.html. W tej wersji Next NAZWY chunkow NIE pochodza z tresci (2xhax4x7zwkk0.css zostal soba po zmianie stylow), wiec naprawa zyjaca wylacznie w CSS dawala HTML identyczny z poprzednim deploymentem — weryfikacja przechodzila na zielono PRZECIW STAREMU buildowi. Do tego edge cache GitHub Pages (cache-control: max-age=600) jeszcze przez ~10 minut oddawal stara tresc spod niezmienionego adresu.",
+      "skutek": "Pomiar PageSpeed Insights zmierzyl POPRZEDNIA wersje strony i pokazal, ze naprawa nic nie dala (mobilne LCP 2101/2176 ms — identyczne co do milisekundy przed i po). Prowadzilo to wprost do falszywego wniosku, ze naprawa jest nieskuteczna, i do szukania nieistniejacej przyczyny. Trzeci przedstawiciel klasy „weryfikacja slepa na artefakt\" w tym projekcie (wczesniej: miniatury OG w 0.24.0, jeszcze wczesniej sam ten skrypt szukajacy identyfikatora buildu wzorcem pasujacym do slowa „chunks\").",
+      "naprawa": "sprawdz-zywy.mjs porownuje teraz strone wejsciowa ORAZ KAZDY chunk (13 plikow), a zapytania znaczy parametrem — omija stare kopie na krawedziach CDN, wiec dowodzi stanu ORIGINU. Protokol pomiaru w README nakazuje odczekac >=10 minut po deployu, bo PSI pyta bez znacznika. Sygnal ostrzegawczy zapisany w komentarzu: wynik identyczny co do milisekundy po zmianie, ktora musiala go ruszyc, znaczy „mierzysz nie to\".",
+      "test": "Test negatywny: dopisanie jednego bajtu do lokalnej kopii chunka CSS obala weryfikacje, wskazujac konkretny plik i roznice rozmiaru („2xhax4x7zwkk0.css: inna tresc (zywy 57050 B, lokalny 57070 B)\"). Sprawdzone.",
+      "straznik": "tools/sprawdz-zywy.mjs wolany przez tools/deploy-podglad.sh — deploy nie konczy sie sukcesem, dopoki zywy adres nie odda kazdego pliku builda bajt w bajt."
+    },
+    {
+      "id": "BLAD-011",
+      "data": "2026-08-19",
+      "klasa": "wydajnosc/niewidzialny-element-zostaje-kandydatem-lcp",
+      "dowod": "Impuls swietlny wordmarku stopki (.fw-impuls) chodzil od zaladowania strony, choc stopka lezy cztery ekrany ponizej hero. Jego przelot przez maske tekstowa maluje litery napisu — a Chrome rejestruje to malowanie jako kandydata LCP o rozmiarze 183 600 px2, wiekszego niz JAKAKOLWIEK prawdziwa tresc strony. PSI wskazywalo jako element LCP `svg.fw-svg > defs > mask#fw-maska > text` z boundingRect 0x0, na OBU stronach, z elementRenderDelay ~2,3 s. Samo wstrzymanie animacji (animation-play-state: paused) NIE wystarczylo — kandydat znikal dopiero, gdy grupa maskowana przestala byc malowana.",
+      "skutek": "LCP obu stron bylo przybite do ~2,1-2,2 s przez element, ktorego nikt nie widzi, zamiast do realnej tresci hero (obserwowane LCP na serwerach Google: ~450 ms). Poza pomiarem: ciagle przemalowywanie dolnej krawedzi dokumentu co 7 s przez caly pobyt na stronie.",
+      "naprawa": "IntersectionObserver w FooterScene (ta sama bramka, ktora od 0.24.0 trzyma prewarm pylu) ustawia na scenie atrybut data-na-ekranie; CSS wstrzymuje animacje i zdejmuje malowanie grupy maskowanej (visibility: hidden), dopoki stopka nie wejdzie w widok. Bramka wisi pod html.js — bez JavaScriptu nie ma komu ustawic atrybutu, wiec dekoracja dziala jak dotad, a wylacznik bezpieczenstwa (4 s bez hydratacji zdejmuje klase js) tez ja przywraca.",
+      "test": "Pomiar w przegladarce na produkcyjnym buildzie (412x823): na gorze strony paused + visibility hidden, po zjezdzie do stopki running + visible, po powrocie na gore znowu paused; przy wylaczonym JavaScripcie running. Tekst spoczynkowy wordmarku widoczny w kazdym z tych stanow. Lista kandydatow LCP z PerformanceObserver po naprawie nie zawiera juz elementu maski.",
+      "straznik": ""
+    },
+    {
+      "id": "BLAD-012",
+      "data": "2026-08-19",
+      "klasa": "weryfikacja/test-omija-komende-i-sprawdza-inny-artefakt-niz-wydany",
+      "dowod": "smoke-podglad.ts budowal podglad wywolaniem `npx next build` zamiast komendy `npm run build:podglad`. Kroki po buildzie wisza na komendzie, nie na buildzie, wiec smoke sprawdzal katalog out/ BEZ nadanych rozszerzen .png miniatur OG — czyli inny artefakt niz ten, ktory wydaje deploy. Ta sama pomylka w skrypcie deploya wypuscila w 0.24.0 podglad z czterema martwymi miniaturami (404 na kazdej), przy zielonym buildzie i zielonej weryfikacji. Nawrot znaleziony przy dokladaniu wstrzykiwania polityki CSP: po zmianie smoke ogladalby takze pliki bez CSP.",
+      "skutek": "Najgrozniejszy mozliwy: test przechodzi i tworzy wrazenie pokrycia, a sprawdza cos, czego nikt nigdy nie opublikuje. Kazdy kolejny krok po buildzie (dzis: rozszerzenia OG i polityka CSP) jest dla takiego testu niewidzialny.",
+      "naprawa": "smoke-podglad wola `npm run build:podglad`, czyli te sama komende co czlowiek i co deploy; zmienne srodowiskowe przekazywane jak dotad. Zasada zapisana w CONTRIBUTING i w naglowku smoke'a: jedna komenda = jedna prawda o tym, jak powstaje artefakt.",
+      "test": "tools/smoke/smoke-csp.ts — czesc 2 przelicza hashe wszystkich skryptow z GOTOWYCH plikow out/ i wymaga ich w polityce; build wywolany z pominieciem kroku po buildzie nie przechodzi (sprawdzone testem negatywnym: pominiecie hashy danych strukturalnych daje czerwony smoke).",
+      "straznik": "straznik-csp — pilnuje, ze `build:podglad` zawiera krok csp-podglad.mjs I ze biegnie on PO og-rozszerzenie.mjs (odwrocenie kolejnosci unicestwia policzone hashe)."
+    },
+    {
+      "id": "BLAD-013",
+      "data": "2026-08-19",
+      "klasa": "weryfikacja/straznik-zwiazany-z-nazwa-metody-zamiast-z-zachowaniem",
+      "dowod": "straznik-limitera (0.27.0) sprawdzal, czy limit tempa stoi PRZED czytaniem ciala, porownujac pozycje wywolania limitera z pozycja wzorca `request.json()`. W 0.28.0 trasa przestala uzywac tej metody (czyta cialo strumieniem z licznikiem bajtow), wiec warunek `pozycjaParsowania >= 0` przestal byc prawdziwy i CALE sprawdzenie zamilklo. Straznik pozostawal zielony przy mutacji, ktora wczesniej lapal — wykryl to dopiero audyt mutacyjny przy PR 3. W tym samym przebiegu druga sztuka tej samej klasy: nowy straznik-limitow porownywal pozycje nazwy `cialoZSufitem` i trafial w DEFINICJE funkcji na gorze pliku zamiast w jej wywolanie, wiec tez przepuszczal przeniesienie sufitu pod parsowanie.",
+      "skutek": "Kontrola przestaje kontrolowac bez zadnego objawu: straznik zielony, CI zielone, a niezmiennik, ktorego mial pilnowac, mozna zlamac. Grozniejsze niz brak straznika, bo tworzy falszywe poczucie pokrycia — dokladnie ta klasa, przed ktora powolano audyt mutacyjny.",
+      "naprawa": "Wzorce celuja w ZACHOWANIE, nie w nazwe API: straznik-limitera szuka PIERWSZEGO dotkniecia ciala jakakolwiek droga (minimum z pozycji `await cialoZSufitem(`, `request.json()`, `request.text()`, `JSON.parse(`), a straznik-limitow porownuje pozycje WYWOLANIA, nie samej nazwy funkcji. Regula przy kazdym nowym strazniku: jesli wzorzec zawiera nazwe konkretnego API, zapytaj, co sie stanie, gdy kod przejdzie na inne — czy straznik wtedy krzyknie, czy zamilknie.",
+      "test": "audyt-straznikow: mutacje „limit tempa sprawdzany PO parsowaniu ciala zadania\" i „sufit ciala sprawdzany PO sparsowaniu JSON-a\" — obie przed naprawa PRZEOCZONE (audyt czerwony, 62 z 64), po naprawie ZLAPANE (64 z 64, 0 przeoczonych, 0 martwych).",
+      "straznik": "audyt-straznikow.mjs — to on jest tu kontrola: straznik pilnuje kodu, a audyt pilnuje straznikow. Bez okresowego uruchamiania audytu ta klasa bledu jest niewykrywalna."
+    },
+    {
+      "id": "BLAD-014",
+      "data": "2026-08-24",
+      "klasa": "narzedzia/adres-url-pliku-uzyty-jako-sciezka-systemowa",
+      "dowod": "Katalog roboczy nazywa sie „Pod strona Szkolenia ” — ze spacjami, a `import.meta.url` koduje spacje jako %20. Trzy narzedzia braly adres URL za sciezke: (1) `tools/zrzuty/manifest.mjs` mial blok CLI za warunkiem ``import.meta.url === `file://${process.argv[1]}` `` — warunek NIGDY nie byl prawdziwy, wiec komenda konczyla sie kodem 0 nie wypisawszy ANI JEDNEJ linii, mimo ze CLAUDE.md kazal liczyc nia stan przelotu zrzutow; (2) `tools/zrzuty/test-asercji.mjs` budowal sciezke narzedzia przez `new URL(n, import.meta.url).pathname`, wiec 15 testow asercji padalo na „module not found”; (3) `tools/zrzuty/kolejka.mjs` tak samo podawal spawnowi sciezke z %20. Wykryte audytem kursow 2026-08-24, przy probie policzenia otwartych miejsc na zrzuty.",
+      "skutek": "Narzedzie kontrolne milczy zamiast liczyc — cisza wyglada jak zieleń. Manifest byl JEDYNYM zrodlem prawdy o stanie przelotu zrzutow (osobnego pliku stanu celowo nie ma), wiec w katalogu glownym nie dalo sie odczytac stanu wcale; w worktree bez spacji dzialal, co maskowalo usterke. Testy asercji, ktore chronia prywatnosc zrzutow zza logowania, byly w calosci martwe.",
+      "naprawa": "fileURLToPath(import.meta.url) porownywane z resolve(process.argv[1]) w manifescie; fileURLToPath(new URL(...)) zamiast .pathname w kolejce i tescie asercji. Ta sama bramka main-module doszla do `tools/seed/seed-przyklady.ts`, ktory wykonywal sie przy samym imporcie (a zaczyna od kasowania kursow — razem z trescia 73 lekcji).",
+      "test": "straznik-sciezek (2 wzorce, test negatywny na podrzuconym pliku) + dwie mutacje w audyt-straznikow: „manifest zrzutow wraca do sklejki file:// + argv[1]” i „kolejka zrzutow wraca do .pathname z URL-a pliku”. Dowod wykonaniem: test-asercji przeszedl z 15 porazek na 12 (reszta to brak rigu puppeteera), manifest wypisuje 148/148 w katalogu ze spacja.",
+      "straznik": "tools/straznicy/straznik-sciezek.mjs"
+    },
+    {
+      "id": "BLAD-015",
+      "data": "2026-08-24",
+      "klasa": "tresc/strona-sprzedazowa-obiecuje-produkt-sprzed-zmiany-programu",
+      "dowod": "Sekcje sprzedazowe powstaly przy B4/B5 jako TRESC ROBOCZA, przed Dzialem 7. Program obu kursow zmienil sie potem dwa razy (D7, potem ciecie Kursu 2 z 50 do 32 lekcji), a teksty sprzedazowe zostaly. Publiczny podglad (GitHub Pages, potwierdzone curl-em 2026-08-24) obiecywal: „7 modulow wideo (31 lekcji)” przy 6 modulach i 41 lekcjach; „6 modulow wideo (26 lekcji)” przy 32 lekcjach; „Modul ratunkowy: Restore, revert, reset”, choc te trzy komendy nie padaja w Kursie 2 ANI RAZU; „kilka godzin wideo” i „nagrywamy poprawki”, choc decyzja wlasciciela z 2026-08-19 kurs jest TEKSTOWY; „Projekty, artefakty” w Kursie 1, ktorych kurs nie uczy (weszly ze starego programu, ktory zostal w seedzie); „szablony do pobrania w plikach”, ktorych nie ma. Do tego FAQ Kursu 2 podawalo kolejnosc nauki ODWROTNA do faktycznej („najpierw Git lokalnie, potem GitHub” — kurs zaczyna w przegladarce).",
+      "skutek": "Kupujacy dostaje inny produkt, niz obiecuje strona — a wymog wlasciciela brzmi „strona nie moze obiecywac niczego spoza programu”. Zaden straznik ani test tego nie widzial: sekcje to dane w bazie i w seedzie, nie kod. Blad byl widoczny publicznie na zywym podgladzie.",
+      "naprawa": "Sekcje przepisane w `tools/seed/seed-przyklady.ts` na stan faktyczny (liczby z bazy, zero wideo, obietnice zastapione tym, co kurs realnie dowozi) i wgrane do bazy dyspozytorem BEZ klucza `modules`, wiec program i tresc 73 lekcji zostaly nietkniete. Przy okazji odtworzony z bazy program Kursu 1 w seedzie — niosl jeszcze wersje sprzed D7, z ktorej wziely sie obietnice o „czatach, projektach i artefaktach”.",
+      "test": "straznik-obietnic (5 kontroli: wideo, liczba modulow, liczba lekcji, minuty, zrzuty, obietnice podzbioru) + 3 mutacje w audyt-straznikow. Piec testow negatywnych przy powstaniu: kazda podmieniona liczba i wrocone „wideo” zapala straznika na czerwono.",
+      "straznik": "tools/straznicy/straznik-obietnic.mjs"
+    },
+    {
+      "id": "BLAD-016",
+      "data": "2026-08-24",
+      "klasa": "prywatnosc/podmiana-danych-per-wezel-tekstowy-omijana-przez-rozbicie-na-elementy",
+      "dowod": "Rig zrzutow podmienia dane wlasciciela chodzac po WEZLACH TEKSTOWYCH DOM-u. Adres rozbity na dwa elementy (`<span>krzysztof2006</span><span>oskar@wp.pl</span>`) dostaje podmiane tylko w pierwszym wezle (bo tam pasuje wzorzec „krzysztof”), wiec na ekranie zostaje „oliwia2006oskar@wp.pl” — fragment prawdziwego adresu. Bramka `sprawdzPrywatnosc` szukala CALYCH ciagow z listy wlasciciela, wiec takiego zrzutu nie zatrzymywala. Test negatywny na to istnial od 2026-08-23, ale NIE DZIALAL: caly `test-asercji.mjs` padal na BLAD-014 (sciezka z %20), wiec 15 porazek wygladalo na problem srodowiska. Usterka wyszla dopiero po naprawie sciezek.",
+      "skutek": "Zrzut zza logowania mogl trafic do repo z rozpoznawalnym fragmentem adresu wlasciciela — a to jest dokladnie to, czemu bramka mia zapobiegac. Ryzyko realne w kazdym miejscu, gdzie interfejs sklada tozsamosc z kilku elementow (naglowki kont, listy uzytkownikow).",
+      "naprawa": "sprawdzPrywatnosc przyjmuje liste ZASTEPNIKOW uzytych przy podmianie i odrzuca zrzut, gdy zastepnik przykleil sie do innych znakow slowa — to znaczy, ze podmiana weszla w srodek wiekszego tokenu, ktorego nie widziala w calosci. `zrob-zrzut.mjs` podaje jej wlasna liste patchy, wiec nie ma drugiego zrodla prawdy do rozjechania.",
+      "test": "tools/zrzuty/test-asercji.mjs — „NEGATYWNY: adres wlasciciela sklejony z dwoch elementow → brak obrazu”. Przed naprawa: kod wyjscia 0 i plik POWSTAWAL (oczekiwano 9 i braku pliku). Po naprawie: 15/15 testow asercji zielonych, kod wyjscia 0 sprawdzony BEZ potoku.",
+      "straznik": "tools/zrzuty/test-asercji.mjs (+ straznik-asercji pilnuje, ze specyfikacje maja asercje)"
+    }
+  ]
 }

@@ -1,0 +1,14 @@
+{
+  "_podpis": "pusta rozmowa na claude.ai — pole promptu i przełącznik modelu",
+  "_lekcja": "K1 1.1 (proza-1-czym-jest-claude.md)",
+  "url": "https://claude.ai/new",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-1/zrzuty/z01-pusta-rozmowa-na-claude.webp",
+  "czekajMs": 9000,
+  "wymagaTekstu": [
+    "How can I help you today?",
+    "Sonnet 5"
+  ],
+  "akcje": [
+    { "typ": "czekaj", "ms": 2500 }
+  ]
+}

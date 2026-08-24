@@ -9,10 +9,60 @@ on:
 permissions:
   contents: read
 
+# Kolejny push do tej samej gałęzi/PR-a ANULUJE trwający przebieg —
+# minuty Actions są wspólne dla całej organizacji (plan Free: 2000/mies.
+# na repozytoria prywatne; w sierpniu 2026 limit padł i CI stanęło),
+# więc nie płacimy za przebiegi, których wynik nikogo już nie obchodzi.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # Ustala, czy zmiany dotykają KODU, czy tylko treści/dokumentacji.
+  # W tym repo większość commitów to treść kursów (tresc-kursow/,
+  # docs/, *.md) — lint, tsc, build i smoke'i niczego wtedy nie
+  # sprawdzają, a kosztują ~7-8 minut na przebieg. Strażnicy i skan
+  # sekretów chodzą ZAWSZE (to one pilnują treści). Bez akcji
+  # zewnętrznych — zwykły git diff, jak wszystko w tym repo.
+  zakres:
+    name: Zakres zmian (kod czy tylko treść?)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      kod: ${{ steps.diff.outputs.kod }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Porównaj zmienione ścieżki z listą ścieżek kodu
+        id: diff
+        env:
+          BAZA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ -z "$BAZA" ]; then
+            # push na main — zawsze pełny przebieg
+            echo "kod=true" >> "$GITHUB_OUTPUT"
+            echo "push na main -> pełny przebieg"
+            exit 0
+          fi
+          ZMIENIONE=$(git diff --name-only "$BAZA"...HEAD)
+          echo "$ZMIENIONE"
+          # Ścieżki, których zmiana wymaga lint/tsc/build/testów/smoke'ów.
+          # Kod kontroli jakości (tools/ poza smoke i seed) oraz treść
+          # NIE są na liście — pilnuje ich osobny job, który chodzi zawsze.
+          if echo "$ZMIENIONE" | grep -qE '^(app/|components/|lib/|modules/|assets/|public/|goldeny/|tools/(smoke|seed)/|package(-lock)?\.json|next\.config\.ts|tsconfig\.json|postcss\.config|eslint\.config|docker-compose\.yml|\.github/workflows/)'; then
+            echo "kod=true" >> "$GITHUB_OUTPUT"
+            echo "zmiany dotykają kodu -> pełny przebieg"
+          else
+            echo "kod=false" >> "$GITHUB_OUTPUT"
+            echo "tylko treść/dokumentacja -> pomijam joby kodu"
+          fi
+
   straznicy:
     name: Strażnicy
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -20,18 +70,145 @@ jobs:
         with:
           node-version: 24
 
+      # Część strażników czyta KONTRAKTY z kodu (straznik-kreatora
+      # importuje schematy Zod modułu), więc potrzebuje zależności.
+      # Na gałęziach bez package-lock.json (np. sam fundament repo na
+      # `main`) krok się pomija, a strażnicy dalej chodzą „na sucho".
+      - name: Instalacja zależności (strażnicy czytający kontrakty)
+        if: hashFiles('package-lock.json') != ''
+        run: npm ci
+
       # Runner sam znajduje wszystkich strażników (straznik-*.mjs) —
       # nowego strażnika nie da się „zapomnieć podpiąć".
       - name: Uruchom strażników
         run: node tools/straznicy/uruchom-wszystkie.mjs
 
-      # Gdy pojawi się package.json (kod Next.js), tu wejdą kroki:
-      # npm ci → lint → tsc --noEmit → test → build → smoke.
-      # Pilnuje tego straznik-ci (do napisania razem z kodem).
+  aplikacja:
+    name: Kod aplikacji (lint → tsc → build)
+    needs: zakres
+    if: needs.zakres.outputs.kod == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalacja zależności
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Kontrola typów
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+  baza:
+    name: Baza db1_kursy (migracje + triggery + goldeny)
+    needs: zakres
+    if: needs.zakres.outputs.kod == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: kursy
+          POSTGRES_PASSWORD: kursy-dev
+          POSTGRES_DB: db1_kursy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kursy -d db1_kursy"
+          --health-interval 3s --health-timeout 3s --health-retries 15
+    env:
+      DB1_URL: postgres://kursy:kursy-dev@localhost:5432/db1_kursy
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalacja zależności
+        run: npm ci
+
+      # Dowód B2: migracje od zera, audyt triggerów, golden schematu.
+      - name: Testy modułów
+        run: npm test
+
+      # Testy chodzą na osobnej bazie db1_kursy_test (BLAD-002) —
+      # baza główna dla smoke'ów wymaga własnych migracji.
+      - name: Migracje bazy głównej (pod smoke)
+        run: npm run db1:migruj
+
+      # Dowód B4: produkcyjny serwer renderuje katalog Z BAZY (golden HTML).
+      - name: Build pod smoke
+        run: npm run build
+
+      - name: Smoke katalogu /szkolenia
+        run: node tools/smoke/smoke-d4.ts
+
+      # Dowód B5: pełna strona sprzedażowa z bazy (golden sekcji programu).
+      - name: Smoke strony sprzedażowej /szkolenia/[slug]
+        run: node tools/smoke/smoke-d5.ts
+
+      # Dowód B6: brama kreatora nie wypuszcza szkiców, wystrzał AJAX
+      # działa z samego ciastka, a cykl szkic → publikacja → katalog →
+      # usunięcie przechodzi po HTTP.
+      - name: Smoke kreatora /szkolenia/kreator
+        env:
+          KREATOR_TOKEN: smoke-d6-ci-token-testowy-nie-sekret
+        run: node tools/smoke/smoke-d6.ts
+
+      # Krok 3: materiał kursu jest towarem zza logowania. Smoke pisze
+      # treść lekcji wystrzałem AJAX i sprawdza, że widać ją WYŁĄCZNIE
+      # w kreatorze z ciastkiem — nie w katalogu ani na stronie
+      # sprzedażowej opublikowanego kursu.
+      - name: Smoke pisania lekcji /szkolenia/kreator/lekcja/[id]
+        env:
+          KREATOR_TOKEN: smoke-lekcje-ci-token-testowy-nie-sekret
+        run: node tools/smoke/smoke-lekcje.ts
+
+      # Polityka CSP sprawdzana na ARTEFAKCIE: nagłówek z nonce'em na
+      # żywym serwerze (także na 404 — tam prerender zostawiłby skrypty
+      # bez nonce'a) oraz komplet hashy w plikach podglądu. Stoi po
+      # smoke'ach serwerowych, bo jego druga część buduje podgląd
+      # i nadpisuje .next.
+      - name: Smoke polityki CSP
+        run: node tools/smoke/smoke-csp.ts
+
+      # Podgląd statyczny trafia do PUBLICZNEGO repo, więc pytanie nie
+      # brzmi „czy się zbudował", tylko „co w nim jest". Smoke buduje
+      # własny eksport CELOWO z tokenem kreatora w środowisku — czyli
+      # w warunkach, w których zepsuta brama wpisałaby nieopublikowane
+      # kursy do publicznych plików — i sprawdza, że tego nie zrobiła.
+      # Uwaga: nadpisuje out/, dlatego stoi jako OSTATNI smoke.
+      - name: Smoke podglądu statycznego (out/)
+        env:
+          KREATOR_TOKEN: smoke-podglad-ci-token-testowy-nie-sekret
+        run: node tools/smoke/smoke-podglad.ts
+
+      # SEO sprawdzamy na ZBUDOWANYCH plikach, nie na deklaracjach w kodzie:
+      # kanoniki, robots, sitemapa, miniatury OG i dane strukturalne
+      # porównane Z BAZĄ (cena i tytuł w JSON-LD nie mogą rozjechać się
+      # z ofertą). Buduje z SEO_INDEKSOWANIE=1, bo domyślny stan `noindex`
+      # zasłania połowę tej powierzchni. Nadpisuje out/, więc idzie po
+      # smoke'u podglądu.
+      - name: Smoke SEO (kanoniki, robots, sitemapa, JSON-LD)
+        run: node tools/smoke/smoke-seo.ts
 
   security:
     name: Skan sekretów
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,7 +217,7 @@ jobs:
 
       # Binarka MIT zamiast gitleaks-action (licencja komercyjna od v2,
       # odpytuje zewnętrzny serwis). Wersja przypięta + SHA-256 —
-      # ta sama praktyka co w repo matthewplugins.pl.
+      # ta sama praktyka co w repo strony głównej (automatic-ai).
       - name: Gitleaks
         env:
           GITLEAKS_VERSION: 8.30.1

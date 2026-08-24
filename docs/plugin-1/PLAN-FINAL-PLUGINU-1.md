@@ -1,0 +1,292 @@
+# Plan domknięcia Pluginu 1 — cztery kroki
+
+Ustalony z właścicielem 2026-08-19 (przed `/clear`). Kolejność jest
+wiążąca: krok N+1 zaczynamy po odhaczeniu kroku N przez właściciela.
+Po kroku 4 Plugin 1 jest zamknięty.
+
+Stan wyjściowy: wersja **0.22.0**, działy D1–D7 gotowe (B1–B6 zaliczone),
+treść obu kursów kompletna (91 scenariuszy), strażnicy 17/17, audyt
+mutacyjny 17/17. Otwarte: B7 (właściciel ocenia GOTOWE KURSY, nie same
+scenariusze).
+
+---
+
+## Krok 1 — SEO i wydajność mierzone na żywym adresie
+
+> **STAN 2026-08-19: krok w toku, podzielony na trzy części.**
+> Podział wyszedł z pracy, nie z planowania: każda część ma własny
+> dowód, który da się ocenić osobno.
+>
+> | Część | Stan | Wersja / gałąź | PR |
+> |---|---|---|---|
+> | 1/3 — tryb podglądu statycznego | **zrobiona** | 0.23.0 · `feat/podglad-statyczny` | [#26](https://github.com/MatthewPlugins/Pod-strona-Szkolenia/pull/26) |
+> | 2/3 — SEO na stronie | **zrobiona** | 0.24.0 · `feat/seo-podstrony` | [#27](https://github.com/MatthewPlugins/Pod-strona-Szkolenia/pull/27) |
+> | 3/3 — wydajność i pomiary | **← następna** | — | — |
+>
+> **Decyzja właściciela (2026-08-19): wszystkie trzy PR-y mergujemy
+> dopiero, gdy pomiary pokażą 100 w każdej kolumnie** — nie po kolei.
+> PR-y są stackowane (#27 stoi na gałęzi #26), więc merge idzie
+> od najstarszego, z `--delete-branch`.
+>
+> **Żywy podgląd:**
+> <https://matthewplugins.github.io/szkolenia-podglad/szkolenia>
+>
+> Decyzje właściciela podjęte na starcie kroku: publikujemy do nowego
+> **publicznego** repo `MatthewPlugins/szkolenia-podglad`; `noindex`
+> **TAK** na czas prac (z zastrzeżeniem, że tabela pomiarów ma to
+> odnotować — `noindex` jest punktowanym audytem Lighthouse'a); treść
+> **robocza**, pomiary powtarzamy po złożeniu kursów w kreatorze.
+>
+> Szczegóły techniczne obu gotowych części, wraz z pułapkami, które
+> mogą wrócić — w [CLAUDE.md](../../CLAUDE.md) (sekcja „Stan i następny
+> krok") oraz w CHANGELOG 0.23.0 i 0.24.0. Protokół pomiaru i pusta
+> tabela wyników: [README](../../README.md#seo-i-bezpieczeństwo).
+
+**Cel właściciela (2026-08-19):** wrzucić podstronę na GitHub Pages,
+zrobić „całe SEO", przetestować **narzędziami Google**, dojść do
+**100 w każdej kolumnie** i dopiero wtedy odhaczyć SEO tabelą w repo —
+wzorem tabeli Lighthouse ze strony głównej.
+
+### Przeszkoda techniczna, którą trzeba rozwiązać NAJPIERW — ✅ ROZWIĄZANA w części 1/3
+
+`/szkolenia` **nie jest stroną statyczną**:
+
+| Element | Stan dziś | Co to znaczy dla Pages |
+|---|---|---|
+| `app/szkolenia/page.tsx` (katalog) | `force-dynamic`, czyta bazę przy żądaniu | wymaga zamiany na render z bazy **w czasie builda** |
+| `app/szkolenia/[slug]/page.tsx` | `force-dynamic` + `generateMetadata` z bazy | jw. + `generateStaticParams` po slugach z bazy |
+| `app/szkolenia/kreator/**` | ciastko HttpOnly, akcje serwerowe | **wykluczyć z eksportu** — panel nie ma prawa być publiczny |
+| `app/api/szkolenia` (jedyny AJAX) | mutacje bazy | nie istnieje w eksporcie statycznym |
+| Repozytorium | **prywatne** | Pages z prywatnego repo = plan płatny → publikujemy do **osobnego, publicznego** repo (tak robi strona główna: `matthewplugins.github.io`) |
+
+**Wniosek:** krok 1 zaczyna się od zbudowania **trybu podglądu
+statycznego** (roboczo `PODGLAD_STATYCZNY=1`): eksport katalogu i stron
+kursów z danymi zaciągniętymi z bazy w czasie builda, bez kreatora
+i bez AJAX-a. Prototyp z serwerem zostaje bez zmian — tryb podglądu
+jest dodatkiem do pomiarów i prezentacji, nie zamianą architektury.
+
+### Decyzje do podjęcia przez właściciela (na starcie kroku 1) — ✅ PODJĘTE 2026-08-19
+
+1. **Gdzie publikujemy?** Propozycja: nowe **publiczne** repo
+   `MatthewPlugins/szkolenia-podglad` (albo gałąź `gh-pages` w takim
+   repo), publikacja ręcznym skryptem z katalogu roboczego — nie zjada
+   minut Actions (limit organizacji wyczerpany do 1 września).
+2. **`noindex` na czas prac — rekomendacja: TAK.** Treść stron
+   sprzedażowych jest ROBOCZA, opinie to jawne placeholdery. Wpuszczenie
+   tego do indeksu Google zaszkodziłoby marce i późniejszemu SEO
+   domeny docelowej. Wzorzec ze strony głównej: `PAGES_PREVIEW=1` →
+   `robots: noindex`, pusta sitemapa, brak `Sitemap:` w robots.txt.
+   `noindex` zdejmujemy dopiero przy publikacji produkcyjnej na WP.
+3. **Czy podgląd ma zawierać finalną treść kursów?** Jeśli tak, krok 1
+   przesuwa się za krok 3 (treść wchodzi kreatorem). Jeśli nie —
+   mierzymy wydajność na treści roboczej, co dla Lighthouse'a jest
+   wystarczające (liczą się obrazy, JS, fonty i układ, nie słowa).
+
+### Co robimy w kroku 1
+
+1. Tryb eksportu statycznego + skrypt publikacji (wzór:
+   `scripts/deploy.sh` strony głównej — z lekcją BLAD-007: **deploy
+   buduje z KATALOGU ROBOCZEGO, nie z commitów**, więc przed publikacją
+   drzewo musi być czyste).
+2. **SEO na stronie**, dziś nieobecne albo szczątkowe:
+   - `app/robots.ts` i `app/sitemap.ts` (sitemapa bez fałszywego
+     `lastModified`; w trybie podglądu pusta),
+   - kanoniczne adresy, OpenGraph + Twitter na katalogu i stronach
+     kursów (dziś metadane są, ale bez OG-obrazów),
+   - **JSON-LD**: `Course` (nazwa, opis, dostawca, język, program),
+     `Product`+`Offer` (cena, waluta, dostępność), `BreadcrumbList`,
+     `FAQPage` na sekcji FAQ, `Organization` — to jest największy
+     nieodrobiony zysk SEO dla sklepu z kursami,
+   - `lang`, jeden `<h1>` na stronę, hierarchia nagłówków, `alt`-y.
+3. **Wydajność do 100**: audyt obrazów (okładki kursów — format, rozmiar,
+   `priority` dla LCP), fonty (już lokalne), podział JS, `prefers-reduced-motion`
+   (jest), eliminacja CLS na hero i marquee.
+4. **Pomiary narzędziami Google**: Lighthouse (lokalnie na
+   produkcyjnym `next start` **i** na żywym adresie), PageSpeed Insights,
+   Rich Results Test (JSON-LD), Search Console (po publikacji), test
+   mobilny. **Chrome instalujemy w scratchpadzie sesji, NIGDY do
+   `package.json`** (lekcja z D5 o playwrighcie).
+5. **Tabela w README** — wypełniana WYŁĄCZNIE zmierzonymi liczbami
+   (zero zmyślania obowiązuje też README), plus strażnik/CI pilnujący
+   progów, żeby tabela nie zdezaktualizowała się po cichu.
+
+### Cel liczbowy (wpisujemy zmierzone, nie życzenia)
+
+| Podstrona | Wydajność | Dostępność | Dobre praktyki | SEO | LCP | CLS | TBT |
+|---|---|---|---|---|---|---|---|
+| `/szkolenia` | 100 | 100 | 100 | 100 | ≤ 2,5 s | 0 | ≤ 200 ms |
+| `/szkolenia/[slug]` | 100 | 100 | 100 | 100 | ≤ 2,5 s | 0 | ≤ 200 ms |
+
+Uczciwa uwaga: strona główna przy tym samym reżimie ma 92–99 na
+wydajności (najniżej szablony z okładkami — obraz jest elementem LCP).
+100/100/100/100 jest osiągalne, ale wymaga twardych decyzji o obrazach
+hero i mockupie `OknoKursu`. Nie wpisujemy „100", dopóki narzędzie tego
+nie pokaże **trzy razy z rzędu**.
+
+**Bramka kroku 1:** komplet pomiarów w tabeli + akceptacja właściciela.
+
+---
+
+## Krok 2 — pełne zabezpieczenia strony
+
+Podstawa: [`docs/security-checklist.md`](../security-checklist.md)
+(legenda pięciostanowa; sekcja 8 zbiera wymagania dla wtyczki WP).
+
+Do zrobienia w tym kroku — pozycje dziś oznaczone ⏳/🔧, które da się
+domknąć jeszcze w prototypie:
+
+1. **Pełne CSP** nagłówkiem (dziś tylko `frame-ancestors 'none'`):
+   polityka bez `unsafe-inline` dla skryptów + strażnik sprawdzający,
+   że polityka nie zawiera słów unieważniających ochronę (lekcja ze
+   strony głównej: ich audyt mutacyjny znalazł dokładnie taką dziurę).
+2. **Rate limiting** na akcjach zapisu (okno przesuwne po IP+akcja) —
+   dziś jest tylko kara czasowa bramy kreatora.
+3. **Twarde limity wejścia** (długości pól, rozmiar ładunku) i przegląd
+   komunikatów błędów pod kątem wycieku informacji.
+4. **Nagłówki transportu** dla wersji publicznej podglądu (Pages ich nie
+   ustawi — decyzja: co przenosimy do konfiguracji hostingu WP).
+5. **Weryfikacja mutacyjna każdego nowego zabezpieczenia** — reguła
+   z 0.22.0: nowy strażnik = nowa mutacja w `audyt-straznikow`.
+6. Przegląd 🔧: 2FA w organizacji, przegląd ról i kluczy (materiał
+   naszego własnego kursu 2 / moduł 6 opisuje procedurę).
+
+**Bramka kroku 2:** checklista bez pozycji ⏳ możliwych do zrobienia
+w prototypie + akceptacja właściciela.
+
+---
+
+## Krok 3 — kursy zrobione do końca, w narzędziu
+
+**Decyzja właściciela (2026-08-18, wieczór): właściciel NIE nagrywa
+wideo.** To unieważnia podział pracy z D7. Materiał ma powstać inaczej.
+
+Do zrobienia:
+
+1. **Propozycja produkcji materiału — z opcjami i kosztami** (agent
+   przygotowuje, właściciel wybiera). Do rozważenia: synteza mowy
+   z narracji scenariuszy + automatyczne nagrania ekranu, awatar/lektor
+   AI, wersja tekstowo-obrazkowa z krokami zamiast wideo. Każda opcja
+   musi odpowiedzieć na: jakość, prawa do głosu i materiału, koszt
+   jednostkowy i utrzymanie (co przy zmianie w GitHubie/Claude).
+2. **Rozszerzenie kreatora o lekcje i nagrania** — dziś obsługuje kurs,
+   program i sekcje sprzedażowe; dojdą treść lekcji i materiał wideo.
+   To ciąg dalszy Działu 6: kontrakty w `modules/m1-sklep/typy.ts`,
+   migracje, panel, `straznik-kreatora` pilnujący pokrycia pól.
+3. **Finalna treść stron sprzedażowych** wprowadzona kreatorem —
+   zgodna 1:1 z zatwierdzonym programem (strona nie obiecuje niczego
+   spoza programu). Zastępuje treść ROBOCZĄ z `tools/seed/seed-przyklady.ts`.
+4. **Dwa kompletne kursy gotowe do sprzedaży** + akcept właściciela = **B7**.
+
+Opinie klientów zostają jawnymi placeholderami do pierwszych sprzedaży —
+niczego nie zmyślamy.
+
+### Kolejność domykania kroku 3 (ustalona przez właściciela 2026-08-23)
+
+Po zamknięciu treści i przelotu zrzutów (0.32.0) idziemy w tej kolejności
+i **nie zaczynamy niczego z tej listy z własnej inicjatywy** — właściciel
+otwiera każdy temat osobno:
+
+1. ~~**Audyt kursów**~~ **ZROBIONY I NAPRAWIONY (0.33.0, 2026-08-24).**
+   Zakres ustalił właściciel; raport i rozliczenie napraw:
+   [tresc-kursow/AUDYT-KONCOWY.md](../../tresc-kursow/AUDYT-KONCOWY.md).
+   Proza okazała się zdrowa — rozjazd siedział w tekstach sprzedażowych
+   (BLAD-015), w seedzie i w narzędziach (BLAD-014, BLAD-016). Publiczny
+   podgląd przebudowany za zgodą właściciela.
+2. **Higiena repo** — właściciel omawia zakres osobno.
+3. ~~**Dopracowanie WIDOKU TREŚCI KURSU**~~ **ZROBIONE (0.34.0,
+   2026-08-24)** — zostaje ocena wzrokowa właściciela.
+   Trzy pytania z tej pozycji ROZSTRZYGNIĘTE przez właściciela na starcie:
+   (a) widok lekcji zostaje **eksportem HTML** (`tools/podglad-kursow*`), bo
+   produkt idzie na Tutor LMS — portuje się CSS i szablony, nie komponenty
+   Reacta; (b) nawigacja to **pływająca pigułka jak na stronie sprzedażowej**
+   z rozwijanym programem i spisem sekcji lekcji, bez stałego panelu bocznego;
+   (c) postęp to **pozycja w kursie z programu + pamięć przeglądarki**,
+   podpisana wprost, że to nie konto. Robimy to **teraz**, nie na LMS-ie.
+   Twarde ograniczenie dotrzymane: generator dalej odmawia zapisu do wnętrza
+   repo, więc treść lekcji nie ma jak wejść do eksportu statycznego.
+   Szczegóły i pułapki: CHANGELOG 0.34.0 oraz [CLAUDE.md](../../CLAUDE.md).
+
+   Zapis pierwotny (dla kontekstu). Problem w słowach właściciela: *strona
+   z kursami wygląda tanio i słabo wypada w porównaniu do strony sprzedażowej*. Chodzi o **widok
+   lekcji**, czyli to, co klient dostaje PO zakupie — dziś składany przez
+   `tools/podglad-kursow.mjs` (strona wejściowa z bilansem, strona kursu
+   z modułami, po jednej stronie na lekcję, treść przez `czytajProze`).
+   Punkt odniesienia jest w repo i jest wysoki: strona sprzedażowa
+   `/szkolenia/[slug]` po B5 (wersja 0.12.1) — ~18 komponentów
+   `components/kurs/*`, własny pasek menu kursu, `TloKursu` z poświatą za
+   kursorem, `Reveal`/`Cascade`, hover-lift `.unos`, płynne akordeony,
+   wszystko pod `prefers-reduced-motion`; brief wiążący:
+   [BRIEF-STRONA-KURSU.md](BRIEF-STRONA-KURSU.md).
+   Co trzeba rozstrzygnąć na starcie tej pozycji (pytania do właściciela,
+   nie założenia agenta): czy widok lekcji ma być **stroną w aplikacji**
+   (dziś treść lekcji renderuje wyłącznie kreator), czy dalej **eksportem
+   HTML**; jak ma wyglądać nawigacja po 73 lekcjach i pasek postępu; oraz
+   czy dopracowanie robimy **przed** etapem WP, czy dopiero na docelowym
+   LMS-ie (Tutor LMS ma własne szablony i 21 zmiennych `--tutor-*`, więc
+   praca zrobiona tu może wymagać przeniesienia).
+   Twarde ograniczenie, które zostaje niezależnie od odpowiedzi: **treść
+   lekcji nie może wyciec do eksportu statycznego** — `public/` wchodzi
+   w całości do `out/` (klasa BLAD-007), a `tools/podglad-kursow.mjs`
+   **odmawia zapisu do wnętrza repo** właśnie dlatego. Publikacja obu
+   kursów jako HTML na Pages (decyzja 2026-08-23) jest świadomym wyjątkiem
+   do oceny repo, nie zgodą na wystawienie towaru.
+
+**Bramka kroku 3:** B7 — właściciel ocenia gotowe kursy.
+
+---
+
+## Krok 4 — rozmowa o WordPressie i domknięcie Pluginu 1
+
+1. Przegadanie z właścicielem przejścia na WP (hosting, domena
+   `automaticai.pl` — jeszcze niekupiona, wybór LMS: Publigo albo
+   Tutor LMS, zakres wtyczek: Plugin 2 płatności, Plugin 3 konta).
+2. ~~Wykonanie tego, co z rozmowy wyjdzie jako należące jeszcze do
+   Pluginu 1 (specyfikacja przeniesienia + skrypt migracji danych
+   Postgres → MySQL)~~ **ZROBIONE (0.36.0, 2026-08-25).** Decyzja
+   właściciela: skrypt powstaje jeszcze w Pluginie 1, ale po wcześniejszym
+   poznaniu docelowego schematu MySQL. Mapowanie pole po polu wyprowadzone
+   z żywej instalacji: [MIGRACJA-DO-WP.md](MIGRACJA-DO-WP.md).
+   Dowód: import 1 → 87 utworzonych, importy 2 i 3 → 0/0/87 bez zmian,
+   treść 73/73 zgodne co do znaku.
+3. ~~**Sprzątanie gałęzi**~~ **ZROBIONE (0.35.0, 2026-08-24)** — zdalnie
+   zostały 4 gałęzie zamiast 33, wszystkie 8 worktree usunięte. Każda
+   skasowana miała MERGED PR; `bak/*` zostają (WYTYCZNE §1).
+4. **← TO ZOSTAŁO:** merge modułu na `main`, przywrócenie gałęzi domyślnej,
+   tag + release. Do tego dwie drobne pozycje porządkowe: odhaczenie
+   checkboxów w [PLAN.md §2.4](../PLAN.md) (sześć pozycji zrobionych, ale
+   nigdy niezaznaczonych) i zdjęcie 🚧 z etapu 3 w
+   [KROK-3-KURSY.md](KROK-3-KURSY.md) — proza kompletna od 0.32.0.
+
+**ZŁOTO NA TEN KROK:** repo strony głównej ma katalog `wordpress/` —
+kompletny motyw WP wygenerowany ze statycznego builda Next, docker-compose
+(WP 6.9 + MariaDB + wp-cli), **idempotentne** importy treści, eksport
+statyczny z WP, `verify-wordpress.mjs` pilnujący zgodności obu
+implementacji oraz wzorce ODDANIA projektu klientowi
+(MANIFEST-ODDANIA „co idzie / co nie idzie", instrukcja w 3 krokach,
+podwójna licencja GPL/MIT, workflow celowo wyłączony do decyzji
+odbiorcy). To gotowa ściąga — czytać przed pisaniem czegokolwiek.
+
+**Bramka kroku 4:** koniec Pluginu 1.
+
+> **B7 ZALICZONA przez właściciela 2026-08-25.** Przegląd pary agent+krytyk,
+> którego wymaga DIAGRAM.md przy tej bramce, został wykonany mimo zaliczenia
+> (polecenie właściciela) — pięć znalezisk naprawionych, sześć zostawionych
+> do jego decyzji: [PRZEGLAD-B7.md](PRZEGLAD-B7.md). Jedna z tych sześciu
+> (**`UNIQUE` sekcji**) musi zostać rozstrzygnięta PRZED pisaniem schematu
+> MySQL we wtyczce.
+>
+> **Kolejność po Pluginie 1 (decyzja właściciela 2026-08-25): etap
+> WordPressa, NIE Plugin 2.**
+
+---
+
+## Zasady obowiązujące przez cały plan
+
+- Weryfikacja-PR na każdym kroku; **czerwony check = STOP** (wyjątek
+  udokumentowany przy 0.21.0: CI stoi do 1 września — limit minut
+  organizacji; dowody odtwarzamy lokalnie i zapisujemy w PR).
+- Kody wyjścia sprawdzać **bez potoku** (`node skrypt | tail` maskuje
+  kod wyjścia).
+- Nowy strażnik = nowa mutacja w `tools/straznicy/audyt-straznikow.mjs`.
+- Zero zmyślania — dotyczy treści kursów, README i tabel pomiarowych.
+- Merge z `--delete-branch`.

@@ -1,0 +1,62 @@
+{
+  "_podpis": "ten sam prompt dwa razy — najpierw wszystko w jednym akapicie, pod spodem rozłożone na <instructions>, <context>, <input>",
+  "_lekcja": "K1 2.2 (proza-2-najlepsze-praktyki.md) — sekcja „Tagi XML — koniec z jednym workiem\"",
+  "url": "https://claude.ai/new",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-2/zrzuty/z01-ten-sam-prompt-dwa.webp",
+  "czekajMs": 8000,
+  "wymagaTekstu": [
+    "<instructions>",
+    "<context>",
+    "<input>",
+    "Napisz odpowiedź na maila od klienta"
+  ],
+  "wymagaOdpowiedzi": 300,
+  "kadrOd": "#pierwszy-prompt",
+  "kadrDo": "#ostatnia-odpowiedz",
+  "margines": 20,
+  "ukryj": [
+    "#pole-czatu",
+    "#do-dolu"
+  ],
+  "akcje": [
+    {
+      "typ": "wpiszWiersze",
+      "selektor": "[contenteditable=\"true\"]",
+      "tekst": "Napisz odpowiedź na maila od klienta, który skarży się na opóźnioną przesyłkę, pamiętaj że jesteśmy sklepem z butami, ton ma być uprzejmy ale bez przepraszania w kółko, klient nazywa się Anna Nowak, zamówienie 4471 miało dotrzeć 12 dni temu, kurier zgubił paczkę, wysyłamy nową jutro, dołącz kod rabatowy WRACAMY10 i nie pisz dłużej niż 150 słów.",
+      "poMs": 900
+    },
+    {
+      "typ": "klik",
+      "selektor": "[data-testid=\"chat-input-send\"]",
+      "poMs": 2500
+    },
+    {
+      "typ": "czekajNaKoniec",
+      "poMs": 2000
+    },
+    {
+      "typ": "wpiszWiersze",
+      "selektor": "[contenteditable=\"true\"]",
+      "tekst": "<instructions>\nNapisz odpowiedź na maila od klienta. Ton uprzejmy, bez wielokrotnych przeprosin.\nMaksymalnie 150 słów. Zakończ kodem rabatowym.\n</instructions>\n\n<context>\nJesteśmy sklepem z butami. Kurier zgubił paczkę. Nową wysyłamy jutro.\nKod rabatowy dla klienta: WRACAMY10.\n</context>\n\n<input>\nKlient: Anna Nowak. Zamówienie 4471 miało dotrzeć 12 dni temu.\n</input>",
+      "poMs": 900
+    },
+    {
+      "typ": "klik",
+      "selektor": "[data-testid=\"chat-input-send\"]",
+      "poMs": 2500
+    },
+    {
+      "typ": "czekajNaKoniec",
+      "poMs": 2500
+    },
+    {
+      "typ": "eval",
+      "kod": "var uzytk=document.querySelectorAll('[data-testid=\"user-message\"]'); if(!uzytk.length) throw new Error('brak wiadomosci uzytkownika'); uzytk[0].id='pierwszy-prompt'; var odp=document.querySelectorAll('.font-claude-response'); if(!odp.length) throw new Error('brak odpowiedzi'); odp[odp.length-1].id='ostatnia-odpowiedz'; var pole=document.querySelector('[data-testid=\"chat-input\"]'); var w=pole; while(w && w!==document.body){var st=getComputedStyle(w); if(st.position==='fixed'||st.position==='sticky'){w.id='pole-czatu'; break;} w=w.parentElement;} var dol=[...document.querySelectorAll('button')].find(function(e){return /scroll to bottom|do dolu/i.test(e.getAttribute('aria-label')||'');}); if(dol) dol.id='do-dolu';"
+    }
+  ],
+  "viewport": {
+    "width": 1280,
+    "height": 2600
+  },
+  "_uwaga": "Wysokie okno JEST konieczne: transkrypt claude.ai jest wirtualizowany (transcript-list/transcript-row), więc wymiana poza oknem nie istnieje w DOM-ie i kadr od pierwszego promptu do ostatniej odpowiedzi urywa się w połowie."
+}

@@ -1,0 +1,68 @@
+# SESJA D (Kurs 1, moduł 4): subagenci i skill.
+#
+# TRYB AUTO Z ROZMYSŁU — odwrotnie niż w sesji B. Skill i subagent wołają
+# narzędzia, które w trybie ręcznym co chwilę pytają o zgodę: pierwsze podejście
+# (2026-08-23, sesja C) utknęło na pytaniu o `node --check …` i podsumowanie
+# zmian nigdy nie powstało. Ekrany tej sesji są o WYNIKU pracy, nie o pytaniu,
+# więc sesja zostaje w trybie startowym.
+#
+# Najpierw prawdziwa zmiana w drzewie — bez niej `/summarize-changes` nie ma
+# czego streszczać, a podpis obiecuje „podsumowanie zmian i listę ryzyk".
+CZEKAJ 16
+ENTER
+CZEKAJ 12
+
+WPISZ napraw failujące testy
+ENTER
+CZEKAJ 60
+ZNACZNIK po-naprawie-1
+CZEKAJ 25
+ZNACZNIK po-naprawie-2
+
+WPISZ /summarize-changes
+CZEKAJ 3
+ENTER
+CZEKAJ 5
+ENTER
+CZEKAJ 60
+ZNACZNIK skill-1
+CZEKAJ 30
+ZNACZNIK skill-2
+CZEKAJ 30
+ZNACZNIK skill-3
+CZEKAJ 30
+ZNACZNIK skill-4
+
+# Subagent wbudowany: panel pod polem promptu pokazuje pracujące zadanie.
+WPISZ użyj subagenta Explore, żeby znaleźć wszystkie miejsca w projekcie, w których liczymy rabat
+ENTER
+CZEKAJ 12
+ZNACZNIK subagent-panel-1
+CZEKAJ 10
+ZNACZNIK subagent-panel-2
+CZEKAJ 10
+ZNACZNIK subagent-panel-3
+CZEKAJ 10
+ZNACZNIK subagent-panel-4
+CZEKAJ 20
+ZNACZNIK subagent-panel-5
+CZEKAJ 30
+ZNACZNIK subagent-koniec
+
+# Subagent projektowy z .claude/agents/ — jego wiersz delegowania ma pokazać
+# nazwę i opis („code-improver (Suggest code improvements)").
+WPISZ użyj subagenta code-improver, żeby przejrzał lib/koszyk.js
+ENTER
+CZEKAJ 30
+ZNACZNIK delegowanie-1
+CZEKAJ 20
+ZNACZNIK delegowanie-2
+CZEKAJ 30
+ZNACZNIK delegowanie-3
+KLAWISZ ctrl-o
+CZEKAJ 5
+ZNACZNIK transkrypt-delegowanie-1
+CZEKAJ 4
+ZNACZNIK transkrypt-delegowanie-2
+KLAWISZ esc
+CZEKAJ 3

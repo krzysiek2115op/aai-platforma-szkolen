@@ -1,0 +1,15 @@
+{
+  "_podpis": "podgląd transkrypcji otwarty skrótem Ctrl+O, ze znacznikiem czasu i nazwą modelu przy odpowiedzi",
+  "_lekcja": "K1 3.6 (proza-6-tryb-interaktywny-i-komendy.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-transkrypt-i-zgody.txt",
+  "raw": "model-b.raw",
+  "doZnacznika": "transkrypt-1",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-3/zrzuty/z17-podglad-transkrypcji-otwarty-skrotem.webp",
+  "przytnijOd": 31,
+  "przytnijDo": 40,
+  "wymagaTekstu": [
+    "re:\\d{1,2}:\\d{2} (AM|PM)",
+    "re:claude-(opus|sonnet|haiku)",
+    "Showing detailed transcript"
+  ]
+}

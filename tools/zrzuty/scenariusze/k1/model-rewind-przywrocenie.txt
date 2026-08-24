@@ -1,0 +1,39 @@
+# SESJA F (Kurs 1, 4.8): ostrzeżenie po przywróceniu kodu.
+#
+# Sedno ćwiczenia z prozy 4.8 (punkt 3 „Zrób to teraz"): punkty kontrolne
+# cofają zmiany zrobione NARZĘDZIAMI Claude, a nie komendą powłoki. Dlatego
+# sesja robi obie zmiany: najpierw edycję narzędziem (jest w punkcie kontrolnym),
+# potem dopisek komendą powłoki (poza nim) — i dopiero wtedy przywraca kod.
+CZEKAJ 16
+ENTER
+CZEKAJ 12
+
+WPISZ napraw failujące testy
+ENTER
+CZEKAJ 70
+ZNACZNIK po-naprawie
+
+WPISZ dopisz na końcu pliku lib/koszyk.js wiersz "// TODO: walidacja wejścia" KOMENDĄ POWŁOKI (printf albo echo), nie narzędziem do edycji plików
+ENTER
+CZEKAJ 50
+ZNACZNIK po-powloce
+
+WYCZYSC
+CZEKAJ 3
+ZNACZNIK rewind-lista
+KLAWISZ up
+CZEKAJ 2
+ZNACZNIK rewind-wybor-1
+KLAWISZ up
+CZEKAJ 2
+ZNACZNIK rewind-wybor-2
+ENTER
+CZEKAJ 4
+ZNACZNIK rewind-opcje
+ENTER
+CZEKAJ 6
+ZNACZNIK po-przywroceniu-1
+CZEKAJ 6
+ZNACZNIK po-przywroceniu-2
+CZEKAJ 8
+ZNACZNIK po-przywroceniu-3

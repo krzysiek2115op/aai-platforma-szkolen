@@ -1,0 +1,46 @@
+{
+  "_podpis": "odpowiedź Claude w dwóch częściach — najpierw ponumerowana lista cytatów z wklejonego dokumentu, pod nią analiza odwołująca się do numerów",
+  "_lekcja": "K1 2.5 (proza-5-halucynacje-i-spojnosc.md) — technika cytatów dosłownych, drugi prompt z lekcji",
+  "url": "https://claude.ai/new",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-2/zrzuty/z01-odpowiedz-claude-w-dwoch.webp",
+  "czekajMs": 8000,
+  "viewport": {
+    "width": 1280,
+    "height": 2800
+  },
+  "wymagaTekstu": [
+    "Wypisz dokładne cytaty z dokumentów istotne dla pytania",
+    "odwołując się do nich numerami",
+    "re:\\[\\d\\]|\\(\\d\\)|[Cc]ytat(u|em|ów|y)? (nr )?\\d"
+  ],
+  "wymagaOdpowiedzi": 600,
+  "kadrOd": "#pierwszy-prompt",
+  "kadrDo": "#ostatnia-odpowiedz",
+  "margines": 20,
+  "ukryj": [
+    "#pole-czatu",
+    "#do-dolu"
+  ],
+  "akcje": [
+    {
+      "typ": "wpiszWiersze",
+      "selektor": "[contenteditable=\"true\"]",
+      "tekst": "Pracuj wyłącznie na materiałach poniżej.\n\n<dokumenty>\nPOLITYKA PRYWATNOŚCI — Kwiaciarnia Malwa, wersja z 4 marca 2026\n1. Dane osobowe klientów przechowujemy przez 10 lat od ostatniego zamówienia.\n2. Adres e-mail przekazujemy firmie kurierskiej oraz naszemu dostawcy newslettera.\n3. Klient może zażądać usunięcia danych, pisząc na adres biuro@example.com; usuwamy je w ciągu 90 dni.\n4. Sklep nie prowadzi rejestru czynności przetwarzania.\n5. Zgodę marketingową zbieramy zaznaczonym z góry okienkiem w formularzu zamówienia.\n</dokumenty>\n\n1. Wypisz dokładne cytaty z dokumentów istotne dla pytania. Jeśli ich\n   nie ma, napisz „Nie znaleziono istotnych cytatów\".\n2. Odpowiedz WYŁĄCZNIE na podstawie tych cytatów, odwołując się do nich\n   numerami.\n3. Na koniec sprawdź każde swoje twierdzenie: jeśli nie ma cytatu,\n   który je popiera — usuń je i zaznacz miejsce nawiasami [].\n\nPytanie: które zapisy tej polityki są niezgodne z RODO?",
+      "poMs": 900
+    },
+    {
+      "typ": "klik",
+      "selektor": "[data-testid=\"chat-input-send\"]",
+      "poMs": 2500
+    },
+    {
+      "typ": "czekajNaKoniec",
+      "poMs": 2000
+    },
+    {
+      "typ": "eval",
+      "kod": "var uzytk=document.querySelectorAll('[data-testid=\"user-message\"]'); if(!uzytk.length) throw new Error('brak wiadomosci uzytkownika'); uzytk[0].id='pierwszy-prompt'; var odp=document.querySelectorAll('.font-claude-response'); if(!odp.length) throw new Error('brak odpowiedzi'); odp[odp.length-1].id='ostatnia-odpowiedz'; var pole=document.querySelector('[data-testid=\"chat-input\"]'); var w=pole; while(w && w!==document.body){var st=getComputedStyle(w); if(st.position==='fixed'||st.position==='sticky'){w.id='pole-czatu'; break;} w=w.parentElement;} var dol=[...document.querySelectorAll('button')].find(function(e){return /scroll to bottom|do dolu/i.test(e.getAttribute('aria-label')||'');}); if(dol) dol.id='do-dolu';"
+    }
+  ],
+  "_uwaga": "Wysokie okno JEST konieczne: transkrypt claude.ai jest wirtualizowany (transcript-list/transcript-row), więc wymiana poza oknem nie istnieje w DOM-ie i kadr się urywa. Asercja pyta o odwołanie do JAKIEGOKOLWIEK numeru cytatu — podpis obiecuje „analizę odwołującą się do numerów\", a nie do numeru pierwszego; pierwsza wersja żądała [1] i odrzuciła prawdziwy ekran, w którym model odwoływał się do dalszych pozycji."
+}

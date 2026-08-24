@@ -1,7 +1,7 @@
 # Praca w tym repo
 
 Konkrety specyficzne dla tego projektu. Konwencje przejęte z
-[matthewplugins.pl](https://github.com/MatthewPlugins/matthewplugins.pl)
+[automatic-ai](https://github.com/MatthewPlugins/automatic-ai)
 i z projektu egzaminacyjnego „3 pluginy 3 bazy danych".
 
 ## Pierwsze uruchomienie
@@ -46,18 +46,31 @@ branch → commit(y) → push → PR → CI zielone → merge → (release, depl
 
 ## Konwencje commitów
 
+**Temat commita opisuje SKUTEK, nie czynność** — po polsku, w jednym
+zdaniu, tak żeby historia dała się czytać jak dziennik projektu:
+
 ```
-feat:   nowa funkcjonalność
-fix:    naprawa błędu
-docs:   dokumentacja (README, plan, changelog)
-chore:  infrastruktura repo, CI, narzędzia
-test:   testy
-refactor: zmiana kodu bez zmiany zachowania
+Widok kupionego kursu ma własnego strażnika, nie tylko pamięć sesji
+README przestaje kłamać liczbami, a strażnik pilnuje każdej kotwicy
+Dokumenty wiedzą, że widok kursu jest przyjęty, a dev psuje produkcyjny build
 ```
+
+Nie „dodano strażnika" ani „poprawiono README": z listy commitów ma być
+widać, co się w projekcie ZMIENIŁO, a nie jaką czynność ktoś wykonał.
+Konwencja przejęta z repo strony głównej po przeglądzie jego historii.
+
+**Ciało commita niesie dowody**: co sprawdzone i czym (kody wyjścia bez
+potoku), a przy naprawach dokumentacji — sekcje „co było nieprawdą" i
+„czego nie zmieniłem, bo było prawdą". Wycofany własny wniosek zapisuje
+się wprost; to tańsze niż powtórne wpadnięcie w tę samą pułapkę.
+
+Prefiksy `feat:`/`fix:`/`docs:`/`chore:`/`test:`/`refactor:` zostają
+dozwolone dla drobnicy (literówka, bump wersji) i są w historii repo do
+wersji 0.21.0 — ale nie są wymagane i nie zastępują zdania o skutku.
 
 ## Strażnicy
 
-Katalog `tools/straznicy/`. Zasada z matthewplugins.pl: **kontrola jest
+Katalog `tools/straznicy/`. Zasada ze strony głównej Automatic AI: **kontrola jest
 warta tyle, ile jej podpięcie** — dlatego runner `uruchom-wszystkie.mjs`
 sam znajduje każdy plik `straznik-*.mjs`. Nowy strażnik = nowy plik w tym
 katalogu, nic więcej. CI i pre-commit uruchamiają runnera, nie pojedyncze
@@ -66,12 +79,17 @@ skrypty.
 Lokalne uruchomienie:
 
 ```bash
-node tools/straznicy/uruchom-wszystkie.mjs
+node tools/straznicy/uruchom-wszystkie.mjs   # sami strażnicy, sekundy
+npm run check                                # pełna bramka: to, co przechodzi CI
 ```
+
+`npm run check` = strażnicy → lint → tsc → testy → build → siedem smoke'ów.
+Kody wyjścia sprawdzaj **bez potoku** — `node skrypt | tail` maskuje kod
+wyjścia i zielony ogon potrafi zasłonić czerwony wynik.
 
 ## Zasady twarde
 
-- Repo `MatthewPlugins/matthewplugins.pl` — **tylko do odczytu** (wzorce,
+- Repo `MatthewPlugins/automatic-ai` (strona główna) — **tylko do odczytu** (wzorce,
   design, konwencje). Żadnych pushy tam do końca projektu.
 - Sekrety wyłącznie w `.env` (ignorowany); wzorcem jest `.env.example`.
 - Moduł łączy się tylko ze SWOJĄ bazą; komunikacja między modułami przez
