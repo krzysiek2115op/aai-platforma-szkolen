@@ -2,6 +2,9 @@
   "name": "pod-strona-szkolenia",
   "private": true,
   "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",

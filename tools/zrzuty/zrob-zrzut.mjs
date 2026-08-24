@@ -234,7 +234,7 @@ try {
   });
   await new Promise(r => setTimeout(r, 500));
   await page.evaluate(() => {
-    const zawiera = t => [...document.querySelectorAll('div,section,aside')].filter(e => {
+    const zawiera = () => [...document.querySelectorAll('div,section,aside')].filter(e => {
       const s = getComputedStyle(e);
       return (s.position === 'fixed' || s.position === 'sticky') && /cookie/i.test(e.textContent || '') && (e.textContent || '').length < 900;
     });
@@ -324,7 +324,7 @@ try {
   // co najmniej tyle znaków, ile podano.
   if (spec.wymagaOdpowiedzi) {
     const minZnakow = typeof spec.wymagaOdpowiedzi === 'number' ? spec.wymagaOdpowiedzi : 200;
-    const dlugosc = await page.evaluate(({ sel, clip, min }) => {
+    const dlugosc = await page.evaluate(({ sel, clip }) => {
       const el = [...document.querySelectorAll(sel)].filter((e) => {
         if (!clip) return true;
         const r = e.getBoundingClientRect();
@@ -332,7 +332,7 @@ try {
         return dol > clip.y && gora < clip.y + clip.height;
       });
       return Math.max(0, ...el.map((e) => (e.innerText || '').trim().length), 0);
-    }, { sel: spec.selektorOdpowiedzi ?? '.font-claude-response', clip: spec.clip ?? null, min: minZnakow });
+    }, { sel: spec.selektorOdpowiedzi ?? '.font-claude-response', clip: spec.clip ?? null });
     if (dlugosc < minZnakow) {
       console.error(`zrzut: w kadrze NIE MA odpowiedzi modelu (${dlugosc} zn., wymagane ${minZnakow}) — obrazu NIE ZAPISANO.`);
       process.exit(11);

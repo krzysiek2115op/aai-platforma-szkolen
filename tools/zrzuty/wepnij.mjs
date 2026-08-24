@@ -13,7 +13,7 @@
 // w prozie nie ma, jest BŁĘDEM — to znaczy, że specyfikacja opisuje nieistniejące
 // już miejsce.
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join, dirname, basename } from 'node:path';
+import { join, dirname } from 'node:path';
 import { execSync } from 'node:child_process';
 
 const zrodlo = process.argv[2];
