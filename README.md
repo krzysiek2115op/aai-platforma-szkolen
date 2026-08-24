@@ -19,7 +19,7 @@ trzy osobne bazy danych.
 
 *Podgląd lokalny: [`http://localhost:3001/szkolenia`](http://localhost:3001/szkolenia)
 — `npm run db1:up && npm run db1:migruj && npm run dev`
-([pełny start](#szybki-start-po-sklonowaniu))*
+([pełny start](#szybki-start-nowa-maszyna-od-zera))*
 
 </div>
 
@@ -178,7 +178,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 71 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 93 sposoby (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie
@@ -219,7 +219,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
 
 CI: cztery joby — strażnicy i skan sekretów chodzą ZAWSZE; „Kod
-aplikacji" (lint → tsc → build) i „Baza" (62 testy na osobnej bazie
+aplikacji" (lint → tsc → build) i „Baza" (75 testów na osobnej bazie
 `db1_kursy_test`, migracje, build, siedem smoke'ów) tylko gdy zmiana
 dotyka kodu. Rozstrzyga job „Zakres zmian" zwykłym `git diff` — commit
 czysto treściowy (większość commitów D7) nie pali minut na build.

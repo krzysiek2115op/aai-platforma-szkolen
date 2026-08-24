@@ -1,5 +1,9 @@
 # Opis PR — Dział 7 (treść obu kursów)
 
+> **Dokument historyczny.** PR #22 został otwarty i zmergowany
+> (2026-08-18, tag `v0.21.0` + release) — komendy niżej niczego już
+> nie tworzą, zostają jako zapis tamtej procedury.
+
 Treść pull requesta `feat/d7-tresc` → `plugin-1-sklep-kursow`.
 
 ```bash

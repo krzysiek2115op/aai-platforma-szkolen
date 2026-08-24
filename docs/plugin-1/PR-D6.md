@@ -1,5 +1,9 @@
 # Opis PR — Dział 6 (kreator kursów)
 
+> **Dokument historyczny.** PR #18 został otwarty i zmergowany
+> (2026-08-18, tag `v0.16.2`) — komenda niżej była potrzebna tylko
+> na czas awarii GitHuba i nie ma już czego uruchamiać.
+
 Gotowa treść pull requesta `feat/d6-kreator` → `plugin-1-sklep-kursow`,
 przygotowana z wyprzedzeniem, bo GitHub miał awarię w dniu domknięcia
 działu. Po powrocie serwisu leci jednym poleceniem:

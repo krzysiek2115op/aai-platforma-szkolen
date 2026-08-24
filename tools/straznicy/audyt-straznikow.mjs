@@ -123,6 +123,28 @@ const MUTACJE = [
     plik: "README.md",
     zmien: (s) => (s.includes("91 scenariusz") ? s.replace(/91(\s+scenariusz)/, "90$1") : null),
   },
+  {
+    straznik: "straznik-readme",
+    opis: "martwa kotwica w prozie README, POZA spisem treści (klasa z 2026-08-24)",
+    plik: "README.md",
+    zmien: (s) =>
+      s.includes("(#szybki-start-nowa-maszyna-od-zera)")
+        ? s.replace("(#szybki-start-nowa-maszyna-od-zera)", "(#szybki-start-po-sklonowaniu)")
+        : null,
+  },
+  {
+    straznik: "straznik-readme",
+    opis: "liczba testów w README rozjechana ze zliczeniem test()/it() na dysku",
+    plik: "README.md",
+    zmien: (s) =>
+      s.includes("testów na osobnej bazie") ? s.replace(/\((\d+) testów na osobnej bazie/, "(62 testy na osobnej bazie") : null,
+  },
+  {
+    straznik: "straznik-readme",
+    opis: "liczba sposobów audytu mutacyjnego w README rozjechana z liczbą wpisów MUTACJE",
+    plik: "README.md",
+    zmien: (s) => (/na\n?>? ?93 sposoby/.test(s) ? s.replace("93 sposoby", "71 sposobów") : null),
+  },
   // --- straznik-wersji ---
   {
     straznik: "straznik-wersji",
