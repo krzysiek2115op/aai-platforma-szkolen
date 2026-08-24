@@ -5,6 +5,106 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.35.0] — 2026-08-24
+
+**Higiena repozytorium — pełny audyt od A do Z.** Polecenie właściciela:
+sprawdzić, czy repo odpowiada rzeczywistemu stanowi projektu, z repo strony
+głównej (`automatic-ai`) jako przykładem dobrych praktyk, ale bez kopiowania
+bezrefleksyjnego. Baseline przed pracą: strażnicy 28/28, testy 75/75, audyt
+mutacyjny 90/90, `npm audit` 0 podatności, skan wzorców sekretów po historii
+czysty. Nie znalazłem ani jednej pozycji CRITICAL — problemem nie był
+bałagan, tylko **starzenie się liczb w dokumentacji** i odłożone sprzątanie
+gałęzi.
+
+### Naprawione — dokumenty, które kłamały o stanie
+
+- **README podawało trzy nieprawdy naraz**: „62 testy" przy stanie 75,
+  audyt mutacyjny „na 71 sposobów" przy stanie 90 i kotwicę
+  `#szybki-start-po-sklonowaniu`, której nagłówek dawno nie ma. Ta ostatnia
+  przeżyła, bo `straznik-readme` sprawdzał kotwice **wyłącznie w spisie
+  treści** — link w prozie był poza jego zasięgiem.
+- **`tresc-kursow/POSTEP.md`** wskazywał „← NASTĘPNY KROK: domknięcie
+  działu [D7]" i „golden treści — jeszcze nierobiony", choć PR #22, tag
+  `v0.21.0` i `goldeny/d7-tresc.json` istnieją od 2026-08-18. Plik jest
+  wskazywany z CLAUDE.md jako licznik stanu, więc mylił każdą nową sesję.
+- **`docs/plugin-1/PR-D6.md` i `PR-D7.md`** instruowały „po powrocie
+  GitHuba uruchom `gh pr create`" — oba PR-y (#18, #22) zmergowane.
+  Kroniki zostały nietknięte, doszły adnotacje historyczne.
+- **Opis repozytorium na GitHubie** był sprzed rebrandingu (v0.17.0):
+  „dla matthewplugins.pl — sklep z kursami/ebookami".
+- **`CONTRIBUTING.md` przeczył praktyce**: wymagał prefiksów
+  `feat:`/`fix:`, a repo od 0.22.0 pisze tematy opisujące SKUTEK. Dokument
+  opisuje teraz stan faktyczny; prefiksy zostają dozwolone dla drobnicy.
+- 5 ostrzeżeń ESLint (nieużywane importy i parametry w `tools/`).
+
+### Dodane — kontrole i konfiguracja
+
+- **`straznik-podgladu-kursow`** (29. strażnik) — sprawdza WYGENEROWANY
+  widok treści kursu, czyli to, co klient dostaje po zakupie: martwe
+  odsyłacze, `width`/`height` na każdym z 148 obrazów, podwójną ucieczkę
+  w podpisach, klikalność spis → lekcja → spis, komplet stron i zrzutów
+  wobec `tresc-kursow/`. Powstał, bo kontrole tej klasy z redesignu 0.34.0
+  żyły w katalogu roboczym sesji i przepadły — trzy usterki, które wtedy
+  znalazły (strona wejściowa bez fontu, 7 niewidocznych zrzutów, 29 podpisów
+  z `&quot;`), dawały HTML poprawny SKŁADNIOWO, więc żadna istniejąca
+  bramka ich nie widziała. Wymaga wygenerowanego podglądu; bez niego mówi
+  wprost, że pominął, zamiast kłamać zielenią.
+- **`npm run check`** — jedna bramka: strażnicy → lint → tsc → testy →
+  build → siedem smoke'ów, w kolejności z CI. Plus `npm run smoke` osobno.
+  Praktyka z repo strony głównej; u nas ta sekwencja istniała dotąd tylko
+  w CI i w prozie README.
+- **`.gitattributes`** — końce linii przestają zależeć od `core.autocrlf`
+  każdego klonu; skrypty i haki zawsze LF (CRLF w shebangu = „bad
+  interpreter"), 148 zrzutów `.webp` i fonty `.woff2` jawnie binarne.
+  Renormalizacja sprawdzona przed commitem: zero zmian w drzewie.
+- **`.editorconfig`**, **`.nvmrc`** i **`engines: node >=24`** — wymaganie
+  z README mówią teraz także narzędzia.
+- **`.github/PULL_REQUEST_TEMPLATE.md`** i **`.github/dependabot.yml`** —
+  szablon PR z checklistą wskazującą realną bramkę; Dependabot z sufitami
+  otwartych PR-ów i grupowaniem drobnicy, bo jego PR-y odpalają CI, którego
+  limit minut organizacji stoi do 1 września. Blokady majorów mają warunek
+  wyjścia zamiast ciszy.
+- **Pole `wymaga` w audycie mutacyjnym** — mutacja strażnika WARUNKOWEGO
+  jest pomijana przy braku materiału, zamiast raportować fałszywe
+  „PRZEPUŚCIŁ mutację".
+
+### Wycofane własne wnioski (audyt falsyfikowany jak kod)
+
+- „Sześć plików w `modules/`/`lib/` nikt nie importuje" — pierwszy skan
+  pomijał testy i narzędzia; wszystkie sześć jest używanych. Martwego kodu
+  w repo nie ma.
+- „`tools/podglad-kursow/styl.css` może być martwy po redesignie" — czyta
+  go generator przez `style.mjs`. Żywy.
+- „33 podpisy zrzutów mają podwójną ucieczkę" — pierwsza wersja nowego
+  strażnika brała zwykłą encję `&quot;` za usterkę. Sprawdzenie źródła
+  pokazało konwencję całego repo (1960 par `„…"` wobec zera `„…”`).
+  Kontrola zawężona do `&amp;X;`, komentarz w kodzie ostrzega przed nawrotem.
+- Pierwsza wersja wzorca „na NN sposobów" w `straznik-readme` była MARTWA
+  (fraza łamie się w blockquote) — złapana testem negatywnym przed commitem.
+
+### Świadomie NIE zrobione
+
+- **`"type": "module"` w package.json** — uciszyłoby ostrzeżenia
+  `MODULE_TYPELESS` przy każdym uruchomieniu testów, ale zmienia sposób
+  ładowania każdego pliku w projekcie. To nie jest zmiana do commita
+  o higienie.
+- **`version` w package.json** — wersja żyje w top CHANGELOG pod
+  `straznik-wersji`; trzecie miejsce to trzecia okazja do rozjazdu.
+- **CODE_OF_CONDUCT, CODEOWNERS, szablony zgłoszeń** z repo strony głównej —
+  repozytorium jest prywatne i jednoosobowe, w historii ma 0 issues,
+  a CODEOWNERS bez ochrony gałęzi (niedostępnej w planie Free) niczego nie
+  wymusza. Zasady współpracy z tamtego kodeksu już obowiązują u nas przez
+  `docs/WYTYCZNE.md`.
+- **SECURITY.md** — `docs/security-checklist.md` robi to samo lepiej
+  (pięć stanów, dowód przy każdym wierszu). Wróci przy publicznym repo.
+
+### Sprzątnięte
+
+- **Gałęzie po zmergowanych PR-ach** (decyzja właściciela 2026-08-24,
+  wcześniej niż zakładał krok 4 planu): każda z nich była headem jednego
+  z 57 zmergowanych PR-ów, sprawdzone `gh pr list` co do sztuki.
+  Gałęzie `bak/*` zostają — to migawki procedury napraw (WYTYCZNE §1).
+
 ## [0.34.0] — 2026-08-24
 
 **Redesign widoku treści kursu — to, co klient dostaje PO zakupie.**
