@@ -259,6 +259,15 @@ export function zlozLekcje({ lekcja, marked, zasoby }) {
    */
   const wLinii = (tekst) => marked.parseInline(tekst, { async: false });
 
+  /*
+   * Między numerem sekcji a tytułem stoi PRAWDZIWA spacja, a między
+   * nagłówkiem a treścią przełamanie wiersza. Wizualnie nie zmienia to nic
+   * (numer jest osobnym pudełkiem, akapit osobnym blokiem), ale narzędzia
+   * czytające `textContent` — czytniki ekranu, wyszukiwarki w przeglądarce,
+   * skrypty porównujące treść ze źródłem — dostawały wcześniej sklejone
+   * „01Czym właściwie jest ClaudeClaude to platforma…”.
+   */
+
   for (const sekcja of sekcje) {
     // wstęp przed pierwszym `##` — akapit prowadzący, wyróżniony w hero
     if (sekcja.naglowek === null) {
@@ -282,8 +291,10 @@ export function zlozLekcje({ lekcja, marked, zasoby }) {
       czesci.push(
         `<section id="${id}" class="${klasa}">` +
           `<h2 class="blok-naglowek">${ikona(rodzaj.ikona)}<span>${uciekaj(podpis)}</span>` +
-          (odznaka ? `<span class="blok-odznaka">${uciekaj(odznaka)}</span>` : "") +
-          `</h2>` +
+          // spacja przed odznaką z tego samego powodu co przy numerze sekcji:
+          // bez niej `textContent` sklejał „Zrób to teraz10 minut”
+          (odznaka ? ` <span class="blok-odznaka">${uciekaj(odznaka)}</span>` : "") +
+          `</h2>\n` +
           html +
           `</section>`
       );
@@ -294,14 +305,14 @@ export function zlozLekcje({ lekcja, marked, zasoby }) {
     if (numerowany) {
       spis.push({ id, tekst: wLinii(numerowany.tytul) });
       czesci.push(
-        `<h2 id="${id}"><span class="h2-nr">${numerowany.numer}</span>${wLinii(numerowany.tytul)}</h2>` +
+        `<h2 id="${id}"><span class="h2-nr">${numerowany.numer}</span> ${wLinii(numerowany.tytul)}</h2>\n` +
           html
       );
       continue;
     }
 
     spis.push({ id, tekst: wLinii(sekcja.naglowek) });
-    czesci.push(`<h2 id="${id}">${wLinii(sekcja.naglowek)}</h2>${html}`);
+    czesci.push(`<h2 id="${id}">${wLinii(sekcja.naglowek)}</h2>\n${html}`);
   }
 
   return { html: czesci.join("\n"), spis, lead };

@@ -20,7 +20,6 @@
 import { lekcje as odmienLekcje } from "../../lib/odmiana.ts";
 
 import { ikona } from "./ikony.mjs";
-import { SKRYPT_WCZESNY } from "./skrypt.mjs";
 import { uciekaj } from "./tresc.mjs";
 
 /* ————————————————— powłoka dokumentu ————————————————— */
@@ -45,9 +44,9 @@ export function strona({ tytul, prefiks, pigulka, tresc }) {
 <title>${uciekaj(tytul)}</title>
 <link rel="preload" href="${prefiks}zasoby/Geist-subset.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${prefiks}zasoby/styl.css">
-<script>${SKRYPT_WCZESNY}</script>
 </head>
 <body>
+<a class="pomin" href="#tresc">Przejdź do treści</a>
 <div class="tlo" aria-hidden="true">
   <div class="tlo-siatka"></div>
   <div class="tlo-blob tlo-blob-a"></div>

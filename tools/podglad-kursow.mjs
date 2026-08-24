@@ -67,7 +67,7 @@ import { lekcje as odmienLekcje, moduly as odmienModuly } from "../lib/odmiana.t
 import { policzZrzuty, uciekaj, zlozLekcje } from "./podglad-kursow/tresc.mjs";
 import { ikona } from "./podglad-kursow/ikony.mjs";
 import { styl } from "./podglad-kursow/style.mjs";
-import { SKRYPT } from "./podglad-kursow/skrypt.mjs";
+import { skrypt } from "./podglad-kursow/skrypt.mjs";
 import {
   akcjaDalej,
   etykieta,
@@ -244,7 +244,7 @@ function stronaLekcji({ kurs, lekcja, indeks, zasoby }) {
     ${meta}
   </div>
 </header>
-<main class="kolumna tresc">
+<main id="tresc" class="kolumna tresc">
 ${html}
 ${pasOdhaczenia(lekcja.klucz)}
 <nav class="nawigacja" aria-label="Sąsiednie lekcje">
@@ -314,7 +314,7 @@ function stronaKursu({ kurs, bilans }) {
     ${postepKursu(klucze)}
   </div>
 </header>
-<main class="kolumna kolumna-szeroka">
+<main id="tresc" class="kolumna kolumna-szeroka">
   <div class="moduly">
 ${akordeony}
   </div>
@@ -364,7 +364,7 @@ function stronaWejsciowa(bilanse) {
     <p class="lead">Treść pochodzi z plików <code>tresc-kursow/</code> przez tę samą funkcję, którą wgrywarka wysyła lekcje do bazy — widzisz więc dokładnie to, co dostanie uczeń: bez frontmatteru i bez tabeli „Zgodność ze źródłem".</p>
   </div>
 </header>
-<main class="kolumna kolumna-szeroka">
+<main id="tresc" class="kolumna kolumna-szeroka">
   <div class="karty">
 ${karty}
   </div>
@@ -431,7 +431,7 @@ for (const slug of slugi) {
  * się buforować — a podgląd kursu to serwis, po którym się chodzi.
  */
 writeFileSync(join(KAT, "zasoby", "styl.css"), styl());
-writeFileSync(join(KAT, "zasoby", "widok.js"), SKRYPT);
+writeFileSync(join(KAT, "zasoby", "widok.js"), skrypt());
 
 for (const [nazwa, zrodlo] of zasoby) copyFileSync(zrodlo, join(KAT, "zasoby", nazwa));
 for (const font of ["Geist-subset.woff2", "GeistMono-subset.woff2"]) {

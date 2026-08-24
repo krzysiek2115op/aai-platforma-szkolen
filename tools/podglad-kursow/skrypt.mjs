@@ -4,10 +4,17 @@
  * ZASADA NADRZĘDNA: BEZ SKRYPTU MA DZIAŁAĆ WSZYSTKO, CO WAŻNE. Nawigacja po
  * lekcjach stoi na `<details>`, kotwice są zwykłymi odsyłaczami, treść jest
  * w HTML-u. Skrypt dokłada wyłącznie rzeczy, których statyczny dokument nie
- * umie: wejścia elementów w widok, poświatę za kursorem, pasek postępu
- * czytania, kopiowanie promptów i pamięć przeczytanych lekcji. Ta sama
- * zasada rządzi stroną (`app/globals.css`: stan ukryty istnieje tylko pod
- * `html.js`) — i tu jest przepisana dosłownie.
+ * umie: poświatę za kursorem, pasek postępu czytania, kopiowanie promptów
+ * i pamięć przeczytanych lekcji. Ta sama zasada rządzi stroną
+ * (`app/globals.css`: dekoracja nie decyduje o tym, czy da się przeczytać
+ * lekcję) — i tu jest przepisana dosłownie.
+ *
+ * CZEGO TU CELOWO NIE MA: obserwatora wejść elementów w widok. Wejście miały
+ * tylko dwie karty na stronie wejściowej, obie NAD zgięciem — czyli
+ * IntersectionObserver odpalał się natychmiast po wczytaniu i nie robił nic,
+ * czego nie zrobiłaby animacja CSS. Do tego stan ukryty przed wejściem
+ * wymagał bramki na wypadek niewczytania skryptu. Zastąpione animacją
+ * w arkuszu: mniej JavaScriptu i zero ryzyka, że treść zostanie niewidoczna.
  *
  * ZASADA DRUGA: ZERO BIBLIOTEK, ANIMACJE NA KOMPOZYTORZE. Wytyczna
  * wydajnościowa właściciela (2026-08-24). Poświata jedzie wyłącznie na
@@ -15,28 +22,18 @@
  * pętla rAF chodzi tylko wtedy, gdy jest co animować.
  */
 
-/**
- * Wstawiane do `<head>` — jedyny skrypt, który MUSI być inline, bo działa
- * przed pierwszym malowaniem.
- *
- * Klasa `js` mówi tylko tyle, że JavaScript w ogóle działa. Stanu ukrytego
- * wejść NIE wolno na niej wieszać: arkusz i skrypt są od tej wersji osobnymi
- * plikami, więc `widok.js` może się nie wczytać (blokada, literówka w
- * ścieżce, zepsuty eksport) — a wtedy elementy z ukrytym stanem zostałyby
- * niewidoczne na zawsze. Dlatego ukrycie włącza `js-ruch`, którą dokłada
- * DOPIERO `widok.js`, w pierwszej instrukcji, tuż przed uruchomieniem
- * obserwatora. Brak skryptu = treść widoczna od razu.
- */
-export const SKRYPT_WCZESNY = `document.documentElement.classList.add("js")`;
+import { ikona } from "./ikony.mjs";
 
-export const SKRYPT = `(function () {
+/**
+ * Skrypt jako funkcja, bo wstawia ikony z `ikony.mjs`. Wcześniej kształt
+ * przycisku kopiowania był tu przepisany drugi raz — dwa źródła prawdy
+ * o tej samej ikonie rozjeżdżają się przy pierwszej korekcie rysunku.
+ */
+export function skrypt() {
+  return `(function () {
   "use strict";
 
   var bezRuchu = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  /* Od tej chwili wolno ukrywać elementy przed wejściem w widok — skrypt
-   * dojechał, więc jest komu je pokazać (patrz komentarz przy SKRYPT_WCZESNY). */
-  if (!bezRuchu) document.documentElement.classList.add("js-ruch");
 
   /* ————— pamięć przeczytanych lekcji —————
    * localStorage bywa niedostępny (tryb prywatny, zablokowane dane witryny),
@@ -59,30 +56,6 @@ export const SKRYPT = `(function () {
       return true;
     } catch (e) {
       return false;
-    }
-  }
-
-  /* ————— wejścia elementów w widok ————— */
-  var doWejscia = document.querySelectorAll(".wejscie");
-  if (doWejscia.length) {
-    if (bezRuchu || !("IntersectionObserver" in window)) {
-      doWejscia.forEach(function (el) {
-        el.classList.add("wejscie-w");
-      });
-    } else {
-      var obs = new IntersectionObserver(
-        function (wpisy) {
-          wpisy.forEach(function (w) {
-            if (!w.isIntersecting) return;
-            w.target.classList.add("wejscie-w");
-            obs.unobserve(w.target);
-          });
-        },
-        { rootMargin: "0px 0px -8% 0px", threshold: 0.05 }
-      );
-      doWejscia.forEach(function (el) {
-        obs.observe(el);
-      });
     }
   }
 
@@ -160,10 +133,8 @@ export const SKRYPT = `(function () {
    * Przycisk dokłada skrypt, więc bez JavaScriptu nie ma martwego guzika,
    * który nic nie robi. Tekst bierzemy z DOM-u (textContent), nie z atrybutu
    * — kopiuje się dokładnie to, co widać. */
-  var SVG_KOPIUJ =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
-  var SVG_PTASZEK =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  var SVG_KOPIUJ = ${JSON.stringify(ikona("kopiuj"))};
+  var SVG_PTASZEK = ${JSON.stringify(ikona("ptaszek"))};
 
   if (navigator.clipboard && window.isSecureContext) {
     document.querySelectorAll(".kod").forEach(function (blok) {
@@ -278,3 +249,4 @@ export const SKRYPT = `(function () {
     });
   }
 })();`;
+}

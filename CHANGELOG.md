@@ -76,7 +76,7 @@ niedotrzymana, ta sama klasa usterki co BLAD-015 z audytu w 0.33.0.
 
 ### Wydajność
 
-- Arkusz (38,5 kB) i skrypt (8,5 kB) wyciągnięte do `zasoby/` i wspólne dla
+- Arkusz (43,7 kB) i skrypt (7,8 kB) wyciągnięte do `zasoby/` i wspólne dla
   76 stron — wcześniej szły wklejone do każdej z osobna. Strona lekcji: **77 kB
   → 30 kB**, a arkusz i skrypt pobierają się raz.
 - **Wymiary każdego z 148 zrzutów czytane z nagłówka pliku WebP** i wpisywane
@@ -86,9 +86,70 @@ niedotrzymana, ta sama klasa usterki co BLAD-015 z audytu w 0.33.0.
 - Zero nowych zależności: ikony to wklejony SVG (`lucide-react` to komponenty
   Reacta, w statycznym HTML-u nie istnieją), animacje wyłącznie na
   `transform`/`opacity`, nasłuchy scrolla pasywne z odczytem geometrii w rAF.
-- Stan ukryty wejść w widok wisi na klasie dokładanej przez `widok.js`, nie na
-  samym „JavaScript działa" — gdyby skrypt się nie wczytał, treść i tak jest
-  widoczna (sprawdzone przebiegiem z usuniętym `widok.js`).
+- Żaden element nie ma stanu ukrytego zależnego od JavaScriptu — wejście kart
+  robi animacja CSS. Sprawdzone przebiegiem z **usuniętym** `widok.js`: treść,
+  nawigacja i karty działają.
+
+### Self-check przed wdrożeniem
+
+Redesign przeszedł osobny przebieg kontrolny (polecenie właściciela: sprawdzić
+własną pracę tak, jakby robił to drugi programista). Znalezione i naprawione:
+
+- **Martwy kod na wszystkich 76 stronach.** Inline `<script>` w `<head>`
+  dokładał klasę `js`, na której po zmianach nie wisiała już ani jedna reguła.
+  Razem z nim wyleciał obserwator wejść elementów w widok: wejście miały
+  **dwie karty na stronie wejściowej, obie nad zgięciem**, więc
+  `IntersectionObserver` odpalał je natychmiast po wczytaniu i nie robił nic,
+  czego nie robi animacja CSS — a wymagał stanu ukrytego i bramki na wypadek
+  niewczytania skryptu. Zastąpione animacją w arkuszu: **skrypt 8460 → 7768 B**
+  i zero ryzyka, że treść zostanie niewidoczna.
+- **Arkusz przeniesiony z literału JavaScriptu do prawdziwego `styl.css`.**
+  Pojedynczy odwrócony apostrof w komentarzu CSS zamykał literał i przerywał
+  generator w losowym miejscu pliku — zdarzyło się to **cztery razy pod rząd**,
+  a ostrzeżenie w nagłówku nie pomogło. Usunięta przyczyna, nie objaw; przy
+  okazji arkusz przenosi się do szablonów Tutora przez skopiowanie pliku.
+- **Ikona kopiowania była zdefiniowana dwa razy** (w `ikony.mjs` i przepisana
+  ręcznie w skrypcie). Jedno źródło prawdy.
+- **Cztery deklaracje `hover-lift` w trzech miejscach** ściągnięte do jednej
+  klasy `.unos` — odpowiednika tej ze strony sprzedażowej.
+- **Tekst niosący treść był za mały:** odznaka czasu ćwiczenia 9,6 px, nazwa
+  modułu w rozwijanym programie 8,8 px, nagłówek kolumny tabeli 9,6 px.
+  Podniesione; mikroetykiety ozdobne zostają w skali z `app/globals.css`.
+- **Pozycja lekcji w rozwijanym programie miała 34 px wysokości** — pod palcem
+  za mało. Na ekranach dotykowych rośnie do 44 px.
+- **Brakowało łącza pomijającego nawigację** i obsługi **wymuszonych kolorów
+  systemu** — obie rzeczy strona sprzedażowa ma, widok kursu nie miał.
+- **Akordeon modułu otwierał się skokiem**, a `details.panel` na stronie
+  sprzedażowej płynnie. Wyrównane (`::details-content`, progressive
+  enhancement).
+- **`textContent` sklejał sąsiadujące bloki** („01Czym właściwie jest
+  ClaudeClaude to platforma…", „Zrób to teraz10 minut"). Wizualnie bez różnicy,
+  ale czytniki ekranu i wyszukiwarka w przeglądarce dostawały zlepki.
+- **Kod łamany w wąskiej kolumnie** dostawał obciętą ramkę na obu połówkach
+  (`box-decoration-break: clone`), a kolor tekstu kodu powtarzał się dwa razy
+  jako literał — teraz token.
+
+**Czego kontrola NIE potwierdziła** (cztery fałszywe alarmy z moich własnych
+testów, wszystkie sprawdzone do końca, zanim uznałem je za nieistotne): smoke'i
+`d4`/`d5` padały, bo działający `next dev` pisze do tego samego `.next`, co
+produkcyjny build — po czystym buildzie **7/7 zielonych**; „menu się nie
+otwiera" brało się z dwóch kliknięć pod rząd w teście; „11 nieklikalnych
+pozycji" to pozycje z ZAMKNIĘTEGO drugiego menu; „kontrast 1,05:1 na H1" to
+nagłówek z gradientem (`color: transparent`), realnie ok. 8,4:1.
+
+**Treść lekcji: 73 z 73 zgodne co do słowa** ze źródłem w `tresc-kursow/`
+(porównanie automatyczne, po normalizacji składni markdowna). Jedyne różnice są
+świadome i widoczne: numer sekcji `1.` renderuje się jako `01` w osobnym
+polu, a czas ćwiczenia z nawiasu — jako odznaka.
+
+**Stan dowodów po self-checku:** strażnicy 28/28, testy 75/75, audyt mutacyjny
+90/90, **smoke'i aplikacji 7/7**, eslint czysty. Kontrola 76 stron: 0 martwych
+odsyłaczy, 0 brakujących zasobów, 0 obrazów bez wymiarów, 0 błędów konsoli.
+**CLS = 0 w 12 na 12 zmierzonych widoków** (3 szerokości × 4 strony, po
+przewinięciu całej strony, żeby doładowały się obrazy). Wszystkie 41 pozycji
+lekcji klikalne — sprawdzone trafieniem w punkt, nie samym istnieniem
+odsyłacza. Stany kursu (pusty / rozpoczęty / ukończony / uszkodzona pamięć
+przeglądarki) zachowują się poprawnie.
 
 ### Dowody
 
