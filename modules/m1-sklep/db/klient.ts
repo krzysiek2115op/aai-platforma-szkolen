@@ -22,7 +22,17 @@ export function pulaDb1(): Pool {
       "Brak DB1_URL w środowisku — skopiuj .env.example do .env (baza: podman compose up -d db1)."
     );
   }
-  pool ??= new Pool({ connectionString: url, max: 10 });
+  if (!pool) {
+    pool = new Pool({ connectionString: url, max: 10 });
+    // BEZ TEGO RESTART BAZY UBIJA PROCES. pg-pool robi `emit("error")` na
+    // bezczynnym kliencie (zerwane połączenie, `podman restart db1`, reaper
+    // hostingu), a EventEmitter bez słuchacza `error` rzuca wyjątek globalny —
+    // czyli pada cała podstrona, nie jedno żądanie. Znalezione w przeglądzie
+    // agent+krytyk przy bramce B7 (2026-08-25) i potwierdzone uruchomieniowo.
+    pool.on("error", (blad) => {
+      console.error("db1: błąd bezczynnego połączenia (pula podniesie nowe):", blad.message);
+    });
+  }
   return pool;
 }
 

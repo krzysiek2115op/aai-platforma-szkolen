@@ -60,7 +60,7 @@ const SYSTEM_PRACY = [
   {
     nr: "01",
     tytul: "Wiedza",
-    opis: "Lekcje wideo krok po kroku — na ekranie widzisz dokładnie to, co masz zrobić u siebie.",
+    opis: "Lekcje tekstowe krok po kroku, ze zrzutami z prawdziwych ekranów — widzisz dokładnie to, co masz zrobić u siebie.",
   },
   {
     nr: "02",
@@ -85,7 +85,7 @@ const SYSTEM_PRACY = [
   {
     nr: "06",
     tytul: "Materiały",
-    opis: "Checklisty, szablony i pliki źródłowe — do pobrania i użycia od razu.",
+    opis: "Checklisty i ćwiczenie „Zrób to teraz” w każdej lekcji — do użycia od razu, bez pobierania czegokolwiek.",
   },
 ] as const;
 
