@@ -731,25 +731,47 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      z repo `ZRZUTY_RIG=/tmp/rig node tools/podglad-kursow.mjs --wyjscie
      /tmp/podglad-kursow` i `cd /tmp/podglad-kursow && python3 -m http.server 3011`.
      Katalog wyjściowy MUSI być poza repo — narzędzie odmawia zapisu do środka.
-     **═══ STAN NA 2026-08-25: CO ZOSTAŁO DO ZAMKNIĘCIA PLUGINU 1 ═══**
-     Sprawdzone wobec definicji ukończenia (PLAN.md §2.4), bramek z DIAGRAM.md
-     i kroków PLAN-FINAL-PLUGINU-1.md. **Wszystkie 6 pozycji definicji
-     ukończenia jest zrobionych merytorycznie**, B1–B6 zaliczone,
-     **B7 ZALICZONA przez właściciela 2026-08-25**, przegląd agent+krytyk
-     WYKONANY (0.36.0). Zostają TRZY rzeczy, wszystkie z kroku 4 planu:
-     1. **Merge `plugin-1-sklep-kursow` → `main`**, przywrócenie gałęzi
-        domyślnej na `main`, tag + release. (`main` stoi 320+ commitów w tyle,
-        na 0.3.4 — celowo, wg PLAN.md §5.)
-     2. **Odhaczenie checkboxów w PLAN.md §2.4** (sześć pozycji `- [ ]`, które
-        są zrobione, ale nigdy nie zaznaczone) i **zdjęcie 🚧 z etapu 3
-        w KROK-3-KURSY.md:54** (proza kompletna od 0.32.0).
-     3. **Decyzje właściciela o sześciu pozycjach z przeglądu B7** —
-        [docs/plugin-1/PRZEGLAD-B7.md](docs/plugin-1/PRZEGLAD-B7.md), sekcja
-        „ZOSTAWIONE DO DECYZJI". Jedna z nich (**`UNIQUE` sekcji**) MUSI zapaść
-        PRZED pisaniem schematu MySQL.
+     **═══ STAN NA 2026-08-25 (wieczór): PLUGIN 1 DOMKNIĘTY MERYTORYCZNIE ═══**
+     Wszystkie 6 pozycji definicji ukończenia (PLAN.md §2.4) **zrobionych
+     i ODHACZONYCH**, **B1–B7 zaliczone** (B7: właściciel, 2026-08-25),
+     przegląd agent+krytyk wykonany (0.36.0), a **sześć decyzji po nim —
+     wykonanych (0.37.0)**. Etapy 3 i 4 w KROK-3-KURSY.md domknięte.
+     **SZEŚĆ DECYZJI WŁAŚCICIELA (2026-08-25) i co z nich powstało** — pełnia
+     w [docs/plugin-1/PRZEGLAD-B7.md](docs/plugin-1/PRZEGLAD-B7.md) (tabela
+     na początku sekcji znalezisk):
+       (A) limiter naprawiony w prototypie **i** zapisany jako wymaganie do PHP
+           — klucz pamięta SWOJE okno, eksmisja po ostatniej aktywności, klucz
+           z czynną blokadą wypada ostatni; do WP: licznik w TABELI, nie cache'u;
+       (B) brama odrzuca `KREATOR_TOKEN` przykładowy albo krótszy niż 24 znaki
+           — odmowa dotyczy KONFIGURACJI, więc słaby token nie wpuszcza nikogo
+           (tokeny w smoke'ach i CI wydłużone);
+       (C) **`UNIQUE (course_id, kind)`, kolumna `position` sekcji ZNIKA**
+           (migracja 008) — rozstrzygnięte przed schematem MySQL, jak wymagał
+           przegląd; powtórzony rodzaj odrzuca kontrakt, nie baza;
+       (D) zapis kursu **odmawia skasowania lekcji z treścią** bez
+           `pozwol_skasowac_tresc` — panel pyta raz i wprost, z liczbą lekcji;
+       (E) audyt zapisuje **tylko realne zmiany** (migracja 007) — `UPDATE`
+           niezmieniający wiersza nie tworzy wpisu; niezmienność dziennika
+           i pełny stan przed/po BEZ ZMIAN;
+       (F) naprawione dwie pozycje bezpieczeństwa (prefetch przeglądarki
+           dostaje CSP — udowodnione na żywym serwerze; `pre-commit` liczy
+           `.env` plik po pliku i zna nasze sekrety), pięć pozostałych
+           przeniesione do MIGRACJA-DO-WP.md (m.in. **przenoszenie lekcji
+           między modułami**, którego builder Tutora wymaga).
+     Przy okazji zamknięta POMIAREM otwarta pozycja z kroku 2: sufit 2 MB na
+     ciało żądania (najdłuższa lekcja 21 790 znaków, treść jedzie osobną akcją).
+     **ZOSTAJE JUŻ TYLKO:** merge `plugin-1-sklep-kursow` → `main`, przywrócenie
+     gałęzi domyślnej na `main`, tag + release. (`main` stoi 320+ commitów
+     w tyle, na 0.3.4 — celowo, wg PLAN.md §5.)
      **Potem: etap WordPressa** (decyzja właściciela 2026-08-25: po Pluginie 1
      idzie etap WP, NIE Plugin 2; zakres Pluginów 2/3 doprecyzowujemy pytaniami
      przed startem każdego z nich — decyzja 2026-08-21).
+     **PUŁAPKA ŚRODOWISKA (kosztowała czas 2026-08-25):** kolejność smoke'ów MA
+     ZNACZENIE — `smoke-seo` i `smoke-podglad` przebudowują `.next` na eksport
+     statyczny (`build:podglad`), więc smoke uruchomiony PO nich zastaje build
+     bez tras `*.serwer.*` i dostaje 404 z `NoFallbackError` na `/szkolenia/kreator`.
+     Wygląda to jak regresja kodu, którego się nie tknęło. Właściwa kolejność
+     stoi w `npm run smoke` — uruchamiać ją, nie własną listę.
 
      **PRZEGLĄD B7 + MIGRACJA DO WP ZROBIONE (2026-08-25, wersja 0.36.0).**
      Przegląd pary agent+krytyk (trzech recenzentów na rozłącznych obszarach,

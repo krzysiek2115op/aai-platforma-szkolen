@@ -5,6 +5,108 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.37.0] — 2026-08-25
+
+**Sześć decyzji właściciela po przeglądzie B7 — wykonane co do jednej.**
+Przegląd z 0.36.0 zostawił sześć pozycji, których agent nie ruszał z własnej
+inicjatywy, bo każda zmieniała zachowanie produktu albo kształt tabel przy
+porcie na WordPressa. Właściciel rozstrzygnął komplet 2026-08-25. Decyzje
+i uzasadnienia odrzuconych wariantów:
+[docs/plugin-1/PRZEGLAD-B7.md](docs/plugin-1/PRZEGLAD-B7.md).
+
+### Zmienione — schemat bazy
+
+- **Jedna sekcja danego rodzaju na kurs** (migracja 008). `UNIQUE (course_id,
+  kind, position)` dopuszczał dwie sekcje tego samego rodzaju, a strona czyta
+  je przez `find(s => s.kind === kind)` — czyli o drugiej nigdy by się nie
+  dowiedziała, a kreator skasowałby ją przy następnym zapisie bez słowa.
+  W bazie wszystkie 24 sekcje miały `position = 0` (pomiar), więc kolumna była
+  martwa od początku i jej jedynym skutkiem była ta pułapka. Zostaje
+  `UNIQUE (course_id, kind)`, `position` znika ze schematu, z kontraktów,
+  z panelu i z eksportu do WP. **Rozstrzygnięte świadomie PRZED pisaniem
+  schematu MySQL**, żeby port nie odziedziczył konstrukcji, której sam
+  prototyp nie używał. Powtórzony rodzaj odrzuca teraz kontrakt ze wskazaniem
+  drugiej sekcji — do bazy nie dociera nawet konflikt unikalności, więc pomyłka
+  w sekcjach nie wraca jako komunikat o „duplikacie sluga".
+- **Audyt zapisuje tylko realne zmiany** (migracja 007). `course_changelog`
+  miał 3068 wierszy / 4152 kB przy 908 kB rzeczywistej treści, bo zapis programu
+  dotyka `UPDATE`-em KAŻDEJ lekcji — także nietkniętej — a trigger odkłada dwie
+  kopie jej treści. `UPDATE`, po którym wiersz jest identyczny (z pominięciem
+  `updated_at`, które i tak ustawia trigger), nie tworzy wpisu. Niezmienność
+  dziennika, komplet triggerów i pełny stan przed/po zostają bez zmian.
+  Odrzucony wariant „audyt bez kolumny `content`" chudłby mocniej, ale dziennik
+  przestałby być śladem po UTRACIE treści — a to on był jedynym śladem przy
+  najpoważniejszym znalezisku przeglądu.
+
+### Dodane — trzy ochrony, których brak nie objawiał się błędem
+
+- **Zapis kursu nie skasuje napisanej treści bez jawnej zgody.** Pełna podmiana
+  programu jest cechą, ale jedynym, co chroniło 908 kB prozy, była pamięć panelu
+  o odsyłaniu `id`: jedno żądanie `{"akcja":"zapisz","kurs":{"id":…,"modules":[]}}`
+  czyściło kurs razem z materiałem i wracało z `ok: true`. Dyspozytor pyta teraz
+  bazę, ile lekcji Z TREŚCIĄ wypadłoby z kursu, i bez `pozwol_skasowac_tresc`
+  odmawia — zanim cokolwiek skasuje. Odpowiedź niesie liczbę, więc panel pyta raz
+  i wprost, a świadome usunięcie lekcji z programu dalej jest możliwe. Usuwanie
+  całego kursu bramki nie ma: tam intencja jest wyrażona wprost.
+- **Brama nie przyjmuje tokenu z `.env.example`.** Dosłowna wartość z przykładu
+  przechodziła, więc po `cp .env.example .env` hasłem do zapisu, publikacji
+  i usuwania kursów zostawał łańcuch leżący w repozytorium. Odmowa dotyczy
+  KONFIGURACJI, nie podanego tokenu: dopóki `KREATOR_TOKEN` jest pusty,
+  przykładowy albo krótszy niż 24 znaki, nie wchodzi nikt — inaczej cisza
+  wyglądałaby jak działający panel. Reguła w obu kanałach; tokeny w smoke'ach
+  i CI wydłużone.
+- **Prefetch przeglądarki dostaje CSP.** Matcher przepisany 1:1 z przewodnika
+  Next pomijał żądania z nagłówkiem `purpose: prefetch` — a ten wysyła
+  PRZEGLĄDARKA przy `<link rel="prefetch">` i regułach spekulacyjnych i dostaje
+  wtedy pełny dokument HTML. Zmierzone na żywym serwerze przed naprawą:
+  `/szkolenia` z tym nagłówkiem oddawało dokument z polityką `frame-ancestors
+  'none'`, bez `script-src` i bez nonce'a. Pomijamy teraz wyłącznie prefetch
+  ROUTERA (`next-router-prefetch`, który `next/link` wysyła razem z tamtym), więc
+  zalecenie Nexta zostaje spełnione, a dokument dostaje pełną politykę.
+
+### Naprawione
+
+- **Limiter nie zdejmuje własnej blokady.** Sprzątanie dostawało okno BIEŻĄCEGO
+  żądania i mierzyło nim wszystkie klucze, więc ruch wystrzałowy (okno 60 s)
+  kasował blokady uwierzytelnień (okno 10 min) dziewięć minut przed terminem,
+  który limiter sam podał w `Retry-After`. Druga połowa tej samej usterki:
+  eksmisja przy przepełnieniu szła po kolejności WSTAWIENIA, więc świeżo nałożona
+  blokada wypadała przed martwym kluczem sprzed godziny. Teraz każdy klucz jest
+  mierzony własnym oknem, wypadają najdawniej aktywne, a klucz trzymający czynną
+  blokadę — dopiero po wszystkich pozostałych.
+- **`pre-commit`: obecność `.env.example` nie wyłącza już blokady `.env`.**
+  Warunek pytał o skład commita zamiast o plik, więc dopisanie przykładu do tego
+  samego commita otwierało drogę prawdziwemu `.env`. Doszły wzorce na NASZE
+  sekrety (`KREATOR_TOKEN=`, hasło w `postgres://`), świadomie pomijające `docs/`
+  i `.env.example` — hak, który krzyczy na cytat z manuala, kończy jako
+  `--no-verify`. Sprawdzone sześcioma scenariuszami w osobnym repozytorium.
+
+### Dokumentacja
+
+- **[docs/PLAN.md](docs/PLAN.md) §2.4: sześć pozycji definicji ukończenia
+  Pluginu 1 odhaczonych** (były zrobione, nigdy nie zaznaczone), z doprecyzowaniem
+  przy audycie — „operacja" znaczy zmianę danych.
+- **[KROK-3-KURSY.md](docs/plugin-1/KROK-3-KURSY.md): etapy 3 i 4 domknięte**
+  (proza kompletna od 0.32.0, B7 zaliczona 2026-08-25).
+- **Sufit 2 MB na ciało żądania zamknięty POMIAREM** — otwarta pozycja z kroku 2.
+  Najdłuższa lekcja waży 21 790 znaków / 22 951 bajtów UTF-8 (mediana 11 848),
+  a treść jedzie osobną akcją, więc 1307 kB całej prozy nigdy nie leci naraz.
+  Sufit stoi ~90× nad największym realnym żądaniem — bez zmian.
+- **Wymagania przeniesione do wtyczki** spisane w
+  [MIGRACJA-DO-WP.md](docs/plugin-1/MIGRACJA-DO-WP.md): nośnik limitera, brak
+  `position` przy sekcjach, pięć pozycji UX panelu (w tym **przenoszenie lekcji
+  między modułami**, którego builder Tutora wymaga, a nasz dyspozytor nie umie).
+
+### Stan dowodów (CI stoi do 1 września — odtworzone lokalnie)
+
+Strażnicy **29/29** (doszły 3 niezmienniki: własne okno klucza, siła tokenu
+w obu kanałach, bramka nad kasowaniem treści), audyt mutacyjny **103 mutacje —
+101 złapanych, 0 przeoczonych, 0 martwych** (2 pominięte warunkowo), testy
+**83/83** (+6 regresji, każda sprawdzona mutacją), smoke'i **7/7**.
+Audyt złapał po drodze DZIURĘ w moim własnym niezmienniku (wzorzec trafiał
+w `limit.oknoMs` z innego miejsca pliku) i dwie MARTWE mutacje, które umarły
+od zmiany liczby w README i od przepisania bramy tokenu.
+
 ## [0.36.0] — 2026-08-25
 
 **Przegląd agent + krytyk przed bramką B7 i udowodniona droga danych do

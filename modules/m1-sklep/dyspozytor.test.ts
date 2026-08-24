@@ -29,7 +29,7 @@ import {
  */
 
 const JEST_BAZA = Boolean(process.env.DB1_URL);
-const TOKEN = "token-testowy-b3";
+const TOKEN = "token-testowy-b3-min-24-znaki";
 const GOLDEN = join(
   dirname(fileURLToPath(import.meta.url)),
   "../../goldeny/d3-odczyt.json"
@@ -80,10 +80,9 @@ const KURS_WEJSCIE = {
     // treść zgodna z kontraktem SWOJEGO rodzaju — dyspozytor sprawdza
     // to od 0.16.1 (wcześniej wpuszczał dowolny obiekt, a sekcja
     // znikała potem ze strony bez słowa wyjaśnienia)
-    { kind: "hero", position: 0, content: { obietnica: "Zbuduj system AI" } },
+    { kind: "hero", content: { obietnica: "Zbuduj system AI" } },
     {
       kind: "faq",
-      position: 0,
       content: {
         pytania: [{ pytanie: "Dla kogo?", odpowiedz: "Dla praktyków." }],
       },
@@ -121,7 +120,7 @@ test("sekcja o treści niezgodnej z jej rodzajem → odrzucona ze ścieżką do 
       price_grosze: 100,
       // hero bez obietnicy: strona i tak pominęłaby taką sekcję,
       // więc baza nie ma prawa jej przyjąć
-      sections: [{ kind: "hero", position: 0, content: { cokolwiek: 1 } }],
+      sections: [{ kind: "hero", content: { cokolwiek: 1 } }],
     },
   });
   assert.equal(wynik.ok, false);
@@ -253,7 +252,6 @@ test("tekst ponad limit akapitu → odrzucony ze ścieżką do pola", { skip: !J
       sections: [
         {
           kind: "hero",
-          position: 0,
           content: { obietnica: "x".repeat(LIMIT_AKAPIT + 1) },
         },
       ],
@@ -341,7 +339,6 @@ test("klucz spoza kontraktu nie wchodzi do bazy razem z treścią sekcji", { ski
       sections: [
         {
           kind: "guarantee",
-          position: 0,
           content: {
             naglowek: "Gwarancja",
             tekst: "Treść gwarancji.",
@@ -383,3 +380,253 @@ test("duplikat sluga: odpowiedź nie niesie komunikatu Postgresa", { skip: !JEST
     );
   }
 });
+
+/* ————— regresja ze znaleziska B przeglądu B7 (2026-08-25) —————
+ * Bramy nie da się otworzyć hasłem, które leży w repozytorium. Test nie
+ * potrzebuje bazy: odmowa pada przed jakimkolwiek zapytaniem. */
+
+test("słaba konfiguracja tokenu zamyka bramę dla wszystkich", async () => {
+  const zapamietany = process.env.KREATOR_TOKEN;
+  const kurs = {
+    slug: "token-z-przykladu",
+    title: "Nie powinien powstać",
+    type: "kurs" as const,
+    price_grosze: 100,
+  };
+
+  try {
+    for (const slaby of ["ustaw-wlasny-token", "krotki", ""]) {
+      process.env.KREATOR_TOKEN = slaby;
+      const wynik = await obsluzAkcje({
+        akcja: "zapisz",
+        token: slaby,
+        kurs,
+      });
+      assert.equal(
+        !wynik.ok && wynik.blad,
+        "brak-dostepu",
+        `token „${slaby}" otworzył panel — po \`cp .env.example .env\` ` +
+          "hasłem do usuwania kursów byłby łańcuch z repozytorium"
+      );
+    }
+  } finally {
+    process.env.KREATOR_TOKEN = zapamietany;
+  }
+});
+
+/* ————— regresje z decyzji właściciela po przeglądzie B7 (2026-08-25) —————
+ * Trzy zachowania, których do 0.36.0 nie było, a każde chroni albo treść
+ * kursu, albo dziennik audytu. */
+
+test(
+  "dwie sekcje tego samego rodzaju: kontrakt odrzuca, zanim dojdzie do bazy",
+  { skip: !JEST_BAZA },
+  async () => {
+    const wynik = await obsluzAkcje({
+      akcja: "zapisz",
+      token: TOKEN,
+      kurs: {
+        slug: "dwa-razy-hero",
+        title: "Dwa razy hero",
+        type: "kurs",
+        price_grosze: 100,
+        sections: [
+          { kind: "hero", content: { obietnica: "Pierwsza" } },
+          { kind: "hero", content: { obietnica: "Druga — i tak by przepadła" } },
+        ],
+      },
+    });
+
+    assert.equal(!wynik.ok && wynik.blad, "walidacja", JSON.stringify(wynik));
+    const pola = (!wynik.ok ? (wynik.szczegoly as Array<{ pole: string }>) : [])
+      .map((s) => s.pole);
+    assert.ok(
+      pola.some((p) => p.startsWith("kurs.sections.1")),
+      `błąd musi wskazywać DRUGĄ sekcję, a wskazał: ${pola.join(", ")}`
+    );
+
+    const { rows } = await klient.query(
+      "SELECT count(*)::int AS ile FROM courses WHERE slug='dwa-razy-hero'"
+    );
+    assert.equal(rows[0].ile, 0, "kurs powstał mimo odrzuconego wejścia");
+  }
+);
+
+test(
+  "zapis nie kasuje napisanej treści bez jawnej zgody",
+  { skip: !JEST_BAZA },
+  async () => {
+    const kurs = {
+      slug: "kurs-z-proza",
+      title: "Kurs z prozą",
+      type: "kurs" as const,
+      price_grosze: 100,
+      modules: [
+        {
+          position: 0,
+          title: "Moduł",
+          lessons: [{ position: 0, title: "Lekcja z treścią", preview: false }],
+        },
+      ],
+    };
+    const zapis = await obsluzAkcje({ akcja: "zapisz", token: TOKEN, kurs });
+    assert.equal(zapis.ok, true, JSON.stringify(zapis));
+    const idKursuZProza = (zapis as { id: string }).id;
+
+    const { rows: lekcjeRows } = await klient.query(
+      `SELECT l.id FROM course_lessons l
+         JOIN course_modules m ON m.id = l.module_id
+        WHERE m.course_id = $1`,
+      [idKursuZProza]
+    );
+    const idLekcji = lekcjeRows[0].id;
+    const PROZA = "# Treść, której nie wolno stracić\n\nAkapit.";
+    const zapisTresci = await obsluzAkcje({
+      akcja: "zapisz-tresc-lekcji",
+      token: TOKEN,
+      id: idLekcji,
+      tresc: { tresc: PROZA, materialy: [] },
+    });
+    assert.equal(zapisTresci.ok, true, JSON.stringify(zapisTresci));
+
+    // Żądanie, które do 0.36.0 czyściło kurs i odpowiadało `ok: true`.
+    const bezZgody = await obsluzAkcje({
+      akcja: "zapisz",
+      token: TOKEN,
+      kurs: { ...kurs, id: idKursuZProza, modules: [] },
+    });
+    assert.equal(
+      !bezZgody.ok && bezZgody.blad,
+      "tresc-do-skasowania",
+      `pusty program przeszedł bez zgody: ${JSON.stringify(bezZgody)}`
+    );
+    assert.equal(
+      (!bezZgody.ok
+        ? (bezZgody.szczegoly as { lekcje_z_trescia?: number })
+        : {}
+      ).lekcje_z_trescia,
+      1,
+      "odmowa nie mówi, ILE lekcji jest zagrożonych"
+    );
+
+    const { rows: poOdmowie } = await klient.query(
+      "SELECT content FROM course_lessons WHERE id=$1",
+      [idLekcji]
+    );
+    assert.equal(poOdmowie[0].content, PROZA, "treść zniknęła mimo odmowy");
+
+    // Świadome usunięcie lekcji z programu musi być dalej możliwe.
+    const zeZgoda = await obsluzAkcje({
+      akcja: "zapisz",
+      token: TOKEN,
+      kurs: { ...kurs, id: idKursuZProza, modules: [] },
+      pozwol_skasowac_tresc: true,
+    });
+    assert.equal(zeZgoda.ok, true, JSON.stringify(zeZgoda));
+    const { rows: poZgodzie } = await klient.query(
+      "SELECT count(*)::int AS ile FROM course_lessons WHERE id=$1",
+      [idLekcji]
+    );
+    assert.equal(poZgodzie[0].ile, 0, "jawna zgoda nie skasowała lekcji");
+  }
+);
+
+test(
+  "audyt nie zapisuje UPDATE, który niczego nie zmienił",
+  { skip: !JEST_BAZA },
+  async () => {
+    const kurs = {
+      slug: "audyt-bez-szumu",
+      title: "Audyt bez szumu",
+      type: "kurs" as const,
+      price_grosze: 100,
+      modules: [
+        {
+          position: 0,
+          title: "Moduł",
+          lessons: [{ position: 0, title: "Lekcja", preview: false }],
+        },
+      ],
+    };
+    const zapis = await obsluzAkcje({ akcja: "zapisz", token: TOKEN, kurs });
+    const id = (zapis as { id: string }).id;
+
+    // Kreator odsyła id wczytanych wierszy — czyli DOKŁADNIE ten sam
+    // program. Do 0.36.0 każdy taki zapis kładł w dzienniku parę pełnych
+    // kopii każdej lekcji, także nietkniętej.
+    const { rows: modulyRows } = await klient.query(
+      "SELECT id, position, title FROM course_modules WHERE course_id=$1",
+      [id]
+    );
+    const { rows: lekcjeRows } = await klient.query(
+      "SELECT id, position, title FROM course_lessons WHERE module_id=$1",
+      [modulyRows[0].id]
+    );
+    const tenSamProgram = {
+      ...kurs,
+      id,
+      modules: [
+        {
+          id: modulyRows[0].id,
+          position: modulyRows[0].position,
+          title: modulyRows[0].title,
+          lessons: [
+            {
+              id: lekcjeRows[0].id,
+              position: lekcjeRows[0].position,
+              title: lekcjeRows[0].title,
+              preview: false,
+            },
+          ],
+        },
+      ],
+    };
+
+    const przed = await klient.query(
+      "SELECT count(*)::int AS ile FROM course_changelog WHERE course_id=$1",
+      [id]
+    );
+    const powtorka = await obsluzAkcje({
+      akcja: "zapisz",
+      token: TOKEN,
+      kurs: tenSamProgram,
+    });
+    assert.equal(powtorka.ok, true, JSON.stringify(powtorka));
+    const po = await klient.query(
+      "SELECT count(*)::int AS ile FROM course_changelog WHERE course_id=$1",
+      [id]
+    );
+    assert.equal(
+      po.rows[0].ile,
+      przed.rows[0].ile,
+      "zapis niczego nie zmieniający dopisał wpisy do dziennika audytu"
+    );
+
+    // …a PRAWDZIWA zmiana dalej musi zostawiać ślad.
+    const zmiana = await obsluzAkcje({
+      akcja: "zapisz",
+      token: TOKEN,
+      kurs: {
+        ...tenSamProgram,
+        modules: [
+          {
+            ...tenSamProgram.modules[0],
+            lessons: [
+              { ...tenSamProgram.modules[0].lessons[0], title: "Nowy tytuł" },
+            ],
+          },
+        ],
+      },
+    });
+    assert.equal(zmiana.ok, true, JSON.stringify(zmiana));
+    const poZmianie = await klient.query(
+      `SELECT count(*)::int AS ile FROM course_changelog
+        WHERE course_id=$1 AND tabela='course_lessons' AND action='update'`,
+      [id]
+    );
+    assert.ok(
+      poZmianie.rows[0].ile >= 1,
+      "prawdziwa zmiana tytułu lekcji nie zostawiła wpisu w audycie"
+    );
+  }
+);

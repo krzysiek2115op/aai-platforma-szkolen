@@ -20,7 +20,10 @@
  *     zwykły skrypt Node'a po buildzie podglądu),
  *  7. `build:podglad` wstrzykuje politykę PO nadaniu rozszerzeń OG,
  *  8. każdy nasz znacznik `<script>` w kodzie ma `nonce`,
- *  9. `next.config.ts` nie hoduje drugiej, konkurencyjnej polityki.
+ *  9. `next.config.ts` nie hoduje drugiej, konkurencyjnej polityki,
+ * 10. matcher nie wyłącza polityki dla żądań z samym nagłówkiem
+ *     `purpose: prefetch` — te dostają pełny DOKUMENT, a nie ładunek
+ *     RSC, i szły bez CSP prosto przed oczy użytkownika.
  *
  * Użycie: node tools/straznicy/straznik-csp.mjs
  */
@@ -30,9 +33,21 @@ import { join } from "node:path";
 const bledy = [];
 const czytaj = (p) => (existsSync(p) ? readFileSync(p, "utf8") : null);
 
-/* 1–4, 9: proxy i konfiguracja nagłówków */
+/* 1–4, 9–10: proxy i konfiguracja nagłówków */
 const PROXY = "proxy.serwer.ts";
 const proxy = czytaj(PROXY);
+
+/* 10: wyjątek prefetchu tylko dla prefetchu ROUTERA */
+if (proxy && /purpose[^\n]*prefetch/.test(proxy.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""))) {
+  bledy.push(
+    `${PROXY}: matcher pomija politykę dla żądań z nagłówkiem ` +
+      "`purpose: prefetch`. Ten nagłówek wysyła PRZEGLĄDARKA przy " +
+      "`<link rel=\"prefetch\">` i reguł spekulacyjnych — odpowiedzią jest " +
+      "pełny dokument HTML, który potem ląduje przed oczami użytkownika, " +
+      "i szedłby bez CSP. Prefetch `next/link` wyłącza się nagłówkiem " +
+      "`next-router-prefetch`, który wysyła RAZEM z tamtym."
+  );
+}
 
 if (existsSync("proxy.ts")) {
   bledy.push(

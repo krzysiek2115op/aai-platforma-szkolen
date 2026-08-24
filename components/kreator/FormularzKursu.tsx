@@ -23,6 +23,7 @@ import {
   slugZTytulu,
 } from "@/components/kreator/formularz-logika";
 import { bledyPol, komunikat, wystrzel } from "@/components/kreator/wystrzal";
+import { lekcje } from "@/lib/odmiana";
 
 /**
  * Formularz danych podstawowych kursu — to, co widać na karcie
@@ -128,7 +129,6 @@ export default function FormularzKursu({
     const kolejnoscSekcji = Object.keys(kurs.sekcje);
     const sections = Object.entries(kurs.sekcje).map(([kind, tresc]) => ({
       kind,
-      position: 0, // strona bierze po jednej sekcji każdego rodzaju
       content: oczyscTresc(OPIS_WG_RODZAJU.get(kind as never)!, tresc),
     }));
 
@@ -150,8 +150,8 @@ export default function FormularzKursu({
       })),
     }));
 
-    const wynik = await wystrzel({
-      akcja: "zapisz",
+    const ladunek = {
+      akcja: "zapisz" as const,
       kurs: {
         ...(kurs.id ? { id: kurs.id } : {}),
         slug: kurs.slug,
@@ -165,7 +165,30 @@ export default function FormularzKursu({
         sections,
         modules,
       },
-    });
+    };
+    let wynik = await wystrzel(ladunek);
+
+    // Dyspozytor odmawia skasowania NAPISANEJ treści bez jawnej zgody
+    // (kontrakt `pozwol_skasowac_tresc`, znalezisko D przeglądu B7).
+    // Zwykle znaczy to, że formularz zgubił `id` lekcji — i wtedy odmowa
+    // ratuje pracę. Ale usunięcie lekcji z programu jest legalne, więc
+    // droga do przodu musi istnieć: pytamy raz, wprost, z liczbą.
+    if (!wynik.ok && wynik.blad === "tresc-do-skasowania") {
+      const ile =
+        (wynik.szczegoly as { lekcje_z_trescia?: number } | null)
+          ?.lekcje_z_trescia ?? 0;
+      const zgoda = window.confirm(
+        `Ten zapis usunie z kursu ${lekcje(ile)} z napisaną treścią.\n\n` +
+          "Treści nie da się odzyskać z panelu (zostaje tylko w dzienniku " +
+          "audytu bazy). Zapisać mimo to?"
+      );
+      if (!zgoda) {
+        setZapisuje(false);
+        setBlad("Zapis wstrzymany — treść lekcji została nietknięta.");
+        return;
+      }
+      wynik = await wystrzel({ ...ladunek, pozwol_skasowac_tresc: true });
+    }
     setZapisuje(false);
 
     if (!wynik.ok) {

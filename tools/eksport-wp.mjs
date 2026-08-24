@@ -125,7 +125,7 @@ for (const karta of await listaKursowKreatora()) {
   for (const s of kurs.sections) {
     const klucz = SEKCJA_NA_TUTOR[s.kind];
     if (klucz) sekcje_tutor[klucz] = s.content;
-    else sekcje_nasze.push({ rodzaj: s.kind, pozycja: s.position, tresc: s.content });
+    else sekcje_nasze.push({ rodzaj: s.kind, tresc: s.content });
   }
 
   if (kurs.level && !POZIOM_NA_TUTOR[kurs.level]) {

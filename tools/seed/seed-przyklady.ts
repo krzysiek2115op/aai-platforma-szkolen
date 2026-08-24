@@ -41,7 +41,6 @@ const KURSY = [
     sections: [
       {
         kind: "hero" as const,
-        position: 0,
         content: {
           obietnica: "Opanuj Claude i oddaj AI powtarzalną połowę swojej pracy",
           rozwiniecie:
@@ -52,7 +51,6 @@ const KURSY = [
       },
       {
         kind: "problem" as const,
-        position: 0,
         content: {
           wstep:
             "Znasz to: otwierasz czat z AI, wpisujesz pytanie, dostajesz ładny, ogólny tekst — i kasujesz go, bo nie da się go użyć.",
@@ -66,7 +64,6 @@ const KURSY = [
       },
       {
         kind: "positioning" as const,
-        position: 0,
         content: {
           nie_jest: [
             "kursem teorii o sztucznej inteligencji,",
@@ -82,7 +79,6 @@ const KURSY = [
       },
       {
         kind: "transformation" as const,
-        position: 0,
         content: {
           przed: [
             "każdy mail, ofertę i raport piszesz ręcznie od zera,",
@@ -98,7 +94,6 @@ const KURSY = [
       },
       {
         kind: "comparison" as const,
-        position: 0,
         content: {
           alternatywa_nazwa: "Samodzielna nauka",
           alternatywa: [
@@ -115,7 +110,6 @@ const KURSY = [
       },
       {
         kind: "benefits" as const,
-        position: 0,
         content: {
           punkty: [
             {
@@ -143,7 +137,6 @@ const KURSY = [
       },
       {
         kind: "for_whom" as const,
-        position: 0,
         content: {
           punkty: [
             "prowadzisz firmę i czujesz, że AI ucieka Ci sprzed nosa,",
@@ -160,7 +153,6 @@ const KURSY = [
       },
       {
         kind: "package" as const,
-        position: 0,
         content: {
           punkty: [
             {
@@ -204,7 +196,6 @@ const KURSY = [
       },
       {
         kind: "author" as const,
-        position: 0,
         content: {
           imie: "Matthew",
           rola: "Automatic AI — AI i automatyzacje dla firm",
@@ -231,7 +222,6 @@ const KURSY = [
       },
       {
         kind: "opinions" as const,
-        position: 0,
         content: {
           opinie: [
             {
@@ -245,7 +235,6 @@ const KURSY = [
       },
       {
         kind: "guarantee" as const,
-        position: 0,
         content: {
           naglowek: "30 dni gwarancji zwrotu",
           tekst:
@@ -254,7 +243,6 @@ const KURSY = [
       },
       {
         kind: "faq" as const,
-        position: 0,
         content: {
           // FAQ = realne obiekcje przed zakupem (wzorzec z analizy wzoru §6)
           pytania: [
@@ -416,7 +404,6 @@ const KURSY = [
     sections: [
       {
         kind: "hero" as const,
-        position: 0,
         content: {
           obietnica: "GitHub od zera: przestań bać się commitów",
           rozwiniecie:
@@ -427,7 +414,6 @@ const KURSY = [
       },
       {
         kind: "problem" as const,
-        position: 0,
         content: {
           wstep:
             "Folder „projekt_final_v7_naprawde_ostateczny” to nie system kontroli wersji. To bomba z opóźnionym zapłonem.",
@@ -441,7 +427,6 @@ const KURSY = [
       },
       {
         kind: "positioning" as const,
-        position: 0,
         content: {
           nie_jest: [
             "encyklopedią wszystkich komend Gita,",
@@ -457,7 +442,6 @@ const KURSY = [
       },
       {
         kind: "transformation" as const,
-        position: 0,
         content: {
           przed: [
             "wersje projektu trzymasz w kopiach folderów i załącznikach maili,",
@@ -473,7 +457,6 @@ const KURSY = [
       },
       {
         kind: "comparison" as const,
-        position: 0,
         content: {
           alternatywa_nazwa: "Samodzielna nauka",
           alternatywa: [
@@ -490,7 +473,6 @@ const KURSY = [
       },
       {
         kind: "for_whom" as const,
-        position: 0,
         content: {
           punkty: [
             "piszesz pierwsze projekty i trzymasz wersje w folderach „final_v3”,",
@@ -507,7 +489,6 @@ const KURSY = [
       },
       {
         kind: "package" as const,
-        position: 0,
         content: {
           punkty: [
             {
@@ -551,7 +532,6 @@ const KURSY = [
       },
       {
         kind: "author" as const,
-        position: 0,
         content: {
           imie: "Matthew",
           rola: "Automatic AI — narzędzia i automatyzacje",
@@ -578,7 +558,6 @@ const KURSY = [
       },
       {
         kind: "opinions" as const,
-        position: 0,
         content: {
           opinie: [
             {
@@ -592,7 +571,6 @@ const KURSY = [
       },
       {
         kind: "guarantee" as const,
-        position: 0,
         content: {
           naglowek: "30 dni gwarancji zwrotu",
           tekst:
@@ -601,7 +579,6 @@ const KURSY = [
       },
       {
         kind: "faq" as const,
-        position: 0,
         content: {
           // FAQ = realne obiekcje przed zakupem (wzorzec z analizy wzoru §6)
           pytania: [
@@ -660,7 +637,6 @@ const KURSY = [
       },
       {
         kind: "benefits" as const,
-        position: 0,
         content: {
           punkty: [
             { tytul: "Repozytorium pod kontrolą", opis: "Zakładasz, porządkujesz i nie gubisz pracy — nigdy więcej „final_v7_poprawione”." },

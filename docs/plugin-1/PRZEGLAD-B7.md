@@ -87,10 +87,26 @@ Naprawa: hak czyta gałąź domyślną z `refs/remotes/origin/HEAD` i chroni obi
 
 ---
 
-## Znaleziska POTWIERDZONE, ZOSTAWIONE DO DECYZJI WŁAŚCICIELA
+## Znaleziska POTWIERDZONE — DECYZJE ZAPADŁY 2026-08-25, WSZYSTKIE WYKONANE
 
-Nie naprawiam ich z własnej inicjatywy: każde wymaga rozstrzygnięcia, które
-zmienia zachowanie produktu albo kształt tabel przy porcie na WP.
+Każde z nich wymagało rozstrzygnięcia, które zmienia zachowanie produktu albo
+kształt tabel przy porcie na WP, więc agent ich nie ruszał z własnej inicjatywy.
+Właściciel rozstrzygnął komplet 2026-08-25; **wykonane w wersji 0.37.0**.
+
+| # | Decyzja właściciela | Co powstało |
+|---|---|---|
+| A | Naprawić w prototypie **i** zapisać jako wymaganie do PHP | klucz limitera pamięta swoje okno, eksmisja po ostatniej aktywności, czynna blokada wypada ostatnia; 2 testy, 2 niezmienniki strażnika |
+| B | Odrzucać słaby token w kodzie | brama i dyspozytor odmawiają, gdy `KREATOR_TOKEN` jest przykładowy albo krótszy niż 24 znaki; test + 2 niezmienniki |
+| C | **`UNIQUE (course_id, kind)`, `position` wypada** | migracja 008, kontrakt odrzuca powtórzony rodzaj sekcji ze wskazaniem pola; golden schematu przeliczony |
+| D | Wymagać jawnej zgody | `pozwol_skasowac_tresc` w kontrakcie; dyspozytor liczy lekcje Z TREŚCIĄ przed skasowaniem, panel pyta raz i wprost |
+| E | Zapisywać tylko realne zmiany | migracja 007 — `UPDATE` niezmieniający wiersza nie tworzy wpisu; niezmienność dziennika i pełny stan przed/po bez zmian |
+| F | Naprawić dwie bezpieczeństwowe, resztę do specyfikacji WP | prefetch dostaje CSP (dowód na żywym serwerze), `pre-commit` liczy `.env` plik po pliku i zna nasze sekrety |
+
+Pięć pozycji F, których świadomie NIE naprawiamy w prototypie (błędy pól
+w edytorze programu, ostrzeżenie o niezapisanej pracy, komunikat konfliktu,
+przenoszenie lekcji między modułami, bezterminowe ciastko), przechodzi do
+specyfikacji wtyczki: tam panel zastępuje builder Tutora, a uwierzytelnia
+WordPress. Zapisane w [MIGRACJA-DO-WP.md](MIGRACJA-DO-WP.md).
 
 ### A. Limiter: sprzątanie zdejmuje aktywną blokadę uwierzytelnień
 
@@ -102,18 +118,28 @@ terminem, który sam podał w `Retry-After`.
 
 Wagę łagodzi to, że `x-forwarded-for` jest podrabialny (udokumentowane), więc to
 podniesienie kosztu ataku, nie granica bezpieczeństwa. **Ale ta sama reguła idzie
-do wtyczki WP**, gdzie ma znaczyć to, co mówi. Do decyzji: naprawiamy w prototypie
-czy zapisujemy jako wymaganie do implementacji PHP (licznik chybionych prób
-w tabeli, nie w cache'u — cache eksmituje tak samo).
+do wtyczki WP**, gdzie ma znaczyć to, co mówi.
+
+**→ ZROBIONE (0.37.0).** Wpis w mapie niesie długość swojego okna i sprzątanie
+mierzy nim każdy klucz z osobna. Przy przepełnieniu wypadają najdawniej aktywne,
+a klucz trzymający CZYNNĄ blokadę — dopiero po wszystkich pozostałych (inaczej
+wystarczyło zasypać limiter adresami, żeby zdjąć sobie karę za zgadywanie).
+Dwa testy z wstrzykniętym czasem, każdy sprawdzony mutacją. Wymaganie dla PHP:
+licznik chybionych prób w TABELI, nie w cache'u — obiekt cache eksmituje po
+swojemu i wraca dokładnie ten sam problem.
 
 ### B. Nic nie sprawdza, czy `KREATOR_TOKEN` przestał być wartością z przykładu
 
 `KREATOR_TOKEN=ustaw-wlasny-token` — dosłowna wartość z `.env.example` — przejdzie
 bramę. Scenariusz: `cp .env.example .env`, uzupełnienie `DB1_URL`, zapomniany
 token; hasłem do panelu (zapis, publikacja, **usuwanie** kursów) zostaje łańcuch
-z repozytorium. Do decyzji: odrzucać w kodzie wzorzec krótszy niż ~24 znaki
-i równy przykładowemu, czy zostawić jako pozycję specyfikacji WP (tam
-uwierzytelnia WordPress i problem znika).
+z repozytorium.
+
+**→ ZROBIONE (0.37.0).** Odmowa dotyczy KONFIGURACJI, nie podanego tokenu:
+dopóki `KREATOR_TOKEN` jest pusty, przykładowy albo krótszy niż 24 znaki, brama
+nie wpuszcza nikogo i mówi o tym w logu. Inaczej cisza wyglądałaby jak działający
+panel. Reguła stoi w obu kanałach (formularz i dyspozytor) — w module jako kopia,
+bo ma zostać samowystarczalny jak wtyczka. Tokeny w smoke'ach i CI wydłużone.
 
 ### C. `UNIQUE (course_id, kind, position)` nie pasuje do sposobu czytania sekcji
 
@@ -125,14 +151,28 @@ skasowałby drugą sekcję bez słowa.
 **To trzeba rozstrzygnąć PRZED pisaniem schematu MySQL**: albo `UNIQUE
 (course_id, kind)` i `position` wypada, albo strona zaczyna respektować kolejność.
 
+**→ ZROBIONE (0.37.0): jedna sekcja danego rodzaju na kurs.** Migracja 008 zdejmuje
+`position` i zakłada `UNIQUE (course_id, kind)`. Odrzucony wariant („strona
+respektuje kolejność") przegrał, bo żadna z 12 sekcji nie ma sensu w dwóch
+egzemplarzach, a kolejność sekcji jest kompozycją widoku, nie danymi. Powtórzony
+rodzaj odrzuca teraz KONTRAKT, ze wskazaniem drugiej sekcji — więc do bazy nie
+dociera nawet konflikt unikalności i nikt nie zobaczy komunikatu o „duplikacie
+sluga" przy pomyłce w sekcjach.
+
 ### D. Pełna podmiana programu nie ma drugiej warstwy obrony
 
 Udokumentowana cecha (zapis bez `id` kasuje lekcje), ale jedynym zabezpieczeniem
 908 kB prozy jest to, że panel pamięta o odsyłaniu `id`. Jedno żądanie
 `{"akcja":"zapisz","kurs":{"id":…,"modules":[]}}` czyści program razem z treścią
-i odpowiada `ok: true`. Do decyzji: dyspozytor odmawia skasowania lekcji
-z niepustą treścią bez jawnej zgody (`pozwol_skasowac_tresc: true`), czy zostaje
-jak jest. Naprawa #1 zamyka wariant przypadkowy (duplikat), nie zamierzony.
+i odpowiada `ok: true`. Naprawa #1 zamyka wariant przypadkowy (duplikat), nie
+zamierzony.
+
+**→ ZROBIONE (0.37.0).** Dyspozytor pyta bazę, ile lekcji Z TREŚCIĄ wypadłoby
+z kursu, i bez `pozwol_skasowac_tresc: true` odmawia — ZANIM cokolwiek skasuje.
+Odpowiedź niesie liczbę, więc panel pyta raz i wprost („zapis usunie z kursu
+N lekcji z napisaną treścią"), a świadome usunięcie lekcji z programu dalej
+jest możliwe. Usuwanie CAŁEGO kursu bramki nie ma: tam intencja jest wyrażona
+wprost, a nie jest skutkiem ubocznym zapisu spisu treści.
 
 ### E. Retencja dziennika audytu
 
@@ -141,10 +181,18 @@ Zapis programu robi `UPDATE` na KAŻDEJ lekcji z `id`, także niezmienionej,
 a trigger zapisuje pełne `to_jsonb(OLD)` i `to_jsonb(NEW)` — dwie kopie treści
 lekcji przy każdym zapisie spisu treści. Dziennika nie da się przyciąć (triggery
 odrzucają `UPDATE`/`DELETE`/`TRUNCATE` — to celowa gwarancja z Działu 2).
-Do decyzji **przed wejściem na współdzielony hosting**: audyt lekcji przestaje
-kopiować `content`, czy powstaje jawna droga archiwizacji.
+**→ ZROBIONE (0.37.0): audyt zapisuje tylko REALNE zmiany** (migracja 007).
+`UPDATE`, po którym wiersz jest identyczny (z pominięciem `updated_at`), nie
+tworzy wpisu — to usuwa główne źródło puchnięcia, bo zapis programu dotyka
+`UPDATE`-em każdej lekcji. Odrzucony wariant „audyt bez kolumny `content`"
+chudłby mocniej, ale dziennik przestałby być śladem po UTRACIE treści — a to
+on był jedynym śladem przy znalezisku #1 tego samego przeglądu.
 
-### F. Drobne, potwierdzone, nienaprawione
+### F. Drobne, potwierdzone — dwie naprawione, pięć do specyfikacji WP
+
+**→ ZROBIONE (0.37.0)** dwie pozycje o wadze bezpieczeństwa (poniżej oznaczone
+**[naprawione]**); pozostałe pięć dotyczy UX panelu, który w WordPressie zastąpi
+builder Tutora, i przechodzą do [MIGRACJA-DO-WP.md](MIGRACJA-DO-WP.md).
 
 - Błędy pól nie są widoczne w edytorze programu ani w listach sekcji; po
   nieudanym zapisie panel skacze na zakładkę, na której nic nie jest zaznaczone
@@ -154,10 +202,19 @@ kopiować `content`, czy powstaje jawna droga archiwizacji.
 - Każdy konflikt unikalności raportowany jest jako konflikt sluga.
 - Lekcji nie da się przenieść między modułami (`WHERE module_id=` nigdy nie
   zmienia rodzica) — builder Tutora na to pozwala, więc port musi to obsłużyć.
-- `proxy.serwer.ts` nie uruchamia się dla żądań z nagłówkiem `Purpose: prefetch`
-  (matcher przepisany 1:1 z przewodnika Next), więc taki dokument idzie bez CSP.
-- `pre-commit`: obecność `.env.example` w tym samym commicie wyłącza blokadę
-  `.env`; wzorce sekretów nie znają `KREATOR_TOKEN=` ani hasła w `postgres://`.
+- **[naprawione]** `proxy.serwer.ts` nie uruchamiał się dla żądań z nagłówkiem
+  `Purpose: prefetch` (matcher przepisany 1:1 z przewodnika Next), więc taki
+  dokument szedł bez CSP. Zmierzone na żywym serwerze przed naprawą: żądanie
+  `/szkolenia` z tym nagłówkiem oddawało pełny dokument HTML z polityką
+  `frame-ancestors 'none'` — bez `script-src` i bez nonce'a. Po naprawie matcher
+  pomija WYŁĄCZNIE prefetch routera (`next-router-prefetch`, wysyłany przez
+  `next/link` razem z tamtym), więc zalecenie Nexta zostaje spełnione,
+  a dokument dostaje pełną politykę.
+- **[naprawione]** `pre-commit`: obecność `.env.example` w tym samym commicie
+  wyłączała blokadę `.env` (warunek pytał o skład commita zamiast o plik);
+  wzorce sekretów nie znały `KREATOR_TOKEN=` ani hasła w `postgres://`.
+  Sprawdzone sześcioma scenariuszami w osobnym repozytorium — łącznie z tym,
+  że adres bazy na localhost i cytat z manuala w `docs/` mają przechodzić.
 - Ciastko kreatora niesie surowy token bezterminowo — „ważność 8 h" egzekwuje
   wyłącznie przeglądarka.
 

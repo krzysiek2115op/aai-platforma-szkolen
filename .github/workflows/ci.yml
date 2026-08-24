@@ -165,7 +165,7 @@ jobs:
       # usunięcie przechodzi po HTTP.
       - name: Smoke kreatora /szkolenia/kreator
         env:
-          KREATOR_TOKEN: smoke-d6-ci
+          KREATOR_TOKEN: smoke-d6-ci-token-testowy-nie-sekret
         run: node tools/smoke/smoke-d6.ts
 
       # Krok 3: materiał kursu jest towarem zza logowania. Smoke pisze
@@ -174,7 +174,7 @@ jobs:
       # sprzedażowej opublikowanego kursu.
       - name: Smoke pisania lekcji /szkolenia/kreator/lekcja/[id]
         env:
-          KREATOR_TOKEN: smoke-lekcje-ci
+          KREATOR_TOKEN: smoke-lekcje-ci-token-testowy-nie-sekret
         run: node tools/smoke/smoke-lekcje.ts
 
       # Polityka CSP sprawdzana na ARTEFAKCIE: nagłówek z nonce'em na
@@ -193,7 +193,7 @@ jobs:
       # Uwaga: nadpisuje out/, dlatego stoi jako OSTATNI smoke.
       - name: Smoke podglądu statycznego (out/)
         env:
-          KREATOR_TOKEN: smoke-podglad-ci
+          KREATOR_TOKEN: smoke-podglad-ci-token-testowy-nie-sekret
         run: node tools/smoke/smoke-podglad.ts
 
       # SEO sprawdzamy na ZBUDOWANYCH plikach, nie na deklaracjach w kodzie:

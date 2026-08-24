@@ -149,3 +149,60 @@ test("adresKlienta bierze pierwszy wpis z x-forwarded-for i go przycina", () => 
     "nagłówek sterowany przez klienta trafia do klucza mapy — musi być przycięty"
   );
 });
+
+/* ————— regresje ze znaleziska A przeglądu B7 (2026-08-25) —————
+ * Obie usterki miały ten sam skutek: blokada „5 prób / 10 minut"
+ * znikała przed terminem, który limiter sam podał w `Retry-After`.
+ * Żaden wcześniejszy test ich nie widział, bo wszystkie chodziły na
+ * JEDNYM limicie — a usterka wychodzi dopiero, gdy w mapie leżą obok
+ * siebie klucze o RÓŻNYCH oknach. */
+
+const WYSTRZAL: Limit = { proby: 3, oknoMs: 60_000 };
+const UWIERZYTELNIENIE: Limit = { proby: 5, oknoMs: 600_000 };
+
+test("zalew kluczy o krótkim oknie nie zdejmuje blokady o długim", () => {
+  const limiter = utworzLimiter({ maksKluczy: 10 });
+
+  // Zgadywacz wyczerpuje limit chybionych uwierzytelnień.
+  for (let i = 0; i < 5; i++) {
+    limiter.odnotuj("uwierzytelnienie:1.2.3.4", UWIERZYTELNIENIE, i);
+  }
+  assert.equal(
+    limiter.odnotuj("uwierzytelnienie:1.2.3.4", UWIERZYTELNIENIE, 10).dozwolone,
+    false,
+    "blokada nie nałożyła się w ogóle"
+  );
+
+  // …po czym zasypuje limiter ruchem wystrzałowym przez dwie minuty.
+  for (let i = 0; i < 100; i++) {
+    limiter.odnotuj(`wystrzal:10.0.0.${i}`, WYSTRZAL, 120_000 + i);
+  }
+
+  assert.equal(
+    limiter.odnotuj("uwierzytelnienie:1.2.3.4", UWIERZYTELNIENIE, 130_000)
+      .dozwolone,
+    false,
+    "blokada 5 prób/10 min zniknęła po dwóch minutach — sprzątanie zmierzyło " +
+      "ją oknem cudzego żądania (60 s) zamiast jej własnym"
+  );
+});
+
+test("przy przepełnieniu mapy czynna blokada wypada ostatnia", () => {
+  const limiter = utworzLimiter({ maksKluczy: 5 });
+
+  for (const t of [0, 1, 2]) limiter.odnotuj("zablokowany", WYSTRZAL, t);
+  assert.equal(limiter.odnotuj("zablokowany", WYSTRZAL, 3).dozwolone, false);
+
+  // Pięćdziesiąt świeższych kluczy w tym samym oknie — wszystkie
+  // nienasycone, więc to one mają wypaść przy sprzątaniu.
+  for (let i = 0; i < 50; i++) {
+    limiter.odnotuj(`inny-${i}`, WYSTRZAL, 4);
+  }
+
+  assert.equal(
+    limiter.odnotuj("zablokowany", WYSTRZAL, 5).dozwolone,
+    false,
+    "eksmisja zdjęła czynną blokadę — wystarczyło zasypać limiter adresami, " +
+      "żeby skasować sobie karę za zgadywanie tokenu"
+  );
+});

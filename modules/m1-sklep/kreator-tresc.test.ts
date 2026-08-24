@@ -45,7 +45,7 @@ import {
  */
 
 const JEST_BAZA = Boolean(process.env.DB1_URL);
-const TOKEN = "token-testowy-d6-tresc";
+const TOKEN = "token-testowy-d6-tresc-min-24";
 const KATALOG = dirname(fileURLToPath(import.meta.url));
 const GOLDEN_OPIS = join(KATALOG, "../../goldeny/d6-kreator.json");
 const GOLDEN_RUNDA = join(KATALOG, "../../goldeny/d6-runda.json");
@@ -275,7 +275,6 @@ test(
   async () => {
     const sections = OPIS_SEKCJI.map((opis) => ({
       kind: opis.rodzaj,
-      position: 0,
       content: oczyscTresc(opis, pelnaTresc(opis)),
     }));
 

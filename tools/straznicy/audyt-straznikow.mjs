@@ -142,10 +142,15 @@ const MUTACJE = [
     straznik: "straznik-readme",
     opis: "liczba testów w README rozjechana ze zliczeniem test()/it() na dysku",
     plik: "README.md",
-    zmien: (s) =>
-      s.includes("testów na osobnej bazie")
-        ? s.replace(/\((\d+) testów na osobnej bazie/, (_, n) => `(${Number(n) + 13} testów na osobnej bazie`)
-        : null,
+    // Wzorzec MUSI znosić odmianę („77 testów", ale „83 testy") i polskie
+    // znaki — mutacja przypięta do jednej formy umiera po zmianie liczby
+    // i maskuje wtedy ślepotę strażnika (lekcja z audytu 0.35.0).
+    zmien: (s) => {
+      const m = s.match(/\((\d+) (test\p{L}*) na osobnej bazie/u);
+      return m
+        ? s.replace(m[0], `(${Number(m[1]) + 13} ${m[2]} na osobnej bazie`)
+        : null;
+    },
   },
   {
     straznik: "straznik-readme",
@@ -783,8 +788,11 @@ const MUTACJE = [
     opis: "skrót `token === wzorzec` dopisany przed porównaniem w stałym czasie",
     plik: "modules/m1-sklep/dyspozytor.ts",
     zmien: (s) =>
-      s.includes("  if (!wzorzec) return false;")
-        ? s.replace("  if (!wzorzec) return false;", "  if (!wzorzec) return false;\n  if (token === wzorzec) return true;")
+      s.includes("  if (!wzorzecMocny(wzorzec)) return false;")
+        ? s.replace(
+            "  if (!wzorzecMocny(wzorzec)) return false;",
+            "  if (!wzorzecMocny(wzorzec)) return false;\n  if (token === wzorzec) return true;"
+          )
         : null,
   },
   {
@@ -978,6 +986,68 @@ const MUTACJE = [
     zmien: (s) =>
       s.includes("Gotowe prompty w 35 lekcjach")
         ? s.replace("Gotowe prompty w 35 lekcjach", "Gotowe prompty w 41 lekcjach")
+        : null,
+  },
+
+  // --- decyzje właściciela po przeglądzie B7 (0.37.0) ---
+  // Każda z tych ochron ma tę samą własność co CSP i limiter: zdjęta,
+  // nie objawia się błędem. Strona działa, panel zapisuje, testy o niej
+  // nie wiedzą — dlatego każda ma tu własną próbę.
+  {
+    straznik: "straznik-limitera",
+    opis: "sprzątanie limitera znów mierzy każdy klucz oknem CUDZEGO żądania",
+    plik: "lib/limiter.ts",
+    zmien: (s) =>
+      s.includes("teraz - wpis.oknoMs")
+        ? s.replace("teraz - wpis.oknoMs", "teraz - 60_000")
+        : null,
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "brama formularza przyjmuje token z .env.example",
+    plik: "lib/kreator-dostep.ts",
+    zmien: (s) =>
+      s.includes("MIN_DLUGOSC_TOKENU")
+        ? s.replace(/MIN_DLUGOSC_TOKENU/g, "MIN_DLUGOSC_NIEUZYWANA")
+        : null,
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "dyspozytor przyjmuje token z .env.example",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) =>
+      s.includes("ustaw-wlasny-token")
+        ? s.replace("ustaw-wlasny-token", "dowolna-inna-wartosc")
+        : null,
+  },
+  {
+    straznik: "straznik-csp",
+    opis: "matcher znów wyłącza politykę dla żądań z `purpose: prefetch` (dokument bez CSP)",
+    plik: "proxy.serwer.ts",
+    zmien: (s) =>
+      s.includes('missing: [{ type: "header", key: "next-router-prefetch" }],')
+        ? s.replace(
+            'missing: [{ type: "header", key: "next-router-prefetch" }],',
+            'missing: [\n        { type: "header", key: "next-router-prefetch" },\n        { type: "header", key: "purpose", value: "prefetch" },\n      ],'
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-tresci-lekcji",
+    opis: "zapis kursu znów kasuje napisaną treść bez jawnej zgody",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) =>
+      s.includes("pozwol_skasowac_tresc")
+        ? s.replace(/pozwol_skasowac_tresc/g, "pozwol_cokolwiek")
+        : null,
+  },
+  {
+    straznik: "straznik-tresci-lekcji",
+    opis: "zgoda na skasowanie treści wypada z KONTRAKTU (zostaje umową panelu z dyspozytorem)",
+    plik: "modules/m1-sklep/typy.ts",
+    zmien: (s) =>
+      s.includes("pozwol_skasowac_tresc: z.boolean().default(false),")
+        ? s.replace("pozwol_skasowac_tresc: z.boolean().default(false),", "")
         : null,
   },
 ];

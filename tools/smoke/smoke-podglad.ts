@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
  * Użycie: node --env-file-if-exists=.env tools/smoke/smoke-podglad.ts
  */
 
-process.env.KREATOR_TOKEN ??= "smoke-podglad";
+process.env.KREATOR_TOKEN ??= "smoke-podglad-token-testowy-nie-sekret";
 const TOKEN = process.env.KREATOR_TOKEN;
 const BAZOWA = "/podglad-smoke";
 const PORT = 3005;

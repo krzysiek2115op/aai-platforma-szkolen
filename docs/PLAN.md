@@ -112,12 +112,22 @@ Tabele:
 - Dwa kursy startowe (seed): **2 kursy właściciela** wprowadzone przez kreator
 
 ### 2.4 Definicja ukończenia Pluginu 1
-- [ ] `/szkolenia` renderuje kursy z bazy (nie z plików)
-- [ ] `/szkolenia/[slug]` pokazuje pełną stronę sprzedażową z bazy
-- [ ] Kreator: dodanie, edycja, usunięcie, publikacja kursu działa end-to-end
-- [ ] Każda operacja zostawia wpis w `course_changelog` (weryfikacja triggerów)
-- [ ] 2 kursy utworzone i wyświetlone
-- [ ] Design spójny ze stroną główną Automatic AI
+
+Wszystkie sześć pozycji zrobionych; odhaczone 2026-08-25 przy domykaniu modułu
+(bramki B1–B7 zaliczone przez właściciela, przegląd agent + krytyk wykonany —
+[PRZEGLAD-B7.md](plugin-1/PRZEGLAD-B7.md)).
+
+- [x] `/szkolenia` renderuje kursy z bazy (nie z plików) — D4, `v0.11.0`
+- [x] `/szkolenia/[slug]` pokazuje pełną stronę sprzedażową z bazy — D5, `v0.12.1`
+- [x] Kreator: dodanie, edycja, usunięcie, publikacja kursu działa end-to-end — D6, `v0.16.2`
+- [x] Każda operacja zostawia wpis w `course_changelog` (weryfikacja triggerów) —
+      D2, `v0.5.0`. **Doprecyzowanie z 0.37.0** (decyzja właściciela po przeglądzie
+      B7): „operacja" znaczy zmianę danych. `UPDATE`, po którym wiersz jest
+      identyczny, nie zostawia wpisu — bo zapis programu dotyka `UPDATE`-em
+      KAŻDEJ lekcji, także nietkniętej, a trigger odkłada dwie kopie jej treści.
+      Niezmienność dziennika i pełny stan przed/po zostają bez zmian.
+- [x] 2 kursy utworzone i wyświetlone — D7, `v0.21.0` (treść), `v0.32.0` (komplet)
+- [x] Design spójny ze stroną główną Automatic AI — B1 i B5 zaliczone przez właściciela
 
 ---
 
