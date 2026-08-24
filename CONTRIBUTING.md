@@ -46,14 +46,27 @@ branch → commit(y) → push → PR → CI zielone → merge → (release, depl
 
 ## Konwencje commitów
 
+**Temat commita opisuje SKUTEK, nie czynność** — po polsku, w jednym
+zdaniu, tak żeby historia dała się czytać jak dziennik projektu:
+
 ```
-feat:   nowa funkcjonalność
-fix:    naprawa błędu
-docs:   dokumentacja (README, plan, changelog)
-chore:  infrastruktura repo, CI, narzędzia
-test:   testy
-refactor: zmiana kodu bez zmiany zachowania
+Widok kupionego kursu ma własnego strażnika, nie tylko pamięć sesji
+README przestaje kłamać liczbami, a strażnik pilnuje każdej kotwicy
+Dokumenty wiedzą, że widok kursu jest przyjęty, a dev psuje produkcyjny build
 ```
+
+Nie „dodano strażnika" ani „poprawiono README": z listy commitów ma być
+widać, co się w projekcie ZMIENIŁO, a nie jaką czynność ktoś wykonał.
+Konwencja przejęta z repo strony głównej po przeglądzie jego historii.
+
+**Ciało commita niesie dowody**: co sprawdzone i czym (kody wyjścia bez
+potoku), a przy naprawach dokumentacji — sekcje „co było nieprawdą" i
+„czego nie zmieniłem, bo było prawdą". Wycofany własny wniosek zapisuje
+się wprost; to tańsze niż powtórne wpadnięcie w tę samą pułapkę.
+
+Prefiksy `feat:`/`fix:`/`docs:`/`chore:`/`test:`/`refactor:` zostają
+dozwolone dla drobnicy (literówka, bump wersji) i są w historii repo do
+wersji 0.21.0 — ale nie są wymagane i nie zastępują zdania o skutku.
 
 ## Strażnicy
 
@@ -66,8 +79,13 @@ skrypty.
 Lokalne uruchomienie:
 
 ```bash
-node tools/straznicy/uruchom-wszystkie.mjs
+node tools/straznicy/uruchom-wszystkie.mjs   # sami strażnicy, sekundy
+npm run check                                # pełna bramka: to, co przechodzi CI
 ```
+
+`npm run check` = strażnicy → lint → tsc → testy → build → siedem smoke'ów.
+Kody wyjścia sprawdzaj **bez potoku** — `node skrypt | tail` maskuje kod
+wyjścia i zielony ogon potrafi zasłonić czerwony wynik.
 
 ## Zasady twarde
 
