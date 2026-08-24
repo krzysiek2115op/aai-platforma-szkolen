@@ -5,6 +5,100 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.34.0] — 2026-08-24
+
+**Redesign widoku treści kursu — to, co klient dostaje PO zakupie.**
+Polecenie właściciela: doprowadzić widok kursu do poziomu strony sprzedażowej
+`/szkolenia/[slug]`, bez dotykania treści lekcji. Decyzje właściciela podjęte
+na starcie: wygląd żyje w **generatorze HTML** (nie w trasie Nexta — produkt
+idzie na Tutor LMS, gdzie portuje się CSS i szablony, a nie komponenty
+Reacta), nawigacja to **pływająca pigułka jak na stronie sprzedażowej**
+(bez stałego panelu bocznego), a postęp to **pozycja w kursie plus pamięć
+tej przeglądarki**.
+
+### Dlaczego to nie było tylko upiększanie
+
+Strona sprzedażowa pokazuje w sekcji „Tak wygląda kurs od środka" mockup
+`OknoKursu` z modułami, statusami lekcji i paskami postępu, a pod nim
+obiecuje: „zawsze wiesz, gdzie jesteś", „widzisz swój postęp lekcja po
+lekcji", „to samo zobaczysz po zalogowaniu". Widok kursu nie miał **żadnej**
+z tych trzech rzeczy — czyli obietnica ze strony sprzedażowej była
+niedotrzymana, ta sama klasa usterki co BLAD-015 z audytu w 0.33.0.
+
+### Dodane
+
+- **Moduł `tools/podglad-kursow/`** — wygląd wyjęty z generatora do osobnych
+  plików: `style.mjs` (tokeny 1:1 z `app/globals.css`), `szablony.mjs`,
+  `tresc.mjs`, `skrypt.mjs`, `ikony.mjs`, `wymiary.mjs`. Generator odpowiada
+  już tylko za przebieg.
+- **Pływająca pigułka menu** wzorowana na `components/kurs/PasekKursu.tsx`:
+  sygnet marki, rozwijany **program całego kursu** z zaznaczoną bieżącą
+  lekcją, spis sekcji bieżącej lekcji, przycisk „Następna" i nitka postępu
+  czytania. Oba menu stoją na `<details>`, więc działają bez JavaScriptu —
+  to jedyna nawigacja po 73 lekcjach i nie ma prawa zależeć od skryptu.
+- **Sekcje prozy dostały tożsamość.** Szkielet powtarza się w 73 lekcjach na
+  73 („Czego się nauczysz", „Zrób to teraz (X minut)", „Zapamiętaj",
+  „Co dalej") i w części z nich („Prompty z tej lekcji" 67, „Gdy coś nie
+  działa" 46). Do tej wersji wszystkie renderowały się jako identyczny `<h2>`;
+  teraz każda ma własne pudełko: cele z ptaszkami, ćwiczenie z odznaką czasu
+  i numerowanymi krokami, biblioteka promptów z przyciskiem „Kopiuj",
+  stonowany panel diagnostyczny, podsumowanie i most do następnej lekcji.
+  **Rozpoznanie działa wyłącznie po nagłówkach, które w prozie już są** —
+  ani jedno słowo treści nie zostało zmienione.
+- **Żywe tło** strony kursu: siatka blueprint, dryfujące bloby, poświata za
+  kursorem (jedna pętla rAF, tylko `transform`) i ziarno — wszystko
+  przeniesione z `TloKursu`/`HeroKursu`, całość wygaszana przez
+  `prefers-reduced-motion`.
+- **Postęp czytania**: „lekcja 7 z 41" liczona z programu (prawdziwa zawsze),
+  przycisk „Oznacz jako przeczytaną", ptaszki w spisie programu i pasek
+  ukończenia kursu — stan w `localStorage`, **z podpisem wprost, że to pamięć
+  tej przeglądarki, a nie konto**.
+- **Strona kursu** przebudowana na akordeony modułów ze znacznikami lekcji
+  (wzór: `OknoKursu`), kafelki liczbowe i pasek ukończenia; strona wejściowa
+  na równe karty kursów.
+
+### Naprawione
+
+- **Strona wejściowa podglądu nigdy nie ładowała Geista.** `@font-face`
+  miał wpisane na sztywno `../zasoby/`, co z `index.html` w korzeniu celowało
+  poza katalog wyjściowy — przeglądarka podstawiała font systemowy. Arkusz
+  jest teraz osobnym plikiem, więc ścieżki fontów liczą się względem niego.
+- **Siedem zrzutów nie wyświetlało się w ogóle** (moduł 4 Kursu 2). Dwa
+  obrazy zapisane w markdownie w sąsiednich wierszach marked skleja w jeden
+  akapit, a dopasowanie obsługiwało tylko obraz sam w akapicie — takie pary
+  zostawały surowym `<img src="zrzuty/…">` ze ścieżką ze źródła, której
+  w wyjściu nie ma. Błąd istniał od powstania narzędzia.
+- **29 podpisów zrzutów pokazywało dosłowne `&quot;`** zamiast cudzysłowu —
+  tekst uciekany dwa razy (raz przez marked, raz przez generator).
+- **Nagłówki sekcji pokazywały surowe odwrócone apostrofy** zamiast składać
+  kod czcionką maszynową (21 nagłówków, np. „Plik \`SKILL.md\` — dwie
+  części"); tytuł idzie teraz przez markdown w trybie liniowym.
+
+### Wydajność
+
+- Arkusz (38,5 kB) i skrypt (8,5 kB) wyciągnięte do `zasoby/` i wspólne dla
+  76 stron — wcześniej szły wklejone do każdej z osobna. Strona lekcji: **77 kB
+  → 30 kB**, a arkusz i skrypt pobierają się raz.
+- **Wymiary każdego z 148 zrzutów czytane z nagłówka pliku WebP** i wpisywane
+  w `width`/`height` — przeglądarka rezerwuje miejsce przed pobraniem obrazu
+  (CLS; projekt trzyma tę metrykę na zerze od 0.25.0). Kontrola: 0 obrazów
+  bez wymiarów.
+- Zero nowych zależności: ikony to wklejony SVG (`lucide-react` to komponenty
+  Reacta, w statycznym HTML-u nie istnieją), animacje wyłącznie na
+  `transform`/`opacity`, nasłuchy scrolla pasywne z odczytem geometrii w rAF.
+- Stan ukryty wejść w widok wisi na klasie dokładanej przez `widok.js`, nie na
+  samym „JavaScript działa" — gdyby skrypt się nie wczytał, treść i tak jest
+  widoczna (sprawdzone przebiegiem z usuniętym `widok.js`).
+
+### Dowody
+
+Strażnicy **28/28**, testy **75/75**, audyt mutacyjny **90/90**.
+Kontrola całego wyjścia (76 stron): 0 martwych odsyłaczy, 0 brakujących
+zasobów, 0 obrazów bez wymiarów, 0 błędów konsoli, brak przewijania poziomego
+przy 390 / 820 / 1440 px — kontrola sprawdzona **testem negatywnym**
+(podłożona nieistniejąca strona zapala 404). Widok zweryfikowany także bez
+JavaScriptu i przez `file://`.
+
 ## [0.33.0] — 2026-08-24
 
 **Audyt obu kursów i naprawa jego znalezisk.** Audyt (zakres ustalony przez

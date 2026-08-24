@@ -671,6 +671,45 @@ przy każdym kroku zmieniającym stan projektu (jak README).
      sprzedażowych (gwarancja 30 dni, dostęp bez limitu, aktualizacje bez
      dopłat, „odpowiadam osobiście”) — wymagają Pluginu 2/3, więc audyt ich
      nie ruszał.
+     **WIDOK TREŚCI KURSU PRZEBUDOWANY (2026-08-24, wersja 0.34.0, gałąź
+     `feat/widok-kursu-premium`)** — pozycja 3 z „Kolejności domykania kroku 3".
+     Właściciel: *widok kursu ma dorównywać stronie sprzedażowej*. Trzy decyzje
+     podjęte na starcie (pytania z planu, NIE założenia agenta):
+     (a) wygląd żyje w **generatorze HTML** `tools/podglad-kursow*`, nie
+     w trasie Nexta — produkt idzie na Tutor LMS, gdzie portuje się CSS
+     i szablony, a komponenty Reacta i tak trzeba by przepisać na PHP;
+     (b) nawigacja to **pływająca pigułka jak na stronie sprzedażowej**
+     (rozwijany program + spis sekcji lekcji), BEZ stałego panelu bocznego;
+     (c) postęp = **pozycja w kursie z programu + pamięć tej przeglądarki**
+     (`localStorage`), podpisana wprost, że to nie konto.
+     **Sedno nie było estetyczne:** strona sprzedażowa (`SekcjaPlatforma` +
+     mockup `OknoKursu`) obiecuje „zawsze wiesz, gdzie jesteś" i „widzisz swój
+     postęp lekcja po lekcji", a widok kursu nie miał żadnej z tych rzeczy —
+     czyli obietnica była niedotrzymana, klasa BLAD-015.
+     Wygląd wyjęty do `tools/podglad-kursow/` (`style.mjs` z tokenami 1:1
+     z `app/globals.css`, `szablony.mjs`, `tresc.mjs`, `skrypt.mjs`,
+     `ikony.mjs`, `wymiary.mjs`) — **tak, żeby dało się to przenieść do
+     szablonów Tutora**. Sekcje prozy rozpoznawane po nagłówkach, które
+     w treści JUŻ SĄ (73/73 „Czego się nauczysz", „Zrób to teraz",
+     „Zapamiętaj", „Co dalej"; 67 „Prompty", 46 „Gdy coś nie działa") —
+     **ani jedno słowo prozy nie zmienione**.
+     **Trzy błędy sprzed redesignu naprawione przy okazji:** strona wejściowa
+     podglądu nigdy nie ładowała Geista (`../zasoby/` z korzenia celowało poza
+     katalog wyjściowy), 7 zrzutów nie wyświetlało się wcale (dwa obrazy
+     w sąsiednich wierszach markdown = jeden akapit, a dopasowanie brało tylko
+     obraz sam w akapicie), 29 podpisów pokazywało dosłowne `&quot;`
+     (podwójna ucieczka znaków).
+     **PUŁAPKA DO ZAPAMIĘTANIA:** cały arkusz w `style.mjs` jest jednym
+     literałem szablonowym — pojedynczy odwrócony apostrof w komentarzu CSS
+     zamyka literał i node wywala się w losowym miejscu pliku. Kosztowało to
+     trzy przebiegi; ostrzeżenie stoi w nagłówku pliku.
+     Wydajność: arkusz i skrypt wyciągnięte do `zasoby/` (wspólne dla 76
+     stron, strona lekcji 77 kB → 30 kB), wymiary 148 zrzutów czytane
+     z nagłówka WebP (`wymiary.mjs`) → CLS bez ruchu, zero nowych zależności.
+     Dowody: strażnicy 28/28, testy 75/75, audyt mutacyjny 90/90, kontrola
+     całego wyjścia (76 stron) bez martwych odsyłaczy i przepełnień, widok
+     sprawdzony też BEZ `widok.js` i przez `file://`.
+     **B7 NADAL OTWARTA — właściciel ma ocenić wygląd wzrokowo.**
      **NASTĘPNY KROK: higiena repo — właściciel chce ją OMÓWIĆ OSOBNO;
      NIE planować jej ani nie zaczynać z własnej inicjatywy.** Rozmowy demonstracyjne z konta claude.ai **skasowane**
      (23 sztuki, 2026-08-23 — zgoda właściciela na „wszystkie pozostałości";
