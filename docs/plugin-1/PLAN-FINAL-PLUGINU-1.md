@@ -193,9 +193,21 @@ otwiera każdy temat osobno:
    (BLAD-015), w seedzie i w narzędziach (BLAD-014, BLAD-016). Publiczny
    podgląd przebudowany za zgodą właściciela.
 2. **Higiena repo** — właściciel omawia zakres osobno.
-3. **Dopracowanie WIDOKU TREŚCI KURSU** (nowa pozycja, decyzja właściciela
-   2026-08-23). Problem w jego słowach: *strona z kursami wygląda tanio
-   i słabo wypada w porównaniu do strony sprzedażowej*. Chodzi o **widok
+3. ~~**Dopracowanie WIDOKU TREŚCI KURSU**~~ **ZROBIONE (0.34.0,
+   2026-08-24)** — zostaje ocena wzrokowa właściciela.
+   Trzy pytania z tej pozycji ROZSTRZYGNIĘTE przez właściciela na starcie:
+   (a) widok lekcji zostaje **eksportem HTML** (`tools/podglad-kursow*`), bo
+   produkt idzie na Tutor LMS — portuje się CSS i szablony, nie komponenty
+   Reacta; (b) nawigacja to **pływająca pigułka jak na stronie sprzedażowej**
+   z rozwijanym programem i spisem sekcji lekcji, bez stałego panelu bocznego;
+   (c) postęp to **pozycja w kursie z programu + pamięć przeglądarki**,
+   podpisana wprost, że to nie konto. Robimy to **teraz**, nie na LMS-ie.
+   Twarde ograniczenie dotrzymane: generator dalej odmawia zapisu do wnętrza
+   repo, więc treść lekcji nie ma jak wejść do eksportu statycznego.
+   Szczegóły i pułapki: CHANGELOG 0.34.0 oraz [CLAUDE.md](../../CLAUDE.md).
+
+   Zapis pierwotny (dla kontekstu). Problem w słowach właściciela: *strona
+   z kursami wygląda tanio i słabo wypada w porównaniu do strony sprzedażowej*. Chodzi o **widok
    lekcji**, czyli to, co klient dostaje PO zakupie — dziś składany przez
    `tools/podglad-kursow.mjs` (strona wejściowa z bilansem, strona kursu
    z modułami, po jednej stronie na lekcję, treść przez `czytajProze`).
