@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="Okładka: Jak poprawnie korzystać z Claude">
+  <defs>
+    <pattern id="siatka" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0v40" fill="none" stroke="rgba(245,245,245,0.05)" stroke-width="1"/>
+    </pattern>
+    <radialGradient id="glow" cx="75%" cy="20%" r="70%">
+      <stop offset="0" stop-color="#bfff38" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#bfff38" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="szyna" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#bfff38" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#bfff38" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#bfff38" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="#08090b"/>
+  <rect width="800" height="450" fill="url(#siatka)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+  <g font-family="ui-monospace, 'SF Mono', monospace" letter-spacing="6" fill="#8f929c" font-size="16">
+    <text x="60" y="76">[ KURS · MATTHEWPLUGINS.PL ]</text>
+  </g>
+  <g font-family="ui-sans-serif, system-ui, sans-serif" fill="#f5f5f5">
+    <text x="60" y="205" font-size="64" font-weight="700" letter-spacing="-2">Jak poprawnie</text>
+    <text x="60" y="272" font-size="64" font-weight="700" letter-spacing="-2">korzystać z <tspan fill="#bfff38">Claude</tspan></text>
+  </g>
+  <text x="60" y="330" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20" fill="#8f929c">Od pierwszego promptu po automatyzacje w Twojej firmie</text>
+  <rect x="0" y="392" width="800" height="2" fill="url(#szyna)"/>
+  <g font-family="ui-monospace, 'SF Mono', monospace" letter-spacing="4" fill="#bfff38" font-size="13">
+    <text x="60" y="424">[ AI · PROMPTY · AUTOMATYZACJA ]</text>
+  </g>
+  <circle cx="716" cy="419" r="4" fill="#bfff38"/>
+</svg>

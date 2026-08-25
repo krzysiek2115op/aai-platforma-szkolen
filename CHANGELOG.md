@@ -5,6 +5,148 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.41.0] — 2026-08-25
+
+**Klient ogląda `/szkolenia` w naszym wyglądzie, a nie w Tutorowym.** Krok W3
+etapu WordPress: katalog i strony sprzedażowe renderowane Z NASZYCH TABEL,
+pozycja „Szkolenia" w menu motywu i jeden adres kanoniczny zamiast dwóch.
+
+Przed tym wydaniem `/szkolenia` oddawało **404**, a `/szkolenia/<slug>` **301
+na `/courses/<slug>/`** — czyli WordPress sam zgadywał slug i odsyłał na stronę
+Tutora, której klient oglądać nie ma (potwierdzenie właściciela 2026-08-25).
+
+### Dodane
+
+- **Trasy `/szkolenia` i `/szkolenia/<slug>`** (`Aai_Sklep_Trasy`) — reguły
+  przepisywania `top` + `template_include`. Reguła `top` odbiera WordPressowi
+  zgadywanie adresu, które robiło tamto przekierowanie. Nieistniejący albo
+  nieopublikowany kurs oddaje **prawdziwe 404** (kod, nie samą stronę) i naszą
+  stronę „nie znaleziono" — motyw nie ma `404.php`, więc bez niej klient
+  dostawał pusty `<main>`. Szkice widzi wyłącznie `manage_options`.
+- **Warstwa odczytu** (`Aai_Sklep_Odczyt`) — port kanału JSON z prototypu.
+  Liczniki (moduły, lekcje, minuty) liczy BAZA, nie szablon: dwa szablony
+  liczące osobno prędzej czy później policzą co innego, a to była usterka
+  z przeglądu B7 („41 41 lekcji" w miniaturze OG).
+- **Kontrakt treści sekcji** (`Aai_Sklep_Sekcje`) — port `SCHEMATY_SEKCJI`
+  z `modules/m1-sklep/typy.ts` razem z limitami co do liczby. Sekcja o złym
+  kształcie **znika**, zamiast wysadzać stronę (odpowiednik `safeParse`).
+  Tu też mieszka **jedno źródło prawdy o kolejności sekcji** — patrz niżej.
+- **Katalog i strona sprzedażowa** — 12 rodzajów sekcji + hero, program,
+  platforma, oferta i domknięcie; markup i zachowanie pól przepisane
+  z `components/kurs/*` (wygląd przyjęty przy B5, wersja 0.12.1). Akordeony
+  na natywnym `<details>` — program otwiera się także bez JavaScriptu, a
+  wyszukiwarka widzi wszystkie tytuły lekcji.
+- **`assets/sklep.css` i `assets/sklep.js`** — własny arkusz (tokeny motywu
+  przez `var(--color-volt, #bfff38)`: wartość jego, awaria nasza) i ~200 linii
+  skryptu bez zależności. Treść jest widoczna, gdy skryptu nie ma: chowamy ją
+  dopiero pod `html.js`, a obserwator ma trzysekundowy strażnik ostatniej
+  szansy.
+- **Pozycja „Szkolenia" w nawigacji motywu** (`Aai_Sklep_Menu`) — `ob_start`
+  na `get_header`. Wstrzyknięcie **klonuje ostatnią pozycję menu** i podmienia
+  w niej adres, napis, numer porządkowy i opóźnienie kaskady; kotwiczy na
+  `aria-label="Nawigacja główna"` / `"Nawigacja mobilna"`, czyli na TREŚCI.
+  Motyw jest generowany — klasy Tailwinda zmienią się przy pierwszej
+  regeneracji, a klon zawsze pasuje do tego, co motyw ma dzisiaj.
+- **Tytuł, opis, kanonik, OpenGraph i JSON-LD** (`Aai_Sklep_Seo`) — motyw
+  zdejmuje `rel_canonical` i ustawia tytuł tylko dla wpisów, a nasze strony
+  wpisami nie są. `Offer.availability` zostaje **`PreOrder`**: zakup jest
+  placeholderem do czasu Pluginu 2.
+- **Przekierowania z Tutora** (decyzja właściciela 2026-08-25):
+  `/courses/<slug>/` → **301** na `/szkolenia/<slug>/`, `/courses/` → `/szkolenia/`.
+  Slug bierzemy z NASZYCH tabel po `_aai_zrodlo_uuid`, nie z `post_name`.
+  Adresy lekcji zostają Tutora — nasze szablony wchodzą tam w W5.
+- **`straznik-frontu-wp`** (31. strażnik, 9 mutacji) i **`smoke-wp-front`**
+  (`npm run smoke:wp-front`, 78 sprawdzeń) — szczegóły niżej.
+
+### Naprawione — znalezione POMIAREM, nie z pamięci
+
+- **Okładki kursów oddawały 404.** `cover_url` wskazuje `/okladki/*.svg`,
+  czyli adres z `public/` prototypu Next.js; na WordPressie nie ma tam nic
+  i katalog rysował ikonę zepsutego obrazka z tekstem alternatywnym. Okładki
+  jadą teraz Z WTYCZKĄ (`assets/okladki/`), a `Aai_Sklep_Widok::okladka()`
+  szuka po kolei: pełny adres → plik w instalacji → plik przy wtyczce →
+  `null`, czyli **zaprojektowany zastępnik zamiast zepsutego obrazka**.
+- **Adresy bez ukośnika robiły z każdego kliknięcia przekierowanie.**
+  Instalacja ma strukturę `/%postname%/`, więc `redirect_canonical` odsyłał
+  `/szkolenia` → `/szkolenia/`. Teraz adresy składa `user_trailingslashit()`.
+- **Pigułka kursu nachodziła na nagłówek motywu.** Obie belki są
+  `position: fixed` u góry. Strona kursu chowa więc nawigację motywu i stawia
+  w jej miejsce własną — tak samo jak prototyp (`NavbarPrzelacznik`), i taki
+  wygląd właściciel przyjął przy B5.
+- **`Aai_Sklep_Zasoby` nie rozpoznawał rejestracji, koszyka i kasy Tutora** —
+  pytał tylko o panel kursanta. Te strony zostawały bez naszego arkusza, czyli
+  z białym formularzem na ciemnym motywie.
+- **Tutor 4.0.7 wprowadził DRUGĄ rodzinę tokenów** (`--tutor-surface-*`,
+  `--tutor-text-*`, `--tutor-icon-*`, `--tutor-border-*`, `--tutor-button-*`,
+  `--tutor-actions-*` — 305 zmiennych) i to ona steruje dziś logowaniem,
+  rejestracją i panelem. Mapowanie z 0.40.0 tam nie sięgało: formularz miał
+  białe pola i granatowy przycisk. `assets/tutor-motyw.css` mapuje teraz obie
+  rodziny; przywrócony też font motywu (Tutor ustawia `Inter` na `body`, przez
+  co ten sam napis w stopce zajmował dwie linie zamiast jednej — 45,5 px
+  zamiast 22,75 px).
+
+### Naprawione w samym POMIARZE — dwie dziury, które fałszowały wynik
+
+- **`smoke-wp-motyw` czytał `color(srgb 0.749 1 0.219 / 0.1)` jak `rgb()`**,
+  czyli składowe 0–1 traktował jak 0–255. Tak przeglądarka oddaje `color-mix()`,
+  na którym stoi i motyw (Tailwind 4), i nasz arkusz — więc jasny akcent
+  wychodził prawie czarny i kontrast 15:1 raportowany był jako **1,11:1**.
+  Zapisu, którego pomiar nie umie rozebrać, nie zgadujemy: ląduje na liście
+  `nieznane` i wywala smoke.
+- **Tekst malowany gradientem** (`background-clip: text`, `color: transparent`)
+  dostawał 1:1, bo wzór na kontrast dwóch płaskich kolorów nie ma jak go
+  policzyć. Nie pomijamy go w milczeniu — bierzemy **najsłabszy przystanek
+  gradientu**, czyli najgorszy przypadek, jaki ten napis może pokazać.
+
+### Zmienione
+
+- **`smoke-wp-motyw` mierzy teraz cztery strony zamiast dwóch**: nasze
+  `/szkolenia/` i `/szkolenia/<slug>/` oraz — zamiast przekierowanych już
+  `/courses/*` — panel kursanta i rejestrację, czyli strony Tutora, które
+  NAPRAWDĘ zobaczy człowiek. Zakres pomiaru jest parametrem, a „belka u góry"
+  to teraz nagłówek motywu **albo** nasza pigułka: pytanie „czy treść wjeżdża
+  pod belkę" ma na stronie kursu inną belkę. 32 sprawdzenia.
+- Porównanie stopki toleruje różnicę wysokości do 4 px (zaokrąglenia układu
+  i moment wczytania fontu); tło, sposób układania i margines wewnętrzny
+  porównujemy dalej co do znaku.
+- **Kolejność sekcji strony sprzedażowej ma jedno źródło** —
+  `Aai_Sklep_Sekcje::KOLEJNOSC`. Wcześniej szablon i warstwa SEO miały własne
+  listy i **dało się je rozjechać**: test negatywny pokazał sekcję FAQ usuniętą
+  ze strony, która nadal wystawiała `FAQPage` z pytaniami, których klient nie
+  widzi. Teraz ten rozjazd jest niemożliwy, a nie pilnowany.
+- Opis katalogu w danych `<meta>` nie mówi już o „ebookach" — właściciel
+  zamknął ten temat na zawsze 2026-08-25 („E-BOOKI: NIGDY").
+
+### Dowody
+
+Strażnicy **31/31**, audyt mutacyjny **118 mutacji: 116 złapanych,
+0 przeoczonych, 0 martwych**, `smoke-wp-front` **78 sprawdzeń**,
+`smoke-wp-motyw` **32 sprawdzenia**, `smoke-wp-dane` **30**, `wp:sprawdz`
+**73/73 treści zgodnych co do znaku** (dane nietknięte), prototyp bez regresji.
+
+**Pięć testów negatywnych `smoke-wp-front`** (reguła po 0.24.0: każdy nowy test
+sprawdzić testem negatywnym): zerwana kotwica menu, zdjęte przekierowanie
+z `/courses/`, sekcja FAQ poza kolejnością, program bez lekcji, cena wycięta
+z oferty. Dwa z nich zmusiły do wzmocnienia samego smoke'u — treść sprawdzamy
+teraz w HTML-u **bez `<script>`** (inaczej dane strukturalne usprawiedliwiały
+sekcję, której na stronie nie ma), a cenę **w sekcji oferty**, nie gdziekolwiek
+na stronie.
+
+**Audyt mutacyjny złapał dwie dziury w moim własnym strażniku**: blok
+`prefers-reduced-motion` czytany „do końca pliku" usprawiedliwiał regułę
+dopisaną po nim, a pierwsza wersja reguły o `position: fixed` znajdowała
+`<main>` w komentarzu i oskarżała poprawny szablon. Obie naprawione,
+kontrprzykład na tę drugą jest w audycie.
+
+### Pułapka środowiska do zapamiętania
+
+**`opcache.revalidate_freq = 2`** w kontenerze WordPressa: PHP sprawdza czas
+modyfikacji pliku najwyżej raz na dwie sekundy. Testy negatywne puszczone
+jeden po drugim mierzyły więc POPRZEDNI stan kodu — wynik wyglądał jak
+„strażnik przepuścił mutację", a naprawdę serwer oddawał starą wersję. Między
+zmianą pliku a pomiarem trzeba odczekać ≥ 3 s. To ta sama klasa co działający
+`npm run dev` psujący produkcyjny build (0.34.0).
+
 ## [0.40.0] — 2026-08-25
 
 **Strony Tutora wyglądają jak strona Automatic AI, a nie jak cudzy serwis.**

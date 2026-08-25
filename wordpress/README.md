@@ -33,7 +33,12 @@ sam i nie wchodzi do repo).
 ```
 
 Kod wtyczek jest **montowany wprost z repo** — plik zapisany w edytorze
-działa w WordPressie od razu, bez kopiowania i bez przebudowy.
+działa w WordPressie od razu, bez kopiowania i bez przebudowy. Z jednym
+zastrzeżeniem: kontener ma `opcache.revalidate_freq = 2`, więc PHP sprawdza
+czas modyfikacji pliku **najwyżej raz na dwie sekundy**. Zmiana zmierzona
+natychmiast po zapisie pokazuje POPRZEDNI stan kodu — przy testach
+negatywnych wygląda to jak „strażnik przepuścił mutację". Między zapisem
+a pomiarem odczekaj ≥ 3 s.
 
 ## Kursy w tabelach wtyczki
 
@@ -62,6 +67,30 @@ Warstwę zapisu (transakcje, dziennik audytu, ochrona napisanej treści,
 dwufazowe przestawianie pozycji) sprawdza `npm run smoke:wp` na własnym
 kursie testowym, który sam po sobie sprząta. Mapowanie pole po polu
 i dowody: [docs/plugin-1/MIGRACJA-DO-WP.md](../docs/plugin-1/MIGRACJA-DO-WP.md).
+
+## Front: `/szkolenia` na WordPressie (krok W3)
+
+Wtyczka renderuje katalog i strony sprzedażowe **z własnych tabel**, a nie
+ze stron WordPressa — źródłem prawdy o kursie są nasze tabele, nie wpisy.
+
+| Adres | Co się dzieje |
+|---|---|
+| `/szkolenia/` | katalog: karty kursów z bazy, liczniki liczone SQL-em |
+| `/szkolenia/<slug>/` | strona sprzedażowa: 12 rodzajów sekcji + program, oferta i domknięcie |
+| `/szkolenia/<czego-nie-ma>/` | **404** z kodem odpowiedzi i naszą stroną (motyw nie ma `404.php`) |
+| `/courses/<slug>/` | **301** na `/szkolenia/<slug>/` — klient nie ogląda wyglądu Tutora |
+| `/courses/` | **301** na `/szkolenia/` |
+
+Pozycję „Szkolenia" w menu motywu wstrzykuje `Aai_Sklep_Menu`: motyw ma
+nawigację wpisaną na sztywno, bez `wp_nav_menu()`, więc standardowe API WP
+nie ma się gdzie wpiąć. Wstrzyknięcie **klonuje ostatnią pozycję menu**
+i kotwiczy na `aria-label`, nie na klasie Tailwinda — motyw jest generowany,
+więc klasy zmienią się przy pierwszej regeneracji.
+
+```bash
+npm run smoke:wp-front      # trasy, treść vs baza, menu, 301, SEO (bez przeglądarki)
+ZRZUTY_RIG=/tmp/rig npm run smoke:wp-motyw   # wygląd: nachodzenie, kontrast, jasne plamy
+```
 
 ## Dlaczego skrypt, a nie instrukcja
 

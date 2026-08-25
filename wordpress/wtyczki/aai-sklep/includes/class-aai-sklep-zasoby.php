@@ -108,11 +108,28 @@ final class Aai_Sklep_Zasoby {
 			return true;
 		}
 
-		// Panel kursanta i rejestracje to zwykłe strony wskazane w opcjach.
+		/*
+		 * Panel kursanta, rejestracje i kasa Tutora to zwykłe strony
+		 * WordPressa wskazane w jego opcjach — po samym typie wpisu nie da
+		 * się ich poznać. Pytamy więc o KOMPLET tych opcji, nie tylko
+		 * o panel: brak którejkolwiek znaczy stronę Tutora bez naszego
+		 * arkusza, czyli białe pola formularza na ciemnym motywie. Wykryte
+		 * dopiero wtedy, gdy `smoke-wp-motyw` zaczął mierzyć rejestrację
+		 * (W3) — wcześniej mierzył wyłącznie strony kursów.
+		 */
 		if ( function_exists( 'tutor_utils' ) ) {
-			$dashboard = (int) tutor_utils()->get_option( 'tutor_dashboard_page_id' );
-			if ( $dashboard > 0 && is_page( $dashboard ) ) {
-				return true;
+			$strony = array(
+				'tutor_dashboard_page_id',
+				'student_register_page',
+				'instructor_register_page',
+				'tutor_cart_page_id',
+				'tutor_checkout_page_id',
+			);
+			foreach ( $strony as $opcja ) {
+				$id = (int) tutor_utils()->get_option( $opcja );
+				if ( $id > 0 && is_page( $id ) ) {
+					return true;
+				}
 			}
 		}
 

@@ -482,6 +482,114 @@ konta i dostęp, wygląd zostaje nasz.
 - zachowania przy wielu kursach i wielu użytkownikach naraz,
 - Publigo BOX (plan B) — nie ma darmowej wersji do postawienia obok.
 
+## Krok W3 zrobiony (2026-08-25, wersja 0.41.0) — czego się przy nim nauczyliśmy
+
+`/szkolenia` i `/szkolenia/<slug>` renderuje wtyczka z naszych tabel, pozycja
+„Szkolenia" jest w obu nawigacjach motywu, a `/courses/*` oddaje 301 na nasze
+adresy. Pełny wykaz zmian: CHANGELOG 0.41.0. Niżej wyłącznie to, co **zmienia
+plan dalszych kroków**.
+
+### Ósmy fakt o motywie doczekał się dziewiątego: `.page-enter` ma `transform`
+
+Motyw wpisuje klasę `.page-enter` w HTML swoich stron, a jej klatki animują
+`transform` z wypełnieniem `both`. To BLAD-003/004 z prototypu, przyniesione
+tym razem przez cudzy arkusz: **przodek z transformacją odbiera potomkom
+`position: fixed` ekran jako układ odniesienia**. Nasz `<main>` tej klasy nie
+dostaje, ale reguła obowiązuje na przyszłość — **każdy element `fixed` (pigułka
+kursu, żywe tło, przyszły panel lekcji z W5) emitujemy POZA `<main>`**. Pilnuje
+tego `straznik-frontu-wp` i `smoke-wp-front`.
+
+Do tego `volt.js` przy otwartym menu mobilnym ustawia `inert` na `body > main`
+i `body > footer`. Nasze elementy poza `<main>` tego nie dostają, więc ich
+`z-index` musi być NIŻSZY niż `z-40` overlaya — inaczej zostaną klikalne pod
+zasłoną.
+
+### Strona kursu chowa nawigację motywu
+
+Obie belki są `position: fixed` u góry, więc bez tego po prostu na siebie
+nachodzą. Tak samo działa prototyp (`NavbarPrzelacznik`) i taki wygląd
+właściciel przyjął przy B5. Powrót do reszty serwisu daje sygnet w pigułce.
+**Konsekwencja dla W5:** widok lekcji też będzie miał własną belkę i też będzie
+musiał rozstrzygnąć to samo.
+
+### Tutor 4.0.7 ma DRUGĄ rodzinę tokenów
+
+Instalacja podniosła się z 4.0.6 do 4.0.7 i przyniosła obok starych
+`--tutor-color-*` zestaw semantyczny: `--tutor-surface-*`, `--tutor-text-*`,
+`--tutor-icon-*`, `--tutor-border-*`, `--tutor-button-*`, `--tutor-actions-*`
+(305 zmiennych). To on steruje **logowaniem, rejestracją i panelem kursanta** —
+czyli tym, co klient zobaczy po zakupie. Mapowanie z 0.40.0 tam nie sięgało:
+formularz miał białe pola i granatowy przycisk. `assets/tutor-motyw.css` mapuje
+teraz obie rodziny.
+
+**Wniosek na etap WP: wersję Tutora trzeba przypiąć albo świadomie pilnować.**
+Aktualizacja LMS-a potrafi przemalować strony, których nie tykaliśmy, a objawu
+nie widać w żadnym logu. Dziś pilnuje tego `smoke-wp-motyw` — i to on to
+znalazł.
+
+### `/courses/*` przestało być mierzalne — i to była właściwa zmiana pomiaru
+
+Skoro te adresy oddają 301, `smoke-wp-motyw` mierzy teraz strony Tutora, które
+NAPRAWDĘ zobaczy człowiek: `/dashboard/` i `/student-registration/`. Przy okazji
+wyszło, że `Aai_Sklep_Zasoby` nie rozpoznawał rejestracji, koszyka ani kasy
+Tutora — pytał tylko o panel kursanta.
+
+### Czego W3 celowo NIE ruszył
+
+- **Widok lekcji i szablony Tutora** → W5. Wygląd leży gotowy
+  w `tools/podglad-kursow/`.
+- **Kreator w kokpicie** → W4. Na froncie nie ma dziś żadnego wejścia do
+  edycji; szkice ogląda `manage_options` pod normalnym adresem kursu.
+- **Zakup** → Plugin 2. CTA prowadzi do kontaktu, a `Offer.availability`
+  mówi `PreOrder`. Zmiana na `InStock` należy do tego samego kroku,
+  w którym ruszy koszyk.
+- **Tłumaczenie interfejsu Tutora** — panel logowania mówi po angielsku
+  („Sign In", „Keep me signed in"). To zadanie lokalizacyjne, nie wygląd;
+  do zrobienia razem z W5 albo W6.
+
+## Plugin 2 — co to znaczy „płatności" (doprecyzowanie 2026-08-25)
+
+Pytanie właściciela po obejrzeniu W3: *przycisk „Dołączam za 299 zł" prowadzi
+teraz na `/kontakt` — to chwilowe? w Pluginie 2 dodamy podstronę bramki
+płatności?*
+
+**`/kontakt` jest chwilowe. Własnej bramki ani własnej kasy NIE PISZEMY.**
+
+Wynika to wprost z podziału odpowiedzialności ustalonego 2026-08-19 i
+potwierdzonego 2026-08-25: **WooCommerce** bierze koszyk, kasę, płatności
+i faktury (ma własne podstrony `/koszyk/`, `/zamowienie/`), a sama bramka
+(Tpay/PayU/Przelewy24/BLIK) to **wtyczka do WooCommerce**, nie nasz kod.
+Napisanie własnej kasy dublowałoby to, co tamte mają z pudełka, i wciągałoby
+nas w zgodność z przepisami o obsłudze płatności.
+
+**Plugin 2 jest SZWEM, nie sklepem.** Cztery rzeczy:
+
+| # | Zakres |
+|---|---|
+| 1 | powiązanie kursu z naszych tabel z produktem WooCommerce |
+| 2 | po opłaconym zamówieniu — zapis kupującego na kurs w Tutor LMS |
+| 3 | mail „Ustaw hasło i wejdź do kursu" (link jednorazowy, NIE hasło w treści) |
+| 4 | przełączenie CTA z `/kontakt` na koszyk oraz `Offer.availability` `PreOrder` → `InStock` |
+
+Punkt 4 pilnuje dziś `smoke-wp-front`: dopóki zakup jest placeholderem, dane
+strukturalne mają mówić `PreOrder`. Zmiana na `InStock` należy do tego samego
+kroku, w którym ruszy koszyk — nie wcześniej.
+
+### Pytanie otwarte przed Pluginem 2: gdzie mieszka CENA
+
+Dziś `price_grosze` jest w naszej tabeli `courses`. Produkt WooCommerce będzie
+miał własną cenę. To **dwie kopie tej samej liczby**, czyli dokładnie ta klasa
+ryzyka, którą znamy z pary „nasze tabele ↔ Tutor" (ETAP-WP.md wyżej: rozjazd
+dwóch kopii to główne ryzyko tej architektury). Dwie drogi:
+
+- **nasze tabele są źródłem, cena idzie do Woo przy publikacji** — spójne
+  z resztą architektury i z kreatorem, ale wymaga strażnika zgodności;
+- **cenę oddajemy WooCommerce** — jedno miejsce prawdy o pieniądzach
+  (promocje, kupony, podatki są i tak Woo), ale kreator przestaje o niej
+  decydować, a katalog musi ją czytać z produktu.
+
+**Decyzja należy do właściciela i ma zapaść PRZED pisaniem Pluginu 2.**
+
 ## Następne kroki
 
 1. ~~Poprosić kolegę o katalog motywu~~ **NIEAKTUALNE 2026-08-20** —
