@@ -528,6 +528,42 @@ sprawdz(
   "publikacja nie zmieniła stanu w bazie"
 );
 
+/*
+ * ZAPIS ZE STARSZEJ KARTY NIE COFA PUBLIKACJI.
+ *
+ * Znalezisko z przeglądu W4: formularz edytora niósł stan kursu, więc
+ * wystarczyło mieć go otwartego przed publikacją, żeby poprawka jednego
+ * zdania CICHO wyrzuciła kurs z katalogu — z komunikatem „zapisano".
+ * Formularz `poEdycji` jest tu celowo pobrany PO publikacji, ale sprawdzamy
+ * przede wszystkim, że pola stanu w nim NIE MA.
+ */
+const poEdycji = await (await admin.pobierz(`/wp-admin/admin.php?page=aai-sklep-kurs&id=${idKursu}`)).text();
+sprawdz(
+  !/name="status"/.test(poEdycji),
+  "formularz edytora niesie stan kursu — zapis ze starszej karty cofnie publikację"
+);
+const zapisBezStanu = await admin.wyslij({
+  action: "aai_sklep_zapisz_kurs",
+  _wpnonce: pole(poEdycji, "_wpnonce"),
+  id: idKursu,
+  zakladka: "kurs",
+  title: "Kurs próbny smoke'a (po publikacji)",
+  slug: SLUG_TESTOWY,
+  type: "kurs",
+  cena_zl: "199,90",
+  pozwol_skasowac_tresc: "0",
+  sekcje: pole(poEdycji, "sekcje"),
+  moduly: pole(poEdycji, "moduly"),
+});
+sprawdz(
+  ["zapisano", "bez_zmian"].includes(komunikat(zapisBezStanu)),
+  `zapis bez pola stanu: ${komunikat(zapisBezStanu)}`
+);
+sprawdz(
+  sql(`SELECT status FROM wp_aai_sklep_courses WHERE id = '${idKursu}'`) === "published",
+  "zapis kursu COFNĄŁ publikację — kurs wypadł z katalogu bez słowa"
+);
+
 // Materiał kursu jest towarem: na publicznych stronach ma go NIE BYĆ.
 // Sprawdzamy w HTML-u BEZ <script> — dane strukturalne potrafiłyby
 // „usprawiedliwić" treść, której człowiek na stronie nie widzi.

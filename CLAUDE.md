@@ -1263,9 +1263,28 @@ wyprowadzała tego od nowa:
   panel rysuje się z tej samej tablicy, którą sprawdzana jest treść, więc
   rozjazd kontrakt↔panel jest NIEMOŻLIWY, a nie pilnowany (jak `KOLEJNOSC`).
   Dowody: strażnicy **32/32** (doszedł `straznik-kreatora-wp`), audyt
-  mutacyjny **129**, `smoke-wp-kreator` **92**, `smoke-wp-front` 78,
+  mutacyjny **133**, `smoke-wp-kreator` **95**, `smoke-wp-front` 78,
   `smoke-wp-motyw` 32, `smoke-wp-dane` 30, `wp:sprawdz` 73/73,
   `npm run check` zielone.
+  **PRZEGLĄD KROKU ZROBIONY (2026-08-25), dwa znaleziska naprawione —
+  OBA POTWIERDZONE URUCHOMIENIOWO PRZED NAPRAWĄ:**
+  (a) **brak klucza `sekcje`/`moduly` KASOWAŁ sekcje i program**, choć
+  kontrakt i sam plik warstwy zapisu obiecywały „nie ruszaj" — czyli
+  nieprawda w dokumentacji o zachowaniu kasującym dane. Panel zawsze
+  wysyła oba klucze, więc z zewnątrz nie było tego widać; usterka czekała
+  na pierwszego nowego klienta tej warstwy, czyli na **synchronizację do
+  Tutora w W5**;
+  (b) **zapis kursu ze starszej karty CICHO cofał publikację** — formularz
+  niósł stan w polu ukrytym, a publikuje się z LISTY, więc poprawka jednego
+  zdania wyrzucała kurs z katalogu z komunikatem „zapisano".
+  **REGUŁA, KTÓRA Z TEGO WYSZŁA i obowiązuje w całej warstwie zapisu: BRAK
+  KLUCZA ZNACZY „NIE RUSZAJ"** — dla treści lekcji, materiałów, sekcji,
+  programu i stanu kursu. Pilnuje tego `straznik-kreatora-wp` (5 kluczy,
+  po mutacji na każdy) i `smoke-wp-kreator`.
+  Trzy rzeczy sprawdzone i BEZ ZARZUTU (nie szukać ich drugi raz): zamiana
+  pozycji modułów przechodzi przez dwufazowe przestawianie MySQL-a, treść
+  z `<script>`/`onerror` jest uciekana w panelu I na stronie sprzedażowej,
+  odmowa skasowania treści liczy też lekcje z usuwanych modułów.
   **PIĘĆ RZECZY DO ZAPAMIĘTANIA Z W4** (pełnia: CHANGELOG 0.42.0
   i [ETAP-WP.md](docs/ETAP-WP.md), sekcja „Krok W4 zrobiony"):
   (1) **`add_submenu_page()` + `remove_submenu_page()` NIE robi ukrytej

@@ -395,10 +395,48 @@ final class Aai_Sklep_Zapis {
 			'short_desc'   => self::tekst_albo_null( $kurs['short_desc'] ?? null ),
 			'price_grosze' => (int) $kurs['price_grosze'],
 			'cover_url'    => self::tekst_albo_null( $kurs['cover_url'] ?? null ),
-			'status'       => (string) $kurs['status'],
 			'badge'        => self::tekst_albo_null( $kurs['badge'] ?? null ),
 			'level'        => self::tekst_albo_null( $kurs['level'] ?? null ),
 		);
+
+		/*
+		 * STAN KURSU: BRAK KLUCZA ZNACZY „ZOSTAW, JAK JEST".
+		 *
+		 * Ta sama reguła co przy treści lekcji i z tego samego powodu.
+		 * Publikację klika się na LIŚCIE kursów, nie w formularzu — a formularz
+		 * otwarty wcześniej w drugiej karcie niósłby stan sprzed publikacji.
+		 * Zapis poprawki jednego zdania COFAŁBY wtedy publikację: kurs
+		 * wypadałby z katalogu, nikt by o tym nie wiedział, a odpowiedź
+		 * brzmiałaby „zapisano". Sprawdzone uruchomieniowo w przeglądzie W4.
+		 *
+		 * Nowy kurs zaczyna jako szkic — tak samo jak w prototypie.
+		 */
+		if ( array_key_exists( 'status', $kurs ) ) {
+			$docelowy_kurs['status'] = (string) $kurs['status'];
+		} elseif ( null !== $stary_kurs ) {
+			$docelowy_kurs['status'] = (string) $stary_kurs['status'];
+		} else {
+			$docelowy_kurs['status'] = 'draft';
+		}
+
+		/*
+		 * SEKCJE I PROGRAM: BRAK KLUCZA ZNACZY „NIE RUSZAJ", PODANA TABLICA
+		 * ZNACZY PEŁNĄ PODMIANĘ.
+		 *
+		 * Do przeglądu W4 brak klucza znaczył PUSTKĘ, więc zapis samych kolumn
+		 * kursu kasował wszystkie sekcje i cały program — mimo że kontrakt
+		 * (i ten plik) obiecywały co innego. Objaw: `zapisz_kurs()` z trzema
+		 * polami czyściło kurs i wracało z sukcesem. Sprawdzone uruchomieniowo:
+		 * „po utworzeniu: sekcji=1 moduly=1" → „po zapisie bez kluczy:
+		 * sekcji=0 moduly=0". Panel zawsze wysyła oba klucze, więc usterka nie
+		 * była widoczna z zewnątrz — ale czekała na pierwszego nowego klienta
+		 * tej warstwy (synchronizacja do Tutora w W5).
+		 *
+		 * `null` traktujemy jak brak klucza: tak wygląda pole, którego
+		 * w wysyłce nie było.
+		 */
+		$zmieniamy_sekcje = array_key_exists( 'sekcje', $kurs ) && null !== $kurs['sekcje'];
+		$zmieniamy_program = array_key_exists( 'moduly', $kurs ) && null !== $kurs['moduly'];
 
 		$docelowe_sekcje = array();
 		foreach ( (array) ( $kurs['sekcje'] ?? array() ) as $s ) {
@@ -477,7 +515,7 @@ final class Aai_Sklep_Zapis {
 		 * wypadłoby z tego kursu — ZANIM cokolwiek skasujemy.
 		 */
 		$zagrozone = 0;
-		foreach ( $stare_lekcje as $lid => $wiersz ) {
+		foreach ( $zmieniamy_program ? $stare_lekcje : array() as $lid => $wiersz ) {
 			if ( isset( $docelowe_lekcje[ $lid ] ) ) {
 				continue;
 			}
@@ -517,16 +555,24 @@ final class Aai_Sklep_Zapis {
 		// Kasujemy PRZED zapisem: `UNIQUE (course_id, kind)` znaczy, że
 		// rodzaj przeniesiony na inny wiersz zderzyłby się ze starym.
 
-		foreach ( $stare_sekcje as $sid => $wiersz ) {
-			if ( isset( $docelowe_sekcje[ $sid ] ) ) {
-				continue;
+		if ( $zmieniamy_sekcje ) {
+			foreach ( $stare_sekcje as $sid => $wiersz ) {
+				if ( isset( $docelowe_sekcje[ $sid ] ) ) {
+					continue;
+				}
+				self::skasuj( $t_sekcje, array( 'id' => $sid ) );
+				self::dziennik( $id, 'sections', 'delete', $wiersz, null, $aktor );
+				++$liczniki['usuniete'];
 			}
-			self::skasuj( $t_sekcje, array( 'id' => $sid ) );
-			self::dziennik( $id, 'sections', 'delete', $wiersz, null, $aktor );
-			++$liczniki['usuniete'];
+			foreach ( $docelowe_sekcje as $sid => $docelowa ) {
+				self::upsert( $t_sekcje, 'sections', $id, $stare_sekcje[ $sid ] ?? null, $docelowa, $aktor, $liczniki );
+			}
 		}
-		foreach ( $docelowe_sekcje as $sid => $docelowa ) {
-			self::upsert( $t_sekcje, 'sections', $id, $stare_sekcje[ $sid ] ?? null, $docelowa, $aktor, $liczniki );
+
+		if ( ! $zmieniamy_program ) {
+			// Zapis samych kolumn kursu (albo samych sekcji) nie ma prawa
+			// tknąć programu ani materiału — nie ma tu nic do zrobienia.
+			return;
 		}
 
 		/*

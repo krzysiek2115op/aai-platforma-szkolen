@@ -186,6 +186,16 @@
       "naprawa": "`Aai_Sklep_Pola::adres_bezpieczny()` pyta o to, o co naprawde chodzi: czy adres wolno WYDRUKOWAC. Biala lista schematow (http/https), odrzucenie loginu i hasla w adresie (zmylka „https://bank.pl@zly.host”) oraz znakow specjalnych w hoscie. Zero DNS-u. To samo sprawdzenie dostala okladka kursu w `Aai_Sklep_Kontrakt::adres_opcjonalny()`.",
       "test": "tools/smoke/smoke-wp-kreator.mjs — runda zapis→odczyt sekcji `author` z adresem niekupionej domeny (przechodzi) oraz NEGATYWNY: `javascript:alert(1)` i `https://user:haslo@host` odrzucone. Dowod na zywo: przed naprawa grep „Zobacz moje projekty” dawal 0, po naprawie 1.",
       "straznik": "tools/straznicy/straznik-kreatora-wp.mjs (niezmiennik: pola tresci nie wolno sprawdzac funkcja od wychodzacych zadan)"
+    },
+    {
+      "id": "BLAD-018",
+      "data": "2026-08-25",
+      "klasa": "dane/brak-klucza-brany-za-pustke-kasuje-cale-galezie-kursu",
+      "dowod": "`Aai_Sklep_Zapis::zapisz_kurs()` budowalo stan docelowy jako `(array) ( $kurs['sekcje'] ?? array() )` i tak samo dla `moduly`, wiec BRAK klucza znaczyl PUSTKE, a nie „nie ruszaj”. Zapis samych kolumn kursu kasowal wszystkie sekcje sprzedazowe i caly program razem z trescia lekcji — i wracal z sukcesem. Sprawdzone uruchomieniowo w przegladzie W4 (2026-08-25): kurs probny z jedna sekcja i jednym modulem, potem `zapisz_kurs()` z trzema polami → „po utworzeniu: sekcji=1 moduly=1”, „po zapisie bez kluczy: sekcji=0 moduly=0”. Zachowanie weszlo z krokiem W2 (0.39.0) i przetrwalo W3.",
+      "skutek": "Cicha utrata CALEJ tresci sprzedazowej i calego programu kursu. Panel zawsze wysyla oba klucze, wiec z zewnatrz nie bylo tego widac — usterka czekala na pierwszego nowego klienta warstwy zapisu, czyli na synchronizacje do Tutora w W5. Gorzej: kontrakt ORAZ naglowek samego pliku warstwy zapisu obiecywaly zachowanie odwrotne, wiec dokumentacja zachecala do napisania wlasnie takiego wywolania.",
+      "naprawa": "Warstwa zapisu rozroznia BRAK klucza od pustej tablicy (`array_key_exists` + odrzucenie `null`) dla `sekcje`, `moduly` i `status`; podana tablica dalej znaczy PELNA PODMIANE. Regula jest teraz jedna dla calej warstwy: brak klucza znaczy „nie ruszaj” — tak samo jak przy `content` i `materials` lekcji. Przy okazji zamkniete drugie znalezisko tego samego przegladu: formularz edytora przestal niesc `status`, wiec zapis ze starszej karty nie cofa juz publikacji.",
+      "test": "tools/smoke/smoke-wp-kreator.mjs — „zapis bez pola stanu” i „zapis kursu COFNAL publikacje”; dowod na kasowanie galezi: proba uruchomieniowa opisana wyzej. Testy negatywne: 4 mutacje w audyt-straznikow (`$zmieniamy_sekcje = true`, `$zmieniamy_program = true`, `if ( true )` przy statusie, przywrocenie pola `name=\"status\"` w szablonie) — kazda zapala straznika.",
+      "straznik": "tools/straznicy/straznik-kreatora-wp.mjs (niezmiennik 6: piec kluczy, ktore MUSZA rozrozniac brak od pustki; niezmiennik 9: formularz edytora nie niesie stanu kursu)"
     }
   ]
 }

@@ -98,7 +98,17 @@ $aai_nazwa_sciezki = static function ( string $sciezka ) use ( $kurs ): string {
 		<input type="hidden" name="action" value="<?php echo esc_attr( Aai_Sklep_Panel_Akcje::ZAPISZ_KURS ); ?>" />
 		<input type="hidden" name="id" value="<?php echo esc_attr( $aai_id ); ?>" />
 		<input type="hidden" name="type" value="<?php echo esc_attr( (string) $kurs['type'] ); ?>" />
-		<input type="hidden" name="status" value="<?php echo esc_attr( (string) $kurs['status'] ); ?>" />
+		<?php
+		/*
+		 * STANU KURSU TU NIE MA — I TO JEST CAŁA POPRAWKA.
+		 *
+		 * Publikację klika się na LIŚCIE kursów. Gdyby formularz niósł stan,
+		 * wystarczyło otworzyć edytor, opublikować kurs w drugiej karcie
+		 * i zapisać poprawkę jednego zdania, żeby CICHO cofnąć publikację —
+		 * kurs wypadałby z katalogu, a panel meldowałby „zapisano". Warstwa
+		 * zapisu rozumie brak tego klucza jako „zostaw, jak jest".
+		 */
+		?>
 		<input type="hidden" name="zakladka" value="<?php echo esc_attr( $zakladka ); ?>" data-aai-zakladka-pole />
 		<?php
 		/*

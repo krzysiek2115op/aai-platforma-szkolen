@@ -213,7 +213,6 @@ final class Aai_Sklep_Kontrakt {
 			'slug'         => self::slug( $wejscie['slug'] ?? '', $bledy ),
 			'title'        => self::tekst_wymagany( $wejscie['title'] ?? '', self::LIMIT_TYTULU, 'title', 'Tytuł', $bledy ),
 			'type'         => self::z_listy( $wejscie['type'] ?? 'kurs', self::TYPY, 'type', 'Typ', $bledy ),
-			'status'       => self::z_listy( $wejscie['status'] ?? 'draft', self::STANY, 'status', 'Stan', $bledy ),
 			'short_desc'   => self::tekst_opcjonalny( $wejscie['short_desc'] ?? null, self::LIMIT_OPISU, 'short_desc', 'Krótki opis', $bledy ),
 			'price_grosze' => self::cena( $wejscie['price_grosze'] ?? 0, $bledy ),
 			'cover_url'    => self::adres_opcjonalny( $wejscie['cover_url'] ?? null, 'cover_url', 'Okładka', $bledy ),
@@ -221,8 +220,17 @@ final class Aai_Sklep_Kontrakt {
 			'level'        => self::poziom( $wejscie['level'] ?? null, $bledy ),
 		);
 
-		// Tablice sekcji i modułów podane = PEŁNA podmiana. Brak klucza znaczy
-		// „nie ruszaj" — warstwa zapisu rozumie to tak samo.
+		/*
+		 * BRAK KLUCZA ZNACZY „NIE RUSZAJ" — dla stanu kursu, sekcji i programu
+		 * tak samo, i tak samo rozumie to warstwa zapisu (sprawdzone
+		 * uruchomieniowo w przeglądzie W4; wcześniej brak klucza kasował).
+		 *
+		 * Stan kursu zmienia się osobną akcją z listy, więc formularz edytora
+		 * go NIE niesie: inaczej zapis ze starszej karty cofałby publikację.
+		 */
+		if ( array_key_exists( 'status', $wejscie ) ) {
+			$dane['status'] = self::z_listy( $wejscie['status'], self::STANY, 'status', 'Stan', $bledy );
+		}
 		if ( array_key_exists( 'sekcje', $wejscie ) ) {
 			$dane['sekcje'] = self::sekcje( $wejscie['sekcje'], $bledy );
 		}

@@ -83,6 +83,20 @@ odrzucił wgrywanie 2026-08-17 tylko dlatego, że nie miał gdzie trzymać plik�
 - **Zajęty adres (slug) wskazuje POLE, nie awarię.** Bez tego baza odrzucała
   zapis kluczem `UNIQUE`, a panel mówił „zapis się nie powiódł" — czyli
   o czymś zupełnie innym niż to, co trzeba poprawić.
+- **Brak klucza `sekcje`/`moduly` KASOWAŁ sekcje i program** (znalezione
+  w przeglądzie kroku, potwierdzone uruchomieniowo: „po utworzeniu: sekcji=1
+  moduly=1" → „po zapisie bez kluczy: sekcji=0 moduly=0"). Kontrakt i sam plik
+  warstwy zapisu obiecywały co innego — „brak klucza znaczy nie ruszaj" — więc
+  była to nieprawda w dokumentacji **o zachowaniu kasującym dane**. Panel
+  zawsze wysyła oba klucze, więc z zewnątrz nie było tego widać; usterka
+  czekała na pierwszego nowego klienta tej warstwy, czyli na synchronizację
+  do Tutora w W5.
+- **Zapis kursu ze starszej karty CICHO cofał publikację.** Formularz edytora
+  niósł stan kursu w polu ukrytym, a publikację klika się na LIŚCIE — więc
+  wystarczyło mieć edytor otwarty przed publikacją, żeby poprawka jednego
+  zdania wyrzuciła kurs z katalogu z komunikatem „zapisano". Potwierdzone
+  uruchomieniowo. Formularz nie niesie już stanu, a warstwa zapisu rozumie
+  brak tego klucza jako „zostaw, jak jest".
 
 ### Zmienione
 
@@ -124,10 +138,19 @@ odrzucił wgrywanie 2026-08-17 tylko dlatego, że nie miał gdzie trzymać plik�
 
 ### Stan dowodów
 
-Strażnicy **32/32**, audyt mutacyjny **129** (0 przeoczonych, 0 martwych),
-`smoke-wp-kreator` **92**, `smoke-wp-front` **78**, `smoke-wp-motyw` **32**,
+Strażnicy **32/32**, audyt mutacyjny **133** (0 przeoczonych, 0 martwych),
+`smoke-wp-kreator` **95**, `smoke-wp-front` **78**, `smoke-wp-motyw` **32**,
 `smoke-wp-dane` **30**, `wp:sprawdz` **73/73 co do znaku**, prototyp bez
 regresji (`npm run check`).
+
+Po napisaniu kroku wykonany został jego **przegląd** — pięć obszarów
+(bezpieczeństwo wysyłek, bezpieczeństwo danych, zgodność z kontraktem
+prototypu, zachowanie panelu, ucieczka znaków), każde znalezisko potwierdzone
+uruchomieniowo na żywej instalacji, zanim powstała naprawa. Dwa znaleziska
+realne (wyżej), trzy sprawdzenia bez zarzutu: zamiana pozycji modułów
+przechodzi przez dwufazowe przestawianie MySQL-a, treść z `<script>`
+i `onerror` jest uciekana i w panelu, i na stronie sprzedażowej, a odmowa
+skasowania napisanej treści liczy także lekcje z usuwanych modułów.
 
 ## [0.41.0] — 2026-08-25
 

@@ -22,14 +22,18 @@
  *   5. kontrakt treści lekcji zna wszystkie pola `TrescLekcji`
  *      i `MaterialLekcji` z prototypu — materiał kursu jest towarem, więc
  *      pole bez miejsca w panelu to dziura w produkcie,
- *   6. zapis kursu ROZRÓŻNIA brak klucza `content`/`materials` od pustej
- *      wartości — bez tego jeden zapis programu z panelu czyści prozę
- *      wszystkich lekcji i melduje sukces,
+ *   6. zapis kursu ROZRÓŻNIA BRAK KLUCZA od pustej wartości — dla treści
+ *      lekcji, materiałów, sekcji, programu I stanu kursu. Bez tego zapis
+ *      samych kolumn kursu kasuje sekcje i program, a zapis ze starszej
+ *      karty cofa publikację; jedno i drugie melduje sukces,
  *   7. treść pól sprawdzamy pytaniem „czy wolno to wydrukować", a nie
  *      funkcją od WYCHODZĄCYCH żądań (`wp_http_validate_url`) — BLAD-017:
  *      link do niekupionej jeszcze domeny znikał ze strony sprzedażowej,
  *   8. żaden szablon FRONTU nie dotyka treści lekcji — materiał czyta
- *      wyłącznie panel, za bramą uprawnień.
+ *      wyłącznie panel, za bramą uprawnień,
+ *   9. formularz edytora kursu NIE niesie stanu kursu — publikację klika się
+ *      na liście, a stan w formularzu cofałby ją przy zapisie ze starszej
+ *      karty (cicha utrata decyzji właściciela).
  *
  * Użycie: node tools/straznicy/straznik-kreatora-wp.mjs
  */
@@ -274,6 +278,7 @@ if (!existsSync(join(WTYCZKA, PLIK_KONTRAKTU))) {
 
 if (existsSync(join(WTYCZKA, PLIK_ZAPISU))) {
   const zrodlo = kod(czytaj(PLIK_ZAPISU));
+
   for (const kolumna of ["content", "materials"]) {
     const rozroznia = new RegExp(`array_key_exists\\(\\s*'${kolumna}'\\s*,\\s*\\$l\\s*\\)`).test(zrodlo);
     if (!rozroznia) {
@@ -281,6 +286,37 @@ if (existsSync(join(WTYCZKA, PLIK_ZAPISU))) {
         `${PLIK_ZAPISU}: budowanie lekcji docelowej nie rozróżnia BRAKU klucza „${kolumna}" od pustej wartości. Kreator wysyła sam spis treści (tytuły, kolejność, czasy) — jeśli brak klucza znaczy pustkę, pierwsze „Zapisz kurs" wyczyści prozę wszystkich lekcji i zamelduje sukces.`
       );
     }
+  }
+
+  /*
+   * To samo pytanie o CAŁE gałęzie kursu. Do przeglądu W4 brak klucza
+   * `sekcje`/`moduly` znaczył pustkę, więc zapis samych kolumn kursu kasował
+   * sekcje i program — a `status` bez tej reguły cofał publikację przy
+   * zapisie z formularza otwartego przed nią. Wszystkie trzy melduły sukces.
+   */
+  for (const [klucz, skutek] of [
+    ["sekcje", "zapis samych kolumn kursu skasuje WSZYSTKIE sekcje sprzedażowe"],
+    ["moduly", "zapis samych kolumn kursu skasuje CAŁY program razem z treścią lekcji"],
+    ["status", "zapis z formularza otwartego przed publikacją CICHO cofnie publikację — kurs wypadnie z katalogu"],
+  ]) {
+    const rozroznia = new RegExp(`array_key_exists\\(\\s*'${klucz}'\\s*,\\s*\\$kurs\\s*\\)`).test(zrodlo);
+    if (!rozroznia) {
+      bledy.push(
+        `${PLIK_ZAPISU}: zapis kursu nie rozróżnia BRAKU klucza „${klucz}" od pustej wartości — ${skutek}, a odpowiedź będzie brzmiała „zapisano".`
+      );
+    }
+  }
+}
+
+/* ————————————————— 9. formularz edytora nie niesie stanu kursu ————————————————— */
+
+const SZABLON_KURSU = "szablony/panel/kurs.php";
+if (existsSync(join(WTYCZKA, SZABLON_KURSU))) {
+  const zrodlo = kod(czytaj(SZABLON_KURSU));
+  if (/name="status"/.test(zrodlo)) {
+    bledy.push(
+      `${SZABLON_KURSU}: formularz edytora niesie stan kursu (name="status"). Publikację klika się na LIŚCIE, więc formularz otwarty przed nią miałby w tym polu wartość sprzed publikacji — i zapis poprawki jednego zdania CICHO cofnąłby publikację. Stan zmienia osobna akcja; warstwa zapisu rozumie brak tego klucza jako „zostaw, jak jest".`
+    );
   }
 }
 
@@ -326,5 +362,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-kreatora-wp: kontrakt sekcji pokrywa prototyp, każde pole ma etykietę, rodzaje wchodzą do panelu, akcje mają nonce i uprawnienie, treść lekcji ma opis, zapis programu nie kasuje prozy, adresy sprawdzane bez DNS-u, front nie dotyka materiału."
+  "straznik-kreatora-wp: kontrakt sekcji pokrywa prototyp, każde pole ma etykietę, rodzaje wchodzą do panelu, akcje mają nonce i uprawnienie, treść lekcji ma opis, brak klucza znaczy „nie ruszaj” (treść, materiały, sekcje, program, stan), adresy sprawdzane bez DNS-u, front nie dotyka materiału, formularz nie niesie stanu kursu."
 );

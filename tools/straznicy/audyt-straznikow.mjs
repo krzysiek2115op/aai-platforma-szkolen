@@ -1352,6 +1352,58 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-kreatora-wp",
+    opis: "zapis samych kolumn kursu zaczyna kasować SEKCJE (brak klucza brany za pustkę)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    zmien: (s) =>
+      s.includes("$zmieniamy_sekcje = array_key_exists( 'sekcje', $kurs )")
+        ? s.replace(
+            "$zmieniamy_sekcje = array_key_exists( 'sekcje', $kurs ) && null !== $kurs['sekcje'];",
+            "$zmieniamy_sekcje = true;"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "zapis samych kolumn kursu zaczyna kasować PROGRAM razem z treścią lekcji",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    zmien: (s) =>
+      s.includes("$zmieniamy_program = array_key_exists( 'moduly', $kurs )")
+        ? s.replace(
+            "$zmieniamy_program = array_key_exists( 'moduly', $kurs ) && null !== $kurs['moduly'];",
+            "$zmieniamy_program = true;"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "zapis kursu znów nadpisuje STAN (zapis ze starszej karty cofa publikację)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    zmien: (s) =>
+      s.includes("if ( array_key_exists( 'status', $kurs ) ) {")
+        ? s.replace(
+            "if ( array_key_exists( 'status', $kurs ) ) {",
+            "if ( true ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "formularz edytora znów niesie stan kursu (pole ukryte name=\"status\")",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/panel/kurs.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/panel/kurs.php"),
+    zmien: (s) =>
+      s.includes('<input type="hidden" name="type"')
+        ? s.replace(
+            '<input type="hidden" name="type"',
+            '<input type="hidden" name="status" value="draft" />\n\t\t<input type="hidden" name="type"'
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
     opis:
       "KONTRPRZYKŁAD: wzmianka o wp_http_validate_url w KOMENTARZU (wyjaśnienie BLAD-017) to proza, nie kod",
     plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-pola.php",

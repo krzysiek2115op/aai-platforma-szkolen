@@ -75,7 +75,6 @@ final class Aai_Sklep_Panel_Akcje {
 			'slug'         => self::tekst( 'slug' ),
 			'title'        => self::tekst( 'title' ),
 			'type'         => self::tekst( 'type' ),
-			'status'       => self::tekst( 'status' ),
 			'short_desc'   => self::tekst( 'short_desc' ),
 			'cover_url'    => self::tekst( 'cover_url' ),
 			'badge'        => self::tekst( 'badge' ),

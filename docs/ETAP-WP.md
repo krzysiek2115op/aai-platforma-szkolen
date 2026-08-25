@@ -610,6 +610,39 @@ wyłącznie importem z Postgresa komendą wiersza poleceń.
   „zapisz → odczytaj" jest **generowana z opisu pól** (`wp aai-sklep opis
   --format=json`), więc pole dopisane do kontraktu samo wchodzi do próby.
 
+### Przegląd kroku — dwa znaleziska, oba potwierdzone uruchomieniowo
+
+Po napisaniu W4 wykonany został jego przegląd: pięć obszarów (bezpieczeństwo
+wysyłek, bezpieczeństwo danych, zgodność z kontraktem prototypu, zachowanie
+panelu, ucieczka znaków), każde znalezisko sprawdzone **na żywej instalacji
+zanim powstała naprawa**.
+
+**Znalezisko 1 — brak klucza `sekcje`/`moduly` KASOWAŁ te gałęzie.** Kontrakt
+i sam plik warstwy zapisu obiecywały „brak klucza znaczy nie ruszaj", a kod
+robił coś przeciwnego. Dowód: kurs z jedną sekcją i jednym modułem, potem
+`zapisz_kurs()` z samymi kolumnami kursu → `sekcji=0 moduly=0`. Panel zawsze
+wysyła oba klucze, więc z zewnątrz nie było tego widać — **usterka czekała na
+pierwszego nowego klienta tej warstwy, czyli na synchronizację do Tutora
+w W5**. To najgorszy możliwy układ: nieprawda w dokumentacji o zachowaniu,
+które kasuje dane.
+
+**Znalezisko 2 — zapis kursu ze starszej karty CICHO cofał publikację.**
+Formularz edytora niósł stan kursu w polu ukrytym, a publikację klika się
+na LIŚCIE. Wystarczyło mieć edytor otwarty przed publikacją, żeby poprawka
+jednego zdania wyrzuciła kurs z katalogu — z komunikatem „zapisano".
+
+**Reguła, która z tego wyszła i obowiązuje w całej warstwie zapisu: BRAK
+KLUCZA ZNACZY „NIE RUSZAJ"** — dla treści lekcji, materiałów, sekcji,
+programu i stanu kursu. Pięć kluczy, pięć sprawdzeń w `straznik-kreatora-wp`,
+mutacja na każdy.
+
+**Trzy rzeczy sprawdzone i bez zarzutu** (nie ma po co szukać ich drugi raz):
+zamiana pozycji dwóch modułów przechodzi przez dwufazowe przestawianie
+wymuszone brakiem odroczonych ograniczeń w MySQL-u; treść sekcji z `<script>`
+i `onerror` jest uciekana zarówno w panelu, jak i na stronie sprzedażowej;
+odmowa skasowania napisanej treści liczy także lekcje z modułów usuwanych
+w tym samym zapisie.
+
 ### Czego W4 celowo NIE ruszył
 
 - **Widok lekcji i szablony Tutora** → W5. Wygląd leży gotowy
@@ -618,6 +651,27 @@ wyłącznie importem z Postgresa komendą wiersza poleceń.
   rozjeżdżają się po każdej zmianie w kreatorze; to jest główne ryzyko tej
   architektury i ma je domknąć strażnik zgodności.
 - **Zakup i cena w WooCommerce** → Plugin 2, po decyzji, GDZIE MIESZKA CENA.
+
+### Co widać w Tutorze po W4 — materiał wejściowy do W5
+
+Właściciel pokazał 2026-08-25 zrzutami stan kopii w Tutorze (kokpit →
+**Tutor LMS → Courses** oraz Course Builder kursu o Claude). Fakty do
+zaadresowania w W5:
+
+- **struktura jest**: „Topic: 6 · Lesson: 41" przy kursie o Claude i
+  „Topic: 6 · Lesson: 32" przy GitHubie — czyli zgodnie z naszymi tabelami;
+- **opis kursu w Tutorze jest PUSTY** (pole *Description* w Course Builderze),
+  bo nasza treść sprzedażowa jedzie do `_aai_sekcje`, a nie do treści wpisu;
+- **brak miniatury** (*Featured Image*) — `cover_url` nie jest przenoszony do
+  biblioteki mediów;
+- **cena: `Free`** — `price_grosze` nie jedzie do Tutora ani do Woo; to
+  należy do Pluginu 2 i wisi na decyzji „gdzie mieszka cena";
+- kurs w Tutorze siedzi pod `/courses/<slug>/`, który **od W3 oddaje 301** na
+  nasz adres — czyli klient tej strony nie zobaczy, a builder Tutora zostaje
+  narzędziem technicznym, nie produktem.
+
+To jest lista rzeczy, które synchronizacja z W5 ma albo uzupełnić, albo
+świadomie zostawić pustymi (z uzasadnieniem w kodzie).
 
 ## Plugin 2 — co to znaczy „płatności" (doprecyzowanie 2026-08-25)
 
