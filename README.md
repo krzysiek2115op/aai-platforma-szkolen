@@ -46,8 +46,8 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.38.0** |
-| **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). Trwa **etap WordPressa** ([decyzje i plan](docs/ETAP-WP.md)): krok W1 zrobiony — środowisko `wordpress/srodowisko/` (WP+motyw+Tutor+Woo na `:8892`), wtyczka `aai-sklep` z tabelami i higieną zasobów. Następny: **W2 — import treści kursów do tabel wtyczki** |
+| **Wersja** | **0.39.0** |
+| **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). Trwa **etap WordPressa** ([decyzje i plan](docs/ETAP-WP.md)): kroki W1–W2 zrobione — środowisko `wordpress/srodowisko/` (WP+motyw+Tutor+Woo na `:8892`), wtyczka `aai-sklep` z tabelami, warstwą zapisu i importem obu kursów (**73 lekcje zgodne co do znaku**, idempotencja potwierdzona). Następny: **W3 — `/szkolenia` z tabel wtyczki** |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `main` — wrócił nią 2026-08-25 razem ze scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0`). Do tego dnia domyślną była `plugin-1-sklep-kursow`, bo `main` stał celowo na 0.3.4 ([PLAN.md §5](docs/PLAN.md): moduł wchodzi na gałąź główną po ukończeniu i akceptacji całości). Gałąź modułu zostaje jako historia — jej drzewo jest identyczne z `main` |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
@@ -138,6 +138,10 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run db1:migruj` | doprowadź schemat bazy do aktualnego stanu (sha256 w `_migracje`) |
 | `npm run db1:seed` | odtwórz oba kursy od zera: program (lustro bazy) + sekcje sprzedażowe. **UWAGA: najpierw KASUJE kursy o tych slugach**, czyli razem z prozą 73 lekcji — po nim trzeba wgrać treść `npm run db1:tresc` |
 | `npm run db1:tresc` | wgraj prozę lekcji z `tresc-kursow/**/proza-*.md` do bazy — drogą kreatora (jedyny AJAX); `-- --sprawdz` sam sprawdza, nic nie wysyła |
+| `npm run wp:eksport` | zrzuć oba kursy z Postgresa do `eksport-wp/kursy.json` (format 2: nazwa pola = nazwa kolumny) |
+| `npm run wp:import` | przenieś kursy do tabel wtyczki WordPressa: eksport → kopia do kontenera → `wp aai-sklep import`. **Jedna komenda dla człowieka i dla skryptu** — rozjazd tych dwóch dróg kosztował nas już wydanie (0.24.0, BLAD-012) |
+| `npm run wp:sprawdz` | czy obie bazy niosą tę samą treść? — porównuje Postgres z MySQL wtyczki, lekcja po lekcji (`sha256`), i kończy się kodem wyjścia |
+| `npm run smoke:wp` | czy warstwa zapisu wtyczki znosi przestawianie kolejności, przenoszenie lekcji między modułami i odmawia skasowania napisanej treści? (wymaga `wordpress/srodowisko/postaw.sh`; poza CI — tam nie ma podmana) |
 
 > [!NOTE]
 > **Baza nie jest źródłem prawdy — jest kopią roboczą, z której renderuje
@@ -181,7 +185,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 107 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 109 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie
@@ -215,7 +219,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-readme` | pre-commit + CI | README kłamiące o stanie repo: strażnik bez wiersza w tabeli (i martwe wiersze), skrypt npm poza sekcją „Skrypty", zła liczba scenariuszy, kotwica spisu treści donikąd — złapał własną nieobecność w tej tabeli przy pierwszym uruchomieniu |
 | `straznik-wagi-dokumentacji` | pre-commit + CI | masa dokumentacji producentów (55 MB, ~2200 plików) wpuszczona do gita — także przez `git add -f`; git trzyma każdą wersję na stałe, więc pomyłka jest nieodwracalna |
 | `straznik-tresci-lekcji` | pre-commit + CI | materiał kursu wychodzący zza bramki: wspólny odczyt strony wybierający z lekcji `content`/`materials` (wyciek treści 91 lekcji do publicznego HTML-a katalogu i strony sprzedażowej) albo kontrakt `LekcjaKursu` z polem treści; pełny tekst oddaje wyłącznie `trescLekcji()` |
-| `straznik-wtyczki-wp` | pre-commit + CI | wtyczka WordPressa bez ochron, których brak nie objawia się błędem: plik PHP wykonywalny wprost z przeglądarki (bez `ABSPATH`), nazwa tabeli wklepana na sztywno zamiast jednego źródła, odinstalowanie kasujące treść kursów bez jawnej zgody, zapytanie sklejające dane z SQL-em, kolumna treści jako `text` (65 kB — MySQL utnie dłuższą lekcję w milczeniu) |
+| `straznik-wtyczki-wp` | pre-commit + CI | wtyczka WordPressa bez ochron, których brak nie objawia się błędem: plik PHP wykonywalny wprost z przeglądarki (bez `ABSPATH`), nazwa tabeli wklepana na sztywno zamiast jednego źródła, odinstalowanie kasujące treść kursów bez jawnej zgody, WARTOŚĆ wklejona do SQL-a zamiast przez `prepare()` (nazwę tabeli wolno — to identyfikator z kodu), kolumna treści jako `text` (65 kB — MySQL utnie dłuższą lekcję w milczeniu) oraz **zapis do naszych tabel z pominięciem warstwy zapisu** — tam mieszkają transakcja, dziennik audytu i odmowa skasowania napisanych lekcji, a zapis obok nich niczego nie zgłasza |
 | `straznik-prozy` | pre-commit + CI | proza lekcji dla klienta (`tresc-kursow/**/proza-*.md`) bez kompletnego frontmatteru zgodnego ze ścieżką, bez tabeli „Zgodność ze źródłem" o wymaganej głębokości, poza limitami kontraktu `TrescLekcji`, bez odpowiadającego jej scenariusza, ze znacznikami nagrania (`[EKRAN]`, `[NARRACJA]`) zamiast tekstu, z niedomkniętym znacznikiem `<!-- ZRZUT: … -->` albo ze śmieciami po zapisie pliku (BLAD-008) |
 | `straznik-asercji` | pre-commit + CI | zrzut kursu bez maszynowej asercji treści: specyfikacja w `tools/zrzuty/spec/` bez niepustego `wymagaTekstu` albo z wyjściem poza `tresc-kursow/**/zrzuty/*.webp`, porównanie z `asercje.mjs` przepuszczające fragment nieobecny na ekranie (albo odrzucające zdanie pocięte ramką panelu), narzędzie zrzutu ruszające mimo braku asercji i asercja postawiona ZA zapisem obrazu — „zrzut powstał" ma znaczyć „zrzut zawiera to, co obiecuje podpis" |
 | `straznik-progow` | pre-commit + CI | liczba w tabeli pomiarów wpisana „na oko": każda ocena w README musi zgadzać się co do jednostki z `goldeny/pomiary-lighthouse.json`, golden musi mieć metryczkę (narzędzie, data, adres, liczba przebiegów) i co najmniej 5 przebiegów, a wiersz tabeli i wpis w goldenie muszą istnieć oba naraz — wynik, który zniknął z dokumentacji, jest tak samo groźny jak zmyślony |

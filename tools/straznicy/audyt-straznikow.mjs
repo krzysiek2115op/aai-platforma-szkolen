@@ -1088,6 +1088,34 @@ const MUTACJE = [
         : null,
   },
   {
+    straznik: "straznik-wtyczki-wp",
+    opis: "zapis do naszych tabel omija warstwę zapisu (bez transakcji, bez audytu, bez pytania o treść)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-cli.php",
+    wymaga: () =>
+      existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    zmien: (s) =>
+      s.includes("$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol );")
+        ? s.replace(
+            "$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol );",
+            "global $wpdb;\n\t\t\t$wpdb->delete( Aai_Sklep_Tabele::tabela( 'courses' ), array( 'id' => $id ) );\n\t\t\t$liczniki = array( 'usuniete' => 1 );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "wartość wklejona wprost do SQL-a zamiast przez prepare (nazwa tabeli wolno, wartość nie)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-raport.php",
+    wymaga: () =>
+      existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-raport.php"),
+    zmien: (s) =>
+      s.includes('$wpdb->prepare( "SELECT id FROM `$t_kursy` WHERE slug = %s", $slug )')
+        ? s.replace(
+            '$wpdb->prepare( "SELECT id FROM `$t_kursy` WHERE slug = %s", $slug )',
+            '"SELECT id FROM `$t_kursy` WHERE slug = \'$slug\'"'
+          )
+        : null,
+  },
+  {
     straznik: "straznik-tresci-lekcji",
     opis: "zgoda na skasowanie treści wypada z KONTRAKTU (zostaje umową panelu z dyspozytorem)",
     plik: "modules/m1-sklep/typy.ts",

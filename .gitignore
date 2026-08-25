@@ -46,6 +46,15 @@ docs/dokumentacja-techniczna/wordpress/*
 !docs/dokumentacja-techniczna/wordpress/ZRODLA.md
 !docs/dokumentacja-techniczna/wordpress/cytowane/
 
+# wyjście eksportu do WordPressa — artefakt, nie źródło
+#
+# `tools/eksport-wp.mjs` odtwarza ten plik z bazy jedną komendą, a waży
+# 1,3 MB i zmienia się przy każdej poprawce treści. Trzymanie go w repo
+# dawałoby drugą kopię kursów obok bazy i plików prozy — dokładnie ten
+# rozjazd, którego pilnujemy gdzie indziej. Poza tym `deploy:podglad`
+# wymaga czystego drzewa, a nieśledzony katalog by je brudził.
+eksport-wp/
+
 # systemowe / edytor
 .DS_Store
 *.log

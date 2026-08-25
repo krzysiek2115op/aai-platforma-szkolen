@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -25,6 +25,10 @@ sprzedaż i faktury bierze WooCommerce, konta i dostęp do materiału Tutor LMS.
 * WooCommerce i Tutor LMS — dopiero przy sprzedaży i dostępie do materiału
 
 == Changelog ==
+
+= 0.2.0 =
+* Warstwa zapisu (transakcje, dziennik audytu, ochrona napisanej treści)
+  i import kursów z prototypu: `wp aai-sklep import|sprawdz|usun`.
 
 = 0.1.0 =
 * Szkielet wtyczki i schemat tabel (port bazy `db1_kursy` z prototypu Next.js).

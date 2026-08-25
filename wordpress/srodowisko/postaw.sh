@@ -161,6 +161,19 @@ fi
 # --- 8. nasza wtyczka ------------------------------------------------------
 
 if [ -f ../wtyczki/aai-sklep/aai-sklep.php ]; then
+  # Pytamy KONTENER, czy widzi wtyczkę — nie dysk.
+  #
+  # Bind mount trzyma INODE katalogu, więc kiedy katalog zostanie na dysku
+  # odtworzony po starcie kontenera (przełączenie gałęzi, przeniesienie,
+  # `git clean`), kontener widzi w tym miejscu pustkę. Na dysku plik jest,
+  # `podman inspect` pokazuje poprawną ścieżkę, a WordPress po prostu
+  # przestaje znać wtyczkę — objaw wygląda na błąd wtyczki, nie montażu.
+  # Bez tego sprawdzenia następną linią leci `wp plugin activate`, które
+  # mówi tylko „The 'aai-sklep' plugin could not be found".
+  podman exec "${STACK}_cli" \
+    test -f /var/www/html/wp-content/plugins/aai-sklep/aai-sklep.php \
+    || blad "kontener nie widzi wtyczki aai-sklep, choć na dysku ona jest — martwy bind mount (katalog odtworzony po starcie kontenera). Napraw: podman-compose down && ./postaw.sh"
+
   if [ "$(wpcli plugin get aai-sklep --field=status 2>/dev/null || echo brak)" != "active" ]; then
     komunikat "Włączam wtyczkę aai-sklep"
     wpcli plugin activate aai-sklep

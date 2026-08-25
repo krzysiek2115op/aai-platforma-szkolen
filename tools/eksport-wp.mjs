@@ -6,13 +6,23 @@
  * dwa kursy, 6+6 modułów, 73 lekcje prozy i 12 rodzajów sekcji sprzedażowych
  * to dorobek, którego nikt nie odtworzy ręcznie.
  *
- * DLACZEGO JSON, A NIE SQL. Zrzut SQL wiąże się z prefiksem tabel, kolejnością
- * ID i wersją silnika — przy pierwszej rozbieżności import wysypuje się w środku
- * i zostawia bazę w połowie. JSON jest formatem pośrednim: czyta go
- * `wordpress/import-kursy.php` przez WP-CLI i wykłada dane FUNKCJAMI WordPressa
- * (`wp_insert_post`, `update_post_meta`), więc WP sam nadaje ID, sam dba
- * o rewizje i sam waliduje. Ten sam wzorzec ma repo strony głównej dla wpisów
- * bloga (`wordpress/skrypty/import-blog.php`) — sprawdzony na produkcji.
+ * TEN PLIK ODDAJE WIERNY ZRZUT NASZYCH TABEL — i nic ponadto (format 2).
+ * Nazwa każdego pola jest nazwą KOLUMNY, tej samej w Postgresie prototypu
+ * i w MySQL wtyczki. Dzięki temu import nie mapuje niczego: kładzie wiersz
+ * na wiersz, a cała klasa błędów „pole wyjechało pod inną nazwą" znika.
+ *
+ * DWIE DROGI, KTÓRE Z TEGO PLIKU WYCHODZĄ (decyzja właściciela 2026-08-25):
+ *
+ *   1. Postgres → NASZE tabele `wp_aai_sklep_*` (`wp aai-sklep import`)
+ *      — to jest ŹRÓDŁO PRAWDY o kursie w docelowej instalacji.
+ *   2. Postgres → Tutor LMS (`wordpress/import-kursy.php`)
+ *      — kopia dla LMS-a, który dostarcza materiał za logowaniem.
+ *
+ * Słowniki Tutora (status posta, poziom kursu, cztery sekcje, które Tutor ma
+ * u siebie) mieszkają po stronie PHP, w importerze, który ich używa. Wiedza
+ * o cudzej wtyczce nie należy do eksportu z naszej bazy, a przy W5 — kiedy
+ * kopię do Tutora będzie robiła nasza wtyczka — te mapy idą do jej klasy,
+ * nie do skryptu w JavaScripcie.
  *
  * SKĄD BIERZE DANE. Wyłącznie z publicznego API modułu (`modules/m1-sklep`),
  * nigdy po surowym SQL — tego pilnuje `straznik-granic`, a przy okazji dostajemy
@@ -43,43 +53,13 @@ const tylkoSprawdz = args.includes("--sprawdz");
 const katalog = resolve(args[args.indexOf("--do") + 1] ?? "eksport-wp");
 
 /**
- * Mapa naszych rodzajów sekcji na pola, które Tutor LMS rozumie natywnie.
+ * Wersja formatu. Podbicie znaczy, że importer musi wiedzieć o zmianie —
+ * dlatego oba importery odrzucają nieznaną wersję zamiast zgadywać.
  *
- * Tutor pokrywa CZTERY z naszych dwunastu sekcji własnymi kluczami meta
- * (sprawdzone w kodzie wtyczki 4.0.6, nie zgadnięte). Reszta — hero, faq,
- * gwarancja, opinie, autor, problem, pozycjonowanie, transformacja,
- * porównanie — nie ma tam odpowiednika i należy do NASZEJ wtyczki: to jest
- * dokładnie ta część sklepu, której gotowy LMS nie robi.
- *
- * Wartość `null` znaczy „zostaje w naszej wtyczce", nie „do wyrzucenia".
+ * 1 → kształt pod Tutora (do 0.38.0),
+ * 2 → wierny zrzut naszych tabel.
  */
-const SEKCJA_NA_TUTOR = {
-  benefits: "_tutor_course_benefits",
-  for_whom: "_tutor_course_target_audience",
-  package: "_tutor_course_material_includes",
-  problem: "_tutor_course_requirements",
-  hero: null,
-  faq: null,
-  guarantee: null,
-  opinions: null,
-  author: null,
-  positioning: null,
-  transformation: null,
-  comparison: null,
-};
-
-/** Status kursu → status posta WP. Szkic nie może stać się publiczny przez pomyłkę. */
-const STATUS_NA_WP = { draft: "draft", published: "publish", archived: "private" };
-
-/**
- * Poziom kursu → wartość `_tutor_course_level`.
- * Tutor przyjmuje beginner/intermediate/expert/all_levels; nasze nazwy są polskie.
- */
-const POZIOM_NA_TUTOR = {
-  podstawowy: "beginner",
-  sredniozaawansowany: "intermediate",
-  zaawansowany: "expert",
-};
+const WERSJA_FORMATU = 2;
 
 const kursy = [];
 const ostrzezenia = [];
@@ -102,49 +82,40 @@ for (const karta of await listaKursowKreatora()) {
         ostrzezenia.push(`lekcja ${l.id} („${l.title}") deklaruje treść, a odczyt zwrócił pustkę`);
       }
       lekcje.push({
-        zrodlo_uuid: l.id,
-        pozycja: l.position,
-        tytul: l.title,
-        czas_min: l.duration_min,
-        zapowiedz: l.preview,
-        tresc: pelna?.tresc ?? "",
-        materialy: pelna?.materialy ?? [],
+        id: l.id,
+        position: l.position,
+        title: l.title,
+        duration_min: l.duration_min,
+        preview: l.preview,
+        content: pelna?.tresc ?? "",
+        // Kolumna nazywa się `materials` po obu stronach; odczyt oddaje ją
+        // pod polską nazwą, bo tak mówi kontrakt kreatora.
+        materials: pelna?.materialy ?? [],
       });
     }
     moduly.push({
-      zrodlo_uuid: m.id,
-      pozycja: m.position,
-      tytul: m.title,
-      opis: m.summary ?? "",
+      id: m.id,
+      position: m.position,
+      title: m.title,
+      summary: m.summary,
       lekcje,
     });
   }
 
-  const sekcje_tutor = {};
-  const sekcje_nasze = [];
-  for (const s of kurs.sections) {
-    const klucz = SEKCJA_NA_TUTOR[s.kind];
-    if (klucz) sekcje_tutor[klucz] = s.content;
-    else sekcje_nasze.push({ rodzaj: s.kind, tresc: s.content });
-  }
-
-  if (kurs.level && !POZIOM_NA_TUTOR[kurs.level]) {
-    ostrzezenia.push(`kurs ${kurs.slug}: poziom „${kurs.level}" nie ma odpowiednika w Tutorze`);
-  }
-
   kursy.push({
-    zrodlo_uuid: kurs.id,
+    id: kurs.id,
     slug: kurs.slug,
-    tytul: kurs.title,
-    typ: kurs.type,
-    zajawka: kurs.short_desc ?? "",
-    cena_grosze: kurs.price_grosze,
-    okladka_url: kurs.cover_url ?? "",
-    status_wp: STATUS_NA_WP[kurs.status] ?? "draft",
-    poziom_tutor: kurs.level ? POZIOM_NA_TUTOR[kurs.level] ?? "" : "",
-    badge: kurs.badge ?? "",
-    sekcje_tutor,
-    sekcje_nasze,
+    title: kurs.title,
+    type: kurs.type,
+    short_desc: kurs.short_desc,
+    price_grosze: kurs.price_grosze,
+    cover_url: kurs.cover_url,
+    status: kurs.status,
+    badge: kurs.badge,
+    level: kurs.level,
+    // Sekcja nie ma już pozycji (migracja 008): jeden rodzaj = jedna sekcja
+    // na kurs. Kolejność sekcji na stronie jest kompozycją widoku, nie daną.
+    sekcje: kurs.sections.map((s) => ({ id: s.id, kind: s.kind, content: s.content })),
     moduly,
   });
 }
@@ -153,17 +124,27 @@ const lekcjiRazem = kursy.reduce(
   (n, k) => n + k.moduly.reduce((m, mod) => m + mod.lekcje.length, 0),
   0
 );
+/**
+ * Znaki liczymy PUNKTAMI KODOWYMI (`[...s].length`), nie jednostkami UTF-16
+ * (`s.length`). Przy migracji 0.36.0 porównanie sum pokazało „utratę" 7 znaków,
+ * a byłoby to siedem emoji spoza BMP, które JavaScript liczy podwójnie.
+ * Ta liczba jedzie do raportu i do porównania z `CHAR_LENGTH()` MySQL-a,
+ * więc musi znaczyć to samo po obu stronach.
+ */
+const znakow = (s) => [...s].length;
 const znakowTresci = kursy.reduce(
-  (n, k) => n + k.moduly.reduce((m, mod) => m + mod.lekcje.reduce((z, l) => z + l.tresc.length, 0), 0),
+  (n, k) =>
+    n + k.moduly.reduce((m, mod) => m + mod.lekcje.reduce((z, l) => z + znakow(l.content), 0), 0),
   0
 );
 
 const paczka = {
   _o_pliku:
-    "Eksport treści Pluginu 1 do WordPressa. Wykłada go wordpress/import-kursy.php " +
-    "przez WP-CLI (idempotentnie, po kluczu zrodlo_uuid). Generowany przez " +
+    "Wierny zrzut tabel Pluginu 1 z Postgresa (format 2). Wykładają go: " +
+    "`wp aai-sklep import` do tabel wp_aai_sklep_* (źródło prawdy) oraz " +
+    "wordpress/import-kursy.php do Tutor LMS (kopia). Generowany przez " +
     "tools/eksport-wp.mjs — NIE edytować ręcznie.",
-  wersja_formatu: 1,
+  wersja_formatu: WERSJA_FORMATU,
   kursy,
 };
 
@@ -172,8 +153,7 @@ for (const k of kursy) {
   const lekcji = k.moduly.reduce((n, m) => n + m.lekcje.length, 0);
   console.log(
     `  ${k.slug}: ${k.moduly.length} modułów, ${lekcji} lekcji, ` +
-      `${Object.keys(k.sekcje_tutor).length} sekcji do Tutora, ${k.sekcje_nasze.length} do naszej wtyczki, ` +
-      `status ${k.status_wp}`
+      `${k.sekcje.length} sekcji, status ${k.status}`
   );
 }
 console.log(`lekcji razem: ${lekcjiRazem}, znaków treści: ${znakowTresci.toLocaleString("pl")}`);
