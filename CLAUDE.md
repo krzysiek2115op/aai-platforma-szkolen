@@ -1210,6 +1210,32 @@ wyprowadzała tego od nowa:
   którym przeglądarka oddaje `color-mix()` — jak `rgb()`, więc raportował
   15:1 jako 1,11:1; **zapisu, którego pomiar nie umie rozebrać, nie
   zgadujemy**, tylko wywalamy smoke.
+  **STAN GAŁĘZI: PR #70 OTWARTY, CZEKA NA DECYZJĘ WŁAŚCICIELA.** Gałąź
+  `feat/w3-front-wtyczki`, wersja 0.41.0. CI pada **2 sekundy po starcie,
+  z zerem kroków** — objaw wyczerpanych minut Actions (limit odnawia się
+  1 września), a nie awarii kodu; sprawdzone `gh run view`. Poprzednie
+  merge'e w tej samej sytuacji (0.30.0, 0.32.0, 0.37.0) szły na dowodach
+  lokalnych DECYZJĄ WŁAŚCICIELA — agent nie merguje sam.
+  **ODPOWIEDŹ NA PYTANIE WŁAŚCICIELA O ZAKUP (2026-08-25):** `/kontakt`
+  jest chwilowe, ale **własnej bramki płatności ani własnej kasy NIE
+  PISZEMY** — koszyk, kasę, płatności i faktury bierze WooCommerce, a sama
+  bramka (Tpay/PayU/P24/BLIK) to wtyczka do Woo. Plugin 2 jest SZWEM
+  (produkt Woo ↔ kurs, zapis do Tutora po opłacie, mail „Ustaw hasło",
+  przełączenie CTA i `PreOrder` → `InStock`). Pełnia razem z pytaniem
+  otwartym o to, GDZIE MIESZKA CENA (nasza tabela czy produkt Woo — dwie
+  kopie tej samej liczby): [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja
+  „Plugin 2 — co to znaczy »płatności«". **Decyzja o cenie ma zapaść PRZED
+  pisaniem Pluginu 2.**
+  **ZNALEZIONE PRZY W3, NIENAPRAWIONE ŚWIADOMIE (poza zakresem kroku):**
+  prototyp Next.js w dwóch miejscach obiecuje EBOOKI, choć właściciel
+  zamknął ten temat „na zawsze" 2026-08-25 — `app/layout.tsx:12`
+  i `app/szkolenia/widok.tsx:20` („Kursy i ebooki Automatic AI…"),
+  a kreator ma do wyboru typ `ebook`
+  (`components/kreator/FormularzKursu.tsx`). We wtyczce WP opis jest już
+  poprawny. Do rozstrzygnięcia: czy prostować prototyp (jest
+  specyfikacją wykonawczą, więc jego opisy trafią do kolejnych kroków),
+  czy zostawić i pilnować tylko wtyczki. `straznik-obietnic` tego NIE
+  łapie — czyta widoki kursów, nie metadane katalogu.
   **NASTĘPNY KROK: W4 — kreator w kokpicie.** Panel z D6
   (`app/szkolenia/kreator/*`) przeniesiony do kokpitu WordPressa: kurs,
   program, 12 rodzajów sekcji i treść lekcji, zapis WYŁĄCZNIE przez

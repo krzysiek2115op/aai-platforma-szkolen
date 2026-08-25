@@ -547,6 +547,49 @@ Tutora — pytał tylko o panel kursanta.
   („Sign In", „Keep me signed in"). To zadanie lokalizacyjne, nie wygląd;
   do zrobienia razem z W5 albo W6.
 
+## Plugin 2 — co to znaczy „płatności" (doprecyzowanie 2026-08-25)
+
+Pytanie właściciela po obejrzeniu W3: *przycisk „Dołączam za 299 zł" prowadzi
+teraz na `/kontakt` — to chwilowe? w Pluginie 2 dodamy podstronę bramki
+płatności?*
+
+**`/kontakt` jest chwilowe. Własnej bramki ani własnej kasy NIE PISZEMY.**
+
+Wynika to wprost z podziału odpowiedzialności ustalonego 2026-08-19 i
+potwierdzonego 2026-08-25: **WooCommerce** bierze koszyk, kasę, płatności
+i faktury (ma własne podstrony `/koszyk/`, `/zamowienie/`), a sama bramka
+(Tpay/PayU/Przelewy24/BLIK) to **wtyczka do WooCommerce**, nie nasz kod.
+Napisanie własnej kasy dublowałoby to, co tamte mają z pudełka, i wciągałoby
+nas w zgodność z przepisami o obsłudze płatności.
+
+**Plugin 2 jest SZWEM, nie sklepem.** Cztery rzeczy:
+
+| # | Zakres |
+|---|---|
+| 1 | powiązanie kursu z naszych tabel z produktem WooCommerce |
+| 2 | po opłaconym zamówieniu — zapis kupującego na kurs w Tutor LMS |
+| 3 | mail „Ustaw hasło i wejdź do kursu" (link jednorazowy, NIE hasło w treści) |
+| 4 | przełączenie CTA z `/kontakt` na koszyk oraz `Offer.availability` `PreOrder` → `InStock` |
+
+Punkt 4 pilnuje dziś `smoke-wp-front`: dopóki zakup jest placeholderem, dane
+strukturalne mają mówić `PreOrder`. Zmiana na `InStock` należy do tego samego
+kroku, w którym ruszy koszyk — nie wcześniej.
+
+### Pytanie otwarte przed Pluginem 2: gdzie mieszka CENA
+
+Dziś `price_grosze` jest w naszej tabeli `courses`. Produkt WooCommerce będzie
+miał własną cenę. To **dwie kopie tej samej liczby**, czyli dokładnie ta klasa
+ryzyka, którą znamy z pary „nasze tabele ↔ Tutor" (ETAP-WP.md wyżej: rozjazd
+dwóch kopii to główne ryzyko tej architektury). Dwie drogi:
+
+- **nasze tabele są źródłem, cena idzie do Woo przy publikacji** — spójne
+  z resztą architektury i z kreatorem, ale wymaga strażnika zgodności;
+- **cenę oddajemy WooCommerce** — jedno miejsce prawdy o pieniądzach
+  (promocje, kupony, podatki są i tak Woo), ale kreator przestaje o niej
+  decydować, a katalog musi ją czytać z produktu.
+
+**Decyzja należy do właściciela i ma zapaść PRZED pisaniem Pluginu 2.**
+
 ## Następne kroki
 
 1. ~~Poprosić kolegę o katalog motywu~~ **NIEAKTUALNE 2026-08-20** —
