@@ -800,6 +800,74 @@ składnię obrazu i bez tego narzędzie stawało na pliku, którego nikt nie two
   `app/szkolenia/widok.tsx:20`, typ `ebook` w kreatorze) — znalezione przy W3,
   dalej do rozstrzygnięcia.
 
+## Krok W6 ZALICZONY (2026-08-25, wersja 0.45.0) — wtyczka `aai-sklep` skończona
+
+Test ręczny właściciela przeszedł **wszystkie cztery ścieżki**: gość, klient
+po zakupie, właściciel w kreatorze, motyw nietknięty. Scenariusz i tabela
+rzeczy poza zakresem: [plugin-1/W6-TEST-RECZNY.md](plugin-1/W6-TEST-RECZNY.md).
+PR #75 zmergowany do `main`, tag `v0.45.0` + release; artefakt zweryfikowany
+(`git diff` między `main` a szczytem gałęzi PUSTY). CI stoi do 1 września —
+**2118 minut Actions przy limicie 2000**, wszystkie zadania padają w 2 s
+z zerem kroków; merge decyzją właściciela na dowodach lokalnych, po powrocie
+CI potwierdzić **gitleaks**.
+
+### Co zmienił test — pięć zgłoszeń właściciela
+
+1. **Klient nie miał JAK trafić do kupionego kursu** → nasza
+   `/szkolenia/moje/` (kafelki z paskiem postępu i przyciskiem do pierwszej
+   nieodhaczonej lekcji), `/dashboard/*` → 302 na nas, pozycja w menu tylko
+   dla zalogowanego z kursem, `noindex`. **Postępu nie liczymy sami** — pyta
+   o niego Tutor (`is_completed_lesson`), inaczej mielibyśmy drugą kopię tej
+   samej prawdy.
+2. **Strony konta WooCommerce bez stylów** → `Aai_Sklep_Styl_Woo`
+   + `woo-motyw.css`, bliźniak warstwy Tutora. Ta sama klasa co 0.38.0/0.40.0
+   (warstwy kaskady Tailwinda). Obejmie też koszyk i kasę z Pluginu 2.
+3. **Cztery lekcje otwierają się bez logowania** — NIE wyciek: mają
+   `preview = 1`. **Decyzja właściciela: zostają wszystkie cztery.**
+4. **Strzałka „wróć" odsyłała KUPUJĄCEGO na cennik** → dwie postacie; pytamy
+   Tutora o ZAPIS, nie o `dostep` (ten jest prawdziwy także dla zapowiedzi
+   i administratora).
+5. **Menu konta Woo nie prowadziło do kursów** → „Moje kursy" pierwszą
+   pozycją (`woocommerce_get_endpoint_url`, bo nasza strona nie jest
+   endpointem konta).
+
+### Cztery błędy z rejestru — i czego uczą na dalej
+
+- **BLAD-019: zwykły zapis w kreatorze przemianowywał WSZYSTKIE moduły
+  kursu**, nadając każdemu tytuł jego OSTATNIEJ lekcji. Kontrolki panelu nie
+  mają atrybutu `name` (`max_input_vars` ucina POST w milczeniu przy 41
+  lekcjach), więc wysyłkę składa `assets/panel.js` — a jego zakres zbierania
+  pól nie uznawał wiersza lekcji za granicę. **Lekcja: `smoke-wp-kreator`
+  wysyła gotowy JSON POST-em, więc CAŁA warstwa JS panelu była do tej wersji
+  poza zasięgiem pomiaru.** Stąd nowy `npm run smoke:wp-panel`.
+- **BLAD-020: zapis, przy którym niczego nie dotknięto, meldował „Kurs
+  zapisany"** i puchł dziennik zmian. `Aai_Sklep_Zapis::json()` obiecywał
+  w nagłówku „JSON o STAŁYM kształcie", a robił samo `wp_json_encode()`,
+  które zachowuje kolejność kluczy. **Lekcja: gdy porównanie »czy się
+  zmieniło« działa na łańcuchu, kolejność kluczy MUSI być kanoniczna** —
+  inaczej dwaj pisarze tej samej treści widzą się nawzajem jako zmianę.
+- **BLAD-021: kurs o slugu `moje` wchodził do katalogu, ale nie miał strony
+  sprzedażowej.** Reguła naszej podstrony jest sprawdzana przed regułą slugu.
+  **To rośnie z każdą podstroną sklepu — koszyk, kasa i podziękowanie
+  z Pluginu 2 zabiorą kolejne slugi**, więc nowa podstrona MUSI wejść do
+  `Aai_Sklep_Trasy::PODSTRONY` (jedno źródło reguł, widoków i slugów
+  zakazanych), a nie dostać własnego `add_rewrite_rule`.
+- **BLAD-022: cały blok „złe wejście" w naszym własnym smoke'u był ŚLEPY** —
+  sześć sprawdzeń przechodziło z jednego wspólnego powodu (żądanie nie niosło
+  `sekcje`/`moduly`, a warstwa akcji zamieniała „nie przysłano" na `null`,
+  odrzucany jako zły kształt). **Lekcja podwójna: (a) wysyłka w teście złego
+  wejścia musi być POZA jednym błędem poprawna, (b) »nie przysłano« nie wolno
+  tłumaczyć na `null`, bo zrywa to łańcuch »brak klucza znaczy nie ruszaj«.**
+
+### Dwie pułapki pomiaru z tego kroku
+
+- **Test negatywny trzeba puszczać na ZDROWYCH danych.** Przy BLAD-019 na
+  danych już zepsutych tytuł modułu równa się tytułowi ostatniej lekcji, więc
+  zapis niczego nie zmienia i pomiar przechodzi fałszywie.
+- **Test negatywny do nowego sprawdzenia potrafi wykryć ślepotę STAREGO** —
+  tak wyszedł BLAD-022. Warto patrzeć nie tylko na to, czy coś padło, ale ile
+  i które: „1 z 96" mówi, że sprawdzenie trafia w swój przypadek i tylko w niego.
+
 ## Plugin 2 — co to znaczy „płatności" (doprecyzowanie 2026-08-25)
 
 Pytanie właściciela po obejrzeniu W3: *przycisk „Dołączam za 299 zł" prowadzi
@@ -863,10 +931,14 @@ dwóch kopii to główne ryzyko tej architektury). Dwie drogi:
    (`/home/krzysiek/mp-test-env/wp-tutor/`, `podman start tutor-db tutor-wp`,
    `http://localhost:8091`), Kurs 2 w środku, pomiary wyżej. Do domknięcia
    decyzji o LMS zostaje ścieżka zakupu WooCommerce → zapis na kurs.
-4. **Kod wtyczki `aai-sklep`, kroki W1–W6.** Zrobione: **W1** fundament
-   (0.38.0), **W2** dane (0.39.0), **W3** front (0.41.0), **W4** kreator
-   w kokpicie (0.42.0). Następny: **W5** — synchronizacja do Tutora przy
-   publikacji i NASZE szablony widoku lekcji w miejsce Tutorowych; potem
-   **W6** — test ręczny właściciela.
-5. Po ukończeniu WSZYSTKICH wtyczek — test całości na lokalnym WP
+4. ~~Kod wtyczki `aai-sklep`, kroki W1–W6~~ **ZROBIONE, wtyczka SKOŃCZONA**:
+   **W1** fundament (0.38.0), **W2** dane (0.39.0), **W3** front (0.41.0),
+   **W4** kreator w kokpicie (0.42.0), **W5** Tutor + nasz widok lekcji
+   (0.43.0, 0.44.0), **W6** test ręczny właściciela — **ZALICZONY**
+   (0.45.0, sekcja wyżej).
+5. **NASTĘPNY MODUŁ: Plugin 2 — płatności.** Przed pisaniem kodu musi zapaść
+   decyzja właściciela **gdzie mieszka CENA** (sekcja „Pytanie otwarte przed
+   Pluginem 2" wyżej). Zakres Pluginu 2 doprecyzowujemy pytaniami do
+   właściciela przed startem — decyzja z 2026-08-21.
+6. Po ukończeniu WSZYSTKICH wtyczek — test całości na lokalnym WP
    z warsztatu `wordpress/` (sekcja „Test finalny wtyczek" wyżej).
