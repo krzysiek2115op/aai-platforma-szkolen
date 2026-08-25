@@ -1382,17 +1382,37 @@ wyprowadzała tego od nowa:
     wypchnięta na zdalne repo, **ale BEZ PR-a** — świadomie: stackowane PR-y już
     raz zamknęły się w tym repo nawzajem (notatka przy 0.25.0), więc PR części 2
     otwieramy DOPIERO po zmergowaniu #73 i przepięciu bazy na `main`.
-  **CO ZOSTAŁO DO DOMKNIĘCIA W5** (kolejność):
-  1. `npm run check` po części 2 (jeszcze nie puszczony) + powtórka
-     `smoke:wp-front`, `smoke:wp-kreator`, `smoke:wp` — części 2 ich nie ruszała,
-     ale dowody mają być z jednego przebiegu;
-  2. **`smoke-wp-motyw` ma dostać PIĄTĄ stronę — widok lekcji** (dziś mierzy
-     cztery: nasze dwie + panel i rejestracja Tutora); to jedyna pozycja z planu
-     części 2, której NIE zrobiłem;
-  3. merge #73 (za zgodą właściciela) → przepięcie `feat/w5-widok-lekcji` na
-     `main` → PR części 2 → tagi `v0.43.0` i `v0.44.0` + release'y;
-  4. drobiazg dokumentacyjny: `docs/plugin-1/KREATOR.md` nie mówi jeszcze, że
-     zapis w kreatorze dojeżdża do Tutora;
+  **DOMKNIĘCIE W5 — ZROBIONE 2026-08-25 (poza merge'em):**
+  1. ~~`npm run check` + trzy smoke'i WP~~ **ZROBIONE, z jednego przebiegu**:
+     strażnicy **34/34**, testy **83/83**, lint + tsc + build, 7 smoke'ów
+     prototypu, `smoke:wp` **30**, `smoke:wp-front` **78**, `smoke:wp-kreator`
+     **95**;
+  2. ~~piąta strona w `smoke-wp-motyw`~~ **ZROBIONE: 47 sprawdzeń, 5 stron**
+     (`smoke-wp-motyw`). Widok lekcji jest jedyną stroną **zza logowania**,
+     więc mierzymy go **NA KOŃCU** — po zalogowaniu każda kolejna odsłona
+     niosłaby pasek narzędzi WP. **Pasek zdejmujemy dwiema regułami CSS
+     i to jest DOWIEDZIONE różnicowo**: przy realnie wyłączonym pasku
+     w profilu (`show_admin_bar_front=false`) układ jest identyczny CO DO
+     PIKSELA. Adres lekcji bierzemy z instalacji (ta z największą liczbą
+     zrzutów), nie z wpisanego sluga.
+     **DWA ZNALEZISKA PRZY OKAZJI — obie usterki dowodów, nie kodu:**
+     (a) **pomiar `/student-registration/` był ŚLEPY od 0.41.0** — zakres pytał
+     o `.tutor-wrap`, a ta strona rysuje „Access Denied" w
+     `.tutor-disabled-wrapper`, więc cztery jej sprawdzenia przechodziły PO
+     PUSTCE; wykryła to dołożona asercja **„zakres trafił w ≥1 element"**,
+     która stoi teraz na każdej stronie; (b) pomiar łapał pigułkę w losowej
+     klatce animacji wjazdu (61 px kontra 59 px) — mierzymy po ustaniu ruchu,
+     **z filtrem na animacje nieskończone**, bo samo `getAnimations()` nigdy
+     się nie kończy przy dryfujących blobach tła i wiesza pomiar do timeoutu.
+     Testy negatywne: jasne tło treści zapala plamy i kontrast TYLKO na lekcji,
+     pomiar bez zdjęcia paska zapala samokontrolę, wyższa pigułka chowa cztery
+     napisy hero.
+  3. ~~`docs/plugin-1/KREATOR.md` o dojeżdżaniu zapisu do Tutora~~ **ZROBIONE**
+     (sekcja „Co się dzieje po zapisie — kopia w Tutorze"; przy okazji
+     sprostowana liczba sprawdzeń smoke'a kreatora: 92 → 95).
+  4. **ZOSTAJE: merge #73** (za zgodą właściciela) → przepięcie
+     `feat/w5-widok-lekcji` na `main` → PR części 2 → tagi `v0.43.0`
+     i `v0.44.0` + release'y;
   5. potem **W6 — test ręczny właściciela** (ostatni krok wtyczki `aai-sklep`).
   **ODTWORZENIE ŚRODOWISKA OD ZERA WYMAGA TRZECH KOMEND, NIE JEDNEJ:**
   `npm run wp:import` (kursy do naszych tabel) → `npm run wp:sync` (kopia

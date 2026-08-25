@@ -37,6 +37,16 @@ przy 0.34.0 — a nie strona Tutora.
 - **`straznik-lekcji-wp`** (34. strażnik, 10 mutacji) i **`smoke-wp-lekcja`**
   (`npm run smoke:wp-lekcja`, 32 sprawdzenia z przelotem przez wszystkie
   73 lekcje).
+- **`smoke-wp-motyw` mierzy PIĄTĄ stronę — widok lekcji** (47 sprawdzeń zamiast
+  32). Widok lekcji jest jedyną mierzoną stroną **zza logowania** i jedyną, która
+  mieszka pod adresem Tutora, więc na kolizję klas z 0.38.0 narażona jest
+  najmocniej. Mierzymy ją **na końcu**: od chwili zalogowania każda kolejna
+  odsłona niosłaby pasek narzędzi WordPressa, a cztery wcześniejsze strony mają
+  wyglądać dokładnie tak, jak ogląda je gość. Adres lekcji **bierzemy z
+  instalacji** (ta z największą liczbą zrzutów — jasne interfejsy najmocniej
+  obciążają pytanie o jasne powierzchnie i kontrast), a nie z wpisanego sluga,
+  który po pierwszej korekcie tytułu wskazywałby stronę 404 — też naszą i też
+  ciemną, więc pomiar przechodziłby dalej.
 
 ### Zmienione
 
@@ -52,6 +62,24 @@ przy 0.34.0 — a nie strona Tutora.
 
 ### Naprawione (znalezione dowodem różnicowym, w renderze prozy)
 
+**Pomiar `/student-registration/` był ŚLEPY.** Zakres stron Tutora pytał
+o `.tutor-wrap`, a ta strona renderuje ekran „Access Denied" w
+`.tutor-disabled-wrapper` — więc cztery jej sprawdzenia (jasne plamy, kontrast,
+nachodzenie, nieznane zapisy koloru) od 0.41.0 przechodziły **po pustce**,
+meldując zero usterek bez oglądania ani jednego elementu. Zakres celuje teraz
+w markup Tutora (`[class*='tutor-']:not(body)`), a przed nawrotem chroni nowa
+asercja **„zakres trafił w co najmniej jeden element"**, dołożona na każdej
+mierzonej stronie. To ona tę ślepotę wykryła — nie człowiek.
+
+**Pomiar łapał pigułkę w losowej klatce animacji wjazdu** (`aai-pasek-wjazd`,
+0,5 s): dwa przebiegi tej samej strony dawały dolną krawędź belki 61 px i 59 px,
+a to właśnie ta liczba rozstrzyga, czy napis „wjeżdża pod belkę". Mierzymy teraz
+po ustaniu ruchu — z filtrem na animacje nieskończone, bo samo `getAnimations()`
+nigdy się nie kończy przy dryfujących blobach tła.
+
+**Log smoke'a mówił nieprawdę**: drukował „0 jasnych plam" nawet wtedy, gdy lista
+usterek pod spodem wypisywała sześć. Podaje teraz zmierzone liczby.
+
 Pięć prawdziwych różnic wobec wzorca: emfaza bez reguły ograniczników GFM
 (`** \ + Enter**` robiło się pogrubieniem), kursywa zagnieżdżona, kursywa
 przez koniec wiersza, ogrodzenie kodu zamykane „na trzy" mimo czterech
@@ -63,9 +91,19 @@ zwartych. Zostały **dwie różnice świadome** — obie są usterkami `marked`
 
 Strażnicy **34/34**, audyt mutacyjny **155** (0 przeoczonych, 0 martwych),
 `smoke-wp-lekcja` **32** (73 lekcje bez zatrzymania renderera, najdłuższa
-odsłona **194 ms**), dowód różnicowy **73/73**, `wp:sprawdz` 73/73 co do znaku.
+odsłona **194 ms**), `smoke-wp-motyw` **47** (pięć stron), `smoke-wp-front` 78,
+`smoke-wp-kreator` 95, `smoke-wp-dane` 30, dowód różnicowy **73/73**,
+`wp:sprawdz` 73/73 co do znaku, `npm run check` zielone (testy 83/83).
 Testy negatywne: renderer z wyłączoną kursywą wywala dowód na 57 lekcjach,
-bramka przepuszczająca każdego wywala smoke na czterech sprawdzeniach.
+bramka przepuszczająca każdego wywala smoke na czterech sprawdzeniach, a przy
+piątej stronie — jasne tło treści zapala plamy i kontrast **tylko na lekcji**,
+pomiar bez zdjęcia paska narzędzi zapala samokontrolę układu, wyższa pigułka
+chowa pod sobą cztery napisy hero.
+
+Dowód, że zdjęcie paska narzędzi nie fałszuje pomiaru: przy realnie wyłączonym
+pasku w profilu (`show_admin_bar_front=false`) strona lekcji ma **co do piksela**
+ten sam układ, co przy dwóch regułach zdejmujących pasek — pigułka 0–68 px,
+`<main>` 0–6990, hero 144–539, dokument 7642 px.
 
 ## [0.43.0] — 2026-08-25
 
