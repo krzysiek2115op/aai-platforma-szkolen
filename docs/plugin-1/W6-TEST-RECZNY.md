@@ -1,5 +1,20 @@
 # W6 — test ręczny właściciela
 
+> **ZALICZONY 2026-08-25 (ścieżki A i B) oraz 2026-08-26 (C i D), wersja
+> 0.45.0.** Wtyczka `aai-sklep` jest tym samym SKOŃCZONA — PR #75, tag
+> `v0.45.0` + release. Ten dokument zostaje jako **przepis na test ręczny
+> kolejnych wtyczek** (Plugin 2, Plugin 3) i jako zapis tego, co ten test
+> wyłapał. Wyniki i lekcje: [docs/ETAP-WP.md](../ETAP-WP.md), sekcja
+> „Krok W6 ZALICZONY".
+>
+> **Test wyłapał sześć rzeczy, których nie widział żaden automat** — pięć
+> zgłosił właściciel (droga do kupionego kursu, style kont Woo, strzałka
+> „wróć", menu konta, cztery zapowiedzi), a jedna wyszła z pytania
+> właściciela „czy zmiana w kreatorze idzie do bazy": zwykły zapis
+> przemianowywał WSZYSTKIE moduły kursu (BLAD-019). Dalsze dwa
+> (BLAD-021, BLAD-022) znalazł przegląd zrobiony po zaliczeniu ścieżek.
+> **To jest argument za tym, żeby każda następna wtyczka też miała ten krok.**
+
 Ostatni krok wtyczki `aai-sklep`. **Wtyczka nie jest skończona, dopóki nie
 przejdzie tego testu** — taka była decyzja z 2026-08-25 („po KAŻDEJ wtyczce
 test ręczny na lokalnym WP z motywem").

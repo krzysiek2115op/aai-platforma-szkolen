@@ -1414,7 +1414,61 @@ wyprowadzała tego od nowa:
      (sekcja „Co się dzieje po zapisie — kopia w Tutorze"; przy okazji
      sprostowana liczba sprawdzeń smoke'a kreatora: 92 → 95).
   4. ~~merge #73 i #74 → tagi → release'y~~ **ZROBIONE** (2026-08-25).
-  5. **W6 — TEST RĘCZNY WŁAŚCICIELA — W TOKU** (ostatni krok `aai-sklep`).
+  5. **W6 — TEST RĘCZNY WŁAŚCICIELA — ZALICZONY (2026-08-25/26, wersja
+     0.45.0). WTYCZKA `aai-sklep` JEST SKOŃCZONA.** PR #75 zmergowany do
+     `main`, tag `v0.45.0` + release; artefakt zweryfikowany (`git diff`
+     między `main` a szczytem gałęzi PUSTY). CI potwierdzony jako
+     niezwiązany z kodem: **2118 minut Actions w sierpniu przy limicie
+     2000**, wszystkie zadania padają w 2 s z zerem kroków — merge decyzją
+     właściciela na dowodach lokalnych; po powrocie CI (1 września)
+     potwierdzić **gitleaks**.
+     Wyniki, lekcje i przepis na test kolejnych wtyczek:
+     [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „Krok W6 ZALICZONY" oraz
+     [docs/plugin-1/W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md).
+     **CZTERY BŁĘDY Z REJESTRU (BLAD-019…022) I ICH LEKCJE — nie powtarzać:**
+     (1) **BLAD-019**: zwykły zapis w kreatorze nadawał każdemu modułowi
+     tytuł jego OSTATNIEJ lekcji. Kontrolki panelu nie mają atrybutu `name`
+     (`max_input_vars` ucina POST w milczeniu przy 41 lekcjach), więc
+     wysyłkę składa `assets/panel.js`, a jego zakres zbierania pól nie
+     uznawał wiersza lekcji za granicę. **CAŁA warstwa JS kreatora była do
+     0.45.0 poza zasięgiem pomiaru** — `smoke-wp-kreator` wysyła gotowy JSON
+     POST-em i nie uruchamia przeglądarki. Stąd **`npm run smoke:wp-panel`**
+     (54 sprawdzenia, mierzy kolektor w prawdziwej przeglądarce; kluczowa
+     asercja: **zapis, przy którym niczego nie dotknięto, odpowiada
+     `bez_zmian`**). Granice zakresu są jedną listą `GRANICE_ZAKRESU`
+     obejmującą KAŻDY rekord panelu; pilnuje `straznik-kreatora-wp` (10).
+     (2) **BLAD-020**: zapis bez zmian meldował „Kurs zapisany" i puchł
+     dziennik, bo `json()` obiecywał „stały kształt", a `wp_json_encode()`
+     zachowuje kolejność kluczy — import układał je inaczej niż panel.
+     **Gdy porównanie »czy się zmieniło« działa na łańcuchu, kolejność
+     kluczy MUSI być kanoniczna** (`uporzadkuj()`, mapy sortowane, LISTY
+     nietknięte — ich kolejność JEST treścią); pilnuje
+     `straznik-wtyczki-wp` (9).
+     (3) **BLAD-021**: kurs o slugu `moje` wchodził do katalogu z ceną, ale
+     jego strona sprzedażowa nie istniała — reguła naszej podstrony jest
+     sprawdzana przed regułą slugu. **KAŻDA nowa podstrona sklepu (koszyk,
+     kasa, podziękowanie w Pluginie 2) MUSI wejść do
+     `Aai_Sklep_Trasy::PODSTRONY`** — jedno źródło reguł, widoków i slugów
+     zakazanych — a nie dostać własnego `add_rewrite_rule`; pilnuje
+     `straznik-frontu-wp` (9).
+     (4) **BLAD-022**: cały blok „złe wejście" w naszym smoke'u był ŚLEPY —
+     sześć sprawdzeń przechodziło z jednego wspólnego powodu (żądanie nie
+     niosło `sekcje`/`moduly`, a warstwa akcji zamieniała „nie przysłano" na
+     `null`). **Wysyłka w teście złego wejścia musi być POZA jednym błędem
+     poprawna**, a „nie przysłano" nie wolno tłumaczyć na `null` — to zrywa
+     łańcuch „brak klucza znaczy nie ruszaj" (BLAD-018).
+     **DWIE PUŁAPKI POMIARU:** test negatywny puszczać na ZDROWYCH danych
+     (na zepsutych tytuł modułu równa się tytułowi ostatniej lekcji i pomiar
+     przechodzi fałszywie); patrzeć nie tylko CZY coś padło, ale ILE i CO —
+     „1 z 96" mówi, że sprawdzenie trafia w swój przypadek i tylko w niego.
+     **Stan dowodów na koniec W6:** `npm run check` zielony (strażnicy
+     **34/34**, testy **83/83**, lint, tsc, build, 7 smoke'ów prototypu),
+     audyt mutacyjny **161**, smoke'i WP: dane 30 · front 84 · tutor 44 ·
+     lekcja 35 · kreator 96 · panel 54 · motyw 65; dane 73/73 co do znaku,
+     kopia w Tutorze 0 różnic.
+     **ŚRODOWISKO ZOSTAJE POSTAWIONE**: `:8892`, konto `klient-test`
+     (przyda się do testów zakupu w Pluginie 2 — NIE kasować), dane wgrane.
+     **HISTORIA PRZEBIEGÓW (dla kontekstu, nie do działania):**
      **TRZY ZGŁOSZENIA WŁAŚCICIELA Z PIERWSZEGO PRZEBIEGU (2026-08-25) —
      dwa naprawione, jedno okazało się decyzją:**
      (a) **klient nie miał JAK trafić do kupionego kursu** — logowanie wyrzuca
@@ -1487,23 +1541,33 @@ wyprowadzała tego od nowa:
      **PUŁAPKA TUTORA:** `is_enrolled()` w TYM SAMYM żądaniu, w którym
      powstał zapis, oddaje `false` (zapisy siedzą w pamięci żądania) —
      dostęp weryfikować osobnym żądaniem.
-     **STAN W6 PO DWÓCH PRZEBIEGACH WŁAŚCICIELA (2026-08-25, wieczór):**
-     ścieżki **A i B ZALICZONE** („sprawdziłem, wszystko jest OK"),
-     **ZOSTAJĄ ŚCIEŻKI C i D** — kreator (zmiana zdania w sekcji → zapis →
-     front; zmiana treści lekcji → widok klienta; odmowa skasowania treści;
-     okładka z biblioteki mediów; ukryj/opublikuj) oraz sprawdzenie, czy
-     motyw jest nietknięty (`/`, `/uslugi/`, `/kontakt/`, stopka, nagłówek).
-     Konto klienta i środowisko stoją — nic nie trzeba stawiać od nowa.
-     **Gałąź `feat/w6-test-reczny` (0.45.0) wypchnięta, BEZ PR-a** — PR
-     otwieramy po zaliczeniu całego W6, razem z poprawkami.
-     **KOLEJNOŚĆ PO CLEAR (decyzja właściciela 2026-08-25):** ścieżki C i D
-     → **domknięcie W6 w repo: PR gałęzi `feat/w6-test-reczny` → merge → tag
-     `v0.45.0` → release** (wtedy wtyczka `aai-sklep` jest SKOŃCZONA)
-     → **start Pluginu 2**. Nazwa „W7" padła w rozmowie i oznaczała właśnie
-     domknięcie W6 — nowego kroku wtyczki NIE dokładamy.
-  6. **Po zaliczeniu W6: Plugin 2 — płatności.** Przed startem rozstrzygnąć,
-     **GDZIE MIESZKA CENA** (nasza tabela czy produkt WooCommerce) —
-     [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „Plugin 2".
+     **PRZEBIEG TRZECI (2026-08-25/26): ścieżki C i D ZALICZONE** —
+     właściciel: „jest wszystko okej… u mnie wygląda dobrze". Ścieżka C
+     wyciągnęła BLAD-019 z jego pytania „czy zmiana w kreatorze idzie do
+     bazy" (szła — cena `29999` groszy — ale ten sam zapis przemianował
+     moduły). Po zaliczeniu, na jego prośbę, zrobiłem własny przegląd
+     gałęzi: stąd BLAD-021 i BLAD-022.
+     **SPRAWDZONE I BEZ ZARZUTU przy tym przeglądzie — nie szukać drugi
+     raz:** warstwa Tutora nie potrzebuje porządkowania kluczy (pisze ją
+     jeden autor), liczniki „Moich kursów" mają poprawną polszczyznę,
+     wszystkie wpisy w Tutorze są `publish` (żadna lekcja-szkic nie wchodzi
+     do postępu), widok prywatny ma `nocache_headers()`, szablony frontu
+     konsekwentnie używają polskich napisów wprost (konwencja, nie
+     niedopatrzenie).
+
+  6. **NASTĘPNY KROK CAŁEGO PROJEKTU: PLUGIN 2 — PŁATNOŚCI.**
+     **PRZED PISANIEM KODU musi zapaść decyzja właściciela: GDZIE MIESZKA
+     CENA** — w naszej tabeli `courses` (`price_grosze`) czy w produkcie
+     WooCommerce. To dwie kopie tej samej liczby, czyli ta sama klasa
+     ryzyka co para „nasze tabele ↔ Tutor". Obie drogi z konsekwencjami:
+     [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „Pytanie otwarte przed
+     Pluginem 2: gdzie mieszka CENA". Zakres Pluginu 2 doprecyzowujemy
+     **pytaniami do właściciela przed startem** (decyzja 2026-08-21) —
+     Plugin 2 jest SZWEM do WooCommerce (produkt Woo ↔ kurs, zapis do
+     Tutora po opłacie, mail „Ustaw hasło", przełączenie CTA z `/kontakt`
+     i `PreOrder` → `InStock`), a NIE własną kasą ani bramką płatności.
+     **Nowa podstrona sklepu (koszyk, kasa, podziękowanie) wchodzi przez
+     `Aai_Sklep_Trasy::PODSTRONY`** — patrz BLAD-021 wyżej.
   **ODTWORZENIE ŚRODOWISKA OD ZERA WYMAGA TRZECH KOMEND, NIE JEDNEJ:**
   `npm run wp:import` (kursy do naszych tabel) → `npm run wp:sync` (kopia
   w Tutorze) → `npm run wp:zrzuty` (148 obrazów do biblioteki mediów).
