@@ -128,19 +128,72 @@ final class Aai_Sklep_Moje {
 	}
 
 	/**
+	 * Policzone kursy na czas TEGO żądania.
+	 *
+	 * `kursy()` kosztuje 45 zapytań i ~19 ms (pomiar na dwóch kursach i 73
+	 * lekcjach), bo o stan ukończenia pyta Tutora lekcja po lekcji. Bez tej
+	 * pamięci menu wołałoby to dwa razy (raz na kotwicę nawigacji), a na
+	 * „Moich kursach" dochodziłoby trzecie wywołanie z szablonu.
+	 *
+	 * @var array<int,array<string,mixed>>|null
+	 */
+	private static ?array $pamiec = null;
+
+	/**
+	 * Czy zalogowany ma cokolwiek kupionego — TANIO.
+	 *
+	 * Menu potrzebuje odpowiedzi „tak/nie" na każdej odsłonie każdej strony,
+	 * a nie postępu w lekcjach. Pytamy więc o listę zapisów (jedno zapytanie)
+	 * i sprawdzamy, czy choć jeden zapis wskazuje kurs, który u NAS istnieje
+	 * i jest opublikowany — bo tylko taki ma co pokazać. Bez tego drugiego
+	 * warunku pozycja „Moje kursy" prowadziłaby czasem do pustej listy.
+	 */
+	public static function ma_kursy(): bool {
+		if ( null !== self::$pamiec ) {
+			return array() !== self::$pamiec;
+		}
+
+		$uzytkownik = get_current_user_id();
+		if ( $uzytkownik <= 0 || ! function_exists( 'tutor_utils' ) ) {
+			return false;
+		}
+
+		$zapisane = (array) tutor_utils()->get_enrolled_courses_ids_by_user( $uzytkownik );
+		if ( ! $zapisane ) {
+			return false;
+		}
+
+		$nasze = array();
+		foreach ( Aai_Sklep_Odczyt::lista_kursow() as $kurs ) {
+			$nasze[ $kurs['id'] ] = true;
+		}
+
+		foreach ( $zapisane as $id_kursu ) {
+			$uuid = (string) get_post_meta( (int) $id_kursu, Aai_Sklep_Tutor::META_UUID, true );
+			if ( '' !== $uuid && isset( $nasze[ $uuid ] ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Kursy kupione przez zalogowanego klienta, z postępem.
 	 *
 	 * @return array<int,array<string,mixed>>
 	 */
 	public static function kursy(): array {
+		if ( null !== self::$pamiec ) {
+			return self::$pamiec;
+		}
 		$uzytkownik = get_current_user_id();
 		if ( $uzytkownik <= 0 || ! function_exists( 'tutor_utils' ) ) {
-			return array();
+			return self::$pamiec = array();
 		}
 
 		$zapisane = (array) tutor_utils()->get_enrolled_courses_ids_by_user( $uzytkownik );
 		if ( ! $zapisane ) {
-			return array();
+			return self::$pamiec = array();
 		}
 
 		// Nasze kursy po uuid — dopasowanie idzie po `_aai_zrodlo_uuid`, nie po
@@ -189,7 +242,7 @@ final class Aai_Sklep_Moje {
 			);
 		}
 
-		return $wynik;
+		return self::$pamiec = $wynik;
 	}
 
 	/**

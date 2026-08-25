@@ -76,6 +76,37 @@ strażnik nie umie zadać: czy to, co widzi człowiek, ma sens i wygląda jak na
   kupującego robi POMIAREM — zapisuje administratora na kurs, pyta stronę
   i zapis cofa.
 
+### Naprawione (przegląd kodu tej gałęzi)
+
+Cztery znaleziska, wszystkie potwierdzone POMIAREM przed naprawą:
+
+- **Menu podświetlało DWIE pozycje naraz.** „Moje kursy" powstaje przez
+  sklonowanie ostatniego `<li>` — czyli wstawionej przed chwilą pozycji
+  „Szkolenia", która na naszych stronach nosi już `aria-current`. Klon
+  dziedziczył atrybut, a podmiana adresu doklejała nasz obok cudzego. Zmierzone
+  na żywej stronie: katalog 2, strona kursu 2, „Moje kursy" 1. Klon jest teraz
+  czyszczony przed wstawieniem.
+- **Menu kosztowało 90 zapytań na KAŻDEJ odsłonie.** `pozycje()` wołało
+  `Aai_Sklep_Moje::kursy()` raz na kotwicę nawigacji, a to **45 zapytań
+  i 18,7 ms** (pomiar: 2 kursy, 73 lekcje), bo o ukończenie pyta Tutora lekcja
+  po lekcji. Menu pyta teraz `ma_kursy()` — **3 zapytania, 2,8 ms** — a wynik
+  `kursy()` jest pamiętany na czas żądania.
+- **Widok prywatny nie zakazywał cache'owania.** „Moje kursy" oddawały 200 bez
+  `nocache_headers()`; cache strony albo CDN bez reguły na ciasteczko logowania
+  mógłby wydać listę kursów jednego klienta drugiemu.
+- **`wp:klient` mógł zostawić konto z nieznanym hasłem** — hasło zmieniało się
+  w WordPressie od razu, a do `.env` szło dopiero po weryfikacji.
+
+**LEKCJA Z TESTU NEGATYWNEGO (nowa klasa):** sprawdzenie nagłówków
+`Cache-Control` w smoke'u **NIE pilnowało naszej linii** — po usunięciu
+`nocache_headers()` nagłówki i tak przychodzą, bo dokłada je coś innego
+w stosie. Smoke pilnuje więc WŁASNOŚCI odpowiedzi, a naszej gwarancji pilnuje
+`straznik-frontu-wp`. Jego pierwszy wzorzec też był ślepy: pytał
+o `nocache_headers()` w promieniu 600 znaków od słowa `'moje'` i trafiał
+w **drugie** wywołanie w tym samym pliku (gałąź 404) — pokazał to audyt
+mutacyjny. Ta sama pułapka dotknęła samej mutacji: „pierwsze z brzegu"
+`nocache_headers();` to było cudze wywołanie. Audyt: **156** mutacji.
+
 ### Świadomie BEZ zmian
 
 **Cztery lekcje są darmowe dla każdego** — w naszych tabelach mają `preview = 1`:

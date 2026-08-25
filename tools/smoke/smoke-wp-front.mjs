@@ -323,6 +323,24 @@ sprawdz(
   "/szkolenia/moje/ pokazuje GOŚCIOWI kafelek kursu — lista kupionych kursów wyciekła"
 );
 
+/*
+ * Odpowiedzi zależnej od konta nie wolno odłożyć na półkę: cache strony albo
+ * CDN bez reguły na ciasteczko logowania wydałby listę kursów jednego klienta
+ * drugiemu.
+ *
+ * UWAGA, CZEGO TO SPRAWDZENIE NIE ROBI: nie pilnuje NASZEGO wywołania
+ * `nocache_headers()`. Test negatywny pokazał, że po jego usunięciu nagłówki
+ * i tak przychodzą — dokłada je coś innego w stosie. Tu pilnujemy WŁASNOŚCI
+ * odpowiedzi (ma być niecache'owalna, niezależnie od tego, kto to zapewnia),
+ * a naszej gwarancji pilnuje `straznik-frontu-wp`.
+ */
+const mojeNaglowki = await fetch(`${ADRES}/szkolenia/moje/`, { redirect: "manual" });
+const cache = (mojeNaglowki.headers.get("cache-control") ?? "").toLowerCase();
+sprawdz(
+  cache.includes("no-store") || cache.includes("no-cache"),
+  `/szkolenia/moje/ oddaje Cache-Control „${cache || "(brak)"}” — strona prywatna nie ma prawa być cache'owana`
+);
+
 
 const archiwum = await pobierz("/courses/");
 sprawdz(

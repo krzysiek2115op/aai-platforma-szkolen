@@ -1136,6 +1136,21 @@ const MUTACJE = [
   // niezmiennik, tak samo jak przy CSP i przy wtyczce.
   {
     straznik: "straznik-frontu-wp",
+    opis: "widok prywatny „Moje kursy” przestaje zakazywać cache'owania (lista jednego klienta może trafić do drugiego)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-trasy.php",
+    // Celujemy w NASZE wywołanie (gałąź widoku „moje"), bo w tym pliku jest
+    // jeszcze jedno — w gałęzi 404 — i stoi WYŻEJ. Mutacja „pierwsze z brzegu"
+    // podmieniała tamto i mierzyła nie to, co trzeba.
+    zmien: (s) =>
+      s.includes("nocache_headers();\n\t\t\treturn AAI_SKLEP_KATALOG . 'szablony/moje.php';")
+        ? s.replace(
+            "nocache_headers();\n\t\t\treturn AAI_SKLEP_KATALOG . 'szablony/moje.php';",
+            "return AAI_SKLEP_KATALOG . 'szablony/moje.php';"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
     opis: "rodzaj sekcji z kontraktu traci szablon (kreator pozwoli wpisać, strona przemilczy)",
     plik: null,
     usunPlik: "wordpress/wtyczki/aai-sklep/szablony/sekcje/faq.php",

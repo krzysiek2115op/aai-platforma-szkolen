@@ -218,6 +218,14 @@ final class Aai_Sklep_Trasy {
 				: AAI_SKLEP_KATALOG . 'szablony/kurs.php';
 		}
 		if ( 'moje' === $widok ) {
+			/*
+			 * Treść zależy od KONTA oglądającego, więc odpowiedzi nie wolno
+			 * odłożyć na półkę. Bez tych nagłówków cache strony albo CDN bez
+			 * reguły na ciasteczko logowania mógłby wydać listę kursów
+			 * jednego klienta drugiemu. Ta sama przesłanka, dla której ten
+			 * widok dostał `noindex`.
+			 */
+			nocache_headers();
 			return AAI_SKLEP_KATALOG . 'szablony/moje.php';
 		}
 		return AAI_SKLEP_KATALOG . 'szablony/katalog.php';

@@ -1454,6 +1454,17 @@ wyprowadzała tego od nowa:
      „wróć"; stan kupującego robiony POMIAREM — zapis admina na kurs
      i cofnięcie go), `smoke-wp-kreator` 95,
      `smoke-wp-dane` 30. Każde nowe sprawdzenie ma test negatywny.
+     **PRZEGLĄD KODU (2026-08-25) — cztery znaleziska, wszystkie naprawione:**
+     menu podświetlało DWIE pozycje naraz (klon dziedziczył `aria-current`
+     po pozycji wstawionej przed chwilą); menu kosztowało **90 zapytań na
+     odsłonę** (`kursy()` = 45 zapytań x 2 kotwice, teraz `ma_kursy()`
+     = 3 zapytania + pamięć na czas żądania); widok prywatny nie wołał
+     `nocache_headers()`; `wp:klient` mógł zostawić konto z nieznanym hasłem.
+     **NOWA KLASA ŚLEPOTY:** sprawdzenie nagłówków `Cache-Control` w smoke'u
+     nie pilnuje NASZEJ linii — nagłówki dokłada też coś innego w stosie;
+     naszej gwarancji pilnuje `straznik-frontu-wp`, a jego pierwszy wzorzec
+     trafiał w DRUGIE `nocache_headers()` w tym samym pliku (gałąź 404).
+     Audyt mutacyjny **156** (było 155).
      **PUŁAPKA POMIARU:** kafelki „Moich kursów" mają `.aai-reveal`
      (opacity 0 do czasu IntersectionObservera) — zrzut zrobiony zaraz po
      `load` pokazuje PUSTĄ siatkę i wygląda jak błąd danych. Czekać ~1,5 s.

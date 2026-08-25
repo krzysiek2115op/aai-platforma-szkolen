@@ -136,6 +136,15 @@ if (wynik.kursy.length === 0) {
   process.exit(1);
 }
 
+/*
+ * HASŁO ZAPISUJEMY OD RAZU, PRZED WERYFIKACJĄ.
+ *
+ * W WordPressie hasło jest już zmienione. Gdyby zapis do `.env` czekał na
+ * wynik weryfikacji, każde jej niepowodzenie zostawiałoby konto z hasłem,
+ * którego nikt nie zna — i jedynym wyjściem byłoby `--usun`.
+ */
+zapiszDoEnv( KLUCZ_HASLA, haslo );
+
 /* ---------- weryfikacja W OSOBNYM ŻĄDANIU ---------- */
 
 const sprawdzenie = JSON.parse(

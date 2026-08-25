@@ -258,6 +258,34 @@ if (!existsSync(join(WTYCZKA, TRASY))) {
       `${TRASY}: przekierowania nie są trwałe (301). Tymczasowe (302) zostawia stary adres w indeksie wyszukiwarki, czyli nie robi tego, po co je dodaliśmy.`
     );
   }
+
+  /*
+   * WIDOK PRYWATNY MUSI ZAKAZAĆ CACHE'OWANIA WPROST.
+   *
+   * „Moje kursy" pokazują listę zależną od KONTA, więc odpowiedź odłożona na
+   * półkę przez cache strony albo CDN bez reguły na ciasteczko logowania
+   * trafiłaby do innego klienta.
+   *
+   * PILNUJE TEGO STRAŻNIK, A NIE SMOKE — i to jest wniosek z testu
+   * negatywnego: po usunięciu `nocache_headers()` nagłówki i tak przychodzą,
+   * bo dokłada je coś innego w stosie (sprawdzone na żywej stronie: identyczny
+   * `Cache-Control` z naszym wywołaniem i bez niego). Smoke pilnuje więc
+   * WŁASNOŚCI odpowiedzi, a tutaj pilnujemy NASZEJ gwarancji — bo cudza
+   * uprzejmość może zniknąć z aktualizacją wtyczki i nikt się nie dowie.
+   */
+  /*
+   * Wzorzec celuje w GAŁĄŹ, która zwraca szablon „moje", a nie w samo
+   * sąsiedztwo słowa `'moje'`. Pierwsza wersja pytała o jedno i drugie
+   * w promieniu 600 znaków i audyt pokazał, że PRZEPUSZCZA mutację: w tym
+   * samym pliku jest drugie `nocache_headers()` (gałąź 404), więc wzorzec
+   * trafiał w cudze wywołanie. Wzorce mają celować w ZACHOWANIE, nie
+   * w bliskość napisów — nawrót lekcji z 0.29.0.
+   */
+  if (!/'moje'\s*===\s*\$widok\s*\)\s*\{[\s\S]{0,400}?nocache_headers\(\)[\s\S]{0,200}?szablony\/moje\.php/.test(trasy)) {
+    bledy.push(
+      `${TRASY}: widok „moje" nie woła nocache_headers(). To strona prywatna — jej treść zależy od konta oglądającego, więc odpowiedź nie ma prawa trafić do cache'u współdzielonego.`
+    );
+  }
 }
 
 if (bledy.length > 0) {
@@ -267,5 +295,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, wygaszanie ruchu).`
+  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, widok prywatny bez cache'u, wygaszanie ruchu).`
 );

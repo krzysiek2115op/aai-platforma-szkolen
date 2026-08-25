@@ -326,6 +326,24 @@ if (idKursu > 0 && idAdmina > 0) {
   zapisano = true;
 }
 try {
+  /*
+   * MENU: DOKŁADNIE JEDNA POZYCJA BIEŻĄCA. Pozycja „Moje kursy" powstaje
+   * przez sklonowanie ostatniego `<li>` — czyli wstawionej przed chwilą
+   * pozycji „Szkolenia", która na naszych stronach nosi już `aria-current`.
+   * Pierwsza wersja klonu dziedziczyła ten atrybut i na `/szkolenia/`
+   * bieżące były OBIE pozycje naraz. Sprawdzamy to tutaj, bo tylko tutaj
+   * mamy konto zapisane na kurs — a bez zapisu pozycja się nie pojawia.
+   */
+  const katalog = await (await admin.pobierz("/szkolenia/")).text();
+  const nawigacja = katalog.slice(katalog.indexOf("Nawigacja główna"), katalog.indexOf("Nawigacja główna") + 4000);
+  const biezace = [...nawigacja.matchAll(/<a[^>]*aria-current="page"[^>]*>([\s\S]{0,60}?)<\/a>/g)].map((m) =>
+    m[1].replace(/<[^>]*>/g, "").trim()
+  );
+  sprawdz(
+    biezace.length === 1,
+    `menu na /szkolenia/ podświetla ${biezace.length} pozycji (${biezace.join(", ")}) — bieżąca ma być dokładnie jedna`
+  );
+
   const poZapisie = wroc(await (await admin.pobierz(probka.adres)).text());
   sprawdz(
     zapisano && poZapisie !== null && poZapisie.adres === "/szkolenia/moje/",

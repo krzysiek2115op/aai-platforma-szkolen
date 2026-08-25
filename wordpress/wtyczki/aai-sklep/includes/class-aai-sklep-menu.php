@@ -122,7 +122,10 @@ final class Aai_Sklep_Menu {
 			array( 'adres' => Aai_Sklep_Widok::adres_kursu(), 'napis' => self::NAPIS, 'widok' => 'katalog' ),
 		);
 
-		if ( is_user_logged_in() && class_exists( 'Aai_Sklep_Moje' ) && Aai_Sklep_Moje::kursy() ) {
+		// `ma_kursy()`, nie `kursy()`: menu potrzebuje odpowiedzi „tak/nie",
+		// a policzenie postępu kosztuje 45 zapytań — na każdej odsłonie
+		// każdej strony i dwa razy, bo kotwice nawigacji są dwie.
+		if ( is_user_logged_in() && class_exists( 'Aai_Sklep_Moje' ) && Aai_Sklep_Moje::ma_kursy() ) {
 			$pozycje[] = array(
 				'adres' => Aai_Sklep_Moje::adres(),
 				'napis' => self::NAPIS_MOJE,
@@ -227,7 +230,16 @@ final class Aai_Sklep_Menu {
 			return null;
 		}
 
-		$klon = $ostatnia;
+		/*
+		 * ZDEJMUJEMY `aria-current` Z KLONU. Drugi przebieg (pozycja „Moje
+		 * kursy") klonuje ostatnie `<li>` listy, czyli pozycję wstawioną
+		 * przed chwilą — a ta na naszych stronach nosi już `aria-current`.
+		 * Podmiana adresu doklejała nasze `aria-current` obok cudzego, więc
+		 * na `/szkolenia/` bieżące były OBIE pozycje naraz i skrypt motywu
+		 * podświetlał dwie. Zmierzone na żywej stronie: katalog 2, strona
+		 * kursu 2, „Moje kursy" 1.
+		 */
+		$klon = (string) preg_replace( '~\s*aria-current="[^"]*"~', '', $ostatnia );
 
 		// 1. adres
 		$klon = preg_replace(
