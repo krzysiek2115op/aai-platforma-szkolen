@@ -28,6 +28,8 @@
  *   node tools/smoke/smoke-wp-motyw.mjs
  */
 import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 const RIG = process.env.ZRZUTY_RIG;
 if (!RIG) {
@@ -65,9 +67,38 @@ const STRONA_MOTYWU = "/uslugi/";
  */
 const STRONY_NASZE = ["/szkolenia/", "/szkolenia/jak-korzystac-z-claude/"];
 
-/** Co mierzymy na której stronie. */
-const ZAKRES_TUTORA = ".tutor-wrap, .tutor-wrap *";
+/**
+ * Co mierzymy na której stronie.
+ *
+ * ZAKRES TUTORA celuje w JEGO MARKUP, a nie w jeden wybrany kontener.
+ * Pierwotne `.tutor-wrap` było ślepe: panel kursanta ma ten kontener, ale
+ * `/student-registration/` na tej instalacji renderuje ekran „Access Denied”
+ * w `.tutor-disabled-wrapper` — więc pomiar tej strony przechodził po
+ * PUSTCE i meldował zero usterek, bo nie oglądał ani jednego elementu.
+ * Złapała to dopiero asercja `zmierzonych > 0` dołożona przy piątej stronie.
+ *
+ * `body` odpada świadomie: ma klasę `tutor-lms`, więc bez `:not(body)`
+ * zakres połknąłby całą stronę razem z markupem motywu i pytanie
+ * „czy CSS Tutora psuje motyw” zamieniłoby się w pytanie o motyw sam ze sobą.
+ */
+const ZAKRES_TUTORA = "[class*='tutor-']:not(body), [class*='tutor-']:not(body) *";
 const ZAKRES_NASZ = "main.aai-strona, main.aai-strona *, .aai-pasek, .aai-pasek *";
+
+/**
+ * WIDOK LEKCJI (W5) — piąta strona i jedyna ZZA LOGOWANIA.
+ *
+ * Adresu nie wpisujemy na sztywno: pytamy instalację o lekcję z NAJWIĘKSZĄ
+ * liczbą zrzutów (remis rozstrzyga długość prozy). To nie jest kaprys —
+ * zrzuty interfejsów są jasne CELOWO (decyzja właściciela 2026-08-24: nie
+ * przyciemniamy ich, bo klient zobaczy u siebie dokładnie takie), więc
+ * lekcja z największą ich liczbą najmocniej obciąża akurat te pytania,
+ * które ten smoke zadaje: o jasne powierzchnie i o kontrast napisów.
+ */
+const ZAKRES_LEKCJI = "main.aai-lekcja, main.aai-lekcja *, .aai-pasek, .aai-pasek *";
+
+const STACK = process.env.STACK_NAZWA ?? "aai_wp";
+const KONTENER = `${STACK}_cli`;
+const LOGIN = "admin";
 
 /** Minimalny kontrast tekstu. Próg WCAG AA dla zwykłego pisma. */
 const MIN_KONTRAST = 4.5;
@@ -187,7 +218,8 @@ function pomiar() {
   const nieczytelne = [];
   const nachodzace = [];
 
-  for (const el of document.querySelectorAll(ZAKRES_JS)) {
+  const wZakresie = [...document.querySelectorAll(ZAKRES_JS)];
+  for (const el of wZakresie) {
     const st = getComputedStyle(el);
     const pr = el.getBoundingClientRect();
     if (pr.width * pr.height < MIN_POLE_JS) continue;
@@ -273,6 +305,22 @@ function pomiar() {
 
   return {
     nieznane: [...new Set(nieznane)].slice(0, 6),
+    /*
+     * Ile elementów w ogóle wpadło w zakres. Bez tej liczby literówka
+     * w selektorze daje smoke, który przechodzi po PUSTCE i melduje same
+     * zera — dokładnie ta klasa ślepoty, która przy 0.24.0 przepuściła
+     * cztery miniatury OG oddające 404.
+     */
+    zmierzonych: wZakresie.length,
+    /*
+     * Samokontrola pomiaru: czy pasek narzędzi WordPressa (i jego
+     * `html { margin-top }`) na pewno NIE wpływa już na układ.
+     */
+    pasekAdmina:
+      Boolean(
+        document.getElementById("wpadminbar") &&
+          getComputedStyle(document.getElementById("wpadminbar")).display !== "none"
+      ) || getComputedStyle(document.documentElement).marginTop !== "0px",
     klasaBody: document.body.className.includes("aai-tutor-na-motywie"),
     naszArkusz: [...document.styleSheets].some((s) => (s.href ?? "").includes("tutor-motyw.css")),
     naszArkuszSklepu: [...document.styleSheets].some((s) => (s.href ?? "").includes("aai-sklep/assets/sklep.css")),
@@ -301,16 +349,118 @@ const przegladarka = await puppeteer.launch({
   headless: true,
 });
 
-async function zmierz(sciezka, zakres = ZAKRES_TUTORA) {
+/*
+ * PASEK NARZĘDZI WORDPRESSA — dlaczego go zdejmujemy przy widoku lekcji.
+ *
+ * Lekcja jest za logowaniem, więc żeby ją zmierzyć, trzeba się zalogować.
+ * Zalogowany administrator dostaje jednak pasek narzędzi (32 px,
+ * `position: fixed`) i `html { margin-top: 32px }`, czego KLIENT po zakupie
+ * nie widzi. Pomiar z paskiem opisywałby układ, którego nikt nigdy nie
+ * ogląda: pigułka lekcji chowa się pod paskiem, a treść zjeżdża o 32 px.
+ *
+ * Zdejmujemy go tak, jak sam WordPress robi to użytkownikowi z odznaczonym
+ * „Pokaż pasek narzędzi”. I to jest ZMIERZONE, nie założone: przy realnie
+ * wyłączonym pasku w profilu (`show_admin_bar_front=false`) strona ma CO DO
+ * PIKSELA ten sam układ, co przy tych dwóch regułach — pigułka 0–68 px,
+ * `<main>` 0–6990, hero 144–539, dokument 7642 px. Regułę wybieramy zamiast
+ * grzebania w profilu, bo smoke przerwany w połowie nie ma prawa zostawić
+ * po sobie zmiany w instalacji.
+ */
+const BEZ_PASKA_ADMINA = () => {
+  const styl = document.createElement("style");
+  styl.textContent = "#wpadminbar{display:none!important}html{margin-top:0!important}";
+  const dopisz = () => document.documentElement.appendChild(styl);
+  if (document.documentElement) dopisz();
+  else addEventListener("DOMContentLoaded", dopisz);
+};
+
+/**
+ * Pomiar PO USTANIU RUCHU.
+ *
+ * Pigułka kursu i lekcji wjeżdża animacją (`aai-pasek-wjazd`, 0,5 s), więc
+ * odczyt zaraz po `load` łapie ją w losowej klatce — dwa przebiegi tej samej
+ * strony dały dolną krawędź 61 px i 59 px. Różnica mała, ale to właśnie ona
+ * rozstrzyga pytanie „czy napis wjeżdża pod belkę”.
+ *
+ * Filtr jest KONIECZNY: samo `getAnimations()` nigdy się nie kończy — bloby
+ * w tle dryfują w animacji nieskończonej i pomiar wisi do timeoutu protokołu
+ * (sprawdzone: tak właśnie padł pierwszy podejście do tej poprawki).
+ */
+async function ustoj(karta) {
+  await karta.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect && a.effect.getTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => {}))
+    )
+  );
+}
+
+async function zmierz(sciezka, zakres = ZAKRES_TUTORA, { bezPaskaAdmina = false } = {}) {
   const karta = await przegladarka.newPage();
   await karta.setViewport({ width: 1440, height: 1400 });
+  if (bezPaskaAdmina) await karta.evaluateOnNewDocument(BEZ_PASKA_ADMINA);
   await karta.goto(ADRES + sciezka, { waitUntil: "load", timeout: 60000 });
+  await ustoj(karta);
   const wynik = await karta.evaluate(
     `(() => { ${hexNaRgbZrodlo()} const MIN_POLE_JS=${MIN_POLE}, MIN_KONTRAST_JS=${MIN_KONTRAST},` +
       ` ZAKRES_JS=${JSON.stringify(zakres)}; return (${pomiar.toString()})(); })()`
   );
   await karta.close();
   return wynik;
+}
+
+/**
+ * Adres lekcji do zmierzenia — PYTAMY INSTALACJĘ, nie wpisujemy sluga.
+ *
+ * Slug lekcji jest wynikiem treści, a treść bywa poprawiana; wpisany na
+ * sztywno zamieniłby ten smoke w test adresu zamiast testu wyglądu, a po
+ * pierwszej korekcie tytułu mierzyłby stronę 404 we własnym wyglądzie —
+ * i przechodziłby, bo 404 też jest nasze i też jest ciemne.
+ */
+function adresLekcji() {
+  const php = [
+    '$p = get_posts(array("post_type"=>"lesson","numberposts"=>-1,"post_status"=>"any"));',
+    "$w = array();",
+    'foreach ($p as $x) { $w[] = array("i"=>substr_count($x->post_content,"!["),"d"=>strlen($x->post_content),"a"=>get_permalink($x)); }',
+    'usort($w, fn($a,$b)=>($b["i"]<=>$a["i"]) ?: ($b["d"]<=>$a["d"]));',
+    'echo $w ? $w[0]["a"] : "";',
+  ].join("");
+  const wyjscie = execFileSync("podman", ["exec", KONTENER, "wp", "--path=/var/www/html", "eval", php], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+  if (!wyjscie.startsWith("http")) {
+    console.error(
+      `smoke-wp-motyw: instalacja nie oddała adresu lekcji („${wyjscie}") — czy dane są wgrane?\n` +
+        "  npm run wp:import && npm run wp:sync && npm run wp:zrzuty"
+    );
+    process.exit(1);
+  }
+  return new URL(wyjscie).pathname;
+}
+
+/** Logowanie PRZEZ FORMULARZ — ciastko WordPressa jest podpisane, nie da się go złożyć z zewnątrz. */
+async function zaloguj() {
+  const haslo = Object.fromEntries(
+    readFileSync("wordpress/srodowisko/.env", "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .map((linia) => linia.split("=").map((kawalek) => kawalek.trim()))
+  ).WP_ADMIN_HASLO;
+
+  const karta = await przegladarka.newPage();
+  await karta.goto(`${ADRES}/wp-login.php`, { waitUntil: "load", timeout: 60000 });
+  await karta.type("#user_login", LOGIN);
+  await karta.type("#user_pass", haslo);
+  await Promise.all([
+    karta.waitForNavigation({ waitUntil: "load", timeout: 60000 }),
+    karta.click("#wp-submit"),
+  ]);
+  const udane = karta.url().includes("/wp-admin");
+  await karta.close();
+  return udane;
 }
 
 console.log(`smoke-wp-motyw: ${ADRES}`);
@@ -325,6 +475,11 @@ for (const sciezka of STRONY_TUTORA) {
   sprawdz(
     m.nieznane.length === 0,
     `${sciezka}: pomiar nie umie rozebrać zapisu koloru (${m.nieznane.join(", ")}) — wynik byłby zgadywaniem`
+  );
+
+  sprawdz(
+    m.zmierzonych > 0,
+    `${sciezka}: zakres pomiaru nie trafił w ANI JEDEN element — wynik „zero usterek" opisywałby pustkę, nie stronę`
   );
 
   sprawdz(m.klasaBody, `${sciezka}: brak klasy „aai-tutor-na-motywie” na body — arkusz nie ma się czego złapać`);
@@ -361,7 +516,10 @@ for (const sciezka of STRONY_TUTORA) {
       rozne.slice(0, 3).map((x) => `\n      ${x.etykieta}\n        tutor: ${x.tutor}\n        motyw: ${x.motyw}`).join("")
   );
 
-  console.log(`  ${sciezka}: nagłówek do ${m.naglowekDol} px, 0 nachodzeń, 0 jasnych plam, 0 napisów < ${MIN_KONTRAST}:1`);
+  console.log(
+    `  ${sciezka}: nagłówek do ${m.naglowekDol} px, ${m.zmierzonych} elementów, ` +
+      `${m.nachodzace.length} nachodzeń, ${m.jasne.length} jasnych plam, ${m.nieczytelne.length} napisów < ${MIN_KONTRAST}:1`
+  );
 }
 
 /*
@@ -377,6 +535,11 @@ for (const sciezka of STRONY_NASZE) {
   sprawdz(
     m.nieznane.length === 0,
     `${sciezka}: pomiar nie umie rozebrać zapisu koloru (${m.nieznane.join(", ")}) — wynik byłby zgadywaniem`
+  );
+
+  sprawdz(
+    m.zmierzonych > 0,
+    `${sciezka}: zakres pomiaru nie trafił w ANI JEDEN element — wynik „zero usterek" opisywałby pustkę, nie stronę`
   );
 
   sprawdz(m.naszArkuszSklepu, `${sciezka}: nasz arkusz sklepu nie wszedł na stronę`);
@@ -417,7 +580,87 @@ for (const sciezka of STRONY_NASZE) {
       rozne.slice(0, 3).map((x) => `\n      ${x.etykieta}\n        nasza: ${x.nasza}\n        motyw: ${x.motyw}`).join("")
   );
 
-  console.log(`  ${sciezka}: belka do ${m.naglowekDol} px, 0 nachodzeń, 0 jasnych plam, 0 napisów < ${MIN_KONTRAST}:1`);
+  console.log(
+    `  ${sciezka}: belka do ${m.naglowekDol} px, ${m.zmierzonych} elementów, ` +
+      `${m.nachodzace.length} nachodzeń, ${m.jasne.length} jasnych plam, ${m.nieczytelne.length} napisów < ${MIN_KONTRAST}:1`
+  );
+}
+
+/*
+ * PIĄTA STRONA: WIDOK LEKCJI (W5) — mierzony NA KOŃCU, i to jest część
+ * pomiaru, a nie porządek alfabetyczny. Jako jedyny wymaga zalogowania,
+ * a od chwili logowania każda kolejna odsłona w tej przeglądarce niosłaby
+ * pasek narzędzi WordPressa — cztery wcześniejsze strony mierzymy więc
+ * dokładnie tak, jak ogląda je gość.
+ *
+ * Pytania są te same co przy stronach z W3 (nasz arkusz wchodzi, cudze nie,
+ * nic nie chowa się pod belką, zero jasnych plam, kontrast, stopka motywu
+ * bez zmian) i to jest sedno: widok lekcji NIE JEST stroną Tutora tylko
+ * dlatego, że mieszka pod jego adresem.
+ */
+const SCIEZKA_LEKCJI = adresLekcji();
+sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da się zmierzyć bez dostępu");
+
+{
+  const m = await zmierz(SCIEZKA_LEKCJI, ZAKRES_LEKCJI, { bezPaskaAdmina: true });
+
+  sprawdz(
+    m.nieznane.length === 0,
+    `${SCIEZKA_LEKCJI}: pomiar nie umie rozebrać zapisu koloru (${m.nieznane.join(", ")}) — wynik byłby zgadywaniem`
+  );
+
+  sprawdz(
+    m.zmierzonych > 0,
+    `${SCIEZKA_LEKCJI}: zakres pomiaru nie trafił w ANI JEDEN element — albo lekcja poszła w cudzym szablonie, albo dostęp nie przeszedł i mierzymy stronę odmowy`
+  );
+
+  sprawdz(
+    !m.pasekAdmina,
+    `${SCIEZKA_LEKCJI}: pasek narzędzi WordPressa dalej wpływa na układ — pomiar opisywałby stronę, której klient nigdy nie widzi`
+  );
+
+  sprawdz(m.naszArkuszSklepu, `${SCIEZKA_LEKCJI}: nasz arkusz sklepu nie wszedł na stronę lekcji`);
+  sprawdz(
+    m.cudzeArkusze.length === 0,
+    `${SCIEZKA_LEKCJI}: na widoku lekcji ładują się cudze arkusze (${m.cudzeArkusze.join(", ")}) — wraca kolizja klas z 0.38.0, a lekcja siedzi pod adresem Tutora, więc jest na nią najbardziej narażona`
+  );
+
+  sprawdz(
+    m.naglowekDol > 0,
+    `${SCIEZKA_LEKCJI}: nie widać żadnej belki przypiętej do góry — pigułka lekcji nie weszła`
+  );
+
+  sprawdz(
+    m.nachodzace.length === 0,
+    `${SCIEZKA_LEKCJI}: ${m.nachodzace.length} elementów wjeżdża pod belkę u góry (dół belki ${m.naglowekDol} px): ` +
+      m.nachodzace.map((x) => `${x.el} „${x.tekst}" @${x.gora}px`).join("; ")
+  );
+
+  sprawdz(
+    m.jasne.length === 0,
+    `${SCIEZKA_LEKCJI}: ${m.jasne.length} jasnych powierzchni poza akcentem marki: ` +
+      m.jasne.map((x) => `${x.el} ${x.pole} px² ${x.tlo}`).join("; ")
+  );
+
+  sprawdz(
+    m.nieczytelne.length === 0,
+    `${SCIEZKA_LEKCJI}: ${m.nieczytelne.length} napisów o kontraście < ${MIN_KONTRAST}:1: ` +
+      m.nieczytelne.map((x) => `„${x.tekst}" ${x.kontrast}:1`).join("; ")
+  );
+
+  const rozne = m.stopka
+    .map((w, i) => ({ etykieta: w.etykieta, nasza: w.podpis, motyw: wzorzec.stopka[i]?.podpis }))
+    .filter((x) => x.motyw !== undefined && x.motyw !== x.nasza);
+  sprawdz(
+    rozne.length === 0,
+    `${SCIEZKA_LEKCJI}: stopka MOTYWU renderuje się inaczej niż na stronie motywu (${rozne.length} z ${m.stopka.length}) — nasz arkusz lekcji wycieka poza własny markup: ` +
+      rozne.slice(0, 3).map((x) => `\n      ${x.etykieta}\n        nasza: ${x.nasza}\n        motyw: ${x.motyw}`).join("")
+  );
+
+  console.log(
+    `  ${SCIEZKA_LEKCJI}: belka do ${m.naglowekDol} px, ${m.zmierzonych} elementów, ` +
+      `${m.nachodzace.length} nachodzeń, ${m.jasne.length} jasnych plam, ${m.nieczytelne.length} napisów < ${MIN_KONTRAST}:1`
+  );
 }
 
 await przegladarka.close();

@@ -358,6 +358,85 @@ final class Aai_Sklep_Widok {
 	/**
 	 * Dane ścieżek ikon lucide (wersja z `node_modules/lucide-react`).
 	 */
+	/**
+	 * Lista znaczników dozwolonych w złożonej prozie lekcji.
+	 *
+	 * PO CO ROZSZERZAĆ `wp_kses_post`. Bo domyślna lista NIE ZNA `<svg>` —
+	 * a nasze bloki („Czego się nauczysz", „Zrób to teraz") mają ikonę
+	 * w nagłówku i to po niej poznaje się rodzaj sekcji. Bez tego kses
+	 * zjadał ikony po cichu: strona wyglądała poprawnie, tylko uboższa
+	 * o element, który miał nieść znaczenie.
+	 *
+	 * Rozszerzenie jest WĄSKIE i celowo nie obejmuje `<script>`, `<style>`
+	 * ani zdarzeń — kses zostaje drugim zamkiem na tych samych drzwiach
+	 * (pierwszym jest renderer, który ucieka wszystko, co przyszło z bazy).
+	 *
+	 * @return array<string,array<string,bool>>
+	 */
+	public static function dozwolone_znaczniki(): array {
+		$dozwolone = wp_kses_allowed_html( 'post' );
+
+		$wspolne = array(
+			'class'       => true,
+			'aria-hidden' => true,
+			'focusable'   => true,
+		);
+
+		$dozwolone['svg'] = array_merge(
+			$wspolne,
+			array(
+				'xmlns'             => true,
+				'viewbox'           => true,
+				'fill'              => true,
+				'stroke'            => true,
+				'stroke-width'      => true,
+				'stroke-linecap'    => true,
+				'stroke-linejoin'   => true,
+				'width'             => true,
+				'height'            => true,
+			)
+		);
+		foreach ( array( 'path', 'circle', 'rect', 'polygon', 'line', 'g' ) as $ksztalt ) {
+			$dozwolone[ $ksztalt ] = array_merge(
+				$wspolne,
+				array(
+					'd'      => true,
+					'cx'     => true,
+					'cy'     => true,
+					'r'      => true,
+					'x'      => true,
+					'y'      => true,
+					'x1'     => true,
+					'x2'     => true,
+					'y1'     => true,
+					'y2'     => true,
+					'rx'     => true,
+					'ry'     => true,
+					'width'  => true,
+					'height' => true,
+					'points' => true,
+					'fill'   => true,
+					'stroke' => true,
+				)
+			);
+		}
+
+		// Wymiary i leniwe ładowanie obrazów: bez nich zrzuty przepychałyby
+		// tekst przy doładowaniu (CLS trzymany w tym projekcie na zerze).
+		$dozwolone['img'] = array_merge(
+			$dozwolone['img'] ?? array(),
+			array(
+				'width'    => true,
+				'height'   => true,
+				'loading'  => true,
+				'decoding' => true,
+			)
+		);
+		$dozwolone['div'] = array_merge( $dozwolone['div'] ?? array(), array( 'data-jezyk' => true ) );
+
+		return $dozwolone;
+	}
+
 	private const IKONY = array(
 		'arrow-left'     => '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
 		'arrow-right'    => '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
@@ -372,5 +451,19 @@ final class Aai_Sklep_Widok {
 		'shield-check'   => '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
 		'sparkles'       => '<path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/>',
 		'x'              => '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+		/*
+		 * Zestaw widoku lekcji (W5) — te same kształty, co w podglądzie
+		 * kursów przyjętym przez właściciela: rodzaj sekcji prozy poznaje się
+		 * po ikonie, więc muszą być identyczne po obu stronach.
+		 */
+		'target'         => '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+		'terminal'       => '<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>',
+		'settings'       => '<path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/><circle cx="12" cy="12" r="4"/>',
+		'book'           => '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/>',
+		'bridge'         => '<path d="M6 20V10"/><path d="M18 20V10"/><path d="M2 10h20"/><path d="M12 20V4"/><path d="M4 20h16"/>',
+		'help'           => '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+		'compass'        => '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+		'list'           => '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>',
+		'copy'           => '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
 	);
 }

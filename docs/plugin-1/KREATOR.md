@@ -182,6 +182,43 @@ i **uprawnienie** („ta osoba może"). Jedno bez drugiego nie wystarcza.
 - **Nie ma typu „ebook".** Właściciel zamknął ten temat 2026-08-25 słowem
   „na zawsze": produktem jest wyłącznie kurs tekstowy za logowaniem.
 
+## Co się dzieje po zapisie — kopia w Tutorze
+
+**Zapis w kreatorze dojeżdża do Tutor LMS sam.** Po KAŻDYM udanym zapisie —
+nie tylko przy publikacji — wtyczka odświeża kopię kursu we wpisach Tutora:
+kurs, moduły i lekcje. Nie trzeba niczego klikać ani uruchamiać.
+
+Dlaczego to w ogóle istnieje: **źródłem prawdy o kursie są NASZE tabele**,
+a Tutor daje konta, zapisy na kurs i dostęp za logowaniem. Klient czyta lekcję
+w naszym szablonie i wprost z naszych tabel, ale to Tutor odpowiada na pytanie
+„czy ta osoba kupiła" i to on nadaje lekcjom adresy. Obie kopie muszą więc być
+zgodne — a przed 0.43.0 nie były: poprawka w kreatorze rozjeżdżała je po cichu,
+właściciel widział nową wersję w panelu, a klient po zalogowaniu czytał starą.
+
+Co z tego wynika przy pracy:
+
+- **Poprawka treści lekcji jest widoczna od razu** — materiał klient czyta
+  z naszych tabel, nie z kopii.
+- **Nowa lekcja, nowy tytuł i zmiana kolejności też jadą od razu**: po zapisie
+  kopia ma nowy układ, więc lekcja dostaje adres i wchodzi do nawigacji.
+- **Kopia jedzie w JEDNĄ stronę.** Zmiana zrobiona w Course Builderze Tutora
+  nie wraca do nas i zniknie przy najbliższym zapisie z kreatora. Kursów nie
+  edytuje się w Tutorze — od tego jest ten kreator.
+- **Awaria kopii NIE cofa Twojego zapisu.** Gdyby Tutor był wyłączony albo
+  zwrócił błąd, zmiana i tak zostaje zapisana — wyłączona cudza wtyczka nie ma
+  prawa blokować edycji własnej treści. Ceną jest to, że nieudana kopia byłaby
+  niewidoczna, więc kokpit pokazuje wtedy ostrzeżenie **„Kopia kursu w Tutor LMS
+  nie nadążyła za ostatnim zapisem"** i trzyma je, dopóki kolejna kopia się nie
+  uda.
+- **Naprawa: `wp aai-sklep sync`** (albo `npm run wp:sync`) — zapisanie kursu
+  jeszcze raz robi dokładnie to samo.
+- **Rozjazd sprawdzisz w każdej chwili: `wp aai-sklep sprawdz-tutora`**
+  (`npm run wp:tutor`). Porównuje obie kopie pole po polu i kończy się **kodem
+  wyjścia 1**, gdy się rozjechały; nazywa po imieniu trzy klasy rozjazdu —
+  różnicę pola, sierotę po skasowanym obiekcie i wpis zrobiony poza kreatorem.
+- **Cena w kopii Tutora zostaje `Free`.** Sprzedaż wchodzi z Pluginem 2
+  (WooCommerce), nie tutaj.
+
 ## Czego ten kreator NIE zrobi za Ciebie
 
 Wszystko z sekcji prototypu obowiązuje bez zmian — kolejność sekcji wynika
@@ -209,7 +246,7 @@ Do tego:
 
 ## Dowody
 
-`npm run smoke:wp-kreator` — 92 sprawdzenia na żywej instalacji: bramki
+`npm run smoke:wp-kreator` — 95 sprawdzeń na żywej instalacji: bramki
 dostępu, runda „zapisz → odczytaj" dla wszystkich 12 rodzajów sekcji
 (z treścią generowaną z opisu pól, więc nowe pole samo wchodzi do próby),
 zapis programu nietykający prozy 73 lekcji, odmowa skasowania treści bez

@@ -90,6 +90,17 @@ final class Aai_Sklep_Zasoby {
 	 * stylów albo strona motywu z cudzym CSS-em.
 	 */
 	public static function strona_tutora(): bool {
+		/*
+		 * NASZA strona lekcji stoi pod adresem Tutora, ale rysuje ją nasz
+		 * szablon i nie ma na niej ani jednego elementu jego interfejsu —
+		 * jego arkusz zrobiłby tam dokładnie to, co zrobił stronie głównej
+		 * przed 0.38.0 (kolizja `.text-label`), tylko że w widoku, za który
+		 * klient zapłacił. Pytanie „czy to strona Tutora" odpowiadamy więc
+		 * PRZECZĄCO wszędzie tam, gdzie rysujemy własny widok.
+		 */
+		if ( class_exists( 'Aai_Sklep_Lekcja' ) && Aai_Sklep_Lekcja::czy_nasza() ) {
+			return false;
+		}
 		if ( ! function_exists( 'tutor' ) ) {
 			return false;
 		}

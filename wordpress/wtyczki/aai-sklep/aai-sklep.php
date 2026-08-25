@@ -123,6 +123,8 @@ add_action(
 		// zapisu, więc musi być podpięta ZANIM cokolwiek zapisze — także
 		// przy imporcie z wiersza poleceń, który biegnie przez ten sam hak.
 		Aai_Sklep_Tutor::zarejestruj();
+		// Widok lekcji (krok W5) — NASZ szablon w miejsce Tutorowego.
+		Aai_Sklep_Lekcja::zarejestruj();
 	}
 );
 

@@ -1,0 +1,1016 @@
+/*
+ * Arkusz WIDOKU LEKCJI — tego, co klient dostaje po zakupie.
+ *
+ * SKĄD SIĘ BIORĄ TE REGUŁY. Z `tools/podglad-kursow/styl.css`, czyli
+ * z wyglądu, który właściciel obejrzał i przyjął 2026-08-24 („redesign jest
+ * dobry", wersja 0.34.0). Tamten arkusz został wtedy wyjęty z generatora
+ * do osobnego pliku WŁAŚNIE po to, żeby dał się przenieść do szablonów
+ * WordPressa — i to jest ten moment.
+ *
+ * CO SIĘ ZMIENIŁO PO DRODZE. Trzy rzeczy, wszystkie mechaniczne:
+ *   1. klasy dostały przedrostek `aai-` (motyw to Tailwind; gołe `.kod`,
+ *      `.tresc` czy `.hero` prędzej czy później zderzą się z jego klasą —
+ *      dokładnie tak wyglądała kolizja `.text-label` z 0.38.0),
+ *   2. każdy selektor jest zakotwiczony w `.aai-sklep-lekcja` (klasa `body`),
+ *      bo nasze reguły stoją POZA warstwami kaskady motywu i bez kotwicy
+ *      potrafiłyby przemalować cudzą stronę,
+ *   3. zmienne mają przedrostek `--aai-`, tak jak w `sklep.css`.
+ *
+ * TOKENY DZIEDZICZYMY z `sklep.css` (`body` ma obie klasy). Tutaj dokładamy
+ * tylko te, których strona sprzedażowa nie potrzebowała: miarę kolumny
+ * tekstu, kroje pisma i dwa kolory kodu.
+ */
+
+.aai-sklep-lekcja {
+	/* Miara kolumny czytania — 34rem to ~72 znaki w tym kroju. */
+	--aai-miara: 34rem;
+	--aai-promien-duzy: 1rem;
+	--aai-line-mocna: rgba(245, 245, 245, 0.16);
+	--aai-fg-kod: #e6e8ea;
+	--aai-sans: var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif);
+	--aai-mono: var(--font-geist-mono, ui-monospace, "SFMono-Regular", monospace);
+}
+
+/* ————————————————— nagłówek motywu ustępuje pigułce ————————————————— */
+
+/*
+ * Ta sama decyzja, co na stronie kursu (`sklep.css`), i z tego samego,
+ * funkcjonalnego powodu: pigułka lekcji też jest `position: fixed` u góry,
+ * więc dwie belki po prostu NACHODZĄ na siebie. Powrót do reszty serwisu
+ * daje sygnet w pigułce. `:not(.aai-pasek)` jest konieczne — nasza pigułka
+ * też jest `<header>` i też jest dzieckiem `body`.
+ */
+.aai-sklep-lekcja > header:not(.aai-pasek) {
+	display: none;
+}
+
+/* ————————————————— układ strony lekcji ————————————————— */
+
+.aai-sklep-lekcja .aai-lekcja {
+	/*
+	 * `display: block` NIE jest tu ozdobą. Na żywej instalacji `<main>`
+	 * dostaje skądś `display: flex` (zmierzone w przeglądarce; reguły nie ma
+	 * ani w naszych arkuszach, ani w motywie — zostaje któryś z arkuszy
+	 * wtyczek albo styl dokładany skryptem). Skutek jest brutalny: hero,
+	 * wstęp, treść i nawigacja ustawiają się OBOK SIEBIE w wąskich
+	 * kolumnach, a lekcja robi się nieczytelna. Deklarujemy więc układ
+	 * wprost, zamiast liczyć na wartość domyślną — dokładnie z tego samego
+	 * powodu, dla którego cały ten arkusz stoi poza warstwami kaskady.
+	 */
+	display: block;
+	max-width: 72rem;
+	margin-inline: auto;
+	padding: var(--aai-odstep-naglowka) 1.25rem 0;
+}
+
+.aai-sklep-lekcja .aai-lekcja-hero {
+	max-width: var(--aai-miara);
+	margin: 0 auto 2.5rem;
+}
+
+.aai-sklep-lekcja .aai-lekcja-hero h1 {
+	margin: 0.6rem 0 0.9rem;
+	font-size: clamp(1.9rem, 1.4rem + 2vw, 2.8rem);
+	line-height: 1.08;
+	letter-spacing: -0.03em;
+	font-weight: 600;
+}
+
+.aai-sklep-lekcja .aai-etykieta {
+	margin: 0;
+	font-family: var(--aai-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-rozwijane {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.aai-sklep-lekcja .aai-rozwijane > summary {
+  list-style: none;
+}
+
+.aai-sklep-lekcja .aai-rozwijane > summary::-webkit-details-marker {
+  display: none;
+}
+
+.aai-sklep-lekcja .aai-rozwijane > summary svg:last-child {
+  transition: transform 0.25s ease;
+}
+
+.aai-sklep-lekcja .aai-rozwijane[open] > summary svg:last-child {
+  transform: rotate(180deg);
+}
+
+.aai-sklep-lekcja .aai-rozwijane[open] > summary {
+  background: rgba(245, 245, 245, 0.06);
+  color: var(--aai-fg);
+}
+
+.aai-sklep-lekcja .aai-rozwijane-tresc {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  z-index: 10;
+  width: min(24rem, calc(100vw - 2.5rem));
+  max-height: min(28rem, calc(100vh - 8rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* systemowy pasek przewijania wchodzi tu jasną szyną przez całą wysokość
+   * i rozbija ciemny panel — cieńszy i w kolorach systemu */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 245, 245, 0.18) transparent;
+  padding: 0.5rem;
+  border: 1px solid var(--aai-line-mocna);
+  border-radius: var(--aai-promien-duzy);
+  background: rgba(16, 17, 22, 0.97);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+  animation: rozwin 0.2s var(--aai-krzywa);
+}
+
+@media (max-width: 40rem) {
+.aai-sklep-lekcja .aai-rozwijane {
+    position: static;
+  }
+  .aai-sklep-lekcja .aai-rozwijane-tresc {
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+  }
+}
+
+.aai-sklep-lekcja .aai-rozwijane-naglowek {
+  padding: 0.5rem 0.75rem 0.35rem;
+  font-family: var(--aai-mono);
+  /* 0,66 rem, nie 0,55: to nazwa modułu w JEDYNEJ nawigacji po 73 lekcjach,
+   * a nie mikroetykieta ozdobna — 8,8 px z rozstrzeleniem 0,25 em było
+   * poniżej granicy wygodnego czytania polskiego tytułu */
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-spis-modul {
+  border-top: 1px solid var(--aai-line);
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+}
+
+.aai-sklep-lekcja .aai-spis-modul:first-of-type {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.aai-sklep-lekcja .aai-spis-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aai-sklep-lekcja .aai-spis-lista a {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--aai-fg);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-decoration: none;
+  transition: background-color 0.18s ease;
+}
+
+.aai-sklep-lekcja .aai-spis-lista a:hover {
+  background: rgba(245, 245, 245, 0.05);
+}
+
+@media (pointer: coarse) {
+.aai-sklep-lekcja .aai-spis-lista a {
+    padding-block: 0.7rem;
+  }
+}
+
+.aai-sklep-lekcja .aai-spis-lista a[aria-current="page"] {
+  background: rgba(191, 255, 56, 0.1);
+  color: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-spis-lista code,
+
+.aai-sklep-lekcja .aai-tresc h2 code,
+
+.aai-sklep-lekcja .aai-tresc h3 code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: var(--aai-mono);
+  font-size: 0.88em;
+  color: inherit;
+}
+
+.aai-sklep-lekcja .aai-spis-nr {
+  flex: 0 0 auto;
+  min-width: 2rem;
+  font-family: var(--aai-mono);
+  font-size: 0.72rem;
+  color: var(--aai-steel);
+  font-variant-numeric: tabular-nums;
+}
+
+.aai-sklep-lekcja .aai-spis-lista a[aria-current="page"] .aai-spis-nr {
+  color: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-spis-lista a[data-przeczytana="1"] .aai-spis-nr::after {
+  content: " ✓";
+  color: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-pomin {
+  position: fixed;
+  top: -6rem;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.375rem;
+  background: var(--aai-volt);
+  color: var(--aai-void);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.aai-sklep-lekcja .aai-pomin:focus-visible {
+  top: 1rem;
+}
+
+.aai-sklep-lekcja .aai-lead {
+  margin: 1.5rem 0 0;
+  font-size: 1.12rem;
+  line-height: 1.7;
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-lead strong {
+  color: var(--aai-fg);
+}
+
+.aai-sklep-lekcja .aai-meta-listwa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.5rem;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--aai-line);
+  font-family: var(--aai-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-meta-listwa b {
+  color: var(--aai-fg);
+  font-weight: 500;
+}
+
+.aai-sklep-lekcja .aai-tresc {
+  padding-bottom: 4rem;
+}
+
+.aai-sklep-lekcja .aai-tresc > * {
+  max-width: var(--aai-miara);
+  margin-inline: auto;
+}
+
+.aai-sklep-lekcja .aai-tresc h2 {
+  margin: 3.5rem auto 1.1rem;
+  font-size: 1.6rem;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.aai-sklep-lekcja .aai-tresc h2 .aai-h2-nr {
+  display: inline-block;
+  min-width: 2.4rem;
+  margin-left: -2.4rem;
+  font-family: var(--aai-mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--aai-volt);
+  vertical-align: 0.32em;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 52rem) {
+.aai-sklep-lekcja .aai-tresc h2 .aai-h2-nr {
+    margin-left: 0;
+    min-width: 0;
+    margin-right: 0.6rem;
+  }
+}
+
+.aai-sklep-lekcja .aai-tresc h3 {
+  margin: 2.4rem auto 0.7rem;
+  font-size: 1.13rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.aai-sklep-lekcja .aai-tresc h4 {
+  margin: 1.8rem auto 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-tresc p {
+  margin: 0 auto 1.2rem;
+}
+
+.aai-sklep-lekcja .aai-tresc ul,
+
+.aai-sklep-lekcja .aai-tresc ol {
+  margin: 0 auto 1.35rem;
+  padding-left: 1.35rem;
+}
+
+.aai-sklep-lekcja .aai-tresc li {
+  margin-bottom: 0.5rem;
+}
+
+.aai-sklep-lekcja .aai-tresc li::marker {
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-tresc strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.aai-sklep-lekcja .aai-tresc hr {
+  max-width: var(--aai-miara);
+  border: 0;
+  border-top: 1px solid var(--aai-line);
+  margin: 3rem auto;
+}
+
+.aai-sklep-lekcja .aai-tresc blockquote {
+  position: relative;
+  margin: 1.9rem auto;
+  padding: 1.1rem 1.25rem 1.1rem 1.4rem;
+  border: 1px solid var(--aai-line);
+  border-left: 2px solid rgba(191, 255, 56, 0.55);
+  border-radius: var(--aai-promien);
+  background: linear-gradient(
+    90deg,
+    rgba(191, 255, 56, 0.04),
+    rgba(191, 255, 56, 0) 40%
+  );
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-tresc blockquote strong {
+  color: var(--aai-fg);
+}
+
+.aai-sklep-lekcja .aai-tresc blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.aai-sklep-lekcja .aai-tresc :not(pre) > code {
+  font-family: var(--aai-mono);
+  font-size: 0.86em;
+  background: rgba(245, 245, 245, 0.05);
+  border: 1px solid var(--aai-line);
+  border-radius: 4px;
+  padding: 0.1em 0.36em;
+  color: var(--aai-fg-kod);
+  overflow-wrap: break-word;
+  /* długa komenda („git remote set-url") łamie się w wąskiej kolumnie —
+   * bez tego obie połówki dostają obciętą ramkę i wyglądają jak dwa
+   * osobne, uszkodzone pudełka */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.aai-sklep-lekcja .aai-kod {
+  position: relative;
+  max-width: calc(var(--aai-miara) + 3rem);
+  margin: 1.7rem auto;
+  border: 1px solid var(--aai-line);
+  border-radius: var(--aai-promien);
+  background: var(--aai-panel);
+  overflow: hidden;
+}
+
+.aai-sklep-lekcja .aai-kod-pasek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--aai-line);
+  background: rgba(8, 9, 11, 0.5);
+}
+
+.aai-sklep-lekcja .aai-kod-jezyk {
+  font-family: var(--aai-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-kod pre {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  background: none;
+}
+
+.aai-sklep-lekcja .aai-kod pre code {
+  font-family: var(--aai-mono);
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: var(--aai-fg-kod);
+}
+
+.aai-sklep-lekcja .aai-tabela {
+  max-width: calc(var(--aai-miara) + 6rem);
+  margin: 1.8rem auto;
+  border: 1px solid var(--aai-line);
+  border-radius: var(--aai-promien);
+  background: var(--aai-panel);
+  overflow-x: auto;
+}
+
+.aai-sklep-lekcja .aai-tabela table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.aai-sklep-lekcja .aai-tabela th,
+
+.aai-sklep-lekcja .aai-tabela td {
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--aai-line);
+  vertical-align: top;
+}
+
+.aai-sklep-lekcja .aai-tabela th:first-child,
+
+.aai-sklep-lekcja .aai-tabela td:first-child {
+  min-width: 9rem;
+}
+
+.aai-sklep-lekcja .aai-tabela tr:last-child td {
+  border-bottom: 0;
+}
+
+.aai-sklep-lekcja .aai-tabela th {
+  position: sticky;
+  top: 0;
+  background: rgba(8, 9, 11, 0.92);
+  backdrop-filter: blur(6px);
+  color: var(--aai-steel);
+  font-family: var(--aai-mono);
+  /* nagłówek kolumny jest częścią treści lekcji, nie etykietą interfejsu */
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.aai-sklep-lekcja .aai-tabela tbody tr {
+  transition: background-color 0.18s ease;
+}
+
+.aai-sklep-lekcja .aai-tabela tbody tr:hover {
+  background: rgba(245, 245, 245, 0.02);
+}
+
+.aai-sklep-lekcja .aai-zrzut {
+  max-width: calc(var(--aai-miara) + 6rem);
+  margin: 2.2rem auto;
+}
+
+.aai-sklep-lekcja .aai-zrzut img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--aai-line);
+  border-radius: var(--aai-promien);
+  background: var(--aai-panel);
+  transition:
+    transform 0.4s var(--aai-krzywa),
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.aai-sklep-lekcja .aai-zrzut:hover img {
+  transform: translateY(-3px);
+  border-color: rgba(191, 255, 56, 0.22);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.5),
+    0 0 26px rgba(191, 255, 56, 0.06);
+}
+
+.aai-sklep-lekcja .aai-zrzut figcaption {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-zrzut figcaption::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 2px;
+  border-radius: 9999px;
+  background: rgba(191, 255, 56, 0.4);
+}
+
+.aai-sklep-lekcja .aai-brak-zrzutu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: calc(var(--aai-miara) + 6rem);
+  margin: 2.2rem auto;
+  padding: 1.6rem;
+  border: 1px dashed rgba(191, 255, 56, 0.42);
+  border-radius: var(--aai-promien);
+  background: rgba(191, 255, 56, 0.04);
+}
+
+.aai-sklep-lekcja .aai-brak-etykieta {
+  font-family: var(--aai-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-brak-podpis {
+  font-size: 0.86rem;
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-blok {
+  max-width: calc(var(--aai-miara) + 3rem);
+  margin: 2.6rem auto;
+  padding: 1.5rem 1.6rem;
+  border: 1px solid var(--aai-line);
+  border-radius: var(--aai-promien-duzy);
+  background: var(--aai-panel);
+}
+
+.aai-sklep-lekcja .aai-blok > :last-child {
+  margin-bottom: 0;
+}
+
+.aai-sklep-lekcja .aai-tresc .aai-blok-naglowek {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 1.15rem;
+  font-family: var(--aai-mono);
+  font-size: 0.7rem;
+  line-height: 1.3;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--aai-steel);
+  font-weight: 600;
+}
+
+.aai-sklep-lekcja .aai-blok-naglowek svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: 0 0 auto;
+}
+
+.aai-sklep-lekcja .aai-blok-odznaka {
+  margin-left: auto;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--aai-line);
+  border-radius: 9999px;
+  /* 0,72 rem, nie 0,6: odznaka niesie treść („10 minut”), a nie ozdobę —
+   * 9,6 px było poniżej wszystkiego, co ma tu do przeczytania człowiek */
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--aai-steel);
+  white-space: nowrap;
+}
+
+.aai-sklep-lekcja .aai-blok h2,
+
+.aai-sklep-lekcja .aai-blok h3 {
+  max-width: none;
+  margin: 1.4rem 0 0.6rem;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.aai-sklep-lekcja .aai-blok > .aai-blok-naglowek + h2,
+
+.aai-sklep-lekcja .aai-blok > .aai-blok-naglowek + h3 {
+  margin-top: 0;
+}
+
+.aai-sklep-lekcja .aai-blok p,
+
+.aai-sklep-lekcja .aai-blok ul,
+
+.aai-sklep-lekcja .aai-blok ol {
+  max-width: none;
+}
+
+.aai-sklep-lekcja .aai-blok .aai-kod,
+
+.aai-sklep-lekcja .aai-blok .aai-tabela,
+
+.aai-sklep-lekcja .aai-blok .aai-zrzut,
+
+.aai-sklep-lekcja .aai-blok .aai-brak-zrzutu {
+  max-width: none;
+  margin-inline: 0;
+}
+
+.aai-sklep-lekcja .aai-blok-cele {
+  border-color: var(--aai-line-mocna);
+  background: linear-gradient(
+    135deg,
+    rgba(191, 255, 56, 0.045),
+    rgba(16, 17, 22, 1) 55%
+  );
+}
+
+.aai-sklep-lekcja .aai-tresc .aai-blok-cele .aai-blok-naglowek {
+  color: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-blok-cele ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aai-sklep-lekcja .aai-blok-cele li {
+  position: relative;
+  margin-bottom: 0.65rem;
+  padding-left: 1.75rem;
+}
+
+.aai-sklep-lekcja .aai-blok-cele li:last-child {
+  margin-bottom: 0;
+}
+
+.aai-sklep-lekcja .aai-blok-cele li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.85rem;
+  height: 0.45rem;
+  border-left: 2px solid var(--aai-volt);
+  border-bottom: 2px solid var(--aai-volt);
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+.aai-sklep-lekcja .aai-blok-cwiczenie {
+  border-color: rgba(191, 255, 56, 0.28);
+  background:
+    radial-gradient(
+      36rem circle at 12% 0%,
+      rgba(191, 255, 56, 0.07),
+      transparent 62%
+    ),
+    var(--aai-panel);
+  box-shadow: 0 0 0 1px rgba(191, 255, 56, 0.04);
+}
+
+.aai-sklep-lekcja .aai-tresc .aai-blok-cwiczenie .aai-blok-naglowek {
+  color: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-blok-cwiczenie .aai-blok-odznaka {
+  border-color: rgba(191, 255, 56, 0.3);
+  background: rgba(191, 255, 56, 0.08);
+  color: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-blok-cwiczenie ol {
+  counter-reset: krok;
+  list-style: none;
+  padding-left: 0;
+}
+
+.aai-sklep-lekcja .aai-blok-cwiczenie ol > li {
+  counter-increment: krok;
+  position: relative;
+  margin-bottom: 0.9rem;
+  padding-left: 2.4rem;
+}
+
+.aai-sklep-lekcja .aai-blok-cwiczenie ol > li::before {
+  content: counter(krok);
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid rgba(191, 255, 56, 0.3);
+  border-radius: 9999px;
+  background: rgba(191, 255, 56, 0.08);
+  font-family: var(--aai-mono);
+  font-size: 0.72rem;
+  color: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-tresc .aai-blok-prompty .aai-blok-naglowek {
+  color: var(--aai-fg);
+}
+
+.aai-sklep-lekcja .aai-blok-prompty .aai-kod {
+  border-color: var(--aai-line-mocna);
+}
+
+.aai-sklep-lekcja .aai-blok-diagnostyka {
+  background: rgba(16, 17, 22, 0.6);
+  border-style: dashed;
+}
+
+.aai-sklep-lekcja .aai-tresc .aai-blok-diagnostyka .aai-blok-naglowek {
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-blok-diagnostyka p,
+
+.aai-sklep-lekcja .aai-blok-diagnostyka li {
+  color: #c9ccd3;
+}
+
+.aai-sklep-lekcja .aai-blok-zapamietaj {
+  border-color: var(--aai-line-mocna);
+  background: linear-gradient(
+    135deg,
+    rgba(245, 245, 245, 0.04),
+    rgba(16, 17, 22, 1) 60%
+  );
+}
+
+.aai-sklep-lekcja .aai-blok-zapamietaj ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aai-sklep-lekcja .aai-blok-zapamietaj li {
+  position: relative;
+  margin-bottom: 0.7rem;
+  padding-left: 1.4rem;
+}
+
+.aai-sklep-lekcja .aai-blok-zapamietaj li:last-child {
+  margin-bottom: 0;
+}
+
+.aai-sklep-lekcja .aai-blok-zapamietaj li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.68em;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-blok-pytania {
+  background: rgba(16, 17, 22, 0.72);
+}
+
+.aai-sklep-lekcja .aai-most {
+  max-width: calc(var(--aai-miara) + 3rem);
+  margin: 3.5rem auto 0;
+  padding: 1.75rem 1.8rem;
+  border: 1px solid var(--aai-line);
+  border-radius: var(--aai-promien-duzy);
+  background:
+    radial-gradient(
+      30rem circle at 90% 0%,
+      rgba(191, 255, 56, 0.05),
+      transparent 60%
+    ),
+    var(--aai-panel);
+}
+
+.aai-sklep-lekcja .aai-tresc .aai-most .aai-blok-naglowek {
+  color: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-most > :last-child {
+  margin-bottom: 0;
+}
+
+.aai-sklep-lekcja .aai-most p {
+  max-width: none;
+}
+
+.aai-sklep-lekcja .aai-nawigacja {
+  display: grid;
+  gap: 0.75rem;
+  max-width: calc(var(--aai-miara) + 3rem);
+  margin: 2.5rem auto 0;
+}
+
+@media (min-width: 46rem) {
+.aai-sklep-lekcja .aai-nawigacja {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.aai-sklep-lekcja .aai-nawigacja-karta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--aai-line);
+  border-radius: var(--aai-promien);
+  background: var(--aai-panel);
+  color: var(--aai-fg);
+  text-decoration: none;
+}
+
+.aai-sklep-lekcja .aai-nawigacja-karta-dalej {
+  text-align: right;
+}
+
+.aai-sklep-lekcja .aai-nawigacja-kierunek {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--aai-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-nawigacja-karta-dalej .aai-nawigacja-kierunek {
+  justify-content: flex-end;
+  color: var(--aai-volt);
+}
+
+.aai-sklep-lekcja .aai-nawigacja-kierunek svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.aai-sklep-lekcja .aai-nawigacja-tytul {
+  font-size: 0.98rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.aai-sklep-lekcja .aai-nawigacja-pusto {
+  border-style: dashed;
+  opacity: 0.45;
+}
+
+.aai-sklep-lekcja .aai-odhacz {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 2.5rem auto 0;
+  padding: 0.7rem 1.15rem;
+  border: 1px solid var(--aai-line);
+  border-radius: 9999px;
+  background: var(--aai-panel);
+  color: var(--aai-steel);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.aai-sklep-lekcja .aai-odhacz:hover {
+  color: var(--aai-fg);
+  border-color: var(--aai-line-mocna);
+}
+
+.aai-sklep-lekcja .aai-odhacz svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.aai-sklep-lekcja .aai-odhacz[aria-pressed="true"] {
+  color: var(--aai-volt);
+  border-color: rgba(191, 255, 56, 0.35);
+  background: rgba(191, 255, 56, 0.07);
+}
+
+.aai-sklep-lekcja .aai-odhacz-pas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: calc(var(--aai-miara) + 3rem);
+  margin-inline: auto;
+}
+
+.aai-sklep-lekcja .aai-odhacz-nota {
+  font-size: 0.72rem;
+  color: var(--aai-steel);
+  text-align: center;
+}
+
+.aai-sklep-lekcja .aai-postep-kursu[hidden] {
+  display: none;
+}
+
+.aai-sklep-lekcja .aai-postep-kursu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 0.9rem 1.2rem;
+  border: 1px solid var(--aai-line);
+  border-radius: 9999px;
+  background: var(--aai-panel);
+  font-size: 0.82rem;
+  color: var(--aai-steel);
+}
+
+.aai-sklep-lekcja .aai-postep-tor {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(245, 245, 245, 0.08);
+  overflow: hidden;
+}
+
+.aai-sklep-lekcja .aai-postep-wypelnienie {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--aai-volt), var(--aai-volt-jasny));
+  transition: width 0.5s var(--aai-krzywa);
+}
+
+.aai-sklep-lekcja .aai-postep-etykieta {
+  flex: 0 0 auto;
+  font-family: var(--aai-mono);
+  font-size: 0.72rem;
+  color: var(--aai-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.aai-sklep-lekcja .aai-uwaga {
+  display: flex;
+  gap: 0.85rem;
+  margin: 2.75rem 0 0;
+  padding: 1.1rem 1.3rem;
+  border: 1px solid var(--aai-line);
+  border-radius: var(--aai-promien);
+  background: rgba(16, 17, 22, 0.6);
+  color: var(--aai-steel);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.aai-sklep-lekcja .aai-uwaga svg {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.28rem;
+  color: var(--aai-volt);
+}
+
+@media (prefers-reduced-motion: reduce) {
+.aai-sklep-lekcja .aai-postep-wypelnienie {
+    transition: none;
+  }
+}

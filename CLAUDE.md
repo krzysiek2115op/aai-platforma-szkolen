@@ -1311,14 +1311,15 @@ wyprowadzała tego od nowa:
   warstwie zapisu **kasuje prozę wszystkich 73 lekcji**. Droga powrotna:
   `npm run wp:import` → `npm run wp:sprawdz`. Przed takim testem robić
   zrzut tabel.
-  **STAN GAŁĘZI: W4 NIE JEST JESZCZE W `main`.** Praca leży na
-  `feat/w4-kreator-kokpit` (2 commity), **PR #72 OTWARTY** i czeka na
-  zgodę właściciela; przegląd kroku jest komentarzem pod tym PR-em.
-  CI padło 2 s po starcie z zerem kroków — potwierdzone rozliczeniem:
-  **2118 minut Actions w sierpniu przy limicie 2000** (limit wraca
-  1 września), więc czerwony check NIE jest o kodzie. Merge wg
-  CONTRIBUTING z `--delete-branch`, potem tag `v0.42.0` + release —
-  **wyłącznie za zgodą właściciela**.
+  **W4 ZAMKNIĘTY W REPO (2026-08-25): PR #72 zmergowany do `main`, tag
+  `v0.42.0` + release**, gałąź skasowana. Merge decyzją właściciela na
+  dowodach lokalnych — CI padło 2 s po starcie z zerem kroków we WSZYSTKICH
+  zadaniach, co potwierdza rozliczenie: **2118 minut Actions w sierpniu przy
+  limicie 2000** (limit wraca 1 września), więc czerwony check NIE był o
+  kodzie. Artefakt zweryfikowany: `git diff` między `main` a szczytem gałęzi
+  PUSTY. Przegląd kroku został komentarzem pod PR-em #72. Po powrocie CI
+  potwierdzić **skan sekretów (gitleaks)** — jako jedyny nie ma lokalnego
+  odpowiednika.
   **W5, CZĘŚĆ 1 ZROBIONA (0.43.0): kopia kursu w Tutorze nadąża za kreatorem.**
   `Aai_Sklep_Tutor` kopiuje kurs → moduły → lekcje do wpisów Tutora **po
   KAŻDYM udanym zapisie** (nie tylko przy publikacji — inaczej poprawka
@@ -1344,17 +1345,86 @@ wyprowadzała tego od nowa:
   (4) **sprzątanie testowych wpisów po PRZEDROSTKU uuid to pułapka** —
   uuid kursu miał inny układ zer niż moduły, więc został sierotą, a przebieg
   zameldował porządek; lista wypisana wprost nie kłamie.
-  **NASTĘPNY KROK: W5, CZĘŚĆ 2 — NASZE szablony widoku lekcji** w miejsce
-  Tutorowych. Wygląd leży gotowy w `tools/podglad-kursow/` (CSS + szablony,
-  wyjęte tam WŁAŚNIE po to, żeby dały się przenieść). Do zrobienia po drodze:
-  **renderer Markdowna w PHP** (proza to pełny podzbiór GFM: tabele 73/73,
-  bloki kodu 73/73, cytaty 34/73, obrazy 64/73, listy zagnieżdżone 73/73)
-  z dowodem różnicowym wobec `marked` na 73 lekcjach oraz **148 zrzutów
-  (13 MB) do biblioteki mediów** (decyzje właściciela 2026-08-25). Bramkę
-  dostępu pytamy TUTORA (`has_enrolled_content_access`), nie zgadujemy.
+  **W5, CZĘŚĆ 2 ZROBIONA (0.44.0): klient czyta lekcję w NASZYM wyglądzie.**
+  `Aai_Sklep_Lekcja` przejmuje trasę lekcji (`template_include`), `Aai_Sklep_Proza`
+  składa Markdown w PHP **bez ani jednej zależności** (zakres zmierzony na 73
+  plikach prozy), a `Aai_Sklep_Zrzuty` trzyma 148 zrzutów w **bibliotece
+  mediów** (klucz: lekcja + nazwa, bo nazwy się powtarzają). Wygląd przeniesiony
+  z `tools/podglad-kursow/` — ten sam, który właściciel przyjął przy 0.34.0.
+  Doszły: `straznik-lekcji-wp` (34. strażnik, 10 mutacji), `smoke-wp-lekcja`
+  (32 sprawdzenia, przelot przez wszystkie 73 lekcje, najdłuższa odsłona
+  194 ms), `npm run wp:zrzuty`, `npm run wp:proza`, `npm run smoke:wp-lekcja`.
+  **DOWÓD RÓŻNICOWY zamiast deklaracji** (`tools/sprawdz-proze-php.mjs`): te
+  same 73 lekcje przez PHP i przez `marked` z podglądu, tekst CO DO SŁOWA
+  i struktura co do znacznika. Złapał 5 prawdziwych różnic w rendererze
+  (reguła ograniczników GFM, kursywa zagnieżdżona, kursywa przez koniec
+  wiersza, ogrodzenie kodu „na trzy" mimo czterech apostrofów, akapity
+  w listach zwartych). **Dwie różnice zostają świadomie** — to usterki
+  `marked` (próbuje emfazy PRZED kodem w linii), nazwane w kodzie dowodu.
+  **PIĘĆ RZECZY DO ZAPAMIĘTANIA Z CZĘŚCI 2:**
+  (1) **`<main>` dostaje skądś `display: flex`** — reguły nie ma ani u nas,
+  ani w motywie (przeglądarka: ZERO reguł pasujących do `main.aai-lekcja`),
+  a hero, treść i nawigacja ustawiały się OBOK SIEBIE w wąskich kolumnach;
+  układ deklarujemy wprost;
+  (2) **`wp_kses_post` zjada `<svg>`** — ikony bloków prozy znikały po cichu;
+  stąd `Aai_Sklep_Widok::dozwolone_znaczniki()`;
+  (3) **nagłówek motywu i nasza pigułka są oba `fixed`** — nagłówek ustępuje,
+  tak samo jak na stronie kursu (W3);
+  (4) **audyt mutacyjny złapał dziurę w MOIM strażniku**: wzorzec pytał o NAZWĘ
+  stałej (`SLADY_SUROWEGO`), a mutacja skasowała jej definicję zostawiając
+  wywołanie — wzorce mają celować w ZACHOWANIE (nawrót lekcji z 0.29.0);
+  (5) **smoke fałszywie alarmował o CSS-ie Tutora**, bo wzorzec `tutor-front`
+  trafiał w KLASĘ `body` (`tutor-frontend`) — pytaj o ZNACZNIKI, nie o napis.
+  **STAN GAŁĘZI (WAŻNE PO CLEAR):**
+  - **Część 1 = PR #73 ZMERGOWANY** do `main` (2026-08-25, decyzją właściciela
+    na dowodach lokalnych — CI padał po 5 s z wyczerpanych minut, sprawdzone
+    `gh run list`), gałąź `feat/w5-tutor-sync` skasowana zdalnie I lokalnie
+    (`--delete-branch` kasuje obie). Artefakt zweryfikowany: `git diff` między
+    `main` a szczytem gałęzi (38ac394) **PUSTY**.
+  - **Część 2 = PR #74 OTWARTY**, gałąź `feat/w5-widok-lekcji`, baza `main`,
+    wersja 0.44.0 — **czeka na zgodę właściciela na merge. Nie mergować bez
+    pytania.** PR poszedł DOPIERO po merge'u #73, świadomie: stackowane PR-y już
+    raz zamknęły się w tym repo nawzajem (notatka przy 0.25.0).
+  - **Tagi `v0.43.0` i `v0.44.0` + release'y — DO ZROBIENIA po merge'u #74.**
+  **DOMKNIĘCIE W5 — ZROBIONE 2026-08-25 (poza merge'em):**
+  1. ~~`npm run check` + trzy smoke'i WP~~ **ZROBIONE, z jednego przebiegu**:
+     strażnicy **34/34**, testy **83/83**, lint + tsc + build, 7 smoke'ów
+     prototypu, `smoke:wp` **30**, `smoke:wp-front` **78**, `smoke:wp-kreator`
+     **95**;
+  2. ~~piąta strona w `smoke-wp-motyw`~~ **ZROBIONE: 47 sprawdzeń, 5 stron**
+     (`smoke-wp-motyw`). Widok lekcji jest jedyną stroną **zza logowania**,
+     więc mierzymy go **NA KOŃCU** — po zalogowaniu każda kolejna odsłona
+     niosłaby pasek narzędzi WP. **Pasek zdejmujemy dwiema regułami CSS
+     i to jest DOWIEDZIONE różnicowo**: przy realnie wyłączonym pasku
+     w profilu (`show_admin_bar_front=false`) układ jest identyczny CO DO
+     PIKSELA. Adres lekcji bierzemy z instalacji (ta z największą liczbą
+     zrzutów), nie z wpisanego sluga.
+     **DWA ZNALEZISKA PRZY OKAZJI — obie usterki dowodów, nie kodu:**
+     (a) **pomiar `/student-registration/` był ŚLEPY od 0.41.0** — zakres pytał
+     o `.tutor-wrap`, a ta strona rysuje „Access Denied" w
+     `.tutor-disabled-wrapper`, więc cztery jej sprawdzenia przechodziły PO
+     PUSTCE; wykryła to dołożona asercja **„zakres trafił w ≥1 element"**,
+     która stoi teraz na każdej stronie; (b) pomiar łapał pigułkę w losowej
+     klatce animacji wjazdu (61 px kontra 59 px) — mierzymy po ustaniu ruchu,
+     **z filtrem na animacje nieskończone**, bo samo `getAnimations()` nigdy
+     się nie kończy przy dryfujących blobach tła i wiesza pomiar do timeoutu.
+     Testy negatywne: jasne tło treści zapala plamy i kontrast TYLKO na lekcji,
+     pomiar bez zdjęcia paska zapala samokontrolę, wyższa pigułka chowa cztery
+     napisy hero.
+  3. ~~`docs/plugin-1/KREATOR.md` o dojeżdżaniu zapisu do Tutora~~ **ZROBIONE**
+     (sekcja „Co się dzieje po zapisie — kopia w Tutorze"; przy okazji
+     sprostowana liczba sprawdzeń smoke'a kreatora: 92 → 95).
+  4. ~~merge #73 → PR części 2~~ **ZROBIONE** (PR #73 zmergowany, PR #74
+     otwarty na `main`). **ZOSTAJE: merge #74 za zgodą właściciela → tagi
+     `v0.43.0` i `v0.44.0` + release'y;**
+  5. potem **W6 — test ręczny właściciela** (ostatni krok wtyczki `aai-sklep`).
+  **ODTWORZENIE ŚRODOWISKA OD ZERA WYMAGA TRZECH KOMEND, NIE JEDNEJ:**
+  `npm run wp:import` (kursy do naszych tabel) → `npm run wp:sync` (kopia
+  w Tutorze) → `npm run wp:zrzuty` (148 obrazów do biblioteki mediów).
+  Bez trzeciej lekcje pokazują znacznik „brak pliku" zamiast zrzutów.
   UWAGA: `straznik-kreatora-wp` zabrania szablonom frontu sięgać po treść
-  lekcji — szablon lekcji będzie pierwszym wyjątkiem i musi wejść razem
-  z regułą, która ten wyjątek wiąże z bramką dostępu.
+  lekcji — szablon lekcji NIE łamie tej reguły, bo dostaje z klasy GOTOWY
+  HTML (`tresc_html`), a nie kolumnę `content`.
 
   **NAPRAWA RENDERU (0.38.0, zgłosił właściciel zrzutami):** strona główna
   była łamana przez `tutor-front.min.css` — globalna klasa `.text-label`

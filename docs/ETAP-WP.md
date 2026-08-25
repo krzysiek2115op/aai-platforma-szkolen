@@ -730,6 +730,76 @@ a nie nasza kopia, więc kontrola ma go pokazać, a nie sprzątnąć.
   warstwy zapisu przebieg pada na ośmiu sprawdzeniach — czyli mierzy mechanizm,
   a nie własne założenia.
 
+## Krok W5, część 2 zrobiona (2026-08-25, wersja 0.44.0) — nasz widok lekcji
+
+Materiał kursu wyświetla NASZ szablon: ten sam wygląd, który właściciel przyjął
+przy 0.34.0 („redesign jest dobry"), przeniesiony z `tools/podglad-kursow/`
+do wtyczki. Tutorowa strona lekcji przestaje być tym, co widzi klient.
+
+### Decyzje właściciela z 2026-08-25, na których to stoi
+
+| Pytanie | Decyzja |
+|---|---|
+| czym składać Markdown w PHP | **własny renderer podzbioru**, zero zależności, z asercją i **dowodem różnicowym** wobec `marked` na 73 lekcjach (wbudowany Parsedown odrzucony) |
+| gdzie mieszkają zrzuty | **biblioteka mediów** (nie paczka wtyczki) — spójnie z okładką wybieraną w kreatorze od W4 |
+
+Do tego dwie decyzje wykonawcze: **postęp z ukończeń Tutora**, nie z pamięci
+przeglądarki (klient jest zalogowany, więc podpis „nie na koncie" przestał być
+prawdą), i **`template_include` zamiast podmiany szablonów Tutora** — bo jego
+strona ładuje własny arkusz, a każda jego reguła bije regułę motywu (0.40.0).
+
+### Dowód różnicowy zamiast deklaracji
+
+Dwie implementacje tego samego składu (PHP we wtyczce, `marked` w narzędziu
+podglądu) to dwie okazje do rozjazdu. `npm run wp:proza` puszcza te same
+73 lekcje przez obie i porównuje **tekst co do słowa** oraz **strukturę co do
+znacznika**. Złapał pięć prawdziwych różnic w rendererze PHP:
+
+1. emfaza bez reguły ograniczników GFM — `** \ + Enter**` robiło się pogrubieniem,
+2. kursywa **zagnieżdżona** (`*… (ang. *milestones*) …*`) — składa się w pętli, od środka,
+3. kursywa przez **koniec wiersza** — akapit prozy jest łamany co ~100 znaków,
+4. ogrodzenie kodu zamykane „na trzy" mimo **czterech** apostrofów — lekcja
+   o Markdownie pokazuje blok kodu WEWNĄTRZ bloku kodu,
+5. akapity w listach **zwartych** — pozycja z listą zagnieżdżoną nie ma `<p>`.
+
+Zostały **dwie różnice świadome i nazwane w kodzie**, obie będące usterkami
+wzorca: `marked` próbuje emfazy PRZED kodem w linii, więc (a) nie składa
+pogrubienia zaczynającego się kodem i (b) paruje gwiazdki z WNĘTRZA kodu
+z gwiazdkami stojącymi dalej w akapicie. Dowód naprawia wzorzec w tych dwóch
+miejscach, zamiast osłabiać porównanie tolerancją.
+
+### Trzy rzeczy zmierzone na żywej stronie, nie założone
+
+- **`<main>` dostaje skądś `display: flex`.** Reguły nie ma ani w naszych
+  arkuszach, ani w motywie (sprawdzone przeglądarką: ZERO reguł pasujących do
+  `main.aai-lekcja`), a skutek jest brutalny — hero, treść i nawigacja
+  ustawiają się obok siebie w wąskich kolumnach. Układ deklarujemy więc wprost.
+- **`wp_kses_post` zjada `<svg>`**, czyli ikony bloków prozy. Nic się nie
+  zapala: strona wygląda poprawnie, tylko uboższa o element, który miał nieść
+  znaczenie (rodzaj sekcji). Stąd `Aai_Sklep_Widok::dozwolone_znaczniki()` —
+  wąskie rozszerzenie listy, bez `<script>` i bez zdarzeń.
+- **Nagłówek motywu i nasza pigułka są oba `fixed` u góry** i nachodziły na
+  siebie. Nagłówek ustępuje — ta sama decyzja, co na stronie kursu w W3.
+
+### Zrzuty: klucz to lekcja + nazwa
+
+Nazwy plików powtarzają się między kursami (`z01-terminal-po-git-status.webp`
+jest w obu) i **nawet wewnątrz jednego kursu** — policzone, nie założone.
+Dopasowanie pliku do lekcji robi `dopasujDoProgramu` z `lib/proza-lekcji.ts`,
+czyli ta sama funkcja, którą wgrywa się prozę: sprawdza numer I TYTUŁ, więc
+przestawiony program zatrzymuje wgrywanie zamiast przypisać zrzuty cudzej lekcji.
+Wyciąganie obrazów z prozy **pomija bloki kodu** — lekcja o Markdownie POKAZUJE
+składnię obrazu i bez tego narzędzie stawało na pliku, którego nikt nie tworzył.
+
+### Czego W5 celowo NIE ruszył
+
+- **Cena, koszyk, zapis po zakupie, mail „Ustaw hasło"** → Plugin 2.
+- **Adresy lekcji** zostają Tutora (`/courses/<kurs>/lessons/<lekcja>/`) —
+  zmieniamy WYGLĄD, nie trasę.
+- **Dwie obietnice ebooków w prototypie Next.js** (`app/layout.tsx:12`,
+  `app/szkolenia/widok.tsx:20`, typ `ebook` w kreatorze) — znalezione przy W3,
+  dalej do rozstrzygnięcia.
+
 ## Plugin 2 — co to znaczy „płatności" (doprecyzowanie 2026-08-25)
 
 Pytanie właściciela po obejrzeniu W3: *przycisk „Dołączam za 299 zł" prowadzi

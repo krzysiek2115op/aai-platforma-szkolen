@@ -412,6 +412,111 @@ final class Aai_Sklep_Cli {
 	}
 
 	/**
+	 * Wgrywa zrzuty ekranu z lekcji do biblioteki mediów.
+	 *
+	 * Idempotentnie: plik, który się nie zmienił, nie jest wgrywany drugi
+	 * raz (porównujemy `sha256` źródła, nie datę pliku).
+	 *
+	 * ## OPTIONS
+	 *
+	 * <manifest>
+	 * : Plik JSON z listą zrzutów; pliki leżą w tym samym katalogu.
+	 *
+	 * [--usun-nadmiar]
+	 * : Skasuj z biblioteki zrzuty, których nie ma w manifeście.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp aai-sklep zrzuty /tmp/zrzuty/manifest.json --usun-nadmiar
+	 *
+	 * @param string[]             $args       Argumenty pozycyjne.
+	 * @param array<string,string> $assoc_args Argumenty nazwane.
+	 */
+	public function zrzuty( array $args, array $assoc_args ): void {
+		$manifest = (string) ( $args[0] ?? '' );
+
+		try {
+			$liczniki = Aai_Sklep_Zrzuty::wgraj( $manifest );
+		} catch ( Aai_Sklep_Blad_Zapisu $blad ) {
+			WP_CLI::error( $blad->getMessage() );
+			return;
+		}
+
+		if ( isset( $assoc_args['usun-nadmiar'] ) ) {
+			$paczka = json_decode( (string) file_get_contents( $manifest ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			$klucze = array();
+			foreach ( (array) ( $paczka['zrzuty'] ?? array() ) as $zrzut ) {
+				$klucze[] = (string) $zrzut['lekcja'] . '|' . (string) $zrzut['nazwa'];
+			}
+			$skasowane = Aai_Sklep_Zrzuty::usun_nadmiar( $klucze );
+			WP_CLI::log( sprintf( '  skasowanych zrzutów spoza manifestu: %d', $skasowane ) );
+		}
+
+		WP_CLI::success(
+			sprintf(
+				'Zrzuty: %d utworzonych, %d zaktualizowanych, %d bez zmian (w bibliotece: %d).',
+				$liczniki['utworzone'],
+				$liczniki['zaktualizowane'],
+				$liczniki['bez_zmian'],
+				Aai_Sklep_Zrzuty::ile()
+			)
+		);
+	}
+
+	/**
+	 * Składa podaną prozę do HTML-u i oddaje wynik JSON-em.
+	 *
+	 * PO CO KOMENDA DIAGNOSTYCZNA DO RENDERERA. Bo widok lekcji ma DWIE
+	 * implementacje tego samego składu: PHP we wtyczce i `marked` w narzędziu
+	 * `tools/podglad-kursow/`, którym powstał podgląd przyjęty przez
+	 * właściciela w 0.34.0. Dwie implementacje bez porównania to dwie okazje
+	 * do rozjazdu, więc `tools/sprawdz-proze-php.mjs` puszcza przez OBIE te
+	 * same 73 lekcje i porównuje tekst co do słowa oraz strukturę co do
+	 * znacznika. Ta komenda jest wejściem dla tamtego porównania.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <plik>
+	 * : Plik JSON: { "lekcje": [ { "klucz": …, "md": …, "obrazy": {…} } ] }.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp aai-sklep proza /tmp/proza.json
+	 *
+	 * @param string[]             $args       Argumenty pozycyjne.
+	 * @param array<string,string> $assoc_args Argumenty nazwane.
+	 */
+	public function proza( array $args, array $assoc_args ): void {
+		unset( $assoc_args );
+
+		$plik = (string) ( $args[0] ?? '' );
+		if ( ! is_readable( $plik ) ) {
+			WP_CLI::error( sprintf( 'nie mogę odczytać pliku: %s', $plik ) );
+			return;
+		}
+		$paczka = json_decode( (string) file_get_contents( $plik ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		if ( ! is_array( $paczka ) || ! isset( $paczka['lekcje'] ) ) {
+			WP_CLI::error( 'plik nie ma klucza `lekcje`' );
+			return;
+		}
+
+		$wynik = array();
+		foreach ( $paczka['lekcje'] as $lekcja ) {
+			$klucz = (string) ( $lekcja['klucz'] ?? '' );
+			try {
+				$wynik[ $klucz ] = Aai_Sklep_Proza::zloz(
+					(string) ( $lekcja['md'] ?? '' ),
+					(array) ( $lekcja['obrazy'] ?? array() )
+				);
+			} catch ( Aai_Sklep_Blad_Zapisu $blad ) {
+				$wynik[ $klucz ] = array( 'blad' => $blad->getMessage() );
+			}
+		}
+
+		WP_CLI::line( (string) wp_json_encode( $wynik, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+	}
+
+	/**
 	 * Liczniki w jednej linii.
 	 *
 	 * @param array<string,int> $liczniki Liczniki z warstwy zapisu.
