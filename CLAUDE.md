@@ -1487,6 +1487,15 @@ wyprowadzała tego od nowa:
      **PUŁAPKA TUTORA:** `is_enrolled()` w TYM SAMYM żądaniu, w którym
      powstał zapis, oddaje `false` (zapisy siedzą w pamięci żądania) —
      dostęp weryfikować osobnym żądaniem.
+     **STAN W6 PO DWÓCH PRZEBIEGACH WŁAŚCICIELA (2026-08-25, wieczór):**
+     ścieżki **A i B ZALICZONE** („sprawdziłem, wszystko jest OK"),
+     **ZOSTAJĄ ŚCIEŻKI C i D** — kreator (zmiana zdania w sekcji → zapis →
+     front; zmiana treści lekcji → widok klienta; odmowa skasowania treści;
+     okładka z biblioteki mediów; ukryj/opublikuj) oraz sprawdzenie, czy
+     motyw jest nietknięty (`/`, `/uslugi/`, `/kontakt/`, stopka, nagłówek).
+     Konto klienta i środowisko stoją — nic nie trzeba stawiać od nowa.
+     **Gałąź `feat/w6-test-reczny` (0.45.0) wypchnięta, BEZ PR-a** — PR
+     otwieramy po zaliczeniu całego W6, razem z poprawkami.
   6. **Po zaliczeniu W6: Plugin 2 — płatności.** Przed startem rozstrzygnąć,
      **GDZIE MIESZKA CENA** (nasza tabela czy produkt WooCommerce) —
      [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „Plugin 2".
