@@ -1,0 +1,236 @@
+/*
+ * Tutor LMS na motywie Automatic AI — warstwa integracji.
+ *
+ * PO CO. Tutor rysuje swoje strony własnym CSS-em: JASNĄ paletą i własnym
+ * layoutem. Motyw Automatic AI jest CIEMNY i ma nagłówek `position: fixed`,
+ * pod który NIE REZERWUJE MIEJSCA — jego własne strony robią to same
+ * (`pt-28`, `md:pt-36`). Szablon Tutora daje `tutor-mt-16`, czyli 16 px
+ * przy nagłówku wysokim na 72 px, więc tytuł kursu wjeżdża pod nawigację.
+ * Do tego ciemny tekst Tutora na ciemnym tle motywu jest nie do przeczytania,
+ * a białe karty wyglądają jak wycięte z innej strony.
+ *
+ * KTÓRYCH STRON DOTYCZY. Wszystkich frontowych stron Tutora — nie tylko
+ * strony kursu. `/dashboard/` (panel kursanta) i archiwum `/courses/`
+ * mają dokładnie ten sam problem, a te strony ZOSTAJĄ Tutora: wg podziału
+ * z ETAP-WP.md on bierze konta i dostęp do materiału. Ten plik nie jest
+ * więc łatką na stronę do wyrzucenia.
+ *
+ * CZEGO NIE ROBI. To nie jest port wyglądu 1:1 — od tego są NASZE szablony
+ * (katalog i strony sprzedażowe w W3, widok lekcji w W5). Tutaj chodzi
+ * o trzy rzeczy: żeby nic nie nachodziło, żeby wszystko dało się przeczytać
+ * i żeby akcent był nasz, a nie niebieski Tutora.
+ *
+ * Zmienne `--tutor-*` Tutor wstrzykuje inline w `<head>` (10 sztuk,
+ * sprawdzone na żywej stronie), więc nadpisanie ich na `body` wygrywa
+ * specyficznością i nie wymaga `!important`.
+ */
+
+/* ── 1. ODSTĘP POD NAGŁÓWEK MOTYWU ──────────────────────────────────────
+ *
+ * Te same wartości, których używają strony motywu: 7rem/9rem. Nie 4.5rem
+ * (sama wysokość nagłówka) — motyw daje treści oddech, a nie styk.
+ */
+body.aai-tutor-na-motywie {
+	padding-top: 7rem;
+}
+
+@media (min-width: 768px) {
+	body.aai-tutor-na-motywie {
+		padding-top: 9rem;
+	}
+}
+
+/* ── 2. PALETA: zmienne Tutora na tokeny motywu ─────────────────────── */
+body.aai-tutor-na-motywie {
+	--tutor-body-color: var(--color-fg);
+	--tutor-body-color-rgb: 245, 245, 245;
+
+	/* Kreski i obwódki: linia motywu to biel na 8% — Tutor liczy z niej
+	   `rgba()`, więc obok koloru musi dostać składowe. */
+	--tutor-border-color: var(--color-line);
+	--tutor-border-color-rgb: 245, 245, 245;
+	--tutor-color-gray: var(--color-line);
+	--tutor-color-gray-rgb: 245, 245, 245;
+	--tutor-color-gray-10: var(--color-panel);
+
+	/* Tekst drugoplanowy — jeden token motywu na cztery odcienie Tutora.
+	   Tutor rozróżnia je subtelnie, motyw ma jeden „steel" i tak zostaje. */
+	--tutor-color-muted: var(--color-steel);
+	--tutor-color-hints: var(--color-steel);
+	--tutor-color-subdued: var(--color-steel);
+	--tutor-color-secondary: var(--color-steel);
+
+	/* Akcent: volt zamiast niebieskiego Tutora. */
+	--tutor-color-primary: var(--color-volt);
+	--tutor-color-primary-rgb: 191, 255, 56;
+	--tutor-color-primary-hover: var(--color-volt);
+	--tutor-color-primary-hover-rgb: 191, 255, 56;
+
+	/* „Biel" Tutora to u niego kolor POWIERZCHNI (tła kart), nie tekstu —
+	   sprawdzone w jego arkuszu. Dlatego mapujemy ją na panel motywu. */
+	--tutor-color-white: var(--color-panel);
+}
+
+/* ── 3. POWIERZCHNIE WPISANE NA SZTYWNO ─────────────────────────────────
+ *
+ * `.tutor-card{background-color:#fff}` jest w arkuszu Tutora hex-em, nie
+ * zmienną (jedyne takie miejsce w `tutor.min.css` — policzone), więc samo
+ * przemapowanie zmiennych by go nie ruszyło.
+ */
+body.aai-tutor-na-motywie .tutor-card,
+body.aai-tutor-na-motywie .tutor-card-footer,
+body.aai-tutor-na-motywie .tutor-card-header {
+	background-color: var(--color-panel);
+	border-color: var(--color-line);
+}
+
+/* ── 4. TEKST ───────────────────────────────────────────────────────────
+ *
+ * Tutor ustawia kolory na własnych klasach rozmiaru pisma, więc samo
+ * `body{color}` ich nie dosięga.
+ */
+body.aai-tutor-na-motywie,
+body.aai-tutor-na-motywie h1,
+body.aai-tutor-na-motywie h2,
+body.aai-tutor-na-motywie h3,
+body.aai-tutor-na-motywie h4,
+body.aai-tutor-na-motywie h5,
+body.aai-tutor-na-motywie h6,
+body.aai-tutor-na-motywie .tutor-fs-1,
+body.aai-tutor-na-motywie .tutor-fs-2,
+body.aai-tutor-na-motywie .tutor-fs-3,
+body.aai-tutor-na-motywie .tutor-fs-4,
+body.aai-tutor-na-motywie .tutor-fs-5,
+body.aai-tutor-na-motywie .tutor-fs-6,
+body.aai-tutor-na-motywie .tutor-color-black,
+body.aai-tutor-na-motywie .tutor-color-secondary {
+	color: var(--color-fg);
+}
+
+body.aai-tutor-na-motywie .tutor-color-muted,
+body.aai-tutor-na-motywie .tutor-color-hints,
+body.aai-tutor-na-motywie .tutor-color-subdued {
+	color: var(--color-steel);
+}
+
+/* ── 5. PRZYCISK GŁÓWNY ─────────────────────────────────────────────────
+ *
+ * Volt jest jasny; biały tekst Tutora byłby na nim nieczytelny. Motyw
+ * używa na volcie koloru `void` — robimy tak samo.
+ */
+body.aai-tutor-na-motywie .tutor-btn-primary,
+body.aai-tutor-na-motywie .tutor-btn-primary:hover,
+body.aai-tutor-na-motywie .tutor-btn-primary:focus {
+	color: var(--color-void);
+	border-color: var(--color-volt);
+}
+
+/* ── 6. POLA FORMULARZY ─────────────────────────────────────────────────
+ *
+ * Logowanie i rejestracja to strony Tutora, na których klient NAPRAWDĘ
+ * coś wpisuje — białe pole na ciemnym tle to nie kosmetyka, tylko rzecz,
+ * która decyduje, czy widzi, co pisze.
+ */
+body.aai-tutor-na-motywie input:not([type="submit"]):not([type="button"]),
+body.aai-tutor-na-motywie select,
+body.aai-tutor-na-motywie textarea,
+body.aai-tutor-na-motywie .tutor-form-control {
+	background-color: var(--color-void);
+	border-color: var(--color-line);
+	color: var(--color-fg);
+}
+
+/* ── 7. RESZTA POWIERZCHNI TUTORA ───────────────────────────────────────
+ *
+ * Tutor maluje program kursu i widżety jasnymi hexami wpisanymi wprost
+ * (`#fff`, `#fcfcfd`, `#eff1f6`, `#f4f6f9`), a nie zmiennymi — więc
+ * przemapowanie palety ich nie dosięga. Lista poniżej powstała
+ * z POMIARU żywej strony (elementy o jasnym tle i polu > 400 px²),
+ * nie z czytania arkusza: mierzone jest to, co widzi człowiek.
+ *
+ * Lista jest z natury niepełna — aktualizacja Tutora może dołożyć nową
+ * jasną powierzchnię. Dlatego gwarancją nie jest ta lista, tylko
+ * `smoke-wp-motyw`, który mierzy stronę i czerwieni się na KAŻDEJ
+ * jasnej plamie, także takiej, o której dziś nie wiemy.
+ */
+body.aai-tutor-na-motywie .tutor-card-body,
+body.aai-tutor-na-motywie .tutor-course-details-widget,
+body.aai-tutor-na-motywie .tutor-accordion-item,
+body.aai-tutor-na-motywie .tutor-accordion-item-body,
+body.aai-tutor-na-motywie .tutor-course-content-list-item,
+body.aai-tutor-na-motywie .tutor-course-content-list-item:hover,
+body.aai-tutor-na-motywie .tutor-table,
+body.aai-tutor-na-motywie .tutor-table thead th,
+body.aai-tutor-na-motywie .tutor-modal-content,
+body.aai-tutor-na-motywie .tutor-dashboard-content,
+body.aai-tutor-na-motywie .tutor-dashboard-permalinks {
+	background-color: var(--color-panel);
+	border-color: var(--color-line);
+	color: var(--color-fg);
+}
+
+/* Nagłówek modułu w programie: jasny na jasnym mierzył 1,06:1 — czyli
+   napis niewidoczny. Aktywny dostaje odrobinę jaśniejsze tło, żeby dało
+   się poznać, który moduł jest otwarty. */
+body.aai-tutor-na-motywie .tutor-accordion-item-header {
+	background-color: var(--color-void);
+	border-color: var(--color-line);
+	color: var(--color-fg);
+}
+
+body.aai-tutor-na-motywie .tutor-accordion-item-header.is-active,
+body.aai-tutor-na-motywie .tutor-course-single-sidebar-wrapper .tutor-accordion-item-header {
+	background-color: var(--color-panel);
+	color: var(--color-fg);
+}
+
+/* ── 8. KOLIZJE KLAS: MOTYW KONTRA TUTOR ────────────────────────────────
+ *
+ * TO JEST SEDNO, nie kosmetyka. Motyw to Tailwind 4 — trzyma CAŁY swój
+ * CSS w warstwach kaskady (`@layer theme, base, components, utilities`).
+ * Arkusze Tutora są POZA warstwami. A w kaskadzie reguła bez warstwy bije
+ * każdą regułę w warstwie — niezależnie od specyficzności I od kolejności
+ * ładowania. Na stronie Tutora KAŻDA jego reguła wygrywa więc z KAŻDĄ
+ * klasą motywu, choć motyw ładuje się ostatni.
+ *
+ * Dlatego `.text-label` — u motywu rozmiar pisma, u Tutora plakietka
+ * z jasnym tłem — malował na jasno nagłówek i stopkę motywu na wszystkich
+ * stronach Tutora. Ta sama kolizja co w 0.38.0; tamta naprawa zdejmowała
+ * CSS Tutora ze stron motywu, więc na stronach Tutora nigdy nie zadziałała.
+ *
+ * `revert-layer` w regule BEZ warstwy cofa właściwość do wartości
+ * z ostatniej warstwy — czyli do tego, co naprawdę chciał motyw. Nie
+ * zgadujemy więc wartości (są różne dla różnych elementów: raz `0px`,
+ * raz `40px 32px 0px`), tylko oddajemy głos motywowi.
+ *
+ * `:not(.tutor-wrap *)` zawęża to do markupu MOTYWU: gdyby przyszła
+ * wersja Tutora zaczęła używać tej klasy u siebie, jego plakietki mają
+ * dalej działać. Dziś nie używa — zmierzone: 4 wystąpienia na stronie
+ * kursu, wszystkie w motywie, zero w Tutorze.
+ */
+body.aai-tutor-na-motywie .text-label:not(.tutor-wrap *) {
+	background-color: revert-layer;
+	padding: revert-layer;
+	display: revert-layer;
+}
+
+/* ── 9. POWIERZCHNIE O WYŻSZEJ SPECYFICZNOŚCI ───────────────────────────
+ *
+ * Tutor celuje w kartę paska bocznego trzema klasami
+ * (`.tutor-single-course-sidebar .tutor-sidebar-card .tutor-card-body`),
+ * więc reguła z sekcji 7 przegrywała. Podnosimy specyficzność zamiast
+ * sięgać po `!important` — `!important` wygrywa ze wszystkim, także
+ * z tym, co kiedyś będziemy chcieli nadpisać świadomie.
+ */
+body.aai-tutor-na-motywie .tutor-single-course-sidebar .tutor-sidebar-card .tutor-card-body,
+body.aai-tutor-na-motywie .tutor-course-single-sidebar-wrapper .tutor-card-body {
+	background-color: var(--color-panel);
+	color: var(--color-fg);
+}
+
+/* Dymek podpowiedzi — jasny prostokąt na ciemnej stronie. */
+body.aai-tutor-na-motywie .tooltip-txt {
+	background-color: var(--color-panel);
+	color: var(--color-fg);
+	border: 1px solid var(--color-line);
+}

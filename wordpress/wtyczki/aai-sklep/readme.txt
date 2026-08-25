@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -25,6 +25,10 @@ sprzedaż i faktury bierze WooCommerce, konta i dostęp do materiału Tutor LMS.
 * WooCommerce i Tutor LMS — dopiero przy sprzedaży i dostępie do materiału
 
 == Changelog ==
+
+= 0.3.0 =
+* Warstwa integracji Tutor ↔ motyw Automatic AI: odstęp pod nagłówek,
+  paleta i naprawa kolizji klas między warstwami kaskady.
 
 = 0.2.0 =
 * Warstwa zapisu (transakcje, dziennik audytu, ochrona napisanej treści)

@@ -1135,6 +1135,38 @@ wyprowadzała tego od nowa:
   Stan podglądu na `:8892` w chwili pisania: `/szkolenia` → **404**
   (naszej trasy jeszcze nie ma), `/szkolenia/<slug>` → **301** na
   `/courses/<slug>/` (WordPress sam zgaduje slug — to NIE nasza strona).
+  **RENDER STRON TUTORA NAPRAWIONY (0.40.0) — i przyczyna była głębsza,
+  niż wyglądała.** Właściciel zgłosił zrzutem, że po 0.39.1 wygląd dalej
+  jest zepsuty. **Motyw to Tailwind 4 i trzyma CAŁY swój CSS w WARSTWACH
+  KASKADY** (`@layer theme, base, components, utilities`); arkusze Tutora
+  i Woo są POZA warstwami, a **reguła bez warstwy bije każdą regułę
+  w warstwie — niezależnie od specyficzności I od kolejności ładowania**.
+  Na stronie z CSS-em Tutora każda jego reguła wygrywa z każdą klasą
+  motywu, choć motyw ładuje się ostatni. To prawdziwy powód kolizji
+  `.text-label` z 0.38.0; tamta naprawa (dequeue) działa tylko tam, gdzie
+  wolno zdjąć cudzy arkusz, więc **na własnych stronach Tutora kolizja
+  żyła dalej**. Do tego motyw ma nagłówek `fixed` (72 px) i **nie
+  rezerwuje pod niego miejsca** — jego strony robią to same (`pt-28`,
+  `md:pt-36`), a Tutor dawał `tutor-mt-16` = 16 px.
+  Powstało: `assets/tutor-motyw.css` + `Aai_Sklep_Styl_Tutora` (arkusz
+  wchodzi TYLKO na strony Tutora, klasa `body` `aai-tutor-na-motywie`),
+  kolizję klas naprawia **`revert-layer`** (oddaje głos motywowi zamiast
+  zgadywać jego wartości), a pilnuje **`smoke-wp-motyw`**
+  (`npm run smoke:wp-motyw`, 14 sprawdzeń) — mierzy ŻYWĄ stronę
+  w przeglądarce: nachodzenie, kontrast każdego napisu, jasne plamy
+  i stopkę motywu porównaną 1:1 ze stroną motywu. Rig (puppeteer-core
+  + systemowy Firefox) w scratchpadzie przez `ZRZUTY_RIG` — **nigdy
+  w package.json**.
+  **DWIE RZECZY DLA W3, WPROST Z TEGO ZNALEZISKA:**
+  (a) **nasz szablon MUSI sam dodać odstęp pod nagłówek** — motyw nie da
+  go nikomu; (b) nasze strony są bezpieczne od kolizji **dopóki nie
+  ładują CSS-u Tutora** (pilnuje `Aai_Sklep_Zasoby`) — gdyby kiedyś
+  musiały, obowiązuje `revert-layer`.
+  **DECYZJA WŁAŚCICIELA (2026-08-25): w W3 `/courses/<slug>/` → 301 na
+  naszą `/szkolenia/<slug>`, a `/courses/` → `/szkolenia`.** Jeden adres
+  kanoniczny, zero duplikatu w wyszukiwarce, klient nigdy nie trafia na
+  stronę w cudzym wyglądzie. Adresy lekcji za logowaniem zostają Tutora
+  (nasze szablony wchodzą tam w W5).
   **NASTĘPNY KROK: W3 — front.** `/szkolenia` i `/szkolenia/<slug>`
   renderowane z tabel wtyczki przez `template_include`, pozycja
   „Szkolenia" wstrzykiwana do nagłówka motywu (`ob_start`, droga 4
