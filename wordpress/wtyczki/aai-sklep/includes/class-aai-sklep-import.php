@@ -53,7 +53,7 @@ final class Aai_Sklep_Import {
 	 * @param string $aktor   Kto importuje (idzie do dziennika audytu).
 	 * @param bool   $pozwol  Zgoda na skasowanie lekcji z napisaną treścią.
 	 *
-	 * @return array{liczniki:array<string,int>,kursy:array<int,array<string,mixed>>}
+	 * @return array{liczniki:array<string,int>,kursy:array<int,array<string,mixed>>,tutor:array<string,int>}
 	 *
 	 * @throws Aai_Sklep_Blad_Zapisu Gdy pliku nie da się wczytać albo ma obcy format.
 	 */
@@ -79,7 +79,7 @@ final class Aai_Sklep_Import {
 	 * @param string              $aktor  Kto importuje.
 	 * @param bool                $pozwol Zgoda na skasowanie lekcji z treścią.
 	 *
-	 * @return array{liczniki:array<string,int>,kursy:array<int,array<string,mixed>>}
+	 * @return array{liczniki:array<string,int>,kursy:array<int,array<string,mixed>>,tutor:array<string,int>}
 	 *
 	 * @throws Aai_Sklep_Blad_Zapisu Gdy paczka ma obcy format albo brakuje jej pól.
 	 */
@@ -106,31 +106,62 @@ final class Aai_Sklep_Import {
 		);
 		$kursy = array();
 
-		foreach ( $paczka['kursy'] as $kurs ) {
-			if ( ! is_array( $kurs ) ) {
-				throw new Aai_Sklep_Blad_Zapisu( 'pozycja w `kursy` nie jest obiektem' );
+		/*
+		 * KOPIA DO TUTORA IDZIE RAZ NA KURS, NA KOŃCU.
+		 *
+		 * Zapis każdego kursu ogłasza zmianę, a import zapisuje kurs po
+		 * kursie — bez tej blokady kopia jechałaby po każdym z nich w środku
+		 * pętli i przy powtórnym imporcie liczyłaby tę samą pracę dwa razy.
+		 * `finally` jest tu warunkiem poprawności, nie ostrożnością: bez
+		 * niego wyjątek w połowie importu zostawiłby synchronizację
+		 * wstrzymaną do końca życia procesu.
+		 */
+		Aai_Sklep_Tutor::wstrzymaj();
+
+		try {
+			foreach ( $paczka['kursy'] as $kurs ) {
+				if ( ! is_array( $kurs ) ) {
+					throw new Aai_Sklep_Blad_Zapisu( 'pozycja w `kursy` nie jest obiektem' );
+				}
+				foreach ( self::WYMAGANE_POLA_KURSU as $pole ) {
+					if ( ! array_key_exists( $pole, $kurs ) ) {
+						throw new Aai_Sklep_Blad_Zapisu(
+							sprintf( 'kurs bez wymaganego pola `%s` — to nie jest eksport formatu %d', $pole, self::WERSJA_FORMATU )
+						);
+					}
+				}
+
+				$liczniki = Aai_Sklep_Zapis::zapisz_kurs( $kurs, $aktor, $pozwol );
+				foreach ( $liczniki as $klucz => $ile ) {
+					$razem[ $klucz ] += $ile;
+				}
+				$kursy[] = array(
+					'slug'     => (string) $kurs['slug'],
+					'liczniki' => $liczniki,
+				);
 			}
-			foreach ( self::WYMAGANE_POLA_KURSU as $pole ) {
-				if ( ! array_key_exists( $pole, $kurs ) ) {
-					throw new Aai_Sklep_Blad_Zapisu(
-						sprintf( 'kurs bez wymaganego pola `%s` — to nie jest eksport formatu %d', $pole, self::WERSJA_FORMATU )
-					);
+		} finally {
+			Aai_Sklep_Tutor::wznow();
+		}
+
+		$tutor = array(
+			'utworzone'      => 0,
+			'zaktualizowane' => 0,
+			'bez_zmian'      => 0,
+			'usuniete'       => 0,
+		);
+		if ( Aai_Sklep_Tutor::dostepny() ) {
+			foreach ( $paczka['kursy'] as $kurs ) {
+				foreach ( Aai_Sklep_Tutor::synchronizuj_kurs( (string) $kurs['id'] ) as $klucz => $ile ) {
+					$tutor[ $klucz ] += $ile;
 				}
 			}
-
-			$liczniki = Aai_Sklep_Zapis::zapisz_kurs( $kurs, $aktor, $pozwol );
-			foreach ( $liczniki as $klucz => $ile ) {
-				$razem[ $klucz ] += $ile;
-			}
-			$kursy[] = array(
-				'slug'     => (string) $kurs['slug'],
-				'liczniki' => $liczniki,
-			);
 		}
 
 		return array(
 			'liczniki' => $razem,
 			'kursy'    => $kursy,
+			'tutor'    => $tutor,
 		);
 	}
 }

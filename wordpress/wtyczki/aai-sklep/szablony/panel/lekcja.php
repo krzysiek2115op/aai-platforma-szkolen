@@ -52,6 +52,7 @@ $aai_opis  = $pola['tresc'];
 	</p>
 
 	<?php Aai_Sklep_Panel::komunikat(); ?>
+	<?php Aai_Sklep_Panel::stan_kopii(); ?>
 
 	<?php if ( array() !== $bledy ) : ?>
 		<div class="notice notice-error">

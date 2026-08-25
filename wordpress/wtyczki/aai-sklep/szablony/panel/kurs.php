@@ -78,6 +78,7 @@ $aai_nazwa_sciezki = static function ( string $sciezka ) use ( $kurs ): string {
 	<hr class="wp-header-end" />
 
 	<?php Aai_Sklep_Panel::komunikat(); ?>
+	<?php Aai_Sklep_Panel::stan_kopii(); ?>
 
 	<?php if ( array() !== $bledy ) : ?>
 		<div class="notice notice-error">

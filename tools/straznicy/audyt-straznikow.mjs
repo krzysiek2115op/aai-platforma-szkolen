@@ -42,6 +42,7 @@ import { createHash } from "node:crypto";
 
 const L51 = "tresc-kursow/jak-uzywac-githuba/modul-5/lekcja-1-zrozum-github-actions.md";
 const L75 = "tresc-kursow/jak-uzywac-githuba/modul-7/lekcja-5-discussions.md";
+const KLASA_TUTORA = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php";
 
 /**
  * pola mutacji:
@@ -1417,13 +1418,174 @@ const MUTACJE = [
         : null,
     oczekujCzerwonego: false,
   },
+
+  // --- straznik-tutora (krok W5: kopia kursu w Tutor LMS) ---
+  // Kopia rozjeżdża się PO CICHU: strona działa, kreator zapisuje, a klient
+  // po zalogowaniu czyta inną wersję. Każdy niezmiennik ma tu własną mutację,
+  // bo żaden z nich nie objawia się błędem.
+  {
+    straznik: "straznik-tutora",
+    opis: "kopia do Tutora przestaje być rejestrowana (kod żyje, ale nikogo nie słucha)",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("Aai_Sklep_Tutor::zarejestruj();")
+        ? s.replace("Aai_Sklep_Tutor::zarejestruj();", "")
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "klasa kopii woła warstwę zapisu (kierunek przestaje być jednokierunkowy)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("private static bool $wstrzymana = false;")
+        ? s.replace(
+            "private static bool $wstrzymana = false;",
+            "private static bool $wstrzymana = false;\n\n\tprivate static function wroc_do_zrodla( array $kurs ): void {\n\t\tAai_Sklep_Zapis::zapisz_kurs( $kurs, 'tutor' );\n\t}"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "klasa kopii pisze wprost do naszych tabel",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("private static bool $wstrzymana = false;")
+        ? s.replace(
+            "private static bool $wstrzymana = false;",
+            "private static bool $wstrzymana = false;\n\n\tprivate static function skrot( string $id ): void {\n\t\tglobal $wpdb;\n\t\t$wpdb->update( 'x', array( 'a' => 1 ), array( 'id' => $id ) );\n\t}"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "zapis treści lekcji przestaje ogłaszać zmianę (poprawiona proza nie dojedzie do kopii)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("self::powiadom( $id_kursu, $liczniki );")
+        ? s.replace("self::powiadom( $id_kursu, $liczniki );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "zapis kursu przestaje ogłaszać zmianę (poprawka tytułu i programu nie dojedzie do kopii)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("self::powiadom( (string) $kurs['id'], $liczniki );")
+        ? s.replace("self::powiadom( (string) $kurs['id'], $liczniki );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "publikacja przestaje ogłaszać zmianę (kurs opublikowany u nas zostaje szkicem w Tutorze)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("self::powiadom( $id, $liczniki );")
+        ? s.replace("self::powiadom( $id, $liczniki );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "usunięcie kursu przestaje ogłaszać usunięcie (w Tutorze zostaje sierota z dostępem)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("do_action( 'aai_sklep_kurs_usuniety', $id );")
+        ? s.replace("do_action( 'aai_sklep_kurs_usuniety', $id );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "wpisy Tutora tworzone poza klasą kopii (kopia dostaje drugiego autora)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php",
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("private static function brama(): void {")
+        ? s.replace(
+            "private static function brama(): void {",
+            "private static function na_skroty(): void {\n\t\twp_insert_post( array( 'post_type' => 'lesson' ) );\n\t}\n\n\tprivate static function brama(): void {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "zapis meta bez wp_slash (WordPress zjada backslashe — C:\\Users z kursu o Gicie)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("update_post_meta( (int) $id, $klucz, wp_slash( $wartosc ) );")
+        ? s.replace(
+            "update_post_meta( (int) $id, $klucz, wp_slash( $wartosc ) );",
+            "update_post_meta( (int) $id, $klucz, $wartosc );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "spłaszczenie sekcji traci asercję (JSON wyjeżdża na stronę kursu dla człowieka)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) => {
+      const gdzie = s.indexOf("if ( '' === $wynik || false !== strpos( $wynik, '{\"' )");
+      if (gdzie === -1) return null;
+      const koniec = s.indexOf("\t\t}\n", gdzie);
+      return s.slice(0, gdzie) + s.slice(koniec + 4);
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "słuchacz zmiany przestaje łapać wyjątek (awaria Tutora wywala właścicielowi zapis treści)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("\t\t} catch ( Throwable $blad ) {\n\t\t\tself::zapamietaj_blad( $id, $blad->getMessage() );\n\t\t}")
+        ? s.replace(
+            "\t\ttry {\n\t\t\tself::synchronizuj_kurs( $id );\n\t\t} catch ( Throwable $blad ) {\n\t\t\tself::zapamietaj_blad( $id, $blad->getMessage() );\n\t\t}",
+            "\t\tself::synchronizuj_kurs( $id );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis:
+      "KONTRPRZYKŁAD: nazwa wp_insert_post w KOMENTARZU innej klasy to proza, nie zapis wpisu",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-odczyt.php",
+    wymaga: () => existsSync(KLASA_TUTORA),
+    zmien: (s) =>
+      s.includes("declare( strict_types = 1 );")
+        ? s.replace(
+            "declare( strict_types = 1 );",
+            "/* Uwaga: ta klasa NIE woła wp_insert_post() — wpisy Tutora rusza wyłącznie klasa kopii. */\ndeclare( strict_types = 1 );"
+          )
+        : null,
+    oczekujCzerwonego: false,
+  },
 ];
 
 
 const sha = (t) => createHash("sha256").update(t).digest("hex");
 const zlapane = [], przeoczone = [], martwe = [], pominiete = [];
 
-for (const m of MUTACJE) {
+/*
+ * Opcjonalny filtr po nazwie strażnika: `node audyt-straznikow.mjs straznik-tutora`.
+ * Pełny przebieg trwa kilka minut, więc przy PISANIU strażnika chce się puścić
+ * same jego mutacje. Domyślnie (bez argumentu) lecą wszystkie — bramka przed
+ * wydaniem to zawsze pełny przebieg.
+ */
+const filtr = process.argv[2] ?? "";
+const doWykonania = "" === filtr ? MUTACJE : MUTACJE.filter((m) => m.straznik === filtr);
+
+if (0 === doWykonania.length) {
+  console.error(`audyt-straznikow: filtr „${filtr}" nie pasuje do żadnej mutacji.`);
+  process.exit(1);
+}
+
+for (const m of doWykonania) {
   if (m.wymaga && !m.wymaga()) {
     pominiete.push(`${m.straznik}: ${m.opis} — brak materiału do próby`);
     continue;
@@ -1489,7 +1651,7 @@ for (const m of MUTACJE) {
 console.log(
   `\naudyt-straznikow: ${zlapane.length} złapanych, ${przeoczone.length} przeoczonych, ${martwe.length} martwych` +
     (pominiete.length ? `, ${pominiete.length} pominiętych (brak materiału)` : "") +
-    ` (mutacji: ${MUTACJE.length})`,
+    ` (mutacji: ${doWykonania.length}${doWykonania.length === MUTACJE.length ? "" : ` z ${MUTACJE.length}`})`,
 );
 for (const p of pominiete) console.log(`  · ${p}`);
 for (const z of zlapane) console.log(`  ✓ ${z}`);

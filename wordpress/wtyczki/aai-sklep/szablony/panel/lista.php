@@ -21,6 +21,7 @@ defined( 'ABSPATH' ) || exit;
 	<hr class="wp-header-end" />
 
 	<?php Aai_Sklep_Panel::komunikat(); ?>
+	<?php Aai_Sklep_Panel::stan_kopii(); ?>
 
 	<?php if ( array() === $kursy ) : ?>
 		<div class="aai-pustka">

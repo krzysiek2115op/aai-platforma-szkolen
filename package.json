@@ -23,10 +23,13 @@
     "wp:eksport": "node --env-file-if-exists=.env tools/eksport-wp.mjs --do eksport-wp",
     "wp:import": "npm run wp:eksport && podman cp eksport-wp/kursy.json ${STACK_NAZWA:-aai_wp}_cli:/tmp/kursy.json && podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep import /tmp/kursy.json",
     "wp:sprawdz": "node --env-file-if-exists=.env tools/sprawdz-import-wp.mjs",
+    "wp:sync": "podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep sync",
+    "wp:tutor": "podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep sprawdz-tutora",
     "smoke:wp": "node tools/smoke/smoke-wp-dane.mjs",
     "smoke:wp-front": "node tools/smoke/smoke-wp-front.mjs",
     "smoke:wp-motyw": "node tools/smoke/smoke-wp-motyw.mjs",
-    "smoke:wp-kreator": "node tools/smoke/smoke-wp-kreator.mjs"
+    "smoke:wp-kreator": "node tools/smoke/smoke-wp-kreator.mjs",
+    "smoke:wp-tutor": "node tools/smoke/smoke-wp-tutor.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.33.0",

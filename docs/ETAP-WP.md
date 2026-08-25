@@ -86,8 +86,9 @@ przestały być prawdziwe, są niżej poprawione, a nie zostawione do domyśleni
 
 Kreator z D6 zostaje nasz co do pola (12 rodzajów sekcji, program, treść lekcji,
 audyt zmian), a przy publikacji wtyczka **synchronizuje kurs do wpisów Tutora** —
-tak, jak robi to już `wordpress/import-kursy.php` (87 obiektów, treść zgodna co
-do znaku, klucz `_aai_zrodlo_uuid`, idempotentnie).
+tak, jak robił to jednorazowy `wordpress/import-kursy.php` (87 obiektów, treść
+zgodna co do znaku, klucz `_aai_zrodlo_uuid`, idempotentnie). **Zrobione w W5
+(0.43.0)** — kopia jedzie po każdym zapisie, a skrypt został wycofany.
 
 **Uczciwie o koszcie tej decyzji:** są wtedy dwie kopie treści. Synchronizacja
 musi być **jednokierunkowa** (nasze tabele → Tutor, nigdy odwrotnie) i pilnowana
@@ -672,6 +673,62 @@ zaadresowania w W5:
 
 To jest lista rzeczy, które synchronizacja z W5 ma albo uzupełnić, albo
 świadomie zostawić pustymi (z uzasadnieniem w kodzie).
+
+## Krok W5, część 1 zrobiona (2026-08-25, wersja 0.43.0) — kopia kursu w Tutorze
+
+Kopia kursu w Tutor LMS jedzie teraz **po każdym zapisie** w naszych tabelach
+(kurs, treść lekcji, publikacja, usunięcie), a nie raz, ręcznym skryptem.
+Warstwa zapisu ogłasza zmianę akcją, `Aai_Sklep_Tutor` na nią odpowiada.
+
+### Dlaczego po KAŻDYM zapisie, a nie „przy publikacji"
+
+Bo „przy publikacji" zostawia okno, w którym kopie są rozjechane: właściciel
+poprawia zdanie w opublikowanym kursie, u nas zmiana jest, w materiale za
+logowaniem jej nie ma. Nikt się o tym nie dowiaduje, bo nic się nie zapala.
+Wyzwalacz odpala się **także wtedy, gdy zapis niczego nie zmienił** — dzięki
+temu ponowne „Zapisz kurs" NAPRAWIA kopię, zamiast tylko potwierdzać stan.
+
+### Awaria kopii nie cofa zapisu — i co za to płacimy
+
+Kopia jest SKUTKIEM zapisu, nie jego warunkiem: wyłączony albo zepsuty Tutor
+nie ma prawa zablokować właścicielowi edycji własnej treści. Cena tej decyzji
+jest taka, że nieudana kopia byłaby niewidoczna — więc błąd jest zapamiętywany
+i pokazywany na każdym ekranie kreatora, razem z komendą naprawczą.
+
+### Rozjazd ma dwie kontrole, bo to dwa różne pytania
+
+| Kontrola | Pyta o |
+|---|---|
+| `straznik-tutora` (33., 12 mutacji) | KOD: czy mechanizm jest podpięty, jedzie w jedną stronę, każda droga zapisu go woła, meta idzie przez `wp_slash`, spłaszczanie sekcji ma asercję, słuchacz łapie wyjątek |
+| `wp aai-sklep sprawdz-tutora` + `smoke-wp-tutor` (44) | DANE: czy obie kopie są dziś zgodne — pole po polu, treść lekcji po `sha256` |
+
+Kontrola danych nazywa po imieniu trzy klasy rozjazdu i każdą sprawdza testem
+negatywnym: **rozjazd** (ktoś zmienił coś w Course Builderze), **sierota**
+(kopia obiektu skasowanego u nas) i **obcy** (kurs zrobiony poza kreatorem).
+Synchronizacja naprawia dwie pierwsze; **obcego NIE kasuje** — to cudza praca,
+a nie nasza kopia, więc kontrola ma go pokazać, a nie sprzątnąć.
+
+### Trzy dziury z „Co widać w Tutorze po W4" — co z nimi zrobiliśmy
+
+| Dziura | Stan |
+|---|---|
+| pusty opis kursu | zajawka wpisu bierze `short_desc`; treść wpisu zostaje pusta ŚWIADOMIE — stroną sprzedażową jest nasza `/szkolenia/<slug>`, na którą `/courses/<slug>/` oddaje 301 |
+| brak miniatury | miniatura ustawia się dla okładki **z biblioteki mediów** (tak wybiera ją kreator od W4). Okładki obu kursów to dziś SVG jadące z wtyczką, a WordPress nie wpuszcza SVG do biblioteki — nie otwieramy tej blokady dla strony, której klient nie ogląda |
+| cena `Free` | zostaje. Sprzedaż bierze WooCommerce (Plugin 2), a decyzja „gdzie mieszka cena" ma zapaść wcześniej. Wartość jedzie do kopii jako `_aai_cena_grosze`, żeby dana nie przepadła |
+
+### Czego się przy tym nauczyliśmy
+
+- **Pierwsza kontrola od razu znalazła rozjazd** na prawdziwych danych:
+  `_aai_sekcje` miało tę samą długość i inny skrót, bo stary skrypt zapisywał
+  sekcje w kolejności eksportu, a my w kolejności `kind`. Tego rodzaju różnicy
+  nie widać w żadnym podsumowaniu liczbowym — dlatego porównujemy skrótem.
+- **Sprzątanie po uuid z przedrostka to pułapka.** Pierwsza wersja smoke'a
+  kasowała swoje wpisy po wspólnym przedrostku uuid; kurs miał inny układ zer
+  niż moduły, więc został w bazie jako sierota, a przebieg zameldował porządek.
+  Lista wypisana wprost jest nudna i nie kłamie.
+- **Test negatywny na SMOKE'u, nie tylko w nim.** Po odpięciu synchronizacji od
+  warstwy zapisu przebieg pada na ośmiu sprawdzeniach — czyli mierzy mechanizm,
+  a nie własne założenia.
 
 ## Plugin 2 — co to znaczy „płatności" (doprecyzowanie 2026-08-25)
 

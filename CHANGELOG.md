@@ -5,6 +5,90 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.43.0] — 2026-08-25
+
+**Kopia kursu w Tutor LMS przestaje starzeć się w milczeniu.** Pierwsza część
+kroku W5: wtyczka kopiuje kurs do wpisów Tutora **po każdym zapisie**, a osobna
+kontrola odpowiada na pytanie, czy obie kopie naprawdę są zgodne.
+
+Do tego wydania kopia trafiała do Tutora RAZ, ręcznym `wordpress/import-kursy.php`.
+Każda poprawka w kreatorze rozjeżdżała obie strony po cichu: właściciel widział
+nową wersję w panelu, a klient po zalogowaniu czytał starą. Nic się przy tym nie
+zapalało — a to jest w tym projekcie najdroższa klasa błędu (BLAD-015,
+znalezisko #1 przeglądu B7).
+
+### Dodane
+
+- **`Aai_Sklep_Tutor`** — jedyne miejsce, które pisze do wpisów Tutora. Kopiuje
+  kurs, moduły i lekcje (dopasowanie po `_aai_zrodlo_uuid`, nie po slugu),
+  spłaszcza cztery sekcje do pól, które Tutor drukuje sam, a wszystkie dwanaście
+  wkłada ze strukturą do `_aai_sekcje`. Kasuje w kopii to, czego nie ma już
+  u nas — łącznie z całym kursem po jego usunięciu.
+- **Wyzwalacz w warstwie zapisu**: `zapisz_kurs`, `zapisz_tresc_lekcji`,
+  `ustaw_status` i `usun_kurs` ogłaszają zmianę akcją `aai_sklep_kurs_zmieniony`
+  / `aai_sklep_kurs_usuniety`. Akcja, a nie wywołanie wprost — inaczej jedyne
+  miejsce piszące do naszych tabel byłoby związane z cudzą wtyczką i jej brak
+  byłby awarią zapisu.
+- **`wp aai-sklep sync`** (`npm run wp:sync`) — pierwsze wypełnienie i naprawa
+  po awarii — oraz **`wp aai-sklep sprawdz-tutora`** (`npm run wp:tutor`):
+  porównuje obie kopie pole po polu i **kończy się kodem wyjścia 1**, gdy się
+  rozjechały. Nazywa po imieniu trzy klasy rozjazdu: różnicę pola, sierotę po
+  skasowanym obiekcie i wpis zrobiony poza kreatorem.
+- **`straznik-tutora`** (33. strażnik, 12 mutacji w audycie) — pilnuje KODU:
+  czy synchronizacja jest podpięta, czy jedzie w jedną stronę, czy każda droga
+  zapisu ją ogłasza, czy wpisy Tutora rusza jedno miejsce, czy meta idzie przez
+  `wp_slash`, czy spłaszczanie sekcji ma asercję i czy awaria kopii nie cofa
+  zapisu właściciela.
+- **`smoke-wp-tutor`** (`npm run smoke:wp-tutor`, 44 sprawdzenia) — pilnuje
+  DANYCH na żywej instalacji, na własnym kursie: powstanie kopii, idempotencja
+  (drugi import nie rusza ani jednego wpisu), zmiana tytułu i kolejności modułów,
+  treść lekcji zgodna **co do znaku** (razem z backslashami, na których potknął
+  się import w 0.36.0), publikacja, lekcja skasowana bez sieroty, okładka
+  z biblioteki mediów jako miniatura i usunięcie całego kursu. Trzy z tych
+  sprawdzeń to testy NEGATYWNE: ręczna zmiana w Course Builderze, sierota i wpis
+  spoza kreatora — każdą kontrola musi zobaczyć.
+- **Ostrzeżenie w kokpicie**, gdy kopia nie nadążyła. Cena decyzji „awaria kopii
+  nie cofa zapisu" jest taka, że nieudana kopia byłaby niewidoczna; teraz błąd
+  zostaje zapamiętany i widać go na każdym ekranie kreatora.
+- **Filtr w audycie mutacyjnym**: `node tools/straznicy/audyt-straznikow.mjs
+  straznik-tutora` puszcza same mutacje jednego strażnika. Pełny przebieg trwa
+  kilka minut, a przy PISANIU strażnika potrzebna jest pętla zwrotna w sekundach.
+
+### Zmienione
+
+- **`wordpress/import-kursy.php` wycofany.** Jego mapy (status, poziom, cztery
+  sekcje Tutora) przeniosły się do klasy wtyczki — tak, jak zapowiadał jego
+  własny nagłówek. Skrypt umiał tylko przepisać eksport, więc kopia starzała się
+  przy pierwszej poprawce z kreatora.
+- **`wp aai-sklep import` raportuje też kopię w Tutorze** (i robi ją RAZ na kurs,
+  na końcu, zamiast po każdym zapisie w pętli).
+- Opis kursu jedzie do zajawki wpisu (`post_excerpt`), a treść wpisu zostaje
+  **pusta świadomie**: stroną sprzedażową jest nasza `/szkolenia/<slug>`, na którą
+  `/courses/<slug>/` i tak oddaje 301.
+
+### Świadomie zostawione puste
+
+- **Cena kursu w Tutorze zostaje `Free`.** Sprzedaż bierze WooCommerce (Plugin 2),
+  a decyzja „gdzie mieszka cena" jeszcze nie zapadła. Wartość jedzie do kopii jako
+  `_aai_cena_grosze`, żeby dana nie przepadła — ale kurs w Tutorze jest darmowy
+  i to jest prawda, bo kupić się go tam nie da.
+- **Miniatura wpisu tylko dla okładki z biblioteki mediów.** Okładki obu kursów
+  to dziś pliki SVG jadące z wtyczką, a WordPress nie wpuszcza SVG do biblioteki
+  — i nie zamierzamy tej blokady otwierać dla strony, którą klient ogląda pod
+  naszym adresem. Okładka wybrana w kreatorze (od W4) staje się miniaturą od razu;
+  pilnuje tego smoke.
+
+### Dowody
+
+Strażnicy **33/33**, audyt mutacyjny **145** (12 nowych, 0 przeoczonych,
+0 martwych), `npm run check` zielone (testy **83/83**, build, smoke'i prototypu),
+`smoke-wp-tutor` **44**, `smoke-wp-kreator` 95, `smoke-wp-front` 78,
+`smoke-wp-motyw` 32, `smoke-wp-dane` 30, `wp:sprawdz` **73/73 zgodne co do
+znaku**, `wp:tutor` **0 różnic na 87 obiektach**.
+
+Test negatywny samego smoke'a: po odpięciu synchronizacji od warstwy zapisu
+przebieg pada na ośmiu sprawdzeniach — czyli nie jest ślepy.
+
 ## [0.42.0] — 2026-08-25
 
 **Właściciel może wreszcie zmienić treść w WordPressie.** Krok W4 etapu
