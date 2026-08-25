@@ -1376,12 +1376,16 @@ wyprowadzała tego od nowa:
   (5) **smoke fałszywie alarmował o CSS-ie Tutora**, bo wzorzec `tutor-front`
   trafiał w KLASĘ `body` (`tutor-frontend`) — pytaj o ZNACZNIKI, nie o napis.
   **STAN GAŁĘZI (WAŻNE PO CLEAR):**
-  - **Część 1 = PR #73, OTWARTY**, gałąź `feat/w5-tutor-sync`, wersja 0.43.0 —
-    czeka na zgodę właściciela na merge. **Nie mergować bez pytania.**
-  - **Część 2 = gałąź `feat/w5-widok-lekcji`** (odbita od gałęzi części 1),
-    wypchnięta na zdalne repo, **ale BEZ PR-a** — świadomie: stackowane PR-y już
-    raz zamknęły się w tym repo nawzajem (notatka przy 0.25.0), więc PR części 2
-    otwieramy DOPIERO po zmergowaniu #73 i przepięciu bazy na `main`.
+  - **Część 1 = PR #73 ZMERGOWANY** do `main` (2026-08-25, decyzją właściciela
+    na dowodach lokalnych — CI padał po 5 s z wyczerpanych minut, sprawdzone
+    `gh run list`), gałąź `feat/w5-tutor-sync` skasowana zdalnie I lokalnie
+    (`--delete-branch` kasuje obie). Artefakt zweryfikowany: `git diff` między
+    `main` a szczytem gałęzi (38ac394) **PUSTY**.
+  - **Część 2 = PR #74 OTWARTY**, gałąź `feat/w5-widok-lekcji`, baza `main`,
+    wersja 0.44.0 — **czeka na zgodę właściciela na merge. Nie mergować bez
+    pytania.** PR poszedł DOPIERO po merge'u #73, świadomie: stackowane PR-y już
+    raz zamknęły się w tym repo nawzajem (notatka przy 0.25.0).
+  - **Tagi `v0.43.0` i `v0.44.0` + release'y — DO ZROBIENIA po merge'u #74.**
   **DOMKNIĘCIE W5 — ZROBIONE 2026-08-25 (poza merge'em):**
   1. ~~`npm run check` + trzy smoke'i WP~~ **ZROBIONE, z jednego przebiegu**:
      strażnicy **34/34**, testy **83/83**, lint + tsc + build, 7 smoke'ów
@@ -1410,9 +1414,9 @@ wyprowadzała tego od nowa:
   3. ~~`docs/plugin-1/KREATOR.md` o dojeżdżaniu zapisu do Tutora~~ **ZROBIONE**
      (sekcja „Co się dzieje po zapisie — kopia w Tutorze"; przy okazji
      sprostowana liczba sprawdzeń smoke'a kreatora: 92 → 95).
-  4. **ZOSTAJE: merge #73** (za zgodą właściciela) → przepięcie
-     `feat/w5-widok-lekcji` na `main` → PR części 2 → tagi `v0.43.0`
-     i `v0.44.0` + release'y;
+  4. ~~merge #73 → PR części 2~~ **ZROBIONE** (PR #73 zmergowany, PR #74
+     otwarty na `main`). **ZOSTAJE: merge #74 za zgodą właściciela → tagi
+     `v0.43.0` i `v0.44.0` + release'y;**
   5. potem **W6 — test ręczny właściciela** (ostatni krok wtyczki `aai-sklep`).
   **ODTWORZENIE ŚRODOWISKA OD ZERA WYMAGA TRZECH KOMEND, NIE JEDNEJ:**
   `npm run wp:import` (kursy do naszych tabel) → `npm run wp:sync` (kopia
