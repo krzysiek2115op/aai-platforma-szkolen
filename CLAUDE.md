@@ -1311,14 +1311,15 @@ wyprowadzała tego od nowa:
   warstwie zapisu **kasuje prozę wszystkich 73 lekcji**. Droga powrotna:
   `npm run wp:import` → `npm run wp:sprawdz`. Przed takim testem robić
   zrzut tabel.
-  **STAN GAŁĘZI: W4 NIE JEST JESZCZE W `main`.** Praca leży na
-  `feat/w4-kreator-kokpit` (2 commity), **PR #72 OTWARTY** i czeka na
-  zgodę właściciela; przegląd kroku jest komentarzem pod tym PR-em.
-  CI padło 2 s po starcie z zerem kroków — potwierdzone rozliczeniem:
-  **2118 minut Actions w sierpniu przy limicie 2000** (limit wraca
-  1 września), więc czerwony check NIE jest o kodzie. Merge wg
-  CONTRIBUTING z `--delete-branch`, potem tag `v0.42.0` + release —
-  **wyłącznie za zgodą właściciela**.
+  **W4 ZAMKNIĘTY W REPO (2026-08-25): PR #72 zmergowany do `main`, tag
+  `v0.42.0` + release**, gałąź skasowana. Merge decyzją właściciela na
+  dowodach lokalnych — CI padło 2 s po starcie z zerem kroków we WSZYSTKICH
+  zadaniach, co potwierdza rozliczenie: **2118 minut Actions w sierpniu przy
+  limicie 2000** (limit wraca 1 września), więc czerwony check NIE był o
+  kodzie. Artefakt zweryfikowany: `git diff` między `main` a szczytem gałęzi
+  PUSTY. Przegląd kroku został komentarzem pod PR-em #72. Po powrocie CI
+  potwierdzić **skan sekretów (gitleaks)** — jako jedyny nie ma lokalnego
+  odpowiednika.
   **W5, CZĘŚĆ 1 ZROBIONA (0.43.0): kopia kursu w Tutorze nadąża za kreatorem.**
   `Aai_Sklep_Tutor` kopiuje kurs → moduły → lekcje do wpisów Tutora **po
   KAŻDYM udanym zapisie** (nie tylko przy publikacji — inaczej poprawka
