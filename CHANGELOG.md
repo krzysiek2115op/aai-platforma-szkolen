@@ -5,6 +5,32 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.39.1] — 2026-08-25
+
+### Naprawione
+
+- **Strona kursu w Tutorze wyświetlała człowiekowi surowy JSON** („What Will
+  You Learn?", „Material Includes" — zgłoszone zrzutem właściciela). Tutor
+  drukuje swoje cztery pola WPROST, dzieląc wartość po znakach nowej linii,
+  a import wkładał tam nasze struktury zakodowane JSON-em. Nic się przy tym
+  nie zapalało: dana wchodziła poprawnie, tylko nie nadawała się do czytania.
+  `wordpress/import-kursy.php` spłaszcza teraz te cztery sekcje do linii
+  (`Tytuł — opis`), a **wszystkie dwanaście** jedzie obok do `_aai_sekcje`
+  ze strukturą, więc kopia w WordPressie jest kompletna niezależnie od tego,
+  kto które pole czyta.
+- Spłaszczenie ma **asercję**: sekcja, której kształt przestał pasować,
+  zatrzymuje import zamiast wydrukować JSON na stronie kursu. Sprawdzone
+  testem negatywnym (mutacja opróżniająca `punkty` → `Error: sekcja benefits
+  nie dała się spłaszczyć…`, zero zapisów).
+- `nie_dla` z sekcji „dla kogo" świadomie NIE wchodzi do
+  `_tutor_course_target_audience`: pole Tutora znaczy „dla kogo JEST ten
+  kurs", więc lista „to NIE jest dla Ciebie, jeśli…" zmieniłaby wymowę na
+  przeciwną.
+
+**To dotyczy wyłącznie KOPII dla Tutora.** Nasze tabele są nietknięte
+(`npm run wp:sprawdz` → 73/73 co do znaku), a klient docelowo nie ogląda
+szablonów Tutora: katalog i strony sprzedażowe robi W3, widok lekcji — W5.
+
 ## [0.39.0] — 2026-08-25
 
 **Oba kursy są w tabelach wtyczki WordPressa — 73 lekcje zgodne co do znaku,

@@ -173,6 +173,66 @@ function aai_meta($wartosc) {
         : wp_json_encode($wartosc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
+/**
+ * Sekcja → LINIE, bo tak Tutor trzyma swoje cztery pola.
+ *
+ * Tutor drukuje `_tutor_course_benefits` i sąsiadów WPROST na stronie kursu,
+ * dzieląc wartość po znakach nowej linii. Wrzucony tam JSON nie wywołuje
+ * błędu — po prostu wyświetla się jako `{"punkty":[{"opis":…` na stronie,
+ * którą widzi człowiek. Zgłoszone zrzutem 2026-08-25.
+ *
+ * Pełna STRUKTURA tych sekcji nie ginie: leci obok, do `_aai_sekcje`, razem
+ * z ośmioma pozostałymi. Źródłem prawdy i tak są tabele `wp_aai_sklep_*`,
+ * a to tutaj jest kopia dla LMS-a.
+ *
+ * Nowy rodzaj sekcji nie wymaga tu zmiany — trafia do `_aai_sekcje`.
+ */
+function aai_linie_tutora(string $rodzaj, array $tresc): string {
+    $linie = [];
+
+    switch ($rodzaj) {
+        case 'benefits':
+        case 'package':
+            foreach ($tresc['punkty'] ?? [] as $punkt) {
+                $tytul = trim((string) ($punkt['tytul'] ?? ''));
+                $opis  = trim((string) ($punkt['opis'] ?? ''));
+                $linie[] = ($tytul !== '' && $opis !== '') ? "$tytul — $opis" : $tytul . $opis;
+            }
+            // „co w cenie" to też pozycje pakietu, tyle że bez tytułów.
+            foreach ($tresc['w_cenie'] ?? [] as $pozycja) {
+                $linie[] = (string) $pozycja;
+            }
+            break;
+
+        case 'for_whom':
+            foreach ($tresc['punkty'] ?? [] as $punkt) {
+                $linie[] = (string) $punkt;
+            }
+            // `nie_dla` NIE wchodzi: to lista „to nie jest dla Ciebie, jeśli…",
+            // a pole Tutora nazywa się „dla kogo jest ten kurs". Wklejona tam
+            // zmieniłaby znaczenie na przeciwne.
+            break;
+
+        case 'problem':
+            foreach (['wstep', 'problem', 'rozwiazanie', 'rezultat'] as $pole) {
+                $linie[] = (string) ($tresc[$pole] ?? '');
+            }
+            break;
+    }
+
+    $linie = array_values(array_filter(array_map('trim', $linie), static fn($l) => $l !== ''));
+    $wynik = implode("\n", $linie);
+
+    // Asercja, nie ozdoba: gdyby kształt sekcji się zmienił i spłaszczenie
+    // przestało go obejmować, chcemy STANĄĆ, a nie wydrukować JSON na stronie
+    // kursu. To ta sama klasa, którą ten błąd właśnie pokazał.
+    if ($wynik === '' || strpos($wynik, '{"') !== false || strpos($wynik, '[{') !== false) {
+        WP_CLI::error("sekcja $rodzaj nie dała się spłaszczyć do linii Tutora — "
+            . "kształt się zmienił, popraw aai_linie_tutora(). Wynik: " . substr($wynik, 0, 120));
+    }
+    return $wynik;
+}
+
 $licznik = ['utworzony' => 0, 'zaktualizowany' => 0, 'bez zmian' => 0];
 $policz = function (string $stan) use (&$licznik) { $licznik[$stan]++; };
 
@@ -183,20 +243,20 @@ foreach ($paczka['kursy'] as $k) {
         WP_CLI::warning("kurs {$k['slug']}: poziom „{$k['level']}” nie ma odpowiednika w Tutorze");
     }
 
-    // ── podział sekcji: cztery zna Tutor, resztę renderuje nasza wtyczka ──
+    // ── sekcje: cztery Tutor drukuje sam, wszystkie renderuje nasza wtyczka ──
+    //
+    // Cztery rodzaje idą DODATKOWO do pól Tutora — spłaszczone do linii, bo
+    // Tutor drukuje je wprost. Do `_aai_sekcje` idą WSZYSTKIE, ze strukturą:
+    // dzięki temu kopia w WordPressie jest kompletna niezależnie od tego,
+    // które pole kto czyta.
     $sekcje_tutor = [];
     $sekcje_nasze = [];
     foreach ($k['sekcje'] as $s) {
         $klucz = AAI_SEKCJA_NA_TUTOR[$s['kind']] ?? null;
         if ($klucz !== null) {
-            // Tutor trzyma listy (korzyści, dla kogo, pakiet) jako tekst
-            // z nowymi liniami, a u nas to struktury. Serializujemy je jako
-            // JSON — wtyczka i tak renderuje te sekcje sama, a spłaszczenie
-            // do tekstu byłoby bezpowrotną utratą struktury.
-            $sekcje_tutor[$klucz] = aai_meta($s['content']);
-        } else {
-            $sekcje_nasze[] = ['rodzaj' => $s['kind'], 'tresc' => $s['content']];
+            $sekcje_tutor[$klucz] = aai_linie_tutora($s['kind'], (array) $s['content']);
         }
+        $sekcje_nasze[] = ['rodzaj' => $s['kind'], 'tresc' => $s['content']];
     }
 
     // ── kurs ──────────────────────────────────────────────────────────────
