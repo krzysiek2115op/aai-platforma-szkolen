@@ -96,3 +96,8 @@ wyjścia i zielony ogon potrafi zasłonić czerwony wynik.
   ich publiczne API, nigdy przez cudze tabele.
 - README ma mówić prawdę o bieżącym stanie projektu — aktualizacja README
   jest częścią definicji ukończenia każdego kroku.
+- **Polskie cudzysłowy w łańcuchach PHP**: `„` jest znakiem spoza ASCII, ale
+  `"` już nie. Napisany po polsku komunikat `"tekst „coś" dalej"` kończy
+  łańcuch w środku i daje `syntax error, unexpected identifier` — parser
+  wskazuje wtedy zdanie, nie cudzysłów. Domykaj `”` albo nie używaj
+  cudzysłowów w komunikatach. (Kosztowało dwa przebiegi 2026-08-25.)

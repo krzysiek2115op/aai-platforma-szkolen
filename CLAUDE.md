@@ -1117,11 +1117,34 @@ wyprowadzała tego od nowa:
   odtworzeniu katalogu na dysku (checkout, `git clean`) widzi pustkę,
   a WordPress przestaje znać wtyczkę — `postaw.sh` pyta o to KONTENER
   i podaje naprawę (`podman-compose down && ./postaw.sh`).
+  **POPRAWKA 0.39.1 (zgłosił właściciel zrzutem):** strona kursu w Tutorze
+  wyświetlała człowiekowi surowy JSON w „What Will You Learn?" i „Material
+  Includes" — Tutor drukuje swoje cztery pola WPROST, dzieląc wartość po
+  znakach nowej linii, a import wkładał tam nasze struktury zakodowane
+  JSON-em (nic się przy tym nie zapalało). Teraz idą tam LINIE
+  (`Tytuł — opis`), a WSZYSTKIE dwanaście sekcji jedzie obok do
+  `_aai_sekcje` ze strukturą; spłaszczenie ma ASERCJĘ — sekcja o nieznanym
+  kształcie zatrzymuje import zamiast drukować JSON na stronie.
+  **POTWIERDZENIE WŁAŚCICIELA (2026-08-25, po obejrzeniu tamtej strony):
+  klient NIE ma widzieć wyglądu Tutora — ma być ten, który ustaliliśmy.**
+  To nie jest nowa decyzja, tylko potwierdzenie zapisu z ETAP-WP.md:
+  katalog i strony sprzedażowe = NASZE szablony (W3), widok lekcji =
+  NASZE szablony w miejsce Tutorowych, wygląd z 0.34.0 (W5). Tutorowa
+  strona `/courses/<slug>/` **nie jest produktem** — to techniczna kopia
+  dla LMS-a, który daje konta i dostęp za logowaniem.
+  Stan podglądu na `:8892` w chwili pisania: `/szkolenia` → **404**
+  (naszej trasy jeszcze nie ma), `/szkolenia/<slug>` → **301** na
+  `/courses/<slug>/` (WordPress sam zgaduje slug — to NIE nasza strona).
   **NASTĘPNY KROK: W3 — front.** `/szkolenia` i `/szkolenia/<slug>`
   renderowane z tabel wtyczki przez `template_include`, pozycja
   „Szkolenia" wstrzykiwana do nagłówka motywu (`ob_start`, droga 4
   z ETAP-WP.md) **razem ze strażnikiem**, że pozycja naprawdę jest
   w wyjściowym HTML — motyw jest generowany, więc może ją uciszyć.
+  Wygląd bierzemy z tego, co już jest zaakceptowane: strona sprzedażowa
+  z prototypu (`components/kurs/*`, brief
+  [BRIEF-STRONA-KURSU.md](docs/plugin-1/BRIEF-STRONA-KURSU.md)) i katalog
+  `/szkolenia`; wygląd widoku lekcji leży gotowy w `tools/podglad-kursow/`
+  (CSS + szablony, wyjęte tam WŁAŚNIE po to, żeby dały się przenieść).
 
   **NAPRAWA RENDERU (0.38.0, zgłosił właściciel zrzutami):** strona główna
   była łamana przez `tutor-front.min.css` — globalna klasa `.text-label`
