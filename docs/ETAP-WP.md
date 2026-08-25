@@ -896,20 +896,34 @@ Punkt 4 pilnuje dziś `smoke-wp-front`: dopóki zakup jest placeholderem, dane
 strukturalne mają mówić `PreOrder`. Zmiana na `InStock` należy do tego samego
 kroku, w którym ruszy koszyk — nie wcześniej.
 
-### Pytanie otwarte przed Pluginem 2: gdzie mieszka CENA
+### DECYZJA WŁAŚCICIELA (2026-08-26): gdzie mieszka CENA
 
-Dziś `price_grosze` jest w naszej tabeli `courses`. Produkt WooCommerce będzie
-miał własną cenę. To **dwie kopie tej samej liczby**, czyli dokładnie ta klasa
-ryzyka, którą znamy z pary „nasze tabele ↔ Tutor" (ETAP-WP.md wyżej: rozjazd
-dwóch kopii to główne ryzyko tej architektury). Dwie drogi:
+`price_grosze` w naszej tabeli `courses` jest **ŹRÓDŁEM**. Do produktu
+WooCommerce jedzie **cena REGULARNA** — jednokierunkowo, tak samo jak kopia
+kursu do Tutora. **Pola ceny promocyjnej nie dotykamy nigdy.**
 
-- **nasze tabele są źródłem, cena idzie do Woo przy publikacji** — spójne
-  z resztą architektury i z kreatorem, ale wymaga strażnika zgodności;
-- **cenę oddajemy WooCommerce** — jedno miejsce prawdy o pieniądzach
-  (promocje, kupony, podatki są i tak Woo), ale kreator przestaje o niej
-  decydować, a katalog musi ją czytać z produktu.
+Podział wychodzi z tego, kto co naprawdę umie:
 
-**Decyzja należy do właściciela i ma zapaść PRZED pisaniem Pluginu 2.**
+| Nasze | WooCommerce |
+|---|---|
+| cena katalogowa kursu (kreator, jedno miejsce edycji) | promocje i ceny przecenione |
+| | kupony |
+| | podatki i waluta |
+| | koszyk, kasa, faktury |
+
+**Co z tego wynika dla kodu Pluginu 2:**
+
+- synchronizacja ceny idzie tą samą drogą co kopia do Tutora — po KAŻDYM
+  udanym zapisie kursu, przez akcję `aai_sklep_kurs_zmieniony`, żeby nie
+  było okna rozjazdu;
+- zapisujemy WYŁĄCZNIE cenę regularną produktu; `_sale_price` zostaje
+  nietknięte, bo promocje należą do Woo;
+- **rozjazd musi mieć własną kontrolę** — jak `wp aai-sklep sprawdz-tutora`,
+  z kodem wyjścia 1 przy różnicy. Rozjazd dwóch kopii to główne ryzyko tej
+  architektury i to samo zdanie stoi przy parze „nasze tabele ↔ Tutor";
+- **cena regularna zmieniona ręcznie w Woo wróci do naszej przy następnym
+  zapisie kursu** — to jest świadomy koszt tej decyzji, nie usterka. Ma być
+  napisane wprost w miejscu, gdzie właściciel edytuje cenę.
 
 ## Następne kroki
 

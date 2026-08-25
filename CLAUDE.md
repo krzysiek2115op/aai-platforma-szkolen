@@ -1556,12 +1556,19 @@ wyprowadzała tego od nowa:
      niedopatrzenie).
 
   6. **NASTĘPNY KROK CAŁEGO PROJEKTU: PLUGIN 2 — PŁATNOŚCI.**
-     **PRZED PISANIEM KODU musi zapaść decyzja właściciela: GDZIE MIESZKA
-     CENA** — w naszej tabeli `courses` (`price_grosze`) czy w produkcie
-     WooCommerce. To dwie kopie tej samej liczby, czyli ta sama klasa
-     ryzyka co para „nasze tabele ↔ Tutor". Obie drogi z konsekwencjami:
-     [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „Pytanie otwarte przed
-     Pluginem 2: gdzie mieszka CENA". Zakres Pluginu 2 doprecyzowujemy
+     **DECYZJA WŁAŚCICIELA (2026-08-26) — GDZIE MIESZKA CENA: nasza tabela
+     `courses.price_grosze` jest ŹRÓDŁEM, do produktu WooCommerce jedzie
+     CENA REGULARNA, jednokierunkowo, a pola ceny promocyjnej NIE DOTYKAMY
+     NIGDY.** Promocje, kupony, podatki i waluta zostają po stronie Woo —
+     tam mają swoje mechanizmy. Kreator zostaje jedynym miejscem, gdzie
+     właściciel ustawia cenę katalogową. Konsekwencje wykonawcze: kopia
+     ceny jedzie po KAŻDYM udanym zapisie (akcja `aai_sklep_kurs_zmieniony`,
+     jak kopia do Tutora), rozjazd MUSI mieć własną kontrolę z kodem wyjścia
+     1 (wzór: `wp aai-sklep sprawdz-tutora`), a **cena regularna zmieniona
+     ręcznie w Woo wróci do naszej przy następnym zapisie kursu** — to
+     świadomy koszt, do napisania wprost przy polu ceny w kreatorze.
+     Pełnia: [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „DECYZJA WŁAŚCICIELA
+     (2026-08-26): gdzie mieszka CENA". Zakres Pluginu 2 doprecyzowujemy
      **pytaniami do właściciela przed startem** (decyzja 2026-08-21) —
      Plugin 2 jest SZWEM do WooCommerce (produkt Woo ↔ kurs, zapis do
      Tutora po opłacie, mail „Ustaw hasło", przełączenie CTA z `/kontakt`
