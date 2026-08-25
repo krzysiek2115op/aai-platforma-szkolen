@@ -20,8 +20,8 @@ $aai_ukonczonych = Aai_Sklep_Lekcja::ile_ukonczonych( $dane['program'] );
 ?>
 <header class="aai-pasek" data-aai-pasek>
 	<nav aria-label="Nawigacja lekcji" class="aai-pasek-pigulka">
-		<a href="<?php echo esc_url( $dane['adres_kursu'] ); ?>"
-			aria-label="Wróć na stronę kursu" class="aai-pasek-wroc">
+		<a href="<?php echo esc_url( $dane['wroc']['adres'] ); ?>"
+			aria-label="<?php echo esc_attr( $dane['wroc']['etykieta'] ); ?>" class="aai-pasek-wroc">
 			<?php echo Aai_Sklep_Widok::sygnet( 'aai-pasek-sygnet' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 			<?php echo Aai_Sklep_Widok::ikona( 'arrow-left', 'aai-pasek-strzalka' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 		</a>

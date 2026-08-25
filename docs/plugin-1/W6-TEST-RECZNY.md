@@ -120,6 +120,9 @@ Zaloguj się jako `klient-test`.
       i pudełko. Sprawdź, czy akcent na „Zrób to teraz" nie razi.
 - [ ] **Zrzuty** — otwierają się, mają podpisy, nie skaczą przy wczytywaniu
       (miejsce jest zarezerwowane).
+- [ ] **Strzałka „wróć" (sygnet A w pigułce)** — jako KUPUJĄCY ma wracać do
+      „Moich kursów", nie na stronę sprzedażową. (Gość na darmowej zapowiedzi
+      trafia na stronę sprzedażową i tak ma być.)
 - [ ] **Nawigacja** — „poprzednia" i „następna" prowadzą do sąsiednich lekcji;
       na pierwszej i ostatniej lekcji kursu widać „początek/koniec kursu".
 - [ ] **Postęp** — odhacz lekcję. Licznik ma się zmienić, a odznaczenie
@@ -162,6 +165,8 @@ Zaloguj się jako `admin`, wejdź w **Kokpit → Automatic AI → Kursy**.
 
 ## Ścieżka D — czy nie zepsuliśmy motywu
 
+- [ ] **Menu konta ma „Moje kursy" jako pierwszą pozycję** — to nią klient
+      wraca do kursu, gdy zacznie od `/my-account/`.
 - [ ] **`/my-account/` i `/my-account/edit-account/`** — strony konta
       WooCommerce mają wyglądać jak część serwisu: menu konta w ciemnym
       panelu, aktywna pozycja w kolorze volt, pola formularza ciemne,

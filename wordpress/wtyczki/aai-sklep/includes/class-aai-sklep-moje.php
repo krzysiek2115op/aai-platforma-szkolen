@@ -48,10 +48,54 @@ final class Aai_Sklep_Moje {
 	/**
 	 * Rejestracja — wołane raz, z pliku głównego wtyczki.
 	 */
+	/** Klucz naszej pozycji w menu konta WooCommerce. */
+	private const KLUCZ_WOO = 'aai-moje-kursy';
+
 	public static function zarejestruj(): void {
 		// Panel kursanta Tutora przekierowujemy do nas. `template_redirect`,
 		// bo dopiero tam wiadomo, którą stronę WordPress wybrał.
 		add_action( 'template_redirect', array( self::class, 'przekieruj_z_panelu' ), 5 );
+
+		// Pozycja w menu konta WooCommerce — patrz `menu_konta()`.
+		add_filter( 'woocommerce_account_menu_items', array( self::class, 'menu_konta' ) );
+		add_filter( 'woocommerce_get_endpoint_url', array( self::class, 'adres_pozycji' ), 10, 2 );
+	}
+
+	/**
+	 * „Moje kursy" w menu konta WooCommerce, jako PIERWSZA pozycja.
+	 *
+	 * PO CO, skoro pozycja jest już w menu strony. Bo konto to miejsce, do
+	 * którego WordPress odsyła klienta po zalogowaniu — i właśnie tam
+	 * właściciel szukał kursów w teście ręcznym W6, klikając „Dashboard".
+	 * Menu konta mówiło wtedy o zamówieniach, pobraniach i adresach, czyli
+	 * o wszystkim poza rzeczą, po którą klient przyszedł.
+	 *
+	 * Pozycja idzie NA POCZĄTEK, bo dla naszego produktu jest ważniejsza niż
+	 * zamówienia — kurs czyta się wiele razy, fakturę ogląda raz.
+	 *
+	 * @param array<string,string> $pozycje Pozycje menu konta.
+	 * @return array<string,string>
+	 */
+	public static function menu_konta( array $pozycje ): array {
+		return array_merge(
+			array( self::KLUCZ_WOO => __( 'Moje kursy', 'aai-sklep' ) ),
+			$pozycje
+		);
+	}
+
+	/**
+	 * Adres naszej pozycji.
+	 *
+	 * WooCommerce buduje adresy pozycji menu z ENDPOINTÓW konta, a nasza
+	 * strona endpointem nie jest — mieszka pod `/szkolenia/moje/`, przy
+	 * reszcie sklepu. Bez tego filtra pozycja prowadziłaby do
+	 * `/my-account/aai-moje-kursy/`, czyli do 404.
+	 *
+	 * @param string $adres     Adres wyliczony przez WooCommerce.
+	 * @param string $endpoint  Nazwa endpointu.
+	 */
+	public static function adres_pozycji( string $adres, string $endpoint ): string {
+		return self::KLUCZ_WOO === $endpoint ? self::adres() : $adres;
 	}
 
 	/**

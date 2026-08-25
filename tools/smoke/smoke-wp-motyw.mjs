@@ -347,6 +347,10 @@ function pomiar() {
     naszArkusz: [...document.styleSheets].some((s) => (s.href ?? "").includes("tutor-motyw.css")),
     naszArkuszSklepu: [...document.styleSheets].some((s) => (s.href ?? "").includes("aai-sklep/assets/sklep.css")),
     naszArkuszWoo: [...document.styleSheets].some((s) => (s.href ?? "").includes("woo-motyw.css")),
+    // Pierwsza pozycja menu konta — to nią klient wraca do kupionego kursu.
+    pozycjeKonta: [...document.querySelectorAll(".woocommerce-MyAccount-navigation a")].map((a) =>
+      a.getAttribute("href")
+    ),
     klasaBodyWoo: document.body.className.includes("aai-woo-na-motywie"),
     cudzeArkusze: [...document.querySelectorAll("link[rel=stylesheet][id]")]
       .map((l) => l.id)
@@ -708,6 +712,17 @@ sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da si
 
   sprawdz(m.klasaBodyWoo, `${SCIEZKA_KONTA}: brak klasy „aai-woo-na-motywie” na body — arkusz integracji nie ma się czego złapać`);
   sprawdz(m.naszArkuszWoo, `${SCIEZKA_KONTA}: nasz arkusz integracji Woo nie wszedł na stronę konta`);
+
+  /*
+   * „MOJE KURSY" PIERWSZĄ POZYCJĄ MENU KONTA. Właściciel szukał kursów
+   * właśnie tutaj, klikając „Dashboard" — a menu mówiło o zamówieniach,
+   * pobraniach i adresach, czyli o wszystkim poza rzeczą, po którą klient
+   * przyszedł. Dla naszego produktu kurs jest ważniejszy niż faktura.
+   */
+  sprawdz(
+    (m.pozycjeKonta[0] ?? "").includes("/szkolenia/moje"),
+    `${SCIEZKA_KONTA}: pierwsza pozycja menu konta prowadzi do „${m.pozycjeKonta[0] ?? "(brak)"}”, a ma prowadzić do „Moich kursów"`
+  );
 
   sprawdz(
     m.naglowekDol > 0,

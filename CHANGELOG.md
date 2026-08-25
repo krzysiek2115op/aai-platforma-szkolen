@@ -52,11 +52,29 @@ strażnik nie umie zadać: czy to, co widzi człowiek, ma sens i wygląda jak na
   biją motyw). Powstał `Aai_Sklep_Styl_Woo` + `assets/woo-motyw.css`, bliźniak
   warstwy Tutora, pytający `Aai_Sklep_Zasoby::strona_woo()` — więc obejmie też
   koszyk i kasę, gdy przyjdą z Pluginem 2.
+- **Strzałka „wróć" w lekcji odsyłała kupującego na CENNIK.** Właściciel cofnął
+  się z lekcji i wylądował na stronie sprzedażowej kursu, który już ma —
+  a jedynym wyjściem z tamtej strony jest przycisk „Dołącz". Odnośnik ma teraz
+  dwie postacie: kto jest **zapisany na kurs**, wraca do „Moich kursów"; kto nie
+  jest (gość na darmowej zapowiedzi, ktoś z wyszukiwarki) — na stronę
+  sprzedażową, bo dla niego to jest właściwy następny krok. Pytamy Tutora
+  o ZAPIS, nie o `dostep` z widoku: `dostep` jest prawdziwy także dla
+  zapowiedzi i dla administratora, więc gość dostałby odnośnik do pustej listy.
+- **Menu konta WooCommerce nie prowadziło do kursów.** Właściciel szukał ich
+  klikając „Dashboard", a menu mówiło o zamówieniach, pobraniach i adresach.
+  **„Moje kursy" są tam teraz PIERWSZĄ pozycją** — dla naszego produktu kurs
+  jest ważniejszy niż faktura. Adres podmienia filtr `woocommerce_get_endpoint_url`,
+  bo nasza strona nie jest endpointem konta i bez tego pozycja prowadziłaby
+  do `/my-account/aai-moje-kursy/`, czyli do 404.
 - **`smoke-wp-motyw` mierzy teraz SIEDEM stron** (było pięć): doszły
   `/my-account/` i `/szkolenia/moje/`, a `/dashboard/` ustąpił miejsca
   `/dashboard/retrieve-password/`, bo panel jest już nasz. **64 sprawdzenia.**
   `smoke-wp-front` pilnuje obu przekierowań panelu i tego, że gość nie widzi
-  na „Moich kursach" ani jednego kafelka — **83 sprawdzenia.**
+  na „Moich kursach" ani jednego kafelka — **83 sprawdzenia** — a **65.**
+  sprawdzenie smoke'a motywu pilnuje pierwszej pozycji menu konta.
+  `smoke-wp-lekcja` sprawdza **obie postacie strzałki „wróć"** (34): stan
+  kupującego robi POMIAREM — zapisuje administratora na kurs, pyta stronę
+  i zapis cofa.
 
 ### Świadomie BEZ zmian
 

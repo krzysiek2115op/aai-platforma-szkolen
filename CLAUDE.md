@@ -1438,11 +1438,21 @@ wyprowadzała tego od nowa:
      dalszego modułu w każdym kursie), bramka działa zgodnie z danymi.
      **DECYZJA WŁAŚCICIELA 2026-08-25: zostają wszystkie cztery.** Zapisane,
      żeby następne zgłoszenie nie ruszało śledztwa od nowa.
-     **DOWODY PO NAPRAWACH:** strażnicy 34/34, `smoke-wp-motyw` **64**
+     **DRUGI PRZEBIEG (2026-08-25) — dwa dalsze zgłoszenia, oba naprawione:**
+     (d) **strzałka „wróć" w lekcji odsyłała KUPUJĄCEGO na cennik** — teraz
+     ma dwie postacie: zapisany na kurs wraca do „Moich kursów", niezapisany
+     (gość na zapowiedzi, admin) na stronę sprzedażową. Pytamy Tutora o ZAPIS,
+     nie o `dostep` — `dostep` jest prawdziwy także dla zapowiedzi i admina;
+     (e) **menu konta WooCommerce nie prowadziło do kursów** — „Moje kursy"
+     są tam PIERWSZĄ pozycją (filtr `woocommerce_get_endpoint_url` podmienia
+     adres, bo nasza strona nie jest endpointem konta).
+     **DOWODY PO NAPRAWACH:** strażnicy 34/34, `smoke-wp-motyw` **65**
      (SIEDEM stron — doszły `/my-account/` i `/szkolenia/moje/`, a
      `/dashboard/` ustąpił `/dashboard/retrieve-password/`),
      `smoke-wp-front` **83** (oba przekierowania panelu + brak wycieku listy
-     kursów gościowi), `smoke-wp-lekcja` 32, `smoke-wp-kreator` 95,
+     kursów gościowi), `smoke-wp-lekcja` **34** (obie postacie strzałki
+     „wróć"; stan kupującego robiony POMIAREM — zapis admina na kurs
+     i cofnięcie go), `smoke-wp-kreator` 95,
      `smoke-wp-dane` 30. Każde nowe sprawdzenie ma test negatywny.
      **PUŁAPKA POMIARU:** kafelki „Moich kursów" mają `.aai-reveal`
      (opacity 0 do czasu IntersectionObservera) — zrzut zrobiony zaraz po

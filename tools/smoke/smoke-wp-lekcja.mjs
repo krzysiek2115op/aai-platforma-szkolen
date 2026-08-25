@@ -291,6 +291,57 @@ sprawdzen += 2;
 sprawdz(zatrzymane === 0, `${zatrzymane} lekcji zatrzymało renderer`);
 sprawdz(pusteTresci === 0, `${pusteTresci} lekcji wyszło pustych`);
 
+/* ————— strzałka „wróć" zależy od tego, KTO patrzy (W6) ————————————— */
+
+/*
+ * Właściciel złapał to w teście ręcznym: cofnął się z lekcji i wylądował na
+ * stronie sprzedażowej — czyli kupujący dostał ofertę na coś, co już ma,
+ * a jedynym wyjściem z tamtej strony jest przycisk „Dołącz”. Odnośnik ma
+ * więc dwie postacie i obie sprawdzamy na ŻYWEJ stronie, bo to jedyne
+ * miejsce, gdzie widać, którą wybrał szablon.
+ */
+const wroc = (html) => {
+  const m = html.replace(/\s+/g, " ").match(/<a href="([^"]+)"[^>]*aria-label="([^"]*)"[^>]*class="aai-pasek-wroc"/);
+  return m ? { adres: m[1].replace(ADRES, ""), etykieta: m[2] } : null;
+};
+
+const wrocGoscia = wroc(htmlGoscia);
+sprawdz(
+  wrocGoscia !== null && wrocGoscia.adres.startsWith("/szkolenia/") && !wrocGoscia.adres.includes("/moje"),
+  `gość dostaje w pigułce odnośnik „${wrocGoscia?.adres ?? "(brak)"}” — a ma trafiać na stronę sprzedażową, bo dla niego to jest następny krok`
+);
+
+/*
+ * Drugi stan robimy POMIAREM, nie deklaracją: zapisujemy administratora na
+ * kurs, pytamy stronę i zapis cofamy. Bez zapisu nie da się odpowiedzieć na
+ * pytanie „co widzi kupujący”, a to ono jest tu ważne.
+ */
+const idKursu = Number(
+  wp("eval", `echo (int) tutor_utils()->get_course_id_by_content( ${probka.id} );`).trim().split("\n").pop()
+);
+const idAdmina = Number(wp("eval", "echo (int) get_user_by('login','admin')->ID;").trim().split("\n").pop());
+let zapisano = false;
+if (idKursu > 0 && idAdmina > 0) {
+  wp("eval", `tutor_utils()->do_enroll( ${idKursu}, 0, ${idAdmina} );`);
+  zapisano = true;
+}
+try {
+  const poZapisie = wroc(await (await admin.pobierz(probka.adres)).text());
+  sprawdz(
+    zapisano && poZapisie !== null && poZapisie.adres === "/szkolenia/moje/",
+    `kupujący dostaje w pigułce odnośnik „${poZapisie?.adres ?? "(brak)"}” — a ma wracać do „Moich kursów", nie na cennik`
+  );
+} finally {
+  if (zapisano) {
+    // Sprzątamy WYPISUJĄC zapisy tego konta na ten kurs — po id, nie po
+    // przedrostku (lekcja z 0.43.0: sprzątanie po wzorcu zostawia sieroty).
+    wp(
+      "eval",
+      `foreach ( get_posts( array( 'post_type' => 'tutor_enrolled', 'post_status' => 'any', 'author' => ${idAdmina}, 'post_parent' => ${idKursu}, 'numberposts' => -1, 'fields' => 'ids' ) ) as $z ) { wp_delete_post( (int) $z, true ); }`
+    );
+  }
+}
+
 console.log(`  lekcji sprawdzonych w całości: ${lekcje.length}, czas najdłuższej odsłony: ${czas} ms`);
 
 if (bledy.length > 0) {
