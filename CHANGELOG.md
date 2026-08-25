@@ -5,6 +5,39 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.45.0] — 2026-08-25
+
+**Krok W6 dostaje narzędzia i scenariusz, zamiast zaczynać się od pytania
+„co właściwie mam kliknąć".** Wtyczka `aai-sklep` nie jest skończona, dopóki
+nie przejdzie testu ręcznego — a ten test odpowiada na pytanie, którego żaden
+strażnik nie umie zadać: czy to, co widzi człowiek, ma sens i wygląda jak nasze.
+
+### Dodane
+
+- **`npm run wp:klient`** (`tools/wp-klient-testowy.mjs`) — zakłada konto
+  KLIENTA (`klient-test`, rola `subscriber`) i zapisuje je na wszystkie
+  opublikowane kursy. Idempotentne; `--usun` kasuje konto razem z zapisami.
+  **Po co osobne konto:** administrator widzi materiał z definicji, więc
+  oglądanie lekcji na własnym koncie odpowiada na pytanie „czy admin to
+  zobaczy", a nie „czy klient to zobaczy". Do tego pasek narzędzi WordPressa
+  przesuwa stronę o 32 px i zasłania pigułkę lekcji — dlatego konto ma go
+  **zgaszonego** (`show_admin_bar_front`), tak jak zwykły klient.
+  Hasło jedzie do `wordpress/srodowisko/.env` (poza gitem), nigdy do
+  dokumentacji.
+- **[docs/plugin-1/W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md)** —
+  scenariusz testu na cztery ścieżki (gość → klient po zakupie → właściciel
+  w kreatorze → czy nie zepsuliśmy motywu), z liczbami wyjściowymi z bazy
+  i **tabelą rzeczy POZA zakresem**, żeby nie zgłaszać jako błąd tego, co
+  należy do Pluginu 2.
+
+### Zapamiętane przy okazji
+
+**`tutor_utils()->is_enrolled()` w tym samym żądaniu, w którym powstał zapis,
+oddaje `false`** — Tutor trzyma zapisy w pamięci żądania. Sprawdzenie zaraz po
+zapisie meldowałoby porażkę przy udanym zapisie, więc narzędzie weryfikuje
+dostęp w **osobnym żądaniu**. Test negatywny (wyłączony zapis + skasowane
+zapisy) wywala je z kodem wyjścia **1**, zmierzonym BEZ potoku.
+
 ## [0.44.0] — 2026-08-25
 
 **Klient czyta lekcję w naszym wyglądzie, nie w cudzym.** Druga część kroku W5:
