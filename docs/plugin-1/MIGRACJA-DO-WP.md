@@ -105,9 +105,14 @@ naszej wtyczki:
 | `problem` | `_tutor_course_requirements` | Tutor |
 | `hero`, `faq`, `guarantee`, `opinions`, `author`, `positioning`, `transformation`, `comparison` | meta `_aai_sekcje` (JSON) | **nasza wtyczka** |
 
-Struktury sekcji zapisujemy jako JSON, nie jako tekst z nowymi liniami
-(czego Tutor używa w swoim UI) — nasza wtyczka i tak renderuje te sekcje
-sama, a spłaszczenie do tekstu byłoby bezpowrotną utratą struktury.
+Cztery pola, które Tutor drukuje sam, dostają **linie** — bo tak Tutor je
+trzyma i tak je dzieli. Do 0.39.0 szedł tam JSON i strona kursu wyświetlała
+`{"punkty":[{"opis":…` człowiekowi (zgłoszone zrzutem 2026-08-25); żaden błąd
+się przy tym nie zapalił. Pełna STRUKTURA nie ginie: **wszystkie dwanaście**
+sekcji jedzie obok, do `_aai_sekcje`, a źródłem prawdy i tak są tabele
+`wp_aai_sklep_*`. Spłaszczenie ma asercję — sekcja, której nowy kształt nie
+da się zamienić na linie, ZATRZYMUJE import zamiast wydrukować JSON na
+stronie.
 
 **Sekcja NIE MA już pozycji** (decyzja właściciela 2026-08-25, migracja 008):
 jeden rodzaj = jedna sekcja na kurs, `UNIQUE (course_id, kind)`. W MySQL
