@@ -482,6 +482,71 @@ konta i dostęp, wygląd zostaje nasz.
 - zachowania przy wielu kursach i wielu użytkownikach naraz,
 - Publigo BOX (plan B) — nie ma darmowej wersji do postawienia obok.
 
+## Krok W3 zrobiony (2026-08-25, wersja 0.41.0) — czego się przy nim nauczyliśmy
+
+`/szkolenia` i `/szkolenia/<slug>` renderuje wtyczka z naszych tabel, pozycja
+„Szkolenia" jest w obu nawigacjach motywu, a `/courses/*` oddaje 301 na nasze
+adresy. Pełny wykaz zmian: CHANGELOG 0.41.0. Niżej wyłącznie to, co **zmienia
+plan dalszych kroków**.
+
+### Ósmy fakt o motywie doczekał się dziewiątego: `.page-enter` ma `transform`
+
+Motyw wpisuje klasę `.page-enter` w HTML swoich stron, a jej klatki animują
+`transform` z wypełnieniem `both`. To BLAD-003/004 z prototypu, przyniesione
+tym razem przez cudzy arkusz: **przodek z transformacją odbiera potomkom
+`position: fixed` ekran jako układ odniesienia**. Nasz `<main>` tej klasy nie
+dostaje, ale reguła obowiązuje na przyszłość — **każdy element `fixed` (pigułka
+kursu, żywe tło, przyszły panel lekcji z W5) emitujemy POZA `<main>`**. Pilnuje
+tego `straznik-frontu-wp` i `smoke-wp-front`.
+
+Do tego `volt.js` przy otwartym menu mobilnym ustawia `inert` na `body > main`
+i `body > footer`. Nasze elementy poza `<main>` tego nie dostają, więc ich
+`z-index` musi być NIŻSZY niż `z-40` overlaya — inaczej zostaną klikalne pod
+zasłoną.
+
+### Strona kursu chowa nawigację motywu
+
+Obie belki są `position: fixed` u góry, więc bez tego po prostu na siebie
+nachodzą. Tak samo działa prototyp (`NavbarPrzelacznik`) i taki wygląd
+właściciel przyjął przy B5. Powrót do reszty serwisu daje sygnet w pigułce.
+**Konsekwencja dla W5:** widok lekcji też będzie miał własną belkę i też będzie
+musiał rozstrzygnąć to samo.
+
+### Tutor 4.0.7 ma DRUGĄ rodzinę tokenów
+
+Instalacja podniosła się z 4.0.6 do 4.0.7 i przyniosła obok starych
+`--tutor-color-*` zestaw semantyczny: `--tutor-surface-*`, `--tutor-text-*`,
+`--tutor-icon-*`, `--tutor-border-*`, `--tutor-button-*`, `--tutor-actions-*`
+(305 zmiennych). To on steruje **logowaniem, rejestracją i panelem kursanta** —
+czyli tym, co klient zobaczy po zakupie. Mapowanie z 0.40.0 tam nie sięgało:
+formularz miał białe pola i granatowy przycisk. `assets/tutor-motyw.css` mapuje
+teraz obie rodziny.
+
+**Wniosek na etap WP: wersję Tutora trzeba przypiąć albo świadomie pilnować.**
+Aktualizacja LMS-a potrafi przemalować strony, których nie tykaliśmy, a objawu
+nie widać w żadnym logu. Dziś pilnuje tego `smoke-wp-motyw` — i to on to
+znalazł.
+
+### `/courses/*` przestało być mierzalne — i to była właściwa zmiana pomiaru
+
+Skoro te adresy oddają 301, `smoke-wp-motyw` mierzy teraz strony Tutora, które
+NAPRAWDĘ zobaczy człowiek: `/dashboard/` i `/student-registration/`. Przy okazji
+wyszło, że `Aai_Sklep_Zasoby` nie rozpoznawał rejestracji, koszyka ani kasy
+Tutora — pytał tylko o panel kursanta.
+
+### Czego W3 celowo NIE ruszył
+
+- **Widok lekcji i szablony Tutora** → W5. Wygląd leży gotowy
+  w `tools/podglad-kursow/`.
+- **Kreator w kokpicie** → W4. Na froncie nie ma dziś żadnego wejścia do
+  edycji; szkice ogląda `manage_options` pod normalnym adresem kursu.
+- **Zakup** → Plugin 2. CTA prowadzi do kontaktu, a `Offer.availability`
+  mówi `PreOrder`. Zmiana na `InStock` należy do tego samego kroku,
+  w którym ruszy koszyk.
+- **Tłumaczenie interfejsu Tutora** — panel logowania mówi po angielsku
+  („Sign In", „Keep me signed in"). To zadanie lokalizacyjne, nie wygląd;
+  do zrobienia razem z W5 albo W6.
+
 ## Następne kroki
 
 1. ~~Poprosić kolegę o katalog motywu~~ **NIEAKTUALNE 2026-08-20** —

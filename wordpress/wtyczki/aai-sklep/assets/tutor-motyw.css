@@ -234,3 +234,135 @@ body.aai-tutor-na-motywie .tooltip-txt {
 	color: var(--color-fg);
 	border: 1px solid var(--color-line);
 }
+
+/* ————————————————— Tutor 4.0.7: NOWA rodzina tokenów ————————————————— */
+
+/*
+ * SKĄD TO SIĘ WZIĘŁO. Wszystko wyżej mapuje tokeny Tutora 4.0.6
+ * (`--tutor-color-*`, `--tutor-body-color`). Tutor 4.0.7 wprowadził OBOK NICH
+ * drugi, semantyczny zestaw — `--tutor-surface-*`, `--tutor-text-*`,
+ * `--tutor-icon-*`, `--tutor-border-*`, `--tutor-actions-*` (305 zmiennych) —
+ * i to on steruje dziś logowaniem, rejestracją i panelem kursanta. Stare
+ * mapowanie tam nie sięga, więc formularz logowania miał BIAŁE pola i granatowy
+ * przycisk na ciemnym motywie. Nic się przy tym nie zapaliło: strona działa,
+ * tylko wygląda jak z innego serwisu.
+ *
+ * Wykrył to `smoke-wp-motyw` dopiero po tym, jak W3 przekierował `/courses/*`
+ * na nasze adresy i pomiar musiał wziąć strony Tutora, które NAPRAWDĘ zobaczy
+ * człowiek: panel i rejestrację. To jest dokładnie ten rodzaj znaleziska, dla
+ * którego ten smoke istnieje — lista reguł się starzeje, pomiar nie.
+ *
+ * MAPUJEMY RODZINY, NIE POJEDYNCZE REGUŁY. Tokeny są semantyczne („powierzchnia
+ * pierwszego poziomu", „tekst drugorzędny"), więc przypisanie ich do naszej
+ * palety jest tłumaczeniem języka na język, a nie łataniem objawów. Kolory
+ * stanów (błąd, ostrzeżenie, sukces) zostawiamy Tutorowi — czerwień błędu ma
+ * być czerwienią, także na ciemnym tle.
+ */
+body.aai-tutor-na-motywie {
+	/* powierzchnie — od najciemniejszej „bazy" po panele */
+	--tutor-surface-base: var(--color-void);
+	--tutor-surface-l1: var(--color-panel);
+	--tutor-surface-l1-hover: #16171d;
+	--tutor-surface-l2: var(--color-panel);
+	--tutor-surface-l2-hover: #16171d;
+	--tutor-surface-l3: var(--color-void);
+	--tutor-surface-sidebar-l1: var(--color-panel);
+	--tutor-surface-dark: var(--color-void);
+
+	/* marka Tutora (granat) → nasz akcent */
+	--tutor-surface-brand-primary: var(--color-volt);
+	--tutor-surface-brand-primary-2: #d3ff70;
+	--tutor-surface-brand-dark: rgba(191, 255, 56, 0.16);
+	--tutor-surface-brand-secondary: rgba(191, 255, 56, 0.12);
+	--tutor-surface-brand-tertiary: rgba(191, 255, 56, 0.06);
+	--tutor-surface-brand-quaternary: rgba(191, 255, 56, 0.1);
+
+	/* tekst */
+	--tutor-text-primary: var(--color-fg);
+	--tutor-text-secondary: var(--color-fg);
+	--tutor-text-subdued: var(--color-steel);
+	--tutor-text-disabled: var(--color-steel);
+	--tutor-text-light: var(--color-fg);
+	--tutor-text-highlighted-hover: var(--color-fg);
+	--tutor-text-brand: var(--color-volt);
+	--tutor-text-brand-hover: #d3ff70;
+	--tutor-text-brand-secondary: var(--color-volt);
+	/*
+	 * „Inverse" znaczy u Tutora: tekst NA powierzchni marki. Skoro
+	 * powierzchnią marki jest teraz volt, napis na niej musi być ciemny —
+	 * biały dałby 1,3:1 i przycisk „Sign In" byłby nie do przeczytania.
+	 */
+	--tutor-text-primary-inverse: var(--color-void);
+
+	/* ikony */
+	--tutor-icon-idle: var(--color-steel);
+	--tutor-icon-hover: var(--color-fg);
+	--tutor-icon-secondary: var(--color-steel);
+	--tutor-icon-subdued: var(--color-steel);
+	--tutor-icon-disabled: var(--color-steel);
+	--tutor-icon-brand: var(--color-volt);
+	--tutor-icon-brand-hover: #d3ff70;
+	--tutor-icon-brand-secondary: var(--color-volt);
+	--tutor-icon-idle-inverse: var(--color-void);
+
+	/* obrysy */
+	--tutor-border-idle: var(--color-line);
+	--tutor-border-idle2: var(--color-line);
+	--tutor-border-hover: rgba(245, 245, 245, 0.16);
+	--tutor-border-tertiary: rgba(245, 245, 245, 0.16);
+	--tutor-border-inverse: var(--color-line);
+	--tutor-border-dark: var(--color-line);
+	--tutor-border-brand: rgba(191, 255, 56, 0.4);
+	--tutor-border-brand-secondary: rgba(191, 255, 56, 0.25);
+	--tutor-border-brand-tertiary: rgba(191, 255, 56, 0.25);
+
+	/* akcje (przyciski, plakietki) — neutralne jasne szarości */
+	--tutor-actions-gray-empty: var(--color-panel);
+	--tutor-actions-gray-secondary: var(--color-panel);
+	--tutor-actions-gray-tertiary: var(--color-panel);
+	--tutor-actions-gray-quaternary: rgba(245, 245, 245, 0.16);
+	--tutor-actions-inverse: var(--color-void);
+	--tutor-actions-brand: var(--color-volt);
+	--tutor-actions-brand-hover: #d3ff70;
+	--tutor-actions-brand-secondary: rgba(191, 255, 56, 0.16);
+	--tutor-actions-brand-tertiary: rgba(191, 255, 56, 0.1);
+}
+
+/*
+ * Przyciski i typografia Tutora 4.0.7.
+ *
+ * PRZYCISKI mają WŁASNĄ rodzinę (`--tutor-button-*`), niezależną od
+ * `--tutor-surface-*`. Bez niej „Sign In" zostawał granatowy, mimo że
+ * powierzchnia marki była już voltowa — objaw, którego nie dało się
+ * wyprowadzić z nazw: trzeba było zapytać przeglądarki, która reguła wygrywa.
+ * Stany (błąd, sukces) zostają Tutora — czerwień ma być czerwienią.
+ *
+ * TYPOGRAFIA: Tutor ustawia `font-family: Inter` na `body`, więc na jego
+ * stronach CAŁA strona — razem ze stopką motywu — traciła Geista. Ten sam
+ * napis zajmował wtedy dwie linie zamiast jednej (zmierzone: 45,5 px zamiast
+ * 22,75 px), co `smoke-wp-motyw` zgłasza jako rozjazd stopki. `revert-layer`
+ * oddaje głos motywowi zamiast zgadywać jego stos fontów, a `--tutor-font-*`
+ * naprawia elementy, w których Tutor ustawia rodzinę u siebie.
+ */
+body.aai-tutor-na-motywie {
+	--tutor-button-primary: var(--color-volt);
+	--tutor-button-primary-focused: var(--color-volt);
+	--tutor-button-primary-hover: #d3ff70;
+	--tutor-button-primary-disabled: rgba(191, 255, 56, 0.35);
+	--tutor-button-primary-soft: rgba(191, 255, 56, 0.12);
+	--tutor-button-primary-soft-focused: rgba(191, 255, 56, 0.12);
+	--tutor-button-primary-soft-hover: rgba(191, 255, 56, 0.2);
+	--tutor-button-secondary: var(--color-panel);
+	--tutor-button-secondary-focused: var(--color-panel);
+	--tutor-button-secondary-hover: rgba(245, 245, 245, 0.12);
+	--tutor-button-disabled: var(--color-panel);
+	--tutor-button-ghost-hover: rgba(245, 245, 245, 0.08);
+	--tutor-button-outline-hover: rgba(245, 245, 245, 0.08);
+	--tutor-button-outline-inverse: var(--color-panel);
+	--tutor-button-outline-focused-inverse: var(--color-panel);
+
+	--tutor-font-family-body: var(--font-geist-sans);
+	--tutor-font-family-heading: var(--font-geist-sans);
+
+	font-family: revert-layer;
+}

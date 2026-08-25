@@ -1124,6 +1124,111 @@ const MUTACJE = [
         ? s.replace("pozwol_skasowac_tresc: z.boolean().default(false),", "")
         : null,
   },
+
+  // --- straznik-frontu-wp (krok W3: front wtyczki) ---
+  // Front działa nawet wtedy, gdy pozycja „Szkolenia" zniknęła z menu, sekcja
+  // przestała się renderować albo pigułka straciła ekran jako układ
+  // odniesienia. Objaw widzi dopiero klient — stąd mutacja na każdy
+  // niezmiennik, tak samo jak przy CSP i przy wtyczce.
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "rodzaj sekcji z kontraktu traci szablon (kreator pozwoli wpisać, strona przemilczy)",
+    plik: null,
+    usunPlik: "wordpress/wtyczki/aai-sklep/szablony/sekcje/faq.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/sekcje/faq.php"),
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "nowe pole w kontrakcie sekcji, którego żaden szablon nie renderuje",
+    plik: "modules/m1-sklep/typy.ts",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/sekcje/guarantee.php"),
+    zmien: (s) =>
+      s.includes("export const TrescGwarancja = z.object({")
+        ? s.replace(
+            "export const TrescGwarancja = z.object({",
+            "export const TrescGwarancja = z.object({\n  pole_bez_renderu: krotki().optional(),"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "sekcja wypada z listy renderowanych (szablon jest, nikt go nie woła)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-sekcje.php",
+    wymaga: () =>
+      existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-sekcje.php"),
+    zmien: (s) =>
+      s.includes("array( 'faq', 'FAQ' ),") ? s.replace("array( 'faq', 'FAQ' ),", "") : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "wstrzyknięcie pozycji menu kotwiczy na klasie Tailwinda zamiast na treści",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-menu.php",
+    wymaga: () =>
+      existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-menu.php"),
+    zmien: (s) =>
+      s.includes("'aria-label=\"' . $etykieta . '\"'")
+        ? s.replace(
+            "'aria-label=\"' . $etykieta . '\"'",
+            "'class=\"relative hidden items-center gap-7 lg:flex\"'"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "arkusz przestaje rezerwować miejsce pod nagłówek fixed motywu (72 px)",
+    plik: "wordpress/wtyczki/aai-sklep/assets/sklep.css",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/assets/sklep.css"),
+    zmien: (s) =>
+      s.includes("--aai-odstep-naglowka: 7rem;")
+        ? s.replace("--aai-odstep-naglowka: 7rem;", "--aai-odstep-naglowka: 2rem;")
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "pływająca pigułka (position: fixed) ląduje wewnątrz <main> — BLAD-003",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/kurs.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/kurs.php"),
+    zmien: (s) =>
+      s.includes("require __DIR__ . '/czesci/pasek.php';") &&
+      s.includes('<main id="tresc" class="aai-strona" data-kurs>')
+        ? s
+            .replace("require __DIR__ . '/czesci/pasek.php';", "")
+            .replace(
+              '<main id="tresc" class="aai-strona" data-kurs>',
+              '<main id="tresc" class="aai-strona" data-kurs>\n<?php require __DIR__ . \'/czesci/pasek.php\'; ?>'
+            )
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "przekierowanie z /courses/* staje się tymczasowe (302 zostawia stary adres w indeksie)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-trasy.php",
+    wymaga: () =>
+      existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-trasy.php"),
+    zmien: (s) => (s.includes(", 301 );") ? s.replaceAll(", 301 );", ", 302 );") : null),
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "klasa z animacją bez wygaszenia w prefers-reduced-motion",
+    plik: "wordpress/wtyczki/aai-sklep/assets/sklep.css",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/assets/sklep.css"),
+    zmien: (s) => s + "\n.aai-ruch-bez-wygaszenia { animation: aai-dryf-a 9s linear infinite; }\n",
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis:
+      "KONTRPRZYKŁAD: <main> w komentarzu szablonu (tam, gdzie napisane, że fixed ma stać POZA nim) to proza, nie kod",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/kurs.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/kurs.php"),
+    zmien: (s) =>
+      s.includes("defined( 'ABSPATH' ) || exit;")
+        ? s.replace(
+            "defined( 'ABSPATH' ) || exit;",
+            "/* Uwaga: tło i pasek stoją POZA <main>, patrz czesci/tlo.php i czesci/pasek.php. */\ndefined( 'ABSPATH' ) || exit;"
+          )
+        : null,
+    oczekujCzerwonego: false,
+  },
 ];
 
 

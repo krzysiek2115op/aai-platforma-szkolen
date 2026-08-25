@@ -1,0 +1,2470 @@
+/*
+ * Arkusz stron sklepu — katalog `/szkolenia` i strona sprzedażowa kursu.
+ *
+ * SKĄD SIĘ BIORĄ WARTOŚCI. Tokeny, promienie, krzywe czasowe i odstępy są
+ * przepisane z `app/globals.css` prototypu — tego samego arkusza, na którym
+ * stoi zaakceptowana przez właściciela strona kursu (B5, wersja 0.12.1)
+ * i katalog. To nie jest „podobny zestaw kolorów", to ten sam zestaw.
+ *
+ * DLACZEGO WŁASNY ARKUSZ, SKORO MOTYW MA TEN SAM DESIGN SYSTEM. Bo motyw to
+ * SKOMPILOWANY Tailwind, a Tailwind emituje regułę tylko dla klasy użytej
+ * w źródle. Klasy, której nie ma na stronie głównej Automatic AI, po prostu
+ * nie ma w jego arkuszu — więc „użyjemy klas motywu" znaczyłoby: wygląd
+ * wtyczki zależy od tego, czego akurat użyto w cudzym repozytorium.
+ * Dopasowanie oznacza tu TE SAME WARTOŚCI, nie wspólny mechanizm.
+ *
+ * TOKENY BIERZEMY Z MOTYWU, ale z awarią: `var(--color-volt, #bfff38)`.
+ * Gdy motyw stoi — kolory są jego, co do bitu. Gdy kiedyś zniknie albo
+ * wtyczka trafi na inny motyw — strona nadal wygląda jak Automatic AI,
+ * zamiast rozsypać się na domyślnych kolorach przeglądarki.
+ *
+ * WSZYSTKO POD `.aai-sklep` (klasa `body` dokładana przez `Aai_Sklep_Trasy`).
+ * Motyw trzyma CAŁY swój CSS w warstwach kaskady (`@layer theme, base,
+ * components, utilities`), a reguła spoza warstwy bije każdą regułę
+ * w warstwie — niezależnie od specyficzności i kolejności ładowania. Nasze
+ * reguły są spoza warstw, więc bez tego zakotwiczenia potrafiłyby przemalować
+ * stronę główną. Ta sama lekcja co kolizja `.text-label` z 0.38.0.
+ *
+ * ODSTĘP POD NAGŁÓWEK: motyw ma nagłówek `position: fixed` (72 px) i NIE
+ * rezerwuje pod niego miejsca — jego własne strony robią to same. Rezerwuje
+ * go `--aai-odstep-naglowka` na `.aai-strona`; pilnuje `straznik-frontu-wp`.
+ */
+
+/* ————————————————— tokeny ————————————————— */
+
+.aai-sklep {
+	--aai-void: var(--color-void, #08090b);
+	--aai-panel: var(--color-panel, #101116);
+	--aai-fg: var(--color-fg, #f5f5f5);
+	--aai-steel: var(--color-steel, #8f929c);
+	--aai-volt: var(--color-volt, #bfff38);
+	--aai-volt-jasny: #d3ff70;
+	--aai-line: var(--color-line, rgba(245, 245, 245, 0.08));
+
+	--aai-promien: 0.625rem;
+	--aai-promien-maly: 0.375rem;
+
+	/* `pt-28` / `md:pt-36` motywu — jedyne miejsce, w którym stoi ta liczba. */
+	--aai-odstep-naglowka: 7rem;
+
+	--aai-krzywa: cubic-bezier(0.22, 1, 0.36, 1);
+	--aai-sprezyna: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep {
+		--aai-odstep-naglowka: 9rem;
+	}
+}
+
+/* ————————————————— układ ————————————————— */
+
+.aai-sklep .aai-strona {
+	padding-top: var(--aai-odstep-naglowka);
+	color: var(--aai-fg);
+}
+
+/*
+ * Hero wychodzi POD nagłówek własnym tłem, ale jego treść zostaje pod paskiem:
+ * ujemny margines cofa sekcję na samą górę, a padding oddaje odstęp z powrotem.
+ * Dzięki temu siatka i poświata sięgają krawędzi ekranu, a rezerwa miejsca ma
+ * jedno źródło — `--aai-odstep-naglowka` na `.aai-strona`.
+ */
+.aai-sklep .aai-hero {
+	position: relative;
+	overflow: hidden;
+	margin-top: calc(-1 * var(--aai-odstep-naglowka));
+	padding-top: var(--aai-odstep-naglowka);
+}
+
+.aai-sklep .aai-kontener {
+	margin-inline: auto;
+	width: 100%;
+	max-width: 76rem;
+	padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-kontener {
+		padding-inline: 2rem;
+	}
+}
+
+.aai-sklep .aai-warstwa {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
+.aai-sklep .aai-sekcja {
+	border-top: 1px solid var(--aai-line);
+	padding-top: 2rem;
+	padding-bottom: 3.5rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-sekcja {
+		padding-top: 2.5rem;
+		padding-bottom: 5rem;
+	}
+}
+
+/* Kotwice paska muszą zatrzymać się PONIŻEJ pływającej pigułki. */
+.aai-sklep section[id] {
+	scroll-margin-top: 5.5rem;
+}
+
+.aai-sklep .aai-sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ————————————————— typografia ————————————————— */
+
+.aai-sklep .aai-mono,
+.aai-sklep .aai-etykieta {
+	font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+	text-transform: uppercase;
+}
+
+.aai-sklep .aai-etykieta {
+	font-size: 0.75rem;
+	letter-spacing: 0.25em;
+	color: var(--aai-volt);
+}
+
+.aai-sklep .aai-mono {
+	font-size: 0.65rem;
+	letter-spacing: 0.18em;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-liczba {
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-variant-numeric: tabular-nums;
+	font-size: 0.75rem;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-akcent {
+	color: var(--aai-volt);
+}
+
+.aai-sklep .aai-akcent-slaby {
+	color: color-mix(in srgb, var(--aai-volt) 70%, transparent);
+}
+
+.aai-sklep .aai-cichy {
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-linia {
+	display: block;
+}
+
+.aai-sklep .aai-sekcja-tytul {
+	margin-top: 0.75rem;
+	max-width: 48rem;
+	font-size: 1.875rem;
+	font-weight: 600;
+	line-height: 1.08;
+	letter-spacing: -0.025em;
+	text-wrap: balance;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-sekcja-tytul {
+		font-size: 2.25rem;
+	}
+}
+
+.aai-sklep .aai-sekcja-opis {
+	margin-top: 1rem;
+	max-width: 42rem;
+	font-size: 1rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-wstep {
+	margin-top: 1.5rem;
+	max-width: 48rem;
+	font-size: 1.125rem;
+	line-height: 1.625;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-wstep {
+		font-size: 1.25rem;
+	}
+}
+
+/* ————————————————— przyciski ————————————————— */
+
+.aai-sklep .aai-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	height: 2.75rem;
+	padding-inline: 1.25rem;
+	border-radius: var(--aai-promien-maly);
+	font-size: 0.875rem;
+	font-weight: 500;
+	text-decoration: none;
+	flex-shrink: 0;
+	transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.aai-sklep .aai-btn-duzy {
+	height: 3.25rem;
+	padding-inline: 1.75rem;
+	font-size: 1rem;
+}
+
+.aai-sklep .aai-btn-pelny {
+	width: 100%;
+	height: 3.5rem;
+	font-weight: 600;
+}
+
+.aai-sklep .aai-btn-glowny {
+	position: relative;
+	overflow: hidden;
+	background-color: var(--aai-volt);
+	color: var(--aai-void);
+	box-shadow:
+		0 0 0 1px rgba(191, 255, 56, 0.25),
+		0 0 22px rgba(191, 255, 56, 0.16),
+		0 8px 32px rgba(191, 255, 56, 0.1);
+	transition:
+		box-shadow 0.35s ease,
+		background-color 0.2s ease,
+		transform 0.25s var(--aai-krzywa);
+}
+
+.aai-sklep .aai-btn-glowny::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.26) 50%, transparent 58%);
+	transform: translateX(-130%);
+	transition: transform 0.65s ease;
+	pointer-events: none;
+}
+
+.aai-sklep .aai-btn-glowny:hover {
+	background-color: var(--aai-volt-jasny);
+	transform: translateY(-1px);
+	box-shadow:
+		0 0 0 1px rgba(191, 255, 56, 0.4),
+		0 0 34px rgba(191, 255, 56, 0.28),
+		0 10px 44px rgba(191, 255, 56, 0.16);
+}
+
+.aai-sklep .aai-btn-glowny:hover::after {
+	transform: translateX(130%);
+}
+
+.aai-sklep .aai-btn-glowny:active {
+	transform: translateY(0) scale(0.98);
+}
+
+.aai-sklep .aai-btn-obrys {
+	border: 1px solid var(--aai-line);
+	color: var(--aai-fg);
+}
+
+.aai-sklep .aai-btn-obrys:hover {
+	border-color: color-mix(in srgb, var(--aai-volt) 40%, transparent);
+	color: var(--aai-volt);
+}
+
+/* ————————————————— ikony ————————————————— */
+
+.aai-sklep .aai-ikona {
+	width: 1rem;
+	height: 1rem;
+	flex: none;
+}
+
+.aai-sklep .aai-ikona-xs { width: 0.75rem; height: 0.75rem; }
+.aai-sklep .aai-ikona-s { width: 1rem; height: 1rem; }
+.aai-sklep .aai-ikona-m { width: 1.25rem; height: 1.25rem; }
+.aai-sklep .aai-ikona-l { width: 1.5rem; height: 1.5rem; }
+.aai-sklep .aai-ikona-xl { width: 1.75rem; height: 1.75rem; }
+
+/* ————————————————— panel i uniesienie ————————————————— */
+
+.aai-sklep .aai-panel {
+	background-color: var(--aai-panel);
+	border: 1px solid var(--aai-line);
+	border-radius: var(--aai-promien);
+}
+
+.aai-sklep .aai-unos {
+	transition:
+		transform 0.3s var(--aai-krzywa),
+		border-color 0.3s ease,
+		box-shadow 0.3s ease;
+}
+
+.aai-sklep .aai-unos:hover {
+	transform: translateY(-4px);
+	border-color: rgba(191, 255, 56, 0.25);
+	box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45), 0 0 24px rgba(191, 255, 56, 0.07);
+}
+
+/* ————————————————— tła i poświaty ————————————————— */
+
+.aai-sklep .aai-siatka-tla {
+	background-image:
+		linear-gradient(to right, rgba(245, 245, 245, 0.022) 1px, transparent 1px),
+		linear-gradient(to bottom, rgba(245, 245, 245, 0.022) 1px, transparent 1px);
+	background-size: 64px 64px;
+}
+
+.aai-sklep .aai-maska-y {
+	mask-image: linear-gradient(to bottom, transparent, black 14%, black 80%, transparent);
+}
+
+.aai-sklep .aai-maska-x {
+	mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.aai-sklep .aai-ziarno {
+	opacity: 0.04;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+	background-size: 160px 160px;
+}
+
+.aai-sklep .aai-spotlight::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: radial-gradient(
+		26rem circle at var(--aai-mx, 72%) var(--aai-my, 28%),
+		rgba(191, 255, 56, 0.09),
+		transparent 68%
+	);
+	transition: opacity 0.4s ease;
+}
+
+.aai-sklep .aai-dryf-a {
+	animation: aai-dryf-a 22s ease-in-out infinite;
+}
+
+.aai-sklep .aai-dryf-b {
+	animation: aai-dryf-b 28s ease-in-out infinite;
+}
+
+@keyframes aai-dryf-a {
+	50% { transform: translate3d(30px, -22px, 0) scale(1.06); }
+}
+
+@keyframes aai-dryf-b {
+	50% { transform: translate3d(-26px, 28px, 0) scale(0.96); }
+}
+
+@keyframes aai-oddech {
+	0%, 100% { opacity: 0.7; }
+	50% { opacity: 1; }
+}
+
+@keyframes aai-marquee {
+	from { transform: translateX(0); }
+	to { transform: translateX(-50%); }
+}
+
+@keyframes aai-pasek-wjazd {
+	from { opacity: 0; transform: translateY(-12px); }
+}
+
+@keyframes aai-migacz {
+	50% { opacity: 0; }
+}
+
+/* ————————————————— odsłanianie przy przewijaniu ————————————————— */
+
+/*
+ * TREŚĆ JEST WIDOCZNA DOMYŚLNIE. Ukrywamy ją dopiero, gdy dokument ma klasę
+ * `js` — którą motyw dokłada swoim skryptem rozruchowym i którą zdejmuje po
+ * czterech sekundach, jeśli strona się nie ożywi. Odwrotna kolejność (ukryj
+ * i czekaj na skrypt) kosztowałaby całą stronę przy pierwszym błędzie
+ * JavaScriptu — a to jest sklep, nie animacja.
+ */
+html.js .aai-sklep .aai-reveal {
+	opacity: 0;
+	transform: translateY(26px);
+}
+
+html.js .aai-sklep .aai-reveal-lewo { transform: translateX(-36px); }
+html.js .aai-sklep .aai-reveal-prawo { transform: translateX(36px); }
+
+html.js .aai-sklep .aai-reveal-widoczny {
+	opacity: 1;
+	transform: none;
+	transition:
+		opacity 0.3s ease-out var(--aai-opoznienie-reveal, 0s),
+		transform 0.5s var(--aai-sprezyna) var(--aai-opoznienie-reveal, 0s);
+}
+
+.aai-sklep .aai-opoznienie {
+	--aai-opoznienie-reveal: 0.08s;
+}
+
+/* ————————————————— hero ————————————————— */
+
+.aai-sklep .aai-hero-uklad {
+	position: relative;
+	display: grid;
+	align-items: center;
+	gap: 3rem;
+	padding-bottom: 3.5rem;
+}
+
+@media (min-width: 1024px) {
+	.aai-sklep .aai-hero-uklad {
+		grid-template-columns: 1.05fr 1fr;
+		gap: 2.5rem;
+	}
+}
+
+.aai-sklep .aai-hero-poswiata {
+	position: absolute;
+	top: -8rem;
+	right: 6%;
+	width: 28rem;
+	height: 28rem;
+	border-radius: 9999px;
+	background: rgba(191, 255, 56, 0.065);
+	filter: blur(110px);
+	pointer-events: none;
+	animation: aai-oddech 7s ease-in-out infinite;
+}
+
+.aai-sklep .aai-hero-tytul {
+	margin-top: 1rem;
+	max-width: 56rem;
+	font-size: clamp(2.5rem, 5.5vw, 4.5rem);
+	line-height: 1.02;
+	font-weight: 600;
+	letter-spacing: -0.03em;
+	text-wrap: balance;
+	background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 52%, #a9adb8 135%);
+	background-clip: text;
+	-webkit-background-clip: text;
+	color: transparent;
+}
+
+.aai-sklep .aai-hero-lead {
+	margin-top: 1rem;
+	max-width: 42rem;
+	font-size: 1rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-hero-lead {
+		font-size: 1.125rem;
+	}
+}
+
+.aai-sklep .aai-hero-dla-kogo {
+	margin-top: 1rem;
+	max-width: 42rem;
+	padding-left: 1rem;
+	border-left: 2px solid color-mix(in srgb, var(--aai-volt) 60%, transparent);
+	font-size: 0.875rem;
+	line-height: 1.625;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-hero-dla-kogo {
+		font-size: 1rem;
+	}
+}
+
+.aai-sklep .aai-hero-akcje {
+	margin-top: 2rem;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 1.25rem;
+}
+
+.aai-sklep .aai-hero-warunki {
+	margin-top: 1rem;
+}
+
+.aai-sklep .aai-hero-wizual {
+	display: none;
+}
+
+@media (min-width: 1024px) {
+	.aai-sklep .aai-hero-wizual {
+		display: block;
+		position: relative;
+	}
+}
+
+.aai-sklep .aai-paralaksa-1,
+.aai-sklep .aai-paralaksa-2,
+.aai-sklep .aai-paralaksa-3 {
+	transform: translate3d(
+		calc(var(--aai-par-x, 0) * var(--aai-par-sila, 6px)),
+		calc(var(--aai-par-y, 0) * var(--aai-par-sila, 6px)),
+		0
+	);
+	transition: transform 0.25s ease-out;
+}
+
+.aai-sklep .aai-paralaksa-2 { --aai-par-sila: 14px; }
+.aai-sklep .aai-paralaksa-3 { --aai-par-sila: -9px; }
+
+.aai-sklep .aai-plywak {
+	position: absolute;
+	width: 15rem;
+}
+
+.aai-sklep .aai-plywak-prompt { left: -2.5rem; bottom: -2.5rem; }
+.aai-sklep .aai-plywak-gwarancja { right: -1.5rem; top: 1.5rem; width: 12rem; }
+
+.aai-sklep .aai-plywak-karta {
+	padding: 1rem;
+	box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.aai-sklep .aai-plywak-karta-rzad {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.875rem;
+}
+
+.aai-sklep .aai-plywak-naglowek {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.55rem;
+	letter-spacing: 0.25em;
+}
+
+.aai-sklep .aai-plywak-tekst {
+	margin-top: 0.5rem;
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 0.75rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-kursor-migacz {
+	display: block;
+	margin-top: 0.25rem;
+	width: 1px;
+	height: 0.75rem;
+	background: var(--aai-volt);
+	animation: aai-migacz 1.2s steps(1) infinite;
+}
+
+/* ————————————————— HUD statystyk ————————————————— */
+
+.aai-sklep .aai-hud {
+	margin-top: 2.5rem;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 2rem;
+	border-top: 1px solid var(--aai-line);
+	padding-top: 1.5rem;
+}
+
+.aai-sklep .aai-hud dd {
+	display: flex;
+	align-items: baseline;
+	gap: 0.5rem;
+	margin: 0;
+}
+
+.aai-sklep .aai-hud-liczba {
+	font-size: 1.5rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	color: var(--aai-fg);
+}
+
+/* ————————————————— pas tematów ————————————————— */
+
+.aai-sklep .aai-marquee {
+	position: relative;
+	overflow: hidden;
+	border-top: 1px solid var(--aai-line);
+	padding-block: 1rem;
+}
+
+.aai-sklep .aai-marquee-tor {
+	display: flex;
+	width: max-content;
+	animation: aai-marquee 40s linear infinite;
+}
+
+.aai-sklep .aai-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-inline: 0.75rem;
+	white-space: nowrap;
+	border-radius: 9999px;
+	border: 1px solid var(--aai-line);
+	background: color-mix(in srgb, var(--aai-panel) 60%, transparent);
+	padding: 0.375rem 1rem;
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 0.65rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-kropka {
+	width: 0.25rem;
+	height: 0.25rem;
+	border-radius: 9999px;
+	background: var(--aai-volt);
+}
+
+/* ————————————————— okno kursu (mockup platformy) ————————————————— */
+
+.aai-sklep .aai-okno {
+	overflow: hidden;
+	text-align: left;
+	background-color: var(--aai-panel);
+	border: 1px solid var(--aai-line);
+	border-radius: var(--aai-promien);
+	box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+}
+
+.aai-sklep .aai-okno-pasek {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	border-bottom: 1px solid var(--aai-line);
+	background: color-mix(in srgb, var(--aai-void) 60%, transparent);
+	padding: 0.625rem 1rem;
+}
+
+.aai-sklep .aai-okno-kropka {
+	width: 0.625rem;
+	height: 0.625rem;
+	border-radius: 9999px;
+	background: color-mix(in srgb, var(--aai-steel) 40%, transparent);
+}
+
+.aai-sklep .aai-okno-kropka-volt {
+	background: color-mix(in srgb, var(--aai-volt) 70%, transparent);
+}
+
+.aai-sklep .aai-okno-adres {
+	margin-left: 0.75rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 0.65rem;
+	letter-spacing: 0.12em;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-okno-tresc {
+	display: grid;
+}
+
+@media (min-width: 640px) {
+	.aai-sklep .aai-okno-tresc {
+		grid-template-columns: 11rem 1fr;
+	}
+}
+
+.aai-sklep .aai-okno-program {
+	display: none;
+}
+
+@media (min-width: 640px) {
+	.aai-sklep .aai-okno-program {
+		display: block;
+		border-right: 1px solid var(--aai-line);
+		background: color-mix(in srgb, var(--aai-void) 40%, transparent);
+		padding: 0.75rem;
+	}
+}
+
+.aai-sklep .aai-okno-naglowek {
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 0.55rem;
+	letter-spacing: 0.25em;
+	text-transform: uppercase;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-okno-moduly {
+	margin-top: 0.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	list-style: none;
+	padding: 0;
+}
+
+.aai-sklep .aai-okno-modul {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	border-radius: 0.25rem;
+	padding: 0.375rem 0.5rem;
+	font-size: 0.75rem;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-okno-modul-aktywny {
+	background: color-mix(in srgb, var(--aai-volt) 10%, transparent);
+	color: var(--aai-volt);
+}
+
+.aai-sklep .aai-okno-modul-aktywny .aai-liczba {
+	color: inherit;
+}
+
+.aai-sklep .aai-okno-lekcje {
+	padding: 1rem;
+}
+
+.aai-sklep .aai-okno-tytul {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.875rem;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+}
+
+.aai-sklep .aai-okno-lista {
+	margin-top: 0.75rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	list-style: none;
+	padding: 0;
+}
+
+.aai-sklep .aai-okno-lekcja {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.aai-sklep .aai-okno-znacznik {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.5rem;
+	height: 1.5rem;
+	flex: none;
+	border-radius: 9999px;
+	border: 1px solid var(--aai-line);
+	color: color-mix(in srgb, var(--aai-steel) 60%, transparent);
+}
+
+.aai-sklep .aai-okno-znacznik-zrobiona {
+	border-color: color-mix(in srgb, var(--aai-volt) 40%, transparent);
+	background: color-mix(in srgb, var(--aai-volt) 15%, transparent);
+	color: var(--aai-volt);
+}
+
+.aai-sklep .aai-okno-znacznik-w-toku {
+	color: var(--aai-fg);
+}
+
+.aai-sklep .aai-okno-lekcja-tresc {
+	min-width: 0;
+	flex: 1;
+}
+
+.aai-sklep .aai-okno-lekcja-tytul {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.75rem;
+	color: var(--aai-fg);
+}
+
+.aai-sklep .aai-okno-tor {
+	display: block;
+	margin-top: 0.25rem;
+	height: 0.25rem;
+	border-radius: 9999px;
+	background: var(--aai-line);
+}
+
+.aai-sklep .aai-okno-postep {
+	display: block;
+	height: 0.25rem;
+	border-radius: 9999px;
+	background: linear-gradient(90deg, var(--aai-volt), var(--aai-volt-jasny));
+}
+
+.aai-sklep .aai-okno-czas {
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 0.55rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--aai-steel);
+}
+
+/* ————————————————— katalog ————————————————— */
+
+.aai-sklep .aai-sekcja-system {
+	padding-top: 3.5rem;
+	padding-bottom: 3.5rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-sekcja-system {
+		padding-top: 5rem;
+		padding-bottom: 5rem;
+	}
+}
+
+.aai-sklep .aai-system-uklad {
+	display: grid;
+	gap: 2.5rem;
+}
+
+@media (min-width: 1024px) {
+	.aai-sklep .aai-system-uklad {
+		grid-template-columns: 1fr 1.1fr;
+		gap: 4rem;
+	}
+	.aai-sklep .aai-system-naglowek {
+		position: sticky;
+		top: 7rem;
+		align-self: start;
+	}
+}
+
+.aai-sklep .aai-system-naglowek .aai-sekcja-tytul .aai-linia:first-child {
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-system-okno {
+	display: none;
+	margin-top: 2rem;
+}
+
+@media (min-width: 1024px) {
+	.aai-sklep .aai-system-okno {
+		display: block;
+	}
+}
+
+.aai-sklep .aai-system-lista {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	list-style: none;
+	padding: 0;
+}
+
+.aai-sklep .aai-system-pozycja {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	gap: 1.25rem;
+	overflow: hidden;
+	padding: 1.25rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-system-pozycja {
+		padding: 1.5rem;
+	}
+}
+
+.aai-sklep .aai-system-numer {
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 1.5rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	color: color-mix(in srgb, var(--aai-volt) 80%, transparent);
+}
+
+.aai-sklep .aai-system-tytul {
+	font-size: 1.125rem;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+}
+
+.aai-sklep .aai-system-opis {
+	margin-top: 0.375rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-sekcja-katalog {
+	padding-bottom: 4rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-sekcja-katalog {
+		padding-bottom: 6rem;
+	}
+}
+
+.aai-sklep .aai-katalog-naglowek {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.aai-sklep .aai-katalog-siatka {
+	margin-top: 2rem;
+	display: grid;
+	align-items: stretch;
+	gap: 1.25rem;
+	list-style: none;
+	padding: 0;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-katalog-siatka {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.aai-sklep .aai-katalog-siatka > li {
+	display: flex;
+}
+
+.aai-sklep .aai-karta {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	overflow: hidden;
+	background-color: var(--aai-panel);
+	border: 1px solid var(--aai-line);
+	border-radius: var(--aai-promien);
+}
+
+.aai-sklep .aai-karta-okladka {
+	position: relative;
+	height: 12rem;
+	overflow: hidden;
+	border-bottom: 1px solid var(--aai-line);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-karta-okladka {
+		height: 13rem;
+	}
+}
+
+.aai-sklep .aai-karta-obraz {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 0.5s var(--aai-krzywa);
+}
+
+.aai-sklep .aai-karta:hover .aai-karta-obraz {
+	transform: scale(1.035);
+}
+
+.aai-sklep .aai-karta-zastepnik {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+}
+
+.aai-sklep .aai-karta-numer {
+	position: absolute;
+	top: 0.75rem;
+	right: 0.75rem;
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 0.75rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-karta-tresc {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	padding: 1.25rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-karta-tresc {
+		padding: 1.75rem;
+	}
+}
+
+.aai-sklep .aai-plakietki {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.aai-sklep .aai-plakietka {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	border-radius: 9999px;
+	border: 1px solid var(--aai-line);
+	background: color-mix(in srgb, var(--aai-void) 60%, transparent);
+	padding: 0.25rem 0.625rem;
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 0.55rem;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-plakietka-akcent {
+	border-color: color-mix(in srgb, var(--aai-volt) 40%, transparent);
+	background: color-mix(in srgb, var(--aai-volt) 10%, transparent);
+	color: var(--aai-volt);
+}
+
+.aai-sklep .aai-karta-tytul {
+	margin-top: 1rem;
+	font-size: 1.25rem;
+	font-weight: 600;
+	line-height: 1.35;
+	letter-spacing: -0.025em;
+	transition: color 0.2s ease;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-karta-tytul {
+		font-size: 1.5rem;
+	}
+}
+
+.aai-sklep .aai-karta:hover .aai-karta-tytul {
+	color: var(--aai-volt);
+}
+
+.aai-sklep .aai-karta-opis {
+	margin-top: 0.625rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-karta-opis {
+		font-size: 1rem;
+	}
+}
+
+.aai-sklep .aai-karta-meta {
+	margin-top: 1rem;
+	letter-spacing: 0.12em;
+}
+
+.aai-sklep .aai-karta-stopka {
+	margin-top: auto;
+	padding-top: 1.5rem;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.aai-sklep .aai-karta-cena {
+	font-size: 1.25rem;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+	font-variant-numeric: tabular-nums;
+	color: var(--aai-volt);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-karta-cena {
+		font-size: 1.5rem;
+	}
+}
+
+.aai-sklep .aai-pusty {
+	margin-top: 2rem;
+	padding: 2.5rem 1.5rem;
+	text-align: center;
+}
+
+.aai-sklep .aai-pusty-tekst {
+	margin-top: 0.75rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-cta-pas {
+	border-top: 1px solid var(--aai-line);
+	background: color-mix(in srgb, var(--aai-panel) 30%, transparent);
+}
+
+.aai-sklep .aai-cta-uklad {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	padding-block: 3rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-cta-uklad {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		padding-block: 3.5rem;
+	}
+}
+
+.aai-sklep .aai-cta-tytul {
+	font-size: 1.5rem;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-cta-tytul {
+		font-size: 1.875rem;
+	}
+}
+
+.aai-sklep .aai-cta-opis {
+	margin-top: 0.5rem;
+	max-width: 36rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-cta-opis {
+		font-size: 1rem;
+	}
+}
+
+/* ————————————————— żywe tło strony kursu ————————————————— */
+
+.aai-sklep .aai-tlo {
+	position: fixed;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	/*
+	 * Poniżej overlaya menu mobilnego motywu (`z-40`). Tło stoi poza `<main>`,
+	 * więc `inert`, którym motyw usypia treść przy otwartym menu, go nie
+	 * obejmuje — musi więc po prostu leżeć głębiej.
+	 */
+	z-index: -10;
+}
+
+.aai-sklep .aai-tlo-kursor {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 34rem;
+	height: 34rem;
+	margin: -17rem 0 0 -17rem;
+	border-radius: 9999px;
+	background: radial-gradient(circle, rgba(191, 255, 56, 0.055), transparent 65%);
+	filter: blur(70px);
+}
+
+.aai-sklep .aai-tlo-blob {
+	position: absolute;
+	border-radius: 9999px;
+}
+
+.aai-sklep .aai-tlo-blob-a {
+	top: 16%;
+	left: -8rem;
+	width: 26rem;
+	height: 26rem;
+	background: rgba(191, 255, 56, 0.035);
+	filter: blur(110px);
+	animation: aai-dryf-a 22s ease-in-out infinite;
+}
+
+.aai-sklep .aai-tlo-blob-b {
+	top: 58%;
+	right: -9rem;
+	width: 30rem;
+	height: 30rem;
+	background: rgba(191, 255, 56, 0.03);
+	filter: blur(120px);
+	animation: aai-dryf-b 28s ease-in-out infinite;
+}
+
+/* ————————————————— pływająca pigułka ————————————————— */
+
+/*
+ * STRONA KURSU CHOWA NAWIGACJĘ MOTYWU i zastępuje ją własną pigułką.
+ *
+ * Tak samo działa prototyp (`NavbarPrzelacznik` chowa globalny navbar na
+ * `/szkolenia/[slug]`) i taki wygląd właściciel zaakceptował przy B5. Powód
+ * jest funkcjonalny, nie estetyczny: pigułka niesie nawigację PO KURSIE
+ * (program, opinie, FAQ, cena) i przycisk zakupu, a dwie belki jedna na
+ * drugiej to nie jest wybór między nimi — obie są `position: fixed` u góry,
+ * więc bez tego po prostu na siebie NACHODZĄ. Powrót do reszty serwisu
+ * daje sygnet w pigułce.
+ *
+ * `:not(.aai-pasek)` jest tu konieczne: nasza pigułka też jest `<header>`
+ * i też jest dzieckiem `body`.
+ */
+.aai-sklep-kurs > header:not(.aai-pasek) {
+	display: none;
+}
+
+.aai-sklep .aai-pasek {
+	position: fixed;
+	inset-inline: 0;
+	top: 0;
+	/* Nad treścią, pod overlayem menu mobilnego motywu (`z-40`). */
+	z-index: 30;
+	padding: 0.75rem 0.75rem 0;
+	animation: aai-pasek-wjazd 0.5s var(--aai-krzywa) both;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-pasek {
+		padding-top: 1rem;
+	}
+}
+
+.aai-sklep .aai-pasek-pigulka {
+	margin-inline: auto;
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	height: 3rem;
+	width: 100%;
+	max-width: 56rem;
+	border-radius: 9999px;
+	border: 1px solid var(--aai-line);
+	background: color-mix(in srgb, var(--aai-void) 80%, transparent);
+	padding-inline: 0.5rem;
+	box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
+	backdrop-filter: blur(12px);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-pasek-pigulka {
+		height: 3.25rem;
+		gap: 0.5rem;
+	}
+}
+
+.aai-sklep .aai-pasek-wroc {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.25rem;
+	height: 2.25rem;
+	flex: none;
+	border-radius: 9999px;
+	border: 1px solid color-mix(in srgb, var(--aai-volt) 25%, transparent);
+	background: color-mix(in srgb, var(--aai-volt) 10%, transparent);
+	color: var(--aai-volt);
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.aai-sklep .aai-pasek-wroc:hover {
+	background: var(--aai-volt);
+	color: var(--aai-void);
+}
+
+.aai-sklep .aai-pasek-sygnet {
+	width: 1rem;
+	height: 1rem;
+}
+
+.aai-sklep .aai-pasek-strzalka {
+	display: none;
+	width: 1rem;
+	height: 1rem;
+}
+
+.aai-sklep .aai-pasek-wroc:hover .aai-pasek-sygnet { display: none; }
+.aai-sklep .aai-pasek-wroc:hover .aai-pasek-strzalka { display: block; }
+
+.aai-sklep .aai-pasek-lista {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 0.125rem;
+	overflow-x: auto;
+	padding-inline: 0.25rem;
+	list-style: none;
+	margin: 0;
+	scrollbar-width: none;
+}
+
+.aai-sklep .aai-pasek-lista::-webkit-scrollbar {
+	display: none;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-pasek-lista {
+		gap: 0.25rem;
+	}
+}
+
+.aai-sklep .aai-pasek-lista > li {
+	flex: none;
+}
+
+.aai-sklep .aai-pasek-kotwica {
+	display: inline-flex;
+	align-items: center;
+	height: 2.25rem;
+	border-radius: 9999px;
+	padding-inline: 0.75rem;
+	font-size: 0.875rem;
+	text-decoration: none;
+	white-space: nowrap;
+	color: var(--aai-steel);
+	transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-pasek-kotwica {
+		padding-inline: 0.875rem;
+	}
+}
+
+.aai-sklep .aai-pasek-kotwica:hover {
+	background: rgba(245, 245, 245, 0.04);
+	color: var(--aai-fg);
+}
+
+.aai-sklep .aai-pasek-kotwica[aria-current="true"] {
+	background: color-mix(in srgb, var(--aai-volt) 10%, transparent);
+	color: var(--aai-volt);
+}
+
+.aai-sklep .aai-pasek-cta {
+	height: 2.25rem;
+	padding-inline: 1rem;
+	border-radius: 9999px;
+	gap: 0.375rem;
+}
+
+/* ————————————————— problem → rozwiązanie → rezultat ————————————————— */
+
+.aai-sklep .aai-kroki {
+	margin-top: 2rem;
+	display: grid;
+	gap: 0.75rem;
+	list-style: none;
+	padding: 0;
+	counter-reset: none;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-kroki {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0;
+	}
+}
+
+.aai-sklep .aai-krok {
+	position: relative;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-krok {
+		padding-inline: 0.75rem;
+	}
+	.aai-sklep .aai-krok:first-child { padding-left: 0; }
+	.aai-sklep .aai-krok:last-child { padding-right: 0; }
+}
+
+.aai-sklep .aai-krok-karta {
+	position: relative;
+	height: 100%;
+	overflow: hidden;
+	padding: 1.25rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-krok-karta {
+		padding: 1.5rem;
+	}
+}
+
+.aai-sklep .aai-krok-poswiata {
+	position: absolute;
+	top: -2.5rem;
+	right: -2.5rem;
+	width: 8rem;
+	height: 8rem;
+	border-radius: 9999px;
+	background: rgba(191, 255, 56, 0.04);
+	filter: blur(50px);
+}
+
+.aai-sklep .aai-krok-karta-mocna .aai-krok-poswiata {
+	background: rgba(191, 255, 56, 0.09);
+}
+
+.aai-sklep .aai-krok-tekst {
+	margin-top: 0.75rem;
+	font-size: 1rem;
+	line-height: 1.625;
+}
+
+.aai-sklep .aai-krok-strzalka {
+	position: absolute;
+	top: 50%;
+	right: -0.625rem;
+	z-index: 10;
+	transform: translateY(-50%);
+	display: none;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-krok-strzalka {
+		display: block;
+	}
+}
+
+/* ————————————————— siatki kart punktowych ————————————————— */
+
+.aai-sklep .aai-siatka-kart {
+	margin-top: 2rem;
+	display: grid;
+	gap: 1rem;
+	list-style: none;
+	padding: 0;
+}
+
+@media (min-width: 640px) {
+	.aai-sklep .aai-siatka-kart {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 1024px) {
+	.aai-sklep .aai-siatka-kart {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+.aai-sklep .aai-siatka-dwie {
+	margin-top: 2rem;
+	display: grid;
+	gap: 1rem;
+	list-style: none;
+	padding: 0;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-siatka-dwie {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.aai-sklep .aai-karta-punkt {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	padding: 1rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-karta-punkt {
+		padding: 1.25rem;
+	}
+}
+
+.aai-sklep .aai-karta-poswiata {
+	position: absolute;
+	top: -2.5rem;
+	right: -2.5rem;
+	width: 8rem;
+	height: 8rem;
+	border-radius: 9999px;
+	background: rgba(191, 255, 56, 0.05);
+	filter: blur(50px);
+	opacity: 0;
+	transition: opacity 0.5s ease;
+}
+
+.aai-sklep .aai-karta-punkt:hover .aai-karta-poswiata {
+	opacity: 1;
+}
+
+.aai-sklep .aai-karta-punkt-numer {
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 1.5rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	color: color-mix(in srgb, var(--aai-volt) 80%, transparent);
+}
+
+.aai-sklep .aai-karta-punkt-tytul {
+	margin-top: 0.5rem;
+	font-size: 1rem;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+}
+
+.aai-sklep .aai-karta-punkt-opis {
+	margin-top: 0.375rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-kotwica {
+	margin-top: 1.5rem;
+	max-width: 42rem;
+	padding-left: 1rem;
+	border-left: 2px solid var(--aai-volt);
+	font-size: 1rem;
+	line-height: 1.625;
+}
+
+/* ————————————————— dwie kolumny (jest / nie jest, przed / po) ————————————————— */
+
+.aai-sklep .aai-dwie-kolumny {
+	position: relative;
+	margin-top: 2rem;
+	display: grid;
+	gap: 1rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-dwie-kolumny {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.aai-sklep .aai-dwie-kolumny-strzalka {
+		gap: 2rem;
+	}
+	.aai-sklep .aai-dwie-kolumny-luzne {
+		gap: 2rem;
+	}
+}
+
+.aai-sklep .aai-kolumna {
+	position: relative;
+	overflow: hidden;
+	padding: 1.25rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-kolumna {
+		padding: 1.5rem;
+	}
+}
+
+.aai-sklep .aai-kolumna-zwarta {
+	height: fit-content;
+	padding: 1.25rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-kolumna-zwarta {
+		padding: 1.5rem;
+	}
+}
+
+.aai-sklep .aai-kolumna-mocna {
+	border-color: color-mix(in srgb, var(--aai-volt) 20%, transparent);
+}
+
+.aai-sklep .aai-kolumna-poswiata {
+	position: absolute;
+	top: -3.5rem;
+	right: -3.5rem;
+	width: 10rem;
+	height: 10rem;
+	border-radius: 9999px;
+	background: rgba(191, 255, 56, 0.07);
+	filter: blur(60px);
+}
+
+.aai-sklep .aai-strzalka-srodek {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 10;
+	transform: translate(-50%, -50%);
+	display: none;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-strzalka-srodek {
+		display: block;
+	}
+}
+
+.aai-sklep .aai-lista-punktow,
+.aai-sklep .aai-lista-ptaszki {
+	display: grid;
+	gap: 0.75rem;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.aai-sklep .aai-lista-punktow {
+	margin-top: 1rem;
+}
+
+.aai-sklep .aai-lista-punktow > li,
+.aai-sklep .aai-lista-ptaszki > li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-lista-punktow > li {
+		font-size: 1rem;
+	}
+}
+
+.aai-sklep .aai-lista-ptaszki > li {
+	font-size: 1rem;
+}
+
+.aai-sklep .aai-lista-punktow .aai-ikona,
+.aai-sklep .aai-lista-ptaszki .aai-ikona {
+	margin-top: 0.125rem;
+}
+
+.aai-sklep .aai-punkt-kropka {
+	margin-top: 0.55rem;
+	width: 0.375rem;
+	height: 0.375rem;
+	flex: none;
+	border-radius: 9999px;
+	background: color-mix(in srgb, var(--aai-steel) 60%, transparent);
+}
+
+.aai-sklep .aai-punkt-kropka-akcent {
+	background: var(--aai-volt);
+}
+
+/* ————————————————— akordeony (program, FAQ) ————————————————— */
+
+.aai-sklep .aai-lista-pionowa {
+	margin-top: 2rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.aai-sklep .aai-lista-waska {
+	max-width: 48rem;
+}
+
+.aai-sklep .aai-akordeon {
+	interpolate-size: allow-keywords;
+}
+
+.aai-sklep .aai-akordeon::details-content {
+	opacity: 0;
+	block-size: 0;
+	overflow-y: clip;
+	transition:
+		content-visibility 0.35s allow-discrete,
+		opacity 0.3s ease,
+		block-size 0.35s var(--aai-krzywa);
+}
+
+.aai-sklep .aai-akordeon[open]::details-content {
+	opacity: 1;
+	block-size: auto;
+}
+
+.aai-sklep .aai-akordeon-naglowek {
+	display: flex;
+	cursor: pointer;
+	list-style: none;
+	align-items: center;
+	gap: 1rem;
+	padding: 1rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-akordeon-naglowek {
+		padding: 1.25rem;
+	}
+}
+
+.aai-sklep .aai-akordeon-naglowek::-webkit-details-marker {
+	display: none;
+}
+
+.aai-sklep .aai-akordeon-tresc {
+	flex: 1;
+}
+
+.aai-sklep .aai-akordeon-tytul {
+	display: block;
+	font-size: 1rem;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+}
+
+.aai-sklep .aai-akordeon-pytanie {
+	flex: 1;
+	font-size: 1rem;
+	font-weight: 500;
+}
+
+.aai-sklep .aai-akordeon-opis {
+	display: block;
+	margin-top: 0.125rem;
+	font-size: 0.875rem;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-akordeon-meta {
+	display: none;
+	letter-spacing: 0.12em;
+}
+
+@media (min-width: 640px) {
+	.aai-sklep .aai-akordeon-meta {
+		display: inline;
+	}
+}
+
+.aai-sklep .aai-akordeon-strzalka {
+	color: var(--aai-steel);
+	transition: transform 0.2s ease;
+}
+
+.aai-sklep .aai-akordeon[open] .aai-akordeon-strzalka {
+	transform: rotate(180deg);
+}
+
+.aai-sklep .aai-akordeon-odpowiedz {
+	border-top: 1px solid var(--aai-line);
+	padding: 1rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-akordeon-odpowiedz {
+		padding-inline: 1.25rem;
+	}
+}
+
+.aai-sklep .aai-lekcje {
+	border-top: 1px solid var(--aai-line);
+	padding: 0.5rem 1rem;
+	list-style: none;
+	margin: 0;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-lekcje {
+		padding-inline: 1.25rem;
+	}
+}
+
+.aai-sklep .aai-lekcja {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	border-bottom: 1px solid var(--aai-line);
+	padding-block: 0.625rem;
+	font-size: 0.875rem;
+}
+
+.aai-sklep .aai-lekcja:last-child {
+	border-bottom: 0;
+}
+
+.aai-sklep .aai-lekcja-tytul {
+	flex: 1;
+}
+
+.aai-sklep .aai-lekcja-czas {
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.06em;
+}
+
+.aai-sklep .aai-faq-stopka {
+	margin-top: 1.5rem;
+	max-width: 48rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-faq-stopka a {
+	color: var(--aai-fg);
+	text-decoration: underline;
+	text-underline-offset: 4px;
+	transition: color 0.2s ease;
+}
+
+.aai-sklep .aai-faq-stopka a:hover {
+	color: var(--aai-volt);
+}
+
+/* ————————————————— platforma ————————————————— */
+
+.aai-sklep .aai-platforma-uklad {
+	margin-top: 2rem;
+	display: grid;
+	align-items: center;
+	gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+	.aai-sklep .aai-platforma-uklad {
+		grid-template-columns: 1.15fr 1fr;
+		gap: 3.5rem;
+	}
+}
+
+/* ————————————————— opinie ————————————————— */
+
+.aai-sklep .aai-opinia {
+	display: flex;
+	flex-direction: column;
+	padding: 1.25rem;
+}
+
+.aai-sklep .aai-opinia-tekst {
+	flex: 1;
+	font-size: 0.875rem;
+	line-height: 1.625;
+}
+
+.aai-sklep .aai-opinia-autor {
+	margin-top: 1rem;
+	letter-spacing: 0.12em;
+}
+
+.aai-sklep .aai-opinia-autor .aai-akcent {
+	color: color-mix(in srgb, var(--aai-volt) 90%, transparent);
+}
+
+/* ————————————————— autor ————————————————— */
+
+.aai-sklep .aai-autor-uklad {
+	margin-top: 2rem;
+	display: grid;
+	gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+	.aai-sklep .aai-autor-uklad {
+		grid-template-columns: 1.15fr 1fr;
+	}
+}
+
+.aai-sklep .aai-autor-karta {
+	position: relative;
+	overflow: hidden;
+	padding: 1.5rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-autor-karta {
+		padding: 2rem;
+	}
+}
+
+.aai-sklep .aai-autor-poswiata {
+	position: absolute;
+	top: -5rem;
+	right: -5rem;
+	width: 14rem;
+	height: 14rem;
+	border-radius: 9999px;
+	background: rgba(191, 255, 56, 0.06);
+	filter: blur(70px);
+}
+
+.aai-sklep .aai-autor-naglowek {
+	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 1.25rem;
+}
+
+.aai-sklep .aai-autor-awatar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 5rem;
+	height: 5rem;
+	flex: none;
+	border-radius: 9999px;
+	border: 1px solid color-mix(in srgb, var(--aai-volt) 30%, transparent);
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: var(--aai-volt);
+}
+
+.aai-sklep .aai-autor-imie {
+	font-size: 1.25rem;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-autor-imie {
+		font-size: 1.5rem;
+	}
+}
+
+.aai-sklep .aai-autor-bio {
+	position: relative;
+	margin-top: 1.25rem;
+	max-width: 42rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-autor-bio {
+		font-size: 1rem;
+	}
+}
+
+.aai-sklep .aai-cytat {
+	position: relative;
+	margin: 1.5rem 0 0;
+	padding-left: 1rem;
+	border-left: 2px solid var(--aai-volt);
+}
+
+.aai-sklep .aai-cytat blockquote {
+	margin: 0.5rem 0 0;
+	font-size: 1rem;
+	line-height: 1.625;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-cytat blockquote {
+		font-size: 1.125rem;
+	}
+}
+
+.aai-sklep .aai-cytat figcaption {
+	margin-top: 0.5rem;
+	letter-spacing: 0.14em;
+}
+
+.aai-sklep .aai-autor-link {
+	position: relative;
+	margin-top: 1.5rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--aai-volt);
+	text-decoration: none;
+	text-underline-offset: 4px;
+}
+
+.aai-sklep .aai-autor-link:hover {
+	text-decoration: underline;
+}
+
+.aai-sklep .aai-autor-bok {
+	display: grid;
+	gap: 1rem;
+	align-content: start;
+}
+
+.aai-sklep .aai-obszary {
+	margin: 1rem 0 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	list-style: none;
+	padding: 0;
+}
+
+.aai-sklep .aai-obszary > li {
+	border-radius: 9999px;
+	border: 1px solid var(--aai-line);
+	background: color-mix(in srgb, var(--aai-void) 60%, transparent);
+	padding: 0.375rem 0.75rem;
+	font-size: 0.875rem;
+}
+
+.aai-sklep .aai-atuty {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.aai-sklep .aai-atut {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 1rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+}
+
+.aai-sklep .aai-atut .aai-ikona {
+	margin-top: 0.125rem;
+}
+
+/* ————————————————— oferta ————————————————— */
+
+.aai-sklep .aai-oferta {
+	position: relative;
+	overflow: hidden;
+	border-block: 1px solid color-mix(in srgb, var(--aai-volt) 15%, transparent);
+	background: color-mix(in srgb, var(--aai-panel) 40%, transparent);
+}
+
+.aai-sklep .aai-oferta-poswiata-a,
+.aai-sklep .aai-oferta-poswiata-b {
+	position: absolute;
+	border-radius: 9999px;
+	pointer-events: none;
+}
+
+.aai-sklep .aai-oferta-poswiata-a {
+	top: -8rem;
+	left: 8%;
+	width: 26rem;
+	height: 26rem;
+	background: rgba(191, 255, 56, 0.07);
+	filter: blur(110px);
+}
+
+.aai-sklep .aai-oferta-poswiata-b {
+	bottom: -10rem;
+	right: 6%;
+	width: 24rem;
+	height: 24rem;
+	background: rgba(191, 255, 56, 0.05);
+	filter: blur(110px);
+}
+
+.aai-sklep .aai-oferta-tresc {
+	position: relative;
+	padding-top: 3rem;
+	padding-bottom: 3.5rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-oferta-tresc {
+		padding-top: 4rem;
+		padding-bottom: 5rem;
+	}
+}
+
+@media (min-width: 1024px) {
+	.aai-sklep .aai-oferta-tytul {
+		font-size: 3rem;
+	}
+}
+
+.aai-sklep .aai-oferta-liczby {
+	margin-top: 1rem;
+}
+
+.aai-sklep .aai-oferta-uklad {
+	margin-top: 2.25rem;
+	display: grid;
+	gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+	.aai-sklep .aai-oferta-uklad {
+		grid-template-columns: 1.35fr 1fr;
+		align-items: start;
+	}
+}
+
+.aai-sklep .aai-oferta-punkty {
+	display: grid;
+	gap: 0.75rem;
+	align-content: start;
+}
+
+@media (min-width: 640px) {
+	.aai-sklep .aai-oferta-punkty {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.aai-sklep .aai-oferta-punkt {
+	display: flex;
+	gap: 0.75rem;
+	padding: 1rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-oferta-punkt {
+		padding: 1.25rem;
+	}
+}
+
+.aai-sklep .aai-oferta-punkt .aai-ikona {
+	margin-top: 0.125rem;
+}
+
+.aai-sklep .aai-oferta-punkt-tytul {
+	display: block;
+	font-size: 1rem;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+}
+
+.aai-sklep .aai-oferta-punkt-opis {
+	display: block;
+	margin-top: 0.25rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-oferta-karta {
+	position: relative;
+	overflow: hidden;
+	border-color: color-mix(in srgb, var(--aai-volt) 30%, transparent);
+	padding: 1.5rem;
+	box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-oferta-karta {
+		padding: 2rem;
+	}
+}
+
+@media (min-width: 1024px) {
+	.aai-sklep .aai-oferta-karta {
+		position: sticky;
+		top: 6rem;
+	}
+}
+
+.aai-sklep .aai-oferta-karta-poswiata {
+	position: absolute;
+	top: -6rem;
+	right: -6rem;
+	width: 16rem;
+	height: 16rem;
+	border-radius: 9999px;
+	background: rgba(191, 255, 56, 0.09);
+	filter: blur(70px);
+}
+
+.aai-sklep .aai-oferta-karta-tresc {
+	position: relative;
+}
+
+.aai-sklep .aai-oferta-plakietka {
+	padding: 0.25rem 0.75rem;
+}
+
+.aai-sklep .aai-oferta-cena {
+	margin-top: 1.25rem;
+	font-size: 3rem;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+	font-variant-numeric: tabular-nums;
+	color: var(--aai-volt);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-oferta-cena {
+		font-size: 3.75rem;
+	}
+}
+
+.aai-sklep .aai-oferta-podpis {
+	margin-top: 0.5rem;
+	font-size: 0.875rem;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-oferta-w-cenie {
+	margin: 1.5rem 0 0;
+	display: grid;
+	gap: 0.625rem;
+	border-top: 1px solid var(--aai-line);
+	padding: 1.5rem 0 0;
+	list-style: none;
+}
+
+.aai-sklep .aai-oferta-w-cenie > li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+}
+
+.aai-sklep .aai-oferta-w-cenie .aai-ikona {
+	margin-top: 0.125rem;
+}
+
+.aai-sklep .aai-oferta-domkniecie {
+	margin-top: 1.5rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-oferta-karta-tresc .aai-btn-pelny {
+	margin-top: 1.5rem;
+}
+
+.aai-sklep .aai-oferta-wahanie {
+	margin-top: 0.75rem;
+	text-align: center;
+	font-size: 0.875rem;
+	color: var(--aai-steel);
+}
+
+.aai-sklep .aai-oferta-wahanie a {
+	color: var(--aai-fg);
+	text-decoration: underline;
+	text-underline-offset: 4px;
+	transition: color 0.2s ease;
+}
+
+.aai-sklep .aai-oferta-wahanie a:hover {
+	color: var(--aai-volt);
+}
+
+.aai-sklep .aai-oferta-dopiski {
+	margin-top: 1rem;
+	display: grid;
+	gap: 1rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-oferta-dopiski {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.aai-sklep .aai-oferta-kotwica {
+	margin-top: 0.75rem;
+	font-size: 1rem;
+	line-height: 1.625;
+}
+
+.aai-sklep .aai-gwarancja {
+	display: flex;
+	align-items: flex-start;
+	gap: 1rem;
+	padding: 1.25rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-gwarancja {
+		padding: 1.5rem;
+	}
+}
+
+.aai-sklep .aai-gwarancja-tytul {
+	font-size: 1rem;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+}
+
+.aai-sklep .aai-gwarancja-tekst {
+	margin-top: 0.25rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+/* ————————————————— domknięcie strony ————————————————— */
+
+.aai-sklep .aai-final {
+	position: relative;
+	overflow: hidden;
+	border-top: 1px solid var(--aai-line);
+	background: color-mix(in srgb, var(--aai-panel) 30%, transparent);
+}
+
+.aai-sklep .aai-final-poswiata {
+	position: absolute;
+	bottom: -8rem;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 24rem;
+	height: 24rem;
+	border-radius: 9999px;
+	background: rgba(191, 255, 56, 0.05);
+	filter: blur(100px);
+	pointer-events: none;
+	animation: aai-oddech 7s ease-in-out infinite;
+}
+
+.aai-sklep .aai-final-uklad {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	padding-block: 3.5rem;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-final-uklad {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		padding-block: 5rem;
+	}
+}
+
+.aai-sklep .aai-final-tytul {
+	max-width: 42rem;
+	font-size: 1.5rem;
+	font-weight: 600;
+	line-height: 1.25;
+	letter-spacing: -0.025em;
+	text-wrap: balance;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-final-tytul {
+		font-size: 2.25rem;
+	}
+}
+
+.aai-sklep .aai-final-opis {
+	margin-top: 0.75rem;
+	max-width: 36rem;
+	font-size: 0.875rem;
+	line-height: 1.625;
+	color: var(--aai-steel);
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-final-opis {
+		font-size: 1rem;
+	}
+}
+
+/* ————————————————— 404 ————————————————— */
+
+.aai-sklep .aai-nie-znaleziono {
+	padding-block: 4rem 6rem;
+}
+
+/* ————————————————— ograniczony ruch ————————————————— */
+
+/*
+ * Pełna lista z `app/globals.css` prototypu. Reguła jest prosta: nic, co się
+ * rusza, nie ma prawa ruszać się u kogoś, kto poprosił o spokój — a poświata
+ * za kursorem znika CAŁKIEM, bo jej sensem jest właśnie ruch.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.aai-sklep .aai-dryf-a,
+	.aai-sklep .aai-dryf-b,
+	.aai-sklep .aai-tlo-blob-a,
+	.aai-sklep .aai-tlo-blob-b,
+	.aai-sklep .aai-hero-poswiata,
+	.aai-sklep .aai-final-poswiata,
+	.aai-sklep .aai-marquee-tor,
+	.aai-sklep .aai-kursor-migacz,
+	.aai-sklep .aai-pasek {
+		animation: none !important;
+	}
+
+	.aai-sklep .aai-tlo-kursor {
+		display: none;
+	}
+
+	.aai-sklep .aai-spotlight::before {
+		display: none;
+	}
+
+	.aai-sklep .aai-unos,
+	.aai-sklep .aai-unos:hover,
+	.aai-sklep .aai-btn-glowny,
+	.aai-sklep .aai-btn-glowny:hover,
+	.aai-sklep .aai-btn-glowny:active,
+	.aai-sklep .aai-paralaksa-1,
+	.aai-sklep .aai-paralaksa-2,
+	.aai-sklep .aai-paralaksa-3 {
+		transform: none;
+		transition: none;
+	}
+
+	.aai-sklep .aai-btn-glowny::after {
+		display: none;
+		transition: none;
+	}
+
+	.aai-sklep .aai-karta-obraz,
+	.aai-sklep .aai-karta:hover .aai-karta-obraz {
+		transform: none;
+		transition: none;
+	}
+
+	.aai-sklep .aai-akordeon::details-content {
+		transition: none;
+	}
+
+	html.js .aai-sklep .aai-reveal,
+	html.js .aai-sklep .aai-reveal-lewo,
+	html.js .aai-sklep .aai-reveal-prawo {
+		opacity: 1;
+		transform: none;
+	}
+
+	html.js .aai-sklep .aai-reveal-widoczny {
+		transition: none;
+	}
+}
+
+/* ————————————————— tryb wysokiego kontrastu ————————————————— */
+
+@media (forced-colors: active) {
+	.aai-sklep .aai-tlo,
+	.aai-sklep .aai-ziarno,
+	.aai-sklep .aai-siatka-tla,
+	.aai-sklep .aai-hero-poswiata,
+	.aai-sklep .aai-final-poswiata,
+	.aai-sklep .aai-oferta-poswiata-a,
+	.aai-sklep .aai-oferta-poswiata-b {
+		display: none;
+	}
+}

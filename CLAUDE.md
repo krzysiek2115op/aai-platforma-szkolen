@@ -1132,9 +1132,9 @@ wyprowadzała tego od nowa:
   NASZE szablony w miejsce Tutorowych, wygląd z 0.34.0 (W5). Tutorowa
   strona `/courses/<slug>/` **nie jest produktem** — to techniczna kopia
   dla LMS-a, który daje konta i dostęp za logowaniem.
-  Stan podglądu na `:8892` w chwili pisania: `/szkolenia` → **404**
-  (naszej trasy jeszcze nie ma), `/szkolenia/<slug>` → **301** na
-  `/courses/<slug>/` (WordPress sam zgaduje slug — to NIE nasza strona).
+  Zapis historyczny (przed 0.41.0): `/szkolenia` oddawało **404**, a
+  `/szkolenia/<slug>` **301** na `/courses/<slug>/`, bo WordPress sam
+  zgadywał slug. Od W3 obie trasy są nasze — patrz niżej.
   **RENDER STRON TUTORA NAPRAWIONY (0.40.0) — i przyczyna była głębsza,
   niż wyglądała.** Właściciel zgłosił zrzutem, że po 0.39.1 wygląd dalej
   jest zepsuty. **Motyw to Tailwind 4 i trzyma CAŁY swój CSS w WARSTWACH
@@ -1152,9 +1152,10 @@ wyprowadzała tego od nowa:
   wchodzi TYLKO na strony Tutora, klasa `body` `aai-tutor-na-motywie`),
   kolizję klas naprawia **`revert-layer`** (oddaje głos motywowi zamiast
   zgadywać jego wartości), a pilnuje **`smoke-wp-motyw`**
-  (`npm run smoke:wp-motyw`, 14 sprawdzeń) — mierzy ŻYWĄ stronę
-  w przeglądarce: nachodzenie, kontrast każdego napisu, jasne plamy
-  i stopkę motywu porównaną 1:1 ze stroną motywu. Rig (puppeteer-core
+  (`npm run smoke:wp-motyw`) — mierzy ŻYWĄ stronę w przeglądarce:
+  nachodzenie, kontrast każdego napisu, jasne plamy i stopkę motywu
+  porównaną 1:1 ze stroną motywu. Od 0.41.0 mierzy CZTERY strony
+  (nasze dwie + panel i rejestracja Tutora), 32 sprawdzenia. Rig (puppeteer-core
   + systemowy Firefox) w scratchpadzie przez `ZRZUTY_RIG` — **nigdy
   w package.json**.
   **DWIE RZECZY DLA W3, WPROST Z TEGO ZNALEZISKA:**
@@ -1167,16 +1168,55 @@ wyprowadzała tego od nowa:
   kanoniczny, zero duplikatu w wyszukiwarce, klient nigdy nie trafia na
   stronę w cudzym wyglądzie. Adresy lekcji za logowaniem zostają Tutora
   (nasze szablony wchodzą tam w W5).
-  **NASTĘPNY KROK: W3 — front.** `/szkolenia` i `/szkolenia/<slug>`
-  renderowane z tabel wtyczki przez `template_include`, pozycja
-  „Szkolenia" wstrzykiwana do nagłówka motywu (`ob_start`, droga 4
-  z ETAP-WP.md) **razem ze strażnikiem**, że pozycja naprawdę jest
-  w wyjściowym HTML — motyw jest generowany, więc może ją uciszyć.
-  Wygląd bierzemy z tego, co już jest zaakceptowane: strona sprzedażowa
-  z prototypu (`components/kurs/*`, brief
-  [BRIEF-STRONA-KURSU.md](docs/plugin-1/BRIEF-STRONA-KURSU.md)) i katalog
-  `/szkolenia`; wygląd widoku lekcji leży gotowy w `tools/podglad-kursow/`
-  (CSS + szablony, wyjęte tam WŁAŚNIE po to, żeby dały się przenieść).
+  **W3 ZROBIONY (0.41.0): front stoi.** `/szkolenia` i `/szkolenia/<slug>`
+  renderuje wtyczka Z NASZYCH TABEL (reguły przepisywania `top` +
+  `template_include`), pozycja „Szkolenia" jest w pasku I w menu mobilnym
+  motywu, a `/courses/<slug>/` → **301** na `/szkolenia/<slug>/`
+  i `/courses/` → `/szkolenia/` (decyzja właściciela 2026-08-25: jeden
+  adres kanoniczny). Wygląd przepisany z rzeczy zaakceptowanych przy B5
+  (`components/kurs/*`, katalog `/szkolenia`) — 12 rodzajów sekcji + hero,
+  program, platforma, oferta, domknięcie. Nowe klasy:
+  `Aai_Sklep_Odczyt` (port kanału JSON), `Aai_Sklep_Sekcje` (port
+  `SCHEMATY_SEKCJI` + **jedno źródło kolejności sekcji**),
+  `Aai_Sklep_Trasy`, `Aai_Sklep_Menu`, `Aai_Sklep_Seo`, `Aai_Sklep_Widok`;
+  szablony w `wordpress/wtyczki/aai-sklep/szablony/`, wygląd
+  w `assets/sklep.css` + `assets/sklep.js` (zero zależności).
+  Dowody: strażnicy **31/31** (doszedł `straznik-frontu-wp`), audyt
+  mutacyjny **118**, `smoke-wp-front` **78**, `smoke-wp-motyw` **32**,
+  `smoke-wp-dane` **30**, `wp:sprawdz` 73/73, prototyp bez regresji.
+  **SIEDEM RZECZY DO ZAPAMIĘTANIA Z W3** (pełnia: CHANGELOG 0.41.0
+  i [ETAP-WP.md](docs/ETAP-WP.md), sekcja „Krok W3 zrobiony"):
+  (1) motyw wpisuje `.page-enter` z `transform` i wypełnieniem `both`
+  w HTML swoich stron — **każdy element `position: fixed` emitujemy POZA
+  `<main>`** (BLAD-003/004 przyniesione przez cudzy arkusz), a jego
+  `z-index` musi być niższy niż `z-40`, bo `volt.js` usypia `inert`-em
+  tylko `body > main` i `body > footer`;
+  (2) **strona kursu chowa nawigację motywu** i stawia własną pigułkę —
+  obie belki są `fixed` u góry; tak samo działa prototyp
+  (`NavbarPrzelacznik`) i taki wygląd właściciel przyjął przy B5;
+  (3) **Tutor 4.0.7 przyniósł DRUGĄ rodzinę tokenów** (`--tutor-surface-*`,
+  `--tutor-text-*`, `--tutor-button-*` i dalsze, 305 zmiennych), która
+  steruje logowaniem i panelem; mapowanie z 0.40.0 tam nie sięgało —
+  **wersję Tutora trzeba przypiąć albo świadomie pilnować**;
+  (4) `cover_url` z prototypu wskazuje `/okladki/*.svg` z `public/`, czego
+  na WP nie ma — okładki jadą teraz z wtyczką, a `Aai_Sklep_Widok::okladka()`
+  woli **zaprojektowany zastępnik od zepsutego obrazka**;
+  (5) adresy składamy `user_trailingslashit()`, bo instalacja ma
+  `/%postname%/` i bez tego każdy nasz odnośnik był przekierowaniem;
+  (6) **`opcache.revalidate_freq = 2`** w kontenerze: między zmianą pliku
+  PHP a pomiarem trzeba odczekać ≥ 3 s, inaczej mierzysz POPRZEDNI stan
+  kodu i wygląda to jak „strażnik przepuścił mutację";
+  (7) pomiar kontrastu w `smoke-wp-motyw` czytał `color(srgb …)` — zapis,
+  którym przeglądarka oddaje `color-mix()` — jak `rgb()`, więc raportował
+  15:1 jako 1,11:1; **zapisu, którego pomiar nie umie rozebrać, nie
+  zgadujemy**, tylko wywalamy smoke.
+  **NASTĘPNY KROK: W4 — kreator w kokpicie.** Panel z D6
+  (`app/szkolenia/kreator/*`) przeniesiony do kokpitu WordPressa: kurs,
+  program, 12 rodzajów sekcji i treść lekcji, zapis WYŁĄCZNIE przez
+  `Aai_Sklep_Zapis`. Instrukcja obsługi prototypowego kreatora:
+  [KREATOR.md](docs/plugin-1/KREATOR.md). Wygląd widoku lekcji na W5 leży
+  gotowy w `tools/podglad-kursow/` (CSS + szablony, wyjęte tam WŁAŚNIE po
+  to, żeby dały się przenieść).
 
   **NAPRAWA RENDERU (0.38.0, zgłosił właściciel zrzutami):** strona główna
   była łamana przez `tutor-front.min.css` — globalna klasa `.text-label`
