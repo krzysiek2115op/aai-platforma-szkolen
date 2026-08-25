@@ -1229,6 +1229,194 @@ const MUTACJE = [
         : null,
     oczekujCzerwonego: false,
   },
+
+  // --- straznik-kreatora-wp (krok W4: kreator w kokpicie) ---
+  // Kreator działa nawet wtedy, gdy pole wypadło z kontraktu, akcja straciła
+  // nonce albo zapis programu zaczął czyścić prozę. Pierwsze dwa objawy widzi
+  // dopiero właściciel (i to nie od razu), trzeciego nie widzi nikt — dlatego
+  // każdy niezmiennik ma tu własną mutację.
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "pole z kontraktu prototypu znika z kontraktu wtyczki (kreator nie ma go czym wypełnić)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-sekcje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-sekcje.php"),
+    zmien: (s) =>
+      s.includes("'dla_kogo'    => array(")
+        ? s.replace(
+            /\t\t\t\t'dla_kogo'    => array\([\s\S]*?\n\t\t\t\t\),\n/,
+            ""
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "pole kontraktu bez etykiety (w panelu wygląda jak klucz bazy danych)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-sekcje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-sekcje.php"),
+    zmien: (s) =>
+      s.includes("'etykieta' => 'Nagłówek',")
+        ? s.replace("'etykieta' => 'Nagłówek',", "")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "kolejność sekcji w panelu przestaje domykać listę rodzajów (nowy rodzaj wypada z kreatora)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-sekcje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-sekcje.php"),
+    zmien: (s) =>
+      s.includes("foreach ( self::rodzaje() as $rodzaj ) {")
+        ? s.replace(
+            /\t\tforeach \( self::rodzaje\(\) as \$rodzaj \) \{[\s\S]*?\n\t\t\}\n/,
+            ""
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "akcja zapisu kursu traci sprawdzenie nonce'a (cudza strona zapisze za plecami właściciela)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php"),
+    zmien: (s) =>
+      s.includes("check_admin_referer( self::ZAPISZ_KURS );")
+        ? s.replace("check_admin_referer( self::ZAPISZ_KURS );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "akcja zapisu lekcji traci sprawdzenie uprawnienia (puszcza każdego zalogowanego)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php"),
+    zmien: (s) => {
+      const gdzie = s.indexOf("check_admin_referer( self::ZAPISZ_LEKCJE );");
+      if (gdzie === -1) return null;
+      const po = s.indexOf("self::brama();", gdzie);
+      if (po === -1) return null;
+      return s.slice(0, po) + s.slice(po + "self::brama();".length);
+    },
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "akcja kreatora zarejestrowana dla NIEZALOGOWANYCH",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php"),
+    zmien: (s) =>
+      s.includes("add_action( 'admin_post_' . self::ZAPISZ_KURS")
+        ? s.replace(
+            "add_action( 'admin_post_' . self::ZAPISZ_KURS",
+            "add_action( 'admin_post_nopriv_' . self::ZAPISZ_KURS, array( self::class, 'zapisz_kurs' ) );\n\t\tadd_action( 'admin_post_' . self::ZAPISZ_KURS"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "pole treści lekcji znika z opisu (materiał kursu bez miejsca w panelu)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-kontrakt.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-kontrakt.php"),
+    zmien: (s) =>
+      s.includes("'materialy' => array(")
+        ? s.replace("'materialy' => array(", "'zalaczniki' => array(")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "zapis programu przestaje rozróżniać brak klucza `content` od pustki (czyści prozę i melduje sukces)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    zmien: (s) =>
+      s.includes("if ( array_key_exists( 'content', $l ) || $nowa ) {")
+        ? s.replace("if ( array_key_exists( 'content', $l ) || $nowa ) {", "if ( true ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "adres w polu treści sprawdzany funkcją od WYCHODZĄCYCH żądań (BLAD-017: link znika ze strony)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-pola.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-pola.php"),
+    zmien: (s) =>
+      s.includes("$czesci = wp_parse_url( $adres );")
+        ? s.replace("$czesci = wp_parse_url( $adres );", "return (bool) wp_http_validate_url( $adres );\n\t\t$czesci = wp_parse_url( $adres );")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "szablon frontu sięga po treść lekcji (materiał kursu wycieka poza bramę)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/czesci/program.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/czesci/program.php"),
+    zmien: (s) =>
+      s.includes("defined( 'ABSPATH' ) || exit;")
+        ? s.replace(
+            "defined( 'ABSPATH' ) || exit;",
+            "defined( 'ABSPATH' ) || exit;\n$wyciek = $aai_lekcja['content'] ?? '';"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "zapis samych kolumn kursu zaczyna kasować SEKCJE (brak klucza brany za pustkę)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    zmien: (s) =>
+      s.includes("$zmieniamy_sekcje = array_key_exists( 'sekcje', $kurs )")
+        ? s.replace(
+            "$zmieniamy_sekcje = array_key_exists( 'sekcje', $kurs ) && null !== $kurs['sekcje'];",
+            "$zmieniamy_sekcje = true;"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "zapis samych kolumn kursu zaczyna kasować PROGRAM razem z treścią lekcji",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    zmien: (s) =>
+      s.includes("$zmieniamy_program = array_key_exists( 'moduly', $kurs )")
+        ? s.replace(
+            "$zmieniamy_program = array_key_exists( 'moduly', $kurs ) && null !== $kurs['moduly'];",
+            "$zmieniamy_program = true;"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "zapis kursu znów nadpisuje STAN (zapis ze starszej karty cofa publikację)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    zmien: (s) =>
+      s.includes("if ( array_key_exists( 'status', $kurs ) ) {")
+        ? s.replace(
+            "if ( array_key_exists( 'status', $kurs ) ) {",
+            "if ( true ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "formularz edytora znów niesie stan kursu (pole ukryte name=\"status\")",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/panel/kurs.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/panel/kurs.php"),
+    zmien: (s) =>
+      s.includes('<input type="hidden" name="type"')
+        ? s.replace(
+            '<input type="hidden" name="type"',
+            '<input type="hidden" name="status" value="draft" />\n\t\t<input type="hidden" name="type"'
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis:
+      "KONTRPRZYKŁAD: wzmianka o wp_http_validate_url w KOMENTARZU (wyjaśnienie BLAD-017) to proza, nie kod",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-pola.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-pola.php"),
+    zmien: (s) =>
+      s.includes("declare( strict_types = 1 );")
+        ? s.replace(
+            "declare( strict_types = 1 );",
+            "/* Uwaga: NIE używamy wp_http_validate_url() — patrz BLAD-017. */\ndeclare( strict_types = 1 );"
+          )
+        : null,
+    oczekujCzerwonego: false,
+  },
 ];
 
 

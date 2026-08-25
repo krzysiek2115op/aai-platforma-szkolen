@@ -4,6 +4,16 @@ Panel treści Pluginu 1. Wszystko, co widać na `/szkolenia` i na stronach
 kursów, pochodzi stąd — strona nie ma ani jednego tekstu wpisanego
 na sztywno w kodzie.
 
+> [!IMPORTANT]
+> **Kreatory są dwa i to jest stan docelowy na czas etapu WordPressa.**
+> Poniżej opisany jest kreator PROTOTYPU (Next.js, `:3001`) — on zostaje
+> jako specyfikacja wykonawcza i jako narzędzie do treści w Postgresie.
+> **Kreator, którym pracuje się na produkcji, mieszka w kokpicie
+> WordPressa** — patrz [sekcja na końcu](#kreator-w-kokpicie-wordpressa-krok-w4).
+> Oba zapisują do INNYCH baz: prototyp do Postgresa, wtyczka do tabel
+> `wp_aai_sklep_*`. Drogę z jednej do drugiej robi `npm run wp:import`
+> (jednokierunkowo, idempotentnie).
+
 ## Wejście
 
 - adres: `http://localhost:3001/szkolenia/kreator`
@@ -123,3 +133,85 @@ Pełny materiał czyta wyłącznie ten ekran, za bramą tokenu. Pilnują tego
 | Sekcja nie pojawia się na stronie | brak pola obowiązkowego | wejdź w sekcję, uzupełnij „brakuje: …" |
 | Przy lekcji nie ma przycisku „Treść" | lekcja jeszcze nie jest w bazie | zapisz kurs i wróć do zakładki Program |
 | „Formularz ma błędy" przy zapisie lekcji | zaczęty materiał bez tytułu lub adresu | uzupełnij materiał albo usuń go koszem |
+
+
+---
+
+# Kreator w kokpicie WordPressa (krok W4)
+
+To jest kreator DOCELOWY. Robi to samo, co panel prototypu, w tym samym
+porządku i tymi samymi słowami — różnice biorą się z tego, że WordPress ma
+konta, media i własne bramki, więc nie udajemy, że ich nie ma.
+
+## Wejście
+
+- **Kokpit → Automatic AI → Kursy** (`/wp-admin/admin.php?page=aai-sklep`)
+- albo z frontu: **pasek administracyjny → „Edytuj kurs"** na stronie kursu
+  (gość nie ma tej pozycji nawet w źródle — dla niego pasek się nie renderuje)
+- uprawnienie: **`manage_options`** (to samo, którym widzi się szkice)
+
+**Nie ma tokenu.** `KREATOR_TOKEN` był rozwiązaniem na czas budowy prototypu,
+bo tamten nie miał kont. Tutaj kontami zajmuje się WordPress, a każdą wysyłkę
+pilnują dwie bramki naraz: **nonce** („ta osoba naprawdę o to poprosiła")
+i **uprawnienie** („ta osoba może"). Jedno bez drugiego nie wystarcza.
+
+## Trzy ekrany
+
+| Ekran | Co robi |
+|---|---|
+| **Kursy** | lista wszystkich kursów ze stanem, ceną i licznikami: sekcje `12/12`, program, **treść lekcji `41/41`**. Stąd publikujesz, ukrywasz i usuwasz |
+| **Edytor kursu** | trzy zakładki — **Kurs / Sekcje strony / Program** — i JEDEN przycisk „Zapisz kurs". Przełączanie zakładek nie przeładowuje strony, więc niezapisane zmiany przeżywają zmianę widoku |
+| **Treść lekcji** | osobny ekran, wchodzi się w niego przyciskiem **Treść** przy lekcji w zakładce Program |
+
+## Czym różni się od prototypu
+
+- **Okładka z biblioteki mediów.** Przycisk „Wybierz z biblioteki mediów"
+  otwiera zwykłą bibliotekę WordPressa; do bazy trafia adres wybranego pliku,
+  czyli dokładnie to samo, co dawniej wklejało się ręcznie. Decyzja właściciela
+  z 2026-08-25 — prototyp odrzucił wgrywanie tylko dlatego, że nie miał gdzie
+  trzymać plików.
+- **Stan kursu zmienia się na LIŚCIE**, nie w formularzu. Publikacja nie jest
+  edycją treści: klika się ją, nie mając otwartego kursu, a zapis niosący
+  komplet sekcji po to, żeby zmienić jedno słowo, to proszenie się o utratę
+  tego, czego akurat nie wczytano.
+- **Po zapisie strona się przeładowuje** (przekierowanie). Bez tego odświeżenie
+  przeglądarki powtarzałoby zapis — a zapis kursu jest PEŁNĄ PODMIANĄ programu.
+- **Odrzucony formularz wraca taki, jaki był**, razem z tym, czego baza nie
+  przyjęła. Błędy są wypisane u góry ze ścieżką do pola, a zakładka z błędem
+  dostaje czerwony znacznik z ich liczbą.
+- **Nie ma typu „ebook".** Właściciel zamknął ten temat 2026-08-25 słowem
+  „na zawsze": produktem jest wyłącznie kurs tekstowy za logowaniem.
+
+## Czego ten kreator NIE zrobi za Ciebie
+
+Wszystko z sekcji prototypu obowiązuje bez zmian — kolejność sekcji wynika
+z układu strony sprzedażowej, cena jest w złotówkach (baza trzyma grosze),
+a materiał lekcji nie pojawia się na stronie sprzedażowej ani w katalogu.
+Do tego:
+
+- **Zapis programu nie tyka napisanej treści.** Panel wysyła sam spis treści
+  (tytuły, kolejność, czasy), a warstwa zapisu rozpoznaje brak tych kolumn
+  jako „nie ruszaj". Jeśli mimo to zapis miałby skasować lekcje **z treścią**,
+  dostajesz odmowę z LICZBĄ tych lekcji i osobny przycisk „Zapisz mimo to
+  i skasuj tę treść".
+- **Usunięcie kursu z treścią wymaga potwierdzenia.** Bez niego warstwa zapisu
+  odmawia — także wtedy, gdy w przeglądarce nie działa JavaScript.
+
+## Gdy coś nie działa
+
+| Objaw | Przyczyna | Co zrobić |
+|---|---|---|
+| „Ten adres (slug) jest już zajęty przez inny kurs" | dwa kursy pod tym samym adresem | zmień slug |
+| „Ten zapis skasowałby napisaną treść N lekcji" | z programu wypadła lekcja, która ma materiał | dodaj ją z powrotem albo potwierdź przyciskiem obok „Zapisz kurs" |
+| Przy lekcji nie ma przycisku „Treść" | lekcja jeszcze nie jest w bazie | zapisz kurs i wróć do zakładki Program |
+| Sekcja jest w panelu, ale nie widać jej na stronie | brak pola obowiązkowego (plakietka „brakuje: …") | uzupełnij wskazane pola |
+| Strona zapisu oddaje 403 | wygasł nonce (formularz otwarty od wielu godzin) | odśwież stronę edytora i zapisz jeszcze raz |
+
+## Dowody
+
+`npm run smoke:wp-kreator` — 92 sprawdzenia na żywej instalacji: bramki
+dostępu, runda „zapisz → odczytaj" dla wszystkich 12 rodzajów sekcji
+(z treścią generowaną z opisu pól, więc nowe pole samo wchodzi do próby),
+zapis programu nietykający prozy 73 lekcji, odmowa skasowania treści bez
+zgody i brak wycieku materiału na publiczne strony.
+Kod pilnuje `straznik-kreatora-wp` (32. strażnik, 11 mutacji w audycie).

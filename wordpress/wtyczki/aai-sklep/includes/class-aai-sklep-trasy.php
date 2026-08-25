@@ -137,7 +137,7 @@ final class Aai_Sklep_Trasy {
 	 * po prostu nie istnieje — trasa oddaje 404, nie „brak dostępu".
 	 */
 	public static function widzi_szkice(): bool {
-		return current_user_can( 'manage_options' );
+		return current_user_can( Aai_Sklep_Panel::UPRAWNIENIE );
 	}
 
 	/**

@@ -23,8 +23,9 @@
  *    niezmieniający wiersza nie jest zdarzeniem. Tutaj idziemy krok dalej
  *    niż prototyp: wiersz bez zmian nie dostaje nawet `UPDATE`-a.
  *
- * CZEGO TU NIE MA. Kontraktu pól (odpowiednika Zod) — ten przychodzi
- * z kreatorem w kroku W4. Import sprawdza kształt u siebie, a każda
+ * SKĄD PRZYCHODZI KSZTAŁT. Od kroku W4 wejście z sieci sprawdza
+ * `Aai_Sklep_Kontrakt` (odpowiednik Zod z prototypu) — ta warstwa dostaje
+ * dane już opisane kontraktem. Import sprawdza kształt u siebie, a każda
  * wartość i tak idzie przez `$wpdb->insert/update/delete`, więc do SQL-a
  * nie trafia nic sklejonego z tekstu.
  *
@@ -198,6 +199,137 @@ final class Aai_Sklep_Zapis {
 	}
 
 	/**
+	 * Zapisuje TREŚĆ jednej lekcji — materiał kursu, nie spis treści.
+	 *
+	 * DLACZEGO OSOBNA DROGA, A NIE POLE W ZAPISIE KURSU. Powód jest ten sam,
+	 * dla którego prototyp miał na to osobną akcję dyspozytora: ładunek
+	 * i ryzyko. Ładunek — proza obu kursów waży dziś 1,3 MB, więc dokładanie
+	 * jej do każdego zapisu programu byłoby przesyłaniem całego kursu przy
+	 * poprawce jednego tytułu. Ryzyko — pisanie lekcji nie ma prawa
+	 * przepisywać przy okazji struktury kursu ani strony sprzedażowej.
+	 *
+	 * @param string              $id_lekcji Identyfikator lekcji.
+	 * @param array<string,mixed> $tresc     Klucze `tresc` i `materialy`.
+	 * @param string              $aktor     Kto zapisuje.
+	 *
+	 * @return array<string,int> Liczniki: utworzone/zaktualizowane/bez_zmian/usuniete.
+	 *
+	 * @throws Aai_Sklep_Blad_Zapisu Gdy lekcji nie ma albo baza odmówi.
+	 */
+	public static function zapisz_tresc_lekcji( string $id_lekcji, array $tresc, string $aktor ): array {
+		$liczniki = array(
+			'utworzone'      => 0,
+			'zaktualizowane' => 0,
+			'bez_zmian'      => 0,
+			'usuniete'       => 0,
+		);
+
+		self::w_transakcji(
+			static function () use ( $id_lekcji, $tresc, $aktor, &$liczniki ): void {
+				global $wpdb;
+
+				$t_lekcje = Aai_Sklep_Tabele::tabela( 'lessons' );
+				$t_moduly = Aai_Sklep_Tabele::tabela( 'modules' );
+
+				// Kurs bierzemy z modułu, bo dziennik audytu ma znać kurs przy
+				// KAŻDYM wpisie — bez tego wpisy o lekcjach byłyby sierotami
+				// i „odtwórz kurs z dziennika" przestałoby działać.
+				$wiersz = $wpdb->get_row(
+					$wpdb->prepare(
+						"SELECT l.*, m.course_id AS kurs
+						   FROM `$t_lekcje` l
+						   JOIN `$t_moduly` m ON m.id = l.module_id
+						  WHERE l.id = %s",
+						$id_lekcji
+					),
+					ARRAY_A
+				);
+				if ( null === $wiersz ) {
+					throw new Aai_Sklep_Blad_Zapisu(
+						sprintf( 'nie ma lekcji o id %s', $id_lekcji )
+					);
+				}
+
+				$kurs = (string) $wiersz['kurs'];
+				unset( $wiersz['kurs'] );
+
+				$docelowa = array(
+					'id'        => $id_lekcji,
+					'content'   => (string) ( $tresc['tresc'] ?? '' ),
+					'materials' => self::json( $tresc['materialy'] ?? array() ),
+				);
+
+				if ( ! self::rozni_sie( $wiersz, $docelowa ) ) {
+					++$liczniki['bez_zmian'];
+					return;
+				}
+
+				self::zmien( $t_lekcje, $docelowa, array( 'id' => $id_lekcji ) );
+				self::dziennik( $kurs, 'lessons', 'update', $wiersz, array_merge( $wiersz, $docelowa ), $aktor );
+				++$liczniki['zaktualizowane'];
+			}
+		);
+
+		return $liczniki;
+	}
+
+	/**
+	 * Zmienia STAN kursu (szkic / opublikowany / ukryty).
+	 *
+	 * Osobno od zapisu kursu, bo publikacja nie jest edycją treści: właściciel
+	 * klika ją na liście kursów, nie mając otwartego formularza. Gdyby szła
+	 * przez `zapisz_kurs()`, trzeba by wtedy odesłać CAŁY kurs — a zapis
+	 * niosący komplet sekcji i modułów po to, żeby zmienić jedno słowo, to
+	 * proszenie się o utratę tego, czego akurat nie wczytano.
+	 *
+	 * @param string $id     Identyfikator kursu.
+	 * @param string $status Nowy stan.
+	 * @param string $aktor  Kto zmienia.
+	 *
+	 * @return array<string,int> Liczniki.
+	 *
+	 * @throws Aai_Sklep_Blad_Zapisu Gdy kursu nie ma albo baza odmówi.
+	 */
+	public static function ustaw_status( string $id, string $status, string $aktor ): array {
+		$liczniki = array(
+			'utworzone'      => 0,
+			'zaktualizowane' => 0,
+			'bez_zmian'      => 0,
+			'usuniete'       => 0,
+		);
+
+		self::w_transakcji(
+			static function () use ( $id, $status, $aktor, &$liczniki ): void {
+				global $wpdb;
+
+				$t_kursy = Aai_Sklep_Tabele::tabela( 'courses' );
+
+				$wiersz = $wpdb->get_row(
+					$wpdb->prepare( "SELECT * FROM `$t_kursy` WHERE id = %s", $id ),
+					ARRAY_A
+				);
+				if ( null === $wiersz ) {
+					throw new Aai_Sklep_Blad_Zapisu( sprintf( 'nie ma kursu o id %s', $id ) );
+				}
+				if ( (string) $wiersz['status'] === $status ) {
+					++$liczniki['bez_zmian'];
+					return;
+				}
+
+				$docelowy = array(
+					'status'     => $status,
+					'updated_at' => gmdate( 'Y-m-d H:i:s' ),
+				);
+				self::zmien( $t_kursy, $docelowy, array( 'id' => $id ) );
+				self::dziennik( $id, 'courses', 'update', $wiersz, array_merge( $wiersz, $docelowy ), $aktor );
+				++$liczniki['zaktualizowane'];
+			}
+		);
+
+		return $liczniki;
+	}
+
+	/**
 	 * Rdzeń zapisu. Woływany wyłącznie w otwartej transakcji.
 	 *
 	 * @param array<string,mixed> $kurs      Kurs w formacie 2.
@@ -263,10 +395,48 @@ final class Aai_Sklep_Zapis {
 			'short_desc'   => self::tekst_albo_null( $kurs['short_desc'] ?? null ),
 			'price_grosze' => (int) $kurs['price_grosze'],
 			'cover_url'    => self::tekst_albo_null( $kurs['cover_url'] ?? null ),
-			'status'       => (string) $kurs['status'],
 			'badge'        => self::tekst_albo_null( $kurs['badge'] ?? null ),
 			'level'        => self::tekst_albo_null( $kurs['level'] ?? null ),
 		);
+
+		/*
+		 * STAN KURSU: BRAK KLUCZA ZNACZY „ZOSTAW, JAK JEST".
+		 *
+		 * Ta sama reguła co przy treści lekcji i z tego samego powodu.
+		 * Publikację klika się na LIŚCIE kursów, nie w formularzu — a formularz
+		 * otwarty wcześniej w drugiej karcie niósłby stan sprzed publikacji.
+		 * Zapis poprawki jednego zdania COFAŁBY wtedy publikację: kurs
+		 * wypadałby z katalogu, nikt by o tym nie wiedział, a odpowiedź
+		 * brzmiałaby „zapisano". Sprawdzone uruchomieniowo w przeglądzie W4.
+		 *
+		 * Nowy kurs zaczyna jako szkic — tak samo jak w prototypie.
+		 */
+		if ( array_key_exists( 'status', $kurs ) ) {
+			$docelowy_kurs['status'] = (string) $kurs['status'];
+		} elseif ( null !== $stary_kurs ) {
+			$docelowy_kurs['status'] = (string) $stary_kurs['status'];
+		} else {
+			$docelowy_kurs['status'] = 'draft';
+		}
+
+		/*
+		 * SEKCJE I PROGRAM: BRAK KLUCZA ZNACZY „NIE RUSZAJ", PODANA TABLICA
+		 * ZNACZY PEŁNĄ PODMIANĘ.
+		 *
+		 * Do przeglądu W4 brak klucza znaczył PUSTKĘ, więc zapis samych kolumn
+		 * kursu kasował wszystkie sekcje i cały program — mimo że kontrakt
+		 * (i ten plik) obiecywały co innego. Objaw: `zapisz_kurs()` z trzema
+		 * polami czyściło kurs i wracało z sukcesem. Sprawdzone uruchomieniowo:
+		 * „po utworzeniu: sekcji=1 moduly=1" → „po zapisie bez kluczy:
+		 * sekcji=0 moduly=0". Panel zawsze wysyła oba klucze, więc usterka nie
+		 * była widoczna z zewnątrz — ale czekała na pierwszego nowego klienta
+		 * tej warstwy (synchronizacja do Tutora w W5).
+		 *
+		 * `null` traktujemy jak brak klucza: tak wygląda pole, którego
+		 * w wysyłce nie było.
+		 */
+		$zmieniamy_sekcje = array_key_exists( 'sekcje', $kurs ) && null !== $kurs['sekcje'];
+		$zmieniamy_program = array_key_exists( 'moduly', $kurs ) && null !== $kurs['moduly'];
 
 		$docelowe_sekcje = array();
 		foreach ( (array) ( $kurs['sekcje'] ?? array() ) as $s ) {
@@ -291,8 +461,8 @@ final class Aai_Sklep_Zapis {
 				'summary'   => self::tekst_albo_null( $m['summary'] ?? null ),
 			);
 			foreach ( (array) ( $m['lekcje'] ?? array() ) as $l ) {
-				$lid                       = (string) $l['id'];
-				$docelowe_lekcje[ $lid ] = array(
+				$lid       = (string) $l['id'];
+				$docelowa  = array(
 					'id'           => $lid,
 					'module_id'    => $mid,
 					'position'     => (int) $l['position'],
@@ -304,12 +474,35 @@ final class Aai_Sklep_Zapis {
 					// to pusty łańcuch, więc porównanie z bazowym „0" mówiłoby
 					// „zmiana" przy każdym imporcie.
 					'preview'      => empty( $l['preview'] ) ? 0 : 1,
+				);
+
+				/*
+				 * TREŚĆ I MATERIAŁY: BRAK KLUCZA ZNACZY „NIE RUSZAJ".
+				 *
+				 * To nie jest wygoda, tylko warunek istnienia kreatora.
+				 * Zapis programu (krok W4) przysyła sam SPIS TREŚCI: tytuły,
+				 * kolejność, czasy. Gdyby brak klucza znaczył pustkę — jak
+				 * znaczył do 0.41.0 — pierwsze naciśnięcie „Zapisz kurs"
+				 * w panelu wyczyściłoby prozę 73 lekcji i zameldowałoby
+				 * sukces. Klucz PODANY, choćby pusty, dalej znaczy dokładnie
+				 * to, co przyszło: import wysyła te kolumny zawsze, więc jego
+				 * zachowanie jest bez zmian, także przy celowym czyszczeniu.
+				 *
+				 * Nowa lekcja musi dostać wartości, bo `materials` jest
+				 * NOT NULL — a wiersza, którego nie ma, nie da się „nie ruszyć".
+				 */
+				$nowa = ! isset( $stare_lekcje[ $lid ] );
+				if ( array_key_exists( 'content', $l ) || $nowa ) {
 					// Treść trzymamy dokładnie taką, jaka przyszła — także
 					// pustą. Zamiana '' na NULL byłaby cichą modyfikacją
 					// danych, a bramka tego kroku brzmi „co do znaku".
-					'content'      => (string) ( $l['content'] ?? '' ),
-					'materials'    => self::json( $l['materials'] ?? array() ),
-				);
+					$docelowa['content'] = (string) ( $l['content'] ?? '' );
+				}
+				if ( array_key_exists( 'materials', $l ) || $nowa ) {
+					$docelowa['materials'] = self::json( $l['materials'] ?? array() );
+				}
+
+				$docelowe_lekcje[ $lid ] = $docelowa;
 			}
 		}
 
@@ -322,7 +515,7 @@ final class Aai_Sklep_Zapis {
 		 * wypadłoby z tego kursu — ZANIM cokolwiek skasujemy.
 		 */
 		$zagrozone = 0;
-		foreach ( $stare_lekcje as $lid => $wiersz ) {
+		foreach ( $zmieniamy_program ? $stare_lekcje : array() as $lid => $wiersz ) {
 			if ( isset( $docelowe_lekcje[ $lid ] ) ) {
 				continue;
 			}
@@ -362,16 +555,24 @@ final class Aai_Sklep_Zapis {
 		// Kasujemy PRZED zapisem: `UNIQUE (course_id, kind)` znaczy, że
 		// rodzaj przeniesiony na inny wiersz zderzyłby się ze starym.
 
-		foreach ( $stare_sekcje as $sid => $wiersz ) {
-			if ( isset( $docelowe_sekcje[ $sid ] ) ) {
-				continue;
+		if ( $zmieniamy_sekcje ) {
+			foreach ( $stare_sekcje as $sid => $wiersz ) {
+				if ( isset( $docelowe_sekcje[ $sid ] ) ) {
+					continue;
+				}
+				self::skasuj( $t_sekcje, array( 'id' => $sid ) );
+				self::dziennik( $id, 'sections', 'delete', $wiersz, null, $aktor );
+				++$liczniki['usuniete'];
 			}
-			self::skasuj( $t_sekcje, array( 'id' => $sid ) );
-			self::dziennik( $id, 'sections', 'delete', $wiersz, null, $aktor );
-			++$liczniki['usuniete'];
+			foreach ( $docelowe_sekcje as $sid => $docelowa ) {
+				self::upsert( $t_sekcje, 'sections', $id, $stare_sekcje[ $sid ] ?? null, $docelowa, $aktor, $liczniki );
+			}
 		}
-		foreach ( $docelowe_sekcje as $sid => $docelowa ) {
-			self::upsert( $t_sekcje, 'sections', $id, $stare_sekcje[ $sid ] ?? null, $docelowa, $aktor, $liczniki );
+
+		if ( ! $zmieniamy_program ) {
+			// Zapis samych kolumn kursu (albo samych sekcji) nie ma prawa
+			// tknąć programu ani materiału — nie ma tu nic do zrobienia.
+			return;
 		}
 
 		/*

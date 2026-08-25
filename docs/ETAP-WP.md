@@ -547,6 +547,132 @@ Tutora — pytał tylko o panel kursanta.
   („Sign In", „Keep me signed in"). To zadanie lokalizacyjne, nie wygląd;
   do zrobienia razem z W5 albo W6.
 
+## Krok W4 zrobiony (2026-08-25, wersja 0.42.0) — kreator w kokpicie
+
+Panel z Działu 6 przeniesiony do kokpitu WordPressa: kurs, program, dwanaście
+rodzajów sekcji sprzedażowych i treść lekcji. Do tego kroku wtyczka miała dane
+(W2) i front (W3), ale **nie miała czym ich zmienić** — treść wchodziła
+wyłącznie importem z Postgresa komendą wiersza poleceń.
+
+**Decyzje właściciela podjęte na starcie kroku (2026-08-25):**
+
+- **wygląd: natywny kokpit WordPressa z akcentem volt.** Wariant „premium jak
+  `/szkolenia`" był rozważony i odrzucony: reguły wp-admin stoją poza warstwami
+  kaskady, więc walka z nimi byłaby tą samą klasą kłopotu, co arkusz Tutora
+  kontra motyw (0.40.0), tylko od drugiej strony — i to na ekranie, którego
+  klient nigdy nie zobaczy. Panel korzysta z komponentów kokpitu (`postbox`,
+  `form-table`, `nav-tab`, `notice`), więc dziedziczy ich dostępność i przeżywa
+  aktualizacje WordPressa;
+- **okładka z BIBLIOTEKI MEDIÓW.** Prototyp odrzucił wgrywanie 2026-08-17 tylko
+  dlatego, że nie miał gdzie trzymać plików; WordPress ma to z pudełka.
+  Kolumna `cover_url` bez zmian — zapisujemy adres wybranego pliku.
+
+### Pięć rzeczy, które warto pamiętać z tego kroku
+
+1. **`add_submenu_page()` + `remove_submenu_page()` NIE robi ukrytej strony.**
+   Wygląda na czystszą drogę niż `null` jako rodzic i jest pułapką:
+   `remove_submenu_page` wycina wpis z `$submenu`, a `get_admin_page_parent()`
+   szuka rodzica właśnie tam — bez niego `admin.php` nie znajduje haka strony
+   i oddaje **403 „Sorry, you are not allowed to access this page"**. Objaw
+   wygląda jak błąd uprawnień, przyczyna jest w rejestracji.
+2. **`max_input_vars` ucina POST w milczeniu.** Domyślny sufit to 1000 pól,
+   a kurs z 41 lekcjami wystawiłby ich setki — czyli cicha utrata treści przy
+   każdym zapisie. Sekcje i program jadą więc jako **jeden JSON** składany
+   przez `panel.js`; cała wysyłka kursu ma dziś **17 pól**. Pola ukryte
+   startują wypełnione stanem z bazy, żeby zapis bez działającego skryptu był
+   pusty w skutkach, a nie kasujący.
+3. **Treść lekcji NIE idzie przez `sanitize_text_field`** (skleiłoby Markdown
+   w jedną linię), ale MUSI iść przez **`wp_unslash`**. WordPress dokłada do
+   `$_POST` ukośniki, więc bez tego `C:\Users` z kursu o Gicie zapisałoby się
+   jako `C:\\Users`. To siostrzana pułapka do `wp_slash` przy `update_post_meta`
+   z kroku migracji — ta sama klasa, przeciwny kierunek.
+4. **Brak klucza `content` musi znaczyć „nie ruszaj".** Do 0.41.0 warstwa
+   zapisu czytała `$l['content'] ?? ''`, więc pierwsze naciśnięcie „Zapisz
+   kurs" w panelu wyczyściłoby prozę 73 lekcji i zameldowało sukces. Rozróżnia
+   je teraz `array_key_exists`, a pilnuje `straznik-kreatora-wp`.
+5. **BLAD-017: `wp_http_validate_url()` to funkcja od SSRF, nie od odnośników.**
+   Rozwiązuje nazwę w DNS-ie i odrzuca hosty, których nie umie rozwiązać —
+   więc link autora do `automaticai.pl` (domena docelowa, **jeszcze
+   niekupiona**) po cichu znikał ze strony sprzedażowej. Treść była w bazie,
+   klient jej nie widział, nic się nie zapalało. Wyszło dopiero wtedy, gdy
+   ścisły kontrakt kreatora odrzucił ten sam poprawny adres.
+
+### Co dostało własną kontrolę
+
+- **`straznik-kreatora-wp`** (32. strażnik, 11 mutacji w audycie) — osiem
+  niezmienników: pole kontraktu prototypu nieznane wtyczce, pole bez etykiety,
+  rodzaj poza kolejnością panelu, akcja bez nonce'a albo bez uprawnienia,
+  akcja dla niezalogowanych, pole treści lekcji bez opisu, zapis programu
+  nierozróżniający braku klucza od pustki, adres sprawdzany funkcją od
+  wychodzących żądań i szablon frontu sięgający po treść lekcji.
+- **`smoke-wp-kreator`** (`npm run smoke:wp-kreator`, 92 sprawdzenia) — mierzy
+  ŻYWĄ instalację przez prawdziwe logowanie. Przykładowa treść do rundy
+  „zapisz → odczytaj" jest **generowana z opisu pól** (`wp aai-sklep opis
+  --format=json`), więc pole dopisane do kontraktu samo wchodzi do próby.
+
+### Przegląd kroku — dwa znaleziska, oba potwierdzone uruchomieniowo
+
+Po napisaniu W4 wykonany został jego przegląd: pięć obszarów (bezpieczeństwo
+wysyłek, bezpieczeństwo danych, zgodność z kontraktem prototypu, zachowanie
+panelu, ucieczka znaków), każde znalezisko sprawdzone **na żywej instalacji
+zanim powstała naprawa**.
+
+**Znalezisko 1 — brak klucza `sekcje`/`moduly` KASOWAŁ te gałęzie.** Kontrakt
+i sam plik warstwy zapisu obiecywały „brak klucza znaczy nie ruszaj", a kod
+robił coś przeciwnego. Dowód: kurs z jedną sekcją i jednym modułem, potem
+`zapisz_kurs()` z samymi kolumnami kursu → `sekcji=0 moduly=0`. Panel zawsze
+wysyła oba klucze, więc z zewnątrz nie było tego widać — **usterka czekała na
+pierwszego nowego klienta tej warstwy, czyli na synchronizację do Tutora
+w W5**. To najgorszy możliwy układ: nieprawda w dokumentacji o zachowaniu,
+które kasuje dane.
+
+**Znalezisko 2 — zapis kursu ze starszej karty CICHO cofał publikację.**
+Formularz edytora niósł stan kursu w polu ukrytym, a publikację klika się
+na LIŚCIE. Wystarczyło mieć edytor otwarty przed publikacją, żeby poprawka
+jednego zdania wyrzuciła kurs z katalogu — z komunikatem „zapisano".
+
+**Reguła, która z tego wyszła i obowiązuje w całej warstwie zapisu: BRAK
+KLUCZA ZNACZY „NIE RUSZAJ"** — dla treści lekcji, materiałów, sekcji,
+programu i stanu kursu. Pięć kluczy, pięć sprawdzeń w `straznik-kreatora-wp`,
+mutacja na każdy.
+
+**Trzy rzeczy sprawdzone i bez zarzutu** (nie ma po co szukać ich drugi raz):
+zamiana pozycji dwóch modułów przechodzi przez dwufazowe przestawianie
+wymuszone brakiem odroczonych ograniczeń w MySQL-u; treść sekcji z `<script>`
+i `onerror` jest uciekana zarówno w panelu, jak i na stronie sprzedażowej;
+odmowa skasowania napisanej treści liczy także lekcje z modułów usuwanych
+w tym samym zapisie.
+
+### Czego W4 celowo NIE ruszył
+
+- **Widok lekcji i szablony Tutora** → W5. Wygląd leży gotowy
+  w `tools/podglad-kursow/`.
+- **Kopia kursu do Tutora przy publikacji** → W5. Dziś nasze tabele i Tutor
+  rozjeżdżają się po każdej zmianie w kreatorze; to jest główne ryzyko tej
+  architektury i ma je domknąć strażnik zgodności.
+- **Zakup i cena w WooCommerce** → Plugin 2, po decyzji, GDZIE MIESZKA CENA.
+
+### Co widać w Tutorze po W4 — materiał wejściowy do W5
+
+Właściciel pokazał 2026-08-25 zrzutami stan kopii w Tutorze (kokpit →
+**Tutor LMS → Courses** oraz Course Builder kursu o Claude). Fakty do
+zaadresowania w W5:
+
+- **struktura jest**: „Topic: 6 · Lesson: 41" przy kursie o Claude i
+  „Topic: 6 · Lesson: 32" przy GitHubie — czyli zgodnie z naszymi tabelami;
+- **opis kursu w Tutorze jest PUSTY** (pole *Description* w Course Builderze),
+  bo nasza treść sprzedażowa jedzie do `_aai_sekcje`, a nie do treści wpisu;
+- **brak miniatury** (*Featured Image*) — `cover_url` nie jest przenoszony do
+  biblioteki mediów;
+- **cena: `Free`** — `price_grosze` nie jedzie do Tutora ani do Woo; to
+  należy do Pluginu 2 i wisi na decyzji „gdzie mieszka cena";
+- kurs w Tutorze siedzi pod `/courses/<slug>/`, który **od W3 oddaje 301** na
+  nasz adres — czyli klient tej strony nie zobaczy, a builder Tutora zostaje
+  narzędziem technicznym, nie produktem.
+
+To jest lista rzeczy, które synchronizacja z W5 ma albo uzupełnić, albo
+świadomie zostawić pustymi (z uzasadnieniem w kodzie).
+
 ## Plugin 2 — co to znaczy „płatności" (doprecyzowanie 2026-08-25)
 
 Pytanie właściciela po obejrzeniu W3: *przycisk „Dołączam za 299 zł" prowadzi
@@ -610,7 +736,10 @@ dwóch kopii to główne ryzyko tej architektury). Dwie drogi:
    (`/home/krzysiek/mp-test-env/wp-tutor/`, `podman start tutor-db tutor-wp`,
    `http://localhost:8091`), Kurs 2 w środku, pomiary wyżej. Do domknięcia
    decyzji o LMS zostaje ścieżka zakupu WooCommerce → zapis na kurs.
-4. Dopiero potem kod wtyczki, wg Weryfikacji-PR i z tymi samymi
-   strażnikami co prototyp.
+4. **Kod wtyczki `aai-sklep`, kroki W1–W6.** Zrobione: **W1** fundament
+   (0.38.0), **W2** dane (0.39.0), **W3** front (0.41.0), **W4** kreator
+   w kokpicie (0.42.0). Następny: **W5** — synchronizacja do Tutora przy
+   publikacji i NASZE szablony widoku lekcji w miejsce Tutorowych; potem
+   **W6** — test ręczny właściciela.
 5. Po ukończeniu WSZYSTKICH wtyczek — test całości na lokalnym WP
    z warsztatu `wordpress/` (sekcja „Test finalny wtyczek" wyżej).

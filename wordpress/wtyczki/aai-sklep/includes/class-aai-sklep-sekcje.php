@@ -1,7 +1,7 @@
 <?php
 /**
  * Kontrakt treści sekcji sprzedażowych — port `SCHEMATY_SEKCJI`
- * z `modules/m1-sklep/typy.ts`.
+ * z `modules/m1-sklep/typy.ts` RAZEM z opisem pól dla kreatora.
  *
  * PO CO. Treść sekcji siedzi w bazie jako JSON i wpisuje ją kreator, więc
  * strona dostaje kształt, którego nie kontroluje w chwili renderowania.
@@ -9,18 +9,18 @@
  * o złym kształcie ZNIKA, zamiast wysadzać stronę. Jedno pole nie tego typu
  * nie może zabrać klientowi całej oferty.
  *
- * DLACZEGO OPIS POLA, A NIE RĘCZNE `isset()` W SZABLONIE. Bo z tego opisu
- * korzystają DWIE rzeczy: sprawdzanie treści tutaj i `straznik-frontu-wp`,
- * który porównuje pola kontraktu z polami renderowanymi w szablonach. Pole
- * dopisane do kontraktu bez renderu to treść wpisana kreatorem, której
- * klient nigdy nie zobaczy — usterka, która nie daje żadnego objawu. To ta
- * sama konstrukcja, co `opis-sekcji.ts` + `straznik-kreatora` w prototypie.
+ * DLACZEGO ETYKIETY SIEDZĄ TUTAJ, A NIE W OSOBNYM PLIKU PANELU. Bo w
+ * prototypie były osobno (`components/kreator/opis-sekcji.ts`) i potrafiły
+ * rozjechać się z kontraktem — pole dopisane do kontraktu nie miało czym
+ * zostać wypełnione, a objaw był żaden: sekcja po prostu nigdy nie
+ * dostawała tej treści. Pilnował tego `straznik-kreatora`. Tutaj idziemy
+ * krok dalej, tak samo jak przy `KOLEJNOSC`: jedna tablica czyni ten
+ * rozjazd NIEMOŻLIWYM, zamiast pilnowanym. Kontrola treści czyta z niej
+ * `typ`/`wymagane`, panel `etykieta`/`pomoc`/`placeholder` — i nie ma
+ * dwóch list, które mogłyby się różnić.
  *
- * LIMITY są przepisane z prototypu co do liczby (`LIMIT_KROTKI` 200,
- * `LIMIT_AKAPIT` 2000, `LIMIT_LISTY` 50). Nie dlatego, że strona musi się
- * bronić przed własną bazą, tylko dlatego, że po obu stronach migracji ma
- * obowiązywać JEDEN kontrakt — inaczej ten sam kurs wygląda inaczej
- * w prototypie i na WordPressie, a nikt nie wie który ma rację.
+ * LIMITY i cała mechanika sprawdzania mieszkają w `Aai_Sklep_Pola`, bo
+ * korzysta z nich także treść lekcji (kontrakt W4).
  *
  * @package Aai_Sklep
  */
@@ -30,125 +30,338 @@ declare( strict_types = 1 );
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Sprawdzanie treści sekcji przed renderowaniem.
+ * Kontrakt i opis sekcji sprzedażowych.
  */
 final class Aai_Sklep_Sekcje {
 
-	/** Tytuły, etykiety, nazwy, autorzy. */
-	private const LIMIT_KROTKI = 200;
-
-	/** Opisy, bio, odpowiedzi, cytaty. */
-	private const LIMIT_AKAPIT = 2000;
-
-	/** Adresy (link autora). */
-	private const LIMIT_ADRESU = 500;
-
-	/** Pozycji w liście wewnątrz sekcji. */
-	private const LIMIT_LISTY = 50;
-
 	/**
-	 * Rodzaj sekcji → opis jej pól.
+	 * Rodzaj sekcji → nazwa, cel i opis pól.
 	 *
-	 * Typy: `krotki` (tekst do 200 znaków), `akapit` (do 2000), `adres`,
+	 * Typy pól: `krotki` (do 200 znaków), `akapit` (do 2000), `adres`,
 	 * `lista_tekstow`, `lista_obiektow` (z `pola`), `obiekt` (z `pola`).
 	 * `wymagane` = brak pola albo zły typ przewraca CAŁĄ sekcję; pole
 	 * opcjonalne o złym typie jest po prostu pomijane.
 	 *
 	 * Kolejność rodzajów jest tu alfabetyczna dla czytelności — o kolejności
-	 * NA STRONIE decyduje szablon `szablony/kurs.php` (psychologia scrolla
-	 * z briefu B5), nie ta tablica i nie baza.
+	 * NA STRONIE decyduje `KOLEJNOSC`, a o kolejności W PANELU
+	 * `kolejnosc_w_panelu()`.
 	 */
 	private const SCHEMATY = array(
 		'author'         => array(
-			'imie'             => array( 'typ' => 'krotki', 'wymagane' => true ),
-			'rola'             => array( 'typ' => 'krotki' ),
-			'bio'              => array( 'typ' => 'akapit', 'wymagane' => true ),
-			'atuty'            => array( 'typ' => 'lista_tekstow' ),
-			'cytat'            => array( 'typ' => 'akapit' ),
-			'czym_sie_zajmuje' => array( 'typ' => 'lista_tekstow' ),
-			'link'             => array(
-				'typ'  => 'obiekt',
-				'pola' => array(
-					'url'      => array( 'typ' => 'adres', 'wymagane' => true ),
-					'etykieta' => array( 'typ' => 'krotki', 'wymagane' => true ),
+			'nazwa' => 'Autor',
+			'cel'   => 'Dlaczego akurat Ty uczysz tego tematu.',
+			'pola'  => array(
+				'imie'             => array(
+					'typ'      => 'krotki',
+					'wymagane' => true,
+					'etykieta' => 'Imię i nazwisko',
+				),
+				'rola'             => array(
+					'typ'         => 'krotki',
+					'etykieta'    => 'Rola',
+					'placeholder' => 'Twórca Automatic AI',
+				),
+				'bio'              => array(
+					'typ'      => 'akapit',
+					'wymagane' => true,
+					'etykieta' => 'Bio',
+				),
+				'atuty'            => array(
+					'typ'            => 'lista_tekstow',
+					'etykieta'       => 'Atuty',
+					'nazwa_elementu' => 'atut',
+				),
+				'cytat'            => array(
+					'typ'      => 'akapit',
+					'etykieta' => 'Osobisty powód stworzenia kursu',
+					'pomoc'    => 'Buduje zaufanie mocniej niż lista osiągnięć.',
+				),
+				'czym_sie_zajmuje' => array(
+					'typ'            => 'lista_tekstow',
+					'etykieta'       => 'Czym się zajmuję na co dzień',
+					'nazwa_elementu' => 'obszar',
+				),
+				'link'             => array(
+					'typ'      => 'obiekt',
+					'etykieta' => 'Link z dowodami',
+					'pomoc'    => 'Np. portfolio. Zostaw puste, jeśli nie chcesz linku.',
+					'pola'     => array(
+						'url'      => array(
+							'typ'         => 'adres',
+							'wymagane'    => true,
+							'etykieta'    => 'Adres',
+							'placeholder' => 'https://automaticai.pl',
+						),
+						'etykieta' => array(
+							'typ'         => 'krotki',
+							'wymagane'    => true,
+							'etykieta'    => 'Napis na linku',
+							'placeholder' => 'Zobacz realizacje',
+						),
+					),
 				),
 			),
 		),
 		'benefits'       => array(
-			'punkty' => array(
-				'typ'      => 'lista_obiektow',
-				'wymagane' => true,
-				'pola'     => array(
-					'tytul' => array( 'typ' => 'krotki', 'wymagane' => true ),
-					'opis'  => array( 'typ' => 'akapit' ),
+			'nazwa' => 'Korzyści',
+			'cel'   => 'Co kupujący będzie UMIAŁ, nie co jest w środku.',
+			'pola'  => array(
+				'punkty' => array(
+					'typ'            => 'lista_obiektow',
+					'wymagane'       => true,
+					'etykieta'       => 'Korzyści',
+					'nazwa_elementu' => 'korzyść',
+					'pola'           => array(
+						'tytul' => array(
+							'typ'      => 'krotki',
+							'wymagane' => true,
+							'etykieta' => 'Tytuł',
+						),
+						'opis'  => array(
+							'typ'      => 'akapit',
+							'etykieta' => 'Opis',
+						),
+					),
 				),
 			),
 		),
 		'comparison'     => array(
-			'alternatywa_nazwa' => array( 'typ' => 'krotki', 'wymagane' => true ),
-			'alternatywa'       => array( 'typ' => 'lista_tekstow', 'wymagane' => true ),
-			'kurs'              => array( 'typ' => 'lista_tekstow', 'wymagane' => true ),
+			'nazwa' => 'Porównanie z alternatywą',
+			'cel'   => 'Uczciwe zestawienie z samodzielną nauką lub innym rozwiązaniem.',
+			'pola'  => array(
+				'alternatywa_nazwa' => array(
+					'typ'         => 'krotki',
+					'wymagane'    => true,
+					'etykieta'    => 'Nazwa alternatywy',
+					'placeholder' => 'Nauka na własną rękę',
+				),
+				'alternatywa'       => array(
+					'typ'            => 'lista_tekstow',
+					'wymagane'       => true,
+					'etykieta'       => 'Alternatywa — jak to wygląda',
+					'nazwa_elementu' => 'punkt',
+				),
+				'kurs'              => array(
+					'typ'            => 'lista_tekstow',
+					'wymagane'       => true,
+					'etykieta'       => 'Ten kurs — jak to wygląda',
+					'nazwa_elementu' => 'punkt',
+				),
+			),
 		),
 		'faq'            => array(
-			'pytania' => array(
-				'typ'      => 'lista_obiektow',
-				'wymagane' => true,
-				'pola'     => array(
-					'pytanie'   => array( 'typ' => 'krotki', 'wymagane' => true ),
-					'odpowiedz' => array( 'typ' => 'akapit', 'wymagane' => true ),
+			'nazwa' => 'FAQ',
+			'cel'   => 'Ostatnie obiekcje przed zakupem.',
+			'pola'  => array(
+				'pytania' => array(
+					'typ'            => 'lista_obiektow',
+					'wymagane'       => true,
+					'etykieta'       => 'Pytania',
+					'nazwa_elementu' => 'pytanie',
+					'pola'           => array(
+						'pytanie'   => array(
+							'typ'      => 'krotki',
+							'wymagane' => true,
+							'etykieta' => 'Pytanie',
+						),
+						'odpowiedz' => array(
+							'typ'      => 'akapit',
+							'wymagane' => true,
+							'etykieta' => 'Odpowiedź',
+						),
+					),
 				),
 			),
 		),
 		'for_whom'       => array(
-			'punkty'  => array( 'typ' => 'lista_tekstow', 'wymagane' => true ),
-			'nie_dla' => array( 'typ' => 'lista_tekstow' ),
+			'nazwa' => 'Dla kogo',
+			'cel'   => 'Kto skorzysta — i uczciwie: kto nie.',
+			'pola'  => array(
+				'punkty'  => array(
+					'typ'            => 'lista_tekstow',
+					'wymagane'       => true,
+					'etykieta'       => 'Kurs jest dla Ciebie, jeśli…',
+					'nazwa_elementu' => 'punkt',
+				),
+				'nie_dla' => array(
+					'typ'            => 'lista_tekstow',
+					'etykieta'       => 'To NIE jest dla Ciebie, jeśli…',
+					'nazwa_elementu' => 'punkt',
+					'pomoc'          => 'Uczciwe odsianie buduje zaufanie mocniej niż obietnice.',
+				),
+			),
 		),
 		'guarantee'      => array(
-			'naglowek' => array( 'typ' => 'krotki', 'wymagane' => true ),
-			'tekst'    => array( 'typ' => 'akapit', 'wymagane' => true ),
+			'nazwa' => 'Gwarancja',
+			'cel'   => 'Zdejmuje ryzyko z kupującego.',
+			'pola'  => array(
+				'naglowek' => array(
+					'typ'      => 'krotki',
+					'wymagane' => true,
+					'etykieta' => 'Nagłówek',
+				),
+				'tekst'    => array(
+					'typ'      => 'akapit',
+					'wymagane' => true,
+					'etykieta' => 'Treść',
+				),
+			),
 		),
 		'hero'           => array(
-			'obietnica'   => array( 'typ' => 'akapit', 'wymagane' => true ),
-			'rozwiniecie' => array( 'typ' => 'akapit' ),
-			'dla_kogo'    => array( 'typ' => 'akapit' ),
+			'nazwa' => 'Hero — pierwszy ekran',
+			'cel'   => 'Pierwsze 3 sekundy: obietnica efektu, nie opis produktu.',
+			'pola'  => array(
+				'obietnica'   => array(
+					'typ'         => 'akapit',
+					'wymagane'    => true,
+					'etykieta'    => 'Obietnica',
+					'wiersze'     => 2,
+					'placeholder' => 'Zamień Claude w narzędzie, które realnie skraca Twoją pracę',
+					'pomoc'       => 'Nagłówek nad tytułem kursu — efekt, nie temat.',
+				),
+				'rozwiniecie' => array(
+					'typ'      => 'akapit',
+					'etykieta' => 'Rozwinięcie',
+					'pomoc'    => 'Jedno–dwa zdania pod tytułem: co konkretnie dostaje kupujący.',
+				),
+				'dla_kogo'    => array(
+					'typ'      => 'akapit',
+					'etykieta' => 'Dla kogo (jedno zdanie)',
+					'wiersze'  => 2,
+					'pomoc'    => 'Hero ma od razu odpowiadać, czy to kurs dla tej osoby.',
+				),
+			),
 		),
 		'opinions'       => array(
-			'opinie' => array(
-				'typ'      => 'lista_obiektow',
-				'wymagane' => true,
-				'pola'     => array(
-					'tekst' => array( 'typ' => 'akapit', 'wymagane' => true ),
-					'autor' => array( 'typ' => 'krotki', 'wymagane' => true ),
-					'rola'  => array( 'typ' => 'krotki' ),
+			'nazwa' => 'Opinie',
+			'cel'   => 'Dowód społeczny — konkretna osoba, konkretny efekt.',
+			'pola'  => array(
+				'opinie' => array(
+					'typ'            => 'lista_obiektow',
+					'wymagane'       => true,
+					'etykieta'       => 'Opinie',
+					'nazwa_elementu' => 'opinia',
+					'pola'           => array(
+						'tekst' => array(
+							'typ'      => 'akapit',
+							'wymagane' => true,
+							'etykieta' => 'Treść opinii',
+						),
+						'autor' => array(
+							'typ'      => 'krotki',
+							'wymagane' => true,
+							'etykieta' => 'Autor',
+						),
+						'rola'  => array(
+							'typ'      => 'krotki',
+							'etykieta' => 'Rola / firma',
+						),
+					),
 				),
 			),
 		),
 		'package'        => array(
-			'punkty'     => array(
-				'typ'      => 'lista_obiektow',
-				'wymagane' => true,
-				'pola'     => array(
-					'tytul' => array( 'typ' => 'krotki', 'wymagane' => true ),
-					'opis'  => array( 'typ' => 'akapit' ),
+			'nazwa' => 'Co otrzymujesz (oferta)',
+			'cel'   => 'Konkret za cenę + kotwica cenowa i zdanie domykające nad CTA.',
+			'pola'  => array(
+				'punkty'     => array(
+					'typ'            => 'lista_obiektow',
+					'wymagane'       => true,
+					'etykieta'       => 'Elementy pakietu',
+					'nazwa_elementu' => 'element',
+					'pola'           => array(
+						'tytul' => array(
+							'typ'      => 'krotki',
+							'wymagane' => true,
+							'etykieta' => 'Tytuł',
+						),
+						'opis'  => array(
+							'typ'      => 'akapit',
+							'etykieta' => 'Opis',
+						),
+					),
+				),
+				'kotwica'    => array(
+					'typ'      => 'akapit',
+					'etykieta' => 'Kotwica cenowa',
+					'pomoc'    => 'Z czym porównać cenę, żeby wyglądała na to, czym jest.',
+				),
+				'w_cenie'    => array(
+					'typ'            => 'lista_tekstow',
+					'etykieta'       => 'W cenie',
+					'nazwa_elementu' => 'pozycja',
+					'pomoc'          => 'Warunki zakupu pokazywane przy cenie (np. dostęp bezterminowy).',
+				),
+				'domkniecie' => array(
+					'typ'      => 'akapit',
+					'etykieta' => 'Zdanie domykające',
+					'pomoc'    => 'Ostatnie zdanie tuż nad przyciskiem zakupu.',
 				),
 			),
-			'kotwica'    => array( 'typ' => 'akapit' ),
-			'w_cenie'    => array( 'typ' => 'lista_tekstow' ),
-			'domkniecie' => array( 'typ' => 'akapit' ),
 		),
 		'positioning'    => array(
-			'nie_jest' => array( 'typ' => 'lista_tekstow', 'wymagane' => true ),
-			'jest'     => array( 'typ' => 'lista_tekstow', 'wymagane' => true ),
+			'nazwa' => 'To NIE jest / to JEST',
+			'cel'   => 'Ucina złe oczekiwania, zanim staną się zwrotem pieniędzy.',
+			'pola'  => array(
+				'nie_jest' => array(
+					'typ'            => 'lista_tekstow',
+					'wymagane'       => true,
+					'etykieta'       => 'To NIE jest',
+					'nazwa_elementu' => 'punkt',
+				),
+				'jest'     => array(
+					'typ'            => 'lista_tekstow',
+					'wymagane'       => true,
+					'etykieta'       => 'To JEST',
+					'nazwa_elementu' => 'punkt',
+				),
+			),
 		),
 		'problem'        => array(
-			'wstep'       => array( 'typ' => 'akapit', 'wymagane' => true ),
-			'problem'     => array( 'typ' => 'akapit', 'wymagane' => true ),
-			'rozwiazanie' => array( 'typ' => 'akapit', 'wymagane' => true ),
-			'rezultat'    => array( 'typ' => 'akapit', 'wymagane' => true ),
+			'nazwa' => 'Dlaczego ten kurs',
+			'cel'   => 'Sprzedajemy zmianę: problem → rozwiązanie → rezultat.',
+			'pola'  => array(
+				'wstep'       => array(
+					'typ'      => 'akapit',
+					'wymagane' => true,
+					'etykieta' => 'Wstęp',
+				),
+				'problem'     => array(
+					'typ'      => 'akapit',
+					'wymagane' => true,
+					'etykieta' => 'Problem',
+					'pomoc'    => 'Sytuacja, którą czytelnik rozpozna u siebie.',
+				),
+				'rozwiazanie' => array(
+					'typ'      => 'akapit',
+					'wymagane' => true,
+					'etykieta' => 'Rozwiązanie',
+				),
+				'rezultat'    => array(
+					'typ'      => 'akapit',
+					'wymagane' => true,
+					'etykieta' => 'Rezultat',
+					'pomoc'    => 'Stan PO kursie — mierzalny, nie ogólnikowy.',
+				),
+			),
 		),
 		'transformation' => array(
-			'przed' => array( 'typ' => 'lista_tekstow', 'wymagane' => true ),
-			'po'    => array( 'typ' => 'lista_tekstow', 'wymagane' => true ),
+			'nazwa' => 'Przed / po',
+			'cel'   => 'Ta sama osoba przed kursem i po nim.',
+			'pola'  => array(
+				'przed' => array(
+					'typ'            => 'lista_tekstow',
+					'wymagane'       => true,
+					'etykieta'       => 'Przed',
+					'nazwa_elementu' => 'punkt',
+				),
+				'po'    => array(
+					'typ'            => 'lista_tekstow',
+					'wymagane'       => true,
+					'etykieta'       => 'Po',
+					'nazwa_elementu' => 'punkt',
+				),
+			),
 		),
 	);
 
@@ -160,12 +373,13 @@ final class Aai_Sklep_Sekcje {
 	 * a NIE z bazy: tabela sekcji nie ma kolumny `position` (decyzja właściciela
 	 * 2026-08-25), bo o układzie strony decyduje projekt, nie dane.
 	 *
-	 * DLACZEGO TU, A NIE W SZABLONIE. Bo pytają o to DWA miejsca: szablon
-	 * (co narysować) i warstwa SEO (o czym wolno powiedzieć w danych
-	 * strukturalnych). Gdy każde miało własną listę, dało się je rozjechać —
-	 * i test negatywny to pokazał: sekcja FAQ usunięta ze strony nadal
-	 * wystawiała `FAQPage` z pytaniami, których klient nie widzi. Jedna lista
-	 * czyni ten rozjazd niemożliwym, zamiast pilnowanym.
+	 * DLACZEGO TU, A NIE W SZABLONIE. Bo pytają o to TRZY miejsca: szablon
+	 * (co narysować), warstwa SEO (o czym wolno powiedzieć w danych
+	 * strukturalnych) i od W4 panel (w jakiej kolejności pokazać zakładki
+	 * sekcji). Gdy każde miało własną listę, dało się je rozjechać — i test
+	 * negatywny to pokazał: sekcja FAQ usunięta ze strony nadal wystawiała
+	 * `FAQPage` z pytaniami, których klient nie widzi. Jedna lista czyni ten
+	 * rozjazd niemożliwym, zamiast pilnowanym.
 	 *
 	 * Wpisy z „#" to sekcje WŁASNE strony (program, platforma, oferta) —
 	 * powstają z kolumn kursu, nie z tabeli sekcji.
@@ -207,6 +421,37 @@ final class Aai_Sklep_Sekcje {
 	}
 
 	/**
+	 * KOLEJNOŚĆ SEKCJI W PANELU — wyprowadzona, nie wpisana.
+	 *
+	 * Właściciel ma wypełniać sekcje w tej kolejności, w jakiej zobaczy je
+	 * kupujący (zasada z D6). Lista powstaje z `KOLEJNOSC`, więc nowy rodzaj
+	 * dopisany do strony sam wchodzi do panelu; `hero` i `guarantee` stoją
+	 * tam, gdzie strona je rysuje (przed rytmem i w karcie oferty), a na
+	 * końcu dokładamy każdy rodzaj, którego strona jeszcze nie umieściła —
+	 * dzięki temu rodzaj z kontraktu NIE MOŻE wypaść z panelu.
+	 *
+	 * @return string[]
+	 */
+	public static function kolejnosc_w_panelu(): array {
+		$kolejnosc = array( 'hero' );
+		foreach ( self::KOLEJNOSC as $pozycja ) {
+			if ( '#cena' === $pozycja[0] ) {
+				$kolejnosc[] = 'guarantee';
+				continue;
+			}
+			if ( ! str_starts_with( $pozycja[0], '#' ) ) {
+				$kolejnosc[] = $pozycja[0];
+			}
+		}
+		foreach ( self::rodzaje() as $rodzaj ) {
+			if ( ! in_array( $rodzaj, $kolejnosc, true ) ) {
+				$kolejnosc[] = $rodzaj;
+			}
+		}
+		return array_values( array_intersect( $kolejnosc, self::rodzaje() ) );
+	}
+
+	/**
 	 * Wszystkie rodzaje sekcji, które umiemy wyświetlić.
 	 *
 	 * @return string[]
@@ -216,141 +461,69 @@ final class Aai_Sklep_Sekcje {
 	}
 
 	/**
-	 * Sprawdza treść jednej sekcji.
+	 * Nazwa i cel rodzaju sekcji — do nagłówka w panelu.
+	 *
+	 * @param string $rodzaj Rodzaj sekcji.
+	 * @return array{nazwa:string,cel:string}|null
+	 */
+	public static function opis( string $rodzaj ): ?array {
+		if ( ! isset( self::SCHEMATY[ $rodzaj ] ) ) {
+			return null;
+		}
+		return array(
+			'nazwa' => self::SCHEMATY[ $rodzaj ]['nazwa'],
+			'cel'   => self::SCHEMATY[ $rodzaj ]['cel'],
+		);
+	}
+
+	/**
+	 * Opis pól jednego rodzaju sekcji.
+	 *
+	 * @param string $rodzaj Rodzaj sekcji.
+	 * @return array<string,array<string,mixed>>
+	 */
+	public static function pola( string $rodzaj ): array {
+		return self::SCHEMATY[ $rodzaj ]['pola'] ?? array();
+	}
+
+	/**
+	 * Sprawdza treść jednej sekcji POBŁAŻLIWIE — do renderowania strony.
 	 *
 	 * @param string $rodzaj Rodzaj sekcji (kolumna `kind`).
 	 * @param mixed  $tresc  Treść po `json_decode`.
 	 * @return array<string,mixed>|null Sprawdzona treść albo null (sekcja znika).
 	 */
 	public static function sprawdz( string $rodzaj, $tresc ): ?array {
-		if ( ! isset( self::SCHEMATY[ $rodzaj ] ) || ! is_array( $tresc ) ) {
+		if ( ! isset( self::SCHEMATY[ $rodzaj ] ) ) {
 			return null;
 		}
-
-		$wynik = array();
-		foreach ( self::SCHEMATY[ $rodzaj ] as $nazwa => $opis ) {
-			$wartosc = $tresc[ $nazwa ] ?? null;
-			$czyste  = null === $wartosc ? null : self::wartosc( $wartosc, $opis );
-
-			if ( null === $czyste ) {
-				// Brak wymaganego pola przewraca sekcję. Pole opcjonalne
-				// po prostu nie wchodzi — szablon i tak pyta o jego istnienie.
-				if ( ! empty( $opis['wymagane'] ) ) {
-					return null;
-				}
-				continue;
-			}
-			$wynik[ $nazwa ] = $czyste;
-		}
-		return $wynik;
+		return Aai_Sklep_Pola::poblazliwie( self::pola( $rodzaj ), $tresc );
 	}
 
 	/**
-	 * Sprawdza jedną wartość wg opisu pola.
+	 * Sprawdza treść jednej sekcji ŚCIŚLE — do zapisu z kreatora.
 	 *
-	 * @param mixed                $wartosc Wartość z bazy.
-	 * @param array<string,mixed>  $opis    Opis pola ze schematu.
-	 * @return mixed|null Null = wartość nie pasuje do opisu.
+	 * Różnica wobec `sprawdz()` jest celowa: przy renderowaniu zła treść
+	 * znika (jedna zepsuta sekcja nie wysadza oferty), przy zapisie WRACA
+	 * jako błąd ze ścieżką do pola. Cicho odsiana treść wygląda dla
+	 * właściciela jak utrata pracy — a to najgorsza klasa błędu w tym
+	 * projekcie.
+	 *
+	 * @param string               $rodzaj  Rodzaj sekcji.
+	 * @param mixed                $tresc   Treść z formularza.
+	 * @param string               $sciezka Przedrostek ścieżki błędu.
+	 * @param array<string,string> $bledy   Zebrane błędy (przez referencję).
+	 * @return array<string,mixed>
 	 */
-	private static function wartosc( $wartosc, array $opis ) {
-		switch ( $opis['typ'] ) {
-			case 'krotki':
-				return self::tekst( $wartosc, self::LIMIT_KROTKI );
-
-			case 'akapit':
-				return self::tekst( $wartosc, self::LIMIT_AKAPIT );
-
-			case 'adres':
-				$adres = self::tekst( $wartosc, self::LIMIT_ADRESU );
-				// `esc_url` dopiero przy druku; tutaj odsiewamy schematy
-				// spoza białej listy, żeby `javascript:` nie dojechało do
-				// szablonu w ogóle.
-				return null !== $adres && wp_http_validate_url( $adres ) ? $adres : null;
-
-			case 'lista_tekstow':
-				return self::lista(
-					$wartosc,
-					static fn( $element ) => self::tekst( $element, self::LIMIT_AKAPIT )
-				);
-
-			case 'lista_obiektow':
-				return self::lista(
-					$wartosc,
-					static fn( $element ) => self::obiekt( $element, $opis['pola'] )
-				);
-
-			case 'obiekt':
-				return self::obiekt( $wartosc, $opis['pola'] );
+	public static function sprawdz_scisle( string $rodzaj, $tresc, string $sciezka, array &$bledy ): array {
+		if ( ! isset( self::SCHEMATY[ $rodzaj ] ) ) {
+			$bledy[ $sciezka ] = sprintf(
+				/* translators: %s: nazwa rodzaju sekcji. */
+				__( 'Nieznany rodzaj sekcji: %s', 'aai-sklep' ),
+				$rodzaj
+			);
+			return array();
 		}
-		return null;
-	}
-
-	/**
-	 * Tekst w granicach limitu. Pusty tekst traktujemy jak brak — sekcja
-	 * z pustym napisem wyglądałaby jak usterka renderowania.
-	 *
-	 * @param mixed $wartosc Wartość z bazy.
-	 * @param int   $limit   Maksymalna liczba znaków.
-	 */
-	private static function tekst( $wartosc, int $limit ): ?string {
-		if ( ! is_string( $wartosc ) ) {
-			return null;
-		}
-		$czysty = trim( $wartosc );
-		if ( '' === $czysty || mb_strlen( $czysty, 'UTF-8' ) > $limit ) {
-			return null;
-		}
-		return $czysty;
-	}
-
-	/**
-	 * Lista, w której każdy element przechodzi przez `$sprawdzacz`.
-	 *
-	 * Element, który nie przechodzi, WYPADA z listy — reszta zostaje.
-	 * Jedna zepsuta opinia nie ma prawa skasować pięciu dobrych.
-	 *
-	 * @param mixed    $wartosc    Wartość z bazy.
-	 * @param callable $sprawdzacz Sprawdzanie pojedynczego elementu.
-	 * @return array<int,mixed>|null
-	 */
-	private static function lista( $wartosc, callable $sprawdzacz ): ?array {
-		if ( ! is_array( $wartosc ) || count( $wartosc ) > self::LIMIT_LISTY ) {
-			return null;
-		}
-		$wynik = array();
-		foreach ( $wartosc as $element ) {
-			$czysty = $sprawdzacz( $element );
-			if ( null !== $czysty ) {
-				$wynik[] = $czysty;
-			}
-		}
-		return $wynik;
-	}
-
-	/**
-	 * Obiekt o polach opisanych schematem.
-	 *
-	 * @param mixed                            $wartosc Wartość z bazy.
-	 * @param array<string,array<string,mixed>> $pola   Opis pól.
-	 * @return array<string,mixed>|null
-	 */
-	private static function obiekt( $wartosc, array $pola ): ?array {
-		if ( ! is_array( $wartosc ) ) {
-			return null;
-		}
-		$wynik = array();
-		foreach ( $pola as $nazwa => $opis ) {
-			$czysty = isset( $wartosc[ $nazwa ] )
-				? self::wartosc( $wartosc[ $nazwa ], $opis )
-				: null;
-			if ( null === $czysty ) {
-				if ( ! empty( $opis['wymagane'] ) ) {
-					return null;
-				}
-				continue;
-			}
-			$wynik[ $nazwa ] = $czysty;
-		}
-		return $wynik;
+		return Aai_Sklep_Pola::scisle( self::pola( $rodzaj ), $tresc, $sciezka, $bledy );
 	}
 }

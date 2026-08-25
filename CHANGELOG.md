@@ -5,6 +5,153 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.42.0] — 2026-08-25
+
+**Właściciel może wreszcie zmienić treść w WordPressie.** Krok W4 etapu
+WordPress: kreator z Działu 6 przeniesiony do kokpitu — kurs, program,
+dwanaście rodzajów sekcji sprzedażowych i treść lekcji. Do tego wydania
+jedyną drogą do treści był import z Postgresa komendą wiersza poleceń.
+
+Wygląd panelu: **natywny kokpit WordPressa z akcentem volt** (decyzja
+właściciela 2026-08-25). Okładkę wybiera się **z biblioteki mediów** — prototyp
+odrzucił wgrywanie 2026-08-17 tylko dlatego, że nie miał gdzie trzymać plików.
+
+### Dodane
+
+- **Kreator w kokpicie** (`Aai_Sklep_Panel`) — menu „Automatic AI": lista
+  kursów z licznikami postępu (sekcje, moduły, lekcje i **treść lekcji N/M**),
+  edytor kursu z trzema zakładkami i JEDNYM zapisem, osobny edytor treści
+  lekcji. Uprawnienie `manage_options` — to samo, którym W3 wpuszcza na
+  szkice; token z prototypu **nie** jedzie do WordPressa, bo byłby drugim,
+  słabszym systemem uprawnień obok istniejącego.
+- **Kontrakt zapisu** (`Aai_Sklep_Kontrakt`) — to, czego W2 świadomie nie
+  zrobił („kontrakt pól przychodzi z kreatorem w kroku W4"). Port `KursWejscie`,
+  `TrescLekcji` i `MaterialLekcji` z `modules/m1-sklep/typy.ts` co do liczby,
+  razem z blokadami z przeglądu B7: powtórzony `id` modułu albo lekcji,
+  powtórzony rodzaj sekcji, powtórzona pozycja w jednym rodzicu. Błąd wraca ze
+  **ścieżką do pola** (`moduly[2].lekcje[7].title`), a nie jako „zapis się nie
+  powiódł".
+- **Silnik opisu pól** (`Aai_Sklep_Pola`) — jedno miejsce, które wie, co znaczy
+  „pole typu akapit". Odpowiada na cztery pytania naraz: czy treść z bazy da się
+  wyświetlić, czy treść z formularza wolno zapisać, jak narysować kontrolkę
+  i czego w sekcji brakuje. Port `components/kreator/tresc-sekcji.ts`.
+- **Etykiety pól przeniesione DO KONTRAKTU** (`Aai_Sklep_Sekcje::SCHEMATY`).
+  W prototypie mieszkały osobno (`opis-sekcji.ts`) i mogły rozjechać się
+  z kontraktem — pilnował tego `straznik-kreatora`. Tutaj panel rysuje się
+  z TEJ SAMEJ tablicy, którą sprawdzana jest treść, więc rozjazd jest
+  **niemożliwy, a nie pilnowany** (to samo rozwiązanie, co `KOLEJNOSC`).
+- **`Aai_Sklep_Sekcje::kolejnosc_w_panelu()`** — kolejność zakładek sekcji
+  wyprowadzona z `KOLEJNOSC`, domknięta pętlą po wszystkich rodzajach. Rodzaj
+  dopisany do kontraktu nie ma jak wypaść z panelu.
+- **Warstwa odczytu panelu** (`Aai_Sklep_Odczyt_Panelu`) — osobno od odczytu
+  dla strony, bo odpowiada na inne pytania: wszystkie stany kursu, sekcje
+  **surowe** (bez pobłażliwego odsiewu — edytor ma pozwolić NAPRAWIĆ zły
+  rekord, a nie ukryć go) i treść lekcji. Kolumnę `lessons.content` czyta
+  wyłącznie ta klasa, za bramą uprawnień.
+- **Trzy nowe drogi w warstwie zapisu**: `zapisz_tresc_lekcji()` (osobna akcja
+  na materiał — ładunek i ryzyko, jak w prototypie), `ustaw_status()`
+  (publikacja bez przepisywania kursu) oraz **rozróżnienie braku klucza
+  `content`/`materials` od pustej wartości** — patrz „Naprawione".
+- **`straznik-kreatora-wp`** (32. strażnik, 11 mutacji) i **`smoke-wp-kreator`**
+  (`npm run smoke:wp-kreator`, 92 sprawdzenia) — szczegóły niżej.
+- **`wp aai-sklep opis --format=json`** — komenda diagnostyczna z opisem pól.
+  Dzięki niej smoke generuje przykładową treść Z KONTRAKTU, a nie z listy
+  wpisanej w teście: pole dopisane do kontraktu samo wchodzi do rundy
+  „zapisz → odczytaj". Mechanizm wprost z Działu 6.
+
+### Naprawione
+
+- **BLAD-017 — link autora ZNIKAŁ ze strony sprzedażowej.** Sekcja `author`
+  obu kursów ma w bazie odnośnik `https://automaticai.pl`, a na żywej stronie
+  napisu „Zobacz moje projekty" **nie było** (grep po HTML-u bez `<script>`:
+  0 trafień). Kontrola pola typu `adres` używała `wp_http_validate_url()` —
+  funkcji od SSRF, która rozwiązuje nazwę w DNS-ie i odrzuca hosty, których nie
+  umie rozwiązać. `automaticai.pl` to domena docelowa, **jeszcze niekupiona**,
+  więc każdy odnośnik do niej był po cichu odsiewany. Wyszło dopiero przy W4:
+  ścisły kontrakt kreatora odrzucił poprawny adres komunikatem „podaj pełny
+  adres http/https". Teraz pytamy o to, o co naprawdę chodzi — czy adres wolno
+  **wydrukować**: biała lista schematów, odrzucenie loginu i hasła w adresie,
+  zero DNS-u.
+- **Zapis programu nie kasuje napisanej treści.** Do 0.41.0 warstwa zapisu
+  budowała lekcję docelową jako `(string) ( $l['content'] ?? '' )`, więc BRAK
+  klucza znaczył pustkę. Kreator wysyła sam spis treści (tytuły, kolejność,
+  czasy) — pierwsze naciśnięcie „Zapisz kurs" wyczyściłoby prozę 73 lekcji
+  i zameldowało sukces. Teraz brak klucza znaczy „nie ruszaj"; klucz podany,
+  choćby pusty, dalej znaczy dokładnie to, co przyszło (import wysyła te
+  kolumny zawsze, więc jego zachowanie jest bez zmian). Sprawdzone testem
+  negatywnym: po zdjęciu tego rozróżnienia smoke zapala się na obu kursach.
+- **Zajęty adres (slug) wskazuje POLE, nie awarię.** Bez tego baza odrzucała
+  zapis kluczem `UNIQUE`, a panel mówił „zapis się nie powiódł" — czyli
+  o czymś zupełnie innym niż to, co trzeba poprawić.
+- **Brak klucza `sekcje`/`moduly` KASOWAŁ sekcje i program** (znalezione
+  w przeglądzie kroku, potwierdzone uruchomieniowo: „po utworzeniu: sekcji=1
+  moduly=1" → „po zapisie bez kluczy: sekcji=0 moduly=0"). Kontrakt i sam plik
+  warstwy zapisu obiecywały co innego — „brak klucza znaczy nie ruszaj" — więc
+  była to nieprawda w dokumentacji **o zachowaniu kasującym dane**. Panel
+  zawsze wysyła oba klucze, więc z zewnątrz nie było tego widać; usterka
+  czekała na pierwszego nowego klienta tej warstwy, czyli na synchronizację
+  do Tutora w W5.
+- **Zapis kursu ze starszej karty CICHO cofał publikację.** Formularz edytora
+  niósł stan kursu w polu ukrytym, a publikację klika się na LIŚCIE — więc
+  wystarczyło mieć edytor otwarty przed publikacją, żeby poprawka jednego
+  zdania wyrzuciła kurs z katalogu z komunikatem „zapisano". Potwierdzone
+  uruchomieniowo. Formularz nie niesie już stanu, a warstwa zapisu rozumie
+  brak tego klucza jako „zostaw, jak jest".
+
+### Zmienione
+
+- **`Aai_Sklep_Trasy::widzi_szkice()`** pyta o `Aai_Sklep_Panel::UPRAWNIENIE`
+  zamiast o wpisany na sztywno `manage_options` — jedno źródło odpowiedzi na
+  pytanie „czy ta osoba zarządza sklepem".
+- **Typ produktu `ebook` NIE wchodzi do panelu.** Prototyp ma go w enumie;
+  właściciel zamknął ten temat 2026-08-25 słowem „na zawsze". Panel, który
+  dawałby ebooka do wyboru, byłby zaproszeniem do złamania tej decyzji jednym
+  kliknięciem. Oba kursy w bazie mają `kurs` — sprawdzone, nic nie staje się
+  przez to nieedytowalne.
+- **Pierwszy zapis kursu przez panel porządkuje kolejność kluczy w JSON-ie
+  sekcji** (treść bez zmian co do znaku). Kolejne zapisy nie ruszają niczego —
+  sprawdzone: drugi zapis oddaje „bez zmian" i zero wpisów w dzienniku audytu.
+
+### Do zapamiętania
+
+- **`add_submenu_page()` + `remove_submenu_page()` NIE robi ukrytej strony.**
+  Wygląda na czystszą drogę i jest pułapką: `remove_submenu_page` wycina wpis
+  z `$submenu`, a `get_admin_page_parent()` szuka rodzica właśnie tam — bez
+  niego `admin.php` nie znajduje haka strony i oddaje **403 „Sorry, you are not
+  allowed to access this page"**. Wygląda to jak błąd uprawnień, a jest błędem
+  rejestracji. Ukrytą stronę robi `null` jako rodzic.
+- **Sekcje i program jadą w POST jako JEDEN JSON**, a nie jako setki pól.
+  `max_input_vars` (domyślnie 1000) ucina POST **w milczeniu**, a kurs z 41
+  lekcjami wystawiłby setki pól — cicha utrata treści. Wysyłka całego kursu ma
+  dziś **17 pól**. Pola ukryte z JSON-em startują wypełnione stanem z bazy, więc
+  gdyby skrypt panelu nie wystartował, zapis jest pusty w skutkach zamiast
+  czyścić kurs.
+- **Treść lekcji NIE idzie przez `sanitize_text_field`** (skleiłoby Markdown
+  w jedną linię), ale MUSI iść przez `wp_unslash` — WordPress dokłada do
+  `$_POST` ukośniki, więc bez tego `C:\Users` z kursu o Gicie zapisałoby się
+  jako `C:\\Users`. Sprawdzone testem negatywnym.
+- **Test negatywny na warstwie zapisu KASUJE prawdziwe dane.** Mutacja „brak
+  klucza `content` znaczy pustkę" wyczyściła prozę wszystkich 73 lekcji, bo
+  smoke zapisuje też prawdziwe kursy (dowód, że panel ich nie rusza). Droga
+  powrotna: `npm run wp:import` → `npm run wp:sprawdz` (73/73 co do znaku).
+  Przed takim testem robić zrzut tabel.
+
+### Stan dowodów
+
+Strażnicy **32/32**, audyt mutacyjny **133** (0 przeoczonych, 0 martwych),
+`smoke-wp-kreator` **95**, `smoke-wp-front` **78**, `smoke-wp-motyw` **32**,
+`smoke-wp-dane` **30**, `wp:sprawdz` **73/73 co do znaku**, prototyp bez
+regresji (`npm run check`).
+
+Po napisaniu kroku wykonany został jego **przegląd** — pięć obszarów
+(bezpieczeństwo wysyłek, bezpieczeństwo danych, zgodność z kontraktem
+prototypu, zachowanie panelu, ucieczka znaków), każde znalezisko potwierdzone
+uruchomieniowo na żywej instalacji, zanim powstała naprawa. Dwa znaleziska
+realne (wyżej), trzy sprawdzenia bez zarzutu: zamiana pozycji modułów
+przechodzi przez dwufazowe przestawianie MySQL-a, treść z `<script>`
+i `onerror` jest uciekana i w panelu, i na stronie sprzedażowej, a odmowa
+skasowania napisanej treści liczy także lekcje z usuwanych modułów.
+
 ## [0.41.0] — 2026-08-25
 
 **Klient ogląda `/szkolenia` w naszym wyglądzie, a nie w Tutorowym.** Krok W3
