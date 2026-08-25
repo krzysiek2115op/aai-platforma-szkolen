@@ -263,7 +263,7 @@ wtedy faktycznie go nie było, teraz jest.
 | `skrypty/` | `start.sh` (Docker: WP + MariaDB, `:8890`), importy PHP, eksport statyczny, **`generuj-motyw.mjs`** |
 | `docker-compose.yml`, `README.md` | warsztat i instrukcja |
 
-### Siedem faktów, które przesądzają o projekcie wtyczki
+### Osiem faktów, które przesądzają o projekcie wtyczki
 
 1. **Motyw jest KLASYCZNY.** `index.php` i `page.php` to dosłownie
    `get_header()` → `<main id="tresc">` → `get_footer()`. Nasza wtyczka
@@ -302,6 +302,33 @@ wtedy faktycznie go nie było, teraz jest.
 Dobra wiadomość: `wp_head()` jest na miejscu, a struktura
 `get_header()` / `<main>` / `get_footer()` jest dokładnie tym, czego
 potrzebuje wtyczka renderująca własne strony.
+
+8. **Motyw trzyma CAŁY swój CSS w WARSTWACH kaskady, a wtyczki nie.**
+   To Tailwind 4: `@layer properties, theme, base, components, utilities`.
+   Arkusze Tutora i WooCommerce są poza warstwami, a w kaskadzie CSS
+   **reguła bez warstwy bije każdą regułę w warstwie** — niezależnie od
+   specyficzności I od kolejności ładowania. Na stronie, gdzie CSS Tutora
+   jest obecny, **każda jego reguła wygrywa z każdą klasą motywu**, choć
+   motyw ładuje się ostatni.
+
+   Konsekwencje, wszystkie zmierzone (2026-08-25, wersja 0.40.0):
+
+   * to jest prawdziwy powód kolizji `.text-label` z 0.38.0 — nie
+     kolejność i nie specyficzność. Tamta naprawa (zdjęcie CSS-u Tutora
+     ze stron motywu) działa tylko tam, gdzie wolno go zdjąć; **na
+     własnych stronach Tutora kolizja żyła dalej** i malowała na jasno
+     nagłówek oraz stopkę motywu;
+   * nadpisanie z naszej wtyczki musi być **poza warstwami** (jest) — ale
+     wtedy bije też klasy motywu, więc do przywrócenia jego wartości
+     służy `revert-layer`, nie przepisywanie ich ręcznie;
+   * **nasze strony w W3 są bezpieczne dopóki nie ładują CSS-u Tutora**
+     — tego pilnuje `Aai_Sklep_Zasoby`. Gdyby kiedyś musiały, obowiązuje
+     ta sama reguła co wyżej.
+
+   Do tego motyw ma nagłówek `position: fixed` (72 px) i **nie rezerwuje
+   pod niego miejsca**: jego własne strony robią to same (`pt-28`,
+   `md:pt-36`). Każdy szablon spoza motywu — Tutora i **nasz** — musi
+   dodać ten odstęp sam, inaczej treść wjeżdża pod nawigację.
 
 ### Tutor LMS na PRAWDZIWYM motywie — sprawdzone
 

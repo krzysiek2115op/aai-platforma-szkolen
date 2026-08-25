@@ -5,6 +5,74 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.40.0] — 2026-08-25
+
+**Strony Tutora wyglądają jak strona Automatic AI, a nie jak cudzy serwis.**
+Zgłoszone zrzutem właściciela („nadal to samo z renderem, szukaj głębiej") —
+poprzednia poprawka zdjęła z ekranu JSON, ale nie tknęła tego, co naprawdę
+łamało wygląd.
+
+### Znalezione — przyczyna leżała w KASKADZIE, nie w kolejności arkuszy
+
+**Motyw to Tailwind 4 i trzyma CAŁY swój CSS w warstwach kaskady**
+(`@layer properties, theme, base, components, utilities`). Arkusze Tutora są
+POZA warstwami, a reguła bez warstwy **bije każdą regułę w warstwie —
+niezależnie od specyficzności i od kolejności ładowania**. Na stronie, gdzie
+CSS Tutora jest obecny, każda jego reguła wygrywa z każdą klasą motywu, choć
+motyw ładuje się ostatni.
+
+To jest prawdziwy powód kolizji `.text-label` z 0.38.0. Tamta naprawa
+(zdjęcie CSS-u Tutora ze stron motywu) działa tylko tam, gdzie wolno go
+zdjąć — **na własnych stronach Tutora kolizja żyła dalej** i malowała na
+jasno nagłówek oraz stopkę motywu. Nic przy tym nie padało.
+
+Do tego motyw ma nagłówek `position: fixed` (72 px) i **nie rezerwuje pod
+niego miejsca**: jego własne strony robią to same (`pt-28`, `md:pt-36`),
+a szablon Tutora daje `tutor-mt-16`, czyli 16 px. Stąd tytuł kursu pod
+nawigacją.
+
+### Dodane
+
+- **`assets/tutor-motyw.css` + `Aai_Sklep_Styl_Tutora`** — warstwa
+  integracji wchodząca WYŁĄCZNIE na strony Tutora (klasa `body`
+  `aai-tutor-na-motywie`): odstęp pod nagłówek, 16 zmiennych `--tutor-*`
+  przemapowanych na tokeny motywu, powierzchnie wpisane u Tutora hexem na
+  sztywno, pola formularzy i akcent volt zamiast niebieskiego.
+  Kolizję klas naprawia **`revert-layer`** — reguła bez warstwy cofa
+  właściwość do wartości z warstwy motywu, więc nie zgadujemy jego wartości
+  (są różne dla różnych elementów), tylko oddajemy mu głos.
+  **To NIE jest łatka na jedną stronę:** `/dashboard/` i archiwum
+  `/courses/` mają ten sam problem, a te strony zostają Tutora wg podziału
+  z ETAP-WP.md.
+- **`smoke-wp-motyw` (`npm run smoke:wp-motyw`)** — mierzy ŻYWĄ stronę
+  w prawdziwej przeglądarce: nachodzenie na nagłówek, kontrast KAŻDEGO
+  napisu (próg 4.5:1), jasne plamy w markupie Tutora (z pominięciem akcentu,
+  liczone po złożeniu koloru z tłem — półprzezroczysty volt nie jest jasną
+  plamą) oraz **stopkę motywu porównaną 1:1 ze stroną motywu**, co łapie
+  kolizje klas, o których dziś nie wiemy. 14 sprawdzeń.
+- Ósmy fakt o motywie w [ETAP-WP.md](docs/ETAP-WP.md) — warstwy kaskady
+  i brak rezerwacji miejsca pod nagłówek. **Dotyczy też naszych stron
+  w W3**: szablon spoza motywu musi dodać odstęp sam.
+
+### Zmienione
+
+- Komentarz `Aai_Sklep_Zasoby` mówił, że dequeue „zamyka całą klasę
+  problemu". Zamyka ją tam, gdzie wolno zdjąć cudzy arkusz — teraz jest to
+  napisane wprost, razem z drugą stroną medalu.
+- Wtyczka w wersji 0.3.0.
+
+### Dowody
+
+Pomiar w przeglądarce (puppeteer-core + systemowy Firefox, rig
+w scratchpadzie — nigdy w `package.json`): tytuł kursu **83 px pod
+nagłówkiem** zamiast pod nim, kontrast tytułu **18,27:1**, **zero** napisów
+poniżej 4,5:1 na obu stronach Tutora, **zero** jasnych plam poza akcentem,
+stopka motywu **identyczna co do piksela** z tą samą stopką na stronie
+motywu. Testy negatywne: mutacja zdejmująca odstęp → 3 elementy pod
+nagłówkiem; mutacja zdejmująca `revert-layer` → 9 z 40 elementów stopki
+rozjechanych; mutacja przywracająca białą kartę → jasna plama 87 079 px²
+i dwa napisy poniżej progu.
+
 ## [0.39.1] — 2026-08-25
 
 ### Naprawione

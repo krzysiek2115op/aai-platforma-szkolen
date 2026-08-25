@@ -17,8 +17,19 @@
  * DLACZEGO DEQUEUE, A NIE NADPISANIE JEDNEJ REGUŁY. Nadpisanie leczy
  * dzisiejszy objaw; każda aktualizacja Tutora może dołożyć następną
  * globalną klasę i wrócimy do tego samego. Zdjęcie CUDZYCH zasobów ze
- * stron, na których nie mają nic do roboty, zamyka całą klasę problemu —
- * i przy okazji zdejmuje ~0,5 MB CSS+JS z każdej strony motywu.
+ * stron, na których nie mają nic do roboty, zamyka klasę problemu TAM,
+ * GDZIE DA SIĘ JE ZDJĄĆ — i przy okazji zdejmuje ~0,5 MB CSS+JS z każdej
+ * strony motywu.
+ *
+ * CZEGO TO NIE ZAŁATWIA (uzupełnienie z 0.40.0). Na WŁASNYCH stronach
+ * Tutora jego CSS musi zostać, więc kolizja `.text-label` żyła tam dalej
+ * — i była nie do zauważenia, dopóki nikt nie zmierzył stopki na stronie
+ * kursu. Powód jest głębszy niż nazwa klasy: motyw to Tailwind 4 i trzyma
+ * CAŁY swój CSS w warstwach kaskady, a arkusze Tutora są poza warstwami.
+ * Reguła bez warstwy bije każdą regułę w warstwie, niezależnie od
+ * specyficzności i kolejności ładowania — więc NA STRONACH TUTORA KAŻDA
+ * jego reguła wygrywa z każdą klasą motywu. Tamtą stronę medalu obsługuje
+ * `Aai_Sklep_Styl_Tutora`, a pilnuje `smoke-wp-motyw`.
  *
  * DLACZEGO TO ROBI NASZA WTYCZKA. Motyw jest generowany (nie wolno w nim
  * grzebać), a Tutor i WooCommerce są zależnościami NASZEJ architektury —
@@ -72,8 +83,13 @@ final class Aai_Sklep_Zasoby {
 
 	/**
 	 * Czy bieżące żądanie to strona Tutora (kurs, lekcja, quiz, panel kursanta).
+	 *
+	 * PUBLICZNA, bo pyta o to także `Aai_Sklep_Styl_Tutora` — i ma pytać
+	 * TĘ funkcję, a nie mieć własną kopię warunku. Dwie kopie rozjechałyby
+	 * się przy pierwszej zmianie w Tutorze, a objawem byłaby strona bez
+	 * stylów albo strona motywu z cudzym CSS-em.
 	 */
-	private static function strona_tutora(): bool {
+	public static function strona_tutora(): bool {
 		if ( ! function_exists( 'tutor' ) ) {
 			return false;
 		}

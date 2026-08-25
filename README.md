@@ -46,7 +46,7 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.39.1** |
+| **Wersja** | **0.40.0** |
 | **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). Trwa **etap WordPressa** ([decyzje i plan](docs/ETAP-WP.md)): kroki W1–W2 zrobione — środowisko `wordpress/srodowisko/` (WP+motyw+Tutor+Woo na `:8892`), wtyczka `aai-sklep` z tabelami, warstwą zapisu i importem obu kursów (**73 lekcje zgodne co do znaku**, idempotencja potwierdzona). Następny: **W3 — `/szkolenia` z tabel wtyczki** |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `main` — wrócił nią 2026-08-25 razem ze scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0`). Do tego dnia domyślną była `plugin-1-sklep-kursow`, bo `main` stał celowo na 0.3.4 ([PLAN.md §5](docs/PLAN.md): moduł wchodzi na gałąź główną po ukończeniu i akceptacji całości). Gałąź modułu zostaje jako historia — jej drzewo jest identyczne z `main` |
@@ -142,6 +142,7 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run wp:import` | przenieś kursy do tabel wtyczki WordPressa: eksport → kopia do kontenera → `wp aai-sklep import`. **Jedna komenda dla człowieka i dla skryptu** — rozjazd tych dwóch dróg kosztował nas już wydanie (0.24.0, BLAD-012) |
 | `npm run wp:sprawdz` | czy obie bazy niosą tę samą treść? — porównuje Postgres z MySQL wtyczki, lekcja po lekcji (`sha256`), i kończy się kodem wyjścia |
 | `npm run smoke:wp` | czy warstwa zapisu wtyczki znosi przestawianie kolejności, przenoszenie lekcji między modułami i odmawia skasowania napisanej treści? (wymaga `wordpress/srodowisko/postaw.sh`; poza CI — tam nie ma podmana) |
+| `npm run smoke:wp-motyw` | czy strony Tutora wyglądają jak nasza strona? — mierzy w prawdziwej przeglądarce nachodzenie nagłówka, kontrast każdego napisu, jasne plamy i kolizje klas motywu z CSS-em Tutora (wymaga riga: `ZRZUTY_RIG` z `puppeteer-core`; poza CI) |
 
 > [!NOTE]
 > **Baza nie jest źródłem prawdy — jest kopią roboczą, z której renderuje
