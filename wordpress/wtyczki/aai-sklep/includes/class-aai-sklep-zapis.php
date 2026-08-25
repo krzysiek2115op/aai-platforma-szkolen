@@ -79,6 +79,8 @@ final class Aai_Sklep_Zapis {
 			}
 		);
 
+		self::powiadom( (string) $kurs['id'], $liczniki );
+
 		return $liczniki;
 	}
 
@@ -114,6 +116,13 @@ final class Aai_Sklep_Zapis {
 				self::usun_kurs_w_transakcji( $id, $aktor, $pozwol_skasowac_tresc, $liczniki );
 			}
 		);
+
+		/**
+		 * Kurs zniknął z naszych tabel.
+		 *
+		 * @param string $id Identyfikator kursu.
+		 */
+		do_action( 'aai_sklep_kurs_usuniety', $id );
 
 		return $liczniki;
 	}
@@ -224,8 +233,10 @@ final class Aai_Sklep_Zapis {
 			'usuniete'       => 0,
 		);
 
+		$id_kursu = '';
+
 		self::w_transakcji(
-			static function () use ( $id_lekcji, $tresc, $aktor, &$liczniki ): void {
+			static function () use ( $id_lekcji, $tresc, $aktor, &$liczniki, &$id_kursu ): void {
 				global $wpdb;
 
 				$t_lekcje = Aai_Sklep_Tabele::tabela( 'lessons' );
@@ -250,7 +261,8 @@ final class Aai_Sklep_Zapis {
 					);
 				}
 
-				$kurs = (string) $wiersz['kurs'];
+				$kurs     = (string) $wiersz['kurs'];
+				$id_kursu = $kurs;
 				unset( $wiersz['kurs'] );
 
 				$docelowa = array(
@@ -269,6 +281,8 @@ final class Aai_Sklep_Zapis {
 				++$liczniki['zaktualizowane'];
 			}
 		);
+
+		self::powiadom( $id_kursu, $liczniki );
 
 		return $liczniki;
 	}
@@ -325,6 +339,8 @@ final class Aai_Sklep_Zapis {
 				++$liczniki['zaktualizowane'];
 			}
 		);
+
+		self::powiadom( $id, $liczniki );
 
 		return $liczniki;
 	}
@@ -752,6 +768,41 @@ final class Aai_Sklep_Zapis {
 				'actor'      => $aktor,
 			)
 		);
+	}
+
+	/**
+	 * Ogłasza, że kurs w naszych tabelach jest w nowym stanie.
+	 *
+	 * PO CO AKCJA, A NIE WYWOŁANIE WPROST. Warstwa zapisu ma nie wiedzieć,
+	 * kto na jej zmiany czeka — dziś jest to kopia w Tutor LMS (W5), jutro
+	 * może dojść zapis kupującego albo odświeżenie pamięci podręcznej.
+	 * Wywołanie wprost związałoby jedyne miejsce piszące do naszych tabel
+	 * z cudzą wtyczką, a wtedy jej brak byłby awarią zapisu.
+	 *
+	 * OGŁASZAMY TAKŻE PRZY „BEZ ZMIAN". Zapis, który niczego u nas nie
+	 * zmienił, nadal jest dobrą chwilą, żeby kopia dogoniła stan — dzięki
+	 * temu ponowne kliknięcie „Zapisz kurs" NAPRAWIA rozjazd, zamiast go
+	 * potwierdzać.
+	 *
+	 * SŁUCHACZ NIE MOŻE COFNĄĆ ZAPISU: ogłaszamy PO zatwierdzeniu
+	 * transakcji, więc cokolwiek wydarzy się dalej, treść właściciela jest
+	 * już zapisana.
+	 *
+	 * @param string            $id       Identyfikator kursu.
+	 * @param array<string,int> $liczniki Liczniki zakończonego zapisu.
+	 */
+	private static function powiadom( string $id, array $liczniki ): void {
+		if ( '' === $id ) {
+			return;
+		}
+
+		/**
+		 * Kurs został zapisany (także wtedy, gdy nic się nie zmieniło).
+		 *
+		 * @param string            $id       Identyfikator kursu.
+		 * @param array<string,int> $liczniki Liczniki zapisu.
+		 */
+		do_action( 'aai_sklep_kurs_zmieniony', $id, $liczniki );
 	}
 
 	/**

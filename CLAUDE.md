@@ -1319,14 +1319,42 @@ wyprowadzała tego od nowa:
   1 września), więc czerwony check NIE jest o kodzie. Merge wg
   CONTRIBUTING z `--delete-branch`, potem tag `v0.42.0` + release —
   **wyłącznie za zgodą właściciela**.
-  **NASTĘPNY KROK: W5 — synchronizacja do Tutora + nasze szablony lekcji.**
-  Kopia kursu do Tutora przy publikacji (jednokierunkowo, jak
-  `wordpress/import-kursy.php`) i NASZE szablony widoku lekcji w miejsce
+  **W5, CZĘŚĆ 1 ZROBIONA (0.43.0): kopia kursu w Tutorze nadąża za kreatorem.**
+  `Aai_Sklep_Tutor` kopiuje kurs → moduły → lekcje do wpisów Tutora **po
+  KAŻDYM udanym zapisie** (nie tylko przy publikacji — inaczej poprawka
+  w opublikowanym kursie zostawiałaby okno rozjazdu), jednokierunkowo,
+  z dopasowaniem po `_aai_zrodlo_uuid`. Warstwa zapisu ogłasza zmianę akcją
+  `aai_sklep_kurs_zmieniony` / `aai_sklep_kurs_usuniety`, więc nie wie nic
+  o cudzej wtyczce. Doszły: `wp aai-sklep sync` (`npm run wp:sync`) i
+  `wp aai-sklep sprawdz-tutora` (`npm run wp:tutor`, **kod wyjścia 1 przy
+  rozjeździe**), **`straznik-tutora`** (33. strażnik, 12 mutacji) na KOD
+  i **`smoke-wp-tutor`** (44 sprawdzenia) na DANE, plus ostrzeżenie
+  w kokpicie, gdy kopia nie nadążyła. `wordpress/import-kursy.php`
+  **wycofany** — jego mapy są w klasie wtyczki.
+  **CZTERY RZECZY DO ZAPAMIĘTANIA:**
+  (1) **kontrola od razu znalazła rozjazd na prawdziwych danych** —
+  `_aai_sekcje` miało tę samą DŁUGOŚĆ i inny skrót (stary skrypt zapisywał
+  sekcje w kolejności eksportu, my w kolejności `kind`); porównanie sum
+  by tego nie pokazało;
+  (2) **awaria kopii NIE cofa zapisu** (wyłączony Tutor nie może blokować
+  edycji własnej treści) — ceną jest niewidzialność błędu, więc błąd jedzie
+  do opcji i na ekran kreatora;
+  (3) **synchronizacja nie kasuje wpisów spoza kreatora** — kontrola je
+  pokazuje jako „obcy", ale kasowanie cudzej pracy to nie jest jej rola;
+  (4) **sprzątanie testowych wpisów po PRZEDROSTKU uuid to pułapka** —
+  uuid kursu miał inny układ zer niż moduły, więc został sierotą, a przebieg
+  zameldował porządek; lista wypisana wprost nie kłamie.
+  **NASTĘPNY KROK: W5, CZĘŚĆ 2 — NASZE szablony widoku lekcji** w miejsce
   Tutorowych. Wygląd leży gotowy w `tools/podglad-kursow/` (CSS + szablony,
-  wyjęte tam WŁAŚNIE po to, żeby dały się przenieść). Do domknięcia
-  w tym kroku: **strażnik zgodności naszych tabel z kopią w Tutorze** —
-  dziś po każdej zmianie w kreatorze te dwie kopie się rozjeżdżają, a to
-  jest główne ryzyko przyjętej architektury.
+  wyjęte tam WŁAŚNIE po to, żeby dały się przenieść). Do zrobienia po drodze:
+  **renderer Markdowna w PHP** (proza to pełny podzbiór GFM: tabele 73/73,
+  bloki kodu 73/73, cytaty 34/73, obrazy 64/73, listy zagnieżdżone 73/73)
+  z dowodem różnicowym wobec `marked` na 73 lekcjach oraz **148 zrzutów
+  (13 MB) do biblioteki mediów** (decyzje właściciela 2026-08-25). Bramkę
+  dostępu pytamy TUTORA (`has_enrolled_content_access`), nie zgadujemy.
+  UWAGA: `straznik-kreatora-wp` zabrania szablonom frontu sięgać po treść
+  lekcji — szablon lekcji będzie pierwszym wyjątkiem i musi wejść razem
+  z regułą, która ten wyjątek wiąże z bramką dostępu.
 
   **NAPRAWA RENDERU (0.38.0, zgłosił właściciel zrzutami):** strona główna
   była łamana przez `tutor-front.min.css` — globalna klasa `.text-label`

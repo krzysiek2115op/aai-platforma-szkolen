@@ -14,7 +14,7 @@ nie jest dublowanie — to dwie różne role tych samych danych:
 | Droga | Czym jest | Kto wykłada |
 |---|---|---|
 | Postgres → **tabele `wp_aai_sklep_*`** | **ŹRÓDŁO PRAWDY** o kursie w docelowej instalacji | `wp aai-sklep import` (krok W2) |
-| Postgres → **wpisy Tutor LMS** | **KOPIA** dla LMS-a, który dostarcza materiał za logowaniem | `wordpress/import-kursy.php`, docelowo nasza wtyczka przy publikacji (krok W5) |
+| Nasze tabele → **wpisy Tutor LMS** | **KOPIA** dla LMS-a, który dostarcza materiał za logowaniem | wtyczka, po każdym zapisie (`Aai_Sklep_Tutor`); ręcznie `npm run wp:sync` |
 
 Dlatego **eksport nie wie nic o Tutorze** (od 0.39.0, format 2): oddaje
 wierny zrzut naszych tabel, w którym nazwa pola jest nazwą kolumny — tej
@@ -156,10 +156,17 @@ npm run wp:import        # eksport → kopia do kontenera → wp aai-sklep impor
 npm run wp:sprawdz       # dowód: 73 lekcje zgodne co do znaku (porównuje OBIE bazy)
 
 # ── droga 2: kopia do Tutora ──
-npm run wp:eksport
-podman cp eksport-wp/kursy.json aai_wp_cli:/tmp/kursy.json
-podman exec aai_wp_cli wp --path=/var/www/html eval-file /tmp/import-kursy.php /tmp/kursy.json
+# Normalnie NIC nie trzeba robić: od kroku W5 kopia jedzie sama po każdym
+# zapisie (import, kreator, publikacja, usunięcie kursu).
+npm run wp:sync          # pierwsze wypełnienie albo naprawa po awarii
+npm run wp:tutor         # dowód: 0 różnic; kod wyjścia 1, gdy kopie się rozjechały
 ```
+
+Do 0.42.0 drogę drugą wykonywał ręcznie `wordpress/import-kursy.php`
+(`wp eval-file`). Skrypt **został wycofany w 0.43.0** — jego mapy mieszkają
+teraz w klasie wtyczki, tak jak zapowiadał jego własny nagłówek. Powód nie był
+kosmetyczny: skrypt umiał tylko przepisać eksport, więc kopia w Tutorze
+starzała się przy pierwszej poprawce zrobionej w kreatorze.
 
 `npm run wp:import` jest **jedną komendą dla człowieka i dla skryptu** —
 rozjazd tych dwóch dróg kosztował nas już wydanie (0.24.0: deploy wołał

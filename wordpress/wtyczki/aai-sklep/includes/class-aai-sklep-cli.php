@@ -81,6 +81,7 @@ final class Aai_Sklep_Cli {
 					array(
 						'liczniki'  => $wynik['liczniki'],
 						'kursy'     => $wynik['kursy'],
+						'tutor'     => $wynik['tutor'],
 						'changelog' => array(
 							'przed' => $przed['changelog'],
 							'po'    => $po['changelog'],
@@ -103,6 +104,12 @@ final class Aai_Sklep_Cli {
 				$po['changelog']
 			)
 		);
+
+		if ( Aai_Sklep_Tutor::dostepny() ) {
+			WP_CLI::log( '  kopia w Tutorze: ' . self::liczniki_tekstem( $wynik['tutor'] ) );
+		} else {
+			WP_CLI::log( '  kopia w Tutorze: pominięta — nie ma tej wtyczki w instalacji' );
+		}
 
 		WP_CLI::success( 'Import: ' . self::liczniki_tekstem( $wynik['liczniki'] ) );
 	}
@@ -265,6 +272,143 @@ final class Aai_Sklep_Cli {
 		}
 
 		WP_CLI::success( sprintf( 'Usunięto %d wierszy kursu %s.', $liczniki['usuniete'], $kurs ) );
+	}
+
+	/**
+	 * Kopiuje kursy do wpisów Tutor LMS.
+	 *
+	 * Normalnie nie trzeba jej wołać: kopia jedzie sama po każdym zapisie
+	 * w kreatorze. Ta komenda jest do dwóch rzeczy — pierwszego wypełnienia
+	 * po instalacji Tutora i naprawy po awarii, którą pokazał
+	 * `wp aai-sklep sprawdz-tutora`.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [<kurs>]
+	 * : Slug albo identyfikator kursu. Bez tego — wszystkie kursy.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp aai-sklep sync
+	 *     wp aai-sklep sync jak-uzywac-githuba
+	 *
+	 * @param string[]             $args       Argumenty pozycyjne.
+	 * @param array<string,string> $assoc_args Argumenty nazwane.
+	 */
+	public function sync( array $args, array $assoc_args ): void {
+		unset( $assoc_args );
+
+		if ( ! Aai_Sklep_Tutor::dostepny() ) {
+			WP_CLI::error( 'Tutor LMS nie jest w tej instalacji — nie ma dokąd kopiować.' );
+			return;
+		}
+
+		$kurs = (string) ( $args[0] ?? '' );
+		$idki = '' === $kurs
+			? Aai_Sklep_Tutor::identyfikatory_kursow()
+			: array( Aai_Sklep_Raport::id_po_slugu( $kurs ) ?? $kurs );
+
+		$razem = array(
+			'utworzone'      => 0,
+			'zaktualizowane' => 0,
+			'bez_zmian'      => 0,
+			'usuniete'       => 0,
+		);
+
+		foreach ( $idki as $id ) {
+			try {
+				$liczniki = Aai_Sklep_Tutor::synchronizuj_kurs( $id );
+			} catch ( Aai_Sklep_Blad_Zapisu $blad ) {
+				WP_CLI::error( $blad->getMessage() );
+				return;
+			}
+			foreach ( $liczniki as $klucz => $ile ) {
+				$razem[ $klucz ] += $ile;
+			}
+			WP_CLI::log( sprintf( '  %s: %s', $id, self::liczniki_tekstem( $liczniki ) ) );
+		}
+
+		Aai_Sklep_Tutor::zapomnij_blad();
+		WP_CLI::success( 'Kopia w Tutorze: ' . self::liczniki_tekstem( $razem ) );
+	}
+
+	/**
+	 * Porównuje NASZE tabele z kopią w Tutorze.
+	 *
+	 * PO CO OSOBNA KONTROLA, SKORO KOPIA JEDZIE SAMA. Bo „jedzie sama"
+	 * to obietnica kodu, a nie stan bazy. Kopia mogła nie dojechać przy
+	 * awarii, mógł ją zmienić ktoś w Course Builderze, mogła zostać sierota
+	 * po skasowanym kursie. Rozjazd dwóch kopii nie objawia się błędem —
+	 * dlatego pytamy o niego wprost, komendą i smoke'em.
+	 *
+	 * Kod wyjścia: 0 gdy zgodne, 1 gdy jest choć jedna różnica.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [<kurs>]
+	 * : Slug albo identyfikator kursu. Bez tego wszystkie, razem z szukaniem sierot.
+	 *
+	 * [--format=<format>]
+	 * : Postać wyniku.
+	 * ---
+	 * default: podsumowanie
+	 * options:
+	 *   - podsumowanie
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp aai-sklep sprawdz-tutora
+	 *     wp aai-sklep sprawdz-tutora --format=json
+	 *
+	 * @subcommand sprawdz-tutora
+	 *
+	 * @param string[]             $args       Argumenty pozycyjne.
+	 * @param array<string,string> $assoc_args Argumenty nazwane.
+	 */
+	public function sprawdz_tutora( array $args, array $assoc_args ): void {
+		if ( ! Aai_Sklep_Tutor::dostepny() ) {
+			WP_CLI::error( 'Tutor LMS nie jest w tej instalacji — nie ma czego porównywać.' );
+			return;
+		}
+
+		$kurs = (string) ( $args[0] ?? '' );
+		$id   = '' === $kurs ? null : ( Aai_Sklep_Raport::id_po_slugu( $kurs ) ?? $kurs );
+
+		$wynik          = Aai_Sklep_Tutor::porownaj( $id );
+		$wynik['blad']  = Aai_Sklep_Tutor::ostatni_blad();
+		$wynik['zgoda'] = array() === $wynik['roznice'] && null === $wynik['blad'];
+
+		if ( 'json' === ( $assoc_args['format'] ?? 'podsumowanie' ) ) {
+			WP_CLI::line( (string) wp_json_encode( $wynik, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+		} else {
+			WP_CLI::log(
+				sprintf(
+					'  kursów: %d, sprawdzonych obiektów: %d, różnic: %d',
+					$wynik['kursy'],
+					$wynik['sprawdzonych'],
+					count( $wynik['roznice'] )
+				)
+			);
+			foreach ( $wynik['roznice'] as $roznica ) {
+				WP_CLI::log( sprintf( '  [%s] %s — %s', $roznica['rodzaj'], $roznica['co'], $roznica['opis'] ) );
+			}
+			if ( null !== $wynik['blad'] ) {
+				WP_CLI::log(
+					sprintf(
+						'  ostatnia nieudana synchronizacja: kurs %s, %s (%s)',
+						$wynik['blad']['kurs'],
+						$wynik['blad']['komunikat'],
+						$wynik['blad']['kiedy']
+					)
+				);
+			}
+		}
+
+		if ( ! $wynik['zgoda'] ) {
+			WP_CLI::halt( 1 );
+		}
 	}
 
 	/**

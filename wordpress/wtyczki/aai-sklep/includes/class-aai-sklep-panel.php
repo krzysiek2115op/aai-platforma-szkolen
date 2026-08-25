@@ -552,6 +552,39 @@ final class Aai_Sklep_Panel {
 	}
 
 	/**
+	 * Ostrzeżenie, gdy kopia kursu w Tutorze nie nadążyła.
+	 *
+	 * PO CO OSOBNY KOMUNIKAT. Kopia dla LMS-a jedzie SKUTKIEM zapisu, a nie
+	 * jego warunkiem — awaria Tutora nie ma prawa wywalić właścicielowi
+	 * zapisu własnej treści (patrz `Aai_Sklep_Tutor`). Cena tej decyzji jest
+	 * taka, że nieudana kopia byłaby NIEWIDOCZNA: zapis melduje sukces,
+	 * a klient po zalogowaniu czyta starą wersję. Dlatego błąd zostaje
+	 * zapamiętany i pokazujemy go tutaj, dopóki nie uda się następna kopia.
+	 */
+	public static function stan_kopii(): void {
+		if ( ! class_exists( 'Aai_Sklep_Tutor' ) ) {
+			return;
+		}
+		$blad = Aai_Sklep_Tutor::ostatni_blad();
+		if ( null === $blad ) {
+			return;
+		}
+		printf(
+			'<div class="notice notice-warning"><p><strong>%s</strong> %s</p><p><code>wp aai-sklep sync</code> %s</p></div>',
+			esc_html__( 'Kopia kursu w Tutor LMS nie nadążyła za ostatnim zapisem.', 'aai-sklep' ),
+			esc_html(
+				sprintf(
+					/* translators: 1: komunikat błędu, 2: data i godzina. */
+					__( 'Treść jest bezpieczna w naszych tabelach, ale materiał za logowaniem może być starszy. Powód: %1$s (%2$s).', 'aai-sklep' ),
+					$blad['komunikat'],
+					$blad['kiedy']
+				)
+			),
+			esc_html__( '— ta komenda naprawia kopię; zapisanie kursu jeszcze raz robi to samo.', 'aai-sklep' )
+		);
+	}
+
+	/**
 	 * Komunikat po przekierowaniu — z parametrów adresu.
 	 *
 	 * Sam TEKST nie jedzie w adresie: przenosimy kod, a treść wpisujemy tutaj.

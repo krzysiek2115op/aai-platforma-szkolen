@@ -15,14 +15,14 @@
  *
  *   1. Postgres → NASZE tabele `wp_aai_sklep_*` (`wp aai-sklep import`)
  *      — to jest ŹRÓDŁO PRAWDY o kursie w docelowej instalacji.
- *   2. Postgres → Tutor LMS (`wordpress/import-kursy.php`)
- *      — kopia dla LMS-a, który dostarcza materiał za logowaniem.
+ *   2. NASZE tabele → Tutor LMS — kopia dla LMS-a, który dostarcza materiał
+ *      za logowaniem. Od kroku W5 robi ją WTYCZKA po każdym zapisie
+ *      (`Aai_Sklep_Tutor`), a nie osobny skrypt: dzięki temu kopia nadąża
+ *      też za zmianami z kreatora, nie tylko za importem.
  *
  * Słowniki Tutora (status posta, poziom kursu, cztery sekcje, które Tutor ma
- * u siebie) mieszkają po stronie PHP, w importerze, który ich używa. Wiedza
- * o cudzej wtyczce nie należy do eksportu z naszej bazy, a przy W5 — kiedy
- * kopię do Tutora będzie robiła nasza wtyczka — te mapy idą do jej klasy,
- * nie do skryptu w JavaScripcie.
+ * u siebie) mieszkają po stronie PHP, w klasie, która ich używa. Wiedza
+ * o cudzej wtyczce nie należy do eksportu z naszej bazy.
  *
  * SKĄD BIERZE DANE. Wyłącznie z publicznego API modułu (`modules/m1-sklep`),
  * nigdy po surowym SQL — tego pilnuje `straznik-granic`, a przy okazji dostajemy
@@ -141,8 +141,8 @@ const znakowTresci = kursy.reduce(
 const paczka = {
   _o_pliku:
     "Wierny zrzut tabel Pluginu 1 z Postgresa (format 2). Wykładają go: " +
-    "`wp aai-sklep import` do tabel wp_aai_sklep_* (źródło prawdy) oraz " +
-    "wordpress/import-kursy.php do Tutor LMS (kopia). Generowany przez " +
+    "`wp aai-sklep import` do tabel wp_aai_sklep_* (źródło prawdy), " +
+    "skąd wtyczka kopiuje kurs do Tutor LMS. Generowany przez " +
     "tools/eksport-wp.mjs — NIE edytować ręcznie.",
   wersja_formatu: WERSJA_FORMATU,
   kursy,
