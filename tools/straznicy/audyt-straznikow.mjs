@@ -43,6 +43,9 @@ import { createHash } from "node:crypto";
 const L51 = "tresc-kursow/jak-uzywac-githuba/modul-5/lekcja-1-zrozum-github-actions.md";
 const L75 = "tresc-kursow/jak-uzywac-githuba/modul-7/lekcja-5-discussions.md";
 const KLASA_TUTORA = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php";
+const KLASA_LEKCJI = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-lekcja.php";
+const KLASA_PROZY = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-proza.php";
+const ARKUSZ_LEKCJI = "wordpress/wtyczki/aai-sklep/assets/lekcja.css";
 
 /**
  * pola mutacji:
@@ -1550,6 +1553,113 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-lekcji-wp (krok W5: nasz widok lekcji) ---
+  // Strona lekcji jest TOWAREM. Wyciek materiału, nieprzetworzony Markdown
+  // i arkusz sięgający poza własną stronę — żadna z tych rzeczy nie zapala
+  // się sama, więc każda ma tu mutację.
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "widok lekcji przestaje być rejestrowany (klient dostaje stronę Tutora)",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    zmien: (s) =>
+      s.includes("Aai_Sklep_Lekcja::zarejestruj();")
+        ? s.replace("Aai_Sklep_Lekcja::zarejestruj();", "")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "dostęp do lekcji przestaje być pytany u Tutora (własna reguła obok istniejącej)",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    zmien: (s) =>
+      s.includes("has_enrolled_content_access")
+        ? s.replace(/tutor_utils\(\)->has_enrolled_content_access\([^;]*;/, "true;")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "treść składana PRZED sprawdzeniem dostępu (materiał wczytany dla każdego)",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    zmien: (s) => {
+      const gdzie = s.indexOf("\t\tif ( ! $dostep ) {");
+      if (gdzie === -1) return null;
+      const koniec = s.indexOf("\t\t}\n", gdzie);
+      return s.slice(0, gdzie) + s.slice(koniec + 4);
+    },
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "renderer traci asercję na nieprzetworzony Markdown",
+    plik: KLASA_PROZY,
+    wymaga: () => existsSync(KLASA_PROZY),
+    zmien: (s) =>
+      s.includes("SLADY_SUROWEGO")
+        ? s.replace(/private const SLADY_SUROWEGO[\s\S]*?\);\n/, "")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "asercja przestaje pomijać bloki kodu (lekcja o Markdownie staje na własnym przykładzie)",
+    plik: KLASA_PROZY,
+    wymaga: () => existsSync(KLASA_PROZY),
+    zmien: (s) =>
+      s.includes("<pre><code>[\\s\\S]*?</code></pre>")
+        ? s
+            .replace("~<pre><code>[\\s\\S]*?</code></pre>~u", "~NIC_TAKIEGO~u")
+            .replace("~<code>[^<]*</code>~u", "~ANI_TAKIEGO~u")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "skład w linii przestaje uciekać treść (wklejony <script> byłby wykonalny)",
+    plik: KLASA_PROZY,
+    wymaga: () => existsSync(KLASA_PROZY),
+    zmien: (s) =>
+      s.includes("$tekst = self::uciekaj( $tekst );")
+        ? s.replace("$tekst = self::uciekaj( $tekst );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "zrzuty wychodzą bez width/height (148 obrazów przepycha tekst przy doładowaniu)",
+    plik: KLASA_PROZY,
+    wymaga: () => existsSync(KLASA_PROZY),
+    zmien: (s) =>
+      s.includes("$rozmiar = ' width=\"'")
+        ? s.replace(/\$rozmiar = ' width="'[\s\S]*?;\n/, "$rozmiar = '';\n")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "reguła arkusza lekcji bez zakotwiczenia (arkusz sięga na cudze strony)",
+    plik: ARKUSZ_LEKCJI,
+    wymaga: () => existsSync(ARKUSZ_LEKCJI),
+    zmien: (s) => s + "\n.aai-tresc p { color: red; }\n",
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "strona lekcji przestaje być wyłączona spod reguły „to strona Tutora” (wraca kolizja klas)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zasoby.php",
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    zmien: (s) => {
+      const gdzie = s.indexOf("\t\tif ( class_exists( 'Aai_Sklep_Lekcja' ) && Aai_Sklep_Lekcja::czy_nasza() ) {");
+      if (gdzie === -1) return null;
+      const koniec = s.indexOf("\t\t}\n", gdzie);
+      return s.slice(0, gdzie) + s.slice(koniec + 4);
+    },
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis:
+      "KONTRPRZYKŁAD: `@media` bez zakotwiczenia to reguła grupująca, nie selektor",
+    plik: ARKUSZ_LEKCJI,
+    wymaga: () => existsSync(ARKUSZ_LEKCJI),
+    zmien: (s) => s + "\n@media print {\n\t.aai-sklep-lekcja .aai-pasek { display: none; }\n}\n",
+    oczekujCzerwonego: false,
+  },
+
   {
     straznik: "straznik-tutora",
     opis:
