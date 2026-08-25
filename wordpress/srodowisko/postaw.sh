@@ -205,6 +205,25 @@ if [ -f ../wtyczki/aai-sklep/aai-sklep.php ]; then
     | grep -q "tabele-ok" || blad "wtyczka aktywna, ale jej tabele nie powstały"
 fi
 
+# HIGIENA ZASOBÓW — obie strony medalu, bo obie umieją się zepsuć osobno.
+#
+# (1) Strona MOTYWU nie może ładować arkuszy Tutora/Woo: `tutor-front.css`
+# definiuje globalne `.text-label` z jasnym tłem, które kolidowało z klasą
+# motywu o tej samej nazwie i łamało render (plakietki, marquee stopki —
+# zrzuty właściciela z 2026-08-25). (2) Strona WOO musi swoje zasoby DALEJ
+# dostawać — zdjęcie za szerokie wyglądałoby identycznie zielono, a psuło
+# kasę sklepu. Wzorce celują w ADRESY plików, nie w uchwyty.
+if [ -f ../wtyczki/aai-sklep/aai-sklep.php ]; then
+  if grep -qE "plugins/tutor/[^\"']*\.(css|js)|woocommerce[^\"']*\.(css|js)|wc-blocks[^\"']*\.css|sourcebuster" "$ODPOWIEDZ"; then
+    blad "strona motywu ładuje zasoby Tutora/WooCommerce — kolizja klas CSS wróci (np. .text-label z jasnym tłem)"
+  fi
+  KOSZYK="$(mktemp -t aai-koszyk.XXXXXX.html)"
+  curl -sL -o "$KOSZYK" "$ADRES/cart/" || blad "koszyk nie odpowiada"
+  grep -qE "woocommerce[^\"']*\.css" "$KOSZYK" \
+    || blad "koszyk NIE dostaje arkuszy WooCommerce — higiena zasobów zdejmuje za szeroko"
+  rm -f "$KOSZYK"
+fi
+
 liczba_pozycji=$(grep -o 'href="/[a-z-]*"' "$ODPOWIEDZ" | sort -u | wc -l)
 rm -f "$ODPOWIEDZ"
 

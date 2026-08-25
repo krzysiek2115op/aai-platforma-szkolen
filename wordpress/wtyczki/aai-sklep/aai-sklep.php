@@ -104,5 +104,6 @@ add_action(
 	'plugins_loaded',
 	static function (): void {
 		Aai_Sklep_Tabele::dociagnij_schemat();
+		Aai_Sklep_Zasoby::zarejestruj();
 	}
 );
