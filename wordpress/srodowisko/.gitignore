@@ -1,0 +1,7 @@
+# Motyw i treść strony głównej mieszkają POZA repo (~/.cache/automatic-ai-warsztat)
+# — bo strażnicy skanują dysk, nie git, i cudze pliki w naszym drzewie
+# wchodziły im pod kontrolę mimo ignorowania. Ten wpis zostaje jako siatka
+# bezpieczeństwa, gdyby ktoś pobrał warsztat tutaj ręcznie.
+.warsztat/
+# Hasła instancji roboczej — generowane przy pierwszym starcie.
+.env

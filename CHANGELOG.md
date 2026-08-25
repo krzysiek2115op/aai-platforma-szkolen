@@ -5,6 +5,55 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.38.0] — 2026-08-25
+
+**Etap WordPress wystartował: środowisko odtwarzalne jedną komendą, szkielet
+wtyczki `aai-sklep` z tabelami w bazie WP i higiena zasobów, która przestaje
+łamać stronę Automatic AI.** Krok W1 z planu wtyczki (W1 fundament → W2 dane →
+W3 front → W4 kreator → W5 Tutor → W6 test ręczny właściciela).
+
+### Dodane
+
+- **Decyzje właściciela otwierające etap** (PR #64, sekcja „Decyzje właściciela
+  (2026-08-25)" w [ETAP-WP.md](docs/ETAP-WP.md)): trzy wtyczki do motywu
+  Automatic AI; hybryda z Tutor LMS + WooCommerce zostaje; własne tabele
+  z prefiksem w bazie WP (nie osobne bazy); kod w tym repo; kolejność 1→2→3
+  z testem ręcznym po każdej wtyczce; źródło prawdy o kursie w naszych
+  tabelach (do Tutora kopia); nasze szablony lekcji; menu przez podmianę
+  nagłówka ze strażnikiem; **e-booków nie będzie nigdy**; mail po zakupie
+  z linkiem „Ustaw hasło", nie z hasłem.
+- **Środowisko `wordpress/srodowisko/`** (compose + `postaw.sh`): WP + MariaDB
+  + motyw Automatic AI + treść strony 1:1 + WooCommerce + Tutor LMS + nasze
+  wtyczki montowane wprost z repo, na `127.0.0.1:8892`. Skrypt jest
+  idempotentny i kończy WERYFIKACJĄ ARTEFAKTU (nawigacje motywu, aktywność
+  wtyczki, istnienie tabel, higiena zasobów w obie strony). Motyw mieszka
+  poza repo (`~/.cache/automatic-ai-warsztat`), bo strażnicy skanują dysk,
+  nie git — pobrany do drzewa repo wywołał fałszywy alarm `straznik-seo`.
+- **Wtyczka `aai-sklep` 0.1.0**: szkielet z autoloaderem bez Composera,
+  pięć tabel `wp_aai_sklep_*` przez `dbDelta` (port `db1_kursy` z decyzjami
+  przeglądu B7 wykonanymi w schemacie: `UNIQUE (course_id, kind)` bez
+  `position`, treść lekcji jako `mediumtext` — `text` uciąłby dłuższą lekcję
+  w milczeniu), `uninstall.php` domyślnie NIE kasujący danych. Audyt zmian
+  pisze PHP, nie triggery — świadome odstępstwo od Działu 2 (uprawnienie
+  TRIGGER bywa na hostingu odebrane), nazwane wprost i pilnowane strażnikiem.
+- **`straznik-wtyczki-wp`** (30. strażnik) + 4 mutacje w audycie: blokada
+  bezpośredniego wywołania plików PHP, jedno źródło nazw tabel, zapytania
+  przez `prepare()`, komplet nagłówków, uninstall bez kasowania treści.
+
+### Naprawione
+
+- **Strona Automatic AI łamana przez CSS Tutora** (zrzuty właściciela):
+  `tutor-front.min.css` definiuje globalne `.text-label` z jasnym tłem,
+  a motyw używa tej samej nazwy na 30+ elementach — plakietki i marquee
+  stopki jechały. Skan 249 klas motywu przeciw arkuszom wtyczek: jedna
+  kolizja groźna, cztery nieszkodliwe; konwersja motywu ZDROWA (to samo
+  było na starym :8091). Naprawa: `Aai_Sklep_Zasoby` — zasoby Tutora/Woo
+  nie wchodzą na strony, które ich nie używają; gwarancją filtry
+  `*_loader_src` (samo zdejmowanie z kolejki przepuszczało `wc-blocks-style`
+  i `sourcebuster-js` — zmierzone). Dowody: 15/15 stron motywu czystych,
+  koszyk trzyma 34 zasoby Woo, dashboard 4 zasoby Tutora, overflow 0 px,
+  zrzuty przeglądarką. `postaw.sh` pilnuje odtąd OBU stron medalu.
+
 ## [0.37.0] — 2026-08-25
 
 **Sześć decyzji właściciela po przeglądzie B7 — wykonane co do jednej.**
