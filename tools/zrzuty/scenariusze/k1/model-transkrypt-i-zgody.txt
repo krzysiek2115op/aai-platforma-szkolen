@@ -1,0 +1,91 @@
+# SESJA B (Kurs 1, moduł 3): transkrypt szczegółowy i pytania o zgodę.
+#
+# DWIE RZECZY WYPROWADZONE POMIAREM 2026-08-23 (nie zmieniać na oko):
+#  * GŁÓWNY WIDOK NIE POKAZUJE POJEDYNCZYCH WYWOŁAŃ NARZĘDZI. W trakcie pracy
+#    widać status („Reading", „Running"), a po turze jedno zwinięte zdanie
+#    („Read 1 file, ran 1 shell command"). Sekwencja `Narzędzie(argumenty)`
+#    z wynikami jest w PODGLĄDZIE TRANSKRYPCJI pod `Ctrl+O` — i stamtąd biorą
+#    się ekrany 3.1, 3.3 i 3.4;
+#  * SESJA STARTUJE W TRYBIE AUTO („⏵⏵ auto mode on"), w którym reguła `ask`
+#    NIE zatrzymuje pracy. Bez zejścia `Shift+Tab` do trybu ręcznego żadne
+#    pytanie o zgodę się nie pokaże, a ekrany 3.2 i 3.7 są właśnie o tym pytaniu.
+#
+# Znaczniki stoją gęsto — o wyborze kadru decyduje asercja z podpisu, nie oko.
+CZEKAJ 16
+ENTER
+CZEKAJ 12
+KLAWISZ shift-tab
+CZEKAJ 2
+ZNACZNIK tryb-po-przelaczeniu
+
+WPISZ przeczytaj narzędziem Read pliki lib/koszyk.js oraz test/koszyk.test.js i powiedz w dwóch zdaniach, co jest nie tak
+ENTER
+CZEKAJ 50
+ZNACZNIK odpowiedz-1
+KLAWISZ ctrl-o
+CZEKAJ 4
+ZNACZNIK czytanie-plikow-1
+CZEKAJ 4
+ZNACZNIK czytanie-plikow-2
+KLAWISZ esc
+CZEKAJ 2
+
+WPISZ napraw failujące testy i uruchom na koniec npm test jako dowód
+ENTER
+CZEKAJ 25
+ZNACZNIK zgoda-edycja-1
+CZEKAJ 15
+ZNACZNIK zgoda-edycja-2
+CZEKAJ 15
+ZNACZNIK zgoda-edycja-3
+CZEKAJ 15
+ZNACZNIK zgoda-edycja-4
+
+# Zatwierdzenie podświetlonej pozycji w pytaniu o zgodę.
+ENTER
+CZEKAJ 30
+ZNACZNIK po-zgodzie-1
+CZEKAJ 20
+ZNACZNIK po-zgodzie-2
+CZEKAJ 20
+ZNACZNIK po-zgodzie-3
+CZEKAJ 20
+ZNACZNIK po-zgodzie-4
+
+KLAWISZ ctrl-o
+CZEKAJ 4
+ZNACZNIK transkrypt-1
+CZEKAJ 4
+ZNACZNIK transkrypt-2
+KLAWISZ esc
+CZEKAJ 2
+
+# Komenda powłoki SPOZA listy `allow` — w trybie ręcznym musi zapytać o zgodę.
+# Ctrl+E rozwija wyjaśnienie przy pytaniu.
+WPISZ uruchom komendę powłoki: ls -la lib
+ENTER
+CZEKAJ 25
+ZNACZNIK zgoda-powloka-1
+CZEKAJ 15
+ZNACZNIK zgoda-powloka-2
+KLAWISZ ctrl-e
+CZEKAJ 3
+ZNACZNIK zgoda-powloka-rozwinieta-1
+CZEKAJ 3
+ZNACZNIK zgoda-powloka-rozwinieta-2
+KLAWISZ esc
+CZEKAJ 3
+KLAWISZ esc
+CZEKAJ 2
+
+# Menu cofania z listą promptów sesji; strzałka w górę podświetla prompt.
+WYCZYSC
+CZEKAJ 3
+ZNACZNIK rewind-lista-1
+KLAWISZ up
+CZEKAJ 2
+ZNACZNIK rewind-lista-2
+KLAWISZ esc
+CZEKAJ 1
+KLAWISZ esc
+CZEKAJ 2

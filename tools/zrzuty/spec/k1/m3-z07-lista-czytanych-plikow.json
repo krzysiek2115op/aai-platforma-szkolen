@@ -1,0 +1,15 @@
+{
+  "_podpis": "sesja Claude Code po pytaniu o przegląd projektu — widoczna lista czytanych plików i odpowiedź",
+  "_lekcja": "K1 3.3 (proza-3-codzienne-przeplywy.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-transkrypt-i-zgody.txt",
+  "raw": "model-b.raw",
+  "doZnacznika": "czytanie-plikow-1",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-3/zrzuty/z07-sesja-claude-code-pytaniu.webp",
+  "przytnijOd": 7,
+  "przytnijDo": 21,
+  "wymagaTekstu": [
+    "Read(/tmp/oliwia/projekt-demo/lib/koszyk.js)",
+    "Read(/tmp/oliwia/projekt-demo/test/koszyk.test.js)",
+    "re:claude-[a-z0-9-]+ ●"
+  ]
+}

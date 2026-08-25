@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!--
+    Sygnet Automatic AI jako ikona karty przeglądarki — ten sam znak, co
+    components/brand/AutomaticMark.tsx, ale z kolorami wpisanymi wprost:
+    favicon renderuje się poza dokumentem, więc zmienne CSS strony (
+    --color-volt, --mark-impuls) tutaj nie istnieją.
+
+    Powód istnienia pliku: bez deklaracji ikony przeglądarka pyta o
+    /favicon.ico w KORZENIU domeny — czyli poza basePath podglądu — i
+    dostaje 404. Lighthouse liczył to jako błąd w konsoli i zaniżał
+    „dobre praktyki" (audyt errors-in-console).
+  -->
+  <rect width="48" height="48" rx="10" fill="#08090b"/>
+  <g transform="translate(0.5 0) scale(0.96) translate(1 1)">
+    <path d="M8 43 L26.5 4.5" fill="none" stroke="#edeef0" stroke-width="5.2"/>
+    <path d="M23.21 14.38 L40 43" fill="none" stroke="#edeef0" stroke-width="5.2"/>
+    <rect x="12.8" y="26.2" width="22.2" height="5.4" fill="#bfff38"/>
+  </g>
+</svg>

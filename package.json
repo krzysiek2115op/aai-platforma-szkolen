@@ -1,0 +1,43 @@
+{
+  "name": "pod-strona-szkolenia",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "build:podglad": "PODGLAD_STATYCZNY=1 next build && node tools/og-rozszerzenie.mjs out && node tools/csp-podglad.mjs out",
+    "deploy:podglad": "bash tools/deploy-podglad.sh",
+    "start": "next start -p 3001",
+    "lint": "eslint",
+    "smoke": "node --env-file-if-exists=.env tools/smoke/smoke-d4.ts && node --env-file-if-exists=.env tools/smoke/smoke-d5.ts && node --env-file-if-exists=.env tools/smoke/smoke-d6.ts && node --env-file-if-exists=.env tools/smoke/smoke-lekcje.ts && node --env-file-if-exists=.env tools/smoke/smoke-csp.ts && node --env-file-if-exists=.env tools/smoke/smoke-podglad.ts && node --env-file-if-exists=.env tools/smoke/smoke-seo.ts",
+    "check": "node tools/straznicy/uruchom-wszystkie.mjs && npm run lint && npx tsc --noEmit && npm test && npm run build && npm run smoke",
+    "pretest": "node tools/db1-gotowa.mjs",
+    "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"modules/**/*.test.ts\" \"components/**/*.test.ts\" \"lib/**/*.test.ts\"",
+    "db1:up": "podman compose up -d db1",
+    "db1:migruj": "node --env-file-if-exists=.env modules/m1-sklep/db/migruj.ts",
+    "db1:seed": "node --env-file-if-exists=.env tools/seed/seed-przyklady.ts",
+    "db1:tresc": "node --env-file-if-exists=.env tools/wgraj-tresc-lekcji.ts"
+  },
+  "dependencies": {
+    "lucide-react": "^1.33.0",
+    "next": "16.3.1",
+    "pg": "^8.16.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^26",
+    "@types/pg": "^8",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

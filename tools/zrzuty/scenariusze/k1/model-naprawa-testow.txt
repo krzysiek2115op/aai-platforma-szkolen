@@ -1,0 +1,74 @@
+# SESJA A ekranów wymagających ODPOWIEDZI MODELU (Kurs 1, moduł 3).
+# Jedna sesja, pięć ekranów:
+#   czytanie-plikow → K1 3.3  lista czytanych plików + odpowiedź
+#   narzedzia-*     → K1 3.1  sekwencja wywołań narzędzi po zadaniu
+#   zgoda-edycja-*  → K1 3.2  podgląd proponowanej zmiany + pytanie o zgodę
+#   testy-*         → K1 3.4  wynik testów jako dowód wykonania zadania
+#   transkrypt      → K1 3.6  podgląd transkrypcji (Ctrl+O)
+#   rewind-*        → K1 4.8  menu /rewind z listą promptów sesji
+#
+# ZNACZNIKI STAWIAMY GĘSTO, po kilka wokół każdego spodziewanego momentu.
+# Powód: czas odpowiedzi modelu jest nieprzewidywalny, a znacznik kosztuje
+# jeden wiersz w pliku — nietrafiony kadr kosztowałby CAŁE ponowne nagranie.
+# O tym, który znacznik wchodzi do repo, decyduje ASERCJA z podpisu, nie oko:
+# renderujemy kandydatów, bierzemy ten, który przeszedł, i zapisujemy go
+# w specyfikacji.
+#
+# Pierwsze pytanie jest KRÓTKIE z rozmysłu: ekran ma 40 wierszy, więc przy
+# długiej odpowiedzi lista czytanych plików wyjeżdża poza ekran i podpis
+# („lista czytanych plików i odpowiedź") przestaje być prawdą.
+CZEKAJ 16
+ENTER
+CZEKAJ 12
+
+WPISZ przeczytaj lib/koszyk.js i test/koszyk.test.js, a potem powiedz w dwóch zdaniach, co jest nie tak
+ENTER
+CZEKAJ 45
+ZNACZNIK czytanie-plikow-1
+CZEKAJ 20
+ZNACZNIK czytanie-plikow-2
+CZEKAJ 20
+ZNACZNIK czytanie-plikow-3
+
+WPISZ napraw failujące testy
+ENTER
+CZEKAJ 30
+ZNACZNIK narzedzia-1
+CZEKAJ 20
+ZNACZNIK narzedzia-2
+CZEKAJ 20
+ZNACZNIK zgoda-edycja-1
+CZEKAJ 20
+ZNACZNIK zgoda-edycja-2
+CZEKAJ 20
+ZNACZNIK zgoda-edycja-3
+
+# Zatwierdzenie podświetlonej odpowiedzi „Yes" w pytaniu o zgodę na edycję.
+ENTER
+CZEKAJ 40
+ZNACZNIK testy-1
+CZEKAJ 25
+ZNACZNIK testy-2
+CZEKAJ 25
+ZNACZNIK testy-3
+
+KLAWISZ ctrl-o
+CZEKAJ 4
+ZNACZNIK transkrypt-1
+CZEKAJ 3
+ZNACZNIK transkrypt-2
+KLAWISZ esc
+CZEKAJ 2
+
+# Puste pole + podwójny Esc = menu cofania. Strzałka w górę podświetla PROMPT
+# (bez niej podświetlona jest pozycja „(current)").
+WYCZYSC
+CZEKAJ 3
+ZNACZNIK rewind-lista-1
+KLAWISZ up
+CZEKAJ 2
+ZNACZNIK rewind-lista-2
+KLAWISZ esc
+CZEKAJ 1
+KLAWISZ esc
+CZEKAJ 2

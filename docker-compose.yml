@@ -1,0 +1,24 @@
+# Bazy projektu — lokalnie w kontenerach (PLAN: 3 pluginy = 3 osobne bazy).
+# Na tej maszynie silnikiem jest podman (zamiennik Dockera):
+#   podman compose up -d db1
+# Na maszynie z Dockerem identycznie działa: docker compose up -d db1
+services:
+  db1:
+    image: docker.io/library/postgres:17-alpine
+    container_name: db1_kursy
+    environment:
+      POSTGRES_USER: kursy
+      POSTGRES_PASSWORD: kursy-dev # tylko lokalny dev; produkcja = sekret z .env
+      POSTGRES_DB: db1_kursy
+    ports:
+      - "5432:5432"
+    volumes:
+      - db1_dane:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kursy -d db1_kursy"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  db1_dane:

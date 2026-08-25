@@ -1,7 +1,7 @@
-# Plan projektu — Podstrona „Szkolenia" (matthewplugins.pl/szkolenia)
+# Plan projektu — Podstrona „Szkolenia" (automaticai.pl/szkolenia)
 
 > Repo: `MatthewPlugins/Pod-strona-Szkolenia` (prywatne).
-> Po ukończeniu i akceptacji całości → merge do `MatthewPlugins/matthewplugins.pl`.
+> Po ukończeniu i akceptacji całości → merge do `MatthewPlugins/automatic-ai` (strona główna; dawniej `matthewplugins.pl`).
 > Repo głównej strony jest w tym projekcie **tylko do odczytu** (czerpiemy stack, design, konwencje).
 
 ---
@@ -9,17 +9,64 @@
 ## 1. Kontekst i decyzje architektoniczne
 
 ### Stan obecny głównej strony
-- `matthewplugins.pl` = **Next.js 16 + React 19 + TypeScript + Tailwind 4**, tryb `output: "export"` (statyczny), publikacja na GitHub Pages.
-- GitHub Pages to **hosting tymczasowy (podgląd)** — decyzja właściciela: docelowo strona przejdzie na **wykupiony hosting z Node.js / VPS**.
+- strona główna Automatic AI (`MatthewPlugins/automatic-ai`, dawniej `matthewplugins.pl`) = **Next.js 16 + React 19 + TypeScript + Tailwind 4**, tryb `output: "export"` (statyczny), publikacja na GitHub Pages.
+- GitHub Pages to **hosting tymczasowy (podgląd)**.
 
-### Decyzje (ustalone 2026-08-16)
+### DECYZJA ZESPOŁU 2026-08-18 — produkcja na WordPressie (zastępuje plan „hosting Node.js / VPS")
+
+Strona finalnie stanie na **WordPressie, na wykupionym hostingu i domenie**
+(nie na VPS z Node.js, jak zakładał plan z 2026-08-16). Konsekwencje dla
+tego projektu:
+
+1. **Sklep z kursami zostanie przepisany na wtyczkę WordPress (PHP + MySQL).**
+   Obecny kod Next.js + PostgreSQL (Działy 1–6) staje się
+   **prototypem-specyfikacją**: design, kontrakty treści sekcji, przepływ
+   BAZA → DZIAŁ → STRONA, jeden AJAX (w WP: jeden endpoint `admin-ajax`/REST),
+   audyt zmian i kreator mają być odtworzone 1:1 w PHP.
+2. **Kolejność (decyzja właściciela 2026-08-18): NAJPIERW Dział 7**
+   (treść obu kursów wprowadzona kreatorem do prototypu — właściciel
+   ocenia gotowe strony sprzedażowe), **potem etap przepisywania na WP**.
+   Treść to dane — przy przepisywaniu wyeksportujemy ją z PostgreSQL
+   do MySQL skryptem migracyjnym.
+3. **Dokumentacja etapu WP (WYTYCZNE N2)**: przed startem przepisywania
+   do repo trafia **celowany komplet** oryginalnej dokumentacji
+   (`docs/dokumentacja-techniczna/wordpress/` + `ZRODLA.md`):
+   WP Plugin Handbook, `$wpdb`/dbDelta/własne tabele, REST API,
+   bezpieczeństwo (nonces, sanitizacja, capabilities) oraz z manuala
+   MySQL: typy danych, indeksy, transakcje, triggery (odpowiednik
+   naszego audytu `course_changelog`). Nie zrzucamy całych manuali
+   do repo — agent czyta szeroko w sieci, repo dostaje to, czego
+   dział używa.
+4. Zasady WYTYCZNE (Weryfikacja-PR, strażnicy, goldeny, jeden AJAX,
+   BAZA → DZIAŁ → STRONA) **obowiązują w wersji WP tak samo**.
+
+> **DOPRECYZOWANIE 2026-08-19 — [docs/ETAP-WP.md](ETAP-WP.md).** Punkt 1
+> wyżej („przepisany 1:1") był w sprzeczności z decyzją o gotowym LMS
+> z tego samego dnia. Rozmowa rozstrzygnęła to PODZIAŁEM
+> ODPOWIEDZIALNOŚCI: nasza wtyczka renderuje katalog, strony sprzedażowe
+> i kreator (tam jest nasz design i treść), a **Tutor LMS + WooCommerce**
+> biorą konta, koszyk, płatności, faktury i dostęp do materiału za
+> logowaniem. Strona główna Automatic AI jest już przekonwertowana na WP;
+> `/szkolenia` wchodzi tam jako WTYCZKA (tą samą drogą później Pluginy 2
+> i 3). Szczegóły, ceny rozważanych LMS-ów i pytania otwarte: ETAP-WP.md.
+
+> **DOPRECYZOWANIE 2026-08-21 — reszta spinana na bieżąco.** Rzeczy spoza
+> modułów (zakup domeny `automaticai.pl`, hosting, HTTPS + HSTS, poczta
+> i rekordy SPF/DKIM/DMARC, RODO i polityka prywatności, 2FA w organizacji,
+> branch protection) **nie dostają osobnego etapu w planie** — decyzją
+> właściciela spinamy je na bieżąco, gdy moduły będą gotowe. Lista pozycji
+> wraz z powodem, dla którego każda czeka, stoi w
+> [plugin-1/KROK-2-ZABEZPIECZENIA.md](plugin-1/KROK-2-ZABEZPIECZENIA.md),
+> sekcja „Co ZOSTAJE otwarte po kroku 2".
+
+### Decyzje (ustalone 2026-08-16; pozycje hostingowe zaktualizowane 2026-08-18)
 | Temat | Decyzja |
 |---|---|
-| Backend | **Next.js (ten sam codebase co strona główna)** — API Routes / Server Actions, TypeScript |
-| Bazy danych | **3 osobne bazy PostgreSQL** (lokalnie: Docker; produkcyjnie: VPS lub Neon/Supabase) |
+| Backend | **prototyp: Next.js** (API Routes / Server Actions, TypeScript); **produkcja: wtyczka WordPress (PHP)** — decyzja 2026-08-18 wyżej |
+| Bazy danych | **3 osobne bazy PostgreSQL** w prototypie (lokalnie: podman); produkcyjnie **MySQL** przy WordPressie (migracja danych skryptem na etapie WP) |
 | „Pluginy" | 3 **odizolowane moduły** w kodzie — każdy z własnym katalogiem, własną bazą, własnym API |
 | Bramka płatności | wybór odłożony do prac nad Pluginem 2 — kod pisany pod **abstrakcję operatora** (adapter), żeby dało się podpiąć Stripe / P24 / Tpay bez przeróbek |
-| Design | dziedziczymy z matthewplugins.pl (Tailwind 4, fonty Geist, komponenty UI) — podstrona ma wyglądać jak część głównej strony |
+| Design | dziedziczymy ze strony głównej Automatic AI (Tailwind 4, fonty Geist, komponenty UI) — podstrona ma wyglądać jak część głównej strony |
 
 ### Struktura modułów (monorepo, izolacja jak „wtyczki")
 ```
@@ -65,14 +112,50 @@ Tabele:
 - Dwa kursy startowe (seed): **2 kursy właściciela** wprowadzone przez kreator
 
 ### 2.4 Definicja ukończenia Pluginu 1
-- [ ] `/szkolenia` renderuje kursy z bazy (nie z plików)
-- [ ] `/szkolenia/[slug]` pokazuje pełną stronę sprzedażową z bazy
-- [ ] Kreator: dodanie, edycja, usunięcie, publikacja kursu działa end-to-end
-- [ ] Każda operacja zostawia wpis w `course_changelog` (weryfikacja triggerów)
-- [ ] 2 kursy utworzone i wyświetlone
-- [ ] Design spójny z matthewplugins.pl
+
+Wszystkie sześć pozycji zrobionych; odhaczone 2026-08-25 przy domykaniu modułu
+(bramki B1–B7 zaliczone przez właściciela, przegląd agent + krytyk wykonany —
+[PRZEGLAD-B7.md](plugin-1/PRZEGLAD-B7.md)).
+
+- [x] `/szkolenia` renderuje kursy z bazy (nie z plików) — D4, `v0.11.0`
+- [x] `/szkolenia/[slug]` pokazuje pełną stronę sprzedażową z bazy — D5, `v0.12.1`
+- [x] Kreator: dodanie, edycja, usunięcie, publikacja kursu działa end-to-end — D6, `v0.16.2`
+- [x] Każda operacja zostawia wpis w `course_changelog` (weryfikacja triggerów) —
+      D2, `v0.5.0`. **Doprecyzowanie z 0.37.0** (decyzja właściciela po przeglądzie
+      B7): „operacja" znaczy zmianę danych. `UPDATE`, po którym wiersz jest
+      identyczny, nie zostawia wpisu — bo zapis programu dotyka `UPDATE`-em
+      KAŻDEJ lekcji, także nietkniętej, a trigger odkłada dwie kopie jej treści.
+      Niezmienność dziennika i pełny stan przed/po zostają bez zmian.
+- [x] 2 kursy utworzone i wyświetlone — D7, `v0.21.0` (treść), `v0.32.0` (komplet)
+- [x] Design spójny ze stroną główną Automatic AI — B1 i B5 zaliczone przez właściciela
 
 ---
+
+> ### ZAKRES PLUGINÓW 2 i 3 JEST ZMIENNY (2026-08-21)
+>
+> Opisy w sekcjach 3 i 4 powstały **2026-08-16**, czyli zanim zapadła
+> decyzja o **Tutor LMS + WooCommerce** (2026-08-19,
+> [ETAP-WP.md](ETAP-WP.md)). Część tego, co tu zaplanowano jako nasz kod,
+> gotowe wtyczki mają z pudełka.
+>
+> **Obserwacja agenta — do potwierdzenia, NIE decyzja:**
+>
+> | Zaplanowane u nas | Prawdopodobnie przejmuje |
+> |---|---|
+> | `customers`, `orders`, `payments`, `download_tokens`, checkout, webhooki, mail z dostępem, faktury | **WooCommerce** |
+> | dostęp do materiału po zakupie, postęp kursanta | **Tutor LMS** |
+> | logowanie admina, sesje, hasła | **WordPress** |
+> | widok sprzedaży i zamówień | **WooCommerce** |
+> | `page_visits` — „timer" wejść na podstronę | **zostaje nasze** |
+>
+> **Nic tu nie kasujemy.** Ten opis zostaje jako zapis pierwotnego zamiaru
+> i lista kontrolna: przy przepisywaniu trzeba sprawdzić pozycja po pozycji,
+> czego Woo/Tutor NIE robi — inaczej po cichu wypadnie coś, czego nikt
+> potem nie odtworzy z pamięci.
+>
+> **Decyzja właściciela (2026-08-21):** zakres obu modułów doprecyzujemy
+> **pytaniami przed startem każdego z nich**, nie teraz. Do tego czasu
+> sekcje 3 i 4 czytać jako kierunek, nie jako specyfikację.
 
 ## 3. Plugin 2 — Płatności + dostawa (branch `plugin-2-platnosci`, później)
 - Wybór operatora płatności → decyzja na starcie tego etapu; kod przez interfejs `PaymentProvider` (adapter).
@@ -91,9 +174,9 @@ Tabele:
 ## 5. Workflow (ustalony z właścicielem)
 1. Praca nad każdym pluginem na **dedykowanym branchu**: `plugin-1-sklep-kursow` → `plugin-2-platnosci` → `plugin-3-admin-panel`; po ukończeniu i akceptacji merge do `main`.
 2. Pluginy robimy **po kolei** — teraz wyłącznie Plugin 1.
-3. Testy lokalne mogą używać sklonowanej strony matthewplugins.pl; **tamtego repo nie modyfikujemy**.
-4. Finał: właściciel ocenia całość → dopiero wtedy wgranie do repo `matthewplugins.pl`.
+3. Testy lokalne mogą używać sklonowanej strony głównej Automatic AI; **tamtego repo nie modyfikujemy**.
+4. Finał: właściciel ocenia całość → dopiero wtedy wgranie do repo strony głównej (`automatic-ai`).
 5. Commity przy każdym większym kroku, po polsku, opisowe.
 
 ## 6. Stack — podsumowanie
-Next.js 16 · React 19 · TypeScript · Tailwind 4 · PostgreSQL ×3 (Docker lokalnie) · Zod · node-pg (bez ciężkiego ORM — migracje czystym SQL, jak lubi audyt) · fonty Geist i komponenty wzorowane na matthewplugins.pl
+Next.js 16 · React 19 · TypeScript · Tailwind 4 · PostgreSQL ×3 (Docker lokalnie) · Zod · node-pg (bez ciężkiego ORM — migracje czystym SQL, jak lubi audyt) · fonty Geist i komponenty wzorowane na stronie głównej Automatic AI

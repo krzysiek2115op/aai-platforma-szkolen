@@ -1,0 +1,59 @@
+# SESJA G (Kurs 1, 4.8): ostrzeżenie „Restored the code, but skipped N files".
+#
+# WARUNEK USTALONY Z KODU Claude Code 2.1.241, nie zgadnięty. Licznik
+# pominiętych plików (`skippedLinks`) opisany jest tam tak: „Count of tracked
+# files NOT restored or deleted because a symlink, hard link, or other
+# non-regular file was detected at the tracked path…". Ostrzeżenie powstaje
+# więc przy DOWIĄZANIU — dokładnie jak mówi punkt „Czwarte" prozy 4.8 —
+# a NIE przy zmianie zrobionej komendą powłoki (pierwsza próba, sesja F,
+# stała na tej złej hipotezie i skończyła się ekranem „The code will be
+# unchanged" bez opcji przywrócenia kodu).
+#
+# Dlatego projekt demonstracyjny ma `lib/formaty.js` jako dowiązanie do
+# wspólnego katalogu. Prompt każe zmienić OBA pliki narzędziem do edycji:
+# zwykły plik da się przywrócić, dowiązanie zostanie pominięte.
+#
+# ZGODY TRZEBA ZATWIERDZAĆ ENTEREM — i to jest sedno tego scenariusza.
+# Reguła `ask` na `Edit(./lib/**)` z ustawień projektu pyta w KAŻDYM trybie:
+# ani „auto", ani „accept edits" jej nie omijają (na tym polega `ask`).
+# Dwie wcześniejsze próby poległy na tym samym: podwójny Esc, którym scenariusz
+# sprząta pole przed otwarciem menu cofania, ANULOWAŁ wiszące pytanie o zgodę,
+# więc żadna edycja nie powstała i nie było czego przywracać. Dlatego po
+# wysłaniu promptu scenariusz wysyła kilka Enterów rozłożonych w czasie:
+# każdy zatwierdza podświetlone „Yes", a Enter na pustym polu nic nie robi,
+# więc nadmiarowy jest nieszkodliwy.
+CZEKAJ 16
+ENTER
+CZEKAJ 12
+
+WPISZ dopisz narzędziem Edit na początku plików lib/koszyk.js oraz lib/formaty.js komentarz // sprawdzone
+ENTER
+CZEKAJ 35
+ENTER
+CZEKAJ 20
+ENTER
+CZEKAJ 20
+ENTER
+CZEKAJ 25
+ZNACZNIK po-edycji-1
+CZEKAJ 20
+ZNACZNIK po-edycji-2
+
+WYCZYSC
+CZEKAJ 3
+ZNACZNIK rewind-lista
+KLAWISZ up
+CZEKAJ 2
+ZNACZNIK rewind-wybor
+ENTER
+CZEKAJ 4
+ZNACZNIK rewind-opcje-1
+CZEKAJ 3
+ZNACZNIK rewind-opcje-2
+ENTER
+CZEKAJ 6
+ZNACZNIK po-przywroceniu-1
+CZEKAJ 6
+ZNACZNIK po-przywroceniu-2
+CZEKAJ 8
+ZNACZNIK po-przywroceniu-3

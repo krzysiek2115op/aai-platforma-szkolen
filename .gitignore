@@ -3,9 +3,9 @@ node_modules/
 
 # next.js
 .next/
-*.tsbuildinfo
 out/
 next-env.d.ts
+*.tsbuildinfo
 
 # środowisko — sekrety NIGDY do repo
 .env
@@ -19,6 +19,32 @@ pgdata/
 # kopie robocze naprawy wstecznej (docs/WYTYCZNE.md §1) — migawką jest
 # gałąź bak/<data>-<opis>, pliki .bak nie wchodzą do repo
 *.bak
+
+# dokumentacja producentów pobrana z sieci (WYTYCZNE §7 i N2)
+#
+# Decyzja właściciela (2026-08-18): pliki źródłowe zostają LOKALNIE, poza
+# repozytorium. Powód: 55 MB i ~2200 plików, a git trzyma każdą wersję na
+# stałe — raz wpuszczone, ciążą każdemu klonowaniu już zawsze. Wytyczna
+# jest spełniona co do SENSU, bo do repo idzie to, co czyni źródła
+# weryfikowalnymi: opis (ZRODLA.md) i skrypt odtwarzający komplet jedną
+# komendą (tools/pobierz-dokumentacje-d7.mjs).
+#
+# Odtworzenie po świeżym klonie: node tools/pobierz-dokumentacje-d7.mjs
+# Fragmenty faktycznie cytowane przez lekcje trafiają do repo osobno —
+# do podkatalogu `cytowane/`, który NIE jest ignorowany.
+docs/dokumentacja-techniczna/*/claude-platform/
+docs/dokumentacja-techniczna/*/claude-code/
+docs/dokumentacja-techniczna/*/github/
+
+# Etap WordPress — ta sama zasada, inny zapis: zamiast wyliczać dziesięć
+# katalogów po nazwie, ignorujemy CAŁĄ zawartość działu i wpuszczamy z powrotem
+# tylko to, co ma być w repo. Dzięki temu dopisanie nowego źródła do skryptu
+# nie wymaga pamiętania o .gitignore — nowy katalog jest ignorowany od razu.
+#
+# Odtworzenie po świeżym klonie: node tools/pobierz-dokumentacje-wp.mjs
+docs/dokumentacja-techniczna/wordpress/*
+!docs/dokumentacja-techniczna/wordpress/ZRODLA.md
+!docs/dokumentacja-techniczna/wordpress/cytowane/
 
 # systemowe / edytor
 .DS_Store

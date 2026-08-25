@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="Okładka: Jak poprawnie używać GitHuba">
+  <defs>
+    <pattern id="siatka" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0v40" fill="none" stroke="rgba(245,245,245,0.05)" stroke-width="1"/>
+    </pattern>
+    <radialGradient id="glow" cx="20%" cy="25%" r="70%">
+      <stop offset="0" stop-color="#bfff38" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#bfff38" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="szyna" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#bfff38" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#bfff38" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#bfff38" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="#08090b"/>
+  <rect width="800" height="450" fill="url(#siatka)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+  <!-- graf commitów -->
+  <g stroke="rgba(245,245,245,0.25)" stroke-width="2" fill="none">
+    <path d="M600 90 v70 q0 20 20 20 h60"/>
+    <path d="M600 90 v170 q0 20 20 20 h60"/>
+    <path d="M600 90 v250"/>
+  </g>
+  <g fill="#101116" stroke="#bfff38" stroke-width="2">
+    <circle cx="600" cy="90" r="9"/>
+    <circle cx="680" cy="180" r="9"/>
+    <circle cx="680" cy="280" r="9"/>
+    <circle cx="600" cy="340" r="9"/>
+  </g>
+  <g font-family="ui-monospace, 'SF Mono', monospace" letter-spacing="6" fill="#8f929c" font-size="16">
+    <text x="60" y="76">[ KURS · MATTHEWPLUGINS.PL ]</text>
+  </g>
+  <g font-family="ui-sans-serif, system-ui, sans-serif" fill="#f5f5f5">
+    <text x="60" y="205" font-size="64" font-weight="700" letter-spacing="-2">Jak poprawnie</text>
+    <text x="60" y="272" font-size="64" font-weight="700" letter-spacing="-2">używać <tspan fill="#bfff38">GitHuba</tspan></text>
+  </g>
+  <text x="60" y="330" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20" fill="#8f929c">Repozytoria, commity i pull requesty — bez strachu</text>
+  <rect x="0" y="392" width="800" height="2" fill="url(#szyna)"/>
+  <g font-family="ui-monospace, 'SF Mono', monospace" letter-spacing="4" fill="#bfff38" font-size="13">
+    <text x="60" y="424">[ GIT · REPO · WSPÓŁPRACA ]</text>
+  </g>
+  <circle cx="716" cy="419" r="4" fill="#bfff38"/>
+</svg>

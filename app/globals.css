@@ -1,0 +1,576 @@
+/*
+ * Design system „Volt" — przejęty 1:1 ze strony głównej matthewplugins.pl
+ * (app/globals.css w repo strony głównej; tu świadomy podzbiór potrzebny
+ * podstronie /szkolenia). Dark-only: strona główna nie ma trybu jasnego.
+ */
+@import "tailwindcss";
+
+@theme {
+  --color-void: #08090b;
+  --color-panel: #101116;
+  --color-fg: #f5f5f5;
+  --color-steel: #8f929c;
+  --color-volt: #bfff38;
+  --color-line: rgba(245, 245, 245, 0.08);
+
+  /*
+   * Rodziny wprost z @font-face (lib/fonts.ts + layout), nie przez
+   * zmienne next/font — uzasadnienie w lib/fonts.ts. „Geist Fallback"
+   * to zastępnik z korektą metryk na czas ładowania pliku.
+   */
+  --font-sans:
+    "Geist", "Geist Fallback", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    "Geist Mono", "Geist Mono Fallback", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, "Liberation Mono", monospace;
+
+  --text-hero: clamp(3rem, 7vw, 7.25rem);
+  --text-page-title: clamp(2.5rem, 5.5vw, 4.5rem);
+  --text-label-lg: 0.72rem;
+  --text-label: 0.65rem;
+  --text-label-sm: 0.62rem;
+  --text-micro: 0.55rem;
+
+  --animate-marquee: marquee 40s linear infinite;
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    overflow-x: clip;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+  body {
+    background-color: var(--color-void);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--color-volt);
+    color: var(--color-void);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-volt);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  section[id],
+  footer[id] {
+    scroll-margin-top: 5.5rem;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+}
+
+/* Kontener serwisu — ta sama szerokość i wcięcia co na stronie głównej. */
+@utility container-site {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 76rem;
+  padding-inline: 1.25rem;
+  @media (min-width: 768px) {
+    padding-inline: 2rem;
+  }
+}
+
+/* Siatka „blueprint" w tle sekcji hero. */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(245, 245, 245, 0.022) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(245, 245, 245, 0.022) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+@utility mask-fade-y {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 14%,
+    black 80%,
+    transparent
+  );
+}
+
+/* Poziomy pas kotwic w sticky nawigacji kursu — przewijalny bez scrollbara. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Karta/panel — jedyny promień w systemie. */
+@utility panel {
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-line);
+  border-radius: 0.625rem;
+}
+
+/* Efekty CTA — dokładane do przycisków primary (+ micro-interaction). */
+.btn-glow {
+  box-shadow:
+    0 0 0 1px rgba(191, 255, 56, 0.25),
+    0 0 22px rgba(191, 255, 56, 0.16),
+    0 8px 32px rgba(191, 255, 56, 0.1);
+  transition:
+    box-shadow 0.35s ease,
+    background-color 0.2s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn-glow:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(191, 255, 56, 0.4),
+    0 0 34px rgba(191, 255, 56, 0.28),
+    0 10px 44px rgba(191, 255, 56, 0.16);
+}
+.btn-glow:active {
+  transform: translateY(0) scale(0.98);
+}
+.btn-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.btn-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.26) 50%,
+    transparent 58%
+  );
+  transform: translateX(-130%);
+  transition: transform 0.65s ease;
+  pointer-events: none;
+}
+.btn-sheen:hover::after {
+  transform: translateX(130%);
+}
+
+/* Editorial-gradient nagłówka hero. */
+.text-soft-gradient {
+  background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 52%, #a9adb8 135%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 1rem;
+  z-index: 100;
+  background: var(--color-volt);
+  color: var(--color-void);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: top 0.2s ease;
+}
+.skip-link:focus-visible {
+  top: 1rem;
+}
+
+/*
+ * Wejścia elementów w widok (components/ui/Reveal.tsx) — stan ukryty
+ * istnieje tylko pod html.js: brak JavaScriptu = treść widoczna od razu.
+ * Klasę `js` dokłada inline skrypt z layout.tsx i zdejmuje ją, gdy
+ * hydratacja nie nastąpi w zadanym czasie.
+ */
+html.js .reveal {
+  opacity: 0;
+  transform: var(--reveal-from, translateY(26px));
+}
+
+html.js .reveal-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.3s ease-out var(--reveal-delay, 0s),
+    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) var(--reveal-delay, 0s);
+}
+
+/*
+ * Przejście między podstronami (app/template.tsx).
+ *
+ * UWAGA: te klatki NIE MOGĄ animować `transform` (ani filter/perspective).
+ * `.page-enter` opakowuje CAŁĄ treść strony, a element z animowanym
+ * transformem staje się układem odniesienia dla `position: fixed`
+ * potomków — pasek menu kursu i tło strony kursu przestawały wtedy
+ * trzymać się ekranu i uciekały przy scrollu (BLAD-003).
+ * Pilnuje tego tools/straznicy/straznik-fixed.mjs.
+ *
+ * UWAGA 2 (BLAD-004): wypełnienie `both`/`forwards` też jest zakazane.
+ * Animacja `opacity` nie tworzy układu odniesienia dla `fixed`, ale
+ * tworzy KONTEKST UKŁADANIA — a przy wypełnieniu `forwards`/`both`
+ * animacja stosuje wartość również PO zakończeniu, więc kontekst
+ * zostaje na zawsze. Wszystko, co `fixed` w środku (pigułka kreatora),
+ * jest wtedy zamknięte w tym kontekście i przegrywa ze stopką, która
+ * jest późniejszym rodzeństwem — żaden `z-index` tego nie przebije.
+ * `backwards` daje ten sam efekt wizualny (0.3 s fade), ale po
+ * zakończeniu animacji kontekst znika.
+ */
+html.js .page-enter {
+  animation: page-enter 0.3s ease-out backwards;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+}
+
+/*
+ * Impuls zasilania w stopce (components/Footer.tsx). Rect z gradientem
+ * przejeżdża przez maskę SVG (szyna + wordmark) i znika za prawą
+ * krawędzią. Jednostki px w transformie SVG = jednostki viewBoxu:
+ * 1760 = 1200 (szerokość viewBoxu) + 560 (szerokość rectu).
+ */
+.fw-impuls {
+  animation: fw-impuls 7s cubic-bezier(0.7, 0.05, 0.3, 0.95) infinite;
+}
+
+/*
+ * Impuls stoi, dopóki stopka nie wejdzie w widok (atrybut ustawia
+ * IntersectionObserver w FooterScene). Powód jest pomiarowy i realny
+ * naraz: animacja poza ekranem to ciągłe przemalowywanie, którego nikt
+ * nie ogląda, a jej pierwszy przelot przez maskę tekstową wordmarku
+ * Chrome liczył jako LCP (~2,2 s) na OBU stronach — bo malowanie
+ * „tekstu" maski to największa treść w śladzie. Bramka tylko pod
+ * html.js: bez JavaScriptu nie ma komu ustawić atrybutu, więc impuls
+ * po prostu chodzi jak dotąd (dekoracja działa bez JS).
+ */
+html.js .fw-impuls {
+  animation-play-state: paused;
+}
+html.js [data-na-ekranie] .fw-impuls {
+  animation-play-state: running;
+}
+
+/*
+ * …a grupa maskowana w ogóle się nie maluje, dopóki stopka nie wejdzie
+ * w widok. Samo wstrzymanie animacji nie wystarczało: Chrome i tak
+ * rejestrował tekst maski (mask#fw-maska > text) jako kandydata LCP
+ * o rozmiarze 183 600 px² — większego niż jakakolwiek PRAWDZIWA treść
+ * strony — w chwili dojazdu fontu. LCP obu stron było przybite do
+ * niewidzialnego elementu. visibility: hidden zdejmuje malowanie,
+ * więc kandydat znika; bez JS bramki nie ma i wordmark działa jak
+ * dotąd.
+ */
+html.js .fw-svg g[mask] {
+  visibility: hidden;
+}
+html.js [data-na-ekranie] .fw-svg g[mask] {
+  visibility: visible;
+}
+
+@keyframes fw-impuls {
+  0% {
+    transform: translateX(0);
+  }
+  38%,
+  100% {
+    transform: translateX(1760px);
+  }
+}
+
+/* Oddychająca poświata hero (PageHero). */
+.glow-breathe {
+  animation: glow-breathe 7s ease-in-out infinite;
+}
+
+@keyframes glow-breathe {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Ziarno filmowe (SVG turbulence, kafelek 160px). */
+.grain {
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* ————— motion premium podstrony /szkolenia —————
+ * HeroMotion (client) ustawia na kontenerze zmienne:
+ *   --mx/--my  — pozycja kursora w %, dla światła spotlight,
+ *   --par-x/--par-y — znormalizowane odchylenie kursora (-1..1)
+ * Wszystko na transformach i opacity (kompozytor, bez layoutu);
+ * prefers-reduced-motion wyłącza całość — treść zostaje. */
+
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    26rem circle at var(--mx, 72%) var(--my, 28%),
+    rgba(191, 255, 56, 0.09),
+    transparent 68%
+  );
+  transition: opacity 0.4s ease;
+}
+
+.parallax-1,
+.parallax-2,
+.parallax-3 {
+  transform: translate3d(
+    calc(var(--par-x, 0) * var(--par-sila, 6px)),
+    calc(var(--par-y, 0) * var(--par-sila, 6px)),
+    0
+  );
+  transition: transform 0.25s ease-out;
+  will-change: transform;
+}
+.parallax-2 {
+  --par-sila: 14px;
+}
+.parallax-3 {
+  --par-sila: -9px;
+}
+
+.float-a {
+  animation: float-a 7s ease-in-out infinite;
+}
+.float-b {
+  animation: float-b 9s ease-in-out infinite;
+}
+.float-c {
+  animation: float-a 11s ease-in-out infinite reverse;
+}
+@keyframes float-a {
+  50% {
+    transform: translateY(-9px);
+  }
+}
+@keyframes float-b {
+  50% {
+    transform: translateY(7px);
+  }
+}
+
+/* karta katalogu: okładka delikatnie rośnie, ramka łapie akcent */
+.karta-okladka {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.group\/karta:hover .karta-okladka {
+  transform: scale(1.035);
+}
+
+/* pasek postępu w mockupie okna kursu */
+.pasek-postepu {
+  background: linear-gradient(90deg, #bfff38, #d3ff70);
+  border-radius: 999px;
+  height: 4px;
+}
+
+/* ————— Course Detail System: animacje premium (feedback B5) —————
+ * Wszystko na transform/opacity (kompozytor); prefers-reduced-motion
+ * wyłącza całość w bloku niżej. */
+
+/* wjazd pływającego paska menu kursu */
+.pasek-wjazd {
+  animation: pasek-wjazd 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes pasek-wjazd {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+/* karty lekko unoszą się i rozświetlają przy hoverze */
+.unos {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+.unos:hover {
+  transform: translateY(-4px);
+  border-color: rgba(191, 255, 56, 0.25);
+  box-shadow:
+    0 14px 44px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(191, 255, 56, 0.07);
+}
+
+/* płynne akordeony (program, FAQ) — progressive enhancement:
+ * przeglądarki bez interpolate-size otwierają natychmiast, jak dotąd */
+details.panel {
+  interpolate-size: allow-keywords;
+}
+details.panel::details-content {
+  opacity: 0;
+  block-size: 0;
+  overflow-y: clip;
+  transition:
+    content-visibility 0.35s allow-discrete,
+    opacity 0.3s ease,
+    block-size 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+details.panel[open]::details-content {
+  opacity: 1;
+  block-size: auto;
+}
+
+/* dryf gradientowych blobów w tle — powolny, ledwo zauważalny parallax */
+.dryf-a {
+  animation: dryf-a 22s ease-in-out infinite;
+}
+.dryf-b {
+  animation: dryf-b 28s ease-in-out infinite;
+}
+@keyframes dryf-a {
+  50% {
+    transform: translate3d(30px, -22px, 0) scale(1.06);
+  }
+}
+@keyframes dryf-b {
+  50% {
+    transform: translate3d(-26px, 28px, 0) scale(0.96);
+  }
+}
+
+/* poświata podążająca za kursorem na stronie kursu (TloKursu mierzy,
+ * ten element tylko jedzie na transformie) */
+.kursor-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 34rem;
+  height: 34rem;
+  margin: -17rem 0 0 -17rem;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    rgba(191, 255, 56, 0.055),
+    transparent 65%
+  );
+  filter: blur(70px);
+  will-change: transform;
+}
+
+/* Migający kursor (karta promptu w hero). */
+.cursor-blink {
+  animation: blink 1.2s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Pulsująca kropka statusu (stopka HUD). */
+.status-dot {
+  animation: puls-statusu 2.4s ease-out infinite;
+}
+@keyframes puls-statusu {
+  0% {
+    box-shadow: 0 0 0 0 rgba(191, 255, 56, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(191, 255, 56, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(191, 255, 56, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot,
+  .glow-breathe,
+  .float-a,
+  .float-b,
+  .float-c,
+  .cursor-blink,
+  .animate-marquee,
+  .pasek-wjazd,
+  .dryf-a,
+  .dryf-b,
+  /* rect impulsu zostaje w pozycji startowej poza kadrem — wordmark statyczny */
+  .fw-impuls {
+    animation: none !important;
+  }
+  .unos,
+  .unos:hover {
+    transform: none;
+    transition: none;
+  }
+  details.panel::details-content {
+    transition: none;
+  }
+  .btn-glow,
+  .btn-glow:hover,
+  .btn-glow:active {
+    transform: none;
+  }
+  .kursor-glow {
+    display: none;
+  }
+  .parallax-1,
+  .parallax-2,
+  .parallax-3 {
+    transform: none;
+    transition: none;
+  }
+  .spotlight::before {
+    display: none;
+  }
+  .karta-okladka {
+    transition: none;
+  }
+  .btn-sheen::after {
+    transition: none;
+    display: none;
+  }
+  /* treść od razu na miejscu, bez ruchu i bez czekania na obserwator */
+  html.js .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  html.js .reveal-in {
+    transition: none;
+  }
+  html.js .page-enter {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  /*
+   * Dekoracyjny wordmark w stopce: system wymusiłby na tekście SVG kolor
+   * CanvasText i z cienia marki zrobiłby drugi, gigantyczny napis.
+   * Canvas z pyłem danych to czysta dekoracja — znika razem z nim.
+   */
+  .fw-svg,
+  .fw-canvas {
+    display: none;
+  }
+}

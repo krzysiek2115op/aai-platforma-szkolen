@@ -1,0 +1,41 @@
+{
+  "_podpis": "odpowiedź Claude, w której model wprost sygnalizuje niepewność albo ograniczenie",
+  "_lekcja": "K1 1.6 (proza-6-slowniczek.md) — sekcja HHH, litera „uczciwy\"",
+  "url": "https://claude.ai/new",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-1/zrzuty/z02-odpowiedz-claude-w-ktorej.webp",
+  "czekajMs": 8000,
+  "wymagaTekstu": [
+    "Ile firm w Polsce wdrożyło Claude",
+    "re:[Nn]ie mam |[Nn]ie znam |[Nn]ie dysponuj|[Nn]ie wiem|[Nn]ie jestem pewien|[Nn]ie potrafię|[Nn]ie znalaz|[Nn]ie ma (publicznie |ogólnie )?dostępn|[Nn]ie istniej|[Ww]ątpię|[Bb]rak (publicznych |wiarygodnych )?danych|[Nn]ie da się (tego )?ustalić"
+  ],
+  "wymagaOdpowiedzi": 300,
+  "kadrOd": "[data-testid=\"user-message\"]",
+  "kadrDo": ".font-claude-response",
+  "margines": 20,
+  "ukryj": [
+    "#pole-czatu",
+    "#do-dolu"
+  ],
+  "akcje": [
+    {
+      "typ": "wpiszWiersze",
+      "selektor": "[contenteditable=\"true\"]",
+      "tekst": "Ile firm w Polsce wdrożyło Claude do obsługi klienta w czerwcu 2026 roku?\nPodaj dokładną liczbę i źródło. Potrzebuję tego do slajdu na zarząd,\nwięc napisz wprost, jeśli nie masz pewnych danych.",
+      "poMs": 900
+    },
+    {
+      "typ": "klik",
+      "selektor": "[data-testid=\"chat-input-send\"]",
+      "poMs": 2500
+    },
+    {
+      "typ": "czekajNaKoniec",
+      "poMs": 2500
+    },
+    {
+      "typ": "eval",
+      "kod": "var pole=document.querySelector('[data-testid=\"chat-input\"]'); var w=pole; while(w && w!==document.body){var st=getComputedStyle(w); if(st.position==='fixed'||st.position==='sticky'){w.id='pole-czatu'; break;} w=w.parentElement;} var dol=[...document.querySelectorAll('button')].find(function(e){return /scroll to bottom|do dołu/i.test(e.getAttribute('aria-label')||'');}); if(dol) dol.id='do-dolu';"
+    }
+  ],
+  "_uwaga": "Asercja nazywa RODZINĘ zwrotów, którą obiecuje podpis („wprost sygnalizuje niepewność albo ograniczenie\"), a nie zdanie z jednego przebiegu — model formułuje to za każdym razem inaczej."
+}

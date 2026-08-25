@@ -1,0 +1,59 @@
+{
+  "id": "<uuid>",
+  "slug": "ai-w-praktyce",
+  "title": "AI w praktyce",
+  "type": "kurs",
+  "short_desc": "Od promptu do systemu.",
+  "price_grosze": 49900,
+  "cover_url": null,
+  "status": "published",
+  "badge": null,
+  "level": null,
+  "sections": [
+    {
+      "id": "<uuid>",
+      "kind": "faq",
+      "content": {
+        "pytania": [
+          {
+            "pytanie": "Dla kogo?",
+            "odpowiedz": "Dla praktyków."
+          }
+        ]
+      }
+    },
+    {
+      "id": "<uuid>",
+      "kind": "hero",
+      "content": {
+        "obietnica": "Zbuduj system AI"
+      }
+    }
+  ],
+  "modules": [
+    {
+      "id": "<uuid>",
+      "position": 0,
+      "title": "Fundamenty",
+      "summary": "Prompty i konteksty",
+      "lessons": [
+        {
+          "id": "<uuid>",
+          "position": 0,
+          "title": "Pierwszy prompt",
+          "duration_min": 12,
+          "preview": true,
+          "ma_tresc": false
+        },
+        {
+          "id": "<uuid>",
+          "position": 1,
+          "title": "Kontekst",
+          "duration_min": 18,
+          "preview": false,
+          "ma_tresc": false
+        }
+      ]
+    }
+  ]
+}

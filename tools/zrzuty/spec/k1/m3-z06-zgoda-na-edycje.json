@@ -1,0 +1,11 @@
+{
+  "_podpis": "podgląd proponowanej zmiany w pliku z pytaniem o zgodę",
+  "_lekcja": "K1 3.2 (proza-2-instalacja-i-pierwsza-sesja.md)",
+  "scenariusz": "tools/zrzuty/scenariusze/k1/model-transkrypt-i-zgody.txt",
+  "raw": "model-b.raw",
+  "doZnacznika": "zgoda-edycja-1",
+  "wyjscie": "tresc-kursow/jak-korzystac-z-claude/modul-3/zrzuty/z06-podglad-proponowanej-zmiany-pliku.webp",
+  "przytnijOd": 16,
+  "przytnijDo": 40,
+  "wymagaTekstu": ["Edit file", "lib/koszyk.js", "Do you want to make this edit to koszyk.js?"]
+}

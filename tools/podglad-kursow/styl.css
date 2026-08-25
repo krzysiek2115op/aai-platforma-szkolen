@@ -1,0 +1,1834 @@
+/*
+ * Design system widoku kursu — arkusz podglądu treści kursu.
+ *
+ * DLACZEGO OSOBNY, PRAWDZIWY PLIK CSS. Do 0.34.0 arkusz mieszkał w stałej
+ * JavaScriptu (`tools/podglad-kursow/style.mjs`) jako jeden literał
+ * szablonowy. Kosztowało to cztery przerwane przebiegi generatora z rzędu:
+ * pojedynczy znak odwróconego apostrofu w komentarzu CSS — a w tym repo
+ * komentarze cytują nazwy własności — zamyka literał i node wywala się
+ * w losowym miejscu pliku, nie w miejscu błędu. Ostrzeżenie w nagłówku nie
+ * pomogło, więc zniknęła przyczyna: arkusz jest arkuszem, a generator
+ * wczytuje go z dysku. Przy okazji edytor koloruje go jak CSS, a przeniesienie
+ * wyglądu do szablonów Tutora (etap WP) jest kopiowaniem pliku, nie
+ * wyłuskiwaniem stałej z JavaScriptu.
+ *
+ * SKĄD SIĘ BIORĄ WARTOŚCI. Tokeny, promienie, krzywe czasowe i nazwy klas są
+ * przepisane 1:1 z `app/globals.css` — tego samego arkusza, na którym stoi
+ * strona sprzedażowa `/szkolenia/[slug]`. To nie jest podobny zestaw kolorów,
+ * to ten sam zestaw: rozjazd między tym, co klient widzi przed zakupem, a tym,
+ * co dostaje po, byłby dokładnie tą usterką, którą mamy naprawić.
+ *
+ * ZASADA WYDAJNOŚCI (brief właściciela): zero bibliotek, animacje wyłącznie na
+ * transform/opacity, wszystko wygaszane przez prefers-reduced-motion. Ikony są
+ * wklejonym SVG (ikony.mjs), bo lucide-react to komponenty Reacta — w
+ * statycznym HTML-u nie istnieją.
+ *
+ * ŚCIEŻKI FONTÓW są względne WZGLĘDEM TEGO PLIKU, bo trafia on do wyjścia jako
+ * zasoby/styl.css — obok plików .woff2. Wcześniej wpisane na sztywno
+ * „../zasoby/" celowało ze strony wejściowej poza katalog wyjściowy i Geist
+ * nie wczytywał się tam w ogóle.
+ */
+@font-face {
+  font-family: "Geist";
+  src: url(Geist-subset.woff2) format("woff2");
+  font-display: swap;
+  font-weight: 400 700;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url(GeistMono-subset.woff2) format("woff2");
+  font-display: swap;
+  font-weight: 400 600;
+}
+
+/* ————————————————— tokeny (1:1 z app/globals.css) ————————————————— */
+
+:root {
+  --void: #08090b;
+  --panel: #101116;
+  --fg: #f5f5f5;
+  --steel: #8f929c;
+  --volt: #bfff38;
+  --volt-jasny: #d3ff70;
+  --line: rgba(245, 245, 245, 0.08);
+  --line-mocna: rgba(245, 245, 245, 0.14);
+  /* tekst kodu: odrobinę chłodniejszy od --fg, żeby blok kodu nie krzyczał
+   * mocniej niż proza wokół niego */
+  --fg-kod: #e6e8ec;
+
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  /* jedyny promień w systemie — tak jak @utility panel na stronie */
+  --promien: 0.625rem;
+  --promien-duzy: 0.875rem;
+
+  /* miara kolumny czytania; wszystko szersze „wychodzi" przez --wyjscie */
+  --miara: 68ch;
+  --wyjscie: clamp(0rem, 6vw, 7rem);
+
+  --krzywa: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: clip;
+  /* pigułka menu jest pływająca — kotwice nie mogą pod nią wjeżdżać */
+  scroll-padding-top: 6.5rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--volt);
+  color: var(--void);
+}
+
+:focus-visible {
+  outline: 2px solid var(--volt);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+a {
+  color: var(--volt);
+  text-decoration-color: rgba(191, 255, 56, 0.35);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease;
+}
+a:hover {
+  text-decoration-color: var(--volt);
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* ————————————————— żywe tło (za treścią, jak TloKursu) ————————————————— */
+
+.tlo {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* siatka blueprint — te same 64 px i ta sama nikłość co bg-grid na stronie */
+.tlo-siatka {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(245, 245, 245, 0.022) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(245, 245, 245, 0.022) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, black, black 42%, transparent 92%);
+}
+
+.tlo-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(110px);
+}
+.tlo-blob-a {
+  top: 10%;
+  left: -8rem;
+  width: 26rem;
+  height: 26rem;
+  background: rgba(191, 255, 56, 0.035);
+  animation: dryf-a 22s ease-in-out infinite;
+}
+.tlo-blob-b {
+  top: 62%;
+  right: -9rem;
+  width: 30rem;
+  height: 30rem;
+  background: rgba(191, 255, 56, 0.028);
+  animation: dryf-b 28s ease-in-out infinite;
+}
+@keyframes dryf-a {
+  50% {
+    transform: translate3d(30px, -22px, 0) scale(1.06);
+  }
+}
+@keyframes dryf-b {
+  50% {
+    transform: translate3d(-26px, 28px, 0) scale(0.96);
+  }
+}
+
+/*
+ * Poświata za kursorem. Element tylko jedzie na transformie — pozycję liczy
+ * jedna pętla rAF w skrypcie, dokładnie jak components/kurs/TloKursu.tsx.
+ * Na ekranach dotykowych nie ma kursora, więc i poświaty nie ma.
+ */
+.tlo-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 34rem;
+  height: 34rem;
+  margin: -17rem 0 0 -17rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(191, 255, 56, 0.05), transparent 65%);
+  filter: blur(70px);
+  will-change: transform;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.tlo-glow.widoczna {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  .tlo-glow {
+    display: none;
+  }
+}
+
+/* ziarno filmowe — ten sam kafelek 160 px co .grain na stronie */
+.tlo-ziarno {
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* ————————————————— pływająca pigułka menu (wzór: PasekKursu) ————————————————— */
+
+.pigulka-kotwica {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 50;
+  padding: 0.75rem 0.75rem 0;
+  animation: pigulka-wjazd 0.5s var(--krzywa) backwards;
+}
+@keyframes pigulka-wjazd {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+.pigulka {
+  position: relative;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  max-width: 58rem;
+  height: 3.25rem;
+  padding-inline: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: rgba(8, 9, 11, 0.82);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
+}
+
+/* pasek postępu czytania — cienka nitka wzdłuż dolnej krawędzi pigułki */
+.pigulka-postep {
+  position: absolute;
+  inset-inline: 0.75rem;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--volt), var(--volt-jasny));
+  transform: scaleX(0);
+  transform-origin: left;
+  opacity: 0.9;
+}
+
+.pigulka-znak {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid rgba(191, 255, 56, 0.25);
+  border-radius: 9999px;
+  background: rgba(191, 255, 56, 0.1);
+  color: var(--volt);
+  text-decoration: none;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+.pigulka-znak:hover {
+  background: var(--volt);
+  color: var(--void);
+}
+.pigulka-znak svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.pigulka-tytul {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-inline: 0.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.82rem;
+  color: var(--steel);
+}
+.pigulka-tytul b {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+/* przyciski i menu rozwijane w pigułce */
+.pigulka-akcja {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  height: 2.25rem;
+  padding-inline: 0.85rem;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--steel);
+  font: inherit;
+  font-size: 0.82rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+.pigulka-akcja:hover {
+  background: rgba(245, 245, 245, 0.04);
+  color: var(--fg);
+}
+.pigulka-akcja svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+}
+.pigulka-akcja-mocna {
+  background: var(--volt);
+  color: var(--void);
+  font-weight: 500;
+  box-shadow:
+    0 0 0 1px rgba(191, 255, 56, 0.25),
+    0 0 22px rgba(191, 255, 56, 0.16);
+  transition:
+    box-shadow 0.35s ease,
+    background-color 0.2s ease,
+    transform 0.25s var(--krzywa);
+}
+.pigulka-akcja-mocna:hover {
+  background: var(--volt-jasny);
+  color: var(--void);
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(191, 255, 56, 0.4),
+    0 0 34px rgba(191, 255, 56, 0.28);
+}
+.pigulka-akcja-mocna:active {
+  transform: translateY(0) scale(0.98);
+}
+.pigulka-akcja-mocna svg {
+  transition: transform 0.25s ease;
+}
+.pigulka-akcja-mocna:hover svg {
+  transform: translateX(2px);
+}
+
+/*
+ * Rozwijane menu stoi na <details> — bez JavaScriptu też się otwiera.
+ * To jedyna nawigacja po 73 lekcjach, więc nie ma prawa zależeć od skryptu.
+ */
+.rozwijane {
+  position: relative;
+  flex: 0 0 auto;
+}
+.rozwijane > summary {
+  list-style: none;
+}
+.rozwijane > summary::-webkit-details-marker {
+  display: none;
+}
+.rozwijane > summary svg:last-child {
+  transition: transform 0.25s ease;
+}
+.rozwijane[open] > summary svg:last-child {
+  transform: rotate(180deg);
+}
+.rozwijane[open] > summary {
+  background: rgba(245, 245, 245, 0.06);
+  color: var(--fg);
+}
+
+.rozwijane-tresc {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  z-index: 10;
+  width: min(24rem, calc(100vw - 2.5rem));
+  max-height: min(28rem, calc(100vh - 8rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* systemowy pasek przewijania wchodzi tu jasną szyną przez całą wysokość
+   * i rozbija ciemny panel — cieńszy i w kolorach systemu */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 245, 245, 0.18) transparent;
+  padding: 0.5rem;
+  border: 1px solid var(--line-mocna);
+  border-radius: var(--promien-duzy);
+  background: rgba(16, 17, 22, 0.97);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+  animation: rozwin 0.2s var(--krzywa);
+}
+@keyframes rozwin {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+/* na wąskim ekranie menu przykleja się do krawędzi zamiast wyjeżdżać poza */
+@media (max-width: 40rem) {
+  .rozwijane {
+    position: static;
+  }
+  .rozwijane-tresc {
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+  }
+}
+
+/* ————— pigułka na wąskim ekranie —————
+ * Przy 390 px pigułka z tytułem kursu i trzema podpisanymi przyciskami nie
+ * mieści się: tytuł ścinał się do jednej litery, a „Następna" wyjeżdżała poza
+ * ekran. Oddajemy miejsce po kolei — najpierw tytuł (jest w <h1> dwa
+ * centymetry niżej), potem podpisy przycisków (ikony zostają, a nazwy
+ * wchodzą w aria-label). */
+@media (max-width: 48rem) {
+  /* visibility, nie display: element zostaje rozpychaczem flexa, więc
+   * przyciski trzymają się prawej krawędzi zamiast zbić się przy sygnecie */
+  .pigulka-tytul {
+    visibility: hidden;
+  }
+}
+@media (max-width: 34rem) {
+  .pigulka {
+    gap: 0.25rem;
+    padding-inline: 0.4rem;
+  }
+  .pigulka-akcja {
+    padding-inline: 0.6rem;
+    gap: 0.3rem;
+  }
+  .rozwijane > summary span,
+  .pigulka-akcja-mocna span {
+    /* podpis znika z widoku, ale zostaje dla czytnika ekranu */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .pigulka-akcja-mocna {
+    padding-inline: 0.8rem;
+  }
+}
+
+.rozwijane-naglowek {
+  padding: 0.5rem 0.75rem 0.35rem;
+  font-family: var(--mono);
+  /* 0,66 rem, nie 0,55: to nazwa modułu w JEDYNEJ nawigacji po 73 lekcjach,
+   * a nie mikroetykieta ozdobna — 8,8 px z rozstrzeleniem 0,25 em było
+   * poniżej granicy wygodnego czytania polskiego tytułu */
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+
+.spis-modul {
+  border-top: 1px solid var(--line);
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+}
+.spis-modul:first-of-type {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.spis-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.spis-lista a {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--fg);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-decoration: none;
+  transition: background-color 0.18s ease;
+}
+.spis-lista a:hover {
+  background: rgba(245, 245, 245, 0.05);
+}
+/* palcem trafia się gorzej niż kursorem — na ekranie dotykowym pozycja
+ * spisu rośnie z 34 do 44 px, czyli do wysokości wygodnej do trafienia */
+@media (pointer: coarse) {
+  .spis-lista a {
+    padding-block: 0.7rem;
+  }
+}
+.spis-lista a[aria-current="page"] {
+  background: rgba(191, 255, 56, 0.1);
+  color: var(--volt);
+}
+/* kod w tytule sekcji: w menu i w nagłówku ma być samą czcionką maszynową,
+ * bez ramki i tła — pudełko w linii nagłówka rozbija rytm typografii */
+.spis-lista code,
+.tresc h2 code,
+.tresc h3 code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 0.88em;
+  color: inherit;
+}
+
+.spis-nr {
+  flex: 0 0 auto;
+  min-width: 2rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--steel);
+  font-variant-numeric: tabular-nums;
+}
+.spis-lista a[aria-current="page"] .spis-nr {
+  color: var(--volt);
+}
+/* ptaszek dokładany przez skrypt lekcjom odhaczonym w tej przeglądarce */
+.spis-lista a[data-przeczytana="1"] .spis-nr::after {
+  content: " ✓";
+  color: var(--volt);
+}
+
+/*
+ * Łącze pomijające nawigację. Parytet z `.skip-link` ze strony: pływająca
+ * pigułka ma cztery elementy, więc czytający klawiaturą przechodzi je za
+ * każdym razem od nowa przy 73 lekcjach. Widoczne dopiero przy fokusie.
+ */
+.pomin {
+  position: fixed;
+  top: -6rem;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.375rem;
+  background: var(--volt);
+  color: var(--void);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+.pomin:focus-visible {
+  top: 1rem;
+}
+
+/* ————————————————— układ strony ————————————————— */
+
+.strona {
+  position: relative;
+  padding-top: 4.5rem;
+}
+
+.kolumna {
+  width: 100%;
+  max-width: calc(var(--miara) + 2 * var(--wyjscie));
+  margin-inline: auto;
+  padding-inline: max(1.25rem, var(--wyjscie));
+}
+
+/*
+ * Spisy (strona wejściowa i strona kursu) idą szerzej niż kolumna czytania.
+ * Miara 68ch jest dobrana pod PROZĘ — dla listy modułów, kafelków liczbowych
+ * i kart kursów jest za wąska: pozycje robią się ciasne, a strona wygląda na
+ * węższą od pływającej pigułki nad nią. Ta sama zasada co na stronie
+ * sprzedażowej, gdzie treść (container-site, 76rem) jest szersza od paska.
+ */
+.kolumna-szeroka {
+  max-width: 72rem;
+  padding-inline: clamp(1.25rem, 5vw, 3rem);
+}
+
+/* pas hero — siatka i poświata jak w HeroKursu */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding-block: clamp(2.5rem, 7vw, 4.5rem) clamp(1.75rem, 3vw, 2.5rem);
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -8rem;
+  right: 6%;
+  width: 26rem;
+  height: 26rem;
+  border-radius: 9999px;
+  background: rgba(191, 255, 56, 0.06);
+  filter: blur(110px);
+  pointer-events: none;
+  animation: oddech 7s ease-in-out infinite;
+}
+@keyframes oddech {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.etykieta {
+  margin: 0 0 1rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--volt);
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  /* editorial-gradient nagłówka — .text-soft-gradient ze strony */
+  background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 52%, #a9adb8 135%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.lead {
+  margin: 1.5rem 0 0;
+  font-size: 1.12rem;
+  line-height: 1.7;
+  color: var(--steel);
+}
+.lead strong {
+  color: var(--fg);
+}
+
+/* listwa metadanych pod nagłówkiem lekcji */
+.meta-listwa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.5rem;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+.meta-listwa b {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+/* ————————————————— typografia treści ————————————————— */
+
+.tresc {
+  padding-bottom: 4rem;
+}
+
+.tresc > * {
+  max-width: var(--miara);
+  margin-inline: auto;
+}
+
+.tresc h2 {
+  margin: 3.5rem auto 1.1rem;
+  font-size: 1.6rem;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+/*
+ * Numer sekcji przed tytułem. Proza numeruje rozdziały sama („## 3. Trzy
+ * drzwi do Claude”) — numer wyjmujemy z tekstu nagłówka i podajemy w mono,
+ * żeby tytuł zaczynał się od słowa, nie od cyfry. Tekst nagłówka zostaje
+ * nietknięty, zmienia się tylko sposób jego złożenia.
+ */
+.tresc h2 .h2-nr {
+  display: inline-block;
+  min-width: 2.4rem;
+  margin-left: -2.4rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--volt);
+  vertical-align: 0.32em;
+  font-variant-numeric: tabular-nums;
+}
+/* na wąskiej kolumnie numer nie ma gdzie wyjść na margines — wraca do linii */
+@media (max-width: 52rem) {
+  .tresc h2 .h2-nr {
+    margin-left: 0;
+    min-width: 0;
+    margin-right: 0.6rem;
+  }
+}
+
+.tresc h3 {
+  margin: 2.4rem auto 0.7rem;
+  font-size: 1.13rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+.tresc h4 {
+  margin: 1.8rem auto 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--steel);
+}
+.tresc p {
+  margin: 0 auto 1.2rem;
+}
+.tresc ul,
+.tresc ol {
+  margin: 0 auto 1.35rem;
+  padding-left: 1.35rem;
+}
+.tresc li {
+  margin-bottom: 0.5rem;
+}
+.tresc li::marker {
+  color: var(--steel);
+}
+.tresc strong {
+  color: #fff;
+  font-weight: 600;
+}
+.tresc hr {
+  max-width: var(--miara);
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 3rem auto;
+}
+
+.tresc blockquote {
+  position: relative;
+  margin: 1.9rem auto;
+  padding: 1.1rem 1.25rem 1.1rem 1.4rem;
+  border: 1px solid var(--line);
+  border-left: 2px solid rgba(191, 255, 56, 0.55);
+  border-radius: var(--promien);
+  background: linear-gradient(
+    90deg,
+    rgba(191, 255, 56, 0.04),
+    rgba(191, 255, 56, 0) 40%
+  );
+  color: var(--steel);
+}
+.tresc blockquote strong {
+  color: var(--fg);
+}
+.tresc blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* kod w linii */
+.tresc :not(pre) > code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: rgba(245, 245, 245, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.1em 0.36em;
+  color: var(--fg-kod);
+  overflow-wrap: break-word;
+  /* długa komenda („git remote set-url") łamie się w wąskiej kolumnie —
+   * bez tego obie połówki dostają obciętą ramkę i wyglądają jak dwa
+   * osobne, uszkodzone pudełka */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* ————————————————— bloki kodu ————————————————— */
+
+.kod {
+  position: relative;
+  max-width: calc(var(--miara) + 3rem);
+  margin: 1.7rem auto;
+  border: 1px solid var(--line);
+  border-radius: var(--promien);
+  background: var(--panel);
+  overflow: hidden;
+}
+.kod-pasek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(8, 9, 11, 0.5);
+}
+.kod-jezyk {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+.kod pre {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  background: none;
+}
+.kod pre code {
+  font-family: var(--mono);
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: var(--fg-kod);
+}
+
+/* przycisk kopiowania — dokładany skryptem, więc bez JS po prostu go nie ma */
+.kopiuj {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--steel);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+.kopiuj:hover {
+  color: var(--volt);
+  border-color: rgba(191, 255, 56, 0.35);
+  background: rgba(191, 255, 56, 0.06);
+}
+.kopiuj svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+.kopiuj[data-stan="gotowe"] {
+  color: var(--volt);
+  border-color: rgba(191, 255, 56, 0.4);
+}
+
+/* ————————————————— tabele ————————————————— */
+
+.tabela {
+  max-width: calc(var(--miara) + 6rem);
+  margin: 1.8rem auto;
+  border: 1px solid var(--line);
+  border-radius: var(--promien);
+  background: var(--panel);
+  overflow-x: auto;
+}
+.tabela table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.tabela th,
+.tabela td {
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+/*
+ * Pierwsza kolumna to w prozie prawie zawsze etykieta wiersza („Claude Fable 5",
+ * „Messages API"). Automatyczny układ tabeli ściskał ją do najwęższego słowa
+ * i łamał nazwy w połowie; minimum szerokości temu zapobiega, a gdy suma
+ * kolumn przestanie się mieścić, przewinie się KONTENER, nie strona.
+ */
+.tabela th:first-child,
+.tabela td:first-child {
+  min-width: 9rem;
+}
+.tabela tr:last-child td {
+  border-bottom: 0;
+}
+.tabela th {
+  position: sticky;
+  top: 0;
+  background: rgba(8, 9, 11, 0.92);
+  backdrop-filter: blur(6px);
+  color: var(--steel);
+  font-family: var(--mono);
+  /* nagłówek kolumny jest częścią treści lekcji, nie etykietą interfejsu */
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tabela tbody tr {
+  transition: background-color 0.18s ease;
+}
+.tabela tbody tr:hover {
+  background: rgba(245, 245, 245, 0.02);
+}
+
+/* ————————————————— zrzuty ekranu ————————————————— */
+
+.zrzut {
+  max-width: calc(var(--miara) + 6rem);
+  margin: 2.2rem auto;
+}
+.zrzut img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--promien);
+  background: var(--panel);
+  transition:
+    transform 0.4s var(--krzywa),
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+.zrzut:hover img {
+  transform: translateY(-3px);
+  border-color: rgba(191, 255, 56, 0.22);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.5),
+    0 0 26px rgba(191, 255, 56, 0.06);
+}
+.zrzut figcaption {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--steel);
+}
+.zrzut figcaption::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 2px;
+  border-radius: 9999px;
+  background: rgba(191, 255, 56, 0.4);
+}
+
+.brak-zrzutu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: calc(var(--miara) + 6rem);
+  margin: 2.2rem auto;
+  padding: 1.6rem;
+  border: 1px dashed rgba(191, 255, 56, 0.42);
+  border-radius: var(--promien);
+  background: rgba(191, 255, 56, 0.04);
+}
+.brak-etykieta {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--volt);
+}
+.brak-podpis {
+  font-size: 0.86rem;
+  color: var(--steel);
+}
+
+/* ————————————————— sekcje o własnej tożsamości —————————————————
+ * Proza obu kursów ma powtarzalny szkielet: „Czego się nauczysz",
+ * „Zrób to teraz", „Prompty z tej lekcji", „Gdy coś nie działa",
+ * „Zapamiętaj", „Co dalej" — w 73 lekcjach na 73. Do 0.33.0 wszystkie
+ * renderowały się jako zwykły <h2> i lekcja czytała się jak jeden długi
+ * dokument. Każdy z tych typów dostaje teraz własne pudełko, żeby dało się
+ * je rozpoznać kątem oka. Mapowanie nagłówek → typ robi tresc.mjs.
+ */
+
+.blok {
+  max-width: calc(var(--miara) + 3rem);
+  margin: 2.6rem auto;
+  padding: 1.5rem 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--promien-duzy);
+  background: var(--panel);
+}
+.blok > :last-child {
+  margin-bottom: 0;
+}
+/*
+ * Podpis bloku to editorialna etykieta w duchu „[ 03 · PROGRAM ]” ze strony
+ * sprzedażowej, a nie nagłówek rozdziału. Selektor musi być dwuklasowy
+ * (.tresc .blok-naglowek), bo w tym samym arkuszu stoją .tresc h2
+ * i .blok h2 — obie o specyficzności (0,1,1). Sam .blok-naglowek
+ * (0,1,0) przegrywał z nimi i etykieta wychodziła w rozmiarze nagłówka:
+ * 16 px w blokach i 25,6 px w moście „Co dalej".
+ */
+.tresc .blok-naglowek {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 1.15rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  line-height: 1.3;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--steel);
+  font-weight: 600;
+}
+.blok-naglowek svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: 0 0 auto;
+}
+.blok-odznaka {
+  margin-left: auto;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  /* 0,72 rem, nie 0,6: odznaka niesie treść („10 minut”), a nie ozdobę —
+   * 9,6 px było poniżej wszystkiego, co ma tu do przeczytania człowiek */
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--steel);
+  white-space: nowrap;
+}
+/* nagłówki wewnątrz bloku nie mają już prawa krzyczeć jak sekcyjne */
+.blok h2,
+.blok h3 {
+  max-width: none;
+  margin: 1.4rem 0 0.6rem;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+.blok > .blok-naglowek + h2,
+.blok > .blok-naglowek + h3 {
+  margin-top: 0;
+}
+.blok p,
+.blok ul,
+.blok ol {
+  max-width: none;
+}
+.blok .kod,
+.blok .tabela,
+.blok .zrzut,
+.blok .brak-zrzutu {
+  max-width: none;
+  margin-inline: 0;
+}
+
+/* cele lekcji — lista z ptaszkami zamiast punktorów */
+.blok-cele {
+  border-color: var(--line-mocna);
+  background: linear-gradient(
+    135deg,
+    rgba(191, 255, 56, 0.045),
+    rgba(16, 17, 22, 1) 55%
+  );
+}
+.tresc .blok-cele .blok-naglowek {
+  color: var(--volt);
+}
+.blok-cele ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.blok-cele li {
+  position: relative;
+  margin-bottom: 0.65rem;
+  padding-left: 1.75rem;
+}
+.blok-cele li:last-child {
+  margin-bottom: 0;
+}
+.blok-cele li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.85rem;
+  height: 0.45rem;
+  border-left: 2px solid var(--volt);
+  border-bottom: 2px solid var(--volt);
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+/* ćwiczenie — najmocniejszy akcent w lekcji, bo to jedyne miejsce do zrobienia */
+.blok-cwiczenie {
+  border-color: rgba(191, 255, 56, 0.28);
+  background:
+    radial-gradient(
+      36rem circle at 12% 0%,
+      rgba(191, 255, 56, 0.07),
+      transparent 62%
+    ),
+    var(--panel);
+  box-shadow: 0 0 0 1px rgba(191, 255, 56, 0.04);
+}
+.tresc .blok-cwiczenie .blok-naglowek {
+  color: var(--volt);
+}
+.blok-cwiczenie .blok-odznaka {
+  border-color: rgba(191, 255, 56, 0.3);
+  background: rgba(191, 255, 56, 0.08);
+  color: var(--volt);
+}
+.blok-cwiczenie ol {
+  counter-reset: krok;
+  list-style: none;
+  padding-left: 0;
+}
+.blok-cwiczenie ol > li {
+  counter-increment: krok;
+  position: relative;
+  margin-bottom: 0.9rem;
+  padding-left: 2.4rem;
+}
+.blok-cwiczenie ol > li::before {
+  content: counter(krok);
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid rgba(191, 255, 56, 0.3);
+  border-radius: 9999px;
+  background: rgba(191, 255, 56, 0.08);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--volt);
+}
+
+/* biblioteka promptów */
+.tresc .blok-prompty .blok-naglowek {
+  color: var(--fg);
+}
+.blok-prompty .kod {
+  border-color: var(--line-mocna);
+}
+
+/* diagnostyka — celowo stonowana, to sekcja „gdy coś poszło nie tak" */
+.blok-diagnostyka {
+  background: rgba(16, 17, 22, 0.6);
+  border-style: dashed;
+}
+.tresc .blok-diagnostyka .blok-naglowek {
+  color: var(--steel);
+}
+.blok-diagnostyka p,
+.blok-diagnostyka li {
+  color: #c9ccd3;
+}
+
+/* podsumowanie */
+.blok-zapamietaj {
+  border-color: var(--line-mocna);
+  background: linear-gradient(
+    135deg,
+    rgba(245, 245, 245, 0.04),
+    rgba(16, 17, 22, 1) 60%
+  );
+}
+.blok-zapamietaj ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.blok-zapamietaj li {
+  position: relative;
+  margin-bottom: 0.7rem;
+  padding-left: 1.4rem;
+}
+.blok-zapamietaj li:last-child {
+  margin-bottom: 0;
+}
+.blok-zapamietaj li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.68em;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--volt);
+}
+
+/* pytania do wykonawcy */
+.blok-pytania {
+  background: rgba(16, 17, 22, 0.72);
+}
+
+/* ————————————————— most do następnej lekcji ————————————————— */
+
+.most {
+  max-width: calc(var(--miara) + 3rem);
+  margin: 3.5rem auto 0;
+  padding: 1.75rem 1.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--promien-duzy);
+  background:
+    radial-gradient(
+      30rem circle at 90% 0%,
+      rgba(191, 255, 56, 0.05),
+      transparent 60%
+    ),
+    var(--panel);
+}
+.tresc .most .blok-naglowek {
+  color: var(--volt);
+}
+.most > :last-child {
+  margin-bottom: 0;
+}
+.most p {
+  max-width: none;
+}
+
+/* ————————————————— stopka nawigacyjna lekcji ————————————————— */
+
+.nawigacja {
+  display: grid;
+  gap: 0.75rem;
+  max-width: calc(var(--miara) + 3rem);
+  margin: 2.5rem auto 0;
+}
+@media (min-width: 46rem) {
+  .nawigacja {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.nawigacja-karta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--promien);
+  background: var(--panel);
+  color: var(--fg);
+  text-decoration: none;
+}
+.nawigacja-karta-dalej {
+  text-align: right;
+}
+.nawigacja-kierunek {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+.nawigacja-karta-dalej .nawigacja-kierunek {
+  justify-content: flex-end;
+  color: var(--volt);
+}
+.nawigacja-kierunek svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+.nawigacja-tytul {
+  font-size: 0.98rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.nawigacja-pusto {
+  border-style: dashed;
+  opacity: 0.45;
+}
+
+/* przycisk „przeczytana" — stan trzymany w pamięci tej przeglądarki */
+.odhacz {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 2.5rem auto 0;
+  padding: 0.7rem 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--panel);
+  color: var(--steel);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+.odhacz:hover {
+  color: var(--fg);
+  border-color: var(--line-mocna);
+}
+.odhacz svg {
+  width: 1rem;
+  height: 1rem;
+}
+.odhacz[aria-pressed="true"] {
+  color: var(--volt);
+  border-color: rgba(191, 255, 56, 0.35);
+  background: rgba(191, 255, 56, 0.07);
+}
+.odhacz-pas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: calc(var(--miara) + 3rem);
+  margin-inline: auto;
+}
+.odhacz-nota {
+  font-size: 0.72rem;
+  color: var(--steel);
+  text-align: center;
+}
+
+/* ————————————————— strona kursu: moduły i lekcje ————————————————— */
+
+.liczby {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 1px;
+  margin-top: 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--promien-duzy);
+  background: var(--line);
+  overflow: hidden;
+}
+.liczby > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.1rem 1.2rem;
+  background: var(--panel);
+}
+.liczby .wartosc {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  /* „565 tys." ma zostać jedną liczbą, a nie złamać się po spacji */
+  white-space: nowrap;
+}
+.liczby .opis {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+
+/* pasek ukończenia kursu — wypełnia go skrypt z pamięci przeglądarki */
+/* display:flex przebiłby domyślne ukrycie atrybutem hidden, a pasek ma
+ * pozostać niewidoczny, dopóki skrypt nie policzy, ile lekcji odhaczono */
+.postep-kursu[hidden] {
+  display: none;
+}
+.postep-kursu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 0.9rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--panel);
+  font-size: 0.82rem;
+  color: var(--steel);
+}
+.postep-tor {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(245, 245, 245, 0.08);
+  overflow: hidden;
+}
+.postep-wypelnienie {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--volt), var(--volt-jasny));
+  transition: width 0.5s var(--krzywa);
+}
+.postep-etykieta {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.moduly {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0;
+}
+
+.modul {
+  border: 1px solid var(--line);
+  border-radius: var(--promien-duzy);
+  background: var(--panel);
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+.modul:hover {
+  border-color: var(--line-mocna);
+}
+.modul > summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  cursor: pointer;
+  list-style: none;
+}
+.modul > summary::-webkit-details-marker {
+  display: none;
+}
+.modul-nr {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--steel);
+  font-variant-numeric: tabular-nums;
+}
+.modul-tytul {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.modul-meta {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--steel);
+  white-space: nowrap;
+}
+@media (max-width: 34rem) {
+  .modul-meta {
+    display: none;
+  }
+}
+.modul-strzalka {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  color: var(--steel);
+  transition: transform 0.25s ease;
+}
+.modul[open] .modul-strzalka {
+  transform: rotate(180deg);
+}
+/* płynne rozwijanie — jak details.panel na stronie sprzedażowej;
+ * progressive enhancement: przeglądarka bez interpolate-size otwiera
+ * natychmiast, dokładnie jak dotąd */
+.modul {
+  interpolate-size: allow-keywords;
+}
+.modul::details-content {
+  opacity: 0;
+  block-size: 0;
+  overflow-y: clip;
+  transition:
+    content-visibility 0.35s allow-discrete,
+    opacity 0.3s ease,
+    block-size 0.35s var(--krzywa);
+}
+.modul[open]::details-content {
+  opacity: 1;
+  block-size: auto;
+}
+.modul-lekcje {
+  margin: 0;
+  padding: 0 0.5rem 0.5rem;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.lekcja-poz {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--fg);
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+.lekcja-poz:hover {
+  background: rgba(245, 245, 245, 0.04);
+}
+.lekcja-poz:hover .lekcja-tytul {
+  color: var(--volt);
+}
+.lekcja-znacznik {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  color: var(--steel);
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+.lekcja-znacznik svg {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+.lekcja-poz[data-przeczytana="1"] .lekcja-znacznik {
+  color: var(--volt);
+  border-color: rgba(191, 255, 56, 0.4);
+  background: rgba(191, 255, 56, 0.12);
+}
+/* domyślnie widać „odtwórz"; po odhaczeniu podmienia się na ptaszek */
+.lekcja-poz .znak-ptaszek {
+  display: none;
+}
+.lekcja-poz[data-przeczytana="1"] .znak-ptaszek {
+  display: block;
+}
+.lekcja-poz[data-przeczytana="1"] .znak-play {
+  display: none;
+}
+.lekcja-nr {
+  flex: 0 0 auto;
+  min-width: 2.2rem;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--steel);
+  font-variant-numeric: tabular-nums;
+}
+.lekcja-tytul {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  transition: color 0.2s ease;
+}
+.lekcja-meta {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--steel);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 30rem) {
+  .lekcja-meta {
+    display: none;
+  }
+}
+
+/* ————————————————— wspólny hover-lift (odpowiednik .unos ze strony) ————————————————— */
+
+/*
+ * Karta kursu i karta sąsiedniej lekcji unoszą się identycznie. Trzymanie
+ * tych samych czterech deklaracji w dwóch miejscach (a w bloku
+ * prefers-reduced-motion w trzecim) skończyłoby się rozjazdem przy pierwszej
+ * korekcie cienia — na stronie robi to jedna klasa `.unos` i tu też.
+ */
+.unos {
+  transition:
+    transform 0.3s var(--krzywa),
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+.unos:hover {
+  transform: translateY(-4px);
+  border-color: rgba(191, 255, 56, 0.25);
+  box-shadow:
+    0 14px 44px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(191, 255, 56, 0.07);
+}
+
+/* ————————————————— strona wejściowa: karty kursów ————————————————— */
+
+.karty {
+  display: grid;
+  gap: 1.1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  margin: 0;
+}
+
+.karta {
+  display: flex;
+  flex-direction: column;
+  padding: 1.6rem 1.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--promien-duzy);
+  background:
+    radial-gradient(
+      26rem circle at 100% 0%,
+      rgba(191, 255, 56, 0.05),
+      transparent 58%
+    ),
+    var(--panel);
+  color: inherit;
+  text-decoration: none;
+}
+.karta-etykieta {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--volt);
+}
+.karta h2 {
+  margin: 0.8rem 0 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+.karta-opis {
+  margin: 0.7rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--steel);
+}
+.karta-liczby {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.4rem 0 0;
+  padding: 1.1rem 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+.karta-liczby li {
+  padding: 0.28rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--steel);
+  font-variant-numeric: tabular-nums;
+}
+/* margin-top:auto dosuwa wejście do dna karty, więc obie karty mają
+ * przycisk na tej samej wysokości niezależnie od długości opisu — wymóg
+ * właściciela z briefu katalogu: karty RÓWNE, bez wyróżnionej */
+.karta-wejscie {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: auto;
+  padding-top: 1.3rem;
+  color: var(--volt);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+.karta-wejscie svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  transition: transform 0.25s ease;
+}
+.karta:hover .karta-wejscie svg {
+  transform: translateX(3px);
+}
+
+.uwaga {
+  display: flex;
+  gap: 0.85rem;
+  margin: 2.75rem 0 0;
+  padding: 1.1rem 1.3rem;
+  border: 1px solid var(--line);
+  border-radius: var(--promien);
+  background: rgba(16, 17, 22, 0.6);
+  color: var(--steel);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+.uwaga svg {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.28rem;
+  color: var(--volt);
+}
+
+/* szerokość bierze z .kolumna / .kolumna-szeroka — tu tylko oprawa */
+.stopka {
+  margin-top: 4rem;
+  padding-block: 1.5rem 3rem;
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+
+/* ————————————————— wejście kart w widok ————————————————— */
+
+/*
+ * Czysty CSS zamiast obserwatora przecięć. Karty na stronie wejściowej są
+ * nad zgięciem, więc obserwator i tak odpalał je natychmiast po wczytaniu —
+ * dawał tylko dodatkowy JavaScript i stan ukryty, który przy niewczytanym
+ * skrypcie zostawał na zawsze. `backwards` (nie `both`) jest tu wymogiem,
+ * a nie stylem: wypełnienie do przodu zostawia trwały kontekst układania
+ * i chowa elementy `fixed` (BLAD-004 na stronie).
+ */
+.karta {
+  animation: wejscie-karty 0.55s var(--krzywa) backwards;
+}
+.karta:nth-child(2) {
+  animation-delay: 0.09s;
+}
+@keyframes wejscie-karty {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+/* ————————————————— dostępność ruchu ————————————————— */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .tlo-blob-a,
+  .tlo-blob-b,
+  .hero::before,
+  .pigulka-kotwica,
+  .rozwijane-tresc {
+    animation: none;
+  }
+  .tlo-glow {
+    display: none;
+  }
+  .unos,
+  .unos:hover,
+  .zrzut img,
+  .zrzut:hover img,
+  .pigulka-akcja-mocna,
+  .pigulka-akcja-mocna:hover,
+  .pigulka-akcja-mocna:active {
+    transform: none;
+    transition: none;
+  }
+  .karta {
+    animation: none;
+  }
+  .modul::details-content {
+    transition: none;
+  }
+  .postep-wypelnienie {
+    transition: none;
+  }
+}
+
+/*
+ * Tryb wysokiego kontrastu systemu. Tło jest czystą dekoracją i w wymuszonych
+ * kolorach zamienia się w płaskie plamy nad treścią, a poświata volt gubi
+ * czytelność — znika razem z resztą ozdób. Parytet z app/globals.css, gdzie
+ * to samo robimy z wordmarkiem stopki.
+ */
+@media (forced-colors: active) {
+  .tlo {
+    display: none;
+  }
+  .pigulka,
+  .rozwijane-tresc,
+  .blok,
+  .most,
+  .kod,
+  .tabela,
+  .karta,
+  .modul,
+  .nawigacja-karta {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+}
+
+@media print {
+  .tlo,
+  .pigulka-kotwica,
+  .nawigacja,
+  .odhacz-pas,
+  .kopiuj {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+}
