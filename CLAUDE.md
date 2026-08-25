@@ -1379,9 +1379,9 @@ wyprowadzała tego od nowa:
   - **Część 1 = PR #73, OTWARTY**, gałąź `feat/w5-tutor-sync`, wersja 0.43.0 —
     czeka na zgodę właściciela na merge. **Nie mergować bez pytania.**
   - **Część 2 = gałąź `feat/w5-widok-lekcji`** (odbita od gałęzi części 1),
-    2 commity, **NIEWYPCHNIĘTA, bez PR-a** — świadomie: stackowane PR-y już raz
-    zamknęły się w tym repo nawzajem (notatka przy 0.25.0), więc PR części 2
-    otwieramy DOPIERO po zmergowaniu #73 i przepięciu gałęzi na `main`.
+    wypchnięta na zdalne repo, **ale BEZ PR-a** — świadomie: stackowane PR-y już
+    raz zamknęły się w tym repo nawzajem (notatka przy 0.25.0), więc PR części 2
+    otwieramy DOPIERO po zmergowaniu #73 i przepięciu bazy na `main`.
   **CO ZOSTAŁO DO DOMKNIĘCIA W5** (kolejność):
   1. `npm run check` po części 2 (jeszcze nie puszczony) + powtórka
      `smoke:wp-front`, `smoke:wp-kreator`, `smoke:wp` — części 2 ich nie ruszała,
