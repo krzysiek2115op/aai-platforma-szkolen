@@ -1041,6 +1041,52 @@ const MUTACJE = [
         ? s.replace(/pozwol_skasowac_tresc/g, "pozwol_cokolwiek")
         : null,
   },
+  // --- straznik-wtyczki-wp (etap WordPress) ---
+  // Wtyczka działa nawet wtedy, gdy brakuje jej ochron: objaw wychodzi
+  // dopiero u klienta. Stąd mutacja na każdy niezmiennik, jak przy CSP.
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "plik wtyczki bez blokady bezpośredniego wywołania (wykonuje się poza WordPressem)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tabele.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    zmien: (s) =>
+      s.includes("defined( 'ABSPATH' ) || exit;")
+        ? s.replace("defined( 'ABSPATH' ) || exit;", "")
+        : null,
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "treść lekcji jako `text` (65 kB) — MySQL utnie dłuższą lekcję w milczeniu",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tabele.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    zmien: (s) =>
+      s.includes("content mediumtext NULL")
+        ? s.replace("content mediumtext NULL", "content text NULL")
+        : null,
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "odinstalowanie kasuje treść kursów bez jawnej zgody właściciela",
+    plik: "wordpress/wtyczki/aai-sklep/uninstall.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/uninstall.php"),
+    zmien: (s) =>
+      s.includes("if ( ! get_option( 'aai_sklep_kasuj_dane_przy_usuwaniu' ) ) {")
+        ? s.replace(
+            "if ( ! get_option( 'aai_sklep_kasuj_dane_przy_usuwaniu' ) ) {",
+            "if ( false ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "wtyczka traci nagłówek Text Domain (tłumaczenia przestają się ładować)",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    zmien: (s) =>
+      s.includes(" * Text Domain:")
+        ? s.replace(" * Text Domain:", " * Textdomain-literowka:")
+        : null,
+  },
   {
     straznik: "straznik-tresci-lekcji",
     opis: "zgoda na skasowanie treści wypada z KONTRAKTU (zostaje umową panelu z dyspozytorem)",

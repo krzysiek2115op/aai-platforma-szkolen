@@ -1,0 +1,89 @@
+# Środowisko etapu WordPress — WP + MariaDB + wp-cli, wszystko lokalnie.
+#
+# WZORZEC: `wordpress/docker-compose.yml` z repo strony głównej
+# (MatthewPlugins/automatic-ai). Różnice, które są tu celowe:
+#   * podman zamiast Dockera (u nas nie ma Dockera — sprawdzone),
+#   * inny port i inne nazwy kontenerów, żeby dało się trzymać oba
+#     środowiska naraz i niczego sobie nie nadpisać,
+#   * mount NASZYCH wtyczek z repo — kod piszemy w repo, WordPress widzi
+#     go od razu, bez kopiowania (kopiowanie zawsze się rozjeżdża),
+#   * motyw i treść strony głównej montowane spoza repo (`$WARSZTAT`):
+#     strażnicy czytają DYSK, nie git, więc cudze pliki leżące w drzewie
+#     repo — nawet ignorowane przez gita — wchodzą im pod skanowanie.
+#     Kosztowało to fałszywy alarm `straznik-seo`, który znalazł blok
+#     danych strukturalnych w generatorze motywu strony głównej,
+#   * brak `depends_on: condition: service_healthy` — podman-compose 1.6
+#     tego nie egzekwuje tak jak docker compose, więc na gotowość bazy
+#     czeka `postaw.sh` w pętli. Lepiej czekać jawnie niż wierzyć.
+#
+# Port bindujemy WYŁĄCZNIE na pętlę zwrotną: to instancja z panelem
+# admina i hasłami z .env — bez `127.0.0.1:` widziałby ją każdy
+# w tej samej sieci.
+
+name: ${STACK_NAZWA:-aai_wp}
+
+services:
+  db:
+    image: mariadb:11.8
+    container_name: ${STACK_NAZWA:-aai_wp}_db
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: ${DB_PASSWORD:?brak .env — odpal ./postaw.sh}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?brak .env — odpal ./postaw.sh}
+    volumes:
+      - db_data:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:6.9.4-php8.4-apache
+    container_name: ${STACK_NAZWA:-aai_wp}_wordpress
+    depends_on:
+      - db
+    ports:
+      - "127.0.0.1:${WP_PORT:-8892}:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      # Bez tego wtyczka nie może pisać po plikach, a Tutor przy
+      # instalacji chce tworzyć katalogi w uploads.
+      WORDPRESS_CONFIG_EXTRA: |
+        define('FS_METHOD', 'direct');
+        define('WP_DEBUG', true);
+        define('WP_DEBUG_LOG', true);
+        define('WP_DEBUG_DISPLAY', false);
+    volumes:
+      - wp_core:/var/www/html
+      # Motyw pobrany z repo strony głównej (sparse checkout, poza gitem).
+      # Montujemy SAM MOTYW, nie cały katalog `themes`: obraz WordPressa
+      # przy pierwszym starcie rozpakowuje do `themes` swoje motywy domyślne,
+      # a mount całego katalogu read-only wywala rozpakowanie i kontener
+      # wychodzi z kodem 2 (sprawdzone — pierwsza próba tak padła).
+      - ${WARSZTAT}/wp/theme/automatic-ai:/var/www/html/wp-content/themes/automatic-ai:ro
+      # NASZE wtyczki — po jednej, nie cały katalog `plugins`: mount całego
+      # katalogu zasłoniłby Tutora i WooCommerce zainstalowane w wolumenie.
+      - ../wtyczki/aai-sklep:/var/www/html/wp-content/plugins/aai-sklep
+
+  cli:
+    image: wordpress:cli-php8.4
+    container_name: ${STACK_NAZWA:-aai_wp}_cli
+    user: "33:33"
+    depends_on:
+      - db
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - wp_core:/var/www/html
+      - ${WARSZTAT}/wp/theme/automatic-ai:/var/www/html/wp-content/themes/automatic-ai:ro
+      - ../wtyczki/aai-sklep:/var/www/html/wp-content/plugins/aai-sklep
+      - ${WARSZTAT}/skrypty:/praca/skrypty:ro
+      - ${WARSZTAT}/import:/praca/import:ro
+    entrypoint: ["tail", "-f", "/dev/null"]
+
+volumes:
+  db_data:
+  wp_core:
