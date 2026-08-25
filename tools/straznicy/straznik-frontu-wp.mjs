@@ -8,7 +8,7 @@
  * po pierwszej regeneracji motywu, po dopisaniu rodzaju sekcji do kontraktu
  * albo po przeniesieniu jednego znacznika o dwie linijki wyżej.
  *
- * OSIEM NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
+ * DZIEWIĘĆ NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
  *   1. każdy rodzaj sekcji z kontraktu ma szablon w `szablony/sekcje/`,
  *   2. …i każde POLE tego rodzaju jest gdzieś renderowane — pole bez
  *      renderu to treść wpisana kreatorem, której klient nie zobaczy,
@@ -19,7 +19,10 @@
  *   6. elementy `position: fixed` są emitowane POZA `<main>` (BLAD-003),
  *   7. istnieją obie reguły przekierowania z `/courses/*`,
  *   8. arkusz ma blok `prefers-reduced-motion` obejmujący każdą klasę,
- *      której nadaje animację.
+ *      której nadaje animację,
+ *   9. slug kursu nie może zająć adresu NASZEJ podstrony — kontrakt pyta
+ *      o listę zarezerwowanych, a lista i reguły przepisywania biorą się
+ *      z jednej stałej (BLAD-021: kurs w katalogu bez strony sprzedażowej).
  *
  * Użycie: node tools/straznicy/straznik-frontu-wp.mjs
  */
@@ -36,6 +39,10 @@ if (!existsSync(WTYCZKA)) {
 }
 
 const czytaj = (sciezka) => readFileSync(join(WTYCZKA, sciezka), "utf8");
+
+/** Kod bez komentarzy — reguły mają celować w ZACHOWANIE, nie w opis. */
+const bezKomentarzy = (zrodlo) =>
+  zrodlo.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
 /** Wszystkie pliki szablonów — treść sklejona, bo pola bywają renderowane
  *  w innym pliku niż deklarowane (np. `w_cenie` pakietu w sekcji oferty). */
@@ -258,6 +265,75 @@ if (!existsSync(join(WTYCZKA, TRASY))) {
       `${TRASY}: przekierowania nie są trwałe (301). Tymczasowe (302) zostawia stary adres w indeksie wyszukiwarki, czyli nie robi tego, po co je dodaliśmy.`
     );
   }
+
+  /*
+   * WIDOK PRYWATNY MUSI ZAKAZAĆ CACHE'OWANIA WPROST.
+   *
+   * „Moje kursy" pokazują listę zależną od KONTA, więc odpowiedź odłożona na
+   * półkę przez cache strony albo CDN bez reguły na ciasteczko logowania
+   * trafiłaby do innego klienta.
+   *
+   * PILNUJE TEGO STRAŻNIK, A NIE SMOKE — i to jest wniosek z testu
+   * negatywnego: po usunięciu `nocache_headers()` nagłówki i tak przychodzą,
+   * bo dokłada je coś innego w stosie (sprawdzone na żywej stronie: identyczny
+   * `Cache-Control` z naszym wywołaniem i bez niego). Smoke pilnuje więc
+   * WŁASNOŚCI odpowiedzi, a tutaj pilnujemy NASZEJ gwarancji — bo cudza
+   * uprzejmość może zniknąć z aktualizacją wtyczki i nikt się nie dowie.
+   */
+  /*
+   * Wzorzec celuje w GAŁĄŹ, która zwraca szablon „moje", a nie w samo
+   * sąsiedztwo słowa `'moje'`. Pierwsza wersja pytała o jedno i drugie
+   * w promieniu 600 znaków i audyt pokazał, że PRZEPUSZCZA mutację: w tym
+   * samym pliku jest drugie `nocache_headers()` (gałąź 404), więc wzorzec
+   * trafiał w cudze wywołanie. Wzorce mają celować w ZACHOWANIE, nie
+   * w bliskość napisów — nawrót lekcji z 0.29.0.
+   */
+  if (!/'moje'\s*===\s*\$widok\s*\)\s*\{[\s\S]{0,400}?nocache_headers\(\)[\s\S]{0,200}?szablony\/moje\.php/.test(trasy)) {
+    bledy.push(
+      `${TRASY}: widok „moje" nie woła nocache_headers(). To strona prywatna — jej treść zależy od konta oglądającego, więc odpowiedź nie ma prawa trafić do cache'u współdzielonego.`
+    );
+  }
+}
+
+/* ——— 9. slug kursu nie może zająć adresu NASZEJ podstrony ——— */
+
+/*
+ * BLAD-021. Adres kursu (`/szkolenia/<slug>/`) i adres naszej podstrony
+ * (`/szkolenia/moje/`) mieszkają w jednej przestrzeni, a reguła podstrony
+ * jest sprawdzana pierwsza. Kurs o slugu `moje` wchodził więc do katalogu,
+ * miał kartę i cenę — ale jego strona sprzedażowa nie istniała: kliknięcie
+ * karty prowadziło na „Moje kursy". Zmierzone na żywej instalacji, bez
+ * jednego objawu po drodze (odpowiedź 200, dane poprawne, zero ostrzeżeń).
+ *
+ * Pilnujemy DWÓCH rzeczy naraz, bo każda z osobna daje się obejść:
+ *  (a) kontrakt pyta o listę zarezerwowanych slugów — bez tego nie ma odmowy,
+ *  (b) lista i reguły przepisywania biorą się z TEJ SAMEJ stałej — inaczej
+ *      nowa podstrona dostanie regułę, ale nie trafi na listę zakazanych
+ *      i klasa błędu wróci przy pierwszym rozbudowaniu sklepu.
+ */
+const PLIK_TRAS = "includes/class-aai-sklep-trasy.php";
+const PLIK_KONTRAKTU_WP = "includes/class-aai-sklep-kontrakt.php";
+
+if (existsSync(join(WTYCZKA, PLIK_TRAS)) && existsSync(join(WTYCZKA, PLIK_KONTRAKTU_WP))) {
+  const trasy = bezKomentarzy(czytaj(PLIK_TRAS));
+  const kontraktWp = bezKomentarzy(czytaj(PLIK_KONTRAKTU_WP));
+
+  const walidatorSlugu = (kontraktWp.match(/function slug\([\s\S]*?\n\t\}/) ?? [""])[0];
+  if (!walidatorSlugu.includes("zarezerwowane_slugi(")) {
+    bledy.push(
+      `${PLIK_KONTRAKTU_WP}: sprawdzanie slugu nie pyta o adresy zajęte przez nasze podstrony. Kurs o slugu naszej podstrony wejdzie do katalogu, ale jego strona sprzedażowa nie będzie istniała — klient kliknie kartę i trafi gdzie indziej, bez żadnego objawu (BLAD-021).`
+    );
+  }
+
+  const zrodlaPodstron = ["zarezerwowane_slugi", "dodaj_reguly"].filter((nazwa) => {
+    const cialo = (trasy.match(new RegExp(`function ${nazwa}\\([\\s\\S]*?\\n\\t\\}`)) ?? [""])[0];
+    return cialo.includes("PODSTRONY");
+  });
+  if (zrodlaPodstron.length < 2) {
+    bledy.push(
+      `${PLIK_TRAS}: reguły przepisywania i lista zarezerwowanych slugów muszą brać się z TEJ SAMEJ stałej (\`PODSTRONY\`). Osobne listy rozjadą się przy pierwszej nowej podstronie: adres zadziała, a slug nie zostanie zakazany — czyli wróci BLAD-021. Z jednego źródła korzysta: ${zrodlaPodstron.join(", ") || "żadna z funkcji"}.`
+    );
+  }
 }
 
 if (bledy.length > 0) {
@@ -267,5 +343,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, wygaszanie ruchu).`
+  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, widok prywatny bez cache'u, wygaszanie ruchu, slug kursu nie zajmuje naszej podstrony).`
 );

@@ -80,9 +80,26 @@ final class Aai_Sklep_Panel_Akcje {
 			'badge'        => self::tekst( 'badge' ),
 			'level'        => self::tekst( 'level' ),
 			'price_grosze' => Aai_Sklep_Kontrakt::grosze_z_tekstu( self::tekst( 'cena_zl' ) ),
-			'sekcje'       => self::json( 'sekcje' ),
-			'moduly'       => self::json( 'moduly' ),
 		);
+		/*
+		 * POLE NIEPRZYSŁANE ZNIKA Z WEJŚCIA, zamiast wchodzić jako `null`.
+		 *
+		 * Reguła całej warstwy zapisu brzmi „brak klucza znaczy nie ruszaj"
+		 * (BLAD-018), a `null` nie jest brakiem — to wartość, którą kontrakt
+		 * słusznie odrzuca jako zły kształt. Przekładanie „nie przysłano" na
+		 * `null` zrywało więc ten łańcuch: żądanie bez programu dostawało
+		 * odmowę z komunikatem „Program ma zły kształt", czyli o czymś
+		 * zupełnie innym niż rzeczywistość. Panel zawsze wysyła oba pola,
+		 * więc właściciel tego nie widział — ale ślepy był też nasz własny
+		 * test złego wejścia: sześć przypadków przechodziło z tego jednego
+		 * powodu, a nie z powodu błędu, który nazywały.
+		 */
+		foreach ( array( 'sekcje', 'moduly' ) as $klucz ) {
+			$wartosc = self::json( $klucz );
+			if ( null !== $wartosc ) {
+				$wejscie[ $klucz ] = $wartosc;
+			}
+		}
 		if ( '' !== $id ) {
 			$wejscie['id'] = $id;
 		}

@@ -41,14 +41,37 @@
 		});
 	}
 
+	/**
+	 * Znaczniki, które ZAMYKAJĄ zakres zbierania pól.
+	 *
+	 * Każdy element z takim znacznikiem ma WŁASNY komplet pól, więc jego
+	 * wnętrze nie należy do rodzica. Lista musi obejmować korzeń KAŻDEGO
+	 * szablonu-partiala panelu, który niesie własne pola — inaczej pole
+	 * o tej samej nazwie (`title` modułu i `title` lekcji) nadpisuje się
+	 * po cichu, bez żadnego błędu. Tak powstał BLAD-019: wiersz lekcji
+	 * (`data-aai-lekcja`) nie był granicą, więc zapis KURSU nadawał
+	 * każdemu modułowi tytuł jego OSTATNIEJ lekcji.
+	 *
+	 * Kompletności tej listy pilnuje `straznik-kreatora-wp` (niezmiennik 10):
+	 * wyprowadza znaczniki z samych szablonów, nie z drugiej listy tutaj.
+	 */
+	var GRANICE_ZAKRESU = [
+		"data-aai-pole",
+		"data-aai-wiersz",
+		"data-aai-obiekt",
+		"data-aai-sekcja",
+		"data-aai-modul",
+		"data-aai-lekcja",
+	];
+
 	/** Najbliższy przodek będący kontenerem pól — albo `korzen`. */
 	function najblizszyKontener(element, korzen) {
 		while (element && element !== korzen) {
 			if (
 				element.hasAttribute &&
-				(element.hasAttribute("data-aai-pole") ||
-					element.hasAttribute("data-aai-wiersz") ||
-					element.hasAttribute("data-aai-obiekt"))
+				GRANICE_ZAKRESU.some(function (znacznik) {
+					return element.hasAttribute(znacznik);
+				})
 			) {
 				return element;
 			}

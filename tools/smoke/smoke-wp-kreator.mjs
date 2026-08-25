@@ -26,6 +26,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
 
 const ADRES = process.env.WP_ADRES ?? "http://127.0.0.1:8892";
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
@@ -350,9 +351,14 @@ if (kursZBazy) {
     }
     // Porównanie POLE PO POLU: różnica na jednym polu ma wskazywać to pole,
     // a nie mówić „sekcje się różnią".
+    //
+    // STRUKTURALNIE, nie po napisie: od BLAD-020 warstwa zapisu porządkuje
+    // klucze map, żeby „czy się zmieniło" nie zależało od tego, kto akurat
+    // pisze. Porównanie łańcuchów widziałoby tu inną kolejność kluczy jako
+    // inną treść — czyli pytałoby o zapis, a nie o wartość.
     for (const [nazwa, wartosc] of Object.entries(wyslana.content)) {
       sprawdz(
-        JSON.stringify(zBazy.content[nazwa]) === JSON.stringify(wartosc),
+        isDeepStrictEqual(zBazy.content[nazwa], wartosc),
         `sekcja „${wyslana.kind}", pole „${nazwa}": zapisano ${JSON.stringify(zBazy.content[nazwa])}, wysłano ${JSON.stringify(wartosc)}`
       );
     }
@@ -423,7 +429,10 @@ sprawdz(
   }`
 );
 sprawdz(
-  JSON.stringify(JSON.parse(zBazy.materials)) === JSON.stringify(materialyProbne.map((m) => (m.opis === "" ? { rodzaj: m.rodzaj, tytul: m.tytul, url: m.url } : m))),
+  isDeepStrictEqual(
+    JSON.parse(zBazy.materials),
+    materialyProbne.map((m) => (m.opis === "" ? { rodzaj: m.rodzaj, tytul: m.tytul, url: m.url } : m))
+  ),
   `materiały wróciły inne: ${zBazy.materials}`
 );
 
@@ -602,7 +611,21 @@ const zleWejscia = [
   ["pusty tytuł", { title: "" }],
   ["nieznany poziom", { level: "mistrzowski" }],
   ["adres zajęty przez inny kurs", { slug: prawdziwySlug }],
+  // Adres NASZEJ podstrony: `/szkolenia/moje/` to lista kupionych kursów,
+  // a jej reguła przepisywania jest sprawdzana przed regułą slugu. Kurs
+  // o takim slugu wszedłby do katalogu i miał kartę, ale jego strona
+  // sprzedażowa nie istniałaby — klient klikałby kartę i lądował na cudzej
+  // liście, bez żadnego objawu (200, dane poprawne).
+  ["adres zajęty przez stronę sklepu", { slug: "moje" }],
 ];
+/*
+ * WYSYŁKA MUSI BYĆ POZA TYM JEDNYM BŁĘDEM POPRAWNA — inaczej test jest ślepy.
+ * Do W6 ten blok nie niósł `sekcje` ani `moduly` i wszystkie przypadki
+ * przechodziły z TEGO powodu, a nie z powodu błędu, który nazywają.
+ * Sprawdzone uruchomieniowo: po wyłączeniu odmowy dla zajętego slugu blok
+ * dalej był zielony. Dlatego dokładamy prawidłowe pola i dopiero wtedy
+ * pojedyncza usterka ma szansę zdecydować o wyniku.
+ */
 for (const [nazwa, nadpisanie] of zleWejscia) {
   const odpowiedz = await admin.wyslij({
     action: "aai_sklep_zapisz_kurs",
@@ -614,6 +637,8 @@ for (const [nazwa, nadpisanie] of zleWejscia) {
     type: "kurs",
     status: "published",
     cena_zl: "199,90",
+    sekcje: pole(formularzKursu, "sekcje"),
+    moduly: pole(formularzKursu, "moduly"),
     pozwol_skasowac_tresc: "0",
     ...nadpisanie,
   });

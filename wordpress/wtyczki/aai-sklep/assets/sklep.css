@@ -2468,3 +2468,112 @@ html.js .aai-sklep .aai-reveal-widoczny {
 		display: none;
 	}
 }
+
+/* ── „MOJE KURSY" (W6) ──────────────────────────────────────────────────
+ *
+ * Widok, na który trafia klient po zakupie. Powstał, bo kupiony kurs był
+ * osiągalny wyłącznie przez panel Tutora — pełnoekranową aplikację w cudzym
+ * wyglądzie. Kafelek ma odpowiedzieć na jedno pytanie: „gdzie skończyłem".
+ */
+.aai-sklep .aai-moje-hero {
+	padding-top: 2rem;
+	padding-bottom: 1rem;
+}
+
+.aai-sklep .aai-moje-siatka {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 1.25rem;
+	grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+	.aai-sklep .aai-moje-siatka {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.aai-sklep .aai-moje-karta {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	padding: 1.5rem;
+	border-radius: 1rem;
+}
+
+.aai-sklep .aai-moje-glowa {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.aai-sklep .aai-moje-okladka {
+	width: 4rem;
+	height: 4rem;
+	border-radius: 0.75rem;
+	object-fit: cover;
+	flex: none;
+	border: 1px solid var(--aai-line);
+}
+
+.aai-sklep .aai-moje-tytul {
+	margin: 0.25rem 0 0;
+	font-size: 1.25rem;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1.25;
+}
+
+.aai-sklep .aai-moje-tytul a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.aai-sklep .aai-moje-tytul a:hover {
+	color: var(--aai-volt);
+}
+
+/* Pasek postępu. Stan liczy Tutor (odhaczone lekcje), my go tylko rysujemy —
+   własny licznik byłby drugą kopią tej samej prawdy. */
+.aai-sklep .aai-moje-postep {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.aai-sklep .aai-moje-tor {
+	height: 0.375rem;
+	border-radius: 9999px;
+	background: color-mix(in srgb, var(--aai-fg) 12%, transparent);
+	overflow: hidden;
+}
+
+.aai-sklep .aai-moje-wypelnienie {
+	display: block;
+	height: 100%;
+	border-radius: 9999px;
+	background: var(--aai-volt);
+	/* `width` przychodzi ze stylu w znaczniku — to jedyna liczba, której
+	   arkusz nie może znać, bo zależy od konta oglądającego. */
+	min-width: 0;
+}
+
+.aai-sklep .aai-moje-licznik {
+	margin: 0;
+	font-family: var(--aai-mono, ui-monospace, monospace);
+	font-size: 0.8125rem;
+	color: var(--aai-steel);
+	letter-spacing: 0.02em;
+}
+
+.aai-sklep .aai-moje-akcja {
+	align-self: flex-start;
+}
+
+.aai-sklep .aai-moje-dalej {
+	margin: -0.5rem 0 0;
+	font-size: 0.875rem;
+	color: var(--aai-steel);
+}

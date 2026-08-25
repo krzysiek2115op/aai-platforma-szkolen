@@ -8,7 +8,7 @@
  * wpisuje, a między nimi stoi kontrakt. Rozjazd po którejkolwiek stronie
  * kończy się tak samo — treść, której nie ma, choć wszystko wygląda dobrze.
  *
- * SIEDEM NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
+ * DZIESIĘĆ NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
  *   1. każde pole sekcji z kontraktu prototypu (`modules/m1-sklep/typy.ts`)
  *      istnieje w `Aai_Sklep_Sekcje::SCHEMATY` — pola, którego kontrakt
  *      wtyczki nie zna, panel nie pokaże, a odczyt po cichu je odsieje,
@@ -33,7 +33,11 @@
  *      wyłącznie panel, za bramą uprawnień,
  *   9. formularz edytora kursu NIE niesie stanu kursu — publikację klika się
  *      na liście, a stan w formularzu cofałby ją przy zapisie ze starszej
- *      karty (cicha utrata decyzji właściciela).
+ *      karty (cicha utrata decyzji właściciela),
+ *  10. każdy rekord panelu (element z własnym `data-aai-id`) jest GRANICĄ
+ *      ZAKRESU dla kolektora w `assets/panel.js` — inaczej pola rekordu
+ *      przeciekają do rodzica i pole o tej samej nazwie nadpisuje się po
+ *      cichu (BLAD-019: tytuł modułu zastąpiony tytułem ostatniej lekcji).
  *
  * Użycie: node tools/straznicy/straznik-kreatora-wp.mjs
  */
@@ -355,6 +359,62 @@ for (const plik of szablonyFrontu()) {
   }
 }
 
+/* ——— 10. każdy rekord panelu jest granicą zakresu dla kolektora ——— */
+
+/*
+ * BLAD-019. Kontrolki panelu nie mają atrybutu `name` (`max_input_vars`
+ * ucina POST w milczeniu), więc wysyłkę składa `assets/panel.js`. Zbiera
+ * pola „w zakresie", a zakres kończy się na znaczniku z listy
+ * `GRANICE_ZAKRESU`. Wiersz lekcji tej granicy nie miał — więc pole `title`
+ * KAŻDEJ lekcji przeciekało do modułu i wygrywało ostatnie. Zwykły zapis
+ * kursu przemianował wszystkie moduły i zameldował sukces.
+ *
+ * Regułę wyprowadzamy z SZABLONÓW, nie z drugiej listy nazw: rekordem jest
+ * element z własnym `data-aai-id` — tak wygląda moduł, lekcja i sekcja.
+ * Nowy rodzaj rekordu bez granicy zapala tego strażnika, zanim ktokolwiek
+ * kliknie „Zapisz".
+ */
+const PLIK_KOLEKTORA = "assets/panel.js";
+const ZRODLO_KOLEKTORA = czytaj(PLIK_KOLEKTORA);
+
+const dopasowanieGranic = ZRODLO_KOLEKTORA.match(/GRANICE_ZAKRESU\s*=\s*\[([\s\S]*?)\]/);
+if (!dopasowanieGranic) {
+  bledy.push(
+    `${PLIK_KOLEKTORA}: nie znalazłem listy granic zakresu (GRANICE_ZAKRESU). Bez niej nie da się sprawdzić, czy kolektor nie miesza pól modułu z polami lekcji — a to był BLAD-019.`
+  );
+} else if (
+  !(kod(ZRODLO_KOLEKTORA).match(/function najblizszyKontener\([\s\S]*?\n\t\}/) ?? [""])[0].includes(
+    "GRANICE_ZAKRESU"
+  )
+) {
+  bledy.push(
+    `${PLIK_KOLEKTORA}: lista granic zakresu istnieje, ale wyznaczanie zakresu z niej nie korzysta — martwa lista pilnuje tyle co nic.`
+  );
+} else {
+  const granice = new Set(
+    Array.from(dopasowanieGranic[1].matchAll(/"([^"]+)"/g), (m) => m[1])
+  );
+
+  /** HTML szablonu bez wstawek PHP — inaczej `?>` rozrywa znaczniki. */
+  const bezPhp = (zrodlo) => zrodlo.replace(/<\?php[\s\S]*?\?>/g, "").replace(/<\?=[\s\S]*?\?>/g, "");
+
+  const KATALOG_PANELU = join("szablony", "panel");
+  for (const wpis of readdirSync(join(WTYCZKA, KATALOG_PANELU))) {
+    if (!wpis.endsWith(".php")) continue;
+    const plik = join(KATALOG_PANELU, wpis);
+    const html = bezPhp(czytaj(plik));
+    for (const [znacznik] of html.matchAll(/<[a-zA-Z][^>]*>/g)) {
+      if (!znacznik.includes("data-aai-id")) continue;
+      const znaczniki = Array.from(znacznik.matchAll(/data-aai-[a-z-]+/g), (m) => m[0]);
+      if (!znaczniki.some((nazwa) => granice.has(nazwa))) {
+        bledy.push(
+          `${plik}: element z własnym \`data-aai-id\` (${znaczniki.join(", ")}) nie jest granicą zakresu w ${PLIK_KOLEKTORA}. Jego pola przeciekną do rekordu nadrzędnego i pole o tej samej nazwie nadpisze się po cichu — dokładnie tak zginęły tytuły modułów (BLAD-019).`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-kreatora-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -362,5 +422,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-kreatora-wp: kontrakt sekcji pokrywa prototyp, każde pole ma etykietę, rodzaje wchodzą do panelu, akcje mają nonce i uprawnienie, treść lekcji ma opis, brak klucza znaczy „nie ruszaj” (treść, materiały, sekcje, program, stan), adresy sprawdzane bez DNS-u, front nie dotyka materiału, formularz nie niesie stanu kursu."
+  "straznik-kreatora-wp: kontrakt sekcji pokrywa prototyp, każde pole ma etykietę, rodzaje wchodzą do panelu, akcje mają nonce i uprawnienie, treść lekcji ma opis, brak klucza znaczy „nie ruszaj” (treść, materiały, sekcje, program, stan), adresy sprawdzane bez DNS-u, front nie dotyka materiału, formularz nie niesie stanu kursu, każdy rekord panelu jest granicą zakresu kolektora."
 );

@@ -36,7 +36,7 @@ final class Aai_Sklep_Trasy {
 	 * kosztowne. Bez tego licznika aktualizacja wtyczki przez FTP zostawiłaby
 	 * stare reguły i nowy kod — czyli 404 na stronie, której plik istnieje.
 	 */
-	private const WERSJA_REGUL = '1';
+	private const WERSJA_REGUL = '2';
 
 	/** Opcja z wersją przepłukanych reguł. */
 	private const OPCJA_REGUL = 'aai_sklep_wersja_regul';
@@ -71,17 +71,60 @@ final class Aai_Sklep_Trasy {
 	}
 
 	/**
+	 * NASZE podstrony pod `/szkolenia/`: ścieżka => nazwa widoku.
+	 *
+	 * JEDNO ŹRÓDŁO dla trzech rzeczy: reguł przepisywania, listy widoków
+	 * i slugów zarezerwowanych dla kursów (`zarezerwowane_slugi()`).
+	 *
+	 * @var array<string,string>
+	 */
+	private const PODSTRONY = array( Aai_Sklep_Moje::SCIEZKA => 'moje' );
+
+	/**
 	 * Reguły przepisywania. `top` — przed regułami WordPressa, żeby jego
 	 * własne zgadywanie adresu (to ono odsyłało dziś `/szkolenia/<slug>`
 	 * na `/courses/<slug>/`) nie miało już czego zgadywać.
 	 */
 	public static function dodaj_reguly(): void {
 		add_rewrite_rule( '^szkolenia/?$', 'index.php?aai_widok=katalog', 'top' );
+		/*
+		 * KOLEJNOŚĆ MA ZNACZENIE: nasze podstrony muszą być dopasowane ZANIM
+		 * zadziała reguła slugu, inaczej WordPress wziąłby je za adres kursu.
+		 * Reguły `top` są sprawdzane w kolejności dodania.
+		 */
+		foreach ( self::PODSTRONY as $sciezka => $widok ) {
+			add_rewrite_rule( '^' . $sciezka . '/?$', 'index.php?aai_widok=' . $widok, 'top' );
+		}
 		add_rewrite_rule(
 			'^szkolenia/([^/]+)/?$',
 			'index.php?aai_widok=kurs&aai_slug=$matches[1]',
 			'top'
 		);
+	}
+
+	/**
+	 * Slugi, których kursowi nadać NIE WOLNO.
+	 *
+	 * Adres kursu i adres naszej podstrony mieszkają w tej samej przestrzeni
+	 * `/szkolenia/<coś>/`, a reguła podstrony jest sprawdzana pierwsza. Kurs
+	 * o slugu `moje` wchodziłby więc do katalogu i miał kartę, ale jego strona
+	 * sprzedażowa nie istniałaby — kliknięcie karty prowadziłoby na „Moje
+	 * kursy". Nic by się przy tym nie zapaliło: dane poprawne, strona 200,
+	 * tylko sprzedaż niemożliwa. Stąd odmowa NA WEJŚCIU, w kontrakcie.
+	 *
+	 * Lista wyprowadza się z `PODSTRONY`, czyli z tego samego miejsca, z
+	 * którego powstają reguły przepisywania — druga lista rozjechałaby się
+	 * przy pierwszej nowej podstronie.
+	 *
+	 * @return array<int,string>
+	 */
+	public static function zarezerwowane_slugi(): array {
+		$slugi = array();
+		foreach ( array_keys( self::PODSTRONY ) as $sciezka ) {
+			$czesci  = explode( '/', trim( (string) $sciezka, '/' ) );
+			$slugi[] = (string) end( $czesci );
+		}
+		return $slugi;
 	}
 
 	/**
@@ -119,7 +162,8 @@ final class Aai_Sklep_Trasy {
 	 */
 	public static function widok(): ?string {
 		$widok = get_query_var( 'aai_widok' );
-		return in_array( $widok, array( 'katalog', 'kurs' ), true ) ? $widok : null;
+		$znane = array_merge( array( 'katalog', 'kurs' ), array_values( self::PODSTRONY ) );
+		return in_array( $widok, $znane, true ) ? $widok : null;
 	}
 
 	/**
@@ -210,6 +254,17 @@ final class Aai_Sklep_Trasy {
 			return null === self::kurs()
 				? AAI_SKLEP_KATALOG . 'szablony/nie-znaleziono.php'
 				: AAI_SKLEP_KATALOG . 'szablony/kurs.php';
+		}
+		if ( 'moje' === $widok ) {
+			/*
+			 * Treść zależy od KONTA oglądającego, więc odpowiedzi nie wolno
+			 * odłożyć na półkę. Bez tych nagłówków cache strony albo CDN bez
+			 * reguły na ciasteczko logowania mógłby wydać listę kursów
+			 * jednego klienta drugiemu. Ta sama przesłanka, dla której ten
+			 * widok dostał `noindex`.
+			 */
+			nocache_headers();
+			return AAI_SKLEP_KATALOG . 'szablony/moje.php';
 		}
 		return AAI_SKLEP_KATALOG . 'szablony/katalog.php';
 	}

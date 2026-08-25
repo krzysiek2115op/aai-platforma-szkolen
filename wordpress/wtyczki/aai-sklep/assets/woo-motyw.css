@@ -1,0 +1,242 @@
+/*
+ * WooCommerce na motywie Automatic AI — warstwa integracji.
+ *
+ * PO CO. Strony konta (`/my-account/*`) rysuje WooCommerce własnym CSS-em:
+ * JASNĄ paletą i układem opartym na `float`. Motyw Automatic AI jest CIEMNY,
+ * a jego nagłówek `position: fixed` NIE REZERWUJE MIEJSCA — jego własne
+ * strony robią to same (`pt-28`, `md:pt-36`). Motyw nie daje też treści
+ * Woo żadnego kontenera, więc pływająca nawigacja konta ląduje w lewym
+ * górnym rogu, POD nagłówkiem, a napisy są ciemne na ciemnym.
+ *
+ * To ta sama klasa błędu, którą przy 0.40.0 naprawiliśmy dla Tutora: arkusze
+ * Woo są POZA warstwami kaskady motywu (Tailwind 4 trzyma cały swój CSS
+ * w `@layer`), więc każda reguła Woo bije każdą regułę motywu — niezależnie
+ * od specyficzności i kolejności ładowania. Zgłosił to właściciel w teście
+ * ręcznym W6, zrzutem: „Hello Klient Testowy" wjeżdżało w nagłówek, a menu
+ * konta stało przyklejone do lewej krawędzi okna.
+ *
+ * KTÓRYCH STRON DOTYCZY. Wszystkich stron WooCommerce — dziś to konto
+ * i logowanie, a od Pluginu 2 dojdą koszyk, kasa i zamówienia. Dlatego
+ * pytamy `Aai_Sklep_Zasoby::strona_woo()`, a nie o samą stronę konta.
+ *
+ * CZEGO NIE ROBI. To nie jest port wyglądu 1:1 — od tego są NASZE szablony
+ * (katalog i strony sprzedażowe, widok lekcji, „Moje kursy"). Tutaj chodzi
+ * o trzy rzeczy: żeby nic nie nachodziło, żeby wszystko dało się przeczytać
+ * i żeby akcent był nasz.
+ */
+
+/* ── 1. ODSTĘP POD NAGŁÓWEK MOTYWU ──────────────────────────────────────
+ * Te same wartości, których używają strony motywu: 7rem/9rem. Nie 4.5rem
+ * (sama wysokość nagłówka) — motyw daje treści oddech, a nie styk.
+ */
+body.aai-woo-na-motywie {
+	padding-top: 7rem;
+	padding-bottom: 4rem;
+	background: var(--color-void);
+	color: var(--color-fg);
+}
+
+@media (min-width: 768px) {
+	body.aai-woo-na-motywie {
+		padding-top: 9rem;
+	}
+}
+
+/* ── 2. KONTENER ────────────────────────────────────────────────────────
+ * Te same liczby co `.aai-kontener` w `sklep.css`. Bez tego treść Woo
+ * biegnie od krawędzi do krawędzi okna, bo motyw nie owija jej niczym.
+ */
+body.aai-woo-na-motywie .woocommerce {
+	margin-inline: auto;
+	width: 100%;
+	max-width: 76rem;
+	padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+	body.aai-woo-na-motywie .woocommerce {
+		padding-inline: 2rem;
+	}
+}
+
+/* ── 3. NAGŁÓWKI I TEKST ────────────────────────────────────────────── */
+body.aai-woo-na-motywie .woocommerce h1,
+body.aai-woo-na-motywie .woocommerce h2,
+body.aai-woo-na-motywie .woocommerce h3,
+body.aai-woo-na-motywie .woocommerce legend {
+	color: var(--color-fg);
+	font-weight: 600;
+	letter-spacing: -0.02em;
+}
+
+body.aai-woo-na-motywie .woocommerce h2 {
+	font-size: 1.75rem;
+	margin-bottom: 1.25rem;
+}
+
+body.aai-woo-na-motywie .woocommerce p,
+body.aai-woo-na-motywie .woocommerce label,
+body.aai-woo-na-motywie .woocommerce td,
+body.aai-woo-na-motywie .woocommerce th {
+	color: var(--color-fg);
+}
+
+body.aai-woo-na-motywie .woocommerce .woocommerce-MyAccount-content p:first-child,
+body.aai-woo-na-motywie .woocommerce em,
+body.aai-woo-na-motywie .woocommerce small {
+	color: var(--color-steel);
+}
+
+body.aai-woo-na-motywie .woocommerce a {
+	color: var(--color-volt);
+	text-decoration: none;
+}
+
+body.aai-woo-na-motywie .woocommerce a:hover {
+	text-decoration: underline;
+}
+
+/* ── 4. UKŁAD KONTA: nawigacja obok treści ──────────────────────────────
+ * Woo układa to `float`ami o szerokościach 30/68%. Zostawiamy jego
+ * proporcje (to nie jest nasz wygląd do przepisania), ale dokładamy
+ * oddech i kreskę, żeby dwie kolumny były widoczne jako dwie kolumny.
+ */
+body.aai-woo-na-motywie .woocommerce-MyAccount-navigation ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--color-line);
+	border-radius: 0.75rem;
+	background: var(--color-panel);
+	overflow: hidden;
+}
+
+body.aai-woo-na-motywie .woocommerce-MyAccount-navigation li {
+	margin: 0;
+	border-bottom: 1px solid var(--color-line);
+}
+
+body.aai-woo-na-motywie .woocommerce-MyAccount-navigation li:last-child {
+	border-bottom: 0;
+}
+
+body.aai-woo-na-motywie .woocommerce-MyAccount-navigation li a {
+	display: block;
+	padding: 0.75rem 1rem;
+	color: var(--color-fg);
+	font-size: 0.9375rem;
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+body.aai-woo-na-motywie .woocommerce-MyAccount-navigation li a:hover {
+	background: color-mix(in srgb, var(--color-volt) 10%, transparent);
+	color: var(--color-volt);
+	text-decoration: none;
+}
+
+body.aai-woo-na-motywie .woocommerce-MyAccount-navigation li.is-active a {
+	background: color-mix(in srgb, var(--color-volt) 14%, transparent);
+	color: var(--color-volt);
+	font-weight: 600;
+}
+
+/* ── 5. POLA FORMULARZA ─────────────────────────────────────────────────
+ * Woo daje im białe tło i ciemny tekst. Na ciemnym motywie wyglądały jak
+ * wycięte z innej strony — i to widać na zrzucie z testu W6.
+ */
+body.aai-woo-na-motywie .woocommerce input[type="text"],
+body.aai-woo-na-motywie .woocommerce input[type="email"],
+body.aai-woo-na-motywie .woocommerce input[type="tel"],
+body.aai-woo-na-motywie .woocommerce input[type="password"],
+body.aai-woo-na-motywie .woocommerce input[type="search"],
+body.aai-woo-na-motywie .woocommerce select,
+body.aai-woo-na-motywie .woocommerce textarea {
+	width: 100%;
+	background: var(--color-void);
+	color: var(--color-fg);
+	border: 1px solid var(--color-line);
+	border-radius: 0.5rem;
+	padding: 0.625rem 0.75rem;
+	font: inherit;
+}
+
+body.aai-woo-na-motywie .woocommerce input:focus-visible,
+body.aai-woo-na-motywie .woocommerce select:focus-visible,
+body.aai-woo-na-motywie .woocommerce textarea:focus-visible {
+	outline: 2px solid var(--color-volt);
+	outline-offset: 2px;
+}
+
+body.aai-woo-na-motywie .woocommerce .form-row {
+	margin-bottom: 1rem;
+}
+
+body.aai-woo-na-motywie .woocommerce label {
+	display: inline-block;
+	margin-bottom: 0.375rem;
+	font-size: 0.9375rem;
+}
+
+body.aai-woo-na-motywie .woocommerce .required {
+	color: var(--color-volt);
+}
+
+/* Pokazywanie hasła — Woo wstawia ikonę na tle pola. */
+body.aai-woo-na-motywie .woocommerce .show-password-input::after,
+body.aai-woo-na-motywie .woocommerce .show-password-input {
+	color: var(--color-steel);
+}
+
+/* ── 6. PRZYCISKI: akcent nasz, nie fioletowy Woo ──────────────────── */
+body.aai-woo-na-motywie .woocommerce .button,
+body.aai-woo-na-motywie .woocommerce button.button,
+body.aai-woo-na-motywie .woocommerce input.button,
+body.aai-woo-na-motywie .woocommerce a.button,
+body.aai-woo-na-motywie .woocommerce .woocommerce-Button {
+	background: var(--color-volt);
+	color: var(--color-void);
+	border: 0;
+	border-radius: 9999px;
+	padding: 0.75rem 1.5rem;
+	font-weight: 600;
+	font-size: 0.9375rem;
+	cursor: pointer;
+	transition: filter 0.2s ease;
+}
+
+body.aai-woo-na-motywie .woocommerce .button:hover,
+body.aai-woo-na-motywie .woocommerce button.button:hover,
+body.aai-woo-na-motywie .woocommerce input.button:hover,
+body.aai-woo-na-motywie .woocommerce a.button:hover,
+body.aai-woo-na-motywie .woocommerce .woocommerce-Button:hover {
+	filter: brightness(1.08);
+	text-decoration: none;
+}
+
+/* ── 7. KOMUNIKATY ──────────────────────────────────────────────────── */
+body.aai-woo-na-motywie .woocommerce-message,
+body.aai-woo-na-motywie .woocommerce-info,
+body.aai-woo-na-motywie .woocommerce-error {
+	background: var(--color-panel);
+	border-top: 3px solid var(--color-volt);
+	border-radius: 0.5rem;
+	color: var(--color-fg);
+	list-style: none;
+}
+
+body.aai-woo-na-motywie .woocommerce-error {
+	border-top-color: #ff6b6b;
+}
+
+/* ── 8. TABELE (zamówienia, pobrania — wejdą z Pluginem 2) ─────────── */
+body.aai-woo-na-motywie .woocommerce table.shop_table {
+	border: 1px solid var(--color-line);
+	border-radius: 0.75rem;
+	border-collapse: separate;
+	background: var(--color-panel);
+}
+
+body.aai-woo-na-motywie .woocommerce table.shop_table th,
+body.aai-woo-na-motywie .woocommerce table.shop_table td {
+	border-color: var(--color-line);
+}

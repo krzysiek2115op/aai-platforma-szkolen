@@ -5,6 +5,206 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.45.0] — 2026-08-25
+
+**Krok W6 dostaje narzędzia i scenariusz, zamiast zaczynać się od pytania
+„co właściwie mam kliknąć".** Wtyczka `aai-sklep` nie jest skończona, dopóki
+nie przejdzie testu ręcznego — a ten test odpowiada na pytanie, którego żaden
+strażnik nie umie zadać: czy to, co widzi człowiek, ma sens i wygląda jak nasze.
+
+### Dodane
+
+- **`npm run smoke:wp-panel`** (`tools/smoke/smoke-wp-panel.mjs`, 54
+  sprawdzenia) — pierwszy pomiar KOLEKTORA PANELU, czyli warstwy JavaScriptu,
+  która składa wysyłkę kreatora. Mierzy w prawdziwej przeglądarce, na obu
+  prawdziwych kursach: (a) JSON wkładany do pól ukrytych tuż przed wysyłką
+  zgadza się z tym, co stoi w kontrolkach — tytuł modułu z pola modułu, tytuły
+  lekcji z pól lekcji, co do sztuki; (b) **zapis, przy którym niczego nie
+  dotknięto, odpowiada `bez_zmian`**, nie rusza skrótu stanu kursu i nie
+  dopisuje się do dziennika zmian. To jest sprawdzenie, które by BLAD-019
+  złapało. Test negatywny: usunięcie `data-aai-lekcja` z listy granic → 18
+  z 54 sprawdzeń pada i nazywa klasę błędu. **Test negatywny trzeba puszczać
+  na ZDROWYCH danych** — na już zepsutych tytuł modułu równa się tytułowi
+  ostatniej lekcji, więc zapis niczego nie zmienia i pomiar przechodzi
+  fałszywie.
+
+- **`npm run wp:klient`** (`tools/wp-klient-testowy.mjs`) — zakłada konto
+  KLIENTA (`klient-test`, rola `subscriber`) i zapisuje je na wszystkie
+  opublikowane kursy. Idempotentne; `--usun` kasuje konto razem z zapisami.
+  **Po co osobne konto:** administrator widzi materiał z definicji, więc
+  oglądanie lekcji na własnym koncie odpowiada na pytanie „czy admin to
+  zobaczy", a nie „czy klient to zobaczy". Do tego pasek narzędzi WordPressa
+  przesuwa stronę o 32 px i zasłania pigułkę lekcji — dlatego konto ma go
+  **zgaszonego** (`show_admin_bar_front`), tak jak zwykły klient.
+  Hasło jedzie do `wordpress/srodowisko/.env` (poza gitem), nigdy do
+  dokumentacji.
+- **[docs/plugin-1/W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md)** —
+  scenariusz testu na cztery ścieżki (gość → klient po zakupie → właściciel
+  w kreatorze → czy nie zepsuliśmy motywu), z liczbami wyjściowymi z bazy
+  i **tabelą rzeczy POZA zakresem**, żeby nie zgłaszać jako błąd tego, co
+  należy do Pluginu 2.
+
+### Naprawione (własny przegląd po zaliczeniu ścieżek C i D)
+
+- **Kurs o slugu `moje` wchodził do katalogu, ale nie miał strony
+  sprzedażowej (BLAD-021).** Od tej wersji pod `/szkolenia/moje/` stoi lista
+  kupionych kursów, a jej reguła przepisywania jest sprawdzana PRZED regułą
+  slugu. Kontrakt kreatora pilnował tylko długości, znaków i zajętości przez
+  inny kurs — więc kurs o takim adresie zapisywał się bez słowa protestu,
+  dostawał kartę z ceną w katalogu, a kliknięcie tej karty prowadziło na
+  „Moje kursy". Zmierzone na żywej instalacji: odpowiedź 200, dane w tabelach
+  poprawne, zero ostrzeżeń — czyli klasa błędu bez objawu. Naprawa:
+  `Aai_Sklep_Trasy::PODSTRONY` jest jednym źródłem dla reguł przepisywania,
+  listy widoków i `zarezerwowane_slugi()`; kontrakt i import odmawiają
+  komunikatem przy POLU `slug`. Klasa rośnie z każdą nową podstroną sklepu
+  (koszyk, kasa, podziękowanie w Pluginie 2), więc pilnuje jej strażnik.
+- **Cały blok „złe wejście" w `smoke-wp-kreator` przechodził z jednego
+  wspólnego powodu (BLAD-022).** Warstwa akcji zawsze wstawiała klucze
+  `sekcje` i `moduly` — a gdy pól nie przysłano, wstawiała `null`, który
+  kontrakt słusznie odrzuca jako zły kształt. Każde żądanie bez tych dwóch
+  pól wracało więc z „bledy", niezależnie od tego, co jeszcze było w nim złe,
+  a blok testu tych pól nie niósł: sześć sprawdzeń udawało, że pilnuje
+  kontraktu (wielkie litery w slugu, cena nie-liczba, pusty tytuł, nieznany
+  poziom, zajęty adres), nie pilnując niczego. Wykryte testem negatywnym
+  nowego sprawdzenia z BLAD-021: po wyłączeniu odmowy blok DALEJ był zielony.
+  Przy okazji wyszła nieprawda widoczna dla człowieka: żądanie bez programu
+  dostawało „Program ma zły kształt" zamiast obowiązującego w całej warstwie
+  zapisu „brak klucza znaczy nie ruszaj" (BLAD-018). Naprawa: klucz, którego
+  nie przysłano, nie wchodzi już do wejścia — łańcuch „nie przysłano → brak
+  klucza → nie ruszaj" jest cały. Po naprawie każdy z dwóch testów
+  negatywnych trafia w SWÓJ przypadek i tylko w niego.
+
+### Naprawione (zgłoszenia właściciela z testu ręcznego W6)
+
+- **Zwykły zapis w kreatorze przemianowywał WSZYSTKIE moduły kursu
+  (BLAD-019).** Właściciel poprawił tytuł i cenę na zakładce *Kurs*, programu
+  nie tknął — a sześć modułów Kursu 1 dostało tytuły swoich OSTATNICH lekcji
+  („Fundamenty: poznaj Claude" → „Słowniczek pojęć — mów językiem AI"). Zapis
+  zameldował sukces, kopia w Tutorze wiernie powtórzyła błędne tytuły
+  (`wp:tutor` pokazywał 0 różnic, bo obie strony były już zepsute), a front
+  wyświetlał złe nazwy w programie.
+  **Mechanizm:** kontrolki panelu nie mają atrybutu `name` (`max_input_vars`
+  ucina POST w milczeniu przy 41 lekcjach), więc wysyłkę składa
+  `assets/panel.js`. Zakres zbierania pól zamykał `najblizszyKontener()`,
+  który znał trzy granice: `data-aai-pole`, `data-aai-wiersz`,
+  `data-aai-obiekt`. Wiersz lekcji niesie `data-aai-lekcja` — **tego znacznika
+  na liście nie było**, więc pole `title` każdej lekcji przeciekało do obiektu
+  modułu i nadpisywało jego tytuł; wygrywała ostatnia.
+  **Naprawa:** granice zebrane w jedną listę `GRANICE_ZAKRESU`, obejmującą
+  korzeń KAŻDEGO rekordu panelu (`data-aai-sekcja`, `data-aai-modul`,
+  `data-aai-lekcja`). Dane odtworzone z Postgresa (`wp:import` + `wp:sync`),
+  zgodność potwierdzona `wp:sprawdz` (73/73 treści co do znaku).
+  **Dlaczego nie złapał tego żaden automat:** `smoke-wp-kreator` (95
+  sprawdzeń) wysyła gotowy JSON POST-em i nigdy nie uruchamia przeglądarki,
+  więc cały kolektor panelu był poza zasięgiem pomiaru. Ta luka ma teraz
+  własny smoke (niżej).
+- **Zapis, przy którym niczego nie dotknięto, meldował „Kurs zapisany"
+  i puchł dziennik zmian (BLAD-020).** `Aai_Sklep_Zapis::json()` obiecywał
+  w nagłówku „JSON o STAŁYM kształcie — ta sama wartość musi dawać ten sam
+  łańcuch", a robił samo `wp_json_encode()`, które zachowuje kolejność kluczy
+  tablicy. Klucze układa ten, kto akurat pisze: import w kolejności eksportu,
+  panel w kolejności opisu pól. Skutek: pierwszy zapis po imporcie przepisywał
+  wszystkie 24 sekcje obu kursów, dopisywał 24 wiersze do dziennika i pchał
+  niepotrzebną synchronizację do Tutora — łamiąc decyzję właściciela z 0.37.0
+  („audyt zapisuje tylko realne zmiany"). Nic się przy tym nie zapalało, bo
+  dane były poprawne. Naprawia `Aai_Sklep_Zapis::uporzadkuj()`: klucze MAP
+  porządkowane rekurencyjnie, LISTY nietknięte — ich kolejność JEST treścią.
+  Znalezione POMIAREM przy budowaniu smoke'a kolektora: `wp:sprawdz` mówił
+  „zero różnic" (porównuje strukturalnie), a `wp:import` w tej samej chwili
+  przepisywał 10 sekcji.
+
+- **Klient nie miał JAK trafić do kupionego kursu.** Logowanie WordPressa
+  wyrzuca na `/my-account/`, a jedyną listą kupionych kursów był panel Tutora
+  — pełnoekranowa aplikacja z własnym paskiem bocznym, własnym nagłówkiem
+  i oknem powitalnym Tutora (ze zrzutem cudzego kursu fotografii i napisem
+  „Hi, Sophia!"). Powstała **nasza strona `/szkolenia/moje/`**: lista kupionych
+  kursów z paskiem postępu i przyciskiem „Kontynuuj naukę", prowadzącym do
+  pierwszej NIEODHACZONEJ lekcji. Panel Tutora (`/dashboard/`
+  i `/dashboard/courses/`) przekierowuje tam **302**. Pozycja **„Moje kursy"**
+  wchodzi do obu nawigacji motywu, ale **tylko zalogowanemu klientowi, który
+  ma choć jeden kurs** — gościowi nie pokazujemy drzwi, za którymi nic dla
+  niego nie ma. Strona ma `noindex`: jej treść zależy od konta, a robot jest
+  gościem.
+- **Strony konta WooCommerce renderowały się bez stylów.** `/my-account/*`
+  dostawało arkusze Woo, ale nie nasz arkusz integracji — obsługiwał wyłącznie
+  strony Tutora — i nikt nie rezerwował miejsca pod nagłówek `fixed`. Menu
+  konta lądowało w lewym górnym rogu POD nagłówkiem, ciemny tekst na ciemnym
+  tle. To ta sama klasa błędu co 0.38.0/0.40.0 (reguły spoza warstw kaskady
+  biją motyw). Powstał `Aai_Sklep_Styl_Woo` + `assets/woo-motyw.css`, bliźniak
+  warstwy Tutora, pytający `Aai_Sklep_Zasoby::strona_woo()` — więc obejmie też
+  koszyk i kasę, gdy przyjdą z Pluginem 2.
+- **Strzałka „wróć" w lekcji odsyłała kupującego na CENNIK.** Właściciel cofnął
+  się z lekcji i wylądował na stronie sprzedażowej kursu, który już ma —
+  a jedynym wyjściem z tamtej strony jest przycisk „Dołącz". Odnośnik ma teraz
+  dwie postacie: kto jest **zapisany na kurs**, wraca do „Moich kursów"; kto nie
+  jest (gość na darmowej zapowiedzi, ktoś z wyszukiwarki) — na stronę
+  sprzedażową, bo dla niego to jest właściwy następny krok. Pytamy Tutora
+  o ZAPIS, nie o `dostep` z widoku: `dostep` jest prawdziwy także dla
+  zapowiedzi i dla administratora, więc gość dostałby odnośnik do pustej listy.
+- **Menu konta WooCommerce nie prowadziło do kursów.** Właściciel szukał ich
+  klikając „Dashboard", a menu mówiło o zamówieniach, pobraniach i adresach.
+  **„Moje kursy" są tam teraz PIERWSZĄ pozycją** — dla naszego produktu kurs
+  jest ważniejszy niż faktura. Adres podmienia filtr `woocommerce_get_endpoint_url`,
+  bo nasza strona nie jest endpointem konta i bez tego pozycja prowadziłaby
+  do `/my-account/aai-moje-kursy/`, czyli do 404.
+- **`smoke-wp-motyw` mierzy teraz SIEDEM stron** (było pięć): doszły
+  `/my-account/` i `/szkolenia/moje/`, a `/dashboard/` ustąpił miejsca
+  `/dashboard/retrieve-password/`, bo panel jest już nasz. **64 sprawdzenia.**
+  `smoke-wp-front` pilnuje obu przekierowań panelu i tego, że gość nie widzi
+  na „Moich kursach" ani jednego kafelka — **83 sprawdzenia** — a **65.**
+  sprawdzenie smoke'a motywu pilnuje pierwszej pozycji menu konta.
+  `smoke-wp-lekcja` sprawdza **obie postacie strzałki „wróć"** (34): stan
+  kupującego robi POMIAREM — zapisuje administratora na kurs, pyta stronę
+  i zapis cofa.
+
+### Naprawione (przegląd kodu tej gałęzi)
+
+Cztery znaleziska, wszystkie potwierdzone POMIAREM przed naprawą:
+
+- **Menu podświetlało DWIE pozycje naraz.** „Moje kursy" powstaje przez
+  sklonowanie ostatniego `<li>` — czyli wstawionej przed chwilą pozycji
+  „Szkolenia", która na naszych stronach nosi już `aria-current`. Klon
+  dziedziczył atrybut, a podmiana adresu doklejała nasz obok cudzego. Zmierzone
+  na żywej stronie: katalog 2, strona kursu 2, „Moje kursy" 1. Klon jest teraz
+  czyszczony przed wstawieniem.
+- **Menu kosztowało 90 zapytań na KAŻDEJ odsłonie.** `pozycje()` wołało
+  `Aai_Sklep_Moje::kursy()` raz na kotwicę nawigacji, a to **45 zapytań
+  i 18,7 ms** (pomiar: 2 kursy, 73 lekcje), bo o ukończenie pyta Tutora lekcja
+  po lekcji. Menu pyta teraz `ma_kursy()` — **3 zapytania, 2,8 ms** — a wynik
+  `kursy()` jest pamiętany na czas żądania.
+- **Widok prywatny nie zakazywał cache'owania.** „Moje kursy" oddawały 200 bez
+  `nocache_headers()`; cache strony albo CDN bez reguły na ciasteczko logowania
+  mógłby wydać listę kursów jednego klienta drugiemu.
+- **`wp:klient` mógł zostawić konto z nieznanym hasłem** — hasło zmieniało się
+  w WordPressie od razu, a do `.env` szło dopiero po weryfikacji.
+
+**LEKCJA Z TESTU NEGATYWNEGO (nowa klasa):** sprawdzenie nagłówków
+`Cache-Control` w smoke'u **NIE pilnowało naszej linii** — po usunięciu
+`nocache_headers()` nagłówki i tak przychodzą, bo dokłada je coś innego
+w stosie. Smoke pilnuje więc WŁASNOŚCI odpowiedzi, a naszej gwarancji pilnuje
+`straznik-frontu-wp`. Jego pierwszy wzorzec też był ślepy: pytał
+o `nocache_headers()` w promieniu 600 znaków od słowa `'moje'` i trafiał
+w **drugie** wywołanie w tym samym pliku (gałąź 404) — pokazał to audyt
+mutacyjny. Ta sama pułapka dotknęła samej mutacji: „pierwsze z brzegu"
+`nocache_headers();` to było cudze wywołanie. Audyt: **156** mutacji.
+
+### Świadomie BEZ zmian
+
+**Cztery lekcje są darmowe dla każdego** — w naszych tabelach mają `preview = 1`:
+pierwsza lekcja modułu 1 i jednego dalszego modułu w każdym kursie. Bramka
+dostępu działa **zgodnie z tymi danymi**, więc to nie jest wyciek, tylko
+próbka. Właściciel obejrzał liczby (18,5 tys. znaków na lekcję) i **zdecydował
+2026-08-25: zostają wszystkie cztery.** Zapisane tutaj, żeby następne
+zgłoszenie „lekcja otwiera się bez logowania" nie ruszyło śledztwa od nowa.
+
+### Zapamiętane przy okazji
+
+**`tutor_utils()->is_enrolled()` w tym samym żądaniu, w którym powstał zapis,
+oddaje `false`** — Tutor trzyma zapisy w pamięci żądania. Sprawdzenie zaraz po
+zapisie meldowałoby porażkę przy udanym zapisie, więc narzędzie weryfikuje
+dostęp w **osobnym żądaniu**. Test negatywny (wyłączony zapis + skasowane
+zapisy) wywala je z kodem wyjścia **1**, zmierzonym BEZ potoku.
+
 ## [0.44.0] — 2026-08-25
 
 **Klient czyta lekcję w naszym wyglądzie, nie w cudzym.** Druga część kroku W5:

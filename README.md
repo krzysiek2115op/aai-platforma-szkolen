@@ -46,7 +46,7 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.44.0** |
+| **Wersja** | **0.45.0** |
 | **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). Trwa **etap WordPressa** ([decyzje i plan](docs/ETAP-WP.md)): kroki **W1–W4 zrobione** — środowisko `wordpress/srodowisko/` (WP+motyw+Tutor+Woo na `:8892`), wtyczka `aai-sklep` z tabelami i warstwą zapisu, oba kursy w tabelach (**73 lekcje zgodne co do znaku**), `/szkolenia` i strony sprzedażowe renderowane z NASZYCH tabel oraz **kreator w kokpicie** (kurs, program, 12 rodzajów sekcji, treść lekcji). **W5**: kopia kursu jedzie do Tutor LMS po KAŻDYM zapisie (`npm run wp:tutor` odpowiada kodem wyjścia, czy kopie są zgodne), a **materiał kursu wyświetla NASZ szablon** — renderer Markdownu w PHP, 148 zrzutów w bibliotece mediów, dostępu pilnuje Tutor. Następny: **W6 — test ręczny właściciela** |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `main` — wrócił nią 2026-08-25 razem ze scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0`). Do tego dnia domyślną była `plugin-1-sklep-kursow`, bo `main` stał celowo na 0.3.4 ([PLAN.md §5](docs/PLAN.md): moduł wchodzi na gałąź główną po ukończeniu i akceptacji całości). Gałąź modułu zostaje jako historia — jej drzewo jest identyczne z `main` |
@@ -145,12 +145,14 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run wp:tutor` | czy kopia w Tutorze zgadza się z naszymi tabelami? — wypisuje rozjazdy, sieroty po skasowanych lekcjach i wpisy zrobione poza kreatorem; kończy się kodem wyjścia |
 | `npm run wp:zrzuty` | wgrywa 148 zrzutów z lekcji do biblioteki mediów WordPressa (idempotentnie, po `sha256`); renderer podmienia ścieżkę z prozy na adres załącznika dopiero przy wyświetlaniu, więc treść w bazie zostaje nietknięta |
 | `npm run wp:proza` | dowód różnicowy renderera: te same 73 lekcje przez PHP wtyczki i przez `marked` z podglądu — tekst musi zgadzać się CO DO SŁOWA, struktura co do znacznika (wymaga riga z `marked`) |
+| `npm run wp:klient` | zakłada konto **klienta** (`klient-test`, rola `subscriber`, pasek narzędzi zgaszony) i zapisuje je na wszystkie opublikowane kursy — do testu ręcznego W6, bo administrator widzi materiał z definicji i testowałby nie to pytanie; hasło ląduje w `wordpress/srodowisko/.env` (poza gitem), a dostęp jest weryfikowany w OSOBNYM żądaniu, bo Tutor trzyma zapisy w pamięci żądania. `--usun` kasuje konto po teście |
 | `npm run smoke:wp` | czy warstwa zapisu wtyczki znosi przestawianie kolejności, przenoszenie lekcji między modułami i odmawia skasowania napisanej treści? (wymaga `wordpress/srodowisko/postaw.sh`; poza CI — tam nie ma podmana) |
 | `npm run smoke:wp-front` | czy `/szkolenia` i `/szkolenia/<slug>` na WordPressie pokazują to, co jest W BAZIE? — tytuły, ceny, moduły i lekcje, sekcje sprzedażowe, kanonik i dane strukturalne, 404 na nieistniejącym kursie, 301 z `/courses/*` i pozycja „Szkolenia" w obu nawigacjach motywu (wymaga `wordpress/srodowisko/postaw.sh`; poza CI) |
-| `npm run smoke:wp-motyw` | czy wszystko wygląda jak motyw? — mierzy w prawdziwej przeglądarce **pięć stron** (nasz katalog, strona kursu, widok lekcji zza logowania, panel i rejestracja Tutora): nachodzenie nagłówka, kontrast każdego napisu, jasne plamy i kolizje klas motywu z cudzym CSS-em (wymaga riga: `ZRZUTY_RIG` z `puppeteer-core`; poza CI) |
+| `npm run smoke:wp-motyw` | czy wszystko wygląda jak motyw? — mierzy w prawdziwej przeglądarce **siedem stron** (katalog, strona kursu, widok lekcji, „Moje kursy", konto WooCommerce oraz dwie strony Tutora): nachodzenie nagłówka, kontrast każdego napisu, jasne plamy i kolizje klas motywu z cudzym CSS-em (wymaga riga: `ZRZUTY_RIG` z `puppeteer-core`; poza CI) |
 | `npm run smoke:wp-kreator` | czy kreator w kokpicie zapisuje to, co właściciel wpisał — i NIC poza tym? logowanie prawdziwą sesją, odmowa dla gościa i dla konta bez uprawnień, żądanie bez nonce'a, runda „zapisz → odczytaj" dla wszystkich 12 rodzajów sekcji (treść generowana z OPISU PÓL, więc nowe pole samo wchodzi do próby), zapis programu nietykający prozy 73 lekcji, odmowa skasowania napisanej treści bez jawnej zgody i brak wycieku materiału na publiczne strony (wymaga `wordpress/srodowisko/postaw.sh`; poza CI) |
 | `npm run smoke:wp-tutor` | czy kopia kursu w Tutor LMS nadąża za KAŻDĄ drogą zapisu? — na własnym kursie: powstanie kopii, idempotencja, zmiana tytułu i kolejności, treść lekcji co do znaku, publikacja, skasowana lekcja bez sieroty, usunięcie całego kursu; do tego trzy testy negatywne (ręczna zmiana w Course Builderze, sierota, wpis spoza kreatora) i dowód, że synchronizacja NIE kasuje cudzych wpisów (wymaga `wordpress/srodowisko/postaw.sh`; poza CI) |
 | `npm run smoke:wp-lekcja` | czy widok lekcji oddaje materiał TYLKO uprawnionym? — gość nie widzi ani zdania prozy (i dostaje zaproszenie), zalogowany widzi pierwszy i ostatni akapit z bazy, komplet sekcji, ikony bloków i zrzuty, które naprawdę się pobierają; do tego WSZYSTKIE 73 lekcje składają się bez zatrzymania renderera, a nawigacja i program prowadzą tam, gdzie mówią (wymaga `wordpress/srodowisko/postaw.sh`; poza CI) |
+| `npm run smoke:wp-panel` | czy panel wysyła to, co właściciel WIDZI na ekranie? — mierzy kolektor kreatora w prawdziwej przeglądarce (kontrolki nie mają atrybutu `name`, więc wysyłkę składa JavaScript i żaden smoke POST-owy jej nie dotyka): tytuł modułu bierze się z pola modułu, tytuły lekcji z pól lekcji, a zapis, przy którym niczego nie dotknięto, odpowiada „bez zmian”, nie rusza stanu kursu i nie dopisuje się do dziennika (wymaga `wordpress/srodowisko/postaw.sh` i riga z `puppeteer-core`; poza CI) |
 
 > [!NOTE]
 > **Baza nie jest źródłem prawdy — jest kopią roboczą, z której renderuje
@@ -194,7 +196,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 155 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 161 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie

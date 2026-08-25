@@ -131,6 +131,22 @@ final class Aai_Sklep_Import {
 					}
 				}
 
+				/*
+				 * Import nie idzie przez kontrakt panelu (dane są NASZE,
+				 * z eksportu prototypu), ale ta jedna zasada musi go
+				 * obowiązywać tak samo: slug zajęty przez naszą podstronę
+				 * dałby kurs widoczny w katalogu, którego strona
+				 * sprzedażowa nie istnieje.
+				 */
+				if ( in_array( (string) $kurs['slug'], Aai_Sklep_Trasy::zarezerwowane_slugi(), true ) ) {
+					throw new Aai_Sklep_Blad_Zapisu(
+						sprintf(
+							'kurs „%s" ma slug zajęty przez stronę sklepu — jego strona sprzedażowa byłaby nieosiągalna',
+							(string) $kurs['slug']
+						)
+					);
+				}
+
 				$liczniki = Aai_Sklep_Zapis::zapisz_kurs( $kurs, $aktor, $pozwol );
 				foreach ( $liczniki as $klucz => $ile ) {
 					$razem[ $klucz ] += $ile;

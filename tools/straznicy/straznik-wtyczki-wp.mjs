@@ -9,7 +9,7 @@
  * późno. To ta sama klasa co CSP i limiter w prototypie: strona działa,
  * tylko przestaje chronić.
  *
- * OSIEM NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
+ * DZIEWIĘĆ NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
  *   1. plik główny ma komplet nagłówków WordPressa,
  *   2. każdy plik PHP blokuje bezpośrednie wywołanie (`ABSPATH`),
  *   3. nazwy tabel składa WYŁĄCZNIE klasa tabel — nigdzie indziej nie
@@ -22,7 +22,10 @@
  *   7. treść lekcji jest `mediumtext`, nie `text` (65 kB ucięłoby lekcję
  *      w milczeniu — kontrakt dopuszcza 120 000 znaków),
  *   8. do NASZYCH tabel pisze wyłącznie warstwa zapisu — to ona zna
- *      transakcje, dziennik audytu i ochronę napisanej treści.
+ *      transakcje, dziennik audytu i ochronę napisanej treści,
+ *   9. JSON w warstwie zapisu ma STAŁY kształt (klucze uporządkowane) —
+ *      inaczej „czy się zmieniło" kłamie przy każdej zmianie pisarza
+ *      (BLAD-020: zapis bez zmian meldował „zapisano" i puchł dziennik).
  *
  * Użycie: node tools/straznicy/straznik-wtyczki-wp.mjs
  */
@@ -190,6 +193,27 @@ for (const wtyczka of wtyczki) {
     }
   }
 
+  /* 9. JSON w warstwie zapisu ma STAŁY kształt */
+  //
+  // Porównanie „czy się zmieniło" robimy na ŁAŃCUCHU JSON-a, więc ten sam
+  // obiekt musi zawsze dawać ten sam łańcuch. `wp_json_encode` zachowuje
+  // kolejność kluczy tablicy — a klucze układa ten, kto akurat pisze:
+  // import w kolejności eksportu, panel w kolejności opisu pól. Bez
+  // porządkowania pierwszy zapis po imporcie przepisywał WSZYSTKIE sekcje,
+  // dopisywał tyleż wierszy do dziennika zmian i meldował „Kurs zapisany",
+  // choć właściciel niczego nie dotknął (BLAD-020). Dziennik ma nieść
+  // wyłącznie realne zmiany — to decyzja właściciela z 0.37.0.
+  if (existsSync(warstwaZapisu)) {
+    const tresc = kod(readFileSync(warstwaZapisu, "utf8"));
+    for (const [wywolanie] of tresc.matchAll(/wp_json_encode\(([\s\S]{0,120})/g)) {
+      if (!/uporzadkuj\s*\(/.test(wywolanie)) {
+        bledy.push(
+          `${warstwaZapisu}: koduje JSON bez uporządkowania kluczy. Porównanie „czy się zmieniło" jest tu porównaniem łańcuchów, więc ta sama treść zapisana w innej kolejności kluczy udaje zmianę: dziennik audytu puchnie o wpisy bez zmian, a panel melduje „zapisano" po zapisie, w którym niczego nie dotknięto (BLAD-020).`
+        );
+      }
+    }
+  }
+
   /* 7. treść lekcji nie mieści się w `text` */
   if (existsSync(klasaTabel)) {
     const tresc = readFileSync(klasaTabel, "utf8");
@@ -208,5 +232,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, zapis tylko przez warstwę zapisu).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, zapis tylko przez warstwę zapisu, JSON o stałym kształcie).`
 );

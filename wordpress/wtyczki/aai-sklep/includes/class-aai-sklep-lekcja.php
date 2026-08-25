@@ -228,6 +228,7 @@ final class Aai_Sklep_Lekcja {
 			'ukonczona'  => self::ukonczona( $post->ID ),
 			'post_id'    => $post->ID,
 			'adres_kursu' => Aai_Sklep_Widok::adres_kursu( (string) $kurs['slug'] ),
+			'wroc'        => self::wroc( $post->ID, (string) $kurs['slug'] ),
 			'tresc_html' => '',
 			'lead'       => '',
 			'spis'       => array(),
@@ -397,6 +398,46 @@ final class Aai_Sklep_Lekcja {
 			}
 		}
 		return $zapowiedz;
+	}
+
+	/**
+	 * Dokąd prowadzi strzałka „wróć" w pigułce lekcji.
+	 *
+	 * DLACZEGO TO NIE JEST ZAWSZE STRONA KURSU. Bo dla KUPUJĄCEGO strona
+	 * sprzedażowa jest ślepym zaułkiem: próbuje mu sprzedać coś, co już ma,
+	 * a jedynym wyjściem z niej jest przycisk „Dołącz". Właściciel złapał to
+	 * w teście ręcznym W6 — cofnął się z lekcji i wylądował na cenniku.
+	 * Kto ma kurs, wraca więc do „Moich kursów"; kto go nie ma (gość na
+	 * darmowej zapowiedzi, ktoś, kto trafił z wyszukiwarki), dalej trafia na
+	 * stronę sprzedażową, bo dla NIEGO to jest właściwe następne miejsce.
+	 *
+	 * Pytamy Tutora o zapis na kurs, a nie o `dostep` z tego widoku: `dostep`
+	 * jest prawdziwy także dla zapowiedzi i dla administratora, więc gość
+	 * czytający darmową lekcję dostałby odnośnik do pustej listy.
+	 *
+	 * @param int    $id_postu Wpis lekcji w Tutorze.
+	 * @param string $slug     Slug kursu w naszych tabelach.
+	 * @return array{adres:string,etykieta:string}
+	 */
+	private static function wroc( int $id_postu, string $slug ): array {
+		$kupiony = false;
+		if ( is_user_logged_in() && function_exists( 'tutor_utils' ) ) {
+			$id_kursu = (int) tutor_utils()->get_course_id_by_content( $id_postu );
+			$kupiony  = $id_kursu > 0
+				&& (bool) tutor_utils()->is_enrolled( $id_kursu, get_current_user_id() );
+		}
+
+		if ( $kupiony && class_exists( 'Aai_Sklep_Moje' ) ) {
+			return array(
+				'adres'    => Aai_Sklep_Moje::adres(),
+				'etykieta' => 'Wróć do moich kursów',
+			);
+		}
+
+		return array(
+			'adres'    => Aai_Sklep_Widok::adres_kursu( $slug ),
+			'etykieta' => 'Wróć na stronę kursu',
+		);
 	}
 
 	/**

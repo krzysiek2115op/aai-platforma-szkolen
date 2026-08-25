@@ -1375,17 +1375,16 @@ wyprowadzała tego od nowa:
   wywołanie — wzorce mają celować w ZACHOWANIE (nawrót lekcji z 0.29.0);
   (5) **smoke fałszywie alarmował o CSS-ie Tutora**, bo wzorzec `tutor-front`
   trafiał w KLASĘ `body` (`tutor-frontend`) — pytaj o ZNACZNIKI, nie o napis.
-  **STAN GAŁĘZI (WAŻNE PO CLEAR):**
-  - **Część 1 = PR #73 ZMERGOWANY** do `main` (2026-08-25, decyzją właściciela
-    na dowodach lokalnych — CI padał po 5 s z wyczerpanych minut, sprawdzone
-    `gh run list`), gałąź `feat/w5-tutor-sync` skasowana zdalnie I lokalnie
-    (`--delete-branch` kasuje obie). Artefakt zweryfikowany: `git diff` między
-    `main` a szczytem gałęzi (38ac394) **PUSTY**.
-  - **Część 2 = PR #74 OTWARTY**, gałąź `feat/w5-widok-lekcji`, baza `main`,
-    wersja 0.44.0 — **czeka na zgodę właściciela na merge. Nie mergować bez
-    pytania.** PR poszedł DOPIERO po merge'u #73, świadomie: stackowane PR-y już
-    raz zamknęły się w tym repo nawzajem (notatka przy 0.25.0).
-  - **Tagi `v0.43.0` i `v0.44.0` + release'y — DO ZROBIENIA po merge'u #74.**
+  **KROK W5 ZAMKNIĘTY W REPO (2026-08-25).** PR #73 (część 1) i PR #74
+  (część 2) zmergowane do `main`, gałęzie skasowane, **tagi `v0.43.0`
+  i `v0.44.0` + release'y** zrobione. Merge decyzją właściciela na dowodach
+  lokalnych — CI padał po 5 s z wyczerpanych minut Actions (sprawdzone
+  `gh run list`), nie z powodu kodu; po powrocie CI (1 września) potwierdzić
+  **gitleaks**. Artefakt weryfikowany po OBU merge'ach: `git diff` między
+  `main` a szczytem gałęzi PUSTY (lekcja z 0.37.0).
+  **Zapamiętać:** `gh pr merge --delete-branch` kasuje gałąź także LOKALNIE;
+  PR części 2 otwarto DOPIERO po merge'u #73, bo stackowane PR-y już raz
+  zamknęły się w tym repo nawzajem (0.25.0).
   **DOMKNIĘCIE W5 — ZROBIONE 2026-08-25 (poza merge'em):**
   1. ~~`npm run check` + trzy smoke'i WP~~ **ZROBIONE, z jednego przebiegu**:
      strażnicy **34/34**, testy **83/83**, lint + tsc + build, 7 smoke'ów
@@ -1414,10 +1413,97 @@ wyprowadzała tego od nowa:
   3. ~~`docs/plugin-1/KREATOR.md` o dojeżdżaniu zapisu do Tutora~~ **ZROBIONE**
      (sekcja „Co się dzieje po zapisie — kopia w Tutorze"; przy okazji
      sprostowana liczba sprawdzeń smoke'a kreatora: 92 → 95).
-  4. ~~merge #73 → PR części 2~~ **ZROBIONE** (PR #73 zmergowany, PR #74
-     otwarty na `main`). **ZOSTAJE: merge #74 za zgodą właściciela → tagi
-     `v0.43.0` i `v0.44.0` + release'y;**
-  5. potem **W6 — test ręczny właściciela** (ostatni krok wtyczki `aai-sklep`).
+  4. ~~merge #73 i #74 → tagi → release'y~~ **ZROBIONE** (2026-08-25).
+  5. **W6 — TEST RĘCZNY WŁAŚCICIELA — W TOKU** (ostatni krok `aai-sklep`).
+     **TRZY ZGŁOSZENIA WŁAŚCICIELA Z PIERWSZEGO PRZEBIEGU (2026-08-25) —
+     dwa naprawione, jedno okazało się decyzją:**
+     (a) **klient nie miał JAK trafić do kupionego kursu** — logowanie wyrzuca
+     na `/my-account/`, a jedyną listą był panel Tutora w jego wyglądzie
+     (własny pasek boczny, okno powitalne ze zrzutem cudzego kursu
+     fotografii). Powstała **nasza `/szkolenia/moje/`** (`Aai_Sklep_Moje`
+     + `szablony/moje.php`): kafelki z paskiem postępu i przyciskiem do
+     pierwszej NIEODHACZONEJ lekcji; `/dashboard/` i `/dashboard/courses/`
+     → **302** na nas; pozycja „Moje kursy" w obu nawigacjach motywu, ale
+     **tylko dla zalogowanego z kursem**; strona ma `noindex`, bo jej treść
+     zależy od konta. **Postępu NIE liczymy sami** — pyta o niego Tutor
+     (`is_completed_lesson`), inaczej mielibyśmy drugą kopię tej samej prawdy;
+     (b) **strony konta WooCommerce renderowały się bez stylów** — dostawały
+     arkusze Woo, ale nie naszą warstwę integracji (obsługiwała tylko Tutora),
+     więc menu konta lądowało w lewym górnym rogu pod nagłówkiem. Ta sama
+     klasa co 0.38.0/0.40.0. Powstał `Aai_Sklep_Styl_Woo` + `woo-motyw.css`,
+     pytający `Aai_Sklep_Zasoby::strona_woo()` — obejmie też koszyk i kasę
+     z Pluginu 2;
+     (c) **cztery lekcje otwierają się bez logowania** — NIE wyciek: mają
+     `preview = 1` w naszych tabelach (pierwsza lekcja modułu 1 i jednego
+     dalszego modułu w każdym kursie), bramka działa zgodnie z danymi.
+     **DECYZJA WŁAŚCICIELA 2026-08-25: zostają wszystkie cztery.** Zapisane,
+     żeby następne zgłoszenie nie ruszało śledztwa od nowa.
+     **DRUGI PRZEBIEG (2026-08-25) — dwa dalsze zgłoszenia, oba naprawione:**
+     (d) **strzałka „wróć" w lekcji odsyłała KUPUJĄCEGO na cennik** — teraz
+     ma dwie postacie: zapisany na kurs wraca do „Moich kursów", niezapisany
+     (gość na zapowiedzi, admin) na stronę sprzedażową. Pytamy Tutora o ZAPIS,
+     nie o `dostep` — `dostep` jest prawdziwy także dla zapowiedzi i admina;
+     (e) **menu konta WooCommerce nie prowadziło do kursów** — „Moje kursy"
+     są tam PIERWSZĄ pozycją (filtr `woocommerce_get_endpoint_url` podmienia
+     adres, bo nasza strona nie jest endpointem konta).
+     **DOWODY PO NAPRAWACH:** strażnicy 34/34, `smoke-wp-motyw` **65**
+     (SIEDEM stron — doszły `/my-account/` i `/szkolenia/moje/`, a
+     `/dashboard/` ustąpił `/dashboard/retrieve-password/`),
+     `smoke-wp-front` **83** (oba przekierowania panelu + brak wycieku listy
+     kursów gościowi), `smoke-wp-lekcja` **34** (obie postacie strzałki
+     „wróć"; stan kupującego robiony POMIAREM — zapis admina na kurs
+     i cofnięcie go), `smoke-wp-kreator` 95,
+     `smoke-wp-dane` 30. Każde nowe sprawdzenie ma test negatywny.
+     **PRZEGLĄD KODU (2026-08-25) — cztery znaleziska, wszystkie naprawione:**
+     menu podświetlało DWIE pozycje naraz (klon dziedziczył `aria-current`
+     po pozycji wstawionej przed chwilą); menu kosztowało **90 zapytań na
+     odsłonę** (`kursy()` = 45 zapytań x 2 kotwice, teraz `ma_kursy()`
+     = 3 zapytania + pamięć na czas żądania); widok prywatny nie wołał
+     `nocache_headers()`; `wp:klient` mógł zostawić konto z nieznanym hasłem.
+     **NOWA KLASA ŚLEPOTY:** sprawdzenie nagłówków `Cache-Control` w smoke'u
+     nie pilnuje NASZEJ linii — nagłówki dokłada też coś innego w stosie;
+     naszej gwarancji pilnuje `straznik-frontu-wp`, a jego pierwszy wzorzec
+     trafiał w DRUGIE `nocache_headers()` w tym samym pliku (gałąź 404).
+     Audyt mutacyjny **156** (było 155).
+     **PUŁAPKA POMIARU:** kafelki „Moich kursów" mają `.aai-reveal`
+     (opacity 0 do czasu IntersectionObservera) — zrzut zrobiony zaraz po
+     `load` pokazuje PUSTĄ siatkę i wygląda jak błąd danych. Czekać ~1,5 s.
+     **SCENARIUSZ WIĄŻĄCY:
+     [docs/plugin-1/W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md)
+     — CZYTAĆ PRZED PRACĄ.** Gałąź `feat/w6-test-reczny`, wersja 0.45.0,
+     wypchnięta, **BEZ PR-a** — PR otwieramy DOPIERO po zaliczeniu W6, razem
+     z poprawkami z testu; poprawki wchodzą na TĘ gałąź.
+     Cztery ścieżki: gość → klient po zakupie → właściciel w kreatorze →
+     czy nie zepsuliśmy motywu. Dokument ma też **tabelę rzeczy POZA
+     zakresem** (zakup → `/kontakt`, cena `Free` w Tutorze, `PreOrder`,
+     wyłączona rejestracja, maile, HTTPS/domena, zobowiązania handlowe),
+     żeby nie zgłaszać jako błąd tego, co należy do Pluginu 2/3.
+     **KONTO KLIENTA: `npm run wp:klient`** (`klient-test`, `subscriber`,
+     zapisany na oba kursy, **pasek narzędzi zgaszony**; hasło w
+     `wordpress/srodowisko/.env`, klucz `WP_KLIENT_HASLO`; `--usun` kasuje).
+     Bez tego konta test odpowiada na złe pytanie — administrator widzi
+     materiał z definicji, a pasek narzędzi przesuwa stronę o 32 px
+     i zasłania pigułkę lekcji.
+     **PUŁAPKA TUTORA:** `is_enrolled()` w TYM SAMYM żądaniu, w którym
+     powstał zapis, oddaje `false` (zapisy siedzą w pamięci żądania) —
+     dostęp weryfikować osobnym żądaniem.
+     **STAN W6 PO DWÓCH PRZEBIEGACH WŁAŚCICIELA (2026-08-25, wieczór):**
+     ścieżki **A i B ZALICZONE** („sprawdziłem, wszystko jest OK"),
+     **ZOSTAJĄ ŚCIEŻKI C i D** — kreator (zmiana zdania w sekcji → zapis →
+     front; zmiana treści lekcji → widok klienta; odmowa skasowania treści;
+     okładka z biblioteki mediów; ukryj/opublikuj) oraz sprawdzenie, czy
+     motyw jest nietknięty (`/`, `/uslugi/`, `/kontakt/`, stopka, nagłówek).
+     Konto klienta i środowisko stoją — nic nie trzeba stawiać od nowa.
+     **Gałąź `feat/w6-test-reczny` (0.45.0) wypchnięta, BEZ PR-a** — PR
+     otwieramy po zaliczeniu całego W6, razem z poprawkami.
+     **KOLEJNOŚĆ PO CLEAR (decyzja właściciela 2026-08-25):** ścieżki C i D
+     → **domknięcie W6 w repo: PR gałęzi `feat/w6-test-reczny` → merge → tag
+     `v0.45.0` → release** (wtedy wtyczka `aai-sklep` jest SKOŃCZONA)
+     → **start Pluginu 2**. Nazwa „W7" padła w rozmowie i oznaczała właśnie
+     domknięcie W6 — nowego kroku wtyczki NIE dokładamy.
+  6. **Po zaliczeniu W6: Plugin 2 — płatności.** Przed startem rozstrzygnąć,
+     **GDZIE MIESZKA CENA** (nasza tabela czy produkt WooCommerce) —
+     [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „Plugin 2".
   **ODTWORZENIE ŚRODOWISKA OD ZERA WYMAGA TRZECH KOMEND, NIE JEDNEJ:**
   `npm run wp:import` (kursy do naszych tabel) → `npm run wp:sync` (kopia
   w Tutorze) → `npm run wp:zrzuty` (148 obrazów do biblioteki mediów).

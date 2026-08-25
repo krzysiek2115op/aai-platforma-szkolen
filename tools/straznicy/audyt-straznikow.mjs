@@ -1136,6 +1136,21 @@ const MUTACJE = [
   // niezmiennik, tak samo jak przy CSP i przy wtyczce.
   {
     straznik: "straznik-frontu-wp",
+    opis: "widok prywatny „Moje kursy” przestaje zakazywać cache'owania (lista jednego klienta może trafić do drugiego)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-trasy.php",
+    // Celujemy w NASZE wywołanie (gałąź widoku „moje"), bo w tym pliku jest
+    // jeszcze jedno — w gałęzi 404 — i stoi WYŻEJ. Mutacja „pierwsze z brzegu"
+    // podmieniała tamto i mierzyła nie to, co trzeba.
+    zmien: (s) =>
+      s.includes("nocache_headers();\n\t\t\treturn AAI_SKLEP_KATALOG . 'szablony/moje.php';")
+        ? s.replace(
+            "nocache_headers();\n\t\t\treturn AAI_SKLEP_KATALOG . 'szablony/moje.php';",
+            "return AAI_SKLEP_KATALOG . 'szablony/moje.php';"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
     opis: "rodzaj sekcji z kontraktu traci szablon (kreator pozwoli wpisać, strona przemilczy)",
     plik: null,
     usunPlik: "wordpress/wtyczki/aai-sklep/szablony/sekcje/faq.php",
@@ -1308,6 +1323,62 @@ const MUTACJE = [
         ? s.replace(
             "add_action( 'admin_post_' . self::ZAPISZ_KURS",
             "add_action( 'admin_post_nopriv_' . self::ZAPISZ_KURS, array( self::class, 'zapisz_kurs' ) );\n\t\tadd_action( 'admin_post_' . self::ZAPISZ_KURS"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "kontrakt przestaje odrzucać slug zajęty przez naszą podstronę (BLAD-021: kurs w katalogu, którego strona sprzedażowa nie istnieje)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-kontrakt.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-kontrakt.php"),
+    zmien: (s) =>
+      s.includes("Aai_Sklep_Trasy::zarezerwowane_slugi(), true ) ) {")
+        ? s.replace("in_array( $slug, Aai_Sklep_Trasy::zarezerwowane_slugi(), true )", "false")
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "reguły przepisywania przestają brać podstrony z jednej stałej (nowa podstrona dostanie adres, ale slug nie zostanie zakazany)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-trasy.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-trasy.php"),
+    zmien: (s) =>
+      s.includes("foreach ( self::PODSTRONY as $sciezka => $widok ) {")
+        ? s.replace(
+            /\t\tforeach \( self::PODSTRONY as \$sciezka => \$widok \) \{[\s\S]*?\n\t\t\}\n/,
+            "\t\tadd_rewrite_rule( '^szkolenia/moje/?$', 'index.php?aai_widok=moje', 'top' );\n"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "warstwa zapisu koduje JSON bez porządkowania kluczy (BLAD-020: zapis bez zmian melduje „zapisano” i puchnie dziennik)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    zmien: (s) =>
+      s.includes("self::uporzadkuj( $wartosc ),")
+        ? s.replace("self::uporzadkuj( $wartosc ),", "$wartosc,")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "wiersz lekcji przestaje być granicą zakresu kolektora (BLAD-019: zapis kursu nadaje modułom tytuł ostatniej lekcji)",
+    plik: "wordpress/wtyczki/aai-sklep/assets/panel.js",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/assets/panel.js"),
+    zmien: (s) =>
+      s.includes('"data-aai-lekcja",')
+        ? s.replace('\t\t"data-aai-lekcja",\n', "")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "kolektor przestaje korzystać z listy granic (lista zostaje, ale niczego nie pilnuje)",
+    plik: "wordpress/wtyczki/aai-sklep/assets/panel.js",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/assets/panel.js"),
+    zmien: (s) =>
+      s.includes("GRANICE_ZAKRESU.some(function (znacznik) {")
+        ? s.replace(
+            /GRANICE_ZAKRESU\.some\(function \(znacznik\) \{[\s\S]*?\}\)/,
+            'element.hasAttribute("data-aai-pole")'
           )
         : null,
   },

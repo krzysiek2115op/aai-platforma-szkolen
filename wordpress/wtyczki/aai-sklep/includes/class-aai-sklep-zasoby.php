@@ -73,8 +73,14 @@ final class Aai_Sklep_Zasoby {
 
 	/**
 	 * Czy bieżące żądanie to strona WooCommerce (sklep, koszyk, kasa, konto).
+	 *
+	 * PUBLICZNA z tego samego powodu co `strona_tutora()`: pyta o to także
+	 * `Aai_Sklep_Styl_Woo` i ma pytać TĘ funkcję, a nie mieć własną kopię
+	 * warunku. Dwie kopie rozjechałyby się przy pierwszej zmianie w Woo,
+	 * a objawem byłaby strona konta bez stylów — czyli dokładnie to, co
+	 * właściciel zgłosił zrzutem w teście ręcznym W6.
 	 */
-	private static function strona_woo(): bool {
+	public static function strona_woo(): bool {
 		return ( function_exists( 'is_woocommerce' ) && is_woocommerce() )
 			|| ( function_exists( 'is_cart' ) && is_cart() )
 			|| ( function_exists( 'is_checkout' ) && is_checkout() )
