@@ -1311,6 +1311,14 @@ wyprowadzała tego od nowa:
   warstwie zapisu **kasuje prozę wszystkich 73 lekcji**. Droga powrotna:
   `npm run wp:import` → `npm run wp:sprawdz`. Przed takim testem robić
   zrzut tabel.
+  **STAN GAŁĘZI: W4 NIE JEST JESZCZE W `main`.** Praca leży na
+  `feat/w4-kreator-kokpit` (2 commity), **PR #72 OTWARTY** i czeka na
+  zgodę właściciela; przegląd kroku jest komentarzem pod tym PR-em.
+  CI padło 2 s po starcie z zerem kroków — potwierdzone rozliczeniem:
+  **2118 minut Actions w sierpniu przy limicie 2000** (limit wraca
+  1 września), więc czerwony check NIE jest o kodzie. Merge wg
+  CONTRIBUTING z `--delete-branch`, potem tag `v0.42.0` + release —
+  **wyłącznie za zgodą właściciela**.
   **NASTĘPNY KROK: W5 — synchronizacja do Tutora + nasze szablony lekcji.**
   Kopia kursu do Tutora przy publikacji (jednokierunkowo, jak
   `wordpress/import-kursy.php`) i NASZE szablony widoku lekcji w miejsce
