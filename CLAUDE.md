@@ -1344,17 +1344,56 @@ wyprowadzała tego od nowa:
   (4) **sprzątanie testowych wpisów po PRZEDROSTKU uuid to pułapka** —
   uuid kursu miał inny układ zer niż moduły, więc został sierotą, a przebieg
   zameldował porządek; lista wypisana wprost nie kłamie.
-  **NASTĘPNY KROK: W5, CZĘŚĆ 2 — NASZE szablony widoku lekcji** w miejsce
-  Tutorowych. Wygląd leży gotowy w `tools/podglad-kursow/` (CSS + szablony,
-  wyjęte tam WŁAŚNIE po to, żeby dały się przenieść). Do zrobienia po drodze:
-  **renderer Markdowna w PHP** (proza to pełny podzbiór GFM: tabele 73/73,
-  bloki kodu 73/73, cytaty 34/73, obrazy 64/73, listy zagnieżdżone 73/73)
-  z dowodem różnicowym wobec `marked` na 73 lekcjach oraz **148 zrzutów
-  (13 MB) do biblioteki mediów** (decyzje właściciela 2026-08-25). Bramkę
-  dostępu pytamy TUTORA (`has_enrolled_content_access`), nie zgadujemy.
+  **W5, CZĘŚĆ 2 ZROBIONA (0.44.0): klient czyta lekcję w NASZYM wyglądzie.**
+  `Aai_Sklep_Lekcja` przejmuje trasę lekcji (`template_include`), `Aai_Sklep_Proza`
+  składa Markdown w PHP **bez ani jednej zależności** (zakres zmierzony na 73
+  plikach prozy), a `Aai_Sklep_Zrzuty` trzyma 148 zrzutów w **bibliotece
+  mediów** (klucz: lekcja + nazwa, bo nazwy się powtarzają). Wygląd przeniesiony
+  z `tools/podglad-kursow/` — ten sam, który właściciel przyjął przy 0.34.0.
+  Doszły: `straznik-lekcji-wp` (34. strażnik, 10 mutacji), `smoke-wp-lekcja`
+  (32 sprawdzenia, przelot przez wszystkie 73 lekcje, najdłuższa odsłona
+  194 ms), `npm run wp:zrzuty`, `npm run wp:proza`, `npm run smoke:wp-lekcja`.
+  **DOWÓD RÓŻNICOWY zamiast deklaracji** (`tools/sprawdz-proze-php.mjs`): te
+  same 73 lekcje przez PHP i przez `marked` z podglądu, tekst CO DO SŁOWA
+  i struktura co do znacznika. Złapał 5 prawdziwych różnic w rendererze
+  (reguła ograniczników GFM, kursywa zagnieżdżona, kursywa przez koniec
+  wiersza, ogrodzenie kodu „na trzy" mimo czterech apostrofów, akapity
+  w listach zwartych). **Dwie różnice zostają świadomie** — to usterki
+  `marked` (próbuje emfazy PRZED kodem w linii), nazwane w kodzie dowodu.
+  **PIĘĆ RZECZY DO ZAPAMIĘTANIA Z CZĘŚCI 2:**
+  (1) **`<main>` dostaje skądś `display: flex`** — reguły nie ma ani u nas,
+  ani w motywie (przeglądarka: ZERO reguł pasujących do `main.aai-lekcja`),
+  a hero, treść i nawigacja ustawiały się OBOK SIEBIE w wąskich kolumnach;
+  układ deklarujemy wprost;
+  (2) **`wp_kses_post` zjada `<svg>`** — ikony bloków prozy znikały po cichu;
+  stąd `Aai_Sklep_Widok::dozwolone_znaczniki()`;
+  (3) **nagłówek motywu i nasza pigułka są oba `fixed`** — nagłówek ustępuje,
+  tak samo jak na stronie kursu (W3);
+  (4) **audyt mutacyjny złapał dziurę w MOIM strażniku**: wzorzec pytał o NAZWĘ
+  stałej (`SLADY_SUROWEGO`), a mutacja skasowała jej definicję zostawiając
+  wywołanie — wzorce mają celować w ZACHOWANIE (nawrót lekcji z 0.29.0);
+  (5) **smoke fałszywie alarmował o CSS-ie Tutora**, bo wzorzec `tutor-front`
+  trafiał w KLASĘ `body` (`tutor-frontend`) — pytaj o ZNACZNIKI, nie o napis.
+  **STAN GAŁĘZI (WAŻNE PO CLEAR):**
+  - **Część 1 = PR #73, OTWARTY**, gałąź `feat/w5-tutor-sync`, wersja 0.43.0 —
+    czeka na zgodę właściciela na merge. **Nie mergować bez pytania.**
+  - **Część 2 = gałąź `feat/w5-widok-lekcji`** (odbita od gałęzi części 1),
+    2 commity, **NIEWYPCHNIĘTA, bez PR-a** — świadomie: stackowane PR-y już raz
+    zamknęły się w tym repo nawzajem (notatka przy 0.25.0), więc PR części 2
+    otwieramy DOPIERO po zmergowaniu #73 i przepięciu gałęzi na `main`.
+  **CO ZOSTAŁO DO DOMKNIĘCIA W5** (kolejność):
+  1. `npm run check` po części 2 (jeszcze nie puszczony) + powtórka
+     `smoke:wp-front`, `smoke:wp-kreator`, `smoke:wp` — części 2 ich nie ruszała,
+     ale dowody mają być z jednego przebiegu;
+  2. **`smoke-wp-motyw` ma dostać PIĄTĄ stronę — widok lekcji** (dziś mierzy
+     cztery: nasze dwie + panel i rejestracja Tutora); to jedyna pozycja z planu
+     części 2, której NIE zrobiłem;
+  3. merge #73 (za zgodą właściciela) → przepięcie `feat/w5-widok-lekcji` na
+     `main` → PR części 2 → tagi `v0.43.0` i `v0.44.0` + release'y;
+  4. potem **W6 — test ręczny właściciela** (ostatni krok wtyczki `aai-sklep`).
   UWAGA: `straznik-kreatora-wp` zabrania szablonom frontu sięgać po treść
-  lekcji — szablon lekcji będzie pierwszym wyjątkiem i musi wejść razem
-  z regułą, która ten wyjątek wiąże z bramką dostępu.
+  lekcji — szablon lekcji NIE łamie tej reguły, bo dostaje z klasy GOTOWY
+  HTML (`tresc_html`), a nie kolumnę `content`.
 
   **NAPRAWA RENDERU (0.38.0, zgłosił właściciel zrzutami):** strona główna
   była łamana przez `tutor-front.min.css` — globalna klasa `.text-label`

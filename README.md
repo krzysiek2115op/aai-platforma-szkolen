@@ -46,8 +46,8 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.43.0** |
-| **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). Trwa **etap WordPressa** ([decyzje i plan](docs/ETAP-WP.md)): kroki **W1–W4 zrobione** — środowisko `wordpress/srodowisko/` (WP+motyw+Tutor+Woo na `:8892`), wtyczka `aai-sklep` z tabelami i warstwą zapisu, oba kursy w tabelach (**73 lekcje zgodne co do znaku**), `/szkolenia` i strony sprzedażowe renderowane z NASZYCH tabel oraz **kreator w kokpicie** (kurs, program, 12 rodzajów sekcji, treść lekcji). **W5 w toku**: kopia kursu jedzie do Tutor LMS po KAŻDYM zapisie, a `npm run wp:tutor` odpowiada kodem wyjścia, czy obie kopie są zgodne. Zostało: **nasze szablony widoku lekcji** |
+| **Wersja** | **0.44.0** |
+| **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). Trwa **etap WordPressa** ([decyzje i plan](docs/ETAP-WP.md)): kroki **W1–W4 zrobione** — środowisko `wordpress/srodowisko/` (WP+motyw+Tutor+Woo na `:8892`), wtyczka `aai-sklep` z tabelami i warstwą zapisu, oba kursy w tabelach (**73 lekcje zgodne co do znaku**), `/szkolenia` i strony sprzedażowe renderowane z NASZYCH tabel oraz **kreator w kokpicie** (kurs, program, 12 rodzajów sekcji, treść lekcji). **W5**: kopia kursu jedzie do Tutor LMS po KAŻDYM zapisie (`npm run wp:tutor` odpowiada kodem wyjścia, czy kopie są zgodne), a **materiał kursu wyświetla NASZ szablon** — renderer Markdownu w PHP, 148 zrzutów w bibliotece mediów, dostępu pilnuje Tutor. Następny: **W6 — test ręczny właściciela** |
 | **Aktywny moduł** | 1 — Sklep z kursami ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `main` — wrócił nią 2026-08-25 razem ze scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0`). Do tego dnia domyślną była `plugin-1-sklep-kursow`, bo `main` stał celowo na 0.3.4 ([PLAN.md §5](docs/PLAN.md): moduł wchodzi na gałąź główną po ukończeniu i akceptacji całości). Gałąź modułu zostaje jako historia — jej drzewo jest identyczne z `main` |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |

@@ -5,6 +5,68 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.44.0] — 2026-08-25
+
+**Klient czyta lekcję w naszym wyglądzie, nie w cudzym.** Druga część kroku W5:
+materiał kursu wyświetla NASZ szablon — ten sam wygląd, który właściciel przyjął
+przy 0.34.0 — a nie strona Tutora.
+
+### Dodane
+
+- **`Aai_Sklep_Proza`** — renderer Markdownu w PHP, bez ani jednej zależności.
+  Zakres ZMIERZONY na 73 plikach prozy: nagłówki, listy (także zagnieżdżone
+  i numerowane), bloki kodu, tabele, cytaty, obrazy, odsyłacze, emfaza, linia
+  pozioma. Rozpoznaje sekcje po nagłówkach, które w prozie JUŻ SĄ („Czego się
+  nauczysz", „Zrób to teraz", „Zapamiętaj", „Co dalej") i pakuje je we własne
+  pudełka z ikoną. **Ucieka wszystko** — materiał wchodzi kreatorem, czyli
+  polem tekstowym. Konstrukcja, której nie zna, **zatrzymuje lekcję** zamiast
+  pokazać klientowi `## Czego się nauczysz` jako zdanie.
+- **`tools/sprawdz-proze-php.mjs`** (`npm run wp:proza`) — dowód różnicowy: te
+  same 73 lekcje przez PHP i przez `marked` z narzędzia, którym powstał przyjęty
+  podgląd; tekst musi zgadzać się **co do słowa**, struktura co do znacznika.
+- **`Aai_Sklep_Zrzuty`** + `npm run wp:zrzuty` — 148 zrzutów w bibliotece
+  mediów, idempotentnie (po `sha256`), kluczowane parą **lekcja + nazwa**, bo
+  same nazwy powtarzają się między kursami i wewnątrz kursu. Treść w bazie
+  zostaje nietknięta: ścieżka z prozy zamienia się w adres załącznika dopiero
+  przy renderowaniu.
+- **`Aai_Sklep_Lekcja`** + szablony `lekcja.php`, `czesci/pasek-lekcji.php`,
+  `czesci/lekcja-odhacz.php`, `czesci/lekcja-bramka.php`, arkusz `lekcja.css`
+  i skrypt `lekcja.js` — widok lekcji: pływająca pigułka z programem i spisem
+  sekcji, hero z pozycją w kursie, treść w kolumnie czytania, zrzuty w figurach
+  z zarezerwowanym miejscem, most „Co dalej", nawigacja poprzednia/następna.
+- **`straznik-lekcji-wp`** (34. strażnik, 10 mutacji) i **`smoke-wp-lekcja`**
+  (`npm run smoke:wp-lekcja`, 32 sprawdzenia z przelotem przez wszystkie
+  73 lekcje).
+
+### Zmienione
+
+- **Postęp bierzemy z ukończeń Tutora**, nie z pamięci przeglądarki. Podgląd
+  podpisywał postęp „nie na koncie", bo konta nie znał; tutaj klient jest
+  zalogowany, więc podpis przestał być prawdą.
+- **O dostęp pyta Tutor** (`has_enrolled_content_access`). Bez dostępu treść
+  **nie jest w ogóle czytana** — materiał, którego nie wczytano, nie ma jak
+  wyciec przez pomyłkę w szablonie.
+- Strona lekcji **nie ładuje CSS-u ani JS-u Tutora** (`Aai_Sklep_Zasoby` wie,
+  że to nasza strona), a **nagłówek motywu ustępuje pigułce** — tak samo jak
+  na stronie kursu, bo obie belki są `fixed` u góry.
+
+### Naprawione (znalezione dowodem różnicowym, w renderze prozy)
+
+Pięć prawdziwych różnic wobec wzorca: emfaza bez reguły ograniczników GFM
+(`** \ + Enter**` robiło się pogrubieniem), kursywa zagnieżdżona, kursywa
+przez koniec wiersza, ogrodzenie kodu zamykane „na trzy" mimo czterech
+apostrofów (lekcja o Markdownie pokazuje blok W BLOKU) oraz akapity w listach
+zwartych. Zostały **dwie różnice świadome** — obie są usterkami `marked`
+(próbuje emfazy przed kodem w linii), obie nazwane w kodzie dowodu.
+
+### Dowody
+
+Strażnicy **34/34**, audyt mutacyjny **155** (0 przeoczonych, 0 martwych),
+`smoke-wp-lekcja` **32** (73 lekcje bez zatrzymania renderera, najdłuższa
+odsłona **194 ms**), dowód różnicowy **73/73**, `wp:sprawdz` 73/73 co do znaku.
+Testy negatywne: renderer z wyłączoną kursywą wywala dowód na 57 lekcjach,
+bramka przepuszczająca każdego wywala smoke na czterech sprawdzeniach.
+
 ## [0.43.0] — 2026-08-25
 
 **Kopia kursu w Tutor LMS przestaje starzeć się w milczeniu.** Pierwsza część
