@@ -1083,11 +1083,45 @@ wyprowadzała tego od nowa:
   (30. strażnik, 4 mutacje). Audyt zmian pisze PHP, nie triggery —
   świadome odstępstwo od D2 (uprawnienie TRIGGER bywa na hostingu
   odebrane), nazwane wprost.
-  **NASTĘPNY KROK: W2 — import obu kursów z Postgresa (`db1_kursy`) do
-  tabel wtyczki.** Bramka: 73 lekcje zgodne CO DO ZNAKU (wzorzec:
-  `tools/eksport-wp.mjs` + dowód idempotencji jak przy migracji 0.36.0).
-  Pamiętać: WordPress zjada backslashe w meta (`wp_slash`!), a `LENGTH()`
-  w MySQL liczy bajty — porównywać `CHAR_LENGTH()` i treść znak w znak.
+  **W2 ZROBIONY (0.39.0): oba kursy są w tabelach wtyczki.** Bramka
+  zaliczona: import 1 → **111 utworzonych** (2 kursy + 24 sekcje +
+  12 modułów + 73 lekcje), importy 2 i 3 → **0/0/111**, dziennik audytu
+  **111 → 111**, treść **73/73 zgodne CO DO ZNAKU** (`npm run wp:sprawdz`
+  porównuje OBIE bazy przez `sha256`). Ścieżka pełna Postgres → nasze
+  tabele → Tutor: 73/73 na obu przeskokach.
+  Powstało: **warstwa zapisu** `class-aai-sklep-zapis.php` (jedyne miejsce
+  piszące do naszych tabel — port dyspozytora: transakcja na kurs, upsert
+  po uuid, kasowanie od dołu, odmowa skasowania napisanej treści, dziennik
+  tylko przy realnej zmianie), komendy `wp aai-sklep import|sprawdz|usun`,
+  `npm run wp:eksport|wp:import|wp:sprawdz|smoke:wp`,
+  `tools/sprawdz-import-wp.mjs`, `tools/smoke/smoke-wp-dane.mjs`
+  (30 sprawdzeń trudnych ścieżek zapisu) i **ósmy niezmiennik
+  `straznik-wtyczki-wp`** (zapis tylko przez warstwę zapisu). Audyt
+  mutacyjny 107 → **109**.
+  **`tools/eksport-wp.mjs` oddaje teraz WIERNY ZRZUT naszych tabel
+  (format 2)** — nazwa pola = nazwa kolumny, zero wiedzy o Tutorze;
+  słowniki Tutora przeniosły się do `wordpress/import-kursy.php` (przy W5
+  pójdą do klasy wtyczki). Ścieżka do Tutora re-dowiedziona na `:8892`.
+  **CZTERY RZECZY DO ZAPAMIĘTANIA Z W2:**
+  (1) **pułapka `wp_slash` NIE dotyczy `$wpdb`** — zjada backslashe
+  `update_post_meta()`, bo puszcza wartość przez `wp_unslash()`;
+  `$wpdb->insert/update` nie, więc warstwa zapisu przeszła idempotencję
+  bez poprawek (38 backslashy w 9 lekcjach dojechało co do znaku);
+  (2) **`MySQL nie umie odroczyć UNIQUE`** (Postgres miał `DEFERRABLE`) —
+  zamiana kolejności dwóch modułów łamie ograniczenie w stanie pośrednim,
+  więc warstwa zapisu przestawia pozycje DWUFAZOWO (najpierw poniżej zera);
+  (3) **sprawdzenie, które mówi „zero", bywa ślepe po OBU stronach** —
+  pierwsze liczenie backslashy dało „0 i 0, zgodne", bo oba wyrażenia
+  szukały DWÓCH backslashy zamiast jednego;
+  (4) **martwy bind mount**: kontener trzyma INODE katalogu, więc po
+  odtworzeniu katalogu na dysku (checkout, `git clean`) widzi pustkę,
+  a WordPress przestaje znać wtyczkę — `postaw.sh` pyta o to KONTENER
+  i podaje naprawę (`podman-compose down && ./postaw.sh`).
+  **NASTĘPNY KROK: W3 — front.** `/szkolenia` i `/szkolenia/<slug>`
+  renderowane z tabel wtyczki przez `template_include`, pozycja
+  „Szkolenia" wstrzykiwana do nagłówka motywu (`ob_start`, droga 4
+  z ETAP-WP.md) **razem ze strażnikiem**, że pozycja naprawdę jest
+  w wyjściowym HTML — motyw jest generowany, więc może ją uciszyć.
 
   **NAPRAWA RENDERU (0.38.0, zgłosił właściciel zrzutami):** strona główna
   była łamana przez `tutor-front.min.css` — globalna klasa `.text-label`

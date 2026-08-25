@@ -5,6 +5,90 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.39.0] — 2026-08-25
+
+**Oba kursy są w tabelach wtyczki WordPressa — 73 lekcje zgodne co do znaku,
+idempotencja potwierdzona dwa razy z rzędu.** Krok W2 z planu wtyczki
+(W1 fundament → **W2 dane** → W3 front → W4 kreator → W5 Tutor → W6 test
+ręczny właściciela).
+
+### Dodane
+
+- **Warstwa zapisu wtyczki** (`class-aai-sklep-zapis.php`) — jedyne miejsce,
+  które pisze do naszych tabel. Port `modules/m1-sklep/dyspozytor.ts` z tymi
+  samymi decyzjami: transakcja na kurs, upsert po uuid (identyfikatory
+  z Postgresa jadą 1:1, więc klucz idempotencji jest kluczem głównym),
+  kasowanie od dołu, **odmowa skasowania lekcji z napisaną treścią** bez
+  jawnej zgody (decyzja D przeglądu B7) i **dziennik audytu tylko przy
+  realnej zmianie** (decyzja E). Wiersz bez zmian nie dostaje nawet
+  `UPDATE`-a — dlatego liczba wierszy dziennika jest ostrym testem
+  idempotencji, a nie ozdobą.
+- **Import i komendy WP-CLI**: `wp aai-sklep import <plik>`,
+  `wp aai-sklep sprawdz [--format=json]`, `wp aai-sklep usun <slug|id>`
+  (`class-aai-sklep-import.php`, `class-aai-sklep-raport.php`,
+  `class-aai-sklep-cli.php`). Wtyczka w wersji 0.2.0.
+- **`npm run wp:import`** — jedna komenda dla człowieka i dla skryptu:
+  eksport z Postgresa → kopia do kontenera → import. Rozjazd tych dwóch
+  dróg kosztował nas już wydanie (0.24.0, BLAD-012). Obok
+  `npm run wp:eksport`, `npm run wp:sprawdz` i `npm run smoke:wp`.
+- **`tools/sprawdz-import-wp.mjs`** — dowód porównujący **dwie bazy**, nie
+  import z własnym meldunkiem: treść każdej lekcji przez `sha256`, liczby
+  znaków w trzech niezależnych rachunkach (punkty kodowe w JS, `mb_strlen`
+  w PHP, `CHAR_LENGTH` w SQL), struktury sekcji i materiałów porównywane
+  głęboko (`[]` i `{}` to nie to samo).
+- **`tools/smoke/smoke-wp-dane.mjs`** — 30 sprawdzeń na własnym kursie
+  testowym: przestawianie kolejności modułów i lekcji, przeniesienie lekcji
+  między modułami na zajętą pozycję, odmowa i zgoda przy kasowaniu treści,
+  kasowanie sekcji i kursu, powrót liczników tabel do stanu sprzed
+  przebiegu. Poza `npm run smoke` i poza CI — wymaga podmana.
+- **Ósmy niezmiennik `straznik-wtyczki-wp`**: do naszych tabel pisze
+  wyłącznie warstwa zapisu. To ten strażnik, który od 0.38.0 był zapowiadany
+  w komentarzu schematu jako zamiennik utraconej gwarancji triggerów —
+  w Postgresie dziennik pisała baza, tutaj pisze go PHP, więc gwarancję musi
+  dać architektura. Audyt mutacyjny: 107 → **109 mutacji**.
+
+### Zmienione
+
+- **`tools/eksport-wp.mjs` oddaje wierny zrzut naszych tabel (format 2)**
+  i przestaje wiedzieć cokolwiek o Tutorze: nazwa każdego pola jest nazwą
+  kolumny, tej samej w Postgresie i w MySQL. Słowniki Tutora (statusy,
+  poziomy, cztery sekcje, które Tutor ma u siebie) przeniosły się do
+  `wordpress/import-kursy.php` — do kodu, który ich używa, i tam, gdzie
+  W5 i tak będzie ich potrzebował w PHP. Ścieżka do Tutora została na tym
+  formacie **ponownie udowodniona**, już na środowisku odtwarzalnym
+  (`:8892`): 87 utworzonych → 0/0/87 → 0/0/87.
+- **`straznik-wtyczki-wp`, niezmiennik 6 celuje w ZACHOWANIE, nie w nazwę.**
+  Poprzednia wersja flagowała każdą zmienną w łańcuchu SQL, więc oskarżała
+  też `"SELECT * FROM `$t_kursy`"` — a nazwy tabeli nie da się podać przez
+  `prepare()` (to identyfikator, nie wartość). Teraz wolno wkleić wyłącznie
+  zmienną wziętą z klasy tabel; każda inna to wartość i musi iść przez
+  `prepare()`. Ta sama lekcja co przy `straznik-limitera` w 0.28.0.
+- `eksport-wp/` wchodzi do `.gitignore` — to artefakt odtwarzalny jedną
+  komendą, a nieśledzony katalog brudził drzewo wymagane przez
+  `deploy:podglad`.
+
+### Naprawione
+
+- **`postaw.sh` pyta KONTENER, czy widzi wtyczkę.** Bind mount trzyma inode
+  katalogu, więc gdy katalog zostanie na dysku odtworzony po starcie
+  kontenera, w kontenerze zostaje pustka: pliki są, `podman inspect` pokazuje
+  właściwą ścieżkę, a WordPress przestaje znać wtyczkę. Objaw wyglądał na
+  błąd wtyczki, nie montażu; skrypt mówi teraz wprost, co naprawić.
+
+### Zapamiętane (pełnia: [MIGRACJA-DO-WP.md](docs/plugin-1/MIGRACJA-DO-WP.md))
+
+- **Pułapka `wp_slash` NIE dotyczy `$wpdb`.** `update_post_meta()` puszcza
+  wartość przez `wp_unslash()` i zjada backslashe; `$wpdb->insert()`/`update()`
+  tego nie robią. Warstwa zapisu przeszła idempotencję bez poprawek, a 38
+  backslashy w 9 lekcjach dojechało bez zmiany.
+- **Sprawdzenie, które mówi „zero", bywa ślepe po OBU stronach.** Pierwsze
+  liczenie backslashy dało „0 i 0 — zgodne", bo oba wyrażenia szukały DWÓCH
+  backslashy zamiast jednego. Zgodność zer nie jest dowodem.
+- **MySQL nie umie odroczyć `UNIQUE`** (Postgres miał `DEFERRABLE`), więc
+  zamiana kolejności dwóch modułów łamie ograniczenie w stanie pośrednim.
+  Warstwa zapisu przestawia pozycje dwufazowo — najpierw poniżej zera, potem
+  docelowo. Mutacja usuwająca ten krok wywala smoke natychmiast.
+
 ## [0.38.0] — 2026-08-25
 
 **Etap WordPress wystartował: środowisko odtwarzalne jedną komendą, szkielet

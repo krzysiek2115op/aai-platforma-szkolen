@@ -9,17 +9,20 @@
  * późno. To ta sama klasa co CSP i limiter w prototypie: strona działa,
  * tylko przestaje chronić.
  *
- * SIEDEM NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
+ * OSIEM NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
  *   1. plik główny ma komplet nagłówków WordPressa,
  *   2. każdy plik PHP blokuje bezpośrednie wywołanie (`ABSPATH`),
  *   3. nazwy tabel składa WYŁĄCZNIE klasa tabel — nigdzie indziej nie
  *      wolno wklepać prefiksu na sztywno,
  *   4. `uninstall.php` istnieje,
  *   5. …i NIE kasuje danych bez jawnej zgody właściciela,
- *   6. zapytania z wartościami idą przez `$wpdb->prepare()` — żadnego
- *      sklejania danych z SQL-em (odpowiednik straznik-granic),
+ *   6. do SQL-a wolno wkleić WYŁĄCZNIE nazwę tabeli z klasy tabel;
+ *      każda wartość idzie przez `$wpdb->prepare()` (odpowiednik
+ *      straznik-granic),
  *   7. treść lekcji jest `mediumtext`, nie `text` (65 kB ucięłoby lekcję
- *      w milczeniu — kontrakt dopuszcza 120 000 znaków).
+ *      w milczeniu — kontrakt dopuszcza 120 000 znaków),
+ *   8. do NASZYCH tabel pisze wyłącznie warstwa zapisu — to ona zna
+ *      transakcje, dziennik audytu i ochronę napisanej treści.
  *
  * Użycie: node tools/straznicy/straznik-wtyczki-wp.mjs
  */
@@ -125,16 +128,64 @@ for (const wtyczka of wtyczki) {
     }
   }
 
-  /* 6. zapytania parametryzowane */
+  /* 6. do SQL-a wolno wkleić tylko nazwę tabeli */
+  //
+  // Poprzednia wersja tej reguły szukała JAKIEJKOLWIEK zmiennej w łańcuchu
+  // podanym do `$wpdb->`, więc oskarżała też `"SELECT * FROM `$t_kursy`"` —
+  // a nazwy tabeli nie da się podać przez `prepare()` (to identyfikator,
+  // nie wartość). Reguła celuje teraz w ZACHOWANIE: nazwa tabeli wzięta
+  // z klasy tabel jest kodem i wolno ją wkleić; wszystko inne to wartość
+  // i musi iść przez `prepare()`. Ta sama lekcja co przy `straznik-limitera`
+  // w 0.28.0 — wzorzec przypięty do nazwy przestaje pilnować rzeczy.
   for (const plik of plikiPhp(katalog)) {
     const tresc = kod(readFileSync(plik, "utf8"));
-    // Sklejanie zmiennej wprost w SQL-u wewnątrz wywołania $wpdb->
-    const podejrzane = tresc.match(
-      /\$wpdb->(get_var|get_row|get_col|get_results|query)\(\s*["'][^"']*\$(?!wpdb)/g
+
+    // Zmienne trzymające nazwę tabeli: `$x = Cokolwiek_Tabele::tabela( … )`.
+    const nazwyTabel = new Set(
+      [...tresc.matchAll(/\$(\w+)\s*=\s*[A-Za-z_][\w]*_Tabele::tabela\(/g)].map((m) => m[1])
     );
-    if (podejrzane) {
+
+    const wywolania = tresc.matchAll(
+      /\$wpdb->(?:get_var|get_row|get_col|get_results|query|prepare)\(\s*(["'])((?:\\.|(?!\1)[\s\S])*?)\1/g
+    );
+    const podejrzane = [];
+    for (const [, , sql] of wywolania) {
+      const bezWpdb = sql
+        .replace(/\{\$(\w+)\}/g, "$$$1") // `{$tabela}` → `$tabela`
+        .replace(/\$wpdb->\w+/g, ""); // `$wpdb->posts` to tabela WordPressa
+      for (const [, zmienna] of bezWpdb.matchAll(/\$(\w+)/g)) {
+        if (!nazwyTabel.has(zmienna)) podejrzane.push(zmienna);
+      }
+    }
+    if (podejrzane.length > 0) {
       bledy.push(
-        `${plik}: zapytanie do bazy skleja zmienną z SQL-em (${podejrzane.length} miejsc). Wartości idą przez $wpdb->prepare() — to jedyna granica między wejściem a bazą.`
+        `${plik}: do SQL-a wklejone zmienne spoza klasy tabel (${[...new Set(podejrzane)].map((z) => "$" + z).join(", ")}). Nazwę tabeli wolno wkleić, bo to identyfikator z kodu; wartość musi iść przez $wpdb->prepare() — to jedyna granica między wejściem a bazą.`
+      );
+    }
+  }
+
+  /* 8. do naszych tabel pisze wyłącznie warstwa zapisu */
+  //
+  // W Postgresie prototypu tę gwarancję dawały TRIGGERY: dziennik audytu
+  // powstawał w bazie i kod aplikacji nie umiał go ominąć. Tutaj dziennik
+  // pisze PHP (uprawnienie TRIGGER bywa na hostingu odebrane), więc
+  // gwarancję musi dać architektura — a architektury pilnuje strażnik.
+  // Zapis z pominięciem tej warstwy nie objawia się błędem: dane wchodzą,
+  // tylko bez transakcji, bez wpisu w dzienniku i bez pytania o zgodę na
+  // skasowanie napisanych lekcji.
+  const warstwaZapisu = join(katalog, "includes", `class-${wtyczka}-zapis.php`);
+  for (const plik of plikiPhp(katalog)) {
+    if (plik === warstwaZapisu || plik.endsWith("uninstall.php")) continue;
+    const tresc = kod(readFileSync(plik, "utf8"));
+    const zapisy = [
+      ...tresc.matchAll(/\$wpdb->(insert|update|delete|replace)\s*\(/g),
+      ...tresc.matchAll(
+        /\$wpdb->query\(\s*["']?\s*(INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP|ALTER)\b/gi
+      ),
+    ].map((m) => m[1].toLowerCase());
+    if (zapisy.length > 0) {
+      bledy.push(
+        `${plik}: pisze do bazy z pominięciem warstwy zapisu (${[...new Set(zapisy)].join(", ")}). Do naszych tabel wolno pisać wyłącznie z ${warstwaZapisu} — tam mieszkają transakcja, dziennik audytu i odmowa skasowania napisanej treści. Zapis obok nich niczego nie zgłasza; po prostu tych rzeczy nie ma.`
       );
     }
   }
@@ -157,5 +208,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, zapytania parametryzowane).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, zapis tylko przez warstwę zapisu).`
 );

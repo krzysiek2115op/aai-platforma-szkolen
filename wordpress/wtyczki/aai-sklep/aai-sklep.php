@@ -3,7 +3,7 @@
  * Plugin Name:       Automatic AI — Sklep z kursami
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Katalog /szkolenia, strony sprzedażowe kursów i kreator treści. Pierwsza z trzech wtyczek Automatic AI; sprzedaż bierze WooCommerce, dostęp do materiału Tutor LMS.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Automatic AI
@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
  * `straznik-wersji`), a wtyczka dopiero się rodzi. Ta stała steruje
  * jedną rzeczą: czy przy wczytaniu trzeba dociągnąć schemat tabel.
  */
-const AAI_SKLEP_WERSJA = '0.1.0';
+const AAI_SKLEP_WERSJA = '0.2.0';
 
 /**
  * PREFIKS TABEL — decyzja właściciela z 2026-08-25.
@@ -107,3 +107,15 @@ add_action(
 		Aai_Sklep_Zasoby::zarejestruj();
 	}
 );
+
+/**
+ * Komendy wiersza poleceń.
+ *
+ * Rejestrujemy je przy wczytaniu pliku, a nie w `plugins_loaded`: WP-CLI
+ * zbiera komendy z wtyczek, ZANIM ten hak zdąży pobiec, więc komenda
+ * dorejestrowana później byłaby niewidoczna. `add_command` przyjmuje
+ * nazwę klasy, więc autoloader ruszy dopiero przy faktycznym wywołaniu.
+ */
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	WP_CLI::add_command( 'aai-sklep', 'Aai_Sklep_Cli' );
+}

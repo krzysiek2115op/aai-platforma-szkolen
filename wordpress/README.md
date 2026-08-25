@@ -35,6 +35,34 @@ sam i nie wchodzi do repo).
 Kod wtyczek jest **montowany wprost z repo** — plik zapisany w edytorze
 działa w WordPressie od razu, bez kopiowania i bez przebudowy.
 
+## Kursy w tabelach wtyczki
+
+Treść obu kursów żyje w prototypie (PostgreSQL). Do tabel `wp_aai_sklep_*`
+przenosi ją jedna komenda — z repo, nie z kontenera:
+
+```bash
+npm run wp:import     # eksport z Postgresa → kopia do kontenera → wp aai-sklep import
+npm run wp:sprawdz    # dowód: porównuje OBIE bazy, lekcja po lekcji
+```
+
+Import jest **idempotentny**: powtórzenie nie duplikuje niczego i nie
+rusza wierszy, które się nie zmieniły — nie dopisuje wtedy nawet linii
+do dziennika audytu. Dlatego „dziennik nie urósł" jest tu twardym testem,
+a nie ozdobą.
+
+Komendy wtyczki (`wp aai-sklep --help` w kontenerze):
+
+| Komenda | Co robi |
+|---|---|
+| `import <plik>` | wykłada eksport formatu 2 do naszych tabel |
+| `sprawdz [--format=json]` | oddaje stan tabel — materiał dla `npm run wp:sprawdz` |
+| `usun <slug\|id>` | kasuje kurs; z napisanymi lekcjami wymaga `--pozwol-skasowac-tresc` |
+
+Warstwę zapisu (transakcje, dziennik audytu, ochrona napisanej treści,
+dwufazowe przestawianie pozycji) sprawdza `npm run smoke:wp` na własnym
+kursie testowym, który sam po sobie sprząta. Mapowanie pole po polu
+i dowody: [docs/plugin-1/MIGRACJA-DO-WP.md](../docs/plugin-1/MIGRACJA-DO-WP.md).
+
 ## Dlaczego skrypt, a nie instrukcja
 
 Poprzednie środowisko WP (`mp-test-env/wp-tutor`) powstało ręcznymi
@@ -42,7 +70,7 @@ Poprzednie środowisko WP (`mp-test-env/wp-tutor`) powstało ręcznymi
 migracji danych do WordPressa. Środowisko, którego nikt nie umie
 postawić drugi raz, jest dowodem jednorazowym.
 
-## Trzy pułapki, które ten skrypt już przeszedł
+## Cztery pułapki, które ten skrypt już przeszedł
 
 1. **Mount całego `wp-content/themes` jako read-only wywala kontener.**
    Obraz WordPressa przy pierwszym starcie rozpakowuje tam swoje motywy
@@ -56,6 +84,14 @@ postawić drugi raz, jest dowodem jednorazowym.
    strażnicy skanują DYSK, nie git. Motyw i treść strony głównej mieszkają
    w `~/.cache/automatic-ai-warsztat`, bo pobrane do repo wywołały fałszywy
    alarm `straznik-seo` (znalazł dane strukturalne w cudzym generatorze).
+4. **Montaż wtyczki umie umrzeć po cichu.** Bind mount trzyma INODE
+   katalogu, więc gdy katalog zostanie na dysku odtworzony po starcie
+   kontenera (przełączenie gałęzi, przeniesienie, `git clean`), kontener
+   widzi w tym miejscu pustkę. Na dysku pliki są, `podman inspect` pokazuje
+   właściwą ścieżkę, a WordPress po prostu przestaje znać wtyczkę — objaw
+   wygląda na błąd wtyczki, nie montażu. Skrypt pyta więc KONTENER, czy
+   widzi plik główny, i mówi wprost, co naprawić: `podman-compose down`
+   i `./postaw.sh` (dane w wolumenach zostają).
 
 ## Skąd bierze się motyw
 
