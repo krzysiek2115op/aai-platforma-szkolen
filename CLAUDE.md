@@ -1210,12 +1210,15 @@ wyprowadzała tego od nowa:
   którym przeglądarka oddaje `color-mix()` — jak `rgb()`, więc raportował
   15:1 jako 1,11:1; **zapisu, którego pomiar nie umie rozebrać, nie
   zgadujemy**, tylko wywalamy smoke.
-  **STAN GAŁĘZI: PR #70 OTWARTY, CZEKA NA DECYZJĘ WŁAŚCICIELA.** Gałąź
-  `feat/w3-front-wtyczki`, wersja 0.41.0. CI pada **2 sekundy po starcie,
-  z zerem kroków** — objaw wyczerpanych minut Actions (limit odnawia się
-  1 września), a nie awarii kodu; sprawdzone `gh run view`. Poprzednie
-  merge'e w tej samej sytuacji (0.30.0, 0.32.0, 0.37.0) szły na dowodach
-  lokalnych DECYZJĄ WŁAŚCICIELA — agent nie merguje sam.
+  **W3 ZAMKNIĘTY W REPO: PR #70 zmergowany do `main`, tag `v0.41.0`
+  + release** (2026-08-25, gałąź `feat/w3-front-wtyczki` skasowana).
+  Merge **decyzją właściciela na dowodach lokalnych** — CI padał 2 sekundy
+  po starcie, z zerem kroków, czyli z wyczerpanych minut Actions (limit
+  odnawia się 1 września), a nie z powodu kodu; sprawdzone `gh run view`.
+  Po powrocie CI potwierdzić **skan sekretów (gitleaks)** — jako jedyny nie
+  ma lokalnego odpowiednika. Artefakt zweryfikowany: `git diff` między
+  `main` a szczytem gałęzi PUSTY (lekcja z 0.37.0 — sprawdzamy drzewo,
+  nie sam fakt, że merge się udał).
   **ODPOWIEDŹ NA PYTANIE WŁAŚCICIELA O ZAKUP (2026-08-25):** `/kontakt`
   jest chwilowe, ale **własnej bramki płatności ani własnej kasy NIE
   PISZEMY** — koszyk, kasę, płatności i faktury bierze WooCommerce, a sama
