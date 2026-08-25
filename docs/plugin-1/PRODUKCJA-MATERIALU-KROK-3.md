@@ -1,5 +1,13 @@
 # Produkcja materiału kursów — opcje do decyzji właściciela
 
+> **CZĘŚCIOWO NIEAKTUALNE od 2026-08-25.** Decyzja właściciela na starcie
+> etapu WordPress: **nie będzie ŻADNYCH e-booków ani PDF-ów** — ani jako
+> produktu, ani jako dodatku. Zapis niżej o „PDF jako dodatku" to stan
+> z 2026-08-19 i zostaje jako historia decyzji. Reszta dokumentu (kurs
+> tekstowy zamiast wideo, dogęszczenie Kursu 1, znaczenie `duration_min`)
+> obowiązuje bez zmian. Aktualny stan: [ETAP-WP.md](../ETAP-WP.md),
+> sekcja „Decyzje właściciela (2026-08-25)".
+
 Krok 3 planu domknięcia Pluginu 1, punkt 1.
 Podstawa: [PLAN-FINAL-PLUGINU-1.md](PLAN-FINAL-PLUGINU-1.md) („Krok 3"),
 decyzja właściciela z 2026-08-18 (wieczór): **właściciel NIE nagrywa wideo**.

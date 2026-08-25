@@ -1026,6 +1026,48 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
+## ═══ ETAP WORDPRESS — START (decyzje właściciela 2026-08-25) ═══
+
+**CZYTAĆ PRZED PRACĄ: [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „Decyzje
+właściciela (2026-08-25) — START etapu WP".** Skrót, żeby nowa sesja nie
+wyprowadzała tego od nowa:
+
+- **Strona Automatic AI = MOTYW. My robimy TRZY WTYCZKI**: Plugin 1 (sklep:
+  katalog, strony sprzedażowe, kreator, audyt), Plugin 2 (płatności), Plugin 3
+  (panel + monitoring). Wszystkie do jednej instalacji WP.
+- **Hybryda ZOSTAJE**: Tutor LMS bierze konta i dostęp do materiału,
+  WooCommerce koszyk, płatności i faktury. Nie przepisujemy tego sami.
+- **„Własna BD" znaczy WŁASNE TABELE Z WŁASNYM PREFIKSEM w bazie WP**, nie
+  osobne bazy MySQL. Jedna wtyczka nie dotyka cudzych tabel, ale transakcje,
+  `JOIN` z `wp_users`/`wp_posts`, `dbDelta` i jeden backup działają.
+- **Kod wtyczek w TYM repo, katalog `wordpress/`.** Prototyp Next.js zostaje
+  jako specyfikacja wykonawcza i źródło treści.
+- **Kolejność 1 → 2 → 3.** Po KAŻDEJ wtyczce test ręczny na lokalnym WP
+  z motywem — wtyczka nie jest skończona, dopóki go nie przejdzie. Na końcu
+  test całości (czy trzy wtyczki współpracują i czy projekt ma sens
+  architektoniczny).
+- **ŹRÓDŁO PRAWDY o kursie: NASZE TABELE**; do Tutora idzie KOPIA przy
+  publikacji (jednokierunkowo, jak `wordpress/import-kursy.php`). Rozjazd tych
+  dwóch kopii to główne ryzyko tej architektury — ma go pilnować strażnik.
+- **Widok lekcji: NASZE szablony w miejsce Tutorowych** (wygląd z 0.34.0,
+  wyjęty do `tools/podglad-kursow/` właśnie po to).
+- **Menu**: na razie **podmiana HTML nagłówka w locie** (`ob_start`), bo motyw
+  ma nawigację na sztywno, bez `wp_nav_menu()`. Droga krucha — regeneracja
+  motywu może ją uciszyć — więc wchodzi RAZEM ZE STRAŻNIKIEM sprawdzającym,
+  że pozycja naprawdę jest w wyjściowym HTML.
+- **Adresy jak w prototypie**: `/szkolenia` → `/szkolenia/<slug>`.
+- **E-BOOKI: NIGDY** (decyzja „na zawsze"). Produktem jest wyłącznie kurs
+  tekstowy za logowaniem. To unieważnia zapis „PDF jako dodatek" z
+  PRODUKCJA-MATERIALU-KROK-3.md.
+- **Mail po zakupie: link „Ustaw hasło i wejdź", NIE hasło w treści.** Jedna
+  wiadomość premium: powitanie, co kupił, mini instrukcja, jeden przycisk.
+- **Środowisko stawiamy OD RAZU.** Warsztat: `wordpress/` w repo strony
+  głównej (`bash skrypty/start.sh` → WP + MariaDB, `:8890`, motyw i treść
+  1:1) — bierzemy go sparse checkoutem, repo strony głównej zostaje
+  TYLKO DO ODCZYTU. Warsztat zakłada Dockera, u nas jest podman.
+  Osobno mamy już `tutor-db` + `tutor-wp` (`:8091`, WP 7.0.1 + Tutor 4.0.6
+  + Woo 11.0.1) z migracji 0.36.0.
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.

@@ -2,7 +2,7 @@
 
 # Pod strona Szkolenia
 
-**Sklep z kursami i ebookami dla Automatic AI** (dawniej matthewplugins.pl)
+**Sklep z kursami dla Automatic AI** (dawniej matthewplugins.pl)
 — podstrona `/szkolenia`: katalog kursów, strony sprzedażowe, płatności
 z dostawą na e-mail i panel administratora. Trzy odizolowane moduły,
 trzy osobne bazy danych.

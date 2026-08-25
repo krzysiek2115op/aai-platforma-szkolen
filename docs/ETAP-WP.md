@@ -40,6 +40,107 @@ Rozmowa rozstrzygnęła to podziałem odpowiedzialności (niżej).
    Etap WP nie czeka bezczynnie na krok 3, ale kodu wtyczki nie piszemy,
    zanim właściciel nie oceni gotowych kursów (bramka B7).
 
+## Decyzje właściciela (2026-08-25) — START etapu WP
+
+Rozmowa otwierająca etap. Właściciel doprecyzował architekturę całości i zamknął
+pytania, które ten dokument trzymał otwarte od 2026-08-19. **Te decyzje mają
+pierwszeństwo przed wcześniejszymi zapisami w tym pliku**; miejsca, które
+przestały być prawdziwe, są niżej poprawione, a nie zostawione do domyślenia.
+
+### Architektura całości
+
+**Strona Automatic AI = MOTYW. Nasza praca = TRZY WTYCZKI do tego motywu:**
+
+| Wtyczka | Zakres |
+|---|---|
+| **Plugin 1 — sklep z kursami** | katalog `/szkolenia`, strony sprzedażowe, kreator treści, audyt |
+| **Plugin 2 — płatności** | warstwa sprzedaży i dostawy na styku z WooCommerce |
+| **Plugin 3 — panel admina** | panel, monitoring, `page_visits` |
+
+1. **Hybryda z 2026-08-19 ZOSTAJE**: Tutor LMS bierze konta i dostęp do
+   materiału, WooCommerce koszyk, płatności i faktury. Nasze wtyczki nie
+   przepisują tego, co te dwie mają z pudełka.
+2. **Każda wtyczka ma własny komplet tabel z WŁASNYM PREFIKSEM** w bazie
+   WordPressa (nie osobne bazy MySQL). Izolacja logiczna zostaje — jedna
+   wtyczka nie dotyka cudzych tabel — ale działają transakcje, `JOIN`
+   z `wp_users`/`wp_posts`, `dbDelta`, jeden backup i standardowy `$wpdb`.
+   To rozstrzyga, co znaczy „trzy moduły, trzy bazy" z PLAN.md w realiach WP.
+3. **Kod trzech wtyczek żyje w TYM repo**, w katalogu `wordpress/`. Prototyp
+   Next.js zostaje obok jako specyfikacja wykonawcza i źródło treści.
+4. **Kolejność: 1 → 2 → 3.** Po każdej wtyczce test ręczny na lokalnym WP
+   z motywem Automatic AI; **wtyczka nie jest skończona, dopóki nie przejdzie
+   tego testu** — znalezione usterki poprawiamy przed przejściem dalej.
+   Na samym końcu, gdy stoją wszystkie trzy, dochodzi test całości: czy
+   współpracują i czy projekt ma sens architektoniczny.
+5. **Środowisko stawiamy OD RAZU**, nie po napisaniu kodu.
+
+### Plugin 1 — czego właściciel wymaga wprost
+
+- **Po wpięciu wtyczki pozycja „Szkolenia" ma pojawić się w menu strony
+  automatycznie** — bez ręcznego dłubania w motywie.
+- **Adresy zostają jak w prototypie**: `/szkolenia` (katalog) →
+  `/szkolenia/<slug>` (strona sprzedażowa kursu). Strona kursu jest
+  podstroną katalogu, tak jak dziś lokalnie i w publicznym podglądzie.
+
+### Źródło prawdy o kursie: NASZE TABELE, do Tutora idzie kopia
+
+Kreator z D6 zostaje nasz co do pola (12 rodzajów sekcji, program, treść lekcji,
+audyt zmian), a przy publikacji wtyczka **synchronizuje kurs do wpisów Tutora** —
+tak, jak robi to już `wordpress/import-kursy.php` (87 obiektów, treść zgodna co
+do znaku, klucz `_aai_zrodlo_uuid`, idempotentnie).
+
+**Uczciwie o koszcie tej decyzji:** są wtedy dwie kopie treści. Synchronizacja
+musi być **jednokierunkowa** (nasze tabele → Tutor, nigdy odwrotnie) i pilnowana
+strażnikiem zgodności, inaczej rozjadą się po cichu — a to jest dokładnie ta
+klasa błędu, która w tym projekcie kosztowała najwięcej (BLAD-015, znalezisko #1
+przeglądu B7).
+
+### Widok lekcji: NASZE szablony w miejsce Tutorowych
+
+Wygląd z 0.34.0 (przyjęty przez właściciela) przenosimy do szablonów Tutora
+(`tutor/templates/`). Po to został wyjęty do `tools/podglad-kursow/` jako CSS
+i szablony, a nie komponenty Reacta. Klient ma widzieć jeden świat od katalogu
+po lekcję. Koszt: przy dużych aktualizacjach Tutora szablony trzeba przejrzeć.
+
+### Pozycja „Szkolenia" w menu: na razie podmiana nagłówka w locie
+
+Z pięciu dróg (tabela w rozdziale o motywie) właściciel wybrał **drogę 4** —
+wtyczka przechwytuje wyjście nagłówka i wstrzykuje pozycję przed `</nav>`.
+Powód: nie wymaga niczyjej zgody i działa od razu, a etap i tak zaczyna się od
+postawienia lokalnego WP, gdzie **sprawdzimy na żywo, czy wpięcie działa
+i czy podstrona się tworzy**.
+
+**Ta droga jest krucha i wiemy o tym**: motyw jest generowany, więc regeneracja
+zmieni klasy Tailwinda i pozycja może zniknąć PO CICHU. Dlatego wchodzi razem
+ze **strażnikiem**, który sprawdza, że pozycja naprawdę jest w wyjściowym HTML —
+ochrona, której brak nie objawia się błędem, to w tym repo powód do strażnika,
+nie do notatki. Droga 2 (hak `do_action` w generatorze motywu) zostaje jako
+rekomendacja na wdrożenie, gdyby podmiana nie utrzymała się między regeneracjami.
+
+### E-BOOKI: NIGDY. Decyzja na zawsze
+
+**Nie będzie żadnych e-booków ani PDF-ów jako produktu ani jako dodatku.**
+To zamyka pytanie otwarte nr 5 tego dokumentu i **unieważnia wcześniejszy zapis
+o PDF jako dodatku do pobrania** (PRODUKCJA-MATERIALU-KROK-3.md, 2026-08-19).
+
+Produktem jest **wyłącznie kurs tekstowy na platformie za logowaniem**. Stan
+bazy już to potwierdza: 2 kursy typu `kurs`, zero typu `ebook`, zero materiałów
+dodatkowych na 73 lekcjach — więc nic nie trzeba usuwać z treści, a strony
+sprzedażowe niczego takiego nie obiecują (sprawdzone zapytaniem, nie z pamięci).
+
+### Mail po zakupie: link do ustawienia hasła, NIE hasło w treści
+
+Klient dostaje **jedną wiadomość w stylu premium Automatic AI**: powitanie, co
+dokładnie kupił, mini instrukcja co gdzie kliknąć, i jeden duży przycisk
+**Ustaw hasło i wejdź do kursu** (link jednorazowy). Klika, ustawia własne
+hasło, ląduje w kursie.
+
+Właściciel chciał pierwotnie hasła wprost w treści maila; po przedstawieniu
+zagrożenia (hasło zostaje w skrzynce bezterminowo, idzie przez serwery poczty
+otwartym tekstem, wraca przy każdym przeszukaniu skrzynki) **wybrał wariant
+z linkiem**. Dla klienta to nawet mniej pracy niż przepisywanie hasła.
+To potwierdza — a nie zmienia — zapis z 2026-08-20 o niewysyłaniu haseł mailem.
+
 ## Podział odpowiedzialności
 
 | Obszar | Kto | Dlaczego tak |
@@ -48,7 +149,7 @@ Rozmowa rozstrzygnęła to podziałem odpowiedzialności (niżej).
 | Kreator treści (kurs, program, sekcje) | **nasza wtyczka** | panel właściciela, strażnik rozjazdu kontrakt ↔ panel; w WP: ekran w kokpicie + REST/admin-ajax |
 | Treść lekcji za logowaniem, postęp | **Tutor LMS** | konta, ograniczenie dostępu, postęp — gotowe i utrzymywane |
 | Koszyk, płatności, faktury | **WooCommerce + wtyczka faktur** | polskie prawo podatkowe; tego nie piszemy sami |
-| E-booki / PDF (dodatki) | **WooCommerce** (produkt do pobrania) | dostarczanie plików po zakupie ma z pudełka |
+| ~~E-booki / PDF (dodatki)~~ | — | **skreślone 2026-08-25: e-booków ani PDF-ów nie będzie nigdy** |
 | Audyt zmian treści | **nasza wtyczka** | własne tabele + logika audytu, odpowiednik `course_changelog` z D2 |
 
 ## Co zostaje z prototypu Next.js
@@ -94,10 +195,10 @@ Rozmowa rozstrzygnęła to podziałem odpowiedzialności (niżej).
    da się ostylować (własne zmienne `--tutor-*` + szablony do nadpisania),
    dostęp za logowaniem działa z pudełka. Liczby: sekcja „Tutor LMS na
    realnej treści" niżej. Zostaje ścieżka zakupu przez WooCommerce.
-5. Czy e-booki są osobnym produktem, czy dodatkiem do kursu (wpływa na
-   układ katalogu i na to, co widzi WooCommerce). **Właściciel zapytał
-   o to wprost 2026-08-20** („czy PDF idzie na maila kupującego") —
-   pytanie zostaje otwarte do etapu WP.
+5. ~~Czy e-booki są osobnym produktem, czy dodatkiem do kursu~~
+   **ZAMKNIĘTE 2026-08-25: nie będzie ani jednego, ani drugiego.** Produktem
+   jest wyłącznie kurs tekstowy za logowaniem — decyzja właściciela na zawsze,
+   sekcja E-BOOKI: NIGDY wyżej.
 
 ### Jak wygląda dostarczenie kursu po zakupie (odpowiedź udzielona 2026-08-20)
 
@@ -109,8 +210,9 @@ Odpowiedź z zapisanych decyzji, żeby nie wyprowadzać jej od nowa:
 - Po zaksięgowaniu płatności WooCommerce zapisuje go na kurs w Tutorze,
   a mail po zakupie niesie potwierdzenie, fakturę i link „przejdź do
   kursu". Materiał czyta **za logowaniem**, nie z załącznika.
-- **PDF to dodatek do pobrania** (link w koncie kupującego), nie rdzeń —
-  powody odrzucenia PDF-a jako produktu: PRODUKCJA-MATERIALU-KROK-3.md.
+- ~~PDF to dodatek do pobrania~~ — **nieaktualne od 2026-08-25**: nie będzie
+  żadnych PDF-ów ani e-booków. Mail niesie powitanie, mini instrukcję i jeden
+  przycisk do ustawienia hasła; materiał czyta się wyłącznie za logowaniem.
 
 **Czego jeszcze NIE sprawdziliśmy:** ścieżki „zapłata → automatyczny
 zapis na kurs" na naszym środowisku. Pomiar z 2026-08-19 potwierdził

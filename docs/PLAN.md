@@ -158,6 +158,12 @@ Wszystkie sześć pozycji zrobionych; odhaczone 2026-08-25 przy domykaniu moduł
 > sekcje 3 i 4 czytać jako kierunek, nie jako specyfikację.
 
 ## 3. Plugin 2 — Płatności + dostawa (branch `plugin-2-platnosci`, później)
+
+> **Korekta 2026-08-25:** żadnych e-booków ani PDF-ów nie będzie (decyzja
+> właściciela „na zawsze"), więc z opisu niżej odpada „załącznik ebooka", a mail
+> po zakupie niesie link do ustawienia hasła i wejścia do kursu, NIE hasło
+> w treści. Kolumna `type` z wartością `ebook` zostaje w prototypie jako historia
+> i **nie przechodzi do schematu MySQL**. Szczegóły: [ETAP-WP.md](ETAP-WP.md).
 - Wybór operatora płatności → decyzja na starcie tego etapu; kod przez interfejs `PaymentProvider` (adapter).
 - Przepływ: CTA „Kup" → checkout → webhook potwierdzenia → zapis zamówienia → **e-mail do klienta**: potwierdzenie zakupu, dostęp do całego kursu (linki/załącznik ebooka), dane zamówienia, dane do faktury/paragonu.
 - **Baza nr 2 — `db2_klienci`**: `customers` (dane kupujących), `orders` (kurs, kwota, status, operator, id transakcji), `payments` (zdarzenia webhooków), `deliveries` (co, kiedy i na jaki adres wysłano + status wysyłki), `download_tokens` (bezpieczne linki do materiałów).
