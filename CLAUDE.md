@@ -1496,6 +1496,11 @@ wyprowadzała tego od nowa:
      Konto klienta i środowisko stoją — nic nie trzeba stawiać od nowa.
      **Gałąź `feat/w6-test-reczny` (0.45.0) wypchnięta, BEZ PR-a** — PR
      otwieramy po zaliczeniu całego W6, razem z poprawkami.
+     **KOLEJNOŚĆ PO CLEAR (decyzja właściciela 2026-08-25):** ścieżki C i D
+     → **domknięcie W6 w repo: PR gałęzi `feat/w6-test-reczny` → merge → tag
+     `v0.45.0` → release** (wtedy wtyczka `aai-sklep` jest SKOŃCZONA)
+     → **start Pluginu 2**. Nazwa „W7" padła w rozmowie i oznaczała właśnie
+     domknięcie W6 — nowego kroku wtyczki NIE dokładamy.
   6. **Po zaliczeniu W6: Plugin 2 — płatności.** Przed startem rozstrzygnąć,
      **GDZIE MIESZKA CENA** (nasza tabela czy produkt WooCommerce) —
      [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „Plugin 2".
