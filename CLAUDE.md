@@ -1391,7 +1391,13 @@ wyprowadzała tego od nowa:
      części 2, której NIE zrobiłem;
   3. merge #73 (za zgodą właściciela) → przepięcie `feat/w5-widok-lekcji` na
      `main` → PR części 2 → tagi `v0.43.0` i `v0.44.0` + release'y;
-  4. potem **W6 — test ręczny właściciela** (ostatni krok wtyczki `aai-sklep`).
+  4. drobiazg dokumentacyjny: `docs/plugin-1/KREATOR.md` nie mówi jeszcze, że
+     zapis w kreatorze dojeżdża do Tutora;
+  5. potem **W6 — test ręczny właściciela** (ostatni krok wtyczki `aai-sklep`).
+  **ODTWORZENIE ŚRODOWISKA OD ZERA WYMAGA TRZECH KOMEND, NIE JEDNEJ:**
+  `npm run wp:import` (kursy do naszych tabel) → `npm run wp:sync` (kopia
+  w Tutorze) → `npm run wp:zrzuty` (148 obrazów do biblioteki mediów).
+  Bez trzeciej lekcje pokazują znacznik „brak pliku" zamiast zrzutów.
   UWAGA: `straznik-kreatora-wp` zabrania szablonom frontu sięgać po treść
   lekcji — szablon lekcji NIE łamie tej reguły, bo dostaje z klasy GOTOWY
   HTML (`tresc_html`), a nie kolumnę `content`.
