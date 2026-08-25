@@ -170,6 +170,63 @@ final class Aai_Sklep_Cli {
 	}
 
 	/**
+	 * Wypisuje OPIS PÓL kreatora: sekcje sprzedażowe i treść lekcji.
+	 *
+	 * PO CO KOMENDA DIAGNOSTYCZNA DO OPISU PÓL. Żeby smoke kreatora umiał
+	 * wygenerować przykładową treść Z KONTRAKTU, a nie z listy wpisanej
+	 * w teście. Dzięki temu pole dopisane do kontraktu samo wchodzi do rundy
+	 * „zapis → odczyt" i nikt nie musi pamiętać o dopisaniu go do testu —
+	 * ten sam mechanizm, który w prototypie chronił kreator (D6).
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--format=<format>]
+	 * : Postać wyniku.
+	 * ---
+	 * default: podsumowanie
+	 * options:
+	 *   - podsumowanie
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp aai-sklep opis --format=json
+	 *
+	 * @param array<int,string>    $args       Argumenty pozycyjne.
+	 * @param array<string,string> $assoc_args Argumenty nazwane.
+	 */
+	public function opis( array $args, array $assoc_args ): void {
+		$sekcje = array();
+		foreach ( Aai_Sklep_Sekcje::kolejnosc_w_panelu() as $rodzaj ) {
+			$opis             = Aai_Sklep_Sekcje::opis( $rodzaj );
+			$sekcje[ $rodzaj ] = array(
+				'nazwa' => $opis['nazwa'],
+				'cel'   => $opis['cel'],
+				'pola'  => Aai_Sklep_Sekcje::pola( $rodzaj ),
+			);
+		}
+
+		$wynik = array(
+			'sekcje' => $sekcje,
+			'lekcja' => Aai_Sklep_Kontrakt::pola_lekcji(),
+			'stany'  => Aai_Sklep_Kontrakt::STANY,
+			'typy'   => Aai_Sklep_Kontrakt::TYPY,
+			'poziomy' => Aai_Sklep_Kontrakt::POZIOMY,
+		);
+
+		if ( 'json' === ( $assoc_args['format'] ?? 'podsumowanie' ) ) {
+			WP_CLI::line( (string) wp_json_encode( $wynik, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+			return;
+		}
+
+		foreach ( $sekcje as $rodzaj => $dane ) {
+			WP_CLI::line( sprintf( '%s (%s): %s', $dane['nazwa'], $rodzaj, implode( ', ', array_keys( $dane['pola'] ) ) ) );
+		}
+		WP_CLI::line( sprintf( 'treść lekcji: %s', implode( ', ', array_keys( $wynik['lekcja'] ) ) ) );
+	}
+
+	/**
 	 * Usuwa kurs razem z sekcjami, modułami i lekcjami.
 	 *
 	 * ## OPTIONS

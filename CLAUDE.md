@@ -1239,13 +1239,67 @@ wyprowadzała tego od nowa:
   specyfikacją wykonawczą, więc jego opisy trafią do kolejnych kroków),
   czy zostawić i pilnować tylko wtyczki. `straznik-obietnic` tego NIE
   łapie — czyta widoki kursów, nie metadane katalogu.
-  **NASTĘPNY KROK: W4 — kreator w kokpicie.** Panel z D6
-  (`app/szkolenia/kreator/*`) przeniesiony do kokpitu WordPressa: kurs,
-  program, 12 rodzajów sekcji i treść lekcji, zapis WYŁĄCZNIE przez
-  `Aai_Sklep_Zapis`. Instrukcja obsługi prototypowego kreatora:
-  [KREATOR.md](docs/plugin-1/KREATOR.md). Wygląd widoku lekcji na W5 leży
-  gotowy w `tools/podglad-kursow/` (CSS + szablony, wyjęte tam WŁAŚNIE po
-  to, żeby dały się przenieść).
+  **W4 ZROBIONY (0.42.0): właściciel może zmieniać treść w WordPressie.**
+  Kreator z D6 mieszka w kokpicie (menu **Automatic AI**): lista kursów
+  z licznikami (sekcje, program, **treść lekcji N/M**), edytor kursu
+  z zakładkami Kurs / Sekcje / Program i JEDNYM zapisem, osobny edytor
+  treści lekcji. Uprawnienie `manage_options`, każda wysyłka przez
+  `admin-post.php` z nonce'em; do bazy pisze wyłącznie `Aai_Sklep_Zapis`.
+  Instrukcja obsługi (oba kreatory — prototypu i WP):
+  [KREATOR.md](docs/plugin-1/KREATOR.md).
+  **DECYZJE WŁAŚCICIELA (2026-08-25):** wygląd **natywnego kokpitu
+  z akcentem volt** (wariant „premium jak /szkolenia" odrzucony — reguły
+  wp-admin są poza warstwami kaskady, a tego ekranu klient nie widzi);
+  okładka **z biblioteki mediów** (prototyp odrzucił wgrywanie tylko
+  dlatego, że nie miał gdzie trzymać plików).
+  Powstało: `Aai_Sklep_Kontrakt` (port `KursWejscie`/`TrescLekcji`
+  z prototypu co do liczby, błąd ze ŚCIEŻKĄ do pola), `Aai_Sklep_Pola`
+  (jeden silnik opisu pól: odczyt pobłażliwy, zapis ścisły, render
+  kontrolki, „czego brakuje"), `Aai_Sklep_Odczyt_Panelu` (wszystkie stany,
+  sekcje SUROWE, **jedyne miejsce czytające `lessons.content`**),
+  `Aai_Sklep_Panel` + `Panel_Akcje` + `Panel_Pola`, `assets/panel.*`,
+  `wp aai-sklep opis --format=json`.
+  **ETYKIETY PÓL WESZŁY DO KONTRAKTU** (`Aai_Sklep_Sekcje::SCHEMATY`) —
+  panel rysuje się z tej samej tablicy, którą sprawdzana jest treść, więc
+  rozjazd kontrakt↔panel jest NIEMOŻLIWY, a nie pilnowany (jak `KOLEJNOSC`).
+  Dowody: strażnicy **32/32** (doszedł `straznik-kreatora-wp`), audyt
+  mutacyjny **129**, `smoke-wp-kreator` **92**, `smoke-wp-front` 78,
+  `smoke-wp-motyw` 32, `smoke-wp-dane` 30, `wp:sprawdz` 73/73,
+  `npm run check` zielone.
+  **PIĘĆ RZECZY DO ZAPAMIĘTANIA Z W4** (pełnia: CHANGELOG 0.42.0
+  i [ETAP-WP.md](docs/ETAP-WP.md), sekcja „Krok W4 zrobiony"):
+  (1) **`add_submenu_page()` + `remove_submenu_page()` NIE robi ukrytej
+  strony** — `get_admin_page_parent()` szuka rodzica w `$submenu`, więc po
+  wycięciu wpisu `admin.php` oddaje **403 „Sorry, you are not allowed…"**;
+  wygląda to jak błąd uprawnień, a jest błędem rejestracji. Ukrytą stronę
+  robi `null` jako rodzic;
+  (2) **`max_input_vars` (1000) ucina POST W MILCZENIU** — kurs z 41
+  lekcjami wystawiłby setki pól, więc sekcje i program jadą jako JEDEN
+  JSON (cała wysyłka: 17 pól), a pola ukryte startują wypełnione stanem
+  z bazy, żeby zapis bez działającego skryptu był pusty w skutkach;
+  (3) **treść lekcji NIE przez `sanitize_text_field`** (sklei Markdown
+  w jedną linię), ale **MUSI przez `wp_unslash`** — inaczej `C:\Users`
+  z kursu o Gicie zapisze się jako `C:\\Users`;
+  (4) **brak klucza `content` musi znaczyć „nie ruszaj"** — do 0.41.0
+  warstwa zapisu czytała `?? ''`, więc pierwszy zapis z panelu wyczyściłby
+  prozę 73 lekcji i zameldował sukces;
+  (5) **BLAD-017: `wp_http_validate_url()` to funkcja od SSRF**, nie od
+  odnośników — rozwiązuje DNS, więc link do NIEKUPIONEJ jeszcze domeny
+  `automaticai.pl` po cichu znikał ze strony sprzedażowej (treść w bazie,
+  klient jej nie widzi, nic się nie zapala).
+  **PUŁAPKA PRZY TESTACH NEGATYWNYCH:** `smoke-wp-kreator` zapisuje też
+  PRAWDZIWE kursy (dowód, że panel ich nie rusza), więc test negatywny na
+  warstwie zapisu **kasuje prozę wszystkich 73 lekcji**. Droga powrotna:
+  `npm run wp:import` → `npm run wp:sprawdz`. Przed takim testem robić
+  zrzut tabel.
+  **NASTĘPNY KROK: W5 — synchronizacja do Tutora + nasze szablony lekcji.**
+  Kopia kursu do Tutora przy publikacji (jednokierunkowo, jak
+  `wordpress/import-kursy.php`) i NASZE szablony widoku lekcji w miejsce
+  Tutorowych. Wygląd leży gotowy w `tools/podglad-kursow/` (CSS + szablony,
+  wyjęte tam WŁAŚNIE po to, żeby dały się przenieść). Do domknięcia
+  w tym kroku: **strażnik zgodności naszych tabel z kopią w Tutorze** —
+  dziś po każdej zmianie w kreatorze te dwie kopie się rozjeżdżają, a to
+  jest główne ryzyko przyjętej architektury.
 
   **NAPRAWA RENDERU (0.38.0, zgłosił właściciel zrzutami):** strona główna
   była łamana przez `tutor-front.min.css` — globalna klasa `.text-label`

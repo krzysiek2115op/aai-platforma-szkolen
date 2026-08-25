@@ -176,6 +176,16 @@
       "naprawa": "sprawdzPrywatnosc przyjmuje liste ZASTEPNIKOW uzytych przy podmianie i odrzuca zrzut, gdy zastepnik przykleil sie do innych znakow slowa — to znaczy, ze podmiana weszla w srodek wiekszego tokenu, ktorego nie widziala w calosci. `zrob-zrzut.mjs` podaje jej wlasna liste patchy, wiec nie ma drugiego zrodla prawdy do rozjechania.",
       "test": "tools/zrzuty/test-asercji.mjs — „NEGATYWNY: adres wlasciciela sklejony z dwoch elementow → brak obrazu”. Przed naprawa: kod wyjscia 0 i plik POWSTAWAL (oczekiwano 9 i braku pliku). Po naprawie: 15/15 testow asercji zielonych, kod wyjscia 0 sprawdzony BEZ potoku.",
       "straznik": "tools/zrzuty/test-asercji.mjs (+ straznik-asercji pilnuje, ze specyfikacje maja asercje)"
+    },
+    {
+      "id": "BLAD-017",
+      "data": "2026-08-25",
+      "klasa": "tresc/odnosnik-znika-ze-strony-bo-sprawdzamy-go-funkcja-od-SSRF",
+      "dowod": "Sekcja `author` obu kursow ma w bazie link `{\"url\":\"https://automaticai.pl\",\"etykieta\":\"Zobacz moje projekty na automaticai.pl\"}`, a na zywej stronie `/szkolenia/jak-korzystac-z-claude/` napisu „Zobacz moje projekty” NIE BYLO (grep po HTML-u bez <script>: 0 trafien). Powod: kontrola pola typu `adres` uzywala `wp_http_validate_url()`, ktora broni przed SSRF — rozwiazuje nazwe w DNS-ie i zwraca false, gdy `gethostbyname()` odda te sama nazwe. `automaticai.pl` to domena docelowa, JESZCZE NIEKUPIONA, wiec kazdy odnosnik do niej byl po cichu odsiewany. Wyszlo dopiero przy W4: scisly kontrakt kreatora odrzucil ten sam adres komunikatem „podaj pelny adres http/https”, choc adres byl poprawny.",
+      "skutek": "Cicha utrata TRESCI na stronie sprzedazowej: wlasciciel widzi wpisany odnosnik w bazie i w kreatorze, klient nie widzi go nigdy. Nic sie przy tym nie zapala — sekcja renderuje sie normalnie, tylko bez jednego pola. Klasa taka sama jak przy polu bez renderu, ktorego pilnuje straznik-frontu-wp.",
+      "naprawa": "`Aai_Sklep_Pola::adres_bezpieczny()` pyta o to, o co naprawde chodzi: czy adres wolno WYDRUKOWAC. Biala lista schematow (http/https), odrzucenie loginu i hasla w adresie (zmylka „https://bank.pl@zly.host”) oraz znakow specjalnych w hoscie. Zero DNS-u. To samo sprawdzenie dostala okladka kursu w `Aai_Sklep_Kontrakt::adres_opcjonalny()`.",
+      "test": "tools/smoke/smoke-wp-kreator.mjs — runda zapis→odczyt sekcji `author` z adresem niekupionej domeny (przechodzi) oraz NEGATYWNY: `javascript:alert(1)` i `https://user:haslo@host` odrzucone. Dowod na zywo: przed naprawa grep „Zobacz moje projekty” dawal 0, po naprawie 1.",
+      "straznik": "tools/straznicy/straznik-kreatora-wp.mjs (niezmiennik: pola tresci nie wolno sprawdzac funkcja od wychodzacych zadan)"
     }
   ]
 }

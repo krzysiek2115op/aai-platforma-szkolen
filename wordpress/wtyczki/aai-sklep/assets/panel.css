@@ -1,0 +1,403 @@
+/**
+ * Kreator kursów — wygląd w kokpicie.
+ *
+ * NATYWNY KOKPIT WORDPRESSA Z AKCENTEM VOLT (decyzja właściciela 2026-08-25).
+ * Panel korzysta z komponentów wp-admin (`postbox`, `form-table`, `button`,
+ * `notice`, `nav-tab`), więc dziedziczy ich dostępność, zachowanie na małym
+ * ekranie i przeżywa aktualizacje WordPressa. Wariant „premium jak
+ * /szkolenia" był rozważony i odrzucony: reguły wp-admin stoją poza warstwami
+ * kaskady, więc walka z nimi byłaby tą samą klasą kłopotu, co arkusz Tutora
+ * kontra motyw (0.40.0), tylko od drugiej strony — i to na ekranie, którego
+ * klient nigdy nie zobaczy.
+ *
+ * AKCENT VOLT WCHODZI TAM, GDZIE NIESIE ZNACZENIE: przycisk główny (jeden na
+ * ekran — „zapisz") i plakietka stanu sekcji. Kolor jako ozdoba w narzędziu
+ * pracy tylko przeszkadza w czytaniu.
+ *
+ * Ten arkusz wchodzi WYŁĄCZNIE na ekrany kreatora — wtyczka, która wpycha
+ * swój CSS w cały kokpit, psuje cudze ekrany.
+ */
+
+.aai-panel {
+	--aai-volt: #bfff38;
+	--aai-volt-ciemny: #5d7f00;
+	--aai-brak: #b26a00;
+	--aai-gotowa: #1a7f37;
+}
+
+/* ————————————————————————— lista kursów ————————————————————————— */
+
+.aai-lista-kursow .aai-kol-waska {
+	width: 11%;
+}
+
+.aai-lista-kursow .aai-slug {
+	color: #646970;
+	font-size: 12px;
+	margin-top: 4px;
+}
+
+.aai-w-linii {
+	display: inline;
+}
+
+.aai-usun {
+	color: #b32d2e;
+}
+
+.aai-pustka {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid var(--aai-volt-ciemny);
+	padding: 24px;
+	margin-top: 16px;
+}
+
+.aai-stan {
+	border-radius: 3px;
+	display: inline-block;
+	font-size: 12px;
+	line-height: 1.6;
+	padding: 1px 8px;
+}
+
+.aai-stan--published {
+	background: #edfaef;
+	color: var(--aai-gotowa);
+}
+
+.aai-stan--draft {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.aai-stan--archived {
+	background: #fcf0e4;
+	color: var(--aai-brak);
+}
+
+.aai-postep {
+	font-variant-numeric: tabular-nums;
+}
+
+.aai-postep--pelny {
+	color: var(--aai-gotowa);
+	font-weight: 600;
+}
+
+/* ————————————————————————— edytor ————————————————————————— */
+
+.aai-zakladki {
+	margin-top: 16px;
+}
+
+.aai-zakladki .nav-tab {
+	background: none;
+	cursor: pointer;
+}
+
+.aai-znacznik-bledu {
+	background: #b32d2e;
+	border-radius: 9px;
+	color: #fff;
+	display: inline-block;
+	font-size: 11px;
+	line-height: 18px;
+	margin-left: 6px;
+	min-width: 18px;
+	text-align: center;
+}
+
+.aai-wstep {
+	margin: 12px 0 16px;
+	max-width: 70ch;
+}
+
+.aai-bledy {
+	list-style: disc;
+	margin: 0 0 12px 20px;
+}
+
+.aai-slug-pole {
+	width: 22em;
+}
+
+.aai-podglad-okladki img {
+	border: 1px solid #c3c4c7;
+	margin-top: 8px;
+	max-height: 160px;
+	max-width: 280px;
+}
+
+/* ————————————————————————— pola z opisu ————————————————————————— */
+
+.aai-pole {
+	margin-bottom: 16px;
+}
+
+.aai-pole__etykieta {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.aai-pole__gwiazdka {
+	color: #b32d2e;
+}
+
+.aai-pole .description {
+	margin-top: 4px;
+}
+
+.aai-licznik--przekroczony {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+.aai-obiekt {
+	border-left: 3px solid #dcdcde;
+	padding-left: 12px;
+}
+
+.aai-lista {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.aai-wiersz {
+	align-items: flex-start;
+	display: flex;
+	gap: 8px;
+}
+
+.aai-wiersz--obiekt {
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	padding: 12px;
+}
+
+.aai-wiersz__pola {
+	flex: 1;
+	min-width: 0;
+}
+
+.aai-wiersz__pola .aai-pole:last-child {
+	margin-bottom: 0;
+}
+
+.aai-wiersz__akcje {
+	display: flex;
+	flex-shrink: 0;
+	gap: 4px;
+}
+
+.aai-wiersz > input[data-aai-wartosc] {
+	flex: 1;
+	min-width: 0;
+}
+
+/* ————————————————————————— sekcje ————————————————————————— */
+
+.aai-sekcja__naglowek,
+.aai-modul__naglowek {
+	align-items: center;
+	display: flex;
+	gap: 12px;
+	justify-content: space-between;
+}
+
+/* Kokpit centruje treść nagłówka pudełka; tytuł modułu i sekcji ma zaczynać
+   się tam, gdzie zaczyna się wzrok — przy numerze, nie na środku. */
+.aai-sekcja__naglowek .hndle,
+.aai-modul__naglowek .hndle {
+	align-items: center;
+	display: flex;
+	flex: 1;
+	justify-content: flex-start;
+	text-align: left;
+}
+
+.aai-sekcja__akcje,
+.aai-modul__akcje {
+	display: flex;
+	gap: 4px;
+	padding-right: 12px;
+}
+
+.aai-sekcja--pusta .inside,
+.aai-sekcja--pusta [data-aai-usun-sekcje],
+.aai-sekcja--pusta [data-aai-stan-sekcji] {
+	display: none;
+}
+
+.aai-sekcja:not(.aai-sekcja--pusta) [data-aai-dodaj-sekcje] {
+	display: none;
+}
+
+.aai-cel {
+	border-left: 3px solid var(--aai-volt);
+	margin: 0 0 16px;
+	max-width: 70ch;
+	padding-left: 10px;
+}
+
+.aai-plakietka {
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 400;
+	margin-left: 8px;
+	padding: 1px 8px;
+}
+
+.aai-plakietka--gotowa {
+	background: #edfaef;
+	color: var(--aai-gotowa);
+}
+
+.aai-plakietka--braki {
+	background: #fcf0e4;
+	color: var(--aai-brak);
+}
+
+/* ————————————————————————— program ————————————————————————— */
+
+.aai-numer {
+	color: #646970;
+	font-variant-numeric: tabular-nums;
+	margin-right: 8px;
+}
+
+.aai-lekcje {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 16px 0 12px;
+}
+
+.aai-lekcja {
+	align-items: center;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding: 8px 12px;
+}
+
+.aai-lekcja .aai-pole {
+	margin-bottom: 0;
+}
+
+.aai-lekcja__tytul {
+	flex: 1;
+	min-width: 200px;
+}
+
+.aai-lekcja__tytul input {
+	width: 100%;
+}
+
+.aai-lekcja__zajawka {
+	align-items: center;
+	color: #50575e;
+	display: flex;
+	font-size: 12px;
+	gap: 4px;
+}
+
+.aai-lekcja__tresc {
+	align-items: center;
+	display: flex;
+	gap: 6px;
+}
+
+.aai-lekcja__akcje {
+	display: flex;
+	gap: 4px;
+	margin-left: auto;
+}
+
+.aai-podpowiedz {
+	color: #646970;
+	font-size: 12px;
+	font-style: italic;
+}
+
+/* ————————————————————————— treść lekcji ————————————————————————— */
+
+.aai-okruszki {
+	color: #646970;
+	margin-top: 0;
+}
+
+.aai-pole--tresc {
+	margin-top: 16px;
+}
+
+.aai-edytor {
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 13px;
+	line-height: 1.6;
+	min-height: 60vh;
+	width: 100%;
+}
+
+.aai-materialy {
+	margin-top: 24px;
+}
+
+/* ————————————————————————— zapis ————————————————————————— */
+
+/* Pasek zapisu jest przyklejony do dołu, więc sam sobie zasłaniałby ostatnią
+   podpowiedź pod polem. Formularz rezerwuje pod niego miejsce. */
+.aai-formularz {
+	padding-bottom: 12px;
+}
+
+.aai-zapisz {
+	align-items: center;
+	background: #fff;
+	border-top: 1px solid #dcdcde;
+	bottom: 0;
+	display: flex;
+	gap: 12px;
+	margin: 24px 0 0;
+	padding: 12px 0;
+	position: sticky;
+	z-index: 10;
+}
+
+.aai-glowny.button-primary {
+	background: var(--aai-volt-ciemny);
+	border-color: var(--aai-volt-ciemny);
+	color: #fff;
+}
+
+.aai-glowny.button-primary:hover,
+.aai-glowny.button-primary:focus {
+	background: #4c6900;
+	border-color: #4c6900;
+	color: #fff;
+}
+
+.aai-niezapisane {
+	color: var(--aai-brak);
+	font-style: italic;
+}
+
+.aai-potwierdz-utrate {
+	color: #b32d2e;
+}
+
+@media screen and (max-width: 782px) {
+	.aai-lekcja {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.aai-lekcja__akcje {
+		margin-left: 0;
+	}
+}

@@ -25,7 +25,8 @@
     "wp:sprawdz": "node --env-file-if-exists=.env tools/sprawdz-import-wp.mjs",
     "smoke:wp": "node tools/smoke/smoke-wp-dane.mjs",
     "smoke:wp-front": "node tools/smoke/smoke-wp-front.mjs",
-    "smoke:wp-motyw": "node tools/smoke/smoke-wp-motyw.mjs"
+    "smoke:wp-motyw": "node tools/smoke/smoke-wp-motyw.mjs",
+    "smoke:wp-kreator": "node tools/smoke/smoke-wp-kreator.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.33.0",
