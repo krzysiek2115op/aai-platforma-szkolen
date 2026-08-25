@@ -611,7 +611,21 @@ const zleWejscia = [
   ["pusty tytuł", { title: "" }],
   ["nieznany poziom", { level: "mistrzowski" }],
   ["adres zajęty przez inny kurs", { slug: prawdziwySlug }],
+  // Adres NASZEJ podstrony: `/szkolenia/moje/` to lista kupionych kursów,
+  // a jej reguła przepisywania jest sprawdzana przed regułą slugu. Kurs
+  // o takim slugu wszedłby do katalogu i miał kartę, ale jego strona
+  // sprzedażowa nie istniałaby — klient klikałby kartę i lądował na cudzej
+  // liście, bez żadnego objawu (200, dane poprawne).
+  ["adres zajęty przez stronę sklepu", { slug: "moje" }],
 ];
+/*
+ * WYSYŁKA MUSI BYĆ POZA TYM JEDNYM BŁĘDEM POPRAWNA — inaczej test jest ślepy.
+ * Do W6 ten blok nie niósł `sekcje` ani `moduly` i wszystkie przypadki
+ * przechodziły z TEGO powodu, a nie z powodu błędu, który nazywają.
+ * Sprawdzone uruchomieniowo: po wyłączeniu odmowy dla zajętego slugu blok
+ * dalej był zielony. Dlatego dokładamy prawidłowe pola i dopiero wtedy
+ * pojedyncza usterka ma szansę zdecydować o wyniku.
+ */
 for (const [nazwa, nadpisanie] of zleWejscia) {
   const odpowiedz = await admin.wyslij({
     action: "aai_sklep_zapisz_kurs",
@@ -623,6 +637,8 @@ for (const [nazwa, nadpisanie] of zleWejscia) {
     type: "kurs",
     status: "published",
     cena_zl: "199,90",
+    sekcje: pole(formularzKursu, "sekcje"),
+    moduly: pole(formularzKursu, "moduly"),
     pozwol_skasowac_tresc: "0",
     ...nadpisanie,
   });

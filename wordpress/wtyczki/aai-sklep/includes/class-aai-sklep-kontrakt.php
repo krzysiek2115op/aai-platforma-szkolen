@@ -485,6 +485,25 @@ final class Aai_Sklep_Kontrakt {
 			$bledy['slug'] = __( 'Adres (slug): tylko małe litery, cyfry i myślniki.', 'aai-sklep' );
 			return '';
 		}
+		/*
+		 * ADRES ZAJĘTY PRZEZ NASZĄ WŁASNĄ PODSTRONĘ.
+		 *
+		 * `/szkolenia/moje/` to lista kupionych kursów, a jej reguła
+		 * przepisywania jest sprawdzana PRZED regułą slugu. Kurs o takim
+		 * slugu wszedłby więc do katalogu i miał kartę, ale jego strona
+		 * sprzedażowa nie istniałaby — klient klikałby kartę i lądował na
+		 * cudzej liście. Objawu nie ma żadnego: dane poprawne, odpowiedź
+		 * 200. Dlatego odmawiamy tu, przy wpisywaniu, a nie zostawiamy
+		 * tego do odkrycia w sprzedaży.
+		 */
+		if ( in_array( $slug, Aai_Sklep_Trasy::zarezerwowane_slugi(), true ) ) {
+			$bledy['slug'] = sprintf(
+				/* translators: %s: zajęty adres. */
+				__( 'Adres (slug) „%s" jest zajęty przez stronę sklepu — wybierz inny.', 'aai-sklep' ),
+				$slug
+			);
+			return '';
+		}
 		return $slug;
 	}
 

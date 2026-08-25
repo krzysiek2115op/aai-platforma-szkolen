@@ -1327,6 +1327,29 @@ const MUTACJE = [
         : null,
   },
   {
+    straznik: "straznik-frontu-wp",
+    opis: "kontrakt przestaje odrzucać slug zajęty przez naszą podstronę (BLAD-021: kurs w katalogu, którego strona sprzedażowa nie istnieje)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-kontrakt.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-kontrakt.php"),
+    zmien: (s) =>
+      s.includes("Aai_Sklep_Trasy::zarezerwowane_slugi(), true ) ) {")
+        ? s.replace("in_array( $slug, Aai_Sklep_Trasy::zarezerwowane_slugi(), true )", "false")
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "reguły przepisywania przestają brać podstrony z jednej stałej (nowa podstrona dostanie adres, ale slug nie zostanie zakazany)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-trasy.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-trasy.php"),
+    zmien: (s) =>
+      s.includes("foreach ( self::PODSTRONY as $sciezka => $widok ) {")
+        ? s.replace(
+            /\t\tforeach \( self::PODSTRONY as \$sciezka => \$widok \) \{[\s\S]*?\n\t\t\}\n/,
+            "\t\tadd_rewrite_rule( '^szkolenia/moje/?$', 'index.php?aai_widok=moje', 'top' );\n"
+          )
+        : null,
+  },
+  {
     straznik: "straznik-wtyczki-wp",
     opis: "warstwa zapisu koduje JSON bez porządkowania kluczy (BLAD-020: zapis bez zmian melduje „zapisano” i puchnie dziennik)",
     plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",

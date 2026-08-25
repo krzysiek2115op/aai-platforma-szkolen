@@ -216,6 +216,26 @@
       "naprawa": "`Aai_Sklep_Zapis::uporzadkuj()` porzadkuje klucze MAP rekurencyjnie przed kodowaniem; LISTY zostaja nietkniete, bo ich kolejnosc JEST trescia (moduly, lekcje, punkty korzysci). Obietnica z naglowka stala sie prawdziwa. Dane znormalizowane jednorazowo (`npm run wp:import`: 22 wiersze przepisane, drugi przebieg 0/0/111, dziennik 1940 → 1940).",
       "test": "tools/smoke/smoke-wp-panel.mjs — „zapis bez zmian” musi odpowiedziec `bez_zmian`, zostawic skrot stanu kursu bez zmiany i nie dopisac sie do dziennika. Test negatywny: wylaczenie `ksort` w `uporzadkuj()` → 6 z 54 sprawdzen pada (po trzy na kurs).",
       "straznik": "tools/straznicy/straznik-wtyczki-wp.mjs (niezmiennik 9: w warstwie zapisu nie wolno kodowac JSON-a bez uporzadkowania kluczy). Mutacja w audyt-straznikow: `self::uporzadkuj( $wartosc )` → `$wartosc`."
+    },
+    {
+      "id": "BLAD-021",
+      "data": "2026-08-26",
+      "klasa": "front/slug-kursu-zajmuje-adres-naszej-wlasnej-podstrony",
+      "dowod": "Od W6 pod `/szkolenia/moje/` stoi lista kupionych kursow, a jej regula przepisywania jest dodawana PRZED regula slugu (`^szkolenia/([^/]+)/?$`) i regul `top` WordPress probuje w kolejnosci dodania. Kontrakt kreatora sprawdzal slug tylko na dlugosc, znaki i zajetosc przez INNY KURS. Zmierzone na zywej instalacji (2026-08-26): kurs probny o slugu `moje` zapisal sie bez slowa protestu, `/szkolenia/` pokazywalo jego karte, a `/szkolenia/moje/` oddawalo 200 z trescia „Moje kursy” — czyli strona sprzedazowa kursu NIE ISTNIALA.",
+      "skutek": "Kurs widoczny w katalogu, z cena i przyciskiem, ktorego nie da sie kupic: klikniecie karty prowadzi na cudza liste kursow. Zaden objaw nie wystepuje — odpowiedz 200, dane w tabelach poprawne, zero ostrzezen, wp:sprawdz zielony. Klasa rosnie z kazda nowa podstrona sklepu (koszyk, kasa, podziekowanie w Pluginie 2), bo kazda zabiera kolejny slug.",
+      "naprawa": "`Aai_Sklep_Trasy::PODSTRONY` (sciezka => widok) jest JEDNYM zrodlem dla regul przepisywania, listy widokow i `zarezerwowane_slugi()`. Kontrakt (`Aai_Sklep_Kontrakt::slug()`) odrzuca zarezerwowany slug komunikatem przy POLU `slug`, a nie ogolnym „zapis sie nie powiodl”. Import (`Aai_Sklep_Import`) sprawdza to samo, bo nie idzie przez kontrakt panelu.",
+      "test": "tools/smoke/smoke-wp-kreator.mjs — przypadek „adres zajety przez strone sklepu” w bloku zlego wejscia (96 sprawdzen). Test negatywny: zamiana warunku na `false` w kontrakcie → dokladnie 1 z 96 pada z komunikatem „kontrakt przepuscil (zapisano)”.",
+      "straznik": "tools/straznicy/straznik-frontu-wp.mjs (niezmiennik 9: walidator slugu pyta o `zarezerwowane_slugi()`, a lista i reguly przepisywania biora sie z tej samej stalej `PODSTRONY`). Dwie mutacje w audyt-straznikow."
+    },
+    {
+      "id": "BLAD-022",
+      "data": "2026-08-26",
+      "klasa": "test/caly-blok-zlego-wejscia-przechodzil-z-jednego-wspolnego-powodu",
+      "dowod": "`Aai_Sklep_Panel_Akcje::zapisz_kurs()` budowalo wejscie tak, ze `sekcje` i `moduly` ZAWSZE mialy klucz, a `json()` oddaje `null`, gdy pola nie przyslano. Kontrakt sluszne odrzucal `null` jako zly ksztalt, wiec KAZDE zadanie bez tych dwoch pol wracalo z `aai_komunikat=bledy` — niezaleznie od tego, co jeszcze bylo w nim zle. Blok „ZLE WEJSCIE” w smoke-wp-kreator nie niosl tych pol, wiec jego szesc sprawdzen przechodzilo z tego jednego powodu. Wykryte testem negatywnym nowego sprawdzenia (BLAD-021): po wylaczeniu odmowy dla zarezerwowanego slugu blok DALEJ byl zielony. Dowod wprost: `Aai_Sklep_Kontrakt::kurs()` z `sekcje=>null, moduly=>null` oddaje `{\"sekcje\":\"Sekcje maja zly ksztalt.\",\"moduly\":\"Program ma zly ksztalt.\"}` przy skadinad poprawnym wejsciu.",
+      "skutek": "Szesc sprawdzen udawalo, ze pilnuje kontraktu (wielkie litery w slugu, cena nie-liczba, pusty tytul, nieznany poziom, zajety slug), a nie pilnowalo niczego — kazda z tych regul mogla zniknac bez zapalenia sie smoke'a. Do tego komunikat dla czlowieka byl nieprawdziwy: zadanie bez programu dostawalo „Program ma zly ksztalt” zamiast zachowania „brak klucza znaczy nie ruszaj” (BLAD-018), ktore obowiazuje w calej warstwie zapisu.",
+      "naprawa": "Warstwa akcji NIE wstawia juz klucza, ktorego nie przyslano — `sekcje` i `moduly` wchodza do wejscia tylko wtedy, gdy naprawde przyszly. Lancuch „nie przyslano → brak klucza → nie ruszaj” jest teraz caly. Blok zlego wejscia w smoke'u wysyla poprawne `sekcje` i `moduly`, wiec o wyniku decyduje ta jedna usterka, ktora przypadek nazywa.",
+      "test": "tools/smoke/smoke-wp-kreator.mjs — dwa testy negatywne po naprawie, kazdy trafia w SWOJ przypadek i tylko w niego: wylaczenie odmowy dla zarezerwowanego slugu → pada „adres zajety przez strone sklepu”; zdjecie wymagalnosci tytulu → pada „pusty tytul”. Przed naprawa oba przechodzily.",
+      "straznik": "Bez osobnego straznika: to jest usterka DOWODU, nie kodu produkcyjnego, a chroni przed nia regula projektu „kazdy nowy test sprawdzic testem negatywnym” (WYTYCZNE, lekcja z 0.24.0). Zachowania „brak klucza znaczy nie ruszaj” pilnuje straznik-kreatora-wp (niezmiennik 6)."
     }
   ]
 }

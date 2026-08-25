@@ -71,6 +71,16 @@ final class Aai_Sklep_Trasy {
 	}
 
 	/**
+	 * NASZE podstrony pod `/szkolenia/`: ścieżka => nazwa widoku.
+	 *
+	 * JEDNO ŹRÓDŁO dla trzech rzeczy: reguł przepisywania, listy widoków
+	 * i slugów zarezerwowanych dla kursów (`zarezerwowane_slugi()`).
+	 *
+	 * @var array<string,string>
+	 */
+	private const PODSTRONY = array( Aai_Sklep_Moje::SCIEZKA => 'moje' );
+
+	/**
 	 * Reguły przepisywania. `top` — przed regułami WordPressa, żeby jego
 	 * własne zgadywanie adresu (to ono odsyłało dziś `/szkolenia/<slug>`
 	 * na `/courses/<slug>/`) nie miało już czego zgadywać.
@@ -78,16 +88,43 @@ final class Aai_Sklep_Trasy {
 	public static function dodaj_reguly(): void {
 		add_rewrite_rule( '^szkolenia/?$', 'index.php?aai_widok=katalog', 'top' );
 		/*
-		 * KOLEJNOŚĆ MA ZNACZENIE: „moje" musi być dopasowane ZANIM zadziała
-		 * reguła slugu, inaczej WordPress wziąłby je za adres kursu i oddał
-		 * 404. Reguły `top` są sprawdzane w kolejności dodania.
+		 * KOLEJNOŚĆ MA ZNACZENIE: nasze podstrony muszą być dopasowane ZANIM
+		 * zadziała reguła slugu, inaczej WordPress wziąłby je za adres kursu.
+		 * Reguły `top` są sprawdzane w kolejności dodania.
 		 */
-		add_rewrite_rule( '^' . Aai_Sklep_Moje::SCIEZKA . '/?$', 'index.php?aai_widok=moje', 'top' );
+		foreach ( self::PODSTRONY as $sciezka => $widok ) {
+			add_rewrite_rule( '^' . $sciezka . '/?$', 'index.php?aai_widok=' . $widok, 'top' );
+		}
 		add_rewrite_rule(
 			'^szkolenia/([^/]+)/?$',
 			'index.php?aai_widok=kurs&aai_slug=$matches[1]',
 			'top'
 		);
+	}
+
+	/**
+	 * Slugi, których kursowi nadać NIE WOLNO.
+	 *
+	 * Adres kursu i adres naszej podstrony mieszkają w tej samej przestrzeni
+	 * `/szkolenia/<coś>/`, a reguła podstrony jest sprawdzana pierwsza. Kurs
+	 * o slugu `moje` wchodziłby więc do katalogu i miał kartę, ale jego strona
+	 * sprzedażowa nie istniałaby — kliknięcie karty prowadziłoby na „Moje
+	 * kursy". Nic by się przy tym nie zapaliło: dane poprawne, strona 200,
+	 * tylko sprzedaż niemożliwa. Stąd odmowa NA WEJŚCIU, w kontrakcie.
+	 *
+	 * Lista wyprowadza się z `PODSTRONY`, czyli z tego samego miejsca, z
+	 * którego powstają reguły przepisywania — druga lista rozjechałaby się
+	 * przy pierwszej nowej podstronie.
+	 *
+	 * @return array<int,string>
+	 */
+	public static function zarezerwowane_slugi(): array {
+		$slugi = array();
+		foreach ( array_keys( self::PODSTRONY ) as $sciezka ) {
+			$czesci  = explode( '/', trim( (string) $sciezka, '/' ) );
+			$slugi[] = (string) end( $czesci );
+		}
+		return $slugi;
 	}
 
 	/**
@@ -125,7 +162,8 @@ final class Aai_Sklep_Trasy {
 	 */
 	public static function widok(): ?string {
 		$widok = get_query_var( 'aai_widok' );
-		return in_array( $widok, array( 'katalog', 'kurs', 'moje' ), true ) ? $widok : null;
+		$znane = array_merge( array( 'katalog', 'kurs' ), array_values( self::PODSTRONY ) );
+		return in_array( $widok, $znane, true ) ? $widok : null;
 	}
 
 	/**

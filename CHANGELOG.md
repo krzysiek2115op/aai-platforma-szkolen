@@ -44,6 +44,36 @@ strażnik nie umie zadać: czy to, co widzi człowiek, ma sens i wygląda jak na
   i **tabelą rzeczy POZA zakresem**, żeby nie zgłaszać jako błąd tego, co
   należy do Pluginu 2.
 
+### Naprawione (własny przegląd po zaliczeniu ścieżek C i D)
+
+- **Kurs o slugu `moje` wchodził do katalogu, ale nie miał strony
+  sprzedażowej (BLAD-021).** Od tej wersji pod `/szkolenia/moje/` stoi lista
+  kupionych kursów, a jej reguła przepisywania jest sprawdzana PRZED regułą
+  slugu. Kontrakt kreatora pilnował tylko długości, znaków i zajętości przez
+  inny kurs — więc kurs o takim adresie zapisywał się bez słowa protestu,
+  dostawał kartę z ceną w katalogu, a kliknięcie tej karty prowadziło na
+  „Moje kursy". Zmierzone na żywej instalacji: odpowiedź 200, dane w tabelach
+  poprawne, zero ostrzeżeń — czyli klasa błędu bez objawu. Naprawa:
+  `Aai_Sklep_Trasy::PODSTRONY` jest jednym źródłem dla reguł przepisywania,
+  listy widoków i `zarezerwowane_slugi()`; kontrakt i import odmawiają
+  komunikatem przy POLU `slug`. Klasa rośnie z każdą nową podstroną sklepu
+  (koszyk, kasa, podziękowanie w Pluginie 2), więc pilnuje jej strażnik.
+- **Cały blok „złe wejście" w `smoke-wp-kreator` przechodził z jednego
+  wspólnego powodu (BLAD-022).** Warstwa akcji zawsze wstawiała klucze
+  `sekcje` i `moduly` — a gdy pól nie przysłano, wstawiała `null`, który
+  kontrakt słusznie odrzuca jako zły kształt. Każde żądanie bez tych dwóch
+  pól wracało więc z „bledy", niezależnie od tego, co jeszcze było w nim złe,
+  a blok testu tych pól nie niósł: sześć sprawdzeń udawało, że pilnuje
+  kontraktu (wielkie litery w slugu, cena nie-liczba, pusty tytuł, nieznany
+  poziom, zajęty adres), nie pilnując niczego. Wykryte testem negatywnym
+  nowego sprawdzenia z BLAD-021: po wyłączeniu odmowy blok DALEJ był zielony.
+  Przy okazji wyszła nieprawda widoczna dla człowieka: żądanie bez programu
+  dostawało „Program ma zły kształt" zamiast obowiązującego w całej warstwie
+  zapisu „brak klucza znaczy nie ruszaj" (BLAD-018). Naprawa: klucz, którego
+  nie przysłano, nie wchodzi już do wejścia — łańcuch „nie przysłano → brak
+  klucza → nie ruszaj" jest cały. Po naprawie każdy z dwóch testów
+  negatywnych trafia w SWÓJ przypadek i tylko w niego.
+
 ### Naprawione (zgłoszenia właściciela z testu ręcznego W6)
 
 - **Zwykły zapis w kreatorze przemianowywał WSZYSTKIE moduły kursu
