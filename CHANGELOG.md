@@ -30,6 +30,43 @@ strażnik nie umie zadać: czy to, co widzi człowiek, ma sens i wygląda jak na
   i **tabelą rzeczy POZA zakresem**, żeby nie zgłaszać jako błąd tego, co
   należy do Pluginu 2.
 
+### Naprawione (zgłoszenia właściciela z testu ręcznego W6)
+
+- **Klient nie miał JAK trafić do kupionego kursu.** Logowanie WordPressa
+  wyrzuca na `/my-account/`, a jedyną listą kupionych kursów był panel Tutora
+  — pełnoekranowa aplikacja z własnym paskiem bocznym, własnym nagłówkiem
+  i oknem powitalnym Tutora (ze zrzutem cudzego kursu fotografii i napisem
+  „Hi, Sophia!"). Powstała **nasza strona `/szkolenia/moje/`**: lista kupionych
+  kursów z paskiem postępu i przyciskiem „Kontynuuj naukę", prowadzącym do
+  pierwszej NIEODHACZONEJ lekcji. Panel Tutora (`/dashboard/`
+  i `/dashboard/courses/`) przekierowuje tam **302**. Pozycja **„Moje kursy"**
+  wchodzi do obu nawigacji motywu, ale **tylko zalogowanemu klientowi, który
+  ma choć jeden kurs** — gościowi nie pokazujemy drzwi, za którymi nic dla
+  niego nie ma. Strona ma `noindex`: jej treść zależy od konta, a robot jest
+  gościem.
+- **Strony konta WooCommerce renderowały się bez stylów.** `/my-account/*`
+  dostawało arkusze Woo, ale nie nasz arkusz integracji — obsługiwał wyłącznie
+  strony Tutora — i nikt nie rezerwował miejsca pod nagłówek `fixed`. Menu
+  konta lądowało w lewym górnym rogu POD nagłówkiem, ciemny tekst na ciemnym
+  tle. To ta sama klasa błędu co 0.38.0/0.40.0 (reguły spoza warstw kaskady
+  biją motyw). Powstał `Aai_Sklep_Styl_Woo` + `assets/woo-motyw.css`, bliźniak
+  warstwy Tutora, pytający `Aai_Sklep_Zasoby::strona_woo()` — więc obejmie też
+  koszyk i kasę, gdy przyjdą z Pluginem 2.
+- **`smoke-wp-motyw` mierzy teraz SIEDEM stron** (było pięć): doszły
+  `/my-account/` i `/szkolenia/moje/`, a `/dashboard/` ustąpił miejsca
+  `/dashboard/retrieve-password/`, bo panel jest już nasz. **64 sprawdzenia.**
+  `smoke-wp-front` pilnuje obu przekierowań panelu i tego, że gość nie widzi
+  na „Moich kursach" ani jednego kafelka — **83 sprawdzenia.**
+
+### Świadomie BEZ zmian
+
+**Cztery lekcje są darmowe dla każdego** — w naszych tabelach mają `preview = 1`:
+pierwsza lekcja modułu 1 i jednego dalszego modułu w każdym kursie. Bramka
+dostępu działa **zgodnie z tymi danymi**, więc to nie jest wyciek, tylko
+próbka. Właściciel obejrzał liczby (18,5 tys. znaków na lekcję) i **zdecydował
+2026-08-25: zostają wszystkie cztery.** Zapisane tutaj, żeby następne
+zgłoszenie „lekcja otwiera się bez logowania" nie ruszyło śledztwa od nowa.
+
 ### Zapamiętane przy okazji
 
 **`tutor_utils()->is_enrolled()` w tym samym żądaniu, w którym powstał zapis,

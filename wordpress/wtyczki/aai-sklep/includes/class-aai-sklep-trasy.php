@@ -36,7 +36,7 @@ final class Aai_Sklep_Trasy {
 	 * kosztowne. Bez tego licznika aktualizacja wtyczki przez FTP zostawiłaby
 	 * stare reguły i nowy kod — czyli 404 na stronie, której plik istnieje.
 	 */
-	private const WERSJA_REGUL = '1';
+	private const WERSJA_REGUL = '2';
 
 	/** Opcja z wersją przepłukanych reguł. */
 	private const OPCJA_REGUL = 'aai_sklep_wersja_regul';
@@ -77,6 +77,12 @@ final class Aai_Sklep_Trasy {
 	 */
 	public static function dodaj_reguly(): void {
 		add_rewrite_rule( '^szkolenia/?$', 'index.php?aai_widok=katalog', 'top' );
+		/*
+		 * KOLEJNOŚĆ MA ZNACZENIE: „moje" musi być dopasowane ZANIM zadziała
+		 * reguła slugu, inaczej WordPress wziąłby je za adres kursu i oddał
+		 * 404. Reguły `top` są sprawdzane w kolejności dodania.
+		 */
+		add_rewrite_rule( '^' . Aai_Sklep_Moje::SCIEZKA . '/?$', 'index.php?aai_widok=moje', 'top' );
 		add_rewrite_rule(
 			'^szkolenia/([^/]+)/?$',
 			'index.php?aai_widok=kurs&aai_slug=$matches[1]',
@@ -119,7 +125,7 @@ final class Aai_Sklep_Trasy {
 	 */
 	public static function widok(): ?string {
 		$widok = get_query_var( 'aai_widok' );
-		return in_array( $widok, array( 'katalog', 'kurs' ), true ) ? $widok : null;
+		return in_array( $widok, array( 'katalog', 'kurs', 'moje' ), true ) ? $widok : null;
 	}
 
 	/**
@@ -210,6 +216,9 @@ final class Aai_Sklep_Trasy {
 			return null === self::kurs()
 				? AAI_SKLEP_KATALOG . 'szablony/nie-znaleziono.php'
 				: AAI_SKLEP_KATALOG . 'szablony/kurs.php';
+		}
+		if ( 'moje' === $widok ) {
+			return AAI_SKLEP_KATALOG . 'szablony/moje.php';
 		}
 		return AAI_SKLEP_KATALOG . 'szablony/katalog.php';
 	}

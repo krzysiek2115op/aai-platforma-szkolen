@@ -97,6 +97,16 @@ Wyloguj się albo otwórz okno prywatne.
 
 Zaloguj się jako `klient-test`.
 
+- [ ] **„Moje kursy" są w menu** — zaraz obok „Szkolenia". Pozycja pojawia się
+      TYLKO zalogowanemu, który ma choć jeden kurs.
+- [ ] **`/szkolenia/moje/`** — lista kupionych kursów: okładka, plakietka,
+      pasek postępu, licznik „0 z 41 lekcji · 0%" i przycisk, który prowadzi
+      do pierwszej NIEODHACZONEJ lekcji („Zacznij kurs" → „Kontynuuj naukę"
+      → „Przeczytaj jeszcze raz").
+- [ ] **Panel Tutora nie pokazuje się klientowi** — wpisz `/dashboard/`
+      w pasku adresu. Ma przerzucić na „Moje kursy". (Do W6 był tam
+      pełnoekranowy interfejs Tutora z oknem powitalnym o cudzym kursie
+      fotografii — dlatego to sprawdzamy.)
 - [ ] **Wejście na lekcję** — ten sam adres co wyżej. Teraz ma być pełna
       lekcja: hero z pozycją w kursie („Lekcja 39 z 41"), treść w kolumnie
       czytania, zrzuty ekranu z podpisami.
@@ -152,6 +162,11 @@ Zaloguj się jako `admin`, wejdź w **Kokpit → Automatic AI → Kursy**.
 
 ## Ścieżka D — czy nie zepsuliśmy motywu
 
+- [ ] **`/my-account/` i `/my-account/edit-account/`** — strony konta
+      WooCommerce mają wyglądać jak część serwisu: menu konta w ciemnym
+      panelu, aktywna pozycja w kolorze volt, pola formularza ciemne,
+      przycisk „Save changes" w akcencie marki. (Do W6 renderowały się bez
+      stylów — to było pierwsze zgłoszenie z tego testu.)
 - [ ] `/` , `/uslugi/`, `/kontakt/` — wyglądają jak przed wtyczką. Sprawdzasz
       to, bo raz już się zdarzyło: arkusz Tutora łamał stronę główną
       (0.38.0), a przyczyna była w warstwach kaskady Tailwinda.
@@ -170,6 +185,7 @@ Zaloguj się jako `admin`, wejdź w **Kokpit → Automatic AI → Kursy**.
 | `/student-registration/` pokazuje „Access Denied" | rejestracja jest w tej instalacji wyłączona; konta zakłada Plugin 2 mailem „Ustaw hasło" |
 | Brak maili po zakupie | Plugin 2 |
 | Brak HTTPS, domena `automaticai.pl` niekupiona | hosting i domena, poza modułami |
+| **Cztery lekcje otwierają się BEZ logowania** | świadoma próbka: w naszych tabelach mają `preview = 1` (pierwsza lekcja modułu 1 i jednego dalszego modułu w każdym kursie). Bramka działa zgodnie z danymi. **Decyzja właściciela 2026-08-25: zostają wszystkie cztery** |
 | Zobowiązania handlowe na stronach sprzedażowych (gwarancja 30 dni, dostęp bez limitu, „odpowiadam osobiście") | wymagają Pluginu 2/3 — audyt z 0.33.0 zostawił je świadomie **do Twojej decyzji** |
 
 ---

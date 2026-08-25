@@ -111,7 +111,10 @@ add_action(
 		Aai_Sklep_Tabele::dociagnij_schemat();
 		Aai_Sklep_Zasoby::zarejestruj();
 		Aai_Sklep_Styl_Tutora::zarejestruj();
+		Aai_Sklep_Styl_Woo::zarejestruj();
 		Aai_Sklep_Trasy::zarejestruj();
+		// „Moje kursy" (W6) — nasza lista kupionych kursów w miejsce panelu Tutora.
+		Aai_Sklep_Moje::zarejestruj();
 		Aai_Sklep_Menu::zarejestruj();
 		Aai_Sklep_Seo::zarejestruj();
 		// Kreator (krok W4). Ekrany kokpitu i akcje zapisu rejestrujemy zawsze,

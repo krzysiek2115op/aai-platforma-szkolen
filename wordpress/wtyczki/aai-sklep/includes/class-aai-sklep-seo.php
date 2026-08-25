@@ -91,6 +91,9 @@ final class Aai_Sklep_Seo {
 		if ( 'katalog' === $widok ) {
 			return self::TYTUL_KATALOGU . ' — ' . self::MARKA;
 		}
+		if ( 'moje' === $widok ) {
+			return 'Moje kursy — ' . self::MARKA;
+		}
 
 		$kurs = Aai_Sklep_Trasy::kurs();
 		if ( null === $kurs ) {
@@ -105,6 +108,18 @@ final class Aai_Sklep_Seo {
 	public static function znaczniki(): void {
 		$widok = Aai_Sklep_Trasy::widok();
 		if ( null === $widok ) {
+			return;
+		}
+
+		/*
+		 * „MOJE KURSY" NIE MA PRAWA WEJŚĆ DO WYSZUKIWARKI. To strona prywatna:
+		 * jej treść zależy od konta oglądającego, a robot indeksujący jest
+		 * gościem, więc zaindeksowałby pustą zachętę do logowania pod adresem
+		 * marki. Zamiast kanonika i OpenGraphu dostaje więc `noindex` — tak
+		 * samo jak widok lekcji (W5).
+		 */
+		if ( 'moje' === $widok ) {
+			echo '<meta name="robots" content="noindex, nofollow"/>' . "\n";
 			return;
 		}
 

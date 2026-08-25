@@ -55,7 +55,15 @@ const PRZEGLADARKA = process.env.FIREFOX ?? "/usr/bin/firefox";
  * dokładnie ten podział, który opisuje ETAP-WP.md — konta i dostęp należą do
  * Tutora, katalog i sprzedaż do nas.
  */
-const STRONY_TUTORA = ["/dashboard/", "/student-registration/"];
+/*
+ * DLACZEGO NIE MA TU `/dashboard/`. Od W6 panel kursanta przekierowuje na
+ * NASZE „Moje kursy" (decyzja właściciela: klient nie ogląda interfejsu
+ * Tutora), więc pod tym adresem nie ma już czego mierzyć jako strony Tutora.
+ * Samo przekierowanie pilnuje `smoke-wp-front`. Zostają dwie strony, które
+ * naprawdę rysuje Tutor i które człowiek może zobaczyć: odzyskiwanie hasła
+ * i rejestracja.
+ */
+const STRONY_TUTORA = ["/dashboard/retrieve-password/", "/student-registration/"];
 const STRONA_MOTYWU = "/uslugi/";
 
 /**
@@ -95,6 +103,20 @@ const ZAKRES_NASZ = "main.aai-strona, main.aai-strona *, .aai-pasek, .aai-pasek 
  * które ten smoke zadaje: o jasne powierzchnie i o kontrast napisów.
  */
 const ZAKRES_LEKCJI = "main.aai-lekcja, main.aai-lekcja *, .aai-pasek, .aai-pasek *";
+
+/**
+ * STRONA KONTA WOOCOMMERCE — szósta strona, dołożona po zgłoszeniu
+ * właściciela w teście ręcznym W6.
+ *
+ * Do 0.45.0 ten smoke mierzył pięć stron i ANI JEDNA nie była stroną Woo,
+ * więc `/my-account/` renderowało się bez odstępu pod nagłówek i bez
+ * kontenera — ciemny tekst na ciemnym tle, menu konta przyklejone do lewej
+ * krawędzi okna, wszystko pod nagłówkiem. Dokładnie ta klasa błędu, którą
+ * ten smoke miał pilnować od 0.40.0, tylko u innej cudzej wtyczki.
+ */
+const SCIEZKA_MOJE = "/szkolenia/moje/";
+const SCIEZKA_KONTA = "/my-account/";
+const ZAKRES_KONTA = ".woocommerce, .woocommerce *";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
@@ -324,6 +346,8 @@ function pomiar() {
     klasaBody: document.body.className.includes("aai-tutor-na-motywie"),
     naszArkusz: [...document.styleSheets].some((s) => (s.href ?? "").includes("tutor-motyw.css")),
     naszArkuszSklepu: [...document.styleSheets].some((s) => (s.href ?? "").includes("aai-sklep/assets/sklep.css")),
+    naszArkuszWoo: [...document.styleSheets].some((s) => (s.href ?? "").includes("woo-motyw.css")),
+    klasaBodyWoo: document.body.className.includes("aai-woo-na-motywie"),
     cudzeArkusze: [...document.querySelectorAll("link[rel=stylesheet][id]")]
       .map((l) => l.id)
       .filter((id) => /^(tutor|wc-|woocommerce)/.test(id)),
@@ -659,6 +683,109 @@ sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da si
 
   console.log(
     `  ${SCIEZKA_LEKCJI}: belka do ${m.naglowekDol} px, ${m.zmierzonych} elementów, ` +
+      `${m.nachodzace.length} nachodzeń, ${m.jasne.length} jasnych plam, ${m.nieczytelne.length} napisów < ${MIN_KONTRAST}:1`
+  );
+}
+
+/*
+ * SZÓSTA STRONA: KONTO WOOCOMMERCE. Też zza logowania, więc stoi tu, a nie
+ * wyżej. Pytania te same co przy Tutorze — bo problem jest ten sam: reguły
+ * Woo stoją poza warstwami kaskady motywu i biją go niezależnie od
+ * kolejności ładowania.
+ */
+{
+  const m = await zmierz(SCIEZKA_KONTA, ZAKRES_KONTA, { bezPaskaAdmina: true });
+
+  sprawdz(
+    m.nieznane.length === 0,
+    `${SCIEZKA_KONTA}: pomiar nie umie rozebrać zapisu koloru (${m.nieznane.join(", ")}) — wynik byłby zgadywaniem`
+  );
+
+  sprawdz(
+    m.zmierzonych > 0,
+    `${SCIEZKA_KONTA}: zakres pomiaru nie trafił w ANI JEDEN element — albo WooCommerce nie renderuje konta, albo zmienił markup`
+  );
+
+  sprawdz(m.klasaBodyWoo, `${SCIEZKA_KONTA}: brak klasy „aai-woo-na-motywie” na body — arkusz integracji nie ma się czego złapać`);
+  sprawdz(m.naszArkuszWoo, `${SCIEZKA_KONTA}: nasz arkusz integracji Woo nie wszedł na stronę konta`);
+
+  sprawdz(
+    m.naglowekDol > 0,
+    `${SCIEZKA_KONTA}: nie widać nagłówka motywu — strona konta wypadła z układu serwisu`
+  );
+
+  sprawdz(
+    m.nachodzace.length === 0,
+    `${SCIEZKA_KONTA}: ${m.nachodzace.length} elementów wjeżdża pod nagłówek motywu (dół nagłówka ${m.naglowekDol} px): ` +
+      m.nachodzace.map((x) => `${x.el} „${x.tekst}" @${x.gora}px`).join("; ")
+  );
+
+  sprawdz(
+    m.jasne.length === 0,
+    `${SCIEZKA_KONTA}: ${m.jasne.length} jasnych powierzchni poza akcentem marki (białe pola formularza Woo): ` +
+      m.jasne.map((x) => `${x.el} ${x.pole} px² ${x.tlo}`).join("; ")
+  );
+
+  sprawdz(
+    m.nieczytelne.length === 0,
+    `${SCIEZKA_KONTA}: ${m.nieczytelne.length} napisów o kontraście < ${MIN_KONTRAST}:1: ` +
+      m.nieczytelne.map((x) => `„${x.tekst}" ${x.kontrast}:1`).join("; ")
+  );
+
+  const rozne = m.stopka
+    .map((w, i) => ({ etykieta: w.etykieta, nasza: w.podpis, motyw: wzorzec.stopka[i]?.podpis }))
+    .filter((x) => x.motyw !== undefined && x.motyw !== x.nasza);
+  sprawdz(
+    rozne.length === 0,
+    `${SCIEZKA_KONTA}: stopka MOTYWU renderuje się inaczej niż na stronie motywu (${rozne.length} z ${m.stopka.length}) — nasz arkusz Woo wycieka poza własny markup: ` +
+      rozne.slice(0, 3).map((x) => `\n      ${x.etykieta}\n        nasza: ${x.nasza}\n        motyw: ${x.motyw}`).join("")
+  );
+
+  console.log(
+    `  ${SCIEZKA_KONTA}: nagłówek do ${m.naglowekDol} px, ${m.zmierzonych} elementów, ` +
+      `${m.nachodzace.length} nachodzeń, ${m.jasne.length} jasnych plam, ${m.nieczytelne.length} napisów < ${MIN_KONTRAST}:1`
+  );
+}
+
+/*
+ * SIÓDMA STRONA: „MOJE KURSY" (W6) — nasza lista kupionych kursów, ta, na
+ * którą trafia klient po zalogowaniu i z przekierowanego panelu Tutora.
+ * Mierzymy ją zalogowanym administratorem, więc pokazuje stan „konto bez
+ * zakupów"; dla tego pomiaru to bez różnicy — pytamy o wygląd i o to, czy
+ * nic nie chowa się pod belką, a nie o zawartość listy.
+ */
+{
+  const m = await zmierz(SCIEZKA_MOJE, ZAKRES_NASZ, { bezPaskaAdmina: true });
+
+  sprawdz(
+    m.nieznane.length === 0,
+    `${SCIEZKA_MOJE}: pomiar nie umie rozebrać zapisu koloru (${m.nieznane.join(", ")}) — wynik byłby zgadywaniem`
+  );
+  sprawdz(m.zmierzonych > 0, `${SCIEZKA_MOJE}: zakres pomiaru nie trafił w ANI JEDEN element`);
+  sprawdz(m.naszArkuszSklepu, `${SCIEZKA_MOJE}: nasz arkusz sklepu nie wszedł na stronę`);
+  sprawdz(
+    m.cudzeArkusze.length === 0,
+    `${SCIEZKA_MOJE}: na naszej stronie ładują się cudze arkusze (${m.cudzeArkusze.join(", ")})`
+  );
+  sprawdz(m.naglowekDol > 0, `${SCIEZKA_MOJE}: nie widać belki przypiętej do góry`);
+  sprawdz(
+    m.nachodzace.length === 0,
+    `${SCIEZKA_MOJE}: ${m.nachodzace.length} elementów wjeżdża pod belkę (dół belki ${m.naglowekDol} px): ` +
+      m.nachodzace.map((x) => `${x.el} „${x.tekst}" @${x.gora}px`).join("; ")
+  );
+  sprawdz(
+    m.jasne.length === 0,
+    `${SCIEZKA_MOJE}: ${m.jasne.length} jasnych powierzchni poza akcentem marki: ` +
+      m.jasne.map((x) => `${x.el} ${x.pole} px² ${x.tlo}`).join("; ")
+  );
+  sprawdz(
+    m.nieczytelne.length === 0,
+    `${SCIEZKA_MOJE}: ${m.nieczytelne.length} napisów o kontraście < ${MIN_KONTRAST}:1: ` +
+      m.nieczytelne.map((x) => `„${x.tekst}" ${x.kontrast}:1`).join("; ")
+  );
+
+  console.log(
+    `  ${SCIEZKA_MOJE}: belka do ${m.naglowekDol} px, ${m.zmierzonych} elementów, ` +
       `${m.nachodzace.length} nachodzeń, ${m.jasne.length} jasnych plam, ${m.nieczytelne.length} napisów < ${MIN_KONTRAST}:1`
   );
 }

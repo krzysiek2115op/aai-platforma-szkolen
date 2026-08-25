@@ -41,6 +41,9 @@ final class Aai_Sklep_Menu {
 	/** Napis pozycji. */
 	private const NAPIS = 'Szkolenia';
 
+	/** Napis pozycji dla zalogowanego klienta z kursami. */
+	private const NAPIS_MOJE = 'Moje kursy';
+
 	/**
 	 * Etykiety nawigacji, do których wstrzykujemy — KOTWICE.
 	 *
@@ -96,9 +99,38 @@ final class Aai_Sklep_Menu {
 	 */
 	public static function wstrzyknij( string $html ): string {
 		foreach ( self::KOTWICE as $kotwica ) {
-			$html = self::wstaw_do_nawigacji( $html, $kotwica );
+			foreach ( self::pozycje() as $pozycja ) {
+				$html = self::wstaw_do_nawigacji( $html, $kotwica, $pozycja );
+			}
 		}
 		return $html;
+	}
+
+	/**
+	 * Które pozycje wstrzykujemy — i dlaczego czasem dwie.
+	 *
+	 * „Moje kursy" wchodzi WYŁĄCZNIE zalogowanemu klientowi, który ma choć
+	 * jeden kurs. Gościowi nie pokazujemy drzwi, za którymi nic dla niego nie
+	 * ma, a właścicielowi bez zakupów — pustej listy. Pozycja powstała
+	 * w W6: klient logował się i nie miał JAK trafić do kupionego kursu, bo
+	 * jedyną listą był panel Tutora w cudzym wyglądzie.
+	 *
+	 * @return array<int,array<string,string>>
+	 */
+	private static function pozycje(): array {
+		$pozycje = array(
+			array( 'adres' => Aai_Sklep_Widok::adres_kursu(), 'napis' => self::NAPIS, 'widok' => 'katalog' ),
+		);
+
+		if ( is_user_logged_in() && class_exists( 'Aai_Sklep_Moje' ) && Aai_Sklep_Moje::kursy() ) {
+			$pozycje[] = array(
+				'adres' => Aai_Sklep_Moje::adres(),
+				'napis' => self::NAPIS_MOJE,
+				'widok' => 'moje',
+			);
+		}
+
+		return $pozycje;
 	}
 
 	/**
@@ -107,7 +139,7 @@ final class Aai_Sklep_Menu {
 	 * @param string $html     Zawartość bufora.
 	 * @param string $etykieta Treść `aria-label` nawigacji.
 	 */
-	private static function wstaw_do_nawigacji( string $html, string $etykieta ): string {
+	private static function wstaw_do_nawigacji( string $html, string $etykieta, array $pozycja ): string {
 		$kotwica = 'aria-label="' . $etykieta . '"';
 		$poz     = strpos( $html, $kotwica );
 		if ( false === $poz ) {
@@ -126,7 +158,7 @@ final class Aai_Sklep_Menu {
 			return $html;
 		}
 
-		$wstawka = self::pozycja( $html, $poz_ul, $koniec_ul );
+		$wstawka = self::pozycja( $html, $poz_ul, $koniec_ul, $pozycja );
 
 		// Wstawiamy PRZED zamykającym `</ul>`, czyli jako ostatnia pozycja.
 		$przed_zamknieciem = strrpos( substr( $html, 0, $koniec_ul ), '</ul' );
@@ -147,8 +179,8 @@ final class Aai_Sklep_Menu {
 	 * @param int    $poz_ul    Pozycja `<ul`.
 	 * @param int    $koniec_ul Pozycja tuż za `</ul>`.
 	 */
-	private static function pozycja( string $html, int $poz_ul, int $koniec_ul ): string {
-		$klon = self::sklonuj_ostatnia( $html, $poz_ul, $koniec_ul );
+	private static function pozycja( string $html, int $poz_ul, int $koniec_ul, array $co ): string {
+		$klon = self::sklonuj_ostatnia( $html, $poz_ul, $koniec_ul, $co );
 		if ( null !== $klon ) {
 			return $klon;
 		}
@@ -156,8 +188,8 @@ final class Aai_Sklep_Menu {
 		// Awaria: motyw zmienił się tak, że nie ma czego klonować. Pozycja
 		// wchodzi bez klas — wygląda surowo, ale JEST, a `smoke-wp-front`
 		// sprawdza jej obecność, nie urodę.
-		return '<li><a href="' . esc_url( Aai_Sklep_Widok::adres_kursu() ) . '"'
-			. self::biezaca() . '>' . esc_html( self::NAPIS ) . '</a></li>';
+		return '<li><a href="' . esc_url( $co['adres'] ) . '"'
+			. self::biezaca( $co['widok'] ) . '>' . esc_html( $co['napis'] ) . '</a></li>';
 	}
 
 	/**
@@ -168,7 +200,7 @@ final class Aai_Sklep_Menu {
 	 * @param int    $poz_ul    Pozycja `<ul`.
 	 * @param int    $koniec_ul Pozycja tuż za `</ul>`.
 	 */
-	private static function sklonuj_ostatnia( string $html, int $poz_ul, int $koniec_ul ): ?string {
+	private static function sklonuj_ostatnia( string $html, int $poz_ul, int $koniec_ul, array $co ): ?string {
 		$lista = substr( $html, $poz_ul, $koniec_ul - $poz_ul );
 
 		// Ostatnia pozycja NAJWYŻSZEGO poziomu: idziemy od początku listy
@@ -200,7 +232,7 @@ final class Aai_Sklep_Menu {
 		// 1. adres
 		$klon = preg_replace(
 			'~href="[^"]*"~',
-			'href="' . esc_url( Aai_Sklep_Widok::adres_kursu() ) . '"' . self::biezaca(),
+			'href="' . esc_url( $co['adres'] ) . '"' . self::biezaca( $co['widok'] ),
 			$klon,
 			1
 		);
@@ -233,11 +265,11 @@ final class Aai_Sklep_Menu {
 		//    podmieniłoby napis w cudzej pozycji, nie w naszym klonie.
 		$klon = preg_replace_callback(
 			'~(<a\b[^>]*>)(.*?)(</a>)~s',
-			static function ( array $t ): string {
+			static function ( array $t ) use ( $co ): string {
 				$wnetrze = $t[2];
 				$ostatni = strrpos( $wnetrze, '>' );
 				$przed   = false === $ostatni ? '' : substr( $wnetrze, 0, $ostatni + 1 );
-				return $t[1] . $przed . esc_html( self::NAPIS ) . $t[3];
+				return $t[1] . $przed . esc_html( $co['napis'] ) . $t[3];
 			},
 			(string) $klon,
 			1
@@ -250,8 +282,18 @@ final class Aai_Sklep_Menu {
 	 * `aria-current` na naszych stronach — tego atrybutu szuka skrypt motywu,
 	 * podświetlając aktywną pozycję menu.
 	 */
-	private static function biezaca(): string {
-		return null === Aai_Sklep_Trasy::widok() ? '' : ' aria-current="page"';
+	private static function biezaca( string $widok ): string {
+		$biezacy = Aai_Sklep_Trasy::widok();
+		if ( null === $biezacy ) {
+			return '';
+		}
+		/*
+		 * Katalog i strona kursu podświetlają „Szkolenia", widok „Moje kursy"
+		 * podświetla siebie. Bez tego rozróżnienia obie pozycje byłyby
+		 * bieżące naraz, a skrypt motywu podświetliłby dwie.
+		 */
+		$pasuje = 'moje' === $widok ? 'moje' === $biezacy : 'moje' !== $biezacy;
+		return $pasuje ? ' aria-current="page"' : '';
 	}
 
 	/**

@@ -1415,6 +1415,38 @@ wyprowadzała tego od nowa:
      sprostowana liczba sprawdzeń smoke'a kreatora: 92 → 95).
   4. ~~merge #73 i #74 → tagi → release'y~~ **ZROBIONE** (2026-08-25).
   5. **W6 — TEST RĘCZNY WŁAŚCICIELA — W TOKU** (ostatni krok `aai-sklep`).
+     **TRZY ZGŁOSZENIA WŁAŚCICIELA Z PIERWSZEGO PRZEBIEGU (2026-08-25) —
+     dwa naprawione, jedno okazało się decyzją:**
+     (a) **klient nie miał JAK trafić do kupionego kursu** — logowanie wyrzuca
+     na `/my-account/`, a jedyną listą był panel Tutora w jego wyglądzie
+     (własny pasek boczny, okno powitalne ze zrzutem cudzego kursu
+     fotografii). Powstała **nasza `/szkolenia/moje/`** (`Aai_Sklep_Moje`
+     + `szablony/moje.php`): kafelki z paskiem postępu i przyciskiem do
+     pierwszej NIEODHACZONEJ lekcji; `/dashboard/` i `/dashboard/courses/`
+     → **302** na nas; pozycja „Moje kursy" w obu nawigacjach motywu, ale
+     **tylko dla zalogowanego z kursem**; strona ma `noindex`, bo jej treść
+     zależy od konta. **Postępu NIE liczymy sami** — pyta o niego Tutor
+     (`is_completed_lesson`), inaczej mielibyśmy drugą kopię tej samej prawdy;
+     (b) **strony konta WooCommerce renderowały się bez stylów** — dostawały
+     arkusze Woo, ale nie naszą warstwę integracji (obsługiwała tylko Tutora),
+     więc menu konta lądowało w lewym górnym rogu pod nagłówkiem. Ta sama
+     klasa co 0.38.0/0.40.0. Powstał `Aai_Sklep_Styl_Woo` + `woo-motyw.css`,
+     pytający `Aai_Sklep_Zasoby::strona_woo()` — obejmie też koszyk i kasę
+     z Pluginu 2;
+     (c) **cztery lekcje otwierają się bez logowania** — NIE wyciek: mają
+     `preview = 1` w naszych tabelach (pierwsza lekcja modułu 1 i jednego
+     dalszego modułu w każdym kursie), bramka działa zgodnie z danymi.
+     **DECYZJA WŁAŚCICIELA 2026-08-25: zostają wszystkie cztery.** Zapisane,
+     żeby następne zgłoszenie nie ruszało śledztwa od nowa.
+     **DOWODY PO NAPRAWACH:** strażnicy 34/34, `smoke-wp-motyw` **64**
+     (SIEDEM stron — doszły `/my-account/` i `/szkolenia/moje/`, a
+     `/dashboard/` ustąpił `/dashboard/retrieve-password/`),
+     `smoke-wp-front` **83** (oba przekierowania panelu + brak wycieku listy
+     kursów gościowi), `smoke-wp-lekcja` 32, `smoke-wp-kreator` 95,
+     `smoke-wp-dane` 30. Każde nowe sprawdzenie ma test negatywny.
+     **PUŁAPKA POMIARU:** kafelki „Moich kursów" mają `.aai-reveal`
+     (opacity 0 do czasu IntersectionObservera) — zrzut zrobiony zaraz po
+     `load` pokazuje PUSTĄ siatkę i wygląda jak błąd danych. Czekać ~1,5 s.
      **SCENARIUSZ WIĄŻĄCY:
      [docs/plugin-1/W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md)
      — CZYTAĆ PRZED PRACĄ.** Gałąź `feat/w6-test-reczny`, wersja 0.45.0,
