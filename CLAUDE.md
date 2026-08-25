@@ -1417,8 +1417,9 @@ wyprowadzała tego od nowa:
   5. **W6 — TEST RĘCZNY WŁAŚCICIELA — W TOKU** (ostatni krok `aai-sklep`).
      **SCENARIUSZ WIĄŻĄCY:
      [docs/plugin-1/W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md)
-     — CZYTAĆ PRZED PRACĄ.** Gałąź `feat/w6-test-reczny`, wersja 0.45.0;
-     poprawki z testu wchodzą na TĘ gałąź.
+     — CZYTAĆ PRZED PRACĄ.** Gałąź `feat/w6-test-reczny`, wersja 0.45.0,
+     wypchnięta, **BEZ PR-a** — PR otwieramy DOPIERO po zaliczeniu W6, razem
+     z poprawkami z testu; poprawki wchodzą na TĘ gałąź.
      Cztery ścieżki: gość → klient po zakupie → właściciel w kreatorze →
      czy nie zepsuliśmy motywu. Dokument ma też **tabelę rzeczy POZA
      zakresem** (zakup → `/kontakt`, cena `Free` w Tutorze, `PreOrder`,
