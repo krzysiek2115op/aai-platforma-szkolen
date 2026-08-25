@@ -931,15 +931,50 @@ final class Aai_Sklep_Zapis {
 	}
 
 	/**
+	 * Klucze W JEDNEJ, USTALONEJ KOLEJNOŚCI — na każdym poziomie zagnieżdżenia.
+	 *
+	 * Bez tego dwaj pisarze tej samej treści dają dwa różne łańcuchy:
+	 * import układa klucze tak, jak przyszły z eksportu, panel tak, jak stoją
+	 * w opisie pól. LISTY zostają nietknięte — ich kolejność JEST treścią
+	 * (moduły, lekcje, punkty korzyści); porządkujemy wyłącznie mapy, gdzie
+	 * kolejność kluczy nie znaczy nic.
+	 *
+	 * @param mixed $wartosc Struktura do uporządkowania.
+	 *
+	 * @return mixed Ta sama wartość, z mapami posortowanymi po kluczach.
+	 */
+	private static function uporzadkuj( $wartosc ) {
+		if ( ! is_array( $wartosc ) ) {
+			return $wartosc;
+		}
+		if ( array_is_list( $wartosc ) ) {
+			return array_map( array( self::class, 'uporzadkuj' ), $wartosc );
+		}
+		ksort( $wartosc );
+		return array_map( array( self::class, 'uporzadkuj' ), $wartosc );
+	}
+
+	/**
 	 * JSON o STAŁYM kształcie — ta sama wartość musi dawać ten sam łańcuch,
 	 * inaczej porównanie „czy się zmieniło" kłamałoby przy każdym imporcie.
+	 *
+	 * TA OBIETNICA MUSI BYĆ PRAWDZIWA, BO NA NIEJ STOI CAŁE „CZY SIĘ ZMIENIŁO".
+	 * Do W6 stało tu samo `wp_json_encode`, które zachowuje kolejność kluczy
+	 * tablicy — więc identyczna treść zapisana raz przez import, a raz przez
+	 * panel dawała dwa różne łańcuchy. Skutek był cichy: pierwszy zapis po
+	 * imporcie przepisywał WSZYSTKIE 24 sekcje, dopisywał 24 wiersze do
+	 * dziennika zmian i meldował „Kurs zapisany", choć właściciel niczego nie
+	 * dotknął — a dziennik ma zapisywać wyłącznie realne zmiany.
 	 *
 	 * @param mixed $wartosc Struktura do zapisania.
 	 *
 	 * @throws Aai_Sklep_Blad_Zapisu Gdy wartości nie da się zakodować.
 	 */
 	private static function json( $wartosc ): string {
-		$json = wp_json_encode( $wartosc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+		$json = wp_json_encode(
+			self::uporzadkuj( $wartosc ),
+			JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+		);
 		if ( false === $json ) {
 			throw new Aai_Sklep_Blad_Zapisu( 'nie udało się zakodować wartości do JSON-a' );
 		}

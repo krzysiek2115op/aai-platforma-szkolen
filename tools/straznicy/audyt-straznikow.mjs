@@ -1327,6 +1327,39 @@ const MUTACJE = [
         : null,
   },
   {
+    straznik: "straznik-wtyczki-wp",
+    opis: "warstwa zapisu koduje JSON bez porządkowania kluczy (BLAD-020: zapis bez zmian melduje „zapisano” i puchnie dziennik)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    zmien: (s) =>
+      s.includes("self::uporzadkuj( $wartosc ),")
+        ? s.replace("self::uporzadkuj( $wartosc ),", "$wartosc,")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "wiersz lekcji przestaje być granicą zakresu kolektora (BLAD-019: zapis kursu nadaje modułom tytuł ostatniej lekcji)",
+    plik: "wordpress/wtyczki/aai-sklep/assets/panel.js",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/assets/panel.js"),
+    zmien: (s) =>
+      s.includes('"data-aai-lekcja",')
+        ? s.replace('\t\t"data-aai-lekcja",\n', "")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "kolektor przestaje korzystać z listy granic (lista zostaje, ale niczego nie pilnuje)",
+    plik: "wordpress/wtyczki/aai-sklep/assets/panel.js",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/assets/panel.js"),
+    zmien: (s) =>
+      s.includes("GRANICE_ZAKRESU.some(function (znacznik) {")
+        ? s.replace(
+            /GRANICE_ZAKRESU\.some\(function \(znacznik\) \{[\s\S]*?\}\)/,
+            'element.hasAttribute("data-aai-pole")'
+          )
+        : null,
+  },
+  {
     straznik: "straznik-kreatora-wp",
     opis: "pole treści lekcji znika z opisu (materiał kursu bez miejsca w panelu)",
     plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-kontrakt.php",

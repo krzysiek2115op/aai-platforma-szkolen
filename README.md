@@ -152,6 +152,7 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run smoke:wp-kreator` | czy kreator w kokpicie zapisuje to, co właściciel wpisał — i NIC poza tym? logowanie prawdziwą sesją, odmowa dla gościa i dla konta bez uprawnień, żądanie bez nonce'a, runda „zapisz → odczytaj" dla wszystkich 12 rodzajów sekcji (treść generowana z OPISU PÓL, więc nowe pole samo wchodzi do próby), zapis programu nietykający prozy 73 lekcji, odmowa skasowania napisanej treści bez jawnej zgody i brak wycieku materiału na publiczne strony (wymaga `wordpress/srodowisko/postaw.sh`; poza CI) |
 | `npm run smoke:wp-tutor` | czy kopia kursu w Tutor LMS nadąża za KAŻDĄ drogą zapisu? — na własnym kursie: powstanie kopii, idempotencja, zmiana tytułu i kolejności, treść lekcji co do znaku, publikacja, skasowana lekcja bez sieroty, usunięcie całego kursu; do tego trzy testy negatywne (ręczna zmiana w Course Builderze, sierota, wpis spoza kreatora) i dowód, że synchronizacja NIE kasuje cudzych wpisów (wymaga `wordpress/srodowisko/postaw.sh`; poza CI) |
 | `npm run smoke:wp-lekcja` | czy widok lekcji oddaje materiał TYLKO uprawnionym? — gość nie widzi ani zdania prozy (i dostaje zaproszenie), zalogowany widzi pierwszy i ostatni akapit z bazy, komplet sekcji, ikony bloków i zrzuty, które naprawdę się pobierają; do tego WSZYSTKIE 73 lekcje składają się bez zatrzymania renderera, a nawigacja i program prowadzą tam, gdzie mówią (wymaga `wordpress/srodowisko/postaw.sh`; poza CI) |
+| `npm run smoke:wp-panel` | czy panel wysyła to, co właściciel WIDZI na ekranie? — mierzy kolektor kreatora w prawdziwej przeglądarce (kontrolki nie mają atrybutu `name`, więc wysyłkę składa JavaScript i żaden smoke POST-owy jej nie dotyka): tytuł modułu bierze się z pola modułu, tytuły lekcji z pól lekcji, a zapis, przy którym niczego nie dotknięto, odpowiada „bez zmian”, nie rusza stanu kursu i nie dopisuje się do dziennika (wymaga `wordpress/srodowisko/postaw.sh` i riga z `puppeteer-core`; poza CI) |
 
 > [!NOTE]
 > **Baza nie jest źródłem prawdy — jest kopią roboczą, z której renderuje
@@ -195,7 +196,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 156 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 159 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie

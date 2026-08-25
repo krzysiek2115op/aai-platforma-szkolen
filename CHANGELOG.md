@@ -14,6 +14,20 @@ strażnik nie umie zadać: czy to, co widzi człowiek, ma sens i wygląda jak na
 
 ### Dodane
 
+- **`npm run smoke:wp-panel`** (`tools/smoke/smoke-wp-panel.mjs`, 54
+  sprawdzenia) — pierwszy pomiar KOLEKTORA PANELU, czyli warstwy JavaScriptu,
+  która składa wysyłkę kreatora. Mierzy w prawdziwej przeglądarce, na obu
+  prawdziwych kursach: (a) JSON wkładany do pól ukrytych tuż przed wysyłką
+  zgadza się z tym, co stoi w kontrolkach — tytuł modułu z pola modułu, tytuły
+  lekcji z pól lekcji, co do sztuki; (b) **zapis, przy którym niczego nie
+  dotknięto, odpowiada `bez_zmian`**, nie rusza skrótu stanu kursu i nie
+  dopisuje się do dziennika zmian. To jest sprawdzenie, które by BLAD-019
+  złapało. Test negatywny: usunięcie `data-aai-lekcja` z listy granic → 18
+  z 54 sprawdzeń pada i nazywa klasę błędu. **Test negatywny trzeba puszczać
+  na ZDROWYCH danych** — na już zepsutych tytuł modułu równa się tytułowi
+  ostatniej lekcji, więc zapis niczego nie zmienia i pomiar przechodzi
+  fałszywie.
+
 - **`npm run wp:klient`** (`tools/wp-klient-testowy.mjs`) — zakłada konto
   KLIENTA (`klient-test`, rola `subscriber`) i zapisuje je na wszystkie
   opublikowane kursy. Idempotentne; `--usun` kasuje konto razem z zapisami.
@@ -31,6 +45,43 @@ strażnik nie umie zadać: czy to, co widzi człowiek, ma sens i wygląda jak na
   należy do Pluginu 2.
 
 ### Naprawione (zgłoszenia właściciela z testu ręcznego W6)
+
+- **Zwykły zapis w kreatorze przemianowywał WSZYSTKIE moduły kursu
+  (BLAD-019).** Właściciel poprawił tytuł i cenę na zakładce *Kurs*, programu
+  nie tknął — a sześć modułów Kursu 1 dostało tytuły swoich OSTATNICH lekcji
+  („Fundamenty: poznaj Claude" → „Słowniczek pojęć — mów językiem AI"). Zapis
+  zameldował sukces, kopia w Tutorze wiernie powtórzyła błędne tytuły
+  (`wp:tutor` pokazywał 0 różnic, bo obie strony były już zepsute), a front
+  wyświetlał złe nazwy w programie.
+  **Mechanizm:** kontrolki panelu nie mają atrybutu `name` (`max_input_vars`
+  ucina POST w milczeniu przy 41 lekcjach), więc wysyłkę składa
+  `assets/panel.js`. Zakres zbierania pól zamykał `najblizszyKontener()`,
+  który znał trzy granice: `data-aai-pole`, `data-aai-wiersz`,
+  `data-aai-obiekt`. Wiersz lekcji niesie `data-aai-lekcja` — **tego znacznika
+  na liście nie było**, więc pole `title` każdej lekcji przeciekało do obiektu
+  modułu i nadpisywało jego tytuł; wygrywała ostatnia.
+  **Naprawa:** granice zebrane w jedną listę `GRANICE_ZAKRESU`, obejmującą
+  korzeń KAŻDEGO rekordu panelu (`data-aai-sekcja`, `data-aai-modul`,
+  `data-aai-lekcja`). Dane odtworzone z Postgresa (`wp:import` + `wp:sync`),
+  zgodność potwierdzona `wp:sprawdz` (73/73 treści co do znaku).
+  **Dlaczego nie złapał tego żaden automat:** `smoke-wp-kreator` (95
+  sprawdzeń) wysyła gotowy JSON POST-em i nigdy nie uruchamia przeglądarki,
+  więc cały kolektor panelu był poza zasięgiem pomiaru. Ta luka ma teraz
+  własny smoke (niżej).
+- **Zapis, przy którym niczego nie dotknięto, meldował „Kurs zapisany"
+  i puchł dziennik zmian (BLAD-020).** `Aai_Sklep_Zapis::json()` obiecywał
+  w nagłówku „JSON o STAŁYM kształcie — ta sama wartość musi dawać ten sam
+  łańcuch", a robił samo `wp_json_encode()`, które zachowuje kolejność kluczy
+  tablicy. Klucze układa ten, kto akurat pisze: import w kolejności eksportu,
+  panel w kolejności opisu pól. Skutek: pierwszy zapis po imporcie przepisywał
+  wszystkie 24 sekcje obu kursów, dopisywał 24 wiersze do dziennika i pchał
+  niepotrzebną synchronizację do Tutora — łamiąc decyzję właściciela z 0.37.0
+  („audyt zapisuje tylko realne zmiany"). Nic się przy tym nie zapalało, bo
+  dane były poprawne. Naprawia `Aai_Sklep_Zapis::uporzadkuj()`: klucze MAP
+  porządkowane rekurencyjnie, LISTY nietknięte — ich kolejność JEST treścią.
+  Znalezione POMIAREM przy budowaniu smoke'a kolektora: `wp:sprawdz` mówił
+  „zero różnic" (porównuje strukturalnie), a `wp:import` w tej samej chwili
+  przepisywał 10 sekcji.
 
 - **Klient nie miał JAK trafić do kupionego kursu.** Logowanie WordPressa
   wyrzuca na `/my-account/`, a jedyną listą kupionych kursów był panel Tutora
