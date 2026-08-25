@@ -1061,12 +1061,49 @@ wyprowadzała tego od nowa:
   PRODUKCJA-MATERIALU-KROK-3.md.
 - **Mail po zakupie: link „Ustaw hasło i wejdź", NIE hasło w treści.** Jedna
   wiadomość premium: powitanie, co kupił, mini instrukcja, jeden przycisk.
-- **Środowisko stawiamy OD RAZU.** Warsztat: `wordpress/` w repo strony
-  głównej (`bash skrypty/start.sh` → WP + MariaDB, `:8890`, motyw i treść
-  1:1) — bierzemy go sparse checkoutem, repo strony głównej zostaje
-  TYLKO DO ODCZYTU. Warsztat zakłada Dockera, u nas jest podman.
-  Osobno mamy już `tutor-db` + `tutor-wp` (`:8091`, WP 7.0.1 + Tutor 4.0.6
-  + Woo 11.0.1) z migracji 0.36.0.
+- **Środowisko POSTAWIONE (0.38.0): `wordpress/srodowisko/postaw.sh`** —
+  jedna komenda stawia WP + MariaDB + motyw Automatic AI + treść strony 1:1
+  + WooCommerce + Tutor LMS + nasze wtyczki (mount wprost z repo) na
+  **`127.0.0.1:8892`** (admin / hasło w `wordpress/srodowisko/.env`).
+  Idempotentny, kończy WERYFIKACJĄ ARTEFAKTU. Motyw mieszka POZA repo
+  (`~/.cache/automatic-ai-warsztat`, sparse checkout) — bo strażnicy
+  skanują DYSK, nie git, i cudze pliki w drzewie repo wywołały fałszywy
+  alarm straznik-seo. Stare środowisko `tutor-wp` (`:8091`) zostaje jako
+  nieodtwarzalny zabytek — nie budować na nim niczego nowego.
+
+  **PLAN WTYCZKI `aai-sklep` (Plugin 1 WP), kroki W1–W6:**
+  W1 fundament → W2 dane (import kursów z Postgresa) → W3 front
+  (`/szkolenia` przez `template_include` + menu + strażnik) → W4 kreator
+  w kokpicie → W5 synchronizacja do Tutora + nasze szablony lekcji →
+  W6 test ręczny właściciela. **W1 ZROBIONY (0.38.0, PR #65):** szkielet
+  wtyczki (autoloader bez Composera — wtyczka ma się wgrywać jako katalog
+  plików), 5 tabel `wp_aai_sklep_*` przez dbDelta (treść lekcji
+  `mediumtext`, sekcje `UNIQUE (course_id, kind)` bez `position`),
+  `uninstall.php` domyślnie NIE kasuje danych, `straznik-wtyczki-wp`
+  (30. strażnik, 4 mutacje). Audyt zmian pisze PHP, nie triggery —
+  świadome odstępstwo od D2 (uprawnienie TRIGGER bywa na hostingu
+  odebrane), nazwane wprost.
+  **NASTĘPNY KROK: W2 — import obu kursów z Postgresa (`db1_kursy`) do
+  tabel wtyczki.** Bramka: 73 lekcje zgodne CO DO ZNAKU (wzorzec:
+  `tools/eksport-wp.mjs` + dowód idempotencji jak przy migracji 0.36.0).
+  Pamiętać: WordPress zjada backslashe w meta (`wp_slash`!), a `LENGTH()`
+  w MySQL liczy bajty — porównywać `CHAR_LENGTH()` i treść znak w znak.
+
+  **NAPRAWA RENDERU (0.38.0, zgłosił właściciel zrzutami):** strona główna
+  była łamana przez `tutor-front.min.css` — globalna klasa `.text-label`
+  (jasne tło, padding, inline-block) koliduje z klasą motywu o tej samej
+  nazwie (rozmiar pisma; plakietki + marquee stopki). Skan 249 klas motywu
+  przeciw arkuszom wtyczek: 1 kolizja groźna, 4 nieszkodliwe; konwersja
+  kolegi ZDROWA. Naprawa: `Aai_Sklep_Zasoby` — zasoby Tutora/Woo nie
+  wchodzą na strony, które ich nie używają. **Gwarancją są filtry
+  `style_loader_src`/`script_loader_src`** (biegną przy DRUKOWANIU
+  znacznika) — samo `wp_dequeue_*` w `wp_enqueue_scripts` 999 przepuszczało
+  `wc-blocks-style` (dokładany później) i `sourcebuster-js` (własny uchwyt,
+  drukowany w stopce). Zasada ostrożności: zdejmujemy tylko, gdy strona NA
+  PEWNO nie należy do Tutora/Woo. `postaw.sh` weryfikuje OBIE strony
+  medalu (strona motywu czysta ORAZ koszyk z arkuszami Woo).
+  **Rig do zrzutów:** puppeteer-core + `/usr/bin/firefox` (webDriverBiDi)
+  w scratchpadzie — wzorzec z D5, nigdy w package.json.
 
 # This is NOT the Next.js you know
 
