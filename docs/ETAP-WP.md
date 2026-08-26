@@ -925,6 +925,67 @@ Podział wychodzi z tego, kto co naprawdę umie:
   zapisie kursu** — to jest świadomy koszt tej decyzji, nie usterka. Ma być
   napisane wprost w miejscu, gdzie właściciel edytuje cenę.
 
+### DECYZJE WŁAŚCICIELA (2026-08-26): zakres Pluginu 2 doprecyzowany
+
+Zadane przed pierwszą linijką kodu, zgodnie z decyzją z 2026-08-21 („zakres
+Pluginów 2 i 3 doprecyzowujemy pytaniami przed startem każdego z nich").
+Wszystkie poniższe to **wybory właściciela**, nie założenia agenta.
+
+| # | Decyzja | Konsekwencja wykonawcza |
+|---|---|---|
+| 1 | **Zakres modułu:** szew + działająca kasa na **metodzie testowej** | prawdziwa bramka (Tpay/P24/BLIK) i faktury — OSOBNY krok, gdy będą dane firmy i umowa z operatorem; żadna pozycja modułu nie stoi na decyzji zewnętrznej |
+| 2 | **Ścieżka zakupu:** przycisk → **prosto do kasy** | koszyk istnieje, bo Woo go potrzebuje, ale klient go nie widzi; filtr `woocommerce_add_to_cart_redirect` |
+| 3 | **Konto powstaje przy zakupie**, klient nie wymyśla hasła | zakup gościa w Woo wyłączony; hasło generowane, link do ustawienia w mailu |
+| 4 | **Cena a promocje:** strona pokazuje **cenę efektywną z Woo** | promocyjna + przekreślona regularna; edycja dalej WYŁĄCZNIE w kreatorze; dotyczy też KATALOGU i danych strukturalnych, nie tylko strony sprzedażowej |
+| 5 | **Dostęp:** natychmiast po opłacie; **zwrot i anulowanie odbierają dostęp** | zamówienie domyka się samo; odebranie dostępu robi Tutor za statusem zamówienia |
+| 6 | **Adresy Woo na polskie:** `/koszyk/`, `/zamowienie/`, `/moje-konto/` | koszt: poprawka smoke'ów Pluginu 1, które mierzą dziś `/my-account/` |
+| 7 | **Maile:** potwierdzenie zamówienia z Woo ZOSTAJE + NASZ mail z przyciskiem „Ustaw hasło i wejdź do kursu" | mail „nowe konto" WooCommerce milknie, bo dwa linki do hasła unieważniają się nawzajem |
+| 8 | **Regulamin i zgoda na natychmiastowe dostarczenie treści cyfrowej — NIE TERAZ** | wraca przy prawdziwej bramce. **Bramka: przed pierwszym prawdziwym klientem, nie po nim** — bez tej zgody klient może odstąpić w 14 dni po przeczytaniu całego kursu |
+
+**Plan zaakceptowany (2026-08-26): kroki P0–P6.** P0 = SCHEMAT
+([docs/plugin-2/DIAGRAM.md](plugin-2/DIAGRAM.md)) → krytyka → akceptacja
+właściciela → dopiero kod. Dalej: P1 fundament, P2 produkt z ceny, P3 ścieżka
+zakupu, P4 konto i mail, P5 przypadki brzegowe, P6 test ręczny właściciela.
+
+### DECYZJA WŁAŚCICIELA (2026-08-26): NIE robimy własnej bazy klientów
+
+**Pytanie właściciela:** w schemacie brakuje jasno zapisanej bazy danych,
+jednego AJAX-a do niej i kanału JSON jako łączenia — czyli szkieletu
+z WYTYCZNE §8.
+
+**Rozstrzygnięcie: Plugin 2 MA własną bazę (tabele `wp_aai_platnosci_*`), ale
+NIE jest to baza klientów, zamówień i płatności z PLAN.md §3.** Powód jest
+jeden i ma być czytelny dla każdego, kto zajrzy do tego repo:
+
+> **WooCommerce ma już klienta, zamówienie i płatność.** Ma własne tabele,
+> panel, faktury i zgodność z przepisami o obsłudze płatności. Napisanie tego
+> drugi raz u siebie dałoby drugą kopię danych osobowych (do skasowania przy
+> każdym żądaniu RODO) i drugą prawdę o pieniądzach, którą trzeba by pilnować
+> kontrolą rozjazdu. **Nie robimy tego świadomie — to nie jest brak.**
+
+W naszych tabelach mieszkają wyłącznie dwie rzeczy, których **nie ma nikt
+inny**: `powiazania` (kurs ↔ produkt Woo, wysłana cena, ostatni błąd) oraz
+`dostawy` (zamówienie, kurs, użytkownik, czy zapis w Tutorze potwierdzony,
+czy mail powitalny poszedł i kiedy). Klienta i zamówienie **wskazujemy
+referencją** (`user_id`, `order_id`) i łączymy `JOIN`-em — co działa, bo nasze
+tabele siedzą w bazie WordPressa (decyzja z 2026-08-25 o własnym prefiksie
+zamiast osobnej bazy MySQL).
+
+**Dlaczego `dostawy` są potrzebne, choć wygląda to na dublowanie:** Woo wie
+o zamówieniu, Tutor wie o zapisie, a **nikt nie wie, czy klient naprawdę
+dostał dostęp i naszą wiadomość**. Do tego `UNIQUE (zamówienie, kurs)` daje
+idempotencję maila **atomowym zapisem** — a to jedyna szczelna odpowiedź na
+podwójne wykonanie haka przy rekurencji `mark_order_complete()` w Tutorze.
+
+Pełna korekta pierwotnego opisu bazy: [PLAN.md](PLAN.md), §3, blok
+„KOREKTA 2026-08-26".
+
+**Drugie polecenie właściciela (2026-08-26): schemat ma mówić DWOMA
+JĘZYKAMI** — osobna sekcja w języku pluginów tego projektu
+(`BAZA → DZIAŁ → wystrzał AJAX → strony`, kanał JSON obok, WYTYCZNE §8)
+i osobna w języku WordPressa (haki, tabele, `admin-post.php`, meta). Nie
+jedna zamiast drugiej.
+
 ## Następne kroki
 
 1. ~~Poprosić kolegę o katalog motywu~~ **NIEAKTUALNE 2026-08-20** —
