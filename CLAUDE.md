@@ -1786,6 +1786,53 @@ wyprowadzała tego od nowa:
      wcześniej = konto bez linku do hasła, klasa K1). Kluczowy fakt
      z weryfikacji zerowej: `is_course_purchasable` przy silniku `wc` czyta
      TYLKO meta, nie pyta produktu Woo — blokada koszyka NIE otwiera okna B2.
+     **P3a ZROBIONY (2026-08-29, wersja 0.48.0) — PR #81 OTWARTY, CZEKA NA
+     ZGODĘ WŁAŚCICIELA NA MERGE.** Sweep kroku:
+     [docs/plugin-2/SWEEP-P3A.md](docs/plugin-2/SWEEP-P3A.md), szczegóły
+     i przegląd: [docs/plugin-2/KROK-P3A.md](docs/plugin-2/KROK-P3A.md) §6–§8.
+     Dowody: strażnicy 35/35, audyt mutacyjny **183** (0 przeoczonych,
+     0 martwych), `npm run check` 0, smoke: motyw **89** (9 stron), produkty
+     **71**, płatności 23, front 84, tutor 44, lekcja 35, kreator 96,
+     panel 54, dane 30; `postaw.sh` 0; dane Pluginu 1 nietknięte (73/73,
+     0 różnic). Środowisko `:8892`: produkty 2, powiazania 2, dostawy 0.
+     **PIĘĆ FAKTÓW ZMIERZONYCH W CUDZYM KODZIE (nie z dokumentacji):**
+     (1) **Tutor czyta `monetize_by` W KONSTRUKTORZE, przy include swojego
+     pliku** — filtr B17 z `plugins_loaded` przychodzi PO odczycie i niczego
+     nie broni; rejestracja MUSI być na poziomie pliku wtyczki (strażnik
+     liczy głębokość klamer, bo wzorzec na pozycję w linii był ślepy na
+     rejestrację warunkową); (2) **zasłona „Coming soon" Woo jest DZIURAWA
+     jako blokada** — Store API przyjmuje produkt mimo niej (201), a jako
+     strona podmienia koszyk i kasę na anglojęzyczną planszę w canvasie
+     szablonów blokowych, z pominięciem `page.php` motywu; (3) **style
+     komponentów bloków Woo drukują się W ŚRODKU `<body>`**, więc są zawsze
+     po arkuszach z `<head>` — wyścigu specyficzności nie da się wygrać
+     zależnością enqueue, trzeba włączyć ICH ciemny wariant
+     (`has-dark-controls` na bloku); (4) **koszyk gościa jest NIEWIDZIALNY
+     dla zalogowanego** (Woo czyta sesję po `user_id`), a sesja przeniesiona
+     ze skryptu Node do przeglądarki wygląda identycznie co do bajta i też
+     nie działa — w smoke'u produkt dodaje SAMA przeglądarka
+     (`?add-to-cart=`) w izolowanym kontekście; (5) **`wp_old_slug_redirect`
+     NIE obejmuje stron** — po zmianie sluga stary adres oddaje 404, nie 301
+     (przyjęte decyzją właściciela).
+     **BŁĄD, KTÓRY ZŁAPAŁ DOPIERO PRZEGLĄD — nowa klasa: CICHA UTRATA TREŚCI
+     PRZEZ PODMIANĘ PREFIKSU.** `dopisz_klase_bloku()` robił `str_replace`
+     na `class="<nazwa-bloku>`, więc trafiał w KAŻDY blok zagnieżdżony o tej
+     samej nazwie początkowej i rozbijał jego klasę
+     (`…-cart-items-block` → `…-cart has-dark-controls-items-block`).
+     Zmierzone na żywych danych: **13 uszkodzeń w koszyku, 22 w kasie**, bez
+     jednego objawu — blok Woo zwraca zapisaną treść bez regeneracji, więc
+     ani zapis, ani render nic nie zgłaszały; idempotencja po obecności
+     klasy zamroziłaby ten stan na zawsze. **Reguła: podmiana w cudzej
+     treści MUSI kończyć się granicą atrybutu i dotyczyć jednego wystąpienia.**
+     Pilnują: reguła 13b `straznik-platnosci-wp`, mutacja w audycie
+     i KONTROLA DANYCH w `sprawdz` (rozbite nazwy klas = kod 1; `--napraw`
+     tego NIE cofa, bo cudzej treści nie zgadujemy).
+     **NASTĘPNY KROK PO `/clear`: merge PR #81 za zgodą właściciela → tag
+     `v0.48.0` + release (artefakt: `git diff main <szczyt>` PUSTY) → plan
+     i pytania do P3b** (CTA w trzech stanach, cena z Woo na froncie ORAZ
+     w JSON-LD z jednego wywołania, `PreOrder → InStock`, mechanizm domykania
+     zamówienia porównany POMIAREM, przebieg zakupu obiema ścieżkami).
+     Blokadę sprzedaży zdejmuje dopiero **P4**.
      **REGUŁA WŁAŚCICIELA (2026-08-28), obowiązuje dla CAŁYCH Pluginów 2 i 3:
      przed KAŻDYM krokiem agent najpierw przedstawia plan przebiegu kroku
      (z tym, czego krok NIE dotyka) i pytania doprecyzowujące, i czeka na
