@@ -1653,6 +1653,52 @@ wyprowadzała tego od nowa:
      `docs/schemat-pluginu-2` — stackowane PR-y już raz zamknęły się
      nawzajem, notatka przy 0.25.0), potem plan + pytania do P2 (produkt
      z ceny) wg reguły poniżej.**
+     **P2 W TOKU — PRZERWA 2026-08-28 (gałąź `feat/p2-produkt-z-ceny`,
+     NIEUKOŃCZONE, bez PR-a).** Stan: kod szwu NAPISANY i działa na
+     żywej instalacji (2 prawdziwe kursy mają produkty: 675/676,
+     `publish`, `hidden`, cena z naszej tabeli, powiązanie w Tutorze,
+     `sync` idempotentny — druga próba „bez zmian 2"), ale **smoke P2
+     ma 2 z 37 sprawdzeń czerwone** i to jest PRAWDZIWA usterka do
+     dokończenia, nie usterka testu.
+     **NASTĘPNY KROK PO PRZERWIE — dokończyć naprawę `_price`:**
+     gdy ktoś zepsuje `_price` METĄ, cena regularna zostaje poprawna,
+     więc `synchronizuj_kurs()` nie widzi zmiany propsu i **nie zapisuje
+     — rozjazd „katalog nowa cena, kasa stara" żyje wiecznie**, choć
+     kontrola każe „uruchomić sync". ZMIERZONE: `set_price()+save()`
+     NIE zapisuje `_price` (data store liczy je tylko z propsu
+     `regular_price`); podwójne `set_regular_price()` na JEDNYM obiekcie
+     TEŻ nie; **działa dopiero DWA OSOBNE `save()` na DWÓCH obiektach
+     `wc_get_product()`** (zapis 1: inna cena, zapis 2: powrót) —
+     sprawdzone na produkcie 675. To ma wejść do `synchronizuj_kurs()`
+     jako gałąź naprawcza (tylko gdy `get_price('edit')` != oczekiwana),
+     razem z komentarzem, i wtedy smoke przechodzi 37/37.
+     **CO JUŻ ZROBIONE W P2:** `Aai_Sklep_Odczyt::kurs_po_id()` (jedyna
+     zgoda na zmianę w Pluginie 1), `Aai_Platnosci_Szew` (prio 20,
+     `Throwable`, hak `save_post_product` B13), `Aai_Platnosci_Komunikaty`
+     (L14), warstwa zapisu: produkt draft→powiązanie→publish z kolejnością
+     B2, `zdejmij_kurs()` wg tabeli 9.3, `synchronizuj_wszystkie()`,
+     `wp aai-platnosci sync [<slug>]` + aktywacja, kontrola rozjazdu
+     (cena regularna I `_price`, widoczność, znaczniki, powiązanie,
+     duplikaty uuid, sieroty), `tools/smoke/smoke-wp-produkty.mjs`
+     (37 sprawdzeń, mierzy m.in. KOLEJNOŚĆ B2 hakiem na meta i bramkę
+     „sha256 produktu niezmieniony między przebiegami").
+     **DWIE RZECZY, KTÓRE SMOKE ZŁAPAŁ I JUŻ NAPRAWIONO:** (1) kontrola
+     była ŚLEPA na każdy rozjazd przez 10 minut po synchronizacji —
+     próg „w trakcie" (B15) degradował WSZYSTKO; teraz degraduje wyłącznie
+     stany NIEKOMPLETNE (brak produktu/powiązania), a rozjazd WARTOŚCI
+     to zawsze kod 1, okno skrócone do 60 s; (2) `INSERT … ON DUPLICATE
+     KEY UPDATE` (P1) nadpisywał cudzy wiersz przy konflikcie drugiego
+     klucza unikalnego.
+     **ZOSTAJE DO ZROBIENIA W P2 (poza `_price`):** rozszerzenie
+     `straznik-platnosci-wp` o kolejność B2 i mutacje w audycie,
+     `npm run smoke:wp-produkty` w package.json, wiersze w README,
+     wpis CHANGELOG, `sprawdz` w sekcji WERYFIKACJA `postaw.sh`
+     (punkt kontrolny), przegląd agent+krytyk wg `agenci/przeglad-pr/`,
+     dopiero potem PR.
+     **ŚRODOWISKO ZOSTAWIONE CZYSTE:** `:8892` działa, kursy 2, produkty 2,
+     powiazania 2, dostawy 0, `wp:sprawdz` 73/73, `wp aai-platnosci sprawdz`
+     kod 0. Uwaga: przełączenie gałęzi ZABIJA bind mount wtyczki (inode) —
+     po `git checkout` robić `podman-compose down && ./postaw.sh`.
      **REGUŁA WŁAŚCICIELA (2026-08-28), obowiązuje dla CAŁYCH Pluginów 2 i 3:
      przed KAŻDYM krokiem agent najpierw przedstawia plan przebiegu kroku
      (z tym, czego krok NIE dotyka) i pytania doprecyzowujące, i czeka na

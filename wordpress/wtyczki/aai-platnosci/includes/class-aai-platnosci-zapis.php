@@ -161,6 +161,337 @@ final class Aai_Platnosci_Zapis {
 	}
 
 	/**
+	 * Id produktu powiązanego z kursem — z NASZEJ tabeli, nigdy ze skanu
+	 * postmeta (B4: `_aai_zrodlo_uuid` siedzi na 90 wpisach Tutora).
+	 *
+	 * @param string $course_uuid Uuid kursu.
+	 */
+	public static function produkt_kursu( string $course_uuid ): ?int {
+		global $wpdb;
+		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		$id = $wpdb->get_var(
+			$wpdb->prepare( "SELECT product_id FROM {$tabela} WHERE course_uuid = %s", $course_uuid )
+		);
+		return null === $id ? null : (int) $id;
+	}
+
+	/**
+	 * Wpis kursu w Tutorze po uuid. ZAWSZE z `post_type` i z twardą
+	 * odmową przy więcej niż jednym trafieniu — „weź pierwszy" nie
+	 * istnieje (B4). `-1` znaczy: niejednoznaczność, zatrzymaj się.
+	 *
+	 * @param string $course_uuid Uuid kursu.
+	 */
+	public static function kurs_tutora( string $course_uuid ): ?int {
+		$typ = function_exists( 'tutor' ) ? (string) ( tutor()->course_post_type ?? 'courses' ) : 'courses';
+
+		$wpisy = get_posts(
+			array(
+				'post_type'      => $typ,
+				'post_status'    => 'any',
+				'posts_per_page' => 2,
+				'fields'         => 'ids',
+				'meta_key'       => '_aai_zrodlo_uuid', // phpcs:ignore WordPress.DB.SlowDBQuery
+				'meta_value'     => $course_uuid, // phpcs:ignore WordPress.DB.SlowDBQuery
+			)
+		);
+
+		if ( count( $wpisy ) > 1 ) {
+			return -1;
+		}
+		return array() === $wpisy ? null : (int) $wpisy[0];
+	}
+
+	/**
+	 * Pełna synchronizacja jednego kursa do produktu WooCommerce.
+	 *
+	 * Kolejność jest treścią bezpieczeństwa, nie stylem (schemat,
+	 * sekcja 7): produkt rodzi się jako `draft` (B3), powiązanie na
+	 * wpisie kursu Tutora idzie `price_type` NAJPIERW i `product_id`
+	 * NA KOŃCU (B2 — odwrotna kolejność ROZDAJE kurs za darmo, bo
+	 * `do_enroll()` widzi kurs „darmowy" w stanie pośrednim), a na
+	 * `publish` produkt przechodzi dopiero z kompletem warunków.
+	 *
+	 * IDEMPOTENCJA JEST WARUNKIEM BRAMKI P2 (korekta schematu przy P2):
+	 * bez realnych zmian NIE wołamy `save()` — każdy zapis zmienia
+	 * `post_modified` i sha256 wiersza produktu przestaje być stabilne
+	 * między przebiegami importu.
+	 *
+	 * @param string $course_uuid Uuid kursu z tabel Pluginu 1.
+	 * @return array<string,mixed> Liczniki + uwagi.
+	 */
+	public static function synchronizuj_kurs( string $course_uuid ): array {
+		$w = array(
+			'produkt_utworzony' => 0,
+			'zaktualizowany'    => 0,
+			'bez_zmian'         => 0,
+			'zdjety'            => 0,
+			'uwagi'             => array(),
+		);
+
+		if ( ! class_exists( 'WooCommerce' ) || ! class_exists( 'Aai_Sklep_Odczyt' ) ) {
+			$w['uwagi'][] = 'brak WooCommerce albo Pluginu 1 — synchronizacja pominięta';
+			return $w;
+		}
+
+		$kurs = Aai_Sklep_Odczyt::kurs_po_id( $course_uuid );
+		if ( null === $kurs ) {
+			// Kurs zniknął — traktujemy jak usunięcie (tabela stanów 9.3).
+			return self::zdejmij_kurs( $course_uuid );
+		}
+
+		$sprzedawalny = 'published' === $kurs['status'] && $kurs['price_grosze'] > 0;
+		if ( ! $sprzedawalny ) {
+			// `draft` kursu NIE dotyka price_type (9.3); cena 0 i archiwum — tak.
+			$cel_price_type = 'draft' === $kurs['status'] ? null : 'free';
+			return self::zdejmij_kurs( $course_uuid, $cel_price_type );
+		}
+
+		$cena       = number_format( $kurs['price_grosze'] / 100, 2, '.', '' );
+		$product_id = self::produkt_kursu( $course_uuid );
+		$produkt    = null !== $product_id ? wc_get_product( $product_id ) : false;
+
+		if ( ! $produkt ) {
+			// Produkt rodzi się jako DRAFT (B3) i UKRYTY w katalogu Woo
+			// (decyzja właściciela 2026-08-28): jedyną witryną zakupu jest
+			// nasza strona sprzedażowa — klient nie ma trafiać na produkt
+			// w cudzym wyglądzie.
+			$produkt = new WC_Product_Simple();
+			$produkt->set_name( $kurs['title'] );
+			$produkt->set_status( 'draft' );
+			$produkt->set_virtual( true );
+			$produkt->set_sold_individually( true );
+			$produkt->set_catalog_visibility( 'hidden' );
+			$produkt->set_regular_price( $cena );
+			$product_id = $produkt->save();
+			if ( $product_id <= 0 ) {
+				$w['uwagi'][] = 'WooCommerce nie utworzyło produktu';
+				return $w;
+			}
+			$w['produkt_utworzony'] = 1;
+		} else {
+			// Aktualizacja TYLKO przy realnej różnicy.
+			$zmiany = false;
+			if ( $produkt->get_name( 'edit' ) !== $kurs['title'] ) {
+				$produkt->set_name( $kurs['title'] );
+				$zmiany = true;
+			}
+			if ( $produkt->get_regular_price( 'edit' ) !== $cena ) {
+				$produkt->set_regular_price( $cena );
+				$zmiany = true;
+			}
+			/*
+			 * `_price` to pole, którym Woo liczy w koszyku (B5). Zwykle
+			 * wylicza je sam data store przy zapisie ceny regularnej —
+			 * ale gdy ktoś zepsuje je METĄ, cena regularna zostaje
+			 * poprawna i nasz zapis by NIE ruszył (brak zmiany propsu),
+			 * więc rozjazd „katalog nowa cena, kasa stara" żyłby wiecznie,
+			 * a kontrola kazałaby uruchamiać sync bez skutku. Złapane
+			 * smoke'iem P2. Promocji NIE dotykamy: gdy jest ustawiona
+			 * w Woo, cena efektywna MA być promocyjna.
+			 */
+			$promocyjna = (string) $produkt->get_sale_price( 'edit' );
+			$oczekiwana = '' === $promocyjna ? $cena : $promocyjna;
+			if ( (string) $produkt->get_price( 'edit' ) !== $oczekiwana ) {
+				$produkt->set_price( $oczekiwana );
+				$zmiany = true;
+			}
+			if ( ! $produkt->get_virtual( 'edit' ) ) {
+				$produkt->set_virtual( true );
+				$zmiany = true;
+			}
+			if ( ! $produkt->get_sold_individually( 'edit' ) ) {
+				$produkt->set_sold_individually( true );
+				$zmiany = true;
+			}
+			if ( 'hidden' !== $produkt->get_catalog_visibility() ) {
+				$produkt->set_catalog_visibility( 'hidden' );
+				$zmiany = true;
+			}
+			if ( $zmiany ) {
+				$produkt->save();
+				$w['zaktualizowany'] = 1;
+			}
+		}
+
+		if ( ! self::powiazanie_ustaw( $course_uuid, (int) $product_id ) ) {
+			$w['uwagi'][] = sprintf( 'produkt %d jest już powiązany z INNYM kursem — odmowa (B4)', $product_id );
+			return $w;
+		}
+
+		// Znaczniki PO zapisie: handler Tutora na `save_post_product` czyta
+		// $_POST i przy programowym zapisie KASUJE `_tutor_product`
+		// (pułapka 2 schematu) — dlatego stawiamy je po każdym save(),
+		// a cudze zapisy naprawia hak `przywroc_znaczniki()`.
+		self::ustaw_znaczniki_produktu( (int) $product_id, $course_uuid );
+
+		$tutor_id = self::kurs_tutora( $course_uuid );
+		if ( -1 === $tutor_id ) {
+			$w['uwagi'][] = 'więcej niż jeden wpis Tutora z tym uuid — zatrzymane, wyjaśnij dane (B4)';
+			return $w;
+		}
+		if ( null === $tutor_id ) {
+			// Projektowany stan degradacji (korekta schematu przy P2):
+			// bez kopii w Tutorze produkt zostaje szkicem, komplet domyka
+			// `wp aai-platnosci sync` po imporcie.
+			$w['uwagi'][] = 'kopii kursu w Tutorze jeszcze nie ma — produkt zostaje draft, dokończy sync';
+			if ( 0 === $w['produkt_utworzony'] && 0 === $w['zaktualizowany'] ) {
+				$w['bez_zmian'] = 1;
+			}
+			return $w;
+		}
+
+		// KOLEJNOŚĆ B2: price_type NAJPIERW, product_id NA KOŃCU.
+		update_post_meta( $tutor_id, '_tutor_course_price_type', 'paid' );
+		update_post_meta( $tutor_id, '_tutor_course_product_id', (int) $product_id );
+
+		if ( 'publish' !== get_post_status( (int) $product_id ) ) {
+			$publikowany = wc_get_product( (int) $product_id );
+			$publikowany->set_status( 'publish' );
+			$publikowany->save();
+			self::ustaw_znaczniki_produktu( (int) $product_id, $course_uuid );
+			if ( 0 === $w['produkt_utworzony'] ) {
+				$w['zaktualizowany'] = 1;
+			}
+		}
+
+		if ( 0 === $w['produkt_utworzony'] && 0 === $w['zaktualizowany'] ) {
+			$w['bez_zmian'] = 1;
+		}
+		return $w;
+	}
+
+	/**
+	 * Zdejmuje kurs ze sprzedaży: powiązanie w Tutorze schodzi ODWROTNĄ
+	 * kolejnością (`product_id` najpierw, `price_type` na końcu — B2),
+	 * produkt przechodzi na `draft` i NIGDY nie jest kasowany
+	 * (niezmiennik 13). Wiersz `powiazania` zostaje — kontrola raportuje
+	 * produkt jako zdjęty/osierocony, a historia wie, czyj był.
+	 *
+	 * @param string      $course_uuid    Uuid kursu.
+	 * @param string|null $cel_price_type Docelowy `_tutor_course_price_type`
+	 *                                    (`free`) albo null = nie dotykać
+	 *                                    (szkic kursu, tabela 9.3).
+	 * @return array<string,mixed>
+	 */
+	public static function zdejmij_kurs( string $course_uuid, ?string $cel_price_type = 'free' ): array {
+		$w = array(
+			'produkt_utworzony' => 0,
+			'zaktualizowany'    => 0,
+			'bez_zmian'         => 0,
+			'zdjety'            => 0,
+			'uwagi'             => array(),
+		);
+
+		$tutor_id = self::kurs_tutora( $course_uuid );
+		if ( is_int( $tutor_id ) && $tutor_id > 0 ) {
+			// Kolejność ODWROTNA do wiązania (B2).
+			delete_post_meta( $tutor_id, '_tutor_course_product_id' );
+			if ( null !== $cel_price_type ) {
+				update_post_meta( $tutor_id, '_tutor_course_price_type', $cel_price_type );
+			}
+		}
+
+		$product_id = self::produkt_kursu( $course_uuid );
+		if ( null !== $product_id && 'draft' !== get_post_status( $product_id ) && false !== get_post_status( $product_id ) ) {
+			wp_update_post(
+				array(
+					'ID'          => $product_id,
+					'post_status' => 'draft',
+				)
+			);
+			self::ustaw_znaczniki_produktu( $product_id, $course_uuid );
+			$w['zdjety'] = 1;
+		} else {
+			$w['bez_zmian'] = 1;
+		}
+		return $w;
+	}
+
+	/**
+	 * Synchronizacja WSZYSTKICH kursów: opublikowane w przód, a wiersze
+	 * `powiazania` kursów już nieopublikowanych — w dół (draft). Woła ją
+	 * komenda `wp aai-platnosci sync` i aktywacja wtyczki (U3: na
+	 * istniejącej instalacji nikt kursów nie zapisuje, więc bez tego po
+	 * aktywacji nie powstałby ani jeden produkt).
+	 *
+	 * @return array<string,mixed> Zsumowane liczniki.
+	 */
+	public static function synchronizuj_wszystkie(): array {
+		global $wpdb;
+		$suma = array(
+			'produkt_utworzony' => 0,
+			'zaktualizowany'    => 0,
+			'bez_zmian'         => 0,
+			'zdjety'            => 0,
+			'uwagi'             => array(),
+		);
+		if ( ! class_exists( 'Aai_Sklep_Odczyt' ) ) {
+			$suma['uwagi'][] = 'brak Pluginu 1 — nie ma czego synchronizować';
+			return $suma;
+		}
+
+		$uuidy = array();
+		foreach ( Aai_Sklep_Odczyt::lista_kursow() as $kurs ) {
+			$uuidy[ (string) $kurs['id'] ] = true;
+		}
+		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		foreach ( $wpdb->get_col( "SELECT course_uuid FROM {$tabela}" ) as $uuid ) {
+			$uuidy[ (string) $uuid ] = true;
+		}
+
+		foreach ( array_keys( $uuidy ) as $uuid ) {
+			$w = self::synchronizuj_kurs( (string) $uuid );
+			foreach ( array( 'produkt_utworzony', 'zaktualizowany', 'bez_zmian', 'zdjety' ) as $k ) {
+				$suma[ $k ] += $w[ $k ];
+			}
+			foreach ( $w['uwagi'] as $uwaga ) {
+				$suma['uwagi'][] = $uuid . ': ' . $uwaga;
+			}
+		}
+		return $suma;
+	}
+
+	/**
+	 * Znaczniki, które KAŻDY zapis produktu potrafi zgubić.
+	 *
+	 * `_tutor_product` kasuje handler Tutora na `save_post_product`
+	 * (czyta $_POST — masowa edycja, REST, `wc_scheduled_sales`, nasz
+	 * własny `save()`; B13). `update_post_meta` z tą samą wartością
+	 * niczego nie pisze, więc wołanie jest bezpieczne dla sha256.
+	 *
+	 * @param int    $product_id  Id produktu.
+	 * @param string $course_uuid Uuid kursu.
+	 */
+	public static function ustaw_znaczniki_produktu( int $product_id, string $course_uuid ): void {
+		update_post_meta( $product_id, '_tutor_product', 'yes' );
+		update_post_meta( $product_id, '_virtual', 'yes' );
+		update_post_meta( $product_id, '_aai_platnosci_kurs_uuid', $course_uuid );
+		update_post_meta( $product_id, '_aai_platnosci_sync_ts', (string) time() );
+	}
+
+	/**
+	 * Hak naprawczy dla CUDZYCH zapisów produktu (B13): po każdym
+	 * `save_post_product` (priorytet > 10, czyli PO handlerze Tutora)
+	 * produkt obecny w `powiazania` odzyskuje swoje znaczniki.
+	 *
+	 * @param int $post_id Id zapisanego wpisu produktu.
+	 */
+	public static function przywroc_znaczniki( int $post_id ): void {
+		global $wpdb;
+		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		$uuid = $wpdb->get_var(
+			$wpdb->prepare( "SELECT course_uuid FROM {$tabela} WHERE product_id = %d", $post_id )
+		);
+		if ( null !== $uuid ) {
+			self::ustaw_znaczniki_produktu( $post_id, (string) $uuid );
+		}
+	}
+
+	/**
 	 * Przestawia wszystkie produkty z `powiazania` na `draft` —
 	 * deaktywacja wtyczki (L4). Kasowania nie ma: produkt kupiony jest
 	 * częścią historii zamówień (niezmiennik 13); `draft` wystarcza,

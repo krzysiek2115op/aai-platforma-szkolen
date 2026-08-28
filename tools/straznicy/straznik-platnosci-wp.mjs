@@ -102,10 +102,15 @@ for (const plik of plikiPhp(KATALOG)) {
     );
   }
 
-  /* 5. cena nigdy metą */
-  if (/_sale_price/.test(tresc)) {
+  /* 5. cena nigdy metą — reguła celuje w ZAPIS, nie w wystąpienie nazwy.
+     `get_sale_price()` musimy czytać, żeby NIE nadpisać promocji ustawionej
+     w Woo (kontrola ceny efektywnej, B5); zakaz dotyczy pisania. */
+  const zapisPromocji = tresc.match(
+    /set_sale_price\s*\(|update_post_meta\s*\([^;]*['"]_sale_price['"]|['"]_sale_price['"]\s*=>/
+  );
+  if (zapisPromocji) {
     bledy.push(
-      `${plik}: dotyka _sale_price. Pola ceny promocyjnej nie dotykamy NIGDY (decyzja właściciela 2026-08-26, niezmiennik 3) — promocje należą do WooCommerce.`
+      `${plik}: ZAPISUJE cenę promocyjną (${zapisPromocji[0].trim()}). Pola ceny promocyjnej nie dotykamy NIGDY (decyzja właściciela 2026-08-26, niezmiennik 3) — promocje należą do WooCommerce. Odczyt get_sale_price() jest dozwolony i konieczny, żeby kontrola ceny efektywnej nie kłamała.`
     );
   }
   const metaCeny = tresc.match(/update_post_meta\s*\([^;]*['"](_regular_price|_price)['"]/);
@@ -116,13 +121,17 @@ for (const plik of plikiPhp(KATALOG)) {
   }
 
   /* 6. słuchacze aai_sklep_* łapią Throwable */
+  //
+  // Wzorzec bierze CAŁY argument callbacku aż do zamknięcia `array( … )`
+  // — pierwsza wersja urywała się na przecinku WEWNĄTRZ `array( self::class,`
+  // i oskarżała poprawnych słuchaczy (fałszywy alarm złapany przy P2).
   const rejestracje = [
     ...tresc.matchAll(
-      /add_(?:action|filter)\(\s*['"](aai_sklep_\w+)['"]\s*,\s*(.{0,120}?)[,)]/gs
+      /add_(?:action|filter)\(\s*['"](aai_sklep_\w+)['"]\s*,\s*(array\s*\([^)]*\)|[^,)]+)/gs
     ),
   ];
   for (const [, hak, callback] of rejestracje) {
-    const tablica = callback.match(/array\(\s*(?:self::class|__CLASS__|['"][\w\\]+['"])\s*,\s*['"](\w+)['"]\s*\)/);
+    const tablica = callback.match(/array\s*\(\s*(?:self::class|__CLASS__|['"][\w\\]+['"])\s*,\s*['"](\w+)['"]\s*\)/);
     if (!tablica) {
       bledy.push(
         `${plik}: słuchacz haka ${hak} nie jest tablicą (klasa, metoda) — domknięcia nie da się statycznie sprawdzić na catch(Throwable), a każdy słuchacz haków Pluginu 1 MUSI go mieć (niezmiennik 17): wyjątek wyleciałby przez zapisz_kurs() i przerwał zapis właściciela.`

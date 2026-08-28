@@ -64,6 +64,14 @@ register_activation_hook(
 	__FILE__,
 	static function (): void {
 		Aai_Platnosci_Tabele::utworz();
+		// U3: na istniejącej instalacji nikt kursów nie zapisuje — bez tej
+		// synchronizacji po aktywacji nie powstałby ani jeden produkt.
+		// Awaria nie może zablokować aktywacji: błąd idzie do opcji.
+		try {
+			Aai_Platnosci_Zapis::synchronizuj_wszystkie();
+		} catch ( Throwable $e ) {
+			Aai_Platnosci_Komunikaty::zapisz( $e->getMessage() );
+		}
 	}
 );
 
@@ -89,6 +97,11 @@ add_action(
 		// Bez WooCommerce albo Tutora wtyczka zostaje aktywna i mówi
 		// o tym w kokpicie — komunikat, nie biały ekran (bramka P1).
 		Aai_Platnosci_Zaleznosci::zarejestruj();
+		// Szew (krok P2): słuchacze zdarzeń Pluginu 1 (prio 20) i hak
+		// przywracający znaczniki produktu (B13). Rejestrowane zawsze —
+		// import z WP-CLI biegnie przez ten sam hak.
+		Aai_Platnosci_Szew::zarejestruj();
+		Aai_Platnosci_Komunikaty::zarejestruj();
 	}
 );
 
