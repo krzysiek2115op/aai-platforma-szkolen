@@ -261,10 +261,34 @@ final class Aai_Platnosci_Zapis {
 		if ( ! str_contains( $tresc, $blok ) || str_contains( $tresc, $klasa ) ) {
 			return false;
 		}
+		/*
+		 * DOPASOWANIE NA GRANICY ATRYBUTU, nie na prefiksie.
+		 *
+		 * Pierwsza wersja robiła `str_replace( 'class="' . $blok, … )`, co
+		 * trafiało też w KAŻDY blok zagnieżdżony o tym samym początku nazwy:
+		 * `class="wp-block-woocommerce-cart-items-block` stawało się
+		 * `class="wp-block-woocommerce-cart has-dark-controls-items-block`
+		 * — czyli nazwa klasy dziecka ROZPADAŁA SIĘ na naszą klasę i ogon.
+		 * Zmierzone na żywych stronach: 13 uszkodzeń w koszyku, 22 w kasie.
+		 * Cicho, bo blok Woo zwraca zapisaną treść bez regeneracji, więc
+		 * ani zapis, ani render niczego nie zgłaszały.
+		 *
+		 * Klasa musi kończyć się granicą atrybutu (spacja albo cudzysłów),
+		 * a podmieniamy TYLKO pierwsze wystąpienie — blok zewnętrzny.
+		 */
+		$nowa = preg_replace(
+			'~class="' . preg_quote( $blok, '~' ) . '(["\s])~',
+			'class="' . $blok . ' ' . $klasa . '$1',
+			$tresc,
+			1
+		);
+		if ( null === $nowa || $nowa === $tresc ) {
+			return false;
+		}
 		wp_update_post(
 			array(
 				'ID'           => $id,
-				'post_content' => str_replace( 'class="' . $blok, 'class="' . $blok . ' ' . $klasa, $tresc ),
+				'post_content' => $nowa,
 			)
 		);
 		return true;

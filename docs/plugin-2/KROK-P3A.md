@@ -150,3 +150,23 @@ Wszystkie sześć etapów zrobione (commity `7ef9e27` + `124ab4d`).
 
 **ZOSTAJE do domknięcia kroku:** przegląd agent+krytyk wg
 `agenci/przeglad-pr/`, PR, merge za zgodą właściciela.
+
+## 8. Przegląd przed PR-em (2026-08-29) — trzy znaleziska, wszystkie rozliczone
+
+Recenzent (Sonnet, zamknięta lista 10 pytań) + krytyk (agent główny,
+potwierdzenia URUCHOMIENIOWE wg `agenci/przeglad-pr/KRYTYK.md`).
+
+| # | Znalezisko | Werdykt krytyka | Naprawa |
+|---|---|---|---|
+| 1 | **KRYTYCZNE: `dopisz_klase_bloku()` podmieniał PREFIKS klasy** — trafiał w każdy blok zagnieżdżony o tej samej nazwie początkowej i rozbijał jego klasę (`…-cart-items-block` → `…-cart has-dark-controls-items-block`) | **POTWIERDZONE pomiarem**: 13 uszkodzeń na stronie 6, 22 na stronie 7 (żywe dane). Cicho, bo blok Woo zwraca zapisaną treść bez regeneracji | dopasowanie na **granicy atrybutu** + podmiana tylko pierwszego wystąpienia; **dane naprawione** (0 uszkodzeń, klasa zewnętrzna na miejscu); test na sztucznym bloku: dziecko nietknięte, klasa raz, drugi przebieg bez zmian. Pilnują: reguła 13b strażnika + mutacja + **kontrola DANYCH** w `sprawdz` (rozbite nazwy = kod 1) |
+| 2 | INFO: niezmiennik 12 ślepy na rejestrację WARUNKOWĄ z wywołaniem bez wcięcia | **POTWIERDZONE mutacją-pytaniem** (strażnik kod 0 na `if ( is_admin() ) { … }`) | wzorzec liczy **głębokość klamer**, nie pozycję w linii; mutacja odtwarza dokładnie ten wariant |
+| 3 | NISKIE: docblock obiecywał „wszystkie cztery ścieżki", a REST Orders API filtra nie woła | **POTWIERDZONE** (zero trafień w `rest-api/` i `src/Internal/RestApi/`) | docblock prostuje: cztery ścieżki KLIENTA + REST Orders nazwany jako świadomie poza zasięgiem (wymaga klucza API z prawem zapisu; dostarczania i tak nie ma do P4) |
+
+**Siedem pytań bez znalezisk** (sprawdzone — nie szukać drugi raz): filtr
+blokady obejmuje „zamów ponownie" przez `populate_cart_from_order`; nazwy
+filtrów `monetize_by` i auto-complete nie mają w Tutorze/Woo/motywie drugiego
+znaczenia; Tutor nie przywraca stron 151/152 na `publish` (tworzy je tylko
+przy `page_id == 0`); `czy_produkt_kursu()` idzie po kluczu UNIQUE; smoke
+koszyka nie crashuje przy nieudanym dodaniu (finally zamyka flagę i kontekst);
+400 w teście negatywnym blokady nie może przyjść z braku nonce'a (to 401/403);
+`napraw()` nie fatalizuje przy braku Woo albo Tutora.

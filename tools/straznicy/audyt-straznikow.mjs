@@ -1384,17 +1384,53 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-platnosci-wp",
-    opis: "kontrola zaczyna PISAĆ (napraw() w sprawdz — L11, kontrola mierzy skutek własnego działania)",
-    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
-    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    opis: "rejestracja ustawień staje się WARUNKOWA, ale wywołanie zostaje bez wcięcia (wzorzec na pozycję w linii tego nie widzi)",
+    plik: "wordpress/wtyczki/aai-platnosci/aai-platnosci.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
     zmien: (s) =>
-      s.includes("\tpublic function sprawdz(): void {")
+      s.includes("Aai_Platnosci_Ustawienia::zarejestruj();")
         ? s.replace(
-            "\tpublic function sprawdz(): void {",
-            "\tpublic function sprawdz(): void {\n\t\tAai_Platnosci_Ustawienia::napraw();"
+            "Aai_Platnosci_Ustawienia::zarejestruj();",
+            "if ( is_admin() ) {\nAai_Platnosci_Ustawienia::zarejestruj();\n}"
           )
         : null,
-    oczekiwanySlad: "dokładnie JEDNEGO",
+    oczekiwanySlad: "POZIOMIE PLIKU",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "napraw() PRZENOSI SIĘ z sync do sprawdz — licznik sztuk by tego nie widział (kontrola pisze, L11)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    zmien: (s) => {
+      const bezSync = s.replace(
+        /foreach \( Aai_Platnosci_Ustawienia::napraw\(\) as \$zmiana \) \{[\s\S]*?\}/,
+        "WP_CLI::log( 'napraw: przeniesione' );"
+      );
+      if (bezSync === s || !bezSync.includes("\tpublic function sprawdz(): void {")) return null;
+      return bezSync.replace(
+        "\tpublic function sprawdz(): void {",
+        "\tpublic function sprawdz(): void {\n\t\tAai_Platnosci_Ustawienia::napraw();"
+      );
+    },
+    oczekiwanySlad: "KONTROLA PISZE",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "dopisywanie klasy wraca do podmiany PREFIKSU (rozbija klasy bloków zagnieżdżonych — cicha utrata treści)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    zmien: (s) => {
+      const i = s.indexOf("$nowa = preg_replace(");
+      if (i < 0) return null;
+      const j = s.indexOf("\t\t);", i);
+      if (j < 0) return null;
+      return (
+        s.slice(0, i) +
+        "$nowa = str_replace( 'class=\"' . $blok, 'class=\"' . $blok . ' ' . $klasa, $tresc );" +
+        s.slice(j + 4)
+      );
+    },
+    oczekiwanySlad: "podmienia PREFIKS klasy",
   },
   {
     straznik: "straznik-platnosci-wp",

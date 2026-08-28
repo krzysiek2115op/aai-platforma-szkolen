@@ -71,7 +71,25 @@ rozstrzygnięciami właściciela: [docs/plugin-2/KROK-P3A.md](docs/plugin-2/KROK
   `dopisz_klase_bloku`) — złapał to WŁASNY strażnik: „jedyny pisarz"
   obejmuje też strony, nie tylko produkty.
 
-Dowody: strażnicy 35/35 · audyt mutacyjny **181** (0 przeoczonych,
+### Naprawione po przeglądzie przed PR-em
+
+- **CICHA UTRATA TREŚCI STRON**: `dopisz_klase_bloku()` podmieniał PREFIKS
+  klasy, więc trafiał w KAŻDY blok zagnieżdżony o tej samej nazwie
+  początkowej i rozbijał jego klasę (`…-cart-items-block` →
+  `…-cart has-dark-controls-items-block`). Zmierzone na żywych danych:
+  13 uszkodzeń w koszyku, 22 w kasie — bez jednego objawu, bo blok Woo
+  zwraca zapisaną treść bez regeneracji. Dopasowanie idzie teraz na
+  GRANICY ATRYBUTU i podmienia tylko pierwsze wystąpienie; treść stron
+  naprawiona; pilnują: reguła strażnika, mutacja i **kontrola danych**
+  w `sprawdz` (rozbite nazwy klas = kod 1).
+- Niezmiennik „rejestracja na poziomie pliku" liczy **głębokość klamer**,
+  nie pozycję w linii — był ślepy na rejestrację warunkową z wywołaniem
+  przy lewym marginesie (zmierzone mutacją-pytaniem).
+- Docblock blokady prostuje obietnicę „wszystkich czterech ścieżek":
+  **REST Orders API** (`/wc/v3/orders`, v4) filtra nie woła i jest
+  świadomie poza zasięgiem (wymaga klucza API z prawem zapisu).
+
+Dowody: strażnicy 35/35 · audyt mutacyjny **183** (0 przeoczonych,
 0 martwych) · smoke: motyw **89**, produkty **71**, płatności 23, front 84,
 tutor 44, lekcja 35, kreator 96, dane 30 · `wp:sprawdz` 73/73 ·
 `wp aai-platnosci sprawdz` kod 0 (test negatywny: zepsuty slug/silnik →

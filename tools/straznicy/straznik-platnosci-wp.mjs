@@ -258,19 +258,61 @@ if (!existsSync(USTAWIENIA)) {
      Tutor bootuje przy include i OD RAZU czyta monetize_by — rejestracja
      z plugins_loaded przychodzi po tym odczycie i niczego nie broni. */
   const glowny = existsSync(PLIK_GLOWNY) ? kod(readFileSync(PLIK_GLOWNY, "utf8")) : "";
-  if (!/^Aai_Platnosci_Ustawienia::zarejestruj\(\);/m.test(glowny)) {
+  /*
+   * „Na poziomie pliku" znaczy GŁĘBOKOŚĆ ZERO, nie „bez wcięcia": pierwsza
+   * wersja pytała regexem o pozycję w linii (`^…::zarejestruj();`) i była
+   * ślepa na `if ( is_admin() ) {` z wywołaniem przy lewym marginesie —
+   * czyli na rejestrację WARUNKOWĄ, przed którą ten niezmiennik broni
+   * (zmierzone mutacją-pytaniem przy przeglądzie P3a). Liczymy klamry
+   * przed wywołaniem; łańcuchy i komentarze są już usunięte przez kod(),
+   * a klamry w łańcuchach znakowych w tym pliku nie występują.
+   */
+  const iWywolania = glowny.indexOf("Aai_Platnosci_Ustawienia::zarejestruj()");
+  const glebokosc = iWywolania < 0
+    ? -1
+    : [...glowny.slice(0, iWywolania)].reduce((n, z) => n + (z === "{" ? 1 : z === "}" ? -1 : 0), 0);
+  if (0 !== glebokosc) {
     bledy.push(
-      `${PLIK_GLOWNY}: Aai_Platnosci_Ustawienia::zarejestruj() nie jest wołane na POZIOMIE PLIKU (przy include). Z wnętrza plugins_loaded filtr monetize_by rejestruje się PO odczycie w konstruktorze Tutora — czyli po czasie; zmierzone przy P3a.`
+      `${PLIK_GLOWNY}: Aai_Platnosci_Ustawienia::zarejestruj() nie stoi na POZIOMIE PLIKU (głębokość ${glebokosc < 0 ? "brak wywołania" : glebokosc}). Rejestracja warunkowa albo z wnętrza plugins_loaded przychodzi PO odczycie monetize_by w konstruktorze Tutora — filtr B17 niczego wtedy nie broni; zmierzone przy P3a.`
     );
   }
 
-  /* 13. rozdział ról (L11): kontrola nigdy nie pisze — jedyne wywołanie
-     napraw() w CLI wolno mieć komendzie sync. */
-  const cli = kod(readFileSync(join(KATALOG, "includes", "class-aai-platnosci-cli.php"), "utf8"));
-  const ileNapraw = (cli.match(/Aai_Platnosci_Ustawienia::napraw\(/g) ?? []).length;
-  if (1 !== ileNapraw) {
+  /* 13b. dopisywanie klasy do bloku celuje w GRANICĘ ATRYBUTU.
+     `str_replace( 'class="' . $blok, … )` trafia w każdy blok zagnieżdżony
+     o tym samym początku nazwy i ROZBIJA jego klasę — zmierzone na żywych
+     stronach (13 uszkodzeń w koszyku, 22 w kasie), cicho, bo blok Woo
+     zwraca zapisaną treść bez regeneracji. */
+  const zapisKlas = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+  const metodaKlasy = zapisKlas.match(/function dopisz_klase_bloku[\s\S]*?\n\tpublic static function/);
+  if (metodaKlasy && /str_replace\(\s*'class="'\s*\.\s*\$blok/.test(metodaKlasy[0])) {
     bledy.push(
-      `class-aai-platnosci-cli.php: ${ileNapraw} wywołań Ustawienia::napraw() zamiast dokładnie JEDNEGO (w sync --napraw). Drugie wywołanie oznacza, że pisze też kontrola — a kontrola, która pisze, mierzy skutek własnego działania i nigdy nie jest czerwona (L11).`
+      `${WARSTWA_ZAPISU}: dopisz_klase_bloku() podmienia PREFIKS klasy (str_replace na 'class="' . $blok). Trafia wtedy w każdy blok zagnieżdżony o tej samej nazwie początkowej i rozbija jego klasę — treść strony psuje się CICHO. Dopasowanie musi kończyć się granicą atrybutu (spacja albo cudzysłów) i podmieniać tylko pierwsze wystąpienie.`
+    );
+  }
+
+  /* 13. rozdział ról (L11): kontrola nigdy nie pisze. Pilnujemy MIEJSCA,
+     nie liczby sztuk — pierwsza wersja liczyła wywołania (`=== 1`)
+     i zzieleniała na PRZENIESIENIU napraw() z sync do sprawdz, bo licznik
+     dalej wynosił jeden (zmierzone przy przeglądzie P3a). Blok metody
+     wycinamy od jej nagłówka do następnego `function ` — kolejność metod
+     w pliku może się zmieniać, granica bloku nie. */
+  const cli = kod(readFileSync(join(KATALOG, "includes", "class-aai-platnosci-cli.php"), "utf8"));
+  const blokMetody = (nazwa) => {
+    const start = cli.indexOf(`function ${nazwa}(`);
+    if (start < 0) return null;
+    const dalej = cli.indexOf("function ", start + 9);
+    return cli.slice(start, dalej < 0 ? cli.length : dalej);
+  };
+  const sync = blokMetody("sync");
+  const sprawdzBlok = blokMetody("sprawdz");
+  if (null === sync || !sync.includes("Aai_Platnosci_Ustawienia::napraw(")) {
+    bledy.push(
+      "class-aai-platnosci-cli.php: komenda sync nie woła Ustawienia::napraw() — `--napraw` przestało naprawiać, a kontrola dalej każe je uruchamiać (martwa instrukcja w każdym komunikacie rozjazdu)."
+    );
+  }
+  if (null !== sprawdzBlok && sprawdzBlok.includes("Aai_Platnosci_Ustawienia::napraw(")) {
+    bledy.push(
+      "class-aai-platnosci-cli.php: KONTROLA PISZE — sprawdz() woła Ustawienia::napraw(). Kontrola, która pisze, mierzy skutek własnego działania i nigdy nie jest czerwona (L11)."
     );
   }
 }

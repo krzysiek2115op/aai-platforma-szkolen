@@ -18,10 +18,19 @@
  * istnieje. Produkty ZOSTAJĄ `publish` — zejście na `draft` łamałoby
  * niezmiennik 9 i zapalało kontrolę.
  *
- * Filtr pokrywa wszystkie cztery ścieżki (zmierzone w kodzie Woo 11.0.1,
+ * Filtr pokrywa cztery ścieżki KLIENTA (zmierzone w kodzie Woo 11.0.1,
  * KROK-P3A.md §3): form handler (`?add-to-cart=`), AJAX, Store API kasy
  * blokowej ORAZ wczytanie sesji koszyka — produkt włożony przed blokadą
- * wypada z koszyka przy następnym wczytaniu.
+ * wypada z koszyka przy następnym wczytaniu; ta ostatnia ścieżka obejmuje
+ * też „zamów ponownie" (`populate_cart_from_order`).
+ *
+ * ŚWIADOMIE POZA ZASIĘGIEM: **REST Orders API** (`/wc/v3/orders` i v4)
+ * tworzy zamówienie z pominięciem koszyka i tego filtra NIE woła (grep po
+ * `rest-api/` i `src/Internal/RestApi/` — zero trafień). Wymaga klucza API
+ * z prawem zapisu, czyli dostępu uprzywilejowanego; przed blokadą P3a
+ * broni tam wyłącznie to, że zamówienie i tak nie dostarczy kursu
+ * (dostarczanie powstaje w P4). Odnotowane w KROK-P3A.md jako przyjęte
+ * ryzyko, żeby ten komentarz nie obiecywał szczelności, której nie ma.
  *
  * Blokada NIE otwiera okna klasy B2: `is_course_purchasable` Tutora przy
  * silniku `wc` czyta wyłącznie meta (`price_type` + `product_id`), nigdy
@@ -363,6 +372,19 @@ final class Aai_Platnosci_Ustawienia {
 			$tekst = $id > 0 ? (string) get_post_field( 'post_content', $id ) : '';
 			if ( str_contains( $tekst, $klasa_bloku ) && ! str_contains( $tekst, self::KLASA_CIEMNYCH_POL ) ) {
 				$r[] = sprintf( 'blok %s na stronie %d bez klasy %s — formularz kasy będzie miał białe pola na ciemnym motywie. Napraw: wp aai-platnosci sync --napraw', $klasa_bloku, $id, self::KLASA_CIEMNYCH_POL );
+			}
+			/*
+			 * Kontrola DANYCH, nie kodu: nazwa klasy zagnieżdżonego bloku
+			 * rozbita naszą klasą (`…-cart has-dark-controls-items-block`
+			 * zamiast `…-cart-items-block`). Tak wyglądało uszkodzenie
+			 * z pierwszej wersji `dopisz_klase_bloku()` — cicho, bo blok
+			 * Woo zwraca zapisaną treść bez regeneracji. `--napraw` tego
+			 * NIE cofa (nie zgadujemy cudzej treści): trzeba przywrócić
+			 * stronę Woo albo poprawić treść ręcznie.
+			 */
+			$uszkodzone = preg_match_all( '~' . preg_quote( self::KLASA_CIEMNYCH_POL, '~' ) . '-\w~', $tekst );
+			if ( $uszkodzone > 0 ) {
+				$r[] = sprintf( 'strona %d ma %d ROZBITYCH nazw klas bloków (%s-…) — treść uszkodzona, bloki zagnieżdżone stracily swoje klasy; przywróć treść strony Woo i uruchom sync --napraw', $id, $uszkodzone, self::KLASA_CIEMNYCH_POL );
 			}
 		}
 
