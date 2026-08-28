@@ -1745,15 +1745,47 @@ wyprowadzała tego od nowa:
      (`wp-dane`, `wp-tutor`, `wp-kreator`): test sprząta TAKŻE produkt po
      swoim kursie — kod wtyczki bez zmian. Dowód: trzy przebiegi z rzędu
      zostawiają produkty 2, powiazania 2.
-     **NASTĘPNY KROK (po `/clear`): PONOWNA WALIDACJA — polecenie właściciela
-     z 2026-08-28:** sprawdzić, czy wcześniejsze poprawki nie spowodowały
-     regresji ani kolizji ORAZ czy podobne błędy nie występują w INNYCH
-     miejscach projektu (te same klasy: wczesny `return` zostawiający stan,
-     kontrola meldująca sukces bez sprawdzenia, wzorzec na napis zamiast na
-     zachowanie, mutacja łamiąca dwie reguły naraz, test przechodzący
-     z cudzego powodu). Wynik walidacji dopisać do SWEEP-P2.md.
-     **Dopiero potem: PR gałęzi `feat/p2-produkt-z-ceny` → merge (za zgodą
-     właściciela) → plan + pytania do P3a wg reguły poniżej.**
+     **PONOWNA WALIDACJA ZROBIONA (2026-08-29) — log: SWEEP-P2.md §6–§10.**
+     Pełny zestaw kontrolerów zielony (regresji i kolizji zero), sześć klas
+     błędów przeszukanych POMIAREM w całym projekcie. Klasy 1, 2, 5, 6 czyste;
+     klasa 4 czysta DOWODOWO (instrumentowana kopia audytu porównała komunikat
+     strażnika z opisem każdej ze 176 mutacji — wszystkie czerwone zapalają
+     regułę, którą psuły). Klasa 3 dała JEDNO realne znalezisko, naprawione
+     (commit c6c9c97): **straznik-limitera pilnował decyzji (B) z 0.36.0
+     wzorcem na NAZWĘ stałej `MIN_DLUGOSC_TOKENU`** — usunięcie sprawdzenia
+     długości z warunku przy zostawionej definicji przechodziło na zielono,
+     choć brama przyjmowała token DOWOLNEJ długości (trzeci nawrót klasy:
+     0.29.0 nazwa metody, 0.44.0 nazwa stałej). Wzorzec pyta teraz
+     o porównanie długości (stała o dowolnej nazwie albo liczba ≥ 2 cyfr),
+     komunikat podaje, który człon zawiódł; audyt 174 → **176** mutacji
+     (2 nowe „przestaje MIERZYĆ długość" z `oczekiwanySlad` + kontrprzykład
+     „przemianowanie stałej niczego nie osłabia"). Dotyczy TYLKO prototypu —
+     wtyczki WP tokenu nie używają (`manage_options` + nonce). Zostawione
+     świadomie (SWEEP §9): sprzątanie liniowe bez try/finally w dwóch
+     smoke'ach (luka tylko przy awarii komendy `wp`; wzorzec naprawy =
+     `smoke-wp-tutor`), ostrzeżenie ESLinta istniejące tak samo na main.
+     **P2 ZAMKNIĘTY W REPO (2026-08-29): PR #80 zmergowany do `main` na
+     dowodach lokalnych za zgodą właściciela, tag `v0.47.0` + release,
+     gałąź skasowana, artefakt zweryfikowany (diff main↔szczyt gałęzi PUSTY).**
+     CI potwierdzone `gh run view`: wszystkie zadania 0 kroków (2118/2000
+     minut Actions); po 1 września potwierdzić gitleaks.
+  8. **P3a W TOKU (gałąź `feat/p3a-ustawienia-kasa`) — plan ZATWIERDZONY
+     przez właściciela 2026-08-29** („p3a jest okej", pytania doprecyzowujące
+     zadawać w trakcie). **Dokument kroku z czterema rozstrzygnięciami,
+     weryfikacją zerową w cudzym kodzie i sześcioma etapami:
+     [docs/plugin-2/KROK-P3A.md](docs/plugin-2/KROK-P3A.md) — CZYTAĆ PRZED
+     PRACĄ.** Skrót rozstrzygnięć: (1) `monetize_by` → `wc` + ustawienia kasy
+     jako kod z filtrami B17, ale SPRZEDAŻ ZAMKNIĘTA do P4 blokadą na
+     `woocommerce_add_to_cart_validation` (produkty zostają `publish` — draft
+     łamałby niezmiennik 9; filtr pokrywa form handler, AJAX, Store API
+     I sesję koszyka — zweryfikowane w kodzie Woo); (2) `/koszyk/` + `/kasa/`,
+     `/my-account/` zostaje, bez 301 — ODSTĘPSTWO od decyzji 6 z 2026-08-26
+     przyjęte z planem; (3) puste strony Tutora 151/152 → `draft`;
+     (4) wygląd koszyka/kasy w Pluginie 1 (`woo-motyw.css`), za zgodą.
+     Mail Woo `customer_new_account` zostaje WŁĄCZONY do P4 (wyłączenie
+     wcześniej = konto bez linku do hasła, klasa K1). Kluczowy fakt
+     z weryfikacji zerowej: `is_course_purchasable` przy silniku `wc` czyta
+     TYLKO meta, nie pyta produktu Woo — blokada koszyka NIE otwiera okna B2.
      **REGUŁA WŁAŚCICIELA (2026-08-28), obowiązuje dla CAŁYCH Pluginów 2 i 3:
      przed KAŻDYM krokiem agent najpierw przedstawia plan przebiegu kroku
      (z tym, czego krok NIE dotyka) i pytania doprecyzowujące, i czeka na
