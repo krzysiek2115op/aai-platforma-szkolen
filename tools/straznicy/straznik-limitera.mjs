@@ -116,10 +116,22 @@ for (const [plik, tresc] of [
   if (!tresc) continue;
   const kodBramy = kod(tresc);
   const znaPrzyklad = /ustaw-wlasny-token/.test(kodBramy);
-  const maMinimum = /MIN_DLUGOSC_TOKENU/.test(kodBramy);
+  /*
+   * Pytamy o PORÓWNANIE DŁUGOŚCI, nie o obecność nazwy stałej. Wersja
+   * `/MIN_DLUGOSC_TOKENU/` zieleniała, gdy sprawdzenie znikało z warunku,
+   * a sama definicja `const MIN_DLUGOSC_TOKENU = 24;` zostawała w pliku —
+   * brama przyjmowała wtedy token dowolnej długości, a strażnik milczał.
+   * Trzeci nawrót tej klasy w repo (0.29.0 — nazwa metody, 0.44.0 — nazwa
+   * stałej), więc wzorzec celuje w to, co ma się DZIAĆ: porównanie długości
+   * ze STAŁĄ o dowolnej nazwie albo z liczbą co najmniej dwucyfrową.
+   * Dzięki temu przemianowanie stałej (refaktor, który niczego nie osłabia)
+   * NIE zapala strażnika, a `>= 0` — zapala.
+   */
+  const maMinimum = /\.length\s*>=\s*([A-Z][A-Z_]{3,}|\d{2,})/.test(kodBramy);
   if (!znaPrzyklad || !maMinimum) {
     bledy.push(
-      `${plik}: brama przyjmuje DOWOLNY skonfigurowany token. Po ` +
+      `${plik}: brama przyjmuje DOWOLNY skonfigurowany token (zna token ` +
+        `przykładowy: ${znaPrzyklad}, mierzy długość: ${maMinimum}). Po ` +
         "`cp .env.example .env` hasłem do zapisu, publikacji i usuwania " +
         "kursów zostaje wtedy łańcuch leżący w repozytorium — a cisza " +
         "wygląda dokładnie jak działający panel"

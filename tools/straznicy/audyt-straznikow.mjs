@@ -1015,12 +1015,36 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-limitera",
-    opis: "brama formularza przyjmuje token z .env.example",
+    opis: "brama formularza przestaje MIERZYĆ długość tokenu (definicja stałej zostaje)",
     plik: "lib/kreator-dostep.ts",
+    /*
+     * Mutacja usuwa SPRAWDZENIE, a nie nazwę. Poprzednia wersja
+     * przemianowywała stałą (`MIN_DLUGOSC_TOKENU` → `…_NIEUZYWANA`), czyli
+     * testowała NAZWĘ — i przechodziła na zielono przy strażniku, który
+     * o nazwę pytał, choć brama przyjmowała już token dowolnej długości.
+     * Wykryte przy ponownej walidacji przed PR-em P2 (2026-08-29).
+     */
     zmien: (s) =>
-      s.includes("MIN_DLUGOSC_TOKENU")
-        ? s.replace(/MIN_DLUGOSC_TOKENU/g, "MIN_DLUGOSC_NIEUZYWANA")
+      s.includes("(wzorzec as string).length >= MIN_DLUGOSC_TOKENU")
+        ? s.replace(
+            "(wzorzec as string).length >= MIN_DLUGOSC_TOKENU",
+            "(wzorzec as string).length >= 0"
+          )
         : null,
+    oczekiwanySlad: "mierzy długość: false",
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "dyspozytor przestaje MIERZYĆ długość tokenu (definicja stałej zostaje)",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) =>
+      s.includes("(wzorzec as string).length >= MIN_DLUGOSC_TOKENU")
+        ? s.replace(
+            "(wzorzec as string).length >= MIN_DLUGOSC_TOKENU",
+            "(wzorzec as string).length >= 0"
+          )
+        : null,
+    oczekiwanySlad: "mierzy długość: false",
   },
   {
     straznik: "straznik-limitera",
@@ -1030,6 +1054,17 @@ const MUTACJE = [
       s.includes("ustaw-wlasny-token")
         ? s.replace("ustaw-wlasny-token", "dowolna-inna-wartosc")
         : null,
+    oczekiwanySlad: "zna token przykładowy: false",
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "KONTRPRZYKŁAD: przemianowanie stałej długości niczego nie osłabia",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) =>
+      s.includes("MIN_DLUGOSC_TOKENU")
+        ? s.replace(/MIN_DLUGOSC_TOKENU/g, "MIN_DLUGOSC_HASLA")
+        : null,
+    oczekujCzerwonego: false,
   },
   {
     straznik: "straznik-csp",
