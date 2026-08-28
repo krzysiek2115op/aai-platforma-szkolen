@@ -1119,6 +1119,97 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-platnosci-wp (Plugin 2 — szew do WooCommerce i Tutora) ---
+  // Każdy niezmiennik schematu łamie się PO CICHU: sklep dalej działa,
+  // tylko klient płaci i nie dostaje albo dostaje za darmo. Stąd mutacja
+  // na każdy z siedmiu + kontrprzykład na wyjątek dla $wpdb->delete.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "własny AJAX w kokpicie (decyzja właściciela 2026-08-28: zero wp_ajax_*)",
+    plik: null,
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    nowyPlik: {
+      sciezka: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zle.php",
+      tresc: "<?php\ndefined( 'ABSPATH' ) || exit;\nadd_action( 'wp_ajax_aai_platnosci_napraw', 'aai_platnosci_napraw' );\n",
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "własna trasa (add_rewrite_rule) zamiast wejścia przez PODSTRONY Pluginu 1 (BLAD-021)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zaleznosci.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zaleznosci.php"),
+    zmien: (s) =>
+      s.includes("add_action( 'admin_notices', array( self::class, 'komunikat' ) );")
+        ? s.replace(
+            "add_action( 'admin_notices', array( self::class, 'komunikat' ) );",
+            "add_action( 'admin_notices', array( self::class, 'komunikat' ) );\n\t\tadd_rewrite_rule( '^koszyk/?$', 'index.php?aai=koszyk', 'top' );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "droga powrotna do danych Pluginu 1 (wywołanie Aai_Sklep_Zapis — koniec jednokierunkowości)",
+    plik: null,
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    nowyPlik: {
+      sciezka: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zle.php",
+      tresc: "<?php\ndefined( 'ABSPATH' ) || exit;\nAai_Sklep_Zapis::zapisz_kurs( $kurs, 'aai-platnosci' );\n",
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kasowanie produktu WooCommerce (niszczy historię zamówień — niezmiennik 13)",
+    plik: null,
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    nowyPlik: {
+      sciezka: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zle.php",
+      tresc: "<?php\ndefined( 'ABSPATH' ) || exit;\nwp_delete_post( $product_id, true );\n",
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "cena zapisana metą (_regular_price bez save() — kasa liczy starą cenę, B5)",
+    plik: null,
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    nowyPlik: {
+      sciezka: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zle.php",
+      tresc: "<?php\ndefined( 'ABSPATH' ) || exit;\nupdate_post_meta( $product_id, '_regular_price', $cena );\n",
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "słuchacz haka aai_sklep_* bez catch(Throwable) — wyjątek wyleci przez zapisz_kurs()",
+    plik: null,
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    nowyPlik: {
+      sciezka: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zle.php",
+      tresc: "<?php\ndefined( 'ABSPATH' ) || exit;\nfinal class Aai_Platnosci_Zle {\n\tpublic static function zarejestruj(): void {\n\t\tadd_action( 'aai_sklep_kurs_zmieniony', array( self::class, 'na_zmianie' ) );\n\t}\n\tpublic static function na_zmianie( string $id ): void {\n\t\techo $id;\n\t}\n}\n",
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "zapis produktu poza warstwą zapisu (wp_update_post w klasie kontroli)",
+    plik: null,
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    nowyPlik: {
+      sciezka: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zle.php",
+      tresc: "<?php\ndefined( 'ABSPATH' ) || exit;\nwp_update_post( array( 'ID' => $product_id, 'post_status' => 'draft' ) );\n",
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "KONTRPRZYKŁAD: $wpdb->delete na WŁASNEJ tabeli w warstwie zapisu to nie kasowanie produktu",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekujCzerwonego: false,
+    zmien: (s) =>
+      s.includes("\t\t\tarray( 'course_uuid' => $course_uuid ),\n\t\t\tarray( '%s' )\n\t\t);")
+        ? s.replace(
+            "\t\t\tarray( 'course_uuid' => $course_uuid ),\n\t\t\tarray( '%s' )\n\t\t);",
+            "\t\t\tarray( 'course_uuid' => $course_uuid ),\n\t\t\tarray( '%s' )\n\t\t);\n\t\t$wpdb->delete( Aai_Platnosci_Tabele::tabela( 'dostawy' ), array( 'identyfikator' => 0 ), array( '%d' ) );"
+          )
+        : null,
+  },
   {
     straznik: "straznik-tresci-lekcji",
     opis: "zgoda na skasowanie treści wypada z KONTRAKTU (zostaje umową panelu z dyspozytorem)",

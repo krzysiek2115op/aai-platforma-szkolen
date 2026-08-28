@@ -5,6 +5,83 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.46.0] — 2026-08-28
+
+**Plugin 2 ma zaakceptowany schemat i stojący fundament — krok P0 zaliczony,
+krok P1 zrobiony.** Schemat (`docs/plugin-2/DIAGRAM.md`) przepisany jednym
+przebiegiem wg 54 znalezisk trzech krytyków (`docs/plugin-2/KRYTYKA-P0.md`),
+przebudowany wizualnie wg wzoru diagramu Pluginu 1 i zaakceptowany przez
+właściciela; wtyczka `aai-platnosci` istnieje, jest aktywna na `:8892`
+i przechodzi własny smoke na żywej instalacji.
+
+### Decyzje właściciela (2026-08-28)
+
+- **AJAX w kokpicie ODPADA** — „Plugin 2 nie wprowadza żadnego własnego
+  AJAX-a"; wystrzałem jest `admin-post.php` Pluginu 1 (akcja „Zapisz kurs")
+  plus kanały zakupowe WooCommerce; naprawa zbiorcza komendą
+  `wp aai-platnosci sync` (DIAGRAM.md, sekcja 11).
+- **Przed KAŻDYM krokiem Pluginów 2 i 3: plan przebiegu + pytania
+  doprecyzowujące + zgoda właściciela — dopiero potem kod.** Najmniejszy
+  błąd w tych modułach może być destrukcyjny dla całego projektu.
+- Trzy decyzje o P1: wtyczka aktywna na `:8892` już od P1; kontrola
+  `wp aai-platnosci sprawdz` wchodzi od razu w wersji minimalnej i tylko
+  rośnie; katalog `agenci/` z WYTYCZNE §4 powstaje przy P1.
+
+### Dodane
+
+- **Wtyczka `aai-platnosci` (0.1.0)** — fundament szwu do WooCommerce
+  i Tutora: szkielet wzorem `aai-sklep` (autoloader bez Composera, blokada
+  `ABSPATH`, jedno źródło nazw tabel), **BAZA Pluginu 2 = dwie tabele**
+  przez `dbDelta` — `wp_aai_platnosci_powiazania` (kurs ↔ produkt Woo,
+  UNIQUE na obu kolumnach) i `wp_aai_platnosci_dostawy` (co klient naprawdę
+  DOSTAŁ; **UNIQUE na parze zdarzenie+identyfikator = atomowa idempotencja
+  maili**, zastępuje `add_option` z B6). `Aai_Platnosci_Zapis` to jedyny
+  pisarz do obu tabel i do produktu Woo; deaktywacja przestawia produkty
+  z `powiazania` na `draft` — nie kasuje niczego (L4, niezmiennik 13);
+  `uninstall.php` domyślnie nie rusza danych (skasowanie `dostawy` przy
+  przeinstalowaniu = maile do klientów DRUGI RAZ). Bez Woo/Tutora wtyczka
+  zostaje aktywna i mówi o tym w kokpicie — komunikat, nie biały ekran.
+- **`wp aai-platnosci sprawdz`** (wersja minimalna): tabele, obecność
+  Woo/Tutora i ich wersje wobec dowiedzionych (4.0.7 / 11.0.1 — inna wersja
+  to kod 0 z ostrzeżeniem i listą trzech faktów do ponownego potwierdzenia,
+  L17); „Woo wyłączone" = kod 0 z komunikatem (stan nazwany, nie rozjazd —
+  L11); brak tabel przy aktywnej wtyczce = kod 1.
+- **`straznik-platnosci-wp`** (35. strażnik, 8 mutacji w audycie —
+  7 niezmienników + kontrprzykład): zero `wp_ajax_*`, zero
+  `add_rewrite_rule`, jednokierunkowość wobec Pluginu 1 (zero zapisów do
+  `aai_sklep_*` i wywołań `Aai_Sklep_Zapis::`), zero kasowania produktów,
+  cena nigdy metą i nigdy `_sale_price`, słuchacze `aai_sklep_*`
+  z `catch(Throwable)`, produkt tylko z warstwy zapisu.
+- **`npm run smoke:wp-platnosci`** (23 sprawdzenia na żywej instalacji) —
+  bramka P1. Sprząta po sobie do zera i porównuje liczniki obu tabel ze
+  stanem sprzed przebiegu.
+- **Katalog `agenci/przeglad-pr/`** (AGENT.md, KRYTYK.md, SKILL.md, golden)
+  — struktura z WYTYCZNE §4, zapowiadana „wraz z pierwszymi agentami"
+  i nigdy nie założona. Utrwala procedurę przeglądu agent+krytyk używaną
+  przy B7, W4/W6 i krytyce P0; golden = prawdziwe znalezisko klasy
+  BLAD-018 ze wszystkimi czterema cechami dobrego znaleziska.
+- Środowisko: `compose.yml` montuje `aai-platnosci` w obu kontenerach,
+  `postaw.sh` aktywuje wtyczkę i weryfikuje jej tabele artefaktem.
+  **Nowy mount wymaga odtworzenia kontenerów** (`podman-compose down &&
+  ./postaw.sh`) — bind mount trzyma inode.
+
+### Naprawione
+
+- **Smoke złapał błąd klasy B4 jeszcze przed PR-em**: `powiazanie_ustaw`
+  na `INSERT … ON DUPLICATE KEY UPDATE` reagowało na konflikt KAŻDEGO
+  klucza unikalnego — próba powiązania zajętego produktu z drugim kursem
+  po cichu „aktualizowała" cudzy wiersz i meldowała sukces. Teraz: jawny
+  `UPDATE` po własnym kluczu albo czysty `INSERT`; konflikt UNIQUE
+  w którymkolwiek = odmowa (`false`), nigdy cicha podmiana. Pilnuje tego
+  sprawdzenie w smoke'u.
+
+### Dowody
+
+Strażnicy 35/35, audyt mutacyjny 169 (8 nowych: 8 złapanych, 0 przeoczonych,
+0 martwych), `smoke:wp-platnosci` 23/23, `wp:sprawdz` 73/73 i `wp:tutor`
+0 różnic (dane Pluginu 1 nietknięte), render 4/4 bloków mermaid schematu
+z testem negatywnym.
+
 ## [0.45.0] — 2026-08-25
 
 **Krok W6 dostaje narzędzia i scenariusz, zamiast zaczynać się od pytania

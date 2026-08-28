@@ -64,6 +64,7 @@ services:
       # NASZE wtyczki — po jednej, nie cały katalog `plugins`: mount całego
       # katalogu zasłoniłby Tutora i WooCommerce zainstalowane w wolumenie.
       - ../wtyczki/aai-sklep:/var/www/html/wp-content/plugins/aai-sklep
+      - ../wtyczki/aai-platnosci:/var/www/html/wp-content/plugins/aai-platnosci
 
   cli:
     image: wordpress:cli-php8.4
@@ -80,6 +81,7 @@ services:
       - wp_core:/var/www/html
       - ${WARSZTAT}/wp/theme/automatic-ai:/var/www/html/wp-content/themes/automatic-ai:ro
       - ../wtyczki/aai-sklep:/var/www/html/wp-content/plugins/aai-sklep
+      - ../wtyczki/aai-platnosci:/var/www/html/wp-content/plugins/aai-platnosci
       - ${WARSZTAT}/skrypty:/praca/skrypty:ro
       - ${WARSZTAT}/import:/praca/import:ro
     entrypoint: ["tail", "-f", "/dev/null"]

@@ -1626,6 +1626,33 @@ wyprowadzała tego od nowa:
      W1, dwie tabele dbDelta, klasa zapisu, strażnik + mutacje, uninstall.php
      nie kasujący niczego, komunikat zamiast białego ekranu przy wyłączonym
      Woo/Tutorze.
+     **P1 ZROBIONY (2026-08-28, wersja 0.46.0, gałąź
+     `feat/p1-fundament-platnosci`): fundament wtyczki `aai-platnosci` stoi
+     i jest AKTYWNY na `:8892`.** Trzy decyzje właściciela przed startem
+     (wszystkie rekomendacje przyjęte): aktywacja na `:8892` od razu,
+     `wp aai-platnosci sprawdz` w wersji minimalnej od P1 (tylko rośnie),
+     katalog `agenci/przeglad-pr/` z WYTYCZNE §4 założony przy P1.
+     Powstało: tabele `wp_aai_platnosci_powiazania` + `_dostawy` (dbDelta;
+     UNIQUE w dostawy = atomowa idempotencja maili), `Aai_Platnosci_Zapis`
+     (jedyny pisarz; deaktywacja → produkty draft, L4), `uninstall.php`
+     nie kasujący niczego, komunikat zamiast białego ekranu bez Woo/Tutora,
+     `straznik-platnosci-wp` (35., 8 mutacji), `npm run smoke:wp-platnosci`
+     (23 sprawdzenia), montaż w compose + aktywacja w postaw.sh.
+     **SMOKE ZŁAPAŁ BŁĄD KLASY B4 PRZED PR-em:** `INSERT … ON DUPLICATE KEY
+     UPDATE` reaguje na konflikt KAŻDEGO klucza unikalnego — powiązanie
+     zajętego produktu z drugim kursem po cichu nadpisywało cudzy wiersz
+     i meldowało sukces. Naprawa: jawny UPDATE po własnym kluczu albo czysty
+     INSERT, konflikt = odmowa. NIE używać ON DUPLICATE w tabelach z więcej
+     niż jednym kluczem unikalnym.
+     Dowody P1: strażnicy 35/35, audyt mutacyjny 169 (167 złapane,
+     2 pominięte — strażnicy warunkowi bez materiału), `npm run check` kod 0,
+     smoke:wp 30, smoke:wp-front 84, smoke:wp-platnosci 23, `wp:sprawdz`
+     73/73, `wp:tutor` 0 różnic. **Nowy mount w compose wymaga
+     `podman-compose down && ./postaw.sh`** (bind mount trzyma inode).
+     **NASTĘPNY KROK: PR gałęzi `feat/p1-fundament-platnosci` (po merge'u
+     `docs/schemat-pluginu-2` — stackowane PR-y już raz zamknęły się
+     nawzajem, notatka przy 0.25.0), potem plan + pytania do P2 (produkt
+     z ceny) wg reguły poniżej.**
      **REGUŁA WŁAŚCICIELA (2026-08-28), obowiązuje dla CAŁYCH Pluginów 2 i 3:
      przed KAŻDYM krokiem agent najpierw przedstawia plan przebiegu kroku
      (z tym, czego krok NIE dotyka) i pytania doprecyzowujące, i czeka na
