@@ -1699,6 +1699,43 @@ wyprowadzała tego od nowa:
      powiazania 2, dostawy 0, `wp:sprawdz` 73/73, `wp aai-platnosci sprawdz`
      kod 0. Uwaga: przełączenie gałęzi ZABIJA bind mount wtyczki (inode) —
      po `git checkout` robić `podman-compose down && ./postaw.sh`.
+     **P2 ZROBIONY (2026-08-28, wersja 0.47.0, gałąź `feat/p2-produkt-z-ceny`,
+     commity 37d403b + d61fb81) — kurs staje się produktem WooCommerce.**
+     Oba prawdziwe kursy mają produkty (publish, hidden, cena z naszej tabeli),
+     powiązane z kopią w Tutorze w kolejności B2. Sprzedaży to NIE uruchamia:
+     `monetize_by` zostaje `tutor` do P3a, CTA dalej na `/kontakt` — świadomy
+     zakres kroku.
+     **PRZEGLĄD agent+krytyk (pierwszy wg `agenci/przeglad-pr/`): 41 znalezisk
+     trzech recenzentów, wszystkie naprawione.** Najważniejsze do zapamiętania:
+     (a) **wczesny `return` w metodzie zmieniającej stan produktu zostawiał go
+     KUPOWALNYM** — status nadaje teraz jedno miejsce na końcu metody;
+     (b) **kontrola meldowała sukces przy ROZBROJONYM szwie** — cała integracja
+     Tutor↔Woo siedzi za `if ( 'wc' !== $monetize_by ) return;`, a instalacja
+     stoi na `tutor`; stan jest teraz NAZWANY, nie przemilczany;
+     (c) **Plugin 1 nie był zależnością** — komendy kończyły się fatalem PHP,
+     a kontrola mówiła „Success"; (d) **degradacja „w trakcie" szła po TREŚCI
+     komunikatu** (trzeci nawrót pułapki wzorca na napis) i dwa z trzech
+     śladów były martwe — rozjazdy mają dziś KODY STANU; (e) **mutacja audytu
+     była maskowana** (łamała dwie reguły naraz) → nowe pole `oczekiwanySlad`
+     sprawdza, czy zapalił się WŁAŚCIWY komunikat.
+     **DWIE PUŁAPKI POMIARU Z TEGO KROKU:** `_price` w Woo przelicza się
+     WYŁĄCZNIE przy realnej zmianie ceny w bazie (`set_price()` przez API nie
+     zapisuje go wcale) — stąd jawne `sync --napraw-cene` z produktem zdjętym
+     na czas naprawy na `draft`; oraz **konkatenacja wiąże w PHP mocniej niż
+     `?:`**, więc `echo '{' . $x ? 'a' : 'b' . '}'` zawsze zwraca gałąź
+     prawdziwą — funkcja pomiarowa smoke'a kłamała na każdym warunku.
+     **ODTWORZENIE ŚRODOWISKA MA TERAZ CZTERY KOMENDY** — `wp:import` (wpięte
+     w nie `wp:sync-platnosci`) → `wp:sync` → `wp:zrzuty`; import wystrzeliwuje
+     zapis kursu ZANIM powstanie kopia w Tutorze, więc bez tego produkty
+     zostają szkicami.
+     Dowody P2: strażnicy 35/35, audyt mutacyjny **174** (0 przeoczonych,
+     0 martwych), `npm run check` kod 0, `postaw.sh` kod 0 (ma teraz punkt
+     kontrolny `aai-platnosci sprawdz`), smoke: wp-produkty **70**,
+     wp-kreator 96, wp-front 84, wp-tutor 44, wp-lekcja 35, wp-dane 30,
+     wp-platnosci 23; dane Pluginu 1 nietknięte (73/73 co do znaku,
+     kopia w Tutorze 0 różnic).
+     **NASTĘPNY KROK: PR gałęzi `feat/p2-produkt-z-ceny` (czeka na zgodę
+     właściciela), potem plan + pytania do P3a wg reguły poniżej.**
      **REGUŁA WŁAŚCICIELA (2026-08-28), obowiązuje dla CAŁYCH Pluginów 2 i 3:
      przed KAŻDYM krokiem agent najpierw przedstawia plan przebiegu kroku
      (z tym, czego krok NIE dotyka) i pytania doprecyzowujące, i czeka na
