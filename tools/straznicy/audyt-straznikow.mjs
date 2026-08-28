@@ -1198,6 +1198,67 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-platnosci-wp",
+    opis: "ODWRÓCONA kolejność powiązania (B2) — product_id przed price_type ROZDAJE KURS ZA DARMO",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    zmien: (s) => {
+      const a = "\t\tupdate_post_meta( $tutor_id, '_tutor_course_price_type', 'paid' );\n";
+      const b = "\t\tupdate_post_meta( $tutor_id, '_tutor_course_product_id', (int) $product_id );\n";
+      return s.includes(a + b) ? s.replace(a + b, b + a) : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "ODWRÓCONA kolejność zdejmowania (B2) — price_type znika przed product_id",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    zmien: (s) => {
+      // Prawdziwe odwrócenie: delete product_id ląduje PO całym bloku
+      // ustawiającym price_type. Pierwsza wersja tej mutacji wstawiała go
+      // do WNĘTRZA `if`, więc kolejność zostawała poprawna i mutacja nic
+      // nie testowała — audyt to pokazał (wadliwa mutacja jest groźniejsza
+      // niż jej brak; ta sama lekcja co w 0.35.0).
+      const blok =
+        "\t\t\tdelete_post_meta( $tutor_id, '_tutor_course_product_id' );\n" +
+        "\t\t\tif ( null !== $cel_price_type ) {\n" +
+        "\t\t\t\tupdate_post_meta( $tutor_id, '_tutor_course_price_type', $cel_price_type );\n" +
+        "\t\t\t}";
+      const odwrocony =
+        "\t\t\tif ( null !== $cel_price_type ) {\n" +
+        "\t\t\t\tupdate_post_meta( $tutor_id, '_tutor_course_price_type', $cel_price_type );\n" +
+        "\t\t\t}\n" +
+        "\t\t\tdelete_post_meta( $tutor_id, '_tutor_course_product_id' );";
+      return s.includes(blok) ? s.replace(blok, odwrocony) : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "produkt rodzi się od razu jako publish (B3 — kupowalny bez powiązania)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    zmien: (s) =>
+      s.includes("$produkt->set_status( 'draft' );\n\t\t\t$produkt->set_virtual( true );")
+        ? s.replace(
+            "$produkt->set_status( 'draft' );\n\t\t\t$produkt->set_virtual( true );",
+            "$produkt->set_status( 'publish' );\n\t\t\t$produkt->set_virtual( true );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "produkt widoczny w katalogu Woo (druga ścieżka zakupu w cudzym wyglądzie)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    zmien: (s) =>
+      s.includes("$produkt->set_catalog_visibility( 'hidden' );\n\t\t\t$produkt->set_regular_price( $cena );")
+        ? s.replace(
+            "$produkt->set_catalog_visibility( 'hidden' );\n\t\t\t$produkt->set_regular_price( $cena );",
+            "$produkt->set_regular_price( $cena );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
     opis: "KONTRPRZYKŁAD: $wpdb->delete na WŁASNEJ tabeli w warstwie zapisu to nie kasowanie produktu",
     plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
     wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),

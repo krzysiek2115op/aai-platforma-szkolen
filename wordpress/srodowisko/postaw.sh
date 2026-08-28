@@ -238,6 +238,14 @@ if [ -f ../wtyczki/aai-platnosci/aai-platnosci.php ]; then
     || blad "wtyczka aai-platnosci nie jest aktywna"
   wpcli eval 'echo Aai_Platnosci_Tabele::istnieja() ? "tabele-ok" : "tabele-brak";' \
     | grep -q "tabele-ok" || blad "aai-platnosci aktywna, ale jej tabele (powiazania, dostawy) nie powstały"
+
+  # PUNKT KONTROLNY (krok P2): środowisko nie melduje „gotowe", kiedy szew
+  # jest rozjechany. Kontrola sama zna dwa progi — stan „w trakcie" i brak
+  # Woo/Tutora kończą się kodem 0, więc czerwony kod TU znaczy prawdziwy
+  # rozjazd: kurs płatny bez produktu, cena inna niż w naszej tabeli,
+  # zerwane powiązanie albo kupowalna sierota.
+  wpcli aai-platnosci sprawdz \
+    || blad "szew kurs → produkt jest rozjechany (wp aai-platnosci sprawdz). Napraw: wp aai-platnosci sync"
 fi
 
 # HIGIENA ZASOBÓW — obie strony medalu, bo obie umieją się zepsuć osobno.

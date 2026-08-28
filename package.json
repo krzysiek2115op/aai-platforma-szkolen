@@ -35,7 +35,8 @@
     "smoke:wp-tutor": "node tools/smoke/smoke-wp-tutor.mjs",
     "smoke:wp-lekcja": "node tools/smoke/smoke-wp-lekcja.mjs",
     "smoke:wp-panel": "node tools/smoke/smoke-wp-panel.mjs",
-    "smoke:wp-platnosci": "node tools/smoke/smoke-wp-platnosci.mjs"
+    "smoke:wp-platnosci": "node tools/smoke/smoke-wp-platnosci.mjs",
+    "smoke:wp-produkty": "node tools/smoke/smoke-wp-produkty.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.33.0",

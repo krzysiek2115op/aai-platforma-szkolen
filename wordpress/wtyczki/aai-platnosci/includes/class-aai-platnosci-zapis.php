@@ -282,21 +282,24 @@ final class Aai_Platnosci_Zapis {
 				$zmiany = true;
 			}
 			/*
-			 * `_price` to pole, którym Woo liczy w koszyku (B5). Zwykle
-			 * wylicza je sam data store przy zapisie ceny regularnej —
-			 * ale gdy ktoś zepsuje je METĄ, cena regularna zostaje
-			 * poprawna i nasz zapis by NIE ruszył (brak zmiany propsu),
-			 * więc rozjazd „katalog nowa cena, kasa stara" żyłby wiecznie,
-			 * a kontrola kazałaby uruchamiać sync bez skutku. Złapane
-			 * smoke'iem P2. Promocji NIE dotykamy: gdy jest ustawiona
-			 * w Woo, cena efektywna MA być promocyjna.
+			 * `_price` (pole, którym Woo liczy w koszyku — B5) CELOWO nie
+			 * jest tu naprawiane. ZMIERZONE w kodzie Woo 11.0.1
+			 * (`class-wc-product-data-store-cpt.php:856`): to pole
+			 * przelicza się WYŁĄCZNIE wtedy, gdy `_regular_price` albo
+			 * `_sale_price` REALNIE zmieni się w bazie — `set_price()`
+			 * przez API nie zapisuje go wcale, a ponowny zapis tej samej
+			 * ceny regularnej niczego nie wywołuje. Rozjazd `_price`
+			 * powstaje więc tylko wtedy, gdy ktoś zapisał to pole metą
+			 * z pominięciem API (cudza wtyczka, ręczna zmiana w bazie),
+			 * i jest ANOMALIĄ, nie stanem roboczym.
+			 *
+			 * Dlatego: kontrola go WYKRYWA (kod 1), a naprawa jest JAWNA
+			 * — `wp aai-platnosci sync --napraw-cene` (patrz
+			 * `napraw_cene_efektywna()`). Nie robimy jej przy każdym
+			 * zapisie kursu, bo wymaga przejścia przez cenę tymczasową,
+			 * a to nie ma prawa dziać się po cichu na produkcie, który
+			 * ktoś właśnie ogląda w kasie.
 			 */
-			$promocyjna = (string) $produkt->get_sale_price( 'edit' );
-			$oczekiwana = '' === $promocyjna ? $cena : $promocyjna;
-			if ( (string) $produkt->get_price( 'edit' ) !== $oczekiwana ) {
-				$produkt->set_price( $oczekiwana );
-				$zmiany = true;
-			}
 			if ( ! $produkt->get_virtual( 'edit' ) ) {
 				$produkt->set_virtual( true );
 				$zmiany = true;
@@ -489,6 +492,61 @@ final class Aai_Platnosci_Zapis {
 		if ( null !== $uuid ) {
 			self::ustaw_znaczniki_produktu( $post_id, (string) $uuid );
 		}
+	}
+
+	/**
+	 * JAWNA naprawa ceny efektywnej (`_price`), gdy ktoś zapisał ją metą
+	 * z pominięciem API Woo.
+	 *
+	 * DLACZEGO TAK, A NIE PROŚCIEJ. `_price` przelicza wyłącznie data
+	 * store Woo i tylko przy REALNEJ zmianie `_regular_price`/`_sale_price`
+	 * (zmierzone: `class-wc-product-data-store-cpt.php:856`). Trzeba więc
+	 * przejść przez cenę tymczasową — a to znaczy, że przez moment produkt
+	 * ma w bazie inną cenę niż ta ze strony sprzedażowej. Żeby w tym
+	 * momencie NIKT nie mógł go kupić, produkt na czas naprawy schodzi na
+	 * `draft` i wraca do poprzedniego statusu na końcu.
+	 *
+	 * Cena tymczasowa jest WYŻSZA od docelowej o grosz — nigdy niższa:
+	 * Woo kasuje promocję, gdy cena promocyjna wyjdzie ≥ regularnej
+	 * (`:857`), a promocji nie wolno nam dotknąć (niezmiennik 3).
+	 *
+	 * @param int    $product_id Id produktu.
+	 * @param string $cena       Docelowa cena regularna (string z kropką).
+	 * @return bool Czy naprawa doszła do skutku.
+	 */
+	public static function napraw_cene_efektywna( int $product_id, string $cena ): bool {
+		$produkt = wc_get_product( $product_id );
+		if ( ! $produkt ) {
+			return false;
+		}
+
+		$status_przed = $produkt->get_status();
+		if ( 'draft' !== $status_przed ) {
+			$produkt->set_status( 'draft' );
+			$produkt->save();
+		}
+
+		$tymczasowa = number_format( ( (float) $cena ) + 0.01, 2, '.', '' );
+		$krok       = wc_get_product( $product_id );
+		$krok->set_regular_price( $tymczasowa );
+		$krok->save();
+
+		$powrot = wc_get_product( $product_id );
+		$powrot->set_regular_price( $cena );
+		$powrot->save();
+
+		if ( 'draft' !== $status_przed ) {
+			$finalny = wc_get_product( $product_id );
+			$finalny->set_status( $status_przed );
+			$finalny->save();
+		}
+
+		self::ustaw_znaczniki_produktu( $product_id, (string) get_post_meta( $product_id, '_aai_platnosci_kurs_uuid', true ) );
+
+		$sprawdzenie = wc_get_product( $product_id );
+		$promocyjna  = (string) $sprawdzenie->get_sale_price( 'edit' );
+		$oczekiwana  = '' === $promocyjna ? $cena : $promocyjna;
+		return (string) $sprawdzenie->get_price( 'edit' ) === $oczekiwana;
 	}
 
 	/**

@@ -5,6 +5,86 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.47.0] — 2026-08-28
+
+**Krok P2: kurs staje się produktem WooCommerce — i to w kolejności, która
+nie rozdaje kursów za darmo.** Oba prawdziwe kursy mają produkty utworzone
+z naszej ceny, powiązane z kopią w Tutorze, ukryte w katalogu Woo. Sprzedaży
+to jeszcze nie uruchamia (`monetize_by` zostaje `tutor` do kroku P3a, CTA
+dalej prowadzi na `/kontakt`) — to jest świadomy zakres kroku.
+
+### Dodane
+
+- **Szew kurs → produkt** (`Aai_Platnosci_Szew`, priorytet 20): po każdym
+  zapisie kursu w Pluginie 1 powstaje produkt WooCommerce z naszej ceny.
+  Kolejność jest treścią bezpieczeństwa (B2): produkt rodzi się jako
+  **`draft`**, potem na wpisie kursu Tutora ląduje
+  `_tutor_course_price_type = paid` **NAJPIERW** i `_tutor_course_product_id`
+  **NA KOŃCU**, a `publish` przychodzi dopiero z kompletem warunków.
+  Odwrotna kolejność sprawia, że `do_enroll()` tworzy zapis `completed`
+  na niezapłaconym zamówieniu — klient dostaje kurs za darmo. Przy
+  zdejmowaniu para rozpina się odwrotnie.
+- **Pięć stanów kursu obsłużonych wg tabeli 9.3 schematu**: `published`
+  + cena > 0 → `publish`; cena 0 → `draft` + `price_type = free`; szkic →
+  `draft`, `price_type` **nietknięty**; `archived` → `draft`; kurs usunięty
+  → `draft`, produkt **nigdy nie kasowany** (niezmiennik 13).
+- **`wp aai-platnosci sync [<slug>] [--napraw-cene]`** + synchronizacja
+  przy aktywacji wtyczki (U3). Kontrola `sprawdz` urosła o rozjazd ceny
+  regularnej I ceny liczonej w kasie, widoczność w katalogu, znaczniki,
+  powiązanie w Tutorze, duplikaty uuid oraz **kupowalne sieroty**
+  (produkt `publish` bez opublikowanego kursu = kod 1).
+- **`Aai_Sklep_Odczyt::kurs_po_id()`** w Pluginie 1 — jedyna uzgodniona
+  z właścicielem zmiana w skończonej wtyczce (L2): czysty odczyt karty
+  kursu po uuid, bez sekcji, programu i treści lekcji.
+- **`npm run smoke:wp-produkty`** (42 sprawdzenia) — bramka P2. Mierzy
+  m.in. KOLEJNOŚĆ powiązania **hakiem na `added_post_meta`**, a nie
+  deklaracją; trzy przebiegi synchronizacji z niezmienionym `sha256`
+  wiersza produktu **razem z meta** (liczniki by nie wystarczyły —
+  przeszłyby także przy produktach tworzonych od nowa); przywracanie
+  `_tutor_product` po CUDZYM zapisie produktu (B13).
+- `straznik-platnosci-wp` urósł z 7 do **10 niezmienników** (kolejność B2
+  w obie strony, narodziny produktu jako `draft`, ukrycie w katalogu),
+  audyt mutacyjny z 169 do **173**.
+- **Punkt kontrolny w `postaw.sh`**: środowisko nie melduje „gotowe",
+  kiedy `wp aai-platnosci sprawdz` widzi rozjazd szwu.
+
+### Naprawione
+
+- **Kontrola była ŚLEPA na każdy rozjazd przez 10 minut po
+  synchronizacji.** Próg „w trakcie" (B15) degradował do informacji
+  WSZYSTKO — także zepsutą cenę. Teraz degradują się wyłącznie stany
+  **niekompletne** (brak produktu, brak powiązania), które najbliższy
+  `sync` dokończy sam; rozjazd WARTOŚCI to zawsze kod 1, a okno skrócone
+  z 600 do 60 s. Znalazł to smoke P2.
+- **Naprawa ceny liczonej w kasie (`_price`) jest JAWNA, bo inna być nie
+  może.** Zmierzone w kodzie Woo 11.0.1
+  (`class-wc-product-data-store-cpt.php:856`): to pole przelicza się
+  wyłącznie przy REALNEJ zmianie `_regular_price`/`_sale_price` w bazie —
+  `set_price()` przez API nie zapisuje go wcale, a ponowny zapis tej samej
+  ceny niczego nie wywołuje. Naprawa wymaga więc przejścia przez cenę
+  tymczasową, a to nie ma prawa dziać się po cichu przy każdym zapisie
+  kursu. Stąd `sync --napraw-cene`: produkt schodzi na czas naprawy na
+  `draft` (nikt nie kupi po cenie przejściowej), cena tymczasowa jest
+  **wyższa** o grosz (niższa kasowałaby promocję — `:857`), a promocja
+  i status wracają nietknięte. Zwykły `sync` tego pola nie rusza —
+  pilnuje tego smoke.
+- Dwa wzorce `straznik-platnosci-wp` oskarżały niewinnych: odczyt
+  `get_sale_price()` (konieczny, żeby NIE nadpisać promocji) był brany
+  za zapis, a regex callbacku urywał się na przecinku wewnątrz
+  `array( self::class,`. Po poprawce audyt dalej łapie komplet mutacji.
+- **Wadliwa mutacja w audycie** (odwrócenie kolejności zdejmowania)
+  wstawiała `delete` do wnętrza `if`, więc kolejność zostawała poprawna
+  i mutacja nic nie testowała. Audyt to pokazał jako „PRZEPUŚCIŁ" —
+  mutacja, która nic nie sprawdza, jest groźniejsza niż jej brak
+  (ta sama lekcja co w 0.35.0).
+
+### Dowody
+
+Strażnicy **35/35**, audyt mutacyjny **173** (0 przeoczonych, 0 martwych),
+`npm run check` kod 0, `smoke:wp-produkty` **42/42**, `smoke:wp-platnosci`
+23, `smoke:wp` 30, `smoke:wp-front` 84, dane Pluginu 1 nietknięte:
+`wp:sprawdz` **73/73 co do znaku**, `wp:tutor` **0 różnic**.
+
 ## [0.46.0] — 2026-08-28
 
 **Plugin 2 ma zaakceptowany schemat i stojący fundament — krok P0 zaliczony,

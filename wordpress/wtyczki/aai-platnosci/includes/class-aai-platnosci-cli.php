@@ -40,15 +40,23 @@ final class Aai_Platnosci_Cli {
 	 * [<slug>]
 	 * : Slug kursu.
 	 *
+	 * [--napraw-cene]
+	 * : Napraw cenę efektywną (`_price`) produktów, którym ktoś zapisał ją
+	 * metą z pominięciem API Woo. Operacja JAWNA, bo wymaga przejścia przez
+	 * cenę tymczasową — produkt schodzi na czas naprawy na `draft`, żeby
+	 * nikt nie kupił go po cenie przejściowej.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp aai-platnosci sync
 	 *     wp aai-platnosci sync jak-korzystac-z-claude
+	 *     wp aai-platnosci sync --napraw-cene
 	 *
-	 * @param string[] $args Argumenty pozycyjne.
+	 * @param string[]             $args       Argumenty pozycyjne.
+	 * @param array<string,string> $assoc_args Argumenty nazwane.
 	 * @when after_wp_load
 	 */
-	public function sync( array $args ): void {
+	public function sync( array $args, array $assoc_args = array() ): void {
 		if ( array() !== Aai_Platnosci_Zaleznosci::brakuje() ) {
 			WP_CLI::log( 'sync: wyłączone — ' . implode( ', ', Aai_Platnosci_Zaleznosci::brakuje() ) . '.' );
 			WP_CLI::halt( 0 );
@@ -64,12 +72,42 @@ final class Aai_Platnosci_Cli {
 			$w = Aai_Platnosci_Zapis::synchronizuj_wszystkie();
 		}
 
+		$naprawione = 0;
+		if ( isset( $assoc_args['napraw-cene'] ) ) {
+			foreach ( Aai_Sklep_Odczyt::lista_kursow() as $kurs ) {
+				if ( (int) $kurs['price_grosze'] <= 0 ) {
+					continue;
+				}
+				$product_id = Aai_Platnosci_Zapis::produkt_kursu( (string) $kurs['id'] );
+				if ( null === $product_id ) {
+					continue;
+				}
+				$produkt = wc_get_product( $product_id );
+				if ( ! $produkt ) {
+					continue;
+				}
+				$cena       = number_format( ( (int) $kurs['price_grosze'] ) / 100, 2, '.', '' );
+				$promocyjna = (string) $produkt->get_sale_price( 'edit' );
+				$oczekiwana = '' === $promocyjna ? $cena : $promocyjna;
+				if ( (string) $produkt->get_price( 'edit' ) === $oczekiwana ) {
+					continue;
+				}
+				if ( Aai_Platnosci_Zapis::napraw_cene_efektywna( $product_id, $cena ) ) {
+					++$naprawione;
+					WP_CLI::log( sprintf( 'naprawiono cenę efektywną produktu %d (%s)', $product_id, $kurs['slug'] ) );
+				} else {
+					WP_CLI::warning( sprintf( 'naprawa ceny produktu %d NIE powiodła się', $product_id ) );
+				}
+			}
+		}
+
 		foreach ( $w['uwagi'] as $uwaga ) {
 			WP_CLI::warning( $uwaga );
 		}
 		WP_CLI::success(
 			sprintf(
-				'sync: utworzone %d, zaktualizowane %d, bez zmian %d, zdjęte %d.',
+				'sync: utworzone %d, zaktualizowane %d, bez zmian %d, zdjęte %d'
+				. ( isset( $assoc_args['napraw-cene'] ) ? ', naprawione ceny ' . $naprawione : '' ) . '.',
 				$w['produkt_utworzony'],
 				$w['zaktualizowany'],
 				$w['bez_zmian'],
@@ -232,7 +270,11 @@ final class Aai_Platnosci_Cli {
 		$promocyjna = $produkt->get_sale_price( 'edit' );
 		$oczekiwana = '' === (string) $promocyjna ? $cena : (string) $promocyjna;
 		if ( (string) $produkt->get_price( 'edit' ) !== $oczekiwana ) {
-			$r[] = sprintf( 'cena liczona w kasie (_price = %s) nie zgadza się z oczekiwaną %s — zapis metą zamiast save()? (B5)', (string) $produkt->get_price( 'edit' ), $oczekiwana );
+			$r[] = sprintf(
+				'cena liczona w kasie (_price = %s) nie zgadza się z oczekiwaną %s — ktoś zapisał to pole metą z pominięciem API Woo (B5). Napraw: wp aai-platnosci sync --napraw-cene',
+				(string) $produkt->get_price( 'edit' ),
+				$oczekiwana
+			);
 		}
 
 		if ( 'hidden' !== $produkt->get_catalog_visibility() ) {

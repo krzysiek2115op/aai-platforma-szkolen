@@ -34,6 +34,18 @@
  *      `wp_insert_post`, `->save()` i `update_post_meta` poza
  *      `class-aai-platnosci-zapis.php` = czerwone.
  *
+ *   8. KOLEJNOŚĆ POWIĄZANIA (B2): przy wiązaniu `_tutor_course_price_type`
+ *      pada PRZED `_tutor_course_product_id`, przy zdejmowaniu — odwrotnie.
+ *      Odwrotna kolejność ROZDAJE KURS ZA DARMO: `product_belongs_with_course()`
+ *      już znajduje kurs, `is_course_purchasable()` jeszcze nie, więc
+ *      `do_enroll()` tworzy zapis `completed` na zamówieniu `pending`.
+ *      Smoke mierzy to samo uruchomieniowo (hakiem na meta) — strażnik
+ *      łapie regresję od razu, bez stawiania środowiska,
+ *   9. produkt RODZI SIĘ jako `draft` (B3) — opublikowany produkt bez
+ *      powiązania to stan „klient płaci i nie dostaje nic",
+ *  10. produkt jest UKRYTY w katalogu Woo (decyzja właściciela 2026-08-28):
+ *      jedyną witryną zakupu jest nasza strona sprzedażowa.
+ *
  * Użycie: node tools/straznicy/straznik-platnosci-wp.mjs
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -162,6 +174,60 @@ for (const plik of plikiPhp(KATALOG)) {
   }
 }
 
+/* 8–10. Niezmienniki warstwy zapisu produktu — czytane RAZ, na całym pliku:
+   kolejność powiązania, narodziny produktu jako draft, ukrycie w katalogu. */
+if (existsSync(WARSTWA_ZAPISU)) {
+  const zapis = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+
+  /* 8. kolejność B2 — mierzona pozycją w kodzie, w OBIE strony */
+  const wiazanie = zapis.match(/function synchronizuj_kurs[\s\S]*?\n\tpublic static function/);
+  if (!wiazanie) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: nie znalazłem metody wiążącej kurs z produktem — bez niej nie da się sprawdzić kolejności B2, a to ona stoi między „kurs płatny" a „kurs rozdany za darmo".`
+    );
+  } else {
+    const pType = wiazanie[0].indexOf("_tutor_course_price_type");
+    const pId = wiazanie[0].indexOf("_tutor_course_product_id");
+    if (pType < 0 || pId < 0) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: wiązanie nie ustawia obu kluczy Tutora (_tutor_course_price_type oraz _tutor_course_product_id) — kurs bez pary jest niesprzedawalny albo darmowy.`
+      );
+    } else if (pType > pId) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: ZŁA KOLEJNOŚĆ POWIĄZANIA (B2) — _tutor_course_product_id zapisywane PRZED _tutor_course_price_type. W stanie pośrednim Tutor uznaje kurs za darmowy i do_enroll() tworzy zapis „completed" na niezapłaconym zamówieniu: KLIENT DOSTAJE KURS ZA DARMO, a po fatalu okno zostaje na stałe.`
+      );
+    }
+  }
+
+  const zdejmowanie = zapis.match(/function zdejmij_kurs[\s\S]*?\n\tpublic static function/);
+  if (zdejmowanie) {
+    const dType = zdejmowanie[0].indexOf("_tutor_course_price_type");
+    const dId = zdejmowanie[0].indexOf("_tutor_course_product_id");
+    if (dId >= 0 && dType >= 0 && dId > dType) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: ZŁA KOLEJNOŚĆ ZDEJMOWANIA (B2) — przy rozpinaniu pary product_id musi znikać PIERWSZY. Odwrotna kolejność zostawia okno, w którym kurs jest „darmowy", ale wciąż powiązany z produktem.`
+      );
+    }
+  }
+
+  /* 9. produkt rodzi się jako draft (B3) */
+  const narodziny = zapis.match(/new WC_Product_Simple\(\)[\s\S]*?->save\(\)/);
+  if (!narodziny) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: nie znalazłem miejsca tworzenia produktu — nie da się sprawdzić, czy rodzi się jako draft (B3).`
+    );
+  } else if (!/set_status\(\s*['"]draft['"]\s*\)/.test(narodziny[0])) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: nowy produkt NIE rodzi się jako draft (B3). Opublikowany produkt bez powiązania z kursem Tutora to stan „klient płaci i nie dostaje nic": bez powiązania nie ma zapisu na kurs, zamówienie nigdy nie dojdzie do completed.`
+    );
+  } else if (!/set_catalog_visibility\(\s*['"]hidden['"]\s*\)/.test(narodziny[0])) {
+    /* 10. ukryty w katalogu Woo */
+    bledy.push(
+      `${WARSTWA_ZAPISU}: nowy produkt nie jest ukrywany w katalogu Woo (decyzja właściciela 2026-08-28: catalog_visibility = hidden). Widoczny produkt daje DRUGĄ ścieżkę zakupu w cudzym wyglądzie — klient omija naszą stronę sprzedażową.`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -169,5 +235,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty)."
 );

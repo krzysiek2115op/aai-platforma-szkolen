@@ -163,17 +163,38 @@ probaCzerwona(
   `$p = wc_get_product(${produkt}); $p->set_regular_price('199.00'); $p->save();`,
   "zepsuta cena regularna"
 );
-// Przywrócenie idzie przez SYNC — dowód, że naprawa działa tą samą drogą,
-// którą kontrola zaleca („uruchom sync"). Pierwsza wersja synchronizacji
-// tego nie umiała (regularna bez zmian = brak zapisu) i smoke to złapał.
-probaCzerwona(
-  `update_post_meta(${produkt}, '_price', '1.00'); wc_delete_product_transients(${produkt});`,
-  `Aai_Platnosci_Zapis::synchronizuj_kurs('${KURS}');`,
-  "cena liczona w kasie rozjechana z regularną (B5 — zapis metą)"
+// `_price` zepsute METĄ: kontrola ma to wykryć, a naprawić ma JAWNA komenda
+// `sync --napraw-cene` (zwykły `sync` tego nie robi — zmierzone w kodzie Woo:
+// pole przelicza się tylko przy realnej zmianie ceny regularnej, więc naprawa
+// wymaga ceny tymczasowej i nie ma prawa dziać się po cichu).
+php(`update_post_meta(${produkt}, '_price', '1.00'); wc_delete_product_transients(${produkt});`);
+const zepsutaKasa = wp("aai-platnosci", "sprawdz");
+sprawdz(zepsutaKasa.kod === 1, `cena liczona w kasie rozjechana z regularną (B5) — kontrola oddała kod ${zepsutaKasa.kod}, oczekiwano 1`);
+sprawdz(
+  /napraw-cene/.test(zepsutaKasa.out + zepsutaKasa.err),
+  "kontrola nie mówi, CZYM naprawić rozjazd _price (ma wskazywać sync --napraw-cene)"
 );
+const zwyklySync = wp("aai-platnosci", "sync", SLUG);
+sprawdz(
+  php(`$p = wc_get_product(${produkt}); echo $p->get_price('edit');`).endsWith("1.00"),
+  `zwykły sync ruszył cenę efektywną — miał tego NIE robić po cichu (${zwyklySync.out})`
+);
+wp("aai-platnosci", "sync", "--napraw-cene");
 sprawdz(
   php(`$p = wc_get_product(${produkt}); echo $p->get_price('edit');`).endsWith("199.00"),
-  "sync NIE naprawił ceny liczonej w kasie — kontrola każe uruchomić sync, więc sync musi to umieć"
+  "sync --napraw-cene NIE naprawił ceny liczonej w kasie"
+);
+sprawdz(
+  php(`$p = wc_get_product(${produkt}); echo $p->get_regular_price('edit');`).endsWith("199.00"),
+  "naprawa zostawiła cenę regularną z ceną tymczasową (+0,01) zamiast docelowej"
+);
+sprawdz(
+  wp("post", "get", String(produkt), "--field=post_status").out === "publish",
+  "naprawa nie przywróciła statusu produktu (został draft — kurs zniknął ze sprzedaży)"
+);
+sprawdz(
+  php(`$p = wc_get_product(${produkt}); echo '[' . $p->get_sale_price('edit') . ']';`).endsWith("[]"),
+  "naprawa dotknęła ceny promocyjnej — niezmiennik 3 zabrania"
 );
 probaCzerwona(
   `$p = wc_get_product(${produkt}); $p->set_catalog_visibility('visible'); $p->save();`,
