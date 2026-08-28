@@ -145,18 +145,33 @@ const bezTabel = wp("aai-platnosci", "sprawdz");
 phpEval('global $wpdb; $t = Aai_Platnosci_Tabele::tabela("powiazania"); $wpdb->query("RENAME TABLE `{$t}_smoke_schowek` TO `{$t}`");');
 sprawdz(bezTabel.kod === 1, `sprawdz BEZ tabeli powiazań oddało kod ${bezTabel.kod}, oczekiwano 1 — kontrola jest ślepa na własny rozjazd`);
 
-// Stan „Woo wyłączone" = kod 0 z komunikatem (bramka P1). Migawka
-// monetize_by przed i po — deaktywacja Woo nie może zostawić śladu (B17).
-const monetizePrzed = phpEval('echo tutor_utils()->get_option("monetize_by");').stdout;
+/*
+ * Stan „Woo wyłączone" = kod 0 z komunikatem (bramka P1).
+ *
+ * Migawki silnika CELOWO z SUROWEJ bazy, nie przez `get_option()`:
+ * od P3a filtr B17 wymusza `wc` na wartości efektywnej, więc porównanie
+ * przez filtr przechodziło nawet wtedy, gdy deaktywacja Woo wyzerowała
+ * bazę do `free` — asercja „nic się nie zmieniło" mierzyła własny filtr
+ * zamiast cudzego skutku (klasa 5 walidacji P2; złapane testem
+ * negatywnym sluga przy P3a).
+ *
+ * Zerowanie silnika przez deaktywację Woo to CUDZA, udokumentowana
+ * mechanika (U1) — smoke jej nie ocenia, ale MUSI po niej posprzątać:
+ * bez `sync --napraw` każdy przebieg zostawiałby rozjazd bazy z filtrem
+ * i czerwoną kontrolę (klasa 6 walidacji P2).
+ */
+const silnikZBazy = () => phpEval('$o=(array)get_option("tutor_option"); echo (string)($o["monetize_by"]??"");').stdout;
+const monetizePrzed = silnikZBazy();
 wp("plugin", "deactivate", "woocommerce");
 const bezWoo = wp("aai-platnosci", "sprawdz");
 wp("plugin", "activate", "woocommerce");
-const monetizePo = phpEval('echo tutor_utils()->get_option("monetize_by");').stdout;
+wp("aai-platnosci", "sync", "--napraw");
+const monetizePo = silnikZBazy();
 sprawdz(bezWoo.kod === 0, `sprawdz bez Woo oddało kod ${bezWoo.kod}, oczekiwano 0 (stan nazwany, nie rozjazd — L11)`);
 sprawdz(/wyłączone/.test(bezWoo.stdout + bezWoo.stderr), "sprawdz bez Woo nie mówi, że otoczenie jest wyłączone");
 sprawdz(
   monetizePrzed === monetizePo,
-  `deaktywacja Woo w smoke'u ZMIENIŁA monetize_by (${monetizePrzed} → ${monetizePo}) — przywróć ręcznie i zbadaj B17`
+  `po deaktywacji Woo i sync --napraw silnik w BAZIE to „${monetizePo}", a przed testem był „${monetizePrzed}" — sprzątanie nie przywróciło stanu`
 );
 
 /* ── 6. żaden ekran nie jest biały ──────────────────────────────────── */

@@ -240,3 +240,66 @@ body.aai-woo-na-motywie .woocommerce table.shop_table th,
 body.aai-woo-na-motywie .woocommerce table.shop_table td {
 	border-color: var(--color-line);
 }
+
+/* ── 9. BLOKI KOSZYKA I KASY (P3a) ──────────────────────────────────────
+ * Koszyk i kasa to strony BLOKOWE — ich markup nie ma klasy `.woocommerce`,
+ * więc sekcje 5–7 go nie widzą. Lista poniżej pochodzi Z POMIARU
+ * (`smoke-wp-motyw`, 2026-08-29): 6 jasnych powierzchni i etykieta
+ * „Country/Region" o kontraście 1.09:1 — wszystkie w formularzu kasy;
+ * koszyk zmierzył się czysto od razu.
+ */
+body.aai-woo-na-motywie .wc-block-components-text-input input,
+body.aai-woo-na-motywie .wc-block-components-textarea,
+body.aai-woo-na-motywie .wc-blocks-components-select__container,
+body.aai-woo-na-motywie .wc-blocks-components-select__select {
+	background: var(--color-void);
+	color: var(--color-fg);
+	border-color: var(--color-line);
+}
+
+/* Pływające etykiety pól — Woo daje im kolor pod jasne tło. */
+body.aai-woo-na-motywie .wc-block-components-text-input label,
+body.aai-woo-na-motywie .wc-blocks-components-select__label {
+	color: var(--color-steel);
+}
+
+body.aai-woo-na-motywie .wc-block-components-text-input input:focus,
+body.aai-woo-na-motywie .wc-blocks-components-select__select:focus {
+	outline: 2px solid var(--color-volt);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+/*
+ * Komunikaty bloków — m.in. „brak metod płatności" (stan projektowany do
+ * P3b: bramka wchodzi osobnym krokiem). Woo daje im różowe tło pełnej
+ * szerokości formularza — największa zmierzona plama, 50 085 px².
+ */
+body.aai-woo-na-motywie .wc-block-components-notice-banner {
+	background: var(--color-panel);
+	color: var(--color-fg);
+	border: 1px solid var(--color-line);
+	border-top: 3px solid var(--color-volt);
+	border-radius: 0.5rem;
+}
+
+body.aai-woo-na-motywie .wc-block-components-notice-banner.is-error {
+	border-top-color: #ff6b6b;
+}
+
+body.aai-woo-na-motywie .wc-block-components-notice-banner > svg {
+	fill: currentColor;
+}
+
+/* Akcent przycisków bloków — nasz, nie fioletowy Woo (ta sama zasada
+ * co sekcja 6 dla przycisków klasycznych). */
+body.aai-woo-na-motywie .wc-block-components-button:not(.is-link) {
+	background: var(--color-volt);
+	color: var(--color-void);
+	border-radius: 9999px;
+	font-weight: 600;
+}
+
+body.aai-woo-na-motywie .wc-block-components-button:not(.is-link):hover {
+	filter: brightness(1.08);
+}

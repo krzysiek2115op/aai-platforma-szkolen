@@ -57,11 +57,18 @@ final class Aai_Platnosci_Cli {
 	 * cenę tymczasową — produkt schodzi na czas naprawy na `draft`, żeby
 	 * nikt nie kupił go po cenie przejściowej.
 	 *
+	 * [--napraw]
+	 * : Doprowadź USTAWIENIA do wartości docelowych sekcji 8 schematu
+	 * (silnik `wc`, para opcji kasy, polskie sluggi koszyka i kasy, strony
+	 * natywnej kasy Tutora na draft). Jedyna ścieżka ustawiania obok
+	 * aktywacji wtyczki — kontrola (`sprawdz`) NIGDY nie pisze (L11).
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp aai-platnosci sync
 	 *     wp aai-platnosci sync jak-korzystac-z-claude
 	 *     wp aai-platnosci sync --napraw-cene
+	 *     wp aai-platnosci sync --napraw
 	 *
 	 * @param string[]             $args       Argumenty pozycyjne.
 	 * @param array<string,string> $assoc_args Argumenty nazwane.
@@ -79,6 +86,15 @@ final class Aai_Platnosci_Cli {
 			// się BŁĘDEM KRYTYCZNYM PHP.
 			WP_CLI::log( 'sync: wyłączone — brak wtyczki „Automatic AI — Sklep" (Plugin 1). Nie ma czego synchronizować.' );
 			WP_CLI::halt( 0 );
+		}
+
+		if ( isset( $assoc_args['napraw'] ) ) {
+			// Ustawienia PRZED produktami — ta sama kolejność co przy
+			// aktywacji: synchronizacja przy rozbrojonym szwie zostawiałaby
+			// produkty, których strona Tutora jeszcze nie rozumie.
+			foreach ( Aai_Platnosci_Ustawienia::napraw() as $zmiana ) {
+				WP_CLI::log( 'napraw: ' . $zmiana );
+			}
 		}
 
 		if ( isset( $args[0] ) ) {
@@ -221,26 +237,18 @@ final class Aai_Platnosci_Cli {
 		// `sync_ts` (młodszy niż 10 minut) degraduje rozjazd do
 		// komunikatu „w trakcie" — kod 0.
 		/*
-		 * SZEW ROZBROJONY (C5). Cała integracja Tutora z WooCommerce siedzi
-		 * za jednym `if ( 'wc' !== $monetize_by ) { return; }`
-		 * (`tutor/classes/WooCommerce.php:45`), więc przy innej wartości
-		 * nikt po tamtej stronie nie czyta naszych kluczy: klient zapłaci
-		 * i nie zostanie zapisany na kurs. Przestawienie tej opcji należy
-		 * do kroku P3a, ale ŚLEPOTY nie zostawiamy do P3a — stan musi być
-		 * nazwany, nie przemilczany.
+		 * Ustawienia (P3a): rozjazd wartości = kod 1 — w tym SZEW ROZBROJONY
+		 * (C5), który do P3a był stanem projektowanym (kod 0), a od P3a jest
+		 * awarią: silnik ma stać na `wc`, pilnuje go filtr B17, a jedyną
+		 * naprawą jest `sync --napraw`. Stan sprzedaży (zamknięta do P4)
+		 * jest NAZYWANY osobno — to stan projektowany, nie rozjazd.
 		 */
-		$silnik = function_exists( 'tutor_utils' ) ? (string) tutor_utils()->get_option( 'monetize_by' ) : '';
-		if ( 'wc' !== $silnik ) {
-			$w_trakcie_silnik = sprintf(
-				'SZEW ROZBROJONY: Tutor ma monetize_by = „%s" zamiast „wc" — integracja z WooCommerce jest wyłączona w całości, więc zakup nie zapisze klienta na kurs. Przestawienie należy do kroku P3a.',
-				'' === $silnik ? '(brak)' : $silnik
-			);
+		foreach ( Aai_Platnosci_Ustawienia::rozjazdy() as $rozjazd_ustawien ) {
+			$bledy[] = $rozjazd_ustawien;
 		}
 
-		$w_trakcie = array();
-		if ( isset( $w_trakcie_silnik ) ) {
-			$w_trakcie[] = $w_trakcie_silnik;
-		}
+		$w_trakcie   = array();
+		$w_trakcie[] = Aai_Platnosci_Ustawienia::stan_sprzedazy();
 		if ( ! class_exists( 'Aai_Sklep_Odczyt' ) ) {
 			// B2: brak Pluginu 1 to stan nazwany (kod 0), ale kontrola
 			// NIE MA PRAWA meldować sukcesu, nie sprawdziwszy ani jednego

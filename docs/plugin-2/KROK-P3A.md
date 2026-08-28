@@ -98,3 +98,25 @@ Zmierzone przed zamrożeniem projektu blokady (zasada schematu: prawdą jest kod
 - **Zmiana sluga kasy** może dotknąć smoke'ów Pluginu 1, które mierzą
   `/my-account/` — sprawdzić WSZYSTKIE odwołania do `/cart/` i `/checkout/`
   w smoke'ach i stylach przed zmianą (klasa L7: twarde asercje adresów).
+
+## 6. Pomiary z wdrożenia na `:8892` (2026-08-29)
+
+- `sync --napraw` wykonał **8 zmian** (silnik, auto-complete, para kasy,
+  dwa sluggi, dwie strony Tutora na draft); drugi przebieg — **0 zmian**
+  (idempotencja); kontrola po naprawie — **kod 0**.
+- `/koszyk/` → 200; **`/kasa/` z pustym koszykiem → 302 na `/koszyk/`**
+  (zachowanie Woo — kasę mierzy się z pozycją w koszyku, co smoke musi
+  uwzględniać); `/cart-2/`, `/checkout-2/` → 404.
+- **Stare adresy `/cart/` i `/checkout/` oddają 404, nie 301** —
+  `wp_old_slug_redirect` nie obejmuje stron (hierarchicznych typów).
+  Wcześniejsze zdanie „WordPress sam przekieruje 301" było z dokumentacji,
+  nie z pomiaru — poprawione też w komunikacie `napraw`. Stan 404 jest
+  zgodny z rozstrzygnięciem 2 (nikt starych adresów nie znał).
+- Kolejność ładowania wtyczek MA znaczenie dla filtra B17: Tutor bootuje
+  przy include i od razu czyta `monetize_by`, więc filtry rejestrują się
+  przy include `aai-platnosci` (stoi w `active_plugins` przed `tutor`),
+  a strażnikiem kolejności jest kontrola (rozjazd baza↔filtr = kod 1).
+- Klucz nieobecny w `tutor_option` NIE przechodzi przez filtr
+  (`get_option` zwraca domyślną bez `apply_filters`) — zmierzone na
+  `tutor_woocommerce_order_auto_complete` przed naprawą; dokładnie dlatego
+  naprawa pisze bazę, a filtr tylko broni.

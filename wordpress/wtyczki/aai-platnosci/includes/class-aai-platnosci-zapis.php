@@ -199,6 +199,98 @@ final class Aai_Platnosci_Zapis {
 	 *
 	 * @param string $course_uuid Uuid kursu.
 	 */
+	/**
+	 * Strona WP na szkic — jedyne miejsce, które to robi (jedyny pisarz).
+	 *
+	 * Używane przez ustawienia P3a dla pustych stron natywnej kasy Tutora;
+	 * kasowania nie ma tu tak samo, jak nie ma go dla produktów.
+	 *
+	 * @param int $id Id strony.
+	 * @return bool Czy stan się ZMIENIŁ.
+	 */
+	public static function strona_na_szkic( int $id ): bool {
+		if ( $id <= 0 || 'publish' !== get_post_status( $id ) ) {
+			return false;
+		}
+		wp_update_post(
+			array(
+				'ID'          => $id,
+				'post_status' => 'draft',
+			)
+		);
+		return true;
+	}
+
+	/**
+	 * Slug strony WP (polskie adresy koszyka i kasy, P3a).
+	 *
+	 * @param int    $id   Id strony.
+	 * @param string $slug Docelowy slug.
+	 * @return bool Czy stan się ZMIENIŁ.
+	 */
+	public static function ustaw_slug_strony( int $id, string $slug ): bool {
+		if ( $id <= 0 || null === get_post( $id ) || (string) get_post_field( 'post_name', $id ) === $slug ) {
+			return false;
+		}
+		wp_update_post(
+			array(
+				'ID'        => $id,
+				'post_name' => $slug,
+			)
+		);
+		return true;
+	}
+
+	/**
+	 * Dopisuje klasę do bloku w treści strony (idempotentnie).
+	 *
+	 * P3a: `has-dark-controls` na blokach koszyka i kasy — ciemny wariant
+	 * kontrolek z arkusza samego Woo.
+	 *
+	 * @param int    $id    Id strony.
+	 * @param string $blok  Klasa główna bloku (np. wp-block-woocommerce-cart).
+	 * @param string $klasa Klasa do dopisania.
+	 * @return bool Czy stan się ZMIENIŁ.
+	 */
+	public static function dopisz_klase_bloku( int $id, string $blok, string $klasa ): bool {
+		$wpis = $id > 0 ? get_post( $id ) : null;
+		if ( null === $wpis ) {
+			return false;
+		}
+		$tresc = (string) $wpis->post_content;
+		if ( ! str_contains( $tresc, $blok ) || str_contains( $tresc, $klasa ) ) {
+			return false;
+		}
+		wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_content' => str_replace( 'class="' . $blok, 'class="' . $blok . ' ' . $klasa, $tresc ),
+			)
+		);
+		return true;
+	}
+
+	/**
+	 * Czy produkt jest produktem kursu (ma wiersz w `powiazania`).
+	 *
+	 * Pyta o to blokada sprzedaży (P3a) przy KAŻDEJ walidacji koszyka —
+	 * zapytanie idzie po kluczu UNIQUE `product_id`, więc jest tanie.
+	 * Dopasowanie przez tabelę, nigdy po meta (B4).
+	 *
+	 * @param int $product_id Id produktu WooCommerce.
+	 */
+	public static function czy_produkt_kursu( int $product_id ): bool {
+		if ( $product_id <= 0 ) {
+			return false;
+		}
+		global $wpdb;
+		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		return null !== $wpdb->get_var(
+			$wpdb->prepare( "SELECT product_id FROM {$tabela} WHERE product_id = %d", $product_id )
+		);
+	}
+
 	public static function produkt_kursu( string $course_uuid ): ?int {
 		global $wpdb;
 		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );

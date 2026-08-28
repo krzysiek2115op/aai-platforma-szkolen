@@ -228,6 +228,53 @@ if (existsSync(WARSTWA_ZAPISU)) {
   }
 }
 
+/* 11–13. P3a: blokada sprzedaży i rozdział ról ustawień.
+   Wzorce celują w ZACHOWANIE (trzy nawroty pułapki nazwy: 0.29.0, 0.44.0,
+   walidacja przed PR-em P2), więc pytają o wywołania i wartości domyślne,
+   nie o nazwy metod. */
+const USTAWIENIA = join(KATALOG, "includes", "class-aai-platnosci-ustawienia.php");
+const PLIK_GLOWNY = join(KATALOG, "aai-platnosci.php");
+if (!existsSync(USTAWIENIA)) {
+  bledy.push(
+    `${USTAWIENIA}: brak klasy ustawień — bez niej silnik `
+      + "sprzedaży i blokada do P4 nie mają właściciela (krok P3a)."
+  );
+} else {
+  const ust = kod(readFileSync(USTAWIENIA, "utf8"));
+
+  /* 11. blokada koszyka istnieje i jest DOMYŚLNIE ZAMKNIĘTA */
+  if (!/add_filter\(\s*'woocommerce_add_to_cart_validation'/.test(ust)) {
+    bledy.push(
+      `${USTAWIENIA}: BRAK BLOKADY SPRZEDAŻY (filtr woocommerce_add_to_cart_validation). Między P3a a P4 zakup jest technicznie możliwy, a dostarczanie (maile, dostawy) nie istnieje — to okno „klient płaci i nie dostaje nic".`
+    );
+  }
+  if (!/get_option\(\s*self::OPCJA_SPRZEDAZ,\s*''\s*\)/.test(ust)) {
+    bledy.push(
+      `${USTAWIENIA}: flaga sprzedaży bez PUSTEJ wartości domyślnej — brak opcji w bazie musi znaczyć „sprzedaż ZAMKNIĘTA". Domyślne otwarcie sprzedaje kursy bez dostarczania na każdej świeżej instalacji.`
+    );
+  }
+
+  /* 12. filtry rejestrowane PRZY INCLUDE pliku głównego, nie w plugins_loaded:
+     Tutor bootuje przy include i OD RAZU czyta monetize_by — rejestracja
+     z plugins_loaded przychodzi po tym odczycie i niczego nie broni. */
+  const glowny = existsSync(PLIK_GLOWNY) ? kod(readFileSync(PLIK_GLOWNY, "utf8")) : "";
+  if (!/^Aai_Platnosci_Ustawienia::zarejestruj\(\);/m.test(glowny)) {
+    bledy.push(
+      `${PLIK_GLOWNY}: Aai_Platnosci_Ustawienia::zarejestruj() nie jest wołane na POZIOMIE PLIKU (przy include). Z wnętrza plugins_loaded filtr monetize_by rejestruje się PO odczycie w konstruktorze Tutora — czyli po czasie; zmierzone przy P3a.`
+    );
+  }
+
+  /* 13. rozdział ról (L11): kontrola nigdy nie pisze — jedyne wywołanie
+     napraw() w CLI wolno mieć komendzie sync. */
+  const cli = kod(readFileSync(join(KATALOG, "includes", "class-aai-platnosci-cli.php"), "utf8"));
+  const ileNapraw = (cli.match(/Aai_Platnosci_Ustawienia::napraw\(/g) ?? []).length;
+  if (1 !== ileNapraw) {
+    bledy.push(
+      `class-aai-platnosci-cli.php: ${ileNapraw} wywołań Ustawienia::napraw() zamiast dokładnie JEDNEGO (w sync --napraw). Drugie wywołanie oznacza, że pisze też kontrola — a kontrola, która pisze, mierzy skutek własnego działania i nigdy nie jest czerwona (L11).`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -235,5 +282,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze)."
 );

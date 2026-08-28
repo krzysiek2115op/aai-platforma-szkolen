@@ -1343,6 +1343,69 @@ const MUTACJE = [
           )
         : null,
   },
+  // P3a: blokada sprzedaży i rozdział ról ustawień. Każda mutacja z polem
+  // `oczekiwanySlad` — strażnik ma się zapalić WŁAŚCIWĄ regułą, nie
+  // przypadkiem (klasa mutacji maskowanej z przeglądu P2).
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "blokada sprzedaży znika z rejestracji (okno „klient płaci i nie dostaje nic\" do P4)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php"),
+    zmien: (s) =>
+      s.includes("add_filter( 'woocommerce_add_to_cart_validation', array( self::class, 'blokada_sprzedazy' ), 10, 2 );")
+        ? s.replace("add_filter( 'woocommerce_add_to_cart_validation', array( self::class, 'blokada_sprzedazy' ), 10, 2 );", "")
+        : null,
+    oczekiwanySlad: "BRAK BLOKADY SPRZEDAŻY",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "flaga sprzedaży rodzi się OTWARTA (świeża instalacja sprzedaje bez dostarczania)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php"),
+    zmien: (s) =>
+      s.includes("get_option( self::OPCJA_SPRZEDAZ, '' )")
+        ? s.replace("get_option( self::OPCJA_SPRZEDAZ, '' )", "get_option( self::OPCJA_SPRZEDAZ, self::SPRZEDAZ_OTWARTA )")
+        : null,
+    oczekiwanySlad: "PUSTEJ wartości domyślnej",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "rejestracja ustawień przenosi się do plugins_loaded (filtr po odczycie Tutora = martwy)",
+    plik: "wordpress/wtyczki/aai-platnosci/aai-platnosci.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    zmien: (s) =>
+      s.includes("Aai_Platnosci_Ustawienia::zarejestruj();")
+        ? s.replace(
+            "Aai_Platnosci_Ustawienia::zarejestruj();",
+            "add_action( 'plugins_loaded', static function (): void { Aai_Platnosci_Ustawienia::zarejestruj(); } );"
+          )
+        : null,
+    oczekiwanySlad: "POZIOMIE PLIKU",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola zaczyna PISAĆ (napraw() w sprawdz — L11, kontrola mierzy skutek własnego działania)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    zmien: (s) =>
+      s.includes("\tpublic function sprawdz(): void {")
+        ? s.replace(
+            "\tpublic function sprawdz(): void {",
+            "\tpublic function sprawdz(): void {\n\t\tAai_Platnosci_Ustawienia::napraw();"
+          )
+        : null,
+    oczekiwanySlad: "dokładnie JEDNEGO",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "KONTRPRZYKŁAD: nazwa filtra blokady w KOMENTARZU to proza, nie rejestracja",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekujCzerwonego: false,
+    zmien: (s) =>
+      "<?php\n// Historia: add_filter( 'woocommerce_add_to_cart_validation' ) mieszka w klasie ustawień.\n" + s.slice(6),
+  },
+
   {
     straznik: "straznik-tresci-lekcji",
     opis: "zgoda na skasowanie treści wypada z KONTRAKTU (zostaje umową panelu z dyspozytorem)",

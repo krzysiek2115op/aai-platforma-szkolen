@@ -168,6 +168,18 @@ sprawdz(
 
 /* ── 4. B13: cudzy zapis produktu kasuje znacznik, hak go przywraca ── */
 
+/*
+ * ASERCJA WSTĘPNA (zapowiedziana w SWEEP-P2.md §4): od P3a silnik stoi na
+ * `wc`, więc handler Tutora na `save_post_product` JEST zarejestrowany
+ * i ten test mierzy przywracanie znacznika po CUDZYM, realnym kasowaniu.
+ * Przy innym silniku handler nie istnieje i test mierzyłby wyłącznie nasz
+ * własny kod — przechodziłby, nie dowodząc pułapki, której dotyczy.
+ */
+sprawdz(
+  wartosc(`function_exists('tutor_utils') ? tutor_utils()->get_option('monetize_by') : ''`) === "wc",
+  "monetize_by nie jest `wc` — test B13 mierzyłby własny kod zamiast cudzego handlera (uruchom: wp aai-platnosci sync --napraw)"
+);
+
 php(`delete_post_meta(${produkt}, '_tutor_product');`);
 wp("post", "update", String(produkt), "--post_excerpt=smoke-cudzy-zapis");
 sprawdz(

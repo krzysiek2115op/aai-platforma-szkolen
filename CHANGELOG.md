@@ -5,6 +5,78 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.48.0] — 2026-08-29
+
+**Krok P3a: sklep przechodzi na silnik WooCommerce — z zamkniętą sprzedażą,
+polskimi adresami i kasą w wyglądzie motywu.** Plan kroku z czterema
+rozstrzygnięciami właściciela: [docs/plugin-2/KROK-P3A.md](docs/plugin-2/KROK-P3A.md).
+
+### Dodane
+
+- **Ustawienia jako kod** (`Aai_Platnosci_Ustawienia`): jedno źródło wartości
+  docelowych sekcji 8 schematu — `monetize_by = wc`, auto-complete Tutora,
+  para opcji kasy (B1: bez `signup_and_login_from_checkout` kasa oddaje 403
+  każdemu niezalogowanemu), wyłączona zasłona „Coming soon" Woo (jako blokada
+  DZIURAWA — Store API przyjmowało produkty mimo zasłony, zmierzone; jako
+  strona — anglojęzyczna plansza w cudzych fontach zamiast motywu).
+  **Ustawia** aktywacja wtyczki i `wp aai-platnosci sync --napraw`; kontrola
+  wyłącznie czyta (L11) i nazywa każdy rozjazd z instrukcją naprawy.
+- **Filtry obronne B17** na `monetize_by` i auto-complete — rejestrowane PRZY
+  INCLUDE pliku wtyczki, bo Tutor bootuje przy include i OD RAZU czyta silnik
+  (filtr z `plugins_loaded` przychodziłby po odczycie i niczego nie bronił —
+  zmierzone); wartość w bazie dla prawdy ekranu, filtr przeciw cudzej zmianie.
+- **Blokada sprzedaży do P4**: filtr `woocommerce_add_to_cart_validation`
+  odrzuca produkty kursów, dopóki kroku P4 nie ma — zamyka okno „klient płaci
+  i nie dostaje nic" między uzbrojeniem silnika a dostarczaniem. Pokrywa form
+  handler, AJAX, Store API i wczytanie sesji koszyka (produkt sprzed blokady
+  wypada). Flaga `aai_platnosci_sprzedaz_otwarta` domyślnie PUSTA = zamknięte;
+  blokada nie otwiera okna B2, bo `is_course_purchasable` Tutora czyta
+  wyłącznie meta (zmierzone w kodzie 4.0.7).
+- **Polskie adresy**: `/koszyk/` i `/kasa/` (stare `/cart/`, `/checkout/`
+  oddają 404 — `wp_old_slug_redirect` nie obejmuje stron, zmierzone);
+  `/my-account/` zostaje. Puste strony natywnej kasy Tutora (`cart-2`,
+  `checkout-2`, 0 znaków) → `draft`.
+- **Koszyk i kasa w wyglądzie motywu**: sekcja 9 `woo-motyw.css` (bloki:
+  pola, select, komunikaty, przyciski z akcentem marki) + klasa
+  `has-dark-controls` na blokach obu stron — CIEMNY wariant kontrolek
+  z arkusza samego Woo, bo style komponentów bloków drukują się w środku
+  BODY (zawsze po arkuszach z `<head>`) i przy równej specyficzności białe
+  tła wygrywały z każdą zależnością enqueue (zmierzone; stąd też zależność
+  `wc-blocks-style` w `Aai_Sklep_Styl_Woo`).
+- `smoke-wp-motyw` mierzy **dziewięć stron (89 sprawdzeń)**: doszły koszyk
+  i kasa Z PRODUKTEM w koszyku gościa (izolowany kontekst przeglądarki —
+  dla zalogowanego Woo czyta sesję po user_id i koszyk gościa jest
+  niewidzialny; produkt dodaje SAMA przeglądarka przez `?add-to-cart=`,
+  bo sesja przenoszona z Node wyglądała identycznie co do bajta, a serwer
+  i tak widział pustkę), z asercją adresu po wczytaniu (pusta kasa
+  przekierowuje do koszyka — pomiar cudzej strony ma paść, nie przejść)
+  i testem negatywnym blokady w tym samym przebiegu.
+- `straznik-platnosci-wp`: **trzy nowe niezmienniki** (blokada istnieje
+  i domyślnie zamknięta; rejestracja ustawień na poziomie pliku; kontrola
+  nie pisze — dokładnie jedno wywołanie `napraw()` w CLI) + 5 mutacji
+  w audycie (każda z `oczekiwanySlad`) i kontrprzykład.
+- `smoke-wp-produkty`: asercja wstępna `monetize_by = wc` — od P3a test B13
+  mierzy przywracanie znacznika po CUDZYM, realnym handlerze Tutora
+  (zapowiedziane w SWEEP-P2.md §4).
+
+### Naprawione
+
+- `smoke-wp-platnosci` porównuje silnik z **surowej bazy**, nie przez
+  `get_option()` — filtr B17 wymuszał `wc` po obu stronach migawki
+  i maskował wyzerowanie bazy przez deaktywację Woo (klasa 5 walidacji);
+  po teście deaktywacji smoke sprząta silnik przez `sync --napraw`
+  (bez tego każdy przebieg zostawiał czerwoną kontrolę — klasa 6).
+- Operacje na wpisach stron (slug, szkic, klasa bloku) przeniesione do
+  warstwy zapisu (`strona_na_szkic`, `ustaw_slug_strony`,
+  `dopisz_klase_bloku`) — złapał to WŁASNY strażnik: „jedyny pisarz"
+  obejmuje też strony, nie tylko produkty.
+
+Dowody: strażnicy 35/35 · audyt mutacyjny **181** (0 przeoczonych,
+0 martwych) · smoke: motyw **89**, produkty **71**, płatności 23, front 84,
+tutor 44, lekcja 35, kreator 96, dane 30 · `wp:sprawdz` 73/73 ·
+`wp aai-platnosci sprawdz` kod 0 (test negatywny: zepsuty slug/silnik →
+kod 1 → `--napraw` → kod 0).
+
 ## [0.47.0] — 2026-08-28
 
 **Krok P2: kurs staje się produktem WooCommerce — i to w kolejności, która
