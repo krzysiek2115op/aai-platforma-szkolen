@@ -1,6 +1,6 @@
 # Plugin 2 — Płatności: diagram szwu, przepływu zakupu i bramek jakości
 
-**Status: SCHEMAT (krok P0), PO JEDNYM PRZEPISANIU wg krytyki. Przed kodem.**
+**Status: SCHEMAT ZAAKCEPTOWANY przez właściciela (2026-08-28) — krok P0 ZALICZONY.**
 Ten dokument powstał przed implementacją, zgodnie z Zasadą 0 właściciela
 (2026-08-26): najpierw schemat, potem jego krytyka, dopiero po akceptacji kod.
 Wersja obecna wprowadza **wszystkie 54 znaleziska trzech krytyków**
@@ -656,7 +656,7 @@ nieprawdziwe — dotyczyło tylko frontu. Naprawdę:
 
 | Krok | Zakres | Dowód, że zrobione |
 |---|---|---|
-| **P0** | ten schemat | krytyka wprowadzona (ten dokument) + **akceptacja właściciela** |
+| **P0** | ten schemat | **ZALICZONY 2026-08-28**: krytyka wprowadzona + przebudowa wizualna diagramów + akceptacja właściciela |
 | **P1** | fundament wtyczki: tabele dbDelta, klasa zapisu, strażnik, `uninstall.php` | strażnik + mutacje; wyłączenie Woo/Tutora daje komunikat, nie biały ekran; **po deaktywacji żaden produkt kursu nie jest kupowalny** *(L4)* |
 | **P2** | produkt z ceny (draft → publish), powiązanie we właściwej kolejności, kontrola rozjazdu, `sync` na aktywacji | import ×3 → **liczba produktów identyczna po 1., 2. i 3. przebiegu; zero `INSERT`-ów typu `product` w 2. i 3.; `sha256` wiersza produktu + meta niezmieniony między 2. a 3.** *(P2 — liczniki Pluginu 1 nie wystarczą: przeszłyby także przy produktach tworzonych od nowa)*; kontrola z kodem 1 na celowo zepsutej cenie |
 | **P3a** | ustawienia jako kod (z filtrami B17), **adresy PL** = polskie sluggi stron Woo (koszyk `/koszyk/`, kasa `/kasa/` — do potwierdzenia z właścicielem przy oglądaniu) + los stron Tutora 151/152, wygląd koszyka i kasy (rozszerzenie w Pluginie 1, *L8*) | `smoke-wp-motyw` na koszyku i kasie z asercją **„zakres trafił w ≥ 1 element"** (lekcja W5) |

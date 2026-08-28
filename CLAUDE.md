@@ -1620,9 +1620,18 @@ wyprowadzała tego od nowa:
      nie wprowadza żadnego własnego AJAX-a"; wystrzałem jest `admin-post.php`
      Pluginu 1 (akcja „Zapisz kurs") + kanały zakupowe Woo; naprawa zbiorcza
      komendą `wp aai-platnosci sync` (DIAGRAM.md sekcja 11).
-     **NASTĘPNY KROK: AKCEPTACJA SCHEMATU przez właściciela** (wybrał „mam
-     poprawki"; pierwsza poprawka — przebudowa wizualna — wykonana). Kod P1
-     dopiero po akceptacji. Krytyka, którą schemat wprowadził, wg
+     **SCHEMAT ZAAKCEPTOWANY (właściciel, 2026-08-28) — P0 ZALICZONY**
+     (po przebudowie wizualnej diagramów). **NASTĘPNY KROK: P1 — fundament
+     wtyczki `aai-platnosci`** (DIAGRAM.md sekcja 16): katalog wtyczki wzorem
+     W1, dwie tabele dbDelta, klasa zapisu, strażnik + mutacje, uninstall.php
+     nie kasujący niczego, komunikat zamiast białego ekranu przy wyłączonym
+     Woo/Tutorze.
+     **REGUŁA WŁAŚCICIELA (2026-08-28), obowiązuje dla CAŁYCH Pluginów 2 i 3:
+     przed KAŻDYM krokiem agent najpierw przedstawia plan przebiegu kroku
+     (z tym, czego krok NIE dotyka) i pytania doprecyzowujące, i czeka na
+     zgodę — dopiero potem kod.** Powód: najmniejszy błąd w tych modułach
+     może być destrukcyjny dla całego projektu.
+     Krytyka, którą schemat wprowadził, wg
      [docs/plugin-2/KRYTYKA-P0.md](docs/plugin-2/KRYTYKA-P0.md) — **54 znaleziska
      trzech krytyków** (A: architektura, B: cudzy kod i bezpieczeństwo,
      C: prostota i sprawdzalność), w tym **DZIEWIĘĆ krytycznych**.
