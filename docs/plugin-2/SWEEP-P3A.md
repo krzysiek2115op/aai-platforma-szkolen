@@ -59,3 +59,41 @@ Rodzeństwo: [KROK-P3A.md](KROK-P3A.md) (plan i wynik kroku),
 | 3 | punkt kontrolny koszyka w `postaw.sh` miał wpisany stary adres `/cart/` | L7 (twarde adresy) | adres z `get_permalink()`; test negatywny |
 | 4 | niezmiennik „kontrola nie pisze" liczył SZTUKI wywołań `napraw()` — przeniesienie z `sync` do `sprawdz` zostawiało licznik na 1 i strażnik zieleniał | 3 (wzorzec na liczbę, nie na miejsce) | **zmierzone mutacją-pytaniem**: strażnik kod 0 na przeniesieniu; po naprawie pilnuje bloku metody, mutacja odtwarza ten wariant |
 
+## 5. Przegląd przed PR-em — rozliczony
+
+Recenzent na **Sonnecie** (zamknięta lista 10 pytań zamiast otwartego
+przeglądu — decyzja właściciela o koszcie tokenów), krytyk = agent główny,
+potwierdzenia URUCHOMIENIOWE. Trzy znaleziska, wszystkie naprawione; pełna
+tabela w [KROK-P3A.md](KROK-P3A.md) §8.
+
+**Najważniejsze:** `dopisz_klase_bloku()` podmieniał PREFIKS klasy i rozbijał
+klasy bloków zagnieżdżonych — **13 uszkodzeń w koszyku, 22 w kasie na żywych
+danych**, bez jednego objawu. Naprawione (granica atrybutu), treść przywrócona,
+pilnują: reguła strażnika + mutacja + **kontrola danych** w `sprawdz`.
+
+Siedem pytań bez znalezisk jest wypisanych w KROK-P3A.md §8 — nie szukać
+tam drugi raz.
+
+## 6. Stan na koniec sweepu
+
+- **P3a gotowy, PR #81 OTWARTY, czeka na zgodę właściciela na merge.**
+  Gałąź `feat/p3a-ustawienia-kasa`, wersja 0.48.0, wypchnięta, drzewo czyste.
+- Dowody po naprawach przeglądu: strażnicy **35/35**, audyt **183**
+  (0 przeoczonych, 0 martwych), smoke motyw **89**, produkty **71**,
+  płatności 23, kontrola kod 0, `sync --napraw` idempotentny (0 zmian).
+- Środowisko `:8892` stoi: produkty 2, powiazania 2, dostawy 0, strony
+  koszyka i kasy zdrowe (0 rozbitych klas).
+
+## 7. Następny krok po `/clear`
+
+1. **Merge PR #81** (po zgodzie właściciela) → tag `v0.48.0` + release;
+   artefakt weryfikować `git diff main <szczyt gałęzi>` = PUSTE.
+2. Potem **P3b** wg DIAGRAM.md sekcja 16: CTA w trzech stanach, cena z Woo
+   na froncie ORAZ w JSON-LD z tego samego wywołania (K2), `PreOrder →
+   InStock`, mechanizm domykania zamówienia (`needs_processing` kontra
+   `_downloadable` — POMIAREM, nie na słowo), przebieg zakupu obiema
+   ścieżkami (`bacs` ręcznie oraz WP-CLI z `payment_complete()`).
+   **Zgodnie z regułą właściciela: najpierw plan kroku + pytania
+   doprecyzowujące, kod dopiero po zgodzie.**
+3. Blokadę sprzedaży zdejmuje dopiero **P4** (konto, dwa maile, tabela
+   `dostawy`) — wtedy flaga `aai_platnosci_sprzedaz_otwarta` na `tak`.
