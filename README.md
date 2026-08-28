@@ -142,6 +142,7 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run wp:import` | przenieś kursy do tabel wtyczki WordPressa: eksport → kopia do kontenera → `wp aai-sklep import`. **Jedna komenda dla człowieka i dla skryptu** — rozjazd tych dwóch dróg kosztował nas już wydanie (0.24.0, BLAD-012) |
 | `npm run wp:sprawdz` | czy obie bazy niosą tę samą treść? — porównuje Postgres z MySQL wtyczki, lekcja po lekcji (`sha256`), i kończy się kodem wyjścia |
 | `npm run wp:sync` | kopiuje kursy z naszych tabel do wpisów Tutor LMS — normalnie robi to sam zapis w kreatorze, ta komenda jest do pierwszego wypełnienia i do naprawy po awarii |
+| `npm run wp:sync-platnosci` | zakłada produkty WooCommerce z naszych cen i wiąże je z kopiami kursów w Tutorze (Plugin 2) — **czwarta komenda odtworzenia środowiska**: import wystrzeliwuje zapis kursu, ZANIM powstanie kopia w Tutorze, więc produkty zostają wtedy szkicami i to ta komenda je domyka |
 | `npm run wp:tutor` | czy kopia w Tutorze zgadza się z naszymi tabelami? — wypisuje rozjazdy, sieroty po skasowanych lekcjach i wpisy zrobione poza kreatorem; kończy się kodem wyjścia |
 | `npm run wp:zrzuty` | wgrywa 148 zrzutów z lekcji do biblioteki mediów WordPressa (idempotentnie, po `sha256`); renderer podmienia ścieżkę z prozy na adres załącznika dopiero przy wyświetlaniu, więc treść w bazie zostaje nietknięta |
 | `npm run wp:proza` | dowód różnicowy renderera: te same 73 lekcje przez PHP wtyczki i przez `marked` z podglądu — tekst musi zgadzać się CO DO SŁOWA, struktura co do znacznika (wymaga riga z `marked`) |
@@ -198,7 +199,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 173 sposoby (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 174 sposoby (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie

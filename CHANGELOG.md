@@ -78,12 +78,64 @@ dalej prowadzi na `/kontakt`) — to jest świadomy zakres kroku.
   mutacja, która nic nie sprawdza, jest groźniejsza niż jej brak
   (ta sama lekcja co w 0.35.0).
 
+### Przegląd agent+krytyk — 41 znalezisk, wszystkie naprawione
+
+Pierwszy przegląd wg `agenci/przeglad-pr/` (trzech recenzentów na rozłącznych
+obszarach, krytykiem agent główny; żadne znalezisko bez niezależnego
+potwierdzenia). **Najważniejsze:**
+
+- **KRYTYCZNE: `synchronizuj_kurs()` zostawiała produkt `publish` bez kompletu
+  warunków** — trzy wyjścia awaryjne nie dotykały statusu, więc skasowanie
+  kopii kursu w Tutorze zostawiało KUPOWALNY produkt bez powiązania („klient
+  płaci i nie dostaje nic"), a kod pisał przy tym „produkt zostaje draft".
+  Potwierdzone uruchomieniowo. Teraz status nadaje **jedno** miejsce na końcu
+  metody, bez ani jednego wczesnego `return`.
+- **Kontrola meldowała sukces przy rozbrojonym szwie.** Cała integracja Tutora
+  z Woo siedzi za `if ( 'wc' !== $monetize_by ) return;`, a instalacja stoi na
+  `tutor` — czyli nikt po tamtej stronie nie czyta naszych kluczy. Kontrola
+  nazywa teraz ten stan **SZEW ROZBROJONY** (przestawienie należy do P3a, ale
+  ślepoty nie zostawiamy do P3a).
+- **Bez Pluginu 1: BŁĄD KRYTYCZNY PHP i „Success" z kontroli.** Plugin 1 nie
+  był w ogóle zależnością. Teraz jest — komendy kończą się komunikatem, a
+  kontrola mówi wprost, że **kursów nie sprawdzono**.
+- **Degradacja „w trakcie" szła po TREŚCI komunikatu** (wzorzec na napis —
+  pułapka, która w tym repo zzieleniała trzy razy), a dwa z trzech śladów były
+  MARTWE. Teraz rozjazdy mają **kody stanu**, degraduje się dokładnie jeden
+  (brak powiązania tuż po synchronizacji), a znacznik czasu czytamy z kolumny
+  `sync_ts`, nie z mety produktu, której w tym stanie nie ma.
+- **Mutacja audytu była MASKOWANA**: łamała dwie reguły naraz, więc zostawała
+  czerwona nawet po skasowaniu tej, którą testowała. Audyt dostał pole
+  **`oczekiwanySlad`** — sprawdza, czy zapalił się WŁAŚCIWY komunikat; doszła
+  też pierwsza mutacja na `_sale_price` (niezmiennik 3 stał dotąd na słowie).
+- **Stan błędu jest per kurs i czyści go `sync`** — jeden globalny slot był
+  zatrzaskiem (naprawa nie gasiła czerwonej kontroli) i kłamcą naraz (zapis
+  kursu A kasował alarm kursu B).
+- Dalej: `Throwable` w pętli synchronizacji i przy deaktywacji, `try/finally`
+  w naprawie ceny (bez niego wyjątek zostawiał kurs poza sprzedażą), bramka
+  na istnienie tabel przed tworzeniem produktu, `esc_like`, ostrzeżenie gdy
+  nasza kopia ceny skasowałaby promocję właściciela, `'edit'` przy odczytach
+  porównawczych, uuid z tabeli zamiast z mety, `--napraw-cene` honoruje slug,
+  `kurs_po_id()` nie zwraca **wyzerowanych** liczników (zero kłamie cicho —
+  brak klucza wywala się głośno).
+- **Procedura odtworzenia środowiska ma teraz czwartą komendę**
+  (`npm run wp:sync-platnosci`, wpięta w `npm run wp:import`): import
+  wystrzeliwuje zapis kursu ZANIM powstanie kopia w Tutorze, więc bez niej
+  produkty zostawały szkicami.
+
+Smoke P2 urósł z **42 do 70 sprawdzeń**: testy negatywne dla wszystkich gałęzi
+kontroli, zieleń wymagana PRZED i PO każdej próbie (klasa BLAD-022),
+porównania przez równość zamiast końcówki, wszystkie synchronizacje ze slugiem
+kursu testowego. Przy okazji własny pomiar złapał **usterkę funkcji
+pomiarowej**: konkatenacja wiąże w PHP mocniej niż `?:`, więc pomiar warunków
+zawsze zwracał prawdę.
+
 ### Dowody
 
-Strażnicy **35/35**, audyt mutacyjny **173** (0 przeoczonych, 0 martwych),
-`npm run check` kod 0, `smoke:wp-produkty` **42/42**, `smoke:wp-platnosci`
-23, `smoke:wp` 30, `smoke:wp-front` 84, dane Pluginu 1 nietknięte:
-`wp:sprawdz` **73/73 co do znaku**, `wp:tutor` **0 różnic**.
+Strażnicy **35/35**, audyt mutacyjny **174** (0 przeoczonych, 0 martwych),
+`npm run check` kod 0, `postaw.sh` kod 0, smoke: `wp-produkty` **70**,
+`wp-kreator` 96, `wp-front` 84, `wp-tutor` 44, `wp-lekcja` 35, `wp-dane` 30,
+`wp-platnosci` 23; dane Pluginu 1 nietknięte: `wp:sprawdz` **73/73 co do
+znaku**, `wp:tutor` **0 różnic**.
 
 ## [0.46.0] — 2026-08-28
 

@@ -58,6 +58,13 @@ const ARKUSZ_LEKCJI = "wordpress/wtyczki/aai-sklep/assets/lekcja.css";
  *             w finally jak każda inna mutacja) — do niezmienników
  *             typu „ten plik musi istnieć",
  *  oczekujCzerwonego — false dla kontrprzykładów (domyślnie true),
+ *  oczekiwanySlad — (string) fragment komunikatu, który MUSI paść
+ *             w wyjściu strażnika. Bez tego audyt patrzy wyłącznie na kod
+ *             wyjścia, więc mutacja łamiąca DWIE reguły naraz zostaje
+ *             czerwona nawet po skasowaniu tej, którą miała testować —
+ *             i maskuje ślepotę strażnika (klasa z 0.35.0: mutacja, która
+ *             nic nie sprawdza, jest groźniejsza niż jej brak). Wykryte
+ *             przy przeglądzie P2 na mutacji ceny zapisanej metą.
  *  wymaga   — () => boolean; false = mutacja POMINIĘTA (nie martwa,
  *             nie przeoczona). Dla strażników warunkowych, którzy przy
  *             braku materiału świadomie milczą — jak straznik-scenariuszy
@@ -1169,12 +1176,33 @@ const MUTACJE = [
   {
     straznik: "straznik-platnosci-wp",
     opis: "cena zapisana metą (_regular_price bez save() — kasa liczy starą cenę, B5)",
-    plik: null,
-    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
-    nowyPlik: {
-      sciezka: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zle.php",
-      tresc: "<?php\ndefined( 'ABSPATH' ) || exit;\nupdate_post_meta( $product_id, '_regular_price', $cena );\n",
-    },
+    // Mutacja siedzi W WARSTWIE ZAPISU, nie w osobnym pliku: w osobnym
+    // łamała OD RAZU dwie reguły (cena metą + zapis poza warstwą zapisu),
+    // więc zostawała czerwona nawet po skasowaniu tej, którą testuje.
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "ZAPISUJE cenę metą",
+    zmien: (s) =>
+      s.includes("\t\t\t\t$produkt->set_regular_price( $cena );")
+        ? s.replace(
+            "\t\t\t\t$produkt->set_regular_price( $cena );",
+            "\t\t\t\tupdate_post_meta( (int) $product_id, '_regular_price', $cena );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "zapis ceny PROMOCYJNEJ (niezmiennik 3 — nie dotykamy jej nigdy)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "ZAPISUJE cenę promocyjną",
+    zmien: (s) =>
+      s.includes("\t\t\t\t$produkt->set_regular_price( $cena );")
+        ? s.replace(
+            "\t\t\t\t$produkt->set_regular_price( $cena );",
+            "\t\t\t\t$produkt->set_sale_price( $cena );\n\t\t\t\t$produkt->set_regular_price( $cena );"
+          )
+        : null,
   },
   {
     straznik: "straznik-platnosci-wp",
@@ -1201,10 +1229,19 @@ const MUTACJE = [
     opis: "ODWRÓCONA kolejność powiązania (B2) — product_id przed price_type ROZDAJE KURS ZA DARMO",
     plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
     wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    // Wzorzec bez twardego wcięcia — inaczej umiera przy każdej zmianie
+    // zagnieżdżenia metody (tak zmartwiał po naprawie A1 przy przeglądzie P2).
     zmien: (s) => {
-      const a = "\t\tupdate_post_meta( $tutor_id, '_tutor_course_price_type', 'paid' );\n";
-      const b = "\t\tupdate_post_meta( $tutor_id, '_tutor_course_product_id', (int) $product_id );\n";
-      return s.includes(a + b) ? s.replace(a + b, b + a) : null;
+      const para =
+        /([ \t]*)update_post_meta\( \$tutor_id, '_tutor_course_price_type', 'paid' \);\n([ \t]*)update_post_meta\( \$tutor_id, '_tutor_course_product_id', \(int\) \$product_id \);/;
+      return para.test(s)
+        ? s.replace(
+            para,
+            (_, w1, w2) =>
+              `${w2}update_post_meta( $tutor_id, '_tutor_course_product_id', (int) $product_id );\n` +
+              `${w1}update_post_meta( $tutor_id, '_tutor_course_price_type', 'paid' );`,
+          )
+        : null;
     },
   },
   {
@@ -1953,7 +1990,16 @@ for (const m of doWykonania) {
     }
 
     const wynik = spawnSync("node", [`tools/straznicy/${m.straznik}.mjs`], { encoding: "utf8" });
-    const czerwony = wynik.status !== 0;
+    const wyjscie = `${wynik.stdout ?? ""}${wynik.stderr ?? ""}`;
+    let czerwony = wynik.status !== 0;
+    if (czerwony && m.oczekiwanySlad && !wyjscie.includes(m.oczekiwanySlad)) {
+      // Strażnik zapalił się z INNEGO powodu niż ten, który mutacja
+      // testuje — dla tej mutacji to znaczy „przeoczone", nie „złapane".
+      przeoczone.push(
+        `${m.straznik}: ${m.opis} — strażnik zapalił się z innego powodu (brak śladu „${m.oczekiwanySlad}")`,
+      );
+      continue;
+    }
     if (czerwony === oczekuj) {
       zlapane.push(`${m.straznik}: ${m.opis}${oczekuj ? "" : " (słusznie przemilczane)"}`);
     } else {

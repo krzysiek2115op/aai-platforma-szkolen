@@ -128,7 +128,7 @@ for (const plik of plikiPhp(KATALOG)) {
   const metaCeny = tresc.match(/update_post_meta\s*\([^;]*['"](_regular_price|_price)['"]/);
   if (metaCeny) {
     bledy.push(
-      `${plik}: zapisuje ${metaCeny[1]} przez update_post_meta. Cena idzie WYŁĄCZNIE przez WC_Product::set_regular_price() + save() (B5): zapis samej mety zostawia _price po staremu — katalog pokazuje nową cenę, kasa liczy starą, a kontrola porównująca get_regular_price() tego nie widzi.`
+      `${plik}: ZAPISUJE cenę metą (${metaCeny[1]} przez update_post_meta). Cena idzie WYŁĄCZNIE przez WC_Product::set_regular_price() + save() (B5): zapis samej mety zostawia _price po staremu — katalog pokazuje nową cenę, kasa liczy starą, a kontrola porównująca get_regular_price() tego nie widzi.`
     );
   }
 

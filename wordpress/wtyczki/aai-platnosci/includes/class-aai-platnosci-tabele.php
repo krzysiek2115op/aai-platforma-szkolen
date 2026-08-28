@@ -132,8 +132,11 @@ final class Aai_Platnosci_Tabele {
 		foreach ( self::wszystkie() as $tabela ) {
 			// Nazwa tabeli jest identyfikatorem z kodu (prefiks instalacji
 			// + stała wtyczki) — do `prepare` idzie jako WARTOŚĆ dla LIKE.
+			// `esc_like`, bo nazwy tabel są pełne podkreśleń, a `_` to
+			// wildcard LIKE — bez tego zapytanie mogłoby trafić w cudzą
+			// tabelę o podobnej nazwie i kontrola skłamałaby o schemacie.
 			$jest = $wpdb->get_var(
-				$wpdb->prepare( 'SHOW TABLES LIKE %s', $tabela )
+				$wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $tabela ) )
 			);
 			if ( $jest !== $tabela ) {
 				return false;

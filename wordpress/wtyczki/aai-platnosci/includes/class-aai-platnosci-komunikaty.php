@@ -22,7 +22,14 @@ defined( 'ABSPATH' ) || exit;
 final class Aai_Platnosci_Komunikaty {
 
 	/**
-	 * Nazwa opcji z ostatnim błędem.
+	 * Nazwa opcji ze stanem błędów — MAPA `uuid kursu → komunikat`.
+	 *
+	 * Jeden globalny slot był zatrzaskiem i kłamcą naraz: udany zapis
+	 * kursu B kasował błąd kursu A (alarm gasł tam, gdzie miał świecić),
+	 * a `wp aai-platnosci sync` nie miał jak go zdjąć, więc kontrola
+	 * zostawała czerwona po naprawie i uczyła, żeby jej nie ufać.
+	 * Stan trzymamy więc per kurs i czyści go każda udana synchronizacja
+	 * TEGO kursu — także z wiersza poleceń.
 	 */
 	private const OPCJA = 'aai_platnosci_blad';
 
@@ -34,26 +41,59 @@ final class Aai_Platnosci_Komunikaty {
 	}
 
 	/**
-	 * Zapisuje ostatni błąd kopii (bez autoloadu — czytany tylko w kokpicie).
+	 * Cała mapa błędów.
 	 *
-	 * @param string $tresc Opis błędu.
+	 * @return array<string,string>
 	 */
-	public static function zapisz( string $tresc ): void {
-		update_option( self::OPCJA, $tresc, false );
+	public static function wszystkie(): array {
+		$mapa = get_option( self::OPCJA, array() );
+		return is_array( $mapa ) ? $mapa : array();
 	}
 
 	/**
-	 * Czyści błąd po udanym przebiegu.
+	 * Zapisuje błąd konkretnego kursu.
+	 *
+	 * @param string $tresc       Opis błędu.
+	 * @param string $course_uuid Uuid kursu; pusty = błąd niezwiązany z kursem.
 	 */
-	public static function wyczysc(): void {
-		delete_option( self::OPCJA );
+	public static function zapisz( string $tresc, string $course_uuid = '' ): void {
+		$mapa = self::wszystkie();
+		$mapa[ '' === $course_uuid ? '_ogolny' : $course_uuid ] = $tresc;
+		update_option( self::OPCJA, $mapa, false );
 	}
 
 	/**
-	 * Ostatni błąd (dla kontroli CLI).
+	 * Czyści błąd konkretnego kursu (po udanej synchronizacji).
+	 *
+	 * @param string $course_uuid Uuid kursu; pusty = czyści wpis ogólny.
+	 */
+	public static function wyczysc( string $course_uuid = '' ): void {
+		$mapa  = self::wszystkie();
+		$klucz = '' === $course_uuid ? '_ogolny' : $course_uuid;
+		if ( ! array_key_exists( $klucz, $mapa ) ) {
+			return;
+		}
+		unset( $mapa[ $klucz ] );
+		if ( array() === $mapa ) {
+			delete_option( self::OPCJA );
+			return;
+		}
+		update_option( self::OPCJA, $mapa, false );
+	}
+
+	/**
+	 * Wszystkie błędy jednym łańcuchem (dla kontroli CLI); pusty = porządek.
 	 */
 	public static function ostatni(): string {
-		return (string) get_option( self::OPCJA, '' );
+		$mapa = self::wszystkie();
+		if ( array() === $mapa ) {
+			return '';
+		}
+		$linie = array();
+		foreach ( $mapa as $uuid => $tresc ) {
+			$linie[] = ( '_ogolny' === $uuid ? '' : $uuid . ': ' ) . $tresc;
+		}
+		return implode( ' | ', $linie );
 	}
 
 	/**

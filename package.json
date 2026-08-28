@@ -21,7 +21,7 @@
     "db1:seed": "node --env-file-if-exists=.env tools/seed/seed-przyklady.ts",
     "db1:tresc": "node --env-file-if-exists=.env tools/wgraj-tresc-lekcji.ts",
     "wp:eksport": "node --env-file-if-exists=.env tools/eksport-wp.mjs --do eksport-wp",
-    "wp:import": "npm run wp:eksport && podman cp eksport-wp/kursy.json ${STACK_NAZWA:-aai_wp}_cli:/tmp/kursy.json && podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep import /tmp/kursy.json",
+    "wp:import": "npm run wp:eksport && podman cp eksport-wp/kursy.json ${STACK_NAZWA:-aai_wp}_cli:/tmp/kursy.json && podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep import /tmp/kursy.json && npm run wp:sync-platnosci",
     "wp:sprawdz": "node --env-file-if-exists=.env tools/sprawdz-import-wp.mjs",
     "wp:sync": "podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep sync",
     "wp:tutor": "podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep sprawdz-tutora",
@@ -36,6 +36,7 @@
     "smoke:wp-lekcja": "node tools/smoke/smoke-wp-lekcja.mjs",
     "smoke:wp-panel": "node tools/smoke/smoke-wp-panel.mjs",
     "smoke:wp-platnosci": "node tools/smoke/smoke-wp-platnosci.mjs",
+    "wp:sync-platnosci": "podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-platnosci sync",
     "smoke:wp-produkty": "node tools/smoke/smoke-wp-produkty.mjs"
   },
   "dependencies": {

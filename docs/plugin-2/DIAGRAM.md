@@ -475,7 +475,7 @@ pierwszy"**.
 | Klucz | Siedzi na | Znaczenie |
 |---|---|---|
 | `_aai_platnosci_kurs_uuid` | produkcie Woo | pomocnicza kopia uuid (źródłem jest tabela `powiazania`) |
-| `_aai_platnosci_sync_ts` | produkcie Woo | znacznik czasu ostatniej kopii — po nim kontrola odróżnia „w trakcie" od „zepsute" *(B15)* |
+| ~~`_aai_platnosci_sync_ts`~~ | — | **KOREKTA przy P2 (2026-08-28):** znacznika czasu NIE trzymamy na produkcie. Meta na cudzym wpisie odświeżała się przy KAŻDYM zapisie produktu (także cudzym), więc kłamała o tym, kiedy synchronizowaliśmy MY, i maskowała stan przejściowy przed kontrolą. Jedno źródło: kolumna `sync_ts` w tabeli `powiazania` *(B15, A8)* |
 
 Kluczy Tutora **nie wymyślamy**, tylko ustawiamy jego własne:
 `_tutor_course_product_id` i `_tutor_course_price_type = 'paid'` na wpisie

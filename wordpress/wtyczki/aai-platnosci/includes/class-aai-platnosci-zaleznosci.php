@@ -50,6 +50,19 @@ final class Aai_Platnosci_Zaleznosci {
 	}
 
 	/**
+	 * Czy Plugin 1 (sklep kursów) jest wczytany.
+	 *
+	 * To jest zależność NIEZBYWALNA: bez niego nie ma źródła ceny ani
+	 * stron sprzedażowych, a produkty zostają w sklepie bez nikogo, kto
+	 * je zsynchronizuje. Pierwsza wersja o niej nie wiedziała, więc
+	 * komendy wchodziły w nieistniejącą klasę i kończyły się BŁĘDEM
+	 * KRYTYCZNYM PHP, a kontrola meldowała sukces.
+	 */
+	public static function jest_sklep(): bool {
+		return class_exists( 'Aai_Sklep_Odczyt' );
+	}
+
+	/**
 	 * Nazwy brakujących zależności (pusta lista = komplet).
 	 *
 	 * @return string[]
@@ -61,6 +74,9 @@ final class Aai_Platnosci_Zaleznosci {
 		}
 		if ( ! self::jest_tutor() ) {
 			$brak[] = 'Tutor LMS';
+		}
+		if ( ! self::jest_sklep() ) {
+			$brak[] = 'Automatic AI — Sklep (Plugin 1)';
 		}
 		return $brak;
 	}

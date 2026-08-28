@@ -45,12 +45,12 @@ final class Aai_Platnosci_Szew {
 		try {
 			$w = Aai_Platnosci_Zapis::synchronizuj_kurs( $id );
 			if ( array() === $w['uwagi'] ) {
-				Aai_Platnosci_Komunikaty::wyczysc();
+				Aai_Platnosci_Komunikaty::wyczysc( $id );
 			} else {
-				Aai_Platnosci_Komunikaty::zapisz( implode( '; ', $w['uwagi'] ) );
+				Aai_Platnosci_Komunikaty::zapisz( implode( '; ', $w['uwagi'] ), $id );
 			}
 		} catch ( Throwable $e ) {
-			Aai_Platnosci_Komunikaty::zapisz( $e->getMessage() );
+			Aai_Platnosci_Komunikaty::zapisz( $e->getMessage(), $id );
 		}
 	}
 
@@ -62,8 +62,9 @@ final class Aai_Platnosci_Szew {
 	public static function na_usunieciu( string $id ): void {
 		try {
 			Aai_Platnosci_Zapis::zdejmij_kurs( $id );
+			Aai_Platnosci_Komunikaty::wyczysc( $id );
 		} catch ( Throwable $e ) {
-			Aai_Platnosci_Komunikaty::zapisz( $e->getMessage() );
+			Aai_Platnosci_Komunikaty::zapisz( $e->getMessage(), $id );
 		}
 	}
 

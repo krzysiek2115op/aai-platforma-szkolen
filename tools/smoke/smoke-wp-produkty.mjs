@@ -57,6 +57,23 @@ function wp(...argumenty) {
   }
 }
 const php = (kod) => wp("eval", kod).out;
+/**
+ * Wartość z PHP porównywana RÓWNOŚCIĄ, nie końcówką.
+ *
+ * `.endsWith("199.00")` przechodzi także dla „1199.00", a `.endsWith("paid")`
+ * dla „unpaid" — wzorzec z końcówką wybrano tylko po to, żeby tolerować
+ * ostrzeżenia PHP drukowane przed wynikiem. Opakowanie w nawiasy klamrowe
+ * rozwiązuje jedno i drugie.
+ */
+const wartosc = (wyrazenie) => {
+  // Wyrażenie W NAWIASACH: konkatenacja `.` wiąże w PHP mocniej niż `?:`,
+  // więc `'{' . $x ? 'a' : 'b' . '}'` liczy się jako `('{' . $x) ? …` —
+  // czyli ZAWSZE gałąź prawdziwa. Bez nawiasów ta funkcja pomiarowa
+  // kłamała na każdym warunku (złapane własnym testem przy P2).
+  const out = wp("eval", `echo '{' . ( ${wyrazenie} ) . '}';`).out;
+  const m = out.match(/\{([^}]*)\}\s*$/);
+  return m ? m[1] : out;
+};
 
 /** Kurs testowy w Pluginie 1 — smoke ma prawo psuć SWOJE dane. */
 function zapiszKurs(status, cenaGrosze) {
@@ -96,30 +113,38 @@ sprawdz(produkt > 0, "po zapisie kursu nie powstał produkt");
 const tutor = tutorKursu();
 sprawdz(tutor > 0, "kopia kursu w Tutorze nie powstała — dalsze pomiary powiązania byłyby ślepe");
 sprawdz(wp("post", "get", String(produkt), "--field=post_status").out === "publish", "produkt opublikowanego, płatnego kursu nie jest publish");
-sprawdz(php(`echo get_post_meta(${tutor}, '_tutor_course_price_type', true);`).endsWith("paid"), "wpis Tutora nie ma price_type=paid");
+sprawdz(wartosc(`get_post_meta(${tutor}, '_tutor_course_price_type', true)`) === "paid", "wpis Tutora nie ma price_type=paid");
 sprawdz(
   Number(php(`echo (int) get_post_meta(${tutor}, '_tutor_course_product_id', true);`)) === produkt,
   "wpis Tutora nie wskazuje naszego produktu"
 );
-sprawdz(php(`$p = wc_get_product(${produkt}); echo $p->get_regular_price('edit');`).endsWith("199.00"), "cena regularna != 199.00 (grosze / 100)");
-sprawdz(php(`$p = wc_get_product(${produkt}); echo $p->get_price('edit');`).endsWith("199.00"), "cena liczona w kasie (_price) != 199.00 — zapis metą zamiast save()? (B5)");
-sprawdz(php(`$p = wc_get_product(${produkt}); echo $p->get_catalog_visibility();`).endsWith("hidden"), "produkt widoczny w katalogu Woo (decyzja właściciela: hidden)");
-sprawdz(php(`$p = wc_get_product(${produkt}); echo $p->get_sold_individually('edit') ? 'tak' : 'nie';`).endsWith("tak"), "produkt bez _sold_individually (B14)");
-sprawdz(php(`echo get_post_meta(${produkt}, '_tutor_product', true);`).endsWith("yes"), "produkt bez _tutor_product");
+sprawdz(wartosc(`wc_get_product(${produkt})->get_regular_price('edit')`) === "199.00", "cena regularna != 199.00 (grosze / 100)");
+sprawdz(wartosc(`wc_get_product(${produkt})->get_price('edit')`) === "199.00", "cena liczona w kasie (_price) != 199.00 — zapis metą zamiast save()? (B5)");
+sprawdz(wartosc(`wc_get_product(${produkt})->get_catalog_visibility('edit')`) === "hidden", "produkt widoczny w katalogu Woo (decyzja właściciela: hidden)");
+sprawdz(wartosc(`wc_get_product(${produkt})->get_sold_individually('edit') ? 'tak' : 'nie'`) === "tak", "produkt bez _sold_individually (B14)");
+sprawdz(wartosc(`get_post_meta(${produkt}, '_tutor_product', true)`) === "yes", "produkt bez _tutor_product");
 
 /* ── 2. BRAMKA P2: trzy przebiegi, odcisk niezmieniony ──────────────── */
 
-wp("aai-platnosci", "sync");
+// ZAWSZE ze slugiem kursu testowego: `sync` bez sluga przepuszcza także
+// PRAWDZIWE kursy właściciela, a smoke obiecuje w nagłówku, że ich tylko
+// czyta. Przy `--napraw-cene` to nie jest teoria — tamta operacja prowadzi
+// produkt przez `draft`, więc padnięcie w tym miejscu zostawiłoby realny
+// kurs poza sprzedażą.
+wp("aai-platnosci", "sync", SLUG);
 const poDrugim = { produktow: liczbaProduktow(), odcisk: odciskProduktu(produkt) };
-wp("aai-platnosci", "sync");
+wp("aai-platnosci", "sync", SLUG);
 const poTrzecim = { produktow: liczbaProduktow(), odcisk: odciskProduktu(produkt) };
 sprawdz(poDrugim.produktow === poTrzecim.produktow, `liczba produktów rośnie między przebiegami (${poDrugim.produktow} → ${poTrzecim.produktow})`);
 sprawdz(
   poDrugim.odcisk === poTrzecim.odcisk,
   "sha256 wiersza produktu z meta ZMIENIŁ SIĘ między 2. a 3. przebiegiem — synchronizacja zapisuje mimo braku zmian"
 );
-const trzeci = wp("aai-platnosci", "sync");
-sprawdz(/bez zmian [1-9]/.test(trzeci.out), `czwarty przebieg nie melduje „bez zmian": ${trzeci.out}`);
+const trzeci = wp("aai-platnosci", "sync", SLUG);
+sprawdz(
+  /bez zmian 1\b/.test(trzeci.out),
+  `czwarty przebieg na kursie testowym nie melduje dokładnie „bez zmian 1": ${trzeci.out}`
+);
 
 /* ── 3. KOLEJNOŚĆ B2 mierzona hakiem ────────────────────────────────── */
 
@@ -146,17 +171,27 @@ sprawdz(
 php(`delete_post_meta(${produkt}, '_tutor_product');`);
 wp("post", "update", String(produkt), "--post_excerpt=smoke-cudzy-zapis");
 sprawdz(
-  php(`echo get_post_meta(${produkt}, '_tutor_product', true);`).endsWith("yes"),
+  wartosc(`get_post_meta(${produkt}, '_tutor_product', true)`) === "yes",
   "po CUDZYM zapisie produktu znacznik _tutor_product nie wrócił — hak B13 nie działa"
 );
 
 /* ── 5. kontrola: kod 1 na każdym rodzaju rozjazdu ──────────────────── */
 
+/**
+ * Test negatywny kontroli. Zieleń PRZED psuciem jest częścią próby:
+ * bez niej wszystkie wywołania przechodziłyby z CUDZEGO powodu, gdyby
+ * instalacja miała wcześniejszy rozjazd (klasa BLAD-022 — cały blok
+ * przechodził z jednego wspólnego powodu).
+ */
 function probaCzerwona(psuj, przywroc, opis) {
+  const przed = wp("aai-platnosci", "sprawdz");
+  sprawdz(przed.kod === 0, `${opis} — kontrola BYŁA czerwona jeszcze przed próbą, pomiar mierzyłby cudzy rozjazd: ${przed.err}`);
   php(psuj);
   const wynik = wp("aai-platnosci", "sprawdz");
   php(przywroc);
   sprawdz(wynik.kod === 1, `${opis} — kontrola oddała kod ${wynik.kod}, oczekiwano 1`);
+  const po = wp("aai-platnosci", "sprawdz");
+  sprawdz(po.kod === 0, `${opis} — po przywróceniu kontrola nadal czerwona, próba zostawiła ślad: ${po.err}`);
 }
 probaCzerwona(
   `$p = wc_get_product(${produkt}); $p->set_regular_price('1.00'); $p->save();`,
@@ -176,16 +211,16 @@ sprawdz(
 );
 const zwyklySync = wp("aai-platnosci", "sync", SLUG);
 sprawdz(
-  php(`$p = wc_get_product(${produkt}); echo $p->get_price('edit');`).endsWith("1.00"),
+  wartosc(`wc_get_product(${produkt})->get_price('edit')`) === "1.00",
   `zwykły sync ruszył cenę efektywną — miał tego NIE robić po cichu (${zwyklySync.out})`
 );
-wp("aai-platnosci", "sync", "--napraw-cene");
+wp("aai-platnosci", "sync", SLUG, "--napraw-cene");
 sprawdz(
-  php(`$p = wc_get_product(${produkt}); echo $p->get_price('edit');`).endsWith("199.00"),
+  wartosc(`wc_get_product(${produkt})->get_price('edit')`) === "199.00",
   "sync --napraw-cene NIE naprawił ceny liczonej w kasie"
 );
 sprawdz(
-  php(`$p = wc_get_product(${produkt}); echo $p->get_regular_price('edit');`).endsWith("199.00"),
+  wartosc(`wc_get_product(${produkt})->get_regular_price('edit')`) === "199.00",
   "naprawa zostawiła cenę regularną z ceną tymczasową (+0,01) zamiast docelowej"
 );
 sprawdz(
@@ -193,7 +228,7 @@ sprawdz(
   "naprawa nie przywróciła statusu produktu (został draft — kurs zniknął ze sprzedaży)"
 );
 sprawdz(
-  php(`$p = wc_get_product(${produkt}); echo '[' . $p->get_sale_price('edit') . ']';`).endsWith("[]"),
+  wartosc(`wc_get_product(${produkt})->get_sale_price('edit')`) === "",
   "naprawa dotknęła ceny promocyjnej — niezmiennik 3 zabrania"
 );
 probaCzerwona(
@@ -206,6 +241,49 @@ probaCzerwona(
   `update_post_meta(${tutor}, '_tutor_course_product_id', ${produkt});`,
   "zerwane powiązanie na wpisie Tutora"
 );
+probaCzerwona(
+  `$p = wc_get_product(${produkt}); $p->set_status('draft'); $p->save();`,
+  `$p = wc_get_product(${produkt}); $p->set_status('publish'); $p->save();`,
+  "produkt zdjęty ze sprzedaży przy opublikowanym, płatnym kursie"
+);
+probaCzerwona(
+  `$p = wc_get_product(${produkt}); $p->set_virtual(false); $p->save();`,
+  `$p = wc_get_product(${produkt}); $p->set_virtual(true); $p->save();`,
+  "produkt przestał być wirtualny"
+);
+probaCzerwona(
+  `$p = wc_get_product(${produkt}); $p->set_sold_individually(false); $p->save();`,
+  `$p = wc_get_product(${produkt}); $p->set_sold_individually(true); $p->save();`,
+  "produkt bez _sold_individually (quantity=3 wzięłoby trzy sztuki — B14)"
+);
+probaCzerwona(
+  `delete_post_meta(${produkt}, '_tutor_product');`,
+  `update_post_meta(${produkt}, '_tutor_product', 'yes');`,
+  "produkt bez znacznika _tutor_product"
+);
+probaCzerwona(
+  `update_post_meta(${tutor}, '_tutor_course_price_type', 'free');`,
+  `update_post_meta(${tutor}, '_tutor_course_price_type', 'paid');`,
+  "wpis Tutora przestał być płatny"
+);
+probaCzerwona(
+  `delete_post_meta(${tutor}, '_aai_zrodlo_uuid');`,
+  `update_post_meta(${tutor}, '_aai_zrodlo_uuid', '${KURS}');`,
+  "brak kopii kursu w Tutorze przy OPUBLIKOWANYM produkcie (klient płaci i nie dostaje nic — B3)"
+);
+probaCzerwona(
+  `Aai_Platnosci_Zapis::powiazanie_usun('${KURS}'); update_post_meta(${produkt}, '_aai_platnosci_kurs_uuid', '${KURS}');`,
+  `Aai_Platnosci_Zapis::powiazanie_ustaw('${KURS}', ${produkt});`,
+  "kurs płatny bez wiersza w powiazania, gdy synchronizacja NIE jest świeża"
+);
+
+// Stan przejściowy: świeża synchronizacja + brak powiązania = kod 0.
+// To JEDYNY stan, który dokańcza się sam (B15/B3) — i jedyny, który wolno
+// zdegradować do komunikatu.
+php(`Aai_Platnosci_Zapis::powiazanie_ustaw('${KURS}', ${produkt});`);
+const swiezy = wp("aai-platnosci", "sprawdz");
+sprawdz(swiezy.kod === 0, `po odtworzeniu powiązania kontrola czerwona: ${swiezy.err}`);
+
 const zdrowa = wp("aai-platnosci", "sprawdz");
 sprawdz(zdrowa.kod === 0, `po przywróceniu wszystkiego kontrola dalej czerwona (kod ${zdrowa.kod}): ${zdrowa.err}`);
 
@@ -216,7 +294,7 @@ php(`update_post_meta(${drugi}, '_aai_platnosci_kurs_uuid', '${KURS}');`);
 const duplikat = wp("aai-platnosci", "sprawdz");
 sprawdz(duplikat.kod === 1, `DWA produkty z tym samym uuid — kontrola oddała kod ${duplikat.kod}, oczekiwano 1 (B4)`);
 sprawdz(
-  php(`echo Aai_Platnosci_Zapis::powiazanie_ustaw('aaaa0000-0000-4000-8000-0000000pr999', ${produkt}) ? 'true' : 'false';`).endsWith("false"),
+  wartosc(`Aai_Platnosci_Zapis::powiazanie_ustaw('aaaa0000-0000-4000-8000-0000000pr999', ${produkt}) ? 'true' : 'false'`) === "false",
   "produkt zajęty przez inny kurs dał się powiązać po raz drugi (B4)"
 );
 wp("post", "delete", String(drugi), "--force");
@@ -226,7 +304,7 @@ wp("post", "delete", String(drugi), "--force");
 zapiszKurs("published", 0);
 wp("aai-platnosci", "sync", SLUG);
 sprawdz(wp("post", "get", String(produkt), "--field=post_status").out === "draft", "kurs z ceną 0: produkt nie zszedł na draft");
-sprawdz(php(`echo get_post_meta(${tutor}, '_tutor_course_price_type', true);`).endsWith("free"), "kurs z ceną 0: price_type nie jest free");
+sprawdz(wartosc(`get_post_meta(${tutor}, '_tutor_course_price_type', true)`) === "free", "kurs z ceną 0: price_type nie jest free");
 
 zapiszKurs("published", 19900);
 wp("aai-platnosci", "sync", SLUG);
@@ -237,14 +315,14 @@ zapiszKurs("draft", 19900);
 wp("aai-platnosci", "sync", SLUG);
 sprawdz(wp("post", "get", String(produkt), "--field=post_status").out === "draft", "szkic kursu: produkt nie zszedł na draft");
 sprawdz(
-  php(`echo get_post_meta(${tutor}, '_tutor_course_price_type', true);`).endsWith("paid"),
+  wartosc(`get_post_meta(${tutor}, '_tutor_course_price_type', true)`) === "paid",
   "szkic kursu ZMIENIŁ price_type — tabela 9.3 mówi: bez zmian (szkicu nie ogłaszamy darmowym)"
 );
 
 zapiszKurs("archived", 19900);
 wp("aai-platnosci", "sync", SLUG);
 sprawdz(wp("post", "get", String(produkt), "--field=post_status").out === "draft", "kurs archived: produkt nie jest draft");
-sprawdz(php(`echo get_post_meta(${tutor}, '_tutor_course_price_type', true);`).endsWith("free"), "kurs archived: price_type nie jest free");
+sprawdz(wartosc(`get_post_meta(${tutor}, '_tutor_course_price_type', true)`) === "free", "kurs archived: price_type nie jest free");
 
 /* ── 8. osierocony produkt w publish = BŁĄD kontroli ────────────────── */
 

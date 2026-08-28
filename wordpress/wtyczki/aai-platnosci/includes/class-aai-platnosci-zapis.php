@@ -120,6 +120,25 @@ final class Aai_Platnosci_Zapis {
 	 */
 	public static function dostawa_odnotuj( string $zdarzenie, int $identyfikator, string $wynik = '' ): bool {
 		global $wpdb;
+
+		/*
+		 * Identyfikator musi być prawdziwy. Kolumna jest `bigint unsigned`,
+		 * a instalacja stoi na NIE-strict `sql_mode` — wartość ujemna
+		 * zostałaby po cichu przycięta do zera i dwa różne zdarzenia
+		 * zlałyby się w jeden wiersz, czyli drugi mail nigdy by nie
+		 * wyszedł. Wolimy głośną odmowę.
+		 */
+		if ( $identyfikator <= 0 ) {
+			throw new InvalidArgumentException(
+				sprintf( 'dostawa „%s" bez prawidłowego identyfikatora (%d)', $zdarzenie, $identyfikator )
+			);
+		}
+		// `wynik` przycinamy SAMI, z widocznym wielokropkiem: kolumna ma
+		// 191 znaków i utnie dłuższy komunikat w milczeniu.
+		if ( mb_strlen( $wynik ) > 190 ) {
+			$wynik = mb_substr( $wynik, 0, 189 ) . '…';
+		}
+
 		$tabela = Aai_Platnosci_Tabele::tabela( 'dostawy' );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
@@ -133,6 +152,20 @@ final class Aai_Platnosci_Zapis {
 				current_time( 'mysql', true )
 			)
 		);
+
+		if ( false === $dodane ) {
+			/*
+			 * AWARIA ZAPYTANIA to NIE „duplikat". Pierwsza wersja zwracała
+			 * tu `false` (bo `1 === false`), a wołający czyta `false` jako
+			 * „ktoś już dostarczył" — więc przy zepsutej tabeli mail
+			 * i dostęp przepadłyby bez jednego objawu, a dziennik
+			 * twierdziłby, że wszystko poszło. Klasa BLAD-018: kod pisał
+			 * co innego, niż robił. Awaria musi być głośna.
+			 */
+			throw new RuntimeException(
+				sprintf( 'nie udało się odnotować dostawy (%s/%d): %s', $zdarzenie, $identyfikator, $wpdb->last_error )
+			);
+		}
 
 		return 1 === $dodane;
 	}
@@ -235,6 +268,17 @@ final class Aai_Platnosci_Zapis {
 			return $w;
 		}
 
+		/*
+		 * Bez naszych tabel nie wolno TWORZYĆ produktu: powiązania nie
+		 * dałoby się zapisać, a produkt zostałby sierotą, której kontrola
+		 * NIGDY nie zobaczy (iteruje po wierszach `powiazania`) — i rósłby
+		 * o jeden przy każdym przebiegu.
+		 */
+		if ( ! Aai_Platnosci_Tabele::istnieja() ) {
+			$w['uwagi'][] = 'brak tabel Pluginu 2 — synchronizacja wstrzymana, żeby nie tworzyć produktów bez powiązania';
+			return $w;
+		}
+
 		$kurs = Aai_Sklep_Odczyt::kurs_po_id( $course_uuid );
 		if ( null === $kurs ) {
 			// Kurs zniknął — traktujemy jak usunięcie (tabela stanów 9.3).
@@ -278,6 +322,21 @@ final class Aai_Platnosci_Zapis {
 				$zmiany = true;
 			}
 			if ( $produkt->get_regular_price( 'edit' ) !== $cena ) {
+				/*
+				 * Woo KASUJE promocję, gdy cena promocyjna wyjdzie równa
+				 * albo wyższa od regularnej (`class-wc-product-data-store-cpt.php:857`).
+				 * To nie jest nasza operacja, ale nasza kopia potrafi ją
+				 * wywołać — więc mówimy o tym wprost, zamiast udawać, że
+				 * nic nie zaszło (wymóg schematu, sekcja 6).
+				 */
+				$promocyjna = (string) $produkt->get_sale_price( 'edit' );
+				if ( '' !== $promocyjna && (float) $promocyjna >= (float) $cena ) {
+					$w['uwagi'][] = sprintf(
+						'obniżenie ceny kursu do %s zł SKASUJE promocję %s zł ustawioną w WooCommerce (robi to Woo, nie my)',
+						$cena,
+						$promocyjna
+					);
+				}
 				$produkt->set_regular_price( $cena );
 				$zmiany = true;
 			}
@@ -308,7 +367,7 @@ final class Aai_Platnosci_Zapis {
 				$produkt->set_sold_individually( true );
 				$zmiany = true;
 			}
-			if ( 'hidden' !== $produkt->get_catalog_visibility() ) {
+			if ( 'hidden' !== $produkt->get_catalog_visibility( 'edit' ) ) {
 				$produkt->set_catalog_visibility( 'hidden' );
 				$zmiany = true;
 			}
@@ -318,41 +377,60 @@ final class Aai_Platnosci_Zapis {
 			}
 		}
 
+		/*
+		 * OD TĄD ANI JEDNEGO WCZESNEGO `return` — status produktu nadaje
+		 * JEDNO miejsce na końcu metody.
+		 *
+		 * Pierwsza wersja wychodziła z metody przy każdej przeszkodzie
+		 * (odmowa powiązania, dwa wpisy Tutora, brak kopii w Tutorze)
+		 * i zostawiała produkt w statusie, który miał wcześniej. Dla
+		 * produktu tworzonego od zera to nie szkodziło (rodzi się
+		 * `draft`), ale w stanie ustalonym produkt jest `publish` —
+		 * więc skasowanie kopii kursu w Tutorze zostawiało KUPOWALNY
+		 * produkt bez powiązania, czyli „klient płaci i nie dostaje
+		 * nic" (B3). Kod pisał przy tym w uwadze „produkt zostaje
+		 * draft", czego nic nie egzekwowało — nieprawda o zachowaniu,
+		 * klasa BLAD-018. Zmierzone uruchomieniowo przy przeglądzie P2.
+		 */
+		$komplet = false;
+
 		if ( ! self::powiazanie_ustaw( $course_uuid, (int) $product_id ) ) {
-			$w['uwagi'][] = sprintf( 'produkt %d jest już powiązany z INNYM kursem — odmowa (B4)', $product_id );
-			return $w;
-		}
+			// Powód podajemy zmierzony, nie zgadnięty: konflikt UNIQUE to
+			// co innego niż padnięte zapytanie, a operator dostaje inną
+			// instrukcję w każdym z tych przypadków.
+			global $wpdb;
+			$w['uwagi'][] = false !== strpos( (string) $wpdb->last_error, 'Duplicate entry' )
+				? sprintf( 'produkt %d jest już powiązany z INNYM kursem — odmowa (B4)', $product_id )
+				: sprintf( 'nie udało się zapisać powiązania produktu %d: %s', $product_id, (string) $wpdb->last_error );
+		} else {
+			// Znaczniki PO zapisie: handler Tutora na `save_post_product`
+			// czyta $_POST i przy programowym zapisie KASUJE `_tutor_product`
+			// (pułapka 2 schematu) — dlatego stawiamy je po każdym save(),
+			// a cudze zapisy naprawia hak `przywroc_znaczniki()`.
+			self::ustaw_znaczniki_produktu( (int) $product_id, $course_uuid );
 
-		// Znaczniki PO zapisie: handler Tutora na `save_post_product` czyta
-		// $_POST i przy programowym zapisie KASUJE `_tutor_product`
-		// (pułapka 2 schematu) — dlatego stawiamy je po każdym save(),
-		// a cudze zapisy naprawia hak `przywroc_znaczniki()`.
-		self::ustaw_znaczniki_produktu( (int) $product_id, $course_uuid );
-
-		$tutor_id = self::kurs_tutora( $course_uuid );
-		if ( -1 === $tutor_id ) {
-			$w['uwagi'][] = 'więcej niż jeden wpis Tutora z tym uuid — zatrzymane, wyjaśnij dane (B4)';
-			return $w;
-		}
-		if ( null === $tutor_id ) {
-			// Projektowany stan degradacji (korekta schematu przy P2):
-			// bez kopii w Tutorze produkt zostaje szkicem, komplet domyka
-			// `wp aai-platnosci sync` po imporcie.
-			$w['uwagi'][] = 'kopii kursu w Tutorze jeszcze nie ma — produkt zostaje draft, dokończy sync';
-			if ( 0 === $w['produkt_utworzony'] && 0 === $w['zaktualizowany'] ) {
-				$w['bez_zmian'] = 1;
+			$tutor_id = self::kurs_tutora( $course_uuid );
+			if ( -1 === $tutor_id ) {
+				$w['uwagi'][] = 'więcej niż jeden wpis Tutora z tym uuid — zatrzymane, wyjaśnij dane (B4)';
+			} elseif ( null === $tutor_id ) {
+				// Projektowany stan degradacji (korekta schematu przy P2):
+				// bez kopii w Tutorze produkt zostaje szkicem, komplet
+				// domyka `wp aai-platnosci sync` po imporcie.
+				$w['uwagi'][] = 'kopii kursu w Tutorze jeszcze nie ma — produkt zostaje draft, dokończy sync';
+			} else {
+				// KOLEJNOŚĆ B2: price_type NAJPIERW, product_id NA KOŃCU.
+				update_post_meta( $tutor_id, '_tutor_course_price_type', 'paid' );
+				update_post_meta( $tutor_id, '_tutor_course_product_id', (int) $product_id );
+				$komplet = true;
 			}
-			return $w;
 		}
 
-		// KOLEJNOŚĆ B2: price_type NAJPIERW, product_id NA KOŃCU.
-		update_post_meta( $tutor_id, '_tutor_course_price_type', 'paid' );
-		update_post_meta( $tutor_id, '_tutor_course_product_id', (int) $product_id );
-
-		if ( 'publish' !== get_post_status( (int) $product_id ) ) {
-			$publikowany = wc_get_product( (int) $product_id );
-			$publikowany->set_status( 'publish' );
-			$publikowany->save();
+		// JEDYNE miejsce nadające status produktowi w tej metodzie.
+		$cel = $komplet ? 'publish' : 'draft';
+		if ( get_post_status( (int) $product_id ) !== $cel ) {
+			$przestawiany = wc_get_product( (int) $product_id );
+			$przestawiany->set_status( $cel );
+			$przestawiany->save();
 			self::ustaw_znaczniki_produktu( (int) $product_id, $course_uuid );
 			if ( 0 === $w['produkt_utworzony'] ) {
 				$w['zaktualizowany'] = 1;
@@ -446,7 +524,19 @@ final class Aai_Platnosci_Zapis {
 		}
 
 		foreach ( array_keys( $uuidy ) as $uuid ) {
-			$w = self::synchronizuj_kurs( (string) $uuid );
+			/*
+			 * `Throwable` per kurs — ten sam wzorzec co w
+			 * `produkty_na_szkic()`. Jeden zepsuty kurs nie ma prawa
+			 * zatrzymać całego przebiegu: przy aktywacji wtyczki zrobiłby
+			 * to niewidzialnie (wyjątek ląduje w opcji), a reszta kursów
+			 * zostałaby bez produktów.
+			 */
+			try {
+				$w = self::synchronizuj_kurs( (string) $uuid );
+			} catch ( Throwable $e ) {
+				$suma['uwagi'][] = $uuid . ': synchronizacja przerwana — ' . $e->getMessage();
+				continue;
+			}
 			foreach ( array( 'produkt_utworzony', 'zaktualizowany', 'bez_zmian', 'zdjety' ) as $k ) {
 				$suma[ $k ] += $w[ $k ];
 			}
@@ -463,7 +553,17 @@ final class Aai_Platnosci_Zapis {
 	 * `_tutor_product` kasuje handler Tutora na `save_post_product`
 	 * (czyta $_POST — masowa edycja, REST, `wc_scheduled_sales`, nasz
 	 * własny `save()`; B13). `update_post_meta` z tą samą wartością
-	 * niczego nie pisze, więc wołanie jest bezpieczne dla sha256.
+	 * niczego nie pisze, więc te trzy klucze są bezpieczne dla sha256.
+	 *
+	 * ZNACZNIKA CZASU TU NIE MA — i to jest treść, nie porządki. Metoda
+	 * biegnie także z haka `save_post_product`, czyli po CUDZYM zapisie
+	 * produktu; gdyby stawiała `sync_ts`, pole znaczyłoby „kiedy ktokolwiek
+	 * zapisał produkt" zamiast „kiedy MY synchronizowaliśmy", a kontrola
+	 * degradowałaby niekompletny stan do „w trakcie" po każdej cudzej
+	 * edycji. Zmierzone przy przeglądzie P2. Znacznik czasu ma JEDNO
+	 * miejsce w całym module — kolumnę `sync_ts` w tabeli `powiazania`
+	 * (`powiazanie_ustaw()`); meta o tej nazwie nie istnieje, żeby nie
+	 * było dwóch kopii tej samej prawdy.
 	 *
 	 * @param int    $product_id  Id produktu.
 	 * @param string $course_uuid Uuid kursu.
@@ -472,8 +572,8 @@ final class Aai_Platnosci_Zapis {
 		update_post_meta( $product_id, '_tutor_product', 'yes' );
 		update_post_meta( $product_id, '_virtual', 'yes' );
 		update_post_meta( $product_id, '_aai_platnosci_kurs_uuid', $course_uuid );
-		update_post_meta( $product_id, '_aai_platnosci_sync_ts', (string) time() );
 	}
+
 
 	/**
 	 * Hak naprawczy dla CUDZYCH zapisów produktu (B13): po każdym
@@ -526,22 +626,53 @@ final class Aai_Platnosci_Zapis {
 			$produkt->save();
 		}
 
-		$tymczasowa = number_format( ( (float) $cena ) + 0.01, 2, '.', '' );
-		$krok       = wc_get_product( $product_id );
-		$krok->set_regular_price( $tymczasowa );
-		$krok->save();
+		/*
+		 * `finally` jest tu warunkiem poprawności, nie ostrożnością:
+		 * bez niego wyjątek w środku (cudzy filtr na
+		 * `woocommerce_before_product_object_save`, padnięta baza)
+		 * zostawiłby produkt jako `draft` z ceną tymczasową NA STAŁE —
+		 * czyli kurs zniknąłby ze sprzedaży po operacji, która miała go
+		 * naprawić. Ta sama zasada co przy wstrzymaniu kopii w imporcie
+		 * Pluginu 1.
+		 */
+		try {
+			$tymczasowa = number_format( ( (float) $cena ) + 0.01, 2, '.', '' );
+			$krok       = wc_get_product( $product_id );
+			$krok->set_regular_price( $tymczasowa );
+			$krok->save();
 
-		$powrot = wc_get_product( $product_id );
-		$powrot->set_regular_price( $cena );
-		$powrot->save();
-
-		if ( 'draft' !== $status_przed ) {
+			$powrot = wc_get_product( $product_id );
+			$powrot->set_regular_price( $cena );
+			$powrot->save();
+		} finally {
 			$finalny = wc_get_product( $product_id );
-			$finalny->set_status( $status_przed );
-			$finalny->save();
+			if ( $finalny && $finalny->get_regular_price( 'edit' ) !== $cena ) {
+				// Cena tymczasowa nie ma prawa przeżyć tej metody.
+				$finalny->set_regular_price( $cena );
+				$finalny->save();
+				$finalny = wc_get_product( $product_id );
+			}
+			if ( $finalny && 'draft' !== $status_przed && $finalny->get_status() !== $status_przed ) {
+				$finalny->set_status( $status_przed );
+				$finalny->save();
+			}
 		}
 
-		self::ustaw_znaczniki_produktu( $product_id, (string) get_post_meta( $product_id, '_aai_platnosci_kurs_uuid', true ) );
+		/*
+		 * Uuid bierzemy z TABELI, nie z pomocniczej mety: meta bywa pusta
+		 * (produkt sprzed powiązania, cudza edycja), a pusta wartość
+		 * wpisana z powrotem uruchamia fałszywy alarm o duplikacie uuid.
+		 * Dopasowanie idzie wyłącznie przez `powiazania` (B4).
+		 */
+		global $wpdb;
+		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		$uuid = $wpdb->get_var(
+			$wpdb->prepare( "SELECT course_uuid FROM {$tabela} WHERE product_id = %d", $product_id )
+		);
+		if ( null !== $uuid ) {
+			self::ustaw_znaczniki_produktu( $product_id, (string) $uuid );
+		}
 
 		$sprawdzenie = wc_get_product( $product_id );
 		$promocyjna  = (string) $sprawdzenie->get_sale_price( 'edit' );
@@ -566,21 +697,39 @@ final class Aai_Platnosci_Zapis {
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
 		$produkty = $wpdb->get_col( "SELECT product_id FROM {$tabela}" );
 
+		$nieudane = array();
 		foreach ( $produkty as $product_id ) {
 			try {
 				$wpis = get_post( (int) $product_id );
 				if ( $wpis && 'product' === $wpis->post_type && 'draft' !== $wpis->post_status ) {
-					wp_update_post(
+					// Wynik SPRAWDZAMY: `wp_update_post` oddaje 0 przy
+					// porażce, a bramka P1 obiecuje, że po deaktywacji
+					// żaden produkt kursu nie jest kupowalny — cicha
+					// porażka zostawiałaby go w sprzedaży.
+					$ok = wp_update_post(
 						array(
 							'ID'          => (int) $product_id,
 							'post_status' => 'draft',
 						)
 					);
+					if ( ! $ok ) {
+						$nieudane[] = (int) $product_id;
+					}
 				}
 			} catch ( Throwable $e ) {
 				// Celowo bez ponownego rzucenia — patrz komentarz metody.
+				$nieudane[] = (int) $product_id;
 				continue;
 			}
+		}
+
+		if ( array() !== $nieudane ) {
+			Aai_Platnosci_Komunikaty::zapisz(
+				sprintf(
+					'przy wyłączaniu wtyczki NIE udało się zdjąć ze sprzedaży produktów: %s — są dalej kupowalne',
+					implode( ', ', $nieudane )
+				)
+			);
 		}
 	}
 }

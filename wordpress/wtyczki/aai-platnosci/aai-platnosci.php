@@ -34,7 +34,6 @@ const AAI_PLATNOSCI_WERSJA = '0.1.0';
  */
 const AAI_PLATNOSCI_PREFIKS = 'aai_platnosci_';
 
-const AAI_PLATNOSCI_PLIK = __FILE__;
 define( 'AAI_PLATNOSCI_KATALOG', plugin_dir_path( __FILE__ ) );
 
 /**
@@ -68,7 +67,13 @@ register_activation_hook(
 		// synchronizacji po aktywacji nie powstałby ani jeden produkt.
 		// Awaria nie może zablokować aktywacji: błąd idzie do opcji.
 		try {
-			Aai_Platnosci_Zapis::synchronizuj_wszystkie();
+			$wynik = Aai_Platnosci_Zapis::synchronizuj_wszystkie();
+			// Uwagi z jedynej automatycznej ścieżki bootstrapu nie mogą
+			// wyparować: to tu wychodzi „produkt już powiązany z INNYM
+			// kursem" i podobne, a właściciel nie widzi wyjścia CLI.
+			if ( array() !== $wynik['uwagi'] ) {
+				Aai_Platnosci_Komunikaty::zapisz( 'przy aktywacji: ' . implode( '; ', $wynik['uwagi'] ) );
+			}
 		} catch ( Throwable $e ) {
 			Aai_Platnosci_Komunikaty::zapisz( $e->getMessage() );
 		}
@@ -86,7 +91,15 @@ register_activation_hook(
 register_deactivation_hook(
 	__FILE__,
 	static function (): void {
-		Aai_Platnosci_Zapis::produkty_na_szkic();
+		// `Throwable` także tutaj: WordPress zdejmuje wtyczkę z listy
+		// aktywnych PRZED tym hakiem, więc wyjątek zostawiłby produkty
+		// w sprzedaży po już nieaktywnym szwie — dokładnie stan, przed
+		// którym ten hak broni.
+		try {
+			Aai_Platnosci_Zapis::produkty_na_szkic();
+		} catch ( Throwable $e ) {
+			Aai_Platnosci_Komunikaty::zapisz( 'przy wyłączaniu wtyczki: ' . $e->getMessage() );
+		}
 	}
 );
 
