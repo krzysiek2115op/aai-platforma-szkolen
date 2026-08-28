@@ -5,6 +5,138 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.47.0] — 2026-08-28
+
+**Krok P2: kurs staje się produktem WooCommerce — i to w kolejności, która
+nie rozdaje kursów za darmo.** Oba prawdziwe kursy mają produkty utworzone
+z naszej ceny, powiązane z kopią w Tutorze, ukryte w katalogu Woo. Sprzedaży
+to jeszcze nie uruchamia (`monetize_by` zostaje `tutor` do kroku P3a, CTA
+dalej prowadzi na `/kontakt`) — to jest świadomy zakres kroku.
+
+### Dodane
+
+- **Szew kurs → produkt** (`Aai_Platnosci_Szew`, priorytet 20): po każdym
+  zapisie kursu w Pluginie 1 powstaje produkt WooCommerce z naszej ceny.
+  Kolejność jest treścią bezpieczeństwa (B2): produkt rodzi się jako
+  **`draft`**, potem na wpisie kursu Tutora ląduje
+  `_tutor_course_price_type = paid` **NAJPIERW** i `_tutor_course_product_id`
+  **NA KOŃCU**, a `publish` przychodzi dopiero z kompletem warunków.
+  Odwrotna kolejność sprawia, że `do_enroll()` tworzy zapis `completed`
+  na niezapłaconym zamówieniu — klient dostaje kurs za darmo. Przy
+  zdejmowaniu para rozpina się odwrotnie.
+- **Pięć stanów kursu obsłużonych wg tabeli 9.3 schematu**: `published`
+  + cena > 0 → `publish`; cena 0 → `draft` + `price_type = free`; szkic →
+  `draft`, `price_type` **nietknięty**; `archived` → `draft`; kurs usunięty
+  → `draft`, produkt **nigdy nie kasowany** (niezmiennik 13).
+- **`wp aai-platnosci sync [<slug>] [--napraw-cene]`** + synchronizacja
+  przy aktywacji wtyczki (U3). Kontrola `sprawdz` urosła o rozjazd ceny
+  regularnej I ceny liczonej w kasie, widoczność w katalogu, znaczniki,
+  powiązanie w Tutorze, duplikaty uuid oraz **kupowalne sieroty**
+  (produkt `publish` bez opublikowanego kursu = kod 1).
+- **`Aai_Sklep_Odczyt::kurs_po_id()`** w Pluginie 1 — jedyna uzgodniona
+  z właścicielem zmiana w skończonej wtyczce (L2): czysty odczyt karty
+  kursu po uuid, bez sekcji, programu i treści lekcji.
+- **`npm run smoke:wp-produkty`** (42 sprawdzenia) — bramka P2. Mierzy
+  m.in. KOLEJNOŚĆ powiązania **hakiem na `added_post_meta`**, a nie
+  deklaracją; trzy przebiegi synchronizacji z niezmienionym `sha256`
+  wiersza produktu **razem z meta** (liczniki by nie wystarczyły —
+  przeszłyby także przy produktach tworzonych od nowa); przywracanie
+  `_tutor_product` po CUDZYM zapisie produktu (B13).
+- `straznik-platnosci-wp` urósł z 7 do **10 niezmienników** (kolejność B2
+  w obie strony, narodziny produktu jako `draft`, ukrycie w katalogu),
+  audyt mutacyjny z 169 do **173**.
+- **Punkt kontrolny w `postaw.sh`**: środowisko nie melduje „gotowe",
+  kiedy `wp aai-platnosci sprawdz` widzi rozjazd szwu.
+
+### Naprawione
+
+- **Kontrola była ŚLEPA na każdy rozjazd przez 10 minut po
+  synchronizacji.** Próg „w trakcie" (B15) degradował do informacji
+  WSZYSTKO — także zepsutą cenę. Teraz degradują się wyłącznie stany
+  **niekompletne** (brak produktu, brak powiązania), które najbliższy
+  `sync` dokończy sam; rozjazd WARTOŚCI to zawsze kod 1, a okno skrócone
+  z 600 do 60 s. Znalazł to smoke P2.
+- **Naprawa ceny liczonej w kasie (`_price`) jest JAWNA, bo inna być nie
+  może.** Zmierzone w kodzie Woo 11.0.1
+  (`class-wc-product-data-store-cpt.php:856`): to pole przelicza się
+  wyłącznie przy REALNEJ zmianie `_regular_price`/`_sale_price` w bazie —
+  `set_price()` przez API nie zapisuje go wcale, a ponowny zapis tej samej
+  ceny niczego nie wywołuje. Naprawa wymaga więc przejścia przez cenę
+  tymczasową, a to nie ma prawa dziać się po cichu przy każdym zapisie
+  kursu. Stąd `sync --napraw-cene`: produkt schodzi na czas naprawy na
+  `draft` (nikt nie kupi po cenie przejściowej), cena tymczasowa jest
+  **wyższa** o grosz (niższa kasowałaby promocję — `:857`), a promocja
+  i status wracają nietknięte. Zwykły `sync` tego pola nie rusza —
+  pilnuje tego smoke.
+- Dwa wzorce `straznik-platnosci-wp` oskarżały niewinnych: odczyt
+  `get_sale_price()` (konieczny, żeby NIE nadpisać promocji) był brany
+  za zapis, a regex callbacku urywał się na przecinku wewnątrz
+  `array( self::class,`. Po poprawce audyt dalej łapie komplet mutacji.
+- **Wadliwa mutacja w audycie** (odwrócenie kolejności zdejmowania)
+  wstawiała `delete` do wnętrza `if`, więc kolejność zostawała poprawna
+  i mutacja nic nie testowała. Audyt to pokazał jako „PRZEPUŚCIŁ" —
+  mutacja, która nic nie sprawdza, jest groźniejsza niż jej brak
+  (ta sama lekcja co w 0.35.0).
+
+### Przegląd agent+krytyk — 41 znalezisk, wszystkie naprawione
+
+Pierwszy przegląd wg `agenci/przeglad-pr/` (trzech recenzentów na rozłącznych
+obszarach, krytykiem agent główny; żadne znalezisko bez niezależnego
+potwierdzenia). **Najważniejsze:**
+
+- **KRYTYCZNE: `synchronizuj_kurs()` zostawiała produkt `publish` bez kompletu
+  warunków** — trzy wyjścia awaryjne nie dotykały statusu, więc skasowanie
+  kopii kursu w Tutorze zostawiało KUPOWALNY produkt bez powiązania („klient
+  płaci i nie dostaje nic"), a kod pisał przy tym „produkt zostaje draft".
+  Potwierdzone uruchomieniowo. Teraz status nadaje **jedno** miejsce na końcu
+  metody, bez ani jednego wczesnego `return`.
+- **Kontrola meldowała sukces przy rozbrojonym szwie.** Cała integracja Tutora
+  z Woo siedzi za `if ( 'wc' !== $monetize_by ) return;`, a instalacja stoi na
+  `tutor` — czyli nikt po tamtej stronie nie czyta naszych kluczy. Kontrola
+  nazywa teraz ten stan **SZEW ROZBROJONY** (przestawienie należy do P3a, ale
+  ślepoty nie zostawiamy do P3a).
+- **Bez Pluginu 1: BŁĄD KRYTYCZNY PHP i „Success" z kontroli.** Plugin 1 nie
+  był w ogóle zależnością. Teraz jest — komendy kończą się komunikatem, a
+  kontrola mówi wprost, że **kursów nie sprawdzono**.
+- **Degradacja „w trakcie" szła po TREŚCI komunikatu** (wzorzec na napis —
+  pułapka, która w tym repo zzieleniała trzy razy), a dwa z trzech śladów były
+  MARTWE. Teraz rozjazdy mają **kody stanu**, degraduje się dokładnie jeden
+  (brak powiązania tuż po synchronizacji), a znacznik czasu czytamy z kolumny
+  `sync_ts`, nie z mety produktu, której w tym stanie nie ma.
+- **Mutacja audytu była MASKOWANA**: łamała dwie reguły naraz, więc zostawała
+  czerwona nawet po skasowaniu tej, którą testowała. Audyt dostał pole
+  **`oczekiwanySlad`** — sprawdza, czy zapalił się WŁAŚCIWY komunikat; doszła
+  też pierwsza mutacja na `_sale_price` (niezmiennik 3 stał dotąd na słowie).
+- **Stan błędu jest per kurs i czyści go `sync`** — jeden globalny slot był
+  zatrzaskiem (naprawa nie gasiła czerwonej kontroli) i kłamcą naraz (zapis
+  kursu A kasował alarm kursu B).
+- Dalej: `Throwable` w pętli synchronizacji i przy deaktywacji, `try/finally`
+  w naprawie ceny (bez niego wyjątek zostawiał kurs poza sprzedażą), bramka
+  na istnienie tabel przed tworzeniem produktu, `esc_like`, ostrzeżenie gdy
+  nasza kopia ceny skasowałaby promocję właściciela, `'edit'` przy odczytach
+  porównawczych, uuid z tabeli zamiast z mety, `--napraw-cene` honoruje slug,
+  `kurs_po_id()` nie zwraca **wyzerowanych** liczników (zero kłamie cicho —
+  brak klucza wywala się głośno).
+- **Procedura odtworzenia środowiska ma teraz czwartą komendę**
+  (`npm run wp:sync-platnosci`, wpięta w `npm run wp:import`): import
+  wystrzeliwuje zapis kursu ZANIM powstanie kopia w Tutorze, więc bez niej
+  produkty zostawały szkicami.
+
+Smoke P2 urósł z **42 do 70 sprawdzeń**: testy negatywne dla wszystkich gałęzi
+kontroli, zieleń wymagana PRZED i PO każdej próbie (klasa BLAD-022),
+porównania przez równość zamiast końcówki, wszystkie synchronizacje ze slugiem
+kursu testowego. Przy okazji własny pomiar złapał **usterkę funkcji
+pomiarowej**: konkatenacja wiąże w PHP mocniej niż `?:`, więc pomiar warunków
+zawsze zwracał prawdę.
+
+### Dowody
+
+Strażnicy **35/35**, audyt mutacyjny **174** (0 przeoczonych, 0 martwych),
+`npm run check` kod 0, `postaw.sh` kod 0, smoke: `wp-produkty` **70**,
+`wp-kreator` 96, `wp-front` 84, `wp-tutor` 44, `wp-lekcja` 35, `wp-dane` 30,
+`wp-platnosci` 23; dane Pluginu 1 nietknięte: `wp:sprawdz` **73/73 co do
+znaku**, `wp:tutor` **0 różnic**.
+
 ## [0.46.0] — 2026-08-28
 
 **Plugin 2 ma zaakceptowany schemat i stojący fundament — krok P0 zaliczony,

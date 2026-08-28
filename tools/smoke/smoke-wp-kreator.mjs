@@ -766,6 +766,27 @@ wp("user", "delete", LOGIN_BEZ_PRAW, "--yes");
 
 /* ————————————————————————— wynik ————————————————————————— */
 
+/*
+ * PRODUKT PO KURSIE TESTOWYM — sprzątamy TU, bo wtyczka tego nie robi
+ * i nie ma prawa robić: „produktu nie kasujemy nigdy" (niezmiennik 13
+ * Pluginu 2) chroni historię zamówień i nie rozróżnia kupionych od
+ * niekupionych. Bez tego każdy przebieg zostawiałby w sklepie sierotę
+ * — po kilku przebiegach bramki mierzyłyby własne śmieci. Test ma prawo
+ * skasować SWOJE dane; to ta sama zasada, dla której kasuje kurs wyżej.
+ */
+wp(
+  "eval",
+  `if ( class_exists( "Aai_Platnosci_Tabele" ) ) {
+    global $wpdb; $t = Aai_Platnosci_Tabele::tabela( "powiazania" );
+    foreach ( $wpdb->get_results( "SELECT course_uuid, product_id FROM {$t}", ARRAY_A ) as $w ) {
+      if ( null === Aai_Sklep_Odczyt::kurs_po_id( (string) $w["course_uuid"] ) ) {
+        $wpdb->delete( $t, array( "product_id" => (int) $w["product_id"] ) );
+        wp_delete_post( (int) $w["product_id"], true );
+      }
+    }
+  }`
+);
+
 if (bledy.length > 0) {
   console.error(`smoke-wp-kreator: ${bledy.length} z ${sprawdzen} sprawdzeń NIE przeszło:`);
   for (const blad of bledy) console.error(`  - ${blad}`);

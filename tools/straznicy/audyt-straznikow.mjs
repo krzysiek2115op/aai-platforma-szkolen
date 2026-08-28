@@ -58,6 +58,13 @@ const ARKUSZ_LEKCJI = "wordpress/wtyczki/aai-sklep/assets/lekcja.css";
  *             w finally jak każda inna mutacja) — do niezmienników
  *             typu „ten plik musi istnieć",
  *  oczekujCzerwonego — false dla kontrprzykładów (domyślnie true),
+ *  oczekiwanySlad — (string) fragment komunikatu, który MUSI paść
+ *             w wyjściu strażnika. Bez tego audyt patrzy wyłącznie na kod
+ *             wyjścia, więc mutacja łamiąca DWIE reguły naraz zostaje
+ *             czerwona nawet po skasowaniu tej, którą miała testować —
+ *             i maskuje ślepotę strażnika (klasa z 0.35.0: mutacja, która
+ *             nic nie sprawdza, jest groźniejsza niż jej brak). Wykryte
+ *             przy przeglądzie P2 na mutacji ceny zapisanej metą.
  *  wymaga   — () => boolean; false = mutacja POMINIĘTA (nie martwa,
  *             nie przeoczona). Dla strażników warunkowych, którzy przy
  *             braku materiału świadomie milczą — jak straznik-scenariuszy
@@ -1008,12 +1015,36 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-limitera",
-    opis: "brama formularza przyjmuje token z .env.example",
+    opis: "brama formularza przestaje MIERZYĆ długość tokenu (definicja stałej zostaje)",
     plik: "lib/kreator-dostep.ts",
+    /*
+     * Mutacja usuwa SPRAWDZENIE, a nie nazwę. Poprzednia wersja
+     * przemianowywała stałą (`MIN_DLUGOSC_TOKENU` → `…_NIEUZYWANA`), czyli
+     * testowała NAZWĘ — i przechodziła na zielono przy strażniku, który
+     * o nazwę pytał, choć brama przyjmowała już token dowolnej długości.
+     * Wykryte przy ponownej walidacji przed PR-em P2 (2026-08-29).
+     */
     zmien: (s) =>
-      s.includes("MIN_DLUGOSC_TOKENU")
-        ? s.replace(/MIN_DLUGOSC_TOKENU/g, "MIN_DLUGOSC_NIEUZYWANA")
+      s.includes("(wzorzec as string).length >= MIN_DLUGOSC_TOKENU")
+        ? s.replace(
+            "(wzorzec as string).length >= MIN_DLUGOSC_TOKENU",
+            "(wzorzec as string).length >= 0"
+          )
         : null,
+    oczekiwanySlad: "mierzy długość: false",
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "dyspozytor przestaje MIERZYĆ długość tokenu (definicja stałej zostaje)",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) =>
+      s.includes("(wzorzec as string).length >= MIN_DLUGOSC_TOKENU")
+        ? s.replace(
+            "(wzorzec as string).length >= MIN_DLUGOSC_TOKENU",
+            "(wzorzec as string).length >= 0"
+          )
+        : null,
+    oczekiwanySlad: "mierzy długość: false",
   },
   {
     straznik: "straznik-limitera",
@@ -1023,6 +1054,17 @@ const MUTACJE = [
       s.includes("ustaw-wlasny-token")
         ? s.replace("ustaw-wlasny-token", "dowolna-inna-wartosc")
         : null,
+    oczekiwanySlad: "zna token przykładowy: false",
+  },
+  {
+    straznik: "straznik-limitera",
+    opis: "KONTRPRZYKŁAD: przemianowanie stałej długości niczego nie osłabia",
+    plik: "modules/m1-sklep/dyspozytor.ts",
+    zmien: (s) =>
+      s.includes("MIN_DLUGOSC_TOKENU")
+        ? s.replace(/MIN_DLUGOSC_TOKENU/g, "MIN_DLUGOSC_HASLA")
+        : null,
+    oczekujCzerwonego: false,
   },
   {
     straznik: "straznik-csp",
@@ -1169,12 +1211,33 @@ const MUTACJE = [
   {
     straznik: "straznik-platnosci-wp",
     opis: "cena zapisana metą (_regular_price bez save() — kasa liczy starą cenę, B5)",
-    plik: null,
-    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
-    nowyPlik: {
-      sciezka: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zle.php",
-      tresc: "<?php\ndefined( 'ABSPATH' ) || exit;\nupdate_post_meta( $product_id, '_regular_price', $cena );\n",
-    },
+    // Mutacja siedzi W WARSTWIE ZAPISU, nie w osobnym pliku: w osobnym
+    // łamała OD RAZU dwie reguły (cena metą + zapis poza warstwą zapisu),
+    // więc zostawała czerwona nawet po skasowaniu tej, którą testuje.
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "ZAPISUJE cenę metą",
+    zmien: (s) =>
+      s.includes("\t\t\t\t$produkt->set_regular_price( $cena );")
+        ? s.replace(
+            "\t\t\t\t$produkt->set_regular_price( $cena );",
+            "\t\t\t\tupdate_post_meta( (int) $product_id, '_regular_price', $cena );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "zapis ceny PROMOCYJNEJ (niezmiennik 3 — nie dotykamy jej nigdy)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "ZAPISUJE cenę promocyjną",
+    zmien: (s) =>
+      s.includes("\t\t\t\t$produkt->set_regular_price( $cena );")
+        ? s.replace(
+            "\t\t\t\t$produkt->set_regular_price( $cena );",
+            "\t\t\t\t$produkt->set_sale_price( $cena );\n\t\t\t\t$produkt->set_regular_price( $cena );"
+          )
+        : null,
   },
   {
     straznik: "straznik-platnosci-wp",
@@ -1195,6 +1258,76 @@ const MUTACJE = [
       sciezka: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zle.php",
       tresc: "<?php\ndefined( 'ABSPATH' ) || exit;\nwp_update_post( array( 'ID' => $product_id, 'post_status' => 'draft' ) );\n",
     },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "ODWRÓCONA kolejność powiązania (B2) — product_id przed price_type ROZDAJE KURS ZA DARMO",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    // Wzorzec bez twardego wcięcia — inaczej umiera przy każdej zmianie
+    // zagnieżdżenia metody (tak zmartwiał po naprawie A1 przy przeglądzie P2).
+    zmien: (s) => {
+      const para =
+        /([ \t]*)update_post_meta\( \$tutor_id, '_tutor_course_price_type', 'paid' \);\n([ \t]*)update_post_meta\( \$tutor_id, '_tutor_course_product_id', \(int\) \$product_id \);/;
+      return para.test(s)
+        ? s.replace(
+            para,
+            (_, w1, w2) =>
+              `${w2}update_post_meta( $tutor_id, '_tutor_course_product_id', (int) $product_id );\n` +
+              `${w1}update_post_meta( $tutor_id, '_tutor_course_price_type', 'paid' );`,
+          )
+        : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "ODWRÓCONA kolejność zdejmowania (B2) — price_type znika przed product_id",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    zmien: (s) => {
+      // Prawdziwe odwrócenie: delete product_id ląduje PO całym bloku
+      // ustawiającym price_type. Pierwsza wersja tej mutacji wstawiała go
+      // do WNĘTRZA `if`, więc kolejność zostawała poprawna i mutacja nic
+      // nie testowała — audyt to pokazał (wadliwa mutacja jest groźniejsza
+      // niż jej brak; ta sama lekcja co w 0.35.0).
+      const blok =
+        "\t\t\tdelete_post_meta( $tutor_id, '_tutor_course_product_id' );\n" +
+        "\t\t\tif ( null !== $cel_price_type ) {\n" +
+        "\t\t\t\tupdate_post_meta( $tutor_id, '_tutor_course_price_type', $cel_price_type );\n" +
+        "\t\t\t}";
+      const odwrocony =
+        "\t\t\tif ( null !== $cel_price_type ) {\n" +
+        "\t\t\t\tupdate_post_meta( $tutor_id, '_tutor_course_price_type', $cel_price_type );\n" +
+        "\t\t\t}\n" +
+        "\t\t\tdelete_post_meta( $tutor_id, '_tutor_course_product_id' );";
+      return s.includes(blok) ? s.replace(blok, odwrocony) : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "produkt rodzi się od razu jako publish (B3 — kupowalny bez powiązania)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    zmien: (s) =>
+      s.includes("$produkt->set_status( 'draft' );\n\t\t\t$produkt->set_virtual( true );")
+        ? s.replace(
+            "$produkt->set_status( 'draft' );\n\t\t\t$produkt->set_virtual( true );",
+            "$produkt->set_status( 'publish' );\n\t\t\t$produkt->set_virtual( true );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "produkt widoczny w katalogu Woo (druga ścieżka zakupu w cudzym wyglądzie)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    zmien: (s) =>
+      s.includes("$produkt->set_catalog_visibility( 'hidden' );\n\t\t\t$produkt->set_regular_price( $cena );")
+        ? s.replace(
+            "$produkt->set_catalog_visibility( 'hidden' );\n\t\t\t$produkt->set_regular_price( $cena );",
+            "$produkt->set_regular_price( $cena );"
+          )
+        : null,
   },
   {
     straznik: "straznik-platnosci-wp",
@@ -1892,7 +2025,16 @@ for (const m of doWykonania) {
     }
 
     const wynik = spawnSync("node", [`tools/straznicy/${m.straznik}.mjs`], { encoding: "utf8" });
-    const czerwony = wynik.status !== 0;
+    const wyjscie = `${wynik.stdout ?? ""}${wynik.stderr ?? ""}`;
+    let czerwony = wynik.status !== 0;
+    if (czerwony && m.oczekiwanySlad && !wyjscie.includes(m.oczekiwanySlad)) {
+      // Strażnik zapalił się z INNEGO powodu niż ten, który mutacja
+      // testuje — dla tej mutacji to znaczy „przeoczone", nie „złapane".
+      przeoczone.push(
+        `${m.straznik}: ${m.opis} — strażnik zapalił się z innego powodu (brak śladu „${m.oczekiwanySlad}")`,
+      );
+      continue;
+    }
     if (czerwony === oczekuj) {
       zlapane.push(`${m.straznik}: ${m.opis}${oczekuj ? "" : " (słusznie przemilczane)"}`);
     } else {

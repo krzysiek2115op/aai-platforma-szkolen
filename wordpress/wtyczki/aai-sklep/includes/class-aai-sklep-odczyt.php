@@ -240,6 +240,52 @@ final class Aai_Sklep_Odczyt {
 	 * @param array<string,mixed> $wiersz Wiersz z bazy.
 	 * @return array<string,mixed>
 	 */
+	/**
+	 * Karta kursu po uuid — publiczny odczyt dla innych wtyczek (L2).
+	 *
+	 * Powstało dla Pluginu 2: akcja `aai_sklep_kurs_zmieniony` niesie sam
+	 * uuid, a `szczegoly_kursu()` bierze slug i tylko kursy opublikowane.
+	 * Tu wracają kursy w KAŻDYM stanie (szkic, zarchiwizowany) — słuchacz
+	 * musi znać stan, żeby przestawić produkt na `draft` (tabela stanów
+	 * w docs/plugin-2/DIAGRAM.md, sekcja 9.3). Zwraca kartę BEZ sekcji,
+	 * programu i treści lekcji — cena i stan to wszystko, czego szew
+	 * potrzebuje, a materiał kursu nie ma czego szukać poza tą wtyczką.
+	 *
+	 * NIE MA TU TEŻ LICZNIKÓW programu (`modules_count`, `lessons_count`,
+	 * `total_min`) — i to jest treść, nie oszczędność. `karta()` wstawia
+	 * w nie zera, gdy nie policzono programu, a zero w takim polu KŁAMIE
+	 * cicho: pierwszy klient tej metody wypisałby „0 lekcji" bez jednego
+	 * objawu (ta klasa kosztowała już miniaturę OG „41 41 lekcji").
+	 * Brak klucza wywala się głośno — i o to chodzi.
+	 *
+	 * @param string $id Uuid kursu.
+	 * @return array<string,mixed>|null
+	 */
+	public static function kurs_po_id( string $id ): ?array {
+		global $wpdb;
+
+		$t_kursy = Aai_Sklep_Tabele::tabela( 'courses' );
+
+		$wiersz = $wpdb->get_row(
+			$wpdb->prepare( "SELECT * FROM `$t_kursy` WHERE id = %s", $id ),
+			ARRAY_A
+		);
+
+		if ( null === $wiersz ) {
+			return null;
+		}
+
+		$kurs = self::karta( $wiersz );
+		unset( $kurs['modules_count'], $kurs['lessons_count'], $kurs['total_min'] );
+		return $kurs;
+	}
+
+	/**
+	 * Karta kursu — zamknięta lista pól wspólna dla listy i szczegółów.
+	 *
+	 * @param array<string,mixed> $wiersz Wiersz tabeli `courses`.
+	 * @return array<string,mixed>
+	 */
 	private static function karta( array $wiersz ): array {
 		$tekst_lub_null = static fn( $wartosc ) => null === $wartosc || '' === $wartosc
 			? null

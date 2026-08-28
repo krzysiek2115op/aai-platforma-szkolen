@@ -1653,6 +1653,107 @@ wyprowadzała tego od nowa:
      `docs/schemat-pluginu-2` — stackowane PR-y już raz zamknęły się
      nawzajem, notatka przy 0.25.0), potem plan + pytania do P2 (produkt
      z ceny) wg reguły poniżej.**
+     **P2 W TOKU — PRZERWA 2026-08-28 (gałąź `feat/p2-produkt-z-ceny`,
+     NIEUKOŃCZONE, bez PR-a).** Stan: kod szwu NAPISANY i działa na
+     żywej instalacji (2 prawdziwe kursy mają produkty: 675/676,
+     `publish`, `hidden`, cena z naszej tabeli, powiązanie w Tutorze,
+     `sync` idempotentny — druga próba „bez zmian 2"), ale **smoke P2
+     ma 2 z 37 sprawdzeń czerwone** i to jest PRAWDZIWA usterka do
+     dokończenia, nie usterka testu.
+     **NASTĘPNY KROK PO PRZERWIE — dokończyć naprawę `_price`:**
+     gdy ktoś zepsuje `_price` METĄ, cena regularna zostaje poprawna,
+     więc `synchronizuj_kurs()` nie widzi zmiany propsu i **nie zapisuje
+     — rozjazd „katalog nowa cena, kasa stara" żyje wiecznie**, choć
+     kontrola każe „uruchomić sync". ZMIERZONE: `set_price()+save()`
+     NIE zapisuje `_price` (data store liczy je tylko z propsu
+     `regular_price`); podwójne `set_regular_price()` na JEDNYM obiekcie
+     TEŻ nie; **działa dopiero DWA OSOBNE `save()` na DWÓCH obiektach
+     `wc_get_product()`** (zapis 1: inna cena, zapis 2: powrót) —
+     sprawdzone na produkcie 675. To ma wejść do `synchronizuj_kurs()`
+     jako gałąź naprawcza (tylko gdy `get_price('edit')` != oczekiwana),
+     razem z komentarzem, i wtedy smoke przechodzi 37/37.
+     **CO JUŻ ZROBIONE W P2:** `Aai_Sklep_Odczyt::kurs_po_id()` (jedyna
+     zgoda na zmianę w Pluginie 1), `Aai_Platnosci_Szew` (prio 20,
+     `Throwable`, hak `save_post_product` B13), `Aai_Platnosci_Komunikaty`
+     (L14), warstwa zapisu: produkt draft→powiązanie→publish z kolejnością
+     B2, `zdejmij_kurs()` wg tabeli 9.3, `synchronizuj_wszystkie()`,
+     `wp aai-platnosci sync [<slug>]` + aktywacja, kontrola rozjazdu
+     (cena regularna I `_price`, widoczność, znaczniki, powiązanie,
+     duplikaty uuid, sieroty), `tools/smoke/smoke-wp-produkty.mjs`
+     (37 sprawdzeń, mierzy m.in. KOLEJNOŚĆ B2 hakiem na meta i bramkę
+     „sha256 produktu niezmieniony między przebiegami").
+     **DWIE RZECZY, KTÓRE SMOKE ZŁAPAŁ I JUŻ NAPRAWIONO:** (1) kontrola
+     była ŚLEPA na każdy rozjazd przez 10 minut po synchronizacji —
+     próg „w trakcie" (B15) degradował WSZYSTKO; teraz degraduje wyłącznie
+     stany NIEKOMPLETNE (brak produktu/powiązania), a rozjazd WARTOŚCI
+     to zawsze kod 1, okno skrócone do 60 s; (2) `INSERT … ON DUPLICATE
+     KEY UPDATE` (P1) nadpisywał cudzy wiersz przy konflikcie drugiego
+     klucza unikalnego.
+     **ZOSTAJE DO ZROBIENIA W P2 (poza `_price`):** rozszerzenie
+     `straznik-platnosci-wp` o kolejność B2 i mutacje w audycie,
+     `npm run smoke:wp-produkty` w package.json, wiersze w README,
+     wpis CHANGELOG, `sprawdz` w sekcji WERYFIKACJA `postaw.sh`
+     (punkt kontrolny), przegląd agent+krytyk wg `agenci/przeglad-pr/`,
+     dopiero potem PR.
+     **ŚRODOWISKO ZOSTAWIONE CZYSTE:** `:8892` działa, kursy 2, produkty 2,
+     powiazania 2, dostawy 0, `wp:sprawdz` 73/73, `wp aai-platnosci sprawdz`
+     kod 0. Uwaga: przełączenie gałęzi ZABIJA bind mount wtyczki (inode) —
+     po `git checkout` robić `podman-compose down && ./postaw.sh`.
+     **P2 ZROBIONY (2026-08-28, wersja 0.47.0, gałąź `feat/p2-produkt-z-ceny`,
+     commity 37d403b + d61fb81) — kurs staje się produktem WooCommerce.**
+     Oba prawdziwe kursy mają produkty (publish, hidden, cena z naszej tabeli),
+     powiązane z kopią w Tutorze w kolejności B2. Sprzedaży to NIE uruchamia:
+     `monetize_by` zostaje `tutor` do P3a, CTA dalej na `/kontakt` — świadomy
+     zakres kroku.
+     **PRZEGLĄD agent+krytyk (pierwszy wg `agenci/przeglad-pr/`): 41 znalezisk
+     trzech recenzentów, wszystkie naprawione.** Najważniejsze do zapamiętania:
+     (a) **wczesny `return` w metodzie zmieniającej stan produktu zostawiał go
+     KUPOWALNYM** — status nadaje teraz jedno miejsce na końcu metody;
+     (b) **kontrola meldowała sukces przy ROZBROJONYM szwie** — cała integracja
+     Tutor↔Woo siedzi za `if ( 'wc' !== $monetize_by ) return;`, a instalacja
+     stoi na `tutor`; stan jest teraz NAZWANY, nie przemilczany;
+     (c) **Plugin 1 nie był zależnością** — komendy kończyły się fatalem PHP,
+     a kontrola mówiła „Success"; (d) **degradacja „w trakcie" szła po TREŚCI
+     komunikatu** (trzeci nawrót pułapki wzorca na napis) i dwa z trzech
+     śladów były martwe — rozjazdy mają dziś KODY STANU; (e) **mutacja audytu
+     była maskowana** (łamała dwie reguły naraz) → nowe pole `oczekiwanySlad`
+     sprawdza, czy zapalił się WŁAŚCIWY komunikat.
+     **DWIE PUŁAPKI POMIARU Z TEGO KROKU:** `_price` w Woo przelicza się
+     WYŁĄCZNIE przy realnej zmianie ceny w bazie (`set_price()` przez API nie
+     zapisuje go wcale) — stąd jawne `sync --napraw-cene` z produktem zdjętym
+     na czas naprawy na `draft`; oraz **konkatenacja wiąże w PHP mocniej niż
+     `?:`**, więc `echo '{' . $x ? 'a' : 'b' . '}'` zawsze zwraca gałąź
+     prawdziwą — funkcja pomiarowa smoke'a kłamała na każdym warunku.
+     **ODTWORZENIE ŚRODOWISKA MA TERAZ CZTERY KOMENDY** — `wp:import` (wpięte
+     w nie `wp:sync-platnosci`) → `wp:sync` → `wp:zrzuty`; import wystrzeliwuje
+     zapis kursu ZANIM powstanie kopia w Tutorze, więc bez tego produkty
+     zostają szkicami.
+     Dowody P2: strażnicy 35/35, audyt mutacyjny **174** (0 przeoczonych,
+     0 martwych), `npm run check` kod 0, `postaw.sh` kod 0 (ma teraz punkt
+     kontrolny `aai-platnosci sprawdz`), smoke: wp-produkty **70**,
+     wp-kreator 96, wp-front 84, wp-tutor 44, wp-lekcja 35, wp-dane 30,
+     wp-platnosci 23; dane Pluginu 1 nietknięte (73/73 co do znaku,
+     kopia w Tutorze 0 różnic).
+     **SWEEP PRZED /CLEAR ZROBIONY (2026-08-28) — log:
+     [docs/plugin-2/SWEEP-P2.md](docs/plugin-2/SWEEP-P2.md).** Wszystkie
+     41 napraw zweryfikowanych URUCHOMIENIOWO (nie deklaratywnie), kolizje
+     z resztą projektu sprawdzone. **Sweep znalazł rzecz, której nie widział
+     żaden z trzech przeglądów: smoke'i Pluginu 1 zostawiały PRODUKTY-SIEROTY**
+     — tworzą kursy testowe, więc nasz szew zakłada im produkty, a przy
+     kasowaniu kursu produkt zostaje (niezmiennik 13). Po kilku przebiegach
+     bramki mierzyłyby własne śmieci. Naprawione w trzech smoke'ach
+     (`wp-dane`, `wp-tutor`, `wp-kreator`): test sprząta TAKŻE produkt po
+     swoim kursie — kod wtyczki bez zmian. Dowód: trzy przebiegi z rzędu
+     zostawiają produkty 2, powiazania 2.
+     **NASTĘPNY KROK (po `/clear`): PONOWNA WALIDACJA — polecenie właściciela
+     z 2026-08-28:** sprawdzić, czy wcześniejsze poprawki nie spowodowały
+     regresji ani kolizji ORAZ czy podobne błędy nie występują w INNYCH
+     miejscach projektu (te same klasy: wczesny `return` zostawiający stan,
+     kontrola meldująca sukces bez sprawdzenia, wzorzec na napis zamiast na
+     zachowanie, mutacja łamiąca dwie reguły naraz, test przechodzący
+     z cudzego powodu). Wynik walidacji dopisać do SWEEP-P2.md.
+     **Dopiero potem: PR gałęzi `feat/p2-produkt-z-ceny` → merge (za zgodą
+     właściciela) → plan + pytania do P3a wg reguły poniżej.**
      **REGUŁA WŁAŚCICIELA (2026-08-28), obowiązuje dla CAŁYCH Pluginów 2 i 3:
      przed KAŻDYM krokiem agent najpierw przedstawia plan przebiegu kroku
      (z tym, czego krok NIE dotyka) i pytania doprecyzowujące, i czeka na

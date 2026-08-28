@@ -388,8 +388,16 @@ Trzy reguły, każda z dowodem w cudzym kodzie:
   zostawiałaby inaczej **opublikowany, kupowalny produkt bez powiązania** —
   czyli stan „klient płaci i nie dostaje nic" (bez powiązania nie ma
   zapisu, `is_tutor_order()` jest fałszywe i zamówienie nigdy nie dojdzie
-  do `completed`). Do tego `aai-platnosci` **wstrzymuje własną kopię na
-  czas importu**, tak jak Tutorową.
+  do `completed`). **KOREKTA przy P2 (zatwierdzona przez właściciela
+  2026-08-28):** pierwotne zdanie „aai-platnosci wstrzymuje własną kopię
+  na czas importu" okazało się NIEWYKONALNE — flaga wstrzymania Tutora
+  jest prywatna, a import Pluginu 1 nie zna Pluginu 2. Zamiast wstrzymania:
+  **słuchacz jest w pełni idempotentny** — bez kopii Tutora zostawia
+  produkt `draft` bez powiązania (projektowany stan degradacji), a **bez
+  realnych zmian niczego nie zapisuje** (bez tego `->save()` przy każdym
+  imporcie zmieniałby `post_modified` i bramka P2 „sha256 niezmieniony
+  między przebiegiem 2 a 3" nie mogłaby przejść). Po imporcie komplet
+  domyka `wp aai-platnosci sync` (czwarta komenda odtworzenia środowiska).
 - **Każdy nasz słuchacz `aai_sklep_*` łapie `Throwable`** *(L1)*:
   niezłapany wyjątek wyleciałby przez `zapisz_kurs()` i właściciel zamiast
   „Kurs zapisany" zobaczyłby błąd krytyczny, a przy imporcie przerwałby
@@ -467,7 +475,7 @@ pierwszy"**.
 | Klucz | Siedzi na | Znaczenie |
 |---|---|---|
 | `_aai_platnosci_kurs_uuid` | produkcie Woo | pomocnicza kopia uuid (źródłem jest tabela `powiazania`) |
-| `_aai_platnosci_sync_ts` | produkcie Woo | znacznik czasu ostatniej kopii — po nim kontrola odróżnia „w trakcie" od „zepsute" *(B15)* |
+| ~~`_aai_platnosci_sync_ts`~~ | — | **KOREKTA przy P2 (2026-08-28):** znacznika czasu NIE trzymamy na produkcie. Meta na cudzym wpisie odświeżała się przy KAŻDYM zapisie produktu (także cudzym), więc kłamała o tym, kiedy synchronizowaliśmy MY, i maskowała stan przejściowy przed kontrolą. Jedno źródło: kolumna `sync_ts` w tabeli `powiazania` *(B15, A8)* |
 
 Kluczy Tutora **nie wymyślamy**, tylko ustawiamy jego własne:
 `_tutor_course_product_id` i `_tutor_course_price_type = 'paid'` na wpisie

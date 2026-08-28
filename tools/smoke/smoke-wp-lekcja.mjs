@@ -315,6 +315,16 @@ sprawdz(
  * Drugi stan robimy POMIAREM, nie deklaracją: zapisujemy administratora na
  * kurs, pytamy stronę i zapis cofamy. Bez zapisu nie da się odpowiedzieć na
  * pytanie „co widzi kupujący”, a to ono jest tu ważne.
+ *
+ * ZAPIS MUSI BYĆ `completed`, i to nie jest kosmetyka. Odkąd Plugin 2 czyni
+ * kursy PŁATNYMI (`_tutor_course_price_type = paid` + `product_id`),
+ * `do_enroll()` tworzy zapis w stanie `pending` — czeka na opłatę — a dostęp
+ * do materiału daje wyłącznie `completed`. Samo `do_enroll()` symulowało
+ * więc nie kupującego, tylko kogoś, kto zaczął zakup: pomiar pytał o cudzy
+ * stan i odpowiadał na inne pytanie, niż deklarował. Ustawiamy status na
+ * `completed` — czyli to, co na produkcji robi opłacone zamówienie.
+ * (Że przy kursie płatnym `do_enroll()` NIE daje dostępu bez zapłaty,
+ * pilnuje osobno smoke Pluginu 2 — to jest sedno pułapki B2.)
  */
 const idKursu = Number(
   wp("eval", `echo (int) tutor_utils()->get_course_id_by_content( ${probka.id} );`).trim().split("\n").pop()
@@ -322,7 +332,11 @@ const idKursu = Number(
 const idAdmina = Number(wp("eval", "echo (int) get_user_by('login','admin')->ID;").trim().split("\n").pop());
 let zapisano = false;
 if (idKursu > 0 && idAdmina > 0) {
-  wp("eval", `tutor_utils()->do_enroll( ${idKursu}, 0, ${idAdmina} );`);
+  wp(
+    "eval",
+    `$z = tutor_utils()->do_enroll( ${idKursu}, 0, ${idAdmina} );` +
+      ` if ( $z ) { wp_update_post( array( 'ID' => (int) $z, 'post_status' => 'completed' ) ); }`
+  );
   zapisano = true;
 }
 try {
