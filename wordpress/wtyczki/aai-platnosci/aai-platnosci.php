@@ -53,6 +53,15 @@ spl_autoload_register(
 	}
 );
 
+/*
+ * P3a: filtry obronne B17 i blokada sprzedaży — rejestrowane TU, przy
+ * include pliku, nie na `plugins_loaded`: Tutor bootuje się przy include
+ * i jego konstruktor od razu czyta `monetize_by`; filtr z `plugins_loaded`
+ * przychodziłby po tym odczycie i niczego by nie bronił (KROK-P3A.md §3).
+ * Rejestracja bezwarunkowa — warunki żyją wewnątrz callbacków (lekcja B18).
+ */
+Aai_Platnosci_Ustawienia::zarejestruj();
+
 /**
  * Aktywacja: powstaje schemat obu tabel. Od kroku P2 dojdzie tu także
  * pierwsza synchronizacja (`sync`) — na istniejącej instalacji nikt
@@ -63,9 +72,20 @@ register_activation_hook(
 	__FILE__,
 	static function (): void {
 		Aai_Platnosci_Tabele::utworz();
+		// P3a: ustawienia jako kod — NAJPIERW ustawienia (silnik `wc`),
+		// POTEM synchronizacja produktów; odwrotna kolejność zostawiałaby
+		// produkty zsynchronizowane przy rozbrojonym szwie.
+		// Awaria nie może zablokować aktywacji: błąd idzie do opcji.
+		try {
+			$zmiany = Aai_Platnosci_Ustawienia::napraw();
+			if ( array() !== $zmiany ) {
+				Aai_Platnosci_Komunikaty::zapisz( 'przy aktywacji (ustawienia): ' . implode( '; ', $zmiany ) );
+			}
+		} catch ( Throwable $e ) {
+			Aai_Platnosci_Komunikaty::zapisz( $e->getMessage() );
+		}
 		// U3: na istniejącej instalacji nikt kursów nie zapisuje — bez tej
 		// synchronizacji po aktywacji nie powstałby ani jeden produkt.
-		// Awaria nie może zablokować aktywacji: błąd idzie do opcji.
 		try {
 			$wynik = Aai_Platnosci_Zapis::synchronizuj_wszystkie();
 			// Uwagi z jedynej automatycznej ścieżki bootstrapu nie mogą

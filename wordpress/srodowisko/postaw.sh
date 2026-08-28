@@ -260,9 +260,14 @@ if [ -f ../wtyczki/aai-sklep/aai-sklep.php ]; then
   if grep -qE "plugins/tutor/[^\"']*\.(css|js)|woocommerce[^\"']*\.(css|js)|wc-blocks[^\"']*\.css|sourcebuster" "$ODPOWIEDZ"; then
     blad "strona motywu ładuje zasoby Tutora/WooCommerce — kolizja klas CSS wróci (np. .text-label z jasnym tłem)"
   fi
+  # Adres koszyka Z INSTALACJI, nie wpisany: od P3a slug jest polski
+  # (`/koszyk/`), a wpisane `/cart/` mierzyło stronę 404 — dokładnie klasa
+  # L7 (twarde adresy w testach), nazwana w ryzykach planu P3a.
+  ADRES_KOSZYKA="$(wpcli eval 'echo get_permalink((int) get_option("woocommerce_cart_page_id"));' 2>/dev/null | tr -d '\r')"
+  case "$ADRES_KOSZYKA" in http*) : ;; *) blad "instalacja nie oddała adresu koszyka (dostałem: $ADRES_KOSZYKA)" ;; esac
   KOSZYK="$(mktemp -t aai-koszyk.XXXXXX.html)"
-  curl -sL -o "$KOSZYK" "$ADRES/cart/" || blad "koszyk nie odpowiada"
-  grep -qE "woocommerce[^\"']*\.css" "$KOSZYK" \
+  curl -sL -o "$KOSZYK" "${ADRES_KOSZYKA/https:\/\/127.0.0.1/http:\/\/127.0.0.1}" || blad "koszyk nie odpowiada"
+  grep -qE "woocommerce[^\"']*\.css|wc-blocks[^\"']*\.css" "$KOSZYK" \
     || blad "koszyk NIE dostaje arkuszy WooCommerce — higiena zasobów zdejmuje za szeroko"
   rm -f "$KOSZYK"
 fi

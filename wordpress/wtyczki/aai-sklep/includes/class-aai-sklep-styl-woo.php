@@ -63,13 +63,25 @@ final class Aai_Sklep_Styl_Woo {
 		}
 
 		$plik = 'assets/woo-motyw.css';
+		/*
+		 * Zależności = KOLEJNOŚĆ DRUKU, a kolejność rozstrzyga remisy:
+		 *  - `automatic-ai` — tokeny motywu (`--color-*`) muszą istnieć;
+		 *  - `wc-blocks-style` — arkusz bloków koszyka i kasy. Bez tej
+		 *    zależności drukował się PO nas i przy RÓWNEJ specyficzności
+		 *    (`.wc-block-components-text-input input[type=…]`) jego białe
+		 *    tła wygrywały z sekcją 9 — sześć jasnych pól formularza kasy,
+		 *    zmierzone przy P3a. Zależność deklarujemy tylko wtedy, gdy
+		 *    uchwyt istnieje — na stronach bez bloków Woo go nie ma,
+		 *    a zależność od niezarejestrowanego uchwytu ucisza CAŁY wpis.
+		 */
+		$zaleznosci = array( 'automatic-ai' );
+		if ( wp_style_is( 'wc-blocks-style', 'registered' ) ) {
+			$zaleznosci[] = 'wc-blocks-style';
+		}
 		wp_enqueue_style(
 			self::UCHWYT,
 			AAI_SKLEP_URL . $plik,
-			// Zależność od arkusza motywu, żeby nasze reguły były drukowane
-			// PO nim, a tokeny (`--color-*`), z których korzystamy, na pewno
-			// już istniały.
-			array( 'automatic-ai' ),
+			$zaleznosci,
 			(string) filemtime( AAI_SKLEP_KATALOG . $plik )
 		);
 	}

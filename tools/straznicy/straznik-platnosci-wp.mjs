@@ -228,6 +228,95 @@ if (existsSync(WARSTWA_ZAPISU)) {
   }
 }
 
+/* 11–13. P3a: blokada sprzedaży i rozdział ról ustawień.
+   Wzorce celują w ZACHOWANIE (trzy nawroty pułapki nazwy: 0.29.0, 0.44.0,
+   walidacja przed PR-em P2), więc pytają o wywołania i wartości domyślne,
+   nie o nazwy metod. */
+const USTAWIENIA = join(KATALOG, "includes", "class-aai-platnosci-ustawienia.php");
+const PLIK_GLOWNY = join(KATALOG, "aai-platnosci.php");
+if (!existsSync(USTAWIENIA)) {
+  bledy.push(
+    `${USTAWIENIA}: brak klasy ustawień — bez niej silnik `
+      + "sprzedaży i blokada do P4 nie mają właściciela (krok P3a)."
+  );
+} else {
+  const ust = kod(readFileSync(USTAWIENIA, "utf8"));
+
+  /* 11. blokada koszyka istnieje i jest DOMYŚLNIE ZAMKNIĘTA */
+  if (!/add_filter\(\s*'woocommerce_add_to_cart_validation'/.test(ust)) {
+    bledy.push(
+      `${USTAWIENIA}: BRAK BLOKADY SPRZEDAŻY (filtr woocommerce_add_to_cart_validation). Między P3a a P4 zakup jest technicznie możliwy, a dostarczanie (maile, dostawy) nie istnieje — to okno „klient płaci i nie dostaje nic".`
+    );
+  }
+  if (!/get_option\(\s*self::OPCJA_SPRZEDAZ,\s*''\s*\)/.test(ust)) {
+    bledy.push(
+      `${USTAWIENIA}: flaga sprzedaży bez PUSTEJ wartości domyślnej — brak opcji w bazie musi znaczyć „sprzedaż ZAMKNIĘTA". Domyślne otwarcie sprzedaje kursy bez dostarczania na każdej świeżej instalacji.`
+    );
+  }
+
+  /* 12. filtry rejestrowane PRZY INCLUDE pliku głównego, nie w plugins_loaded:
+     Tutor bootuje przy include i OD RAZU czyta monetize_by — rejestracja
+     z plugins_loaded przychodzi po tym odczycie i niczego nie broni. */
+  const glowny = existsSync(PLIK_GLOWNY) ? kod(readFileSync(PLIK_GLOWNY, "utf8")) : "";
+  /*
+   * „Na poziomie pliku" znaczy GŁĘBOKOŚĆ ZERO, nie „bez wcięcia": pierwsza
+   * wersja pytała regexem o pozycję w linii (`^…::zarejestruj();`) i była
+   * ślepa na `if ( is_admin() ) {` z wywołaniem przy lewym marginesie —
+   * czyli na rejestrację WARUNKOWĄ, przed którą ten niezmiennik broni
+   * (zmierzone mutacją-pytaniem przy przeglądzie P3a). Liczymy klamry
+   * przed wywołaniem; łańcuchy i komentarze są już usunięte przez kod(),
+   * a klamry w łańcuchach znakowych w tym pliku nie występują.
+   */
+  const iWywolania = glowny.indexOf("Aai_Platnosci_Ustawienia::zarejestruj()");
+  const glebokosc = iWywolania < 0
+    ? -1
+    : [...glowny.slice(0, iWywolania)].reduce((n, z) => n + (z === "{" ? 1 : z === "}" ? -1 : 0), 0);
+  if (0 !== glebokosc) {
+    bledy.push(
+      `${PLIK_GLOWNY}: Aai_Platnosci_Ustawienia::zarejestruj() nie stoi na POZIOMIE PLIKU (głębokość ${glebokosc < 0 ? "brak wywołania" : glebokosc}). Rejestracja warunkowa albo z wnętrza plugins_loaded przychodzi PO odczycie monetize_by w konstruktorze Tutora — filtr B17 niczego wtedy nie broni; zmierzone przy P3a.`
+    );
+  }
+
+  /* 13b. dopisywanie klasy do bloku celuje w GRANICĘ ATRYBUTU.
+     `str_replace( 'class="' . $blok, … )` trafia w każdy blok zagnieżdżony
+     o tym samym początku nazwy i ROZBIJA jego klasę — zmierzone na żywych
+     stronach (13 uszkodzeń w koszyku, 22 w kasie), cicho, bo blok Woo
+     zwraca zapisaną treść bez regeneracji. */
+  const zapisKlas = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+  const metodaKlasy = zapisKlas.match(/function dopisz_klase_bloku[\s\S]*?\n\tpublic static function/);
+  if (metodaKlasy && /str_replace\(\s*'class="'\s*\.\s*\$blok/.test(metodaKlasy[0])) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: dopisz_klase_bloku() podmienia PREFIKS klasy (str_replace na 'class="' . $blok). Trafia wtedy w każdy blok zagnieżdżony o tej samej nazwie początkowej i rozbija jego klasę — treść strony psuje się CICHO. Dopasowanie musi kończyć się granicą atrybutu (spacja albo cudzysłów) i podmieniać tylko pierwsze wystąpienie.`
+    );
+  }
+
+  /* 13. rozdział ról (L11): kontrola nigdy nie pisze. Pilnujemy MIEJSCA,
+     nie liczby sztuk — pierwsza wersja liczyła wywołania (`=== 1`)
+     i zzieleniała na PRZENIESIENIU napraw() z sync do sprawdz, bo licznik
+     dalej wynosił jeden (zmierzone przy przeglądzie P3a). Blok metody
+     wycinamy od jej nagłówka do następnego `function ` — kolejność metod
+     w pliku może się zmieniać, granica bloku nie. */
+  const cli = kod(readFileSync(join(KATALOG, "includes", "class-aai-platnosci-cli.php"), "utf8"));
+  const blokMetody = (nazwa) => {
+    const start = cli.indexOf(`function ${nazwa}(`);
+    if (start < 0) return null;
+    const dalej = cli.indexOf("function ", start + 9);
+    return cli.slice(start, dalej < 0 ? cli.length : dalej);
+  };
+  const sync = blokMetody("sync");
+  const sprawdzBlok = blokMetody("sprawdz");
+  if (null === sync || !sync.includes("Aai_Platnosci_Ustawienia::napraw(")) {
+    bledy.push(
+      "class-aai-platnosci-cli.php: komenda sync nie woła Ustawienia::napraw() — `--napraw` przestało naprawiać, a kontrola dalej każe je uruchamiać (martwa instrukcja w każdym komunikacie rozjazdu)."
+    );
+  }
+  if (null !== sprawdzBlok && sprawdzBlok.includes("Aai_Platnosci_Ustawienia::napraw(")) {
+    bledy.push(
+      "class-aai-platnosci-cli.php: KONTROLA PISZE — sprawdz() woła Ustawienia::napraw(). Kontrola, która pisze, mierzy skutek własnego działania i nigdy nie jest czerwona (L11)."
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -235,5 +324,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze)."
 );

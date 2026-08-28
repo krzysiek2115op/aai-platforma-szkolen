@@ -118,6 +118,16 @@ const SCIEZKA_MOJE = "/szkolenia/moje/";
 const SCIEZKA_KONTA = "/my-account/";
 const ZAKRES_KONTA = ".woocommerce, .woocommerce *";
 
+/**
+ * KOSZYK I KASA (P3a) — strony blokowe WooCommerce pod polskimi slugami.
+ * Zakres celuje w bloki, nie w slug: gdy blok się nie wyrenderuje, pomiar
+ * ma paść na „zakres nie trafił", a nie mierzyć nagłówek i stopkę.
+ */
+const ZAKRES_KOSZYKA = ".wp-block-woocommerce-cart, .wp-block-woocommerce-cart *";
+const ZAKRES_KASY = ".wp-block-woocommerce-checkout, .wp-block-woocommerce-checkout *";
+/** Flaga otwarcia sprzedaży Pluginu 2 (P3a: domyślnie zamknięta do P4). */
+const OPCJA_SPRZEDAZY = "aai_platnosci_sprzedaz_otwarta";
+
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
 const LOGIN = "admin";
@@ -356,6 +366,17 @@ function pomiar() {
       .map((l) => l.id)
       .filter((id) => /^(tutor|wc-|woocommerce)/.test(id)),
     naglowekDol: Math.round(naglowekDol),
+    /*
+     * Adres PO wczytaniu — kasa z pustym koszykiem przekierowuje na
+     * koszyk (zmierzone przy P3a), więc bez tej wartości pomiar kasy
+     * opisywałby CUDZĄ stronę i przechodził. Klasa 5 z walidacji P2:
+     * test przechodzący z cudzego powodu.
+     */
+    adres: location.pathname,
+    // Czy koszyk ma WIERSZ POZYCJI — pusty stan też ma elementy w zakresie,
+    // więc samo `zmierzonych > 0` nie odróżnia „zmierzyliśmy koszyk
+    // z produktem" od „zmierzyliśmy pustą wydmuszkę".
+    maPozycjeKoszyka: Boolean(document.querySelector(".wc-block-cart-items__row")),
     jasne: jasne.sort((a, b) => b.pole - a.pole).slice(0, 6),
     nieczytelne: nieczytelne.slice(0, 6),
     nachodzace: nachodzace.slice(0, 6),
@@ -425,11 +446,17 @@ async function ustoj(karta) {
   );
 }
 
-async function zmierz(sciezka, zakres = ZAKRES_TUTORA, { bezPaskaAdmina = false } = {}) {
-  const karta = await przegladarka.newPage();
+async function zmierz(sciezka, zakres = ZAKRES_TUTORA, { bezPaskaAdmina = false, ciastka = [], czekajNa = null, kontekst = null } = {}) {
+  const karta = await (kontekst ?? przegladarka).newPage();
   await karta.setViewport({ width: 1440, height: 1400 });
   if (bezPaskaAdmina) await karta.evaluateOnNewDocument(BEZ_PASKA_ADMINA);
+  // Sesja z zewnątrz (koszyk Woo napełniony przez Store API w Node) —
+  // przeglądarka ma zobaczyć TEN SAM koszyk, więc dostaje jego ciastka.
+  if (ciastka.length > 0) await karta.setCookie(...ciastka);
   await karta.goto(ADRES + sciezka, { waitUntil: "load", timeout: 60000 });
+  // Bloki koszyka i kasy to React montowany PO `load` — bez czekania na
+  // selektor pomiar łapie pustą wydmuszkę bloku zamiast treści.
+  if (czekajNa) await karta.waitForSelector(czekajNa, { timeout: 20000 });
   await ustoj(karta);
   const wynik = await karta.evaluate(
     `(() => { ${hexNaRgbZrodlo()} const MIN_POLE_JS=${MIN_POLE}, MIN_KONTRAST_JS=${MIN_KONTRAST},` +
@@ -447,6 +474,13 @@ async function zmierz(sciezka, zakres = ZAKRES_TUTORA, { bezPaskaAdmina = false 
  * pierwszej korekcie tytułu mierzyłby stronę 404 we własnym wyglądzie —
  * i przechodziłby, bo 404 też jest nasze i też jest ciemne.
  */
+function wpEval(php) {
+  return execFileSync("podman", ["exec", KONTENER, "wp", "--path=/var/www/html", "eval", php], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+}
+
 function adresLekcji() {
   const php = [
     '$p = get_posts(array("post_type"=>"lesson","numberposts"=>-1,"post_status"=>"any"));',
@@ -802,6 +836,159 @@ sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da si
   console.log(
     `  ${SCIEZKA_MOJE}: belka do ${m.naglowekDol} px, ${m.zmierzonych} elementów, ` +
       `${m.nachodzace.length} nachodzeń, ${m.jasne.length} jasnych plam, ${m.nieczytelne.length} napisów < ${MIN_KONTRAST}:1`
+  );
+}
+
+/*
+ * ÓSMA I DZIEWIĄTA STRONA: KOSZYK I KASA WOOCOMMERCE (P3a).
+ *
+ * Mierzone Z PRODUKTEM KURSU W KOSZYKU: kasa z pustym koszykiem
+ * przekierowuje na koszyk (zmierzone), a pusty koszyk to inna strona niż
+ * ta, którą klient zobaczy przy zakupie. Koszyk napełnia Store API w Node
+ * (sesja jedzie do przeglądarki ciastkami), a blokadę sprzedaży (P3a:
+ * zamknięta do P4) smoke otwiera WYŁĄCZNIE na czas tego bloku i zamyka
+ * w `finally` — razem ze sprzątnięciem koszyka.
+ */
+{
+  const produktKursu = Number(
+    wpEval(
+      'echo (int) $GLOBALS["wpdb"]->get_var("SELECT product_id FROM " . Aai_Platnosci_Tabele::tabela("powiazania") . " ORDER BY product_id LIMIT 1");'
+    )
+  );
+  sprawdz(
+    produktKursu > 0,
+    "koszyk/kasa: w tabeli powiazania nie ma ani jednego produktu kursu — środowisko niepełne (npm run wp:import)"
+  );
+
+  /*
+   * Koszyk i kasę mierzymy JAKO GOŚĆ, w izolowanym kontekście przeglądarki:
+   * wcześniejsze pomiary (lekcja, konto) zalogowały admina, a WooCommerce
+   * dla ZALOGOWANEGO czyta sesję po jego identyfikatorze i ignoruje
+   * ciastko sesji gościa. Produkt dodaje SAMA PRZEGLĄDARKA
+   * (`?add-to-cart=`), więc ciastka sesji zakłada jej WooCommerce —
+   * przenoszenie sesji ze skryptu Node wyglądało identycznie co do bajta,
+   * a serwer i tak widział pusty koszyk (dwa zmierzone, padnięte
+   * podejścia tego bloku).
+   */
+  const kontekstGoscia = await przegladarka.createBrowserContext();
+  let koszyk = null;
+  let kasa = null;
+  let dodanie = null;
+  wpEval(`update_option("${OPCJA_SPRZEDAZY}", "tak");`);
+  try {
+    const karta = await kontekstGoscia.newPage();
+    await karta.goto(`${ADRES}/?add-to-cart=${produktKursu}`, { waitUntil: "load", timeout: 60000 });
+    dodanie = await karta.evaluate(async () => {
+      const odp = await fetch("/wp-json/wc/store/v1/cart", { credentials: "include" });
+      return { items: (await odp.json()).items_count ?? 0 };
+    });
+    await karta.close();
+    if (dodanie.items > 0) {
+      // Timeout selektora (React bloku nie wstał / koszyk pusty) ma być
+      // CZERWONĄ ASERCJĄ z opisem, nie nieobsłużonym wyjątkiem — smoke,
+      // który pada crashem, nie sprząta i nie raportuje pozostałych stron.
+      koszyk = await zmierz("/koszyk/", ZAKRES_KOSZYKA, { kontekst: kontekstGoscia, czekajNa: ".wc-block-cart-items__row" })
+        .catch((b) => ({ blad: `czekanie na wiersz pozycji koszyka: ${b.message}` }));
+      kasa = await zmierz("/kasa/", ZAKRES_KASY, { kontekst: kontekstGoscia, czekajNa: ".wc-block-checkout__form" })
+        .catch((b) => ({ blad: `czekanie na formularz kasy: ${b.message}` }));
+    }
+    // Sprzątanie koszyka W TEJ SAMEJ sesji przeglądarki, zanim zamkniemy
+    // kontekst — wpis sesji w bazie wygasłby sam po 48 h, ale test nie
+    // zostawia po sobie nawet takich danych (klasa 6 z walidacji P2).
+    const sprzatanie = await kontekstGoscia.newPage();
+    await sprzatanie.goto(`${ADRES}/koszyk/`, { waitUntil: "load", timeout: 60000 });
+    await sprzatanie.evaluate(async () => {
+      const odp = await fetch("/wp-json/wc/store/v1/cart", { credentials: "include" });
+      await fetch("/wp-json/wc/store/v1/cart/items", {
+        method: "DELETE",
+        credentials: "include",
+        headers: { Nonce: odp.headers.get("Nonce") ?? "" },
+      });
+    });
+    await sprzatanie.close();
+  } finally {
+    await kontekstGoscia.close().catch(() => {});
+    wpEval(`delete_option("${OPCJA_SPRZEDAZY}");`);
+  }
+  // Test negatywny blokady — WŁASNĄ, świeżą sesją gościa przez Store API
+  // (osobną od pomiarowej): po zamknięciu flagi produkt ma być ODRZUCONY.
+  const zamkniete = await (async () => {
+    const wstep = await fetch(`${ADRES}/wp-json/wc/store/v1/cart`);
+    const o = await fetch(`${ADRES}/wp-json/wc/store/v1/cart/add-item`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        Nonce: wstep.headers.get("Nonce") ?? "",
+        cookie: (wstep.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0]).join("; "),
+      },
+      body: JSON.stringify({ id: produktKursu, quantity: 1 }),
+    });
+    return { kod: o.status };
+  })();
+
+  sprawdz(
+    null !== dodanie && dodanie.items > 0,
+    `koszyk/kasa: przeglądarka-gość nie dostała produktu do koszyka przy OTWARTEJ fladze — pomiar stron nie mógł się odbyć`
+  );
+  // Test negatywny blokady w tym samym przebiegu: po zamknięciu flagi ten
+  // sam produkt ma zostać ODRZUCONY — inaczej „sprzedaż zamknięta do P4"
+  // jest zdaniem z dokumentacji, nie stanem instalacji.
+  sprawdz(
+    400 === zamkniete.kod,
+    `koszyk/kasa: po zamknięciu flagi Store API przyjęło produkt kursu (kod ${zamkniete.kod}) — blokada sprzedaży NIE działa`
+  );
+
+  for (const [sciezka, m, oczekiwanyAdres] of [
+    ["/koszyk/", koszyk, "/koszyk/"],
+    ["/kasa/", kasa, "/kasa/"],
+  ]) {
+    if (null === m || m.blad) {
+      sprawdz(false, `${sciezka}: pomiar nie doszedł do skutku — ${m?.blad ?? "produkt nie wszedł do koszyka"}`);
+      continue;
+    }
+    sprawdz(
+      m.adres === oczekiwanyAdres,
+      `${sciezka}: przeglądarka wylądowała na „${m.adres}" — mierzylibyśmy CUDZĄ stronę (pusty koszyk przekierowuje kasę)`
+    );
+    sprawdz(
+      m.nieznane.length === 0,
+      `${sciezka}: pomiar nie umie rozebrać zapisu koloru (${m.nieznane.join(", ")}) — wynik byłby zgadywaniem`
+    );
+    sprawdz(m.zmierzonych > 0, `${sciezka}: zakres pomiaru nie trafił w ANI JEDEN element`);
+    sprawdz(m.klasaBodyWoo, `${sciezka}: brak klasy „aai-woo-na-motywie” na body — arkusz integracji nie ma się czego złapać`);
+    sprawdz(m.naszArkuszWoo, `${sciezka}: nasz arkusz integracji Woo nie wszedł na stronę`);
+    sprawdz(m.naglowekDol > 0, `${sciezka}: nie widać nagłówka motywu — strona wypadła z układu serwisu`);
+    sprawdz(
+      m.nachodzace.length === 0,
+      `${sciezka}: ${m.nachodzace.length} elementów wjeżdża pod nagłówek motywu (dół nagłówka ${m.naglowekDol} px): ` +
+        m.nachodzace.map((x) => `${x.el} „${x.tekst}" @${x.gora}px`).join("; ")
+    );
+    sprawdz(
+      m.jasne.length === 0,
+      `${sciezka}: ${m.jasne.length} jasnych powierzchni poza akcentem marki: ` +
+        m.jasne.map((x) => `${x.el} ${x.pole} px² ${x.tlo}`).join("; ")
+    );
+    sprawdz(
+      m.nieczytelne.length === 0,
+      `${sciezka}: ${m.nieczytelne.length} napisów o kontraście < ${MIN_KONTRAST}:1: ` +
+        m.nieczytelne.map((x) => `„${x.tekst}" ${x.kontrast}:1`).join("; ")
+    );
+    const rozne = m.stopka
+      .map((w, i) => ({ etykieta: w.etykieta, nasza: w.podpis, motyw: wzorzec.stopka[i]?.podpis }))
+      .filter((x) => x.motyw !== undefined && x.motyw !== x.nasza);
+    sprawdz(
+      rozne.length === 0,
+      `${sciezka}: stopka MOTYWU renderuje się inaczej niż na stronie motywu (${rozne.length} z ${m.stopka.length}): ` +
+        rozne.slice(0, 3).map((x) => `\n      ${x.etykieta}\n        nasza: ${x.nasza}\n        motyw: ${x.motyw}`).join("")
+    );
+    console.log(
+      `  ${sciezka}: nagłówek do ${m.naglowekDol} px, ${m.zmierzonych} elementów, ` +
+        `${m.nachodzace.length} nachodzeń, ${m.jasne.length} jasnych plam, ${m.nieczytelne.length} napisów < ${MIN_KONTRAST}:1`
+    );
+  }
+  sprawdz(
+    null !== koszyk && koszyk.maPozycjeKoszyka,
+    "/koszyk/: nie widać wiersza pozycji — zmierzyliśmy pusty koszyk zamiast koszyka z kursem"
   );
 }
 
