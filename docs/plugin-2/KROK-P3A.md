@@ -120,3 +120,33 @@ Zmierzone przed zamrożeniem projektu blokady (zasada schematu: prawdą jest kod
   (`get_option` zwraca domyślną bez `apply_filters`) — zmierzone na
   `tutor_woocommerce_order_auto_complete` przed naprawą; dokładnie dlatego
   naprawa pisze bazę, a filtr tylko broni.
+
+
+## 7. Wynik implementacji (2026-08-29)
+
+Wszystkie sześć etapów zrobione (commity `7ef9e27` + `124ab4d`).
+
+| Dowód | Wynik |
+|---|---|
+| `npm run check` | kod 0 (strażnicy 35/35, testy 83/83) |
+| audyt mutacyjny | **181** (179 złapanych, 0 przeoczonych, 0 martwych, 2 pominięte) |
+| `smoke:wp-motyw` | **89** sprawdzeń, **9 stron** — koszyk i kasa z produktem w koszyku gościa |
+| `smoke:wp-produkty` | **71** (z asercją wstępną `monetize_by = wc`) |
+| pozostałe smoke'i WP | płatności 23 · front 84 · tutor 44 · lekcja 35 · kreator 96 · panel 54 · dane 30 |
+| `wp aai-platnosci sprawdz` | kod 0; test negatywny slug/silnik → kod 1 → `--napraw` → kod 0 |
+| `postaw.sh` | kod 0 (punkt koszyka pyta instalację o adres — L7 naprawione) |
+| środowisko po przebiegach | produkty 2, powiazania 2, dostawy 0 |
+
+**Trzy rzeczy znalezione po drodze i naprawione w tym samym kroku:**
+1. `smoke-wp-platnosci` mierzył silnik PRZEZ filtr B17 (klasa 5 — maskował
+   wyzerowanie bazy przez deaktywację Woo) i zostawiał po sobie rozjazd
+   (klasa 6) — migawka z surowej bazy + sprzątanie `sync --napraw`;
+2. pisanie do wpisów stron wyprowadzone do warstwy zapisu — złapał WŁASNY
+   strażnik („jedyny pisarz" obejmuje też strony);
+3. punkt kontrolny koszyka w `postaw.sh` miał wpisany stary adres `/cart/`
+   (klasa L7 z ryzyk planu) — pyta teraz instalację przez `get_permalink()`;
+   jego przypadek „strona nie istnieje" gasi już wcześniejsza warstwa
+   (kontrola ustawień, zmierzone testem negatywnym).
+
+**ZOSTAJE do domknięcia kroku:** przegląd agent+krytyk wg
+`agenci/przeglad-pr/`, PR, merge za zgodą właściciela.
