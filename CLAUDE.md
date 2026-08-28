@@ -1575,6 +1575,105 @@ wyprowadzała tego od nowa:
      i `PreOrder` → `InStock`), a NIE własną kasą ani bramką płatności.
      **Nowa podstrona sklepu (koszyk, kasa, podziękowanie) wchodzi przez
      `Aai_Sklep_Trasy::PODSTRONY`** — patrz BLAD-021 wyżej.
+
+  7. **PLUGIN 2 — STAN NA 2026-08-26: KROK P0 (SCHEMAT) W POŁOWIE.**
+     Właściciel narzucił **ZASADĘ 0: najpierw diagram/schemat, potem jego
+     krytyka, dopiero po akceptacji kod** — i **AGENTA KRYTYKA przy każdym
+     istotnym etapie**, plus regułę „jeden AJAX = jedna operacja, żadnych
+     kombajnów". Obowiązują te same rygory co w Pluginie 1.
+     **Zakres doprecyzowany OŚMIOMA DECYZJAMI właściciela (2026-08-26)** —
+     tabela w [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „DECYZJE WŁAŚCICIELA
+     (2026-08-26): zakres Pluginu 2 doprecyzowany". Skrót: szew + kasa na
+     metodzie testowej (bramka i faktury osobno), przycisk prosto do kasy,
+     konto powstaje przy zakupie, strona pokazuje cenę EFEKTYWNĄ z Woo, dostęp
+     od razu po opłacie a zwrot go odbiera, adresy Woo na polskie, dwa maile
+     (potwierdzenie Woo + nasz z linkiem do hasła), regulamin ODŁOŻONY do
+     prawdziwej bramki (bramka: przed pierwszym klientem).
+     **DECYZJA (2026-08-26): NIE robimy własnej bazy klientów/zamówień/płatności
+     — WooCommerce już to ma.** Nasze tabele `wp_aai_platnosci_*` trzymają
+     wyłącznie `powiazania` (kurs ↔ produkt) i `dostawy` (czy klient DOSTAŁ
+     dostęp i mail — czego nie wie ani Woo, ani Tutor). Uzasadnienie zapisane
+     dla czytających repo: [docs/PLAN.md](docs/PLAN.md) §3 blok
+     „KOREKTA 2026-08-26" + ETAP-WP.md.
+     **USTALENIE, KTÓRE ZMIENIŁO ZAKRES:** Tutor 4.0.7 w DARMOWYM rdzeniu ma
+     pełną integrację z WooCommerce (`classes/WooCommerce.php`, 1222 linie) —
+     zapis na kurs po opłacie i odebranie dostępu przy zwrocie **są gotowe**,
+     my je WŁĄCZAMY ustawieniem i pilnujemy asercją, zamiast pisać.
+     **Gałąź `docs/schemat-pluginu-2`, wypchnięta.**
+     Schemat: [docs/plugin-2/DIAGRAM.md](docs/plugin-2/DIAGRAM.md) (4 diagramy
+     mermaid, renderują się na GitHubie; sprawdzone RENDEREM w mermaid 11.17.2,
+     z testem negatywnym — UWAGA: puppeteer-core nie odpala Firefoksa, gdy
+     działa okno użytkownika; rig z tej sesji omija to własnym serwerem HTTP
+     i surowym `firefox --headless --no-remote` na świeżym profilu, a stary
+     profil z lockiem WIESZA przeglądarkę — kasować przed startem).
+     **PRZEPISANIE SCHEMATU ZROBIONE (2026-08-28, commity `5ebb877` +
+     przebudowa wizualna):** wszystkie 54 znaleziska wprowadzone, dwie sekcje
+     językowe na miejscu (sekcja 1: język pluginów wg WYTYCZNE §8; sekcja 2:
+     język WordPressa), baza/wystrzał/kanał JSON nazwane wprost w diagramach,
+     BAZA P2 = `powiazania` + `dostawy` (UNIQUE w `dostawy` zastępuje
+     `add_option` z B6 — ta sama atomowość, własny nośnik). Diagramy
+     PRZEBUDOWANE wizualnie wg wzoru Pluginu 1 (polecenie właściciela
+     2026-08-28: Plugin 2 = źródło prawdy merytorycznej, diagram Pluginu 1 =
+     wzór stylu; krótkie etykiety 2–4 linie, walec na bazę, `==>` na wystrzał,
+     zapis górą / odczyt dołem).
+     **DECYZJA WŁAŚCICIELA (2026-08-28): AJAX W KOKPICIE ODPADA** — „Plugin 2
+     nie wprowadza żadnego własnego AJAX-a"; wystrzałem jest `admin-post.php`
+     Pluginu 1 (akcja „Zapisz kurs") + kanały zakupowe Woo; naprawa zbiorcza
+     komendą `wp aai-platnosci sync` (DIAGRAM.md sekcja 11).
+     **SCHEMAT ZAAKCEPTOWANY (właściciel, 2026-08-28) — P0 ZALICZONY**
+     (po przebudowie wizualnej diagramów). **NASTĘPNY KROK: P1 — fundament
+     wtyczki `aai-platnosci`** (DIAGRAM.md sekcja 16): katalog wtyczki wzorem
+     W1, dwie tabele dbDelta, klasa zapisu, strażnik + mutacje, uninstall.php
+     nie kasujący niczego, komunikat zamiast białego ekranu przy wyłączonym
+     Woo/Tutorze.
+     **REGUŁA WŁAŚCICIELA (2026-08-28), obowiązuje dla CAŁYCH Pluginów 2 i 3:
+     przed KAŻDYM krokiem agent najpierw przedstawia plan przebiegu kroku
+     (z tym, czego krok NIE dotyka) i pytania doprecyzowujące, i czeka na
+     zgodę — dopiero potem kod.** Powód: najmniejszy błąd w tych modułach
+     może być destrukcyjny dla całego projektu.
+     Krytyka, którą schemat wprowadził, wg
+     [docs/plugin-2/KRYTYKA-P0.md](docs/plugin-2/KRYTYKA-P0.md) — **54 znaleziska
+     trzech krytyków** (A: architektura, B: cudzy kod i bezpieczeństwo,
+     C: prostota i sprawdzalność), w tym **DZIEWIĘĆ krytycznych**.
+     **Do przepisania dochodzą DWA POLECENIA WŁAŚCICIELA:** (a) schemat ma mieć
+     **DWIE SEKCJE — jedną w języku pluginów tego projektu** (`BAZA → DZIAŁ →
+     wystrzał AJAX → strony`, kanał JSON obok, WYTYCZNE §8) **i jedną w języku
+     WordPressa** (haki, tabele, `admin-post.php`, meta); (b) baza, wystrzał
+     i kanał JSON mają być w diagramach nazwane wprost.
+     **ODPOWIEDŹ NA „AJAX Z BAZY DANYCH", którą trzeba mu przedstawić:**
+     w WordPressie wystrzałem JEST `admin-post.php` — jeden kanał platformy
+     z nazwanymi akcjami. Plugin 1 tak działa i **nie ma ani jednego
+     `wp_ajax_*`**; obaj krytycy niezależnie wykreślili proponowany AJAX jako
+     dublujący przycisk „Zapisz kurs". Szkielet z §8 zostaje, zmienia się nazwa
+     kanału. ~~To wymaga potwierdzenia właściciela~~ **POTWIERDZONE 2026-08-28 (AJAX odpada — patrz wyżej).**
+     **CZTERY ZNALEZISKA KRYTYCZNE (pełnia w KRYTYKA-P0.md):** (K1) klient
+     dostaje konto, do którego nie ma jak wejść — mail z linkiem wisiał na
+     `completed`, a przy przelewie zamówienie stoi na `on-hold`; (K2) cena na
+     stronie rozjechałaby się z ceną w danych strukturalnych; (K3) filtry ceny
+     nie mają JAK poznać kursu (`adres_zakupu()` bez argumentów, katalog
+     renderuje w pętli) — „trzy minimalne zmiany w Pluginie 1" to nieprawda,
+     jest ich ≥5; (K4) cztery niezmienniki nie dają się sprawdzić skryptem,
+     a jeden celuje w NAZWĘ metody (nawrót lekcji z 0.29.0 i 0.44.0).
+     **PIĘĆ KRYTYCZNYCH OD KRYTYKA B — każde potwierdzone w żywym kodzie:**
+     (B1) wyłączenie zakupu gościa BEZ włączenia rejestracji w kasie daje
+     **403 każdemu niezalogowanemu — nikt nie kupi niczego**; (B2) zła
+     kolejność zapisu `_tutor_course_product_id` i `_tutor_course_price_type`
+     **ROZDAJE KURS ZA DARMO** (`do_enroll()` tworzy zapis od razu
+     `completed`, gdy kurs nie jest jeszcze „purchasable") — kolejność:
+     `price_type` NAJPIERW, `product_id` NA KOŃCU; (B3) udokumentowana
+     procedura `import` → `sync` zostawia **opublikowany, kupowalny produkt
+     bez powiązania** = klient płaci i nie dostaje nic (produkt ma powstawać
+     jako `draft`); (B4) `_aai_zrodlo_uuid` **nie jest wolny — siedzi już na
+     90 wpisach Tutora z tymi samymi wartościami** (pomiar), więc wyszukanie
+     bez `post_type` rozstrzyga losowo; (B5) zapis `_regular_price` metą
+     zostawia `_price` po staremu (**katalog nowa cena, kasa stara**), a nasza
+     kontrola jest na to ŚLEPA, bo porównuje właśnie zaktualizowane pole.
+     **NAJLEPSZE UPROSZCZENIE Z KRYTYKI:** dostęp klienta nie musi wisieć na
+     cudzej opcji Tutora — WooCommerce ma filtr
+     **`woocommerce_order_item_needs_processing`** (B18), który rozwiązuje to
+     u źródła; wariant `_downloadable = yes` od krytyka C jest słabszy.
+     **Porównać obie drogi przy przepisywaniu i UDOWODNIĆ pomiarem w P3**,
+     nie przyjmować na słowo.
   **ODTWORZENIE ŚRODOWISKA OD ZERA WYMAGA TRZECH KOMEND, NIE JEDNEJ:**
   `npm run wp:import` (kursy do naszych tabel) → `npm run wp:sync` (kopia
   w Tutorze) → `npm run wp:zrzuty` (148 obrazów do biblioteki mediów).

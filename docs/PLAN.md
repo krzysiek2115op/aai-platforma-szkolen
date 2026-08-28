@@ -168,6 +168,36 @@ Wszystkie sześć pozycji zrobionych; odhaczone 2026-08-25 przy domykaniu moduł
 - Przepływ: CTA „Kup" → checkout → webhook potwierdzenia → zapis zamówienia → **e-mail do klienta**: potwierdzenie zakupu, dostęp do całego kursu (linki/załącznik ebooka), dane zamówienia, dane do faktury/paragonu.
 - **Baza nr 2 — `db2_klienci`**: `customers` (dane kupujących), `orders` (kurs, kwota, status, operator, id transakcji), `payments` (zdarzenia webhooków), `deliveries` (co, kiedy i na jaki adres wysłano + status wysyłki), `download_tokens` (bezpieczne linki do materiałów).
 
+> **KOREKTA 2026-08-26 (decyzja właściciela) — NIE ROBIMY WŁASNEJ PEŁNEJ BAZY
+> KLIENTÓW, ZAMÓWIEŃ I PŁATNOŚCI.** Opis wyżej powstał, zanim zapadła decyzja
+> o WooCommerce. **WooCommerce ma już klienta, zamówienie i płatność** —
+> własne tabele, własny panel, własne faktury i własną zgodność z przepisami.
+> Napisanie tego drugi raz u siebie dałoby **drugą kopię danych osobowych**
+> (do skasowania przy każdym żądaniu RODO) i **drugą prawdę o pieniądzach**,
+> którą trzeba by pilnować kontrolą rozjazdu. Nie robimy tego.
+>
+> **Nasze tabele Pluginu 2 (`wp_aai_platnosci_*`) trzymają wyłącznie dwie
+> rzeczy, których nie ma nikt inny:**
+>
+> | Tabela | Co w niej jest | Dlaczego nasza |
+> |---|---|---|
+> | `powiazania` | kurs (uuid) ↔ produkt WooCommerce, wysłana cena, kiedy, ostatni błąd | nikt inny nie wie, który produkt sprzedaje który nasz kurs |
+> | `dostawy` | zamówienie, kurs, użytkownik, czy zapis w Tutorze potwierdzony, czy mail powitalny poszedł i kiedy | **Woo wie o zamówieniu, Tutor wie o zapisie — nikt nie wie, czy klient DOSTAŁ dostęp i wiadomość** |
+>
+> Klienta, zamówienie i płatność **wskazujemy referencją** (`user_id`,
+> `order_id`) i łączymy `JOIN`-em — to jest możliwe, bo nasze tabele mieszkają
+> w bazie WordPressa (decyzja z 2026-08-25 o własnym prefiksie zamiast osobnej
+> bazy MySQL).
+>
+> Co z pierwotnej listy odpada i dlaczego: `customers` — ma `wp_users` + Woo;
+> `orders` i `payments` — ma WooCommerce razem z bramką płatności;
+> `download_tokens` — **martwe**, bo e-booków ani plików do pobrania nie będzie
+> nigdy (decyzja „na zawsze", 2026-08-25). Zostaje `deliveries`, i to ona jest
+> powodem, dla którego Plugin 2 w ogóle ma własną bazę.
+>
+> Ta sekcja zostaje w planie **jako lista kontrolna „czego Woo i Tutor NIE
+> robią"** — nie jako opis kodu do napisania.
+
 ## 4. Plugin 3 — Panel admina (branch `plugin-3-admin-panel`, później)
 - `/szkolenia/admin` — dostęp **wyłącznie admin** (logowanie, sesje, hasło hashowane argon2).
 - Widoki: sprzedaż/zamówienia, kursy i ich statusy, ruch na podstronie, logi.
