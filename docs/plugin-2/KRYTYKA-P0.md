@@ -1,9 +1,10 @@
 # Krytyka schematu P0 — znaleziska do wprowadzenia
 
-**Stan: schemat [DIAGRAM.md](DIAGRAM.md) NIE jest jeszcze poprawiony.** Ten plik
-jest listą roboczą: każde znalezisko ma wagę, dowód i proponowane rozwiązanie.
-Następna sesja ma je wprowadzić **jednym przepisaniem** dokumentu, a nie
-poprawką po poprawce.
+**Stan: WPROWADZONA. Schemat [DIAGRAM.md](DIAGRAM.md) przepisany jednym
+przebiegiem 2026-08-28 (commit `5ebb877`) — wszystkie 54 znaleziska w środku,
+każde oznaczone w tekście schematu symbolem K/U/L/B/P.** Ten plik zostaje jako
+rejestr dowodów: każde znalezisko ma wagę, dowód i rozwiązanie. Decyzja
+właściciela z 2026-08-28 rozstrzygnęła U4: AJAX odpada.
 
 Przegląd prowadzony metodą z przeglądu B7: **trzech krytyków na rozłącznych
 obszarach**, agent główny jako krytyk krytyków. Żadne znalezisko nie idzie do

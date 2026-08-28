@@ -50,32 +50,39 @@ fakty do ponownego potwierdzenia:
 Ten sam szkielet co w Pluginie 1: **BAZA → DZIAŁ → strony**, z JEDNYM
 wystrzałem (kanał akcji) i kanałem JSON (odczyt serwerowy) obok.
 
+Górna połowa diagramu to **ZAPIS** (akcje → dyspozytor → baza), dolna to
+**ODCZYT** (baza → kanał JSON → strony) — te dwie ścieżki się nie mieszają.
+
 ```mermaid
-flowchart LR
-    subgraph BAZA_P2 ["BAZA Pluginu 2 (własny prefiks w bazie WP)"]
-        POW[("wp_aai_platnosci_powiazania<br/>kurs (uuid) ↔ produkt Woo (ID)")]
-        DOS[("wp_aai_platnosci_dostawy<br/>co klient naprawdę DOSTAŁ:<br/>mail konta, mail kursu, dostęp<br/>(UNIQUE = idempotencja)")]
+flowchart TB
+    subgraph AKCJE["AKCJE / ZDARZENIA — inicjują zapis (WYSTRZAŁ)"]
+        W1["'Zapisz kurs' Pluginu 1<br/>admin-post.php — jedyny AJAX"]
+        W2["WooCommerce<br/>zdarzenia zakupu: konto, opłata"]
     end
 
-    DZIAL["DZIAŁ-DYSPOZYTOR Pluginu 2<br/>warstwa szwu: jedyne miejsce piszące<br/>do BAZY P2 i do produktu Woo"]
+    DZIAL["DZIAŁ-DYSPOZYTOR Pluginu 2<br/>jedyna warstwa zapisu:<br/>BAZA P2 + produkt Woo"]
 
-    subgraph WYSTRZAL ["WYSTRZAŁ (jeden kanał akcji — DO DECYZJI, sekcja 11)"]
-        W1["akcja 'Zapisz kurs' Pluginu 1<br/>(admin-post.php — jedyny AJAX P1)"]
-        W2["zdarzenia zakupu WooCommerce<br/>(kasa i płatność to kanały Woo)"]
-    end
+    BAZA[("BAZA Pluginu 2<br/>wp_aai_platnosci_powiazania — kurs ↔ produkt Woo<br/>wp_aai_platnosci_dostawy — maile + dostęp<br/>UNIQUE = idempotencja")]
 
-    subgraph KANAL_JSON ["KANAŁ JSON (odczyt serwerowy)"]
-        F1["cena, CTA, dostępność<br/>podawane Pluginowi 1<br/>przy renderowaniu stron"]
-    end
+    PROD["produkt WooCommerce<br/>cena regularna + powiązanie"]
 
-    STRONY["strony pluginu:<br/>katalog, strona sprzedażowa,<br/>kasa Woo, /szkolenia/moje/"]
+    KANAL["KANAŁ JSON — odczyt serwerowy<br/>filtry Pluginu 1: cena, CTA, dostępność"]
 
-    W1 -->|"kurs zapisany"| DZIAL
-    W2 -->|"konto powstało / opłacono"| DZIAL
-    DZIAL --> POW
-    DZIAL --> DOS
-    BAZA_P2 -.->|odczyt| F1
-    F1 --> STRONY
+    S1["STRONA /szkolenia"]
+    S2["STRONA /szkolenia/[slug]"]
+    S3["STRONA /szkolenia/moje/"]
+    KASA["kasa WooCommerce"]
+
+    W1 ==>|"kurs zapisany"| DZIAL
+    W2 ==>|"konto utworzone / opłacone"| DZIAL
+    DZIAL -->|"zapis"| BAZA
+    DZIAL -->|"zapis"| PROD
+    BAZA ---|"JSON"| KANAL
+    PROD ---|"cena efektywna"| KANAL
+    KANAL -->|"JSON"| S1
+    KANAL -->|"JSON"| S2
+    KANAL -->|"JSON"| S3
+    S2 -->|"CTA"| KASA
 ```
 
 Jak to się ma do WYTYCZNE §8, punkt po punkcie:
@@ -92,8 +99,8 @@ Jak to się ma do WYTYCZNE §8, punkt po punkcie:
   uruchamiają: (a) ten sam jeden AJAX Pluginu 1 (`admin-post.php`, akcja
   „Zapisz kurs"), (b) gotowe kanały zakupowe WooCommerce (koszyk, kasa,
   płatność). Zasada „jeden AJAX na plugin" jest zachowana w najmocniejszej
-  postaci: **zero nowych kanałów** *(U4 — wymaga potwierdzenia właściciela,
-  sekcja 11)*.
+  postaci: **zero nowych kanałów** *(U4 — ROZSTRZYGNIĘTE przez właściciela
+  2026-08-28, sekcja 11)*.
 - **KANAŁ JSON** (odczyt serwerowy): dział czyta bazę przy renderowaniu
   i oddaje stronom gotowe dane — u nas to cena wyświetlana, stan CTA
   i dostępność w danych strukturalnych, podawane Pluginowi 1 filtrami.
@@ -107,7 +114,7 @@ Jak to się ma do WYTYCZNE §8, punkt po punkcie:
 | DZIAŁ-DYSPOZYTOR | klasa zapisu `Aai_Platnosci_Zapis` (jedyny pisarz do obu tabel i do produktu Woo — zawsze `WC_Product::set_*()` + `save()`, nigdy meta ceny) + klasa kontroli (nigdy nie pisze, L11) |
 | WYSTRZAŁ (wejścia działu) | haki: `aai_sklep_kurs_zmieniony` **prio 20** (U2 — Tutor kopiuje na 10, my wchodzimy PO nim), `aai_sklep_kurs_usuniety` (L5), `woocommerce_created_customer` (mail 1, B9), `tutor_after_enrolled` (dostęp + mail 2, B7), `save_post_product` prio > 10 (przywraca `_tutor_product`, B13), filtr `woocommerce_order_item_needs_processing` rejestrowany na `plugins_loaded` (B18), filtr `woocommerce_add_to_cart_validation` (B10), filtr `woocommerce_add_to_cart_redirect` (prosto do kasy) |
 | KANAŁ JSON (odczyt do stron) | filtry Pluginu 1 z kursem w argumencie (K3): adres zakupu, cena wyświetlana, stan CTA, dostępność JSON-LD; odczyt kursu po uuid: `Aai_Sklep_Odczyt::kurs_po_id()` (L2) |
-| kokpit | **żadnej własnej akcji `admin-post.php`** (U4, do decyzji); komunikat o rozjeździe przez `admin_notices` na ekranach `aai-sklep*` (L14) + zdanie „kliknij Zapisz kurs, żeby naprawić" |
+| kokpit | **żadnej własnej akcji `admin-post.php`** (U4 — decyzja właściciela 2026-08-28); komunikat o rozjeździe przez `admin_notices` na ekranach `aai-sklep*` (L14) + zdanie „kliknij Zapisz kurs, żeby naprawić" |
 | CLI | `wp aai-platnosci sync [<slug>]` i `wp aai-platnosci sprawdz` (U3, L17); `sync` podpięty też do **aktywacji wtyczki**, bo na istniejącej instalacji nikt kursów nie zapisuje i bez tego po aktywacji nie powstałby ani jeden produkt |
 | meta (nasze) | `_aai_platnosci_kurs_uuid` na produkcie (własny przedrostek — `_aai_zrodlo_uuid` siedzi już na 90 wpisach Tutora, B4/L13); `_aai_platnosci_sync_ts` na produkcie (B15) |
 | meta (Tutora — ustawiamy jego własne) | `_tutor_course_price_type`, `_tutor_course_product_id` na wpisie kursu; `_tutor_product`, `_virtual`, `_sold_individually` (B14) na produkcie |
@@ -149,30 +156,31 @@ to dana historyczna, której nikt na froncie nie czyta; pilnuje jej istniejące
 
 Instalacja ma **kasę blokową**, a to zmienia łańcuch: Store API najpierw robi
 zamówienie-szkic `checkout-draft`, więc Tutor zapisuje kursanta nie przy
-dodaniu pozycji, tylko przy PIERWSZEJ zmianie statusu (priorytet 9).
+dodaniu pozycji, tylko przy PIERWSZEJ zmianie statusu (priorytet 9,
+`handle_customer_order_by_block_checkout`).
 
 ```mermaid
-flowchart TD
-    A["strona sprzedażowa /szkolenia/(slug)<br/>KANAŁ JSON: cena i CTA z odczytu serwerowego<br/>przycisk 'Dołączam za 299,00 zł'"]
-    B["?add-to-cart=(ID produktu)<br/>WC_Form_Handler na wp_loaded<br/>+ NASZ filtr add_to_cart_validation:<br/>odmowa, gdy klient MA już ten kurs"]
-    C["filtr woocommerce_add_to_cart_redirect<br/>NASZ — prosto na kasę"]
-    D["kasa blokowa<br/>Store API tworzy szkic 'checkout-draft'"]
-    E1{"klient ma już konto?"}
-    E2["logowanie w kasie<br/>(rejestracja z kasy włączona, B1)"]
-    E3["klient podaje e-mail<br/>KONTO POWSTAJE<br/>hak woocommerce_created_customer"]
-    L1["NASZ MAIL 1: 'Ustaw hasło i wejdź'<br/>znacznik: BAZA P2, dostawy (użytkownik)"]
-    F["status: checkout-draft → pending"]
-    G["Tutor prio 9<br/>handle_customer_order_by_block_checkout<br/>zapis 'tutor_enrolled' = pending"]
-    H["płatność — payment_complete()"]
-    I["NASZ filtr needs_processing = false<br/>→ zamówienie od razu 'completed'<br/>(auto-complete Tutora = drugi pas)"]
-    J["Tutor: zapis → completed"]
-    K["DOSTĘP DO LEKCJI<br/>tylko zapis 'completed' go daje"]
-    L2["NASZ MAIL 2: 'Twój kurs jest gotowy'<br/>hak tutor_after_enrolled<br/>znacznik: BAZA P2, dostawy (zamówienie)<br/>BEZ klucza hasła"]
+flowchart TB
+    A["strona sprzedażowa /szkolenia/[slug]<br/>CTA: 'Dołączam za 299,00 zł'"]
+    B["?add-to-cart=ID produktu<br/>WC_Form_Handler na wp_loaded<br/>nasz filtr: odmowa, gdy klient MA kurs"]
+    C["nasz filtr przekierowania<br/>prosto na kasę"]
+    D["kasa blokowa Woo<br/>Store API: szkic 'checkout-draft'"]
+    E1{"klient ma konto?"}
+    E2["logowanie w kasie"]
+    E3["KONTO POWSTAJE<br/>woocommerce_created_customer"]
+    L1["MAIL 1: 'Ustaw hasło i wejdź'<br/>znacznik: dostawy (użytkownik)"]
+    F["status → pending"]
+    G["Tutor, prio 9<br/>zapis kursanta = pending"]
+    H["płatność<br/>payment_complete()"]
+    I["nasz filtr needs_processing = false<br/>zamówienie → completed"]
+    J["Tutor<br/>zapis → completed"]
+    K["DOSTĘP DO LEKCJI<br/>daje go tylko zapis 'completed'"]
+    L2["MAIL 2: 'Twój kurs jest gotowy'<br/>tutor_after_enrolled<br/>znacznik: dostawy (zamówienie)<br/>BEZ klucza hasła"]
     M["Woo: potwierdzenie zamówienia"]
 
     A --> B --> C --> D --> E1
-    E1 -->|tak| E2 --> F
-    E1 -->|nie| E3 --> F
+    E1 -->|"tak"| E2 --> F
+    E1 -->|"nie"| E3 --> F
     E3 --> L1
     F --> G --> H --> I --> J --> K
     J --> L2
@@ -288,14 +296,14 @@ promocyjnej nie dotykamy nigdy**.
 ```mermaid
 flowchart LR
     ZR[("BAZA Pluginu 1 — ŹRÓDŁO<br/>wp_aai_sklep_courses<br/>price_grosze (int)")]
-    TU["kopia w Tutorze<br/>meta _aai_cena_grosze<br/>(historyczna; pilnuje jej<br/>sprawdz-tutora, NIE my)"]
-    WO["produkt WooCommerce<br/>WC_Product::set_regular_price()<br/>+ save() — NIGDY metą"]
+    TU["kopia w Tutorze<br/>_aai_cena_grosze<br/>(historyczna)"]
+    WO["produkt WooCommerce<br/>set_regular_price() + save()<br/>NIGDY metą"]
     SA["_sale_price<br/>NIGDY NIE DOTYKANE"]
-    FR["strony (KANAŁ JSON):<br/>karta katalogu, hero, cena.php,<br/>CTA ×2, dane strukturalne<br/>— wszystkie z JEDNEGO wywołania"]
+    FR["front — KANAŁ JSON<br/>5 miejsc ceny<br/>z JEDNEGO wywołania"]
 
-    ZR -->|"po każdym udanym<br/>zapisie kursu (WYSTRZAŁ P1)<br/>grosze / 100"| WO
-    ZR -.->|"kopia Pluginu 1 (istnieje)"| TU
-    WO -.->|"odczyt ceny EFEKTYWNEJ<br/>get_price() + get_regular_price()"| FR
+    ZR ==>|"zapis kursu<br/>grosze / 100"| WO
+    ZR -.->|"kopia Pluginu 1"| TU
+    WO -->|"odczyt — cena efektywna"| FR
     SA -.->|"ustawia właściciel w Woo"| WO
 ```
 
@@ -348,18 +356,18 @@ import masowy (kopia do Tutora wstrzymana) — a tam i tak trzeba odpalić
 komendę `sync`.
 
 ```mermaid
-flowchart TD
-    Z["Aai_Sklep_Zapis::powiadom()<br/>PO zatwierdzeniu transakcji<br/>(WYSTRZAŁ Pluginu 1)"]
-    A1["akcja aai_sklep_kurs_zmieniony"]
-    A2["akcja aai_sklep_kurs_usuniety"]
-    T1["prio 10: Aai_Sklep_Tutor::na_zmianie()<br/>(wstrzymywana przy imporcie)"]
-    P1["prio 20: aai-platnosci<br/>1. produkt Woo jako DRAFT<br/>(nazwa + cena regularna<br/>+ wiersz w BAZIE P2: powiazania)"]
-    P2["2. powiązanie na wpisie kursu Tutora<br/>KOLEJNOŚĆ: _tutor_course_price_type='paid'<br/>NAJPIERW, _tutor_course_product_id NA KOŃCU"]
-    P3["3. produkt → publish<br/>dopiero gdy: price_type=paid + product_id<br/>+ kurs published + cena > 0"]
-    U1["prio 20: produkt → draft<br/>(powiązanie zdejmowane ODWROTNIE:<br/>product_id najpierw, price_type na końcu)"]
+flowchart TB
+    Z["Aai_Sklep_Zapis::powiadom()<br/>po zatwierdzeniu transakcji"]
+    A1["aai_sklep_kurs_zmieniony"]
+    A2["aai_sklep_kurs_usuniety"]
+    T1["prio 10: kopia do Tutora<br/>(wstrzymana przy imporcie)"]
+    P1["prio 20: produkt Woo jako DRAFT<br/>cena regularna<br/>+ wiersz w powiazania"]
+    P2["powiązanie na wpisie kursu Tutora<br/>price_type='paid' NAJPIERW<br/>product_id NA KOŃCU"]
+    P3["produkt → publish<br/>gdy: paid + product_id<br/>+ kurs published + cena > 0"]
+    U1["prio 20: produkt → draft<br/>powiązanie zdejmowane ODWROTNIE"]
 
-    Z --> A1
-    Z --> A2
+    Z ==> A1
+    Z ==> A2
     A1 --> T1
     A1 --> P1 --> P2 --> P3
     A2 --> U1
@@ -533,7 +541,7 @@ już dwa razy (0.29.0, 0.44.0).
 | 18 | filtr `needs_processing` zarejestrowany na `plugins_loaded`, bezwarunkowo *(B18 — wynik cache'owany)* | grep + smoke P3b z wyłączonym auto-complete Tutora | strażnik + smoke |
 | 19 | cena strony = cena JSON-LD (jedno wywołanie) *(K2)* | smoke SEO porównuje `Offer.price` z ceną wyrenderowaną na stronie | smoke P3b |
 
-## 11. Wystrzał i AJAX — DO DECYZJI WŁAŚCICIELA
+## 11. Wystrzał i AJAX — ROZSTRZYGNIĘTE (właściciel, 2026-08-28)
 
 Pierwsza wersja schematu przewidywała jeden własny AJAX w kokpicie („naprawa
 rozjazdu jednego kursu"). **Obaj krytycy (A i C) niezależnie go wykreślili**
@@ -550,18 +558,17 @@ rozjazdu jednego kursu"). **Obaj krytycy (A i C) niezależnie go wykreślili**
   właśnie działa. Szkielet z WYTYCZNE §8 zostaje w całości — zmienia się
   tylko nazwa kanału.
 
-**Rekomendacja schematu:** sekcja o AJAX-ie staje się jednym zdaniem —
-**„Plugin 2 nie wprowadza żadnego własnego AJAX-a"** — co jest mocniejszym
-niezmiennikiem i tańszym w pilnowaniu niż kontrakt jednej operacji.
-W kokpicie zostaje komunikat o rozjeździe (`admin_notices` na ekranach
-`aai-sklep*`, *L14*) plus zdanie „kliknij Zapisz kurs, żeby naprawić";
-naprawa zbiorcza jedzie komendą `wp aai-platnosci sync`.
+**DECYZJA WŁAŚCICIELA (2026-08-28): AJAX odpada.** Obowiązuje jedno zdanie —
+**„Plugin 2 nie wprowadza żadnego własnego AJAX-a"** — mocniejszy niezmiennik
+i tańszy w pilnowaniu niż kontrakt jednej operacji. Wystrzałem Pluginu 2 są:
+kanał `admin-post.php` Pluginu 1 (akcja „Zapisz kurs") oraz kanały zakupowe
+WooCommerce. W kokpicie zostaje komunikat o rozjeździe (`admin_notices` na
+ekranach `aai-sklep*`, *L14*) plus zdanie „kliknij Zapisz kurs, żeby
+naprawić"; naprawa zbiorcza jedzie komendą `wp aai-platnosci sync`.
 
-**Wariant, gdyby właściciel utrzymał własny kanał:** jedna akcja
-`admin-post.php` (nie `wp_ajax_*`) „napraw rozjazd jednego kursu": wejście
-`uuid` + nonce, `manage_options`, nieznany uuid = odmowa (nie „utwórz"),
-zero zapisów w tabelach Pluginu 1, wynik jako komunikat na ekranie. Koszt:
-drugi kanał do pilnowania, który robi to samo, co istniejący przycisk.
+*Wariant odrzucony przy tej decyzji:* własna akcja `admin-post.php` „napraw
+rozjazd jednego kursu" — drugi kanał do pilnowania, robiący to samo, co
+istniejący przycisk.
 
 Na ścieżce klienta w OBU wariantach: **zero naszych kanałów** — dodanie do
 koszyka, kasa i płatność to gotowe kanały WooCommerce.

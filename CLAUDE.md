@@ -1599,11 +1599,30 @@ wyprowadzała tego od nowa:
      pełną integrację z WooCommerce (`classes/WooCommerce.php`, 1222 linie) —
      zapis na kurs po opłacie i odebranie dostępu przy zwrocie **są gotowe**,
      my je WŁĄCZAMY ustawieniem i pilnujemy asercją, zamiast pisać.
-     **Gałąź `docs/schemat-pluginu-2`, commit `ca7cbd6` wypchnięty.**
-     Schemat: [docs/plugin-2/DIAGRAM.md](docs/plugin-2/DIAGRAM.md) (3 diagramy
+     **Gałąź `docs/schemat-pluginu-2`, wypchnięta.**
+     Schemat: [docs/plugin-2/DIAGRAM.md](docs/plugin-2/DIAGRAM.md) (4 diagramy
      mermaid, renderują się na GitHubie; sprawdzone RENDEREM w mermaid 11.17.2,
-     z testem negatywnym).
-     **NASTĘPNY KROK: JEDNO PRZEPISANIE SCHEMATU** wg
+     z testem negatywnym — UWAGA: puppeteer-core nie odpala Firefoksa, gdy
+     działa okno użytkownika; rig z tej sesji omija to własnym serwerem HTTP
+     i surowym `firefox --headless --no-remote` na świeżym profilu, a stary
+     profil z lockiem WIESZA przeglądarkę — kasować przed startem).
+     **PRZEPISANIE SCHEMATU ZROBIONE (2026-08-28, commity `5ebb877` +
+     przebudowa wizualna):** wszystkie 54 znaleziska wprowadzone, dwie sekcje
+     językowe na miejscu (sekcja 1: język pluginów wg WYTYCZNE §8; sekcja 2:
+     język WordPressa), baza/wystrzał/kanał JSON nazwane wprost w diagramach,
+     BAZA P2 = `powiazania` + `dostawy` (UNIQUE w `dostawy` zastępuje
+     `add_option` z B6 — ta sama atomowość, własny nośnik). Diagramy
+     PRZEBUDOWANE wizualnie wg wzoru Pluginu 1 (polecenie właściciela
+     2026-08-28: Plugin 2 = źródło prawdy merytorycznej, diagram Pluginu 1 =
+     wzór stylu; krótkie etykiety 2–4 linie, walec na bazę, `==>` na wystrzał,
+     zapis górą / odczyt dołem).
+     **DECYZJA WŁAŚCICIELA (2026-08-28): AJAX W KOKPICIE ODPADA** — „Plugin 2
+     nie wprowadza żadnego własnego AJAX-a"; wystrzałem jest `admin-post.php`
+     Pluginu 1 (akcja „Zapisz kurs") + kanały zakupowe Woo; naprawa zbiorcza
+     komendą `wp aai-platnosci sync` (DIAGRAM.md sekcja 11).
+     **NASTĘPNY KROK: AKCEPTACJA SCHEMATU przez właściciela** (wybrał „mam
+     poprawki"; pierwsza poprawka — przebudowa wizualna — wykonana). Kod P1
+     dopiero po akceptacji. Krytyka, którą schemat wprowadził, wg
      [docs/plugin-2/KRYTYKA-P0.md](docs/plugin-2/KRYTYKA-P0.md) — **54 znaleziska
      trzech krytyków** (A: architektura, B: cudzy kod i bezpieczeństwo,
      C: prostota i sprawdzalność), w tym **DZIEWIĘĆ krytycznych**.
@@ -1617,7 +1636,7 @@ wyprowadzała tego od nowa:
      z nazwanymi akcjami. Plugin 1 tak działa i **nie ma ani jednego
      `wp_ajax_*`**; obaj krytycy niezależnie wykreślili proponowany AJAX jako
      dublujący przycisk „Zapisz kurs". Szkielet z §8 zostaje, zmienia się nazwa
-     kanału. **To wymaga potwierdzenia właściciela.**
+     kanału. ~~To wymaga potwierdzenia właściciela~~ **POTWIERDZONE 2026-08-28 (AJAX odpada — patrz wyżej).**
      **CZTERY ZNALEZISKA KRYTYCZNE (pełnia w KRYTYKA-P0.md):** (K1) klient
      dostaje konto, do którego nie ma jak wejść — mail z linkiem wisiał na
      `completed`, a przy przelewie zamówienie stoi na `on-hold`; (K2) cena na
