@@ -182,6 +182,21 @@ else
   komunikat "Wtyczki aai-sklep jeszcze nie ma — pomijam (to normalne na starcie)"
 fi
 
+# Plugin 2 — szew do WooCommerce i Tutora. Te same pułapki co wyżej,
+# więc to samo pytanie do KONTENERA przed aktywacją.
+if [ -f ../wtyczki/aai-platnosci/aai-platnosci.php ]; then
+  podman exec "${STACK}_cli" \
+    test -f /var/www/html/wp-content/plugins/aai-platnosci/aai-platnosci.php \
+    || blad "kontener nie widzi wtyczki aai-platnosci, choć na dysku ona jest — martwy bind mount (nowy mount wymaga odtworzenia kontenerów). Napraw: podman-compose down && ./postaw.sh"
+
+  if [ "$(wpcli plugin get aai-platnosci --field=status 2>/dev/null || echo brak)" != "active" ]; then
+    komunikat "Włączam wtyczkę aai-platnosci"
+    wpcli plugin activate aai-platnosci
+  fi
+else
+  komunikat "Wtyczki aai-platnosci jeszcze nie ma — pomijam (to normalne przed krokiem P1)"
+fi
+
 # --- 9. WERYFIKACJA ARTEFAKTU ----------------------------------------------
 #
 # Nie „polecenia poszły", tylko „strona naprawdę oddaje to, co ma oddawać".
@@ -216,6 +231,13 @@ if [ -f ../wtyczki/aai-sklep/aai-sklep.php ]; then
     || blad "wtyczka aai-sklep nie jest aktywna"
   wpcli eval 'echo Aai_Sklep_Tabele::czy_gotowe() ? "tabele-ok" : "tabele-brak";' \
     | grep -q "tabele-ok" || blad "wtyczka aktywna, ale jej tabele nie powstały"
+fi
+
+if [ -f ../wtyczki/aai-platnosci/aai-platnosci.php ]; then
+  [ "$(wpcli plugin get aai-platnosci --field=status)" = "active" ] \
+    || blad "wtyczka aai-platnosci nie jest aktywna"
+  wpcli eval 'echo Aai_Platnosci_Tabele::istnieja() ? "tabele-ok" : "tabele-brak";' \
+    | grep -q "tabele-ok" || blad "aai-platnosci aktywna, ale jej tabele (powiazania, dostawy) nie powstały"
 fi
 
 # HIGIENA ZASOBÓW — obie strony medalu, bo obie umieją się zepsuć osobno.
