@@ -293,6 +293,24 @@ sprawdz(stanKursu().kurs === null, "kurs testowy nie powinien istnieć na starci
   );
 }
 
+
+/*
+ * PRODUKT PO KURSIE TESTOWYM — sprzątamy TU, bo wtyczka tego nie robi
+ * i nie ma prawa robić: „produktu nie kasujemy nigdy" (niezmiennik 13
+ * Pluginu 2) chroni historię zamówień i nie rozróżnia kupionych od
+ * niekupionych. Bez tego każdy przebieg zostawiałby w sklepie sierotę,
+ * a po kilku przebiegach bramki mierzyłyby własne śmieci. Test ma prawo
+ * skasować SWOJE dane.
+ */
+wp(
+  "eval",
+  `if ( class_exists( "Aai_Platnosci_Tabele" ) ) {
+    global $wpdb; $t = Aai_Platnosci_Tabele::tabela( "powiazania" );
+    $pid = (int) $wpdb->get_var( $wpdb->prepare( "SELECT product_id FROM {$t} WHERE course_uuid = %s", "${KURS}" ) );
+    if ( $pid > 0 ) { $wpdb->delete( $t, array( "product_id" => $pid ) ); wp_delete_post( $pid, true ); }
+  }`
+);
+
 // ── werdykt ────────────────────────────────────────────────────────────────
 
 if (bledy.length > 0) {

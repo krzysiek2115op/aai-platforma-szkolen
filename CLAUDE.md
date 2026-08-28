@@ -1734,8 +1734,26 @@ wyprowadzała tego od nowa:
      wp-kreator 96, wp-front 84, wp-tutor 44, wp-lekcja 35, wp-dane 30,
      wp-platnosci 23; dane Pluginu 1 nietknięte (73/73 co do znaku,
      kopia w Tutorze 0 różnic).
-     **NASTĘPNY KROK: PR gałęzi `feat/p2-produkt-z-ceny` (czeka na zgodę
-     właściciela), potem plan + pytania do P3a wg reguły poniżej.**
+     **SWEEP PRZED /CLEAR ZROBIONY (2026-08-28) — log:
+     [docs/plugin-2/SWEEP-P2.md](docs/plugin-2/SWEEP-P2.md).** Wszystkie
+     41 napraw zweryfikowanych URUCHOMIENIOWO (nie deklaratywnie), kolizje
+     z resztą projektu sprawdzone. **Sweep znalazł rzecz, której nie widział
+     żaden z trzech przeglądów: smoke'i Pluginu 1 zostawiały PRODUKTY-SIEROTY**
+     — tworzą kursy testowe, więc nasz szew zakłada im produkty, a przy
+     kasowaniu kursu produkt zostaje (niezmiennik 13). Po kilku przebiegach
+     bramki mierzyłyby własne śmieci. Naprawione w trzech smoke'ach
+     (`wp-dane`, `wp-tutor`, `wp-kreator`): test sprząta TAKŻE produkt po
+     swoim kursie — kod wtyczki bez zmian. Dowód: trzy przebiegi z rzędu
+     zostawiają produkty 2, powiazania 2.
+     **NASTĘPNY KROK (po `/clear`): PONOWNA WALIDACJA — polecenie właściciela
+     z 2026-08-28:** sprawdzić, czy wcześniejsze poprawki nie spowodowały
+     regresji ani kolizji ORAZ czy podobne błędy nie występują w INNYCH
+     miejscach projektu (te same klasy: wczesny `return` zostawiający stan,
+     kontrola meldująca sukces bez sprawdzenia, wzorzec na napis zamiast na
+     zachowanie, mutacja łamiąca dwie reguły naraz, test przechodzący
+     z cudzego powodu). Wynik walidacji dopisać do SWEEP-P2.md.
+     **Dopiero potem: PR gałęzi `feat/p2-produkt-z-ceny` → merge (za zgodą
+     właściciela) → plan + pytania do P3a wg reguły poniżej.**
      **REGUŁA WŁAŚCICIELA (2026-08-28), obowiązuje dla CAŁYCH Pluginów 2 i 3:
      przed KAŻDYM krokiem agent najpierw przedstawia plan przebiegu kroku
      (z tym, czego krok NIE dotyka) i pytania doprecyzowujące, i czeka na

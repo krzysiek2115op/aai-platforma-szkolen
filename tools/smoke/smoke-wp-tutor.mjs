@@ -358,6 +358,24 @@ try {
       }
     }
   `);
+    /*
+     * PRODUKT PO KURSIE TESTOWYM — sprzątamy TU, bo wtyczka tego nie robi
+     * i nie ma prawa robić: „produktu nie kasujemy nigdy" (niezmiennik 13)
+     * chroni historię zamówień i nie rozróżnia kupionych od niekupionych.
+     * Skutek: każdy przebieg smoke'a, który tworzy kurs, zostawiałby
+     * w sklepie sierotę — po kilku przebiegach bramki mierzyłyby już
+     * własne śmieci. Test ma prawo skasować SWOJE dane.
+     */
+  eval_php(`
+    if ( class_exists( "Aai_Platnosci_Tabele" ) ) {
+      global $wpdb;
+      $t = Aai_Platnosci_Tabele::tabela( "powiazania" );
+      foreach ( ${JSON.stringify(doSprzatniecia)} as $uuid ) {
+        $pid = (int) $wpdb->get_var( $wpdb->prepare( "SELECT product_id FROM {$t} WHERE course_uuid = %s", $uuid ) );
+        if ( $pid > 0 ) { $wpdb->delete( $t, array( "product_id" => $pid ) ); wp_delete_post( $pid, true ); }
+      }
+    }
+  `);
 }
 
 // 12. STAN KOŃCOWY: prawdziwe kursy nietknięte.
