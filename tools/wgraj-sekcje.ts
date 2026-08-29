@@ -17,10 +17,17 @@
  * obowiązuje po stronie WordPressa (BLAD-018).
  *
  * Kurs musi już istnieć — narzędzie NIE zakłada nowych i przerywa, gdy
- * któregoś nie ma. Po nim: `npm run wp:import`, żeby ta sama treść
- * pojechała do WordPressa (import idzie Z Postgresa).
+ * któregoś nie ma.
  *
- * Użycie: npm run db1:sekcje   (wymaga bazy i KREATOR_TOKEN w .env)
+ * PO KAŻDYM PRZEBIEGU URUCHOM `npm run wp:import`. To nie jest porada, tylko
+ * warunek: warstwa zapisu podmienia sekcje parą DELETE + INSERT, więc każdy
+ * przebieg nadaje im NOWE identyfikatory. WordPress trzyma stare i kontrola
+ * `npm run wp:sprawdz` melduje wtedy „WordPress ma sekcję spoza prototypu"
+ * dla każdej z nich — rozjazd po ID, przy treści zgodnej co do znaku.
+ * Zmierzone przy P5: dwa przebiegi bez importu = 22 fałszywe rozjazdy.
+ *
+ * Użycie: npm run db1:sekcje && npm run wp:import
+ *         (wymaga bazy i KREATOR_TOKEN w .env)
  */
 import { obsluzAkcje, zamknijDb1, listaKursowKreatora } from "../modules/m1-sklep/index.ts";
 import { KURSY_SEED } from "./seed/seed-przyklady.ts";

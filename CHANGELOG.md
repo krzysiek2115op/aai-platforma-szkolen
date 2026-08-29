@@ -5,6 +5,114 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.52.0] — 2026-08-29
+
+**Krok P5 — zwroty i przypadki brzegowe.** Zakres rozstrzygnął właściciel:
+gwarancji 30 dni nie realizujemy, więc strona przestaje ją obiecywać; zwrot
+MIERZYMY i zostawiamy dowód. Pełny opis, pomiary i pułapki:
+[docs/plugin-2/KROK-P5.md](docs/plugin-2/KROK-P5.md).
+
+### Rozstrzygnięcie, które zmieniło krok
+
+Krok wchodził z wymaganiem „gwarancja 30 dni MA DZIAŁAĆ". Przy planie
+przedstawiłem właścicielowi rozróżnienie trzech rzeczy: **gwarancja** (nasza
+dobrowolna obietnica — da się zdjąć), **ustawowe 14 dni odstąpienia** (nie
+znika przez skasowanie sekcji; wyłącza je dopiero zgoda w kasie na
+natychmiastowe dostarczenie — pozycja „przed pierwszym klientem") oraz
+**techniczny zwrot** (potrzebny niezależnie: obciążenie zwrotne, podwójna
+płatność, pomyłkowy zakup, reklamacja). Wybrany wariant skrócony: zdejmij
+obietnicę, zmierz mechanizm.
+
+### Dodane
+
+- **`smoke-wp-zwroty` (35 sprawdzeń)** — dowód, że klik „Refund" w panelu
+  WooCommerce ODBIERA dostęp do kursu. Zmierzone: odbiera **bez ani jednej
+  linijki naszego kodu** (`enrolled_courses_status_change()` Tutora ustawia
+  status zapisu równy statusowi zamówienia). Smoke nie dokłada mechanizmu —
+  utrwala cudze zachowanie jako NASZE WYMAGANIE, żeby aktualizacja Tutora nie
+  zabrała go po cichu; wtedy sklep oddawałby pieniądze i zostawiał materiał,
+  a nic by tego nie zgłosiło. Dostęp sprawdzany na czterech drogach, którymi
+  klient go widzi: zapis w Tutorze, `is_enrolled`, lista „Moich kursów", treść
+  lekcji.
+- **`npm run db1:sekcje`** (`tools/wgraj-sekcje.ts`) — bezpieczna droga dla
+  poprawek treści sprzedażowej. `db1:seed` zaczyna od `akcja: "usun"`, czyli
+  **kasuje prozę 73 lekcji**, żeby zmienić jedno zdanie; narzędzie wysyła same
+  sekcje BEZ klucza `modules`.
+- **`node tools/okladki-png.mjs`** — okładki SVG → PNG jako artefakt
+  repozytorium, ze skrótem źródła obok (`--sprawdz` wykrywa okładkę zmienioną
+  w SVG i niewyrenderowaną).
+- **Dwie reguły `straznik-platnosci-wp`** (34, 35) i **pięć mutacji** w audycie:
+  217 → **222** (220 złapanych, 0 przeoczonych, 0 martwych).
+- **Dwie kontrole w `wp aai-platnosci sprawdz`**: zamówienie kursu wiszące
+  w `processing` (klient zapłacił i nie ma dostępu) oraz obecność Tutor Pro
+  (ma własny zapis ceny, więc unieważnia dowody jednokierunkowości z P2).
+
+### Zmienione
+
+- **Strona przestaje obiecywać zwrot pieniędzy.** Obietnica siedziała
+  w CZTERECH miejscach na kurs: pozycja „Gwarancja 30 dni" w korzyściach,
+  wiersz w liście „w cenie", cała sekcja `guarantee` i pytanie FAQ, którego
+  jedyną odpowiedzią była gwarancja — plus pływak w hero katalogu, osobno
+  w WordPressie i w prototypie. Pytania FAQ usunięte w całości, zamiast
+  dopisywania im nowej odpowiedzi (zmyślanie obietnicy byłoby powtórzeniem
+  naprawianego błędu). Rodzaj sekcji `guarantee` ZOSTAJE w kontrakcie —
+  zniknęła treść, nie możliwość.
+- **Kasa nie powołuje się już na nieistniejący regulamin.** WooCommerce
+  drukował „wyrażasz zgodę na nasze Warunki i zasady oraz Politykę
+  prywatności", choć strony regulaminu nie ma — a przy jej braku NIE usuwa
+  wzmianki, tylko drukuje ją bez odnośnika. Klient czyta teraz „Kontynuując
+  zamówienie, wyrażasz zgodę na naszą Politykę prywatności." z klikalnym
+  odnośnikiem. Zrobione filtrem na drzewie bloków W PAMIĘCI, nie zapisem do
+  treści strony (`str_replace` w cudzej treści uszkodził przy P3a 13 bloków
+  koszyka i 22 kasy bez jednego objawu).
+- **Produkt w koszyku i w kasie ma okładkę kursu** zamiast szarego zastępnika.
+  Decyzja właściciela zakładała renderowanie PNG przy synchronizacji, ale to
+  niewykonalne: `Imagick::queryFormats("*SVG*")` w kontenerze zwraca PUSTĄ
+  listę, GD SVG nie czyta, `rsvg-convert`/`inkscape`/`convert` nie istnieją.
+  Render jest KWADRATOWY (1200×1200), bo WooCommerce składa miniaturę
+  przycięciem 300×300 — z tytułu „Jak poprawnie korzystać z Claude" zostawało
+  „poprawnie / zystać z Claude".
+- **Okładki mówią „AUTOMATIC AI"** — wszystkie cztery pliki niosły
+  „[ KURS · MATTHEWPLUGINS.PL ]", czyli markę sprzed rebrandingu z 2026-08-18.
+- **Odnośnik pozycji koszyka prowadzi tam, gdzie powinien.**
+  `tutor_update_product_url()` kończy się BEZ `return` dla produktu spoza
+  kursów, więc filtr dostawał `null` i cudza pozycja traciła klikalność
+  (zmierzone). Nasz kurs prowadzi teraz prosto na `/szkolenia/<slug>/`,
+  a nie na `/courses/…`, które i tak przekierowujemy.
+- **Załącznik okładki ma tekst alternatywny** (Store API oddawało `alt: ""`).
+
+### Naprawione w schemacie
+
+- **DIAGRAM §10, niezmiennik 14** zapowiadał test „`product_id` bez
+  `price_type` → zapis ma `pending`, nie `completed`". Zmierzone: taki stan
+  daje **`completed`**, czyli pełny dostęp bez zapłaty — to samo zagrożenie B2,
+  tylko objaw opisany na opak (`do_enroll()` nadaje `pending`, gdy kurs JEST
+  sprzedawalny). Smoke mierzy teraz dwie sceny: zła kolejność rozdaje kurs za
+  darmo, nasza nie tworzy zapisu wcale.
+- **Cztery pułapki z §13 miały puste dowody** mimo deklaracji w dokumencie
+  (11 — odnośnik pozycji, 8 — wiszące zamówienia, 3 — Tutor Pro,
+  14 — `is_tutor_order()`). Wszystkie zamknięte.
+
+### Dowody
+
+`npm run check` **kod 0** (strażnicy **35/35**, testy 83/83, lint, tsc, build,
+7 smoke'ów prototypu), audyt mutacyjny **222**, dane Pluginu 1 nietknięte
+(proza **73/73 co do znaku**, kopia w Tutorze **0 różnic**).
+
+Testy negatywne, każdy trafia tylko w swoje: zdjęty hak Tutora → 9 z 33;
+wyłączony mail Woo o zwrocie → 1 z 33; zdjęty filtr odnośnika → 2 z 35;
+mutacja nazwy bloku kasy → 1 z 5; udawany Tutor Pro → kontrola kod 1;
+zamówienie kursu w `processing` → kontrola kod 1.
+
+### Pułapki zapisane, żeby nie wróciły
+
+`tutor()->wc` NIE ISTNIEJE, więc pierwszy test negatywny nic nie wyłączył
+i smoke przechodził — ślepota testu wyglądająca jak dowód.
+`waitForSelector(".wc-block-cart-items__row")` trafia w SZKIELET ładowania
+koszyka, nie w treść. Test negatywny wiszącego zamówienia nie zadziałał,
+dopóki statusu nie ustawiono prosto w tabeli HPOS — bo mechanizm z P3b domknął
+zamówienie w tym samym żądaniu. `echo $?` po potoku z `grep` czyta kod GREPA.
+
 ## [0.51.0] — 2026-08-29
 
 **Naprawa pięciu błędów z testu ręcznego właściciela — i klasy, którą one
