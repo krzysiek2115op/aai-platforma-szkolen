@@ -242,3 +242,69 @@ linki do naszych stron, klucz resetu w mailu 1, `/szkolenia/moje/` w mailu 2).
 - Skasowane: zamówienie kontrolne **1627** (dowód na `wp_delete_post`).
 - Zostawione: **dwie sesje koszyka gościa** z produktami (pomiar BLAD-023),
   wygasną same; 147 zamówień i konta — nietknięte, jak prosił właściciel.
+
+---
+
+# 6. NAPRAWY N1–N6 — ZROBIONE (2026-08-29, wersja 0.51.0)
+
+Wszystkie pięć klas przeszukane, sześć etapów wykonanych, każdy zamknięty
+osobnym commitem dopiero po weryfikacji uruchomieniowej. Pełny rozpis:
+CHANGELOG 0.51.0. Rejestr: BLAD-023…026 rozliczone, dopisane **BLAD-027**
+(pole widoczne klientowi było niczyje) i **BLAD-028** (pomiar oparty na
+cudzym tekście umiera po zmianie języka).
+
+| etap | co naprawione | dowód |
+|---|---|---|
+| N1 | opis i nazwa produktu z `courses.short_desc` / `title`, oba przez `wp_slash()`; kontrola widzi rozjazd | smoke wp-produkty **84** |
+| N2 | w koszyku zostaje jeden nasz kurs, cudze produkty nietknięte; „już w koszyku" to `notice`, nie `error` | smoke wp-zakup **38** |
+| N3 | `postaw.sh` ustawia pl_PL i weryfikuje artefaktem; nowy `smoke-wp-jezyk` | smoke wp-jezyk **24** |
+| N4 | jeden nadawca poczty — tylko wartość domyślna WordPressa | smoke wp-maile **46** |
+| N5 | sprzątanie przez `$order->delete()`, liczenie jawną listą statusów | test negatywny: „przed 195, po 202" |
+| N6 | typ wpisu pytany u Tutora, polityka prywatności wskazuje stronę motywu | kontrola kod 1 → 0 |
+
+## 6.1 Co znalazł dopiero SWEEP (nie etapy)
+
+**`smoke-wp-motyw` zamykał sklep za sobą.** Otwierał sprzedaż na czas pomiaru
+koszyka, a w `finally` robił `delete_option()` — czyli zamykał ją niezależnie
+od stanu zastanego. Do P4 bez znaczenia (sprzedaż i tak była zamknięta), po P4
+mylące: po przebiegu bramek wyglądu strona kursu przestaje pokazywać przycisk
+zakupu i wygląda to jak awaria. Trafiłem na to, gdy krzyżowy pomiar ścieżki
+klienta padł na braku przycisku. **„Przywróć stan" to co innego niż „skasuj
+ustawienie".**
+
+## 6.2 Krzyżowa weryfikacja N1×N2×N3 na jednym ekranie
+
+Ścieżka właściciela z testu ręcznego (klik Claude → klik GitHub), zmierzona
+w przeglądarce po naprawach:
+
+```
+opis kursu w kasie : jest („GitHub wytłumaczony po ludzku…")
+„cudza edycja"     : brak
+kursów w kasie     : 1  (349,00 zł — dokładnie tyle, co obiecał przycisk)
+angielskie frazy   : 0
+```
+
+## 6.3 Stan dowodów i środowiska na koniec
+
+`npm run check` **kod 0** (strażnicy 35/35, testy 83/83, lint, tsc, build,
+7 smoke'ów prototypu), audyt mutacyjny **217** (215 złapanych, 0 przeoczonych,
+0 martwych), smoke'i WP: motyw **90** · kreator 96 · produkty 84 · front 84 ·
+maile 46 · tutor 44 · zakup 38 · lekcja 36 · dane 30 · język 24 · płatności 23
+· panel 54; `wp:sprawdz` 73/73 co do znaku, `wp:tutor` 0 różnic, `postaw.sh`
+kod 0, `aai-platnosci sprawdz` kod 0.
+
+Środowisko `:8892`: **1 zamówienie** (prawdziwy zakup właściciela #1625 —
+materiał dowodowy), 2 produkty, 2 powiązania, 9 dostaw, 3 konta, **sprzedaż
+OTWARTA**. Konto `klient-test` ma **0 zamówień** — było 146.
+
+## 6.4 Zostaje do decyzji właściciela
+
+- **Regulamin** — kasa mówi „wyrażasz zgodę na nasze Warunki i zasady",
+  a strony nie ma (`woocommerce_terms_page_id` puste). Polityka prywatności
+  jest już podpięta i klikalna.
+- **Gwarancja zwrotu 30 dni** obiecywana w katalogu, przy zwrotach
+  zaplanowanych dopiero na P5.
+- **Okładka produktu w kasie** — dziś szary zastępnik. Nasze okładki to pliki
+  SVG we wtyczce, a WordPress domyślnie nie przyjmuje SVG do biblioteki
+  mediów; do rozstrzygnięcia: zostawić, renderować PNG przy synchronizacji,
+  albo dopuścić SVG.
