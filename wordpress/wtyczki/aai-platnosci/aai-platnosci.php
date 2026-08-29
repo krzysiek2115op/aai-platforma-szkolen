@@ -77,10 +77,17 @@ register_activation_hook(
 		// produkty zsynchronizowane przy rozbrojonym szwie.
 		// Awaria nie może zablokować aktywacji: błąd idzie do opcji.
 		try {
-			$zmiany = Aai_Platnosci_Ustawienia::napraw();
-			if ( array() !== $zmiany ) {
-				Aai_Platnosci_Komunikaty::zapisz( 'przy aktywacji (ustawienia): ' . implode( '; ', $zmiany ) );
-			}
+			/*
+			 * UDANA NAPRAWA NIE JEST BŁĘDEM. Pierwsza wersja zapisywała
+			 * listę zmian do kanału komunikatów — a ten kanał czyta
+			 * kontrola i traktuje jego zawartość jako rozjazd. Skutek
+			 * wyszedł dopiero przy P4, gdy doszło nowe ustawienie:
+			 * zwykła aktywacja wtyczki zostawiała `wp aai-platnosci
+			 * sprawdz` na czerwono z komunikatem opisującym rzecz, która
+			 * się UDAŁA. Zmiany widać w `sync --napraw`, stan widać
+			 * w kontroli; do kanału błędów idzie wyłącznie awaria.
+			 */
+			Aai_Platnosci_Ustawienia::napraw();
 		} catch ( Throwable $e ) {
 			Aai_Platnosci_Komunikaty::zapisz( $e->getMessage() );
 		}

@@ -404,14 +404,29 @@ if (!existsSync(USTAWIENIA)) {
        istnienie. Tutor tworzy zapis przy składaniu zamówienia i nigdy go nie
        kasuje — anulowanie tylko przestawia status. Pytanie o istnienie
        zostawiało klienta z anulowanym zamówieniem bez przycisku zakupu
-       NA ZAWSZE (zmierzone). */
-    const startK = c.indexOf("function stan_klienta(");
-    if (startK >= 0) {
-      const dalejK = c.indexOf("function ", startK + 9);
-      const blokK = c.slice(startK, dalejK < 0 ? c.length : dalejK);
-      if (!/get_post_status\s*\(/.test(blokK) || !/in_array\s*\(/.test(blokK)) {
+       NA ZAWSZE (zmierzone).
+
+       Wzorzec celuje w DECYZJĘ, nie w nazwę funkcji (pierwsza wersja pytała
+       o `stan_klienta(` i refactor wynoszący logikę do `stan_posiadania()`
+       zapalił ją mimo zachowanej gwarancji — czwarty nawrót klasy wzorca na
+       nazwę: 0.29.0, 0.44.0, 0.47.0, c6c9c97). Szukamy więc KAŻDEGO miejsca,
+       w którym zapada rozstrzygnięcie „w toku" (`return self::W_TOKU` albo
+       napis przycisku), i wymagamy, żeby funkcja podejmująca je na podstawie
+       zapisu Tutora czytała jego STATUS (`get_post_status` + lista statusów
+       trwających w `in_array`). */
+    const decyzjeWToku = [...c.matchAll(/return\s+self::W_TOKU\s*;/g)];
+    if (decyzjeWToku.length === 0 && !c.includes("Zamówienie w toku")) {
+      bledy.push(
+        `${cta}: nie widzę stanu „zamówienie w toku" (ani stałej W_TOKU, ani napisu). Bez niego klient czekający na przelew widzi zachętę do ponownego zakupu.`
+      );
+    }
+    for (const m of decyzjeWToku) {
+      const startF = c.lastIndexOf("function ", m.index);
+      const dalejF = c.indexOf("\n\tpublic", m.index) >= 0 ? c.indexOf("\n\tpublic", m.index) : c.length;
+      const blokF = c.slice(startF, Math.max(m.index, dalejF));
+      if (!/get_post_status\s*\(/.test(blokF) || !/in_array\s*\([^)]*ZAMOWIENIE_TRWA/.test(blokF)) {
         bledy.push(
-          `${cta}: stan „zamówienie w toku" nie sprawdza STATUSU zapisu. Zapis Tutora zostaje po anulowaniu i zwrocie, więc pytanie o samo jego istnienie odbiera takiemu klientowi przycisk zakupu bezpowrotnie.`
+          `${cta}: rozstrzygnięcie „zamówienie w toku" zapada bez sprawdzenia STATUSU zapisu (get_post_status + in_array po liście statusów trwających). Zapis Tutora zostaje po anulowaniu i zwrocie, więc pytanie o samo jego istnienie odbiera takiemu klientowi przycisk zakupu bezpowrotnie.`
         );
       }
     }

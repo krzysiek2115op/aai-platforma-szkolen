@@ -336,6 +336,18 @@ try {
   php(`update_option( '${OPCJA_SPRZEDAZ}', '${sprzedazPrzed}' ); echo 'ok';`);
   if (zamowienia.length > 0) {
     php(`foreach ( array( ${zamowienia.join(", ")} ) as $id ) { wp_delete_post( $id, true ); } echo 'ok';`);
+    /*
+     * DZIENNIK DOSTAW TEŻ JEST NASZYM ŚLADEM (P4). Zamówienia smoke'a
+     * przechodzą przez completed, więc warstwa maili odnotowuje im
+     * `dostep` i `mail_kursu`. Wiersz po skasowanym zamówieniu to śmieć,
+     * a wiersz z pustym wynikiem zapala kontrolę — czyli smoke zostawiał
+     * czerwoną instalację (ta sama klasa co produkty-sieroty ze sweepu
+     * P2: bramki mierzyłyby własne śmieci).
+     */
+    php(
+      `global $wpdb; $wpdb->query( "DELETE FROM " . Aai_Platnosci_Tabele::tabela( 'dostawy' ) .` +
+        ` " WHERE identyfikator IN ( ${zamowienia.join(", ")} )" ); echo 'ok';`
+    );
   }
   kasujZapisy();
   php(

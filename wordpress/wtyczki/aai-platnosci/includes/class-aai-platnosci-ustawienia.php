@@ -10,13 +10,18 @@
  * (ekran, deaktywacja Woo cofająca `monetize_by` na `free`) nie odcięła
  * klientom dostępu do kupionych kursów.
  *
- * SPRZEDAŻ JEST ZAMKNIĘTA DO P4 (rozstrzygnięcie 1 planu P3a): silnik
- * stoi na `wc`, ale filtr `woocommerce_add_to_cart_validation` odrzuca
- * produkty kursów, dopóki flagi otwarcia nie ustawi krok P4. Bez tego
- * między P3a a P4 istniałoby okno „klient płaci i nie dostaje nic" —
- * zakup technicznie działa, a dostarczanie (maile, dostawy) jeszcze nie
- * istnieje. Produkty ZOSTAJĄ `publish` — zejście na `draft` łamałoby
- * niezmiennik 9 i zapalało kontrolę.
+ * SPRZEDAŻ OTWIERA CZŁOWIEK, NIE AKTUALIZACJA (P4). Silnik stoi na `wc`,
+ * a filtr `woocommerce_add_to_cart_validation` odrzuca produkty kursów,
+ * dopóki flagi nie ustawi `wp aai-platnosci sprzedaz otworz`. Do kroku P4
+ * bronił on okna „klient płaci i nie dostaje nic" (zakup działał, a maile
+ * i dostawy jeszcze nie istniały); od P4 broni czegoś innego: kod bywa
+ * gotowy wcześniej niż regulamin, zgoda na natychmiastowe dostarczenie
+ * treści cyfrowej i prawdziwa bramka płatności. Produkty ZOSTAJĄ `publish`
+ * — zejście na `draft` łamałoby niezmiennik 9 i zapalało kontrolę.
+ *
+ * Ten sam filtr odmawia DRUGIEGO zakupu kursu, który klient już ma (B10):
+ * `do_enroll()` wychodzi wtedy przed zapisem meta i zamówienie nigdy się
+ * nie domyka — pieniądze wzięte, dostępu nic nie przybywa.
  *
  * Filtr pokrywa cztery ścieżki KLIENTA (zmierzone w kodzie Woo 11.0.1,
  * KROK-P3A.md §3): form handler (`?add-to-cart=`), AJAX, Store API kasy
@@ -235,20 +240,71 @@ final class Aai_Platnosci_Ustawienia {
 			// odmowy, może najwyżej dołożyć własną.
 			return false;
 		}
-		if ( self::sprzedaz_otwarta() ) {
-			return true;
-		}
 		if ( ! Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $product_id ) ) {
-			// Nie nasz produkt — blokada dotyczy WYŁĄCZNIE kursów.
+			// Nie nasz produkt — obie odmowy niżej dotyczą WYŁĄCZNIE kursów.
 			return true;
 		}
-		if ( function_exists( 'wc_add_notice' ) ) {
-			wc_add_notice(
-				__( 'Sprzedaż kursów jeszcze nie ruszyła — przycisk zakupu pojawi się na stronie kursu, gdy wystartujemy.', 'aai-platnosci' ),
-				'error'
-			);
+		if ( ! self::sprzedaz_otwarta() ) {
+			self::odmow( __( 'Sprzedaż kursów jeszcze nie ruszyła — przycisk zakupu pojawi się na stronie kursu, gdy wystartujemy.', 'aai-platnosci' ) );
+			return false;
 		}
-		return false;
+		return self::wolno_kupic_ten_kurs( (int) $product_id );
+	}
+
+	/**
+	 * Odmowa drugiego zakupu kursu, który ten człowiek już ma (B10).
+	 *
+	 * DLACZEGO TO NIE JEST OZDOBNIK. `EnrollmentModel::do_enroll()` wychodzi
+	 * PRZED zapisem meta na zamówieniu, gdy kursant jest już zapisany —
+	 * drugie zamówienie tego samego kursu wzięłoby pieniądze i **nigdy się
+	 * nie domknęło**. Przycisk na stronie kursu pokazuje wtedy „Przejdź do
+	 * kursu", ale adres kasy jest zwykłym odnośnikiem GET: da się go
+	 * zapamiętać, wysłać znajomemu albo mieć w zakładkach.
+	 *
+	 * Warunek pytamy TĄ SAMĄ metodą co przycisk (`stan_posiadania`) —
+	 * dwie kopie tej decyzji rozjechałyby się przy pierwszej zmianie.
+	 *
+	 * Gościa nie pytamy: nie wiemy, kim jest. Powracającego klienta
+	 * przechwytuje blok logowania w kasie (B16).
+	 *
+	 * @param int $product_id Id produktu kursu.
+	 */
+	private static function wolno_kupic_ten_kurs( int $product_id ): bool {
+		if ( ! is_user_logged_in() || ! class_exists( 'Aai_Platnosci_Cta' ) ) {
+			return true;
+		}
+		$uuid = Aai_Platnosci_Zapis::kurs_produktu( $product_id );
+		if ( null === $uuid ) {
+			return true;
+		}
+		$tutor = Aai_Platnosci_Zapis::kurs_tutora( $uuid );
+		if ( ! is_int( $tutor ) || $tutor <= 0 ) {
+			// Brak kopii w Tutorze albo niejednoznaczność (-1): nie mamy
+			// czym rozstrzygnąć, a odmowa zakupu „na wszelki wypadek"
+			// zabrałaby sprzedaż z powodu naszego rozjazdu. Kontrola
+			// i tak o nim mówi.
+			return true;
+		}
+		switch ( Aai_Platnosci_Cta::stan_posiadania( $tutor, get_current_user_id() ) ) {
+			case Aai_Platnosci_Cta::MA_KURS:
+				self::odmow( __( 'Ten kurs już masz — znajdziesz go na stronie „Moje kursy". Drugi zakup nic by nie dodał.', 'aai-platnosci' ) );
+				return false;
+			case Aai_Platnosci_Cta::W_TOKU:
+				self::odmow( __( 'Zamówienie na ten kurs już czeka na płatność — dostęp pojawi się, gdy wpłata dojdzie. Nie trzeba zamawiać drugi raz.', 'aai-platnosci' ) );
+				return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Komunikat odmowy dla klienta — tylko tam, gdzie WooCommerce je czyta.
+	 *
+	 * @param string $tresc Treść.
+	 */
+	private static function odmow( string $tresc ): void {
+		if ( function_exists( 'wc_add_notice' ) ) {
+			wc_add_notice( $tresc, 'error' );
+		}
 	}
 
 	/**
@@ -300,6 +356,13 @@ final class Aai_Platnosci_Ustawienia {
 			$id = (int) get_option( $klucz, 0 );
 			if ( Aai_Platnosci_Zapis::dopisz_klase_bloku( $id, $klasa_bloku, self::KLASA_CIEMNYCH_POL ) ) {
 				$zmiany[] = sprintf( 'strona %d: blok %s dostał %s (ciemne pola formularza z arkusza samego Woo)', $id, $klasa_bloku, self::KLASA_CIEMNYCH_POL );
+			}
+		}
+
+		foreach ( array_keys( self::BLOKI_CIEMNYCH_POL ) as $klucz ) {
+			$id = (int) get_option( $klucz, 0 );
+			if ( Aai_Platnosci_Zapis::dopisz_blok_komunikatow( $id ) ) {
+				$zmiany[] = sprintf( 'strona %d: dopisany blok komunikatów sklepu (bez niego odmowy koszyka są nieme — klient widzi pusty koszyk bez słowa)', $id );
 			}
 		}
 
@@ -454,6 +517,14 @@ final class Aai_Platnosci_Ustawienia {
 			}
 		}
 
+		foreach ( array_keys( self::BLOKI_CIEMNYCH_POL ) as $klucz ) {
+			$id    = (int) get_option( $klucz, 0 );
+			$tekst = $id > 0 ? (string) get_post_field( 'post_content', $id ) : '';
+			if ( '' !== $tekst && ! str_contains( $tekst, 'wp:woocommerce/store-notices' ) ) {
+				$r[] = sprintf( 'strona %d bez bloku komunikatów sklepu — odmowy koszyka (drugi zakup, zamknięta sprzedaż) będą NIEME. Napraw: wp aai-platnosci sync --napraw', $id );
+			}
+		}
+
 		/*
 		 * Asercja DANYCH z B12: opcja `enable_guest_course_cart` niczego
 		 * nie chroni (gościnna gałąź zapisu Tutora pyta wyłącznie o brak
@@ -515,7 +586,7 @@ final class Aai_Platnosci_Ustawienia {
 	 */
 	public static function stan_sprzedazy(): string {
 		return self::sprzedaz_otwarta()
-			? 'SPRZEDAŻ OTWARTA — blokada koszyka zdjęta (stan docelowy od P4).'
-			: 'SPRZEDAŻ ZAMKNIĘTA (do P4) — produkty kursów nie wchodzą do koszyka; to stan projektowany kroku P3a.';
+			? 'SPRZEDAŻ OTWARTA — kursy wchodzą do koszyka, a klient dostaje konto i dwa maile.'
+			: 'SPRZEDAŻ ZAMKNIĘTA — produkty kursów nie wchodzą do koszyka. Otwiera: wp aai-platnosci sprzedaz otworz.';
 	}
 }

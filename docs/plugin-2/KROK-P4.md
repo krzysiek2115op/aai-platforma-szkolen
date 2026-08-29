@@ -165,3 +165,74 @@ Strona `/my-account/lost-password/`, do której prowadzi mail 1, mówi po
 `en_US`. To dotyczy wszystkich napisów WooCommerce i Tutora, więc jest
 decyzją o CAŁEJ witrynie (język WordPressa + tłumaczenia), nie o naszym
 mailu. Do listy „przed pierwszym klientem", nie do tego kroku.
+
+## 6. Etapy E3–E4 — dziennik, otwarcie sprzedaży, B10 (2026-08-29)
+
+**E3.** `wp aai-platnosci dostawy [--ponow=zdarzenie-ukosnik-id]` pokazuje
+dziennik i ponawia wysyłkę (jedyna droga, którą mail wychodzi drugi raz —
+znacznik broni przed duplikatem z cudzej rekurencji, nie przed decyzją
+właściciela). `sprawdz` dostał `bledy_dostaw()`: wiadomość z wynikiem innym
+niż `wyslano` **albo z pustym** (żądanie padło między znacznikiem a wysyłką)
+= kod 1 z komendą naprawczą; do tego opłacone zamówienie z kursem bez wiersza
+`dostep` (okno 30 dni, sufit 100 zamówień — nazwane wprost). Porażka wysyłki
+idzie też do kokpitu pod własnym kluczem `mail:…` — udana ponowka zdejmuje
+DOKŁADNIE swój komunikat, a rada w kokpicie zależy od rodzaju błędu (rada
+„kliknij Zapisz kurs" przy niedoręczonym mailu byłaby nieskuteczna).
+
+**E4.** `wp aai-platnosci sprzedaz otworz|zamknij` — sprzedaży nie otwiera
+aktywacja ani aktualizacja; komenda ostrzega, gdy nie ma żadnej włączonej
+bramki. Dwie asercje `smoke-wp-front` (przycisk oferty, `availability`)
+czytają stan sprzedaży **z instalacji** i mają oczekiwania dla OBU stanów —
+smoke zielony przy zamkniętej i przy otwartej (84/84 × 2).
+
+**B10 zmierzone prawdziwą ścieżką klienta** (HTTP `?add-to-cart=` z ciastkiem
+zalogowanego; `WC()->cart->add_to_cart()` w Woo 11 **w ogóle nie woła**
+`woocommerce_add_to_cart_validation` — zero trafień w `class-wc-cart.php`,
+filtr żyje w form handlerze, AJAX-ie i wczytaniu sesji, więc pierwszy pomiar
+przez API koszyka był atrapą):
+
+| Stan zapisu Tutora | Pozycji po `?add-to-cart` | Komunikat |
+|---|---|---|
+| `completed` | **0** | „Ten kurs już masz — znajdziesz go na stronie »Moje kursy«…" |
+| `on-hold` | **0** | „Zamówienie na ten kurs już czeka na płatność…" |
+| brak zapisu | **1** | — (odmowa trafia tylko w swój przypadek) |
+
+Decyzję „czy ten człowiek ma ten kurs" podejmuje **jedna metoda**
+(`Aai_Platnosci_Cta::stan_posiadania()`) — pyta jej przycisk na stronie ORAZ
+blokada koszyka; dwie kopie tego warunku rozjechałyby się przy pierwszej
+zmianie.
+
+### Trzy znaleziska E3–E4 (własne pomiary, naprawione przed commitem)
+
+1. **Zagnieżdżony `shutdown` gubił mail 2.** Ręczna zmiana statusu na
+   `processing` domykana jest odroczeniem na `shutdown` (P3b); to domknięcie
+   odpala `tutor_after_enrolled` — a nasze zgłoszenie wysyłki trafiało do
+   akcji, która WŁAŚNIE trwa, i WordPress już go nie wołał. Zmierzone:
+   znacznik `mail_kursu` z pustym wynikiem, w skrzynce cztery maile Woo
+   i ani jednego naszego — klient miał dostęp i nie wiedział o tym.
+   Naprawa: `doing_action( 'shutdown' )` → wysyłka od razu. Dowód
+   różnicowy na świeżym zamówieniu: `mail_kursu = wyslano`, mail w skrzynce.
+2. **Aktywacja meldowała udaną naprawę jako błąd.** Lista zmian z `napraw()`
+   szła do kanału komunikatów, który kontrola traktuje jako rozjazd — zwykła
+   aktywacja zostawiała `sprawdz` na czerwono z opisem rzeczy, która się
+   UDAŁA. Zmiany widać w `sync --napraw`, stan w kontroli; do kanału błędów
+   idzie wyłącznie awaria.
+3. **Smoke zakupu zostawiał dziennik dostaw.** Zamówienia smoke'a przechodzą
+   przez `completed`, więc dostają wiersze `dostep`/`mail_kursu`; sprzątanie
+   kasowało zamówienia, a wiersze zostawały — kolejne bramki mierzyłyby
+   własne śmieci (ta sama klasa co produkty-sieroty ze sweepu P2). Sprząta
+   też dziennik.
+
+### Odmowy koszyka były NIEME — naprawa w `napraw()`
+
+Strony koszyka i kasy z tej instalacji **nie mają** bloku
+`woocommerce/store-notices`, a motyw klasyczny renderuje samą treść strony —
+klasyczne komunikaty WooCommerce nie miały się gdzie wydrukować. Zmierzone:
+klient z kursem po `?add-to-cart` lądował na pustym koszyku bez słowa.
+`napraw()` **dopisuje** blok na początek treści obu stron (prepend, niczego
+nie podmienia — lekcja rozbitych klas z P3a), kontrola zgłasza brak (kod 1),
+druga naprawa nic nie robi. Po naprawie ten sam scenariusz pokazuje pełne
+zdanie odmowy.
+
+Do tego test negatywny kontroli bramek: `bacs` wyłączony + sprzedaż otwarta
+→ kod 1 z komunikatem; przywrócenie → kod 0.

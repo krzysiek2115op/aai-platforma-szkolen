@@ -173,6 +173,238 @@ final class Aai_Platnosci_Cli {
 	}
 
 	/**
+	 * Otwiera albo zamyka sprzedaż kursów.
+	 *
+	 * Sprzedaży NIE otwiera aktywacja wtyczki i nie otworzy jej żadna
+	 * aktualizacja — to jest świadome działanie właściciela. Powód nie
+	 * jest techniczny: kod bywa gotowy wcześniej niż regulamin, zgoda na
+	 * natychmiastowe dostarczenie treści cyfrowej i prawdziwa bramka
+	 * płatności, a „zielone dowody" nie znaczą „można sprzedawać ludziom".
+	 *
+	 * ## OPTIONS
+	 *
+	 * [<co>]
+	 * : `otworz` albo `zamknij`. Bez argumentu: pokazuje stan.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp aai-platnosci sprzedaz
+	 *     wp aai-platnosci sprzedaz otworz
+	 *
+	 * @when after_wp_load
+	 *
+	 * @param array $args Argumenty pozycyjne.
+	 */
+	public function sprzedaz( array $args = array() ): void {
+		$co = (string) ( $args[0] ?? '' );
+		if ( '' === $co ) {
+			WP_CLI::log( Aai_Platnosci_Ustawienia::stan_sprzedazy() );
+			return;
+		}
+		if ( ! in_array( $co, array( 'otworz', 'zamknij' ), true ) ) {
+			WP_CLI::error( sprintf( 'nie wiem, co znaczy „%s" — użyj `otworz` albo `zamknij`.', $co ) );
+		}
+
+		$otwiera = 'otworz' === $co;
+		update_option(
+			Aai_Platnosci_Ustawienia::OPCJA_SPRZEDAZ,
+			$otwiera ? Aai_Platnosci_Ustawienia::SPRZEDAZ_OTWARTA : ''
+		);
+
+		if ( $otwiera && 0 === self::wlaczonych_bramek() ) {
+			// Ostrzeżenie, nie odmowa: bramkę wybiera właściciel i może ją
+			// włączyć minutę później. Ale milczeć tu nie wolno — zmierzone
+			// przy E0: bez bramki kasa oddaje 400, więc przycisk prowadzi
+			// do kasy, która odmawia każdemu.
+			WP_CLI::warning( 'sprzedaż otwarta, ale w WooCommerce nie ma ani jednej włączonej bramki płatności — kasa odmówi każdemu klientowi (400).' );
+		}
+		WP_CLI::success( Aai_Platnosci_Ustawienia::stan_sprzedazy() );
+	}
+
+	/**
+	 * Ile bramek płatności jest włączonych w WooCommerce.
+	 */
+	private static function wlaczonych_bramek(): int {
+		if ( ! function_exists( 'WC' ) || ! WC()->payment_gateways ) {
+			return 0;
+		}
+		$ile = 0;
+		foreach ( WC()->payment_gateways->payment_gateways() as $bramka ) {
+			if ( 'yes' === $bramka->enabled ) {
+				++$ile;
+			}
+		}
+		return $ile;
+	}
+
+	/**
+	 * Dziennik dostarczenia: co klient dostał i czy wiadomość wyszła.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--ponow=<zdarzenie-ukosnik-id>]
+	 * : Wyślij wiadomość jeszcze raz, np. `mail_konta/41`. Jedyna droga,
+	 * którą mail wychodzi drugi raz — znacznik broni przed duplikatem
+	 * z cudzej rekurencji, nie przed decyzją właściciela.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp aai-platnosci dostawy
+	 *     wp aai-platnosci dostawy --ponow=mail_konta/41
+	 *
+	 * @when after_wp_load
+	 *
+	 * @param array $args      Argumenty pozycyjne (nieużywane).
+	 * @param array $opcje     Opcje.
+	 */
+	public function dostawy( array $args = array(), array $opcje = array() ): void {
+		unset( $args );
+		if ( ! Aai_Platnosci_Tabele::istnieja() ) {
+			WP_CLI::error( 'brak tabel wtyczki — aktywuj ją ponownie.' );
+		}
+
+		$ponow = (string) ( $opcje['ponow'] ?? '' );
+		if ( '' !== $ponow ) {
+			$czesci = explode( '/', $ponow, 2 );
+			if ( 2 !== count( $czesci ) || '' === $czesci[0] || ! ctype_digit( $czesci[1] ) ) {
+				WP_CLI::error( 'oczekiwałem postaci `zdarzenie/id`, np. mail_konta/41.' );
+			}
+			$wynik = Aai_Platnosci_Maile::ponow( $czesci[0], (int) $czesci[1] );
+			if ( Aai_Platnosci_Maile::WYNIK_OK === $wynik ) {
+				WP_CLI::success( sprintf( 'wysłano ponownie: %s', $ponow ) );
+				return;
+			}
+			WP_CLI::error( sprintf( 'ponowna wysyłka %s nie powiodła się: %s', $ponow, $wynik ) );
+		}
+
+		global $wpdb;
+		$tabela = Aai_Platnosci_Tabele::tabela( 'dostawy' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		$wiersze = $wpdb->get_results( "SELECT * FROM {$tabela} ORDER BY id DESC LIMIT 200" );
+		if ( ! is_array( $wiersze ) || array() === $wiersze ) {
+			WP_CLI::log( 'dostawy: dziennik jest pusty — nikt jeszcze nic nie kupił.' );
+			return;
+		}
+		foreach ( $wiersze as $w ) {
+			WP_CLI::log(
+				sprintf(
+					'%s %s/%d %s [%s]',
+					self::czy_dostawa_w_porzadku( (string) $w->zdarzenie, (string) $w->wynik ) ? '  ok ' : 'BŁĄD',
+					$w->zdarzenie,
+					$w->identyfikator,
+					$w->created_at,
+					'' === $w->wynik ? 'brak potwierdzenia wysyłki' : $w->wynik
+				)
+			);
+		}
+	}
+
+	/**
+	 * Czy wiersz dziennika opisuje dostawę, która doszła do skutku.
+	 *
+	 * PUSTA wartość NIE JEST w porządku: znacznik zapisujemy przed
+	 * wysyłką (musi być atomowy), więc pusty `wynik` znaczy „żądanie
+	 * padło między znacznikiem a wysyłką" — czyli klient zapłacił i nie
+	 * dostał wiadomości. To jest dokładnie ten stan, o którym kontrola
+	 * ma krzyczeć.
+	 *
+	 * @param string $zdarzenie Zdarzenie.
+	 * @param string $wynik     Zapisany rezultat.
+	 */
+	private static function czy_dostawa_w_porzadku( string $zdarzenie, string $wynik ): bool {
+		if ( Aai_Platnosci_Maile::ZDARZENIE_DOSTEP === $zdarzenie ) {
+			return '' !== $wynik;
+		}
+		return Aai_Platnosci_Maile::WYNIK_OK === $wynik;
+	}
+
+	/**
+	 * Błędy dziennika dostaw — dla kontroli.
+	 *
+	 * Dwa pytania, każde o coś innego: (1) czy któraś wiadomość nie
+	 * wyszła; (2) czy jest opłacone zamówienie z kursem, przy którym
+	 * dostępu w ogóle nie odnotowaliśmy. Drugie pytanie jest ważniejsze —
+	 * mówi o kliencie, który zapłacił i nic nie dostał.
+	 *
+	 * @return string[]
+	 */
+	private static function bledy_dostaw(): array {
+		if ( ! Aai_Platnosci_Tabele::istnieja() ) {
+			return array();
+		}
+		global $wpdb;
+		$bledy  = array();
+		$tabela = Aai_Platnosci_Tabele::tabela( 'dostawy' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		$wiersze = $wpdb->get_results( "SELECT zdarzenie, identyfikator, wynik FROM {$tabela}" );
+		foreach ( (array) $wiersze as $w ) {
+			if ( self::czy_dostawa_w_porzadku( (string) $w->zdarzenie, (string) $w->wynik ) ) {
+				continue;
+			}
+			$bledy[] = sprintf(
+				'dostawa %s/%d NIE doszła do skutku (%s). Napraw: wp aai-platnosci dostawy --ponow=%s/%d',
+				$w->zdarzenie,
+				$w->identyfikator,
+				'' === $w->wynik ? 'brak potwierdzenia wysyłki — żądanie padło między znacznikiem a wysyłką' : $w->wynik,
+				$w->zdarzenie,
+				$w->identyfikator
+			);
+		}
+
+		if ( ! function_exists( 'wc_get_orders' ) ) {
+			return $bledy;
+		}
+		/*
+		 * OKNO 30 DNI I SUFIT 100 ZAMÓWIEŃ — powiedziane wprost, bo cichy
+		 * sufit czyta się jak „sprawdziłem wszystko". Starsze zamówienia
+		 * pomijamy świadomie: dostawa, której nie odnotowaliśmy pół roku
+		 * temu, i tak nie doczeka się już maila, a kontrola ma pokazywać
+		 * to, na co da się zareagować.
+		 */
+		$zamowienia = wc_get_orders(
+			array(
+				'status'       => array( 'completed' ),
+				'limit'        => 100,
+				'orderby'      => 'date',
+				'order'        => 'DESC',
+				'date_created' => '>' . ( time() - 30 * DAY_IN_SECONDS ),
+			)
+		);
+		foreach ( (array) $zamowienia as $order ) {
+			if ( ! $order instanceof WC_Order ) {
+				continue;
+			}
+			$ma_kurs = false;
+			foreach ( $order->get_items() as $pozycja ) {
+				if ( $pozycja instanceof WC_Order_Item_Product
+					&& Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $pozycja->get_product_id() ) ) {
+					$ma_kurs = true;
+					break;
+				}
+			}
+			if ( ! $ma_kurs ) {
+				continue;
+			}
+			$id = (int) $order->get_id();
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+			$jest = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT id FROM {$tabela} WHERE zdarzenie = %s AND identyfikator = %d",
+					Aai_Platnosci_Maile::ZDARZENIE_DOSTEP,
+					$id
+				)
+			);
+			if ( null === $jest ) {
+				$bledy[] = sprintf(
+					'zamówienie %d jest ZREALIZOWANE i niesie kurs, a dostępu nie odnotowaliśmy — klient mógł zapłacić i nic nie dostać. Sprawdź zapis w Tutorze, potem: wp aai-platnosci sync',
+					$id
+				);
+			}
+		}
+		return $bledy;
+	}
+
+	/**
 	 * Kontrola stanu szwu.
 	 *
 	 * ## EXAMPLES
@@ -307,9 +539,12 @@ final class Aai_Platnosci_Cli {
 				$w_trakcie[] = $info;
 			}
 		}
+		foreach ( self::bledy_dostaw() as $blad_dostawy ) {
+			$bledy[] = $blad_dostawy;
+		}
 		$blad_kopii = Aai_Platnosci_Komunikaty::ostatni();
 		if ( '' !== $blad_kopii ) {
-			$bledy[] = 'ostatnia kopia zgłosiła błąd: ' . $blad_kopii;
+			$bledy[] = 'ostatni błąd zgłoszony przez wtyczkę: ' . $blad_kopii;
 		}
 		foreach ( $w_trakcie as $info ) {
 			WP_CLI::log( 'sprawdz: ' . $info );

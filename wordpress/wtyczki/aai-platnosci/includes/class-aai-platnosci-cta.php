@@ -197,6 +197,12 @@ final class Aai_Platnosci_Cta {
 	private const ZAMOWIENIE_TRWA = array( 'pending', 'on-hold', 'processing' );
 
 	/**
+	 * Stany posiadania kursu przez konkretnego człowieka.
+	 */
+	public const MA_KURS = 'ma';
+	public const W_TOKU  = 'w_toku';
+
+	/**
 	 * Stan wynikający z tego, co ten klient już ma — albo `null`, gdy nie ma nic.
 	 *
 	 * @param int $kurs_tutora Id wpisu kursu w Tutorze.
@@ -204,13 +210,41 @@ final class Aai_Platnosci_Cta {
 	 * @return array{adres:string,napis:string}|null
 	 */
 	private static function stan_klienta( int $kurs_tutora, int $user_id ): ?array {
+		switch ( self::stan_posiadania( $kurs_tutora, $user_id ) ) {
+			case self::MA_KURS:
+				return array(
+					'adres' => Aai_Sklep_Moje::adres(),
+					'napis' => 'Przejdź do kursu',
+				);
+			case self::W_TOKU:
+				return array(
+					'adres' => Aai_Sklep_Moje::adres(),
+					'napis' => 'Zamówienie w toku',
+				);
+		}
+		return null;
+	}
+
+	/**
+	 * Co ten człowiek ma z tym kursem: nic, dostęp, albo trwające zamówienie.
+	 *
+	 * JEDNO ŹRÓDŁO TEJ DECYZJI (krok P4). Pyta o nią przycisk na stronie
+	 * ORAZ blokada koszyka — a dwie kopie tego samego warunku to zawsze
+	 * możliwy rozjazd: przycisk mówiłby „Przejdź do kursu", a koszyk
+	 * przyjmowałby zakup tego samego kursu drugi raz.
+	 *
+	 * @param int $kurs_tutora Id wpisu kursu w Tutorze.
+	 * @param int $user_id     Id człowieka.
+	 * @return string '' | self::MA_KURS | self::W_TOKU
+	 */
+	public static function stan_posiadania( int $kurs_tutora, int $user_id ): string {
+		if ( $kurs_tutora <= 0 || $user_id <= 0 || ! function_exists( 'tutor_utils' ) ) {
+			return '';
+		}
 		// Trzeci argument `true` = wyłącznie zapis UKOŃCZONY, czyli realny
 		// dostęp do materiału.
 		if ( tutor_utils()->is_enrolled( $kurs_tutora, $user_id, true ) ) {
-			return array(
-				'adres' => Aai_Sklep_Moje::adres(),
-				'napis' => 'Przejdź do kursu',
-			);
+			return self::MA_KURS;
 		}
 
 		/*
@@ -234,12 +268,9 @@ final class Aai_Platnosci_Cta {
 		if ( is_object( $zapis ) && isset( $zapis->ID ) ) {
 			$status = (string) get_post_status( (int) $zapis->ID );
 			if ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {
-				return array(
-					'adres' => Aai_Sklep_Moje::adres(),
-					'napis' => 'Zamówienie w toku',
-				);
+				return self::W_TOKU;
 			}
 		}
-		return null;
+		return '';
 	}
 }

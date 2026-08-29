@@ -114,7 +114,7 @@ final class Aai_Platnosci_Maile {
 			self::na_koniec_zadania(
 				'konto-' . $id,
 				static function () use ( $id ): void {
-					Aai_Platnosci_Zapis::dostawa_wynik( self::ZDARZENIE_KONTO, $id, self::wyslij_konto( $id ) );
+					self::zapisz_wynik( self::ZDARZENIE_KONTO, $id, self::wyslij_konto( $id ) );
 				}
 			);
 		} catch ( Throwable $e ) {
@@ -165,7 +165,7 @@ final class Aai_Platnosci_Maile {
 			self::na_koniec_zadania(
 				'kurs-' . $order_id,
 				static function () use ( $order_id ): void {
-					Aai_Platnosci_Zapis::dostawa_wynik( self::ZDARZENIE_KURS, $order_id, self::wyslij_kurs( $order_id ) );
+					self::zapisz_wynik( self::ZDARZENIE_KURS, $order_id, self::wyslij_kurs( $order_id ) );
 				}
 			);
 		} catch ( Throwable $e ) {
@@ -193,8 +193,42 @@ final class Aai_Platnosci_Maile {
 		} else {
 			return sprintf( 'zdarzenie „%s" nie jest mailem — nie ma czego ponawiać', $zdarzenie );
 		}
-		Aai_Platnosci_Zapis::dostawa_wynik( $zdarzenie, $identyfikator, $wynik );
+		self::zapisz_wynik( $zdarzenie, $identyfikator, $wynik );
 		return $wynik;
+	}
+
+	/**
+	 * Zapisuje wynik wysyłki i — przy porażce — mówi o niej w kokpicie.
+	 *
+	 * Sam wiersz w `dostawy` widzi kontrola i nikt więcej, a niedoręczony
+	 * link do hasła nie ma drugiego kanału (B8): klient siedzi z kontem,
+	 * do którego nie umie wejść, i nic tego nie pokazuje. Dlatego porażka
+	 * jedzie także na ekran właściciela.
+	 *
+	 * @param string $zdarzenie     Zdarzenie.
+	 * @param int    $identyfikator Identyfikator.
+	 * @param string $wynik         Rezultat wysyłki.
+	 */
+	private static function zapisz_wynik( string $zdarzenie, int $identyfikator, string $wynik ): void {
+		Aai_Platnosci_Zapis::dostawa_wynik( $zdarzenie, $identyfikator, $wynik );
+		$klucz = Aai_Platnosci_Komunikaty::KLUCZ_MAILA . $zdarzenie . '/' . $identyfikator;
+		if ( self::WYNIK_OK === $wynik ) {
+			// Udana wysyłka zdejmuje DOKŁADNIE swój komunikat — także
+			// wtedy, gdy poszła dopiero ponowieniem z wiersza poleceń.
+			Aai_Platnosci_Komunikaty::wyczysc( $klucz );
+			return;
+		}
+		Aai_Platnosci_Komunikaty::zapisz(
+			sprintf(
+				'wiadomość %s/%d NIE wyszła (%s) — klient jej nie dostał. Ponów: wp aai-platnosci dostawy --ponow=%s/%d',
+				$zdarzenie,
+				$identyfikator,
+				$wynik,
+				$zdarzenie,
+				$identyfikator
+			),
+			$klucz
+		);
 	}
 
 	/**
@@ -205,6 +239,30 @@ final class Aai_Platnosci_Maile {
 	 */
 	private static function na_koniec_zadania( string $klucz, callable $zadanie ): void {
 		if ( isset( self::$kolejka[ $klucz ] ) ) {
+			return;
+		}
+		/*
+		 * JESTEŚMY JUŻ W `shutdown` — wysyłamy OD RAZU.
+		 *
+		 * ZMIERZONE: zamówienie przestawione ręcznie na `processing`
+		 * domykamy odroczeniem na `shutdown` (P3b), a to domknięcie
+		 * przestawia zapis Tutora i odpala `tutor_after_enrolled` —
+		 * czyli nasze zgłoszenie trafiało do akcji, która WŁAŚNIE trwa.
+		 * WordPress nie woła callbacku dopisanego do wykonywanej akcji
+		 * w tym samym priorytecie: znacznik `mail_kursu/1312` zostawał
+		 * z PUSTYM wynikiem, w skrzynce były cztery maile WooCommerce
+		 * i ani jednego naszego. Klient miał dostęp i nie wiedział o tym.
+		 *
+		 * Bez pytania o `doing_action` ta ścieżka milczałaby zawsze —
+		 * i milczałaby dokładnie tam, gdzie P3b dokładało siatkę
+		 * bezpieczeństwa na ręczną zmianę statusu w panelu.
+		 */
+		if ( doing_action( 'shutdown' ) ) {
+			try {
+				$zadanie();
+			} catch ( Throwable $e ) {
+				Aai_Platnosci_Komunikaty::zapisz( 'przy wysyłce (' . $klucz . '): ' . $e->getMessage() );
+			}
 			return;
 		}
 		self::$kolejka[ $klucz ] = $zadanie;

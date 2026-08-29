@@ -334,6 +334,42 @@ final class Aai_Platnosci_Zapis {
 		);
 	}
 
+	/**
+	 * Dopisuje blok komunikatów sklepu na POCZĄTEK treści strony.
+	 *
+	 * DLACZEGO (P4, zmierzone): strony koszyka i kasy z tej instalacji nie
+	 * mają bloku `woocommerce/store-notices`, a motyw jest klasyczny —
+	 * renderuje samą treść strony, więc klasyczne komunikaty WooCommerce
+	 * (`wc_add_notice`) nie miały się GDZIE wydrukować. Skutek: każda
+	 * nasza odmowa (drugi zakup posiadanego kursu, sprzedaż zamknięta)
+	 * była NIEMA — klient lądował na pustym koszyku bez słowa wyjaśnienia.
+	 * Z blokiem ten sam scenariusz pokazuje pełne zdanie odmowy.
+	 *
+	 * DOPISUJEMY, NICZEGO NIE PODMIENIAMY: lekcja P3a (rozbite nazwy klas
+	 * przy `str_replace` w cudzej treści) — prepend całego bloku nie ma
+	 * jak uszkodzić istniejącej treści. Idempotentne po obecności bloku.
+	 *
+	 * @param int $id Id strony.
+	 * @return bool Czy coś się zmieniło.
+	 */
+	public static function dopisz_blok_komunikatow( int $id ): bool {
+		if ( $id <= 0 ) {
+			return false;
+		}
+		$tresc = (string) get_post_field( 'post_content', $id );
+		if ( '' === $tresc || str_contains( $tresc, 'wp:woocommerce/store-notices' ) ) {
+			return false;
+		}
+		$w = wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_content' => "<!-- wp:woocommerce/store-notices /-->\n" . $tresc,
+			),
+			true
+		);
+		return ! is_wp_error( $w ) && $w > 0;
+	}
+
 	public static function zamknij_zamowienie( int $order_id ): bool {
 		if ( $order_id <= 0 || ! function_exists( 'wc_get_order' ) ) {
 			return false;
