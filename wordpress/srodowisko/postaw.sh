@@ -130,6 +130,30 @@ if ! wpcli core is-installed >/dev/null 2>&1; then
   wpcli rewrite structure '/%postname%/' --hard
 fi
 
+# --- 4b. język instalacji ---------------------------------------------------
+#
+# BLAD-024: klient płacił na stronie w DWÓCH JĘZYKACH naraz. Nasze napisy
+# są polskie, cudze — WooCommerce, Tutor, rdzeń WordPressa — nie były:
+# „Order summary", „Billing address", „Place Order", a po naszym polskim
+# mailu „Ustaw hasło" klient trafiał na ekran „Enter a new password below".
+#
+# Język jest sprawą INSTALACJI, nie wtyczki (decyzja właściciela
+# 2026-08-29): wtyczka nie ma prawa przestawiać locale całej witryny.
+# Tu robi to środowisko — dokładnie to samo, co zrobi wdrożenie. Nasza
+# wtyczka dostaje za to bramkę: `smoke-wp-jezyk` mierzy ścieżkę klienta
+# w przeglądarce i pada na angielskiej frazie.
+#
+# Idempotentne: `language core install` na zainstalowanym języku kończy
+# się powodzeniem i nic nie zmienia.
+
+komunikat "Ustawiam język na polski"
+wpcli language core install pl_PL --activate >/dev/null 2>&1 \
+  || blad "nie udało się zainstalować polskiego rdzenia WordPressa (brak sieci w kontenerze?)"
+# Wtyczek NIE wymieniamy po nazwie: `--all` obejmie też te, które dojdą
+# później. Nasze wtyczki nie mają paczek na translate.wordpress.org
+# (napisy są po polsku w kodzie) i WP-CLI je po prostu pomija.
+wpcli language plugin install --all pl_PL >/dev/null 2>&1 || true
+
 # --- 5. motyw --------------------------------------------------------------
 
 if [ "$(wpcli theme get automatic-ai --field=status 2>/dev/null || echo brak)" != "active" ]; then
@@ -244,6 +268,15 @@ kod=$(curl -sL -o "$ODPOWIEDZ" -w '%{http_code}' "$ADRES") \
 # `node skrypt | tail` maskuje kod wyjścia.
 grep -q 'aria-label="Nawigacja główna"' "$ODPOWIEDZ" \
   || blad "strona odpowiada, ale to NIE jest motyw Automatic AI (brak jego nawigacji)"
+
+# Język sprawdzamy ARTEFAKTEM, nie faktem wykonania komendy: pytamy
+# WordPressa o przetłumaczony napis, który klient realnie widzi w kasie.
+# „Locale = pl_PL" bez plików .mo dałoby dalej angielską stronę.
+[ "$(wpcli option get WPLANG 2>/dev/null)" = "pl_PL" ] \
+  || blad "locale instalacji nie jest pl_PL — klient zobaczy kasę po angielsku (BLAD-024)"
+proba_tlumaczenia="$(wpcli eval 'echo __( "Billing address", "woocommerce" );' 2>/dev/null || echo '')"
+[ -n "$proba_tlumaczenia" ] && [ "$proba_tlumaczenia" != "Billing address" ] \
+  || blad "tłumaczenia WooCommerce nie działają (napis „Billing address\" wraca po angielsku) — sam locale nie wystarczy, brakuje plików .mo"
 grep -q 'aria-label="Nawigacja mobilna"' "$ODPOWIEDZ" \
   || blad "brak nawigacji mobilnej — pozycja w menu musi wejść do OBU"
 
