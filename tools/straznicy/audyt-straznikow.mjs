@@ -2565,6 +2565,16 @@ const MUTACJE = [
         : null,
     oczekiwanySlad: "bez wcześniejszego wc_get_order()",
   },
+  {
+    straznik: "straznik-tutora",
+    opis: "kopia szuka wpisu także po PUSTYM uuid (przejmuje cudzy moduł i kasuje jego lekcje)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php",
+    zmien: (s) =>
+      s.includes("if ( '' === trim( $uuid ) ) {\n\t\t\treturn 0;\n\t\t}")
+        ? s.replace("if ( '' === trim( $uuid ) ) {\n\t\t\treturn 0;\n\t\t}", "")
+        : null,
+    oczekiwanySlad: "nie odrzuca PUSTEGO identyfikatora",
+  },
 ];
 
 

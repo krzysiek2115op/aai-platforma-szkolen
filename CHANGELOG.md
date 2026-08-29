@@ -93,6 +93,23 @@ obietnicę, zmierz mechanizm.
   (11 — odnośnik pozycji, 8 — wiszące zamówienia, 3 — Tutor Pro,
   14 — `is_tutor_order()`). Wszystkie zamknięte.
 
+### Naprawione — znalezisko sweepu krzyżowego (cicha utrata treści)
+
+- **Wpis o PUSTYM identyfikatorze przejmował cudzy moduł w Tutorze i kasował
+  jego lekcje.** Zapytanie `meta_value => ''` dopasowuje pierwszy lepszy wpis
+  danego typu, więc kopia „znajdowała" moduł innego kursu, przejmowała go
+  (tytuł, rodzic, uuid), a sprzątanie nadmiaru kasowało jego lekcje. Tak
+  zniknęło **18 lekcji Kursu 2** z kopii — bez jednego objawu; nasze tabele
+  były nietknięte, więc bramki treści niczego nie zgłaszały.
+  **Ścieżka właściciela była bezpieczna** (kontrakt kreatora nadaje uuid od
+  W4); dziura otwierała się przy wywołaniach warstwy zapisu z pominięciem
+  kontraktu, czyli w naszych smoke'ach. Naprawione na dwóch poziomach:
+  `znajdz_po_uuid()` odrzuca pusty uuid, a warstwa zapisu nadaje uuid nowemu
+  modułowi i lekcji. Droga do przyczyny i dowody: KROK-P5.md §8b.
+- **Rachunek sumienia smoke'a liczył wyłącznie własne ślady**, więc
+  przepuszczał zniszczenie cudzych danych. `smoke-wp-zwroty` pyta teraz także
+  o liczbę wpisów Tutora i o dziennik dostaw (37 sprawdzeń).
+
 ### Dowody
 
 `npm run check` **kod 0** (strażnicy **35/35**, testy 83/83, lint, tsc, build,

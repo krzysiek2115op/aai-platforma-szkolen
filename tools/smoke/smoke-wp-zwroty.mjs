@@ -120,10 +120,29 @@ const powiazan = () =>
 const dostaw = () =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . Aai_Platnosci_Tabele::tabela( 'dostawy' ) );`));
 
+/**
+ * Ile wpisów ma kopia PRAWDZIWYCH kursów w Tutorze.
+ *
+ * PO CO (sweep P5). Kurs testowy przechodzi przez tę samą warstwę zapisu,
+ * co kursy właściciela, a kopia do Tutora dopasowuje wpisy po uuid.
+ * Zmierzone: wiersz o PUSTYM identyfikatorze „znajdował" cudzy moduł,
+ * przejmował go i kasował jego lekcje jako nadmiar — tak zniknęło
+ * 18 lekcji Kursu 2, a smoke meldował sukces, bo liczył wyłącznie własne
+ * ślady. Rachunek sumienia pyta więc także o CUDZE dane.
+ */
+const wpisowTutora = () =>
+  Number(
+    php(
+      `global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts}` +
+        ` WHERE post_type IN ('courses','topics','lesson') AND post_status <> 'trash'" );`
+    )
+  );
+
 const produktowPrzed = liczbaProduktow();
 const zamowienPrzed = liczbaZamowien();
 const powiazanPrzed = powiazan();
 const dostawPrzed = dostaw();
+const wpisowPrzed = wpisowTutora();
 
 let produkt = 0;
 let tutor = 0;
@@ -435,6 +454,10 @@ try {
 sprawdz(liczbaProduktow() === produktowPrzed, `smoke zostawił produkt: przed ${produktowPrzed}, po ${liczbaProduktow()}`);
 sprawdz(powiazan() === powiazanPrzed, `smoke zostawił ślad w powiazania: przed ${powiazanPrzed}, po ${powiazan()}`);
 sprawdz(liczbaZamowien() === zamowienPrzed, `smoke zostawił zamówienie: przed ${zamowienPrzed}, po ${liczbaZamowien()}`);
+sprawdz(
+  wpisowTutora() === wpisowPrzed,
+  `smoke ZMIENIŁ liczbę wpisów Tutora: przed ${wpisowPrzed}, po ${wpisowTutora()} — kurs testowy ruszył kopię CUDZEGO kursu (sweep P5: pusty uuid dopasowywał pierwszy lepszy wpis i kasował jego lekcje)`
+);
 sprawdz(
   dostaw() === dostawPrzed,
   `smoke zostawił wiersz w dzienniku dostaw: przed ${dostawPrzed}, po ${dostaw()} — wiersz po skasowanym zamówieniu to widmo, które przeżyje każdy następny przebieg`

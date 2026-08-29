@@ -278,6 +278,11 @@ const KURSY = [
               odpowiedz:
                 "Bez limitu — kupujesz raz, wracasz kiedy chcesz, aktualizacje w cenie.",
             },
+            {
+              pytanie: "Mogę zajrzeć do kursu przed zakupem?",
+              odpowiedz:
+                "Tak. Dwie lekcje są otwarte bez logowania i bez podawania adresu — w programie wyżej mają podpis „przeczytaj za darmo”. Zobaczysz w nich, jak wygląda materiał, zanim zdecydujesz.",
+            },
           ],
         },
       },
@@ -595,6 +600,11 @@ const KURSY = [
               pytanie: "Jak długo mam dostęp?",
               odpowiedz:
                 "Bez limitu — kupujesz raz, wracasz kiedy chcesz, aktualizacje w cenie.",
+            },
+            {
+              pytanie: "Mogę zajrzeć do kursu przed zakupem?",
+              odpowiedz:
+                "Tak. Dwie lekcje są otwarte bez logowania i bez podawania adresu — w programie wyżej mają podpis „przeczytaj za darmo”. Zobaczysz w nich, jak wygląda materiał, zanim zdecydujesz.",
             },
           ],
         },

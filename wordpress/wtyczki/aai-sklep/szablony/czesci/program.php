@@ -56,8 +56,24 @@ $aai_opis = ( empty( $aai_opis ) ? '' : implode( ' · ', $aai_opis ) . ' — ' )
 								<li class="aai-lekcja">
 									<?php echo Aai_Sklep_Widok::ikona( 'play', 'aai-ikona-xs aai-cichy' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 									<span class="aai-lekcja-tytul"><?php echo esc_html( $aai_lekcja['title'] ); ?></span>
-									<?php if ( ! empty( $aai_lekcja['preview'] ) ) : ?>
-										<span class="aai-mono aai-akcent">podgląd</span>
+									<?php
+									/*
+									 * Etykieta „podgląd" jest ODNOŚNIKIEM, gdy kopia lekcji
+									 * stoi w Tutorze. Do 0.52.0 był to sam napis, więc strona
+									 * mówiła klientowi, że coś jest otwarte, i nie dawała mu
+									 * jak tam wejść (zmierzone: zero linków do lekcji w HTML).
+									 * Bez kopii w Tutorze zostaje sam napis — jak dotąd.
+									 */
+									if ( ! empty( $aai_lekcja['preview'] ) ) :
+										$aai_adres_lekcji = Aai_Sklep_Tutor::adres_lekcji( (string) ( $aai_lekcja['id'] ?? '' ) );
+										?>
+										<?php if ( null !== $aai_adres_lekcji ) : ?>
+											<a class="aai-mono aai-akcent aai-lekcja-podglad" href="<?php echo esc_url( $aai_adres_lekcji ); ?>">
+												przeczytaj za darmo
+											</a>
+										<?php else : ?>
+											<span class="aai-mono aai-akcent">podgląd</span>
+										<?php endif; ?>
 									<?php endif; ?>
 									<?php if ( ! empty( $aai_lekcja['duration_min'] ) ) : ?>
 										<span class="aai-mono aai-lekcja-czas"><?php echo esc_html( (string) $aai_lekcja['duration_min'] ); ?> min</span>

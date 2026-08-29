@@ -87,9 +87,20 @@ w szablonie WordPressa i w prototypie.
 
 Pytania FAQ („Co, jeśli kurs u mnie nie zadziała?" / „…nie jest dla mnie?")
 **usunięte w całości**, zamiast dopisywania im nowej odpowiedzi: zmyślanie
-obietnicy byłoby powtórzeniem błędu, który ta zmiana naprawia. **Do
-rozstrzygnięcia przez właściciela**, czy dopisać w ich miejsce coś prawdziwego
-(np. odesłanie do czterech darmowych lekcji-zapowiedzi, które kursy mają).
+obietnicy byłoby powtórzeniem błędu, który ta zmiana naprawia.
+
+**W ich miejsce, decyzją właściciela (2026-08-29), weszło pytanie oparte na
+FAKCIE**: „Mogę zajrzeć do kursu przed zakupem?" — bo każdy kurs ma **dwie
+lekcje otwarte bez logowania**. Liczba jest zmierzona (po dwie na kurs, nie
+cztery na jeden), a dostęp sprawdzony uruchomieniowo: gość dostaje HTTP 200
+i całą treść lekcji.
+
+Obietnica wymagała jednak DROGI, której nie było. Zmierzone: program
+oznaczał te lekcje etykietą „podgląd", ale na całej stronie kursu nie było
+**ani jednego odnośnika do lekcji** — klient czytał, że coś jest otwarte,
+i nie miał jak tam wejść. Etykieta jest teraz odnośnikiem „przeczytaj za
+darmo" (`Aai_Sklep_Tutor::adres_lekcji()`); bez kopii w Tutorze zostaje sam
+napis, jak dotąd.
 
 **Rodzaj sekcji `guarantee` ZOSTAJE w kontrakcie i ma swój szablon** — zniknęła
 treść, nie możliwość. Decyzja jest odwracalna jednym wpisem w kreatorze.
@@ -240,6 +251,54 @@ straciłaby powód i należałoby ją przemyśleć, a nie wozić w nieskończono
 | udawany Tutor Pro | kontrola **kod 1** |
 | zamówienie kursu w `processing` starsze niż godzina | kontrola **kod 1** |
 
+## 8b. SWEEP KRZYŻOWY — najpoważniejsze znalezisko kroku
+
+Sweep miał potwierdzić, że etapy nie kolidują. Zamiast tego znalazł **cichą
+utratę treści**, której nie widziała żadna bramka.
+
+**Objaw.** Po komplecie smoke'ów kopia Kursu 2 w Tutorze miała **3 moduły
+i 14 lekcji zamiast 6 i 32**, choć na starcie sesji `wp:tutor` mówił
+„87 obiektów, 0 różnic". Nasze tabele były nietknięte — zniknęła tylko kopia.
+
+**Droga do przyczyny (każdy krok pomiarem, nie lekturą):**
+
+1. eksperyment różnicowy: `wp:sync` → 87 obiektów → jeden przebieg
+   `smoke-wp-zwroty` → brak lekcji Kursu 2. Winowajca: smoke, nie import;
+2. pomiar krokowy: samo **utworzenie** kursu testowego zabierało 5 lekcji
+   cudzego kursu, jeszcze przed sprzątaniem;
+3. podsłuch `before_delete_post` ze stosem wywołań: kasuje
+   `Aai_Sklep_Tutor::usun_nadmiar` ← `synchronizuj_kurs` ← `na_zmianie`;
+4. log argumentów: `usun_nadmiar` dostaje **poprawne** ID własnego kursu —
+   czyli funkcja jest niewinna;
+5. odczyt stanu: kasowane lekcje mają rodzica, który nosi tytuł **mojego**
+   modułu testowego i **pusty uuid** — cudzy wpis został PRZEJĘTY;
+6. `dane_kursu()` oddaje moduły i lekcje z pustym `id`, bo warstwa zapisu
+   robi `(string) null` = `''`.
+
+**Mechanizm.** Wiersz o pustym identyfikatorze trafia do
+`znajdz_po_uuid('')`, a zapytanie `meta_value => ''` dopasowuje **pierwszy
+lepszy wpis danego typu**. Kopia przejmuje wtedy cudzy moduł (tytuł, rodzic,
+uuid), a `usun_nadmiar()` kasuje jego lekcje jako nadmiar. Bez jednego objawu.
+
+**Zasięg — sprawdzony, nie założony.** Kontrakt kreatora (`Aai_Sklep_Kontrakt`)
+nadaje nowym wierszom `wp_generate_uuid4()` od W4, więc **ścieżka właściciela
+była bezpieczna**. Dziura otwierała się przy wywołaniach warstwy zapisu
+z pominięciem kontraktu — czyli w naszych smoke'ach.
+
+**Naprawa na dwóch poziomach**, bo jeden by nie wystarczył:
+
+| Poziom | Zmiana | Po co |
+|---|---|---|
+| **obrona** | `znajdz_po_uuid()` odrzuca pusty uuid i zwraca 0 | żadne wejście, choćby najgorsze, nie może już przejąć cudzego wpisu |
+| **poprawność** | warstwa zapisu nadaje uuid nowemu modułowi i lekcji (`identyfikator()`) | pusty identyfikator nie jest „brakiem danych", tylko daną, która zderza się z każdą inną pustą |
+
+**Dowody:** `smoke-wp-zwroty` pyta teraz w rachunku sumienia także o **liczbę
+wpisów Tutora** (37 sprawdzeń) — bo rachunek liczący wyłącznie własne ślady
+przepuścił to bez mrugnięcia. Reguła w `straznik-tutora` celuje w ZACHOWANIE
+(wyjście przy pustej wartości), nie w nazwę. Audyt mutacyjny 222 → **223**.
+Test negatywny: cofnięcie obu warstw → pada **1 z 37**, z liczbami
+(„przed 87, po 79").
+
 ## 9. Pułapki warte zapamiętania
 
 1. **`tutor()->wc` NIE ISTNIEJE** („Config property wc does not exist") —
@@ -261,6 +320,6 @@ straciłaby powód i należałoby ją przemyśleć, a nie wozić w nieskończono
 
 | Rzecz | Dlaczego nie rozstrzygnąłem sam |
 |---|---|
-| **puste miejsce po dwóch pytaniach FAQ** — usunąłem je, bo ich jedyną odpowiedzią była gwarancja. Kursy mają cztery darmowe lekcje-zapowiedzi, więc jest czym odpowiedzieć na „co, jeśli kurs nie jest dla mnie" — ale to obietnica handlowa, nie fakt techniczny | treść sprzedażowa należy do właściciela |
+| ~~puste miejsce po dwóch pytaniach FAQ~~ | **ROZSTRZYGNIĘTE 2026-08-29**: weszło pytanie o darmowe lekcje (§4) |
 | **zgoda w kasie na natychmiastowe dostarczenie** (wyłącza ustawowe 14 dni) | wymaga regulaminu i najlepiej opinii prawnika; schemat trzyma to w pozycji „przed pierwszym klientem" |
 | **kompozycja hero katalogu po usunięciu pływaka gwarancji** — zostały dwa pływaki zamiast trzech; bramka wyglądu (90/90, zero nachodzeń i plam) niczego nie zgłasza, ale to ocena estetyczna | wygląd katalogu właściciel przyjmował przy B5 |

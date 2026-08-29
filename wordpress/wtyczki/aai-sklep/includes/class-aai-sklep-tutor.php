@@ -810,6 +810,24 @@ final class Aai_Sklep_Tutor {
 	 * @param string $typ  Typ wpisu.
 	 */
 	private static function znajdz_po_uuid( string $uuid, string $typ ): int {
+		/*
+		 * PUSTY UUID NIE PASUJE DO NICZEGO — i to jest zabezpieczenie przed
+		 * cichą utratą treści, nie ostrożność na wszelki wypadek.
+		 *
+		 * ZMIERZONE (P5, sweep). Zapytanie `meta_value => ''` dopasowuje
+		 * PIERWSZY LEPSZY wpis danego typu, więc wpis o pustym uuid
+		 * „znajdował" cudzy moduł: przejmował go (tytuł, rodzic, uuid),
+		 * a `usun_nadmiar()` kasował potem jego lekcje jako nadmiar. Tak
+		 * zniknęło 18 lekcji Kursu 2 z kopii w Tutorze, bez jednego objawu
+		 * — kontrola `sprawdz-tutora` widziała je dopiero po fakcie.
+		 *
+		 * Wejście z pustym identyfikatorem jest błędem SAMO W SOBIE (patrz
+		 * `Aai_Sklep_Zapis`, gdzie nowy wiersz dostaje uuid), ale ta warstwa
+		 * ma go PRZEŻYĆ bez kasowania cudzych danych.
+		 */
+		if ( '' === trim( $uuid ) ) {
+			return 0;
+		}
 		$znalezione = get_posts(
 			array(
 				'post_type'   => $typ,
@@ -821,6 +839,33 @@ final class Aai_Sklep_Tutor {
 			)
 		);
 		return $znalezione ? (int) $znalezione[0] : 0;
+	}
+
+	/**
+	 * Adres lekcji-ZAPOWIEDZI, albo `null`.
+	 *
+	 * SKĄD TA FUNKCJA (P5). Program na stronie sprzedażowej oznacza lekcje
+	 * z `preview` etykietą „podgląd", ale do 0.52.0 nie prowadził do nich
+	 * ŻADEN odnośnik — zmierzone: zero linków do lekcji w całym HTML strony
+	 * kursu. Klient czytał więc, że coś jest otwarte, i nie miał jak tam
+	 * wejść; adres zna tylko Tutor. Skoro FAQ obiecuje teraz, że można
+	 * zajrzeć przed zakupem, obietnica musi mieć drogę.
+	 *
+	 * Zwraca `null`, gdy Tutora nie ma albo kopii lekcji jeszcze nie ma —
+	 * wtedy szablon zostawia samą etykietę, tak jak dotąd.
+	 *
+	 * @param string $uuid Identyfikator lekcji z naszych tabel.
+	 */
+	public static function adres_lekcji( string $uuid ): ?string {
+		if ( '' === $uuid || ! self::dostepny() ) {
+			return null;
+		}
+		$id = self::znajdz_po_uuid( $uuid, self::typy()['lekcja'] );
+		if ( $id <= 0 || 'publish' !== get_post_status( $id ) ) {
+			return null;
+		}
+		$adres = get_permalink( $id );
+		return is_string( $adres ) && '' !== $adres ? $adres : null;
 	}
 
 	/**
