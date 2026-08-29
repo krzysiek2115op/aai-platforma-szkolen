@@ -365,6 +365,22 @@ try {
   poczta = await skrzynka();
   sprawdz(nasze(poczta, "Ustaw hasło").length === 1, "ponowienie nie wysłało wiadomości");
   sprawdz(wp("aai-platnosci", "sprawdz").kod === 0, "kontrola została czerwona po udanym ponowieniu");
+
+  /*
+   * PONOWIENIE DOSTAWY, KTÓREJ NIE MA W DZIENNIKU, musi ODMÓWIĆ. Bez tego
+   * literówka w id (`mail_konta/1` zamiast `mail_konta/41`) wysyłała świeży
+   * klucz resetu administratorowi, nie zostawiała śladu i meldowała sukces —
+   * a każdy nowy klucz unieważnia poprzedni, więc odbierała czekającemu
+   * klientowi jego jedyny link (B8). Zmierzone przed naprawą.
+   */
+  await wyczysc();
+  const obce = wp("aai-platnosci", "dostawy", "--ponow=mail_konta/1");
+  sprawdz(obce.kod === 1, "ponowienie dostawy spoza dziennika NIE odmówiło — literówka w id wysyła klucz resetu obcej osobie");
+  poczta = await skrzynka();
+  sprawdz(
+    poczta.length === 0,
+    `ponowienie dostawy spoza dziennika wysłało ${poczta.length} wiadomości — nie wolno mu wysłać ani jednej`
+  );
 } finally {
   /* ── sprzątanie ─────────────────────────────────────────────────── */
   await wyczysc();

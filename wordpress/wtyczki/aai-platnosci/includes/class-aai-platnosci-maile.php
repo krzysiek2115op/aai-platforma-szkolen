@@ -186,6 +186,22 @@ final class Aai_Platnosci_Maile {
 	 * @return string Wynik wysyłki.
 	 */
 	public static function ponow( string $zdarzenie, int $identyfikator ): string {
+		/*
+		 * PONAWIAMY WYŁĄCZNIE TO, CO JEST W DZIENNIKU. Bez tego warunku
+		 * `--ponow=mail_konta/1` wysyłał świeży klucz resetu DOWOLNEMU
+		 * użytkownikowi (zmierzone: literówka w id posłała link
+		 * administratorowi), nie zostawiał śladu — bo `dostawa_wynik()`
+		 * aktualizuje nieistniejący wiersz — i meldował „wysłano ponownie”.
+		 * Każdy nowy klucz unieważnia poprzedni, więc pomyłka odbierałaby
+		 * czekającemu klientowi jego jedyny link (B8).
+		 */
+		if ( ! Aai_Platnosci_Zapis::dostawa_istnieje( $zdarzenie, $identyfikator ) ) {
+			return sprintf(
+				'blad: dziennik nie zna dostawy %s/%d — ponawiamy tylko wiadomości, które już raz zostały zlecone',
+				$zdarzenie,
+				$identyfikator
+			);
+		}
 		if ( self::ZDARZENIE_KONTO === $zdarzenie ) {
 			$wynik = self::wyslij_konto( $identyfikator );
 		} elseif ( self::ZDARZENIE_KURS === $zdarzenie ) {

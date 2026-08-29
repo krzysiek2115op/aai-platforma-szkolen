@@ -171,6 +171,35 @@ final class Aai_Platnosci_Zapis {
 	}
 
 	/**
+	 * Czy dostawa o tym kluczu jest w dzienniku.
+	 *
+	 * Pyta o to ponowna wysyłka: bez tego `--ponow=mail_konta/1` wysyłał
+	 * ŚWIEŻY klucz resetu hasła komukolwiek (zmierzone: literówka w id
+	 * posłała link administratorowi), nie zapisywał nic — bo `dostawa_wynik()`
+	 * aktualizuje wiersz, którego nie ma — i meldował „wysłano ponownie”.
+	 * Trzy nieprawdy naraz, a przy okazji każdy nowy klucz UNIEWAŻNIA
+	 * poprzedni, więc pomyłka odbierałaby prawdziwemu klientowi jego link.
+	 *
+	 * @param string $zdarzenie     Zdarzenie.
+	 * @param int    $identyfikator Identyfikator.
+	 */
+	public static function dostawa_istnieje( string $zdarzenie, int $identyfikator ): bool {
+		if ( $identyfikator <= 0 ) {
+			return false;
+		}
+		global $wpdb;
+		$tabela = Aai_Platnosci_Tabele::tabela( 'dostawy' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		return null !== $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT id FROM {$tabela} WHERE zdarzenie = %s AND identyfikator = %d",
+				$zdarzenie,
+				$identyfikator
+			)
+		);
+	}
+
+	/**
 	 * Dopisuje rezultat do JUŻ odnotowanego zdarzenia (np. wynik
 	 * `wp_mail()` znany dopiero po wysyłce). Nie tworzy wiersza —
 	 * od tworzenia jest `dostawa_odnotuj()`.
