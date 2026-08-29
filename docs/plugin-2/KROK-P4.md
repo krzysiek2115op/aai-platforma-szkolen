@@ -293,3 +293,27 @@ hasło: https://…” (pyta teraz o wartość PO dwukropku), a odczyt linku prz
 `fetch` gubił ciastko, którym WooCommerce przenosi klucz przez przekierowanie
 — więc mierzył formularz „zapomniałem hasła” zamiast formularza ustawienia
 hasła.
+
+## 8. Własne znaleziska po E5 (2026-08-29)
+
+### Ponowienie wysyłało klucz resetu komukolwiek
+
+`wp aai-platnosci dostawy --ponow=mail_konta/1` — literówka w identyfikatorze
+— **wysyłał świeży klucz resetu hasła administratorowi**, nie zostawiał śladu
+(`dostawa_wynik()` aktualizuje wiersz, którego nie ma) i meldował
+**„Success: wysłano ponownie”**. Trzy nieprawdy w jednym poleceniu, a przy
+okazji każdy nowy klucz unieważnia poprzedni — czyli pomyłka odbierałaby
+czekającemu klientowi jego jedyny link (B8).
+
+Zmierzone przed naprawą: dziennik 0 wierszy, w skrzynce wiadomość na adres
+administratora. Po naprawie: kod 1, zero wiadomości, komunikat mówi wprost,
+że ponawiamy tylko rzeczy już zlecone. Smoke pilnuje tego dwoma sprawdzeniami
+(38 → 40), test negatywny zapala dokładnie je.
+
+### Deaktywacja — zmierzona, nie zadeklarowana
+
+| Krok | Mail Woo „nowe konto” | Kupowalne produkty kursów |
+|---|---|---|
+| przed | `no` (nasz mail 1 go zastępuje) | 2 |
+| po deaktywacji wtyczki | **`yes`** — wraca, bo nasz mail znika razem z nią (K1) | **0** (gwarancja z P1 dalej trzyma) |
+| po ponownej aktywacji | `no` | 2, kontrola kod 0 |
