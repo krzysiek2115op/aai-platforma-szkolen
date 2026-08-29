@@ -46,7 +46,7 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.50.0** |
+| **Wersja** | **0.51.0** |
 | **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). Trwa **etap WordPressa** ([decyzje i plan](docs/ETAP-WP.md)). **Wtyczka `aai-sklep` SKOŃCZONA** (kroki W1–W6, `v0.45.0`): środowisko `wordpress/srodowisko/` (WP + motyw + Tutor + Woo na `:8892`), własne tabele i warstwa zapisu, oba kursy w tabelach (**73 lekcje zgodne co do znaku**), `/szkolenia` i strony sprzedażowe z NASZYCH tabel, kreator w kokpicie, kopia kursu w Tutorze po każdym zapisie i materiał w NASZYM szablonie. Trwa **Plugin 2 — płatności** (`aai-platnosci`, SZEW do WooCommerce, nie własna kasa): **P0–P3a zrobione** (schemat, fundament, produkt z ceny, silnik `wc` z zamkniętą sprzedażą), **P3b** (cena efektywna na froncie i w danych strukturalnych, przycisk w czterech stanach, domykanie zamówienia) i **P4** — konto przy zakupie, dwa maile („Ustaw hasło” przy powstaniu konta, „Twój kurs jest gotowy” po opłacie), dziennik dostarczenia i otwarcie sprzedaży komendą. Zostają kroki **P5** (zwroty i przypadki brzegowe) i **P6** (test ręczny właściciela) |
 | **Aktywny moduł** | 2 — Płatności ([schemat](docs/plugin-2/DIAGRAM.md), [krok P4](docs/plugin-2/KROK-P4.md)); Plugin 1 zamknięty ([diagram działów i bramek](docs/plugin-1/DIAGRAM.md)) |
 | **Gałąź domyślna** | `main` — wrócił nią 2026-08-25 razem ze scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0`). Do tego dnia domyślną była `plugin-1-sklep-kursow`, bo `main` stał celowo na 0.3.4 ([PLAN.md §5](docs/PLAN.md): moduł wchodzi na gałąź główną po ukończeniu i akceptacji całości). Gałąź modułu zostaje jako historia — jej drzewo jest identyczne z `main` |

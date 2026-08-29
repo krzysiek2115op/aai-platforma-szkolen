@@ -720,10 +720,22 @@ final class Aai_Platnosci_Ustawienia {
 		 * nie ma `_tutor_wc_guest_customer_id`.
 		 */
 		global $wpdb;
-		$goscinne = (int) $wpdb->get_var(
-			"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
-			JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'courses'
-			WHERE pm.meta_key = '_tutor_wc_guest_customer_id'"
+		/*
+		 * TYP WPISU PYTAMY TUTORA, nie wpisujemy go na sztywno. Sąsiedni
+		 * plik (`Aai_Platnosci_Zapis::kurs_tutora()`) robi to od P2, a tu
+		 * został literał — czyli ta sama klasa co BLAD-026: pomiar oparty
+		 * na strukturze, którą cudza wtyczka może zmienić. Gdyby Tutor
+		 * przemianował swój typ, to sprawdzenie zaczęłoby liczyć ZERO
+		 * i milczeć, zamiast się zaczerwienić.
+		 */
+		$typ_kursu = function_exists( 'tutor' ) ? (string) ( tutor()->course_post_type ?? 'courses' ) : 'courses';
+		$goscinne  = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
+			JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = %s
+			WHERE pm.meta_key = '_tutor_wc_guest_customer_id'",
+				$typ_kursu
+			)
 		);
 		if ( $goscinne > 0 ) {
 			$r[] = sprintf( '%d wpis(ów) kursu z _tutor_wc_guest_customer_id — gościnna gałąź zapisu Tutora ZADZIAŁAŁA, a miała nie mieć prawa (B12)', $goscinne );

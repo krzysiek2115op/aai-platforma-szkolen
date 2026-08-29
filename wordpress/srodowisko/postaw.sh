@@ -154,6 +154,24 @@ wpcli language core install pl_PL --activate >/dev/null 2>&1 \
 # (napisy są po polsku w kodzie) i WP-CLI je po prostu pomija.
 wpcli language plugin install --all pl_PL >/dev/null 2>&1 || true
 
+# --- 4c. strona polityki prywatności ---------------------------------------
+#
+# Znalezione przy śledztwie po teście właściciela: kasa mówi klientowi
+# „Twoje dane osobowe zostaną użyte … opisanych w naszej [polityce
+# prywatności]", a `wp_page_for_privacy_policy` wskazywało SZKIC
+# WordPressa („Privacy Policy", status draft, treść to domyślne
+# „Suggested text: Our website address is:"). Prawdziwa polityka leży
+# w treści motywu Automatic AI.
+#
+# Wskazujemy opublikowaną stronę motywu, jeśli istnieje. Nie tworzymy
+# jej sami — treść prawna należy do właściciela, nie do skryptu.
+
+polityka="$(wpcli post list --post_type=page --post_status=publish --name=polityka-prywatnosci --field=ID 2>/dev/null | head -1)"
+if [ -n "$polityka" ]; then
+  komunikat "Wskazuję politykę prywatności (strona $polityka)"
+  wpcli option update wp_page_for_privacy_policy "$polityka" >/dev/null
+fi
+
 # --- 5. motyw --------------------------------------------------------------
 
 if [ "$(wpcli theme get automatic-ai --field=status 2>/dev/null || echo brak)" != "active" ]; then
