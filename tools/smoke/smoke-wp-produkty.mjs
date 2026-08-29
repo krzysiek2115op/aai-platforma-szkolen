@@ -124,6 +124,49 @@ sprawdz(wartosc(`wc_get_product(${produkt})->get_catalog_visibility('edit')`) ==
 sprawdz(wartosc(`wc_get_product(${produkt})->get_sold_individually('edit') ? 'tak' : 'nie'`) === "tak", "produkt bez _sold_individually (B14)");
 sprawdz(wartosc(`get_post_meta(${produkt}, '_tutor_product', true)`) === "yes", "produkt bez _tutor_product");
 
+/*
+ * TEKST, KTÓRY KLIENT CZYTA W KASIE (0.51.0). Woo drukuje krótki opis pod
+ * nazwą pozycji w koszyku i w podsumowaniu zamówienia, a Store API oddaje
+ * go publicznie. Do 0.50.0 kopia go nie ustawiała i pole było niczyje —
+ * na produkcie 675 wylądowała przez to „cudza edycja 1787936224". Żadna
+ * bramka tego nie widziała, bo wszystkie mierzyły mechanizmy.
+ */
+sprawdz(wartosc(`wc_get_product(${produkt})->get_short_description('edit')`) === "smoke", "krótki opis produktu nie pochodzi z short_desc kursu — klient przeczyta w kasie cudzy tekst");
+sprawdz(wartosc(`wc_get_product(${produkt})->get_name('edit')`) === "Smoke P2", "nazwa produktu nie pochodzi z tytułu kursu");
+
+/* ── 1b. opis z BACKSLASHEM przeżywa zapis co do znaku ──────────────── */
+
+/*
+ * ZMIERZONE na Woo 11.0.1: `set_short_description()` i `set_name()` kończą
+ * w `wp_insert_post()`, które puszcza wartość przez `wp_unslash()` — bez
+ * `wp_slash()` z opisu ginie KAŻDY backslash. To nie jest teoria: kurs
+ * „Jak poprawnie używać GitHuba" ma w treści `C:\Users` i sekwencje `\n`,
+ * a opis sprzedażowy pisze właściciel w kreatorze. Rodzina pułapki
+ * `update_post_meta` z kroku W2 — tam ratował nas `$wpdb`, tu nie ma kto.
+ */
+{
+  const wzor = "C:" + String.fromCharCode(92) + "Users i " + String.fromCharCode(92) + "n";
+  php(
+    `$k = array('id' => '${KURS}', 'slug' => '${SLUG}', 'title' => 'Smoke P2', 'type' => 'kurs',` +
+      ` 'short_desc' => 'C:' . chr(92) . 'Users i ' . chr(92) . 'n', 'price_grosze' => 19900, 'cover_url' => null,` +
+      ` 'status' => 'published', 'badge' => null, 'level' => null, 'sekcje' => array(), 'moduly' => array());` +
+      ` Aai_Sklep_Zapis::zapisz_kurs($k, 'smoke-p2', true); echo 'ok';`
+  );
+  wp("aai-platnosci", "sync", SLUG);
+  const poZapisie = wartosc(`wc_get_product(${produkt})->get_short_description('edit')`);
+  sprawdz(poZapisie === wzor, `opis z backslashem NIE przeżył zapisu: oczekiwano „${wzor}", jest „${poZapisie}" — brak wp_slash() w warstwie zapisu`);
+  // Drugi przebieg: slashe NIE mają prawa się kumulować, bo wtedy każdy
+  // kolejny zapis kursu zmieniałby opis i idempotencja padłaby cicho.
+  wp("aai-platnosci", "sync", SLUG);
+  sprawdz(
+    wartosc(`wc_get_product(${produkt})->get_short_description('edit')`) === wzor,
+    "po DRUGIM zapisie opis się zmienił — slashe się kumulują"
+  );
+  zapiszKurs("published", 19900);
+  wp("aai-platnosci", "sync", SLUG);
+  sprawdz(wartosc(`wc_get_product(${produkt})->get_short_description('edit')`) === "smoke", "powrót do zwykłego opisu nie doszedł do produktu");
+}
+
 /* ── 2. BRAMKA P2: trzy przebiegi, odcisk niezmieniony ──────────────── */
 
 // ZAWSZE ze slugiem kursu testowego: `sync` bez sluga przepuszcza także
@@ -187,6 +230,25 @@ sprawdz(
   "po CUDZYM zapisie produktu znacznik _tutor_product nie wrócił — hak B13 nie działa"
 );
 
+/*
+ * Ta próba pisze w KRÓTKI OPIS, czyli w pole, które od 0.51.0 należy do
+ * naszej kopii i które klient czyta w kasie. Zostawienie jej tak, jak
+ * była, robiłoby z tego smoke'a źródło dokładnie tego śmiecia, który
+ * właściciel znalazł na produkcie 675 („cudza edycja 1787936224").
+ * Zamiast tylko sprzątać, mierzymy przy okazji rzecz wartą pomiaru:
+ * czy `sync` UMIE cofnąć cudzą edycję opisu — bo to jedyna droga
+ * naprawy, którą podaje komunikat kontroli.
+ */
+sprawdz(
+  wartosc(`wc_get_product(${produkt})->get_short_description('edit')`) === "smoke-cudzy-zapis",
+  "cudza edycja opisu nie doszła do produktu — dalszy pomiar naprawy byłby ślepy"
+);
+wp("aai-platnosci", "sync", SLUG);
+sprawdz(
+  wartosc(`wc_get_product(${produkt})->get_short_description('edit')`) === "smoke",
+  "sync NIE cofnął cudzej edycji krótkiego opisu — komunikat kontroli, który każe uruchomić sync, obiecywałby wtedy nieprawdę"
+);
+
 /* ── 5. kontrola: kod 1 na każdym rodzaju rozjazdu ──────────────────── */
 
 /**
@@ -205,6 +267,16 @@ function probaCzerwona(psuj, przywroc, opis) {
   const po = wp("aai-platnosci", "sprawdz");
   sprawdz(po.kod === 0, `${opis} — po przywróceniu kontrola nadal czerwona, próba zostawiła ślad: ${po.err}`);
 }
+probaCzerwona(
+  `$p = wc_get_product(${produkt}); $p->set_short_description('cudza edycja 123'); $p->save();`,
+  `$p = wc_get_product(${produkt}); $p->set_short_description('smoke'); $p->save();`,
+  "cudzy krótki opis w kasie"
+);
+probaCzerwona(
+  `$p = wc_get_product(${produkt}); $p->set_name('Cudza nazwa'); $p->save();`,
+  `$p = wc_get_product(${produkt}); $p->set_name('Smoke P2'); $p->save();`,
+  "cudza nazwa produktu"
+);
 probaCzerwona(
   `$p = wc_get_product(${produkt}); $p->set_regular_price('1.00'); $p->save();`,
   `$p = wc_get_product(${produkt}); $p->set_regular_price('199.00'); $p->save();`,

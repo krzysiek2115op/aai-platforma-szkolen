@@ -72,6 +72,9 @@ const ARKUSZ_LEKCJI = "wordpress/wtyczki/aai-sklep/assets/lekcja.css";
  *             wygenerowanego podglądu. Bez tego pola audyt na maszynie
  *             bez materiału raportowałby fałszywe „PRZEPUŚCIŁ mutację".
  */
+const ZAPIS_PRODUKTU = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php";
+const CLI_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php";
+
 const MUTACJE = [
   // --- straznik-scenariuszy ---
   {
@@ -1175,6 +1178,76 @@ const MUTACJE = [
             '"SELECT id FROM `$t_kursy` WHERE slug = \'$slug\'"'
           )
         : null,
+  },
+  // --- straznik-platnosci-wp, reguła 30 (tekst widoczny klientowi w kasie) ---
+  // Klasa znaleziona przez WŁAŚCICIELA KLIKANIEM, nie przez bramkę: pod
+  // nazwą kursu w kasie stała „cudza edycja 1787936224". Bramki mierzyły
+  // mechanizmy (cena, status, powiązanie), a nie to, co klient czyta.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "synchronizacja przestaje ustawiać krótki opis produktu — pole znów niczyje, klient czyta w kasie cudzy tekst",
+    plik: ZAPIS_PRODUKTU,
+    wymaga: () => existsSync(ZAPIS_PRODUKTU),
+    oczekiwanySlad: "nie ustawia pola \u201ekrótki opis",
+    zmien: (s) =>
+      s.includes("$produkt->set_short_description( wp_slash( $opis ) );")
+        ? s.replaceAll("$produkt->set_short_description( wp_slash( $opis ) );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "krótki opis produktu zapisywany BEZ wp_slash() — z C:\\Users i \\n ginie backslash (zmierzone na Woo 11.0.1)",
+    plik: ZAPIS_PRODUKTU,
+    wymaga: () => existsSync(ZAPIS_PRODUKTU),
+    oczekiwanySlad: "BEZ wp_slash()",
+    zmien: (s) =>
+      s.includes("set_short_description( wp_slash( $opis ) )")
+        ? s.replaceAll("set_short_description( wp_slash( $opis ) )", "set_short_description( $opis )")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "nazwa produktu zapisywana BEZ wp_slash() — stan sprzed 0.51.0, uśpiony tylko dlatego, że żaden tytuł nie ma dziś backslasha",
+    plik: ZAPIS_PRODUKTU,
+    wymaga: () => existsSync(ZAPIS_PRODUKTU),
+    oczekiwanySlad: "BEZ wp_slash()",
+    zmien: (s) =>
+      s.includes("set_name( wp_slash( $kurs['title'] ) )")
+        ? s.replaceAll("set_name( wp_slash( $kurs['title'] ) )", "set_name( $kurs['title'] )")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "opis produktu przestaje pochodzić z naszej tabeli (znika odczyt short_desc)",
+    plik: ZAPIS_PRODUKTU,
+    wymaga: () => existsSync(ZAPIS_PRODUKTU),
+    oczekiwanySlad: "nie sięga po short_desc",
+    zmien: (s) =>
+      s.includes("$kurs['short_desc'] ?? ''")
+        ? s.replace("$kurs['short_desc'] ?? ''", "'' ?? ''")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola przestaje porównywać krótki opis — cudzy tekst w kasie nie zapala już kodu 1",
+    plik: CLI_PLATNOSCI,
+    wymaga: () => existsSync(CLI_PLATNOSCI),
+    oczekiwanySlad: "nie PORÓWNUJE krótkiego opisu",
+    zmien: (s) =>
+      s.includes("if ( (string) $produkt->get_short_description( 'edit' ) !== $opis_kursu ) {")
+        ? s.replace("if ( (string) $produkt->get_short_description( 'edit' ) !== $opis_kursu ) {", "if ( false ) {")
+        : null,
+  },
+  // KONTRPRZYKŁAD: przemianowanie zmiennej niczego nie osłabia — reguła
+  // pyta o zachowanie (wywołanie ze slashem), nie o nazwę. Bez tego
+  // wpisu nie wiedzielibyśmy, czy strażnik nie stoi na literówce.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "KONTRPRZYKŁAD: zmienna $opis przemianowana na $krotki_opis — zachowanie bez zmian",
+    plik: ZAPIS_PRODUKTU,
+    wymaga: () => existsSync(ZAPIS_PRODUKTU),
+    oczekujCzerwonego: false,
+    zmien: (s) => (s.includes("$opis       =") ? s.replaceAll("$opis", "$krotki_opis") : null),
   },
   // --- straznik-platnosci-wp (Plugin 2 — szew do WooCommerce i Tutora) ---
   // Każdy niezmiennik schematu łamie się PO CICHU: sklep dalej działa,

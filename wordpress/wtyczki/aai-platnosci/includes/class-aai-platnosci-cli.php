@@ -607,6 +607,37 @@ final class Aai_Platnosci_Cli {
 			$r[] = array( self::STAN_ROZJAZD, sprintf( 'produkt %d ma status %s zamiast publish', $product_id, $produkt->get_status() ) );
 		}
 
+		/*
+		 * NAZWA i KRÓTKI OPIS — to jedyne dwa pola produktu, które klient
+		 * CZYTA na ekranie kasy i koszyka (Woo drukuje `short_description`
+		 * pod nazwą pozycji, a Store API oddaje je publicznie). Rozjazd
+		 * tutaj nie jest usterką techniczną, tylko cudzym tekstem pod
+		 * nazwą naszego kursu — dokładnie tak wyszła „cudza edycja
+		 * 1787936224" na produkcie 675. Dlatego kod 1, jak przy cenie.
+		 */
+		if ( (string) $produkt->get_name( 'edit' ) !== (string) $kurs['title'] ) {
+			$r[] = array(
+				self::STAN_ROZJAZD,
+				sprintf(
+					'nazwa produktu „%s" zamiast „%s" — klient widzi ją w kasie. Napraw: wp aai-platnosci sync %s',
+					(string) $produkt->get_name( 'edit' ),
+					(string) $kurs['title'],
+					(string) $kurs['slug']
+				),
+			);
+		}
+		$opis_kursu = (string) ( $kurs['short_desc'] ?? '' );
+		if ( (string) $produkt->get_short_description( 'edit' ) !== $opis_kursu ) {
+			$r[] = array(
+				self::STAN_ROZJAZD,
+				sprintf(
+					'krótki opis produktu nie pochodzi z naszej tabeli — klient czyta w kasie „%s". Napraw: wp aai-platnosci sync %s',
+					wp_trim_words( (string) $produkt->get_short_description( 'edit' ), 12, '…' ),
+					(string) $kurs['slug']
+				),
+			);
+		}
+
 		$cena = number_format( ( (int) $kurs['price_grosze'] ) / 100, 2, '.', '' );
 		if ( $produkt->get_regular_price( 'edit' ) !== $cena ) {
 			$r[] = array( self::STAN_ROZJAZD, sprintf( 'cena regularna %s zamiast %s', $produkt->get_regular_price( 'edit' ), $cena ) );

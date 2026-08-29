@@ -591,6 +591,59 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* 30. TEKST, KTÓRY KLIENT CZYTA W KASIE, POCHODZI Z NASZEJ TABELI.
+
+   Woo drukuje `short_description` produktu pod nazwą pozycji w koszyku
+   i w podsumowaniu zamówienia, a Store API oddaje je publicznie. Do
+   0.50.0 kopia tego pola NIE USTAWIAŁA — było niczyje, więc w kasie pod
+   nazwą kursu wylądowała „cudza edycja 1787936224" (ślad po ręcznym
+   dowodzeniu haka B13 na produkcie 675, znaleziony przez właściciela
+   klikaniem, nie przez bramkę).
+
+   Pytamy o ZACHOWANIE, nie o nazwy: (a) czy synchronizacja SIĘGA po
+   `short_desc` z kursu, (b) czy oba pola widoczne dla klienta jadą przez
+   `wp_slash()`, (c) czy kontrola PORÓWNUJE opis. Wzorzec na nazwę
+   zmiennej byłby ślepy na przemianowanie, a wzorzec na samą obecność
+   napisu — na przeniesienie go gdzie indziej w pliku (piąty nawrót tej
+   pułapki: 0.29.0, 0.44.0, 0.47.0, c6c9c97, P4). */
+{
+  const zapisT = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+  const iSync = zapisT.indexOf("function synchronizuj_kurs");
+  const blokSync = iSync < 0 ? "" : zapisT.slice(iSync, zapisT.indexOf("\n\tpublic static function", iSync + 10));
+
+  if (!/\[\s*'short_desc'\s*\]/.test(blokSync)) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: synchronizacja produktu nie sięga po short_desc kursu. Krótki opis produktu jest wtedy POLEM NICZYIM, a Woo drukuje go klientowi w koszyku i w kasie — tak wyszła „cudza edycja 1787936224" na produkcie 675.`
+    );
+  }
+  for (const [setter, co] of [
+    ["set_short_description", "krótki opis"],
+    ["set_name", "nazwa"],
+  ]) {
+    const wywolania = [...blokSync.matchAll(new RegExp(`${setter}\\(([^;]*)\\)`, "g"))];
+    if (wywolania.length === 0) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: synchronizacja nie ustawia pola „${co}" produktu — klient zobaczy w kasie to, co zostawił tam ktokolwiek inny.`
+      );
+      continue;
+    }
+    if (wywolania.some((w) => !/wp_slash\s*\(/.test(w[1]))) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: „${co}" produktu zapisywane BEZ wp_slash(). ZMIERZONE na Woo 11.0.1: set_name()/set_short_description() kończą w wp_insert_post(), które puszcza wartość przez wp_unslash() — ginie każdy backslash (C:\\Users, sekwencja \\n; kurs o Gicie takich pełen). To rodzina pułapki update_post_meta z W2.`
+      );
+    }
+  }
+
+  const cliT = kod(readFileSync(join(KATALOG, "includes", "class-aai-platnosci-cli.php"), "utf8"));
+  const iRoz = cliT.indexOf("function rozjazdy_kursu");
+  const blokRoz = iRoz < 0 ? "" : cliT.slice(iRoz, cliT.indexOf("\n\tprivate static function", iRoz + 10));
+  if (!/get_short_description\s*\([^)]*\)\s*!==|!==\s*[^;\n]*get_short_description/.test(blokRoz)) {
+    bledy.push(
+      `${join(KATALOG, "includes", "class-aai-platnosci-cli.php")}: kontrola nie PORÓWNUJE krótkiego opisu produktu z naszą tabelą. Cudzy tekst pod nazwą kursu w kasie nie zapaliłby wtedy kodu 1 — a to jedyne pole produktu, które klient czyta, a którego nie widać w żadnym innym pomiarze.`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -598,5 +651,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami)."
 );

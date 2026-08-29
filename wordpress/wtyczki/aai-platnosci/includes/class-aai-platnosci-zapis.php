@@ -550,6 +550,31 @@ final class Aai_Platnosci_Zapis {
 		}
 
 		$cena       = number_format( $kurs['price_grosze'] / 100, 2, '.', '' );
+		/*
+		 * KRÓTKI OPIS PRODUKTU — pole, które klient CZYTA W KASIE.
+		 *
+		 * Woo drukuje `short_description` pod nazwą pozycji w koszyku,
+		 * w podsumowaniu zamówienia w kasie i oddaje je publicznie przez
+		 * Store API (`/wc/store/v1/products/<id>`). Do 0.50.0 kopia go
+		 * NIE USTAWIAŁA — pole było niczyje, więc czytelnikiem stawał się
+		 * każdy, kto cokolwiek tam zapisał. Znalezione na żywej instalacji:
+		 * w kasie pod nazwą kursu widniało „cudza edycja 1787936224",
+		 * ślad po ręcznym dowodzeniu haka B13 na produkcie 675.
+		 *
+		 * Źródłem jest `courses.short_desc` — ta sama kolumna, którą do
+		 * Tutora kopiuje `Aai_Sklep_Tutor`. Jedno źródło, dwie kopie.
+		 *
+		 * `wp_slash()` NIE jest ostrożnością na zapas — ZMIERZONE na
+		 * `:8892` (Woo 11.0.1): `set_short_description()` i `set_name()`
+		 * kończą w `wp_insert_post()`, które przepuszcza wartość przez
+		 * `wp_unslash()`, więc bez posłodzenia z opisu ginie KAŻDY
+		 * backslash (`C:\Users`, sekwencja `\n` — a kurs o Gicie takich
+		 * zapisów pełen). Powtórny zapis tej samej wartości slashy NIE
+		 * kumuluje (też zmierzone), więc idempotencja zostaje.
+		 * To ta sama rodzina co pułapka `update_post_meta` z kroku W2 —
+		 * różnica jest taka, że tam ratował nas `$wpdb`, a tu nie.
+		 */
+		$opis       = (string) ( $kurs['short_desc'] ?? '' );
 		$product_id = self::produkt_kursu( $course_uuid );
 		$produkt    = null !== $product_id ? wc_get_product( $product_id ) : false;
 
@@ -559,7 +584,8 @@ final class Aai_Platnosci_Zapis {
 			// nasza strona sprzedażowa — klient nie ma trafiać na produkt
 			// w cudzym wyglądzie.
 			$produkt = new WC_Product_Simple();
-			$produkt->set_name( $kurs['title'] );
+			$produkt->set_name( wp_slash( $kurs['title'] ) );
+			$produkt->set_short_description( wp_slash( $opis ) );
 			$produkt->set_status( 'draft' );
 			$produkt->set_virtual( true );
 			$produkt->set_sold_individually( true );
@@ -575,7 +601,11 @@ final class Aai_Platnosci_Zapis {
 			// Aktualizacja TYLKO przy realnej różnicy.
 			$zmiany = false;
 			if ( $produkt->get_name( 'edit' ) !== $kurs['title'] ) {
-				$produkt->set_name( $kurs['title'] );
+				$produkt->set_name( wp_slash( $kurs['title'] ) );
+				$zmiany = true;
+			}
+			if ( (string) $produkt->get_short_description( 'edit' ) !== $opis ) {
+				$produkt->set_short_description( wp_slash( $opis ) );
 				$zmiany = true;
 			}
 			if ( $produkt->get_regular_price( 'edit' ) !== $cena ) {
