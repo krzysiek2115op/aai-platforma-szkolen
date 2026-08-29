@@ -236,6 +236,36 @@
       "naprawa": "Warstwa akcji NIE wstawia juz klucza, ktorego nie przyslano — `sekcje` i `moduly` wchodza do wejscia tylko wtedy, gdy naprawde przyszly. Lancuch „nie przyslano → brak klucza → nie ruszaj” jest teraz caly. Blok zlego wejscia w smoke'u wysyla poprawne `sekcje` i `moduly`, wiec o wyniku decyduje ta jedna usterka, ktora przypadek nazywa.",
       "test": "tools/smoke/smoke-wp-kreator.mjs — dwa testy negatywne po naprawie, kazdy trafia w SWOJ przypadek i tylko w niego: wylaczenie odmowy dla zarezerwowanego slugu → pada „adres zajety przez strone sklepu”; zdjecie wymagalnosci tytulu → pada „pusty tytul”. Przed naprawa oba przechodzily.",
       "straznik": "Bez osobnego straznika: to jest usterka DOWODU, nie kodu produkcyjnego, a chroni przed nia regula projektu „kazdy nowy test sprawdzic testem negatywnym” (WYTYCZNE, lekcja z 0.24.0). Zachowania „brak klucza znaczy nie ruszaj” pilnuje straznik-kreatora-wp (niezmiennik 6)."
+    },
+    {
+      "id": "BLAD-023",
+      "data": "2026-08-29",
+      "klasa": "koszyk-kumuluje-kursy-mimo-ze-przycisk-obiecuje-jeden",
+      "dowod": "Zgloszenie wlasciciela z testu recznego P4 (zrzuty). Klikniecie „Dolaczam za 299,00 zl” na stronie kursu Claude prowadzi do kasy, w ktorej sa DWA kursy i 648,00 zl do zaplaty — bo wczesniej klikniety kurs GitHub zostal w koszyku (sesja/persistent cart WooCommerce). Do tego ponowne klikniecie tego samego kursu daje komunikat „You cannot add another … to your cart” (nasze `_sold_individually`), co przy pelnym koszyku wyglada jak awaria, a nie jak odmowa.",
+      "skutek": "Klient, ktory chcial kupic JEDEN kurs, widzi w kasie kwote za wszystkie kiedykolwiek klikniete. Przycisk obiecuje konkretna cene, kasa pokazuje inna — najgorszy mozliwy moment na niespodzianke.",
+      "naprawa": "DO ZROBIENIA (po /clear). Rozstrzygniecie nalezy do wlasciciela: czy „Dolaczam” ma CZYSCIC koszyk i kupowac jeden kurs, czy zostawic koszyk skladany (wtedy przycisk i strona musza mowic prawde o zawartosci).",
+      "test": "brak — do dopisania razem z naprawa",
+      "straznik": "brak — do dopisania razem z naprawa"
+    },
+    {
+      "id": "BLAD-024",
+      "data": "2026-08-29",
+      "klasa": "sciezka-klienta-po-angielsku-mimo-polskiego-sklepu",
+      "dowod": "Zgloszenie wlasciciela z testu recznego P4 (zrzut kasy). Kasa, koszyk i strona konta pokazuja „Order summary”, „Contact information”, „Billing address”, „Payment options”, „Add coupons”, a strona odzyskiwania hasla „Lost your password?”. Instalacja stoi na `en_US`; nasze wlasne napisy sa polskie, cudze (WooCommerce, Tutor) nie.",
+      "skutek": "Klient placi na stronie w dwoch jezykach naraz. Dotyczy KAZDEGO punktu styku poza naszymi szablonami — takze obu maili WooCommerce i wszystkich komunikatow bledow kasy.",
+      "naprawa": "DO ZROBIENIA (po /clear): jezyk instalacji + tlumaczenia WooCommerce i Tutora; sprawdzic, czy zmiana jezyka nie wywala asercji smoke'ow opartych na angielskich napisach.",
+      "test": "brak — do dopisania razem z naprawa",
+      "straznik": "brak — do dopisania razem z naprawa"
+    },
+    {
+      "id": "BLAD-025",
+      "data": "2026-08-29",
+      "klasa": "cudze-maile-poza-nasza-warstwa-ida-nieostylowane-i-z-obcego-adresu",
+      "dowod": "Zgloszenie wlasciciela z testu recznego P4 (zrzut skrzynki). Po ustawieniu hasla przez klienta wychodzi wiadomosc „[Automatic AI (srodowisko robocze)] Password Changed” od `WordPress <wordpress@127.0.0.1>`, trescia „Password changed for user: jan.testowy” — goly tekst, obcy nadawca, po angielsku. To powiadomienie rdzenia WordPressa (`wp_password_change_notification`), nie nasze.",
+      "skutek": "Klient i wlasciciel dostaja w tej samej scieżce wiadomosci z DWOCH roznych swiatow: nasze premium i gole powiadomienia WordPressa z adresu `wordpress@`. Nadawca `wordpress@127.0.0.1` na produkcji trafi do spamu albo zostanie odrzucony (SPF).",
+      "naprawa": "DO ZROBIENIA (po /clear). Zakres szerszy niz jeden mail: przejrzec WSZYSTKIE wiadomosci, ktore moga wyjsc na sciezce klienta (rdzen WP, WooCommerce, Tutor) i rozstrzygnac dla kazdej: zostaje / gasimy / przejmujemy.",
+      "test": "brak — do dopisania razem z naprawa",
+      "straznik": "brak — do dopisania razem z naprawa"
     }
   ]
 }
