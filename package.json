@@ -41,7 +41,8 @@
     "smoke:wp-produkty": "node tools/smoke/smoke-wp-produkty.mjs",
     "smoke:wp-zakup": "node tools/smoke/smoke-wp-zakup.mjs",
     "smoke:wp-jezyk": "node tools/smoke/smoke-wp-jezyk.mjs",
-    "smoke:wp-maile": "node tools/smoke/smoke-wp-maile.mjs"
+    "smoke:wp-maile": "node tools/smoke/smoke-wp-maile.mjs",
+    "smoke:wp-zwroty": "node tools/smoke/smoke-wp-zwroty.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.33.0",
