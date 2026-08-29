@@ -367,6 +367,21 @@ final class Aai_Platnosci_Ustawienia {
 			}
 		}
 
+		/*
+		 * PODATKI. Cena pokazywana na stronie (P3b) idzie z
+		 * `WC_Product::get_price()`, czyli BEZ doliczonego VAT-u. Dopóki
+		 * podatki są wyłączone, cena na stronie równa się cenie w kasie —
+		 * i to jest cała obietnica tego kroku (K2). Włączenie naliczania
+		 * podatku bez przeliczenia ceny efektywnej rozjeżdża tę parę w sposób,
+		 * którego nie widać na żadnym ekranie: strona pokaże kwotę netto,
+		 * a kasa doliczy VAT. VAT jest świadomie odłożony (DIAGRAM.md,
+		 * sekcja 16) — ten wiersz pilnuje, żeby jego włączenie nie przeszło
+		 * w milczeniu.
+		 */
+		if ( 'yes' === (string) get_option( 'woocommerce_calc_taxes', 'no' ) ) {
+			$r[] = 'woocommerce_calc_taxes = „yes", a cena na stronie idzie z get_price() BEZ podatku — kasa doliczyłaby VAT do kwoty, którą klient widział w katalogu (K2). Do czasu przeliczenia ceny efektywnej pod podatek: wyłącz naliczanie albo zmień źródło ceny w Aai_Platnosci_Cena.';
+		}
+
 		foreach ( self::BLOKI_CIEMNYCH_POL as $klucz => $klasa_bloku ) {
 			$id   = (int) get_option( $klucz, 0 );
 			$tekst = $id > 0 ? (string) get_post_field( 'post_content', $id ) : '';

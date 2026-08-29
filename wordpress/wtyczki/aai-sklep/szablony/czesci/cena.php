@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 $aai_pakiet    = $aai_sekcje['package'] ?? array();
 $aai_gwarancja = $aai_sekcje['guarantee'] ?? null;
 $aai_punkty    = $aai_pakiet['punkty'] ?? array();
-$aai_cena      = Aai_Sklep_Widok::formatuj_cene( (int) $kurs['price_grosze'] );
+$aai_cena      = Aai_Sklep_Widok::formatuj_cene( Aai_Sklep_Widok::cena_grosze( $kurs ) );
 $aai_liczby    = Aai_Sklep_Widok::metadane_kursu( $kurs, false );
 ?>
 <section id="cena" class="aai-oferta">
@@ -80,7 +80,7 @@ $aai_liczby    = Aai_Sklep_Widok::metadane_kursu( $kurs, false );
 						<p class="aai-oferta-domkniecie"><?php echo esc_html( $aai_pakiet['domkniecie'] ); ?></p>
 					<?php endif; ?>
 
-					<?php Aai_Sklep_Widok::cta( null, true, 'Dołączam do kursu', 'aai-btn-pelny' ); ?>
+					<?php Aai_Sklep_Widok::cta( $kurs, true, 'Dołączam do kursu', 'aai-btn-pelny' ); ?>
 
 					<p class="aai-oferta-wahanie">
 						Wciąż się wahasz? <a href="#program">Zobacz jeszcze raz pełny program</a>.

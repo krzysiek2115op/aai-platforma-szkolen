@@ -1442,6 +1442,105 @@ const MUTACJE = [
       "<?php\n// Historia: add_filter( 'woocommerce_add_to_cart_validation' ) mieszka w klasie ustawień.\n" + s.slice(6),
   },
 
+  // P3b: dostarczanie dostępu i przycisk zakupu. Każda mutacja z polem
+  // `oczekiwanySlad` — reguła ma się zapalić WŁAŚCIWA.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "domykanie obejmuje zamówienia MIESZANE (cudzy towar do wysyłki wygląda na wysłany)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "odmowy domknięcia na CUDZYM produkcie",
+    zmien: (s) =>
+      s.includes("\t\t\t\treturn false;\n\t\t\t}\n\t\t\t++$kursow;")
+        ? s.replace("\t\t\t\treturn false;\n\t\t\t}\n\t\t\t++$kursow;", "\t\t\t\tcontinue;\n\t\t\t}\n\t\t\t++$kursow;")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "filtr obsługi pozycji narzuca własną odpowiedź CUDZYM produktom (zmienia realizację nie swoich zamówień)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "nie oddaje wartości wejściowej",
+    zmien: (s) =>
+      s.includes("return (bool) $wymaga;")
+        ? s.split("return (bool) $wymaga;").join("return true;")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "przycisk pyta o DOSTĘP zamiast o zapis („Przejdź do kursu” dla zapowiedzi i dla administratora)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
+    oczekiwanySlad: "nie pyta Tutora o ZAPIS",
+    zmien: (s) => (s.includes("is_enrolled(") ? s.split("is_enrolled(").join("ma_dostep_do_kursu(") : null),
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "warunek sprzedaży zduplikowany (przycisk i dane strukturalne mogą się rozjechać — K2)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
+    oczekiwanySlad: "ma być dokładnie raz",
+    zmien: (s) =>
+      s.includes("\t\t\tif ( '' === $uuid || null === self::produkt_do_kupienia( $uuid ) ) {")
+        ? s.replace(
+            "\t\t\tif ( '' === $uuid || null === self::produkt_do_kupienia( $uuid ) ) {",
+            "\t\t\tif ( ! Aai_Platnosci_Ustawienia::sprzedaz_otwarta() ) {\n\t\t\t\treturn $domyslna;\n\t\t\t}\n\t\t\tif ( '' === $uuid || null === self::produkt_do_kupienia( $uuid ) ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "dostępność oferty zaczyna zależeć od OGLĄDAJĄCEGO (stan jednego człowieka w opisie oferty dla wszystkich)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
+    oczekiwanySlad: "pyta o OGLĄDAJĄCEGO",
+    zmien: (s) =>
+      s.includes("\t\t\t: 'https://schema.org/PreOrder';\n\t\ttry {")
+        ? s.replace(
+            "\t\t\t: 'https://schema.org/PreOrder';\n\t\ttry {",
+            "\t\t\t: 'https://schema.org/PreOrder';\n\t\tif ( get_current_user_id() > 0 ) {\n\t\t\treturn $domyslna;\n\t\t}\n\t\ttry {"
+          )
+        : null,
+  },
+
+  // P3b, znaleziska przeglądu: kupowalność produktu, status zapisu, moment domknięcia.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "decyzja o zakupie przestaje pytać o KUPOWALNOŚĆ (produkt publish z pustą ceną obiecuje zakup, którego kasa odmówi)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
+    oczekiwanySlad: "nie pyta WooCommerce o kupowalność",
+    zmien: (s) =>
+      s.includes("\t\tif ( ! $produkt->is_purchasable() ) {\n\t\t\treturn null;\n\t\t}\n")
+        ? s.replace("\t\tif ( ! $produkt->is_purchasable() ) {\n\t\t\treturn null;\n\t\t}\n", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "stan „zamówienie w toku” przestaje patrzeć na STATUS zapisu (anulowane zamówienie blokuje zakup na zawsze)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
+    oczekiwanySlad: "nie sprawdza STATUSU zapisu",
+    zmien: (s) =>
+      s.includes("\t\t\t$status = (string) get_post_status( (int) $zapis->ID );\n\t\t\tif ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {")
+        ? s.replace(
+            "\t\t\t$status = (string) get_post_status( (int) $zapis->ID );\n\t\t\tif ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {",
+            "\t\t\tif ( true ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "domknięcie wraca do środka cudzego przejścia statusu (mail „zrealizowane” przed „w realizacji”)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "nie jest odłożone na koniec żądania",
+    zmien: (s) =>
+      s.includes("add_action(\n\t\t\t\t'shutdown',")
+        ? s.replace("add_action(\n\t\t\t\t'shutdown',", "call_user_func(\n\t\t\t\t")
+        : null,
+  },
+
   {
     straznik: "straznik-tresci-lekcji",
     opis: "zgoda na skasowanie treści wypada z KONTRAKTU (zostaje umową panelu z dyspozytorem)",

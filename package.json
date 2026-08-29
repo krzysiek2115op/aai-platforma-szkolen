@@ -37,7 +37,8 @@
     "smoke:wp-panel": "node tools/smoke/smoke-wp-panel.mjs",
     "smoke:wp-platnosci": "node tools/smoke/smoke-wp-platnosci.mjs",
     "wp:sync-platnosci": "podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-platnosci sync",
-    "smoke:wp-produkty": "node tools/smoke/smoke-wp-produkty.mjs"
+    "smoke:wp-produkty": "node tools/smoke/smoke-wp-produkty.mjs",
+    "smoke:wp-zakup": "node tools/smoke/smoke-wp-zakup.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.33.0",

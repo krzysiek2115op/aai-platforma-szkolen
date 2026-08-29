@@ -33,7 +33,7 @@ defined( 'ABSPATH' ) || exit;
 
 	<p class="aai-faq-stopka">
 		Masz inne pytanie?
-		<a href="<?php echo esc_url( Aai_Sklep_Widok::adres_zakupu() ); ?>">Napisz do nas</a>
+		<a href="<?php echo esc_url( Aai_Sklep_Widok::adres_kontaktu() ); ?>">Napisz do nas</a>
 		— odpowiadamy szczerze, także gdy ten kurs nie jest dla Ciebie.
 	</p>
 </section>
