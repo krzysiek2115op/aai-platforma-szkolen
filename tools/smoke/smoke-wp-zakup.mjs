@@ -32,11 +32,15 @@
  * Użycie: node tools/smoke/smoke-wp-zakup.mjs
  */
 import { execFileSync } from "node:child_process";
+import { rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
 const BAZOWY = process.env.WP_ADRES ?? "http://127.0.0.1:8892";
 const KURS = "aaaa0000-0000-4000-8000-0000000p3b09";
+const KURS_DRUGI = "aaaa0000-0000-4000-8000-0000000p3b10";
 const SLUG = "smoke-wp-zakup";
 const OPCJA_SPRZEDAZ = "aai_platnosci_sprzedaz_otwarta";
 
@@ -323,6 +327,97 @@ try {
     statusZamowienia(zamMieszane) === "processing",
     `zamówienie MIESZANE ma status „${statusZamowienia(zamMieszane)}” — cudzy towar czeka na wysyłkę, a zamówienie wygląda na zrealizowane`
   );
+
+  /* ── 6. KOSZYK TRZYMA JEDEN KURS (BLAD-023) ──────────────────────── */
+
+  /*
+   * Zgłoszenie właściciela z testu ręcznego: „nie da się kupić jednego
+   * kursu, zawsze w koszyku są 2". Klik „Dołączam za 299,00 zł" na jednym
+   * kursie i „za 349,00 zł" na drugim dawał w kasie **648,00 zł** —
+   * przycisk obiecywał jedną kwotę, kasa pokazywała inną.
+   *
+   * MIERZYMY SESJĄ, NIE API KOSZYKA. `WC()->cart->add_to_cart()` nie woła
+   * `woocommerce_add_to_cart_validation` (zmierzone przy P4), a koszyk
+   * gościa jest niewidzialny dla zalogowanego (P3a) — więc jedyny uczciwy
+   * pomiar to prawdziwe żądania HTTP w jednej sesji ciasteczkowej,
+   * odczytane tym samym Store API, którym karmi się blok kasy.
+   */
+  {
+    const jar = join(tmpdir(), `aai-koszyk-${process.pid}.txt`);
+    const zada = (sciezka) =>
+      execFileSync("curl", ["-s", "-L", "-o", "/dev/null", "-c", jar, "-b", jar, `${BAZOWY}${sciezka}`], {
+        encoding: "utf8",
+        maxBuffer: 8 * 1024 * 1024,
+      });
+    const koszyk = () =>
+      JSON.parse(
+        execFileSync("curl", ["-s", "-b", jar, `${BAZOWY}/wp-json/wc/store/v1/cart`], {
+          encoding: "utf8",
+          maxBuffer: 8 * 1024 * 1024,
+        })
+      );
+    try {
+      rmSync(jar, { force: true });
+      sprzedaz(true);
+      // Cudzy towar wchodzi PIERWSZY — to on jest dowodem, że reguła
+      // dotyczy wyłącznie naszych kursów.
+      zada(`/?add-to-cart=${obcy}`);
+      zada(`/?add-to-cart=${produkt}`);
+      const poJednym = koszyk();
+      sprawdz(
+        poJednym.items.filter((i) => i.id === produkt).length === 1,
+        `po dodaniu kursu nie ma go w koszyku — dalszy pomiar byłby ślepy (pozycje: ${poJednym.items.map((i) => i.id).join(", ")})`
+      );
+
+      // Drugi NASZ kurs: pierwszy ma ustąpić, cudzy towar ma zostać.
+      /*
+       * UUID drugiego kursu ma DOKŁADNIE 36 znaków. Pierwsza wersja
+       * doklejała `-2` do uuid pierwszego i dostawała 38 — a kolumna to
+       * `char(36)`, więc powiązanie zapisywało się obcięte i
+       * `czy_produkt_kursu()` nie poznawało własnego produktu. Smoke
+       * padał wtedy komunikatem „wraca BLAD-023", choć reguła działała
+       * poprawnie (sprawdzone równolegle w przeglądarce). Test, który
+       * kłamie o kodzie, jest gorszy niż brak testu.
+       */
+      const drugi = Number(
+        php(
+          `$p = new WC_Product_Simple(); $p->set_name( 'Smoke drugi kurs' ); $p->set_regular_price( '77' );` +
+            ` $p->set_status( 'publish' ); $p->set_sold_individually( true ); $id = $p->save();` +
+            ` Aai_Platnosci_Zapis::powiazanie_ustaw( '${KURS_DRUGI}', (int) $id ); echo (int) $id;`
+        )
+      );
+      try {
+        zada(`/?add-to-cart=${drugi}`);
+        const po = koszyk();
+        const nasze = po.items.filter((i) => i.id === produkt || i.id === drugi).map((i) => i.id);
+        sprawdz(
+          nasze.length === 1 && nasze[0] === drugi,
+          `w koszyku zostało ${nasze.length} naszych kursów (${nasze.join(", ")}) zamiast jednego — wraca BLAD-023: kasa pokaże sumę wszystkich klikniętych`
+        );
+        sprawdz(
+          po.items.some((i) => i.id === obcy),
+          "reguła jednego kursu WYRZUCIŁA cudzy produkt z koszyka — nie mamy prawa opróżniać klientowi koszyka z rzeczy, o których nic nie wiemy"
+        );
+        // Ten sam kurs drugi raz: koszyk bez zmian, zero odmowy Woo.
+        zada(`/?add-to-cart=${drugi}`);
+        const poPowtorce = koszyk();
+        sprawdz(
+          poPowtorce.items.filter((i) => i.id === drugi).length === 1 &&
+            poPowtorce.items.find((i) => i.id === drugi).quantity === 1,
+          "powtórne dodanie tego samego kursu zmieniło koszyk — miało być bez zmian i bez błędu"
+        );
+        sprawdz(
+          poPowtorce.items.length === po.items.length,
+          `powtórne kliknięcie zmieniło liczbę pozycji koszyka (${po.items.length} → ${poPowtorce.items.length})`
+        );
+      } finally {
+        php(`Aai_Platnosci_Zapis::powiazanie_usun( '${KURS_DRUGI}' ); $p = wc_get_product( ${drugi} ); if ( $p ) { $p->delete( true ); } echo 'ok';`);
+      }
+    } finally {
+      rmSync(jar, { force: true });
+      sprzedaz(false);
+    }
+  }
 
   const zamObcy = zamowienie([obcy], "", true);
   zamowienia.push(zamObcy);

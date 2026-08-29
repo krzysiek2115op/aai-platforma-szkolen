@@ -176,6 +176,13 @@ final class Aai_Platnosci_Ustawienia {
 		}
 		add_filter( 'woocommerce_add_to_cart_validation', array( self::class, 'blokada_sprzedazy' ), 10, 2 );
 		/*
+		 * JEDEN KURS W KOSZYKU (BLAD-023, decyzja właściciela 2026-08-29).
+		 * Priorytet 20, czyli PO blokadzie: gdyby sprzedaż była zamknięta
+		 * albo zakupu nie dało się dostarczyć, nie ma o czym rozmawiać.
+		 */
+		add_filter( 'woocommerce_add_to_cart_validation', array( self::class, 'juz_w_koszyku' ), 20, 2 );
+		add_action( 'woocommerce_add_to_cart', array( self::class, 'zostaw_jeden_kurs' ), 10, 2 );
+		/*
 		 * Filtr obronny B17 dla maila „nowe konto": wartość w bazie
 		 * ustawia `napraw()`, ale ekran ustawień WooCommerce cofa ją
 		 * jednym kliknięciem. Rozjazd i tak zobaczy kontrola — ten filtr
@@ -355,6 +362,133 @@ final class Aai_Platnosci_Ustawienia {
 	 *
 	 * @param string $tresc Treść.
 	 */
+	/**
+	 * Ten kurs jest już w koszyku — to nie jest błąd, tylko stan docelowy.
+	 *
+	 * BLAD-023, druga połowa. Klient klikał „Dołączam za 349 zł" na kursie,
+	 * który miał już w koszyku, i dostawał CZERWONY komunikat Woo
+	 * „You cannot add another …", choć trafiał na kasę dokładnie z tym
+	 * kursem. Właściciel opisał to słowami „wygląda jak awaria" — i miał
+	 * rację: cel klienta był osiągnięty, a strona krzyczała błędem.
+	 *
+	 * ZMIERZONE w Woo 11.0.1: odmowę rzuca `WC_Cart::add_to_cart()`
+	 * wyjątkiem (`class-wc-cart.php:1307`), gdy produkt ma
+	 * `sold_individually` i siedzi już w koszyku. Nasza walidacja biegnie
+	 * WCZEŚNIEJ — w form handlerze i w Store API — więc zdejmujemy sprawę,
+	 * zanim Woo zdąży ją nazwać błędem: zwracamy `false` (nie dokładaj
+	 * drugi raz) i mówimy klientowi normalnym zdaniem, co się stało.
+	 *
+	 * `sold_individually` ZOSTAJE — to on pilnuje, żeby `quantity=3`
+	 * w adresie nie wzięło trzech sztuk kursu (B14).
+	 *
+	 * @param bool|mixed $przeszlo   Wynik dotychczasowej walidacji.
+	 * @param int|mixed  $product_id Produkt dokładany do koszyka.
+	 * @return bool
+	 */
+	public static function juz_w_koszyku( $przeszlo, $product_id ): bool {
+		if ( true !== $przeszlo ) {
+			return false;
+		}
+		try {
+			if ( ! Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $product_id ) ) {
+				return true;
+			}
+			$koszyk = function_exists( 'WC' ) && WC()->cart ? WC()->cart : null;
+			if ( null === $koszyk ) {
+				return true;
+			}
+			foreach ( $koszyk->get_cart() as $pozycja ) {
+				if ( (int) ( $pozycja['product_id'] ?? 0 ) !== (int) $product_id ) {
+					continue;
+				}
+				if ( function_exists( 'wc_add_notice' ) ) {
+					wc_add_notice( __( 'Ten kurs już czeka w Twoim koszyku.', 'aai-platnosci' ), 'notice' );
+				}
+				return false;
+			}
+			return true;
+		} catch ( Throwable $e ) {
+			// Nie nasza decyzja o sprzedaży — przy niepewności NIE blokujemy
+			// (od odmów jest blokada_sprzedazy, która przy błędzie zamyka).
+			Aai_Platnosci_Komunikaty::zapisz( 'przy sprawdzaniu zawartości koszyka (produkt ' . (int) $product_id . '): ' . $e->getMessage() );
+			return true;
+		}
+	}
+
+	/**
+	 * W koszyku zostaje NAJWYŻEJ JEDEN nasz kurs.
+	 *
+	 * BLAD-023: klient klikał „Dołączam za 299,00 zł" na kursie Claude,
+	 * potem „Dołączam za 349,00 zł" na GitHubie — i widział w kasie
+	 * **648,00 zł**. Przycisk obiecywał jedną kwotę, kasa pokazywała inną,
+	 * w najgorszym możliwym momencie. Zmierzone na żywej instalacji przed
+	 * naprawą (sesja gościa, dwa kliknięcia).
+	 *
+	 * Decyzja właściciela (2026-08-29): jeden kurs na raz — przycisk ma
+	 * zawsze mówić prawdę o kwocie w kasie. Klient kupujący dwa kursy
+	 * robi dwa zakupy.
+	 *
+	 * CUDZYCH PRODUKTÓW NIE RUSZAMY. Reguła dotyczy wyłącznie pozycji,
+	 * które są naszymi kursami (wiersz w `powiazania`) — sklep może
+	 * kiedyś sprzedawać coś jeszcze i nie mamy prawa opróżniać komuś
+	 * koszyka z rzeczy, o których nic nie wiemy. Zmierzone: po dodaniu
+	 * cudzego towaru i dwóch kursów w koszyku zostaje cudzy towar
+	 * i JEDEN kurs.
+	 *
+	 * Podmiana NIE jest cicha: klient dostaje zdanie o tym, co zostało
+	 * w koszyku. Cicha zmiana zawartości koszyka byłaby tą samą klasą
+	 * błędu co BLAD-023, tylko odwróconą.
+	 *
+	 * @param string|mixed $klucz_pozycji Klucz świeżo dodanej pozycji.
+	 * @param int|mixed    $product_id    Dodany produkt.
+	 * @return void
+	 */
+	public static function zostaw_jeden_kurs( $klucz_pozycji, $product_id ): void {
+		try {
+			if ( ! Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $product_id ) ) {
+				return;
+			}
+			$koszyk = function_exists( 'WC' ) && WC()->cart ? WC()->cart : null;
+			if ( null === $koszyk ) {
+				return;
+			}
+			// Klucze zbieramy PRZED kasowaniem: `remove_cart_item()` zmienia
+			// tablicę, po której właśnie iterujemy.
+			$do_zdjecia = array();
+			foreach ( $koszyk->get_cart() as $klucz => $pozycja ) {
+				if ( (string) $klucz === (string) $klucz_pozycji ) {
+					continue;
+				}
+				$inny = (int) ( $pozycja['product_id'] ?? 0 );
+				if ( $inny > 0 && Aai_Platnosci_Zapis::czy_produkt_kursu( $inny ) ) {
+					$do_zdjecia[] = $klucz;
+				}
+			}
+			if ( array() === $do_zdjecia ) {
+				return;
+			}
+			foreach ( $do_zdjecia as $klucz ) {
+				$koszyk->remove_cart_item( $klucz );
+			}
+			$produkt = wc_get_product( (int) $product_id );
+			if ( function_exists( 'wc_add_notice' ) && $produkt ) {
+				wc_add_notice(
+					sprintf(
+						/* translators: %s: nazwa kursu */
+						__( 'Kursy kupuje się pojedynczo — w koszyku został „%s".', 'aai-platnosci' ),
+						$produkt->get_name()
+					),
+					'notice'
+				);
+			}
+		} catch ( Throwable $e ) {
+			// Koszyk zostaje taki, jaki był: gorzej pokazać klientowi dwa
+			// kursy niż wywalić mu dodawanie do koszyka wyjątkiem (ta sama
+			// lekcja co HTTP 500 z blokady sprzedaży, przegląd P4).
+			Aai_Platnosci_Komunikaty::zapisz( 'przy porządkowaniu koszyka (produkt ' . (int) $product_id . '): ' . $e->getMessage() );
+		}
+	}
+
 	private static function odmow( string $tresc ): void {
 		if ( function_exists( 'wc_add_notice' ) ) {
 			wc_add_notice( $tresc, 'error' );

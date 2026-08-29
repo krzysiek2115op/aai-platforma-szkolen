@@ -73,6 +73,7 @@ const ARKUSZ_LEKCJI = "wordpress/wtyczki/aai-sklep/assets/lekcja.css";
  *             bez materiału raportowałby fałszywe „PRZEPUŚCIŁ mutację".
  */
 const ZAPIS_PRODUKTU = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php";
+const USTAWIENIA_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php";
 const CLI_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php";
 
 const MUTACJE = [
@@ -1177,6 +1178,54 @@ const MUTACJE = [
             '$wpdb->prepare( "SELECT id FROM `$t_kursy` WHERE slug = %s", $slug )',
             '"SELECT id FROM `$t_kursy` WHERE slug = \'$slug\'"'
           )
+        : null,
+  },
+  // --- straznik-platnosci-wp, reguła 31 (jeden kurs w koszyku, BLAD-023) ---
+  // Zgłoszenie właściciela: „nie da się kupić jednego kursu, zawsze
+  // w koszyku są 2". Obie strony naprawy mają mutację, bo obie da się
+  // złamać po cichu — i obie kosztują klienta w kasie.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "hak porządkujący koszyk odpięty — wraca kumulacja kursów (BLAD-023)",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "koszyk nie jest porządkowany",
+    zmien: (s) =>
+      s.includes("add_action( 'woocommerce_add_to_cart', array( self::class, 'zostaw_jeden_kurs' ), 10, 2 );")
+        ? s.replace("add_action( 'woocommerce_add_to_cart', array( self::class, 'zostaw_jeden_kurs' ), 10, 2 );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "reguła jednego kursu istnieje, ale nic nie usuwa z koszyka",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "niczego nie usuwa z koszyka",
+    zmien: (s) =>
+      s.includes("$koszyk->remove_cart_item( $klucz );")
+        ? s.replace("$koszyk->remove_cart_item( $klucz );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "koszyk czyszczony BEZ pytania, czyj to produkt — cudzy towar wypada klientowi bez powodu",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "NIE PYTAJĄC, czy to nasz kurs",
+    zmien: (s) =>
+      s.includes("if ( $inny > 0 && Aai_Platnosci_Zapis::czy_produkt_kursu( $inny ) ) {")
+        ? s.replace("if ( $inny > 0 && Aai_Platnosci_Zapis::czy_produkt_kursu( $inny ) ) {", "if ( $inny > 0 ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "komunikat o kursie już obecnym w koszyku podany klientowi jako czerwony BŁĄD (druga połowa BLAD-023)",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "JAKO BŁĄD",
+    zmien: (s) =>
+      s.includes("'Ten kurs już czeka w Twoim koszyku.', 'aai-platnosci' ), 'notice' )")
+        ? s.replace("'Ten kurs już czeka w Twoim koszyku.', 'aai-platnosci' ), 'notice' )", "'Ten kurs już czeka w Twoim koszyku.', 'aai-platnosci' ), 'error' )")
         : null,
   },
   // --- straznik-platnosci-wp, reguła 30 (tekst widoczny klientowi w kasie) ---

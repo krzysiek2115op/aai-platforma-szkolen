@@ -242,11 +242,35 @@ if (!existsSync(USTAWIENIA)) {
 } else {
   const ust = kod(readFileSync(USTAWIENIA, "utf8"));
 
-  /* 11. blokada koszyka istnieje i jest DOMYŚLNIE ZAMKNIĘTA */
-  if (!/add_filter\(\s*'woocommerce_add_to_cart_validation'/.test(ust)) {
+  /* 11. blokada koszyka istnieje i jest DOMYŚLNIE ZAMKNIĘTA.
+
+     WZORZEC PYTA O KONKRETNY CALLBACK, nie o samą nazwę haka. Pierwsza
+     wersja sprawdzała obecność `add_filter( 'woocommerce_add_to_cart_validation'`
+     i OŚLEPŁA w chwili, w której na ten sam hak wszedł drugi filtr
+     (reguła jednego kursu w koszyku, N2/0.51.0): mutacja kasująca
+     rejestrację BLOKADY przechodziła, bo wzorzec trafiał w rejestrację
+     sąsiada. Złapał to audyt mutacyjny, nie przegląd — szósty nawrót
+     pułapki „wzorzec na napis" w tym projekcie (0.29.0, 0.44.0, 0.47.0,
+     c6c9c97, P4 ×2). Do tego pytamy o ZACHOWANIE: któryś z callbacków
+     walidacji musi pytać o stan sprzedaży. */
+  if (!/add_filter\(\s*'woocommerce_add_to_cart_validation',\s*array\(\s*self::class,\s*'blokada_sprzedazy'\s*\)/.test(ust)) {
     bledy.push(
-      `${USTAWIENIA}: BRAK BLOKADY SPRZEDAŻY (filtr woocommerce_add_to_cart_validation). Między P3a a P4 zakup jest technicznie możliwy, a dostarczanie (maile, dostawy) nie istnieje — to okno „klient płaci i nie dostaje nic".`
+      `${USTAWIENIA}: BRAK BLOKADY SPRZEDAŻY (filtr woocommerce_add_to_cart_validation nie ma podpiętej blokady). Między P3a a P4 zakup jest technicznie możliwy, a dostarczanie (maile, dostawy) nie istnieje — to okno „klient płaci i nie dostaje nic".`
     );
+  }
+  {
+    /* GRANICA BLOKU: następna deklaracja `function`, nie następny
+       docblock — `kod()` komentarze USUWA, więc szukanie `/**` zwracało
+       -1, a `slice(i, -1)` brało pół pliku i wzorzec trafiał w wywołanie
+       z zupełnie innej metody. Wykryte własnym testem negatywnym. */
+    const iBlok = ust.indexOf("function blokada_sprzedazy");
+    const iKoniec = iBlok < 0 ? -1 : ust.indexOf("function ", iBlok + 20);
+    const blokBlokady = iBlok < 0 ? "" : ust.slice(iBlok, iKoniec < 0 ? undefined : iKoniec);
+    if (iBlok >= 0 && !/sprzedaz_otwarta\s*\(\s*\)/.test(blokBlokady)) {
+      bledy.push(
+        `${USTAWIENIA}: blokada koszyka nie pyta o STAN SPRZEDAŻY — jest podpięta, ale przepuszcza wszystko niezależnie od tego, czy sprzedaż jest otwarta.`
+      );
+    }
   }
   if (!/get_option\(\s*self::OPCJA_SPRZEDAZ,\s*''\s*\)/.test(ust)) {
     bledy.push(
@@ -644,6 +668,63 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* 31. W KOSZYKU NAJWYŻEJ JEDEN NASZ KURS — i ani jednego cudzego mniej.
+
+   BLAD-023: przycisk obiecywał 299 zł, kasa pokazywała 648 zł, bo koszyk
+   kumulował kursy klikane wcześniej. Naprawa ma DWIE strony i obie muszą
+   być pilnowane: (a) po dodaniu naszego kursu inne NASZE kursy wypadają,
+   (b) cudze produkty zostają — sklep może kiedyś sprzedawać coś jeszcze,
+   a opróżnianie komuś koszyka z rzeczy, o których nic nie wiemy, byłoby
+   tą samą klasą błędu, tylko odwróconą.
+
+   Pytamy o ZACHOWANIE: czy porządkowanie jest podpięte do haka po
+   dodaniu, czy przed skasowaniem pozycji pada pytanie „czy to nasz
+   kurs", i czy powtórne dodanie tego samego kursu kończy się
+   komunikatem typu `notice`, a nie `error` (to była druga połowa
+   zgłoszenia właściciela: „wygląda jak awaria"). */
+{
+  const ust31 = kod(readFileSync(USTAWIENIA, "utf8"));
+
+  if (!/add_action\(\s*'woocommerce_add_to_cart'/.test(ust31)) {
+    bledy.push(
+      `${USTAWIENIA}: koszyk nie jest porządkowany po dodaniu kursu (brak haka woocommerce_add_to_cart). Wraca BLAD-023: przycisk obiecuje jedną kwotę, kasa pokazuje sumę wszystkich kiedykolwiek klikniętych kursów.`
+    );
+  }
+
+  const iPorzadek = ust31.indexOf("function zostaw_jeden_kurs");
+  const blokPorzadek = iPorzadek < 0 ? "" : ust31.slice(iPorzadek, ust31.indexOf("\n\tprivate static function", iPorzadek));
+  if (blokPorzadek === "") {
+    bledy.push(`${USTAWIENIA}: brak reguły „w koszyku zostaje jeden kurs" (BLAD-023).`);
+  } else {
+    if (!/remove_cart_item\s*\(/.test(blokPorzadek)) {
+      bledy.push(
+        `${USTAWIENIA}: reguła jednego kursu niczego nie usuwa z koszyka — istnieje, ale nie działa (BLAD-023).`
+      );
+    }
+    /* Kasowanie MUSI być poprzedzone pytaniem o właściciela pozycji.
+       Wzorzec celuje w rozstrzygnięcie (wywołanie czy_produkt_kursu na
+       INNEJ pozycji niż dodana), nie w obecność nazwy w pliku. */
+    const iUsuwanie = blokPorzadek.indexOf("remove_cart_item");
+    if (iUsuwanie >= 0 && !/czy_produkt_kursu\s*\(\s*\$inny|czy_produkt_kursu\s*\([^)]*\)\s*\)\s*\{[^}]*do_zdjecia/.test(blokPorzadek.slice(0, iUsuwanie))) {
+      bledy.push(
+        `${USTAWIENIA}: reguła jednego kursu kasuje pozycje koszyka NIE PYTAJĄC, czy to nasz kurs. Cudzy produkt (sklep może sprzedawać coś jeszcze) wypadałby klientowi z koszyka bez powodu.`
+      );
+    }
+  }
+
+  const iJuz = ust31.indexOf("function juz_w_koszyku");
+  const blokJuz = iJuz < 0 ? "" : ust31.slice(iJuz, ust31.indexOf("\n\tpublic static function", iJuz + 10));
+  if (blokJuz === "") {
+    bledy.push(
+      `${USTAWIENIA}: powtórne kliknięcie tego samego kursu nie jest obsłużone — klient dostaje wtedy czerwony błąd Woo „You cannot add another…", choć trafia do kasy dokładnie z tym kursem (druga połowa BLAD-023).`
+    );
+  } else if (!/wc_add_notice\([^;]*'notice'\s*\)/.test(blokJuz)) {
+    bledy.push(
+      `${USTAWIENIA}: „ten kurs już jest w koszyku" mówione klientowi JAKO BŁĄD (albo wcale). To nie jest błąd — cel klienta jest osiągnięty; komunikat ma być typu notice.`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -651,5 +732,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty)."
 );
