@@ -173,6 +173,12 @@ add_action(
 		// jest otwarta ani czy oglądający ma już ten kurs — pyta filtrem,
 		// odpowiada Plugin 2.
 		Aai_Platnosci_Cta::zarejestruj();
+		// Zdanie o zgodach w kasie (krok P5): WooCommerce powołuje się tam
+		// na „Warunki i zasady", których nie ma — a przy braku strony NIE
+		// usuwa wzmianki, tylko drukuje ją bez odnośnika. Decyzja właściciela
+		// 2026-08-29: zdejmujemy do czasu, aż regulamin powstanie; polityka
+		// prywatności zostaje.
+		Aai_Platnosci_Kasa::zarejestruj();
 		Aai_Platnosci_Komunikaty::zarejestruj();
 	}
 );
