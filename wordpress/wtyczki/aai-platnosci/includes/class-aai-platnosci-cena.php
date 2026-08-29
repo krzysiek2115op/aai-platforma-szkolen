@@ -73,6 +73,14 @@ final class Aai_Platnosci_Cena {
 			 * liczy do niej promocję. Wariant `'edit'` oddałby cenę surową
 			 * i promocja nigdy nie doszłaby na stronę — a to jest cała
 			 * treść tej klasy.
+			 *
+			 * BEZ PODATKU. `get_price()` oddaje kwotę taką, jaka stoi w produkcie,
+			 * i nie dolicza VAT-u. Obietnica „na stronie ta sama liczba co
+			 * w kasie" trzyma się więc dopóty, dopóki naliczanie podatku jest
+			 * wyłączone — pilnuje tego kontrola `wp aai-platnosci sprawdz`.
+			 * VAT jest świadomie odłożony (DIAGRAM.md, sekcja 16); gdy wejdzie,
+			 * trzeba tu policzyć cenę Z podatkiem (`wc_get_price_to_display()`),
+			 * a nie brać samej wartości pola.
 			 */
 			$cena = $produkt->get_price();
 			if ( '' === $cena || null === $cena || ! is_numeric( $cena ) ) {

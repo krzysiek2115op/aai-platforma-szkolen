@@ -288,3 +288,43 @@ Naprawione: cena wyciągana z klasy karty i porównywana wzorcem CAŁEJ wartośc
 w `f(s)` zostawia plik pusty. Tak zniknął cały smoke (jeszcze niecommitowany).
 Kolejność: najpierw policz treść i sprawdź ją asercją, dopiero potem otwieraj
 plik do zapisu.
+
+## 9. Przegląd przed PR-em (2026-08-29) — cztery znaleziska, wszystkie prawdziwe
+
+Recenzent (Sonnet, **zamknięta lista 10 pytań** — decyzja właściciela o koszcie
+tokenów, jak przy P3a), krytyk = agent główny, każde znalezisko potwierdzone
+URUCHOMIENIOWO PRZED naprawą (`agenci/przeglad-pr/KRYTYK.md`).
+
+| # | Znalezisko | Potwierdzenie | Naprawa |
+|---|---|---|---|
+| 1 | **Anulowane zamówienie blokowało zakup NA ZAWSZE.** Stan „Zamówienie w toku” pytał o samo ISTNIENIE zapisu Tutora, a Tutor tworzy zapis przy składaniu zamówienia i nigdy go nie kasuje — anulowanie tylko przestawia status | **zmierzone**: zamówienie → `cancelled` → zapis `cancelled` → CTA dalej „Zamówienie w toku”, przycisk zakupu zniknął | stan czyta STATUS zapisu; trwające to tylko `pending`, `on-hold`, `processing`. Status bierzemy przez `get_post_status()` z `ID` oddawanego przez `is_enrolled()` — bez własnego SQL-a do cudzej tabeli |
+| 2 | **Produkt `publish` z pustą ceną obiecywał zakup**, którego WooCommerce odmawia (`is_purchasable()` wymaga niepustej ceny) | **zmierzone**: `is_purchasable() = NIE`, a CTA → `/kasa/?add-to-cart=`, oferta → `InStock` | `produkt_do_kupienia()` pyta też `is_purchasable()`; jedna zmiana naprawia przycisk I dane strukturalne, bo obie rzeczy pytają tej samej metody |
+| 3 | **Domknięcie odwracało kolejność maili i notatek** — hak biegnie w środku cudzego przejścia statusu, więc reszta TAMTEGO przejścia dojeżdżała po nadaniu `completed` | **zmierzone na notatkach** 298–301: „z Processing na Completed” PRZED „z On hold na Processing”, mail „Processing” po mailu „Completed” | domknięcie odłożone na `shutdown`; po naprawie kolejność naturalna: Processing → mail „Processing” → mail „Completed” → Completed |
+| 4 | **Cena bez podatku nie była pilnowana** — `get_price()` nie dolicza VAT-u, więc obietnica „na stronie ta sama liczba co w kasie” trzyma się tylko przy wyłączonym naliczaniu | potwierdzone w kodzie Woo + `woocommerce_calc_taxes = no` na instalacji | kontrola oddaje **kod 1**, gdy ktoś włączy podatki przed przeliczeniem ceny efektywnej (test negatywny: włączenie → kod 1, wyłączenie → kod 0) |
+
+**Piąte pytanie recenzenta bez znaleziska** (nie szukać drugi raz): produkty
+wariantowe (nasze kursy to zawsze `WC_Product_Simple`, a dla cudzych wariantów
+filtr oddaje wartość wejściową), pamięć ceny na żądanie (zapis w kreatorze idzie
+przez POST→redirect→GET, więc render to zawsze nowe żądanie), podwójne kliknięcie
+CTA (`_sold_individually` — WooCommerce odmawia drugiego dodania), `ItemList`
+katalogu (nie niesie ceny ani dostępności, więc nie ma czego rozjechać),
+walidacja adresu z filtra (`esc_url` odfiltrowuje `javascript:`) oraz komplet
+wywołań `::cta(` po zmianie sygnatury (trzy, wszystkie zaktualizowane).
+
+### Dowody po naprawach
+
+- `straznik-platnosci-wp`: **trzy nowe niezmienniki** (19 — pyta o kupowalność,
+  20 — stan zamówienia po STATUSIE zapisu, 21 — domknięcie na koniec żądania).
+- Audyt mutacyjny **188 → 191**, każda nowa z `oczekiwanySlad`; wynik:
+  189 złapanych, 0 przeoczonych, 0 martwych.
+- `smoke-wp-zakup` **27 → 32 sprawdzenia** (anulowanie, produkt niekupowalny
+  ×2, kolejność notatek).
+- **Trzy testy negatywne po naprawach**, każdy trafia tylko w swój przypadek:
+  cofnięte `is_purchasable()` → 2 z 32; cofnięte filtrowanie statusów → 1 z 32;
+  cofnięte odłożenie na `shutdown` → 1 z 32.
+
+**Pułapka pomiaru z tego przeglądu:** nowy blok sprawdzeń wstawiony w środek
+smoke'a zaburzył stan następnym blokom (klient miał już kurs, więc „Zamówienie
+w toku” nie mogło paść, a B16 liczył zapisy od zera). Trzy padnięcia wyglądały
+jak błąd kodu, a były błędem KOLEJNOŚCI w teście — blok trzeba było przenieść
+na czysty stan.

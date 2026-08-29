@@ -224,6 +224,44 @@ try {
   );
   sprawdz(cta(0).includes(`add-to-cart=${produkt}`), `gość przy otwartej sprzedaży nie dostaje kasy: ${cta(0)}`);
 
+  /* ── 2b. stany po ANULOWANIU i przy produkcie niekupowalnym ──────── */
+
+  /*
+   * Zamówienie anulowane NIE MOŻE zostawić klienta z „Zamówieniem w toku”
+   * na zawsze: Tutor tworzy zapis przy składaniu zamówienia i nigdy go nie
+   * kasuje — anulowanie tylko przestawia mu status. Wersja pytająca o samo
+   * ISTNIENIE zapisu odbierała takiemu klientowi przycisk zakupu bezpowrotnie
+   * (znalezisko przeglądu P3b, potwierdzone uruchomieniowo).
+   */
+  kasujZapisy();
+  const zamAnulowane = zamowienie([produkt], "on-hold");
+  zamowienia.push(zamAnulowane);
+  php(`$o = wc_get_order( ${zamAnulowane} ); $o->set_status( 'cancelled' ); $o->save(); echo 'ok';`);
+  sprawdz(
+    cta(KLIENT).includes(`add-to-cart=${produkt}`),
+    `po ANULOWANIU zamówienia klient widzi „${cta(KLIENT)}” zamiast możliwości ponownego zakupu — zapis Tutora zostaje na zawsze, więc pytanie o samo jego istnienie blokuje sprzedaż`
+  );
+  kasujZapisy();
+
+  /*
+   * Produkt `publish` z PUSTĄ ceną jest dla WooCommerce niekupowalny
+   * (`is_purchasable()` wymaga niepustej ceny), a koszyk odmawia dodania.
+   * Sam status `publish` to za mało, żeby obiecywać zakup — przycisk
+   * prowadziłby do kasy, która odmówi, a oferta deklarowałaby `InStock`.
+   */
+  php(`$p = wc_get_product( ${produkt} ); $p->set_regular_price( '' ); $p->set_price( '' ); $p->save(); echo 'ok';`);
+  sprawdz(
+    cta(0).endsWith("/kontakt"),
+    `produkt z pustą ceną (niekupowalny w WooCommerce) dalej wysyła klienta do kasy: ${cta(0)}`
+  );
+  sprawdz(
+    wartosc(`apply_filters( 'aai_sklep_dostepnosc_kursu', 'https://schema.org/PreOrder', Aai_Sklep_Odczyt::szczegoly_kursu( '${SLUG}' ) )`) ===
+      "https://schema.org/PreOrder",
+    "produkt niekupowalny dalej ma w danych strukturalnych InStock — oferta obiecuje zakup, którego WooCommerce odmówi"
+  );
+  php(`$p = wc_get_product( ${produkt} ); $p->set_regular_price( '199.00' ); $p->save(); echo 'ok';`);
+  sprawdz(wartosc(`wc_get_product( ${produkt} )->is_purchasable() ? 'tak' : 'nie'`) === "tak", "przywrócenie ceny nie uczyniło produktu kupowalnym — dalsze pomiary byłyby ślepe");
+
   const zamOnHold = zamowienie([produkt], "on-hold");
   zamowienia.push(zamOnHold);
   sprawdz(
@@ -258,6 +296,22 @@ try {
   const zamRecznie = zamowienie([produkt], "on-hold");
   zamowienia.push(zamRecznie);
   php(`$o = wc_get_order( ${zamRecznie} ); $o->set_status( 'processing' ); $o->save(); echo 'ok';`);
+  /*
+   * KOLEJNOŚĆ notatek, nie ich treść. Domknięcie wykonane od razu w haku
+   * biegło W ŚRODKU cudzego przejścia statusu, więc reszta TAMTEGO przejścia
+   * dojeżdżała już po nadaniu `completed`: notatka „z On hold na Processing”
+   * lądowała PO notatce „z Processing na Completed”, a klient dostawał mail
+   * „zrealizowane” przed „w realizacji” (znalezisko przeglądu P3b).
+   */
+  const notatki = php(
+    `global $wpdb; $n = $wpdb->get_col( $wpdb->prepare( "SELECT comment_content FROM {$wpdb->comments} WHERE comment_post_ID = %d AND comment_type = %s ORDER BY comment_ID", ${zamRecznie}, 'order_note' ) );` +
+      ` echo implode( ' ~~ ', $n );`
+  );
+  const poz = (igla) => notatki.indexOf(igla);
+  sprawdz(
+    poz("On hold to Processing") >= 0 && poz("Processing to Completed") > poz("On hold to Processing"),
+    `notatki zamówienia są w odwróconej kolejności — cudze przejście statusu dojechało PO naszym domknięciu, więc klient dostaje „zrealizowane” przed „w realizacji”: ${notatki}`
+  );
   sprawdz(
     statusZamowienia(zamRecznie) === "completed",
     `ręczne przestawienie zamówienia kursu na „w realizacji” zostawiło je w „${statusZamowienia(zamRecznie)}” — właściciel potwierdził wpłatę, a klient nie dostał kursu (E5)`

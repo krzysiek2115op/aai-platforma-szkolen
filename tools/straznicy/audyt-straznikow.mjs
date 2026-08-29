@@ -1503,6 +1503,44 @@ const MUTACJE = [
         : null,
   },
 
+  // P3b, znaleziska przeglądu: kupowalność produktu, status zapisu, moment domknięcia.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "decyzja o zakupie przestaje pytać o KUPOWALNOŚĆ (produkt publish z pustą ceną obiecuje zakup, którego kasa odmówi)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
+    oczekiwanySlad: "nie pyta WooCommerce o kupowalność",
+    zmien: (s) =>
+      s.includes("\t\tif ( ! $produkt->is_purchasable() ) {\n\t\t\treturn null;\n\t\t}\n")
+        ? s.replace("\t\tif ( ! $produkt->is_purchasable() ) {\n\t\t\treturn null;\n\t\t}\n", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "stan „zamówienie w toku” przestaje patrzeć na STATUS zapisu (anulowane zamówienie blokuje zakup na zawsze)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
+    oczekiwanySlad: "nie sprawdza STATUSU zapisu",
+    zmien: (s) =>
+      s.includes("\t\t\t$status = (string) get_post_status( (int) $zapis->ID );\n\t\t\tif ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {")
+        ? s.replace(
+            "\t\t\t$status = (string) get_post_status( (int) $zapis->ID );\n\t\t\tif ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {",
+            "\t\t\tif ( true ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "domknięcie wraca do środka cudzego przejścia statusu (mail „zrealizowane” przed „w realizacji”)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "nie jest odłożone na koniec żądania",
+    zmien: (s) =>
+      s.includes("add_action(\n\t\t\t\t'shutdown',")
+        ? s.replace("add_action(\n\t\t\t\t'shutdown',", "call_user_func(\n\t\t\t\t")
+        : null,
+  },
+
   {
     straznik: "straznik-tresci-lekcji",
     opis: "zgoda na skasowanie treści wypada z KONTRAKTU (zostaje umową panelu z dyspozytorem)",

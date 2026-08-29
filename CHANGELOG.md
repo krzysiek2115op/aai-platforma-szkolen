@@ -48,7 +48,7 @@ i pomiary: [docs/plugin-2/KROK-P3B.md](docs/plugin-2/KROK-P3B.md).
   nie są domykane, filtr oddaje cudzym produktom wartość wejściową, przycisk
   pyta o zapis, warunek sprzedaży badany DOKŁADNIE raz, dostępność niezależna
   od oglądającego) i 5 mutacji w audycie, każda z `oczekiwanySlad`.
-  Audyt: 183 → **188** mutacji.
+  Audyt: 183 → **191** mutacji (w tym trzy ze znalezisk przeglądu).
 - **`npm run smoke:wp-zakup`** (`tools/smoke/smoke-wp-zakup.mjs`, 27 sprawdzeń):
   cena w trzech miejscach naraz, cztery stany przycisku, zgodność z ofertą,
   domykanie obiema ścieżkami i B16 — wszystko na własnym kursie testowym,
@@ -60,6 +60,33 @@ i pomiary: [docs/plugin-2/KROK-P3B.md](docs/plugin-2/KROK-P3B.md).
   przycisk „Dołączam” i zdanie „Masz inne pytanie? Napisz do nas” pod FAQ —
   różnica była niewidoczna, dopóki oba prowadziły do kontaktu, a od tego kroku
   wysyłałaby pytającego klienta prosto do płatności.
+
+### Naprawione po przeglądzie przed PR-em
+
+Recenzent + krytyk (potwierdzenia URUCHOMIENIOWE przed każdą naprawą), cztery
+znaleziska — wszystkie prawdziwe:
+
+- **Anulowane zamówienie blokowało zakup NA ZAWSZE.** Tutor tworzy zapis już
+  przy składaniu zamówienia i nigdy go nie kasuje — anulowanie i zwrot tylko
+  przestawiają mu status. Stan „Zamówienie w toku” pytał o samo ISTNIENIE
+  zapisu, więc klient z anulowanym zamówieniem tracił przycisk zakupu
+  bezpowrotnie. Zmierzone: zamówienie na `cancelled` → zapis `cancelled` →
+  CTA dalej „Zamówienie w toku”. Teraz stan czyta STATUS zapisu i uznaje za
+  trwające tylko `pending`, `on-hold`, `processing`.
+- **Produkt `publish` z pustą ceną obiecywał zakup, którego kasa odmawia.**
+  `is_purchasable()` w WooCommerce wymaga niepustej ceny, a decyzja „czy da
+  się kupić” pytała wyłącznie o status wpisu. Zmierzone: `is_purchasable()`
+  false, a CTA prowadziło do kasy i oferta deklarowała `InStock`.
+- **Domknięcie odwracało kolejność maili i notatek.** Hak biegnie W ŚRODKU
+  cudzego przejścia statusu, więc zapis wykonany od razu pozwalał reszcie
+  TAMTEGO przejścia dojechać już po nadaniu `completed`: klient dostawał
+  „zamówienie zrealizowane”, a chwilę po nim „zamówienie w realizacji”.
+  Zmierzone na notatkach zamówienia (298–301). Domknięcie idzie teraz na
+  `shutdown`, po dokończeniu cudzego przejścia.
+- **Cena bez podatku nie była niczym pilnowana.** `get_price()` nie dolicza
+  VAT-u, więc obietnica „na stronie ta sama liczba co w kasie” trzyma się
+  tylko przy wyłączonym naliczaniu podatku. Kontrola `wp aai-platnosci sprawdz`
+  odpowiada teraz kodem 1, gdy ktoś włączy podatki przed przeliczeniem ceny.
 
 ### Zapamiętane (pułapki zmierzone w tym kroku)
 

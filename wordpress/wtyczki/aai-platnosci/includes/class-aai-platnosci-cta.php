@@ -85,9 +85,19 @@ final class Aai_Platnosci_Cta {
 	 * Id produktu, który da się KUPIĆ TERAZ — albo `null`.
 	 *
 	 * Jedno miejsce, w którym mieszka odpowiedź na pytanie „czy zakup jest
-	 * dziś możliwy": sprzedaż otwarta, produkt istnieje i jest opublikowany.
-	 * `draft` znaczy, że szew zdjął kurs ze sprzedaży (kurs szkic, cena 0,
-	 * kurs usunięty) — wtedy przycisk do kasy prowadziłby donikąd.
+	 * dziś możliwy": sprzedaż otwarta, produkt istnieje, jest opublikowany
+	 * i WooCommerce uznaje go za kupowalny. `draft` znaczy, że szew zdjął
+	 * kurs ze sprzedaży (kurs szkic, cena 0, kurs usunięty) — wtedy przycisk
+	 * do kasy prowadziłby donikąd.
+	 *
+	 * DLACZEGO PYTAMY TAKŻE `is_purchasable()`, skoro status już sprawdzony.
+	 * Bo status to za mało: produkt `publish` z PUSTĄ ceną jest dla
+	 * WooCommerce niekupowalny (`abstract-wc-product.php` — `is_purchasable()`
+	 * wymaga `'' !== get_price()`), a koszyk odmawia dodania. Bez tego pytania
+	 * przycisk prowadziłby do kasy, a oferta deklarowała `InStock` — przy
+	 * produkcie, którego kupić się nie da. Zmierzone na `:8892` przy przeglądzie
+	 * P3b: cena wyczyszczona ręcznie w Woo dawała `is_purchasable() = false`,
+	 * a CTA i dane strukturalne zgodnie obiecywały zakup.
 	 *
 	 * @param string $uuid Uuid kursu.
 	 * @return int|null
@@ -105,6 +115,9 @@ final class Aai_Platnosci_Cta {
 		}
 		$produkt = wc_get_product( $produkt_id );
 		if ( ! $produkt instanceof WC_Product || 'publish' !== $produkt->get_status() ) {
+			return null;
+		}
+		if ( ! $produkt->is_purchasable() ) {
 			return null;
 		}
 		return (int) $produkt_id;
@@ -173,6 +186,17 @@ final class Aai_Platnosci_Cta {
 	}
 
 	/**
+	 * Statusy zapisu, przy których zamówienie NAPRAWDĘ jeszcze trwa.
+	 *
+	 * Tutor nadpisuje status zapisu statusem ZAMÓWIENIA
+	 * (`WooCommerce::enrolled_courses_status_change()` → `course_enrol_status_change()`),
+	 * więc lista jest listą statusów WooCommerce, a nie trzech stałych Tutora.
+	 * `pending` jest też stanem, który nadaje `do_enroll()` kursowi płatnemu
+	 * ZANIM zamówienie zostanie opłacone.
+	 */
+	private const ZAMOWIENIE_TRWA = array( 'pending', 'on-hold', 'processing' );
+
+	/**
 	 * Stan wynikający z tego, co ten klient już ma — albo `null`, gdy nie ma nic.
 	 *
 	 * @param int $kurs_tutora Id wpisu kursu w Tutorze.
@@ -188,14 +212,33 @@ final class Aai_Platnosci_Cta {
 				'napis' => 'Przejdź do kursu',
 			);
 		}
-		// Trzeci argument `false` = zapis w DOWOLNYM statusie. Istnieje, choć
-		// dostępu nie ma — czyli zamówienie zostało złożone i czeka
-		// (`pending`, `on-hold`, `processing`).
-		if ( tutor_utils()->is_enrolled( $kurs_tutora, $user_id, false ) ) {
-			return array(
-				'adres' => Aai_Sklep_Moje::adres(),
-				'napis' => 'Zamówienie w toku',
-			);
+
+		/*
+		 * ZAPIS ISTNIEJE, ALE NIE DAJE DOSTĘPU — i tu trzeba zapytać O JEGO
+		 * STATUS, a nie poprzestać na samym istnieniu.
+		 *
+		 * DLACZEGO: Tutor tworzy zapis JUŻ przy składaniu zamówienia i nigdy
+		 * go nie kasuje — anulowanie albo zwrot tylko przestawia mu status na
+		 * `cancelled` / `refunded`. Wersja pytająca wyłącznie „czy zapis
+		 * istnieje" pokazywała więc „Zamówienie w toku” KLIENTOWI, KTÓREGO
+		 * ZAMÓWIENIE ANULOWANO — na zawsze, bez możliwości kupienia jeszcze
+		 * raz. Zmierzone na `:8892` przy przeglądzie P3b: zamówienie
+		 * przestawione na `cancelled` zostawiało zapis `cancelled`, a przycisk
+		 * zakupu znikał bezpowrotnie.
+		 *
+		 * `is_enrolled()` nie oddaje statusu w swoim SELECT-cie, ale oddaje
+		 * `ID` wpisu — status czytamy więc WordPressem, zamiast pisać własne
+		 * zapytanie do cudzej tabeli.
+		 */
+		$zapis = tutor_utils()->is_enrolled( $kurs_tutora, $user_id, false );
+		if ( is_object( $zapis ) && isset( $zapis->ID ) ) {
+			$status = (string) get_post_status( (int) $zapis->ID );
+			if ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {
+				return array(
+					'adres' => Aai_Sklep_Moje::adres(),
+					'napis' => 'Zamówienie w toku',
+				);
+			}
 		}
 		return null;
 	}

@@ -50,6 +50,16 @@ defined( 'ABSPATH' ) || exit;
 final class Aai_Platnosci_Dostarczanie {
 
 	/**
+	 * Zamówienia zgłoszone do domknięcia w tym żądaniu.
+	 *
+	 * Chroni przed dopisaniem tego samego domknięcia dwa razy, gdyby
+	 * zamówienie weszło w `processing` więcej niż raz w jednym żądaniu.
+	 *
+	 * @var array<int,bool>
+	 */
+	private static $do_domkniecia = array();
+
+	/**
 	 * Podpina oba mechanizmy.
 	 *
 	 * Rejestracja BEZWARUNKOWA, warunki żyją wewnątrz callbacków (ta sama
@@ -128,13 +138,42 @@ final class Aai_Platnosci_Dostarczanie {
 			if ( ! self::same_kursy( $order ) ) {
 				return;
 			}
+
 			/*
-			 * Sam zapis robi warstwa zapisu — tu zostaje DECYZJA, tam
-			 * ZMIANA STANU (niezmiennik „jedyny pisarz", sekcja 10
-			 * schematu). Ona też trzyma bezpiecznik na status: między tą
-			 * decyzją a zapisem mógł zadziałać ktoś inny.
+			 * DOMYKAMY DOPIERO NA KOŃCU ŻĄDANIA, nie tu.
+			 *
+			 * Ten hak biegnie W ŚRODKU cudzego przejścia statusu: WooCommerce
+			 * odpala najpierw `woocommerce_order_status_<nowy>`, a DOPIERO
+			 * POTEM `..._<stary>_to_<nowy>` i `..._status_changed` — czyli
+			 * haki, na których wiszą maile i notatki. Zapis wykonany od razu
+			 * kończył się tym, że reszta TAMTEGO przejścia dojeżdżała już po
+			 * nadaniu `completed`: klient dostawał mail „Zamówienie
+			 * zrealizowane”, a chwilę po nim „Zamówienie w realizacji”,
+			 * a notatki zamówienia szły w odwróconej kolejności. Zmierzone na
+			 * `:8892` przy przeglądzie P3b (notatki 298–301).
+			 *
+			 * `shutdown` czeka, aż cudze przejście dokończy się w całości.
+			 * Kolejność wraca do naturalnej: „w realizacji” → „zrealizowane”.
+			 * Bezpiecznik na status siedzi w warstwie zapisu, więc jeśli w tym
+			 * czasie ktoś inny domknie zamówienie, nasz zapis nic nie zrobi.
 			 */
-			Aai_Platnosci_Zapis::zamknij_zamowienie( (int) $order->get_id() );
+			$id = (int) $order->get_id();
+			if ( isset( self::$do_domkniecia[ $id ] ) ) {
+				return;
+			}
+			self::$do_domkniecia[ $id ] = true;
+			add_action(
+				'shutdown',
+				static function () use ( $id ): void {
+					try {
+						// Sam zapis robi warstwa zapisu — tu zostaje DECYZJA,
+						// tam ZMIANA STANU (niezmiennik „jedyny pisarz”).
+						Aai_Platnosci_Zapis::zamknij_zamowienie( $id );
+					} catch ( Throwable $e ) {
+						Aai_Platnosci_Komunikaty::zapisz( 'przy domykaniu zamówienia ' . $id . ': ' . $e->getMessage() );
+					}
+				}
+			);
 		} catch ( Throwable $e ) {
 			// Wyjątek tutaj poleciałby przez zapis zamówienia w cudzej
 			// kasie. Zamiast tego: zamówienie zostaje w `processing`,

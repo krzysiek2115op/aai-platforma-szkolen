@@ -340,6 +340,17 @@ if (!existsSync(USTAWIENIA)) {
       );
     }
 
+    /* 21. domknięcie odłożone do KOŃCA ŻĄDANIA. Hak biegnie w środku cudzego
+       przejścia statusu: zapis wykonany od razu pozwalał reszcie TAMTEGO
+       przejścia dojechać już po nadaniu `completed`, więc klient dostawał mail
+       „zrealizowane" przed „w realizacji", a notatki szły w odwrotnej
+       kolejności (zmierzone na notatkach zamówienia). */
+    if (!/add_action\s*\(\s*['"]shutdown['"]/.test(d)) {
+      bledy.push(
+        `${dostarczanie}: domknięcie zamówienia nie jest odłożone na koniec żądania. Zapis w środku cudzego przejścia statusu odwraca kolejność maili i notatek — klient dostaje „zamówienie zrealizowane" przed „zamówienie w realizacji".`
+      );
+    }
+
     /* 15. filtr obsługi pozycji nie rusza cudzych produktów: musi oddać
        wartość WEJŚCIOWĄ, a nie własną stałą. */
     if (!/return\s+\(bool\)\s*\$wymaga\s*;/.test(d)) {
@@ -377,6 +388,34 @@ if (!existsSync(USTAWIENIA)) {
       );
     }
 
+    /* 19. „czy da się kupić" pyta WooCommerce o KUPOWALNOŚĆ, nie tylko
+       o status wpisu. Produkt `publish` z pustą ceną jest niekupowalny
+       (`is_purchasable()` wymaga niepustej ceny), a koszyk odmawia dodania —
+       bez tego pytania przycisk prowadziłby do kasy, która odrzuca, a oferta
+       deklarowałaby `InStock` (znalezisko przeglądu P3b, potwierdzone
+       uruchomieniowo). */
+    if (!/is_purchasable\s*\(/.test(c)) {
+      bledy.push(
+        `${cta}: decyzja „czy da się kupić" nie pyta WooCommerce o kupowalność produktu. Sam status „publish” to za mało — produkt z pustą ceną jest opublikowany, a koszyk i tak odmówi; klient kliknąłby „Kup teraz" i trafił na kasę, która go odrzuca.`
+      );
+    }
+
+    /* 20. stan „zamówienie w toku" pyta o STATUS zapisu, nie o samo jego
+       istnienie. Tutor tworzy zapis przy składaniu zamówienia i nigdy go nie
+       kasuje — anulowanie tylko przestawia status. Pytanie o istnienie
+       zostawiało klienta z anulowanym zamówieniem bez przycisku zakupu
+       NA ZAWSZE (zmierzone). */
+    const startK = c.indexOf("function stan_klienta(");
+    if (startK >= 0) {
+      const dalejK = c.indexOf("function ", startK + 9);
+      const blokK = c.slice(startK, dalejK < 0 ? c.length : dalejK);
+      if (!/get_post_status\s*\(/.test(blokK) || !/in_array\s*\(/.test(blokK)) {
+        bledy.push(
+          `${cta}: stan „zamówienie w toku" nie sprawdza STATUSU zapisu. Zapis Tutora zostaje po anulowaniu i zwrocie, więc pytanie o samo jego istnienie odbiera takiemu klientowi przycisk zakupu bezpowrotnie.`
+        );
+      }
+    }
+
     /* 18. dostępność oferty nie zależy od oglądającego — dane strukturalne
        czyta robot, czyli gość. Blok metody wycinamy od nagłówka do
        następnego `function `. */
@@ -400,5 +439,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego)."
 );
