@@ -2192,12 +2192,85 @@ wyprowadzała tego od nowa:
      pozycja „przed pierwszym klientem", wymaga regulaminu i najlepiej opinii
      prawnika); kompozycja hero katalogu po usunięciu pływaka gwarancji
      (bramka wyglądu 90/90 nic nie zgłasza, ale to ocena estetyczna).
-     **NASTĘPNY KROK CAŁEGO PROJEKTU: P6 — TEST RĘCZNY WŁAŚCICIELA.** Wzorzec
-     scenariusza: [W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md)
-     i [TEST-RECZNY-0.51.0.md](docs/plugin-2/TEST-RECZNY-0.51.0.md) (ma tabelę
-     rzeczy POZA zakresem — żeby nie zgłaszać jako błąd tego, co należy do
-     kolejnych kroków). Przed testem: `cd wordpress/srodowisko && ./postaw.sh`
-     (krok zerowy jest ROZKAZEM — bind mount ginie po każdym `git switch`).
+     ~~**NASTĘPNY KROK CAŁEGO PROJEKTU: P6 — TEST RĘCZNY WŁAŚCICIELA.**~~
+     **ZROBIONE I ZALICZONE — patrz punkt 13.**
+
+  13. **P6 ZALICZONY (właściciel, 2026-08-30: „akceptuje wszystko") —
+     PLUGIN 2 (`aai-platnosci`) JEST SKOŃCZONY.** Wersja **0.53.0**, PR #91
+     zmergowany do `main`, tag `v0.53.0` + release, gałąź skasowana,
+     artefakt zweryfikowany (`git diff origin/main <szczyt>` PUSTY). Merge
+     na dowodach lokalnych za zgodą właściciela — CI padał w 2 s z zerem
+     kroków i adnotacją o rozliczeniu (2118/2000 minut Actions; wraca
+     1 września — potem potwierdzić **gitleaks**). Scenariusz, przebieg,
+     zgłoszenia i naprawy: **[docs/plugin-2/TEST-RECZNY-P6.md](docs/plugin-2/TEST-RECZNY-P6.md)
+     — wzorzec testu ręcznego dla Pluginu 3.**
+     **Przebieg:** właściciel przeszedł ścieżki A–E (zakup #2590 kontem
+     `robert.parowk`, przelew → moja symulacja bramki `payment_complete()`
+     na jego polecenie → zwrot z panelu → przywrócenie). Przed oddaniem
+     scenariusza: przelot kontrolny przeglądarką 23/23 (lekcja Z1 z 0.51.0
+     — środowisko potrafi zmarnować rundę testu).
+     **TRZY ZGŁOSZENIA → TRZY DECYZJE WŁAŚCICIELA (2026-08-30), wykonane
+     w 0.53.0** (pełnia: CHANGELOG 0.53.0, TEST-RECZNY-P6.md):
+     (1) **jeden mail przy płatności natychmiastowej** — mail 1 „Ustaw
+     hasło" pomijany (wpis `pominięto:…` w dzienniku dostaw), WYŁĄCZNIE po
+     potwierdzonym „wyslano" maila 2, który niesie odnośnik do hasła;
+     przy leżącej poczcie mail 1 wychodzi jak zawsze (K1); przelew bez
+     zmian (dwa żądania, dwa maile). Klucz sprawy: kasa loguje kupującego
+     na 14 dni (`wc_set_customer_auth_cookie`, `class-wc-checkout.php:1262`)
+     — „wejście do kursu bez hasła" to sesja z kasy + darmowa zapowiedź,
+     nie wyciek;
+     (2) **pozycja „Moje konto" w menu** (zmiana w Pluginie 1 za decyzją)
+     — obok „Moich kursów", tylko dla zalogowanego, w obu nawigacjach,
+     `aria-current` przez `is_account_page()`; zmierzone przed naprawą:
+     drzwi z W6 były jednokierunkowe (zero odnośników do konta);
+     (3) **cisza rdzenia o hasłach** — `wp_password_change_notification`
+     mailuje ADMINA przy każdej zmianie hasła (klient nie dostaje nic);
+     zdjęty callback w `zarejestruj()`, NIE podmieniona funkcja pluggable;
+     mail do klienta z linkiem resetu nietknięty (zmierzone resetem).
+     **Czwarte zgłoszenie wyjaśnione bez zmiany kodu:** „zniknął mail
+     Ustaw hasło" — mail wyszedł (dziennik `wyslano`) i właściciel ustawił
+     z niego hasło; zniknął PODGLĄD, bo `smoke-wp-maile` czyści CAŁĄ
+     skrzynkę Mailpita (patrz „naprawy po P6" niżej).
+     **Naprawione po drodze: `npm run wp:klient` zepsuty od P2** —
+     `do_enroll()` na kursie płatnym nadaje `pending`, dostęp daje tylko
+     `completed`; konto testowe udawało kogoś, kto zaczął zakup. Status
+     podnoszony jawnie (jak w smoke-wp-lekcja), idempotentnie.
+     **Dowody 0.53.0:** `npm run check` 0, strażnicy 35/35 (dwie nowe
+     reguły `straznik-platnosci-wp`: 36 — pominięcie tylko po
+     potwierdzonym mailu 2 i tylko dla maila 1, obie połowy: wysyłka
+     i kontrola; 37 — powiadomienie admina zdjęte), audyt mutacyjny
+     **227** (0 przeoczonych, 0 martwych), smoke'i WP: maile 46→**60** ·
+     front 82→**84** · lekcja 36→**38** · motyw 90 · kreator 96 ·
+     produkty 84 · zakup 38 · zwroty 37 · tutor 44 · panel 54 · dane 30 ·
+     język 24 · płatności 23; proza 73/73, kopia w Tutorze 0 różnic.
+     Testy negatywne każdej nowej asercji trafiają dokładnie w swoje.
+     **ŚRODOWISKO `:8892` ZOSTAJE:** sprzedaż OTWARTA, kursy 2, produkty
+     2, powiązania 2, dostawy 9, zamówienia dowodowe #1625/#2010/#2590
+     (+ wiersz zwrotu #2675 — właściciel przetestował zwrot i przywrócił
+     status; `robert.parowk` MA kurs), konto `klient-test` na obu kursach
+     (hasło świeże w `.env`), kontrola kod 0. Sierota `tutor_enrolled`
+     #2153 (`post_author=0`, ślad smoke'a zakupu) zostaje do napraw niżej.
+     **NASTĘPNY KROK CAŁEGO PROJEKTU — dwie rzeczy, w tej kolejności:**
+     1. **NAPRAWY PO P6 (małe, jedną gałęzią):** higiena smoke'ów wobec
+        WSPÓLNYCH zasobów — `smoke-wp-zakup`/`zwroty`/`jezyk` ZOSTAWIAJĄ
+        pocztę (~36 wiadomości na komplet przebiegów), `smoke-wp-maile`
+        odwrotnie: czyści CAŁĄ skrzynkę (zabrał właścicielowi podgląd
+        maili w trakcie testu — czwarte zgłoszenie P6); smoke zakupu
+        zostawia sierotę `tutor_enrolled` z `post_author=0` na PRAWDZIWYM
+        kursie (ta sama klasa co produkty-sieroty ze sweepu P2: bramka
+        sprząta na oślep albo wcale). Sprzątnąć #2153 przy okazji.
+     2. **PLUGIN 3 — panel + monitoring** (ostatni moduł; potem test
+        całości trzech wtyczek). Zakres doprecyzowujemy PYTANIAMI przed
+        startem (decyzja 2026-08-21); obowiązuje reguła z 2026-08-28:
+        najpierw plan kroku + pytania, CZEKAĆ na zgodę. Realnie nasze
+        z PLAN.md §4: `page_visits` — resztę (zamówienia, klienci,
+        faktury) prawdopodobnie pokrywa Woo (PLAN.md §3–§4 jako lista
+        kontrolna, decyzja 4b).
+     **POZA MODUŁAMI, przed pierwszym klientem** (spinane na bieżąco,
+     decyzja 4b): prawdziwa bramka płatności (Tpay/PayU/P24 — wtyczka do
+     Woo), regulamin (właściciel), zgoda w kasie na natychmiastowe
+     dostarczenie (wyłącza ustawowe 14 dni), domena + HTTPS, poczta
+     produkcyjna.
 
      Zapis historyczny (zapowiedź przed wykonaniem): **NASTĘPNY KROK: P5**
      (zwroty i przypadki brzegowe) — wg reguły z 2026-08-28 najpierw PLAN kroku
