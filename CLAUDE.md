@@ -2025,9 +2025,42 @@ wyprowadzała tego od nowa:
      i zasady", strony nie ma), gwarancja zwrotu 30 dni przy zwrotach
      zaplanowanych na P5, okładka produktu w kasie (szary zastępnik — SVG nie
      wchodzi do biblioteki mediów bez świadomej zgody na ten format).
-     **NASTĘPNY KROK: PR gałęzi `feat/p4-konto-i-maile`** (P4 + naprawy
-     0.51.0), potem **P5** (zwroty i przypadki brzegowe) i **P6** (test ręczny
-     właściciela).
+     **P4 + NAPRAWY ZAMKNIĘTE W REPO (2026-08-29): PR #84 zmergowany do
+     `main`, tag `v0.51.0` + release, gałąź skasowana, artefakt zweryfikowany
+     (`git diff origin/main <szczyt>` PUSTY — lekcja z 0.37.0).** Merge decyzją
+     właściciela na dowodach lokalnych: CI padło w 2–3 s z zerem kroków,
+     a adnotacja GitHuba mówi wprost „The job was not started because recent
+     account payments have failed or your spending limit needs to be
+     increased" — **2118 minut Actions w sierpniu przy limicie 2000**, czyli
+     rozliczenie, nie kod. Po powrocie CI (1 września) potwierdzić **gitleaks**,
+     jako jedyny bez lokalnego odpowiednika.
+     **CZTERY DECYZJE WŁAŚCICIELA PO MERGE'U (2026-08-29) — pełnia z zakresem
+     wykonawczym w [BLEDY-Z-TESTU-P4.md](docs/plugin-2/BLEDY-Z-TESTU-P4.md)
+     §6.4. ŻADNA NIE JEST JESZCZE W KODZIE:**
+     (1) **regulamin — ZDEJMUJEMY ZDANIE** z kasy do czasu, aż powstanie
+         (Woo drukuje „…wyrażasz zgodę na nasze Warunki i zasady oraz Politykę
+         prywatności"; polityka ZOSTAJE, bo jest podpięta i klikalna od N6);
+     (2) **gwarancja 30 dni ZOSTAJE i jest WYMAGANIEM DLA P5** — zwrot w 30 dni
+         ma działać i odbierać dostęp do kursu; sprzedaż i tak nie ruszy przed
+         P5, więc nikt się na nią nie zdąży powołać;
+     (3) **okładka produktu: renderujemy PNG przy synchronizacji** i wgrywamy
+         do mediów jako miniaturę — **SVG w bibliotece mediów ODRZUCONE**
+         (może nieść skrypt); przy wykonaniu sprawdzić, co da się zrobić bez
+         dokładania zależności;
+     (4) **KOLEJNOŚĆ: najpierw TEST RĘCZNY WŁAŚCICIELA na 0.51.0, potem P5.**
+         Trzy decyzje wyżej wchodzą RAZEM z poprawkami z tego testu — jedną
+         gałęzią, żeby P5 zaczynało się na czystym stanie.
+     **NASTĘPNY KROK: TEST RĘCZNY WŁAŚCICIELA NA `:8892`** (środowisko stoi,
+     sprzedaż OTWARTA, skrzynka `127.0.0.1:8893`, konto `klient-test` przez
+     `npm run wp:klient`, 1 zamówienie — jego własny zakup #1625). Wzorzec
+     scenariusza: [W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md).
+     **SCENARIUSZ TEGO TESTU GOTOWY:
+     [docs/plugin-2/TEST-RECZNY-0.51.0.md](docs/plugin-2/TEST-RECZNY-0.51.0.md)**
+     — cztery obszary do sprawdzenia i tabela rzeczy POZA zakresem, żeby
+     właściciel nie zgłaszał jako błąd tego, co sam rozstrzygnął albo co
+     należy do P5.
+     Potem: poprawki z testu + trzy decyzje jedną gałęzią → **P5** (zwroty
+     i przypadki brzegowe) → **P6**.
 
      Zapis historyczny zgłoszenia: Właściciel przetestował P4 sam (2026-08-29) i zgłosił:
      **BLAD-023** koszyk kumuluje kursy, choć przycisk obiecuje jeden (klik
