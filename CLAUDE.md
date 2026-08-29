@@ -2054,6 +2054,11 @@ wyprowadzała tego od nowa:
      sprzedaż OTWARTA, skrzynka `127.0.0.1:8893`, konto `klient-test` przez
      `npm run wp:klient`, 1 zamówienie — jego własny zakup #1625). Wzorzec
      scenariusza: [W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md).
+     **SCENARIUSZ TEGO TESTU GOTOWY:
+     [docs/plugin-2/TEST-RECZNY-0.51.0.md](docs/plugin-2/TEST-RECZNY-0.51.0.md)**
+     — cztery obszary do sprawdzenia i tabela rzeczy POZA zakresem, żeby
+     właściciel nie zgłaszał jako błąd tego, co sam rozstrzygnął albo co
+     należy do P5.
      Potem: poprawki z testu + trzy decyzje jedną gałęzią → **P5** (zwroty
      i przypadki brzegowe) → **P6**.
 
