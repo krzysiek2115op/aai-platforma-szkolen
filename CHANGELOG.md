@@ -5,6 +5,98 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.50.0] — 2026-08-29
+
+**Krok P4: klient dostaje konto, do którego umie wejść, i wie, że kurs na
+niego czeka.** Plan kroku, rozstrzygnięcia właściciela i pomiary:
+[docs/plugin-2/KROK-P4.md](docs/plugin-2/KROK-P4.md).
+
+### Dodane
+
+- **Dwa maile dostarczenia** (`Aai_Platnosci_Maile`): „Ustaw hasło i wejdź"
+  przy powstaniu konta (`woocommerce_created_customer`) i „Twój kurs jest
+  gotowy" przy przyznaniu dostępu (`tutor_after_enrolled`). Nie jeden, bo to
+  dwa różne zdarzenia: konto powstaje przy SKŁADANIU zamówienia, dostęp
+  dopiero po opłacie — a przelew stoi na `on-hold` dwa dni (K1 z krytyki P0).
+  Znacznik idempotencji zapisujemy **synchronicznie** (atomowy `INSERT`
+  z UNIQUE w tabeli `dostawy`), wysyłkę odkładamy na `shutdown`: mail 2 składa
+  treść z pozycji ZAMÓWIENIA, a hak leci osobno dla każdego kursu. Zmierzone:
+  zamówienie na dwa kursy daje jeden mail z dwiema nazwami. Maile idą jako
+  HTML z wersją tekstową obok; typ treści nagłówkiem, nie globalnym filtrem.
+- **Dziennik dostarczenia**: `wp aai-platnosci dostawy [--ponow=…]` pokazuje,
+  co klient dostał, i ponawia niedoręczoną wiadomość. Kontrola widzi
+  wiadomość z wynikiem innym niż `wyslano` **albo z pustym** (żądanie padło
+  między znacznikiem a wysyłką) oraz opłacone zamówienie z kursem bez
+  odnotowanego dostępu — kod 1 z komendą naprawczą. Porażka wysyłki mówi też
+  w kokpicie, pod własnym kluczem: udane ponowienie gasi DOKŁADNIE swój
+  komunikat.
+- **Otwarcie sprzedaży komendą** `wp aai-platnosci sprzedaz otworz|zamknij`.
+  Nie robi tego aktywacja ani aktualizacja: kod bywa gotowy wcześniej niż
+  regulamin, zgoda na natychmiastowe dostarczenie treści cyfrowej i prawdziwa
+  bramka płatności. Komenda ostrzega, gdy nie ma ani jednej włączonej bramki.
+- **Odmowa drugiego zakupu posiadanego kursu** (B10). `do_enroll()` Tutora
+  wychodzi przed zapisem meta na zamówieniu, więc drugie zamówienie wzięłoby
+  pieniądze i nigdy się nie domknęło. Decyzję „czy ten człowiek ma ten kurs"
+  podejmuje JEDNA metoda (`Aai_Platnosci_Cta::stan_posiadania()`) — pyta jej
+  przycisk na stronie i blokada koszyka.
+- **Łapacz poczty w środowisku roboczym**: Mailpit (`127.0.0.1:8893`)
+  + mu-plugin przestawiający PHPMailer na jego SMTP, oba montowane przez nasz
+  `compose.yml`. `postaw.sh` weryfikuje pocztę ARTEFAKTEM: kasuje skrzynkę,
+  wysyła prawdziwą wiadomość i czyta ją z drugiej strony; włącza też przelew
+  `bacs` jako bramkę warsztatu.
+- **`npm run smoke:wp-maile`** — 38 sprawdzeń na żywej instalacji, wiadomości
+  czytane z łapacza, nie z podstawionego `pre_wp_mail`.
+
+### Zmienione
+
+- Mail WooCommerce „nowe konto" **wyłączony** (opcja + filtr obronny B17)
+  i **przywracany przy deaktywacji** wtyczki: dwa klucze resetu unieważniają
+  się nawzajem, ale konto bez ŻADNEGO linku do hasła jest gorsze (K1).
+- Dwie asercje `smoke-wp-front` (przycisk oferty i `availability`) czytają
+  stan sprzedaży Z INSTALACJI — smoke przechodzi przy sprzedaży zamkniętej
+  i otwartej. Wpisany na sztywno `/kontakt` czynił z niego test, który pada
+  dokładnie wtedy, gdy sklep zaczyna działać.
+- `napraw()` **dopisuje blok komunikatów sklepu** na strony koszyka i kasy.
+  Bez niego odmowy koszyka były NIEME: motyw jest klasyczny, a strony nie
+  miały bloku `store-notices`, więc klient lądował na pustym koszyku bez
+  słowa wyjaśnienia. Prepend, nigdy podmiana — lekcja rozbitych nazw klas
+  z P3a.
+- Aktywacja wtyczki **nie melduje już udanej naprawy ustawień jako błędu**:
+  lista zmian szła do kanału komunikatów, który kontrola czyta jako rozjazd,
+  więc zwykła aktywacja zostawiała `sprawdz` na czerwono.
+- Komunikat kokpitu dobiera radę do RODZAJU błędu — „kliknij Zapisz kurs"
+  przy niedoręczonym mailu byłoby radą nieskuteczną.
+
+### Naprawione
+
+- **Mail 2 przepadał na ścieżce „admin klika Processing"** (zmierzone):
+  zamówienie wchodzące w `processing` domykamy odroczeniem na `shutdown`
+  (P3b), a to domknięcie odpala `tutor_after_enrolled` — zgłoszenie wysyłki
+  trafiało do akcji, KTÓRA WŁAŚNIE TRWA, i WordPress już go nie wołał.
+  Znacznik zostawał z pustym wynikiem, w skrzynce były cztery maile
+  WooCommerce i ani jednego naszego: klient miał dostęp i nie wiedział o tym.
+  Naprawia pytanie `doing_action( 'shutdown' )`.
+- **`smoke-wp-zakup` zostawiał wiersze dziennika** po skasowanych
+  zamówieniach — kolejne bramki mierzyłyby własne śmieci (ta sama klasa co
+  produkty-sieroty ze sweepu P2).
+
+### Dowody
+
+- Strażnicy **35/35** (sześć nowych niezmienników P4 w `straznik-platnosci-wp`);
+  niezmiennik 20 przepisany, bo celował w NAZWĘ metody — czwarty nawrót tej
+  klasy wzorca (0.29.0, 0.44.0, 0.47.0, c6c9c97).
+- Audyt mutacyjny **198** (191 → 198): 196 złapanych, **0 przeoczonych,
+  0 martwych**, 2 pominięte (brak materiału).
+- `npm run check` kod 0; smoke'i WP: maile **38** · zakup 32 · produkty 71 ·
+  front 84 · kreator 96 · panel 54 · motyw 89 (9 stron) · tutor 44 ·
+  lekcja 35 · dane 30 · płatności 23.
+- Dane Pluginu 1 nietknięte: `wp:sprawdz` 73/73 co do znaku, `wp:tutor`
+  87 obiektów, **0 różnic**.
+- **Pięć testów negatywnych**, z których dwa obnażyły ŚLEPE sprawdzenia
+  w naszym własnym smoke'u (bramka statusu zapisu nie była dotykana przez
+  żaden scenariusz; ścieżki „admin klika Processing" w smoke'u nie było
+  wcale) — oba mają teraz własne bloki.
+
 ## [0.49.0] — 2026-08-29
 
 **Krok P3b: przycisk mówi to, co klient naprawdę może zrobić, a zamówienie
