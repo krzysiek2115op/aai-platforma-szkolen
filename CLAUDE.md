@@ -1786,8 +1786,10 @@ wyprowadzała tego od nowa:
      wcześniej = konto bez linku do hasła, klasa K1). Kluczowy fakt
      z weryfikacji zerowej: `is_course_purchasable` przy silniku `wc` czyta
      TYLKO meta, nie pyta produktu Woo — blokada koszyka NIE otwiera okna B2.
-     **P3a ZROBIONY (2026-08-29, wersja 0.48.0) — PR #81 OTWARTY, CZEKA NA
-     ZGODĘ WŁAŚCICIELA NA MERGE.** Sweep kroku:
+     **P3a ZAMKNIĘTY W REPO (2026-08-29, wersja 0.48.0): PR #81 zmergowany
+     do `main` na dowodach lokalnych za zgodą właściciela, tag `v0.48.0`
+     + release, gałąź skasowana, artefakt zweryfikowany (`git diff main
+     <szczyt>` PUSTY).** Sweep kroku:
      [docs/plugin-2/SWEEP-P3A.md](docs/plugin-2/SWEEP-P3A.md), szczegóły
      i przegląd: [docs/plugin-2/KROK-P3A.md](docs/plugin-2/KROK-P3A.md) §6–§8.
      Dowody: strażnicy 35/35, audyt mutacyjny **183** (0 przeoczonych,
@@ -1827,12 +1829,101 @@ wyprowadzała tego od nowa:
      Pilnują: reguła 13b `straznik-platnosci-wp`, mutacja w audycie
      i KONTROLA DANYCH w `sprawdz` (rozbite nazwy klas = kod 1; `--napraw`
      tego NIE cofa, bo cudzej treści nie zgadujemy).
-     **NASTĘPNY KROK PO `/clear`: merge PR #81 za zgodą właściciela → tag
-     `v0.48.0` + release (artefakt: `git diff main <szczyt>` PUSTY) → plan
-     i pytania do P3b** (CTA w trzech stanach, cena z Woo na froncie ORAZ
-     w JSON-LD z jednego wywołania, `PreOrder → InStock`, mechanizm domykania
-     zamówienia porównany POMIAREM, przebieg zakupu obiema ścieżkami).
-     Blokadę sprzedaży zdejmuje dopiero **P4**.
+  9. **P3b ZROBIONY I ZAMKNIĘTY W REPO (2026-08-29, wersja 0.49.0):** PR #82
+     zmergowany do `main` na dowodach lokalnych za zgodą właściciela, tag
+     `v0.49.0` + release, gałąź skasowana, artefakt zweryfikowany (`git diff
+     main <szczyt>` PUSTY). CI dalej stoi (zadania padają w 2 s z zerem
+     kroków — wyczerpane minuty Actions); po 1 września potwierdzić
+     **gitleaks**. **Dokument kroku z pomiarami i przeglądem:
+     [docs/plugin-2/KROK-P3B.md](docs/plugin-2/KROK-P3B.md) — CZYTAĆ PRZED
+     PRACĄ NAD P4.**
+     **CZTERY ROZSTRZYGNIĘCIA WŁAŚCICIELA (2026-08-29):** (1) przy przelewie
+     dostęp powstaje **dopiero po potwierdzeniu wpłaty** — z czego wynika
+     WYMAGANIE DLA P4: **mail „Ustaw hasło" MUSI wyjść przy `on-hold`, a nie
+     przy `completed`**, inaczej klient płacący przelewem ma przez dwa dni
+     konto, do którego nie umie wejść (klasa K1); (2) bramka testowa =
+     `bacs`; (3) cena efektywna z Woo pokazywana na stronie kursu **i**
+     w katalogu; (4) w kreatorze zdanie przy polu ceny, że to cena
+     katalogowa. Piąte rozstrzygnięcie, po pomiarze: **zamówienie kursu
+     wchodzące w `processing` domykamy automatycznie** (produkt cyfrowy nie
+     ma czego „realizować").
+     **POMIAR, KTÓRY ZMIENIŁ ZAKRES KROKU — Tutor ma CZARNĄ LISTĘ metod
+     płatności** (`bacs`, `cod`, `cheque`) i przy nich NIE domyka zamówienia
+     stojącego w `processing` (`WooCommerce.php`, `should_order_auto_complete`).
+     Zmierzone: przelew opłacony przez bramkę ORAZ wpłata potwierdzona
+     w panelu przyciskiem „Processing" zostawiały klienta BEZ KURSU, bez
+     jednego objawu — czyli ustawienie auto-complete z P3a było w tej
+     konfiguracji MARTWE. Stąd `Aai_Platnosci_Dostarczanie`: filtr
+     `needs_processing` (produkt kursu nigdy nie wymaga obsługi, więc
+     `payment_complete()` idzie prosto do `completed`, przy okazji jeden mail
+     zamiast dwóch) + hak na `processing` jako siatka na ręczną zmianę
+     w panelu. **Zamówienia MIESZANE zostają w `processing`** — tam ten
+     status jest prawdziwy, bo jest co wysłać.
+     **CZTERY DALSZE FAKTY ZMIERZONE W CUDZYM KODZIE:** (a) `do_enroll()`
+     nadaje zapisowi `pending`, gdy kurs jest `purchasable` — czyli szew z P2
+     zamyka okno B2; (b) `WC_Order::needs_processing()` liczy
+     `is_downloadable() && is_virtual()` i trzyma wynik w **cache obiektowym
+     grupy `orders` na dobę**, kluczem per zamówienie (NIE transient);
+     (c) `woocommerce_order_status_changed` odpala się TYLKO przy niepustym
+     `from`, więc zamówienie utworzone od razu w `processing` przeszłoby mu
+     pod nosem — stąd hak na `woocommerce_order_status_processing`;
+     (d) **blok kasy nie renderuje pozycji w HTML** (dociąga je przez Store
+     API), więc „prosto do kasy" mierzy się ciasteczkami
+     `woocommerce_items_in_cart`, a nie treścią strony.
+     **CO POWSTAŁO:** `Aai_Platnosci_Dostarczanie`, `Aai_Platnosci_Cena`
+     (filtr `aai_sklep_cena_kursu` — cena EFEKTYWNA z Woo),
+     `Aai_Platnosci_Cta` (filtry `aai_sklep_cta_kursu`
+     i `aai_sklep_dostepnosc_kursu`), `Aai_Sklep_Widok::cena_grosze()`
+     (JEDNO źródło ceny, pamięć na żądanie — strona pyta 4 razy, Woo
+     odpowiada raz), `adres_kontaktu()` rozdzielony od zakupu,
+     `Aai_Platnosci_Zapis::zamknij_zamowienie()`, **`npm run smoke:wp-zakup`**
+     (32 sprawdzenia) oraz **pięć niezmienników strażnika** i **8 nowych
+     mutacji** (audyt 183 → **191**).
+     **PRZYCISK MA CZTERY STANY, nie trzy** (czwarty wyszedł z pomiaru):
+     kontakt przy zamkniętej sprzedaży · kasa z produktem przy otwartej ·
+     „Przejdź do kursu" dla kogoś, kto kurs ma · **„Zamówienie w toku"** dla
+     kogoś, kto czeka na przelew. Pytamy Tutora o ZAPIS, nigdy o `dostep`
+     (`dostep` jest prawdziwy także dla zapowiedzi i dla admina — pułapka
+     z W6). `PreOrder → InStock` wynika z TEJ SAMEJ metody co przycisk.
+     **PRZEGLĄD PRZED PR-em — cztery znaleziska, każde potwierdzone
+     URUCHOMIENIOWO przed naprawą** (recenzent na zamkniętej liście 10 pytań,
+     decyzja właściciela o koszcie tokenów; krytykiem agent główny):
+     (1) **anulowane zamówienie blokowało zakup NA ZAWSZE** — Tutor zakłada
+     zapis przy SKŁADANIU zamówienia i **nigdy go nie kasuje**, anulowanie
+     i zwrot tylko przestawiają status; pytanie o samo istnienie zapisu
+     odbierało takiemu klientowi przycisk zakupu bezpowrotnie (teraz liczy się
+     STATUS: trwające to `pending`, `on-hold`, `processing`);
+     (2) **produkt `publish` z pustą ceną obiecywał zakup**, którego kasa
+     odmawia — `is_purchasable()` wymaga niepustej ceny, więc sam status to
+     za mało; (3) **domknięcie odwracało kolejność maili** („zrealizowane"
+     przed „w realizacji", zmierzone na notatkach zamówienia 298–301), bo hak
+     biegnie W ŚRODKU cudzego przejścia statusu — domykamy teraz na
+     `shutdown`; (4) **cena bez podatku nie była pilnowana** — `get_price()`
+     nie dolicza VAT-u, więc kontrola oddaje **kod 1**, gdy ktoś włączy
+     naliczanie podatku przed przeliczeniem ceny efektywnej.
+     **DWIE PUŁAPKI WŁASNYCH DOWODÓW, warte zapamiętania:** (a)
+     `includes("99,00 zł")` przechodzi dla „199,00 zł" — sprawdzenie karty
+     katalogu było przez to ŚLEPE i wykrył to dopiero test negatywny (ta sama
+     klasa co `endsWith("199.00")` przy P2); **porównuj CAŁĄ wartość**;
+     (b) nowy blok sprawdzeń wstawiony w ŚRODEK smoke'a zaburzył stan
+     następnym blokom i trzy padnięcia wyglądały jak błąd kodu, a były błędem
+     KOLEJNOŚCI w teście.
+     **Stan dowodów na koniec P3b:** strażnicy **35/35**, audyt mutacyjny
+     **191** (189 złapanych, 0 przeoczonych, 0 martwych), testy **83/83**,
+     `npm run check` 0, `postaw.sh` 0, smoke'i WP: zakup **32** · produkty 71
+     · front 84 · kreator 96 · motyw 89 · panel 54 · tutor 44 · lekcja 35 ·
+     dane 30 · płatności 23; `wp:sprawdz` 73/73 co do znaku, `wp:tutor`
+     0 różnic. Środowisko `:8892`: produkty 2, powiazania 2, dostawy 0,
+     zamówienia 0, **sprzedaż ZAMKNIĘTA**, VAT wyłączony.
+
+     **NASTĘPNY KROK CAŁEGO PROJEKTU: P4 — konto przy zakupie, dwa maile,
+     tabela `dostawy`, zdjęcie blokady sprzedaży.** Wg reguły właściciela
+     (2026-08-28) **najpierw plan przebiegu kroku + pytania doprecyzowujące
+     i CZEKAĆ NA ZGODĘ, dopiero potem kod.** Wymagania, które P4 dziedziczy
+     z P3b: mail „Ustaw hasło" przy `on-hold` (nie `completed`); flaga
+     `aai_platnosci_sprzedaz_otwarta` na `tak` dopiero, gdy dostarczanie
+     działa; `smoke-wp-zakup` otwiera sprzedaż WYŁĄCZNIE na czas pomiaru
+     i przywraca stan.
      **REGUŁA WŁAŚCICIELA (2026-08-28), obowiązuje dla CAŁYCH Pluginów 2 i 3:
      przed KAŻDYM krokiem agent najpierw przedstawia plan przebiegu kroku
      (z tym, czego krok NIE dotyka) i pytania doprecyzowujące, i czeka na
