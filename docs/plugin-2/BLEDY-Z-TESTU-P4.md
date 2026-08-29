@@ -66,6 +66,27 @@ opcje. Reguła z sweepu P2 („smoke, który zostawia produkt, każe następnym
 mierzyć własne śmieci") ma tu drugą stronę: **śmieć widoczny klientowi jest
 gorszy niż śmieć widoczny bramce.**
 
+## 3b. BLAD-026 — znalezione przy sweepie, poważniejsze niż tamte trzy
+
+**Instalacja używa HPOS.** Zamówienia mieszkają w `wp_wc_orders` (jest ich
+**148**), a `SELECT COUNT(*) FROM wp_posts WHERE post_type='shop_order'`
+oddaje **0** — pod HPOS ta tabela jest pusta z definicji.
+
+Tym zapytaniem liczyły zamówienia **`smoke-wp-zakup` i `smoke-wp-maile`**
+w swoim „rachunku sumienia" (*smoke nie zostawił zamówienia*) — czyli
+porównywały **0 z 0** i przechodziły niezależnie od tego, ile śmieci
+zostawiły. Stąd 148 zamówień narosłych przez wiele przebiegów. Tym samym
+zapytaniem mierzyłem stan środowiska przez CAŁĄ tę sesję, więc **każde moje
+zdanie „środowisko czyste, zamówienia 0" nie dowodziło niczego.**
+
+Kontrola `wp aai-platnosci sprawdz` jest **czysta** — pyta przez
+`wc_get_orders()`, czyli publiczne API, które czyta właściwy nośnik. To ona
+złapałaby prawdziwy problem; ślepe były testy i moje pomiary.
+
+Klasa jest ta sama co „sprawdzenie, które mówi »zero«, bywa ślepe po OBU
+stronach" ze sweepu W2 — i **piąta klasa do przeszukania**: gdzie jeszcze
+mierzymy cudze dane po strukturze, którą cudza wtyczka mogła zmienić?
+
 ## 4. Stan środowiska, w jakim to zostało
 
 - **SPRZEDAŻ OTWARTA** (`wp aai-platnosci sprzedaz zamknij` żeby cofnąć),
@@ -73,7 +94,7 @@ gorszy niż śmieć widoczny bramce.**
 - W skrzynce `http://127.0.0.1:8893` leży komplet z zakupu na
   `podglad@example.test` (mail 1, mail 2 i wiadomości WooCommerce) oraz
   zakupy właściciela.
-- Zamówienia, konta i zapisy z testów **NIE są posprzątane** — celowo,
+- **148 zamówień** (HPOS), konta i zapisy z testów **NIE są posprzątane** — celowo,
   bo są materiałem dowodowym dla klas A–D. Sprzątać dopiero po ich zbadaniu.
 - Kod P4 jest kompletny i przejrzany (10 commitów, wersja 0.50.0),
   bramki zielone. Te trzy błędy to **wynik testu ręcznego, nie regresja**.

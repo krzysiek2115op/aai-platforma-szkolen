@@ -266,6 +266,16 @@
       "naprawa": "DO ZROBIENIA (po /clear). Zakres szerszy niz jeden mail: przejrzec WSZYSTKIE wiadomosci, ktore moga wyjsc na sciezce klienta (rdzen WP, WooCommerce, Tutor) i rozstrzygnac dla kazdej: zostaje / gasimy / przejmujemy.",
       "test": "brak — do dopisania razem z naprawa",
       "straznik": "brak — do dopisania razem z naprawa"
+    },
+    {
+      "id": "BLAD-026",
+      "data": "2026-08-29",
+      "klasa": "sprawdzenie-liczace-z-niewlasciwej-tabeli-zawsze-oddaje-zero",
+      "dowod": "Znalezione przy sweepie po tescie wlasciciela. Instalacja `:8892` uzywa HPOS (`wp_wc_orders`): zamowien jest tam **148**, a `SELECT COUNT(*) FROM wp_posts WHERE post_type='shop_order'` oddaje **0** — bo pod HPOS ta tabela jest pusta z definicji. Tym zapytaniem liczyly zamowienia `smoke-wp-zakup` i `smoke-wp-maile` (rachunek sumienia „smoke nie zostawil zamowienia”) oraz kazdy moj pomiar stanu srodowiska w tej sesji.",
+      "skutek": "Podwojny. (1) Rachunek sumienia obu smoke'ow byl SLEPY: porownywal 0 z 0 i przechodzil niezaleznie od tego, ile zamowien zostawil — stad 148 zamowien-smieci narosłych przez wiele przebiegow. (2) KAZDE moje zdanie „srodowisko czyste, zamowienia 0” w tej sesji bylo oparte na pustej tabeli, wiec nie dowodzilo niczego. Kontrola `wp aai-platnosci sprawdz` jest CZYSTA — pyta przez `wc_get_orders()`, czyli publiczne API, ktore czyta wlasciwy nosnik.",
+      "naprawa": "DO ZROBIENIA (po /clear): oba smoke'i liczą zamowienia przez `wc_get_orders()`, nigdy po `post_type`; do tego sprzatniecie 148 zamowien-smieci PO zbadaniu klas z BLEDY-Z-TESTU-P4.md (sa materialem dowodowym).",
+      "test": "brak — do dopisania razem z naprawa (test negatywny: smoke zostawiajacy zamowienie MUSI padac)",
+      "straznik": "brak — do rozwazenia regula: w smoke'ach zero zapytan o `post_type='shop_order'`"
     }
   ]
 }
