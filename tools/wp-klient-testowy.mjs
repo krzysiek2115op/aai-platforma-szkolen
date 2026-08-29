@@ -117,7 +117,32 @@ const surowy = wp(
    $kursy = get_posts(array('post_type' => $typy['kurs'], 'post_status' => 'publish', 'numberposts' => -1));
    $zapisane = array();
    foreach ($kursy as $k) {
-     if (!tutor_utils()->is_enrolled($k->ID, $id)) { tutor_utils()->do_enroll($k->ID, 0, $id); }
+     if (!tutor_utils()->is_enrolled($k->ID, $id)) {
+       /*
+        * STATUS ZAPISU PODNOSIMY JAWNIE, i to nie jest kosmetyka.
+        *
+        * Odkąd Plugin 2 czyni kursy PŁATNYMI (price_type = paid plus
+        * product_id), do_enroll() nadaje zapisowi status „pending" —
+        * czeka na opłatę — a dostęp do materiału daje wyłącznie
+        * „completed". Bez podniesienia statusu konto udaje nie klienta,
+        * tylko kogoś, kto zaczął zakup: test odpowiadałby na inne pytanie,
+        * niż zadaje. Ustawiamy to, co na produkcji robi opłacone
+        * zamówienie — tak samo i z tego samego powodu robi smoke-wp-lekcja.
+        *
+        * ISTNIEJĄCE zapisy podnosimy, zamiast dokładać kolejny wiersz:
+        * inaczej każdy przebieg na kursie płatnym zostawiałby po sobie
+        * osierocony „pending", a narzędzie ma być idempotentne.
+        */
+       $stare = get_posts(array('post_type' => 'tutor_enrolled', 'post_status' => 'any', 'author' => $id, 'post_parent' => $k->ID, 'numberposts' => -1, 'fields' => 'ids'));
+       if (!$stare) {
+         $nowy = tutor_utils()->do_enroll($k->ID, 0, $id);
+         if ($nowy) { $stare = array((int) $nowy); }
+       }
+       foreach ($stare as $i => $z) {
+         if (0 === $i) { wp_update_post(array('ID' => (int) $z, 'post_status' => 'completed')); }
+         else { wp_delete_post((int) $z, true); }
+       }
+     }
      $zapisane[] = array('id' => $k->ID, 'tytul' => $k->post_title);
    }
    echo json_encode(array('id' => $id, 'stan' => $stan, 'kursy' => $zapisane));`

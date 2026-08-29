@@ -5,6 +5,77 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.53.0] — 2026-08-30
+
+**Trzy naprawy z testu ręcznego P6** — właściciel przeszedł ścieżkę zakupu
+z odegraną bramką płatności i zgłosił trzy rzeczy; każda potwierdzona
+uruchomieniowo przed naprawą, każda naprawa z testem negatywnym.
+Scenariusz i przebieg testu:
+[docs/plugin-2/TEST-RECZNY-P6.md](docs/plugin-2/TEST-RECZNY-P6.md).
+
+### Zmienione
+
+- **Przy płatności natychmiastowej klient dostaje JEDEN mail, nie dwa
+  w tej samej sekundzie.** Zgłoszenie: „po co mail o gotowym kursie, na
+  który mogę wejść bez hasła — a drugi każe mi ustawić hasło". Zmierzone:
+  kasa loguje kupującego na 14 dni (`wc_set_customer_auth_cookie()`,
+  `class-wc-checkout.php:1262`), więc przy bramce domykającej zamówienie
+  w tym samym żądaniu mail 1 „Ustaw hasło i wejdź" był szumem obok maila 2,
+  który i tak niesie odnośnik do ustawienia hasła. Teraz mail 1 jest
+  wtedy **świadomie pomijany** — z wpisem w dzienniku dostaw
+  (`pominięto: opłacone od razu…`), który kontrola ma za stan poprawny.
+  **Gwarancja K1 stoi dalej i jest pilnowana**: pominąć wolno DOPIERO po
+  odczytanym z dziennika „wyslano" maila 2 — gdy poczta leży, mail 1
+  wychodzi jak zawsze (zmierzone sceną z uszkodzoną wysyłką). Przelew
+  (`bacs`) bez zmian: konto i opłata to osobne żądania w odstępie dni,
+  klient dostaje obie wiadomości jak dotąd.
+- **Menu ma pozycję „Moje konto"** (Plugin 1, za decyzją właściciela) —
+  obok „Moich kursów", w obu nawigacjach motywu, wyłącznie dla
+  zalogowanego. Zgłoszenie: z „Moich kursów" nie było JAK wrócić do
+  zamówień i ustawień — zmierzone: zero odnośników do konta na całej
+  stronie; drzwi z W6 („Moje kursy" pierwszą pozycją menu konta) były
+  jednokierunkowe. Na stronach konta pozycja dostaje `aria-current`
+  (przez `is_account_page()`, bo to nie nasza trasa); dla każdego
+  zalogowanego, nie tylko klienta z kursem — konto ma też ten, kto czeka
+  na przelew.
+- **Rdzeń nie mailuje już administratora o każdej zmianie hasła.**
+  Zgłoszenie: gołe „Hasło użytkownika … zostało zmienione" w skrzynce.
+  To `wp_password_change_notification()` (pluggable.php) — powiadomienie
+  DO WŁAŚCICIELA, nie do klienta (klient z tej funkcji nie dostaje nic,
+  zmierzone przy P4); przy sprzedaży dawałoby jeden mail na każdego
+  klienta, który ustawi hasło z naszego linku. Zdjęty callback, nie
+  podmieniona funkcja pluggable (dwie wtyczki definiujące tę samą to
+  fatal; zdjęcie znika z deaktywacją wtyczki). Mail DO KLIENTA z linkiem
+  „ustaw nowe hasło" — inny mechanizm — nietknięty, zmierzone resetem
+  po naprawie.
+
+### Naprawione
+
+- **`npm run wp:klient` zakładał konto bez dostępu do kursów** — zepsute
+  od P2: odkąd kursy są płatne, `do_enroll()` nadaje zapisowi `pending`
+  („czeka na opłatę"), a dostęp daje wyłącznie `completed`. Konto testowe
+  udawało nie klienta, tylko kogoś, kto zaczął zakup; narzędzie samo to
+  zgłaszało kodem 1, ale nikt go nie uruchamiał od W6. Status podnoszony
+  jawnie (jak w `smoke-wp-lekcja`, z tego samego powodu), istniejące
+  zapisy podnoszone zamiast dublowane — trzy przebiegi z rzędu dają dwa
+  zapisy `completed`, zero maili, zero wpisów w dzienniku.
+
+### Dowody
+
+- `smoke-wp-maile` 46 → **60 sprawdzeń** (trzy sceny: płatność
+  natychmiastowa → jeden mail i kontrola kod 0; padnięty mail 2 → mail 1
+  wychodzi i kontrola kod 1; reset hasła → zero maila do admina, reset
+  działa), `smoke-wp-front` 82 → **84** (gość nie widzi „Moich kursów"
+  ani „Mojego konta"), `smoke-wp-lekcja` 36 → **38** (zalogowany z kursem
+  widzi obie pozycje). Testy negatywne każdej asercji: pominięcie
+  bezwarunkowe, brak drogi zapasowej, pozycja ukryta zalogowanemu,
+  pozycja pokazana gościowi — każdy pada dokładnie na swoim sprawdzeniu.
+- **Dwie reguły `straznik-platnosci-wp`** (36: mail 1 pomijany wyłącznie
+  po potwierdzonym mailu 2 i tylko on — obie połowy, w wysyłce
+  i w kontroli; 37: powiadomienie admina zdjęte w `zarejestruj()`)
+  i **cztery mutacje** w audycie: 223 → **227** (wszystkie złapane
+  z właściwym śladem).
+
 ## [0.52.0] — 2026-08-29
 
 **Krok P5 — zwroty i przypadki brzegowe.** Zakres rozstrzygnął właściciel:

@@ -344,6 +344,23 @@ sprawdz(
 );
 
 /*
+ * MENU GOŚCIA BEZ DRZWI, ZA KTÓRYMI NIC NIE MA. „Moje kursy" i „Moje
+ * konto" (druga pozycja doszła w P6: droga POWROTNA do zamówień
+ * i ustawień — zgłoszenie właściciela) wchodzą do nawigacji wyłącznie
+ * zalogowanemu. Obecność u zalogowanego mierzy smoke-wp-lekcja, bo tam
+ * jest konto zapisane na kurs; tu pilnujemy drugiej strony medalu.
+ */
+{
+  const glownaGoscia = nawigacja(moje.html, "Nawigacja główna") ?? "";
+  for (const pozycja of ["Moje kursy", "Moje konto"]) {
+    sprawdz(
+      !glownaGoscia.includes(pozycja),
+      `menu pokazuje GOŚCIOWI pozycję „${pozycja}" — drzwi, za którymi nie ma dla niego niczego`
+    );
+  }
+}
+
+/*
  * Odpowiedzi zależnej od konta nie wolno odłożyć na półkę: cache strony albo
  * CDN bez reguły na ciasteczko logowania wydałby listę kursów jednego klienta
  * drugiemu.

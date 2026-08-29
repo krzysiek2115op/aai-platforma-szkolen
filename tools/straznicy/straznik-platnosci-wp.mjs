@@ -886,6 +886,82 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* 36. MAIL 1 POMIJA SIĘ WYŁĄCZNIE PO POTWIERDZONYM MAILU 2 (K1).
+
+   Decyzja właściciela 2026-08-30: przy płatności natychmiastowej klient
+   dostaje jedną wiadomość („Twój kurs jest gotowy" niesie odnośnik do
+   ustawienia hasła), a nie dwie w tej samej sekundzie. Gwarancja K1 stoi
+   jednak dalej: pominąć mail 1 wolno DOPIERO po odczytanym z dziennika
+   „wyslano" maila 2 — gdy poczta padła, mail 1 MUSI wyjść, bo inaczej
+   klient nie ma ANI JEDNEJ wiadomości z linkiem do hasła. Reguła celuje
+   w rozstrzygnięcie (porównanie wyniku i drogę zapasową), nie w nazwę. */
+{
+  const maile = join(KATALOG, "includes", "class-aai-platnosci-maile.php");
+  if (existsSync(maile)) {
+    const c = kod(readFileSync(maile, "utf8"));
+    const start = c.indexOf("function dostarcz_konto(");
+    if (start < 0) {
+      if (/WYNIK_POMINIETY/.test(c)) {
+        bledy.push(
+          `${maile}: jest wynik „pominięto", a nie ma dostarcz_konto() — pominięcie maila 1 żyje poza miejscem, którego pilnuje ta reguła.`
+        );
+      }
+    } else {
+      const dalej = c.slice(start + 1).search(/\n\t(?:private|public|protected)\s/);
+      const blok = c.slice(start, dalej < 0 ? c.length : start + 1 + dalej);
+      if (!/WYNIK_OK\s*===\s*Aai_Platnosci_Zapis::dostawa_rezultat\s*\(/.test(blok)) {
+        bledy.push(
+          `${maile}: dostarcz_konto() pomija mail 1 bez potwierdzonego wyniku maila 2. Pominięcie wolno zapisać dopiero po odczytanym z dziennika „wyslano" — inaczej awaria poczty zostawia klienta bez ANI JEDNEJ wiadomości z linkiem do hasła (K1).`
+        );
+      }
+      if (!/wyslij_konto\s*\(/.test(blok)) {
+        bledy.push(
+          `${maile}: dostarcz_konto() nie ma drogi zapasowej (wyslij_konto). Gdy mail 2 nie wyjdzie, mail 1 musi — bez tego klient płacący natychmiastowo przy leżącej poczcie nie dostaje niczego (K1).`
+        );
+      }
+    }
+
+    /* Druga połowa tej samej gwarancji mieszka w KONTROLI: pominięcie
+       jest w porządku WYŁĄCZNIE dla maila 1. Kontrola akceptująca
+       „pominięto" dla maila 2 przestałaby widzieć jego awarie. */
+    const cli = join(KATALOG, "includes", "class-aai-platnosci-cli.php");
+    if (existsSync(cli)) {
+      const ck = kod(readFileSync(cli, "utf8"));
+      const od = ck.indexOf("function czy_dostawa_w_porzadku(");
+      const blokCli = od < 0 ? "" : ck.slice(od, od + 1200);
+      if (/WYNIK_POMINIETY/.test(blokCli) && !/ZDARZENIE_KONTO\s*===\s*\$zdarzenie\s*&&[^;]*WYNIK_POMINIETY/s.test(blokCli)) {
+        bledy.push(
+          `${cli}: kontrola akceptuje wynik „pominięto" bez sprawdzenia, że to mail KONTA. Pominięty mail 2 nie istnieje w projekcie — taka akceptacja ukryłaby jego awarię (klient zapłacił, wiadomości nie ma, kontrola zielona).`
+        );
+      }
+    }
+  }
+}
+
+/* 37. CISZA O CUDZYCH HASŁACH (decyzja właściciela 2026-08-30).
+
+   Rdzeń zawiadamia ADMINISTRATORA o każdej zmianie hasła
+   (wp_password_change_notification; klient z tej funkcji nie dostaje nic
+   — zmierzone przy P4). Przy sprzedaży to jeden mail na każdego klienta,
+   który ustawi hasło z naszego linku: szum zagłuszający prawdziwe
+   powiadomienia. Rejestracja maili ma zdejmować ten callback — wzorzec
+   celuje w wywołanie zdejmujące WEWNĄTRZ zarejestruj(), nie w obecność
+   nazwy gdziekolwiek w pliku (lekcja szóstego nawrotu z P4). */
+{
+  const maile = join(KATALOG, "includes", "class-aai-platnosci-maile.php");
+  if (existsSync(maile)) {
+    const c = kod(readFileSync(maile, "utf8"));
+    const start = c.indexOf("function zarejestruj(");
+    const koniec = start < 0 ? -1 : c.indexOf("\n\t}", start);
+    const blok = start < 0 ? "" : c.slice(start, koniec < 0 ? c.length : koniec);
+    if (!/remove_action\s*\(\s*'after_password_reset'\s*,\s*'wp_password_change_notification'\s*\)/.test(blok)) {
+      bledy.push(
+        `${maile}: zarejestruj() nie zdejmuje wp_password_change_notification z after_password_reset. Każdy klient ustawiający hasło wysyła administratorowi mail „Hasło zostało zmienione" — szum, który zagłusza prawdziwe powiadomienia sklepu (decyzja właściciela 2026-08-30).`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -893,5 +969,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order())."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte)."
 );
