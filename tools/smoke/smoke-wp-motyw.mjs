@@ -874,6 +874,16 @@ sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da si
   let koszyk = null;
   let kasa = null;
   let dodanie = null;
+  /*
+   * STAN SPRZEDAŻY ZAPAMIĘTUJEMY, a nie kasujemy na końcu. Do 0.51.0
+   * `finally` robiło `delete_option()`, czyli ZAMYKAŁO sprzedaż niezależnie
+   * od tego, co zastało — a po P4 właściciel trzyma ją otwartą. Skutek był
+   * cichy i mylący: po przebiegu bramek wyglądu strona kursu przestawała
+   * pokazywać przycisk zakupu i wyglądało to jak awaria sklepu.
+   * Złapane sweepem N1–N6, nie przez własne sprawdzenia tego smoke'a —
+   * „przywróć stan" to co innego niż „skasuj ustawienie".
+   */
+  const sprzedazPrzed = wpEval(`echo (string) get_option("${OPCJA_SPRZEDAZY}", "");`).trim();
   wpEval(`update_option("${OPCJA_SPRZEDAZY}", "tak");`);
   try {
     const karta = await kontekstGoscia.newPage();
@@ -908,6 +918,8 @@ sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da si
     await sprzatanie.close();
   } finally {
     await kontekstGoscia.close().catch(() => {});
+    // Zamykamy na czas testu negatywnego niżej, ale stan zastany wraca
+    // zaraz po nim — patrz „przywrócenie stanu sprzedaży".
     wpEval(`delete_option("${OPCJA_SPRZEDAZY}");`);
   }
   // Test negatywny blokady — WŁASNĄ, świeżą sesją gościa przez Store API
@@ -936,6 +948,18 @@ sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da si
   sprawdz(
     400 === zamkniete.kod,
     `koszyk/kasa: po zamknięciu flagi Store API przyjęło produkt kursu (kod ${zamkniete.kod}) — blokada sprzedaży NIE działa`
+  );
+
+  /* PRZYWRÓCENIE STANU SPRZEDAŻY — dopiero tutaj, bo test negatywny wyżej
+     wymaga flagi zamkniętej. Rachunek sumienia zaraz potem. */
+  if ("" === sprzedazPrzed) {
+    wpEval(`delete_option("${OPCJA_SPRZEDAZY}");`);
+  } else {
+    wpEval(`update_option("${OPCJA_SPRZEDAZY}", "${sprzedazPrzed}");`);
+  }
+  sprawdz(
+    wpEval(`echo (string) get_option("${OPCJA_SPRZEDAZY}", "");`).trim() === sprzedazPrzed,
+    `smoke zostawił zmieniony stan sprzedaży (zastał „${sprzedazPrzed}") — następny przebieg mierzyłby inną instalację, a właściciel zobaczyłby sklep bez przycisku zakupu`
   );
 
   for (const [sciezka, m, oczekiwanyAdres] of [
