@@ -242,11 +242,35 @@ if (!existsSync(USTAWIENIA)) {
 } else {
   const ust = kod(readFileSync(USTAWIENIA, "utf8"));
 
-  /* 11. blokada koszyka istnieje i jest DOMYŚLNIE ZAMKNIĘTA */
-  if (!/add_filter\(\s*'woocommerce_add_to_cart_validation'/.test(ust)) {
+  /* 11. blokada koszyka istnieje i jest DOMYŚLNIE ZAMKNIĘTA.
+
+     WZORZEC PYTA O KONKRETNY CALLBACK, nie o samą nazwę haka. Pierwsza
+     wersja sprawdzała obecność `add_filter( 'woocommerce_add_to_cart_validation'`
+     i OŚLEPŁA w chwili, w której na ten sam hak wszedł drugi filtr
+     (reguła jednego kursu w koszyku, N2/0.51.0): mutacja kasująca
+     rejestrację BLOKADY przechodziła, bo wzorzec trafiał w rejestrację
+     sąsiada. Złapał to audyt mutacyjny, nie przegląd — szósty nawrót
+     pułapki „wzorzec na napis" w tym projekcie (0.29.0, 0.44.0, 0.47.0,
+     c6c9c97, P4 ×2). Do tego pytamy o ZACHOWANIE: któryś z callbacków
+     walidacji musi pytać o stan sprzedaży. */
+  if (!/add_filter\(\s*'woocommerce_add_to_cart_validation',\s*array\(\s*self::class,\s*'blokada_sprzedazy'\s*\)/.test(ust)) {
     bledy.push(
-      `${USTAWIENIA}: BRAK BLOKADY SPRZEDAŻY (filtr woocommerce_add_to_cart_validation). Między P3a a P4 zakup jest technicznie możliwy, a dostarczanie (maile, dostawy) nie istnieje — to okno „klient płaci i nie dostaje nic".`
+      `${USTAWIENIA}: BRAK BLOKADY SPRZEDAŻY (filtr woocommerce_add_to_cart_validation nie ma podpiętej blokady). Między P3a a P4 zakup jest technicznie możliwy, a dostarczanie (maile, dostawy) nie istnieje — to okno „klient płaci i nie dostaje nic".`
     );
+  }
+  {
+    /* GRANICA BLOKU: następna deklaracja `function`, nie następny
+       docblock — `kod()` komentarze USUWA, więc szukanie `/**` zwracało
+       -1, a `slice(i, -1)` brało pół pliku i wzorzec trafiał w wywołanie
+       z zupełnie innej metody. Wykryte własnym testem negatywnym. */
+    const iBlok = ust.indexOf("function blokada_sprzedazy");
+    const iKoniec = iBlok < 0 ? -1 : ust.indexOf("function ", iBlok + 20);
+    const blokBlokady = iBlok < 0 ? "" : ust.slice(iBlok, iKoniec < 0 ? undefined : iKoniec);
+    if (iBlok >= 0 && !/sprzedaz_otwarta\s*\(\s*\)/.test(blokBlokady)) {
+      bledy.push(
+        `${USTAWIENIA}: blokada koszyka nie pyta o STAN SPRZEDAŻY — jest podpięta, ale przepuszcza wszystko niezależnie od tego, czy sprzedaż jest otwarta.`
+      );
+    }
   }
   if (!/get_option\(\s*self::OPCJA_SPRZEDAZ,\s*''\s*\)/.test(ust)) {
     bledy.push(
@@ -404,14 +428,29 @@ if (!existsSync(USTAWIENIA)) {
        istnienie. Tutor tworzy zapis przy składaniu zamówienia i nigdy go nie
        kasuje — anulowanie tylko przestawia status. Pytanie o istnienie
        zostawiało klienta z anulowanym zamówieniem bez przycisku zakupu
-       NA ZAWSZE (zmierzone). */
-    const startK = c.indexOf("function stan_klienta(");
-    if (startK >= 0) {
-      const dalejK = c.indexOf("function ", startK + 9);
-      const blokK = c.slice(startK, dalejK < 0 ? c.length : dalejK);
-      if (!/get_post_status\s*\(/.test(blokK) || !/in_array\s*\(/.test(blokK)) {
+       NA ZAWSZE (zmierzone).
+
+       Wzorzec celuje w DECYZJĘ, nie w nazwę funkcji (pierwsza wersja pytała
+       o `stan_klienta(` i refactor wynoszący logikę do `stan_posiadania()`
+       zapalił ją mimo zachowanej gwarancji — czwarty nawrót klasy wzorca na
+       nazwę: 0.29.0, 0.44.0, 0.47.0, c6c9c97). Szukamy więc KAŻDEGO miejsca,
+       w którym zapada rozstrzygnięcie „w toku" (`return self::W_TOKU` albo
+       napis przycisku), i wymagamy, żeby funkcja podejmująca je na podstawie
+       zapisu Tutora czytała jego STATUS (`get_post_status` + lista statusów
+       trwających w `in_array`). */
+    const decyzjeWToku = [...c.matchAll(/return\s+self::W_TOKU\s*;/g)];
+    if (decyzjeWToku.length === 0 && !c.includes("Zamówienie w toku")) {
+      bledy.push(
+        `${cta}: nie widzę stanu „zamówienie w toku" (ani stałej W_TOKU, ani napisu). Bez niego klient czekający na przelew widzi zachętę do ponownego zakupu.`
+      );
+    }
+    for (const m of decyzjeWToku) {
+      const startF = c.lastIndexOf("function ", m.index);
+      const dalejF = c.indexOf("\n\tpublic", m.index) >= 0 ? c.indexOf("\n\tpublic", m.index) : c.length;
+      const blokF = c.slice(startF, Math.max(m.index, dalejF));
+      if (!/get_post_status\s*\(/.test(blokF) || !/in_array\s*\([^)]*ZAMOWIENIE_TRWA/.test(blokF)) {
         bledy.push(
-          `${cta}: stan „zamówienie w toku" nie sprawdza STATUSU zapisu. Zapis Tutora zostaje po anulowaniu i zwrocie, więc pytanie o samo jego istnienie odbiera takiemu klientowi przycisk zakupu bezpowrotnie.`
+          `${cta}: rozstrzygnięcie „zamówienie w toku" zapada bez sprawdzenia STATUSU zapisu (get_post_status + in_array po liście statusów trwających). Zapis Tutora zostaje po anulowaniu i zwrocie, więc pytanie o samo jego istnienie odbiera takiemu klientowi przycisk zakupu bezpowrotnie.`
         );
       }
     }
@@ -430,6 +469,355 @@ if (!existsSync(USTAWIENIA)) {
       }
     }
   }
+
+  /* 22–26. Niezmienniki kroku P4: dwa maile i dziennik dostaw. */
+  const maile = join(KATALOG, "includes", "class-aai-platnosci-maile.php");
+  if (existsSync(maile)) {
+    const c = kod(readFileSync(maile, "utf8"));
+
+    /* 22. mail najwyżej raz: KAŻDA wysyłka stoi za znacznikiem
+       `dostawa_odnotuj` (atomowy INSERT z UNIQUE), a znacznik pada PRZED
+       zleceniem wysyłki. Cudzy hak biegnie rekurencyjnie
+       (mark_order_complete() woła zmianę statusu wewnątrz obsługi zmiany
+       statusu — B6), więc „sprawdź czy już wysłano" bez UNIQUE przegrywa
+       wyścig. Wzorzec: w obu obsługach zdarzeń (na_koncie / na_dostepie)
+       wynik dostawa_odnotuj() jest WARUNKIEM dalszej drogi. */
+    for (const obsluga of ["na_koncie", "na_dostepie"]) {
+      const start = c.indexOf(`function ${obsluga}(`);
+      if (start < 0) {
+        bledy.push(`${maile}: nie widzę obsługi ${obsluga}() — któryś z dwóch maili dostarczenia nie ma słuchacza.`);
+        continue;
+      }
+      const dalej = c.indexOf("\n\tpublic", start + 9);
+      const blok = c.slice(start, dalej < 0 ? c.length : dalej);
+      if (!/if\s*\(\s*!\s*Aai_Platnosci_Zapis::dostawa_odnotuj\s*\(/.test(blok)) {
+        bledy.push(
+          `${maile}: ${obsluga}() nie uzależnia wysyłki od wyniku dostawa_odnotuj(). Znacznik z UNIQUE jest jedyną atomową bramką — bez niej rekurencyjny hak Tutora (B6) wysyła ten sam mail dwa razy, a drugi klucz resetu unieważnia pierwszy link.`
+        );
+      }
+    }
+
+    /* 23. hasło nie wchodzi do treści maila. Trzeci argument
+       woocommerce_created_customer w docbloku Woo nazywa się „password",
+       więc pokusa jest realna — a zmierzona wartość to bool. Wzorzec:
+       argument hasła jest natychmiast porzucany (unset), zanim cokolwiek
+       zbuduje treść. */
+    const naKoncie = c.slice(c.indexOf("function na_koncie("));
+    if (!/unset\s*\(\s*\$dane\s*,\s*\$haslo_wygenerowane\s*\)/.test(naKoncie)) {
+      bledy.push(
+        `${maile}: na_koncie() nie porzuca argumentu hasła (unset). Hasło w treści maila to niezmiennik 8 — złamany raz, żyje w skrzynkach klientów na zawsze.`
+      );
+    }
+
+    /* 24. adresatem jest konto, nie zamówienie (B9): w całym pliku ZERO
+       get_billing_email — zamówienie założone w kokpicie na cudze
+       customer_id z dowolnym adresem rozliczeniowym wysłałoby ważny klucz
+       resetu pod ten adres, czyli oddało konto. */
+    if (/get_billing_email\s*\(/.test(c)) {
+      bledy.push(
+        `${maile}: czyta get_billing_email(). Adresatem maili dostarczenia jest ZAWSZE user_email konta (B9) — adres rozliczeniowy z zamówienia bywa cudzy.`
+      );
+    }
+
+    /* 25. wysyłka umie biec W TRAKCIE shutdown. Domknięcie zamówienia
+       z P3b samo jest odroczone na shutdown, a tutor_after_enrolled leci
+       z jego wnętrza — callback dopisany do TRWAJĄCEJ akcji nie wykona
+       się już nigdy (zmierzone: znacznik z pustym wynikiem, zero maili).
+       Wzorzec: kolejkowanie pyta doing_action('shutdown'). */
+    if (!/if\s*\(\s*doing_action\s*\(\s*['"]shutdown['"]\s*\)\s*\)/.test(c)) {
+      bledy.push(
+        `${maile}: kolejka wysyłki nie pyta doing_action('shutdown'). Mail 2 zlecony z wnętrza odroczonego domknięcia (P3b) przepada bez śladu — WordPress nie woła callbacków dopisanych do akcji, która właśnie trwa.`
+      );
+    }
+
+    /* 26. status zapisu Tutora czytany z BAZY, nie z cache'u wpisu:
+       course_enrol_status_change() pisze surowym $wpdb->update i nie czyści
+       cache'u, więc get_post_status() w tym samym żądaniu oddaje wartość
+       sprzed zmiany (zmierzone przy E0: hak meldował pending, baza miała
+       completed) — bramka „wyślij dopiero przy completed" oparta na
+       get_post_status() nie wysłałaby maila 2 nigdy. */
+    const naDostepie = c.slice(c.indexOf("function na_dostepie("), c.indexOf("function ponow("));
+    if (!/Aai_Platnosci_Zapis::status_zapisu\s*\(/.test(naDostepie) || /get_post_status\s*\(/.test(naDostepie)) {
+      bledy.push(
+        `${maile}: na_dostepie() nie czyta statusu zapisu z bazy (status_zapisu) albo pyta get_post_status(). Tutor zmienia status surowym SQL-em bez czyszczenia cache'u — bramka na get_post_status() nigdy nie wyśle maila 2 na ścieżce produkcyjnej (zmierzone przy E0).`
+      );
+    }
+  }
+
+  /* 28–29. Znaleziska przeglądu P4 — obie gwarancje zmierzone, obie
+     łamią się po cichu. */
+  if (existsSync(USTAWIENIA)) {
+    const c = kod(readFileSync(USTAWIENIA, "utf8"));
+
+    /* 28. blokada koszyka łapie Throwable. Filtr biegnie na ścieżce
+       „dodaj do koszyka" (formularz, AJAX, Store API), a woła NASZĄ tabelę
+       i `tutor_utils()` Tutora. ZMIERZONE: wyjątek w tym łańcuchu dawał
+       klientowi HTTP 500 i planszę „krytyczny błąd" zamiast odmowy — przy
+       czym ta sama decyzja przy RYSOWANIU przycisku była osłonięta. */
+    const startB = c.indexOf("function blokada_sprzedazy(");
+    if (startB < 0) {
+      bledy.push(`${USTAWIENIA}: nie widzę blokady koszyka (blokada_sprzedazy).`);
+    } else {
+      const dalejB = c.indexOf("\n\tprivate static function", startB);
+      const blokB = c.slice(startB, dalejB < 0 ? c.length : dalejB);
+      if (!/catch\s*\(\s*Throwable/.test(blokB)) {
+        bledy.push(
+          `${USTAWIENIA}: blokada koszyka nie łapie Throwable. Ten filtr biegnie przy dodawaniu do koszyka — wyjątek z naszej tabeli albo z tutor_utils() oddaje klientowi HTTP 500 zamiast odmowy (zmierzone).`
+        );
+      }
+      if (!/return false;/.test(blokB.slice(blokB.indexOf("catch")))) {
+        bledy.push(
+          `${USTAWIENIA}: blokada koszyka po wyjątku nie ODMAWIA. Wpuszczenie produktu przy nieznanym stanie znaczy zakup kursu, który klient może już mieć — do_enroll() wychodzi wtedy przed zapisem meta i zamówienie nigdy się nie domyka (B10).`
+        );
+      }
+    }
+
+    /* 29. zakupu, którego NIE DA SIĘ dostarczyć, nie przyjmujemy. Kurs
+       zapisuje się na konto; ZMIERZONE: po dryfie `guest_checkout` na
+       `yes` gość przeszedł całą kasę, a skutek to customer_id = 0, zero
+       zapisów w Tutorze, zero dostaw i ani jednej naszej wiadomości. */
+    /* Wzorzec pyta o DECYZJĘ, nie o obecność napisów. Pierwsza wersja
+       sprawdzała, czy w pliku występują `is_user_logged_in` i nazwa opcji —
+       a obie występują też gdzie indziej (`WOO_DOCELOWE`, sprawdzenie
+       posiadania kursu), więc mutacja podmieniająca całe rozstrzygnięcie na
+       `return true;` PRZESZŁA. Piąty nawrót wzorca na napis w tym repo. */
+    const porownanieOpcji =
+      /(['"]yes['"]\s*[!=]==?\s*)?\(?\s*string\s*\)?\s*get_option\(\s*['"]woocommerce_enable_guest_checkout['"][^)]*\)\s*(?:[!=]==?\s*['"]yes['"])?/;
+    const rozstrzyga = new RegExp(
+      "return\\s+[^;]*get_option\\(\\s*['\"]woocommerce_enable_guest_checkout['\"]"
+    ).test(c);
+    if (!rozstrzyga || !porownanieOpcji.test(c)) {
+      bledy.push(
+        `${USTAWIENIA}: żadne ROZSTRZYGNIĘCIE nie zależy od stanu woocommerce_enable_guest_checkout. Kurs zapisuje się na konto — gość przy zdryfowanym ustawieniu płaci i nie dostaje nic (zmierzone: customer_id 0, zero zapisów w Tutorze, zero dostaw, zero naszych maili).`
+      );
+    }
+    const wywolanie = startB >= 0 ? c.slice(startB, c.indexOf("\n\tprivate static function", startB)) : "";
+    if (startB >= 0 && !/da_sie_dostarczyc\s*\(|dostarcz/i.test(wywolanie)) {
+      bledy.push(
+        `${USTAWIENIA}: blokada koszyka nie pyta, czy zakup da się dostarczyć — reguła istnieje, ale nikt jej nie woła na ścieżce dodania do koszyka.`
+      );
+    }
+  }
+
+  /* 27. mail Woo „nowe konto" ma podmieńca, więc musi WRÓCIĆ przy
+     deaktywacji: nasz mail 1 znika razem z wtyczką, a konto bez żadnego
+     linku do hasła to klasa K1 (DIAGRAM §14). Wzorzec: hak deaktywacji
+     woła przywracanie. */
+  if (existsSync(PLIK_GLOWNY)) {
+    const cg = kod(readFileSync(PLIK_GLOWNY, "utf8"));
+    const startD = cg.indexOf("register_deactivation_hook");
+    const blokD = startD >= 0 ? cg.slice(startD, cg.indexOf("add_action", startD)) : "";
+    if (!/przywroc_mail_woo\s*\(/.test(blokD)) {
+      bledy.push(
+        `${PLIK_GLOWNY}: deaktywacja nie przywraca maila WooCommerce „nowe konto". Wyłączyliśmy go, bo jego zadanie przejął nasz mail 1 — a nasz znika razem z wtyczką: konto założone po deaktywacji zostaje bez żadnego linku do hasła (K1).`
+      );
+    }
+  }
+}
+
+/* 30. TEKST, KTÓRY KLIENT CZYTA W KASIE, POCHODZI Z NASZEJ TABELI.
+
+   Woo drukuje `short_description` produktu pod nazwą pozycji w koszyku
+   i w podsumowaniu zamówienia, a Store API oddaje je publicznie. Do
+   0.50.0 kopia tego pola NIE USTAWIAŁA — było niczyje, więc w kasie pod
+   nazwą kursu wylądowała „cudza edycja 1787936224" (ślad po ręcznym
+   dowodzeniu haka B13 na produkcie 675, znaleziony przez właściciela
+   klikaniem, nie przez bramkę).
+
+   Pytamy o ZACHOWANIE, nie o nazwy: (a) czy synchronizacja SIĘGA po
+   `short_desc` z kursu, (b) czy oba pola widoczne dla klienta jadą przez
+   `wp_slash()`, (c) czy kontrola PORÓWNUJE opis. Wzorzec na nazwę
+   zmiennej byłby ślepy na przemianowanie, a wzorzec na samą obecność
+   napisu — na przeniesienie go gdzie indziej w pliku (piąty nawrót tej
+   pułapki: 0.29.0, 0.44.0, 0.47.0, c6c9c97, P4). */
+{
+  const zapisT = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+  const iSync = zapisT.indexOf("function synchronizuj_kurs");
+  const blokSync = iSync < 0 ? "" : zapisT.slice(iSync, zapisT.indexOf("\n\tpublic static function", iSync + 10));
+
+  if (!/\[\s*'short_desc'\s*\]/.test(blokSync)) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: synchronizacja produktu nie sięga po short_desc kursu. Krótki opis produktu jest wtedy POLEM NICZYIM, a Woo drukuje go klientowi w koszyku i w kasie — tak wyszła „cudza edycja 1787936224" na produkcie 675.`
+    );
+  }
+  for (const [setter, co] of [
+    ["set_short_description", "krótki opis"],
+    ["set_name", "nazwa"],
+  ]) {
+    const wywolania = [...blokSync.matchAll(new RegExp(`${setter}\\(([^;]*)\\)`, "g"))];
+    if (wywolania.length === 0) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: synchronizacja nie ustawia pola „${co}" produktu — klient zobaczy w kasie to, co zostawił tam ktokolwiek inny.`
+      );
+      continue;
+    }
+    if (wywolania.some((w) => !/wp_slash\s*\(/.test(w[1]))) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: „${co}" produktu zapisywane BEZ wp_slash(). ZMIERZONE na Woo 11.0.1: set_name()/set_short_description() kończą w wp_insert_post(), które puszcza wartość przez wp_unslash() — ginie każdy backslash (C:\\Users, sekwencja \\n; kurs o Gicie takich pełen). To rodzina pułapki update_post_meta z W2.`
+      );
+    }
+  }
+
+  const cliT = kod(readFileSync(join(KATALOG, "includes", "class-aai-platnosci-cli.php"), "utf8"));
+  const iRoz = cliT.indexOf("function rozjazdy_kursu");
+  const blokRoz = iRoz < 0 ? "" : cliT.slice(iRoz, cliT.indexOf("\n\tprivate static function", iRoz + 10));
+  if (!/get_short_description\s*\([^)]*\)\s*!==|!==\s*[^;\n]*get_short_description/.test(blokRoz)) {
+    bledy.push(
+      `${join(KATALOG, "includes", "class-aai-platnosci-cli.php")}: kontrola nie PORÓWNUJE krótkiego opisu produktu z naszą tabelą. Cudzy tekst pod nazwą kursu w kasie nie zapaliłby wtedy kodu 1 — a to jedyne pole produktu, które klient czyta, a którego nie widać w żadnym innym pomiarze.`
+    );
+  }
+}
+
+/* 31. W KOSZYKU NAJWYŻEJ JEDEN NASZ KURS — i ani jednego cudzego mniej.
+
+   BLAD-023: przycisk obiecywał 299 zł, kasa pokazywała 648 zł, bo koszyk
+   kumulował kursy klikane wcześniej. Naprawa ma DWIE strony i obie muszą
+   być pilnowane: (a) po dodaniu naszego kursu inne NASZE kursy wypadają,
+   (b) cudze produkty zostają — sklep może kiedyś sprzedawać coś jeszcze,
+   a opróżnianie komuś koszyka z rzeczy, o których nic nie wiemy, byłoby
+   tą samą klasą błędu, tylko odwróconą.
+
+   Pytamy o ZACHOWANIE: czy porządkowanie jest podpięte do haka po
+   dodaniu, czy przed skasowaniem pozycji pada pytanie „czy to nasz
+   kurs", i czy powtórne dodanie tego samego kursu kończy się
+   komunikatem typu `notice`, a nie `error` (to była druga połowa
+   zgłoszenia właściciela: „wygląda jak awaria"). */
+{
+  const ust31 = kod(readFileSync(USTAWIENIA, "utf8"));
+
+  if (!/add_action\(\s*'woocommerce_add_to_cart'/.test(ust31)) {
+    bledy.push(
+      `${USTAWIENIA}: koszyk nie jest porządkowany po dodaniu kursu (brak haka woocommerce_add_to_cart). Wraca BLAD-023: przycisk obiecuje jedną kwotę, kasa pokazuje sumę wszystkich kiedykolwiek klikniętych kursów.`
+    );
+  }
+
+  const iPorzadek = ust31.indexOf("function zostaw_jeden_kurs");
+  const blokPorzadek = iPorzadek < 0 ? "" : ust31.slice(iPorzadek, ust31.indexOf("\n\tprivate static function", iPorzadek));
+  if (blokPorzadek === "") {
+    bledy.push(`${USTAWIENIA}: brak reguły „w koszyku zostaje jeden kurs" (BLAD-023).`);
+  } else {
+    if (!/remove_cart_item\s*\(/.test(blokPorzadek)) {
+      bledy.push(
+        `${USTAWIENIA}: reguła jednego kursu niczego nie usuwa z koszyka — istnieje, ale nie działa (BLAD-023).`
+      );
+    }
+    /* Kasowanie MUSI być poprzedzone pytaniem o właściciela pozycji.
+       Wzorzec celuje w rozstrzygnięcie (wywołanie czy_produkt_kursu na
+       INNEJ pozycji niż dodana), nie w obecność nazwy w pliku. */
+    const iUsuwanie = blokPorzadek.indexOf("remove_cart_item");
+    if (iUsuwanie >= 0 && !/czy_produkt_kursu\s*\(\s*\$inny|czy_produkt_kursu\s*\([^)]*\)\s*\)\s*\{[^}]*do_zdjecia/.test(blokPorzadek.slice(0, iUsuwanie))) {
+      bledy.push(
+        `${USTAWIENIA}: reguła jednego kursu kasuje pozycje koszyka NIE PYTAJĄC, czy to nasz kurs. Cudzy produkt (sklep może sprzedawać coś jeszcze) wypadałby klientowi z koszyka bez powodu.`
+      );
+    }
+  }
+
+  const iJuz = ust31.indexOf("function juz_w_koszyku");
+  const blokJuz = iJuz < 0 ? "" : ust31.slice(iJuz, ust31.indexOf("\n\tpublic static function", iJuz + 10));
+  if (blokJuz === "") {
+    bledy.push(
+      `${USTAWIENIA}: powtórne kliknięcie tego samego kursu nie jest obsłużone — klient dostaje wtedy czerwony błąd Woo „You cannot add another…", choć trafia do kasy dokładnie z tym kursem (druga połowa BLAD-023).`
+    );
+  } else if (!/wc_add_notice\([^;]*'notice'\s*\)/.test(blokJuz)) {
+    bledy.push(
+      `${USTAWIENIA}: „ten kurs już jest w koszyku" mówione klientowi JAKO BŁĄD (albo wcale). To nie jest błąd — cel klienta jest osiągnięty; komunikat ma być typu notice.`
+    );
+  }
+}
+
+/* 32. JEDEN NADAWCA POCZTY — ale tylko tam, gdzie nikt go nie ustawił.
+
+   BLAD-025: po ustawieniu hasła szło do właściciela gołe powiadomienie
+   od `WordPress <wordpress@127.0.0.1>`, obok naszych maili i maili Woo
+   z adresu sklepu. Na produkcji taki nadawca odpada na SPF, więc
+   powiadomienia znikają, a nikt się o tym nie dowiaduje.
+
+   Reguła ma DWIE strony i obie są tu pilnowane: filtry muszą istnieć,
+   ale muszą naprawiać WYŁĄCZNIE wartość domyślną WordPressa. Bezwarunkowe
+   nadpisanie nadawcy zabrałoby głos wtyczce SMTP właściciela — to już
+   nie naprawa, tylko przejęcie cudzej poczty. */
+{
+  const maile = kod(readFileSync(join(KATALOG, "includes", "class-aai-platnosci-maile.php"), "utf8"));
+
+  for (const [filtr, opis] of [
+    ["wp_mail_from", "adres"],
+    ["wp_mail_from_name", "nazwa"],
+  ]) {
+    if (!new RegExp(`add_filter\\(\\s*'${filtr}'`).test(maile)) {
+      bledy.push(
+        `${join(KATALOG, "includes", "class-aai-platnosci-maile.php")}: poczta rdzenia WordPressa idzie z domyślnym nadawcą (brak filtru ${filtr}) — „wordpress@<host>" odpada na SPF, a właściciel przestaje dostawać powiadomienia, nie wiedząc o tym (BLAD-025).`
+      );
+    }
+  }
+
+  /* Warunkowość mierzymy ZACHOWANIEM: obie metody muszą PORÓWNAĆ wartość
+     wejściową z domyślną i oddać ją niezmienioną, gdy nie jest domyślna.
+     Wzorzec na samą nazwę metody nie odróżniłby naprawy od nadpisania. */
+  for (const [metoda, wzorzec, czego] of [
+    ["nadawca_adres", /\$adres\s*!==\s*\$domyslny|\$domyslny\s*!==\s*\$adres/, "adresu"],
+    ["nadawca_nazwa", /'WordPress'\s*!==\s*\$nazwa|\$nazwa\s*!==\s*'WordPress'/, "nazwy"],
+  ]) {
+    const i = maile.indexOf(`function ${metoda}`);
+    const blok = i < 0 ? "" : maile.slice(i, maile.indexOf("function ", i + 20) < 0 ? undefined : maile.indexOf("function ", i + 20));
+    if (i < 0) {
+      bledy.push(`${join(KATALOG, "includes", "class-aai-platnosci-maile.php")}: brak metody ${metoda}() — nie ma czym naprawić nadawcy ${czego} (BLAD-025).`);
+    } else if (!wzorzec.test(blok)) {
+      bledy.push(
+        `${join(KATALOG, "includes", "class-aai-platnosci-maile.php")}: ${metoda}() nadpisuje nadawcę ${czego} BEZWARUNKOWO. To już nie naprawa domyślnej wartości, tylko przejęcie cudzej poczty — wtyczka SMTP właściciela przestałaby działać.`
+      );
+    }
+  }
+}
+
+/* 33. BRAMKI NIE MOGĄ PYTAĆ O ZAMÓWIENIA PRZEZ `wp_posts`.
+
+   BLAD-026, obie połowy — i obie zmierzone na żywej instalacji.
+
+   (a) Rachunek sumienia obu smoke'ów liczył
+       `SELECT COUNT(*) … WHERE post_type='shop_order'` i oddawał ZERO,
+       bo instalacja stoi na HPOS: zamówienia mieszkają w `wp_wc_orders`,
+       a tamta tabela jest pusta z definicji. Sprawdzenie „czy zostawiłem
+       zamówienie" porównywało więc 0 z 0 i przechodziło ZAWSZE.
+
+   (b) Sprzątanie wołało `wp_delete_post()`, które pod HPOS NIE KASUJE
+       NICZEGO (zmierzone: zamówienie przeżywa, `wc_get_order()` oddaje
+       je dalej). To była prawdziwa przyczyna 146 zamówień-widm na koncie
+       `klient-test` — tym samym, na którym właściciel ogląda sklep
+       oczami klienta. Ślepy licznik tylko ją ukrył.
+
+   Reguła celuje w PLIKI BRAMEK, nie we wtyczkę: to bramki oślepły.
+   Nośnik zamówień należy do WooCommerce i może się zmienić znowu —
+   pytanie o niego przez publiczne API (`wc_get_orders`, `$order->delete`)
+   jest jedyną odpowiedzią, która nie ma daty ważności. */
+{
+  const smokeWp = readdirSync(join("tools", "smoke"))
+    .filter((f) => f.startsWith("smoke-wp-") && f.endsWith(".mjs"))
+    .map((f) => join("tools", "smoke", f));
+
+  for (const plik of smokeWp) {
+    /* KOMENTARZE ODPADAJĄ. Te same smoke'i OPISUJĄ w komentarzach, czego
+       nie wolno robić — i pierwsza wersja tej reguły zapaliła się właśnie
+       na tych opisach. Wzorzec ma pytać o KOD, nie o prozę o kodzie. */
+    const tresc = kod(readFileSync(plik, "utf8"));
+    if (/post_type\s*=\s*.shop_order./.test(tresc)) {
+      bledy.push(
+        `${plik}: pyta o zamówienia przez post_type='shop_order'. Pod HPOS ta tabela jest PUSTA, więc odpowiedź brzmi zawsze „zero" — sprawdzenie przechodzi niezależnie od tego, ile śmieci zostawiło (BLAD-026). Pytaj przez wc_get_orders().`
+      );
+    }
+    /* Kasowanie: `wp_delete_post` jest POPRAWNE dla produktów i wpisów
+       Tutora — te wciąż mieszkają w `wp_posts`. Pytamy więc wyłącznie
+       o wywołanie na LIŚCIE ZAMÓWIEŃ (`zamowienia`), a nie o samo słowo
+       „order" w okolicy: pierwsza wersja łapała przez nie sprzątanie
+       produktów w tym samym pliku. */
+    for (const m of tresc.matchAll(/wp_delete_post/g)) {
+      const wyrazenie = tresc.slice(Math.max(0, m.index - 160), m.index);
+      if (/zamowienia\b/.test(wyrazenie)) {
+        bledy.push(
+          `${plik}: kasuje zamówienie przez wp_delete_post(). Pod HPOS ta funkcja NIE KASUJE NICZEGO — zamówienie przeżywa, a smoke melduje porządek (BLAD-026, 146 zamówień-widm). Kasuj przez $order->delete( true ).`
+        );
+      }
+    }
+  }
 }
 
 if (bledy.length > 0) {
@@ -439,5 +827,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts)."
 );

@@ -236,6 +236,66 @@
       "naprawa": "Warstwa akcji NIE wstawia juz klucza, ktorego nie przyslano — `sekcje` i `moduly` wchodza do wejscia tylko wtedy, gdy naprawde przyszly. Lancuch „nie przyslano → brak klucza → nie ruszaj” jest teraz caly. Blok zlego wejscia w smoke'u wysyla poprawne `sekcje` i `moduly`, wiec o wyniku decyduje ta jedna usterka, ktora przypadek nazywa.",
       "test": "tools/smoke/smoke-wp-kreator.mjs — dwa testy negatywne po naprawie, kazdy trafia w SWOJ przypadek i tylko w niego: wylaczenie odmowy dla zarezerwowanego slugu → pada „adres zajety przez strone sklepu”; zdjecie wymagalnosci tytulu → pada „pusty tytul”. Przed naprawa oba przechodzily.",
       "straznik": "Bez osobnego straznika: to jest usterka DOWODU, nie kodu produkcyjnego, a chroni przed nia regula projektu „kazdy nowy test sprawdzic testem negatywnym” (WYTYCZNE, lekcja z 0.24.0). Zachowania „brak klucza znaczy nie ruszaj” pilnuje straznik-kreatora-wp (niezmiennik 6)."
+    },
+    {
+      "id": "BLAD-023",
+      "data": "2026-08-29",
+      "klasa": "koszyk-kumuluje-kursy-mimo-ze-przycisk-obiecuje-jeden",
+      "dowod": "Zgloszenie wlasciciela z testu recznego P4 (zrzuty). Klikniecie „Dolaczam za 299,00 zl” na stronie kursu Claude prowadzi do kasy, w ktorej sa DWA kursy i 648,00 zl do zaplaty — bo wczesniej klikniety kurs GitHub zostal w koszyku (sesja/persistent cart WooCommerce). Do tego ponowne klikniecie tego samego kursu daje komunikat „You cannot add another … to your cart” (nasze `_sold_individually`), co przy pelnym koszyku wyglada jak awaria, a nie jak odmowa.",
+      "skutek": "Klient, ktory chcial kupic JEDEN kurs, widzi w kasie kwote za wszystkie kiedykolwiek klikniete. Przycisk obiecuje konkretna cene, kasa pokazuje inna — najgorszy mozliwy moment na niespodzianke.",
+      "naprawa": "ZROBIONE (0.51.0, N2). Decyzja wlasciciela 2026-08-29: jeden kurs na raz. Hak `woocommerce_add_to_cart` zdejmuje z koszyka pozostale NASZE kursy (cudze produkty zostaja — zmierzone: cudzy towar + dwa kursy daje cudzy towar i JEDEN kurs), a klient dostaje zdanie o tym, co w koszyku zostalo. Druga polowa: powtorne kliknienie tego samego kursu przestaje byc bledem — nasza walidacja biegnie PRZED wyjatkiem `WC_Cart::add_to_cart()` (class-wc-cart.php:1307) i mowi „Ten kurs juz czeka w Twoim koszyku” jako `notice`, nie `error`. `sold_individually` zostaje (B14).",
+      "test": "smoke-wp-zakup, blok 6 (5 sprawdzen; koszyk mierzony prawdziwa sesja ciasteczkowa przez Store API). Test negatywny: 1 z 38 pada.",
+      "straznik": "straznik-platnosci-wp, regula 31 (4 mutacje w audycie)"
+    },
+    {
+      "id": "BLAD-024",
+      "data": "2026-08-29",
+      "klasa": "sciezka-klienta-po-angielsku-mimo-polskiego-sklepu",
+      "dowod": "Zgloszenie wlasciciela z testu recznego P4 (zrzut kasy). Kasa, koszyk i strona konta pokazuja „Order summary”, „Contact information”, „Billing address”, „Payment options”, „Add coupons”, a strona odzyskiwania hasla „Lost your password?”. Instalacja stoi na `en_US`; nasze wlasne napisy sa polskie, cudze (WooCommerce, Tutor) nie.",
+      "skutek": "Klient placi na stronie w dwoch jezykach naraz. Dotyczy KAZDEGO punktu styku poza naszymi szablonami — takze obu maili WooCommerce i wszystkich komunikatow bledow kasy.",
+      "naprawa": "ZROBIONE (0.51.0, N3). Jezyk ustawia INSTALACJA, nie wtyczka (decyzja wlasciciela): `postaw.sh` instaluje pl_PL rdzenia i tlumaczenia wtyczek, a weryfikuje ARTEFAKTEM — pyta WordPressa o przetlumaczony napis z kasy, bo samo `locale = pl_PL` bez plikow tlumaczen dalej daje angielska strone.",
+      "test": "smoke-wp-jezyk (24 sprawdzenia): cala sciezka klienta w przegladarce + tematy maili Woo czytane z Woo, nie ze skrzynki. Test negatywny: przy locale en_US pada 10 z 24.",
+      "straznik": "brak osobnego — gwarancja jest smoke, bo rozjazd widac wylacznie na zywej stronie"
+    },
+    {
+      "id": "BLAD-025",
+      "data": "2026-08-29",
+      "klasa": "cudze-maile-poza-nasza-warstwa-ida-nieostylowane-i-z-obcego-adresu",
+      "dowod": "Zgloszenie wlasciciela z testu recznego P4 (zrzut skrzynki). Po ustawieniu hasla przez klienta wychodzi wiadomosc „[Automatic AI (srodowisko robocze)] Password Changed” od `WordPress <wordpress@127.0.0.1>`, trescia „Password changed for user: jan.testowy” — goly tekst, obcy nadawca, po angielsku. To powiadomienie rdzenia WordPressa (`wp_password_change_notification`), nie nasze. SPROSTOWANIE ZE SLEDZTWA (2026-08-29): ta wiadomosc idzie do ADMINISTRATORA, nie do klienta (pluggable.php:2187 wysyla kopie na admin_email). Klient po ustawieniu hasla nie dostaje nic i od razu jest zalogowany — zmierzone na zywej sciezce.",
+      "skutek": "Klient i wlasciciel dostaja w tej samej scieżce wiadomosci z DWOCH roznych swiatow: nasze premium i gole powiadomienia WordPressa z adresu `wordpress@`. Nadawca `wordpress@127.0.0.1` na produkcji trafi do spamu albo zostanie odrzucony (SPF).",
+      "naprawa": "ZROBIONE (0.51.0, N3+N4). Jezyk zalatwil N3 („Haslo zostalo zmienione”). Nadawce naprawia N4: filtry `wp_mail_from` i `wp_mail_from_name` na priorytecie 1 podmieniaja WYLACZNIE wartosc domyslna WordPressa (`wordpress@<host>` / „WordPress”) na adres sklepu; nadawcy ustawionego swiadomie (wtyczka SMTP) NIE ruszamy. Sam mail zostaje — decyzja wlasciciela „kopia do administratora zostaje”.",
+      "test": "smoke-wp-maile, blok 6 (mierzy WYSLANA wiadomosc + kontrprzyklad z cudzym filtrem). Test negatywny: 3 z 46 pada.",
+      "straznik": "straznik-platnosci-wp, regula 32 (4 mutacje w audycie)"
+    },
+    {
+      "id": "BLAD-026",
+      "data": "2026-08-29",
+      "klasa": "sprawdzenie-liczace-z-niewlasciwej-tabeli-zawsze-oddaje-zero",
+      "dowod": "Znalezione przy sweepie po tescie wlasciciela. Instalacja `:8892` uzywa HPOS (`wp_wc_orders`): zamowien jest tam **148**, a `SELECT COUNT(*) FROM wp_posts WHERE post_type='shop_order'` oddaje **0** — bo pod HPOS ta tabela jest pusta z definicji. Tym zapytaniem liczyly zamowienia `smoke-wp-zakup` i `smoke-wp-maile` (rachunek sumienia „smoke nie zostawil zamowienia”) oraz kazdy moj pomiar stanu srodowiska w tej sesji. DRUGA, GROZNIEJSZA POLOWA znaleziona po /clear i zmierzona: sprzatanie wolalo `wp_delete_post()`, ktore pod HPOS NIE KASUJE NICZEGO (zamowienie przezywa, `wc_get_order()` oddaje je dalej). To ona byla PRZYCZYNA 146 zamowien-widm — slepy licznik tylko ja ukryl. TRZECIA WARSTWA: `wc_get_orders(status => 'any')` tez nie widzi wszystkiego — 194 przy 195 wierszach w tabeli, bo pomija `checkout-draft`.",
+      "skutek": "Podwojny. (1) Rachunek sumienia obu smoke'ow byl SLEPY: porownywal 0 z 0 i przechodzil niezaleznie od tego, ile zamowien zostawil — stad 148 zamowien-smieci narosłych przez wiele przebiegow. (2) KAZDE moje zdanie „srodowisko czyste, zamowienia 0” w tej sesji bylo oparte na pustej tabeli, wiec nie dowodzilo niczego. Kontrola `wp aai-platnosci sprawdz` jest CZYSTA — pyta przez `wc_get_orders()`, czyli publiczne API, ktore czyta wlasciwy nosnik.",
+      "naprawa": "ZROBIONE (0.51.0, N5). Oba smoke'i licza przez `wc_get_orders()` z JAWNA lista `array_keys( wc_get_order_statuses() )` (samo `any` gubi porzucona kase), a smoke-wp-zakup kasuje przez `$order->delete( true )`. Posprzatane 201 zamowien-smieci; na koncie `klient-test` zostalo 0.",
+      "test": "rachunek sumienia obu smoke'ow. Test negatywny: po cofnieciu naprawy melduje „zostawil zamowienie: przed 195, po 202”.",
+      "straznik": "straznik-platnosci-wp, regula 33 — zero `post_type='shop_order'` i zero `wp_delete_post` na liscie zamowien w smoke'ach (2 mutacje)"
+    },
+    {
+      "id": "BLAD-027",
+      "data": "2026-08-29",
+      "klasa": "pole-widoczne-klientowi-niczyje-bo-kopia-go-nie-ustawiala",
+      "dowod": "Sledztwo po tescie wlasciciela. W kasie pod nazwa kursu „Jak poprawnie korzystac z Claude” widnialo „cudza edycja 1787936224”. Zrodlo: `post_excerpt` produktu 675, czyli krotki opis produktu WooCommerce — Woo drukuje go w koszyku i w podsumowaniu zamowienia, a Store API oddaje publicznie (`/wc/store/v1/products/675` → short_description). Szew ustawial nazwe, status, widocznosc i cene, a OPISU nie dotykal w ogole, wiec pole bylo niczyje. Slad zostawilo reczne dowodzenie haka B13 na zywym produkcie w poprzedniej sesji. Gotowa tresc byla obok: `courses.short_desc` jedzie do Tutora i nie jechala do Woo.",
+      "skutek": "Klient czytal w kasie cudzy tekst zamiast opisu kursu — w miejscu, w ktorym podejmuje decyzje o zaplacie. Zadna bramka tego nie widziala: 35 straznikow, 201 mutacji i jedenascie smoke'ow mierzylo mechanizmy (cena, status, powiazanie), a nie to, co klient czyta. Znalazl to wlasciciel klikaniem.",
+      "naprawa": "ZROBIONE (0.51.0, N1). Kopia ustawia `short_description` z `courses.short_desc` i nazwe z `title`, OBIE przez `wp_slash()` — zmierzone na Woo 11.0.1: `set_short_description()` i `set_name()` koncza w `wp_insert_post()`, ktore puszcza wartosc przez `wp_unslash()`, wiec bez posłodzenia ginie kazdy backslash (`C:\\Users`, sekwencja `\\n`; kurs o Gicie takich pelen). Powtorny zapis slashy nie kumuluje. Przy okazji naprawiona ta sama usterka na NAZWIE produktu, uspiona od P2. Kontrola: rozjazd nazwy albo opisu to kod 1 z komenda naprawy w komunikacie.",
+      "test": "smoke-wp-produkty (84 sprawdzenia): opis i nazwa z tabeli, opis z backslashem zgodny CO DO ZNAKU, slashe nie kumuluja sie miedzy przebiegami, `sync` cofa cudza edycje opisu, kontrola czerwona na obu rozjazdach",
+      "straznik": "straznik-platnosci-wp, regula 30 (6 mutacji, w tym kontrprzyklad na przemianowanie zmiennej)"
+    },
+    {
+      "id": "BLAD-028",
+      "data": "2026-08-29",
+      "klasa": "pomiar-oparty-na-cudzym-tekscie-umiera-po-zmianie-jezyka",
+      "dowod": "Znalezione przy N5, spowodowane przez N3 z tej samej serii napraw. `smoke-wp-zakup` pilnowal kolejnosci przejsc statusu zamowienia czytajac NOTATKI zamowienia i szukajac w nich „On hold to Processing”. Po spolszczeniu instalacji notatki Woo sa tlumaczone, wiec wzorzec przestal cokolwiek znajdowac i smoke meldowal ODWROCONA KOLEJNOSC przy kolejnosci poprawnej.",
+      "skutek": "Falszywy alarm zamiast pomiaru — a w druga strone gorzej: gdyby naprawa z P3b naprawde sie cofnela, sprawdzenie i tak nie odroznialoby tego od zmiany jezyka. Klasa jest ta sama co „wzorzec na napis” (szosty nawrot w tym projekcie), tylko w wymiarze lokalizacji: pomiar oparty na CUDZYM TEKSCIE ma date waznosci.",
+      "naprawa": "ZROBIONE (0.51.0, N5). Kolejnosc mierzona ZDARZENIAMI: hak na `woocommerce_order_status_changed` notuje kazda pare `z > na`, a smoke sprawdza ich kolejnosc. Niezalezne od jezyka, a komunikat pokazuje surowe dane.",
+      "test": "smoke-wp-zakup (38 sprawdzen). Test negatywny: po cofnieciu naprawy z P3b (domkniecie od razu w haku zamiast na `shutdown`) pada 1 z 38 z trescia „processing>completed ~~ on-hold>processing”.",
+      "straznik": "brak — to usterka bramki, nie kodu produkcyjnego; pilnuje jej wlasny test negatywny"
     }
   ]
 }

@@ -51,10 +51,20 @@ final class Aai_Platnosci_Komunikaty {
 	}
 
 	/**
-	 * Zapisuje błąd konkretnego kursu.
+	 * Przedrostek kluczy wiadomości o poczcie (krok P4).
+	 *
+	 * Własny klucz, a nie wpis ogólny: udana ponowna wysyłka ma zdjąć
+	 * DOKŁADNIE swój komunikat, a nie cudzy błąd synchronizacji, który
+	 * akurat siedział pod tym samym kluczem.
+	 */
+	public const KLUCZ_MAILA = 'mail:';
+
+	/**
+	 * Zapisuje błąd pod jego kluczem.
 	 *
 	 * @param string $tresc       Opis błędu.
-	 * @param string $course_uuid Uuid kursu; pusty = błąd niezwiązany z kursem.
+	 * @param string $course_uuid Klucz źródła: uuid kursu, `mail:…` dla poczty,
+	 *                            pusty = błąd niezwiązany z żadnym z nich.
 	 */
 	public static function zapisz( string $tresc, string $course_uuid = '' ): void {
 		$mapa = self::wszystkie();
@@ -63,9 +73,9 @@ final class Aai_Platnosci_Komunikaty {
 	}
 
 	/**
-	 * Czyści błąd konkretnego kursu (po udanej synchronizacji).
+	 * Czyści błąd spod klucza (po udanej synchronizacji albo wysyłce).
 	 *
-	 * @param string $course_uuid Uuid kursu; pusty = czyści wpis ogólny.
+	 * @param string $course_uuid Klucz źródła; pusty = czyści wpis ogólny.
 	 */
 	public static function wyczysc( string $course_uuid = '' ): void {
 		$mapa  = self::wszystkie();
@@ -90,8 +100,12 @@ final class Aai_Platnosci_Komunikaty {
 			return '';
 		}
 		$linie = array();
-		foreach ( $mapa as $uuid => $tresc ) {
-			$linie[] = ( '_ogolny' === $uuid ? '' : $uuid . ': ' ) . $tresc;
+		foreach ( $mapa as $klucz => $tresc ) {
+			// Klucz poczty nie wchodzi do treści: wiadomość i tak nazywa
+			// zdarzenie oraz komendę naprawczą, a `mail:mail_konta/43:`
+			// przed zdaniem czytałoby się jak śmieć.
+			$przedrostek = ( '_ogolny' === $klucz || str_starts_with( $klucz, self::KLUCZ_MAILA ) ) ? '' : $klucz . ': ';
+			$linie[]     = $przedrostek . $tresc;
 		}
 		return implode( ' | ', $linie );
 	}
@@ -108,10 +122,28 @@ final class Aai_Platnosci_Komunikaty {
 		if ( null === $ekran || ! str_contains( (string) $ekran->id, 'aai-sklep' ) ) {
 			return;
 		}
+		/*
+		 * Rada zależy od TEGO, CO SIĘ STAŁO. Do kroku P4 komunikat mówił
+		 * zawsze „kopia produktu nie nadążyła… kliknij Zapisz kurs" —
+		 * a od P4 tym samym kanałem idzie niedoręczona wiadomość, której
+		 * żadne „Zapisz kurs" nie wyśle. Komunikat, który radzi rzecz
+		 * nieskuteczną, jest gorszy niż brak rady.
+		 */
+		$kursowy = false;
+		foreach ( array_keys( self::wszystkie() ) as $klucz ) {
+			if ( '_ogolny' !== $klucz && ! str_starts_with( (string) $klucz, self::KLUCZ_MAILA ) ) {
+				$kursowy = true;
+				break;
+			}
+		}
 		printf(
 			'<div class="notice notice-warning"><p><strong>Automatic AI — Płatności:</strong> %s %s</p></div>',
-			esc_html( sprintf( 'kopia produktu nie nadążyła: %s.', $blad ) ),
-			esc_html( 'Kliknij „Zapisz kurs", żeby naprawić ten jeden kurs, albo uruchom `wp aai-platnosci sync`.' )
+			esc_html( $blad ),
+			esc_html(
+				$kursowy
+					? 'Kliknij „Zapisz kurs", żeby naprawić ten jeden kurs, albo uruchom `wp aai-platnosci sync`.'
+					: 'Naprawę każdej pozycji podaje `wp aai-platnosci sprawdz`.'
+			)
 		);
 	}
 }

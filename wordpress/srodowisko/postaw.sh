@@ -25,6 +25,8 @@ cd "$(dirname "$0")"
 STACK="${STACK_NAZWA:-aai_wp}"
 PORT="${WP_PORT:-8892}"
 ADRES="http://127.0.0.1:${PORT}"
+PORT_POCZTY="${MAILPIT_PORT:-8893}"
+POCZTA="http://127.0.0.1:${PORT_POCZTY}"
 ZRODLO_MOTYWU="https://github.com/MatthewPlugins/automatic-ai.git"
 ODPOWIEDZ="$(mktemp -t aai-weryfikacja.XXXXXX.html)"
 
@@ -106,6 +108,13 @@ for i in $(seq 1 60); do
   sleep 1
 done
 
+komunikat "Czekam na łapacz poczty"
+for i in $(seq 1 30); do
+  curl -sf -o /dev/null "${POCZTA}/api/v1/info" && break
+  [ "$i" = 30 ] && blad "Mailpit nie odpowiada na ${POCZTA}"
+  sleep 1
+done
+
 # --- 4. instalacja WordPressa ----------------------------------------------
 
 if ! wpcli core is-installed >/dev/null 2>&1; then
@@ -119,6 +128,48 @@ if ! wpcli core is-installed >/dev/null 2>&1; then
     --skip-email
   wpcli option update blog_public 0   # instancja robocza nie idzie do wyszukiwarek
   wpcli rewrite structure '/%postname%/' --hard
+fi
+
+# --- 4b. język instalacji ---------------------------------------------------
+#
+# BLAD-024: klient płacił na stronie w DWÓCH JĘZYKACH naraz. Nasze napisy
+# są polskie, cudze — WooCommerce, Tutor, rdzeń WordPressa — nie były:
+# „Order summary", „Billing address", „Place Order", a po naszym polskim
+# mailu „Ustaw hasło" klient trafiał na ekran „Enter a new password below".
+#
+# Język jest sprawą INSTALACJI, nie wtyczki (decyzja właściciela
+# 2026-08-29): wtyczka nie ma prawa przestawiać locale całej witryny.
+# Tu robi to środowisko — dokładnie to samo, co zrobi wdrożenie. Nasza
+# wtyczka dostaje za to bramkę: `smoke-wp-jezyk` mierzy ścieżkę klienta
+# w przeglądarce i pada na angielskiej frazie.
+#
+# Idempotentne: `language core install` na zainstalowanym języku kończy
+# się powodzeniem i nic nie zmienia.
+
+komunikat "Ustawiam język na polski"
+wpcli language core install pl_PL --activate >/dev/null 2>&1 \
+  || blad "nie udało się zainstalować polskiego rdzenia WordPressa (brak sieci w kontenerze?)"
+# Wtyczek NIE wymieniamy po nazwie: `--all` obejmie też te, które dojdą
+# później. Nasze wtyczki nie mają paczek na translate.wordpress.org
+# (napisy są po polsku w kodzie) i WP-CLI je po prostu pomija.
+wpcli language plugin install --all pl_PL >/dev/null 2>&1 || true
+
+# --- 4c. strona polityki prywatności ---------------------------------------
+#
+# Znalezione przy śledztwie po teście właściciela: kasa mówi klientowi
+# „Twoje dane osobowe zostaną użyte … opisanych w naszej [polityce
+# prywatności]", a `wp_page_for_privacy_policy` wskazywało SZKIC
+# WordPressa („Privacy Policy", status draft, treść to domyślne
+# „Suggested text: Our website address is:"). Prawdziwa polityka leży
+# w treści motywu Automatic AI.
+#
+# Wskazujemy opublikowaną stronę motywu, jeśli istnieje. Nie tworzymy
+# jej sami — treść prawna należy do właściciela, nie do skryptu.
+
+polityka="$(wpcli post list --post_type=page --post_status=publish --name=polityka-prywatnosci --field=ID 2>/dev/null | head -1)"
+if [ -n "$polityka" ]; then
+  komunikat "Wskazuję politykę prywatności (strona $polityka)"
+  wpcli option update wp_page_for_privacy_policy "$polityka" >/dev/null
 fi
 
 # --- 5. motyw --------------------------------------------------------------
@@ -142,6 +193,18 @@ for wtyczka in woocommerce tutor; do
     wpcli plugin activate "$wtyczka"
   fi
 done
+
+# Bramka płatności WARSZTATU. Zmierzone przy E0 kroku P4: bez ANI JEDNEJ
+# włączonej bramki kasa oddaje 400 `woocommerce_rest_checkout_payment_method_disabled`
+# — czyli „sprzedaż otwarta" znaczyłoby „nikt nie kupi niczego", bez jednego
+# objawu na stronie. To jest ustawienie ŚRODOWISKA, nie wtyczki: w prawdziwym
+# sklepie bramkę wybiera właściciel (Tpay/PayU/P24/BLIK), a wtyczka nie ma
+# prawa włączać komuś przelewu bankowego. Kontrola `wp aai-platnosci sprawdz`
+# tylko MÓWI, gdy sprzedaż jest otwarta bez bramki.
+if [ "$(wpcli option get woocommerce_bacs_settings --format=json 2>/dev/null | grep -c '"enabled":"yes"' || true)" != "1" ]; then
+  komunikat "Włączam przelew bankowy (bramka testowa warsztatu)"
+  wpcli eval '$u = (array) get_option( "woocommerce_bacs_settings", array() ); $u["enabled"] = "yes"; $u["title"] = "Przelew bankowy"; update_option( "woocommerce_bacs_settings", $u );'
+fi
 
 # --- 7. treść strony głównej (menu, strony, blog) --------------------------
 #
@@ -223,6 +286,15 @@ kod=$(curl -sL -o "$ODPOWIEDZ" -w '%{http_code}' "$ADRES") \
 # `node skrypt | tail` maskuje kod wyjścia.
 grep -q 'aria-label="Nawigacja główna"' "$ODPOWIEDZ" \
   || blad "strona odpowiada, ale to NIE jest motyw Automatic AI (brak jego nawigacji)"
+
+# Język sprawdzamy ARTEFAKTEM, nie faktem wykonania komendy: pytamy
+# WordPressa o przetłumaczony napis, który klient realnie widzi w kasie.
+# „Locale = pl_PL" bez plików .mo dałoby dalej angielską stronę.
+[ "$(wpcli option get WPLANG 2>/dev/null)" = "pl_PL" ] \
+  || blad "locale instalacji nie jest pl_PL — klient zobaczy kasę po angielsku (BLAD-024)"
+proba_tlumaczenia="$(wpcli eval 'echo __( "Billing address", "woocommerce" );' 2>/dev/null || echo '')"
+[ -n "$proba_tlumaczenia" ] && [ "$proba_tlumaczenia" != "Billing address" ] \
+  || blad "tłumaczenia WooCommerce nie działają (napis „Billing address\" wraca po angielsku) — sam locale nie wystarczy, brakuje plików .mo"
 grep -q 'aria-label="Nawigacja mobilna"' "$ODPOWIEDZ" \
   || blad "brak nawigacji mobilnej — pozycja w menu musi wejść do OBU"
 
@@ -272,12 +344,35 @@ if [ -f ../wtyczki/aai-sklep/aai-sklep.php ]; then
   rm -f "$KOSZYK"
 fi
 
+# POCZTA — sprawdzona ARTEFAKTEM, nie obecnością kontenera.
+#
+# Kontener stojący na porcie nie dowodzi, że WordPress do niego pisze:
+# mu-plugin mógł się nie zamontować (bind mount pojedynczego pliku bywa
+# martwy po odtworzeniu katalogu), a PHPMailer po cichu wróciłby do
+# `mail()`, którego w tym obrazie NIE MA. Objaw byłby dokładnie taki jak
+# przed E0: `wp_mail()` oddaje `false`, a łańcuch dostarczenia Pluginu 2
+# jest nie do zmierzenia. Więc: wysyłamy prawdziwą wiadomość i czytamy ją
+# z drugiej strony.
+komunikat "Weryfikacja poczty"
+ZNACZNIK="postaw-$(date +%s)"
+curl -sf -X DELETE "${POCZTA}/api/v1/messages" >/dev/null \
+  || blad "łapacz poczty nie przyjmuje poleceń na ${POCZTA}"
+wpcli eval "var_export( wp_mail( 'kontrola@example.test', '${ZNACZNIK}', 'kontrola postaw.sh' ) );" \
+  | grep -q true || blad "wp_mail() oddało false — PHPMailer nie trafił do Mailpita (sprawdź mount mu-plugins/aai-poczta-warsztatu.php)"
+SKRZYNKA="$(mktemp -t aai-poczta.XXXXXX.json)"
+curl -sf -o "$SKRZYNKA" "${POCZTA}/api/v1/messages" || blad "nie udało się odczytać skrzynki"
+grep -q "$ZNACZNIK" "$SKRZYNKA" \
+  || blad "wiadomość nie dojechała do łapacza (temat ${ZNACZNIK} nie ma go w skrzynce)"
+rm -f "$SKRZYNKA"
+curl -sf -X DELETE "${POCZTA}/api/v1/messages" >/dev/null || true
+
 liczba_pozycji=$(grep -o 'href="/[a-z-]*"' "$ODPOWIEDZ" | sort -u | wc -l)
 rm -f "$ODPOWIEDZ"
 
 printf '\n\033[32m✔ Środowisko gotowe\033[0m\n'
 printf '  adres:    %s\n' "$ADRES"
 printf '  admin:    %s/wp-admin (admin / patrz .env)\n' "$ADRES"
+printf '  poczta:   %s (Mailpit — cała wychodząca poczta warsztatu)\n' "$POCZTA"
 printf '  motyw:    %s\n' "$(wpcli theme list --status=active --field=name)"
 printf '  wtyczki:  %s\n' "$(wpcli plugin list --status=active --field=name | tr '\n' ' ')"
 printf '  nawigacja: %s pozycji w menu głównym\n' "$liczba_pozycji"

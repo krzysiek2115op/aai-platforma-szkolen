@@ -40,6 +40,16 @@ function wp(...argumenty) {
   );
 }
 
+/*
+ * Stan sprzedaży czytamy Z INSTALACJI, nie zakładamy. Dwa sprawdzenia
+ * niżej (przycisk oferty i `availability` w danych strukturalnych) mają
+ * inne oczekiwanie przy sprzedaży otwartej niż zamkniętej, a smoke ma
+ * przechodzić w OBU stanach — inaczej byłby testem jednego etapu planu,
+ * nie testem frontu.
+ */
+const SPRZEDAZ_OTWARTA =
+  wp("eval", "echo class_exists( 'Aai_Platnosci_Ustawienia' ) && Aai_Platnosci_Ustawienia::sprzedaz_otwarta() ? 'tak' : 'nie';").trim() === "tak";
+
 /** Pobranie strony BEZ podążania za przekierowaniem. */
 async function pobierz(sciezka) {
   const odpowiedz = await fetch(ADRES + sciezka, { redirect: "manual" });
@@ -190,9 +200,18 @@ for (const kurs of opublikowane) {
     oferta !== null && oferta.includes(cena),
     `/szkolenia/${kurs.slug}/: w sekcji oferty (#cena) nie ma ceny „${cena}" — strona sprzedażowa bez ceny w ofercie nie jest stroną sprzedażową`
   );
+  /*
+   * PRZYCISK ZAKUPU ZALEŻY OD STANU SPRZEDAŻY, więc sprawdzenie też musi.
+   * Do kroku P4 zakup był placeholderem i prowadził na `/kontakt`; od P4
+   * przy otwartej sprzedaży prowadzi do kasy z produktem. Wpisany na
+   * sztywno `/kontakt` czynił z tego smoke'a test, który pada dokładnie
+   * wtedy, gdy sklep zaczyna działać.
+   */
   sprawdz(
-    oferta !== null && oferta.includes(ADRES.replace(/\/$/, "") + "/kontakt"),
-    `/szkolenia/${kurs.slug}/: w sekcji oferty nie ma przycisku zakupu prowadzącego do kontaktu (do Pluginu 2 zakup jest placeholderem)`
+    oferta !== null && oferta.includes(SPRZEDAZ_OTWARTA ? "add-to-cart=" : ADRES.replace(/\/$/, "") + "/kontakt"),
+    SPRZEDAZ_OTWARTA
+      ? `/szkolenia/${kurs.slug}/: sprzedaż jest otwarta, a w sekcji oferty nie ma przycisku prowadzącego do kasy z produktem`
+      : `/szkolenia/${kurs.slug}/: w sekcji oferty nie ma przycisku zakupu prowadzącego do kontaktu (przy zamkniętej sprzedaży zakup jest placeholderem)`
   );
   // Kanonik i dane strukturalne — porównane Z BAZĄ, nie ze stałą.
   sprawdz(
@@ -209,9 +228,10 @@ for (const kurs of opublikowane) {
       kursLd.offers?.price === (kurs.price_grosze / 100).toFixed(2),
       `/szkolenia/${kurs.slug}/: Offer.price ${kursLd.offers?.price} ≠ cena z bazy ${(kurs.price_grosze / 100).toFixed(2)}`
     );
+    const dostepnosc = SPRZEDAZ_OTWARTA ? "https://schema.org/InStock" : "https://schema.org/PreOrder";
     sprawdz(
-      kursLd.offers?.availability === "https://schema.org/PreOrder",
-      `/szkolenia/${kurs.slug}/: Offer.availability = ${kursLd.offers?.availability}; do czasu Pluginu 2 zakup jest placeholderem, więc ma być PreOrder`
+      kursLd.offers?.availability === dostepnosc,
+      `/szkolenia/${kurs.slug}/: Offer.availability = ${kursLd.offers?.availability}, a przy sprzedaży ${SPRZEDAZ_OTWARTA ? "otwartej" : "zamkniętej"} ma być ${dostepnosc}`
     );
     sprawdz(
       (kursLd.syllabusSections?.length ?? 0) === kurs.moduly.length,

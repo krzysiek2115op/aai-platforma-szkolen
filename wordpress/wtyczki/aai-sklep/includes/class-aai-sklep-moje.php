@@ -51,6 +51,60 @@ final class Aai_Sklep_Moje {
 	/** Klucz naszej pozycji w menu konta WooCommerce. */
 	private const KLUCZ_WOO = 'aai-moje-kursy';
 
+	/**
+	 * Nazwa parametru, którym niesiemy adres powrotu przez logowanie.
+	 */
+	public const PARAM_POWROTU = 'aai_po_logowaniu';
+
+	/**
+	 * Adres, pod którym klient ma się zalogować.
+	 *
+	 * NIE `wp_login_url()`. Zgłosił to właściciel (2026-08-29), klikając
+	 * „Przejdź do kursu" w mailu: przycisk prowadził na **surowy ekran
+	 * logowania WordPressa**, czyli dokładnie w to, czego klient nigdy nie
+	 * ma widzieć (decyzja z W6, potwierdzona 2026-08-25). Strona konta
+	 * WooCommerce ma nasz wygląd (`assets/woo-motyw.css` + `Aai_Sklep_Styl_Woo`)
+	 * i jest tą samą stroną, na którą prowadzi link „Ustaw hasło" z maila —
+	 * klient widzi jeden, spójny ekran zamiast dwóch obcych.
+	 *
+	 * Adres powrotu doklejamy WŁASNYM parametrem, bo szablon logowania Woo
+	 * nie ma pola `redirect` (sprawdzone w `templates/myaccount/form-login.php`),
+	 * a jego formularz nie ma atrybutu `action` — POST leci pod ten sam adres
+	 * razem z parametrami, więc filtr `woocommerce_login_redirect` je zastanie.
+	 *
+	 * Bez WooCommerce zostaje `wp_login_url()`: Plugin 1 działa samodzielnie
+	 * i lepszy surowy ekran niż odnośnik donikąd.
+	 *
+	 * @param string $cel Adres, na który klient ma wrócić po zalogowaniu.
+	 */
+	public static function adres_logowania( string $cel = '' ): string {
+		if ( ! function_exists( 'wc_get_page_permalink' ) ) {
+			return '' === $cel ? wp_login_url() : wp_login_url( $cel );
+		}
+		$konto = wc_get_page_permalink( 'myaccount' );
+		if ( ! is_string( $konto ) || '' === $konto ) {
+			return '' === $cel ? wp_login_url() : wp_login_url( $cel );
+		}
+		return '' === $cel ? $konto : add_query_arg( self::PARAM_POWROTU, rawurlencode( $cel ), $konto );
+	}
+
+	/**
+	 * Dokąd po zalogowaniu — filtr WooCommerce.
+	 *
+	 * `wp_validate_redirect` pilnuje, żeby parametr z adresu nie wyprowadził
+	 * klienta na cudzą domenę; przy nieznanym celu zostaje zachowanie Woo.
+	 *
+	 * @param string $adres Adres wyliczony przez WooCommerce.
+	 */
+	public static function powrot_po_logowaniu( $adres ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- odczyt adresu powrotu, bez zmiany stanu.
+		$cel = isset( $_GET[ self::PARAM_POWROTU ] ) ? rawurldecode( wp_unslash( (string) $_GET[ self::PARAM_POWROTU ] ) ) : '';
+		if ( '' === $cel ) {
+			return $adres;
+		}
+		return wp_validate_redirect( $cel, is_string( $adres ) ? $adres : self::adres() );
+	}
+
 	public static function zarejestruj(): void {
 		// Panel kursanta Tutora przekierowujemy do nas. `template_redirect`,
 		// bo dopiero tam wiadomo, którą stronę WordPress wybrał.
@@ -58,6 +112,8 @@ final class Aai_Sklep_Moje {
 
 		// Pozycja w menu konta WooCommerce — patrz `menu_konta()`.
 		add_filter( 'woocommerce_account_menu_items', array( self::class, 'menu_konta' ) );
+		// Powrót TAM, SKĄD klient przyszedł się zalogować (patrz `adres_logowania`).
+		add_filter( 'woocommerce_login_redirect', array( self::class, 'powrot_po_logowaniu' ), 10, 1 );
 		add_filter( 'woocommerce_get_endpoint_url', array( self::class, 'adres_pozycji' ), 10, 2 );
 	}
 

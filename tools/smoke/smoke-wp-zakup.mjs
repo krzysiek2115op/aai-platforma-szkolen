@@ -32,11 +32,15 @@
  * Użycie: node tools/smoke/smoke-wp-zakup.mjs
  */
 import { execFileSync } from "node:child_process";
+import { rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
 const BAZOWY = process.env.WP_ADRES ?? "http://127.0.0.1:8892";
 const KURS = "aaaa0000-0000-4000-8000-0000000p3b09";
+const KURS_DRUGI = "aaaa0000-0000-4000-8000-0000000p3b10";
 const SLUG = "smoke-wp-zakup";
 const OPCJA_SPRZEDAZ = "aai_platnosci_sprzedaz_otwarta";
 
@@ -115,12 +119,36 @@ if (KLIENT <= 0) {
 }
 const liczba = (typ) =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='${typ}'" );`));
+/**
+ * Ile zamówień jest w instalacji — pytane tak, żeby odpowiedź nie kłamała.
+ *
+ * BLAD-026. Poprzednia wersja liczyła `SELECT COUNT(*) FROM wp_posts WHERE
+ * post_type='shop_order'` i oddawała ZERO, bo instalacja stoi na HPOS:
+ * zamówienia mieszkają w `wp_wc_orders`, a tamta tabela jest pusta
+ * z definicji. Rachunek sumienia porównywał więc 0 z 0 i przechodził
+ * niezależnie od tego, ile śmieci smoke zostawił — narosło ich w ten
+ * sposób 146, wszystkie na koncie `klient-test`, czyli tym, na którym
+ * właściciel ogląda sklep oczami klienta.
+ *
+ * `status => 'any'` TEŻ NIE WYSTARCZY: zmierzone na żywej instalacji —
+ * oddaje 194 przy 195 wierszach w tabeli, bo pomija `checkout-draft`
+ * (porzuconą kasę), choć Woo zna ten status. Pytamy więc o JAWNĄ listę
+ * `wc_get_order_statuses()`, która daje dokładnie tyle, ile jest.
+ */
+const liczbaZamowien = () =>
+  Number(
+    php(
+      "echo (int) count( wc_get_orders( array( 'limit' => -1, 'return' => 'ids'," +
+        " 'status' => array_keys( wc_get_order_statuses() ) ) ) );"
+    )
+  );
+
 const powiazan = () =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . Aai_Platnosci_Tabele::tabela( 'powiazania' ) );`));
 
 const produktowPrzed = liczba("product");
 const powiazanPrzed = powiazan();
-const zamowienPrzed = liczba("shop_order");
+const zamowienPrzed = liczbaZamowien();
 const sprzedazPrzed = php(`echo (string) get_option( '${OPCJA_SPRZEDAZ}', '' );`);
 
 /* ── scena: kurs testowy + cudzy produkt ────────────────────────────── */
@@ -295,22 +323,37 @@ try {
   kasujZapisy();
   const zamRecznie = zamowienie([produkt], "on-hold");
   zamowienia.push(zamRecznie);
-  php(`$o = wc_get_order( ${zamRecznie} ); $o->set_status( 'processing' ); $o->save(); echo 'ok';`);
   /*
-   * KOLEJNOŚĆ notatek, nie ich treść. Domknięcie wykonane od razu w haku
-   * biegło W ŚRODKU cudzego przejścia statusu, więc reszta TAMTEGO przejścia
-   * dojeżdżała już po nadaniu `completed`: notatka „z On hold na Processing”
-   * lądowała PO notatce „z Processing na Completed”, a klient dostawał mail
+   * KOLEJNOŚĆ PRZEJŚĆ STATUSU, mierzona ZDARZENIAMI. Domknięcie wykonane
+   * od razu w haku biegło W ŚRODKU cudzego przejścia, więc reszta TAMTEGO
+   * przejścia dojeżdżała już po nadaniu `completed` i klient dostawał mail
    * „zrealizowane” przed „w realizacji” (znalezisko przeglądu P3b).
+   *
+   * PIERWSZA WERSJA CZYTAŁA NOTATKI ZAMÓWIENIA I SZUKAŁA W NICH „On hold
+   * to Processing”. Padła w chwili, w której instalacja dostała polski
+   * język (N3/0.51.0): notatki Woo są tłumaczone, więc wzorzec przestał
+   * cokolwiek znajdować i smoke meldował odwróconą kolejność przy
+   * kolejności poprawnej. To ta sama rodzina co „wzorzec na napis”,
+   * tylko w wymiarze lokalizacji — pomiar oparty na CUDZYM TEKŚCIE ma
+   * datę ważności. Pytamy więc o zdarzenia: hak notuje każdą parę
+   * `z → na`, a my sprawdzamy ich kolejność.
    */
-  const notatki = php(
-    `global $wpdb; $n = $wpdb->get_col( $wpdb->prepare( "SELECT comment_content FROM {$wpdb->comments} WHERE comment_post_ID = %d AND comment_type = %s ORDER BY comment_ID", ${zamRecznie}, 'order_note' ) );` +
-      ` echo implode( ' ~~ ', $n );`
+  php(
+    `delete_option( 'aai_smoke_przejscia' );` +
+      ` add_action( 'woocommerce_order_status_changed', function ( $id, $z, $na ) {` +
+      ` $l = (array) get_option( 'aai_smoke_przejscia', array() ); $l[] = $z . '>' . $na;` +
+      ` update_option( 'aai_smoke_przejscia', $l ); }, 1, 3 );` +
+      ` $o = wc_get_order( ${zamRecznie} ); $o->set_status( 'processing' ); $o->save(); echo 'ok';`
   );
-  const poz = (igla) => notatki.indexOf(igla);
+  const przejscia = php(`echo implode( ' ~~ ', (array) get_option( 'aai_smoke_przejscia', array() ) ); delete_option( 'aai_smoke_przejscia' );`);
+  const poz = (igla) => przejscia.indexOf(igla);
   sprawdz(
-    poz("On hold to Processing") >= 0 && poz("Processing to Completed") > poz("On hold to Processing"),
-    `notatki zamówienia są w odwróconej kolejności — cudze przejście statusu dojechało PO naszym domknięciu, więc klient dostaje „zrealizowane” przed „w realizacji”: ${notatki}`
+    poz("on-hold>processing") >= 0,
+    `nie widzę przejścia on-hold → processing, więc pomiar kolejności leciałby po pustce: ${przejscia}`
+  );
+  sprawdz(
+    poz("processing>completed") > poz("on-hold>processing"),
+    `przejścia statusu są w odwróconej kolejności — nasze domknięcie dojechało PRZED cudzym przejściem, więc klient dostaje „zrealizowane” przed „w realizacji”: ${przejscia}`
   );
   sprawdz(
     statusZamowienia(zamRecznie) === "completed",
@@ -324,6 +367,97 @@ try {
     `zamówienie MIESZANE ma status „${statusZamowienia(zamMieszane)}” — cudzy towar czeka na wysyłkę, a zamówienie wygląda na zrealizowane`
   );
 
+  /* ── 6. KOSZYK TRZYMA JEDEN KURS (BLAD-023) ──────────────────────── */
+
+  /*
+   * Zgłoszenie właściciela z testu ręcznego: „nie da się kupić jednego
+   * kursu, zawsze w koszyku są 2". Klik „Dołączam za 299,00 zł" na jednym
+   * kursie i „za 349,00 zł" na drugim dawał w kasie **648,00 zł** —
+   * przycisk obiecywał jedną kwotę, kasa pokazywała inną.
+   *
+   * MIERZYMY SESJĄ, NIE API KOSZYKA. `WC()->cart->add_to_cart()` nie woła
+   * `woocommerce_add_to_cart_validation` (zmierzone przy P4), a koszyk
+   * gościa jest niewidzialny dla zalogowanego (P3a) — więc jedyny uczciwy
+   * pomiar to prawdziwe żądania HTTP w jednej sesji ciasteczkowej,
+   * odczytane tym samym Store API, którym karmi się blok kasy.
+   */
+  {
+    const jar = join(tmpdir(), `aai-koszyk-${process.pid}.txt`);
+    const zada = (sciezka) =>
+      execFileSync("curl", ["-s", "-L", "-o", "/dev/null", "-c", jar, "-b", jar, `${BAZOWY}${sciezka}`], {
+        encoding: "utf8",
+        maxBuffer: 8 * 1024 * 1024,
+      });
+    const koszyk = () =>
+      JSON.parse(
+        execFileSync("curl", ["-s", "-b", jar, `${BAZOWY}/wp-json/wc/store/v1/cart`], {
+          encoding: "utf8",
+          maxBuffer: 8 * 1024 * 1024,
+        })
+      );
+    try {
+      rmSync(jar, { force: true });
+      sprzedaz(true);
+      // Cudzy towar wchodzi PIERWSZY — to on jest dowodem, że reguła
+      // dotyczy wyłącznie naszych kursów.
+      zada(`/?add-to-cart=${obcy}`);
+      zada(`/?add-to-cart=${produkt}`);
+      const poJednym = koszyk();
+      sprawdz(
+        poJednym.items.filter((i) => i.id === produkt).length === 1,
+        `po dodaniu kursu nie ma go w koszyku — dalszy pomiar byłby ślepy (pozycje: ${poJednym.items.map((i) => i.id).join(", ")})`
+      );
+
+      // Drugi NASZ kurs: pierwszy ma ustąpić, cudzy towar ma zostać.
+      /*
+       * UUID drugiego kursu ma DOKŁADNIE 36 znaków. Pierwsza wersja
+       * doklejała `-2` do uuid pierwszego i dostawała 38 — a kolumna to
+       * `char(36)`, więc powiązanie zapisywało się obcięte i
+       * `czy_produkt_kursu()` nie poznawało własnego produktu. Smoke
+       * padał wtedy komunikatem „wraca BLAD-023", choć reguła działała
+       * poprawnie (sprawdzone równolegle w przeglądarce). Test, który
+       * kłamie o kodzie, jest gorszy niż brak testu.
+       */
+      const drugi = Number(
+        php(
+          `$p = new WC_Product_Simple(); $p->set_name( 'Smoke drugi kurs' ); $p->set_regular_price( '77' );` +
+            ` $p->set_status( 'publish' ); $p->set_sold_individually( true ); $id = $p->save();` +
+            ` Aai_Platnosci_Zapis::powiazanie_ustaw( '${KURS_DRUGI}', (int) $id ); echo (int) $id;`
+        )
+      );
+      try {
+        zada(`/?add-to-cart=${drugi}`);
+        const po = koszyk();
+        const nasze = po.items.filter((i) => i.id === produkt || i.id === drugi).map((i) => i.id);
+        sprawdz(
+          nasze.length === 1 && nasze[0] === drugi,
+          `w koszyku zostało ${nasze.length} naszych kursów (${nasze.join(", ")}) zamiast jednego — wraca BLAD-023: kasa pokaże sumę wszystkich klikniętych`
+        );
+        sprawdz(
+          po.items.some((i) => i.id === obcy),
+          "reguła jednego kursu WYRZUCIŁA cudzy produkt z koszyka — nie mamy prawa opróżniać klientowi koszyka z rzeczy, o których nic nie wiemy"
+        );
+        // Ten sam kurs drugi raz: koszyk bez zmian, zero odmowy Woo.
+        zada(`/?add-to-cart=${drugi}`);
+        const poPowtorce = koszyk();
+        sprawdz(
+          poPowtorce.items.filter((i) => i.id === drugi).length === 1 &&
+            poPowtorce.items.find((i) => i.id === drugi).quantity === 1,
+          "powtórne dodanie tego samego kursu zmieniło koszyk — miało być bez zmian i bez błędu"
+        );
+        sprawdz(
+          poPowtorce.items.length === po.items.length,
+          `powtórne kliknięcie zmieniło liczbę pozycji koszyka (${po.items.length} → ${poPowtorce.items.length})`
+        );
+      } finally {
+        php(`Aai_Platnosci_Zapis::powiazanie_usun( '${KURS_DRUGI}' ); $p = wc_get_product( ${drugi} ); if ( $p ) { $p->delete( true ); } echo 'ok';`);
+      }
+    } finally {
+      rmSync(jar, { force: true });
+      sprzedaz(false);
+    }
+  }
+
   const zamObcy = zamowienie([obcy], "", true);
   zamowienia.push(zamObcy);
   sprawdz(
@@ -335,7 +469,27 @@ try {
 
   php(`update_option( '${OPCJA_SPRZEDAZ}', '${sprzedazPrzed}' ); echo 'ok';`);
   if (zamowienia.length > 0) {
-    php(`foreach ( array( ${zamowienia.join(", ")} ) as $id ) { wp_delete_post( $id, true ); } echo 'ok';`);
+    /*
+     * KASUJEMY PRZEZ API ZAMÓWIENIA, nie przez wp_delete_post(). ZMIERZONE
+     * na żywej instalacji (BLAD-026): pod HPOS `wp_delete_post()` na
+     * identyfikatorze zamówienia NIE KASUJE NICZEGO — nie ma takiego wpisu
+     * w `wp_posts`, więc funkcja wychodzi cicho, a zamówienie żyje dalej
+     * (`wc_get_order()` oddaje je ze statusem sprzed próby). To była
+     * PRAWDZIWA przyczyna 146 zamówień-widm; ślepy licznik tylko ją ukrył.
+     */
+    php(`foreach ( array( ${zamowienia.join(", ")} ) as $id ) { $o = wc_get_order( $id ); if ( $o ) { $o->delete( true ); } } echo 'ok';`);
+    /*
+     * DZIENNIK DOSTAW TEŻ JEST NASZYM ŚLADEM (P4). Zamówienia smoke'a
+     * przechodzą przez completed, więc warstwa maili odnotowuje im
+     * `dostep` i `mail_kursu`. Wiersz po skasowanym zamówieniu to śmieć,
+     * a wiersz z pustym wynikiem zapala kontrolę — czyli smoke zostawiał
+     * czerwoną instalację (ta sama klasa co produkty-sieroty ze sweepu
+     * P2: bramki mierzyłyby własne śmieci).
+     */
+    php(
+      `global $wpdb; $wpdb->query( "DELETE FROM " . Aai_Platnosci_Tabele::tabela( 'dostawy' ) .` +
+        ` " WHERE identyfikator IN ( ${zamowienia.join(", ")} )" ); echo 'ok';`
+    );
   }
   kasujZapisy();
   php(
@@ -347,7 +501,7 @@ try {
 
 sprawdz(liczba("product") === produktowPrzed, `smoke zostawił produkt: przed ${produktowPrzed}, po ${liczba("product")}`);
 sprawdz(powiazan() === powiazanPrzed, `smoke zostawił ślad w powiazania: przed ${powiazanPrzed}, po ${powiazan()}`);
-sprawdz(liczba("shop_order") === zamowienPrzed, `smoke zostawił zamówienie: przed ${zamowienPrzed}, po ${liczba("shop_order")}`);
+sprawdz(liczbaZamowien() === zamowienPrzed, `smoke zostawił zamówienie: przed ${zamowienPrzed}, po ${liczbaZamowien()}`);
 sprawdz(
   php(`echo (string) get_option( '${OPCJA_SPRZEDAZ}', '' );`) === sprzedazPrzed,
   "smoke zostawił zmieniony stan sprzedaży — następny przebieg mierzyłby inną instalację niż zastał"

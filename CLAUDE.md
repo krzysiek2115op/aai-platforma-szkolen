@@ -1916,8 +1916,134 @@ wyprowadzała tego od nowa:
      0 różnic. Środowisko `:8892`: produkty 2, powiazania 2, dostawy 0,
      zamówienia 0, **sprzedaż ZAMKNIĘTA**, VAT wyłączony.
 
-     **NASTĘPNY KROK CAŁEGO PROJEKTU: P4 — konto przy zakupie, dwa maile,
-     tabela `dostawy`, zdjęcie blokady sprzedaży.** Wg reguły właściciela
+  10. **P4 ZROBIONY I PRZEJRZANY (2026-08-29, wersja 0.50.0, gałąź
+     `feat/p4-konto-i-maile`, 10 commitów) — PR NIEOTWARTY, czeka na zgodę
+     właściciela.** Dokument kroku z rozstrzygnięciami, pomiarami i przeglądem:
+     **[docs/plugin-2/KROK-P4.md](docs/plugin-2/KROK-P4.md) — CZYTAĆ PRZED PRACĄ.**
+     Powstało: dwa maile dostarczenia (mail 1 „Ustaw hasło" na
+     `woocommerce_created_customer`, mail 2 „Twój kurs jest gotowy" na
+     `tutor_after_enrolled`, oba wysyłane na `shutdown`, znacznik w `dostawy`
+     zapisywany synchronicznie), dziennik dostarczenia z komendą
+     `wp aai-platnosci dostawy [--ponow=…]`, otwarcie sprzedaży komendą
+     `wp aai-platnosci sprzedaz otworz|zamknij`, odmowa drugiego zakupu
+     posiadanego kursu (B10) i **łapacz poczty Mailpit** w środowisku
+     (`127.0.0.1:8893`, mu-plugin w `wordpress/srodowisko/mu-plugins/`).
+     **SIEDEM ROZSTRZYGNIĘĆ WŁAŚCICIELA** (przyjęte razem z planem):
+     Mailpit w środowisku, znacznik-najpierw z ręczną ponowką i kodem 1,
+     mail 1 bez nazwy kursu, link na stronę Woo `/my-account/lost-password/`,
+     sprzedaż otwierana komendą, B10 w P4, własny HTML maili.
+     **SIEDEM RZECZY ZMIERZONYCH W CUDZYM KODZIE — nie wyprowadzać od nowa:**
+     (1) `tutor_after_enrolled` melduje NIEAKTUALNY status zapisu (Tutor pisze
+     surowym `$wpdb->update` bez czyszczenia cache'u, `Utils.php:2478`), więc
+     bramka na `get_post_status()` nie wysłałaby maila 2 NIGDY;
+     (2) callback dopisany do TRWAJĄCEJ akcji `shutdown` nie wykona się —
+     mail 2 przepadał na ścieżce „admin klika Processing" (ratuje
+     `doing_action('shutdown')`);
+     (3) `WC()->cart->add_to_cart()` **nie woła** `woocommerce_add_to_cart_validation`
+     (Woo 11) — blokadę koszyka mierzy się żądaniem HTTP, nie API koszyka;
+     (4) strony koszyka i kasy **nie mają bloku `store-notices`**, a motyw jest
+     klasyczny, więc odmowy koszyka były NIEME (`napraw()` dopisuje blok);
+     (5) `wp_mail()` padał w obu kontenerach — kontener `wordpress` nie ma
+     sendmaila w ogóle;
+     (6) konto założone POZA kasą (`wp-admin`, `POST /wc/v3/customers`,
+     `wp user create`) NIE przechodzi przez `wc_create_new_customer()`, więc
+     mail 1 nie powstaje — dlatego mail 2 niesie odnośnik do odzyskiwania hasła;
+     (7) szablon logowania Woo nie ma pola `redirect`, a jego formularz nie ma
+     `action` — POST leci pod ten sam adres z parametrami, więc filtr
+     `woocommerce_login_redirect` je zastaje.
+     **PRZEGLĄD agent+krytyk na zamkniętej liście 10 pytań: cztery znaleziska,
+     każde potwierdzone URUCHOMIENIOWO PRZED naprawą** — blokada koszyka bez
+     `try/catch` dawała klientowi **HTTP 500** przy dodawaniu do koszyka; gość
+     przy zdryfowanym `guest_checkout` **płacił i nie dostawał nic** (0 zapisów,
+     0 dostaw, 0 maili); konto spoza kasy nie dostawało maila 1; kontrola była
+     ślepa poza oknem 30 dni. Piąte znalezisko (ponowienie wysyłające klucz
+     resetu komukolwiek) znalezione niezależnie. Jedno **odłożone świadomie do
+     P5** (lista kursów w mailu 2 przy przerwanej pętli Tutora albo odpiętym
+     kursie).
+     **PIĄTY NAWRÓT WZORCA NA NAZWĘ/NAPIS** (0.29.0, 0.44.0, 0.47.0, c6c9c97,
+     teraz DWA RAZY w P4: niezmiennik 20 przy refactorze i moja własna nowa
+     reguła 29). Wzorzec pytający o OBECNOŚĆ napisu przechodzi, gdy napis
+     występuje gdzie indziej w pliku. **Pytaj o rozstrzygnięcie (`return`, `if`,
+     porównanie), nie o to, czy słowo się pojawia.**
+     Stan dowodów: strażnicy **35/35**, audyt mutacyjny **201** (199 złapanych,
+     0 przeoczonych, 0 martwych), `npm run check` 0, smoke'i WP: maile 40 ·
+     zakup 32 · produkty 71 · front 84 · kreator 96 · panel 54 · motyw 89 ·
+     tutor 44 · lekcja 36 · dane 30 · płatności 23; dane Pluginu 1 nietknięte
+     (73/73, 0 różnic).
+     **PRZY OKAZJI NAPRAWIONE W PLUGINIE 1 (zgłosił właściciel):** przycisk
+     „Zaloguj się" na „Moich kursach" i na bramce lekcji prowadził przez
+     `wp_login_url()` na **surowy ekran WordPressa**. Adres składa teraz
+     `Aai_Sklep_Moje::adres_logowania()` (strona konta Woo w naszym wyglądzie),
+     a filtr `woocommerce_login_redirect` odsyła klienta TAM, SKĄD przyszedł.
+     Smoke lekcji asertował OBECNOŚĆ `wp-login.php`, czyli utrwalał ten błąd.
+
+  11. ~~**NASTĘPNY KROK: NAPRAWA TRZECH BŁĘDÓW Z TESTU WŁAŚCICIELA I POLOWANIE
+     NA CAŁE KLASY.**~~ **ZROBIONE (2026-08-29, wersja 0.51.0)** — sześć etapów
+     N1–N6 na gałęzi `feat/p4-konto-i-maile`, każdy zamknięty osobnym commitem
+     po weryfikacji uruchomieniowej, plus pełny sweep krzyżowy. Pełnia:
+     CHANGELOG 0.51.0 i [BLEDY-Z-TESTU-P4.md](docs/plugin-2/BLEDY-Z-TESTU-P4.md)
+     §5 (śledztwo) oraz §6 (naprawy). Skrót:
+     **trop „cudza edycja 1787936224" to był `post_excerpt` produktu 675** —
+     krótki opis produktu WooCommerce, który Woo drukuje klientowi w koszyku
+     i w kasie, a Store API oddaje publicznie. Kopia tego pola NIE USTAWIAŁA,
+     więc było niczyje (BLAD-027). Źródłem jest teraz `courses.short_desc`.
+     **Prawdziwa przyczyna 146 zamówień-widm** (BLAD-026, druga połowa):
+     sprzątanie wołało `wp_delete_post()`, które **pod HPOS nie kasuje niczego**.
+     Do tego `wc_get_orders(status: 'any')` **pomija `checkout-draft`** —
+     liczymy jawną listą `wc_get_order_statuses()`.
+     **Sześć faktów zmierzonych w cudzym kodzie** (nie wyprowadzać od nowa):
+     `set_short_description()`/`set_name()` **zjadają backslashe** (przez
+     `wp_unslash()` w `wp_insert_post()`; rodzina pułapki z W2, tam ratował
+     `$wpdb`); odmowę „You cannot add another" rzuca `WC_Cart::add_to_cart()`
+     (`class-wc-cart.php:1307`), a nasza walidacja biegnie WCZEŚNIEJ;
+     WordPress 6.9 czyta tłumaczenia z **`.l10n.php`**, nie z `.mo`;
+     `wp_password_change_notification()` idzie **do administratora**, nie do
+     klienta (`pluggable.php:2187`) — klient po ustawieniu hasła nie dostaje
+     nic i od razu jest zalogowany.
+     **SZÓSTY NAWRÓT PUŁAPKI „WZORZEC NA NAPIS" — spowodowany przez tę
+     naprawę:** dopięcie drugiego filtru do `woocommerce_add_to_cart_validation`
+     oślepiło regułę 11 strażnika, która pytała o samą nazwę haka; mutacja
+     kasująca rejestrację BLOKADY SPRZEDAŻY zaczęła przechodzić. Złapał to
+     audyt mutacyjny, nie przegląd.
+     **BLAD-028 (nowa klasa): pomiar oparty na CUDZYM TEKŚCIE ma datę
+     ważności** — sprawdzenie kolejności przejść statusu czytało notatki Woo
+     i umarło po spolszczeniu instalacji, meldując odwróconą kolejność przy
+     poprawnej. Mierzy teraz zdarzenia.
+     **Sweep znalazł to, czego nie znalazły etapy:** `smoke-wp-motyw` otwierał
+     sprzedaż na czas pomiaru i w `finally` robił `delete_option()`, czyli
+     **zamykał sklep za sobą** — po bramkach wyglądu strona kursu przestawała
+     pokazywać przycisk zakupu i wyglądało to jak awaria. „Przywróć stan" to co
+     innego niż „skasuj ustawienie".
+     **PUŁAPKA PRACY:** `git checkout -- <plik>` skasował niezacommitowaną
+     pracę przy przywracaniu po teście negatywnym — do tego służy kopia
+     zrobiona przed mutacją, nie git.
+     Doszedł **`smoke-wp-jezyk`** (`npm run smoke:wp-jezyk`, 24 sprawdzenia)
+     i trzy reguły strażnika (30–33). Środowisko `:8892`: **1 zamówienie**
+     (prawdziwy zakup właściciela — materiał dowodowy), konto `klient-test`
+     ma **0** (było 146), sprzedaż OTWARTA.
+     **ZOSTAJE DO DECYZJI WŁAŚCICIELA:** regulamin (kasa obiecuje „Warunki
+     i zasady", strony nie ma), gwarancja zwrotu 30 dni przy zwrotach
+     zaplanowanych na P5, okładka produktu w kasie (szary zastępnik — SVG nie
+     wchodzi do biblioteki mediów bez świadomej zgody na ten format).
+     **NASTĘPNY KROK: PR gałęzi `feat/p4-konto-i-maile`** (P4 + naprawy
+     0.51.0), potem **P5** (zwroty i przypadki brzegowe) i **P6** (test ręczny
+     właściciela).
+
+     Zapis historyczny zgłoszenia: Właściciel przetestował P4 sam (2026-08-29) i zgłosił:
+     **BLAD-023** koszyk kumuluje kursy, choć przycisk obiecuje jeden (klik
+     „Dołączam za 299 zł" → kasa na 648 zł); **BLAD-024** kasa, koszyk i konto
+     po angielsku; **BLAD-025** gołe powiadomienie WordPressa „Password Changed"
+     od `wordpress@127.0.0.1` po ustawieniu hasła. Polecenie właściciela:
+     **przeszukać PODOBNE KLASY bardzo szczegółowo — „dużo ich jest"**.
+     Cztery klasy, trop o „cudzej edycji" widocznej klientowi w kasie i stan
+     środowiska: **[docs/plugin-2/BLEDY-Z-TESTU-P4.md](docs/plugin-2/BLEDY-Z-TESTU-P4.md)
+     — CZYTAĆ PRZED PRACĄ.** Środowisko `:8892` zostało **ze sprzedażą OTWARTĄ
+     i NIEPOSPRZĄTANE** (zamówienia i konta z testu to materiał dowodowy).
+     Dopiero po tym: PR gałęzi P4, potem **P5** (zwroty i przypadki brzegowe)
+     i **P6** (test ręczny właściciela).
+
+     ~~**NASTĘPNY KROK CAŁEGO PROJEKTU: P4 — konto przy zakupie, dwa maile,
+     tabela `dostawy`, zdjęcie blokady sprzedaży.**~~ ZROBIONE — patrz wyżej. Wg reguły właściciela
      (2026-08-28) **najpierw plan przebiegu kroku + pytania doprecyzowujące
      i CZEKAĆ NA ZGODĘ, dopiero potem kod.** Wymagania, które P4 dziedziczy
      z P3b: mail „Ustaw hasło" przy `on-hold` (nie `completed`); flaga

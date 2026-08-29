@@ -72,6 +72,11 @@ const ARKUSZ_LEKCJI = "wordpress/wtyczki/aai-sklep/assets/lekcja.css";
  *             wygenerowanego podglądu. Bez tego pola audyt na maszynie
  *             bez materiału raportowałby fałszywe „PRZEPUŚCIŁ mutację".
  */
+const ZAPIS_PRODUKTU = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php";
+const MAILE_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php";
+const USTAWIENIA_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php";
+const CLI_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php";
+
 const MUTACJE = [
   // --- straznik-scenariuszy ---
   {
@@ -662,6 +667,21 @@ const MUTACJE = [
   },
   // --- straznik-tresci-lekcji ---
   {
+    straznik: "straznik-frontu-wp",
+    opis: "przycisk logowania wraca na surowy wp-login.php (zgłoszone przez właściciela: klient po mailu trafiał na ekran WordPressa)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/moje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/moje.php"),
+    oczekiwanySlad: "prowadzi klienta na wp-login.php",
+    zmien: (s) =>
+      s.includes("Aai_Sklep_Moje::adres_logowania( Aai_Sklep_Moje::adres() )")
+        ? s.replace(
+            "Aai_Sklep_Moje::adres_logowania( Aai_Sklep_Moje::adres() )",
+            "wp_login_url( Aai_Sklep_Moje::adres() )"
+          )
+        : null,
+  },
+
+  {
     straznik: "straznik-tresci-lekcji",
     opis: "materiał zza logowania dołożony do wspólnego odczytu strony (wyciek 91 lekcji)",
     plik: "modules/m1-sklep/odczyt.ts",
@@ -1161,6 +1181,204 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-platnosci-wp, reguła 33 (bramki widzą zamówienia, BLAD-026) ---
+  // Klasa, przez którą narosło 146 zamówień-widm na koncie, na którym
+  // właściciel ogląda sklep oczami klienta. Obie połowy mają mutację:
+  // ślepy licznik i sprzątanie, które nic nie kasuje.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "smoke liczy zamówienia przez post_type='shop_order' — pod HPOS odpowiedź brzmi zawsze „zero” (BLAD-026)",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zakup.mjs"),
+    oczekiwanySlad: "post_type='shop_order'",
+    zmien: (s) =>
+      s.includes("'status' => array_keys( wc_get_order_statuses() ) ) ) );")
+        ? s.replace(
+            "\"echo (int) count( wc_get_orders( array( 'limit' => -1, 'return' => 'ids',\" +\n        \" 'status' => array_keys( wc_get_order_statuses() ) ) ) );\"",
+            "\"global $wpdb; echo (int) $wpdb->get_var( \\\"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='shop_order'\\\" );\""
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "smoke kasuje zamówienia przez wp_delete_post() — pod HPOS nie kasuje niczego, a melduje porządek",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zakup.mjs"),
+    oczekiwanySlad: "wp_delete_post()",
+    zmien: (s) =>
+      s.includes("$o = wc_get_order( $id ); if ( $o ) { $o->delete( true ); } } echo 'ok';")
+        ? s.replace(
+            "$o = wc_get_order( $id ); if ( $o ) { $o->delete( true ); } } echo 'ok';",
+            "wp_delete_post( $id, true ); } echo 'ok';"
+          )
+        : null,
+  },
+  // --- straznik-platnosci-wp, reguła 32 (jeden nadawca poczty, BLAD-025) ---
+  // Obie strony reguły mają mutację: brak naprawy (poczta z wordpress@
+  // odpada na SPF) ORAZ naprawa zbyt zachłanna (zabieramy głos wtyczce
+  // SMTP właściciela). Druga jest groźniejsza, bo wygląda jak porządek.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "filtr adresu nadawcy odpięty — poczta rdzenia wraca do wordpress@<host> (BLAD-025)",
+    plik: MAILE_PLATNOSCI,
+    wymaga: () => existsSync(MAILE_PLATNOSCI),
+    oczekiwanySlad: "domyślnym nadawcą",
+    zmien: (s) =>
+      s.includes("add_filter( 'wp_mail_from', array( self::class, 'nadawca_adres' ), 1 );")
+        ? s.replace("add_filter( 'wp_mail_from', array( self::class, 'nadawca_adres' ), 1 );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "filtr nazwy nadawcy odpięty — wiadomości znów podpisane „WordPress”",
+    plik: MAILE_PLATNOSCI,
+    wymaga: () => existsSync(MAILE_PLATNOSCI),
+    oczekiwanySlad: "domyślnym nadawcą",
+    zmien: (s) =>
+      s.includes("add_filter( 'wp_mail_from_name', array( self::class, 'nadawca_nazwa' ), 1 );")
+        ? s.replace("add_filter( 'wp_mail_from_name', array( self::class, 'nadawca_nazwa' ), 1 );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "adres nadawcy nadpisywany BEZWARUNKOWO — przejmujemy cudzą pocztę zamiast naprawiać domyślną",
+    plik: MAILE_PLATNOSCI,
+    wymaga: () => existsSync(MAILE_PLATNOSCI),
+    oczekiwanySlad: "BEZWARUNKOWO",
+    zmien: (s) =>
+      s.includes("if ( '' === $domyslny || $adres !== $domyslny ) {")
+        ? s.replace("if ( '' === $domyslny || $adres !== $domyslny ) {", "if ( false ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "nazwa nadawcy nadpisywana BEZWARUNKOWO",
+    plik: MAILE_PLATNOSCI,
+    wymaga: () => existsSync(MAILE_PLATNOSCI),
+    oczekiwanySlad: "BEZWARUNKOWO",
+    zmien: (s) =>
+      s.includes("if ( 'WordPress' !== $nazwa ) {")
+        ? s.replace("if ( 'WordPress' !== $nazwa ) {", "if ( false ) {")
+        : null,
+  },
+  // --- straznik-platnosci-wp, reguła 31 (jeden kurs w koszyku, BLAD-023) ---
+  // Zgłoszenie właściciela: „nie da się kupić jednego kursu, zawsze
+  // w koszyku są 2". Obie strony naprawy mają mutację, bo obie da się
+  // złamać po cichu — i obie kosztują klienta w kasie.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "hak porządkujący koszyk odpięty — wraca kumulacja kursów (BLAD-023)",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "koszyk nie jest porządkowany",
+    zmien: (s) =>
+      s.includes("add_action( 'woocommerce_add_to_cart', array( self::class, 'zostaw_jeden_kurs' ), 10, 2 );")
+        ? s.replace("add_action( 'woocommerce_add_to_cart', array( self::class, 'zostaw_jeden_kurs' ), 10, 2 );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "reguła jednego kursu istnieje, ale nic nie usuwa z koszyka",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "niczego nie usuwa z koszyka",
+    zmien: (s) =>
+      s.includes("$koszyk->remove_cart_item( $klucz );")
+        ? s.replace("$koszyk->remove_cart_item( $klucz );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "koszyk czyszczony BEZ pytania, czyj to produkt — cudzy towar wypada klientowi bez powodu",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "NIE PYTAJĄC, czy to nasz kurs",
+    zmien: (s) =>
+      s.includes("if ( $inny > 0 && Aai_Platnosci_Zapis::czy_produkt_kursu( $inny ) ) {")
+        ? s.replace("if ( $inny > 0 && Aai_Platnosci_Zapis::czy_produkt_kursu( $inny ) ) {", "if ( $inny > 0 ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "komunikat o kursie już obecnym w koszyku podany klientowi jako czerwony BŁĄD (druga połowa BLAD-023)",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "JAKO BŁĄD",
+    zmien: (s) =>
+      s.includes("'Ten kurs już czeka w Twoim koszyku.', 'aai-platnosci' ), 'notice' )")
+        ? s.replace("'Ten kurs już czeka w Twoim koszyku.', 'aai-platnosci' ), 'notice' )", "'Ten kurs już czeka w Twoim koszyku.', 'aai-platnosci' ), 'error' )")
+        : null,
+  },
+  // --- straznik-platnosci-wp, reguła 30 (tekst widoczny klientowi w kasie) ---
+  // Klasa znaleziona przez WŁAŚCICIELA KLIKANIEM, nie przez bramkę: pod
+  // nazwą kursu w kasie stała „cudza edycja 1787936224". Bramki mierzyły
+  // mechanizmy (cena, status, powiązanie), a nie to, co klient czyta.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "synchronizacja przestaje ustawiać krótki opis produktu — pole znów niczyje, klient czyta w kasie cudzy tekst",
+    plik: ZAPIS_PRODUKTU,
+    wymaga: () => existsSync(ZAPIS_PRODUKTU),
+    oczekiwanySlad: "nie ustawia pola \u201ekrótki opis",
+    zmien: (s) =>
+      s.includes("$produkt->set_short_description( wp_slash( $opis ) );")
+        ? s.replaceAll("$produkt->set_short_description( wp_slash( $opis ) );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "krótki opis produktu zapisywany BEZ wp_slash() — z C:\\Users i \\n ginie backslash (zmierzone na Woo 11.0.1)",
+    plik: ZAPIS_PRODUKTU,
+    wymaga: () => existsSync(ZAPIS_PRODUKTU),
+    oczekiwanySlad: "BEZ wp_slash()",
+    zmien: (s) =>
+      s.includes("set_short_description( wp_slash( $opis ) )")
+        ? s.replaceAll("set_short_description( wp_slash( $opis ) )", "set_short_description( $opis )")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "nazwa produktu zapisywana BEZ wp_slash() — stan sprzed 0.51.0, uśpiony tylko dlatego, że żaden tytuł nie ma dziś backslasha",
+    plik: ZAPIS_PRODUKTU,
+    wymaga: () => existsSync(ZAPIS_PRODUKTU),
+    oczekiwanySlad: "BEZ wp_slash()",
+    zmien: (s) =>
+      s.includes("set_name( wp_slash( $kurs['title'] ) )")
+        ? s.replaceAll("set_name( wp_slash( $kurs['title'] ) )", "set_name( $kurs['title'] )")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "opis produktu przestaje pochodzić z naszej tabeli (znika odczyt short_desc)",
+    plik: ZAPIS_PRODUKTU,
+    wymaga: () => existsSync(ZAPIS_PRODUKTU),
+    oczekiwanySlad: "nie sięga po short_desc",
+    zmien: (s) =>
+      s.includes("$kurs['short_desc'] ?? ''")
+        ? s.replace("$kurs['short_desc'] ?? ''", "'' ?? ''")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola przestaje porównywać krótki opis — cudzy tekst w kasie nie zapala już kodu 1",
+    plik: CLI_PLATNOSCI,
+    wymaga: () => existsSync(CLI_PLATNOSCI),
+    oczekiwanySlad: "nie PORÓWNUJE krótkiego opisu",
+    zmien: (s) =>
+      s.includes("if ( (string) $produkt->get_short_description( 'edit' ) !== $opis_kursu ) {")
+        ? s.replace("if ( (string) $produkt->get_short_description( 'edit' ) !== $opis_kursu ) {", "if ( false ) {")
+        : null,
+  },
+  // KONTRPRZYKŁAD: przemianowanie zmiennej niczego nie osłabia — reguła
+  // pyta o zachowanie (wywołanie ze slashem), nie o nazwę. Bez tego
+  // wpisu nie wiedzielibyśmy, czy strażnik nie stoi na literówce.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "KONTRPRZYKŁAD: zmienna $opis przemianowana na $krotki_opis — zachowanie bez zmian",
+    plik: ZAPIS_PRODUKTU,
+    wymaga: () => existsSync(ZAPIS_PRODUKTU),
+    oczekujCzerwonego: false,
+    zmien: (s) => (s.includes("$opis       =") ? s.replaceAll("$opis", "$krotki_opis") : null),
+  },
   // --- straznik-platnosci-wp (Plugin 2 — szew do WooCommerce i Tutora) ---
   // Każdy niezmiennik schematu łamie się PO CICHU: sklep dalej działa,
   // tylko klient płaci i nie dostaje albo dostaje za darmo. Stąd mutacja
@@ -1520,7 +1738,7 @@ const MUTACJE = [
     opis: "stan „zamówienie w toku” przestaje patrzeć na STATUS zapisu (anulowane zamówienie blokuje zakup na zawsze)",
     plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
     wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
-    oczekiwanySlad: "nie sprawdza STATUSU zapisu",
+    oczekiwanySlad: "bez sprawdzenia STATUSU zapisu",
     zmien: (s) =>
       s.includes("\t\t\t$status = (string) get_post_status( (int) $zapis->ID );\n\t\t\tif ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {")
         ? s.replace(
@@ -1538,6 +1756,128 @@ const MUTACJE = [
     zmien: (s) =>
       s.includes("add_action(\n\t\t\t\t'shutdown',")
         ? s.replace("add_action(\n\t\t\t\t'shutdown',", "call_user_func(\n\t\t\t\t")
+        : null,
+  },
+
+  // --- P4: dwa maile i dziennik dostaw. Każda z tych mutacji zostawia
+  // sklep DZIAŁAJĄCY: zakup przechodzi, dostęp powstaje — tylko klient
+  // dostaje dwa klucze resetu, mail z cudzym adresatem albo żadnego maila.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "wysyłka maila 2 przestaje stać za znacznikiem (rekurencyjny hak Tutora wysyła go dwa razy — B6)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "nie uzależnia wysyłki od wyniku dostawa_odnotuj",
+    zmien: (s) =>
+      s.includes("\t\t\tif ( ! Aai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KURS, $order_id ) ) {")
+        ? s.replace(
+            "\t\t\tif ( ! Aai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KURS, $order_id ) ) {",
+            "\t\t\tAai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KURS, $order_id );\n\t\t\tif ( false ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "mail 1 przestaje stać za znacznikiem (drugi klucz resetu unieważnia pierwszy link — B8)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "nie uzależnia wysyłki od wyniku dostawa_odnotuj",
+    zmien: (s) =>
+      s.includes("\t\t\tif ( ! Aai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KONTO, $id ) ) {")
+        ? s.replace(
+            "\t\t\tif ( ! Aai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KONTO, $id ) ) {",
+            "\t\t\tAai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KONTO, $id );\n\t\t\tif ( false ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "argument hasła z haka Woo przestaje być porzucany (hasło w treści maila — niezmiennik 8)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "nie porzuca argumentu hasła",
+    zmien: (s) =>
+      s.includes("\t\tunset( $dane, $haslo_wygenerowane );")
+        ? s.replace("\t\tunset( $dane, $haslo_wygenerowane );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "adresatem maila 2 staje się adres rozliczeniowy zamówienia (przejęcie konta — B9)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "get_billing_email",
+    zmien: (s) =>
+      s.includes("\t\treturn self::wyslij(\n\t\t\t$user->user_email,\n\t\t\t1 === count( $kursy )")
+        ? s.replace(
+            "\t\treturn self::wyslij(\n\t\t\t$user->user_email,\n\t\t\t1 === count( $kursy )",
+            "\t\treturn self::wyslij(\n\t\t\t(string) $order->get_billing_email(),\n\t\t\t1 === count( $kursy )"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "wysyłka przestaje przeżywać shutdown (mail 2 z odroczonego domknięcia przepada bez śladu)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "doing_action",
+    zmien: (s) =>
+      s.includes("\t\tif ( doing_action( 'shutdown' ) ) {")
+        ? s.replace("\t\tif ( doing_action( 'shutdown' ) ) {", "\t\tif ( false ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "status zapisu znów przez get_post_status (cache wpisu kłamie — mail 2 nigdy nie wychodzi, E0)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "pyta get_post_status",
+    zmien: (s) =>
+      s.includes("if ( 'completed' !== Aai_Platnosci_Zapis::status_zapisu( $zapis ) ) {")
+        ? s.replace(
+            "if ( 'completed' !== Aai_Platnosci_Zapis::status_zapisu( $zapis ) ) {",
+            "if ( 'completed' !== get_post_status( $zapis ) ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "deaktywacja przestaje przywracać mail Woo „nowe konto\" (konto bez żadnego linku do hasła — K1)",
+    plik: "wordpress/wtyczki/aai-platnosci/aai-platnosci.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "deaktywacja nie przywraca",
+    zmien: (s) =>
+      s.includes("\t\t\tAai_Platnosci_Ustawienia::przywroc_mail_woo();")
+        ? s.replace("\t\t\tAai_Platnosci_Ustawienia::przywroc_mail_woo();", "\t\t\t// przywracanie wycięte")
+        : null,
+  },
+
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "blokada koszyka przestaje łapać Throwable (klient dostaje HTTP 500 zamiast odmowy — zmierzone przy przeglądzie P4)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php"),
+    oczekiwanySlad: "nie łapie Throwable",
+    zmien: (s) =>
+      s.includes("\t\t} catch ( Throwable $e ) {\n\t\t\tAai_Platnosci_Komunikaty::zapisz( 'przy sprawdzaniu koszyka")
+        ? s.replace(
+            "\t\t} catch ( Throwable $e ) {\n\t\t\tAai_Platnosci_Komunikaty::zapisz( 'przy sprawdzaniu koszyka",
+            "\t\t} catch ( InvalidArgumentException $e ) {\n\t\t\tAai_Platnosci_Komunikaty::zapisz( 'przy sprawdzaniu koszyka"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "koszyk przyjmuje kurs, którego nie da się dostarczyć (gość przy zdryfowanym guest_checkout płaci i nie dostaje nic)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php"),
+    oczekiwanySlad: "zależy od stanu woocommerce_enable_guest_checkout",
+    zmien: (s) =>
+      s.includes("\t\treturn 'yes' !== (string) get_option( 'woocommerce_enable_guest_checkout', 'no' );")
+        ? s.replace(
+            "\t\treturn 'yes' !== (string) get_option( 'woocommerce_enable_guest_checkout', 'no' );",
+            "\t\treturn true;"
+          )
         : null,
   },
 

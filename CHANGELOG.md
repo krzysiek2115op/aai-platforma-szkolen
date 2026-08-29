@@ -5,6 +5,255 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.51.0] — 2026-08-29
+
+**Naprawa pięciu błędów z testu ręcznego właściciela — i klasy, którą one
+odsłoniły: bramki mierzyły mechanizmy, nie doświadczenie klienta.**
+Właściciel znalazł klikaniem to, czego nie złapało 35 strażników, 201 mutacji
+i jedenaście smoke'ów. Śledztwo, dowody i mapa pięciu klas:
+[docs/plugin-2/BLEDY-Z-TESTU-P4.md](docs/plugin-2/BLEDY-Z-TESTU-P4.md) §5.
+
+### Naprawione
+
+- **N1 — w kasie klient czyta opis kursu, nie cudzy tekst (BLAD-027).**
+  Woo drukuje `short_description` produktu pod nazwą pozycji w koszyku
+  i w podsumowaniu zamówienia, a Store API oddaje je publicznie. Kopia tego
+  pola **nie ustawiała**, więc było niczyje — na produkcie 675 stała przez to
+  „cudza edycja 1787936224”, ślad po ręcznym dowodzeniu haka B13. Źródłem
+  jest teraz `courses.short_desc`, ta sama kolumna, którą do Tutora kopiuje
+  `Aai_Sklep_Tutor`. Oba pola widoczne dla klienta jadą przez `wp_slash()` —
+  **zmierzone na Woo 11.0.1**: `set_short_description()` i `set_name()`
+  kończą w `wp_insert_post()`, które puszcza wartość przez `wp_unslash()`,
+  więc bez posłodzenia ginie każdy backslash (`C:\Users`, sekwencja `\n`;
+  kurs o Gicie takich pełen). Przy okazji naprawiona ta sama usterka
+  na **nazwie** produktu, uśpiona od P2. Kontrola: rozjazd nazwy albo opisu
+  to kod 1 z komendą naprawy w komunikacie.
+- **N2 — przycisk mówi prawdę o kwocie w kasie (BLAD-023).** Klik „Dołączam
+  za 299,00 zł”, potem „za 349,00 zł” dawał w kasie **648,00 zł**. Decyzja
+  właściciela: jeden kurs na raz. Po dodaniu kursu pozostałe **nasze** kursy
+  wypadają z koszyka, **cudze produkty zostają** (zmierzone: cudzy towar
+  + dwa kursy → cudzy towar i jeden kurs), a podmiana nie jest cicha. Druga
+  połowa zgłoszenia: powtórne kliknięcie tego samego kursu przestało być
+  czerwonym błędem „You cannot add another…” — nasza walidacja biegnie przed
+  wyjątkiem `WC_Cart::add_to_cart()` i mówi „Ten kurs już czeka w Twoim
+  koszyku” jako `notice`. `sold_individually` zostaje (B14).
+- **N3 — klient płaci po polsku (BLAD-024).** Język ustawia **instalacja**,
+  nie wtyczka: `postaw.sh` instaluje pl_PL rdzenia i tłumaczenia wtyczek,
+  a weryfikuje **artefaktem** — pyta WordPressa o przetłumaczony napis z kasy,
+  bo samo `locale = pl_PL` bez plików tłumaczeń dalej daje angielską stronę.
+  Bramką po naszej stronie jest nowy **`smoke-wp-jezyk`**: przechodzi
+  w przeglądarce całą ścieżkę klienta (z **ekranem ustawiania hasła z naszego
+  maila**, czyli pierwszym krokiem po zakupie) i pada na każdej z 35 fraz
+  zmierzonych przed naprawą.
+- **N4 — cała poczta od jednego nadawcy (BLAD-025).** Filtry `wp_mail_from`
+  i `wp_mail_from_name` na priorytecie 1 podmieniają **wyłącznie wartość
+  domyślną** WordPressa (`wordpress@<host>` / „WordPress”) na adres sklepu;
+  nadawcy ustawionego świadomie (wtyczka SMTP) nie ruszamy. **Sprostowanie do
+  zgłoszenia, zmierzone:** ta wiadomość idzie do **administratora**, nie do
+  klienta (`pluggable.php:2187`) — klient po ustawieniu hasła nie dostaje nic
+  i od razu jest zalogowany. Sam mail zostaje, zgodnie z decyzją właściciela.
+- **N5 — sprzątanie po testach naprawdę sprząta (BLAD-026, BLAD-028).**
+  Zapisana była łagodniejsza połowa (ślepy licznik). **Prawdziwa przyczyna
+  146 zamówień-widm**: sprzątanie wołało `wp_delete_post()`, które pod HPOS
+  **nie kasuje niczego** — zamówienie przeżywa, a smoke melduje porządek.
+  Trzecia warstwa: `wc_get_orders(status: 'any')` też nie widzi wszystkiego
+  (194 przy 195 wierszach — pomija `checkout-draft`), więc liczymy jawną listą
+  `wc_get_order_statuses()`. Posprzątane **201 zamówień-śmieci**; na koncie
+  `klient-test`, na którym właściciel ogląda sklep oczami klienta, zostało 0.
+- **N6 — nasz rozjazd tej samej klasy.** Kontrola pytała o wpisy kursów
+  `post_type = 'courses'` wpisanym na sztywno, choć sąsiedni plik pyta o to
+  Tutora od P2. Do tego `postaw.sh` wskazuje teraz Woo **opublikowaną**
+  politykę prywatności motywu zamiast szkicu WordPressa („Suggested text:
+  Our website address is:”) — zdanie w kasie ma wreszcie działający odnośnik.
+
+### Zmierzone w cudzym kodzie (nie wyprowadzać od nowa)
+
+- `wp_delete_post()` na zamówieniu HPOS **nie kasuje niczego** i nie zgłasza
+  błędu; kasuje dopiero `$order->delete( true )`.
+- `wc_get_orders( status => 'any' )` **pomija `checkout-draft`**, choć Woo zna
+  ten status — jawna lista `wc_get_order_statuses()` daje tyle, ile jest.
+- `set_short_description()` i `set_name()` **zjadają backslashe** (przez
+  `wp_unslash()` w `wp_insert_post()`); powtórny zapis slashy nie kumuluje.
+  To rodzina pułapki `update_post_meta` z W2 — tam ratował nas `$wpdb`.
+- Odmowę „You cannot add another…” rzuca `WC_Cart::add_to_cart()`
+  (`class-wc-cart.php:1307`), a nasza walidacja biegnie **wcześniej**.
+- WordPress 6.9 czyta tłumaczenia z **`.l10n.php`**, nie z `.mo` — dowód
+  „bez tłumaczeń" wykonany na pliku `.mo` niczego nie zmienia.
+- `wp_password_change_notification()` wysyła kopię **na `admin_email`**
+  i pomija ją, gdy hasło zmienia sam administrator.
+
+### Lekcje
+
+- **Szósty nawrót pułapki „wzorzec na napis” — i tym razem spowodowałem go
+  sam.** Dopięcie drugiego filtru do `woocommerce_add_to_cart_validation`
+  oślepiło regułę 11, która pytała o samą nazwę haka: mutacja kasująca
+  rejestrację **blokady sprzedaży** zaczęła przechodzić. Złapał to audyt
+  mutacyjny, nie przegląd. Reguła pyta teraz o konkretny callback **oraz**
+  o to, czy blokada sięga po stan sprzedaży.
+- **Pomiar oparty na cudzym TEKŚCIE ma datę ważności** (BLAD-028): sprawdzenie
+  kolejności przejść statusu czytało notatki Woo i umarło po spolszczeniu
+  instalacji, meldując odwróconą kolejność przy poprawnej. Mierzy teraz
+  zdarzenia, nie zdania.
+- **Test negatywny na własnym teście**: pierwsza wersja pomiaru koszyka
+  doklejała `-2` do uuid kursu i dostawała 38 znaków przy kolumnie `char(36)`,
+  więc powiązanie zapisywało się obcięte i smoke meldował „wraca BLAD-023”
+  przy poprawnie działającej regule. Test, który kłamie o kodzie, jest gorszy
+  niż brak testu.
+- **`git checkout -- <plik>` skasował niezacommitowaną pracę** przy
+  przywracaniu po teście negatywnym. Do przywracania służy kopia zrobiona
+  przed mutacją, nie git.
+
+### Dowody
+
+Strażnicy **35/35**, audyt mutacyjny **217** (215 złapanych, 0 przeoczonych,
+0 martwych), smoke'i WP: język **24** · produkty **84** · zakup **38** ·
+maile **46** · front 84 · motyw 89 · panel 54 · kreator 96 · lekcja 36 ·
+tutor 44 · dane 30 · płatności 23; `wp:sprawdz` 73/73 co do znaku,
+`wp:tutor` 0 różnic, `postaw.sh` kod 0, kontrola `aai-platnosci sprawdz`
+kod 0. Każde nowe sprawdzenie ma test negatywny.
+
+### Zostaje do decyzji właściciela
+
+Regulamin („Warunki i zasady” w kasie prowadzi donikąd — strony nie ma),
+gwarancja zwrotu 30 dni obiecywana w katalogu przy zwrotach zaplanowanych
+dopiero na P5, oraz okładka produktu w kasie (dziś szary zastępnik — nasze
+okładki to pliki SVG, a WordPress domyślnie ich nie przyjmuje do mediów).
+
+## [0.50.0] — 2026-08-29
+
+**Krok P4: klient dostaje konto, do którego umie wejść, i wie, że kurs na
+niego czeka.** Plan kroku, rozstrzygnięcia właściciela i pomiary:
+[docs/plugin-2/KROK-P4.md](docs/plugin-2/KROK-P4.md).
+
+### Dodane
+
+- **Dwa maile dostarczenia** (`Aai_Platnosci_Maile`): „Ustaw hasło i wejdź"
+  przy powstaniu konta (`woocommerce_created_customer`) i „Twój kurs jest
+  gotowy" przy przyznaniu dostępu (`tutor_after_enrolled`). Nie jeden, bo to
+  dwa różne zdarzenia: konto powstaje przy SKŁADANIU zamówienia, dostęp
+  dopiero po opłacie — a przelew stoi na `on-hold` dwa dni (K1 z krytyki P0).
+  Znacznik idempotencji zapisujemy **synchronicznie** (atomowy `INSERT`
+  z UNIQUE w tabeli `dostawy`), wysyłkę odkładamy na `shutdown`: mail 2 składa
+  treść z pozycji ZAMÓWIENIA, a hak leci osobno dla każdego kursu. Zmierzone:
+  zamówienie na dwa kursy daje jeden mail z dwiema nazwami. Maile idą jako
+  HTML z wersją tekstową obok; typ treści nagłówkiem, nie globalnym filtrem.
+- **Dziennik dostarczenia**: `wp aai-platnosci dostawy [--ponow=…]` pokazuje,
+  co klient dostał, i ponawia niedoręczoną wiadomość. Kontrola widzi
+  wiadomość z wynikiem innym niż `wyslano` **albo z pustym** (żądanie padło
+  między znacznikiem a wysyłką) oraz opłacone zamówienie z kursem bez
+  odnotowanego dostępu — kod 1 z komendą naprawczą. Porażka wysyłki mówi też
+  w kokpicie, pod własnym kluczem: udane ponowienie gasi DOKŁADNIE swój
+  komunikat.
+- **Otwarcie sprzedaży komendą** `wp aai-platnosci sprzedaz otworz|zamknij`.
+  Nie robi tego aktywacja ani aktualizacja: kod bywa gotowy wcześniej niż
+  regulamin, zgoda na natychmiastowe dostarczenie treści cyfrowej i prawdziwa
+  bramka płatności. Komenda ostrzega, gdy nie ma ani jednej włączonej bramki.
+- **Odmowa drugiego zakupu posiadanego kursu** (B10). `do_enroll()` Tutora
+  wychodzi przed zapisem meta na zamówieniu, więc drugie zamówienie wzięłoby
+  pieniądze i nigdy się nie domknęło. Decyzję „czy ten człowiek ma ten kurs"
+  podejmuje JEDNA metoda (`Aai_Platnosci_Cta::stan_posiadania()`) — pyta jej
+  przycisk na stronie i blokada koszyka.
+- **Łapacz poczty w środowisku roboczym**: Mailpit (`127.0.0.1:8893`)
+  + mu-plugin przestawiający PHPMailer na jego SMTP, oba montowane przez nasz
+  `compose.yml`. `postaw.sh` weryfikuje pocztę ARTEFAKTEM: kasuje skrzynkę,
+  wysyła prawdziwą wiadomość i czyta ją z drugiej strony; włącza też przelew
+  `bacs` jako bramkę warsztatu.
+- **`npm run smoke:wp-maile`** — 38 sprawdzeń na żywej instalacji, wiadomości
+  czytane z łapacza, nie z podstawionego `pre_wp_mail`.
+
+### Zmienione
+
+- Mail WooCommerce „nowe konto" **wyłączony** (opcja + filtr obronny B17)
+  i **przywracany przy deaktywacji** wtyczki: dwa klucze resetu unieważniają
+  się nawzajem, ale konto bez ŻADNEGO linku do hasła jest gorsze (K1).
+- Dwie asercje `smoke-wp-front` (przycisk oferty i `availability`) czytają
+  stan sprzedaży Z INSTALACJI — smoke przechodzi przy sprzedaży zamkniętej
+  i otwartej. Wpisany na sztywno `/kontakt` czynił z niego test, który pada
+  dokładnie wtedy, gdy sklep zaczyna działać.
+- `napraw()` **dopisuje blok komunikatów sklepu** na strony koszyka i kasy.
+  Bez niego odmowy koszyka były NIEME: motyw jest klasyczny, a strony nie
+  miały bloku `store-notices`, więc klient lądował na pustym koszyku bez
+  słowa wyjaśnienia. Prepend, nigdy podmiana — lekcja rozbitych nazw klas
+  z P3a.
+- Aktywacja wtyczki **nie melduje już udanej naprawy ustawień jako błędu**:
+  lista zmian szła do kanału komunikatów, który kontrola czyta jako rozjazd,
+  więc zwykła aktywacja zostawiała `sprawdz` na czerwono.
+- Komunikat kokpitu dobiera radę do RODZAJU błędu — „kliknij Zapisz kurs"
+  przy niedoręczonym mailu byłoby radą nieskuteczną.
+
+### Naprawione
+
+- **Mail 2 przepadał na ścieżce „admin klika Processing"** (zmierzone):
+  zamówienie wchodzące w `processing` domykamy odroczeniem na `shutdown`
+  (P3b), a to domknięcie odpala `tutor_after_enrolled` — zgłoszenie wysyłki
+  trafiało do akcji, KTÓRA WŁAŚNIE TRWA, i WordPress już go nie wołał.
+  Znacznik zostawał z pustym wynikiem, w skrzynce były cztery maile
+  WooCommerce i ani jednego naszego: klient miał dostęp i nie wiedział o tym.
+  Naprawia pytanie `doing_action( 'shutdown' )`.
+- **`smoke-wp-zakup` zostawiał wiersze dziennika** po skasowanych
+  zamówieniach — kolejne bramki mierzyłyby własne śmieci (ta sama klasa co
+  produkty-sieroty ze sweepu P2).
+- **Blokada koszyka wywracała kasę** (przegląd, zmierzone): wyjątek z naszej
+  tabeli albo z `tutor_utils()` oddawał klientowi **HTTP 500 i planszę
+  „krytyczny błąd”** przy dodawaniu do koszyka — a ta sama decyzja przy
+  rysowaniu przycisku była osłonięta i strona kursu oddawała 200. Cały
+  łańcuch w `try`, a po wyjątku **odmawiamy**: wpuszczenie produktu przy
+  nieznanym stanie znaczy zakup kursu, który klient może już mieć, i
+  zamówienie, które nigdy się nie domknie.
+- **Gość mógł zapłacić i nie dostać nic** (przegląd, zmierzone): po dryfie
+  `woocommerce_enable_guest_checkout` na `yes` anonimowy klient przechodził
+  całą kasę, a skutek to `customer_id = 0`, zero zapisów w Tutorze, zero
+  wierszy `dostawy` i ani jednej naszej wiadomości. Kontrola to widziała,
+  ale dopiero PO pobraniu pieniędzy — teraz odmawiamy przed.
+- **Konto założone POZA kasą nie dostawało maila 1** (przegląd, zmierzone):
+  `wp-admin`, `POST /wc/v3/customers` i `wp user create` nie idą przez
+  `wc_create_new_customer()`, więc hak nie odpala, a mail 2 dochodzi
+  normalnie — klient miał kurs i ani jednego linku do hasła. Mail 2 niesie
+  odnośnik do odzyskiwania hasła (bez klucza, więc nie unieważnia maila 1).
+- **Kontrola była ślepa poza oknem 30 dni** (przegląd, zmierzone): opłacone
+  zamówienie z kursem sprzed 40 dni bez odnotowanego dostępu przechodziło
+  jako `Success`. Okno i sufit usunięte.
+- **Ponowienie wysyłało klucz resetu komukolwiek** (znalezione własnym
+  pomiarem): `--ponow=mail_konta/1` posyłał świeży klucz administratorowi,
+  nie zostawiał śladu i meldował sukces. Ponawiamy wyłącznie wiadomości
+  już zlecone.
+- **Klient trafiał na surowy ekran logowania WordPressa** (zgłosił właściciel
+  po kliknięciu „Przejdź do kursu" w mailu): przycisk „Zaloguj się" na
+  „Moich kursach" i na bramce lekcji szedł przez `wp_login_url()` prosto na
+  `wp-login.php` — wbrew decyzji z W6 i niespójnie z linkiem „Ustaw hasło",
+  który prowadzi na stronę konta WooCommerce w naszym wyglądzie. Adres składa
+  teraz `Aai_Sklep_Moje::adres_logowania()`, a filtr `woocommerce_login_redirect`
+  odsyła klienta TAM, SKĄD przyszedł (zmierzone: po zalogowaniu ląduje na
+  `/szkolenia/moje/`, nie na stronie konta). Pilnuje `straznik-frontu-wp`;
+  smoke lekcji utrwalał stare zachowanie i został poprawiony.
+- **Nagłówek CLI mówił nieprawdę o kodach wyjścia** — opisywał kod 1 jako
+  jedyny przypadek „brak tabel" (prawda w P1, nieprawda po pięciu krokach).
+
+### Dowody
+
+- Strażnicy **35/35** (sześć nowych niezmienników P4 w `straznik-platnosci-wp`);
+  niezmiennik 20 przepisany, bo celował w NAZWĘ metody — czwarty nawrót tej
+  klasy wzorca (0.29.0, 0.44.0, 0.47.0, c6c9c97).
+- Audyt mutacyjny **200** (191 → 200): 198 złapanych, **0 przeoczonych,
+  0 martwych**, 2 pominięte (brak materiału). Reguła 29 celowała najpierw
+  w NAPIS, nie w zachowanie — mutacja podmieniająca całe rozstrzygnięcie
+  przeszła; **piąty nawrót tej klasy w repo**, złapany przez audyt w tym
+  samym przebiegu, w którym powstał.
+- `npm run check` kod 0; smoke'i WP: maile **40** · zakup 32 · produkty 71 ·
+  front 84 · kreator 96 · panel 54 · motyw 89 (9 stron) · tutor 44 ·
+  lekcja 35 · dane 30 · płatności 23.
+- Dane Pluginu 1 nietknięte: `wp:sprawdz` 73/73 co do znaku, `wp:tutor`
+  87 obiektów, **0 różnic**.
+- **Przegląd przed PR-em na zamkniętej liście 10 pytań**: cztery znaleziska,
+  każde potwierdzone uruchomieniowo PRZED naprawą; sześć odpowiedzi „czysto".
+  Piąte znalezisko (ponowienie) znalezione niezależnie przed raportem.
+  Jedno znalezisko odłożone świadomie do P5 (lista kursów w mailu 2 przy
+  przerwanej pętli Tutora albo odpiętym kursie) — szczegóły w KROK-P4.md §9.
+- **Pięć testów negatywnych**, z których dwa obnażyły ŚLEPE sprawdzenia
+  w naszym własnym smoke'u (bramka statusu zapisu nie była dotykana przez
+  żaden scenariusz; ścieżki „admin klika Processing" w smoke'u nie było
+  wcale) — oba mają teraz własne bloki.
+
 ## [0.49.0] — 2026-08-29
 
 **Krok P3b: przycisk mówi to, co klient naprawdę może zrobić, a zamówienie

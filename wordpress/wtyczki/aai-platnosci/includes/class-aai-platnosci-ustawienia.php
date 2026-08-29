@@ -10,13 +10,18 @@
  * (ekran, deaktywacja Woo cofająca `monetize_by` na `free`) nie odcięła
  * klientom dostępu do kupionych kursów.
  *
- * SPRZEDAŻ JEST ZAMKNIĘTA DO P4 (rozstrzygnięcie 1 planu P3a): silnik
- * stoi na `wc`, ale filtr `woocommerce_add_to_cart_validation` odrzuca
- * produkty kursów, dopóki flagi otwarcia nie ustawi krok P4. Bez tego
- * między P3a a P4 istniałoby okno „klient płaci i nie dostaje nic" —
- * zakup technicznie działa, a dostarczanie (maile, dostawy) jeszcze nie
- * istnieje. Produkty ZOSTAJĄ `publish` — zejście na `draft` łamałoby
- * niezmiennik 9 i zapalało kontrolę.
+ * SPRZEDAŻ OTWIERA CZŁOWIEK, NIE AKTUALIZACJA (P4). Silnik stoi na `wc`,
+ * a filtr `woocommerce_add_to_cart_validation` odrzuca produkty kursów,
+ * dopóki flagi nie ustawi `wp aai-platnosci sprzedaz otworz`. Do kroku P4
+ * bronił on okna „klient płaci i nie dostaje nic" (zakup działał, a maile
+ * i dostawy jeszcze nie istniały); od P4 broni czegoś innego: kod bywa
+ * gotowy wcześniej niż regulamin, zgoda na natychmiastowe dostarczenie
+ * treści cyfrowej i prawdziwa bramka płatności. Produkty ZOSTAJĄ `publish`
+ * — zejście na `draft` łamałoby niezmiennik 9 i zapalało kontrolę.
+ *
+ * Ten sam filtr odmawia DRUGIEGO zakupu kursu, który klient już ma (B10):
+ * `do_enroll()` wychodzi wtedy przed zapisem meta i zamówienie nigdy się
+ * nie domyka — pieniądze wzięte, dostępu nic nie przybywa.
  *
  * Filtr pokrywa cztery ścieżki KLIENTA (zmierzone w kodzie Woo 11.0.1,
  * KROK-P3A.md §3): form handler (`?add-to-cart=`), AJAX, Store API kasy
@@ -100,6 +105,20 @@ final class Aai_Platnosci_Ustawienia {
 	);
 
 	/**
+	 * Mail WooCommerce „nowe konto" — opcja tablicowa i nazwa jego filtra
+	 * włączenia (`WC_Email::is_enabled()` robi
+	 * `apply_filters( 'woocommerce_email_enabled_' . $this->id, … )`).
+	 *
+	 * WYŁĄCZAMY GO DOPIERO TERAZ, w kroku P4, i to jest istota rzeczy:
+	 * do P3b był JEDYNYM linkiem do hasła, jaki dostawał nowy klient.
+	 * Od P4 to samo zadanie robi nasz mail 1 — a dwa maile znaczyłyby dwa
+	 * klucze resetu, z których każdy unieważnia poprzedni (B8): klient
+	 * dostawałby dwie wiadomości i działałaby tylko ta druga.
+	 */
+	private const MAIL_WOO_OPCJA = 'woocommerce_customer_new_account_settings';
+	private const MAIL_WOO_FILTR = 'woocommerce_email_enabled_customer_new_account';
+
+	/**
 	 * Polskie sluggi stron WooCommerce (rozstrzygnięcie 2 planu P3a):
 	 * koszyk i kasa; `/my-account/` ZOSTAJE — mamy już `/szkolenia/moje/`
 	 * i drugi podobny adres myliłby klienta. Odstępstwo od decyzji 6
@@ -156,6 +175,21 @@ final class Aai_Platnosci_Ustawienia {
 			add_filter( $klucz, array( self::class, 'wymus_wartosc_tutora' ) );
 		}
 		add_filter( 'woocommerce_add_to_cart_validation', array( self::class, 'blokada_sprzedazy' ), 10, 2 );
+		/*
+		 * JEDEN KURS W KOSZYKU (BLAD-023, decyzja właściciela 2026-08-29).
+		 * Priorytet 20, czyli PO blokadzie: gdyby sprzedaż była zamknięta
+		 * albo zakupu nie dało się dostarczyć, nie ma o czym rozmawiać.
+		 */
+		add_filter( 'woocommerce_add_to_cart_validation', array( self::class, 'juz_w_koszyku' ), 20, 2 );
+		add_action( 'woocommerce_add_to_cart', array( self::class, 'zostaw_jeden_kurs' ), 10, 2 );
+		/*
+		 * Filtr obronny B17 dla maila „nowe konto": wartość w bazie
+		 * ustawia `napraw()`, ale ekran ustawień WooCommerce cofa ją
+		 * jednym kliknięciem. Rozjazd i tak zobaczy kontrola — ten filtr
+		 * pilnuje, żeby w międzyczasie klient nie dostał dwóch linków
+		 * do hasła, z których działa tylko jeden.
+		 */
+		add_filter( self::MAIL_WOO_FILTR, '__return_false' );
 	}
 
 	/**
@@ -213,20 +247,252 @@ final class Aai_Platnosci_Ustawienia {
 			// odmowy, może najwyżej dołożyć własną.
 			return false;
 		}
-		if ( self::sprzedaz_otwarta() ) {
+		/*
+		 * CAŁOŚĆ W `try`, bo ten filtr biegnie na ścieżce „dodaj do koszyka”
+		 * — w formularzu, w AJAX-ie i w Store API kasy blokowej. ZMIERZONE:
+		 * wyjątek rzucony w łańcuchu (nasza tabela, `tutor_utils()` Tutora)
+		 * dawał klientowi **HTTP 500 i planszę „wystąpił krytyczny błąd”**
+		 * zamiast uprzejmej odmowy, którą ten kod starannie przygotowuje.
+		 * Ta sama operacja przy WYŚWIETLANIU przycisku (`Cta::stan()`) była
+		 * osłonięta i strona kursu oddawała spokojnie 200 — czyli jedna
+		 * decyzja była chroniona w jednym miejscu, a w drugim nie.
+		 *
+		 * ODMAWIAMY, gdy nie umiemy rozstrzygnąć (fail closed). Wpuszczenie
+		 * produktu przy nieznanym stanie znaczy w najgorszym razie: klient
+		 * płaci za kurs, który już ma, a `do_enroll()` wychodzi przed
+		 * zapisem meta, więc zamówienie NIGDY się nie domknie (B10) —
+		 * pieniądze wzięte, dostępu nie przybywa. Odmowa jest widoczna,
+		 * odwracalna i nie kosztuje nikogo pieniędzy.
+		 */
+		try {
+			if ( ! Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $product_id ) ) {
+				// Nie nasz produkt — obie odmowy niżej dotyczą WYŁĄCZNIE kursów.
+				return true;
+			}
+			if ( ! self::sprzedaz_otwarta() ) {
+				self::odmow( __( 'Sprzedaż kursów jeszcze nie ruszyła — przycisk zakupu pojawi się na stronie kursu, gdy wystartujemy.', 'aai-platnosci' ) );
+				return false;
+			}
+			if ( ! self::da_sie_dostarczyc() ) {
+				self::odmow( __( 'Kurs zapisujemy na konto — zaloguj się albo załóż konto, zanim przejdziesz do kasy.', 'aai-platnosci' ) );
+				return false;
+			}
+			return self::wolno_kupic_ten_kurs( (int) $product_id );
+		} catch ( Throwable $e ) {
+			Aai_Platnosci_Komunikaty::zapisz( 'przy sprawdzaniu koszyka (produkt ' . (int) $product_id . '): ' . $e->getMessage() );
+			self::odmow( __( 'Nie udało się teraz sprawdzić tego kursu — spróbuj za chwilę albo napisz do nas.', 'aai-platnosci' ) );
+			return false;
+		}
+	}
+
+	/**
+	 * Czy tego zakupu da się w ogóle DOSTARCZYĆ.
+	 *
+	 * Kurs jest zapisywany na KONTO — bez konta nie ma zapisu w Tutorze,
+	 * nie ma dostępu i nie ma do kogo wysłać obu maili. Docelowo pilnuje
+	 * tego ustawienie `woocommerce_enable_guest_checkout = no` (P3a):
+	 * gość wchodzi do koszyka normalnie, a konto powstaje w kasie.
+	 *
+	 * TO JEST SIATKA NA DRYF TEGO USTAWIENIA. ZMIERZONE na `:8892`: po
+	 * włączeniu zakupu gościa anonimowy klient przeszedł całą kasę
+	 * (Store API, zamówienie `completed`), a skutek to `customer_id = 0`,
+	 * **zero zapisów w Tutorze, zero wierszy w `dostawy` i ani jednej
+	 * naszej wiadomości** — zapłacił i nie dostał nic. Kontrola owszem,
+	 * krzyczy, ale dopiero PO fakcie; tu odmawiamy przed pobraniem
+	 * pieniędzy. W stanie docelowym ta gałąź nie odpala się nigdy.
+	 *
+	 * Świadomy koszt: przy zdryfowanym ustawieniu odmawiamy także temu
+	 * gościowi, który zaznaczyłby w kasie „załóż konto". Woli się odesłać
+	 * go do logowania niż wziąć pieniądze za coś, czego nie umiemy wydać.
+	 */
+	private static function da_sie_dostarczyc(): bool {
+		if ( is_user_logged_in() ) {
 			return true;
 		}
-		if ( ! Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $product_id ) ) {
-			// Nie nasz produkt — blokada dotyczy WYŁĄCZNIE kursów.
+		return 'yes' !== (string) get_option( 'woocommerce_enable_guest_checkout', 'no' );
+	}
+
+	/**
+	 * Odmowa drugiego zakupu kursu, który ten człowiek już ma (B10).
+	 *
+	 * DLACZEGO TO NIE JEST OZDOBNIK. `EnrollmentModel::do_enroll()` wychodzi
+	 * PRZED zapisem meta na zamówieniu, gdy kursant jest już zapisany —
+	 * drugie zamówienie tego samego kursu wzięłoby pieniądze i **nigdy się
+	 * nie domknęło**. Przycisk na stronie kursu pokazuje wtedy „Przejdź do
+	 * kursu", ale adres kasy jest zwykłym odnośnikiem GET: da się go
+	 * zapamiętać, wysłać znajomemu albo mieć w zakładkach.
+	 *
+	 * Warunek pytamy TĄ SAMĄ metodą co przycisk (`stan_posiadania`) —
+	 * dwie kopie tej decyzji rozjechałyby się przy pierwszej zmianie.
+	 *
+	 * Gościa nie pytamy: nie wiemy, kim jest. Powracającego klienta
+	 * przechwytuje blok logowania w kasie (B16).
+	 *
+	 * @param int $product_id Id produktu kursu.
+	 */
+	private static function wolno_kupic_ten_kurs( int $product_id ): bool {
+		if ( ! is_user_logged_in() || ! class_exists( 'Aai_Platnosci_Cta' ) ) {
 			return true;
 		}
+		$uuid = Aai_Platnosci_Zapis::kurs_produktu( $product_id );
+		if ( null === $uuid ) {
+			return true;
+		}
+		$tutor = Aai_Platnosci_Zapis::kurs_tutora( $uuid );
+		if ( ! is_int( $tutor ) || $tutor <= 0 ) {
+			// Brak kopii w Tutorze albo niejednoznaczność (-1): nie mamy
+			// czym rozstrzygnąć, a odmowa zakupu „na wszelki wypadek"
+			// zabrałaby sprzedaż z powodu naszego rozjazdu. Kontrola
+			// i tak o nim mówi.
+			return true;
+		}
+		switch ( Aai_Platnosci_Cta::stan_posiadania( $tutor, get_current_user_id() ) ) {
+			case Aai_Platnosci_Cta::MA_KURS:
+				self::odmow( __( 'Ten kurs już masz — znajdziesz go na stronie „Moje kursy". Drugi zakup nic by nie dodał.', 'aai-platnosci' ) );
+				return false;
+			case Aai_Platnosci_Cta::W_TOKU:
+				self::odmow( __( 'Zamówienie na ten kurs już czeka na płatność — dostęp pojawi się, gdy wpłata dojdzie. Nie trzeba zamawiać drugi raz.', 'aai-platnosci' ) );
+				return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Komunikat odmowy dla klienta — tylko tam, gdzie WooCommerce je czyta.
+	 *
+	 * @param string $tresc Treść.
+	 */
+	/**
+	 * Ten kurs jest już w koszyku — to nie jest błąd, tylko stan docelowy.
+	 *
+	 * BLAD-023, druga połowa. Klient klikał „Dołączam za 349 zł" na kursie,
+	 * który miał już w koszyku, i dostawał CZERWONY komunikat Woo
+	 * „You cannot add another …", choć trafiał na kasę dokładnie z tym
+	 * kursem. Właściciel opisał to słowami „wygląda jak awaria" — i miał
+	 * rację: cel klienta był osiągnięty, a strona krzyczała błędem.
+	 *
+	 * ZMIERZONE w Woo 11.0.1: odmowę rzuca `WC_Cart::add_to_cart()`
+	 * wyjątkiem (`class-wc-cart.php:1307`), gdy produkt ma
+	 * `sold_individually` i siedzi już w koszyku. Nasza walidacja biegnie
+	 * WCZEŚNIEJ — w form handlerze i w Store API — więc zdejmujemy sprawę,
+	 * zanim Woo zdąży ją nazwać błędem: zwracamy `false` (nie dokładaj
+	 * drugi raz) i mówimy klientowi normalnym zdaniem, co się stało.
+	 *
+	 * `sold_individually` ZOSTAJE — to on pilnuje, żeby `quantity=3`
+	 * w adresie nie wzięło trzech sztuk kursu (B14).
+	 *
+	 * @param bool|mixed $przeszlo   Wynik dotychczasowej walidacji.
+	 * @param int|mixed  $product_id Produkt dokładany do koszyka.
+	 * @return bool
+	 */
+	public static function juz_w_koszyku( $przeszlo, $product_id ): bool {
+		if ( true !== $przeszlo ) {
+			return false;
+		}
+		try {
+			if ( ! Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $product_id ) ) {
+				return true;
+			}
+			$koszyk = function_exists( 'WC' ) && WC()->cart ? WC()->cart : null;
+			if ( null === $koszyk ) {
+				return true;
+			}
+			foreach ( $koszyk->get_cart() as $pozycja ) {
+				if ( (int) ( $pozycja['product_id'] ?? 0 ) !== (int) $product_id ) {
+					continue;
+				}
+				if ( function_exists( 'wc_add_notice' ) ) {
+					wc_add_notice( __( 'Ten kurs już czeka w Twoim koszyku.', 'aai-platnosci' ), 'notice' );
+				}
+				return false;
+			}
+			return true;
+		} catch ( Throwable $e ) {
+			// Nie nasza decyzja o sprzedaży — przy niepewności NIE blokujemy
+			// (od odmów jest blokada_sprzedazy, która przy błędzie zamyka).
+			Aai_Platnosci_Komunikaty::zapisz( 'przy sprawdzaniu zawartości koszyka (produkt ' . (int) $product_id . '): ' . $e->getMessage() );
+			return true;
+		}
+	}
+
+	/**
+	 * W koszyku zostaje NAJWYŻEJ JEDEN nasz kurs.
+	 *
+	 * BLAD-023: klient klikał „Dołączam za 299,00 zł" na kursie Claude,
+	 * potem „Dołączam za 349,00 zł" na GitHubie — i widział w kasie
+	 * **648,00 zł**. Przycisk obiecywał jedną kwotę, kasa pokazywała inną,
+	 * w najgorszym możliwym momencie. Zmierzone na żywej instalacji przed
+	 * naprawą (sesja gościa, dwa kliknięcia).
+	 *
+	 * Decyzja właściciela (2026-08-29): jeden kurs na raz — przycisk ma
+	 * zawsze mówić prawdę o kwocie w kasie. Klient kupujący dwa kursy
+	 * robi dwa zakupy.
+	 *
+	 * CUDZYCH PRODUKTÓW NIE RUSZAMY. Reguła dotyczy wyłącznie pozycji,
+	 * które są naszymi kursami (wiersz w `powiazania`) — sklep może
+	 * kiedyś sprzedawać coś jeszcze i nie mamy prawa opróżniać komuś
+	 * koszyka z rzeczy, o których nic nie wiemy. Zmierzone: po dodaniu
+	 * cudzego towaru i dwóch kursów w koszyku zostaje cudzy towar
+	 * i JEDEN kurs.
+	 *
+	 * Podmiana NIE jest cicha: klient dostaje zdanie o tym, co zostało
+	 * w koszyku. Cicha zmiana zawartości koszyka byłaby tą samą klasą
+	 * błędu co BLAD-023, tylko odwróconą.
+	 *
+	 * @param string|mixed $klucz_pozycji Klucz świeżo dodanej pozycji.
+	 * @param int|mixed    $product_id    Dodany produkt.
+	 * @return void
+	 */
+	public static function zostaw_jeden_kurs( $klucz_pozycji, $product_id ): void {
+		try {
+			if ( ! Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $product_id ) ) {
+				return;
+			}
+			$koszyk = function_exists( 'WC' ) && WC()->cart ? WC()->cart : null;
+			if ( null === $koszyk ) {
+				return;
+			}
+			// Klucze zbieramy PRZED kasowaniem: `remove_cart_item()` zmienia
+			// tablicę, po której właśnie iterujemy.
+			$do_zdjecia = array();
+			foreach ( $koszyk->get_cart() as $klucz => $pozycja ) {
+				if ( (string) $klucz === (string) $klucz_pozycji ) {
+					continue;
+				}
+				$inny = (int) ( $pozycja['product_id'] ?? 0 );
+				if ( $inny > 0 && Aai_Platnosci_Zapis::czy_produkt_kursu( $inny ) ) {
+					$do_zdjecia[] = $klucz;
+				}
+			}
+			if ( array() === $do_zdjecia ) {
+				return;
+			}
+			foreach ( $do_zdjecia as $klucz ) {
+				$koszyk->remove_cart_item( $klucz );
+			}
+			$produkt = wc_get_product( (int) $product_id );
+			if ( function_exists( 'wc_add_notice' ) && $produkt ) {
+				wc_add_notice(
+					sprintf(
+						/* translators: %s: nazwa kursu */
+						__( 'Kursy kupuje się pojedynczo — w koszyku został „%s".', 'aai-platnosci' ),
+						$produkt->get_name()
+					),
+					'notice'
+				);
+			}
+		} catch ( Throwable $e ) {
+			// Koszyk zostaje taki, jaki był: gorzej pokazać klientowi dwa
+			// kursy niż wywalić mu dodawanie do koszyka wyjątkiem (ta sama
+			// lekcja co HTTP 500 z blokady sprzedaży, przegląd P4).
+			Aai_Platnosci_Komunikaty::zapisz( 'przy porządkowaniu koszyka (produkt ' . (int) $product_id . '): ' . $e->getMessage() );
+		}
+	}
+
+	private static function odmow( string $tresc ): void {
 		if ( function_exists( 'wc_add_notice' ) ) {
-			wc_add_notice(
-				__( 'Sprzedaż kursów jeszcze nie ruszyła — przycisk zakupu pojawi się na stronie kursu, gdy wystartujemy.', 'aai-platnosci' ),
-				'error'
-			);
+			wc_add_notice( $tresc, 'error' );
 		}
-		return false;
 	}
 
 	/**
@@ -270,10 +536,21 @@ final class Aai_Platnosci_Ustawienia {
 			}
 		}
 
+		if ( self::ustaw_mail_woo( 'no' ) ) {
+			$zmiany[] = 'mail WooCommerce „nowe konto": włączony → wyłączony (od P4 link do hasła niesie nasz mail 1)';
+		}
+
 		foreach ( self::BLOKI_CIEMNYCH_POL as $klucz => $klasa_bloku ) {
 			$id = (int) get_option( $klucz, 0 );
 			if ( Aai_Platnosci_Zapis::dopisz_klase_bloku( $id, $klasa_bloku, self::KLASA_CIEMNYCH_POL ) ) {
 				$zmiany[] = sprintf( 'strona %d: blok %s dostał %s (ciemne pola formularza z arkusza samego Woo)', $id, $klasa_bloku, self::KLASA_CIEMNYCH_POL );
+			}
+		}
+
+		foreach ( array_keys( self::BLOKI_CIEMNYCH_POL ) as $klucz ) {
+			$id = (int) get_option( $klucz, 0 );
+			if ( Aai_Platnosci_Zapis::dopisz_blok_komunikatow( $id ) ) {
+				$zmiany[] = sprintf( 'strona %d: dopisany blok komunikatów sklepu (bez niego odmowy koszyka są nieme — klient widzi pusty koszyk bez słowa)', $id );
 			}
 		}
 
@@ -403,6 +680,39 @@ final class Aai_Platnosci_Ustawienia {
 			}
 		}
 
+		if ( 'no' !== self::stan_mail_woo() ) {
+			$r[] = 'mail WooCommerce „nowe konto" jest WŁĄCZONY, a od P4 link do hasła wysyła nasz mail 1 — klient dostanie dwie wiadomości i zadziała tylko druga, bo każdy nowy klucz resetu unieważnia poprzedni (B8). Napraw: wp aai-platnosci sync --napraw';
+		}
+
+		/*
+		 * Sprzedaż otwarta bez ANI JEDNEJ włączonej bramki płatności.
+		 * ZMIERZONE przy E0 kroku P4: kasa oddaje wtedy 400
+		 * `woocommerce_rest_checkout_payment_method_disabled`, czyli
+		 * „sprzedaż otwarta" znaczy „nikt nie kupi niczego" — a na
+		 * stronie kursu przycisk dalej zaprasza do kasy. Kontrola tylko
+		 * MÓWI: bramkę wybiera właściciel, wtyczka nie ma prawa włączać
+		 * komuś przelewu bankowego.
+		 */
+		if ( self::sprzedaz_otwarta() && function_exists( 'WC' ) && WC()->payment_gateways ) {
+			$wlaczone = 0;
+			foreach ( WC()->payment_gateways->payment_gateways() as $bramka ) {
+				if ( 'yes' === $bramka->enabled ) {
+					++$wlaczone;
+				}
+			}
+			if ( 0 === $wlaczone ) {
+				$r[] = 'sprzedaż jest OTWARTA, a w WooCommerce nie ma ani jednej włączonej bramki płatności — przycisk prowadzi do kasy, a kasa odmawia (400). Włącz bramkę w WooCommerce → Ustawienia → Płatności.';
+			}
+		}
+
+		foreach ( array_keys( self::BLOKI_CIEMNYCH_POL ) as $klucz ) {
+			$id    = (int) get_option( $klucz, 0 );
+			$tekst = $id > 0 ? (string) get_post_field( 'post_content', $id ) : '';
+			if ( '' !== $tekst && ! str_contains( $tekst, 'wp:woocommerce/store-notices' ) ) {
+				$r[] = sprintf( 'strona %d bez bloku komunikatów sklepu — odmowy koszyka (drugi zakup, zamknięta sprzedaż) będą NIEME. Napraw: wp aai-platnosci sync --napraw', $id );
+			}
+		}
+
 		/*
 		 * Asercja DANYCH z B12: opcja `enable_guest_course_cart` niczego
 		 * nie chroni (gościnna gałąź zapisu Tutora pyta wyłącznie o brak
@@ -410,10 +720,22 @@ final class Aai_Platnosci_Ustawienia {
 		 * nie ma `_tutor_wc_guest_customer_id`.
 		 */
 		global $wpdb;
-		$goscinne = (int) $wpdb->get_var(
-			"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
-			JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'courses'
-			WHERE pm.meta_key = '_tutor_wc_guest_customer_id'"
+		/*
+		 * TYP WPISU PYTAMY TUTORA, nie wpisujemy go na sztywno. Sąsiedni
+		 * plik (`Aai_Platnosci_Zapis::kurs_tutora()`) robi to od P2, a tu
+		 * został literał — czyli ta sama klasa co BLAD-026: pomiar oparty
+		 * na strukturze, którą cudza wtyczka może zmienić. Gdyby Tutor
+		 * przemianował swój typ, to sprawdzenie zaczęłoby liczyć ZERO
+		 * i milczeć, zamiast się zaczerwienić.
+		 */
+		$typ_kursu = function_exists( 'tutor' ) ? (string) ( tutor()->course_post_type ?? 'courses' ) : 'courses';
+		$goscinne  = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
+			JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = %s
+			WHERE pm.meta_key = '_tutor_wc_guest_customer_id'",
+				$typ_kursu
+			)
 		);
 		if ( $goscinne > 0 ) {
 			$r[] = sprintf( '%d wpis(ów) kursu z _tutor_wc_guest_customer_id — gościnna gałąź zapisu Tutora ZADZIAŁAŁA, a miała nie mieć prawa (B12)', $goscinne );
@@ -423,11 +745,48 @@ final class Aai_Platnosci_Ustawienia {
 	}
 
 	/**
+	 * Wartość `enabled` maila WooCommerce „nowe konto" — z BAZY, bez
+	 * naszego filtra. Kontrola ma widzieć, co zobaczy ekran ustawień.
+	 */
+	private static function stan_mail_woo(): string {
+		$u = (array) get_option( self::MAIL_WOO_OPCJA, array() );
+		// Brak wiersza ustawień znaczy „domyślnie włączony" — zmierzone
+		// na świeżej instalacji: WooCommerce wysyła ten mail, choć opcji
+		// w bazie nie ma wcale.
+		return (string) ( $u['enabled'] ?? 'yes' );
+	}
+
+	/**
+	 * Ustawia `enabled` maila WooCommerce „nowe konto".
+	 *
+	 * @param string $wartosc 'yes' albo 'no'.
+	 * @return bool Czy coś się zmieniło.
+	 */
+	private static function ustaw_mail_woo( string $wartosc ): bool {
+		if ( self::stan_mail_woo() === $wartosc ) {
+			return false;
+		}
+		$u            = (array) get_option( self::MAIL_WOO_OPCJA, array() );
+		$u['enabled'] = $wartosc;
+		update_option( self::MAIL_WOO_OPCJA, $u );
+		return true;
+	}
+
+	/**
+	 * Przywraca mail WooCommerce „nowe konto" — woła to DEAKTYWACJA.
+	 * Nasz mail 1 znika razem z wtyczką, a konto bez żadnego linku do
+	 * hasła to klasa K1 (DIAGRAM.md, sekcja 14).
+	 */
+	public static function przywroc_mail_woo(): bool {
+		return self::ustaw_mail_woo( 'yes' );
+	}
+
+	/**
 	 * Stan sprzedaży dla kontroli — nazwany, nie przemilczany.
 	 */
 	public static function stan_sprzedazy(): string {
 		return self::sprzedaz_otwarta()
-			? 'SPRZEDAŻ OTWARTA — blokada koszyka zdjęta (stan docelowy od P4).'
-			: 'SPRZEDAŻ ZAMKNIĘTA (do P4) — produkty kursów nie wchodzą do koszyka; to stan projektowany kroku P3a.';
+			? 'SPRZEDAŻ OTWARTA — kursy wchodzą do koszyka, a klient dostaje konto i dwa maile.'
+			: 'SPRZEDAŻ ZAMKNIĘTA — produkty kursów nie wchodzą do koszyka. Otwiera: wp aai-platnosci sprzedaz otworz.';
 	}
 }

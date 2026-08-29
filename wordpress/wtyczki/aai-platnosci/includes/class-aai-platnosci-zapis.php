@@ -171,6 +171,35 @@ final class Aai_Platnosci_Zapis {
 	}
 
 	/**
+	 * Czy dostawa o tym kluczu jest w dzienniku.
+	 *
+	 * Pyta o to ponowna wysyłka: bez tego `--ponow=mail_konta/1` wysyłał
+	 * ŚWIEŻY klucz resetu hasła komukolwiek (zmierzone: literówka w id
+	 * posłała link administratorowi), nie zapisywał nic — bo `dostawa_wynik()`
+	 * aktualizuje wiersz, którego nie ma — i meldował „wysłano ponownie”.
+	 * Trzy nieprawdy naraz, a przy okazji każdy nowy klucz UNIEWAŻNIA
+	 * poprzedni, więc pomyłka odbierałaby prawdziwemu klientowi jego link.
+	 *
+	 * @param string $zdarzenie     Zdarzenie.
+	 * @param int    $identyfikator Identyfikator.
+	 */
+	public static function dostawa_istnieje( string $zdarzenie, int $identyfikator ): bool {
+		if ( $identyfikator <= 0 ) {
+			return false;
+		}
+		global $wpdb;
+		$tabela = Aai_Platnosci_Tabele::tabela( 'dostawy' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		return null !== $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT id FROM {$tabela} WHERE zdarzenie = %s AND identyfikator = %d",
+				$zdarzenie,
+				$identyfikator
+			)
+		);
+	}
+
+	/**
 	 * Dopisuje rezultat do JUŻ odnotowanego zdarzenia (np. wynik
 	 * `wp_mail()` znany dopiero po wysyłce). Nie tworzy wiersza —
 	 * od tworzenia jest `dostawa_odnotuj()`.
@@ -311,6 +340,65 @@ final class Aai_Platnosci_Zapis {
 	 * @param int $order_id Id zamówienia WooCommerce.
 	 * @return bool Czy stan się ZMIENIŁ.
 	 */
+	/**
+	 * Status zapisu kursanta CZYTANY Z BAZY, z pominięciem cache'u wpisu.
+	 *
+	 * ZMIERZONE przy E0 kroku P4: `Utils::course_enrol_status_change()`
+	 * Tutora zmienia status surowym `$wpdb->update` po `wp_posts`
+	 * (`Utils.php:2478`) i NIE czyści cache'u wpisu. W tym samym żądaniu
+	 * `get_post_status()` oddaje więc wartość sprzed zmiany: hak
+	 * `tutor_after_enrolled` meldował `pending`, a baza miała `completed`.
+	 * Bramka „wyślij dopiero, gdy dostęp naprawdę jest" oparta na
+	 * `get_post_status()` NIE ZADZIAŁAŁABY NIGDY na ścieżce produkcyjnej.
+	 *
+	 * @param int $zapis_id Id wpisu `tutor_enrolled`.
+	 */
+	public static function status_zapisu( int $zapis_id ): string {
+		if ( $zapis_id <= 0 ) {
+			return '';
+		}
+		global $wpdb;
+		return (string) $wpdb->get_var(
+			$wpdb->prepare( "SELECT post_status FROM {$wpdb->posts} WHERE ID = %d", $zapis_id )
+		);
+	}
+
+	/**
+	 * Dopisuje blok komunikatów sklepu na POCZĄTEK treści strony.
+	 *
+	 * DLACZEGO (P4, zmierzone): strony koszyka i kasy z tej instalacji nie
+	 * mają bloku `woocommerce/store-notices`, a motyw jest klasyczny —
+	 * renderuje samą treść strony, więc klasyczne komunikaty WooCommerce
+	 * (`wc_add_notice`) nie miały się GDZIE wydrukować. Skutek: każda
+	 * nasza odmowa (drugi zakup posiadanego kursu, sprzedaż zamknięta)
+	 * była NIEMA — klient lądował na pustym koszyku bez słowa wyjaśnienia.
+	 * Z blokiem ten sam scenariusz pokazuje pełne zdanie odmowy.
+	 *
+	 * DOPISUJEMY, NICZEGO NIE PODMIENIAMY: lekcja P3a (rozbite nazwy klas
+	 * przy `str_replace` w cudzej treści) — prepend całego bloku nie ma
+	 * jak uszkodzić istniejącej treści. Idempotentne po obecności bloku.
+	 *
+	 * @param int $id Id strony.
+	 * @return bool Czy coś się zmieniło.
+	 */
+	public static function dopisz_blok_komunikatow( int $id ): bool {
+		if ( $id <= 0 ) {
+			return false;
+		}
+		$tresc = (string) get_post_field( 'post_content', $id );
+		if ( '' === $tresc || str_contains( $tresc, 'wp:woocommerce/store-notices' ) ) {
+			return false;
+		}
+		$w = wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_content' => "<!-- wp:woocommerce/store-notices /-->\n" . $tresc,
+			),
+			true
+		);
+		return ! is_wp_error( $w ) && $w > 0;
+	}
+
 	public static function zamknij_zamowienie( int $order_id ): bool {
 		if ( $order_id <= 0 || ! function_exists( 'wc_get_order' ) ) {
 			return false;
@@ -346,6 +434,26 @@ final class Aai_Platnosci_Zapis {
 		return null !== $wpdb->get_var(
 			$wpdb->prepare( "SELECT product_id FROM {$tabela} WHERE product_id = %d", $product_id )
 		);
+	}
+
+	/**
+	 * Uuid kursu sprzedawanego przez ten produkt — odwrotność
+	 * `produkt_kursu()`. Pyta mail 2 (P4), który zna zamówienie, a musi
+	 * nazwać kursy; dopasowanie przez tabelę, nigdy po meta (B4).
+	 *
+	 * @param int $product_id Id produktu WooCommerce.
+	 */
+	public static function kurs_produktu( int $product_id ): ?string {
+		if ( $product_id <= 0 ) {
+			return null;
+		}
+		global $wpdb;
+		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		$uuid = $wpdb->get_var(
+			$wpdb->prepare( "SELECT course_uuid FROM {$tabela} WHERE product_id = %d", $product_id )
+		);
+		return null === $uuid ? null : (string) $uuid;
 	}
 
 	public static function produkt_kursu( string $course_uuid ): ?int {
@@ -442,6 +550,31 @@ final class Aai_Platnosci_Zapis {
 		}
 
 		$cena       = number_format( $kurs['price_grosze'] / 100, 2, '.', '' );
+		/*
+		 * KRÓTKI OPIS PRODUKTU — pole, które klient CZYTA W KASIE.
+		 *
+		 * Woo drukuje `short_description` pod nazwą pozycji w koszyku,
+		 * w podsumowaniu zamówienia w kasie i oddaje je publicznie przez
+		 * Store API (`/wc/store/v1/products/<id>`). Do 0.50.0 kopia go
+		 * NIE USTAWIAŁA — pole było niczyje, więc czytelnikiem stawał się
+		 * każdy, kto cokolwiek tam zapisał. Znalezione na żywej instalacji:
+		 * w kasie pod nazwą kursu widniało „cudza edycja 1787936224",
+		 * ślad po ręcznym dowodzeniu haka B13 na produkcie 675.
+		 *
+		 * Źródłem jest `courses.short_desc` — ta sama kolumna, którą do
+		 * Tutora kopiuje `Aai_Sklep_Tutor`. Jedno źródło, dwie kopie.
+		 *
+		 * `wp_slash()` NIE jest ostrożnością na zapas — ZMIERZONE na
+		 * `:8892` (Woo 11.0.1): `set_short_description()` i `set_name()`
+		 * kończą w `wp_insert_post()`, które przepuszcza wartość przez
+		 * `wp_unslash()`, więc bez posłodzenia z opisu ginie KAŻDY
+		 * backslash (`C:\Users`, sekwencja `\n` — a kurs o Gicie takich
+		 * zapisów pełen). Powtórny zapis tej samej wartości slashy NIE
+		 * kumuluje (też zmierzone), więc idempotencja zostaje.
+		 * To ta sama rodzina co pułapka `update_post_meta` z kroku W2 —
+		 * różnica jest taka, że tam ratował nas `$wpdb`, a tu nie.
+		 */
+		$opis       = (string) ( $kurs['short_desc'] ?? '' );
 		$product_id = self::produkt_kursu( $course_uuid );
 		$produkt    = null !== $product_id ? wc_get_product( $product_id ) : false;
 
@@ -451,7 +584,8 @@ final class Aai_Platnosci_Zapis {
 			// nasza strona sprzedażowa — klient nie ma trafiać na produkt
 			// w cudzym wyglądzie.
 			$produkt = new WC_Product_Simple();
-			$produkt->set_name( $kurs['title'] );
+			$produkt->set_name( wp_slash( $kurs['title'] ) );
+			$produkt->set_short_description( wp_slash( $opis ) );
 			$produkt->set_status( 'draft' );
 			$produkt->set_virtual( true );
 			$produkt->set_sold_individually( true );
@@ -467,7 +601,11 @@ final class Aai_Platnosci_Zapis {
 			// Aktualizacja TYLKO przy realnej różnicy.
 			$zmiany = false;
 			if ( $produkt->get_name( 'edit' ) !== $kurs['title'] ) {
-				$produkt->set_name( $kurs['title'] );
+				$produkt->set_name( wp_slash( $kurs['title'] ) );
+				$zmiany = true;
+			}
+			if ( (string) $produkt->get_short_description( 'edit' ) !== $opis ) {
+				$produkt->set_short_description( wp_slash( $opis ) );
 				$zmiany = true;
 			}
 			if ( $produkt->get_regular_price( 'edit' ) !== $cena ) {

@@ -77,10 +77,17 @@ register_activation_hook(
 		// produkty zsynchronizowane przy rozbrojonym szwie.
 		// Awaria nie może zablokować aktywacji: błąd idzie do opcji.
 		try {
-			$zmiany = Aai_Platnosci_Ustawienia::napraw();
-			if ( array() !== $zmiany ) {
-				Aai_Platnosci_Komunikaty::zapisz( 'przy aktywacji (ustawienia): ' . implode( '; ', $zmiany ) );
-			}
+			/*
+			 * UDANA NAPRAWA NIE JEST BŁĘDEM. Pierwsza wersja zapisywała
+			 * listę zmian do kanału komunikatów — a ten kanał czyta
+			 * kontrola i traktuje jego zawartość jako rozjazd. Skutek
+			 * wyszedł dopiero przy P4, gdy doszło nowe ustawienie:
+			 * zwykła aktywacja wtyczki zostawiała `wp aai-platnosci
+			 * sprawdz` na czerwono z komunikatem opisującym rzecz, która
+			 * się UDAŁA. Zmiany widać w `sync --napraw`, stan widać
+			 * w kontroli; do kanału błędów idzie wyłącznie awaria.
+			 */
+			Aai_Platnosci_Ustawienia::napraw();
 		} catch ( Throwable $e ) {
 			Aai_Platnosci_Komunikaty::zapisz( $e->getMessage() );
 		}
@@ -120,6 +127,18 @@ register_deactivation_hook(
 		} catch ( Throwable $e ) {
 			Aai_Platnosci_Komunikaty::zapisz( 'przy wyłączaniu wtyczki: ' . $e->getMessage() );
 		}
+		/*
+		 * Mail WooCommerce „nowe konto" WRACA. Wyłączyliśmy go tylko
+		 * dlatego, że jego zadanie przejął nasz mail 1 — a nasz znika
+		 * razem z wtyczką. Konto założone po deaktywacji bez żadnego
+		 * linku do hasła to dokładnie klasa K1, przed którą broni cały
+		 * ten krok.
+		 */
+		try {
+			Aai_Platnosci_Ustawienia::przywroc_mail_woo();
+		} catch ( Throwable $e ) {
+			Aai_Platnosci_Komunikaty::zapisz( 'przy przywracaniu maila WooCommerce: ' . $e->getMessage() );
+		}
 	}
 );
 
@@ -140,6 +159,12 @@ add_action(
 		// go stamtąd NIE wyciągnie, a klient zostałby bez dostępu mimo
 		// zapłaty (zmierzone: KROK-P3B.md §3).
 		Aai_Platnosci_Dostarczanie::zarejestruj();
+		// Dwa maile dostarczenia (krok P4): „Ustaw hasło" przy powstaniu
+		// konta i „Twój kurs jest gotowy" przy przyznaniu dostępu. Nie
+		// jeden, bo to dwa różne zdarzenia: konto powstaje przy składaniu
+		// zamówienia, dostęp dopiero po opłacie — a przelew stoi na
+		// `on-hold` dwa dni (K1 z krytyki P0).
+		Aai_Platnosci_Maile::zarejestruj();
 		// Cena efektywna na stronie (krok P3b): klient ma widzieć tę samą
 		// liczbę, którą zapłaci w kasie — także wtedy, gdy właściciel
 		// ustawi w WooCommerce promocję (K2 z krytyki P0).
