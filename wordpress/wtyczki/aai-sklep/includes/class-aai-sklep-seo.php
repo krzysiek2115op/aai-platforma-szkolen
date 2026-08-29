@@ -253,11 +253,14 @@ final class Aai_Sklep_Seo {
 	/**
 	 * Kurs jako `Course` z ofertą.
 	 *
-	 * DOSTĘPNOŚĆ = `PreOrder`, ŚWIADOMIE. Zakup jest dziś placeholderem
-	 * prowadzącym do kontaktu — płatności przychodzą z Pluginem 2. `InStock`
-	 * byłoby deklaracją, że da się kupić od ręki, czyli zmyślaniem; Google
-	 * traktuje rozjazd oferty z rzeczywistością jako powód do kary. Zmienimy
-	 * w tym samym kroku, w którym ruszy koszyk.
+	 * DOSTĘPNOŚĆ ROZSTRZYGA TEN, KTO PROWADZI SPRZEDAŻ. Domyślnie `PreOrder`,
+	 * bo bez Pluginu 2 przycisk prowadzi do kontaktu — `InStock` byłoby wtedy
+	 * deklaracją, że da się kupić od ręki, czyli zmyślaniem, a Google traktuje
+	 * rozjazd oferty z rzeczywistością jako powód do kary. Plugin 2 podmienia
+	 * to na `InStock` DOKŁADNIE wtedy, gdy przycisk prowadzi do kasy — jedna
+	 * decyzja („czy da się kupić"), dwa jej wyrazy: przycisk dla człowieka
+	 * i dostępność dla wyszukiwarki. Rozjazd między nimi jest niemożliwy,
+	 * bo pytają tego samego.
 	 *
 	 * @param array<string,mixed> $kurs Kurs z bazy.
 	 * @return array<string,mixed>
@@ -280,7 +283,17 @@ final class Aai_Sklep_Seo {
 				'@type'         => 'Offer',
 				'price'         => number_format( Aai_Sklep_Widok::cena_grosze( $kurs ) / 100, 2, '.', '' ),
 				'priceCurrency' => 'PLN',
-				'availability'  => 'https://schema.org/PreOrder',
+				/**
+				 * Dostępność oferty w danych strukturalnych.
+				 *
+				 * @param string              $dostepnosc Pełny adres schema.org.
+				 * @param array<string,mixed> $kurs       Kurs z bazy.
+				 */
+				'availability'  => (string) apply_filters(
+					'aai_sklep_dostepnosc_kursu',
+					'https://schema.org/PreOrder',
+					$kurs
+				),
 				'category'      => 'Paid',
 				'url'           => $adres,
 			),

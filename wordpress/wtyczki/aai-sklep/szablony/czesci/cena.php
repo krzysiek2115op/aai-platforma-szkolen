@@ -80,7 +80,7 @@ $aai_liczby    = Aai_Sklep_Widok::metadane_kursu( $kurs, false );
 						<p class="aai-oferta-domkniecie"><?php echo esc_html( $aai_pakiet['domkniecie'] ); ?></p>
 					<?php endif; ?>
 
-					<?php Aai_Sklep_Widok::cta( null, true, 'Dołączam do kursu', 'aai-btn-pelny' ); ?>
+					<?php Aai_Sklep_Widok::cta( $kurs, true, 'Dołączam do kursu', 'aai-btn-pelny' ); ?>
 
 					<p class="aai-oferta-wahanie">
 						Wciąż się wahasz? <a href="#program">Zobacz jeszcze raz pełny program</a>.

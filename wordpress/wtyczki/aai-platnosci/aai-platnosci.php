@@ -144,6 +144,10 @@ add_action(
 		// liczbę, którą zapłaci w kasie — także wtedy, gdy właściciel
 		// ustawi w WooCommerce promocję (K2 z krytyki P0).
 		Aai_Platnosci_Cena::zarejestruj();
+		// Przycisk zakupu (krok P3b): sklep kursów nie wie, czy sprzedaż
+		// jest otwarta ani czy oglądający ma już ten kurs — pyta filtrem,
+		// odpowiada Plugin 2.
+		Aai_Platnosci_Cta::zarejestruj();
 		Aai_Platnosci_Komunikaty::zarejestruj();
 	}
 );

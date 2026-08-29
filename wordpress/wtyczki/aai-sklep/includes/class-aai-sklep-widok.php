@@ -207,15 +207,67 @@ final class Aai_Sklep_Widok {
 	}
 
 	/**
-	 * Adres, pod który prowadzi każde CTA zakupu.
+	 * Adres kontaktu — dla odnośników, które NIE są zakupem.
 	 *
-	 * PLACEHOLDER — i to jest świadome. Płatności przynosi Plugin 2; do tego
-	 * czasu przycisk prowadzi do kontaktu, a dane strukturalne mówią
-	 * `PreOrder`. Wpisanie tu koszyka WooCommerce, zanim koszyk działa,
-	 * byłoby obietnicą zakupu od ręki, której strona nie umie dotrzymać.
+	 * DLACZEGO OSOBNA METODA. Do kroku P3b jeden `adres_zakupu()` obsługiwał
+	 * dwa różne znaczenia: przycisk „Dołączam" i zdanie „Masz inne pytanie?
+	 * Napisz do nas" pod FAQ. Oba prowadziły do kontaktu, więc różnica była
+	 * niewidoczna — ale w chwili, w której przycisk zakupu zaczął prowadzić
+	 * do kasy, ten sam adres wysłałby pytającego klienta prosto do płatności.
 	 */
-	public static function adres_zakupu(): string {
+	public static function adres_kontaktu(): string {
 		return home_url( '/kontakt' );
+	}
+
+	/**
+	 * Adres i napis przycisku zakupu — JEDNO miejsce, z którego biorą je
+	 * wszystkie trzy przyciski strony kursu.
+	 *
+	 * STANY ROZSTRZYGA PLUGIN 2, bo tylko on wie, czy sprzedaż jest otwarta,
+	 * czy klient ma już ten kurs i czy jego zamówienie czeka na wpłatę.
+	 * Sklep kursów nie ma prawa tego wiedzieć — działa też bez płatności.
+	 * Bez Pluginu 2 filtru nikt nie obsługuje i przycisk prowadzi do kontaktu,
+	 * dokładnie jak przez cały krok W1–W6.
+	 *
+	 * @param array<string,mixed> $kurs  Kurs z warstwy odczytu.
+	 * @param string|null         $tekst Własny napis (propozycja — stan może go nadpisać).
+	 * @return array{adres:string,napis:string}
+	 */
+	public static function cta_kursu( array $kurs, ?string $tekst = null ): array {
+		$domyslne = array(
+			'adres' => self::adres_kontaktu(),
+			'napis' => $tekst ?? ( 'Dołączam za ' . self::formatuj_cene( self::cena_grosze( $kurs ) ) ),
+		);
+
+		/**
+		 * Adres i napis przycisku zakupu.
+		 *
+		 * Plugin 2 zwraca tu adres kasy, „Przejdź do kursu" albo informację
+		 * o zamówieniu czekającym na wpłatę. Napis z wejścia wolno zachować
+		 * (stan zakupu) albo nadpisać (klient już ma kurs) — dlatego jedzie
+		 * w tablicy, a nie osobnym filtrem.
+		 *
+		 * @param array{adres:string,napis:string} $domyslne Stan bez płatności.
+		 * @param array<string,mixed>              $kurs     Kurs z warstwy odczytu.
+		 */
+		$cta = apply_filters( 'aai_sklep_cta_kursu', $domyslne, $kurs );
+		if ( ! is_array( $cta ) ) {
+			return $domyslne;
+		}
+
+		// Pusty adres albo pusty napis to przycisk donikąd — wtedy wraca
+		// stan domyślny, bo lepszy kontakt niż martwy odnośnik.
+		$adres = isset( $cta['adres'] ) && is_string( $cta['adres'] ) && '' !== $cta['adres']
+			? $cta['adres']
+			: $domyslne['adres'];
+		$napis = isset( $cta['napis'] ) && is_string( $cta['napis'] ) && '' !== trim( $cta['napis'] )
+			? $cta['napis']
+			: $domyslne['napis'];
+
+		return array(
+			'adres' => $adres,
+			'napis' => $napis,
+		);
 	}
 
 	/**
@@ -363,19 +415,20 @@ final class Aai_Sklep_Widok {
 	 *
 	 * Napis domyślny bierze cenę, bo „Dołączam za 299,00 zł" mówi klientowi
 	 * dokładnie, co się stanie po kliknięciu — a tak brzmiał w prototypie.
+	 * Adres i napis rozstrzyga `cta_kursu()`, żeby wszystkie trzy przyciski
+	 * strony mówiły to samo.
 	 *
-	 * @param int|null    $cena  Cena w groszach (null = napis bez ceny).
-	 * @param bool        $duzy  Wariant duży.
-	 * @param string|null $tekst Własny napis.
-	 * @param string      $klasy Dodatkowe klasy.
+	 * @param array<string,mixed> $kurs  Kurs z warstwy odczytu.
+	 * @param bool                $duzy  Wariant duży.
+	 * @param string|null         $tekst Własny napis (propozycja — stan może go nadpisać).
+	 * @param string              $klasy Dodatkowe klasy.
 	 */
-	public static function cta( ?int $cena = null, bool $duzy = true, ?string $tekst = null, string $klasy = '' ): void {
-		$napis = $tekst
-			?? ( null === $cena ? 'Dołączam do kursu' : 'Dołączam za ' . self::formatuj_cene( $cena ) );
+	public static function cta( array $kurs, bool $duzy = true, ?string $tekst = null, string $klasy = '' ): void {
+		$cta = self::cta_kursu( $kurs, $tekst );
 		?>
 		<a class="aai-btn aai-btn-glowny <?php echo $duzy ? 'aai-btn-duzy' : ''; ?> <?php echo esc_attr( $klasy ); ?>"
-			href="<?php echo esc_url( self::adres_zakupu() ); ?>">
-			<?php echo esc_html( $napis ); ?>
+			href="<?php echo esc_url( $cta['adres'] ); ?>">
+			<?php echo esc_html( $cta['napis'] ); ?>
 			<?php echo self::ikona( 'arrow-right', 'aai-ikona-s' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 		</a>
 		<?php

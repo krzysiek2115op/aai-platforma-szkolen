@@ -190,3 +190,56 @@ kursu (hero, oferta, napis przycisku, JSON-LD) dają **jedno** wywołanie filtra
 **Dwa testy negatywne:** produkt z pustą ceną → cena katalogowa (pusta cena
 w Woo to brak danych, nie „za darmo" — „0 zł" na stronie sprzedażowej byłoby
 gorsze); kurs bez powiązania z produktem → cena katalogowa.
+
+## 7. Etapy E2–E4 — adres, CTA, dostępność (2026-08-29)
+
+### E2 — rozszczepienie adresu
+
+`adres_zakupu()` obsługiwał dwa różne znaczenia: przycisk „Dołączam" i zdanie
+„Masz inne pytanie? **Napisz do nas**" pod FAQ. Oba prowadziły do kontaktu, więc
+różnica była niewidoczna — do chwili, w której przycisk zaczął prowadzić do
+kasy. Wtedy pytający klient trafiłby prosto do płatności. Metoda rozdzielona na
+`adres_kontaktu()` (FAQ) i `cta_kursu()` (przycisk); starej nazwy nie ma
+w kodzie ani razu.
+
+### E3 — CTA w czterech stanach
+
+Filtr `aai_sklep_cta_kursu` zwraca adres i napis; obsługuje go
+`Aai_Platnosci_Cta`. Bez Pluginu 2 przycisk prowadzi do kontaktu, jak dotąd.
+
+| Stan | Warunek | Adres | Napis |
+|---|---|---|---|
+| 1. sprzedaż zamknięta | flaga P4 nieustawiona | `/kontakt` | „Dołączam za 299,00 zł" |
+| 2. klient ma kurs | zapis Tutora **ukończony** | `/szkolenia/moje/` | „Przejdź do kursu" |
+| 3. zamówienie czeka na wpłatę | zapis Tutora w dowolnym statusie | `/szkolenia/moje/` | „Zamówienie w toku" |
+| 4. zakup | sprzedaż otwarta, produkt `publish` | `/kasa/?add-to-cart=<id>` | napis z ceną |
+
+**Stan 3 nie był w planie — wyszedł z pomiaru E5.** Przy przelewie zamówienie
+stoi na `on-hold`, zapis Tutora też, a dostępu nie ma; bez tego stanu klient,
+który właśnie zamówił kurs, widziałby zachętę „Dołączam za 299,00 zł"
+i mógłby zamówić drugi raz. Pytamy o ZAPIS, nie o dostęp — `dostep` jest
+prawdziwy także dla lekcji-zapowiedzi i dla administratora (pułapka z W6).
+
+**„Prosto do kasy" zmierzone, nie założone:** po wejściu na
+`/kasa/?add-to-cart=<id>` WooCommerce ustawia `woocommerce_items_in_cart = 1`
+i `woocommerce_cart_hash`; to samo żądanie bez parametru nie ustawia żadnego
+z nich. Pozycji nie widać w HTML, bo blok kasy dociąga je przez Store API —
+dlatego pomiar idzie po ciasteczkach, a nie po treści strony.
+
+**Dwa testy negatywne:** gość przy otwartej sprzedaży dostaje kasę (nie
+„Przejdź do kursu"); kurs bez produktu dostaje kontakt.
+
+### E4 — `PreOrder` → `InStock` z tego samego źródła
+
+Filtr `aai_sklep_dostepnosc_kursu`. Obsługuje go **ta sama klasa i ta sama
+metoda** `produkt_do_kupienia()`, z której korzysta przycisk — więc strona
+mówiąca „kup teraz" nie może deklarować `PreOrder` ani odwrotnie. Dostępność
+NIE pyta o oglądającego: dane strukturalne czyta robot, czyli gość, a stan
+„mam już ten kurs" dotyczy jednego człowieka.
+
+| Stan sprzedaży | `availability` w JSON-LD | `href` wszystkich trzech CTA |
+|---|---|---|
+| otwarta | `https://schema.org/InStock` | `/kasa/?add-to-cart=<id>` |
+| zamknięta | `https://schema.org/PreOrder` | `/kontakt` |
+
+Prawdziwe kursy w czasie całego pomiaru: `PreOrder` i `/kontakt` — bez zmian.

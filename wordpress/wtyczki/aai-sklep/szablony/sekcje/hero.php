@@ -50,7 +50,7 @@ if ( null !== $aai_poziom ) {
 			<?php endif; ?>
 
 			<div class="aai-hero-akcje">
-				<?php Aai_Sklep_Widok::cta( Aai_Sklep_Widok::cena_grosze( $kurs ) ); ?>
+				<?php Aai_Sklep_Widok::cta( $kurs ); ?>
 				<a class="aai-btn aai-btn-obrys aai-btn-duzy" href="#program">Zobacz program</a>
 			</div>
 			<p class="aai-mono aai-hero-warunki">
