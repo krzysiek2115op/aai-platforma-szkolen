@@ -106,10 +106,24 @@ const liczbaZamowien = () =>
   );
 const powiazan = () =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . Aai_Platnosci_Tabele::tabela( 'powiazania' ) );`));
+/**
+ * Wierszy w dzienniku dostarczenia.
+ *
+ * Liczony w rachunku sumienia, bo produktów i zamówień NIE WYSTARCZY:
+ * zamówienia smoke'a przechodzą przez `completed`, więc warstwa maili
+ * odnotowuje im `dostep` i `mail_kursu`. Skasowanie samego zamówienia
+ * zostawia wtedy wiersz wskazujący nieistniejący identyfikator — widmo,
+ * którego nikt nie policzy. Znalezione sweepem P5 na własnym skrypcie
+ * pomiarowym: raportował „środowisko wróciło do stanu wyjściowego", bo
+ * porównywał wyłącznie produkty i zamówienia.
+ */
+const dostaw = () =>
+  Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . Aai_Platnosci_Tabele::tabela( 'dostawy' ) );`));
 
 const produktowPrzed = liczbaProduktow();
 const zamowienPrzed = liczbaZamowien();
 const powiazanPrzed = powiazan();
+const dostawPrzed = dostaw();
 
 let produkt = 0;
 let tutor = 0;
@@ -421,6 +435,10 @@ try {
 sprawdz(liczbaProduktow() === produktowPrzed, `smoke zostawił produkt: przed ${produktowPrzed}, po ${liczbaProduktow()}`);
 sprawdz(powiazan() === powiazanPrzed, `smoke zostawił ślad w powiazania: przed ${powiazanPrzed}, po ${powiazan()}`);
 sprawdz(liczbaZamowien() === zamowienPrzed, `smoke zostawił zamówienie: przed ${zamowienPrzed}, po ${liczbaZamowien()}`);
+sprawdz(
+  dostaw() === dostawPrzed,
+  `smoke zostawił wiersz w dzienniku dostaw: przed ${dostawPrzed}, po ${dostaw()} — wiersz po skasowanym zamówieniu to widmo, które przeżyje każdy następny przebieg`
+);
 sprawdz(wp("aai-platnosci", "sprawdz").kod === 0, "po sprzątaniu kontrola czerwona — smoke zostawił rozjazd");
 
 if (bledy.length > 0) {
