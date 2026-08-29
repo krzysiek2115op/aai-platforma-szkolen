@@ -2050,7 +2050,30 @@ wyprowadzała tego od nowa:
      (4) **KOLEJNOŚĆ: najpierw TEST RĘCZNY WŁAŚCICIELA na 0.51.0, potem P5.**
          Trzy decyzje wyżej wchodzą RAZEM z poprawkami z tego testu — jedną
          gałęzią, żeby P5 zaczynało się na czystym stanie.
-     **NASTĘPNY KROK: TEST RĘCZNY WŁAŚCICIELA NA `:8892`** (środowisko stoi,
+     **TEST RĘCZNY ZALICZONY (właściciel, 2026-08-29): „wszystko jest okej".**
+     Ścieżka zakupu przejdzona do końca: zamówienie #2010 → konto klienta →
+     potwierdzenie wpłaty → zapis na kurs w Tutorze #2011 → mail „Twój kurs
+     jest gotowy"; kontrola kod 0. Jedyne zgłoszenie (Z1, „złożyłem zamówienie
+     ale na mailu nic nie ma") okazało się **usterką ŚRODOWISKA**: kontener
+     widział pusty katalog `mu-plugins`, bo `git switch` przy merge'u odtworzył
+     katalog i zabił bind mount — PHPMailer wracał wtedy do sendmaila, którego
+     w kontenerze nie ma. **Mechanizm z P4 zachował się wzorcowo** (konto
+     powstało, dziennik zapisał błąd, kontrola świeciła kod 1 z komendą naprawy,
+     ponowienie dowiozło mail — nic nie przepadło). Trzy poprawki, każda
+     z testem negatywnym (PR #86): krok zerowy testu to ROZKAZ `./postaw.sh`;
+     **`postaw.sh` CYTUJE wiersze `Error:` z kontroli** zamiast zgadywać powód
+     po kodzie wyjścia (meldował „szew rozjechany", gdy przyczyną była poczta);
+     `postaw.sh` pyta KONTENER, czy widzi mu-plugin poczty. PR #87 usunął zrzut
+     ekranu wciągnięty do repo hurtowym `git add -A` — **przy `add -A` najpierw
+     `git status`**.
+     **NASTĘPNY KROK: P5** (zwroty i przypadki brzegowe) — wg reguły z 2026-08-28
+     najpierw PLAN kroku + pytania doprecyzowujące i CZEKAĆ NA ZGODĘ. P5 dziedziczy
+     wymaganie: **gwarancja 30 dni ma działać i odbierać dostęp do kursu**.
+     Razem z P5 (albo osobnym małym krokiem) wchodzą dwie niezrobione decyzje:
+     **zdjęcie z kasy zdania o „Warunkach i zasadach"** i **okładka produktu jako
+     PNG renderowane przy synchronizacji**.
+
+     Zapis historyczny — scenariusz testu: **TEST RĘCZNY WŁAŚCICIELA NA `:8892`** (środowisko stoi,
      sprzedaż OTWARTA, skrzynka `127.0.0.1:8893`, konto `klient-test` przez
      `npm run wp:klient`, 1 zamówienie — jego własny zakup #1625). Wzorzec
      scenariusza: [W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md).
