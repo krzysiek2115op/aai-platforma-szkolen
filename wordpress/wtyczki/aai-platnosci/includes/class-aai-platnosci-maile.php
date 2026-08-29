@@ -65,6 +65,21 @@ final class Aai_Platnosci_Maile {
 	public const WYNIK_OK = 'wyslano';
 
 	/**
+	 * Wynik „mail 1 świadomie nie wyszedł" (decyzja właściciela 2026-08-30).
+	 *
+	 * Przy płatności natychmiastowej (bramka domyka zamówienie w TYM SAMYM
+	 * żądaniu, w którym kasa założyła konto) klient dostawał dwie wiadomości
+	 * w tej samej sekundzie, a pierwsza kazała mu „wejść na konto", na
+	 * którym właśnie siedział — kasa loguje po zakupie na 14 dni
+	 * (`wc_set_customer_auth_cookie()`). Mail o kursie niesie odnośnik do
+	 * ustawienia hasła, więc pierwszy jest wtedy zbędny.
+	 *
+	 * Przy przelewie (`bacs`) nic się nie zmienia: konto i opłata to dwa
+	 * żądania w odstępie dni, mail 1 idzie jak szedł — wymaganie K1 stoi.
+	 */
+	public const WYNIK_POMINIETY = 'pominięto: opłacone od razu — link do hasła jedzie w mailu o kursie';
+
+	/**
 	 * Wiadomości zgłoszone do wysłania na końcu żądania.
 	 *
 	 * @var array<string,callable>
@@ -89,6 +104,22 @@ final class Aai_Platnosci_Maile {
 		 */
 		add_filter( 'wp_mail_from', array( self::class, 'nadawca_adres' ), 1 );
 		add_filter( 'wp_mail_from_name', array( self::class, 'nadawca_nazwa' ), 1 );
+		/*
+		 * CISZA O CUDZYCH HASŁACH (decyzja właściciela 2026-08-30). Rdzeń
+		 * zawiadamia ADMINISTRATORA o każdej zmianie hasła
+		 * (`wp_password_change_notification`, pluggable.php:2179 — KLIENT
+		 * nie dostaje z tej funkcji nic, zmierzone przy P4). Przy sprzedaży
+		 * to jeden mail na każdego klienta, który ustawi hasło z naszego
+		 * linku — szum zagłuszający prawdziwe powiadomienia sklepu.
+		 *
+		 * Zdejmujemy CALLBACK z haka zamiast podmieniać funkcję pluggable:
+		 * dwie wtyczki definiujące tę samą pluggable to fatal, a zdjęcie
+		 * callbacku znika razem z deaktywacją wtyczki. Hak wisi od
+		 * `default-filters.php`, ładowanego PRZED wtyczkami, więc w chwili
+		 * rejestracji już istnieje. Mail DO KLIENTA z linkiem „ustaw nowe
+		 * hasło" to inny mechanizm (`retrieve_password()`) — nietknięty.
+		 */
+		remove_action( 'after_password_reset', 'wp_password_change_notification' );
 	}
 
 	/**
@@ -190,7 +221,7 @@ final class Aai_Platnosci_Maile {
 			self::na_koniec_zadania(
 				'konto-' . $id,
 				static function () use ( $id ): void {
-					self::zapisz_wynik( self::ZDARZENIE_KONTO, $id, self::wyslij_konto( $id ) );
+					self::dostarcz_konto( $id );
 				}
 			);
 		} catch ( Throwable $e ) {
@@ -304,7 +335,7 @@ final class Aai_Platnosci_Maile {
 	private static function zapisz_wynik( string $zdarzenie, int $identyfikator, string $wynik ): void {
 		Aai_Platnosci_Zapis::dostawa_wynik( $zdarzenie, $identyfikator, $wynik );
 		$klucz = Aai_Platnosci_Komunikaty::KLUCZ_MAILA . $zdarzenie . '/' . $identyfikator;
-		if ( self::WYNIK_OK === $wynik ) {
+		if ( self::WYNIK_OK === $wynik || self::WYNIK_POMINIETY === $wynik ) {
 			// Udana wysyłka zdejmuje DOKŁADNIE swój komunikat — także
 			// wtedy, gdy poszła dopiero ponowieniem z wiersza poleceń.
 			Aai_Platnosci_Komunikaty::wyczysc( $klucz );
@@ -361,18 +392,79 @@ final class Aai_Platnosci_Maile {
 		add_action(
 			'shutdown',
 			static function () use ( $klucz ): void {
-				if ( ! isset( self::$kolejka[ $klucz ] ) ) {
-					return;
-				}
-				$zadanie = self::$kolejka[ $klucz ];
-				unset( self::$kolejka[ $klucz ] );
-				try {
-					$zadanie();
-				} catch ( Throwable $e ) {
-					Aai_Platnosci_Komunikaty::zapisz( 'przy wysyłce (' . $klucz . '): ' . $e->getMessage() );
-				}
+				self::wykonaj( $klucz );
 			}
 		);
+	}
+
+	/**
+	 * Wykonuje zadanie z kolejki dokładnie raz i zdejmuje je z niej.
+	 *
+	 * Wołane z callbacku `shutdown` ORAZ z `dostarcz_konto()`, które
+	 * potrafi przyspieszyć cudze zadanie — dlatego pierwszy ruch to
+	 * zdjęcie z kolejki: drugi chętny zastaje pustkę i wraca.
+	 *
+	 * @param string $klucz Klucz zadania w kolejce.
+	 */
+	private static function wykonaj( string $klucz ): void {
+		if ( ! isset( self::$kolejka[ $klucz ] ) ) {
+			return;
+		}
+		$zadanie = self::$kolejka[ $klucz ];
+		unset( self::$kolejka[ $klucz ] );
+		try {
+			$zadanie();
+		} catch ( Throwable $e ) {
+			Aai_Platnosci_Komunikaty::zapisz( 'przy wysyłce (' . $klucz . '): ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Id zamówienia z kolejki maila 2 należącego do tego użytkownika.
+	 *
+	 * @param int $user_id Id użytkownika.
+	 */
+	private static function zamowienie_w_kolejce( int $user_id ): ?int {
+		foreach ( array_keys( self::$kolejka ) as $klucz ) {
+			if ( ! str_starts_with( (string) $klucz, 'kurs-' ) ) {
+				continue;
+			}
+			$order_id = (int) substr( (string) $klucz, 5 );
+			$order    = $order_id > 0 ? wc_get_order( $order_id ) : false;
+			if ( $order instanceof WC_Order && (int) $order->get_customer_id() === $user_id ) {
+				return $order_id;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Mail 1 — z pominięciem, gdy w TYM żądaniu wychodzi mail 2.
+	 *
+	 * Płatność natychmiastowa domyka zamówienie w żądaniu kasy, więc oba
+	 * maile stałyby w skrzynce w tej samej sekundzie, a pierwszy kazałby
+	 * klientowi „wejść na konto", na którym właśnie siedzi (kasa loguje
+	 * po zakupie). Wtedy wysyłamy TYLKO mail o kursie — on niesie odnośnik
+	 * do ustawienia hasła.
+	 *
+	 * KOLEJNOŚĆ JEST CZĘŚCIĄ GWARANCJI K1: najpierw wykonujemy zadanie
+	 * maila 2 i sprawdzamy jego WYNIK. Pominięcie zapisujemy wyłącznie po
+	 * potwierdzonym „wyslano" — gdy mail 2 padł (poczta leży), klient
+	 * dostaje mail 1 jak zawsze, bo bez niego nie miałby ANI JEDNEJ
+	 * wiadomości z linkiem do hasła.
+	 *
+	 * @param int $id Id użytkownika.
+	 */
+	private static function dostarcz_konto( int $id ): void {
+		$order_id = self::zamowienie_w_kolejce( $id );
+		if ( null !== $order_id ) {
+			self::wykonaj( 'kurs-' . $order_id );
+			if ( self::WYNIK_OK === Aai_Platnosci_Zapis::dostawa_rezultat( self::ZDARZENIE_KURS, $order_id ) ) {
+				self::zapisz_wynik( self::ZDARZENIE_KONTO, $id, self::WYNIK_POMINIETY );
+				return;
+			}
+		}
+		self::zapisz_wynik( self::ZDARZENIE_KONTO, $id, self::wyslij_konto( $id ) );
 	}
 
 	/**

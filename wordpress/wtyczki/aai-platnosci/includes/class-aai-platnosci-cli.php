@@ -323,6 +323,16 @@ final class Aai_Platnosci_Cli {
 		if ( Aai_Platnosci_Maile::ZDARZENIE_DOSTEP === $zdarzenie ) {
 			return '' !== $wynik;
 		}
+		/*
+		 * Pominięcie jest w porządku WYŁĄCZNIE dla maila 1 — i tylko ono.
+		 * Mail 1 wolno pominąć, bo przy płatności natychmiastowej link do
+		 * hasła jedzie w mailu o kursie (decyzja właściciela 2026-08-30);
+		 * pominięty mail 2 nie istnieje w projekcie, więc dla kontroli
+		 * byłby zwykłą awarią.
+		 */
+		if ( Aai_Platnosci_Maile::ZDARZENIE_KONTO === $zdarzenie && Aai_Platnosci_Maile::WYNIK_POMINIETY === $wynik ) {
+			return true;
+		}
 		return Aai_Platnosci_Maile::WYNIK_OK === $wynik;
 	}
 

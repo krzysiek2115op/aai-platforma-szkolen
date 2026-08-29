@@ -210,6 +210,33 @@ final class Aai_Platnosci_Zapis {
 	}
 
 	/**
+	 * Zapisany rezultat zdarzenia — albo null, gdy wiersza nie ma.
+	 *
+	 * Potrzebne mailowi 1: pomija się wyłącznie po POTWIERDZONYM
+	 * „wyslano" maila 2, więc musi przeczytać cudzy wynik z tabeli,
+	 * nie założyć go.
+	 *
+	 * @param string $zdarzenie     Zdarzenie.
+	 * @param int    $identyfikator Identyfikator.
+	 */
+	public static function dostawa_rezultat( string $zdarzenie, int $identyfikator ): ?string {
+		if ( $identyfikator <= 0 ) {
+			return null;
+		}
+		global $wpdb;
+		$tabela = Aai_Platnosci_Tabele::tabela( 'dostawy' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		$wynik = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT wynik FROM {$tabela} WHERE zdarzenie = %s AND identyfikator = %d",
+				$zdarzenie,
+				$identyfikator
+			)
+		);
+		return null === $wynik ? null : (string) $wynik;
+	}
+
+	/**
 	 * Dopisuje rezultat do JUŻ odnotowanego zdarzenia (np. wynik
 	 * `wp_mail()` znany dopiero po wysyłce). Nie tworzy wiersza —
 	 * od tworzenia jest `dostawa_odnotuj()`.

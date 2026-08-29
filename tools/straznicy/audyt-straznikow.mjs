@@ -2565,6 +2565,56 @@ const MUTACJE = [
         : null,
     oczekiwanySlad: "bez wcześniejszego wc_get_order()",
   },
+  /* ── P6: jeden mail przy płatności natychmiastowej + cisza o hasłach ── */
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "mail 1 pomijany BEZWARUNKOWO — awaria poczty zostawia klienta bez linku do hasła (K1)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    zmien: (s) =>
+      s.includes("if ( self::WYNIK_OK === Aai_Platnosci_Zapis::dostawa_rezultat( self::ZDARZENIE_KURS, $order_id ) ) {")
+        ? s.replace(
+            "if ( self::WYNIK_OK === Aai_Platnosci_Zapis::dostawa_rezultat( self::ZDARZENIE_KURS, $order_id ) ) {",
+            "if ( true ) {"
+          )
+        : null,
+    oczekiwanySlad: "bez potwierdzonego wyniku maila 2",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "dostarcz_konto() traci drogę zapasową — mail 1 nie wychodzi już nigdy",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    zmien: (s) =>
+      s.includes("\t\tself::zapisz_wynik( self::ZDARZENIE_KONTO, $id, self::wyslij_konto( $id ) );\n\t}")
+        ? s.replace(
+            "\t\tself::zapisz_wynik( self::ZDARZENIE_KONTO, $id, self::wyslij_konto( $id ) );\n\t}",
+            "\t\tself::zapisz_wynik( self::ZDARZENIE_KONTO, $id, self::WYNIK_POMINIETY );\n\t}"
+          )
+        : null,
+    oczekiwanySlad: "nie ma drogi zapasowej",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola akceptuje wynik pominięcia dla KAŻDEGO zdarzenia — awaria maila 2 znika z radaru",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    zmien: (s) =>
+      s.includes("if ( Aai_Platnosci_Maile::ZDARZENIE_KONTO === $zdarzenie && Aai_Platnosci_Maile::WYNIK_POMINIETY === $wynik ) {")
+        ? s.replace(
+            "if ( Aai_Platnosci_Maile::ZDARZENIE_KONTO === $zdarzenie && Aai_Platnosci_Maile::WYNIK_POMINIETY === $wynik ) {",
+            "if ( Aai_Platnosci_Maile::WYNIK_POMINIETY === $wynik ) {"
+          )
+        : null,
+    oczekiwanySlad: "bez sprawdzenia, że to mail KONTA",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "powiadomienie admina o zmianie hasła wraca (szum: jeden mail na każdego klienta)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    zmien: (s) =>
+      s.includes("\t\tremove_action( 'after_password_reset', 'wp_password_change_notification' );\n")
+        ? s.replace("\t\tremove_action( 'after_password_reset', 'wp_password_change_notification' );\n", "")
+        : null,
+    oczekiwanySlad: "nie zdejmuje wp_password_change_notification",
+  },
   {
     straznik: "straznik-tutora",
     opis: "kopia szuka wpisu także po PUSTYM uuid (przejmuje cudzy moduł i kasuje jego lekcje)",

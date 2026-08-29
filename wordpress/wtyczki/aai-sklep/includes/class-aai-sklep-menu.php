@@ -44,6 +44,9 @@ final class Aai_Sklep_Menu {
 	/** Napis pozycji dla zalogowanego klienta z kursami. */
 	private const NAPIS_MOJE = 'Moje kursy';
 
+	/** Napis pozycji konta dla każdego zalogowanego. */
+	private const NAPIS_KONTO = 'Moje konto';
+
 	/**
 	 * Etykiety nawigacji, do których wstrzykujemy — KOTWICE.
 	 *
@@ -131,6 +134,28 @@ final class Aai_Sklep_Menu {
 				'napis' => self::NAPIS_MOJE,
 				'widok' => 'moje',
 			);
+		}
+
+		/*
+		 * „Moje konto" — droga POWROTNA do zamówień i ustawień (zgłoszenie
+		 * właściciela z testu P6, decyzja 2026-08-30). Do tej zmiany drzwi
+		 * były jednokierunkowe: strona konta miała „Moje kursy" jako
+		 * pierwszą pozycję, ale z „Moich kursów" ani z lekcji NIC nie
+		 * prowadziło z powrotem — klient wpisywał adres z palca.
+		 *
+		 * Dla KAŻDEGO zalogowanego, nie tylko klienta z kursem: konto ma
+		 * każdy, kto się zalogował, a klient czekający na przelew ma tam
+		 * swoje zamówienie, choć kursu jeszcze nie widzi.
+		 */
+		if ( is_user_logged_in() && function_exists( 'wc_get_page_permalink' ) ) {
+			$adres_konta = (string) wc_get_page_permalink( 'myaccount' );
+			if ( '' !== $adres_konta ) {
+				$pozycje[] = array(
+					'adres' => $adres_konta,
+					'napis' => self::NAPIS_KONTO,
+					'widok' => 'konto',
+				);
+			}
 		}
 
 		return $pozycje;
@@ -295,6 +320,14 @@ final class Aai_Sklep_Menu {
 	 * podświetlając aktywną pozycję menu.
 	 */
 	private static function biezaca( string $widok ): string {
+		/*
+		 * Strona konta nie jest naszą trasą (`Aai_Sklep_Trasy::widok()`
+		 * oddaje tam null), więc pytamy WooCommerce. `is_account_page()`
+		 * obejmuje też podstrony konta (zamówienia, edycję danych).
+		 */
+		if ( 'konto' === $widok ) {
+			return function_exists( 'is_account_page' ) && is_account_page() ? ' aria-current="page"' : '';
+		}
 		$biezacy = Aai_Sklep_Trasy::widok();
 		if ( null === $biezacy ) {
 			return '';

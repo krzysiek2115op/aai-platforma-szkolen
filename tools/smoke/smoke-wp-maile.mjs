@@ -461,6 +461,118 @@ try {
     );
   }
 
+  /* ── 6. płatność natychmiastowa: JEDEN mail zamiast dwóch ─────────
+   *
+   * Decyzja właściciela 2026-08-30 (zgłoszenie z testu P6): gdy bramka
+   * domyka zamówienie w TYM SAMYM żądaniu, w którym kasa założyła konto,
+   * klient dostawał dwie wiadomości w tej samej sekundzie — a pierwsza
+   * kazała mu „wejść na konto", na którym właśnie siedział (kasa loguje
+   * po zakupie). Teraz idzie sam mail o kursie; pominięcie maila 1 jest
+   * zapisane w dzienniku i kontrola ma je za stan poprawny.
+   */
+  await wyczysc();
+  const klientSkip = Number(
+    php(
+      `$uid = wc_create_new_customer( 'smoke-p6-skip@example.test', 'smoke-p6-skip', wp_generate_password() );` +
+        ` $o = wc_create_order( array( 'customer_id' => (int) $uid ) );` +
+        ` $o->add_product( wc_get_product( ${produktA} ), 1 );` +
+        ` $o->set_payment_method( 'bacs' ); $o->calculate_totals();` +
+        ` $o->payment_complete( 'SMOKE-P6-SKIP' );` +
+        ` update_option( 'smoke_p6_zamowienie', (int) $o->get_id() );` +
+        ` echo (int) $uid;`
+    )
+  );
+  const zamSkip = Number(php(`echo (int) get_option( 'smoke_p6_zamowienie', 0 ); delete_option( 'smoke_p6_zamowienie' );`));
+  uzytkownicy.push(klientSkip);
+  zamowienia.push(zamSkip);
+  sprawdz(klientSkip > 0 && zamSkip > 0, "scena płatności natychmiastowej nie powstała — pomiar byłby ślepy");
+  sprawdz(
+    wynikDostawy("mail_konta", klientSkip).startsWith("pominięto"),
+    `przy płatności natychmiastowej mail 1 ma wynik „${wynikDostawy("mail_konta", klientSkip)}” — a miał być świadomie pominięty z zapisem w dzienniku`
+  );
+  sprawdz(
+    wynikDostawy("mail_kursu", zamSkip) === "wyslano",
+    "przy płatności natychmiastowej mail o kursie nie wyszedł — a to on niesie teraz link do hasła"
+  );
+  const skrzynkaSkip = (await skrzynka()).filter((m) => doKogo(m).includes("smoke-p6-skip@example.test"));
+  sprawdz(
+    skrzynkaSkip.filter((m) => (m.Subject ?? "").includes("Ustaw hasło")).length === 0,
+    "klient płacący natychmiastowo dostał także mail „Ustaw hasło” — miał dostać jedną wiadomość, nie dwie w tej samej sekundzie"
+  );
+  sprawdz(
+    skrzynkaSkip.filter((m) => (m.Subject ?? "").includes("gotow")).length === 1,
+    `klient płacący natychmiastowo ma w skrzynce ${skrzynkaSkip.filter((m) => (m.Subject ?? "").includes("gotow")).length} maili o kursie — miał dokładnie jeden`
+  );
+  sprawdz(wp("aai-platnosci", "sprawdz").kod === 0, "kontrola ma pominięty mail 1 za błąd — pominięcie po potwierdzonym mailu 2 jest stanem poprawnym");
+
+  /* ── 7. awaria maila 2 przy płatności natychmiastowej: mail 1 MUSI wyjść (K1) ──
+   *
+   * Pominięcie maila 1 wolno zapisać dopiero po potwierdzonym „wyslano”
+   * maila 2. Gdy poczta pada, klient musi dostać mail 1 — bez niego nie
+   * miałby ANI JEDNEJ wiadomości z linkiem do hasła. Awarię maila 2 ma
+   * pokazać kontrola (kod 1), z komendą ponowienia.
+   */
+  await wyczysc();
+  const klientFall = Number(
+    php(
+      `add_filter( 'pre_wp_mail', function ( $krotkie, $atts ) {` +
+        ` return ( is_array( $atts ) && str_contains( (string) ( $atts['subject'] ?? '' ), 'gotow' ) ) ? false : $krotkie; }, 10, 2 );` +
+        ` $uid = wc_create_new_customer( 'smoke-p6-fall@example.test', 'smoke-p6-fall', wp_generate_password() );` +
+        ` $o = wc_create_order( array( 'customer_id' => (int) $uid ) );` +
+        ` $o->add_product( wc_get_product( ${produktA} ), 1 );` +
+        ` $o->set_payment_method( 'bacs' ); $o->calculate_totals();` +
+        ` $o->payment_complete( 'SMOKE-P6-FALL' );` +
+        ` update_option( 'smoke_p6_zamowienie', (int) $o->get_id() );` +
+        ` echo (int) $uid;`
+    )
+  );
+  const zamFall = Number(php(`echo (int) get_option( 'smoke_p6_zamowienie', 0 ); delete_option( 'smoke_p6_zamowienie' );`));
+  uzytkownicy.push(klientFall);
+  zamowienia.push(zamFall);
+  sprawdz(klientFall > 0 && zamFall > 0, "scena awarii maila 2 nie powstała — pomiar byłby ślepy");
+  sprawdz(
+    wynikDostawy("mail_konta", klientFall) === "wyslano",
+    `mail 2 padł, a mail 1 ma wynik „${wynikDostawy("mail_konta", klientFall)}” — bez drogi zapasowej klient nie ma ANI JEDNEJ wiadomości z linkiem do hasła (K1)`
+  );
+  sprawdz(
+    wynikDostawy("mail_kursu", zamFall).startsWith("blad"),
+    "awaria maila 2 nie została zapisana w dzienniku — kontrola nie ma czego pokazać do ponowienia"
+  );
+  const skrzynkaFall = (await skrzynka()).filter((m) => doKogo(m).includes("smoke-p6-fall@example.test"));
+  sprawdz(
+    skrzynkaFall.filter((m) => (m.Subject ?? "").includes("Ustaw hasło")).length === 1,
+    "przy padniętym mailu 2 klient nie dostał maila „Ustaw hasło” — gwarancja K1 złamana"
+  );
+  sprawdz(wp("aai-platnosci", "sprawdz").kod === 1, "kontrola nie widzi niewysłanego maila 2 — awaria poczty przy zakupie zniknęła z radaru");
+  php(`delete_option( 'aai_platnosci_blad' ); echo 'ok';`);
+
+  /* ── 8. cisza o cudzych hasłach: rdzeń nie mailuje admina ─────────
+   *
+   * Decyzja właściciela 2026-08-30: wp_password_change_notification()
+   * zawiadamia ADMINISTRATORA o każdej zmianie hasła (klient z tej
+   * funkcji nie dostaje nic — zmierzone przy P4). Przy sprzedaży to
+   * jeden mail na każdego klienta; callback ma być zdjęty, a reset ma
+   * dalej działać.
+   */
+  await wyczysc();
+  sprawdz(
+    php(`echo has_action( 'after_password_reset', 'wp_password_change_notification' ) ? 'WISI' : 'zdjety';`) === "zdjety",
+    "powiadomienie admina o zmianie hasła dalej wisi na after_password_reset — każdy klient ustawiający hasło będzie mailował właściciela"
+  );
+  const resetOk = php(
+    `$u = get_user_by( 'id', ${klientFall} );` +
+      ` $k = get_password_reset_key( $u );` +
+      ` $s = check_password_reset_key( $k, $u->user_login );` +
+      ` if ( is_wp_error( $s ) ) { echo 'blad klucza'; return; }` +
+      ` reset_password( $u, wp_generate_password( 24 ) ); echo 'ok';`
+  );
+  sprawdz(resetOk === "ok", `reset hasła nie przeszedł (${resetOk}) — pomiar ciszy byłby ślepy`);
+  const poResecie = await skrzynka();
+  sprawdz(
+    poResecie.filter((m) => (m.Subject ?? "").includes("Hasło zostało zmienione")).length === 0,
+    "po resecie hasła admin dostał mail „Hasło zostało zmienione” — wyciszenie nie działa"
+  );
+
 } finally {
   /* ── sprzątanie ─────────────────────────────────────────────────── */
   await wyczysc();

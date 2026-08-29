@@ -368,6 +368,19 @@ try {
     `menu na /szkolenia/ podświetla ${biezace.length} pozycji (${biezace.join(", ")}) — bieżąca ma być dokładnie jedna`
   );
 
+  /*
+   * ZALOGOWANY Z KURSEM MA W MENU OBIE POZYCJE: „Moje kursy" (W6)
+   * i „Moje konto" (P6 — droga powrotna do zamówień i ustawień;
+   * do tej zmiany drzwi były jednokierunkowe i klient wracał na konto
+   * wpisując adres z palca). Nieobecność u gościa mierzy smoke-wp-front.
+   */
+  for (const pozycja of ["Moje kursy", "Moje konto"]) {
+    sprawdz(
+      nawigacja.includes(pozycja),
+      `menu zalogowanego z kursem nie ma pozycji „${pozycja}" — klient nie ma jak trafić tam, gdzie ona prowadzi`
+    );
+  }
+
   const poZapisie = wroc(await (await admin.pobierz(probka.adres)).text());
   sprawdz(
     zapisano && poZapisie !== null && poZapisie.adres === "/szkolenia/moje/",

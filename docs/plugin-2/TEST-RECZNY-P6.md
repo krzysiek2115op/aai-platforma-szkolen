@@ -243,18 +243,20 @@ pilnujemy smoke'em, żeby aktualizacja Tutora nie zabrała tego po cichu.
    Narzędzie samo to zgłaszało („brak dostępu do kursów: 764"), ale nikt go
    nie uruchamiał od W6. Po naprawie trzy przebiegi z rzędu dają dwa zapisy
    `completed`, zero maili, zero wpisów w dzienniku dostaw.
-3. **Smoke'i zostawiają po sobie POCZTĘ.** `smoke-wp-zakup`, `smoke-wp-zwroty`
-   i `smoke-wp-jezyk` sprzątają swoje kursy, produkty, zamówienia i konta —
-   ale nie skrzynkę. Trzy przebiegi zostawiły **36 wiadomości** do
-   `klient-test@example.invalid` i `admin@example.test`. Skrzynkę
-   wyczyściłem przed oddaniem Ci tego dokumentu (masz **0 wiadomości**), więc
-   wszystko, co w niej zobaczysz, jest Twoje. **Do naprawy po P6** — to ta
-   sama klasa co pozycja 1 i co „produkty-sieroty" ze sweepu P2: bramka
-   sprząta swoje ślady w bazie, a nie widzi tych poza nią.
+3. **Smoke'i nie szanują skrzynki.** Dwie strony tej samej klasy:
+   `smoke-wp-zakup`, `smoke-wp-zwroty` i `smoke-wp-jezyk` **zostawiają**
+   swoją pocztę (jeden komplet przebiegów = ~36 wiadomości do
+   `klient-test@…` i admina), a `smoke-wp-maile` odwrotnie — **czyści CAŁĄ
+   skrzynkę**, także cudze wiadomości: przy przebiegu w trakcie tej sesji
+   zabrał też Twoje maile z zakupu #2590 (dziennik dostaw i zamówienie
+   zostały — przepadł tylko podgląd wiadomości). **Do naprawy po P6** —
+   ta sama klasa co „produkty-sieroty" ze sweepu P2: bramka sprząta na
+   oślep albo wcale, zamiast dokładnie po sobie.
 
-   **Gdybyś sam uruchomił jakiś smoke przed testem** — wyczyść skrzynkę
-   przyciskiem „Delete all" w Mailpicie, inaczej będziesz szukał swoich
-   wiadomości w cudzych.
+   Praktycznie na czas testu: skrzynka jest wyczyszczona do zera, więc
+   wszystko, co w niej zobaczysz, jest Twoje — a gdyby coś Ci w niej
+   zginęło albo przybyło bez Twojego działania, to znaczy, że ktoś
+   uruchomił smoke'i w trakcie.
 
 ## Co sprawdziłem przelotem kontrolnym, zanim to dostałeś
 
@@ -283,6 +285,33 @@ Poprawki wchodzą na gałąź **`feat/p6-test-reczny`**, wg
 [CONTRIBUTING.md](../../CONTRIBUTING.md). Błąd z klasą, która może wrócić,
 dostaje wpis w [rejestr/znane-bledy.json](../../rejestr/znane-bledy.json)
 **i strażnika przeciw nawrotom** — bez tego naprawa jest tylko obietnicą.
+
+## Przebieg — zgłoszenia i naprawy
+
+### Sesja 2026-08-29/30 (w toku)
+
+Ścieżki A–B przejdzone przez właściciela do zamówienia #2590 włącznie
+(konto `robert.parowk`); „na razie wszystko idzie dobrze". Na jego
+polecenie odegrałem bramkę płatności tak, jak zrobi to prawdziwa
+(`payment_complete()` z identyfikatorem transakcji, nie ręczna zmiana
+statusu): zamówienie domknęło się samo, dostęp przyznany, „Twój kurs jest
+gotowy" w skrzynce, kontrola kod 0.
+
+**Trzy zgłoszenia właściciela — każde potwierdzone uruchomieniowo, każda
+naprawa z testem negatywnym (wersja 0.53.0, szczegóły w CHANGELOG):**
+
+| # | Zgłoszenie | Co się okazało | Decyzja właściciela i naprawa |
+|---|---|---|---|
+| 1 | „mogę wejść do kursu bez hasła, a jeden z dwóch maili jest niepotrzebny" | Nie wyciek: kasa loguje kupującego na 14 dni (`wc_set_customer_auth_cookie`), a lekcja z „Zacznij kurs" to darmowa zapowiedź (`preview = 1`). Ale przy płatności natychmiastowej oba maile przychodziły w tej samej sekundzie, a mail 1 kazał „wejść na konto", na którym klient siedział | **Jeden mail przy płatności natychmiastowej**: mail 1 pomijany z wpisem w dzienniku, WYŁĄCZNIE po potwierdzonym „wyslano" maila 2 (K1: poczta leży → mail 1 wychodzi). Przelew bez zmian — dwa maile w odstępie dni |
+| 2 | „nie mogę z Moich kursów wrócić do konta" | Zmierzone: zero odnośników do `/my-account/` na całej stronie — drzwi z W6 były jednokierunkowe | **Pozycja „Moje konto" w menu** obok „Moich kursów", tylko dla zalogowanego, w obu nawigacjach, z `aria-current` na stronach konta |
+| 3 | „co to za mail »Hasło zostało zmienione«?" | `wp_password_change_notification()` rdzenia — powiadomienie DO ADMINA (nie do klienta) o każdej zmianie hasła; przy sprzedaży jeden mail na każdego klienta | **Wyciszone** (zdjęty callback, nie podmieniona funkcja). Mail do klienta z linkiem resetu — inny mechanizm — nietknięty |
+
+Dowody napraw: `smoke-wp-maile` 60 (trzy nowe sceny), `smoke-wp-front` 84,
+`smoke-wp-lekcja` 38, dwie reguły strażnika + 4 mutacje (audyt 227).
+
+**Do ponownego obejrzenia po naprawach:** menu po zalogowaniu (pozycja
+„Moje konto"), skrzynka przy kolejnym zakupie. Ścieżki C–E i zwrot (D) —
+jeszcze przed Tobą.
 
 ## Kiedy P6 jest zaliczone
 
