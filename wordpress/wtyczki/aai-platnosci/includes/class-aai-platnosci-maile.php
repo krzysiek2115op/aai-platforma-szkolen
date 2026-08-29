@@ -425,13 +425,32 @@ final class Aai_Platnosci_Maile {
 			. '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px">' . $lista . '</table>'
 			. '<p style="margin:0 0 16px">Materiał czeka na Twoim koncie — wejdź tym samym adresem e-mail, na który przyszła ta wiadomość.</p>';
 
-		$pod = '<p style="margin:0">Nie pamiętasz hasła? Ustaw je od nowa na stronie logowania — dostęp do kursu zostaje.</p>';
+		/*
+		 * ODNOŚNIK DO USTAWIENIA HASŁA JEST TU KONIECZNY, nie uprzejmy.
+		 * ZMIERZONE: konto założone POZA kasą (wp-admin, `POST /wc/v3/customers`,
+		 * `wp user create`) nie przechodzi przez `wc_create_new_customer()`,
+		 * więc `woocommerce_created_customer` nie odpala i mail 1 NIE POWSTAJE
+		 * — a zamówienie założone takiemu klientowi w kokpicie dostarcza mail 2
+		 * normalnie. Klient miał wtedy kurs i ani jednego linku do hasła.
+		 * Zdanie „ustaw je na stronie logowania" bez adresu tego nie ratowało.
+		 *
+		 * Klucza resetu tu NIE MA i nie będzie (niezmiennik 8): to zwykły
+		 * odnośnik do strony odzyskiwania, więc nie unieważnia klucza z maila 1,
+		 * gdyby ten jednak poszedł (B8).
+		 */
+		$odzyskanie = wc_get_account_endpoint_url( 'lost-password' );
+		$pod        = sprintf(
+			'<p style="margin:0">Pierwszy raz u nas albo nie pamiętasz hasła? Ustaw je tutaj: <a href="%s" style="color:#bfff38">%s</a> — dostęp do kursu zostaje.</p>',
+			esc_url( $odzyskanie ),
+			esc_html( $odzyskanie )
+		);
 
 		$tekst = sprintf(
-			"%s\n\nMasz dostęp do:\n%s\nWejdź na swoje kursy: %s\n",
+			"%s\n\nMasz dostęp do:\n%s\nWejdź na swoje kursy: %s\n\nPierwszy raz u nas albo nie pamiętasz hasła? Ustaw je tutaj: %s\n",
 			'' === $imie ? 'Gotowe — dostęp jest już na Twoim koncie.' : $imie . ', dostęp jest już na Twoim koncie.',
 			$lista_tekst,
-			$moje
+			$moje,
+			$odzyskanie
 		);
 
 		return self::wyslij(

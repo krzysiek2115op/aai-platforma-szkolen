@@ -520,6 +520,61 @@ if (!existsSync(USTAWIENIA)) {
     }
   }
 
+  /* 28–29. Znaleziska przeglądu P4 — obie gwarancje zmierzone, obie
+     łamią się po cichu. */
+  if (existsSync(USTAWIENIA)) {
+    const c = kod(readFileSync(USTAWIENIA, "utf8"));
+
+    /* 28. blokada koszyka łapie Throwable. Filtr biegnie na ścieżce
+       „dodaj do koszyka" (formularz, AJAX, Store API), a woła NASZĄ tabelę
+       i `tutor_utils()` Tutora. ZMIERZONE: wyjątek w tym łańcuchu dawał
+       klientowi HTTP 500 i planszę „krytyczny błąd" zamiast odmowy — przy
+       czym ta sama decyzja przy RYSOWANIU przycisku była osłonięta. */
+    const startB = c.indexOf("function blokada_sprzedazy(");
+    if (startB < 0) {
+      bledy.push(`${USTAWIENIA}: nie widzę blokady koszyka (blokada_sprzedazy).`);
+    } else {
+      const dalejB = c.indexOf("\n\tprivate static function", startB);
+      const blokB = c.slice(startB, dalejB < 0 ? c.length : dalejB);
+      if (!/catch\s*\(\s*Throwable/.test(blokB)) {
+        bledy.push(
+          `${USTAWIENIA}: blokada koszyka nie łapie Throwable. Ten filtr biegnie przy dodawaniu do koszyka — wyjątek z naszej tabeli albo z tutor_utils() oddaje klientowi HTTP 500 zamiast odmowy (zmierzone).`
+        );
+      }
+      if (!/return false;/.test(blokB.slice(blokB.indexOf("catch")))) {
+        bledy.push(
+          `${USTAWIENIA}: blokada koszyka po wyjątku nie ODMAWIA. Wpuszczenie produktu przy nieznanym stanie znaczy zakup kursu, który klient może już mieć — do_enroll() wychodzi wtedy przed zapisem meta i zamówienie nigdy się nie domyka (B10).`
+        );
+      }
+    }
+
+    /* 29. zakupu, którego NIE DA SIĘ dostarczyć, nie przyjmujemy. Kurs
+       zapisuje się na konto; ZMIERZONE: po dryfie `guest_checkout` na
+       `yes` gość przeszedł całą kasę, a skutek to customer_id = 0, zero
+       zapisów w Tutorze, zero dostaw i ani jednej naszej wiadomości. */
+    /* Wzorzec pyta o DECYZJĘ, nie o obecność napisów. Pierwsza wersja
+       sprawdzała, czy w pliku występują `is_user_logged_in` i nazwa opcji —
+       a obie występują też gdzie indziej (`WOO_DOCELOWE`, sprawdzenie
+       posiadania kursu), więc mutacja podmieniająca całe rozstrzygnięcie na
+       `return true;` PRZESZŁA. Piąty nawrót wzorca na napis w tym repo. */
+    const porownanieOpcji =
+      /(['"]yes['"]\s*[!=]==?\s*)?\(?\s*string\s*\)?\s*get_option\(\s*['"]woocommerce_enable_guest_checkout['"][^)]*\)\s*(?:[!=]==?\s*['"]yes['"])?/;
+    const rozstrzyga = new RegExp(
+      "return\\s+[^;]*get_option\\(\\s*['\"]woocommerce_enable_guest_checkout['\"]"
+    ).test(c);
+    if (!rozstrzyga || !porownanieOpcji.test(c)) {
+      bledy.push(
+        `${USTAWIENIA}: żadne ROZSTRZYGNIĘCIE nie zależy od stanu woocommerce_enable_guest_checkout. Kurs zapisuje się na konto — gość przy zdryfowanym ustawieniu płaci i nie dostaje nic (zmierzone: customer_id 0, zero zapisów w Tutorze, zero dostaw, zero naszych maili).`
+      );
+    }
+    const wywolanie = startB >= 0 ? c.slice(startB, c.indexOf("\n\tprivate static function", startB)) : "";
+    if (startB >= 0 && !/da_sie_dostarczyc\s*\(|dostarcz/i.test(wywolanie)) {
+      bledy.push(
+        `${USTAWIENIA}: blokada koszyka nie pyta, czy zakup da się dostarczyć — reguła istnieje, ale nikt jej nie woła na ścieżce dodania do koszyka.`
+      );
+    }
+  }
+
   /* 27. mail Woo „nowe konto" ma podmieńca, więc musi WRÓCIĆ przy
      deaktywacji: nasz mail 1 znika razem z wtyczką, a konto bez żadnego
      linku do hasła to klasa K1 (DIAGRAM §14). Wzorzec: hak deaktywacji
@@ -543,5 +598,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia)."
 );

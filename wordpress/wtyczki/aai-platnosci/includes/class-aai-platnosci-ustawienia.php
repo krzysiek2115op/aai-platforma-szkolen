@@ -240,15 +240,69 @@ final class Aai_Platnosci_Ustawienia {
 			// odmowy, może najwyżej dołożyć własną.
 			return false;
 		}
-		if ( ! Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $product_id ) ) {
-			// Nie nasz produkt — obie odmowy niżej dotyczą WYŁĄCZNIE kursów.
-			return true;
-		}
-		if ( ! self::sprzedaz_otwarta() ) {
-			self::odmow( __( 'Sprzedaż kursów jeszcze nie ruszyła — przycisk zakupu pojawi się na stronie kursu, gdy wystartujemy.', 'aai-platnosci' ) );
+		/*
+		 * CAŁOŚĆ W `try`, bo ten filtr biegnie na ścieżce „dodaj do koszyka”
+		 * — w formularzu, w AJAX-ie i w Store API kasy blokowej. ZMIERZONE:
+		 * wyjątek rzucony w łańcuchu (nasza tabela, `tutor_utils()` Tutora)
+		 * dawał klientowi **HTTP 500 i planszę „wystąpił krytyczny błąd”**
+		 * zamiast uprzejmej odmowy, którą ten kod starannie przygotowuje.
+		 * Ta sama operacja przy WYŚWIETLANIU przycisku (`Cta::stan()`) była
+		 * osłonięta i strona kursu oddawała spokojnie 200 — czyli jedna
+		 * decyzja była chroniona w jednym miejscu, a w drugim nie.
+		 *
+		 * ODMAWIAMY, gdy nie umiemy rozstrzygnąć (fail closed). Wpuszczenie
+		 * produktu przy nieznanym stanie znaczy w najgorszym razie: klient
+		 * płaci za kurs, który już ma, a `do_enroll()` wychodzi przed
+		 * zapisem meta, więc zamówienie NIGDY się nie domknie (B10) —
+		 * pieniądze wzięte, dostępu nie przybywa. Odmowa jest widoczna,
+		 * odwracalna i nie kosztuje nikogo pieniędzy.
+		 */
+		try {
+			if ( ! Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $product_id ) ) {
+				// Nie nasz produkt — obie odmowy niżej dotyczą WYŁĄCZNIE kursów.
+				return true;
+			}
+			if ( ! self::sprzedaz_otwarta() ) {
+				self::odmow( __( 'Sprzedaż kursów jeszcze nie ruszyła — przycisk zakupu pojawi się na stronie kursu, gdy wystartujemy.', 'aai-platnosci' ) );
+				return false;
+			}
+			if ( ! self::da_sie_dostarczyc() ) {
+				self::odmow( __( 'Kurs zapisujemy na konto — zaloguj się albo załóż konto, zanim przejdziesz do kasy.', 'aai-platnosci' ) );
+				return false;
+			}
+			return self::wolno_kupic_ten_kurs( (int) $product_id );
+		} catch ( Throwable $e ) {
+			Aai_Platnosci_Komunikaty::zapisz( 'przy sprawdzaniu koszyka (produkt ' . (int) $product_id . '): ' . $e->getMessage() );
+			self::odmow( __( 'Nie udało się teraz sprawdzić tego kursu — spróbuj za chwilę albo napisz do nas.', 'aai-platnosci' ) );
 			return false;
 		}
-		return self::wolno_kupic_ten_kurs( (int) $product_id );
+	}
+
+	/**
+	 * Czy tego zakupu da się w ogóle DOSTARCZYĆ.
+	 *
+	 * Kurs jest zapisywany na KONTO — bez konta nie ma zapisu w Tutorze,
+	 * nie ma dostępu i nie ma do kogo wysłać obu maili. Docelowo pilnuje
+	 * tego ustawienie `woocommerce_enable_guest_checkout = no` (P3a):
+	 * gość wchodzi do koszyka normalnie, a konto powstaje w kasie.
+	 *
+	 * TO JEST SIATKA NA DRYF TEGO USTAWIENIA. ZMIERZONE na `:8892`: po
+	 * włączeniu zakupu gościa anonimowy klient przeszedł całą kasę
+	 * (Store API, zamówienie `completed`), a skutek to `customer_id = 0`,
+	 * **zero zapisów w Tutorze, zero wierszy w `dostawy` i ani jednej
+	 * naszej wiadomości** — zapłacił i nie dostał nic. Kontrola owszem,
+	 * krzyczy, ale dopiero PO fakcie; tu odmawiamy przed pobraniem
+	 * pieniędzy. W stanie docelowym ta gałąź nie odpala się nigdy.
+	 *
+	 * Świadomy koszt: przy zdryfowanym ustawieniu odmawiamy także temu
+	 * gościowi, który zaznaczyłby w kasie „załóż konto". Woli się odesłać
+	 * go do logowania niż wziąć pieniądze za coś, czego nie umiemy wydać.
+	 */
+	private static function da_sie_dostarczyc(): bool {
+		if ( is_user_logged_in() ) {
+			return true;
+		}
+		return 'yes' !== (string) get_option( 'woocommerce_enable_guest_checkout', 'no' );
 	}
 
 	/**

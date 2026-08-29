@@ -1,21 +1,29 @@
 <?php
 /**
- * Komendy WP-CLI Pluginu 2 — kontrola w wersji minimalnej (krok P1).
+ * Komendy WP-CLI Pluginu 2.
  *
  * ROLE SĄ ROZDZIELONE (L11 z krytyki P0): kontrola NIGDY nie pisze —
  * inaczej mierzyłaby skutek własnego działania i nigdy nie byłaby
  * czerwona. Ustawianie żyje przy aktywacji i (od P3a) w `sync --napraw`.
  *
- * Kody wyjścia:
+ * Kody wyjścia `sprawdz`:
  *  - 0 — porządek, ALBO stan „Woo/Tutor wyłączone" (z komunikatem;
  *    1 rezerwujemy dla działającego otoczenia z rozjazdem, bo bramka P1
  *    mówi „wyłączenie Woo daje komunikat" — kod 1 by jej przeczył),
  *  - 0 z OSTRZEŻENIEM — inna wersja Tutora/Woo niż dowiedziona
  *    (aktualizacja to nie awaria, ale unieważnia dowody — L17),
- *  - 1 — rozjazd: wtyczka aktywna, a jej tabel nie ma.
+ *  - 1 — KAŻDY rozjazd, który kontrola potrafi nazwać. Pełnej listy tu
+ *    NIE MA i nie będzie: rośnie z każdym krokiem (dziś m.in. brak tabel,
+ *    rozjazd ustawień, cena i status produktu, zduplikowany uuid,
+ *    opublikowana sierota, otwarta sprzedaż bez bramki płatności,
+ *    niedoręczona wiadomość), a spis w nagłówku i tak by się rozjechał
+ *    z kodem. **Powód czerwieni podaje sama komenda w komunikacie** —
+ *    razem z komendą naprawczą. Wcześniejsza wersja tego nagłówka
+ *    wymieniała jeden powód („wtyczka aktywna, a jej tabel nie ma")
+ *    i po pięciu krokach mówiła nieprawdę.
  *
- * Kolejne kroki (P2+) tylko DOKŁADAJĄ sprawdzenia do tej komendy —
- * kontrola rośnie razem z wtyczką.
+ * Kolejne kroki tylko DOKŁADAJĄ sprawdzenia do tej komendy — kontrola
+ * rośnie razem z wtyczką.
  *
  * @package Aai_Platnosci
  */
@@ -355,22 +363,43 @@ final class Aai_Platnosci_Cli {
 			return $bledy;
 		}
 		/*
-		 * OKNO 30 DNI I SUFIT 100 ZAMÓWIEŃ — powiedziane wprost, bo cichy
-		 * sufit czyta się jak „sprawdziłem wszystko". Starsze zamówienia
-		 * pomijamy świadomie: dostawa, której nie odnotowaliśmy pół roku
-		 * temu, i tak nie doczeka się już maila, a kontrola ma pokazywać
-		 * to, na co da się zareagować.
+		 * BEZ OKNA CZASOWEGO I BEZ SUFITU — świadoma zmiana po przeglądzie P4.
+		 *
+		 * Pierwsza wersja pytała o 100 zamówień z ostatnich 30 dni i nazywała
+		 * to kompromisem w komentarzu. ZMIERZONE: opłacone zamówienie z kursem
+		 * sprzed 40 dni, bez ani jednego wiersza `dostep`, przechodziło jako
+		 * **Success, kod 0** — czyli kontrola mówiła „porządek" o kliencie,
+		 * który zapłacił i nic nie dostał. Sufit opisany w komentarzu, ale
+		 * niewidoczny w wyjściu, czyta się jak „sprawdziłem wszystko".
+		 *
+		 * Koszt zamykamy inaczej niż oknem: bierzemy same IDENTYFIKATORY
+		 * (`return => 'ids'`, bez budowania obiektów zamówień), a pełne
+		 * zamówienie wczytujemy WYŁĄCZNIE dla tych, którym brakuje wiersza
+		 * `dostep` — czyli w zdrowym sklepie dla żadnego.
 		 */
-		$zamowienia = wc_get_orders(
+		$identyfikatory = wc_get_orders(
 			array(
-				'status'       => array( 'completed' ),
-				'limit'        => 100,
-				'orderby'      => 'date',
-				'order'        => 'DESC',
-				'date_created' => '>' . ( time() - 30 * DAY_IN_SECONDS ),
+				'status' => array( 'completed' ),
+				'limit'  => -1,
+				'return' => 'ids',
 			)
 		);
-		foreach ( (array) $zamowienia as $order ) {
+		foreach ( (array) $identyfikatory as $id_zamowienia ) {
+			$id = (int) $id_zamowienia;
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+			$jest = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT id FROM {$tabela} WHERE zdarzenie = %s AND identyfikator = %d",
+					Aai_Platnosci_Maile::ZDARZENIE_DOSTEP,
+					$id
+				)
+			);
+			if ( null !== $jest ) {
+				continue;
+			}
+			// Dopiero teraz płacimy za wczytanie zamówienia: pytamy, czy
+			// w ogóle niosło kurs. Zamówienia bez kursu nas nie dotyczą.
+			$order = wc_get_order( $id );
 			if ( ! $order instanceof WC_Order ) {
 				continue;
 			}
@@ -382,19 +411,7 @@ final class Aai_Platnosci_Cli {
 					break;
 				}
 			}
-			if ( ! $ma_kurs ) {
-				continue;
-			}
-			$id = (int) $order->get_id();
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
-			$jest = $wpdb->get_var(
-				$wpdb->prepare(
-					"SELECT id FROM {$tabela} WHERE zdarzenie = %s AND identyfikator = %d",
-					Aai_Platnosci_Maile::ZDARZENIE_DOSTEP,
-					$id
-				)
-			);
-			if ( null === $jest ) {
+			if ( $ma_kurs ) {
 				$bledy[] = sprintf(
 					'zamówienie %d jest ZREALIZOWANE i niesie kurs, a dostępu nie odnotowaliśmy — klient mógł zapłacić i nic nie dostać. Sprawdź zapis w Tutorze, potem: wp aai-platnosci sync',
 					$id

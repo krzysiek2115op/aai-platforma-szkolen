@@ -1635,6 +1635,35 @@ const MUTACJE = [
   },
 
   {
+    straznik: "straznik-platnosci-wp",
+    opis: "blokada koszyka przestaje łapać Throwable (klient dostaje HTTP 500 zamiast odmowy — zmierzone przy przeglądzie P4)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php"),
+    oczekiwanySlad: "nie łapie Throwable",
+    zmien: (s) =>
+      s.includes("\t\t} catch ( Throwable $e ) {\n\t\t\tAai_Platnosci_Komunikaty::zapisz( 'przy sprawdzaniu koszyka")
+        ? s.replace(
+            "\t\t} catch ( Throwable $e ) {\n\t\t\tAai_Platnosci_Komunikaty::zapisz( 'przy sprawdzaniu koszyka",
+            "\t\t} catch ( InvalidArgumentException $e ) {\n\t\t\tAai_Platnosci_Komunikaty::zapisz( 'przy sprawdzaniu koszyka"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "koszyk przyjmuje kurs, którego nie da się dostarczyć (gość przy zdryfowanym guest_checkout płaci i nie dostaje nic)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php"),
+    oczekiwanySlad: "zależy od stanu woocommerce_enable_guest_checkout",
+    zmien: (s) =>
+      s.includes("\t\treturn 'yes' !== (string) get_option( 'woocommerce_enable_guest_checkout', 'no' );")
+        ? s.replace(
+            "\t\treturn 'yes' !== (string) get_option( 'woocommerce_enable_guest_checkout', 'no' );",
+            "\t\treturn true;"
+          )
+        : null,
+  },
+
+  {
     straznik: "straznik-tresci-lekcji",
     opis: "zgoda na skasowanie treści wypada z KONTRAKTU (zostaje umową panelu z dyspozytorem)",
     plik: "modules/m1-sklep/typy.ts",

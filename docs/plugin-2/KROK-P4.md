@@ -317,3 +317,68 @@ administratora. Po naprawie: kod 1, zero wiadomości, komunikat mówi wprost,
 | przed | `no` (nasz mail 1 go zastępuje) | 2 |
 | po deaktywacji wtyczki | **`yes`** — wraca, bo nasz mail znika razem z nią (K1) | **0** (gwarancja z P1 dalej trzyma) |
 | po ponownej aktywacji | `no` | 2, kontrola kod 0 |
+
+## 9. Przegląd przed PR-em (2026-08-29) — dziesięć pytań, cztery znaleziska
+
+Recenzent (Sonnet, **zamknięta lista 10 pytań** — decyzja właściciela
+o koszcie tokenów, jak przy P3a i P3b), krytykiem agent główny. Recenzent
+czytał też prawdziwe źródła WooCommerce 11.0.1 i Tutora 4.0.7 zamontowane
+w środowisku, zamiast zgadywać zachowanie cudzego kodu.
+
+**Każde znalezisko potwierdzone URUCHOMIENIOWO PRZED naprawą.** Sześć
+odpowiedzi „czysto" przyjęte — jedna z nich (5) po tym, jak recenzent sam
+obalił własną hipotezę, sprawdzając w `Utils::course_enrol_status_change()`,
+że `cancelled`/`refunded`/`failed` trafiają na zapis 1:1 i żaden nie jest
+w `ZAMOWIENIE_TRWA`.
+
+| # | Znalezisko | Potwierdzenie | Naprawa |
+|---|---|---|---|
+| 7 | **Blokada koszyka nie łapie `Throwable`.** Filtr biegnie przy dodawaniu do koszyka i woła naszą tabelę oraz `tutor_utils()` Tutora; ta sama decyzja przy RYSOWANIU przycisku była osłonięta | **zmierzone**: wstrzyknięty wyjątek → `?add-to-cart=` oddał **HTTP 500 i planszę „krytyczny błąd"**, a strona kursu z tym samym wyjątkiem oddała **200** | cały łańcuch w `try`; po wyjątku **odmawiamy** (fail closed) z uprzejmym komunikatem, błąd jedzie do kokpitu. Po naprawie ta sama awaria: 200, koszyk pusty, komunikat |
+| 1a | **Gość może zapłacić i nie dostać nic.** `WOO_DOCELOWE` nie ma filtrów obronnych (mają je tylko klucze Tutora), więc `woocommerce_enable_guest_checkout` może zdryfować na `yes` | **zmierzone**: po włączeniu zakupu gościa anonimowy klient przeszedł całą kasę Store API, zamówienie `completed`, a skutek to `customer_id = 0`, **0 zapisów w Tutorze, 0 wierszy `dostawy`, 0 naszych maili** | `da_sie_dostarczyc()`: gość + włączony zakup gościa = odmowa **przed pobraniem pieniędzy**. W stanie docelowym gałąź nie odpala się nigdy (zmierzone: gość dalej kupuje, konto powstaje w kasie) |
+| 1b | **Konto założone POZA kasą nie dostaje maila 1.** `wp-admin`, `POST /wc/v3/customers` i `wp user create` nie idą przez `wc_create_new_customer()`, więc hak nie odpala — a zamówienie założone takiemu klientowi dostarcza mail 2 normalnie | **zmierzone**: klient dostał „Twój kurs jest gotowy" i **ani jednego linku do hasła**; mail 2 mówił „ustaw je na stronie logowania", nie podając gdzie | mail 2 niesie **odnośnik do strony odzyskiwania hasła** (bez klucza — niezmiennik 8, więc nie unieważnia maila 1) |
+| 6 | **Kontrola ślepa poza oknem 30 dni / sufitem 100 zamówień** | **zmierzone**: opłacone zamówienie z kursem sprzed 40 dni, bez wiersza `dostep`, przechodziło jako **Success, kod 0** | okno i sufit **usunięte**. Koszt zamykamy inaczej: pytamy o same IDENTYFIKATORY zamówień, a pełne zamówienie wczytujemy wyłącznie dla tych bez wiersza `dostep` — w zdrowym sklepie dla żadnego |
+
+**Znalezisko 3 (`ponow()` bez sprawdzenia dziennika) znalazłem niezależnie
+przed raportem recenzenta** i naprawiłem — potwierdzenie z dwóch stron.
+
+### Znalezisko 4 — realne, ODŁOŻONE do P5 (świadomie)
+
+`kursy_zamowienia()` składa listę z pozycji zamówienia, nie ze stanu zapisu
+każdego kursu. Dwa skutki: kurs, którego zapis padł w połowie pętli Tutora,
+i tak zostanie wymieniony; a kurs odpięty od produktu między zakupem
+a ręcznym ponowieniem **zniknie z listy po cichu**. Oba wymagają zdarzeń
+rzadkich (przerwana pętla Tutora, usunięcie kursu ze sklepu + ręczne
+ponowienie starej dostawy), żaden nie odbiera dostępu ani pieniędzy,
+a obie naprawy dokładają sprzężenie z kolejnym API Tutora na ścieżce, która
+dziś działa. **P5 ma w zakresie dokładnie „przypadki brzegowe"** — tam to
+należy, i tam trafia z tym opisem.
+
+### Znalezisko 10 — nagłówek CLI mówił nieprawdę
+
+„Kody wyjścia" w `class-aai-platnosci-cli.php` opisywały kod 1 jako
+**jedyny** przypadek „wtyczka aktywna, a jej tabel nie ma" — opis z P1, gdy
+to była prawda. Po pięciu krokach kod 1 znaczy też rozjazd ustawień, ceny,
+duplikat uuid, sierotę, otwartą sprzedaż bez bramki i niedoręczoną
+wiadomość. Nagłówek nie wymienia już przypadków (spis i tak by się
+rozjechał), tylko mówi, że **powód czerwieni podaje sama komenda**.
+
+### Dwa niezmienniki więcej i piąty nawrót starej pułapki
+
+Doszły reguły **28** (blokada koszyka łapie `Throwable` i po wyjątku
+odmawia) i **29** (jakieś ROZSTRZYGNIĘCIE zależy od stanu
+`woocommerce_enable_guest_checkout`). Pierwsza wersja reguły 29 pytała
+o samą OBECNOŚĆ napisów `is_user_logged_in` i nazwy opcji w pliku — a obie
+występują tam też gdzie indziej, więc mutacja podmieniająca całe
+rozstrzygnięcie na `return true;` **przeszła**. To piąty nawrót wzorca na
+napis w tym repo (0.29.0, 0.44.0, 0.47.0, c6c9c97 — i teraz mój własny),
+złapany przez audyt mutacyjny w tym samym przebiegu, w którym powstał.
+
+### Dowody po naprawach
+
+- Strażnicy **35/35**; audyt mutacyjny **200**: **198 złapanych,
+  0 przeoczonych, 0 martwych**, 2 pominięte (brak materiału).
+- `npm run check` kod 0; smoke: maile **40** · zakup 32 · produkty 71 ·
+  front 84 · kreator 96 · panel 54 · motyw 89 · tutor 44 · lekcja 35 ·
+  dane 30 · płatności 23.
+- Dane Pluginu 1 nietknięte; środowisko po wszystkim: produkty 2,
+  powiązania 2, zamówienia 0, dostawy 0, **sprzedaż zamknięta**.
