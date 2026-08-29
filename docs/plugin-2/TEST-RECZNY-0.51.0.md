@@ -21,9 +21,19 @@ Wzorzec scenariusza: [W6-TEST-RECZNY.md](../plugin-1/W6-TEST-RECZNY.md).
 | konto klienta | `klient-test`, hasło w `wordpress/srodowisko/.env` (`WP_KLIENT_HASLO`) |
 | zamówienia | **1** — Twój własny zakup #1625 (materiał dowodowy, nie kasować) |
 
-Gdyby środowisko nie odpowiadało: `cd wordpress/srodowisko && ./postaw.sh`.
-Po `git checkout` wcześniej: `podman-compose down && ./postaw.sh` (bind mount
-trzyma inode).
+## KROK ZEROWY — zawsze, bez wyjątku
+
+```
+cd wordpress/srodowisko && ./postaw.sh
+```
+
+**To nie jest rubryka warunkowa.** Między jednym a drugim testem ktoś mógł
+przełączać gałęzie, a wtedy bind mounty umierają po cichu: pliki leżą na dysku,
+`git status` jest czysty, kontener widzi pustkę. Tak przepadła cała poczta przy
+pierwszym przebiegu tego testu (znalezisko Z1 niżej). `postaw.sh` jest
+idempotentny i kończy weryfikacją artefaktu — jeśli coś jest nie tak, powie co.
+
+Gdyby zgłosił martwy mount: `podman-compose down && ./postaw.sh`.
 
 ## Co konkretnie zostało naprawione — to sprawdź
 
@@ -75,6 +85,16 @@ lista zamówień na koncie pokazuje **Twoje** zamówienie, a nie stertę cudzych
 | wygląd stron `/courses/…` Tutora | klient tam nie trafia — `/courses/*` przekierowuje na nasze strony |
 | adres `127.0.0.1`, brak HTTPS, nazwa „środowisko robocze” | to warsztat, nie produkcja |
 
+## WYNIK: ZALICZONY (właściciel, 2026-08-29)
+
+„wszystko jest okej". Cztery obszary sprawdzone na żywej instalacji, ścieżka
+zakupu przejdzona do końca: zamówienie #2010 (299,00 zł, przelew) → konto
+`thore.wretyu` → potwierdzenie wpłaty → **zapis na kurs w Tutorze #2011** →
+mail „Twój kurs jest gotowy". Kontrola kod 0.
+
+Jedno zgłoszenie z przebiegu (Z1) okazało się usterką ŚRODOWISKA, nie kodu —
+i zostało naprawione razem z dwiema rzeczami, które przy okazji ujawniło.
+
 ## Zgłoszenia z testu — znaleziska
 
 ### Z1 (2026-08-29): zamówienie złożone, skrzynka pusta — **środowisko, nie kod**
@@ -98,20 +118,24 @@ a `dostawy --ponow=mail_konta/154` dowiozło wiadomość. Nic nie przepadło.
 maila 1 i obu wiadomości WooCommerce (`customer_on_hold_order`, `new_order`).
 Kontrola wróciła do kodu 0.
 
-**DO POPRAWKI (wchodzi w tę gałąź):**
+**NAPRAWIONE — każda pozycja ze swoim testem negatywnym:**
 
-1. **Krok zerowy testu ma być rozkazem, nie rubryką warunkową.** Zdanie
+1. ~~Krok zerowy testu ma być rozkazem, nie rubryką warunkową.~~ **ZROBIONE.** Zdanie
    „po `git checkout` wcześniej: `podman-compose down && ./postaw.sh`" stało
    w tabeli warunków — a właściciel nie ma skąd wiedzieć, że ktoś przełączał
    gałęzie. Test zaczyna się od `./postaw.sh`, kropka.
-2. **`postaw.sh` NAZYWA PRZYCZYNĘ BŁĘDNIE.** Kontrola oddała kod 1 z powodu
+2. ~~`postaw.sh` NAZYWA PRZYCZYNĘ BŁĘDNIE.~~ **ZROBIONE** — skrypt cytuje teraz
+   wiersze `Error:` z kontroli zamiast zgadywać powód po kodzie wyjścia. Test
+   negatywny: po zepsuciu opisu produktu melduje „krótki opis produktu nie
+   pochodzi z naszej tabeli", a nie „szew rozjechany". Było tak: Kontrola oddała kod 1 z powodu
    **niewysłanego maila**, a skrypt zameldował „szew kurs → produkt jest
    rozjechany. Napraw: `wp aai-platnosci sync`" — czyli wysłał operatora
    w zupełnie inne miejsce. Weryfikacja ma powtarzać to, co powiedziała
    kontrola, a nie zgadywać powód po samym kodzie wyjścia.
-3. **Do rozważenia:** czy `postaw.sh` ma sam sprawdzać żywotność mountu
-   `mu-plugins` (dziś sprawdza mounty wtyczek — `aai-sklep`, `aai-platnosci`
-   — ale nie ten).
+3. ~~Do rozważenia: żywotność mountu `mu-plugins`.~~ **ZROBIONE** — `postaw.sh`
+   pyta KONTENER, czy widzi mu-plugin poczty, i przy martwym mouncie od razu
+   podaje naprawę. Test negatywny: po schowaniu pliku skrypt zapala się
+   właściwym komunikatem.
 
 ## Jak zgłaszać
 

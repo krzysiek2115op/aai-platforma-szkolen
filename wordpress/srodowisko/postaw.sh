@@ -287,6 +287,15 @@ kod=$(curl -sL -o "$ODPOWIEDZ" -w '%{http_code}' "$ADRES") \
 grep -q 'aria-label="Nawigacja główna"' "$ODPOWIEDZ" \
   || blad "strona odpowiada, ale to NIE jest motyw Automatic AI (brak jego nawigacji)"
 
+# MOUNT POCZTY WARSZTATU — pytamy KONTENER, nie dysk. Znalezisko Z1: po
+# `git switch` katalog `mu-plugins` dostaje nowy inode, kontener widzi pustkę,
+# PHPMailer wraca do sendmaila (którego tu nie ma) i KAŻDY mail przepada.
+# Objaw jest mylący: plik leży na dysku, `git status` czysty, a klient nie
+# dostaje ani jednej wiadomości. Weryfikacja poczty niżej i tak by to złapała,
+# ale ten komunikat od razu nazywa przyczynę i podaje naprawę.
+podman exec "${STACK}_wordpress" test -f /var/www/html/wp-content/mu-plugins/aai-poczta-warsztatu.php \
+  || blad "kontener nie widzi mu-plugina poczty, choć na dysku on jest — martwy bind mount (katalog odtworzony po starcie kontenera, np. przez git switch). Napraw: podman-compose down && ./postaw.sh"
+
 # Język sprawdzamy ARTEFAKTEM, nie faktem wykonania komendy: pytamy
 # WordPressa o przetłumaczony napis, który klient realnie widzi w kasie.
 # „Locale = pl_PL" bez plików .mo dałoby dalej angielską stronę.
@@ -316,8 +325,16 @@ if [ -f ../wtyczki/aai-platnosci/aai-platnosci.php ]; then
   # Woo/Tutora kończą się kodem 0, więc czerwony kod TU znaczy prawdziwy
   # rozjazd: kurs płatny bez produktu, cena inna niż w naszej tabeli,
   # zerwane powiązanie albo kupowalna sierota.
-  wpcli aai-platnosci sprawdz \
-    || blad "szew kurs → produkt jest rozjechany (wp aai-platnosci sprawdz). Napraw: wp aai-platnosci sync"
+  # POWTARZAMY TO, CO POWIEDZIAŁA KONTROLA, zamiast zgadywać powód po samym
+  # kodzie wyjścia. Znalezisko Z1 z testu ręcznego 0.51.0: kontrola świeciła
+  # kod 1 z powodu NIEWYSŁANEGO MAILA, a ten komunikat meldował „szew kurs →
+  # produkt jest rozjechany. Napraw: wp aai-platnosci sync" — czyli wysyłał
+  # operatora w zupełnie inne miejsce niż prawdziwa przyczyna.
+  if ! powod="$(wpcli aai-platnosci sprawdz 2>&1)"; then
+    blad "kontrola zgłasza problem:
+$(printf '%s\n' "$powod" | grep -iE '^(Error|Warning):' | head -5)
+  Pełny opis: wp aai-platnosci sprawdz"
+  fi
 fi
 
 # HIGIENA ZASOBÓW — obie strony medalu, bo obie umieją się zepsuć osobno.
