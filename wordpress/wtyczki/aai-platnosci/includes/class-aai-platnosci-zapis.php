@@ -295,6 +295,39 @@ final class Aai_Platnosci_Zapis {
 	}
 
 	/**
+	 * Domknięcie zamówienia stojącego w `processing` (P3b).
+	 *
+	 * DLACZEGO TO TU, A NIE W KLASIE DOSTARCZANIA. Bo tu mieszka JEDYNY
+	 * pisarz — decyzję „czy domknąć" podejmuje `Aai_Platnosci_Dostarczanie`
+	 * (czytając pozycje zamówienia), a sam zapis musi być w jednym miejscu,
+	 * żeby dało się go sprawdzić skryptem. Ta sama zasada wyprowadziła tu
+	 * przy P3a trzy metody piszące do stron.
+	 *
+	 * BEZPIECZNIK NA STATUS zostaje mimo sprawdzenia u wołającego: między
+	 * jego decyzją a tym zapisem mógł zadziałać ktoś inny (auto-complete
+	 * Tutora przy metodzie spoza jego czarnej listy), a wtedy nie ma czego
+	 * domykać. Zwraca `false`, czyli „stan się nie zmienił".
+	 *
+	 * @param int $order_id Id zamówienia WooCommerce.
+	 * @return bool Czy stan się ZMIENIŁ.
+	 */
+	public static function zamknij_zamowienie( int $order_id ): bool {
+		if ( $order_id <= 0 || ! function_exists( 'wc_get_order' ) ) {
+			return false;
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order || 'processing' !== $order->get_status() ) {
+			return false;
+		}
+		$order->set_status(
+			'completed',
+			__( 'Zamówienie zawiera wyłącznie kursy — dostęp jest cyfrowy, więc nie ma czego realizować.', 'aai-platnosci' )
+		);
+		$order->save();
+		return true;
+	}
+
+	/**
 	 * Czy produkt jest produktem kursu (ma wiersz w `powiazania`).
 	 *
 	 * Pyta o to blokada sprzedaży (P3a) przy KAŻDEJ walidacji koszyka —

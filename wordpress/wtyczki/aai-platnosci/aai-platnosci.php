@@ -134,6 +134,12 @@ add_action(
 		// przywracający znaczniki produktu (B13). Rejestrowane zawsze —
 		// import z WP-CLI biegnie przez ten sam hak.
 		Aai_Platnosci_Szew::zarejestruj();
+		// Dostarczanie (krok P3b): zamówienie z kursem nie ma czego
+		// „realizować", więc nie wolno mu utknąć w `processing` — Tutor
+		// przy metodach ze swojej czarnej listy (`bacs`, `cod`, `cheque`)
+		// go stamtąd NIE wyciągnie, a klient zostałby bez dostępu mimo
+		// zapłaty (zmierzone: KROK-P3B.md §3).
+		Aai_Platnosci_Dostarczanie::zarejestruj();
 		Aai_Platnosci_Komunikaty::zarejestruj();
 	}
 );
