@@ -137,6 +137,7 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run db1:up` | postaw kontener bazy (podman compose) |
 | `npm run db1:migruj` | doprowadź schemat bazy do aktualnego stanu (sha256 w `_migracje`) |
 | `npm run db1:seed` | odtwórz oba kursy od zera: program (lustro bazy) + sekcje sprzedażowe. **UWAGA: najpierw KASUJE kursy o tych slugach**, czyli razem z prozą 73 lekcji — po nim trzeba wgrać treść `npm run db1:tresc` |
+| `npm run db1:sekcje` | wgraj do bazy SAME sekcje sprzedażowe z seeda — bez programu i bez prozy. Do poprawek treści sprzedażowej; `db1:seed` do tego **nie służy**, bo zaczyna od skasowania kursu |
 | `npm run db1:tresc` | wgraj prozę lekcji z `tresc-kursow/**/proza-*.md` do bazy — drogą kreatora (jedyny AJAX); `-- --sprawdz` sam sprawdza, nic nie wysyła |
 | `npm run wp:eksport` | zrzuć oba kursy z Postgresa do `eksport-wp/kursy.json` (format 2: nazwa pola = nazwa kolumny) |
 | `npm run wp:import` | przenieś kursy do tabel wtyczki WordPressa: eksport → kopia do kontenera → `wp aai-sklep import`. **Jedna komenda dla człowieka i dla skryptu** — rozjazd tych dwóch dróg kosztował nas już wydanie (0.24.0, BLAD-012) |

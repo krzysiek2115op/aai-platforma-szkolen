@@ -122,12 +122,6 @@ get_header();
 							<span class="aai-kursor-migacz"></span>
 						</div>
 					</div>
-					<div class="aai-plywak aai-plywak-gwarancja aai-paralaksa-3">
-						<div class="aai-panel aai-plywak-karta aai-plywak-karta-rzad">
-							<?php echo Aai_Sklep_Widok::ikona( 'shield-check', 'aai-ikona-l aai-akcent' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
-							<p class="aai-mono">30 dni gwarancji zwrotu</p>
-						</div>
-					</div>
 				</div>
 			<?php endif; ?>
 		</div>

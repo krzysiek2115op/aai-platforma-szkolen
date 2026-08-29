@@ -19,6 +19,7 @@
     "db1:up": "podman compose up -d db1",
     "db1:migruj": "node --env-file-if-exists=.env modules/m1-sklep/db/migruj.ts",
     "db1:seed": "node --env-file-if-exists=.env tools/seed/seed-przyklady.ts",
+    "db1:sekcje": "node --env-file-if-exists=.env tools/wgraj-sekcje.ts",
     "db1:tresc": "node --env-file-if-exists=.env tools/wgraj-tresc-lekcji.ts",
     "wp:eksport": "node --env-file-if-exists=.env tools/eksport-wp.mjs --do eksport-wp",
     "wp:import": "npm run wp:eksport && podman cp eksport-wp/kursy.json ${STACK_NAZWA:-aai_wp}_cli:/tmp/kursy.json && podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep import /tmp/kursy.json && npm run wp:sync-platnosci",

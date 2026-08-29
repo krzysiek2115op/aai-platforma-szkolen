@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Sparkles } from "lucide-react";
 import WejscieAdmina from "@/components/kreator/WejscieAdmina";
 import HeroMotion from "@/components/szkolenia/HeroMotion";
 import OknoKursu from "@/components/szkolenia/OknoKursu";
@@ -339,15 +339,6 @@ export default async function StronaSzkolenia() {
                 </div>
               </div>
 
-              {/* floating: gwarancja */}
-              <div className="parallax-3 float-b absolute -right-6 top-6 w-48">
-                <div className="panel flex items-center gap-3 p-3.5 shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
-                  <ShieldCheck className="size-6 shrink-0 text-volt" />
-                  <p className="font-mono text-micro leading-relaxed tracking-[0.14em] text-steel uppercase">
-                    30 dni gwarancji zwrotu
-                  </p>
-                </div>
-              </div>
             </div>
           ) : null}
         </div>

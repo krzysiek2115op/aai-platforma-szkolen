@@ -537,18 +537,10 @@ html.js .aai-sklep .aai-reveal-widoczny {
 }
 
 .aai-sklep .aai-plywak-prompt { left: -2.5rem; bottom: -2.5rem; }
-.aai-sklep .aai-plywak-gwarancja { right: -1.5rem; top: 1.5rem; width: 12rem; }
 
 .aai-sklep .aai-plywak-karta {
 	padding: 1rem;
 	box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-}
-
-.aai-sklep .aai-plywak-karta-rzad {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-	padding: 0.875rem;
 }
 
 .aai-sklep .aai-plywak-naglowek {
