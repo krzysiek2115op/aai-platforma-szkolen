@@ -297,7 +297,25 @@ kod 0, `aai-platnosci sprawdz` kod 0.
 materiał dowodowy), 2 produkty, 2 powiązania, 9 dostaw, 3 konta, **sprzedaż
 OTWARTA**. Konto `klient-test` ma **0 zamówień** — było 146.
 
-## 6.4 Zostaje do decyzji właściciela
+## 6.4 Decyzje właściciela (2026-08-29, po merge'u 0.51.0)
+
+Zadane jako pytania doprecyzowujące, rozstrzygnięte przez właściciela.
+**Wszystkie trzy są DO WYKONANIA — żadna nie jest jeszcze w kodzie.**
+
+| # | rzecz | rozstrzygnięcie | co to znaczy wykonawczo |
+|---|---|---|---|
+| 1 | **regulamin** | **zdejmujemy zdanie** z kasy do czasu, aż regulamin powstanie | Woo drukuje „Kontynuując zamówienie wyrażasz zgodę na nasze Warunki i zasady oraz Politykę prywatności" z bloku kasy. Polityka ZOSTAJE (jest podpięta i klikalna) — znika tylko powołanie się na nieistniejące „Warunki i zasady". Regulamin i tak będzie potrzebny przed pierwszym klientem, razem z prawdziwą bramką płatności |
+| 2 | **gwarancja 30 dni** | **zostaje** — obietnicę ma zrealizować P5 | To jest **WYMAGANIE DLA P5**, nie pozycja otwarta: zwrot w 30 dni ma działać i odbierać dostęp do kursu. Sprzedaż i tak nie ruszy przed P5 (bramka testowa `bacs`, środowisko robocze), więc żaden prawdziwy klient nie zdąży się na nią powołać |
+| 3 | **okładka produktu** | **renderujemy PNG przy synchronizacji** | Okładka SVG z wtyczki ma być zamieniona na PNG i wgrana do mediów jako miniatura produktu — klient widzi prawdziwą okładkę, a biblioteka mediów NIE musi przyjmować SVG (świadomie odrzucone: SVG może nieść skrypt). Przy wykonaniu sprawdzić, co da się zrobić **bez dokładania zależności** |
+
+**Kolejność dalszych prac (decyzja właściciela 2026-08-29):**
+**test ręczny właściciela na 0.51.0 → dopiero potem P5.** Uzasadnienie jest
+w tym dokumencie od początku: właściciel znalazł klikaniem pięć rzeczy, których
+nie złapało 35 strażników, 201 mutacji i jedenaście smoke'ów. Trzy decyzje
+powyżej wchodzą razem z poprawkami z tego testu — jedną gałęzią, żeby P5
+zaczynało się na czystym stanie.
+
+## 6.5 Zapis historyczny — co było otwarte przed tymi decyzjami
 
 - **Regulamin** — kasa mówi „wyrażasz zgodę na nasze Warunki i zasady",
   a strony nie ma (`woocommerce_terms_page_id` puste). Polityka prywatności
