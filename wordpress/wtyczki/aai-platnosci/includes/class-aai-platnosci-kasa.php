@@ -53,6 +53,55 @@ final class Aai_Platnosci_Kasa {
 	 */
 	public static function zarejestruj(): void {
 		add_filter( 'render_block_data', array( __CLASS__, 'na_bloku' ) );
+		/*
+		 * Priorytet 20 — PO filtrze Tutora (10), bo naprawiamy jego wynik.
+		 */
+		add_filter( 'woocommerce_cart_item_permalink', array( __CLASS__, 'link_pozycji' ), 20, 2 );
+	}
+
+	/**
+	 * Odnośnik pozycji koszyka: naprawia dwie rzeczy po filtrze Tutora.
+	 *
+	 * ZMIERZONE na żywej instalacji (P5, pułapka 11 schematu — do tej pory
+	 * pozycja „otwarta"):
+	 *
+	 * | produkt | co oddaje filtr Tutora |
+	 * |---|---|
+	 * | cudzy (bez `_tutor_product`) | **`null`** |
+	 * | nasz kurs | `/courses/<slug>/` |
+	 *
+	 * `tutor_update_product_url()` (`WooCommerce.php:941`) kończy się BEZ
+	 * `return` dla produktu, który nie jest kursem — czyli każdemu obcemu
+	 * produktowi w koszyku zabiera odnośnik. Dziś sklep sprzedaje wyłącznie
+	 * kursy, ale to nie jest gwarancja na zawsze, a objaw jest cichy: nazwa
+	 * pozycji po prostu przestaje być klikalna.
+	 *
+	 * Drugą rzecz naprawiamy z tego samego powodu, dla którego
+	 * `/courses/<slug>/` przekierowuje na `/szkolenia/<slug>/` (decyzja
+	 * właściciela 2026-08-25): jeden adres kanoniczny i zero stron
+	 * w cudzym wyglądzie. Odnośnik z koszyka prowadził na adres Tutora,
+	 * a klient dojeżdżał do nas dopiero przekierowaniem.
+	 *
+	 * @param mixed                $adres    Wynik poprzednich filtrów.
+	 * @param array<string,mixed>  $pozycja  Pozycja koszyka.
+	 */
+	public static function link_pozycji( $adres, $pozycja ) {
+		$product_id = (int) ( $pozycja['product_id'] ?? 0 );
+		if ( $product_id <= 0 ) {
+			return $adres;
+		}
+
+		$uuid = Aai_Platnosci_Zapis::kurs_produktu( $product_id );
+		if ( null !== $uuid && class_exists( 'Aai_Sklep_Odczyt' ) && class_exists( 'Aai_Sklep_Widok' ) ) {
+			$kurs = Aai_Sklep_Odczyt::kurs_po_id( $uuid );
+			if ( is_array( $kurs ) && '' !== (string) ( $kurs['slug'] ?? '' ) ) {
+				return Aai_Sklep_Widok::adres_kursu( (string) $kurs['slug'] );
+			}
+		}
+
+		// Produkt spoza naszego sklepu (albo kurs bez danych): przywracamy
+		// odnośnik, jeśli ktoś przed nami oddał pustkę.
+		return ( null === $adres || '' === $adres ) ? get_permalink( $product_id ) : $adres;
 	}
 
 	/**

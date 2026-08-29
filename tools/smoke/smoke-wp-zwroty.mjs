@@ -360,6 +360,38 @@ try {
     `NIEZMIENNIK 14: przy naszej kolejności powstał zapis o statusie „${statusyZapisow()}” — stan pośredni miał nie tworzyć żadnego`
   );
   php(`update_post_meta( ${tutor}, '_tutor_course_product_id', ${produkt} ); echo 'ok';`);
+
+  /* ── 9. ODNOŚNIK POZYCJI W KOSZYKU (pułapka 11 schematu) ──────────── */
+
+  /*
+   * `tutor_update_product_url()` (`WooCommerce.php:941`) kończy się BEZ
+   * `return` dla produktu, który nie jest kursem — czyli filtr
+   * `woocommerce_cart_item_permalink` dostaje `null` i cudzy produkt traci
+   * w koszyku odnośnik. Zmierzone przed naprawą: `NULL`. Objaw jest cichy
+   * (nazwa pozycji przestaje być klikalna), a dziś sklep sprzedaje same
+   * kursy — więc bez tego sprawdzenia usterka wróciłaby niezauważona przy
+   * pierwszym produkcie spoza kursów.
+   *
+   * Drugie sprawdzenie pilnuje adresu kanonicznego: odnośnik kursu ma
+   * prowadzić PROSTO na naszą stronę, a nie na `/courses/<slug>/`, które
+   * dopiero przekierowujemy (decyzja właściciela 2026-08-25).
+   */
+  const link = (pid) =>
+    php(
+      `echo (string) apply_filters( 'woocommerce_cart_item_permalink',` +
+        ` get_permalink( ${pid} ), array( 'product_id' => ${pid} ), 'klucz' );`
+    );
+  const linkObcego = link(obcy);
+  sprawdz(
+    linkObcego.includes("/product/"),
+    `odnośnik CUDZEGO produktu w koszyku to „${linkObcego || "(pusty)"}” — filtr Tutora oddaje null dla produktu spoza kursów i zabiera pozycji klikalność`
+  );
+  const linkKursu = link(produkt);
+  sprawdz(
+    linkKursu.includes("/szkolenia/"),
+    `odnośnik kursu w koszyku prowadzi na „${linkKursu}” zamiast na naszą stronę — klient dojeżdża do sklepu przekierowaniem z adresu Tutora`
+  );
+
 } finally {
   /* ── sprzątanie + rachunek sumienia ───────────────────────────────── */
 

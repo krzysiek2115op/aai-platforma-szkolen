@@ -2508,6 +2508,63 @@ const MUTACJE = [
         : null,
     oczekujCzerwonego: false,
   },
+  /* ── krok P5: kasa i odnośnik pozycji koszyka ────────────────────── */
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kasa przestaje podmieniać zdanie o zgodach (wraca powołanie się na nieistniejący regulamin)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-kasa.php",
+    zmien: (s) =>
+      s.includes("add_filter( 'render_block_data'")
+        ? s.replace("add_filter( 'render_block_data'", "add_filter( 'render_block_data_WYLACZONE'")
+        : null,
+    oczekiwanySlad: "zdanie o zgodach nie jest podmieniane",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "zdanie o zgodach zapisywane do TREŚCI strony kasy (klasa błędu z P3a)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-kasa.php",
+    zmien: (s) =>
+      s.includes("return $blok;\n\t}")
+        ? s.replace("return $blok;\n\t}", "wp_update_post( array( 'ID' => 7 ) );\n\t\treturn $blok;\n\t}", 1)
+        : null,
+    oczekiwanySlad: "zapisywane do TREŚCI strony kasy",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "naprawa odnośnika pozycji koszyka biegnie PRZED filtrem Tutora (priorytet 5)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-kasa.php",
+    zmien: (s) =>
+      s.includes("'woocommerce_cart_item_permalink', array( __CLASS__, 'link_pozycji' ), 20, 2")
+        ? s.replace(
+            "'woocommerce_cart_item_permalink', array( __CLASS__, 'link_pozycji' ), 20, 2",
+            "'woocommerce_cart_item_permalink', array( __CLASS__, 'link_pozycji' ), 5, 2"
+          )
+        : null,
+    oczekiwanySlad: "biegnie PRZED albo RAZEM z filtrem Tutora",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "odnośnik pozycji koszyka przestaje być naprawiany",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-kasa.php",
+    zmien: (s) =>
+      s.includes("add_filter( 'woocommerce_cart_item_permalink'")
+        ? s.replace("add_filter( 'woocommerce_cart_item_permalink'", "add_filter( 'woocommerce_cart_item_permalink_WYL'")
+        : null,
+    oczekiwanySlad: "odnośnik pozycji koszyka nie jest naprawiany",
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kod woła is_tutor_order() bez sprawdzenia, czy zamówienie istnieje (fatal na nieistniejącym)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-kasa.php",
+    zmien: (s) =>
+      s.includes("\t\t$uuid = Aai_Platnosci_Zapis::kurs_produktu( $product_id );")
+        ? s.replace(
+            "\t\t$uuid = Aai_Platnosci_Zapis::kurs_produktu( $product_id );",
+            "\t\tif ( tutor_utils()->is_tutor_order( $product_id ) ) { return $adres; }\n\t\t$uuid = Aai_Platnosci_Zapis::kurs_produktu( $product_id );"
+          )
+        : null,
+    oczekiwanySlad: "bez wcześniejszego wc_get_order()",
+  },
 ];
 
 

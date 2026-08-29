@@ -430,6 +430,83 @@ final class Aai_Platnosci_Cli {
 	 *
 	 * @when after_wp_load
 	 */
+	/**
+	 * Zamówienia kursów, które UTKNĘŁY w `processing`.
+	 *
+	 * Pułapka 8 schematu. Zamówienie złożone wyłącznie z kursów domykamy
+	 * natychmiast (P3b: filtr `needs_processing` plus siatka na ręczną
+	 * zmianę statusu), bo produkt cyfrowy nie ma czego „realizować".
+	 * Zamówienie kursu stojące w `processing` znaczy więc, że mechanizm
+	 * NIE zadziałał — a wtedy klient zapłacił i nie ma dostępu, bo ten
+	 * daje wyłącznie zapis `completed`.
+	 *
+	 * Czego ta kontrola NIE zgłasza: `on-hold` (przelew czeka na wpłatę
+	 * — stan normalny, czasem dwudniowy), `pending` (klient nie dokończył
+	 * płatności) i zamówień MIESZANYCH (tam `processing` jest prawdziwe,
+	 * bo jest co wysłać). Próg godziny, nie minut: domknięcie jedzie na
+	 * `shutdown` tego samego żądania, więc świeże `processing` może być
+	 * zwykłym wyścigiem z odczytem.
+	 *
+	 * @return array<int,string>
+	 */
+	private static function zamowienia_wiszace(): array {
+		if ( ! function_exists( 'wc_get_orders' ) || ! Aai_Platnosci_Tabele::istnieja() ) {
+			return array();
+		}
+		$bledy = array();
+		$stare = wc_get_orders(
+			array(
+				'limit'        => 50,
+				'status'       => array( 'processing' ),
+				'date_created' => '<' . ( time() - HOUR_IN_SECONDS ),
+				'return'       => 'ids',
+			)
+		);
+		foreach ( (array) $stare as $id ) {
+			$zamowienie = wc_get_order( $id );
+			if ( ! $zamowienie ) {
+				continue;
+			}
+			$kursow = 0;
+			$pozycji = 0;
+			foreach ( $zamowienie->get_items() as $pozycja ) {
+				++$pozycji;
+				if ( Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $pozycja->get_product_id() ) ) {
+					++$kursow;
+				}
+			}
+			// Tylko zamówienia złożone WYŁĄCZNIE z kursów — mieszane mają
+			// prawo stać w `processing`, bo czeka je wysyłka.
+			if ( $pozycji > 0 && $kursow === $pozycji ) {
+				$bledy[] = sprintf(
+					'zamówienie %d stoi w „processing" od %s, a jest złożone wyłącznie z kursów — klient zapłacił i NIE MA dostępu (dostęp daje dopiero „completed"). Sprawdź, czy wtyczka jest aktywna, i domknij zamówienie w panelu',
+					$id,
+					$zamowienie->get_date_created() ? $zamowienie->get_date_created()->date( 'Y-m-d H:i' ) : 'nieznanej daty'
+				);
+			}
+		}
+		return $bledy;
+	}
+
+	/**
+	 * Tutor Pro obecny? (pułapka 3 schematu)
+	 *
+	 * Jednokierunkowość ceny stoi na tym, że nikt jej po naszej stronie nie
+	 * nadpisuje. Tutor Pro ma własny zapis ceny kursu, więc jego obecność
+	 * unieważnia dowody, na których stoi cały krok P2 — i musi być
+	 * POWIEDZIANA, a nie odkryta przy pierwszym rozjeździe ceny.
+	 */
+	private static function tutor_pro(): string {
+		if ( ! function_exists( 'tutor' ) ) {
+			return '';
+		}
+		$tutor = tutor();
+		$ma_pro = ( isset( $tutor->has_pro ) && $tutor->has_pro ) || function_exists( 'tutor_pro' );
+		return $ma_pro
+			? 'wykryto Tutor Pro — ma własny zapis ceny kursu, więc jednokierunkowość naszej kopii (nasza tabela → produkt WooCommerce) przestaje być dowiedziona. Sprawdź, czy Pro nie nadpisuje ceny, zanim ruszy sprzedaż'
+			: '';
+	}
+
 	public function sprawdz(): void {
 		$bledy       = array();
 		$ostrzezenia = array();
@@ -558,6 +635,13 @@ final class Aai_Platnosci_Cli {
 		}
 		foreach ( self::bledy_dostaw() as $blad_dostawy ) {
 			$bledy[] = $blad_dostawy;
+		}
+		foreach ( self::zamowienia_wiszace() as $blad_wiszacy ) {
+			$bledy[] = $blad_wiszacy;
+		}
+		$pro = self::tutor_pro();
+		if ( '' !== $pro ) {
+			$bledy[] = $pro;
 		}
 		$blad_kopii = Aai_Platnosci_Komunikaty::ostatni();
 		if ( '' !== $blad_kopii ) {
