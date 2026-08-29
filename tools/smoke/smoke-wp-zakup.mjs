@@ -119,12 +119,36 @@ if (KLIENT <= 0) {
 }
 const liczba = (typ) =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='${typ}'" );`));
+/**
+ * Ile zamówień jest w instalacji — pytane tak, żeby odpowiedź nie kłamała.
+ *
+ * BLAD-026. Poprzednia wersja liczyła `SELECT COUNT(*) FROM wp_posts WHERE
+ * post_type='shop_order'` i oddawała ZERO, bo instalacja stoi na HPOS:
+ * zamówienia mieszkają w `wp_wc_orders`, a tamta tabela jest pusta
+ * z definicji. Rachunek sumienia porównywał więc 0 z 0 i przechodził
+ * niezależnie od tego, ile śmieci smoke zostawił — narosło ich w ten
+ * sposób 146, wszystkie na koncie `klient-test`, czyli tym, na którym
+ * właściciel ogląda sklep oczami klienta.
+ *
+ * `status => 'any'` TEŻ NIE WYSTARCZY: zmierzone na żywej instalacji —
+ * oddaje 194 przy 195 wierszach w tabeli, bo pomija `checkout-draft`
+ * (porzuconą kasę), choć Woo zna ten status. Pytamy więc o JAWNĄ listę
+ * `wc_get_order_statuses()`, która daje dokładnie tyle, ile jest.
+ */
+const liczbaZamowien = () =>
+  Number(
+    php(
+      "echo (int) count( wc_get_orders( array( 'limit' => -1, 'return' => 'ids'," +
+        " 'status' => array_keys( wc_get_order_statuses() ) ) ) );"
+    )
+  );
+
 const powiazan = () =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . Aai_Platnosci_Tabele::tabela( 'powiazania' ) );`));
 
 const produktowPrzed = liczba("product");
 const powiazanPrzed = powiazan();
-const zamowienPrzed = liczba("shop_order");
+const zamowienPrzed = liczbaZamowien();
 const sprzedazPrzed = php(`echo (string) get_option( '${OPCJA_SPRZEDAZ}', '' );`);
 
 /* ── scena: kurs testowy + cudzy produkt ────────────────────────────── */
@@ -299,22 +323,37 @@ try {
   kasujZapisy();
   const zamRecznie = zamowienie([produkt], "on-hold");
   zamowienia.push(zamRecznie);
-  php(`$o = wc_get_order( ${zamRecznie} ); $o->set_status( 'processing' ); $o->save(); echo 'ok';`);
   /*
-   * KOLEJNOŚĆ notatek, nie ich treść. Domknięcie wykonane od razu w haku
-   * biegło W ŚRODKU cudzego przejścia statusu, więc reszta TAMTEGO przejścia
-   * dojeżdżała już po nadaniu `completed`: notatka „z On hold na Processing”
-   * lądowała PO notatce „z Processing na Completed”, a klient dostawał mail
+   * KOLEJNOŚĆ PRZEJŚĆ STATUSU, mierzona ZDARZENIAMI. Domknięcie wykonane
+   * od razu w haku biegło W ŚRODKU cudzego przejścia, więc reszta TAMTEGO
+   * przejścia dojeżdżała już po nadaniu `completed` i klient dostawał mail
    * „zrealizowane” przed „w realizacji” (znalezisko przeglądu P3b).
+   *
+   * PIERWSZA WERSJA CZYTAŁA NOTATKI ZAMÓWIENIA I SZUKAŁA W NICH „On hold
+   * to Processing”. Padła w chwili, w której instalacja dostała polski
+   * język (N3/0.51.0): notatki Woo są tłumaczone, więc wzorzec przestał
+   * cokolwiek znajdować i smoke meldował odwróconą kolejność przy
+   * kolejności poprawnej. To ta sama rodzina co „wzorzec na napis”,
+   * tylko w wymiarze lokalizacji — pomiar oparty na CUDZYM TEKŚCIE ma
+   * datę ważności. Pytamy więc o zdarzenia: hak notuje każdą parę
+   * `z → na`, a my sprawdzamy ich kolejność.
    */
-  const notatki = php(
-    `global $wpdb; $n = $wpdb->get_col( $wpdb->prepare( "SELECT comment_content FROM {$wpdb->comments} WHERE comment_post_ID = %d AND comment_type = %s ORDER BY comment_ID", ${zamRecznie}, 'order_note' ) );` +
-      ` echo implode( ' ~~ ', $n );`
+  php(
+    `delete_option( 'aai_smoke_przejscia' );` +
+      ` add_action( 'woocommerce_order_status_changed', function ( $id, $z, $na ) {` +
+      ` $l = (array) get_option( 'aai_smoke_przejscia', array() ); $l[] = $z . '>' . $na;` +
+      ` update_option( 'aai_smoke_przejscia', $l ); }, 1, 3 );` +
+      ` $o = wc_get_order( ${zamRecznie} ); $o->set_status( 'processing' ); $o->save(); echo 'ok';`
   );
-  const poz = (igla) => notatki.indexOf(igla);
+  const przejscia = php(`echo implode( ' ~~ ', (array) get_option( 'aai_smoke_przejscia', array() ) ); delete_option( 'aai_smoke_przejscia' );`);
+  const poz = (igla) => przejscia.indexOf(igla);
   sprawdz(
-    poz("On hold to Processing") >= 0 && poz("Processing to Completed") > poz("On hold to Processing"),
-    `notatki zamówienia są w odwróconej kolejności — cudze przejście statusu dojechało PO naszym domknięciu, więc klient dostaje „zrealizowane” przed „w realizacji”: ${notatki}`
+    poz("on-hold>processing") >= 0,
+    `nie widzę przejścia on-hold → processing, więc pomiar kolejności leciałby po pustce: ${przejscia}`
+  );
+  sprawdz(
+    poz("processing>completed") > poz("on-hold>processing"),
+    `przejścia statusu są w odwróconej kolejności — nasze domknięcie dojechało PRZED cudzym przejściem, więc klient dostaje „zrealizowane” przed „w realizacji”: ${przejscia}`
   );
   sprawdz(
     statusZamowienia(zamRecznie) === "completed",
@@ -430,7 +469,15 @@ try {
 
   php(`update_option( '${OPCJA_SPRZEDAZ}', '${sprzedazPrzed}' ); echo 'ok';`);
   if (zamowienia.length > 0) {
-    php(`foreach ( array( ${zamowienia.join(", ")} ) as $id ) { wp_delete_post( $id, true ); } echo 'ok';`);
+    /*
+     * KASUJEMY PRZEZ API ZAMÓWIENIA, nie przez wp_delete_post(). ZMIERZONE
+     * na żywej instalacji (BLAD-026): pod HPOS `wp_delete_post()` na
+     * identyfikatorze zamówienia NIE KASUJE NICZEGO — nie ma takiego wpisu
+     * w `wp_posts`, więc funkcja wychodzi cicho, a zamówienie żyje dalej
+     * (`wc_get_order()` oddaje je ze statusem sprzed próby). To była
+     * PRAWDZIWA przyczyna 146 zamówień-widm; ślepy licznik tylko ją ukrył.
+     */
+    php(`foreach ( array( ${zamowienia.join(", ")} ) as $id ) { $o = wc_get_order( $id ); if ( $o ) { $o->delete( true ); } } echo 'ok';`);
     /*
      * DZIENNIK DOSTAW TEŻ JEST NASZYM ŚLADEM (P4). Zamówienia smoke'a
      * przechodzą przez completed, więc warstwa maili odnotowuje im
@@ -454,7 +501,7 @@ try {
 
 sprawdz(liczba("product") === produktowPrzed, `smoke zostawił produkt: przed ${produktowPrzed}, po ${liczba("product")}`);
 sprawdz(powiazan() === powiazanPrzed, `smoke zostawił ślad w powiazania: przed ${powiazanPrzed}, po ${powiazan()}`);
-sprawdz(liczba("shop_order") === zamowienPrzed, `smoke zostawił zamówienie: przed ${zamowienPrzed}, po ${liczba("shop_order")}`);
+sprawdz(liczbaZamowien() === zamowienPrzed, `smoke zostawił zamówienie: przed ${zamowienPrzed}, po ${liczbaZamowien()}`);
 sprawdz(
   php(`echo (string) get_option( '${OPCJA_SPRZEDAZ}', '' );`) === sprzedazPrzed,
   "smoke zostawił zmieniony stan sprzedaży — następny przebieg mierzyłby inną instalację niż zastał"

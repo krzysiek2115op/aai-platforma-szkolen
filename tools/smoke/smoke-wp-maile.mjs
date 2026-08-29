@@ -90,11 +90,35 @@ try {
 
 const liczba = (typ) =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='${typ}'" );`));
+/**
+ * Ile zamówień jest w instalacji — pytane tak, żeby odpowiedź nie kłamała.
+ *
+ * BLAD-026. Poprzednia wersja liczyła `SELECT COUNT(*) FROM wp_posts WHERE
+ * post_type='shop_order'` i oddawała ZERO, bo instalacja stoi na HPOS:
+ * zamówienia mieszkają w `wp_wc_orders`, a tamta tabela jest pusta
+ * z definicji. Rachunek sumienia porównywał więc 0 z 0 i przechodził
+ * niezależnie od tego, ile śmieci smoke zostawił — narosło ich w ten
+ * sposób 146, wszystkie na koncie `klient-test`, czyli tym, na którym
+ * właściciel ogląda sklep oczami klienta.
+ *
+ * `status => 'any'` TEŻ NIE WYSTARCZY: zmierzone na żywej instalacji —
+ * oddaje 194 przy 195 wierszach w tabeli, bo pomija `checkout-draft`
+ * (porzuconą kasę), choć Woo zna ten status. Pytamy więc o JAWNĄ listę
+ * `wc_get_order_statuses()`, która daje dokładnie tyle, ile jest.
+ */
+const liczbaZamowien = () =>
+  Number(
+    php(
+      "echo (int) count( wc_get_orders( array( 'limit' => -1, 'return' => 'ids'," +
+        " 'status' => array_keys( wc_get_order_statuses() ) ) ) );"
+    )
+  );
+
 const dostaw = () =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . Aai_Platnosci_Tabele::tabela( 'dostawy' ) );`));
 
 const produktowPrzed = liczba("product");
-const zamowienPrzed = liczba("shop_order");
+const zamowienPrzed = liczbaZamowien();
 const dostawPrzed = dostaw();
 const sprzedazPrzed = php("echo (string) get_option( 'aai_platnosci_sprzedaz_otwarta', '' );");
 
@@ -473,7 +497,7 @@ try {
 /* ── rachunek sumienia: smoke nie zostawia śmieci ───────────────────── */
 
 sprawdz(liczba("product") === produktowPrzed, `smoke zostawił produkt: przed ${produktowPrzed}, po ${liczba("product")}`);
-sprawdz(liczba("shop_order") === zamowienPrzed, `smoke zostawił zamówienie: przed ${zamowienPrzed}, po ${liczba("shop_order")}`);
+sprawdz(liczbaZamowien() === zamowienPrzed, `smoke zostawił zamówienie: przed ${zamowienPrzed}, po ${liczbaZamowien()}`);
 sprawdz(dostaw() === dostawPrzed, `smoke zostawił wiersze dziennika dostaw: przed ${dostawPrzed}, po ${dostaw()}`);
 sprawdz(wp("aai-platnosci", "sprawdz").kod === 0, "po sprzątaniu kontrola czerwona — smoke zostawił rozjazd");
 

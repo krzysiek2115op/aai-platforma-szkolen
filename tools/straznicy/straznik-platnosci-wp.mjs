@@ -769,6 +769,57 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* 33. BRAMKI NIE MOGĄ PYTAĆ O ZAMÓWIENIA PRZEZ `wp_posts`.
+
+   BLAD-026, obie połowy — i obie zmierzone na żywej instalacji.
+
+   (a) Rachunek sumienia obu smoke'ów liczył
+       `SELECT COUNT(*) … WHERE post_type='shop_order'` i oddawał ZERO,
+       bo instalacja stoi na HPOS: zamówienia mieszkają w `wp_wc_orders`,
+       a tamta tabela jest pusta z definicji. Sprawdzenie „czy zostawiłem
+       zamówienie" porównywało więc 0 z 0 i przechodziło ZAWSZE.
+
+   (b) Sprzątanie wołało `wp_delete_post()`, które pod HPOS NIE KASUJE
+       NICZEGO (zmierzone: zamówienie przeżywa, `wc_get_order()` oddaje
+       je dalej). To była prawdziwa przyczyna 146 zamówień-widm na koncie
+       `klient-test` — tym samym, na którym właściciel ogląda sklep
+       oczami klienta. Ślepy licznik tylko ją ukrył.
+
+   Reguła celuje w PLIKI BRAMEK, nie we wtyczkę: to bramki oślepły.
+   Nośnik zamówień należy do WooCommerce i może się zmienić znowu —
+   pytanie o niego przez publiczne API (`wc_get_orders`, `$order->delete`)
+   jest jedyną odpowiedzią, która nie ma daty ważności. */
+{
+  const smokeWp = readdirSync(join("tools", "smoke"))
+    .filter((f) => f.startsWith("smoke-wp-") && f.endsWith(".mjs"))
+    .map((f) => join("tools", "smoke", f));
+
+  for (const plik of smokeWp) {
+    /* KOMENTARZE ODPADAJĄ. Te same smoke'i OPISUJĄ w komentarzach, czego
+       nie wolno robić — i pierwsza wersja tej reguły zapaliła się właśnie
+       na tych opisach. Wzorzec ma pytać o KOD, nie o prozę o kodzie. */
+    const tresc = kod(readFileSync(plik, "utf8"));
+    if (/post_type\s*=\s*.shop_order./.test(tresc)) {
+      bledy.push(
+        `${plik}: pyta o zamówienia przez post_type='shop_order'. Pod HPOS ta tabela jest PUSTA, więc odpowiedź brzmi zawsze „zero" — sprawdzenie przechodzi niezależnie od tego, ile śmieci zostawiło (BLAD-026). Pytaj przez wc_get_orders().`
+      );
+    }
+    /* Kasowanie: `wp_delete_post` jest POPRAWNE dla produktów i wpisów
+       Tutora — te wciąż mieszkają w `wp_posts`. Pytamy więc wyłącznie
+       o wywołanie na LIŚCIE ZAMÓWIEŃ (`zamowienia`), a nie o samo słowo
+       „order" w okolicy: pierwsza wersja łapała przez nie sprzątanie
+       produktów w tym samym pliku. */
+    for (const m of tresc.matchAll(/wp_delete_post/g)) {
+      const wyrazenie = tresc.slice(Math.max(0, m.index - 160), m.index);
+      if (/zamowienia\b/.test(wyrazenie)) {
+        bledy.push(
+          `${plik}: kasuje zamówienie przez wp_delete_post(). Pod HPOS ta funkcja NIE KASUJE NICZEGO — zamówienie przeżywa, a smoke melduje porządek (BLAD-026, 146 zamówień-widm). Kasuj przez $order->delete( true ).`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -776,5 +827,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts)."
 );

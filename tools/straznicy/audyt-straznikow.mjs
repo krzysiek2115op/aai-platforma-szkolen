@@ -1181,6 +1181,38 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-platnosci-wp, reguła 33 (bramki widzą zamówienia, BLAD-026) ---
+  // Klasa, przez którą narosło 146 zamówień-widm na koncie, na którym
+  // właściciel ogląda sklep oczami klienta. Obie połowy mają mutację:
+  // ślepy licznik i sprzątanie, które nic nie kasuje.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "smoke liczy zamówienia przez post_type='shop_order' — pod HPOS odpowiedź brzmi zawsze „zero” (BLAD-026)",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zakup.mjs"),
+    oczekiwanySlad: "post_type='shop_order'",
+    zmien: (s) =>
+      s.includes("'status' => array_keys( wc_get_order_statuses() ) ) ) );")
+        ? s.replace(
+            "\"echo (int) count( wc_get_orders( array( 'limit' => -1, 'return' => 'ids',\" +\n        \" 'status' => array_keys( wc_get_order_statuses() ) ) ) );\"",
+            "\"global $wpdb; echo (int) $wpdb->get_var( \\\"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='shop_order'\\\" );\""
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "smoke kasuje zamówienia przez wp_delete_post() — pod HPOS nie kasuje niczego, a melduje porządek",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zakup.mjs"),
+    oczekiwanySlad: "wp_delete_post()",
+    zmien: (s) =>
+      s.includes("$o = wc_get_order( $id ); if ( $o ) { $o->delete( true ); } } echo 'ok';")
+        ? s.replace(
+            "$o = wc_get_order( $id ); if ( $o ) { $o->delete( true ); } } echo 'ok';",
+            "wp_delete_post( $id, true ); } echo 'ok';"
+          )
+        : null,
+  },
   // --- straznik-platnosci-wp, reguła 32 (jeden nadawca poczty, BLAD-025) ---
   // Obie strony reguły mają mutację: brak naprawy (poczta z wordpress@
   // odpada na SPF) ORAZ naprawa zbyt zachłanna (zabieramy głos wtyczce
