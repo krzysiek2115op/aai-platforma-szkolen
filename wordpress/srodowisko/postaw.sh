@@ -25,6 +25,8 @@ cd "$(dirname "$0")"
 STACK="${STACK_NAZWA:-aai_wp}"
 PORT="${WP_PORT:-8892}"
 ADRES="http://127.0.0.1:${PORT}"
+PORT_POCZTY="${MAILPIT_PORT:-8893}"
+POCZTA="http://127.0.0.1:${PORT_POCZTY}"
 ZRODLO_MOTYWU="https://github.com/MatthewPlugins/automatic-ai.git"
 ODPOWIEDZ="$(mktemp -t aai-weryfikacja.XXXXXX.html)"
 
@@ -106,6 +108,13 @@ for i in $(seq 1 60); do
   sleep 1
 done
 
+komunikat "Czekam na łapacz poczty"
+for i in $(seq 1 30); do
+  curl -sf -o /dev/null "${POCZTA}/api/v1/info" && break
+  [ "$i" = 30 ] && blad "Mailpit nie odpowiada na ${POCZTA}"
+  sleep 1
+done
+
 # --- 4. instalacja WordPressa ----------------------------------------------
 
 if ! wpcli core is-installed >/dev/null 2>&1; then
@@ -142,6 +151,18 @@ for wtyczka in woocommerce tutor; do
     wpcli plugin activate "$wtyczka"
   fi
 done
+
+# Bramka płatności WARSZTATU. Zmierzone przy E0 kroku P4: bez ANI JEDNEJ
+# włączonej bramki kasa oddaje 400 `woocommerce_rest_checkout_payment_method_disabled`
+# — czyli „sprzedaż otwarta" znaczyłoby „nikt nie kupi niczego", bez jednego
+# objawu na stronie. To jest ustawienie ŚRODOWISKA, nie wtyczki: w prawdziwym
+# sklepie bramkę wybiera właściciel (Tpay/PayU/P24/BLIK), a wtyczka nie ma
+# prawa włączać komuś przelewu bankowego. Kontrola `wp aai-platnosci sprawdz`
+# tylko MÓWI, gdy sprzedaż jest otwarta bez bramki.
+if [ "$(wpcli option get woocommerce_bacs_settings --format=json 2>/dev/null | grep -c '"enabled":"yes"' || true)" != "1" ]; then
+  komunikat "Włączam przelew bankowy (bramka testowa warsztatu)"
+  wpcli eval '$u = (array) get_option( "woocommerce_bacs_settings", array() ); $u["enabled"] = "yes"; $u["title"] = "Przelew bankowy"; update_option( "woocommerce_bacs_settings", $u );'
+fi
 
 # --- 7. treść strony głównej (menu, strony, blog) --------------------------
 #
@@ -272,12 +293,35 @@ if [ -f ../wtyczki/aai-sklep/aai-sklep.php ]; then
   rm -f "$KOSZYK"
 fi
 
+# POCZTA — sprawdzona ARTEFAKTEM, nie obecnością kontenera.
+#
+# Kontener stojący na porcie nie dowodzi, że WordPress do niego pisze:
+# mu-plugin mógł się nie zamontować (bind mount pojedynczego pliku bywa
+# martwy po odtworzeniu katalogu), a PHPMailer po cichu wróciłby do
+# `mail()`, którego w tym obrazie NIE MA. Objaw byłby dokładnie taki jak
+# przed E0: `wp_mail()` oddaje `false`, a łańcuch dostarczenia Pluginu 2
+# jest nie do zmierzenia. Więc: wysyłamy prawdziwą wiadomość i czytamy ją
+# z drugiej strony.
+komunikat "Weryfikacja poczty"
+ZNACZNIK="postaw-$(date +%s)"
+curl -sf -X DELETE "${POCZTA}/api/v1/messages" >/dev/null \
+  || blad "łapacz poczty nie przyjmuje poleceń na ${POCZTA}"
+wpcli eval "var_export( wp_mail( 'kontrola@example.test', '${ZNACZNIK}', 'kontrola postaw.sh' ) );" \
+  | grep -q true || blad "wp_mail() oddało false — PHPMailer nie trafił do Mailpita (sprawdź mount mu-plugins/aai-poczta-warsztatu.php)"
+SKRZYNKA="$(mktemp -t aai-poczta.XXXXXX.json)"
+curl -sf -o "$SKRZYNKA" "${POCZTA}/api/v1/messages" || blad "nie udało się odczytać skrzynki"
+grep -q "$ZNACZNIK" "$SKRZYNKA" \
+  || blad "wiadomość nie dojechała do łapacza (temat ${ZNACZNIK} nie ma go w skrzynce)"
+rm -f "$SKRZYNKA"
+curl -sf -X DELETE "${POCZTA}/api/v1/messages" >/dev/null || true
+
 liczba_pozycji=$(grep -o 'href="/[a-z-]*"' "$ODPOWIEDZ" | sort -u | wc -l)
 rm -f "$ODPOWIEDZ"
 
 printf '\n\033[32m✔ Środowisko gotowe\033[0m\n'
 printf '  adres:    %s\n' "$ADRES"
 printf '  admin:    %s/wp-admin (admin / patrz .env)\n' "$ADRES"
+printf '  poczta:   %s (Mailpit — cała wychodząca poczta warsztatu)\n' "$POCZTA"
 printf '  motyw:    %s\n' "$(wpcli theme list --status=active --field=name)"
 printf '  wtyczki:  %s\n' "$(wpcli plugin list --status=active --field=name | tr '\n' ' ')"
 printf '  nawigacja: %s pozycji w menu głównym\n' "$liczba_pozycji"

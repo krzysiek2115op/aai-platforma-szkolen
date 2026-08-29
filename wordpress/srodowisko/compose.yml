@@ -65,6 +65,30 @@ services:
       # katalogu zasłoniłby Tutora i WooCommerce zainstalowane w wolumenie.
       - ../wtyczki/aai-sklep:/var/www/html/wp-content/plugins/aai-sklep
       - ../wtyczki/aai-platnosci:/var/www/html/wp-content/plugins/aai-platnosci
+      # Poczta warsztatu: PHPMailer na SMTP Mailpita. Pliki leżą w repo
+      # (środowisko jest kodem, nie klikaniem), ale NIE należą do żadnej
+      # wtyczki. Montujemy KATALOG, nie pojedynczy plik — sprawdzone
+      # boleśnie przy E1 kroku P4: mount pojedynczego pliku trzyma jego
+      # INODE, więc `sed -i`, `git checkout` i większość edytorów (piszą
+      # przez plik tymczasowy + rename) po cichu ODPINAJĄ go od kontenera.
+      # Kontener dalej podaje STARĄ treść i nic nie wygląda na zepsute —
+      # mój test negatywny przeszedł na zielono właśnie dlatego. Katalog
+      # `mu-plugins` jest w WordPressie pusty z definicji, więc mount
+      # całego katalogu niczego nie zasłania.
+      - ./mu-plugins:/var/www/html/wp-content/mu-plugins:ro
+
+  # Łapacz poczty warsztatu. Zmierzone przy E0 kroku P4: `wp_mail()` w tym
+  # środowisku pada po obu stronach (kontener `wordpress` nie ma sendmaila
+  # w ogóle, `cli` ma busyboksowy bez serwera), więc bez łapacza cały
+  # łańcuch dostarczenia Pluginu 2 — konto, link do hasła, dostęp do kursu —
+  # jest nie do sprawdzenia ani smoke'em, ani okiem właściciela.
+  # Mailpit niczego nie wysyła dalej: trzyma wiadomości u siebie i oddaje
+  # je przez API (`/api/v1/messages`) oraz w przeglądarce.
+  mailpit:
+    image: axllent/mailpit:v1.31.0
+    container_name: ${STACK_NAZWA:-aai_wp}_mailpit
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8893}:8025"
 
   cli:
     image: wordpress:cli-php8.4
@@ -82,6 +106,17 @@ services:
       - ${WARSZTAT}/wp/theme/automatic-ai:/var/www/html/wp-content/themes/automatic-ai:ro
       - ../wtyczki/aai-sklep:/var/www/html/wp-content/plugins/aai-sklep
       - ../wtyczki/aai-platnosci:/var/www/html/wp-content/plugins/aai-platnosci
+      # Poczta warsztatu: PHPMailer na SMTP Mailpita. Pliki leżą w repo
+      # (środowisko jest kodem, nie klikaniem), ale NIE należą do żadnej
+      # wtyczki. Montujemy KATALOG, nie pojedynczy plik — sprawdzone
+      # boleśnie przy E1 kroku P4: mount pojedynczego pliku trzyma jego
+      # INODE, więc `sed -i`, `git checkout` i większość edytorów (piszą
+      # przez plik tymczasowy + rename) po cichu ODPINAJĄ go od kontenera.
+      # Kontener dalej podaje STARĄ treść i nic nie wygląda na zepsute —
+      # mój test negatywny przeszedł na zielono właśnie dlatego. Katalog
+      # `mu-plugins` jest w WordPressie pusty z definicji, więc mount
+      # całego katalogu niczego nie zasłania.
+      - ./mu-plugins:/var/www/html/wp-content/mu-plugins:ro
       - ${WARSZTAT}/skrypty:/praca/skrypty:ro
       - ${WARSZTAT}/import:/praca/import:ro
     entrypoint: ["tail", "-f", "/dev/null"]
