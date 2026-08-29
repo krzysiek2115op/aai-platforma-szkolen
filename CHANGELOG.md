@@ -79,19 +79,53 @@ niego czeka.** Plan kroku, rozstrzygnięcia właściciela i pomiary:
 - **`smoke-wp-zakup` zostawiał wiersze dziennika** po skasowanych
   zamówieniach — kolejne bramki mierzyłyby własne śmieci (ta sama klasa co
   produkty-sieroty ze sweepu P2).
+- **Blokada koszyka wywracała kasę** (przegląd, zmierzone): wyjątek z naszej
+  tabeli albo z `tutor_utils()` oddawał klientowi **HTTP 500 i planszę
+  „krytyczny błąd”** przy dodawaniu do koszyka — a ta sama decyzja przy
+  rysowaniu przycisku była osłonięta i strona kursu oddawała 200. Cały
+  łańcuch w `try`, a po wyjątku **odmawiamy**: wpuszczenie produktu przy
+  nieznanym stanie znaczy zakup kursu, który klient może już mieć, i
+  zamówienie, które nigdy się nie domknie.
+- **Gość mógł zapłacić i nie dostać nic** (przegląd, zmierzone): po dryfie
+  `woocommerce_enable_guest_checkout` na `yes` anonimowy klient przechodził
+  całą kasę, a skutek to `customer_id = 0`, zero zapisów w Tutorze, zero
+  wierszy `dostawy` i ani jednej naszej wiadomości. Kontrola to widziała,
+  ale dopiero PO pobraniu pieniędzy — teraz odmawiamy przed.
+- **Konto założone POZA kasą nie dostawało maila 1** (przegląd, zmierzone):
+  `wp-admin`, `POST /wc/v3/customers` i `wp user create` nie idą przez
+  `wc_create_new_customer()`, więc hak nie odpala, a mail 2 dochodzi
+  normalnie — klient miał kurs i ani jednego linku do hasła. Mail 2 niesie
+  odnośnik do odzyskiwania hasła (bez klucza, więc nie unieważnia maila 1).
+- **Kontrola była ślepa poza oknem 30 dni** (przegląd, zmierzone): opłacone
+  zamówienie z kursem sprzed 40 dni bez odnotowanego dostępu przechodziło
+  jako `Success`. Okno i sufit usunięte.
+- **Ponowienie wysyłało klucz resetu komukolwiek** (znalezione własnym
+  pomiarem): `--ponow=mail_konta/1` posyłał świeży klucz administratorowi,
+  nie zostawiał śladu i meldował sukces. Ponawiamy wyłącznie wiadomości
+  już zlecone.
+- **Nagłówek CLI mówił nieprawdę o kodach wyjścia** — opisywał kod 1 jako
+  jedyny przypadek „brak tabel" (prawda w P1, nieprawda po pięciu krokach).
 
 ### Dowody
 
 - Strażnicy **35/35** (sześć nowych niezmienników P4 w `straznik-platnosci-wp`);
   niezmiennik 20 przepisany, bo celował w NAZWĘ metody — czwarty nawrót tej
   klasy wzorca (0.29.0, 0.44.0, 0.47.0, c6c9c97).
-- Audyt mutacyjny **198** (191 → 198): 196 złapanych, **0 przeoczonych,
-  0 martwych**, 2 pominięte (brak materiału).
-- `npm run check` kod 0; smoke'i WP: maile **38** · zakup 32 · produkty 71 ·
+- Audyt mutacyjny **200** (191 → 200): 198 złapanych, **0 przeoczonych,
+  0 martwych**, 2 pominięte (brak materiału). Reguła 29 celowała najpierw
+  w NAPIS, nie w zachowanie — mutacja podmieniająca całe rozstrzygnięcie
+  przeszła; **piąty nawrót tej klasy w repo**, złapany przez audyt w tym
+  samym przebiegu, w którym powstał.
+- `npm run check` kod 0; smoke'i WP: maile **40** · zakup 32 · produkty 71 ·
   front 84 · kreator 96 · panel 54 · motyw 89 (9 stron) · tutor 44 ·
   lekcja 35 · dane 30 · płatności 23.
 - Dane Pluginu 1 nietknięte: `wp:sprawdz` 73/73 co do znaku, `wp:tutor`
   87 obiektów, **0 różnic**.
+- **Przegląd przed PR-em na zamkniętej liście 10 pytań**: cztery znaleziska,
+  każde potwierdzone uruchomieniowo PRZED naprawą; sześć odpowiedzi „czysto".
+  Piąte znalezisko (ponowienie) znalezione niezależnie przed raportem.
+  Jedno znalezisko odłożone świadomie do P5 (lista kursów w mailu 2 przy
+  przerwanej pętli Tutora albo odpiętym kursie) — szczegóły w KROK-P4.md §9.
 - **Pięć testów negatywnych**, z których dwa obnażyły ŚLEPE sprawdzenia
   w naszym własnym smoke'u (bramka statusu zapisu nie była dotykana przez
   żaden scenariusz; ścieżki „admin klika Processing" w smoke'u nie było
