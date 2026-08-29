@@ -2137,9 +2137,67 @@ wyprowadzała tego od nowa:
      handlowa); zgoda w kasie na natychmiastowe dostarczenie; kompozycja hero
      katalogu po usunięciu pływaka gwarancji (bramka wyglądu 90/90 nic nie
      zgłasza, ale to ocena estetyczna).
-     **NASTĘPNY KROK: PR gałęzi `feat/p5-brzegi`, a po nim P6 — test ręczny
-     właściciela** (wzorzec scenariusza: [W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md)
-     i [TEST-RECZNY-0.51.0.md](docs/plugin-2/TEST-RECZNY-0.51.0.md)).
+     **P5 ZAMKNIĘTY W REPO (2026-08-29): PR #89 zmergowany do `main`, tag
+     `v0.52.0` + release, gałąź skasowana, artefakt zweryfikowany (`git diff
+     origin/main <szczyt>` PUSTY).** Merge decyzją właściciela na dowodach
+     lokalnych — CI stoi do 1 września (wyczerpane minuty Actions); po powrocie
+     potwierdzić **gitleaks**.
+     **TRZY DECYZJE WŁAŚCICIELA PO PRZEGLĄDZIE WYNIKÓW (2026-08-29), wszystkie
+     WYKONANE:** (a) otwórz PR; (b) w miejsce usuniętych pytań FAQ **dopisz
+     pytanie o darmowe lekcje** — weszło jako FAKT: każdy kurs ma **DWIE**
+     lekcje otwarte bez logowania (liczba zmierzona, nie przepisana z notatki;
+     dostęp sprawdzony: gość dostaje 200 i całą treść). Obietnica wymagała
+     DROGI, której nie było — program oznaczał je etykietą „podgląd", a na
+     całej stronie kursu nie było ANI JEDNEGO odnośnika do lekcji; etykieta
+     jest teraz odnośnikiem „przeczytaj za darmo"
+     (`Aai_Sklep_Tutor::adres_lekcji()`); (c) **sprzątnij widma** w dzienniku
+     dostaw — zrobione (3 zamówienia z sesji P4 + 7 produktów-sierot po mojej
+     diagnostyce; wtyczka nigdy nie kasuje produktu, niezmiennik 13, więc to
+     sprzątanie należy do człowieka).
+     **NAJPOWAŻNIEJSZE ZNALEZISKO KROKU — ZE SWEEPU, NIE Z ETAPÓW (cicha utrata
+     treści).** Kopia Kursu 2 w Tutorze miała po smoke'ach **3 moduły i 14
+     lekcji zamiast 6 i 32**, choć na starcie sesji `wp:tutor` mówił „87
+     obiektów, 0 różnic". Nasze tabele były NIETKNIĘTE, więc bramki treści
+     milczały. Przyczyna: zapytanie `meta_value => ''` dopasowuje PIERWSZY
+     LEPSZY wpis danego typu, więc wiersz o **pustym identyfikatorze**
+     „znajdował" cudzy moduł, przejmował go (tytuł, rodzic, uuid), a sprzątanie
+     nadmiaru kasowało jego lekcje. **Ścieżka właściciela była bezpieczna** —
+     kontrakt kreatora nadaje uuid od W4; dziura otwierała się przy wywołaniach
+     warstwy zapisu z pominięciem kontraktu, czyli w naszych smoke'ach.
+     Naprawione NA DWÓCH POZIOMACH: `Aai_Sklep_Tutor::znajdz_po_uuid()`
+     odrzuca pusty uuid (obrona), a `Aai_Sklep_Zapis` nadaje uuid nowemu
+     modułowi i lekcji (poprawność). Droga do przyczyny krok po kroku:
+     [KROK-P5.md](docs/plugin-2/KROK-P5.md) §8b.
+     **DWIE LEKCJE O BRAMKACH, WAŻNIEJSZE NIŻ SAM BŁĄD:**
+     (1) **rachunek sumienia liczący wyłącznie WŁASNE ślady przepuszcza
+     zniszczenie CUDZYCH danych** — `smoke-wp-zwroty` pyta teraz także o liczbę
+     wpisów Tutora i o dziennik dostaw (37 sprawdzeń);
+     (2) **`db1:sekcje` zmienia identyfikatory sekcji** (warstwa zapisu
+     podmienia je parą DELETE + INSERT), więc **po każdym przebiegu trzeba
+     `npm run wp:import`** — inaczej `wp:sprawdz` melduje „WordPress ma sekcję
+     spoza prototypu" przy treści zgodnej co do znaku (zmierzone: 22 fałszywe
+     rozjazdy).
+     **Stan dowodów na koniec P5:** `npm run check` kod 0 (strażnicy **35/35**,
+     testy 83/83, lint, tsc, build, 7 smoke'ów prototypu), audyt mutacyjny
+     **223** (221 złapanych, 0 przeoczonych, 0 martwych), smoke'i WP: motyw 90 ·
+     kreator 96 · produkty 84 · front 82 · panel 54 · maile 46 · tutor 44 ·
+     zakup 38 · **zwroty 37** · lekcja 36 · dane 30 · język 24 · płatności 23;
+     proza **73/73 co do znaku**, kopia w Tutorze **0 różnic**.
+     **ŚRODOWISKO `:8892` ZOSTAJE POSTAWIONE I CZYSTE:** produkty 2, powiązania
+     2, dostawy 6, zamówienia 2 (oba prawdziwe — zakupy właściciela), sprzedaż
+     OTWARTA, konto `klient-test` (NIE kasować — potrzebne do P6), skrzynka
+     `127.0.0.1:8893`.
+     **ZOSTAJE DO DECYZJI WŁAŚCICIELA:** zgoda w kasie na natychmiastowe
+     dostarczenie treści cyfrowej (wyłącza ustawowe 14 dni odstąpienia —
+     pozycja „przed pierwszym klientem", wymaga regulaminu i najlepiej opinii
+     prawnika); kompozycja hero katalogu po usunięciu pływaka gwarancji
+     (bramka wyglądu 90/90 nic nie zgłasza, ale to ocena estetyczna).
+     **NASTĘPNY KROK CAŁEGO PROJEKTU: P6 — TEST RĘCZNY WŁAŚCICIELA.** Wzorzec
+     scenariusza: [W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md)
+     i [TEST-RECZNY-0.51.0.md](docs/plugin-2/TEST-RECZNY-0.51.0.md) (ma tabelę
+     rzeczy POZA zakresem — żeby nie zgłaszać jako błąd tego, co należy do
+     kolejnych kroków). Przed testem: `cd wordpress/srodowisko && ./postaw.sh`
+     (krok zerowy jest ROZKAZEM — bind mount ginie po każdym `git switch`).
 
      Zapis historyczny (zapowiedź przed wykonaniem): **NASTĘPNY KROK: P5**
      (zwroty i przypadki brzegowe) — wg reguły z 2026-08-28 najpierw PLAN kroku
