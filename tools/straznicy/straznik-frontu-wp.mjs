@@ -336,6 +336,23 @@ if (existsSync(join(WTYCZKA, PLIK_TRAS)) && existsSync(join(WTYCZKA, PLIK_KONTRA
   }
 }
 
+/* 10. Klient nigdy nie trafia na surowy ekran logowania WordPressa.
+   ZGŁOSIŁ TO WŁAŚCICIEL (2026-08-29), klikając „Przejdź do kursu" w mailu:
+   przycisk na „Moich kursach" prowadził przez `wp_login_url()` prosto na
+   `wp-login.php`. To łamie decyzję z W6 („klient widzi wygląd, który
+   ustaliliśmy") i rozjeżdża się z linkiem „Ustaw hasło" z maila, który
+   prowadzi na stronę konta WooCommerce w naszym wyglądzie.
+   Wzorzec celuje w ZACHOWANIE: w szablonach frontu nie ma `wp_login_url(`,
+   bo adres logowania składa `Aai_Sklep_Moje::adres_logowania()`. */
+for (const plik of szablony()) {
+  const zrodlo = bezKomentarzy(czytaj(plik));
+  if (/wp_login_url\s*\(/.test(zrodlo)) {
+    bledy.push(
+      `${plik}: prowadzi klienta na wp-login.php (wp_login_url). Adres logowania składa Aai_Sklep_Moje::adres_logowania() — strona konta WooCommerce ma nasz wygląd, surowy ekran WordPressa nie ma żadnego.`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-frontu-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -343,5 +360,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, widok prywatny bez cache'u, wygaszanie ruchu, slug kursu nie zajmuje naszej podstrony).`
+  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, widok prywatny bez cache'u, wygaszanie ruchu, slug kursu nie zajmuje naszej podstrony, logowanie klienta nie prowadzi na wp-login).`
 );

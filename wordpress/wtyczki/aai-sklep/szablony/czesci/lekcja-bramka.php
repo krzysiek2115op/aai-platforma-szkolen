@@ -30,7 +30,7 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php if ( ! is_user_logged_in() ) : ?>
 		<p style="text-align:center">
-			<a href="<?php echo esc_url( wp_login_url( get_permalink( (int) $dane['post_id'] ) ) ); ?>">
+			<a href="<?php echo esc_url( Aai_Sklep_Moje::adres_logowania( (string) get_permalink( (int) $dane['post_id'] ) ) ); ?>">
 				Masz już dostęp? Zaloguj się
 			</a>
 		</p>

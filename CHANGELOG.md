@@ -103,6 +103,15 @@ niego czeka.** Plan kroku, rozstrzygnięcia właściciela i pomiary:
   pomiarem): `--ponow=mail_konta/1` posyłał świeży klucz administratorowi,
   nie zostawiał śladu i meldował sukces. Ponawiamy wyłącznie wiadomości
   już zlecone.
+- **Klient trafiał na surowy ekran logowania WordPressa** (zgłosił właściciel
+  po kliknięciu „Przejdź do kursu" w mailu): przycisk „Zaloguj się" na
+  „Moich kursach" i na bramce lekcji szedł przez `wp_login_url()` prosto na
+  `wp-login.php` — wbrew decyzji z W6 i niespójnie z linkiem „Ustaw hasło",
+  który prowadzi na stronę konta WooCommerce w naszym wyglądzie. Adres składa
+  teraz `Aai_Sklep_Moje::adres_logowania()`, a filtr `woocommerce_login_redirect`
+  odsyła klienta TAM, SKĄD przyszedł (zmierzone: po zalogowaniu ląduje na
+  `/szkolenia/moje/`, nie na stronie konta). Pilnuje `straznik-frontu-wp`;
+  smoke lekcji utrwalał stare zachowanie i został poprawiony.
 - **Nagłówek CLI mówił nieprawdę o kodach wyjścia** — opisywał kod 1 jako
   jedyny przypadek „brak tabel" (prawda w P1, nieprawda po pięciu krokach).
 

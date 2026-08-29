@@ -166,7 +166,17 @@ sprawdz(
   "gość widzi pierwszy akapit lekcji — bramka przecieka"
 );
 sprawdz(tekst(htmlGoscia).includes("Ta lekcja jest częścią kursu"), "gość nie dostał zaproszenia zamiast materiału");
-sprawdz(htmlGoscia.includes("wp-login.php"), "gość nie ma odsyłacza do logowania");
+/*
+ * Gość MA dokąd kliknąć — ale nie na surowy ekran WordPressa. Ta asercja
+ * pytała wcześniej wprost o `wp-login.php`, czyli utrwalała zachowanie,
+ * które właściciel zgłosił jako błąd (2026-08-29): klient po mailu trafiał
+ * na ekran logowania WP zamiast na stronę konta w naszym wyglądzie.
+ */
+sprawdz(
+  /href="[^"]*my-account[^"]*"/.test(htmlGoscia) || /aai_po_logowaniu/.test(htmlGoscia),
+  "gość nie ma odsyłacza do logowania na stronie konta"
+);
+sprawdz(!htmlGoscia.includes("wp-login.php"), "gość dostaje odsyłacz na surowy ekran logowania WordPressa");
 sprawdz(htmlGoscia.includes(probka.tytul), "gość nie widzi nawet tytułu lekcji (a ma widzieć, to nie jest sekret)");
 
 /* ————————————————— 2. właściciel widzi całą lekcję ————————————————— */

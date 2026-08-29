@@ -43,7 +43,7 @@ require __DIR__ . '/czesci/tlo.php';
 			</p>
 			<div class="aai-hero-akcje">
 				<a class="aai-btn aai-btn-glowny aai-btn-duzy"
-					href="<?php echo esc_url( wp_login_url( Aai_Sklep_Moje::adres() ) ); ?>">Zaloguj się</a>
+					href="<?php echo esc_url( Aai_Sklep_Moje::adres_logowania( Aai_Sklep_Moje::adres() ) ); ?>">Zaloguj się</a>
 				<a class="aai-btn aai-btn-obrys aai-btn-duzy"
 					href="<?php echo esc_url( Aai_Sklep_Widok::adres_kursu() ); ?>">Zobacz szkolenia</a>
 			</div>

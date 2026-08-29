@@ -662,6 +662,21 @@ const MUTACJE = [
   },
   // --- straznik-tresci-lekcji ---
   {
+    straznik: "straznik-frontu-wp",
+    opis: "przycisk logowania wraca na surowy wp-login.php (zgłoszone przez właściciela: klient po mailu trafiał na ekran WordPressa)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/moje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/moje.php"),
+    oczekiwanySlad: "prowadzi klienta na wp-login.php",
+    zmien: (s) =>
+      s.includes("Aai_Sklep_Moje::adres_logowania( Aai_Sklep_Moje::adres() )")
+        ? s.replace(
+            "Aai_Sklep_Moje::adres_logowania( Aai_Sklep_Moje::adres() )",
+            "wp_login_url( Aai_Sklep_Moje::adres() )"
+          )
+        : null,
+  },
+
+  {
     straznik: "straznik-tresci-lekcji",
     opis: "materiał zza logowania dołożony do wspólnego odczytu strony (wyciek 91 lekcji)",
     plik: "modules/m1-sklep/odczyt.ts",
