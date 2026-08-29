@@ -243,3 +243,48 @@ NIE pyta o oglądającego: dane strukturalne czyta robot, czyli gość, a stan
 | zamknięta | `https://schema.org/PreOrder` | `/kontakt` |
 
 Prawdziwe kursy w czasie całego pomiaru: `PreOrder` i `/kontakt` — bez zmian.
+
+## 8. Etap E6 — dowody (2026-08-29)
+
+**Strażnik** `straznik-platnosci-wp` dostał pięć niezmienników P3b, każdy
+celujący w ZACHOWANIE, nie w nazwę (ta klasa błędu wracała trzykrotnie:
+0.29.0, 0.44.0, 0.47.0):
+
+| # | Niezmiennik | Co chroni |
+|---|---|---|
+| 14 | odmowa domknięcia na CUDZYM produkcie | zamówienie mieszane nie wygląda na zrealizowane |
+| 15 | filtr obsługi oddaje wartość WEJŚCIOWĄ | cudze produkty zachowują zachowanie WooCommerce |
+| 16 | przycisk pyta o ZAPIS (`is_enrolled`) | „Przejdź do kursu” nie dla zapowiedzi i admina |
+| 17 | warunek sprzedaży badany **dokładnie raz** | przycisk i oferta nie mogą się rozjechać (K2) |
+| 18 | dostępność nie pyta o oglądającego | oferta opisuje kurs, nie jednego człowieka |
+
+Niezmiennik 17 celowo **liczy miejsca**, w których badany jest warunek
+sprzedaży, zamiast pytać o nazwę metody — nazwa da się przemianować, a dwa
+miejsca to zawsze możliwy rozjazd.
+
+**Audyt mutacyjny: 183 → 188**, każda nowa mutacja z `oczekiwanySlad`.
+Wynik: **186 złapanych, 0 przeoczonych, 0 martwych**.
+
+**Smoke `npm run smoke:wp-zakup` — 27 sprawdzeń** na własnym kursie testowym,
+ze sprzątaniem w `finally` (razem z produktem — smoke, który zostawia produkt,
+każe następnym przebiegom mierzyć własne śmieci; sweep P2).
+
+### Trzy testy negatywne — każdy trafia tylko w swój przypadek
+
+| Co zepsute | Padło | Które sprawdzenia |
+|---|---|---|
+| filtr ceny wyłączony | **3 z 27** | cena na stronie, w JSON-LD i na karcie katalogu |
+| filtr CTA wyłączony | **5 z 27** | cztery stany przycisku + dostępność oferty |
+| dostarczanie wyłączone | **3 z 27** | obie ścieżki domykania + dostęp po opłacie |
+
+**Test negatywny wykrył ślepe sprawdzenie w moim własnym smoke'u:** pierwsza
+wersja pytała `katalog.includes("99,00 zł")`, a napis „199,00 zł” **zawiera**
+„99,00 zł” — sprawdzenie przechodziło także wtedy, gdy karta pokazywała cenę
+katalogową (padły 2 zamiast 3). Ta sama klasa co `endsWith("199.00")` przy P2.
+Naprawione: cena wyciągana z klasy karty i porównywana wzorcem CAŁEJ wartości.
+
+**Pułapka narzędziowa z tego etapu (warta zapamiętania):** w Pythonie
+`io.open(p, "w").write(f(s))` **obcina plik, zanim policzy argument** — wyjątek
+w `f(s)` zostawia plik pusty. Tak zniknął cały smoke (jeszcze niecommitowany).
+Kolejność: najpierw policz treść i sprawdź ją asercją, dopiero potem otwieraj
+plik do zapisu.

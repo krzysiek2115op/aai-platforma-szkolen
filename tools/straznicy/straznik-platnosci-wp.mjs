@@ -315,6 +315,82 @@ if (!existsSync(USTAWIENIA)) {
       "class-aai-platnosci-cli.php: KONTROLA PISZE — sprawdz() woła Ustawienia::napraw(). Kontrola, która pisze, mierzy skutek własnego działania i nigdy nie jest czerwona (L11)."
     );
   }
+
+  /* 14–17. Niezmienniki kroku P3b: dostarczanie i przycisk zakupu. */
+  const dostarczanie = join(KATALOG, "includes", "class-aai-platnosci-dostarczanie.php");
+  const cta = join(KATALOG, "includes", "class-aai-platnosci-cta.php");
+
+  if (!existsSync(dostarczanie)) {
+    bledy.push(
+      `${dostarczanie}: brak klasy domykającej zamówienia. Bez niej zamówienie opłacone metodą z czarnej listy Tutora (bacs, cod, cheque) zostaje w processing, a klient nie dostaje kursu mimo zapłaty (zmierzone, KROK-P3B.md §3).`
+    );
+  } else {
+    const d = kod(readFileSync(dostarczanie, "utf8"));
+
+    /* 14. domykamy WYŁĄCZNIE zamówienia złożone z samych kursów. Reguła
+       celuje w ZACHOWANIE: gdzieś musi paść „obcy produkt → nie domykamy",
+       czyli zanegowane pytanie o produkt kursu kończące się odmową. Wersja
+       bez tego domykała zamówienia mieszane i cudzy produkt fizyczny
+       wyglądał na wysłany (zmierzone przed naprawą). */
+    const odmowaNaObcym =
+      /!\s*Aai_Platnosci_Zapis::czy_produkt_kursu\s*\([^;{}]{0,160}\)\s*\{\s*return\s+false\s*;/.test(d);
+    if (!odmowaNaObcym) {
+      bledy.push(
+        `${dostarczanie}: nie widzę odmowy domknięcia na CUDZYM produkcie. Zamówienie mieszane (kurs + towar do wysyłki) dostałoby wtedy status „zrealizowane", choć paczka czeka — processing jest przy nim stanem PRAWDZIWYM.`
+      );
+    }
+
+    /* 15. filtr obsługi pozycji nie rusza cudzych produktów: musi oddać
+       wartość WEJŚCIOWĄ, a nie własną stałą. */
+    if (!/return\s+\(bool\)\s*\$wymaga\s*;/.test(d)) {
+      bledy.push(
+        `${dostarczanie}: filtr obsługi pozycji nie oddaje wartości wejściowej. Cudze produkty w tym samym sklepie muszą zachować zachowanie WooCommerce — inaczej ta wtyczka zmienia sposób realizacji zamówień, których nie dotyczy.`
+      );
+    }
+  }
+
+  if (!existsSync(cta)) {
+    bledy.push(
+      `${cta}: brak klasy przycisku zakupu. Bez niej sklep nie wie, czy sprzedaż jest otwarta, i każde CTA prowadzi do kontaktu.`
+    );
+  } else {
+    const c = kod(readFileSync(cta, "utf8"));
+
+    /* 16. stan „klient ma ten kurs" pyta o ZAPIS. `dostep` jest prawdziwy
+       także dla lekcji-zapowiedzi i dla administratora, więc pokazywałby
+       „Przejdź do kursu" komuś, kto nic nie kupił (pułapka z W6). */
+    if (!/is_enrolled\s*\(/.test(c)) {
+      bledy.push(
+        `${cta}: przycisk nie pyta Tutora o ZAPIS (is_enrolled). Pytanie o sam dostęp jest prawdziwe też dla zapowiedzi i dla administratora — „Przejdź do kursu" zobaczyłby ktoś, kto niczego nie kupił.`
+      );
+    }
+
+    /* 17. jedna decyzja „czy da się kupić" na całą klasę. Reguła celowo NIE
+       pyta o nazwę metody (ta klasa błędu wracała trzykrotnie: 0.29.0,
+       0.44.0, 0.47.0) — liczy MIEJSCA, w których warunek sprzedaży jest
+       badany. Dwa oznaczają, że przycisk i dane strukturalne mogą się
+       rozjechać: strona powie „kup teraz", a oferta zadeklaruje PreOrder. */
+    const pytanO = (c.match(/sprzedaz_otwarta\s*\(/g) || []).length;
+    if (pytanO !== 1) {
+      bledy.push(
+        `${cta}: warunek „sprzedaż otwarta" jest badany ${pytanO} raz(y), a ma być dokładnie raz. Przycisk dla człowieka i dostępność oferty dla wyszukiwarki muszą wynikać z JEDNEJ decyzji, inaczej strona może mówić „kup teraz" przy ofercie PreOrder (K2).`
+      );
+    }
+
+    /* 18. dostępność oferty nie zależy od oglądającego — dane strukturalne
+       czyta robot, czyli gość. Blok metody wycinamy od nagłówka do
+       następnego `function `. */
+    const startD = c.indexOf("function dostepnosc(");
+    if (startD >= 0) {
+      const dalej = c.indexOf("function ", startD + 9);
+      const blokD = c.slice(startD, dalej < 0 ? c.length : dalej);
+      if (/get_current_user_id\s*\(|is_user_logged_in\s*\(|is_enrolled\s*\(/.test(blokD)) {
+        bledy.push(
+          `${cta}: dostępność oferty pyta o OGLĄDAJĄCEGO. Dane strukturalne czyta robot indeksujący — jest gościem, więc stan „mam już ten kurs" opisałby ofertę dla wszystkich stanem jednego człowieka.`
+        );
+      }
+    }
+  }
 }
 
 if (bledy.length > 0) {
@@ -324,5 +400,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego)."
 );

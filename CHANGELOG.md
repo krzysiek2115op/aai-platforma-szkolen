@@ -5,6 +5,80 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.49.0] — 2026-08-29
+
+**Krok P3b: przycisk mówi to, co klient naprawdę może zrobić, a zamówienie
+z kursem nie utyka w realizacji.** Plan kroku, rozstrzygnięcia właściciela
+i pomiary: [docs/plugin-2/KROK-P3B.md](docs/plugin-2/KROK-P3B.md).
+
+### Dodane
+
+- **Dostarczanie dostępu** (`Aai_Platnosci_Dostarczanie`): filtr
+  `woocommerce_order_item_needs_processing` (produkt kursu nigdy nie wymaga
+  obsługi, więc `payment_complete()` prowadzi PROSTO do `completed` — klient
+  dostaje jeden mail zamiast dwóch) plus hak `woocommerce_order_status_processing`
+  jako siatka na ręczną zmianę statusu w panelu. Powód zmierzony, nie przyjęty
+  z dokumentacji: **Tutor ma czarną listę metod płatności** (`bacs`, `cod`,
+  `cheque`) i przy nich NIE domyka zamówienia stojącego w `processing` — więc
+  zarówno przelew opłacony przez bramkę, jak i wpłata potwierdzona przyciskiem
+  „Processing” zostawiały klienta bez kursu, bez jednego objawu.
+  Zamówienia **mieszane zostają w `processing`**, bo tam ten status jest
+  prawdziwy — jest co wysłać; zamówienia bez naszych kursów nie są dotykane.
+- **Cena z jednego źródła** (`Aai_Sklep_Widok::cena_grosze()` + filtr
+  `aai_sklep_cena_kursu` + `Aai_Platnosci_Cena`): strona kursu, karta katalogu
+  i `Offer.price` w danych strukturalnych biorą cenę EFEKTYWNĄ z WooCommerce
+  (czyli z promocją) — z **jednego** wywołania na kurs, pamiętanego na czas
+  żądania (strona pyta o tę samą cenę cztery razy). Nasza tabela zostaje
+  źródłem ceny KATALOGOWEJ i to ją pokazuje kreator (rozstrzygnięcie
+  właściciela). Pusta cena w Woo nie znaczy „za darmo”, tylko brak danych —
+  wtedy wraca cena katalogowa.
+- **Przycisk zakupu w czterech stanach** (`aai_sklep_cta_kursu` +
+  `Aai_Platnosci_Cta`): kontakt przy zamkniętej sprzedaży, kasa z produktem
+  przy otwartej, „Przejdź do kursu” dla kogoś, kto kurs ma, i **„Zamówienie
+  w toku”** dla kogoś, kto czeka na zaksięgowanie przelewu. Czwartego stanu
+  nie było w planie — wyszedł z pomiaru: przy przelewie zapis Tutora stoi na
+  `on-hold`, więc bez niego klient tuż po złożeniu zamówienia widziałby
+  zachętę do drugiego zakupu. Pytamy Tutora o ZAPIS, nie o dostęp (dostęp jest
+  prawdziwy także dla zapowiedzi i dla administratora — pułapka z W6).
+- **`PreOrder` → `InStock`** z tej samej decyzji co przycisk
+  (`aai_sklep_dostepnosc_kursu`, wspólna metoda `produkt_do_kupienia()`), więc
+  strona mówiąca „kup teraz” nie może deklarować oferty niedostępnej (K2).
+  Dostępność NIE pyta o oglądającego — dane strukturalne czyta robot, czyli gość.
+- `straznik-platnosci-wp`: **pięć nowych niezmienników** (zamówienia mieszane
+  nie są domykane, filtr oddaje cudzym produktom wartość wejściową, przycisk
+  pyta o zapis, warunek sprzedaży badany DOKŁADNIE raz, dostępność niezależna
+  od oglądającego) i 5 mutacji w audycie, każda z `oczekiwanySlad`.
+  Audyt: 183 → **188** mutacji.
+- **`npm run smoke:wp-zakup`** (`tools/smoke/smoke-wp-zakup.mjs`, 27 sprawdzeń):
+  cena w trzech miejscach naraz, cztery stany przycisku, zgodność z ofertą,
+  domykanie obiema ścieżkami i B16 — wszystko na własnym kursie testowym,
+  ze sprzątaniem w `finally`.
+
+### Naprawione
+
+- **Rozdzielony adres zakupu od adresu kontaktu.** Jedna metoda obsługiwała
+  przycisk „Dołączam” i zdanie „Masz inne pytanie? Napisz do nas” pod FAQ —
+  różnica była niewidoczna, dopóki oba prowadziły do kontaktu, a od tego kroku
+  wysyłałaby pytającego klienta prosto do płatności.
+
+### Zapamiętane (pułapki zmierzone w tym kroku)
+
+- **`WC_Order::needs_processing()` liczy `is_downloadable() && is_virtual()`**,
+  a wynik trzyma w **cache obiektowym grupy `orders` na dobę**, kluczem per
+  zamówienie (nie transient). Bez trwałego cache znika po żądaniu; z Redisem
+  zamówienie policzone przed instalacją wtyczki trzymałoby starą odpowiedź.
+- **Zagnieżdżona zmiana statusu w haku jest bezpieczna**: WooCommerce zeruje
+  `status_transition` PRZED odpaleniem haków. Tak samo domyka zamówienia Tutor.
+- **`woocommerce_order_status_changed` odpala się tylko przy niepustym `from`** —
+  zamówienie utworzone od razu w `processing` przeszłoby mu pod nosem; stąd hak
+  na `woocommerce_order_status_processing`.
+- **Blok kasy nie renderuje pozycji w HTML** (dociąga je przez Store API), więc
+  „prosto do kasy” mierzy się ciasteczkami `woocommerce_items_in_cart`
+  i `woocommerce_cart_hash`, a nie treścią strony.
+- **`includes("99,00 zł")` przechodzi dla „199,00 zł”** — pierwsza wersja
+  sprawdzenia karty katalogu była przez to ŚLEPA i wykrył to dopiero test
+  negatywny. Ta sama klasa co `endsWith("199.00")` z P2: porównuj CAŁĄ wartość.
+
 ## [0.48.0] — 2026-08-29
 
 **Krok P3a: sklep przechodzi na silnik WooCommerce — z zamkniętą sprzedażą,
