@@ -175,10 +175,6 @@ const KURSY = [
               tytul: "Dostęp bez limitu + aktualizacje",
               opis: "Kupujesz raz i wracasz zawsze. Gdy Claude się zmienia, poprawiamy lekcje — dostajesz je bez dopłat.",
             },
-            {
-              tytul: "Gwarancja 30 dni",
-              opis: "Nie oszczędza Ci czasu? Piszesz jedno zdanie, oddajemy pieniądze — bez pytań o powód.",
-            },
           ],
           kotwica:
             "Jedna godzina konsultacji wdrożeniowej AI kosztuje w Polsce zwykle więcej niż ten kurs. Konsultacja się kończy — kurs i prompty zostają z Tobą na zawsze.",
@@ -188,7 +184,6 @@ const KURSY = [
             "Aktualizacje kursu bez dopłat",
             "Dostęp bez limitu czasu — także po zmianie komputera",
             "Pytania przed zakupem i po nim: odpowiadam osobiście",
-            "Gwarancja zwrotu przez 30 dni",
           ],
           domkniecie:
             "Płacisz raz. Jeśli kurs oszczędzi Ci choć godzinę pracy tygodniowo, zwróci się szybciej niż jeden wieczór spędzony na szukaniu poradników.",
@@ -231,14 +226,6 @@ const KURSY = [
               rola: "uczestnik kursu",
             },
           ],
-        },
-      },
-      {
-        kind: "guarantee" as const,
-        content: {
-          naglowek: "30 dni gwarancji zwrotu",
-          tekst:
-            "Przerób kurs. Jeśli w 30 dni nie zaoszczędzi Ci ani godziny pracy, oddajemy pieniądze — bez pytań i bez formularzy na trzy strony.",
         },
       },
       {
@@ -292,9 +279,9 @@ const KURSY = [
                 "Bez limitu — kupujesz raz, wracasz kiedy chcesz, aktualizacje w cenie.",
             },
             {
-              pytanie: "Co, jeśli kurs u mnie nie zadziała?",
+              pytanie: "Mogę zajrzeć do kursu przed zakupem?",
               odpowiedz:
-                "Masz 30 dni gwarancji. Przerób kurs — jeśli nie zaoszczędzi Ci ani godziny pracy, oddajemy pieniądze bez pytań.",
+                "Tak. Dwie lekcje są otwarte bez logowania i bez podawania adresu — w programie wyżej mają podpis „przeczytaj za darmo”. Zobaczysz w nich, jak wygląda materiał, zanim zdecydujesz.",
             },
           ],
         },
@@ -511,10 +498,6 @@ const KURSY = [
               tytul: "Dostęp bez limitu + aktualizacje",
               opis: "Kupujesz raz, wracasz zawsze. Zmienia się interfejs GitHuba? Poprawki dostajesz bez dopłat.",
             },
-            {
-              tytul: "Gwarancja 30 dni",
-              opis: "Nie czujesz się pewnie z commitami i pull requestami? Oddajemy pieniądze — bez pytań.",
-            },
           ],
           kotwica:
             "Jeden wieczór odzyskiwania nadpisanej pracy kosztuje więcej nerwów niż ten kurs pieniędzy — a bez systemu taki wieczór wraca co kilka miesięcy.",
@@ -524,7 +507,6 @@ const KURSY = [
             "Ćwiczenia na repozytorium, które zakładasz w pierwszym module",
             "Aktualizacje kursu bez dopłat",
             "Dostęp bez limitu czasu — wracasz, kiedy zapomnisz komendy",
-            "Gwarancja zwrotu przez 30 dni",
           ],
           domkniecie:
             "Płacisz raz i przestajesz bać się własnego projektu. Pierwsze cofnięte zmiany zamiast straconej pracy zwracają ten wydatek natychmiast.",
@@ -567,14 +549,6 @@ const KURSY = [
               rola: "uczestnik kursu",
             },
           ],
-        },
-      },
-      {
-        kind: "guarantee" as const,
-        content: {
-          naglowek: "30 dni gwarancji zwrotu",
-          tekst:
-            "Przerób kurs. Jeśli w 30 dni nie poczujesz się pewnie z commitami i pull requestami, oddajemy pieniądze — bez pytań i bez formularzy na trzy strony.",
         },
       },
       {
@@ -628,9 +602,9 @@ const KURSY = [
                 "Bez limitu — kupujesz raz, wracasz kiedy chcesz, aktualizacje w cenie.",
             },
             {
-              pytanie: "Co, jeśli kurs nie jest dla mnie?",
+              pytanie: "Mogę zajrzeć do kursu przed zakupem?",
               odpowiedz:
-                "Masz 30 dni gwarancji. Jeśli po przerobieniu kursu nie poczujesz się pewnie z commitami i pull requestami, oddajemy pieniądze bez pytań.",
+                "Tak. Dwie lekcje są otwarte bez logowania i bez podawania adresu — w programie wyżej mają podpis „przeczytaj za darmo”. Zobaczysz w nich, jak wygląda materiał, zanim zdecydujesz.",
             },
           ],
         },

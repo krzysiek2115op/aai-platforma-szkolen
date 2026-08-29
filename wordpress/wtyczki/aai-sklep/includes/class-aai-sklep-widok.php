@@ -374,6 +374,54 @@ final class Aai_Sklep_Widok {
 	}
 
 	/**
+	 * ŚCIEŻKA NA DYSKU do rastrowej okładki kursu — albo `null`.
+	 *
+	 * SKĄD TA FUNKCJA (krok P5). `okladka()` wyżej oddaje ADRES do
+	 * wyświetlenia w przeglądarce i wystarcza wszystkiemu, co robi Plugin 1.
+	 * Plugin 2 potrzebuje czego innego: PLIKU, który da się wgrać do
+	 * biblioteki mediów jako miniaturę produktu WooCommerce — bo bez niej
+	 * klient widzi w koszyku i w kasie szary zastępnik zamiast kursu, za
+	 * który płaci.
+	 *
+	 * DLACZEGO WYŁĄCZNIE PNG. Nasze okładki są wektorowe, a WordPress
+	 * domyślnie nie przyjmuje SVG do biblioteki mediów (może nieść skrypt;
+	 * właściciel świadomie odrzucił dopuszczenie tego formatu 2026-08-29).
+	 * Rastrowa wersja powstaje w repozytorium (`node tools/okladki-png.mjs`)
+	 * i leży obok źródła — renderowania po stronie serwera nie ma czym
+	 * zrobić: `Imagick` w kontenerze instalacji zwraca PUSTĄ listę formatów
+	 * SVG (zmierzone), a GD ich nie czyta.
+	 *
+	 * Adresu zewnętrznego (`http(s)://`) NIE pobieramy: ściąganie cudzego
+	 * pliku przy zapisie kursu to sieć w ścieżce zapisu i cudza treść
+	 * w naszej bibliotece mediów. Taka okładka po prostu nie ma wersji
+	 * rastrowej i produkt zostaje bez miniatury.
+	 *
+	 * @param string|null $wartosc Wartość kolumny `cover_url`.
+	 */
+	public static function okladka_plik( ?string $wartosc ): ?string {
+		if ( null === $wartosc || '' === trim( $wartosc ) ) {
+			return null;
+		}
+		$wartosc = trim( $wartosc );
+		if ( preg_match( '~^https?://~i', $wartosc ) ) {
+			return null;
+		}
+
+		$nazwa = basename( '/' . ltrim( $wartosc, '/' ) );
+		$png   = preg_replace( '~\.[a-z0-9]+$~i', '', $nazwa ) . '.png';
+
+		// Kolejność jak w `okladka()`: najpierw plik w katalogu instalacji
+		// (np. wgrany przez właściciela), potem ten przy wtyczce.
+		$w_instalacji = ABSPATH . ltrim( dirname( '/' . ltrim( $wartosc, '/' ) ), '/' ) . '/' . $png;
+		if ( is_readable( $w_instalacji ) ) {
+			return $w_instalacji;
+		}
+
+		$przy_wtyczce = AAI_SKLEP_KATALOG . 'assets/okladki/' . $png;
+		return is_readable( $przy_wtyczce ) ? $przy_wtyczce : null;
+	}
+
+	/**
 	 * Nagłówek sekcji: etykieta z numerem, tytuł i opcjonalny wstęp.
 	 *
 	 * Wspólny dla wszystkich sekcji strony sprzedażowej, bo w prototypie był

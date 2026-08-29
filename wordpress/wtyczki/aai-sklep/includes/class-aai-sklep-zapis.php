@@ -51,6 +51,21 @@ final class Aai_Sklep_Zapis {
 	private const POMIJANE_W_POROWNANIU = array( 'created_at', 'updated_at' );
 
 	/**
+	 * Identyfikator wiersza: podany albo świeżo nadany.
+	 *
+	 * Ta sama zasada, co w `Aai_Sklep_Kontrakt` panelu (W4): brak `id`
+	 * znaczy NOWY wiersz, a nowy wiersz musi dostać uuid — bo pusty
+	 * identyfikator nie jest „brakiem danych", tylko daną, która zderza
+	 * się z każdą inną pustą.
+	 *
+	 * @param mixed $id Wartość z wejścia.
+	 */
+	private static function identyfikator( $id ): string {
+		$id = is_string( $id ) ? trim( $id ) : '';
+		return '' !== $id ? $id : wp_generate_uuid4();
+	}
+
+	/**
 	 * Zapisuje jeden kurs razem z sekcjami, modułami i lekcjami.
 	 *
 	 * Wejście ma kształt formatu 2 z `tools/eksport-wp.mjs`: nazwa pola
@@ -468,7 +483,18 @@ final class Aai_Sklep_Zapis {
 		$docelowe_moduly = array();
 		$docelowe_lekcje = array();
 		foreach ( (array) ( $kurs['moduly'] ?? array() ) as $m ) {
-			$mid                       = (string) $m['id'];
+			/*
+			 * NOWY WIERSZ DOSTAJE UUID TUTAJ, nie tylko w kontrakcie panelu.
+			 *
+			 * `(string) null` to PUSTY ŁAŃCUCH, a wiersz o pustym `id` jest
+			 * nieodróżnialny od innych takich: kopia do Tutora „znajdowała"
+			 * po nim cudzy moduł, przejmowała go i kasowała jego lekcje
+			 * (zmierzone przy P5 — 18 lekcji Kursu 2 zniknęło z kopii).
+			 * Kontrakt kreatora nadaje uuid od W4, więc ścieżka właściciela
+			 * była bezpieczna — ale warstwa zapisu jest publicznym API tej
+			 * wtyczki i nie może zależeć od tego, kto ją woła.
+			 */
+			$mid                       = self::identyfikator( $m['id'] ?? null );
 			$docelowe_moduly[ $mid ] = array(
 				'id'        => $mid,
 				'course_id' => $id,
@@ -477,7 +503,7 @@ final class Aai_Sklep_Zapis {
 				'summary'   => self::tekst_albo_null( $m['summary'] ?? null ),
 			);
 			foreach ( (array) ( $m['lekcje'] ?? array() ) as $l ) {
-				$lid       = (string) $l['id'];
+				$lid       = self::identyfikator( $l['id'] ?? null );
 				$docelowa  = array(
 					'id'           => $lid,
 					'module_id'    => $mid,

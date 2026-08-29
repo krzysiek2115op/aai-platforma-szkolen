@@ -176,6 +176,34 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/* PUSTY UUID NIE MA PRAWA NICZEGO DOPASOWAĆ.
+
+   Sweep P5. Wyszukanie wpisu po `meta_value => ''` dopasowuje PIERWSZY
+   LEPSZY wpis danego typu — więc wiersz o pustym identyfikatorze
+   „znajdował" CUDZY moduł w Tutorze, przejmował go (tytuł, rodzic, uuid),
+   a sprzątanie nadmiaru kasowało potem jego lekcje. Zmierzone: 18 lekcji
+   Kursu 2 zniknęło z kopii, bez jednego objawu — kontrola widziała to
+   dopiero po fakcie, a smoke meldował sukces, bo liczył własne ślady.
+
+   Reguła pyta o ZACHOWANIE (wyjście z funkcji przy pustej wartości), nie
+   o nazwę stałej ani o obecność słowa — ta pułapka wracała w tym repo
+   sześć razy. */
+{
+  const plik = join(WTYCZKA, PLIK_KOPII);
+  const tresc = readFileSync(plik, "utf8");
+  const i = tresc.indexOf("function znajdz_po_uuid");
+  if (i < 0) {
+    bledy.push(`${plik}: nie ma wyszukiwania wpisu po uuid — nie mam czego pilnować, sprawdź, czy kopia dopasowuje wpisy inaczej.`);
+  } else {
+    const naglowek = tresc.slice(i, tresc.indexOf("get_posts", i));
+    if (!/(''|""|0)\s*===\s*(trim\s*\(\s*)?\$uuid|\$uuid\s*===\s*('' |''|"")|empty\s*\(\s*\$uuid\s*\)|''\s*===\s*trim/.test(naglowek) || !/return\s+0\s*;/.test(naglowek)) {
+      bledy.push(
+        `${plik}: znajdz_po_uuid() nie odrzuca PUSTEGO identyfikatora przed zapytaniem. Zapytanie po pustym meta dopasowuje pierwszy lepszy wpis, więc kopia przejmuje CUDZY moduł i kasuje jego lekcje jako nadmiar (sweep P5: tak zniknęło 18 lekcji Kursu 2).`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-tutora:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -183,5 +211,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu."
 );

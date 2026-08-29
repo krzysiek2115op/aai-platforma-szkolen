@@ -542,7 +542,7 @@ już dwa razy (0.29.0, 0.44.0).
 | 11 | Plugin 2 **nie dodaje żadnej trasy** *(L10)* | grep: zero `add_rewrite_rule` w `aai-platnosci` (koszyk i kasa to strony WP, nie reguły przepisywania — BLAD-021 tej ścieżki nie dotyczy; gdyby kiedyś trasa była potrzebna, wymaga otwarcia `Aai_Sklep_Trasy::PODSTRONY` filtrem) | strażnik P1 |
 | 12 | `adres_zakupu()` pada wyłącznie na liście dozwolonych miejsc (plik + funkcja): `hero.php`, `czesci/cena.php`, `czesci/final-cta.php`, `czesci/karta.php` | lista w strażniku + **kontrprzykład w audycie mutacyjnym**: wstawienie `adres_zakupu()` do `faq.php` zapala strażnika | `straznik-frontu-wp` |
 | 13 | zero kasowania produktu Woo | grep: żadnego `wp_delete_post` / `->delete(` na produkcie w `aai-platnosci` | strażnik P1 |
-| 14 | kolejność powiązania: `price_type` przed `product_id`, kasowanie odwrotnie *(B2)* | smoke P5: ręcznie `product_id` bez `price_type` → zakup → zapis ma `pending`, nie `completed` | smoke P5 |
+| 14 | kolejność powiązania: `price_type` przed `product_id`, kasowanie odwrotnie *(B2)* | **smoke P5, DWIE sceny** (opis w tym wierszu był do 0.52.0 NIEPRAWDZIWY): zła kolejność (`product_id` bez `price_type`) → zapis `completed`, czyli DOSTĘP BEZ ZAPŁATY; nasza kolejność (`price_type` bez `product_id`) → **żadnego zapisu**. `do_enroll()` nadaje `pending`, gdy kurs JEST sprzedawalny, a `completed`, gdy nie jest | smoke P5 |
 | 15 | żaden szablon nie formatuje ceny sam | grep po `szablony/` na formatowanie kwot | strażnik P1 |
 | 16 | żadna nasza strona nie zależy od skryptu Woo *(L9)* | smoke frontu: CTA działa jako czysty odnośnik GET przy zdjętych zasobach Woo | smoke P3b |
 | 17 | każdy słuchacz `aai_sklep_*` łapie `Throwable` *(L1)* | grep: każda metoda podpięta pod `aai_sklep_*` ma `catch ( Throwable` | strażnik P1 |
@@ -619,15 +619,15 @@ Czwarta kolumna „dowód" *(P5)*: `smoke` = mierzony test z testem negatywnym,
 |---|---|---|---|
 | 1 | produkt wirtualny nie domyka zamówienia → brak dostępu mimo zapłaty | filtr `needs_processing` + auto-complete jako drugi pas (sekcja 5.1) | smoke P3b |
 | 2 | **każdy zapis produktu kasuje `_tutor_product`** (`save_post_product` czyta `$_POST`) — masowa edycja, REST, `wc_scheduled_sales` też *(B13)* | nasz hak prio > 10 przywraca znacznik; niezmiennik 6 o zachowaniu | smoke P2 |
-| 3 | **Tutor Pro nadpisałby naszą cenę** przy każdym zapisie kursu | jednokierunkowość zależy od braku Pro — kontrola sprawdza `has_pro` i mówi | kontrola |
+| 3 | **Tutor Pro nadpisałby naszą cenę** przy każdym zapisie kursu | jednokierunkowość zależy od braku Pro — **kontrola sprawdza to dopiero od 0.52.0** (wcześniej był to zapis bez pokrycia w kodzie); przy wykryciu Pro mówi wprost, że dowody P2 przestają obowiązywać | **kontrola** |
 | 4 | `mark_order_complete()` woła zmianę statusu **wewnątrz** obsługi zmiany statusu → hak ×2 (przy dwóch kursach ×4); obiekt zamówienia w rekurencji NIEAKTUALNY *(B6)* | znacznik UNIQUE w `dostawy`; świeży `wc_get_order()` w haku | smoke P4 |
 | 5 | `do_enroll()` nie widzi zapisów `pending` → ponowna próba tworzy drugi wiersz | nie tworzymy zapisów sami; kontrola raportuje duplikaty | kontrola |
 | 6 | `is_enrolled()` ma pamięć na czas żądania — w tym samym żądaniu mówi „nie" | dostęp weryfikowany osobnym żądaniem (pułapka z W6) | smoke P3b |
-| 7 | **zwrot CZĘŚCIOWY nie odbiera dostępu** (brak haka refundowego dla ścieżki Woo) | zachowanie, nie usterka; decyzja właściciela przy prawdziwej bramce | otwarte |
-| 8 | drugi zakup ukończonego kursu = pieniądze wzięte, zamówienie nigdy niedomknięte *(B10)* | filtr `add_to_cart_validation` + trzeci stan CTA; kontrola: zamówienia `processing` starsze niż X h bez `_is_tutor_order_for_course` | smoke P5 + kontrola |
+| 7 | **zwrot CZĘŚCIOWY nie odbiera dostępu** (brak haka refundowego dla ścieżki Woo) | zachowanie, nie usterka — zwrot 50 zł ze 199 zł jest korektą ceny, nie rezygnacją z kursu; zwrot PEŁNY odbiera dostęp bez naszego kodu (oba zmierzone w P5) | **smoke P5** |
+| 8 | drugi zakup ukończonego kursu = pieniądze wzięte, zamówienie nigdy niedomknięte *(B10)* | filtr `add_to_cart_validation` + trzeci stan CTA; **kontrola zgłasza kodem 1 zamówienie złożone wyłącznie z kursów, stojące w `processing` dłużej niż godzinę** — domykamy je natychmiast, więc taki stan znaczy awarię mechanizmu i klienta bez dostępu mimo zapłaty | **smoke P5 + kontrola** |
 | 9 | nowy klucz hasła unieważnia poprzedni link; **link żyje 24 h**, `wp_mail()` pada po cichu *(B8)* | jeden klucz w jednym mailu; termin w treści + odnośnik `lost-password`; wynik `wp_mail()` zapisany | smoke P4 (w tym „link po 25 h") |
 | 10 | mail na adres z zamówienia = przejęcie konta *(B9)* | adresat `$user->user_email`; klucz tylko dla konta z tego żądania | smoke P4 |
-| 11 | `tutor_update_product_url()` zwraca `null` dla produktu spoza Tutora → psuje link w koszyku innym produktom | odnotowane; dziś sklep sprzedaje wyłącznie kursy — to nie jest gwarancja na zawsze | otwarte |
+| 11 | `tutor_update_product_url()` zwraca `null` dla produktu spoza Tutora → psuje link w koszyku innym produktom | **naprawione w P5** (zmierzone przed naprawą: cudzy produkt → `NULL`): nasz filtr na priorytecie 20, PO Tutorze, przywraca odnośnik cudzej pozycji, a odnośnik kursu prowadzi prosto na `/szkolenia/<slug>/` zamiast na `/courses/…`, które i tak przekierowujemy | **smoke P5** |
 | 12 | zero transakcji w łańcuchu Tutora; przerwane żądanie zostawia stan pośredni | kontrola z kodem 1 — jedyna odpowiedź na cudzy kod; **dwa progi** *(B15)*: „rozjazd" (kod 1) vs „w trakcie" (kod 0 + komunikat), rozstrzygane po `sync_ts` | kontrola |
 | 13 | `_tutor_wc_guest_customer_id` na poście kursu, pojedynczą wartością — drugi gość nadpisuje pierwszego *(B12)* | gościnna gałąź NIE jest zamykana opcją (pyta o `customer_id` i sesję) — asercja na DANYCH: żaden wpis kursu nie ma tego klucza | kontrola (kod 1) |
 | 14 | `is_tutor_order()` **wywala fatal** na nieistniejącym zamówieniu (`wc_get_order()` → `false`, kod robi `->get_meta()`) *(drobne B)* | nasza kontrola i CLI nigdy nie wołają jej bez wcześniejszego `wc_get_order()` | strażnik P1 (grep) |
@@ -655,8 +655,8 @@ nieprawdziwe — dotyczyło tylko frontu. Naprawdę:
 |---|---|---|
 | prawdziwa bramka płatności, faktury, VAT | wymaga danych firmy i umowy z operatorem | osobny krok po P6 |
 | regulamin + zgoda na natychmiastowe dostarczenie treści cyfrowej | decyzja właściciela 2026-08-26 | **przed pierwszym prawdziwym klientem**, nie po nim |
-| zobowiązania handlowe stron sprzedażowych (gwarancja 30 dni, dostęp bez limitu, aktualizacje bez dopłat) | należą do właściciela, nie do kodu | przy uruchomieniu sprzedaży |
-| zwrot częściowy nie odbiera dostępu | cudzy kod, brak haka | do decyzji przy bramce |
+| zobowiązania handlowe stron sprzedażowych (dostęp bez limitu, aktualizacje bez dopłat) | należą do właściciela, nie do kodu. **Gwarancja 30 dni ZNIKŁA ze stron w 0.52.0** — decyzja właściciela: zwrotów nie realizujemy, więc strona ich nie obiecuje | przy uruchomieniu sprzedaży |
+| ~~zwrot częściowy nie odbiera dostępu~~ | **ROZSTRZYGNIĘTE w P5**: zachowanie zamierzone, pilnowane smoke'em | — |
 | aktualizacje Tutora/Woo unieważniają dowody | internals cudzych wtyczek | kontrola wersji w `sprawdz` + trzy fakty do potwierdzenia (sekcja 0) |
 | los pustych stron koszyka/kasy Tutora (ID 151, 152) | skasować czy przekierować — do obejrzenia na żywym froncie | P3a |
 
@@ -670,7 +670,7 @@ nieprawdziwe — dotyczyło tylko frontu. Naprawdę:
 | **P3a** | ustawienia jako kod (z filtrami B17), **adresy PL** = polskie sluggi stron Woo (koszyk `/koszyk/`, kasa `/kasa/` — do potwierdzenia z właścicielem przy oglądaniu) + los stron Tutora 151/152, wygląd koszyka i kasy (rozszerzenie w Pluginie 1, *L8*) | `smoke-wp-motyw` na koszyku i kasie z asercją **„zakres trafił w ≥ 1 element"** (lekcja W5) |
 | **P3b** | CTA (trzy stany), cena z Woo na froncie i w JSON-LD, `InStock`, mechanizm domykania | **przebieg zakupu obiema ścieżkami** (sekcja 4: `bacs` ręcznie ORAZ WP-CLI z `payment_complete()`); porównanie `needs_processing` vs `_downloadable` POMIAREM; powtórny zakup na ten sam adres *(B16)*; smoke SEO: cena strony = cena JSON-LD |
 | **P4** | konto przy zakupie, dwa maile, tabela `dostawy` | mail przechwycony w teście: **1 na użytkownika + 1 na zamówienie**, link żyje, hasła nie ma, klucz tylko dla własnego konta; trzy przypadki brzegowe: **zamówienie `bacs`, które nigdy nie doszło do `completed` — klient MA link do hasła** *(K1)*; **link otwarty po 25 h** *(B8)*; wyścig dwóch haków → jeden mail |
-| **P5** | zwroty i przypadki brzegowe | **każdy wiersz sekcji 13 ma niepustą kolumnę „dowód", a każdy wiersz `smoke` ma test negatywny** *(P5)* |
+| **P5** | zwroty i przypadki brzegowe | **ZALICZONA 2026-08-29 (0.52.0)**: wszystkie 15 wierszy sekcji 13 sprawdzone URUCHOMIENIOWO, cztery puste dowody uzupełnione (3, 8, 11, 14); `smoke-wp-zwroty` 35 sprawdzeń z sześcioma testami negatywnymi. Szczegóły: [KROK-P5.md](KROK-P5.md) |
 | **P6** | test ręczny właściciela | scenariusz w repo, konto `klient-test` (istnieje z W6) |
 
 Każdy krok: gałąź → strażnik + smoke + audyt mutacyjny → PR → **merge wyłącznie

@@ -820,6 +820,72 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* 34. KASA MÓWI PRAWDĘ O ZGODACH, A POZYCJA KOSZYKA JEST KLIKALNA.
+
+   Dwie reguły z kroku P5, obie o rzeczach, które klient CZYTA i KLIKA,
+   a które w cudzym kodzie działają wbrew intuicji:
+
+   (a) WooCommerce drukuje pod formularzem kasy zdanie o „Warunkach
+       i zasadach" TAKŻE wtedy, gdy strony regulaminu nie ma — przy braku
+       strony nie usuwa wzmianki, tylko drukuje ją bez odnośnika
+       (`checkout-frontend.js`: `d.gu ? "<a…>" : "…"`). Klient czytał, że
+       zgadza się na dokument, którego nie może przeczytać. Podmiana idzie
+       przez drzewo bloków W PAMIĘCI — nigdy przez zapis do treści strony,
+       bo `str_replace` w cudzej treści bloków uszkodził przy P3a 13 bloków
+       koszyka i 22 kasy bez jednego objawu.
+
+   (b) `tutor_update_product_url()` kończy się BEZ `return` dla produktu,
+       który nie jest kursem, więc filtr `woocommerce_cart_item_permalink`
+       dostaje `null` i cudza pozycja traci w koszyku odnośnik. Nasza
+       naprawa musi biec PO filtrze Tutora (priorytet > 10) — na 10 albo
+       niżej Tutor nadpisałby wynik i reguła byłaby martwa. */
+{
+  const KASA = join(KATALOG, "includes", "class-aai-platnosci-kasa.php");
+  if (!existsSync(KASA)) {
+    bledy.push(`${KASA}: brak klasy kasy — zdanie o zgodach wraca do wersji WooCommerce, czyli powołuje się na nieistniejący regulamin.`);
+  } else {
+    const kasa = kod(readFileSync(KASA, "utf8"));
+
+    if (!/add_filter\(\s*'render_block_data'/.test(kasa)) {
+      bledy.push(`${KASA}: zdanie o zgodach nie jest podmieniane (brak filtru render_block_data) — kasa wraca do powoływania się na „Warunki i zasady", których nie ma.`);
+    }
+    /* Zapis do treści strony jest ZAKAZANY — pytamy o zachowanie, nie
+       o nazwę: żadnej podmiany łańcuchów na treści wpisu ani zapisu wpisu. */
+    if (/wp_update_post|str_replace\s*\([^)]*post_content|->post_content\s*=/.test(kasa)) {
+      bledy.push(`${KASA}: zdanie o zgodach zapisywane do TREŚCI strony kasy. Podmiana w cudzej treści bloków to klasa błędu z P3a (35 uszkodzonych bloków bez objawu) — atrybut ustawiamy w drzewie bloków w pamięci.`);
+    }
+    /* Odnośnik pozycji: filtr MUSI mieć priorytet wyższy niż 10 (Tutor). */
+    const mFiltr = kasa.match(/add_filter\(\s*'woocommerce_cart_item_permalink'[^;]*?,\s*(\d+)/);
+    if (!mFiltr) {
+      bledy.push(`${KASA}: odnośnik pozycji koszyka nie jest naprawiany — filtr Tutora oddaje null dla produktu spoza kursów i zabiera cudzej pozycji klikalność (pułapka 11 schematu).`);
+    } else if (Number(mFiltr[1]) <= 10) {
+      bledy.push(`${KASA}: naprawa odnośnika pozycji ma priorytet ${mFiltr[1]}, czyli biegnie PRZED albo RAZEM z filtrem Tutora (10) — jego wynik nadpisze nasz i reguła będzie martwa.`);
+    }
+  }
+}
+
+/* 35. `is_tutor_order()` NIGDY BEZ WCZEŚNIEJSZEGO `wc_get_order()`.
+
+   Pułapka 14 schematu, zmierzona w cudzym kodzie: funkcja robi
+   `wc_get_order( $id )->get_meta( … )` bez sprawdzenia, czy zamówienie
+   istnieje — na nieistniejącym identyfikatorze wywala FATAL, czyli biały
+   ekran zamiast komunikatu. Dziś nie wołamy jej ani razu i ta reguła jest
+   PREWENCYJNA: pilnuje, żeby pierwsze wywołanie od razu miało bezpiecznik,
+   zamiast czekać na awarię u klienta. */
+{
+  for (const plik of plikiPhp(KATALOG)) {
+    const tresc = kod(readFileSync(plik, "utf8"));
+    for (const m of tresc.matchAll(/is_tutor_order\s*\(/g)) {
+      const przed = tresc.slice(Math.max(0, m.index - 400), m.index);
+      if (!/wc_get_order\s*\(/.test(przed)) {
+        bledy.push(
+          `${plik}: woła is_tutor_order() bez wcześniejszego wc_get_order(). Ta funkcja Tutora robi ->get_meta() na wyniku wc_get_order() BEZ sprawdzenia, czy zamówienie istnieje — na nieistniejącym identyfikatorze daje fatal, czyli biały ekran zamiast komunikatu (pułapka 14 schematu).`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -827,5 +893,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order())."
 );

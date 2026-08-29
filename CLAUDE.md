@@ -2066,12 +2066,87 @@ wyprowadzała tego od nowa:
      `postaw.sh` pyta KONTENER, czy widzi mu-plugin poczty. PR #87 usunął zrzut
      ekranu wciągnięty do repo hurtowym `git add -A` — **przy `add -A` najpierw
      `git status`**.
-     **NASTĘPNY KROK: P5** (zwroty i przypadki brzegowe) — wg reguły z 2026-08-28
-     najpierw PLAN kroku + pytania doprecyzowujące i CZEKAĆ NA ZGODĘ. P5 dziedziczy
-     wymaganie: **gwarancja 30 dni ma działać i odbierać dostęp do kursu**.
-     Razem z P5 (albo osobnym małym krokiem) wchodzą dwie niezrobione decyzje:
-     **zdjęcie z kasy zdania o „Warunkach i zasadach"** i **okładka produktu jako
-     PNG renderowane przy synchronizacji**.
+  12. **P5 ZROBIONY (2026-08-29, wersja 0.52.0, gałąź `feat/p5-brzegi`) — PR
+     NIEOTWARTY, czeka na zgodę właściciela.** Dokument kroku z pomiarami,
+     pułapkami i listą rzeczy do jego decyzji:
+     **[docs/plugin-2/KROK-P5.md](docs/plugin-2/KROK-P5.md) — CZYTAĆ PRZED PRACĄ.**
+     **ZAKRES ZMIENIŁ WŁAŚCICIEL W TRAKCIE PLANOWANIA.** Krok wchodził
+     z wymaganiem „gwarancja 30 dni MA DZIAŁAĆ", a rozstrzygnięcie brzmi:
+     *„usuńmy sekcję ze strony sprzedażowej, klient kupuje i nie może zwrócić
+     kursu"*. Przedstawiłem mu przedtem rozróżnienie trzech rzeczy i ono
+     obowiązuje dalej: (1) **gwarancja 30 dni** to nasza dobrowolna obietnica —
+     da się zdjąć; (2) **ustawowe 14 dni odstąpienia** NIE znika przez
+     skasowanie sekcji — wyłącza je dopiero zgoda w kasie na natychmiastowe
+     dostarczenie treści cyfrowej (pozycja „przed pierwszym klientem",
+     DIAGRAM §15; nie jestem prawnikiem, do potwierdzenia z kimś, kto nim jest);
+     (3) **techniczny zwrot** jest potrzebny niezależnie od 1 i 2 — obciążenie
+     zwrotne, podwójna płatność, pomyłkowy zakup, reklamacja.
+     **NAJWAŻNIEJSZY POMIAR KROKU: zwrot ODBIERA dostęp bez ani jednej linijki
+     naszego kodu.** `enrolled_courses_status_change()` Tutora ustawia status
+     zapisu równy statusowi zamówienia, a `get_enrolled_courses_ids_by_user()`
+     filtruje po tym statusie. Zmierzone na czterech drogach, którymi klient
+     widzi dostęp (zapis, `is_enrolled`, „Moje kursy", treść lekcji). Kodu więc
+     NIE pisaliśmy — powstał `smoke-wp-zwroty` (35 sprawdzeń), który utrwala
+     cudze zachowanie jako NASZE WYMAGANIE. **Zwrot CZĘŚCIOWY dostępu nie
+     odbiera i to zostaje** (korekta ceny ≠ rezygnacja z kursu).
+     **CO POWSTAŁO POZA TYM:** strona przestała obiecywać zwrot (obietnica
+     siedziała w CZTERECH miejscach na kurs + pływak w hero katalogu, osobno
+     w WP i w prototypie); kasa nie powołuje się już na nieistniejący regulamin
+     (klient czyta „Kontynuując zamówienie, wyrażasz zgodę na naszą Politykę
+     prywatności."); produkt w koszyku ma **okładkę kursu** zamiast szarego
+     zastępnika; **`npm run db1:sekcje`** (bezpieczna droga dla poprawek treści
+     sprzedażowej — `db1:seed` zaczyna od `akcja: "usun"`, czyli kasuje prozę
+     73 lekcji); `node tools/okladki-png.mjs`.
+     **DECYZJA O OKŁADCE ZMIENIONA POMIAREM:** „renderujemy PNG przy
+     synchronizacji" jest NIEWYKONALNE — `Imagick::queryFormats("*SVG*")`
+     w kontenerze zwraca PUSTĄ listę, GD SVG nie czyta, `rsvg-convert`/
+     `inkscape`/`convert` nie istnieją. PNG jest artefaktem repozytorium
+     (narzędzie + skrót źródła obok), wariant zatwierdzony przez właściciela.
+     Render KWADRATOWY 1200×1200, bo Woo składa miniaturę przycięciem 300×300
+     i z tytułu zostawało „poprawnie / zystać z Claude".
+     **DWIE KOREKTY SCHEMATU** (DIAGRAM zaktualizowany): niezmiennik 14 opisywał
+     objaw NA OPAK — `product_id` bez `price_type` daje zapis `completed`, czyli
+     DOSTĘP BEZ ZAPŁATY, a nie `pending`; oraz **cztery pułapki z §13 miały puste
+     dowody** mimo deklaracji (3 Tutor Pro, 8 wiszące zamówienia, 11 odnośnik
+     pozycji koszyka, 14 `is_tutor_order()`) — wszystkie zamknięte, §13 nie ma
+     już ani jednego wiersza „otwarte".
+     **CZTERY RZECZY DO ZAPAMIĘTANIA:**
+     (1) **`db1:sekcje` zmienia identyfikatory sekcji** (warstwa zapisu podmienia
+     je parą DELETE + INSERT), więc **po każdym przebiegu trzeba `npm run
+     wp:import`** — inaczej `wp:sprawdz` melduje „WordPress ma sekcję spoza
+     prototypu" przy treści zgodnej co do znaku (zmierzone: 22 fałszywe rozjazdy);
+     (2) **`tutor()->wc` NIE ISTNIEJE** — pierwszy test negatywny nic nie wyłączył
+     i smoke przechodził, czyli ślepota testu wyglądająca jak dowód; callback
+     zdejmować po nazwie klasy z `$wp_filter`;
+     (3) **`waitForSelector(".wc-block-cart-items__row")` trafia w SZKIELET
+     ładowania koszyka**, nie w treść — pomiar raportował brak okładki, choć
+     Store API oddawało ją poprawnie;
+     (4) **test negatywny wiszącego zamówienia nie zadziałał**, dopóki statusu
+     nie ustawiono prosto w tabeli HPOS — bo mechanizm z P3b domknął zamówienie
+     w tym samym żądaniu. Dobra wiadomość o kodzie, zła o naiwnym teście.
+     **Stan dowodów:** `npm run check` kod 0 (strażnicy **35/35**, testy 83/83,
+     lint, tsc, build, 7 smoke'ów prototypu), audyt mutacyjny **222** (220
+     złapanych, 0 przeoczonych, 0 martwych), smoke'i WP: motyw 90 · kreator 96 ·
+     produkty 84 · front 82 · panel 54 · maile 46 · tutor 44 · zakup 38 ·
+     lekcja 36 · **zwroty 35** · dane 30 · język 24 · płatności 23; dane
+     Pluginu 1 nietknięte (proza **73/73 co do znaku**, kopia w Tutorze
+     **0 różnic**), `aai-platnosci sprawdz` kod 0.
+     **ZOSTAJE DO DECYZJI WŁAŚCICIELA:** puste miejsce po dwóch pytaniach FAQ
+     (usunięte, bo ich jedyną odpowiedzią była gwarancja — kursy mają cztery
+     darmowe lekcje-zapowiedzi, więc jest czym odpowiedzieć, ale to obietnica
+     handlowa); zgoda w kasie na natychmiastowe dostarczenie; kompozycja hero
+     katalogu po usunięciu pływaka gwarancji (bramka wyglądu 90/90 nic nie
+     zgłasza, ale to ocena estetyczna).
+     **NASTĘPNY KROK: PR gałęzi `feat/p5-brzegi`, a po nim P6 — test ręczny
+     właściciela** (wzorzec scenariusza: [W6-TEST-RECZNY.md](docs/plugin-1/W6-TEST-RECZNY.md)
+     i [TEST-RECZNY-0.51.0.md](docs/plugin-2/TEST-RECZNY-0.51.0.md)).
+
+     Zapis historyczny (zapowiedź przed wykonaniem): **NASTĘPNY KROK: P5**
+     (zwroty i przypadki brzegowe) — wg reguły z 2026-08-28 najpierw PLAN kroku
+     + pytania doprecyzowujące i CZEKAĆ NA ZGODĘ. P5 dziedziczy wymaganie:
+     gwarancja 30 dni ma działać i odbierać dostęp do kursu. Razem z P5 wchodzą
+     dwie niezrobione decyzje: zdjęcie z kasy zdania o „Warunkach i zasadach"
+     i okładka produktu jako PNG renderowane przy synchronizacji.
 
      Zapis historyczny — scenariusz testu: **TEST RĘCZNY WŁAŚCICIELA NA `:8892`** (środowisko stoi,
      sprzedaż OTWARTA, skrzynka `127.0.0.1:8893`, konto `klient-test` przez

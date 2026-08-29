@@ -27,6 +27,16 @@ defined( 'ABSPATH' ) || exit;
 final class Aai_Platnosci_Zapis {
 
 	/**
+	 * Klucze meta okładki na ZAŁĄCZNIKU. Własny przedrostek (L13 schematu):
+	 * `_aai_zrodlo_uuid` siedzi już na 90 wpisach Tutora, więc zapytanie po
+	 * nim rozstrzygałoby losowo.
+	 */
+	private const META_OKLADKA_KURS = '_aai_platnosci_okladka_kurs';
+
+	/** Skrót PLIKU, z którego powstał załącznik — decyduje o przewgraniu. */
+	private const META_OKLADKA_SHA = '_aai_platnosci_okladka_sha';
+
+	/**
 	 * Ustawia (lub odświeża) powiązanie kursu z produktem WooCommerce.
 	 *
 	 * Idempotentne: ten sam wpis drugi raz tylko odświeża `sync_ts`.
@@ -712,6 +722,19 @@ final class Aai_Platnosci_Zapis {
 			}
 		}
 
+		/*
+		 * Okładka produktu (P5). Poza łańcuchem powiązania celowo: to
+		 * atrybut prezentacyjny, a nie warunek sprzedaży — kurs bez
+		 * rastrowej okładki ma się dać kupić, tylko z zastępnikiem
+		 * zamiast obrazka. Metoda sama pyta o stan, więc drugi zapis
+		 * tego samego kursu nic nie zmienia (bramka P2: sha produktu
+		 * niezmieniony między przebiegami).
+		 */
+		if ( self::ustaw_okladke( (int) $product_id, $course_uuid, $kurs['cover_url'] ?? null, (string) ( $kurs['title'] ?? '' ) )
+			&& 0 === $w['produkt_utworzony'] ) {
+			$w['zaktualizowany'] = 1;
+		}
+
 		// JEDYNE miejsce nadające status produktowi w tej metodzie.
 		$cel = $komplet ? 'publish' : 'draft';
 		if ( get_post_status( (int) $product_id ) !== $cel ) {
@@ -728,6 +751,178 @@ final class Aai_Platnosci_Zapis {
 			$w['bez_zmian'] = 1;
 		}
 		return $w;
+	}
+
+	/**
+	 * Miniatura produktu = okładka kursu. Zwraca `true`, gdy COŚ zmieniła.
+	 *
+	 * PO CO (krok P5, decyzja właściciela 2026-08-29). Bez miniatury
+	 * WooCommerce rysuje w koszyku i w kasie szary zastępnik — klient płaci
+	 * 299 zł i widzi pusty prostokąt zamiast kursu. Plik bierzemy z Pluginu 1
+	 * (`okladka_plik()`), bo to jego dane i jego katalog `assets/okladki`;
+	 * my go tylko wgrywamy i wskazujemy produktowi.
+	 *
+	 * IDEMPOTENCJA JEST TU WYMOGIEM, NIE OZDOBĄ. Bramka kroku P2 mówi:
+	 * „sha256 wiersza produktu razem z meta niezmieniony między drugim
+	 * a trzecim przebiegiem importu". Gdyby ta metoda wgrywała plik albo
+	 * przestawiała `_thumbnail_id` przy każdym zapisie, bramka padłaby —
+	 * a przy okazji biblioteka mediów puchłaby o kopię okładki na każdy
+	 * zapis kursu. Dlatego pytamy o STAN: jest już załącznik tego kursu
+	 * o tym samym skrócie pliku i produkt na niego wskazuje? To nic nie
+	 * robimy.
+	 *
+	 * @param int         $product_id  Produkt WooCommerce.
+	 * @param string      $course_uuid Uuid kursu.
+	 * @param string|null $cover_url   Wartość kolumny `cover_url`.
+	 */
+	public static function ustaw_okladke( int $product_id, string $course_uuid, ?string $cover_url, string $tytul = '' ): bool {
+		if ( ! class_exists( 'Aai_Sklep_Widok' ) || ! method_exists( 'Aai_Sklep_Widok', 'okladka_plik' ) ) {
+			return false;
+		}
+		$plik = Aai_Sklep_Widok::okladka_plik( $cover_url );
+		if ( null === $plik ) {
+			return false;
+		}
+		$sha = (string) hash_file( 'sha256', $plik );
+		if ( '' === $sha ) {
+			return false;
+		}
+
+		$zalacznik = self::zalacznik_okladki( $course_uuid );
+		$aktualny  = $zalacznik > 0
+			&& (string) get_post_meta( $zalacznik, self::META_OKLADKA_SHA, true ) === $sha;
+
+		if ( ! $aktualny ) {
+			/*
+			 * Poprzednia okładka TEGO kursu znika PRZED wgraniem nowej.
+			 *
+			 * Kolejność jest tu treścią, nie stylem. Przy kasowaniu PO
+			 * wgraniu WordPress zastaje zajętą nazwę i nadaje plikowi
+			 * przyrostek — zmierzone: `jak-korzystac-z-claude-1.png`.
+			 * Po kilku poprawkach okładki właściciel miałby w bibliotece
+			 * `…-7.png` bez jednego duplikatu na dysku, czyli nazwę, która
+			 * kłamie o historii pliku.
+			 *
+			 * Ceną jest okno: gdyby wgranie padło, produkt zostaje bez
+			 * miniatury do następnej synchronizacji. To akceptowalne —
+			 * okładka jest atrybutem prezentacyjnym, nie warunkiem
+			 * sprzedaży, a kurs bez niej ma się dać kupić.
+			 *
+			 * Zakaz kasowania (niezmiennik 13) dotyczy PRODUKTU: ten jest
+			 * częścią historii zamówień i faktur. Załącznik okładki nie
+			 * jest niczyją historią — to plik, który sami tu wstawiliśmy,
+			 * oznaczony naszym kluczem meta i tym uuid. Kasujemy WYŁĄCZNIE
+			 * wpis z tym meta, więc plik podstawiony ręcznie zostaje.
+			 */
+			if ( $zalacznik > 0
+				&& (string) get_post_meta( $zalacznik, self::META_OKLADKA_KURS, true ) === $course_uuid ) {
+				wp_delete_attachment( $zalacznik, true );
+			}
+			$zalacznik = self::wgraj_okladke( $plik, $course_uuid, $sha, $tytul );
+			if ( $zalacznik <= 0 ) {
+				return false;
+			}
+		}
+
+		/*
+		 * Tekst alternatywny uzupełniamy TAKŻE dla okładki wgranej
+		 * wcześniej: gdyby siedział tylko w gałęzi wgrywania, załącznik
+		 * sprzed tej poprawki zostałby z pustym `alt` na zawsze —
+		 * a niczego by to nie zgłosiło. Zapis tylko gdy pusty, więc
+		 * ręczna zmiana w bibliotece mediów zostaje uszanowana.
+		 */
+		if ( '' !== $tytul && '' === (string) get_post_meta( $zalacznik, '_wp_attachment_image_alt', true ) ) {
+			update_post_meta( $zalacznik, '_wp_attachment_image_alt', wp_slash( sprintf( 'Okładka kursu: %s', $tytul ) ) );
+		}
+
+		$produkt = wc_get_product( $product_id );
+		if ( ! $produkt instanceof WC_Product ) {
+			return false;
+		}
+		if ( (int) $produkt->get_image_id( 'edit' ) === $zalacznik ) {
+			// Plik ten sam i produkt już na niego wskazuje — cisza.
+			return ! $aktualny;
+		}
+		$produkt->set_image_id( $zalacznik );
+		$produkt->save();
+		// Znaczniki Tutora po każdym `save()` — handler `save_post_product`
+		// kasuje `_tutor_product`, czytając `$_POST` (pułapka 2 schematu).
+		self::ustaw_znaczniki_produktu( $product_id, $course_uuid );
+		return true;
+	}
+
+	/**
+	 * Załącznik będący okładką TEGO kursu, albo 0.
+	 *
+	 * Szukamy po WŁASNYM kluczu meta, nigdy po nazwie pliku: obie okładki
+	 * nazywają się jak slug kursu dziś, ale nazwa to nie jest tożsamość
+	 * (ta sama lekcja co przy zrzutach — 148 plików, powtarzające się nazwy).
+	 */
+	private static function zalacznik_okladki( string $course_uuid ): int {
+		$znalezione = get_posts(
+			array(
+				'post_type'   => 'attachment',
+				'post_status' => 'inherit',
+				'numberposts' => 1,
+				'fields'      => 'ids',
+				// phpcs:disable WordPress.DB.SlowDBQuery
+				'meta_query'  => array(
+					array(
+						'key'   => self::META_OKLADKA_KURS,
+						'value' => $course_uuid,
+					),
+				),
+				// phpcs:enable WordPress.DB.SlowDBQuery
+			)
+		);
+		return $znalezione ? (int) $znalezione[0] : 0;
+	}
+
+	/**
+	 * Wkłada plik okładki do biblioteki mediów i zwraca jego identyfikator.
+	 *
+	 * `wp_upload_bits` — jak w Pluginie 1 przy zrzutach: kładzie plik tam,
+	 * gdzie WordPress trzyma media, pilnuje unikalnej nazwy i sprawdza
+	 * uprawnienia katalogu. Ręczne kopiowanie omijałoby wszystkie trzy.
+	 */
+	private static function wgraj_okladke( string $plik, string $course_uuid, string $sha, string $tytul = '' ): int {
+		$zawartosc = file_get_contents( $plik ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		if ( false === $zawartosc ) {
+			return 0;
+		}
+		$wgrany = wp_upload_bits( basename( $plik ), null, $zawartosc );
+		if ( ! empty( $wgrany['error'] ) ) {
+			return 0;
+		}
+		$typ = wp_check_filetype( $wgrany['file'], null );
+		$id  = wp_insert_attachment(
+			array(
+				'post_mime_type' => (string) $typ['type'],
+				'post_title'     => sanitize_file_name( basename( $plik ) ),
+				'post_status'    => 'inherit',
+			),
+			$wgrany['file'],
+			0,
+			true
+		);
+		if ( is_wp_error( $id ) ) {
+			return 0;
+		}
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		wp_update_attachment_metadata( (int) $id, wp_generate_attachment_metadata( (int) $id, $wgrany['file'] ) );
+		update_post_meta( (int) $id, self::META_OKLADKA_KURS, wp_slash( $course_uuid ) );
+		update_post_meta( (int) $id, self::META_OKLADKA_SHA, wp_slash( $sha ) );
+		/*
+		 * TEKST ALTERNATYWNY. Bez niego WooCommerce drukuje w koszyku
+		 * i w kasie `<img alt="">` — czytnik ekranu mówi klientowi
+		 * „obraz" i nic więcej, a przy niewczytanym obrazku zostaje pusty
+		 * prostokąt. Zmierzone przed poprawką: Store API oddawało `alt: ""`.
+		 * Nazwa kursu jest tu prawdziwym opisem: to okładka TEGO kursu.
+		 */
+		if ( '' !== $tytul ) {
+			update_post_meta( (int) $id, '_wp_attachment_image_alt', wp_slash( sprintf( 'Okładka kursu: %s', $tytul ) ) );
+		}
+		return (int) $id;
 	}
 
 	/**
