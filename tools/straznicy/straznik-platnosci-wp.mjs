@@ -445,6 +445,95 @@ if (!existsSync(USTAWIENIA)) {
       }
     }
   }
+
+  /* 22–26. Niezmienniki kroku P4: dwa maile i dziennik dostaw. */
+  const maile = join(KATALOG, "includes", "class-aai-platnosci-maile.php");
+  if (existsSync(maile)) {
+    const c = kod(readFileSync(maile, "utf8"));
+
+    /* 22. mail najwyżej raz: KAŻDA wysyłka stoi za znacznikiem
+       `dostawa_odnotuj` (atomowy INSERT z UNIQUE), a znacznik pada PRZED
+       zleceniem wysyłki. Cudzy hak biegnie rekurencyjnie
+       (mark_order_complete() woła zmianę statusu wewnątrz obsługi zmiany
+       statusu — B6), więc „sprawdź czy już wysłano" bez UNIQUE przegrywa
+       wyścig. Wzorzec: w obu obsługach zdarzeń (na_koncie / na_dostepie)
+       wynik dostawa_odnotuj() jest WARUNKIEM dalszej drogi. */
+    for (const obsluga of ["na_koncie", "na_dostepie"]) {
+      const start = c.indexOf(`function ${obsluga}(`);
+      if (start < 0) {
+        bledy.push(`${maile}: nie widzę obsługi ${obsluga}() — któryś z dwóch maili dostarczenia nie ma słuchacza.`);
+        continue;
+      }
+      const dalej = c.indexOf("\n\tpublic", start + 9);
+      const blok = c.slice(start, dalej < 0 ? c.length : dalej);
+      if (!/if\s*\(\s*!\s*Aai_Platnosci_Zapis::dostawa_odnotuj\s*\(/.test(blok)) {
+        bledy.push(
+          `${maile}: ${obsluga}() nie uzależnia wysyłki od wyniku dostawa_odnotuj(). Znacznik z UNIQUE jest jedyną atomową bramką — bez niej rekurencyjny hak Tutora (B6) wysyła ten sam mail dwa razy, a drugi klucz resetu unieważnia pierwszy link.`
+        );
+      }
+    }
+
+    /* 23. hasło nie wchodzi do treści maila. Trzeci argument
+       woocommerce_created_customer w docbloku Woo nazywa się „password",
+       więc pokusa jest realna — a zmierzona wartość to bool. Wzorzec:
+       argument hasła jest natychmiast porzucany (unset), zanim cokolwiek
+       zbuduje treść. */
+    const naKoncie = c.slice(c.indexOf("function na_koncie("));
+    if (!/unset\s*\(\s*\$dane\s*,\s*\$haslo_wygenerowane\s*\)/.test(naKoncie)) {
+      bledy.push(
+        `${maile}: na_koncie() nie porzuca argumentu hasła (unset). Hasło w treści maila to niezmiennik 8 — złamany raz, żyje w skrzynkach klientów na zawsze.`
+      );
+    }
+
+    /* 24. adresatem jest konto, nie zamówienie (B9): w całym pliku ZERO
+       get_billing_email — zamówienie założone w kokpicie na cudze
+       customer_id z dowolnym adresem rozliczeniowym wysłałoby ważny klucz
+       resetu pod ten adres, czyli oddało konto. */
+    if (/get_billing_email\s*\(/.test(c)) {
+      bledy.push(
+        `${maile}: czyta get_billing_email(). Adresatem maili dostarczenia jest ZAWSZE user_email konta (B9) — adres rozliczeniowy z zamówienia bywa cudzy.`
+      );
+    }
+
+    /* 25. wysyłka umie biec W TRAKCIE shutdown. Domknięcie zamówienia
+       z P3b samo jest odroczone na shutdown, a tutor_after_enrolled leci
+       z jego wnętrza — callback dopisany do TRWAJĄCEJ akcji nie wykona
+       się już nigdy (zmierzone: znacznik z pustym wynikiem, zero maili).
+       Wzorzec: kolejkowanie pyta doing_action('shutdown'). */
+    if (!/if\s*\(\s*doing_action\s*\(\s*['"]shutdown['"]\s*\)\s*\)/.test(c)) {
+      bledy.push(
+        `${maile}: kolejka wysyłki nie pyta doing_action('shutdown'). Mail 2 zlecony z wnętrza odroczonego domknięcia (P3b) przepada bez śladu — WordPress nie woła callbacków dopisanych do akcji, która właśnie trwa.`
+      );
+    }
+
+    /* 26. status zapisu Tutora czytany z BAZY, nie z cache'u wpisu:
+       course_enrol_status_change() pisze surowym $wpdb->update i nie czyści
+       cache'u, więc get_post_status() w tym samym żądaniu oddaje wartość
+       sprzed zmiany (zmierzone przy E0: hak meldował pending, baza miała
+       completed) — bramka „wyślij dopiero przy completed" oparta na
+       get_post_status() nie wysłałaby maila 2 nigdy. */
+    const naDostepie = c.slice(c.indexOf("function na_dostepie("), c.indexOf("function ponow("));
+    if (!/Aai_Platnosci_Zapis::status_zapisu\s*\(/.test(naDostepie) || /get_post_status\s*\(/.test(naDostepie)) {
+      bledy.push(
+        `${maile}: na_dostepie() nie czyta statusu zapisu z bazy (status_zapisu) albo pyta get_post_status(). Tutor zmienia status surowym SQL-em bez czyszczenia cache'u — bramka na get_post_status() nigdy nie wyśle maila 2 na ścieżce produkcyjnej (zmierzone przy E0).`
+      );
+    }
+  }
+
+  /* 27. mail Woo „nowe konto" ma podmieńca, więc musi WRÓCIĆ przy
+     deaktywacji: nasz mail 1 znika razem z wtyczką, a konto bez żadnego
+     linku do hasła to klasa K1 (DIAGRAM §14). Wzorzec: hak deaktywacji
+     woła przywracanie. */
+  if (existsSync(PLIK_GLOWNY)) {
+    const cg = kod(readFileSync(PLIK_GLOWNY, "utf8"));
+    const startD = cg.indexOf("register_deactivation_hook");
+    const blokD = startD >= 0 ? cg.slice(startD, cg.indexOf("add_action", startD)) : "";
+    if (!/przywroc_mail_woo\s*\(/.test(blokD)) {
+      bledy.push(
+        `${PLIK_GLOWNY}: deaktywacja nie przywraca maila WooCommerce „nowe konto". Wyłączyliśmy go, bo jego zadanie przejął nasz mail 1 — a nasz znika razem z wtyczką: konto założone po deaktywacji zostaje bez żadnego linku do hasła (K1).`
+      );
+    }
+  }
 }
 
 if (bledy.length > 0) {
@@ -454,5 +543,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji)."
 );

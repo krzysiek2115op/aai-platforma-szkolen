@@ -236,3 +236,60 @@ zdanie odmowy.
 
 Do tego test negatywny kontroli bramek: `bacs` wyłączony + sprzedaż otwarta
 → kod 1 z komunikatem; przywrócenie → kod 0.
+
+## 7. Etap E5 — dowody (2026-08-29)
+
+**Strażnik** `straznik-platnosci-wp` dostał sześć niezmienników P4, każdy
+celujący w ZACHOWANIE, nie w nazwę:
+
+| # | Niezmiennik | Co chroni |
+|---|---|---|
+| 22 | wysyłka stoi za wynikiem `dostawa_odnotuj()` | rekurencyjny hak Tutora nie wysyła maila dwa razy (B6) |
+| 23 | argument hasła z haka Woo jest porzucany | hasło nigdy nie trafia do treści (niezmiennik 8) |
+| 24 | zero `get_billing_email()` | klucz resetu nie idzie pod cudzy adres (B9) |
+| 25 | kolejka pyta `doing_action('shutdown')` | mail 2 z odroczonego domknięcia nie przepada |
+| 26 | status zapisu z bazy, nie `get_post_status()` | bramka „dopiero po dostępie” w ogóle działa (E0) |
+| 27 | deaktywacja przywraca mail Woo | konto po deaktywacji nie zostaje bez linku (K1) |
+
+Niezmiennik 20 (stan „zamówienie w toku”) **przepisany**: pytał o nazwę
+`stan_klienta(`, więc refactor wynoszący decyzję do `stan_posiadania()`
+zapalił go mimo zachowanej gwarancji — **czwarty nawrót wzorca na nazwę**
+(0.29.0, 0.44.0, 0.47.0, c6c9c97). Teraz szuka KAŻDEGO rozstrzygnięcia
+`return self::W_TOKU` i wymaga przy nim odczytu statusu.
+
+**Audyt mutacyjny 191 → 198**, każda nowa z `oczekiwanySlad`. Wynik:
+**196 złapanych, 0 przeoczonych, 0 martwych**, 2 pominięte (brak materiału).
+
+**`npm run smoke:wp-maile` — 38 sprawdzeń** na żywej instalacji, wiadomości
+czytane **z łapacza poczty**, nie z podstawionego `pre_wp_mail` (ten mierzyłby
+własną atrapę zamiast tego, co wyszło z WordPressa). Smoke sprząta po sobie
+do zera: produkty, zamówienia, konta, zapisy i **dziennik dostaw**.
+
+### Testy negatywne — i dwa z nich obnażyły ślepe sprawdzenia
+
+| Co zepsute | Padło | Które sprawdzenia |
+|---|---|---|
+| znacznik maila 2 przestaje bramkować | **1 z 31** | powtórzony hak wysyła drugi raz |
+| adresatem adres rozliczeniowy (B9) | **1 z 31** | mail 1 poszedł pod cudzy adres |
+| bramka statusu zapisu wycięta | **3 z 33** | mail przed dostępem + znacznik + brak maila po opłacie |
+| wysyłka nie przeżywa `shutdown` | **3 z 38** | ścieżka „admin klika Processing” + pusty wynik w dzienniku |
+| mail Woo „nowe konto” włączony | **2 z 38** | podwójny link do hasła |
+
+**Dwa sprawdzenia były ślepe i wykrył je dopiero test negatywny** — dokładnie
+po to się je robi:
+
+1. **„mail 2 nie wychodzi przed opłatą” nie mierzyło niczego.** Zamówienie na
+   `on-hold` nie odpala `tutor_after_enrolled` w ogóle, więc wycięcie bramki
+   statusu nic tam nie zmieniało. Bramkę sprawdzamy teraz WPROST: odpalamy hak
+   ręcznie na zapisie, który nie jest `completed`.
+2. **Ścieżki „admin klika Processing” w smoke'u nie było.** Wszystkie
+   domknięcia szły przez `update_status('completed')`, czyli z pominięciem
+   odroczonego domknięcia z P3b — a to właśnie tam żył błąd zagnieżdżonego
+   `shutdown`. Ścieżka ma teraz własny blok.
+
+Do tego dwie ślepoty w samym smoke'u, złapane przy pierwszym uruchomieniu:
+sprawdzenie „nie ma hasła w treści” zapalało się na własnym napisie „Ustaw
+hasło: https://…” (pyta teraz o wartość PO dwukropku), a odczyt linku przez
+`fetch` gubił ciastko, którym WooCommerce przenosi klucz przez przekierowanie
+— więc mierzył formularz „zapomniałem hasła” zamiast formularza ustawienia
+hasła.

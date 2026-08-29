@@ -1520,7 +1520,7 @@ const MUTACJE = [
     opis: "stan „zamówienie w toku” przestaje patrzeć na STATUS zapisu (anulowane zamówienie blokuje zakup na zawsze)",
     plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
     wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
-    oczekiwanySlad: "nie sprawdza STATUSU zapisu",
+    oczekiwanySlad: "bez sprawdzenia STATUSU zapisu",
     zmien: (s) =>
       s.includes("\t\t\t$status = (string) get_post_status( (int) $zapis->ID );\n\t\t\tif ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {")
         ? s.replace(
@@ -1538,6 +1538,99 @@ const MUTACJE = [
     zmien: (s) =>
       s.includes("add_action(\n\t\t\t\t'shutdown',")
         ? s.replace("add_action(\n\t\t\t\t'shutdown',", "call_user_func(\n\t\t\t\t")
+        : null,
+  },
+
+  // --- P4: dwa maile i dziennik dostaw. Każda z tych mutacji zostawia
+  // sklep DZIAŁAJĄCY: zakup przechodzi, dostęp powstaje — tylko klient
+  // dostaje dwa klucze resetu, mail z cudzym adresatem albo żadnego maila.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "wysyłka maila 2 przestaje stać za znacznikiem (rekurencyjny hak Tutora wysyła go dwa razy — B6)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "nie uzależnia wysyłki od wyniku dostawa_odnotuj",
+    zmien: (s) =>
+      s.includes("\t\t\tif ( ! Aai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KURS, $order_id ) ) {")
+        ? s.replace(
+            "\t\t\tif ( ! Aai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KURS, $order_id ) ) {",
+            "\t\t\tAai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KURS, $order_id );\n\t\t\tif ( false ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "mail 1 przestaje stać za znacznikiem (drugi klucz resetu unieważnia pierwszy link — B8)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "nie uzależnia wysyłki od wyniku dostawa_odnotuj",
+    zmien: (s) =>
+      s.includes("\t\t\tif ( ! Aai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KONTO, $id ) ) {")
+        ? s.replace(
+            "\t\t\tif ( ! Aai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KONTO, $id ) ) {",
+            "\t\t\tAai_Platnosci_Zapis::dostawa_odnotuj( self::ZDARZENIE_KONTO, $id );\n\t\t\tif ( false ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "argument hasła z haka Woo przestaje być porzucany (hasło w treści maila — niezmiennik 8)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "nie porzuca argumentu hasła",
+    zmien: (s) =>
+      s.includes("\t\tunset( $dane, $haslo_wygenerowane );")
+        ? s.replace("\t\tunset( $dane, $haslo_wygenerowane );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "adresatem maila 2 staje się adres rozliczeniowy zamówienia (przejęcie konta — B9)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "get_billing_email",
+    zmien: (s) =>
+      s.includes("\t\treturn self::wyslij(\n\t\t\t$user->user_email,\n\t\t\t1 === count( $kursy )")
+        ? s.replace(
+            "\t\treturn self::wyslij(\n\t\t\t$user->user_email,\n\t\t\t1 === count( $kursy )",
+            "\t\treturn self::wyslij(\n\t\t\t(string) $order->get_billing_email(),\n\t\t\t1 === count( $kursy )"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "wysyłka przestaje przeżywać shutdown (mail 2 z odroczonego domknięcia przepada bez śladu)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "doing_action",
+    zmien: (s) =>
+      s.includes("\t\tif ( doing_action( 'shutdown' ) ) {")
+        ? s.replace("\t\tif ( doing_action( 'shutdown' ) ) {", "\t\tif ( false ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "status zapisu znów przez get_post_status (cache wpisu kłamie — mail 2 nigdy nie wychodzi, E0)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "pyta get_post_status",
+    zmien: (s) =>
+      s.includes("if ( 'completed' !== Aai_Platnosci_Zapis::status_zapisu( $zapis ) ) {")
+        ? s.replace(
+            "if ( 'completed' !== Aai_Platnosci_Zapis::status_zapisu( $zapis ) ) {",
+            "if ( 'completed' !== get_post_status( $zapis ) ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "deaktywacja przestaje przywracać mail Woo „nowe konto\" (konto bez żadnego linku do hasła — K1)",
+    plik: "wordpress/wtyczki/aai-platnosci/aai-platnosci.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "deaktywacja nie przywraca",
+    zmien: (s) =>
+      s.includes("\t\t\tAai_Platnosci_Ustawienia::przywroc_mail_woo();")
+        ? s.replace("\t\t\tAai_Platnosci_Ustawienia::przywroc_mail_woo();", "\t\t\t// przywracanie wycięte")
         : null,
   },
 
