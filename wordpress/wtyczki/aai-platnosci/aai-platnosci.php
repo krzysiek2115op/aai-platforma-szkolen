@@ -140,6 +140,10 @@ add_action(
 		// go stamtąd NIE wyciągnie, a klient zostałby bez dostępu mimo
 		// zapłaty (zmierzone: KROK-P3B.md §3).
 		Aai_Platnosci_Dostarczanie::zarejestruj();
+		// Cena efektywna na stronie (krok P3b): klient ma widzieć tę samą
+		// liczbę, którą zapłaci w kasie — także wtedy, gdy właściciel
+		// ustawi w WooCommerce promocję (K2 z krytyki P0).
+		Aai_Platnosci_Cena::zarejestruj();
 		Aai_Platnosci_Komunikaty::zarejestruj();
 	}
 );

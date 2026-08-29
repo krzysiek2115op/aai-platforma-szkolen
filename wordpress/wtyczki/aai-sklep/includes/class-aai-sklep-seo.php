@@ -278,7 +278,7 @@ final class Aai_Sklep_Seo {
 			),
 			'offers'     => array(
 				'@type'         => 'Offer',
-				'price'         => number_format( ( (int) $kurs['price_grosze'] ) / 100, 2, '.', '' ),
+				'price'         => number_format( Aai_Sklep_Widok::cena_grosze( $kurs ) / 100, 2, '.', '' ),
 				'priceCurrency' => 'PLN',
 				'availability'  => 'https://schema.org/PreOrder',
 				'category'      => 'Paid',

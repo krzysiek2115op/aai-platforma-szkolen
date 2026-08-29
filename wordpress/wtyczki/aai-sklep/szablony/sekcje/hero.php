@@ -50,11 +50,11 @@ if ( null !== $aai_poziom ) {
 			<?php endif; ?>
 
 			<div class="aai-hero-akcje">
-				<?php Aai_Sklep_Widok::cta( (int) $kurs['price_grosze'] ); ?>
+				<?php Aai_Sklep_Widok::cta( Aai_Sklep_Widok::cena_grosze( $kurs ) ); ?>
 				<a class="aai-btn aai-btn-obrys aai-btn-duzy" href="#program">Zobacz program</a>
 			</div>
 			<p class="aai-mono aai-hero-warunki">
-				<?php echo esc_html( Aai_Sklep_Widok::formatuj_cene( (int) $kurs['price_grosze'] ) ); ?>
+				<?php echo esc_html( Aai_Sklep_Widok::formatuj_cene( Aai_Sklep_Widok::cena_grosze( $kurs ) ) ); ?>
 				· dostęp bez limitu czasu · aktualizacje w cenie
 			</p>
 		</div>

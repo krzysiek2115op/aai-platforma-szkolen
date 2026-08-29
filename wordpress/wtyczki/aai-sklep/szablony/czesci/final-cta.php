@@ -23,6 +23,6 @@ defined( 'ABSPATH' ) || exit;
 				Napisz — odpowiadamy szczerze.
 			</p>
 		</div>
-		<?php Aai_Sklep_Widok::cta( (int) $kurs['price_grosze'] ); ?>
+		<?php Aai_Sklep_Widok::cta( Aai_Sklep_Widok::cena_grosze( $kurs ) ); ?>
 	</div>
 </section>

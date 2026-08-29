@@ -49,7 +49,7 @@ $aai_okladka = Aai_Sklep_Widok::okladka( $kurs['cover_url'] ?? null );
 			<p class="aai-karta-meta aai-mono"><?php echo esc_html( implode( ' · ', $aai_meta ) ); ?></p>
 		<?php endif; ?>
 		<div class="aai-karta-stopka">
-			<p class="aai-karta-cena"><?php echo esc_html( Aai_Sklep_Widok::formatuj_cene( (int) $kurs['price_grosze'] ) ); ?></p>
+			<p class="aai-karta-cena"><?php echo esc_html( Aai_Sklep_Widok::formatuj_cene( Aai_Sklep_Widok::cena_grosze( $kurs ) ) ); ?></p>
 			<a class="aai-btn aai-btn-glowny" href="<?php echo esc_url( Aai_Sklep_Widok::adres_kursu( (string) $kurs['slug'] ) ); ?>">
 				Sprawdź ofertę
 				<?php echo Aai_Sklep_Widok::ikona( 'arrow-right', 'aai-ikona-s' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>

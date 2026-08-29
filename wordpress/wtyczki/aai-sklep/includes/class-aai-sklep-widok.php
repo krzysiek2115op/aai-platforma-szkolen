@@ -124,6 +124,60 @@ final class Aai_Sklep_Widok {
 	 *
 	 * @param int $grosze Cena w groszach.
 	 */
+	/**
+	 * Cena kursu w groszach — JEDNO źródło dla strony i danych strukturalnych.
+	 *
+	 * DLACZEGO NIE `$kurs['price_grosze']` WPROST. Bo od kroku P3b cena, którą
+	 * widzi klient, może pochodzić z WooCommerce (promocja ustawiona w sklepie),
+	 * a nasza tabela trzyma cenę KATALOGOWĄ. Gdyby szablon czytał kolumnę,
+	 * a dane strukturalne pytały Woo (albo odwrotnie), wyszukiwarka dostałaby
+	 * inną cenę niż człowiek — a Google traktuje taki rozjazd jako powód do
+	 * kary (K2 z krytyki P0). Wszyscy pytają więc tę jedną metodę.
+	 *
+	 * PAMIĘĆ NA ŻĄDANIE, bo strona kursu pyta o tę samą cenę cztery razy
+	 * (hero, sekcja oferty, napis przycisku, dane strukturalne). Bez niej
+	 * każde z tych miejsc odpytywałoby WooCommerce osobno, a przy dwóch
+	 * kartach katalogu doszłyby kolejne — to ta sama klasa kosztu, która
+	 * przy W6 dała 90 zapytań na odsłonę menu.
+	 *
+	 * Bez Pluginu 2 filtru nikt nie obsługuje i metoda oddaje cenę z bazy,
+	 * czyli dokładnie to, co strona pokazywała do tej pory.
+	 *
+	 * @param array<string,mixed> $kurs Kurs z warstwy odczytu.
+	 * @return int Cena w groszach.
+	 */
+	public static function cena_grosze( array $kurs ): int {
+		static $pamiec = array();
+
+		$klucz = (string) ( $kurs['id'] ?? '' );
+		if ( '' !== $klucz && isset( $pamiec[ $klucz ] ) ) {
+			return $pamiec[ $klucz ];
+		}
+
+		$katalogowa = (int) ( $kurs['price_grosze'] ?? 0 );
+		/**
+		 * Cena kursu pokazywana klientowi, w groszach.
+		 *
+		 * Plugin 2 podmienia ją na cenę EFEKTYWNĄ z WooCommerce (czyli
+		 * z uwzględnieniem promocji). Wartość wejściowa to nasza cena
+		 * katalogowa — i ona zostaje, gdy kurs nie ma jeszcze produktu.
+		 *
+		 * @param int                 $katalogowa Cena z naszej tabeli (grosze).
+		 * @param array<string,mixed> $kurs       Kurs z warstwy odczytu.
+		 */
+		$cena = (int) apply_filters( 'aai_sklep_cena_kursu', $katalogowa, $kurs );
+
+		// Ujemna cena nie ma znaczenia na stronie sprzedażowej, a wzięłaby
+		// się wyłącznie z cudzego błędu — wtedy wracamy do swojej liczby.
+		if ( $cena < 0 ) {
+			$cena = $katalogowa;
+		}
+		if ( '' !== $klucz ) {
+			$pamiec[ $klucz ] = $cena;
+		}
+		return $cena;
+	}
+
 	public static function formatuj_cene( int $grosze ): string {
 		return number_format( $grosze / 100, 2, ',', self::NBSP ) . self::NBSP . 'zł';
 	}

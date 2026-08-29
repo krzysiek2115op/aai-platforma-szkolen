@@ -155,3 +155,38 @@ Po przeniesieniu wszystkie cztery ścieżki zmierzone ponownie — bez zmian
 w wyniku (kurs + `payment_complete()` → `completed`; kurs ręcznie
 `processing` → `completed`; mieszane → `processing`; cudzy → `processing`;
 dostęp TAK).
+
+## 6. Etap E1 — jedno źródło ceny (2026-08-29)
+
+**Szew:** filtr `aai_sklep_cena_kursu` (grosze + kurs). Plugin 1 dostał
+`Aai_Sklep_Widok::cena_grosze()` — jedyne miejsce, z którego front i dane
+strukturalne biorą cenę; Plugin 2 dostał `Aai_Platnosci_Cena`, który podmienia
+ją na cenę EFEKTYWNĄ z WooCommerce (`WC_Product::get_price()`, czyli
+z promocją). Bez Pluginu 2 filtru nikt nie obsługuje i strona pokazuje cenę
+katalogową — dokładnie jak dotąd.
+
+**Sześć miejsc frontu** przeszło na `cena_grosze()`: karta katalogu, hero
+(napis CTA i liczba), sekcja oferty, domykające CTA, `Offer.price` w JSON-LD.
+**Panel kreatora został przy cenie katalogowej** (rozstrzygnięcie 4) — tak samo
+warstwa danych, import, raport i kopia do Tutora, bo tam cena katalogowa
+jest prawdą źródłową.
+
+### Pomiar na żywej stronie
+
+| Co | Bez promocji | Po ustawieniu promocji 99 zł w Woo |
+|---|---|---|
+| cena w treści strony kursu | `199,00 zł` | **`99,00 zł`** |
+| `Offer.price` w JSON-LD | `199.00` | **`99.00`** |
+| karta w katalogu | `199,00 zł` | **`99,00 zł`** |
+| `price_grosze` w bazie (kreator) | 19900 | 19900 (bez zmian) |
+
+Strona i dane strukturalne pokazują **tę samą liczbę** — czyli K2 z krytyki
+zamknięte. Ceny prawdziwych kursów po całym pomiarze bez zmian
+(299,00 zł i 349,00 zł).
+
+**Pamięć na żądanie zmierzona, nie założona:** cztery odczyty tego samego
+kursu (hero, oferta, napis przycisku, JSON-LD) dają **jedno** wywołanie filtra.
+
+**Dwa testy negatywne:** produkt z pustą ceną → cena katalogowa (pusta cena
+w Woo to brak danych, nie „za darmo" — „0 zł" na stronie sprzedażowej byłoby
+gorsze); kurs bez powiązania z produktem → cena katalogowa.
