@@ -1977,8 +1977,59 @@ wyprowadzała tego od nowa:
      a filtr `woocommerce_login_redirect` odsyła klienta TAM, SKĄD przyszedł.
      Smoke lekcji asertował OBECNOŚĆ `wp-login.php`, czyli utrwalał ten błąd.
 
-  11. **NASTĘPNY KROK: NAPRAWA TRZECH BŁĘDÓW Z TESTU WŁAŚCICIELA I POLOWANIE
-     NA CAŁE KLASY.** Właściciel przetestował P4 sam (2026-08-29) i zgłosił:
+  11. ~~**NASTĘPNY KROK: NAPRAWA TRZECH BŁĘDÓW Z TESTU WŁAŚCICIELA I POLOWANIE
+     NA CAŁE KLASY.**~~ **ZROBIONE (2026-08-29, wersja 0.51.0)** — sześć etapów
+     N1–N6 na gałęzi `feat/p4-konto-i-maile`, każdy zamknięty osobnym commitem
+     po weryfikacji uruchomieniowej, plus pełny sweep krzyżowy. Pełnia:
+     CHANGELOG 0.51.0 i [BLEDY-Z-TESTU-P4.md](docs/plugin-2/BLEDY-Z-TESTU-P4.md)
+     §5 (śledztwo) oraz §6 (naprawy). Skrót:
+     **trop „cudza edycja 1787936224" to był `post_excerpt` produktu 675** —
+     krótki opis produktu WooCommerce, który Woo drukuje klientowi w koszyku
+     i w kasie, a Store API oddaje publicznie. Kopia tego pola NIE USTAWIAŁA,
+     więc było niczyje (BLAD-027). Źródłem jest teraz `courses.short_desc`.
+     **Prawdziwa przyczyna 146 zamówień-widm** (BLAD-026, druga połowa):
+     sprzątanie wołało `wp_delete_post()`, które **pod HPOS nie kasuje niczego**.
+     Do tego `wc_get_orders(status: 'any')` **pomija `checkout-draft`** —
+     liczymy jawną listą `wc_get_order_statuses()`.
+     **Sześć faktów zmierzonych w cudzym kodzie** (nie wyprowadzać od nowa):
+     `set_short_description()`/`set_name()` **zjadają backslashe** (przez
+     `wp_unslash()` w `wp_insert_post()`; rodzina pułapki z W2, tam ratował
+     `$wpdb`); odmowę „You cannot add another" rzuca `WC_Cart::add_to_cart()`
+     (`class-wc-cart.php:1307`), a nasza walidacja biegnie WCZEŚNIEJ;
+     WordPress 6.9 czyta tłumaczenia z **`.l10n.php`**, nie z `.mo`;
+     `wp_password_change_notification()` idzie **do administratora**, nie do
+     klienta (`pluggable.php:2187`) — klient po ustawieniu hasła nie dostaje
+     nic i od razu jest zalogowany.
+     **SZÓSTY NAWRÓT PUŁAPKI „WZORZEC NA NAPIS" — spowodowany przez tę
+     naprawę:** dopięcie drugiego filtru do `woocommerce_add_to_cart_validation`
+     oślepiło regułę 11 strażnika, która pytała o samą nazwę haka; mutacja
+     kasująca rejestrację BLOKADY SPRZEDAŻY zaczęła przechodzić. Złapał to
+     audyt mutacyjny, nie przegląd.
+     **BLAD-028 (nowa klasa): pomiar oparty na CUDZYM TEKŚCIE ma datę
+     ważności** — sprawdzenie kolejności przejść statusu czytało notatki Woo
+     i umarło po spolszczeniu instalacji, meldując odwróconą kolejność przy
+     poprawnej. Mierzy teraz zdarzenia.
+     **Sweep znalazł to, czego nie znalazły etapy:** `smoke-wp-motyw` otwierał
+     sprzedaż na czas pomiaru i w `finally` robił `delete_option()`, czyli
+     **zamykał sklep za sobą** — po bramkach wyglądu strona kursu przestawała
+     pokazywać przycisk zakupu i wyglądało to jak awaria. „Przywróć stan" to co
+     innego niż „skasuj ustawienie".
+     **PUŁAPKA PRACY:** `git checkout -- <plik>` skasował niezacommitowaną
+     pracę przy przywracaniu po teście negatywnym — do tego służy kopia
+     zrobiona przed mutacją, nie git.
+     Doszedł **`smoke-wp-jezyk`** (`npm run smoke:wp-jezyk`, 24 sprawdzenia)
+     i trzy reguły strażnika (30–33). Środowisko `:8892`: **1 zamówienie**
+     (prawdziwy zakup właściciela — materiał dowodowy), konto `klient-test`
+     ma **0** (było 146), sprzedaż OTWARTA.
+     **ZOSTAJE DO DECYZJI WŁAŚCICIELA:** regulamin (kasa obiecuje „Warunki
+     i zasady", strony nie ma), gwarancja zwrotu 30 dni przy zwrotach
+     zaplanowanych na P5, okładka produktu w kasie (szary zastępnik — SVG nie
+     wchodzi do biblioteki mediów bez świadomej zgody na ten format).
+     **NASTĘPNY KROK: PR gałęzi `feat/p4-konto-i-maile`** (P4 + naprawy
+     0.51.0), potem **P5** (zwroty i przypadki brzegowe) i **P6** (test ręczny
+     właściciela).
+
+     Zapis historyczny zgłoszenia: Właściciel przetestował P4 sam (2026-08-29) i zgłosił:
      **BLAD-023** koszyk kumuluje kursy, choć przycisk obiecuje jeden (klik
      „Dołączam za 299 zł" → kasa na 648 zł); **BLAD-024** kasa, koszyk i konto
      po angielsku; **BLAD-025** gołe powiadomienie WordPressa „Password Changed"
