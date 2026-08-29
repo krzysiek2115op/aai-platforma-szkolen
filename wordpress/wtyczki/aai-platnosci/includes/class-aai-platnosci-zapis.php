@@ -311,6 +311,29 @@ final class Aai_Platnosci_Zapis {
 	 * @param int $order_id Id zamówienia WooCommerce.
 	 * @return bool Czy stan się ZMIENIŁ.
 	 */
+	/**
+	 * Status zapisu kursanta CZYTANY Z BAZY, z pominięciem cache'u wpisu.
+	 *
+	 * ZMIERZONE przy E0 kroku P4: `Utils::course_enrol_status_change()`
+	 * Tutora zmienia status surowym `$wpdb->update` po `wp_posts`
+	 * (`Utils.php:2478`) i NIE czyści cache'u wpisu. W tym samym żądaniu
+	 * `get_post_status()` oddaje więc wartość sprzed zmiany: hak
+	 * `tutor_after_enrolled` meldował `pending`, a baza miała `completed`.
+	 * Bramka „wyślij dopiero, gdy dostęp naprawdę jest" oparta na
+	 * `get_post_status()` NIE ZADZIAŁAŁABY NIGDY na ścieżce produkcyjnej.
+	 *
+	 * @param int $zapis_id Id wpisu `tutor_enrolled`.
+	 */
+	public static function status_zapisu( int $zapis_id ): string {
+		if ( $zapis_id <= 0 ) {
+			return '';
+		}
+		global $wpdb;
+		return (string) $wpdb->get_var(
+			$wpdb->prepare( "SELECT post_status FROM {$wpdb->posts} WHERE ID = %d", $zapis_id )
+		);
+	}
+
 	public static function zamknij_zamowienie( int $order_id ): bool {
 		if ( $order_id <= 0 || ! function_exists( 'wc_get_order' ) ) {
 			return false;
@@ -346,6 +369,26 @@ final class Aai_Platnosci_Zapis {
 		return null !== $wpdb->get_var(
 			$wpdb->prepare( "SELECT product_id FROM {$tabela} WHERE product_id = %d", $product_id )
 		);
+	}
+
+	/**
+	 * Uuid kursu sprzedawanego przez ten produkt — odwrotność
+	 * `produkt_kursu()`. Pyta mail 2 (P4), który zna zamówienie, a musi
+	 * nazwać kursy; dopasowanie przez tabelę, nigdy po meta (B4).
+	 *
+	 * @param int $product_id Id produktu WooCommerce.
+	 */
+	public static function kurs_produktu( int $product_id ): ?string {
+		if ( $product_id <= 0 ) {
+			return null;
+		}
+		global $wpdb;
+		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		$uuid = $wpdb->get_var(
+			$wpdb->prepare( "SELECT course_uuid FROM {$tabela} WHERE product_id = %d", $product_id )
+		);
+		return null === $uuid ? null : (string) $uuid;
 	}
 
 	public static function produkt_kursu( string $course_uuid ): ?int {

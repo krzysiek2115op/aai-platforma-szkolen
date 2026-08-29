@@ -100,6 +100,20 @@ final class Aai_Platnosci_Ustawienia {
 	);
 
 	/**
+	 * Mail WooCommerce „nowe konto" — opcja tablicowa i nazwa jego filtra
+	 * włączenia (`WC_Email::is_enabled()` robi
+	 * `apply_filters( 'woocommerce_email_enabled_' . $this->id, … )`).
+	 *
+	 * WYŁĄCZAMY GO DOPIERO TERAZ, w kroku P4, i to jest istota rzeczy:
+	 * do P3b był JEDYNYM linkiem do hasła, jaki dostawał nowy klient.
+	 * Od P4 to samo zadanie robi nasz mail 1 — a dwa maile znaczyłyby dwa
+	 * klucze resetu, z których każdy unieważnia poprzedni (B8): klient
+	 * dostawałby dwie wiadomości i działałaby tylko ta druga.
+	 */
+	private const MAIL_WOO_OPCJA = 'woocommerce_customer_new_account_settings';
+	private const MAIL_WOO_FILTR = 'woocommerce_email_enabled_customer_new_account';
+
+	/**
 	 * Polskie sluggi stron WooCommerce (rozstrzygnięcie 2 planu P3a):
 	 * koszyk i kasa; `/my-account/` ZOSTAJE — mamy już `/szkolenia/moje/`
 	 * i drugi podobny adres myliłby klienta. Odstępstwo od decyzji 6
@@ -156,6 +170,14 @@ final class Aai_Platnosci_Ustawienia {
 			add_filter( $klucz, array( self::class, 'wymus_wartosc_tutora' ) );
 		}
 		add_filter( 'woocommerce_add_to_cart_validation', array( self::class, 'blokada_sprzedazy' ), 10, 2 );
+		/*
+		 * Filtr obronny B17 dla maila „nowe konto": wartość w bazie
+		 * ustawia `napraw()`, ale ekran ustawień WooCommerce cofa ją
+		 * jednym kliknięciem. Rozjazd i tak zobaczy kontrola — ten filtr
+		 * pilnuje, żeby w międzyczasie klient nie dostał dwóch linków
+		 * do hasła, z których działa tylko jeden.
+		 */
+		add_filter( self::MAIL_WOO_FILTR, '__return_false' );
 	}
 
 	/**
@@ -268,6 +290,10 @@ final class Aai_Platnosci_Ustawienia {
 				$zmiany[] = sprintf( '%s: „%s" → „%s"', $klucz, (string) get_option( $klucz, '(brak)' ), $docelowa );
 				update_option( $klucz, $docelowa );
 			}
+		}
+
+		if ( self::ustaw_mail_woo( 'no' ) ) {
+			$zmiany[] = 'mail WooCommerce „nowe konto": włączony → wyłączony (od P4 link do hasła niesie nasz mail 1)';
 		}
 
 		foreach ( self::BLOKI_CIEMNYCH_POL as $klucz => $klasa_bloku ) {
@@ -403,6 +429,31 @@ final class Aai_Platnosci_Ustawienia {
 			}
 		}
 
+		if ( 'no' !== self::stan_mail_woo() ) {
+			$r[] = 'mail WooCommerce „nowe konto" jest WŁĄCZONY, a od P4 link do hasła wysyła nasz mail 1 — klient dostanie dwie wiadomości i zadziała tylko druga, bo każdy nowy klucz resetu unieważnia poprzedni (B8). Napraw: wp aai-platnosci sync --napraw';
+		}
+
+		/*
+		 * Sprzedaż otwarta bez ANI JEDNEJ włączonej bramki płatności.
+		 * ZMIERZONE przy E0 kroku P4: kasa oddaje wtedy 400
+		 * `woocommerce_rest_checkout_payment_method_disabled`, czyli
+		 * „sprzedaż otwarta" znaczy „nikt nie kupi niczego" — a na
+		 * stronie kursu przycisk dalej zaprasza do kasy. Kontrola tylko
+		 * MÓWI: bramkę wybiera właściciel, wtyczka nie ma prawa włączać
+		 * komuś przelewu bankowego.
+		 */
+		if ( self::sprzedaz_otwarta() && function_exists( 'WC' ) && WC()->payment_gateways ) {
+			$wlaczone = 0;
+			foreach ( WC()->payment_gateways->payment_gateways() as $bramka ) {
+				if ( 'yes' === $bramka->enabled ) {
+					++$wlaczone;
+				}
+			}
+			if ( 0 === $wlaczone ) {
+				$r[] = 'sprzedaż jest OTWARTA, a w WooCommerce nie ma ani jednej włączonej bramki płatności — przycisk prowadzi do kasy, a kasa odmawia (400). Włącz bramkę w WooCommerce → Ustawienia → Płatności.';
+			}
+		}
+
 		/*
 		 * Asercja DANYCH z B12: opcja `enable_guest_course_cart` niczego
 		 * nie chroni (gościnna gałąź zapisu Tutora pyta wyłącznie o brak
@@ -420,6 +471,43 @@ final class Aai_Platnosci_Ustawienia {
 		}
 
 		return $r;
+	}
+
+	/**
+	 * Wartość `enabled` maila WooCommerce „nowe konto" — z BAZY, bez
+	 * naszego filtra. Kontrola ma widzieć, co zobaczy ekran ustawień.
+	 */
+	private static function stan_mail_woo(): string {
+		$u = (array) get_option( self::MAIL_WOO_OPCJA, array() );
+		// Brak wiersza ustawień znaczy „domyślnie włączony" — zmierzone
+		// na świeżej instalacji: WooCommerce wysyła ten mail, choć opcji
+		// w bazie nie ma wcale.
+		return (string) ( $u['enabled'] ?? 'yes' );
+	}
+
+	/**
+	 * Ustawia `enabled` maila WooCommerce „nowe konto".
+	 *
+	 * @param string $wartosc 'yes' albo 'no'.
+	 * @return bool Czy coś się zmieniło.
+	 */
+	private static function ustaw_mail_woo( string $wartosc ): bool {
+		if ( self::stan_mail_woo() === $wartosc ) {
+			return false;
+		}
+		$u            = (array) get_option( self::MAIL_WOO_OPCJA, array() );
+		$u['enabled'] = $wartosc;
+		update_option( self::MAIL_WOO_OPCJA, $u );
+		return true;
+	}
+
+	/**
+	 * Przywraca mail WooCommerce „nowe konto" — woła to DEAKTYWACJA.
+	 * Nasz mail 1 znika razem z wtyczką, a konto bez żadnego linku do
+	 * hasła to klasa K1 (DIAGRAM.md, sekcja 14).
+	 */
+	public static function przywroc_mail_woo(): bool {
+		return self::ustaw_mail_woo( 'yes' );
 	}
 
 	/**

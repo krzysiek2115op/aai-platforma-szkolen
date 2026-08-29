@@ -125,3 +125,43 @@ w wolumenie kontenera był niewidzialny.
 
 Drugi test jest tu ważniejszy: pilnuje, żeby sprawdzenie nie zadowoliło się
 odpowiedzią `true` z `wp_mail()`, która o dostarczeniu nie mówi nic.
+
+## 5. Etap E2 — dwa maile (2026-08-29)
+
+Powstała `Aai_Platnosci_Maile`: mail 1 na `woocommerce_created_customer`,
+mail 2 na `tutor_after_enrolled`, oba wysyłane na `shutdown`, oba ze
+znacznikiem w `dostawy` zapisanym **synchronicznie** (atomowy `INSERT`
+z UNIQUE — cudzy hak potrafi pobiec rekurencyjnie, B6). Do warstwy zapisu
+doszły dwa odczyty: `kurs_produktu()` (odwrotność `produkt_kursu()`) i
+`status_zapisu()` (czyta status z bazy, bo `get_post_status()` w tym żądaniu
+kłamie — E0).
+
+`Aai_Platnosci_Ustawienia` wyłącza mail WooCommerce „nowe konto" (opcja
++ filtr obronny B17) i **przywraca go przy deaktywacji** — nasz mail znika
+razem z wtyczką, a konto bez żadnego linku do hasła to klasa K1.
+
+### Pomiar na żywej instalacji — prawdziwa kasa blokowa, prawdziwa poczta
+
+| Co | Wynik |
+|---|---|
+| zakup gościa przez Store API (`bacs`) | konto 41, zamówienie `on-hold` |
+| skrzynka po zakupie | **mail 1 „Ustaw hasło i wejdź"** + potwierdzenie zamówienia Woo; maila „account has been created" **NIE MA** |
+| link z maila 1 | **200**, pole nowego hasła, zero komunikatu o złym kluczu, strona w NASZYM wyglądzie (`woo-motyw.css`) |
+| po ręcznym `on-hold → completed` | **mail 2 „Twój kurs jest gotowy"** z nazwą kursu Z NASZEJ TABELI i przyciskiem do `/szkolenia/moje/` |
+| dziennik `dostawy` | `mail_konta/41 = wyslano`, `dostep/1285 = przyznany`, `mail_kursu/1285 = wyslano` |
+| hak `tutor_after_enrolled` odpalony **dwa razy** w nowym żądaniu | **0 maili** — znacznik trzyma |
+| zamówienie na **dwa kursy** | **jeden** mail „Twoje kursy są gotowe", obie nazwy w treści, jeden wiersz `mail_kursu` i jeden `dostep` |
+| link otwarty **po 25 h** | pole hasła znika, strona degraduje się do formularza „Lost your password" — czyli klient ma drogę dalej, a mail zapowiadał termin |
+
+Każdy mail wychodzi jako **HTML + wersja tekstowa** (`AltBody` przez
+`phpmailer_init`, zdejmowany w `finally` — filtr zostawiony w miejscu
+doklejałby naszą wersję tekstową do cudzych wiadomości). Typ treści idzie
+**nagłówkiem**, nie globalnym `wp_mail_content_type`.
+
+### Obserwacja spoza zakresu P4
+
+Strona `/my-account/lost-password/`, do której prowadzi mail 1, mówi po
+**angielsku** („Lost your password?", „Reset password") — instalacja stoi na
+`en_US`. To dotyczy wszystkich napisów WooCommerce i Tutora, więc jest
+decyzją o CAŁEJ witrynie (język WordPressa + tłumaczenia), nie o naszym
+mailu. Do listy „przed pierwszym klientem", nie do tego kroku.
