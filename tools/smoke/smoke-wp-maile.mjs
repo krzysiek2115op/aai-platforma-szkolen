@@ -381,6 +381,62 @@ try {
     poczta.length === 0,
     `ponowienie dostawy spoza dziennika wysłało ${poczta.length} wiadomości — nie wolno mu wysłać ani jednej`
   );
+  /* ── 6. JEDEN NADAWCA (BLAD-025) ────────────────────────────────── */
+
+  /*
+   * Zgłoszenie właściciela: po ustawieniu hasła przychodziło gołe
+   * powiadomienie od `WordPress <wordpress@127.0.0.1>` — obcy nadawca
+   * w tej samej ścieżce, w której nasze maile i WooCommerce mówią
+   * z adresu sklepu. Na produkcji taki adres nie przechodzi SPF-u.
+   *
+   * MIERZYMY WYSŁANĄ WIADOMOŚĆ, nie filtr. Sprawdzenie „czy filtr jest
+   * zarejestrowany" przechodziłoby także wtedy, gdyby filtr zwracał
+   * niewłaściwą wartość — a klient i tak dostaje to, co wyszło.
+   */
+  await wyczysc();
+  const temat = `aai-nadawca-${Date.now()}`;
+  php(`wp_mail( get_option( 'admin_email' ), '${temat}', 'proba nadawcy' ); echo 'ok';`);
+  const poNadawcy = await skrzynka();
+  const proba = poNadawcy.find((m) => (m.Subject ?? "").includes(temat));
+  sprawdz(undefined !== proba, "próbna wiadomość nie doszła — pomiar nadawcy byłby ślepy");
+  if (proba) {
+    const adres = proba.From?.Address ?? "";
+    const nazwa = proba.From?.Name ?? "";
+    sprawdz(
+      !adres.startsWith("wordpress@"),
+      `poczta rdzenia WordPressa idzie z domyślnego adresu „${adres}" — na produkcji odpadnie na SPF (BLAD-025)`
+    );
+    sprawdz(nazwa !== "WordPress", `nadawcą jest „WordPress", a nie sklep — klient dostaje wiadomości z dwóch światów (BLAD-025)`);
+    const sklep = php("echo (string) get_option( 'woocommerce_email_from_address', '' );").trim();
+    sprawdz(
+      sklep === "" || adres === sklep,
+      `adres nadawcy „${adres}" nie jest adresem sklepu „${sklep}" — miał być JEDEN nadawca dla wszystkiego`
+    );
+  }
+
+  /*
+   * DRUGA STRONA TEJ SAMEJ REGUŁY: nadawcy ustawionego ŚWIADOMIE nie
+   * ruszamy. Naprawiamy wartość domyślną WordPressa, a nie przejmujemy
+   * cudzą pocztę — bez tego sprawdzenia „jeden nadawca" znaczyłoby
+   * „nasz nadawca zawsze wygrywa", także z wtyczką SMTP właściciela.
+   */
+  await wyczysc();
+  const temat2 = `aai-nadawca-cudzy-${Date.now()}`;
+  php(
+    `add_filter( 'wp_mail_from', function () { return 'ktos@example.test'; }, 20 );` +
+      ` add_filter( 'wp_mail_from_name', function () { return 'Ktos Inny'; }, 20 );` +
+      ` wp_mail( get_option( 'admin_email' ), '${temat2}', 'proba cudzego nadawcy' ); echo 'ok';`
+  );
+  const poCudzym = await skrzynka();
+  const proba2 = poCudzym.find((m) => (m.Subject ?? "").includes(temat2));
+  sprawdz(undefined !== proba2, "próbna wiadomość z cudzym nadawcą nie doszła — pomiar byłby ślepy");
+  if (proba2) {
+    sprawdz(
+      (proba2.From?.Address ?? "") === "ktos@example.test",
+      `nadpisaliśmy nadawcę ustawionego świadomie („${proba2.From?.Address}") — wtyczka SMTP właściciela przestałaby działać`
+    );
+  }
+
 } finally {
   /* ── sprzątanie ─────────────────────────────────────────────────── */
   await wyczysc();

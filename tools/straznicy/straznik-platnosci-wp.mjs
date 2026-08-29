@@ -725,6 +725,50 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* 32. JEDEN NADAWCA POCZTY — ale tylko tam, gdzie nikt go nie ustawił.
+
+   BLAD-025: po ustawieniu hasła szło do właściciela gołe powiadomienie
+   od `WordPress <wordpress@127.0.0.1>`, obok naszych maili i maili Woo
+   z adresu sklepu. Na produkcji taki nadawca odpada na SPF, więc
+   powiadomienia znikają, a nikt się o tym nie dowiaduje.
+
+   Reguła ma DWIE strony i obie są tu pilnowane: filtry muszą istnieć,
+   ale muszą naprawiać WYŁĄCZNIE wartość domyślną WordPressa. Bezwarunkowe
+   nadpisanie nadawcy zabrałoby głos wtyczce SMTP właściciela — to już
+   nie naprawa, tylko przejęcie cudzej poczty. */
+{
+  const maile = kod(readFileSync(join(KATALOG, "includes", "class-aai-platnosci-maile.php"), "utf8"));
+
+  for (const [filtr, opis] of [
+    ["wp_mail_from", "adres"],
+    ["wp_mail_from_name", "nazwa"],
+  ]) {
+    if (!new RegExp(`add_filter\\(\\s*'${filtr}'`).test(maile)) {
+      bledy.push(
+        `${join(KATALOG, "includes", "class-aai-platnosci-maile.php")}: poczta rdzenia WordPressa idzie z domyślnym nadawcą (brak filtru ${filtr}) — „wordpress@<host>" odpada na SPF, a właściciel przestaje dostawać powiadomienia, nie wiedząc o tym (BLAD-025).`
+      );
+    }
+  }
+
+  /* Warunkowość mierzymy ZACHOWANIEM: obie metody muszą PORÓWNAĆ wartość
+     wejściową z domyślną i oddać ją niezmienioną, gdy nie jest domyślna.
+     Wzorzec na samą nazwę metody nie odróżniłby naprawy od nadpisania. */
+  for (const [metoda, wzorzec, czego] of [
+    ["nadawca_adres", /\$adres\s*!==\s*\$domyslny|\$domyslny\s*!==\s*\$adres/, "adresu"],
+    ["nadawca_nazwa", /'WordPress'\s*!==\s*\$nazwa|\$nazwa\s*!==\s*'WordPress'/, "nazwy"],
+  ]) {
+    const i = maile.indexOf(`function ${metoda}`);
+    const blok = i < 0 ? "" : maile.slice(i, maile.indexOf("function ", i + 20) < 0 ? undefined : maile.indexOf("function ", i + 20));
+    if (i < 0) {
+      bledy.push(`${join(KATALOG, "includes", "class-aai-platnosci-maile.php")}: brak metody ${metoda}() — nie ma czym naprawić nadawcy ${czego} (BLAD-025).`);
+    } else if (!wzorzec.test(blok)) {
+      bledy.push(
+        `${join(KATALOG, "includes", "class-aai-platnosci-maile.php")}: ${metoda}() nadpisuje nadawcę ${czego} BEZWARUNKOWO. To już nie naprawa domyślnej wartości, tylko przejęcie cudzej poczty — wtyczka SMTP właściciela przestałaby działać.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -732,5 +776,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom)."
 );

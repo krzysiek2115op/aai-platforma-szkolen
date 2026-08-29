@@ -80,6 +80,82 @@ final class Aai_Platnosci_Maile {
 	public static function zarejestruj(): void {
 		add_action( 'woocommerce_created_customer', array( self::class, 'na_koncie' ), 10, 3 );
 		add_action( 'tutor_after_enrolled', array( self::class, 'na_dostepie' ), 10, 3 );
+		/*
+		 * JEDEN NADAWCA (BLAD-025, decyzja właściciela 2026-08-29).
+		 * Priorytet 1, czyli PRZED czymkolwiek innym: to jest naprawa
+		 * wartości DOMYŚLNEJ, a nie zdanie w cudzej sprawie — kto ustawi
+		 * nadawcę świadomie (Woo, wtyczka SMTP, filtr o wyższym
+		 * priorytecie), ten wygrywa z nami.
+		 */
+		add_filter( 'wp_mail_from', array( self::class, 'nadawca_adres' ), 1 );
+		add_filter( 'wp_mail_from_name', array( self::class, 'nadawca_nazwa' ), 1 );
+	}
+
+	/**
+	 * Adres nadawcy: naprawiamy WYŁĄCZNIE domyślny `wordpress@<host>`.
+	 *
+	 * BLAD-025 ze zgłoszenia właściciela. Po zakupie w tej samej skrzynce
+	 * lądowały wiadomości z DWÓCH światów: nasze i WooCommerce z adresu
+	 * sklepu, a powiadomienia rdzenia WordPressa z `wordpress@127.0.0.1`.
+	 * Na produkcji taki nadawca nie przechodzi SPF-u i trafia do spamu
+	 * albo zostaje odrzucony — czyli właściciel przestaje dostawać
+	 * powiadomienia, o których nawet nie wie, że mu uciekają.
+	 *
+	 * ZMIERZONE w `wp_mail()`: gdy nikt nie ustawi nadawcy, WordPress
+	 * skleja `'wordpress@' . host`. Rozpoznajemy dokładnie ten kształt
+	 * i tylko jego — adresu, który ktoś ustawił świadomie, NIE ruszamy.
+	 * To jest różnica między naprawą domyślnej wartości a przejmowaniem
+	 * cudzej poczty.
+	 *
+	 * @param string|mixed $adres Adres nadawcy proponowany przez WordPressa.
+	 * @return string
+	 */
+	public static function nadawca_adres( $adres ): string {
+		$adres = (string) $adres;
+		try {
+			$host      = (string) wp_parse_url( network_home_url(), PHP_URL_HOST );
+			$domyslny  = '' === $host ? '' : 'wordpress@' . $host;
+			if ( '' === $domyslny || $adres !== $domyslny ) {
+				return $adres;
+			}
+			// Kolejność źródeł: adres sklepu (tam właściciel go ustawia),
+			// potem adres administratora. Oba mogą być puste na świeżej
+			// instalacji — wtedy zostawiamy WordPressowi jego wartość,
+			// bo pusty nadawca wywala wysyłkę w całości.
+			foreach ( array( (string) get_option( 'woocommerce_email_from_address', '' ), (string) get_option( 'admin_email', '' ) ) as $kandydat ) {
+				if ( '' !== $kandydat && is_email( $kandydat ) ) {
+					return $kandydat;
+				}
+			}
+			return $adres;
+		} catch ( Throwable $e ) {
+			// Poczta jest ważniejsza od kosmetyki nadawcy.
+			return $adres;
+		}
+	}
+
+	/**
+	 * Nazwa nadawcy: to samo co przy adresie, dla domyślnego „WordPress".
+	 *
+	 * @param string|mixed $nazwa Nazwa proponowana przez WordPressa.
+	 * @return string
+	 */
+	public static function nadawca_nazwa( $nazwa ): string {
+		$nazwa = (string) $nazwa;
+		if ( 'WordPress' !== $nazwa ) {
+			return $nazwa;
+		}
+		try {
+			foreach ( array( (string) get_option( 'woocommerce_email_from_name', '' ), (string) get_option( 'blogname', '' ) ) as $kandydat ) {
+				$kandydat = trim( wp_specialchars_decode( $kandydat, ENT_QUOTES ) );
+				if ( '' !== $kandydat ) {
+					return $kandydat;
+				}
+			}
+			return $nazwa;
+		} catch ( Throwable $e ) {
+			return $nazwa;
+		}
 	}
 
 	/**

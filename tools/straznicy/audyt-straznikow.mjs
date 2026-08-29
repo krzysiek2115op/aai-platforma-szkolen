@@ -73,6 +73,7 @@ const ARKUSZ_LEKCJI = "wordpress/wtyczki/aai-sklep/assets/lekcja.css";
  *             bez materiału raportowałby fałszywe „PRZEPUŚCIŁ mutację".
  */
 const ZAPIS_PRODUKTU = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php";
+const MAILE_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php";
 const USTAWIENIA_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php";
 const CLI_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php";
 
@@ -1178,6 +1179,54 @@ const MUTACJE = [
             '$wpdb->prepare( "SELECT id FROM `$t_kursy` WHERE slug = %s", $slug )',
             '"SELECT id FROM `$t_kursy` WHERE slug = \'$slug\'"'
           )
+        : null,
+  },
+  // --- straznik-platnosci-wp, reguła 32 (jeden nadawca poczty, BLAD-025) ---
+  // Obie strony reguły mają mutację: brak naprawy (poczta z wordpress@
+  // odpada na SPF) ORAZ naprawa zbyt zachłanna (zabieramy głos wtyczce
+  // SMTP właściciela). Druga jest groźniejsza, bo wygląda jak porządek.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "filtr adresu nadawcy odpięty — poczta rdzenia wraca do wordpress@<host> (BLAD-025)",
+    plik: MAILE_PLATNOSCI,
+    wymaga: () => existsSync(MAILE_PLATNOSCI),
+    oczekiwanySlad: "domyślnym nadawcą",
+    zmien: (s) =>
+      s.includes("add_filter( 'wp_mail_from', array( self::class, 'nadawca_adres' ), 1 );")
+        ? s.replace("add_filter( 'wp_mail_from', array( self::class, 'nadawca_adres' ), 1 );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "filtr nazwy nadawcy odpięty — wiadomości znów podpisane „WordPress”",
+    plik: MAILE_PLATNOSCI,
+    wymaga: () => existsSync(MAILE_PLATNOSCI),
+    oczekiwanySlad: "domyślnym nadawcą",
+    zmien: (s) =>
+      s.includes("add_filter( 'wp_mail_from_name', array( self::class, 'nadawca_nazwa' ), 1 );")
+        ? s.replace("add_filter( 'wp_mail_from_name', array( self::class, 'nadawca_nazwa' ), 1 );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "adres nadawcy nadpisywany BEZWARUNKOWO — przejmujemy cudzą pocztę zamiast naprawiać domyślną",
+    plik: MAILE_PLATNOSCI,
+    wymaga: () => existsSync(MAILE_PLATNOSCI),
+    oczekiwanySlad: "BEZWARUNKOWO",
+    zmien: (s) =>
+      s.includes("if ( '' === $domyslny || $adres !== $domyslny ) {")
+        ? s.replace("if ( '' === $domyslny || $adres !== $domyslny ) {", "if ( false ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "nazwa nadawcy nadpisywana BEZWARUNKOWO",
+    plik: MAILE_PLATNOSCI,
+    wymaga: () => existsSync(MAILE_PLATNOSCI),
+    oczekiwanySlad: "BEZWARUNKOWO",
+    zmien: (s) =>
+      s.includes("if ( 'WordPress' !== $nazwa ) {")
+        ? s.replace("if ( 'WordPress' !== $nazwa ) {", "if ( false ) {")
         : null,
   },
   // --- straznik-platnosci-wp, reguła 31 (jeden kurs w koszyku, BLAD-023) ---
