@@ -1,4 +1,12 @@
-# P6 — test ręczny właściciela (wtyczka `aai-platnosci`, wersja 0.52.0)
+# P6 — test ręczny właściciela (wtyczka `aai-platnosci`)
+
+> **ZALICZONY 2026-08-30 („akceptuje wszystko"), wersja 0.53.0.** Wtyczka
+> `aai-platnosci` (Plugin 2) jest tym samym SKOŃCZONA. Ścieżki A–E
+> przejdzone; test wyłapał trzy rzeczy, których nie widział żaden automat
+> (dwa maile w tej samej sekundzie przy płatności natychmiastowej, brak
+> drogi powrotnej do konta, powiadomienie rdzenia o hasłach) — wszystkie
+> naprawione w 0.53.0, z bramkami. Dokument zostaje jako przepis na test
+> ręczny Pluginu 3 i zapis tego, co ten test wyłapał.
 
 Ostatni krok Pluginu 2. **Wtyczka nie jest skończona, dopóki nie przejdzie
 tego testu** — tak samo jak `aai-sklep` nie była skończona przed W6.
@@ -288,7 +296,7 @@ dostaje wpis w [rejestr/znane-bledy.json](../../rejestr/znane-bledy.json)
 
 ## Przebieg — zgłoszenia i naprawy
 
-### Sesja 2026-08-29/30 (w toku)
+### Sesja 2026-08-29/30 — ZALICZONA
 
 Ścieżki A–B przejdzone przez właściciela do zamówienia #2590 włącznie
 (konto `robert.parowk`); „na razie wszystko idzie dobrze". Na jego
@@ -309,9 +317,19 @@ naprawa z testem negatywnym (wersja 0.53.0, szczegóły w CHANGELOG):**
 Dowody napraw: `smoke-wp-maile` 60 (trzy nowe sceny), `smoke-wp-front` 84,
 `smoke-wp-lekcja` 38, dwie reguły strażnika + 4 mutacje (audyt 227).
 
-**Do ponownego obejrzenia po naprawach:** menu po zalogowaniu (pozycja
-„Moje konto"), skrzynka przy kolejnym zakupie. Ścieżki C–E i zwrot (D) —
-jeszcze przed Tobą.
+**Ścieżka D przejdzona przez właściciela** (zwrot #2590 z panelu: status
+Zwrócone → mail „Twoje zamówienie zostało zwrócone" do klienta; potem
+przywrócenie statusu — dostęp wrócił, stan spójny, kontrola kod 0).
+Wynik: **„akceptuje wszystko"** — P6 zaliczone.
+
+**Czwarte zgłoszenie, wyjaśnione bez zmiany kodu:** „nie ma nigdzie maila
+z ustawieniem hasła". Mail WYSZEDŁ (dziennik: `mail_konta/161 wyslano`)
+i właściciel ustawił z niego hasło — zniknął tylko PODGLĄD w Mailpicie,
+bo `smoke-wp-maile` czyści całą skrzynkę (znana usterka z pozycji 3
+w „Co wiem przed testem"; zwrot nie tworzy konta, więc nowego maila 1
+nie miało być — znacznik „raz na użytkownika" działa zgodnie z projektem).
+To jest dokładnie historia, dla której naprawa higieny skrzynki
+w smoke'ach czeka po P6.
 
 ## Kiedy P6 jest zaliczone
 
