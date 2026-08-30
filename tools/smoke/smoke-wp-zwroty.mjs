@@ -48,10 +48,10 @@
  * Użycie: node tools/smoke/smoke-wp-zwroty.mjs
  */
 import { execFileSync } from "node:child_process";
+import { ilePoczty, migawkaPoczty, pocztaOdpowiada, sprzatnijPoczte } from "./poczta.mjs";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
-const POCZTA = process.env.MAILPIT_ADRES ?? "http://127.0.0.1:8893";
 const KURS = "aaaa0000-0000-4000-8000-00000000p502";
 const SLUG = "smoke-wp-zwroty";
 
@@ -138,11 +138,36 @@ const wpisowTutora = () =>
     )
   );
 
+/*
+ * ZAPISY NA KURSY GLOBALNIE — z tego samego powodu, co wpisy Tutora wyżej:
+ * własne ślady nie mówią nic o cudzych danych. Kasowanie zamówienia nie
+ * kasuje zapisu w Tutorze, a zapis-sierota liczy się do „zapisanych na kurs”
+ * (wpis #2153 zawyżał licznik prawdziwego Kursu 1 przy zamówieniu, którego
+ * dawno nie ma).
+ */
+const zapisow = () =>
+  Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='tutor_enrolled'" );`));
+
 const produktowPrzed = liczbaProduktow();
 const zamowienPrzed = liczbaZamowien();
 const powiazanPrzed = powiazan();
 const dostawPrzed = dostaw();
 const wpisowPrzed = wpisowTutora();
+const zapisowPrzed = zapisow();
+
+/*
+ * MIGAWKA POCZTY. Zwroty i zakupy tego smoke'a wysyłają wiadomości Woo
+ * (zmierzone: 15 na przebieg), a skrzynka jest wspólna z właścicielem —
+ * sprzątamy WYŁĄCZNIE to, co przyszło po migawce.
+ */
+if (!(await pocztaOdpowiada())) {
+  console.error(
+    "smoke-wp-zwroty: łapacz poczty nie odpowiada. Postaw środowisko: cd wordpress/srodowisko && ./postaw.sh"
+  );
+  process.exit(1);
+}
+const migawka = await migawkaPoczty();
+const pocztyPrzed = await ilePoczty();
 
 let produkt = 0;
 let tutor = 0;
@@ -449,6 +474,12 @@ try {
       ` Aai_Platnosci_Zapis::powiazanie_usun( '${KURS}' );` +
       ` foreach ( array( ${produkt}, ${tutor}, ${obcy} ) as $id ) { if ( $id > 0 && get_post( $id ) ) { wp_delete_post( $id, true ); } } echo 'ok';`
   );
+  // Wyłącznie wiadomości spoza migawki — patrz `tools/smoke/poczta.mjs`.
+  // Wyjątek stąd nie może przesłonić prawdziwego błędu z bloku `try`;
+  // rachunek sumienia poniżej i tak zapali się na niewróconej skrzynce.
+  await sprzatnijPoczte(migawka).catch((e) =>
+    console.error(`  (sprzątanie poczty nie doszło do skutku: ${e.message})`)
+  );
 }
 
 sprawdz(liczbaProduktow() === produktowPrzed, `smoke zostawił produkt: przed ${produktowPrzed}, po ${liczbaProduktow()}`);
@@ -461,6 +492,16 @@ sprawdz(
 sprawdz(
   dostaw() === dostawPrzed,
   `smoke zostawił wiersz w dzienniku dostaw: przed ${dostawPrzed}, po ${dostaw()} — wiersz po skasowanym zamówieniu to widmo, które przeżyje każdy następny przebieg`
+);
+sprawdz(
+  zapisow() === zapisowPrzed,
+  `smoke zostawił zapis na kurs: przed ${zapisowPrzed}, po ${zapisow()} — sierota po skasowanym zamówieniu zawyża licznik zapisanych`
+);
+const pocztyPo = await ilePoczty();
+sprawdz(
+  pocztyPo === pocztyPrzed,
+  `skrzynka nie wróciła do stanu sprzed przebiegu: przed ${pocztyPrzed}, po ${pocztyPo} — ` +
+    "bramka albo zostawia własne wiadomości (zmierzone 15 na przebieg), albo kasuje CUDZE"
 );
 sprawdz(wp("aai-platnosci", "sprawdz").kod === 0, "po sprzątaniu kontrola czerwona — smoke zostawił rozjazd");
 

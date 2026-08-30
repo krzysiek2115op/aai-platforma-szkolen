@@ -89,6 +89,15 @@ wyjścia i zielony ogon potrafi zasłonić czerwony wynik.
 
 ## Zasady twarde
 
+- **Bramka kasuje wyłącznie to, co sama zrobiła.** Środowisko warsztatu jest
+  wspólne z właścicielem — skrzynka łapacza poczty, zamówienia, konta, zapisy
+  na kursy. Smoke bierze więc na starcie migawkę stanu i przywraca go na
+  końcu, zamiast czyścić zasób do zera: „przywróć stan" to co innego niż
+  „wyczyść wszystko". Do tego każda taka bramka kończy **rachunkiem
+  sumienia** — porównaniem stanu po przebiegu ze stanem sprzed, także dla
+  danych CUDZYCH (sweep P5: smoke liczący wyłącznie własne ślady nie zauważył
+  skasowania 18 lekcji Kursu 2). Poczta ma na to wspólny moduł
+  `tools/smoke/poczta.mjs`; pilnuje tego `straznik-higieny-smokow`.
 - Repo `MatthewPlugins/automatic-ai` (strona główna) — **tylko do odczytu** (wzorce,
   design, konwencje). Żadnych pushy tam do końca projektu.
 - Sekrety wyłącznie w `.env` (ignorowany); wzorcem jest `.env.example`.

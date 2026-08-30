@@ -35,6 +35,7 @@ import { execFileSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ilePoczty, migawkaPoczty, pocztaOdpowiada, sprzatnijPoczte } from "./poczta.mjs";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
@@ -146,10 +147,36 @@ const liczbaZamowien = () =>
 const powiazan = () =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . Aai_Platnosci_Tabele::tabela( 'powiazania' ) );`));
 
+/*
+ * ZAPISY NA KURSY LICZONE GLOBALNIE. Sprzątanie po WŁASNYM kursie
+ * (`post_parent = tutor`) nie widzi zapisu, który powstał na cudzym — a taki
+ * właśnie został po zamówieniu #2152 (wpis #2153 zawyżał licznik zapisanych
+ * na prawdziwy Kurs 1). Kasowanie zamówienia zapisu NIE kasuje.
+ */
+const zapisowWszystkich = () =>
+  Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='tutor_enrolled'" );`));
+
 const produktowPrzed = liczba("product");
 const powiazanPrzed = powiazan();
 const zamowienPrzed = liczbaZamowien();
+const zapisowWszystkichPrzed = zapisowWszystkich();
 const sprzedazPrzed = php(`echo (string) get_option( '${OPCJA_SPRZEDAZ}', '' );`);
+
+/*
+ * MIGAWKA POCZTY. Ten smoke składa i domyka zamówienia, więc WooCommerce
+ * i nasza warstwa dostarczania wysyłają wiadomości — zmierzone: 21 na
+ * przebieg. Do 0.53.0 zostawały w skrzynce na zawsze i po kilku bramkach
+ * właściciel szukał swojego maila wśród cudzych. Sprzątamy je na końcu,
+ * kasując WYŁĄCZNIE to, co przyszło po migawce (`tools/smoke/poczta.mjs`).
+ */
+if (!(await pocztaOdpowiada())) {
+  console.error(
+    "smoke-wp-zakup: łapacz poczty nie odpowiada. Postaw środowisko: cd wordpress/srodowisko && ./postaw.sh"
+  );
+  process.exit(1);
+}
+const migawka = await migawkaPoczty();
+const pocztyPrzed = await ilePoczty();
 
 /* ── scena: kurs testowy + cudzy produkt ────────────────────────────── */
 
@@ -497,6 +524,14 @@ try {
       ` Aai_Platnosci_Zapis::powiazanie_usun( '${KURS}' );` +
       ` foreach ( array( ${produkt}, ${tutor}, ${obcy} ) as $id ) { if ( $id > 0 && get_post( $id ) ) { wp_delete_post( $id, true ); } } echo 'ok';`
   );
+  // Poczta na końcu: kasujemy wyłącznie wiadomości spoza migawki, czyli te,
+  // które wysłał ten przebieg. Skrzynka jest wspólna z właścicielem.
+  // Wyjątek stąd NIE MOŻE przesłonić prawdziwego błędu z bloku `try`, więc
+  // go notujemy zamiast rzucać — rachunek sumienia i tak zapali się poniżej,
+  // bo skrzynka nie wróci wtedy do stanu sprzed przebiegu.
+  await sprzatnijPoczte(migawka).catch((e) =>
+    console.error(`  (sprzątanie poczty nie doszło do skutku: ${e.message})`)
+  );
 }
 
 sprawdz(liczba("product") === produktowPrzed, `smoke zostawił produkt: przed ${produktowPrzed}, po ${liczba("product")}`);
@@ -505,6 +540,16 @@ sprawdz(liczbaZamowien() === zamowienPrzed, `smoke zostawił zamówienie: przed 
 sprawdz(
   php(`echo (string) get_option( '${OPCJA_SPRZEDAZ}', '' );`) === sprzedazPrzed,
   "smoke zostawił zmieniony stan sprzedaży — następny przebieg mierzyłby inną instalację niż zastał"
+);
+sprawdz(
+  zapisowWszystkich() === zapisowWszystkichPrzed,
+  `smoke zostawił zapis na kurs: przed ${zapisowWszystkichPrzed}, po ${zapisowWszystkich()} — sierota po skasowanym zamówieniu zawyża licznik zapisanych`
+);
+const pocztyPo = await ilePoczty();
+sprawdz(
+  pocztyPo === pocztyPrzed,
+  `skrzynka nie wróciła do stanu sprzed przebiegu: przed ${pocztyPrzed}, po ${pocztyPo} — ` +
+    "bramka albo zostawia własne wiadomości (zmierzone 21 na przebieg), albo kasuje CUDZE"
 );
 sprawdz(wp("aai-platnosci", "sprawdz").kod === 0, "po sprzątaniu kontrola czerwona — smoke zostawił rozjazd");
 

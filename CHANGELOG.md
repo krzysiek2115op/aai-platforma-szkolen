@@ -5,6 +5,96 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.54.0] — 2026-08-30
+
+**Higiena bramek wobec wspólnych zasobów** — naprawy po teście ręcznym P6.
+Skrzynka łapacza poczty, zamówienia i zapisy na kursy są w warsztacie wspólne
+z właścicielem, a bramki traktowały je tak, jakby były wyłącznie ich. Punkt
+wyjścia: **czwarte zgłoszenie z P6** („zniknął mail Ustaw hasło”) — mail
+wyszedł i został odebrany, zniknął PODGLĄD, bo bramka wyczyściła całą skrzynkę.
+
+### Zmienione
+
+- **Bramka kasuje wyłącznie to, co sama wysłała.** Zmierzone przelotem
+  wszystkich 13 smoke'ów WP z licznikiem przed/po (poczta, zapisy na kursy,
+  produkty, dostawy, powiązania, wpisy Tutora, zamówienia): `smoke-wp-zakup`
+  zostawiał **21 wiadomości** na przebieg, `smoke-wp-zwroty` **15**,
+  a `smoke-wp-maile` odwrotnie — kasował **CAŁĄ skrzynkę** (36 → 0),
+  trzynaście razy w trakcie przebiegu. To samo robił `postaw.sh`, dwa razy,
+  a jest rozkazem kroku zerowego każdego testu ręcznego.
+  Powstał wspólny moduł **`tools/smoke/poczta.mjs`**: migawka identyfikatorów
+  ZASTANYCH na starcie, kasowanie wyłącznie tego, czego w niej nie ma.
+  Izolacja pomiaru w `smoke-wp-maile` zostaje bez zmian — zawężamy pole
+  widzenia zamiast czyścić cudze, więc asercje „wyszedł dokładnie jeden mail”
+  liczą to samo co wcześniej. `postaw.sh` kasuje własną wiadomość kontrolną
+  po identyfikatorze, znalezionym przez `/api/v1/search`.
+  Dowód: przy dwóch obcych wiadomościach w skrzynce wszystkie trzy bramki
+  i `postaw.sh` zostawiają je nietknięte (2 → 2, te same tematy). **BLAD-029.**
+- **Rachunek sumienia o dwie pozycje**: skrzynka wróciła do stanu sprzed
+  przebiegu oraz liczba zapisów na kursy (`tutor_enrolled`) bez zmian —
+  liczona **GLOBALNIE**, nie po własnym kursie. Sprawdzeń: `smoke-wp-maile`
+  60 → **62**, `smoke-wp-zakup` 38 → **40**, `smoke-wp-zwroty` 37 → **39**.
+- **Reguła zapisana w CONTRIBUTING** („Zasady twarde”), bo dotąd żyła tylko
+  w opisach pojedynczych smoke'ów w README — czyli nie było czego egzekwować.
+
+### Naprawione
+
+- **Sierota `tutor_enrolled` #2153 zawyżała statystykę prawdziwego Kursu 1.**
+  `post_author = 0`, `_tutor_enrolled_by_order_id = 2152` przy zamówieniu,
+  którego już nie ma. **Kasowanie zamówienia NIE kasuje zapisu w Tutorze**,
+  a sprzątanie po własnym kursie takiego wpisu nie widzi — bo siedzi on na
+  cudzym. Tutor liczył 5 zapisanych zamiast 4; po skasowaniu licznik spadł do
+  4 (mierzone OSOBNYM żądaniem — w tym samym Tutor oddaje wartość sprzed
+  kasowania, pułapka z W6). Żaden dzisiejszy smoke takich sierot nie
+  produkuje: przelot 13 bramek dał 6 → 6, więc nowa asercja jest
+  profilaktyką, nie naprawą czynnego wycieku. **BLAD-030.**
+- **Dwie martwe stałe**: `POCZTA` w `smoke-wp-zwroty` (od P5, nigdy nieużyta —
+  dziś bramka naprawdę czyta i sprząta pocztę, więc stała ma sens) oraz `ADRES`
+  w `smoke-wp-maile`, jedyne ostrzeżenie ESLinta w tych plikach, starsze niż
+  ta gałąź (potwierdzone uruchomieniem lintera na wersji z `main`).
+
+### Dodane
+
+- **36. strażnik `straznik-higieny-smokow`** (8 mutacji w audycie, w tym
+  kontrprzykład). Siedem reguł; **trzy z nich sprawdzane URUCHOMIENIOWO**,
+  przez podstawiony `fetch` — bo różnica między „posprzątaj po sobie”
+  a „wyczyść wszystko” to jedno pole w ładunku żądania, a wzorzec na kod tej
+  klasy niezmiennika nie utrzyma. Bramkę „wysyła pocztę” rozpoznaje po
+  wywołaniach cudzego interfejsu (`wc_create_order`, `payment_complete`,
+  `woocommerce_created_customer`, `tutor_after_enrolled`), nie po nazwie
+  pliku — nowy smoke dostanie regułę automatycznie. Audyt mutacyjny
+  227 → **236** (234 złapane, 0 przeoczonych, 0 martwych, 2 pominięte).
+
+### Zapamiętane
+
+- **`DELETE /api/v1/messages` bez listy `IDs` znaczy w Mailpicie „skasuj
+  wszystko”.** Sprzątanie, które nie ma czego skasować, nie może więc wysłać
+  tego żądania w ogóle — pusta lista wyczyściłaby skrzynkę właściciela.
+  Pilnuje tego osobna reguła strażnika, sprawdzana uruchomieniowo.
+- **Migawka ucięta limitem zamienia cudze wiadomości we własne.** Mailpit
+  stronicuje listę (domyślnie 50 na stronę), więc moduł czyta do skutku
+  i porównuje z `total`; rozbieżność ZATRZYMUJE przebieg, zamiast po cichu
+  kasować cudze.
+- **Siódmy nawrót pułapki „wzorzec na napis” — tym razem w MOIM kodzie.**
+  Pierwsza wersja reguły rachunku sumienia szukała napisu „poczty” wewnątrz
+  wywołania `sprawdz(`, czyli wisiała na nazwie zmiennej `pocztyPo`. Pyta
+  teraz o zachowanie: stan skrzynki odczytany DWA RAZY, a druga wartość
+  w asercji. Kontrprzykład w audycie sprawdza, że przemianowanie zmiennych
+  niczego nie psuje. (Poprzednie nawroty: 0.29.0, 0.44.0, 0.47.0, c6c9c97,
+  dwa razy w P4.)
+- **Mutacja przypięta do KSZTAŁTU kodu umiera po pierwszym refactorze.**
+  Mutacja „niepełna migawka przechodzi” przestała pasować, gdy odczyt dostał
+  drugie podejście — audyt zameldował ją jako MARTWĄ. Celuje teraz w skutek
+  (lista oddana mimo rozbieżności z `total`), nie w kształt bloku.
+- **Sprzątanie w `finally` nie może rzucać.** Wyjątek stamtąd przesłoniłby
+  prawdziwy błąd z bloku `try`; notujemy go więc na stderr, a niewróconą
+  skrzynkę i tak zapala rachunek sumienia.
+- **Zamiana tekstu w całym pliku trafia też tam, gdzie nie patrzysz.**
+  Przemianowanie licznika w `smoke-wp-zakup` weszło przy okazji w istniejące
+  sprawdzenie B16 (powtórny zakup), które porównywało wtedy liczbę globalną
+  z lokalną. Złapane czytaniem diffu, nie testem — stąd nawyk: po każdej
+  zamianie hurtowej przeczytać `git diff` po wzorcu, nie tylko wynik.
+
 ## [0.53.0] — 2026-08-30
 
 **Trzy naprawy z testu ręcznego P6** — właściciel przeszedł ścieżkę zakupu
