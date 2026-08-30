@@ -56,6 +56,30 @@ final class Aai_Sklep_Lekcja {
 		add_filter( 'body_class', array( self::class, 'klasa_body' ) );
 		add_action( 'wp_enqueue_scripts', array( self::class, 'zasoby' ), 1000 );
 		add_action( 'wp_head', array( self::class, 'nie_indeksuj' ), 1 );
+		add_filter( 'aai_monitor_strona_za_bramka', array( self::class, 'za_bramka' ) );
+	}
+
+	/**
+	 * Odpowiedź monitoringowi: czy rysujemy TERAZ bramkę logowania.
+	 *
+	 * Pytanie zadaje Plugin 3 filtrem, bo sam nie ma jak tego wiedzieć —
+	 * gość na płatnej lekcji dostaje HTTP 200 i pełną stronę, więc z jego
+	 * strony odbicie wygląda dokładnie jak przeczytana lekcja (A6
+	 * z przeglądu T3). Różnicę zna wyłącznie ten widok.
+	 *
+	 * Filtr jest w Pluginie 3, odpowiedź w Pluginie 1 — dzięki temu żadna
+	 * z wtyczek nie zagląda w drugą: monitoring nie wie nic o lekcjach,
+	 * a sklep nie wie nic o tabeli ruchu. Brak Pluginu 3 nic tu nie psuje
+	 * (filtr, którego nikt nie woła, po prostu milczy).
+	 *
+	 * @param bool $za_bramka Odpowiedź dotychczasowa.
+	 */
+	public static function za_bramka( bool $za_bramka ): bool {
+		if ( $za_bramka ) {
+			return true;
+		}
+		$dane = self::dane();
+		return null !== $dane && empty( $dane['dostep'] );
 	}
 
 	/**

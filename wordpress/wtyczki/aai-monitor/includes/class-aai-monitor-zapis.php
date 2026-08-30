@@ -35,6 +35,26 @@ final class Aai_Monitor_Zapis {
 	public const SUFIT_TRWANIA_MS = 4 * 60 * 60 * 1000;
 
 	/**
+	 * Sufit WIEKU odsłony: 30 dni w milisekundach.
+	 *
+	 * OSOBNY OD SUFITU TRWANIA I ROBIĄCY CO INNEGO — to naprawa A5
+	 * z przeglądu T3. Do niej obie liczby dzieliły sufit 4 h i obie były
+	 * PRZYCINANE, przez co karta zostawiona na noc zapisywała wejście
+	 * „4 h temu" (zmierzone co do sekundy). Przycięcie czasu czytania jest
+	 * niedokładnością; przycięcie WIEKU jest ZMYŚLENIEM GODZINY — wizyta
+	 * ląduje w złej godzinie, a przy oknie „dziś" często w złej dobie,
+	 * czyli psuje dokładnie tę liczbę, dla której cały mechanizm powstał.
+	 *
+	 * Dlatego wiek ponad sufit ODRZUCAMY, a nie przycinamy: wizyta sprzed
+	 * ponad miesiąca to nie jest opóźniony beacon czytelnika, tylko śmieć
+	 * albo cudza zabawa. Lepiej stracić jeden wątpliwy wiersz niż wpisać
+	 * do tabeli wymyślony znacznik czasu. Wszystko poniżej sufitu — także
+	 * karta otwarta przez trzy dni — zapisuje się z PRAWDZIWYM momentem
+	 * wejścia.
+	 */
+	public const SUFIT_WIEKU_MS = 30 * 24 * 60 * 60 * 1000;
+
+	/**
 	 * Dopisuje zdarzenie logowania.
 	 *
 	 * @param array<string,mixed> $dane Klucze: `zdarzenie` (udane|nieudane),
@@ -118,27 +138,126 @@ final class Aai_Monitor_Zapis {
 	/**
 	 * Dopisuje wizytę.
 	 *
-	 * @param array<string,mixed> $dane Klucze: `sesja` (32 hex), `sciezka`,
-	 *                                  `trwanie_ms`.
-	 * @return bool Czy wiersz powstał.
+	 * DWIE LICZBY CZASU, NIE JEDNA — i to nie jest nadmiar. `trwanie_ms`
+	 * znaczy czas AKTYWNY (zegar w przeglądarce stoi, gdy karta jest
+	 * ukryta), a `wiek_ms` to czas od wejścia na stronę do wysłania
+	 * beaconu. Moment wejścia liczy się z DRUGIEJ: karta otwarta o 9:00,
+	 * czytana dwie minuty i zamknięta o 17:00 zapisałaby przy pierwszej
+	 * wejście o 16:58 — czyli w złej godzinie, a bywa że i w złej dobie
+	 * (P16 schematu; ta sama wada, przed którą broniło liczenie momentu
+	 * wejścia po stronie serwera).
+	 *
+	 * Klientowi nie ufamy w żadnym ZNACZNIKU czasu — obie wartości to
+	 * RÓŻNICE, obie przycinane sufitem, a chwilę „teraz" bierze serwer.
+	 *
+	 * @param array<string,mixed> $dane Klucze: `odslona` (32 hex), `sesja`
+	 *                                  (32 hex), `sciezka`, `bramka`,
+	 *                                  `trwanie_ms`, `wiek_ms`.
+	 * @return bool Czy odsłona jest zapisana (nowym wierszem albo
+	 *              uzupełnieniem istniejącego).
 	 */
 	public static function dodaj_wizyte( array $dane ): bool {
-		$trwanie = max( 0, (int) ( $dane['trwanie_ms'] ?? 0 ) );
-		// PRZYCINAMY, nie odrzucamy (patrz SUFIT_TRWANIA_MS).
-		$trwanie = min( $trwanie, self::SUFIT_TRWANIA_MS );
+		// Czas czytania PRZYCINAMY (patrz SUFIT_TRWANIA_MS)...
+		$trwanie = min( max( 0, (int) ( $dane['trwanie_ms'] ?? 0 ) ), self::SUFIT_TRWANIA_MS );
+
+		// ...a wiek ODRZUCAMY ponad sufitem, bo przycięty wiek to
+		// zmyślona godzina wejścia (patrz SUFIT_WIEKU_MS).
+		$wiek = max( 0, (int) ( $dane['wiek_ms'] ?? 0 ) );
+		if ( $wiek > self::SUFIT_WIEKU_MS ) {
+			return false;
+		}
+
+		// Wiek nie może być mniejszy niż czas aktywny — to fizycznie
+		// niemożliwe, więc znaczy tyle, że klient przysłał nieprawdę albo
+		// że któraś liczba oberwała sufitem. Bierzemy większą: moment
+		// wejścia ma być NAJWCZEŚNIEJSZY, jaki da się obronić.
+		$wiek = max( $wiek, $trwanie );
+
+		$odslona = self::przytnij( (string) ( $dane['odslona'] ?? '' ), 32 );
 
 		$wiersz = array(
+			// Pusty identyfikator idzie jako NULL, nigdy jako '': UNIQUE
+			// przepuszcza wiele NULL-i, ale dwa puste łańcuchy uznałby za
+			// ten sam wiersz i druga odsłona bez identyfikatora nadpisałaby
+			// pierwszą. Ta sama pułapka, która przy P5 zjadła 18 modułów
+			// i lekcji w Tutorze (`meta_value => ''` dopasowywało cudze).
+			'odslona'    => '' !== $odslona ? $odslona : null,
 			'sesja'      => self::przytnij( (string) ( $dane['sesja'] ?? '' ), 32 ),
 			'sciezka'    => self::przytnij( (string) ( $dane['sciezka'] ?? '' ), 191 ),
-			// Moment WEJŚCIA liczy serwer: beacon przychodzi przy wyjściu
-			// ze strony, więc `now()` byłoby momentem wyjścia i wizyta
-			// zaczęta o 23:50 lądowałaby w następnej dobie. Klientowi nie
-			// ufamy w żadnym znaczniku czasu.
-			'wejscie'    => self::teraz_utc( -$trwanie ),
+			'bramka'     => empty( $dane['bramka'] ) ? 0 : 1,
+			'wejscie'    => self::teraz_utc( -$wiek ),
 			'trwanie_ms' => $trwanie,
 		);
 
-		return self::wstaw( Aai_Monitor_Tabele::tabela( 'wizyty' ), $wiersz, 'wizyty' );
+		// Kolejne beacony TEJ SAMEJ odsłony uzupełniają istniejący wiersz,
+		// zamiast dokładać nowy — inaczej czas doczytany po powrocie do
+		// karty (naprawa B1) zawyżałby liczbę odsłon zamiast wydłużać
+		// czytanie.
+		if ( '' !== $odslona && self::podnies_wizyte( $odslona, $wiersz ) ) {
+			return true;
+		}
+
+		$zapisane = self::wstaw( Aai_Monitor_Tabele::tabela( 'wizyty' ), $wiersz, 'wizyty' );
+		if ( ! $zapisane && '' !== $odslona ) {
+			// Wyścig: wiersz tej odsłony powstał między naszym sprawdzeniem
+			// a wstawieniem (dwa beacony w locie naraz). To nie jest awaria,
+			// tylko rzecz, przed którą stoi UNIQUE — dokładamy czas do tego,
+			// co zdążyło powstać.
+			return self::podnies_wizyte( $odslona, $wiersz );
+		}
+		return $zapisane;
+	}
+
+	/**
+	 * Uzupełnia wiersz istniejącej odsłony. `false` = takiego wiersza nie ma.
+	 *
+	 * OBIE WARTOŚCI ZMIENIAMY MONOTONICZNIE, w SQL-u, a nie w PHP:
+	 * `GREATEST` na czasie czytania i `LEAST` na momencie wejścia. Beacony
+	 * bywają dostarczane nie po kolei (`sendBeacon` niczego nie obiecuje
+	 * o kolejności), a bez tego spóźniony beacon z mniejszą liczbą cofnąłby
+	 * już zapisany czas. Przy okazji robi to baza w jednym zapytaniu, więc
+	 * dwa równoległe beacony nie mają się jak nadpisać.
+	 *
+	 * `sciezka`, `sesja` i `bramka` NIE są aktualizowane: pochodzą
+	 * z podpisu tej samej strony i zmienić się nie mogą, a gdyby przyszły
+	 * inne, znaczyłoby to podrobiony beacon — i wtedy tym bardziej nie
+	 * chcemy ich wpisywać do cudzego wiersza.
+	 *
+	 * @param string              $odslona Identyfikator odsłony (32 hex).
+	 * @param array<string,mixed> $wiersz  Wartości z beaconu.
+	 */
+	private static function podnies_wizyte( string $odslona, array $wiersz ): bool {
+		global $wpdb;
+
+		try {
+			$t = Aai_Monitor_Tabele::tabela( 'wizyty' );
+
+			$id = $wpdb->get_var(
+				$wpdb->prepare( "SELECT `id` FROM `{$t}` WHERE `odslona` = %s", $odslona )
+			); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+			if ( null === $id ) {
+				return false;
+			}
+
+			$zmienione = $wpdb->query(
+				$wpdb->prepare(
+					"UPDATE `{$t}` SET `trwanie_ms` = GREATEST( `trwanie_ms`, %d ), `wejscie` = LEAST( `wejscie`, %s ) WHERE `id` = %d",
+					(int) $wiersz['trwanie_ms'],
+					(string) $wiersz['wejscie'],
+					(int) $id
+				)
+			); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+			if ( false === $zmienione ) {
+				self::zglos( 'nie udało się uzupełnić czasu odsłony: ' . $wpdb->last_error );
+			}
+
+			// Wiersz ISTNIEJE — i tylko to rozstrzyga. Zero zmienionych
+			// wierszy znaczy tu „ten beacon nic nie wnosił", a nie porażkę.
+			return true;
+		} catch ( Throwable $e ) {
+			self::zglos( 'nie udało się uzupełnić czasu odsłony: ' . $e->getMessage() );
+			return false;
+		}
 	}
 
 	/**
@@ -225,6 +344,7 @@ final class Aai_Monitor_Zapis {
 						self::teraz_utc( 0, -Aai_Monitor_Tabele::OKNO_WIZYTY_DNI )
 					)
 				); // phpcs:ignore WordPress.DB.PreparedSQL
+				$ile = (int) $ile + self::przytnij_liczbe_wizyt();
 			}
 			if ( false === $ile ) {
 				self::zglos( 'retencja nie zadziałała: ' . $wpdb->last_error );
@@ -235,6 +355,45 @@ final class Aai_Monitor_Zapis {
 			self::zglos( 'retencja nie zadziałała: ' . $e->getMessage() );
 			return 0;
 		}
+	}
+
+	/**
+	 * Ścina tabelę ruchu do sufitu liczby wierszy (A2, decyzja właściciela).
+	 *
+	 * WIEK NIE WYSTARCZY JAKO JEDYNE KRYTERIUM: podpis ścieżki stoi jawnie
+	 * w HTML i jest wielokrotnego użytku, więc jeden nieuwierzytelniony
+	 * klient mieści się w limiterze i dopisuje ~430 000 wierszy na dobę —
+	 * a wszystkie są młodsze niż 400 dni, czyli retencja po wieku ich nie
+	 * rusza. Sufit ścina NAJSTARSZE, bo to one najmniej znaczą.
+	 *
+	 * LICZYMY ROZPIĘTOŚĆ IDENTYFIKATORÓW, NIE WIERSZY. `COUNT(*)` przy
+	 * KAŻDYM zapisie kosztowałby pełny skan tabeli, a beacon jest
+	 * najczęstszym zapisem tego modułu. Rozpiętość `MAX(id) − MIN(id)` jest
+	 * z definicji NIE MNIEJSZA niż liczba wierszy i bierze się z indeksu,
+	 * więc jako granica jest bezpieczna: gdy nie przekracza sufitu, wierszy
+	 * na pewno też nie ma za dużo i nie dotykamy tabeli w ogóle.
+	 */
+	private static function przytnij_liczbe_wizyt(): int {
+		global $wpdb;
+
+		$t = Aai_Monitor_Tabele::tabela( 'wizyty' );
+
+		$granice = $wpdb->get_row( "SELECT MIN(`id`) AS naj_starszy, MAX(`id`) AS naj_nowszy FROM `{$t}`" ); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+		if ( null === $granice || null === $granice->naj_nowszy ) {
+			return 0;
+		}
+
+		$rozpietosc = (int) $granice->naj_nowszy - (int) $granice->naj_starszy + 1;
+		if ( $rozpietosc <= Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT ) {
+			return 0;
+		}
+
+		$prog = (int) $granice->naj_nowszy - Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT;
+		$ile  = $wpdb->query(
+			$wpdb->prepare( "DELETE FROM `{$t}` WHERE `id` <= %d", $prog )
+		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+
+		return false === $ile ? 0 : (int) $ile;
 	}
 
 	/**

@@ -49,6 +49,26 @@ final class Aai_Monitor_Tabele {
 	public const OKNO_WIZYTY_DNI = 400;
 
 	/**
+	 * Sufit liczby wierszy ruchu — DRUGIE kryterium retencji, obok wieku.
+	 *
+	 * DECYZJA WŁAŚCICIELA (2026-08-30, po znalezisku A2 z przeglądu T3):
+	 * sufit wierszy TAK, deduplikacja NIE. Powód: sufit chroni bazę nie
+	 * zmieniając znaczenia liczb — każda odsłona nadal jest odsłoną,
+	 * powrót „wstecz” i ponowne czytanie tej samej lekcji liczą się jak
+	 * dotąd. Okno deduplikacji („ta sama sesja i ścieżka raz na N minut”)
+	 * byłoby tańsze, ale kazałoby napisowi „Odsłony” znaczyć co innego.
+	 *
+	 * SKĄD TA LICZBA. Wiersz waży ~191 B (pomiar recenzenta na tabeli
+	 * 50 000 wierszy), więc 250 000 wierszy to ~48 MB — mieści ~600 odsłon
+	 * dziennie przez całe 400 dni retencji, czyli wielokrotność ruchu,
+	 * jakiego ta witryna się spodziewa. Bez sufitu jeden nieuwierzytelniony
+	 * klient mógł dopisać ~430 000 wierszy na dobę (podpis stoi jawnie
+	 * w HTML i jest wielokrotnego użytku), a kafelki ekranu robią
+	 * `COUNT(*)` bez okna czasu, więc panel degradowałby się razem z tabelą.
+	 */
+	public const SUFIT_WIERSZY_WIZYT = 250000;
+
+	/**
 	 * Pełna nazwa tabeli z prefiksem instalacji i prefiksem wtyczki.
 	 *
 	 * @param string $nazwa Nazwa bez prefiksów, np. `logowania`.
@@ -125,19 +145,38 @@ final class Aai_Monitor_Tabele {
 		 * `crypto.randomUUID()` daje 36 znaków z myślnikami i odrzucałby
 		 * własne beacony.
 		 *
-		 * `wejscie` liczy SERWER jako `now() − trwanie_ms`: beacon
+		 * `wejscie` liczy SERWER jako `now() − wiek_ms`: beacon
 		 * przychodzi przy WYJŚCIU ze strony, więc samo `now()` byłoby
 		 * momentem wyjścia i wizyta zaczęta o 23:50 lądowałaby w następnej
 		 * dobie. Klientowi nie ufamy w żadnym znaczniku czasu.
+		 *
+		 * `odslona` to identyfikator JEDNEJ odsłony (32 hex, nowy przy
+		 * każdym wejściu na stronę i przy powrocie z bfcache), a jego
+		 * UNIQUE jest jedynym powodem, dla którego odsłona ma dokładnie
+		 * jeden wiersz mimo WIELU beaconów. Beacony są wielokrotne od
+		 * naprawy B1: czas aktywny urywał się przy pierwszym przełączeniu
+		 * karty (zmierzone: 1559 ms zamiast 5500), bo skrypt wysyłał
+		 * dokładnie raz i po powrocie do karty nie miał już czym dosłać
+		 * doczytanego czasu. Kolumna jest NULL-owalna, bo MySQL dopuszcza
+		 * wiele NULL-i w UNIQUE — wiersze sprzed tej zmiany zostają.
+		 *
+		 * `bramka` mówi, że stronę wyrenderowano JAKO ZAPROSZENIE DO
+		 * LOGOWANIA, a nie jako treść (A6 z przeglądu T3): gość na płatnej
+		 * lekcji dostaje HTTP 200 i skrypt pomiaru, więc bez tej kolumny
+		 * „top 10 czytanych stron" liczyłoby odbicia jako czytanie.
+		 * Flaga wchodzi DO PODPISU, więc nie da się jej podrobić.
 		 */
 		dbDelta(
 			"CREATE TABLE {$w} (
 				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				odslona char(32) NULL DEFAULT NULL,
 				sesja char(32) NOT NULL,
 				sciezka varchar(191) NOT NULL,
+				bramka tinyint(1) unsigned NOT NULL DEFAULT 0,
 				wejscie datetime NOT NULL,
 				trwanie_ms int(10) unsigned NOT NULL DEFAULT 0,
 				PRIMARY KEY  (id),
+				UNIQUE KEY odslona (odslona),
 				KEY wejscie (wejscie)
 			) {$kolacja};"
 		);

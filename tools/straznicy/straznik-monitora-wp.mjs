@@ -10,7 +10,7 @@
  * się po cichu — ekran dalej się otwiera, tylko zaczyna kłamać albo
  * zbierać rzeczy, których zbierać nie wolno.
  *
- * CZTERNAŚCIE NIEZMIENNIKÓW (numery N z sekcji 8 schematu; każdy z mutacją
+ * NIEZMIENNIKI KROKÓW T1–T3 (numery N z sekcji 8 schematu; każdy z mutacją
  * w audyt-straznikow). Reguły 1–8 przyszły z krokiem T1, reguły 9–12
  * z T2 razem z pierwszym producentem danych; reguły o sicie beaconu
  * dochodzą w T3, bo dziś nie miałyby czego pilnować:
@@ -56,7 +56,15 @@
  *  13. (P13) producent jest PODPIĘTY: plik główny naprawdę woła jego
  *      `zarejestruj()`. Reguły 10–12 czytają plik producenta i nie
  *      widzą, że nikt go nie uruchamia — zmierzone: po zdjęciu jednej
- *      linii dziennik jest martwy przy WSZYSTKICH bramkach zielonych.
+ *      linii dziennik jest martwy przy WSZYSTKICH bramkach zielonych,
+ *  14. (P14, N18, F18, F20) KONTRAKT WYSTRZAŁU, cztery rzeczy naraz:
+ *      obie nazwy akcji (`admin-post.php` rozgałęzia się po stanie
+ *      zalogowania, a strony lekcji są za logowaniem), nazwa akcji
+ *      w query stringu (schowana w ciele daje HTTP 200 i ciszę), wymóg
+ *      typu `application/json` (cross-origin `text/plain` DOCHODZI,
+ *      JSON nie — więc to typ, a nie `Origin`, jest tamą) oraz czytanie
+ *      ciała strumieniem z sufitem (`post_max_size` to 8 MB, a limit
+ *      64 KiB `sendBeacon` w pomiarze nie zadziałał).
  *
  * Użycie: node tools/straznicy/straznik-monitora-wp.mjs
  */
@@ -70,6 +78,12 @@ const EKRAN = join(KATALOG, "includes", "class-aai-monitor-ekran.php");
 const CLI = join(KATALOG, "includes", "class-aai-monitor-cli.php");
 const TABELE = join(KATALOG, "includes", "class-aai-monitor-tabele.php");
 const LOGOWANIA = join(KATALOG, "includes", "class-aai-monitor-logowania.php");
+const WYSTRZAL = join(KATALOG, "includes", "class-aai-monitor-wizyty.php");
+const POMIAR = join(KATALOG, "includes", "class-aai-monitor-pomiar.php");
+const SKRYPT = join(KATALOG, "assets", "pomiar.js");
+const PODPIS = join(KATALOG, "includes", "class-aai-monitor-podpis.php");
+const PRYWATNOSC = join(KATALOG, "includes", "class-aai-monitor-prywatnosc.php");
+const FRAGMENT_POLITYKI = "docs/plugin-3/POLITYKA-PRYWATNOSCI.md";
 const GLOWNY = join(KATALOG, "aai-monitor.php");
 const bledy = [];
 
@@ -119,18 +133,322 @@ const kodWtyczki = plikiWtyczki.map((p) => [p, kod(readFileSync(p, "utf8"))]);
 /* ————————————————— 1. (N1) ekran jest czystym odczytem ————————————————— */
 
 for (const [plik, tresc] of kodWtyczki) {
+  // Akcja `admin_post_*` jest dozwolona W JEDNYM PLIKU — w wystrzale
+  // (T3). To NIE jest wyłom w N1: N1 mówi, że EKRAN nie zapisuje, a nie
+  // że wtyczka nie ma prawa mieć punktu wejścia. Timer wizyt musi mieć
+  // dokąd wysyłać beacon, i kanałem jest ten sam `admin-post.php`, którym
+  // idą wszystkie akcje Pluginu 1. Regułę zawężamy więc do miejsca,
+  // a w zamian reguła 14 wymaga od tego pliku obu nazw akcji — czyli
+  // strażnik po tej zmianie pilnuje WIĘCEJ, nie mniej.
+  const wystrzal = plik === WYSTRZAL;
   const zapisujace = [
-    [/add_action\(\s*['"]admin_post_/, "akcja admin-post.php"],
-    [/add_action\(\s*['"]wp_ajax_/, "akcja wp_ajax"],
-    [/method\s*=\s*["']post["']/i, 'formularz method="post"'],
-    [/wp_nonce_field\s*\(|check_admin_referer\s*\(|wp_verify_nonce\s*\(/, "nonce"],
+    [/add_action\(\s*['"]admin_post_/, "akcja admin-post.php", wystrzal],
+    [/add_action\(\s*['"]wp_ajax_/, "akcja wp_ajax", false],
+    [/method\s*=\s*["']post["']/i, 'formularz method="post"', false],
+    [/wp_nonce_field\s*\(|check_admin_referer\s*\(|wp_verify_nonce\s*\(/, "nonce", false],
   ];
-  for (const [wzorzec, co] of zapisujace) {
-    if (wzorzec.test(tresc)) {
+  for (const [wzorzec, co, wolno] of zapisujace) {
+    if (!wolno && wzorzec.test(tresc)) {
       bledy.push(
-        `${plik}: ${co} w module, który ma wyłącznie patrzeć (N1). Ekran monitoringu jest czystym odczytem — jedyne, co można na nim zrobić, to patrzeć. Pojawienie się tu zapisu znaczy, że moduł przestał być monitoringiem i nikt tego nie zauważy, bo ekran dalej się otwiera. Filtry i stronicowanie jadą GET-em.`
+        `${plik}: ${co} w module, który ma wyłącznie patrzeć (N1). Ekran monitoringu jest czystym odczytem — jedyne, co można na nim zrobić, to patrzeć. Pojawienie się tu zapisu znaczy, że moduł przestał być monitoringiem i nikt tego nie zauważy, bo ekran dalej się otwiera. Filtry i stronicowanie jadą GET-em. Jedyny wyjątek to wystrzał timera wizyt (${WYSTRZAL}), który MUSI mieć akcję — i ma na to własną regułę.`
       );
     }
+  }
+}
+
+/* ——— 14. (P14, N18) wystrzał rejestruje OBIE nazwy akcji ——— */
+
+if (existsSync(WYSTRZAL)) {
+  const tresc = kod(readFileSync(WYSTRZAL, "utf8"));
+  // Pytamy o REJESTRACJĘ, nie o nazwę stałej: wzorzec przypięty do nazwy
+  // przechodzi po przemianowaniu, a mechanizm zostaje martwy (nawrót
+  // pułapki z 0.29.0, 0.44.0, 0.47.0 i c6c9c97).
+  const gosc = /add_action\(\s*['"]admin_post_nopriv_/.test(tresc);
+  const zalogowany = /add_action\(\s*['"]admin_post_(?!nopriv_)/.test(tresc);
+  if (!gosc || !zalogowany) {
+    bledy.push(
+      `${WYSTRZAL}: wystrzał rejestruje tylko ${gosc ? "gałąź gościa" : "gałąź zalogowanych"} (P14, N18). \`admin-post.php\` rozgałęzia się po \`is_user_logged_in()\` na DWA ROZŁĄCZNE haki, a wizyty liczymy wszystkim oprócz adminów — strony lekcji są za logowaniem, więc brak \`admin_post_{action}\` gubi CAŁY ruch w kupionym materiale, a brak \`admin_post_nopriv_{action}\` cały ruch gości. Objawu nie ma: beacon dostaje \`wp_die( '', 400 )\`, którego nikt nie czyta.`
+    );
+  }
+
+  // Nazwa akcji MUSI jechać w query stringu (F18): `$action` bierze się
+  // z `$_REQUEST`, a ciała `application/json` PHP nie wkłada do `$_POST`.
+  // Akcja schowana w ciele daje HTTP 200 i ciszę — najgorszy możliwy
+  // objaw, czyli jego brak.
+  if (!/admin_url\(\s*['"]admin-post\.php\?action=/.test(tresc)) {
+    bledy.push(
+      `${WYSTRZAL}: adres wystrzału nie niesie nazwy akcji w query stringu (F18). Bez \`?action=\` żądanie wpada w gałąź „brak akcji”, odpowiada HTTP 200 i nie zapisuje niczego — zmierzone na żywej instalacji.`
+    );
+  }
+
+  // Typ ciała jest JEDYNĄ tamą na beacon z obcej witryny (F20):
+  // cross-origin `text/plain` dochodzi, `application/json` nie, bo wymaga
+  // preflightu. Bez tego sprawdzenia sito na `Origin` jest dekoracją.
+  // Pytamy o POROWNANIE, nie o obecność napisu: sam łańcuch
+  // „application/json” może zostać w kodzie (komunikat, komentarz
+  // w stałej), a wymóg zniknąć — to szósty nawrót tej pułapki
+  // w projekcie (0.29.0, 0.44.0, 0.47.0, c6c9c97, dwa razy w P4).
+  if (!/['"]application\/json['"]\s*===|===\s*['"]application\/json['"]/.test(tresc)) {
+    bledy.push(
+      `${WYSTRZAL}: endpoint nie wymaga typu \`application/json\` (F20). Zmierzone: beacon z obcej witryny wysłany jako \`text/plain\` DOCHODZI, a ten sam ładunek jako JSON nie — bo wymaga preflightu, na który WordPress odpowiada 403. Bez wymogu typu obca strona może zawyżać nasz ruch z przeglądarki dowolnego odwiedzającego.`
+    );
+  }
+
+  // Ciało czytane STRUMIENIEM z sufitem: `post_max_size` to 8 MB, więc
+  // `file_get_contents( 'php://input' )` wciąga do pamięci wszystko, co
+  // ktoś wyśle, ZANIM cokolwiek sprawdzimy. Limit 64 KiB `sendBeacon`
+  // w pomiarze nie zadziałał (F23), więc sufit jest nasz albo go nie ma.
+  /*
+   * PYTAMY O SUFIT PRZY ODCZYCIE, nie o obecność słowa `fread` (B6
+   * z przeglądu T3). Zmierzone: `fread( $uchwyt, 8 * 1024 * 1024 )`
+   * z natychmiastowym `return $cialo` przechodziło na zielono, choć
+   * wciąga do pamięci wszystko, co ktoś wyśle — a właśnie temu ten
+   * mechanizm miał zapobiec. Dwa wymagania, bo są dwie decyzje:
+   * ile najwyżej czytamy i co robimy, gdy tyle się doczytało.
+   */
+  const odczyt = tresc.match(/fread\s*\(\s*\$\w+\s*,\s*([^)]*)\)/);
+  const jestSufitPrzyOdczycie = Boolean(odczyt && /SUFIT_CIALA_B/.test(odczyt[1]));
+  const jestOdrzutPoOdczycie = /strlen\(\s*\$\w+\s*\)\s*>\s*self::SUFIT_CIALA_B\s*\?\s*null/.test(tresc);
+  if (/file_get_contents\(\s*['"]php:\/\/input/.test(tresc) || !odczyt) {
+    bledy.push(
+      `${WYSTRZAL}: ciało żądania nie jest czytane strumieniem (Z9 audytu T3). \`post_max_size\` w kontenerze to 8 MB, a limit 64 KiB z dokumentacji \`sendBeacon\` w pomiarze NIE zadziałał — beacon 70 kB przeszedł i doszedł w całości.`
+    );
+  } else if (!jestSufitPrzyOdczycie) {
+    bledy.push(
+      `${WYSTRZAL}: strumień jest czytany BEZ SUFITU — drugi argument \`fread\` to „${odczyt[1].trim()}” i nie odwołuje się do \`SUFIT_CIALA_B\` (B6). Czytanie jest jedyną częścią obsługi, która kosztuje pamięć, więc sufit ma stać DOKŁADNIE tutaj; sam \`fread\` niczego nie chroni.`
+    );
+  }
+  if (!jestOdrzutPoOdczycie) {
+    bledy.push(
+      `${WYSTRZAL}: po odczycie brakuje odrzutu ciała ponad sufit (B6). Deklarowany \`content-length\` to za mało — zmierzone na żywej instalacji: żądanie \`Transfer-Encoding: chunked\` NIE niesie deklaracji, dochodzi do PHP i zatrzymuje je wyłącznie porównanie tego, ile bajtów NAPRAWDĘ się doczytało.`
+    );
+  }
+}
+
+/* ——— 14b. (D3, B4) wystrzał ODMAWIA administratorowi ——— */
+
+/*
+ * Skrypt i tak nie jest administratorowi podawany (reguła 15), ale to za
+ * mało: beacon może przyjść z karty otwartej PRZED zalogowaniem, a wtedy
+ * odsłona zostałaby przypisana komuś, kogo z definicji nie mierzymy (D3).
+ * Do przeglądu T3 tej gałęzi nie pilnowało NIC — mutacja kasująca ją
+ * przechodziła u strażnika, a bramka nigdy nie wysyłała beaconu jako
+ * administrator. Pytamy o ODMOWĘ, nie o wywołanie.
+ */
+if (existsSync(WYSTRZAL)) {
+  const tresc = kod(readFileSync(WYSTRZAL, "utf8"));
+  const obsluga = cialoMetody(tresc, "obsluz");
+  if (null === obsluga) {
+    bledy.push(`${WYSTRZAL}: nie znalazłem metody obsluz() — reguła o wykluczeniu administratora nie ma czego sprawdzić i milczy.`);
+  } else if (!/if\s*\(\s*current_user_can\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/.test(obsluga)) {
+    bledy.push(
+      `${WYSTRZAL}: obsluz() nie odmawia administratorowi (D3, B4). Beacon z karty otwartej przed zalogowaniem przypisałby odsłonę komuś, kogo z założenia nie mierzymy — a ekran obiecuje ruch KLIENTÓW, nie własny.`
+    );
+  }
+}
+
+/* ——— 15. (N8) skryptu pomiaru nie dostaje ani admin, ani strona 404 ——— */
+
+if (existsSync(POMIAR)) {
+  const tresc = kod(readFileSync(POMIAR, "utf8"));
+  const decyzja = cialoMetody(tresc, "mierzymy");
+  if (null === decyzja) {
+    bledy.push(
+      `${POMIAR}: nie znalazłem metody mierzymy() — to jedyne miejsce, które rozstrzyga, KTO dostaje skrypt pomiaru. Bez niej reguła nie ma czego sprawdzać i milczy.`
+    );
+  } else {
+    /*
+     * OBA WYMAGANIA PYTAJĄ O ODMOWĘ, nie o obecność wywołania (B5
+     * z przeglądu T3). Zmierzone: `current_user_can( … );` bez `return
+     * false` i `$blad = is_404();` przechodziły na zielono — mechanizm
+     * był martwy, a strażnik zielony. Ósmy nawrót tej pułapki
+     * w projekcie.
+     */
+    if (!/if\s*\(\s*current_user_can\s*\([^)]*\)\s*\)\s*\{\s*return\s+false\s*;/.test(decyzja)) {
+      bledy.push(
+        `${POMIAR}: mierzymy() nie ODMAWIA administratorowi (N8, D3). Samo wywołanie \`current_user_can\` niczego nie rozstrzyga — ma z niego wynikać \`return false\`. Administrator ma NIE być liczony, a skoro skrypt dostaje każdy, kto dostanie stronę, to jest jedyne miejsce, w którym da się go wykluczyć.`
+      );
+    }
+    if (!/if\s*\(\s*is_404\s*\(\s*\)\s*\)\s*\{\s*return\s+false\s*;/.test(decyzja)) {
+      bledy.push(
+        `${POMIAR}: mierzymy() nie ODMAWIA stronie 404 (samo wywołanie is_404() bez odmowy nie wyklucza niczego) — a to nie jest oszczędność, tylko dziura w podpisie. Strona błędu renderuje się dla DOWOLNEGO adresu, więc podawanie tam skryptu rozdaje podpisy na ścieżki, których nie ma: wystarczy wejść na zmyślony adres, wziąć podpis ze źródła i zatruć nim listę najczęstszych stron.`
+      );
+    }
+  }
+
+  if (!/const UCHWYT = 'aai-monitor-/.test(tresc)) {
+    bledy.push(
+      `${POMIAR}: uchwyt skryptu nie zaczyna się od \`aai-monitor-\` (P11). To nie zwyczaj nazewniczy: \`Aai_Sklep_Zasoby\` zdejmuje z frontu uchwyty o prefiksach \`tutor\`, \`wc-\`, \`woocommerce\` i \`sourcebuster\`, więc nazwa spoza naszej rodziny może wpaść pod cudzy filtr i wyciszyć pomiar bez śladu.`
+    );
+  }
+}
+
+/* ——— 15c. (A4) kontrola pyta, czy kokpit i witryna mają to samo pochodzenie ——— */
+
+/*
+ * Adres wystrzału składa `admin_url()`, sito porównuje `Origin`
+ * z `home_url()`. Każda różnica schematu, hosta albo portu zamienia
+ * beacon w żądanie cross-origin — preflight, 403, zero zapisów, kontrola
+ * zielona. Decyzja właściciela (2026-08-30): kod 1.
+ */
+if (existsSync(CLI)) {
+  const tresc = kod(readFileSync(CLI, "utf8"));
+  const kontrola = cialoMetody(tresc, "sprawdz");
+  if (null === kontrola) {
+    bledy.push(`${CLI}: nie znalazłem metody sprawdz() — reguła o pochodzeniu nie ma czego sprawdzić i milczy.`);
+  } else {
+    /*
+     * PYTAMY O PORÓWNANIE DWÓCH PRZYPISAŃ, nie o obecność nazw.
+     * Pierwsza wersja tej reguły sprawdzała, czy w ciele kontroli
+     * występują `admin_url(` i `home_url(` — i była ŚLEPA, co złapał
+     * audyt mutacyjny: podmiana `admin_url()` na `home_url()` w miejscu
+     * pomiaru przechodziła, bo `admin_url()` zostawało w TREŚCI
+     * KOMUNIKATU BŁĘDU. Dziewiąty nawrót tej pułapki w projekcie —
+     * i pierwszy raz w regule napisanej PO opisaniu jej w tym samym
+     * przeglądzie.
+     */
+    const zKokpitu = kontrola.match(/(\$\w+)\s*=\s*[^;]*admin_url\(\s*\)/);
+    const zWitryny = kontrola.match(/(\$\w+)\s*=\s*[^;]*home_url\(\s*\)/);
+    const uciekana = (nazwa) => nazwa.replace("$", "\\$");
+    const porownane =
+      zKokpitu &&
+      zWitryny &&
+      new RegExp(`${uciekana(zKokpitu[1])}\\s*!==\\s*${uciekana(zWitryny[1])}|${uciekana(zWitryny[1])}\\s*!==\\s*${uciekana(zKokpitu[1])}`).test(kontrola);
+    if (!porownane) {
+      bledy.push(
+        `${CLI}: kontrola nie PORÓWNUJE pochodzenia kokpitu (\`admin_url\`) z pochodzeniem witryny (\`home_url\`) (A4). Przy rozjeździe beacon jedzie cross-origin, dostaje 403 na preflighcie i nie zapisuje się ANI RAZU — a kontrola melduje „w porządku”.`
+      );
+    }
+  }
+}
+
+/* ——— 15b. (A7) sól podpisu powstaje zapisem, który NIE nadpisuje ——— */
+
+/*
+ * `add_option()` pisze `INSERT … ON DUPLICATE KEY UPDATE` (zmierzone
+ * w option.php), więc przy wyścigu dwóch pierwszych żądań NADPISUJE sól
+ * tego, kto zdążył pierwszy — a jego strony są już w przeglądarkach
+ * i noszą podpisy liczone starą wartością. Żaden odczyt zwrotny tego nie
+ * naprawi, bo w bazie leży wtedy już nasza sól. Objawu brak: beacon
+ * odpowiada 204 zawsze, więc odsłony po prostu przestają się zapisywać.
+ */
+if (existsSync(PODPIS)) {
+  const tresc = kod(readFileSync(PODPIS, "utf8"));
+  const tworzenie = cialoMetody(tresc, "sol");
+  if (null === tworzenie) {
+    bledy.push(`${PODPIS}: nie znalazłem metody sol() — reguła o powstawaniu soli nie ma czego sprawdzić i milczy.`);
+  } else if (/add_option\s*\(/.test(tworzenie) || !/ON DUPLICATE KEY UPDATE\s+option_id\s*=\s*option_id/.test(tworzenie)) {
+    bledy.push(
+      `${PODPIS}: sól podpisu powstaje zapisem, który NADPISUJE istniejącą wartość (A7). Przy wyścigu dwóch pierwszych żądań przegrany kasuje sól zwycięzcy, a strony wysłane przez zwycięzcę niosą już podpisy liczone starą solą — sito odrzuci je w milczeniu. Zapis ma być pusty przy konflikcie (\`ON DUPLICATE KEY UPDATE option_id = option_id\`), nie \`add_option()\`.`
+    );
+  }
+}
+
+/* ——— 16. (P17, F6, F22, B1) skrypt: jeden wiersz na odsłonę, reset po bfcache, bez automatów ——— */
+
+/*
+ * KAŻDE WYMAGANIE PYTA O ROZSTRZYGNIĘCIE, NIE O OBECNOŚĆ NAZWY.
+ *
+ * Do naprawy B2 (przegląd T3) trzy z sześciu wymagań pytały o sam napis
+ * i były przez to ślepe — zmierzone na oryginale, trzema mutacjami, które
+ * przeszły na zielono: `navigator.webdriver` przypisany do zmiennej
+ * zamiast rozstrzygać (automaty liczone jak ludzie), `getItem` bez
+ * `catch` (pomiar milczy u każdego, kto blokuje ciasteczka — drugi
+ * `catch` w pliku wystarczał wzorcowi), skasowane startowe uruchomienie
+ * zegara (strona przeczytana bez przełączania karty nie zapisuje się
+ * wcale). To siódmy nawrót tej samej pułapki w projekcie: 0.29.0 nazwa
+ * metody, 0.44.0 nazwa stałej, 0.47.0 treść komunikatu, c6c9c97 nazwa
+ * stałej, dwa razy w P4.
+ */
+
+if (existsSync(SKRYPT)) {
+  const js = readFileSync(SKRYPT, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+  // Zmienna, której wartość naprawdę jedzie w ładunku jako czas czytania.
+  // Od niej zależą dwa wymagania niżej, więc wyprowadzamy ją raz.
+  const wLadunku = js.match(/trwanie_ms\s*:\s*([A-Za-z_$][\w$]*)/);
+  // Bramka drugiej wysyłki: TA SAMA zmienna porównana ze znacznikiem
+  // ostatniej wysyłki, z wyjściem z funkcji.
+  const bramka = js.match(/if\s*\(\s*([A-Za-z_$][\w$]*)\s*<=\s*([A-Za-z_$][\w$]*)\s*\)\s*\{\s*return/);
+
+  const wymagania = [
+    [
+      // Nie „czy pada słowo webdriver", tylko „czy z tego wynika wyjście".
+      /if\s*\(\s*navigator\.webdriver\s*\)\s*\{\s*return/.test(js),
+      "skrypt nie WYCHODZI przy navigator.webdriver (F6) — samo odczytanie flagi niczego nie daje, a automaty liczyłyby się jak ludzie i para bramek N9/N10 straciłaby sens",
+    ],
+    [
+      // Bramka drugiej wysyłki musi porównywać DOKŁADNIE tę liczbę, która
+      // pojedzie w ładunku — inaczej pilnuje czegoś innego niż wysyłka.
+      Boolean(bramka && wLadunku && bramka[1] === wLadunku[1]),
+      "skrypt nie porównuje wysyłanego czasu z czasem ostatniej wysyłki (P17, B1). Bez tego: pagehide i visibilitychange odpalają w TEJ SAMEJ milisekundzie, więc każda odsłona szłaby dwoma identycznymi beaconami; a z bramką na samej fladze „już wysłane” czas doczytany po powrocie do karty nie dojeżdża wcale (zmierzone: 1559 ms zamiast 5530)",
+    ],
+    [
+      // Powrót z bfcache musi ZDJĄĆ znacznik wysyłki, nie tylko go zauważyć.
+      Boolean(bramka && new RegExp(`persisted[\\s\\S]{0,600}?\\b${bramka[2]}\\s*=`).test(js)),
+      "skrypt nie zeruje znacznika wysyłki po powrocie z bfcache (F22). Strona wraca z ZACHOWANYM stanem JS, więc bez zdjęcia znacznika nawigacja „wstecz” nie liczy się ani razu",
+    ],
+    [
+      // Każde sięgnięcie do magazynu ma stać W ŚRODKU `try` — liczymy to
+      // po pozycji, bo obecność słowa `catch` gdziekolwiek w pliku
+      // przepuszczała zdjęcie osłony z drugiego wywołania.
+      [...js.matchAll(/sessionStorage/g)].every((m) => /try\s*\{[^{}]*$/.test(js.slice(Math.max(0, m.index - 200), m.index))),
+      "skrypt sięga po sessionStorage POZA `try` (choćby raz). Magazyn rzuca SecurityError przy zablokowanych ciasteczkach, więc pomiar milczałby u części odwiedzających — bez jednego objawu",
+    ],
+    [
+      /sendBeacon\([\s\S]{0,300}?type:\s*["']application\/json["']/.test(js),
+      "beacon nie deklaruje typu application/json PRZY WYSYŁCE (F10, F20). Zwykły łańcuch idzie jako text/plain, którego endpoint nie przyjmuje — a przyjmować nie może, bo to właśnie text/plain przechodzi cross-origin",
+    ],
+    [
+      // Zegar MUSI ruszyć już przy wejściu na stronę. Bez tego odsłona
+      // bez ani jednego przełączenia karty ma czas 0 i nie powstaje wcale.
+      /if\s*\(\s*["']visible["']\s*===\s*document\.visibilityState\s*\)\s*\{\s*[A-Za-z_$][\w$]*\(\);?\s*\}\s*\}\)\(\);?\s*$/.test(js.trim()),
+      "skrypt nie uruchamia zegara przy WEJŚCIU na widoczną stronę — czas liczyłby się dopiero od pierwszego przełączenia karty, więc strona przeczytana i zamknięta bez przełączania nie zapisałaby się ani razu",
+    ],
+  ];
+  for (const [spelnione, opis] of wymagania) {
+    if (!spelnione) {
+      bledy.push(`${SKRYPT}: ${opis}.`);
+    }
+  }
+}
+
+/* ——— 17. teksty ekranu bez podwójnej ucieczki cudzysłowu ——— */
+
+if (existsSync(EKRAN)) {
+  // `esc_html` zamienia prosty `"` na `&quot;`, więc cudzysłów wpisany
+  // w tekst tłumaczony trafia na ekran jako encja. Ta sama klasa co
+  // 29 podpisów w podglądzie kursów (0.34.0) — i tak samo niewidoczna
+  // dla wszystkiego poza ludzkim okiem.
+  const zle = [...readFileSync(EKRAN, "utf8").matchAll(/__\(\s*'([^']*)'/g)]
+    .map((m) => m[1])
+    .filter((t) => t.includes('"'));
+  for (const tekst of zle) {
+    bledy.push(
+      `${EKRAN}: tekst na ekran zawiera prosty cudzysłów — \`esc_html\` zamieni go na \`&quot;\` i klient zobaczy encję zamiast znaku. Użyj „typograficznych”. Tekst: „${tekst.slice(0, 60)}…”`
+    );
+  }
+}
+
+/* ——— 18. fragment polityki w repo zgodny z treścią w kodzie ——— */
+
+if (existsSync(PRYWATNOSC) && existsSync(FRAGMENT_POLITYKI)) {
+  // Dokument obiecuje wprost, że jego treść jest identyczna z tą, którą
+  // melduje wtyczka. Dwie kopie tekstu PRAWNEGO rozjadą się przy
+  // pierwszej poprawce, a rozjazd zobaczy dopiero ktoś, kto czyta oba
+  // naraz — czyli nikt.
+  const zKodu = [...readFileSync(PRYWATNOSC, "utf8").matchAll(/__\(\s*'([^']*)'\s*,\s*'aai-monitor'\s*\)/g)]
+    .map((m) => m[1].replace(/\\'/g, "'"))
+    .filter((t) => t.length > 120);
+  // Fragment stoi w cytacie blokowym, więc najpierw zdejmujemy „> ”
+  // z początku linii — inaczej porównanie nie ma szans i reguła zapala
+  // się fałszywie przy zgodnej treści.
+  const dokument = readFileSync(FRAGMENT_POLITYKI, "utf8").replace(/^>\s?/gm, "").replace(/\s+/g, " ");
+  const brakujace = zKodu.filter((t) => !dokument.includes(t.replace(/\s+/g, " ")));
+  if (brakujace.length > 0) {
+    bledy.push(
+      `${FRAGMENT_POLITYKI}: ${brakujace.length} akapit(ów) z ${PRYWATNOSC} nie ma w gotowym fragmencie, choć dokument obiecuje treść identyczną. Polityka prywatności żyje w dwóch miejscach (kod wtyczki i tekst do wklejenia w motywie, do którego mamy dostęp tylko do odczytu) — rozjazd między nimi znaczy, że klient czyta co innego, niż witryna robi. Pierwszy brakujący: „${brakujace[0].slice(0, 70)}…”`
+    );
   }
 }
 
@@ -291,7 +609,46 @@ for (const [plik, tresc] of kodWtyczki) {
       /add_(?:action|filter)\(\s*['"]([\w-]+)['"]\s*,\s*array\(\s*(?:self::class|'[\w]+')\s*,\s*['"](\w+)['"]/g
     ),
   ];
+  /*
+   * 9b. (A9) ŻADEN NASZ HANDLER NIE MOŻE WYWRÓCIĆ SIĘ NA SAMYM WYWOŁANIU.
+   *
+   * Ta reguła obejmuje TAKŻE haki naszego kokpitu — bo tam właśnie
+   * znalazł ją przegląd T3. `Aai_Monitor_Ekran::zasoby( string $uchwyt )`
+   * był jedynym typowanym parametrem bez wartości domyślnej i cudza
+   * wtyczka odpalająca `admin_enqueue_scripts` z `null` wywracała CAŁY
+   * kokpit. `TypeError` powstaje PRZY WYWOŁANIU, więc nie łapie go żaden
+   * `try` w środku metody — reguła o Throwable jest wtedy bezradna,
+   * a sama wartość domyślna broni wyłącznie przed argumentem POMINIĘTYM
+   * (zmierzone: z `null` typowany parametr dalej rzucał).
+   *
+   * Stąd dwa wymagania naraz: KAŻDY parametr ma wartość domyślną
+   * i NIE MA deklaracji typu. Typ sprawdza się w ciele — tam wynikiem
+   * jest `return`, a nie wyjątek u kogoś obcego.
+   */
   for (const [, hak, metoda] of rejestracje) {
+    /*
+     * Sygnatury szukamy w CAŁEJ wtyczce, nie w pliku rejestracji.
+     * Pierwsza wersja tej reguły pytała o ten sam plik i była przez to
+     * ŚLEPA — zmierzone testem negatywnym: `Aai_Monitor_Ekran::zasoby()`
+     * jest rejestrowana w `aai-monitor.php`, a mieszka w swojej klasie,
+     * więc przywrócenie typowanego parametru przechodziło na zielono.
+     */
+    const sygnatury = kodWtyczki
+      .map(([, t]) => t.match(new RegExp(`function\\s+${metoda}\\s*\\(([^)]*)\\)`)))
+      .filter(Boolean);
+    for (const sygnatura of sygnatury) {
+      for (const parametr of sygnatura[1].split(",").map((x) => x.trim()).filter(Boolean)) {
+        if (!parametr.includes("=")) {
+          bledy.push(
+            `${plik}: ${metoda}() (hak „${hak}") ma parametr „${parametr}" BEZ WARTOŚCI DOMYŚLNEJ (A9). Cudzy kod woła nasze haki, jak chce — także z mniejszą liczbą argumentów — a brakujący argument to ArgumentCountError rzucony PRZY WYWOŁANIU, poza zasięgiem jakiegokolwiek try w środku.`
+          );
+        } else if (!/^\$/.test(parametr)) {
+          bledy.push(
+            `${plik}: ${metoda}() (hak „${hak}") ma parametr z DEKLARACJĄ TYPU: „${parametr}" (A9). Przy strict_types wywołanie z „null” albo z innym typem rzuca TypeError PRZY WYWOŁANIU — zmierzone na admin_enqueue_scripts, gdzie wywracało cały kokpit; wartość domyślna przed tym NIE broni. Typ sprawdź w ciele metody.`
+          );
+        }
+      }
+    }
     if (HAKI_NASZEGO_KOKPITU.includes(hak)) continue;
     const cialo = cialoMetody(tresc, metoda);
     if (null === cialo) {
@@ -441,5 +798,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test)."
+  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test, wystrzał ma obie nazwy akcji i akcję w query stringu, wymaga typu JSON i czyta ciało strumieniem, skryptu nie dostaje admin ani strona 404, skrypt wysyła raz i wraca do życia po bfcache, teksty ekranu bez podwójnej ucieczki, polityka w repo zgodna z kodem)."
 );

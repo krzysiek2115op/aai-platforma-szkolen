@@ -94,6 +94,12 @@ więc `wp aai-monitor sprawdz` wypisuje wersje, na których dowiedziono haki.
 | **F16** | **Nadpisanie `navigator.webdriver` preloadem DZIAŁA** w Firefoksie przez BiDi (`false` po `evaluateOnNewDocument`), tak samo wstrzyknięcie flagi testowej | zmierzone w rigu 2026-08-30 — to rozstrzyga dowodliwość T3 |
 | **F17** | **`admin-post.php` rozdziela żądania PO STANIE ZALOGOWANIA**: gość → `admin_post_nopriv_{action}`, zalogowany → `admin_post_{action}`. To dwie ROZŁĄCZNE nazwy haków — zarejestrowanie jednej zostawia drugą gałąź martwą (`wp_die( '', 400 )`) | `wp-admin/admin-post.php:36` (rozgałęzienie), `:46` i `:70` (osobne `has_action`). Zmierzone na istniejącej akcji Pluginu 1 `aai_sklep_zapisz_kurs`, zarejestrowanej **tylko** jako `admin_post_`: gość → **400**, `admin` → **403**, `klient-test` (subscriber) → **403** — handler odpalił się wyłącznie w gałęzi zalogowanych |
 | **F18** | **Nazwa akcji MUSI jechać w query stringu**: `$action` czytane jest z `$_REQUEST` (`admin-post.php:29`), a ciało `application/json` nie trafia do `$_POST` | zmierzone na `:8892`: `?action=X` + ciało JSON → **400** (akcja odczytana, brak rejestracji), akcja **tylko w ciele JSON** → **HTTP 200 i cisza** (gałąź „brak akcji”: `do_action( 'admin_post_nopriv' )`) — czyli pomyłka bez ani jednego objawu |
+| **F19** | **`Origin` jest wysyłany także przy żądaniu SAME-ORIGIN** — wbrew MDN, które twierdzi, że nagłówek dotyczy wyłącznie żądań cross-origin | zmierzone rigiem (Firefox, 2026-08-30): każdy beacon same-origin niósł `Origin: http://127.0.0.1:8971` oraz `Referer` |
+| **F20** | **Wybór `application/json` JEST ochroną cross-site, a `text/plain` ją znosi**: cross-origin beacon z Blobem `application/json` nie dochodzi (wymaga preflightu, a `send_origin_headers()` odpowiada na niedozwolony `OPTIONS` **403 i `exit`**), ten sam ładunek jako `text/plain` **dochodzi jako POST** | zmierzone rigiem na dwóch portach; `wp-includes/http.php`, `send_origin_headers()` |
+| **F21** | **`sendBeacon` niesie ciasteczka** | zmierzone: `Cookie` obecne w każdym beaconie — więc zalogowany naprawdę trafia w gałąź `admin_post_` (potwierdza F17 od strony klienta) |
+| **F22** | **`pagehide` i `visibilitychange` odpalają w TEJ SAMEJ milisekundzie** (pagehide pierwszy), a powrót z bfcache przywraca stronę z **zachowanym stanem JS** | zmierzone: `+1448 ms pagehide persisted=true`, `+1448 ms visibilitychange hidden`, `+2956 ms visibilitychange visible`, `+2957 ms pageshow persisted=true` |
+| **F23** | **Limit 64 KiB `sendBeacon` z dokumentacji NIE zadziałał, a tempo jest praktycznie nieograniczone** | zmierzone: beacon 70 kB zwrócił `true` i doszedł w całości (71 680 B); 26 363 beacony/s z jednej strony, wszystkie dotarły na serwer |
+| **F24** | **`url_to_postid()` nie rozpoznaje ani jednej trasy, na której nam zależy** | zmierzone: **0** dla `/szkolenia/`, `/szkolenia/<slug>/`, `/courses/…/lessons/…/` i `/`; wartości niezerowe tylko dla stron WP (koszyk 6, kasa 7, konto 8, polityka 21). `get_page_by_path()` po ostatnim segmencie nie znajduje lekcji w ogóle, a dla kursu trafia PRZYPADKIEM (ten sam slug co wpis Tutora) |
 
 ### Co zmieniła krytyka T0
 
@@ -371,19 +377,34 @@ sequenceDiagram
     Z->>Z: INSERT do wizyty
 ```
 
-- **Kontrakt wystrzału ma dwie połowy i obie są konieczne** (F9): klient
-  wysyła **Blob typu `application/json`**, a endpoint i tak czyta
-  `get_body()` + `json_decode()` **niezależnie od Content-Type**. Sam Blob
-  nie wystarczy (starsze przeglądarki, przyszła zmiana skryptu), samo
-  `get_body()` nie wystarczy (traci walidację typu). Endpoint oparty na
-  `get_param()` zapisywałby **zero wierszy z prawdziwej przeglądarki**,
-  a smoke curlem z `application/json` przechodziłby — awaria bezobjawowa.
-- **Co zapisujemy**: ścieżka, moment wejścia, czas na stronie, anonimowy
+- **Kontrakt wystrzału ma TRZY części i wszystkie są konieczne** (F9, F20 —
+  trzecia doszła z pomiaru w kroku T3): klient wysyła **Blob typu
+  `application/json`**, endpoint **czyta ciało z `php://input`** (bo ciała
+  `application/json` PHP nie wkłada do `$_POST`) i **odrzuca każdy inny typ
+  ciała**. Sam Blob nie wystarczy (starsze przeglądarki, przyszła zmiana
+  skryptu), samo czytanie strumienia nie wystarczy (traci walidację typu),
+  a **brak wymogu typu wywraca całą ochronę cross-site**: zmierzone
+  w prawdziwej przeglądarce — beacon z obcej witryny wysłany jako
+  `text/plain` DOCHODZI, a ten sam ładunek jako `application/json` NIE,
+  bo wymaga preflightu, na który WordPress odpowiada 403 i `exit`.
+- **Co zapisujemy**: ścieżka, moment wejścia, czas AKTYWNY na stronie, anonimowy
   identyfikator sesji. **Nie zapisujemy: IP, loginu, user-agenta, niczego
   łączącego z kontem** (D3). Identyfikator sesji: **32 znaki hex** z
   `sessionStorage` (per karta) — format ustalony tu, bo sito go egzekwuje;
   `crypto.randomUUID()` daje 36 znaków z myślnikami i **odrzuciłby własne
   beacony**.
+- **Skrypt wysyła DOKŁADNIE RAZ na odsłonę i zeruje się przy powrocie**
+  (F22, P17). Zdarzeniem podstawowym jest `visibilitychange` → `hidden`
+  („ostatnie zdarzenie wiarygodnie obserwowalne przez stronę”),
+  a `pagehide` jest zapasem, bo sam bywa pomijany na urządzeniach
+  mobilnych. Oba odpalają w TEJ SAMEJ milisekundzie, więc bez flagi każda
+  odsłona zapisałaby się dwa razy; flagę zdejmuje `pageshow` z
+  `persisted = true`, inaczej powrót „wstecz” nie policzyłby się wcale.
+  Zegar rusza dopiero, gdy `visibilityState === "visible"` — to jedną
+  regułą obsługuje kartę otwartą w tle i stronę wstępnie renderowaną.
+  `sessionStorage` czytamy w `try/catch`: przy zablokowanych ciasteczkach
+  rzuca `SecurityError`, a pomiar ma wtedy działać dalej (identyfikator
+  żyje wówczas w pamięci, czyli sesja równa się odsłonie).
 - **Kogo nie liczymy** (D3): zalogowanych z `manage_options` (skrypt nie
   jest im w ogóle podawany); automatów (skrypt kończy pracę przy
   `navigator.webdriver === true`, F6 — bez zmian w istniejących
@@ -420,12 +441,13 @@ sequenceDiagram
 
   | co | reguła | dlaczego taka |
   |---|---|---|
-  | ścieżka | zaczyna się od `/`, przycięta do 191 znaków, **musi trafiać w realną trasę** (nasze widoki albo `url_to_postid()`) | bez tego „top 10 stron" da się dowolnie zatruć ścieżkami nieistniejących stron |
-  | pochodzenie | nagłówek `Origin`/`Referer` zgodny z `home_url()` | beacon cross-origin (`text/plain` nie wywołuje preflightu) pozwalałby obcej witrynie zawyżać nasz ruch. **Nagłówek jest do podrobienia poza przeglądarką** — to tama na przypadek, nie na napastnika |
-  | id sesji | dokładnie 32 znaki hex | musi być spójny z tym, co generuje skrypt |
-  | czas | **PRZYCINANY** do sufitu 4 h, nie odrzucany | czas ponad sufit to zwykle uśpiona karta, nie atak; odrzut wyrzucałby prawdziwe wizyty |
-  | ciało | sufit długości = 4× realny beacon *(liczba do zmierzenia przy T3: ścieżka 191 + ms + 32 hex ≈ 300 B)* | smoke musi znać próg, żeby wysłać ciało o bajt za duże |
-  | limit na adres | licznik w transiencie kluczowany **skrótem** IP (sól + hash), TTL 60 s, sufit *(do kalibracji)* | IP nie trafia do żadnej tabeli — żyje ulotnie w kluczu |
+  | typ ciała | **wyłącznie `application/json`** (z dopuszczalnym `; charset=…`) | to JEDYNA rzecz, która zatrzymuje beacon z obcej witryny (F20). Bez niej sito na `Origin` jest dekoracją: ten sam ładunek wysłany cross-origin jako `text/plain` **dochodzi jak swój** |
+  | ścieżka | **nie przychodzi z `location`, tylko wraca PODPISANA przez serwer**: znormalizowana (bez query i fragmentu), przycięta do 191 znaków, z obciętym HMAC-em liczonym **własną solą z opcji** | `url_to_postid()` NIE ROZPOZNAJE ani jednej trasy, na której nam zależy (F24) — sito „musi trafiać w realną trasę" wyrzuciłoby katalog, obie strony sprzedażowe i wszystkie 73 lekcje, przy odpowiedzi 204 i zerowym objawie. Podpis dowodzi czegoś mocniejszego: że **WordPress tę stronę wyrenderował**. Sól WŁASNA, nie `wp_salt()`, żeby rotacja kluczy w `wp-config.php` nie uciszyła pomiaru |
+  | pochodzenie | `Origin` **obowiązkowy** i zgodny z `home_url()`; `Referer` jako zapas; brak obu = odrzut | `Origin` jest wysyłany także przy żądaniu SAME-ORIGIN — zmierzone (F19), **wbrew dokumentacji MDN**. **Nagłówek jest do podrobienia poza przeglądarką** — to tama na przypadek, nie na napastnika |
+  | id sesji | dokładnie 32 znaki hex | musi być spójny z tym, co generuje skrypt; `crypto.randomUUID()` daje 36 znaków z myślnikami i odrzucałby własne beacony, a poza HTTPS w ogóle nie istnieje (`getRandomValues` istnieje zawsze) |
+  | czas | **DWIE liczby**: `trwanie_ms` (czas aktywny) i `wiek_ms` (od wejścia do wysyłki), obie **PRZYCINANE** do sufitu 4 h, nie odrzucane | jedna nie wystarcza, odkąd mierzymy czas AKTYWNY (P16). Przycinanie zamiast odrzutu, bo czas ponad sufit to zwykle uśpiona karta, nie atak; odrzut wyrzucałby prawdziwe wizyty |
+  | ciało | sufit **1024 B**, mierzony **STRUMIENIEM przed parsowaniem** | z pomiaru: realny najdłuższy beacon **168 B**, maksimum kontraktu **270 B** — sufit ma pomieścić maksimum, nie średnią. Strumieniem, bo `post_max_size` to 8 MB, a limit 64 KiB z dokumentacji `sendBeacon` w pomiarze NIE zadziałał (F23) |
+  | limit na adres | licznik w transiencie kluczowany **skrótem** IP (sól + hash), TTL 60 s, sufit *(liczba z pomiaru tempa w etapie 2)* | IP nie trafia do żadnej tabeli — żyje ulotnie w kluczu. Limiter jest MIĘKKI także dlatego, że przeglądarka wysyła 26 tys. beaconów na sekundę (F23) |
 
 - **Limiter jest MIĘKKI i to jest świadome** (F13): bez zewnętrznego object
   cache transient siedzi w `wp_options` i działa przez czytaj-modyfikuj-
@@ -490,18 +512,22 @@ Gdy `aai-sklep` nieaktywny: własna pozycja top-level.
 | `id` | `bigint unsigned AI` | klucz |
 | `sesja` | `char(32)` | ekran: `COUNT(DISTINCT sesja)` w oknie czasu |
 | `sciezka` | `varchar(191)` | ekran: top 10 stron |
-| `wejscie` | `datetime` (UTC) | ekran: okna dziś/7/30 + retencja. **Liczone przez SERWER**: `wejscie = now() − trwanie_ms` — beacon przychodzi przy WYJŚCIU, więc samo `now()` byłoby momentem wyjścia i wizyta zaczęta o 23:50 lądowałaby w następnej dobie. Klientowi nie ufamy w żadnym znaczniku czasu |
-| `trwanie_ms` | `int unsigned` | ekran: czas łączny i średni; sufit 4 h narzucony w dziale |
+| `wejscie` | `datetime` (UTC) | ekran: okna dziś/7/30 + retencja. **Liczone przez SERWER**: `wejscie = now() − wiek_ms`, gdzie `wiek_ms` to czas od wejścia na stronę do wysłania beaconu. **NIE `now() − trwanie_ms`** — odkąd `trwanie_ms` znaczy czas AKTYWNY, karta otwarta o 9:00, czytana dwie minuty i zamknięta o 17:00 zapisałaby wejście o 16:58 (P16). Beacon przychodzi przy WYJŚCIU, więc samo `now()` byłoby momentem wyjścia i wizyta zaczęta o 23:50 lądowałaby w następnej dobie. Klientowi nie ufamy w żadnym ZNACZNIKU czasu: obie wartości to RÓŻNICE, obie przycinane sufitem |
+| `trwanie_ms` | `int unsigned` | ekran: czas łączny i średni. Znaczy **czas AKTYWNY** — zegar stoi, gdy karta jest ukryta (R2) — więc liczba odpowiada na pytanie „ile realnie czytali", a nie „jak długo karta była otwarta". Sufit 4 h narzucony w dziale |
 
 Zasady wspólne (wzorem P1/P2): `dbDelta` + opcja wersji schematu; nazwy
 tabel z jednego miejsca; wartości wyłącznie przez `prepare()`/`insert()`;
 żadnych kolumn bez czytelnika.
 
-**Indeksy ustala `EXPLAIN` przy T3, nie deklaracja tutaj.** Retencji
-wystarcza indeks po kolumnie czasu; dla ekranu ruchu wzorzec zapytań to
-zakres po `wejscie` z grupowaniem po `sciezka`, więc indeks `(sciezka,
-wejscie)` obsługiwałby zakres na drugiej kolumnie — do zmierzenia, czy
-lepszy nie jest `(wejscie, sciezka, trwanie_ms)`.
+**Indeksy USTALONE POMIAREM w kroku T3: zostaje sam `KEY wejscie`.**
+`EXPLAIN` i czasy na tabeli 200 000 wierszy (155 ścieżek, 40 000 sesji,
+rozkład skośny jak w realnym ruchu): okno 30 dni **55 ms**, top 10 ścieżek
+**50 ms**, retencja **0,09 ms**. Indeksy pokrywające `(wejscie, sciezka,
+trwanie_ms)` i `(wejscie, sesja, trwanie_ms)` skracają to do 43 i 28 ms —
+czyli o 34 ms na ekranie otwieranym przez jedną osobę — a kosztują **zapis
+2,9× droższy** (20 000 wierszy: 57 ms → 167 ms) i **+33 MB** (indeksy
+5,5 → 38,7 MB). Beacon jest najczęstszym zapisem tego modułu, więc interes
+jest zły. Pomiar powtórzyć, gdy okno 30 dni przekroczy ~100 000 wierszy.
 
 ## 8. Niezmienniki — każdy z przepisem na sprawdzenie
 
@@ -552,6 +578,10 @@ od istniejącej.
 | P13 | **Pusty ekran nie odróżnia ciszy od awarii** — beacon z założenia milczy (204), a haki nie mają komu nic zwrócić | kanał błędów wzorem `Aai_Platnosci_Komunikaty`; `sprawdz` go czyta; ekran przy zerze wpisów mówi, czy ostatni zapis się udał |
 | **P14** | **`admin-post.php` ma dwie rozłączne nazwy akcji** (F17) — sama rejestracja `nopriv` gubi CAŁY ruch zalogowanych, czyli wszystkie strony lekcji, i to bez objawu (`wp_die( '', 400 )` czyta tylko przeglądarka, a beacon nie ma czytelnika) | rejestrujemy OBIE nazwy; `sprawdz` pyta o obie; **N18** dowodzi wiersza z konta bez `manage_options` |
 | **P15** | **Akcja schowana w ciele JSON daje HTTP 200 i zero wierszy** (F18) — `$action` bierze się z `$_REQUEST`, a ciała `application/json` PHP nie wkłada do `$_POST` | nazwa akcji w query stringu; smoke asertuje **wiersz**, nigdy samego kodu odpowiedzi (kod 200 jest tu objawem awarii, nie sukcesu) |
+| **P16** | **Rozstrzygnięcie o SPOSOBIE POMIARU unieważnia mechanizm opisany gdzie indziej**: decyzja „czas aktywny" (R2 w [KROK-T3.md](KROK-T3.md)) zabiła formułę `wejscie = now() − trwanie_ms` z sekcji 7 — karta czytana dwie minuty i zamknięta po ośmiu godzinach zapisałaby wejście sprzed chwili | beacon niesie DWIE liczby (`trwanie_ms`, `wiek_ms`); **po każdej decyzji o sposobie pomiaru przejrzeć kontrakt danych** |
+| **P17** | **Dwa zdarzenia wyjścia i bfcache** (F22): bez flagi każda odsłona zapisuje się DWA razy, a z flagą bez resetu powrót „wstecz" nie zapisuje się WCALE | jedna wysyłka na odsłonę, flaga zdejmowana na `pageshow.persisted`; zegar rusza dopiero przy `visibilityState === "visible"` — to obsługuje przy okazji kartę otwartą w tle i prerender |
+| **P18** | **`/wp-admin/` bywa zamykane gościom na produkcji**: `robots.txt` instalacji ma `Disallow: /wp-admin/` z jawnym `Allow` **tylko** dla `admin-ajax.php`, a wtyczki bezpieczeństwa i reguły hostingu chronią ten katalog | objawem będzie CISZA w pomiarze, nie błąd; pozycja wdrożeniowa „sprawdzić, czy hosting nie zamyka `/wp-admin/` gościom", a bramka mierzy żywy endpoint z hosta |
+| **P19** | **`is_admin()` jest PRAWDZIWE w kontekście beaconu** (`admin-post.php` definiuje `WP_ADMIN`), a przy każdym beaconie odpala się cudzy `admin_init` | żadnego warunku na `is_admin()` w tej ścieżce; bramka asertuje WIERSZ, nigdy kodu odpowiedzi — przekierowanie dołożone kiedyś przez Woo albo Tutora zabiłoby beacon bez objawu |
 
 ## 10. Deaktywacja i odinstalowanie
 
@@ -582,7 +612,7 @@ Reguła właściciela (2026-08-28): przed KAŻDYM krokiem plan przebiegu
 |---|---|---|
 | **T1 — fundament i EKRAN** — **ZROBIONY (0.55.0)** | katalog `wordpress/wtyczki/aai-monitor/` (wzorem W1/P1): plik główny, `Aai_Monitor_Tabele` (dbDelta, 2 tabele), `Aai_Monitor_Zapis` w `class-aai-monitor-zapis.php`, `Aai_Monitor_Zaleznosci`, kanał błędów, `uninstall.php`. **Do tego ekran, którego wcześniejsza wersja tego planu nie budowała w żadnym kroku**: `Aai_Monitor_Ekran` + rejestracja menu (priorytet 20) + `Aai_Monitor_Odczyt` z jednym agregatem + własny `assets/panel.css` (arkusz kreatora tu nie wejdzie — `Aai_Sklep_Panel::zasoby()` wychodzi na uchwytach spoza `aai-sklep`). **Integracja środowiska to PIĘĆ czynności, nie „montaż"**: mount w usłudze `wordpress` ORAZ w `cli` (bez drugiego `wp aai-monitor sprawdz` nie istnieje), gałąź „plik istnieje" w `postaw.sh`, asercja martwego bind mountu (inode), aktywacja, punkt kontrolny w sekcji WERYFIKACJA. Plus wpis `smoke:wp-monitor` w `package.json` — bez niego bramki nikt nie uruchomi. Plus blok KOREKTA w PLAN.md §4 i sprostowanie trzech obietnic o Pluginie 3 w repo (sekcja 0). **Kolejny strażnik `straznik-monitora-wp`** (nazwa spójna ze smoke'iem) + mutacje | strażnicy zieloni, audyt bez martwych, `postaw.sh` kod 0, `sprawdz` kod 0, ekran otwiera się pod `manage_options` i **kotwica pozycji „Automatic AI" dalej celuje w `page=aai-sklep`**. **Zamyka: N1, N14, N16, N17.** Uwaga: nowy mount wymaga `podman-compose down && ./postaw.sh` (bind mount trzyma inode). Wchodzi po zmergowaniu napraw po P6 (PR #93, 0.54.0) | **STAN PO WYKONANIU:** wtyczka stoi i jest aktywna na `:8892`; strażnik ma OSIEM reguł z mutacjami (reguły o hakach logowania i o sicie beaconu dochodzą z T2/T3, bo dziś nie miałyby czego pilnować); `smoke-wp-monitor` = **57 sprawdzeń** na żywej instalacji, każde nowe z testem negatywnym. **Dwie rzeczy wyszły dopiero przy pisaniu kodu:** (1) reguła 6 `straznik-wtyczki-wp` była ŚLEPA na SQL sklejony konkatenacją — obszedłem ją własnym `DELETE`, więc doszła **reguła 10** (SQL literałem przy wywołaniu) i mutacja; (2) WP-CLI **nie zamienia podkreślenia w nazwie metody na myślnik**, więc `wp aai-monitor wyczysc-blad` — komenda, którą kontrola każe uruchomić — NIE ISTNIAŁA, dopóki nie doszło `@subcommand`. Złapał to smoke, nie recenzja.
 | **T2 — dziennik logowań** — **ZROBIONY (0.56.0)** | trzy haki z `try/catch`, dedup źródła, wpis do polityki prywatności. **KOREKTA WOBEC PIERWOTNEGO ZAKRESU:** retencja 90 dni, jej drugi wyzwalacz i sekcja „Logowania" ekranu były już zrobione w T1 — ten wiersz obiecywał je po raz drugi. Zostały więc: producenci danych i ich bramki | **`smoke-wp-monitor`**: N2, N3, N4, N5, N6, N13, **N15** (uszkodzona tabela → `sprawdz` kod 1: dowód wymaga dziennika logowań, więc zamyka się TU, nie w T3); **test ręczny logowania z kasy: ZASTĄPIONY POMIAREM — decyzja właściciela 2026-08-30.** Ścieżkę kasa → wiersz „sesja" dowodzi `smoke-wp-monitor` (N3, z testem negatywnym: zdjęcie haka gasi wiersz), a czas właściciela idzie na JEDEN pełny test ręczny w **T4**, gdzie i tak sprawdza całość. Nie jest to więc zaległość kroku T2 | **STAN PO WYKONANIU:** `Aai_Monitor_Logowania` (trzy haki, każdy w `try/catch ( Throwable )`), `Aai_Monitor_Zadanie` (jedno miejsce, w którym powstaje adres IP — P6), `Aai_Monitor_Prywatnosc` (sugestia dla kreatora polityki + fragment w [POLITYKA-PRYWATNOSCI.md](POLITYKA-PRYWATNOSCI.md)); strażnik **12 reguł**, smoke **76 sprawdzeń**, audyt **255 mutacji**. **Trzy rzeczy zmierzone przed pisaniem kodu, bo od nich zależał projekt:** (1) `set_logged_in_cookie` NIE odpala się przy każdym żądaniu zalogowanego — pięć odsłon `/wp-admin/` na gotowej sesji nie dołożyło ani jednej linii, więc dziennik rośnie w tempie LOGOWAŃ, nie odsłon; (2) `wc_set_customer_auth_cookie()` odpala WYŁĄCZNIE ten hak, bez `wp_login` (F3 potwierdzone uruchomieniowo); (3) `wp_add_privacy_policy_content()` odmawia pracy poza `wp-admin` i przed `admin_init` — wywołanie z `plugins_loaded` nie dodałoby NIC, bez objawu. **Higiena (N13) okazała się większa, niż zapowiadał ten wiersz:** wpisy zostawiało SIEDEM bramek (pomiar przelotem z licznikiem), w tym `zakup` i `produkty`, których nie widzi żaden wzorzec czytający nasz kod — sesję zakłada im WooCommerce. Powstał wspólny moduł `tools/smoke/dziennik.mjs` wzorem `poczta.mjs`. |
-| **T3 — timer wizyt** | `assets/pomiar.js` (Blob `application/json`, id 32 hex, webdriver-kill), akcja pod OBIEMA nazwami (`admin_post_nopriv_*` i `admin_post_*`, F17) z nazwą w query stringu (F18), czytająca `php://input`, sito z walidacją ścieżki i `Origin`, miękki limiter, retencja 400 dni, sekcja „Ruch" ekranu | smoke: **N9 i N10 jako para** (przebieg z nadpisanym `navigator.webdriver` → wiersz JEST; bez nadpisania → wiersza NIE MA), **zamyka N7, N8, N9, N10, N11, N12, N18**; `EXPLAIN` na trzech zapytaniach ekranu przed ustaleniem indeksów; **pomiar realnego rozmiaru beaconu** przed ustaleniem sufitu ciała |
+| **T3 — timer wizyt** — **ZROBIONY (0.57.0)** | `assets/pomiar.js` (Blob `application/json`, id 32 hex, webdriver-kill, **jedna wysyłka na odsłonę z resetem na `pageshow.persisted`**, zegar czasu AKTYWNEGO ruszający dopiero przy `visibilityState === "visible"`), akcja pod OBIEMA nazwami (`admin_post_nopriv_*` i `admin_post_*`, F17) z nazwą w query stringu (F18), czytająca `php://input` **strumieniem z sufitem 1024 B**, sito z sekcji 5 (**typ ciała → pochodzenie → podpis ścieżki → sesja → liczby**), miękki limiter, retencja 400 dni, sekcja „Ruch" ekranu **z oknami liczonymi od północy CZASU WITRYNY** | smoke: **N9 i N10 jako para** (przebieg z nadpisanym `navigator.webdriver` → wiersz JEST; bez nadpisania → wiersza NIE MA), **zamyka N7, N8, N9, N10, N11, N12, N18**. **Wszystkie liczby kroku pochodzą z POMIARU** — pomiary, znaleziska audytu planu i lista testów: [KROK-T3.md](KROK-T3.md) | | **STAN PO WYKONANIU:** `Aai_Monitor_Wizyty` (wystrzał, obie nazwy akcji), `Aai_Monitor_Podpis` (dowód, że stronę wyrenderował WordPress), `Aai_Monitor_Pomiar` + `assets/pomiar.js` (czas AKTYWNY, jedna wysyłka, reset po bfcache), sekcja „Ruch” z oknami od północy czasu witryny. Strażnik **18 reguł**, smoke **129 sprawdzeń** (od teraz wymaga `ZRZUTY_RIG`), audyt **273 mutacje**. **KROK POPRZEDZIŁ AUDYT PLANU** na polecenie właściciela — sześć błędów krytycznych znalezionych PRZED kodem, w tym: sito ze schematu odrzuciłoby cały interesujący ruch, formuła momentu wejścia przestała działać po wyborze czasu aktywnego, a brak wymogu typu ciała czynił sito na `Origin` dekoracją. Pomiary i lista testów: [KROK-T3.md](KROK-T3.md) |
 | **T4 — test ręczny właściciela** | scenariusz wzorem [TEST-RECZNY-P6.md](../plugin-2/TEST-RECZNY-P6.md): logowanie swoje i klienta, zła próba, przegląd ekranu, wizyty z drugiej przeglądarki | zaliczenie właściciela = **Plugin 3 skończony**; potem test całości trzech wtyczek (decyzja 2026-08-25) |
 
 Wersjonowanie: T1 = kolejne `0.X.0` po zmergowaniu PR #93 (0.54.0).

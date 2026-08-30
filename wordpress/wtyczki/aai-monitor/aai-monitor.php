@@ -3,7 +3,7 @@
  * Plugin Name:       Automatic AI — Monitoring
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Dziennik logowań (kto, kiedy, skąd) i pomiar wizyt (co oglądano i jak długo), plus ekran w kokpicie dla administratora. Trzecia z trzech wtyczek Automatic AI — rejestruje, niczego nie blokuje.
- * Version:           0.2.0
+ * Version:           0.4.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Automatic AI
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  * WERSJA WTYCZKI, nie wersja projektu (źródłem prawdy o wersji projektu
  * jest CHANGELOG repo). Stała steruje dociąganiem schematu tabel.
  */
-const AAI_MONITOR_WERSJA = '0.2.0';
+const AAI_MONITOR_WERSJA = '0.4.0';
 
 /**
  * PREFIKS TABEL — ta sama decyzja właściciela co przy `aai-sklep`
@@ -69,6 +69,10 @@ register_activation_hook(
 	__FILE__,
 	static function (): void {
 		Aai_Monitor_Tabele::utworz();
+		// Sól podpisu ścieżek — własna, nie `wp_salt()`, żeby rotacja
+		// kluczy w `wp-config.php` nie unieważniła podpisów wysłanych
+		// już do przeglądarek i nie uciszyła pomiaru bez objawu.
+		Aai_Monitor_Podpis::przygotuj();
 	}
 );
 
@@ -99,7 +103,8 @@ add_action(
 		/*
 		 * PRODUCENCI DANYCH — to, czego wtyczka nie miała po kroku T1
 		 * („baza stoi, ale nic nie zbiera"): dziennik logowań (trzy haki
-		 * rdzenia) i wpis do kreatora polityki prywatności. Ten drugi
+		 * rdzenia, T2), timer wizyt (wystrzał `admin-post.php`, T3)
+		 * i wpis do kreatora polityki prywatności. Ten drugi
 		 * jedynie podpina się pod `admin_init`, bo rdzeń przyjmuje treść
 		 * WYŁĄCZNIE stamtąd i tylko w wp-admin — wywołanie wprost stąd nie
 		 * dodałoby NIC, meldując to najwyżej w logu przy WP_DEBUG
@@ -115,6 +120,8 @@ add_action(
 		 */
 		try {
 			Aai_Monitor_Logowania::zarejestruj();
+			Aai_Monitor_Wizyty::zarejestruj();
+			Aai_Monitor_Pomiar::zarejestruj();
 			Aai_Monitor_Prywatnosc::zarejestruj();
 		} catch ( Throwable $e ) {
 			Aai_Monitor_Komunikaty::zapisz( 'nie udało się podpiąć czujek monitoringu: ' . $e->getMessage() );

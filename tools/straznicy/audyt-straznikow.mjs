@@ -83,6 +83,11 @@ const EKRAN_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor
 const CLI_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-cli.php";
 const TABELE_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-tabele.php";
 const LOGOWANIA_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-logowania.php";
+const WYSTRZAL_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-wizyty.php";
+const POMIAR_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-pomiar.php";
+const SKRYPT_MONITORA = "wordpress/wtyczki/aai-monitor/assets/pomiar.js";
+const PODPIS_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php";
+const PRYWATNOSC_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-prywatnosc.php";
 
 const MUTACJE = [
   // --- straznik-scenariuszy ---
@@ -2813,10 +2818,10 @@ const MUTACJE = [
     wymaga: () => existsSync(TABELE_MONITORA),
     oczekiwanySlad: 'tabela wizyt ma kolumnę „ip"',
     zmien: (s) =>
-      s.includes("\t\t\t\tsciezka varchar(191) NOT NULL,\n\t\t\t\twejscie datetime NOT NULL,")
+      s.includes("\t\t\t\tsciezka varchar(191) NOT NULL,\n\t\t\t\tbramka tinyint(1) unsigned NOT NULL DEFAULT 0,")
         ? s.replace(
-            "\t\t\t\tsciezka varchar(191) NOT NULL,\n\t\t\t\twejscie datetime NOT NULL,",
-            "\t\t\t\tsciezka varchar(191) NOT NULL,\n\t\t\t\tip varchar(45) NOT NULL DEFAULT '',\n\t\t\t\twejscie datetime NOT NULL,"
+            "\t\t\t\tsciezka varchar(191) NOT NULL,\n\t\t\t\tbramka tinyint(1) unsigned NOT NULL DEFAULT 0,",
+            "\t\t\t\tsciezka varchar(191) NOT NULL,\n\t\t\t\tip varchar(45) NOT NULL DEFAULT '',\n\t\t\t\tbramka tinyint(1) unsigned NOT NULL DEFAULT 0,"
           )
         : null,
   },
@@ -3075,6 +3080,30 @@ const MUTACJE = [
     // dziennika, którego brakowało: nic nie zabraniało bramce wyczyścić
     // tabeli hurtem, a rachunek sumienia był wtedy martwy w 6 bramkach.
     straznik: "straznik-higieny-smokow",
+    opis: "bramka tworząca wizyty przestaje się z nich rozliczać (rachunek zabetonowany na true)",
+    plik: "tools/smoke/smoke-wp-monitor.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-monitor.mjs"),
+    oczekiwanySlad: "nie ROZLICZA się z niej PO sprzątaniu",
+    zmien: (s) =>
+      s.includes("licznikiPo === licznikiPrzed") ? s.replace("licznikiPo === licznikiPrzed", "true === true") : null,
+  },
+  {
+    // B9: rozliczenie stojące PRZED sprzątaniem mierzy stan, którego już
+    // nie ma — a wygląda dokładnie tak samo jak rozliczenie prawdziwe.
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka tworząca wizyty traci końcowy rachunek sumienia z tabeli ruchu",
+    plik: "tools/smoke/smoke-wp-monitor.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-monitor.mjs"),
+    oczekiwanySlad: "nie ROZLICZA się z niej PO sprzątaniu",
+    zmien: (s) => {
+      const i = s.indexOf("const licznikiPo = liczniki();");
+      if (i < 0) return null;
+      const j = s.indexOf(");", s.indexOf("licznikiPo === licznikiPrzed"));
+      return j < 0 ? null : s.slice(0, i) + s.slice(j + 2);
+    },
+  },
+  {
+    straznik: "straznik-higieny-smokow",
     opis: "bramka kasuje dziennik logowań HURTEM (TRUNCATE) zamiast sprzątać po sobie (N13)",
     plik: "tools/smoke/smoke-wp-monitor.mjs",
     wymaga: () => existsSync("tools/smoke/smoke-wp-monitor.mjs"),
@@ -3100,6 +3129,359 @@ const MUTACJE = [
     zmien: (s) =>
       s.includes("_smoke")
         ? s.replaceAll("_smoke\\_schowana", "_nigdy\\_taka").replaceAll("_smoke_schowana", "_nigdy_taka")
+        : null,
+  },
+
+  /* ————————————— PLUGIN 3 — timer wizyt (krok T3) ————————————— */
+  //
+  // Kontrakt WYSTRZAŁU. Każda z tych czterech rzeczy łamie się CICHO:
+  // beacon odpowiada 204 na przyjęcie i na odrzut, więc jedynym objawem
+  // jest pusta tabela — nie do odróżnienia od ciszy w ruchu.
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "wystrzał przestaje rejestrować gałąź GOŚCIA (cały ruch niezalogowanych znika)",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "rejestruje tylko",
+    zmien: (s) =>
+      s.includes("add_action( 'admin_post_nopriv_' . self::AKCJA")
+        ? s.replace(/\t\tadd_action\( 'admin_post_nopriv_' \. self::AKCJA[^;]*;\n/, "")
+        : null,
+  },
+  {
+    // F17: `admin-post.php` rozgałęzia się po `is_user_logged_in()`, a
+    // strony lekcji są ZA LOGOWANIEM — brak tej rejestracji gubi cały
+    // ruch w kupionym materiale i nic tego nie zgłasza.
+    straznik: "straznik-monitora-wp",
+    opis: "wystrzał przestaje rejestrować gałąź ZALOGOWANYCH (znika ruch na lekcjach)",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "rejestruje tylko",
+    zmien: (s) =>
+      s.includes("add_action( 'admin_post_' . self::AKCJA")
+        ? s.replace(/\t\tadd_action\( 'admin_post_' \. self::AKCJA[^;]*;\n/, "")
+        : null,
+  },
+  {
+    // F18: `$action` bierze się z `$_REQUEST`, a ciała `application/json`
+    // PHP nie wkłada do `$_POST`. Akcja poza query stringiem daje HTTP 200
+    // i ciszę — zmierzone na żywej instalacji.
+    straznik: "straznik-monitora-wp",
+    opis: "nazwa akcji znika z query stringu, choć NAPIS zostaje w kodzie (kontrprzykład na wzorzec po napisie)",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "nie niesie nazwy akcji w query stringu",
+    zmien: (s) =>
+      s.includes("return admin_url( 'admin-post.php?action=' . self::AKCJA );")
+        ? s.replace(
+            "return admin_url( 'admin-post.php?action=' . self::AKCJA );",
+            "$wzor = 'admin-post.php?action='; return admin_url( 'admin-post.php' );"
+          )
+        : null,
+  },
+  {
+    // F20: cross-origin beacon `text/plain` DOCHODZI, a ten sam ładunek
+    // jako `application/json` nie — bo wymaga preflightu, na który
+    // WordPress odpowiada 403. Bez wymogu typu sito na `Origin` jest
+    // dekoracją, a obca witryna może zawyżać nasz ruch.
+    straznik: "straznik-monitora-wp",
+    opis: "endpoint przyjmuje dowolny typ ciała, choć NAPIS application/json zostaje w kodzie",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "nie wymaga typu",
+    zmien: (s) =>
+      s.includes("return 'application/json' === $typ;")
+        ? s.replace("return 'application/json' === $typ;", "$oczekiwany = 'application/json'; return true;")
+        : null,
+  },
+  {
+    // `post_max_size` to 8 MB, a limit 64 KiB `sendBeacon` w pomiarze NIE
+    // zadziałał (beacon 70 kB przeszedł i doszedł w całości).
+    straznik: "straznik-monitora-wp",
+    opis: "ciało żądania wczytywane hurtem zamiast strumieniem z sufitem",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "nie jest czytane strumieniem",
+    zmien: (s) =>
+      s.includes("$cialo = (string) fread( $uchwyt, self::SUFIT_CIALA_B + 1 );")
+        ? s.replace(
+            "$cialo = (string) fread( $uchwyt, self::SUFIT_CIALA_B + 1 );",
+            "$cialo = (string) file_get_contents( 'php://input' );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "administrator zaczyna być liczony — skrypt pomiaru trafia do wszystkich (N8, D3)",
+    plik: POMIAR_MONITORA,
+    wymaga: () => existsSync(POMIAR_MONITORA),
+    oczekiwanySlad: "nie ODMAWIA administratorowi",
+    zmien: (s) =>
+      s.includes("if ( current_user_can( Aai_Monitor_Ekran::UPRAWNIENIE ) ) {\n\t\t\treturn false;\n\t\t}")
+        ? s.replace("if ( current_user_can( Aai_Monitor_Ekran::UPRAWNIENIE ) ) {\n\t\t\treturn false;\n\t\t}", "")
+        : null,
+  },
+  {
+    // Strona 404 renderuje się dla DOWOLNEGO adresu, więc podpisywanie
+    // jej rozdaje podpisy na ścieżki, których nie ma — i „top 10 stron"
+    // da się zatruć czymkolwiek.
+    straznik: "straznik-monitora-wp",
+    opis: "strona 404 dostaje skrypt, czyli rozdaje podpisy na zmyślone ścieżki",
+    plik: POMIAR_MONITORA,
+    wymaga: () => existsSync(POMIAR_MONITORA),
+    oczekiwanySlad: "nie ODMAWIA stronie 404",
+    zmien: (s) =>
+      s.includes("if ( is_404() ) {\n\t\t\treturn false;\n\t\t}")
+        ? s.replace("if ( is_404() ) {\n\t\t\treturn false;\n\t\t}", "")
+        : null,
+  },
+  {
+    // `Aai_Sklep_Zasoby` zdejmuje z frontu uchwyty o prefiksach `tutor`,
+    // `wc-`, `woocommerce`, `sourcebuster` — nazwa spoza naszej rodziny
+    // wpada pod cudzy filtr i wycisza pomiar bez śladu.
+    straznik: "straznik-monitora-wp",
+    opis: "uchwyt skryptu nazwany tak, że wpada pod filtr zasobów Pluginu 1",
+    plik: POMIAR_MONITORA,
+    wymaga: () => existsSync(POMIAR_MONITORA),
+    oczekiwanySlad: "nie zaczyna się od",
+    zmien: (s) =>
+      s.includes("const UCHWYT = 'aai-monitor-pomiar';")
+        ? s.replace("const UCHWYT = 'aai-monitor-pomiar';", "const UCHWYT = 'wc-monitor-pomiar';")
+        : null,
+  },
+  {
+    // Zmierzone: pagehide i visibilitychange odpalają w TEJ SAMEJ
+    // milisekundzie, więc bez bramki każda odsłona zapisuje się dwa razy.
+    straznik: "straznik-monitora-wp",
+    opis: "znika bramka na drugą wysyłkę — każda odsłona zapisuje się dwa razy",
+    plik: SKRYPT_MONITORA,
+    wymaga: () => existsSync(SKRYPT_MONITORA),
+    oczekiwanySlad: "nie porównuje wysyłanego czasu",
+    zmien: (s) =>
+      s.includes("if (ms <= wyslaneMs) {\n\t\t\treturn;\n\t\t}")
+        ? s.replace("if (ms <= wyslaneMs) {\n\t\t\treturn;\n\t\t}", "")
+        : null,
+  },
+  {
+    // Powrót „wstecz" przywraca stronę z ZACHOWANYM stanem JS, czyli
+    // z ustawioną flagą wysyłki — bez resetu ta odsłona nie istnieje.
+    straznik: "straznik-monitora-wp",
+    opis: "powrót z bfcache przestaje być liczony jako odsłona",
+    plik: SKRYPT_MONITORA,
+    wymaga: () => existsSync(SKRYPT_MONITORA),
+    oczekiwanySlad: "po powrocie z bfcache",
+    zmien: (s) => (s.includes("zdarzenie.persisted") ? s.replaceAll("persisted", "przywrocona") : null),
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "beacon idzie jako text/plain — czyli typem, który przechodzi cross-origin",
+    plik: SKRYPT_MONITORA,
+    wymaga: () => existsSync(SKRYPT_MONITORA),
+    oczekiwanySlad: "nie deklaruje typu",
+    zmien: (s) =>
+      s.includes('new Blob([JSON.stringify(ladunek)], { type: "application/json" })')
+        ? s.replace('new Blob([JSON.stringify(ladunek)], { type: "application/json" })', "JSON.stringify(ladunek)")
+        : null,
+  },
+  {
+    // A4: rozjazd adresów gasi pomiar w całości, a kontrola melduje
+    // „w porządku” — decyzja właściciela: taki stan ma być czerwony.
+    straznik: "straznik-monitora-wp",
+    opis: "kontrola przestaje porównywać pochodzenie kokpitu i witryny",
+    plik: CLI_MONITORA,
+    wymaga: () => existsSync(CLI_MONITORA),
+    oczekiwanySlad: "nie PORÓWNUJE pochodzenia kokpitu",
+    zmien: (s) =>
+      s.includes("$zWystrzalu = $pochodzenie( admin_url() );")
+        ? s.replace("$zWystrzalu = $pochodzenie( admin_url() );", "$zWystrzalu = $pochodzenie( home_url() );")
+        : null,
+  },
+  {
+    // A7: `add_option()` nadpisuje sól zwycięzcy, a jego strony są już
+    // w przeglądarkach z podpisami liczonymi starą wartością.
+    straznik: "straznik-monitora-wp",
+    opis: "sól podpisu wraca do add_option() — przegrany wyścig kasuje sól zwycięzcy",
+    plik: PODPIS_MONITORA,
+    wymaga: () => existsSync(PODPIS_MONITORA),
+    oczekiwanySlad: "NADPISUJE istniejącą wartość",
+    zmien: (s) => {
+      const i = s.indexOf("\t\t$wpdb->query(\n\t\t\t$wpdb->prepare(\n\t\t\t\t\"INSERT INTO {$wpdb->options}");
+      if (i < 0) return null;
+      const j = s.indexOf("\t\treturn is_string( $zapisana )", i);
+      return j < 0 ? null : s.slice(0, i) + "\t\tadd_option( self::OPCJA_SOLI, $sol, '', true );\n\t\t$zapisana = get_option( self::OPCJA_SOLI );\n" + s.slice(j);
+    },
+  },
+  {
+    // B2: wzorzec pytający o samą NAZWĘ przepuszczał odczyt flagi bez
+    // żadnej decyzji — automaty liczyłyby się jak ludzie.
+    straznik: "straznik-monitora-wp",
+    opis: "skrypt odczytuje navigator.webdriver, ale nie wychodzi — automaty liczone jak ludzie",
+    plik: SKRYPT_MONITORA,
+    wymaga: () => existsSync(SKRYPT_MONITORA),
+    oczekiwanySlad: "nie WYCHODZI przy navigator.webdriver",
+    zmien: (s) =>
+      s.includes("if (navigator.webdriver) {\n\t\treturn;\n\t}")
+        ? s.replace("if (navigator.webdriver) {\n\t\treturn;\n\t}", "\tvar automat = navigator.webdriver;\n\tvoid automat;")
+        : null,
+  },
+  {
+    // B2: drugi `catch` w pliku wystarczał staremu wzorcowi, więc
+    // zdjęcie osłony z JEDNEGO wywołania przechodziło na zielono.
+    straznik: "straznik-monitora-wp",
+    opis: "sessionStorage czytany POZA try — pomiar milczy u każdego, kto blokuje ciasteczka",
+    plik: SKRYPT_MONITORA,
+    wymaga: () => existsSync(SKRYPT_MONITORA),
+    oczekiwanySlad: "sessionStorage POZA `try`",
+    zmien: (s) =>
+      s.includes("\t\ttry {\n\t\t\tid = window.sessionStorage.getItem(KLUCZ_SESJI);\n\t\t} catch (e) {\n\t\t\tid = null;\n\t\t}")
+        ? s.replace(
+            "\t\ttry {\n\t\t\tid = window.sessionStorage.getItem(KLUCZ_SESJI);\n\t\t} catch (e) {\n\t\t\tid = null;\n\t\t}",
+            "\t\tid = window.sessionStorage.getItem(KLUCZ_SESJI);"
+          )
+        : null,
+  },
+  {
+    // B2: bez startowego uruchomienia zegara strona przeczytana
+    // i zamknięta bez przełączania karty nie zapisuje się WCALE.
+    straznik: "straznik-monitora-wp",
+    opis: "zegar nie rusza przy wejściu — odsłona bez przełączenia karty nie powstaje",
+    plik: SKRYPT_MONITORA,
+    wymaga: () => existsSync(SKRYPT_MONITORA),
+    oczekiwanySlad: "nie uruchamia zegara przy WEJŚCIU",
+    zmien: (s) =>
+      s.includes('\tif ("visible" === document.visibilityState) {\n\t\truszZegar();\n\t}\n})();')
+        ? s.replace('\tif ("visible" === document.visibilityState) {\n\t\truszZegar();\n\t}\n})();', "})();")
+        : null,
+  },
+  {
+    // B1: bez zdjęcia znacznika wysyłki powrót z bfcache nie dosyła
+    // doczytanego czasu (a przy poprzednim kształcie — nie liczył się wcale).
+    straznik: "straznik-monitora-wp",
+    opis: "powrót z bfcache nie zeruje znacznika wysyłki",
+    plik: SKRYPT_MONITORA,
+    wymaga: () => existsSync(SKRYPT_MONITORA),
+    oczekiwanySlad: "nie zeruje znacznika wysyłki",
+    zmien: (s) => (s.includes("\t\twyslaneMs = -1;\n") ? s.replace("\t\twyslaneMs = -1;\n", "") : null),
+  },
+  {
+    // B6: sam `fread` niczego nie chroni — sufit ma stać przy odczycie.
+    straznik: "straznik-monitora-wp",
+    opis: "ciało czytane strumieniem BEZ sufitu (8 MB do pamięci przed jakimkolwiek sprawdzeniem)",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "BEZ SUFITU",
+    zmien: (s) =>
+      s.includes("fread( $uchwyt, self::SUFIT_CIALA_B + 1 )")
+        ? s.replace("fread( $uchwyt, self::SUFIT_CIALA_B + 1 )", "fread( $uchwyt, 8 * 1024 * 1024 )")
+        : null,
+  },
+  {
+    // B6: deklarowany content-length to za mało — chunked go nie niesie.
+    straznik: "straznik-monitora-wp",
+    opis: "znika odrzut ciała ponad sufit po odczycie (żądanie chunked przechodzi)",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "brakuje odrzutu ciała ponad sufit",
+    zmien: (s) =>
+      s.includes("return strlen( $cialo ) > self::SUFIT_CIALA_B ? null : $cialo;")
+        ? s.replace("return strlen( $cialo ) > self::SUFIT_CIALA_B ? null : $cialo;", "return $cialo;")
+        : null,
+  },
+  {
+    // B4: beacon z karty otwartej PRZED zalogowaniem przypisałby
+    // odsłonę komuś, kogo z definicji nie mierzymy (D3).
+    straznik: "straznik-monitora-wp",
+    opis: "wystrzał przestaje odmawiać administratorowi — jego odsłony wchodzą do ruchu klientów",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "obsluz() nie odmawia administratorowi",
+    zmien: (s) =>
+      s.includes("\t\tif ( current_user_can( Aai_Monitor_Ekran::UPRAWNIENIE ) ) {\n\t\t\treturn;\n\t\t}")
+        ? s.replace(
+            "\t\tif ( current_user_can( Aai_Monitor_Ekran::UPRAWNIENIE ) ) {\n\t\t\treturn;\n\t\t}",
+            "\t\tcurrent_user_can( Aai_Monitor_Ekran::UPRAWNIENIE );"
+          )
+        : null,
+  },
+  {
+    // B5: wywołanie bez odmowy — skrypt trafia do administratora.
+    straznik: "straznik-monitora-wp",
+    opis: "mierzymy() pyta o uprawnienie, ale nie odmawia — administrator dostaje skrypt",
+    plik: POMIAR_MONITORA,
+    wymaga: () => existsSync(POMIAR_MONITORA),
+    oczekiwanySlad: "nie ODMAWIA administratorowi",
+    zmien: (s) =>
+      s.includes("\t\tif ( current_user_can( Aai_Monitor_Ekran::UPRAWNIENIE ) ) {\n\t\t\treturn false;\n\t\t}")
+        ? s.replace(
+            "\t\tif ( current_user_can( Aai_Monitor_Ekran::UPRAWNIENIE ) ) {\n\t\t\treturn false;\n\t\t}",
+            "\t\tcurrent_user_can( Aai_Monitor_Ekran::UPRAWNIENIE );"
+          )
+        : null,
+  },
+  {
+    // B5: 404 renderuje się dla DOWOLNEGO adresu, więc podpis rozdany
+    // tam pozwala zatruć listę najczęstszych stron czymkolwiek.
+    straznik: "straznik-monitora-wp",
+    opis: "mierzymy() woła is_404(), ale nie odmawia — strona błędu rozdaje podpisy",
+    plik: POMIAR_MONITORA,
+    wymaga: () => existsSync(POMIAR_MONITORA),
+    oczekiwanySlad: "nie ODMAWIA stronie 404",
+    zmien: (s) =>
+      s.includes("\t\tif ( is_404() ) {\n\t\t\treturn false;\n\t\t}")
+        ? s.replace("\t\tif ( is_404() ) {\n\t\t\treturn false;\n\t\t}", "\t\t$blad = is_404();\n\t\tunset( $blad );")
+        : null,
+  },
+  {
+    // A9: TypeError powstaje PRZY WYWOŁANIU, poza zasięgiem try —
+    // cudza wtyczka odpalająca hak z null kładzie cały kokpit.
+    straznik: "straznik-monitora-wp",
+    opis: "handler na cudzym haku dostaje typowany parametr bez wartości domyślnej",
+    plik: EKRAN_MONITORA,
+    wymaga: () => existsSync(EKRAN_MONITORA),
+    oczekiwanySlad: "BEZ WARTOŚCI DOMYŚLNEJ",
+    zmien: (s) =>
+      s.includes("public static function zasoby( $uchwyt = '' ): void {")
+        ? s.replace("public static function zasoby( $uchwyt = '' ): void {", "public static function zasoby( string $uchwyt ): void {")
+        : null,
+  },
+  {
+    // A9: sama wartość domyślna nie wystarcza — z jawnym `null`
+    // typowany parametr dalej rzuca (zmierzone).
+    straznik: "straznik-monitora-wp",
+    opis: "handler na cudzym haku dostaje deklarację typu mimo wartości domyślnej",
+    plik: EKRAN_MONITORA,
+    wymaga: () => existsSync(EKRAN_MONITORA),
+    oczekiwanySlad: "DEKLARACJĄ TYPU",
+    zmien: (s) =>
+      s.includes("public static function zasoby( $uchwyt = '' ): void {")
+        ? s.replace("public static function zasoby( $uchwyt = '' ): void {", "public static function zasoby( ?string $uchwyt = '' ): void {")
+        : null,
+  },
+  {
+    // `esc_html` zamienia prosty cudzysłów na `&quot;` i klient widzi
+    // encję — ta sama klasa co 29 podpisów w podglądzie kursów (0.34.0).
+    straznik: "straznik-monitora-wp",
+    opis: "tekst na ekran z prostym cudzysłowem (podwójna ucieczka u klienta)",
+    plik: EKRAN_MONITORA,
+    wymaga: () => existsSync(EKRAN_MONITORA),
+    oczekiwanySlad: "prosty cudzysłów",
+    zmien: (s) =>
+      s.includes("__( 'Ruch', 'aai-monitor' )")
+        ? s.replace("__( 'Ruch', 'aai-monitor' )", "__( 'Ruch \"na stronach\"', 'aai-monitor' )")
+        : null,
+  },
+  {
+    // Polityka prywatności żyje w DWÓCH miejscach: w kodzie wtyczki
+    // i jako tekst do wklejenia w motywie (repo tylko do odczytu).
+    // Rozjazd zobaczyłby tylko ktoś, kto czyta oba naraz — czyli nikt.
+    straznik: "straznik-monitora-wp",
+    opis: "kod obiecuje inną retencję ruchu niż gotowy fragment polityki w repo",
+    plik: PRYWATNOSC_MONITORA,
+    wymaga: () => existsSync(PRYWATNOSC_MONITORA),
+    oczekiwanySlad: "nie ma w gotowym fragmencie",
+    zmien: (s) =>
+      s.includes("Zapisy o ruchu usuwamy do 400 dni")
+        ? s.replace("Zapisy o ruchu usuwamy do 400 dni", "Zapisy o ruchu usuwamy do 30 dni")
         : null,
   },
 ];

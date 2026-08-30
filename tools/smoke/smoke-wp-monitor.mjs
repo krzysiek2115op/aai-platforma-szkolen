@@ -43,8 +43,30 @@
  * Użycie: node tools/smoke/smoke-wp-monitor.mjs
  */
 import { execFileSync } from "node:child_process";
+import net from "node:net";
 import { readFileSync } from "node:fs";
 import { migawkaDziennika, sprzatnijDziennik, ileWpisow } from "./dziennik.mjs";
+import { createRequire } from "node:module";
+
+/*
+ * OD KROKU T3 TA BRAMKA WYMAGA PRZEGLĄDARKI. Endpoint da się sprawdzić
+ * `fetch`em, ale nie o endpoint tu chodzi: beacon odpowiada 204 i na
+ * przyjęcie, i na odrzut, więc jedynym dowodem, że pomiar DZIAŁA, jest
+ * przejście całej drogi — prawdziwy skrypt, prawdziwe wyjście ze strony,
+ * wiersz w tabeli. Para N9/N10 dowodzi przy okazji, że automaty NIE są
+ * liczone, a tego bez przeglądarki nie da się pokazać w ogóle.
+ */
+const RIG = process.env.ZRZUTY_RIG;
+if (!RIG) {
+  console.error(
+    "smoke-wp-monitor: ustaw ZRZUTY_RIG na katalog z zainstalowanym `puppeteer-core`.\n" +
+      "  mkdir -p /tmp/rig && cd /tmp/rig && npm init -y && npm i puppeteer-core"
+  );
+  process.exit(1);
+}
+const wymagaj = createRequire(RIG.endsWith("/") ? RIG : `${RIG}/`);
+const puppeteer = wymagaj("puppeteer-core");
+const PRZEGLADARKA = process.env.FIREFOX ?? "/usr/bin/firefox";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
@@ -94,7 +116,18 @@ function sesja() {
     const odp = await fetch(`${ADRES}${sciezka}`, {
       redirect: "manual",
       ...opcje,
-      headers: { ...(opcje.headers ?? {}), cookie: [...ciastka].map(([k, v]) => `${k}=${v}`).join("; ") },
+      headers: {
+        ...(opcje.headers ?? {}),
+        cookie: [...ciastka].map(([k, v]) => `${k}=${v}`).join("; "),
+        // Zamykamy połączenie po każdym żądaniu. Node utrzymuje je
+        // keep-alive, a Apache w kontenerze zrywa bezczynne po kilku
+        // sekundach — dokładnie tyle trwa przelot przeglądarką w bloku
+        // 10i. Zerwane połączenie wypływa wtedy jako nieobsłużony
+        // `SocketError: other side closed` i wygląda jak awaria naszego
+        // endpointu, którym nie jest (pojedyncze i seryjne żądania
+        // przechodzą bez zarzutu — sprawdzone).
+        connection: "close",
+      },
     });
     for (const linia of odp.headers.getSetCookie?.() ?? []) {
       const [para] = linia.split(";");
@@ -105,6 +138,8 @@ function sesja() {
   };
   return {
     pobierz,
+    /** Nagłówek `cookie` tej sesji — beacon N18 musi jechać jako ZALOGOWANY. */
+    naglowekCiastek: () => [...ciastka].map(([k, v]) => `${k}=${v}`).join("; "),
     async zaloguj(login, haslo) {
       await pobierz("/wp-login.php");
       await pobierz("/wp-login.php", {
@@ -148,6 +183,16 @@ const licznikiPrzed = liczniki();
 const php = (kod) => phpEval(kod).stdout;
 const dziennikPrzed = ileWpisow(php);
 const dziennikMigawka = migawkaDziennika(php);
+
+/*
+ * Migawka RUCHU: najwyższy identyfikator wizyty sprzed przebiegu.
+ * Wzorzec po ścieżce tu nie wystarcza — nasze beacony MUSZĄ jechać
+ * realnymi ścieżkami instalacji, bo tylko takie mają podpis. Kasujemy
+ * więc okno przebiegu, dokładnie jak w dzienniku logowań.
+ */
+const wizytyMigawka = Number(
+  phpEval("global $wpdb; echo (int) $wpdb->get_var( 'SELECT COALESCE( MAX(id), 0 ) FROM ' . Aai_Monitor_Tabele::tabela('wizyty') );").stdout
+);
 
 /* ── 1. schemat: co tabele NAPRAWDĘ mają ────────────────────────────── */
 
@@ -720,6 +765,774 @@ sprawdz(
   "po przywróceniu tabeli kontrola dalej świeci na czerwono — smoke zostawiłby środowisko w stanie alarmu"
 );
 
+/* ── 10. RUCH: pełna ścieżka beaconu, sito i limiter (T3) ───────────── */
+
+/*
+ * KAŻDE SPRAWDZENIE PYTA O WIERSZ, NIGDY O KOD ODPOWIEDZI. Endpoint
+ * odpowiada 204 na przyjęcie i na odrzut (żeby nie dawać sondy), więc
+ * kod HTTP nie niesie tu żadnej informacji — a przy jednej z pułapek
+ * (akcja schowana w ciele) sukcesem wygląda właśnie HTTP 200.
+ */
+
+const SCIEZKA_A = "/szkolenia/";
+const SCIEZKA_B = "/szkolenia/jak-korzystac-z-claude/";
+const SESJA_TESTOWA = "0123456789abcdef0123456789abcdef";
+const AKCJA = "aai_monitor_wizyta";
+
+const podpisz = (sciezka, bramka = false) =>
+  phpEval(`echo Aai_Monitor_Podpis::podpisz('${sciezka}', ${bramka ? "true" : "false"});`).stdout.trim();
+
+/*
+ * Identyfikator ODSŁONY — od naprawy B1 każdy beacon go niesie, a UNIQUE
+ * w bazie robi z niego regułę „jedna odsłona, jeden wiersz”. Domyślnie
+ * LOSOWY, bo dwa beacony z tym samym identyfikatorem to CELOWY przypadek
+ * (uzupełnienie czasu), a nie stan domyślny — gdyby był stały, blok sita
+ * mierzyłby uzupełnianie jednego wiersza zamiast wstawiania nowych.
+ */
+let licznikOdslon = 0;
+const nowaOdslona = () => (licznikOdslon++).toString(16).padStart(8, "0") + "cafe".repeat(6);
+const ileWizyt = () =>
+  Number(phpEval("global $wpdb; echo (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Aai_Monitor_Tabele::tabela('wizyty') );").stdout);
+
+async function beacon({
+  sciezka = SCIEZKA_A,
+  podpis = null,
+  sesja = SESJA_TESTOWA,
+  odslona = null,
+  bramka = false,
+  trwanie = 5000,
+  wiek = 60000,
+  typ = "application/json",
+  origin = ADRES,
+  wypelniacz = "",
+  akcjaWQuery = true,
+  ciastka = "",
+} = {}) {
+  const ladunek = {
+    odslona: odslona ?? nowaOdslona(),
+    sciezka,
+    podpis: podpis ?? podpisz(sciezka, bramka),
+    bramka: bramka ? 1 : 0,
+    sesja,
+    trwanie_ms: trwanie,
+    wiek_ms: wiek,
+  };
+  if (!akcjaWQuery) ladunek.action = AKCJA;
+  if (wypelniacz) ladunek.x = wypelniacz;
+  const naglowki = { "content-type": typ, connection: "close" };
+  if (origin) naglowki.origin = origin;
+  if (ciastka) naglowki.cookie = ciastka;
+  const odp = await fetch(`${ADRES}/wp-admin/admin-post.php${akcjaWQuery ? `?action=${AKCJA}` : ""}`, {
+    method: "POST",
+    headers: naglowki,
+    body: JSON.stringify(ladunek),
+    redirect: "manual",
+  });
+  return odp.status;
+}
+
+/* 10a. BEACON KONTROLNY NA OTWARCIE bloku — bez niego całe „bez zmian”
+ * niżej przechodziłoby także na martwym endpoincie (BLAD-022). */
+{
+  const przed = ileWizyt();
+  await beacon();
+  sprawdz(ileWizyt() === przed + 1, "poprawny beacon nie utworzył wiersza — dalsze sprawdzenia sita byłyby ślepe");
+}
+
+/* 10b. SITO: każdy zły beacon jest poprawny POZA JEDNYM POLEM. */
+const odrzuty = [
+  ["ciało jako text/plain (F20 — ten typ przechodzi cross-origin)", { typ: "text/plain" }],
+  ["obce Origin", { origin: "http://zly.example" }],
+  ["Origin: null (piaskownicowana ramka)", { origin: "null" }],
+  ["brak Origin i Referera", { origin: "" }],
+  ["podpis nie pasuje do ścieżki", { podpis: "0".repeat(32) }],
+  ["ścieżka podmieniona po podpisaniu (zatrucie listy stron)", { sciezka: "/zmyslona-sciezka/", podpis: null, sesja: SESJA_TESTOWA }],
+  ["sesja krótsza o znak", { sesja: SESJA_TESTOWA.slice(0, 31) }],
+  ["identyfikator odsłony krótszy o znak", { odslona: SESJA_TESTOWA.slice(0, 31) }],
+  ["brak identyfikatora odsłony", { odslona: "" }],
+  ["flaga bramki podniesiona po podpisaniu (fałszywe odbicie)", { bramka: true, podpis: null }],
+  ["ciało o bajt ponad sufit", { wypelniacz: "y".repeat(1025) }],
+];
+for (const [opis, opcje] of odrzuty) {
+  const przed = ileWizyt();
+  // Ścieżka podmieniona: podpisujemy JEDNĄ, wysyłamy DRUGĄ.
+  if (opcje.sciezka === "/zmyslona-sciezka/") opcje.podpis = podpisz(SCIEZKA_A);
+  // Flaga bramki jedzie w PODPISYWANYM materiale, więc jej podniesienie
+  // po podpisaniu ma unieważnić podpis: podpisujemy bez flagi, wysyłamy z nią.
+  if (opcje.bramka === true && opcje.podpis === null) opcje.podpis = podpisz(SCIEZKA_A, false);
+  const kod = await beacon(opcje);
+  sprawdz(ileWizyt() === przed, `sito przepuściło beacon, którego nie powinno: ${opis}`);
+  sprawdz(kod === 204, `odrzut zdradził się kodem odpowiedzi (${kod}) przy: ${opis} — odrzut ma być nieodróżnialny od przyjęcia`);
+}
+
+/* 10c. DWA SUFITY, KTÓRE ROBIĄ CO INNEGO (A5 z przeglądu T3).
+ *
+ * Czas CZYTANIA ponad sufit jest przycinany — uśpiona karta to nie atak,
+ * a wizyta ma zostać razem ze swoją ścieżką. WIEK odsłony ponad sufit jest
+ * ODRZUCANY, bo przycięcie wieku nie jest niedokładnością, tylko
+ * ZMYŚLENIEM GODZINY WEJŚCIA: przed naprawą karta zostawiona na noc
+ * zapisywała wejście „4 h temu” (zmierzone co do sekundy), więc wizyta
+ * lądowała w złej godzinie, a przy oknie „dziś” w złej dobie. */
+{
+  const przed = ileWizyt();
+  await beacon({ trwanie: 9 * 60 * 60 * 1000, wiek: 9 * 60 * 60 * 1000 });
+  sprawdz(ileWizyt() === przed + 1, "beacon z czasem czytania ponad sufit został ODRZUCONY — ma być przycięty (uśpiona karta to nie atak)");
+  const wiersz = phpEval(
+    "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " $r = $wpdb->get_row( \"SELECT trwanie_ms, TIMESTAMPDIFF( MINUTE, wejscie, UTC_TIMESTAMP() ) AS wiek_min FROM `{$w}` ORDER BY id DESC LIMIT 1\" );" +
+      " echo (int) $r->trwanie_ms, ':', (int) $r->wiek_min;"
+  ).stdout.trim().split(":");
+  sprawdz(Number(wiersz[0]) === 4 * 60 * 60 * 1000, `czas czytania nie został przycięty do sufitu 4 h (zapisano ${wiersz[0]} ms)`);
+  // 9 h to PRAWDZIWY wiek odsłony i ma taki zostać. Dopuszczamy minutę
+  // luzu na czas przelotu, nie więcej — przed naprawą wychodziło 240 min.
+  sprawdz(
+    Math.abs(Number(wiersz[1]) - 540) <= 1,
+    `moment wejścia został ZMYŚLONY: wiersz mówi ${wiersz[1]} minut wstecz zamiast 540 — sufit przesunął wejście zamiast przyciąć czas czytania (A5)`
+  );
+
+  const przedOdrzutem = ileWizyt();
+  await beacon({ trwanie: 1000, wiek: 31 * 24 * 60 * 60 * 1000 });
+  sprawdz(
+    ileWizyt() === przedOdrzutem,
+    "beacon z wiekiem ponad 30 dni utworzył wiersz — jego moment wejścia byłby zmyślony, a takiego znacznika czasu wolimy nie mieć wcale"
+  );
+}
+
+/* 10c2. JEDNA ODSŁONA = JEDEN WIERSZ, mimo wielu beaconów (B1).
+ *
+ * To jest cała naprawa B1 zmierzona od strony bazy: skrypt wysyła teraz
+ * przy KAŻDYM zniknięciu karty, a nie raz, więc bez UNIQUE na `odslona`
+ * czytelnik przełączający zakładki produkowałby tyle „odsłon”, ile razy
+ * spojrzał gdzie indziej. Sprawdzamy też, że czas rośnie i NIE COFA SIĘ:
+ * beacony nie mają obiecanej kolejności dostarczenia. */
+{
+  const przed = ileWizyt();
+  const jedna = nowaOdslona();
+  await beacon({ odslona: jedna, trwanie: 1000, wiek: 2000 });
+  await beacon({ odslona: jedna, trwanie: 7000, wiek: 9000 });
+  await beacon({ odslona: jedna, trwanie: 500, wiek: 600 });
+  sprawdz(ileWizyt() === przed + 1, `trzy beacony jednej odsłony dały ${ileWizyt() - przed} wierszy zamiast 1 — odsłony byłyby zawyżone o każde przełączenie karty (B1)`);
+  const czas = Number(
+    phpEval(
+      "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
+        ` echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT trwanie_ms FROM \`{$w}\` WHERE odslona = %s", '${jedna}' ) );`
+    ).stdout
+  );
+  sprawdz(czas === 7000, `czas odsłony to ${czas} ms zamiast 7000 — spóźniony beacon z mniejszą liczbą cofnął już zapisany czas`);
+}
+
+/* 10c3. ODBICIA NA BRAMCE LOGOWANIA LICZĄ SIĘ OSOBNO (A6).
+ *
+ * Gość na płatnej lekcji dostaje HTTP 200 i pełną stronę — z zaproszeniem
+ * do logowania zamiast treści. Bez tego rozróżnienia „najczęściej czytane
+ * strony” pokazywałyby lekcje, których nikt nie przeczytał. */
+{
+  const przed = ileWizyt();
+  await beacon({ sciezka: SCIEZKA_B, bramka: true, trwanie: 3000, wiek: 4000 });
+  sprawdz(ileWizyt() === przed + 1, "beacon z bramki nie utworzył wiersza — odbicia mają ZOSTAĆ w tabeli, tylko liczyć się osobno");
+  const stan = phpEval(
+    "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " echo (int) $wpdb->get_var( \"SELECT bramka FROM `{$w}` ORDER BY id DESC LIMIT 1\" );"
+  ).stdout.trim();
+  sprawdz(stan === "1", `wiersz z bramki ma bramka=${stan} zamiast 1 — flaga nie dojechała z beaconu do kolumny`);
+
+  const ruch = phpEval(
+    "$r = Aai_Monitor_Odczyt::ruch( 1 );" +
+      " $czytane = 0; foreach ( $r['strony'] as $s ) { $czytane += (int) $s['odslony']; }" +
+      " $odbicia = 0; foreach ( $r['strony_bramki'] as $s ) { $odbicia += (int) $s['odslony']; }" +
+      " echo (int) $r['bramka'], ':', $czytane, ':', $odbicia;"
+  ).stdout.trim().split(":");
+  sprawdz(Number(ruch[0]) >= 1, "ekran nie liczy odsłon zatrzymanych na bramce — właściciel czytałby odbicia jako czytanie");
+  sprawdz(Number(ruch[2]) >= 1, "lista „zatrzymane na bramce” jest pusta mimo odsłony z bramki — informacja o odbiciach przepadła");
+}
+
+/* 10c4. LICZBA PRZYSŁANA JAKO ŁAŃCUCH NIE STAJE SIĘ CICHO ZEREM (A10).
+ *
+ * Zmierzone przed naprawą: `"trwanie_ms":"5000"` dawało wiersz z czasem 0
+ * i wejściem „przed chwilą”. Czyli pełna liczba odsłon przy wyzerowanym
+ * czasie — wartość FAŁSZYWA, nie brakująca, i nic się przy tym nie
+ * zapalało. Nasz skrypt wysyła liczby, więc to jest tama na przyszłość:
+ * jedna zmiana po stronie klienta zamieniłaby cały pomiar czasu w zera. */
+{
+  const odslona = nowaOdslona();
+  const podpis = podpisz(SCIEZKA_A);
+  const ladunek = {
+    odslona,
+    sciezka: SCIEZKA_A,
+    podpis,
+    bramka: 0,
+    sesja: SESJA_TESTOWA,
+    trwanie_ms: "5000",
+    wiek_ms: "9000",
+  };
+  await fetch(`${ADRES}/wp-admin/admin-post.php?action=${AKCJA}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: ADRES, connection: "close" },
+    body: JSON.stringify(ladunek),
+    redirect: "manual",
+  });
+  const czas = Number(
+    phpEval(
+      "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
+        ` echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT trwanie_ms FROM \`{$w}\` WHERE odslona = %s", '${odslona}' ) );`
+    ).stdout
+  );
+  sprawdz(czas === 5000, `czas przysłany jako łańcuch zapisał się jako ${czas} ms zamiast 5000 — wiersz powstaje, ale niesie nieprawdę (A10)`);
+}
+
+/* 10c4b. SITO POCHODZENIA ZAWODZI NA ZAMKNIĘTO (A8).
+ *
+ * Sprawdzenie „Origin: null jest odrzucany” w bloku sita wyżej przechodzi
+ * także BEZ tej naprawy — i to jest ważne, żeby wiedzieć: dowodzi ono
+ * tylko, że `null` nie równa się naszemu adresowi. Wada z A8 budzi się
+ * dopiero, gdy `home_url()` NIE MA HOSTA: `zrodlo()` oddaje wtedy pusty
+ * łańcuch po OBU stronach porównania i obce żądanie przechodzi jako swoje.
+ * Pytamy więc o dokładnie ten warunek, podstawiając adres witryny —
+ * przez filtr, w jednym żądaniu CLI, bez dotykania instalacji. */
+{
+  const wynik = phpEval(
+    "add_filter( 'home_url', function () { return '/'; }, 9999 );" +
+      " $m = new ReflectionMethod( 'Aai_Monitor_Wizyty', 'pochodzenie_pasuje' ); $m->setAccessible( true );" +
+      " $_SERVER['HTTP_ORIGIN'] = 'null'; $a = $m->invoke( null );" +
+      " $_SERVER['HTTP_ORIGIN'] = 'http://zly.example'; $b = $m->invoke( null );" +
+      " echo ( $a ? 'null-przeszlo' : '' ), ( $b ? ',obce-przeszlo' : '' );"
+  ).stdout.trim();
+  sprawdz(
+    wynik === "",
+    `przy witrynie bez hosta sito pochodzenia przepuszcza obce żądania (${wynik}) — zawodzi „na otwarto”, a ma na zamknięto: nie wiedząc, jaka jest nasza witryna, nie wpuszczamy nikogo (A8)`
+  );
+}
+
+/* 10c5. HANDLER NA CUDZYM HAKU NIE WYWRACA SIĘ NA SAMYM WYWOŁANIU (A9).
+ *
+ * `TypeError` z niezgodnego argumentu powstaje PRZY WYWOŁANIU, więc nie
+ * łapie go żaden `try` w środku metody — a `admin_enqueue_scripts`
+ * odpala cudzy kod, jak chce. Pytamy WPROST o naszą metodę, bo na tym
+ * haku wiszą też Woo i rdzeń: przy `do_action` ich wyjątki wyglądałyby
+ * jak nasze (ta sama pułapka co pomiar równoległy z własną pracą). */
+{
+  const wynik = phpEval(
+    "$cb = array( 'Aai_Monitor_Ekran', 'zasoby' ); $zle = array();" +
+      " foreach ( array( 'pominiety' => '__POMIN__', 'null' => null, 'liczba' => 42, 'tablica' => array() ) as $opis => $arg ) {" +
+      "   try { if ( '__POMIN__' === $arg ) { call_user_func( $cb ); } else { call_user_func( $cb, $arg ); } }" +
+      "   catch ( Throwable $e ) { $zle[] = $opis . ':' . get_class( $e ); } }" +
+      " echo implode( ',', $zle );"
+  ).stdout.trim();
+  sprawdz(wynik === "", `nasz handler na admin_enqueue_scripts wywraca się na wywołaniu (${wynik}) — cudza wtyczka położyłaby cały kokpit (A9)`);
+}
+
+/* 10c6. SUFIT LICZBY WIERSZY ŚCINA NAJSTARSZE (A2, decyzja właściciela).
+ *
+ * Bez niego jeden nieuwierzytelniony klient mieści się w limiterze i pisze
+ * ~430 000 wierszy na dobę, a retencja po WIEKU ich nie rusza — wszystkie
+ * są młodsze niż 400 dni. Nie wstawiamy ćwierć miliona wierszy: rozpychamy
+ * AUTO_INCREMENT, bo sufit i tak mierzy ROZPIĘTOŚĆ identyfikatorów (pełny
+ * `COUNT(*)` przy każdym beaconie byłby droższy niż sam zapis).
+ *
+ * TABELA WRACA DO STANU ZASTANEGO i to NIE jest ostrożność na wyrost.
+ * Pierwsza wersja tego bloku nie robiła kopii, a sufit z definicji ścina
+ * NAJSTARSZE wiersze — więc kasowała wszystko, co powstało wcześniej w tym
+ * przebiegu, i wszystko, co zastała na instalacji. Skutek uboczny był
+ * gorszy niż sama strata: końcowy rachunek sumienia przestawał cokolwiek
+ * znaczyć, bo tabela była już pusta. Zmierzone — po zdjęciu sprzątania
+ * wizyt bramka DALEJ świeciła na zielono. Ta sama klasa co znalezisko
+ * z P5: rachunek liczący własne ślady nie widzi, że zabrał cudze.
+ */
+{
+  const kopia = phpEval(
+    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " $wpdb->query( \"DROP TABLE IF EXISTS `{$t}_kopia_smoke`\" );" +
+      " $wpdb->query( \"CREATE TABLE `{$t}_kopia_smoke` LIKE `{$t}`\" );" +
+      " $wpdb->query( \"INSERT INTO `{$t}_kopia_smoke` SELECT * FROM `{$t}`\" );" +
+      " echo (int) $wpdb->get_var( \"SELECT COUNT(*) FROM `{$t}_kopia_smoke`\" );"
+  ).stdout.trim();
+  sprawdz(/^\d+$/.test(kopia), `nie udało się odłożyć kopii tabeli ruchu („${kopia}”) — bez niej ten pomiar skasowałby zastane wiersze`);
+
+  const wynik = phpEval(
+    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " $sufit = Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT;" +
+      " Aai_Monitor_Zapis::dodaj_wizyte( array( 'odslona' => str_repeat('a',32), 'sesja' => str_repeat('1',32), 'sciezka' => '/sufit-stary/', 'trwanie_ms' => 1000, 'wiek_ms' => 2000 ) );" +
+      " $stary = (int) $wpdb->get_var( \"SELECT MAX(id) FROM `{$t}`\" );" +
+      " $skok = $stary + $sufit + 100; $wpdb->query( \"ALTER TABLE `{$t}` AUTO_INCREMENT = {$skok}\" );" +
+      " Aai_Monitor_Zapis::dodaj_wizyte( array( 'odslona' => str_repeat('b',32), 'sesja' => str_repeat('2',32), 'sciezka' => '/sufit-nowy/', 'trwanie_ms' => 1000, 'wiek_ms' => 2000 ) );" +
+      " echo implode( ',', $wpdb->get_col( \"SELECT sciezka FROM `{$t}` ORDER BY id\" ) );"
+  ).stdout.trim();
+  sprawdz(
+    wynik === "/sufit-nowy/",
+    `sufit liczby wierszy nie ściął najstarszych wierszy (zostało: „${wynik}”) — tabela ruchu rośnie bez granicy, a kafelki ekranu liczą ją bez okna czasu (A2)`
+  );
+
+  // Przywracamy stan zastany CO DO WIERSZA, razem z licznikiem
+  // identyfikatorów — inaczej kolejne bloki dostawałyby id z kosmosu.
+  const przywrocone = phpEval(
+    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " $wpdb->query( \"DELETE FROM `{$t}`\" );" +
+      " $wpdb->query( \"INSERT INTO `{$t}` SELECT * FROM `{$t}_kopia_smoke`\" );" +
+      " $wpdb->query( \"DROP TABLE `{$t}_kopia_smoke`\" );" +
+      " $max = (int) $wpdb->get_var( \"SELECT COALESCE(MAX(id),0) FROM `{$t}`\" ) + 1;" +
+      " $wpdb->query( \"ALTER TABLE `{$t}` AUTO_INCREMENT = {$max}\" );" +
+      " echo (int) $wpdb->get_var( \"SELECT COUNT(*) FROM `{$t}`\" );"
+  ).stdout.trim();
+  sprawdz(
+    przywrocone === kopia,
+    `po pomiarze sufitu tabela ruchu ma ${przywrocone} wierszy zamiast zastanych ${kopia} — pomiar zabrał cudze dane`
+  );
+}
+
+/* 10c7. BEACON ADMINISTRATORA NIE TWORZY WIERSZA (D3, B4).
+ *
+ * Skryptu administrator nie dostaje (blok 10h), ale to za mało: beacon
+ * może przyjść z karty otwartej PRZED zalogowaniem. Do przeglądu T3 tej
+ * gałęzi nie mierzyło NIC — bramka nigdy nie wysyłała beaconu jako
+ * administrator, a mutacja kasująca ją przechodziła też u strażnika. */
+{
+  const adminBeacon = sesja();
+  const zalogowany = await adminBeacon.zaloguj("admin", HASLA.WP_ADMIN_HASLO ?? "");
+  sprawdz(zalogowany, "nie udało się zalogować administratora — sprawdzenie B4 nie ma czego mierzyć");
+  if (zalogowany) {
+    const przed = ileWizyt();
+    const kod = await beacon({ ciastka: adminBeacon.naglowekCiastek() });
+    sprawdz(ileWizyt() === przed, "beacon administratora utworzył wiersz — jego odsłony mają NIE być liczone (D3)");
+    sprawdz(kod === 204, `odrzut beaconu administratora zdradził się kodem ${kod} — ma być nieodróżnialny od przyjęcia`);
+  }
+}
+
+/* 10c8. CIAŁO PONAD SUFIT BEZ DEKLARACJI DŁUGOŚCI (B6).
+ *
+ * Blok sita wyżej mierzy gałąź „za duży content-length” — czyli
+ * DEKLARACJĘ klienta. Prawdziwym zabezpieczeniem jest sufit przy odczycie
+ * strumienia, a tamta gałąź go nie dotyka. Żądanie `Transfer-Encoding:
+ * chunked` nie niesie deklaracji w ogóle: zmierzone, że DOCHODZI do PHP
+ * (204). Piszemy je gniazdem, bo `fetch` nie wyśle żądania bez
+ * `content-length`.
+ *
+ * CZEGO TEN POMIAR NIE DOWODZI — i to jest ważniejsze niż to, co dowodzi.
+ * Zmierzone testem negatywnym: po zdjęciu odrzutu ciała ponad sufit
+ * bramka DALEJ świeci na zielono, bo obcięte ciało przestaje być poprawnym
+ * JSON-em i beacon i tak przepada. Sufit chroni więc PAMIĘĆ, a nie
+ * poprawność — a pamięci nie da się zmierzyć z zewnątrz jednym żądaniem.
+ * Tę połowę pilnuje strażnik (reguła 14: sufit MUSI stać przy `fread`
+ * i po odczycie), sprawdzony dwiema mutacjami. Zostawiamy asercję
+ * zachowania — ona dowodzi, że ta droga w ogóle jest zamknięta — i mówimy
+ * wprost, gdzie leży jej granica. */
+{
+  const przed = ileWizyt();
+  const ladunek = JSON.stringify({
+    odslona: nowaOdslona(),
+    sciezka: SCIEZKA_A,
+    podpis: podpisz(SCIEZKA_A),
+    bramka: 0,
+    sesja: SESJA_TESTOWA,
+    trwanie_ms: 1000,
+    wiek_ms: 2000,
+    x: "y".repeat(2000),
+  });
+  const adres = new URL(ADRES);
+  const kod = await new Promise((gotowe) => {
+    const gniazdo = net.connect(Number(adres.port || 80), adres.hostname, () => {
+      gniazdo.write(
+        `POST /wp-admin/admin-post.php?action=${AKCJA} HTTP/1.1\r\n` +
+          `Host: ${adres.host}\r\ncontent-type: application/json\r\norigin: ${ADRES}\r\n` +
+          "transfer-encoding: chunked\r\nconnection: close\r\n\r\n"
+      );
+      const bajty = Buffer.from(ladunek);
+      for (let k = 0; k < bajty.length; k += 500) {
+        const kawalek = bajty.subarray(k, k + 500);
+        gniazdo.write(`${kawalek.length.toString(16)}\r\n`);
+        gniazdo.write(kawalek);
+        gniazdo.write("\r\n");
+      }
+      gniazdo.write("0\r\n\r\n");
+    });
+    gniazdo.once("data", (dane) => {
+      gotowe(Number(String(dane).split(" ")[1] ?? 0));
+      gniazdo.destroy();
+    });
+    gniazdo.once("error", () => gotowe(0));
+  });
+  sprawdz(kod === 204, `żądanie chunked dostało kod ${kod} zamiast 204 — jeśli to 400, serwer odrzucił je przed PHP i ten pomiar nie dotyka naszego sufitu`);
+  sprawdz(
+    ileWizyt() === przed,
+    "ciało ponad sufit przeszło, bo nie zadeklarowało długości — sufit przy odczycie strumienia jest jedyną tamą na tej drodze (B6)"
+  );
+}
+
+/* 10c9. PO WYŚCIGU O SÓL WSZYSCY PODPISUJĄ TĄ SAMĄ (A7).
+ *
+ * Sól podpisu powstaje leniwie, przy pierwszym użyciu. Gdy dwa żądania
+ * trafią w ten moment naraz, `add_option()` pisze `INSERT … ON DUPLICATE
+ * KEY UPDATE` (zmierzone w kodzie WordPressa) — czyli NADPISUJE sól tego,
+ * kto zdążył pierwszy, choć jego strony są już w przeglądarkach i noszą
+ * podpisy liczone starą wartością. Sito odrzuca je potem w milczeniu:
+ * beacon odpowiada 204 zawsze.
+ *
+ * ODTWORZENIE PRZEGRANEGO MUSI BYĆ WIERNE i pierwsza wersja tego pomiaru
+ * wierna NIE BYŁA — wstawiała cudzą sól do bazy, a potem czyściła pamięć
+ * `alloptions`, więc nasz proces natychmiast ją WIDZIAŁ i nigdy nie
+ * wchodził w gałąź tworzenia. Sprawdzenie przechodziło na zielono także
+ * na kodzie sprzed naprawy, czyli nie mierzyło niczego. Kolejność ma
+ * znaczenie: najpierw ładujemy pamięć BEZ soli, dopiero potem zwycięzca
+ * wstawia swój wiersz.
+ *
+ * Na koniec przywracamy sól instalacji — inaczej unieważnilibyśmy podpisy
+ * stron wyrenderowanych wcześniej w tym przebiegu. */
+{
+  const wynik = phpEval(
+    "global $wpdb; $o = 'aai_monitor_sol_podpisu'; $oryginal = get_option( $o );" +
+      " delete_option( $o );" +
+      " wp_load_alloptions();" +
+      " $wpdb->insert( $wpdb->options, array( 'option_name' => $o, 'option_value' => 'SOL_ZWYCIEZCY', 'autoload' => 'yes' ) );" +
+      " $m = new ReflectionMethod( 'Aai_Monitor_Podpis', 'sol' ); $m->setAccessible( true ); $uzyta = $m->invoke( null );" +
+      " $wbazie = $wpdb->get_var( $wpdb->prepare( \"SELECT option_value FROM {$wpdb->options} WHERE option_name = %s\", $o ) );" +
+      " delete_option( $o ); if ( is_string( $oryginal ) && '' !== $oryginal ) { add_option( $o, $oryginal, '', true ); }" +
+      " wp_cache_delete( 'alloptions', 'options' );" +
+      " echo $uzyta, '|', $wbazie, '|', ( get_option( $o ) === $oryginal ? 'przywrocona' : 'ZGUBIONA' );"
+  ).stdout.trim().split("|");
+  sprawdz(
+    wynik[0] === "SOL_ZWYCIEZCY",
+    `przegrany wyścig o sól podpisuje WŁASNĄ wartością zamiast tą z bazy — strony przez niego wyrenderowane niosłyby podpisy, których sito nie przyjmie, i nic by tego nie zgłosiło (A7)`
+  );
+  sprawdz(
+    wynik[1] === "SOL_ZWYCIEZCY",
+    "przegrany NADPISAŁ sól zwycięzcy — unieważnia tym podpisy wszystkich stron, które ten zdążył wysłać do przeglądarek (A7)"
+  );
+  sprawdz(wynik[2] === "przywrocona", "pomiar nie oddał instalacji jej własnej soli — unieważniłby podpisy stron wyrenderowanych wcześniej");
+}
+
+/* 10c10. KONTROLA ŚWIECI KODEM 1 PRZY ROZJEŹDZIE POCHODZENIA (A4).
+ *
+ * Adres wystrzału składa `admin_url()`, a sito porównuje `Origin`
+ * z `home_url()`. Rozjazd — `www` w jednym, brak w drugim,
+ * `FORCE_SSL_ADMIN`, inny port — czyni beacon żądaniem cross-origin:
+ * przeglądarka pyta preflightem, WordPress odpowiada 403, i pomiar milczy
+ * CAŁKOWICIE przy kontroli świecącej kod 0. Decyzja właściciela
+ * (2026-08-30): taki stan ma być czerwony.
+ *
+ * MIERZYMY KOD WYJŚCIA, NIE PRZECHWYCONE WYJŚCIE. Pierwsza wersja tego
+ * sprawdzenia łapała tekst przez `ob_start()` i była martwa: `WP_CLI::
+ * error()` KOŃCZY PROCES, więc kod za wywołaniem kontroli nigdy się nie
+ * wykonuje. Ta sama pułapka zafałszowała moją wcześniejszą sondę — uznałem
+ * ją za potwierdzoną, bo widziałem komunikat, a nie jej własny werdykt.
+ *
+ * Rozjazd podstawiamy przez `--exec`, czyli w tym samym procesie CLI,
+ * w którym biegnie komenda. Instalacji nie dotykamy. */
+{
+  /*
+   * Rozjazd robimy TAK, JAK WYGLĄDA NAPRAWDĘ: rozjeżdżając `siteurl`
+   * z `home` — bo `admin_url()` liczy się z pierwszego, a `home_url()`
+   * z drugiego. Wariant przez `--exec` odpadł: kod z nawiasami i zmienną
+   * nie przeżywa drogi do `eval`, a wynikający z tego BŁĄD SKŁADNI dawał
+   * niezerowy kod wyjścia — czyli pierwszą asercję spełnioną z zupełnie
+   * innego powodu. Złapał to dopiero kontrprzykład pytający o TREŚĆ
+   * komunikatu.
+   */
+  const siteurl = wp("option", "get", "siteurl").stdout.trim();
+  wp("option", "update", "siteurl", siteurl.replace("127.0.0.1", "www.127.0.0.1"));
+  const zRozjazdem = wp("aai-monitor", "sprawdz");
+  wp("option", "update", "siteurl", siteurl);
+  sprawdz(wp("option", "get", "siteurl").stdout.trim() === siteurl, "pomiar nie oddał instalacji jej adresu — kokpit zostałby pod zmyślonym hostem");
+  sprawdz(
+    zRozjazdem.kod !== 0,
+    "kontrola kończy się kodem 0 przy rozjeździe adresu kokpitu i witryny — a wtedy beacon nie zapisuje się ANI RAZU, bez żadnego innego objawu (A4)"
+  );
+  sprawdz(
+    /różne pochodzenie/.test(zRozjazdem.stderr + zRozjazdem.stdout),
+    "kontrola świeci na czerwono przy rozjeździe adresów, ale nie mówi DLACZEGO — czerwień bez powodu uczy, żeby jej nie czytać"
+  );
+  // Kontrprzykład: bez podstawionego rozjazdu ta sama komenda ma milczeć.
+  sprawdz(wp("aai-monitor", "sprawdz").kod === 0, "kontrola świeci na czerwono na zdrowym środowisku — sprawdzenie A4 mierzyłoby wtedy własny fałszywy alarm");
+}
+
+/* 10d. F18: akcja schowana w ciele daje HTTP 200 i CISZĘ. */
+{
+  const przed = ileWizyt();
+  const kod = await beacon({ akcjaWQuery: false });
+  sprawdz(ileWizyt() === przed, "beacon z akcją w ciele zapisał wiersz — a nie ma prawa: $action czytane jest z $_REQUEST");
+  sprawdz(kod === 200, `akcja w ciele powinna trafić w gałąź „brak akcji” (200), a dała ${kod} — jeśli to 204, ktoś zarejestrował akcję pod pustą nazwą`);
+}
+
+/* 10e. BEACON KONTROLNY NA ZAMKNIĘCIE bloku sita. */
+{
+  const przed = ileWizyt();
+  await beacon({ sciezka: SCIEZKA_B });
+  sprawdz(ileWizyt() === przed + 1, "endpoint przestał przyjmować poprawne beacony w trakcie bloku sita");
+}
+
+/* 10f. N18: beacon ZALOGOWANEGO klienta też tworzy wiersz.
+ * `admin-post.php` rozgałęzia się po stanie zalogowania, a strony lekcji
+ * są za logowaniem — bez tej gałęzi cały ruch w kupionym materiale jest
+ * niewidzialny. */
+{
+  const klient = sesja();
+  const zalogowany = await klient.zaloguj("klient-test", HASLA.WP_KLIENT_HASLO ?? "");
+  sprawdz(zalogowany, "nie udało się zalogować konta klient-test — sprawdzenie N18 nie ma czego mierzyć");
+  if (zalogowany) {
+    const ciastka = klient.naglowekCiastek();
+    const przed = ileWizyt();
+    await beacon({ sciezka: SCIEZKA_B, ciastka });
+    sprawdz(ileWizyt() === przed + 1, "beacon zalogowanego klienta nie utworzył wiersza (N18) — gałąź admin_post_ jest martwa, a to cały ruch na lekcjach");
+  }
+}
+
+/* 10g. N12: limiter działa, a pełne IP nie osiada w opcjach. */
+{
+  const klucz = phpEval(
+    "global $wpdb; $k = $wpdb->get_var( \"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE '_transient_aai\\\\_monitor\\\\_limit\\\\_%' ORDER BY option_id DESC LIMIT 1\" ); echo (string) $k;"
+  ).stdout.trim();
+  sprawdz(klucz !== "", "limiter nie zostawił licznika w transiencie — nie ma czego mierzyć");
+  if (klucz !== "") {
+    const nazwa = klucz.replace("_transient_", "");
+
+    /*
+     * OKNO JEST KOTWICZONE DO PEŁNEJ MINUTY ZEGARA (naprawa A1).
+     *
+     * Do naprawy licznik trzymał samą liczbę, a `set_transient` odnawia
+     * TTL przy każdym zapisie — więc okno nie kończyło się nigdy, dopóki
+     * przerwy były krótsze niż minuta. Zmierzone: dwa beacony w odstępie
+     * 5 s przesunęły koniec okna o 5 s przy liczniku 1 → 2. Za wspólnym
+     * adresem (biuro, proxy) jeden zapętlony klient gasił wtedy pomiar
+     * CAŁEJ witryny — po cichu, przy kontroli świecącej kod 0.
+     *
+     * Mierzymy to na kształcie zapisu, bo on JEST mechanizmem okna:
+     * wartość musi nieść numer minuty, a wpis z minuty minionej ma się
+     * czytać jak zero.
+     */
+    const wartosc = phpEval(`echo (string) get_transient( '${nazwa}' );`).stdout.trim();
+    sprawdz(
+      /^\d+:\d+$/.test(wartosc),
+      `licznik limitera trzyma „${wartosc}” zamiast „minuta:ile” — bez numeru okna limit liczy się od ostatniej pełnej minuty CISZY, a nie na minutę (A1)`
+    );
+    if (/^\d+:\d+$/.test(wartosc)) {
+      const okno = Number(wartosc.split(":")[0]);
+      sprawdz(okno % 60 === 0, `okno limitera zaczyna się o ${okno % 60} s po pełnej minucie — kotwica jest w czasie pierwszego żądania, więc okno znów nie ma końca`);
+    }
+
+    // Zamiast wysyłać 300 żądań: podnosimy licznik do sufitu W BIEŻĄCYM
+    // OKNIE i patrzymy, czy kolejny beacon zostaje odrzucony.
+    phpEval(`$t = time(); set_transient( '${nazwa}', ( $t - $t % 60 ) . ':100000', 120 ); echo 'ok';`);
+    const przed = ileWizyt();
+    await beacon();
+    sprawdz(ileWizyt() === przed, "limiter przepuścił beacon po przekroczeniu sufitu na adres");
+
+    // Ten sam licznik, ale przypisany do POPRZEDNIEJ minuty, ma się
+    // czytać jak zero — na tym stoi „na minutę”.
+    phpEval(`$t = time(); set_transient( '${nazwa}', ( $t - $t % 60 - 60 ) . ':100000', 120 ); echo 'ok';`);
+    const poStarym = ileWizyt();
+    await beacon();
+    sprawdz(
+      ileWizyt() === poStarym + 1,
+      "licznik z POPRZEDNIEJ minuty dalej blokuje — okno nie kończy się samo, więc jeden klient może zgasić pomiar całej witryny na stałe (A1)"
+    );
+
+    /*
+     * ODRZUCONE BEACONY NIE ZŻERAJĄ LIMITU (druga połowa A1). Limiter
+     * stoi przed sprawdzeniem podpisu, więc do naprawy strumień śmieci
+     * wypełniał limit prawdziwym ludziom zza tego samego adresu — czyli
+     * robił dokładnie to, przed czym miał chronić.
+     */
+    phpEval(`delete_transient( '${nazwa}' ); echo 'ok';`);
+    for (let i = 0; i < 3; i++) await beacon({ podpis: "0".repeat(32) });
+    const poSmieciach = phpEval(`echo (string) get_transient( '${nazwa}' );`).stdout.trim();
+    sprawdz(
+      "" === poSmieciach || 0 === Number(poSmieciach.split(":")[1] ?? 0),
+      `trzy ODRZUCONE beacony podniosły licznik do „${poSmieciach}” — śmieci wypełniają limit prawdziwym ludziom zza tego samego adresu (A1)`
+    );
+
+    phpEval(`delete_transient( '${nazwa}' ); echo 'ok';`);
+    const po = ileWizyt();
+    await beacon();
+    sprawdz(ileWizyt() === po + 1, "po zdjęciu licznika beacon dalej jest odrzucany — limiter nie zwalnia okna");
+  }
+  const zIp = Number(
+    phpEval(
+      "global $wpdb; echo (int) $wpdb->get_var( \"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '%aai_monitor%' AND ( option_name REGEXP '[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+' OR option_value REGEXP '[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+' )\" );"
+    ).stdout
+  );
+  sprawdz(zIp === 0, `w opcjach osiadł adres IP (${zIp} wpisów) — limiter ma trzymać wyłącznie SKRÓT (N12, D3)`);
+}
+
+/* 10h. N8: skryptu nie dostaje ani administrator, ani strona 404. */
+{
+  const gosc = await (await fetch(`${ADRES}${SCIEZKA_A}`, { headers: { connection: "close" } })).text();
+  sprawdz(/<script[^>]+assets\/pomiar\.js/.test(gosc), "gość nie dostaje skryptu pomiaru — nie ma czym mierzyć ruchu");
+  sprawdz(gosc.includes("aaiMonitorPomiar"), "strona gościa nie niesie podpisanej ścieżki — beacon nie miałby czym się wylegitymować");
+
+  const admin = sesja();
+  const zalogowany = await admin.zaloguj("admin", HASLA.WP_ADMIN_HASLO ?? "");
+  sprawdz(zalogowany, "nie udało się zalogować administratora — sprawdzenie N8 nie ma czego mierzyć");
+  if (zalogowany) {
+    const html = await (await admin.pobierz(SCIEZKA_A)).text();
+    sprawdz(!/<script[^>]+assets\/pomiar\.js/.test(html), "administrator dostaje skrypt pomiaru (N8, D3) — jego odsłony byłyby liczone jak cudze");
+  }
+  const czterysta = await (await fetch(`${ADRES}/na-pewno-nie-ma-takiej-strony/`, { headers: { connection: "close" } })).text();
+  sprawdz(
+    !czterysta.includes("aaiMonitorPomiar"),
+    "strona 404 wydaje podpis — a renderuje się dla DOWOLNEGO adresu, więc listę najczęstszych stron dałoby się zatruć czymkolwiek"
+  );
+}
+
+/* 10i. N9 + N10 JAKO PARA: prawdziwa przeglądarka, prawdziwe wyjście. */
+
+/*
+ * CZEGO TU NIE MA I DLACZEGO. Powrotu „wstecz” NIE wywołujemy przez
+ * `goBack()` ani przez `history.back()` — zmierzone: w Firefoksie
+ * sterowanym przez BiDi jedno i drugie kończy się timeoutem po 30 s
+ * i NIE ZMIENIA ADRESU, a przy okazji psuje sesję na tyle, że kolejna
+ * nawigacja też pada. To ograniczenie riga, nie przeglądarki: prawdziwy
+ * powrót z bfcache zmierzyliśmy osobno (F22 — `pageshow persisted=true`
+ * plus `visibilitychange visible`).
+ *
+ * Mierzymy więc NASZ mechanizm, a nie cudzy: podstawiamy stronie to samo
+ * zdarzenie, które wysyła jej przeglądarka przy powrocie, i sprawdzamy,
+ * czy odsłona liczy się PONOWNIE. Bez zdjęcia flagi wysyłki byłby jeden
+ * wiersz zamiast dwóch.
+ */
+async function przelot({ udawajCzlowieka, powrotZBfcache = false }) {
+  const p = await puppeteer.launch({
+    browser: "firefox",
+    executablePath: PRZEGLADARKA,
+    headless: true,
+    protocol: "webDriverBiDi",
+  });
+  try {
+    const strona = await p.newPage();
+    if (udawajCzlowieka) {
+      // F16: nadpisanie flagi automatu DZIAŁA i to ono czyni tę bramkę
+      // wykonalną — bez niego skrypt wyłączyłby się w każdym rigu.
+      await strona.evaluateOnNewDocument(() => Object.defineProperty(navigator, "webdriver", { get: () => false }));
+    }
+    await strona.goto(`${ADRES}${SCIEZKA_A}`, { waitUntil: "load" });
+    await new Promise((ok) => setTimeout(ok, 1200));
+
+    // PRAWDZIWE wyjście ze strony A: nawigacja wywołuje pagehide
+    // i visibilitychange dokładnie tak, jak u człowieka.
+    await strona.goto(`${ADRES}${SCIEZKA_B}`, { waitUntil: "load" });
+    await new Promise((ok) => setTimeout(ok, 900));
+
+    // Wyjście ze strony B — podstawiamy ukrycie karty, bo nawigacja na
+    // `about:blank` w tym rigu również kończy się timeoutem.
+    const ukryj = () =>
+      strona.evaluate(() => {
+        Object.defineProperty(document, "visibilityState", { get: () => "hidden", configurable: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+    const pokaz = () =>
+      strona.evaluate(() => {
+        Object.defineProperty(document, "visibilityState", { get: () => "visible", configurable: true });
+        window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+      });
+
+    await ukryj();
+    await new Promise((ok) => setTimeout(ok, 400));
+
+    if (powrotZBfcache) {
+      await pokaz();
+      await new Promise((ok) => setTimeout(ok, 700));
+      await ukryj();
+      await new Promise((ok) => setTimeout(ok, 400));
+    }
+  } finally {
+    await p.close();
+  }
+}
+
+{
+  const przed = ileWizyt();
+  await przelot({ udawajCzlowieka: true, powrotZBfcache: true });
+  const po = ileWizyt();
+  /*
+   * TRZY wiersze, nie dwa i nie sześć — jedna liczba dowodzi trzech
+   * rzeczy naraz:
+   *  - pełna ścieżka działa (N9): prawdziwy skrypt, prawdziwe wyjście
+   *    ze strony A przy nawigacji, wiersz w tabeli;
+   *  - JEDNA wysyłka na odsłonę (P17): pagehide i visibilitychange
+   *    odpalają w tej samej milisekundzie, więc bez bramki byłoby sześć;
+   *  - powrót z bfcache liczy się jako NOWA odsłona (F22): bez zdjęcia
+   *    flagi na `pageshow.persisted` byłyby dwa.
+   */
+  sprawdz(
+    po === przed + 3,
+    `przelot przeglądarką dał ${po - przed} wierszy zamiast 3 — dwa znaczą, że powrót z bfcache nie jest liczony, sześć, że każda odsłona zapisuje się dwa razy, zero, że cała ścieżka beaconu jest martwa (N9)`
+  );
+
+  const ostatnie = phpEval(
+    "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty'); $r = $wpdb->get_row( \"SELECT sciezka, trwanie_ms, sesja FROM `{$w}` ORDER BY id DESC LIMIT 1\", ARRAY_A ); echo $r['sciezka'], '|', (int) $r['trwanie_ms'], '|', strlen( (string) $r['sesja'] );"
+  ).stdout.split("|");
+  sprawdz(ostatnie[0] === SCIEZKA_B, `ostatnia odsłona z przelotu ma ścieżkę ${ostatnie[0]}, a spodziewaliśmy się ${SCIEZKA_B}`);
+  sprawdz(Number(ostatnie[1]) > 300, `czas aktywny z prawdziwej przeglądarki wyszedł ${ostatnie[1]} ms — zegar nie liczy albo liczy tylko chwilę`);
+  sprawdz(Number(ostatnie[2]) === 32, `identyfikator sesji ma ${ostatnie[2]} znaków zamiast 32 — sito odrzuciłoby własne beacony`);
+}
+
+{
+  const przed = ileWizyt();
+  await przelot({ udawajCzlowieka: false });
+  sprawdz(
+    ileWizyt() === przed,
+    "automat został policzony jako ruch (N10) — skrypt ma się wyłączać przy navigator.webdriver, inaczej własne bramki zawyżą statystyki"
+  );
+}
+
+/* 10j. OKNA EKRANU liczą się od północy CZASU WITRYNY, nie UTC. */
+{
+  const granice = phpEval(
+    "$m = new ReflectionMethod( 'Aai_Monitor_Odczyt', 'granica_okna' ); $m->setAccessible( true );" +
+      " $bylo = get_option( 'gmt_offset' ); $a = $m->invoke( null, 1 );" +
+      " update_option( 'gmt_offset', 2 ); $b = $m->invoke( null, 1 );" +
+      " update_option( 'gmt_offset', $bylo ); echo $a, '|', $b, '|', get_option( 'gmt_offset' );"
+  ).stdout.split("|");
+  sprawdz(granice[0] !== granice[1], "granica okna nie zmienia się ze strefą witryny — na produkcji doba zaczynałaby się o złej godzinie");
+  sprawdz(granice[0].endsWith("00:00:00"), `przy gmt_offset=0 granica dnia powinna wypaść o północy UTC, a wypadła ${granice[0]}`);
+  sprawdz(granice[1].endsWith("22:00:00"), `przy gmt_offset=2 granica dnia powinna wypaść o 22:00 poprzedniej doby UTC, a wypadła ${granice[1]}`);
+  sprawdz(String(granice[2]) === "0", "smoke nie przywrócił strefy czasowej instalacji");
+}
+
+/* 10k. EKRAN pokazuje ruch i UCIEKA ścieżkę (przyszła z ciała żądania). */
+{
+  const admin = sesja();
+  if (await admin.zaloguj("admin", HASLA.WP_ADMIN_HASLO ?? "")) {
+    /*
+     * PYTAMY, KTÓRE okno jest zaznaczone (B7 z przeglądu T3). Poprzednia
+     * wersja pytała o samą obecność klasy — a ta jest w HTML zawsze, bo
+     * zaznaczone jest zawsze któreś. Zmierzone: przy `okno=999` ekran
+     * wraca do „dziś” i asercja dalej przechodziła, czyli nie mierzyła
+     * przełącznika w ogóle.
+     */
+    const zaznaczone = async (zapytanie) => {
+      const html = await (await admin.pobierz(`/wp-admin/admin.php?page=aai-monitor${zapytanie}`)).text();
+      const m = html.match(/class="aai-monitor-okno-wybrane"[^>]*>([^<]*)</);
+      return m ? m[1].trim() : "";
+    };
+    /*
+     * `ekran30` jest tu WŁASNĄ zmienną, a nie zapożyczoną z zewnątrz.
+     * Przy pierwszym podejściu do B7 zabrałem stąd deklarację `html`
+     * i dwie następne asercje zaczęły po cichu czytać `html` z bloku
+     * o piętro wyżej — czyli stronę frontu zamiast ekranu monitoringu.
+     * Objaw wyglądał jak błąd danych („sekcja Ruch nie pokazuje ścieżek”),
+     * a był błędem zakresu.
+     */
+    const ekran30 = await (await admin.pobierz("/wp-admin/admin.php?page=aai-monitor&okno=30")).text();
+    const okno30 = await zaznaczone("&okno=30");
+    sprawdz(okno30 === "30 dni", `przy okno=30 ekran zaznacza „${okno30}” zamiast „30 dni” — przełącznik pokazuje inne okno, niż liczy sekcja`);
+    sprawdz((await zaznaczone("&okno=7")) === "7 dni", "przy okno=7 ekran zaznacza inne okno niż siedem dni");
+    sprawdz((await zaznaczone("")) === "dziś", "bez parametru ekran nie zaznacza „dziś” — a to jest okno, które wtedy liczy");
+    sprawdz((await zaznaczone("&okno=999")) === "dziś", "przy nieznanym oknie ekran nie wraca do „dziś” — pokazywałby liczby jednego okna przy zaznaczeniu innego");
+    sprawdz(ekran30.includes(SCIEZKA_B) || ekran30.includes(SCIEZKA_A), "sekcja Ruch nie pokazuje ani jednej ścieżki, choć w tabeli są wiersze");
+    sprawdz(!ekran30.includes("&amp;quot;"), "ekran drukuje podwójnie uciekany cudzysłów — klient zobaczy encję zamiast znaku");
+
+    const zlosliwa = "/szkolenia/<script>alert(1)</script>/";
+    phpEval(
+      `global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');` +
+        ` $wpdb->insert( $w, array( 'sesja' => '${SESJA_TESTOWA}', 'sciezka' => '${zlosliwa}', 'wejscie' => gmdate('Y-m-d H:i:s'), 'trwanie_ms' => 1000 ) ); echo 'ok';`
+    );
+    const zeSkryptem = await (await admin.pobierz("/wp-admin/admin.php?page=aai-monitor")).text();
+    sprawdz(
+      !zeSkryptem.includes("<script>alert(1)</script>"),
+      "ścieżka z tabeli trafiła na ekran BEZ ucieczki — podpis dowodzi pochodzenia, nie czyni treści bezpieczną"
+    );
+    sprawdz(zeSkryptem.includes("&lt;script&gt;"), "ścieżka ze znacznikiem nie pojawiła się na ekranie wcale — sprawdzenie ucieczki byłoby ślepe");
+  }
+}
+
 /* ── sprzątanie + rachunek sumienia ─────────────────────────────────── */
 
 /*
@@ -749,11 +1562,22 @@ sprawdz(
  * heurystyka po treści wiersza.
  */
 sprzatnijDziennik(php, dziennikMigawka);
-// Wizyty mają własny znacznik w ścieżce — tabela ruchu jest anonimowa,
-// więc nie ma w niej loginu, po którym dałoby się rozpoznać nasze wiersze.
+/*
+ * WIZYTY KASUJEMY PO GRANICY IDENTYFIKATORA, bo rozpoznać ich inaczej się
+ * nie da: tabela ruchu jest anonimowa i nie ma w niej ani loginu, ani
+ * znacznika, po którym poznalibyśmy własny wiersz.
+ *
+ * Poprzedni komentarz twierdził, że „wizyty mają własny znacznik
+ * w ścieżce”. To była NIEPRAWDA O KODZIE (klasa BLAD-018): bramka używa
+ * prawdziwych adresów strony, a kasuje wszystko, co powstało po migawce.
+ * Ograniczenie jest więc TAKIE SAMO jak przy dzienniku logowań i tak samo
+ * świadome: gdyby ktoś odwiedził witrynę dokładnie w oknie przebiegu, jego
+ * odsłona też zniknie. Ryzyko jest warsztatowe — bramki uruchamia się na
+ * `:8892`, nigdy na instalacji z ruchem.
+ */
 phpEval(
-  "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
-    " $wpdb->query( \"DELETE FROM `{$w}` WHERE sciezka LIKE '/smoke-monitor/%'\" ); echo 'ok';"
+  `global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');` +
+    ` $wpdb->query( $wpdb->prepare( "DELETE FROM \`{$w}\` WHERE id > %d", ${wizytyMigawka} ) ); echo 'ok';`
 );
 sprawdz(
   ileWpisow(php) === dziennikPrzed,

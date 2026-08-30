@@ -153,6 +153,79 @@ final class Aai_Monitor_Cli {
 			WP_CLI::line( 'Czujki: ' . implode( ', ', array_keys( $czujki ) ) . '.' );
 		}
 
+		/*
+		 * 4b. WYSTRZAŁ — pytamy REJESTR TRAS, nigdy żądaniem HTTP.
+		 *
+		 * Kontener WP-CLI jest osobny i `home_url()` jest z niego
+		 * nieosiągalny (zmierzone: cURL error 7), więc kontrola po
+		 * żądaniu byłaby czerwona ZAWSZE i wywracała `postaw.sh` na
+		 * rzeczy, która działa (P11).
+		 *
+		 * Pytamy o OBIE nazwy, bo `admin-post.php` rozgałęzia się po
+		 * `is_user_logged_in()` na dwa rozłączne haki (F17). Brak
+		 * `admin_post_{action}` gubi cały ruch ZA LOGOWANIEM, czyli
+		 * wszystkie strony lekcji; brak `admin_post_nopriv_{action}` —
+		 * cały ruch gości. W obu przypadkach beacon dostaje
+		 * `wp_die( '', 400 )`, którego nikt nie czyta, więc jedynym
+		 * objawem jest pusta tabela.
+		 */
+		$galezie = array(
+			'goście'      => has_action( 'admin_post_nopriv_' . Aai_Monitor_Wizyty::AKCJA ),
+			'zalogowani'  => has_action( 'admin_post_' . Aai_Monitor_Wizyty::AKCJA ),
+		);
+		$martwe = array_keys( array_filter( $galezie, static fn( $jest ) => false === $jest || 0 === $jest ) );
+		if ( array() !== $martwe ) {
+			$bledy[] = sprintf(
+				'wystrzał wizyt nie obsługuje gałęzi: %s. `admin-post.php` ma DWIE rozłączne nazwy akcji — brak którejkolwiek gubi połowę ruchu bez objawu (strony lekcji są za logowaniem).',
+				implode( ', ', $martwe )
+			);
+		} else {
+			WP_CLI::line( sprintf( 'Wystrzał: %s?action=%s, obie gałęzie podpięte.', 'admin-post.php', Aai_Monitor_Wizyty::AKCJA ) );
+		}
+
+		/*
+		 * 4b2. CEL BEACONU I WITRYNA MUSZĄ MIEĆ TO SAMO POCHODZENIE
+		 * (A4 z przeglądu T3, decyzja właściciela 2026-08-30: kod 1).
+		 *
+		 * Adres wystrzału składa `admin_url()`, a sito porównuje `Origin`
+		 * z `home_url()`. Typowy rozjazd produkcyjny — `www` w jednym
+		 * i brak w drugim, `FORCE_SSL_ADMIN`, inny port — czyni beacon
+		 * żądaniem cross-origin: przeglądarka pyta wtedy preflightem,
+		 * WordPress odpowiada 403 i pomiar milczy CAŁKOWICIE, przy
+		 * kontroli świecącej kod 0. Sprawdzenie jest czystym porównaniem
+		 * łańcuchów, bez ani jednego żądania (P11).
+		 */
+		$pochodzenie = static function ( string $adres ): string {
+			$czesci = wp_parse_url( $adres );
+			if ( ! is_array( $czesci ) || ! isset( $czesci['host'] ) ) {
+				return '';
+			}
+			$port = isset( $czesci['port'] ) ? ':' . $czesci['port'] : '';
+			return strtolower( ( $czesci['scheme'] ?? 'http' ) . '://' . $czesci['host'] . $port );
+		};
+		$zWystrzalu = $pochodzenie( admin_url() );
+		$zWitryny   = $pochodzenie( home_url() );
+		if ( '' === $zWystrzalu || '' === $zWitryny || $zWystrzalu !== $zWitryny ) {
+			$bledy[] = sprintf(
+				'adres kokpitu (%s) i adres witryny (%s) mają różne pochodzenie — beacon jedzie wtedy jako żądanie cross-origin, dostaje 403 na preflighcie i NIE ZAPISUJE SIĘ ANI RAZU, bez żadnego objawu. Uzgodnij `WP_HOME` i `WP_SITEURL` (schemat, host i port).',
+				'' === $zWystrzalu ? admin_url() : $zWystrzalu,
+				'' === $zWitryny ? home_url() : $zWitryny
+			);
+		} else {
+			WP_CLI::line( sprintf( 'Pochodzenie: kokpit i witryna zgodne (%s).', $zWystrzalu ) );
+		}
+
+		/*
+		 * 4c. SÓL PODPISU. Bez niej beacon nie ma jak dowieść, że ścieżka
+		 * jest prawdziwa — a odrzuty są ciche (204 jak przyjęcia), więc
+		 * objawem byłaby pusta tabela ruchu. Sól powstaje przy aktywacji;
+		 * kontrola tylko PYTA (N16 — kontrola nigdy nie pisze), więc
+		 * naprawą jest ponowne włączenie wtyczki.
+		 */
+		if ( ! Aai_Monitor_Podpis::gotowa() ) {
+			$bledy[] = 'brak soli podpisu ścieżek — beacony wizyt będą odrzucane po cichu. Napraw: wp plugin deactivate aai-monitor && wp plugin activate aai-monitor';
+		}
+
 		/* 5. wersje cudzego kodu */
 		foreach ( Aai_Monitor_Zaleznosci::wersje() as $nazwa => $wersja ) {
 			WP_CLI::line( sprintf( '%s: %s', $nazwa, '' === $wersja ? 'nieobecne' : $wersja ) );

@@ -79,9 +79,10 @@ final class Aai_Monitor_Prywatnosc {
 	 * sformułowanie „do 90 dni od ostatniej aktywności", którego wymaga
 	 * schemat (sekcja 4).
 	 *
-	 * Wpis mówi TYLKO o dzienniku logowań, bo tylko on dziś cokolwiek
-	 * zbiera. Pomiar ruchu wchodzi w kroku T3 i wtedy dopisze własne
-	 * zdanie — polityka ma odbijać stan faktyczny, nie plany.
+	 * Od kroku T3 wpis mówi o DWÓCH rzeczach, bo dwie zbieramy: dzienniku
+	 * logowań (dane osobowe, 90 dni) i pomiarze ruchu (anonimowo, 400 dni).
+	 * Polityka ma odbijać stan faktyczny, nie plany — i odwrotnie: nowa
+	 * czujka bez akapitu tutaj byłaby zbieraniem, o którym nikt nie mówi.
 	 */
 	public static function tresc(): string {
 		return implode(
@@ -90,6 +91,8 @@ final class Aai_Monitor_Prywatnosc {
 				__( 'Ta witryna prowadzi dziennik logowań do kont. Przy każdym udanym i nieudanym logowaniu zapisujemy: datę i godzinę, konto (a przy nieudanej próbie — login wpisany w formularzu), sposób zalogowania, adres IP oraz nazwę przeglądarki. Nie zapisujemy haseł ani ich fragmentów.', 'aai-monitor' ),
 				__( 'Robimy to wyłącznie w celu bezpieczeństwa kont — żeby zobaczyć, czy ktoś próbuje włamać się na konto klienta lub administratora (art. 6 ust. 1 lit. f RODO — prawnie uzasadniony interes administratora). Danych z dziennika nie używamy do profilowania, marketingu ani analityki i nie przekazujemy ich nikomu.', 'aai-monitor' ),
 				__( 'Wpisy w dzienniku usuwamy automatycznie do 90 dni od ostatniej aktywności na koncie. Sformułowanie „do 90 dni” jest tu dosłowne: sprzątanie uruchamia się przy kolejnym logowaniu i przy otwarciu panelu administratora, więc na witrynie, na którą przez dłuższy czas nikt się nie loguje, usunięcie następuje przy najbliższym z tych zdarzeń.', 'aai-monitor' ),
+				__( 'Osobno mierzymy ruch na stronach, i ten pomiar jest anonimowy. Przy wyjściu ze strony zapisujemy: jej adres, moment wejścia oraz czas, przez który strona była widoczna na ekranie. Do rozróżnienia kolejnych stron otwieranych w jednej karcie służy losowy identyfikator, który przeglądarka trzyma w pamięci karty i kasuje przy jej zamknięciu. Przy tych danych NIE zapisujemy adresu IP, konta ani nazwy przeglądarki i nie łączymy ich z żadnym kontem — po zapisaniu nie da się z nich ustalić, kto oglądał stronę.', 'aai-monitor' ),
+				__( 'Ruch mierzymy po to, żeby wiedzieć, które strony i lekcje są czytane, a które nie (art. 6 ust. 1 lit. f RODO — prawnie uzasadniony interes). Nie używamy do tego zewnętrznych narzędzi analitycznych, nie budujemy profili i nie śledzimy nikogo poza tą witryną. Zapisy o ruchu usuwamy do 400 dni od ostatniej odsłony.', 'aai-monitor' ),
 				__( 'Masz prawo dostępu do tych danych, ich sprostowania, usunięcia i sprzeciwu wobec przetwarzania — wystarczy wiadomość na adres kontaktowy podany w polityce.', 'aai-monitor' ),
 			)
 		);
