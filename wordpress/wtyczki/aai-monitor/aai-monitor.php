@@ -96,6 +96,13 @@ add_action(
 		// przed jego własnymi (P12; zmierzone na kolejności podmenu).
 		add_action( 'admin_menu', array( 'Aai_Monitor_Ekran', 'menu' ), 20 );
 		add_action( 'admin_enqueue_scripts', array( 'Aai_Monitor_Ekran', 'zasoby' ) );
+		// Dziennik logowań — PRODUCENT danych, czyli to, czego wtyczka nie
+		// miała po kroku T1 („baza stoi, ale nic nie zbiera"). Trzy haki
+		// rdzenia, każdy w `try/catch ( Throwable )`: wyjątek z handlera
+		// `set_logged_in_cookie` wychodzi z kasy WooCommerce (F11), więc
+		// monitoring ma prawo nie zapisać zdarzenia, ale nie ma prawa
+		// przerwać zakupu.
+		Aai_Monitor_Logowania::zarejestruj();
 		// Kanał błędów: zapis biegnie w cudzym żądaniu i łapie `Throwable`,
 		// więc bez tego uszkodzona tabela dawałaby PUSTĄ listę logowań,
 		// czytaną jak „nikt nie próbował" — fałszywy negatyw na jedynym
