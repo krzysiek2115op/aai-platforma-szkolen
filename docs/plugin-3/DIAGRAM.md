@@ -23,6 +23,8 @@ Werdykty i dowody: [KRYTYKA-T0.md](KRYTYKA-T0.md).
 | D2 | IP w dzienniku logowań | **Pełny adres + kasowanie po 90 dniach** (skrócony/hashowany jest bezużyteczny przy próbie włamania); wzmianka w polityce prywatności |
 | D3 | Czyje wizyty liczymy | **Wszyscy oprócz zalogowanych adminów**; sesja anonimowa, bez IP w tabeli i bez łączenia z kontem |
 | D4 | Zakres ekranu | **Tylko nasze dwie rzeczy** — logowania i ruch. Sprzedaż/zamówienia mają raporty w Woo; druga kopia liczb wymagałaby kontroli rozjazdu (ta sama korekta co 2026-08-26 w PLAN.md §3) |
+| **D5** | Rola „redaktora kursów" obiecana w repo | **ODPADA DEFINITYWNIE**, nie „na później". Właściciel jest jedynym redaktorem, więc osobna rola to uprawnienie, migracja, strażnik i mutacje utrzymywane dla nikogo; gdy pojawi się druga osoba, WordPress pozwala nadać jej konto albo dorobić rolę wtedy. Kreator zostaje na `manage_options`. **Konta klientów z tamtej obietnicy dowiózł już Plugin 2** (WooCommerce) |
+| **D6** | Kto odpiera łamanie hasła | **REJESTRUJEMY, NIE BLOKUJEMY.** Dziennik pokazuje serie porażek i licznik z 7 dni; decyzja o blokowaniu zapadnie, gdy dane pokażą, że problem istnieje. Odrzucone: limit prób w T2 (progi bez danych, ryzyko zablokowania właściciela, licznik musiałby iść do TABELI przez F13) oraz gotowa wtyczka blokująca (jedna zależność więcej). Pozycja **zostaje otwarta jawnie** w checkliście zabezpieczeń — nie znika razem z ukończeniem tego modułu |
 
 **KOREKTA do PLAN.md §4** (ta sama klasa co korekta 2026-08-26 o klientach):
 plan mówił o `admin_users`, własnym logowaniu i „haśle hashowanym argon2".
@@ -49,17 +51,22 @@ zamiast świadomie odrzucone:
 | baza `db3_monitoring` | **ZASTĄPIONE** — własne tabele z prefiksem w bazie WP (decyzja 2026-08-25) |
 | `POST /api/szkolenia/track` + `sendBeacon` | **ZASTĄPIONE** akcją `admin-post.php` (sekcja 5) — ten sam kanał, co „Zapisz kurs" Pluginu 1 |
 
-**Trzy obietnice w REPO stają się przez tę korektę nieprawdą i T1 je prostuje**
-(inaczej kod i dokumentacja Pluginu 1 obiecują coś, czego Plugin 3 nie zrobi):
-`class-aai-sklep-panel.php:51` („Własną rolę redaktora kursów dołoży Plugin 3,
-razem z kontami klientów"), `docs/plugin-1/KREATOR.md:29` („Pełne logowanie…
-da Plugin 3"), `docs/plugin-1/DIAGRAM.md:44` („pełny auth da Plugin 3").
-Osobno: `docs/plugin-1/KROK-2-ZABEZPIECZENIA.md:47` parkuje w Pluginie 3
-pozycję **brute force** — konta i sesje przejmują WP i Woo, ale ochrona przed
-łamaniem hasła zostaje **bez właściciela**, dopóki nie zapadnie decyzja
-z sekcji 11. To trzeba w tamtej checkliście napisać wprost.
+**Trzy obietnice w REPO stały się przez tę korektę nieprawdą — SPROSTOWANE
+w kroku T1** (inaczej kod i dokumentacja Pluginu 1 obiecywałyby coś, czego
+Plugin 3 nie zrobi): `class-aai-sklep-panel.php` („Własną rolę redaktora
+kursów dołoży Plugin 3, razem z kontami klientów" → rola odpada, D5),
+`docs/plugin-1/KREATOR.md` („Pełne logowanie… da Plugin 3" → dowiozły je
+WordPress i Woo), `docs/plugin-1/DIAGRAM.md` („pełny auth da Plugin 3" →
+docelowo konto WordPressa; diagram opisuje PROTOTYP, więc ślad o tymczasowym
+tokenie zostaje).
 
-Sekcja w PLAN.md dostanie blok „KOREKTA" w kroku **T1**, jak §3.
+Osobno: `docs/plugin-1/KROK-2-ZABEZPIECZENIA.md` parkował w Pluginie 3
+pozycję **brute force**. Wiersz jest **rozbity na dwa** (T1): konta, sesje
+i reset hasła są ZROBIONE, a brute force zostaje **otwarty jawnie**, z decyzją
+D6 i powodem — żeby nie zniknął po cichu razem z ukończeniem tego modułu.
+
+Blok „KOREKTA 2026-08-30" w PLAN.md §4 — **dopisany w kroku T1**, wzorem §3,
+z werdyktem dla każdej pozycji pierwotnego planu.
 
 ### Fakty zmierzone w cudzym kodzie
 
@@ -572,7 +579,7 @@ Reguła właściciela (2026-08-28): przed KAŻDYM krokiem plan przebiegu
 
 | Krok | Zakres | Bramka dowodowa (niezmienniki zamykane w tym kroku) |
 |---|---|---|
-| **T1 — fundament i EKRAN** | katalog `wordpress/wtyczki/aai-monitor/` (wzorem W1/P1): plik główny, `Aai_Monitor_Tabele` (dbDelta, 2 tabele), `Aai_Monitor_Zapis` w `class-aai-monitor-zapis.php`, `Aai_Monitor_Zaleznosci`, kanał błędów, `uninstall.php`. **Do tego ekran, którego wcześniejsza wersja tego planu nie budowała w żadnym kroku**: `Aai_Monitor_Ekran` + rejestracja menu (priorytet 20) + `Aai_Monitor_Odczyt` z jednym agregatem + własny `assets/panel.css` (arkusz kreatora tu nie wejdzie — `Aai_Sklep_Panel::zasoby()` wychodzi na uchwytach spoza `aai-sklep`). **Integracja środowiska to PIĘĆ czynności, nie „montaż"**: mount w usłudze `wordpress` ORAZ w `cli` (bez drugiego `wp aai-monitor sprawdz` nie istnieje), gałąź „plik istnieje" w `postaw.sh`, asercja martwego bind mountu (inode), aktywacja, punkt kontrolny w sekcji WERYFIKACJA. Plus wpis `smoke:wp-monitor` w `package.json` — bez niego bramki nikt nie uruchomi. Plus blok KOREKTA w PLAN.md §4 i sprostowanie trzech obietnic o Pluginie 3 w repo (sekcja 0). **Kolejny strażnik `straznik-monitora-wp`** (nazwa spójna ze smoke'iem) + mutacje | strażnicy zieloni, audyt bez martwych, `postaw.sh` kod 0, `sprawdz` kod 0, ekran otwiera się pod `manage_options` i **kotwica pozycji „Automatic AI" dalej celuje w `page=aai-sklep`**. **Zamyka: N1, N14, N16, N17.** Uwaga: nowy mount wymaga `podman-compose down && ./postaw.sh` (bind mount trzyma inode). Wchodzi po zmergowaniu napraw po P6 (PR #93, 0.54.0) |
+| **T1 — fundament i EKRAN** — **ZROBIONY (0.55.0)** | katalog `wordpress/wtyczki/aai-monitor/` (wzorem W1/P1): plik główny, `Aai_Monitor_Tabele` (dbDelta, 2 tabele), `Aai_Monitor_Zapis` w `class-aai-monitor-zapis.php`, `Aai_Monitor_Zaleznosci`, kanał błędów, `uninstall.php`. **Do tego ekran, którego wcześniejsza wersja tego planu nie budowała w żadnym kroku**: `Aai_Monitor_Ekran` + rejestracja menu (priorytet 20) + `Aai_Monitor_Odczyt` z jednym agregatem + własny `assets/panel.css` (arkusz kreatora tu nie wejdzie — `Aai_Sklep_Panel::zasoby()` wychodzi na uchwytach spoza `aai-sklep`). **Integracja środowiska to PIĘĆ czynności, nie „montaż"**: mount w usłudze `wordpress` ORAZ w `cli` (bez drugiego `wp aai-monitor sprawdz` nie istnieje), gałąź „plik istnieje" w `postaw.sh`, asercja martwego bind mountu (inode), aktywacja, punkt kontrolny w sekcji WERYFIKACJA. Plus wpis `smoke:wp-monitor` w `package.json` — bez niego bramki nikt nie uruchomi. Plus blok KOREKTA w PLAN.md §4 i sprostowanie trzech obietnic o Pluginie 3 w repo (sekcja 0). **Kolejny strażnik `straznik-monitora-wp`** (nazwa spójna ze smoke'iem) + mutacje | strażnicy zieloni, audyt bez martwych, `postaw.sh` kod 0, `sprawdz` kod 0, ekran otwiera się pod `manage_options` i **kotwica pozycji „Automatic AI" dalej celuje w `page=aai-sklep`**. **Zamyka: N1, N14, N16, N17.** Uwaga: nowy mount wymaga `podman-compose down && ./postaw.sh` (bind mount trzyma inode). Wchodzi po zmergowaniu napraw po P6 (PR #93, 0.54.0) | **STAN PO WYKONANIU:** wtyczka stoi i jest aktywna na `:8892`; strażnik ma OSIEM reguł z mutacjami (reguły o hakach logowania i o sicie beaconu dochodzą z T2/T3, bo dziś nie miałyby czego pilnować); `smoke-wp-monitor` = **57 sprawdzeń** na żywej instalacji, każde nowe z testem negatywnym. **Dwie rzeczy wyszły dopiero przy pisaniu kodu:** (1) reguła 6 `straznik-wtyczki-wp` była ŚLEPA na SQL sklejony konkatenacją — obszedłem ją własnym `DELETE`, więc doszła **reguła 10** (SQL literałem przy wywołaniu) i mutacja; (2) WP-CLI **nie zamienia podkreślenia w nazwie metody na myślnik**, więc `wp aai-monitor wyczysc-blad` — komenda, którą kontrola każe uruchomić — NIE ISTNIAŁA, dopóki nie doszło `@subcommand`. Złapał to smoke, nie recenzja.
 | **T2 — dziennik logowań** | trzy haki z `try/catch`, dedup źródła, retencja 90 dni + drugi wyzwalacz, sekcja „Logowania" ekranu, wpis do polityki prywatności | **`smoke-wp-monitor`**: N2, N3, N4, N5, N6, N13, **N15** (uszkodzona tabela → `sprawdz` kod 1: dowód wymaga dziennika logowań, więc zamyka się TU, nie w T3); test ręczny logowania z kasy na `:8892` |
 | **T3 — timer wizyt** | `assets/pomiar.js` (Blob `application/json`, id 32 hex, webdriver-kill), akcja pod OBIEMA nazwami (`admin_post_nopriv_*` i `admin_post_*`, F17) z nazwą w query stringu (F18), czytająca `php://input`, sito z walidacją ścieżki i `Origin`, miękki limiter, retencja 400 dni, sekcja „Ruch" ekranu | smoke: **N9 i N10 jako para** (przebieg z nadpisanym `navigator.webdriver` → wiersz JEST; bez nadpisania → wiersza NIE MA), **zamyka N7, N8, N9, N10, N11, N12, N18**; `EXPLAIN` na trzech zapytaniach ekranu przed ustaleniem indeksów; **pomiar realnego rozmiaru beaconu** przed ustaleniem sufitu ciała |
 | **T4 — test ręczny właściciela** | scenariusz wzorem [TEST-RECZNY-P6.md](../plugin-2/TEST-RECZNY-P6.md): logowanie swoje i klienta, zła próba, przegląd ekranu, wizyty z drugiej przeglądarki | zaliczenie właściciela = **Plugin 3 skończony**; potem test całości trzech wtyczek (decyzja 2026-08-25) |

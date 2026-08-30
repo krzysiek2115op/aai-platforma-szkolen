@@ -48,7 +48,14 @@ final class Aai_Sklep_Panel {
 	 *
 	 * To samo, którym `Aai_Sklep_Trasy` wpuszcza na podgląd szkiców — jedno
 	 * pytanie „czy ta osoba zarządza sklepem", zadawane w jednym miejscu.
-	 * Własną rolę redaktora kursów dołoży Plugin 3, razem z kontami klientów.
+	 *
+	 * OSOBNEJ ROLI REDAKTORA KURSÓW NIE BĘDZIE — decyzja właściciela
+	 * 2026-08-30. Wcześniej stało tu, że dołoży ją Plugin 3 „razem
+	 * z kontami klientów"; konta dowiózł Plugin 2 (WooCommerce), a rola
+	 * odpadła świadomie: właściciel jest jedynym redaktorem, więc byłoby
+	 * to uprawnienie, migracja, strażnik i mutacje utrzymywane dla nikogo.
+	 * Gdyby doszła druga osoba, WordPress pozwala nadać jej konto albo
+	 * dorobić rolę wtedy.
 	 */
 	public const UPRAWNIENIE = 'manage_options';
 

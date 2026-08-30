@@ -1,0 +1,104 @@
+/**
+ * Ekran monitoringu — wygląd w kokpicie.
+ *
+ * NATYWNY KOKPIT WORDPRESSA Z AKCENTEM VOLT — ta sama decyzja właściciela
+ * co przy kreatorze (2026-08-25) i z tego samego powodu: ekran korzysta
+ * z komponentów wp-admin (`wrap`, `widefat`, `notice`, `description`),
+ * więc dziedziczy ich dostępność, zachowanie na małym ekranie i przeżywa
+ * aktualizacje WordPressa. Tego ekranu klient nigdy nie zobaczy, więc
+ * walka z regułami wp-admin (stoją poza warstwami kaskady) nic by nie
+ * kupiła.
+ *
+ * AKCENT WCHODZI TAM, GDZIE NIESIE ZNACZENIE: kafelek z liczbą nieudanych
+ * prób i plakietka „nieudane" w tabeli. Reszta jest szara, bo to narzędzie
+ * do czytania, a nie afisz.
+ *
+ * Arkusz wchodzi WYŁĄCZNIE na nasz ekran (`Aai_Monitor_Ekran::zasoby()`).
+ */
+
+.aai-monitor {
+	--aai-volt: #bfff38;
+	--aai-volt-ciemny: #5d7f00;
+	--aai-alarm: #b26a00;
+	--aai-cisza: #646970;
+}
+
+/* ————————————————————————— kafelki z liczbami ————————————————————————— */
+
+.aai-monitor-kafelki {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 16px 0 24px;
+}
+
+.aai-monitor-kafelek {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid var(--aai-cisza);
+	border-radius: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 160px;
+	padding: 12px 16px;
+}
+
+/* Wyróżniamy DOPIERO, gdy jest co pokazać — zawsze zapalony akcent
+   przestaje cokolwiek znaczyć. */
+.aai-monitor-kafelek.aai-monitor-alarm {
+	border-left-color: var(--aai-volt-ciemny);
+	box-shadow: inset 0 0 0 9999px rgba(191, 255, 56, 0.08);
+}
+
+.aai-monitor-liczba {
+	font-size: 26px;
+	font-weight: 600;
+	line-height: 1.1;
+}
+
+.aai-monitor-etykieta {
+	color: var(--aai-cisza);
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+/* ————————————————————————— tabela logowań ————————————————————————— */
+
+.aai-monitor-filtr {
+	margin: 8px 0 12px;
+}
+
+.aai-monitor-tabela td {
+	vertical-align: top;
+}
+
+.aai-monitor-agent {
+	color: var(--aai-cisza);
+	font-size: 11px;
+	word-break: break-all;
+}
+
+.aai-monitor-plakietka {
+	background: #f0f0f1;
+	border-radius: 3px;
+	display: inline-block;
+	font-size: 12px;
+	padding: 2px 8px;
+}
+
+.aai-monitor-plakietka-zla {
+	background: rgba(178, 106, 0, 0.12);
+	color: var(--aai-alarm);
+	font-weight: 600;
+}
+
+.aai-monitor-pusto {
+	color: var(--aai-cisza);
+	font-style: italic;
+}
+
+.aai-monitor-czujki {
+	color: var(--aai-cisza);
+}

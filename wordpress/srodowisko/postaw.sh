@@ -260,6 +260,24 @@ else
   komunikat "Wtyczki aai-platnosci jeszcze nie ma — pomijam (to normalne przed krokiem P1)"
 fi
 
+# Plugin 3 — monitoring (dziennik logowań i ruch). Ta sama para pytań:
+# najpierw czy plik jest na dysku, potem czy KONTENER go widzi. Drugie
+# pytanie nie jest zbędne — bind mount trzyma inode katalogu, więc po
+# `git switch` albo `git clean` kontener widzi pustkę, choć na dysku
+# wszystko jest, a WordPress przestaje znać wtyczkę.
+if [ -f ../wtyczki/aai-monitor/aai-monitor.php ]; then
+  podman exec "${STACK}_cli" \
+    test -f /var/www/html/wp-content/plugins/aai-monitor/aai-monitor.php \
+    || blad "kontener nie widzi wtyczki aai-monitor, choć na dysku ona jest — martwy bind mount (nowy mount wymaga odtworzenia kontenerów). Napraw: podman-compose down && ./postaw.sh"
+
+  if [ "$(wpcli plugin get aai-monitor --field=status 2>/dev/null || echo brak)" != "active" ]; then
+    komunikat "Włączam wtyczkę aai-monitor"
+    wpcli plugin activate aai-monitor
+  fi
+else
+  komunikat "Wtyczki aai-monitor jeszcze nie ma — pomijam (to normalne przed krokiem T1)"
+fi
+
 # --- 9. WERYFIKACJA ARTEFAKTU ----------------------------------------------
 #
 # Nie „polecenia poszły", tylko „strona naprawdę oddaje to, co ma oddawać".
@@ -334,6 +352,24 @@ if [ -f ../wtyczki/aai-platnosci/aai-platnosci.php ]; then
     blad "kontrola zgłasza problem:
 $(printf '%s\n' "$powod" | grep -iE '^(Error|Warning):' | head -5)
   Pełny opis: wp aai-platnosci sprawdz"
+  fi
+fi
+
+if [ -f ../wtyczki/aai-monitor/aai-monitor.php ]; then
+  [ "$(wpcli plugin get aai-monitor --field=status)" = "active" ] \
+    || blad "wtyczka aai-monitor nie jest aktywna"
+  wpcli eval 'echo Aai_Monitor_Tabele::istnieja() ? "tabele-ok" : "tabele-brak";' \
+    | grep -q "tabele-ok" || blad "aai-monitor aktywna, ale jej tabele (logowania, wizyty) nie powstały"
+
+  # PUNKT KONTROLNY (krok T1): kontrola monitoringu ma kod 1, gdy brakuje
+  # tabeli, kanał błędów niesie awarię albo retencja miała okazję i nie
+  # zadziałała. CYTUJEMY jej własne wiersze zamiast zgadywać powód po
+  # kodzie wyjścia — lekcja Z1 z testu ręcznego 0.51.0, gdzie komunikat
+  # wysyłał operatora w zupełnie inne miejsce niż prawdziwa przyczyna.
+  if ! powod="$(wpcli aai-monitor sprawdz 2>&1)"; then
+    blad "kontrola monitoringu zgłasza problem:
+$(printf '%s\n' "$powod" | grep -iE '^(Error|Warning):' | head -5)
+  Pełny opis: wp aai-monitor sprawdz"
   fi
 fi
 

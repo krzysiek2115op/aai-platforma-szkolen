@@ -5,6 +5,91 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.55.0] — 2026-08-30
+
+**Plugin 3 (`aai-monitor`) ma fundament i ekran** — krok T1 zaakceptowanego
+schematu ([docs/plugin-3/DIAGRAM.md](docs/plugin-3/DIAGRAM.md)). Trzecia
+i ostatnia wtyczka projektu: dziennik logowań i pomiar ruchu — dwie rzeczy,
+których nie ma ani WordPress, ani WooCommerce, ani Tutor. Ten krok **nie
+rejestruje jeszcze niczego**: producenci danych (haki logowania, beacon
+wizyt) wchodzą w T2 i T3. Powstaje baza, warstwa zapisu, ekran w kokpicie,
+kontrola i bramki.
+
+### Dodane
+
+- **Wtyczka `aai-monitor`** wzorem W1/P1: dwie tabele przez `dbDelta`
+  (`logowania` — dane osobowe, okno 90 dni; `wizyty` — anonimowe, okno
+  400 dni, **bez ani jednej kolumny łączącej z kontem**, decyzja D3),
+  `Aai_Monitor_Zapis` jako jedyny pisarz, `Aai_Monitor_Odczyt` jako kanał
+  JSON, który NIGDY nie pisze, `Aai_Monitor_Zaleznosci` z wersjami
+  dowiedzionych faktów, kanał błędów i `uninstall.php`, który domyślnie
+  **nie kasuje danych** — dziennik logowań jest materiałem dowodowym po
+  incydencie.
+- **Ekran w kokpicie** (menu Automatic AI → Monitoring, `manage_options`,
+  decyzja D1): kafelki, tabela ostatnich logowań z filtrem „tylko nieudane"
+  i sekcja ruchu. **Czysty odczyt** — zero akcji, zero `wp_ajax_*`, zero
+  formularzy POST, zero nonce'ów; filtr jedzie GET-em. Rejestracja menu
+  z **priorytetem 20**, bo wtyczki ładują się alfabetycznie i bez tego nasza
+  pozycja wchodziłaby do podmenu PRZED pozycjami Pluginu 1.
+- **Ekran mówi prawdę o tym, co zbiera.** Producenci danych meldują się
+  jako „czujki", a ekran pyta o nie zamiast mieć wpisane w tekst — dziś mówi
+  wprost: „baza stoi, ale nic nie zbiera danych". Bez tego pusta lista nie
+  odróżnia „nikt nie próbował" od „nic nie działa", a to różnica między
+  dobrą wiadomością a awarią.
+- **`wp aai-monitor sprawdz`** (kod 1 przy braku tabel, awarii w kanale
+  błędów albo retencji, która miała okazję i nie zadziałała) oraz
+  `wp aai-monitor wyczysc-blad`. Kontrola **nigdy nie pisze** i **nigdy nie
+  pyta o siebie żądaniem HTTP** — kontener WP-CLI nie dosięga `:8892`,
+  więc kontrola po sieci byłaby czerwona zawsze i wywracała `postaw.sh`.
+- **37. strażnik `straznik-monitora-wp`** (8 reguł, 9 mutacji + kontrprzykład)
+  i **`npm run smoke:wp-monitor`** (57 sprawdzeń na żywej instalacji).
+  Środowisko: mount w OBU usługach compose, aktywacja i punkt kontrolny
+  w `postaw.sh`.
+- **Blok „KOREKTA 2026-08-30" w [docs/PLAN.md](docs/PLAN.md) §4** z werdyktem
+  dla KAŻDEJ pozycji pierwotnego planu — własnego logowania, kont admina ani
+  bazy `db3_monitoring` nie piszemy.
+
+### Zmienione
+
+- **Trzy obietnice o Pluginie 3 przestały być nieprawdą.** Repo w trzech
+  miejscach zapowiadało rzeczy, których ten moduł nie zrobi: własną rolę
+  redaktora kursów (kod Pluginu 1), „pełne logowanie da Plugin 3"
+  (KREATOR.md) i „pełny auth da Plugin 3" (DIAGRAM Pluginu 1). Konta i role
+  ma WordPress, konta klientów dowiózł Plugin 2, a **osobnej roli redaktora
+  świadomie nie będzie** (decyzja właściciela 2026-08-30).
+- **Brute force nie znika po cichu.** Wiersz checklisty zabezpieczeń
+  obiecywał, że Plugin 3 dowiezie konta, sesje, reset hasła I ochronę przed
+  łamaniem hasła. Trzy pierwsze są zrobione; czwarta zostaje **otwarta
+  jawnie**, z decyzją właściciela: dziennik **rejestruje** próby, nikogo nie
+  blokuje, a decyzja o blokowaniu zapadnie, gdy dane pokażą, że problem
+  istnieje.
+
+### Naprawione
+
+- **`straznik-wtyczki-wp` był ŚLEPY na SQL sklejony konkatenacją** (nowa
+  reguła 10). Jego reguła o wartościach przez `prepare()` czyta łańcuch
+  podany WPROST do `$wpdb->…`, więc zapytanie złożone linijkę wyżej
+  i podane zmienną przechodziło bez sprawdzenia. Nie hipoteza: obszedłem tę
+  regułę PRZYPADKIEM, pisząc retencję — na jednym miejscu strażnik się
+  zapalił, drugie, identyczne, przemilczał. Kod monitoringu ma teraz każdy
+  literał SQL przy swoim wywołaniu, a reguła 10 pilnuje tego we wszystkich
+  trzech wtyczkach (zmierzone: zero istniejących naruszeń).
+- **`wp aai-monitor wyczysc-blad` nie istniała**, choć kontrola kazała ją
+  uruchomić: WP-CLI **nie zamienia podkreślenia w nazwie metody na myślnik**,
+  więc komenda nazywała się `wyczysc_blad`. Naprawia `@subcommand`. Złapał
+  to smoke, nie recenzja — komunikat radzący rzecz nieskuteczną jest gorszy
+  niż brak rady (lekcja z P4).
+
+### Dowody
+
+`npm run check` kod 0 (strażnicy **37/37**), audyt mutacyjny **247**
+(245 złapanych, 0 przeoczonych, 0 martwych), `postaw.sh` kod 0 z punktem
+kontrolnym monitoringu, `smoke:wp-monitor` **57**, dane Pluginów 1 i 2
+nietknięte. Każde nowe sprawdzenie ma test negatywny: kolumna `ip` dopisana
+do tabeli ruchu zapala **dokładnie jedno** sprawdzenie, kontrola zmuszona do
+zapisu zapala pomiar N16, a formularz POST wstawiony do ekranu zapala obie
+asercje czystego odczytu.
+
 ## [0.54.0] — 2026-08-30
 
 **Higiena bramek wobec wspólnych zasobów** — naprawy po teście ręcznym P6.

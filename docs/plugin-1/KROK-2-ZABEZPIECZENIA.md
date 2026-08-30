@@ -44,7 +44,8 @@ Do rozdzielenia zostało **12 pozycji**.
 |---|---|
 | Honeypot + pomiar czasu wypełnienia (§1) | Nie ma do czego przypiąć — formularze klienta powstają w Pluginie 2 |
 | Polityka prywatności + RODO (§3) | Dane osobowe pojawiają się z płatnościami i kontami (Plugin 2/3) |
-| Konta klientów, sesje, reset hasła, brute force (§5) | Plugin 3 + LMS za logowaniem |
+| Konta klientów, sesje, reset hasła (§5) | **ZROBIONE** — dowiozły WordPress, WooCommerce i Tutor (Plugin 2, kroki P3b–P4) |
+| **Brute force (§5)** | **OTWARTE ŚWIADOMIE, z właścicielem-decyzją.** Dziennik logowań Pluginu 3 **rejestruje** próby (kto, kiedy, skąd, licznik porażek z 7 dni) — **nikogo nie blokuje**. Decyzja właściciela 2026-08-30: blokowanie to funkcja BEZPIECZEŃSTWA, nie monitoringu, i zapadnie dopiero, gdy dziennik pokaże, że problem istnieje. Odrzucone przy tej decyzji: limit prób w Pluginie 3 (progi bez danych, ryzyko zablokowania właściciela, licznik musiałby iść do tabeli — transient nie jest atomowy) oraz gotowa wtyczka blokująca (jedna zależność więcej). Ta pozycja NIE znika razem z ukończeniem Pluginu 3 |
 | SPF / DKIM / DMARC / DNSSEC (§7) | Wymaga domeny i wybranego dostawcy poczty |
 | 🔧 HTTPS + HSTS (§2) | Decyduje hosting; HSTS dopiero po potwierdzeniu certyfikatów na subdomenach |
 

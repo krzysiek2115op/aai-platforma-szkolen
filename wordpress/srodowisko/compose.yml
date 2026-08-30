@@ -65,6 +65,7 @@ services:
       # katalogu zasłoniłby Tutora i WooCommerce zainstalowane w wolumenie.
       - ../wtyczki/aai-sklep:/var/www/html/wp-content/plugins/aai-sklep
       - ../wtyczki/aai-platnosci:/var/www/html/wp-content/plugins/aai-platnosci
+      - ../wtyczki/aai-monitor:/var/www/html/wp-content/plugins/aai-monitor
       # Poczta warsztatu: PHPMailer na SMTP Mailpita. Pliki leżą w repo
       # (środowisko jest kodem, nie klikaniem), ale NIE należą do żadnej
       # wtyczki. Montujemy KATALOG, nie pojedynczy plik — sprawdzone
@@ -106,6 +107,7 @@ services:
       - ${WARSZTAT}/wp/theme/automatic-ai:/var/www/html/wp-content/themes/automatic-ai:ro
       - ../wtyczki/aai-sklep:/var/www/html/wp-content/plugins/aai-sklep
       - ../wtyczki/aai-platnosci:/var/www/html/wp-content/plugins/aai-platnosci
+      - ../wtyczki/aai-monitor:/var/www/html/wp-content/plugins/aai-monitor
       # Poczta warsztatu: PHPMailer na SMTP Mailpita. Pliki leżą w repo
       # (środowisko jest kodem, nie klikaniem), ale NIE należą do żadnej
       # wtyczki. Montujemy KATALOG, nie pojedynczy plik — sprawdzone

@@ -25,7 +25,10 @@
  *      transakcje, dziennik audytu i ochronę napisanej treści,
  *   9. JSON w warstwie zapisu ma STAŁY kształt (klucze uporządkowane) —
  *      inaczej „czy się zmieniło" kłamie przy każdej zmianie pisarza
- *      (BLAD-020: zapis bez zmian meldował „zapisano" i puchł dziennik).
+ *      (BLAD-020: zapis bez zmian meldował „zapisano" i puchł dziennik),
+ *  10. SQL jedzie do `$wpdb->` DOSŁOWNIE, nie zmienną — inaczej reguła 6
+ *      go nie widzi i cała granica „wartość przez prepare()" przestaje
+ *      obowiązywać dla każdego, kto sklei zapytanie linijkę wyżej.
  *
  * Użycie: node tools/straznicy/straznik-wtyczki-wp.mjs
  */
@@ -214,6 +217,33 @@ for (const wtyczka of wtyczki) {
     }
   }
 
+  /* 10. SQL podawany do $wpdb DOSŁOWNIE, nie zmienną */
+  //
+  // Reguła 6 czyta łańcuch podany WPROST do `$wpdb->…` — więc zapytanie
+  // sklejone linijkę wyżej i podane zmienną jest dla niej NIEWIDZIALNE.
+  // To nie jest hipoteza: przy pisaniu `aai-monitor` sam obszedłem
+  // regułę 6 przypadkiem, składając `DELETE` konkatenacją z nazwą
+  // kolumny w zmiennej. Reguła 6 zapaliła się na jednym miejscu i
+  // przemilczała drugie, identyczne. Ta reguła zamyka tę furtkę:
+  // literał ma stać przy wywołaniu, bo tam patrzy kontroler.
+  //
+  // `$wpdb` jako pierwszy argument jest w porządku — to zagnieżdżone
+  // `$wpdb->get_results( $wpdb->prepare( "…" ) )`, gdzie literał i tak
+  // stoi przy `prepare`.
+  for (const plik of plikiPhp(katalog)) {
+    const tresc = kod(readFileSync(plik, "utf8"));
+    const zmienne = [
+      ...tresc.matchAll(
+        /\$wpdb->(?:query|prepare|get_var|get_row|get_col|get_results)\(\s*\$(?!wpdb\b)(\w+)/g
+      ),
+    ].map((m) => m[1]);
+    if (zmienne.length > 0) {
+      bledy.push(
+        `${plik}: SQL podany do $wpdb-> zmienną (${[...new Set(zmienne)].map((z) => "$" + z).join(", ")}), a nie literałem. Reguła o wartościach przez prepare() czyta łańcuch stojący PRZY wywołaniu — zapytanie sklejone wcześniej przechodzi bez sprawdzenia, więc granica między wejściem a bazą przestaje istnieć dokładnie tam, gdzie ktoś był sprytny.`
+      );
+    }
+  }
+
   /* 7. treść lekcji nie mieści się w `text` */
   if (existsSync(klasaTabel)) {
     const tresc = readFileSync(klasaTabel, "utf8");
@@ -232,5 +262,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, zapis tylko przez warstwę zapisu, JSON o stałym kształcie).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie).`
 );

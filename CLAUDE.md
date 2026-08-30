@@ -2384,10 +2384,57 @@ wyprowadzała tego od nowa:
         do gałęzi PRZED poprawkami; po scaleniu gałąź różni się od `main`
         **wyłącznie** dwoma dokumentami Pluginu 3 (sprawdzone
         `git diff --stat`).
-        **STAN GAŁĘZI: `docs/schemat-pluginu-3` — schemat zaakceptowany,
-        uwagi domknięte, PR #94 idzie do merge'u.** Potem: **plan T1
-        z pytaniami → ZGODA właściciela → dopiero kod.** T1 wg tabeli
-        kroków w DIAGRAM.md sekcja 12
+        **SCHEMAT ZAMKNIĘTY: PR #94 zmergowany do `main`** (artefakt
+        zweryfikowany, `git diff origin/main <szczyt>` pusty).
+        **DWIE DALSZE DECYZJE WŁAŚCICIELA (2026-08-30), po pytaniach
+        doprecyzowujących — obie w schemacie jako D5 i D6:**
+        **(D5) rola „redaktora kursów" ODPADA DEFINITYWNIE**, nie „na
+        później" — kreator zostaje na `manage_options`; trzy obietnice
+        o Pluginie 3 w repo sprostowane w T1 (kod Pluginu 1, KREATOR.md,
+        DIAGRAM Pluginu 1). **(D6) brute force: REJESTRUJEMY, NIE
+        BLOKUJEMY** — dziennik pokazuje serie porażek, decyzja
+        o blokowaniu zapadnie, gdy dane pokażą, że problem istnieje;
+        wiersz w KROK-2-ZABEZPIECZENIA.md rozbity na dwa, żeby pozycja
+        nie zniknęła po cichu razem z ukończeniem modułu.
+        **KROK T1 ZROBIONY (wersja 0.55.0, gałąź
+        `feat/t1-fundament-monitora`): fundament wtyczki i EKRAN stoją.**
+        Wtyczka `aai-monitor` jest AKTYWNA na `:8892`. Powstało: dwie
+        tabele przez dbDelta (`logowania` 90 dni z pełnym IP,
+        `wizyty` 400 dni BEZ ani jednej kolumny łączącej z kontem),
+        `Aai_Monitor_Zapis` jako jedyny pisarz (sufity, retencja przy
+        zapisie, `catch ( Throwable )` z meldunkiem), `Aai_Monitor_Odczyt`
+        (kanał JSON, nigdy nie pisze), ekran w kokpicie z priorytetem 20,
+        `Aai_Monitor_Zaleznosci`, kanał błędów, `uninstall.php` nie
+        kasujący danych, `wp aai-monitor sprawdz|wyczysc-blad`,
+        **37. strażnik `straznik-monitora-wp`** (8 reguł) i
+        **`npm run smoke:wp-monitor` (57 sprawdzeń)**. Blok „KOREKTA
+        2026-08-30" w PLAN.md §4 z werdyktem dla KAŻDEJ pozycji.
+        **CZTERY RZECZY DO ZAPAMIĘTANIA Z T1:**
+        (1) **`straznik-wtyczki-wp` był ŚLEPY na SQL sklejony
+        konkatenacją** — obszedłem jego regułę 6 PRZYPADKIEM, pisząc
+        retencję ze zmienną nazwą kolumny: na jednym miejscu się zapalił,
+        drugie, identyczne, przemilczał. Doszła **reguła 10** (SQL
+        literałem PRZY wywołaniu `$wpdb->`) + mutacja; zmierzone: zero
+        istniejących naruszeń w trzech wtyczkach;
+        (2) **WP-CLI NIE zamienia podkreślenia w nazwie metody na
+        myślnik** — `wp aai-monitor wyczysc-blad`, czyli komenda, którą
+        kontrola każe uruchomić, NIE ISTNIAŁA (nazywała się
+        `wyczysc_blad`). Naprawia `@subcommand`. Złapał to smoke, nie
+        recenzja;
+        (3) **ekran mówi prawdę o tym, co zbiera** — producenci danych
+        meldują się jako „czujki", a ekran o nie pyta; dziś mówi wprost
+        „baza stoi, ale nic nie zbiera". Bez tego pusta lista nie
+        odróżnia „nikt nie próbował" od „nic nie działa";
+        (4) **kontrola NIGDY nie pyta o siebie żądaniem HTTP** —
+        kontener WP-CLI nie dosięga `:8892` (cURL error 7), więc kontrola
+        po sieci byłaby czerwona ZAWSZE i wywracała `postaw.sh`.
+        Testy negatywne: kolumna `ip` dopisana do tabeli ruchu zapala
+        DOKŁADNIE JEDNO sprawdzenie z 55, kontrola zmuszona do zapisu
+        zapala pomiar N16, formularz POST w ekranie zapala obie asercje
+        czystego odczytu.
+        **NASTĘPNY KROK: PR gałęzi `feat/t1-fundament-monitora`, potem
+        plan T2 (dziennik logowań) z pytaniami → ZGODA → dopiero kod.**
+        T2 wg tabeli kroków w DIAGRAM.md sekcja 12
         (fundament + EKRAN + pięć czynności integracji środowiska +
         sprostowanie trzech obietnic o Pluginie 3 w repo).
      **POZA MODUŁAMI, przed pierwszym klientem** (spinane na bieżąco,
