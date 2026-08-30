@@ -2566,6 +2566,14 @@ wyprowadzała tego od nowa:
         `AUTO_INCREMENT`, nie liczbę wierszy — sprzątanie kasuje ślad, ale
         licznika nie cofa. Audyt 255 → **260**; jedna mutacja tego kroku
         UMARŁA po zmianie priorytetu haków i złapał to audyt.
+        **NIESTABILNOŚĆ `smoke-wp-motyw` POWTÓRZYŁA SIĘ — nie zaczynać
+        śledztwa od nowa.** Ta sama co przy T1: w PEŁNYM przelocie bramek
+        pada 2 z 91, uruchomiony OSOBNO przechodzi 91/91. W tym kroku
+        zdarzyło się dwa razy, a trzy próby reprodukcji (para
+        `jezyk → motyw`, trójka `kreator → panel → jezyk → motyw`,
+        przebieg osobny) dały zielone. Przyczyny dalej NIE ustaliłem;
+        kod monitoringu nie dotyka ani frontu, ani logowania, a
+        `npm run check` i pozostałych dwanaście bramek jest zielonych.
         **NASTĘPNY KROK CAŁEGO PROJEKTU: T3 — TIMER WIZYT.** Wg reguły
         właściciela (2026-08-28) najpierw **plan przebiegu kroku
         + pytania doprecyzowujące i CZEKAĆ NA ZGODĘ**, dopiero potem kod.
