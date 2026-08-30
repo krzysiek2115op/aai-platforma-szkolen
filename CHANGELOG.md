@@ -160,9 +160,9 @@ pokazujące fałszywe „zostawia 0") — zapisane w module.
 
 ### Stan dowodów
 
-Strażnicy **37/37**, audyt mutacyjny **258** (256 złapanych, 0 przeoczonych,
+Strażnicy **37/37**, audyt mutacyjny **260** (258 złapanych, 0 przeoczonych,
 0 martwych, 2 pominięte — strażnicy warunkowi bez materiału), smoke
-monitoringu **84**. Dane Pluginów 1 i 2 nietknięte.
+monitoringu **84**, wszystkie bramki WP zielone. Dane Pluginów 1 i 2 nietknięte.
 
 Jedna z mutacji tego kroku **umarła** po zmianie priorytetu haków — złapał
 to audyt, a wzorzec nie pyta już o liczbę w `add_action`.

@@ -2564,7 +2564,7 @@ wyprowadzała tego od nowa:
         „zostawia 0" (kod wyjścia jest jedynym śladem), a pomiar równoległy
         z własną pracą przypisuje jej skutki mierzonemu. Mierz
         `AUTO_INCREMENT`, nie liczbę wierszy — sprzątanie kasuje ślad, ale
-        licznika nie cofa. Audyt 255 → **258**; jedna mutacja tego kroku
+        licznika nie cofa. Audyt 255 → **260**; jedna mutacja tego kroku
         UMARŁA po zmianie priorytetu haków i złapał to audyt.
         **NASTĘPNY KROK CAŁEGO PROJEKTU: T3 — TIMER WIZYT.** Wg reguły
         właściciela (2026-08-28) najpierw **plan przebiegu kroku

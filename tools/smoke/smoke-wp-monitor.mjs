@@ -278,17 +278,30 @@ const idDoRetencji = phpEval(
 ).stdout;
 sprawdz(Number(idDoRetencji) > 0, "nie udało się utworzyć własnego wiersza do sprawdzenia retencji");
 podlozStary("logowania", "czas", 400, Number(idDoRetencji));
+/*
+ * Porównujemy CAŁĄ wartość, nie końcówkę. `"11".endsWith("1")` jest
+ * prawdą, a od kroku T2 w tabeli bywają wiersze spoza tego przebiegu,
+ * więc licznik większy niż 1 jest realny. Ta klasa wróciła w repo
+ * trzykrotnie (`endsWith("199.00")` przy P2, `includes("99,00 zł")`
+ * przy P3b, teraz tutaj).
+ */
+const liczbaZWyjscia = (tekst) => Number(String(tekst).trim().match(/-?\d+$/)?.[0] ?? NaN);
+
 sprawdz(
-  phpEval(
-    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('logowania'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE czas < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 200 DAY)\");"
-  ).stdout.endsWith("1"),
+  liczbaZWyjscia(
+    phpEval(
+      "global $wpdb; $t = Aai_Monitor_Tabele::tabela('logowania'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE czas < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 200 DAY)\");"
+    ).stdout
+  ) === 1,
   "nie udało się podłożyć starego wiersza — dalsze sprawdzenie retencji byłoby ślepe"
 );
 phpEval("Aai_Monitor_Zapis::dodaj_logowanie( array( 'zdarzenie' => 'udane', 'login' => 'smoke-monitor-retencja', 'ip' => '203.0.113.9' ) );");
 sprawdz(
-  phpEval(
-    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('logowania'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE czas < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 200 DAY)\");"
-  ).stdout.endsWith("0"),
+  liczbaZWyjscia(
+    phpEval(
+      "global $wpdb; $t = Aai_Monitor_Tabele::tabela('logowania'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE czas < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 200 DAY)\");"
+    ).stdout
+  ) === 0,
   "retencja przy zapisie NIE skasowała wiersza starszego niż 90 dni — dane osobowe żyją dłużej, niż obiecuje polityka prywatności"
 );
 
@@ -306,9 +319,11 @@ sprawdz(
   `drugi wyzwalacz retencji (ten, którego używa ekran) nie skasował niczego: ${skasowane}`
 );
 sprawdz(
-  phpEval(
-    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE wejscie < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 450 DAY)\");"
-  ).stdout.endsWith("0"),
+  liczbaZWyjscia(
+    phpEval(
+      "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE wejscie < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 450 DAY)\");"
+    ).stdout
+  ) === 0,
   "retencja ruchu nie zadziałała mimo jawnego wywołania"
 );
 

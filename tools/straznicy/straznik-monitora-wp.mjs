@@ -10,7 +10,7 @@
  * się po cichu — ekran dalej się otwiera, tylko zaczyna kłamać albo
  * zbierać rzeczy, których zbierać nie wolno.
  *
- * TRZYNAŚCIE NIEZMIENNIKÓW (numery N z sekcji 8 schematu; każdy z mutacją
+ * CZTERNAŚCIE NIEZMIENNIKÓW (numery N z sekcji 8 schematu; każdy z mutacją
  * w audyt-straznikow). Reguły 1–8 przyszły z krokiem T1, reguły 9–12
  * z T2 razem z pierwszym producentem danych; reguły o sicie beaconu
  * dochodzą w T3, bo dziś nie miałyby czego pilnować:
@@ -387,6 +387,26 @@ if (existsSync(LOGOWANIA)) {
   }
 }
 
+/* ————— 14. kontrola pyta o tabelę odłożoną przez przerwany test ————— */
+
+/*
+ * `smoke-wp-monitor` chowa dziennik `RENAME`-em, żeby zmierzyć, czy awaria
+ * zapisu jest głośna, i przywraca go w `finally`. Ale `finally` chroni przed
+ * wyjątkiem, nie przed zabiciem procesu: po `Ctrl+C` w złym momencie
+ * prawdziwy dziennik zostaje pod nazwą `…_smoke_schowana`, a najbliższy
+ * `postaw.sh` odtworzy przez `dbDelta` PUSTĄ tabelę o właściwej nazwie.
+ * Wszystko wygląda zdrowo, tylko historia logowań zniknęła — a to materiał
+ * dowodowy, którego `uninstall.php` celowo nie kasuje.
+ */
+if (existsSync(CLI)) {
+  const tresc = kod(readFileSync(CLI, "utf8"));
+  if (!/_smoke\\_schowana|_smoke_schowana/.test(tresc)) {
+    bledy.push(
+      `${CLI}: sprawdz() nie pyta o tabele odłożone przez przerwany test (nazwa kończąca się na _smoke_schowana). Przerwany smoke zostawia prawdziwy dziennik pod cudzą nazwą, a schemat odtwarza PUSTY — wszystko wygląda zdrowo, tylko historia logowań zniknęła. Jedno SHOW TABLES LIKE zamienia cichą podmianę materiału dowodowego w komunikat z komendą przywracającą.`
+    );
+  }
+}
+
 /* ————— 13. (P13) producent jest PODPIĘTY, nie tylko napisany ————— */
 
 /*
@@ -421,5 +441,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym)."
+  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test)."
 );

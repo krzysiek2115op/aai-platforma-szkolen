@@ -3070,6 +3070,38 @@ const MUTACJE = [
       return koniec < 0 ? null : bez.slice(0, koniec) + blok[0] + bez.slice(koniec);
     },
   },
+  {
+    // Po przeglądzie T2, druga tura. Odpowiednik reguły 1 (skrzynka) dla
+    // dziennika, którego brakowało: nic nie zabraniało bramce wyczyścić
+    // tabeli hurtem, a rachunek sumienia był wtedy martwy w 6 bramkach.
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka kasuje dziennik logowań HURTEM (TRUNCATE) zamiast sprzątać po sobie (N13)",
+    plik: "tools/smoke/smoke-wp-monitor.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-monitor.mjs"),
+    oczekiwanySlad: "TRUNCATE na tabeli monitoringu",
+    zmien: (s) =>
+      s.includes("sprzatnijDziennik(php, dziennikMigawka);")
+        ? s.replace(
+            "sprzatnijDziennik(php, dziennikMigawka);",
+            'phpEval("global $wpdb; $wpdb->query( \\"TRUNCATE TABLE wp_aai_monitor_logowania\\" );");'
+          )
+        : null,
+  },
+  {
+    // Po przeglądzie T2, druga tura. `finally` chroni przed wyjątkiem, nie
+    // przed zabiciem procesu: przerwany smoke zostawia prawdziwy dziennik
+    // pod cudzą nazwą, a dbDelta odtwarza PUSTY. Cicha podmiana materiału
+    // dowodowego jest gorsza niż brak tabeli.
+    straznik: "straznik-monitora-wp",
+    opis: "kontrola przestaje pytać o tabelę odłożoną przez przerwany test (dziennik podmieniony na pusty)",
+    plik: CLI_MONITORA,
+    wymaga: () => existsSync(CLI_MONITORA),
+    oczekiwanySlad: "nie pyta o tabele odłożone",
+    zmien: (s) =>
+      s.includes("_smoke")
+        ? s.replaceAll("_smoke\\_schowana", "_nigdy\\_taka").replaceAll("_smoke_schowana", "_nigdy_taka")
+        : null,
+  },
 ];
 
 

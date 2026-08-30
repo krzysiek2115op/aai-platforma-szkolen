@@ -44,6 +44,9 @@
  *   9. i ma z tego rachunek sumienia. To on ujawnił, że test retencji
  *      w smoke'u monitoringu cofał czas CUDZEMU wierszowi (MIN(id))
  *      i oddawał go retencji do skasowania;
+ *  11. nikt nie kasuje tabel monitoringu HURTOWO — odpowiednik reguły 1
+ *      dla dziennika, którego brakowało: `TRUNCATE` ani `DELETE FROM`
+ *      bez `WHERE` na `aai_monitor_*`,
  *  10. a ta asercja jest OSIĄGALNA — nie stoi za `process.exit(1)`.
  *      Przy pierwszym wpięciu modułu była martwa w SZEŚCIU z siedmiu
  *      bramek: mutacja psująca ją przechodziła z kodem 0;
@@ -185,6 +188,48 @@ for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
       `${nazwa}: nie liczy zapisów na kursy GLOBALNIE. Kasowanie zamówienia nie kasuje zapisu w Tutorze, ` +
         "a sprzątanie po własnym kursie nie widzi zapisu, który powstał na cudzym — tak przeżył wpis #2153, " +
         "zawyżając licznik zapisanych na prawdziwy Kurs 1."
+    );
+  }
+}
+
+/* ── 11. nikt nie kasuje tabel monitoringu HURTOWO ───────────────────── */
+
+/*
+ * Odpowiednik reguły 1 (skrzynka poczty), którego dla dziennika brakowało:
+ * nic nie zabraniało bramce wysłać `TRUNCATE` albo `DELETE FROM` bez
+ * granicy. Jedynym hamulcem byłby rachunek sumienia — a ten był martwy
+ * w sześciu bramkach (reguła 10), więc hamulca nie było wcale.
+ *
+ * Dziennik logowań to materiał dowodowy po incydencie: `uninstall.php`
+ * celowo go NIE kasuje, więc tym bardziej nie wolno tego robić bramce
+ * przy okazji sprzątania po sobie.
+ */
+for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
+  const tresc = kod(plik);
+  const nazwa = plik.replace(KORZEN + "/", "");
+  /*
+   * `DELETE` sprawdzamy PATRZĄC NA CAŁĄ INSTRUKCJĘ, nie jednym wzorcem.
+   * Pierwsza wersja próbowała opisać „brak WHERE" regexem i przepuszczała
+   * `DELETE FROM wp_aai_monitor_logowania` w łańcuchu z ucieczkami —
+   * wykrył to jej własny test negatywny. Teraz: znajdź początek
+   * instrukcji, weź ją do najbliższego ogranicznika i zapytaj o `WHERE`.
+   */
+  const zgloszenia = [];
+  if (/TRUNCATE\s+(?:TABLE\s+)?[`'"{$\\]*\w*aai_monitor/i.test(tresc)) {
+    zgloszenia.push("TRUNCATE na tabeli monitoringu");
+  }
+  for (const trafienie of tresc.matchAll(/DELETE\s+FROM\s+/gi)) {
+    const instrukcja = tresc.slice(trafienie.index, trafienie.index + 220).split(/[;\n]/)[0];
+    if (!/aai_monitor/i.test(instrukcja)) continue;
+    if (!/\bWHERE\b/i.test(instrukcja)) {
+      zgloszenia.push("DELETE bez WHERE na tabeli monitoringu");
+    }
+  }
+  for (const co of new Set(zgloszenia)) {
+    bledy.push(
+      `${nazwa}: ${co}. Dziennik logowań jest materiałem dowodowym po incydencie — uninstall.php celowo go nie kasuje, ` +
+        "więc tym bardziej nie wolno tego robić bramce przy sprzątaniu po sobie. Kasuj wyłącznie wiersze powstałe " +
+        "po własnej migawce (tools/smoke/dziennik.mjs)."
     );
   }
 }
@@ -419,6 +464,7 @@ if (bledy.length > 0) {
 console.log(
   "straznik-higieny-smokow: żadna bramka nie kasuje skrzynki hurtowo, bramki wysyłające pocztę biorą migawkę, " +
     "sprzątają i rozliczają się ze skrzynki oraz z zapisów na kursy, bramki logujące się sprzątają dziennik " +
-    "logowań i rozliczają się z niego asercją, która jest osiągalna, a moduł poczty (sprawdzony uruchomieniowo) " +
+    "logowań i rozliczają się z niego asercją, która jest osiągalna, nikt nie kasuje tabel monitoringu hurtowo, " +
+    "a moduł poczty (sprawdzony uruchomieniowo) " +
     "nie kasuje przy pustej liście, trzyma się migawki i zatrzymuje przebieg przy niepełnym odczycie."
 );

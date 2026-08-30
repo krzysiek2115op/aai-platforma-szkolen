@@ -87,14 +87,23 @@ export function migawkaDziennika(php) {
   try {
     tekst = String(
       php(
-        "if ( ! class_exists( 'Aai_Monitor_Tabele' ) || ! Aai_Monitor_Tabele::istnieja() ) { echo 'brak'; return; } global $wpdb; echo (int) $wpdb->get_var( 'SELECT COALESCE(MAX(id),0) FROM ' . Aai_Monitor_Tabele::tabela( 'logowania' ) );"
+        "if ( ! class_exists( 'Aai_Monitor_Tabele' ) || ! Aai_Monitor_Tabele::istnieja() ) { echo 'AAI-BRAK'; return; } global $wpdb; echo 'AAI-MIGAWKA:', (int) $wpdb->get_var( 'SELECT COALESCE(MAX(id),0) FROM ' . Aai_Monitor_Tabele::tabela( 'logowania' ) );"
       ) ?? ""
     ).trim();
   } catch {
     return null;
   }
-  if (tekst.endsWith("brak") || !/\d$/.test(tekst)) return null;
-  return Number(tekst.match(/\d+$/)[0]);
+  if (tekst.includes("AAI-BRAK")) return null;
+  /*
+   * Czytamy WŁASNY ZNACZNIK, nie „ostatnią liczbę z wyjścia".
+   * Gdyby `wp` dopisał do stdout cokolwiek zakończonego cyfrą (ostrzeżenie
+   * PHP, komunikat wtyczki), migawka byłaby ZANIŻONA — a wtedy sprzątanie
+   * `WHERE id > <mała liczba>` wycięłoby prawdziwe wiersze. Brak znacznika
+   * znaczy „nie wiem", czyli `null`, czyli sprzątanie nic nie wyśle.
+   * `poczta.mjs` ma na tę klasę własne zabezpieczenie (porównanie z `total`).
+   */
+  const znacznik = tekst.match(/AAI-MIGAWKA:(\d+)/);
+  return znacznik ? Number(znacznik[1]) : null;
 }
 
 /**

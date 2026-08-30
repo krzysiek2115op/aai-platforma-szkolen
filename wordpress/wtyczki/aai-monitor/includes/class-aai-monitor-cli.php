@@ -48,6 +48,8 @@ final class Aai_Monitor_Cli {
 	 * @when after_wp_load
 	 */
 	public function sprawdz(): void {
+		global $wpdb;
+
 		$bledy = array();
 
 		/* 1. schemat */
@@ -62,6 +64,38 @@ final class Aai_Monitor_Cli {
 		$blad = Aai_Monitor_Komunikaty::ostatni();
 		if ( '' !== $blad ) {
 			$bledy[] = 'ostatni zapis zgłosił błąd: ' . $blad . ' — po naprawie zdejmij alarm komendą `wp aai-monitor wyczysc-blad`';
+		}
+
+		/*
+		 * 2b. TABELA ODŁOŻONA NA BOK PRZEZ PRZERWANY TEST.
+		 *
+		 * `smoke-wp-monitor` chowa dziennik `RENAME`-em, żeby zmierzyć, czy
+		 * awaria zapisu jest głośna, i przywraca go w `finally`. Ale
+		 * `finally` chroni przed wyjątkiem, nie przed zabiciem procesu:
+		 * po `Ctrl+C` w złym momencie prawdziwy dziennik zostaje pod nazwą
+		 * `…_smoke_schowana`, a najbliższy `postaw.sh` utworzy przez
+		 * `dbDelta` PUSTĄ tabelę o właściwej nazwie. Wszystko wygląda
+		 * zdrowo, tylko historia logowań zniknęła — a to materiał dowodowy
+		 * po incydencie, którego `uninstall.php` celowo nie kasuje.
+		 *
+		 * Jedno `SHOW TABLES LIKE` na przebieg kontroli zamienia cichą
+		 * podmianę w komunikat z komendą przywracającą.
+		 */
+		$odlozone = $wpdb->get_col(
+			$wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . AAI_MONITOR_PREFIKS ) . '%\_smoke\_schowana' )
+		);
+		if ( is_array( $odlozone ) && array() !== $odlozone ) {
+			foreach ( $odlozone as $tabela ) {
+				$wlasciwa = str_replace( '_smoke_schowana', '', (string) $tabela );
+				$bledy[]  = sprintf(
+					'została tabela %s — przerwany test odłożył prawdziwy dziennik na bok, a schemat odtworzył PUSTY. '
+						. 'Przywróć: wp db query "DROP TABLE IF EXISTS %s; RENAME TABLE %s TO %s;"',
+					$tabela,
+					$wlasciwa,
+					$tabela,
+					$wlasciwa
+				);
+			}
 		}
 
 		/* 3. retencja — wobec NAJNOWSZEGO wiersza, nie wobec zegara */
