@@ -245,12 +245,33 @@ sprawdz(
 
 /* ── 4. retencja: dwa wyzwalacze ────────────────────────────────────── */
 
-const podlozStary = (tabela, kolumna, dni) =>
+/*
+ * Cofa czas WSKAZANEMU wierszowi — nigdy „najstarszemu w tabeli".
+ *
+ * Pierwsza wersja brała `MIN(id)`, bo do kroku T2 w tych tabelach nie
+ * było nic poza wierszami smoke'a. Od T2 pisze do nich WordPress przy
+ * każdym logowaniu, a docelowo są tam prawdziwe wpisy właściciela —
+ * więc `MIN(id)` trafiał w NAJSTARSZY CUDZY wiersz, cofał mu czas
+ * o 400 dni i oddawał go retencji do skasowania.
+ *
+ * Zmierzone, nie teoretyczne: po przelocie wszystkich bramek WP smoke
+ * kasował wiersz `smoke-kreator-gosc` zostawiony przez smoke kreatora
+ * (przed 4 wiersze, po 3). Na instalacji właściciela zniknąłby jego
+ * najstarszy wpis logowania — czyli DOWÓD, gdyby akurat prowadził
+ * dochodzenie po włamaniu. Złapał to rachunek sumienia, który liczy
+ * CAŁĄ tabelę, a nie tylko własne ślady (lekcja z P5).
+ */
+const podlozStary = (tabela, kolumna, dni, id) =>
   phpEval(
-    `global $wpdb; $t = Aai_Monitor_Tabele::tabela('${tabela}'); $wpdb->query( $wpdb->prepare( "UPDATE \`{$t}\` SET \`${kolumna}\` = %s WHERE id = %d", gmdate('Y-m-d H:i:s', time() - ${dni} * DAY_IN_SECONDS), (int) $wpdb->get_var("SELECT MIN(id) FROM \`{$t}\`") ) ); echo 'ok';`
+    `global $wpdb; $t = Aai_Monitor_Tabele::tabela('${tabela}'); $wpdb->query( $wpdb->prepare( "UPDATE \`{$t}\` SET \`${kolumna}\` = %s WHERE id = %d", gmdate('Y-m-d H:i:s', time() - ${dni} * DAY_IN_SECONDS), ${id} ) ); echo 'ok';`
   ).stdout;
 
-podlozStary("logowania", "czas", 400);
+// Własny wiersz do zestarzenia — nie ruszamy niczego, czego nie stworzyliśmy.
+const idDoRetencji = phpEval(
+  "Aai_Monitor_Zapis::dodaj_logowanie( array( 'zdarzenie' => 'udane', 'login' => 'smoke-monitor-stary', 'ip' => '203.0.113.8' ) ); echo Aai_Monitor_Zapis::ostatni_id();"
+).stdout;
+sprawdz(Number(idDoRetencji) > 0, "nie udało się utworzyć własnego wiersza do sprawdzenia retencji");
+podlozStary("logowania", "czas", 400, Number(idDoRetencji));
 sprawdz(
   phpEval(
     "global $wpdb; $t = Aai_Monitor_Tabele::tabela('logowania'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE czas < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 200 DAY)\");"
@@ -265,7 +286,14 @@ sprawdz(
   "retencja przy zapisie NIE skasowała wiersza starszego niż 90 dni — dane osobowe żyją dłużej, niż obiecuje polityka prywatności"
 );
 
-podlozStary("wizyty", "wejscie", 500);
+// Ta sama zasada dla ruchu: cofamy czas WŁASNEJ wizycie. Dziś tabela jest
+// poza smoke'em pusta, ale od kroku T3 przestanie być — a wtedy `MIN(id)`
+// zabierałby prawdziwą odsłonę.
+const idWizyty = phpEval(
+  "Aai_Monitor_Zapis::dodaj_wizyte( array( 'sesja' => str_repeat('c', 32), 'sciezka' => '/smoke-monitor/stara/', 'trwanie_ms' => 1000 ) ); echo Aai_Monitor_Zapis::ostatni_id();"
+).stdout;
+sprawdz(Number(idWizyty) > 0, "nie udało się utworzyć własnej wizyty do sprawdzenia retencji");
+podlozStary("wizyty", "wejscie", 500, Number(idWizyty));
 const skasowane = phpEval("echo (int) Aai_Monitor_Zapis::retencja();").stdout;
 sprawdz(
   Number(skasowane.match(/\d+$/)?.[0] ?? 0) >= 1,
