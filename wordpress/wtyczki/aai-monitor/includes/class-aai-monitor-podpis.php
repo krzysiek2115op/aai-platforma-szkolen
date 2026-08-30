@@ -158,11 +158,52 @@ final class Aai_Monitor_Podpis {
 		if ( is_string( $sol ) && '' !== $sol ) {
 			return $sol;
 		}
+		global $wpdb;
+
 		$sol = wp_generate_password( 64, true, true );
-		add_option( self::OPCJA_SOLI, $sol, '', true );
-		// Wyścig dwóch żądań: wygrywa ten, który zdążył pierwszy —
-		// czytamy z powrotem, żeby oba używały TEJ SAMEJ soli.
-		$zapisana = get_option( self::OPCJA_SOLI );
+
+		/*
+		 * SÓL POWSTAJE ZAPISEM, KTÓRY NIE NADPISUJE — i to jest naprawa A7
+		 * z przeglądu T3. Poprzedni kod obiecywał w komentarzu, że przy
+		 * wyścigu dwóch żądań „czytamy z powrotem, żeby oba używały TEJ
+		 * SAMEJ soli”. NIEPRAWDA, i to podwójna — zmierzona w kodzie
+		 * WordPressa oraz uruchomieniowo:
+		 *
+		 *  1. `add_option()` pisze `INSERT … ON DUPLICATE KEY UPDATE`
+		 *     (option.php:1143), więc NADPISUJE sól tego, kto zdążył
+		 *     pierwszy — a jego strony są już w przeglądarkach czytelników
+		 *     i noszą podpisy liczone starą solą;
+		 *  2. zaraz potem WordPress WKŁADA naszą wartość do pamięci
+		 *     `alloptions` zamiast ją unieważnić, więc żaden odczyt zwrotny
+		 *     — ani przez `get_option()`, ani wprost z bazy — nie może już
+		 *     tego wykryć. Pierwsza wersja tej naprawy pytała bazę i była
+		 *     przez to POZORNA: baza niosła już naszą sól.
+		 *
+		 * Objawu nie ma żadnego: beacon odpowiada 204 zawsze, więc odsłony
+		 * po prostu przestają się zapisywać.
+		 *
+		 * `ON DUPLICATE KEY UPDATE option_id = option_id` to zapis pusty
+		 * przy konflikcie — pierwszy pisarz wygrywa, reszta niczego nie
+		 * rusza. Nie `INSERT IGNORE`, bo ten ucisza WSZYSTKIE błędy zapisu,
+		 * a my chcemy uciszyć dokładnie jeden: „ta sól już jest”.
+		 */
+		$wpdb->query(
+			$wpdb->prepare(
+				"INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'yes') ON DUPLICATE KEY UPDATE option_id = option_id",
+				self::OPCJA_SOLI,
+				$sol
+			)
+		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+
+		// Pisaliśmy z pominięciem `add_option()`, więc pamięci podręczne
+		// nic o tym nie wiedzą — a od tej chwili to BAZA ma rację.
+		wp_cache_delete( 'alloptions', 'options' );
+		wp_cache_delete( self::OPCJA_SOLI, 'options' );
+
+		$zapisana = $wpdb->get_var(
+			$wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", self::OPCJA_SOLI )
+		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+
 		return is_string( $zapisana ) && '' !== $zapisana ? $zapisana : $sol;
 	}
 }

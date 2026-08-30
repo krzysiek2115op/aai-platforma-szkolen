@@ -81,6 +81,7 @@ const LOGOWANIA = join(KATALOG, "includes", "class-aai-monitor-logowania.php");
 const WYSTRZAL = join(KATALOG, "includes", "class-aai-monitor-wizyty.php");
 const POMIAR = join(KATALOG, "includes", "class-aai-monitor-pomiar.php");
 const SKRYPT = join(KATALOG, "assets", "pomiar.js");
+const PODPIS = join(KATALOG, "includes", "class-aai-monitor-podpis.php");
 const PRYWATNOSC = join(KATALOG, "includes", "class-aai-monitor-prywatnosc.php");
 const FRAGMENT_POLITYKI = "docs/plugin-3/POLITYKA-PRYWATNOSCI.md";
 const GLOWNY = join(KATALOG, "aai-monitor.php");
@@ -278,6 +279,67 @@ if (existsSync(POMIAR)) {
   if (!/const UCHWYT = 'aai-monitor-/.test(tresc)) {
     bledy.push(
       `${POMIAR}: uchwyt skryptu nie zaczyna się od \`aai-monitor-\` (P11). To nie zwyczaj nazewniczy: \`Aai_Sklep_Zasoby\` zdejmuje z frontu uchwyty o prefiksach \`tutor\`, \`wc-\`, \`woocommerce\` i \`sourcebuster\`, więc nazwa spoza naszej rodziny może wpaść pod cudzy filtr i wyciszyć pomiar bez śladu.`
+    );
+  }
+}
+
+/* ——— 15c. (A4) kontrola pyta, czy kokpit i witryna mają to samo pochodzenie ——— */
+
+/*
+ * Adres wystrzału składa `admin_url()`, sito porównuje `Origin`
+ * z `home_url()`. Każda różnica schematu, hosta albo portu zamienia
+ * beacon w żądanie cross-origin — preflight, 403, zero zapisów, kontrola
+ * zielona. Decyzja właściciela (2026-08-30): kod 1.
+ */
+if (existsSync(CLI)) {
+  const tresc = kod(readFileSync(CLI, "utf8"));
+  const kontrola = cialoMetody(tresc, "sprawdz");
+  if (null === kontrola) {
+    bledy.push(`${CLI}: nie znalazłem metody sprawdz() — reguła o pochodzeniu nie ma czego sprawdzić i milczy.`);
+  } else {
+    /*
+     * PYTAMY O PORÓWNANIE DWÓCH PRZYPISAŃ, nie o obecność nazw.
+     * Pierwsza wersja tej reguły sprawdzała, czy w ciele kontroli
+     * występują `admin_url(` i `home_url(` — i była ŚLEPA, co złapał
+     * audyt mutacyjny: podmiana `admin_url()` na `home_url()` w miejscu
+     * pomiaru przechodziła, bo `admin_url()` zostawało w TREŚCI
+     * KOMUNIKATU BŁĘDU. Dziewiąty nawrót tej pułapki w projekcie —
+     * i pierwszy raz w regule napisanej PO opisaniu jej w tym samym
+     * przeglądzie.
+     */
+    const zKokpitu = kontrola.match(/(\$\w+)\s*=\s*[^;]*admin_url\(\s*\)/);
+    const zWitryny = kontrola.match(/(\$\w+)\s*=\s*[^;]*home_url\(\s*\)/);
+    const uciekana = (nazwa) => nazwa.replace("$", "\\$");
+    const porownane =
+      zKokpitu &&
+      zWitryny &&
+      new RegExp(`${uciekana(zKokpitu[1])}\\s*!==\\s*${uciekana(zWitryny[1])}|${uciekana(zWitryny[1])}\\s*!==\\s*${uciekana(zKokpitu[1])}`).test(kontrola);
+    if (!porownane) {
+      bledy.push(
+        `${CLI}: kontrola nie PORÓWNUJE pochodzenia kokpitu (\`admin_url\`) z pochodzeniem witryny (\`home_url\`) (A4). Przy rozjeździe beacon jedzie cross-origin, dostaje 403 na preflighcie i nie zapisuje się ANI RAZU — a kontrola melduje „w porządku”.`
+      );
+    }
+  }
+}
+
+/* ——— 15b. (A7) sól podpisu powstaje zapisem, który NIE nadpisuje ——— */
+
+/*
+ * `add_option()` pisze `INSERT … ON DUPLICATE KEY UPDATE` (zmierzone
+ * w option.php), więc przy wyścigu dwóch pierwszych żądań NADPISUJE sól
+ * tego, kto zdążył pierwszy — a jego strony są już w przeglądarkach
+ * i noszą podpisy liczone starą wartością. Żaden odczyt zwrotny tego nie
+ * naprawi, bo w bazie leży wtedy już nasza sól. Objawu brak: beacon
+ * odpowiada 204 zawsze, więc odsłony po prostu przestają się zapisywać.
+ */
+if (existsSync(PODPIS)) {
+  const tresc = kod(readFileSync(PODPIS, "utf8"));
+  const tworzenie = cialoMetody(tresc, "sol");
+  if (null === tworzenie) {
+    bledy.push(`${PODPIS}: nie znalazłem metody sol() — reguła o powstawaniu soli nie ma czego sprawdzić i milczy.`);
+  } else if (/add_option\s*\(/.test(tworzenie) || !/ON DUPLICATE KEY UPDATE\s+option_id\s*=\s*option_id/.test(tworzenie)) {
+    bledy.push(
+      `${PODPIS}: sól podpisu powstaje zapisem, który NADPISUJE istniejącą wartość (A7). Przy wyścigu dwóch pierwszych żądań przegrany kasuje sól zwycięzcy, a strony wysłane przez zwycięzcę niosą już podpisy liczone starą solą — sito odrzuci je w milczeniu. Zapis ma być pusty przy konflikcie (\`ON DUPLICATE KEY UPDATE option_id = option_id\`), nie \`add_option()\`.`
     );
   }
 }

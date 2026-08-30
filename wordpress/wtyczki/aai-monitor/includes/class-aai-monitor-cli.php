@@ -184,6 +184,38 @@ final class Aai_Monitor_Cli {
 		}
 
 		/*
+		 * 4b2. CEL BEACONU I WITRYNA MUSZĄ MIEĆ TO SAMO POCHODZENIE
+		 * (A4 z przeglądu T3, decyzja właściciela 2026-08-30: kod 1).
+		 *
+		 * Adres wystrzału składa `admin_url()`, a sito porównuje `Origin`
+		 * z `home_url()`. Typowy rozjazd produkcyjny — `www` w jednym
+		 * i brak w drugim, `FORCE_SSL_ADMIN`, inny port — czyni beacon
+		 * żądaniem cross-origin: przeglądarka pyta wtedy preflightem,
+		 * WordPress odpowiada 403 i pomiar milczy CAŁKOWICIE, przy
+		 * kontroli świecącej kod 0. Sprawdzenie jest czystym porównaniem
+		 * łańcuchów, bez ani jednego żądania (P11).
+		 */
+		$pochodzenie = static function ( string $adres ): string {
+			$czesci = wp_parse_url( $adres );
+			if ( ! is_array( $czesci ) || ! isset( $czesci['host'] ) ) {
+				return '';
+			}
+			$port = isset( $czesci['port'] ) ? ':' . $czesci['port'] : '';
+			return strtolower( ( $czesci['scheme'] ?? 'http' ) . '://' . $czesci['host'] . $port );
+		};
+		$zWystrzalu = $pochodzenie( admin_url() );
+		$zWitryny   = $pochodzenie( home_url() );
+		if ( '' === $zWystrzalu || '' === $zWitryny || $zWystrzalu !== $zWitryny ) {
+			$bledy[] = sprintf(
+				'adres kokpitu (%s) i adres witryny (%s) mają różne pochodzenie — beacon jedzie wtedy jako żądanie cross-origin, dostaje 403 na preflighcie i NIE ZAPISUJE SIĘ ANI RAZU, bez żadnego objawu. Uzgodnij `WP_HOME` i `WP_SITEURL` (schemat, host i port).',
+				'' === $zWystrzalu ? admin_url() : $zWystrzalu,
+				'' === $zWitryny ? home_url() : $zWitryny
+			);
+		} else {
+			WP_CLI::line( sprintf( 'Pochodzenie: kokpit i witryna zgodne (%s).', $zWystrzalu ) );
+		}
+
+		/*
 		 * 4c. SÓL PODPISU. Bez niej beacon nie ma jak dowieść, że ścieżka
 		 * jest prawdziwa — a odrzuty są ciche (204 jak przyjęcia), więc
 		 * objawem byłaby pusta tabela ruchu. Sól powstaje przy aktywacji;

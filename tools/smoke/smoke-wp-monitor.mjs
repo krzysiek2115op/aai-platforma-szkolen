@@ -1157,6 +1157,92 @@ for (const [opis, opcje] of odrzuty) {
   );
 }
 
+/* 10c9. PO WYŚCIGU O SÓL WSZYSCY PODPISUJĄ TĄ SAMĄ (A7).
+ *
+ * Sól podpisu powstaje leniwie, przy pierwszym użyciu. Gdy dwa żądania
+ * trafią w ten moment naraz, `add_option()` pisze `INSERT … ON DUPLICATE
+ * KEY UPDATE` (zmierzone w kodzie WordPressa) — czyli NADPISUJE sól tego,
+ * kto zdążył pierwszy, choć jego strony są już w przeglądarkach i noszą
+ * podpisy liczone starą wartością. Sito odrzuca je potem w milczeniu:
+ * beacon odpowiada 204 zawsze.
+ *
+ * ODTWORZENIE PRZEGRANEGO MUSI BYĆ WIERNE i pierwsza wersja tego pomiaru
+ * wierna NIE BYŁA — wstawiała cudzą sól do bazy, a potem czyściła pamięć
+ * `alloptions`, więc nasz proces natychmiast ją WIDZIAŁ i nigdy nie
+ * wchodził w gałąź tworzenia. Sprawdzenie przechodziło na zielono także
+ * na kodzie sprzed naprawy, czyli nie mierzyło niczego. Kolejność ma
+ * znaczenie: najpierw ładujemy pamięć BEZ soli, dopiero potem zwycięzca
+ * wstawia swój wiersz.
+ *
+ * Na koniec przywracamy sól instalacji — inaczej unieważnilibyśmy podpisy
+ * stron wyrenderowanych wcześniej w tym przebiegu. */
+{
+  const wynik = phpEval(
+    "global $wpdb; $o = 'aai_monitor_sol_podpisu'; $oryginal = get_option( $o );" +
+      " delete_option( $o );" +
+      " wp_load_alloptions();" +
+      " $wpdb->insert( $wpdb->options, array( 'option_name' => $o, 'option_value' => 'SOL_ZWYCIEZCY', 'autoload' => 'yes' ) );" +
+      " $m = new ReflectionMethod( 'Aai_Monitor_Podpis', 'sol' ); $m->setAccessible( true ); $uzyta = $m->invoke( null );" +
+      " $wbazie = $wpdb->get_var( $wpdb->prepare( \"SELECT option_value FROM {$wpdb->options} WHERE option_name = %s\", $o ) );" +
+      " delete_option( $o ); if ( is_string( $oryginal ) && '' !== $oryginal ) { add_option( $o, $oryginal, '', true ); }" +
+      " wp_cache_delete( 'alloptions', 'options' );" +
+      " echo $uzyta, '|', $wbazie, '|', ( get_option( $o ) === $oryginal ? 'przywrocona' : 'ZGUBIONA' );"
+  ).stdout.trim().split("|");
+  sprawdz(
+    wynik[0] === "SOL_ZWYCIEZCY",
+    `przegrany wyścig o sól podpisuje WŁASNĄ wartością zamiast tą z bazy — strony przez niego wyrenderowane niosłyby podpisy, których sito nie przyjmie, i nic by tego nie zgłosiło (A7)`
+  );
+  sprawdz(
+    wynik[1] === "SOL_ZWYCIEZCY",
+    "przegrany NADPISAŁ sól zwycięzcy — unieważnia tym podpisy wszystkich stron, które ten zdążył wysłać do przeglądarek (A7)"
+  );
+  sprawdz(wynik[2] === "przywrocona", "pomiar nie oddał instalacji jej własnej soli — unieważniłby podpisy stron wyrenderowanych wcześniej");
+}
+
+/* 10c10. KONTROLA ŚWIECI KODEM 1 PRZY ROZJEŹDZIE POCHODZENIA (A4).
+ *
+ * Adres wystrzału składa `admin_url()`, a sito porównuje `Origin`
+ * z `home_url()`. Rozjazd — `www` w jednym, brak w drugim,
+ * `FORCE_SSL_ADMIN`, inny port — czyni beacon żądaniem cross-origin:
+ * przeglądarka pyta preflightem, WordPress odpowiada 403, i pomiar milczy
+ * CAŁKOWICIE przy kontroli świecącej kod 0. Decyzja właściciela
+ * (2026-08-30): taki stan ma być czerwony.
+ *
+ * MIERZYMY KOD WYJŚCIA, NIE PRZECHWYCONE WYJŚCIE. Pierwsza wersja tego
+ * sprawdzenia łapała tekst przez `ob_start()` i była martwa: `WP_CLI::
+ * error()` KOŃCZY PROCES, więc kod za wywołaniem kontroli nigdy się nie
+ * wykonuje. Ta sama pułapka zafałszowała moją wcześniejszą sondę — uznałem
+ * ją za potwierdzoną, bo widziałem komunikat, a nie jej własny werdykt.
+ *
+ * Rozjazd podstawiamy przez `--exec`, czyli w tym samym procesie CLI,
+ * w którym biegnie komenda. Instalacji nie dotykamy. */
+{
+  /*
+   * Rozjazd robimy TAK, JAK WYGLĄDA NAPRAWDĘ: rozjeżdżając `siteurl`
+   * z `home` — bo `admin_url()` liczy się z pierwszego, a `home_url()`
+   * z drugiego. Wariant przez `--exec` odpadł: kod z nawiasami i zmienną
+   * nie przeżywa drogi do `eval`, a wynikający z tego BŁĄD SKŁADNI dawał
+   * niezerowy kod wyjścia — czyli pierwszą asercję spełnioną z zupełnie
+   * innego powodu. Złapał to dopiero kontrprzykład pytający o TREŚĆ
+   * komunikatu.
+   */
+  const siteurl = wp("option", "get", "siteurl").stdout.trim();
+  wp("option", "update", "siteurl", siteurl.replace("127.0.0.1", "www.127.0.0.1"));
+  const zRozjazdem = wp("aai-monitor", "sprawdz");
+  wp("option", "update", "siteurl", siteurl);
+  sprawdz(wp("option", "get", "siteurl").stdout.trim() === siteurl, "pomiar nie oddał instalacji jej adresu — kokpit zostałby pod zmyślonym hostem");
+  sprawdz(
+    zRozjazdem.kod !== 0,
+    "kontrola kończy się kodem 0 przy rozjeździe adresu kokpitu i witryny — a wtedy beacon nie zapisuje się ANI RAZU, bez żadnego innego objawu (A4)"
+  );
+  sprawdz(
+    /różne pochodzenie/.test(zRozjazdem.stderr + zRozjazdem.stdout),
+    "kontrola świeci na czerwono przy rozjeździe adresów, ale nie mówi DLACZEGO — czerwień bez powodu uczy, żeby jej nie czytać"
+  );
+  // Kontrprzykład: bez podstawionego rozjazdu ta sama komenda ma milczeć.
+  sprawdz(wp("aai-monitor", "sprawdz").kod === 0, "kontrola świeci na czerwono na zdrowym środowisku — sprawdzenie A4 mierzyłoby wtedy własny fałszywy alarm");
+}
+
 /* 10d. F18: akcja schowana w ciele daje HTTP 200 i CISZĘ. */
 {
   const przed = ileWizyt();
@@ -1476,8 +1562,19 @@ async function przelot({ udawajCzlowieka, powrotZBfcache = false }) {
  * heurystyka po treści wiersza.
  */
 sprzatnijDziennik(php, dziennikMigawka);
-// Wizyty mają własny znacznik w ścieżce — tabela ruchu jest anonimowa,
-// więc nie ma w niej loginu, po którym dałoby się rozpoznać nasze wiersze.
+/*
+ * WIZYTY KASUJEMY PO GRANICY IDENTYFIKATORA, bo rozpoznać ich inaczej się
+ * nie da: tabela ruchu jest anonimowa i nie ma w niej ani loginu, ani
+ * znacznika, po którym poznalibyśmy własny wiersz.
+ *
+ * Poprzedni komentarz twierdził, że „wizyty mają własny znacznik
+ * w ścieżce”. To była NIEPRAWDA O KODZIE (klasa BLAD-018): bramka używa
+ * prawdziwych adresów strony, a kasuje wszystko, co powstało po migawce.
+ * Ograniczenie jest więc TAKIE SAMO jak przy dzienniku logowań i tak samo
+ * świadome: gdyby ktoś odwiedził witrynę dokładnie w oknie przebiegu, jego
+ * odsłona też zniknie. Ryzyko jest warsztatowe — bramki uruchamia się na
+ * `:8892`, nigdy na instalacji z ruchem.
+ */
 phpEval(
   `global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');` +
     ` $wpdb->query( $wpdb->prepare( "DELETE FROM \`{$w}\` WHERE id > %d", ${wizytyMigawka} ) ); echo 'ok';`
