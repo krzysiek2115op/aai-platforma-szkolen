@@ -10,7 +10,7 @@
  * się po cichu — ekran dalej się otwiera, tylko zaczyna kłamać albo
  * zbierać rzeczy, których zbierać nie wolno.
  *
- * CZTERNAŚCIE NIEZMIENNIKÓW (numery N z sekcji 8 schematu; każdy z mutacją
+ * NIEZMIENNIKI KROKÓW T1–T3 (numery N z sekcji 8 schematu; każdy z mutacją
  * w audyt-straznikow). Reguły 1–8 przyszły z krokiem T1, reguły 9–12
  * z T2 razem z pierwszym producentem danych; reguły o sicie beaconu
  * dochodzą w T3, bo dziś nie miałyby czego pilnować:
@@ -197,9 +197,51 @@ if (existsSync(WYSTRZAL)) {
   // `file_get_contents( 'php://input' )` wciąga do pamięci wszystko, co
   // ktoś wyśle, ZANIM cokolwiek sprawdzimy. Limit 64 KiB `sendBeacon`
   // w pomiarze nie zadziałał (F23), więc sufit jest nasz albo go nie ma.
-  if (/file_get_contents\(\s*['"]php:\/\/input/.test(tresc) || !/fread\s*\(/.test(tresc)) {
+  /*
+   * PYTAMY O SUFIT PRZY ODCZYCIE, nie o obecność słowa `fread` (B6
+   * z przeglądu T3). Zmierzone: `fread( $uchwyt, 8 * 1024 * 1024 )`
+   * z natychmiastowym `return $cialo` przechodziło na zielono, choć
+   * wciąga do pamięci wszystko, co ktoś wyśle — a właśnie temu ten
+   * mechanizm miał zapobiec. Dwa wymagania, bo są dwie decyzje:
+   * ile najwyżej czytamy i co robimy, gdy tyle się doczytało.
+   */
+  const odczyt = tresc.match(/fread\s*\(\s*\$\w+\s*,\s*([^)]*)\)/);
+  const jestSufitPrzyOdczycie = Boolean(odczyt && /SUFIT_CIALA_B/.test(odczyt[1]));
+  const jestOdrzutPoOdczycie = /strlen\(\s*\$\w+\s*\)\s*>\s*self::SUFIT_CIALA_B\s*\?\s*null/.test(tresc);
+  if (/file_get_contents\(\s*['"]php:\/\/input/.test(tresc) || !odczyt) {
     bledy.push(
-      `${WYSTRZAL}: ciało żądania nie jest czytane strumieniem z sufitem (Z9 audytu T3). \`post_max_size\` w kontenerze to 8 MB, a limit 64 KiB z dokumentacji \`sendBeacon\` w pomiarze NIE zadziałał — beacon 70 kB przeszedł i doszedł w całości.`
+      `${WYSTRZAL}: ciało żądania nie jest czytane strumieniem (Z9 audytu T3). \`post_max_size\` w kontenerze to 8 MB, a limit 64 KiB z dokumentacji \`sendBeacon\` w pomiarze NIE zadziałał — beacon 70 kB przeszedł i doszedł w całości.`
+    );
+  } else if (!jestSufitPrzyOdczycie) {
+    bledy.push(
+      `${WYSTRZAL}: strumień jest czytany BEZ SUFITU — drugi argument \`fread\` to „${odczyt[1].trim()}” i nie odwołuje się do \`SUFIT_CIALA_B\` (B6). Czytanie jest jedyną częścią obsługi, która kosztuje pamięć, więc sufit ma stać DOKŁADNIE tutaj; sam \`fread\` niczego nie chroni.`
+    );
+  }
+  if (!jestOdrzutPoOdczycie) {
+    bledy.push(
+      `${WYSTRZAL}: po odczycie brakuje odrzutu ciała ponad sufit (B6). Deklarowany \`content-length\` to za mało — zmierzone na żywej instalacji: żądanie \`Transfer-Encoding: chunked\` NIE niesie deklaracji, dochodzi do PHP i zatrzymuje je wyłącznie porównanie tego, ile bajtów NAPRAWDĘ się doczytało.`
+    );
+  }
+}
+
+/* ——— 14b. (D3, B4) wystrzał ODMAWIA administratorowi ——— */
+
+/*
+ * Skrypt i tak nie jest administratorowi podawany (reguła 15), ale to za
+ * mało: beacon może przyjść z karty otwartej PRZED zalogowaniem, a wtedy
+ * odsłona zostałaby przypisana komuś, kogo z definicji nie mierzymy (D3).
+ * Do przeglądu T3 tej gałęzi nie pilnowało NIC — mutacja kasująca ją
+ * przechodziła u strażnika, a bramka nigdy nie wysyłała beaconu jako
+ * administrator. Pytamy o ODMOWĘ, nie o wywołanie.
+ */
+if (existsSync(WYSTRZAL)) {
+  const tresc = kod(readFileSync(WYSTRZAL, "utf8"));
+  const obsluga = cialoMetody(tresc, "obsluz");
+  if (null === obsluga) {
+    bledy.push(`${WYSTRZAL}: nie znalazłem metody obsluz() — reguła o wykluczeniu administratora nie ma czego sprawdzić i milczy.`);
+  } else if (!/if\s*\(\s*current_user_can\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/.test(obsluga)) {
+    bledy.push(
+      `${WYSTRZAL}: obsluz() nie odmawia administratorowi (D3, B4). Beacon z karty otwartej przed zalogowaniem przypisałby odsłonę komuś, kogo z założenia nie mierzymy — a ekran obiecuje ruch KLIENTÓW, nie własny.`
     );
   }
 }
@@ -214,14 +256,21 @@ if (existsSync(POMIAR)) {
       `${POMIAR}: nie znalazłem metody mierzymy() — to jedyne miejsce, które rozstrzyga, KTO dostaje skrypt pomiaru. Bez niej reguła nie ma czego sprawdzać i milczy.`
     );
   } else {
-    if (!/current_user_can\s*\(/.test(decyzja)) {
+    /*
+     * OBA WYMAGANIA PYTAJĄ O ODMOWĘ, nie o obecność wywołania (B5
+     * z przeglądu T3). Zmierzone: `current_user_can( … );` bez `return
+     * false` i `$blad = is_404();` przechodziły na zielono — mechanizm
+     * był martwy, a strażnik zielony. Ósmy nawrót tej pułapki
+     * w projekcie.
+     */
+    if (!/if\s*\(\s*current_user_can\s*\([^)]*\)\s*\)\s*\{\s*return\s+false\s*;/.test(decyzja)) {
       bledy.push(
-        `${POMIAR}: mierzymy() nie pyta o uprawnienie (N8, D3). Administrator ma NIE być liczony — a skoro skrypt dostaje każdy, kto dostanie stronę, to jest jedyne miejsce, w którym da się go wykluczyć.`
+        `${POMIAR}: mierzymy() nie ODMAWIA administratorowi (N8, D3). Samo wywołanie \`current_user_can\` niczego nie rozstrzyga — ma z niego wynikać \`return false\`. Administrator ma NIE być liczony, a skoro skrypt dostaje każdy, kto dostanie stronę, to jest jedyne miejsce, w którym da się go wykluczyć.`
       );
     }
-    if (!/is_404\s*\(\s*\)/.test(decyzja)) {
+    if (!/if\s*\(\s*is_404\s*\(\s*\)\s*\)\s*\{\s*return\s+false\s*;/.test(decyzja)) {
       bledy.push(
-        `${POMIAR}: mierzymy() nie wyklucza strony 404 — a to nie jest oszczędność, tylko dziura w podpisie. Strona błędu renderuje się dla DOWOLNEGO adresu, więc podawanie tam skryptu rozdaje podpisy na ścieżki, których nie ma: wystarczy wejść na zmyślony adres, wziąć podpis ze źródła i zatruć nim listę najczęstszych stron.`
+        `${POMIAR}: mierzymy() nie ODMAWIA stronie 404 (samo wywołanie is_404() bez odmowy nie wyklucza niczego) — a to nie jest oszczędność, tylko dziura w podpisie. Strona błędu renderuje się dla DOWOLNEGO adresu, więc podawanie tam skryptu rozdaje podpisy na ścieżki, których nie ma: wystarczy wejść na zmyślony adres, wziąć podpis ze źródła i zatruć nim listę najczęstszych stron.`
       );
     }
   }

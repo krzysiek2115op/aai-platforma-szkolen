@@ -43,6 +43,7 @@
  * Użycie: node tools/smoke/smoke-wp-monitor.mjs
  */
 import { execFileSync } from "node:child_process";
+import net from "node:net";
 import { readFileSync } from "node:fs";
 import { migawkaDziennika, sprzatnijDziennik, ileWpisow } from "./dziennik.mjs";
 import { createRequire } from "node:module";
@@ -1026,8 +1027,27 @@ for (const [opis, opcje] of odrzuty) {
  * ~430 000 wierszy na dobę, a retencja po WIEKU ich nie rusza — wszystkie
  * są młodsze niż 400 dni. Nie wstawiamy ćwierć miliona wierszy: rozpychamy
  * AUTO_INCREMENT, bo sufit i tak mierzy ROZPIĘTOŚĆ identyfikatorów (pełny
- * `COUNT(*)` przy każdym beaconie byłby droższy niż sam zapis). */
+ * `COUNT(*)` przy każdym beaconie byłby droższy niż sam zapis).
+ *
+ * TABELA WRACA DO STANU ZASTANEGO i to NIE jest ostrożność na wyrost.
+ * Pierwsza wersja tego bloku nie robiła kopii, a sufit z definicji ścina
+ * NAJSTARSZE wiersze — więc kasowała wszystko, co powstało wcześniej w tym
+ * przebiegu, i wszystko, co zastała na instalacji. Skutek uboczny był
+ * gorszy niż sama strata: końcowy rachunek sumienia przestawał cokolwiek
+ * znaczyć, bo tabela była już pusta. Zmierzone — po zdjęciu sprzątania
+ * wizyt bramka DALEJ świeciła na zielono. Ta sama klasa co znalezisko
+ * z P5: rachunek liczący własne ślady nie widzi, że zabrał cudze.
+ */
 {
+  const kopia = phpEval(
+    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " $wpdb->query( \"DROP TABLE IF EXISTS `{$t}_kopia_smoke`\" );" +
+      " $wpdb->query( \"CREATE TABLE `{$t}_kopia_smoke` LIKE `{$t}`\" );" +
+      " $wpdb->query( \"INSERT INTO `{$t}_kopia_smoke` SELECT * FROM `{$t}`\" );" +
+      " echo (int) $wpdb->get_var( \"SELECT COUNT(*) FROM `{$t}_kopia_smoke`\" );"
+  ).stdout.trim();
+  sprawdz(/^\d+$/.test(kopia), `nie udało się odłożyć kopii tabeli ruchu („${kopia}”) — bez niej ten pomiar skasowałby zastane wiersze`);
+
   const wynik = phpEval(
     "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
       " $sufit = Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT;" +
@@ -1035,15 +1055,105 @@ for (const [opis, opcje] of odrzuty) {
       " $stary = (int) $wpdb->get_var( \"SELECT MAX(id) FROM `{$t}`\" );" +
       " $skok = $stary + $sufit + 100; $wpdb->query( \"ALTER TABLE `{$t}` AUTO_INCREMENT = {$skok}\" );" +
       " Aai_Monitor_Zapis::dodaj_wizyte( array( 'odslona' => str_repeat('b',32), 'sesja' => str_repeat('2',32), 'sciezka' => '/sufit-nowy/', 'trwanie_ms' => 1000, 'wiek_ms' => 2000 ) );" +
-      " $zostalo = $wpdb->get_col( \"SELECT sciezka FROM `{$t}` WHERE sciezka LIKE '/sufit-%' ORDER BY id\" );" +
-      " $wpdb->query( \"DELETE FROM `{$t}` WHERE sciezka LIKE '/sufit-%'\" );" +
-      " $max = (int) $wpdb->get_var( \"SELECT COALESCE(MAX(id),0) FROM `{$t}`\" ) + 1;" +
-      " $wpdb->query( \"ALTER TABLE `{$t}` AUTO_INCREMENT = {$max}\" );" +
-      " echo implode( ',', $zostalo );"
+      " echo implode( ',', $wpdb->get_col( \"SELECT sciezka FROM `{$t}` ORDER BY id\" ) );"
   ).stdout.trim();
   sprawdz(
     wynik === "/sufit-nowy/",
-    `sufit liczby wierszy nie ściął najstarszego wiersza (w tabeli zostało: „${wynik}”) — tabela ruchu rośnie bez granicy, a kafelki ekranu liczą ją bez okna czasu (A2)`
+    `sufit liczby wierszy nie ściął najstarszych wierszy (zostało: „${wynik}”) — tabela ruchu rośnie bez granicy, a kafelki ekranu liczą ją bez okna czasu (A2)`
+  );
+
+  // Przywracamy stan zastany CO DO WIERSZA, razem z licznikiem
+  // identyfikatorów — inaczej kolejne bloki dostawałyby id z kosmosu.
+  const przywrocone = phpEval(
+    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " $wpdb->query( \"DELETE FROM `{$t}`\" );" +
+      " $wpdb->query( \"INSERT INTO `{$t}` SELECT * FROM `{$t}_kopia_smoke`\" );" +
+      " $wpdb->query( \"DROP TABLE `{$t}_kopia_smoke`\" );" +
+      " $max = (int) $wpdb->get_var( \"SELECT COALESCE(MAX(id),0) FROM `{$t}`\" ) + 1;" +
+      " $wpdb->query( \"ALTER TABLE `{$t}` AUTO_INCREMENT = {$max}\" );" +
+      " echo (int) $wpdb->get_var( \"SELECT COUNT(*) FROM `{$t}`\" );"
+  ).stdout.trim();
+  sprawdz(
+    przywrocone === kopia,
+    `po pomiarze sufitu tabela ruchu ma ${przywrocone} wierszy zamiast zastanych ${kopia} — pomiar zabrał cudze dane`
+  );
+}
+
+/* 10c7. BEACON ADMINISTRATORA NIE TWORZY WIERSZA (D3, B4).
+ *
+ * Skryptu administrator nie dostaje (blok 10h), ale to za mało: beacon
+ * może przyjść z karty otwartej PRZED zalogowaniem. Do przeglądu T3 tej
+ * gałęzi nie mierzyło NIC — bramka nigdy nie wysyłała beaconu jako
+ * administrator, a mutacja kasująca ją przechodziła też u strażnika. */
+{
+  const adminBeacon = sesja();
+  const zalogowany = await adminBeacon.zaloguj("admin", HASLA.WP_ADMIN_HASLO ?? "");
+  sprawdz(zalogowany, "nie udało się zalogować administratora — sprawdzenie B4 nie ma czego mierzyć");
+  if (zalogowany) {
+    const przed = ileWizyt();
+    const kod = await beacon({ ciastka: adminBeacon.naglowekCiastek() });
+    sprawdz(ileWizyt() === przed, "beacon administratora utworzył wiersz — jego odsłony mają NIE być liczone (D3)");
+    sprawdz(kod === 204, `odrzut beaconu administratora zdradził się kodem ${kod} — ma być nieodróżnialny od przyjęcia`);
+  }
+}
+
+/* 10c8. CIAŁO PONAD SUFIT BEZ DEKLARACJI DŁUGOŚCI (B6).
+ *
+ * Blok sita wyżej mierzy gałąź „za duży content-length” — czyli
+ * DEKLARACJĘ klienta. Prawdziwym zabezpieczeniem jest sufit przy odczycie
+ * strumienia, a tamta gałąź go nie dotyka. Żądanie `Transfer-Encoding:
+ * chunked` nie niesie deklaracji w ogóle: zmierzone, że DOCHODZI do PHP
+ * (204). Piszemy je gniazdem, bo `fetch` nie wyśle żądania bez
+ * `content-length`.
+ *
+ * CZEGO TEN POMIAR NIE DOWODZI — i to jest ważniejsze niż to, co dowodzi.
+ * Zmierzone testem negatywnym: po zdjęciu odrzutu ciała ponad sufit
+ * bramka DALEJ świeci na zielono, bo obcięte ciało przestaje być poprawnym
+ * JSON-em i beacon i tak przepada. Sufit chroni więc PAMIĘĆ, a nie
+ * poprawność — a pamięci nie da się zmierzyć z zewnątrz jednym żądaniem.
+ * Tę połowę pilnuje strażnik (reguła 14: sufit MUSI stać przy `fread`
+ * i po odczycie), sprawdzony dwiema mutacjami. Zostawiamy asercję
+ * zachowania — ona dowodzi, że ta droga w ogóle jest zamknięta — i mówimy
+ * wprost, gdzie leży jej granica. */
+{
+  const przed = ileWizyt();
+  const ladunek = JSON.stringify({
+    odslona: nowaOdslona(),
+    sciezka: SCIEZKA_A,
+    podpis: podpisz(SCIEZKA_A),
+    bramka: 0,
+    sesja: SESJA_TESTOWA,
+    trwanie_ms: 1000,
+    wiek_ms: 2000,
+    x: "y".repeat(2000),
+  });
+  const adres = new URL(ADRES);
+  const kod = await new Promise((gotowe) => {
+    const gniazdo = net.connect(Number(adres.port || 80), adres.hostname, () => {
+      gniazdo.write(
+        `POST /wp-admin/admin-post.php?action=${AKCJA} HTTP/1.1\r\n` +
+          `Host: ${adres.host}\r\ncontent-type: application/json\r\norigin: ${ADRES}\r\n` +
+          "transfer-encoding: chunked\r\nconnection: close\r\n\r\n"
+      );
+      const bajty = Buffer.from(ladunek);
+      for (let k = 0; k < bajty.length; k += 500) {
+        const kawalek = bajty.subarray(k, k + 500);
+        gniazdo.write(`${kawalek.length.toString(16)}\r\n`);
+        gniazdo.write(kawalek);
+        gniazdo.write("\r\n");
+      }
+      gniazdo.write("0\r\n\r\n");
+    });
+    gniazdo.once("data", (dane) => {
+      gotowe(Number(String(dane).split(" ")[1] ?? 0));
+      gniazdo.destroy();
+    });
+    gniazdo.once("error", () => gotowe(0));
+  });
+  sprawdz(kod === 204, `żądanie chunked dostało kod ${kod} zamiast 204 — jeśli to 400, serwer odrzucił je przed PHP i ten pomiar nie dotyka naszego sufitu`);
+  sprawdz(
+    ileWizyt() === przed,
+    "ciało ponad sufit przeszło, bo nie zadeklarowało długości — sufit przy odczycie strumienia jest jedyną tamą na tej drodze (B6)"
   );
 }
 
@@ -1294,10 +1404,34 @@ async function przelot({ udawajCzlowieka, powrotZBfcache = false }) {
 {
   const admin = sesja();
   if (await admin.zaloguj("admin", HASLA.WP_ADMIN_HASLO ?? "")) {
-    const html = await (await admin.pobierz("/wp-admin/admin.php?page=aai-monitor&okno=30")).text();
-    sprawdz(html.includes("aai-monitor-okno-wybrane"), "ekran nie zaznacza wybranego okna ruchu");
-    sprawdz(html.includes(SCIEZKA_B) || html.includes(SCIEZKA_A), "sekcja Ruch nie pokazuje ani jednej ścieżki, choć w tabeli są wiersze");
-    sprawdz(!html.includes("&amp;quot;"), "ekran drukuje podwójnie uciekany cudzysłów — klient zobaczy encję zamiast znaku");
+    /*
+     * PYTAMY, KTÓRE okno jest zaznaczone (B7 z przeglądu T3). Poprzednia
+     * wersja pytała o samą obecność klasy — a ta jest w HTML zawsze, bo
+     * zaznaczone jest zawsze któreś. Zmierzone: przy `okno=999` ekran
+     * wraca do „dziś” i asercja dalej przechodziła, czyli nie mierzyła
+     * przełącznika w ogóle.
+     */
+    const zaznaczone = async (zapytanie) => {
+      const html = await (await admin.pobierz(`/wp-admin/admin.php?page=aai-monitor${zapytanie}`)).text();
+      const m = html.match(/class="aai-monitor-okno-wybrane"[^>]*>([^<]*)</);
+      return m ? m[1].trim() : "";
+    };
+    /*
+     * `ekran30` jest tu WŁASNĄ zmienną, a nie zapożyczoną z zewnątrz.
+     * Przy pierwszym podejściu do B7 zabrałem stąd deklarację `html`
+     * i dwie następne asercje zaczęły po cichu czytać `html` z bloku
+     * o piętro wyżej — czyli stronę frontu zamiast ekranu monitoringu.
+     * Objaw wyglądał jak błąd danych („sekcja Ruch nie pokazuje ścieżek”),
+     * a był błędem zakresu.
+     */
+    const ekran30 = await (await admin.pobierz("/wp-admin/admin.php?page=aai-monitor&okno=30")).text();
+    const okno30 = await zaznaczone("&okno=30");
+    sprawdz(okno30 === "30 dni", `przy okno=30 ekran zaznacza „${okno30}” zamiast „30 dni” — przełącznik pokazuje inne okno, niż liczy sekcja`);
+    sprawdz((await zaznaczone("&okno=7")) === "7 dni", "przy okno=7 ekran zaznacza inne okno niż siedem dni");
+    sprawdz((await zaznaczone("")) === "dziś", "bez parametru ekran nie zaznacza „dziś” — a to jest okno, które wtedy liczy");
+    sprawdz((await zaznaczone("&okno=999")) === "dziś", "przy nieznanym oknie ekran nie wraca do „dziś” — pokazywałby liczby jednego okna przy zaznaczeniu innego");
+    sprawdz(ekran30.includes(SCIEZKA_B) || ekran30.includes(SCIEZKA_A), "sekcja Ruch nie pokazuje ani jednej ścieżki, choć w tabeli są wiersze");
+    sprawdz(!ekran30.includes("&amp;quot;"), "ekran drukuje podwójnie uciekany cudzysłów — klient zobaczy encję zamiast znaku");
 
     const zlosliwa = "/szkolenia/<script>alert(1)</script>/";
     phpEval(

@@ -44,6 +44,7 @@
  *   9. i ma z tego rachunek sumienia. To on ujawnił, że test retencji
  *      w smoke'u monitoringu cofał czas CUDZEMU wierszowi (MIN(id))
  *      i oddawał go retencji do skasowania;
+ *  12. bramka tworząca WIZYTY sprząta je i rozlicza się z nich (B9);
  *  11. nikt nie kasuje tabel monitoringu HURTOWO — odpowiednik reguły 1
  *      dla dziennika, którego brakowało: `TRUNCATE` ani `DELETE FROM`
  *      bez `WHERE` na `aai_monitor_*`,
@@ -103,6 +104,73 @@ function porownujeWynik(tresc, nazwa) {
     if (/^\s*(?:===|!==|==|!=)/.test(tresc.slice(i + 1))) return true;
   }
   return false;
+}
+
+/**
+ * Czy plik ROZLICZA SIĘ ze stanu odczytanego którymś z podanych odczytów.
+ *
+ * `porownujeWynik` wyżej wymaga porównania WPROST przy wywołaniu
+ * (`ileWpisow(php) === x`). Rozliczenie bywa jednak dwuetapowe: wynik
+ * ląduje w zmiennej, a porównanie jest linijkę dalej, w `sprawdz()`.
+ * Obie postaci są poprawne, więc pytamy o jedną albo drugą — ale zawsze
+ * o PORÓWNANIE, nigdy o samą obecność wywołania (to była ślepota, którą
+ * wykrył test negatywny reguły 9).
+ *
+ * @param {string} tresc Kod bramki bez komentarzy.
+ * @param {string[]} nazwy Nazwy funkcji odczytujących stan.
+ */
+function rozliczaSie(tresc, nazwy) {
+  for (const nazwa of nazwy) {
+    if (porownujeWynik(tresc, nazwa)) return true;
+    for (const przypisanie of tresc.matchAll(new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*${nazwa}\\s*\\(`, "g"))) {
+      const zmienna = przypisanie[1];
+      if (new RegExp(`sprawdz\\(\\s*${zmienna}\\s*(?:===|!==|==|!=)|(?:===|!==|==|!=)\\s*${zmienna}\\s*[,)]`).test(tresc)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Pozycja OSTATNIEGO kasowania wierszy z tabeli ruchu (-1, gdy go nie ma).
+ *
+ * @param {string} tresc Kod bramki bez komentarzy.
+ */
+function pozycjaKasowaniaWizyt(tresc) {
+  let ostatnia = -1;
+  for (const trafienie of tresc.matchAll(/DELETE\s+FROM/gi)) {
+    const okno = tresc.slice(Math.max(0, trafienie.index - 300), trafienie.index + 300);
+    if (/wizyty/.test(okno)) ostatnia = trafienie.index;
+  }
+  return ostatnia;
+}
+
+/**
+ * Pozycja asercji, która PORÓWNUJE stan odczytany jedną z podanych funkcji.
+ *
+ * Interesuje nas OSTATNIE takie porównanie — rachunek sumienia stoi na
+ * końcu przebiegu, po sprzątaniu. Liczy się zarówno porównanie wprost przy
+ * wywołaniu, jak i przez zmienną (obie postaci są poprawne), ale zawsze
+ * PORÓWNANIE: sama obecność wywołania niczego nie dowodzi.
+ *
+ * @param {string} tresc Kod bramki bez komentarzy.
+ * @param {string[]} nazwy Nazwy funkcji odczytujących stan.
+ */
+function pozycjaRozliczenia(tresc, nazwy) {
+  let ostatnia = -1;
+  for (const nazwa of nazwy) {
+    for (const przypisanie of tresc.matchAll(new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*${nazwa}\\s*\\(`, "g"))) {
+      const zmienna = przypisanie[1];
+      for (const uzycie of tresc.matchAll(new RegExp(`sprawdz\\(\\s*${zmienna}\\s*(?:===|!==|==|!=)`, "g"))) {
+        if (uzycie.index > ostatnia) ostatnia = uzycie.index;
+      }
+    }
+    for (const uzycie of tresc.matchAll(new RegExp(`sprawdz\\(\\s*${nazwa}\\s*\\([^)]*\\)\\s*(?:===|!==|==|!=)`, "g"))) {
+      if (uzycie.index > ostatnia) ostatnia = uzycie.index;
+    }
+  }
+  return ostatnia;
 }
 
 /* ── 1. nikt nie kasuje skrzynki hurtowo ─────────────────────────────── */
@@ -371,6 +439,77 @@ for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
         "przed przebiegiem i po nim, a druga wartość trafić do asercji. Bez porównania sprzątanie jest " +
         "deklaracją: tak samo wyglądałby smoke, który kasuje CUDZE wiersze, i taki, który nie kasuje nic. " +
         "Właśnie tak wyszło na jaw, że test retencji kasował cudzy wpis wybrany przez MIN(id)."
+    );
+  }
+}
+
+/* ── 12. bramka tworząca WIZYTY sprząta je i rozlicza się z nich ─────── */
+
+/*
+ * Od kroku T3 istnieje druga tabela, którą bramka może zaśmiecić: ruch.
+ * Reguły 8–10 wyżej pilnują wyłącznie DZIENNIKA LOGOWAŃ — B9 z przeglądu
+ * T3, potwierdzone: w tym pliku nie było ani jednego wystąpienia słowa
+ * „wizyty”.
+ *
+ * DZIŚ ŻADNA INNA BRAMKA WIZYT NIE TWORZY i to jest zmierzone (przelot
+ * czternastu bramek, AUTO_INCREMENT 150 → 150): skrypt pomiaru wyłącza się
+ * przy `navigator.webdriver`, a tę flagę nadpisuje wyłącznie
+ * `smoke-wp-monitor`. Reguła jest więc profilaktyką — ale dokładnie taką,
+ * jakiej zabrakło przy P5, gdzie rachunek sumienia liczący tylko WŁASNE
+ * ślady przepuścił zniszczenie 18 cudzych wpisów w Tutorze. Pierwszy rig,
+ * który nadpisze tę flagę „żeby zmierzyć wygląd”, zacznie zawyżać ruch
+ * właściciela i nikt go do sprzątania nie zmusi.
+ *
+ * ROZPOZNAJEMY PO ZACHOWANIU, nie po nazwie pliku: nadpisanie flagi
+ * automatu albo żądanie do akcji wystrzału. Nowa bramka wpada pod regułę
+ * sama.
+ */
+const TWORZY_WIZYTY = /navigator\s*,\s*["']webdriver["']|["']webdriver["']\s*,\s*\{|aai_monitor_wizyta/;
+
+for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
+  const tresc = kod(plik);
+  const nazwa = plik.replace(KORZEN + "/", "");
+  if (!TWORZY_WIZYTY.test(tresc)) continue;
+
+  // Migawka: stan tabeli ruchu odczytany PRZED przebiegiem. Bez niej
+  // sprzątanie nie ma granicy i zabiera cudze wiersze z okna przebiegu.
+  if (!/tabela\(\s*['"]wizyty['"]\s*\)/.test(tresc)) {
+    bledy.push(
+      `${nazwa}: tworzy wiersze w tabeli ruchu (nadpisuje flagę automatu albo woła akcję wystrzału), ale nigdzie tej tabeli nie czyta — więc ani nie sprząta po sobie, ani nie wie, ile zostawiła. Odsłony bramek zawyżałyby ruch na ekranie właściciela.`
+    );
+    continue;
+  }
+
+  const kasuje = /DELETE\s+FROM[^;]*\{\$w\}[^;]*WHERE|DELETE FROM \\`\{\$w\}\\`[^;]*WHERE|wizyty[\s\S]{0,200}?DELETE[\s\S]{0,200}?WHERE/i.test(tresc);
+  if (!kasuje) {
+    bledy.push(
+      `${nazwa}: czyta tabelę ruchu, ale nie kasuje z niej własnych wierszy z granicą (WHERE po migawce). Sprzątanie bez granicy jest gorsze niż jego brak — zabiera wiersze, które powstały w oknie przebiegu, a nie należą do bramki.`
+    );
+  }
+
+  /*
+   * ROZLICZENIE MUSI STAĆ PO SPRZĄTANIU — i tego pilnujemy POZYCJĄ,
+   * nie obecnością porównania.
+   *
+   * Pierwsza wersja tej reguły pytała, czy gdziekolwiek w pliku wynik
+   * odczytu tabeli ruchu jest z czymś porównywany — i była ŚLEPA, co
+   * wykrył jej własny test negatywny: bramka ma dziesiątki asercji
+   * `ileWizyt() === przed + 1` W ŚRODKU testów, więc warunek spełniał
+   * się zawsze, także po skasowaniu KOŃCOWEGO rachunku sumienia.
+   * A to właśnie rachunek końcowy odpowiada na pytanie „czy zostawiłam
+   * po sobie cudze wiersze”.
+   */
+  const posSprzatania = pozycjaKasowaniaWizyt(tresc);
+  const posWyjscia = tresc.lastIndexOf("process.exit(1)");
+  const posRozliczenia = pozycjaRozliczenia(tresc, ["liczniki", "ileWizyt"]);
+
+  if (posRozliczenia < 0 || (posSprzatania >= 0 && posRozliczenia < posSprzatania)) {
+    bledy.push(
+      `${nazwa}: sprząta tabelę ruchu, ale nie ROZLICZA się z niej PO sprzątaniu — stan musi być odczytany przed przebiegiem i po nim, a druga wartość trafić do asercji stojącej ZA kasowaniem. Bez tego sprzątanie jest deklaracją: tak samo wygląda bramka, która kasuje CUDZE wiersze, i taka, która nie kasuje nic. Właśnie taki rachunek — liczący CAŁĄ tabelę, nie własne ślady — wykrył przy P5 skasowanie 18 cudzych wpisów w Tutorze.`
+    );
+  } else if (posWyjscia >= 0 && posRozliczenia > posWyjscia) {
+    bledy.push(
+      `${nazwa}: rozliczenie z tabeli ruchu stoi ZA blokiem kończącym przebieg (process.exit(1)) — jest MARTWE. Bramka wydrukuje „OK” i wyjdzie z kodem 0, choć zostawiła wiersze.`
     );
   }
 }
