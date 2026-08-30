@@ -2672,8 +2672,57 @@ wyprowadzała tego od nowa:
         **ŚRODOWISKO `:8892` ZOSTAJE CZYSTE:** tabele monitoringu puste,
         kontrola kod 0, konto `klient-test` (NIE kasować — potrzebne
         bramkom).
-        **PRZEGLĄD ZROBIONY (2026-08-30) — 21 ZNALEZISK, NAPRAWY PRZED
-        NAMI. CZYTAĆ: [docs/plugin-3/PRZEGLAD-T3.md](docs/plugin-3/PRZEGLAD-T3.md)**
+        **PRZEGLĄD ZROBIONY, NAPRAWY WYKONANE (2026-08-31) — 21 znalezisk,
+        20 potwierdzonych uruchomieniowo, JEDNO OBALONE (B3: asercja na
+        `wejscie` istniała od T3). Cztery tury, cztery commity, każdy
+        z testami negatywnymi. Werdykt KAŻDEGO znaleziska i podsumowanie:
+        [docs/plugin-3/PRZEGLAD-T3.md](docs/plugin-3/PRZEGLAD-T3.md)**;
+        pełnia zmian: CHANGELOG 0.57.0, sekcja „Naprawy z przeglądu T3".
+        **NAJWAŻNIEJSZE, CZEGO NIE WYPROWADZAĆ OD NOWA:**
+        (a) **czas aktywny** — skrypt wysyła beacon przy KAŻDYM zniknięciu
+        karty, a jeden wiersz na odsłonę robi kolumna `odslona` (32 hex)
+        z UNIQUE; wartości rosną monotonicznie w SQL-u (`GREATEST`/`LEAST`),
+        bo `sendBeacon` nie obiecuje kolejności dostarczenia;
+        (b) **limiter** ma okno KOTWICZONE do pełnej minuty zegara
+        (`set_transient` odnawia TTL, więc okno liczone od pierwszego
+        żądania nie kończy się nigdy) i liczy WYŁĄCZNIE beacony przyjęte;
+        (c) **dwa sufity, różne zachowanie**: czas czytania przycinamy
+        (4 h), wiek odsłony ponad 30 dni ODRZUCAMY — przycięty wiek to
+        zmyślona godzina wejścia;
+        (d) **kolumna `bramka`** i filtr `aai_monitor_strona_za_bramka`:
+        monitoring nie wie, co jest bramką logowania — odpowiada widok
+        lekcji Pluginu 1, a flaga jedzie w PODPISYWANYM materiale, więc
+        jest niepodrabialna;
+        (e) **sól podpisu** powstaje zapisem pustym przy konflikcie, NIE
+        przez `add_option()` (ten pisze `INSERT … ON DUPLICATE KEY UPDATE`
+        i kasuje sól zwycięzcy, unieważniając podpisy stron już wysłanych
+        do przeglądarek);
+        (f) **kontrola świeci kod 1**, gdy `admin_url()` i `home_url()`
+        mają różne pochodzenie (beacon jedzie wtedy cross-origin i nie
+        zapisuje się ANI RAZU, bez innego objawu).
+        **SZEŚĆ BŁĘDÓW POWSTAŁO W SAMYCH NAPRAWACH**, wszystkie złapane
+        testami negatywnymi: dwie ślepe reguły strażnika, blok pomiaru
+        kasujący CUDZE wiersze (przez co rachunek sumienia przestawał
+        cokolwiek znaczyć), poprawka zabierająca istniejącym asercjom ich
+        zmienną, martwa asercja przez `ob_start()` (bo `WP_CLI::error()`
+        KOŃCZY PROCES — ta sama pułapka zafałszowała wcześniej moją sondę)
+        i **dziewiąty nawrót pułapki „wzorzec na napis"**, tym razem
+        w regule napisanej PO opisaniu jej w tym samym przeglądzie.
+        **PUŁAPKA PRACY, DWA RAZY W JEDNEJ SESJI:** kopia zapasowa pliku
+        zrobiona w KOLEJNEJ turze testów negatywnych jest już kopią wersji
+        ZMUTOWANEJ, a `git checkout --` użyty do przywracania kasuje
+        niezacommitowaną pracę. Przywracaj z kopii zrobionej PRZED pierwszą
+        mutacją i sprawdzaj stan `git diff`, nie pamięcią.
+        Stan dowodów: `npm run check` kod 0, strażnicy **37/37**, audyt
+        mutacyjny **288**, `smoke-wp-monitor` **170**, czternaście bramek WP
+        zielonych, proza 73/73, kopia w Tutorze 0 różnic.
+        **ZOSTAJE OTWARTE ŚWIADOMIE:** A11 — na hostingu z cache'em stron
+        każda odsłona to dodatkowy, niebuforowalny przebieg PHP (~45–50 ms);
+        decyzja właściciela: pozycja wdrożeniowa, kodu nie ruszamy.
+        **NASTĘPNY KROK: PR gałęzi `feat/t3-timer-wizyt` do `main` + tag
+        `v0.57.0` + release, potem T4 — test ręczny właściciela** (wzorzec:
+        [docs/plugin-2/TEST-RECZNY-P6.md](docs/plugin-2/TEST-RECZNY-P6.md)).
+        Zapis historyczny (stan przed naprawami):
         (raporty obu recenzentów, dowody uruchomieniowe, plan napraw
         w czterech turach, cztery pytania do właściciela).
         **DECYZJA WŁAŚCICIELA (2026-08-30): kolejność to `/clear` →

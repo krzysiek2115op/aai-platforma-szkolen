@@ -5,7 +5,95 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
-## [0.57.0] — 2026-08-30
+## [0.57.0] — 2026-08-31
+
+### Naprawy z przeglądu T3 (2026-08-31)
+
+**Przegląd pary agent+krytyk dał 21 znalezisk; dwadzieścia potwierdzono
+URUCHOMIENIOWO, jedno obalono.** Naprawy w czterech turach, każda z testami
+negatywnymi. Werdykt każdego znaleziska:
+[docs/plugin-3/PRZEGLAD-T3.md](docs/plugin-3/PRZEGLAD-T3.md).
+
+**Złe dane (tura 1):**
+
+- **Czas aktywny urywał się przy pierwszym przełączeniu karty** — 1500 ms
+  + przerwa + 4000 ms dawało w bazie `trwanie_ms = 1559`, choć ekran
+  obiecuje „ile realnie czytali". Skrypt wysyła teraz beacon przy KAŻDYM
+  zniknięciu karty, a jeden wiersz na odsłonę robi nowa kolumna `odslona`
+  (32 hex) ze swoim UNIQUE. Po naprawie: 5530 ms, jeden wiersz. Czas
+  i moment wejścia zmieniają się MONOTONICZNIE w SQL-u (`GREATEST`,
+  `LEAST`), bo `sendBeacon` niczego nie obiecuje o kolejności dostarczenia.
+- **Limiter nie był limitem „na minutę", tylko kumulacyjnym** —
+  `set_transient` odnawia TTL przy każdym zapisie, więc okno nie kończyło
+  się nigdy, dopóki przerwy były krótsze niż minuta (zmierzone: dwa beacony
+  w odstępie 5 s przesunęły koniec okna o 5 s). Za wspólnym adresem jeden
+  zapętlony klient gasił pomiar CAŁEJ witryny, przy kontroli kod 0. Okno
+  jest kotwiczone do pełnej minuty zegara, a licznik rośnie WYŁĄCZNIE
+  o beacony przyjęte — trzy odrzucone podnosiły go wcześniej do 3.
+- **Sufit 4 h przesuwał MOMENT WEJŚCIA** — `wiek_ms` = 9 h dawał wejście
+  „4 h temu", czyli wizytę w złej godzinie, a przy oknie „dziś" w złej
+  dobie. Sufity są dwa i robią co innego: czas czytania PRZYCINAMY przy
+  4 h, wiek ponad 30 dni ODRZUCAMY — przycięty wiek to zmyślony znacznik
+  czasu, a nie niedokładność.
+- **Strony bramki logowania liczyły się jako przeczytane lekcje** — gość na
+  płatnej lekcji dostaje HTTP 200, skrypt pomiaru i zero prozy. Doszła
+  kolumna `bramka`, a jej wartość wchodzi **do podpisywanego materiału**,
+  więc beacon z podniesioną albo zdjętą flagą jest odrzucany. Odbicia
+  zostają w tabeli (to jedyny ślad po kimś, kto chciał wejść i nie mógł),
+  ale mają własną liczbę i własną listę. Monitoring nie wie, co jest
+  bramką: pyta filtrem `aai_monitor_strona_za_bramka`, a odpowiada widok
+  lekcji Pluginu 1.
+- **Kafelki liczyły całą historię, sekcja pod nimi wybrane okno** — przy
+  identycznym napisie „Odsłony". Kafelki mówią teraz „łącznie".
+
+**Odporność (tura 2):** sufit **250 000 wierszy** w retencji ruchu
+(decyzja właściciela: sufit tak, deduplikacja nie — nie zmieniamy znaczenia
+liczb); handler na cudzym haku bez deklaracji typu (`do_action( …, null )`
+rzucało TypeError PRZY WYWOŁANIU, poza zasięgiem `try`, i kładło cały
+kokpit — sama wartość domyślna NIE wystarcza); liczba przysłana jako
+łańcuch przestaje cicho stawać się zerem; sito pochodzenia zawodzi na
+zamknięto.
+
+**Dowody, które były pozorne (tura 3):** cztery reguły strażnika pytały
+o OBECNOŚĆ NAZWY zamiast o rozstrzygnięcie (mutacje przechodziły na
+zielono); wykluczenia administratora w wystrzale nie pilnowało NIC; asercja
+o oknie ruchu przechodziła dla dowolnego okna; `straznik-higieny-smokow`
+nie znał tabeli ruchu.
+
+**Nieprawdy w kodzie (tura 4):** sól podpisu powstaje zapisem, który NIE
+nadpisuje — `add_option()` pisze `INSERT … ON DUPLICATE KEY UPDATE`, więc
+przy wyścigu kasował sól zwycięzcy, a jego strony były już w przeglądarkach
+z podpisami liczonymi starą wartością; komentarz przy sprzątaniu wizyt
+mówił o znaczniku, którego bramka nie używa (klasa BLAD-018).
+
+**Decyzja właściciela (2026-08-30) wykonana:** kontrola porównuje
+pochodzenie kokpitu (`admin_url()`) z pochodzeniem witryny (`home_url()`)
+i **świeci kodem 1** przy różnicy — rozjazd czyni beacon żądaniem
+cross-origin (403 na preflighcie, zero zapisów) przy kontroli meldującej
+„w porządku".
+
+**SZEŚĆ BŁĘDÓW POWSTAŁO W SAMYCH NAPRAWACH** i wszystkie wyszły z testów
+negatywnych, nie z lektury: dwie ślepe reguły strażnika (jedna szukała
+sygnatury w pliku rejestracji zamiast w klasie, druga uznawała za
+rozliczenie każdą asercję w środku testu), blok pomiaru sufitu KASUJĄCY
+CUDZE WIERSZE (przez co końcowy rachunek sumienia przestawał cokolwiek
+znaczyć — po zdjęciu sprzątania bramka DALEJ świeciła na zielono), poprawka
+zabierająca dwóm istniejącym asercjom ich zmienną, martwa asercja łapiąca
+komunikat przez `ob_start()` mimo że `WP_CLI::error()` kończy proces, oraz
+**dziewiąty nawrót pułapki „wzorzec na napis"** — tym razem w regule
+napisanej PO opisaniu tej pułapki w tym samym przeglądzie.
+
+**Stan dowodów:** `npm run check` kod 0 (strażnicy **37/37**), audyt
+mutacyjny 273 → **288** (286 złapanych, 0 przeoczonych, 0 martwych),
+`smoke-wp-monitor` 129 → **170 sprawdzeń**, czternaście bramek WP zielonych
+(dane 30 · front 84 · tutor 44 · lekcja 39 · kreator 97 · panel 55 ·
+płatności 23 · produkty 85 · zakup 41 · zwroty 39 · maile 62 · język 25 ·
+motyw 91 · monitoring 170), proza **73/73 co do znaku**, kopia w Tutorze
+**0 różnic**, kontrola kod 0.
+
+---
+
+### Krok T3 — timer wizyt (2026-08-30)
 
 **Timer wizyt działa** — krok T3 zaakceptowanego schematu
 ([docs/plugin-3/DIAGRAM.md](docs/plugin-3/DIAGRAM.md)). Kontrola melduje
