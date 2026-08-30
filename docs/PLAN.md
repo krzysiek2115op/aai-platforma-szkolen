@@ -205,6 +205,44 @@ Wszystkie sześć pozycji zrobionych; odhaczone 2026-08-25 przy domykaniu moduł
   - `admin_users`, `admin_login_log` — **kto i kiedy logował się na konto admina**: data, czas, IP, user-agent, sukces/porażka;
   - `page_visits` — **„timer"**: wejście na stronę → zapis do bazy (ścieżka, timestamp wejścia, czas spędzony, sesja anonimowa) przez lekki endpoint `POST /api/szkolenia/track` (sendBeacon przy wyjściu ze strony).
 
+> **KOREKTA 2026-08-30 (decyzje właściciela) — NIE PISZEMY WŁASNEGO
+> LOGOWANIA ANI WŁASNYCH KONT.** Opis wyżej powstał przed decyzją
+> o WordPressie. Konta, role, sesje i hasła ma **WordPress** — druga kopia
+> haseł to druga powierzchnia ataku i drugi zbiór danych osobowych do
+> skasowania przy żądaniu RODO. Panel Pluginu 3 mieszka w **kokpicie WP**
+> (decyzja D1) i stoi na uprawnieniu `manage_options`, tak jak kreator.
+> Wtyczka nazywa się **`aai-monitor`**, nie „panel" — „panel" znaczy w tym
+> repo kreator.
+>
+> **Werdykt dla KAŻDEJ pozycji z listy wyżej** — żeby nic nie zostało
+> przemilczane zamiast świadomie odrzucone:
+>
+> | Pozycja | Werdykt |
+> |---|---|
+> | `/szkolenia/admin`, logowanie, sesje, hasło argon2 | **ODRZUCONE** — ma WordPress; ekran idzie do kokpitu (D1) |
+> | `admin_users` | **ODRZUCONE** — `wp_users` + role WordPressa |
+> | widok „sprzedaż / zamówienia" | **ODRZUCONE** (D4) — raporty ma WooCommerce; druga kopia tych liczb wymagałaby kontroli rozjazdu |
+> | widok „kursy i ich statusy" | **JUŻ ZROBIONE** w kroku W4: lista kreatora (`admin.php?page=aai-sklep`) |
+> | widok „ruch na podstronie" | **ZOSTAJE** → tabela `wizyty` |
+> | widok „logi" | **ZOSTAJE** → tabela `logowania` |
+> | `admin_login_log` | **ZOSTAJE** jako `logowania`, rozszerzone na WSZYSTKIE konta, nie tylko admina |
+> | `page_visits` | **ZOSTAJE** jako `wizyty` |
+> | baza `db3_monitoring` | **ZASTĄPIONE** — własne tabele z prefiksem w bazie WP (decyzja 2026-08-25) |
+> | `POST /api/szkolenia/track` + `sendBeacon` | **ZASTĄPIONE** akcją `admin-post.php` — tym samym kanałem, którym w tym projekcie idą wszystkie akcje |
+>
+> **Osobnej roli „redaktora kursów" NIE BĘDZIE** (decyzja właściciela
+> 2026-08-30, po pytaniu doprecyzowującym): właściciel jest jedynym
+> redaktorem, a osobna rola to uprawnienie, migracja, strażnik i mutacje
+> utrzymywane dla nikogo. Gdy pojawi się druga osoba, WordPress pozwala
+> nadać jej konto albo dorobić rolę wtedy.
+>
+> **Brute force ZOSTAJE W CHECKLIŚCIE, nie w tym module** (decyzja
+> właściciela 2026-08-30): dziennik logowań **rejestruje** próby, nikogo
+> nie blokuje. Decyzja o blokowaniu zapadnie, gdy dane pokażą, że problem
+> istnieje — patrz [KROK-2-ZABEZPIECZENIA.md](plugin-1/KROK-2-ZABEZPIECZENIA.md).
+>
+> Schemat modułu: [docs/plugin-3/DIAGRAM.md](plugin-3/DIAGRAM.md).
+
 ---
 
 ## 5. Workflow (ustalony z właścicielem)

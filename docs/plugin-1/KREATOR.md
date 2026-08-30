@@ -26,8 +26,12 @@ Token nie jest zapisany w JavaScripcie strony — siedzi w ciastku
 HttpOnly. Po zmianie tokenu w `.env` trzeba **zrestartować serwer**
 (`npm run dev`), bo zmienne środowiskowe czyta się przy starcie.
 
-Pełne logowanie (użytkownicy, hasła, role) da Plugin 3 — token to
-rozwiązanie na czas budowy.
+Token to rozwiązanie na czas budowy — **w prototypie Next.js**. We wtyczce
+WordPressa (od kroku W4) tokenu nie ma wcale: kreator stoi na koncie
+WordPressa i uprawnieniu `manage_options`. Wcześniej stało tu, że „pełne
+logowanie da Plugin 3"; to już nieprawda — użytkowników, hasła i role ma
+WordPress, konta klientów dowiózł Plugin 2 (WooCommerce), a **osobnej roli
+redaktora kursów świadomie nie będzie** (decyzja właściciela 2026-08-30).
 
 ## Stany kursu
 

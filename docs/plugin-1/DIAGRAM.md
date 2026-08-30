@@ -41,7 +41,7 @@ flowchart TB
     B5{{"B5: pełna strona z bazy, golden HTML,<br/>smoke test — OCENA WŁAŚCICIELA na localhost"}}
 
     subgraph D6["DZIAŁ 6 — Kreator kursów"]
-        d6[lista kursów + formularz tworzenia/edycji<br/>moduły, lekcje, sekcje sprzedażowe, okładka<br/>dostęp tymczasowo tokenem — pełny auth da Plugin 3]
+        d6[lista kursów + formularz tworzenia/edycji<br/>moduły, lekcje, sekcje sprzedażowe, okładka<br/>dostęp tymczasowo tokenem — docelowo konto WordPressa]
     end
     B6{{"B6: dodanie/edycja/usunięcie/publikacja działa end-to-end,<br/>każda operacja zostawia ślad w changelogu"}}
 

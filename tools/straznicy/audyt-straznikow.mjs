@@ -77,6 +77,12 @@ const MAILE_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-plat
 const USTAWIENIA_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php";
 const CLI_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php";
 
+const ZAPIS_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php";
+const ODCZYT_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-odczyt.php";
+const EKRAN_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-ekran.php";
+const CLI_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-cli.php";
+const TABELE_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-tabele.php";
+
 const MUTACJE = [
   // --- straznik-scenariuszy ---
   {
@@ -2736,6 +2742,160 @@ const MUTACJE = [
     oczekujCzerwonego: false,
     zmien: (s) =>
       s.includes("pocztyPrzed") ? s.replaceAll("pocztyPrzed", "stanSkrzynkiA").replaceAll("pocztyPo", "stanSkrzynkiB") : null,
+  },
+  /* ————————————— PLUGIN 3 — monitoring (krok T1) ————————————— */
+  //
+  // Osiem niezmienników strażnika monitoringu + domknięcie dziury
+  // w strażniku wspólnym, którą odsłoniło pisanie tej wtyczki.
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "ekran monitoringu dostaje akcję zapisu (admin-post) — przestaje być czystym odczytem (N1)",
+    plik: EKRAN_MONITORA,
+    wymaga: () => existsSync(EKRAN_MONITORA),
+    oczekiwanySlad: "akcja admin-post.php",
+    zmien: (s) =>
+      s.includes("add_action( 'admin_menu'")
+        ? s
+        : s.includes("public static function menu(): void {")
+          ? s.replace(
+              "public static function menu(): void {",
+              "public static function menu(): void {\n\t\tadd_action( 'admin_post_aai_monitor_zapisz', array( self::class, 'menu' ) );"
+            )
+          : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "kontrola sprawdz() zaczyna naprawiać: kasuje alarm zamiast go zgłosić (N16)",
+    plik: CLI_MONITORA,
+    wymaga: () => existsSync(CLI_MONITORA),
+    oczekiwanySlad: "sprawdz() zawiera zapis do opcji",
+    zmien: (s) =>
+      s.includes("$blad = Aai_Monitor_Komunikaty::ostatni();\n\t\tif ( '' !== $blad ) {")
+        ? s.replace(
+            "$blad = Aai_Monitor_Komunikaty::ostatni();\n\t\tif ( '' !== $blad ) {",
+            "$blad = Aai_Monitor_Komunikaty::ostatni();\n\t\tdelete_option( 'aai_monitor_blad' );\n\t\tif ( '' !== $blad ) {"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "klasa odczytu zaczyna pisać do opcji przy renderowaniu ekranu (N16)",
+    plik: ODCZYT_MONITORA,
+    wymaga: () => existsSync(ODCZYT_MONITORA),
+    oczekiwanySlad: "klasa odczytu zawiera zapis do opcji",
+    zmien: (s) =>
+      s.includes("public static function podsumowanie(): array {")
+        ? s.replace(
+            "public static function podsumowanie(): array {",
+            "public static function podsumowanie(): array {\n\t\tupdate_option( 'aai_monitor_ostatni_podglad', time(), false );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "monitoring zaczyna pisać do cudzej mety (N14) — moduł, który miał tylko patrzeć",
+    plik: EKRAN_MONITORA,
+    wymaga: () => existsSync(EKRAN_MONITORA),
+    oczekiwanySlad: "zapis cudzej mety",
+    zmien: (s) =>
+      s.includes("$konto = get_userdata( $user_id );")
+        ? s.replace(
+            "$konto = get_userdata( $user_id );",
+            "update_user_meta( $user_id, 'aai_monitor_widziany', time() );\n\t\t\t$konto = get_userdata( $user_id );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "tabela wizyt dostaje kolumnę `ip` — anonimowy pomiar ruchu zamienia się w profilowanie (N7, D3)",
+    plik: TABELE_MONITORA,
+    wymaga: () => existsSync(TABELE_MONITORA),
+    oczekiwanySlad: 'tabela wizyt ma kolumnę „ip"',
+    zmien: (s) =>
+      s.includes("\t\t\t\tsciezka varchar(191) NOT NULL,\n\t\t\t\twejscie datetime NOT NULL,")
+        ? s.replace(
+            "\t\t\t\tsciezka varchar(191) NOT NULL,\n\t\t\t\twejscie datetime NOT NULL,",
+            "\t\t\t\tsciezka varchar(191) NOT NULL,\n\t\t\t\tip varchar(45) NOT NULL DEFAULT '',\n\t\t\t\twejscie datetime NOT NULL,"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "dziennik sięga po hasło z żądania — zapisywałby CZYM próbowano, nie tylko kto i skąd (N5)",
+    plik: ZAPIS_MONITORA,
+    wymaga: () => existsSync(ZAPIS_MONITORA),
+    oczekiwanySlad: "sięga po hasło z żądania",
+    zmien: (s) =>
+      s.includes("'login'     => self::przytnij(")
+        ? s.replace(
+            "'login'     => self::przytnij(",
+            "'agent'     => (string) ( $_POST['pwd'] ?? '' ),\n\t\t\t'login'     => self::przytnij("
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "catch ( Throwable ) w warstwie zapisu milknie — uszkodzona tabela udaje pustą listę (N15)",
+    plik: ZAPIS_MONITORA,
+    wymaga: () => existsSync(ZAPIS_MONITORA),
+    oczekiwanySlad: "bez zgłoszenia do kanału błędów",
+    zmien: (s) =>
+      s.includes("self::zglos( 'retencja nie zadziałała: ' . $e->getMessage() );")
+        ? s.replace(
+            "self::zglos( 'retencja nie zadziałała: ' . $e->getMessage() );",
+            "unset( $e );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "ekran przestaje być drugim wyzwalaczem retencji — przy ciszy IP żyją dłużej niż 90 dni (P7)",
+    plik: EKRAN_MONITORA,
+    wymaga: () => existsSync(EKRAN_MONITORA),
+    oczekiwanySlad: "DRUGI wyzwalacz",
+    zmien: (s) =>
+      s.includes("\t\tAai_Monitor_Zapis::retencja();")
+        ? s.replace("\t\tAai_Monitor_Zapis::retencja();", "\t\t// sprzątanie i tak biegnie przy zapisie")
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "ekran przestaje pytać o czujki — pusta lista znowu nie odróżnia ciszy od awarii (P13)",
+    plik: EKRAN_MONITORA,
+    wymaga: () => existsSync(EKRAN_MONITORA),
+    oczekiwanySlad: "nie pyta o zameldowane czujki",
+    zmien: (s) =>
+      s.includes("\t\t$czujki = self::czujki();")
+        ? s.replace("\t\t$czujki = self::czujki();", "\t\t$czujki = array( 'logowania' => 'logowania' );")
+        : null,
+  },
+  {
+    // KONTRPRZYKŁAD: strażnik ma pilnować ZACHOWANIA, nie nazw. Przemianowanie
+    // metody kontroli i klasy pomocniczej niczego nie osłabia — ósmy nawrót
+    // pułapki „wzorzec na nazwę" nie może wejść do NOWEGO strażnika.
+    straznik: "straznik-monitora-wp",
+    opis: "kontrprzykład: przemianowanie zmiennych w warstwie zapisu niczego nie osłabia",
+    plik: ZAPIS_MONITORA,
+    wymaga: () => existsSync(ZAPIS_MONITORA),
+    oczekujCzerwonego: false,
+    zmien: (s) => (s.includes("$wiersz") ? s.replaceAll("$wiersz", "$rekordDoZapisu") : null),
+  },
+  {
+    // Dziura odsłonięta przy pisaniu Pluginu 3: reguła „wartości przez
+    // prepare()" czyta łańcuch podany WPROST do `$wpdb->`, więc SQL sklejony
+    // linijkę wyżej przechodził bez sprawdzenia. Zamknięta regułą 10.
+    straznik: "straznik-wtyczki-wp",
+    opis: "SQL składany do zmiennej zamiast literałem — reguła o prepare() przestaje cokolwiek widzieć",
+    plik: ODCZYT_MONITORA,
+    wymaga: () => existsSync(ODCZYT_MONITORA),
+    oczekiwanySlad: "SQL podany do $wpdb-> zmienną",
+    zmien: (s) =>
+      s.includes('$wpdb->prepare( "SELECT * FROM `{$l}` ORDER BY czas DESC, id DESC LIMIT %d", $ile )')
+        ? s.replace(
+            '$wpdb->prepare( "SELECT * FROM `{$l}` ORDER BY czas DESC, id DESC LIMIT %d", $ile )',
+            '$wpdb->prepare( $sqlWszystkie, $ile )'
+          )
+        : null,
   },
 ];
 

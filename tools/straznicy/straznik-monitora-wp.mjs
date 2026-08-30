@@ -1,0 +1,257 @@
+/**
+ * Strażnik Pluginu 3 (`aai-monitor`) — niezmienniki zaakceptowanego
+ * schematu (docs/plugin-3/DIAGRAM.md, sekcja 8), których złamanie NIE
+ * objawia się błędem.
+ *
+ * PO CO OSOBNY STRAŻNIK. `straznik-wtyczki-wp` pilnuje reguł wspólnych
+ * każdej naszej wtyczce (nagłówki, ABSPATH, prepare, warstwa zapisu,
+ * SQL literałem). Plugin 3 ma do tego niezmienniki WŁASNE, wynikające
+ * z tego, czym jest: modułem, który wyłącznie PATRZY. Każdy z nich łamie
+ * się po cichu — ekran dalej się otwiera, tylko zaczyna kłamać albo
+ * zbierać rzeczy, których zbierać nie wolno.
+ *
+ * OSIEM NIEZMIENNIKÓW (numery N z sekcji 8 schematu; każdy z mutacją
+ * w audyt-straznikow). To komplet dla kroku T1 — reguły o hakach
+ * logowania (T2) i o sicie beaconu (T3) dochodzą razem z tym kodem,
+ * bo dziś nie miałyby czego pilnować:
+ *   1. (N1) ekran jest CZYSTYM ODCZYTEM: zero `admin_post_*`, zero
+ *      `wp_ajax_*`, zero `method="post"`, zero nonce'ów. Panel, który
+ *      zaczyna zapisywać, przestaje być monitoringiem,
+ *   2. (N16) KONTROLA NIGDY NIE PISZE: `sprawdz()` i cała klasa odczytu
+ *      bez jednego zapisu — ani do bazy, ani do opcji. Kontrola, która
+ *      po drodze naprawia, nie umie odpowiedzieć „jak było przed nią",
+ *   3. (N14) nie ruszamy CUDZYCH danych: zero zapisów do tabel
+ *      WordPressa, zero `update_post_meta`/`wp_insert_post` i pochodnych,
+ *      zero podmieniania funkcji pluggable,
+ *   4. (N7) tabela `wizyty` jest ANONIMOWA — bez `ip`, `login`, `agent`
+ *      i `user_id` (D3). Jedna kolumna dopisana „bo się przyda"
+ *      zamienia pomiar ruchu w profilowanie,
+ *   5. (N5) hasło NIGDY nie wchodzi do dziennika — kod nie sięga po
+ *      `$_POST['pwd']` ani nic o tej roli,
+ *   6. (N15) awaria zapisu jest GŁOŚNA: każdy `catch ( Throwable )`
+ *      w warstwie zapisu melduje do kanału błędów. Cichy `catch` zamienia
+ *      uszkodzoną tabelę w pustą listę, czytaną jako „nikt nie próbował",
+ *   7. (P7) retencja ma DWA wyzwalacze: zapis i render ekranu. Sam zapis
+ *      nie wystarcza — przy ciszy dane osobowe żyją dłużej, niż obiecuje
+ *      polityka prywatności, a WP-Cron na cichej stronie nie wstaje,
+ *   8. (P13) ekran mówi prawdę o tym, CO zbiera — pyta o zameldowane
+ *      czujki, zamiast mieć to wpisane w tekst. Inaczej po wyłączeniu
+ *      producenta danych ekran dalej twierdziłby, że go ma.
+ *
+ * Użycie: node tools/straznicy/straznik-monitora-wp.mjs
+ */
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+const KATALOG = "wordpress/wtyczki/aai-monitor";
+const WARSTWA_ZAPISU = join(KATALOG, "includes", "class-aai-monitor-zapis.php");
+const ODCZYT = join(KATALOG, "includes", "class-aai-monitor-odczyt.php");
+const EKRAN = join(KATALOG, "includes", "class-aai-monitor-ekran.php");
+const CLI = join(KATALOG, "includes", "class-aai-monitor-cli.php");
+const TABELE = join(KATALOG, "includes", "class-aai-monitor-tabele.php");
+const bledy = [];
+
+if (!existsSync(KATALOG)) {
+  console.log("straznik-monitora-wp: pominięte — wtyczki aai-monitor jeszcze nie ma.");
+  process.exit(0);
+}
+
+/** Wszystkie pliki .php wtyczki. */
+function plikiPhp(katalog) {
+  const wynik = [];
+  for (const wpis of readdirSync(katalog)) {
+    const sciezka = join(katalog, wpis);
+    if (statSync(sciezka).isDirectory()) wynik.push(...plikiPhp(sciezka));
+    else if (wpis.endsWith(".php")) wynik.push(sciezka);
+  }
+  return wynik;
+}
+
+/** Kod bez komentarzy — reguły celują w ZACHOWANIE, nie w opis. */
+const kod = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+/**
+ * Ciało metody o podanej nazwie — po klamrach, nie po następnym słowie
+ * kluczowym. Wersja „od nazwy do następnego `function`" gubiłaby ostatnią
+ * metodę w pliku i milczała o niej na zawsze.
+ */
+function cialoMetody(zrodlo, nazwa) {
+  const start = zrodlo.search(new RegExp(`function\\s+${nazwa}\\s*\\(`));
+  if (start < 0) return null;
+  const otwarcie = zrodlo.indexOf("{", start);
+  if (otwarcie < 0) return null;
+  let glebokosc = 0;
+  for (let i = otwarcie; i < zrodlo.length; i++) {
+    if (zrodlo[i] === "{") glebokosc++;
+    else if (zrodlo[i] === "}") {
+      glebokosc--;
+      if (glebokosc === 0) return zrodlo.slice(otwarcie, i + 1);
+    }
+  }
+  return null;
+}
+
+const plikiWtyczki = plikiPhp(KATALOG);
+const kodWtyczki = plikiWtyczki.map((p) => [p, kod(readFileSync(p, "utf8"))]);
+
+/* ————————————————— 1. (N1) ekran jest czystym odczytem ————————————————— */
+
+for (const [plik, tresc] of kodWtyczki) {
+  const zapisujace = [
+    [/add_action\(\s*['"]admin_post_/, "akcja admin-post.php"],
+    [/add_action\(\s*['"]wp_ajax_/, "akcja wp_ajax"],
+    [/method\s*=\s*["']post["']/i, 'formularz method="post"'],
+    [/wp_nonce_field\s*\(|check_admin_referer\s*\(|wp_verify_nonce\s*\(/, "nonce"],
+  ];
+  for (const [wzorzec, co] of zapisujace) {
+    if (wzorzec.test(tresc)) {
+      bledy.push(
+        `${plik}: ${co} w module, który ma wyłącznie patrzeć (N1). Ekran monitoringu jest czystym odczytem — jedyne, co można na nim zrobić, to patrzeć. Pojawienie się tu zapisu znaczy, że moduł przestał być monitoringiem i nikt tego nie zauważy, bo ekran dalej się otwiera. Filtry i stronicowanie jadą GET-em.`
+      );
+    }
+  }
+}
+
+/* ————————————————— 2. (N16) kontrola nigdy nie pisze ————————————————— */
+
+const ZAPISY = [
+  [/\$wpdb->(?:insert|update|delete|replace)\s*\(/, "zapis do bazy przez $wpdb"],
+  [/\$wpdb->query\(\s*["']?\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP|ALTER)\b/i, "DML w $wpdb->query"],
+  [/\b(?:update_option|add_option|delete_option|set_transient|delete_transient)\s*\(/, "zapis do opcji"],
+];
+
+if (existsSync(CLI)) {
+  const cialo = cialoMetody(kod(readFileSync(CLI, "utf8")), "sprawdz");
+  if (null === cialo) {
+    bledy.push(
+      `${CLI}: nie znalazłem metody sprawdz() — kontrola jest jedyną bramką, którą woła postaw.sh, więc jej brak albo zmiana nazwy przechodzi bez objawu aż do wdrożenia.`
+    );
+  } else {
+    for (const [wzorzec, co] of ZAPISY) {
+      if (wzorzec.test(cialo)) {
+        bledy.push(
+          `${CLI}: sprawdz() zawiera ${co} (N16). Kontrola, która po drodze naprawia, nie umie odpowiedzieć na pytanie „jaki był stan przed nią" — a to jedyne pytanie, które się jej zadaje. Naprawy robi warstwa zapisu, alarm zdejmuje osobna, jawna komenda.`
+        );
+      }
+    }
+  }
+}
+
+if (existsSync(ODCZYT)) {
+  const tresc = kod(readFileSync(ODCZYT, "utf8"));
+  for (const [wzorzec, co] of ZAPISY) {
+    if (wzorzec.test(tresc)) {
+      bledy.push(
+        `${ODCZYT}: klasa odczytu zawiera ${co} (N16). Kanał JSON ma wyłącznie czytać; zapis w nim znaczy, że renderowanie ekranu zmienia stan, który ekran pokazuje.`
+      );
+    }
+  }
+}
+
+/* ——————————— 3. (N14) nie ruszamy cudzych danych ani rdzenia ——————————— */
+
+for (const [plik, tresc] of kodWtyczki) {
+  const cudze = [
+    [/\$wpdb->(?:insert|update|delete|replace)\s*\(\s*\$wpdb->(\w+)/, "zapis do tabeli WordPressa"],
+    [/\b(?:update_post_meta|add_post_meta|delete_post_meta|update_user_meta|add_user_meta|delete_user_meta)\s*\(/, "zapis cudzej mety"],
+    [/\b(?:wp_insert_post|wp_update_post|wp_delete_post|wp_insert_user|wp_update_user|wp_delete_user)\s*\(/, "zapis cudzego wpisu lub konta"],
+    [/function\s+(?:wp_mail|wp_set_auth_cookie|wp_authenticate|wp_password_change_notification|wp_new_user_notification)\s*\(/, "podmiana funkcji pluggable"],
+  ];
+  for (const [wzorzec, co] of cudze) {
+    if (wzorzec.test(tresc)) {
+      bledy.push(
+        `${plik}: ${co} (N14). Plugin 3 wyłącznie nasłuchuje i zapisuje U SIEBIE — nie zmienia ani jednego cudzego zachowania. Podmiana funkcji pluggable jest tu osobno zakazana: ciszę rdzenia o hasłach osiągnęliśmy w P6 ZDJĘCIEM callbacku, nie podmianą funkcji, i tak ma zostać.`
+      );
+    }
+  }
+}
+
+/* ————————————— 4. (N7) tabela `wizyty` jest anonimowa ————————————— */
+
+if (existsSync(TABELE)) {
+  const tresc = readFileSync(TABELE, "utf8");
+  const definicja = tresc.match(/CREATE TABLE \{\$w\}([\s\S]*?)\) \{\$kolacja\}/);
+  if (null === definicja) {
+    bledy.push(
+      `${TABELE}: nie znalazłem definicji tabeli wizyt (CREATE TABLE {$w}). Bez niej reguła o anonimowości ruchu nie ma czego sprawdzać i milczy — a milcząca reguła jest gorsza niż jej brak.`
+    );
+  } else {
+    for (const kolumna of ["ip", "login", "agent", "user_id", "email"]) {
+      if (new RegExp(`^\\s*${kolumna}\\s`, "m").test(definicja[1])) {
+        bledy.push(
+          `${TABELE}: tabela wizyt ma kolumnę „${kolumna}" (N7). Ruch mierzymy ANONIMOWO — decyzja właściciela D3: sesja bez IP i bez łączenia z kontem. Jedna taka kolumna zamienia pomiar odsłon w profilowanie, a tabele logowań i wizyt dają się wtedy złączyć, czego ten moduł z założenia nie robi.`
+        );
+      }
+    }
+  }
+}
+
+/* ——————————— 5. (N5) hasło nigdy nie wchodzi do dziennika ——————————— */
+
+for (const [plik, tresc] of kodWtyczki) {
+  if (/\$_(?:POST|REQUEST|GET)\s*\[\s*['"](?:pwd|pass|password|user_pass)['"]\s*\]/.test(tresc)) {
+    bledy.push(
+      `${plik}: kod sięga po hasło z żądania (N5). Dziennik logowań zapisuje, KTO i SKĄD próbował — nigdy CZYM. Hak porażki hasła nie niesie, więc jedyną drogą do niego jest świadome sięgnięcie do $_POST; dlatego zakaz stoi tutaj, a nie w recenzji.`
+    );
+  }
+}
+
+/* ————————————— 6. (N15) awaria zapisu jest głośna ————————————— */
+
+if (existsSync(WARSTWA_ZAPISU)) {
+  const tresc = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+  const bloki = [...tresc.matchAll(/catch\s*\(\s*Throwable\s+\$(\w+)\s*\)\s*\{([\s\S]*?)\n\t\t\}/g)];
+  if (bloki.length === 0) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: ani jednego bloku catch ( Throwable ) (N15). Zapis biegnie w CUDZYM żądaniu — przy logowaniu i w kasie WooCommerce — więc niezłapany wyjątek przerywa cudzą operację, a w kasie znaczy HTTP 500 i utracony zakup (F11).`
+    );
+  }
+  for (const [, , cialo] of bloki) {
+    if (!/(?:self::zglos|Aai_Monitor_Komunikaty::zapisz)\s*\(/.test(cialo)) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: blok catch ( Throwable ) bez zgłoszenia do kanału błędów (N15). Cichy catch zamienia uszkodzoną tabelę w PUSTĄ listę na ekranie, którą właściciel przeczyta jako „nikt nie próbował się włamać" — fałszywy negatyw na jedynym ekranie, który ma ostrzegać.`
+      );
+    }
+  }
+}
+
+/* ————————————— 7. (P7) retencja ma dwa wyzwalacze ————————————— */
+
+if (existsSync(WARSTWA_ZAPISU)) {
+  const wstaw = cialoMetody(kod(readFileSync(WARSTWA_ZAPISU, "utf8")), "wstaw");
+  if (null === wstaw || !/self::sprzataj\s*\(/.test(wstaw ?? "")) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: zapis nie uruchamia retencji (P7, pierwszy wyzwalacz). Bez sprzątania przy zapisie wiersze z pełnymi adresami IP żyją bez końca, a polityka prywatności obiecuje 90 dni.`
+    );
+  }
+}
+
+if (existsSync(EKRAN)) {
+  const tresc = kod(readFileSync(EKRAN, "utf8"));
+  if (!/Aai_Monitor_Zapis::retencja\s*\(/.test(tresc)) {
+    bledy.push(
+      `${EKRAN}: ekran nie uruchamia retencji (P7, DRUGI wyzwalacz). Sprzątanie przy zapisie jest z definicji leniwe: gdy przez 90 dni nikt się nie zaloguje, stare wiersze z adresami IP czekają na następny zapis. WP-Cron tego nie ratuje — na mało odwiedzanej stronie potrafi nie wstać całymi dniami.`
+    );
+  }
+}
+
+/* ————————————— 8. (P13) ekran mówi prawdę o czujkach ————————————— */
+
+if (existsSync(EKRAN)) {
+  const ekranMetoda = cialoMetody(kod(readFileSync(EKRAN, "utf8")), "ekran");
+  if (null === ekranMetoda || !/self::czujki\s*\(/.test(ekranMetoda ?? "")) {
+    bledy.push(
+      `${EKRAN}: ekran nie pyta o zameldowane czujki (P13). Pusta lista nie odróżnia „nikt nie próbował" od „nic nie zbiera", a to różnica między dobrą wiadomością a awarią. Zdanie o tym, co zbieramy, ma być ODBICIEM STANU KODU, nie tekstem do ręcznej aktualizacji — inaczej po wyłączeniu producenta danych ekran dalej twierdzi, że go ma.`
+    );
+  }
+}
+
+if (bledy.length > 0) {
+  console.error("straznik-monitora-wp:");
+  for (const b of bledy) console.error(`  - ${b}`);
+  process.exit(1);
+}
+
+console.log(
+  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach)."
+);
