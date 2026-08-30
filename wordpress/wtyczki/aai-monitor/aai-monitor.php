@@ -103,6 +103,11 @@ add_action(
 		// monitoring ma prawo nie zapisać zdarzenia, ale nie ma prawa
 		// przerwać zakupu.
 		Aai_Monitor_Logowania::zarejestruj();
+		// Sugerowany wpis do polityki prywatności. Osobna rejestracja, bo
+		// rdzeń przyjmuje go WYŁĄCZNIE z haka `admin_init` i tylko w
+		// wp-admin — wywołany stąd nie dodałby NIC i zameldowałby to
+		// najwyżej w logu przy WP_DEBUG (zmierzone: plugin.php:2429).
+		Aai_Monitor_Prywatnosc::zarejestruj();
 		// Kanał błędów: zapis biegnie w cudzym żądaniu i łapie `Throwable`,
 		// więc bez tego uszkodzona tabela dawałaby PUSTĄ listę logowań,
 		// czytaną jak „nikt nie próbował" — fałszywy negatyw na jedynym
