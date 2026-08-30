@@ -2297,7 +2297,8 @@ wyprowadzała tego od nowa:
         na dowodach lokalnych — CI padło w 2 s z zerem kroków (minuty
         Actions wracają 1 września; potem potwierdzić gitleaks).
      2. **PLUGIN 3 — panel + monitoring — W TOKU: krok T0 (schemat) CZEKA
-        NA OCENĘ WŁAŚCICIELA.** Wtyczka `aai-panel`, ostatni moduł; potem
+        NA OCENĘ WŁAŚCICIELA.** Wtyczka **`aai-monitor`** (NIE `aai-panel`:
+        „panel" znaczy w tym repo KREATOR), ostatni moduł; potem
         test całości trzech wtyczek. Obowiązuje reguła z 2026-08-28
         (plan kroku + pytania + zgoda przed KAŻDYM krokiem) i ZASADA 0
         (schemat → krytyka → akceptacja → kod).
@@ -2335,10 +2336,22 @@ wyprowadzała tego od nowa:
         para bramek N9/N10 dowodzi pełnej ścieżki beaconu i wycięcia
         automatów naraz; kontrola `sprawdz` NIGDY po HTTP (kontener CLI
         nie dosięga :8892 — cURL error 7), tylko rejestr tras.
-        **NAZWY (zmierzone jako wolne):** smoke `smoke-wp-monitoring`,
-        strażnik `straznik-monitoringu-wp` („panel" w repo znaczy
-        „kreator"), prefiks assetów `aai-monitor-` (`aai-mon-` myliłby
-        z klasą `aai-mono`, `aai-panel` zajęte w P1).
+        **PRZEGLĄD CAŁOŚCIOWY (2026-08-30, polecenie właściciela: ocena
+        znając CAŁY projekt) — cztery znaleziska, wszystkie wprowadzone:**
+        (K1 KRYTYCZNE) wystrzał szedł **trasą REST**, co łamało konwencję
+        obu poprzednich modułów — w repo jest **0** `register_rest_route`
+        i **0** `wp_ajax_*`, a **6** akcji `admin_post_*` w Pluginie 1;
+        wystrzałem jest teraz **akcja `admin-post.php` z `nopriv`**
+        (`admin_post_nopriv_{action}` istnieje — sprawdzone w kodzie WP),
+        **przez co pułapka F9 przestaje nas dotyczyć**, bo ciało czytamy
+        z `php://input` sami; (K2) doszedł niezmiennik „kontrola NIGDY nie
+        pisze" (L11 z P2); (K3) każdy niezmiennik N1–N17 jest przypisany
+        do kroku, który go zamyka; (K4) **wtyczka nazywa się `aai-monitor`,
+        nie `aai-panel`** — strażnik nazywany od wtyczki wyszedłby
+        `straznik-panelu-wp`, a „panel" to w tym repo kreator.
+        **NAZWY (zmierzone jako wolne):** wtyczka `aai-monitor`, tabele
+        `wp_aai_monitor_*`, smoke `smoke-wp-monitor`, strażnik
+        `straznik-monitora-wp`, prefiks assetów `aai-monitor-`.
         **STAN GAŁĘZI: `docs/schemat-pluginu-3` wypchnięta, PR #94
         OTWARTY — czeka na „ok" właściciela; NIE mergować przed jego
         oceną.** Po akceptacji: merge #94 → plan T1 z pytaniami → zgoda
