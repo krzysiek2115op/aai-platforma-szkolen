@@ -842,6 +842,7 @@ async function beacon({
 const odrzuty = [
   ["ciało jako text/plain (F20 — ten typ przechodzi cross-origin)", { typ: "text/plain" }],
   ["obce Origin", { origin: "http://zly.example" }],
+  ["Origin: null (piaskownicowana ramka)", { origin: "null" }],
   ["brak Origin i Referera", { origin: "" }],
   ["podpis nie pasuje do ścieżki", { podpis: "0".repeat(32) }],
   ["ścieżka podmieniona po podpisaniu (zatrucie listy stron)", { sciezka: "/zmyslona-sciezka/", podpis: null, sesja: SESJA_TESTOWA }],
@@ -942,6 +943,108 @@ for (const [opis, opcje] of odrzuty) {
   ).stdout.trim().split(":");
   sprawdz(Number(ruch[0]) >= 1, "ekran nie liczy odsłon zatrzymanych na bramce — właściciel czytałby odbicia jako czytanie");
   sprawdz(Number(ruch[2]) >= 1, "lista „zatrzymane na bramce” jest pusta mimo odsłony z bramki — informacja o odbiciach przepadła");
+}
+
+/* 10c4. LICZBA PRZYSŁANA JAKO ŁAŃCUCH NIE STAJE SIĘ CICHO ZEREM (A10).
+ *
+ * Zmierzone przed naprawą: `"trwanie_ms":"5000"` dawało wiersz z czasem 0
+ * i wejściem „przed chwilą”. Czyli pełna liczba odsłon przy wyzerowanym
+ * czasie — wartość FAŁSZYWA, nie brakująca, i nic się przy tym nie
+ * zapalało. Nasz skrypt wysyła liczby, więc to jest tama na przyszłość:
+ * jedna zmiana po stronie klienta zamieniłaby cały pomiar czasu w zera. */
+{
+  const odslona = nowaOdslona();
+  const podpis = podpisz(SCIEZKA_A);
+  const ladunek = {
+    odslona,
+    sciezka: SCIEZKA_A,
+    podpis,
+    bramka: 0,
+    sesja: SESJA_TESTOWA,
+    trwanie_ms: "5000",
+    wiek_ms: "9000",
+  };
+  await fetch(`${ADRES}/wp-admin/admin-post.php?action=${AKCJA}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: ADRES, connection: "close" },
+    body: JSON.stringify(ladunek),
+    redirect: "manual",
+  });
+  const czas = Number(
+    phpEval(
+      "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
+        ` echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT trwanie_ms FROM \`{$w}\` WHERE odslona = %s", '${odslona}' ) );`
+    ).stdout
+  );
+  sprawdz(czas === 5000, `czas przysłany jako łańcuch zapisał się jako ${czas} ms zamiast 5000 — wiersz powstaje, ale niesie nieprawdę (A10)`);
+}
+
+/* 10c4b. SITO POCHODZENIA ZAWODZI NA ZAMKNIĘTO (A8).
+ *
+ * Sprawdzenie „Origin: null jest odrzucany” w bloku sita wyżej przechodzi
+ * także BEZ tej naprawy — i to jest ważne, żeby wiedzieć: dowodzi ono
+ * tylko, że `null` nie równa się naszemu adresowi. Wada z A8 budzi się
+ * dopiero, gdy `home_url()` NIE MA HOSTA: `zrodlo()` oddaje wtedy pusty
+ * łańcuch po OBU stronach porównania i obce żądanie przechodzi jako swoje.
+ * Pytamy więc o dokładnie ten warunek, podstawiając adres witryny —
+ * przez filtr, w jednym żądaniu CLI, bez dotykania instalacji. */
+{
+  const wynik = phpEval(
+    "add_filter( 'home_url', function () { return '/'; }, 9999 );" +
+      " $m = new ReflectionMethod( 'Aai_Monitor_Wizyty', 'pochodzenie_pasuje' ); $m->setAccessible( true );" +
+      " $_SERVER['HTTP_ORIGIN'] = 'null'; $a = $m->invoke( null );" +
+      " $_SERVER['HTTP_ORIGIN'] = 'http://zly.example'; $b = $m->invoke( null );" +
+      " echo ( $a ? 'null-przeszlo' : '' ), ( $b ? ',obce-przeszlo' : '' );"
+  ).stdout.trim();
+  sprawdz(
+    wynik === "",
+    `przy witrynie bez hosta sito pochodzenia przepuszcza obce żądania (${wynik}) — zawodzi „na otwarto”, a ma na zamknięto: nie wiedząc, jaka jest nasza witryna, nie wpuszczamy nikogo (A8)`
+  );
+}
+
+/* 10c5. HANDLER NA CUDZYM HAKU NIE WYWRACA SIĘ NA SAMYM WYWOŁANIU (A9).
+ *
+ * `TypeError` z niezgodnego argumentu powstaje PRZY WYWOŁANIU, więc nie
+ * łapie go żaden `try` w środku metody — a `admin_enqueue_scripts`
+ * odpala cudzy kod, jak chce. Pytamy WPROST o naszą metodę, bo na tym
+ * haku wiszą też Woo i rdzeń: przy `do_action` ich wyjątki wyglądałyby
+ * jak nasze (ta sama pułapka co pomiar równoległy z własną pracą). */
+{
+  const wynik = phpEval(
+    "$cb = array( 'Aai_Monitor_Ekran', 'zasoby' ); $zle = array();" +
+      " foreach ( array( 'pominiety' => '__POMIN__', 'null' => null, 'liczba' => 42, 'tablica' => array() ) as $opis => $arg ) {" +
+      "   try { if ( '__POMIN__' === $arg ) { call_user_func( $cb ); } else { call_user_func( $cb, $arg ); } }" +
+      "   catch ( Throwable $e ) { $zle[] = $opis . ':' . get_class( $e ); } }" +
+      " echo implode( ',', $zle );"
+  ).stdout.trim();
+  sprawdz(wynik === "", `nasz handler na admin_enqueue_scripts wywraca się na wywołaniu (${wynik}) — cudza wtyczka położyłaby cały kokpit (A9)`);
+}
+
+/* 10c6. SUFIT LICZBY WIERSZY ŚCINA NAJSTARSZE (A2, decyzja właściciela).
+ *
+ * Bez niego jeden nieuwierzytelniony klient mieści się w limiterze i pisze
+ * ~430 000 wierszy na dobę, a retencja po WIEKU ich nie rusza — wszystkie
+ * są młodsze niż 400 dni. Nie wstawiamy ćwierć miliona wierszy: rozpychamy
+ * AUTO_INCREMENT, bo sufit i tak mierzy ROZPIĘTOŚĆ identyfikatorów (pełny
+ * `COUNT(*)` przy każdym beaconie byłby droższy niż sam zapis). */
+{
+  const wynik = phpEval(
+    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " $sufit = Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT;" +
+      " Aai_Monitor_Zapis::dodaj_wizyte( array( 'odslona' => str_repeat('a',32), 'sesja' => str_repeat('1',32), 'sciezka' => '/sufit-stary/', 'trwanie_ms' => 1000, 'wiek_ms' => 2000 ) );" +
+      " $stary = (int) $wpdb->get_var( \"SELECT MAX(id) FROM `{$t}`\" );" +
+      " $skok = $stary + $sufit + 100; $wpdb->query( \"ALTER TABLE `{$t}` AUTO_INCREMENT = {$skok}\" );" +
+      " Aai_Monitor_Zapis::dodaj_wizyte( array( 'odslona' => str_repeat('b',32), 'sesja' => str_repeat('2',32), 'sciezka' => '/sufit-nowy/', 'trwanie_ms' => 1000, 'wiek_ms' => 2000 ) );" +
+      " $zostalo = $wpdb->get_col( \"SELECT sciezka FROM `{$t}` WHERE sciezka LIKE '/sufit-%' ORDER BY id\" );" +
+      " $wpdb->query( \"DELETE FROM `{$t}` WHERE sciezka LIKE '/sufit-%'\" );" +
+      " $max = (int) $wpdb->get_var( \"SELECT COALESCE(MAX(id),0) FROM `{$t}`\" ) + 1;" +
+      " $wpdb->query( \"ALTER TABLE `{$t}` AUTO_INCREMENT = {$max}\" );" +
+      " echo implode( ',', $zostalo );"
+  ).stdout.trim();
+  sprawdz(
+    wynik === "/sufit-nowy/",
+    `sufit liczby wierszy nie ściął najstarszego wiersza (w tabeli zostało: „${wynik}”) — tabela ruchu rośnie bez granicy, a kafelki ekranu liczą ją bez okna czasu (A2)`
+  );
 }
 
 /* 10d. F18: akcja schowana w ciele daje HTTP 200 i CISZĘ. */

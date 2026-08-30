@@ -498,7 +498,46 @@ for (const [plik, tresc] of kodWtyczki) {
       /add_(?:action|filter)\(\s*['"]([\w-]+)['"]\s*,\s*array\(\s*(?:self::class|'[\w]+')\s*,\s*['"](\w+)['"]/g
     ),
   ];
+  /*
+   * 9b. (A9) ŻADEN NASZ HANDLER NIE MOŻE WYWRÓCIĆ SIĘ NA SAMYM WYWOŁANIU.
+   *
+   * Ta reguła obejmuje TAKŻE haki naszego kokpitu — bo tam właśnie
+   * znalazł ją przegląd T3. `Aai_Monitor_Ekran::zasoby( string $uchwyt )`
+   * był jedynym typowanym parametrem bez wartości domyślnej i cudza
+   * wtyczka odpalająca `admin_enqueue_scripts` z `null` wywracała CAŁY
+   * kokpit. `TypeError` powstaje PRZY WYWOŁANIU, więc nie łapie go żaden
+   * `try` w środku metody — reguła o Throwable jest wtedy bezradna,
+   * a sama wartość domyślna broni wyłącznie przed argumentem POMINIĘTYM
+   * (zmierzone: z `null` typowany parametr dalej rzucał).
+   *
+   * Stąd dwa wymagania naraz: KAŻDY parametr ma wartość domyślną
+   * i NIE MA deklaracji typu. Typ sprawdza się w ciele — tam wynikiem
+   * jest `return`, a nie wyjątek u kogoś obcego.
+   */
   for (const [, hak, metoda] of rejestracje) {
+    /*
+     * Sygnatury szukamy w CAŁEJ wtyczce, nie w pliku rejestracji.
+     * Pierwsza wersja tej reguły pytała o ten sam plik i była przez to
+     * ŚLEPA — zmierzone testem negatywnym: `Aai_Monitor_Ekran::zasoby()`
+     * jest rejestrowana w `aai-monitor.php`, a mieszka w swojej klasie,
+     * więc przywrócenie typowanego parametru przechodziło na zielono.
+     */
+    const sygnatury = kodWtyczki
+      .map(([, t]) => t.match(new RegExp(`function\\s+${metoda}\\s*\\(([^)]*)\\)`)))
+      .filter(Boolean);
+    for (const sygnatura of sygnatury) {
+      for (const parametr of sygnatura[1].split(",").map((x) => x.trim()).filter(Boolean)) {
+        if (!parametr.includes("=")) {
+          bledy.push(
+            `${plik}: ${metoda}() (hak „${hak}") ma parametr „${parametr}" BEZ WARTOŚCI DOMYŚLNEJ (A9). Cudzy kod woła nasze haki, jak chce — także z mniejszą liczbą argumentów — a brakujący argument to ArgumentCountError rzucony PRZY WYWOŁANIU, poza zasięgiem jakiegokolwiek try w środku.`
+          );
+        } else if (!/^\$/.test(parametr)) {
+          bledy.push(
+            `${plik}: ${metoda}() (hak „${hak}") ma parametr z DEKLARACJĄ TYPU: „${parametr}" (A9). Przy strict_types wywołanie z „null” albo z innym typem rzuca TypeError PRZY WYWOŁANIU — zmierzone na admin_enqueue_scripts, gdzie wywracało cały kokpit; wartość domyślna przed tym NIE broni. Typ sprawdź w ciele metody.`
+          );
+        }
+      }
+    }
     if (HAKI_NASZEGO_KOKPITU.includes(hak)) continue;
     const cialo = cialoMetody(tresc, metoda);
     if (null === cialo) {

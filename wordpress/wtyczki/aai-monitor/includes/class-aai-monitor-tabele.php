@@ -49,6 +49,26 @@ final class Aai_Monitor_Tabele {
 	public const OKNO_WIZYTY_DNI = 400;
 
 	/**
+	 * Sufit liczby wierszy ruchu — DRUGIE kryterium retencji, obok wieku.
+	 *
+	 * DECYZJA WŁAŚCICIELA (2026-08-30, po znalezisku A2 z przeglądu T3):
+	 * sufit wierszy TAK, deduplikacja NIE. Powód: sufit chroni bazę nie
+	 * zmieniając znaczenia liczb — każda odsłona nadal jest odsłoną,
+	 * powrót „wstecz” i ponowne czytanie tej samej lekcji liczą się jak
+	 * dotąd. Okno deduplikacji („ta sama sesja i ścieżka raz na N minut”)
+	 * byłoby tańsze, ale kazałoby napisowi „Odsłony” znaczyć co innego.
+	 *
+	 * SKĄD TA LICZBA. Wiersz waży ~191 B (pomiar recenzenta na tabeli
+	 * 50 000 wierszy), więc 250 000 wierszy to ~48 MB — mieści ~600 odsłon
+	 * dziennie przez całe 400 dni retencji, czyli wielokrotność ruchu,
+	 * jakiego ta witryna się spodziewa. Bez sufitu jeden nieuwierzytelniony
+	 * klient mógł dopisać ~430 000 wierszy na dobę (podpis stoi jawnie
+	 * w HTML i jest wielokrotnego użytku), a kafelki ekranu robią
+	 * `COUNT(*)` bez okna czasu, więc panel degradowałby się razem z tabelą.
+	 */
+	public const SUFIT_WIERSZY_WIZYT = 250000;
+
+	/**
 	 * Pełna nazwa tabeli z prefiksem instalacji i prefiksem wtyczki.
 	 *
 	 * @param string $nazwa Nazwa bez prefiksów, np. `logowania`.

@@ -276,14 +276,26 @@ final class Aai_Monitor_Wizyty {
 	private static function pochodzenie_pasuje(): bool {
 		$nasze = self::zrodlo( home_url() );
 
+		// ZAWODZIMY NA ZAMKNIĘTO (A8 z przeglądu T3). `zrodlo()` oddaje
+		// pusty łańcuch dla wszystkiego, czego nie umie rozebrać — także
+		// dla `Origin: null`, którym przedstawia się piaskownicowana ramka.
+		// Gdyby więc `home_url()` kiedykolwiek zostało bez hosta, obie
+		// strony porównania byłyby puste i OBCE żądanie przeszłoby jako
+		// swoje. Nie wiedząc, jaka jest nasza witryna, nie wpuszczamy nikogo.
+		if ( '' === $nasze ) {
+			return false;
+		}
+
 		$origin = get_http_origin();
 		if ( is_string( $origin ) && '' !== $origin ) {
-			return self::zrodlo( $origin ) === $nasze;
+			$zrodlo = self::zrodlo( $origin );
+			return '' !== $zrodlo && $zrodlo === $nasze;
 		}
 
 		$referer = isset( $_SERVER['HTTP_REFERER'] ) ? (string) wp_unslash( $_SERVER['HTTP_REFERER'] ) : '';
 		if ( '' !== $referer ) {
-			return self::zrodlo( $referer ) === $nasze;
+			$zrodlo = self::zrodlo( $referer );
+			return '' !== $zrodlo && $zrodlo === $nasze;
 		}
 
 		return false;
@@ -424,11 +436,25 @@ final class Aai_Monitor_Wizyty {
 	/**
 	 * Liczba nieujemna z ładunku (brak, śmieć i wartość ujemna → 0).
 	 *
+	 * ŁAŃCUCH Z LICZBĄ TEŻ JEST LICZBĄ (A10 z przeglądu T3). Zmierzone:
+	 * ładunek `"trwanie_ms":"5000"` dawał wiersz z czasem **0** i wejściem
+	 * „przed chwilą” — czyli pełną liczbę odsłon przy wyzerowanym czasie
+	 * i przesuniętych godzinach. Nasz skrypt wysyła liczby, więc dziś to
+	 * nie boli; ale jedna zmiana po stronie klienta (albo cudza biblioteka,
+	 * która serializuje liczby jako tekst) zamieniłaby CAŁY pomiar czasu
+	 * w zera, nie zapalając niczego — bo wiersze dalej by powstawały.
+	 *
+	 * `is_numeric` NIE otwiera furtki: przepuszcza wyłącznie zapis liczby,
+	 * a wynik i tak przechodzi przez sufity warstwy zapisu.
+	 *
 	 * @param array<string,mixed> $dane  Zdekodowany ładunek.
 	 * @param string              $klucz Nazwa pola.
 	 */
 	private static function liczba( array $dane, string $klucz ): int {
 		$wartosc = $dane[ $klucz ] ?? 0;
+		if ( is_string( $wartosc ) && is_numeric( $wartosc ) ) {
+			$wartosc = (float) $wartosc;
+		}
 		if ( ! is_int( $wartosc ) && ! ( is_float( $wartosc ) && is_finite( $wartosc ) ) ) {
 			return 0;
 		}

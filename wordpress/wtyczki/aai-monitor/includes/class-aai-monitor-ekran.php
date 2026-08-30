@@ -141,8 +141,23 @@ final class Aai_Monitor_Ekran {
 	 *
 	 * @param string $uchwyt Identyfikator ekranu kokpitu.
 	 */
-	public static function zasoby( string $uchwyt ): void {
-		if ( ! str_contains( $uchwyt, self::STRONA ) ) {
+	/*
+	 * WARTOŚĆ DOMYŚLNA NIE JEST OZDOBNIKIEM (A9 z przeglądu T3): ta
+	 * metoda wisi na CUDZYM haku, a `admin_enqueue_scripts` odpalone
+	 * przez cudzą wtyczkę bez argumentu (albo z `null`) rzuca wtedy
+	 * `TypeError` — zmierzone — i wywraca CAŁY kokpit. Wyjątek powstaje
+	 * PRZY WYWOŁANIU, więc nie łapie go żaden `try` w środku. Ta sama
+	 * lekcja co znalezisko (3) z przeglądu T2, gdzie `Aai_Monitor_Logowania`
+	 * dostało wartości domyślne WSZĘDZIE.
+	 *
+	 * SAMA WARTOŚĆ DOMYŚLNA NIE WYSTARCZA i to też jest zmierzone: broni
+	 * przed argumentem POMINIĘTYM, ale `do_action( 'admin_enqueue_scripts',
+	 * null )` przy `strict_types` dalej rzucało `TypeError`. Dlatego typ
+	 * jest zdjęty z sygnatury i sprawdzany w środku — tak jak w trzech
+	 * handlerach `Aai_Monitor_Logowania`.
+	 */
+	public static function zasoby( $uchwyt = '' ): void {
+		if ( ! is_string( $uchwyt ) || ! str_contains( $uchwyt, self::STRONA ) ) {
 			return;
 		}
 		wp_enqueue_style(

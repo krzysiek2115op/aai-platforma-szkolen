@@ -344,6 +344,7 @@ final class Aai_Monitor_Zapis {
 						self::teraz_utc( 0, -Aai_Monitor_Tabele::OKNO_WIZYTY_DNI )
 					)
 				); // phpcs:ignore WordPress.DB.PreparedSQL
+				$ile = (int) $ile + self::przytnij_liczbe_wizyt();
 			}
 			if ( false === $ile ) {
 				self::zglos( 'retencja nie zadziałała: ' . $wpdb->last_error );
@@ -354,6 +355,45 @@ final class Aai_Monitor_Zapis {
 			self::zglos( 'retencja nie zadziałała: ' . $e->getMessage() );
 			return 0;
 		}
+	}
+
+	/**
+	 * Ścina tabelę ruchu do sufitu liczby wierszy (A2, decyzja właściciela).
+	 *
+	 * WIEK NIE WYSTARCZY JAKO JEDYNE KRYTERIUM: podpis ścieżki stoi jawnie
+	 * w HTML i jest wielokrotnego użytku, więc jeden nieuwierzytelniony
+	 * klient mieści się w limiterze i dopisuje ~430 000 wierszy na dobę —
+	 * a wszystkie są młodsze niż 400 dni, czyli retencja po wieku ich nie
+	 * rusza. Sufit ścina NAJSTARSZE, bo to one najmniej znaczą.
+	 *
+	 * LICZYMY ROZPIĘTOŚĆ IDENTYFIKATORÓW, NIE WIERSZY. `COUNT(*)` przy
+	 * KAŻDYM zapisie kosztowałby pełny skan tabeli, a beacon jest
+	 * najczęstszym zapisem tego modułu. Rozpiętość `MAX(id) − MIN(id)` jest
+	 * z definicji NIE MNIEJSZA niż liczba wierszy i bierze się z indeksu,
+	 * więc jako granica jest bezpieczna: gdy nie przekracza sufitu, wierszy
+	 * na pewno też nie ma za dużo i nie dotykamy tabeli w ogóle.
+	 */
+	private static function przytnij_liczbe_wizyt(): int {
+		global $wpdb;
+
+		$t = Aai_Monitor_Tabele::tabela( 'wizyty' );
+
+		$granice = $wpdb->get_row( "SELECT MIN(`id`) AS naj_starszy, MAX(`id`) AS naj_nowszy FROM `{$t}`" ); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+		if ( null === $granice || null === $granice->naj_nowszy ) {
+			return 0;
+		}
+
+		$rozpietosc = (int) $granice->naj_nowszy - (int) $granice->naj_starszy + 1;
+		if ( $rozpietosc <= Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT ) {
+			return 0;
+		}
+
+		$prog = (int) $granice->naj_nowszy - Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT;
+		$ile  = $wpdb->query(
+			$wpdb->prepare( "DELETE FROM `{$t}` WHERE `id` <= %d", $prog )
+		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+
+		return false === $ile ? 0 : (int) $ile;
 	}
 
 	/**
