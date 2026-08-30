@@ -85,6 +85,8 @@ więc `wp aai-monitor sprawdz` wypisuje wersje, na których dowiedziono haki.
 | **F14** | **`REMOTE_ADDR` w środowisku warsztatu to stała brama podmana** — wszystkie trzy realne zakupy właściciela zapisały `10.89.4.4` | `wp_wc_orders.ip_address` dla zamówień 1625 / 2010 / 2590 |
 | **F15** | Emiterów `set_logged_in_cookie` bez `wp_login` jest więcej: rejestracja Tutora (dziś uśpiona — natywne logowanie wyłączone, ale włączy się cicho) | `tutor/classes/Student.php:156`, `Instructor.php:189` |
 | **F16** | **Nadpisanie `navigator.webdriver` preloadem DZIAŁA** w Firefoksie przez BiDi (`false` po `evaluateOnNewDocument`), tak samo wstrzyknięcie flagi testowej | zmierzone w rigu 2026-08-30 — to rozstrzyga dowodliwość T3 |
+| **F17** | **`admin-post.php` rozdziela żądania PO STANIE ZALOGOWANIA**: gość → `admin_post_nopriv_{action}`, zalogowany → `admin_post_{action}`. To dwie ROZŁĄCZNE nazwy haków — zarejestrowanie jednej zostawia drugą gałąź martwą (`wp_die( '', 400 )`) | `wp-admin/admin-post.php:36` (rozgałęzienie), `:46` i `:70` (osobne `has_action`). Zmierzone na istniejącej akcji Pluginu 1 `aai_sklep_zapisz_kurs`, zarejestrowanej **tylko** jako `admin_post_`: gość → **400**, `admin` → **403**, `klient-test` (subscriber) → **403** — handler odpalił się wyłącznie w gałęzi zalogowanych |
+| **F18** | **Nazwa akcji MUSI jechać w query stringu**: `$action` czytane jest z `$_REQUEST` (`admin-post.php:29`), a ciało `application/json` nie trafia do `$_POST` | zmierzone na `:8892`: `?action=X` + ciało JSON → **400** (akcja odczytana, brak rejestracji), akcja **tylko w ciele JSON** → **HTTP 200 i cisza** (gałąź „brak akcji”: `do_action( 'admin_post_nopriv' )`) — czyli pomyłka bez ani jednego objawu |
 
 ### Co zmieniła krytyka T0
 
@@ -122,6 +124,29 @@ Trzydzieści znalezisk, wszystkie potwierdzone niezależnie
     KAŻDEJ pozycji, a T1 prostuje trzy obietnice o Pluginie 3, które przez
     nią stają się w repo nieprawdą.
 
+### Domknięcie uwag K1–K4 (2026-08-30, po akceptacji schematu)
+
+Właściciel przyjął schemat z poleceniem: „uwagi K1–K4 są do poprawy, ale
+zrób je **bezpiecznie, bez regresji** — sprawdź przed i po, czy naprawa nie
+koliduje". Sprawdzenie **przed** pokazało, że dwie z czterech uwag były
+wprowadzone niekompletnie, a jedna zostawiła w tekście nieprawdę:
+
+| Uwaga | Stan po pierwszym wprowadzeniu | Co dołożyło domknięcie |
+|---|---|---|
+| **K1** (wystrzał `admin-post.php` zamiast REST) | **NIEKOMPLETNA i niebezpieczna**: wszystkie sześć miejsc mówiło wyłącznie o `nopriv`. `admin-post.php` rozgałęzia się jednak po stanie zalogowania (F17), a wizyty liczymy wszystkim oprócz adminów (D3) — **strony lekcji są za logowaniem**, więc kod pisany z tego schematu nie zapisałby ANI JEDNEJ odsłony lekcji, bez objawu. Do tego nigdzie nie stało, że nazwa akcji musi jechać w query stringu (F18): schowana w ciele JSON daje HTTP 200 i ciszę | fakty **F17** i **F18** (oba zmierzone uruchomieniowo), pułapki **P14** i **P15**, niezmiennik **N18** z testem negatywnym, poprawione sześć miejsc: dwa diagramy, wiersz WYSTRZAŁ, wiersz CLI, proza sekcji 5, zakres T3 |
+| **K2** (`N16` — kontrola nigdy nie pisze) | **KOMPLETNA** — sprawdzone: niezmiennik jest, wiersz CLI go powtarza, T1 go zamyka | bez zmian |
+| **K3** (każdy niezmiennik przypisany do kroku) | **KOMPLETNA co do pokrycia** (N1–N17 wszystkie przypisane), ale **N15 wisiał w T3**, choć jego dowód (uszkodzona tabela → logowanie → `sprawdz` kod 1) wymaga dziennika logowań, czyli T2 | N15 przeniesiony do T2 z uzasadnieniem; N18 przypisany do T3 |
+| **K4** (nazwa `aai-monitor`) | **KOMPLETNA co do nazwy, z nieprawdą po mechanicznej zamianie**: wiersz o prefiksie twierdził, że „`aai-monitor` jest już zajęty w Pluginie 1", a dwa zdania dalej — że ma zero trafień. Zajęty jest `aai-panel` | wiersz poprawiony i **podparty pomiarem**: `aai-panel` **49** trafień, `aai-mono` **43**, `aai-monitor` **0** |
+
+**Sprawdzenie „po" (czy naprawa nie koliduje):** nazwy `aai-monitor`,
+`Aai_Monitor`, `straznik-monitora-wp`, `smoke-wp-monitor` mają w repo dalej
+**zero** trafień poza tym dokumentem; oba diagramy renderują się bez błędu;
+niezmienniki N1–N18 są rozłącznie przypisane do kroków T1–T3; ani jedno
+zdanie o Pluginach 1 i 2 nie zostało zmienione. Osobno naprawiona **kolizja
+scalania**: gałąź schematu stała 4 commity za `main` i jej `CLAUDE.md` nie
+znał sweepów #95/#96 — merge `main` do gałęzi wykonany PRZED poprawkami,
+więc PR nie cofa cudzej pracy.
+
 ## 1. Schemat w języku pluginów tego projektu (WYTYCZNE §8)
 
 Ten sam układ co w Pluginie 1: **BAZA po lewej jako źródło**, dwa kanały
@@ -135,7 +160,7 @@ flowchart LR
     DZIAL["DZIAŁ aai-monitor<br/>jedyna warstwa z dostępem do SQL<br/>retencja przy zapisie + try/catch"]
 
     subgraph AKCJE["dyspozytor — JEDEN AJAX"]
-        DY["wizyta: ścieżka | czas | sesja<br/>admin-post.php, akcja nopriv"]
+        DY["wizyta: ścieżka | czas | sesja<br/>admin-post.php?action=…<br/>nopriv ORAZ zalogowani (F17)"]
     end
 
     subgraph ZDARZENIA["zdarzenia serwerowe — NIE AJAX"]
@@ -222,15 +247,15 @@ z założenia nie robi.
 |---|---|
 | BAZA Pluginu 3 | dwie tabele przez `dbDelta` przy aktywacji (wzorem `Aai_Platnosci_Tabele`: opcja wersji schematu, `tabela()`, `wszystkie()`): `wp_aai_monitor_logowania`, `wp_aai_monitor_wizyty` — kontrakt w sekcji 7 |
 | DZIAŁ-DYSPOZYTOR | `Aai_Monitor_Zapis` w `includes/class-aai-monitor-zapis.php` — jedyny pisarz (nazwa pliku **musi** trzymać tę konwencję: po niej rozpoznaje warstwę zapisu istniejący `straznik-wtyczki-wp`); wartości przez `$wpdb->prepare()`/`insert()`; retencja przy zapisie |
-| WYSTRZAŁ (jedyny AJAX) | **`admin-post.php` z akcją `nopriv`** — ten sam kanał platformy, którym idzie „Zapisz kurs" Pluginu 1 (6 wywołań `admin_post_*`); w repo nie ma **ani jednej** trasy REST i ani jednego `wp_ajax_*`, więc REST byłby pierwszym wyjątkiem od konwencji. Beacon gościa obsługuje `admin_post_nopriv_{action}` (`wp-admin/admin-post.php:43–58`). Ciało czytamy z `php://input` i sami dekodujemy — **dzięki temu pułapka F9 w ogóle nas nie dotyczy**, bo nie zależymy od parsera REST |
+| WYSTRZAŁ (jedyny AJAX) | **`admin-post.php`, akcja zarejestrowana POD OBIEMA NAZWAMI: `admin_post_nopriv_{action}` ORAZ `admin_post_{action}`** — ten sam kanał platformy, którym idzie „Zapisz kurs" Pluginu 1 (6 wywołań `admin_post_*`); w repo nie ma **ani jednej** trasy REST i ani jednego `wp_ajax_*`, więc REST byłby pierwszym wyjątkiem od konwencji. **Dwie nazwy są konieczne, nie ostrożnościowe** (F17): wizyty liczymy wszystkim oprócz zalogowanych adminów (D3), więc beacon klienta czytającego lekcję idzie gałęzią dla ZALOGOWANYCH — sama rejestracja `nopriv` gubiłaby po cichu cały ruch za logowaniem, czyli dokładnie strony lekcji. **Nazwa akcji jedzie w query stringu** (`?action=aai_monitor_wizyta`), bo ciało JSON nie trafia do `$_POST` (F18). Ciało czytamy z `php://input` i sami dekodujemy — **dzięki temu pułapka F9 w ogóle nas nie dotyczy**, bo nie zależymy od parsera REST |
 | zdarzenia logowania (haki) | `set_logged_in_cookie` (powstała sesja — łapie TAKŻE auto-login z kasy, F3/F4), `wp_login` (doprecyzowanie źródła na „formularz", F1), `wp_login_failed` (porażka, F2). **Każdy handler owinięty `try { } catch ( Throwable )`** (F11) |
 | KANAŁ JSON (odczyt) | `Aai_Monitor_Odczyt` — zapytania agregujące, nigdy nie pisze |
 | kokpit | `Aai_Monitor_Ekran`: podstrona menu **Automatic AI**, a gdy sklep nieaktywny — własna pozycja top-level; `manage_options`; **czysty odczyt — zero `admin-post.php`, zero `wp_ajax_*`, zero `method="post"`**. Rejestracja na `admin_menu` z **priorytetem 20**: wtyczki ładują się alfabetycznie, więc `aai-monitor` biegnie przed `aai-sklep` i przy domyślnym priorytecie nasza pozycja wchodzi do podmenu PRZED pozycjami Pluginu 1 (zmierzone na slugu naszej podstrony: kolejność `aai-sklep, aai-sklep-kurs, aai-monitor, aai-sklep`; z priorytetem 20 nasza ląduje na końcu). Obecność rodzica sprawdzamy przez `isset( $GLOBALS['admin_page_hooks']['aai-sklep'] )` — pytanie o ISTNIENIE MENU, nie o nazwę klasy |
 | skrypt pomiaru | `assets/pomiar.js` podpinany na `wp_enqueue_scripts` **tylko gdy oglądający nie ma `manage_options`** (D3); wysyła **Blob typu `application/json`** (F10) na `pagehide`/`visibilitychange` |
-| CLI | `wp aai-monitor sprawdz` — kod 1, gdy: brak tabel, haki niezarejestrowane, retencja zawiodła (sekcja 4), **ostatni zapis zgłosił błąd**. Wystrzał sprawdzany **przez `has_action( 'admin_post_nopriv_…' )`, NIGDY żądaniem HTTP**: kontener WP-CLI jest osobny i `home_url()` jest z niego nieosiągalny (zmierzone: cURL error 7), więc kontrola po HTTP byłaby czerwona ZAWSZE i wywracała `postaw.sh`. Wypisuje wersje i ostrzega przy prywatnym `REMOTE_ADDR` (F14). **Kontrola NIGDY nie pisze** (rozdzielenie ról L11 z krytyki P2) |
+| CLI | `wp aai-monitor sprawdz` — kod 1, gdy: brak tabel, haki niezarejestrowane, retencja zawiodła (sekcja 4), **ostatni zapis zgłosił błąd**. Wystrzał sprawdzany **przez `has_action()` na OBU nazwach akcji (`admin_post_nopriv_…` i `admin_post_…`, F17), NIGDY żądaniem HTTP**: kontener WP-CLI jest osobny i `home_url()` jest z niego nieosiągalny (zmierzone: cURL error 7), więc kontrola po HTTP byłaby czerwona ZAWSZE i wywracała `postaw.sh`. Wypisuje wersje i ostrzega przy prywatnym `REMOTE_ADDR` (F14). **Kontrola NIGDY nie pisze** (rozdzielenie ról L11 z krytyki P2) |
 | kanał błędów | opcja + `admin_notices` na naszym ekranie, wzorem `Aai_Platnosci_Komunikaty`. Bez niego uszkodzona tabela daje **pustą listę logowań**, którą właściciel przeczyta jako brak prób — fałszywy negatyw na jedynym ekranie, który ma ostrzegać |
 | zależności | `Aai_Monitor_Zaleznosci` ze stałymi `WP_DOWIEDZIONE` / `WOO_DOWIEDZIONE` (wzorem P2, L17): F3 oraz F1/F4 to wnętrzności cudzego kodu — aktualizacja Woo przełączająca kasę na `wp_signon()` zamieniłaby N3 w cichy podwójny wpis. Różnica wersji = kod 0 + ostrzeżenie z listą faktów do potwierdzenia |
-| prefiks assetów i klas CSS | **`aai-monitor-`**. `aai-monitor` jest już zajęty w Pluginie 1 (`szablony/katalog.php`, `assets/lekcja.css`, `assets/panel.css`), a krótsze `aai-mon-` myliłoby wyszukiwanie z istniejącą klasą `aai-mono` (czcionka; `szablony/czesci/program.php` i inne). Zmierzone: `aai-monitor` ma dziś **zero** trafień w repo |
+| prefiks assetów i klas CSS | **`aai-monitor-`**. Odrzucone `aai-panel-`, bo `aai-panel` jest już zajęty w Pluginie 1 — **49 trafień** (`szablony/katalog.php`, `szablony/sekcje/*.php`, `assets/lekcja.css`); odrzucone `aai-mon-`, bo myliłoby wyszukiwanie z istniejącą klasą `aai-mono` (czcionka, **43 trafienia**; `szablony/czesci/program.php` i inne). Zmierzone 2026-08-30: `aai-monitor` ma w repo **zero** trafień |
 | meta / opcje | tylko opcja wersji schematu; **żadnych meta na cudzych wpisach** |
 
 ## 3. Granica: co jest nasze, a co cudze
@@ -326,7 +351,7 @@ sequenceDiagram
 sequenceDiagram
     participant P as przeglądarka gościa
     participant S as skrypt pomiaru
-    participant R as admin-post.php (akcja nopriv)
+    participant R as admin-post.php (nopriv + zalogowani)
     participant Z as Aai_Monitor_Zapis
 
     P->>S: wejście na stronę
@@ -368,6 +393,21 @@ sequenceDiagram
   jak sprawdzić (beacon nie niesie nagłówków, a nonce gościa jest wspólny
   dla wszystkich niezalogowanych — niczego by nie dowodził), więc obroną
   jest sito i limit, nie token.
+- **Ale ten kanał ma dwie pułapki i obie są ciche — dlatego stoją
+  w kontrakcie, nie w kodzie „jakoś to będzie".**
+  - **Rejestrujemy OBIE nazwy akcji** (F17). `admin-post.php` rozgałęzia
+    się po `is_user_logged_in()` (`:36`) na `admin_post_nopriv_{action}`
+    i `admin_post_{action}` — to dwa rozłączne haki. Wizyty liczymy
+    wszystkim oprócz zalogowanych adminów (D3), a **strony lekcji są za
+    logowaniem**, więc przy samej rejestracji `nopriv` w tabeli nie
+    pojawiłaby się ani jedna odsłona lekcji: beacon dostawałby
+    `wp_die( '', 400 )`, którego nikt nie czyta. Zmierzone na akcji
+    Pluginu 1: gość **400**, `klient-test` **403** — dwie różne gałęzie.
+  - **Nazwa akcji jedzie w query stringu** (F18): `$action` bierze się
+    z `$_REQUEST` (`:29`), a ciała `application/json` PHP nie wkłada do
+    `$_POST`. Akcja schowana w ciele JSON daje **HTTP 200 i ciszę**
+    (gałąź „brak akcji"), czyli najgorszy możliwy objaw — jego brak.
+    Zmierzone na `:8892`.
 - **Sito na wejściu** (endpoint jest publiczny, więc każdy bajt wejścia
   jest wrogi — lekcja z PR 3 kroku 2 prototypu):
 
@@ -484,6 +524,7 @@ od istniejącej.
 | N15 | **Awaria zapisu jest GŁOŚNA**: uszkodzona tabela → `sprawdz` kod 1 i komunikat na ekranie, nie pusta lista | smoke: przemianowanie tabeli pod wtyczką → logowanie → `sprawdz` kod 1 i komunikat obecny (bez tego pusty ekran znaczy „nikt nie próbował") |
 | N16 | **Kontrola NIGDY nie pisze** (L11 z P2): `sprawdz` i `Aai_Monitor_Odczyt` nie mają ani jednego zapisu; naprawy robi wyłącznie warstwa zapisu | strażnik: skan obu klas na `insert/update/delete/replace`; mutacja dopisująca zapis w kontroli zapala |
 | N17 | Deaktywacja = koniec rejestrowania; odinstalowanie NIE kasuje danych bez jawnej zgody | smoke **w `try/finally` z powrotną aktywacją** i asercją końcową „wtyczka aktywna" — inaczej padnięcie zostawia `:8892` z wyłączonym monitoringiem (lekcja 0.53.0) |
+| **N18** | **Beacon ZALOGOWANEGO bez `manage_options` też tworzy wiersz** (F17) — inaczej cały ruch za logowaniem, czyli strony lekcji, jest niewidzialny | smoke: to samo żądanie z sesją konta `klient-test` → wiersz JEST; **test negatywny**: zdjęcie wyłącznie callbacku `admin_post_{action}` (po nazwie klasy z `$wp_filter`, wzorzec z P5) gasi wiersz, a wariant gościa dalej działa — bez tej pary asercja przechodzi na samej rejestracji `nopriv` |
 
 ## 9. Pułapki w cudzym kodzie i odpowiedź projektu
 
@@ -502,6 +543,8 @@ od istniejącej.
 | P11 | **Kontener WP-CLI nie dosięga własnego HTTP** (cURL error 7) — kontrola po żądaniu byłaby czerwona zawsze i wywracała `postaw.sh` | `sprawdz` pyta rejestr tras, nie sieć; żywotność HTTP mierzy smoke z hosta |
 | P12 | **Wtyczki ładują się alfabetycznie**, więc `aai-monitor` rejestruje menu przed Pluginem 1 | priorytet 20 na `admin_menu` + pytanie o `admin_page_hooks`; bramka T1 sprawdza kotwicę pozycji nadrzędnej |
 | P13 | **Pusty ekran nie odróżnia ciszy od awarii** — beacon z założenia milczy (204), a haki nie mają komu nic zwrócić | kanał błędów wzorem `Aai_Platnosci_Komunikaty`; `sprawdz` go czyta; ekran przy zerze wpisów mówi, czy ostatni zapis się udał |
+| **P14** | **`admin-post.php` ma dwie rozłączne nazwy akcji** (F17) — sama rejestracja `nopriv` gubi CAŁY ruch zalogowanych, czyli wszystkie strony lekcji, i to bez objawu (`wp_die( '', 400 )` czyta tylko przeglądarka, a beacon nie ma czytelnika) | rejestrujemy OBIE nazwy; `sprawdz` pyta o obie; **N18** dowodzi wiersza z konta bez `manage_options` |
+| **P15** | **Akcja schowana w ciele JSON daje HTTP 200 i zero wierszy** (F18) — `$action` bierze się z `$_REQUEST`, a ciała `application/json` PHP nie wkłada do `$_POST` | nazwa akcji w query stringu; smoke asertuje **wiersz**, nigdy samego kodu odpowiedzi (kod 200 jest tu objawem awarii, nie sukcesu) |
 
 ## 10. Deaktywacja i odinstalowanie
 
@@ -530,8 +573,8 @@ Reguła właściciela (2026-08-28): przed KAŻDYM krokiem plan przebiegu
 | Krok | Zakres | Bramka dowodowa (niezmienniki zamykane w tym kroku) |
 |---|---|---|
 | **T1 — fundament i EKRAN** | katalog `wordpress/wtyczki/aai-monitor/` (wzorem W1/P1): plik główny, `Aai_Monitor_Tabele` (dbDelta, 2 tabele), `Aai_Monitor_Zapis` w `class-aai-monitor-zapis.php`, `Aai_Monitor_Zaleznosci`, kanał błędów, `uninstall.php`. **Do tego ekran, którego wcześniejsza wersja tego planu nie budowała w żadnym kroku**: `Aai_Monitor_Ekran` + rejestracja menu (priorytet 20) + `Aai_Monitor_Odczyt` z jednym agregatem + własny `assets/panel.css` (arkusz kreatora tu nie wejdzie — `Aai_Sklep_Panel::zasoby()` wychodzi na uchwytach spoza `aai-sklep`). **Integracja środowiska to PIĘĆ czynności, nie „montaż"**: mount w usłudze `wordpress` ORAZ w `cli` (bez drugiego `wp aai-monitor sprawdz` nie istnieje), gałąź „plik istnieje" w `postaw.sh`, asercja martwego bind mountu (inode), aktywacja, punkt kontrolny w sekcji WERYFIKACJA. Plus wpis `smoke:wp-monitor` w `package.json` — bez niego bramki nikt nie uruchomi. Plus blok KOREKTA w PLAN.md §4 i sprostowanie trzech obietnic o Pluginie 3 w repo (sekcja 0). **Kolejny strażnik `straznik-monitora-wp`** (nazwa spójna ze smoke'iem) + mutacje | strażnicy zieloni, audyt bez martwych, `postaw.sh` kod 0, `sprawdz` kod 0, ekran otwiera się pod `manage_options` i **kotwica pozycji „Automatic AI" dalej celuje w `page=aai-sklep`**. **Zamyka: N1, N14, N16, N17.** Uwaga: nowy mount wymaga `podman-compose down && ./postaw.sh` (bind mount trzyma inode). Wchodzi po zmergowaniu napraw po P6 (PR #93, 0.54.0) |
-| **T2 — dziennik logowań** | trzy haki z `try/catch`, dedup źródła, retencja 90 dni + drugi wyzwalacz, sekcja „Logowania" ekranu, wpis do polityki prywatności | **`smoke-wp-monitor`**: N2, N3, N4, N5, N6, N13; test ręczny logowania z kasy na `:8892` |
-| **T3 — timer wizyt** | `assets/pomiar.js` (Blob `application/json`, id 32 hex, webdriver-kill), akcja `admin_post_nopriv_*` czytająca `php://input`, sito z walidacją ścieżki i `Origin`, miękki limiter, retencja 400 dni, sekcja „Ruch" ekranu | smoke: **N9 i N10 jako para** (przebieg z nadpisanym `navigator.webdriver` → wiersz JEST; bez nadpisania → wiersza NIE MA), **zamyka N7, N8, N9, N10, N11, N12, N15**; `EXPLAIN` na trzech zapytaniach ekranu przed ustaleniem indeksów; **pomiar realnego rozmiaru beaconu** przed ustaleniem sufitu ciała |
+| **T2 — dziennik logowań** | trzy haki z `try/catch`, dedup źródła, retencja 90 dni + drugi wyzwalacz, sekcja „Logowania" ekranu, wpis do polityki prywatności | **`smoke-wp-monitor`**: N2, N3, N4, N5, N6, N13, **N15** (uszkodzona tabela → `sprawdz` kod 1: dowód wymaga dziennika logowań, więc zamyka się TU, nie w T3); test ręczny logowania z kasy na `:8892` |
+| **T3 — timer wizyt** | `assets/pomiar.js` (Blob `application/json`, id 32 hex, webdriver-kill), akcja pod OBIEMA nazwami (`admin_post_nopriv_*` i `admin_post_*`, F17) z nazwą w query stringu (F18), czytająca `php://input`, sito z walidacją ścieżki i `Origin`, miękki limiter, retencja 400 dni, sekcja „Ruch" ekranu | smoke: **N9 i N10 jako para** (przebieg z nadpisanym `navigator.webdriver` → wiersz JEST; bez nadpisania → wiersza NIE MA), **zamyka N7, N8, N9, N10, N11, N12, N18**; `EXPLAIN` na trzech zapytaniach ekranu przed ustaleniem indeksów; **pomiar realnego rozmiaru beaconu** przed ustaleniem sufitu ciała |
 | **T4 — test ręczny właściciela** | scenariusz wzorem [TEST-RECZNY-P6.md](../plugin-2/TEST-RECZNY-P6.md): logowanie swoje i klienta, zła próba, przegląd ekranu, wizyty z drugiej przeglądarki | zaliczenie właściciela = **Plugin 3 skończony**; potem test całości trzech wtyczek (decyzja 2026-08-25) |
 
 Wersjonowanie: T1 = kolejne `0.X.0` po zmergowaniu PR #93 (0.54.0).

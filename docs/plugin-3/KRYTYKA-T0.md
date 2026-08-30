@@ -114,7 +114,7 @@ i wprowadzone.
 |---|---|---|---|
 | **K1 KRYTYCZNE** | Wystrzał przez **trasę REST** łamał konwencję obu poprzednich modułów, a nie był nazwany odstępstwem | W repo jest **0** wywołań `register_rest_route` i **0** `wp_ajax_*`, za to **6** akcji `admin_post_*` w Pluginie 1. CLAUDE.md i DIAGRAM P2 mówią wprost: „w WordPressie wystrzałem JEST `admin-post.php`". Sprawdzone też, że gościa obsługuje `admin_post_nopriv_{action}` (`wp-admin/admin-post.php:43–58`) — czyli konwencja **wystarcza** dla beaconu | Wystrzałem jest **akcja `admin-post.php` z `nopriv`**. **Efekt uboczny: pułapka F9 przestaje nas dotyczyć** — ciało czytamy z `php://input` sami, więc nie zależymy od tego, jak REST traktuje `text/plain` |
 | **K2 POWAŻNE** | Brak rozdzielenia ról „kontrola nigdy nie pisze" (L11 z krytyki P0 Pluginu 2) | Plugin 2 ma to nazwane wprost (`class-aai-platnosci-ustawienia.php:5,577`); mój schemat wspominał o tym w prozie, ale nie miał niezmiennika | Doszedł **N16** z przepisem i mutacją |
-| **K3 POWAŻNE** | Niezmienniki nie miały przypisania do kroków — zgłaszał to krytyk A, a ja wprowadziłem to tylko połowicznie | `grep -c "niezmienniki zamykane"` → **0** | Tabela kroków ma teraz kolumnę i **każdy z N1–N17 jest zamykany w konkretnym kroku** |
+| **K3 POWAŻNE** | Niezmienniki nie miały przypisania do kroków — zgłaszał to krytyk A, a ja wprowadziłem to tylko połowicznie | `grep -c "niezmienniki zamykane"` → **0** | Tabela kroków ma teraz kolumnę i **każdy z N1–N18 jest zamykany w konkretnym kroku** |
 | **K4 POWAŻNE** | Nazwa wtyczki `aai-panel` była źródłem kolizji w całym repo | Konwencja: strażnik nazywany od wtyczki (`straznik-platnosci-wp` ← `aai-platnosci`), więc dla `aai-panel` wyszedłby `straznik-panelu-wp` — a „panel" w tym repo znaczy **kreator** (`smoke:wp-panel` mierzy kreator, `Aai_Sklep_Panel*`, `.aai-panel` zajęte) | Wtyczka nazywa się **`aai-monitor`**: `straznik-monitora-wp`, `smoke-wp-monitor`, tabele `wp_aai_monitor_*`, prefiks `aai-monitor-`. Kolizja znika u źródła, konwencja nazw wraca |
 
 **Sprawdzone i spójne z resztą projektu — nie szukać drugi raz:** brak CSP
@@ -123,5 +123,34 @@ wyłącznie swój katalog, więc nowy strażnik go nie dubluje; `uninstall.php`
 obu wtyczek domyślnie nie kasuje danych — nasz robi tak samo; kontrola
 `sprawdz` mieszka w klasie CLI (wzór P2); klasa odczytu oddzielona od
 zapisu istnieje w P1 (`class-aai-sklep-odczyt.php`) — nasza nazwa i rola
-pasują; objętość dokumentu (533 wiersze) mieści się między P1 (208)
+pasują; objętość dokumentu (585 wierszy) mieści się między P1 (208)
 a P2 (677).
+
+## Domknięcie uwag K1–K4 (2026-08-30) — po akceptacji schematu
+
+Właściciel przyjął schemat („akceptuję diagram, lecz poprawmy") z warunkiem:
+uwagi K1–K4 wprowadzić **bezpiecznie, bez regresji, ze sprawdzeniem przed
+i po**. Sprawdzenie **przed** obaliło założenie, że wszystkie cztery są już
+wprowadzone — dwie były niekompletne, w tym jedna niebezpiecznie.
+
+| # | Stan zastany | Dowód (mój, uruchomieniowy) |
+|---|---|---|
+| **K1** | **NIEKOMPLETNA**: sześć miejsc mówiło wyłącznie o `admin_post_nopriv_`. `admin-post.php` rozgałęzia się po `is_user_logged_in()` (`:36`) na DWA rozłączne haki, a D3 każe liczyć wizyty wszystkim oprócz adminów — **strony lekcji są za logowaniem**, więc kod z tego schematu zapisałby zero odsłon lekcji. Do tego nigdzie nie stało, że nazwa akcji musi jechać w query stringu | Na istniejącej akcji Pluginu 1 `aai_sklep_zapisz_kurs` (zarejestrowanej TYLKO jako `admin_post_`): gość → **400**, `admin` → **403**, `klient-test` (subscriber) → **403**. Oraz: `?action=X` + ciało JSON → **400**, akcja tylko w ciele JSON → **HTTP 200 i cisza** |
+| **K2** | **KOMPLETNA** — N16 obecny, powtórzony w wierszu CLI, zamykany w T1 | odczyt schematu |
+| **K3** | **KOMPLETNA co do pokrycia, błędna co do jednego przypisania** — N15 zamykany w T3, choć jego dowód wymaga dziennika logowań (T2) | odczyt przepisu N15: „przemianowanie tabeli → **logowanie** → `sprawdz` kod 1" |
+| **K4** | **KOMPLETNA co do nazwy, z nieprawdą po mechanicznej zamianie** — wiersz o prefiksie twierdził, że „`aai-monitor` jest już zajęty w Pluginie 1", a dwa zdania dalej, że ma zero trafień | pomiar w repo: `aai-panel` **49**, `aai-mono` **43**, `aai-monitor` **0** |
+
+Co dołożone: fakty **F17**/**F18**, pułapki **P14**/**P15**, niezmiennik
+**N18** z testem negatywnym, N15 przeniesiony do T2, wiersz prefiksu
+poprawiony i podparty pomiarem.
+
+**Sprawdzenie „po":** `aai-monitor`, `Aai_Monitor`, `straznik-monitora-wp`
+i `smoke-wp-monitor` mają w repo dalej **zero** trafień poza dokumentami
+Pluginu 3; oba diagramy renderują się bez błędu; N1–N18 rozłącznie
+przypisane do T1–T3; ani jedno zdanie o Pluginach 1 i 2 nie tknięte.
+
+**Osobno naprawiona kolizja scalania, której nie widać w treści:** gałąź
+`docs/schemat-pluginu-3` stała **4 commity za `main`**, a jej `CLAUDE.md`
+nie znał sweepów #95 i #96 (74 wiersze). Merge PR-a cofnąłby cudzą pracę.
+`main` scalony do gałęzi PRZED poprawkami — po scaleniu gałąź różni się od
+`main` **wyłącznie** dwoma dokumentami Pluginu 3.

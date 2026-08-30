@@ -2296,16 +2296,19 @@ wyprowadzała tego od nowa:
         (`git diff origin/main <szczyt>` PUSTY).** Merge decyzją właściciela
         na dowodach lokalnych — CI padło w 2 s z zerem kroków (minuty
         Actions wracają 1 września; potem potwierdzić gitleaks).
-     2. **PLUGIN 3 — panel + monitoring — W TOKU: krok T0 (schemat) CZEKA
-        NA OCENĘ WŁAŚCICIELA.** Wtyczka **`aai-monitor`** (NIE `aai-panel`:
-        „panel" znaczy w tym repo KREATOR), ostatni moduł; potem
-        test całości trzech wtyczek. Obowiązuje reguła z 2026-08-28
+     2. **PLUGIN 3 — panel + monitoring — W TOKU: krok T0 (schemat)
+        ZAAKCEPTOWANY przez właściciela 2026-08-30** („akceptuję diagram,
+        lecz poprawmy — uwagi K1–K4 zrób bezpiecznie, bez regresji,
+        sprawdź przed i po, czy naprawa nie koliduje"). **Domknięcie
+        K1–K4 ZROBIONE** — patrz niżej. Wtyczka **`aai-monitor`** (NIE
+        `aai-panel`: „panel" znaczy w tym repo KREATOR), ostatni moduł;
+        potem test całości trzech wtyczek. Obowiązuje reguła z 2026-08-28
         (plan kroku + pytania + zgoda przed KAŻDYM krokiem) i ZASADA 0
         (schemat → krytyka → akceptacja → kod).
-        **CZYTAĆ PRZED PRACĄ: `docs/plugin-3/DIAGRAM.md`** (plik na gałęzi
-        PR #94 do czasu akceptacji — potem zwykła ścieżka w repo)
-        (schemat PO krytyce: 16 faktów zmierzonych w cudzym kodzie F1–F16,
-        16 niezmienników, kroki T1–T4)
+        **CZYTAĆ PRZED PRACĄ: [docs/plugin-3/DIAGRAM.md](docs/plugin-3/DIAGRAM.md)**
+        (schemat PO krytyce i PO domknięciu K1–K4: 18 faktów zmierzonych
+        w cudzym kodzie F1–F18, 18 niezmienników N1–N18, 15 pułapek
+        P1–P15, kroki T1–T4)
         i `docs/plugin-3/KRYTYKA-T0.md`
         (werdykty 30 znalezisk trzech krytyków — każde potwierdzone
         niezależnie, 10 uruchomieniowo).
@@ -2352,10 +2355,39 @@ wyprowadzała tego od nowa:
         **NAZWY (zmierzone jako wolne):** wtyczka `aai-monitor`, tabele
         `wp_aai_monitor_*`, smoke `smoke-wp-monitor`, strażnik
         `straznik-monitora-wp`, prefiks assetów `aai-monitor-`.
-        **STAN GAŁĘZI: `docs/schemat-pluginu-3` wypchnięta, PR #94
-        OTWARTY — czeka na „ok" właściciela; NIE mergować przed jego
-        oceną.** Po akceptacji: merge #94 → plan T1 z pytaniami → zgoda
-        → dopiero kod. T1 wg tabeli kroków w DIAGRAM.md sekcja 12
+        **DOMKNIĘCIE UWAG K1–K4 (2026-08-30) — dwie z czterech były
+        wprowadzone NIEKOMPLETNIE, sprawdzenie „przed" to pokazało.**
+        Pełnia z dowodami: DIAGRAM.md („Domknięcie uwag K1–K4") i
+        KRYTYKA-T0.md (sekcja o tej samej nazwie). Skrót:
+        **(K1) było niebezpieczne** — cały schemat mówił wyłącznie
+        o `admin_post_nopriv_`, a `admin-post.php` rozgałęzia się po
+        `is_user_logged_in()` (`:36`) na DWA rozłączne haki. Wizyty
+        liczymy wszystkim oprócz adminów (D3), a **strony lekcji są za
+        logowaniem**, więc kod pisany z tamtego schematu nie zapisałby
+        ANI JEDNEJ odsłony lekcji — bez objawu, bo beacon nie ma
+        czytelnika. Zmierzone na akcji Pluginu 1 `aai_sklep_zapisz_kurs`
+        (zarejestrowanej tylko jako `admin_post_`): gość **400**, `admin`
+        **403**, `klient-test` **403**. Druga połowa K1: **nazwa akcji
+        MUSI jechać w query stringu** — `$action` bierze się z `$_REQUEST`
+        (`:29`), a ciała `application/json` PHP nie wkłada do `$_POST`;
+        akcja schowana w ciele daje **HTTP 200 i ciszę**. Doszły fakty
+        F17/F18, pułapki P14/P15 i niezmiennik N18 z testem negatywnym.
+        **(K3) N15 wisiał w T3**, choć jego dowód wymaga dziennika
+        logowań — przeniesiony do T2. **(K4) mechaniczna zamiana nazwy
+        zostawiła nieprawdę**: wiersz prefiksu twierdził, że „`aai-monitor`
+        jest już zajęty w Pluginie 1", a dwa zdania dalej — że ma zero
+        trafień; zajęty jest `aai-panel` (pomiar: `aai-panel` **49**,
+        `aai-mono` **43**, `aai-monitor` **0**). **(K2) była kompletna.**
+        **KOLIZJA SCALANIA, której nie widać w treści:** gałąź stała
+        4 commity za `main` i jej `CLAUDE.md` nie znał sweepów #95/#96
+        (74 wiersze) — merge PR-a cofnąłby cudzą pracę. `main` scalony
+        do gałęzi PRZED poprawkami; po scaleniu gałąź różni się od `main`
+        **wyłącznie** dwoma dokumentami Pluginu 3 (sprawdzone
+        `git diff --stat`).
+        **STAN GAŁĘZI: `docs/schemat-pluginu-3` — schemat zaakceptowany,
+        uwagi domknięte, PR #94 idzie do merge'u.** Potem: **plan T1
+        z pytaniami → ZGODA właściciela → dopiero kod.** T1 wg tabeli
+        kroków w DIAGRAM.md sekcja 12
         (fundament + EKRAN + pięć czynności integracji środowiska +
         sprostowanie trzech obietnic o Pluginie 3 w repo).
      **POZA MODUŁAMI, przed pierwszym klientem** (spinane na bieżąco,
