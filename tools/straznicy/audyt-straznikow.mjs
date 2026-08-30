@@ -82,6 +82,7 @@ const ODCZYT_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monito
 const EKRAN_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-ekran.php";
 const CLI_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-cli.php";
 const TABELE_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-tabele.php";
+const LOGOWANIA_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-logowania.php";
 
 const MUTACJE = [
   // --- straznik-scenariuszy ---
@@ -2895,6 +2896,85 @@ const MUTACJE = [
             '$wpdb->prepare( "SELECT * FROM `{$l}` ORDER BY czas DESC, id DESC LIMIT %d", $ile )',
             '$wpdb->prepare( $sqlWszystkie, $ile )'
           )
+        : null,
+  },
+  {
+    // T2. Handler biegnie w CUDZYM żądaniu, a przy sesji z kasy to
+    // żądanie WooCommerce: zmierzone (F11), wyjątek wychodzi
+    // z wc_set_customer_auth_cookie() i daje HTTP 500 przy zakupie.
+    straznik: "straznik-monitora-wp",
+    opis: "handler haka logowania łapie tylko Exception — Error z niego wychodzi i przerywa cudzy zakup (N4)",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: "nie łapie Throwable",
+    zmien: (s) =>
+      s.includes("} catch ( Throwable $e ) {\n\t\t\tself::przemilcz( $e );")
+        ? s.replace(
+            "} catch ( Throwable $e ) {\n\t\t\tself::przemilcz( $e );",
+            "} catch ( Exception $e ) {\n\t\t\tself::przemilcz( $e );"
+          )
+        : null,
+  },
+  {
+    // T2. Złamanie CICHE: dziennik działa, tylko każde logowanie
+    // formularzem liczy dwa razy — a licznik porażek z 7 dni przestaje
+    // być porównywalny z niczym.
+    straznik: "straznik-monitora-wp",
+    opis: "hak wp_login dopisuje własny wiersz zamiast doprecyzować świeży — każde logowanie liczone dwa razy (N2)",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: "nie doprecyzowuje wiersza przez uzupelnij_zrodlo",
+    zmien: (s) =>
+      s.includes("Aai_Monitor_Zapis::uzupelnij_zrodlo( $id, 'formularz' );")
+        ? s.replace(
+            "Aai_Monitor_Zapis::uzupelnij_zrodlo( $id, 'formularz' );",
+            "Aai_Monitor_Zapis::dodaj_logowanie( array( 'zdarzenie' => 'udane', 'zrodlo' => 'formularz' ) );"
+          )
+        : null,
+  },
+  {
+    // T2. Najgroźniejsza z tej rodziny: ten hak jest JEDYNĄ drogą, którą
+    // do dziennika trafia auto-login z kasy (F3), czyli wejście każdego
+    // nowego klienta. Po skasowaniu nic się nie zapala.
+    straznik: "straznik-monitora-wp",
+    opis: "zdjęta rejestracja set_logged_in_cookie — sesje z kasy znikają z dziennika bez objawu (N3)",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: 'hak „set_logged_in_cookie" nie jest zarejestrowany',
+    zmien: (s) =>
+      s.includes("add_action( 'set_logged_in_cookie', array( self::class, 'sesja' ), 10, 4 );")
+        ? s.replace(
+            "add_action( 'set_logged_in_cookie', array( self::class, 'sesja' ), 10, 4 );",
+            "// rejestracja zdjęta"
+          )
+        : null,
+  },
+  {
+    // T2. Kłamstwo w DRUGĄ stronę niż pusta lista: haki działają, a ekran
+    // twierdzi, że nic nie zbiera — czyli każe szukać awarii tam, gdzie
+    // jej nie ma.
+    straznik: "straznik-monitora-wp",
+    opis: "producent danych przestaje meldować czujkę — ekran twierdzi „nic nie zbiera” przy działających hakach (P13)",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: "nie melduje czujki",
+    zmien: (s) =>
+      s.includes("Aai_Monitor_Ekran::zglos_czujke(")
+        ? s.replace("Aai_Monitor_Ekran::zglos_czujke(", "self::pomin_meldunek( (")
+        : null,
+  },
+  {
+    // T2, kontrprzykład do reguł 9–12: mają celować w ZACHOWANIE, nie
+    // w nazwy. Przemianowanie handlerów wraz z ich rejestracjami nie
+    // osłabia niczego — i strażnik ma to przepuścić.
+    straznik: "straznik-monitora-wp",
+    opis: "kontrprzykład: przemianowanie handlerów haków logowania niczego nie osłabia",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekujCzerwonego: false,
+    zmien: (s) =>
+      s.includes("'porazka'") && s.includes("function porazka(")
+        ? s.replaceAll("'porazka'", "'nieudana_proba'").replaceAll("function porazka(", "function nieudana_proba(")
         : null,
   },
 ];
