@@ -31,8 +31,35 @@ druga kopia haseł to druga powierzchnia ataku i drugi zbiór danych osobowych
 do skasowania przy żądaniu RODO. Panel stoi na `manage_options`, jak kreator.
 Z pierwotnej listy tabel zostają **`logowania`** (dawne `admin_login_log`,
 rozszerzone na wszystkie konta) i **`wizyty`** (dawne `page_visits`);
-`admin_users` odpada. Sekcja w PLAN.md dostanie blok „KOREKTA" przy
-implementacji, jak §3.
+`admin_users` odpada.
+
+**Werdykt dla KAŻDEJ pozycji §4** — żeby nic nie zostało przemilczane
+zamiast świadomie odrzucone:
+
+| Pozycja PLAN.md §4 | Werdykt |
+|---|---|
+| `/szkolenia/admin`, logowanie, sesje, hasło argon2 | **ODRZUCONE** — ma WordPress; panel idzie do kokpitu (D1) |
+| `admin_users` | **ODRZUCONE** — `wp_users` + role |
+| widok „sprzedaż/zamówienia" | **ODRZUCONE** (D4) — raporty ma WooCommerce |
+| widok „kursy i ich statusy" | **JUŻ ZROBIONE** w W4: lista kreatora, `admin.php?page=aai-sklep` |
+| widok „ruch na podstronie" | **ZOSTAJE** → tabela `wizyty` |
+| widok „logi" | **ZOSTAJE** → tabela `logowania` |
+| `admin_login_log` | **ZOSTAJE**, rozszerzone na wszystkie konta |
+| `page_visits` | **ZOSTAJE** jako `wizyty` |
+| baza `db3_monitoring` | **ZASTĄPIONE** — własne tabele z prefiksem w bazie WP (decyzja 2026-08-25) |
+| `POST /api/szkolenia/track` + `sendBeacon` | **ZASTĄPIONE** trasą REST `aai-panel/v1/wizyta` (sekcja 5) |
+
+**Trzy obietnice w REPO stają się przez tę korektę nieprawdą i T1 je prostuje**
+(inaczej kod i dokumentacja Pluginu 1 obiecują coś, czego Plugin 3 nie zrobi):
+`class-aai-sklep-panel.php:51` („Własną rolę redaktora kursów dołoży Plugin 3,
+razem z kontami klientów"), `docs/plugin-1/KREATOR.md:29` („Pełne logowanie…
+da Plugin 3"), `docs/plugin-1/DIAGRAM.md:44` („pełny auth da Plugin 3").
+Osobno: `docs/plugin-1/KROK-2-ZABEZPIECZENIA.md:47` parkuje w Pluginie 3
+pozycję **brute force** — konta i sesje przejmują WP i Woo, ale ochrona przed
+łamaniem hasła zostaje **bez właściciela**, dopóki nie zapadnie decyzja
+z sekcji 11. To trzeba w tamtej checkliście napisać wprost.
+
+Sekcja w PLAN.md dostanie blok „KOREKTA" w kroku **T1**, jak §3.
 
 ### Fakty zmierzone w cudzym kodzie
 
@@ -81,6 +108,19 @@ Trzydzieści znalezisk, wszystkie potwierdzone niezależnie
 6. **Dziennik logowań byłby zaśmiecany przez własne bramki** — 8 smoke'ów
    loguje się do instalacji, a „licznik porażek z 7 dni" jest jedyną
    funkcją alarmową ekranu.
+7. **Ekranu nie budował ŻADEN krok** — T2 i T3 dokładały do niego sekcje,
+   a `Aai_Panel_Odczyt` (cały kanał JSON) nie padał w tabeli kroków ani raz.
+8. **Kontrola miała robić żądanie HTTP do siebie** — niewykonalne z kontenera
+   WP-CLI (zmierzone: cURL error 7), więc wywracałaby `postaw.sh` na alarmie
+   o rzeczy, która działa.
+9. **Kolumna `wejscie` nie miała producenta** — wystrzał jej nie przysyła,
+   a `now()` przy odbiorze beaconu to moment WYJŚCIA; najdłuższe wizyty
+   trafiałyby do złej doby.
+10. **Strefa czasowa przemilczana** — w warsztacie `gmt_offset = 0`, więc
+    błąd byłby niewidoczny do produkcji.
+11. **Korekta do PLAN.md §4 była niekompletna** — teraz ma werdykt dla
+    KAŻDEJ pozycji, a T1 prostuje trzy obietnice o Pluginie 3, które przez
+    nią stają się w repo nieprawdą.
 
 ## 1. Schemat w języku pluginów tego projektu (WYTYCZNE §8)
 
@@ -137,9 +177,11 @@ Jak to się ma do WYTYCZNE §8, punkt po punkcie:
 | WYSTRZAŁ (jedyny AJAX) | trasa REST `aai-panel/v1/wizyta` (POST, `permission_callback` przepuszczający — beacon gościa nie ma jak nieść nonce'a, sekcja 5), rejestrowana na `rest_api_init`. **Ciało czytane przez `get_body()` + `json_decode()`, NIE przez `get_param()`** (F9) |
 | zdarzenia logowania (haki) | `set_logged_in_cookie` (powstała sesja — łapie TAKŻE auto-login z kasy, F3/F4), `wp_login` (doprecyzowanie źródła na „formularz", F1), `wp_login_failed` (porażka, F2). **Każdy handler owinięty `try { } catch ( Throwable )`** (F11) |
 | KANAŁ JSON (odczyt) | `Aai_Panel_Odczyt` — zapytania agregujące, nigdy nie pisze |
-| kokpit | `Aai_Panel_Ekran`: podstrona menu **Automatic AI**, a gdy sklep nieaktywny — własna pozycja top-level; `manage_options`; **czysty odczyt — zero `admin-post.php`, zero `wp_ajax_*`, zero `method="post"`** |
+| kokpit | `Aai_Panel_Ekran`: podstrona menu **Automatic AI**, a gdy sklep nieaktywny — własna pozycja top-level; `manage_options`; **czysty odczyt — zero `admin-post.php`, zero `wp_ajax_*`, zero `method="post"`**. Rejestracja na `admin_menu` z **priorytetem 20**: wtyczki ładują się alfabetycznie, więc `aai-panel` biegnie przed `aai-sklep` i przy domyślnym priorytecie nasza pozycja wchodzi do podmenu PRZED pozycjami Pluginu 1 (zmierzone: kolejność `aai-sklep, aai-sklep-kurs, aai-panel, aai-sklep`; z priorytetem 20 nasza ląduje na końcu). Obecność rodzica sprawdzamy przez `isset( $GLOBALS['admin_page_hooks']['aai-sklep'] )` — pytanie o ISTNIENIE MENU, nie o nazwę klasy |
 | skrypt pomiaru | `assets/pomiar.js` podpinany na `wp_enqueue_scripts` **tylko gdy oglądający nie ma `manage_options`** (D3); wysyła **Blob typu `application/json`** (F10) na `pagehide`/`visibilitychange` |
-| CLI | `wp aai-panel sprawdz` — kod 1, gdy: brak tabel, haki niezarejestrowane, retencja zawiodła (warunek w sekcji 4); wypisuje wersje WP/Woo/Tutor i ostrzega, gdy `REMOTE_ADDR` jest adresem prywatnym (F14) |
+| CLI | `wp aai-panel sprawdz` — kod 1, gdy: brak tabel, haki niezarejestrowane, retencja zawiodła (sekcja 4), **ostatni zapis zgłosił błąd**. Trasa sprawdzana **obecnością w `rest_get_server()->get_routes()`, NIGDY żądaniem HTTP**: kontener WP-CLI jest osobny i `home_url()` jest z niego nieosiągalny (zmierzone: cURL error 7), więc kontrola po HTTP byłaby czerwona ZAWSZE i wywracała `postaw.sh`. Wypisuje wersje i ostrzega przy prywatnym `REMOTE_ADDR` (F14) |
+| kanał błędów | opcja + `admin_notices` na naszym ekranie, wzorem `Aai_Platnosci_Komunikaty`. Bez niego uszkodzona tabela daje **pustą listę logowań**, którą właściciel przeczyta jako brak prób — fałszywy negatyw na jedynym ekranie, który ma ostrzegać |
+| zależności | `Aai_Panel_Zaleznosci` ze stałymi `WP_DOWIEDZIONE` / `WOO_DOWIEDZIONE` (wzorem P2, L17): F3 oraz F1/F4 to wnętrzności cudzego kodu — aktualizacja Woo przełączająca kasę na `wp_signon()` zamieniłaby N3 w cichy podwójny wpis. Różnica wersji = kod 0 + ostrzeżenie z listą faktów do potwierdzenia |
 | prefiks assetów i klas CSS | **`aai-monitor-`**. `aai-panel` jest już zajęty w Pluginie 1 (`szablony/katalog.php`, `assets/lekcja.css`, `assets/panel.css`), a krótsze `aai-mon-` myliłoby wyszukiwanie z istniejącą klasą `aai-mono` (czcionka; `szablony/czesci/program.php` i inne). Zmierzone: `aai-monitor` ma dziś **zero** trafień w repo |
 | meta / opcje | tylko opcja wersji schematu; **żadnych meta na cudzych wpisach** |
 
@@ -331,6 +373,7 @@ Gdy `aai-sklep` nieaktywny: własna pozycja top-level.
 |---|---|---|
 | `id` | `bigint unsigned AI` | klucz |
 | `czas` | `datetime` (UTC) | ekran (sortowanie, licznik 7 dni) + retencja; **indeks** |
+| *(strefa)* | — | obie kolumny trzymamy w UTC, ale okna liczymy od `current_datetime()` przeliczonego na UTC, a wyświetlamy przez `wp_date()`. W warsztacie `gmt_offset = 0`, więc błąd strefy jest tu NIEWIDOCZNY — wyszedłby dopiero na produkcji (Europe/Warsaw: doba zaczynałaby się o 02:00, a godziny logowań byłyby o dwie za małe) |
 | `zdarzenie` | `varchar(16)` | ekran: podział udane/nieudane, filtr |
 | `zrodlo` | `varchar(16)` | ekran: kolumna „źródło" (`formularz` / `sesja`; puste przy porażce) |
 | `user_id` | `bigint unsigned NULL` | ekran: kolumna „kto" przy sukcesie — jedyny pewny identyfikator konta (login bywa zmieniany, a przy porażce jest śmieciem) |
@@ -345,7 +388,7 @@ Gdy `aai-sklep` nieaktywny: własna pozycja top-level.
 | `id` | `bigint unsigned AI` | klucz |
 | `sesja` | `char(32)` | ekran: `COUNT(DISTINCT sesja)` w oknie czasu |
 | `sciezka` | `varchar(191)` | ekran: top 10 stron |
-| `wejscie` | `datetime` (UTC) | ekran: okna dziś/7/30 + retencja |
+| `wejscie` | `datetime` (UTC) | ekran: okna dziś/7/30 + retencja. **Liczone przez SERWER**: `wejscie = now() − trwanie_ms` — beacon przychodzi przy WYJŚCIU, więc samo `now()` byłoby momentem wyjścia i wizyta zaczęta o 23:50 lądowałaby w następnej dobie. Klientowi nie ufamy w żadnym znaczniku czasu |
 | `trwanie_ms` | `int unsigned` | ekran: czas łączny i średni; sufit 4 h narzucony w dziale |
 
 Zasady wspólne (wzorem P1/P2): `dbDelta` + opcja wersji schematu; nazwy
@@ -383,7 +426,8 @@ od istniejącej.
 | N12 | Limit na adres działa, a pełne IP nie osiada w bazie | smoke: nadmiar odrzucony; skan `wp_options` **wzorcem IP** (regex), nie konkretnym adresem |
 | N13 | **Bramki nie zaśmiecają dziennika**: smoke sprząta wyłącznie własne wiersze (po loginie testowym i oknie przebiegu, nigdy `TRUNCATE`), a istniejące smoke'i logujące się mają rachunek sumienia liczby wierszy | rachunek sumienia wzorem 0.54.0 (PR #93); bez tego „licznik porażek z 7 dni" pokazuje serie wyprodukowane przez własne testy |
 | N14 | Plugin 3 nie pisze do cudzych tabel i nie podmienia funkcji pluggable | strażnik: skończona lista funkcji pluggable + `$wpdb`-zapisy poza własnymi tabelami |
-| N15 | Deaktywacja = koniec rejestrowania; odinstalowanie NIE kasuje danych bez jawnej zgody | smoke **w `try/finally` z powrotną aktywacją** i asercją końcową „wtyczka aktywna" — inaczej padnięcie zostawia `:8892` z wyłączonym monitoringiem (lekcja 0.53.0) |
+| N15 | **Awaria zapisu jest GŁOŚNA**: uszkodzona tabela → `sprawdz` kod 1 i komunikat na ekranie, nie pusta lista | smoke: przemianowanie tabeli pod wtyczką → logowanie → `sprawdz` kod 1 i komunikat obecny (bez tego pusty ekran znaczy „nikt nie próbował") |
+| N16 | Deaktywacja = koniec rejestrowania; odinstalowanie NIE kasuje danych bez jawnej zgody | smoke **w `try/finally` z powrotną aktywacją** i asercją końcową „wtyczka aktywna" — inaczej padnięcie zostawia `:8892` z wyłączonym monitoringiem (lekcja 0.53.0) |
 
 ## 9. Pułapki w cudzym kodzie i odpowiedź projektu
 
@@ -399,6 +443,9 @@ od istniejącej.
 | P8 | **Boty wykonujące JS** zawyżałyby ruch | `navigator.webdriver` + filtr UA; N10 |
 | P9 | **Smoke'i piszą do wspólnych zasobów** (lekcja 0.54.0) | automaty wycięte u źródła (F6) + higiena dziennika; N13 |
 | P10 | **Emiterów sesji przybywa cicho** (F15: rejestracja Tutora) | źródło `sesja` zdefiniowane jako „każda sesja spoza formularza", nie jako zamknięta lista |
+| P11 | **Kontener WP-CLI nie dosięga własnego HTTP** (cURL error 7) — kontrola po żądaniu byłaby czerwona zawsze i wywracała `postaw.sh` | `sprawdz` pyta rejestr tras, nie sieć; żywotność HTTP mierzy smoke z hosta |
+| P12 | **Wtyczki ładują się alfabetycznie**, więc `aai-panel` rejestruje menu przed Pluginem 1 | priorytet 20 na `admin_menu` + pytanie o `admin_page_hooks`; bramka T1 sprawdza kotwicę pozycji nadrzędnej |
+| P13 | **Pusty ekran nie odróżnia ciszy od awarii** — beacon z założenia milczy (204), a haki nie mają komu nic zwrócić | kanał błędów wzorem `Aai_Platnosci_Komunikaty`; `sprawdz` go czyta; ekran przy zerze wpisów mówi, czy ostatni zapis się udał |
 
 ## 10. Deaktywacja i odinstalowanie
 
@@ -426,7 +473,7 @@ Reguła właściciela (2026-08-28): przed KAŻDYM krokiem plan przebiegu
 
 | Krok | Zakres | Bramka dowodowa |
 |---|---|---|
-| **T1 — fundament** | katalog `wordpress/wtyczki/aai-panel/` (wzorem W1/P1): plik główny, `Aai_Panel_Tabele` (dbDelta, 2 tabele), `Aai_Panel_Zapis` w `class-aai-panel-zapis.php`, `uninstall.php`, montaż w compose + aktywacja w `postaw.sh`, `wp aai-panel sprawdz` (wersja minimalna), **kolejny strażnik `straznik-monitoringu-wp`** (nazwa spójna ze smoke'iem; „panel" w tym repo znaczy „kreator") + mutacje w audycie | strażnicy zieloni, audyt bez martwych, `postaw.sh` kod 0, `sprawdz` kod 0. Uwaga: nowy mount w compose wymaga `podman-compose down && ./postaw.sh` (bind mount trzyma inode) |
+| **T1 — fundament i EKRAN** | katalog `wordpress/wtyczki/aai-panel/` (wzorem W1/P1): plik główny, `Aai_Panel_Tabele` (dbDelta, 2 tabele), `Aai_Panel_Zapis` w `class-aai-panel-zapis.php`, `Aai_Panel_Zaleznosci`, kanał błędów, `uninstall.php`. **Do tego ekran, którego wcześniejsza wersja tego planu nie budowała w żadnym kroku**: `Aai_Panel_Ekran` + rejestracja menu (priorytet 20) + `Aai_Panel_Odczyt` z jednym agregatem + własny `assets/panel.css` (arkusz kreatora tu nie wejdzie — `Aai_Sklep_Panel::zasoby()` wychodzi na uchwytach spoza `aai-sklep`). **Integracja środowiska to PIĘĆ czynności, nie „montaż"**: mount w usłudze `wordpress` ORAZ w `cli` (bez drugiego `wp aai-panel sprawdz` nie istnieje), gałąź „plik istnieje" w `postaw.sh`, asercja martwego bind mountu (inode), aktywacja, punkt kontrolny w sekcji WERYFIKACJA. Plus wpis `smoke:wp-monitoring` w `package.json` — bez niego bramki nikt nie uruchomi. Plus blok KOREKTA w PLAN.md §4 i sprostowanie trzech obietnic o Pluginie 3 w repo (sekcja 0). **Kolejny strażnik `straznik-monitoringu-wp`** (nazwa spójna ze smoke'iem) + mutacje | strażnicy zieloni, audyt bez martwych, `postaw.sh` kod 0, `sprawdz` kod 0, ekran otwiera się pod `manage_options` i **kotwica pozycji „Automatic AI" dalej celuje w `page=aai-sklep`**. Uwaga: nowy mount wymaga `podman-compose down && ./postaw.sh` (bind mount trzyma inode). Wchodzi po zmergowaniu napraw po P6 (PR #93, 0.54.0) |
 | **T2 — dziennik logowań** | trzy haki z `try/catch`, dedup źródła, retencja 90 dni + drugi wyzwalacz, sekcja „Logowania" ekranu, wpis do polityki prywatności | **`smoke-wp-monitoring`**: N2, N3, N4, N5, N6, N13; test ręczny logowania z kasy na `:8892` |
 | **T3 — timer wizyt** | `assets/pomiar.js` (Blob `application/json`, id 32 hex, webdriver-kill), trasa REST czytająca `get_body()`, sito z walidacją ścieżki i `Origin`, miękki limiter, retencja 400 dni, sekcja „Ruch" ekranu | smoke: **N9 i N10 jako para** (przebieg z nadpisanym `navigator.webdriver` → wiersz JEST; bez nadpisania → wiersza NIE MA), N7, N8, N11, N12; `EXPLAIN` na trzech zapytaniach ekranu przed ustaleniem indeksów; **pomiar realnego rozmiaru beaconu** przed ustaleniem sufitu ciała |
 | **T4 — test ręczny właściciela** | scenariusz wzorem [TEST-RECZNY-P6.md](../plugin-2/TEST-RECZNY-P6.md): logowanie swoje i klienta, zła próba, przegląd ekranu, wizyty z drugiej przeglądarki | zaliczenie właściciela = **Plugin 3 skończony**; potem test całości trzech wtyczek (decyzja 2026-08-25) |
