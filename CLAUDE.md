@@ -2574,6 +2574,28 @@ wyprowadzała tego od nowa:
         przebieg osobny) dały zielone. Przyczyny dalej NIE ustaliłem;
         kod monitoringu nie dotyka ani frontu, ani logowania, a
         `npm run check` i pozostałych dwanaście bramek jest zielonych.
+        **CZTERY DECYZJE WŁAŚCICIELA PRZY T2 (2026-08-30), wszystkie
+        wykonane:** (1) wpis o dzienniku w polityce prywatności **dwiema
+        drogami** — natywny mechanizm WP plus gotowy fragment w repo do
+        wklejenia w źródle strony głównej (motyw jest tylko do odczytu);
+        (2) rozjazd CAŁEJ polityki ze stanem witryny — **zgłosić jako
+        pozycję „przed pierwszym klientem", nie ruszać**: treść prawna
+        należy do właściciela i wymaga prawnika, a witryna nie jest
+        jeszcze publiczna; (3) **test ręczny logowania z kasy ZASTĄPIONY
+        POMIAREM** — ścieżkę dowodzi smoke (N3 z testem negatywnym),
+        a czas właściciela idzie na jeden pełny test w T4; **to NIE jest
+        zaległość T2**; (4) higiena bramek jednym PR-em z krokiem, osobnym
+        commitem. Piąta decyzja, po oddaniu kodu: przegląd **recenzentami
+        agentami z agentem głównym jako krytykiem** (wariant tańszy —
+        przegląd własny — odrzucony).
+        **T2 ZAMKNIĘTY W REPO (2026-08-30): PR #100 zmergowany do `main`,
+        tag `v0.56.0` + release, gałąź skasowana, artefakt zweryfikowany
+        (`git diff origin/main <szczyt>` PUSTY — lekcja z 0.37.0).** Merge
+        decyzją właściciela na dowodach lokalnych: CI padło z **zerem
+        kroków we wszystkich zadaniach** — **2118 minut Actions w sierpniu
+        przy limicie 2000**, czyli rozliczenie, nie kod (sprawdzone
+        `gh api …/billing/usage`). Po powrocie CI (1 września) potwierdzić
+        **gitleaks**, jako jedyny bez lokalnego odpowiednika.
         **NASTĘPNY KROK CAŁEGO PROJEKTU: T3 — TIMER WIZYT.** Wg reguły
         właściciela (2026-08-28) najpierw **plan przebiegu kroku
         + pytania doprecyzowujące i CZEKAĆ NA ZGODĘ**, dopiero potem kod.
