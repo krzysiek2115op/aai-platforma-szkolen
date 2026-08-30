@@ -124,49 +124,96 @@ Trzydzieści znalezisk, wszystkie potwierdzone niezależnie
 
 ## 1. Schemat w języku pluginów tego projektu (WYTYCZNE §8)
 
-Ten sam szkielet co w Pluginach 1 i 2: **BAZA → DZIAŁ → strony**, z JEDNYM
-wystrzałem i kanałem JSON (odczyt serwerowy) obok. Górna połowa to
-**ZAPIS**, dolna **ODCZYT** — nie mieszają się.
+Ten sam układ co w Pluginie 1: **BAZA po lewej jako źródło**, dwa kanały
+wychodzące z bazy — **gruby AJAX (wystrzał)** i **cienki JSON (odczyt
+serwerowy)** — dział pośrodku, odbiorcy po prawej.
 
 ```mermaid
-flowchart TB
-    subgraph AKCJE["AKCJE / ZDARZENIA — inicjują zapis"]
-        W1["beacon wizyty<br/>REST POST — JEDYNY AJAX<br/>(WYSTRZAŁ Pluginu 3)"]
-        W2["zdarzenia logowania<br/>haki rdzenia WP:<br/>sesja / porażka"]
+flowchart LR
+    BAZA[("BAZA Pluginu 3<br/>wp_aai_panel_logowania<br/>wp_aai_panel_wizyty")]
+
+    DZIAL["DZIAŁ aai-panel<br/>jedyna warstwa z dostępem do SQL<br/>retencja przy zapisie + try/catch"]
+
+    subgraph AKCJE["dyspozytor — JEDEN AJAX"]
+        DY["wizyta: ścieżka | czas | sesja<br/>REST aai-panel/v1/wizyta"]
     end
 
-    DZIAL["DZIAŁ-DYSPOZYTOR Pluginu 3<br/>jedyna warstwa zapisu<br/>każdy handler w try/catch<br/>+ retencja przy zapisie"]
+    subgraph ZDARZENIA["zdarzenia serwerowe — NIE AJAX"]
+        ZD["logowanie: sesja | formularz | porażka<br/>haki rdzenia WordPressa"]
+    end
 
-    BAZA[("BAZA Pluginu 3<br/>wp_aai_panel_logowania — kto, kiedy, skąd<br/>wp_aai_panel_wizyty — ścieżka, wejście, czas")]
+    PRZEGL["przeglądarka gościa<br/>assets/pomiar.js"]
+    EKRAN["EKRAN KOKPITU<br/>Automatic AI → Monitoring<br/>tylko manage_options"]
 
-    KANAL["KANAŁ JSON — odczyt serwerowy<br/>agregaty: ostatnie logowania,<br/>odsłony, sesje, czasy, top stron"]
-
-    S1["EKRAN KOKPITU<br/>tylko manage_options<br/>(czysty odczyt, zero akcji)"]
-
-    W1 ==>|"ścieżka + czas + sesja"| DZIAL
-    W2 -->|"user / login / IP / agent"| DZIAL
-    DZIAL -->|"zapis + kasowanie starych"| BAZA
-    BAZA ---|"JSON"| KANAL
-    KANAL -->|"JSON"| S1
+    BAZA ---|"JSON — odczyt serwerowy"| DZIAL
+    DZIAL -->|"JSON (agregaty)"| EKRAN
+    BAZA ===|"AJAX — WYSTRZAŁ<br/>(jedyny AJAX pluginu)"| DY
+    PRZEGL -->|"sendBeacon"| DY
+    ZD -->|"kto, kiedy, skąd"| DZIAL
 ```
 
-Jak to się ma do WYTYCZNE §8, punkt po punkcie:
+Twarde zasady kanałów — te same co w Pluginie 1:
 
-- **BAZA**: dwie tabele z własnym prefiksem w bazie WP (decyzja 2026-08-25
-  o „własnej BD"). `logowania` — jedyna wiedza „kto i skąd wchodził na
-  konto"; `wizyty` — jedyna wiedza „co oglądano i jak długo" (F7).
-- **DZIAŁ**: jedna klasa zapisu (`Aai_Panel_Zapis`) jako **jedyne** miejsce
-  piszące do obu tabel — wzorem `Aai_Sklep_Zapis` i `Aai_Platnosci_Zapis`.
-  Retencja mieszka w dziale, nie w cronie: WP-Cron na mało odwiedzanej
-  stronie potrafi nie wstać całymi dniami.
-- **WYSTRZAŁ — jedyny AJAX Pluginu 3**: endpoint REST przyjmujący beacon
-  wizyty. To jest dokładnie przypadek z §8: informacja **spoza systemu**
-  (przeglądarka odwiedzającego), która musi dojechać do działu przez sieć.
-  Innego AJAX-a nie ma: ekran kokpitu jest czystym odczytem, a zdarzenia
-  logowania przychodzą HAKAMI serwera — tak jak zdarzenia zakupowe Woo
-  w Pluginie 2, które też nie liczyły się jako AJAX.
-- **KANAŁ JSON** (odczyt serwerowy): klasa odczytu składa agregaty przy
-  renderowaniu ekranu. Strona nigdy nie dotyka bazy.
+- **jedna baza = jeden AJAX**: wystrzałem Pluginu 3 jest trasa REST
+  przyjmująca beacon wizyty. Drugiego AJAX-a nie będzie (WYTYCZNE §8);
+- **kanał JSON obok** — dział czyta bazę i oddaje ekranowi gotowe agregaty
+  przy renderowaniu; nie dubluje wystrzału, bo odczyt ≠ akcje;
+- **ekran nigdy nie rozmawia z bazą** — oba kanały przechodzą przez dział;
+- **dostęp do SQL ma wyłącznie dział** (`class-aai-panel-zapis.php` do
+  zapisu, `Aai_Panel_Odczyt` do czytania); pilnuje tego reguła zapisu
+  istniejącego `straznik-wtyczki-wp`;
+- **zdarzenia logowania NIE są AJAX-em i nie liczą się do limitu z §8** —
+  to haki serwera, które wchodzą do działu w cudzym żądaniu (tak samo jak
+  zdarzenia zakupowe Woo w Pluginie 2). Nie mają własnego kanału do bazy:
+  dojeżdżają do tej samej warstwy zapisu, co wystrzał;
+- Pluginy 1 i 2 mają WŁASNE pojedyncze wystrzały do WŁASNYCH baz — ten
+  nie dotyka ani ich kanałów, ani ich tabel.
+
+Co jest czym w tym module:
+
+- **BAZA** — dwie tabele z własnym prefiksem w bazie WP (decyzja
+  2026-08-25 o „własnej BD"): `logowania` mówi, kto i skąd wchodził na
+  konto; `wizyty` mówi, co oglądano i jak długo. Nikt inny tego nie ma (F7);
+- **DZIAŁ** — jedna klasa zapisu jako **jedyne** miejsce piszące, wzorem
+  `Aai_Sklep_Zapis` i `Aai_Platnosci_Zapis`. Tu mieszka też retencja (nie
+  w cronie: WP-Cron na mało odwiedzanej stronie potrafi nie wstać całymi
+  dniami) i `try/catch`, bez którego wyjątek przerwałby cudze żądanie (F11);
+- **WYSTRZAŁ** — informacja **spoza systemu** (przeglądarka odwiedzającego)
+  musi dojechać do działu przez sieć; to jest dokładnie przypadek z §8;
+- **ODBIORCA** — ekran kokpitu, czysty odczyt: jedyne, co można na nim
+  zrobić, to patrzeć.
+
+## 1b. Baza Pluginu 3 — schemat
+
+Dwie tabele, bez relacji między sobą: każda odpowiada na inne pytanie
+i ma inny okres życia. Pełny kontrakt z czytelnikami każdej kolumny —
+sekcja 7.
+
+```mermaid
+erDiagram
+    wp_aai_panel_logowania {
+        bigint id PK
+        datetime czas "UTC, indeks — okna i retencja"
+        varchar zdarzenie "udane | nieudane"
+        varchar zrodlo "formularz | sesja"
+        bigint user_id "NULL przy porazce"
+        varchar login "podany login, przyciety"
+        varchar ip "pelny adres — DANE OSOBOWE, 90 dni"
+        varchar agent "user-agent, przyciety"
+    }
+    wp_aai_panel_wizyty {
+        bigint id PK
+        char sesja "32 hex z sessionStorage — anonimowe"
+        varchar sciezka "co ogladano"
+        datetime wejscie "UTC = now minus trwanie"
+        int trwanie_ms "sufit 4 h"
+    }
+```
+
+**Tabele nie są ze sobą złączone i to jest świadome**: `logowania` niesie
+dane osobowe (IP, login) i żyje 90 dni; `wizyty` są anonimowe i nie łączą
+się z kontem (D3). Złączenie ich dałoby profilowanie, którego ten moduł
+z założenia nie robi.
 
 ## 2. Ten sam schemat w języku WordPressa
 
