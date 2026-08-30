@@ -2977,6 +2977,49 @@ const MUTACJE = [
         ? s.replaceAll("'porazka'", "'nieudana_proba'").replaceAll("function porazka(", "function nieudana_proba(")
         : null,
   },
+  {
+    // T2. Bramka, która loguje się do instalacji, produkuje od tego kroku
+    // wpisy w dzienniku. Bez sprzątania licznik nieudanych prób z 7 dni —
+    // jedyna funkcja alarmowa ekranu monitoringu — pokazuje serie
+    // wyprodukowane przez własne testy.
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka logująca się przestaje sprzątać dziennik logowań (N13)",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zakup.mjs"),
+    oczekiwanySlad: "loguje się do instalacji",
+    zmien: (s) =>
+      s.includes("sprzatnijDziennik(php, _dziennikMigawka);")
+        ? s.replace("sprzatnijDziennik(php, _dziennikMigawka);", "// sprzątanie zdjęte")
+        : null,
+  },
+  {
+    // T2. Rachunek sumienia dziennika. Ta reguła miała dwie ślepoty naraz
+    // i obie wykryły jej własne testy negatywne: liczyła WYSTĄPIENIA
+    // (mutacja zostawiała drugie w komunikacie błędu), a jej regex nie
+    // radził sobie z nawiasami w uchwycie.
+    straznik: "straznik-higieny-smokow",
+    opis: "asercja rozliczenia dziennika zabetonowana na true — sprzątanie staje się deklaracją (N13)",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zakup.mjs"),
+    oczekiwanySlad: "nie ROZLICZA się z tego",
+    zmien: (s) =>
+      s.includes("ileWpisow(php) === _dziennikPrzed,")
+        ? s.replace("ileWpisow(php) === _dziennikPrzed,", "true === true,")
+        : null,
+  },
+  {
+    // T2, kontrprzykład: reguły 8-9 mają celować w ZACHOWANIE. Zmiana nazw
+    // zmiennych niczego nie osłabia i strażnik ma ją przepuścić.
+    straznik: "straznik-higieny-smokow",
+    opis: "kontrprzykład: przemianowanie zmiennych higieny dziennika niczego nie osłabia",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zakup.mjs"),
+    oczekujCzerwonego: false,
+    zmien: (s) =>
+      s.includes("_dziennikPrzed")
+        ? s.replaceAll("_dziennikPrzed", "stanDziennikaNaStarcie").replaceAll("_dziennikMigawka", "granicaWlasnych")
+        : null,
+  },
 ];
 
 

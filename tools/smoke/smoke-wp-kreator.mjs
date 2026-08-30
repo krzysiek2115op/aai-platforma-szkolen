@@ -27,6 +27,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
+import { migawkaDziennika, sprzatnijDziennik, ileWpisow } from "./dziennik.mjs";
 
 const ADRES = process.env.WP_ADRES ?? "http://127.0.0.1:8892";
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
@@ -200,6 +201,16 @@ function przykladowaTresc(pola, ziarno) {
 /* ————————————————————————— start ————————————————————————— */
 
 console.log(`smoke-wp-kreator: ${ADRES}`);
+
+/*
+ * HIGIENA DZIENNIKA LOGOWAŃ (N13). Ta bramka loguje się do instalacji,
+ * więc od kroku T2 KAŻDY jej przebieg zostawia wpisy w dzienniku
+ * Pluginu 3 — zmierzone. Bez sprzątania licznik nieudanych prób
+ * z 7 dni, czyli jedyna funkcja alarmowa ekranu monitoringu, pokazywałby
+ * serie wyprodukowane przez nasze własne testy.
+ */
+const _dziennikPrzed = ileWpisow((k) => wp("eval", k));
+const _dziennikMigawka = migawkaDziennika((k) => wp("eval", k));
 
 const OPIS = JSON.parse(wp("aai-sklep", "opis", "--format=json").trim());
 sprawdz(
@@ -792,5 +803,12 @@ if (bledy.length > 0) {
   for (const blad of bledy) console.error(`  - ${blad}`);
   process.exit(1);
 }
+
+/* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
+sprzatnijDziennik((k) => wp("eval", k), _dziennikMigawka);
+sprawdz(
+  ileWpisow((k) => wp("eval", k)) === _dziennikPrzed,
+  `bramka zostawiła ślad w dzienniku logowań: przed ${_dziennikPrzed}, po ${ileWpisow((k) => wp("eval", k))} wpisów (N13)`
+);
 
 console.log(`smoke-wp-kreator: ${sprawdzen} sprawdzeń zaliczonych.`);

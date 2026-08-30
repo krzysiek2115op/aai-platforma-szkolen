@@ -44,6 +44,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { migawkaDziennika, sprzatnijDziennik, ileWpisow } from "./dziennik.mjs";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
@@ -137,11 +138,16 @@ sprawdz(
 );
 
 const licznikiPrzed = liczniki();
-// Granica „co powstało w TYM przebiegu" — potrzebna sprzątaniu, bo od T2
-// wiersze produkuje też WordPress przy każdym logowaniu smoke'a.
-const licznikiPrzedId = Number(
-  phpEval('global $wpdb; echo (int) $wpdb->get_var("SELECT COALESCE(MAX(id),0) FROM " . Aai_Monitor_Tabele::tabela("logowania"));').stdout || 0
-);
+/*
+ * Granica „co powstało w TYM przebiegu". Od T2 wiersze produkuje też
+ * WordPress — przy każdym logowaniu, które ten smoke wykonuje. Migawkę
+ * i sprzątanie bierzemy ze WSPÓLNEGO modułu, tego samego, którego używa
+ * siedem pozostałych bramek: zduplikowana logika sprzątania w dwóch
+ * miejscach rozjeżdża się przy pierwszej poprawce tylko jednego z nich.
+ */
+const php = (kod) => phpEval(kod).stdout;
+const dziennikPrzed = ileWpisow(php);
+const dziennikMigawka = migawkaDziennika(php);
 
 /* ── 1. schemat: co tabele NAPRAWDĘ mają ────────────────────────────── */
 
@@ -590,12 +596,16 @@ sprawdz(
  * w trakcie; sama lista loginów kasowałaby wcześniejsze, prawdziwe
  * logowania właściciela na to samo konto.
  */
-const idPrzedPrzebiegiem = Number(licznikiPrzedId);
+sprzatnijDziennik(php, dziennikMigawka);
+// Wizyty mają własny znacznik w ścieżce — tabela ruchu jest anonimowa,
+// więc nie ma w niej loginu, po którym dałoby się rozpoznać nasze wiersze.
 phpEval(
-  "global $wpdb; $l = Aai_Monitor_Tabele::tabela('logowania'); $w = Aai_Monitor_Tabele::tabela('wizyty');" +
-    " $wpdb->query( \"DELETE FROM `{$l}` WHERE login LIKE 'smoke-monitor%'\" );" +
-    ` $wpdb->query( $wpdb->prepare( "DELETE FROM \`{$l}\` WHERE id > %d AND login IN ('admin','klient-test','${LOGIN_NIEISTNIEJACY}','')", ${idPrzedPrzebiegiem} ) );` +
+  "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
     " $wpdb->query( \"DELETE FROM `{$w}` WHERE sciezka LIKE '/smoke-monitor/%'\" ); echo 'ok';"
+);
+sprawdz(
+  ileWpisow(php) === dziennikPrzed,
+  `bramka zostawiła ślad w dzienniku logowań: przed ${dziennikPrzed}, po ${ileWpisow(php)} wpisów (N13)`
 );
 
 const licznikiPo = liczniki();
