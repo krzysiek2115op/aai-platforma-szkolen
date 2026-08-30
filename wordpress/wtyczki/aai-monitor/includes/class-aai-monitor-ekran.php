@@ -220,57 +220,77 @@ final class Aai_Monitor_Ekran {
 	/* ————————————————————————— części ekranu ————————————————————————— */
 
 	/**
-	 * Liczby na wierzchu — WSZYSTKIE od początku pomiaru.
+	 * Liczby na wierzchu — KAŻDA z własnym okresem pod spodem.
 	 *
-	 * Etykiety mówią „łącznie" i to nie jest ozdobnik (A3 z przeglądu T3):
-	 * kafelki liczą całą historię, a sekcja tuż pod nimi — wybrane okno.
-	 * Do naprawy obie liczby nazywały się „Odsłony" i „Sesje", więc
-	 * właściciel czytał kafelek jako dzisiejszy ruch. Zmierzone: jeden
-	 * wiersz sprzed 40 dni dawał kafelek 1 i sekcję 0 przy identycznym
-	 * napisie obok.
+	 * KAŻDY KAFELEK NIESIE SWÓJ OKRES i to jest cała reguła tego bloku.
+	 * Wspólnego zdania o okresie tu nie ma i nie ma go być: trzy kafelki
+	 * liczą od początku pomiaru, a jeden — ostatnie 7 dni, więc jedno
+	 * zdanie dla czterech różnych rzeczy musiałoby o którymś skłamać.
+	 *
+	 * TAK BYŁO DO T4 i tak to zgłosił właściciel w teście ręcznym
+	 * (2026-08-31, decyzja T4-D1): pod kafelkami stało „Kafelki liczą
+	 * wszystko od początku pomiaru", a drugi kafelek nazywał się wprost
+	 * „Nieudane próby (7 dni)". Podpis przeczył kafelkowi, który opisywał.
+	 *
+	 * NIE ZDEJMOWAĆ OKRESU Z KAFELKA W IMIĘ ZWIĘZŁOŚCI — to cofnęłoby A3
+	 * z przeglądu T3. Wtedy liczby nazywały się samymi „Odsłony" i „Sesje",
+	 * a właściciel czytał je jako ruch dzisiejszy. Zmierzone: jeden wiersz
+	 * sprzed 40 dni dawał kafelek 1 i sekcję 0 przy identycznym napisie
+	 * obok. Okres jest tu treścią, nie ozdobnikiem.
 	 *
 	 * @param array<string,array<string,mixed>> $stan Podsumowanie z działu.
 	 */
 	private static function kafelki( array $stan ): void {
+		$od_poczatku = __( 'od początku pomiaru', 'aai-monitor' );
+
 		$kafelki = array(
 			array(
-				'etykieta' => __( 'Logowania razem', 'aai-monitor' ),
+				'etykieta' => __( 'Logowania', 'aai-monitor' ),
+				'okres'    => $od_poczatku,
 				'wartosc'  => (int) $stan['logowania']['razem'],
 				'alarm'    => false,
 			),
 			array(
-				'etykieta' => __( 'Nieudane próby (7 dni)', 'aai-monitor' ),
+				'etykieta' => __( 'Nieudane próby', 'aai-monitor' ),
+				'okres'    => __( 'ostatnie 7 dni', 'aai-monitor' ),
 				'wartosc'  => (int) $stan['logowania']['porazki_7dni'],
 				// Jedyna funkcja alarmowa tego ekranu — dlatego wyróżniona
-				// dopiero, gdy naprawdę jest co pokazać.
+				// dopiero, gdy naprawdę jest co pokazać. Okres jest tu
+				// KRÓTSZY niż w pozostałych kafelkach celowo: alarm ma
+				// mówić „dzieje się TERAZ", a nie „kiedyś się zdarzyło".
 				'alarm'    => $stan['logowania']['porazki_7dni'] > 0,
 			),
 			array(
-				'etykieta' => __( 'Odsłony łącznie', 'aai-monitor' ),
+				'etykieta' => __( 'Odsłony', 'aai-monitor' ),
+				'okres'    => $od_poczatku,
 				'wartosc'  => (int) $stan['wizyty']['razem'],
 				'alarm'    => false,
 			),
 			array(
-				'etykieta' => __( 'Sesje łącznie', 'aai-monitor' ),
+				'etykieta' => __( 'Sesje', 'aai-monitor' ),
+				'okres'    => $od_poczatku,
 				'wartosc'  => (int) $stan['wizyty']['sesje'],
 				'alarm'    => false,
 			),
 		);
 
 		echo '<div class="aai-monitor-kafelki">';
-		// Bez tego zdania „łącznie" i tak trzeba by sobie dopowiedzieć.
 		foreach ( $kafelki as $kafelek ) {
 			printf(
-				'<div class="aai-monitor-kafelek%s"><span class="aai-monitor-liczba">%s</span><span class="aai-monitor-etykieta">%s</span></div>',
+				'<div class="aai-monitor-kafelek%s"><span class="aai-monitor-liczba">%s</span><span class="aai-monitor-etykieta">%s</span><span class="aai-monitor-okres">%s</span></div>',
 				$kafelek['alarm'] ? ' aai-monitor-alarm' : '',
 				esc_html( number_format_i18n( $kafelek['wartosc'] ) ),
-				esc_html( $kafelek['etykieta'] )
+				esc_html( $kafelek['etykieta'] ),
+				esc_html( $kafelek['okres'] )
 			);
 		}
 		echo '</div>';
+		// Zdanie mówi już WYŁĄCZNIE o tym, gdzie szukać okna czasu —
+		// o okresach mówią same kafelki. Ta połowa dawnego zdania była
+		// prawdziwa i jest potrzebna, bo sekcja „Ruch" liczy co innego.
 		printf(
 			'<p class="description">%s</p>',
-			esc_html__( 'Kafelki liczą wszystko od początku pomiaru. Liczby w oknie czasu są niżej, w sekcji „Ruch”.', 'aai-monitor' )
+			esc_html__( 'Liczby w wybranym oknie czasu są niżej, w sekcji „Ruch”.', 'aai-monitor' )
 		);
 	}
 

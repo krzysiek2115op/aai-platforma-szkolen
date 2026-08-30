@@ -64,6 +64,16 @@
 	letter-spacing: 0.04em;
 }
 
+/* Okres KAŻDEGO kafelka z osobna (T4-D1). Ciszej niż etykieta, bo to
+   doprecyzowanie liczby, a nie jej nazwa — ale ma być czytelny, bo bez
+   niego kafelek „Nieudane próby” znaczy co innego niż trzy pozostałe. */
+.aai-monitor-okres {
+	color: var(--aai-cisza);
+	font-size: 11px;
+	font-style: italic;
+	opacity: 0.85;
+}
+
 /* ————————————————————————— tabela logowań ————————————————————————— */
 
 .aai-monitor-filtr {

@@ -5,6 +5,84 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.58.0] — 2026-08-31
+
+### T4 zaliczone — poprawki z testu ręcznego właściciela
+
+**Plugin 3 (`aai-monitor`) przeszedł test ręczny na czterech ścieżkach**
+(2026-08-31). Przebieg, liczby i decyzje:
+[TEST-RECZNY-T4.md](docs/plugin-3/TEST-RECZNY-T4.md).
+
+Test zachował się dokładnie tak, jak miał: **wyciągnął rzecz, której nie
+widziała żadna z 14 bramek WP**, a jednocześnie **dwa zgłoszenia okazały się
+poprawnym zachowaniem** i zostały zamknięte pomiarem zamiast naprawą.
+
+### Zmienione
+
+- **Każdy kafelek niesie własny okres** (decyzja właściciela **T4-D1**).
+  Pod kafelkami stało zdanie „Kafelki liczą wszystko od początku pomiaru”,
+  a drugi kafelek nazywał się wprost „Nieudane próby (7 dni)” — jedno zdanie
+  opisywało cztery liczby, z których jedna liczy się inaczej, więc o niej
+  kłamało. Teraz każda liczba ma pod sobą swój okres („od początku pomiaru”
+  albo „ostatnie 7 dni”), a wspólne zdanie mówi już wyłącznie o tym, gdzie
+  szukać okna czasu — czyli o tym, co w nim było prawdą.
+  **Okresu NIE WOLNO zdjąć w imię zwięzłości:** cofnęłoby to naprawę A3
+  z przeglądu T3, po której liczby przestały nazywać się samymi „Odsłony”
+  i „Sesje” (właściciel czytał je wtedy jako ruch dzisiejszy).
+
+### Naprawione w dowodach
+
+- **Nic nie sprawdzało CIĄGŁOŚCI SESJI** — luka znaleziona w teście ręcznym,
+  nie przez bramkę. `smoke-wp-monitor` pytał wyłącznie o DŁUGOŚĆ
+  identyfikatora (32 znaki), czyli o to, czy sito go przepuści. Gdyby
+  `idSesji()` przestało czytać `sessionStorage`, każda odsłona dostałaby
+  świeży identyfikator: „Sesje” na ekranie zrównałyby się z „Odsłonami”,
+  właściciel czytałby liczbę stron jako liczbę odwiedzających, a **wszystkie
+  pozostałe sprawdzenia świeciłyby na zielono**. Trzy odsłony z jednej karty
+  muszą mieć teraz JEDEN identyfikator; test negatywny (skasowany `getItem`)
+  zapala dokładnie to sprawdzenie i tylko je.
+- **Nic nie pilnowało napisów przy liczbach**, dlatego sprzeczność
+  z kafelkami mogła powstać i przetrwać do testu ręcznego. Bramka liczy teraz
+  NIEPUSTE podpisy okresu (tyle, ile kafelków) i odmawia powrotu wspólnego
+  zdania o jednym okresie dla wszystkich.
+- **SIÓDMY NAWRÓT PUŁAPKI „WZORZEC NA OBECNOŚĆ, NIE NA ROZSTRZYGNIĘCIE”** —
+  i tym razem wpadła w nią reguła pisana w tym samym przeglądzie, który ją
+  opisuje. Pierwsza wersja liczyła znaczniki `class="aai-monitor-okres"`,
+  więc mutacja ustawiająca okres na PUSTY łańcuch przeszła na zielono:
+  znacznik był, podpisu nie było. Wzorzec pyta teraz o treść między
+  znacznikami. Poprzednie nawroty: 0.29.0 (nazwa metody), 0.44.0 (nazwa
+  stałej), 0.47.0 (napis), c6c9c97, dwa razy w P4.
+
+### Zamknięte pomiarem, BEZ zmiany kodu (dwa zgłoszenia z testu)
+
+- **„Czas jest niższy niż na zegarku”** (18 s przy ~30 s czytania, 37 s przy
+  ~60 s). Zmierzone rigiem na żywej instalacji: 30 s czytania bez przerwy →
+  **30 130 ms** w bazie; 15 s + 10 s ukryte + 15 s → **30 016 ms**, czyli
+  obie części czytania w środku, przerwa wycięta. **Zegar jest dokładny co do
+  dziesiątych sekundy, a naprawa B1 z przeglądu T3 trzyma.** Właściciel
+  przełączał pulpity — a zmiana pulpitu chowa okno tak samo jak przełączenie
+  karty, więc liczby pokazywały prawdziwy czas WIDOCZNOŚCI, zgodnie z tym, co
+  obiecuje podpis ekranu.
+- **„Cztery sesje przy jednym oknie prywatnym”.** Zmierzone: cztery strony
+  przeklikane w JEDNEJ karcie (katalog → kurs → lekcja płatna → lekcja
+  darmowa) trzymają jeden identyfikator, także na trasach lekcji. Część
+  adresów została otwarta z linków, czyli w nowych kartach — a nowa karta to
+  z definicji nowa sesja („drzewo kart”, nie „osoba”), tak jak podpisano na
+  ekranie.
+
+### Higiena pomiarów
+
+Każdy pomiar tej sesji dopisywał wiersze do tabel właściciela, więc każdy był
+robiony od migawki `MAX(id)` i sprzątany po sobie — łącznie z wierszami po
+logowaniach `curl`. Stan po teście wrócił co do wiersza do danych właściciela.
+
+### Ustalone na następny krok (NIE wchodzi tutaj)
+
+Właściciel zamówił rozbudowę ekranu i zdecydował (**T4-D4**), że to
+**osobny krok** z własnym planem, pytaniami i zgodą — żeby nie mieszać
+„naprawy tego, co zgłosił” z „nową funkcją” w jednym przeglądzie. Zakres
+i uzasadnienie: TEST-RECZNY-T4.md, sekcja decyzji.
+
 ## [0.57.0] — 2026-08-31
 
 ### Naprawy z przeglądu T3 (2026-08-31)
