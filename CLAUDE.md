@@ -2453,6 +2453,19 @@ wyprowadzała tego od nowa:
         stan przeglądarki albo klucz resetu hasła zostawiony przez
         `smoke-wp-jezyk`, który woła `get_password_reset_key()` na
         pierwszym koncie roli `customer`.
+        **PUŁAPKA, KTÓRA UGRYZŁA PRZY SAMYM MERGE'U (mimo że jest
+        opisana wyżej): merge i przełączanie gałęzi ZABIJA bind mount
+        wtyczki.** Git skasował katalog `wordpress/wtyczki/aai-monitor/`
+        przy przejściu na `main` i odtworzył go po pull — nowy inode,
+        więc kontener widział PUSTKĘ, a `wp aai-monitor sprawdz` mówiło
+        „is not a registered wp command". Objaw jest mylący: strona
+        oddaje 200, Pluginy 1 i 2 działają, tylko nowa wtyczka „znika".
+        Napraw zawsze tak samo: **`podman-compose down && ./postaw.sh`**.
+        **Asercja z T1 jest ZMIERZONA, nie zadeklarowana:** przy martwym
+        mouncie `postaw.sh` kończy się **kodem 1** i podaje tę komendę
+        (test negatywny przez podmianę inode katalogu — pliki po nim
+        identyczne co do bajtu, drzewo git czyste). Kod wyjścia mierzony
+        BEZ potoku, bo `| tail` maskuje go od czasów D5.
         **ŚRODOWISKO `:8892` ZOSTAJE POSTAWIONE I CZYSTE:** pięć wtyczek
         aktywnych (`aai-monitor aai-platnosci aai-sklep tutor
         woocommerce`), tabele monitoringu **puste** (smoke sprząta po
