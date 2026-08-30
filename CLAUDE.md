@@ -2530,6 +2530,42 @@ wyprowadzała tego od nowa:
         logowania. Rozjazd jest STARSZY od Pluginu 3. Tabela cytat po
         cytacie: POLITYKA-PRYWATNOSCI.md §2; pozycja „przed pierwszym
         klientem", obok regulaminu i zgody w kasie.
+        **PRZEGLĄD PRZED PR-em (para agent+krytyk, dwóch recenzentów na
+        rozłącznych obszarach): DZIEWIĘĆ znalezisk, każde potwierdzone
+        URUCHOMIENIOWO przed naprawą.** Pięć w kodzie: (1) **hasło wpisane
+        w pole loginu szło do bazy jawnym tekstem** na 90 dni i na ekran
+        admina — `sanitize_user()` w trybie nieścisłym NIE usuwa
+        `@ ! # $ % & _ -` ani cyfr, więc `MojeTajneHaslo#2026` przechodziło
+        bez zmiany, wbrew zdaniu z polityki prywatności; nieistniejące
+        konta są teraz MASKOWANE (`Moj…(19 znaków)`), istniejące dosłownie;
+        (2) **dedup gubił całe logowanie**, gdy w jednym procesie były dwa
+        konta — trzymamy parę [wiersz, konto]; (3) `ArgumentCountError`
+        omijał `try` (powstaje PRZY WYWOŁANIU) i leciał do kasy — parametry
+        mają wartości domyślne; (4) `sanitize_text_field` **ucinał
+        user-agenta na pierwszym `<`**, czyli kasował przypadek, dla
+        którego ta kolumna istnieje; (5) cudzy callback padający na
+        priorytecie 5 **zabierał nam zdarzenie** — haki idą z priorytetem 1.
+        Cztery w bramkach, wszystkie o tym, że DOWÓD BYŁ POZORNY:
+        (6) **rachunek sumienia MARTWY w sześciu z siedmiu bramek** —
+        asercja stała ZA `process.exit(1)`, więc mutacja psująca ją
+        przechodziła z kodem 0 (pilnuje reguła 10 strażnika higieny);
+        (7) **reguła o `catch ( Throwable )` ślepa** — pytała o obecność
+        słowa, więc instrukcja LINIĘ przed `try` przechodziła na zielono,
+        a Error wychodził do kasy; (8) **nic nie pilnowało, że producent
+        jest PODPIĘTY** — zdjęcie jednej linii dawało martwy dziennik przy
+        obu strażnikach zielonych i kontroli kod 0 (doszła reguła 13,
+        a kontrola świeci kod 1 przy zerze czujek); (9) komentarz
+        o sprzątaniu opisywał mechanizm, którego w kodzie NIE MA (BLAD-018).
+        **MÓJ POMIAR BRAMEK BYŁ ZANIECZYSZCZONY** — przypisałem wpisy
+        bramkom `produkty` i `zakup`, bo w tle biegły MOJE WŁASNE żądania
+        HTTP. Wpisy tworzy **PIĘĆ bramek plus smoke monitoringu**, nie
+        siedem. **Dwie pułapki pomiaru do zapamiętania:** bramka bez
+        `ZRZUTY_RIG` pada PRZED pierwszym logowaniem i pokazuje fałszywe
+        „zostawia 0" (kod wyjścia jest jedynym śladem), a pomiar równoległy
+        z własną pracą przypisuje jej skutki mierzonemu. Mierz
+        `AUTO_INCREMENT`, nie liczbę wierszy — sprzątanie kasuje ślad, ale
+        licznika nie cofa. Audyt 255 → **258**; jedna mutacja tego kroku
+        UMARŁA po zmianie priorytetu haków i złapał to audyt.
         **NASTĘPNY KROK CAŁEGO PROJEKTU: T3 — TIMER WIZYT.** Wg reguły
         właściciela (2026-08-28) najpierw **plan przebiegu kroku
         + pytania doprecyzowujące i CZEKAĆ NA ZGODĘ**, dopiero potem kod.

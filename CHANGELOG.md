@@ -109,12 +109,63 @@ wisi na `admin_init`, który biegnie przy KAŻDYM żądaniu do kokpitu, także
 cudzym. Naprawiony został kod, nie reguła — dowód, że reguła celuje
 w zachowanie, a nie w listę znanych haków.
 
+### Przegląd przed PR-em — dziewięć rzeczy, które przechodziły na zielono
+
+Para agent+krytyk wg [agenci/przeglad-pr/](agenci/przeglad-pr/): dwóch
+recenzentów na rozłącznych obszarach (cudzy kod i bezpieczeństwo /
+sprawdzalność bramek), krytykiem agent główny. **Każde znalezisko
+potwierdzone URUCHOMIENIOWO przed naprawą.**
+
+**W kodzie wtyczki:**
+
+- **hasło wpisane w pole loginu szło do bazy jawnym tekstem** na 90 dni
+  i na ekran administratora. Rdzeń puszcza tę wartość przez
+  `sanitize_user()`, które w trybie nieścisłym **nie usuwa** `@ ! # $ % & _ -`
+  ani cyfr — zmierzone: `MojeTajneHaslo#2026` przechodziło bez zmiany.
+  Przeczyło to trzem miejscom naraz, w tym zdaniu z polityki prywatności
+  czytanemu przez osobę, której dane dotyczą. Nieistniejące konta są teraz
+  **maskowane** (`Moj…(19 znaków)` — zostaje wzorzec ataku, znika sekret),
+  istniejące zapisujemy dosłownie;
+- **dedup gubił całe logowanie**: sesja jednego konta i `wp_login` drugiego
+  w jednym procesie dawały JEDEN wiersz — drugie zdarzenie znikało,
+  pierwsze dostawało cudzą etykietę. Trzymamy parę [wiersz, konto];
+- **`ArgumentCountError` omijał `try`** (powstaje przy wywołaniu, nie w ciele)
+  i leciał do kasy — parametry mają wartości domyślne;
+- **`sanitize_text_field` ucinał user-agenta** na pierwszym `<`:
+  `Mozilla/5.0 <script>…` zapisywało się jako `Mozilla/5.0`, czyli
+  kasowaliśmy przypadek, dla którego ta kolumna istnieje;
+- **cudzy callback padający na priorytecie 5 zabierał nam zdarzenie** —
+  haki idą z priorytetem 1.
+
+**W bramkach — wszystkie o tym, że dowód był pozorny:**
+
+- **rachunek sumienia był MARTWY w sześciu z siedmiu bramek**: wpięcie
+  postawiło asercję ZA `process.exit(1)`, gdzie nikt nie czyta już tablicy
+  błędów. Mutacja psująca ją przechodziła z kodem 0;
+- **reguła o `catch ( Throwable )` była ślepa** — pytała o obecność słowa,
+  więc instrukcja linię przed `try` przechodziła, a Error wychodził do kasy;
+- **nic nie pilnowało, że producent jest podpięty**: zdjęcie jednej linii
+  dawało martwy dziennik przy obu strażnikach zielonych i kontroli kod 0.
+  Kontrola świeci teraz **kod 1**, gdy nie ma ani jednej czujki;
+- **komentarz o sprzątaniu opisywał mechanizm, którego w kodzie nie ma**
+  (klasa BLAD-018).
+
+**Mój pomiar bramek był zanieczyszczony.** Przypisałem wpisy bramkom
+`produkty` i `zakup`, które ich nie tworzą — w tle biegły **moje własne**
+żądania HTTP przy sprawdzaniu polityki prywatności, a licznik nie wie, czyj
+jest wiersz. Czysty przelot mierzy `AUTO_INCREMENT` (sprzątanie kasuje ślad,
+licznika nie cofa): wpisy tworzy **pięć bramek plus smoke monitoringu**, nie
+siedem. Obie pułapki pomiaru — ta i wcześniejsza (bramki bez `ZRZUTY_RIG`
+pokazujące fałszywe „zostawia 0") — zapisane w module.
+
 ### Stan dowodów
 
-Strażnicy **37/37**, audyt mutacyjny **255** (253 złapane, 0 przeoczonych,
+Strażnicy **37/37**, audyt mutacyjny **258** (256 złapanych, 0 przeoczonych,
 0 martwych, 2 pominięte — strażnicy warunkowi bez materiału), smoke
-monitoringu **76**, przelot siedmiu bramek: każda zostawia **0** wierszy przy
-kodzie wyjścia 0. Dane Pluginów 1 i 2 nietknięte.
+monitoringu **84**. Dane Pluginów 1 i 2 nietknięte.
+
+Jedna z mutacji tego kroku **umarła** po zmianie priorytetu haków — złapał
+to audyt, a wzorzec nie pyta już o liczbę w `add_action`.
 
 ## [0.55.0] — 2026-08-30
 
