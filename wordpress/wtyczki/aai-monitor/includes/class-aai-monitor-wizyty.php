@@ -75,12 +75,17 @@ final class Aai_Monitor_Wizyty {
 	 * dochodzą (F23). Twardą tamą jest tania treść wiersza (bez danych
 	 * osobowych) i retencja.
 	 *
-	 * Wartość skalibrowana pomiarem w etapie 2 kroku T3: najszybsza
-	 * realna nawigacja człowieka po lekcjach daje pojedyncze odsłony na
-	 * minutę, a jeden adres potrafi być bramą całego biura, więc sufit
-	 * stoi wysoko ponad zachowaniem ludzi i nisko pod zalewem.
+	 * WARTOŚĆ Z POMIARU, nie z oszacowania (KROK-T3.md §2.5): sterowana
+	 * przeglądarka nawigująca bez czytania wyciska z jednego adresu
+	 * **294 odsłony na minutę** (15 nawigacji w 3,1 s). Człowiek czytający
+	 * lekcje robi ich kilka–kilkanaście, ale jeden adres potrafi być bramą
+	 * całego biura, więc sufit nie może stać przy ludzkim tempie.
+	 * Stawiamy go **tuż nad zmierzoną granicą maszyny**: wszystko powyżej
+	 * nie jest już przeglądaniem, a wszystko poniżej mieści prawdziwych
+	 * ludzi za wspólnym adresem — łącznie z naszymi bramkami jakości,
+	 * które w warsztacie idą z JEDNEGO adresu (brama kontenera, F14).
 	 */
-	private const LIMIT_NA_MINUTE = 120;
+	private const LIMIT_NA_MINUTE = 300;
 
 	/**
 	 * Okno limitu w sekundach.

@@ -121,6 +121,7 @@ add_action(
 		try {
 			Aai_Monitor_Logowania::zarejestruj();
 			Aai_Monitor_Wizyty::zarejestruj();
+			Aai_Monitor_Pomiar::zarejestruj();
 			Aai_Monitor_Prywatnosc::zarejestruj();
 		} catch ( Throwable $e ) {
 			Aai_Monitor_Komunikaty::zapisz( 'nie udało się podpiąć czujek monitoringu: ' . $e->getMessage() );
