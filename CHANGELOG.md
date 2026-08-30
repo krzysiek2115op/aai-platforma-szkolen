@@ -5,6 +5,92 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.57.0] — 2026-08-30
+
+**Timer wizyt działa** — krok T3 zaakceptowanego schematu
+([docs/plugin-3/DIAGRAM.md](docs/plugin-3/DIAGRAM.md)). Kontrola melduje
+„Czujki: logowania, ruch", a ekran pokazuje, które strony są czytane i jak
+długo. **Ten krok poprzedził AUDYT PLANU** na polecenie właściciela; audyt
+znalazł sześć błędów krytycznych w planie, który sam napisałem, i wszystkie
+zostały naprawione PRZED pierwszą linią kodu. Pomiary, znaleziska i lista
+testów: [docs/plugin-3/KROK-T3.md](docs/plugin-3/KROK-T3.md).
+
+### Dodane
+
+- **`Aai_Monitor_Wizyty` — wystrzał**: akcja `admin-post.php` zarejestrowana
+  **pod obiema nazwami** (`admin_post_nopriv_*` i `admin_post_*`), z nazwą
+  w query stringu, czytająca ciało z `php://input` **strumieniem z sufitem
+  1024 B**. Sito w kolejności wynikającej z kosztu: uprawnienie → typ ciała
+  → pochodzenie → limiter → ciało. Odpowiedź **zawsze 204**, tak samo na
+  przyjęcie i na odrzut.
+- **`Aai_Monitor_Podpis` — dowód, że stronę wyrenderował WordPress.**
+  Ścieżka nie jest sprawdzana pytaniem „czy taka trasa istnieje", tylko
+  podpisem wydanym przy renderze, liczonym **własną solą z opcji**.
+- **`Aai_Monitor_Pomiar` + `assets/pomiar.js`** — timer w przeglądarce:
+  czas **aktywny** (zegar stoi przy ukrytej karcie), **jedna wysyłka na
+  odsłonę**, reset na `pageshow.persisted`, wyłączenie przy
+  `navigator.webdriver`, `sessionStorage` w `try/catch`, Blob
+  `application/json`. Ścieżka i podpis przychodzą **z serwera** i wracają
+  nietknięte.
+- **Sekcja „Ruch" na ekranie**: okna dziś / 7 dni / 30 dni liczone od
+  **północy czasu witryny**, podsumowanie (odsłony, sesje, czas łączny
+  i średni) i dziesięć najczęściej oglądanych stron.
+- **Kontrola** pyta o **obie** nazwy akcji przez rejestr haków (nigdy
+  żądaniem HTTP — kontener CLI nie dosięga `:8892`) i o sól podpisu.
+- **Wpis o pomiarze ruchu w polityce prywatności** — dwiema drogami, jak
+  w T2: natywny mechanizm WordPressa i gotowy fragment w repo.
+
+### Zmienione
+
+- **Warstwa zapisu liczy moment wejścia z WIEKU beaconu**, nie z czasu
+  trwania. Odkąd czas znaczy „aktywny", stara formuła zapisywałaby kartę
+  czytaną dwie minuty i zamkniętą po ośmiu godzinach jako wejście sprzed
+  chwili.
+- **Schemat (§5, §7)**: sito ścieżki na podpisie zamiast `url_to_postid()`,
+  obowiązkowy `Content-Type`, `wiek_ms` w kontrakcie, indeksy rozstrzygnięte
+  pomiarem. Doszły fakty **F19–F24** i pułapki **P16–P19**.
+- **`smoke-wp-monitor`: 76 → 129 sprawdzeń** i od teraz **wymaga
+  `ZRZUTY_RIG`** — endpoint sprawdzony `fetch`em nie dowodzi niczego, bo
+  odrzut wygląda tak samo jak przyjęcie.
+- **`straznik-monitora-wp`: 13 → 18 reguł**, audyt mutacyjny **265 → 273**.
+  Reguła N1 zawężona do ekranu (wystrzał MUSI mieć akcję) i w tym samym
+  ruchu wzmocniona o kontrakt wystrzału.
+
+### Naprawione
+
+- **Ekran drukował dosłowne `&quot;`** w dwóch miejscach, w tym
+  w komunikacie z kroku T1 — ta sama klasa co 29 podpisów w podglądzie
+  kursów (0.34.0). Pilnuje tego teraz reguła strażnika.
+- **Podawanie skryptu nie łapało `Throwable`**, choć biegnie przy renderze
+  każdej strony frontu, także kasy. Złapał to strażnik z T2, nie recenzja.
+
+### Liczby z pomiaru, nie z założenia
+
+| Co | Wartość | Skąd |
+|---|---|---|
+| sufit ciała żądania | **1024 B** | realny najdłuższy beacon 168 B, maksimum kontraktu 270 B |
+| sufit beaconów na minutę | **300** | sterowana przeglądarka wyciska 294 odsłony/min z jednego adresu |
+| indeksy tabeli ruchu | **bez zmian** | pokrywające dają 34 ms na ekranie, a kosztują zapis 2,9× droższy i 33 MB |
+| sufit czasu | 4 h, **przycinany** | uśpiona karta to nie atak |
+
+### Zapamiętane pułapki
+
+- **`url_to_postid()` nie rozpoznaje ani jednej naszej trasy** (zero dla
+  katalogu, stron sprzedażowych, 73 lekcji i strony głównej).
+- **Cross-origin beacon `text/plain` DOCHODZI, `application/json` nie** —
+  ochrona wynika z wymogu typu, nie z sita na `Origin`.
+- **`Origin` jest wysyłany także same-origin**, wbrew MDN.
+- **`pagehide` i `visibilitychange` odpalają w tej samej milisekundzie**;
+  powrót z bfcache przywraca stronę z zachowanym stanem JS.
+- **Limit 64 KiB `sendBeacon` nie zadziałał** — beacon 70 kB doszedł
+  w całości; tempo 26 363 beacony/s.
+- **Strona 404 renderuje się dla dowolnego adresu**, więc podawanie tam
+  skryptu rozdawałoby podpisy na zmyślone ścieżki.
+- **Node trzyma połączenia keep-alive**, a Apache zrywa bezczynne —
+  zerwane połączenie wygląda jak awaria endpointu, którą nie jest.
+- **`goBack()` i `history.back()` przez BiDi nie działają** (timeout 30 s,
+  adres bez zmian, zepsuta sesja), a strona z bfcache nie emituje `load`.
+
 ## [0.56.0] — 2026-08-30
 
 **Dziennik logowań działa** — krok T2 zaakceptowanego schematu

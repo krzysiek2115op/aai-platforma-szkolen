@@ -318,3 +318,59 @@ liczy serwer) · awaria bazy (kanał błędów, `sprawdz` kod 1).
 8. Przegląd recenzentami-agentami wykonany, każde znalezisko potwierdzone
    **uruchomieniowo przed** naprawą.
 9. `DIAGRAM.md`, `CHANGELOG`, `README`, `CLAUDE.md` zgodne ze stanem.
+
+---
+
+## 9. Co wyszło DOPIERO przy wykonaniu
+
+Audyt planu wyłapał sześć rzeczy przed kodem. Pisanie kodu wyłapało
+kolejne — i to jest normalne: audyt czyta zamiar, kod zderza się
+z rzeczywistością.
+
+| # | Znalezisko | Kto je złapał |
+|---|---|---|
+| W1 | **Podawanie skryptu nie łapało `Throwable`**, choć biegnie przy renderze KAŻDEJ strony frontu, także kasy WooCommerce. Wyjątek stamtąd wywróciłby stronę, której monitoring się tylko przygląda | `straznik-monitora-wp` (reguła z T2) — nie recenzja i nie ja |
+| W2 | **Reguła N1 zakazywała akcji `admin_post_` w CAŁEJ wtyczce**, bo powstała, gdy wtyczka nie miała żadnej. Wystrzał T3 z definicji taką wprowadza | strażnik przy pierwszym commicie kodu |
+| W3 | **Strona 404 rozdawałaby podpisy na zmyślone ścieżki** — renderuje się dla dowolnego adresu, więc wystarczyłoby wejść na `/cokolwiek`, wziąć podpis ze źródła i zatruć nim „top 10 stron". Nie było tego w planie | ja, przy pisaniu `Aai_Monitor_Pomiar` |
+| W4 | **Moje własne reguły strażnika pytały o OBECNOŚĆ NAPISU** (`application/json`, `admin-post.php?action=`), a nie o rozstrzygnięcie — szósty nawrót tej pułapki w projekcie | test negatywny z kontrprzykładem („napis zostaje, wymóg znika") |
+| W5 | **Ekran drukował dosłowne `&quot;`** w dwóch miejscach, w tym w komunikacie z T1 — ta sama klasa co 29 podpisów w podglądzie kursów (0.34.0) | oględziny HTML-a po pierwszym renderze sekcji |
+| W6 | **Reguła porównująca politykę zapalała się fałszywie**: porównywała tekst z cytatem blokowym, nie zdejmując `>` z początku linii | pierwszy przebieg tej reguły |
+
+## 10. Pułapki POMIARU z tego kroku (wrócą)
+
+1. **Pomiar oparty na złej nazwie zmiennej mierzy co innego, niż myślisz.**
+   Sprawdzenie N8 użyło `WP_HASLO` zamiast `WP_ADMIN_HASLO`, więc
+   logowanie się nie udało i mierzyłem gościa zamiast administratora —
+   wynik wyglądał jak awaria kodu (4 trafienia zamiast 0).
+2. **Surowy Firefox nie nawiguje w tej samej karcie z drugiej instancji**,
+   a `SIGKILL` nie daje szansy na `pagehide`. Pierwszy przelot dał zero
+   wierszy i wyglądał na martwy pomiar — kod był w porządku.
+3. **Node trzyma połączenia keep-alive, Apache zrywa bezczynne.** Podczas
+   kilkusekundowego przelotu przeglądarką zerwane połączenie wypływa jako
+   nieobsłużony `SocketError: other side closed` i wygląda na awarię
+   naszego endpointu. Pojedyncze i seryjne żądania przechodzą bez zarzutu.
+4. **`goBack()` i `history.back()` w Firefoksie przez BiDi nie działają**:
+   timeout 30 s, adres BEZ ZMIANY, a sesja zepsuta na tyle, że kolejna
+   nawigacja też pada. Powrót z bfcache mierzymy podstawieniem stronie
+   tego samego zdarzenia, które wysyła jej przeglądarka.
+5. **Strona przywrócona z bfcache nie emituje `load`**, tylko `pageshow` —
+   czekanie na `load` to czekanie na coś, co nigdy nie nadejdzie.
+6. **Zmiana pliku PHP wymaga odczekania na `opcache`** (`revalidate_freq
+   = 2`): pomiar zaraz po edycji mierzy POPRZEDNI stan kodu i wygląda jak
+   „strażnik przepuścił mutację".
+
+## 11. Stan po wykonaniu
+
+| Bramka | Wynik |
+|---|---|
+| `straznik-monitora-wp` | **18 reguł** (było 13) |
+| audyt mutacyjny | **273 mutacje** (było 265), wszystkie łapane |
+| `smoke-wp-monitor` | **129 sprawdzeń** (było 76), wymaga `ZRZUTY_RIG` |
+| testy negatywne bramki | 4, każdy trafia dokładnie w swoje |
+| testy negatywne strażnika | 13, w tym 2 kontrprzykłady na wzorzec po napisie |
+
+**Liczby wpisane do kodu, każda z pomiaru:** sufit ciała **1024 B**
+(realny beacon 168 B, maksimum kontraktu 270 B), sufit beaconów **300/min**
+(sterowana przeglądarka wyciska 294), indeksy **bez zmian** (pokrywające
+dają 34 ms na ekranie, a kosztują zapis 2,9× droższy i 33 MB), sufit czasu
+**4 h z przycinaniem**.
