@@ -101,6 +101,89 @@ final class Aai_Monitor_Odczyt {
 	}
 
 	/**
+	 * Ruch w oknie czasu — treść drugiej sekcji ekranu.
+	 *
+	 * OKNO LICZY SIĘ OD PÓŁNOCY CZASU WITRYNY, nie od północy UTC i nie
+	 * „24 godziny wstecz". W warsztacie `gmt_offset = 0`, więc różnica
+	 * jest tu NIEWIDOCZNA i wyszłaby dopiero na produkcji: w strefie
+	 * Europe/Warsaw doba zaczynałaby się o 02:00, a odsłony z pierwszych
+	 * dwóch godzin dnia trafiałyby do „wczoraj". Kolumny trzymamy w UTC,
+	 * więc granicę wyliczamy lokalnie i PRZELICZAMY na UTC.
+	 *
+	 * @param int $dni Ile dób wstecz (1 = dzisiaj od północy).
+	 * @return array{odslony:int, sesje:int, laczny_ms:int, sredni_ms:int, strony:array<int,array<string,mixed>>}
+	 */
+	public static function ruch( int $dni = 1 ): array {
+		global $wpdb;
+
+		$puste = array(
+			'odslony'   => 0,
+			'sesje'     => 0,
+			'laczny_ms' => 0,
+			'sredni_ms' => 0,
+			'strony'    => array(),
+		);
+		if ( ! Aai_Monitor_Tabele::istnieja() ) {
+			return $puste;
+		}
+
+		$granica = self::granica_okna( $dni );
+		$w       = Aai_Monitor_Tabele::tabela( 'wizyty' );
+
+		// Zapytania stoją tu DOSŁOWNIE, przy swoim `prepare()` — SQL
+		// sklejony ze zmiennej jest niewidzialny dla `straznik-wtyczki-wp`
+		// (jego reguła czyta łańcuch podany wprost do `$wpdb->`).
+		$suma = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT
+					COUNT(*) AS odslony,
+					COUNT( DISTINCT sesja ) AS sesje,
+					COALESCE( SUM( trwanie_ms ), 0 ) AS laczny,
+					COALESCE( AVG( trwanie_ms ), 0 ) AS sredni
+				FROM `{$w}` WHERE wejscie >= %s",
+				$granica
+			),
+			ARRAY_A
+		); // phpcs:ignore WordPress.DB.PreparedSQL
+
+		// Indeks pod to zapytanie ROZWAŻONY I ODRZUCONY pomiarem przy T3:
+		// na 200 000 wierszy kosztuje 50 ms bez indeksu i 28 ms z indeksem
+		// pokrywającym, a ten drugi czyni zapis 2,9× droższym i zajmuje
+		// 33 MB. Beacon jest najczęstszym zapisem tego modułu.
+		$strony = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT sciezka, COUNT(*) AS odslony, COALESCE( AVG( trwanie_ms ), 0 ) AS sredni
+				FROM `{$w}` WHERE wejscie >= %s
+				GROUP BY sciezka ORDER BY odslony DESC, sciezka ASC LIMIT 10",
+				$granica
+			),
+			ARRAY_A
+		); // phpcs:ignore WordPress.DB.PreparedSQL
+
+		return array(
+			'odslony'   => (int) ( $suma['odslony'] ?? 0 ),
+			'sesje'     => (int) ( $suma['sesje'] ?? 0 ),
+			'laczny_ms' => (int) ( $suma['laczny'] ?? 0 ),
+			'sredni_ms' => (int) round( (float) ( $suma['sredni'] ?? 0 ) ),
+			'strony'    => is_array( $strony ) ? $strony : array(),
+		);
+	}
+
+	/**
+	 * Granica okna: północ czasu WITRYNY sprzed `$dni - 1` dób, w UTC.
+	 *
+	 * @param int $dni Ile dób obejmuje okno (1 = dzisiaj).
+	 */
+	private static function granica_okna( int $dni ): string {
+		$dni    = max( 1, $dni );
+		$polnoc = current_datetime()->setTime( 0, 0, 0 );
+		if ( $dni > 1 ) {
+			$polnoc = $polnoc->modify( sprintf( '-%d days', $dni - 1 ) );
+		}
+		return $polnoc->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+	}
+
+	/**
 	 * Najstarszy wiersz każdej tabeli — materiał dla kontroli retencji.
 	 *
 	 * Kontrola porównuje go do NAJNOWSZEGO wiersza, nie do zegara:

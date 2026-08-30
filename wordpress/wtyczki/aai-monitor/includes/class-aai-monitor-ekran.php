@@ -53,6 +53,12 @@ final class Aai_Monitor_Ekran {
 	private const TRANSIENT_RETENCJI = 'aai_monitor_retencja_dnia';
 
 	/**
+	 * Okna ruchu w dobach — skończona lista, bo wartość z adresu idzie
+	 * do zapytania o zakres dat.
+	 */
+	private const OKNA = array( 1, 7, 30 );
+
+	/**
 	 * Czujki, które faktycznie rejestrują dane.
 	 *
 	 * PO CO TO ISTNIEJE. Pusty ekran nie odróżnia „nikt nie próbował" od
@@ -163,13 +169,23 @@ final class Aai_Monitor_Ekran {
 		$tylko_porazki = isset( $_GET['porazki'] ) && '1' === $_GET['porazki']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$wiersze       = Aai_Monitor_Odczyt::logowania( 20, $tylko_porazki );
 
+		// Okno ruchu też jedzie GET-em i też ze SKOŃCZONEJ listy: parametr
+		// z adresu trafia prosto do zapytania o zakres dat, więc jedyną
+		// dopuszczalną odpowiedzią na wartość spoza listy jest wartość
+		// domyślna, nie „co przyszło".
+		$okno = isset( $_GET['okno'] ) ? (int) $_GET['okno'] : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! in_array( $okno, self::OKNA, true ) ) {
+			$okno = 1;
+		}
+		$ruch = Aai_Monitor_Odczyt::ruch( $okno );
+
 		echo '<div class="wrap aai-monitor">';
 		printf( '<h1>%s</h1>', esc_html__( 'Monitoring', 'aai-monitor' ) );
 
 		if ( array() === $czujki ) {
 			printf(
 				'<div class="notice notice-info inline"><p>%s</p></div>',
-				esc_html__( 'Baza monitoringu stoi, ale nic jeszcze nie zbiera danych — żadna czujka nie jest podpięta. Pusta lista poniżej znaczy więc „nie ma czego pokazać", a nie „nikt nie próbował".', 'aai-monitor' )
+				esc_html__( 'Baza monitoringu stoi, ale nic jeszcze nie zbiera danych — żadna czujka nie jest podpięta. Pusta lista poniżej znaczy więc „nie ma czego pokazać”, a nie „nikt nie próbował”.', 'aai-monitor' )
 			);
 		} else {
 			printf(
@@ -181,7 +197,7 @@ final class Aai_Monitor_Ekran {
 
 		self::kafelki( $stan );
 		self::sekcja_logowan( $stan, $wiersze, $tylko_porazki );
-		self::sekcja_ruchu( $stan );
+		self::sekcja_ruchu( $ruch, $okno );
 
 		echo '</div>';
 	}
@@ -303,15 +319,31 @@ final class Aai_Monitor_Ekran {
 	/**
 	 * Sekcja „Ruch".
 	 *
-	 * @param array<string,array<string,mixed>> $stan Podsumowanie.
+	 * DWIE RZECZY SĄ TU NAPISANE WPROST, bo bez nich liczby kłamią po
+	 * cichu:
+	 *  - **sesja to karta-drzewo, nie człowiek**: `sessionStorage` jest
+	 *    kopiowany do karty otwartej z linku, więc dwie karty jednej
+	 *    osoby bywają jedną sesją (a dwa urządzenia zawsze są dwiema);
+	 *  - **odsłony są zaniżone**: wiersz powstaje z beaconu wysyłanego
+	 *    przy WYJŚCIU ze strony, więc odsłona urwana awarią, ubiciem
+	 *    przeglądarki albo wyłączonym JavaScriptem nie zostawia śladu.
+	 *
+	 * Liczba, która przemilcza swoją definicję, jest gorsza od braku
+	 * liczby — dlatego stoi to na ekranie, a nie w dokumentacji.
+	 *
+	 * @param array<string,mixed> $ruch Agregat z działu.
+	 * @param int                 $okno Okno w dobach.
 	 */
-	private static function sekcja_ruchu( array $stan ): void {
+	private static function sekcja_ruchu( array $ruch, int $okno ): void {
 		echo '<h2>' . esc_html__( 'Ruch', 'aai-monitor' ) . '</h2>';
 
-		if ( 0 === (int) $stan['wizyty']['razem'] ) {
+		self::przelacznik_okna( $okno );
+
+		$odslony = (int) $ruch['odslony'];
+		if ( 0 === $odslony ) {
 			printf(
 				'<p class="aai-monitor-pusto">%s</p>',
-				esc_html__( 'Ani jednej odsłony.', 'aai-monitor' )
+				esc_html__( 'Ani jednej odsłony w tym oknie.', 'aai-monitor' )
 			);
 			return;
 		}
@@ -320,14 +352,91 @@ final class Aai_Monitor_Ekran {
 			'<p>%s</p>',
 			esc_html(
 				sprintf(
-					/* translators: 1: liczba odsłon, 2: liczba sesji, 3: data ostatniej odsłony. */
-					__( 'Odsłon: %1$s, sesji: %2$s. Ostatnia odsłona: %3$s UTC.', 'aai-monitor' ),
-					number_format_i18n( (int) $stan['wizyty']['razem'] ),
-					number_format_i18n( (int) $stan['wizyty']['sesje'] ),
-					(string) $stan['wizyty']['ostatnia']
+					/* translators: 1: odsłony, 2: sesje, 3: czas łączny, 4: czas średni. */
+					__( 'Odsłon: %1$s. Sesji: %2$s. Czas łączny: %3$s, średnio na odsłonę: %4$s.', 'aai-monitor' ),
+					number_format_i18n( $odslony ),
+					number_format_i18n( (int) $ruch['sesje'] ),
+					self::czas( (int) $ruch['laczny_ms'] ),
+					self::czas( (int) $ruch['sredni_ms'] )
 				)
 			)
 		);
+
+		echo '<table class="widefat striped aai-monitor-tabela"><thead><tr>';
+		foreach ( array(
+			__( 'Strona', 'aai-monitor' ),
+			__( 'Odsłony', 'aai-monitor' ),
+			__( 'Średni czas', 'aai-monitor' ),
+		) as $naglowek ) {
+			printf( '<th>%s</th>', esc_html( $naglowek ) );
+		}
+		echo '</tr></thead><tbody>';
+
+		foreach ( $ruch['strony'] as $strona ) {
+			// `esc_html` na ścieżce nie jest formalnością: wartość
+			// przyszła z ciała żądania. Podpis dowodzi, że stronę
+			// wyrenderowano — nie czyni treści bezpieczną.
+			printf(
+				'<tr><td><code>%s</code></td><td>%s</td><td>%s</td></tr>',
+				esc_html( (string) $strona['sciezka'] ),
+				esc_html( number_format_i18n( (int) $strona['odslony'] ) ),
+				esc_html( self::czas( (int) round( (float) $strona['sredni'] ) ) )
+			);
+		}
+		echo '</tbody></table>';
+
+		printf(
+			'<p class="description">%s</p>',
+			esc_html__( 'Czas liczy się tylko wtedy, gdy karta jest widoczna. „Sesja” znaczy kartę wraz z otwartymi z niej kartami — nie osobę. Odsłony przerwane awarią przeglądarki albo bez JavaScriptu nie są liczone, więc te liczby są dolną granicą ruchu, nie dokładnym pomiarem.', 'aai-monitor' )
+		);
+	}
+
+	/**
+	 * Przełącznik okna — odsyłacze GET-em, bo ekran niczego nie zapisuje.
+	 *
+	 * @param int $okno Wybrane okno.
+	 */
+	private static function przelacznik_okna( int $okno ): void {
+		$etykiety = array(
+			1  => __( 'dziś', 'aai-monitor' ),
+			7  => __( '7 dni', 'aai-monitor' ),
+			30 => __( '30 dni', 'aai-monitor' ),
+		);
+
+		echo '<p class="aai-monitor-okna">';
+		foreach ( self::OKNA as $ile ) {
+			$adres = add_query_arg(
+				array(
+					'page' => self::STRONA,
+					'okno' => $ile,
+				),
+				admin_url( 'admin.php' )
+			);
+			printf(
+				'<a href="%s" class="%s">%s</a> ',
+				esc_url( $adres ),
+				$ile === $okno ? 'aai-monitor-okno-wybrane' : '',
+				esc_html( $etykiety[ $ile ] ?? (string) $ile )
+			);
+		}
+		echo '</p>';
+	}
+
+	/**
+	 * Czas dla człowieka: „14 s", „3 min 20 s", „1 h 12 min".
+	 *
+	 * @param int $ms Milisekundy.
+	 */
+	private static function czas( int $ms ): string {
+		$sekundy = (int) round( $ms / 1000 );
+		if ( $sekundy < 60 ) {
+			return sprintf( '%d s', $sekundy );
+		}
+		$minuty = intdiv( $sekundy, 60 );
+		if ( $minuty < 60 ) {
+			return sprintf( '%d min %d s', $minuty, $sekundy % 60 );
+		}
+		return sprintf( '%d h %d min', intdiv( $minuty, 60 ), $minuty % 60 );
 	}
 
 	/**

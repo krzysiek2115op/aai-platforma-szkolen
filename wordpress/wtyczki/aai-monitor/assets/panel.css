@@ -102,3 +102,32 @@
 .aai-monitor-czujki {
 	color: var(--aai-cisza);
 }
+
+/* Przełącznik okna w sekcji „Ruch" — zwykłe odsyłacze GET, bo ekran
+   niczego nie zapisuje (N1). Wybrane okno musi być widoczne bez czytania
+   adresu, więc dostaje wypełnienie, nie samo pogrubienie. */
+.aai-monitor-okna {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin: 12px 0 16px;
+}
+
+.aai-monitor-okna a {
+	padding: 4px 12px;
+	border: 1px solid #c3c4c7;
+	border-radius: 999px;
+	text-decoration: none;
+	line-height: 1.8;
+}
+
+.aai-monitor-okna a:hover {
+	border-color: #2271b1;
+}
+
+.aai-monitor-okna .aai-monitor-okno-wybrane {
+	background: #2271b1;
+	border-color: #2271b1;
+	color: #fff;
+	font-weight: 600;
+}
