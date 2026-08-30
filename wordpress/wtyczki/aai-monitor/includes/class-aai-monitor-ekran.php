@@ -205,7 +205,14 @@ final class Aai_Monitor_Ekran {
 	/* ————————————————————————— części ekranu ————————————————————————— */
 
 	/**
-	 * Liczby na wierzchu.
+	 * Liczby na wierzchu — WSZYSTKIE od początku pomiaru.
+	 *
+	 * Etykiety mówią „łącznie" i to nie jest ozdobnik (A3 z przeglądu T3):
+	 * kafelki liczą całą historię, a sekcja tuż pod nimi — wybrane okno.
+	 * Do naprawy obie liczby nazywały się „Odsłony" i „Sesje", więc
+	 * właściciel czytał kafelek jako dzisiejszy ruch. Zmierzone: jeden
+	 * wiersz sprzed 40 dni dawał kafelek 1 i sekcję 0 przy identycznym
+	 * napisie obok.
 	 *
 	 * @param array<string,array<string,mixed>> $stan Podsumowanie z działu.
 	 */
@@ -224,18 +231,19 @@ final class Aai_Monitor_Ekran {
 				'alarm'    => $stan['logowania']['porazki_7dni'] > 0,
 			),
 			array(
-				'etykieta' => __( 'Odsłony', 'aai-monitor' ),
+				'etykieta' => __( 'Odsłony łącznie', 'aai-monitor' ),
 				'wartosc'  => (int) $stan['wizyty']['razem'],
 				'alarm'    => false,
 			),
 			array(
-				'etykieta' => __( 'Sesje', 'aai-monitor' ),
+				'etykieta' => __( 'Sesje łącznie', 'aai-monitor' ),
 				'wartosc'  => (int) $stan['wizyty']['sesje'],
 				'alarm'    => false,
 			),
 		);
 
 		echo '<div class="aai-monitor-kafelki">';
+		// Bez tego zdania „łącznie" i tak trzeba by sobie dopowiedzieć.
 		foreach ( $kafelki as $kafelek ) {
 			printf(
 				'<div class="aai-monitor-kafelek%s"><span class="aai-monitor-liczba">%s</span><span class="aai-monitor-etykieta">%s</span></div>',
@@ -245,6 +253,10 @@ final class Aai_Monitor_Ekran {
 			);
 		}
 		echo '</div>';
+		printf(
+			'<p class="description">%s</p>',
+			esc_html__( 'Kafelki liczą wszystko od początku pomiaru. Liczby w oknie czasu są niżej, w sekcji „Ruch”.', 'aai-monitor' )
+		);
 	}
 
 	/**
@@ -362,6 +374,40 @@ final class Aai_Monitor_Ekran {
 			)
 		);
 
+		$bramka = (int) $ruch['bramka'];
+		if ( $bramka > 0 ) {
+			printf(
+				'<p>%s</p>',
+				esc_html(
+					sprintf(
+						/* translators: %s: liczba odsłon zatrzymanych na bramce logowania. */
+						__( 'W tym %s odsłon, które zatrzymała bramka logowania — ktoś otworzył płatną lekcję i zobaczył zaproszenie do logowania zamiast treści. Te odsłony NIE wchodzą do listy czytanych stron.', 'aai-monitor' ),
+						number_format_i18n( $bramka )
+					)
+				)
+			);
+		}
+
+		echo '<h3>' . esc_html__( 'Najczęściej czytane strony', 'aai-monitor' ) . '</h3>';
+		self::tabela_stron( $ruch['strony'] );
+
+		if ( array() !== $ruch['strony_bramki'] ) {
+			echo '<h3>' . esc_html__( 'Zatrzymane na bramce logowania', 'aai-monitor' ) . '</h3>';
+			self::tabela_stron( $ruch['strony_bramki'] );
+		}
+
+		printf(
+			'<p class="description">%s</p>',
+			esc_html__( 'Czas liczy się tylko wtedy, gdy karta jest widoczna. „Sesja” znaczy kartę wraz z otwartymi z niej kartami — nie osobę. Odsłony przerwane awarią przeglądarki albo bez JavaScriptu nie są liczone, więc te liczby są dolną granicą ruchu, nie dokładnym pomiarem.', 'aai-monitor' )
+		);
+	}
+
+	/**
+	 * Tabela stron — ten sam kształt dla czytanych i dla odbić na bramce.
+	 *
+	 * @param array<int,array<string,mixed>> $strony Wiersze z działu.
+	 */
+	private static function tabela_stron( array $strony ): void {
 		echo '<table class="widefat striped aai-monitor-tabela"><thead><tr>';
 		foreach ( array(
 			__( 'Strona', 'aai-monitor' ),
@@ -372,7 +418,7 @@ final class Aai_Monitor_Ekran {
 		}
 		echo '</tr></thead><tbody>';
 
-		foreach ( $ruch['strony'] as $strona ) {
+		foreach ( $strony as $strona ) {
 			// `esc_html` na ścieżce nie jest formalnością: wartość
 			// przyszła z ciała żądania. Podpis dowodzi, że stronę
 			// wyrenderowano — nie czyni treści bezpieczną.
@@ -384,11 +430,6 @@ final class Aai_Monitor_Ekran {
 			);
 		}
 		echo '</tbody></table>';
-
-		printf(
-			'<p class="description">%s</p>',
-			esc_html__( 'Czas liczy się tylko wtedy, gdy karta jest widoczna. „Sesja” znaczy kartę wraz z otwartymi z niej kartami — nie osobę. Odsłony przerwane awarią przeglądarki albo bez JavaScriptu nie są liczone, więc te liczby są dolną granicą ruchu, nie dokładnym pomiarem.', 'aai-monitor' )
-		);
 	}
 
 	/**

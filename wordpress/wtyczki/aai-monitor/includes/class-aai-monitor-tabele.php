@@ -125,19 +125,38 @@ final class Aai_Monitor_Tabele {
 		 * `crypto.randomUUID()` daje 36 znaków z myślnikami i odrzucałby
 		 * własne beacony.
 		 *
-		 * `wejscie` liczy SERWER jako `now() − trwanie_ms`: beacon
+		 * `wejscie` liczy SERWER jako `now() − wiek_ms`: beacon
 		 * przychodzi przy WYJŚCIU ze strony, więc samo `now()` byłoby
 		 * momentem wyjścia i wizyta zaczęta o 23:50 lądowałaby w następnej
 		 * dobie. Klientowi nie ufamy w żadnym znaczniku czasu.
+		 *
+		 * `odslona` to identyfikator JEDNEJ odsłony (32 hex, nowy przy
+		 * każdym wejściu na stronę i przy powrocie z bfcache), a jego
+		 * UNIQUE jest jedynym powodem, dla którego odsłona ma dokładnie
+		 * jeden wiersz mimo WIELU beaconów. Beacony są wielokrotne od
+		 * naprawy B1: czas aktywny urywał się przy pierwszym przełączeniu
+		 * karty (zmierzone: 1559 ms zamiast 5500), bo skrypt wysyłał
+		 * dokładnie raz i po powrocie do karty nie miał już czym dosłać
+		 * doczytanego czasu. Kolumna jest NULL-owalna, bo MySQL dopuszcza
+		 * wiele NULL-i w UNIQUE — wiersze sprzed tej zmiany zostają.
+		 *
+		 * `bramka` mówi, że stronę wyrenderowano JAKO ZAPROSZENIE DO
+		 * LOGOWANIA, a nie jako treść (A6 z przeglądu T3): gość na płatnej
+		 * lekcji dostaje HTTP 200 i skrypt pomiaru, więc bez tej kolumny
+		 * „top 10 czytanych stron" liczyłoby odbicia jako czytanie.
+		 * Flaga wchodzi DO PODPISU, więc nie da się jej podrobić.
 		 */
 		dbDelta(
 			"CREATE TABLE {$w} (
 				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				odslona char(32) NULL DEFAULT NULL,
 				sesja char(32) NOT NULL,
 				sciezka varchar(191) NOT NULL,
+				bramka tinyint(1) unsigned NOT NULL DEFAULT 0,
 				wejscie datetime NOT NULL,
 				trwanie_ms int(10) unsigned NOT NULL DEFAULT 0,
 				PRIMARY KEY  (id),
+				UNIQUE KEY odslona (odslona),
 				KEY wejscie (wejscie)
 			) {$kolacja};"
 		);

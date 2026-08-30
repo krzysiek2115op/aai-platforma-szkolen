@@ -110,18 +110,28 @@ final class Aai_Monitor_Odczyt {
 	 * dwóch godzin dnia trafiałyby do „wczoraj". Kolumny trzymamy w UTC,
 	 * więc granicę wyliczamy lokalnie i PRZELICZAMY na UTC.
 	 *
+	 * ODSŁONY BRAMKI LICZĄ SIĘ OSOBNO (A6 z przeglądu T3). Gość na płatnej
+	 * lekcji dostaje HTTP 200 i pełną stronę — tyle że z zaproszeniem do
+	 * logowania zamiast treści. Wrzucone do jednego worka zawyżałyby
+	 * „najczęściej czytane strony" o lekcje, których nikt nie przeczytał,
+	 * a wyrzucone z tabeli skasowałyby jedyny ślad po kimś, kto chciał
+	 * wejść i nie mógł. Więc: lista czytanych stron bierze wyłącznie
+	 * odsłony TREŚCI, a odbicia mają własną liczbę i własną listę.
+	 *
 	 * @param int $dni Ile dób wstecz (1 = dzisiaj od północy).
-	 * @return array{odslony:int, sesje:int, laczny_ms:int, sredni_ms:int, strony:array<int,array<string,mixed>>}
+	 * @return array{odslony:int, sesje:int, bramka:int, laczny_ms:int, sredni_ms:int, strony:array<int,array<string,mixed>>, strony_bramki:array<int,array<string,mixed>>}
 	 */
 	public static function ruch( int $dni = 1 ): array {
 		global $wpdb;
 
 		$puste = array(
-			'odslony'   => 0,
-			'sesje'     => 0,
-			'laczny_ms' => 0,
-			'sredni_ms' => 0,
-			'strony'    => array(),
+			'odslony'       => 0,
+			'sesje'         => 0,
+			'bramka'        => 0,
+			'laczny_ms'     => 0,
+			'sredni_ms'     => 0,
+			'strony'        => array(),
+			'strony_bramki' => array(),
 		);
 		if ( ! Aai_Monitor_Tabele::istnieja() ) {
 			return $puste;
@@ -138,6 +148,7 @@ final class Aai_Monitor_Odczyt {
 				"SELECT
 					COUNT(*) AS odslony,
 					COUNT( DISTINCT sesja ) AS sesje,
+					COALESCE( SUM( CASE WHEN bramka = 1 THEN 1 ELSE 0 END ), 0 ) AS bramka,
 					COALESCE( SUM( trwanie_ms ), 0 ) AS laczny,
 					COALESCE( AVG( trwanie_ms ), 0 ) AS sredni
 				FROM `{$w}` WHERE wejscie >= %s",
@@ -153,19 +164,33 @@ final class Aai_Monitor_Odczyt {
 		$strony = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT sciezka, COUNT(*) AS odslony, COALESCE( AVG( trwanie_ms ), 0 ) AS sredni
-				FROM `{$w}` WHERE wejscie >= %s
+				FROM `{$w}` WHERE wejscie >= %s AND bramka = 0
 				GROUP BY sciezka ORDER BY odslony DESC, sciezka ASC LIMIT 10",
 				$granica
 			),
 			ARRAY_A
 		); // phpcs:ignore WordPress.DB.PreparedSQL
 
+		// Krótsza lista, bo odpowiada na węższe pytanie: czego ludzie
+		// chcieli, a nie dostali.
+		$bramki = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT sciezka, COUNT(*) AS odslony, COALESCE( AVG( trwanie_ms ), 0 ) AS sredni
+				FROM `{$w}` WHERE wejscie >= %s AND bramka = 1
+				GROUP BY sciezka ORDER BY odslony DESC, sciezka ASC LIMIT 5",
+				$granica
+			),
+			ARRAY_A
+		); // phpcs:ignore WordPress.DB.PreparedSQL
+
 		return array(
-			'odslony'   => (int) ( $suma['odslony'] ?? 0 ),
-			'sesje'     => (int) ( $suma['sesje'] ?? 0 ),
-			'laczny_ms' => (int) ( $suma['laczny'] ?? 0 ),
-			'sredni_ms' => (int) round( (float) ( $suma['sredni'] ?? 0 ) ),
-			'strony'    => is_array( $strony ) ? $strony : array(),
+			'odslony'       => (int) ( $suma['odslony'] ?? 0 ),
+			'sesje'         => (int) ( $suma['sesje'] ?? 0 ),
+			'bramka'        => (int) ( $suma['bramka'] ?? 0 ),
+			'laczny_ms'     => (int) ( $suma['laczny'] ?? 0 ),
+			'sredni_ms'     => (int) round( (float) ( $suma['sredni'] ?? 0 ) ),
+			'strony'        => is_array( $strony ) ? $strony : array(),
+			'strony_bramki' => is_array( $bramki ) ? $bramki : array(),
 		);
 	}
 

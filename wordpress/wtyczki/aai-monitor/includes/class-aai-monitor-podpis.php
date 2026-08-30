@@ -89,12 +89,20 @@ final class Aai_Monitor_Podpis {
 	}
 
 	/**
-	 * Podpis danej ścieżki.
+	 * Podpis danej ścieżki — RAZEM z flagą bramki logowania.
+	 *
+	 * Flaga wchodzi do PODPISYWANEGO MATERIAŁU, a nie obok niego, i to
+	 * jest cała jej ochrona: gdyby jechała w beaconie osobno, każdy mógłby
+	 * oznaczyć dowolną odsłonę jako „zatrzymana na bramce" albo zdjąć to
+	 * oznaczenie z własnej. Materiał jest rozdzielony pionową kreską, bo
+	 * ścieżka zaczyna się od ukośnika i nie da się jej pomylić z flagą.
 	 *
 	 * @param string $sciezka Znormalizowana ścieżka.
+	 * @param bool   $bramka  Czy stronę wyrenderowano jako bramkę logowania.
 	 */
-	public static function podpisz( string $sciezka ): string {
-		return substr( hash_hmac( 'sha256', $sciezka, self::sol() ), 0, self::DLUGOSC );
+	public static function podpisz( string $sciezka, bool $bramka = false ): string {
+		$material = ( $bramka ? '1' : '0' ) . '|' . $sciezka;
+		return substr( hash_hmac( 'sha256', $material, self::sol() ), 0, self::DLUGOSC );
 	}
 
 	/**
@@ -107,12 +115,13 @@ final class Aai_Monitor_Podpis {
 	 *
 	 * @param string $sciezka Ścieżka z beaconu.
 	 * @param string $podpis  Podpis z beaconu.
+	 * @param bool   $bramka  Flaga bramki z beaconu.
 	 */
-	public static function pasuje( string $sciezka, string $podpis ): bool {
+	public static function pasuje( string $sciezka, string $podpis, bool $bramka = false ): bool {
 		if ( self::DLUGOSC !== strlen( $podpis ) ) {
 			return false;
 		}
-		return hash_equals( self::podpisz( $sciezka ), $podpis );
+		return hash_equals( self::podpisz( $sciezka, $bramka ), $podpis );
 	}
 
 	/**

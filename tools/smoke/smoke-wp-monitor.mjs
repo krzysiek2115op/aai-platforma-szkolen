@@ -778,7 +778,18 @@ const SCIEZKA_B = "/szkolenia/jak-korzystac-z-claude/";
 const SESJA_TESTOWA = "0123456789abcdef0123456789abcdef";
 const AKCJA = "aai_monitor_wizyta";
 
-const podpisz = (sciezka) => phpEval(`echo Aai_Monitor_Podpis::podpisz('${sciezka}');`).stdout.trim();
+const podpisz = (sciezka, bramka = false) =>
+  phpEval(`echo Aai_Monitor_Podpis::podpisz('${sciezka}', ${bramka ? "true" : "false"});`).stdout.trim();
+
+/*
+ * Identyfikator ODSŁONY — od naprawy B1 każdy beacon go niesie, a UNIQUE
+ * w bazie robi z niego regułę „jedna odsłona, jeden wiersz”. Domyślnie
+ * LOSOWY, bo dwa beacony z tym samym identyfikatorem to CELOWY przypadek
+ * (uzupełnienie czasu), a nie stan domyślny — gdyby był stały, blok sita
+ * mierzyłby uzupełnianie jednego wiersza zamiast wstawiania nowych.
+ */
+let licznikOdslon = 0;
+const nowaOdslona = () => (licznikOdslon++).toString(16).padStart(8, "0") + "cafe".repeat(6);
 const ileWizyt = () =>
   Number(phpEval("global $wpdb; echo (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Aai_Monitor_Tabele::tabela('wizyty') );").stdout);
 
@@ -786,6 +797,8 @@ async function beacon({
   sciezka = SCIEZKA_A,
   podpis = null,
   sesja = SESJA_TESTOWA,
+  odslona = null,
+  bramka = false,
   trwanie = 5000,
   wiek = 60000,
   typ = "application/json",
@@ -794,7 +807,15 @@ async function beacon({
   akcjaWQuery = true,
   ciastka = "",
 } = {}) {
-  const ladunek = { sciezka, podpis: podpis ?? podpisz(sciezka), sesja, trwanie_ms: trwanie, wiek_ms: wiek };
+  const ladunek = {
+    odslona: odslona ?? nowaOdslona(),
+    sciezka,
+    podpis: podpis ?? podpisz(sciezka, bramka),
+    bramka: bramka ? 1 : 0,
+    sesja,
+    trwanie_ms: trwanie,
+    wiek_ms: wiek,
+  };
   if (!akcjaWQuery) ladunek.action = AKCJA;
   if (wypelniacz) ladunek.x = wypelniacz;
   const naglowki = { "content-type": typ, connection: "close" };
@@ -825,26 +846,102 @@ const odrzuty = [
   ["podpis nie pasuje do ścieżki", { podpis: "0".repeat(32) }],
   ["ścieżka podmieniona po podpisaniu (zatrucie listy stron)", { sciezka: "/zmyslona-sciezka/", podpis: null, sesja: SESJA_TESTOWA }],
   ["sesja krótsza o znak", { sesja: SESJA_TESTOWA.slice(0, 31) }],
+  ["identyfikator odsłony krótszy o znak", { odslona: SESJA_TESTOWA.slice(0, 31) }],
+  ["brak identyfikatora odsłony", { odslona: "" }],
+  ["flaga bramki podniesiona po podpisaniu (fałszywe odbicie)", { bramka: true, podpis: null }],
   ["ciało o bajt ponad sufit", { wypelniacz: "y".repeat(1025) }],
 ];
 for (const [opis, opcje] of odrzuty) {
   const przed = ileWizyt();
   // Ścieżka podmieniona: podpisujemy JEDNĄ, wysyłamy DRUGĄ.
   if (opcje.sciezka === "/zmyslona-sciezka/") opcje.podpis = podpisz(SCIEZKA_A);
+  // Flaga bramki jedzie w PODPISYWANYM materiale, więc jej podniesienie
+  // po podpisaniu ma unieważnić podpis: podpisujemy bez flagi, wysyłamy z nią.
+  if (opcje.bramka === true && opcje.podpis === null) opcje.podpis = podpisz(SCIEZKA_A, false);
   const kod = await beacon(opcje);
   sprawdz(ileWizyt() === przed, `sito przepuściło beacon, którego nie powinno: ${opis}`);
   sprawdz(kod === 204, `odrzut zdradził się kodem odpowiedzi (${kod}) przy: ${opis} — odrzut ma być nieodróżnialny od przyjęcia`);
 }
 
-/* 10c. CZAS PONAD SUFIT JEST PRZYCINANY, NIE ODRZUCANY. */
+/* 10c. DWA SUFITY, KTÓRE ROBIĄ CO INNEGO (A5 z przeglądu T3).
+ *
+ * Czas CZYTANIA ponad sufit jest przycinany — uśpiona karta to nie atak,
+ * a wizyta ma zostać razem ze swoją ścieżką. WIEK odsłony ponad sufit jest
+ * ODRZUCANY, bo przycięcie wieku nie jest niedokładnością, tylko
+ * ZMYŚLENIEM GODZINY WEJŚCIA: przed naprawą karta zostawiona na noc
+ * zapisywała wejście „4 h temu” (zmierzone co do sekundy), więc wizyta
+ * lądowała w złej godzinie, a przy oknie „dziś” w złej dobie. */
 {
   const przed = ileWizyt();
   await beacon({ trwanie: 9 * 60 * 60 * 1000, wiek: 9 * 60 * 60 * 1000 });
-  sprawdz(ileWizyt() === przed + 1, "beacon z czasem ponad sufit został ODRZUCONY — ma być przycięty (uśpiona karta to nie atak)");
-  const sufit = Number(
-    phpEval("global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty'); echo (int) $wpdb->get_var( \"SELECT trwanie_ms FROM `{$w}` ORDER BY id DESC LIMIT 1\" );").stdout
+  sprawdz(ileWizyt() === przed + 1, "beacon z czasem czytania ponad sufit został ODRZUCONY — ma być przycięty (uśpiona karta to nie atak)");
+  const wiersz = phpEval(
+    "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " $r = $wpdb->get_row( \"SELECT trwanie_ms, TIMESTAMPDIFF( MINUTE, wejscie, UTC_TIMESTAMP() ) AS wiek_min FROM `{$w}` ORDER BY id DESC LIMIT 1\" );" +
+      " echo (int) $r->trwanie_ms, ':', (int) $r->wiek_min;"
+  ).stdout.trim().split(":");
+  sprawdz(Number(wiersz[0]) === 4 * 60 * 60 * 1000, `czas czytania nie został przycięty do sufitu 4 h (zapisano ${wiersz[0]} ms)`);
+  // 9 h to PRAWDZIWY wiek odsłony i ma taki zostać. Dopuszczamy minutę
+  // luzu na czas przelotu, nie więcej — przed naprawą wychodziło 240 min.
+  sprawdz(
+    Math.abs(Number(wiersz[1]) - 540) <= 1,
+    `moment wejścia został ZMYŚLONY: wiersz mówi ${wiersz[1]} minut wstecz zamiast 540 — sufit przesunął wejście zamiast przyciąć czas czytania (A5)`
   );
-  sprawdz(sufit === 4 * 60 * 60 * 1000, `czas nie został przycięty do sufitu 4 h (zapisano ${sufit} ms)`);
+
+  const przedOdrzutem = ileWizyt();
+  await beacon({ trwanie: 1000, wiek: 31 * 24 * 60 * 60 * 1000 });
+  sprawdz(
+    ileWizyt() === przedOdrzutem,
+    "beacon z wiekiem ponad 30 dni utworzył wiersz — jego moment wejścia byłby zmyślony, a takiego znacznika czasu wolimy nie mieć wcale"
+  );
+}
+
+/* 10c2. JEDNA ODSŁONA = JEDEN WIERSZ, mimo wielu beaconów (B1).
+ *
+ * To jest cała naprawa B1 zmierzona od strony bazy: skrypt wysyła teraz
+ * przy KAŻDYM zniknięciu karty, a nie raz, więc bez UNIQUE na `odslona`
+ * czytelnik przełączający zakładki produkowałby tyle „odsłon”, ile razy
+ * spojrzał gdzie indziej. Sprawdzamy też, że czas rośnie i NIE COFA SIĘ:
+ * beacony nie mają obiecanej kolejności dostarczenia. */
+{
+  const przed = ileWizyt();
+  const jedna = nowaOdslona();
+  await beacon({ odslona: jedna, trwanie: 1000, wiek: 2000 });
+  await beacon({ odslona: jedna, trwanie: 7000, wiek: 9000 });
+  await beacon({ odslona: jedna, trwanie: 500, wiek: 600 });
+  sprawdz(ileWizyt() === przed + 1, `trzy beacony jednej odsłony dały ${ileWizyt() - przed} wierszy zamiast 1 — odsłony byłyby zawyżone o każde przełączenie karty (B1)`);
+  const czas = Number(
+    phpEval(
+      "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
+        ` echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT trwanie_ms FROM \`{$w}\` WHERE odslona = %s", '${jedna}' ) );`
+    ).stdout
+  );
+  sprawdz(czas === 7000, `czas odsłony to ${czas} ms zamiast 7000 — spóźniony beacon z mniejszą liczbą cofnął już zapisany czas`);
+}
+
+/* 10c3. ODBICIA NA BRAMCE LOGOWANIA LICZĄ SIĘ OSOBNO (A6).
+ *
+ * Gość na płatnej lekcji dostaje HTTP 200 i pełną stronę — z zaproszeniem
+ * do logowania zamiast treści. Bez tego rozróżnienia „najczęściej czytane
+ * strony” pokazywałyby lekcje, których nikt nie przeczytał. */
+{
+  const przed = ileWizyt();
+  await beacon({ sciezka: SCIEZKA_B, bramka: true, trwanie: 3000, wiek: 4000 });
+  sprawdz(ileWizyt() === przed + 1, "beacon z bramki nie utworzył wiersza — odbicia mają ZOSTAĆ w tabeli, tylko liczyć się osobno");
+  const stan = phpEval(
+    "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " echo (int) $wpdb->get_var( \"SELECT bramka FROM `{$w}` ORDER BY id DESC LIMIT 1\" );"
+  ).stdout.trim();
+  sprawdz(stan === "1", `wiersz z bramki ma bramka=${stan} zamiast 1 — flaga nie dojechała z beaconu do kolumny`);
+
+  const ruch = phpEval(
+    "$r = Aai_Monitor_Odczyt::ruch( 1 );" +
+      " $czytane = 0; foreach ( $r['strony'] as $s ) { $czytane += (int) $s['odslony']; }" +
+      " $odbicia = 0; foreach ( $r['strony_bramki'] as $s ) { $odbicia += (int) $s['odslony']; }" +
+      " echo (int) $r['bramka'], ':', $czytane, ':', $odbicia;"
+  ).stdout.trim().split(":");
+  sprawdz(Number(ruch[0]) >= 1, "ekran nie liczy odsłon zatrzymanych na bramce — właściciel czytałby odbicia jako czytanie");
+  sprawdz(Number(ruch[2]) >= 1, "lista „zatrzymane na bramce” jest pusta mimo odsłony z bramki — informacja o odbiciach przepadła");
 }
 
 /* 10d. F18: akcja schowana w ciele daje HTTP 200 i CISZĘ. */
@@ -885,13 +982,64 @@ for (const [opis, opcje] of odrzuty) {
   ).stdout.trim();
   sprawdz(klucz !== "", "limiter nie zostawił licznika w transiencie — nie ma czego mierzyć");
   if (klucz !== "") {
-    // Zamiast wysyłać 300 żądań: podnosimy licznik do sufitu i patrzymy,
-    // czy kolejny beacon zostaje odrzucony.
-    phpEval(`set_transient( '${klucz.replace("_transient_", "")}', 100000, 60 ); echo 'ok';`);
+    const nazwa = klucz.replace("_transient_", "");
+
+    /*
+     * OKNO JEST KOTWICZONE DO PEŁNEJ MINUTY ZEGARA (naprawa A1).
+     *
+     * Do naprawy licznik trzymał samą liczbę, a `set_transient` odnawia
+     * TTL przy każdym zapisie — więc okno nie kończyło się nigdy, dopóki
+     * przerwy były krótsze niż minuta. Zmierzone: dwa beacony w odstępie
+     * 5 s przesunęły koniec okna o 5 s przy liczniku 1 → 2. Za wspólnym
+     * adresem (biuro, proxy) jeden zapętlony klient gasił wtedy pomiar
+     * CAŁEJ witryny — po cichu, przy kontroli świecącej kod 0.
+     *
+     * Mierzymy to na kształcie zapisu, bo on JEST mechanizmem okna:
+     * wartość musi nieść numer minuty, a wpis z minuty minionej ma się
+     * czytać jak zero.
+     */
+    const wartosc = phpEval(`echo (string) get_transient( '${nazwa}' );`).stdout.trim();
+    sprawdz(
+      /^\d+:\d+$/.test(wartosc),
+      `licznik limitera trzyma „${wartosc}” zamiast „minuta:ile” — bez numeru okna limit liczy się od ostatniej pełnej minuty CISZY, a nie na minutę (A1)`
+    );
+    if (/^\d+:\d+$/.test(wartosc)) {
+      const okno = Number(wartosc.split(":")[0]);
+      sprawdz(okno % 60 === 0, `okno limitera zaczyna się o ${okno % 60} s po pełnej minucie — kotwica jest w czasie pierwszego żądania, więc okno znów nie ma końca`);
+    }
+
+    // Zamiast wysyłać 300 żądań: podnosimy licznik do sufitu W BIEŻĄCYM
+    // OKNIE i patrzymy, czy kolejny beacon zostaje odrzucony.
+    phpEval(`$t = time(); set_transient( '${nazwa}', ( $t - $t % 60 ) . ':100000', 120 ); echo 'ok';`);
     const przed = ileWizyt();
     await beacon();
     sprawdz(ileWizyt() === przed, "limiter przepuścił beacon po przekroczeniu sufitu na adres");
-    phpEval(`delete_transient( '${klucz.replace("_transient_", "")}' ); echo 'ok';`);
+
+    // Ten sam licznik, ale przypisany do POPRZEDNIEJ minuty, ma się
+    // czytać jak zero — na tym stoi „na minutę”.
+    phpEval(`$t = time(); set_transient( '${nazwa}', ( $t - $t % 60 - 60 ) . ':100000', 120 ); echo 'ok';`);
+    const poStarym = ileWizyt();
+    await beacon();
+    sprawdz(
+      ileWizyt() === poStarym + 1,
+      "licznik z POPRZEDNIEJ minuty dalej blokuje — okno nie kończy się samo, więc jeden klient może zgasić pomiar całej witryny na stałe (A1)"
+    );
+
+    /*
+     * ODRZUCONE BEACONY NIE ZŻERAJĄ LIMITU (druga połowa A1). Limiter
+     * stoi przed sprawdzeniem podpisu, więc do naprawy strumień śmieci
+     * wypełniał limit prawdziwym ludziom zza tego samego adresu — czyli
+     * robił dokładnie to, przed czym miał chronić.
+     */
+    phpEval(`delete_transient( '${nazwa}' ); echo 'ok';`);
+    for (let i = 0; i < 3; i++) await beacon({ podpis: "0".repeat(32) });
+    const poSmieciach = phpEval(`echo (string) get_transient( '${nazwa}' );`).stdout.trim();
+    sprawdz(
+      "" === poSmieciach || 0 === Number(poSmieciach.split(":")[1] ?? 0),
+      `trzy ODRZUCONE beacony podniosły licznik do „${poSmieciach}” — śmieci wypełniają limit prawdziwym ludziom zza tego samego adresu (A1)`
+    );
+
+    phpEval(`delete_transient( '${nazwa}' ); echo 'ok';`);
     const po = ileWizyt();
     await beacon();
     sprawdz(ileWizyt() === po + 1, "po zdjęciu licznika beacon dalej jest odrzucany — limiter nie zwalnia okna");

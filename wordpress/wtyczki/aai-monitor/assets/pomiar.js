@@ -1,8 +1,17 @@
 /**
  * Timer wizyt — jedyny kod monitoringu, który biegnie w przeglądarce.
  *
- * Mierzy CZAS AKTYWNY (zegar stoi, gdy karta jest ukryta) i wysyła
- * DOKŁADNIE JEDEN beacon na odsłonę, przy wyjściu ze strony.
+ * Mierzy CZAS AKTYWNY (zegar stoi, gdy karta jest ukryta) i zapisuje
+ * DOKŁADNIE JEDEN WIERSZ na odsłonę — ale beaconów wysyła TYLE, ile razy
+ * karta zniknęła z oczu. Jeden wiersz robi identyfikator odsłony
+ * (`odslona`) i jego UNIQUE w bazie, nie powściągliwość skryptu.
+ *
+ * TO JEST NAPRAWA B1 Z PRZEGLĄDU T3 i warto wiedzieć, co było wcześniej:
+ * skrypt wysyłał dokładnie raz, przy pierwszym `hidden`, i zapalał flagę
+ * „już wysłane". Powrót do karty wznawiał zegar, ale zebranego czasu nie
+ * miał już czym dosłać. ZMIERZONE: 1500 ms czytania, przełączenie karty,
+ * 4000 ms czytania — w bazie `trwanie_ms = 1559`. Ekran obiecuje „ile
+ * realnie czytali", więc to była nieprawda, nie niedokładność.
  *
  * Wszystko poniżej wynika z pomiarów zrobionych PRZED napisaniem tego
  * pliku (docs/plugin-3/KROK-T3.md, sekcja 2) — nie z dokumentacji
@@ -91,7 +100,8 @@
 	var aktywneOd = null;             // moment ostatniego przejścia w widoczny
 	var aktywne = 0;                  // suma czasu widoczności
 	var bylaWidoczna = false;         // czy człowiek w ogóle to zobaczył
-	var wyslane = false;
+	var odslona = losowe32();         // identyfikator TEJ odsłony
+	var wyslaneMs = -1;               // ile czasu niesie ostatni wysłany beacon
 
 	function ruszZegar() {
 		if (null === aktywneOd) {
@@ -108,9 +118,6 @@
 	}
 
 	function wyslij() {
-		if (wyslane) {
-			return;
-		}
 		// Strona, której nikt nie zobaczył, nie jest odsłoną. Ten jeden
 		// warunek obsługuje kartę otwartą w tle i zamkniętą bez
 		// oglądania ORAZ stronę wstępnie renderowaną przez przeglądarkę
@@ -119,14 +126,26 @@
 			return;
 		}
 		stopZegar();
-		wyslane = true;
+
+		var ms = Math.round(aktywne);
+		// Dwie rzeczy naraz, jednym warunkiem. `pagehide`
+		// i `visibilitychange` odpalają w TEJ SAMEJ milisekundzie
+		// (zmierzone), więc drugie z nich niesie identyczną wartość
+		// i musi zamilknąć. A beacon powtarzający już wysłaną liczbę
+		// nie ma czego dopisać do wiersza, więc byłby samym kosztem.
+		if (ms <= wyslaneMs) {
+			return;
+		}
+		wyslaneMs = ms;
 
 		var ladunek = {
+			odslona: odslona,
 			sciezka: dane.sciezka,
 			podpis: dane.podpis,
+			bramka: dane.bramka,
 			sesja: sesja,
 			// Czas AKTYWNY — ile realnie patrzyli.
-			trwanie_ms: Math.round(aktywne),
+			trwanie_ms: ms,
 			// Wiek odsłony — od wejścia do tej chwili. Z NIEGO serwer
 			// liczy moment wejścia; czas aktywny by do tego nie służył,
 			// bo karta czytana dwie minuty i zamknięta po ośmiu godzinach
@@ -146,6 +165,9 @@
 
 	document.addEventListener("visibilitychange", function () {
 		if ("visible" === document.visibilityState) {
+			// Powrót do karty. Zegar rusza od nowa, a doczytany czas
+			// dojedzie kolejnym beaconem z tym samym `odslona` —
+			// serwer podniesie wartość w ISTNIEJĄCYM wierszu.
 			ruszZegar();
 			return;
 		}
@@ -164,7 +186,11 @@
 		if (!zdarzenie.persisted) {
 			return;
 		}
-		wyslane = false;
+		// NOWY identyfikator, bo to jest nowa odsłona — z tym samym
+		// dostałaby ją poprzednia i cofnięcie w przeglądarce nie
+		// policzyłoby się ani razu.
+		odslona = losowe32();
+		wyslaneMs = -1;
 		aktywne = 0;
 		aktywneOd = null;
 		bylaWidoczna = false;

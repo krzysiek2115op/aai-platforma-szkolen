@@ -74,6 +74,7 @@ final class Aai_Monitor_Pomiar {
 		}
 
 		$sciezka = Aai_Monitor_Podpis::sciezka_zadania();
+		$bramka  = self::za_bramka();
 
 		wp_enqueue_script(
 			self::UCHWYT,
@@ -100,11 +101,33 @@ final class Aai_Monitor_Pomiar {
 				array(
 					'adres'   => Aai_Monitor_Wizyty::adres(),
 					'sciezka' => $sciezka,
-					'podpis'  => Aai_Monitor_Podpis::podpisz( $sciezka ),
+					'bramka'  => $bramka ? 1 : 0,
+					'podpis'  => Aai_Monitor_Podpis::podpisz( $sciezka, $bramka ),
 				)
 			) . ';',
 			'before'
 		);
+	}
+
+	/**
+	 * Czy bieżąca strona jest BRAMKĄ LOGOWANIA, a nie treścią.
+	 *
+	 * Monitoring sam tego nie wie i wiedzieć nie powinien: bramkę rysuje
+	 * szablon lekcji Pluginu 1, i tylko on zna różnicę między „pokazałem
+	 * materiał" a „pokazałem zaproszenie do logowania". Pytamy więc
+	 * filtrem, zamiast zaglądać do cudzych tabel albo pytać Tutora.
+	 *
+	 * Po co w ogóle: gość na płatnej lekcji dostaje HTTP 200 i pełną
+	 * stronę (zmierzone przy A6 z przeglądu T3), więc bez tego rozróżnienia
+	 * „top 10 czytanych stron" pokazywałoby jako czytane lekcje, których
+	 * nikt nie przeczytał. Odsłony bramki ZOSTAJĄ w tabeli — to jedyny
+	 * ślad po kimś, kto chciał wejść i nie mógł — ale są liczone osobno.
+	 *
+	 * Odpowiedź jedzie do PODPISU (patrz `Aai_Monitor_Podpis::podpisz`),
+	 * więc klient nie może jej sobie zmienić.
+	 */
+	public static function za_bramka(): bool {
+		return (bool) apply_filters( 'aai_monitor_strona_za_bramka', false );
 	}
 
 	/**

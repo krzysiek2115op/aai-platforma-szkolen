@@ -68,9 +68,9 @@ final class Aai_Monitor_Wizyty {
 	 *
 	 * LIMITER JEST MIĘKKI I TO JEST ŚWIADOME (F13): bez zewnętrznego
 	 * cache'u transient siedzi w `wp_options` i działa przez
-	 * czytaj-modyfikuj-zapisz, bez atomowego `INCR`, a okno TTL jest
-	 * stałe, nie przesuwne. Chroni przed PRZYPADKIEM — pętlą w cudzym
-	 * skrypcie, zwariowaną kartą — nie przed napastnikiem: zmierzone,
+	 * czytaj-modyfikuj-zapisz, bez atomowego `INCR`. Chroni przed
+	 * PRZYPADKIEM — pętlą w cudzym skrypcie, zwariowaną kartą — nie przed
+	 * napastnikiem: zmierzone,
 	 * że przeglądarka wypuszcza 26 363 beacony na sekundę i wszystkie
 	 * dochodzą (F23). Twardą tamą jest tania treść wiersza (bez danych
 	 * osobowych) i retencja.
@@ -84,6 +84,16 @@ final class Aai_Monitor_Wizyty {
 	 * nie jest już przeglądaniem, a wszystko poniżej mieści prawdziwych
 	 * ludzi za wspólnym adresem — łącznie z naszymi bramkami jakości,
 	 * które w warsztacie idą z JEDNEGO adresu (brama kontenera, F14).
+	 *
+	 * NAZWA MÓWIŁA NIEPRAWDĘ DO NAPRAWY A1 (przegląd T3). Licznik trzymał
+	 * samą liczbę, a `set_transient` odnawia TTL przy KAŻDYM zapisie, więc
+	 * okno nie kończyło się nigdy, dopóki przerwy były krótsze niż minuta
+	 * — realna reguła brzmiała „300 żądań od ostatniej pełnej minuty
+	 * CISZY". Zmierzone: dwa beacony w odstępie 5 s przesunęły koniec okna
+	 * o 5 s, a licznik szedł 1 → 2. Za wspólnym adresem (biuro, szkoła,
+	 * proxy) jeden zapętlony klient gasił wtedy pomiar CAŁEJ witryny
+	 * i nic tego nie zgłaszało. Dziś okno jest KOTWICZONE do pełnej
+	 * minuty zegara i naprawdę się kończy.
 	 */
 	private const LIMIT_NA_MINUTE = 300;
 
@@ -164,7 +174,11 @@ final class Aai_Monitor_Wizyty {
 		}
 
 		// 4. Limiter PRZED czytaniem ciała — czytanie jest jedyną
-		// częścią, która kosztuje pamięć.
+		// częścią, która kosztuje pamięć. Sprawdzenie tylko CZYTA;
+		// licznik rośnie na końcu i wyłącznie o beacony PRZYJĘTE (A1).
+		// Inaczej strumień śmieci wypełniałby limit i gasił pomiar
+		// prawdziwym ludziom zza tego samego adresu — czyli dokładnie
+		// to, przed czym limiter miał chronić.
 		if ( ! self::limit_wolny() ) {
 			return;
 		}
@@ -189,7 +203,13 @@ final class Aai_Monitor_Wizyty {
 		// Dowodem jest podpis: tę stronę wyrenderował WordPress.
 		$sciezka = isset( $dane['sciezka'] ) && is_string( $dane['sciezka'] ) ? $dane['sciezka'] : '';
 		$podpis  = isset( $dane['podpis'] ) && is_string( $dane['podpis'] ) ? $dane['podpis'] : '';
-		if ( ! self::sciezka_ma_ksztalt( $sciezka ) || ! Aai_Monitor_Podpis::pasuje( $sciezka, $podpis ) ) {
+
+		// Flaga bramki logowania (A6) jest CZĘŚCIĄ PODPISYWANEGO
+		// MATERIAŁU, nie osobnym polem zaufania: podniesienie jej albo
+		// zdjęcie unieważnia podpis. Bierzemy ją więc PRZED weryfikacją.
+		$bramka = ! empty( $dane['bramka'] );
+
+		if ( ! self::sciezka_ma_ksztalt( $sciezka ) || ! Aai_Monitor_Podpis::pasuje( $sciezka, $podpis, $bramka ) ) {
 			return;
 		}
 
@@ -197,6 +217,15 @@ final class Aai_Monitor_Wizyty {
 		// generuje skrypt.
 		$sesja = isset( $dane['sesja'] ) && is_string( $dane['sesja'] ) ? $dane['sesja'] : '';
 		if ( 1 !== preg_match( '/^[0-9a-f]{32}$/', $sesja ) ) {
+			return;
+		}
+
+		// 7b. Identyfikator ODSŁONY — ten sam we wszystkich beaconach
+		// jednej odsłony, nowy po powrocie z bfcache. Ten sam kształt co
+		// sesja, bo robi go ta sama funkcja w skrypcie. Bez niego wiersz
+		// i tak powstanie, ale doczytany czas nie miałby czego uzupełnić.
+		$odslona = isset( $dane['odslona'] ) && is_string( $dane['odslona'] ) ? $dane['odslona'] : '';
+		if ( 1 !== preg_match( '/^[0-9a-f]{32}$/', $odslona ) ) {
 			return;
 		}
 
@@ -209,14 +238,20 @@ final class Aai_Monitor_Wizyty {
 		$trwanie = self::liczba( $dane, 'trwanie_ms' );
 		$wiek    = self::liczba( $dane, 'wiek_ms' );
 
-		Aai_Monitor_Zapis::dodaj_wizyte(
+		$zapisane = Aai_Monitor_Zapis::dodaj_wizyte(
 			array(
+				'odslona'    => $odslona,
 				'sesja'      => $sesja,
 				'sciezka'    => $sciezka,
+				'bramka'     => $bramka,
 				'trwanie_ms' => $trwanie,
 				'wiek_ms'    => $wiek,
 			)
 		);
+
+		if ( $zapisane ) {
+			self::zlicz_beacon();
+		}
 	}
 
 	/**
@@ -276,21 +311,75 @@ final class Aai_Monitor_Wizyty {
 	 * i ma taka zostać także w tym miejscu.
 	 */
 	private static function limit_wolny(): bool {
-		$ip = Aai_Monitor_Zadanie::ip();
-		if ( '' === $ip ) {
+		$klucz = self::klucz_limitu();
+		if ( '' === $klucz ) {
 			// Bez adresu nie ma czego liczyć; przepuszczamy, bo brak
 			// adresu zdarza się w konfiguracjach, nie w atakach.
 			return true;
 		}
-		$klucz = 'aai_monitor_limit_' . substr( Aai_Monitor_Podpis::podpisz( $ip ), 0, 16 );
+		return self::stan_limitu( $klucz )['ile'] < self::LIMIT_NA_MINUTE;
+	}
 
-		$ile = get_transient( $klucz );
-		$ile = is_numeric( $ile ) ? (int) $ile : 0;
-		if ( $ile >= self::LIMIT_NA_MINUTE ) {
-			return false;
+	/**
+	 * Dolicza JEDEN przyjęty beacon do bieżącej minuty.
+	 *
+	 * Osobno od sprawdzenia, i to jest cała naprawa A1: licznik rośnie
+	 * dopiero po zapisanym wierszu, więc śmieci nie wypełniają limitu
+	 * prawdziwym ludziom zza tego samego adresu.
+	 */
+	private static function zlicz_beacon(): void {
+		$klucz = self::klucz_limitu();
+		if ( '' === $klucz ) {
+			return;
 		}
-		set_transient( $klucz, $ile + 1, self::OKNO_LIMITU_S );
-		return true;
+		$stan = self::stan_limitu( $klucz );
+		// TTL z zapasem jednego okna: przeterminowanie transientu NIE
+		// jest tu mechanizmem okna (był nim do naprawy A1 i dlatego okno
+		// nie kończyło się nigdy) — okno rozstrzyga zapisany numer minuty.
+		set_transient( $klucz, $stan['okno'] . ':' . ( $stan['ile'] + 1 ), self::OKNO_LIMITU_S * 2 );
+	}
+
+	/**
+	 * Klucz limitu dla adresu nadawcy albo pusty łańcuch.
+	 *
+	 * Pełne IP NIE trafia do żadnej tabeli — żyje wyłącznie w kluczu
+	 * transientu, i to jako skrót. Tabela `wizyty` jest anonimowa (D3)
+	 * i ma taka zostać także w tym miejscu.
+	 */
+	private static function klucz_limitu(): string {
+		$ip = Aai_Monitor_Zadanie::ip();
+		if ( '' === $ip ) {
+			return '';
+		}
+		return 'aai_monitor_limit_' . substr( Aai_Monitor_Podpis::podpisz( $ip ), 0, 16 );
+	}
+
+	/**
+	 * Bieżące okno i licznik w nim.
+	 *
+	 * Okno jest KOTWICZONE do pełnej minuty zegara, a nie do czasu
+	 * pierwszego żądania: dzięki temu kończy się samo, niezależnie od
+	 * tego, ile razy odnowiliśmy TTL po drodze. Zapis spoza bieżącego
+	 * okna czyta się jak zero — nie musimy go kasować.
+	 *
+	 * @param string $klucz Klucz transientu.
+	 * @return array{okno:int, ile:int}
+	 */
+	private static function stan_limitu( string $klucz ): array {
+		$teraz = time();
+		$okno  = $teraz - ( $teraz % self::OKNO_LIMITU_S );
+
+		$zapis = get_transient( $klucz );
+		if ( is_string( $zapis ) && 1 === preg_match( '/^(\d+):(\d+)$/', $zapis, $czesci ) && (int) $czesci[1] === $okno ) {
+			return array(
+				'okno' => $okno,
+				'ile'  => (int) $czesci[2],
+			);
+		}
+		return array(
+			'okno' => $okno,
+			'ile'  => 0,
+		);
 	}
 
 	/**

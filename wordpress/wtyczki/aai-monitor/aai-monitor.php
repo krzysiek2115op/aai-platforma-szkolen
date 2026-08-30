@@ -3,7 +3,7 @@
  * Plugin Name:       Automatic AI — Monitoring
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Dziennik logowań (kto, kiedy, skąd) i pomiar wizyt (co oglądano i jak długo), plus ekran w kokpicie dla administratora. Trzecia z trzech wtyczek Automatic AI — rejestruje, niczego nie blokuje.
- * Version:           0.3.0
+ * Version:           0.4.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Automatic AI
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  * WERSJA WTYCZKI, nie wersja projektu (źródłem prawdy o wersji projektu
  * jest CHANGELOG repo). Stała steruje dociąganiem schematu tabel.
  */
-const AAI_MONITOR_WERSJA = '0.3.0';
+const AAI_MONITOR_WERSJA = '0.4.0';
 
 /**
  * PREFIKS TABEL — ta sama decyzja właściciela co przy `aai-sklep`

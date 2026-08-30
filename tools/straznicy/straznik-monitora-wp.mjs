@@ -233,38 +233,70 @@ if (existsSync(POMIAR)) {
   }
 }
 
-/* ——— 16. (P17, F6, F22) skrypt: jedna wysyłka, reset po bfcache, bez automatów ——— */
+/* ——— 16. (P17, F6, F22, B1) skrypt: jeden wiersz na odsłonę, reset po bfcache, bez automatów ——— */
+
+/*
+ * KAŻDE WYMAGANIE PYTA O ROZSTRZYGNIĘCIE, NIE O OBECNOŚĆ NAZWY.
+ *
+ * Do naprawy B2 (przegląd T3) trzy z sześciu wymagań pytały o sam napis
+ * i były przez to ślepe — zmierzone na oryginale, trzema mutacjami, które
+ * przeszły na zielono: `navigator.webdriver` przypisany do zmiennej
+ * zamiast rozstrzygać (automaty liczone jak ludzie), `getItem` bez
+ * `catch` (pomiar milczy u każdego, kto blokuje ciasteczka — drugi
+ * `catch` w pliku wystarczał wzorcowi), skasowane startowe uruchomienie
+ * zegara (strona przeczytana bez przełączania karty nie zapisuje się
+ * wcale). To siódmy nawrót tej samej pułapki w projekcie: 0.29.0 nazwa
+ * metody, 0.44.0 nazwa stałej, 0.47.0 treść komunikatu, c6c9c97 nazwa
+ * stałej, dwa razy w P4.
+ */
 
 if (existsSync(SKRYPT)) {
   const js = readFileSync(SKRYPT, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+  // Zmienna, której wartość naprawdę jedzie w ładunku jako czas czytania.
+  // Od niej zależą dwa wymagania niżej, więc wyprowadzamy ją raz.
+  const wLadunku = js.match(/trwanie_ms\s*:\s*([A-Za-z_$][\w$]*)/);
+  // Bramka drugiej wysyłki: TA SAMA zmienna porównana ze znacznikiem
+  // ostatniej wysyłki, z wyjściem z funkcji.
+  const bramka = js.match(/if\s*\(\s*([A-Za-z_$][\w$]*)\s*<=\s*([A-Za-z_$][\w$]*)\s*\)\s*\{\s*return/);
+
   const wymagania = [
     [
-      /navigator\.webdriver/,
-      "skrypt nie wyłącza się przy navigator.webdriver (F6) — automaty liczyłyby się jak ludzie, a para bramek N9/N10 straciłaby sens",
+      // Nie „czy pada słowo webdriver", tylko „czy z tego wynika wyjście".
+      /if\s*\(\s*navigator\.webdriver\s*\)\s*\{\s*return/.test(js),
+      "skrypt nie WYCHODZI przy navigator.webdriver (F6) — samo odczytanie flagi niczego nie daje, a automaty liczyłyby się jak ludzie i para bramek N9/N10 straciłaby sens",
     ],
     [
-      /if\s*\(\s*wyslane\s*\)\s*\{[^}]*return/,
-      "skrypt nie ma bramki na drugą wysyłkę (P17). Zmierzone: pagehide i visibilitychange odpalają w TEJ SAMEJ milisekundzie, więc bez niej KAŻDA odsłona zapisuje się dwa razy — odsłony zawyżone dwukrotnie, średni czas zaniżony o połowę",
+      // Bramka drugiej wysyłki musi porównywać DOKŁADNIE tę liczbę, która
+      // pojedzie w ładunku — inaczej pilnuje czegoś innego niż wysyłka.
+      Boolean(bramka && wLadunku && bramka[1] === wLadunku[1]),
+      "skrypt nie porównuje wysyłanego czasu z czasem ostatniej wysyłki (P17, B1). Bez tego: pagehide i visibilitychange odpalają w TEJ SAMEJ milisekundzie, więc każda odsłona szłaby dwoma identycznymi beaconami; a z bramką na samej fladze „już wysłane” czas doczytany po powrocie do karty nie dojeżdża wcale (zmierzone: 1559 ms zamiast 5530)",
     ],
     [
-      /persisted/,
-      "skrypt nie reaguje na powrót z bfcache (F22). Strona wraca z ZACHOWANYM stanem JS, czyli z ustawioną flagą wysyłki — bez zdjęcia jej nawigacja „wstecz” nie liczy się ani razu",
+      // Powrót z bfcache musi ZDJĄĆ znacznik wysyłki, nie tylko go zauważyć.
+      Boolean(bramka && new RegExp(`persisted[\\s\\S]{0,600}?\\b${bramka[2]}\\s*=`).test(js)),
+      "skrypt nie zeruje znacznika wysyłki po powrocie z bfcache (F22). Strona wraca z ZACHOWANYM stanem JS, więc bez zdjęcia znacznika nawigacja „wstecz” nie liczy się ani razu",
     ],
     [
-      /catch\s*\(/,
-      "skrypt sięga po sessionStorage bez catch. Magazyn rzuca SecurityError przy zablokowanych ciasteczkach, więc pomiar milczałby u części odwiedzających — bez jednego objawu",
+      // Każde sięgnięcie do magazynu ma stać W ŚRODKU `try` — liczymy to
+      // po pozycji, bo obecność słowa `catch` gdziekolwiek w pliku
+      // przepuszczała zdjęcie osłony z drugiego wywołania.
+      [...js.matchAll(/sessionStorage/g)].every((m) => /try\s*\{[^{}]*$/.test(js.slice(Math.max(0, m.index - 200), m.index))),
+      "skrypt sięga po sessionStorage POZA `try` (choćby raz). Magazyn rzuca SecurityError przy zablokowanych ciasteczkach, więc pomiar milczałby u części odwiedzających — bez jednego objawu",
     ],
     [
-      /type:\s*["']application\/json["']/,
-      "beacon nie deklaruje typu application/json (F10, F20). Zwykły łańcuch idzie jako text/plain, którego endpoint nie przyjmuje — a przyjmować nie może, bo to właśnie text/plain przechodzi cross-origin",
+      /sendBeacon\([\s\S]{0,300}?type:\s*["']application\/json["']/.test(js),
+      "beacon nie deklaruje typu application/json PRZY WYSYŁCE (F10, F20). Zwykły łańcuch idzie jako text/plain, którego endpoint nie przyjmuje — a przyjmować nie może, bo to właśnie text/plain przechodzi cross-origin",
     ],
     [
-      /visibilityState/,
-      "skrypt nie pyta o widoczność strony — zegar ruszałby na karcie otwartej w tle i na stronie wstępnie renderowanej, czyli mierzyłby czas, którego nikt nie spędził",
+      // Zegar MUSI ruszyć już przy wejściu na stronę. Bez tego odsłona
+      // bez ani jednego przełączenia karty ma czas 0 i nie powstaje wcale.
+      /if\s*\(\s*["']visible["']\s*===\s*document\.visibilityState\s*\)\s*\{\s*[A-Za-z_$][\w$]*\(\);?\s*\}\s*\}\)\(\);?\s*$/.test(js.trim()),
+      "skrypt nie uruchamia zegara przy WEJŚCIU na widoczną stronę — czas liczyłby się dopiero od pierwszego przełączenia karty, więc strona przeczytana i zamknięta bez przełączania nie zapisałaby się ani razu",
     ],
   ];
-  for (const [wzorzec, opis] of wymagania) {
-    if (!wzorzec.test(js)) {
+  for (const [spelnione, opis] of wymagania) {
+    if (!spelnione) {
       bledy.push(`${SKRYPT}: ${opis}.`);
     }
   }
