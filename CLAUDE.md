@@ -2596,18 +2596,119 @@ wyprowadzała tego od nowa:
         przy limicie 2000**, czyli rozliczenie, nie kod (sprawdzone
         `gh api …/billing/usage`). Po powrocie CI (1 września) potwierdzić
         **gitleaks**, jako jedyny bez lokalnego odpowiednika.
-        **NASTĘPNY KROK CAŁEGO PROJEKTU: T3 — TIMER WIZYT.** Wg reguły
-        właściciela (2026-08-28) najpierw **plan przebiegu kroku
-        + pytania doprecyzowujące i CZEKAĆ NA ZGODĘ**, dopiero potem kod.
-        Zakres T3 i jego bramka: DIAGRAM.md sekcja 12 (`assets/pomiar.js`
-        z Blobem `application/json`, akcja pod OBIEMA nazwami
-        `admin_post_nopriv_*` i `admin_post_*` — F17 — z nazwą akcji
-        w QUERY STRINGU — F18 — czytająca `php://input`, sito z walidacją
-        ścieżki i `Origin`, miękki limiter, retencja 400 dni, sekcja
-        „Ruch" ekranu; zamyka N7, N8, N9, N10, N11, N12, N18).
-        **Przed ustaleniem liczb: `EXPLAIN` na trzech zapytaniach ekranu
-        i POMIAR realnego rozmiaru beaconu** — sufity mają mieć wartości
-        z pomiaru albo jawną etykietę „kalibracja po pierwszym tygodniu".
+        **KROK T3 — TIMER WIZYT — ZROBIONY (2026-08-30, wersja 0.57.0,
+        gałąź `feat/t3-timer-wizyt`, 7 commitów). PR NIEOTWARTY —
+        czeka na naprawy z przeglądu.** Monitoring mierzy ruch: kontrola
+        melduje „Czujki: logowania, ruch", ekran pokazuje okna dziś / 7 /
+        30 dni i dziesięć najczęściej czytanych stron.
+        **CZYTAĆ PRZED PRACĄ: [docs/plugin-3/KROK-T3.md](docs/plugin-3/KROK-T3.md)**
+        — audyt planu, pomiary, znaleziska, testy i pułapki.
+        **KROK POPRZEDZIŁ AUDYT PLANU** (polecenie właściciela: „wykonaj
+        dokładny audyt planu T3… zależy nam, żeby jak najmniej poprawek
+        było później"). Audyt znalazł **sześć błędów krytycznych w planie,
+        który agent sam napisał** — każdy dawałby awarię BEZOBJAWOWĄ, bo
+        beacon odpowiada 204 i na przyjęcie, i na odrzut:
+        (1) **sito ze schematu odrzuciłoby cały interesujący ruch** —
+        `url_to_postid()` zwraca **0** dla `/szkolenia/`, obu stron
+        sprzedażowych, wszystkich 73 lekcji i strony głównej;
+        (2) **formuła `wejscie = now() − trwanie_ms` przestała działać**
+        po wyborze czasu AKTYWNEGO (karta czytana 2 minuty i zamknięta po
+        ośmiu godzinach zapisałaby wejście sprzed chwili);
+        (3) **brak wymogu `Content-Type` czynił sito na `Origin`
+        dekoracją** — zmierzone: cross-origin beacon `text/plain`
+        DOCHODZI, ten sam ładunek jako `application/json` NIE (preflight,
+        na który WordPress odpowiada 403 i `exit`);
+        (4) **`pagehide` i `visibilitychange` odpalają w TEJ SAMEJ
+        milisekundzie** → bez flagi każda odsłona zapisałaby się dwa razy;
+        (5) **powrót z bfcache przywraca stronę z zachowanym stanem JS**
+        → bez resetu flagi nawigacja „wstecz" nie liczyłaby się wcale;
+        (6) **`Origin` JEST wysyłany przy żądaniu same-origin** — wbrew
+        MDN, zmierzone rigiem.
+        **CZTERY ROZSTRZYGNIĘCIA WŁAŚCICIELA (2026-08-30):** podpis strony
+        zamiast `url_to_postid()`; czas AKTYWNY (zegar stoi przy ukrytej
+        karcie); sama ścieżka bez query; przegląd recenzentami-agentami.
+        **SIEDEM AKCEPTACJI** (A1–A7 w KROK-T3.md), w tym: **odsłony będą
+        ZANIŻONE** o wyjścia bez beaconu (wariant „dwa beacony" odrzucony),
+        sól podpisu WŁASNA w opcji (odporna na rotację kluczy WP), skrypt
+        zostaje też na koszyku i kasie.
+        **LICZBY Z POMIARU, NIE Z ZAŁOŻENIA:** sufit ciała **1024 B**
+        (realny beacon 168 B, maksimum kontraktu 270 B); sufit **300
+        beaconów/min** (sterowana przeglądarka wyciska 294 odsłony/min
+        z jednego adresu); **indeksy BEZ ZMIAN** — pokrywające dają 34 ms
+        na ekranie admina, a kosztują zapis **2,9× droższy** i **+33 MB**
+        (pomiar na 200 000 wierszy); sufit czasu 4 h **z przycinaniem**.
+        **SZEŚĆ RZECZY WYSZŁO DOPIERO PRZY PISANIU KODU** (KROK-T3.md §9):
+        podawanie skryptu bez `Throwable` na ścieżce kasy (złapał strażnik
+        z T2), reguła N1 zakazująca akcji w CAŁEJ wtyczce, **strona 404
+        rozdająca podpisy na zmyślone ścieżki** (renderuje się dla
+        DOWOLNEGO adresu — wystarczyłoby wziąć podpis ze źródła i zatruć
+        „top 10 stron"), własne reguły strażnika pytające o NAPIS zamiast
+        o rozstrzygnięcie (szósty nawrót), dosłowne `&quot;` na ekranie,
+        reguła zapalająca się fałszywie na cytacie blokowym.
+        **SZEŚĆ PUŁAPEK POMIARU (wrócą, KROK-T3.md §10):** zła nazwa
+        zmiennej w teście mierzy co innego (`WP_HASLO` zamiast
+        `WP_ADMIN_HASLO` → mierzyłem gościa zamiast admina); surowy Firefox
+        nie nawiguje w tej samej karcie z drugiej instancji, a `SIGKILL`
+        nie daje szansy na `pagehide`; **Node trzyma keep-alive, a Apache
+        zrywa bezczynne** — zerwane połączenie wygląda jak awaria naszego
+        endpointu; **`goBack()` i `history.back()` przez BiDi NIE DZIAŁAJĄ**
+        (timeout 30 s, adres bez zmian, zepsuta sesja); strona z bfcache
+        **nie emituje `load`**, tylko `pageshow`; po zmianie pliku PHP
+        trzeba odczekać ~4 s na `opcache`.
+        **STAN DOWODÓW:** `npm run check` kod 0, strażnicy **37/37**
+        (`straznik-monitora-wp` 13 → **18 reguł**), audyt mutacyjny
+        **273 mutacje** (271 złapanych, 0 przeoczonych, 0 martwych,
+        2 pominięte bez materiału), **`smoke-wp-monitor` 76 → 129
+        sprawdzeń** i od teraz **WYMAGA `ZRZUTY_RIG`** (endpoint
+        sprawdzony `fetch`em nie dowodzi niczego). Czternaście bramek WP
+        zielonych: dane 30 · front 84 · tutor 44 · lekcja 39 · kreator 97 ·
+        panel 55 · płatności 23 · produkty 85 · zakup 41 · zwroty 39 ·
+        maile 62 · język 25 · motyw 91 · monitoring 129. Proza **73/73 co
+        do znaku**, kopia w Tutorze **0 różnic**.
+        **KLUCZOWA ASERCJA BRAMKI to JEDNA LICZBA:** przelot prawdziwą
+        przeglądarką ma dać **dokładnie trzy** wiersze — dwa znaczą, że
+        powrót z bfcache nie jest liczony, sześć, że każda odsłona
+        zapisuje się dwa razy, zero, że cała ścieżka jest martwa.
+        **ŚRODOWISKO `:8892` ZOSTAJE CZYSTE:** tabele monitoringu puste,
+        kontrola kod 0, konto `klient-test` (NIE kasować — potrzebne
+        bramkom).
+        **PRZEGLĄD ZROBIONY (2026-08-30) — 21 ZNALEZISK, NAPRAWY PRZED
+        NAMI. CZYTAĆ: [docs/plugin-3/PRZEGLAD-T3.md](docs/plugin-3/PRZEGLAD-T3.md)**
+        (raporty obu recenzentów, dowody uruchomieniowe, plan napraw
+        w czterech turach, cztery pytania do właściciela).
+        **DECYZJA WŁAŚCICIELA (2026-08-30): kolejność to `/clear` →
+        NAPRAWY → PR + tag + release → T4** (test ręczny właściciela).
+        **DWA NAJCIĘŻSZE ZNALEZISKA, oba potwierdzone pomiarem:**
+        (1) **czas aktywny URYWA SIĘ przy pierwszym przełączeniu karty** —
+        1500 ms + przerwa + 4000 ms dało w bazie `trwanie_ms = 1531`
+        zamiast 5531; po `hidden` flaga wysyłki zostaje, a powrót do karty
+        (`visible` bez `pageshow`, bo to nie bfcache) nie wznawia pomiaru.
+        Ekran i schemat obiecują „ile realnie czytali" — obietnica
+        niedotrzymana;
+        (2) **limiter jest KUMULACYJNY, nie „na minutę"** — `set_transient`
+        odnawia TTL przy każdym przyjętym beaconie, więc licznik nie wraca
+        do zera, dopóki przerwy są krótsze niż 60 s; do tego odrzucone
+        beacony też zżerają limit. Za proxy (jeden `REMOTE_ADDR` dla
+        wszystkich) ktoś śledzący ~6 żądań/s po cichu wyłącza pomiar dla
+        CAŁEJ witryny, przy `sprawdz` kod 0.
+        **CZTERY REGUŁY STRAŻNIKA, KTÓRE SAM NAPISAŁEM, PYTAJĄ O OBECNOŚĆ
+        NAZWY zamiast o rozstrzygnięcie** (siódmy nawrót pułapki — tym
+        razem w kodzie napisanym PO tym, jak opisałem ją w audycie);
+        jedno wymaganie (`try/catch` przy `sessionStorage`) nie jest łapane
+        przez NIC, a mechanizm z najcięższego znaleziska audytu
+        (`wejscie = now() − wiek_ms`) nie ma ANI JEDNEJ asercji.
+        **CO RECENZENCI SPRAWDZILI I UZNALI ZA BEZ ZARZUTU** (nie szukać
+        drugi raz): wstrzyknięć nie ma; podpisu nie da się wyprosić na
+        zmyśloną ścieżkę (11 wariantów → 404/301, zero znaczników); sito
+        odrzuca komplet złych beaconów, w tym ciało 5 MB bez
+        `Content-Length` w 49 ms bez wciągania do pamięci; strefy czasowe
+        policzone poprawnie; beacon zalogowanego klienta dojeżdża;
+        `hash_equals` nie daje sondy; znacznik w HTML poprawny i nieobecny
+        na 404; blok sita i asercja „trzy wiersze" w bramce są nieślepe.
+        **Żadna inna bramka NIE produkuje wizyt** (zmierzone przelotem
+        z licznikiem `AUTO_INCREMENT`: 150 → 150) — skrypt wyłącza się
+        przy `navigator.webdriver`, a tylko `smoke-wp-monitor` tę flagę
+        nadpisuje.
      **POZA MODUŁAMI, przed pierwszym klientem** (spinane na bieżąco,
      decyzja 4b): prawdziwa bramka płatności (Tpay/PayU/P24 — wtyczka do
      Woo), regulamin (właściciel), zgoda w kasie na natychmiastowe
