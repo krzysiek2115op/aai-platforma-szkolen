@@ -14,24 +14,36 @@
  * testy zamieniają obie te rzeczy w szum — i to szum wyglądający dokładnie
  * jak próba włamania.
  *
- * ZMIERZONE (przelot wszystkich czternastu bramek WP z licznikiem
- * przed/po, 2026-08-30) — wpisy zostawia SIEDEM bramek, razem osiem
- * wierszy na pełny przelot: `smoke-wp-kreator` (2) oraz `smoke-wp-lekcja`,
- * `smoke-wp-produkty`, `smoke-wp-zakup`, `smoke-wp-jezyk`,
- * `smoke-wp-panel` i `smoke-wp-motyw` (po 1). Nie zostawiają nic:
- * `smoke-wp-dane`, `-front`, `-tutor`, `-platnosci`, `-zwroty`, `-maile`.
+ * ZMIERZONE (czysty przelot wszystkich czternastu bramek WP,
+ * 2026-08-30) — wpisy tworzy PIĘĆ bramek plus smoke monitoringu:
+ * `smoke-wp-kreator` (2), `smoke-wp-lekcja`, `smoke-wp-panel`,
+ * `smoke-wp-motyw` i `smoke-wp-jezyk` (po 1) oraz `smoke-wp-monitor`
+ * (16 — on ten mechanizm mierzy). Nie tworzą ani jednego:
+ * `smoke-wp-dane`, `-front`, `-tutor`, `-platnosci`, `-produkty`,
+ * `-zakup`, `-zwroty`, `-maile`.
  *
- * GREP TEGO NIE POWIEDZIAŁ i mylił się w OBIE strony: wskazywał
- * `platnosci` (który tylko asertuje, że ekran logowania oddaje 200)
- * i przegapił `produkty` oraz `zakup`, bo one nie dotykają
- * `wp-login.php` — sesja powstaje im w kasie WooCommerce. Ta sama lekcja
- * co przy poczcie w 0.54.0: grep kłamie, pomiar nie.
+ * DWA MOJE WCZEŚNIEJSZE POMIARY KŁAMAŁY i warto wiedzieć jak, bo obie
+ * pułapki są łatwe do powtórzenia:
  *
- * PIERWSZY PRZELOT TEŻ KŁAMAŁ, i to ciszej: `jezyk`, `panel` i `motyw`
- * pokazały „zostawia 0", bo w ogóle się nie uruchomiły — wymagają
- * `ZRZUTY_RIG`, którego przelot nie ustawił, więc padły przed pierwszym
- * logowaniem. Kod wyjścia 1 był jedynym śladem. POMIAR BEZ SPRAWDZENIA
- * KODU WYJŚCIA MIERZY CISZĘ, NIE STAN.
+ *   1. pierwszy przelot policzył `jezyk`, `panel` i `motyw` jako
+ *      „zostawia 0", bo one w ogóle SIĘ NIE URUCHOMIŁY — wymagają
+ *      `ZRZUTY_RIG`, którego nie ustawił, więc padły przed pierwszym
+ *      logowaniem. Kod wyjścia 1 był jedynym śladem. POMIAR BEZ
+ *      SPRAWDZENIA KODU WYJŚCIA MIERZY CISZĘ, NIE STAN;
+ *   2. drugi przypisał wpisy `produkty` i `zakup`, których one nie
+ *      tworzą — w tle biegły MOJE WŁASNE żądania HTTP (logowanie admina
+ *      przy sprawdzaniu polityki prywatności), a licznik nie wie, czyj
+ *      jest wiersz. POMIAR RÓWNOLEGŁY Z WŁASNĄ PRACĄ PRZYPISUJE JEJ
+ *      SKUTKI MIERZONEMU. Wykrył to dopiero przegląd.
+ *
+ * Ostateczny pomiar liczy `AUTO_INCREMENT` tabeli, nie liczbę wierszy:
+ * sprzątanie kasuje ślad, ale licznika nie cofa, więc widać, ile wierszy
+ * NAPRAWDĘ powstało — także wtedy, gdy bramka po sobie posprzątała.
+ *
+ * `smoke-wp-produkty` i `smoke-wp-zakup` mają moduł wpięty mimo zera:
+ * składają zamówienia i zakładają konta, więc pierwsza zmiana w tamtej
+ * ścieżce może zacząć tworzyć sesje. To PROFILAKTYKA, nie naprawa
+ * czynnego wycieku — i tak jest nazwana, żeby nikt nie brał jej za dowód.
  *
  * ZASADA (N13, ta sama co w `poczta.mjs`): bramka kasuje wyłącznie to, co
  * sama wywołała. Nie `TRUNCATE`, nie „wszystko z dzisiaj" — tylko wiersze,
@@ -43,6 +55,14 @@
  * to samo konto. Wiersz o identyfikatorze większym niż migawka powstał
  * natomiast w oknie przebiegu — a bramki uruchamia się na warsztacie,
  * nigdy na instalacji z ruchem.
+ *
+ * OGRANICZENIE, nazwane wprost: gdyby ktoś zalogował się DOKŁADNIE
+ * w oknie przebiegu bramki, jego wiersz też zniknie — a rachunek sumienia
+ * tego nie wykryje, bo licznik wróci do wartości sprzed przebiegu. Ryzyko
+ * jest warsztatowe i minutowe. Gdyby przestało wystarczać, właściwą drogą
+ * jest zbieranie identyfikatorów W TRAKCIE przebiegu (wzorzec
+ * `poczta.mjs`: migawka → różnica → jawna lista `IDs`), nie druga
+ * heurystyka po treści wiersza.
  */
 
 /*

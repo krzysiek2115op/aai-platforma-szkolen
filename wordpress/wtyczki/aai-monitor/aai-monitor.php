@@ -96,18 +96,29 @@ add_action(
 		// przed jego własnymi (P12; zmierzone na kolejności podmenu).
 		add_action( 'admin_menu', array( 'Aai_Monitor_Ekran', 'menu' ), 20 );
 		add_action( 'admin_enqueue_scripts', array( 'Aai_Monitor_Ekran', 'zasoby' ) );
-		// Dziennik logowań — PRODUCENT danych, czyli to, czego wtyczka nie
-		// miała po kroku T1 („baza stoi, ale nic nie zbiera"). Trzy haki
-		// rdzenia, każdy w `try/catch ( Throwable )`: wyjątek z handlera
-		// `set_logged_in_cookie` wychodzi z kasy WooCommerce (F11), więc
-		// monitoring ma prawo nie zapisać zdarzenia, ale nie ma prawa
-		// przerwać zakupu.
-		Aai_Monitor_Logowania::zarejestruj();
-		// Sugerowany wpis do polityki prywatności. Osobna rejestracja, bo
-		// rdzeń przyjmuje go WYŁĄCZNIE z haka `admin_init` i tylko w
-		// wp-admin — wywołany stąd nie dodałby NIC i zameldowałby to
-		// najwyżej w logu przy WP_DEBUG (zmierzone: plugin.php:2429).
-		Aai_Monitor_Prywatnosc::zarejestruj();
+		/*
+		 * PRODUCENCI DANYCH — to, czego wtyczka nie miała po kroku T1
+		 * („baza stoi, ale nic nie zbiera"): dziennik logowań (trzy haki
+		 * rdzenia) i wpis do kreatora polityki prywatności. Ten drugi
+		 * jedynie podpina się pod `admin_init`, bo rdzeń przyjmuje treść
+		 * WYŁĄCZNIE stamtąd i tylko w wp-admin — wywołanie wprost stąd nie
+		 * dodałoby NIC, meldując to najwyżej w logu przy WP_DEBUG
+		 * (zmierzone: plugin.php:2429).
+		 *
+		 * CAŁOŚĆ W `try/catch`, bo autoloader wyżej POMIJA plik
+		 * nieczytelny, a bind mount kontenera potrafi umrzeć po
+		 * `git checkout` — ten projekt przerabiał to nieraz. Przy pustym
+		 * katalogu WordPress po prostu wyłącza wtyczkę, ale przy braku
+		 * JEDNEGO pliku leciałby `Error: Class not found` na każdym
+		 * żądaniu, także na froncie sklepu. Monitoring nie ma prawa
+		 * wywrócić strony, której tylko się przygląda.
+		 */
+		try {
+			Aai_Monitor_Logowania::zarejestruj();
+			Aai_Monitor_Prywatnosc::zarejestruj();
+		} catch ( Throwable $e ) {
+			Aai_Monitor_Komunikaty::zapisz( 'nie udało się podpiąć czujek monitoringu: ' . $e->getMessage() );
+		}
 		// Kanał błędów: zapis biegnie w cudzym żądaniu i łapie `Throwable`,
 		// więc bez tego uszkodzona tabela dawałaby PUSTĄ listę logowań,
 		// czytaną jak „nikt nie próbował" — fałszywy negatyw na jedynym

@@ -451,6 +451,9 @@ const nowszeNiz = (id) =>
     ).stdout || "[]"
   );
 
+/** Świeża sesja gościa — każda próba bez ciastek poprzedniej. */
+const gosc2 = () => sesja();
+
 const maxId = () => Number(phpEval('global $wpdb; echo (int) $wpdb->get_var("SELECT COALESCE(MAX(id),0) FROM " . Aai_Monitor_Tabele::tabela("logowania"));').stdout || 0);
 
 /* N2 — logowanie formularzem daje DOKŁADNIE JEDEN wiersz. */
@@ -497,9 +500,16 @@ sprawdz(
   poPorazce.length === 1 && poPorazce[0]?.zdarzenie === "nieudane",
   `nieudana próba nie zostawiła wiersza „nieudane” (dostałem ${poPorazce.length}). Bez niej licznik porażek z 7 dni — JEDYNA funkcja alarmowa ekranu — pokazuje zero niezależnie od tego, ile razy ktoś próbował się włamać (N5).`
 );
+/*
+ * Login NIEISTNIEJĄCEGO konta jest maskowany — celowo, od przeglądu T2:
+ * w tym polu bywa HASŁO (A1 niżej). Zostaje początek i długość, czyli
+ * wzorzec ataku bez sekretu. Istniejące konta zapisujemy dosłownie
+ * i tego pilnuje osobne sprawdzenie w bloku A1.
+ */
 sprawdz(
-  poPorazce[0]?.login === LOGIN_NIEISTNIEJACY,
-  `wiersz porażki zapisał login „${poPorazce[0]?.login}” zamiast podanego — przy porażce konta nie ma, więc to jedyna informacja o tym, kogo próbowano podszyć`
+  (poPorazce[0]?.login ?? "").startsWith(LOGIN_NIEISTNIEJACY.slice(0, 3)) &&
+    (poPorazce[0]?.login ?? "").includes(String(LOGIN_NIEISTNIEJACY.length)),
+  `wiersz porażki zapisał login „${poPorazce[0]?.login}” — oczekiwano początku „${LOGIN_NIEISTNIEJACY.slice(0, 3)}” i długości ${LOGIN_NIEISTNIEJACY.length}. To jedyna informacja o tym, kogo próbowano podszyć, więc nie może zniknąć w całości`
 );
 sprawdz(
   poPorazce[0]?.user_id === null,
@@ -528,6 +538,122 @@ for (const haslo of HASLA_PRZEBIEGU) {
     `HASŁO TRAFIŁO DO DZIENNIKA (N5). Dziennik zapisuje, kto i skąd próbował — nigdy czym. Sprawdzane są WSZYSTKIE wiersze przebiegu i wszystkie użyte hasła, bo wyciek przez handler udanego logowania jest tak samo możliwy jak przez porażkę.`
   );
 }
+
+/* ── PO PRZEGLĄDZIE: pięć rzeczy, które przedtem przechodziły ────────── */
+
+/*
+ * A1 — w polu loginu bywa HASŁO (autouzupełnianie, zły układ klawiatury).
+ * Rdzeń puszcza je przez sanitize_user(), które w trybie nieścisłym NIE
+ * usuwa @ ! # $ % & _ - ani cyfr, więc wartość szła do dziennika jawnym
+ * tekstem na 90 dni — wbrew obietnicy z polityki prywatności.
+ */
+const SEKRET = "MojeTajneHaslo#2026";
+const przedSekretem = maxId();
+await gosc2().pobierz("/wp-login.php");
+await gosc2().pobierz("/wp-login.php", {
+  method: "POST",
+  headers: { "content-type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({ log: SEKRET, pwd: SEKRET, "wp-submit": "Zaloguj", testcookie: "1" }).toString(),
+});
+const poSekrecie = nowszeNiz(przedSekretem);
+sprawdz(
+  poSekrecie.length === 1 && !JSON.stringify(poSekrecie).includes(SEKRET),
+  `wartość wpisana w pole loginu trafiła do dziennika DOSŁOWNIE — a bywa nią hasło (A1). W polu „login” zapisano: „${poSekrecie[0]?.login}”. Nieistniejące konto ma być maskowane; istniejące zostaje dosłownie, bo to sedno pytania „kogo próbowano podszyć”.`
+);
+sprawdz(
+  (poSekrecie[0]?.login ?? "").startsWith(SEKRET.slice(0, 3)),
+  "zamaskowany login stracił początek — wtedy nie widać wzorca ataku (adm…, roo…, tes…), a po to ta kolumna istnieje"
+);
+
+/* A1, druga strona: ISTNIEJĄCE konto zapisujemy dosłownie. */
+const przedIstniejacym = maxId();
+await gosc2().pobierz("/wp-login.php", {
+  method: "POST",
+  headers: { "content-type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({ log: "admin", pwd: "na-pewno-zle", "wp-submit": "Zaloguj", testcookie: "1" }).toString(),
+});
+sprawdz(
+  nowszeNiz(przedIstniejacym)[0]?.login === "admin",
+  "nieudana próba na ISTNIEJĄCE konto została zamaskowana — maskowanie ma dotyczyć wyłącznie wartości, które kontem nie są, inaczej dziennik traci wartość dowodową"
+);
+
+/*
+ * A2 — dedup musi pytać o KONTO. Bez tego sesja jednego konta i wp_login
+ * drugiego (jeden proces PHP: WP-CLI, nasze bramki, cudza wtyczka logująca
+ * programowo) dawały JEDEN wiersz: logowanie drugiego konta znikało, a wpis
+ * pierwszego dostawał cudzą etykietę „formularz”.
+ */
+const przedDwomaKontami = maxId();
+phpEval(
+  '$k = get_user_by( "login", "klient-test" ); $a = get_user_by( "login", "admin" );' +
+    ' do_action( "set_logged_in_cookie", "c", 0, 0, $k->ID, "logged_in", "t" );' +
+    ' do_action( "wp_login", $a->user_login, $a ); echo "ok";'
+);
+const dwaKonta = nowszeNiz(przedDwomaKontami);
+sprawdz(
+  dwaKonta.length === 2,
+  `sesja jednego konta i logowanie drugiego w tym samym procesie dały ${dwaKonta.length} wierszy zamiast dwóch (A2) — jedno zdarzenie zniknęło z dziennika bez śladu, a dziennik, który cicho gubi zdarzenia, jest gorszy niż brak dziennika`
+);
+sprawdz(
+  dwaKonta[0]?.zrodlo === "sesja" && dwaKonta[1]?.zrodlo === "formularz",
+  `wiersz jednego konta przejął źródło drugiego (A2): dostałem „${dwaKonta[0]?.zrodlo}” i „${dwaKonta[1]?.zrodlo}”`
+);
+
+/*
+ * A4 — ArgumentCountError powstaje PRZY WYWOŁANIU, więc try w ciele metody
+ * nigdy się nie zaczyna i wyjątek wychodzi z do_action() prosto do kasy.
+ * Mierzymy NASZ handler (cudze na tym haku mają tę samą słabość — Tutor).
+ */
+sprawdz(
+  phpEval(
+    /*
+     * Zdejmujemy CUDZE callbacki z OBU haków — inaczej mierzylibyśmy
+     * cudzą odporność zamiast własnej. Tutor ma na `wp_login` dokładnie
+     * tę samą słabość (`TUTOR\User::update_user_last_login()`), więc bez
+     * tego kroku test padał na nie naszym kodzie.
+     */
+    'global $wp_filter; foreach ( array( "wp_login", "set_logged_in_cookie" ) as $hak ) {' +
+      ' if ( ! isset( $wp_filter[$hak] ) ) continue;' +
+      ' foreach ( $wp_filter[$hak]->callbacks as $p => $cbs ) { foreach ( $cbs as $i => $cb ) {' +
+      ' $f = $cb["function"];' +
+      ' $nasze = is_array( $f ) && is_string( $f[0] ) && str_starts_with( $f[0], "Aai_Monitor" );' +
+      ' if ( ! $nasze ) unset( $wp_filter[$hak]->callbacks[$p][$i] ); } } }' +
+      ' try { do_action( "wp_login" ); do_action( "set_logged_in_cookie", "x" ); echo "ok"; } catch ( Throwable $e ) { echo "wyjatek"; }'
+  ).stdout.endsWith("ok"),
+  "hak odpalony z mniejszą liczbą argumentów wywraca NASZ handler (A4) — ArgumentCountError powstaje przed wejściem do try, więc leci prosto do cudzego żądania; w kasie to HTTP 500 i przerwany zakup. Parametry mają mieć wartości domyślne."
+);
+
+/*
+ * A5 — sanitize_text_field() ucinał user-agenta na pierwszym „<” i zjadał
+ * sekwencje %XX, czyli kasował dokładnie ten przypadek, dla którego ta
+ * kolumna istnieje: narzędzie wstrzykujące ładunek w UA.
+ */
+const UA_ZLOSLIWY = "Mozilla/5.0 <script>alert(1)</script> Bot%20scan";
+const przedUa = maxId();
+await gosc2().pobierz("/wp-login.php", {
+  method: "POST",
+  headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": UA_ZLOSLIWY },
+  body: new URLSearchParams({ log: "nie-ma-konta-ua", pwd: "x", "wp-submit": "Zaloguj", testcookie: "1" }).toString(),
+});
+sprawdz(
+  nowszeNiz(przedUa)[0]?.agent === UA_ZLOSLIWY,
+  `user-agent zapisany jako „${nowszeNiz(przedUa)[0]?.agent}” zamiast całego łańcucha (A5) — przy próbie włamania liczy się DOKŁADNY ciąg, bo to on odróżnia narzędzie od przeglądarki`
+);
+
+/*
+ * A11 — cudzy callback rzucający na NIŻSZYM priorytecie przerywa
+ * do_action() przed nami i zdarzenie nie trafia do dziennika. Priorytet 1
+ * zamyka to okno dla wszystkiego, co nie wchodzi jeszcze wcześniej.
+ */
+const przedCudzym = maxId();
+phpEval(
+  'add_action( "set_logged_in_cookie", function () { throw new RuntimeException( "cudza wtyczka" ); }, 5 );' +
+    ' try { do_action( "set_logged_in_cookie", "c", 0, 0, 1, "logged_in", "t" ); } catch ( Throwable $e ) {} echo "ok";'
+);
+sprawdz(
+  nowszeNiz(przedCudzym).length === 1,
+  "cudzy callback padający na priorytecie 5 zabrał nam zdarzenie (A11) — dziennik bezpieczeństwa ma zapisywać PRZED wszystkimi, więc haki idą z priorytetem 1"
+);
 
 /* N3 — auto-login z kasy: źródło „sesja”, bez wp_login (F3). */
 const przedKasa = maxId();
@@ -590,11 +716,22 @@ sprawdz(
  * klienta i gościa). Te wiersze mają PRAWDZIWE loginy, więc stary wzorzec
  * by ich nie ruszył, a rachunek sumienia padłby na własnych śladach.
  *
- * Kasujemy więc przecięcie dwóch warunków — OKNA PRZEBIEGU i listy
- * loginów, których używamy — zamiast czyścić tabelę. Sam warunek `id >`
- * byłby wygodniejszy i kasowałby cudze wiersze, gdyby ktoś zalogował się
- * w trakcie; sama lista loginów kasowałaby wcześniejsze, prawdziwe
- * logowania właściciela na to samo konto.
+ * Kasujemy więc OKNO PRZEBIEGU — wszystko, co powstało po migawce —
+ * i nic ponadto. Nigdy `TRUNCATE`, nigdy „wszystko z dzisiaj".
+ *
+ * ŚWIADOME OGRANICZENIE, nazwane wprost po przeglądzie (wcześniej ten
+ * komentarz opisywał mechanizm, którego w kodzie NIE MA — dokładnie
+ * klasa BLAD-018): granicą jest sam identyfikator, więc gdyby ktoś
+ * zalogował się DOKŁADNIE w oknie przebiegu, jego wiersz też zniknie.
+ * Kasowanie po loginach byłoby gorsze, nie lepsze: loginy naszych bramek
+ * to prawdziwe konta (`admin`, `klient-test`), więc zabrałoby także
+ * WCZEŚNIEJSZE, prawdziwe logowania właściciela na te konta.
+ *
+ * Ryzyko jest warsztatowe i minutowe: bramki uruchamia się na `:8892`,
+ * nigdy na instalacji z ruchem. Gdyby kiedyś miało przestać wystarczać,
+ * właściwą drogą jest zbieranie identyfikatorów W TRAKCIE przebiegu
+ * (wzorzec `poczta.mjs`: migawka → różnica → jawna lista), a nie druga
+ * heurystyka po treści wiersza.
  */
 sprzatnijDziennik(php, dziennikMigawka);
 // Wizyty mają własny znacznik w ścieżce — tabela ruchu jest anonimowa,

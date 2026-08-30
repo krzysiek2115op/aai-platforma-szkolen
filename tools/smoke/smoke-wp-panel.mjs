@@ -292,11 +292,6 @@ for (const kurs of kursy) {
 
 await przegladarka.close();
 
-if (bledy.length > 0) {
-  console.error(`\nsmoke-wp-panel: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);
-  for (const b of bledy) console.error(`  - ${b}`);
-  process.exit(1);
-}
 /* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
 sprzatnijDziennik((k) => wp("eval", k), _dziennikMigawka);
 sprawdz(
@@ -304,4 +299,9 @@ sprawdz(
   `bramka zostawiła ślad w dzienniku logowań: przed ${_dziennikPrzed}, po ${ileWpisow((k) => wp("eval", k))} wpisów (N13)`
 );
 
+if (bledy.length > 0) {
+  console.error(`\nsmoke-wp-panel: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);
+  for (const b of bledy) console.error(`  - ${b}`);
+  process.exit(1);
+}
 console.log(`smoke-wp-panel: ${sprawdzen} sprawdzeń zaliczonych.`);

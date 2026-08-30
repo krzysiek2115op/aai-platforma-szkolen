@@ -2942,11 +2942,10 @@ const MUTACJE = [
     wymaga: () => existsSync(LOGOWANIA_MONITORA),
     oczekiwanySlad: 'hak „set_logged_in_cookie" nie jest zarejestrowany',
     zmien: (s) =>
-      s.includes("add_action( 'set_logged_in_cookie', array( self::class, 'sesja' ), 10, 4 );")
-        ? s.replace(
-            "add_action( 'set_logged_in_cookie', array( self::class, 'sesja' ), 10, 4 );",
-            "// rejestracja zdjęta"
-          )
+      // Wzorzec BEZ priorytetu: po przeglądzie T2 haki idą z priorytetem 1,
+      // a wersja z wpisanym „10" umarła po cichu (audyt to złapał).
+      /add_action\(\s*'set_logged_in_cookie',[^;]*;/.test(s)
+        ? s.replace(/add_action\(\s*'set_logged_in_cookie',[^;]*;/, "// rejestracja zdjęta")
         : null,
   },
   {
@@ -3019,6 +3018,57 @@ const MUTACJE = [
       s.includes("_dziennikPrzed")
         ? s.replaceAll("_dziennikPrzed", "stanDziennikaNaStarcie").replaceAll("_dziennikMigawka", "granicaWlasnych")
         : null,
+  },
+  {
+    // Po przeglądzie T2. Reguła 9 pytała tylko o OBECNOŚĆ `catch ( Throwable`
+    // i była ślepa: instrukcja linię przed `try` przechodziła na zielono,
+    // a rzucony z niej Error wychodził z do_action() prosto do kasy
+    // (zmierzone uruchomieniowo).
+    straznik: "straznik-monitora-wp",
+    opis: "instrukcja PRZED blokiem try w handlerze cudzego haka — wyjątek stamtąd omija catch (N4)",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: "NIE JEST NIM OSŁONIĘTA W CAŁOŚCI",
+    zmien: (s) =>
+      s.includes("$user_id = 0 ): void {\n\t\ttry {")
+        ? s.replace(
+            "$user_id = 0 ): void {\n\t\ttry {",
+            "$user_id = 0 ): void {\n\t\tAai_Monitor_Zapis::metoda_ktorej_nie_ma();\n\t\ttry {"
+          )
+        : null,
+  },
+  {
+    // Po przeglądzie T2. Reguły czytające plik producenta nie widzą, że
+    // nikt go nie uruchamia. Zmierzone: po zdjęciu tej jednej linii oba
+    // strażniki są zielone, a dziennik jest martwy.
+    straznik: "straznik-monitora-wp",
+    opis: "plik główny przestaje wołać zarejestruj() producenta — dziennik martwy przy zielonych bramkach (P13)",
+    plik: "wordpress/wtyczki/aai-monitor/aai-monitor.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/aai-monitor.php"),
+    oczekiwanySlad: "nie woła Aai_Monitor_Logowania::zarejestruj()",
+    zmien: (s) =>
+      s.includes("Aai_Monitor_Logowania::zarejestruj();")
+        ? s.replace("Aai_Monitor_Logowania::zarejestruj();", "/* zdjęte */")
+        : null,
+  },
+  {
+    // Po przeglądzie T2. Bramka wpięta PO bloku kończącym przebieg jest
+    // martwa: sprawdz() dopisuje do `bledy`, ale nikt ich już nie czyta.
+    // Zmierzone: mutacja asercji przechodziła z kodem 0 w sześciu bramkach.
+    straznik: "straznik-higieny-smokow",
+    opis: "rachunek sumienia dziennika przeniesiony ZA process.exit(1) — asercja nie może paść (N13)",
+    plik: "tools/smoke/smoke-wp-produkty.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-produkty.mjs"),
+    oczekiwanySlad: "asercja rozliczenia stoi ZA",
+    zmien: (s) => {
+      const blok = s.match(
+        /\/\* Sprzątanie po sobie[\s\S]*?\n\);\n\n/
+      );
+      if (!blok) return null;
+      const bez = s.replace(blok[0], "");
+      const koniec = bez.lastIndexOf("console.log(");
+      return koniec < 0 ? null : bez.slice(0, koniec) + blok[0] + bez.slice(koniec);
+    },
   },
 ];
 

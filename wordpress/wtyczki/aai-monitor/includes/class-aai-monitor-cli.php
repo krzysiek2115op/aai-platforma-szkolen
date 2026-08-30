@@ -98,13 +98,26 @@ final class Aai_Monitor_Cli {
 			);
 		}
 
-		/* 4. co dziś zbieramy */
+		/*
+		 * 4. co dziś zbieramy — i dlaczego BRAK czujki jest teraz BŁĘDEM.
+		 *
+		 * W kroku T1 zero czujek było stanem normalnym: baza i ekran już
+		 * stały, producenci danych mieli dojść później. Od T2 wtyczka ma
+		 * dziennik logowań, więc zero czujek znaczy, że coś jest zepsute —
+		 * najczęściej niekompletnie wgrany katalog albo zdjęta rejestracja
+		 * w pliku głównym. Bez tego warunku dziennik może być martwy przy
+		 * WSZYSTKICH bramkach na zielono: zmierzone — zdjęcie jednej linii
+		 * `Aai_Monitor_Logowania::zarejestruj()` zostawiało oba strażniki
+		 * zielone i kontrolę z kodem 0.
+		 */
 		$czujki = Aai_Monitor_Ekran::czujki();
-		WP_CLI::line(
-			array() === $czujki
-				? 'Czujki: żadna nie jest podpięta — baza stoi, ale nic nie zbiera danych.'
-				: 'Czujki: ' . implode( ', ', array_keys( $czujki ) ) . '.'
-		);
+		if ( array() === $czujki ) {
+			$bledy[] = 'żadna czujka nie jest podpięta — baza stoi, ale NIC NIE ZBIERA danych. '
+				. 'Sprawdź, czy katalog wtyczki jest kompletny i czy plik główny woła zarejestruj() '
+				. 'producentów (bind mount potrafi umrzeć po checkoucie: podman-compose down && ./postaw.sh)';
+		} else {
+			WP_CLI::line( 'Czujki: ' . implode( ', ', array_keys( $czujki ) ) . '.' );
+		}
 
 		/* 5. wersje cudzego kodu */
 		foreach ( Aai_Monitor_Zaleznosci::wersje() as $nazwa => $wersja ) {

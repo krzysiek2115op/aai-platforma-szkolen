@@ -1029,11 +1029,6 @@ sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da si
 
 await przegladarka.close();
 
-if (bledy.length > 0) {
-  console.error(`\nsmoke-wp-motyw: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);
-  for (const b of bledy) console.error(`  - ${b}`);
-  process.exit(1);
-}
 /* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
 sprzatnijDziennik(wpEval, _dziennikMigawka);
 sprawdz(
@@ -1041,4 +1036,9 @@ sprawdz(
   `bramka zostawiła ślad w dzienniku logowań: przed ${_dziennikPrzed}, po ${ileWpisow(wpEval)} wpisów (N13)`
 );
 
+if (bledy.length > 0) {
+  console.error(`\nsmoke-wp-motyw: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);
+  for (const b of bledy) console.error(`  - ${b}`);
+  process.exit(1);
+}
 console.log(`smoke-wp-motyw: ${sprawdzen} sprawdzeń zaliczonych.`);

@@ -564,11 +564,6 @@ sprawdz(
 );
 sprawdz(wp("aai-platnosci", "sprawdz").kod === 0, "po sprzątaniu kontrola czerwona — smoke zostawił rozjazd");
 
-if (bledy.length > 0) {
-  console.error(`smoke-wp-zakup: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);
-  for (const b of bledy) console.error(`  - ${b}`);
-  process.exit(1);
-}
 /* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
 sprzatnijDziennik(php, _dziennikMigawka);
 sprawdz(
@@ -576,4 +571,9 @@ sprawdz(
   `bramka zostawiła ślad w dzienniku logowań: przed ${_dziennikPrzed}, po ${ileWpisow(php)} wpisów (N13)`
 );
 
+if (bledy.length > 0) {
+  console.error(`smoke-wp-zakup: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);
+  for (const b of bledy) console.error(`  - ${b}`);
+  process.exit(1);
+}
 console.log(`smoke-wp-zakup: OK (${sprawdzen} sprawdzeń na żywej instalacji).`);

@@ -62,9 +62,26 @@ final class Aai_Monitor_Zadanie {
 		if ( '' === $agent ) {
 			return '';
 		}
-		// `wp_unslash` przed czyszczeniem: WordPress dokłada backslashe do
-		// wszystkiego w superglobalach, więc bez tego apostrof w nazwie
-		// bota zapisałby się jako `\'` (rodzina pułapki z W2 i N6 z P4).
-		return sanitize_text_field( wp_unslash( $agent ) );
+		/*
+		 * `wp_unslash` jest konieczne: WordPress slashuje CAŁĄ superglobalę
+		 * `$_SERVER` (`wp_magic_quotes()`), więc bez tego apostrof w nazwie
+		 * bota zapisałby się jako `\'` (rodzina pułapki z W2 i N6 z P4).
+		 *
+		 * `sanitize_text_field()` NIE — i to jest poprawka po przeglądzie.
+		 * Zmierzone, co robi z user-agentem:
+		 *   `Mozilla/5.0 <script>alert(1)</script>`  →  `Mozilla/5.0`
+		 *   `Mozilla/5.0 (X11) Bot%20scan/1.0`       →  `Mozilla/5.0 (X11) Botscan/1.0`
+		 * Pierwsze `<` UCINA RESZTĘ ŁAŃCUCHA, a sekwencje `%XX` znikają —
+		 * czyli najciekawszy przypadek (narzędzie wstrzykujące ładunek
+		 * w UA) zapisywał się jako niewinne „Mozilla/5.0", wprost wbrew
+		 * temu, co obiecuje komentarz wyżej.
+		 *
+		 * Czyszczenie niczego tu nie broniło: wartość idzie do bazy przez
+		 * `$wpdb->insert()` (przygotowaną), a na ekran przez `esc_html()`.
+		 * Zostaje więc usunięcie znaków sterujących — jedyne, co naprawdę
+		 * mogłoby zepsuć odczyt — i nic ponadto.
+		 */
+		$czysty = preg_replace( '/[\x00-\x1F\x7F]/u', '', wp_unslash( $agent ) );
+		return is_string( $czysty ) ? $czysty : '';
 	}
 }

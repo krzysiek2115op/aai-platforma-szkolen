@@ -55,6 +55,23 @@ final class Aai_Monitor_Logowania {
 	private static int $swiezy_wiersz = 0;
 
 	/**
+	 * Konto, do którego należy wiersz z `$swiezy_wiersz`.
+	 *
+	 * Bez tego `formularz()` doprecyzowywał CUDZY wiersz. Zmierzone
+	 * w jednym procesie PHP: `set_logged_in_cookie` dla klienta (ścieżka
+	 * kasy, bez `wp_login`), a chwilę później `wp_login` dla admina —
+	 * w dzienniku został JEDEN wiersz, z kontem klienta i źródłem
+	 * „formularz". Logowanie administratora zniknęło w całości, a wpis
+	 * klienta dostał cudzą etykietę.
+	 *
+	 * W żądaniu przeglądarki dziś nieosiągalne (rdzeń emituje `wp_login`
+	 * zaraz po ciastku, dla tego samego konta), ale osiągalne w każdym
+	 * długo żyjącym procesie: WP-CLI, nasze własne bramki, a w przyszłości
+	 * każda wtyczka logująca kogoś programowo w środku żądania.
+	 */
+	private static int $swieze_konto = 0;
+
+	/**
 	 * Podpina haki i melduje czujkę.
 	 *
 	 * Meldunek nie jest ozdobą: bez niego ekran po całym tym kroku dalej
@@ -62,10 +79,27 @@ final class Aai_Monitor_Logowania {
 	 * ma być odbiciem stanu KODU, nie tekstem do ręcznej aktualizacji.
 	 */
 	public static function zarejestruj(): void {
-		// Czwarty argument to `$user_id` — sprawdzone w pluggable.php:1167.
-		add_action( 'set_logged_in_cookie', array( self::class, 'sesja' ), 10, 4 );
-		add_action( 'wp_login', array( self::class, 'formularz' ), 10, 2 );
-		add_action( 'wp_login_failed', array( self::class, 'porazka' ), 10, 2 );
+		/*
+		 * PRIORYTET 1, nie domyślne 10. Dziennik bezpieczeństwa ma zapisać
+		 * ZANIM cokolwiek innego dostanie szansę przerwać zdarzenie:
+		 * zmierzone — cudzy callback rzucający wyjątek na priorytecie 5
+		 * przerywa `do_action()` przed nami i wiersz nie powstaje.
+		 * Domknąć tego się nie da (ktoś zawsze może wejść wcześniej), ale
+		 * okno zmniejsza się do zera przypadków realnych.
+		 *
+		 * WARTOŚCI DOMYŚLNE parametrów są tu wymaganiem, nie stylem:
+		 * `ArgumentCountError` powstaje PRZY WYWOŁANIU, więc `try` w ciele
+		 * metody nigdy się nie zaczyna i wyjątek wychodzi z `do_action()`
+		 * — czyli w kasie daje HTTP 500 (zmierzone). Rdzeń podaje dziś
+		 * komplet argumentów, ale cudza wtyczka odpalająca hak z mniejszą
+		 * liczbą przewróciłaby zakup.
+		 *
+		 * Czwarty argument `set_logged_in_cookie` to `$user_id` —
+		 * sprawdzone w pluggable.php:1167.
+		 */
+		add_action( 'set_logged_in_cookie', array( self::class, 'sesja' ), 1, 4 );
+		add_action( 'wp_login', array( self::class, 'formularz' ), 1, 2 );
+		add_action( 'wp_login_failed', array( self::class, 'porazka' ), 1, 2 );
 
 		Aai_Monitor_Ekran::zglos_czujke(
 			'logowania',
@@ -87,7 +121,7 @@ final class Aai_Monitor_Logowania {
 	 * @param int    $wygasniecie Wygaśnięcie ciastka (nieużywane).
 	 * @param int    $user_id     Konto, dla którego powstała sesja.
 	 */
-	public static function sesja( $ciastko, $wygasa, $wygasniecie, $user_id ): void {
+	public static function sesja( $ciastko = '', $wygasa = 0, $wygasniecie = 0, $user_id = 0 ): void {
 		try {
 			$id = (int) $user_id;
 			if ( $id <= 0 ) {
@@ -107,6 +141,7 @@ final class Aai_Monitor_Logowania {
 			// `insert_id` niósłby wtedy identyfikator CUDZEGO wiersza
 			// wstawionego wcześniej w tym samym żądaniu.
 			self::$swiezy_wiersz = $powstal ? Aai_Monitor_Zapis::ostatni_id() : 0;
+			self::$swieze_konto  = $powstal ? $id : 0;
 		} catch ( Throwable $e ) {
 			self::przemilcz( $e );
 		}
@@ -125,14 +160,22 @@ final class Aai_Monitor_Logowania {
 	 * @param string       $login Login konta.
 	 * @param WP_User|null $user  Obiekt konta.
 	 */
-	public static function formularz( $login, $user = null ): void {
+	public static function formularz( $login = '', $user = null ): void {
 		try {
-			$id = self::$swiezy_wiersz;
+			$id    = self::$swiezy_wiersz;
+			$konto = self::$swieze_konto;
 			// Zerujemy ZAWSZE, także przed wyjściem: drugie `wp_login`
 			// w tym żądaniu ma utworzyć własny wiersz, nie nadpisać ten.
 			self::$swiezy_wiersz = 0;
+			self::$swieze_konto  = 0;
 
-			if ( $id > 0 ) {
+			$user_id = $user instanceof WP_User ? (int) $user->ID : 0;
+
+			// Doprecyzowujemy TYLKO wiersz tego samego konta. Inaczej
+			// logowanie drugiego konta w tym samym procesie przejmowało
+			// cudzy wiersz, a własne ginęło bez śladu — a dziennik, który
+			// cicho gubi zdarzenia, jest gorszy niż brak dziennika.
+			if ( $id > 0 && ( 0 === $user_id || $konto === $user_id ) ) {
 				Aai_Monitor_Zapis::uzupelnij_zrodlo( $id, 'formularz' );
 				return;
 			}
@@ -141,7 +184,7 @@ final class Aai_Monitor_Logowania {
 				array(
 					'zdarzenie' => 'udane',
 					'zrodlo'    => 'formularz',
-					'user_id'   => $user instanceof WP_User ? (int) $user->ID : 0,
+					'user_id'   => $user_id,
 					'login'     => (string) $login,
 					'ip'        => Aai_Monitor_Zadanie::ip(),
 					'agent'     => Aai_Monitor_Zadanie::agent(),
@@ -156,18 +199,25 @@ final class Aai_Monitor_Logowania {
 	 * Nieudana próba — wiersz `nieudane` z PODANYM loginem.
 	 *
 	 * Zapisujemy to, co ktoś wpisał w pole loginu, bo przy porażce konta
-	 * nie ma i jest to jedyna informacja o tym, kogo próbowano podszyć.
+	 * nie ma i jest to jedyna informacja o tym, kogo próbowano podszyć —
+	 * ale przez `bezpieczny_login()`, bo w tym polu bywa HASŁO.
 	 * HASŁA NIE ZAPISUJEMY NIGDY — hak go zresztą nie niesie, ale
 	 * niezmiennik N5 pilnuje, żeby nikt go tu nie dołożył „do diagnozy".
 	 *
-	 * Hak łapie formularz I XML-RPC (F2). NIE łapie nieudanego logowania
-	 * hasłem aplikacji REST (F12) — ta ścieżka omija `wp_authenticate()`.
-	 * Dziennik mówi o tym wprost zamiast obiecywać komplet.
+	 * Hak łapie formularz I XML-RPC (F2). CZEGO NIE ŁAPIE — wypisane
+	 * wprost, żeby dziennik nie obiecywał kompletu:
+	 *   - nieudanego logowania hasłem aplikacji REST (F12): ta ścieżka
+	 *     omija `wp_authenticate()`;
+	 *   - próby z PUSTYM loginem albo PUSTYM hasłem: rdzeń trzyma dla
+	 *     nich listę `$ignore_codes = array( 'empty_username',
+	 *     'empty_password' )` (`pluggable.php:712`) i haka wtedy nie
+	 *     odpala. Zmierzone: trzy próby (puste hasło / pusty login / złe
+	 *     hasło) zostawiają JEDEN wiersz.
 	 *
 	 * @param string        $login Podany login albo adres e-mail.
 	 * @param WP_Error|null $blad  Szczegóły niepowodzenia (nieużywane).
 	 */
-	public static function porazka( $login, $blad = null ): void {
+	public static function porazka( $login = '', $blad = null ): void {
 		try {
 			Aai_Monitor_Zapis::dodaj_logowanie(
 				array(
@@ -177,7 +227,7 @@ final class Aai_Monitor_Logowania {
 					// kolumnę dowodową w domysł.
 					'zrodlo'    => '',
 					'user_id'   => 0,
-					'login'     => (string) $login,
+					'login'     => self::bezpieczny_login( (string) $login ),
 					'ip'        => Aai_Monitor_Zadanie::ip(),
 					'agent'     => Aai_Monitor_Zadanie::agent(),
 				)
@@ -188,6 +238,45 @@ final class Aai_Monitor_Logowania {
 	}
 
 	/* ————————————————————————— wnętrze ————————————————————————— */
+
+	/**
+	 * Podany login — dosłownie, gdy wskazuje konto; zamaskowany, gdy nie.
+	 *
+	 * PO CO. Pole loginu bywa wypełniane HASŁEM: przy autouzupełnianiu,
+	 * przy przełączonym układzie klawiatury, przy wklejeniu nie tam.
+	 * Rdzeń puszcza taką wartość przez `sanitize_user()`, które w trybie
+	 * nieścisłym NIE usuwa `@ ! # $ % & _ -` ani cyfr — zmierzone:
+	 * `MojeTajneHaslo#2026` przechodzi bez zmiany i ląduje w dzienniku
+	 * jawnym tekstem na 90 dni, widoczne dla każdego z `manage_options`
+	 * i obecne w każdej kopii zapasowej bazy.
+	 *
+	 * To by przeczyło trzem miejscom naraz: obietnicy w tym pliku,
+	 * zdaniu w kreatorze polityki prywatności („Nie zapisujemy haseł ani
+	 * ich fragmentów") i tekstowi, który czyta osoba, której dane
+	 * dotyczą. `wp_users.user_pass` jest zahaszowane — ta kolumna nie.
+	 *
+	 * DLACZEGO NIE PORÓWNUJEMY Z `$_POST['pwd']`. Bo to znaczyłoby
+	 * sięgnąć po hasło, czego zabrania N5 — i słusznie: kod, który raz
+	 * dotknie hasła, przy następnej poprawce je zapisze.
+	 *
+	 * CO ZOSTAJE Z WARTOŚCI DOWODOWEJ. Istniejące konto zapisujemy
+	 * dosłownie, bo to sedno pytania „kogo próbowano podszyć". Przy
+	 * nieistniejącym zostaje początek i długość — widać wzorzec ataku
+	 * (`adm…`, `roo…`, `tes…`), nie widać sekretu.
+	 */
+	private static function bezpieczny_login( string $podany ): string {
+		if ( '' === $podany ) {
+			return '';
+		}
+		if ( false !== get_user_by( 'login', $podany ) || false !== get_user_by( 'email', $podany ) ) {
+			return $podany;
+		}
+		return sprintf(
+			'%s…(%d znaków)',
+			mb_substr( $podany, 0, 3 ),
+			mb_strlen( $podany )
+		);
+	}
 
 	/**
 	 * Login konta albo pusty łańcuch.

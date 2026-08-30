@@ -44,6 +44,9 @@
  *   9. i ma z tego rachunek sumienia. To on ujawnił, że test retencji
  *      w smoke'u monitoringu cofał czas CUDZEMU wierszowi (MIN(id))
  *      i oddawał go retencji do skasowania;
+ *  10. a ta asercja jest OSIĄGALNA — nie stoi za `process.exit(1)`.
+ *      Przy pierwszym wpięciu modułu była martwa w SZEŚCIU z siedmiu
+ *      bramek: mutacja psująca ją przechodziła z kodem 0;
  *   5-7. moduł `tools/smoke/poczta.mjs` sprawdzany URUCHOMIENIOWO, przez
  *      podstawiony `fetch` — bo to jego ZACHOWANIE chroni cudzą pocztę,
  *      a nie kształt jego kodu. Trzy niezmienniki: brak własnych wiadomości
@@ -210,7 +213,8 @@ for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
  * `produkty` i `zakup`, bo sesja powstaje im w kasie WooCommerce, bez
  * dotykania `wp-login.php`.
  */
-const LOGUJE_SIE = /wp-login\.php["'`]\s*,\s*\{[\s\S]{0,400}?method:\s*["']POST|#user_login|name=["']log["']|wc_set_customer_auth_cookie|\bzaloguj\s*\(/;
+const LOGUJE_SIE =
+  /wp-login\.php["'`]\s*,\s*\{[\s\S]{0,400}?method:\s*["']POST|#user_login|#username|name=["']?log["']?\]|name=["']?login["']?\]|wc_set_customer_auth_cookie|\bzaloguj\s*\(/;
 
 /*
  * LISTA ZMIERZONYCH — i dlaczego sam wzorzec nie wystarcza.
@@ -232,10 +236,21 @@ const LOGUJE_SIE = /wp-login\.php["'`]\s*,\s*\{[\s\S]{0,400}?method:\s*["']POST|
  *   podman exec aai_wp_cli wp eval 'global $wpdb; echo (int) $wpdb->get_var(
  *     "SELECT COUNT(*) FROM " . Aai_Monitor_Tabele::tabela("logowania") );'
  *
- * Stan z 2026-08-30 (przelot wszystkich czternastu bramek): ślad zostawia
- * siedem, razem osiem wierszy. UWAGA przy powtarzaniu pomiaru: bramki
- * wymagające `ZRZUTY_RIG` bez niego padają PRZED pierwszym logowaniem
- * i pokazują fałszywe „zostawia 0" — sprawdzaj kod wyjścia, nie sam wynik.
+ * Stan z 2026-08-30 (czysty przelot czternastu bramek): wpisy tworzy
+ * PIĘĆ bramek plus smoke monitoringu — `kreator` 2, `lekcja`, `panel`,
+ * `motyw`, `jezyk` po 1, `monitor` 16.
+ *
+ * DWA OSTRZEŻENIA przy powtarzaniu pomiaru, oba z własnych pomyłek:
+ * (1) bramki wymagające `ZRZUTY_RIG` bez niego padają PRZED pierwszym
+ * logowaniem i pokazują fałszywe „zostawia 0" — sprawdzaj kod wyjścia,
+ * nie sam wynik; (2) NIE rób w tle własnych żądań HTTP do `:8892` —
+ * licznik nie wie, czyj jest wiersz, i przypisze je mierzonej bramce.
+ * Mierz `AUTO_INCREMENT`, nie liczbę wierszy: sprzątanie kasuje ślad,
+ * ale licznika nie cofa.
+ *
+ * `smoke-wp-produkty` i `smoke-wp-zakup` zostają na liście mimo zera —
+ * składają zamówienia i zakładają konta, więc pierwsza zmiana w tamtej
+ * ścieżce może zacząć tworzyć sesje. To profilaktyka, nie dowód.
  */
 const ZMIERZONE_ZOSTAWIAJA = [
   "smoke-wp-kreator.mjs",
@@ -282,6 +297,28 @@ for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
    * — po którejkolwiek stronie operatora. Nazwy zmiennych są bez znaczenia,
    * a asercja z zabetonowanym `true` nie przechodzi.
    */
+  /*
+   * REGUŁA 10: asercja musi być OSIĄGALNA.
+   *
+   * `sprawdz()` dopisuje do tablicy błędów, ale po bloku
+   * `if (bledy.length > 0) { … process.exit(1) }` nikt jej już nie czyta.
+   * Wpięcie wstawione ZA tym blokiem jest więc martwe: bramka drukuje
+   * „OK" i kończy kodem 0, choć asercja padła.
+   *
+   * Nie jest to hipoteza — tak wyszło przy pierwszym wpięciu modułu:
+   * w SZEŚCIU z siedmiu bramek rozliczenie stało za blokiem błędów,
+   * a mutacja `ileWpisow(php) === -1` przechodziła z kodem 0.
+   */
+  const ostatniOdczyt = tresc.lastIndexOf("ileWpisow(");
+  const ostatnieWyjscie = tresc.lastIndexOf("process.exit(1)");
+  if (ostatniOdczyt >= 0 && ostatnieWyjscie >= 0 && ostatniOdczyt > ostatnieWyjscie) {
+    bledy.push(
+      `${nazwa}: asercja rozliczenia stoi ZA blokiem kończącym przebieg (process.exit(1)) — jest MARTWA (N13). ` +
+        "sprawdz() dopisze błąd do tablicy, ale nikt jej już nie przeczyta: bramka wydrukuje „OK” i wyjdzie z kodem 0, " +
+        "choć zostawiła ślad w dzienniku. Przenieś sprzątanie i rozliczenie PRZED ten blok."
+    );
+  }
+
   const rozlicza = porownujeWynik(tresc, "ileWpisow");
   if (!rozlicza) {
     bledy.push(
@@ -382,6 +419,6 @@ if (bledy.length > 0) {
 console.log(
   "straznik-higieny-smokow: żadna bramka nie kasuje skrzynki hurtowo, bramki wysyłające pocztę biorą migawkę, " +
     "sprzątają i rozliczają się ze skrzynki oraz z zapisów na kursy, bramki logujące się sprzątają dziennik " +
-    "logowań i rozliczają się z niego, a moduł poczty (sprawdzony uruchomieniowo) " +
+    "logowań i rozliczają się z niego asercją, która jest osiągalna, a moduł poczty (sprawdzony uruchomieniowo) " +
     "nie kasuje przy pustej liście, trzyma się migawki i zatrzymuje przebieg przy niepełnym odczycie."
 );

@@ -10,7 +10,7 @@
  * się po cichu — ekran dalej się otwiera, tylko zaczyna kłamać albo
  * zbierać rzeczy, których zbierać nie wolno.
  *
- * DWANAŚCIE NIEZMIENNIKÓW (numery N z sekcji 8 schematu; każdy z mutacją
+ * TRZYNAŚCIE NIEZMIENNIKÓW (numery N z sekcji 8 schematu; każdy z mutacją
  * w audyt-straznikow). Reguły 1–8 przyszły z krokiem T1, reguły 9–12
  * z T2 razem z pierwszym producentem danych; reguły o sicie beaconu
  * dochodzą w T3, bo dziś nie miałyby czego pilnować:
@@ -52,7 +52,11 @@
  *  12. (P13) producent danych MELDUJE czujkę. Reguła 8 pilnuje, że
  *      ekran o nie pyta; ta — że ma o co. Bez meldunku ekran wraca do
  *      zdania „nic nie zbiera" przy działających hakach, czyli kłamie
- *      w drugą stronę.
+ *      w drugą stronę,
+ *  13. (P13) producent jest PODPIĘTY: plik główny naprawdę woła jego
+ *      `zarejestruj()`. Reguły 10–12 czytają plik producenta i nie
+ *      widzą, że nikt go nie uruchamia — zmierzone: po zdjęciu jednej
+ *      linii dziennik jest martwy przy WSZYSTKICH bramkach zielonych.
  *
  * Użycie: node tools/straznicy/straznik-monitora-wp.mjs
  */
@@ -66,6 +70,7 @@ const EKRAN = join(KATALOG, "includes", "class-aai-monitor-ekran.php");
 const CLI = join(KATALOG, "includes", "class-aai-monitor-cli.php");
 const TABELE = join(KATALOG, "includes", "class-aai-monitor-tabele.php");
 const LOGOWANIA = join(KATALOG, "includes", "class-aai-monitor-logowania.php");
+const GLOWNY = join(KATALOG, "aai-monitor.php");
 const bledy = [];
 
 if (!existsSync(KATALOG)) {
@@ -295,9 +300,26 @@ for (const [plik, tresc] of kodWtyczki) {
       );
       continue;
     }
+    /*
+     * PYTAMY O OSŁONIĘTE CIAŁO, nie o obecność słowa `catch`.
+     *
+     * Pierwsza wersja sprawdzała tylko, czy gdziekolwiek w ciele stoi
+     * `catch ( Throwable` — i była ŚLEPA. Instrukcja wstawiona JEDNĄ
+     * LINIĘ przed `try` przechodziła na zielono, a wyjątek z niej
+     * wychodził z `do_action()` prosto do kasy WooCommerce (zmierzone
+     * uruchomieniowo: `Error` wyleciał z `set_logged_in_cookie`).
+     *
+     * Teraz `try` musi być PIERWSZĄ instrukcją ciała. To wyklucza całą
+     * klasę: cokolwiek stoi przed nim, nie jest chronione.
+     */
+    const pierwszaInstrukcja = cialo.replace(/^\{\s*/, "").trimStart();
     if (!/catch\s*\(\s*Throwable\s/.test(cialo)) {
       bledy.push(
         `${plik}: ${metoda}() jest podpięta pod hak „${hak}" i nie łapie Throwable (N4). Ten kod biegnie w CUDZYM żądaniu — przy logowaniu i w kasie WooCommerce. Zmierzone (F11): wyjątek z handlera set_logged_in_cookie wychodzi z wc_set_customer_auth_cookie(), więc w kasie znaczy HTTP 500 i przerwany zakup. Monitoring ma prawo nie zapisać zdarzenia; nie ma prawa zepsuć transakcji.`
+      );
+    } else if (!pierwszaInstrukcja.startsWith("try")) {
+      bledy.push(
+        `${plik}: ${metoda}() (hak „${hak}") ma catch ( Throwable ), ale NIE JEST NIM OSŁONIĘTA W CAŁOŚCI — przed blokiem try stoi instrukcja „${pierwszaInstrukcja.split("\n")[0].trim().slice(0, 60)}" (N4). Wyjątek stamtąd wychodzi z do_action() tak samo, jakby catcha nie było wcale: zmierzone uruchomieniowo — Error rzucony linię przed try wyleciał z set_logged_in_cookie, czyli w żądaniu kasy dałby HTTP 500 i przerwany zakup. „try” ma być PIERWSZĄ instrukcją ciała.`
       );
     }
   }
@@ -365,6 +387,33 @@ if (existsSync(LOGOWANIA)) {
   }
 }
 
+/* ————— 13. (P13) producent jest PODPIĘTY, nie tylko napisany ————— */
+
+/*
+ * Reguły 10–12 czytają PLIK producenta. Ta pyta o coś innego: czy plik
+ * główny w ogóle go uruchamia.
+ *
+ * Zmierzone: zdjęcie jednej linii `Aai_Monitor_Logowania::zarejestruj()`
+ * z `aai-monitor.php` zostawia OBA strażniki zielone, a `wp aai-monitor
+ * sprawdz` kończy się kodem 0 — przy całkowicie martwym dzienniku. Kod
+ * żyje i nikogo nie słucha. Tę samą regułę ma `straznik-tutora` dla
+ * swojego modułu, z tego samego powodu.
+ */
+if (existsSync(GLOWNY)) {
+  const tresc = kod(readFileSync(GLOWNY, "utf8"));
+  const PRODUCENCI = [
+    ["Aai_Monitor_Logowania", "dziennik logowań przestaje cokolwiek zapisywać, a ekran wraca do zdania „nic nie zbiera”"],
+    ["Aai_Monitor_Prywatnosc", "wpis o dzienniku znika z kreatora polityki prywatności — a dziennik dalej zapisuje adresy IP"],
+  ];
+  for (const [klasa, skutek] of PRODUCENCI) {
+    if (!new RegExp(`${klasa}::zarejestruj\\s*\\(\\s*\\)`).test(tresc)) {
+      bledy.push(
+        `${GLOWNY}: nie woła ${klasa}::zarejestruj() (P13). Skutek: ${skutek}. Złamanie jest CICHE — zmierzone: po zdjęciu tej jednej linii oba strażniki są zielone, a kontrola kończy kodem 0. Reguły czytające plik producenta tego nie widzą, bo tam wszystko jest na miejscu — po prostu nikt tego nie uruchamia.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-monitora-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -372,5 +421,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę)."
+  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym)."
 );

@@ -798,17 +798,17 @@ wp(
   }`
 );
 
-if (bledy.length > 0) {
-  console.error(`smoke-wp-kreator: ${bledy.length} z ${sprawdzen} sprawdzeń NIE przeszło:`);
-  for (const blad of bledy) console.error(`  - ${blad}`);
-  process.exit(1);
-}
-
 /* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
 sprzatnijDziennik((k) => wp("eval", k), _dziennikMigawka);
 sprawdz(
   ileWpisow((k) => wp("eval", k)) === _dziennikPrzed,
   `bramka zostawiła ślad w dzienniku logowań: przed ${_dziennikPrzed}, po ${ileWpisow((k) => wp("eval", k))} wpisów (N13)`
 );
+
+if (bledy.length > 0) {
+  console.error(`smoke-wp-kreator: ${bledy.length} z ${sprawdzen} sprawdzeń NIE przeszło:`);
+  for (const blad of bledy) console.error(`  - ${blad}`);
+  process.exit(1);
+}
 
 console.log(`smoke-wp-kreator: ${sprawdzen} sprawdzeń zaliczonych.`);

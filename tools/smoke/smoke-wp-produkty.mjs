@@ -445,11 +445,6 @@ sprawdz(liczbaProduktow() === produktowPrzed, `smoke zostawił produkt: przed ${
 const finalna = wp("aai-platnosci", "sprawdz");
 sprawdz(finalna.kod === 0, `po sprzątaniu kontrola czerwona (kod ${finalna.kod}) — smoke zostawił rozjazd: ${finalna.err}`);
 
-if (bledy.length > 0) {
-  console.error(`smoke-wp-produkty: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);
-  for (const b of bledy) console.error(`  - ${b}`);
-  process.exit(1);
-}
 /* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
 sprzatnijDziennik(php, _dziennikMigawka);
 sprawdz(
@@ -457,4 +452,9 @@ sprawdz(
   `bramka zostawiła ślad w dzienniku logowań: przed ${_dziennikPrzed}, po ${ileWpisow(php)} wpisów (N13)`
 );
 
+if (bledy.length > 0) {
+  console.error(`smoke-wp-produkty: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);
+  for (const b of bledy) console.error(`  - ${b}`);
+  process.exit(1);
+}
 console.log(`smoke-wp-produkty: OK (${sprawdzen} sprawdzeń na żywej instalacji).`);
