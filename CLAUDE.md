@@ -2291,13 +2291,73 @@ wyprowadzała tego od nowa:
         Pułapka pracy: hurtowa zamiana tekstu w pliku weszła przy okazji
         w istniejące sprawdzenie B16 (`smoke-wp-zakup`) — złapane czytaniem
         `git diff`, nie testem.
-     2. **PLUGIN 3 — panel + monitoring** (ostatni moduł; potem test
-        całości trzech wtyczek). Zakres doprecyzowujemy PYTANIAMI przed
-        startem (decyzja 2026-08-21); obowiązuje reguła z 2026-08-28:
-        najpierw plan kroku + pytania, CZEKAĆ na zgodę. Realnie nasze
-        z PLAN.md §4: `page_visits` — resztę (zamówienia, klienci,
-        faktury) prawdopodobnie pokrywa Woo (PLAN.md §3–§4 jako lista
-        kontrolna, decyzja 4b).
+        **ZAMKNIĘTE W REPO (2026-08-30): PR #93 zmergowany do `main`, tag
+        `v0.54.0` + release, gałąź skasowana, artefakt zweryfikowany
+        (`git diff origin/main <szczyt>` PUSTY).** Merge decyzją właściciela
+        na dowodach lokalnych — CI padło w 2 s z zerem kroków (minuty
+        Actions wracają 1 września; potem potwierdzić gitleaks).
+     2. **PLUGIN 3 — panel + monitoring — W TOKU: krok T0 (schemat) CZEKA
+        NA OCENĘ WŁAŚCICIELA.** Wtyczka **`aai-monitor`** (NIE `aai-panel`:
+        „panel" znaczy w tym repo KREATOR), ostatni moduł; potem
+        test całości trzech wtyczek. Obowiązuje reguła z 2026-08-28
+        (plan kroku + pytania + zgoda przed KAŻDYM krokiem) i ZASADA 0
+        (schemat → krytyka → akceptacja → kod).
+        **CZYTAĆ PRZED PRACĄ: `docs/plugin-3/DIAGRAM.md`** (plik na gałęzi
+        PR #94 do czasu akceptacji — potem zwykła ścieżka w repo)
+        (schemat PO krytyce: 16 faktów zmierzonych w cudzym kodzie F1–F16,
+        16 niezmienników, kroki T1–T4)
+        i `docs/plugin-3/KRYTYKA-T0.md`
+        (werdykty 30 znalezisk trzech krytyków — każde potwierdzone
+        niezależnie, 10 uruchomieniowo).
+        **CZTERY DECYZJE WŁAŚCICIELA (2026-08-30), wiążące:** (D1) panel
+        w KOKPICIE WP jak kreator z W4 — zero tras na froncie; (D2) pełne
+        IP w dzienniku logowań + automatyczne kasowanie po 90 dniach;
+        (D3) wizyty wszystkich OPRÓCZ zalogowanych adminów, sesja
+        anonimowa bez IP i bez łączenia z kontem; (D4) ekran pokazuje
+        TYLKO nasze dwie rzeczy (logowania + ruch) — sprzedaż ma raporty
+        w Woo. **KOREKTA do PLAN.md §4** (w schemacie, tabela werdyktów
+        dla każdej pozycji): własnego logowania i `admin_users` NIE
+        piszemy — konta ma WordPress, panel stoi na `manage_options`.
+        **POLECENIE WŁAŚCICIELA o diagramach (2026-08-30, powtórka klasy
+        z P2):** wystrzał rysuje się Z BAZY do działu grubą linią
+        (WYTYCZNE §8: `BAZA ==AJAX==> DZIAŁ --JSON--> strony`), wzorem
+        stylu jest diagram Pluginu 1 (flowchart LR, baza-walec po lewej
+        jako źródło, subgraf „dyspozytor — JEDEN AJAX", zdarzenia
+        serwerowe w OSOBNYM subgrafie „NIE AJAX") — pierwsza wersja
+        rysowała kierunek na opak i została przebudowana.
+        **NAJGROŹNIEJSZE FAKTY Z KRYTYKI (pełnia w DIAGRAM.md, nie
+        wyprowadzać od nowa):** `sendBeacon(url, string)` idzie jako
+        `text/plain`, a REST WP wtedy NIE parsuje ciała (endpoint musi
+        czytać `get_body()`, klient słać Blob `application/json`);
+        wyjątek z handlera `set_logged_in_cookie` WYCHODZI z kasy Woo
+        (HTTP 500 przy zakupie — każdy handler w try/catch); auto-login
+        z kasy omija `wp_login` (łapie go `set_logged_in_cookie`);
+        nadpisanie `navigator.webdriver` preloadem DZIAŁA w rigu, więc
+        para bramek N9/N10 dowodzi pełnej ścieżki beaconu i wycięcia
+        automatów naraz; kontrola `sprawdz` NIGDY po HTTP (kontener CLI
+        nie dosięga :8892 — cURL error 7), tylko rejestr tras.
+        **PRZEGLĄD CAŁOŚCIOWY (2026-08-30, polecenie właściciela: ocena
+        znając CAŁY projekt) — cztery znaleziska, wszystkie wprowadzone:**
+        (K1 KRYTYCZNE) wystrzał szedł **trasą REST**, co łamało konwencję
+        obu poprzednich modułów — w repo jest **0** `register_rest_route`
+        i **0** `wp_ajax_*`, a **6** akcji `admin_post_*` w Pluginie 1;
+        wystrzałem jest teraz **akcja `admin-post.php` z `nopriv`**
+        (`admin_post_nopriv_{action}` istnieje — sprawdzone w kodzie WP),
+        **przez co pułapka F9 przestaje nas dotyczyć**, bo ciało czytamy
+        z `php://input` sami; (K2) doszedł niezmiennik „kontrola NIGDY nie
+        pisze" (L11 z P2); (K3) każdy niezmiennik N1–N17 jest przypisany
+        do kroku, który go zamyka; (K4) **wtyczka nazywa się `aai-monitor`,
+        nie `aai-panel`** — strażnik nazywany od wtyczki wyszedłby
+        `straznik-panelu-wp`, a „panel" to w tym repo kreator.
+        **NAZWY (zmierzone jako wolne):** wtyczka `aai-monitor`, tabele
+        `wp_aai_monitor_*`, smoke `smoke-wp-monitor`, strażnik
+        `straznik-monitora-wp`, prefiks assetów `aai-monitor-`.
+        **STAN GAŁĘZI: `docs/schemat-pluginu-3` wypchnięta, PR #94
+        OTWARTY — czeka na „ok" właściciela; NIE mergować przed jego
+        oceną.** Po akceptacji: merge #94 → plan T1 z pytaniami → zgoda
+        → dopiero kod. T1 wg tabeli kroków w DIAGRAM.md sekcja 12
+        (fundament + EKRAN + pięć czynności integracji środowiska +
+        sprostowanie trzech obietnic o Pluginie 3 w repo).
      **POZA MODUŁAMI, przed pierwszym klientem** (spinane na bieżąco,
      decyzja 4b): prawdziwa bramka płatności (Tpay/PayU/P24 — wtyczka do
      Woo), regulamin (właściciel), zgoda w kasie na natychmiastowe
