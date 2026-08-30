@@ -140,7 +140,7 @@ Jak to się ma do WYTYCZNE §8, punkt po punkcie:
 | kokpit | `Aai_Panel_Ekran`: podstrona menu **Automatic AI**, a gdy sklep nieaktywny — własna pozycja top-level; `manage_options`; **czysty odczyt — zero `admin-post.php`, zero `wp_ajax_*`, zero `method="post"`** |
 | skrypt pomiaru | `assets/pomiar.js` podpinany na `wp_enqueue_scripts` **tylko gdy oglądający nie ma `manage_options`** (D3); wysyła **Blob typu `application/json`** (F10) na `pagehide`/`visibilitychange` |
 | CLI | `wp aai-panel sprawdz` — kod 1, gdy: brak tabel, haki niezarejestrowane, retencja zawiodła (warunek w sekcji 4); wypisuje wersje WP/Woo/Tutor i ostrzega, gdy `REMOTE_ADDR` jest adresem prywatnym (F14) |
-| prefiks assetów i klas CSS | **`aai-mon-`**, nie `aai-panel-`: łańcuch `aai-panel` jest już zajęty w Pluginie 1 (`szablony/katalog.php`, `assets/lekcja.css`, `assets/panel.css`) |
+| prefiks assetów i klas CSS | **`aai-monitor-`**. `aai-panel` jest już zajęty w Pluginie 1 (`szablony/katalog.php`, `assets/lekcja.css`, `assets/panel.css`), a krótsze `aai-mon-` myliłoby wyszukiwanie z istniejącą klasą `aai-mono` (czcionka; `szablony/czesci/program.php` i inne). Zmierzone: `aai-monitor` ma dziś **zero** trafień w repo |
 | meta / opcje | tylko opcja wersji schematu; **żadnych meta na cudzych wpisach** |
 
 ## 3. Granica: co jest nasze, a co cudze
