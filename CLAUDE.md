@@ -2727,7 +2727,116 @@ wyprowadzała tego od nowa:
         logów brak) — wyczerpane minuty Actions, nie kod. Po powrocie CI
         (1 września) potwierdzić **gitleaks**, jako jedyny bez lokalnego
         odpowiednika.
-        **NASTĘPNY KROK CAŁEGO PROJEKTU: T4 — TEST RĘCZNY WŁAŚCICIELA.
+        **KROK T4 — TEST RĘCZNY WŁAŚCICIELA — ZALICZONY (2026-08-31, wersja
+        0.58.0). WTYCZKA `aai-monitor` JEST SKOŃCZONA, a razem z nią WSZYSTKIE
+        TRZY WTYCZKI ETAPU WORDPRESS.** PR #104 zmergowany do `main`, tag
+        `v0.58.0` + release; artefakt zweryfikowany (`git diff origin/main
+        <szczyt>` PUSTY — lekcja z 0.37.0). Merge decyzją właściciela na
+        dowodach lokalnych: CI padło z **zerem kroków we wszystkich
+        zadaniach** (wyczerpane minuty Actions), czyli rozliczenie, nie kod.
+        **Limit wraca 1 WRZEŚNIA — wtedy potwierdzić `gitleaks`**, jako jedyny
+        bez lokalnego odpowiednika (czeka od trzynastu wersji).
+        Przebieg, liczby i decyzje:
+        [docs/plugin-3/TEST-RECZNY-T4.md](docs/plugin-3/TEST-RECZNY-T4.md).
+        **TEST ZADZIAŁAŁ W TRZECH KIERUNKACH NARAZ** i to jest jego lekcja
+        na przyszłe testy ręczne:
+        (1) **wyciągnął rzecz niewidzialną dla czternastu bramek** — pod
+        kafelkami stało „Kafelki liczą wszystko od początku pomiaru", a drugi
+        kafelek nazywał się „Nieudane próby (7 dni)"; jedno zdanie opisywało
+        cztery liczby, z których jedna liczy się inaczej. Napisów przy
+        liczbach nie pilnowało NIC;
+        (2) **przy dwóch zgłoszeniach kod miał rację i zamknęliśmy je
+        POMIAREM, nie naprawą** — „naprawa" zepsułaby działający kod;
+        (3) **wymusił znalezienie luki w dowodach**, bo musiałem ręcznie
+        zmierzyć coś, czego nie umiała zmierzyć żadna bramka.
+        **CO WESZŁO DO 0.58.0:** każdy kafelek niesie własny okres (T4-D1;
+        **NIE zdejmować go w imię zwięzłości — cofnęłoby to naprawę A3
+        z przeglądu T3**), asercja ciągłości sesji i asercje o podpisach
+        kafelków w `smoke-wp-monitor` (170 → **174**), sprostowana
+        sprzeczność w README o krokach T1–T3.
+        **DWA ZGŁOSZENIA ZAMKNIĘTE POMIAREM — NIE OTWIERAĆ ICH OD NOWA:**
+        (a) **„czas niższy niż na zegarku"** (18 s przy ~30 s czytania,
+        37 s przy ~60 s). Zmierzone rigiem: 30 s bez przerwy → **30 130 ms**
+        w bazie; 15 s + 10 s ukryte + 15 s → **30 016 ms**. Zegar jest
+        dokładny co do dziesiątych sekundy, naprawa B1 z T3 trzyma,
+        a **zmiana pulpitu chowa okno tak samo jak przełączenie karty** —
+        liczby pokazywały prawdziwy czas WIDOCZNOŚCI;
+        (b) **„cztery sesje przy jednym oknie prywatnym"**. Zmierzone: cztery
+        strony przeklikane w JEDNEJ karcie (katalog → kurs → lekcja płatna →
+        lekcja darmowa, więc także trasy lekcji) trzymają jeden identyfikator.
+        Część adresów otwarto z linków, czyli w nowych kartach — a to
+        z definicji nowe sesje („drzewo kart", nie „osoba").
+        **LUKA W DOWODACH, KTÓRĄ TO ODSŁONIŁO:** bramka pytała o DŁUGOŚĆ
+        identyfikatora sesji (32 znaki), nie o to, czy dwie strony z jednej
+        karty mają TEN SAM. Gdyby `idSesji()` przestało czytać
+        `sessionStorage`, „Sesje" zrównałyby się z „Odsłonami", właściciel
+        czytałby liczbę stron jako liczbę odwiedzających, a **wszystkie
+        pozostałe sprawdzenia świeciłyby na zielono**.
+        **SIÓDMY NAWRÓT PUŁAPKI „WZORZEC NA OBECNOŚĆ, NIE NA
+        ROZSTRZYGNIĘCIE"** (0.29.0 nazwa metody, 0.44.0 nazwa stałej, 0.47.0
+        napis, c6c9c97, dwa razy w P4) — tym razem w regule pisanej PRZEZ ten
+        sam przegląd, który tę pułapkę opisuje: liczyła znaczniki
+        `class="aai-monitor-okres"`, więc mutacja ustawiająca okres na PUSTY
+        łańcuch przeszła na zielono. Złapał to **test negatywny, nie lektura**.
+        **UWAGA EKSPLOATACYJNA — NIE BRAĆ ZA WYCIEK:** bramka **UBITA**
+        (limit czasu, `KILL`) zostawia swoje wiersze, a kolejny przebieg ich
+        NIE usuwa — sprzątanie idzie wyłącznie od WŁASNEJ migawki `MAX(id)`,
+        żeby nigdy nie skasować cudzych danych. Ślady testowe rozpoznaje się
+        po loginie `smoke-`, adresie z `203.0.113.0/24` i ścieżce
+        `/smoke-monitor/` — kasować po tych znakach, NIGDY po zakresie
+        identyfikatorów. Rosnące `AUTO_INCREMENT` przy zgadzającej się liczbie
+        wierszy to norma, nie regresja.
+        **OBSERWACJA, NIE ZGŁOSZENIE:** zalogowany `klient-test` na adresie
+        `wp-admin/admin.php?page=aai-monitor` dostaje goły ekran „Brak
+        uprawnień" bez drogi powrotnej do sklepu (ta sama klasa co zgłoszenie
+        z P6). Odmowa jest POPRAWNA (`manage_options`), a wchodzi się tam
+        wyłącznie wpisując adres panelu ręcznie — żaden nasz odnośnik tam nie
+        prowadzi.
+        **STAN DOWODÓW NA KONIEC T4:** `npm run check` kod 0, strażnicy
+        **37/37**, audyt mutacyjny **288** (286 złapanych, 0 przeoczonych,
+        0 martwych), czternaście bramek WP zielonych: monitoring **174** ·
+        kreator 97 · motyw 91 · produkty 85 · front 84 · maile 62 · panel 55 ·
+        tutor 44 · zakup 41 · lekcja 39 · zwroty 39 · dane 30 · język 25 ·
+        płatności 23; proza **73/73 co do znaku**, kopia w Tutorze
+        **0 różnic**.
+        **ŚRODOWISKO `:8892` ZOSTAJE POSTAWIONE:** pięć wtyczek aktywnych,
+        sprzedaż otwarta, kursy 2, konto `klient-test` (NIE kasować — hasło
+        w `wordpress/srodowisko/.env`), skrzynka `127.0.0.1:8893`, kontrola
+        kod 0. **W tabelach monitoringu zostają dane z testu właściciela:
+        12 logowań, 16 odsłon, 6 sesji** — materiał dowodowy, nie śmieci.
+
+        **═══ NASTĘPNY KROK CAŁEGO PROJEKTU (decyzja właściciela T4-D4) ═══**
+        **ROZBUDOWA EKRANU MONITORINGU — OSOBNY KROK (roboczo T5), z własnym
+        planem, pytaniami i zgodą** (reguła z 2026-08-28 obowiązuje). Osobny,
+        żeby nie mieszać „naprawy tego, co zgłosił właściciel" z „nową
+        funkcją" w jednym przeglądzie.
+        **DECYZJE WŁAŚCICIELA Z 2026-08-31, wiążące dla tego kroku:**
+        **T4-D2** — punkt odniesienia do poprzedniego okresu **TAK, samą
+        liczbą** („dziś 5, poprzednie 24 h: 12"), bez wykresu; **T4-D3** —
+        ekran ma służyć **wszystkim czterem celom naraz**: czy ludzi
+        przybywa · czego szukają przed zakupem · czy ktoś dobija się do kont ·
+        żeby dało się policzyć swoje.
+        **ZAKRES — wszystko z danych, KTÓRE JUŻ ZBIERAMY, bez ani jednej
+        nowej kolumny** (pełnia z uzasadnieniami: TEST-RECZNY-T4.md):
+        (1) punkt odniesienia do poprzedniego okresu; (2) lejek katalog →
+        strona kursu → bramka — **kolumna `bramka` to dane, których nie ma
+        nikt inny**: Woo zna zamówienia, Tutor zapisy, tylko my wiemy, KTO
+        CHCIAŁ I SIĘ ODBIŁ; (3) strony wejściowe (pierwsza ścieżka w sesji);
+        (4) sesje jednostronicowe (odróżniają „pięcioro uciekło" od „jedno
+        czytało"); (5) kafelek „ostatnia aktywność" — **zabezpieczenie, nie
+        ciekawostka**: przy pustej tabeli ekran mówi wprost, że nic nie
+        zbiera, ale przy danych STARYCH wygląda to jak spokojny ruch;
+        (6) serie nieudanych logowań z jednego adresu — **domyka D6**
+        („rejestrujemy, nie blokujemy" ma sens tylko wtedy, gdy rejestr
+        POKAZUJE serię); (7) eksport CSV.
+        **POZA ZAKRESEM ZOSTAJE:** wykresy i porównania rok do roku (poza
+        T3), cokolwiek o sprzedaży (**D4** — od tego są raporty Woo),
+        łączenie ruchu z kontem (**D3** — ruch jest anonimowy i ma taki
+        zostać).
+        **POTEM ostatnia rzecz z etapu WP: TEST CAŁOŚCI** — czy trzy wtyczki
+        współpracują i czy projekt trzyma się kupy architektonicznie.
+
+        Zapis historyczny (scenariusz T4, przed jego zaliczeniem):
         SCENARIUSZ WIĄŻĄCY:
         [docs/plugin-3/TEST-RECZNY-T4.md](docs/plugin-3/TEST-RECZNY-T4.md)
         — CZYTAĆ PRZED PRACĄ** (wzorzec: [TEST-RECZNY-P6.md](docs/plugin-2/TEST-RECZNY-P6.md)).
@@ -2748,9 +2857,8 @@ wyprowadzała tego od nowa:
         każda liczba ma znanego autora), sprzedaż otwarta, kursy 2, konto
         `klient-test` (NIE kasować), skrzynka `127.0.0.1:8893`,
         `wp aai-monitor sprawdz` kod 0.
-        **PO T4 zostaje ostatnia rzecz z etapu WP: TEST CAŁOŚCI** — czy
-        trzy wtyczki współpracują i czy projekt trzyma się kupy
-        architektonicznie.
+        (Zapis historyczny: „PO T4 zostaje TEST CAŁOŚCI" — dalej aktualne,
+        ale dopiero PO kroku rozbudowy ekranu, patrz wyżej.)
         Zapis historyczny (stan przed naprawami):
         (raporty obu recenzentów, dowody uruchomieniowe, plan napraw
         w czterech turach, cztery pytania do właściciela).
