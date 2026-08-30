@@ -64,6 +64,25 @@ melduje wtyczka (jedno źródło treści: `Aai_Monitor_Prywatnosc::tresc()`).
 > administratora, więc na witrynie, na którą przez dłuższy czas nikt się
 > nie loguje, usunięcie następuje przy najbliższym z tych zdarzeń.
 >
+> ### Pomiar ruchu na stronach
+>
+> Osobno mierzymy ruch na stronach, i ten pomiar jest anonimowy. Przy
+> wyjściu ze strony zapisujemy: jej adres, moment wejścia oraz czas,
+> przez który strona była widoczna na ekranie. Do rozróżnienia kolejnych
+> stron otwieranych w jednej karcie służy losowy identyfikator, który
+> przeglądarka trzyma w pamięci karty i kasuje przy jej zamknięciu. Przy
+> tych danych NIE zapisujemy adresu IP, konta ani nazwy przeglądarki
+> i nie łączymy ich z żadnym kontem — po zapisaniu nie da się z nich
+> ustalić, kto oglądał stronę.
+>
+> Ruch mierzymy po to, żeby wiedzieć, które strony i lekcje są czytane,
+> a które nie (art. 6 ust. 1 lit. f RODO — prawnie uzasadniony interes).
+> Nie używamy do tego zewnętrznych narzędzi analitycznych, nie budujemy
+> profili i nie śledzimy nikogo poza tą witryną. Zapisy o ruchu usuwamy
+> do 400 dni od ostatniej odsłony.
+>
+> ### Twoje prawa
+>
 > Masz prawo dostępu do tych danych, ich sprostowania, usunięcia
 > i sprzeciwu wobec przetwarzania — wystarczy wiadomość na adres
 > kontaktowy podany w polityce.
@@ -74,9 +93,16 @@ w kokpicie, bez WP-Cron (który na cichej stronie potrafi nie wstać całymi
 dniami — pułapka P7). Obietnica twardych 90 dni byłaby więc na cichej
 instalacji nieprawdziwa. Polityka ma opisywać MECHANIZM, nie zamiar.
 
-**Wpis mówi tylko o dzienniku logowań**, bo tylko on dziś cokolwiek
-zbiera. Pomiar ruchu wchodzi w kroku **T3** i wtedy dopisze własne zdanie
-— o sesji anonimowej, bez adresu IP i bez łączenia z kontem (D3).
+**Od kroku T3 wpis mówi o DWÓCH rzeczach**, bo dwie zbieramy: dzienniku
+logowań (dane osobowe, 90 dni) i pomiarze ruchu (anonimowo, 400 dni).
+Akapit o ruchu opisuje mechanizm dosłownie — identyfikator karty żyje
+w `sessionStorage` przeglądarki, nie w ciasteczku, i nie ma czego łączyć
+z kontem, bo przy wizycie nie zapisujemy ani adresu IP, ani konta (D3).
+
+**Ocena prawna `sessionStorage` zostaje otwarta** (ePrivacy): to nie jest
+ciasteczko i nie służy profilowaniu, ale rozstrzygnięcie należy do
+prawnika — pozycja „przed pierwszym klientem", razem z całą sekcją 2
+niżej.
 
 ---
 
