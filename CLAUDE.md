@@ -2472,18 +2472,120 @@ wyprowadzała tego od nowa:
         sobie), Pluginy 1 i 2 nietknięte (powiązania 2), `wp aai-monitor
         sprawdz` kod 0, konto `klient-test` na obu kursach (NIE kasować —
         potrzebne do bramek), skrzynka `127.0.0.1:8893`.
-        **NASTĘPNY KROK CAŁEGO PROJEKTU: T2 — DZIENNIK LOGOWAŃ.** Wg
-        reguły właściciela (2026-08-28) najpierw **plan przebiegu kroku
+        **KROK T2 ZROBIONY (wersja 0.56.0, gałąź `feat/t2-dziennik-logowan`):
+        dziennik logowań DZIAŁA.** Kontrola melduje „Czujki: logowania",
+        a ekran pokazuje, kto i skąd wchodził na konta. Powstało:
+        `Aai_Monitor_Logowania` (trzy haki rdzenia, każdy w `try/catch
+        ( Throwable )` — to wymaganie BEZPIECZEŃSTWA SKLEPU, nie higiena:
+        wyjątek z `set_logged_in_cookie` wychodzi z kasy WooCommerce),
+        `Aai_Monitor_Zadanie` (jedno miejsce, w którym powstaje IP — bez
+        czytania `X-Forwarded-For`), `Aai_Monitor_Prywatnosc` (wpis do
+        polityki przez natywne `wp_add_privacy_policy_content()`
+        + fragment w [docs/plugin-3/POLITYKA-PRYWATNOSCI.md](docs/plugin-3/POLITYKA-PRYWATNOSCI.md)),
+        wspólny moduł higieny `tools/smoke/dziennik.mjs`, cztery reguły
+        `straznik-monitora-wp` (8→12) i dwie `straznik-higieny-smokow`
+        (7→9). Dowody: strażnicy 37/37, audyt mutacyjny **255** (253
+        złapane, 0 przeoczonych, 0 martwych), smoke monitoringu **76**.
+        **TRZY RZECZY ZMIERZONE PRZED PISANIEM KODU** (od nich zależał
+        projekt): (1) `set_logged_in_cookie` NIE odpala się przy każdym
+        żądaniu zalogowanego — pięć odsłon `/wp-admin/` na gotowej sesji
+        nie dołożyło ani jednej linii, więc dziennik rośnie w tempie
+        LOGOWAŃ, nie odsłon; (2) `wc_set_customer_auth_cookie()` odpala
+        WYŁĄCZNIE ten hak, bez `wp_login` (F3) — stąd dwa haki i dedup;
+        (3) `wp_add_privacy_policy_content()` odmawia pracy poza
+        `wp-admin` i przed `admin_init` (`plugin.php:2429`), więc
+        wywołanie z `plugins_loaded` nie dodałoby NIC, bez objawu.
+        **SMOKE MONITORINGU KASOWAŁ CUDZE WIERSZE** — test retencji
+        cofał czas wierszowi z `MIN(id)` CAŁEJ tabeli i oddawał go
+        retencji; do T2 bezpieczne, od T2 trafiało w cudzy wpis
+        (zmierzone). Złapał to rachunek sumienia liczący CAŁĄ tabelę,
+        nie własne ślady (lekcja z P5). Na instalacji właściciela
+        zniknąłby jego najstarszy wpis logowania.
+        **HIGIENA (N13) OKAZAŁA SIĘ WIĘKSZA, NIŻ ZAPOWIADAŁ SCHEMAT:**
+        wpisy zostawiało SIEDEM bramek (pomiar przelotem z licznikiem
+        przed/po), w tym `zakup` i `produkty`, których NIE WIDZI żaden
+        wzorzec czytający nasz kod — sesję zakłada im WooCommerce
+        w środku składania zamówienia. Stąd w strażniku, obok wzorca
+        zachowania, JAWNA LISTA ZMIERZONYCH z komendą do powtórzenia
+        pomiaru.
+        **POMIAR OBALIŁ GREP W OBIE STRONY**, a pierwszy przelot kłamał
+        ciszej: `jezyk`, `panel` i `motyw` pokazały „zostawia 0", bo
+        w ogóle się nie uruchomiły (brak `ZRZUTY_RIG`) — kod wyjścia 1
+        był jedynym śladem. **Pomiar bez sprawdzenia kodu wyjścia mierzy
+        ciszę, nie stan.**
+        **TRZY ŚLEPOTY ZŁAPANE WŁASNYMI TESTAMI NEGATYWNYMI** (wszystkie
+        przechodziły na zielono, gdy powinny się zapalić): asercja
+        „hasło nigdy w dzienniku" patrzyła tylko na wiersz PORAŻKI;
+        reguła „bramka sprząta" nie widziała bramek logujących się przez
+        cudzy kod; reguła „bramka się rozlicza" liczyła WYSTĄPIENIA
+        wywołania i przechodziła po zamianie asercji na `true === true`,
+        bo drugie wywołanie zostawało w komunikacie błędu.
+        **TABELA KROKÓW W SCHEMACIE BYŁA NIEAKTUALNA** — obiecywała w T2
+        retencję, jej drugi wyzwalacz i sekcję „Logowania" ekranu, a te
+        trzy rzeczy zbudował już T1. Sprostowane.
+        **ZOSTAJE DO DECYZJI WŁAŚCICIELA (poza zakresem T2, zgłoszone
+        zamiast naprawiane):** cała polityka prywatności rozjechana ze
+        stanem witryny — wypiera się cookies, `localStorage` i analityki,
+        choć WooCommerce stawia ciastka koszyka, a WordPress ciastka
+        logowania. Rozjazd jest STARSZY od Pluginu 3. Tabela cytat po
+        cytacie: POLITYKA-PRYWATNOSCI.md §2; pozycja „przed pierwszym
+        klientem", obok regulaminu i zgody w kasie.
+        **PRZEGLĄD PRZED PR-em (para agent+krytyk, dwóch recenzentów na
+        rozłącznych obszarach): DZIEWIĘĆ znalezisk, każde potwierdzone
+        URUCHOMIENIOWO przed naprawą.** Pięć w kodzie: (1) **hasło wpisane
+        w pole loginu szło do bazy jawnym tekstem** na 90 dni i na ekran
+        admina — `sanitize_user()` w trybie nieścisłym NIE usuwa
+        `@ ! # $ % & _ -` ani cyfr, więc `MojeTajneHaslo#2026` przechodziło
+        bez zmiany, wbrew zdaniu z polityki prywatności; nieistniejące
+        konta są teraz MASKOWANE (`Moj…(19 znaków)`), istniejące dosłownie;
+        (2) **dedup gubił całe logowanie**, gdy w jednym procesie były dwa
+        konta — trzymamy parę [wiersz, konto]; (3) `ArgumentCountError`
+        omijał `try` (powstaje PRZY WYWOŁANIU) i leciał do kasy — parametry
+        mają wartości domyślne; (4) `sanitize_text_field` **ucinał
+        user-agenta na pierwszym `<`**, czyli kasował przypadek, dla
+        którego ta kolumna istnieje; (5) cudzy callback padający na
+        priorytecie 5 **zabierał nam zdarzenie** — haki idą z priorytetem 1.
+        Cztery w bramkach, wszystkie o tym, że DOWÓD BYŁ POZORNY:
+        (6) **rachunek sumienia MARTWY w sześciu z siedmiu bramek** —
+        asercja stała ZA `process.exit(1)`, więc mutacja psująca ją
+        przechodziła z kodem 0 (pilnuje reguła 10 strażnika higieny);
+        (7) **reguła o `catch ( Throwable )` ślepa** — pytała o obecność
+        słowa, więc instrukcja LINIĘ przed `try` przechodziła na zielono,
+        a Error wychodził do kasy; (8) **nic nie pilnowało, że producent
+        jest PODPIĘTY** — zdjęcie jednej linii dawało martwy dziennik przy
+        obu strażnikach zielonych i kontroli kod 0 (doszła reguła 13,
+        a kontrola świeci kod 1 przy zerze czujek); (9) komentarz
+        o sprzątaniu opisywał mechanizm, którego w kodzie NIE MA (BLAD-018).
+        **MÓJ POMIAR BRAMEK BYŁ ZANIECZYSZCZONY** — przypisałem wpisy
+        bramkom `produkty` i `zakup`, bo w tle biegły MOJE WŁASNE żądania
+        HTTP. Wpisy tworzy **PIĘĆ bramek plus smoke monitoringu**, nie
+        siedem. **Dwie pułapki pomiaru do zapamiętania:** bramka bez
+        `ZRZUTY_RIG` pada PRZED pierwszym logowaniem i pokazuje fałszywe
+        „zostawia 0" (kod wyjścia jest jedynym śladem), a pomiar równoległy
+        z własną pracą przypisuje jej skutki mierzonemu. Mierz
+        `AUTO_INCREMENT`, nie liczbę wierszy — sprzątanie kasuje ślad, ale
+        licznika nie cofa. Audyt 255 → **260**; jedna mutacja tego kroku
+        UMARŁA po zmianie priorytetu haków i złapał to audyt.
+        **NIESTABILNOŚĆ `smoke-wp-motyw` POWTÓRZYŁA SIĘ — nie zaczynać
+        śledztwa od nowa.** Ta sama co przy T1: w PEŁNYM przelocie bramek
+        pada 2 z 91, uruchomiony OSOBNO przechodzi 91/91. W tym kroku
+        zdarzyło się dwa razy, a trzy próby reprodukcji (para
+        `jezyk → motyw`, trójka `kreator → panel → jezyk → motyw`,
+        przebieg osobny) dały zielone. Przyczyny dalej NIE ustaliłem;
+        kod monitoringu nie dotyka ani frontu, ani logowania, a
+        `npm run check` i pozostałych dwanaście bramek jest zielonych.
+        **NASTĘPNY KROK CAŁEGO PROJEKTU: T3 — TIMER WIZYT.** Wg reguły
+        właściciela (2026-08-28) najpierw **plan przebiegu kroku
         + pytania doprecyzowujące i CZEKAĆ NA ZGODĘ**, dopiero potem kod.
-        Zakres T2 i jego bramka: DIAGRAM.md sekcja 12 (trzy haki
-        z `try/catch`, dedup źródła, retencja 90 dni + drugi wyzwalacz,
-        sekcja „Logowania" ekranu, wpis do polityki prywatności; zamyka
-        N2, N3, N4, N5, N6, N13, N15 + test ręczny logowania z kasy).
-        **Czego T2 NIE dotyka:** beaconu wizyt ani `pomiar.js` (to T3).
-        Wchodząc w T2 pamiętać o F17/F18 — one dotyczą wystrzału z T3,
-        nie haków logowania
-        (fundament + EKRAN + pięć czynności integracji środowiska +
-        sprostowanie trzech obietnic o Pluginie 3 w repo).
+        Zakres T3 i jego bramka: DIAGRAM.md sekcja 12 (`assets/pomiar.js`
+        z Blobem `application/json`, akcja pod OBIEMA nazwami
+        `admin_post_nopriv_*` i `admin_post_*` — F17 — z nazwą akcji
+        w QUERY STRINGU — F18 — czytająca `php://input`, sito z walidacją
+        ścieżki i `Origin`, miękki limiter, retencja 400 dni, sekcja
+        „Ruch" ekranu; zamyka N7, N8, N9, N10, N11, N12, N18).
+        **Przed ustaleniem liczb: `EXPLAIN` na trzech zapytaniach ekranu
+        i POMIAR realnego rozmiaru beaconu** — sufity mają mieć wartości
+        z pomiaru albo jawną etykietę „kalibracja po pierwszym tygodniu".
      **POZA MODUŁAMI, przed pierwszym klientem** (spinane na bieżąco,
      decyzja 4b): prawdziwa bramka płatności (Tpay/PayU/P24 — wtyczka do
      Woo), regulamin (właściciel), zgoda w kasie na natychmiastowe

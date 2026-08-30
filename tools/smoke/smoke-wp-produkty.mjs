@@ -32,6 +32,7 @@
  * Użycie: node tools/smoke/smoke-wp-produkty.mjs
  */
 import { execFileSync } from "node:child_process";
+import { migawkaDziennika, sprzatnijDziennik, ileWpisow } from "./dziennik.mjs";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
@@ -57,6 +58,16 @@ function wp(...argumenty) {
   }
 }
 const php = (kod) => wp("eval", kod).out;
+
+/*
+ * HIGIENA DZIENNIKA LOGOWAŃ (N13). Ta bramka loguje się do instalacji,
+ * więc od kroku T2 KAŻDY jej przebieg zostawia wpisy w dzienniku
+ * Pluginu 3 — zmierzone. Bez sprzątania licznik nieudanych prób
+ * z 7 dni, czyli jedyna funkcja alarmowa ekranu monitoringu, pokazywałby
+ * serie wyprodukowane przez nasze własne testy.
+ */
+const _dziennikPrzed = ileWpisow(php);
+const _dziennikMigawka = migawkaDziennika(php);
 /**
  * Wartość z PHP porównywana RÓWNOŚCIĄ, nie końcówką.
  *
@@ -433,6 +444,13 @@ sprawdz(powiazaniaPo === powiazaniaPrzed, `smoke zostawił ślad w powiazania: p
 sprawdz(liczbaProduktow() === produktowPrzed, `smoke zostawił produkt: przed ${produktowPrzed}, po ${liczbaProduktow()}`);
 const finalna = wp("aai-platnosci", "sprawdz");
 sprawdz(finalna.kod === 0, `po sprzątaniu kontrola czerwona (kod ${finalna.kod}) — smoke zostawił rozjazd: ${finalna.err}`);
+
+/* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
+sprzatnijDziennik(php, _dziennikMigawka);
+sprawdz(
+  ileWpisow(php) === _dziennikPrzed,
+  `bramka zostawiła ślad w dzienniku logowań: przed ${_dziennikPrzed}, po ${ileWpisow(php)} wpisów (N13)`
+);
 
 if (bledy.length > 0) {
   console.error(`smoke-wp-produkty: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);

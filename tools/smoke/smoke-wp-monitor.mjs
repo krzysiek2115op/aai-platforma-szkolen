@@ -44,6 +44,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { migawkaDziennika, sprzatnijDziennik, ileWpisow } from "./dziennik.mjs";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
@@ -137,6 +138,16 @@ sprawdz(
 );
 
 const licznikiPrzed = liczniki();
+/*
+ * Granica „co powstało w TYM przebiegu". Od T2 wiersze produkuje też
+ * WordPress — przy każdym logowaniu, które ten smoke wykonuje. Migawkę
+ * i sprzątanie bierzemy ze WSPÓLNEGO modułu, tego samego, którego używa
+ * siedem pozostałych bramek: zduplikowana logika sprzątania w dwóch
+ * miejscach rozjeżdża się przy pierwszej poprawce tylko jednego z nich.
+ */
+const php = (kod) => phpEval(kod).stdout;
+const dziennikPrzed = ileWpisow(php);
+const dziennikMigawka = migawkaDziennika(php);
 
 /* ── 1. schemat: co tabele NAPRAWDĘ mają ────────────────────────────── */
 
@@ -240,36 +251,79 @@ sprawdz(
 
 /* ── 4. retencja: dwa wyzwalacze ────────────────────────────────────── */
 
-const podlozStary = (tabela, kolumna, dni) =>
+/*
+ * Cofa czas WSKAZANEMU wierszowi — nigdy „najstarszemu w tabeli".
+ *
+ * Pierwsza wersja brała `MIN(id)`, bo do kroku T2 w tych tabelach nie
+ * było nic poza wierszami smoke'a. Od T2 pisze do nich WordPress przy
+ * każdym logowaniu, a docelowo są tam prawdziwe wpisy właściciela —
+ * więc `MIN(id)` trafiał w NAJSTARSZY CUDZY wiersz, cofał mu czas
+ * o 400 dni i oddawał go retencji do skasowania.
+ *
+ * Zmierzone, nie teoretyczne: po przelocie wszystkich bramek WP smoke
+ * kasował wiersz `smoke-kreator-gosc` zostawiony przez smoke kreatora
+ * (przed 4 wiersze, po 3). Na instalacji właściciela zniknąłby jego
+ * najstarszy wpis logowania — czyli DOWÓD, gdyby akurat prowadził
+ * dochodzenie po włamaniu. Złapał to rachunek sumienia, który liczy
+ * CAŁĄ tabelę, a nie tylko własne ślady (lekcja z P5).
+ */
+const podlozStary = (tabela, kolumna, dni, id) =>
   phpEval(
-    `global $wpdb; $t = Aai_Monitor_Tabele::tabela('${tabela}'); $wpdb->query( $wpdb->prepare( "UPDATE \`{$t}\` SET \`${kolumna}\` = %s WHERE id = %d", gmdate('Y-m-d H:i:s', time() - ${dni} * DAY_IN_SECONDS), (int) $wpdb->get_var("SELECT MIN(id) FROM \`{$t}\`") ) ); echo 'ok';`
+    `global $wpdb; $t = Aai_Monitor_Tabele::tabela('${tabela}'); $wpdb->query( $wpdb->prepare( "UPDATE \`{$t}\` SET \`${kolumna}\` = %s WHERE id = %d", gmdate('Y-m-d H:i:s', time() - ${dni} * DAY_IN_SECONDS), ${id} ) ); echo 'ok';`
   ).stdout;
 
-podlozStary("logowania", "czas", 400);
+// Własny wiersz do zestarzenia — nie ruszamy niczego, czego nie stworzyliśmy.
+const idDoRetencji = phpEval(
+  "Aai_Monitor_Zapis::dodaj_logowanie( array( 'zdarzenie' => 'udane', 'login' => 'smoke-monitor-stary', 'ip' => '203.0.113.8' ) ); echo Aai_Monitor_Zapis::ostatni_id();"
+).stdout;
+sprawdz(Number(idDoRetencji) > 0, "nie udało się utworzyć własnego wiersza do sprawdzenia retencji");
+podlozStary("logowania", "czas", 400, Number(idDoRetencji));
+/*
+ * Porównujemy CAŁĄ wartość, nie końcówkę. `"11".endsWith("1")` jest
+ * prawdą, a od kroku T2 w tabeli bywają wiersze spoza tego przebiegu,
+ * więc licznik większy niż 1 jest realny. Ta klasa wróciła w repo
+ * trzykrotnie (`endsWith("199.00")` przy P2, `includes("99,00 zł")`
+ * przy P3b, teraz tutaj).
+ */
+const liczbaZWyjscia = (tekst) => Number(String(tekst).trim().match(/-?\d+$/)?.[0] ?? NaN);
+
 sprawdz(
-  phpEval(
-    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('logowania'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE czas < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 200 DAY)\");"
-  ).stdout.endsWith("1"),
+  liczbaZWyjscia(
+    phpEval(
+      "global $wpdb; $t = Aai_Monitor_Tabele::tabela('logowania'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE czas < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 200 DAY)\");"
+    ).stdout
+  ) === 1,
   "nie udało się podłożyć starego wiersza — dalsze sprawdzenie retencji byłoby ślepe"
 );
 phpEval("Aai_Monitor_Zapis::dodaj_logowanie( array( 'zdarzenie' => 'udane', 'login' => 'smoke-monitor-retencja', 'ip' => '203.0.113.9' ) );");
 sprawdz(
-  phpEval(
-    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('logowania'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE czas < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 200 DAY)\");"
-  ).stdout.endsWith("0"),
+  liczbaZWyjscia(
+    phpEval(
+      "global $wpdb; $t = Aai_Monitor_Tabele::tabela('logowania'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE czas < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 200 DAY)\");"
+    ).stdout
+  ) === 0,
   "retencja przy zapisie NIE skasowała wiersza starszego niż 90 dni — dane osobowe żyją dłużej, niż obiecuje polityka prywatności"
 );
 
-podlozStary("wizyty", "wejscie", 500);
+// Ta sama zasada dla ruchu: cofamy czas WŁASNEJ wizycie. Dziś tabela jest
+// poza smoke'em pusta, ale od kroku T3 przestanie być — a wtedy `MIN(id)`
+// zabierałby prawdziwą odsłonę.
+const idWizyty = phpEval(
+  "Aai_Monitor_Zapis::dodaj_wizyte( array( 'sesja' => str_repeat('c', 32), 'sciezka' => '/smoke-monitor/stara/', 'trwanie_ms' => 1000 ) ); echo Aai_Monitor_Zapis::ostatni_id();"
+).stdout;
+sprawdz(Number(idWizyty) > 0, "nie udało się utworzyć własnej wizyty do sprawdzenia retencji");
+podlozStary("wizyty", "wejscie", 500, Number(idWizyty));
 const skasowane = phpEval("echo (int) Aai_Monitor_Zapis::retencja();").stdout;
 sprawdz(
   Number(skasowane.match(/\d+$/)?.[0] ?? 0) >= 1,
   `drugi wyzwalacz retencji (ten, którego używa ekran) nie skasował niczego: ${skasowane}`
 );
 sprawdz(
-  phpEval(
-    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE wejscie < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 450 DAY)\");"
-  ).stdout.endsWith("0"),
+  liczbaZWyjscia(
+    phpEval(
+      "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty'); echo (int) $wpdb->get_var(\"SELECT COUNT(*) FROM `{$t}` WHERE wejscie < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 450 DAY)\");"
+    ).stdout
+  ) === 0,
   "retencja ruchu nie zadziałała mimo jawnego wywołania"
 );
 
@@ -393,12 +447,317 @@ sprawdz(
 );
 sprawdz(liczniki() === przedDeaktywacja, "cykl deaktywacja → aktywacja zmienił liczbę wierszy");
 
+/* ── 9. HAKI LOGOWANIA: trzy ścieżki na ŻYWO (T2) ───────────────────── */
+
+/*
+ * Bloki 1–8 mierzą warstwę zapisu wołaną WPROST. Ten blok mierzy to,
+ * czego nie da się wyczytać ze źródła: czy WordPress i WooCommerce
+ * naprawdę odpalają haki, na których stoi cały dziennik — i czy dedup
+ * źródła daje JEDEN wiersz, a nie dwa.
+ */
+
+const LOGIN_NIEISTNIEJACY = "smoke-monitor-nie-ma-konta";
+
+/** Wiersze dziennika nowsze niż podany identyfikator. */
+const nowszeNiz = (id) =>
+  JSON.parse(
+    phpEval(
+      `global $wpdb; $t = Aai_Monitor_Tabele::tabela('logowania'); echo wp_json_encode( $wpdb->get_results( $wpdb->prepare( "SELECT * FROM \`{$t}\` WHERE id > %d ORDER BY id", ${id} ), ARRAY_A ) );`
+    ).stdout || "[]"
+  );
+
+/** Świeża sesja gościa — każda próba bez ciastek poprzedniej. */
+const gosc2 = () => sesja();
+
+const maxId = () => Number(phpEval('global $wpdb; echo (int) $wpdb->get_var("SELECT COALESCE(MAX(id),0) FROM " . Aai_Monitor_Tabele::tabela("logowania"));').stdout || 0);
+
+/* N2 — logowanie formularzem daje DOKŁADNIE JEDEN wiersz. */
+const przedFormularzem = maxId();
+const klientHakow = sesja();
+sprawdz(await klientHakow.zaloguj("klient-test", HASLA.WP_KLIENT_HASLO), "nie udało się zalogować jako klient-test");
+
+const poFormularzu = nowszeNiz(przedFormularzem);
+sprawdz(
+  poFormularzu.length === 1,
+  `logowanie formularzem zostawiło ${poFormularzu.length} wierszy zamiast jednego (N2). Dwa znaczą, że dedup nie zadziałał: set_logged_in_cookie utworzył wiersz, a wp_login dopisał drugi zamiast doprecyzować pierwszy — dziennik działa, tylko liczy każde wejście podwójnie.`
+);
+sprawdz(
+  poFormularzu[0]?.zrodlo === "formularz",
+  `logowanie formularzem zapisało źródło „${poFormularzu[0]?.zrodlo}” zamiast „formularz” (N2). Bez doprecyzowania nie da się odróżnić człowieka przy formularzu od automatycznego wejścia z kasy — a po to istnieje ta kolumna.`
+);
+sprawdz(
+  poFormularzu[0]?.zdarzenie === "udane" && Number(poFormularzu[0]?.user_id) > 0,
+  "wiersz logowania formularzem nie ma zdarzenia „udane” albo identyfikatora konta"
+);
+sprawdz(
+  (poFormularzu[0]?.ip ?? "") !== "",
+  "wiersz logowania nie ma adresu IP — dziennik ma odpowiadać na pytanie „kto i SKĄD” (D2)"
+);
+
+/* N5 — porażka trafia do dziennika, a hasła w niej NIE MA. */
+const przedPorazka = maxId();
+const HASLO_PROBNE = "smoke-monitor-haslo-probne-9f3a";
+const goscHakow = sesja();
+await goscHakow.pobierz("/wp-login.php");
+await goscHakow.pobierz("/wp-login.php", {
+  method: "POST",
+  headers: { "content-type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    log: LOGIN_NIEISTNIEJACY,
+    pwd: HASLO_PROBNE,
+    "wp-submit": "Zaloguj",
+    testcookie: "1",
+  }).toString(),
+});
+
+const poPorazce = nowszeNiz(przedPorazka);
+sprawdz(
+  poPorazce.length === 1 && poPorazce[0]?.zdarzenie === "nieudane",
+  `nieudana próba nie zostawiła wiersza „nieudane” (dostałem ${poPorazce.length}). Bez niej licznik porażek z 7 dni — JEDYNA funkcja alarmowa ekranu — pokazuje zero niezależnie od tego, ile razy ktoś próbował się włamać (N5).`
+);
+/*
+ * Login NIEISTNIEJĄCEGO konta jest maskowany — celowo, od przeglądu T2:
+ * w tym polu bywa HASŁO (A1 niżej). Zostaje początek i długość, czyli
+ * wzorzec ataku bez sekretu. Istniejące konta zapisujemy dosłownie
+ * i tego pilnuje osobne sprawdzenie w bloku A1.
+ */
+sprawdz(
+  (poPorazce[0]?.login ?? "").startsWith(LOGIN_NIEISTNIEJACY.slice(0, 3)) &&
+    (poPorazce[0]?.login ?? "").includes(String(LOGIN_NIEISTNIEJACY.length)),
+  `wiersz porażki zapisał login „${poPorazce[0]?.login}” — oczekiwano początku „${LOGIN_NIEISTNIEJACY.slice(0, 3)}” i długości ${LOGIN_NIEISTNIEJACY.length}. To jedyna informacja o tym, kogo próbowano podszyć, więc nie może zniknąć w całości`
+);
+sprawdz(
+  poPorazce[0]?.user_id === null,
+  "wiersz porażki ma user_id zamiast NULL-a — zero udawałoby konto o identyfikatorze zero"
+);
+/*
+ * N5 — HASŁO NIGDY W DZIENNIKU. Pytamy o WSZYSTKIE wiersze przebiegu
+ * i o WSZYSTKIE hasła, których w nim użyliśmy.
+ *
+ * Pierwsza wersja tej asercji patrzyła tylko na wiersz PORAŻKI i była
+ * ŚLEPA — wykrył to jej własny test negatywny. Mutacja dopisująca
+ * $_POST['pwd'] do handlera UDANEGO logowania przeszła na zielono, bo
+ * asercja tam nie zaglądała. A przy udanym logowaniu formularzem
+ * $_POST['pwd'] jest ustawione dokładnie tak samo jak przy porażce, więc
+ * ta ścieżka wycieku jest równie realna.
+ *
+ * Hak wp_login_failed hasła nie niesie, więc bez mutacji to sprawdzenie
+ * przechodzi zawsze — schemat wymaga dla niego UDOKUMENTOWANEGO testu
+ * negatywnego (N5) i taki został wykonany na obu handlerach.
+ */
+const wszystkieWierszePrzebiegu = nowszeNiz(przedFormularzem);
+const HASLA_PRZEBIEGU = [HASLO_PROBNE, HASLA.WP_KLIENT_HASLO, HASLA.WP_ADMIN_HASLO].filter(Boolean);
+for (const haslo of HASLA_PRZEBIEGU) {
+  sprawdz(
+    !JSON.stringify(wszystkieWierszePrzebiegu).includes(haslo),
+    `HASŁO TRAFIŁO DO DZIENNIKA (N5). Dziennik zapisuje, kto i skąd próbował — nigdy czym. Sprawdzane są WSZYSTKIE wiersze przebiegu i wszystkie użyte hasła, bo wyciek przez handler udanego logowania jest tak samo możliwy jak przez porażkę.`
+  );
+}
+
+/* ── PO PRZEGLĄDZIE: pięć rzeczy, które przedtem przechodziły ────────── */
+
+/*
+ * A1 — w polu loginu bywa HASŁO (autouzupełnianie, zły układ klawiatury).
+ * Rdzeń puszcza je przez sanitize_user(), które w trybie nieścisłym NIE
+ * usuwa @ ! # $ % & _ - ani cyfr, więc wartość szła do dziennika jawnym
+ * tekstem na 90 dni — wbrew obietnicy z polityki prywatności.
+ */
+const SEKRET = "MojeTajneHaslo#2026";
+const przedSekretem = maxId();
+await gosc2().pobierz("/wp-login.php");
+await gosc2().pobierz("/wp-login.php", {
+  method: "POST",
+  headers: { "content-type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({ log: SEKRET, pwd: SEKRET, "wp-submit": "Zaloguj", testcookie: "1" }).toString(),
+});
+const poSekrecie = nowszeNiz(przedSekretem);
+sprawdz(
+  poSekrecie.length === 1 && !JSON.stringify(poSekrecie).includes(SEKRET),
+  `wartość wpisana w pole loginu trafiła do dziennika DOSŁOWNIE — a bywa nią hasło (A1). W polu „login” zapisano: „${poSekrecie[0]?.login}”. Nieistniejące konto ma być maskowane; istniejące zostaje dosłownie, bo to sedno pytania „kogo próbowano podszyć”.`
+);
+sprawdz(
+  (poSekrecie[0]?.login ?? "").startsWith(SEKRET.slice(0, 3)),
+  "zamaskowany login stracił początek — wtedy nie widać wzorca ataku (adm…, roo…, tes…), a po to ta kolumna istnieje"
+);
+
+/* A1, druga strona: ISTNIEJĄCE konto zapisujemy dosłownie. */
+const przedIstniejacym = maxId();
+await gosc2().pobierz("/wp-login.php", {
+  method: "POST",
+  headers: { "content-type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({ log: "admin", pwd: "na-pewno-zle", "wp-submit": "Zaloguj", testcookie: "1" }).toString(),
+});
+sprawdz(
+  nowszeNiz(przedIstniejacym)[0]?.login === "admin",
+  "nieudana próba na ISTNIEJĄCE konto została zamaskowana — maskowanie ma dotyczyć wyłącznie wartości, które kontem nie są, inaczej dziennik traci wartość dowodową"
+);
+
+/*
+ * A2 — dedup musi pytać o KONTO. Bez tego sesja jednego konta i wp_login
+ * drugiego (jeden proces PHP: WP-CLI, nasze bramki, cudza wtyczka logująca
+ * programowo) dawały JEDEN wiersz: logowanie drugiego konta znikało, a wpis
+ * pierwszego dostawał cudzą etykietę „formularz”.
+ */
+const przedDwomaKontami = maxId();
+phpEval(
+  '$k = get_user_by( "login", "klient-test" ); $a = get_user_by( "login", "admin" );' +
+    ' do_action( "set_logged_in_cookie", "c", 0, 0, $k->ID, "logged_in", "t" );' +
+    ' do_action( "wp_login", $a->user_login, $a ); echo "ok";'
+);
+const dwaKonta = nowszeNiz(przedDwomaKontami);
+sprawdz(
+  dwaKonta.length === 2,
+  `sesja jednego konta i logowanie drugiego w tym samym procesie dały ${dwaKonta.length} wierszy zamiast dwóch (A2) — jedno zdarzenie zniknęło z dziennika bez śladu, a dziennik, który cicho gubi zdarzenia, jest gorszy niż brak dziennika`
+);
+sprawdz(
+  dwaKonta[0]?.zrodlo === "sesja" && dwaKonta[1]?.zrodlo === "formularz",
+  `wiersz jednego konta przejął źródło drugiego (A2): dostałem „${dwaKonta[0]?.zrodlo}” i „${dwaKonta[1]?.zrodlo}”`
+);
+
+/*
+ * A4 — ArgumentCountError powstaje PRZY WYWOŁANIU, więc try w ciele metody
+ * nigdy się nie zaczyna i wyjątek wychodzi z do_action() prosto do kasy.
+ * Mierzymy NASZ handler (cudze na tym haku mają tę samą słabość — Tutor).
+ */
+sprawdz(
+  phpEval(
+    /*
+     * Zdejmujemy CUDZE callbacki z OBU haków — inaczej mierzylibyśmy
+     * cudzą odporność zamiast własnej. Tutor ma na `wp_login` dokładnie
+     * tę samą słabość (`TUTOR\User::update_user_last_login()`), więc bez
+     * tego kroku test padał na nie naszym kodzie.
+     */
+    'global $wp_filter; foreach ( array( "wp_login", "set_logged_in_cookie" ) as $hak ) {' +
+      ' if ( ! isset( $wp_filter[$hak] ) ) continue;' +
+      ' foreach ( $wp_filter[$hak]->callbacks as $p => $cbs ) { foreach ( $cbs as $i => $cb ) {' +
+      ' $f = $cb["function"];' +
+      ' $nasze = is_array( $f ) && is_string( $f[0] ) && str_starts_with( $f[0], "Aai_Monitor" );' +
+      ' if ( ! $nasze ) unset( $wp_filter[$hak]->callbacks[$p][$i] ); } } }' +
+      ' try { do_action( "wp_login" ); do_action( "set_logged_in_cookie", "x" ); echo "ok"; } catch ( Throwable $e ) { echo "wyjatek"; }'
+  ).stdout.endsWith("ok"),
+  "hak odpalony z mniejszą liczbą argumentów wywraca NASZ handler (A4) — ArgumentCountError powstaje przed wejściem do try, więc leci prosto do cudzego żądania; w kasie to HTTP 500 i przerwany zakup. Parametry mają mieć wartości domyślne."
+);
+
+/*
+ * A5 — sanitize_text_field() ucinał user-agenta na pierwszym „<” i zjadał
+ * sekwencje %XX, czyli kasował dokładnie ten przypadek, dla którego ta
+ * kolumna istnieje: narzędzie wstrzykujące ładunek w UA.
+ */
+const UA_ZLOSLIWY = "Mozilla/5.0 <script>alert(1)</script> Bot%20scan";
+const przedUa = maxId();
+await gosc2().pobierz("/wp-login.php", {
+  method: "POST",
+  headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": UA_ZLOSLIWY },
+  body: new URLSearchParams({ log: "nie-ma-konta-ua", pwd: "x", "wp-submit": "Zaloguj", testcookie: "1" }).toString(),
+});
+sprawdz(
+  nowszeNiz(przedUa)[0]?.agent === UA_ZLOSLIWY,
+  `user-agent zapisany jako „${nowszeNiz(przedUa)[0]?.agent}” zamiast całego łańcucha (A5) — przy próbie włamania liczy się DOKŁADNY ciąg, bo to on odróżnia narzędzie od przeglądarki`
+);
+
+/*
+ * A11 — cudzy callback rzucający na NIŻSZYM priorytecie przerywa
+ * do_action() przed nami i zdarzenie nie trafia do dziennika. Priorytet 1
+ * zamyka to okno dla wszystkiego, co nie wchodzi jeszcze wcześniej.
+ */
+const przedCudzym = maxId();
+phpEval(
+  'add_action( "set_logged_in_cookie", function () { throw new RuntimeException( "cudza wtyczka" ); }, 5 );' +
+    ' try { do_action( "set_logged_in_cookie", "c", 0, 0, 1, "logged_in", "t" ); } catch ( Throwable $e ) {} echo "ok";'
+);
+sprawdz(
+  nowszeNiz(przedCudzym).length === 1,
+  "cudzy callback padający na priorytecie 5 zabrał nam zdarzenie (A11) — dziennik bezpieczeństwa ma zapisywać PRZED wszystkimi, więc haki idą z priorytetem 1"
+);
+
+/* N3 — auto-login z kasy: źródło „sesja”, bez wp_login (F3). */
+const przedKasa = maxId();
+phpEval("$u = get_user_by( 'login', 'klient-test' ); wc_set_customer_auth_cookie( $u->ID ); echo 'ok';");
+const poKasie = nowszeNiz(przedKasa);
+sprawdz(
+  poKasie.length === 1 && poKasie[0]?.zrodlo === "sesja",
+  `auto-login z kasy nie zostawił wiersza ze źródłem „sesja” (dostałem ${poKasie.length} wierszy, źródło „${poKasie[0]?.zrodlo}”). Zmierzone przy pisaniu T2: wc_set_customer_auth_cookie odpala WYŁĄCZNIE set_logged_in_cookie, bez wp_login — więc bez tego haka ścieżka KAŻDEGO nowego klienta jest dla dziennika niewidzialna (N3, F3).`
+);
+
+/* N4 + N15 — awaria zapisu nie wywraca cudzego żądania, ale jest głośna.
+ *
+ * ROZGRANICZENIE, żeby ten blok nie obiecywał więcej, niż mierzy:
+ * `catch ( Throwable )` w handlerach pilnuje STRAŻNIK (reguła 9,
+ * z mutacją „łapie tylko Exception”), bo $wpdb->insert na nieistniejącej
+ * tabeli zwraca false, a nie rzuca. Tutaj mierzymy SKUTEK, o który
+ * w N4 chodzi: przy uszkodzonym dzienniku logowanie ma dalej działać,
+ * a awaria ma być widoczna (N15) zamiast zamieniać się w pustą listę.
+ */
+const tabelaLogowan = phpEval("echo Aai_Monitor_Tabele::tabela( 'logowania' );").stdout;
+let uszkodzona = false;
+try {
+  wp("db", "query", `RENAME TABLE \`${tabelaLogowan}\` TO \`${tabelaLogowan}_smoke_schowana\``);
+  uszkodzona = true;
+
+  const przyAwarii = sesja();
+  sprawdz(
+    await przyAwarii.zaloguj("klient-test", HASLA.WP_KLIENT_HASLO),
+    "przy USZKODZONYM dzienniku logowanie przestało działać (N4). Monitoring ma prawo nie zapisać zdarzenia; nie ma prawa zepsuć cudzego żądania — a przy sesji z kasy to samo żądanie jest zakupem (F11)."
+  );
+
+  const kontrolaAwarii = wp("aai-monitor", "sprawdz");
+  sprawdz(
+    kontrolaAwarii.kod !== 0,
+    "przy uszkodzonym dzienniku kontrola dalej mówi „w porządku” (N15). Pusty ekran znaczyłby wtedy „nikt nie próbował się włamać” — fałszywy negatyw na jedynym ekranie, który ma ostrzegać."
+  );
+  sprawdz(
+    /brak tabel|logowania/.test(kontrolaAwarii.stdout + kontrolaAwarii.stderr),
+    "kontrola świeci na czerwono, ale nie mówi, CZEGO brakuje — komunikat ma prowadzić do naprawy, nie tylko alarmować"
+  );
+} finally {
+  if (uszkodzona) {
+    wp("db", "query", `RENAME TABLE \`${tabelaLogowan}_smoke_schowana\` TO \`${tabelaLogowan}\``);
+    wp("aai-monitor", "wyczysc-blad");
+  }
+}
+sprawdz(
+  wp("aai-monitor", "sprawdz").kod === 0,
+  "po przywróceniu tabeli kontrola dalej świeci na czerwono — smoke zostawiłby środowisko w stanie alarmu"
+);
+
 /* ── sprzątanie + rachunek sumienia ─────────────────────────────────── */
 
+/*
+ * SPRZĄTANIE PO SOBIE, NIGDY HURTOWE (N13, zasada z 0.54.0).
+ *
+ * Do T2 wystarczał wzorzec `login LIKE 'smoke-monitor%'`, bo smoke pisał
+ * do dziennika wyłącznie sam. Od T2 pisze też WORDPRESS — za każdym
+ * logowaniem, które ten przebieg wykonuje (blok 6 loguje admina, blok 9
+ * klienta i gościa). Te wiersze mają PRAWDZIWE loginy, więc stary wzorzec
+ * by ich nie ruszył, a rachunek sumienia padłby na własnych śladach.
+ *
+ * Kasujemy więc OKNO PRZEBIEGU — wszystko, co powstało po migawce —
+ * i nic ponadto. Nigdy `TRUNCATE`, nigdy „wszystko z dzisiaj".
+ *
+ * ŚWIADOME OGRANICZENIE, nazwane wprost po przeglądzie (wcześniej ten
+ * komentarz opisywał mechanizm, którego w kodzie NIE MA — dokładnie
+ * klasa BLAD-018): granicą jest sam identyfikator, więc gdyby ktoś
+ * zalogował się DOKŁADNIE w oknie przebiegu, jego wiersz też zniknie.
+ * Kasowanie po loginach byłoby gorsze, nie lepsze: loginy naszych bramek
+ * to prawdziwe konta (`admin`, `klient-test`), więc zabrałoby także
+ * WCZEŚNIEJSZE, prawdziwe logowania właściciela na te konta.
+ *
+ * Ryzyko jest warsztatowe i minutowe: bramki uruchamia się na `:8892`,
+ * nigdy na instalacji z ruchem. Gdyby kiedyś miało przestać wystarczać,
+ * właściwą drogą jest zbieranie identyfikatorów W TRAKCIE przebiegu
+ * (wzorzec `poczta.mjs`: migawka → różnica → jawna lista), a nie druga
+ * heurystyka po treści wiersza.
+ */
+sprzatnijDziennik(php, dziennikMigawka);
+// Wizyty mają własny znacznik w ścieżce — tabela ruchu jest anonimowa,
+// więc nie ma w niej loginu, po którym dałoby się rozpoznać nasze wiersze.
 phpEval(
-  "global $wpdb; $l = Aai_Monitor_Tabele::tabela('logowania'); $w = Aai_Monitor_Tabele::tabela('wizyty');" +
-    " $wpdb->query( \"DELETE FROM `{$l}` WHERE login LIKE 'smoke-monitor%'\" );" +
+  "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty');" +
     " $wpdb->query( \"DELETE FROM `{$w}` WHERE sciezka LIKE '/smoke-monitor/%'\" ); echo 'ok';"
+);
+sprawdz(
+  ileWpisow(php) === dziennikPrzed,
+  `bramka zostawiła ślad w dzienniku logowań: przed ${dziennikPrzed}, po ${ileWpisow(php)} wpisów (N13)`
 );
 
 const licznikiPo = liczniki();

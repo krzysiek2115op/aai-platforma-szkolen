@@ -40,6 +40,7 @@ import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { migawkaDziennika, sprzatnijDziennik, ileWpisow } from "./dziennik.mjs";
 
 const RIG = process.env.ZRZUTY_RIG;
 if (!RIG) {
@@ -74,6 +75,16 @@ function wp(...argumenty) {
 }
 
 const sql = (zapytanie) => wp("db", "query", zapytanie, "--skip-column-names").trim();
+
+/*
+ * HIGIENA DZIENNIKA LOGOWAŃ (N13). Ta bramka loguje się do instalacji,
+ * więc od kroku T2 KAŻDY jej przebieg zostawia wpisy w dzienniku
+ * Pluginu 3 — zmierzone. Bez sprzątania licznik nieudanych prób
+ * z 7 dni, czyli jedyna funkcja alarmowa ekranu monitoringu, pokazywałby
+ * serie wyprodukowane przez nasze własne testy.
+ */
+const _dziennikPrzed = ileWpisow((k) => wp("eval", k));
+const _dziennikMigawka = migawkaDziennika((k) => wp("eval", k));
 
 /* ————————————————————————— stan kursu ————————————————————————— */
 
@@ -280,6 +291,13 @@ for (const kurs of kursy) {
 }
 
 await przegladarka.close();
+
+/* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
+sprzatnijDziennik((k) => wp("eval", k), _dziennikMigawka);
+sprawdz(
+  ileWpisow((k) => wp("eval", k)) === _dziennikPrzed,
+  `bramka zostawiła ślad w dzienniku logowań: przed ${_dziennikPrzed}, po ${ileWpisow((k) => wp("eval", k))} wpisów (N13)`
+);
 
 if (bledy.length > 0) {
   console.error(`\nsmoke-wp-panel: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);

@@ -3,7 +3,7 @@
  * Plugin Name:       Automatic AI — Monitoring
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Dziennik logowań (kto, kiedy, skąd) i pomiar wizyt (co oglądano i jak długo), plus ekran w kokpicie dla administratora. Trzecia z trzech wtyczek Automatic AI — rejestruje, niczego nie blokuje.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Automatic AI
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  * WERSJA WTYCZKI, nie wersja projektu (źródłem prawdy o wersji projektu
  * jest CHANGELOG repo). Stała steruje dociąganiem schematu tabel.
  */
-const AAI_MONITOR_WERSJA = '0.1.0';
+const AAI_MONITOR_WERSJA = '0.2.0';
 
 /**
  * PREFIKS TABEL — ta sama decyzja właściciela co przy `aai-sklep`
@@ -96,6 +96,29 @@ add_action(
 		// przed jego własnymi (P12; zmierzone na kolejności podmenu).
 		add_action( 'admin_menu', array( 'Aai_Monitor_Ekran', 'menu' ), 20 );
 		add_action( 'admin_enqueue_scripts', array( 'Aai_Monitor_Ekran', 'zasoby' ) );
+		/*
+		 * PRODUCENCI DANYCH — to, czego wtyczka nie miała po kroku T1
+		 * („baza stoi, ale nic nie zbiera"): dziennik logowań (trzy haki
+		 * rdzenia) i wpis do kreatora polityki prywatności. Ten drugi
+		 * jedynie podpina się pod `admin_init`, bo rdzeń przyjmuje treść
+		 * WYŁĄCZNIE stamtąd i tylko w wp-admin — wywołanie wprost stąd nie
+		 * dodałoby NIC, meldując to najwyżej w logu przy WP_DEBUG
+		 * (zmierzone: plugin.php:2429).
+		 *
+		 * CAŁOŚĆ W `try/catch`, bo autoloader wyżej POMIJA plik
+		 * nieczytelny, a bind mount kontenera potrafi umrzeć po
+		 * `git checkout` — ten projekt przerabiał to nieraz. Przy pustym
+		 * katalogu WordPress po prostu wyłącza wtyczkę, ale przy braku
+		 * JEDNEGO pliku leciałby `Error: Class not found` na każdym
+		 * żądaniu, także na froncie sklepu. Monitoring nie ma prawa
+		 * wywrócić strony, której tylko się przygląda.
+		 */
+		try {
+			Aai_Monitor_Logowania::zarejestruj();
+			Aai_Monitor_Prywatnosc::zarejestruj();
+		} catch ( Throwable $e ) {
+			Aai_Monitor_Komunikaty::zapisz( 'nie udało się podpiąć czujek monitoringu: ' . $e->getMessage() );
+		}
 		// Kanał błędów: zapis biegnie w cudzym żądaniu i łapie `Throwable`,
 		// więc bez tego uszkodzona tabela dawałaby PUSTĄ listę logowań,
 		// czytaną jak „nikt nie próbował" — fałszywy negatyw na jedynym

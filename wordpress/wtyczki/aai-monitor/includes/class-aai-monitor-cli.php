@@ -48,6 +48,8 @@ final class Aai_Monitor_Cli {
 	 * @when after_wp_load
 	 */
 	public function sprawdz(): void {
+		global $wpdb;
+
 		$bledy = array();
 
 		/* 1. schemat */
@@ -62,6 +64,38 @@ final class Aai_Monitor_Cli {
 		$blad = Aai_Monitor_Komunikaty::ostatni();
 		if ( '' !== $blad ) {
 			$bledy[] = 'ostatni zapis zgłosił błąd: ' . $blad . ' — po naprawie zdejmij alarm komendą `wp aai-monitor wyczysc-blad`';
+		}
+
+		/*
+		 * 2b. TABELA ODŁOŻONA NA BOK PRZEZ PRZERWANY TEST.
+		 *
+		 * `smoke-wp-monitor` chowa dziennik `RENAME`-em, żeby zmierzyć, czy
+		 * awaria zapisu jest głośna, i przywraca go w `finally`. Ale
+		 * `finally` chroni przed wyjątkiem, nie przed zabiciem procesu:
+		 * po `Ctrl+C` w złym momencie prawdziwy dziennik zostaje pod nazwą
+		 * `…_smoke_schowana`, a najbliższy `postaw.sh` utworzy przez
+		 * `dbDelta` PUSTĄ tabelę o właściwej nazwie. Wszystko wygląda
+		 * zdrowo, tylko historia logowań zniknęła — a to materiał dowodowy
+		 * po incydencie, którego `uninstall.php` celowo nie kasuje.
+		 *
+		 * Jedno `SHOW TABLES LIKE` na przebieg kontroli zamienia cichą
+		 * podmianę w komunikat z komendą przywracającą.
+		 */
+		$odlozone = $wpdb->get_col(
+			$wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . AAI_MONITOR_PREFIKS ) . '%\_smoke\_schowana' )
+		);
+		if ( is_array( $odlozone ) && array() !== $odlozone ) {
+			foreach ( $odlozone as $tabela ) {
+				$wlasciwa = str_replace( '_smoke_schowana', '', (string) $tabela );
+				$bledy[]  = sprintf(
+					'została tabela %s — przerwany test odłożył prawdziwy dziennik na bok, a schemat odtworzył PUSTY. '
+						. 'Przywróć: wp db query "DROP TABLE IF EXISTS %s; RENAME TABLE %s TO %s;"',
+					$tabela,
+					$wlasciwa,
+					$tabela,
+					$wlasciwa
+				);
+			}
 		}
 
 		/* 3. retencja — wobec NAJNOWSZEGO wiersza, nie wobec zegara */
@@ -98,13 +132,26 @@ final class Aai_Monitor_Cli {
 			);
 		}
 
-		/* 4. co dziś zbieramy */
+		/*
+		 * 4. co dziś zbieramy — i dlaczego BRAK czujki jest teraz BŁĘDEM.
+		 *
+		 * W kroku T1 zero czujek było stanem normalnym: baza i ekran już
+		 * stały, producenci danych mieli dojść później. Od T2 wtyczka ma
+		 * dziennik logowań, więc zero czujek znaczy, że coś jest zepsute —
+		 * najczęściej niekompletnie wgrany katalog albo zdjęta rejestracja
+		 * w pliku głównym. Bez tego warunku dziennik może być martwy przy
+		 * WSZYSTKICH bramkach na zielono: zmierzone — zdjęcie jednej linii
+		 * `Aai_Monitor_Logowania::zarejestruj()` zostawiało oba strażniki
+		 * zielone i kontrolę z kodem 0.
+		 */
 		$czujki = Aai_Monitor_Ekran::czujki();
-		WP_CLI::line(
-			array() === $czujki
-				? 'Czujki: żadna nie jest podpięta — baza stoi, ale nic nie zbiera danych.'
-				: 'Czujki: ' . implode( ', ', array_keys( $czujki ) ) . '.'
-		);
+		if ( array() === $czujki ) {
+			$bledy[] = 'żadna czujka nie jest podpięta — baza stoi, ale NIC NIE ZBIERA danych. '
+				. 'Sprawdź, czy katalog wtyczki jest kompletny i czy plik główny woła zarejestruj() '
+				. 'producentów (bind mount potrafi umrzeć po checkoucie: podman-compose down && ./postaw.sh)';
+		} else {
+			WP_CLI::line( 'Czujki: ' . implode( ', ', array_keys( $czujki ) ) . '.' );
+		}
 
 		/* 5. wersje cudzego kodu */
 		foreach ( Aai_Monitor_Zaleznosci::wersje() as $nazwa => $wersja ) {

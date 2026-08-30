@@ -82,6 +82,7 @@ const ODCZYT_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monito
 const EKRAN_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-ekran.php";
 const CLI_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-cli.php";
 const TABELE_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-tabele.php";
+const LOGOWANIA_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-logowania.php";
 
 const MUTACJE = [
   // --- straznik-scenariuszy ---
@@ -2895,6 +2896,210 @@ const MUTACJE = [
             '$wpdb->prepare( "SELECT * FROM `{$l}` ORDER BY czas DESC, id DESC LIMIT %d", $ile )',
             '$wpdb->prepare( $sqlWszystkie, $ile )'
           )
+        : null,
+  },
+  {
+    // T2. Handler biegnie w CUDZYM żądaniu, a przy sesji z kasy to
+    // żądanie WooCommerce: zmierzone (F11), wyjątek wychodzi
+    // z wc_set_customer_auth_cookie() i daje HTTP 500 przy zakupie.
+    straznik: "straznik-monitora-wp",
+    opis: "handler haka logowania łapie tylko Exception — Error z niego wychodzi i przerywa cudzy zakup (N4)",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: "nie łapie Throwable",
+    zmien: (s) =>
+      s.includes("} catch ( Throwable $e ) {\n\t\t\tself::przemilcz( $e );")
+        ? s.replace(
+            "} catch ( Throwable $e ) {\n\t\t\tself::przemilcz( $e );",
+            "} catch ( Exception $e ) {\n\t\t\tself::przemilcz( $e );"
+          )
+        : null,
+  },
+  {
+    // T2. Złamanie CICHE: dziennik działa, tylko każde logowanie
+    // formularzem liczy dwa razy — a licznik porażek z 7 dni przestaje
+    // być porównywalny z niczym.
+    straznik: "straznik-monitora-wp",
+    opis: "hak wp_login dopisuje własny wiersz zamiast doprecyzować świeży — każde logowanie liczone dwa razy (N2)",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: "nie doprecyzowuje wiersza przez uzupelnij_zrodlo",
+    zmien: (s) =>
+      s.includes("Aai_Monitor_Zapis::uzupelnij_zrodlo( $id, 'formularz' );")
+        ? s.replace(
+            "Aai_Monitor_Zapis::uzupelnij_zrodlo( $id, 'formularz' );",
+            "Aai_Monitor_Zapis::dodaj_logowanie( array( 'zdarzenie' => 'udane', 'zrodlo' => 'formularz' ) );"
+          )
+        : null,
+  },
+  {
+    // T2. Najgroźniejsza z tej rodziny: ten hak jest JEDYNĄ drogą, którą
+    // do dziennika trafia auto-login z kasy (F3), czyli wejście każdego
+    // nowego klienta. Po skasowaniu nic się nie zapala.
+    straznik: "straznik-monitora-wp",
+    opis: "zdjęta rejestracja set_logged_in_cookie — sesje z kasy znikają z dziennika bez objawu (N3)",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: 'hak „set_logged_in_cookie" nie jest zarejestrowany',
+    zmien: (s) =>
+      // Wzorzec BEZ priorytetu: po przeglądzie T2 haki idą z priorytetem 1,
+      // a wersja z wpisanym „10" umarła po cichu (audyt to złapał).
+      /add_action\(\s*'set_logged_in_cookie',[^;]*;/.test(s)
+        ? s.replace(/add_action\(\s*'set_logged_in_cookie',[^;]*;/, "// rejestracja zdjęta")
+        : null,
+  },
+  {
+    // T2. Kłamstwo w DRUGĄ stronę niż pusta lista: haki działają, a ekran
+    // twierdzi, że nic nie zbiera — czyli każe szukać awarii tam, gdzie
+    // jej nie ma.
+    straznik: "straznik-monitora-wp",
+    opis: "producent danych przestaje meldować czujkę — ekran twierdzi „nic nie zbiera” przy działających hakach (P13)",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: "nie melduje czujki",
+    zmien: (s) =>
+      s.includes("Aai_Monitor_Ekran::zglos_czujke(")
+        ? s.replace("Aai_Monitor_Ekran::zglos_czujke(", "self::pomin_meldunek( (")
+        : null,
+  },
+  {
+    // T2, kontrprzykład do reguł 9–12: mają celować w ZACHOWANIE, nie
+    // w nazwy. Przemianowanie handlerów wraz z ich rejestracjami nie
+    // osłabia niczego — i strażnik ma to przepuścić.
+    straznik: "straznik-monitora-wp",
+    opis: "kontrprzykład: przemianowanie handlerów haków logowania niczego nie osłabia",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekujCzerwonego: false,
+    zmien: (s) =>
+      s.includes("'porazka'") && s.includes("function porazka(")
+        ? s.replaceAll("'porazka'", "'nieudana_proba'").replaceAll("function porazka(", "function nieudana_proba(")
+        : null,
+  },
+  {
+    // T2. Bramka, która loguje się do instalacji, produkuje od tego kroku
+    // wpisy w dzienniku. Bez sprzątania licznik nieudanych prób z 7 dni —
+    // jedyna funkcja alarmowa ekranu monitoringu — pokazuje serie
+    // wyprodukowane przez własne testy.
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka logująca się przestaje sprzątać dziennik logowań (N13)",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zakup.mjs"),
+    oczekiwanySlad: "loguje się do instalacji",
+    zmien: (s) =>
+      s.includes("sprzatnijDziennik(php, _dziennikMigawka);")
+        ? s.replace("sprzatnijDziennik(php, _dziennikMigawka);", "// sprzątanie zdjęte")
+        : null,
+  },
+  {
+    // T2. Rachunek sumienia dziennika. Ta reguła miała dwie ślepoty naraz
+    // i obie wykryły jej własne testy negatywne: liczyła WYSTĄPIENIA
+    // (mutacja zostawiała drugie w komunikacie błędu), a jej regex nie
+    // radził sobie z nawiasami w uchwycie.
+    straznik: "straznik-higieny-smokow",
+    opis: "asercja rozliczenia dziennika zabetonowana na true — sprzątanie staje się deklaracją (N13)",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zakup.mjs"),
+    oczekiwanySlad: "nie ROZLICZA się z tego",
+    zmien: (s) =>
+      s.includes("ileWpisow(php) === _dziennikPrzed,")
+        ? s.replace("ileWpisow(php) === _dziennikPrzed,", "true === true,")
+        : null,
+  },
+  {
+    // T2, kontrprzykład: reguły 8-9 mają celować w ZACHOWANIE. Zmiana nazw
+    // zmiennych niczego nie osłabia i strażnik ma ją przepuścić.
+    straznik: "straznik-higieny-smokow",
+    opis: "kontrprzykład: przemianowanie zmiennych higieny dziennika niczego nie osłabia",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zakup.mjs"),
+    oczekujCzerwonego: false,
+    zmien: (s) =>
+      s.includes("_dziennikPrzed")
+        ? s.replaceAll("_dziennikPrzed", "stanDziennikaNaStarcie").replaceAll("_dziennikMigawka", "granicaWlasnych")
+        : null,
+  },
+  {
+    // Po przeglądzie T2. Reguła 9 pytała tylko o OBECNOŚĆ `catch ( Throwable`
+    // i była ślepa: instrukcja linię przed `try` przechodziła na zielono,
+    // a rzucony z niej Error wychodził z do_action() prosto do kasy
+    // (zmierzone uruchomieniowo).
+    straznik: "straznik-monitora-wp",
+    opis: "instrukcja PRZED blokiem try w handlerze cudzego haka — wyjątek stamtąd omija catch (N4)",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: "NIE JEST NIM OSŁONIĘTA W CAŁOŚCI",
+    zmien: (s) =>
+      s.includes("$user_id = 0 ): void {\n\t\ttry {")
+        ? s.replace(
+            "$user_id = 0 ): void {\n\t\ttry {",
+            "$user_id = 0 ): void {\n\t\tAai_Monitor_Zapis::metoda_ktorej_nie_ma();\n\t\ttry {"
+          )
+        : null,
+  },
+  {
+    // Po przeglądzie T2. Reguły czytające plik producenta nie widzą, że
+    // nikt go nie uruchamia. Zmierzone: po zdjęciu tej jednej linii oba
+    // strażniki są zielone, a dziennik jest martwy.
+    straznik: "straznik-monitora-wp",
+    opis: "plik główny przestaje wołać zarejestruj() producenta — dziennik martwy przy zielonych bramkach (P13)",
+    plik: "wordpress/wtyczki/aai-monitor/aai-monitor.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/aai-monitor.php"),
+    oczekiwanySlad: "nie woła Aai_Monitor_Logowania::zarejestruj()",
+    zmien: (s) =>
+      s.includes("Aai_Monitor_Logowania::zarejestruj();")
+        ? s.replace("Aai_Monitor_Logowania::zarejestruj();", "/* zdjęte */")
+        : null,
+  },
+  {
+    // Po przeglądzie T2. Bramka wpięta PO bloku kończącym przebieg jest
+    // martwa: sprawdz() dopisuje do `bledy`, ale nikt ich już nie czyta.
+    // Zmierzone: mutacja asercji przechodziła z kodem 0 w sześciu bramkach.
+    straznik: "straznik-higieny-smokow",
+    opis: "rachunek sumienia dziennika przeniesiony ZA process.exit(1) — asercja nie może paść (N13)",
+    plik: "tools/smoke/smoke-wp-produkty.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-produkty.mjs"),
+    oczekiwanySlad: "asercja rozliczenia stoi ZA",
+    zmien: (s) => {
+      const blok = s.match(
+        /\/\* Sprzątanie po sobie[\s\S]*?\n\);\n\n/
+      );
+      if (!blok) return null;
+      const bez = s.replace(blok[0], "");
+      const koniec = bez.lastIndexOf("console.log(");
+      return koniec < 0 ? null : bez.slice(0, koniec) + blok[0] + bez.slice(koniec);
+    },
+  },
+  {
+    // Po przeglądzie T2, druga tura. Odpowiednik reguły 1 (skrzynka) dla
+    // dziennika, którego brakowało: nic nie zabraniało bramce wyczyścić
+    // tabeli hurtem, a rachunek sumienia był wtedy martwy w 6 bramkach.
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka kasuje dziennik logowań HURTEM (TRUNCATE) zamiast sprzątać po sobie (N13)",
+    plik: "tools/smoke/smoke-wp-monitor.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-monitor.mjs"),
+    oczekiwanySlad: "TRUNCATE na tabeli monitoringu",
+    zmien: (s) =>
+      s.includes("sprzatnijDziennik(php, dziennikMigawka);")
+        ? s.replace(
+            "sprzatnijDziennik(php, dziennikMigawka);",
+            'phpEval("global $wpdb; $wpdb->query( \\"TRUNCATE TABLE wp_aai_monitor_logowania\\" );");'
+          )
+        : null,
+  },
+  {
+    // Po przeglądzie T2, druga tura. `finally` chroni przed wyjątkiem, nie
+    // przed zabiciem procesu: przerwany smoke zostawia prawdziwy dziennik
+    // pod cudzą nazwą, a dbDelta odtwarza PUSTY. Cicha podmiana materiału
+    // dowodowego jest gorsza niż brak tabeli.
+    straznik: "straznik-monitora-wp",
+    opis: "kontrola przestaje pytać o tabelę odłożoną przez przerwany test (dziennik podmieniony na pusty)",
+    plik: CLI_MONITORA,
+    wymaga: () => existsSync(CLI_MONITORA),
+    oczekiwanySlad: "nie pyta o tabele odłożone",
+    zmien: (s) =>
+      s.includes("_smoke")
+        ? s.replaceAll("_smoke\\_schowana", "_nigdy\\_taka").replaceAll("_smoke_schowana", "_nigdy_taka")
         : null,
   },
 ];

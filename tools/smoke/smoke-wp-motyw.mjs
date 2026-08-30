@@ -30,6 +30,7 @@
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { migawkaDziennika, sprzatnijDziennik, ileWpisow } from "./dziennik.mjs";
 
 const RIG = process.env.ZRZUTY_RIG;
 if (!RIG) {
@@ -480,6 +481,16 @@ function wpEval(php) {
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 }
+
+/*
+ * HIGIENA DZIENNIKA LOGOWAŃ (N13). Ta bramka loguje się do instalacji,
+ * więc od kroku T2 KAŻDY jej przebieg zostawia wpisy w dzienniku
+ * Pluginu 3 — zmierzone. Bez sprzątania licznik nieudanych prób
+ * z 7 dni, czyli jedyna funkcja alarmowa ekranu monitoringu, pokazywałby
+ * serie wyprodukowane przez nasze własne testy.
+ */
+const _dziennikPrzed = ileWpisow(wpEval);
+const _dziennikMigawka = migawkaDziennika(wpEval);
 
 function adresLekcji() {
   const php = [
@@ -1017,6 +1028,13 @@ sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da si
 }
 
 await przegladarka.close();
+
+/* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
+sprzatnijDziennik(wpEval, _dziennikMigawka);
+sprawdz(
+  ileWpisow(wpEval) === _dziennikPrzed,
+  `bramka zostawiła ślad w dzienniku logowań: przed ${_dziennikPrzed}, po ${ileWpisow(wpEval)} wpisów (N13)`
+);
 
 if (bledy.length > 0) {
   console.error(`\nsmoke-wp-motyw: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);

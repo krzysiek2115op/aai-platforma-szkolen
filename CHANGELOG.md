@@ -5,6 +5,168 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.56.0] — 2026-08-30
+
+**Dziennik logowań działa** — krok T2 zaakceptowanego schematu
+([docs/plugin-3/DIAGRAM.md](docs/plugin-3/DIAGRAM.md)). Wtyczka po T1 miała
+bazę i ekran, ale ani jednego producenta danych; kontrola meldowała wprost
+„żadna czujka nie jest podpięta". Teraz melduje „Czujki: logowania", a ekran
+pokazuje, kto i skąd wchodził na konta. **Ten krok nie dotyka pomiaru ruchu**
+— beacon, `pomiar.js`, sito i limiter wchodzą w T3.
+
+### Dodane
+
+- **`Aai_Monitor_Logowania` — trzy haki rdzenia**, każdy w
+  `try/catch ( Throwable )`: `set_logged_in_cookie` tworzy wiersz ze źródłem
+  `sesja`, `wp_login` doprecyzowuje je na `formularz`, `wp_login_failed`
+  zapisuje nieudaną próbę z podanym loginem — **nigdy z hasłem**. Gdy
+  `wp_login` nie zastanie świeżego wiersza, tworzy własny: cudza wtyczka
+  logująca programowo nie ma przepaść z dziennika bez śladu.
+- **`Aai_Monitor_Zadanie`** — jedyne miejsce, w którym powstaje adres IP
+  i nazwa przeglądarki. `X-Forwarded-For` świadomie NIE jest czytany: ten
+  nagłówek ustawia klient, a adres podrobiony przez napastnika jest gorszy
+  niż adres bramy — pierwszy kłamie, drugi tylko milczy.
+- **`Aai_Monitor_Prywatnosc`** — wpis o dzienniku dla polityki prywatności
+  przez natywne `wp_add_privacy_policy_content()`, plus ten sam tekst gotowy
+  do wklejenia w [docs/plugin-3/POLITYKA-PRYWATNOSCI.md](docs/plugin-3/POLITYKA-PRYWATNOSCI.md).
+  Dwie drogi, bo prawdziwa polityka mieszka w treści MOTYWU, generowanego ze
+  źródła strony głównej — repozytorium tylko do odczytu. Treść mówi „do 90 dni
+  **od ostatniej aktywności**", nie „90 dni": retencja jest leniwa z definicji,
+  więc twarda obietnica byłaby na cichej instalacji nieprawdziwa.
+- **`tools/smoke/dziennik.mjs`** — wspólny moduł higieny wzorem `poczta.mjs`
+  z 0.54.0: migawka na starcie, kasowanie wyłącznie wierszy powstałych po niej,
+  rachunek sumienia z liczby wpisów. Wpięty w **siedem bramek**.
+- **Cztery reguły `straznik-monitora-wp`** (8 → 12) i **dwie
+  `straznik-higieny-smokow`** (7 → 9); audyt mutacyjny **247 → 255**, smoke
+  monitoringu **57 → 76 sprawdzeń**.
+
+### Zmienione
+
+- **Tabela kroków w schemacie mówi prawdę o T2.** Wiersz obiecywał retencję
+  90 dni, jej drugi wyzwalacz i sekcję „Logowania" ekranu — wszystkie trzy
+  były już zrobione w T1. Zakres kroku to więc producenci danych i ich bramki,
+  a nie lista z tamtego wiersza.
+
+### Naprawione
+
+- **Smoke monitoringu kasował CUDZE wiersze dziennika.** Test retencji cofał
+  czas o 400 dni wierszowi wybranemu przez `MIN(id)` z całej tabeli i oddawał
+  go retencji. Do T2 było to bezpieczne (w tabeli nie było nic poza wierszami
+  smoke'a), od T2 trafiało w najstarszy CUDZY wiersz — zmierzone: kasował wpis
+  zostawiony przez smoke kreatora. Na instalacji właściciela zniknąłby jego
+  najstarszy wpis logowania, czyli dowód po włamaniu. Złapał to **rachunek
+  sumienia liczący CAŁĄ tabelę**, nie własne ślady (lekcja z P5).
+- **Siedem bramek zaśmiecało dziennik** — razem osiem wierszy na pełny przelot.
+  Bez tego licznik nieudanych prób z 7 dni, jedyna funkcja alarmowa ekranu,
+  pokazywałby serie wyprodukowane przez własne testy.
+
+### Zmierzone w cudzym kodzie i we własnym
+
+Trzy rzeczy sprawdzone URUCHOMIENIOWO **przed** napisaniem kodu, bo od nich
+zależał projekt:
+
+1. **`set_logged_in_cookie` nie odpala się przy każdym żądaniu zalogowanego**
+   — pięć kolejnych odsłon `/wp-admin/` na gotowej sesji nie dołożyło ani
+   jednej linii. Dziennik rośnie w tempie LOGOWAŃ, nie odsłon.
+2. **Auto-login z kasy odpala WYŁĄCZNIE ten hak, bez `wp_login`** (F3). Sam
+   `wp_login` przegapiłby więc ścieżkę każdego nowego klienta, a sam
+   `set_logged_in_cookie` nie odróżniłby kasy od formularza. Stąd dwa haki
+   i dedup, a nie jeden hak.
+3. **`wp_add_privacy_policy_content()` odmawia pracy poza `wp-admin` i przed
+   `admin_init`** (`plugin.php:2429`) — w obu wypadkach woła
+   `_doing_it_wrong()` i wychodzi bez dodania czegokolwiek. Wywołanie
+   z `plugins_loaded` nie dodałoby NIC, a objawem byłby najwyżej wpis w logu
+   przy `WP_DEBUG`.
+
+**Pomiar obalił grep w obie strony.** Listy bramek zaśmiecających dziennik nie
+da się wygrepować: wzorzec wskazywał `platnosci` (który tylko asertuje kod 200
+ekranu logowania) i przegapiał `produkty` oraz `zakup`, bo one nie dotykają
+`wp-login.php` — sesję zakłada im WooCommerce w środku składania zamówienia.
+**Pierwszy przelot też kłamał, ciszej:** `jezyk`, `panel` i `motyw` pokazały
+„zostawia 0", bo w ogóle się nie uruchomiły (brak `ZRZUTY_RIG`); kod wyjścia 1
+był jedynym śladem. **Pomiar bez sprawdzenia kodu wyjścia mierzy ciszę, nie
+stan.**
+
+### Trzy ślepoty złapane własnymi testami negatywnymi
+
+Wszystkie trzy przechodziły na zielono, gdy powinny były się zapalić:
+
+- **asercja „hasło nigdy w dzienniku"** patrzyła tylko na wiersz PORAŻKI.
+  Mutacja dopisująca `$_POST['pwd']` do handlera UDANEGO logowania przeszła —
+  a przy udanym logowaniu formularzem to pole jest ustawione tak samo. Pyta
+  teraz o WSZYSTKIE wiersze przebiegu i WSZYSTKIE użyte hasła;
+- **reguła „bramka logująca się sprząta"** stała wyłącznie na wzorcu
+  zachowania i nie widziała `zakup` ani `produkty` — te nie logują się ani
+  jedną własną instrukcją. Obok wzorca stoi teraz jawna lista ZMIERZONYCH,
+  z komendą do powtórzenia pomiaru;
+- **reguła „bramka rozlicza się z dziennika"** liczyła WYSTĄPIENIA wywołania
+  i przechodziła po zamianie asercji na `true === true`, bo drugie wywołanie
+  zostawało w komunikacie błędu. Pyta teraz o PORÓWNANIE, domykając nawiasy
+  licząc głębokość — regex urywał się na uchwycie `(k) => wp(...)`.
+
+**Strażnik złapał też moją własną nową klasę**: `Aai_Monitor_Prywatnosc::dodaj()`
+wisi na `admin_init`, który biegnie przy KAŻDYM żądaniu do kokpitu, także
+cudzym. Naprawiony został kod, nie reguła — dowód, że reguła celuje
+w zachowanie, a nie w listę znanych haków.
+
+### Przegląd przed PR-em — dziewięć rzeczy, które przechodziły na zielono
+
+Para agent+krytyk wg [agenci/przeglad-pr/](agenci/przeglad-pr/): dwóch
+recenzentów na rozłącznych obszarach (cudzy kod i bezpieczeństwo /
+sprawdzalność bramek), krytykiem agent główny. **Każde znalezisko
+potwierdzone URUCHOMIENIOWO przed naprawą.**
+
+**W kodzie wtyczki:**
+
+- **hasło wpisane w pole loginu szło do bazy jawnym tekstem** na 90 dni
+  i na ekran administratora. Rdzeń puszcza tę wartość przez
+  `sanitize_user()`, które w trybie nieścisłym **nie usuwa** `@ ! # $ % & _ -`
+  ani cyfr — zmierzone: `MojeTajneHaslo#2026` przechodziło bez zmiany.
+  Przeczyło to trzem miejscom naraz, w tym zdaniu z polityki prywatności
+  czytanemu przez osobę, której dane dotyczą. Nieistniejące konta są teraz
+  **maskowane** (`Moj…(19 znaków)` — zostaje wzorzec ataku, znika sekret),
+  istniejące zapisujemy dosłownie;
+- **dedup gubił całe logowanie**: sesja jednego konta i `wp_login` drugiego
+  w jednym procesie dawały JEDEN wiersz — drugie zdarzenie znikało,
+  pierwsze dostawało cudzą etykietę. Trzymamy parę [wiersz, konto];
+- **`ArgumentCountError` omijał `try`** (powstaje przy wywołaniu, nie w ciele)
+  i leciał do kasy — parametry mają wartości domyślne;
+- **`sanitize_text_field` ucinał user-agenta** na pierwszym `<`:
+  `Mozilla/5.0 <script>…` zapisywało się jako `Mozilla/5.0`, czyli
+  kasowaliśmy przypadek, dla którego ta kolumna istnieje;
+- **cudzy callback padający na priorytecie 5 zabierał nam zdarzenie** —
+  haki idą z priorytetem 1.
+
+**W bramkach — wszystkie o tym, że dowód był pozorny:**
+
+- **rachunek sumienia był MARTWY w sześciu z siedmiu bramek**: wpięcie
+  postawiło asercję ZA `process.exit(1)`, gdzie nikt nie czyta już tablicy
+  błędów. Mutacja psująca ją przechodziła z kodem 0;
+- **reguła o `catch ( Throwable )` była ślepa** — pytała o obecność słowa,
+  więc instrukcja linię przed `try` przechodziła, a Error wychodził do kasy;
+- **nic nie pilnowało, że producent jest podpięty**: zdjęcie jednej linii
+  dawało martwy dziennik przy obu strażnikach zielonych i kontroli kod 0.
+  Kontrola świeci teraz **kod 1**, gdy nie ma ani jednej czujki;
+- **komentarz o sprzątaniu opisywał mechanizm, którego w kodzie nie ma**
+  (klasa BLAD-018).
+
+**Mój pomiar bramek był zanieczyszczony.** Przypisałem wpisy bramkom
+`produkty` i `zakup`, które ich nie tworzą — w tle biegły **moje własne**
+żądania HTTP przy sprawdzaniu polityki prywatności, a licznik nie wie, czyj
+jest wiersz. Czysty przelot mierzy `AUTO_INCREMENT` (sprzątanie kasuje ślad,
+licznika nie cofa): wpisy tworzy **pięć bramek plus smoke monitoringu**, nie
+siedem. Obie pułapki pomiaru — ta i wcześniejsza (bramki bez `ZRZUTY_RIG`
+pokazujące fałszywe „zostawia 0") — zapisane w module.
+
+### Stan dowodów
+
+Strażnicy **37/37**, audyt mutacyjny **260** (258 złapanych, 0 przeoczonych,
+0 martwych, 2 pominięte — strażnicy warunkowi bez materiału), smoke
+monitoringu **84**, wszystkie bramki WP zielone. Dane Pluginów 1 i 2 nietknięte.
+
+Jedna z mutacji tego kroku **umarła** po zmianie priorytetu haków — złapał
+to audyt, a wzorzec nie pyta już o liczbę w `add_action`.
+
 ## [0.55.0] — 2026-08-30
 
 **Plugin 3 (`aai-monitor`) ma fundament i ekran** — krok T1 zaakceptowanego

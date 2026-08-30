@@ -14,7 +14,7 @@
  * plik czyści po sobie do zera.
  *
  * CO TEN PLIK ZOSTAWIA ZAWSZE (nie jego własność): konta, wpisy, kursy,
- * zamówienia — Plugin 3 nie pisze do żadnej cudzej tabeli (N14).
+ * zamówienia — Plugin 3 nie pisze do żadnej cudzej tabeli DZIEDZINOWEJ (N14) — poza `wp_options`, i to wyłącznie przez API rdzenia (`update_option` kanału błędów, transient retencji), czyli tak jak każda wtyczka trzyma swoje ustawienia.
  *
  * @package Aai_Monitor
  */

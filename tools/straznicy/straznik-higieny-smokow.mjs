@@ -37,6 +37,19 @@
  *      zawyżał licznik zapisanych na prawdziwy Kurs 1 przy zamówieniu #2152,
  *      dawno nieistniejącym. Sprzątanie po WŁASNYM kursie takiego zapisu nie
  *      widzi, bo on siedzi na cudzym;
+ *   8. bramka, która SIĘ LOGUJE, zostawia od kroku T2 wpisy w dzienniku
+ *      logowań Pluginu 3 — więc musi wziąć migawkę i posprzątać. Rozpoznajemy
+ *      ją po zachowaniu (POST na `wp-login.php`, pole loginu w przeglądarce,
+ *      `wc_set_customer_auth_cookie`), nie po nazwie pliku;
+ *   9. i ma z tego rachunek sumienia. To on ujawnił, że test retencji
+ *      w smoke'u monitoringu cofał czas CUDZEMU wierszowi (MIN(id))
+ *      i oddawał go retencji do skasowania;
+ *  11. nikt nie kasuje tabel monitoringu HURTOWO — odpowiednik reguły 1
+ *      dla dziennika, którego brakowało: `TRUNCATE` ani `DELETE FROM`
+ *      bez `WHERE` na `aai_monitor_*`,
+ *  10. a ta asercja jest OSIĄGALNA — nie stoi za `process.exit(1)`.
+ *      Przy pierwszym wpięciu modułu była martwa w SZEŚCIU z siedmiu
+ *      bramek: mutacja psująca ją przechodziła z kodem 0;
  *   5-7. moduł `tools/smoke/poczta.mjs` sprawdzany URUCHOMIENIOWO, przez
  *      podstawiony `fetch` — bo to jego ZACHOWANIE chroni cudzą pocztę,
  *      a nie kształt jego kodu. Trzy niezmienniki: brak własnych wiadomości
@@ -61,6 +74,35 @@ function kod(sciezka) {
   return readFileSync(sciezka, "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/^\s*(\/\/|#).*$/gm, " ");
+}
+
+/**
+ * Czy wynik wywołania `nazwa(...)` jest gdzieś PORÓWNYWANY.
+ *
+ * Regex tu nie wystarcza: uchwyty przekazywane tym funkcjom same zawierają
+ * nawiasy (`ileWpisow((k) => wp("eval", k))`), więc `[^)]*` urywa się na
+ * pierwszym domknięciu i reguła zapala się na poprawnym kodzie. Dlatego
+ * domykamy nawias licząc głębokość i dopiero PO nim szukamy operatora.
+ *
+ * Celujemy w ZACHOWANIE — istnienie porównania — a nie w liczbę wywołań:
+ * pierwsza wersja liczyła wystąpienia i przepuszczała asercję zamienioną
+ * na `true === true`, bo drugie wywołanie zostawało w komunikacie błędu.
+ */
+function porownujeWynik(tresc, nazwa) {
+  const wzorzec = new RegExp(`\\b${nazwa}\\s*\\(`, "g");
+  for (const trafienie of tresc.matchAll(wzorzec)) {
+    let i = trafienie.index + trafienie[0].length - 1;
+    let glebokosc = 0;
+    for (; i < tresc.length; i++) {
+      if (tresc[i] === "(") glebokosc++;
+      else if (tresc[i] === ")") {
+        glebokosc--;
+        if (glebokosc === 0) break;
+      }
+    }
+    if (/^\s*(?:===|!==|==|!=)/.test(tresc.slice(i + 1))) return true;
+  }
+  return false;
 }
 
 /* ── 1. nikt nie kasuje skrzynki hurtowo ─────────────────────────────── */
@@ -146,6 +188,189 @@ for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
       `${nazwa}: nie liczy zapisów na kursy GLOBALNIE. Kasowanie zamówienia nie kasuje zapisu w Tutorze, ` +
         "a sprzątanie po własnym kursie nie widzi zapisu, który powstał na cudzym — tak przeżył wpis #2153, " +
         "zawyżając licznik zapisanych na prawdziwy Kurs 1."
+    );
+  }
+}
+
+/* ── 11. nikt nie kasuje tabel monitoringu HURTOWO ───────────────────── */
+
+/*
+ * Odpowiednik reguły 1 (skrzynka poczty), którego dla dziennika brakowało:
+ * nic nie zabraniało bramce wysłać `TRUNCATE` albo `DELETE FROM` bez
+ * granicy. Jedynym hamulcem byłby rachunek sumienia — a ten był martwy
+ * w sześciu bramkach (reguła 10), więc hamulca nie było wcale.
+ *
+ * Dziennik logowań to materiał dowodowy po incydencie: `uninstall.php`
+ * celowo go NIE kasuje, więc tym bardziej nie wolno tego robić bramce
+ * przy okazji sprzątania po sobie.
+ */
+for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
+  const tresc = kod(plik);
+  const nazwa = plik.replace(KORZEN + "/", "");
+  /*
+   * `DELETE` sprawdzamy PATRZĄC NA CAŁĄ INSTRUKCJĘ, nie jednym wzorcem.
+   * Pierwsza wersja próbowała opisać „brak WHERE" regexem i przepuszczała
+   * `DELETE FROM wp_aai_monitor_logowania` w łańcuchu z ucieczkami —
+   * wykrył to jej własny test negatywny. Teraz: znajdź początek
+   * instrukcji, weź ją do najbliższego ogranicznika i zapytaj o `WHERE`.
+   */
+  const zgloszenia = [];
+  if (/TRUNCATE\s+(?:TABLE\s+)?[`'"{$\\]*\w*aai_monitor/i.test(tresc)) {
+    zgloszenia.push("TRUNCATE na tabeli monitoringu");
+  }
+  for (const trafienie of tresc.matchAll(/DELETE\s+FROM\s+/gi)) {
+    const instrukcja = tresc.slice(trafienie.index, trafienie.index + 220).split(/[;\n]/)[0];
+    if (!/aai_monitor/i.test(instrukcja)) continue;
+    if (!/\bWHERE\b/i.test(instrukcja)) {
+      zgloszenia.push("DELETE bez WHERE na tabeli monitoringu");
+    }
+  }
+  for (const co of new Set(zgloszenia)) {
+    bledy.push(
+      `${nazwa}: ${co}. Dziennik logowań jest materiałem dowodowym po incydencie — uninstall.php celowo go nie kasuje, ` +
+        "więc tym bardziej nie wolno tego robić bramce przy sprzątaniu po sobie. Kasuj wyłącznie wiersze powstałe " +
+        "po własnej migawce (tools/smoke/dziennik.mjs)."
+    );
+  }
+}
+
+/* ── 8-9. bramka LOGUJĄCA SIĘ sprząta dziennik i rozlicza się z tego ─── */
+
+/*
+ * Od kroku T2 Pluginu 3 WordPress zapisuje KAŻDE logowanie do dziennika
+ * `wp_aai_monitor_logowania`. Bramki logują się po wielekroć — i od tej
+ * chwili każda zostawia tam wpisy, nie wiedząc o tym.
+ *
+ * To nie jest bałagan kosmetyczny: jedyną funkcją ALARMOWĄ ekranu
+ * monitoringu jest licznik nieudanych prób z 7 dni, a jedynym powodem
+ * istnienia dziennika — odpowiedź na pytanie „kto i skąd wchodził na
+ * konta". Serie wpisów z własnych testów zamieniają obie te rzeczy w szum
+ * wyglądający dokładnie jak próba włamania.
+ *
+ * „LOGUJE SIĘ" POZNAJEMY PO ZACHOWANIU, nie po nazwie pliku: żądanie POST
+ * do `wp-login.php`, wypełnienie pola loginu w przeglądarce albo założenie
+ * sesji cudzym kodem (`wc_set_customer_auth_cookie`). Rozpoznanie po
+ * nazwie byłoby ślepe na nowy smoke — a to jego właśnie chcemy złapać.
+ *
+ * ZMIERZONE (przelot czternastu bramek z licznikiem przed/po, 2026-08-30):
+ * wpisy zostawiało SIEDEM bramek. Grep mylił się w OBIE strony — wskazywał
+ * `platnosci`, który tylko asertuje kod 200 ekranu logowania, a przegapił
+ * `produkty` i `zakup`, bo sesja powstaje im w kasie WooCommerce, bez
+ * dotykania `wp-login.php`.
+ */
+const LOGUJE_SIE =
+  /wp-login\.php["'`]\s*,\s*\{[\s\S]{0,400}?method:\s*["']POST|#user_login|#username|name=["']?log["']?\]|name=["']?login["']?\]|wc_set_customer_auth_cookie|\bzaloguj\s*\(/;
+
+/*
+ * LISTA ZMIERZONYCH — i dlaczego sam wzorzec nie wystarcza.
+ *
+ * Pierwsza wersja tej reguły stała wyłącznie na wzorcu zachowania i była
+ * ŚLEPA na `smoke-wp-zakup` oraz `smoke-wp-produkty` — wykryły to jej
+ * własne testy negatywne (zdjęcie sprzątania przechodziło na zielono).
+ * Powód: te bramki nie logują się ANI JEDNĄ instrukcją własnego kodu.
+ * Sesja powstaje im GŁĘBOKO w cudzym kodzie — WooCommerce woła
+ * `wc_set_customer_auth_cookie()` sam, w środku składania zamówienia.
+ * Żaden wzorzec czytający NASZ plik tego nie zobaczy.
+ *
+ * Dlatego obok wzorca stoi lista tego, co ZMIERZONO. Nie jest to
+ * kapitulacja: strażnik statyczny nie ma jak odgadnąć skutków cudzego
+ * kodu, a udawanie, że ma, dałoby regułę cichą tam, gdzie najbardziej
+ * potrzebna. Listę odtwarza się pomiarem — dla każdej bramki licznik
+ * wierszy dziennika przed przebiegiem i po nim:
+ *
+ *   podman exec aai_wp_cli wp eval 'global $wpdb; echo (int) $wpdb->get_var(
+ *     "SELECT COUNT(*) FROM " . Aai_Monitor_Tabele::tabela("logowania") );'
+ *
+ * Stan z 2026-08-30 (czysty przelot czternastu bramek): wpisy tworzy
+ * PIĘĆ bramek plus smoke monitoringu — `kreator` 2, `lekcja`, `panel`,
+ * `motyw`, `jezyk` po 1, `monitor` 16.
+ *
+ * DWA OSTRZEŻENIA przy powtarzaniu pomiaru, oba z własnych pomyłek:
+ * (1) bramki wymagające `ZRZUTY_RIG` bez niego padają PRZED pierwszym
+ * logowaniem i pokazują fałszywe „zostawia 0" — sprawdzaj kod wyjścia,
+ * nie sam wynik; (2) NIE rób w tle własnych żądań HTTP do `:8892` —
+ * licznik nie wie, czyj jest wiersz, i przypisze je mierzonej bramce.
+ * Mierz `AUTO_INCREMENT`, nie liczbę wierszy: sprzątanie kasuje ślad,
+ * ale licznika nie cofa.
+ *
+ * `smoke-wp-produkty` i `smoke-wp-zakup` zostają na liście mimo zera —
+ * składają zamówienia i zakładają konta, więc pierwsza zmiana w tamtej
+ * ścieżce może zacząć tworzyć sesje. To profilaktyka, nie dowód.
+ */
+const ZMIERZONE_ZOSTAWIAJA = [
+  "smoke-wp-kreator.mjs",
+  "smoke-wp-lekcja.mjs",
+  "smoke-wp-produkty.mjs",
+  "smoke-wp-zakup.mjs",
+  "smoke-wp-jezyk.mjs",
+  "smoke-wp-panel.mjs",
+  "smoke-wp-motyw.mjs",
+  "smoke-wp-monitor.mjs",
+];
+
+for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
+  const tresc = kod(plik);
+  const nazwa = plik.replace(KORZEN + "/", "");
+  // Sam moduł higieny dziennika i smoke monitoringu mają własne, bogatsze
+  // sprzątanie — pierwszy jest narzędziem, drugi mierzy sam mechanizm.
+  if (nazwa.endsWith("tools/smoke/dziennik.mjs")) continue;
+  const zmierzona = ZMIERZONE_ZOSTAWIAJA.some((n) => nazwa.endsWith(n));
+  if (!zmierzona && !LOGUJE_SIE.test(tresc)) continue;
+
+  if (!/migawkaDziennika\s*\(/.test(tresc) || !/sprzatnijDziennik\s*\(/.test(tresc)) {
+    bledy.push(
+      `${nazwa}: loguje się do instalacji, więc od kroku T2 zostawia wpisy w dzienniku logowań, ` +
+        "ale nie bierze migawki i nie sprząta po sobie. Bez tego licznik nieudanych prób z 7 dni — jedyna " +
+        "funkcja alarmowa ekranu monitoringu — pokazuje serie wyprodukowane przez własne testy. " +
+        "Użyj migawkaDziennika() na starcie i sprzatnijDziennik() przed wynikiem (tools/smoke/dziennik.mjs)."
+    );
+  }
+
+  /*
+   * Rachunek sumienia dziennika — pytamy o ZACHOWANIE, nie o nazwę zmiennej
+   * (ósmy nawrót tej pułapki w repo). Stan musi być odczytany DWA RAZY,
+   * a drugi odczyt trafić do asercji.
+   */
+  /*
+   * Pytamy o PORÓWNANIE, nie o liczbę wystąpień. Pierwsza wersja liczyła
+   * wywołania `ileWpisow(` i sprawdzała, czy drugie stoi blisko `sprawdz(`
+   * — i była ślepa: mutacja zamieniająca warunek na `true === true`
+   * zostawiała drugie wywołanie w KOMUNIKACIE BŁĘDU asercji, więc licznik
+   * dalej się zgadzał. Wykrył to test negatywny tej reguły.
+   *
+   * Teraz warunkiem jest istnienie porównania wyniku odczytu z czymkolwiek
+   * — po którejkolwiek stronie operatora. Nazwy zmiennych są bez znaczenia,
+   * a asercja z zabetonowanym `true` nie przechodzi.
+   */
+  /*
+   * REGUŁA 10: asercja musi być OSIĄGALNA.
+   *
+   * `sprawdz()` dopisuje do tablicy błędów, ale po bloku
+   * `if (bledy.length > 0) { … process.exit(1) }` nikt jej już nie czyta.
+   * Wpięcie wstawione ZA tym blokiem jest więc martwe: bramka drukuje
+   * „OK" i kończy kodem 0, choć asercja padła.
+   *
+   * Nie jest to hipoteza — tak wyszło przy pierwszym wpięciu modułu:
+   * w SZEŚCIU z siedmiu bramek rozliczenie stało za blokiem błędów,
+   * a mutacja `ileWpisow(php) === -1` przechodziła z kodem 0.
+   */
+  const ostatniOdczyt = tresc.lastIndexOf("ileWpisow(");
+  const ostatnieWyjscie = tresc.lastIndexOf("process.exit(1)");
+  if (ostatniOdczyt >= 0 && ostatnieWyjscie >= 0 && ostatniOdczyt > ostatnieWyjscie) {
+    bledy.push(
+      `${nazwa}: asercja rozliczenia stoi ZA blokiem kończącym przebieg (process.exit(1)) — jest MARTWA (N13). ` +
+        "sprawdz() dopisze błąd do tablicy, ale nikt jej już nie przeczyta: bramka wydrukuje „OK” i wyjdzie z kodem 0, " +
+        "choć zostawiła ślad w dzienniku. Przenieś sprzątanie i rozliczenie PRZED ten blok."
+    );
+  }
+
+  const rozlicza = porownujeWynik(tresc, "ileWpisow");
+  if (!rozlicza) {
+    bledy.push(
+      `${nazwa}: sprząta dziennik logowań, ale nie ROZLICZA się z tego — liczba wpisów musi być odczytana ` +
+        "przed przebiegiem i po nim, a druga wartość trafić do asercji. Bez porównania sprzątanie jest " +
+        "deklaracją: tak samo wyglądałby smoke, który kasuje CUDZE wiersze, i taki, który nie kasuje nic. " +
+        "Właśnie tak wyszło na jaw, że test retencji kasował cudzy wpis wybrany przez MIN(id)."
     );
   }
 }
@@ -238,6 +463,8 @@ if (bledy.length > 0) {
 
 console.log(
   "straznik-higieny-smokow: żadna bramka nie kasuje skrzynki hurtowo, bramki wysyłające pocztę biorą migawkę, " +
-    "sprzątają i rozliczają się ze skrzynki oraz z zapisów na kursy, a moduł poczty (sprawdzony uruchomieniowo) " +
+    "sprzątają i rozliczają się ze skrzynki oraz z zapisów na kursy, bramki logujące się sprzątają dziennik " +
+    "logowań i rozliczają się z niego asercją, która jest osiągalna, nikt nie kasuje tabel monitoringu hurtowo, " +
+    "a moduł poczty (sprawdzony uruchomieniowo) " +
     "nie kasuje przy pustej liście, trzyma się migawki i zatrzymuje przebieg przy niepełnym odczycie."
 );

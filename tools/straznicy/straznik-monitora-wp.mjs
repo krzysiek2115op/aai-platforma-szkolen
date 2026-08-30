@@ -10,10 +10,10 @@
  * się po cichu — ekran dalej się otwiera, tylko zaczyna kłamać albo
  * zbierać rzeczy, których zbierać nie wolno.
  *
- * OSIEM NIEZMIENNIKÓW (numery N z sekcji 8 schematu; każdy z mutacją
- * w audyt-straznikow). To komplet dla kroku T1 — reguły o hakach
- * logowania (T2) i o sicie beaconu (T3) dochodzą razem z tym kodem,
- * bo dziś nie miałyby czego pilnować:
+ * CZTERNAŚCIE NIEZMIENNIKÓW (numery N z sekcji 8 schematu; każdy z mutacją
+ * w audyt-straznikow). Reguły 1–8 przyszły z krokiem T1, reguły 9–12
+ * z T2 razem z pierwszym producentem danych; reguły o sicie beaconu
+ * dochodzą w T3, bo dziś nie miałyby czego pilnować:
  *   1. (N1) ekran jest CZYSTYM ODCZYTEM: zero `admin_post_*`, zero
  *      `wp_ajax_*`, zero `method="post"`, zero nonce'ów. Panel, który
  *      zaczyna zapisywać, przestaje być monitoringiem,
@@ -36,7 +36,27 @@
  *      polityka prywatności, a WP-Cron na cichej stronie nie wstaje,
  *   8. (P13) ekran mówi prawdę o tym, CO zbiera — pyta o zameldowane
  *      czujki, zamiast mieć to wpisane w tekst. Inaczej po wyłączeniu
- *      producenta danych ekran dalej twierdziłby, że go ma.
+ *      producenta danych ekran dalej twierdziłby, że go ma,
+ *   9. (N4) KAŻDY handler haka biegnącego w CUDZYM żądaniu ma
+ *      `catch ( Throwable )`. To wymaganie bezpieczeństwa sklepu, nie
+ *      higiena: wyjątek z `set_logged_in_cookie` wychodzi z kasy
+ *      WooCommerce, czyli daje HTTP 500 i przerwany zakup (F11),
+ *  10. (N2) dedup źródła: handler `wp_login` DOPRECYZOWUJE wiersz
+ *      utworzony przez `set_logged_in_cookie`, zamiast dopisywać drugi.
+ *      Złamanie jest ciche — dziennik działa, tylko liczy każde
+ *      logowanie formularzem dwa razy,
+ *  11. (N2, N3) wszystkie TRZY ścieżki mają swoje haki. Każdy pilnuje
+ *      innej: formularza, sesji z kasy (F3) i porażki. Skasowanie
+ *      jednego nie zapala niczego — po prostu cała klasa zdarzeń
+ *      przestaje istnieć w dzienniku,
+ *  12. (P13) producent danych MELDUJE czujkę. Reguła 8 pilnuje, że
+ *      ekran o nie pyta; ta — że ma o co. Bez meldunku ekran wraca do
+ *      zdania „nic nie zbiera" przy działających hakach, czyli kłamie
+ *      w drugą stronę,
+ *  13. (P13) producent jest PODPIĘTY: plik główny naprawdę woła jego
+ *      `zarejestruj()`. Reguły 10–12 czytają plik producenta i nie
+ *      widzą, że nikt go nie uruchamia — zmierzone: po zdjęciu jednej
+ *      linii dziennik jest martwy przy WSZYSTKICH bramkach zielonych.
  *
  * Użycie: node tools/straznicy/straznik-monitora-wp.mjs
  */
@@ -49,6 +69,8 @@ const ODCZYT = join(KATALOG, "includes", "class-aai-monitor-odczyt.php");
 const EKRAN = join(KATALOG, "includes", "class-aai-monitor-ekran.php");
 const CLI = join(KATALOG, "includes", "class-aai-monitor-cli.php");
 const TABELE = join(KATALOG, "includes", "class-aai-monitor-tabele.php");
+const LOGOWANIA = join(KATALOG, "includes", "class-aai-monitor-logowania.php");
+const GLOWNY = join(KATALOG, "aai-monitor.php");
 const bledy = [];
 
 if (!existsSync(KATALOG)) {
@@ -246,6 +268,172 @@ if (existsSync(EKRAN)) {
   }
 }
 
+/* ————— 9. (N4) handler cudzego haka nie wypuszcza wyjątku ————— */
+
+/*
+ * Wyjątki z NASZEGO kodu lecą w CUDZYM żądaniu. Przy `set_logged_in_cookie`
+ * to żądanie kasy WooCommerce (F11: zmierzone, wyjątek wychodzi
+ * z `wc_set_customer_auth_cookie()`), czyli HTTP 500 i utracony zakup.
+ * Monitoring ma prawo nie zapisać zdarzenia; nie ma prawa zepsuć
+ * transakcji.
+ *
+ * WYJĄTKI OD REGUŁY SĄ JAWNE, a nie domyślne: trzy haki poniżej biegną
+ * w NASZYM kokpicie, pod naszym ekranem, gdzie awaria psuje najwyżej
+ * wygląd strony administratora. Każdy inny hak podpięty w tej wtyczce
+ * — także dopisany kiedyś — wpada pod regułę sam, bo pytamy o
+ * REJESTRACJE w kodzie, nie o listę znanych nazw.
+ */
+const HAKI_NASZEGO_KOKPITU = ["admin_menu", "admin_enqueue_scripts", "admin_notices"];
+
+for (const [plik, tresc] of kodWtyczki) {
+  const rejestracje = [
+    ...tresc.matchAll(
+      /add_(?:action|filter)\(\s*['"]([\w-]+)['"]\s*,\s*array\(\s*(?:self::class|'[\w]+')\s*,\s*['"](\w+)['"]/g
+    ),
+  ];
+  for (const [, hak, metoda] of rejestracje) {
+    if (HAKI_NASZEGO_KOKPITU.includes(hak)) continue;
+    const cialo = cialoMetody(tresc, metoda);
+    if (null === cialo) {
+      bledy.push(
+        `${plik}: hak „${hak}" wskazuje na metodę ${metoda}(), której nie ma w tym pliku (N4). Reguła o łapaniu wyjątków nie ma wtedy czego sprawdzić i milczy — a milcząca reguła jest gorsza niż jej brak.`
+      );
+      continue;
+    }
+    /*
+     * PYTAMY O OSŁONIĘTE CIAŁO, nie o obecność słowa `catch`.
+     *
+     * Pierwsza wersja sprawdzała tylko, czy gdziekolwiek w ciele stoi
+     * `catch ( Throwable` — i była ŚLEPA. Instrukcja wstawiona JEDNĄ
+     * LINIĘ przed `try` przechodziła na zielono, a wyjątek z niej
+     * wychodził z `do_action()` prosto do kasy WooCommerce (zmierzone
+     * uruchomieniowo: `Error` wyleciał z `set_logged_in_cookie`).
+     *
+     * Teraz `try` musi być PIERWSZĄ instrukcją ciała. To wyklucza całą
+     * klasę: cokolwiek stoi przed nim, nie jest chronione.
+     */
+    const pierwszaInstrukcja = cialo.replace(/^\{\s*/, "").trimStart();
+    if (!/catch\s*\(\s*Throwable\s/.test(cialo)) {
+      bledy.push(
+        `${plik}: ${metoda}() jest podpięta pod hak „${hak}" i nie łapie Throwable (N4). Ten kod biegnie w CUDZYM żądaniu — przy logowaniu i w kasie WooCommerce. Zmierzone (F11): wyjątek z handlera set_logged_in_cookie wychodzi z wc_set_customer_auth_cookie(), więc w kasie znaczy HTTP 500 i przerwany zakup. Monitoring ma prawo nie zapisać zdarzenia; nie ma prawa zepsuć transakcji.`
+      );
+    } else if (!pierwszaInstrukcja.startsWith("try")) {
+      bledy.push(
+        `${plik}: ${metoda}() (hak „${hak}") ma catch ( Throwable ), ale NIE JEST NIM OSŁONIĘTA W CAŁOŚCI — przed blokiem try stoi instrukcja „${pierwszaInstrukcja.split("\n")[0].trim().slice(0, 60)}" (N4). Wyjątek stamtąd wychodzi z do_action() tak samo, jakby catcha nie było wcale: zmierzone uruchomieniowo — Error rzucony linię przed try wyleciał z set_logged_in_cookie, czyli w żądaniu kasy dałby HTTP 500 i przerwany zakup. „try” ma być PIERWSZĄ instrukcją ciała.`
+      );
+    }
+  }
+}
+
+/* ————————— 10. (N2) dedup źródła zamiast drugiego wiersza ————————— */
+
+if (existsSync(LOGOWANIA)) {
+  const tresc = kod(readFileSync(LOGOWANIA, "utf8"));
+  const podpiety = tresc.match(
+    /add_action\(\s*['"]wp_login['"]\s*,\s*array\(\s*(?:self::class|'[\w]+')\s*,\s*['"](\w+)['"]/
+  );
+  if (null === podpiety) {
+    bledy.push(
+      `${LOGOWANIA}: nie znalazłem rejestracji haka „wp_login" (N2). Bez niego każde logowanie formularzem zostaje w dzienniku jako „sesja" i nie da się odróżnić człowieka przy formularzu od automatycznego wejścia z kasy — a po to właśnie istnieje kolumna „źródło".`
+    );
+  } else {
+    const cialo = cialoMetody(tresc, podpiety[1]);
+    if (null === cialo || !/Aai_Monitor_Zapis::uzupelnij_zrodlo\s*\(/.test(cialo ?? "")) {
+      bledy.push(
+        `${LOGOWANIA}: ${podpiety[1]}() (hak wp_login) nie doprecyzowuje wiersza przez uzupelnij_zrodlo() (N2). Zmierzone: przy logowaniu formularzem WordPress odpala NAJPIERW set_logged_in_cookie, a chwilę później, w tym samym żądaniu, wp_login. Handler, który zamiast doprecyzować dopisuje własny wiersz, podwaja każde logowanie formularzem — dziennik dalej działa, tylko kłamie o liczbie wejść, a licznik porażek z 7 dni przestaje być porównywalny.`
+      );
+    }
+  }
+}
+
+/* ————————— 11. (N2, N3) trzy ścieżki mają swoje haki ————————— */
+
+if (existsSync(LOGOWANIA)) {
+  const tresc = kod(readFileSync(LOGOWANIA, "utf8"));
+  const SCIEZKI = [
+    [
+      "set_logged_in_cookie",
+      "sesja powstała poza formularzem — czyli auto-login z kasy WooCommerce (F3, zmierzone: wc_set_customer_auth_cookie odpala WYŁĄCZNIE ten hak). Bez niego ścieżka KAŻDEGO nowego klienta jest dla dziennika niewidzialna",
+    ],
+    [
+      "wp_login",
+      "logowanie formularzem — bez niego wszystko wygląda w dzienniku na sesję z kasy",
+    ],
+    [
+      "wp_login_failed",
+      "nieudana próba — bez niej licznik porażek z 7 dni, czyli JEDYNA funkcja alarmowa ekranu, pokazuje zero niezależnie od tego, ile razy ktoś próbował się włamać",
+    ],
+  ];
+  for (const [hak, po_co] of SCIEZKI) {
+    // Pytamy o REJESTRACJĘ, nie o obecność napisu: nazwa haka pada
+    // w tym pliku także w prozie i w komentarzach, a szósty nawrót tej
+    // pułapki w projekcie kosztował całą regułę blokady sprzedaży.
+    if (!new RegExp(`add_action\\(\\s*['"]${hak}['"]\\s*,`).test(tresc)) {
+      bledy.push(
+        `${LOGOWANIA}: hak „${hak}" nie jest zarejestrowany (N2/N3). Pilnuje ścieżki: ${po_co}. Skasowanie tej rejestracji niczego nie zapala — ekran dalej się otwiera, kontrola dalej mówi „w porządku", po prostu cała klasa zdarzeń przestaje istnieć.`
+      );
+    }
+  }
+}
+
+/* ————————— 12. (P13) producent danych melduje czujkę ————————— */
+
+if (existsSync(LOGOWANIA)) {
+  const tresc = kod(readFileSync(LOGOWANIA, "utf8"));
+  if (!/Aai_Monitor_Ekran::zglos_czujke\s*\(/.test(tresc)) {
+    bledy.push(
+      `${LOGOWANIA}: producent danych nie melduje czujki (P13). Reguła 8 pilnuje, że ekran o czujki PYTA; ta pilnuje, żeby miał o co. Bez meldunku ekran przy działających hakach dalej twierdzi „baza stoi, ale nic nie zbiera" — kłamstwo w drugą stronę, groźniejsze od pustej listy, bo każe szukać awarii tam, gdzie jej nie ma.`
+    );
+  }
+}
+
+/* ————— 14. kontrola pyta o tabelę odłożoną przez przerwany test ————— */
+
+/*
+ * `smoke-wp-monitor` chowa dziennik `RENAME`-em, żeby zmierzyć, czy awaria
+ * zapisu jest głośna, i przywraca go w `finally`. Ale `finally` chroni przed
+ * wyjątkiem, nie przed zabiciem procesu: po `Ctrl+C` w złym momencie
+ * prawdziwy dziennik zostaje pod nazwą `…_smoke_schowana`, a najbliższy
+ * `postaw.sh` odtworzy przez `dbDelta` PUSTĄ tabelę o właściwej nazwie.
+ * Wszystko wygląda zdrowo, tylko historia logowań zniknęła — a to materiał
+ * dowodowy, którego `uninstall.php` celowo nie kasuje.
+ */
+if (existsSync(CLI)) {
+  const tresc = kod(readFileSync(CLI, "utf8"));
+  if (!/_smoke\\_schowana|_smoke_schowana/.test(tresc)) {
+    bledy.push(
+      `${CLI}: sprawdz() nie pyta o tabele odłożone przez przerwany test (nazwa kończąca się na _smoke_schowana). Przerwany smoke zostawia prawdziwy dziennik pod cudzą nazwą, a schemat odtwarza PUSTY — wszystko wygląda zdrowo, tylko historia logowań zniknęła. Jedno SHOW TABLES LIKE zamienia cichą podmianę materiału dowodowego w komunikat z komendą przywracającą.`
+    );
+  }
+}
+
+/* ————— 13. (P13) producent jest PODPIĘTY, nie tylko napisany ————— */
+
+/*
+ * Reguły 10–12 czytają PLIK producenta. Ta pyta o coś innego: czy plik
+ * główny w ogóle go uruchamia.
+ *
+ * Zmierzone: zdjęcie jednej linii `Aai_Monitor_Logowania::zarejestruj()`
+ * z `aai-monitor.php` zostawia OBA strażniki zielone, a `wp aai-monitor
+ * sprawdz` kończy się kodem 0 — przy całkowicie martwym dzienniku. Kod
+ * żyje i nikogo nie słucha. Tę samą regułę ma `straznik-tutora` dla
+ * swojego modułu, z tego samego powodu.
+ */
+if (existsSync(GLOWNY)) {
+  const tresc = kod(readFileSync(GLOWNY, "utf8"));
+  const PRODUCENCI = [
+    ["Aai_Monitor_Logowania", "dziennik logowań przestaje cokolwiek zapisywać, a ekran wraca do zdania „nic nie zbiera”"],
+    ["Aai_Monitor_Prywatnosc", "wpis o dzienniku znika z kreatora polityki prywatności — a dziennik dalej zapisuje adresy IP"],
+  ];
+  for (const [klasa, skutek] of PRODUCENCI) {
+    if (!new RegExp(`${klasa}::zarejestruj\\s*\\(\\s*\\)`).test(tresc)) {
+      bledy.push(
+        `${GLOWNY}: nie woła ${klasa}::zarejestruj() (P13). Skutek: ${skutek}. Złamanie jest CICHE — zmierzone: po zdjęciu tej jednej linii oba strażniki są zielone, a kontrola kończy kodem 0. Reguły czytające plik producenta tego nie widzą, bo tam wszystko jest na miejscu — po prostu nikt tego nie uruchamia.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-monitora-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -253,5 +441,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach)."
+  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test)."
 );

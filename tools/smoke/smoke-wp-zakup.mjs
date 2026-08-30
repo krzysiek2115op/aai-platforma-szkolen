@@ -36,6 +36,7 @@ import { rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ilePoczty, migawkaPoczty, pocztaOdpowiada, sprzatnijPoczte } from "./poczta.mjs";
+import { migawkaDziennika, sprzatnijDziennik, ileWpisow } from "./dziennik.mjs";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
@@ -64,6 +65,16 @@ function wp(...argumenty) {
   }
 }
 const php = (kod) => wp("eval", kod).out;
+
+/*
+ * HIGIENA DZIENNIKA LOGOWAŃ (N13). Ta bramka loguje się do instalacji,
+ * więc od kroku T2 KAŻDY jej przebieg zostawia wpisy w dzienniku
+ * Pluginu 3 — zmierzone. Bez sprzątania licznik nieudanych prób
+ * z 7 dni, czyli jedyna funkcja alarmowa ekranu monitoringu, pokazywałby
+ * serie wyprodukowane przez nasze własne testy.
+ */
+const _dziennikPrzed = ileWpisow(php);
+const _dziennikMigawka = migawkaDziennika(php);
 
 /**
  * Wartość z PHP w nawiasach klamrowych — porównywana RÓWNOŚCIĄ.
@@ -552,6 +563,13 @@ sprawdz(
     "bramka albo zostawia własne wiadomości (zmierzone 21 na przebieg), albo kasuje CUDZE"
 );
 sprawdz(wp("aai-platnosci", "sprawdz").kod === 0, "po sprzątaniu kontrola czerwona — smoke zostawił rozjazd");
+
+/* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
+sprzatnijDziennik(php, _dziennikMigawka);
+sprawdz(
+  ileWpisow(php) === _dziennikPrzed,
+  `bramka zostawiła ślad w dzienniku logowań: przed ${_dziennikPrzed}, po ${ileWpisow(php)} wpisów (N13)`
+);
 
 if (bledy.length > 0) {
   console.error(`smoke-wp-zakup: ${bledy.length} z ${sprawdzen} sprawdzeń padło:`);
