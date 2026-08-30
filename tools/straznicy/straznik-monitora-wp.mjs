@@ -79,6 +79,10 @@ const CLI = join(KATALOG, "includes", "class-aai-monitor-cli.php");
 const TABELE = join(KATALOG, "includes", "class-aai-monitor-tabele.php");
 const LOGOWANIA = join(KATALOG, "includes", "class-aai-monitor-logowania.php");
 const WYSTRZAL = join(KATALOG, "includes", "class-aai-monitor-wizyty.php");
+const POMIAR = join(KATALOG, "includes", "class-aai-monitor-pomiar.php");
+const SKRYPT = join(KATALOG, "assets", "pomiar.js");
+const PRYWATNOSC = join(KATALOG, "includes", "class-aai-monitor-prywatnosc.php");
+const FRAGMENT_POLITYKI = "docs/plugin-3/POLITYKA-PRYWATNOSCI.md";
 const GLOWNY = join(KATALOG, "aai-monitor.php");
 const bledy = [];
 
@@ -196,6 +200,111 @@ if (existsSync(WYSTRZAL)) {
   if (/file_get_contents\(\s*['"]php:\/\/input/.test(tresc) || !/fread\s*\(/.test(tresc)) {
     bledy.push(
       `${WYSTRZAL}: ciało żądania nie jest czytane strumieniem z sufitem (Z9 audytu T3). \`post_max_size\` w kontenerze to 8 MB, a limit 64 KiB z dokumentacji \`sendBeacon\` w pomiarze NIE zadziałał — beacon 70 kB przeszedł i doszedł w całości.`
+    );
+  }
+}
+
+/* ——— 15. (N8) skryptu pomiaru nie dostaje ani admin, ani strona 404 ——— */
+
+if (existsSync(POMIAR)) {
+  const tresc = kod(readFileSync(POMIAR, "utf8"));
+  const decyzja = cialoMetody(tresc, "mierzymy");
+  if (null === decyzja) {
+    bledy.push(
+      `${POMIAR}: nie znalazłem metody mierzymy() — to jedyne miejsce, które rozstrzyga, KTO dostaje skrypt pomiaru. Bez niej reguła nie ma czego sprawdzać i milczy.`
+    );
+  } else {
+    if (!/current_user_can\s*\(/.test(decyzja)) {
+      bledy.push(
+        `${POMIAR}: mierzymy() nie pyta o uprawnienie (N8, D3). Administrator ma NIE być liczony — a skoro skrypt dostaje każdy, kto dostanie stronę, to jest jedyne miejsce, w którym da się go wykluczyć.`
+      );
+    }
+    if (!/is_404\s*\(\s*\)/.test(decyzja)) {
+      bledy.push(
+        `${POMIAR}: mierzymy() nie wyklucza strony 404 — a to nie jest oszczędność, tylko dziura w podpisie. Strona błędu renderuje się dla DOWOLNEGO adresu, więc podawanie tam skryptu rozdaje podpisy na ścieżki, których nie ma: wystarczy wejść na zmyślony adres, wziąć podpis ze źródła i zatruć nim listę najczęstszych stron.`
+      );
+    }
+  }
+
+  if (!/const UCHWYT = 'aai-monitor-/.test(tresc)) {
+    bledy.push(
+      `${POMIAR}: uchwyt skryptu nie zaczyna się od \`aai-monitor-\` (P11). To nie zwyczaj nazewniczy: \`Aai_Sklep_Zasoby\` zdejmuje z frontu uchwyty o prefiksach \`tutor\`, \`wc-\`, \`woocommerce\` i \`sourcebuster\`, więc nazwa spoza naszej rodziny może wpaść pod cudzy filtr i wyciszyć pomiar bez śladu.`
+    );
+  }
+}
+
+/* ——— 16. (P17, F6, F22) skrypt: jedna wysyłka, reset po bfcache, bez automatów ——— */
+
+if (existsSync(SKRYPT)) {
+  const js = readFileSync(SKRYPT, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const wymagania = [
+    [
+      /navigator\.webdriver/,
+      "skrypt nie wyłącza się przy navigator.webdriver (F6) — automaty liczyłyby się jak ludzie, a para bramek N9/N10 straciłaby sens",
+    ],
+    [
+      /if\s*\(\s*wyslane\s*\)\s*\{[^}]*return/,
+      "skrypt nie ma bramki na drugą wysyłkę (P17). Zmierzone: pagehide i visibilitychange odpalają w TEJ SAMEJ milisekundzie, więc bez niej KAŻDA odsłona zapisuje się dwa razy — odsłony zawyżone dwukrotnie, średni czas zaniżony o połowę",
+    ],
+    [
+      /persisted/,
+      "skrypt nie reaguje na powrót z bfcache (F22). Strona wraca z ZACHOWANYM stanem JS, czyli z ustawioną flagą wysyłki — bez zdjęcia jej nawigacja „wstecz” nie liczy się ani razu",
+    ],
+    [
+      /catch\s*\(/,
+      "skrypt sięga po sessionStorage bez catch. Magazyn rzuca SecurityError przy zablokowanych ciasteczkach, więc pomiar milczałby u części odwiedzających — bez jednego objawu",
+    ],
+    [
+      /type:\s*["']application\/json["']/,
+      "beacon nie deklaruje typu application/json (F10, F20). Zwykły łańcuch idzie jako text/plain, którego endpoint nie przyjmuje — a przyjmować nie może, bo to właśnie text/plain przechodzi cross-origin",
+    ],
+    [
+      /visibilityState/,
+      "skrypt nie pyta o widoczność strony — zegar ruszałby na karcie otwartej w tle i na stronie wstępnie renderowanej, czyli mierzyłby czas, którego nikt nie spędził",
+    ],
+  ];
+  for (const [wzorzec, opis] of wymagania) {
+    if (!wzorzec.test(js)) {
+      bledy.push(`${SKRYPT}: ${opis}.`);
+    }
+  }
+}
+
+/* ——— 17. teksty ekranu bez podwójnej ucieczki cudzysłowu ——— */
+
+if (existsSync(EKRAN)) {
+  // `esc_html` zamienia prosty `"` na `&quot;`, więc cudzysłów wpisany
+  // w tekst tłumaczony trafia na ekran jako encja. Ta sama klasa co
+  // 29 podpisów w podglądzie kursów (0.34.0) — i tak samo niewidoczna
+  // dla wszystkiego poza ludzkim okiem.
+  const zle = [...readFileSync(EKRAN, "utf8").matchAll(/__\(\s*'([^']*)'/g)]
+    .map((m) => m[1])
+    .filter((t) => t.includes('"'));
+  for (const tekst of zle) {
+    bledy.push(
+      `${EKRAN}: tekst na ekran zawiera prosty cudzysłów — \`esc_html\` zamieni go na \`&quot;\` i klient zobaczy encję zamiast znaku. Użyj „typograficznych”. Tekst: „${tekst.slice(0, 60)}…”`
+    );
+  }
+}
+
+/* ——— 18. fragment polityki w repo zgodny z treścią w kodzie ——— */
+
+if (existsSync(PRYWATNOSC) && existsSync(FRAGMENT_POLITYKI)) {
+  // Dokument obiecuje wprost, że jego treść jest identyczna z tą, którą
+  // melduje wtyczka. Dwie kopie tekstu PRAWNEGO rozjadą się przy
+  // pierwszej poprawce, a rozjazd zobaczy dopiero ktoś, kto czyta oba
+  // naraz — czyli nikt.
+  const zKodu = [...readFileSync(PRYWATNOSC, "utf8").matchAll(/__\(\s*'([^']*)'\s*,\s*'aai-monitor'\s*\)/g)]
+    .map((m) => m[1].replace(/\\'/g, "'"))
+    .filter((t) => t.length > 120);
+  // Fragment stoi w cytacie blokowym, więc najpierw zdejmujemy „> ”
+  // z początku linii — inaczej porównanie nie ma szans i reguła zapala
+  // się fałszywie przy zgodnej treści.
+  const dokument = readFileSync(FRAGMENT_POLITYKI, "utf8").replace(/^>\s?/gm, "").replace(/\s+/g, " ");
+  const brakujace = zKodu.filter((t) => !dokument.includes(t.replace(/\s+/g, " ")));
+  if (brakujace.length > 0) {
+    bledy.push(
+      `${FRAGMENT_POLITYKI}: ${brakujace.length} akapit(ów) z ${PRYWATNOSC} nie ma w gotowym fragmencie, choć dokument obiecuje treść identyczną. Polityka prywatności żyje w dwóch miejscach (kod wtyczki i tekst do wklejenia w motywie, do którego mamy dostęp tylko do odczytu) — rozjazd między nimi znaczy, że klient czyta co innego, niż witryna robi. Pierwszy brakujący: „${brakujace[0].slice(0, 70)}…”`
     );
   }
 }
@@ -507,5 +616,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test)."
+  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test, wystrzał ma obie nazwy akcji i akcję w query stringu, wymaga typu JSON i czyta ciało strumieniem, skryptu nie dostaje admin ani strona 404, skrypt wysyła raz i wraca do życia po bfcache, teksty ekranu bez podwójnej ucieczki, polityka w repo zgodna z kodem)."
 );

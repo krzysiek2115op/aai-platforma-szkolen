@@ -84,6 +84,9 @@ const CLI_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-c
 const TABELE_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-tabele.php";
 const LOGOWANIA_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-logowania.php";
 const WYSTRZAL_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-wizyty.php";
+const POMIAR_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-pomiar.php";
+const SKRYPT_MONITORA = "wordpress/wtyczki/aai-monitor/assets/pomiar.js";
+const PRYWATNOSC_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-prywatnosc.php";
 
 const MUTACJE = [
   // --- straznik-scenariuszy ---
@@ -3180,6 +3183,106 @@ const MUTACJE = [
             "$cialo = (string) fread( $uchwyt, self::SUFIT_CIALA_B + 1 );",
             "$cialo = (string) file_get_contents( 'php://input' );"
           )
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "administrator zaczyna być liczony — skrypt pomiaru trafia do wszystkich (N8, D3)",
+    plik: POMIAR_MONITORA,
+    wymaga: () => existsSync(POMIAR_MONITORA),
+    oczekiwanySlad: "nie pyta o uprawnienie",
+    zmien: (s) =>
+      s.includes("if ( current_user_can( Aai_Monitor_Ekran::UPRAWNIENIE ) ) {\n\t\t\treturn false;\n\t\t}")
+        ? s.replace("if ( current_user_can( Aai_Monitor_Ekran::UPRAWNIENIE ) ) {\n\t\t\treturn false;\n\t\t}", "")
+        : null,
+  },
+  {
+    // Strona 404 renderuje się dla DOWOLNEGO adresu, więc podpisywanie
+    // jej rozdaje podpisy na ścieżki, których nie ma — i „top 10 stron"
+    // da się zatruć czymkolwiek.
+    straznik: "straznik-monitora-wp",
+    opis: "strona 404 dostaje skrypt, czyli rozdaje podpisy na zmyślone ścieżki",
+    plik: POMIAR_MONITORA,
+    wymaga: () => existsSync(POMIAR_MONITORA),
+    oczekiwanySlad: "nie wyklucza strony 404",
+    zmien: (s) =>
+      s.includes("if ( is_404() ) {\n\t\t\treturn false;\n\t\t}")
+        ? s.replace("if ( is_404() ) {\n\t\t\treturn false;\n\t\t}", "")
+        : null,
+  },
+  {
+    // `Aai_Sklep_Zasoby` zdejmuje z frontu uchwyty o prefiksach `tutor`,
+    // `wc-`, `woocommerce`, `sourcebuster` — nazwa spoza naszej rodziny
+    // wpada pod cudzy filtr i wycisza pomiar bez śladu.
+    straznik: "straznik-monitora-wp",
+    opis: "uchwyt skryptu nazwany tak, że wpada pod filtr zasobów Pluginu 1",
+    plik: POMIAR_MONITORA,
+    wymaga: () => existsSync(POMIAR_MONITORA),
+    oczekiwanySlad: "nie zaczyna się od",
+    zmien: (s) =>
+      s.includes("const UCHWYT = 'aai-monitor-pomiar';")
+        ? s.replace("const UCHWYT = 'aai-monitor-pomiar';", "const UCHWYT = 'wc-monitor-pomiar';")
+        : null,
+  },
+  {
+    // Zmierzone: pagehide i visibilitychange odpalają w TEJ SAMEJ
+    // milisekundzie, więc bez bramki każda odsłona zapisuje się dwa razy.
+    straznik: "straznik-monitora-wp",
+    opis: "znika bramka na drugą wysyłkę — każda odsłona zapisuje się dwa razy",
+    plik: SKRYPT_MONITORA,
+    wymaga: () => existsSync(SKRYPT_MONITORA),
+    oczekiwanySlad: "bramki na drugą wysyłkę",
+    zmien: (s) =>
+      s.includes("if (wyslane) {\n\t\t\treturn;\n\t\t}")
+        ? s.replace("if (wyslane) {\n\t\t\treturn;\n\t\t}", "")
+        : null,
+  },
+  {
+    // Powrót „wstecz" przywraca stronę z ZACHOWANYM stanem JS, czyli
+    // z ustawioną flagą wysyłki — bez resetu ta odsłona nie istnieje.
+    straznik: "straznik-monitora-wp",
+    opis: "powrót z bfcache przestaje być liczony jako odsłona",
+    plik: SKRYPT_MONITORA,
+    wymaga: () => existsSync(SKRYPT_MONITORA),
+    oczekiwanySlad: "powrót z bfcache",
+    zmien: (s) => (s.includes("zdarzenie.persisted") ? s.replaceAll("persisted", "przywrocona") : null),
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "beacon idzie jako text/plain — czyli typem, który przechodzi cross-origin",
+    plik: SKRYPT_MONITORA,
+    wymaga: () => existsSync(SKRYPT_MONITORA),
+    oczekiwanySlad: "nie deklaruje typu",
+    zmien: (s) =>
+      s.includes('new Blob([JSON.stringify(ladunek)], { type: "application/json" })')
+        ? s.replace('new Blob([JSON.stringify(ladunek)], { type: "application/json" })', "JSON.stringify(ladunek)")
+        : null,
+  },
+  {
+    // `esc_html` zamienia prosty cudzysłów na `&quot;` i klient widzi
+    // encję — ta sama klasa co 29 podpisów w podglądzie kursów (0.34.0).
+    straznik: "straznik-monitora-wp",
+    opis: "tekst na ekran z prostym cudzysłowem (podwójna ucieczka u klienta)",
+    plik: EKRAN_MONITORA,
+    wymaga: () => existsSync(EKRAN_MONITORA),
+    oczekiwanySlad: "prosty cudzysłów",
+    zmien: (s) =>
+      s.includes("__( 'Ruch', 'aai-monitor' )")
+        ? s.replace("__( 'Ruch', 'aai-monitor' )", "__( 'Ruch \"na stronach\"', 'aai-monitor' )")
+        : null,
+  },
+  {
+    // Polityka prywatności żyje w DWÓCH miejscach: w kodzie wtyczki
+    // i jako tekst do wklejenia w motywie (repo tylko do odczytu).
+    // Rozjazd zobaczyłby tylko ktoś, kto czyta oba naraz — czyli nikt.
+    straznik: "straznik-monitora-wp",
+    opis: "kod obiecuje inną retencję ruchu niż gotowy fragment polityki w repo",
+    plik: PRYWATNOSC_MONITORA,
+    wymaga: () => existsSync(PRYWATNOSC_MONITORA),
+    oczekiwanySlad: "nie ma w gotowym fragmencie",
+    zmien: (s) =>
+      s.includes("Zapisy o ruchu usuwamy do 400 dni")
+        ? s.replace("Zapisy o ruchu usuwamy do 400 dni", "Zapisy o ruchu usuwamy do 30 dni")
         : null,
   },
 ];
