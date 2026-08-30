@@ -2428,13 +2428,47 @@ wyprowadzała tego od nowa:
         (4) **kontrola NIGDY nie pyta o siebie żądaniem HTTP** —
         kontener WP-CLI nie dosięga `:8892` (cURL error 7), więc kontrola
         po sieci byłaby czerwona ZAWSZE i wywracała `postaw.sh`.
-        Testy negatywne: kolumna `ip` dopisana do tabeli ruchu zapala
-        DOKŁADNIE JEDNO sprawdzenie z 55, kontrola zmuszona do zapisu
-        zapala pomiar N16, formularz POST w ekranie zapala obie asercje
-        czystego odczytu.
-        **NASTĘPNY KROK: PR gałęzi `feat/t1-fundament-monitora`, potem
-        plan T2 (dziennik logowań) z pytaniami → ZGODA → dopiero kod.**
-        T2 wg tabeli kroków w DIAGRAM.md sekcja 12
+        Testy negatywne (CZTERY, każdy trafia DOKŁADNIE w swoje): kolumna
+        `ip` dopisana do tabeli ruchu zapala **1 z 57**, kontrola zmuszona
+        do zapisu zapala pomiar N16, formularz POST w ekranie zapala obie
+        asercje czystego odczytu, arkusz wpuszczony na cudze ekrany zapala
+        **1 z 57**.
+        **T1 ZAMKNIĘTY W REPO (2026-08-30): PR #97 zmergowany do `main`,
+        tag `v0.55.0` + release, gałąź skasowana, artefakt zweryfikowany
+        (`git diff origin/main <szczyt>` PUSTY — lekcja z 0.37.0).** Merge
+        decyzją właściciela na dowodach lokalnych: CI padło z **zerem
+        kroków we wszystkich zadaniach** (wyczerpane minuty Actions,
+        limit wraca 1 września), czyli rozliczenie, nie kod — sprawdzone
+        `gh run view`. Po powrocie CI potwierdzić **gitleaks**.
+        **JEDNA RZECZ ZGŁOSZONA BEZ DIAGNOZY — nie zaczynać śledztwa od
+        nowa i nie brać jej za regresję:** przy przelocie WSZYSTKICH
+        bramek WP pod rząd `smoke-wp-motyw` padł RAZ na dwóch
+        sprawdzeniach (logowanie `klient-test` w prawdziwej przeglądarce
+        i wynikające z niego menu konta). Puszczony osobno przechodzi
+        **90/90** — trzy przebiegi, w tym dokładnie ta sama trójka
+        `panel → jezyk → motyw`, która wcześniej padła. Nie reprodukuje
+        się, przyczyny NIE ustaliłem; hasło konta zweryfikowane osobnym
+        pomiarem HTTP zaraz po padnięciu (działa), a kod monitoringu nie
+        dotyka ani frontu, ani logowania. Podejrzenie (niepotwierdzone):
+        stan przeglądarki albo klucz resetu hasła zostawiony przez
+        `smoke-wp-jezyk`, który woła `get_password_reset_key()` na
+        pierwszym koncie roli `customer`.
+        **ŚRODOWISKO `:8892` ZOSTAJE POSTAWIONE I CZYSTE:** pięć wtyczek
+        aktywnych (`aai-monitor aai-platnosci aai-sklep tutor
+        woocommerce`), tabele monitoringu **puste** (smoke sprząta po
+        sobie), Pluginy 1 i 2 nietknięte (powiązania 2), `wp aai-monitor
+        sprawdz` kod 0, konto `klient-test` na obu kursach (NIE kasować —
+        potrzebne do bramek), skrzynka `127.0.0.1:8893`.
+        **NASTĘPNY KROK CAŁEGO PROJEKTU: T2 — DZIENNIK LOGOWAŃ.** Wg
+        reguły właściciela (2026-08-28) najpierw **plan przebiegu kroku
+        + pytania doprecyzowujące i CZEKAĆ NA ZGODĘ**, dopiero potem kod.
+        Zakres T2 i jego bramka: DIAGRAM.md sekcja 12 (trzy haki
+        z `try/catch`, dedup źródła, retencja 90 dni + drugi wyzwalacz,
+        sekcja „Logowania" ekranu, wpis do polityki prywatności; zamyka
+        N2, N3, N4, N5, N6, N13, N15 + test ręczny logowania z kasy).
+        **Czego T2 NIE dotyka:** beaconu wizyt ani `pomiar.js` (to T3).
+        Wchodząc w T2 pamiętać o F17/F18 — one dotyczą wystrzału z T3,
+        nie haków logowania
         (fundament + EKRAN + pięć czynności integracji środowiska +
         sprostowanie trzech obietnic o Pluginie 3 w repo).
      **POZA MODUŁAMI, przed pierwszym klientem** (spinane na bieżąco,
