@@ -2625,6 +2625,118 @@ const MUTACJE = [
         : null,
     oczekiwanySlad: "nie odrzuca PUSTEGO identyfikatora",
   },
+
+  // --- straznik-higieny-smokow (naprawy po P6: wspólna skrzynka) ---
+  // Skrzynka łapacza jest wspólna z właścicielem, a różnica między
+  // „posprzątaj po sobie" a „wyczyść wszystko" to JEDNO pole w ładunku
+  // żądania. Żaden z tych niezmienników nie objawia się błędem: bramka
+  // świeci na zielono niezależnie od tego, czyją pocztę skasowała.
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "moduł poczty kasuje skrzynkę HURTOWO (pusta lista IDs = „skasuj wszystko” w API Mailpita)",
+    plik: "tools/smoke/poczta.mjs",
+    zmien: (s) =>
+      s.includes("  if (nasze.length === 0) return 0;\n  await fetch(`${POCZTA}/api/v1/messages`, {")
+        ? s.replace(
+            /  if \(nasze\.length === 0\) return 0;\n  await fetch\(`\$\{POCZTA\}\/api\/v1\/messages`, \{\n[\s\S]*?\n  \}\);/,
+            '  await fetch(`${POCZTA}/api/v1/messages`, { method: "DELETE" });'
+          )
+        : null,
+    oczekiwanySlad: "kasuje skrzynkę HURTOWO",
+  },
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "sprzątanie bez własnych wiadomości mimo to wysyła żądanie kasujące (czyści cudzą skrzynkę)",
+    plik: "tools/smoke/poczta.mjs",
+    zmien: (s) =>
+      s.includes("  if (nasze.length === 0) return 0;") ? s.replace("  if (nasze.length === 0) return 0;", "") : null,
+    oczekiwanySlad: "przy BRAKU własnych wiadomości wysyła żądanie kasujące",
+  },
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "sprzątanie przestaje odróżniać własne wiadomości od zastanych",
+    plik: "tools/smoke/poczta.mjs",
+    zmien: (s) =>
+      s.includes("const nasze = (await wszystkie()).filter((m) => !migawka.obce.has(m.ID)).map((m) => m.ID);")
+        ? s.replace(
+            "const nasze = (await wszystkie()).filter((m) => !migawka.obce.has(m.ID)).map((m) => m.ID);",
+            "const nasze = (await wszystkie()).map((m) => m.ID);"
+          )
+        : null,
+    oczekiwanySlad: "nie trzyma się migawki",
+  },
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "niepełna migawka przechodzi (niedoczytane CUDZE wiadomości stają się „naszymi”)",
+    plik: "tools/smoke/poczta.mjs",
+    // Mutacja celuje w ZACHOWANIE (lista oddana mimo rozbieżności z `total`),
+    // a nie w kształt bloku kontrolnego: jego pierwsza wersja umarła, gdy
+    // odczyt dostał drugie podejście — mutacja przypięta do kształtu kodu
+    // przestaje cokolwiek mierzyć po pierwszym refactorze.
+    zmien: (s) =>
+      s.includes("if (zebrane.length === deklarowane) return zebrane;")
+        ? s.replace("if (zebrane.length === deklarowane) return zebrane;", "return zebrane;")
+        : null,
+    oczekiwanySlad: "NIEPEŁNA migawka przechodzi",
+  },
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka zakupu przestaje brać migawkę i sprzątać pocztę (21 wiadomości na przebieg zostaje na zawsze)",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    zmien: (s) =>
+      s.includes("const migawka = await migawkaPoczty();")
+        ? s
+            .replace("const migawka = await migawkaPoczty();", "const migawka = null;")
+            .replace("  await sprzatnijPoczte(migawka);", "")
+        : null,
+    oczekiwanySlad: "nie bierze migawki",
+  },
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka zwrotów przestaje brać migawkę (15 wiadomości na przebieg zostaje w cudzej skrzynce)",
+    plik: "tools/smoke/smoke-wp-zwroty.mjs",
+    zmien: (s) =>
+      s.includes("const migawka = await migawkaPoczty();")
+        ? s.replace("const migawka = await migawkaPoczty();", "const migawka = null;")
+        : null,
+    oczekiwanySlad: "nie bierze migawki",
+  },
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka maili przestaje liczyć zapisy na kursy GLOBALNIE (sierota na cudzym kursie przeżywa)",
+    plik: "tools/smoke/smoke-wp-maile.mjs",
+    zmien: (s) =>
+      s.includes("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='tutor_enrolled'\" );`));")
+        ? s.replace(
+            "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='tutor_enrolled'\" );`));",
+            "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='product'\" );`));"
+          )
+        : null,
+    oczekiwanySlad: "nie liczy zapisów na kursy GLOBALNIE",
+  },
+  {
+    // KONTRPRZYKŁAD: reguła ma pytać o ZACHOWANIE, nie o nazwy. Przemianowanie
+    // stałej w module niczego nie osłabia, więc strażnik MUSI zostać zielony —
+    // inaczej pilnowałby napisu, jak sześć razy wcześniej w tym repo.
+    straznik: "straznik-higieny-smokow",
+    opis: "kontrprzykład: zmiana nazwy stałej strony w module poczty niczego nie psuje",
+    plik: "tools/smoke/poczta.mjs",
+    oczekujCzerwonego: false,
+    zmien: (s) => (s.includes("const STRONA = 200;") ? s.replaceAll("STRONA", "PACZKA") : null),
+  },
+  {
+    // KONTRPRZYKŁAD do reguły rachunku sumienia. Jej pierwsza wersja szukała
+    // napisu „poczty” w wywołaniu `sprawdz(`, czyli wisiała na nazwie
+    // zmiennej — siódmy nawrót pułapki „wzorzec na napis”, tym razem złapany
+    // we własnym kodzie. Przemianowanie zmiennych stanu skrzynki niczego nie
+    // osłabia, więc strażnik ma milczeć.
+    straznik: "straznik-higieny-smokow",
+    opis: "kontrprzykład: przemianowanie zmiennych stanu skrzynki w bramce zakupu niczego nie psuje",
+    plik: "tools/smoke/smoke-wp-zakup.mjs",
+    oczekujCzerwonego: false,
+    zmien: (s) =>
+      s.includes("pocztyPrzed") ? s.replaceAll("pocztyPrzed", "stanSkrzynkiA").replaceAll("pocztyPo", "stanSkrzynkiB") : null,
+  },
 ];
 
 

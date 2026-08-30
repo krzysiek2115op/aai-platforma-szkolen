@@ -22,6 +22,9 @@
  *  5. **Powtórzony hak nie wysyła drugi raz** (znacznik UNIQUE — B6).
  *  6. **Awaria wysyłki jest głośna**: dziennik zapisuje błąd, kontrola
  *     oddaje kod 1, ponowienie z wiersza poleceń wysyła i gasi kontrolę.
+ *  7. **Sam po sobie nie zostawia śladu i nie kasuje CUDZEGO**: skrzynka
+ *     wraca do stanu sprzed przebiegu, a liczba zapisów na kursy (globalnie),
+ *     produktów, zamówień i wierszy dziennika dostaw nie drgnie.
  *
  * WYMAGA środowiska z łapaczem: `cd wordpress/srodowisko && ./postaw.sh`.
  * Poza CI (CI nie ma podmana).
@@ -29,11 +32,11 @@
  * Użycie: node tools/smoke/smoke-wp-maile.mjs
  */
 import { execFileSync } from "node:child_process";
+import { adresPoczty, ilePoczty, migawkaPoczty, pocztaOdpowiada, sprzatnijPoczte, wlasneWiadomosci } from "./poczta.mjs";
 
 const STACK = process.env.STACK_NAZWA ?? "aai_wp";
 const KONTENER = `${STACK}_cli`;
-const POCZTA = process.env.MAILPIT_ADRES ?? "http://127.0.0.1:8893";
-const ADRES = process.env.WP_ADRES ?? "http://127.0.0.1:8892";
+const POCZTA = adresPoczty;
 const KURS_A = "aaaa0000-0000-4000-8000-0000000p4m01";
 const KURS_B = "aaaa0000-0000-4000-8000-0000000p4m02";
 
@@ -59,16 +62,21 @@ function wp(...argumenty) {
 }
 const php = (kod) => wp("eval", kod).out;
 
-/** Skrzynka łapacza — pełne wiadomości, nie same nagłówki. */
-async function skrzynka() {
-  const lista = await (await fetch(`${POCZTA}/api/v1/messages?limit=50`)).json();
-  const pelne = [];
-  for (const m of lista.messages ?? []) {
-    pelne.push(await (await fetch(`${POCZTA}/api/v1/message/${m.ID}`)).json());
-  }
-  return pelne;
-}
-const wyczysc = () => fetch(`${POCZTA}/api/v1/messages`, { method: "DELETE" });
+/*
+ * SKRZYNKA JEST WSPÓLNA — patrz `poczta.mjs`. Ten smoke potrzebuje pustego
+ * pola widzenia, żeby móc powiedzieć „wyszedł DOKŁADNIE jeden mail”, i do
+ * 0.53.0 robił to najprostszą drogą: kasował całą skrzynkę, trzynaście razy
+ * na przebieg. Zmierzone: 36 wiadomości → 0, w tym poczta, którą właściciel
+ * oglądał w trakcie testu ręcznego P6.
+ *
+ * Teraz pole widzenia zawężamy zamiast czyścić cudze: `skrzynka()` pokazuje
+ * wyłącznie wiadomości wysłane PO migawce, a `wyczysc()` kasuje wyłącznie je.
+ * Asercje „dokładnie jeden” liczą to samo co wcześniej, bo pytają o nasze;
+ * cudze wiadomości są dla tego smoke'a niewidzialne i nietykalne.
+ */
+let migawka;
+const skrzynka = () => wlasneWiadomosci(migawka);
+const wyczysc = () => sprzatnijPoczte(migawka);
 const nasze = (lista, fragment) => lista.filter((m) => (m.Subject ?? "").includes(fragment));
 const doKogo = (m) => (m.To ?? []).map((a) => a.Address).join(",");
 
@@ -78,15 +86,16 @@ if (php("echo class_exists( 'Aai_Platnosci_Maile' ) ? 'jest' : 'brak';") !== "je
   console.error("smoke-wp-maile: wtyczka aai-platnosci nie jest aktywna albo nie ma warstwy maili.");
   process.exit(1);
 }
-try {
-  const info = await (await fetch(`${POCZTA}/api/v1/info`)).json();
-  if (!info) throw new Error("brak");
-} catch {
+if (!(await pocztaOdpowiada())) {
   console.error(
     `smoke-wp-maile: łapacz poczty nie odpowiada na ${POCZTA}. Postaw środowisko: cd wordpress/srodowisko && ./postaw.sh`
   );
   process.exit(1);
 }
+// Migawka MUSI powstać przed pierwszą naszą wysyłką — wszystko, czego w niej
+// nie ma, uznamy dalej za własne i skasujemy.
+migawka = await migawkaPoczty();
+const pocztyPrzed = await ilePoczty();
 
 const liczba = (typ) =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='${typ}'" );`));
@@ -117,9 +126,22 @@ const liczbaZamowien = () =>
 const dostaw = () =>
   Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . Aai_Platnosci_Tabele::tabela( 'dostawy' ) );`));
 
+/*
+ * ZAPISY NA KURSY LICZYMY GLOBALNIE, nie po swoim kursie.
+ *
+ * Kasowanie zamówienia NIE kasuje zapisu w Tutorze — zapis zostaje jako
+ * sierota i dalej liczy się do „zapisanych na kurs”. Tak powstał wpis #2153:
+ * miał `_tutor_enrolled_by_order_id = 2152` przy zamówieniu, którego już nie
+ * ma, i zawyżał licznik PRAWDZIWEGO Kursu 1 o jeden. Sprzątanie po własnym
+ * kursie by go nie złapało — bo siedział na cudzym.
+ */
+const zapisow = () =>
+  Number(php(`global $wpdb; echo (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='tutor_enrolled'" );`));
+
 const produktowPrzed = liczba("product");
 const zamowienPrzed = liczbaZamowien();
 const dostawPrzed = dostaw();
+const zapisowPrzed = zapisow();
 const sprzedazPrzed = php("echo (string) get_option( 'aai_platnosci_sprzedaz_otwarta', '' );");
 
 const uzytkownicy = [];
@@ -575,7 +597,10 @@ try {
 
 } finally {
   /* ── sprzątanie ─────────────────────────────────────────────────── */
-  await wyczysc();
+  // Wyjątek ze sprzątania NIE MOŻE przesłonić prawdziwego błędu z bloku
+  // `try` — notujemy go zamiast rzucać. Rachunek sumienia i tak zapali się
+  // poniżej, bo skrzynka nie wróci wtedy do stanu sprzed przebiegu.
+  await wyczysc().catch((e) => console.error(`  (sprzątanie poczty nie doszło do skutku: ${e.message})`));
   php(`update_option( 'aai_platnosci_sprzedaz_otwarta', '${sprzedazPrzed}' ); echo 'ok';`);
   if (zamowienia.length > 0) {
     php(`foreach ( array( ${zamowienia.join(", ")} ) as $id ) { $o = wc_get_order( $id ); if ( $o ) { $o->delete( true ); } } echo 'ok';`);
@@ -611,6 +636,16 @@ try {
 sprawdz(liczba("product") === produktowPrzed, `smoke zostawił produkt: przed ${produktowPrzed}, po ${liczba("product")}`);
 sprawdz(liczbaZamowien() === zamowienPrzed, `smoke zostawił zamówienie: przed ${zamowienPrzed}, po ${liczbaZamowien()}`);
 sprawdz(dostaw() === dostawPrzed, `smoke zostawił wiersze dziennika dostaw: przed ${dostawPrzed}, po ${dostaw()}`);
+sprawdz(
+  zapisow() === zapisowPrzed,
+  `smoke zostawił zapis na kurs: przed ${zapisowPrzed}, po ${zapisow()} — sierota po skasowanym zamówieniu zawyża licznik zapisanych`
+);
+const pocztyPo = await ilePoczty();
+sprawdz(
+  pocztyPo === pocztyPrzed,
+  `skrzynka nie wróciła do stanu sprzed przebiegu: przed ${pocztyPrzed}, po ${pocztyPo} — ` +
+    "bramka albo zostawia własne wiadomości, albo kasuje CUDZE (czwarte zgłoszenie z testu P6)"
+);
 sprawdz(wp("aai-platnosci", "sprawdz").kod === 0, "po sprzątaniu kontrola czerwona — smoke zostawił rozjazd");
 
 if (bledy.length > 0) {

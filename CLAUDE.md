@@ -2251,14 +2251,46 @@ wyprowadzała tego od nowa:
      (hasło świeże w `.env`), kontrola kod 0. Sierota `tutor_enrolled`
      #2153 (`post_author=0`, ślad smoke'a zakupu) zostaje do napraw niżej.
      **NASTĘPNY KROK CAŁEGO PROJEKTU — dwie rzeczy, w tej kolejności:**
-     1. **NAPRAWY PO P6 (małe, jedną gałęzią):** higiena smoke'ów wobec
-        WSPÓLNYCH zasobów — `smoke-wp-zakup`/`zwroty`/`jezyk` ZOSTAWIAJĄ
-        pocztę (~36 wiadomości na komplet przebiegów), `smoke-wp-maile`
-        odwrotnie: czyści CAŁĄ skrzynkę (zabrał właścicielowi podgląd
-        maili w trakcie testu — czwarte zgłoszenie P6); smoke zakupu
-        zostawia sierotę `tutor_enrolled` z `post_author=0` na PRAWDZIWYM
-        kursie (ta sama klasa co produkty-sieroty ze sweepu P2: bramka
-        sprząta na oślep albo wcale). Sprzątnąć #2153 przy okazji.
+     1. ~~**NAPRAWY PO P6 — higiena smoke'ów wobec WSPÓLNYCH zasobów.**~~
+        **ZROBIONE (2026-08-30, wersja 0.54.0, gałąź `fix/higiena-smokow`).**
+        Zmierzone przelotem WSZYSTKICH 13 smoke'ów WP z licznikiem przed/po
+        (nie przepisane z notatki): `smoke-wp-zakup` zostawiał **21**
+        wiadomości na przebieg, `smoke-wp-zwroty` **15**, a `smoke-wp-maile`
+        odwrotnie — kasował CAŁĄ skrzynkę (36 → 0), trzynaście razy w trakcie
+        przebiegu. **SPROSTOWANIE: `smoke-wp-jezyk` poczty NIE zostawia**
+        (zmierzone: 36 → 36) — wcześniejszy zapis wymieniał go niesłusznie.
+        **Doszły dwie rzeczy, których notatka nie zawierała:** `postaw.sh`
+        też kasował całą skrzynkę, DWA RAZY, a jest rozkazem kroku zerowego
+        każdego testu ręcznego; oraz martwa stała `POCZTA` w `smoke-wp-zwroty`
+        (od P5, nigdy nieużyta).
+        Naprawa: wspólny moduł **`tools/smoke/poczta.mjs`** — migawka
+        identyfikatorów ZASTANYCH na starcie, kasowanie wyłącznie tego, czego
+        w niej nie ma. Izolacja pomiaru w `smoke-wp-maile` bez zmian (zawężamy
+        pole widzenia zamiast czyścić cudze). Rachunek sumienia o dwie
+        pozycje: skrzynka wróciła do stanu sprzed ORAZ liczba zapisów na kursy
+        bez zmian — liczona GLOBALNIE, nie po własnym kursie.
+        **Sierota #2153 skasowana**: `post_author=0`, `_tutor_enrolled_by_order_id
+        = 2152` przy zamówieniu, którego nie ma. Tutor liczył **5 zapisanych
+        na prawdziwy Kurs 1 zamiast 4**; po skasowaniu 4 (mierzone OSOBNYM
+        żądaniem — w tym samym Tutor oddaje wartość sprzed kasowania, pułapka
+        z W6). **Żaden dzisiejszy smoke takich sierot NIE produkuje** (przelot
+        13 bramek: 6 → 6), więc nowa asercja jest profilaktyką, nie naprawą
+        czynnego wycieku.
+        Doszedł **36. strażnik `straznik-higieny-smokow`** (7 reguł, 8 mutacji;
+        **trzy reguły sprawdzane URUCHOMIENIOWO** podstawionym `fetch`, bo
+        różnica między „posprzątaj po sobie" a „wyczyść wszystko" to jedno pole
+        w ładunku żądania). Bramkę „wysyła pocztę" rozpoznaje po wywołaniach
+        cudzego interfejsu, nie po nazwie pliku — nowy smoke dostanie regułę
+        sam. Reguła zapisana w CONTRIBUTING („Zasady twarde"), bo dotąd żyła
+        tylko w opisach pojedynczych smoke'ów w README.
+        **DWIE RZECZY DO ZAPAMIĘTANIA:** (a) `DELETE /api/v1/messages` bez
+        listy `IDs` znaczy w Mailpicie „skasuj wszystko", więc sprzątanie bez
+        własnych wiadomości NIE MOŻE wysłać tego żądania w ogóle; (b) migawka
+        ucięta limitem stronicowania zamienia cudze wiadomości we własne —
+        moduł czyta do skutku i ZATRZYMUJE przebieg przy rozbieżności z `total`.
+        Pułapka pracy: hurtowa zamiana tekstu w pliku weszła przy okazji
+        w istniejące sprawdzenie B16 (`smoke-wp-zakup`) — złapane czytaniem
+        `git diff`, nie testem.
      2. **PLUGIN 3 — panel + monitoring** (ostatni moduł; potem test
         całości trzech wtyczek). Zakres doprecyzowujemy PYTANIAMI przed
         startem (decyzja 2026-08-21); obowiązuje reguła z 2026-08-28:

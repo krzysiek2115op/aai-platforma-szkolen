@@ -370,18 +370,29 @@ fi
 # przed E0: `wp_mail()` oddaje `false`, a łańcuch dostarczenia Pluginu 2
 # jest nie do zmierzenia. Więc: wysyłamy prawdziwą wiadomość i czytamy ją
 # z drugiej strony.
+# SPRZĄTAMY PO SOBIE, NIE PO WSZYSTKICH. Do 0.53.0 ta weryfikacja kasowała
+# CAŁĄ skrzynkę — dwa razy, przed wysyłką i po niej. A `postaw.sh` jest
+# rozkazem kroku zerowego każdego testu ręcznego, więc znikały z niej maile,
+# które właściciel dopiero co dostał i oglądał (czwarte zgłoszenie z P6).
+# Znacznik jest unikalny, więc pusta skrzynka nie jest do niczego potrzebna:
+# wyszukujemy własną wiadomość i kasujemy WYŁĄCZNIE ją, po identyfikatorze.
 komunikat "Weryfikacja poczty"
-ZNACZNIK="postaw-$(date +%s)"
-curl -sf -X DELETE "${POCZTA}/api/v1/messages" >/dev/null \
-  || blad "łapacz poczty nie przyjmuje poleceń na ${POCZTA}"
+ZNACZNIK="postaw-$(date +%s)-$$"
+curl -sf "${POCZTA}/api/v1/info" >/dev/null \
+  || blad "łapacz poczty nie odpowiada na ${POCZTA}"
 wpcli eval "var_export( wp_mail( 'kontrola@example.test', '${ZNACZNIK}', 'kontrola postaw.sh' ) );" \
   | grep -q true || blad "wp_mail() oddało false — PHPMailer nie trafił do Mailpita (sprawdź mount mu-plugins/aai-poczta-warsztatu.php)"
 SKRZYNKA="$(mktemp -t aai-poczta.XXXXXX.json)"
-curl -sf -o "$SKRZYNKA" "${POCZTA}/api/v1/messages" || blad "nie udało się odczytać skrzynki"
+curl -sf -o "$SKRZYNKA" "${POCZTA}/api/v1/search?query=${ZNACZNIK}" \
+  || blad "nie udało się odczytać skrzynki"
 grep -q "$ZNACZNIK" "$SKRZYNKA" \
-  || blad "wiadomość nie dojechała do łapacza (temat ${ZNACZNIK} nie ma go w skrzynce)"
+  || blad "wiadomość nie dojechała do łapacza (tematu ${ZNACZNIK} nie ma w skrzynce)"
+ID_KONTROLNEJ="$(grep -o '"ID":"[^"]*"' "$SKRZYNKA" | head -1 | cut -d'"' -f4)"
 rm -f "$SKRZYNKA"
-curl -sf -X DELETE "${POCZTA}/api/v1/messages" >/dev/null || true
+# Pusta lista `IDs` znaczy w API Mailpita „skasuj wszystko”, więc kasujemy
+# tylko wtedy, gdy naprawdę mamy co skasować.
+[ -n "$ID_KONTROLNEJ" ] && curl -sf -X DELETE "${POCZTA}/api/v1/messages" \
+  -H 'Content-Type: application/json' -d "{\"IDs\":[\"${ID_KONTROLNEJ}\"]}" >/dev/null || true
 
 liczba_pozycji=$(grep -o 'href="/[a-z-]*"' "$ODPOWIEDZ" | sort -u | wc -l)
 rm -f "$ODPOWIEDZ"

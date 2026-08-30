@@ -296,6 +296,26 @@
       "naprawa": "ZROBIONE (0.51.0, N5). Kolejnosc mierzona ZDARZENIAMI: hak na `woocommerce_order_status_changed` notuje kazda pare `z > na`, a smoke sprawdza ich kolejnosc. Niezalezne od jezyka, a komunikat pokazuje surowe dane.",
       "test": "smoke-wp-zakup (38 sprawdzen). Test negatywny: po cofnieciu naprawy z P3b (domkniecie od razu w haku zamiast na `shutdown`) pada 1 z 38 z trescia „processing>completed ~~ on-hold>processing”.",
       "straznik": "brak — to usterka bramki, nie kodu produkcyjnego; pilnuje jej wlasny test negatywny"
+    },
+    {
+      "id": "BLAD-029",
+      "data": "2026-08-30",
+      "klasa": "bramka-sprzata-cudze-albo-nie-sprzata-po-sobie",
+      "dowod": "Naprawy po P6. Skrzynka lapacza poczty (Mailpit) jest zasobem WSPOLNYM z wlascicielem, a bramki traktowaly ja w dwa przeciwne, rownie zle sposoby. Zmierzone przelotem wszystkich 13 smoke'ow WP z licznikiem przed/po: `smoke-wp-zakup` zostawial 21 wiadomosci na przebieg, `smoke-wp-zwroty` 15, a `smoke-wp-maile` odwrotnie — kasowal CALA skrzynke (36 -> 0), trzynascie razy w trakcie przebiegu, bo potrzebowal pustej, zeby policzyc „wyszedl dokladnie jeden mail”. To samo robil `postaw.sh` (dwa razy), a jest ROZKAZEM kroku zerowego kazdego testu recznego.",
+      "skutek": "Czwarte zgloszenie z testu recznego P6: wlascicielowi zniknal z podgladu mail, ktory przed chwila dostal, i wygladalo to jak usterka dostarczania (mail wyszedl — dziennik dostaw mowil `wyslano`). W druga strone: po kilku przebiegach bramek wlasciciel szukal swojej wiadomosci wsrod kilkudziesieciu cudzych. Klasa jest ta sama co `smoke-wp-motyw` z 0.51.0, ktory zamykal sklep za soba zamiast przywrocic stan zastany: „przywroc stan” to co innego niz „wyczysc wszystko”.",
+      "naprawa": "ZROBIONE (0.54.0). Wspolny modul `tools/smoke/poczta.mjs`: migawka identyfikatorow ZASTANYCH na starcie, kasowanie WYLACZNIE tego, czego w niej nie ma. Trzy smoke'i i `postaw.sh` przepisane; `postaw.sh` kasuje swoja wiadomosc kontrolna po ID, znalezionym przez `/api/v1/search`. Izolacja pomiaru w `smoke-wp-maile` zostaje — zawezamy pole widzenia zamiast czyscic cudze. Dwa nowe wpisy w rachunku sumienia kazdej z trzech bramek: skrzynka wrocila do stanu sprzed oraz liczba zapisow na kursy bez zmian.",
+      "test": "smoke-wp-maile (62 sprawdzenia), smoke-wp-zakup (40), smoke-wp-zwroty (39) — kazdy konczy porownaniem stanu skrzynki. Test negatywny: przy dwoch obcych wiadomosciach w skrzynce wszystkie trzy bramki i `postaw.sh` zostawiaja je nietkniete (2 -> 2, te same tematy), a po wycieciu migawki straznik zapala sie na kazdej z nich osobno.",
+      "straznik": "straznik-higieny-smokow (36., 7 regul, 8 mutacji w audycie) — trzy reguly sprawdzane URUCHOMIENIOWO przez podstawiony `fetch`, bo roznica miedzy „posprzataj po sobie” a „wyczysc wszystko” to JEDNO pole w ladunku zadania"
+    },
+    {
+      "id": "BLAD-030",
+      "data": "2026-08-30",
+      "klasa": "skasowanie-zamowienia-nie-kasuje-zapisu-w-tutorze",
+      "dowod": "Wpis `tutor_enrolled` #2153: `post_author = 0`, `_tutor_enrolled_by_order_id = 2152` przy zamowieniu, ktorego juz nie ma, na PRAWDZIWYM Kursie 1 (produkt 675). Slad recznej diagnostyki z 2026-08-29 — zamowienie goscia (`user_id = 0` -> `wp_insert_post` bierze `get_current_user_id()`, czyli 0). Zamowienie skasowano, zapis zostal.",
+      "skutek": "Tutor liczyl 5 zapisanych na kurs 764 zamiast 4 — zawyzona statystyka na PRAWDZIWYM kursie, bez jednego objawu. Sprzatanie w smoke'ach tego nie widzialo, bo kasuje zapisy po WLASNYM kursie (`post_parent = tutor`), a sierota siedziala na cudzym. Ta sama klasa co produkty-sieroty ze sweepu P2: bramka sprzata na oslep albo wcale.",
+      "naprawa": "ZROBIONE (0.54.0). Wpis skasowany wraz z meta; licznik zapisanych spadl 5 -> 4 (mierzone OSOBNYM zadaniem — w tym samym Tutor oddaje wartosc sprzed kasowania, pulapka z W6). Zaden dzisiejszy smoke takich sierot nie produkuje — sprawdzone przelotem wszystkich 13 bramek WP (liczba zapisow 6 -> 6) — wiec asercja jest profilaktyka, nie naprawa czynnego wycieku.",
+      "test": "Rachunek sumienia w smoke-wp-zakup, smoke-wp-zwroty i smoke-wp-maile: liczba wpisow `tutor_enrolled` liczona GLOBALNIE musi byc po przebiegu taka sama jak przed. Test negatywny: podmiana licznika na `post_type='product'` zapala straznika.",
+      "straznik": "straznik-higieny-smokow (regula 4) + mutacja „bramka maili przestaje liczyc zapisy na kursy GLOBALNIE”"
     }
   ]
 }
