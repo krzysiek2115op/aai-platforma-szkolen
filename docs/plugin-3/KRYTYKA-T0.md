@@ -6,7 +6,7 @@ recenzenci na rozłącznych obszarach, krytykiem krytyków agent główny.
 kolejność potwierdzania z [KRYTYK.md](../../agenci/przeglad-pr/KRYTYK.md):
 uruchomieniowo → czytaniem kodu → odrzucenie z powodem.
 
-Recenzowany stan: commit `49f9c91`, [DIAGRAM.md](DIAGRAM.md).
+Recenzowany stan: commit `88fffa6` (po rebase na 0.54.0; w chwili krytyki `49f9c91`), [DIAGRAM.md](DIAGRAM.md).
 Instalacja pomiarowa: **WordPress 6.9.4** + WooCommerce 11.0.1 + Tutor 4.0.7
 na `:8892`.
 
