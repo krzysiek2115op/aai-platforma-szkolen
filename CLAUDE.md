@@ -2719,9 +2719,38 @@ wyprowadzała tego od nowa:
         **ZOSTAJE OTWARTE ŚWIADOMIE:** A11 — na hostingu z cache'em stron
         każda odsłona to dodatkowy, niebuforowalny przebieg PHP (~45–50 ms);
         decyzja właściciela: pozycja wdrożeniowa, kodu nie ruszamy.
-        **NASTĘPNY KROK: PR gałęzi `feat/t3-timer-wizyt` do `main` + tag
-        `v0.57.0` + release, potem T4 — test ręczny właściciela** (wzorzec:
-        [docs/plugin-2/TEST-RECZNY-P6.md](docs/plugin-2/TEST-RECZNY-P6.md)).
+        **T3 ZAMKNIĘTY W REPO (2026-08-31): PR #102 zmergowany do `main`,
+        tag `v0.57.0` + release, gałąź skasowana, artefakt zweryfikowany
+        (`git diff origin/main <szczyt>` PUSTY — lekcja z 0.37.0).** Merge
+        decyzją właściciela na dowodach lokalnych: CI padło w 2 s z **zerem
+        kroków we wszystkich zadaniach** (sprawdzone przez API: `steps: 0`,
+        logów brak) — wyczerpane minuty Actions, nie kod. Po powrocie CI
+        (1 września) potwierdzić **gitleaks**, jako jedyny bez lokalnego
+        odpowiednika.
+        **NASTĘPNY KROK CAŁEGO PROJEKTU: T4 — TEST RĘCZNY WŁAŚCICIELA.
+        SCENARIUSZ WIĄŻĄCY:
+        [docs/plugin-3/TEST-RECZNY-T4.md](docs/plugin-3/TEST-RECZNY-T4.md)
+        — CZYTAĆ PRZED PRACĄ** (wzorzec: [TEST-RECZNY-P6.md](docs/plugin-2/TEST-RECZNY-P6.md)).
+        **Ten test jest inną klasą pracy niż W6 i P6:** klient nie widzi
+        z monitoringu NICZEGO — nie ma ekranu do kliknięcia ani maila do
+        odebrania. Jedynym odbiorcą jest właściciel, a produktem są LICZBY,
+        więc test odpowiada na pytanie, którego bramka zadać nie umie: czy
+        liczby mówią prawdę o tym, co właściciel naprawdę zrobił, i czy
+        napisy nad nimi znaczą to, co on przez nie rozumie. Cztery ścieżki:
+        dziennik logowań → pomiar ruchu (**wymaga okna prywatnego — admin
+        z definicji nie jest mierzony, D3**) → czy liczby dają się
+        zrozumieć → czy nie zepsuliśmy Pluginów 1 i 2. Dokument ma też
+        tabelę rzeczy POZA zakresem, żeby właściciel nie zgłaszał jako błąd
+        tego, co sam rozstrzygnął (D3, D4, D6) albo co jest świadomą
+        granicą.
+        **ŚRODOWISKO `:8892` ZOSTAJE POSTAWIONE I CZYSTE:** pięć wtyczek
+        aktywnych, **obie tabele monitoringu PUSTE** (celowo — po teście
+        każda liczba ma znanego autora), sprzedaż otwarta, kursy 2, konto
+        `klient-test` (NIE kasować), skrzynka `127.0.0.1:8893`,
+        `wp aai-monitor sprawdz` kod 0.
+        **PO T4 zostaje ostatnia rzecz z etapu WP: TEST CAŁOŚCI** — czy
+        trzy wtyczki współpracują i czy projekt trzyma się kupy
+        architektonicznie.
         Zapis historyczny (stan przed naprawami):
         (raporty obu recenzentów, dowody uruchomieniowe, plan napraw
         w czterech turach, cztery pytania do właściciela).
