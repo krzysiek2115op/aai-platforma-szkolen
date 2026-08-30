@@ -118,23 +118,37 @@ final class Aai_Monitor_Zapis {
 	/**
 	 * Dopisuje wizytę.
 	 *
+	 * DWIE LICZBY CZASU, NIE JEDNA — i to nie jest nadmiar. `trwanie_ms`
+	 * znaczy czas AKTYWNY (zegar w przeglądarce stoi, gdy karta jest
+	 * ukryta), a `wiek_ms` to czas od wejścia na stronę do wysłania
+	 * beaconu. Moment wejścia liczy się z DRUGIEJ: karta otwarta o 9:00,
+	 * czytana dwie minuty i zamknięta o 17:00 zapisałaby przy pierwszej
+	 * wejście o 16:58 — czyli w złej godzinie, a bywa że i w złej dobie
+	 * (P16 schematu; ta sama wada, przed którą broniło liczenie momentu
+	 * wejścia po stronie serwera).
+	 *
+	 * Klientowi nie ufamy w żadnym ZNACZNIKU czasu — obie wartości to
+	 * RÓŻNICE, obie przycinane sufitem, a chwilę „teraz" bierze serwer.
+	 *
 	 * @param array<string,mixed> $dane Klucze: `sesja` (32 hex), `sciezka`,
-	 *                                  `trwanie_ms`.
+	 *                                  `trwanie_ms`, `wiek_ms`.
 	 * @return bool Czy wiersz powstał.
 	 */
 	public static function dodaj_wizyte( array $dane ): bool {
-		$trwanie = max( 0, (int) ( $dane['trwanie_ms'] ?? 0 ) );
 		// PRZYCINAMY, nie odrzucamy (patrz SUFIT_TRWANIA_MS).
-		$trwanie = min( $trwanie, self::SUFIT_TRWANIA_MS );
+		$trwanie = min( max( 0, (int) ( $dane['trwanie_ms'] ?? 0 ) ), self::SUFIT_TRWANIA_MS );
+		$wiek    = min( max( 0, (int) ( $dane['wiek_ms'] ?? 0 ) ), self::SUFIT_TRWANIA_MS );
+
+		// Wiek nie może być mniejszy niż czas aktywny — to fizycznie
+		// niemożliwe, więc znaczy tyle, że klient przysłał nieprawdę albo
+		// że któraś liczba oberwała sufitem. Bierzemy większą: moment
+		// wejścia ma być NAJWCZEŚNIEJSZY, jaki da się obronić.
+		$wiek = max( $wiek, $trwanie );
 
 		$wiersz = array(
 			'sesja'      => self::przytnij( (string) ( $dane['sesja'] ?? '' ), 32 ),
 			'sciezka'    => self::przytnij( (string) ( $dane['sciezka'] ?? '' ), 191 ),
-			// Moment WEJŚCIA liczy serwer: beacon przychodzi przy wyjściu
-			// ze strony, więc `now()` byłoby momentem wyjścia i wizyta
-			// zaczęta o 23:50 lądowałaby w następnej dobie. Klientowi nie
-			// ufamy w żadnym znaczniku czasu.
-			'wejscie'    => self::teraz_utc( -$trwanie ),
+			'wejscie'    => self::teraz_utc( -$wiek ),
 			'trwanie_ms' => $trwanie,
 		);
 

@@ -56,7 +56,15 @@
  *  13. (P13) producent jest PODPIĘTY: plik główny naprawdę woła jego
  *      `zarejestruj()`. Reguły 10–12 czytają plik producenta i nie
  *      widzą, że nikt go nie uruchamia — zmierzone: po zdjęciu jednej
- *      linii dziennik jest martwy przy WSZYSTKICH bramkach zielonych.
+ *      linii dziennik jest martwy przy WSZYSTKICH bramkach zielonych,
+ *  14. (P14, N18, F18, F20) KONTRAKT WYSTRZAŁU, cztery rzeczy naraz:
+ *      obie nazwy akcji (`admin-post.php` rozgałęzia się po stanie
+ *      zalogowania, a strony lekcji są za logowaniem), nazwa akcji
+ *      w query stringu (schowana w ciele daje HTTP 200 i ciszę), wymóg
+ *      typu `application/json` (cross-origin `text/plain` DOCHODZI,
+ *      JSON nie — więc to typ, a nie `Origin`, jest tamą) oraz czytanie
+ *      ciała strumieniem z sufitem (`post_max_size` to 8 MB, a limit
+ *      64 KiB `sendBeacon` w pomiarze nie zadziałał).
  *
  * Użycie: node tools/straznicy/straznik-monitora-wp.mjs
  */
@@ -70,6 +78,7 @@ const EKRAN = join(KATALOG, "includes", "class-aai-monitor-ekran.php");
 const CLI = join(KATALOG, "includes", "class-aai-monitor-cli.php");
 const TABELE = join(KATALOG, "includes", "class-aai-monitor-tabele.php");
 const LOGOWANIA = join(KATALOG, "includes", "class-aai-monitor-logowania.php");
+const WYSTRZAL = join(KATALOG, "includes", "class-aai-monitor-wizyty.php");
 const GLOWNY = join(KATALOG, "aai-monitor.php");
 const bledy = [];
 
@@ -119,18 +128,75 @@ const kodWtyczki = plikiWtyczki.map((p) => [p, kod(readFileSync(p, "utf8"))]);
 /* ————————————————— 1. (N1) ekran jest czystym odczytem ————————————————— */
 
 for (const [plik, tresc] of kodWtyczki) {
+  // Akcja `admin_post_*` jest dozwolona W JEDNYM PLIKU — w wystrzale
+  // (T3). To NIE jest wyłom w N1: N1 mówi, że EKRAN nie zapisuje, a nie
+  // że wtyczka nie ma prawa mieć punktu wejścia. Timer wizyt musi mieć
+  // dokąd wysyłać beacon, i kanałem jest ten sam `admin-post.php`, którym
+  // idą wszystkie akcje Pluginu 1. Regułę zawężamy więc do miejsca,
+  // a w zamian reguła 14 wymaga od tego pliku obu nazw akcji — czyli
+  // strażnik po tej zmianie pilnuje WIĘCEJ, nie mniej.
+  const wystrzal = plik === WYSTRZAL;
   const zapisujace = [
-    [/add_action\(\s*['"]admin_post_/, "akcja admin-post.php"],
-    [/add_action\(\s*['"]wp_ajax_/, "akcja wp_ajax"],
-    [/method\s*=\s*["']post["']/i, 'formularz method="post"'],
-    [/wp_nonce_field\s*\(|check_admin_referer\s*\(|wp_verify_nonce\s*\(/, "nonce"],
+    [/add_action\(\s*['"]admin_post_/, "akcja admin-post.php", wystrzal],
+    [/add_action\(\s*['"]wp_ajax_/, "akcja wp_ajax", false],
+    [/method\s*=\s*["']post["']/i, 'formularz method="post"', false],
+    [/wp_nonce_field\s*\(|check_admin_referer\s*\(|wp_verify_nonce\s*\(/, "nonce", false],
   ];
-  for (const [wzorzec, co] of zapisujace) {
-    if (wzorzec.test(tresc)) {
+  for (const [wzorzec, co, wolno] of zapisujace) {
+    if (!wolno && wzorzec.test(tresc)) {
       bledy.push(
-        `${plik}: ${co} w module, który ma wyłącznie patrzeć (N1). Ekran monitoringu jest czystym odczytem — jedyne, co można na nim zrobić, to patrzeć. Pojawienie się tu zapisu znaczy, że moduł przestał być monitoringiem i nikt tego nie zauważy, bo ekran dalej się otwiera. Filtry i stronicowanie jadą GET-em.`
+        `${plik}: ${co} w module, który ma wyłącznie patrzeć (N1). Ekran monitoringu jest czystym odczytem — jedyne, co można na nim zrobić, to patrzeć. Pojawienie się tu zapisu znaczy, że moduł przestał być monitoringiem i nikt tego nie zauważy, bo ekran dalej się otwiera. Filtry i stronicowanie jadą GET-em. Jedyny wyjątek to wystrzał timera wizyt (${WYSTRZAL}), który MUSI mieć akcję — i ma na to własną regułę.`
       );
     }
+  }
+}
+
+/* ——— 14. (P14, N18) wystrzał rejestruje OBIE nazwy akcji ——— */
+
+if (existsSync(WYSTRZAL)) {
+  const tresc = kod(readFileSync(WYSTRZAL, "utf8"));
+  // Pytamy o REJESTRACJĘ, nie o nazwę stałej: wzorzec przypięty do nazwy
+  // przechodzi po przemianowaniu, a mechanizm zostaje martwy (nawrót
+  // pułapki z 0.29.0, 0.44.0, 0.47.0 i c6c9c97).
+  const gosc = /add_action\(\s*['"]admin_post_nopriv_/.test(tresc);
+  const zalogowany = /add_action\(\s*['"]admin_post_(?!nopriv_)/.test(tresc);
+  if (!gosc || !zalogowany) {
+    bledy.push(
+      `${WYSTRZAL}: wystrzał rejestruje tylko ${gosc ? "gałąź gościa" : "gałąź zalogowanych"} (P14, N18). \`admin-post.php\` rozgałęzia się po \`is_user_logged_in()\` na DWA ROZŁĄCZNE haki, a wizyty liczymy wszystkim oprócz adminów — strony lekcji są za logowaniem, więc brak \`admin_post_{action}\` gubi CAŁY ruch w kupionym materiale, a brak \`admin_post_nopriv_{action}\` cały ruch gości. Objawu nie ma: beacon dostaje \`wp_die( '', 400 )\`, którego nikt nie czyta.`
+    );
+  }
+
+  // Nazwa akcji MUSI jechać w query stringu (F18): `$action` bierze się
+  // z `$_REQUEST`, a ciała `application/json` PHP nie wkłada do `$_POST`.
+  // Akcja schowana w ciele daje HTTP 200 i ciszę — najgorszy możliwy
+  // objaw, czyli jego brak.
+  if (!/admin_url\(\s*['"]admin-post\.php\?action=/.test(tresc)) {
+    bledy.push(
+      `${WYSTRZAL}: adres wystrzału nie niesie nazwy akcji w query stringu (F18). Bez \`?action=\` żądanie wpada w gałąź „brak akcji”, odpowiada HTTP 200 i nie zapisuje niczego — zmierzone na żywej instalacji.`
+    );
+  }
+
+  // Typ ciała jest JEDYNĄ tamą na beacon z obcej witryny (F20):
+  // cross-origin `text/plain` dochodzi, `application/json` nie, bo wymaga
+  // preflightu. Bez tego sprawdzenia sito na `Origin` jest dekoracją.
+  // Pytamy o POROWNANIE, nie o obecność napisu: sam łańcuch
+  // „application/json” może zostać w kodzie (komunikat, komentarz
+  // w stałej), a wymóg zniknąć — to szósty nawrót tej pułapki
+  // w projekcie (0.29.0, 0.44.0, 0.47.0, c6c9c97, dwa razy w P4).
+  if (!/['"]application\/json['"]\s*===|===\s*['"]application\/json['"]/.test(tresc)) {
+    bledy.push(
+      `${WYSTRZAL}: endpoint nie wymaga typu \`application/json\` (F20). Zmierzone: beacon z obcej witryny wysłany jako \`text/plain\` DOCHODZI, a ten sam ładunek jako JSON nie — bo wymaga preflightu, na który WordPress odpowiada 403. Bez wymogu typu obca strona może zawyżać nasz ruch z przeglądarki dowolnego odwiedzającego.`
+    );
+  }
+
+  // Ciało czytane STRUMIENIEM z sufitem: `post_max_size` to 8 MB, więc
+  // `file_get_contents( 'php://input' )` wciąga do pamięci wszystko, co
+  // ktoś wyśle, ZANIM cokolwiek sprawdzimy. Limit 64 KiB `sendBeacon`
+  // w pomiarze nie zadziałał (F23), więc sufit jest nasz albo go nie ma.
+  if (/file_get_contents\(\s*['"]php:\/\/input/.test(tresc) || !/fread\s*\(/.test(tresc)) {
+    bledy.push(
+      `${WYSTRZAL}: ciało żądania nie jest czytane strumieniem z sufitem (Z9 audytu T3). \`post_max_size\` w kontenerze to 8 MB, a limit 64 KiB z dokumentacji \`sendBeacon\` w pomiarze NIE zadziałał — beacon 70 kB przeszedł i doszedł w całości.`
+    );
   }
 }
 

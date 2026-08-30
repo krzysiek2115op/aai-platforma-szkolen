@@ -69,6 +69,10 @@ register_activation_hook(
 	__FILE__,
 	static function (): void {
 		Aai_Monitor_Tabele::utworz();
+		// Sól podpisu ścieżek — własna, nie `wp_salt()`, żeby rotacja
+		// kluczy w `wp-config.php` nie unieważniła podpisów wysłanych
+		// już do przeglądarek i nie uciszyła pomiaru bez objawu.
+		Aai_Monitor_Podpis::przygotuj();
 	}
 );
 
@@ -99,7 +103,8 @@ add_action(
 		/*
 		 * PRODUCENCI DANYCH — to, czego wtyczka nie miała po kroku T1
 		 * („baza stoi, ale nic nie zbiera"): dziennik logowań (trzy haki
-		 * rdzenia) i wpis do kreatora polityki prywatności. Ten drugi
+		 * rdzenia, T2), timer wizyt (wystrzał `admin-post.php`, T3)
+		 * i wpis do kreatora polityki prywatności. Ten drugi
 		 * jedynie podpina się pod `admin_init`, bo rdzeń przyjmuje treść
 		 * WYŁĄCZNIE stamtąd i tylko w wp-admin — wywołanie wprost stąd nie
 		 * dodałoby NIC, meldując to najwyżej w logu przy WP_DEBUG
@@ -115,6 +120,7 @@ add_action(
 		 */
 		try {
 			Aai_Monitor_Logowania::zarejestruj();
+			Aai_Monitor_Wizyty::zarejestruj();
 			Aai_Monitor_Prywatnosc::zarejestruj();
 		} catch ( Throwable $e ) {
 			Aai_Monitor_Komunikaty::zapisz( 'nie udało się podpiąć czujek monitoringu: ' . $e->getMessage() );

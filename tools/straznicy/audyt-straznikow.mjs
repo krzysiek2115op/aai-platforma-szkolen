@@ -83,6 +83,7 @@ const EKRAN_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor
 const CLI_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-cli.php";
 const TABELE_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-tabele.php";
 const LOGOWANIA_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-logowania.php";
+const WYSTRZAL_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-wizyty.php";
 
 const MUTACJE = [
   // --- straznik-scenariuszy ---
@@ -3100,6 +3101,85 @@ const MUTACJE = [
     zmien: (s) =>
       s.includes("_smoke")
         ? s.replaceAll("_smoke\\_schowana", "_nigdy\\_taka").replaceAll("_smoke_schowana", "_nigdy_taka")
+        : null,
+  },
+
+  /* ————————————— PLUGIN 3 — timer wizyt (krok T3) ————————————— */
+  //
+  // Kontrakt WYSTRZAŁU. Każda z tych czterech rzeczy łamie się CICHO:
+  // beacon odpowiada 204 na przyjęcie i na odrzut, więc jedynym objawem
+  // jest pusta tabela — nie do odróżnienia od ciszy w ruchu.
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "wystrzał przestaje rejestrować gałąź GOŚCIA (cały ruch niezalogowanych znika)",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "rejestruje tylko",
+    zmien: (s) =>
+      s.includes("add_action( 'admin_post_nopriv_' . self::AKCJA")
+        ? s.replace(/\t\tadd_action\( 'admin_post_nopriv_' \. self::AKCJA[^;]*;\n/, "")
+        : null,
+  },
+  {
+    // F17: `admin-post.php` rozgałęzia się po `is_user_logged_in()`, a
+    // strony lekcji są ZA LOGOWANIEM — brak tej rejestracji gubi cały
+    // ruch w kupionym materiale i nic tego nie zgłasza.
+    straznik: "straznik-monitora-wp",
+    opis: "wystrzał przestaje rejestrować gałąź ZALOGOWANYCH (znika ruch na lekcjach)",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "rejestruje tylko",
+    zmien: (s) =>
+      s.includes("add_action( 'admin_post_' . self::AKCJA")
+        ? s.replace(/\t\tadd_action\( 'admin_post_' \. self::AKCJA[^;]*;\n/, "")
+        : null,
+  },
+  {
+    // F18: `$action` bierze się z `$_REQUEST`, a ciała `application/json`
+    // PHP nie wkłada do `$_POST`. Akcja poza query stringiem daje HTTP 200
+    // i ciszę — zmierzone na żywej instalacji.
+    straznik: "straznik-monitora-wp",
+    opis: "nazwa akcji znika z query stringu, choć NAPIS zostaje w kodzie (kontrprzykład na wzorzec po napisie)",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "nie niesie nazwy akcji w query stringu",
+    zmien: (s) =>
+      s.includes("return admin_url( 'admin-post.php?action=' . self::AKCJA );")
+        ? s.replace(
+            "return admin_url( 'admin-post.php?action=' . self::AKCJA );",
+            "$wzor = 'admin-post.php?action='; return admin_url( 'admin-post.php' );"
+          )
+        : null,
+  },
+  {
+    // F20: cross-origin beacon `text/plain` DOCHODZI, a ten sam ładunek
+    // jako `application/json` nie — bo wymaga preflightu, na który
+    // WordPress odpowiada 403. Bez wymogu typu sito na `Origin` jest
+    // dekoracją, a obca witryna może zawyżać nasz ruch.
+    straznik: "straznik-monitora-wp",
+    opis: "endpoint przyjmuje dowolny typ ciała, choć NAPIS application/json zostaje w kodzie",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "nie wymaga typu",
+    zmien: (s) =>
+      s.includes("return 'application/json' === $typ;")
+        ? s.replace("return 'application/json' === $typ;", "$oczekiwany = 'application/json'; return true;")
+        : null,
+  },
+  {
+    // `post_max_size` to 8 MB, a limit 64 KiB `sendBeacon` w pomiarze NIE
+    // zadziałał (beacon 70 kB przeszedł i doszedł w całości).
+    straznik: "straznik-monitora-wp",
+    opis: "ciało żądania wczytywane hurtem zamiast strumieniem z sufitem",
+    plik: WYSTRZAL_MONITORA,
+    wymaga: () => existsSync(WYSTRZAL_MONITORA),
+    oczekiwanySlad: "nie jest czytane strumieniem",
+    zmien: (s) =>
+      s.includes("$cialo = (string) fread( $uchwyt, self::SUFIT_CIALA_B + 1 );")
+        ? s.replace(
+            "$cialo = (string) fread( $uchwyt, self::SUFIT_CIALA_B + 1 );",
+            "$cialo = (string) file_get_contents( 'php://input' );"
+          )
         : null,
   },
 ];
