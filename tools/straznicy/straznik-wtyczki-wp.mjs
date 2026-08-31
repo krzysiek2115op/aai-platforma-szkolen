@@ -253,6 +253,32 @@ for (const wtyczka of wtyczki) {
       );
     }
   }
+
+  /* 11. żadna wtyczka nie sięga po tabele SIOSTRZANEJ wtyczki */
+  //
+  // DLACZEGO TA REGUŁA POWSTAŁA DOPIERO PRZY TEŚCIE CAŁOŚCI. Kod obu
+  // starszych wtyczek OBIECYWAŁ tę izolację („nie dotykamy tabel cudzego
+  // prefiksu, pilnuje tego strażnik"), a pilnowała jej jedna reguła
+  // `straznik-platnosci-wp` szukająca DOSŁOWNYCH nazw tabel Pluginu 1.
+  // Kanoniczna droga — `Aai_Sklep_Tabele::tabela( 'lessons' )` — tych nazw
+  // nie zawiera, więc zapis Pluginu 2 do tabeli lekcji Pluginu 1
+  // przechodził WSZYSTKICH 37 strażników na zielono (zmierzone mutacją
+  // 2026-08-31). Reguła pyta więc o KLASĘ TABEL: wolno używać wyłącznie
+  // własnej. Dane siostry czyta się przez jej publiczne API.
+  const wlasnaKlasaTabel = wtyczka
+    .split("-")
+    .map((c) => c.charAt(0).toUpperCase() + c.slice(1))
+    .join("_");
+  for (const plik of plikiPhp(katalog)) {
+    const tresc = kod(readFileSync(plik, "utf8"));
+    for (const m of tresc.matchAll(/([A-Za-z_][\w]*)_Tabele::/g)) {
+      if (m[1] !== wlasnaKlasaTabel) {
+        bledy.push(
+          `${plik}: sięga po ${m[1]}_Tabele:: — to tabele SIOSTRZANEJ wtyczki. Każda wtyczka pisze i czyta wyłącznie swoje tabele; cudze dane biorze się przez publiczne API tamtej wtyczki (transakcje, dziennik audytu i odmowa skasowania napisanej treści żyją w JEJ warstwie zapisu, nie w naszej).`
+        );
+      }
+    }
+  }
 }
 
 if (bledy.length > 0) {
@@ -262,5 +288,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry).`
 );

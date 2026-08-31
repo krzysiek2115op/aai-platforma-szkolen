@@ -204,6 +204,62 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/* UKRYCIE KURSU NIE MA PRAWA ODEBRAĆ DOSTĘPU KUPUJĄCEMU — ANI ROZDAĆ GO OBCEMU.
+
+   Znalezisko 2 testu całości (2026-08-31) i decyzja właściciela: „Ukryj"
+   zabiera kurs ze SKLEPU, a kto go kupił — czyta dalej. Do 0.58.0 cała
+   kopia szła jednym statusem, więc ukrycie przepisywało 73 lekcje na
+   `private` i kupujący dostawał 404, przy obu kontrolach zielonych.
+
+   Obie połowy są zmierzone w kodzie Tutora, nie wyprowadzone:
+   - MATERIAŁ na `private` = koniec dostępu, bo `private` odcina każdego
+     bez `read_private_posts`, zanim nasza bramka zdąży spytać o zapis;
+   - KURS na `publish` = darmowy zapis dla KAŻDEGO zalogowanego, bo
+     `Course::enroll_now()` (publiczny handler POST) zapisuje na każdy kurs
+     niebędący `purchasable`, a kurs zdjęty ze sprzedaży ma
+     `_tutor_course_price_type = free`. Ten handler zatrzymuje wyłącznie
+     status `private` — `draft` też by przepuścił (sprawdzone w jego kodzie).
+     Zmierzone testem negatywnym: przy `publish` obcy zapisał się na ukryty
+     kurs i dostał cały materiał.
+
+   Reguła pyta o WARTOŚCI W MAPACH, nie o obecność nazw — mapa z nazwą
+   i złą wartością jest groźniejsza niż jej brak. */
+{
+  const mapa = (nazwa) => {
+    const i = kopia.indexOf(`const ${nazwa} = array(`);
+    if (i < 0) return null;
+    const cialo = kopia.slice(i, kopia.indexOf(");", i));
+    return Object.fromEntries(
+      [...cialo.matchAll(/'(\w+)'\s*=>\s*'(\w+)'/g)].map((m) => [m[1], m[2]])
+    );
+  };
+  const kursu = mapa("STATUS_KURSU_NA_WP");
+  const materialu = mapa("STATUS_MATERIALU_NA_WP");
+
+  if (null === kursu || null === materialu) {
+    bledy.push(
+      `${PLIK_KOPII}: nie ma rozdzielonych map statusu (STATUS_KURSU_NA_WP i STATUS_MATERIALU_NA_WP). Jedna mapa na całą kopię znaczy, że ukrycie kursu przepisuje też jego lekcje — a wtedy kupujący traci dostęp do materiału, za który zapłacił.`
+    );
+  } else {
+    if ("private" !== kursu.archived) {
+      bledy.push(
+        `${PLIK_KOPII}: ukryty kurs dostaje w Tutorze status „${kursu.archived}" zamiast „private". Tutor odmawia darmowego zapisu WYŁĄCZNIE przy „private" — przy każdym innym statusie dowolny zalogowany bierze ukryty kurs za darmo (zmierzone: obcy zapisał się i dostał cały materiał).`
+      );
+    }
+    for (const [stan, oczekiwany, skutek] of [
+      ["published", "publish", "opublikowany kurs nie byłby czytelny dla nikogo"],
+      ["draft", "draft", "materiał kursu, którego nigdy nie było w sprzedaży, stałby się dostępny"],
+      ["archived", "publish", "kupujący straciłby dostęp do materiału, za który zapłacił — dokładnie ten błąd naprawiał krok testu całości"],
+    ]) {
+      if (materialu[stan] !== oczekiwany) {
+        bledy.push(
+          `${PLIK_KOPII}: materiał kursu w stanie „${stan}" dostaje status „${materialu[stan]}" zamiast „${oczekiwany}". Skutek: ${skutek}.`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-tutora:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -211,5 +267,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu."
 );

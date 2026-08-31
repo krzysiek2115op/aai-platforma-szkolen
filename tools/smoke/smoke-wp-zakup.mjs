@@ -172,6 +172,7 @@ const powiazanPrzed = powiazan();
 const zamowienPrzed = liczbaZamowien();
 const zapisowWszystkichPrzed = zapisowWszystkich();
 const sprzedazPrzed = php(`echo (string) get_option( '${OPCJA_SPRZEDAZ}', '' );`);
+const sprzedazIstniala = php(`echo get_option( '${OPCJA_SPRZEDAZ}', null ) === null ? 'nie' : 'tak';`) === "tak";
 
 /*
  * MIGAWKA POCZTY. Ten smoke składa i domyka zamówienia, więc WooCommerce
@@ -270,7 +271,12 @@ try {
 
   html = strona(`/szkolenia/${SLUG}/`);
   sprawdz(
-    adresyCta(html).length > 0 && adresyCta(html).every((a) => a.endsWith("/kontakt")),
+    // Ukośnik na końcu jest OPCJONALNY w tej asercji, ale nie w kodzie:
+    // instalacja ma `/%postname%/`, więc adres bez ukośnika jest
+    // przekierowaniem 301 (naprawione przy teście całości 2026-08-31).
+    // Bramka ma pytać „czy prowadzi do kontaktu", a nie utrwalać jeden
+    // zapis adresu — inaczej poprawka higieniczna wywraca pomiar.
+    adresyCta(html).length > 0 && adresyCta(html).every((a) => /\/kontakt\/?$/.test(a)),
     `przy ZAMKNIĘTEJ sprzedaży przycisk nie prowadzi do kontaktu: ${adresyCta(html).join(" | ")}`
   );
   sprawdz(
@@ -317,7 +323,7 @@ try {
    */
   php(`$p = wc_get_product( ${produkt} ); $p->set_regular_price( '' ); $p->set_price( '' ); $p->save(); echo 'ok';`);
   sprawdz(
-    cta(0).endsWith("/kontakt"),
+    /\/kontakt\/?$/.test(cta(0)),
     `produkt z pustą ceną (niekupowalny w WooCommerce) dalej wysyła klienta do kasy: ${cta(0)}`
   );
   sprawdz(
@@ -505,7 +511,18 @@ try {
 } finally {
   /* ── sprzątanie + rachunek sumienia ──────────────────────────────── */
 
-  php(`update_option( '${OPCJA_SPRZEDAZ}', '${sprzedazPrzed}' ); echo 'ok';`);
+  /*
+   * PRZYWRACAMY STAN, NIE „ZAPISUJEMY PUSTĄ WARTOŚĆ". Zmierzone przy teście
+   * całości (2026-08-31): na czystej instalacji opcji NIE MA, a `update_option`
+   * z pustym łańcuchem zostawiał ją istniejącą — semantycznie to dalej
+   * zamknięta sprzedaż, ale stan nie jest ten sam, który zastaliśmy.
+   * Ta sama lekcja co w 0.51.0, tylko w drugą stronę.
+   */
+  if (sprzedazIstniala) {
+    php(`update_option( '${OPCJA_SPRZEDAZ}', '${sprzedazPrzed}' ); echo 'ok';`);
+  } else {
+    php(`delete_option( '${OPCJA_SPRZEDAZ}' ); echo 'ok';`);
+  }
   if (zamowienia.length > 0) {
     /*
      * KASUJEMY PRZEZ API ZAMÓWIENIA, nie przez wp_delete_post(). ZMIERZONE
@@ -531,7 +548,7 @@ try {
   }
   kasujZapisy();
   php(
-    `Aai_Sklep_Zapis::usun_kurs( '${KURS}', 'smoke-p3b', true );` +
+    `Aai_Sklep_Zapis::usun_kurs( '${KURS}', 'smoke-p3b', true, true );` +
       ` Aai_Platnosci_Zapis::powiazanie_usun( '${KURS}' );` +
       ` foreach ( array( ${produkt}, ${tutor}, ${obcy} ) as $id ) { if ( $id > 0 && get_post( $id ) ) { wp_delete_post( $id, true ); } } echo 'ok';`
   );

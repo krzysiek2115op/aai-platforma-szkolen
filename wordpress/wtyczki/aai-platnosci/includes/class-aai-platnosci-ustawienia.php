@@ -182,6 +182,8 @@ final class Aai_Platnosci_Ustawienia {
 		 */
 		add_filter( 'woocommerce_add_to_cart_validation', array( self::class, 'juz_w_koszyku' ), 20, 2 );
 		add_action( 'woocommerce_add_to_cart', array( self::class, 'zostaw_jeden_kurs' ), 10, 2 );
+		// Strona produktu kursu → nasza strona sprzedażowa (301). Powód niżej.
+		add_action( 'template_redirect', array( self::class, 'przekieruj_ze_strony_produktu' ), 1 );
 		/*
 		 * Filtr obronny B17 dla maila „nowe konto": wartość w bazie
 		 * ustawia `napraw()`, ale ekran ustawień WooCommerce cofa ją
@@ -310,6 +312,45 @@ final class Aai_Platnosci_Ustawienia {
 			return true;
 		}
 		return 'yes' !== (string) get_option( 'woocommerce_enable_guest_checkout', 'no' );
+	}
+
+	/**
+	 * Adres produktu kursu oddaje 301 na naszą stronę sprzedażową.
+	 *
+	 * ZNALEZIONE PRZY TEŚCIE CAŁOŚCI (2026-08-31). Produkt kursu jest
+	 * `publish` i tylko `hidden` w katalogu — a `hidden` chowa go z LIST
+	 * (katalog, wyszukiwarka), nie zamyka jego własnego adresu. Powstawała
+	 * przez to DRUGA strona sprzedażowa tego samego kursu: `/product/<slug>/`
+	 * z tytułem, ceną i przyciskiem „Dodaj do koszyka", wyrenderowana
+	 * szablonem WooCommerce — czyli w cudzym wyglądzie (zmierzone: 200).
+	 *
+	 * To ten sam stan, który właściciel rozstrzygnął 2026-08-25 dla
+	 * `/courses/<slug>/`: jeden adres kanoniczny, zero duplikatu
+	 * w wyszukiwarce, klient nigdy nie trafia na stronę w cudzym wyglądzie.
+	 * Tamte drzwi zamknął Plugin 1; te są nasze, bo produkt zakłada szew.
+	 *
+	 * NIE dotykamy produktów spoza kursów (gdyby właściciel kiedyś sprzedawał
+	 * co innego) ani kokpitu — pytamy o powiązanie w naszej tabeli.
+	 */
+	public static function przekieruj_ze_strony_produktu(): void {
+		try {
+			if ( is_admin() || ! function_exists( 'is_product' ) || ! is_product() ) {
+				return;
+			}
+			$uuid = Aai_Platnosci_Zapis::kurs_produktu( (int) get_queried_object_id() );
+			if ( null === $uuid || ! class_exists( 'Aai_Sklep_Odczyt' ) || ! class_exists( 'Aai_Sklep_Widok' ) ) {
+				return;
+			}
+			$kurs = Aai_Sklep_Odczyt::kurs_po_id( $uuid );
+			$slug = is_array( $kurs ) ? (string) ( $kurs['slug'] ?? '' ) : '';
+			if ( '' === $slug ) {
+				return;
+			}
+			wp_safe_redirect( Aai_Sklep_Widok::adres_kursu( $slug ), 301 );
+			exit;
+		} catch ( Throwable $blad ) {
+			return;
+		}
 	}
 
 	/**

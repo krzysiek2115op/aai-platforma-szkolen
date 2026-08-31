@@ -199,27 +199,30 @@ final class Aai_Sklep_Panel_Akcje {
 		check_admin_referer( self::USUN_KURS );
 		self::brama();
 
-		$id    = self::tekst( 'id' );
-		// Zajęty adres to POMYŁKA WŁAŚCICIELA, nie awaria zapisu. Bez tego
-		// sprawdzenia baza odrzuca zapis kluczem UNIQUE, a panel mówi
-		// „zapis się nie powiódł" — czyli o czymś zupełnie innym niż to,
-		// co trzeba poprawić.
-		if ( Aai_Sklep_Odczyt_Panelu::slug_zajety( (string) $sprawdzone['dane']['slug'], (string) $sprawdzone['dane']['id'] ) ) {
-			self::odrzuc(
-				'kurs',
-				$wejscie,
-				array( 'slug' => __( 'Ten adres (slug) jest już zajęty przez inny kurs.', 'aai-sklep' ) ),
-				$id,
-				$zakladka
-			);
-		}
-
-		$zgoda = '1' === self::tekst( 'pozwol_skasowac_tresc' );
+		$id     = self::tekst( 'id' );
+		$zgoda  = '1' === self::tekst( 'pozwol_skasowac_tresc' );
+		$dostep = '1' === self::tekst( 'pozwol_stracic_dostep' );
 
 		try {
-			Aai_Sklep_Zapis::usun_kurs( $id, self::aktor(), $zgoda );
+			Aai_Sklep_Zapis::usun_kurs( $id, self::aktor(), $zgoda, $dostep );
 		} catch ( Aai_Sklep_Blad_Zapisu $blad ) {
 			$szczegoly = $blad->dane();
+			/*
+			 * Dwie odmowy, dwa komunikaty — i to nie jest kosmetyka.
+			 * „Skasujesz treść" i „ludzie stracą dostęp" to różne straty
+			 * i różne decyzje; jeden wspólny komunikat kazałby właścicielowi
+			 * zgadywać, na co właściwie się godzi.
+			 */
+			if ( isset( $szczegoly['kupujacy'] ) ) {
+				self::wroc(
+					Aai_Sklep_Panel::adres_listy(
+						array(
+							'aai_komunikat' => 'odmowa_dostepu',
+							'aai_ile'       => (string) (int) $szczegoly['kupujacy'],
+						)
+					)
+				);
+			}
 			if ( isset( $szczegoly['lekcje_z_trescia'] ) ) {
 				self::wroc(
 					Aai_Sklep_Panel::adres_listy(

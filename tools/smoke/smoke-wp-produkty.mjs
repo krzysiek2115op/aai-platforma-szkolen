@@ -427,7 +427,7 @@ sprawdz(sierota.kod === 1, `osierocony produkt w publish (kupowalny!) — kontro
 
 /* ── 9. usunięcie kursu: produkt draft, ale ISTNIEJE ────────────────── */
 
-php(`Aai_Sklep_Zapis::usun_kurs('${KURS}', 'smoke-p2', true);`);
+php(`Aai_Sklep_Zapis::usun_kurs('${KURS}', 'smoke-p2', true, true);`);
 sprawdz(wp("post", "get", String(produkt), "--field=post_status").out === "draft", "po usunięciu kursu produkt nie jest draft");
 sprawdz(wp("post", "get", String(produkt), "--field=ID").out === String(produkt), "po usunięciu kursu produkt ZNIKNĄŁ — kasowanie jest zakazane (niezmiennik 13)");
 

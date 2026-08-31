@@ -514,6 +514,60 @@ for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
   }
 }
 
+/* ── 13. bramka otwierająca SPRZEDAŻ czyta i przywraca stan dokładnie ── */
+/*
+ * Stan sprzedaży jest OPCJĄ, której normalnie NIE MA — po odtworzeniu
+ * środowiska i po każdej bramce, która przywraca stan skasowaniem. Stąd
+ * dwie usterki tej samej klasy, obie zmierzone:
+ *
+ * 1. `wp option get` kończy JEDYNKĄ, gdy opcji nie ma — bramka wywracała
+ *    się, zanim cokolwiek zmierzyła (smoke-wp-jezyk, 2026-08-31);
+ * 2. przywracanie komendą „zamknij" zapisuje wartość „nie", czyli ślad,
+ *    którego nie było — a „przywróć stan" to co innego niż „zapisz pustą
+ *    wartość" (lekcja z 0.54.0).
+ *
+ * Reguła pyta o ROZSTRZYGNIĘCIA: czytanie z wartością domyślną i gałąź
+ * kasującą opcję, gdy zastano jej brak.
+ */
+{
+  const OPCJA = "aai_platnosci_sprzedaz_otwarta";
+  for (const plik of readdirSync(KATALOG_SMOKE).filter((f) => f.endsWith(".mjs"))) {
+    const sciezka = join(KATALOG_SMOKE, plik);
+    const tresc = readFileSync(sciezka, "utf8");
+    if (!tresc.includes(OPCJA)) continue;
+
+    /*
+     * Rozliczamy tylko bramki, które stan sprzedaży ZMIENIAJĄ. Sam odczyt
+     * jest nieszkodliwy i nie ma czego przywracać — pierwsza wersja pytała
+     * o wzmiankę o opcji i zapaliła się na sondzie, która wyłącznie czyta
+     * (dziesiąty nawrót pułapki „wzorzec na nazwę zamiast na zachowanie").
+     */
+    const zmienia =
+      /update_option\s*\(/.test(tresc) ||
+      /add_option\s*\(/.test(tresc) ||
+      /"sprzedaz"\s*,\s*"otworz"|'sprzedaz'\s*,\s*'otworz'|sprzedaz\s+otworz/.test(tresc);
+    if (!zmienia) continue;
+
+    if (new RegExp(`"option",\\s*"get",\\s*"${OPCJA}"`).test(tresc)) {
+      bledy.push(
+        `${plik}: czyta stan sprzedaży komendą \`wp option get\`. Gdy opcji nie ma — a nie ma jej po odtworzeniu środowiska — komenda kończy jedynką i wywraca CAŁĄ bramkę, zanim cokolwiek zmierzy. Czytaj \`get_option( …, "" )\`.`
+      );
+    }
+    /*
+     * Nazwa opcji bywa w bramkach STAŁĄ, nie literałem — pierwsza wersja tej
+     * reguły wymagała literału i zapaliła się na trzech bramkach, z których
+     * dwie były w porządku. Pytamy więc o samo kasowanie opcji w pliku,
+     * który tę opcję rusza.
+     */
+    const przywraca = /delete_option\s*\(/.test(tresc);
+    if (!przywraca) {
+      bledy.push(
+        `${plik}: rusza stan sprzedaży, ale nie umie przywrócić BRAKU opcji. Zapisanie „nie" zostawia po bramce ślad, którego nie było — a następny przebieg i właściciel zastają inną instalację niż przed nią.`
+      );
+    }
+  }
+}
+
 /* ── 5-7. moduł poczty sprawdzony URUCHOMIENIOWO ──────────────────────── */
 
 /*
@@ -603,7 +657,7 @@ if (bledy.length > 0) {
 console.log(
   "straznik-higieny-smokow: żadna bramka nie kasuje skrzynki hurtowo, bramki wysyłające pocztę biorą migawkę, " +
     "sprzątają i rozliczają się ze skrzynki oraz z zapisów na kursy, bramki logujące się sprzątają dziennik " +
-    "logowań i rozliczają się z niego asercją, która jest osiągalna, nikt nie kasuje tabel monitoringu hurtowo, " +
+    "logowań i rozliczają się z niego asercją, która jest osiągalna, nikt nie kasuje tabel monitoringu hurtowo, bramki ruszające stan sprzedaży czytają go i przywracają dokładnie, " +
     "a moduł poczty (sprawdzony uruchomieniowo) " +
     "nie kasuje przy pustej liście, trzyma się migawki i zatrzymuje przebieg przy niepełnym odczycie."
 );

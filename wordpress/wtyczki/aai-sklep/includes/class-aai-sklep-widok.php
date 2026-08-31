@@ -216,7 +216,14 @@ final class Aai_Sklep_Widok {
 	 * do kasy, ten sam adres wysłałby pytającego klienta prosto do płatności.
 	 */
 	public static function adres_kontaktu(): string {
-		return home_url( '/kontakt' );
+		/*
+		 * Z UKOŚNIKIEM NA KOŃCU — instalacja ma strukturę `/%postname%/`,
+		 * więc `home_url('/kontakt')` różni się od adresu kanonicznego
+		 * o jeden znak i `redirect_canonical` odsyła klienta 301. To samo
+		 * rozstrzygnięcie co przy `adres_kursu()` w kroku W3; sprawdzone
+		 * `curl` przy teście całości 2026-08-31.
+		 */
+		return user_trailingslashit( home_url( '/kontakt' ) );
 	}
 
 	/**

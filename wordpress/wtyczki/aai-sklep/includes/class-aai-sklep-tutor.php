@@ -73,11 +73,48 @@ final class Aai_Sklep_Tutor {
 		'problem'  => '_tutor_course_requirements',
 	);
 
-	/** Nasz stan kursu → status wpisu. Szkic nie może stać się publiczny przez pomyłkę. */
-	private const STATUS_NA_WP = array(
+	/**
+	 * Nasz stan kursu → status wpisu KURSU. Szkic nie może stać się publiczny
+	 * przez pomyłkę, a kurs zdjęty ze sprzedaży nie może dać się zapisać za darmo.
+	 *
+	 * `archived` → `private` NIE JEST tu ozdobą: `Course::enroll_now()` Tutora
+	 * to publiczny handler POST, który po zalogowaniu i nonce'ie zapisuje na
+	 * KAŻDY kurs niebędący `purchasable` — a kurs zdjęty ze sprzedaży właśnie
+	 * taki jest, bo `Aai_Platnosci_Zapis::zdejmij_kurs()` ustawia mu
+	 * `_tutor_course_price_type = free`. Jedyne, co ten handler zatrzymuje
+	 * wprost, to status `private` (sprawdzone w jego kodzie, nie założone).
+	 */
+	private const STATUS_KURSU_NA_WP = array(
 		'draft'     => 'draft',
 		'published' => 'publish',
 		'archived'  => 'private',
+	);
+
+	/**
+	 * Nasz stan kursu → status wpisów MATERIAŁU (moduły i lekcje).
+	 *
+	 * DLACZEGO INNY NIŻ STATUS KURSU. „Ukryj" ma zabierać kurs ze SKLEPU,
+	 * a nie odbierać go ludziom, którzy już zapłacili (decyzja właściciela
+	 * 2026-08-31, znalezisko 2 z testu całości). Do 0.58.0 cała kopia szła
+	 * jednym statusem, więc ukrycie przepisywało 73 lekcje na `private`,
+	 * a `private` odcina każdego bez `read_private_posts` — kupujący dostawał
+	 * **404**, przy obu kontrolach świecących na zielono.
+	 *
+	 * Materiał może zostać `publish`, bo dostępu i tak nie pilnuje status
+	 * wpisu, tylko ZAPIS na kurs — `has_enrolled_content_access()` sprowadza
+	 * się do `is_enrolled()`, a `get_enrolled_courses_ids_by_user()` pyta
+	 * wyłącznie o wpisy zapisów i o status kursu w ogóle nie pyta (oba
+	 * zmierzone w kodzie Tutora). Publicznych LIST lekcji i modułów nie ma
+	 * od naprawy wycieku (`Aai_Sklep_Lekcja::zamknij_typ()`), a darmowe
+	 * zapowiedzi gasną razem z kursem — pilnuje tego `Aai_Sklep_Lekcja`.
+	 *
+	 * Szkic zostaje szkicem w całości: kurs, którego nigdy nie było
+	 * w sprzedaży, nie ma komu udostępniać materiału.
+	 */
+	private const STATUS_MATERIALU_NA_WP = array(
+		'draft'     => 'draft',
+		'published' => 'publish',
+		'archived'  => 'publish',
 	);
 
 	/** Nasz poziom → `_tutor_course_level` (Tutor zna beginner/intermediate/expert/all_levels). */
@@ -392,8 +429,9 @@ final class Aai_Sklep_Tutor {
 	 * @return array<int,array{uuid:string,rola:string,rodzic_uuid:string|null,dane:array<string,mixed>,meta:array<string,string>}>
 	 */
 	private static function plan_kursu( array $kurs ): array {
-		$typy   = self::typy();
-		$status = self::STATUS_NA_WP[ $kurs['status'] ] ?? 'draft';
+		$typy             = self::typy();
+		$status           = self::STATUS_KURSU_NA_WP[ $kurs['status'] ] ?? 'draft';
+		$status_materialu = self::STATUS_MATERIALU_NA_WP[ $kurs['status'] ] ?? 'draft';
 
 		$sekcje_tutor = array();
 		$sekcje_nasze = array();
@@ -456,7 +494,7 @@ final class Aai_Sklep_Tutor {
 				'rodzic_uuid' => $kurs['id'],
 				'dane'        => array(
 					'post_type'    => $typy['modul'],
-					'post_status'  => $status,
+					'post_status'  => $status_materialu,
 					'post_title'   => $modul['title'],
 					'post_content' => (string) ( $modul['summary'] ?? '' ),
 					'menu_order'   => (int) $modul['position'],
@@ -471,7 +509,7 @@ final class Aai_Sklep_Tutor {
 					'rodzic_uuid' => $modul['id'],
 					'dane'        => array(
 						'post_type'    => $typy['lekcja'],
-						'post_status'  => $status,
+						'post_status'  => $status_materialu,
 						'post_title'   => $lekcja['title'],
 						'post_content' => (string) $lekcja['content'],
 						'menu_order'   => (int) $lekcja['position'],
@@ -839,6 +877,37 @@ final class Aai_Sklep_Tutor {
 			)
 		);
 		return $znalezione ? (int) $znalezione[0] : 0;
+	}
+
+	/**
+	 * Ilu ludzi ma dostęp do tego kursu — pytamy TUTORA.
+	 *
+	 * DLACZEGO NIE LICZYMY SAMI. To Tutor prowadzi zapisy i to on decyduje
+	 * o dostępie; własny licznik byłby DRUGĄ KOPIĄ tej samej prawdy i przy
+	 * pierwszej rozbieżności kłamałby w najgorszym możliwym momencie —
+	 * przy pytaniu „czy na pewno skasować kurs".
+	 *
+	 * Liczymy zapisy o statusie `completed`, czyli te, które naprawdę dają
+	 * dostęp: `pending` to ktoś, kto zaczął zakup i nie zapłacił (przy kursie
+	 * płatnym `do_enroll()` zakłada właśnie taki), a zwrot przestawia zapis
+	 * na status zamówienia. To ta sama miara, którą Tutor pokazuje w swoim
+	 * panelu.
+	 *
+	 * Brak Tutora znaczy ZERO, i to nie jest wygodne zaokrąglenie: bez LMS-a
+	 * nikt nie ma się gdzie zalogować po materiał, więc nikt dostępu nie
+	 * traci.
+	 *
+	 * @param string $uuid Identyfikator kursu z naszych tabel.
+	 */
+	public static function kupujacy( string $uuid ): int {
+		if ( '' === trim( $uuid ) || ! self::dostepny() || ! function_exists( 'tutor_utils' ) ) {
+			return 0;
+		}
+		$id = self::znajdz_po_uuid( $uuid, self::typy()['kurs'] );
+		if ( $id <= 0 ) {
+			return 0;
+		}
+		return (int) tutor_utils()->count_enrolled_users_by_course( $id );
 	}
 
 	/**

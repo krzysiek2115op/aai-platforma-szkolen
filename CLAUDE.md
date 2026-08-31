@@ -2805,36 +2805,142 @@ wyprowadzała tego od nowa:
         kod 0. **W tabelach monitoringu zostają dane z testu właściciela:
         12 logowań, 16 odsłon, 6 sesji** — materiał dowodowy, nie śmieci.
 
-        **═══ NASTĘPNY KROK CAŁEGO PROJEKTU (decyzja właściciela T4-D4) ═══**
-        **ROZBUDOWA EKRANU MONITORINGU — OSOBNY KROK (roboczo T5), z własnym
-        planem, pytaniami i zgodą** (reguła z 2026-08-28 obowiązuje). Osobny,
-        żeby nie mieszać „naprawy tego, co zgłosił właściciel" z „nową
-        funkcją" w jednym przeglądzie.
-        **DECYZJE WŁAŚCICIELA Z 2026-08-31, wiążące dla tego kroku:**
-        **T4-D2** — punkt odniesienia do poprzedniego okresu **TAK, samą
-        liczbą** („dziś 5, poprzednie 24 h: 12"), bez wykresu; **T4-D3** —
-        ekran ma służyć **wszystkim czterem celom naraz**: czy ludzi
-        przybywa · czego szukają przed zakupem · czy ktoś dobija się do kont ·
-        żeby dało się policzyć swoje.
-        **ZAKRES — wszystko z danych, KTÓRE JUŻ ZBIERAMY, bez ani jednej
-        nowej kolumny** (pełnia z uzasadnieniami: TEST-RECZNY-T4.md):
-        (1) punkt odniesienia do poprzedniego okresu; (2) lejek katalog →
-        strona kursu → bramka — **kolumna `bramka` to dane, których nie ma
-        nikt inny**: Woo zna zamówienia, Tutor zapisy, tylko my wiemy, KTO
-        CHCIAŁ I SIĘ ODBIŁ; (3) strony wejściowe (pierwsza ścieżka w sesji);
-        (4) sesje jednostronicowe (odróżniają „pięcioro uciekło" od „jedno
-        czytało"); (5) kafelek „ostatnia aktywność" — **zabezpieczenie, nie
-        ciekawostka**: przy pustej tabeli ekran mówi wprost, że nic nie
-        zbiera, ale przy danych STARYCH wygląda to jak spokojny ruch;
-        (6) serie nieudanych logowań z jednego adresu — **domyka D6**
-        („rejestrujemy, nie blokujemy" ma sens tylko wtedy, gdy rejestr
-        POKAZUJE serię); (7) eksport CSV.
-        **POZA ZAKRESEM ZOSTAJE:** wykresy i porównania rok do roku (poza
-        T3), cokolwiek o sprzedaży (**D4** — od tego są raporty Woo),
-        łączenie ruchu z kontem (**D3** — ruch jest anonimowy i ma taki
-        zostać).
-        **POTEM ostatnia rzecz z etapu WP: TEST CAŁOŚCI** — czy trzy wtyczki
-        współpracują i czy projekt trzyma się kupy architektonicznie.
+        **═══ NASTĘPNY KROK CAŁEGO PROJEKTU: TEST CAŁOŚCI TRZECH WTYCZEK ═══**
+        **DECYZJA WŁAŚCICIELA (2026-08-31): ROZBUDOWY EKRANU NIE ROBIMY.**
+        Panel monitoringu zostaje taki, jaki jest — „nie trzeba go poprawiać,
+        najważniejsze informacje są". To **ODWOŁUJE krok T5** zapowiedziany
+        decyzją T4-D4 z tego samego dnia: siedem pozycji zakresu (punkt
+        odniesienia do poprzedniego okresu, lejek katalog → kurs → bramka,
+        strony wejściowe, sesje jednostronicowe, kafelek „ostatnia
+        aktywność", serie nieudanych logowań z jednego adresu, eksport CSV)
+        **NIE wchodzi do projektu**. Decyzje T4-D2 i T4-D3 zostają
+        w [TEST-RECZNY-T4.md](docs/plugin-3/TEST-RECZNY-T4.md) jako **zapis
+        historyczny** — gdyby ekran kiedyś rozbudowywać, gotowy zakres jest
+        tam wyprowadzony z danych, które już zbieramy. **Nie proponować tego
+        z własnej inicjatywy.**
+        Ekran w wersji przyjętej (0.58.0) pokazuje: cztery kafelki, każdy
+        z własnym okresem; dziennik logowań z filtrem „tylko nieudane";
+        ruch w oknach dziś / 7 / 30 dni z odsłonami, sesjami, czasem łącznym
+        i średnim; najczęściej czytane strony; osobno odsłony zatrzymane na
+        bramce logowania. To jest komplet — właściciel ocenił go jako
+        wystarczający w teście ręcznym T4.
+        **TEST CAŁOŚCI TRZECH WTYCZEK — W TOKU (2026-08-31), gałąź
+        `docs/panel-zostaje-jaki-jest`. DOKUMENT KROKU:
+        [docs/TEST-CALOSCI-WP.md](docs/TEST-CALOSCI-WP.md) — CZYTAĆ PRZED
+        PRACĄ** (zakres, werdykty wszystkich znalezisk, pułapki, stan
+        środowiska, lista roboty do dokończenia).
+        Zakres zatwierdzony przez właściciela: **przegląd architektury I test
+        ręczny**, środowisko **odtworzone OD ZERA** ze zrzutem i przywróceniem
+        danych dowodowych, warsztat motywu `:8890` **pominięty**, przegląd
+        **recenzentami-agentami z agentem głównym jako krytykiem**.
+        **DZIEWIĘĆ ZNALEZISK POTWIERDZONYCH URUCHOMIENIOWO, OSIEM JUŻ
+        NAPRAWIONYCH** (dwa commity na gałęzi):
+        (1) **wyciek CAŁEGO produktu** — `/?post_type=lesson` oddawało
+        gościowi 73 lekcje prozy (8 stron × 10) i to samo kanałem RSS, przy
+        zielonych wszystkich 14 bramkach i 37 strażnikach; zamknięte trzema
+        zamkami (`register_post_type_args`, `pre_get_posts` z PUSTYM wynikiem,
+        404 w odpowiedzi) — **samo `set_404()` nie wystarcza, bo motyw bez
+        `404.php` i tak drukuje znalezione wpisy**;
+        (3) **brak JEDNEGO pliku wtyczki = HTTP 500 na całej witrynie**
+        (monitoring i szew płatności) — cały start jest teraz w `try/catch`;
+        (6) **każde 404 poza `/szkolenia/` było pustym ekranem** (motyw nie ma
+        `404.php`) — nasz szablon obsługuje teraz całą witrynę;
+        (5) **`/product/<slug>/` był drugą stroną sprzedażową** w wyglądzie
+        Woo → **301** na naszą;
+        (7) **strażnicy NIE pilnowali zakazu pisania do cudzych tabel**, choć
+        kod to obiecywał (mutacja przechodziła 37/37) — reguła 11
+        `straznik-wtyczki-wp`;
+        (8) **dwie bramki przechodziły tylko dzięki śmieciom po ręcznych
+        testach** (`wp-zwroty` wymagał otwartej sprzedaży, `wp-jezyk` konta
+        roli `customer`) — obie tworzą teraz własną scenę i przywracają stan;
+        (9) **`postaw.sh` nie wstawał OD ZERA** (kolejność tłumaczeń);
+        (10) `/kontakt` bez ukośnika → 301.
+        **CZTERY DECYZJE WŁAŚCICIELA Z 2026-08-31 — WSZYSTKIE WYKONANE**
+        (5 commitów na gałęzi, każdy z testami negatywnymi):
+        **C1** — ukrycie kursu przestaje odbierać dostęp kupującym: status kopii
+        w Tutorze to dziś DWIE mapy — kurs ukryty zostaje `private`, materiał
+        (moduły i lekcje) zostaje `publish`. **Kursu NIE WOLNO zostawić
+        `publish`**: `Course::enroll_now()` to publiczny handler POST, który
+        zapisuje na każdy kurs niebędący `purchasable`, a ukryty ma
+        `price_type = free` — zatrzymuje go WYŁĄCZNIE `private` (`draft` też by
+        przepuścił). Zmierzone testem negatywnym: przy `publish` obcy zapisał
+        się na ukryty kurs i dostał cały materiał. Dostępu i tak nie pilnuje
+        status wpisu, tylko ZAPIS (`has_enrolled_content_access()` =
+        `is_enrolled()`, a `get_enrolled_courses_ids_by_user()` o status nie
+        pyta). **Darmowe zapowiedzi gasną razem z kursem** (decyzja właściciela).
+        **C3** — strona mówi „Dostęp zaraz po zaksięgowaniu wpłaty"; FAQ
+        tłumaczy to zdaniem. Zmienione w obu bazach (`db1:sekcje` → `wp:import`),
+        w szablonie WP i w prototypie. Pilnuje `smoke-wp-front`, który pyta
+        INSTALACJĘ o włączone metody płatności — po podpięciu prawdziwej bramki
+        reguła sama przestanie się tego czepiać.
+        **C2** — panel pyta „ten kurs ma N kupujących — stracą dostęp" i wymaga
+        drugiego, osobnego kliknięcia; pytanie pojawia się TYLKO przy kursie,
+        który ktoś ma. Bramka siedzi w warstwie zapisu, więc chroni też komendę
+        (`--pozwol-stracic-dostep`). Liczbę daje Tutor
+        (`count_enrolled_users_by_course`, zapisy `completed`).
+        **C2b (rozstrzygnięte)**: po wymuszonym usunięciu na produkcie-sierocie
+        zostaje znacznik z liczbą, a kontrola `wp aai-platnosci sprawdz` kończy
+        **kodem 1 tylko wtedy, gdy kurs miał kupujących**.
+        **Pozycja 4** — kontrola przestała meldować zerem sklep, który sprzedaje
+        bez danych: przy braku zależności liczy kupowalne produkty i przy
+        niezerowym wyniku kończy kodem 1. Zachowania sprzedaży NIE zmieniamy —
+        od zamykania sklepu jest komenda (zmierzone: `sprzedaz zamknij` blokuje
+        koszyk także przy wyłączonym Pluginie 1).
+        **Przy okazji naprawione:** `Aai_Sklep_Panel_Akcje::usun_kurs()` niosła
+        od W4 wklejony blok z trzema zmiennymi, których w tej metodzie nie ma
+        (kurs o pustym slugu wywróciłby usuwanie fatalem); `smoke-wp-jezyk`
+        wywracał się na `wp option get` przy nieistniejącej opcji sprzedaży
+        (13. reguła `straznik-higieny-smokow`); `Aai_Platnosci_Zapis::kurs_tutora('')`
+        dostał obronę przed pustym uuid, którą Plugin 1 ma od sweepu P5.
+        **Stan dowodów:** `npm run check` kod 0 (strażnicy 37/37, testy 83/83),
+        audyt mutacyjny **305** (0 przeoczonych, 0 martwych), czternaście bramek
+        WP zielonych (kreator 96→**102**, lekcja 47→**57**, front 84→**86**),
+        proza 73/73 co do znaku, kopia w Tutorze 0 różnic.
+        Sześć pozycji „plauzybilnych" **poza pustym uuid zostaje otwartych
+        świadomie** — żadna nie jest dziś czynna.
+        **STAN DOWODÓW:** `npm run check` kod 0 (strażnicy 37/37, testy 83/83),
+        audyt mutacyjny **293** (0 przeoczonych, 0 martwych), czternaście
+        bramek WP zielonych (lekcja 47, zakup 41, zwroty 39, maile 46,
+        monitor 174, front 84, kreator 96, panel 54, motyw 89, produkty 84,
+        tutor 44, dane 30, język 25, płatności 23), proza 73/73 co do znaku,
+        kopia w Tutorze 0 różnic.
+        **ŚRODOWISKO `:8892` POSTAWIONE OD ZERA:** pięć wtyczek, kursy 2,
+        lekcje z treścią 73, zrzuty 148, produkty 2, powiązania 2,
+        **zamówienia 0**, konta `admin` i `klient-test`, **sprzedaż
+        ZAMKNIĘTA** (stan domyślny — otworzyć przed testem ręcznym).
+        Dane monitoringu właściciela z T4 **przywrócone co do wiersza**
+        (12 logowań, 16 odsłon, 6 sesji). Zamówienia i konta z jego
+        wcześniejszych testów NIE wróciły — pełny zrzut bazy sprzed
+        odtworzenia leży w `~/.cache/aai-kopie/pelny-zrzut-przed-testem-calosci.sql`.
+        **SCENARIUSZ TESTU RĘCZNEGO NAPISANY I ODDANY:
+        [docs/TEST-RECZNY-CALOSC.md](docs/TEST-RECZNY-CALOSC.md)** — jedna
+        ścieżka w dziesięciu krokach przez wszystkie trzy wtyczki (gość →
+        zakup nowym kontem → poczta → klient czyta → kreator → „Ukryj" →
+        „Usuń" → monitoring → strona motywu), z zaznaczonymi SZWAMI i tabelą
+        „czego nie zgłaszać". **Przelot kontrolny przed oddaniem: 37/37**
+        (`tools/smoke/przelot-calosc.mjs` — SONDA, nie bramka, poza
+        `npm run check`; sprząta po sobie stan kursu i dziennik logowań).
+        **NASTĘPNY KROK CAŁEGO PROJEKTU: TEST WŁAŚCICIELA** → poprawki
+        → **CHANGELOG + README** (jeszcze NIE zrobione — dziewięć commitów na
+        gałęzi nie ma wpisu w CHANGELOG, tak zaplanowano: wpis powstaje razem
+        z poprawkami z testu) → **PR jedną gałęzią** (razem z zapisem
+        o odwołanej rozbudowie ekranu) → tag → release. Obowiązuje reguła
+        z 2026-08-28: plan + pytania + zgoda przed pracą.
+        **PRZYCISK „USUŃ KURS" NIE JEST NOWY** — jest w kokpicie od W4
+        (`f31b69f`); C2 dołożyło do niego hamulec. Właściciel wybrał wariant
+        „dołóż hamulec" z trzech; „zablokuj na głucho" i „wyjmij przycisk
+        z kokpitu" są ODRZUCONE, nie odłożone.
+        **Brzmienie zdania o dostępie (C3) jest propozycją agenta** —
+        właściciel może je zmienić; bramka pilnuje PRAWDZIWOŚCI zdania wobec
+        włączonych metod płatności, nie jego dokładnych słów.
+        **Sprzedaż jest już OTWARTA** (otwarta pod test ręczny), zamówień 0,
+        kont dwa (`admin`, `klient-test`). Kopia bazy sprzed testu:
+        `~/.cache/aai-kopie/przed-testem-calosci-recznym.sql` — jest, bo krok 8
+        scenariusza dotyka przycisku „Usuń".
+        **W dzienniku monitoringu leży 12 logowań i 16 odsłon właściciela z T4 —
+        nie kasować.** Ubita bramka zostawia swoje wiersze i kolejny przebieg
+        ich NIE usuwa (sprzątanie idzie od własnej migawki); takie ślady kasować
+        jawną listą identyfikatorów, nigdy zakresem.
 
         Zapis historyczny (scenariusz T4, przed jego zaliczeniem):
         SCENARIUSZ WIĄŻĄCY:
@@ -2857,8 +2963,9 @@ wyprowadzała tego od nowa:
         każda liczba ma znanego autora), sprzedaż otwarta, kursy 2, konto
         `klient-test` (NIE kasować), skrzynka `127.0.0.1:8893`,
         `wp aai-monitor sprawdz` kod 0.
-        (Zapis historyczny: „PO T4 zostaje TEST CAŁOŚCI" — dalej aktualne,
-        ale dopiero PO kroku rozbudowy ekranu, patrz wyżej.)
+        (Zapis historyczny: „PO T4 zostaje TEST CAŁOŚCI" — dalej aktualne
+        i od decyzji z 2026-08-31 jest to następny krok WPROST: rozbudowa
+        ekranu została odwołana, patrz wyżej.)
         Zapis historyczny (stan przed naprawami):
         (raporty obu recenzentów, dowody uruchomieniowe, plan napraw
         w czterech turach, cztery pytania do właściciela).

@@ -61,6 +61,8 @@ const PRZEGLADARKA = process.env.FIREFOX ?? "/usr/bin/firefox";
 const KONTENER = `${process.env.STACK_NAZWA ?? "aai_wp"}_cli`;
 
 const bledy = [];
+/** Czy konto klienta zalozyla TA bramka (wtedy sama je kasuje). */
+let kontoNasze = false;
 let sprawdzen = 0;
 function sprawdz(warunek, opis) {
   sprawdzen += 1;
@@ -155,8 +157,17 @@ async function zmierz(sciezka, opis, kotwica) {
 
 let sprzedazPrzed = "";
 try {
-  /* Sprzedaż musi być otwarta, inaczej kasa nie ma czego pokazać. */
-  sprzedazPrzed = wp("option", "get", "aai_platnosci_sprzedaz_otwarta").trim();
+  /*
+   * Sprzedaż musi być otwarta, inaczej kasa nie ma czego pokazać.
+   *
+   * Stan czytamy przez `get_option` z wartością domyślną, a NIE komendą
+   * `wp option get`: gdy opcji nie ma — a nie ma jej po odtworzeniu
+   * środowiska i po każdej bramce, która przywraca stan skasowaniem —
+   * komenda kończy JEDYNKĄ i wywraca całą bramkę, zanim cokolwiek zmierzy.
+   * Bramka ma tworzyć swoją scenę, a nie zależeć od tego, co zastała
+   * (pułapka 4 testu całości).
+   */
+  sprzedazPrzed = wp("eval", 'echo (string) get_option( "aai_platnosci_sprzedaz_otwarta", "" );').trim();
   if ("tak" !== sprzedazPrzed) wp("aai-platnosci", "sprzedaz", "otworz");
 
   const kurs = wp(
@@ -180,7 +191,25 @@ try {
    * a prowadził na angielski ekran WordPressa — pierwszy krok klienta po
    * zakupie. Klucz generujemy tak samo, jak robi to warstwa maili.
    */
-  const login = wp("eval", "$u = get_users( array( 'role' => 'customer', 'number' => 1 ) ); echo $u ? $u[0]->user_login : '';").trim();
+  /*
+   * KONTO KLIENTA ZAKŁADAMY SAMI, GDY GO NIE MA — naprawa z testu całości
+   * (2026-08-31). Wcześniej bramka pytała o pierwsze lepsze konto roli
+   * `customer`, a takie powstaje WYŁĄCZNIE przy zakupie w kasie. Na czystej
+   * instalacji nie było go wcale i sprawdzenie padało z powodu STANU
+   * ŚRODOWISKA, nie kodu: bramka przechodziła tylko tam, gdzie ktoś
+   * wcześniej ręcznie kupił kurs. Konto założone przez nas kasujemy
+   * w `finally` — cudzego nie ruszamy.
+   */
+  let login = wp("eval", "$u = get_users( array( 'role' => 'customer', 'number' => 1 ) ); echo $u ? $u[0]->user_login : '';").trim();
+  if (login === "") {
+    login = wp(
+      "eval",
+      "$id = wp_insert_user( array( 'user_login' => 'smoke-jezyk-klient', 'user_pass' => wp_generate_password( 20 )," +
+        " 'user_email' => 'smoke-jezyk@example.invalid', 'role' => 'customer' ) );" +
+        " echo is_wp_error( $id ) ? '' : 'smoke-jezyk-klient';"
+    ).trim();
+    kontoNasze = login !== "";
+  }
   if (login !== "") {
     const klucz = wp("eval", `$u = get_user_by( 'login', '${login}' ); echo get_password_reset_key( $u );`).trim();
     await zmierz(
@@ -236,9 +265,26 @@ try {
   }
 } finally {
   await przegladarka.close();
+  // Konto klienta kasujemy TYLKO, jeśli sami je założyliśmy.
+  if (kontoNasze) {
+    try {
+      wp("eval", "require_once ABSPATH . 'wp-admin/includes/user.php'; $u = get_user_by( 'login', 'smoke-jezyk-klient' ); if ( $u ) { wp_delete_user( $u->ID ); } echo 'ok';");
+    } catch {
+      /* sprzątanie nie może wywrócić bramki */
+    }
+  }
   if ("tak" !== sprzedazPrzed) {
     try {
-      wp("aai-platnosci", "sprzedaz", "zamknij");
+      /*
+       * Przywracamy stan DOKŁADNIE zastany: brak opcji to co innego niż
+       * opcja z wartością „nie". „Zamknij" zapisałoby tę drugą i zostawiło
+       * po bramce ślad, którego nie było (lekcja z 0.54.0).
+       */
+      if ("" === sprzedazPrzed) {
+        wp("eval", 'delete_option( "aai_platnosci_sprzedaz_otwarta" );');
+      } else {
+        wp("eval", `update_option( "aai_platnosci_sprzedaz_otwarta", "${sprzedazPrzed}" );`);
+      }
     } catch {
       /* stan i tak sprawdza kontrola */
     }

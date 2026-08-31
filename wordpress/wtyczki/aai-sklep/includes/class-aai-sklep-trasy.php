@@ -247,7 +247,19 @@ final class Aai_Sklep_Trasy {
 	public static function wybierz_szablon( string $szablon ): string {
 		$widok = self::widok();
 		if ( null === $widok ) {
-			return $szablon;
+			/*
+			 * KAŻDE 404 dostaje naszą stronę — nie tylko to spod
+			 * `/szkolenia`. Motyw nie ma `404.php`, więc WordPress spadał
+			 * na `index.php`, a ten na pustej pętli nie drukuje nic:
+			 * klient widział nagłówek, białą pustkę i stopkę, czyli stronę
+			 * wyglądającą na awarię. Zmierzone przy teście całości
+			 * (2026-08-31): `<main>` miał 24 znaki na `/cart/`,
+			 * `/checkout/` i `/courses/nie-ma/` wobec 898 na naszej
+			 * stronie 404. Dwa z tych adresów sami stworzyliśmy —
+			 * `/cart/` i `/checkout/` żyły do czasu, aż zmieniliśmy slugi
+			 * koszyka i kasy na polskie.
+			 */
+			return is_404() ? AAI_SKLEP_KATALOG . 'szablony/nie-znaleziono.php' : $szablon;
 		}
 
 		if ( 'kurs' === $widok ) {

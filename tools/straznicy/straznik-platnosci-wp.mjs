@@ -962,6 +962,139 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* ————— 38. cały start wtyczki stoi w try/catch (test całości 2026-08-31) ————— */
+/*
+ * DLACZEGO TO JEST REGUŁA, A NIE STYL. Autoloader wtyczki POMIJA plik
+ * nieczytelny (`is_readable`), więc brak JEDNEGO pliku z `includes/`
+ * kończy się `Error: Class not found` — a jeśli pada on w callbacku
+ * `plugins_loaded`, to na KAŻDYM żądaniu, czyli HTTP 500 na całej
+ * witrynie razem ze sklepem. Zmierzone różnicowo tego dnia: wywołanie
+ * spod `try` → strona 200, to samo wywołanie poza `try` → 500.
+ *
+ * Pytamy o POŁOŻENIE wywołań, nie o obecność słowa „try": każde
+ * `Aai_Platnosci_*::` w tym pliku ma stać między `try {` a `} catch`.
+ */
+{
+  const plikGlowny = PLIK_GLOWNY;
+  const zrodlo = existsSync(plikGlowny) ? kod(readFileSync(plikGlowny, "utf8")) : "";
+  const start = zrodlo.indexOf("'plugins_loaded'");
+  if (start !== -1) {
+    const blok = zrodlo.slice(start);
+    const otwarcie = blok.indexOf("try {");
+    const zamkniecie = blok.indexOf("} catch");
+    const pozaOslona = [];
+    // Wywołanie PRZED `try` jest niechronione. Wywołania po `} catch`
+    // pomijamy świadomie: tam mieszka sam raport o błędzie, strzeżony
+    // `class_exists` — reguła pytająca też o nie zapalałaby się na
+    // poprawnym kodzie (sprawdzone: pierwsza wersja tak właśnie robiła).
+    for (const m of blok.matchAll(/Aai_Platnosci_[A-Za-z_]+::(?:zarejestruj|dociagnij_schemat|utworz)\(/g)) {
+      if (otwarcie === -1 || zamkniecie === -1 || m.index < otwarcie) {
+        pozaOslona.push(m[0]);
+      }
+    }
+    if (pozaOslona.length > 0) {
+      bledy.push(
+        `${plikGlowny}: ${pozaOslona.length} wywołań startu poza try/catch (np. ${pozaOslona[0]}). Brak jednego pliku z includes/ daje wtedy HTTP 500 na CAŁEJ witrynie — zmierzone 2026-08-31.`
+      );
+    }
+  }
+}
+
+/* 39. SIEROTA PO KURSIE Z KUPUJĄCYMI TO BŁĄD, NIE INFORMACJA.
+
+   Rozstrzygnięcie właściciela (2026-08-31) przy C2. Produktu nie kasujemy
+   nigdy (niezmiennik 13), więc po usunięciu kursu zostaje sierota. Sierota
+   po kursie testowym to śmieć do sprzątnięcia — kod 0. Sierota po kursie,
+   który ktoś KUPIŁ, znaczy, że ludzie stracili dostęp do czegoś, za co
+   zapłacili, i ktoś musi z tym coś zrobić: kod 1.
+
+   Liczba kupujących musi być ZAPISANA w chwili usunięcia — po fakcie nie
+   da się jej odtworzyć, bo zapisy znikają razem z kopią kursu w Tutorze.
+   Reguła pyta więc o obie połowy: że szew ją zapisuje i że kontrola po nią
+   sięga, kwalifikując taki wiersz jako BŁĄD. */
+{
+  const szew = join(KATALOG, "includes", "class-aai-platnosci-szew.php");
+  const cli39 = join(KATALOG, "includes", "class-aai-platnosci-cli.php");
+  if (existsSync(szew)) {
+    const c = kod(readFileSync(szew, "utf8"));
+    if (!/add_action\(\s*'aai_sklep_kurs_usuniety'[\s\S]{0,120}?,\s*2\s*\)\s*;/.test(c)) {
+      bledy.push(
+        `${szew}: słuchacz usunięcia kursu nie przyjmuje DRUGIEGO argumentu akcji. Liczba kupujących do niego nie dojedzie, a po usunięciu kursu nikt jej już nie odtworzy — zapisy znikają razem z kopią w Tutorze.`
+      );
+    }
+    if (!/oznacz_utracony_dostep\s*\(/.test(c)) {
+      bledy.push(
+        `${szew}: usunięcie kursu nie zapisuje na produkcie, ilu ludzi straciło dostęp. Kontrola przestanie odróżniać śmieć po kursie testowym od śladu po utracie cudzego, opłaconego dostępu.`
+      );
+    }
+  }
+  if (existsSync(cli39)) {
+    const c = kod(readFileSync(cli39, "utf8"));
+    const czyta = /utracony_dostep\s*\(/.test(c);
+    const jakoBlad = /utracony\s*>\s*0[\s\S]{0,400}?\$wynik\['bledy'\]\[\]/.test(c);
+    if (!czyta || !jakoBlad) {
+      bledy.push(
+        `${cli39}: kontrola nie zgłasza jako BŁĄD sieroty po kursie, który miał kupujących (czyta znacznik: ${czyta}, kwalifikuje jako błąd: ${jakoBlad}). Kod 0 znaczyłby „wszystko w porządku" w sytuacji, w której ludzie stracili dostęp do opłaconego kursu.`
+      );
+    }
+  }
+}
+
+/* 40. „SPRZEDAŻ NIE DZIAŁA" MUSI BYĆ PRAWDĄ, ZANIM PADNIE.
+
+   Znalezisko testu całości (2026-08-31), zreprodukowane: po wyłączeniu
+   Pluginu 1 produkty kursów zostają `publish` i dalej wchodzą do koszyka
+   (`woocommerce_items_in_cart=1`), a kontrola pisała „Sprzedaż nie działa"
+   i kończyła ZEREM. Zdanie było nieprawdziwe, a kod wyjścia mówił „wszystko
+   w porządku" o sklepie sprzedającym kursy bez danych.
+
+   Reguła pyta o ROZSTRZYGNIĘCIE: gałąź braku zależności ma najpierw
+   policzyć kupowalne produkty i wyjść JEDYNKĄ, gdy jakieś zostały. */
+{
+  const cli40 = join(KATALOG, "includes", "class-aai-platnosci-cli.php");
+  if (existsSync(cli40)) {
+    const c = kod(readFileSync(cli40, "utf8"));
+    // Zakres to gałąź w `sprawdz()`, a nie pierwsze wystąpienie `brakuje()`
+    // w pliku — to samo wywołanie stoi też w `sync()`, kilkaset linii wyżej,
+    // i pomiar szedł po nim, czyli po zupełnie innym kodzie.
+    const start = c.indexOf("$brak = Aai_Platnosci_Zaleznosci::brakuje();");
+    const blok = start < 0 ? "" : c.slice(start, start + 1800);
+    const liczy = /kupowalne_bez_sklepu\s*\(/.test(blok);
+    const wychodziJedynka = /kupowalne\s*>\s*0[\s\S]{0,700}?WP_CLI::halt\(\s*1\s*\)/.test(blok);
+    if (!liczy || !wychodziJedynka) {
+      bledy.push(
+        `${cli40}: gałąź braku zależności nie sprawdza, czy produkty kursów DALEJ DA SIĘ KUPIĆ (liczy: ${liczy}, wychodzi jedynką: ${wychodziJedynka}). Kontrola pisałaby „Sprzedaż nie działa" i kończyła zerem, choć klient może zapłacić za kurs, którego danych już nie ma (zmierzone przy wyłączonym Pluginie 1).`
+      );
+    }
+  }
+}
+
+/* 41. PUSTY UUID NIE DOPASOWUJE CUDZEGO WPISU.
+
+   Ta sama obrona, co w Pluginie 1 od sweepu P5. Zapytanie po
+   `meta_value => ''` dopasowuje PIERWSZY LEPSZY wpis danego typu, więc
+   pusty identyfikator „znajduje" cudzy kurs — a szew powiązałby z nim
+   produkt. Dziś ratuje nas przypadek (kursy są dwa, więc metoda oddaje
+   -1); przy jednym kursie oddałaby jego id. */
+{
+  const zapis41 = join(KATALOG, "includes", "class-aai-platnosci-zapis.php");
+  if (existsSync(zapis41)) {
+    const c = kod(readFileSync(zapis41, "utf8"));
+    const i41 = c.indexOf("function kurs_tutora");
+    const glowa = i41 < 0 ? "" : c.slice(i41, c.indexOf("get_posts", i41));
+    const odrzuca =
+      /(''|"")\s*===\s*(trim\s*\(\s*)?\$course_uuid|empty\s*\(\s*\$course_uuid\s*\)/.test(glowa) &&
+      /return\s+null\s*;/.test(glowa);
+    if (i41 < 0) {
+      bledy.push(`${zapis41}: nie ma kurs_tutora() — strażnik przestał wiedzieć, czego pilnuje.`);
+    } else if (!odrzuca) {
+      bledy.push(
+        `${zapis41}: kurs_tutora() nie odrzuca PUSTEGO identyfikatora przed zapytaniem. Zapytanie po pustym meta dopasowuje pierwszy lepszy wpis, więc szew powiąże produkt z cudzym kursem (tak w sweepie P5 zniknęło 18 lekcji Kursu 2).`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -969,5 +1102,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu)."
 );

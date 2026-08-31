@@ -40,6 +40,11 @@ final class Aai_Sklep_Odczyt_Panelu {
 	 * widzieć BEZ wchodzenia w kurs, bo przy 73 lekcjach „ile jeszcze
 	 * zostało" jest pierwszym pytaniem dnia.
 	 *
+	 * `kupujacy` NIE POCHODZI z naszych tabel i to jest celowe: zapisy
+	 * prowadzi Tutor, więc własny licznik byłby drugą kopią tej samej
+	 * prawdy. Liczba jest potrzebna listy do jednego: żeby przycisk „Usuń"
+	 * powiedział wprost, ilu ludzi straci dostęp.
+	 *
 	 * @return array<int,array<string,mixed>>
 	 */
 	public static function kursy(): array {
@@ -84,6 +89,7 @@ final class Aai_Sklep_Odczyt_Panelu {
 				'modulow'          => (int) $wiersz['modulow'],
 				'lekcji'           => (int) $wiersz['lekcji'],
 				'lekcji_z_trescia' => (int) $wiersz['lekcji_z_trescia'],
+				'kupujacy'         => Aai_Sklep_Tutor::kupujacy( (string) $wiersz['id'] ),
 			);
 		}
 		return $kursy;

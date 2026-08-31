@@ -50,6 +50,7 @@ defined( 'ABSPATH' ) || exit;
 				$aai_id       = (string) $aai_kurs['id'];
 				$aai_status   = (string) $aai_kurs['status'];
 				$aai_z_trescia = (int) $aai_kurs['lekcji_z_trescia'];
+				$aai_kupujacy  = (int) ( $aai_kurs['kupujacy'] ?? 0 );
 				?>
 				<tr>
 					<td class="column-primary">
@@ -102,7 +103,37 @@ defined( 'ABSPATH' ) || exit;
 									 */
 									?>
 									<input type="hidden" name="pozwol_skasowac_tresc" value="0" data-aai-zgoda />
+									<input type="hidden" name="pozwol_stracic_dostep" value="0" data-aai-zgoda-dostep />
 									<button type="submit" class="button-link aai-usun"
+										<?php
+										/*
+										 * DRUGIE PYTANIE, OSOBNE OD PIERWSZEGO. Kurs
+										 * z kupującymi kasuje się dwoma świadomymi
+										 * kliknięciami, bo to dwie różne straty: praca
+										 * właściciela i cudzy, opłacony dostęp. Atrybut
+										 * pojawia się WYŁĄCZNIE wtedy, gdy ktoś ten kurs
+										 * naprawdę ma — pytanie zadane zawsze przestałoby
+										 * cokolwiek znaczyć.
+										 */
+										if ( $aai_kupujacy > 0 ) {
+											printf(
+												' data-aai-potwierdz-dostep="%s"',
+												esc_attr(
+													sprintf(
+														/* translators: 1: liczba kupujących, 2: tytuł kursu. */
+														_n(
+															'Ten kurs ma %1$d kupującego — straci dostęp do materiału „%2$s" na zawsze. Usunąć mimo to?',
+															'Ten kurs ma %1$d kupujących — stracą dostęp do materiału „%2$s" na zawsze. Usunąć mimo to?',
+															$aai_kupujacy,
+															'aai-sklep'
+														),
+														$aai_kupujacy,
+														(string) $aai_kurs['title']
+													)
+												)
+											);
+										}
+										?>
 										data-aai-potwierdz="<?php
 										echo esc_attr(
 											$aai_z_trescia > 0

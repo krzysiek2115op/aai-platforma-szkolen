@@ -19,7 +19,7 @@ export default function FinalCta({ kurs }: { kurs: SzczegolyKursu }) {
             <span className="text-volt"> albo pracować systemem.</span>
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-steel md:text-base">
-            Dostęp od razu po zakupie, bez limitu czasu. Masz pytanie przed
+            Dostęp zaraz po zaksięgowaniu wpłaty, bez limitu czasu. Masz pytanie przed
             zakupem? Napisz — odpowiadamy szczerze.
           </p>
         </div>

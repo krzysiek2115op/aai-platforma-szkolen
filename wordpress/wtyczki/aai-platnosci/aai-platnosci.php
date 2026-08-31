@@ -145,6 +145,16 @@ register_deactivation_hook(
 add_action(
 	'plugins_loaded',
 	static function (): void {
+		/*
+		 * CAŁY START W `try` — zmierzone przy teście całości (2026-08-31):
+		 * brak JEDNEGO pliku z `includes/` (autoloader pomija nieczytelny)
+		 * dawał `Error: Class not found` na każdym żądaniu, czyli **HTTP
+		 * 500 na całej witrynie**, łącznie z katalogiem i stronami kursów.
+		 * Szew płatności nie ma prawa wywrócić sklepu, którego tylko
+		 * pilnuje — tak samo jak monitoring (ta sama naprawa tego dnia).
+		 * Wyjątek melduje kanał błędów, ale tylko jeśli sam istnieje.
+		 */
+		try {
 		Aai_Platnosci_Tabele::dociagnij_schemat();
 		// Bez WooCommerce albo Tutora wtyczka zostaje aktywna i mówi
 		// o tym w kokpicie — komunikat, nie biały ekran (bramka P1).
@@ -180,6 +190,13 @@ add_action(
 		// prywatności zostaje.
 		Aai_Platnosci_Kasa::zarejestruj();
 		Aai_Platnosci_Komunikaty::zarejestruj();
+		} catch ( Throwable $e ) {
+			if ( class_exists( 'Aai_Platnosci_Komunikaty' ) ) {
+				Aai_Platnosci_Komunikaty::zapisz( 'nie udało się uruchomić szwu płatności: ' . $e->getMessage() );
+			} else {
+				error_log( 'aai-platnosci: nie udało się uruchomić szwu płatności: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
+		}
 	}
 );
 

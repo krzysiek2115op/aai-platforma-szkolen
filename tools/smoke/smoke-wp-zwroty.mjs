@@ -174,6 +174,25 @@ let tutor = 0;
 let obcy = 0;
 const zamowienia = [];
 
+/*
+ * SPRZEDAŻ OTWIERAMY SAMI, NA CZAS POMIARU — i to jest naprawa z testu
+ * całości (2026-08-31). Ta bramka mierzy m.in. „po zwrocie klient może
+ * kupić kurs ponownie", czyli przejście przez blokadę koszyka. Blokada
+ * odmawia też przy ZAMKNIĘTEJ sprzedaży, więc na czystej instalacji
+ * (gdzie sprzedaż jest domyślnie zamknięta) dwa sprawdzenia padały
+ * z powodu STANU ŚRODOWISKA, a nie kodu — a na instalacji po ręcznym
+ * teście właściciela przechodziły, bo zostawił sprzedaż otwartą. Bramka
+ * musi mierzyć to samo niezależnie od tego, co ktoś zostawił.
+ *
+ * Stan przywracamy DOKŁADNIE taki, jaki zastaliśmy: przy braku opcji
+ * kasujemy ją, a nie zapisujemy pustą wartość (lekcja z 0.51.0 —
+ * „przywróć stan" to co innego niż „skasuj ustawienie").
+ */
+const OPCJA_SPRZEDAZ = "aai_platnosci_sprzedaz_otwarta";
+const sprzedazIstniala = php(`echo get_option( '${OPCJA_SPRZEDAZ}', null ) === null ? 'nie' : 'tak';`) === "tak";
+const sprzedazPrzed = php(`echo (string) get_option( '${OPCJA_SPRZEDAZ}', '' );`);
+php(`update_option( '${OPCJA_SPRZEDAZ}', 'tak' ); echo 'ok';`);
+
 try {
   /* ── scena ────────────────────────────────────────────────────────── */
 
@@ -453,6 +472,12 @@ try {
 } finally {
   /* ── sprzątanie + rachunek sumienia ───────────────────────────────── */
 
+  if (sprzedazIstniala) {
+    php(`update_option( '${OPCJA_SPRZEDAZ}', '${sprzedazPrzed}' ); echo 'ok';`);
+  } else {
+    php(`delete_option( '${OPCJA_SPRZEDAZ}' ); echo 'ok';`);
+  }
+
   if (zamowienia.length > 0) {
     // Przez API zamówienia, nie `wp_delete_post()`: pod HPOS ta druga
     // droga nie kasuje NICZEGO i wychodzi cicho (BLAD-026).
@@ -470,7 +495,7 @@ try {
   // Produkt kasujemy SAMI: szew zakłada go każdemu kursowi, a smoke, który
   // go zostawia, każe następnym przebiegom mierzyć własne śmieci (sweep P2).
   php(
-    `Aai_Sklep_Zapis::usun_kurs( '${KURS}', 'smoke-p5', true );` +
+    `Aai_Sklep_Zapis::usun_kurs( '${KURS}', 'smoke-p5', true, true );` +
       ` Aai_Platnosci_Zapis::powiazanie_usun( '${KURS}' );` +
       ` foreach ( array( ${produkt}, ${tutor}, ${obcy} ) as $id ) { if ( $id > 0 && get_post( $id ) ) { wp_delete_post( $id, true ); } } echo 'ok';`
   );

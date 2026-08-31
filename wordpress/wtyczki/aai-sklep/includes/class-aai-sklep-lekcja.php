@@ -48,6 +48,9 @@ final class Aai_Sklep_Lekcja {
 	/** Czy dane już liczyliśmy (bo `null` jest poprawnym wynikiem). */
 	private static bool $policzone = false;
 
+	/** Czy to żądanie zostało zasłonięte jako publiczna lista lekcji. */
+	private static bool $zaslonieto = false;
+
 	/**
 	 * Rejestracja — wołane raz, z pliku głównego wtyczki.
 	 */
@@ -57,6 +60,128 @@ final class Aai_Sklep_Lekcja {
 		add_action( 'wp_enqueue_scripts', array( self::class, 'zasoby' ), 1000 );
 		add_action( 'wp_head', array( self::class, 'nie_indeksuj' ), 1 );
 		add_filter( 'aai_monitor_strona_za_bramka', array( self::class, 'za_bramka' ) );
+		add_filter( 'register_post_type_args', array( self::class, 'zamknij_typ' ), 10, 2 );
+		add_action( 'pre_get_posts', array( self::class, 'zamknij_listy' ) );
+		add_action( 'template_redirect', array( self::class, 'odpowiedz_zaslony' ), 1 );
+	}
+
+	/**
+	 * Typy wpisów Tutora, których LISTY zamykamy przed publicznością.
+	 *
+	 * Nazwy bierzemy z jednego miejsca (`Aai_Sklep_Tutor::typy()`), bo to samo
+	 * miejsce decyduje, do jakich wpisów kopiujemy treść — dwie listy
+	 * rozjechałyby się przy pierwszej zmianie po stronie Tutora.
+	 *
+	 * @return string[]
+	 */
+	private static function typy_zamkniete(): array {
+		$typy = Aai_Sklep_Tutor::typy();
+		return array( (string) $typy['lekcja'], (string) $typy['modul'] );
+	}
+
+	/**
+	 * Lekcja nie ma archiwum i nie wchodzi do wyszukiwarki.
+	 *
+	 * ZNALEZIONE PRZY TEŚCIE CAŁOŚCI (2026-08-31) i zmierzone jako WYCIEK
+	 * CAŁEGO PRODUKTU: `/?post_type=lesson` oddawało gościowi 73 lekcje prozy
+	 * (osiem stron po dziesięć, 116 kB treści w jednym `<main>`), a te same
+	 * teksty wychodziły kanałem RSS i przez wyszukiwarkę witryny. Pojedyncza
+	 * lekcja była za bramką — wyciekała LISTA, której nasza bramka w ogóle
+	 * nie widzi, bo `Aai_Sklep_Lekcja::policz()` zaczyna od `is_singular()`.
+	 *
+	 * Przyczyna nie jest po stronie Tutora: to MY kopiujemy pełną prozę
+	 * płatnej lekcji do `post_content` wpisu publicznego typu (kopia jest
+	 * potrzebna Tutorowi do dostępu i postępu — patrz `Aai_Sklep_Tutor`).
+	 * Skoro treść jest nasza, osłona też jest nasza.
+	 *
+	 * `publicly_queryable` ZOSTAJE PRAWDZIWE — na nim stoi adres pojedynczej
+	 * lekcji (`/courses/<kurs>/lessons/<lekcja>/`), czyli to, za co klient
+	 * zapłacił. Zamykamy wyłącznie LISTY: archiwum i wyszukiwarkę.
+	 *
+	 * @param array<string,mixed> $args Argumenty rejestracji.
+	 * @param string              $typ  Nazwa typu wpisu.
+	 * @return array<string,mixed>
+	 */
+	public static function zamknij_typ( $args = array(), $typ = '' ) {
+		/*
+		 * Ten filtr biegnie WEWNĄTRZ rejestracji cudzego typu wpisu, na
+		 * `init` — wyjątek stąd wywróciłby całą witrynę razem ze sklepem
+		 * (ta sama klasa co F11 w Pluginie 3). Dlatego przy jakimkolwiek
+		 * kłopocie oddajemy argumenty NIETKNIĘTE.
+		 */
+		try {
+			if ( ! is_array( $args ) || ! is_string( $typ ) || ! in_array( $typ, self::typy_zamkniete(), true ) ) {
+				return $args;
+			}
+			$args['has_archive']        = false;
+			$args['exclude_from_search'] = true;
+			return $args;
+		} catch ( Throwable $blad ) {
+			return $args;
+		}
+	}
+
+	/**
+	 * Każde publiczne zapytanie o LISTĘ lekcji albo modułów oddaje 404.
+	 *
+	 * SAMA ZMIANA ARGUMENTÓW REJESTRACJI NIE WYSTARCZA i to jest zmierzone:
+	 * `has_archive => false` zamyka ładny adres `/lesson/`, ale
+	 * `?post_type=lesson` idzie dalej, dopóki typ jest `publicly_queryable`
+	 * (a musi być — patrz wyżej). Kanał RSS tej listy działa tak samo.
+	 * Dlatego drugi zamek stoi na zapytaniu, nie na rejestracji.
+	 *
+	 * Zamykamy WYŁĄCZNIE listy w głównym zapytaniu frontu: pojedyncza lekcja
+	 * (`is_singular`) przechodzi bez zmian, kokpit i zapytania własne kodu
+	 * (`get_posts` w synchronizacji, kreatorze, bramkach) nie są dotykane.
+	 *
+	 * @param WP_Query $zapytanie Zapytanie WordPressa.
+	 */
+	public static function zamknij_listy( $zapytanie = null ): void {
+		try {
+			if ( ! $zapytanie instanceof WP_Query || is_admin() || ! $zapytanie->is_main_query() ) {
+				return;
+			}
+			if ( $zapytanie->is_singular() ) {
+				return;
+			}
+			$zadany = $zapytanie->get( 'post_type' );
+			$zadany = is_array( $zadany ) ? array_map( 'strval', $zadany ) : array( (string) $zadany );
+			if ( array() === array_intersect( $zadany, self::typy_zamkniete() ) ) {
+				return;
+			}
+			/*
+			 * DWIE RZECZY NARAZ, I OBIE SĄ KONIECZNE — zmierzone.
+			 * `set_404()` samo w sobie ustawia wyłącznie FLAGĘ: zapytanie i tak
+			 * pobiera wiersze, a motyw nie ma `404.php`, więc spada na `index.php`
+			 * i drukuje pętlę — czyli po samym `set_404()` proza wyciekała dalej
+			 * (pierwsza wersja tej naprawy: kod 200 i dziesięć lekcji na stronie).
+			 * Dlatego zapytanie dostaje też pustą listę identyfikatorów: pętla nie
+			 * ma czego wydrukować, cokolwiek zrobi cudzy szablon.
+			 */
+			$zapytanie->set( 'post__in', array( 0 ) );
+			$zapytanie->set_404();
+			self::$zaslonieto = true;
+		} catch ( Throwable $blad ) {
+			return;
+		}
+	}
+
+	/**
+	 * Zasłonięta lista oddaje 404 — nie 200 z pustą stroną.
+	 *
+	 * ZMIERZONE: samo `set_404()` w zapytaniu NIE zmienia kodu odpowiedzi
+	 * (rdzeń ustawia go w `WP::handle_404()`, które przy naszej ingerencji
+	 * już nie dochodzi do swojego warunku), więc po pierwszej wersji tej
+	 * naprawy archiwum lekcji oddawało **200 z pustą treścią**. Kod 200
+	 * na liście, której nie ma, kłamie: wyszukiwarki trzymałyby taki adres
+	 * w indeksie, a monitoring liczyłby te odsłony jako czytanie strony.
+	 */
+	public static function odpowiedz_zaslony(): void {
+		if ( ! self::$zaslonieto ) {
+			return;
+		}
+		status_header( 404 );
+		nocache_headers();
 	}
 
 	/**
@@ -207,14 +332,14 @@ final class Aai_Sklep_Lekcja {
 		}
 
 		$kurs = $wpdb->get_row(
-			$wpdb->prepare( "SELECT id, slug, title FROM `$t_kursy` WHERE id = %s", (string) $lekcja['kurs_id'] ), // phpcs:ignore WordPress.DB.PreparedSQL
+			$wpdb->prepare( "SELECT id, slug, title, status FROM `$t_kursy` WHERE id = %s", (string) $lekcja['kurs_id'] ), // phpcs:ignore WordPress.DB.PreparedSQL
 			ARRAY_A
 		);
 		if ( null === $kurs ) {
 			return null;
 		}
 
-		$dostep = self::czy_wolno( $post->ID, (bool) (int) $lekcja['preview'] );
+		$dostep = self::czy_wolno( $post->ID, (bool) (int) $lekcja['preview'], (string) $kurs['status'] );
 
 		$program  = self::program( (string) $kurs['id'] );
 		$kolejnosc = array();
@@ -408,10 +533,22 @@ final class Aai_Sklep_Lekcja {
 	/**
 	 * Czy ten użytkownik ma prawo czytać tę lekcję — pyta TUTORA.
 	 *
-	 * @param int  $id_postu   Wpis lekcji.
-	 * @param bool $zapowiedz  Czy lekcja jest oznaczona jako zapowiedź.
+	 * ZAPOWIEDŹ GAŚNIE RAZEM Z KURSEM (decyzja właściciela 2026-08-31).
+	 * Darmowa lekcja jest narzędziem SPRZEDAŻY: ma dać przeczytać kawałek
+	 * temu, kto rozważa zakup. Kurs zdjęty ze sprzedaży nie ma czego
+	 * zapowiadać — jego strony sprzedażowej już nie ma (kanał odczytu
+	 * serwuje wyłącznie `published`), więc żywa darmowa lekcja byłaby
+	 * jedyną pozostałą po nim publiczną stroną. Po powrocie kursu do
+	 * sprzedaży zapowiedzi wracają same, bo warunek pyta o STAN, a nie
+	 * przestawia żadnej flagi w bazie.
+	 *
+	 * Kupującego to nie dotyczy: jego wpuszcza gałąź wyżej, na zapis.
+	 *
+	 * @param int    $id_postu   Wpis lekcji.
+	 * @param bool   $zapowiedz  Czy lekcja jest oznaczona jako zapowiedź.
+	 * @param string $stan_kursu Stan kursu z naszych tabel.
 	 */
-	private static function czy_wolno( int $id_postu, bool $zapowiedz ): bool {
+	private static function czy_wolno( int $id_postu, bool $zapowiedz, string $stan_kursu ): bool {
 		if ( current_user_can( 'manage_options' ) ) {
 			return true;
 		}
@@ -421,7 +558,7 @@ final class Aai_Sklep_Lekcja {
 				return true;
 			}
 		}
-		return $zapowiedz;
+		return $zapowiedz && 'published' === $stan_kursu;
 	}
 
 	/**

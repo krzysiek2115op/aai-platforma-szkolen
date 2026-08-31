@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 				Za tydzień możesz dalej próbować na czuja —<span class="aai-akcent"> albo pracować systemem.</span>
 			</h2>
 			<p class="aai-final-opis">
-				Dostęp od razu po zakupie, bez limitu czasu. Masz pytanie przed zakupem?
+				Dostęp zaraz po zaksięgowaniu wpłaty, bez limitu czasu. Masz pytanie przed zakupem?
 				Napisz — odpowiadamy szczerze.
 			</p>
 		</div>

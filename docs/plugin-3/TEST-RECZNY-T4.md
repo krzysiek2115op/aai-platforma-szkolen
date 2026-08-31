@@ -285,7 +285,25 @@ mówi „Kafelki liczą wszystko od początku pomiaru", a drugi kafelek nazywa s
 **Zakres gałęzi poprawek T4:** T4-D1 (kafelki) + brakująca asercja ciągłości
 sesji + cokolwiek wyjdzie ze ścieżki D. Nic więcej — reszta ma własny krok.
 
-**Zakres kroku następnego (roboczo T5), wprost z T4-D2/D3** — wszystko
+## DECYZJA WŁAŚCICIELA (2026-08-31, po zaliczeniu T4): KROKU T5 NIE BĘDZIE
+
+*„Zostawmy panel taki, jaki jest — w sumie nie trzeba go poprawiać,
+najważniejsze informacje są."*
+
+To **odwołuje krok zapowiedziany decyzją T4-D4**. Ekran zostaje w wersji
+0.58.0. Poniższa lista siedmiu pozycji jest od tej chwili **zapisem
+historycznym**, nie planem — zostaje w repozytorium dlatego, że jest
+wyprowadzona z danych, które monitoring JUŻ zbiera, więc gdyby ekran kiedyś
+rozbudowywać, nie trzeba wyprowadzać zakresu od nowa. **Nie proponować tego
+z własnej inicjatywy.**
+
+Decyzje T4-D2 i T4-D3 zostają nietknięte poniżej jako to, czego właściciel
+chciał w chwili testu — a nie jako zobowiązanie.
+
+**Następny i ostatni krok etapu WordPress: TEST CAŁOŚCI trzech wtyczek**
+(decyzja 2026-08-25).
+
+**Zakres odwołanego kroku (roboczo T5), wprost z T4-D2/D3** — wszystko
 liczone z danych, KTÓRE JUŻ ZBIERAMY, bez ani jednej nowej kolumny:
 
 1. punkt odniesienia do poprzedniego okresu (T4-D2);

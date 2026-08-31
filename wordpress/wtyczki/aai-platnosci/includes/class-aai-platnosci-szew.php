@@ -30,7 +30,7 @@ final class Aai_Platnosci_Szew {
 	 */
 	public static function zarejestruj(): void {
 		add_action( 'aai_sklep_kurs_zmieniony', array( self::class, 'na_zmianie' ), 20, 1 );
-		add_action( 'aai_sklep_kurs_usuniety', array( self::class, 'na_usunieciu' ), 20, 1 );
+		add_action( 'aai_sklep_kurs_usuniety', array( self::class, 'na_usunieciu' ), 20, 2 );
 		// B13: cudzy zapis produktu (masowa edycja, REST, wc_scheduled_sales)
 		// kasuje `_tutor_product` — przywracamy PO handlerze Tutora (prio 20).
 		add_action( 'save_post_product', array( self::class, 'na_zapisie_produktu' ), 20, 1 );
@@ -57,11 +57,26 @@ final class Aai_Platnosci_Szew {
 	/**
 	 * Kurs usunięty.
 	 *
-	 * @param string $id Uuid kursu.
+	 * Produktu NIE KASUJEMY (niezmiennik 13) — zostaje sierotą, którą
+	 * sprząta człowiek. Zapisujemy jednak na nim, ilu ludzi straciło razem
+	 * z kursem dostęp: sierota po kursie testowym to śmieć, a sierota po
+	 * kursie, za który ktoś zapłacił, to sprawa dla właściciela. Po
+	 * usunięciu tej liczby nie da się już odtworzyć, bo zapisy znikają
+	 * razem z kopią kursu w Tutorze.
+	 *
+	 * Wartość domyślna parametru nie jest ozdobą: ta metoda wisi na cudzej
+	 * akcji, a callback wołany z jednym argumentem rzuciłby wtedy
+	 * `ArgumentCountError` PRZY WYWOŁANIU, czyli poza naszym `try`
+	 * (lekcja z przeglądu T2).
+	 *
+	 * @param string $id       Uuid kursu.
+	 * @param int    $kupujacy Ilu ludzi miało dostęp w chwili usunięcia.
 	 */
-	public static function na_usunieciu( string $id ): void {
+	public static function na_usunieciu( string $id, int $kupujacy = 0 ): void {
 		try {
 			Aai_Platnosci_Zapis::zdejmij_kurs( $id );
+			// PO zdjęciu, nie przed: zdejmowanie przywraca znaczniki produktu.
+			Aai_Platnosci_Zapis::oznacz_utracony_dostep( $id, $kupujacy );
 			Aai_Platnosci_Komunikaty::wyczysc( $id );
 		} catch ( Throwable $e ) {
 			Aai_Platnosci_Komunikaty::zapisz( $e->getMessage(), $id );

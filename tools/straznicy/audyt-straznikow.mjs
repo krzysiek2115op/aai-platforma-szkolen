@@ -88,6 +88,7 @@ const POMIAR_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monito
 const SKRYPT_MONITORA = "wordpress/wtyczki/aai-monitor/assets/pomiar.js";
 const PODPIS_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php";
 const PRYWATNOSC_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-prywatnosc.php";
+const MU_OBWOD = "wordpress/srodowisko/mu-plugins/aai-obwod.php";
 
 const MUTACJE = [
   // --- straznik-scenariuszy ---
@@ -1172,9 +1173,9 @@ const MUTACJE = [
     wymaga: () =>
       existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
     zmien: (s) =>
-      s.includes("$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol );")
+      s.includes("$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol, $dostep );")
         ? s.replace(
-            "$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol );",
+            "$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol, $dostep );",
             "global $wpdb;\n\t\t\t$wpdb->delete( Aai_Sklep_Tabele::tabela( 'courses' ), array( 'id' => $id ) );\n\t\t\t$liczniki = array( 'usuniete' => 1 );"
           )
         : null,
@@ -2343,8 +2344,8 @@ const MUTACJE = [
     plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
     wymaga: () => existsSync(KLASA_TUTORA),
     zmien: (s) =>
-      s.includes("do_action( 'aai_sklep_kurs_usuniety', $id );")
-        ? s.replace("do_action( 'aai_sklep_kurs_usuniety', $id );", "")
+      s.includes("do_action( 'aai_sklep_kurs_usuniety', $id, $kupujacy );")
+        ? s.replace("do_action( 'aai_sklep_kurs_usuniety', $id, $kupujacy );", "")
         : null,
   },
   {
@@ -2398,6 +2399,152 @@ const MUTACJE = [
           )
         : null,
   },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola melduje niedzia\u0142aj\u0105c\u0105 sprzeda\u017c, nie policzywszy kupowalnych produkt\u00f3w",
+    plik: CLI_PLATNOSCI,
+    wymaga: () => existsSync(CLI_PLATNOSCI),
+    oczekiwanySlad: "DALEJ DA SIĘ KUPIĆ",
+    zmien: (s) =>
+      s.includes("$kupowalne = self::kupowalne_bez_sklepu();")
+        ? s.replace("$kupowalne = self::kupowalne_bez_sklepu();", "$kupowalne = 0;")
+        : null,
+  },
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka czyta stan sprzeda\u017cy komend\u0105, kt\u00f3ra pada, gdy opcji nie ma",
+    plik: "tools/smoke/smoke-wp-jezyk.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-jezyk.mjs"),
+    oczekiwanySlad: "wp option get",
+    zmien: (s) =>
+      s.includes(`wp("eval", 'echo (string) get_option( "aai_platnosci_sprzedaz_otwarta", "" );')`)
+        ? s.replace(
+            `wp("eval", 'echo (string) get_option( "aai_platnosci_sprzedaz_otwarta", "" );')`,
+            `wp("option", "get", "aai_platnosci_sprzedaz_otwarta")`
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka przywraca stan sprzeda\u017cy zapisem zamiast skasowania opcji",
+    plik: "tools/smoke/smoke-wp-zwroty.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zwroty.mjs"),
+    oczekiwanySlad: "nie umie przywr\u00f3ci\u0107 BRAKU opcji",
+    zmien: (s) =>
+      s.includes("delete_option( '")
+        ? s.replace(/delete_option\( '/g, "update_option( '")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "pusty uuid znowu dopasowuje pierwszy lepszy kurs (szew wi\u0105\u017ce produkt z cudzym)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "nie odrzuca PUSTEGO identyfikatora",
+    zmien: (s) =>
+      s.includes("if ( '' === trim( $course_uuid ) ) {")
+        ? s.replace("if ( '' === trim( $course_uuid ) ) {", "if ( false ) {")
+        : null,
+  },
+  // --- C2: hamulec przy usuwaniu kursu, który ktoś kupił (2026-08-31) ---
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "usunięcie kursu przestaje pytać o kupujących (kasuje cudzy opłacony dostęp bez słowa)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    oczekiwanySlad: "nie odmawia skasowania kursu, który ktoś KUPIŁ",
+    zmien: (s) =>
+      s.includes("if ( $kupujacy > 0 && ! $pozwol_dostep ) {")
+        ? s.replace("if ( $kupujacy > 0 && ! $pozwol_dostep ) {", "if ( false ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "lista pyta o kupujących przy KAŻDYM kursie (okienko klikane odruchowo)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/panel/lista.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/panel/lista.php"),
+    oczekiwanySlad: "pyta ZAWSZE",
+    zmien: (s) =>
+      s.includes("if ( $aai_kupujacy > 0 ) {")
+        ? s.replace("if ( $aai_kupujacy > 0 ) {", "if ( true ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "akcja panelu podnosi zgodę na utratę dostępu sama z siebie",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php"),
+    oczekiwanySlad: "nie przekazuje zgody na odebranie dostępu",
+    zmien: (s) =>
+      s.includes("usun_kurs( $id, self::aktor(), $zgoda, $dostep )")
+        ? s.replace("usun_kurs( $id, self::aktor(), $zgoda, $dostep )", "usun_kurs( $id, self::aktor(), $zgoda, true )")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola przestaje odróżniać sierotę po kursie z kupującymi od zwykłego śmiecia",
+    plik: CLI_PLATNOSCI,
+    wymaga: () => existsSync(CLI_PLATNOSCI),
+    oczekiwanySlad: "nie zgłasza jako BŁĄD sieroty po kursie",
+    zmien: (s) =>
+      s.includes("} elseif ( $utracony > 0 ) {")
+        ? s.replace("} elseif ( $utracony > 0 ) {", "} elseif ( false ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "słuchacz usunięcia kursu przyjmuje jeden argument — liczba kupujących nie dojeżdża",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-szew.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-szew.php"),
+    oczekiwanySlad: "nie przyjmuje DRUGIEGO argumentu",
+    zmien: (s) =>
+      s.includes("'na_usunieciu' ), 20, 2 );")
+        ? s.replace("'na_usunieciu' ), 20, 2 );", "'na_usunieciu' ), 20, 1 );")
+        : null,
+  },
+  // --- C1: ukrycie kursu a dostęp kupującego (test całości, 2026-08-31) ---
+  // Obie te mutacje są CICHE: kontrola zgodności z Tutorem świeci zielono
+  // w każdym wariancie, bo kopia wiernie odwzorowuje to, co jej kazano.
+  {
+    straznik: "straznik-tutora",
+    opis: "materiał ukrytego kursu wraca na `private` (kupujący traci dostęp, 404)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "kupujący straciłby dostęp",
+    zmien: (s) => {
+      const i = s.indexOf("private const STATUS_MATERIALU_NA_WP");
+      if (i === -1) return null;
+      const ogon = s.slice(i);
+      if (!ogon.includes("'archived'  => 'publish',")) return null;
+      return s.slice(0, i) + ogon.replace("'archived'  => 'publish',", "'archived'  => 'private',");
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "ukryty kurs zostaje w Tutorze `publish` (obcy bierze go za darmo)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "bierze ukryty kurs za darmo",
+    zmien: (s) => {
+      const i = s.indexOf("private const STATUS_KURSU_NA_WP");
+      const j = s.indexOf("private const STATUS_MATERIALU_NA_WP");
+      if (i === -1 || j === -1 || j < i) return null;
+      const glowa = s.slice(i, j);
+      if (!glowa.includes("'archived'  => 'private',")) return null;
+      return s.slice(0, i) + glowa.replace("'archived'  => 'private',", "'archived'  => 'publish',") + s.slice(j);
+    },
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "zapowiedź ukrytego kursu zostaje otwarta dla wszystkich",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "bez pytania o STAN kursu",
+    zmien: (s) =>
+      s.includes("return $zapowiedz && 'published' === $stan_kursu;")
+        ? s.replace("return $zapowiedz && 'published' === $stan_kursu;", "return $zapowiedz;")
+        : null,
+  },
   // --- straznik-lekcji-wp (krok W5: nasz widok lekcji) ---
   // Strona lekcji jest TOWAREM. Wyciek materiału, nieprzetworzony Markdown
   // i arkusz sięgający poza własną stronę — żadna z tych rzeczy nie zapala
@@ -2433,6 +2580,39 @@ const MUTACJE = [
       const koniec = s.indexOf("\t\t}\n", gdzie);
       return s.slice(0, gdzie) + s.slice(koniec + 4);
     },
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "publiczne archiwum lekcji przestaje być zasłonięte (wyciek całego materiału)",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "zapytania o listę nie są przechwytywane",
+    zmien: (s) =>
+      s.includes("add_action( 'pre_get_posts', array( self::class, 'zamknij_listy' ) );")
+        ? s.replace("add_action( 'pre_get_posts', array( self::class, 'zamknij_listy' ) );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "zasłonięta lista dostaje samą flagę 404, bez pustego wyniku (motyw i tak drukuje prozę)",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "nie dostaje pustego wyniku",
+    zmien: (s) =>
+      s.includes("$zapytanie->set( 'post__in', array( 0 ) );")
+        ? s.replace("$zapytanie->set( 'post__in', array( 0 ) );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "lekcja wraca do wyszukiwarki witryny",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "nie jest wykluczany z wyszukiwarki",
+    zmien: (s) =>
+      s.includes("$args['exclude_from_search'] = true;")
+        ? s.replace("$args['exclude_from_search'] = true;", "")
+        : null,
   },
   {
     straznik: "straznik-lekcji-wp",
@@ -3043,6 +3223,38 @@ const MUTACJE = [
         : null,
   },
   {
+    // Test całości 2026-08-31. Zmierzone: wywołanie startu poza `try`
+    // zamienia brak jednego pliku z includes/ w HTTP 500 na CAŁEJ
+    // witrynie (przed naprawą: /szkolenia/ oddawało 500).
+    straznik: "straznik-monitora-wp",
+    opis: "start monitoringu wychodzi poza try/catch (brak jednego pliku = 500 na całej witrynie)",
+    plik: "wordpress/wtyczki/aai-monitor/aai-monitor.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/aai-monitor.php"),
+    oczekiwanySlad: "poza try/catch",
+    zmien: (s) =>
+      s.includes("\t\ttry {\n\t\t\tAai_Monitor_Tabele::dociagnij_schemat();")
+        ? s.replace(
+            "\t\ttry {\n\t\t\tAai_Monitor_Tabele::dociagnij_schemat();",
+            "\t\tAai_Monitor_Tabele::dociagnij_schemat();\n\t\ttry {"
+          )
+        : null,
+  },
+  {
+    // To samo w szwie płatności — ta sama miara, ten sam skutek.
+    straznik: "straznik-platnosci-wp",
+    opis: "start szwu płatności wychodzi poza try/catch (brak jednego pliku = 500 na całej witrynie)",
+    plik: "wordpress/wtyczki/aai-platnosci/aai-platnosci.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    oczekiwanySlad: "poza try/catch",
+    zmien: (s) =>
+      s.includes("\t\ttry {\n\t\tAai_Platnosci_Tabele::dociagnij_schemat();")
+        ? s.replace(
+            "\t\ttry {\n\t\tAai_Platnosci_Tabele::dociagnij_schemat();",
+            "\t\tAai_Platnosci_Tabele::dociagnij_schemat();\n\t\ttry {"
+          )
+        : null,
+  },
+  {
     // Po przeglądzie T2. Reguły czytające plik producenta nie widzą, że
     // nikt go nie uruchamia. Zmierzone: po zdjęciu tej jednej linii oba
     // strażniki są zielone, a dziennik jest martwy.
@@ -3482,6 +3694,181 @@ const MUTACJE = [
     zmien: (s) =>
       s.includes("Zapisy o ruchu usuwamy do 400 dni")
         ? s.replace("Zapisy o ruchu usuwamy do 400 dni", "Zapisy o ruchu usuwamy do 30 dni")
+        : null,
+  },
+
+  // ————————————————————————— straznik-obwodu (Warstwa B) —————————————————————————
+  // Mu-plugin obwodu leży POZA `wordpress/wtyczki/*`, więc straznik-wtyczki-wp
+  // go nie widzi. Każde złamanie niżej jest CICHE — strona dalej się otwiera.
+  {
+    straznik: "straznik-obwodu",
+    opis: "XML-RPC włączony z powrotem (xmlrpc_enabled → __return_true)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "wyłączenia XML-RPC",
+    zmien: (s) =>
+      s.includes("'xmlrpc_enabled', '__return_false'")
+        ? s.replace("'xmlrpc_enabled', '__return_false'", "'xmlrpc_enabled', '__return_true'")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "enumeracja użytkowników przez REST znów otwarta dla gości",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "odcięcia `/wp/v2/users`",
+    zmien: (s) =>
+      s.includes("unset( $trasy['/wp/v2/users'] );")
+        ? s.replace("unset( $trasy['/wp/v2/users'] );", "// zdjęte")
+        : null,
+  },
+  {
+    // Druga droga enumeracji — archiwum autora (?author=N → 301 na login admina).
+    straznik: "straznik-obwodu",
+    opis: "enumeracja autorów (?author=N) znów otwarta",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "enumeracji autorów",
+    zmien: (s) =>
+      s.includes("'parse_request'")
+        ? s.replace("'parse_request'", "'init_x'")
+        : null,
+  },
+  {
+    // Hasła aplikacji — kanał REST omijający dziennik logowań (F12).
+    straznik: "straznik-obwodu",
+    opis: "hasła aplikacji znów dostępne",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "omijający dziennik",
+    zmien: (s) =>
+      s.includes("'wp_is_application_passwords_available', '__return_false'")
+        ? s.replace("'wp_is_application_passwords_available', '__return_false'", "'x_app', '__return_false'")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "Permissions-Policy zdjęte (kamera/mikrofon/geo znów dostępne)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "Permissions-Policy",
+    zmien: (s) =>
+      s.includes("header( 'Permissions-Policy: geolocation")
+        ? s.replace("header( 'Permissions-Policy: geolocation", "header( 'X-Off: geolocation")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "nagłówki nie bramkowane is_admin() — wchodzą do wp-admin",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "nie są bramkowane",
+    zmien: (s) =>
+      s.includes("if ( is_admin() ) {")
+        ? s.replace("if ( is_admin() ) {", "if ( false ) {")
+        : null,
+  },
+  {
+    // CSP cofnięte do Report-Only — po obserwacji z ZEREM naruszeń
+    // egzekwowanie jest stanem docelowym, nie ryzykiem.
+    straznik: "straznik-obwodu",
+    opis: "CSP cofnięte z egzekwującego do Report-Only",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "po obserwacji",
+    zmien: (s) =>
+      s.includes("CSP_NAGLOWEK = 'Content-Security-Policy'")
+        ? s.replace("CSP_NAGLOWEK = 'Content-Security-Policy'", "CSP_NAGLOWEK = 'Content-Security-Policy-Report-Only'")
+        : null,
+  },
+  {
+    // Nonce zdjęty z polityki — 23 inline skrypty kasy padają.
+    straznik: "straznik-obwodu",
+    opis: "nonce zdjęty z script-src",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "bez nonce'a",
+    zmien: (s) =>
+      s.includes("script-src 'self' 'nonce-\" . self::csp_nonce()")
+        ? s.replace("script-src 'self' 'nonce-\" . self::csp_nonce()", "script-src 'self' 'x\" . self::csp_nonce()")
+        : null,
+  },
+  {
+    // Filtr nonce zdjęty — nagłówek obiecuje nonce, którego skrypty nie noszą.
+    straznik: "straznik-obwodu",
+    opis: "nonce nie jedzie na inline skrypty (filtr zdjęty)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "wp_inline_script_attributes",
+    zmien: (s) =>
+      s.includes("add_filter( 'wp_inline_script_attributes', $dodaj );")
+        ? s.replace("add_filter( 'wp_inline_script_attributes', $dodaj );", "add_filter( 'x_off', $dodaj );")
+        : null,
+  },
+  {
+    // unsafe-inline w script-src — nonce i hashe stają się ignorowane.
+    straznik: "straznik-obwodu",
+    opis: "unsafe-inline dołożone do script-src (CSP bezzębne)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "bezzębnym",
+    zmien: (s) =>
+      s.includes("' 'inline-speculation-rules'\",")
+        ? s.replace("' 'inline-speculation-rules'\",", "' 'inline-speculation-rules' 'unsafe-inline'\",")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "style-src bez unsafe-inline (atrybutów style= nie da się onnonceować)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "atrybuty `style=`",
+    zmien: (s) =>
+      s.includes("style-src 'self' 'unsafe-inline'")
+        ? s.replace("style-src 'self' 'unsafe-inline'", "style-src 'self'")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "report-uri usunięte z CSP (kolektor martwy pod egzekwowaniem)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "kolektor nie złapałby",
+    zmien: (s) =>
+      s.includes("'report-uri ' . admin_url(")
+        ? s.replace("'report-uri ' . admin_url( 'admin-post.php?action=' . self::RAPORT_AKCJA ),", "'' . '',")
+        : null,
+  },
+  {
+    // Hash statycznego wc_no_js zdjęty — jedyny skrypt łamiący politykę
+    // z nonce'em wraca i egzekwowanie łamie front.
+    straznik: "straznik-obwodu",
+    opis: "hash wc_no_js usunięty (front pada pod egzekwowaniem)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "HASH_WC_NO_JS",
+    zmien: (s) =>
+      s.includes("HASH_WC_NO_JS = 'sha256-eHL")
+        ? s.replace("HASH_WC_NO_JS = 'sha256-eHL", "HASH_WC_NO_JS_OFF = 'sha256-eHL")
+        : null,
+  },
+  {
+    // Hash surowego skryptu motywu przestaje pasować (przegenerowany motyw)
+    // — pod egzekwowaniem hydracja padłaby po cichu. Reguła pyta o ZGODNOŚĆ.
+    straznik: "straznik-obwodu",
+    opis: "hash skryptu motywu w CSP nie pasuje do żywego motywu",
+    plik: MU_OBWOD,
+    wymaga: () =>
+      existsSync(MU_OBWOD) &&
+      [
+        process.env.AAI_MOTYW_HEADER,
+        process.env.WARSZTAT && `${process.env.WARSZTAT}/wp/theme/automatic-ai/header.php`,
+        `${process.env.XDG_CACHE_HOME ?? `${process.env.HOME}/.cache`}/automatic-ai-warsztat/wp/theme/automatic-ai/header.php`,
+      ].some((p) => p && existsSync(p)),
+    oczekiwanySlad: "NIE PASUJE do CSP",
+    zmien: (s) =>
+      s.includes("HASH_SKRYPTU_MOTYWU = 'sha256-wWMpFPmb")
+        ? s.replace("HASH_SKRYPTU_MOTYWU = 'sha256-wWMpFPmb", "HASH_SKRYPTU_MOTYWU = 'sha256-0000000b")
         : null,
   },
 ];
