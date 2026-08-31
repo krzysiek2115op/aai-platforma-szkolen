@@ -46,20 +46,50 @@ ręcznego (decyzja właściciela 2026-08-31).
 | 9 | **`postaw.sh` nie wstawał OD ZERA** — polskie pliki wtyczek instalowały się, zanim WooCommerce i Tutor w ogóle istniały | przed **kod 1** („Billing address" po angielsku), po **kod 0** w 65 s |
 | 10 | `/kontakt` bez ukośnika → 301 | `curl -I` |
 
-### POTWIERDZONE, CZEKAJĄ NA WYKONANIE (decyzje właściciela 2026-08-31)
+### POTWIERDZONE I WYKONANE (decyzje właściciela 2026-08-31)
 
-| # | Co | Decyzja |
+| # | Co | Jak zamknięte |
 |---|---|---|
-| 2 | **„Ukryj" odbiera dostęp KUPUJĄCYM**: status `archived` przepisuje 73 lekcje na `private`, klient dostaje **404**, a obie kontrole kończą **kodem 0** | **C1: kurs znika ze sklepu, ale kto go kupił — czyta dalej.** Do wykonania |
-| — | **„Dostęp od razu po zakupie"** na stronie kursu, przy jedynej włączonej bramce (przelew), gdzie dostęp powstaje po potwierdzeniu wpłaty | **C3: zdanie zmienić.** Do wykonania |
-| 4 | **Po wyłączeniu Pluginu 1 sprzedaż DALEJ DZIAŁA**, a kontrola pisze „Sprzedaż nie działa" i kończy kodem 0 | do rozstrzygnięcia (produkt zostaje `publish`, walidacja koszyka przepuszcza — zmierzone) |
-| — | **Usunięcie kursu, który ktoś kupił**, przechodzi bez pytania o kupujących | **C2 ROZSTRZYGNIĘTE (2026-08-31): potwierdzenie z LICZBĄ** — panel mówi „ten kurs ma N kupujących, stracą dostęp" i wymaga drugiego kliknięcia, wzorem dzisiejszej odmowy skasowania treści lekcji. Do wykonania |
+| 2 | **„Ukryj" odbierało dostęp KUPUJĄCYM**: status `archived` przepisywał 73 lekcje na `private`, klient dostawał **404**, a obie kontrole kończyły **kodem 0** | **C1 zrobione.** Status kopii to dziś DWIE mapy: kurs ukryty zostaje `private`, materiał (moduły, lekcje) zostaje `publish`. Zapowiedzi gasną razem z kursem |
+| — | **„Dostęp od razu po zakupie"** przy jedynej włączonej bramce (przelew) | **C3 zrobione.** Strona mówi „Dostęp zaraz po zaksięgowaniu wpłaty"; FAQ tłumaczy to zdaniem. Zmienione w obu bazach, w szablonie WP i w prototypie |
+| — | **Usunięcie kursu, który ktoś kupił**, przechodziło bez pytania | **C2 zrobione.** Panel pyta „ten kurs ma N kupujących — stracą dostęp" i wymaga drugiego kliknięcia; bramka siedzi w warstwie zapisu, więc chroni też komendę |
+| 4 | **Po wyłączeniu Pluginu 1 sprzedaż DALEJ DZIAŁA**, a kontrola pisała „Sprzedaż nie działa" i kończyła kodem 0 | **Zrobione.** Kontrola liczy kupowalne produkty i przy niezerowym wyniku kończy **kodem 1**. Zachowania sprzedaży NIE zmieniamy — od zamykania sklepu jest komenda |
+
+**Co zostało zmierzone, a nie wyprowadzone** (przy C1; wszystko w kodzie Tutora):
+
+- `get_enrolled_courses_ids_by_user()` pyta **wyłącznie o wpisy zapisów** — o status
+  kursu nie pyta w ogóle, więc „Moje kursy" działa i przy kursie `private`;
+- `has_enrolled_content_access()` sprowadza się do `is_enrolled()` — dostęp
+  do lekcji jest **niezależny od statusu wpisu**;
+- **`Course::enroll_now()` to publiczny handler POST**, który po zalogowaniu
+  i nonce'ie zapisuje na KAŻDY kurs niebędący `purchasable` — a kurs zdjęty ze
+  sprzedaży taki właśnie jest (`price_type = free`). Zatrzymuje go **wyłącznie
+  status `private`**; `draft` też by przepuścił. Test negatywny: przy wariancie
+  `publish` obcy zapisał się na ukryty kurs i dostał cały materiał
+  („obcy zapisany: TAK");
+- `count_enrolled_users_by_course()` liczy zapisy `completed` — to jest liczba
+  kupujących w komunikacie C2.
+
+**Trzy pułapki własnych pomiarów z tej tury** (wszystkie złapane, nim zdążyły
+skłamać):
+
+1. **`Input::has()` Tutora czyta `$_REQUEST`, nie `$_POST`** — pierwszy test
+   darmowego zapisu ustawiał tylko `$_POST`, więc `enroll_now()` wychodził
+   pierwszym `return` i OBIE gałęzie dawały „nie zapisany". Test wyglądał na
+   dowód, a był ciszą.
+2. **`grep && node` przerwał łańcuch** — grep nic nie znalazł, więc strażnik
+   w ogóle się nie uruchomił, a `kod: 1` pochodził od grepa. Test negatywny
+   „przeszedł" bez uruchomienia mierzonego programu.
+3. **Asercja na całej stronie zamiast na wierszu** — pomiar „czy lista pyta
+   o kupujących" pytał o CAŁY ekran i zapalił się od razu, bo prawdziwe kursy
+   kupujących MAJĄ (`klient-test`). Zawężony do wiersza własnego kursu.
 
 ### PLAUZYBILNE, DZIŚ NIECZYNNE (hardening, nie awaria)
 
-- **Pusty uuid w `Aai_Platnosci_Zapis::kurs_tutora('')`** — dziś zwraca `-1`
-  (dwa kursy z tym meta, więc odmawia), ale przy JEDNYM kursie trafiłby
-  w cudzy wpis. Plugin 1 ma tę obronę od P5 (`znajdz_po_uuid`), Plugin 2 nie.
+- ~~**Pusty uuid w `Aai_Platnosci_Zapis::kurs_tutora('')`**~~ **ZAMKNIĘTE**
+  (2026-08-31): metoda odrzuca pusty identyfikator, jak `znajdz_po_uuid`
+  w Pluginie 1 od P5. Naprawa była jednym warunkiem, a klasa błędu raz już
+  w tym projekcie zniszczyła dane. Reguła 41 `straznik-platnosci-wp`.
 - **Brak memoizacji `cta_kursu()` i `ma_kursy()`** — ~7 nadmiarowych zapytań
   na odsłonę strony kursu; ta sama klasa kosztu, którą naprawiono przy W6
   (menu za 90 zapytań). Nie zmierzone osobno.
@@ -105,83 +135,83 @@ ręcznego (decyzja właściciela 2026-08-31).
    kodzie** — pierwsza wersja liczyła też wywołanie z wnętrza `catch`
    (raport o błędzie strzeżony `class_exists`).
 
-## Stan bramek po naprawach (zmierzony, nie przepisany)
+## Stan bramek (zmierzony 2026-08-31, po wykonaniu C1–C3 i pozycji 4)
 
-`npm run check` kod 0 (strażnicy **37/37**, testy **83/83**, lint, tsc, build,
-7 bramek prototypu). Audyt mutacyjny **293** mutacje, 0 przeoczonych,
-0 martwych. Czternaście bramek WP zielonych, w tym: lekcja **47** (było 44),
-zakup 41, zwroty 39, maile 46, monitor 174, front 84, kreator 96, panel 54,
-motyw 89, produkty 84, tutor 44, dane 30, język 25, płatności 23.
+`npm run check` kod **0** (strażnicy **37/37**, testy **83/83**, lint, tsc,
+build, 7 bramek prototypu). Audyt mutacyjny **305** mutacji, 303 złapane,
+**0 przeoczonych, 0 martwych**, 2 pominięte (strażnicy warunkowi bez
+materiału). Czternaście bramek WP zielonych:
+
+| bramka | sprawdzeń | bramka | sprawdzeń |
+|---|---|---|---|
+| monitor | 174 | zakup | 41 |
+| kreator | **102** (było 96) | zwroty | 39 |
+| motyw | 91 | dane | 30 |
+| front | **86** (było 84) | język | 25 |
+| produkty | 85 | płatności | 23 |
+| maile | 62 | tutor | 44 |
+| lekcja | **57** (było 47) | panel | 55 |
+
 Dane Pluginu 1 nietknięte: proza **73/73 co do znaku**, kopia w Tutorze
-**0 różnic**.
+**0 różnic**, obie kontrole (`aai-platnosci sprawdz`, `aai-monitor sprawdz`)
+kod 0.
 
-**SZÓSTA PUŁAPKA TEGO KROKU — KASKADA PO PRZERWANEJ BRAMCE.** Przelot
-czternastu bramek pokazał trzy padnięcia (`zakup`, `zwroty`, `maile`)
-z komunikatami o zostawionych produktach, zamówieniach, zapisach i poczcie.
-Żadne z nich nie było prawdziwe: pierwsza bramka padła na MOJEJ zmianie
-adresu kontaktu (asercja kodowała stary zapis bez ukośnika), przerwała się
-w połowie i zostawiła scenę, na której następne bramki mierzyły ruchomy
-punkt odniesienia. Po posprzątaniu te same trzy bramki, uruchomione po
-kolei, przechodzą **41 / 39 / 46**. Wniosek na przyszłość: **po padnięciu
-bramki nie czytaj wyników następnych** — najpierw przywróć stan.
+**`smoke-wp-motyw` padł RAZ w pełnym przelocie (2 z 91) i przechodzi
+osobno** — to znany, nieustalony objaw z T1 i T2, nie regresja tej tury:
+próba powtórzenia parą `jezyk → motyw` dała zielone, a kod tego kroku nie
+dotyka ani frontu, ani logowania.
 
 ## Stan środowiska po tym kroku
 
-- `:8892` postawione **od zera**, pięć wtyczek aktywnych, kursy 2, lekcje
-  z treścią **73**, zrzuty 148, produkty 2, powiązania 2, **zamówienia 0**,
-  konta: `admin`, `klient-test`. **Sprzedaż ZAMKNIĘTA** (stan domyślny po
-  odtworzeniu — otworzyć przed testem ręcznym).
-- **Dane monitoringu właściciela z testu T4 przywrócone co do wiersza**:
-  12 logowań, 16 odsłon, 6 sesji (konta przemapowane po loginie). Ślady po
-  moich pomiarach i po przerwanej bramce monitoringu **skasowane** (rozpoznane
-  po loginie `smoke-*`, adresie `203.0.113.0/24` i czasie mojej sesji);
-  dziennik ma dziś dokładnie te 12 wierszy właściciela.
-- **NIE wróciły** cztery zamówienia i trzy konta z jego wcześniejszych testów
-  — po skasowaniu bazy ich identyfikatory nie istnieją, a wstawianie ich na
-  siłę dałoby dane, które kłamią. **Pełny zrzut bazy sprzed odtworzenia leży
-  w `~/.cache/aai-kopie/pelny-zrzut-przed-testem-calosci.sql`** (14 MB, poza
+- `:8892` postawione, pięć wtyczek aktywnych, kursy 2, lekcje z treścią **73**,
+  zrzuty 148, produkty 2, powiązania 2, dostawy 0, zamówienia 0, konta:
+  `admin`, `klient-test`. **Sprzedaż ZAMKNIĘTA** (opcji nie ma — to jest stan
+  domyślny; otworzyć przed testem ręcznym komendą `wp aai-platnosci sprzedaz
+  otworz`).
+- **Dane monitoringu właściciela z testu T4 na miejscu**: **12 logowań,
+  16 odsłon, 6 sesji**. Po drodze doszły dwa wiersze z 2026-08-31 03:07 i 03:09
+  (ślad po ubitej bramce z poprzedniej sesji) — skasowane **jawną listą
+  identyfikatorów**, nigdy zakresem.
+- **NIE wróciły** cztery zamówienia i trzy konta z wcześniejszych testów
+  właściciela — po skasowaniu bazy ich identyfikatory nie istnieją, a wstawianie
+  ich na siłę dałoby dane, które kłamią. **Pełny zrzut bazy sprzed odtworzenia:
+  `~/.cache/aai-kopie/pelny-zrzut-przed-testem-calosci.sql`** (14 MB, poza
   repozytorium — niesie dane osobowe).
 
-## Pytania otwarte (do właściciela)
+## Naprawiona przy okazji bramka języka
 
-**C2 — ROZSTRZYGNIĘTE 2026-08-31: potwierdzenie z liczbą.** Usunięcie kursu,
-który ktoś kupił, ma wymagać **drugiego kliknięcia**, a komunikat ma podać
-**liczbę kupujących**, którzy stracą dostęp — dokładnie tym mechanizmem, co
-dzisiejsza odmowa skasowania napisanej treści (`pozwol_skasowac_tresc`).
-Odrzucone: twarda odmowa (wymagałaby drogi wyjścia komendą) oraz zostawienie
-tego bez zmian.
+`smoke-wp-jezyk` wywracał się w pełnym przelocie, zanim cokolwiek zmierzył:
+stan sprzedaży czytał komendą `wp option get`, a ta kończy **jedynką**, gdy
+opcji nie ma — a nie ma jej po odtworzeniu środowiska ani po żadnej bramce,
+która przywraca stan skasowaniem. Czyta teraz `get_option( …, "" )` i
+przywraca stan **dokładnie zastany** (brak opcji kasowaniem, wartość zapisem;
+„zamknij" zapisywało „nie", czyli ślad, którego nie było). Pilnuje **13. reguła
+`straznik-higieny-smokow`** z dwiema mutacjami.
 
-Zakres wykonawczy, wprost z tego rozstrzygnięcia:
-- liczbę kupujących bierzemy od **Tutora** (to on wie, kto jest zapisany) —
-  nie zakładamy własnego licznika, bo byłby drugą kopią tej samej prawdy;
-- pytanie zadaje **panel**, a warstwa zapisu ma własną bramkę (jak przy
-  treści): bez jawnej zgody odmawia, żeby ta sama ochrona działała też przy
-  wywołaniu z komendy;
-- komunikat mówi o SKUTKU dla ludzi („N kupujących straci dostęp"), nie
-  o wierszach w bazie.
+## Rozstrzygnięcia właściciela z 2026-08-31 (wszystkie wykonane)
 
-**PYTANIE, KTÓRE ZOSTAJE OTWARTE** (właściciel nie rozstrzygnął): czy po
-takim usunięciu **kontrola** `wp aai-platnosci sprawdz` ma świecić **kodem 1**?
-Dziś kończy kodem 0 — osierocony produkt po skasowanym kursie jest u niej
-informacją, nie błędem.
+| # | Pytanie | Decyzja |
+|---|---|---|
+| C1 | co z materiałem ukrytego kursu | kurs znika ze sklepu, **kto go kupił — czyta dalej** |
+| C1b | co z darmowymi zapowiedziami ukrytego kursu | **gasną razem z kursem** (zapowiedź jest narzędziem sprzedaży) |
+| C2 | usunięcie kursu z kupującymi | **potwierdzenie z LICZBĄ**, drugie kliknięcie |
+| C2b | kod wyjścia kontroli po takim usunięciu | **kod 1 tylko wtedy, gdy kurs miał kupujących**; sierota po kursie testowym zostaje informacją |
+| C3 | zdanie „Dostęp od razu po zakupie" | **zmienić na prawdziwe** |
+| 4 | wyłączony Plugin 1 a sprzedaż | **kontrola ma mówić prawdę i świecić kodem 1**; zachowania sprzedaży nie zmieniamy |
 
-## Co zostaje do zrobienia po `/clear`
+Sprostowanie do C2, na wypadek powrotu do tematu: „Usuń kurs" kasuje kurs
+**całkowicie** — z naszych tabel, z Tutora, wszystkim kupującym naraz. Nie ma
+czegoś takiego jak usunięcie kursu jednemu klientowi; odebranie dostępu jednej
+osobie to zwrot zamówienia w WooCommerce (zrobione w P5).
 
-1. **C1 — „Ukryj" przestaje odbierać dostęp kupującym** (decyzja właściciela):
-   kurs znika ze sklepu, materiał zostaje czytelny dla tego, kto go kupił.
-   Uwaga wykonawcza: dziś status naszego kursu jedzie w `Aai_Sklep_Tutor` na
-   `post_status` KURSU, MODUŁÓW **i LEKCJI** (`STATUS_NA_WP`,
-   `archived → private`), a `private` odcina każdego bez `read_private_posts`.
-2. **C3 — zdanie „Dostęp od razu po zakupie"** na stronie kursu zmienić na
-   prawdziwe przy przelewie.
-3. **C2 — potwierdzenie z liczbą kupujących** przy usuwaniu kursu
-   (rozstrzygnięte; zakres wykonawczy w sekcji wyżej). Otwarte zostaje samo
-   pytanie o kod wyjścia kontroli po takim usunięciu.
-4. Rozstrzygnąć pozycję 4 (wyłączony Plugin 1 a sprzedaż) i pozycje z listy
-   „plauzybilne" — które robimy teraz, a które zostają jawnie otwarte.
-5. **Scenariusz testu ręcznego dla właściciela** (wzorem
+## Co zostaje do zrobienia
+
+1. **Scenariusz testu ręcznego dla właściciela** (wzorem
    [W6-TEST-RECZNY.md](plugin-1/W6-TEST-RECZNY.md), [TEST-RECZNY-P6.md](plugin-2/TEST-RECZNY-P6.md),
    [TEST-RECZNY-T4.md](plugin-3/TEST-RECZNY-T4.md)) — JEDNA ścieżka przez
    wszystkie trzy wtyczki naraz, z tabelą „czego nie zgłaszać".
-6. Test właściciela → poprawki → CHANGELOG + README → **PR jedną gałęzią**
+2. Test właściciela → poprawki → CHANGELOG + README → **PR jedną gałęzią**
    (razem z zapisem o odwołanej rozbudowie ekranu) → tag → release.
+3. Pozycje z listy „plauzybilne" **poza pustym uuid zostają otwarte świadomie** —
+   żadna nie jest dziś czynna, a każda dotyka cudzego kodu albo wydajności,
+   nie poprawności.

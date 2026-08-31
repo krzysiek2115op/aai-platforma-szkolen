@@ -2855,22 +2855,49 @@ wyprowadzała tego od nowa:
         roli `customer`) — obie tworzą teraz własną scenę i przywracają stan;
         (9) **`postaw.sh` nie wstawał OD ZERA** (kolejność tłumaczeń);
         (10) `/kontakt` bez ukośnika → 301.
-        **TRZY DECYZJE WŁAŚCICIELA Z 2026-08-31, JESZCZE NIEWYKONANE:**
-        **C1** — „Ukryj" ma zabierać kurs ze sklepu, ale **kto go kupił, czyta
-        dalej** (dziś: status `archived` przepisuje 73 lekcje na `private`
-        i kupujący dostaje 404, przy obu kontrolach zielonych);
-        **C3** — zdanie „Dostęp od razu po zakupie" na stronie kursu **zmienić**
-        (przy przelewie dostęp powstaje po potwierdzeniu wpłaty);
-        **C2** — usunięcie kursu z kupującymi: **potwierdzenie z LICZBĄ**
-        (decyzja 2026-08-31) — panel mówi „ten kurs ma N kupujących, stracą
-        dostęp" i wymaga drugiego kliknięcia, wzorem dzisiejszej odmowy
-        skasowania treści lekcji; liczbę daje Tutor, a warstwa zapisu ma
-        własną bramkę, żeby ochrona działała też z komendy. **Otwarte zostaje
-        jedno pytanie**: czy kontrola `wp aai-platnosci sprawdz` ma po takim
-        usunięciu świecić kodem 1 (dziś 0).
-        Do rozstrzygnięcia zostaje też pozycja 4 (**po wyłączeniu Pluginu 1
-        sprzedaż DALEJ DZIAŁA**, a kontrola pisze „Sprzedaż nie działa"
-        i kończy kodem 0) oraz sześć pozycji „plauzybilnych" z dokumentu.
+        **CZTERY DECYZJE WŁAŚCICIELA Z 2026-08-31 — WSZYSTKIE WYKONANE**
+        (5 commitów na gałęzi, każdy z testami negatywnymi):
+        **C1** — ukrycie kursu przestaje odbierać dostęp kupującym: status kopii
+        w Tutorze to dziś DWIE mapy — kurs ukryty zostaje `private`, materiał
+        (moduły i lekcje) zostaje `publish`. **Kursu NIE WOLNO zostawić
+        `publish`**: `Course::enroll_now()` to publiczny handler POST, który
+        zapisuje na każdy kurs niebędący `purchasable`, a ukryty ma
+        `price_type = free` — zatrzymuje go WYŁĄCZNIE `private` (`draft` też by
+        przepuścił). Zmierzone testem negatywnym: przy `publish` obcy zapisał
+        się na ukryty kurs i dostał cały materiał. Dostępu i tak nie pilnuje
+        status wpisu, tylko ZAPIS (`has_enrolled_content_access()` =
+        `is_enrolled()`, a `get_enrolled_courses_ids_by_user()` o status nie
+        pyta). **Darmowe zapowiedzi gasną razem z kursem** (decyzja właściciela).
+        **C3** — strona mówi „Dostęp zaraz po zaksięgowaniu wpłaty"; FAQ
+        tłumaczy to zdaniem. Zmienione w obu bazach (`db1:sekcje` → `wp:import`),
+        w szablonie WP i w prototypie. Pilnuje `smoke-wp-front`, który pyta
+        INSTALACJĘ o włączone metody płatności — po podpięciu prawdziwej bramki
+        reguła sama przestanie się tego czepiać.
+        **C2** — panel pyta „ten kurs ma N kupujących — stracą dostęp" i wymaga
+        drugiego, osobnego kliknięcia; pytanie pojawia się TYLKO przy kursie,
+        który ktoś ma. Bramka siedzi w warstwie zapisu, więc chroni też komendę
+        (`--pozwol-stracic-dostep`). Liczbę daje Tutor
+        (`count_enrolled_users_by_course`, zapisy `completed`).
+        **C2b (rozstrzygnięte)**: po wymuszonym usunięciu na produkcie-sierocie
+        zostaje znacznik z liczbą, a kontrola `wp aai-platnosci sprawdz` kończy
+        **kodem 1 tylko wtedy, gdy kurs miał kupujących**.
+        **Pozycja 4** — kontrola przestała meldować zerem sklep, który sprzedaje
+        bez danych: przy braku zależności liczy kupowalne produkty i przy
+        niezerowym wyniku kończy kodem 1. Zachowania sprzedaży NIE zmieniamy —
+        od zamykania sklepu jest komenda (zmierzone: `sprzedaz zamknij` blokuje
+        koszyk także przy wyłączonym Pluginie 1).
+        **Przy okazji naprawione:** `Aai_Sklep_Panel_Akcje::usun_kurs()` niosła
+        od W4 wklejony blok z trzema zmiennymi, których w tej metodzie nie ma
+        (kurs o pustym slugu wywróciłby usuwanie fatalem); `smoke-wp-jezyk`
+        wywracał się na `wp option get` przy nieistniejącej opcji sprzedaży
+        (13. reguła `straznik-higieny-smokow`); `Aai_Platnosci_Zapis::kurs_tutora('')`
+        dostał obronę przed pustym uuid, którą Plugin 1 ma od sweepu P5.
+        **Stan dowodów:** `npm run check` kod 0 (strażnicy 37/37, testy 83/83),
+        audyt mutacyjny **305** (0 przeoczonych, 0 martwych), czternaście bramek
+        WP zielonych (kreator 96→**102**, lekcja 47→**57**, front 84→**86**),
+        proza 73/73 co do znaku, kopia w Tutorze 0 różnic.
+        Sześć pozycji „plauzybilnych" **poza pustym uuid zostaje otwartych
+        świadomie** — żadna nie jest dziś czynna.
         **STAN DOWODÓW:** `npm run check` kod 0 (strażnicy 37/37, testy 83/83),
         audyt mutacyjny **293** (0 przeoczonych, 0 martwych), czternaście
         bramek WP zielonych (lekcja 47, zakup 41, zwroty 39, maile 46,
@@ -2885,11 +2912,18 @@ wyprowadzała tego od nowa:
         (12 logowań, 16 odsłon, 6 sesji). Zamówienia i konta z jego
         wcześniejszych testów NIE wróciły — pełny zrzut bazy sprzed
         odtworzenia leży w `~/.cache/aai-kopie/pelny-zrzut-przed-testem-calosci.sql`.
-        **NASTĘPNY KROK: wykonać C1 i C3, dostać odpowiedź na C2, potem
-        scenariusz testu ręcznego dla właściciela** (wzorem W6/P6/T4) →
-        jego test → poprawki → CHANGELOG + README → **PR jedną gałęzią**
-        (razem z zapisem o odwołanej rozbudowie ekranu) → tag → release.
-        Obowiązuje reguła z 2026-08-28: plan + pytania + zgoda przed pracą.
+        **NASTĘPNY KROK: scenariusz testu ręcznego dla właściciela** (wzorem
+        W6/P6/T4) — JEDNA ścieżka przez wszystkie trzy wtyczki naraz, z tabelą
+        „czego nie zgłaszać" → jego test → poprawki → CHANGELOG + README →
+        **PR jedną gałęzią** (razem z zapisem o odwołanej rozbudowie ekranu) →
+        tag → release. Obowiązuje reguła z 2026-08-28: plan + pytania + zgoda
+        przed pracą.
+        **Przed testem: sprzedaż jest ZAMKNIĘTA** (opcji nie ma — stan domyślny),
+        więc trzeba ją otworzyć: `wp aai-platnosci sprzedaz otworz`.
+        **W dzienniku monitoringu leży 12 logowań i 16 odsłon właściciela z T4 —
+        nie kasować.** Ubita bramka zostawia swoje wiersze i kolejny przebieg
+        ich NIE usuwa (sprzątanie idzie od własnej migawki); takie ślady kasować
+        jawną listą identyfikatorów, nigdy zakresem.
 
         Zapis historyczny (scenariusz T4, przed jego zaliczeniem):
         SCENARIUSZ WIĄŻĄCY:
