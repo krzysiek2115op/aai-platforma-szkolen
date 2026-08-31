@@ -536,6 +536,18 @@ for (const plik of pliki.filter((p) => p.endsWith(".mjs"))) {
     const tresc = readFileSync(sciezka, "utf8");
     if (!tresc.includes(OPCJA)) continue;
 
+    /*
+     * Rozliczamy tylko bramki, które stan sprzedaży ZMIENIAJĄ. Sam odczyt
+     * jest nieszkodliwy i nie ma czego przywracać — pierwsza wersja pytała
+     * o wzmiankę o opcji i zapaliła się na sondzie, która wyłącznie czyta
+     * (dziesiąty nawrót pułapki „wzorzec na nazwę zamiast na zachowanie").
+     */
+    const zmienia =
+      /update_option\s*\(/.test(tresc) ||
+      /add_option\s*\(/.test(tresc) ||
+      /"sprzedaz"\s*,\s*"otworz"|'sprzedaz'\s*,\s*'otworz'|sprzedaz\s+otworz/.test(tresc);
+    if (!zmienia) continue;
+
     if (new RegExp(`"option",\\s*"get",\\s*"${OPCJA}"`).test(tresc)) {
       bledy.push(
         `${plik}: czyta stan sprzedaży komendą \`wp option get\`. Gdy opcji nie ma — a nie ma jej po odtworzeniu środowiska — komenda kończy jedynką i wywraca CAŁĄ bramkę, zanim cokolwiek zmierzy. Czytaj \`get_option( …, "" )\`.`
