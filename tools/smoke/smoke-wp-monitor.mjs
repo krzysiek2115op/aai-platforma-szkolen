@@ -1461,6 +1461,37 @@ async function przelot({ udawajCzlowieka, powrotZBfcache = false }) {
   sprawdz(ostatnie[0] === SCIEZKA_B, `ostatnia odsłona z przelotu ma ścieżkę ${ostatnie[0]}, a spodziewaliśmy się ${SCIEZKA_B}`);
   sprawdz(Number(ostatnie[1]) > 300, `czas aktywny z prawdziwej przeglądarki wyszedł ${ostatnie[1]} ms — zegar nie liczy albo liczy tylko chwilę`);
   sprawdz(Number(ostatnie[2]) === 32, `identyfikator sesji ma ${ostatnie[2]} znaków zamiast 32 — sito odrzuciłoby własne beacony`);
+
+  /*
+   * CIĄGŁOŚĆ SESJI — luka w dowodach znaleziona w teście ręcznym T4
+   * (2026-08-31), nie przez bramkę.
+   *
+   * Do tej pory pytaliśmy WYŁĄCZNIE o DŁUGOŚĆ identyfikatora (32 znaki),
+   * czyli o to, czy sito go przepuści. Nikt nie pytał, czy dwie strony
+   * odwiedzone w TEJ SAMEJ karcie dostają TEN SAM identyfikator — a to
+   * jest cała treść słowa „sesja" na ekranie.
+   *
+   * CZYM TO GROZI: gdyby `idSesji()` przestało czytać `sessionStorage`
+   * (dość skasować `getItem`, zostawiając `setItem`), każda odsłona
+   * dostałaby świeży identyfikator. „Sesje" na ekranie zrównałyby się
+   * z „Odsłonami", wszystkie 170 sprawdzeń świeciłoby na zielono,
+   * a właściciel czytałby liczbę osób jako liczbę stron. Ta klasa —
+   * pomiar prawdziwy co do wiersza, a nieprawdziwy co do ZNACZENIA —
+   * jest dokładnie tym, czego bramki łapać nie umiały.
+   *
+   * Trzy wiersze przelotu powstały w jednej karcie (A, B i powrót B
+   * z bfcache), więc MUSZĄ mieć jeden identyfikator sesji. Powrót
+   * z bfcache jest tu wart osobnego słowa: on zmienia `odslona`
+   * (to nowa odsłona), ale NIE ma prawa zmienić sesji — karta jest ta
+   * sama. Jedna liczba pilnuje więc obu rzeczy naraz.
+   */
+  const sesjePrzelotu = phpEval(
+    "global $wpdb; $w = Aai_Monitor_Tabele::tabela('wizyty'); echo (int) $wpdb->get_var( \"SELECT COUNT(DISTINCT sesja) FROM ( SELECT sesja FROM `{$w}` ORDER BY id DESC LIMIT 3 ) AS t\" );"
+  ).stdout.trim();
+  sprawdz(
+    sesjePrzelotu === "1",
+    `trzy odsłony z JEDNEJ karty mają ${sesjePrzelotu} różnych identyfikatorów sesji zamiast jednego — „sesja" przestała znaczyć kartę i zaczęła znaczyć odsłonę, więc ekran pokazuje właścicielowi liczbę stron tam, gdzie obiecuje liczbę odwiedzających (ciągłość sessionStorage w funkcji idSesji)`
+  );
 }
 
 {
@@ -1518,6 +1549,41 @@ async function przelot({ udawajCzlowieka, powrotZBfcache = false }) {
     sprawdz((await zaznaczone("&okno=999")) === "dziś", "przy nieznanym oknie ekran nie wraca do „dziś” — pokazywałby liczby jednego okna przy zaznaczeniu innego");
     sprawdz(ekran30.includes(SCIEZKA_B) || ekran30.includes(SCIEZKA_A), "sekcja Ruch nie pokazuje ani jednej ścieżki, choć w tabeli są wiersze");
     sprawdz(!ekran30.includes("&amp;quot;"), "ekran drukuje podwójnie uciekany cudzysłów — klient zobaczy encję zamiast znaku");
+
+    /*
+     * KAŻDY KAFELEK NIESIE SWÓJ OKRES (T4-D1).
+     *
+     * Zgłoszenie właściciela z testu ręcznego T4 (2026-08-31): pod
+     * kafelkami stało „Kafelki liczą wszystko od początku pomiaru”,
+     * a drugi kafelek nazywał się „Nieudane próby (7 dni)”. Jedno zdanie
+     * opisywało cztery liczby, z których jedna liczy się inaczej — więc
+     * o niej kłamało. Nie pilnowało tego NIC: żaden strażnik i żadna
+     * bramka nie patrzyły na napisy przy liczbach, dlatego sprzeczność
+     * mogła powstać i przetrwać do testu ręcznego.
+     *
+     * Sprawdzamy ZACHOWANIE, nie brzmienie: ile kafelków, tyle NIEPUSTYCH
+     * podpisów okresu. Reguła przeżyje przemianowanie etykiet i dodanie
+     * piątego kafelka — nowy też będzie musiał powiedzieć, co liczy.
+     *
+     * WZORZEC PYTA O TREŚĆ, NIE O ZNACZNIK, i to nie jest drobiazg:
+     * pierwsza wersja liczyła same `class="aai-monitor-okres"`, więc
+     * mutacja ustawiająca okres na pusty łańcuch PRZESZŁA NA ZIELONO —
+     * znacznik był, podpisu nie było. To siódmy nawrót tej samej pułapki
+     * w projekcie (0.29.0 nazwa metody, 0.44.0 nazwa stałej, 0.47.0 napis,
+     * c6c9c97, dwa razy w P4) i tym razem wpadła w nią reguła pisana
+     * PRZEZ ten sam przegląd, który ją opisuje.
+     */
+    const kafelkow = (ekran30.match(/class="aai-monitor-kafelek/g) ?? []).length;
+    const okresow = (ekran30.match(/class="aai-monitor-okres">[^<\s][^<]*</g) ?? []).length;
+    sprawdz(kafelkow >= 4, `ekran pokazuje ${kafelkow} kafelków zamiast co najmniej czterech — pomiar podpisów mierzyłby pustkę`);
+    sprawdz(
+      kafelkow === okresow,
+      `${kafelkow} kafelków niesie ${okresow} podpisów okresu — kafelek bez własnego okresu zmusza czytelnika, żeby dopowiedział go sobie sam, a trzy z nich liczą od początku pomiaru i jeden ostatnie 7 dni (T4-D1)`
+    );
+    sprawdz(
+      !/Kafelki licz\u0105 wszystko/.test(ekran30),
+      "wróciło wspólne zdanie „Kafelki liczą wszystko od początku pomiaru” — przeczy kafelkowi nieudanych prób, który liczy 7 dni (zgłoszenie właściciela z T4)"
+    );
 
     const zlosliwa = "/szkolenia/<script>alert(1)</script>/";
     phpEval(
