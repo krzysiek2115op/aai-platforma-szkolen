@@ -362,3 +362,25 @@ To siódmy nawrót pułapki „wzorzec pyta o obecność, nie o rozstrzygnięcie
 (0.29.0, 0.44.0, 0.47.0, c6c9c97, dwa razy w P4) — i tym razem wpadła w nią
 reguła pisana przez ten sam przegląd, który tę pułapkę opisuje. Złapał ją
 test negatywny, nie lektura kodu.
+
+## Uwaga eksploatacyjna: UBITA bramka zostawia wiersze (i tak ma być)
+
+Przy zbieraniu dowodów do tego kroku przelot czternastu bramek został **ubity
+limitem czasu w trakcie `smoke-wp-monitor`**. Bramka nie zdążyła posprzątać
+i zostawiła 5 wpisów dziennika oraz 2 wizyty (`smoke-monitor`, adresy
+`203.0.113.x` z puli dokumentacyjnej, ścieżki `/smoke-monitor/`).
+
+**Kolejny, osobny przebieg ich NIE usunął — i to jest poprawne.** Sprzątanie
+idzie wyłącznie od WŁASNEJ migawki `MAX(id)`, dokładnie po to, żeby bramka
+nigdy nie skasowała cudzych wierszy (lekcja 0.54.0 i B8 z przeglądu T3).
+Ubicia sygnałem `KILL` nie da się przechwycić żadnym `finally`, więc nie ma
+tu czego naprawiać w kodzie.
+
+**Co z tym robić, gdy się powtórzy:** wiersze są rozpoznawalne bez zgadywania
+— login zaczyna się od `smoke-`, adres należy do `203.0.113.0/24` (TEST-NET-3,
+pula zarezerwowana dla dokumentacji), ścieżka zaczyna się od `/smoke-monitor/`.
+Kasować wyłącznie po tych znakach, nigdy po zakresie identyfikatorów.
+
+**Czego NIE brać za regresję:** rosnące `AUTO_INCREMENT` przy zgadzającej się
+liczbie wierszy. Sprzątanie kasuje wiersz, ale licznika nie cofa — dlatego
+stan czytamy liczbą wierszy, a wyciek mierzymy licznikiem.
