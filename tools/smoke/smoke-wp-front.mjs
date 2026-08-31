@@ -151,6 +151,31 @@ for (const kurs of szkice) {
 
 /* ————————————————— 2. strony kursów ————————————————— */
 
+/*
+ * OBIETNICA O DOSTĘPIE MA PASOWAĆ DO WŁĄCZONYCH METOD PŁATNOŚCI (C3).
+ *
+ * Strona obiecywała „Dostęp od razu po zakupie" — w domknięciu, na liście
+ * „w cenie" i wprost w FAQ („Kiedy dostanę dostęp?" → „Od razu po zakupie")
+ * — podczas gdy JEDYNA włączona metoda to przelew, przy którym dostęp
+ * powstaje dopiero po potwierdzeniu wpłaty. Klasa BLAD-015: strona obiecuje
+ * co innego, niż system dowozi, i nic się przy tym nie zapala.
+ *
+ * Sprawdzenie pyta INSTALACJĘ o metody, a nie zakłada, która jest włączona
+ * — po podpięciu prawdziwej bramki (Tpay/PayU/P24/BLIK) natychmiastowy
+ * dostęp stanie się prawdą i reguła sama przestanie się tego czepiać.
+ */
+const METODY_ODROCZONE = ["bacs", "cheque", "cod"];
+const wlaczoneMetody = JSON.parse(
+  wp(
+    "eval",
+    `$w = array(); foreach ( WC()->payment_gateways()->payment_gateways() as $g ) { if ( 'yes' === $g->enabled ) { $w[] = $g->id; } } echo json_encode( $w );`
+  ).trim().split("\n").pop()
+);
+const wszystkieOdroczone =
+  wlaczoneMetody.length > 0 && wlaczoneMetody.every((m) => METODY_ODROCZONE.includes(m));
+const NATYCHMIASTOWY_DOSTEP = /(dostęp|dostajesz)[^.]{0,40}od razu po (zakupie|zapłacie|opłaceniu)|od razu po zakupie|natychmiastowy dostęp|dostęp natychmiast/i;
+
+
 for (const kurs of opublikowane) {
   const strona = await pobierz(`/szkolenia/${kurs.slug}/`);
   sprawdz(strona.kod === 200, `/szkolenia/${kurs.slug}/ oddaje ${strona.kod}, oczekiwano 200`);
@@ -195,6 +220,14 @@ for (const kurs of opublikowane) {
     new Intl.NumberFormat("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       .format(kurs.price_grosze / 100)
       .replace(/\u202f|\u00a0| /g, "\u00a0") + "\u00a0zł";
+  if (wszystkieOdroczone) {
+    const obietnica = strona.widoczne.match(NATYCHMIASTOWY_DOSTEP);
+    sprawdz(
+      obietnica === null,
+      `/szkolenia/${kurs.slug}/: strona obiecuje natychmiastowy dostęp („${obietnica?.[0] ?? ""}"), a jedyne włączone metody płatności (${wlaczoneMetody.join(", ")}) dają dostęp dopiero po potwierdzeniu wpłaty`
+    );
+  }
+
   const oferta = wycinek(strona.widoczne, 'id="cena"', "</section>");
   sprawdz(
     oferta !== null && oferta.includes(cena),

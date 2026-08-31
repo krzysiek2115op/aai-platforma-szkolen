@@ -179,7 +179,7 @@ const KURSY = [
           kotwica:
             "Jedna godzina konsultacji wdrożeniowej AI kosztuje w Polsce zwykle więcej niż ten kurs. Konsultacja się kończy — kurs i prompty zostają z Tobą na zawsze.",
           w_cenie: [
-            "Dostęp od razu po zakupie, bez czekania na start edycji",
+            "Dostęp zaraz po zaksięgowaniu wpłaty, bez czekania na start edycji",
             "Wszystkie 41 lekcji od pierwszego dnia",
             "Aktualizacje kursu bez dopłat",
             "Dostęp bez limitu czasu — także po zmianie komputera",
@@ -246,7 +246,7 @@ const KURSY = [
             {
               pytanie: "Kiedy dostanę dostęp do kursu?",
               odpowiedz:
-                "Od razu po zakupie. Logujesz się i zaczynasz od pierwszej lekcji — bez czekania na „start edycji”.",
+                "Gdy zaksięgujemy Twoją wpłatę. Dostajesz wtedy mail z linkiem — logujesz się i zaczynasz od pierwszej lekcji, bez czekania na „start edycji”. Przy zwykłym przelewie trwa to tyle, ile przelew.",
             },
             {
               pytanie: "Ile czasu zajmie mi przejście kursu?",
@@ -502,7 +502,7 @@ const KURSY = [
           kotwica:
             "Jeden wieczór odzyskiwania nadpisanej pracy kosztuje więcej nerwów niż ten kurs pieniędzy — a bez systemu taki wieczór wraca co kilka miesięcy.",
           w_cenie: [
-            "Dostęp od razu po zakupie, bez czekania na start edycji",
+            "Dostęp zaraz po zaksięgowaniu wpłaty, bez czekania na start edycji",
             "Wszystkie 32 lekcje od pierwszego dnia",
             "Ćwiczenia na repozytorium, które zakładasz w pierwszym module",
             "Aktualizacje kursu bez dopłat",
@@ -584,7 +584,7 @@ const KURSY = [
             {
               pytanie: "Kiedy dostanę dostęp do kursu?",
               odpowiedz:
-                "Od razu po zakupie. Logujesz się i zaczynasz od pierwszej lekcji.",
+                "Gdy zaksięgujemy Twoją wpłatę. Dostajesz wtedy mail z linkiem — logujesz się i zaczynasz od pierwszej lekcji. Przy zwykłym przelewie trwa to tyle, ile przelew.",
             },
             {
               pytanie: "Ile czasu zajmie mi kurs?",
