@@ -5,6 +5,132 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.60.0] — 2026-08-31
+
+### SEO od nowa: mapa strony przestaje zapraszać do indeksu tego, czego sami nie wpuszczamy
+
+SEO robiliśmy przy **0.24.0**, gdy nie było nawet połowy projektu. Od tamtej
+pory doszła wtyczka WP z własnym `Aai_Sklep_Seo`, 73 lekcje prozy, widok
+kupionego kursu, „Moje kursy", koszyk i kasa. Krok 1 planu domknięcia
+([PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md)) odświeża to
+w całości, a nie łata.
+
+**Zakres rozstrzygnął właściciel** (2026-08-31, wariant „b"): **wtyczka
+pilnuje TYLKO swoich tras**. Reguła, która z tego wyszła i weszła do kodu:
+*nasze wtyczki sprzątają w mapie i oznaczają `noindex` dokładnie te adresy,
+które istnieją Z NASZEGO POWODU* — kopia kursów w Tutorze, produkty Woo
+naszych kursów, strony transakcyjne powołane przez naszą ścieżkę zakupu.
+Blog, `/shop/`, `sample-page`, kategorie i tagi należą do właściciela
+witryny i idą na listę wdrożeniową, a nie pod nasz filtr.
+
+### Co zmierzono PRZED pisaniem kodu (żywa instalacja, `blog_public = 1`)
+
+Mapa strony **nie zawierała ANI JEDNEJ naszej trasy** — `/szkolenia/`
+i obie strony sprzedażowe to reguły przepisywania, nie wpisy, a rdzeń
+buduje mapę wyłącznie z typów wpisów i taksonomii. Za to zawierała:
+`/courses/<slug>/` i `/product/<slug>/` (**oddają 301** na nasze strony),
+**73 adresy lekcji** (bramka + `noindex`), `/koszyk/`, `/kasa/`,
+`/my-account/`, `/dashboard/`, obie rejestracje Tutora oraz
+**`/author/admin/`**. Mapa mówiła więc wyszukiwarce coś przeciwnego niż
+strony, do których prowadziła.
+
+Do tego dwa osobne pomiary: `/koszyk/` i `/my-account/` nie miały **żadnego**
+znacznika `robots` (Woo wskazywał NASZE strony poprawnie — to nie była
+kwestia konfiguracji), a `courses.updated_at` **nie znaczy „zmiana treści"**:
+trigger ustawia `now()` przy KAŻDYM `UPDATE` wiersza kursu, bez porównania
+wartości, i siedzi wyłącznie na `courses` — poprawka prozy lekcji (tabela
+`lessons`) go nie dotyka. Dlatego mapa **dalej nie podaje `lastModified`**
+(decyzja właściciela), a nieprawdziwa obietnica z komentarza
+`app/sitemap.ts` („prawdziwą datę wprowadzimy…") została sprostowana.
+
+### TRZECIA droga do loginu administratora — zamknięta
+
+`/author/admin/` i `?author=1` oddają **404** od 0.59.0, ale
+`wp-sitemap-users-1.xml` **dalej drukował sam login**: rdzeń buduje ten
+adres z `user_nicename`, a ten równa się loginowi (zmierzone `wp user list`:
+`admin` / `admin`). Wyciek żył mimo dwóch zamkniętych drzwi — w pliku XML,
+na który nikt nie patrzył, i wyłącznie w produkcji, bo rdzeń bramkuje całą
+mapę opcją `blog_public`. Dostawcę `users` zdejmuje mu-plugin obwodu, tam
+gdzie mieszkają dwie pozostałe drogi (to nie SEO, tylko enumeracja kont).
+
+**Przy okazji: miękkie 404.** Zmierzone w kodzie rdzenia
+(`class-wp-sitemaps.php`): przy nieznanym dostawcy `render_sitemaps()`
+wykonuje **gołe `return`** — bez `set_404()` i bez `status_header( 404 )`,
+inaczej niż w gałęzi „mapy wyłączone". Zdjęta mapa oddawała więc stronę
+błędu ze **statusem 200**, czyli treść do zaindeksowania. Domyka to reguła
+w obwodzie, celująca w SKUTEK: jeśli nasz callback w ogóle się wykona,
+znaczy to, że trasa mapy niczego nie wyprodukowała (przy powodzeniu rdzeń
+kończy żądanie `exit`-em).
+
+### Dodane
+
+- **`Aai_Sklep_Sitemap` + `Aai_Sklep_Sitemap_Dostawca`** (Plugin 1) —
+  katalog i strony kursów w `wp-sitemap-szkolenia-1.xml`, z `lista_kursow()`,
+  czyli z TEGO SAMEGO odczytu, z którego renderuje się katalog: mapa nie
+  może obiecać strony, której nie ma, ani pominąć kursu, który jest.
+  Wycina `courses` i `lesson` oraz strony postawione przez Tutora.
+- **`Aai_Platnosci_Sitemap`** (Plugin 2) — produkty i archiwa kategorii
+  produktów poza mapą, `noindex` na koszyku, kasie i koncie.
+- **`Aai_Sklep_Zasoby::strony_tutora()`** — jedno źródło listy stron Tutora
+  dla arkusza integracji i dla mapy (dwie listy tych samych opcji
+  rozjechałyby się przy pierwszej zmianie w Tutorze, i to niemo).
+- **`app/manifest.ts`** — brakujący plik wobec wzoru `automatic-ai`, ze
+  ścieżkami przez `zasob()`: Next aplikuje `basePath` do znacznika
+  `<link rel=manifest>`, ale **NIE do treści manifestu**. Zweryfikowane na
+  ARTEFAKCIE: żywy podgląd oddaje ścieżki z `/szkolenia-podglad` i wszystkie
+  pięć ikon z kodem 200.
+- **`tools/ikony-marki.mjs`** (`npm run ikony`) — rastry 192, 512,
+  `maskable` i `apple-icon`. Samo SVG nie wystarcza: Android przy instalacji
+  skrótu sięga po PNG, a bez wariantu `maskable` dokłada własne tło
+  i przycina znak. Rasteryzuje **przeglądarka z riga**, nie `sharp` —
+  zależności aplikacji nie rosną (wzór dał POMYSŁ, nie plik).
+- **`npm run smoke:wp-seo`** — **169 sprawdzeń**; jedyna bramka mierząca
+  witrynę **przy włączonej widoczności**, bo przy wyłączonej odpowiadałaby
+  na inne pytanie. Scenę stawia sama i przywraca **wartość ZASTANĄ**, nie
+  „domyślną" (lekcja z `smoke-wp-motyw`, który zamykał sklep za sobą).
+  Najmocniejsza asercja: **każdy adres, który mapa zgłasza wyszukiwarce,
+  odpowiada 200 bez przekierowania** — to ona łapie stan sprzed kroku.
+
+### Naprawione
+
+- koszyk, kasa i konto klienta były w produkcji **indeksowalne**;
+- mapa strony publikowała **login administratora**;
+- zdjęta mapa oddawała **miękkie 404** (status 200 ze stroną błędu);
+- komentarz w `app/sitemap.ts` obiecywał `updated_at` jako prawdziwą datę
+  zmiany treści — nieprawda o własnym schemacie, sprostowana pomiarem.
+
+### Dowody
+
+Strażnicy **38/38** (nowe reguły w `straznik-obwodu`, `straznik-frontu-wp`,
+`straznik-platnosci-wp`, `straznik-seo` — każda z testem negatywnym
+pokazującym, że mutacja ZACHOWANIA przy zostawionej nazwie zapala
+strażnika), audyt mutacyjny **319 → 328** (326 złapanych, 0 przeoczonych,
+0 martwych), `npm run check` kod 0, **piętnaście bramek WP zielonych**:
+seo 169 · monitor 174 · kreator 102 · motyw 91 · front 86 · produkty 85 ·
+maile 62 · lekcja 57 · panel 55 · tutor 44 · zakup 41 · zwroty 39 ·
+dane 30 · język 25 · płatności 23. Dane Pluginu 1 nietknięte (73 lekcje
+z treścią, 2 kursy, 2 powiązania), dane monitoringu właściciela z T4
+nietknięte (bramki nie zostawiły ani jednego wiersza).
+
+### Pomiar (protokół bez zmian: PSI, mediana z 5, golden + tabela w README)
+
+Desktop **100/100/100/100 na obu stronach**. Mobile: katalog **97** (jak
+przy 0.25.0), strona kursu **94** — spadek z 96, z **TBT 251 ms** zamiast
+0 (pięć zgodnych przebiegów, więc nie „czkawka PSI"). Przyczyna zmierzona:
+od tamtego pomiaru urosła TREŚĆ stron sprzedażowych (audyt kursów, 0.33.0),
+a Next serializuje ją drugi raz jako ładunek hydratacji — lokalny profil
+przypisuje **706 ms wykonywania skryptów samemu dokumentowi**, nie plikom
+`.js`. **Ten koszt nie przenosi się na produkt**: ta sama strona kursu waży
+w prototypie **270 kB ze 112 kB ładunku hydratacji w 65 znacznikach
+`<script>`**, a we wtyczce WP **125 kB przy ZERZE ładunku i 18
+znacznikach**. Tabela w README mówi teraz wprost, że dotyczy **prototypu,
+nie produktu** — bo PSI jest usługą Google i nie dosięgnie lokalnego
+WordPressa. Kolumna SEO **100/100**, zmierzona wg protokołu na buildzie
+`SEO_INDEKSOWANIE=1` (11 przebiegów: dziesięć razy 100, raz 91 — pierwszy
+po starcie serwera, czyli rozgrzewka).
+
+---
+
 ## [0.59.0] — 2026-08-31
 
 ### Koniec etapu WordPressa: test całości i obwód bezpieczeństwa
