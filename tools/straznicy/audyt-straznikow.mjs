@@ -4068,6 +4068,68 @@ const MUTACJE = [
         ? s.replace("array_merge( $juz, $strony )", "$strony")
         : null,
   },
+
+  /* ─────────────── straznik-schematow (schematy draw.io) ─────────────── */
+  {
+    straznik: "straznik-schematow",
+    opis: "schemat wymienia klasę, której nie ma w kodzie (zmiana nazwy bez poprawki rysunku)",
+    plik: "docs/plugin-1/schematy.drawio",
+    wymaga: () => existsSync("docs/plugin-1/schematy.drawio"),
+    zmien: (s) =>
+      s.includes("Aai_Sklep_Zapis")
+        ? s.replaceAll("Aai_Sklep_Zapis", "Aai_Sklep_ZapisPoZmianieNazwy")
+        : null,
+    oczekiwanySlad: "NIE MA w kodzie",
+  },
+  {
+    straznik: "straznik-schematow",
+    opis: "podgląd SVG przestaje być aktualny wobec źródła (ktoś poprawił rysunek i nie wyeksportował)",
+    plik: "docs/plugin-2/schematy.drawio",
+    wymaga: () => existsSync("docs/schematy/ZRODLA.json"),
+    zmien: (s) => s + "\n<!-- poprawka bez ponownego eksportu -->\n",
+    oczekiwanySlad: "po ostatnim eksporcie",
+  },
+  {
+    straznik: "straznik-schematow",
+    opis: "łamanie linii wpisane surowym <br> — draw.io takiego pliku nie otworzy",
+    plik: "docs/plugin-3/schematy.drawio",
+    wymaga: () => existsSync("docs/plugin-3/schematy.drawio"),
+    zmien: (s) => s.replace('value="', 'value="<br>'),
+    oczekiwanySlad: "surowy",
+  },
+  {
+    straznik: "straznik-schematow",
+    opis: "lista schematów przestaje obejmować diagram całego systemu",
+    plik: "tools/schematy.mjs",
+    wymaga: () => existsSync("tools/schematy.mjs"),
+    zmien: (s) =>
+      s.includes('zrodlo: "docs/SYSTEM.drawio"')
+        ? s.replace('zrodlo: "docs/SYSTEM.drawio"', 'zrodlo: "docs/NIE-MA-TAKIEGO.drawio"')
+        : null,
+    oczekiwanySlad: "Brak schematu",
+  },
+  {
+    straznik: "straznik-schematow",
+    opis: "etykieta z pojedynczo uciekłym znacznikiem — tekst zniknie przy renderze, nic się nie zapali",
+    plik: "docs/plugin-2/schematy.drawio",
+    wymaga: () => existsSync("docs/plugin-2/schematy.drawio"),
+    zmien: (s) =>
+      s.includes("&amp;lt;kurs&amp;gt;")
+        ? s.replace("&amp;lt;kurs&amp;gt;", "&lt;kurs&gt;")
+        : null,
+    oczekiwanySlad: "zniknie przy renderze",
+  },
+  {
+    straznik: "straznik-schematow",
+    opis: "nowa klasa w kodzie, o której żaden schemat nie mówi",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes"),
+    nowyPlik: {
+      sciezka: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-mutacja-audytu.php",
+      tresc: "<?php\nfinal class Aai_Sklep_Mutacja_Audytu {}\n",
+    },
+    oczekiwanySlad: "nie ma ich na ŻADNYM schemacie",
+  },
+
 ];
 
 

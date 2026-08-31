@@ -5,6 +5,108 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.64.0] — 2026-08-31
+
+### Dokumentacja wizualna wszystkich trzech wtyczek — siedem schematów draw.io
+
+Polecenie właściciela: pełna dokumentacja wizualna trzech wtyczek, po dwa
+diagramy na każdą (dla klienta **nietechnicznego** i **technicznego**), plus
+jeden diagram całego systemu i instrukcja instalacji dla osoby, która nie zna
+się na technice.
+
+**Fakt, od którego zaczęła się ta praca:** nie istniał ŻADEN dokument
+opisujący trzy wtyczki razem. Były trzy osobne `DIAGRAM.md` w mermaidzie,
+każdy pisany w innym momencie i dla technika, i żaden nie pokazywał szwów
+MIĘDZY wtyczkami ani granicy wobec WooCommerce i Tutora. Złożenie materiału
+było główną pracą, nie samo rysowanie: **przeczytane zostały wszystkie 54
+klasy trzech wtyczek** (~24 tys. linii PHP), a szwy, haki, tabele i komendy
+wyprowadzone POMIAREM z kodu i z żywej instalacji `:8892`, nie z nazw.
+
+### Dodane
+
+- **Siedem schematów w czterech plikach `.drawio`** (XML, więc żyją w gicie
+  i da się je edytować w draw.io): [`docs/plugin-1/schematy.drawio`](docs/plugin-1/schematy.drawio),
+  [`plugin-2`](docs/plugin-2/schematy.drawio), [`plugin-3`](docs/plugin-3/schematy.drawio)
+  — po dwie zakładki (prosta i techniczna) — oraz [`docs/SYSTEM.drawio`](docs/SYSTEM.drawio).
+- **[docs/SCHEMATY.md](docs/SCHEMATY.md)** — indeks z podglądami, przepisem na
+  edycję i spisem pułapek formatu.
+- **[docs/INSTRUKCJA-INSTALACJI.md](docs/INSTRUKCJA-INSTALACJI.md)** — instalacja
+  od A do Z dla osoby nietechnicznej, ze **zrzutami ekranu** (7 sztuk, WebP,
+  364 kB): co dostaje, jak wgrać, w jakiej kolejności, co sprawdzić, co robić
+  przy błędzie, czego nie zmieniać samemu i co przysłać, zgłaszając problem.
+- **`npm run schematy`** (`tools/schematy.mjs`) — eksport podglądów SVG
+  i manifest skrótów źródeł.
+- **`npm run pakuj`** (`tools/pakuj-wtyczki.mjs`) — trzy archiwa ZIP dla
+  klienta. **W repo NIE BYŁO CZEGO WGRAĆ**: instrukcja mówiła „wgraj plik
+  ZIP", a ani `package.json`, ani `tools/` nie miały niczego, co produkuje
+  archiwum. Bez zewnętrznej biblioteki (w środowisku nie ma nawet polecenia
+  `zip`) — ZIP składany na `zlib` i własnym CRC-32.
+- **39. strażnik `straznik-schematow`** — sześć reguł, każda z testem
+  negatywnym i mutacją w audycie (334 → **340**).
+
+### Czego pilnuje nowy strażnik — i czego NIE umie
+
+Właściciel zauważył to sam, zamawiając schematy: *„.drawio to XML, więc da
+się go trzymać w gicie — ale żaden strażnik nie pilnuje zgodności rysunku
+z kodem"*. Strażnik pilnuje **słownika**, nie sensu:
+
+1. schemat istnieje i jest poprawnym XML-em,
+2. podgląd SVG istnieje,
+3. podgląd jest AKTUALNY wobec źródła — porównanie `sha256`, nie dat plików
+   (git dat nie przechowuje, więc po klonie wszystkie są identyczne),
+4. każda nazwa klasy na schemacie ISTNIEJE w kodzie,
+5. każda klasa z kodu jest NA KTÓRYMŚ schemacie,
+6. żadna etykieta nie niesie pojedynczo uciekłego znacznika.
+
+Reguły 4 i 5 łapią trzy sposoby, na jakie ta dokumentacja naprawdę się
+zestarzeje: zmianę nazwy, usunięcie klasy i dołożenie nowej. **Nie sprawdza**,
+czy strzałka wskazuje właściwą stronę ani czy opis mówi prawdę — i tak jest
+to napisane w SCHEMATY.md, żeby nikt mu nie ufał ponad miarę.
+
+Strażnik zadziałał od razu: przy pierwszym uruchomieniu wskazał
+`Aai_Platnosci_Kasa`, której na schemacie nie było.
+
+### Cztery rzeczy zmierzone przy okazji (żeby nie tracić na nie czasu drugi raz)
+
+- **Eksport draw.io NIE waliduje pliku.** Zepsuty XML eksportuje się
+  z **kodem wyjścia 0** i produkuje obrazek z połową treści (zmierzone testem
+  negatywnym). Kod wyjścia nie jest tu dowodem na nic — dlatego narzędzie
+  pyta o powstały plik, a strażnik osobno sprawdza sam XML.
+- **Cicha utrata tekstu w etykietach.** `/szkolenia/<kurs>` renderowało się
+  jako `/szkolenia/`, bo etykieta jest HTML-em i przeglądarka bierze `<kurs>`
+  za nieznany znacznik. Nawiasy ostre muszą być uciekłe DWA razy. Nic się
+  przy tym nie zapala — dlatego doszła szósta reguła strażnika.
+- **Łamanie linii w etykiecie to `&lt;br&gt;`, nie `\n`.** Przy `html=1`
+  draw.io traktuje etykietę jak HTML i znak nowej linii jest dla niego
+  spacją — każde pudełko wychodziło ścianą zawijanego tekstu. Surowy `<br>`
+  w wartości atrybutu to z kolei niepoprawny XML.
+- **Osadzone fonty w SVG ważą 20× tyle co sam rysunek** (1,3 MB → 62 kB po
+  `--embed-svg-fonts false`, etykiety zostają).
+- **Strony w draw.io numerowane są od 1** (od wersji 27.0.2).
+
+### Naprawione po drodze
+
+- **BLAD-014 w nowym narzędziu** — `tools/schematy.mjs` przemilczał całą
+  pracę z kodem 0, bo w katalogu ze spacją porównanie `import.meta.url`
+  ze sklejonym adresem pliku nigdy nie wychodzi. Złapał to
+  `straznik-sciezek`, który istnieje dokładnie na tę klasę.
+- **Test negatywny, który sam był ślepy** — pierwsza próba reguły „klasa
+  spoza kodu" mutowała `SYSTEM.drawio`, a ten diagram nie wymienia ANI JEDNEJ
+  nazwy klasy (0 trafień): `sed` nie zmienił niczego i test przeszedł po
+  pustce. Powtórzony na pliku, który te nazwy niesie, zapalił się poprawnie.
+- **Własny komentarz zapalił strażnika ścieżek** — objaśnienie BLAD-014
+  cytowało zakazany wzorzec dosłownie. Opis przeformułowany; strażnik czyta
+  plik razem z komentarzami i miał rację.
+
+### Dowody
+
+Strażnicy **39/39**, audyt mutacyjny **340** (338 złapanych, 0 przeoczonych,
+0 martwych), `straznik-schematow` zielony na 4 schematach i 54 klasach.
+Paczki ZIP sprawdzone dwustronnie: `unzip -t` kod 0, każdy plik porównany
+co do bajtu ze źródłem, a **WordPress odczytał nagłówki wszystkich trzech**
+(`get_plugin_data` na rozpakowanych paczkach w kontenerze — dowód
+artefaktowy, nie procesowy). Kodu wtyczek nie tknięto.
+
 ## [0.63.1] — 2026-08-31
 
 ### Sweep przed `/clear`: repo wie, że higiena się skończyła i co jest dalej

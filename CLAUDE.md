@@ -40,7 +40,7 @@ trzeba.
 
 | Szukasz | Gdzie |
 |---|---|
-| **co robić TERAZ** | sekcja „TRZY OSTATNIE KROKI", koniec — bieżące są **schematy draw.io trzech wtyczek**, potem audyt końcowy |
+| **co robić TERAZ** | sekcja „TRZY OSTATNIE KROKI", koniec — schematy draw.io ZROBIONE (0.64.0), został **audyt końcowy** (wytyczne poda właściciel) |
 | zasad, których nie wolno złamać | „Twarde zasady" wyżej + [docs/WYTYCZNE.md](docs/WYTYCZNE.md) |
 | prototypu Next.js (działy D1–D7, bramki B1–B7) | „Stan i następny krok" — od początku do „PLUGIN 1 DOMKNIĘTY" |
 | decyzji o etapie WordPress, środowiska `:8892`, motywu | „ETAP WORDPRESS — START" + [docs/ETAP-WP.md](docs/ETAP-WP.md) |
@@ -1172,17 +1172,64 @@ z `includes/`, `assets/`, `szablony/`, `languages/`). Problemem było to, że
 README go NIE POKAZYWAŁO. Przeniesienie katalogu dotknęłoby **19 plików**,
 w tym 9 strażników i montowanie w `compose.yml`, a nie kupuje niczego.
 
-**═══ NASTĘPNY KROK: SCHEMATY draw.io WSZYSTKICH TRZECH WTYCZEK ═══**
-(decyzja właściciela 2026-08-31, PRZED audytem końcowym). Dla klientów
-**technicznych I nietechnicznych**. Właściciel poda własny prompt z
-wymaganiami — **czekać na niego, nie zakładać zakresu**.
-**Fakt zmierzony, od którego zacznie się ta praca: NIE ISTNIEJE żaden
-dokument opisujący trzy wtyczki RAZEM.** Są trzy osobne `DIAGRAM.md`
-w mermaidzie ([Plugin 1](docs/plugin-1/DIAGRAM.md),
-[Plugin 2](docs/plugin-2/DIAGRAM.md), [Plugin 3](docs/plugin-3/DIAGRAM.md)),
-każdy pisany w innym momencie i dla technika, i żaden nie pokazuje szwów
-MIĘDZY wtyczkami ani granicy wobec WooCommerce i Tutora. Złożenie tego
-materiału będzie główną pracą kroku, nie samo rysowanie.
+**═══ SCHEMATY draw.io — ZROBIONE I ZAMKNIĘTE (2026-08-31, wersja 0.64.0) ═══**
+Siedem diagramów w czterech plikach `.drawio`, indeks
+**[docs/SCHEMATY.md](docs/SCHEMATY.md)** i instrukcja instalacji dla klienta
+nietechnicznego **[docs/INSTRUKCJA-INSTALACJI.md](docs/INSTRUKCJA-INSTALACJI.md)**
+(ze zrzutami ekranu). **Kodu wtyczek nie tknięto** — sprawdzone `git status`.
+
+**SIEDEM ROZSTRZYGNIĘĆ WŁAŚCICIELA (2026-08-31), wszystkie wykonane:**
+draw.io pobrany (AppImage) · **4 pliki, 7 stron** (po dwie zakładki na wtyczkę
++ `docs/SYSTEM.drawio`) · **strażnik TAK** · klient = **ktoś obcy kupujący
+wtyczki** · **skrypt pakujący TAK** · weryfikacja na żywym `:8892` ·
+**zrzuty ekranu w instrukcji** (bez przesady, tylko najważniejsze).
+
+**Fakt, który się potwierdził:** nie istniał ŻADEN dokument opisujący trzy
+wtyczki RAZEM — i to złożenie było główną pracą, nie rysowanie. Materiał
+wyprowadzony z **przeczytania wszystkich 54 klas** (~24 tys. linii PHP)
+i z pomiaru żywej instalacji, nie z nazw. Sześć szwów między wtyczkami
+zmierzonych grepem, nie zgadniętych: `aai_sklep_kurs_zmieniony`,
+`_usuniety`, `aai_sklep_cena_kursu`, `_cta_kursu`, `_dostepnosc_kursu`,
+`_zamowienia_w_drodze` oraz `aai_monitor_strona_za_bramka` (jedyny
+w drugą stronę — pyta Plugin 3, odpowiada widok lekcji Pluginu 1).
+
+**39. STRAŻNIK `straznik-schematow`** — odpowiedź na uwagę właściciela, że
+„żaden strażnik nie pilnuje zgodności rysunku z kodem". Pilnuje SŁOWNIKA,
+nie sensu: (1) poprawny XML, (2) podgląd SVG istnieje, (3) podgląd
+AKTUALNY wobec źródła (`sha256`, nie daty — git dat nie przechowuje),
+(4) każda nazwa klasy na schemacie ISTNIEJE w kodzie, (5) każda klasa
+z kodu jest NA KTÓRYMŚ schemacie. Reguły 4 i 5 łapią zmianę nazwy,
+usunięcie i dołożenie klasy. **NIE sprawdza, czy strzałka wskazuje właściwą
+stronę** — i tak jest to napisane w SCHEMATY.md, żeby nikt mu nie ufał ponad
+miarę. Zadziałał od razu: wskazał `Aai_Platnosci_Kasa` nieobecną na schemacie.
+
+**PACZKI DLA KLIENTA — `npm run pakuj`.** W repo NIE BYŁO CZEGO WGRAĆ:
+instrukcja mówi „wgraj plik ZIP", a żaden skrypt archiwum nie produkował.
+ZIP składany na `zlib` i własnym CRC-32 (w środowisku nie ma nawet polecenia
+`zip`). **Dowód artefaktowy, nie procesowy:** `unzip -t` kod 0, każdy plik
+porównany co do bajtu, a **WordPress odczytał nagłówki wszystkich trzech**
+(`get_plugin_data` na rozpakowanych paczkach w kontenerze).
+Katalog `paczki/` jest poza gitem.
+
+**CZTERY RZECZY ZMIERZONE O DRAW.IO — nie wyprowadzać od nowa:**
+(1) **eksport NIE waliduje pliku** — zepsuty XML wychodzi z KODEM 0
+i obrazkiem z połową treści, więc kod wyjścia nie dowodzi niczego;
+(2) **łamanie linii to `&lt;br&gt;`**, bo przy `html=1` `\n` jest spacją,
+a surowy `<br>` w atrybucie to niepoprawny XML;
+(3) **osadzone fonty w SVG ważą 20× tyle co rysunek** (1,3 MB → 62 kB po
+`--embed-svg-fonts false`);
+(4) **strony numerowane od 1** (draw.io ≥ 27.0.2).
+Narzędzie: AppImage w `~/.cache/aai-narzedzia` (rozpakowany — brak FUSE),
+ścieżka przez `AAI_DRAWIO`.
+
+**DWIE PUŁAPKI WŁASNEJ PRACY, obie złapane:** test negatywny reguły „klasa
+spoza kodu" mutował `SYSTEM.drawio`, który **nie wymienia ANI JEDNEJ nazwy
+klasy** — `sed` nie zmienił nic i test przeszedł PO PUSTCE (powtórzony na
+właściwym pliku zapalił się); a komentarz objaśniający BLAD-014 cytował
+zakazany wzorzec dosłownie i słusznie zapalił `straznik-sciezek`.
+
+**Dowody:** `npm run check` kod 0, strażnicy **39/39**, audyt mutacyjny
+**339** (0 przeoczonych, 0 martwych). **PR jeszcze NIEOTWARTY.**
 
 **POTEM: audyt końcowy** — wytyczne poda właściciel, nie planować zakresu
 z własnej inicjatywy.

@@ -60,3 +60,6 @@ eksport-wp/
 *.log
 .vscode/
 .idea/
+
+# Paczki dla klienta — powstają z npm run pakuj, nie wchodzą do repo.
+paczki/
