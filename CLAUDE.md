@@ -2912,14 +2912,31 @@ wyprowadzała tego od nowa:
         (12 logowań, 16 odsłon, 6 sesji). Zamówienia i konta z jego
         wcześniejszych testów NIE wróciły — pełny zrzut bazy sprzed
         odtworzenia leży w `~/.cache/aai-kopie/pelny-zrzut-przed-testem-calosci.sql`.
-        **NASTĘPNY KROK: scenariusz testu ręcznego dla właściciela** (wzorem
-        W6/P6/T4) — JEDNA ścieżka przez wszystkie trzy wtyczki naraz, z tabelą
-        „czego nie zgłaszać" → jego test → poprawki → CHANGELOG + README →
-        **PR jedną gałęzią** (razem z zapisem o odwołanej rozbudowie ekranu) →
-        tag → release. Obowiązuje reguła z 2026-08-28: plan + pytania + zgoda
-        przed pracą.
-        **Przed testem: sprzedaż jest ZAMKNIĘTA** (opcji nie ma — stan domyślny),
-        więc trzeba ją otworzyć: `wp aai-platnosci sprzedaz otworz`.
+        **SCENARIUSZ TESTU RĘCZNEGO NAPISANY I ODDANY:
+        [docs/TEST-RECZNY-CALOSC.md](docs/TEST-RECZNY-CALOSC.md)** — jedna
+        ścieżka w dziesięciu krokach przez wszystkie trzy wtyczki (gość →
+        zakup nowym kontem → poczta → klient czyta → kreator → „Ukryj" →
+        „Usuń" → monitoring → strona motywu), z zaznaczonymi SZWAMI i tabelą
+        „czego nie zgłaszać". **Przelot kontrolny przed oddaniem: 37/37**
+        (`tools/smoke/przelot-calosc.mjs` — SONDA, nie bramka, poza
+        `npm run check`; sprząta po sobie stan kursu i dziennik logowań).
+        **NASTĘPNY KROK CAŁEGO PROJEKTU: TEST WŁAŚCICIELA** → poprawki
+        → **CHANGELOG + README** (jeszcze NIE zrobione — dziewięć commitów na
+        gałęzi nie ma wpisu w CHANGELOG, tak zaplanowano: wpis powstaje razem
+        z poprawkami z testu) → **PR jedną gałęzią** (razem z zapisem
+        o odwołanej rozbudowie ekranu) → tag → release. Obowiązuje reguła
+        z 2026-08-28: plan + pytania + zgoda przed pracą.
+        **PRZYCISK „USUŃ KURS" NIE JEST NOWY** — jest w kokpicie od W4
+        (`f31b69f`); C2 dołożyło do niego hamulec. Właściciel wybrał wariant
+        „dołóż hamulec" z trzech; „zablokuj na głucho" i „wyjmij przycisk
+        z kokpitu" są ODRZUCONE, nie odłożone.
+        **Brzmienie zdania o dostępie (C3) jest propozycją agenta** —
+        właściciel może je zmienić; bramka pilnuje PRAWDZIWOŚCI zdania wobec
+        włączonych metod płatności, nie jego dokładnych słów.
+        **Sprzedaż jest już OTWARTA** (otwarta pod test ręczny), zamówień 0,
+        kont dwa (`admin`, `klient-test`). Kopia bazy sprzed testu:
+        `~/.cache/aai-kopie/przed-testem-calosci-recznym.sql` — jest, bo krok 8
+        scenariusza dotyka przycisku „Usuń".
         **W dzienniku monitoringu leży 12 logowań i 16 odsłon właściciela z T4 —
         nie kasować.** Ubita bramka zostawia swoje wiersze i kolejny przebieg
         ich NIE usuwa (sprzątanie idzie od własnej migawki); takie ślady kasować

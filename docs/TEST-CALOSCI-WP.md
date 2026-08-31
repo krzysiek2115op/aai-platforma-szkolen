@@ -51,7 +51,7 @@ ręcznego (decyzja właściciela 2026-08-31).
 | # | Co | Jak zamknięte |
 |---|---|---|
 | 2 | **„Ukryj" odbierało dostęp KUPUJĄCYM**: status `archived` przepisywał 73 lekcje na `private`, klient dostawał **404**, a obie kontrole kończyły **kodem 0** | **C1 zrobione.** Status kopii to dziś DWIE mapy: kurs ukryty zostaje `private`, materiał (moduły, lekcje) zostaje `publish`. Zapowiedzi gasną razem z kursem |
-| — | **„Dostęp od razu po zakupie"** przy jedynej włączonej bramce (przelew) | **C3 zrobione.** Strona mówi „Dostęp zaraz po zaksięgowaniu wpłaty"; FAQ tłumaczy to zdaniem. Zmienione w obu bazach, w szablonie WP i w prototypie |
+| — | **„Dostęp od razu po zakupie"** przy jedynej włączonej bramce (przelew) | **C3 zrobione.** Strona mówi „Dostęp zaraz po zaksięgowaniu wpłaty"; FAQ tłumaczy to zdaniem. Zmienione w obu bazach, w szablonie WP i w prototypie. **Samo brzmienie jest propozycją agenta — właściciel może je zmienić**, prawdziwość zdania pilnuje bramka, nie jego dokładne słowa |
 | — | **Usunięcie kursu, który ktoś kupił**, przechodziło bez pytania | **C2 zrobione.** Panel pyta „ten kurs ma N kupujących — stracą dostęp" i wymaga drugiego kliknięcia; bramka siedzi w warstwie zapisu, więc chroni też komendę |
 | 4 | **Po wyłączeniu Pluginu 1 sprzedaż DALEJ DZIAŁA**, a kontrola pisała „Sprzedaż nie działa" i kończyła kodem 0 | **Zrobione.** Kontrola liczy kupowalne produkty i przy niezerowym wyniku kończy **kodem 1**. Zachowania sprzedaży NIE zmieniamy — od zamykania sklepu jest komenda |
 
@@ -83,6 +83,15 @@ skłamać):
 3. **Asercja na całej stronie zamiast na wierszu** — pomiar „czy lista pyta
    o kupujących" pytał o CAŁY ekran i zapalił się od razu, bo prawdziwe kursy
    kupujących MAJĄ (`klient-test`). Zawężony do wiersza własnego kursu.
+4. **ASCII-owy cudzysłów wewnątrz polskiego cytatu wywala strażnika** — `„…"`
+   w łańcuchu JS ujętym w `"` kończy ten łańcuch w środku zdania i plik
+   przestaje się parsować. Zdarzyło mi się to **trzy razy w jednej sesji**,
+   za każdym razem w komunikacie dla człowieka. Domykaj polskim `”` albo
+   nie używaj cudzysłowu w komunikacie.
+5. **Reguła pytająca o WZMIANKĘ zamiast o zmianę stanu** — dziesiąty nawrót
+   tej pułapki w projekcie, tym razem w regule napisanej pół godziny wcześniej:
+   13. reguła higieny zapaliła się na sondzie, która stan sprzedaży wyłącznie
+   CZYTA. Rozliczamy tylko to, co stan ZMIENIA.
 
 ### PLAUZYBILNE, DZIŚ NIECZYNNE (hardening, nie awaria)
 
@@ -204,12 +213,27 @@ Sprostowanie do C2, na wypadek powrotu do tematu: „Usuń kurs" kasuje kurs
 czegoś takiego jak usunięcie kursu jednemu klientowi; odebranie dostępu jednej
 osobie to zwrot zamówienia w WooCommerce (zrobione w P5).
 
+**Przycisk „Usuń" NIE JEST nowy** — jest w kokpicie od kroku W4 (commit
+`f31b69f`, 2026-08-25), bo warstwa zapisu musiała umieć kasować od pierwszego
+dnia: bez tego bramki nie miałyby jak posprzątać własnych kursów testowych
+inaczej niż surowym SQL-em, czyli omijając jedyną warstwę pisującą do naszych
+tabel. C2 niczego nie dodało — dołożyło hamulec.
+
+Właściciel dostał trzy warianty i wybrał pierwszy (2026-08-31):
+**(1) dołożyć hamulec** — przycisk zostaje, ale pyta liczbą i chce drugiego
+kliknięcia; (2) zablokować na głucho, z drogą wyjścia tylko komendą;
+(3) wyjąć przycisk z kokpitu, zostawiając kasowanie bramkom i komendzie.
+Warianty 2 i 3 są **odrzucone**, nie „na później".
+
 ## Co zostaje do zrobienia
 
-1. **Scenariusz testu ręcznego dla właściciela** (wzorem
-   [W6-TEST-RECZNY.md](plugin-1/W6-TEST-RECZNY.md), [TEST-RECZNY-P6.md](plugin-2/TEST-RECZNY-P6.md),
-   [TEST-RECZNY-T4.md](plugin-3/TEST-RECZNY-T4.md)) — JEDNA ścieżka przez
-   wszystkie trzy wtyczki naraz, z tabelą „czego nie zgłaszać".
+1. ~~Scenariusz testu ręcznego dla właściciela~~ **NAPISANY:
+   [TEST-RECZNY-CALOSC.md](TEST-RECZNY-CALOSC.md)** — jedna ścieżka
+   w dziesięciu krokach przez wszystkie trzy wtyczki, z zaznaczonymi SZWAMI
+   i tabelą „czego nie zgłaszać". Przelot kontrolny przed oddaniem:
+   `node --env-file=.env tools/smoke/przelot-calosc.mjs` — **37/37**
+   (sonda, nie bramka; nie wchodzi do `npm run check`).
+   **NASTĘPNY KROK: test właściciela.**
 2. Test właściciela → poprawki → CHANGELOG + README → **PR jedną gałęzią**
    (razem z zapisem o odwołanej rozbudowie ekranu) → tag → release.
 3. Pozycje z listy „plauzybilne" **poza pustym uuid zostają otwarte świadomie** —
