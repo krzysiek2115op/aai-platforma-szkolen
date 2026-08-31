@@ -31,6 +31,31 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 - Przed każdym /clear: sweep rozmowy wg goldena przed-clear (pamięć projektu)
   — decyzje → nośnik trwały, braki dopisać, następny krok zapisany.
 
+## Mapa tego pliku (czytaj, zanim zaczniesz szukać)
+
+Ten plik jest **dziennikiem**, nie instrukcją: rośnie od góry ku dołowi, a
+zapisy nieaktualne są oznaczane jako „Zapis historyczny", nie kasowane. Ma
+ponad trzy tysiące linii — nie czytaj go w całości, wejdź od razu tam, gdzie
+trzeba.
+
+| Szukasz | Gdzie |
+|---|---|
+| **co robić TERAZ** | sekcja „TRZY OSTATNIE KROKI" — bieżący jest **krok 2, higiena repo** |
+| zasad, których nie wolno złamać | „Twarde zasady" wyżej + [docs/WYTYCZNE.md](docs/WYTYCZNE.md) |
+| prototypu Next.js (działy D1–D7, bramki B1–B7) | „Stan i następny krok" — od początku do „PLUGIN 1 DOMKNIĘTY" |
+| decyzji o etapie WordPress, środowiska `:8892`, motywu | „ETAP WORDPRESS — START" + [docs/ETAP-WP.md](docs/ETAP-WP.md) |
+| wtyczki sklepu `aai-sklep` (kroki W1–W6) | „ETAP WORDPRESS", kroki W1–W6 |
+| wtyczki płatności `aai-platnosci` (P0–P6) | „ETAP WORDPRESS", kroki P0–P6 + [docs/plugin-2/DIAGRAM.md](docs/plugin-2/DIAGRAM.md) |
+| wtyczki monitoringu `aai-monitor` (T0–T4) | „ETAP WORDPRESS", kroki T0–T4 + [docs/plugin-3/DIAGRAM.md](docs/plugin-3/DIAGRAM.md) |
+| dlaczego CI jest czerwony | „CI STOI OD 2026-08-18" — wyczerpane minuty Actions, nie kod |
+| pułapek, które już raz kosztowały czas | szukaj w pliku słów **PUŁAPKA**, **LEKCJA** i **BLAD-** |
+
+**Klasy błędów, które w tym projekcie WRACAJĄ** (każda ma tu swoją historię):
+wzorzec strażnika celujący w NAZWĘ zamiast w ROZSTRZYGNIĘCIE (dziewięć
+nawrotów), pomiar maskujący kod wyjścia potokiem, bramka sprzątająca CUDZE
+dane, martwy bind mount wtyczki po `git checkout` oraz test negatywny, który
+przechodzi po pustce.
+
 ## Stan i następny krok (aktualizować!)
 
 - Wersja: patrz CHANGELOG. Diagram Pluginu 1 zatwierdzony po 3 poprawkach
@@ -3007,10 +3032,14 @@ wyprowadzała tego od nowa:
         README, **PR #107 zmergowany do `main`, tag `v0.59.0` + release**.
         Zapowiedź „CHANGELOG i README jeszcze nie zrobione" była prawdziwa
         w chwili pisania i jest nieaktualna od 0.59.0.
-        **WYNIKU TESTU RĘCZNEGO CAŁOŚCI REPO NIE ZAPISUJE** — ani CHANGELOG,
-        ani TEST-CALOSCI-WP.md nie mówią, czy właściciel go przeszedł, choć
-        dokument kroku warunkował merge jego zaliczeniem, a merge nastąpił.
-        Do rozstrzygnięcia z właścicielem przy audycie końcowym.
+        **TEST RĘCZNY CAŁOŚCI ZALICZONY (właściciel, 2026-08-31) — ETAP
+        WORDPRESSA JEST ZAMKNIĘTY.** Wynik przez chwilę nie istniał w repo:
+        ani CHANGELOG, ani TEST-CALOSCI-WP.md go nie notowały, choć dokument
+        kroku warunkował merge jego zaliczeniem, a merge nastąpił. Zapisany
+        przy higienie repo 2026-08-31, na potwierdzenie właściciela.
+        **Lekcja: bramka, której WYNIK nie trafia do repo, po tygodniu jest
+        nie do odróżnienia od bramki, której nie było** — W6, P6 i T4 mają
+        swoje zapisy, ta jedna ich nie miała.
         **PRZYCISK „USUŃ KURS" NIE JEST NOWY** — jest w kokpicie od W4
         (`f31b69f`); C2 dołożyło do niego hamulec. Właściciel wybrał wariant
         „dołóż hamulec" z trzech; „zablokuj na głucho" i „wyjmij przycisk

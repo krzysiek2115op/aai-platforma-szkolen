@@ -5,6 +5,78 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.62.0] — 2026-08-31
+
+### Repo przestaje twierdzić, że skończone kroki trwają
+
+Krok 2 z trzech ostatnich ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)). Powód
+właściciela: *„repo jest bardzo za nami z tym, co już mamy i co robimy"* —
+README i dokumentacja mają mówić prawdę o tym, w którym miejscu jesteśmy.
+
+**Najważniejsze ustalenie kroku: `straznik-readme` był ZIELONY przez cały
+czas.** Liczby, których pilnuje maszyna (38 strażników, mutacje, testy,
+kotwice, skrypty npm), były prawdziwe. Wszystkie znalezione nieprawdy siedziały
+dokładnie w jego martwym polu: **proza o stanie projektu, składnia tabel
+i narzędzia bez wejścia**. Higiena nie polegała więc na poprawianiu liczb.
+
+### Naprawione
+
+- **Siedem deklaracji stanu w `CLAUDE.md` było nieprawdą.** „W TOKU" stało przy
+  P2, P3a, Pluginie 3 i teście całości, „PR NIEOTWARTY" przy P4 i T3, a osobny
+  zapis twierdził, że CHANGELOG i README dla testu całości są „jeszcze nie
+  zrobione". Każdy z tych kroków był WYDANY i otagowany (0.47.0, 0.48.0,
+  0.51.0, 0.57.0, 0.58.0, 0.59.0 — istnienie tagów sprawdzone, nie założone).
+  Nowa sesja czytała to jako stan bieżący.
+- **Wiersz „Etap" w README był jedną komórką tabeli na 5292 znaki** i trzy razy
+  mówił „Trwa" o rzeczach skończonych. Tabela niesie teraz skrót, a CAŁA
+  narracja została — przeniesiona pod tabelę jako sekcja „Co jest już gotowe".
+  Nic nie skasowane, tylko wyjęte z komórki, w której było nieczytelne.
+- **Dwa wiersze tabeli miały treść po zamykającym `|`**, więc opisy bramek
+  zakupu i maili były na stronie repozytorium **ucięte**. W edytorze widać
+  wszystko, na GitHubie nie — dlatego przeżyło to niezauważone.
+- **Cztery z dziewiętnastu narzędzi `tools/*.mjs` nie były wymienione ani
+  w `package.json`, ani w README** (`cytaty-zgodne`, `most-lekcji`,
+  `sprawdz-zywy` i `pobierz-dokumentacje-wp`). Ostatnie jest najgorsze:
+  `CLAUDE.md` każe je uruchomić po `git clean`, zanim napisze się linijkę kodu
+  wtyczki. Narzędzie, którego nikt nie znajdzie, jest w praktyce nieistniejące.
+- **Wynik testu ręcznego CAŁOŚCI trzech wtyczek nie istniał w repo.** Dokument
+  kroku warunkował merge jego zaliczeniem, PR #107 został zmergowany i wydany
+  jako `v0.59.0`, a nigdzie nie było napisane, czy test się odbył. Właściciel
+  potwierdził 2026-08-31, że go przeszedł — **etap WordPressa jest ZAMKNIĘTY**.
+
+### Dodane
+
+- **Reguły 7 i 8 `straznik-readme`**, po jednej na każdą znalezioną klasę:
+  każde `tools/*.mjs` musi dać się znaleźć (README albo `package.json`), a
+  żaden wiersz tabeli w README nie może mieć treści po zamykającym `|`.
+  Reguła 7 ma samokontrolę zakresu — pusta lista narzędzi zapala błąd zamiast
+  przechodzić po pustce. Obie sprawdzone **testem negatywnym bez potoku**:
+  zapalają się na czerwono i gasną po cofnięciu. Audyt mutacyjny **332 → 334**.
+- **Mapa `CLAUDE.md`** — plik ma 3200 linii i jest dziennikiem, nie instrukcją.
+  Tabela na górze mówi, gdzie szukać stanu bieżącego, historii każdej wtyczki
+  i pułapek, plus lista klas błędów, które w tym projekcie wracają.
+
+### Zapamiętane
+
+**Bramka, której WYNIK nie trafia do repo, po tygodniu jest nie do odróżnienia
+od bramki, której nie było.** W6, P6 i T4 mają zapisy z datą i decydentem;
+test całości — najszerszy z nich — nie miał żadnego.
+
+**Turbopack potrafi paść paniką wewnętrzną, która wygląda jak regresja
+kodu.** W tym kroku `npm run build` wywalił się z `TurbopackInternalError:
+ModuleGraphLayer::new was canceled` — przy zmianach wyłącznie w plikach
+Markdown, czyli w sytuacji, w której regresja jest niemożliwa. Nie było
+konkurencyjnego `npm run dev` (znana przyczyna z 0.34.0) ani sierot
+procesowych; `rm -rf .next` i powtórka dały zielone. Zanim uznasz taki błąd
+za swój, sprawdź, CO się w ogóle zmieniło.
+
+**Klasa „proza starzeje się cicho" NIE jest łapalna mechanicznie** i nie
+udawaliśmy, że jest. Reguły 7 i 8 celują w rzeczy policzalne (pliki,
+składnia). Zdania w rodzaju „Trwa Plugin 2" pilnuje wyłącznie golden
+przed-`/clear` — czyli proces, nie strażnik. Dopisanie tu reguły opartej na
+wzorcu na napis byłoby dziewiątym nawrotem klasy, którą ten projekt zna
+z osiemnastu wersji.
+
 ## [0.61.0] — 2026-08-31
 
 ### Cena zatwierdzona w kasie nie zmienia się do zapłaty

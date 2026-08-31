@@ -122,7 +122,14 @@ cache-aware (klasa A11 wydajności).
 ```
 Drugi czat jest w osobnym worktree; `git add -A` nie zgarnie nic jego.
 
-## NASTĘPNY KROK (po /clear) — RELEASE ZABEZPIECZENIOWY
+## RELEASE ZABEZPIECZENIOWY — ZROBIONY (v0.59.0)
+
+**Wszystkie trzy punkty poniżej są WYKONANE**: `npm run check` przeszedł
+w całości, wpis CHANGELOG i wersja weszły jako **0.59.0**, PR #107 został
+zmergowany do `main`, tag `v0.59.0` + release zrobione. Lista zostaje jako
+zapis tego, co krok obejmował.
+
+### Co obejmował (zapis historyczny)
 Bezpieczeństwo (część w naszym kodzie) jest **MERYTORYCZNIE KOMPLETNE**.
 Zostaje domknięcie releasu — **wymaga „ok" właściciela**:
 1. `npm run check` w całości (lint, tsc, test, build, smoke) — dotąd
