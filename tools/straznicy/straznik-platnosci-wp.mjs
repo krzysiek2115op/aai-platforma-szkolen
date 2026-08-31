@@ -1040,6 +1040,35 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* 40. „SPRZEDAŻ NIE DZIAŁA" MUSI BYĆ PRAWDĄ, ZANIM PADNIE.
+
+   Znalezisko testu całości (2026-08-31), zreprodukowane: po wyłączeniu
+   Pluginu 1 produkty kursów zostają `publish` i dalej wchodzą do koszyka
+   (`woocommerce_items_in_cart=1`), a kontrola pisała „Sprzedaż nie działa"
+   i kończyła ZEREM. Zdanie było nieprawdziwe, a kod wyjścia mówił „wszystko
+   w porządku" o sklepie sprzedającym kursy bez danych.
+
+   Reguła pyta o ROZSTRZYGNIĘCIE: gałąź braku zależności ma najpierw
+   policzyć kupowalne produkty i wyjść JEDYNKĄ, gdy jakieś zostały. */
+{
+  const cli40 = join(KATALOG, "includes", "class-aai-platnosci-cli.php");
+  if (existsSync(cli40)) {
+    const c = kod(readFileSync(cli40, "utf8"));
+    // Zakres to gałąź w `sprawdz()`, a nie pierwsze wystąpienie `brakuje()`
+    // w pliku — to samo wywołanie stoi też w `sync()`, kilkaset linii wyżej,
+    // i pomiar szedł po nim, czyli po zupełnie innym kodzie.
+    const start = c.indexOf("$brak = Aai_Platnosci_Zaleznosci::brakuje();");
+    const blok = start < 0 ? "" : c.slice(start, start + 1800);
+    const liczy = /kupowalne_bez_sklepu\s*\(/.test(blok);
+    const wychodziJedynka = /kupowalne\s*>\s*0[\s\S]{0,700}?WP_CLI::halt\(\s*1\s*\)/.test(blok);
+    if (!liczy || !wychodziJedynka) {
+      bledy.push(
+        `${cli40}: gałąź braku zależności nie sprawdza, czy produkty kursów DALEJ DA SIĘ KUPIĆ (liczy: ${liczy}, wychodzi jedynką: ${wychodziJedynka}). Kontrola pisałaby „Sprzedaż nie działa" i kończyła zerem, choć klient może zapłacić za kurs, którego danych już nie ma (zmierzone przy wyłączonym Pluginie 1).`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1047,5 +1076,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą)."
 );

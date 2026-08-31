@@ -2398,6 +2398,17 @@ const MUTACJE = [
           )
         : null,
   },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola melduje niedzia\u0142aj\u0105c\u0105 sprzeda\u017c, nie policzywszy kupowalnych produkt\u00f3w",
+    plik: CLI_PLATNOSCI,
+    wymaga: () => existsSync(CLI_PLATNOSCI),
+    oczekiwanySlad: "DALEJ DA SIĘ KUPIĆ",
+    zmien: (s) =>
+      s.includes("$kupowalne = self::kupowalne_bez_sklepu();")
+        ? s.replace("$kupowalne = self::kupowalne_bez_sklepu();", "$kupowalne = 0;")
+        : null,
+  },
   // --- C2: hamulec przy usuwaniu kursu, który ktoś kupił (2026-08-31) ---
   {
     straznik: "straznik-kreatora-wp",

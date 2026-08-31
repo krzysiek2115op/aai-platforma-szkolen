@@ -540,6 +540,32 @@ final class Aai_Platnosci_Cli {
 
 		$brak = Aai_Platnosci_Zaleznosci::brakuje();
 		if ( array() !== $brak ) {
+			/*
+			 * NAJPIERW SPRAWDŹ, CZY „SPRZEDAŻ NIE DZIAŁA" JEST PRAWDĄ.
+			 *
+			 * Znalezisko testu całości (2026-08-31), zreprodukowane: po
+			 * wyłączeniu Pluginu 1 produkty kursów zostają `publish` i dalej
+			 * wchodzą do koszyka przez `?add-to-cart` (zmierzone:
+			 * `woocommerce_items_in_cart=1`), a kontrola pisała „Sprzedaż nie
+			 * działa" i kończyła ZEREM. Klient kupowałby wtedy kurs, którego
+			 * strony sprzedażowej ani danych już nie ma.
+			 *
+			 * Zamknięcie sprzedaży NAPRAWDĘ to blokuje także bez Pluginu 1
+			 * (zmierzone: w koszyku 0) — blokada siedzi w tej wtyczce. Dlatego
+			 * instrukcja w komunikacie jest wykonalna, a nie życzeniowa.
+			 */
+			$kupowalne = self::kupowalne_bez_sklepu();
+			if ( $kupowalne > 0 ) {
+				WP_CLI::error(
+					sprintf(
+						'brakuje: %s — a mimo to %d produkt(ów) kursów DALEJ DA SIĘ KUPIĆ (sprzedaż otwarta, produkty opublikowane). Klient zapłaci za kurs, którego strony i danych już nie ma. Włącz brakującą wtyczkę albo zamknij sprzedaż: wp aai-platnosci sprzedaz zamknij',
+						implode( ', ', $brak ),
+						$kupowalne
+					),
+					false
+				);
+				WP_CLI::halt( 1 );
+			}
 			// Świadomie kod 0: wyłączone otoczenie to stan nazwany, nie rozjazd.
 			WP_CLI::log( 'sprawdz: wyłączone — ' . implode( ', ', $brak ) . '. Sprzedaż nie działa; dane Pluginu 2 czekają.' );
 			// Mówimy WPROST, że kursów nie sprawdzono. „Wyłączone" bez tego
@@ -821,6 +847,31 @@ final class Aai_Platnosci_Cli {
 			static fn( $uuid ) => sprintf( 'DWA produkty z uuid %s — dopasowanie stało się loterią (B4)', (string) $uuid ),
 			$powtorki
 		);
+	}
+
+	/**
+	 * Ile produktów kursów zostaje KUPOWALNYCH mimo braku zależności.
+	 *
+	 * „Kupowalny" znaczy tu trzy rzeczy naraz, bo każda z osobna nie
+	 * wystarcza: sprzedaż jest otwarta (inaczej blokada koszyka odmawia),
+	 * WooCommerce działa (inaczej nie ma koszyka) i produkt jest
+	 * opublikowany. Liczymy przez `get_post_status`, nie przez API Woo —
+	 * ta metoda biega także wtedy, gdy zależności brakuje.
+	 */
+	private static function kupowalne_bez_sklepu(): int {
+		global $wpdb;
+		if ( ! Aai_Platnosci_Ustawienia::sprzedaz_otwarta() || ! Aai_Platnosci_Zaleznosci::jest_woo() || ! Aai_Platnosci_Tabele::istnieja() ) {
+			return 0;
+		}
+		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
+		$ile    = 0;
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
+		foreach ( (array) $wpdb->get_col( "SELECT product_id FROM {$tabela}" ) as $produkt ) {
+			if ( 'publish' === (string) get_post_status( (int) $produkt ) ) {
+				++$ile;
+			}
+		}
+		return $ile;
 	}
 
 	/**
