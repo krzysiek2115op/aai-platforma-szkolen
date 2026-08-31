@@ -5,6 +5,48 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.63.1] — 2026-08-31
+
+### Sweep przed `/clear`: repo wie, że higiena się skończyła i co jest dalej
+
+Przelot całej rozmowy wg goldena przed-`/clear`. Trzy dokumenty wskazywały
+pracę, która jest już zrobiona — **ta sama klasa, którą naprawiał krok 2**,
+tyle że tym razem złapana w sweepie, nie przez właściciela.
+
+### Naprawione
+
+- **`CLAUDE.md` wołał „NASTĘPNY KROK: KROK 2 — HIGIENA REPO"**, a krok 2 jest
+  zamknięty (0.62.0 + 0.63.0). Blok przepisany na stan faktyczny: co krok
+  zastał, co naprawił, czego się z niego nauczyliśmy i co jest dalej.
+  Mapa na górze pliku wskazywała ten sam nieaktualny krok.
+- **`docs/PLAN-SEO-HIGIENA-AUDYT.md`** opisywał krok 2 jako do zrobienia,
+  podawał `main` na `v0.59.0` i trzymał sekcję „Praca zaparkowana — NIE
+  ZGUBIĆ" o gałęzi, która jest zmergowana (0.61.0), przy usuniętym worktree.
+- **Tabela strażników w README** nie wspominała o regułach 7 i 8
+  `straznik-readme`, które doszły w 0.62.0 — czyli sam strażnik przed
+  starzeniem się dokumentacji miał w niej nieaktualny opis.
+
+### Dodane
+
+- **Zakres następnego kroku zapisany w dwóch miejscach**: schematy **draw.io
+  wszystkich trzech wtyczek**, dla klientów technicznych i nietechnicznych,
+  **przed** audytem końcowym (decyzja właściciela 2026-08-31). Razem
+  z faktem, od którego ta praca się zacznie: **nie istnieje żaden dokument
+  opisujący trzy wtyczki RAZEM** — są trzy osobne `DIAGRAM.md` w mermaidzie,
+  każdy dla technika, żaden nie pokazuje szwów MIĘDZY wtyczkami ani granicy
+  wobec WooCommerce i Tutora.
+- **Rozstrzygnięcie o układzie wtyczek** (nic nie przenosimy — układ istnieje
+  od W1, brakowało go tylko w README) i **stan gałęzi zmierzony**: zdalnie 9,
+  worktree 0.
+
+### Zapamiętane
+
+**Golden przed-`/clear` zarabia na siebie w tym samym kroku, w którym
+naprawialiśmy tę klasę błędu.** Trzy dokumenty zdążyły się zestarzeć
+w ciągu jednej sesji — bo każdy zamknięty krok unieważnia zdania napisane,
+gdy był otwarty. Sweep nie jest formalnością na koniec; jest jedynym
+momentem, w którym ktokolwiek czyta te zdania ponownie.
+
 ## [0.63.0] — 2026-08-31
 
 ### README opisuje trzy skończone wtyczki, a nie trzy zaplanowane moduły

@@ -16,7 +16,7 @@ dopiero potem kod.
 
 | Co | Stan |
 |---|---|
-| `main` | `c2198dc`, tag **v0.59.0**, drzewo czyste |
+| `main` | (stan z chwili pisania: `c2198dc`, tag **v0.59.0**) — **dziś `v0.63.0`**, drzewo czyste |
 | Wtyczki | trzy SKOŃCZONE: `aai-sklep` (W1–W6), `aai-platnosci` (P1–P6), `aai-monitor` (T1–T4) |
 | Test całości | zrobiony, PR #107 zmergowany |
 | Testy ręczne | **zaliczone** (właściciel, 2026-08-31) |
@@ -24,7 +24,15 @@ dopiero potem kod.
 | Środowisko `:8892` | stoi, z aktywnym obwodem i egzekwującym CSP |
 | CI | stoi od 2026-08-18 (**2121 minut Actions przy limicie 2000**); wraca **1 września** — wtedy potwierdzić **gitleaks** |
 
-### Praca zaparkowana — NIE ZGUBIĆ
+### Praca zaparkowana — SCALONA 2026-08-31 (zapis historyczny)
+
+> [!NOTE]
+> **Gałąź `feat/zamrozenie-ceny-w-zamowieniu` jest zmergowana** (PR #111,
+> tag `v0.61.0` + release), a **worktree usunięty**. Przed PR-em wciągnięto
+> `main` i zweryfikowano artefakt. Konflikt był jeden i pouczający: obie
+> strony dopisały nową regułę `straznik-platnosci-wp` w tym samym miejscu
+> (38 z `main`, 42 z gałęzi) — **obie zostały**, a plik złożono z dwóch
+> wersji zamiast sklejać zagnieżdżone klamry w konflikcie.
 
 Worktree **`/home/krzysiek/Pod-strona-Szkolenia-zamrozenie`**, gałąź
 **`feat/zamrozenie-ceny-w-zamowieniu`**, 14 plików. Powstała 2026-08-31
@@ -151,7 +159,25 @@ własną maską. Rastry generuje ich `scripts/generuj-ikony-marki.mjs`.
 
 ---
 
-## KROK 2 — higiena repo
+## KROK 2 — higiena repo — ZROBIONY (0.62.0 + 0.63.0)
+
+> [!NOTE]
+> **Krok zamknięty 2026-08-31, w dwóch turach** (PR #112 i #113, tagi
+> `v0.62.0` i `v0.63.0`). Poniższy zakres jest zapisem tego, od czego
+> ruszył — wynik i lekcje są w CHANGELOG 0.62.0 / 0.63.0 oraz w `CLAUDE.md`.
+>
+> **Dwie rzeczy warte zapamiętania:** (1) `straznik-readme` był ZIELONY przez
+> cały czas i miał rację — wszystkie nieprawdy siedziały w jego martwym polu
+> (proza o stanie, składnia tabel, narzędzia bez wejścia); (2) pierwsza tura
+> naprawiła sekcję „Stan projektu" w README i **zatrzymała się nad nią**,
+> a ta sama nieprawda żyła sto linii niżej — zgłosił ją właściciel zrzutem.
+> **Przelot musi objąć CAŁY plik, nie sekcję, od której zaczęło się szukanie.**
+>
+> **Rozstrzygnięte przy okazji:** układ wtyczek zostaje bez zmian
+> (`wordpress/wtyczki/` + trzy podfoldery istnieje od W1; README go teraz
+> POKAZUJE), a **przed audytem końcowym wchodzą schematy draw.io wszystkich
+> trzech wtyczek** — dla klientów technicznych i nietechnicznych.
+
 
 **Powód (właściciel):** „repo jest bardzo za nami z tym, co już mamy i co
 robimy". README i cała dokumentacja mają mówić **prawdę o tym, w którym
@@ -206,6 +232,20 @@ Do naśladowania też ich konwencja commitów: temat opisuje **SKUTEK**, nie
 czynność.
 
 ---
+
+## PRZED KROKIEM 3 — schematy draw.io trzech wtyczek
+
+**Decyzja właściciela 2026-08-31:** przed audytem końcowym powstają schematy
+w **draw.io** dla WSZYSTKICH TRZECH wtyczek, w dwóch wariantach — dla klienta
+**nietechnicznego** i **technicznego**. Właściciel poda własny prompt
+z wymaganiami; **nie zakładać zakresu przed nim**.
+
+**Fakt zmierzony, od którego ta praca się zacznie: nie istnieje żaden
+dokument opisujący trzy wtyczki RAZEM.** Są trzy osobne `DIAGRAM.md`
+w mermaidzie ([P1](plugin-1/DIAGRAM.md), [P2](plugin-2/DIAGRAM.md),
+[P3](plugin-3/DIAGRAM.md)), każdy pisany w innym momencie i dla technika,
+i żaden nie pokazuje szwów MIĘDZY wtyczkami ani granicy wobec WooCommerce
+i Tutora. Złożenie materiału będzie główną pracą, nie samo rysowanie.
 
 ## KROK 3 — audyt końcowy projektu
 

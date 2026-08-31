@@ -40,7 +40,7 @@ trzeba.
 
 | Szukasz | Gdzie |
 |---|---|
-| **co robić TERAZ** | sekcja „TRZY OSTATNIE KROKI" — bieżący jest **krok 2, higiena repo** |
+| **co robić TERAZ** | sekcja „TRZY OSTATNIE KROKI", koniec — bieżące są **schematy draw.io trzech wtyczek**, potem audyt końcowy |
 | zasad, których nie wolno złamać | „Twarde zasady" wyżej + [docs/WYTYCZNE.md](docs/WYTYCZNE.md) |
 | prototypu Next.js (działy D1–D7, bramki B1–B7) | „Stan i następny krok" — od początku do „PLUGIN 1 DOMKNIĘTY" |
 | decyzji o etapie WordPress, środowiska `:8892`, motywu | „ETAP WORDPRESS — START" + [docs/ETAP-WP.md](docs/ETAP-WP.md) |
@@ -1111,23 +1111,86 @@ Skrót tego, czego nie wyprowadzać od nowa:
   ta jedna opcja bramkuje CAŁĄ sitemapę, więc bez niej cała praca kroku 1
   jest w produkcji niewidoczna.
 
-**NASTĘPNY KROK: KROK 2 — HIGIENA REPO** (decyzja właściciela 2026-08-31:
-po `/clear` zaczynamy od niej). Zakres wyjściowy i znane rozjazdy:
-[PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md), sekcja
-„KROK 2". Obowiązuje reguła z 2026-08-28: **plan + pytania + zgoda przed
-pracą.** Do kroku 2 dochodzą trzy rzeczy zmierzone przy SEO:
-- **gałęzi zdalnych jest PIĘĆ, nie trzydzieści** (`main`,
-  `plugin-1-sklep-kursow`, 2 × `bak/*`, 1 dependabota) — wcześniejsza
-  większa lista była przeterminowanym stanem lokalnym; liczyć
-  `git fetch --prune`, nie z pamięci;
-- lokalnie zostaje `docs/plan-seo-higiena-audyt` (już scalona przez #108);
-- **`tools/okladki-png.mjs` nie jest wymieniony ANI w `package.json`, ANI
-  w README, ANI w żadnym strażniku** — narzędzie, którego nikt nie znajdzie
-  (dla kontrastu: `tools/ikony-marki.mjs` dostał `npm run ikony` i wiersz
-  w README).
-**Zaparkowane:** gałąź `feat/zamrozenie-ceny-w-zamowieniu` (worktree obok)
-czeka na scalenie PO SEO — stoi na `09d6c79`, czyli przed 0.59.0, więc
-przed jej PR-em wciągnąć `main` i zweryfikować ARTEFAKT.
+**KROK 2 — HIGIENA REPO — ZROBIONY I ZAMKNIĘTY (2026-08-31), w DWÓCH
+turach: `0.62.0` (PR #112) i `0.63.0` (PR #113).** Oba merge'e na dowodach
+lokalnych za zgodą właściciela, tagi + release'y, gałęzie skasowane,
+artefakty zweryfikowane (`git diff origin/main <szczyt>` PUSTE). Wcześniej
+tego samego dnia weszła **`0.61.0`** (PR #111) — praca zaparkowana, czyli
+zamrożenie ceny w złożonym zamówieniu; worktree usunięty.
+
+**SEDNO KROKU:** `straznik-readme` był ZIELONY przez cały czas i miał rację —
+liczby pilnowane maszynowo (38 strażników, mutacje, testy, kotwice, skrypty)
+były prawdziwe. **Wszystkie nieprawdy siedziały w jego martwym polu: proza
+o stanie, składnia tabel i narzędzia bez wejścia.**
+
+Naprawione: **siedem** deklaracji stanu w tym pliku („W TOKU"/„PR NIEOTWARTY"
+przy krokach wydanych), wiersz „Etap" w README jako jedna komórka na 5292
+znaki, **dwa wiersze tabeli z treścią po zamykającym `|`** (opisy bramek były
+na GitHubie UCIĘTE), **cztery z 19 narzędzi `tools/*.mjs` nie do znalezienia**,
+oraz — w drugiej turze — CAŁA tabela „Moduły" wskazująca **branche
+`plugin-2-platnosci` i `plugin-3-admin-panel`, KTÓRE NIE ISTNIEJĄ**, i bazy
+`db2_klienci`/`db3_monitoring`, **KTÓRE NIGDY NIE POWSTAŁY** (jedyna realna
+baza Postgresa to `db1_kursy`).
+
+**LEKCJA, KTÓRA KOSZTOWAŁA DRUGĄ TURĘ:** pierwszy przelot naprawił sekcję
+„Stan projektu" w README i **zatrzymał się nad nią** — ta sama nieprawda
+żyła sto linii niżej i zgłosił ją WŁAŚCICIEL zrzutem. **Przy prozie
+starzejącej się cicho przelot musi objąć CAŁY plik, nie sekcję, od której
+zaczęło się szukanie.**
+
+**Doszło:** reguły 7 i 8 `straznik-readme` (każde `tools/*.mjs` musi dać się
+znaleźć; żaden wiersz tabeli nie może mieć treści po zamykającym `|`), obie
+z samokontrolą zakresu i testami negatywnymi **bez potoku**; audyt mutacyjny
+**328 → 334**. Do tego **mapa na górze tego pliku** i sekcja **„Gdzie co
+leży"** w README (drzewo z `git ls-files`).
+
+**DWIE RZECZY DOPISANE DO REPO, KTÓRYCH W NIM NIE BYŁO:**
+- **wynik testu ręcznego CAŁOŚCI trzech wtyczek** — dokument warunkował merge
+  jego zaliczeniem, PR #107 wyszedł jako 0.59.0, a nigdzie nie było napisane,
+  czy się odbył; właściciel potwierdził 2026-08-31, że go przeszedł, więc
+  **etap WordPressa jest ZALICZONY**, nie tylko „zamknięty kodem". **Bramka,
+  której WYNIK nie trafia do repo, po tygodniu jest nie do odróżnienia od
+  bramki, której nie było.**
+- **wyjątek od reguły „czerwone CI = stop"** — README kazał nie mergować przy
+  czerwonym CI, a szesnaście wersji weszło właśnie tak, decyzją właściciela,
+  bo padło rozliczenie minut Actions. **Sprzeczność reguły z praktyką jest
+  gorsza od nieaktualności**: nieaktualne zdanie da się zignorować, reguła
+  łamana szesnaście razy uczy, że reguły są dekoracją. Wyjątek jest teraz
+  NAZWANY w README, z komendą diagnostyczną.
+
+**GAŁĘZIE (zmierzone `git ls-remote`, nie z pamięci): zdalnie 9** — `main`,
+`plugin-1-sklep-kursow`, **sześć `bak/*`** i dependabot. Cztery `bak/*` żyły
+wcześniej wyłącznie lokalnie i zostały wypchnięte: WYTYCZNE §1 każą je
+zachować, a migawka na jednym dysku migawką nie jest (kosztowało zero nowych
+obiektów — wszystkie są przodkami `main`). **Worktree: zero.**
+
+**UKŁAD WTYCZEK — pytanie właściciela, ROZSTRZYGNIĘTE: nic nie przenosimy.**
+Prosił o „folder z wtyczkami WordPressa, wszystkie 3 poukładane na
+podfoldery" — **ten układ istnieje od kroku W1** (`wordpress/wtyczki/`
++ `aai-sklep` 87 plików, `aai-monitor` 20, `aai-platnosci` 17, każda
+z `includes/`, `assets/`, `szablony/`, `languages/`). Problemem było to, że
+README go NIE POKAZYWAŁO. Przeniesienie katalogu dotknęłoby **19 plików**,
+w tym 9 strażników i montowanie w `compose.yml`, a nie kupuje niczego.
+
+**═══ NASTĘPNY KROK: SCHEMATY draw.io WSZYSTKICH TRZECH WTYCZEK ═══**
+(decyzja właściciela 2026-08-31, PRZED audytem końcowym). Dla klientów
+**technicznych I nietechnicznych**. Właściciel poda własny prompt z
+wymaganiami — **czekać na niego, nie zakładać zakresu**.
+**Fakt zmierzony, od którego zacznie się ta praca: NIE ISTNIEJE żaden
+dokument opisujący trzy wtyczki RAZEM.** Są trzy osobne `DIAGRAM.md`
+w mermaidzie ([Plugin 1](docs/plugin-1/DIAGRAM.md),
+[Plugin 2](docs/plugin-2/DIAGRAM.md), [Plugin 3](docs/plugin-3/DIAGRAM.md)),
+każdy pisany w innym momencie i dla technika, i żaden nie pokazuje szwów
+MIĘDZY wtyczkami ani granicy wobec WooCommerce i Tutora. Złożenie tego
+materiału będzie główną pracą kroku, nie samo rysowanie.
+
+**POTEM: audyt końcowy** — wytyczne poda właściciel, nie planować zakresu
+z własnej inicjatywy.
+
+**JUTRO (1 września) WRACA CI** — wtedy dwie rzeczy: domknąć **dependabota
+PR #106** z zielonym checkiem (decyzja właściciela: czekamy na CI) i
+potwierdzić **gitleaks**, jedyne sprawdzenie bez lokalnego odpowiednika,
+czekające od kilkunastu wersji.
 
 ## ═══ ETAP WORDPRESS — START (decyzje właściciela 2026-08-25) ═══
 
