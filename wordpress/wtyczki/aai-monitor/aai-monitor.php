@@ -90,10 +90,27 @@ register_activation_hook(
 add_action(
 	'plugins_loaded',
 	static function (): void {
-		Aai_Monitor_Tabele::dociagnij_schemat();
-		// Wersje, na których dowiedziono haki — różnica NIE blokuje
-		// wtyczki, tylko każe potwierdzić fakty od nowa (L17 z P2).
-		Aai_Monitor_Zaleznosci::zarejestruj();
+		/*
+		 * OSŁONA OBEJMUJE CAŁY START, NIE TYLKO CZUJKI. Do testu całości
+		 * (2026-08-31) `try` zaczynał się dopiero przy czujkach, a trzy
+		 * wywołania stały poza nim — i to wystarczało, żeby brak JEDNEGO
+		 * pliku z `includes/` wywrócił CAŁĄ witrynę razem ze sklepem.
+		 * Zmierzone różnicowo: bez `class-aai-monitor-tabele.php`
+		 * `/szkolenia/` oddawało **HTTP 500**, bez `class-aai-monitor-
+		 * logowania.php` (czyli spod `try`) — **200**. Autoloader wyżej
+		 * POMIJA plik nieczytelny, więc brakowi jednego pliku towarzyszy
+		 * `Error: Class not found` na każdym żądaniu.
+		 *
+		 * Wyjątek raportujemy przez kanał błędów, ale TYLKO gdy on sam
+		 * istnieje: `catch`, który woła klasę, przed której brakiem ma
+		 * bronić, sam by się wywrócił. Bez kanału zostaje log serwera —
+		 * gorzej widoczny, ale nie wywraca strony.
+		 */
+		try {
+			Aai_Monitor_Tabele::dociagnij_schemat();
+			// Wersje, na których dowiedziono haki — różnica NIE blokuje
+			// wtyczki, tylko każe potwierdzić fakty od nowa (L17 z P2).
+			Aai_Monitor_Zaleznosci::zarejestruj();
 		// Ekran kokpitu. Priorytet 20, bo wtyczki ładują się alfabetycznie
 		// i `aai-monitor` biegnie PRZED `aai-sklep` — przy domyślnym
 		// priorytecie nasza pozycja wchodziłaby do podmenu Pluginu 1
@@ -118,19 +135,22 @@ add_action(
 		 * żądaniu, także na froncie sklepu. Monitoring nie ma prawa
 		 * wywrócić strony, której tylko się przygląda.
 		 */
-		try {
 			Aai_Monitor_Logowania::zarejestruj();
 			Aai_Monitor_Wizyty::zarejestruj();
 			Aai_Monitor_Pomiar::zarejestruj();
 			Aai_Monitor_Prywatnosc::zarejestruj();
+			// Kanał błędów: zapis biegnie w cudzym żądaniu i łapie
+			// `Throwable`, więc bez tego uszkodzona tabela dawałaby PUSTĄ
+			// listę logowań, czytaną jak „nikt nie próbował" — fałszywy
+			// negatyw na jedynym ekranie, który ma ostrzegać (P13).
+			Aai_Monitor_Komunikaty::zarejestruj();
 		} catch ( Throwable $e ) {
-			Aai_Monitor_Komunikaty::zapisz( 'nie udało się podpiąć czujek monitoringu: ' . $e->getMessage() );
+			if ( class_exists( 'Aai_Monitor_Komunikaty' ) ) {
+				Aai_Monitor_Komunikaty::zapisz( 'nie udało się uruchomić monitoringu: ' . $e->getMessage() );
+			} else {
+				error_log( 'aai-monitor: nie udało się uruchomić monitoringu: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
 		}
-		// Kanał błędów: zapis biegnie w cudzym żądaniu i łapie `Throwable`,
-		// więc bez tego uszkodzona tabela dawałaby PUSTĄ listę logowań,
-		// czytaną jak „nikt nie próbował" — fałszywy negatyw na jedynym
-		// ekranie, który ma ostrzegać (P13).
-		Aai_Monitor_Komunikaty::zarejestruj();
 	}
 );
 

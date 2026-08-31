@@ -791,6 +791,44 @@ if (existsSync(GLOWNY)) {
   }
 }
 
+/* ————— 19. cały start wtyczki stoi w try/catch (test całości 2026-08-31) ————— */
+/*
+ * DLACZEGO TO JEST REGUŁA, A NIE STYL. Autoloader wtyczki POMIJA plik
+ * nieczytelny (`is_readable`), więc brak JEDNEGO pliku z `includes/`
+ * kończy się `Error: Class not found` — a jeśli pada on w callbacku
+ * `plugins_loaded`, to na KAŻDYM żądaniu, czyli HTTP 500 na całej
+ * witrynie razem ze sklepem. Zmierzone różnicowo tego dnia: wywołanie
+ * spod `try` → strona 200, to samo wywołanie poza `try` → 500.
+ *
+ * Pytamy o POŁOŻENIE wywołań, nie o obecność słowa „try": każde
+ * `Aai_Monitor_*::` w tym pliku ma stać między `try {` a `} catch`.
+ */
+{
+  const plikGlowny = GLOWNY;
+  const zrodlo = existsSync(plikGlowny) ? kod(readFileSync(plikGlowny, "utf8")) : "";
+  const start = zrodlo.indexOf("'plugins_loaded'");
+  if (start !== -1) {
+    const blok = zrodlo.slice(start);
+    const otwarcie = blok.indexOf("try {");
+    const zamkniecie = blok.indexOf("} catch");
+    const pozaOslona = [];
+    // Wywołanie PRZED `try` jest niechronione. Wywołania po `} catch`
+    // pomijamy świadomie: tam mieszka sam raport o błędzie, strzeżony
+    // `class_exists` — reguła pytająca też o nie zapalałaby się na
+    // poprawnym kodzie (sprawdzone: pierwsza wersja tak właśnie robiła).
+    for (const m of blok.matchAll(/Aai_Monitor_[A-Za-z_]+::(?:zarejestruj|dociagnij_schemat|utworz)\(/g)) {
+      if (otwarcie === -1 || zamkniecie === -1 || m.index < otwarcie) {
+        pozaOslona.push(m[0]);
+      }
+    }
+    if (pozaOslona.length > 0) {
+      bledy.push(
+        `${plikGlowny}: ${pozaOslona.length} wywołań startu poza try/catch (np. ${pozaOslona[0]}). Brak jednego pliku z includes/ daje wtedy HTTP 500 na CAŁEJ witrynie — zmierzone 2026-08-31.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-monitora-wp:");
   for (const b of bledy) console.error(`  - ${b}`);

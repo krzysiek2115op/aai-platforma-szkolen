@@ -3076,6 +3076,38 @@ const MUTACJE = [
         : null,
   },
   {
+    // Test całości 2026-08-31. Zmierzone: wywołanie startu poza `try`
+    // zamienia brak jednego pliku z includes/ w HTTP 500 na CAŁEJ
+    // witrynie (przed naprawą: /szkolenia/ oddawało 500).
+    straznik: "straznik-monitora-wp",
+    opis: "start monitoringu wychodzi poza try/catch (brak jednego pliku = 500 na całej witrynie)",
+    plik: "wordpress/wtyczki/aai-monitor/aai-monitor.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/aai-monitor.php"),
+    oczekiwanySlad: "poza try/catch",
+    zmien: (s) =>
+      s.includes("\t\ttry {\n\t\t\tAai_Monitor_Tabele::dociagnij_schemat();")
+        ? s.replace(
+            "\t\ttry {\n\t\t\tAai_Monitor_Tabele::dociagnij_schemat();",
+            "\t\tAai_Monitor_Tabele::dociagnij_schemat();\n\t\ttry {"
+          )
+        : null,
+  },
+  {
+    // To samo w szwie płatności — ta sama miara, ten sam skutek.
+    straznik: "straznik-platnosci-wp",
+    opis: "start szwu płatności wychodzi poza try/catch (brak jednego pliku = 500 na całej witrynie)",
+    plik: "wordpress/wtyczki/aai-platnosci/aai-platnosci.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    oczekiwanySlad: "poza try/catch",
+    zmien: (s) =>
+      s.includes("\t\ttry {\n\t\tAai_Platnosci_Tabele::dociagnij_schemat();")
+        ? s.replace(
+            "\t\ttry {\n\t\tAai_Platnosci_Tabele::dociagnij_schemat();",
+            "\t\tAai_Platnosci_Tabele::dociagnij_schemat();\n\t\ttry {"
+          )
+        : null,
+  },
+  {
     // Po przeglądzie T2. Reguły czytające plik producenta nie widzą, że
     // nikt go nie uruchamia. Zmierzone: po zdjęciu tej jednej linii oba
     // strażniki są zielone, a dziennik jest martwy.
