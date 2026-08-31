@@ -5,6 +5,69 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.63.0] — 2026-08-31
+
+### README opisuje trzy skończone wtyczki, a nie trzy zaplanowane moduły
+
+Zgłosił właściciel, zrzutem tabeli „Moduły („pluginy")". Ta sama klasa co
+w 0.62.0 — **proza starzejąca się cicho** — ale w miejscu, do którego
+poprzedni krok nie zajrzał: naprawił sekcję „Stan projektu" i zatrzymał się
+nad nią, a tabela modułów sto linii niżej dalej mówiła o module 2 „🔒 po
+module 1", przy obu skończonych.
+
+Każde twierdzenie sprawdzone **pomiarem, nie pamięcią**.
+
+### Naprawione
+
+- **Branche `plugin-2-platnosci` i `plugin-3-admin-panel` NIE ISTNIEJĄ**
+  (`git ls-remote`), a bazy `db2_klienci` i `db3_monitoring` **nigdy nie
+  powstały** (lista baz w kontenerze + grep po kodzie: zero trafień).
+  Tabela modułów wskazywała jedno i drugie.
+- **Nagłówek repozytorium obiecywał „trzy osobne bazy danych"** — powstała
+  **jedna**, `db1_kursy`, a produkt trzyma własne tabele z prefiksem
+  `wp_aai_*` w JEDNEJ bazie WordPressa (decyzja właściciela 2026-08-25).
+- **Stan modułów**: Plugin 2 „🔒 po module 1" i Plugin 3 „🔒 po module 2"
+  przy obu SKOŃCZONYCH (`0.53.0`, `0.58.0`); Plugin 1 „zostaje B7", choć
+  B7 zaliczona 2026-08-25. Moduł 3 nazywał się „Panel admina", a nazywa się
+  monitoring — „panel" znaczy w tym repo kreator.
+- **Stack** twierdził, że sklep „zostanie przepisany" na wtyczkę WP. Jest
+  napisany, razem z dwiema pozostałymi; kolumna „Docelowo" zamieniona na
+  „Produkt", doszedł wiersz o WooCommerce i Tutorze.
+- **Szybki start** podawał gałąź domyślną `plugin-1-sklep-kursow` (od
+  2026-08-25 jest `main`) i **nie wspominał ani słowem o środowisku WP** —
+  czyli o produkcie. Doszła komenda `postaw.sh`, trzy komendy danych
+  i ostrzeżenie o martwym bind moncie po `git checkout`.
+- **Kreator**: zdanie „pełne logowanie da Plugin 3" jest nieprawdą od
+  decyzji z 2026-08-30 (rola redaktora ODRZUCONA definitywnie). Opisany jest
+  teraz kreator WP jako produkcyjny, prototypowy jako specyfikacja.
+- **Checklist bezpieczeństwa** trzymał konta klientów w „⏳ specyfikacja
+  wtyczki WP", choć daje je WooCommerce od P4; doszedł wiersz o obwodzie
+  WordPressa z `0.59.0`.
+- **Wiersz „Produkcja"** mówił o przyszłym przepisaniu sklepu; mówi teraz,
+  czego naprawdę brakuje do sprzedaży: hostingu, domeny, bramki płatności,
+  regulaminu i poczty produkcyjnej.
+
+### Dodane
+
+- **Sekcja „Gdzie co leży"** — drzewo katalogów wygenerowane z
+  `git ls-files`, nie przepisane. Pokazuje układ trzech wtyczek
+  w `wordpress/wtyczki/`, którego README wcześniej nie pokazywało wcale
+  (właściciel pytał o nie wprost — a układ istniał od W1).
+- **Ramka o CI** — README kazał „czerwone CI = stop, żadnego merge"
+  i rysował workflow z „CI zielone → merge", podczas gdy **szesnaście
+  ostatnich wersji weszło przy czerwonym CI**, każda osobną decyzją
+  właściciela, bo padło rozliczenie minut Actions. Czytający widział albo
+  złamaną zasadę, albo blokadę bez wyjścia. Wyjątek jest teraz nazwany
+  wprost, razem z komendą diagnostyczną i przypomnieniem o gitleaks.
+
+### Zapamiętane
+
+**Sprzeczność między regułą a praktyką jest gorsza od samej nieaktualności.**
+Nieaktualne zdanie da się zignorować; reguła, którą repo łamie szesnaście
+razy z rzędu, uczy czytelnika, że reguły w tym repo są dekoracją. Jeśli
+wyjątek jest świadomy, musi być ZAPISANY — inaczej nie odróżnisz go od
+niedbalstwa.
+
 ## [0.62.0] — 2026-08-31
 
 ### Repo przestaje twierdzić, że skończone kroki trwają

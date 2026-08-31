@@ -4,8 +4,9 @@
 
 **Sklep z kursami dla Automatic AI** (dawniej matthewplugins.pl)
 — podstrona `/szkolenia`: katalog kursów, strony sprzedażowe, płatności
-z dostawą na e-mail i panel administratora. Trzy odizolowane moduły,
-trzy osobne bazy danych.
+z dostępem do kursu po opłacie i monitoring. **Trzy wtyczki WordPressa,
+wszystkie skończone**; prototyp Next.js, na którym powstały, zostaje
+w repo jako specyfikacja wykonawcza i źródło treści.
 
 [Plan projektu](docs/PLAN.md) ·
 [Wytyczne](docs/WYTYCZNE.md) ·
@@ -30,6 +31,7 @@ trzy osobne bazy danych.
 
 - [Stan projektu](#stan-projektu)
 - [Moduły („pluginy")](#moduły-pluginy)
+- [Gdzie co leży](#gdzie-co-leży)
 - [Stack](#stack)
 - [Wytyczne projektu](#wytyczne-projektu)
 - [Jak tu się pracuje](#jak-tu-się-pracuje)
@@ -46,7 +48,7 @@ trzy osobne bazy danych.
 
 | | |
 |---|---|
-| **Wersja** | **0.62.0** |
+| **Wersja** | **0.63.0** |
 | **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). Trwają **trzy ostatnie kroki** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) — szczegóły pod tabelą |
 | **Wtyczki WordPressa** | `aai-sklep` — W1–W6, `v0.45.0` · `aai-platnosci` — P0–P6, `v0.53.0` · `aai-monitor` — T0–T4, `v0.58.0`. Każda z osobnym testem ręcznym właściciela (W6, P6, T4) — plus test CAŁOŚCI, sprawdzający je razem |
 | **Trzy ostatnie kroki** | 1. SEO — **ZROBIONY** (`0.60.0`, `0.60.1`) · 2. higiena repo — **TRWA** · 3. audyt końcowy — wytyczne poda właściciel |
@@ -54,7 +56,7 @@ trzy osobne bazy danych.
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Podgląd na żywo** | [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia) — statyczny eksport katalogu i stron kursów (`npm run deploy:podglad`), **bez kreatora i AJAX-a**, z `noindex` na czas prac. Służy do pomiarów SEO i wydajności narzędziami Google; **oba kursy są kompletne** (73 lekcje), a teksty sprzedażowe zgodne z produktem (0.33.0) — placeholderami zostają wyłącznie opinie, do pierwszych sprzedaży |
 | **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([public/fonts/LICENSE-Geist-OFL.txt](public/fonts/LICENSE-Geist-OFL.txt)) |
-| **Produkcja** | brak — **docelowo WordPress na wykupionym hostingu i domenie** (decyzja zespołu 2026-08-18): sklep zostanie przepisany na wtyczkę WP (PHP + MySQL), a obecny kod Next.js jest prototypem-specyfikacją ([szczegóły](docs/PLAN.md#decyzja-zespołu-2026-08-18--produkcja-na-wordpressie-zastępuje-plan-hosting-nodejs--vps)) |
+| **Produkcja** | **jeszcze nie stoi** — brakuje wykupionego hostingu i domeny `automaticai.pl`. Kod jest gotowy: trzy wtyczki WP działają na lokalnym `:8892`. Do uruchomienia sprzedaży brakuje jeszcze prawdziwej bramki płatności, regulaminu i poczty produkcyjnej ([lista „przed pierwszym klientem"](docs/PLAN-SEO-HIGIENA-AUDYT.md)) |
 
 ### Co jest już gotowe
 
@@ -145,32 +147,85 @@ rastry ikony, więc daje się zainstalować jako skrót z własnym znakiem
 
 ## Moduły („pluginy")
 
-Każdy moduł ma własny branch, własną bazę PostgreSQL i własne API.
-Moduły nie sięgają do cudzych tabel.
+**Wszystkie trzy są SKOŃCZONE** — każdy przeszedł własny test ręczny
+właściciela, a na koniec sprawdzono je RAZEM ([test całości](docs/TEST-CALOSCI-WP.md),
+zaliczony 2026-08-31). Produktem są **wtyczki WordPressa** w [`wordpress/wtyczki/`](wordpress/wtyczki/);
+żadna nie sięga do cudzych tabel.
 
-| # | Moduł | Branch | Baza | Zakres | Stan |
-|---|-------|--------|------|--------|------|
-| 1 | Sklep z kursami | `plugin-1-sklep-kursow` | `db1_kursy` | katalog `/szkolenia`, strona sprzedażowa kursu, kreator kursów, dziennik zmian (audyt CRUD) | 🔨 B1–B6 ✓, treść D7 kompletna (91 scenariuszy, golden treści); zostaje: kursy złożone w narzędziu + B7 |
-| 2 | Płatności | `plugin-2-platnosci` | `db2_klienci` | bramka płatności (adapter operatora), zamówienia, wysyłka kursu i potwierdzenia na e-mail | 🔒 po module 1 |
-| 3 | Panel admina | `plugin-3-admin-panel` | `db3_monitoring` | podstrona tylko dla admina, log logowań (kto, kiedy, skąd), timer wizyt na stronie | 🔒 po module 2 |
+| # | Moduł | Wtyczka | Tabele | Zakres | Stan |
+|---|-------|---------|--------|--------|------|
+| 1 | Sklep z kursami | `aai-sklep` | `wp_aai_sklep_*` (5) | katalog `/szkolenia`, strony sprzedażowe, kreator w kokpicie, widok kupionego kursu, dziennik zmian | ✅ **SKOŃCZONY** — kroki W1–W6, `v0.45.0`; B1–B7 zaliczone |
+| 2 | Płatności | `aai-platnosci` | `wp_aai_platnosci_*` (2) | SZEW do WooCommerce: kurs → produkt, konto przy zakupie, dostęp po opłacie, dwa maile, zwroty | ✅ **SKOŃCZONY** — kroki P0–P6, `v0.53.0` |
+| 3 | Monitoring | `aai-monitor` | `wp_aai_monitor_*` (2) | dziennik logowań (kto, kiedy, skąd) i pomiar ruchu — ekran w kokpicie. Tylko PATRZY, nikogo nie blokuje | ✅ **SKOŃCZONY** — kroki T0–T4, `v0.58.0` |
 
-Szczegóły — schematy tabel, podstrony, kryteria ukończenia — w
-[docs/PLAN.md](docs/PLAN.md).
+> [!NOTE]
+> **„Panel" znaczy w tym repo KREATOR treści**, nie panel admina — dlatego
+> moduł 3 nazywa się `aai-monitor`. Rola „redaktora kursów" została
+> **odrzucona definitywnie** (decyzja właściciela 2026-08-30): kreator stoi
+> na uprawnieniu `manage_options`, a konta klientów daje WooCommerce.
+
+**Czym to się różni od pierwotnego planu.** Plan z `docs/PLAN.md` zakładał
+trzy osobne bazy PostgreSQL (`db1_kursy`, `db2_klienci`, `db3_monitoring`)
+i trzy gałęzie modułowe. Powstała **tylko `db1_kursy`** — reszta jest
+nieaktualna od decyzji zespołu o WordPressie (2026-08-18) i doprecyzowania
+z 2026-08-25: **„własna baza" znaczy własne tabele z własnym prefiksem
+w bazie WordPressa**, nie osobny serwer MySQL. Dzięki temu działają
+transakcje, `JOIN` z `wp_users`/`wp_posts` i jeden backup. Sekcje §3–§4
+w PLAN.md zostają jako **lista kontrolna „czego Woo i Tutor NIE robią"** —
+patrz blok „KOREKTA" przy każdej z nich.
+
+## Gdzie co leży
+
+Drzewo zmierzone, nie przepisane (`git ls-files`; liczby to pliki śledzone
+przez gita):
+
+```
+wordpress/            131  ← PRODUKT
+  wtyczki/                   trzy wtyczki, każda w swoich podfolderach
+    aai-sklep/         87    katalog, strony sprzedażowe, kreator, widok lekcji
+    aai-monitor/       20    dziennik logowań i pomiar ruchu
+    aai-platnosci/     17    szew do WooCommerce
+  srodowisko/                postaw.sh — całe WP jedną komendą (:8892)
+    mu-plugins/              obwód bezpieczeństwa (aai-obwod.php)
+
+app/ components/       73  ← PROTOTYP Next.js (specyfikacja wykonawcza)
+modules/ lib/          34    moduł m1-sklep: kontrakty Zod, odczyt, dyspozytor
+public/                15
+
+tresc-kursow/         331  ← TREŚĆ: 73 lekcje prozy + 91 scenariuszy + zrzuty
+docs/                 119  ← plan, wytyczne, diagramy i dziennik każdego kroku
+tools/                154  ← strażnicy (38), bramki smoke, narzędzia (19)
+  straznicy/ smoke/ zrzuty/ podglad-kursow/ seed/
+goldeny/                9  ← wzorce chroniące przed cichą utratą treści
+agenci/ rejestr/        5  ← przepis na przegląd agent+krytyk, rejestr błędów
+```
+
+**Każda wtyczka ma ten sam układ w środku** — plik główny, `includes/`
+(klasy), `assets/` (CSS i JS bez zależności), `szablony/`, `languages/`,
+`index.php`, `uninstall.php`, `readme.txt`.
+
+> [!NOTE]
+> Katalog nazywa się `wordpress/wtyczki/`, bo tak WordPress nazywa miejsce
+> na wtyczki — kto zna WP, wie, na co patrzy. Ścieżka jest **montowana
+> wprost do kontenera** przez `wordpress/srodowisko/compose.yml`, więc
+> zmiana jej nazwy dotknęłaby także dziewięciu strażników i `postaw.sh`.
 
 ## Stack
 
-Prototyp budujemy na stacku strony głównej; produkcyjnie (decyzja zespołu
-2026-08-18) sklep zostanie przepisany na **wtyczkę WordPress (PHP + MySQL)**
-— prototyp jest wtedy specyfikacją wyglądu i zachowania 1:1.
+Prototyp powstał na stacku strony głównej. Decyzją zespołu (2026-08-18)
+produktem jest **wtyczka WordPressa (PHP + MySQL)** — i ta wtyczka jest już
+**napisana**, razem z dwiema pozostałymi. Prototyp Next.js zostaje w repo jako
+specyfikacja wyglądu i zachowania 1:1 oraz źródło treści kursów.
 
-| Warstwa | Technologia (prototyp) | Docelowo (etap WP) |
+| Warstwa | Prototyp (specyfikacja) | Produkt (wtyczki WP) |
 |---|---|---|
-| Framework | Next.js 16 — App Router, **z serwerem** (API routes / Server Actions) | wtyczka WordPress (PHP) |
+| Framework | Next.js 16 — App Router, **z serwerem** (API routes / Server Actions) | WordPress + trzy wtyczki (PHP, bez Composera) |
 | Język | TypeScript (`strict`) | PHP |
-| UI | React 19 + Tailwind CSS 4, design dziedziczony ze strony głównej Automatic AI | ten sam design, szablony wtyczki |
-| Bazy | PostgreSQL ×3 (lokalnie podman) | MySQL (hosting WP), migracja danych skryptem |
-| Walidacja | Zod na granicach API | sanitizacja/walidacja WP |
-| Hosting | localhost (dev) | wykupiony hosting z WordPressem + domena |
+| UI | React 19 + Tailwind CSS 4, design dziedziczony ze strony głównej Automatic AI | ten sam design, własne szablony wtyczki (`template_include`) |
+| Bazy | PostgreSQL — powstała **jedna**, `db1_kursy` (lokalnie podman) | MySQL: **własne tabele z prefiksem `wp_aai_*`** w bazie WordPressa, dane przeniesione skryptem |
+| Walidacja | Zod na granicach API | własny kontrakt wtyczki (`Aai_Sklep_Kontrakt`), nonce + `manage_options`, `$wpdb->prepare()` |
+| Konta, koszyk, płatności, dostęp do materiału | — (zakup = placeholder) | **WooCommerce + Tutor LMS**, spięte naszym szwem — nie piszemy własnej kasy |
+| Hosting | localhost (dev) | wykupiony hosting z WordPressem + domena — **jeszcze niekupione** |
 
 ## Wytyczne projektu
 
@@ -179,7 +234,8 @@ Wiążące zasady od właściciela — pełna treść w [docs/WYTYCZNE.md](docs/
 - **naprawa wsteczna `.bak`** — błąd z przeszłości naprawiamy z migawki
   (gałąź `bak/…`), bez kolizji, z wpisem do [rejestru błędów](rejestr/znane-bledy.json)
   i nowym strażnikiem przeciw nawrotom;
-- **statusy GitHuba są wiążące** — czerwone CI/audyt = stop, żadnego merge;
+- **statusy GitHuba są wiążące** — czerwone CI/audyt = stop, żadnego merge
+  (o jedynym wyjątku, awarii rozliczenia Actions, mówi ramka niżej);
 - **goldeny** — wzorcowe wyniki chronią naprawy przed psuciem reszty,
   a agentów przed spadkiem jakości;
 - **każdy agent ma krytyka** — nigdy agent sam;
@@ -194,6 +250,21 @@ Pełny opis: [CONTRIBUTING.md](CONTRIBUTING.md). W skrócie — **Weryfikacja-PR
 ```
 branch → commit → push → PR → CI zielone → merge → (release, deploy gdy potrzebne)
 ```
+
+> [!IMPORTANT]
+> **Od 2026-08-18 CI nie działa i to NIE jest o kodzie.** Organizacja
+> wyczerpała minuty GitHub Actions (plan Free, 2000/mies.), więc każde
+> zadanie pada 2 sekundy po starcie, z zerem kroków i bez logów —
+> do złudzenia jak awaria kodu. Sprawdzaj to NAJPIERW: `gh run view`
+> pokaże `steps: 0`, a rozliczenie potwierdzi
+> `gh api "/organizations/MatthewPlugins/settings/billing/usage"`.
+>
+> Wersje od `0.21.0` wzwyż weszły dlatego **na dowodach lokalnych, każda
+> osobną decyzją właściciela** — nie jest to złamanie zasady „czerwone CI
+> = stop", tylko świadomy wyjątek przy awarii rozliczenia, z `npm run
+> check` i bramkami WP w miejsce CI. **Limit wraca 1 września**; wtedy
+> trzeba potwierdzić **skan sekretów (gitleaks)** — jedyne sprawdzenie
+> bez lokalnego odpowiednika.
 
 - każdy większy krok kończy się tagiem `vX.Y.Z` i releasem na GitHubie,
 - wersję i historię trzyma [CHANGELOG.md](CHANGELOG.md),
@@ -375,7 +446,9 @@ repo / ⛔ nie dotyczy z powodem / ⏳ etap WP). Skrót:
 | Pełne CSP: `script-src` z jednorazowym nonce'em i `strict-dynamic`, bez `unsafe-inline` (tryb serwerowy nagłówkiem, podgląd statyczny przez `<meta>` z hashami) | ✅ | `straznik-csp` (9 niezmienników, 10 mutacji), **smoke CSP sprawdza nagłówek i pliki**, zero naruszeń w przeglądarce na 4 trasach |
 | Ograniczanie tempa na akcjach zapisu (okno przesuwne po IP+akcja, 429 z `Retry-After`) | ✅ | `straznik-limitera` (11 niezmienników, 14 mutacji), 8 testów jednostkowych limitera, **smoke D6 wywołuje limit po HTTP** |
 | Twarde limity wejścia (długości, liczności, sufit ceny, 2 MB na ciało żądania mierzone przed parsowaniem) i generyczne komunikaty błędów | ✅ | `straznik-limitow` (10 niezmienników, 12 mutacji), 5 testów limitów, **smoke D6 dowodzi 413 dwiema drogami** |
-| HTTPS/HSTS, RODO, honeypot, konta klientów | ⏳/🔧 | specyfikacja wtyczki WP i decyzje hostingowe |
+| Konta klientów, koszyk, płatności, dostęp do materiału za logowaniem | ✅ | **WooCommerce + Tutor LMS** spięte Pluginem 2; smoke'i `wp-zakup`, `wp-maile`, `wp-zwroty` |
+| Obwód WordPressa: XML-RPC off, enumeracja kont odcięta, hasła aplikacji off, cztery nagłówki, **CSP egzekwujące z nonce'em** | ✅ | mu-plugin [`aai-obwod.php`](wordpress/srodowisko/mu-plugins/aai-obwod.php), `straznik-obwodu`, przebieg rigiem z zerem naruszeń (`0.59.0`) |
+| HTTPS/HSTS, RODO, regulamin, zgoda w kasie na natychmiastowe dostarczenie, poczta produkcyjna | ⏳/🔧 | **poza kodem** — hosting, domena i decyzje właściciela; lista „przed pierwszym klientem" w [PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md) |
 | SEO na stronie: `robots.txt`, sitemapa, kanoniki, OpenGraph + miniatury, JSON-LD (Organization, ItemList, Course+Offer, BreadcrumbList, FAQPage) | ✅ | `straznik-seo` (6 niezmienników, 6 mutacji), **smoke SEO porównuje dane strukturalne Z BAZĄ** |
 | Pomiar narzędziami Google na żywym adresie | ✅ | powtórzony 2026-08-31: desktop 100/100/100/100 na obu stronach; mobile 97 (katalog) i 94 (strona kursu — treść urosła, koszt siedzi w ładunku hydratacji Nexta i NIE przenosi się na wtyczkę WP), reszta kolumn 100. Tabela i protokół niżej |
 
@@ -482,7 +555,7 @@ Wymagania: Node 24+, podman (albo docker) compose, git. Kolejność jest
 istotna — każdy krok zakłada poprzednie:
 
 ```bash
-git clone <repo> && cd <repo>         # gałąź domyślna = plugin-1-sklep-kursow
+git clone <repo> && cd <repo>         # gałąź domyślna = main
 git config core.hooksPath .githooks   # włącza haki — raz, obowiązkowo
 npm ci                                # zależności (Node 24+)
 cp .env.example .env                  # lokalna konfiguracja (baza, KREATOR_TOKEN)
@@ -500,10 +573,31 @@ npm run build                                # produkcyjny build
 node --env-file-if-exists=.env tools/smoke/smoke-d4.ts   # katalog + nagłówki
 ```
 
+Powyższe stawia **prototyp**. Produktem są wtyczki WordPressa — ich
+środowisko stawia JEDNA komenda, idempotentnie (WP + motyw Automatic AI
++ WooCommerce + Tutor LMS + nasze trzy wtyczki + łapacz poczty):
+
+```bash
+bash wordpress/srodowisko/postaw.sh   # → http://127.0.0.1:8892 (poczta: :8893)
+npm run wp:import && npm run wp:sync && npm run wp:zrzuty   # dane: kursy → tabele → Tutor → 148 zrzutów
+```
+
+Skrypt kończy **weryfikacją artefaktu** i sam podaje naprawę, gdy coś nie gra.
+Trzy komendy danych są potrzebne wszystkie — bez trzeciej lekcje pokazują
+znacznik „brak pliku" zamiast zrzutów.
+
+> [!WARNING]
+> **`git checkout` i merge potrafią zabić bind mount wtyczki.** Kontener
+> trzyma i-węzeł katalogu, więc po odtworzeniu go przez gita widzi PUSTKĘ,
+> a WordPress przestaje znać wtyczkę — wygląda to jak zniknięcie kodu.
+> Naprawa zawsze ta sama:
+> `cd wordpress/srodowisko && podman-compose down && ./postaw.sh`.
+
 Do pracy nad TREŚCIĄ kursów dodatkowo:
 
 ```bash
 node tools/pobierz-dokumentacje-d7.mjs   # ~15 min, 55 MB źródeł (poza gitem)
+node tools/pobierz-dokumentacje-wp.mjs   # 9,6 MB dokumentacji WP/Woo/Tutora/MySQL
 ```
 
 > [!TIP]
@@ -545,16 +639,30 @@ albo w stopce pliku, więc widać, że czyta się wersję odchudzoną.
 
 ## Kreator kursów (Dział 6)
 
-Panel treści właściciela: `http://localhost:3001/szkolenia/kreator`.
-Po zalogowaniu wejście jest też pod ręką na samych stronach sklepu —
-dyskretna pigułka w rogu `/szkolenia` i strony kursu, widoczna
-wyłącznie dla zalogowanego (gość nie ma jej nawet w źródle strony).
-Pełna instrukcja obsługi: [docs/plugin-1/KREATOR.md](docs/plugin-1/KREATOR.md).
-Wejście na token z `.env` (`KREATOR_TOKEN`) — trafia do ciastka
-HttpOnly, więc nie ma go w JavaScripcie strony; pełne logowanie da
-Plugin 3. Kreator czyta bazę kanałem JSON, a zmienia ją **wyłącznie**
-przez jedyny wystrzał AJAX `app/api/szkolenia` — każda operacja
-zostawia ślad w `course_changelog` (triggery bazy).
+**Kreatory są DWA — produkcyjny jest ten w WordPressie.** Wspólna
+instrukcja obsługi obu: [docs/plugin-1/KREATOR.md](docs/plugin-1/KREATOR.md).
+
+**Kreator wtyczki WP (produkt, krok W4)** — kokpit WordPressa, menu
+**Automatic AI**: lista kursów z licznikami (sekcje, program, treść lekcji
+N/M), edytor kursu z zakładkami Kurs / Sekcje / Program i JEDNYM zapisem,
+osobny edytor treści lekcji, okładka z biblioteki mediów. Uprawnienie
+`manage_options`, każda wysyłka przez `admin-post.php` z nonce'em, a do
+bazy pisze wyłącznie warstwa zapisu — tam mieszkają transakcja, dziennik
+audytu i odmowa skasowania napisanych lekcji. Po każdym udanym zapisie
+kopia kursu jedzie do Tutora, a cena do produktu WooCommerce.
+
+**Kreator prototypu (specyfikacja, Dział 6)** —
+`http://localhost:3001/szkolenia/kreator`, wejście na token z `.env`
+(`KREATOR_TOKEN`) w ciastku HttpOnly; po zalogowaniu także dyskretna
+pigułka w rogu `/szkolenia` i strony kursu, niewidoczna dla gościa nawet
+w źródle strony. Czyta bazę kanałem JSON, a zmienia ją **wyłącznie** przez
+jedyny wystrzał AJAX `app/api/szkolenia`; każda operacja zostawia ślad
+w `course_changelog` (triggery bazy).
+
+> [!NOTE]
+> Wcześniejsze zdanie „pełne logowanie da Plugin 3" jest **nieaktualne**:
+> rola redaktora kursów została odrzucona definitywnie (decyzja właściciela
+> 2026-08-30), Plugin 3 to monitoring, a kreator stoi na `manage_options`.
 
 > [!IMPORTANT]
 > Przy wdrożeniu za reverse proxy (nginx/Caddy) proxy MUSI przekazywać
