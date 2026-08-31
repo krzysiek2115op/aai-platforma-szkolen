@@ -116,16 +116,33 @@ final class Aai_Sklep_Zapis {
 	 * (znalezisko testu całości). Zgoda jest osobna od zgody na utratę treści,
 	 * bo to dwie różne straty: tam ginie praca właściciela, tu cudzy dostęp.
 	 *
-	 * @param string $id                     Identyfikator kursu.
-	 * @param string $aktor                  Kto usuwa.
-	 * @param bool   $pozwol_skasowac_tresc  Zgoda na utratę napisanych lekcji.
-	 * @param bool   $pozwol_stracic_dostep  Zgoda na odebranie dostępu kupującym.
+	 * TRZECI HAMULEC: ZAMÓWIENIA W DRODZE. Kupujących liczy Tutor po zapisach
+	 * `completed`, czyli po ludziach, którzy dostęp JUŻ MAJĄ. Klient płacący
+	 * przelewem nie ma go ani przez chwilę — jego zapis stoi na `pending`,
+	 * więc dla tamtej miary jest niewidzialny, a okno między złożeniem
+	 * zamówienia a wpłatą trwa dniami. Usunięcie kursu w tym oknie
+	 * przechodziło z komunikatem „0 kupujących", po czym klient księgował
+	 * przelew i nie dostawał NIC.
+	 *
+	 * To trzecia, osobna strata i osobna zgoda: tam ginie praca właściciela,
+	 * tam ktoś TRACI dostęp, a tu ktoś ZAPŁACI i go nie dostanie.
+	 *
+	 * O zamówieniach ta wtyczka nie wie nic i wiedzieć nie ma prawa — pyta
+	 * o nie filtrem, na który odpowiada Plugin 2 (tak samo jak o cenę i CTA).
+	 * Bez Pluginu 2 filtr oddaje wartość wejściową, czyli zero: sklep bez
+	 * płatności nie ma zamówień, więc to zero jest PRAWDĄ, a nie ciszą.
+	 *
+	 * @param string $id                          Identyfikator kursu.
+	 * @param string $aktor                       Kto usuwa.
+	 * @param bool   $pozwol_skasowac_tresc       Zgoda na utratę napisanych lekcji.
+	 * @param bool   $pozwol_stracic_dostep       Zgoda na odebranie dostępu kupującym.
+	 * @param bool   $pozwol_porzucic_zamowienia  Zgoda na porzucenie zamówień w drodze.
 	 *
 	 * @return array<string,int> Liczniki (klucz `usuniete`).
 	 *
-	 * @throws Aai_Sklep_Blad_Zapisu Gdy kursu nie ma, niesie treść bez zgody albo ma kupujących bez zgody.
+	 * @throws Aai_Sklep_Blad_Zapisu Gdy kursu nie ma, niesie treść bez zgody, ma kupujących bez zgody albo ma zamówienia w drodze bez zgody.
 	 */
-	public static function usun_kurs( string $id, string $aktor, bool $pozwol_skasowac_tresc = false, bool $pozwol_stracic_dostep = false ): array {
+	public static function usun_kurs( string $id, string $aktor, bool $pozwol_skasowac_tresc = false, bool $pozwol_stracic_dostep = false, bool $pozwol_porzucic_zamowienia = false ): array {
 		$liczniki = array(
 			'utworzone'      => 0,
 			'zaktualizowane' => 0,
@@ -142,9 +159,22 @@ final class Aai_Sklep_Zapis {
 		 */
 		$kupujacy = Aai_Sklep_Tutor::kupujacy( $id );
 
+		/**
+		 * Ile złożonych, a jeszcze niedostarczonych zamówień dotyczy kursu.
+		 *
+		 * Odpowiada Plugin 2. `-1` znaczy „nie udało się sprawdzić" i jest
+		 * traktowane jak powód do zapytania, nie jak zero: przy nieznanym
+		 * stanie odmawiamy, bo cisza znaczyłaby zgodę na skasowanie cudzego,
+		 * właśnie opłacanego zakupu.
+		 *
+		 * @param int    $ile Domyślnie zero — sklep bez płatności nie ma zamówień.
+		 * @param string $id  Identyfikator kursu.
+		 */
+		$w_drodze = (int) apply_filters( 'aai_sklep_zamowienia_w_drodze', 0, $id );
+
 		self::w_transakcji(
-			static function () use ( $id, $aktor, $pozwol_skasowac_tresc, $pozwol_stracic_dostep, $kupujacy, &$liczniki ): void {
-				self::usun_kurs_w_transakcji( $id, $aktor, $pozwol_skasowac_tresc, $pozwol_stracic_dostep, $kupujacy, $liczniki );
+			static function () use ( $id, $aktor, $pozwol_skasowac_tresc, $pozwol_stracic_dostep, $pozwol_porzucic_zamowienia, $kupujacy, $w_drodze, &$liczniki ): void {
+				self::usun_kurs_w_transakcji( $id, $aktor, $pozwol_skasowac_tresc, $pozwol_stracic_dostep, $pozwol_porzucic_zamowienia, $kupujacy, $w_drodze, $liczniki );
 			}
 		);
 
@@ -166,12 +196,14 @@ final class Aai_Sklep_Zapis {
 	 * @param string            $aktor         Kto usuwa.
 	 * @param bool              $pozwol        Zgoda na utratę treści.
 	 * @param bool              $pozwol_dostep Zgoda na odebranie dostępu kupującym.
+	 * @param bool              $pozwol_w_drodze Zgoda na porzucenie zamówień w drodze.
 	 * @param int               $kupujacy      Ilu ludzi ma dostęp do kursu.
+	 * @param int               $w_drodze      Ile zamówień złożono i nie dostarczono (-1 = nie wiadomo).
 	 * @param array<string,int> $liczniki      Liczniki (przez referencję).
 	 *
 	 * @throws Aai_Sklep_Blad_Zapisu Gdy kursu nie ma, niesie treść bez zgody albo ma kupujących bez zgody.
 	 */
-	private static function usun_kurs_w_transakcji( string $id, string $aktor, bool $pozwol, bool $pozwol_dostep, int $kupujacy, array &$liczniki ): void {
+	private static function usun_kurs_w_transakcji( string $id, string $aktor, bool $pozwol, bool $pozwol_dostep, bool $pozwol_w_drodze, int $kupujacy, int $w_drodze, array &$liczniki ): void {
 		global $wpdb;
 
 		$t_kursy  = Aai_Sklep_Tabele::tabela( 'courses' );
@@ -226,6 +258,29 @@ final class Aai_Sklep_Zapis {
 					$kupujacy
 				),
 				array( 'kupujacy' => $kupujacy )
+			);
+		}
+
+		/*
+		 * TRZECI HAMULEC, osobny od dwóch poprzednich. `-1` znaczy „nie
+		 * udało się sprawdzić" i zatrzymuje tak samo jak liczba dodatnia:
+		 * przy nieznanym stanie odmawiamy.
+		 */
+		if ( 0 !== $w_drodze && ! $pozwol_w_drodze ) {
+			throw new Aai_Sklep_Blad_Zapisu(
+				$w_drodze < 0
+					? __( 'Nie udało się sprawdzić, czy ktoś ma za ten kurs złożone zamówienie. Usunięcie wymaga jawnej zgody.', 'aai-sklep' )
+					: sprintf(
+						/* translators: %d: liczba złożonych, jeszcze niedostarczonych zamówień. */
+						_n(
+							'Ten kurs ma %d złożone zamówienie, za które nie wpłynęła jeszcze wpłata — po zapłacie klient nie dostanie materiału. Usunięcie wymaga jawnej zgody.',
+							'Ten kurs ma %d złożonych zamówień, za które nie wpłynęła jeszcze wpłata — po zapłacie klienci nie dostaną materiału. Usunięcie wymaga jawnej zgody.',
+							$w_drodze,
+							'aai-sklep'
+						),
+						$w_drodze
+					),
+				array( 'w_drodze' => $w_drodze )
 			);
 		}
 

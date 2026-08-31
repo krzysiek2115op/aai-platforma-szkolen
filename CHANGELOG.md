@@ -5,6 +5,47 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.61.0] — 2026-08-31
+
+### Cena zatwierdzona w kasie nie zmienia się do zapłaty
+
+Zamrożenie kwoty między złożeniem zamówienia a wpłatą jest zachowaniem
+**WooCommerce, nie naszym**: `WC_Checkout::set_data_from_cart()` kopiuje
+`subtotal`/`total` do POZYCJI zamówienia, a `payment_complete()` już niczego
+nie przelicza. Dzięki temu przelew czekający trzy dni realizuje się po cenie
+z chwili zakupu, choćby właściciel w międzyczasie zmienił cenę w kreatorze.
+
+**Do tej pory nic tego nie pilnowało.** Zniknięcie tej gwarancji byłoby
+bezobjawowe przy wszystkich bramkach na zielono — a kosztem byłby klient
+obciążony inną kwotą niż ta, którą zatwierdził.
+
+### Dodane
+
+- **Reguła 42 `straznik-platnosci-wp`**: żadna z TRZECH wtyczek nie przelicza
+  złożonego zamówienia (`calculate_totals`, `set_total`, `set_subtotal`, zapis
+  `_line_total`/`_line_subtotal` metą). Reguła jest zakazem i celowo obejmuje
+  także sklep i monitoring — nie mają dziś powodu dotykać zamówień, więc samo
+  pojawienie się tam takiego wywołania jest sygnałem. Ma samokontrolę zakresu:
+  pusta lista plików PHP zapala błąd, zamiast przechodzić po pustce.
+- **Asercja zamrożenia NA DANYCH** w `smoke-wp-zakup` (41 → **51** sprawdzeń):
+  zamówienie złożone przy 199 zł nie drga po zmianie ceny kursu na 249 zł —
+  ani kwotą, ani pozycją, ani przy domknięciu. Statyczny wzorzec by tego nie
+  zmierzył, bo to zachowanie CUDZEGO kodu.
+- **Trzecie pytanie przy „Usuń kurs" — o złożone, jeszcze nieopłacone
+  zamówienia.** `Aai_Sklep_Tutor::kupujacy()` liczy wyłącznie zapisy
+  `completed`, więc klient czekający na przelew był dla dotychczasowych pytań
+  NIEWIDZIALNY, a panel meldował 0 kupujących. Usunięcie kursu w tym oknie
+  znaczyło „zapłacił i nie dostał nic". Liczbę podaje Plugin 2 filtrem
+  `aai_sklep_zamowienia_w_drodze` — **Plugin 1 dalej nie wie nic o
+  WooCommerce**.
+
+### Zapamiętane
+
+**Pierwszy test negatywny zamrożenia był ŚLEPY i przeszedł na zielono.**
+Samo `calculate_totals()` zamrożenia NIE łamie — sumuje POZYCJE zamówienia,
+a nie ceny produktów. Dowód wymagał zmiany ceny w naszej tabeli i ponownego
+odczytu zamówienia, nie wywołania podejrzanej metody.
+
 ## [0.60.1] — 2026-08-31
 
 ### Prototyp przestaje obiecywać ebooki, których nie sprzedajemy

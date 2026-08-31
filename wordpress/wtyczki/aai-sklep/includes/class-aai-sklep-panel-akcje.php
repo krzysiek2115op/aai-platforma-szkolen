@@ -202,9 +202,10 @@ final class Aai_Sklep_Panel_Akcje {
 		$id     = self::tekst( 'id' );
 		$zgoda  = '1' === self::tekst( 'pozwol_skasowac_tresc' );
 		$dostep = '1' === self::tekst( 'pozwol_stracic_dostep' );
+		$drodze = '1' === self::tekst( 'pozwol_porzucic_zamowienia' );
 
 		try {
-			Aai_Sklep_Zapis::usun_kurs( $id, self::aktor(), $zgoda, $dostep );
+			Aai_Sklep_Zapis::usun_kurs( $id, self::aktor(), $zgoda, $dostep, $drodze );
 		} catch ( Aai_Sklep_Blad_Zapisu $blad ) {
 			$szczegoly = $blad->dane();
 			/*
@@ -219,6 +220,22 @@ final class Aai_Sklep_Panel_Akcje {
 						array(
 							'aai_komunikat' => 'odmowa_dostepu',
 							'aai_ile'       => (string) (int) $szczegoly['kupujacy'],
+						)
+					)
+				);
+			}
+			/*
+			 * TRZECIA ODMOWA, TRZECI KOMUNIKAT. „Ktoś traci dostęp" i „ktoś
+			 * zapłaci i go nie dostanie" to różne zdarzenia i różne decyzje —
+			 * jeden wspólny komunikat kazałby zgadywać, na co właściciel się
+			 * właśnie godzi.
+			 */
+			if ( isset( $szczegoly['w_drodze'] ) ) {
+				self::wroc(
+					Aai_Sklep_Panel::adres_listy(
+						array(
+							'aai_komunikat' => 'odmowa_w_drodze',
+							'aai_ile'       => (string) (int) $szczegoly['w_drodze'],
 						)
 					)
 				);

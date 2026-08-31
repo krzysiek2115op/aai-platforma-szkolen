@@ -51,6 +51,7 @@ defined( 'ABSPATH' ) || exit;
 				$aai_status   = (string) $aai_kurs['status'];
 				$aai_z_trescia = (int) $aai_kurs['lekcji_z_trescia'];
 				$aai_kupujacy  = (int) ( $aai_kurs['kupujacy'] ?? 0 );
+				$aai_w_drodze  = (int) ( $aai_kurs['w_drodze'] ?? 0 );
 				?>
 				<tr>
 					<td class="column-primary">
@@ -104,6 +105,7 @@ defined( 'ABSPATH' ) || exit;
 									?>
 									<input type="hidden" name="pozwol_skasowac_tresc" value="0" data-aai-zgoda />
 									<input type="hidden" name="pozwol_stracic_dostep" value="0" data-aai-zgoda-dostep />
+									<input type="hidden" name="pozwol_porzucic_zamowienia" value="0" data-aai-zgoda-w-drodze />
 									<button type="submit" class="button-link aai-usun"
 										<?php
 										/*
@@ -130,6 +132,34 @@ defined( 'ABSPATH' ) || exit;
 														$aai_kupujacy,
 														(string) $aai_kurs['title']
 													)
+												)
+											);
+										}
+										/*
+										 * TRZECIE PYTANIE: zamówienia w drodze. Osobne od
+										 * dwóch poprzednich, bo to trzecia strata — nie
+										 * „ktoś traci dostęp", tylko „ktoś zapłaci i go
+										 * nie dostanie". Kupujących liczy Tutor po zapisach
+										 * ukończonych, więc klient czekający na przelew
+										 * jest dla tamtej miary NIEWIDZIALNY.
+										 */
+										if ( 0 !== $aai_w_drodze ) {
+											printf(
+												' data-aai-potwierdz-w-drodze="%s"',
+												esc_attr(
+													$aai_w_drodze < 0
+														? __( 'Nie udało się sprawdzić, czy ktoś ma za ten kurs złożone zamówienie. Usunąć mimo to?', 'aai-sklep' )
+														: sprintf(
+															/* translators: 1: liczba zamówień, 2: tytuł kursu. */
+															_n(
+																'Za kurs „%2$s" złożono %1$d zamówienie, za które nie wpłynęła jeszcze wpłata — po zapłacie klient nie dostanie materiału. Usunąć mimo to?',
+																'Za kurs „%2$s" złożono %1$d zamówień, za które nie wpłynęła jeszcze wpłata — po zapłacie klienci nie dostaną materiału. Usunąć mimo to?',
+																$aai_w_drodze,
+																'aai-sklep'
+															),
+															$aai_w_drodze,
+															(string) $aai_kurs['title']
+														)
 												)
 											);
 										}

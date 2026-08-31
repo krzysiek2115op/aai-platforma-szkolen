@@ -193,8 +193,12 @@ final class Aai_Platnosci_Cta {
 	 * więc lista jest listą statusów WooCommerce, a nie trzech stałych Tutora.
 	 * `pending` jest też stanem, który nadaje `do_enroll()` kursowi płatnemu
 	 * ZANIM zamówienie zostanie opłacone.
+	 *
+	 * PUBLICZNA, bo „w drodze" ma w tej wtyczce jedną definicję: pyta o nią
+	 * także szew, licząc zamówienia zagrożone usunięciem kursu. Dwie osobne
+	 * listy tych samych trzech nazw rozjechałyby się przy pierwszej zmianie.
 	 */
-	private const ZAMOWIENIE_TRWA = array( 'pending', 'on-hold', 'processing' );
+	public const ZAMOWIENIE_TRWA = array( 'pending', 'on-hold', 'processing' );
 
 	/**
 	 * Stany posiadania kursu przez konkretnego człowieka.

@@ -90,6 +90,12 @@ final class Aai_Sklep_Odczyt_Panelu {
 				'lekcji'           => (int) $wiersz['lekcji'],
 				'lekcji_z_trescia' => (int) $wiersz['lekcji_z_trescia'],
 				'kupujacy'         => Aai_Sklep_Tutor::kupujacy( (string) $wiersz['id'] ),
+				/*
+				 * Zamówienia złożone, a jeszcze niedostarczone — miara ROZŁĄCZNA
+				 * z `kupujacy` (tam ludzie, którzy dostęp mają; tu ci, którzy
+				 * dopiero za niego zapłacą). Odpowiada Plugin 2; bez niego zero.
+				 */
+				'w_drodze'         => (int) apply_filters( 'aai_sklep_zamowienia_w_drodze', 0, (string) $wiersz['id'] ),
 			);
 		}
 		return $kursy;

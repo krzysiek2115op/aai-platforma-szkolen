@@ -508,6 +508,163 @@ try {
     statusZamowienia(zamObcy) === "processing",
     `zamówienie z samym CUDZYM produktem ma status „${statusZamowienia(zamObcy)}” — ta wtyczka nie ma prawa dotykać zamówień bez kursów`
   );
+  /* ── 7. ZAMROŻENIE CENY MIĘDZY KASĄ A PŁATNOŚCIĄ ─────────────────── */
+
+  /*
+   * Pytanie, na które odpowiada ten blok: czy przelew czekający trzy dni
+   * zrealizuje się po cenie, którą klient zatwierdził w kasie — nawet gdy
+   * właściciel w międzyczasie zmieni cenę w kreatorze.
+   *
+   * Zamrożenie jest CUDZE (WC_Checkout::set_data_from_cart kopiuje
+   * subtotal/total z koszyka do pozycji zamówienia, a payment_complete()
+   * niczego nie przelicza), więc jedyny sensowny dowód to POMIAR NA
+   * DANYCH — statyczny wzorzec sprawdziłby najwyżej, że my go nie psujemy
+   * (to robi reguła 42 strażnika).
+   *
+   * Bez tej asercji zniknięcie zamrożenia byłoby BEZOBJAWOWE: 37
+   * strażników i pozostałe bramki zostałyby zielone, a klient płaciłby
+   * inną kwotę niż ta, na którą się zgodził.
+   *
+   * Blok stoi na KOŃCU przebiegu i sprząta po sobie cenę, żeby nie
+   * przestawić sceny blokom przed nim — wstawienie pomiaru w środek
+   * zaburzyło już raz stan następnym sprawdzeniom (znalezisko P3b).
+   *
+   * ZMIERZONE PRZY PISANIU TEGO BLOKU, warte zapamiętania: samo
+   * `$order->calculate_totals()` NIE odmraża kwoty. Ta metoda sumuje
+   * POZYCJE zamówienia, a nie ceny produktów — zamrożone liczby siedzą
+   * w `subtotal`/`total` pozycji. Pierwszy test negatywny wołał więc
+   * `calculate_totals()` i PRZESZEDŁ na zielono, choć miał zapalić
+   * asercję: mierzył zachowanie, które zamrożenia nie łamie. Prawdziwa
+   * droga do rozjazdu prowadzi przez `set_subtotal()`/`set_total()` na
+   * pozycji — i dlatego reguła 42 strażnika zakazuje właśnie ich.
+   */
+
+  const kwotaZamowienia = (id) => wartosc(`wc_get_order( ${id} )->get_total()`);
+  /*
+   * Pozycję czytamy `php()`, a nie `wartosc()`: ta druga owija WYRAŻENIE
+   * w `echo '{' . (...) . '}'`, więc pętla po pozycjach zamówienia oddaje
+   * przy niej pustkę — i sprawdzenie przechodzi po niczym. Złapane
+   * pierwszym uruchomieniem tego bloku.
+   */
+  const polePozycji = (id, metoda) =>
+    php(
+      `$o = wc_get_order( ${id} ); foreach ( $o->get_items() as $p ) { echo (string) $p->${metoda}(); break; }`
+    ).trim();
+  const kwotaPozycji = (id) => polePozycji(id, "get_subtotal");
+  const idProduktuPozycji = (id) => polePozycji(id, "get_product_id");
+  const cenaProduktu = () => wartosc(`wc_get_product( ${produkt} )->get_price( 'edit' )`);
+  const ustawCene = (grosze) =>
+    php(
+      `$k = array( 'id' => '${KURS}', 'slug' => '${SLUG}', 'title' => 'Smoke zakup', 'type' => 'kurs',` +
+        ` 'short_desc' => 'smoke', 'price_grosze' => ${grosze}, 'cover_url' => null, 'status' => 'published',` +
+        ` 'badge' => null, 'level' => null, 'sekcje' => array(), 'moduly' => array() );` +
+        ` Aai_Sklep_Zapis::zapisz_kurs( $k, 'smoke-p3b', true ); echo 'ok';`
+    );
+
+  /*
+   * Migawki PRZED złożeniem zamówienia. Ten smoke składa wcześniej własne
+   * zamówienia na ten sam kurs, więc liczby bezwzględne mierzyłyby CAŁĄ
+   * scenę, a nie ten jeden przypadek — pierwsza wersja tych asercji tak
+   * właśnie padła (2 zamiast 1). Mierzymy RÓŻNICĘ, którą robi to jedno
+   * zamówienie.
+   */
+  const wDrodzePrzed = Number(php(`echo (int) apply_filters( 'aai_sklep_zamowienia_w_drodze', 0, '${KURS}' );`));
+  const kupujacychPrzed = Number(php(`echo (int) Aai_Sklep_Tutor::kupujacy( '${KURS}' );`));
+
+  const zamZamrozone = zamowienie([produkt], "on-hold");
+  zamowienia.push(zamZamrozone);
+  const kwotaPrzed = kwotaZamowienia(zamZamrozone);
+  const pozycjaPrzed = kwotaPozycji(zamZamrozone);
+  const produktPozycji = idProduktuPozycji(zamZamrozone);
+
+  /*
+   * Porównujemy WARTOŚĆ, nie jej zapis: `get_total()` oddaje „199.00”,
+   * a `get_subtotal()` surowe „199”. Formatowaniem kwoty ten blok się nie
+   * zajmuje — pyta wyłącznie o to, czy liczba drgnęła.
+   */
+  const zlote = (s) => (s === "" ? NaN : Number(s));
+
+  sprawdz(
+    zlote(kwotaPrzed) === 199 && zlote(pozycjaPrzed) === 199,
+    `zamówienie złożone przy cenie 199,00 zł ma kwotę „${kwotaPrzed}” i pozycję „${pozycjaPrzed}” — scena nie powstała, więc pomiar zamrożenia leciałby po pustce`
+  );
+
+  ustawCene(24900);
+
+  /*
+   * KONTROLA POMIARU. Bez niej cały blok przeszedłby także wtedy, gdyby
+   * podniesienie ceny w ogóle nie zadziałało — mierzyłby wtedy ciszę,
+   * a nie zamrożenie.
+   */
+  sprawdz(
+    zlote(cenaProduktu()) === 249,
+    `zmiana ceny kursu nie doszła do produktu (jest „${cenaProduktu()}”, miało być „249.00”) — pomiar zamrożenia byłby ślepy, bo nic by się nie zmieniło`
+  );
+
+  sprawdz(
+    zlote(kwotaZamowienia(zamZamrozone)) === 199,
+    `KWOTA ZŁOŻONEGO ZAMÓWIENIA ZMIENIŁA SIĘ po podniesieniu ceny kursu (199.00 → „${kwotaZamowienia(zamZamrozone)}”). Klient zapłaci inną kwotę niż ta, którą zatwierdził w kasie — przy przelewie okno między zakupem a wpłatą trwa dniami.`
+  );
+  sprawdz(
+    zlote(kwotaPozycji(zamZamrozone)) === 199,
+    `POZYCJA złożonego zamówienia przeliczyła się po nowej cenie (199.00 → „${kwotaPozycji(zamZamrozone)}”) — faktura i kasa pokażą klientowi inną kwotę niż ta z chwili zakupu.`
+  );
+  sprawdz(
+    idProduktuPozycji(zamZamrozone) === produktPozycji,
+    `POZYCJA zamówienia wskazuje inny produkt niż w chwili złożenia (${produktPozycji} → ${idProduktuPozycji(zamZamrozone)}) — klient zapłaciłby za coś, czego nie wybierał`
+  );
+
+  /* ── 7b. LUKA B: kurs z zamówieniem W DRODZE nie znika po cichu ──── */
+
+  /*
+   * Zamówienie stoi teraz na `on-hold`, czyli klient je złożył i czeka na
+   * zaksięgowanie przelewu. Tutor policzy go jako kupującego dopiero przy
+   * zapisie `completed`, więc dla miary „ilu kupiło" jest NIEWIDZIALNY —
+   * a usunięcie kursu w tym oknie znaczy „zapłacił i nie dostał nic".
+   *
+   * Ten pomiar sprawdza OBIE strony naraz: że stara miara faktycznie go nie
+   * widzi (inaczej pytanie byłoby zbędne) i że nowa go zatrzymuje.
+   */
+  const wDrodze = Number(php(`echo (int) apply_filters( 'aai_sklep_zamowienia_w_drodze', 0, '${KURS}' );`));
+  const kupujacychTeraz = Number(php(`echo (int) Aai_Sklep_Tutor::kupujacy( '${KURS}' );`));
+  sprawdz(
+    wDrodze === wDrodzePrzed + 1,
+    `złożone zamówienie czekające na wpłatę nie doliczyło się do „w drodze” (${wDrodzePrzed} → ${wDrodze}) — hamulec przed usunięciem kursu leciałby po pustce`
+  );
+  /*
+   * SEDNO LUKI: to samo zamówienie NIE robi z klienta kupującego. Stara
+   * miara pyta Tutora o zapisy `completed`, a przy przelewie zapis stoi na
+   * `pending` — właściciel usuwający kurs w tym oknie widziałby „0
+   * kupujących" i skasowałby materiał opłacany właśnie przez klienta.
+   */
+  sprawdz(
+    kupujacychTeraz === kupujacychPrzed,
+    `zamówienie czekające na wpłatę podbiło liczbę KUPUJĄCYCH (${kupujacychPrzed} → ${kupujacychTeraz}) — wtedy ten pomiar sprawdza co innego, niż myśli: lukę zasłaniałoby stare pytanie`
+  );
+
+  const odmowa = php(
+    `try { Aai_Sklep_Zapis::usun_kurs( '${KURS}', 'smoke', true, true ); echo 'USUNIETO'; }` +
+      ` catch ( Aai_Sklep_Blad_Zapisu $b ) { $d = $b->dane(); echo isset( $d['w_drodze'] ) ? 'ODMOWA:' . (int) $d['w_drodze'] : 'INNA_ODMOWA'; }`
+  ).trim();
+  sprawdz(
+    odmowa === `ODMOWA:${wDrodze}`,
+    `usunięcie kursu z NIEOPŁACONYM zamówieniem dało „${odmowa}” zamiast odmowy z liczbą ${wDrodze}. Klient po zaksięgowaniu przelewu nie dostałby materiału, a właściciel nie zobaczyłby ani jednego ostrzeżenia — pytanie o kupujących go nie obejmuje.`
+  );
+
+  /* Domknięcie po zmianie ceny: dostawa idzie po kwocie zamrożonej. */
+  php(`$o = wc_get_order( ${zamZamrozone} ); $o->set_status( 'completed' ); $o->save(); echo 'ok';`);
+  sprawdz(
+    zlote(kwotaZamowienia(zamZamrozone)) === 199,
+    `kwota zamówienia zmieniła się przy PRZEJŚCIU DO ZAPŁATY (199.00 → „${kwotaZamowienia(zamZamrozone)}”) — zamrożenie nie przeżywa domknięcia zamówienia`
+  );
+
+  ustawCene(19900);
+  sprawdz(
+    zlote(cenaProduktu()) === 199,
+    `blok zamrożenia nie przywrócił ceny kursu (została „${cenaProduktu()}”) — następny przebieg mierzyłby inną scenę`
+  );
+  kasujZapisy();
+
 } finally {
   /* ── sprzątanie + rachunek sumienia ──────────────────────────────── */
 

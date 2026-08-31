@@ -1176,9 +1176,9 @@ const MUTACJE = [
     wymaga: () =>
       existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
     zmien: (s) =>
-      s.includes("$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol, $dostep );")
+      s.includes("$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol, $dostep, $drodze );")
         ? s.replace(
-            "$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol, $dostep );",
+            "$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol, $dostep, $drodze );",
             "global $wpdb;\n\t\t\t$wpdb->delete( Aai_Sklep_Tabele::tabela( 'courses' ), array( 'id' => $id ) );\n\t\t\t$liczniki = array( 'usuniete' => 1 );"
           )
         : null,
@@ -2477,10 +2477,13 @@ const MUTACJE = [
     opis: "akcja panelu podnosi zgodę na utratę dostępu sama z siebie",
     plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php",
     wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php"),
-    oczekiwanySlad: "nie przekazuje zgody na odebranie dostępu",
+    oczekiwanySlad: "zgody na odebranie dostępu kupującym",
     zmien: (s) =>
-      s.includes("usun_kurs( $id, self::aktor(), $zgoda, $dostep )")
-        ? s.replace("usun_kurs( $id, self::aktor(), $zgoda, $dostep )", "usun_kurs( $id, self::aktor(), $zgoda, true )")
+      s.includes("usun_kurs( $id, self::aktor(), $zgoda, $dostep, $drodze )")
+        ? s.replace(
+            "usun_kurs( $id, self::aktor(), $zgoda, $dostep, $drodze )",
+            "usun_kurs( $id, self::aktor(), $zgoda, true, $drodze )"
+          )
         : null,
   },
   {
@@ -3255,6 +3258,68 @@ const MUTACJE = [
             "\t\ttry {\n\t\tAai_Platnosci_Tabele::dociagnij_schemat();",
             "\t\tAai_Platnosci_Tabele::dociagnij_schemat();\n\t\ttry {"
           )
+        : null,
+  },
+  {
+    // Test całości. Zamrożenie kwoty jest CUDZE (WooCommerce kopiuje ją do
+    // pozycji zamówienia przy jego składaniu), więc nasza rola jest tu
+    // wyłącznie negatywna: nie wchodzić w to. Przeliczenie złożonego
+    // zamówienia zrobiłoby z przelewu czekającego trzy dni płatność po
+    // cenie BIEŻĄCEJ — i nic by się przy tym nie zapaliło.
+    straznik: "straznik-platnosci-wp",
+    opis: "szew przelicza złożone zamówienie (klient płaci inną kwotę, niż zatwierdził w kasie)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "ZAMROŻONA",
+    zmien: (s) =>
+      s.includes("\tprivate static function same_kursy( WC_Order $order ): bool {")
+        ? s.replace(
+            "\tprivate static function same_kursy( WC_Order $order ): bool {",
+            "\tprivate static function same_kursy( WC_Order $order ): bool {\n\t\t$order->calculate_totals();"
+          )
+        : null,
+  },
+  {
+    // Test całości, luka B. Kupujących liczy Tutor po zapisach `completed`,
+    // więc klient czekający na przelew jest dla tamtego pytania
+    // niewidzialny. Bez tej zgody „Usuń" kasowałoby kurs opłacany właśnie
+    // przez klienta, meldując „0 kupujących".
+    straznik: "straznik-kreatora-wp",
+    opis: "zgoda na porzucenie zamówień w drodze nie dojeżdża do warstwy zapisu",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php"),
+    oczekiwanySlad: "porzucenie złożonych",
+    zmien: (s) =>
+      s.includes("usun_kurs( $id, self::aktor(), $zgoda, $dostep, $drodze )")
+        ? s.replace(
+            "usun_kurs( $id, self::aktor(), $zgoda, $dostep, $drodze )",
+            "usun_kurs( $id, self::aktor(), $zgoda, $dostep )"
+          )
+        : null,
+  },
+  {
+    // Ta sama luka od strony panelu: pytanie zadawane ZAWSZE klika się
+    // odruchowo i przestaje chronić — dokładnie ten argument stoi przy
+    // pytaniu o kupujących.
+    straznik: "straznik-kreatora-wp",
+    opis: "pytanie o zamówienia w drodze zadawane przy każdym kursie, nie w swojej gałęzi",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/panel/lista.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/panel/lista.php"),
+    oczekiwanySlad: "ZAMÓWIENIA W DRODZE",
+    zmien: (s) =>
+      s.includes("if ( 0 !== $aai_w_drodze ) {")
+        ? s.replace("if ( 0 !== $aai_w_drodze ) {", "if ( true ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "pole zgody na porzucenie zamówień startuje z jedynką (bezpieczne dzięki skryptowi, nie domyślnie)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/panel/lista.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/panel/lista.php"),
+    oczekiwanySlad: "nie zaczyna od ZERA",
+    zmien: (s) =>
+      s.includes('name="pozwol_porzucic_zamowienia" value="0"')
+        ? s.replace('name="pozwol_porzucic_zamowienia" value="0"', 'name="pozwol_porzucic_zamowienia" value="1"')
         : null,
   },
   {
