@@ -2861,9 +2861,13 @@ wyprowadzała tego od nowa:
         i kupujący dostaje 404, przy obu kontrolach zielonych);
         **C3** — zdanie „Dostęp od razu po zakupie" na stronie kursu **zmienić**
         (przy przelewie dostęp powstaje po potwierdzeniu wpłaty);
-        **C2** — usunięcie kursu z kupującymi: właściciel poprosił o pytanie
-        doprecyzowujące, pytanie stoi w dokumencie kroku (sekcja „Pytania
-        otwarte") i **czeka na odpowiedź**.
+        **C2** — usunięcie kursu z kupującymi: **potwierdzenie z LICZBĄ**
+        (decyzja 2026-08-31) — panel mówi „ten kurs ma N kupujących, stracą
+        dostęp" i wymaga drugiego kliknięcia, wzorem dzisiejszej odmowy
+        skasowania treści lekcji; liczbę daje Tutor, a warstwa zapisu ma
+        własną bramkę, żeby ochrona działała też z komendy. **Otwarte zostaje
+        jedno pytanie**: czy kontrola `wp aai-platnosci sprawdz` ma po takim
+        usunięciu świecić kodem 1 (dziś 0).
         Do rozstrzygnięcia zostaje też pozycja 4 (**po wyłączeniu Pluginu 1
         sprzedaż DALEJ DZIAŁA**, a kontrola pisze „Sprzedaż nie działa"
         i kończy kodem 0) oraz sześć pozycji „plauzybilnych" z dokumentu.

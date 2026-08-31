@@ -53,7 +53,7 @@ ręcznego (decyzja właściciela 2026-08-31).
 | 2 | **„Ukryj" odbiera dostęp KUPUJĄCYM**: status `archived` przepisuje 73 lekcje na `private`, klient dostaje **404**, a obie kontrole kończą **kodem 0** | **C1: kurs znika ze sklepu, ale kto go kupił — czyta dalej.** Do wykonania |
 | — | **„Dostęp od razu po zakupie"** na stronie kursu, przy jedynej włączonej bramce (przelew), gdzie dostęp powstaje po potwierdzeniu wpłaty | **C3: zdanie zmienić.** Do wykonania |
 | 4 | **Po wyłączeniu Pluginu 1 sprzedaż DALEJ DZIAŁA**, a kontrola pisze „Sprzedaż nie działa" i kończy kodem 0 | do rozstrzygnięcia (produkt zostaje `publish`, walidacja koszyka przepuszcza — zmierzone) |
-| — | **Usunięcie kursu, który ktoś kupił**, przechodzi bez pytania o kupujących | **C2: właściciel poprosił o pytanie doprecyzowujące** — patrz „Pytania otwarte" |
+| — | **Usunięcie kursu, który ktoś kupił**, przechodzi bez pytania o kupujących | **C2 ROZSTRZYGNIĘTE (2026-08-31): potwierdzenie z LICZBĄ** — panel mówi „ten kurs ma N kupujących, stracą dostęp" i wymaga drugiego kliknięcia, wzorem dzisiejszej odmowy skasowania treści lekcji. Do wykonania |
 
 ### PLAUZYBILNE, DZIŚ NIECZYNNE (hardening, nie awaria)
 
@@ -144,25 +144,26 @@ bramki nie czytaj wyników następnych** — najpierw przywróć stan.
 
 ## Pytania otwarte (do właściciela)
 
-**C2 — usunięcie kursu, który ktoś kupił.** Dziś cała ścieżka pyta wyłącznie
-o TREŚĆ (`pozwol_skasowac_tresc`); nikt nie pyta, czy kurs ma właścicieli,
-choć Tutor zna odpowiedź. Skasowanie zabiera wpisy Tutora NA TWARDO, klientowi
-zostaje zapis wskazujący nieistniejący kurs, a `wp aai-platnosci sprawdz`
-kończy kodem 0 (osierocony produkt jest u niego informacją). Pytanie
-doprecyzowujące — **na czym ma polegać ochrona**:
+**C2 — ROZSTRZYGNIĘTE 2026-08-31: potwierdzenie z liczbą.** Usunięcie kursu,
+który ktoś kupił, ma wymagać **drugiego kliknięcia**, a komunikat ma podać
+**liczbę kupujących**, którzy stracą dostęp — dokładnie tym mechanizmem, co
+dzisiejsza odmowa skasowania napisanej treści (`pozwol_skasowac_tresc`).
+Odrzucone: twarda odmowa (wymagałaby drogi wyjścia komendą) oraz zostawienie
+tego bez zmian.
 
-1. **odmowa** — kursu z kupującymi po prostu nie da się skasować z panelu,
-   dopóki ktoś go ma (najostrzejsze; wymaga drogi wyjścia dla właściciela,
-   np. komendy z jawną flagą);
-2. **potwierdzenie z liczbą** — panel mówi „ten kurs ma N kupujących, oni
-   stracą dostęp" i każe potwierdzić drugim kliknięciem (wzorem odmowy
-   skasowania treści lekcji);
-3. **nic** — usunięcie zostaje jak jest, bo to świadoma decyzja właściciela
-   i tak, a kupujących ma pilnować on sam.
+Zakres wykonawczy, wprost z tego rozstrzygnięcia:
+- liczbę kupujących bierzemy od **Tutora** (to on wie, kto jest zapisany) —
+  nie zakładamy własnego licznika, bo byłby drugą kopią tej samej prawdy;
+- pytanie zadaje **panel**, a warstwa zapisu ma własną bramkę (jak przy
+  treści): bez jawnej zgody odmawia, żeby ta sama ochrona działała też przy
+  wywołaniu z komendy;
+- komunikat mówi o SKUTKU dla ludzi („N kupujących straci dostęp"), nie
+  o wierszach w bazie.
 
-Do tego drugie pytanie, niezależne: czy **kontrola** (`wp aai-platnosci
-sprawdz`) ma po takim usunięciu świecić **kodem 1** (dziś: 0, „produkt
-osierocony" jest informacją)?
+**PYTANIE, KTÓRE ZOSTAJE OTWARTE** (właściciel nie rozstrzygnął): czy po
+takim usunięciu **kontrola** `wp aai-platnosci sprawdz` ma świecić **kodem 1**?
+Dziś kończy kodem 0 — osierocony produkt po skasowanym kursie jest u niej
+informacją, nie błędem.
 
 ## Co zostaje do zrobienia po `/clear`
 
@@ -173,7 +174,9 @@ osierocony" jest informacją)?
    `archived → private`), a `private` odcina każdego bez `read_private_posts`.
 2. **C3 — zdanie „Dostęp od razu po zakupie"** na stronie kursu zmienić na
    prawdziwe przy przelewie.
-3. **C2 — po odpowiedzi właściciela** (pytanie wyżej).
+3. **C2 — potwierdzenie z liczbą kupujących** przy usuwaniu kursu
+   (rozstrzygnięte; zakres wykonawczy w sekcji wyżej). Otwarte zostaje samo
+   pytanie o kod wyjścia kontroli po takim usunięciu.
 4. Rozstrzygnąć pozycję 4 (wyłączony Plugin 1 a sprzedaż) i pozycje z listy
    „plauzybilne" — które robimy teraz, a które zostają jawnie otwarte.
 5. **Scenariusz testu ręcznego dla właściciela** (wzorem
