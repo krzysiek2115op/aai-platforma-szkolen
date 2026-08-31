@@ -123,10 +123,58 @@ if (!readFileSync(uklad, "utf8").includes("metadataBase")) {
   bledy.push(`${uklad}: brak metadataBase — adresy względne w metadanych nie mają się do czego odnieść.`);
 }
 
+// --- 7. manifest i rastry ikony marki --------------------------------
+/*
+ * Manifest to jedyny plik metadanych, który mówi, czym ta witryna jest
+ * JAKO APLIKACJA (nazwa skrótu, kolor paska, ikona instalacji). Psuje się
+ * tak samo cicho jak reszta SEO: bez rastrów Android podstawia własne tło
+ * i przycina znak, a przy podglądzie na Pages ścieżka bez `basePath`
+ * wskazuje na 404 w korzeniu domeny.
+ *
+ * Reguły pytają o ROZSTRZYGNIĘCIE, nie o obecność słowa „manifest".
+ */
+const MANIFEST = join("app", "manifest.ts");
+if (!existsSync(MANIFEST)) {
+  bledy.push(
+    `${MANIFEST}: brak manifestu — przeglądarka nie wie, pod jaką nazwą i z jaką ikoną zapisać skrót do witryny.`
+  );
+} else {
+  const manifest = readFileSync(MANIFEST, "utf8");
+  if (!/export const dynamic = "force-static"/.test(manifest)) {
+    bledy.push(
+      `${MANIFEST}: brak \`dynamic = "force-static"\` — \`output: "export"\` padnie na tej trasie (ta sama pułapka co w robots.ts i sitemap.ts).`
+    );
+  }
+  // Ścieżki ikon MUSZĄ iść przez zasob(): Next aplikuje basePath do
+  // znacznika <link rel=manifest>, ale NIE do treści manifestu.
+  const surowe = [...manifest.matchAll(/src:\s*"(\/[^"]+)"/g)].map((m) => m[1]);
+  if (surowe.length > 0) {
+    bledy.push(
+      `${MANIFEST}: ${surowe.length} ścieżek ikon wpisanych wprost (${surowe.join(", ")}) zamiast przez \`zasob()\`. Przy podglądzie spod podkatalogu Pages wskazywałyby na korzeń domeny, czyli na 404.`
+    );
+  }
+  if (!/zasob\(/.test(manifest)) {
+    bledy.push(`${MANIFEST}: manifest nie przepuszcza ani jednej ścieżki przez \`zasob()\`.`);
+  }
+}
+
+/*
+ * Rastry: pilnuje ich `tools/ikony-marki.mjs --sprawdz`, bo tylko on zna
+ * skrót ŹRÓDŁA. Ikona zmieniona w SVG i niewyrenderowana wygląda w repo
+ * identycznie jak zrobiona poprawnie.
+ */
+for (const raster of ["public/icon-192.png", "public/icon-512.png", "public/icon-maskable.png", "app/apple-icon.png"]) {
+  if (!existsSync(raster)) {
+    bledy.push(
+      `${raster}: brak rastra ikony — manifest obiecuje plik, którego nie ma. Uruchom \`ZRZUTY_RIG=<rig> node tools/ikony-marki.mjs\`.`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-seo:");
   for (const b of bledy) console.error(`  - ${b}`);
   process.exit(1);
 }
 
-console.log(`straznik-seo: ${widoki.length} widoków z kanonikiem i OG, dane strukturalne w jednym miejscu, robots i sitemapa spięte z przełącznikiem.`);
+console.log(`straznik-seo: ${widoki.length} widoków z kanonikiem i OG, dane strukturalne w jednym miejscu, robots i sitemapa spięte z przełącznikiem, manifest ze ścieżkami przez zasob() i cztery rastry ikony.`);

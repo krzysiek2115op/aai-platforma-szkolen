@@ -11,8 +11,19 @@ import { listaKursow } from "@/modules/m1-sklep";
  * nieprawda przy każdym buildzie: data mówiłaby „treść się zmieniła",
  * nawet gdy zmienił się tylko CSS. Wyszukiwarki uczą się ignorować takie
  * sygnały, a my mamy zasadę zero zmyślania — dotyczy też metadanych.
- * Prawdziwą datę zmiany treści (`courses.updated_at`) wprowadzimy razem
- * z kanałem, który ją wydaje.
+ *
+ * SPROSTOWANIE (2026-08-31, pomiar). Ten komentarz obiecywał wcześniej, że
+ * „prawdziwą datę zmiany treści (`courses.updated_at`) wprowadzimy razem
+ * z kanałem, który ją wydaje". To była nieprawda o naszym własnym
+ * schemacie: trigger `m1_updated_at` ustawia `now()` przy KAŻDYM `UPDATE`
+ * wiersza kursu, bez porównania starej i nowej wartości, a siedzi WYŁĄCZNIE
+ * na tabeli `courses` — więc poprawka prozy lekcji, czyli jedyna zmiana,
+ * która czytelnika obchodzi, w ogóle go nie dotyka. Ta data jest naraz
+ * zawyżona (każdy zapis ceny ją podbija) i zaniżona (73 lekcje mogą się
+ * zmienić bez śladu). Nie ma jej więc czym zastąpić `new Date()`.
+ * Prawdziwą datę dałoby się wyprowadzić z dziennika audytu (migracja 007
+ * zapisuje wyłącznie realne zmiany) — decyzja właściciela 2026-08-31:
+ * nie robimy tego, mapa zostaje bez `lastModified`.
  *
  * Przy wyłączonym indeksowaniu mapa jest PUSTA — spójnie z robots.txt.
  */
