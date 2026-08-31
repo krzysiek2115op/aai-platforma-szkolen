@@ -1033,8 +1033,11 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 pułapki poprzedniego przelotu SEO oraz **pomiary i pięć rozstrzygnięć
 właściciela z 2026-08-31** (sekcja „KROK 1 — pomiary i rozstrzygnięcia").
 
-**KROK 1 — SEO — ZROBIONY (wersja 0.60.0, gałąź `feat/seo-odswiezenie`).
-PR NIEOTWARTY — czeka na zgodę właściciela.** Pełnia: CHANGELOG 0.60.0.
+**KROK 1 — SEO — ZROBIONY I ZAMKNIĘTY W REPO (2026-08-31).** PR #108
+zmergowany do `main`, tag **`v0.60.0`** + release, gałąź skasowana; artefakt
+zweryfikowany (`git diff origin/main <szczyt>` PUSTY — lekcja z 0.37.0).
+Zaraz po nim **PR #109, tag `v0.60.1`**: prototyp przestaje obiecywać ebooki.
+Pełnia: CHANGELOG 0.60.0 i 0.60.1.
 Skrót tego, czego nie wyprowadzać od nowa:
 - **Reguła podziału (decyzja właściciela, wariant „b"):** wtyczka pilnuje
   TYLKO swoich tras; sprzątamy w mapie dokładnie te adresy, które istnieją
@@ -1067,16 +1070,36 @@ Skrót tego, czego nie wyprowadzać od nowa:
 - Dowody: strażnicy **38/38**, audyt mutacyjny **328**, testy **83/83**,
   `npm run check` kod 0, **15 bramek WP zielonych** (nowa `smoke:wp-seo`
   169). Dane monitoringu właściciela z T4 nietknięte.
-- **ZOSTAJE DO DECYZJI WŁAŚCICIELA:** (a) opis „Kursy i **ebooki**
-  Automatic AI" w `app/layout.tsx:12` i `app/szkolenia/widok.tsx:20` —
-  ebooki zamknięte „na zawsze" 2026-08-25, a manifest ma już opis
-  prawdziwy, więc w prototypie stoją DWIE wersje prawdy; (b) czy w ogóle
-  optymalizować mobilne TBT prototypu (rekomendacja: nie — koszt nie
-  dotyczy produktu).
+- **DWIE DECYZJE WŁAŚCICIELA PO KROKU (2026-08-31), OBIE WYKONANE:**
+  (a) **„same kursy"** — prototyp dogonił wtyczkę WP: opisy bez słowa
+  „ebooki", `KursTyp` = `z.enum(["kurs"])`, kreator nie ma czego
+  zaoferować (wersja **0.60.1**). Kolumny w bazie NIE zwężamy —
+  `CHECK (type IN ('ebook','kurs'))` zostaje, bo migracja nie kupuje
+  niczego, czego nie daje kontrakt; oba kursy mają `kurs` (sprawdzone
+  zapytaniem). (b) **mobilnego TBT prototypu NIE optymalizujemy** —
+  koszt siedzi w ładunku hydratacji Nexta, a produkt (wtyczka WP) go
+  nie ma. **Nie otwierać tego tematu z własnej inicjatywy.**
+- **LISTA WDROŻENIOWA SEO** (co zostaje POZA naszymi wtyczkami, wprost
+  z reguły „wariant b"): sekcja w
+  [PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md). Najłatwiejsza
+  do przeoczenia pozycja: **`blog_public` MUSI wejść na 1 przy wdrożeniu** —
+  ta jedna opcja bramkuje CAŁĄ sitemapę, więc bez niej cała praca kroku 1
+  jest w produkcji niewidoczna.
 
-**NASTĘPNY KROK: PR gałęzi `feat/seo-odswiezenie` → tag `v0.60.0` →
-release, potem KROK 2 (higiena repo).** Obowiązuje reguła z 2026-08-28:
-plan + pytania + zgoda przed pracą.
+**NASTĘPNY KROK: KROK 2 — HIGIENA REPO** (decyzja właściciela 2026-08-31:
+po `/clear` zaczynamy od niej). Zakres wyjściowy i znane rozjazdy:
+[PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md), sekcja
+„KROK 2". Obowiązuje reguła z 2026-08-28: **plan + pytania + zgoda przed
+pracą.** Do kroku 2 dochodzą trzy rzeczy zmierzone przy SEO:
+- **gałęzi zdalnych jest PIĘĆ, nie trzydzieści** (`main`,
+  `plugin-1-sklep-kursow`, 2 × `bak/*`, 1 dependabota) — wcześniejsza
+  większa lista była przeterminowanym stanem lokalnym; liczyć
+  `git fetch --prune`, nie z pamięci;
+- lokalnie zostaje `docs/plan-seo-higiena-audyt` (już scalona przez #108);
+- **`tools/okladki-png.mjs` nie jest wymieniony ANI w `package.json`, ANI
+  w README, ANI w żadnym strażniku** — narzędzie, którego nikt nie znajdzie
+  (dla kontrastu: `tools/ikony-marki.mjs` dostał `npm run ikony` i wiersz
+  w README).
 **Zaparkowane:** gałąź `feat/zamrozenie-ceny-w-zamowieniu` (worktree obok)
 czeka na scalenie PO SEO — stoi na `09d6c79`, czyli przed 0.59.0, więc
 przed jej PR-em wciągnąć `main` i zweryfikować ARTEFAKT.
