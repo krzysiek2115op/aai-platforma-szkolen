@@ -67,12 +67,16 @@ final class Aai_Sklep_Kontrakt {
 	/**
 	 * Typy produktu — kolumna `courses.type`.
 	 *
-	 * ŚWIADOME ODSTĘPSTWO OD PROTOTYPU: tam enum ma jeszcze `ebook`.
-	 * Właściciel zamknął ten temat 2026-08-25 słowem „na zawsze" —
-	 * produktem jest wyłącznie kurs tekstowy za logowaniem. Panel, który
-	 * dawałby ebooka do wyboru, byłby zaproszeniem do złamania tej decyzji
-	 * jednym kliknięciem. Oba kursy w bazie mają `kurs` (sprawdzone), więc
-	 * nic się przez to nie staje nieedytowalne.
+	 * TYLKO `kurs`. Właściciel zamknął temat ebooków 2026-08-25 słowem
+	 * „na zawsze" — produktem jest wyłącznie kurs tekstowy za logowaniem.
+	 * Panel, który dawałby ebooka do wyboru, byłby zaproszeniem do złamania
+	 * tej decyzji jednym kliknięciem. Oba kursy w bazie mają `kurs`
+	 * (sprawdzone), więc nic się przez to nie staje nieedytowalne.
+	 *
+	 * SPROSTOWANIE (2026-08-31): do 0.60.0 stało tu „świadome odstępstwo od
+	 * prototypu — tam enum ma jeszcze `ebook`". Przestało być prawdą:
+	 * decyzją właściciela prototyp dogonił wtyczkę (`KursTyp`
+	 * w `modules/m1-sklep/typy.ts`), więc odstępstwa już nie ma.
 	 */
 	public const TYPY = array( 'kurs' => 'Kurs' );
 

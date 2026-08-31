@@ -5,6 +5,421 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.60.1] — 2026-08-31
+
+### Prototyp przestaje obiecywać ebooki, których nie sprzedajemy
+
+Właściciel zamknął temat ebooków **2026-08-25 słowem „na zawsze"** — produktem
+jest wyłącznie kurs tekstowy za logowaniem. Wtyczka WP wprowadziła to od razu
+(`Aai_Sklep_Kontrakt::TYPY`), ale **prototyp obiecywał je dalej**, i to
+w metadanych: „Kursy i **ebooki** Automatic AI" szło do opisu strony
+i katalogu, a kreator miał `Ebook` do wyboru jednym kliknięciem.
+
+Znalezione przy kroku SEO (0.60.0): nowy `app/manifest.ts` musiał dostać opis
+produktu, a jedyny istniejący był nieprawdziwy — w prototypie stanęły przez to
+**dwie wersje prawdy o produkcie**, czyli dokładnie ten rozjazd, przed którym
+ostrzega `lib/seo.ts`. **Decyzja właściciela 2026-08-31: same kursy.**
+
+### Zmienione
+
+- opisy w `app/layout.tsx` i `app/szkolenia/widok.tsx` — bez słowa „ebooki";
+- `KursTyp` w `modules/m1-sklep/typy.ts` → `z.enum(["kurs"])`, więc kreator
+  prototypu nie ma już czego zaoferować (jak wtyczka WP);
+- test migracji nie zasiewa typu, którego nie oferujemy.
+
+**Kolumny w bazie NIE zwężamy**: `CHECK (type IN ('ebook','kurs'))` zostaje —
+migracja zmieniająca ograniczenie nie kupuje niczego, czego nie daje kontrakt.
+Oba kursy mają `kurs` (sprawdzone zapytaniem do bazy, nie założone).
+
+Sprostowany też komentarz w `Aai_Sklep_Kontrakt`, który mówił o „świadomym
+odstępstwie od prototypu" — odstępstwa już nie ma.
+
+### Dowody
+
+`npm run check` kod 0: strażnicy **38/38**, testy **83/83**, lint, tsc, build,
+7 smoke'ów prototypu.
+
+---
+
+## [0.60.0] — 2026-08-31
+
+### SEO od nowa: mapa strony przestaje zapraszać do indeksu tego, czego sami nie wpuszczamy
+
+SEO robiliśmy przy **0.24.0**, gdy nie było nawet połowy projektu. Od tamtej
+pory doszła wtyczka WP z własnym `Aai_Sklep_Seo`, 73 lekcje prozy, widok
+kupionego kursu, „Moje kursy", koszyk i kasa. Krok 1 planu domknięcia
+([PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md)) odświeża to
+w całości, a nie łata.
+
+**Zakres rozstrzygnął właściciel** (2026-08-31, wariant „b"): **wtyczka
+pilnuje TYLKO swoich tras**. Reguła, która z tego wyszła i weszła do kodu:
+*nasze wtyczki sprzątają w mapie i oznaczają `noindex` dokładnie te adresy,
+które istnieją Z NASZEGO POWODU* — kopia kursów w Tutorze, produkty Woo
+naszych kursów, strony transakcyjne powołane przez naszą ścieżkę zakupu.
+Blog, `/shop/`, `sample-page`, kategorie i tagi należą do właściciela
+witryny i idą na listę wdrożeniową, a nie pod nasz filtr.
+
+### Co zmierzono PRZED pisaniem kodu (żywa instalacja, `blog_public = 1`)
+
+Mapa strony **nie zawierała ANI JEDNEJ naszej trasy** — `/szkolenia/`
+i obie strony sprzedażowe to reguły przepisywania, nie wpisy, a rdzeń
+buduje mapę wyłącznie z typów wpisów i taksonomii. Za to zawierała:
+`/courses/<slug>/` i `/product/<slug>/` (**oddają 301** na nasze strony),
+**73 adresy lekcji** (bramka + `noindex`), `/koszyk/`, `/kasa/`,
+`/my-account/`, `/dashboard/`, obie rejestracje Tutora oraz
+**`/author/admin/`**. Mapa mówiła więc wyszukiwarce coś przeciwnego niż
+strony, do których prowadziła.
+
+Do tego dwa osobne pomiary: `/koszyk/` i `/my-account/` nie miały **żadnego**
+znacznika `robots` (Woo wskazywał NASZE strony poprawnie — to nie była
+kwestia konfiguracji), a `courses.updated_at` **nie znaczy „zmiana treści"**:
+trigger ustawia `now()` przy KAŻDYM `UPDATE` wiersza kursu, bez porównania
+wartości, i siedzi wyłącznie na `courses` — poprawka prozy lekcji (tabela
+`lessons`) go nie dotyka. Dlatego mapa **dalej nie podaje `lastModified`**
+(decyzja właściciela), a nieprawdziwa obietnica z komentarza
+`app/sitemap.ts` („prawdziwą datę wprowadzimy…") została sprostowana.
+
+### TRZECIA droga do loginu administratora — zamknięta
+
+`/author/admin/` i `?author=1` oddają **404** od 0.59.0, ale
+`wp-sitemap-users-1.xml` **dalej drukował sam login**: rdzeń buduje ten
+adres z `user_nicename`, a ten równa się loginowi (zmierzone `wp user list`:
+`admin` / `admin`). Wyciek żył mimo dwóch zamkniętych drzwi — w pliku XML,
+na który nikt nie patrzył, i wyłącznie w produkcji, bo rdzeń bramkuje całą
+mapę opcją `blog_public`. Dostawcę `users` zdejmuje mu-plugin obwodu, tam
+gdzie mieszkają dwie pozostałe drogi (to nie SEO, tylko enumeracja kont).
+
+**Przy okazji: miękkie 404.** Zmierzone w kodzie rdzenia
+(`class-wp-sitemaps.php`): przy nieznanym dostawcy `render_sitemaps()`
+wykonuje **gołe `return`** — bez `set_404()` i bez `status_header( 404 )`,
+inaczej niż w gałęzi „mapy wyłączone". Zdjęta mapa oddawała więc stronę
+błędu ze **statusem 200**, czyli treść do zaindeksowania. Domyka to reguła
+w obwodzie, celująca w SKUTEK: jeśli nasz callback w ogóle się wykona,
+znaczy to, że trasa mapy niczego nie wyprodukowała (przy powodzeniu rdzeń
+kończy żądanie `exit`-em).
+
+### Dodane
+
+- **`Aai_Sklep_Sitemap` + `Aai_Sklep_Sitemap_Dostawca`** (Plugin 1) —
+  katalog i strony kursów w `wp-sitemap-szkolenia-1.xml`, z `lista_kursow()`,
+  czyli z TEGO SAMEGO odczytu, z którego renderuje się katalog: mapa nie
+  może obiecać strony, której nie ma, ani pominąć kursu, który jest.
+  Wycina `courses` i `lesson` oraz strony postawione przez Tutora.
+- **`Aai_Platnosci_Sitemap`** (Plugin 2) — produkty i archiwa kategorii
+  produktów poza mapą, `noindex` na koszyku, kasie i koncie.
+- **`Aai_Sklep_Zasoby::strony_tutora()`** — jedno źródło listy stron Tutora
+  dla arkusza integracji i dla mapy (dwie listy tych samych opcji
+  rozjechałyby się przy pierwszej zmianie w Tutorze, i to niemo).
+- **`app/manifest.ts`** — brakujący plik wobec wzoru `automatic-ai`, ze
+  ścieżkami przez `zasob()`: Next aplikuje `basePath` do znacznika
+  `<link rel=manifest>`, ale **NIE do treści manifestu**. Zweryfikowane na
+  ARTEFAKCIE: żywy podgląd oddaje ścieżki z `/szkolenia-podglad` i wszystkie
+  pięć ikon z kodem 200.
+- **`tools/ikony-marki.mjs`** (`npm run ikony`) — rastry 192, 512,
+  `maskable` i `apple-icon`. Samo SVG nie wystarcza: Android przy instalacji
+  skrótu sięga po PNG, a bez wariantu `maskable` dokłada własne tło
+  i przycina znak. Rasteryzuje **przeglądarka z riga**, nie `sharp` —
+  zależności aplikacji nie rosną (wzór dał POMYSŁ, nie plik).
+- **`npm run smoke:wp-seo`** — **169 sprawdzeń**; jedyna bramka mierząca
+  witrynę **przy włączonej widoczności**, bo przy wyłączonej odpowiadałaby
+  na inne pytanie. Scenę stawia sama i przywraca **wartość ZASTANĄ**, nie
+  „domyślną" (lekcja z `smoke-wp-motyw`, który zamykał sklep za sobą).
+  Najmocniejsza asercja: **każdy adres, który mapa zgłasza wyszukiwarce,
+  odpowiada 200 bez przekierowania** — to ona łapie stan sprzed kroku.
+
+### Naprawione
+
+- koszyk, kasa i konto klienta były w produkcji **indeksowalne**;
+- mapa strony publikowała **login administratora**;
+- zdjęta mapa oddawała **miękkie 404** (status 200 ze stroną błędu);
+- komentarz w `app/sitemap.ts` obiecywał `updated_at` jako prawdziwą datę
+  zmiany treści — nieprawda o własnym schemacie, sprostowana pomiarem.
+
+### Dowody
+
+Strażnicy **38/38** (nowe reguły w `straznik-obwodu`, `straznik-frontu-wp`,
+`straznik-platnosci-wp`, `straznik-seo` — każda z testem negatywnym
+pokazującym, że mutacja ZACHOWANIA przy zostawionej nazwie zapala
+strażnika), audyt mutacyjny **319 → 328** (326 złapanych, 0 przeoczonych,
+0 martwych), `npm run check` kod 0, **piętnaście bramek WP zielonych**:
+seo 169 · monitor 174 · kreator 102 · motyw 91 · front 86 · produkty 85 ·
+maile 62 · lekcja 57 · panel 55 · tutor 44 · zakup 41 · zwroty 39 ·
+dane 30 · język 25 · płatności 23. Dane Pluginu 1 nietknięte (73 lekcje
+z treścią, 2 kursy, 2 powiązania), dane monitoringu właściciela z T4
+nietknięte (bramki nie zostawiły ani jednego wiersza).
+
+### Pomiar (protokół bez zmian: PSI, mediana z 5, golden + tabela w README)
+
+Desktop **100/100/100/100 na obu stronach**. Mobile: katalog **97** (jak
+przy 0.25.0), strona kursu **94** — spadek z 96, z **TBT 251 ms** zamiast
+0 (pięć zgodnych przebiegów, więc nie „czkawka PSI"). Przyczyna zmierzona:
+od tamtego pomiaru urosła TREŚĆ stron sprzedażowych (audyt kursów, 0.33.0),
+a Next serializuje ją drugi raz jako ładunek hydratacji — lokalny profil
+przypisuje **706 ms wykonywania skryptów samemu dokumentowi**, nie plikom
+`.js`. **Ten koszt nie przenosi się na produkt**: ta sama strona kursu waży
+w prototypie **270 kB ze 112 kB ładunku hydratacji w 65 znacznikach
+`<script>`**, a we wtyczce WP **125 kB przy ZERZE ładunku i 18
+znacznikach**. Tabela w README mówi teraz wprost, że dotyczy **prototypu,
+nie produktu** — bo PSI jest usługą Google i nie dosięgnie lokalnego
+WordPressa. Kolumna SEO **100/100**, zmierzona wg protokołu na buildzie
+`SEO_INDEKSOWANIE=1` (11 przebiegów: dziesięć razy 100, raz 91 — pierwszy
+po starcie serwera, czyli rozgrzewka).
+
+---
+
+## [0.59.0] — 2026-08-31
+
+### Koniec etapu WordPressa: test całości i obwód bezpieczeństwa
+
+Wersja niesie **dwie domknięte prace**: **test całości trzech wtyczek**
+(przegląd architektury + naprawy + cztery decyzje właściciela) oraz
+**release zabezpieczeniowy** (audyt bezpieczeństwa i obwód witryny).
+Wchodzą razem, bo obie kończą etap WordPressa i obie okazały się o tym
+samym: **kod wtyczek był zdrowy, a dziury siedziały w szwach między nimi
+i na obwodzie WordPressa** — czyli tam, gdzie żadna wtyczka nie czuje się
+odpowiedzialna.
+
+---
+
+## Część 1 — test całości trzech wtyczek
+
+Trzy poprzednie testy ręczne (W6, P6, T4) sprawdzały po jednej wtyczce
+osobno. Ten pyta o **SZWY**: cena z kreatora do kasy, zamówienie Woo do
+zapisu w Tutorze i do maila, ukrycie kursu wobec dostępu kupującego, ruch
+klienta w monitoringu. Zakres, werdykt każdego znaleziska i stan
+środowiska: [TEST-CALOSCI-WP.md](docs/TEST-CALOSCI-WP.md); scenariusz dla
+właściciela: [TEST-RECZNY-CALOSC.md](docs/TEST-RECZNY-CALOSC.md).
+
+### Naprawione — wyciek całego produktu
+
+- **`/?post_type=lesson` oddawało gościowi 73 lekcje prozy** (osiem stron
+  po dziesięć, 116 kB treści w jednym `<main>`), a te same teksty
+  wychodziły kanałem RSS tej listy. **Nie widziała tego ANI JEDNA
+  z czternastu bramek WP ani żaden z 37 strażników.** Pojedyncza lekcja
+  była przy tym poprawnie za bramką — bo bramka dostępu zaczyna od
+  `is_singular()`, więc **LISTY w ogóle nie widzi**. Przyczyna jest po
+  naszej stronie, nie Tutora: to my kopiujemy pełną prozę płatnej lekcji
+  do `post_content` wpisu publicznego typu (kopia jest Tutorowi potrzebna
+  do dostępu i postępu) — skoro treść nasza, osłona też.
+  Osłona ma **trzy części i każda jest konieczna**, co zmierzono, a nie
+  założono: `register_post_type_args` (typ traci archiwum i wypada
+  z wyszukiwarki, ale `publicly_queryable` ZOSTAJE — na nim stoi adres
+  pojedynczej lekcji, czyli to, za co klient zapłacił), `pre_get_posts`
+  (publiczne zapytanie o listę dostaje PUSTY wynik) i `template_redirect`
+  (odpowiedź niesie 404). **Samo `set_404()` nie wystarczyło:** motyw nie
+  ma `404.php`, spada na `index.php` i drukuje znalezione wpisy — po
+  pierwszej wersji naprawy proza wyciekała dalej, przy kodzie 200.
+  Przed: 8 × 10 lekcji i 11 wystąpień w RSS. Po: 0 i 0.
+
+### Naprawione — dostępność i poprawność witryny
+
+- **Brak JEDNEGO pliku wtyczki wywracał całą witrynę.** Autoloader obu
+  młodszych wtyczek pomija plik nieczytelny, a `Error: Class not found`
+  pada w callbacku `plugins_loaded`, czyli na KAŻDYM żądaniu — zmierzone:
+  `/szkolenia/` oddawało **HTTP 500**. Start wtyczek jest teraz
+  w `try/catch`.
+- **Każde 404 poza `/szkolenia/` było pustym ekranem** — motyw nie ma
+  `404.php`, więc klient dostawał nagłówek, białą pustkę i stopkę,
+  wyglądające na awarię (`<main>` miał **24 znaki** wobec 898 na naszej
+  stronie). Dwa takie adresy stworzyliśmy sami, spolszczając slugi koszyka
+  i kasy. Nasz szablon obsługuje teraz KAŻDE 404 i dobiera zdanie do
+  adresu.
+- **`/product/<slug>/` był drugą stroną sprzedażową** w wyglądzie
+  WooCommerce, z ceną i „Dodaj do koszyka” — bo `hidden` chowa produkt
+  z LIST, a nie zamyka jego własnego adresu. To ten sam stan, który
+  właściciel rozstrzygnął dla `/courses/<slug>/`, tylko drugimi drzwiami.
+  Teraz **301** na `/szkolenia/<slug>/`.
+- **Pusty identyfikator wskazywał cudzy kurs w szwie płatności.**
+  `kurs_tutora('')` szło do bazy z `meta_value => ''`, a takie zapytanie
+  dopasowuje PIERWSZY LEPSZY wpis danego typu. Plugin 1 ma tę obronę od
+  sweepu P5 — tam jej brak kosztował 18 lekcji Kursu 2. Ratował nas
+  przypadek: przy dwóch kursach metoda oddawała `-1`; **przy jednym
+  oddałaby jego id i szew powiązałby z nim cudzy produkt.**
+
+### Cztery decyzje właściciela (2026-08-31)
+
+- **C1 — ukrycie kursu przestaje odbierać dostęp kupującym.** Cała kopia
+  w Tutorze szła jednym statusem, więc „Ukryj” przepisywało 73 lekcje na
+  `private`, a to odcina każdego bez `read_private_posts`: klient dostawał
+  404 **przy obu kontrolach zielonych** (tabele i kopia zgodne co do
+  znaku — zgodne i niedostępne). Status jest teraz DWIEMA mapami: kurs
+  ukryty zostaje `private`, materiał zostaje `publish`. Obie połowy
+  zmierzone w kodzie Tutora: dostępu nie pilnuje status wpisu, tylko ZAPIS
+  na kurs, ale **kursu NIE WOLNO zostawić `publish`** — `enroll_now()` to
+  publiczny handler POST zapisujący na każdy kurs niebędący `purchasable`,
+  a kurs zdjęty ze sprzedaży ma `price_type = free`; zatrzymuje go
+  wyłącznie `private` (`draft` też by przepuścił). Test negatywny to
+  potwierdził: przy `publish` **obcy zapisał się na ukryty kurs i dostał
+  cały materiał**. Darmowe zapowiedzi gasną razem z kursem (decyzja
+  właściciela) — warunek pyta o STAN, nic nie przestawia w bazie.
+- **C2 — usunięcie kursu pyta LICZBĄ, ilu ludzi straci dostęp.** Przycisk
+  „Usuń” (istnieje od W4) kasuje kurs razem z kopią w Tutorze, więc
+  odbiera dostęp każdemu, kto go kupił — bezpowrotnie i bez śladu na jego
+  koncie. Pytała o to dotąd wyłącznie zgoda na utratę TREŚCI, czyli o coś
+  innego: tam ginie praca właściciela, tu cudzy opłacony dostęp; kurs bez
+  napisanych lekcji przechodził jednym kliknięciem. Panel mówi teraz „ten
+  kurs ma N kupujących — stracą dostęp” i wymaga drugiego, osobnego
+  kliknięcia, **wyłącznie przy kursie, który ktoś naprawdę ma** (pytanie
+  zadawane zawsze zmieniłoby się w okienko klikane odruchowo). Bramka
+  siedzi w warstwie zapisu, więc chroni też komendę
+  (`--pozwol-stracic-dostep`). Liczby nie liczymy sami — pyta o nią Tutor;
+  własny licznik byłby drugą kopią tej samej prawdy i skłamałby dokładnie
+  wtedy, gdy pytanie ma znaczenie. Odrzucone: twarda odmowa i brak zmian.
+- **C3 — strona przestaje obiecywać dostęp, którego przelew nie daje.**
+  Kurs obiecywał „Dostęp od razu po zakupie” w trzech miejscach, a jedyną
+  włączoną metodą płatności jest przelew (klasa BLAD-015). Mówi teraz
+  „Dostęp zaraz po zaksięgowaniu wpłaty”, a FAQ tłumaczy to zdaniem.
+  Pilnuje `smoke-wp-front`, który pyta INSTALACJĘ o włączone metody
+  płatności — **po podpięciu prawdziwej bramki reguła sama przestanie się
+  tego czepiać**.
+- **Kontrola przestaje meldować zerem sklep, który sprzedaje bez danych.**
+  Po wyłączeniu Pluginu 1 kontrola pisała „Sprzedaż nie działa” i kończyła
+  kodem 0, a stan był groźny: produkty zostają `publish` i dalej wchodzą
+  do koszyka, więc klient płaci za kurs, którego danych już nie ma.
+  Liczy teraz kupowalne produkty i przy niezerowym wyniku kończy kodem 1.
+  Zachowania sprzedaży NIE zmieniamy (decyzja właściciela) — od zamykania
+  sklepu jest komenda; zmienia się to, że kontrola mówi prawdę.
+
+### Naprawione w dowodach
+
+- **Zakaz pisania do cudzych tabel nie był pilnowany**, choć kod to
+  obiecywał: jedyna reguła szukała DOSŁOWNYCH nazw tabel, których
+  kanoniczne `Aai_Sklep_Tabele::tabela()` nie zawiera. Zmierzone mutacją:
+  **zapis Pluginu 2 do tabeli lekcji Pluginu 1 przechodził wszystkich
+  37 strażników na zielono.** Reguła 11 `straznik-wtyczki-wp` pyta teraz
+  o KLASĘ TABEL.
+- **Dwie bramki przechodziły tylko dzięki śmieciom po ręcznych testach** —
+  `smoke-wp-zwroty` wymagał otwartej sprzedaży, `smoke-wp-jezyk` konta roli
+  `customer` (takie powstaje wyłącznie przy zakupie). Obie tworzą teraz
+  własną scenę i przywracają stan **DOKŁADNIE zastany**: brak opcji
+  przywraca się jej skasowaniem, nie zapisaniem pustej wartości (lekcja
+  z 0.51.0, tu w drugą stronę).
+- **`postaw.sh` nie wstawał OD ZERA** — polskie pliki tłumaczeń wtyczek
+  instalowały się, zanim WooCommerce i Tutor w ogóle istniały.
+- Przy okazji: `Aai_Sklep_Panel_Akcje::usun_kurs()` niosła od W4 wklejony
+  blok odwołujący się do trzech zmiennych, których w tej metodzie nie ma
+  (kurs o pustym slugu wywróciłby usuwanie fatalem).
+
+---
+
+## Część 2 — release zabezpieczeniowy
+
+### Obwód witryny
+
+**Pełny audyt bezpieczeństwa trzech wtyczek** (`aai-sklep`, `aai-platnosci`,
+`aai-monitor`) **wraz z WordPressem, WooCommerce i Tutorem.** Stan, metoda,
+dowody i podział warstw: [AUDYT-BEZPIECZENSTWA-WP.md](docs/AUDYT-BEZPIECZENSTWA-WP.md).
+Decyzja właściciela (2026-08-31): wszystko z tej dziedziny wchodzi **jednym
+releasem**, przed dalszą pracą.
+
+**Najważniejszy wynik audytu jest taki, że warstwa aplikacyjna okazała się
+zdrowa, a całe realne ryzyko siedziało na OBWODZIE** — czyli w rzeczach,
+których żadna z naszych wtyczek nie kontroluje, bo należą do WordPressa.
+W trzech wtyczkach nie znaleziono ani jednego wstrzyknięcia SQL, ani jednego
+XSS-a, ani jednego braku nonce'a lub sprawdzenia uprawnień, obejścia dostępu
+do materiału ani drogi do manipulacji ceną (cena liczona serwerowo z `_price`,
+`sold_individually` blokuje ilość, zakup posiadanego kursu odmawiany obiema
+drogami). Golden integralności checkout → order → payment **okazał się
+niepotrzebny**: WooCommerce zamraża cenę na `order_item` w chwili zakupu,
+a nasza kopia jest jednokierunkowa.
+
+### Dodane — mu-plugin obwodu (`wordpress/srodowisko/mu-plugins/aai-obwod.php`)
+
+Guardy globalne witryny mieszkają **osobno od trzech wtyczek** (decyzja
+o podziale warstw): wtyczka odpowiada za bezpieczeństwo własnej logiki,
+obwód za to, co WordPress wystawia sam z siebie, a hosting za HSTS
+i blokadę `readme.html`.
+
+- **XML-RPC wyłączony w całości** (W-1, ryzyko WYSOKIE). `system.multicall`
+  pozwalał zmieścić **20 prób logowania w JEDNYM żądaniu**, z których dziennik
+  Pluginu 3 zapisywał **jeden wiersz** — czyli kanał, który łamał kontrakt
+  decyzji D6 („rejestrujemy, nie blokujemy”) właśnie przez to, że rejestracja
+  przestawała cokolwiek pokazywać. Do tego pingback jako droga SSRF.
+  Zweryfikowane: `wp.getUsersBlogs` → „does not exist”, POST → 405.
+- **Enumeracja użytkowników odcięta dwiema drogami** (S-2). `/wp-json/wp/v2/users`
+  oddawało gościowi login `admin`, a `?author=1` prowadził do tego samego
+  przez 301 na `/author/admin/`. Teraz trasa REST jest **zdjęta gościowi
+  w całości** (nie odfiltrowane pola — 404 jest nierozróżnialne od „nie ma
+  takiego zasobu”), a `?author=N` i `author_name` dają 404 na `parse_request`.
+  Administrator z nonce'em REST dostaje 200 jak dotąd.
+- **Hasła aplikacji wyłączone** — kanał REST, którym dało się uwierzytelnić
+  z pominięciem dziennika logowań Pluginu 3.
+- **Cztery nagłówki bezpieczeństwa na froncie**, za bramką `is_admin()`, żeby
+  nie wejść do kokpitu: `X-Content-Type-Options`, `Referrer-Policy`,
+  `X-Frame-Options`, `Permissions-Policy` (kamera, mikrofon, geolokalizacja,
+  płatności i dalsze — wyłączone).
+- **`<head>` odchudzony** (N-1): `wp_generator`, `rsd_link`, `wlwmanifest_link`,
+  `wp_shortlink_wp_head` i `?ver=` wersji rdzenia.
+
+### Dodane — CSP egzekwujące (nie Report-Only)
+
+Polityka wchodziła drogą, którą wybrał właściciel: **Report-Only → obserwacja
+→ egzekwowanie**, i przełączona została dopiero po przebiegu z **zerem
+naruszeń**.
+
+- `script-src 'self' 'nonce-<losowy na żądanie>' '<hash guardu motywu>'
+  '<hash wc_no_js>' 'inline-speculation-rules'`; `img-src 'self' data:`;
+  `connect-src 'self'`; `frame-src 'none'`; `frame-ancestors 'self'`;
+  `object-src 'none'`; `base-uri 'self'`; `form-action 'self'`; `report-uri`
+  do własnego kolektora.
+- **`style-src` MUSI mieć `'unsafe-inline'`** i to jest zmierzone, nie
+  przyjęte: strony niosą 15–23 atrybuty `style=`, których nie da się
+  onnonceować. Zapisane w strażniku, żeby nikt tego nie „naprawił”.
+- **Nonce jedzie tą samą wartością w nagłówku i na tagach** — dokładany przez
+  `wp_inline_script_attributes` i `wp_script_attributes`, zgodność
+  zweryfikowana.
+- **Kolektor naruszeń** (`admin-post.php?action=aai_obwod_csp`, obie gałęzie
+  haka) agreguje zgłoszenia bez danych osobowych: limit ciała 8 kB czytany
+  strumieniem, 60 zgłoszeń/min, sufit 200 rodzajów. Działa także pod
+  egzekwowaniem i jest **siatką na zmiany w cudzych statycznych skryptach**.
+
+**Dowód egzekwowania zrobiony rigiem** (puppeteer-core + systemowy Firefox,
+BiDi, nasłuch `securitypolicyviolation`), nie lekturą kodu: Report-Only bez
+nonce'a dawał 2 naruszenia na froncie i 20 w kasie; po nonce'ach **jedno na
+stronę** — statyczny `wc_no_js` WooCommerce, który omija interfejs skryptów
+i został zhashowany; po hashu **ZERO naruszeń** na katalogu, stronie kursu,
+lekcji (gość i zalogowany klient), koszyku, kasie ze Store API, „Moich
+kursach” i stronie konta. **Zakup pod egzekwowaniem przeszedł** (`add-item`
+→ 201). JSON-LD i speculationrules polityki nie łamią.
+
+### Dodane — kontrola jakości
+
+- **`straznik-obwodu`** (39. strażnik) — czternaście reguł pytających
+  o ZACHOWANIE, nie o obecność napisu. Powód jest w tym repo policzony:
+  wzorzec na nazwę albo na napis zawiódł już siedem razy (0.29.0, 0.44.0,
+  0.47.0, c6c9c97, dwa razy w P4, raz w T4).
+- **Hashe są kruche i dlatego pilnowane.** Regeneracja motywu albo
+  aktualizacja WooCommerce zmieni skrypt, hash przestanie pasować,
+  a hydracja motywu lub `wc_no_js` padną **po cichu** — strona dalej się
+  otworzy. Łapie to strażnik (hash motywu, warunkowo — gdy motyw jest na
+  dysku) oraz kolektor (na żywym ruchu).
+- **Audyt mutacyjny 305 → 319**: czternaście wpisów obwodu, wszystkie
+  ZŁAPANE, 0 przeoczonych, 0 martwych.
+
+### Odpuszczone i odłożone świadomie
+
+- **Rejestracja `system.multicall` w monitoringu** okazała się bezprzedmiotowa
+  po wyłączeniu XML-RPC — nie ma czego logować. Druga warstwa należy do
+  serwera.
+- **A-1 (dostępność komunikatów odmowy koszyka, `aria-live`)** — realne, ale
+  to nie jest bezpieczeństwo; poza zakresem tego releasu.
+- **Warstwa hostingu, „przed pierwszym klientem”:** HSTS, blokada
+  `readme.html`, XML-RPC także na serwerze. **UWAGA WDROŻENIOWA: nonce CSP
+  jest losowy na żądanie**, więc pełny cache HTML podałby stary nonce do
+  nowego nagłówka i wywalił skrypty — na produkcji cache musi omijać strony
+  z CSP albo liczyć nonce cache-aware.
+
+### Stan dowodów
+
+`npm run check` kod 0 (**strażnicy 38/38**, testy **83/83**, lint, tsc, build,
+7 smoke'ów prototypu), audyt mutacyjny **319** (317 złapanych, 0 przeoczonych,
+0 martwych, 2 pominięte bez materiału). **Czternaście bramek WP zielonych POD
+EGZEKWUJĄCYM CSP** — bo dopiero to dowodzi, że polityka niczego nie ucięła:
+monitoring 174 · kreator 102 · motyw 91 · front 86 · produkty 85 · maile 62 ·
+lekcja 57 · panel 55 · tutor 44 · zakup 41 · zwroty 39 · dane 30 · język 25 ·
+płatności 23. Proza **73/73 co do znaku**, kopia w Tutorze **0 różnic**,
+`aai-platnosci sprawdz` i `aai-monitor sprawdz` kod 0.
+
 ## [0.58.0] — 2026-08-31
 
 ### T4 zaliczone — poprawki z testu ręcznego właściciela

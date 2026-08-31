@@ -17,7 +17,7 @@ import JsonLd from "@/components/seo/JsonLd";
 import { listaKatalogu, okruszki } from "@/lib/jsonld";
 
 const OPIS_KATALOGU =
-  "Kursy i ebooki Automatic AI — systemy pracy z AI, Claude i GitHubem, nie kolejne nagrania do obejrzenia.";
+  "Kursy Automatic AI — systemy pracy z AI, Claude i GitHubem, nie kolejne nagrania do obejrzenia.";
 
 /*
  * Tytuł mówi, CZEGO uczą kursy, a nie tylko że to „szkolenia".

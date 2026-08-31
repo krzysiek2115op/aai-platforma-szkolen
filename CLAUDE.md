@@ -1026,6 +1026,84 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
+## ═══ TRZY OSTATNIE KROKI: SEO → HIGIENA REPO → AUDYT KOŃCOWY ═══
+
+**CZYTAĆ PRZED PRACĄ: [docs/PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md)**
+— stan zmierzony, zakres każdego kroku, różnica wobec wzoru `automatic-ai`,
+pułapki poprzedniego przelotu SEO oraz **pomiary i pięć rozstrzygnięć
+właściciela z 2026-08-31** (sekcja „KROK 1 — pomiary i rozstrzygnięcia").
+
+**KROK 1 — SEO — ZROBIONY I ZAMKNIĘTY W REPO (2026-08-31).** PR #108
+zmergowany do `main`, tag **`v0.60.0`** + release, gałąź skasowana; artefakt
+zweryfikowany (`git diff origin/main <szczyt>` PUSTY — lekcja z 0.37.0).
+Zaraz po nim **PR #109, tag `v0.60.1`**: prototyp przestaje obiecywać ebooki.
+Pełnia: CHANGELOG 0.60.0 i 0.60.1.
+Skrót tego, czego nie wyprowadzać od nowa:
+- **Reguła podziału (decyzja właściciela, wariant „b"):** wtyczka pilnuje
+  TYLKO swoich tras; sprzątamy w mapie dokładnie te adresy, które istnieją
+  Z NASZEGO POWODU (kopia w Tutorze, produkty Woo, strony transakcyjne).
+  Blog, `/shop/`, `sample-page`, kategorie i tagi = lista wdrożeniowa.
+- **Mapa strony nie zawierała ANI JEDNEJ naszej trasy** — `/szkolenia/`
+  i strony sprzedażowe to reguły przepisywania, nie wpisy.
+- **TRZECIA droga do loginu admina:** `wp-sitemap-users-1.xml` drukował
+  `user_nicename` = login, mimo 404 na `/author/<login>/` od 0.59.0.
+  Zamknięte w **mu-pluginie obwodu** (to enumeracja kont, nie SEO).
+- **Rdzeń robi miękkie 404:** przy nieznanym dostawcy `render_sitemaps()`
+  wykonuje gołe `return`, bez `status_header( 404 )` — zdjęta mapa oddawała
+  stronę błędu ze statusem 200. Domknięte regułą celującą w SKUTEK.
+- **`courses.updated_at` NIE znaczy „zmiana treści"** (trigger bez
+  porównania wartości, tylko na `courses`; proza lekcji leży w `lessons`),
+  więc mapa dalej **nie podaje `lastModified`** — decyzja właściciela.
+- **`blog_public` bramkuje CAŁĄ sitemapę** — pomiar SEO przy wyłączonej
+  widoczności odpowiada na inne pytanie. `smoke-wp-seo` sam stawia scenę
+  i przywraca **wartość ZASTANĄ**, nie „domyślną".
+- **Manifest:** Next aplikuje `basePath` do znacznika `<link rel=manifest>`,
+  ale **NIE do treści manifestu** — ścieżki idą przez `zasob()`.
+  Rastry ikon robi `npm run ikony` **przeglądarką z riga**, nie `sharp`.
+- **Pomiar (PSI, protokół bez zmian):** desktop 100/100/100/100 na obu
+  stronach; mobile katalog 97, **strona kursu 94 (było 96), TBT 251 ms
+  (było 0)**. Przyczyna zmierzona: urosła TREŚĆ stron sprzedażowych
+  (0.33.0), a Next serializuje ją drugi raz jako ładunek hydratacji.
+  **Nie przenosi się na produkt**: ta sama strona to w prototypie 270 kB
+  ze 112 kB ładunku w 65 `<script>`, a we wtyczce WP 125 kB przy ZERZE
+  ładunku i 18 znacznikach. Tabela w README mówi to wprost.
+- Dowody: strażnicy **38/38**, audyt mutacyjny **328**, testy **83/83**,
+  `npm run check` kod 0, **15 bramek WP zielonych** (nowa `smoke:wp-seo`
+  169). Dane monitoringu właściciela z T4 nietknięte.
+- **DWIE DECYZJE WŁAŚCICIELA PO KROKU (2026-08-31), OBIE WYKONANE:**
+  (a) **„same kursy"** — prototyp dogonił wtyczkę WP: opisy bez słowa
+  „ebooki", `KursTyp` = `z.enum(["kurs"])`, kreator nie ma czego
+  zaoferować (wersja **0.60.1**). Kolumny w bazie NIE zwężamy —
+  `CHECK (type IN ('ebook','kurs'))` zostaje, bo migracja nie kupuje
+  niczego, czego nie daje kontrakt; oba kursy mają `kurs` (sprawdzone
+  zapytaniem). (b) **mobilnego TBT prototypu NIE optymalizujemy** —
+  koszt siedzi w ładunku hydratacji Nexta, a produkt (wtyczka WP) go
+  nie ma. **Nie otwierać tego tematu z własnej inicjatywy.**
+- **LISTA WDROŻENIOWA SEO** (co zostaje POZA naszymi wtyczkami, wprost
+  z reguły „wariant b"): sekcja w
+  [PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md). Najłatwiejsza
+  do przeoczenia pozycja: **`blog_public` MUSI wejść na 1 przy wdrożeniu** —
+  ta jedna opcja bramkuje CAŁĄ sitemapę, więc bez niej cała praca kroku 1
+  jest w produkcji niewidoczna.
+
+**NASTĘPNY KROK: KROK 2 — HIGIENA REPO** (decyzja właściciela 2026-08-31:
+po `/clear` zaczynamy od niej). Zakres wyjściowy i znane rozjazdy:
+[PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md), sekcja
+„KROK 2". Obowiązuje reguła z 2026-08-28: **plan + pytania + zgoda przed
+pracą.** Do kroku 2 dochodzą trzy rzeczy zmierzone przy SEO:
+- **gałęzi zdalnych jest PIĘĆ, nie trzydzieści** (`main`,
+  `plugin-1-sklep-kursow`, 2 × `bak/*`, 1 dependabota) — wcześniejsza
+  większa lista była przeterminowanym stanem lokalnym; liczyć
+  `git fetch --prune`, nie z pamięci;
+- lokalnie zostaje `docs/plan-seo-higiena-audyt` (już scalona przez #108);
+- **`tools/okladki-png.mjs` nie jest wymieniony ANI w `package.json`, ANI
+  w README, ANI w żadnym strażniku** — narzędzie, którego nikt nie znajdzie
+  (dla kontrastu: `tools/ikony-marki.mjs` dostał `npm run ikony` i wiersz
+  w README).
+**Zaparkowane:** gałąź `feat/zamrozenie-ceny-w-zamowieniu` (worktree obok)
+czeka na scalenie PO SEO — stoi na `09d6c79`, czyli przed 0.59.0, więc
+przed jej PR-em wciągnąć `main` i zweryfikować ARTEFAKT.
+
 ## ═══ ETAP WORDPRESS — START (decyzje właściciela 2026-08-25) ═══
 
 **CZYTAĆ PRZED PRACĄ: [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „Decyzje
