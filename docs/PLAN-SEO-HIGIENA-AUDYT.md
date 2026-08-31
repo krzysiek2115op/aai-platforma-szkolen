@@ -235,6 +235,9 @@ czynność.
 
 ## PRZED KROKIEM 3 — schematy draw.io trzech wtyczek — **ZROBIONE (0.64.0)**
 
+**ZAAKCEPTOWANE przez właściciela 2026-08-31** („akceptuje schematy i tą
+sekcję pracy") — wydane jako **0.64.0** (PR #115, tag + release).
+
 **Wynik:** siedem diagramów w czterech plikach `.drawio`, indeks
 [SCHEMATY.md](SCHEMATY.md), instrukcja dla klienta nietechnicznego
 [INSTRUKCJA-INSTALACJI.md](INSTRUKCJA-INSTALACJI.md), skrypt pakujący
@@ -257,7 +260,18 @@ w mermaidzie ([P1](plugin-1/DIAGRAM.md), [P2](plugin-2/DIAGRAM.md),
 i żaden nie pokazuje szwów MIĘDZY wtyczkami ani granicy wobec WooCommerce
 i Tutora. Złożenie materiału będzie główną pracą, nie samo rysowanie.
 
-## KROK 3 — audyt końcowy projektu
+## KROK 3 — audyt końcowy projektu — **NASTĘPNY KROK** (2026-08-31)
+
+**Właściciel zapowiedział, że to będzie NAJWIĘKSZA praca** i że
+**wyjaśni całość, gdy będziemy planować**. Zakresu NIE wyprowadzać
+z własnej inicjatywy ani z nazwy kroku — czekać na jego wytyczne.
+Przy schematach jego własny prompt zmienił kształt kroku (doszły paczki
+ZIP, instrukcja dla klienta i strażnik), więc zgadywanie kosztowałoby
+tu najwięcej.
+
+Obowiązuje reguła z 2026-08-28: **plan + pytania doprecyzowujące, zgoda,
+dopiero potem praca.**
+
 
 **Wytyczne do niego poda właściciel przy jego tworzeniu.** Nie planować go
 teraz i nie zakładać zakresu.

@@ -49,7 +49,7 @@ w repo jako specyfikacja wykonawcza i źródło treści.
 | | |
 |---|---|
 | **Wersja** | **0.64.0** |
-| **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). Trwają **trzy ostatnie kroki** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) — szczegóły pod tabelą |
+| **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). Z **trzech ostatnich kroków** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) zrobione są dwa — SEO (0.60.x) i higiena repo (0.62.0/0.63.0) — plus [schematy draw.io](docs/SCHEMATY.md) (0.64.0). Został **audyt końcowy** |
 | **Wtyczki WordPressa** | `aai-sklep` — W1–W6, `v0.45.0` · `aai-platnosci` — P0–P6, `v0.53.0` · `aai-monitor` — T0–T4, `v0.58.0`. Każda z osobnym testem ręcznym właściciela (W6, P6, T4) — plus test CAŁOŚCI, sprawdzający je razem |
 | **Trzy ostatnie kroki** | 1. SEO — **ZROBIONY** (`0.60.0`, `0.60.1`) · 2. higiena repo — **TRWA** · 3. audyt końcowy — wytyczne poda właściciel |
 | **Gałąź domyślna** | `main` — wrócił nią 2026-08-25 razem ze scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0`). Do tego dnia domyślną była `plugin-1-sklep-kursow`, bo `main` stał celowo na 0.3.4 ([PLAN.md §5](docs/PLAN.md): moduł wchodzi na gałąź główną po ukończeniu i akceptacji całości). Gałąź modułu zostaje jako historia — jej drzewo jest identyczne z `main` |
