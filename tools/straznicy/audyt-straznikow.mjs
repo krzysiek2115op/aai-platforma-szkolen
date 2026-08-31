@@ -88,6 +88,7 @@ const POMIAR_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monito
 const SKRYPT_MONITORA = "wordpress/wtyczki/aai-monitor/assets/pomiar.js";
 const PODPIS_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php";
 const PRYWATNOSC_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-prywatnosc.php";
+const MU_OBWOD = "wordpress/srodowisko/mu-plugins/aai-obwod.php";
 
 const MUTACJE = [
   // --- straznik-scenariuszy ---
@@ -3693,6 +3694,181 @@ const MUTACJE = [
     zmien: (s) =>
       s.includes("Zapisy o ruchu usuwamy do 400 dni")
         ? s.replace("Zapisy o ruchu usuwamy do 400 dni", "Zapisy o ruchu usuwamy do 30 dni")
+        : null,
+  },
+
+  // ————————————————————————— straznik-obwodu (Warstwa B) —————————————————————————
+  // Mu-plugin obwodu leży POZA `wordpress/wtyczki/*`, więc straznik-wtyczki-wp
+  // go nie widzi. Każde złamanie niżej jest CICHE — strona dalej się otwiera.
+  {
+    straznik: "straznik-obwodu",
+    opis: "XML-RPC włączony z powrotem (xmlrpc_enabled → __return_true)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "wyłączenia XML-RPC",
+    zmien: (s) =>
+      s.includes("'xmlrpc_enabled', '__return_false'")
+        ? s.replace("'xmlrpc_enabled', '__return_false'", "'xmlrpc_enabled', '__return_true'")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "enumeracja użytkowników przez REST znów otwarta dla gości",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "odcięcia `/wp/v2/users`",
+    zmien: (s) =>
+      s.includes("unset( $trasy['/wp/v2/users'] );")
+        ? s.replace("unset( $trasy['/wp/v2/users'] );", "// zdjęte")
+        : null,
+  },
+  {
+    // Druga droga enumeracji — archiwum autora (?author=N → 301 na login admina).
+    straznik: "straznik-obwodu",
+    opis: "enumeracja autorów (?author=N) znów otwarta",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "enumeracji autorów",
+    zmien: (s) =>
+      s.includes("'parse_request'")
+        ? s.replace("'parse_request'", "'init_x'")
+        : null,
+  },
+  {
+    // Hasła aplikacji — kanał REST omijający dziennik logowań (F12).
+    straznik: "straznik-obwodu",
+    opis: "hasła aplikacji znów dostępne",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "omijający dziennik",
+    zmien: (s) =>
+      s.includes("'wp_is_application_passwords_available', '__return_false'")
+        ? s.replace("'wp_is_application_passwords_available', '__return_false'", "'x_app', '__return_false'")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "Permissions-Policy zdjęte (kamera/mikrofon/geo znów dostępne)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "Permissions-Policy",
+    zmien: (s) =>
+      s.includes("header( 'Permissions-Policy: geolocation")
+        ? s.replace("header( 'Permissions-Policy: geolocation", "header( 'X-Off: geolocation")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "nagłówki nie bramkowane is_admin() — wchodzą do wp-admin",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "nie są bramkowane",
+    zmien: (s) =>
+      s.includes("if ( is_admin() ) {")
+        ? s.replace("if ( is_admin() ) {", "if ( false ) {")
+        : null,
+  },
+  {
+    // CSP cofnięte do Report-Only — po obserwacji z ZEREM naruszeń
+    // egzekwowanie jest stanem docelowym, nie ryzykiem.
+    straznik: "straznik-obwodu",
+    opis: "CSP cofnięte z egzekwującego do Report-Only",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "po obserwacji",
+    zmien: (s) =>
+      s.includes("CSP_NAGLOWEK = 'Content-Security-Policy'")
+        ? s.replace("CSP_NAGLOWEK = 'Content-Security-Policy'", "CSP_NAGLOWEK = 'Content-Security-Policy-Report-Only'")
+        : null,
+  },
+  {
+    // Nonce zdjęty z polityki — 23 inline skrypty kasy padają.
+    straznik: "straznik-obwodu",
+    opis: "nonce zdjęty z script-src",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "bez nonce'a",
+    zmien: (s) =>
+      s.includes("script-src 'self' 'nonce-\" . self::csp_nonce()")
+        ? s.replace("script-src 'self' 'nonce-\" . self::csp_nonce()", "script-src 'self' 'x\" . self::csp_nonce()")
+        : null,
+  },
+  {
+    // Filtr nonce zdjęty — nagłówek obiecuje nonce, którego skrypty nie noszą.
+    straznik: "straznik-obwodu",
+    opis: "nonce nie jedzie na inline skrypty (filtr zdjęty)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "wp_inline_script_attributes",
+    zmien: (s) =>
+      s.includes("add_filter( 'wp_inline_script_attributes', $dodaj );")
+        ? s.replace("add_filter( 'wp_inline_script_attributes', $dodaj );", "add_filter( 'x_off', $dodaj );")
+        : null,
+  },
+  {
+    // unsafe-inline w script-src — nonce i hashe stają się ignorowane.
+    straznik: "straznik-obwodu",
+    opis: "unsafe-inline dołożone do script-src (CSP bezzębne)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "bezzębnym",
+    zmien: (s) =>
+      s.includes("' 'inline-speculation-rules'\",")
+        ? s.replace("' 'inline-speculation-rules'\",", "' 'inline-speculation-rules' 'unsafe-inline'\",")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "style-src bez unsafe-inline (atrybutów style= nie da się onnonceować)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "atrybuty `style=`",
+    zmien: (s) =>
+      s.includes("style-src 'self' 'unsafe-inline'")
+        ? s.replace("style-src 'self' 'unsafe-inline'", "style-src 'self'")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "report-uri usunięte z CSP (kolektor martwy pod egzekwowaniem)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "kolektor nie złapałby",
+    zmien: (s) =>
+      s.includes("'report-uri ' . admin_url(")
+        ? s.replace("'report-uri ' . admin_url( 'admin-post.php?action=' . self::RAPORT_AKCJA ),", "'' . '',")
+        : null,
+  },
+  {
+    // Hash statycznego wc_no_js zdjęty — jedyny skrypt łamiący politykę
+    // z nonce'em wraca i egzekwowanie łamie front.
+    straznik: "straznik-obwodu",
+    opis: "hash wc_no_js usunięty (front pada pod egzekwowaniem)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "HASH_WC_NO_JS",
+    zmien: (s) =>
+      s.includes("HASH_WC_NO_JS = 'sha256-eHL")
+        ? s.replace("HASH_WC_NO_JS = 'sha256-eHL", "HASH_WC_NO_JS_OFF = 'sha256-eHL")
+        : null,
+  },
+  {
+    // Hash surowego skryptu motywu przestaje pasować (przegenerowany motyw)
+    // — pod egzekwowaniem hydracja padłaby po cichu. Reguła pyta o ZGODNOŚĆ.
+    straznik: "straznik-obwodu",
+    opis: "hash skryptu motywu w CSP nie pasuje do żywego motywu",
+    plik: MU_OBWOD,
+    wymaga: () =>
+      existsSync(MU_OBWOD) &&
+      [
+        process.env.AAI_MOTYW_HEADER,
+        process.env.WARSZTAT && `${process.env.WARSZTAT}/wp/theme/automatic-ai/header.php`,
+        `${process.env.XDG_CACHE_HOME ?? `${process.env.HOME}/.cache`}/automatic-ai-warsztat/wp/theme/automatic-ai/header.php`,
+      ].some((p) => p && existsSync(p)),
+    oczekiwanySlad: "NIE PASUJE do CSP",
+    zmien: (s) =>
+      s.includes("HASH_SKRYPTU_MOTYWU = 'sha256-wWMpFPmb")
+        ? s.replace("HASH_SKRYPTU_MOTYWU = 'sha256-wWMpFPmb", "HASH_SKRYPTU_MOTYWU = 'sha256-0000000b")
         : null,
   },
 ];
