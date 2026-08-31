@@ -83,6 +83,11 @@ Właściciel zamówił rozbudowę ekranu i zdecydował (**T4-D4**), że to
 „naprawy tego, co zgłosił” z „nową funkcją” w jednym przeglądzie. Zakres
 i uzasadnienie: TEST-RECZNY-T4.md, sekcja decyzji.
 
+**KOREKTA (2026-08-31, po wydaniu tej wersji): właściciel odwołał ten krok**
+— „zostawmy panel taki, jaki jest, najważniejsze informacje są". Ekran
+zostaje w wersji 0.58.0, a zakres z TEST-RECZNY-T4.md jest zapisem
+historycznym. Następny krok projektu to TEST CAŁOŚCI trzech wtyczek.
+
 ## [0.57.0] — 2026-08-31
 
 ### Naprawy z przeglądu T3 (2026-08-31)

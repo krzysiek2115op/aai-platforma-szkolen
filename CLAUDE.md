@@ -2805,36 +2805,30 @@ wyprowadzała tego od nowa:
         kod 0. **W tabelach monitoringu zostają dane z testu właściciela:
         12 logowań, 16 odsłon, 6 sesji** — materiał dowodowy, nie śmieci.
 
-        **═══ NASTĘPNY KROK CAŁEGO PROJEKTU (decyzja właściciela T4-D4) ═══**
-        **ROZBUDOWA EKRANU MONITORINGU — OSOBNY KROK (roboczo T5), z własnym
-        planem, pytaniami i zgodą** (reguła z 2026-08-28 obowiązuje). Osobny,
-        żeby nie mieszać „naprawy tego, co zgłosił właściciel" z „nową
-        funkcją" w jednym przeglądzie.
-        **DECYZJE WŁAŚCICIELA Z 2026-08-31, wiążące dla tego kroku:**
-        **T4-D2** — punkt odniesienia do poprzedniego okresu **TAK, samą
-        liczbą** („dziś 5, poprzednie 24 h: 12"), bez wykresu; **T4-D3** —
-        ekran ma służyć **wszystkim czterem celom naraz**: czy ludzi
-        przybywa · czego szukają przed zakupem · czy ktoś dobija się do kont ·
-        żeby dało się policzyć swoje.
-        **ZAKRES — wszystko z danych, KTÓRE JUŻ ZBIERAMY, bez ani jednej
-        nowej kolumny** (pełnia z uzasadnieniami: TEST-RECZNY-T4.md):
-        (1) punkt odniesienia do poprzedniego okresu; (2) lejek katalog →
-        strona kursu → bramka — **kolumna `bramka` to dane, których nie ma
-        nikt inny**: Woo zna zamówienia, Tutor zapisy, tylko my wiemy, KTO
-        CHCIAŁ I SIĘ ODBIŁ; (3) strony wejściowe (pierwsza ścieżka w sesji);
-        (4) sesje jednostronicowe (odróżniają „pięcioro uciekło" od „jedno
-        czytało"); (5) kafelek „ostatnia aktywność" — **zabezpieczenie, nie
-        ciekawostka**: przy pustej tabeli ekran mówi wprost, że nic nie
-        zbiera, ale przy danych STARYCH wygląda to jak spokojny ruch;
-        (6) serie nieudanych logowań z jednego adresu — **domyka D6**
-        („rejestrujemy, nie blokujemy" ma sens tylko wtedy, gdy rejestr
-        POKAZUJE serię); (7) eksport CSV.
-        **POZA ZAKRESEM ZOSTAJE:** wykresy i porównania rok do roku (poza
-        T3), cokolwiek o sprzedaży (**D4** — od tego są raporty Woo),
-        łączenie ruchu z kontem (**D3** — ruch jest anonimowy i ma taki
-        zostać).
-        **POTEM ostatnia rzecz z etapu WP: TEST CAŁOŚCI** — czy trzy wtyczki
-        współpracują i czy projekt trzyma się kupy architektonicznie.
+        **═══ NASTĘPNY KROK CAŁEGO PROJEKTU: TEST CAŁOŚCI TRZECH WTYCZEK ═══**
+        **DECYZJA WŁAŚCICIELA (2026-08-31): ROZBUDOWY EKRANU NIE ROBIMY.**
+        Panel monitoringu zostaje taki, jaki jest — „nie trzeba go poprawiać,
+        najważniejsze informacje są". To **ODWOŁUJE krok T5** zapowiedziany
+        decyzją T4-D4 z tego samego dnia: siedem pozycji zakresu (punkt
+        odniesienia do poprzedniego okresu, lejek katalog → kurs → bramka,
+        strony wejściowe, sesje jednostronicowe, kafelek „ostatnia
+        aktywność", serie nieudanych logowań z jednego adresu, eksport CSV)
+        **NIE wchodzi do projektu**. Decyzje T4-D2 i T4-D3 zostają
+        w [TEST-RECZNY-T4.md](docs/plugin-3/TEST-RECZNY-T4.md) jako **zapis
+        historyczny** — gdyby ekran kiedyś rozbudowywać, gotowy zakres jest
+        tam wyprowadzony z danych, które już zbieramy. **Nie proponować tego
+        z własnej inicjatywy.**
+        Ekran w wersji przyjętej (0.58.0) pokazuje: cztery kafelki, każdy
+        z własnym okresem; dziennik logowań z filtrem „tylko nieudane";
+        ruch w oknach dziś / 7 / 30 dni z odsłonami, sesjami, czasem łącznym
+        i średnim; najczęściej czytane strony; osobno odsłony zatrzymane na
+        bramce logowania. To jest komplet — właściciel ocenił go jako
+        wystarczający w teście ręcznym T4.
+        **ZOSTAJE OSTATNIA RZECZ ETAPU WP: TEST CAŁOŚCI** (decyzja
+        2026-08-25) — czy trzy wtyczki współpracują i czy projekt trzyma się
+        kupy architektonicznie. Obowiązuje reguła z 2026-08-28: najpierw plan
+        przebiegu kroku + pytania doprecyzowujące, potem zgoda właściciela,
+        dopiero potem praca.
 
         Zapis historyczny (scenariusz T4, przed jego zaliczeniem):
         SCENARIUSZ WIĄŻĄCY:
@@ -2857,8 +2851,9 @@ wyprowadzała tego od nowa:
         każda liczba ma znanego autora), sprzedaż otwarta, kursy 2, konto
         `klient-test` (NIE kasować), skrzynka `127.0.0.1:8893`,
         `wp aai-monitor sprawdz` kod 0.
-        (Zapis historyczny: „PO T4 zostaje TEST CAŁOŚCI" — dalej aktualne,
-        ale dopiero PO kroku rozbudowy ekranu, patrz wyżej.)
+        (Zapis historyczny: „PO T4 zostaje TEST CAŁOŚCI" — dalej aktualne
+        i od decyzji z 2026-08-31 jest to następny krok WPROST: rozbudowa
+        ekranu została odwołana, patrz wyżej.)
         Zapis historyczny (stan przed naprawami):
         (raporty obu recenzentów, dowody uruchomieniowe, plan napraw
         w czterech turach, cztery pytania do właściciela).
