@@ -177,6 +177,21 @@ miejscu jesteśmy i co jest gotowe**.
 - **Worktree**: `git worktree list` jest jedynym źródłem prawdy; istnienie
   worktree NIE znaczy, że trwa w nim praca.
 
+### Co doszło z kroku 1 (zmierzone 2026-08-31)
+
+- **Gałęzi zdalnych jest PIĘĆ, nie trzydzieści**: `main`,
+  `plugin-1-sklep-kursow`, `bak/2026-08-17-hydratacja-fontow`,
+  `bak/2026-08-17-pasek-fixed-transform` i jedna dependabota. Większa lista
+  widziana wcześniej była **przeterminowanym stanem lokalnym** — liczyć
+  `git fetch --prune`, nigdy z pamięci ani ze starego `git branch -r`.
+- Lokalnie zostaje `docs/plan-seo-higiena-audyt` (scalona przez #108)
+  oraz `feat/zamrozenie-ceny-w-zamowieniu` (do scalenia, patrz wyżej).
+- **`tools/okladki-png.mjs` jest nie do znalezienia**: nie ma go w
+  `package.json`, w README ani w żadnym strażniku — wspominają go tylko
+  CHANGELOG, CLAUDE.md i KROK-P5.md. Dla kontrastu `tools/ikony-marki.mjs`
+  z kroku 1 dostał `npm run ikony` i wiersz w README. Do wyrównania.
+- **Liczby po kroku 1**: strażnicy 38, mutacje **328**, testy 83.
+
 ### Wzór — co można zaczerpnąć z `automatic-ai`
 
 Ich `scripts/` (nazwy zmierzone, nie zgadnięte) niosą pomysły, których u nas
@@ -202,6 +217,27 @@ projektu, gdyby się przydały: przegląd pary **agent + krytyk** na rozłączny
 obszarach, **żadne znalezisko bez potwierdzenia URUCHOMIENIOWEGO**, a na końcu
 **sweep krzyżowy** — bo to on znajduje rzeczy, których nie znajdują etapy
 (tak wyszedł BLAD-026 i cicha utrata 18 lekcji Kursu 2 w sweepie P5).
+
+---
+
+## LISTA WDROŻENIOWA SEO — co zostaje POZA naszymi wtyczkami
+
+Powstała z reguły podziału przyjętej w kroku 1 (wariant „b"): wtyczka pilnuje
+tylko swoich tras. Poniższe adresy **nie istnieją z naszego powodu**, więc ich
+nie ruszaliśmy — należą do właściciela witryny i do motywu. Wszystkie
+zmierzone 2026-08-31 przy `blog_public = 1`.
+
+| Co | Stan | Czyje |
+|---|---|---|
+| `/shop/` (archiwum produktów Woo) | w mapie, **200**, ale pusta lista — produkty kursów są w Woo `hidden` (P2) | decyzja właściciela: czy strona ma w ogóle istnieć |
+| `/sample-page/`, `/hello-world/` | w mapie — domyślne śmieci instalacji WordPressa | do skasowania przy wdrożeniu |
+| blog (`/wp-sitemap-posts-post-1.xml`), kategorie, tagi | w mapie — treść strony głównej Automatic AI | motyw / właściciel treści |
+| **`<link rel="manifest">` dla całej witryny** | **BRAK** — motyw daje `icon.svg` i `apple-icon.png`, manifestu nie ma wcale | motyw (jest tylko do odczytu; nasz `app/manifest.ts` może posłużyć za wzór) |
+| `blog_public` | na środowisku roboczym **0** — i to jest poprawne | **przy wdrożeniu MUSI wejść na 1**, inaczej nie ma ani mapy, ani indeksu |
+
+**Ostatnia pozycja jest najważniejsza i najłatwiejsza do przeoczenia:** cała
+praca kroku 1 jest w produkcji niewidoczna, dopóki `blog_public` = 0. Rdzeń
+bramkuje tą jedną opcją CAŁĄ sitemapę (zmierzone: `/wp-sitemap.xml` → 404).
 
 ---
 
