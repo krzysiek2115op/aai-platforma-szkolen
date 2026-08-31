@@ -175,6 +175,59 @@ function policzTesty(katalog) {
   }
 }
 
+// ---- 7. narzędzia tools/*.mjs dają się znaleźć ----
+/* Klasa złapana 2026-08-31 przy higienie repo: CZTERY z dziewiętnastu
+   narzędzi nie były wymienione ANI w package.json, ANI w README —
+   `cytaty-zgodne`, `most-lekcji`, `sprawdz-zywy` i, najgorsze,
+   `pobierz-dokumentacje-wp`, które CLAUDE.md każe uruchomić po `git clean`
+   przed pisaniem kodu wtyczki. Narzędzie, którego nikt nie znajdzie, jest
+   w praktyce nieistniejące, a napisany raz skrypt kosztował czas.
+   Reguła pyta o ZNAJDOWALNOŚĆ, nie o miejsce: wystarczy wiersz w README
+   albo wpis w package.json. */
+{
+  const narzedzia = readdirSync("tools")
+    .filter((n) => n.endsWith(".mjs"))
+    .filter((n) => statSync(join("tools", n)).isFile());
+  /* Samokontrola zakresu: pusta lista znaczyłaby, że reguła przechodzi po
+     pustce — ta klasa ślepoty kosztowała ten projekt kilka bramek. */
+  if (narzedzia.length < 5) {
+    bledy.push(
+      `tools/: reguła znajdowalności narzędzi znalazła ich ${narzedzia.length} — przechodziłaby po pustce zamiast czegokolwiek pilnować.`,
+    );
+  }
+  const pkg = existsSync("package.json") ? readFileSync("package.json", "utf8") : "";
+  for (const n of narzedzia) {
+    if (!readme.includes(n) && !pkg.includes(n)) {
+      bledy.push(
+        `tools/${n}: narzędzia nie da się znaleźć — nie ma go ani w README, ani w package.json. Dopisz wiersz w sekcji „Skrypty" albo skrypt npm.`,
+      );
+    }
+  }
+}
+
+// ---- 8. wiersze tabel bez treści po zamykającym `|` ----
+/* Klasa złapana 2026-08-31: dwa wiersze tabeli bramek miały treść
+   DOPISANĄ PO zamykającym `|` (`… poza CI) |, **koszyk trzyma JEDEN
+   kurs** …`). GitHub takiego ogona nie renderuje, więc opis dwóch bramek
+   był na stronie repozytorium UCIĘTY — i nikt tego nie zauważył, bo
+   plik czyta się w edytorze, gdzie widać wszystko.
+   Reguła pyta o SKUTEK (czy coś wypada poza tabelę), nie o wzorzec
+   konkretnego zdania. Bloki kodu pomijamy — tam `|` bywa treścią. */
+{
+  let wKodzie = false;
+  readme.split("\n").forEach((linia, i) => {
+    if (/^\s*```/.test(linia)) { wKodzie = !wKodzie; return; }
+    if (wKodzie) return;
+    if (!linia.startsWith("|")) return;
+    const ogon = linia.slice(linia.lastIndexOf("|") + 1).trim();
+    if (ogon !== "") {
+      bledy.push(
+        `README.md:${i + 1}: wiersz tabeli ma treść po zamykającym \`|\` („${ogon.slice(0, 40)}…") — GitHub jej NIE wyrenderuje, więc ten opis jest dla czytelnika ucięty.`,
+      );
+    }
+  });
+}
+
 if (bledy.length > 0) {
   console.error("straznik-readme:");
   for (const b of bledy) console.error(`  - ${b}`);
