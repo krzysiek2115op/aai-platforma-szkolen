@@ -2398,6 +2398,49 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- C1: ukrycie kursu a dostęp kupującego (test całości, 2026-08-31) ---
+  // Obie te mutacje są CICHE: kontrola zgodności z Tutorem świeci zielono
+  // w każdym wariancie, bo kopia wiernie odwzorowuje to, co jej kazano.
+  {
+    straznik: "straznik-tutora",
+    opis: "materiał ukrytego kursu wraca na `private` (kupujący traci dostęp, 404)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "kupujący straciłby dostęp",
+    zmien: (s) => {
+      const i = s.indexOf("private const STATUS_MATERIALU_NA_WP");
+      if (i === -1) return null;
+      const ogon = s.slice(i);
+      if (!ogon.includes("'archived'  => 'publish',")) return null;
+      return s.slice(0, i) + ogon.replace("'archived'  => 'publish',", "'archived'  => 'private',");
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "ukryty kurs zostaje w Tutorze `publish` (obcy bierze go za darmo)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "bierze ukryty kurs za darmo",
+    zmien: (s) => {
+      const i = s.indexOf("private const STATUS_KURSU_NA_WP");
+      const j = s.indexOf("private const STATUS_MATERIALU_NA_WP");
+      if (i === -1 || j === -1 || j < i) return null;
+      const glowa = s.slice(i, j);
+      if (!glowa.includes("'archived'  => 'private',")) return null;
+      return s.slice(0, i) + glowa.replace("'archived'  => 'private',", "'archived'  => 'publish',") + s.slice(j);
+    },
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "zapowiedź ukrytego kursu zostaje otwarta dla wszystkich",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "bez pytania o STAN kursu",
+    zmien: (s) =>
+      s.includes("return $zapowiedz && 'published' === $stan_kursu;")
+        ? s.replace("return $zapowiedz && 'published' === $stan_kursu;", "return $zapowiedz;")
+        : null,
+  },
   // --- straznik-lekcji-wp (krok W5: nasz widok lekcji) ---
   // Strona lekcji jest TOWAREM. Wyciek materiału, nieprzetworzony Markdown
   // i arkusz sięgający poza własną stronę — żadna z tych rzeczy nie zapala

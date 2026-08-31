@@ -332,14 +332,14 @@ final class Aai_Sklep_Lekcja {
 		}
 
 		$kurs = $wpdb->get_row(
-			$wpdb->prepare( "SELECT id, slug, title FROM `$t_kursy` WHERE id = %s", (string) $lekcja['kurs_id'] ), // phpcs:ignore WordPress.DB.PreparedSQL
+			$wpdb->prepare( "SELECT id, slug, title, status FROM `$t_kursy` WHERE id = %s", (string) $lekcja['kurs_id'] ), // phpcs:ignore WordPress.DB.PreparedSQL
 			ARRAY_A
 		);
 		if ( null === $kurs ) {
 			return null;
 		}
 
-		$dostep = self::czy_wolno( $post->ID, (bool) (int) $lekcja['preview'] );
+		$dostep = self::czy_wolno( $post->ID, (bool) (int) $lekcja['preview'], (string) $kurs['status'] );
 
 		$program  = self::program( (string) $kurs['id'] );
 		$kolejnosc = array();
@@ -533,10 +533,22 @@ final class Aai_Sklep_Lekcja {
 	/**
 	 * Czy ten użytkownik ma prawo czytać tę lekcję — pyta TUTORA.
 	 *
-	 * @param int  $id_postu   Wpis lekcji.
-	 * @param bool $zapowiedz  Czy lekcja jest oznaczona jako zapowiedź.
+	 * ZAPOWIEDŹ GAŚNIE RAZEM Z KURSEM (decyzja właściciela 2026-08-31).
+	 * Darmowa lekcja jest narzędziem SPRZEDAŻY: ma dać przeczytać kawałek
+	 * temu, kto rozważa zakup. Kurs zdjęty ze sprzedaży nie ma czego
+	 * zapowiadać — jego strony sprzedażowej już nie ma (kanał odczytu
+	 * serwuje wyłącznie `published`), więc żywa darmowa lekcja byłaby
+	 * jedyną pozostałą po nim publiczną stroną. Po powrocie kursu do
+	 * sprzedaży zapowiedzi wracają same, bo warunek pyta o STAN, a nie
+	 * przestawia żadnej flagi w bazie.
+	 *
+	 * Kupującego to nie dotyczy: jego wpuszcza gałąź wyżej, na zapis.
+	 *
+	 * @param int    $id_postu   Wpis lekcji.
+	 * @param bool   $zapowiedz  Czy lekcja jest oznaczona jako zapowiedź.
+	 * @param string $stan_kursu Stan kursu z naszych tabel.
 	 */
-	private static function czy_wolno( int $id_postu, bool $zapowiedz ): bool {
+	private static function czy_wolno( int $id_postu, bool $zapowiedz, string $stan_kursu ): bool {
 		if ( current_user_can( 'manage_options' ) ) {
 			return true;
 		}
@@ -546,7 +558,7 @@ final class Aai_Sklep_Lekcja {
 				return true;
 			}
 		}
-		return $zapowiedz;
+		return $zapowiedz && 'published' === $stan_kursu;
 	}
 
 	/**

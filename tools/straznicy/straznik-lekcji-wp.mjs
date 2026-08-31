@@ -187,6 +187,32 @@ for (const [wzorzec, czego] of zaslona) {
   }
 }
 
+/* ————— 11. zapowiedź gaśnie razem z kursem (decyzja właściciela 2026-08-31) ————— */
+/*
+ * Darmowa lekcja jest narzędziem SPRZEDAŻY. Kurs zdjęty ze sprzedaży nie
+ * ma strony sprzedażowej (kanał odczytu serwuje wyłącznie `published`),
+ * więc żywa zapowiedź byłaby po nim jedyną publiczną stroną — a od C1
+ * materiał ukrytego kursu zostaje w Tutorze `publish`, żeby czytał go
+ * kupujący. Bez tego warunku ukrycie kursu zostawiałoby jego darmowe
+ * lekcje otwarte dla każdego, na zawsze.
+ *
+ * Reguła pyta o ROZSTRZYGNIĘCIE w bramce (zapowiedź ORAZ stan kursu),
+ * nie o obecność słowa „published" w pliku — ta pułapka wracała
+ * w projekcie dziewięć razy.
+ */
+{
+  const bramka = widok.slice(widok.indexOf("function czy_wolno"));
+  const koniec = bramka.indexOf("\n\t}");
+  const cialo = koniec > 0 ? bramka.slice(0, koniec) : bramka;
+  if (!cialo.startsWith("function czy_wolno")) {
+    bledy.push(`${PLIK_WIDOKU}: nie ma bramki czy_wolno() — strażnik przestał wiedzieć, czego pilnuje.`);
+  } else if (!/\$zapowiedz\s*&&\s*'published'\s*===\s*\$stan_kursu|'published'\s*===\s*\$stan_kursu\s*&&\s*\$zapowiedz/.test(cialo)) {
+    bledy.push(
+      `${PLIK_WIDOKU}: czy_wolno() wpuszcza na zapowiedź bez pytania o STAN kursu. Kurs zdjęty ze sprzedaży nie ma już strony sprzedażowej, a jego materiał zostaje w Tutorze publiczny (C1) — darmowa lekcja byłaby wtedy jedyną żywą stroną ukrytego kursu, otwartą dla każdego.`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-lekcji-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -194,5 +220,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-lekcji-wp: widok podpięty, dostępu pilnuje Tutor, bez dostępu treść nie jest czytana, renderer ma asercję (z wyjątkiem bloków kodu) i ucieka treść, zrzuty mają wymiary, arkusz zakotwiczony, CSS Tutora nie wchodzi, publiczne listy lekcji zasłonięte."
+  "straznik-lekcji-wp: widok podpięty, dostępu pilnuje Tutor, bez dostępu treść nie jest czytana, renderer ma asercję (z wyjątkiem bloków kodu) i ucieka treść, zrzuty mają wymiary, arkusz zakotwiczony, CSS Tutora nie wchodzi, publiczne listy lekcji zasłonięte, zapowiedź gaśnie razem z kursem."
 );

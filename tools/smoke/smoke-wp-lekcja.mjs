@@ -463,6 +463,100 @@ try {
   }
 }
 
+/* ————————— UKRYCIE KURSU (C1, decyzja właściciela 2026-08-31) —————————
+ *
+ * „Ukryj" zabiera kurs ze SKLEPU, ale kto go kupił — czyta dalej. Do
+ * 0.58.0 było odwrotnie i NIKT tego nie widział: cała kopia szła jednym
+ * statusem, ukrycie przepisywało lekcje na `private`, a kupujący dostawał
+ * 404 — przy `wp:sprawdz` 73/73 i `wp:tutor` bez różnic, bo nasze tabele
+ * i kopia były zgodne co do znaku. Zgodne i niedostępne.
+ *
+ * Mierzymy PRAWDZIWYM kupującym, nie administratorem: administrator ma
+ * `manage_options`, więc bramka wpuszcza go zawsze i odpowiadałby na inne
+ * pytanie niż zadane. Konto zakładamy i kasujemy sami — bramka ma tworzyć
+ * własną scenę (lekcja z testu całości).
+ */
+{
+  const kursProbki = JSON.parse(
+    wp("eval", `global $wpdb; $l = $wpdb->prefix . "aai_sklep_lessons"; $m = $wpdb->prefix . "aai_sklep_modules"; $c = $wpdb->prefix . "aai_sklep_courses";
+      $id = $wpdb->get_var($wpdb->prepare("SELECT m.course_id FROM \`$l\` l JOIN \`$m\` m ON m.id = l.module_id WHERE l.id = %s", "${probka.uuid}"));
+      $k = $wpdb->get_row($wpdb->prepare("SELECT id, slug, status FROM \`$c\` WHERE id = %s", $id), ARRAY_A);
+      $z = $wpdb->get_row($wpdb->prepare("SELECT l.id FROM \`$l\` l JOIN \`$m\` m ON m.id = l.module_id WHERE m.course_id = %s AND l.preview = 1 ORDER BY m.position, l.position LIMIT 1", $id), ARRAY_A);
+      $zp = $z ? get_posts(["post_type"=>"lesson","post_status"=>"any","numberposts"=>1,"meta_key"=>"_aai_zrodlo_uuid","meta_value"=>$z["id"]]) : array();
+      echo json_encode(array("kurs"=>$k, "zapowiedz"=>$zp ? get_permalink($zp[0]->ID) : null));`)
+      .trim().split("\n").pop()
+  );
+
+  sprawdz(
+    kursProbki.kurs !== null && "published" === kursProbki.kurs.status,
+    "kurs próbki nie jest opublikowany — pomiar ukrycia pytałby o nieznany stan wyjściowy"
+  );
+  sprawdz(kursProbki.zapowiedz !== null, "kurs próbki nie ma ani jednej lekcji-zapowiedzi — nie ma czym zmierzyć, że zapowiedź gaśnie");
+
+  // KONTRPRZYKŁAD: zanim ukryjemy, zapowiedź MUSI być czytelna dla gościa.
+  // Bez tego asercja „po ukryciu nie widać" przechodziłaby także wtedy, gdyby
+  // zapowiedzi nie działały w ogóle.
+  if (kursProbki.zapowiedz) {
+    const przed = tekst(await (await sesja().pobierz(kursProbki.zapowiedz)).text());
+    sprawdz(przed.includes("Czego się nauczysz"), "gość NIE czyta darmowej zapowiedzi opublikowanego kursu — sprzedaż straciła próbkę towaru");
+  }
+
+  const kupujacy = sesja();
+  const HASLO_C1 = "Smoke!C1-2026-ukrycie";
+  wp("user", "create", "smoke-c1", "smoke-c1@example.test", "--role=subscriber", `--user_pass=${HASLO_C1}`, "--porcelain");
+  let idKupujacego = 0;
+  try {
+    idKupujacego = Number(wp("eval", "echo (int) get_user_by('login','smoke-c1')->ID;").trim().split("\n").pop());
+    wp("eval", `$z = tutor_utils()->do_enroll( ${idKursu}, 0, ${idKupujacego} );` +
+      ` if ( $z ) { wp_update_post( array( 'ID' => (int) $z, 'post_status' => 'completed' ) ); }`);
+    sprawdz(await kupujacy.zaloguj("smoke-c1", HASLO_C1), "nie udało się zalogować kontem kupującego — reszta pomiaru ukrycia pytałaby gościa");
+
+    // Kontrprzykład drugi: przed ukryciem kupujący czyta materiał.
+    sprawdz(
+      tekst(await (await kupujacy.pobierz(probka.adres)).text()).includes("Czego się nauczysz"),
+      "kupujący nie czyta materiału opublikowanego kursu — pomiar ukrycia nie miałby punktu odniesienia"
+    );
+
+    wp("eval", `Aai_Sklep_Zapis::ustaw_status('${kursProbki.kurs.id}','archived','smoke-wp-lekcja');`);
+
+    const poUkryciu = await kupujacy.pobierz(probka.adres);
+    const trescKupujacego = poUkryciu.status === 200 ? tekst(await poUkryciu.text()) : "";
+    sprawdz(
+      poUkryciu.status === 200 && trescKupujacego.includes("Czego się nauczysz"),
+      `KUPUJĄCY STRACIŁ DOSTĘP PO UKRYCIU KURSU (HTTP ${poUkryciu.status}) — „Ukryj" ma zabierać kurs ze sklepu, a nie ludziom, którzy zapłacili`
+    );
+
+    const sprzedazowa = await sesja().pobierz(`/szkolenia/${kursProbki.kurs.slug}/`);
+    sprawdz(sprzedazowa.status === 404, `strona sprzedażowa ukrytego kursu oddała ${sprzedazowa.status} zamiast 404 — kurs nie zniknął ze sklepu`);
+
+    if (kursProbki.zapowiedz) {
+      const zapowiedzPoUkryciu = tekst(await (await sesja().pobierz(kursProbki.zapowiedz)).text());
+      sprawdz(
+        !zapowiedzPoUkryciu.includes("Czego się nauczysz"),
+        "darmowa zapowiedź ukrytego kursu jest dalej otwarta dla każdego — została po nim jedyna żywa strona, choć oferty już nie ma"
+      );
+    }
+
+    const statusy = JSON.parse(
+      wp("eval", `global $wpdb;
+        $kurs = get_posts(["post_type"=>"courses","post_status"=>"any","numberposts"=>1,"meta_key"=>"_aai_zrodlo_uuid","meta_value"=>"${kursProbki.kurs.id}"]);
+        echo json_encode(array("kurs"=>$kurs ? get_post_status($kurs[0]->ID) : null, "lekcja"=>get_post_status(${probka.id})));`)
+        .trim().split("\n").pop()
+    );
+    sprawdz(
+      statusy.kurs === "private",
+      `wpis ukrytego kursu w Tutorze ma status „${statusy.kurs}" zamiast „private" — przy każdym innym dowolny zalogowany bierze go za darmo (Course::enroll_now)`
+    );
+    sprawdz(statusy.lekcja === "publish", `lekcja ukrytego kursu ma status „${statusy.lekcja}" zamiast „publish" — kupujący dostanie 404`);
+  } finally {
+    wp("eval", `Aai_Sklep_Zapis::ustaw_status('${kursProbki.kurs.id}','${kursProbki.kurs.status}','smoke-wp-lekcja');`);
+    if (idKupujacego > 0) {
+      wp("eval", `foreach ( get_posts( array( 'post_type' => 'tutor_enrolled', 'post_status' => 'any', 'author' => ${idKupujacego}, 'numberposts' => -1, 'fields' => 'ids' ) ) as $z ) { wp_delete_post( (int) $z, true ); }`);
+      wp("user", "delete", "smoke-c1", "--yes");
+    }
+  }
+}
+
 console.log(`  lekcji sprawdzonych w całości: ${lekcje.length}, czas najdłuższej odsłony: ${czas} ms`);
 
 /* Sprzątanie po sobie: wyłącznie wiersze powstałe PO starcie tej bramki. */
