@@ -159,6 +159,8 @@ final class Aai_Obwod {
 		self::odchudz_head();
 		self::zaslon_liste_uzytkownikow();
 		self::zaslon_autorow();
+		self::zaslon_mape_autorow();
+		self::mapa_bez_dostawcy_to_404();
 		self::wylacz_hasla_aplikacji();
 		self::podpisz_skrypty();
 		add_action( 'send_headers', array( self::class, 'naglowki' ) );
@@ -200,6 +202,83 @@ final class Aai_Obwod {
 				}
 				return $wp;
 			}
+		);
+	}
+
+	/**
+	 * TRZECIA droga enumeracji kont — mapa autorów — zamknięta.
+	 *
+	 * Znalezione przy odświeżaniu SEO (2026-08-31). `/author/admin/`
+	 * i `?author=1` oddają od 0.59.0 **404**, ale `wp-sitemap-users-1.xml`
+	 * dalej **DRUKOWAŁ SAM LOGIN**: rdzeń buduje ten adres z
+	 * `user_nicename`, a ten równa się loginowi (zmierzone `wp user list`:
+	 * `admin` / `admin`). Wyciek był więc żywy mimo dwóch zamkniętych
+	 * drzwi — tyle że w pliku XML, na który nikt nie patrzył, i WYŁĄCZNIE
+	 * w produkcji, bo rdzeń bramkuje całą sitemapę opcją `blog_public`.
+	 *
+	 * Wycinamy DOSTAWCĘ, a nie pojedynczy adres: mapa autorów istnieje po
+	 * to, żeby wyszukiwarka indeksowała archiwa autorów — a te oddają
+	 * gościowi 404 od 0.59.0. Zgłaszanie ich do indeksu byłoby zapraszaniem
+	 * robota pod adresy, które sami zamknęliśmy.
+	 *
+	 * DLACZEGO W OBWODZIE, A NIE WE WTYCZCE SKLEPU. To nie jest SEO, tylko
+	 * enumeracja kont — ta sama sprawa, co dwa guardy wyżej, i ta sama
+	 * granica: wtyczki pilnują SWOICH tras (decyzja właściciela
+	 * 2026-08-31), a konta całej witryny pilnuje ten mu-plugin.
+	 */
+	private static function zaslon_mape_autorow(): void {
+		add_filter(
+			'wp_sitemaps_add_provider',
+			static function ( $dostawca, $nazwa ) {
+				return 'users' === $nazwa ? false : $dostawca;
+			},
+			10,
+			2
+		);
+	}
+
+	/**
+	 * Adres mapy bez dostawcy oddaje PRAWDZIWE 404, nie stronę 404 z kodem 200.
+	 *
+	 * ZMIERZONE W KODZIE RDZENIA (2026-08-31, `class-wp-sitemaps.php`):
+	 * gdy dostawcy o danej nazwie nie ma, `render_sitemaps()` wykonuje
+	 * **gołe `return`** — bez `set_404()` i bez `status_header( 404 )`,
+	 * inaczej niż w gałęzi „sitemapy wyłączone" dwa warunki wyżej. Żądanie
+	 * leci więc dalej, motyw rysuje naszą stronę „nie znaleziono", a serwer
+	 * odpowiada **200**. Zmierzone na żywo: `/wp-sitemap-users-1.xml` i
+	 * `/wp-sitemap-nieistniejacy-1.xml` oddawały 200, podczas gdy
+	 * `/wp-sitemap-posts-product-1.xml` (dostawca istnieje, podtypu brak)
+	 * oddawał poprawne 404.
+	 *
+	 * To klasyczny „miękki 404": wyszukiwarka dostaje stronę błędu ze
+	 * statusem sukcesu i indeksuje ją jako treść. Sami ten stan wywołujemy,
+	 * zdejmując dostawcę autorów — więc sami go domykamy.
+	 *
+	 * DLACZEGO PRIORYTET 11. Rdzeń renderuje mapę na `template_redirect`
+	 * (priorytet 10) i przy powodzeniu kończy żądanie `exit`-em. Jeśli więc
+	 * nasz callback w ogóle się wykona, znaczy to, że trasa mapy nie
+	 * wyprodukowała niczego. Nie musimy zgadywać, których nazw brakuje —
+	 * pytamy o SKUTEK.
+	 */
+	private static function mapa_bez_dostawcy_to_404(): void {
+		add_action(
+			'template_redirect',
+			static function (): void {
+				global $wp_query;
+
+				$mapa = get_query_var( 'sitemap' );
+				if ( '' === $mapa || null === $mapa || 'index' === $mapa ) {
+					return;
+				}
+				if ( ! is_object( $wp_query ) ) {
+					return;
+				}
+
+				$wp_query->set_404();
+				status_header( 404 );
+				nocache_headers();
+			},
+			11
 		);
 	}
 

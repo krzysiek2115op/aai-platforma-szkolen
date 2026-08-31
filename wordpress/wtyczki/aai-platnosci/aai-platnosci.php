@@ -190,6 +190,7 @@ add_action(
 		// prywatności zostaje.
 		Aai_Platnosci_Kasa::zarejestruj();
 		Aai_Platnosci_Komunikaty::zarejestruj();
+		Aai_Platnosci_Sitemap::zarejestruj();
 		} catch ( Throwable $e ) {
 			if ( class_exists( 'Aai_Platnosci_Komunikaty' ) ) {
 				Aai_Platnosci_Komunikaty::zapisz( 'nie udało się uruchomić szwu płatności: ' . $e->getMessage() );

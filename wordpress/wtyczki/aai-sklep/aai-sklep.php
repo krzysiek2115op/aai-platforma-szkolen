@@ -117,6 +117,7 @@ add_action(
 		Aai_Sklep_Moje::zarejestruj();
 		Aai_Sklep_Menu::zarejestruj();
 		Aai_Sklep_Seo::zarejestruj();
+		Aai_Sklep_Sitemap::zarejestruj();
 		// Kreator (krok W4). Ekrany kokpitu i akcje zapisu rejestrujemy zawsze,
 		// nie tylko przy `is_admin()`: `admin-post.php` biegnie przez ten sam
 		// hak, a odnośnik „Edytuj kurs" wchodzi do paska na FRONCIE.
