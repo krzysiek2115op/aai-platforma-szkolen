@@ -31,6 +31,31 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 - Przed każdym /clear: sweep rozmowy wg goldena przed-clear (pamięć projektu)
   — decyzje → nośnik trwały, braki dopisać, następny krok zapisany.
 
+## Mapa tego pliku (czytaj, zanim zaczniesz szukać)
+
+Ten plik jest **dziennikiem**, nie instrukcją: rośnie od góry ku dołowi, a
+zapisy nieaktualne są oznaczane jako „Zapis historyczny", nie kasowane. Ma
+ponad trzy tysiące linii — nie czytaj go w całości, wejdź od razu tam, gdzie
+trzeba.
+
+| Szukasz | Gdzie |
+|---|---|
+| **co robić TERAZ** | sekcja „TRZY OSTATNIE KROKI" — bieżący jest **krok 2, higiena repo** |
+| zasad, których nie wolno złamać | „Twarde zasady" wyżej + [docs/WYTYCZNE.md](docs/WYTYCZNE.md) |
+| prototypu Next.js (działy D1–D7, bramki B1–B7) | „Stan i następny krok" — od początku do „PLUGIN 1 DOMKNIĘTY" |
+| decyzji o etapie WordPress, środowiska `:8892`, motywu | „ETAP WORDPRESS — START" + [docs/ETAP-WP.md](docs/ETAP-WP.md) |
+| wtyczki sklepu `aai-sklep` (kroki W1–W6) | „ETAP WORDPRESS", kroki W1–W6 |
+| wtyczki płatności `aai-platnosci` (P0–P6) | „ETAP WORDPRESS", kroki P0–P6 + [docs/plugin-2/DIAGRAM.md](docs/plugin-2/DIAGRAM.md) |
+| wtyczki monitoringu `aai-monitor` (T0–T4) | „ETAP WORDPRESS", kroki T0–T4 + [docs/plugin-3/DIAGRAM.md](docs/plugin-3/DIAGRAM.md) |
+| dlaczego CI jest czerwony | „CI STOI OD 2026-08-18" — wyczerpane minuty Actions, nie kod |
+| pułapek, które już raz kosztowały czas | szukaj w pliku słów **PUŁAPKA**, **LEKCJA** i **BLAD-** |
+
+**Klasy błędów, które w tym projekcie WRACAJĄ** (każda ma tu swoją historię):
+wzorzec strażnika celujący w NAZWĘ zamiast w ROZSTRZYGNIĘCIE (dziewięć
+nawrotów), pomiar maskujący kod wyjścia potokiem, bramka sprzątająca CUDZE
+dane, martwy bind mount wtyczki po `git checkout` oraz test negatywny, który
+przechodzi po pustce.
+
 ## Stan i następny krok (aktualizować!)
 
 - Wersja: patrz CHANGELOG. Diagram Pluginu 1 zatwierdzony po 3 poprawkach
@@ -1731,8 +1756,9 @@ wyprowadzała tego od nowa:
      `docs/schemat-pluginu-2` — stackowane PR-y już raz zamknęły się
      nawzajem, notatka przy 0.25.0), potem plan + pytania do P2 (produkt
      z ceny) wg reguły poniżej.**
-     **P2 W TOKU — PRZERWA 2026-08-28 (gałąź `feat/p2-produkt-z-ceny`,
-     NIEUKOŃCZONE, bez PR-a).** Stan: kod szwu NAPISANY i działa na
+     **Zapis historyczny — P2 JEST ZROBIONY I WYDANY (0.47.0, PR #80, tag
+     `v0.47.0`); poniższy opis pochodzi z PRZERWY 2026-08-28, gdy krok był
+     nieukończony.** Stan: kod szwu NAPISANY i działa na
      żywej instalacji (2 prawdziwe kursy mają produkty: 675/676,
      `publish`, `hidden`, cena z naszej tabeli, powiązanie w Tutorze,
      `sync` idempotentny — druga próba „bez zmian 2"), ale **smoke P2
@@ -1847,8 +1873,8 @@ wyprowadzała tego od nowa:
      gałąź skasowana, artefakt zweryfikowany (diff main↔szczyt gałęzi PUSTY).**
      CI potwierdzone `gh run view`: wszystkie zadania 0 kroków (2118/2000
      minut Actions); po 1 września potwierdzić gitleaks.
-  8. **P3a W TOKU (gałąź `feat/p3a-ustawienia-kasa`) — plan ZATWIERDZONY
-     przez właściciela 2026-08-29** („p3a jest okej", pytania doprecyzowujące
+  8. **P3a ZROBIONY I WYDANY (0.48.0, PR #81, tag `v0.48.0`).** Plan
+     ZATWIERDZONY przez właściciela 2026-08-29 („p3a jest okej", pytania doprecyzowujące
      zadawać w trakcie). **Dokument kroku z czterema rozstrzygnięciami,
      weryfikacją zerową w cudzym kodzie i sześcioma etapami:
      [docs/plugin-2/KROK-P3A.md](docs/plugin-2/KROK-P3A.md) — CZYTAĆ PRZED
@@ -1995,8 +2021,9 @@ wyprowadzała tego od nowa:
      zamówienia 0, **sprzedaż ZAMKNIĘTA**, VAT wyłączony.
 
   10. **P4 ZROBIONY I PRZEJRZANY (2026-08-29, wersja 0.50.0, gałąź
-     `feat/p4-konto-i-maile`, 10 commitów) — PR NIEOTWARTY, czeka na zgodę
-     właściciela.** Dokument kroku z rozstrzygnięciami, pomiarami i przeglądem:
+     `feat/p4-konto-i-maile`, 10 commitów) — ZAMKNIĘTY W REPO: PR #84,
+     tag `v0.51.0` + release.** Dokument kroku z rozstrzygnięciami,
+     pomiarami i przeglądem:
      **[docs/plugin-2/KROK-P4.md](docs/plugin-2/KROK-P4.md) — CZYTAĆ PRZED PRACĄ.**
      Powstało: dwa maile dostarczenia (mail 1 „Ustaw hasło" na
      `woocommerce_created_customer`, mail 2 „Twój kurs jest gotowy" na
@@ -2374,8 +2401,10 @@ wyprowadzała tego od nowa:
         (`git diff origin/main <szczyt>` PUSTY).** Merge decyzją właściciela
         na dowodach lokalnych — CI padło w 2 s z zerem kroków (minuty
         Actions wracają 1 września; potem potwierdzić gitleaks).
-     2. **PLUGIN 3 — panel + monitoring — W TOKU: krok T0 (schemat)
-        ZAAKCEPTOWANY przez właściciela 2026-08-30** („akceptuję diagram,
+     2. **PLUGIN 3 — monitoring (`aai-monitor`) — SKOŃCZONY: kroki T0–T4,
+        T4 zaliczony przez właściciela 2026-08-31, wydany jako 0.58.0
+        (PR #104).** Zapis poniżej prowadzi krok po kroku od T0, którego
+        schemat ZAAKCEPTOWAŁ właściciel 2026-08-30 („akceptuję diagram,
         lecz poprawmy — uwagi K1–K4 zrób bezpiecznie, bez regresji,
         sprawdź przed i po, czy naprawa nie koliduje"). **Domknięcie
         K1–K4 ZROBIONE** — patrz niżej. Wtyczka **`aai-monitor`** (NIE
@@ -2675,8 +2704,8 @@ wyprowadzała tego od nowa:
         `gh api …/billing/usage`). Po powrocie CI (1 września) potwierdzić
         **gitleaks**, jako jedyny bez lokalnego odpowiednika.
         **KROK T3 — TIMER WIZYT — ZROBIONY (2026-08-30, wersja 0.57.0,
-        gałąź `feat/t3-timer-wizyt`, 7 commitów). PR NIEOTWARTY —
-        czeka na naprawy z przeglądu.** Monitoring mierzy ruch: kontrola
+        gałąź `feat/t3-timer-wizyt`, 7 commitów). ZAMKNIĘTY W REPO:
+        PR #102, tag `v0.57.0` + release.** Monitoring mierzy ruch: kontrola
         melduje „Czujki: logowania, ruch", ekran pokazuje okna dziś / 7 /
         30 dni i dziesięć najczęściej czytanych stron.
         **CZYTAĆ PRZED PRACĄ: [docs/plugin-3/KROK-T3.md](docs/plugin-3/KROK-T3.md)**
@@ -2902,8 +2931,9 @@ wyprowadzała tego od nowa:
         i średnim; najczęściej czytane strony; osobno odsłony zatrzymane na
         bramce logowania. To jest komplet — właściciel ocenił go jako
         wystarczający w teście ręcznym T4.
-        **TEST CAŁOŚCI TRZECH WTYCZEK — W TOKU (2026-08-31), gałąź
-        `docs/panel-zostaje-jaki-jest`. DOKUMENT KROKU:
+        **TEST CAŁOŚCI TRZECH WTYCZEK — KOD ZAMKNIĘTY I WYDANY (0.59.0,
+        PR #107, tag `v0.59.0`), gałąź `docs/panel-zostaje-jaki-jest`
+        skasowana. DOKUMENT KROKU:
         [docs/TEST-CALOSCI-WP.md](docs/TEST-CALOSCI-WP.md) — CZYTAĆ PRZED
         PRACĄ** (zakres, werdykty wszystkich znalezisk, pułapki, stan
         środowiska, lista roboty do dokończenia).
@@ -2998,12 +3028,18 @@ wyprowadzała tego od nowa:
         „czego nie zgłaszać". **Przelot kontrolny przed oddaniem: 37/37**
         (`tools/smoke/przelot-calosc.mjs` — SONDA, nie bramka, poza
         `npm run check`; sprząta po sobie stan kursu i dziennik logowań).
-        **NASTĘPNY KROK CAŁEGO PROJEKTU: TEST WŁAŚCICIELA** → poprawki
-        → **CHANGELOG + README** (jeszcze NIE zrobione — dziewięć commitów na
-        gałęzi nie ma wpisu w CHANGELOG, tak zaplanowano: wpis powstaje razem
-        z poprawkami z testu) → **PR jedną gałęzią** (razem z zapisem
-        o odwołanej rozbudowie ekranu) → tag → release. Obowiązuje reguła
-        z 2026-08-28: plan + pytania + zgoda przed pracą.
+        **KOD TEGO KROKU JEST ZAMKNIĘTY**: wpis w CHANGELOG (0.59.0),
+        README, **PR #107 zmergowany do `main`, tag `v0.59.0` + release**.
+        Zapowiedź „CHANGELOG i README jeszcze nie zrobione" była prawdziwa
+        w chwili pisania i jest nieaktualna od 0.59.0.
+        **TEST RĘCZNY CAŁOŚCI ZALICZONY (właściciel, 2026-08-31) — ETAP
+        WORDPRESSA JEST ZAMKNIĘTY.** Wynik przez chwilę nie istniał w repo:
+        ani CHANGELOG, ani TEST-CALOSCI-WP.md go nie notowały, choć dokument
+        kroku warunkował merge jego zaliczeniem, a merge nastąpił. Zapisany
+        przy higienie repo 2026-08-31, na potwierdzenie właściciela.
+        **Lekcja: bramka, której WYNIK nie trafia do repo, po tygodniu jest
+        nie do odróżnienia od bramki, której nie było** — W6, P6 i T4 mają
+        swoje zapisy, ta jedna ich nie miała.
         **PRZYCISK „USUŃ KURS" NIE JEST NOWY** — jest w kokpicie od W4
         (`f31b69f`); C2 dołożyło do niego hamulec. Właściciel wybrał wariant
         „dołóż hamulec" z trzech; „zablokuj na głucho" i „wyjmij przycisk

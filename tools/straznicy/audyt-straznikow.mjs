@@ -151,6 +151,32 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-readme",
+    opis: "narzędzie znika z README — nie da się go już znaleźć (klasa z 0.62.0)",
+    plik: "README.md",
+    zmien: (s) =>
+      s.includes("tools/pobierz-dokumentacje-wp.mjs")
+        ? s
+            .split("\n")
+            .filter((l) => !l.includes("tools/pobierz-dokumentacje-wp.mjs"))
+            .join("\n")
+        : null,
+    oczekiwanySlad: "nie da się znaleźć",
+  },
+  {
+    straznik: "straznik-readme",
+    opis: "wiersz tabeli traci treść za zamykającym `|` (GitHub jej nie renderuje)",
+    plik: "README.md",
+    zmien: (s) => {
+      const linie = s.split("\n");
+      const i = linie.findIndex((l) => l.startsWith("| `npm run smoke:wp-zakup`"));
+      if (i === -1) return null;
+      linie[i] = linie[i].replace(/\s*\|\s*$/, " |, ogon poza tabelą");
+      return linie.join("\n");
+    },
+    oczekiwanySlad: "po zamykającym",
+  },
+  {
+    straznik: "straznik-readme",
     opis: "martwy wiersz w tabeli — strażnik, którego nie ma na dysku",
     plik: "README.md",
     zmien: (s) => s.replace("| `straznik-readme` |", "| `straznik-widmo` | — | — |\n| `straznik-readme` |"),

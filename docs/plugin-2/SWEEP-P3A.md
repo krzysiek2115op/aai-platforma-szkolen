@@ -76,7 +76,8 @@ tam drugi raz.
 
 ## 6. Stan na koniec sweepu
 
-- **P3a gotowy, PR #81 OTWARTY, czeka na zgodę właściciela na merge.**
+- **P3a gotowy.** (Zapis z chwili sweepu mówił: PR #81 OTWARTY, czeka na
+  zgodę właściciela. PR #81 został zmergowany, tag `v0.48.0` + release.)
   Gałąź `feat/p3a-ustawienia-kasa`, wersja 0.48.0, wypchnięta, drzewo czyste.
 - Dowody po naprawach przeglądu: strażnicy **35/35**, audyt **183**
   (0 przeoczonych, 0 martwych), smoke motyw **89**, produkty **71**,

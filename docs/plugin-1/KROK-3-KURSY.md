@@ -5,6 +5,12 @@ Podstawa: [PLAN-FINAL-PLUGINU-1.md](PLAN-FINAL-PLUGINU-1.md) („Krok 3") oraz
 decyzje właściciela w [PRODUKCJA-MATERIALU-KROK-3.md](PRODUKCJA-MATERIALU-KROK-3.md).
 Bramka: **B7 — właściciel ocenia GOTOWE kursy.**
 
+> [!NOTE]
+> **KROK ZAMKNIĘTY, B7 ZALICZONA** (właściciel, 2026-08-25). Ten dokument
+> jest DZIENNIKIEM zamkniętej pracy: nagłówki w rodzaju „NASTĘPNY KROK”
+> i „W TOKU” w jego środku to zapisy chronologiczne z chwili pisania,
+> nie polecenia na dziś. Stanu bieżącego szukaj w [CLAUDE.md](../../CLAUDE.md).
+
 Stan: **w toku od 2026-08-19.** Aktualizować przy każdym domkniętym etapie.
 
 ## Gdzie pracujemy

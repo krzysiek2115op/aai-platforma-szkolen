@@ -233,9 +233,30 @@ Warianty 2 i 3 są **odrzucone**, nie „na później".
    i tabelą „czego nie zgłaszać". Przelot kontrolny przed oddaniem:
    `node --env-file=.env tools/smoke/przelot-calosc.mjs` — **37/37**
    (sonda, nie bramka; nie wchodzi do `npm run check`).
-   **NASTĘPNY KROK: test właściciela.**
-2. Test właściciela → poprawki → CHANGELOG + README → **PR jedną gałęzią**
-   (razem z zapisem o odwołanej rozbudowie ekranu) → tag → release.
+   **TEST ZALICZONY** — patrz sekcja niżej.
+2. ~~Test właściciela → poprawki → CHANGELOG + README → PR → tag → release~~
+   **ZROBIONE**: PR #107 zmergowany do `main`, tag `v0.59.0` + release.
 3. Pozycje z listy „plauzybilne" **poza pustym uuid zostają otwarte świadomie** —
    żadna nie jest dziś czynna, a każda dotyka cudzego kodu albo wydajności,
    nie poprawności.
+
+## TEST RĘCZNY ZALICZONY (właściciel, 2026-08-31)
+
+**Właściciel przeszedł scenariusz [TEST-RECZNY-CALOSC.md](TEST-RECZNY-CALOSC.md)
+i go zaliczył. Etap WordPressa jest tym samym ZAMKNIĘTY** — trzy wtyczki mają
+własne testy ręczne (W6, P6, T4), a ta jedna ścieżka sprawdziła je RAZEM:
+gość → zakup nowym kontem → poczta → klient czyta lekcję → kreator → „Ukryj"
+→ „Usuń" → monitoring → strona motywu.
+
+### Czego ten dokument o mało nie stracił
+
+Wynik testu **przez chwilę nie istniał w repo**. Ten dokument warunkował merge
+jego zaliczeniem („Merge dopiero po zaliczeniu testu ręcznego"), PR #107 został
+zmergowany i wydany jako `v0.59.0` — a nigdzie nie było napisane, czy test się
+odbył. Znalezione przy **higienie repo 2026-08-31** i uzupełnione na
+potwierdzenie właściciela.
+
+**Lekcja na audyt końcowy i na każdą przyszłą bramkę ręczną: bramka, której
+WYNIK nie trafia do repo, po tygodniu jest nie do odróżnienia od bramki,
+której nie było.** W6, P6 i T4 mają swoje zapisy z datą i nazwiskiem
+decydenta; ta jedna ich nie miała, choć była z nich wszystkich najszersza.
