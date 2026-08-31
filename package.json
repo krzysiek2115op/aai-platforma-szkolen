@@ -43,7 +43,8 @@
     "smoke:wp-jezyk": "node tools/smoke/smoke-wp-jezyk.mjs",
     "smoke:wp-maile": "node tools/smoke/smoke-wp-maile.mjs",
     "smoke:wp-zwroty": "node tools/smoke/smoke-wp-zwroty.mjs",
-    "smoke:wp-monitor": "node tools/smoke/smoke-wp-monitor.mjs"
+    "smoke:wp-monitor": "node tools/smoke/smoke-wp-monitor.mjs",
+    "smoke:wp-seo": "node tools/smoke/smoke-wp-seo.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.33.0",
