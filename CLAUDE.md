@@ -1229,10 +1229,41 @@ właściwym pliku zapalił się); a komentarz objaśniający BLAD-014 cytował
 zakazany wzorzec dosłownie i słusznie zapalił `straznik-sciezek`.
 
 **Dowody:** `npm run check` kod 0, strażnicy **39/39**, audyt mutacyjny
-**339** (0 przeoczonych, 0 martwych). **PR jeszcze NIEOTWARTY.**
+**340** (0 przeoczonych, 0 martwych).
+**ZAMKNIĘTE W REPO (2026-08-31): PR #115 zmergowany do `main`, tag `v0.64.0`
++ release, gałąź skasowana, artefakt zweryfikowany (`git diff origin/main
+<szczyt>` PUSTY — lekcja z 0.37.0).** Merge decyzją właściciela na dowodach
+lokalnych: CI padło w **4 sekundy z zerem kroków**, z adnotacją GitHuba wprost
+o rozliczeniu („The job was not started because recent account payments have
+failed…") — czyli wyczerpane minuty Actions, nie kod.
 
-**POTEM: audyt końcowy** — wytyczne poda właściciel, nie planować zakresu
-z własnej inicjatywy.
+**WŁAŚCICIEL PRZYJĄŁ SCHEMATY I CAŁĄ TĘ SEKCJĘ PRACY (2026-08-31):**
+*„akceptuje schematy i tą sekcję pracy"* — obejrzał wszystkie siedem
+w przeglądarce oraz instrukcję. **Nie otwierać ich z własnej inicjatywy.**
+
+**DWIE RZECZY ZGŁOSZONE WŁAŚCICIELOWI, JESZCZE NIEROZSTRZYGNIĘTE** (obie
+zostały świadomie POZA tym krokiem, bo dotykałyby kodu wtyczek, czego
+polecenie zabraniało):
+  1. **klient nietechniczny NIE OTWORZY sprzedaży sam** — flaga
+     `aai_platnosci_sprzedaz_otwarta` zmienia się wyłącznie przez WP-CLI,
+     więc instrukcja mówi wprost „robimy to my". Gdyby miało to być
+     klikalne, trzeba dołożyć przełącznik w kokpicie Pluginu 2;
+  2. **wersje wtyczek (0.6.0 / 0.1.0 / 0.4.0) nie mają związku z wersją
+     repo** — nazwy paczek biorą wersję z nagłówka wtyczki, co przy
+     sprzedaży obcemu klientowi może mylić.
+
+**═══ NASTĘPNY KROK CAŁEGO PROJEKTU: AUDYT KOŃCOWY ═══**
+(decyzja właściciela 2026-08-31, po przyjęciu schematów). To **ostatni
+z trzech ostatnich kroków** — SEO (0.60.x) i higiena repo (0.62.0 + 0.63.0)
+są zamknięte, schematy też (0.64.0).
+
+**WŁAŚCICIEL ZAPOWIEDZIAŁ, ŻE BĘDZIE TO NAJWIĘKSZA PRACA** i że
+**wyjaśni całość, gdy będziemy planować**. Zakresu NIE planować z własnej
+inicjatywy i nie zakładać go z nazwy — czekać na jego wytyczne, tak samo
+jak przy schematach (gdzie własny prompt właściciela zmienił kształt kroku).
+
+Obowiązuje reguła z 2026-08-28: **plan przebiegu kroku + pytania
+doprecyzowujące, i CZEKAĆ NA ZGODĘ**, dopiero potem praca.
 
 **JUTRO (1 września) WRACA CI** — wtedy dwie rzeczy: domknąć **dependabota
 PR #106** z zielonym checkiem (decyzja właściciela: czekamy na CI) i
