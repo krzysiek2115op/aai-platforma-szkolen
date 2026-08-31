@@ -1000,6 +1000,46 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* 39. SIEROTA PO KURSIE Z KUPUJĄCYMI TO BŁĄD, NIE INFORMACJA.
+
+   Rozstrzygnięcie właściciela (2026-08-31) przy C2. Produktu nie kasujemy
+   nigdy (niezmiennik 13), więc po usunięciu kursu zostaje sierota. Sierota
+   po kursie testowym to śmieć do sprzątnięcia — kod 0. Sierota po kursie,
+   który ktoś KUPIŁ, znaczy, że ludzie stracili dostęp do czegoś, za co
+   zapłacili, i ktoś musi z tym coś zrobić: kod 1.
+
+   Liczba kupujących musi być ZAPISANA w chwili usunięcia — po fakcie nie
+   da się jej odtworzyć, bo zapisy znikają razem z kopią kursu w Tutorze.
+   Reguła pyta więc o obie połowy: że szew ją zapisuje i że kontrola po nią
+   sięga, kwalifikując taki wiersz jako BŁĄD. */
+{
+  const szew = join(KATALOG, "includes", "class-aai-platnosci-szew.php");
+  const cli39 = join(KATALOG, "includes", "class-aai-platnosci-cli.php");
+  if (existsSync(szew)) {
+    const c = kod(readFileSync(szew, "utf8"));
+    if (!/add_action\(\s*'aai_sklep_kurs_usuniety'[\s\S]{0,120}?,\s*2\s*\)\s*;/.test(c)) {
+      bledy.push(
+        `${szew}: słuchacz usunięcia kursu nie przyjmuje DRUGIEGO argumentu akcji. Liczba kupujących do niego nie dojedzie, a po usunięciu kursu nikt jej już nie odtworzy — zapisy znikają razem z kopią w Tutorze.`
+      );
+    }
+    if (!/oznacz_utracony_dostep\s*\(/.test(c)) {
+      bledy.push(
+        `${szew}: usunięcie kursu nie zapisuje na produkcie, ilu ludzi straciło dostęp. Kontrola przestanie odróżniać śmieć po kursie testowym od śladu po utracie cudzego, opłaconego dostępu.`
+      );
+    }
+  }
+  if (existsSync(cli39)) {
+    const c = kod(readFileSync(cli39, "utf8"));
+    const czyta = /utracony_dostep\s*\(/.test(c);
+    const jakoBlad = /utracony\s*>\s*0[\s\S]{0,400}?\$wynik\['bledy'\]\[\]/.test(c);
+    if (!czyta || !jakoBlad) {
+      bledy.push(
+        `${cli39}: kontrola nie zgłasza jako BŁĄD sieroty po kursie, który miał kupujących (czyta znacznik: ${czyta}, kwalifikuje jako błąd: ${jakoBlad}). Kod 0 znaczyłby „wszystko w porządku" w sytuacji, w której ludzie stracili dostęp do opłaconego kursu.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1007,5 +1047,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli)."
 );

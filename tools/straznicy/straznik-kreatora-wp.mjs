@@ -312,6 +312,64 @@ if (existsSync(join(WTYCZKA, PLIK_ZAPISU))) {
   }
 }
 
+/* ——— 11. usunięcie kursu z kupującymi wymaga OSOBNEJ zgody (C2) ——— */
+/*
+ * Usunięcie kursu kasuje jego kopię w Tutorze, a razem z nią dostęp
+ * każdego, kto go kupił — bezpowrotnie i bez śladu na jego koncie.
+ * Do 0.58.0 pytała o to WYŁĄCZNIE zgoda na utratę treści, czyli o coś
+ * innego: tam ginie praca właściciela, tu cudzy opłacony dostęp
+ * (znalezisko testu całości, decyzja właściciela 2026-08-31 — pytać LICZBĄ).
+ *
+ * Reguła pyta o ROZSTRZYGNIĘCIA na całej drodze: bramka w warstwie zapisu
+ * (bo to ona chroni także wywołanie z komendy), przekazanie zgody przez
+ * akcję panelu i WARUNKOWE pytanie na liście. Pytanie zadawane zawsze
+ * przestaje cokolwiek znaczyć, więc atrybut ma stać w gałęzi „ktoś to
+ * kupił", a nie w szablonie na sztywno.
+ */
+{
+  const zrodloZapisu = existsSync(join(WTYCZKA, PLIK_ZAPISU)) ? kod(czytaj(PLIK_ZAPISU)) : "";
+  const PLIK_AKCJI = "includes/class-aai-sklep-panel-akcje.php";
+  const PLIK_LISTY = "szablony/panel/lista.php";
+  const zrodloAkcji = existsSync(join(WTYCZKA, PLIK_AKCJI)) ? kod(czytaj(PLIK_AKCJI)) : "";
+  const zrodloListy = existsSync(join(WTYCZKA, PLIK_LISTY)) ? kod(czytaj(PLIK_LISTY)) : "";
+
+  if ("" !== zrodloZapisu && /function usun_kurs/.test(zrodloZapisu)) {
+    const odmawia =
+      /\$kupujacy\s*>\s*0\s*&&\s*!\s*\$pozwol_dostep|!\s*\$pozwol_dostep\s*&&\s*\$kupujacy\s*>\s*0/.test(zrodloZapisu) &&
+      /throw new Aai_Sklep_Blad_Zapisu[\s\S]{0,900}?'kupujacy'\s*=>/.test(zrodloZapisu);
+    if (!odmawia) {
+      bledy.push(
+        `${PLIK_ZAPISU}: usun_kurs() nie odmawia skasowania kursu, który ktoś KUPIŁ. Zgoda na utratę treści to inna decyzja — kurs bez napisanych lekcji przechodziłby wtedy jednym kliknięciem, a ludzie, którzy za niego zapłacili, straciliby dostęp bez pytania.`
+      );
+    }
+    if (!/Aai_Sklep_Tutor::kupujacy\s*\(/.test(zrodloZapisu)) {
+      bledy.push(
+        `${PLIK_ZAPISU}: liczba kupujących nie jest pytana u Tutora. Własny licznik zapisów byłby DRUGĄ KOPIĄ tej samej prawdy i skłamałby przy pytaniu „czy na pewno skasować kurs".`
+      );
+    }
+  }
+
+  if ("" !== zrodloAkcji && !/usun_kurs\s*\(\s*\$id\s*,\s*self::aktor\(\)\s*,\s*\$zgoda\s*,\s*\$dostep\s*\)/.test(zrodloAkcji)) {
+    bledy.push(
+      `${PLIK_AKCJI}: akcja usuwania nie przekazuje zgody na odebranie dostępu do warstwy zapisu. Panel pytałby, a zapis i tak by kasował — albo odwrotnie: właściciel nie miałby jak potwierdzić i „Usuń" przestałoby działać w ogóle.`
+    );
+  }
+
+  if ("" !== zrodloListy) {
+    const warunkowe = /if\s*\(\s*\$aai_kupujacy\s*>\s*0\s*\)[\s\S]{0,600}?data-aai-potwierdz-dostep/.test(zrodloListy);
+    if (!warunkowe) {
+      bledy.push(
+        `${PLIK_LISTY}: lista nie pyta o kupujących albo pyta ZAWSZE. Pytanie ma stać w gałęzi „ktoś ten kurs kupił" — zadawane przy każdym kursie zmienia się w klikane odruchowo okienko i przestaje cokolwiek chronić.`
+      );
+    }
+    if (!/name="pozwol_stracic_dostep"\s+value="0"/.test(zrodloListy)) {
+      bledy.push(
+        `${PLIK_LISTY}: pole zgody na odebranie dostępu nie zaczyna od ZERA. Bezpieczne ma być domyślnie, a nie dzięki temu, że skrypt się wykonał.`
+      );
+    }
+  }
+}
+
 /* ————————————————— 9. formularz edytora nie niesie stanu kursu ————————————————— */
 
 const SZABLON_KURSU = "szablony/panel/kurs.php";
@@ -422,5 +480,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-kreatora-wp: kontrakt sekcji pokrywa prototyp, każde pole ma etykietę, rodzaje wchodzą do panelu, akcje mają nonce i uprawnienie, treść lekcji ma opis, brak klucza znaczy „nie ruszaj” (treść, materiały, sekcje, program, stan), adresy sprawdzane bez DNS-u, front nie dotyka materiału, formularz nie niesie stanu kursu, każdy rekord panelu jest granicą zakresu kolektora."
+  "straznik-kreatora-wp: kontrakt sekcji pokrywa prototyp, każde pole ma etykietę, rodzaje wchodzą do panelu, akcje mają nonce i uprawnienie, treść lekcji ma opis, brak klucza znaczy „nie ruszaj” (treść, materiały, sekcje, program, stan), adresy sprawdzane bez DNS-u, front nie dotyka materiału, formularz nie niesie stanu kursu, każdy rekord panelu jest granicą zakresu kolektora, usunięcie kursu z kupującymi wymaga osobnej zgody."
 );

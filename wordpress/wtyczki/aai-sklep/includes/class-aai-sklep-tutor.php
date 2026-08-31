@@ -880,6 +880,37 @@ final class Aai_Sklep_Tutor {
 	}
 
 	/**
+	 * Ilu ludzi ma dostęp do tego kursu — pytamy TUTORA.
+	 *
+	 * DLACZEGO NIE LICZYMY SAMI. To Tutor prowadzi zapisy i to on decyduje
+	 * o dostępie; własny licznik byłby DRUGĄ KOPIĄ tej samej prawdy i przy
+	 * pierwszej rozbieżności kłamałby w najgorszym możliwym momencie —
+	 * przy pytaniu „czy na pewno skasować kurs".
+	 *
+	 * Liczymy zapisy o statusie `completed`, czyli te, które naprawdę dają
+	 * dostęp: `pending` to ktoś, kto zaczął zakup i nie zapłacił (przy kursie
+	 * płatnym `do_enroll()` zakłada właśnie taki), a zwrot przestawia zapis
+	 * na status zamówienia. To ta sama miara, którą Tutor pokazuje w swoim
+	 * panelu.
+	 *
+	 * Brak Tutora znaczy ZERO, i to nie jest wygodne zaokrąglenie: bez LMS-a
+	 * nikt nie ma się gdzie zalogować po materiał, więc nikt dostępu nie
+	 * traci.
+	 *
+	 * @param string $uuid Identyfikator kursu z naszych tabel.
+	 */
+	public static function kupujacy( string $uuid ): int {
+		if ( '' === trim( $uuid ) || ! self::dostepny() || ! function_exists( 'tutor_utils' ) ) {
+			return 0;
+		}
+		$id = self::znajdz_po_uuid( $uuid, self::typy()['kurs'] );
+		if ( $id <= 0 ) {
+			return 0;
+		}
+		return (int) tutor_utils()->count_enrolled_users_by_course( $id );
+	}
+
+	/**
 	 * Adres lekcji-ZAPOWIEDZI, albo `null`.
 	 *
 	 * SKĄD TA FUNKCJA (P5). Program na stronie sprzedażowej oznacza lekcje

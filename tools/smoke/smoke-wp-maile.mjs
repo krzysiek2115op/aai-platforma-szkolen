@@ -636,7 +636,7 @@ try {
   ]) {
     php(
       `$t = Aai_Platnosci_Zapis::kurs_tutora( '${uuid}' );` +
-        ` Aai_Sklep_Zapis::usun_kurs( '${uuid}', 'smoke-p4', true );` +
+        ` Aai_Sklep_Zapis::usun_kurs( '${uuid}', 'smoke-p4', true, true );` +
         ` Aai_Platnosci_Zapis::powiazanie_usun( '${uuid}' );` +
         ` foreach ( array( ${produkt}, is_int( $t ) ? $t : 0 ) as $id ) { if ( $id > 0 && get_post( $id ) ) { wp_delete_post( $id, true ); } } echo 'ok';`
     );

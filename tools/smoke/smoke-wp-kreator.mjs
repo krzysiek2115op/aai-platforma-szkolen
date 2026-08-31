@@ -755,6 +755,80 @@ for (const kurs of prawdziwe) {
   }
 }
 
+/* ——————— 9b. HAMULEC: kurs, który ktoś KUPIŁ (C2) ——————— */
+/*
+ * Usunięcie kursu kasuje jego kopię w Tutorze, a razem z nią dostęp
+ * każdego, kto go kupił — bezpowrotnie. Do 0.58.0 nie pytało o to nic
+ * (znalezisko testu całości; decyzja właściciela 2026-08-31: pytać LICZBĄ).
+ *
+ * Mierzymy SERWER, nie okienko przeglądarki: zgoda ma być warunkiem
+ * zapisu, a nie grzecznością panelu — inaczej żądanie złożone z palca
+ * kasowałoby kurs bez pytania. Osobno sprawdzamy, że lista zadaje
+ * pytanie WYŁĄCZNIE wtedy, gdy ktoś ten kurs naprawdę ma: pytanie
+ * zadawane zawsze przestaje cokolwiek znaczyć.
+ */
+{
+  const idTutora = Number(wp("eval", `echo (int) Aai_Platnosci_Zapis::kurs_tutora('${idKursu}');`).trim().split("\n").pop());
+  const LOGIN_KUPUJACEGO = "smoke-kreator-c2";
+  wp("user", "create", LOGIN_KUPUJACEGO, "smoke-kreator-c2@example.test", "--role=subscriber", "--user_pass=Smoke!C2-2026", "--porcelain");
+  try {
+    /*
+     * Zakres to WIERSZ NASZEGO kursu, nie cała lista. Pierwsza wersja pytała
+     * o całą stronę i zapaliła się od razu — bo prawdziwe kursy kupujących
+     * MAJĄ. Pomiar na całej liście odpowiadałby na pytanie o cudzy stan.
+     */
+    const wierszKursu = (html) => {
+      const gdzie = html.indexOf(`value="${idKursu}"`);
+      if (gdzie < 0) return "";
+      return html.slice(html.lastIndexOf("<tr", gdzie), html.indexOf("</tr>", gdzie));
+    };
+
+    const listaBezKupujacych = wierszKursu(await (await admin.pobierz("/wp-admin/admin.php?page=aai-sklep")).text());
+    sprawdz(
+      listaBezKupujacych !== "" && !listaBezKupujacych.includes("data-aai-potwierdz-dostep"),
+      "lista pyta o kupujących przy kursie, którego NIKT nie kupił — pytanie zadawane zawsze przestaje cokolwiek znaczyć"
+    );
+
+    wp(
+      "eval",
+      `$u = (int) get_user_by('login','${LOGIN_KUPUJACEGO}')->ID;` +
+        ` $z = tutor_utils()->do_enroll( ${idTutora}, 0, $u );` +
+        ` if ( $z ) { wp_update_post( array( 'ID' => (int) $z, 'post_status' => 'completed' ) ); }`
+    );
+    const kupujacych = Number(wp("eval", `echo (int) Aai_Sklep_Tutor::kupujacy('${idKursu}');`).trim().split("\n").pop());
+    sprawdz(kupujacych === 1, `licznik kupujących pokazuje ${kupujacych} zamiast 1 — dalsza część pomiaru pytałaby o nieznany stan`);
+
+    const stronaZKupujacym = await (await admin.pobierz("/wp-admin/admin.php?page=aai-sklep")).text();
+    const listaZKupujacym = wierszKursu(stronaZKupujacym);
+    sprawdz(
+      listaZKupujacym.includes("data-aai-potwierdz-dostep"),
+      "lista NIE pyta o kupujących przy kursie, który ktoś kupił — właściciel kasowałby go jednym kliknięciem"
+    );
+
+    const bezZgody = await admin.wyslij({
+      action: "aai_sklep_usun_kurs",
+      _wpnonce: nonceAkcji(stronaZKupujacym, "aai_sklep_usun_kurs"),
+      id: idKursu,
+      pozwol_skasowac_tresc: "1",
+    });
+    sprawdz(
+      komunikat(bezZgody) === "odmowa_dostepu",
+      `usunięcie kursu z kupującym BEZ zgody dało „${komunikat(bezZgody)}" zamiast odmowy — sama zgoda na utratę treści nie może wystarczyć`
+    );
+    sprawdz(
+      sql(`SELECT COUNT(*) FROM wp_aai_sklep_courses WHERE id = '${idKursu}'`) === "1",
+      "kurs z kupującym zniknął mimo odmowy — komunikat mówił jedno, a baza zrobiła drugie"
+    );
+  } finally {
+    wp(
+      "eval",
+      `$u = get_user_by('login','${LOGIN_KUPUJACEGO}');` +
+        ` if ( $u ) { foreach ( get_posts( array( 'post_type' => 'tutor_enrolled', 'post_status' => 'any', 'author' => $u->ID, 'numberposts' => -1, 'fields' => 'ids' ) ) as $z ) { wp_delete_post( (int) $z, true ); } }`
+    );
+    wp("user", "delete", LOGIN_KUPUJACEGO, "--yes");
+  }
+}
+
 /* ————————————————— 10. SPRZĄTANIE ————————————————— */
 
 const usuniecie = await admin.wyslij({

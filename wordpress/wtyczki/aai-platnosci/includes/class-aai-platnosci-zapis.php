@@ -37,6 +37,17 @@ final class Aai_Platnosci_Zapis {
 	private const META_OKLADKA_SHA = '_aai_platnosci_okladka_sha';
 
 	/**
+	 * Ilu ludzi straciło dostęp, gdy kurs tego produktu został usunięty.
+	 *
+	 * Osierocony produkt po kursie testowym to śmieć do sprzątnięcia,
+	 * a osierocony produkt po kursie, który ktoś KUPIŁ, to ślad po utracie
+	 * cudzego dostępu — kontrola ma je rozróżniać, a po usunięciu kursu
+	 * tej liczby nie da się już odtworzyć (kopia w Tutorze znika razem
+	 * z zapisami). Dlatego zapisujemy ją w chwili usunięcia.
+	 */
+	private const META_UTRACONY_DOSTEP = '_aai_platnosci_utracony_dostep';
+
+	/**
 	 * Ustawia (lub odświeża) powiązanie kursu z produktem WooCommerce.
 	 *
 	 * Idempotentne: ten sam wpis drugi raz tylko odświeża `sync_ts`.
@@ -1054,6 +1065,36 @@ final class Aai_Platnosci_Zapis {
 			}
 		}
 		return $suma;
+	}
+
+	/**
+	 * Zapisuje na produkcie, ilu ludzi straciło dostęp razem z kursem.
+	 *
+	 * Wołane wyłącznie ze słuchacza usunięcia kursu, PO zdjęciu produktu —
+	 * kolejność jest istotna, bo `zdejmij_kurs()` przywraca znaczniki
+	 * produktu i nadpisałoby ten wpis, gdyby szedł wcześniej.
+	 *
+	 * @param string $course_uuid Uuid usuwanego kursu.
+	 * @param int    $kupujacy    Ilu ludzi miało dostęp w chwili usunięcia.
+	 */
+	public static function oznacz_utracony_dostep( string $course_uuid, int $kupujacy ): void {
+		if ( $kupujacy <= 0 ) {
+			return;
+		}
+		$product_id = self::produkt_kursu( $course_uuid );
+		if ( null === $product_id ) {
+			return;
+		}
+		update_post_meta( $product_id, self::META_UTRACONY_DOSTEP, (string) $kupujacy );
+	}
+
+	/**
+	 * Ilu ludzi straciło dostęp razem z kursem tego produktu (0 = nikt).
+	 *
+	 * @param int $product_id Id produktu.
+	 */
+	public static function utracony_dostep( int $product_id ): int {
+		return (int) get_post_meta( $product_id, self::META_UTRACONY_DOSTEP, true );
 	}
 
 	/**

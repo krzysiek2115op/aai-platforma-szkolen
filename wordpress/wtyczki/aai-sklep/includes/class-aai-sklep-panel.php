@@ -625,13 +625,23 @@ final class Aai_Sklep_Panel {
 				),
 				$ile
 			),
+			'odmowa_dostepu'  => sprintf(
+				/* translators: %d: liczba osób, które kupiły kurs. */
+				_n(
+					'Ten kurs ma %d kupującego — usunięcie odebrałoby mu dostęp do materiału. Potwierdź, jeśli naprawdę o to chodzi.',
+					'Ten kurs ma %d kupujących — usunięcie odebrałoby im dostęp do materiału. Potwierdź, jeśli naprawdę o to chodzi.',
+					max( 1, $ile ),
+					'aai-sklep'
+				),
+				$ile
+			),
 			'blad'            => __( 'Zapis się nie powiódł. Szczegóły niżej.', 'aai-sklep' ),
 		);
 
 		if ( ! isset( $teksty[ $kod ] ) ) {
 			return;
 		}
-		$zly = in_array( $kod, array( 'bledy', 'blad', 'odmowa_tresci' ), true );
+		$zly = in_array( $kod, array( 'bledy', 'blad', 'odmowa_tresci', 'odmowa_dostepu' ), true );
 		printf(
 			'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
 			$zly ? 'error' : 'success',

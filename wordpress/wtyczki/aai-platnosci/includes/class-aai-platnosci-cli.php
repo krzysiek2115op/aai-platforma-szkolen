@@ -844,11 +844,25 @@ final class Aai_Platnosci_Cli {
 			if ( null !== $kurs && 'published' === $kurs['status'] ) {
 				continue;
 			}
-			$status = (string) get_post_status( (int) $wiersz['product_id'] );
-			$opis   = null === $kurs ? 'kurs usunięty' : 'kurs ' . $kurs['status'];
-			$zdanie = sprintf( 'produkt %d osierocony (%s), status %s', (int) $wiersz['product_id'], $opis, $status );
+			$status   = (string) get_post_status( (int) $wiersz['product_id'] );
+			$opis     = null === $kurs ? 'kurs usunięty' : 'kurs ' . $kurs['status'];
+			$zdanie   = sprintf( 'produkt %d osierocony (%s), status %s', (int) $wiersz['product_id'], $opis, $status );
+			$utracony = Aai_Platnosci_Zapis::utracony_dostep( (int) $wiersz['product_id'] );
 			if ( 'publish' === $status ) {
 				$wynik['bledy'][] = $zdanie . ' — KUPOWALNY bez działającego szwu';
+			} elseif ( $utracony > 0 ) {
+				/*
+				 * Rozstrzygnięcie właściciela (2026-08-31): sierota po kursie
+				 * BEZ kupujących to informacja, a po kursie z kupującymi —
+				 * błąd. Ludzie stracili dostęp do czegoś, za co zapłacili,
+				 * i ktoś musi z tym coś zrobić: zwrócić pieniądze albo
+				 * przywrócić kurs. Cisza jest tu gorsza niż fałszywy alarm.
+				 */
+				$wynik['bledy'][] = sprintf(
+					'%s — kurs miał %d kupujących i STRACILI DOSTĘP; zdecyduj, co z nimi (zwrot albo odtworzenie kursu), potem zdejmij znacznik z produktu',
+					$zdanie,
+					$utracony
+				);
 			} else {
 				$wynik['info'][] = $zdanie;
 			}

@@ -110,15 +110,22 @@ final class Aai_Sklep_Zapis {
 	 * Ochrona treści jest ta sama co przy zapisie: bez jawnej zgody kurs
 	 * z napisanymi lekcjami nie znika.
 	 *
+	 * DRUGI HAMULEC: LUDZIE, KTÓRZY ZA TO ZAPŁACILI. Usunięcie kursu kasuje
+	 * też jego kopię w Tutorze, a razem z nią dostęp każdego, kto go kupił —
+	 * bezpowrotnie i bez śladu na jego koncie. Do 0.58.0 nie pytało o to nic
+	 * (znalezisko testu całości). Zgoda jest osobna od zgody na utratę treści,
+	 * bo to dwie różne straty: tam ginie praca właściciela, tu cudzy dostęp.
+	 *
 	 * @param string $id                     Identyfikator kursu.
 	 * @param string $aktor                  Kto usuwa.
 	 * @param bool   $pozwol_skasowac_tresc  Zgoda na utratę napisanych lekcji.
+	 * @param bool   $pozwol_stracic_dostep  Zgoda na odebranie dostępu kupującym.
 	 *
 	 * @return array<string,int> Liczniki (klucz `usuniete`).
 	 *
-	 * @throws Aai_Sklep_Blad_Zapisu Gdy kursu nie ma albo gdy niesie treść bez zgody.
+	 * @throws Aai_Sklep_Blad_Zapisu Gdy kursu nie ma, niesie treść bez zgody albo ma kupujących bez zgody.
 	 */
-	public static function usun_kurs( string $id, string $aktor, bool $pozwol_skasowac_tresc = false ): array {
+	public static function usun_kurs( string $id, string $aktor, bool $pozwol_skasowac_tresc = false, bool $pozwol_stracic_dostep = false ): array {
 		$liczniki = array(
 			'utworzone'      => 0,
 			'zaktualizowane' => 0,
@@ -126,18 +133,28 @@ final class Aai_Sklep_Zapis {
 			'usuniete'       => 0,
 		);
 
+		/*
+		 * Liczbę kupujących bierzemy PRZED transakcją i podajemy dalej: po
+		 * usunięciu kursu nikt jej już nie odtworzy (kopia w Tutorze znika
+		 * razem z zapisami), a Plugin 2 musi wiedzieć, czy osierocony produkt
+		 * jest zwykłym śmieciem po kursie testowym, czy śladem po tym, że
+		 * ludzie stracili dostęp do czegoś, za co zapłacili.
+		 */
+		$kupujacy = Aai_Sklep_Tutor::kupujacy( $id );
+
 		self::w_transakcji(
-			static function () use ( $id, $aktor, $pozwol_skasowac_tresc, &$liczniki ): void {
-				self::usun_kurs_w_transakcji( $id, $aktor, $pozwol_skasowac_tresc, $liczniki );
+			static function () use ( $id, $aktor, $pozwol_skasowac_tresc, $pozwol_stracic_dostep, $kupujacy, &$liczniki ): void {
+				self::usun_kurs_w_transakcji( $id, $aktor, $pozwol_skasowac_tresc, $pozwol_stracic_dostep, $kupujacy, $liczniki );
 			}
 		);
 
 		/**
 		 * Kurs zniknął z naszych tabel.
 		 *
-		 * @param string $id Identyfikator kursu.
+		 * @param string $id       Identyfikator kursu.
+		 * @param int    $kupujacy Ilu ludzi miało do niego dostęp w chwili usunięcia.
 		 */
-		do_action( 'aai_sklep_kurs_usuniety', $id );
+		do_action( 'aai_sklep_kurs_usuniety', $id, $kupujacy );
 
 		return $liczniki;
 	}
@@ -145,14 +162,16 @@ final class Aai_Sklep_Zapis {
 	/**
 	 * Rdzeń usuwania. Woływany wyłącznie w otwartej transakcji.
 	 *
-	 * @param string            $id       Identyfikator kursu.
-	 * @param string            $aktor    Kto usuwa.
-	 * @param bool              $pozwol   Zgoda na utratę treści.
-	 * @param array<string,int> $liczniki Liczniki (przez referencję).
+	 * @param string            $id            Identyfikator kursu.
+	 * @param string            $aktor         Kto usuwa.
+	 * @param bool              $pozwol        Zgoda na utratę treści.
+	 * @param bool              $pozwol_dostep Zgoda na odebranie dostępu kupującym.
+	 * @param int               $kupujacy      Ilu ludzi ma dostęp do kursu.
+	 * @param array<string,int> $liczniki      Liczniki (przez referencję).
 	 *
-	 * @throws Aai_Sklep_Blad_Zapisu Gdy kursu nie ma albo gdy niesie treść bez zgody.
+	 * @throws Aai_Sklep_Blad_Zapisu Gdy kursu nie ma, niesie treść bez zgody albo ma kupujących bez zgody.
 	 */
-	private static function usun_kurs_w_transakcji( string $id, string $aktor, bool $pozwol, array &$liczniki ): void {
+	private static function usun_kurs_w_transakcji( string $id, string $aktor, bool $pozwol, bool $pozwol_dostep, int $kupujacy, array &$liczniki ): void {
 		global $wpdb;
 
 		$t_kursy  = Aai_Sklep_Tabele::tabela( 'courses' );
@@ -191,6 +210,22 @@ final class Aai_Sklep_Zapis {
 					$z_trescia
 				),
 				array( 'lekcje_z_trescia' => $z_trescia )
+			);
+		}
+
+		if ( $kupujacy > 0 && ! $pozwol_dostep ) {
+			throw new Aai_Sklep_Blad_Zapisu(
+				sprintf(
+					/* translators: %d: liczba osób z dostępem do kursu. */
+					_n(
+						'Ten kurs ma %d kupującego — straci dostęp do materiału. Usunięcie wymaga jawnej zgody.',
+						'Ten kurs ma %d kupujących — stracą dostęp do materiału. Usunięcie wymaga jawnej zgody.',
+						$kupujacy,
+						'aai-sklep'
+					),
+					$kupujacy
+				),
+				array( 'kupujacy' => $kupujacy )
 			);
 		}
 

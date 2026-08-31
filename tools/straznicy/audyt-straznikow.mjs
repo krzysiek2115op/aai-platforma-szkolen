@@ -1172,9 +1172,9 @@ const MUTACJE = [
     wymaga: () =>
       existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
     zmien: (s) =>
-      s.includes("$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol );")
+      s.includes("$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol, $dostep );")
         ? s.replace(
-            "$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol );",
+            "$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol, $dostep );",
             "global $wpdb;\n\t\t\t$wpdb->delete( Aai_Sklep_Tabele::tabela( 'courses' ), array( 'id' => $id ) );\n\t\t\t$liczniki = array( 'usuniete' => 1 );"
           )
         : null,
@@ -2343,8 +2343,8 @@ const MUTACJE = [
     plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
     wymaga: () => existsSync(KLASA_TUTORA),
     zmien: (s) =>
-      s.includes("do_action( 'aai_sklep_kurs_usuniety', $id );")
-        ? s.replace("do_action( 'aai_sklep_kurs_usuniety', $id );", "")
+      s.includes("do_action( 'aai_sklep_kurs_usuniety', $id, $kupujacy );")
+        ? s.replace("do_action( 'aai_sklep_kurs_usuniety', $id, $kupujacy );", "")
         : null,
   },
   {
@@ -2396,6 +2396,62 @@ const MUTACJE = [
             "\t\ttry {\n\t\t\tself::synchronizuj_kurs( $id );\n\t\t} catch ( Throwable $blad ) {\n\t\t\tself::zapamietaj_blad( $id, $blad->getMessage() );\n\t\t}",
             "\t\tself::synchronizuj_kurs( $id );"
           )
+        : null,
+  },
+  // --- C2: hamulec przy usuwaniu kursu, który ktoś kupił (2026-08-31) ---
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "usunięcie kursu przestaje pytać o kupujących (kasuje cudzy opłacony dostęp bez słowa)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    oczekiwanySlad: "nie odmawia skasowania kursu, który ktoś KUPIŁ",
+    zmien: (s) =>
+      s.includes("if ( $kupujacy > 0 && ! $pozwol_dostep ) {")
+        ? s.replace("if ( $kupujacy > 0 && ! $pozwol_dostep ) {", "if ( false ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "lista pyta o kupujących przy KAŻDYM kursie (okienko klikane odruchowo)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/panel/lista.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/panel/lista.php"),
+    oczekiwanySlad: "pyta ZAWSZE",
+    zmien: (s) =>
+      s.includes("if ( $aai_kupujacy > 0 ) {")
+        ? s.replace("if ( $aai_kupujacy > 0 ) {", "if ( true ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "akcja panelu podnosi zgodę na utratę dostępu sama z siebie",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php"),
+    oczekiwanySlad: "nie przekazuje zgody na odebranie dostępu",
+    zmien: (s) =>
+      s.includes("usun_kurs( $id, self::aktor(), $zgoda, $dostep )")
+        ? s.replace("usun_kurs( $id, self::aktor(), $zgoda, $dostep )", "usun_kurs( $id, self::aktor(), $zgoda, true )")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola przestaje odróżniać sierotę po kursie z kupującymi od zwykłego śmiecia",
+    plik: CLI_PLATNOSCI,
+    wymaga: () => existsSync(CLI_PLATNOSCI),
+    oczekiwanySlad: "nie zgłasza jako BŁĄD sieroty po kursie",
+    zmien: (s) =>
+      s.includes("} elseif ( $utracony > 0 ) {")
+        ? s.replace("} elseif ( $utracony > 0 ) {", "} elseif ( false ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "słuchacz usunięcia kursu przyjmuje jeden argument — liczba kupujących nie dojeżdża",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-szew.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-szew.php"),
+    oczekiwanySlad: "nie przyjmuje DRUGIEGO argumentu",
+    zmien: (s) =>
+      s.includes("'na_usunieciu' ), 20, 2 );")
+        ? s.replace("'na_usunieciu' ), 20, 2 );", "'na_usunieciu' ), 20, 1 );")
         : null,
   },
   // --- C1: ukrycie kursu a dostęp kupującego (test całości, 2026-08-31) ---

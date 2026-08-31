@@ -495,7 +495,7 @@ try {
   // Produkt kasujemy SAMI: szew zakłada go każdemu kursowi, a smoke, który
   // go zostawia, każe następnym przebiegom mierzyć własne śmieci (sweep P2).
   php(
-    `Aai_Sklep_Zapis::usun_kurs( '${KURS}', 'smoke-p5', true );` +
+    `Aai_Sklep_Zapis::usun_kurs( '${KURS}', 'smoke-p5', true, true );` +
       ` Aai_Platnosci_Zapis::powiazanie_usun( '${KURS}' );` +
       ` foreach ( array( ${produkt}, ${tutor}, ${obcy} ) as $id ) { if ( $id > 0 && get_post( $id ) ) { wp_delete_post( $id, true ); } } echo 'ok';`
   );

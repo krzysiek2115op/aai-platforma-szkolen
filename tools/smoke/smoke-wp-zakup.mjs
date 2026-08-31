@@ -548,7 +548,7 @@ try {
   }
   kasujZapisy();
   php(
-    `Aai_Sklep_Zapis::usun_kurs( '${KURS}', 'smoke-p3b', true );` +
+    `Aai_Sklep_Zapis::usun_kurs( '${KURS}', 'smoke-p3b', true, true );` +
       ` Aai_Platnosci_Zapis::powiazanie_usun( '${KURS}' );` +
       ` foreach ( array( ${produkt}, ${tutor}, ${obcy} ) as $id ) { if ( $id > 0 && get_post( $id ) ) { wp_delete_post( $id, true ); } } echo 'ok';`
   );

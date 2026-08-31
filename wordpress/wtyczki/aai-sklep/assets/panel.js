@@ -611,11 +611,25 @@
 					zdarzenie.preventDefault();
 					return;
 				}
+				// DRUGIE PYTANIE: ludzie, którzy ten kurs kupili. Osobne od
+				// pierwszego, bo to osobna strata — i zadawane tylko wtedy,
+				// gdy ktoś ten kurs naprawdę ma.
+				var pytanieODostep = przycisk.getAttribute("data-aai-potwierdz-dostep");
+				if (pytanieODostep && !window.confirm(pytanieODostep)) {
+					zdarzenie.preventDefault();
+					return;
+				}
 				// Zgodę na utratę treści podnosi WYŁĄCZNIE świadome
 				// potwierdzenie — bez niego warstwa zapisu odmawia.
 				var zgoda = przycisk.form ? przycisk.form.querySelector("[data-aai-zgoda]") : null;
 				if (zgoda) {
 					zgoda.value = "1";
+				}
+				var zgodaDostep = przycisk.form
+					? przycisk.form.querySelector("[data-aai-zgoda-dostep]")
+					: null;
+				if (zgodaDostep && pytanieODostep) {
+					zgodaDostep.value = "1";
 				}
 			});
 		});
