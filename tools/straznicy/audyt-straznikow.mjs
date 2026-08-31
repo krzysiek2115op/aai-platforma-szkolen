@@ -2409,6 +2409,31 @@ const MUTACJE = [
         ? s.replace("$kupowalne = self::kupowalne_bez_sklepu();", "$kupowalne = 0;")
         : null,
   },
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka czyta stan sprzeda\u017cy komend\u0105, kt\u00f3ra pada, gdy opcji nie ma",
+    plik: "tools/smoke/smoke-wp-jezyk.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-jezyk.mjs"),
+    oczekiwanySlad: "wp option get",
+    zmien: (s) =>
+      s.includes(`wp("eval", 'echo (string) get_option( "aai_platnosci_sprzedaz_otwarta", "" );')`)
+        ? s.replace(
+            `wp("eval", 'echo (string) get_option( "aai_platnosci_sprzedaz_otwarta", "" );')`,
+            `wp("option", "get", "aai_platnosci_sprzedaz_otwarta")`
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-higieny-smokow",
+    opis: "bramka przywraca stan sprzeda\u017cy zapisem zamiast skasowania opcji",
+    plik: "tools/smoke/smoke-wp-zwroty.mjs",
+    wymaga: () => existsSync("tools/smoke/smoke-wp-zwroty.mjs"),
+    oczekiwanySlad: "nie umie przywr\u00f3ci\u0107 BRAKU opcji",
+    zmien: (s) =>
+      s.includes("delete_option( '")
+        ? s.replace(/delete_option\( '/g, "update_option( '")
+        : null,
+  },
   // --- C2: hamulec przy usuwaniu kursu, który ktoś kupił (2026-08-31) ---
   {
     straznik: "straznik-kreatora-wp",

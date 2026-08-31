@@ -157,8 +157,17 @@ async function zmierz(sciezka, opis, kotwica) {
 
 let sprzedazPrzed = "";
 try {
-  /* Sprzedaż musi być otwarta, inaczej kasa nie ma czego pokazać. */
-  sprzedazPrzed = wp("option", "get", "aai_platnosci_sprzedaz_otwarta").trim();
+  /*
+   * Sprzedaż musi być otwarta, inaczej kasa nie ma czego pokazać.
+   *
+   * Stan czytamy przez `get_option` z wartością domyślną, a NIE komendą
+   * `wp option get`: gdy opcji nie ma — a nie ma jej po odtworzeniu
+   * środowiska i po każdej bramce, która przywraca stan skasowaniem —
+   * komenda kończy JEDYNKĄ i wywraca całą bramkę, zanim cokolwiek zmierzy.
+   * Bramka ma tworzyć swoją scenę, a nie zależeć od tego, co zastała
+   * (pułapka 4 testu całości).
+   */
+  sprzedazPrzed = wp("eval", 'echo (string) get_option( "aai_platnosci_sprzedaz_otwarta", "" );').trim();
   if ("tak" !== sprzedazPrzed) wp("aai-platnosci", "sprzedaz", "otworz");
 
   const kurs = wp(
@@ -266,7 +275,16 @@ try {
   }
   if ("tak" !== sprzedazPrzed) {
     try {
-      wp("aai-platnosci", "sprzedaz", "zamknij");
+      /*
+       * Przywracamy stan DOKŁADNIE zastany: brak opcji to co innego niż
+       * opcja z wartością „nie". „Zamknij" zapisałoby tę drugą i zostawiło
+       * po bramce ślad, którego nie było (lekcja z 0.54.0).
+       */
+      if ("" === sprzedazPrzed) {
+        wp("eval", 'delete_option( "aai_platnosci_sprzedaz_otwarta" );');
+      } else {
+        wp("eval", `update_option( "aai_platnosci_sprzedaz_otwarta", "${sprzedazPrzed}" );`);
+      }
     } catch {
       /* stan i tak sprawdza kontrola */
     }
