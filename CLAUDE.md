@@ -1026,6 +1026,61 @@ przy każdym kroku zmieniającym stan projektu (jak README).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
+## ═══ TRZY OSTATNIE KROKI: SEO → HIGIENA REPO → AUDYT KOŃCOWY ═══
+
+**CZYTAĆ PRZED PRACĄ: [docs/PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md)**
+— stan zmierzony, zakres każdego kroku, różnica wobec wzoru `automatic-ai`,
+pułapki poprzedniego przelotu SEO oraz **pomiary i pięć rozstrzygnięć
+właściciela z 2026-08-31** (sekcja „KROK 1 — pomiary i rozstrzygnięcia").
+
+**KROK 1 — SEO — ZROBIONY (wersja 0.60.0, gałąź `feat/seo-odswiezenie`).
+PR NIEOTWARTY — czeka na zgodę właściciela.** Pełnia: CHANGELOG 0.60.0.
+Skrót tego, czego nie wyprowadzać od nowa:
+- **Reguła podziału (decyzja właściciela, wariant „b"):** wtyczka pilnuje
+  TYLKO swoich tras; sprzątamy w mapie dokładnie te adresy, które istnieją
+  Z NASZEGO POWODU (kopia w Tutorze, produkty Woo, strony transakcyjne).
+  Blog, `/shop/`, `sample-page`, kategorie i tagi = lista wdrożeniowa.
+- **Mapa strony nie zawierała ANI JEDNEJ naszej trasy** — `/szkolenia/`
+  i strony sprzedażowe to reguły przepisywania, nie wpisy.
+- **TRZECIA droga do loginu admina:** `wp-sitemap-users-1.xml` drukował
+  `user_nicename` = login, mimo 404 na `/author/<login>/` od 0.59.0.
+  Zamknięte w **mu-pluginie obwodu** (to enumeracja kont, nie SEO).
+- **Rdzeń robi miękkie 404:** przy nieznanym dostawcy `render_sitemaps()`
+  wykonuje gołe `return`, bez `status_header( 404 )` — zdjęta mapa oddawała
+  stronę błędu ze statusem 200. Domknięte regułą celującą w SKUTEK.
+- **`courses.updated_at` NIE znaczy „zmiana treści"** (trigger bez
+  porównania wartości, tylko na `courses`; proza lekcji leży w `lessons`),
+  więc mapa dalej **nie podaje `lastModified`** — decyzja właściciela.
+- **`blog_public` bramkuje CAŁĄ sitemapę** — pomiar SEO przy wyłączonej
+  widoczności odpowiada na inne pytanie. `smoke-wp-seo` sam stawia scenę
+  i przywraca **wartość ZASTANĄ**, nie „domyślną".
+- **Manifest:** Next aplikuje `basePath` do znacznika `<link rel=manifest>`,
+  ale **NIE do treści manifestu** — ścieżki idą przez `zasob()`.
+  Rastry ikon robi `npm run ikony` **przeglądarką z riga**, nie `sharp`.
+- **Pomiar (PSI, protokół bez zmian):** desktop 100/100/100/100 na obu
+  stronach; mobile katalog 97, **strona kursu 94 (było 96), TBT 251 ms
+  (było 0)**. Przyczyna zmierzona: urosła TREŚĆ stron sprzedażowych
+  (0.33.0), a Next serializuje ją drugi raz jako ładunek hydratacji.
+  **Nie przenosi się na produkt**: ta sama strona to w prototypie 270 kB
+  ze 112 kB ładunku w 65 `<script>`, a we wtyczce WP 125 kB przy ZERZE
+  ładunku i 18 znacznikach. Tabela w README mówi to wprost.
+- Dowody: strażnicy **38/38**, audyt mutacyjny **328**, testy **83/83**,
+  `npm run check` kod 0, **15 bramek WP zielonych** (nowa `smoke:wp-seo`
+  169). Dane monitoringu właściciela z T4 nietknięte.
+- **ZOSTAJE DO DECYZJI WŁAŚCICIELA:** (a) opis „Kursy i **ebooki**
+  Automatic AI" w `app/layout.tsx:12` i `app/szkolenia/widok.tsx:20` —
+  ebooki zamknięte „na zawsze" 2026-08-25, a manifest ma już opis
+  prawdziwy, więc w prototypie stoją DWIE wersje prawdy; (b) czy w ogóle
+  optymalizować mobilne TBT prototypu (rekomendacja: nie — koszt nie
+  dotyczy produktu).
+
+**NASTĘPNY KROK: PR gałęzi `feat/seo-odswiezenie` → tag `v0.60.0` →
+release, potem KROK 2 (higiena repo).** Obowiązuje reguła z 2026-08-28:
+plan + pytania + zgoda przed pracą.
+**Zaparkowane:** gałąź `feat/zamrozenie-ceny-w-zamowieniu` (worktree obok)
+czeka na scalenie PO SEO — stoi na `09d6c79`, czyli przed 0.59.0, więc
+przed jej PR-em wciągnąć `main` i zweryfikować ARTEFAKT.
+
 ## ═══ ETAP WORDPRESS — START (decyzje właściciela 2026-08-25) ═══
 
 **CZYTAĆ PRZED PRACĄ: [docs/ETAP-WP.md](docs/ETAP-WP.md), sekcja „Decyzje

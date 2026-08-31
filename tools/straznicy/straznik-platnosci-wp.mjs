@@ -1095,6 +1095,55 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/**
+ * 38. Ścieżka zakupu poza wyszukiwarką.
+ *
+ * Zmierzone 2026-08-31 przy `blog_public = 1` (czyli jak na produkcji):
+ * `/koszyk/` i `/my-account/` nie miały ŻADNEGO znacznika `robots`, a
+ * `/product/<slug>/` był w mapie strony, choć oddaje 301 na naszą stronę
+ * sprzedażową. Woo wskazywał NASZE strony poprawnie, więc to nie była
+ * kwestia konfiguracji — na cudzy `noindex` po prostu nie ma co liczyć.
+ *
+ * Reguły pytają o ROZSTRZYGNIĘCIE, nie o obecność nazwy filtra.
+ */
+{
+  const PLIK_MAPY = join(KATALOG, "includes/class-aai-platnosci-sitemap.php");
+  if (!existsSync(PLIK_MAPY)) {
+    bledy.push(
+      "includes/class-aai-platnosci-sitemap.php: brak — koszyk, kasa, konto i produkty wracają do mapy strony i do indeksu."
+    );
+  } else {
+    const mapa = kod(readFileSync(PLIK_MAPY, "utf8"));
+    const glowny = kod(readFileSync(join(KATALOG, "aai-platnosci.php"), "utf8"));
+
+    if (!/Aai_Platnosci_Sitemap::zarejestruj\(\)/.test(glowny)) {
+      bledy.push(
+        "aai-platnosci.php: mapa nie jest podpięta — klasa istnieje, ale nikt jej nie woła, więc nie robi NIC (bez objawu)."
+      );
+    }
+    if (!/unset\(\s*\$typy\[\s*'product'\s*\]\s*\)/.test(mapa)) {
+      bledy.push(
+        "class-aai-platnosci-sitemap.php: produkty wracają do mapy strony — wyszukiwarka dostaje DRUGI adres tego samego kursu, a ten oddaje 301 na naszą stronę sprzedażową."
+      );
+    }
+    if (!/is_cart\(\)\s*\|\|\s*is_checkout\(\)\s*\|\|\s*is_account_page\(\)/.test(mapa)) {
+      bledy.push(
+        "class-aai-platnosci-sitemap.php: rozpoznanie ścieżki zakupu przestało pytać Woo o koszyk, kasę i konto — te trzy strony wracają do indeksu (koszyk jest stanem jednej sesji, konto jest prywatne)."
+      );
+    }
+    if (!/noindex[^']*'\s*\.\s*"\\n"|content="noindex/.test(mapa)) {
+      bledy.push(
+        "class-aai-platnosci-sitemap.php: `noindex` nie jest emitowany — Woo go nie dokłada (zmierzone), więc bez naszego znacznika koszyk i konto są indeksowalne."
+      );
+    }
+    if (!/array_merge\(\s*\$juz,/.test(mapa)) {
+      bledy.push(
+        "class-aai-platnosci-sitemap.php: lista wykluczeń NADPISUJE cudzą zamiast do niej dołożyć — Plugin 1 wycina tym samym filtrem strony Tutora, więc jego wykluczenia przepadłyby po cichu."
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1102,5 +1151,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem)."
 );

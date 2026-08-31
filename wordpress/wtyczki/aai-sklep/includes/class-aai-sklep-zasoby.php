@@ -134,23 +134,53 @@ final class Aai_Sklep_Zasoby {
 		 * dopiero wtedy, gdy `smoke-wp-motyw` zaczął mierzyć rejestrację
 		 * (W3) — wcześniej mierzył wyłącznie strony kursów.
 		 */
-		if ( function_exists( 'tutor_utils' ) ) {
-			$strony = array(
-				'tutor_dashboard_page_id',
-				'student_register_page',
-				'instructor_register_page',
-				'tutor_cart_page_id',
-				'tutor_checkout_page_id',
-			);
-			foreach ( $strony as $opcja ) {
-				$id = (int) tutor_utils()->get_option( $opcja );
-				if ( $id > 0 && is_page( $id ) ) {
-					return true;
-				}
+		foreach ( self::strony_tutora() as $id ) {
+			if ( is_page( $id ) ) {
+				return true;
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * Identyfikatory stron, które na tej witrynie postawił Tutor.
+	 *
+	 * JEDNO ŹRÓDŁO, bo pytają o nie dwie różne sprawy: czy stronie podać
+	 * nasz arkusz integracji (tutaj) i czy wpuścić ją do sitemapy
+	 * (`Aai_Sklep_Sitemap`). Dwie listy tych samych opcji rozjechałyby
+	 * się przy pierwszej zmianie w Tutorze — a rozjazd byłby niemy.
+	 *
+	 * Panel kursanta, rejestracje i kasa Tutora to zwykłe strony
+	 * WordPressa wskazane w jego opcjach: po samym typie wpisu nie da się
+	 * ich poznać. Pytamy o KOMPLET tych opcji, nie tylko o panel — brak
+	 * którejkolwiek znaczył białe pola formularza na ciemnym motywie
+	 * (wykryte, gdy `smoke-wp-motyw` zaczął mierzyć rejestrację, W3).
+	 *
+	 * @return array<int,int> Identyfikatory istniejących stron Tutora.
+	 */
+	public static function strony_tutora(): array {
+		if ( ! function_exists( 'tutor_utils' ) ) {
+			return array();
+		}
+
+		$opcje = array(
+			'tutor_dashboard_page_id',
+			'student_register_page',
+			'instructor_register_page',
+			'tutor_cart_page_id',
+			'tutor_checkout_page_id',
+		);
+
+		$strony = array();
+		foreach ( $opcje as $opcja ) {
+			$id = (int) tutor_utils()->get_option( $opcja );
+			if ( $id > 0 ) {
+				$strony[] = $id;
+			}
+		}
+
+		return array_values( array_unique( $strony ) );
 	}
 
 	/**

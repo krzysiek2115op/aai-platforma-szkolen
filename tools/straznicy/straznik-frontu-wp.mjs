@@ -353,6 +353,65 @@ for (const plik of szablony()) {
   }
 }
 
+/**
+ * 10. Mapa strony wystawia NASZE trasy i nie wystawia kopii naszej treści.
+ *
+ * Zmierzone 2026-08-31 na żywej instalacji: `wp-sitemap.xml` nie zawierał
+ * ANI JEDNEJ naszej trasy (katalog i strony sprzedażowe to reguły
+ * przepisywania, nie wpisy), a wystawiał `/courses/<slug>/` (oddaje 301)
+ * i 73 adresy lekcji (bramka + `noindex`). Mapa mówiła więc wyszukiwarce
+ * coś przeciwnego niż strony, do których prowadziła.
+ *
+ * Reguły pytają o ROZSTRZYGNIĘCIE, nie o nazwę: samo wystąpienie słowa
+ * „sitemap" w pliku nie ma prawa uspokoić strażnika (nawrót klasy
+ * z 0.29.0 / 0.44.0 / 0.47.0).
+ */
+const PLIK_SITEMAP = "includes/class-aai-sklep-sitemap.php";
+const PLIK_DOSTAWCY = "includes/class-aai-sklep-sitemap-dostawca.php";
+
+if (existsSync(join(WTYCZKA, PLIK_SITEMAP)) && existsSync(join(WTYCZKA, PLIK_DOSTAWCY))) {
+  const mapa = bezKomentarzy(czytaj(PLIK_SITEMAP));
+  const dostawca = bezKomentarzy(czytaj(PLIK_DOSTAWCY));
+  const glowny = bezKomentarzy(czytaj("aai-sklep.php"));
+
+  if (!/wp_register_sitemap_provider\(\s*'szkolenia'/.test(mapa)) {
+    bledy.push(
+      `${PLIK_SITEMAP}: dostawca naszych tras nie jest rejestrowany — katalog i strony kursów wypadają z mapy strony, a to jedyne adresy kanoniczne sklepu.`
+    );
+  }
+  if (!/Aai_Sklep_Sitemap::zarejestruj\(\)/.test(glowny)) {
+    bledy.push(
+      "aai-sklep.php: mapa strony nie jest podpięta — klasa istnieje, ale nikt jej nie woła, więc nie robi NIC (bez objawu)."
+    );
+  }
+  if (!/unset\(\s*\$typy\[\s*\$typ\s*\]\s*\)/.test(mapa) || !/'courses'/.test(mapa) || !/'lesson'/.test(mapa)) {
+    bledy.push(
+      `${PLIK_SITEMAP}: mapa przestaje wycinać kopię kursów w Tutorze (\`courses\`, \`lesson\`) — wróciłyby do niej adresy oddające 301 i 73 adresy lekcji zza bramki.`
+    );
+  }
+  if (!/'wp_sitemaps_posts_query_args'/.test(mapa) || !/post__not_in/.test(mapa)) {
+    bledy.push(
+      `${PLIK_SITEMAP}: strony postawione przez Tutora nie są wycinane z mapy — panel kursanta oddaje 302, a obie rejestracje są wyłączone.`
+    );
+  }
+  // Dokładamy do cudzej listy, a nie nadpisujemy: pod tym samym filtrem
+  // Plugin 2 wycina koszyk i kasę. Nadpisanie skasowałoby jego wykluczenia.
+  if (!/array_merge\(\s*\$juz,/.test(mapa)) {
+    bledy.push(
+      `${PLIK_SITEMAP}: lista wykluczeń NADPISUJE cudzą zamiast do niej dołożyć — Plugin 2 wycina tym samym filtrem koszyk, kasę i konto, więc jego wykluczenia przepadłyby po cichu.`
+    );
+  }
+  // Data zmiany treści: `updated_at` znaczy „wiersz kursu dotknięty",
+  // a nie „treść się zmieniła" (trigger bez porównania wartości, i tylko
+  // na `courses` — proza lekcji leży w `lessons`). Publikowanie jej jako
+  // `lastModified` byłoby zmyślaniem metadanych.
+  if (/lastmod/i.test(dostawca)) {
+    bledy.push(
+      `${PLIK_DOSTAWCY}: mapa podaje datę zmiany treści. \`updated_at\` jej nie zna — trigger ustawia ją przy KAŻDYM zapisie wiersza kursu, a poprawka prozy lekcji (tabela \`lessons\`) go nie dotyka. Data byłaby jednocześnie zawyżona i zaniżona.`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-frontu-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -360,5 +419,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, widok prywatny bez cache'u, wygaszanie ruchu, slug kursu nie zajmuje naszej podstrony, logowanie klienta nie prowadzi na wp-login).`
+  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, widok prywatny bez cache'u, wygaszanie ruchu, slug kursu nie zajmuje naszej podstrony, logowanie klienta nie prowadzi na wp-login, mapa strony wystawia nasze trasy i nie wystawia kopii z Tutora).`
 );

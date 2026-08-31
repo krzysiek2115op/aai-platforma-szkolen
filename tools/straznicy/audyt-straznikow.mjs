@@ -89,6 +89,9 @@ const SKRYPT_MONITORA = "wordpress/wtyczki/aai-monitor/assets/pomiar.js";
 const PODPIS_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php";
 const PRYWATNOSC_MONITORA = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-prywatnosc.php";
 const MU_OBWOD = "wordpress/srodowisko/mu-plugins/aai-obwod.php";
+const MAPA_SKLEPU = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-sitemap.php";
+const DOSTAWCA_MAPY = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-sitemap-dostawca.php";
+const MAPA_PLATNOSCI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-sitemap.php";
 
 const MUTACJE = [
   // --- straznik-scenariuszy ---
@@ -3869,6 +3872,109 @@ const MUTACJE = [
     zmien: (s) =>
       s.includes("HASH_SKRYPTU_MOTYWU = 'sha256-wWMpFPmb")
         ? s.replace("HASH_SKRYPTU_MOTYWU = 'sha256-wWMpFPmb", "HASH_SKRYPTU_MOTYWU = 'sha256-0000000b")
+        : null,
+  },
+  // --- SEO: mapa strony (krok „SEO od nowa", 2026-08-31) ---
+  {
+    straznik: "straznik-obwodu",
+    opis: "mapa autorów wraca do sitemapy (filtr zostaje, ale przestaje odmawiać)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "mapa autorów",
+    zmien: (s) =>
+      s.includes("'users' === $nazwa ? false : $dostawca")
+        ? s.replace("'users' === $nazwa ? false : $dostawca", "$dostawca")
+        : null,
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "trasa mapy bez dostawcy znów oddaje miękkie 404 (status 200)",
+    plik: MU_OBWOD,
+    wymaga: () => existsSync(MU_OBWOD),
+    oczekiwanySlad: "prawdziwego 404",
+    zmien: (s) =>
+      s.includes("\t\t\t\tstatus_header( 404 );")
+        ? s.replace("\t\t\t\tstatus_header( 404 );", "\t\t\t\t")
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "dostawca naszych tras nie jest rejestrowany (katalog wypada z mapy)",
+    plik: MAPA_SKLEPU,
+    wymaga: () => existsSync(MAPA_SKLEPU),
+    oczekiwanySlad: "dostawca naszych tras",
+    zmien: (s) =>
+      s.includes("wp_register_sitemap_provider( 'szkolenia'")
+        ? s.replace("wp_register_sitemap_provider( 'szkolenia'", "// wp_register_sitemap_provider( 'szkolenia'")
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "kopia kursów w Tutorze wraca do mapy (courses + lesson)",
+    plik: MAPA_SKLEPU,
+    wymaga: () => existsSync(MAPA_SKLEPU),
+    oczekiwanySlad: "kopię kursów w Tutorze",
+    zmien: (s) =>
+      s.includes("array( 'courses', 'lesson' )")
+        ? s.replace("array( 'courses', 'lesson' )", "array()")
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "lista wykluczeń Pluginu 1 nadpisuje cudzą zamiast dołożyć",
+    plik: MAPA_SKLEPU,
+    wymaga: () => existsSync(MAPA_SKLEPU),
+    oczekiwanySlad: "NADPISUJE",
+    zmien: (s) =>
+      s.includes("array_merge( $juz, $strony )")
+        ? s.replace("array_merge( $juz, $strony )", "$strony")
+        : null,
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "mapa zaczyna podawać zmyśloną datę zmiany treści",
+    plik: DOSTAWCA_MAPY,
+    wymaga: () => existsSync(DOSTAWCA_MAPY),
+    oczekiwanySlad: "datę zmiany treści",
+    zmien: (s) =>
+      s.includes("array( 'loc' => Aai_Sklep_Widok::adres_kursu() )")
+        ? s.replace(
+            "array( 'loc' => Aai_Sklep_Widok::adres_kursu() )",
+            "array( 'loc' => Aai_Sklep_Widok::adres_kursu(), 'lastmod' => '2026-01-01' )"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "produkty WooCommerce wracają do mapy strony",
+    plik: MAPA_PLATNOSCI,
+    wymaga: () => existsSync(MAPA_PLATNOSCI),
+    oczekiwanySlad: "produkty wracają do mapy",
+    zmien: (s) =>
+      s.includes("unset( $typy['product'] );")
+        ? s.replace("unset( $typy['product'] );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "koszyk, kasa i konto przestają być rozpoznawane (wracają do indeksu)",
+    plik: MAPA_PLATNOSCI,
+    wymaga: () => existsSync(MAPA_PLATNOSCI),
+    oczekiwanySlad: "ścieżki zakupu",
+    zmien: (s) =>
+      s.includes("return is_cart() || is_checkout() || is_account_page();")
+        ? s.replace("return is_cart() || is_checkout() || is_account_page();", "return false;")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "lista wykluczeń Pluginu 2 nadpisuje cudzą zamiast dołożyć",
+    plik: MAPA_PLATNOSCI,
+    wymaga: () => existsSync(MAPA_PLATNOSCI),
+    oczekiwanySlad: "NADPISUJE",
+    zmien: (s) =>
+      s.includes("array_merge( $juz, $strony )")
+        ? s.replace("array_merge( $juz, $strony )", "$strony")
         : null,
   },
 ];

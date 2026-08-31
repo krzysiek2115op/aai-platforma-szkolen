@@ -159,6 +159,21 @@ regula(
   /add_filter\(\s*'wp_is_application_passwords_available',\s*'__return_false'\s*\)/,
   "hasła aplikacji nie są wyłączone — kanał uwierzytelniania REST omijający dziennik logowań (F12).",
 );
+// 5c. Trzecia droga do loginu administratora: mapa autorów w sitemapie.
+//     Pytamy o ROZSTRZYGNIĘCIE (zwrot `false` dla dostawcy `users`), a nie
+//     o to, czy nazwa filtra gdzieś pada — inaczej sam komentarz o mapie
+//     wystarczyłby, żeby strażnik zzieleniał (nawrót klasy z 0.29.0/0.44.0).
+regula(
+  "mapa-autorow",
+  /'wp_sitemaps_add_provider'[\s\S]{0,240}'users'\s*===\s*\$nazwa\s*\?\s*false/,
+  "mapa autorów wraca do sitemapy — rdzeń buduje jej adresy z `user_nicename`, czyli PUBLIKUJE login administratora (trzecia droga tego samego wycieku co S-2 i `?author=N`).",
+);
+regula(
+  "mapa-bez-dostawcy-404",
+  /'template_redirect'[\s\S]{0,400}get_query_var\(\s*'sitemap'\s*\)[\s\S]{0,400}status_header\(\s*404\s*\)/,
+  "trasa mapy bez dostawcy nie oddaje prawdziwego 404 — rdzeń robi tam gołe `return` (zmierzone w `class-wp-sitemaps.php`), więc adres oddaje stronę błędu ze statusem 200, czyli miękkie 404 do zaindeksowania.",
+);
+
 regula(
   "permissions-policy",
   /header\(\s*'Permissions-Policy:[^']+'\s*\)/,
@@ -206,4 +221,4 @@ if (bledy.length > 0) {
   console.error(`straznik-obwodu: ${bledy.length} naruszeń:\n- ${bledy.join("\n- ")}`);
   process.exit(1);
 }
-console.log("straznik-obwodu: obwód na miejscu (XML-RPC off, S-2 + author enum, hasła aplikacji off, 4 nagłówki, CSP egzekwujące z nonce + 2 hashe + kolektor, hash motywu zgodny).");
+console.log("straznik-obwodu: obwód na miejscu (XML-RPC off, S-2 + author enum + mapa autorów, mapa bez dostawcy oddaje 404, hasła aplikacji off, 4 nagłówki, CSP egzekwujące z nonce + 2 hashe + kolektor, hash motywu zgodny).");
