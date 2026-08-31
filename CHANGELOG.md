@@ -5,6 +5,42 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.60.1] — 2026-08-31
+
+### Prototyp przestaje obiecywać ebooki, których nie sprzedajemy
+
+Właściciel zamknął temat ebooków **2026-08-25 słowem „na zawsze"** — produktem
+jest wyłącznie kurs tekstowy za logowaniem. Wtyczka WP wprowadziła to od razu
+(`Aai_Sklep_Kontrakt::TYPY`), ale **prototyp obiecywał je dalej**, i to
+w metadanych: „Kursy i **ebooki** Automatic AI" szło do opisu strony
+i katalogu, a kreator miał `Ebook` do wyboru jednym kliknięciem.
+
+Znalezione przy kroku SEO (0.60.0): nowy `app/manifest.ts` musiał dostać opis
+produktu, a jedyny istniejący był nieprawdziwy — w prototypie stanęły przez to
+**dwie wersje prawdy o produkcie**, czyli dokładnie ten rozjazd, przed którym
+ostrzega `lib/seo.ts`. **Decyzja właściciela 2026-08-31: same kursy.**
+
+### Zmienione
+
+- opisy w `app/layout.tsx` i `app/szkolenia/widok.tsx` — bez słowa „ebooki";
+- `KursTyp` w `modules/m1-sklep/typy.ts` → `z.enum(["kurs"])`, więc kreator
+  prototypu nie ma już czego zaoferować (jak wtyczka WP);
+- test migracji nie zasiewa typu, którego nie oferujemy.
+
+**Kolumny w bazie NIE zwężamy**: `CHECK (type IN ('ebook','kurs'))` zostaje —
+migracja zmieniająca ograniczenie nie kupuje niczego, czego nie daje kontrakt.
+Oba kursy mają `kurs` (sprawdzone zapytaniem do bazy, nie założone).
+
+Sprostowany też komentarz w `Aai_Sklep_Kontrakt`, który mówił o „świadomym
+odstępstwie od prototypu" — odstępstwa już nie ma.
+
+### Dowody
+
+`npm run check` kod 0: strażnicy **38/38**, testy **83/83**, lint, tsc, build,
+7 smoke'ów prototypu.
+
+---
+
 ## [0.60.0] — 2026-08-31
 
 ### SEO od nowa: mapa strony przestaje zapraszać do indeksu tego, czego sami nie wpuszczamy

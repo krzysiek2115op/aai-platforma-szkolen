@@ -144,7 +144,7 @@ test("updated_at aktualizuje się samo przy UPDATE", { skip: !JEST_BAZA }, async
     rows: [kurs],
   } = await klient.query(
     `INSERT INTO courses (slug, title, type, price_grosze)
-     VALUES ('kurs-czas', 'Kurs czasowy', 'ebook', 100)
+     VALUES ('kurs-czas', 'Kurs czasowy', 'kurs', 100)
      RETURNING id, updated_at`
   );
   await klient.query("SELECT pg_sleep(0.01)");
