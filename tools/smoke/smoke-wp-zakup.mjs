@@ -270,7 +270,12 @@ try {
 
   html = strona(`/szkolenia/${SLUG}/`);
   sprawdz(
-    adresyCta(html).length > 0 && adresyCta(html).every((a) => a.endsWith("/kontakt")),
+    // Ukośnik na końcu jest OPCJONALNY w tej asercji, ale nie w kodzie:
+    // instalacja ma `/%postname%/`, więc adres bez ukośnika jest
+    // przekierowaniem 301 (naprawione przy teście całości 2026-08-31).
+    // Bramka ma pytać „czy prowadzi do kontaktu", a nie utrwalać jeden
+    // zapis adresu — inaczej poprawka higieniczna wywraca pomiar.
+    adresyCta(html).length > 0 && adresyCta(html).every((a) => /\/kontakt\/?$/.test(a)),
     `przy ZAMKNIĘTEJ sprzedaży przycisk nie prowadzi do kontaktu: ${adresyCta(html).join(" | ")}`
   );
   sprawdz(
@@ -317,7 +322,7 @@ try {
    */
   php(`$p = wc_get_product( ${produkt} ); $p->set_regular_price( '' ); $p->set_price( '' ); $p->save(); echo 'ok';`);
   sprawdz(
-    cta(0).endsWith("/kontakt"),
+    /\/kontakt\/?$/.test(cta(0)),
     `produkt z pustą ceną (niekupowalny w WooCommerce) dalej wysyła klienta do kasy: ${cta(0)}`
   );
   sprawdz(

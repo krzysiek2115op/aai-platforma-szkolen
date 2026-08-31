@@ -2824,11 +2824,68 @@ wyprowadzała tego od nowa:
         i średnim; najczęściej czytane strony; osobno odsłony zatrzymane na
         bramce logowania. To jest komplet — właściciel ocenił go jako
         wystarczający w teście ręcznym T4.
-        **ZOSTAJE OSTATNIA RZECZ ETAPU WP: TEST CAŁOŚCI** (decyzja
-        2026-08-25) — czy trzy wtyczki współpracują i czy projekt trzyma się
-        kupy architektonicznie. Obowiązuje reguła z 2026-08-28: najpierw plan
-        przebiegu kroku + pytania doprecyzowujące, potem zgoda właściciela,
-        dopiero potem praca.
+        **TEST CAŁOŚCI TRZECH WTYCZEK — W TOKU (2026-08-31), gałąź
+        `docs/panel-zostaje-jaki-jest`. DOKUMENT KROKU:
+        [docs/TEST-CALOSCI-WP.md](docs/TEST-CALOSCI-WP.md) — CZYTAĆ PRZED
+        PRACĄ** (zakres, werdykty wszystkich znalezisk, pułapki, stan
+        środowiska, lista roboty do dokończenia).
+        Zakres zatwierdzony przez właściciela: **przegląd architektury I test
+        ręczny**, środowisko **odtworzone OD ZERA** ze zrzutem i przywróceniem
+        danych dowodowych, warsztat motywu `:8890` **pominięty**, przegląd
+        **recenzentami-agentami z agentem głównym jako krytykiem**.
+        **DZIEWIĘĆ ZNALEZISK POTWIERDZONYCH URUCHOMIENIOWO, OSIEM JUŻ
+        NAPRAWIONYCH** (dwa commity na gałęzi):
+        (1) **wyciek CAŁEGO produktu** — `/?post_type=lesson` oddawało
+        gościowi 73 lekcje prozy (8 stron × 10) i to samo kanałem RSS, przy
+        zielonych wszystkich 14 bramkach i 37 strażnikach; zamknięte trzema
+        zamkami (`register_post_type_args`, `pre_get_posts` z PUSTYM wynikiem,
+        404 w odpowiedzi) — **samo `set_404()` nie wystarcza, bo motyw bez
+        `404.php` i tak drukuje znalezione wpisy**;
+        (3) **brak JEDNEGO pliku wtyczki = HTTP 500 na całej witrynie**
+        (monitoring i szew płatności) — cały start jest teraz w `try/catch`;
+        (6) **każde 404 poza `/szkolenia/` było pustym ekranem** (motyw nie ma
+        `404.php`) — nasz szablon obsługuje teraz całą witrynę;
+        (5) **`/product/<slug>/` był drugą stroną sprzedażową** w wyglądzie
+        Woo → **301** na naszą;
+        (7) **strażnicy NIE pilnowali zakazu pisania do cudzych tabel**, choć
+        kod to obiecywał (mutacja przechodziła 37/37) — reguła 11
+        `straznik-wtyczki-wp`;
+        (8) **dwie bramki przechodziły tylko dzięki śmieciom po ręcznych
+        testach** (`wp-zwroty` wymagał otwartej sprzedaży, `wp-jezyk` konta
+        roli `customer`) — obie tworzą teraz własną scenę i przywracają stan;
+        (9) **`postaw.sh` nie wstawał OD ZERA** (kolejność tłumaczeń);
+        (10) `/kontakt` bez ukośnika → 301.
+        **TRZY DECYZJE WŁAŚCICIELA Z 2026-08-31, JESZCZE NIEWYKONANE:**
+        **C1** — „Ukryj" ma zabierać kurs ze sklepu, ale **kto go kupił, czyta
+        dalej** (dziś: status `archived` przepisuje 73 lekcje na `private`
+        i kupujący dostaje 404, przy obu kontrolach zielonych);
+        **C3** — zdanie „Dostęp od razu po zakupie" na stronie kursu **zmienić**
+        (przy przelewie dostęp powstaje po potwierdzeniu wpłaty);
+        **C2** — usunięcie kursu z kupującymi: właściciel poprosił o pytanie
+        doprecyzowujące, pytanie stoi w dokumencie kroku (sekcja „Pytania
+        otwarte") i **czeka na odpowiedź**.
+        Do rozstrzygnięcia zostaje też pozycja 4 (**po wyłączeniu Pluginu 1
+        sprzedaż DALEJ DZIAŁA**, a kontrola pisze „Sprzedaż nie działa"
+        i kończy kodem 0) oraz sześć pozycji „plauzybilnych" z dokumentu.
+        **STAN DOWODÓW:** `npm run check` kod 0 (strażnicy 37/37, testy 83/83),
+        audyt mutacyjny **293** (0 przeoczonych, 0 martwych), czternaście
+        bramek WP zielonych (lekcja 47, zakup 41, zwroty 39, maile 46,
+        monitor 174, front 84, kreator 96, panel 54, motyw 89, produkty 84,
+        tutor 44, dane 30, język 25, płatności 23), proza 73/73 co do znaku,
+        kopia w Tutorze 0 różnic.
+        **ŚRODOWISKO `:8892` POSTAWIONE OD ZERA:** pięć wtyczek, kursy 2,
+        lekcje z treścią 73, zrzuty 148, produkty 2, powiązania 2,
+        **zamówienia 0**, konta `admin` i `klient-test`, **sprzedaż
+        ZAMKNIĘTA** (stan domyślny — otworzyć przed testem ręcznym).
+        Dane monitoringu właściciela z T4 **przywrócone co do wiersza**
+        (12 logowań, 16 odsłon, 6 sesji). Zamówienia i konta z jego
+        wcześniejszych testów NIE wróciły — pełny zrzut bazy sprzed
+        odtworzenia leży w `~/.cache/aai-kopie/pelny-zrzut-przed-testem-calosci.sql`.
+        **NASTĘPNY KROK: wykonać C1 i C3, dostać odpowiedź na C2, potem
+        scenariusz testu ręcznego dla właściciela** (wzorem W6/P6/T4) →
+        jego test → poprawki → CHANGELOG + README → **PR jedną gałęzią**
+        (razem z zapisem o odwołanej rozbudowie ekranu) → tag → release.
+        Obowiązuje reguła z 2026-08-28: plan + pytania + zgoda przed pracą.
 
         Zapis historyczny (scenariusz T4, przed jego zaliczeniem):
         SCENARIUSZ WIĄŻĄCY:

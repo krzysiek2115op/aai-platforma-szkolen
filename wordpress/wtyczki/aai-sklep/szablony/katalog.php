@@ -217,7 +217,7 @@ get_header();
 				<h2 class="aai-cta-tytul">Nie wiesz, od czego zacząć?</h2>
 				<p class="aai-cta-opis">Napisz — podpowiemy, który system pracy da Ci najszybszy efekt.</p>
 			</div>
-			<a class="aai-btn aai-btn-glowny aai-btn-duzy" href="<?php echo esc_url( home_url( '/kontakt' ) ); ?>">
+			<a class="aai-btn aai-btn-glowny aai-btn-duzy" href="<?php echo esc_url( Aai_Sklep_Widok::adres_kontaktu() ); ?>">
 				Porozmawiajmy
 				<?php echo Aai_Sklep_Widok::ikona( 'arrow-up-right', 'aai-ikona-s' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 			</a>
