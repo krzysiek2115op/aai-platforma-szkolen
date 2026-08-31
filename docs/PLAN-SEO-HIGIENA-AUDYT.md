@@ -221,3 +221,46 @@ obszarach, **żadne znalezisko bez potwierdzenia URUCHOMIENIOWEGO**, a na końcu
   rozstrzygnięte.
 - Sześć pozycji „plauzybilnych" z przeglądu architektury testu całości zostaje
   otwartych świadomie (m.in. brak memoizacji `cta_kursu()` i `ma_kursy()`).
+
+---
+
+## KROK 1 — pomiary i rozstrzygnięcia (2026-08-31)
+
+### Co zmierzono PRZED pisaniem kodu
+
+| # | Pomiar | Wynik |
+|---|---|---|
+| 1 | `/wp-sitemap.xml` | **404** — rdzeń WP bramkuje sitemapę opcją `blog_public`, a środowisko ma `0`. Ustawienie środowiska, nie nasz kod |
+| 2 | Zawartość sitemapy przy `blog_public=1` | **ANI JEDNEJ naszej trasy** — brak `/szkolenia/` i obu stron sprzedażowych. Potwierdzone: to reguły przepisywania, nie typy wpisów |
+| 3 | Co sitemapa za to zawiera | `/courses/<slug>/` i `/product/<slug>/` (sami je **301-ujemy**), **73 adresy lekcji**, `/koszyk/`, `/kasa/`, `/my-account/`, `/dashboard/`, obie rejestracje Tutora, `/shop/`, `/sample-page/`, `/hello-world/`, `/author/admin/` |
+| 4 | `/author/admin/`, `?author=1` | **404** — obwód z 0.59.0 trzyma. Ale sitemapa **drukuje sam login**: `user_nicename` = `user_login` = `admin` (zmierzone `wp user list`) |
+| 5 | Lekcja płatna (`preview=0`) dla gościa | Bramka trzyma: 0 prozy, `noindex, nofollow`, i to **NASZ** znacznik — utrzymuje się przy `blog_public=1` |
+| 6 | `/koszyk/`, `/my-account/` przy `blog_public=1` | **ŻADNEGO `robots`** → w produkcji indeksowalne. Woo wskazuje na NASZE strony poprawnie (id 6/7/8), więc to nie konfiguracja |
+| 7 | Semantyka `courses.updated_at` | Trigger `m1_updated_at` ustawia `now()` przy KAŻDYM `UPDATE`, bez porównania wartości, i siedzi **tylko na `courses`** — poprawka prozy lekcji (tabela `lessons`) go **nie rusza** |
+
+Po każdym pomiarze `blog_public` wrócił do `0` (sprawdzone odczytem).
+
+### Rozstrzygnięcia właściciela (2026-08-31)
+
+1. **Zakres SEO naszych wtyczek — wariant (b):** wtyczka pilnuje **tylko swoich
+   tras**; reszta witryny idzie na listę wdrożeniową dla właściciela motywu.
+2. **Login `admin` w sitemapie użytkowników — ZAMYKAMY.**
+3. **Manifest — rekomendacja:** żyje w prototypie (`app/manifest.ts`); dla
+   witryny WP zostaje wskazaniem dla motywu (motyw jest tylko do odczytu
+   i to on trzyma `<head>`, `icon.svg` oraz `apple-icon.png`).
+4. **`lastModified` — rekomendacja:** NIE publikujemy. Pomiar 7 dowodzi, że
+   `updated_at` nie znaczy „zmiana treści".
+5. **PSI — wariant (a):** odświeżyć podgląd statyczny, zmierzyć aktualny kod
+   i **wprost napisać w README**, że tabela dotyczy prototypu.
+
+### Reguła podziału, która z tego wynika (zapisana też w kodzie)
+
+> Nasze wtyczki sprzątają w sitemapie i oznaczają `noindex` **dokładnie te
+> adresy, które istnieją Z NASZEGO POWODU** — kopia kursów w Tutorze, produkty
+> Woo naszych kursów, strony transakcyjne powołane przez naszą ścieżkę zakupu.
+> Wszystko inne (blog, `/shop/`, `sample-page`, kategorie, tagi) należy do
+> właściciela witryny i idzie na listę wdrożeniową.
+
+Wyjątek świadomy: **sitemapa użytkowników** — to nie SEO, tylko enumeracja
+kont, więc zamyka ją **mu-plugin obwodu** (`aai-obwod.php`), gdzie od 0.59.0
+mieszkają dwie pozostałe drogi tego samego wycieku.
