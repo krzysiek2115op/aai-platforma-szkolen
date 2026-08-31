@@ -149,10 +149,9 @@ fi
 komunikat "Ustawiam język na polski"
 wpcli language core install pl_PL --activate >/dev/null 2>&1 \
   || blad "nie udało się zainstalować polskiego rdzenia WordPressa (brak sieci w kontenerze?)"
-# Wtyczek NIE wymieniamy po nazwie: `--all` obejmie też te, które dojdą
-# później. Nasze wtyczki nie mają paczek na translate.wordpress.org
-# (napisy są po polsku w kodzie) i WP-CLI je po prostu pomija.
-wpcli language plugin install --all pl_PL >/dev/null 2>&1 || true
+# Tłumaczenia WTYCZEK instalujemy NIŻEJ, dopiero po ich instalacji
+# (sekcja 6) — patrz komentarz tam. Tutaj jest za wcześnie: na czystej
+# bazie WooCommerce i Tutora jeszcze nie ma.
 
 # --- 4c. strona polityki prywatności ---------------------------------------
 #
@@ -193,6 +192,17 @@ for wtyczka in woocommerce tutor; do
     wpcli plugin activate "$wtyczka"
   fi
 done
+
+# TŁUMACZENIA WTYCZEK — DOPIERO TUTAJ, i to nie jest kosmetyka kolejności.
+# Znalezione przy teście całości (2026-08-31) odtworzeniem środowiska OD ZERA:
+# krok „Ustawiam język na polski" stoi wyżej, przed instalacją WooCommerce
+# i Tutora, więc na czystej bazie `language plugin install --all` nie miało
+# CZEGO tłumaczyć — kończyło się powodzeniem, nie instalując nic. Skrypt
+# padał dopiero w WERYFIKACJI („Billing address" wraca po angielsku), czyli
+# środowisko stawiało się poprawnie WYŁĄCZNIE na bazie, która Woo i Tutora
+# już miała. Rdzeń zostaje wyżej, bo jego język ma być ustawiony, zanim
+# cokolwiek się zainstaluje.
+wpcli language plugin install --all pl_PL >/dev/null 2>&1 || true
 
 # Bramka płatności WARSZTATU. Zmierzone przy E0 kroku P4: bez ANI JEDNEJ
 # włączonej bramki kasa oddaje 400 `woocommerce_rest_checkout_payment_method_disabled`

@@ -2436,6 +2436,39 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-lekcji-wp",
+    opis: "publiczne archiwum lekcji przestaje być zasłonięte (wyciek całego materiału)",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "zapytania o listę nie są przechwytywane",
+    zmien: (s) =>
+      s.includes("add_action( 'pre_get_posts', array( self::class, 'zamknij_listy' ) );")
+        ? s.replace("add_action( 'pre_get_posts', array( self::class, 'zamknij_listy' ) );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "zasłonięta lista dostaje samą flagę 404, bez pustego wyniku (motyw i tak drukuje prozę)",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "nie dostaje pustego wyniku",
+    zmien: (s) =>
+      s.includes("$zapytanie->set( 'post__in', array( 0 ) );")
+        ? s.replace("$zapytanie->set( 'post__in', array( 0 ) );", "")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "lekcja wraca do wyszukiwarki witryny",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "nie jest wykluczany z wyszukiwarki",
+    zmien: (s) =>
+      s.includes("$args['exclude_from_search'] = true;")
+        ? s.replace("$args['exclude_from_search'] = true;", "")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
     opis: "renderer traci asercję na nieprzetworzony Markdown",
     plik: KLASA_PROZY,
     wymaga: () => existsSync(KLASA_PROZY),

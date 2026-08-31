@@ -190,6 +190,61 @@ sprawdz(
 sprawdz(!htmlGoscia.includes("wp-login.php"), "gość dostaje odsyłacz na surowy ekran logowania WordPressa");
 sprawdz(htmlGoscia.includes(probka.tytul), "gość nie widzi nawet tytułu lekcji (a ma widzieć, to nie jest sekret)");
 
+/* ——————— 1b. publiczne LISTY lekcji nie istnieją (wyciek z 2026-08-31) ——————— */
+/*
+ * ZNALEZIONE TESTEM CAŁOŚCI, nie tą bramką — i to jest powód, dla którego
+ * ten blok tu stoi. Bramka pytała wyłącznie o POJEDYNCZĄ lekcję, a wyciekała
+ * LISTA: `/?post_type=lesson` oddawało gościowi 73 lekcje prozy (osiem stron
+ * po dziesięć), te same teksty szły kanałem RSS i przez wyszukiwarkę witryny.
+ * Pojedyncza lekcja była przy tym poprawnie za bramką, więc wszystkie
+ * dotychczasowe asercje świeciły na zielono.
+ *
+ * Pytamy o TREŚĆ, nie o kod odpowiedzi — kod 404 przy wyciekającej prozie
+ * niczego by nie uratował, a 200 na pustej stronie nie jest wyciekiem.
+ */
+const fragmentProzy = pierwszeZdanie.slice(0, 40);
+for (const adres of [
+  "/?post_type=lesson",
+  "/?post_type=lesson&paged=2",
+  "/lesson/",
+  "/?post_type=lesson&feed=rss2",
+  "/?post_type=topics",
+]) {
+  const odp = await gosc.pobierz(adres);
+  /*
+   * Pytamy o TREŚĆ BEZ SKRYPTÓW, a nie o wynik `tekst()`. Ta asercja była
+   * ŚLEPA na kanał RSS: `tekst()` zdejmuje znaczniki wyrażeniem `<[^>]+>`,
+   * a proza w kanale siedzi w `<![CDATA[ … ]]>`, gdzie pierwszy `>` bywa
+   * w środku treści (Markdown ma cytaty blokowe) — kawałek prozy znikał
+   * razem z rzekomym znacznikiem. Zmierzone: bez osłony kanał oddawał
+   * 11 lekcji, a asercja przechodziła na zielono.
+   */
+  const surowy = widoczne(await odp.text());
+  sprawdz(
+    !surowy.includes("Czego się nauczysz") && !surowy.includes(fragmentProzy),
+    `PUBLICZNA LISTA ODDAJE PROZĘ LEKCJI (${adres}) — materiał jest towarem, to jest wyciek`
+  );
+}
+/*
+ * WYSZUKIWARKA — osobno, bo pytanie jest inne. Strona wyników POWTARZA
+ * wpisaną frazę w tytule i w odnośniku do kanału, więc „czy fraza jest na
+ * stronie" dawało fałszywy alarm (zmierzone: dwa trafienia, oba w `<head>`,
+ * zero wyników). Pytamy więc o WYNIK: czy wśród nich jest lekcja.
+ */
+const wyniki = await (await gosc.pobierz(`/?s=${encodeURIComponent(fragmentProzy)}`)).text();
+sprawdz(
+  !/href="[^"]*\/lessons\/[^"]*"/.test(wyniki) && !tekst(wyniki).includes("Czego się nauczysz"),
+  "wyszukiwarka witryny wypisuje lekcje płatnego kursu — materiał jest towarem, to jest wyciek"
+);
+
+// Kontrola pozytywna: zamykamy listy, a nie stronę. Bez niej „bez prozy"
+// przechodziłoby także na zepsutym sklepie.
+sprawdz((await gosc.pobierz("/szkolenia/")).status === 200, "katalog przestał odpowiadać po zasłonięciu list lekcji");
+sprawdz(
+  (await gosc.pobierz("/?post_type=lesson")).status === 404,
+  "zasłonięta lista lekcji oddaje inny kod niż 404 — adres bez treści ma mówić \u201enie ma\u201d"
+);
+
 /* ————————————————— 2. właściciel widzi całą lekcję ————————————————— */
 
 const admin = sesja();

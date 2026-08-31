@@ -158,6 +158,35 @@ if (existsSync(join(WTYCZKA, PLIK_ZASOBOW))) {
   }
 }
 
+/* ————— 10. publiczne LISTY lekcji są zasłonięte (wyciek z 2026-08-31) ————— */
+/*
+ * DLACZEGO TA REGUŁA ISTNIEJE. Bramka dostępu pilnuje POJEDYNCZEJ lekcji
+ * (`is_singular`), a materiał wyciekał LISTĄ: `/?post_type=lesson` oddawało
+ * gościowi 73 lekcje prozy, to samo szło kanałem RSS. Znalezione testem
+ * całości, po tym jak wszystkie 14 bramek i 37 strażników świeciło zielono.
+ *
+ * Reguła pyta o ROZSTRZYGNIĘCIA, nie o nazwy metod (dziewięć nawrotów tej
+ * pułapki w projekcie): czy typ traci archiwum i wyszukiwarkę, czy zapytanie
+ * o listę dostaje PUSTY wynik (sama flaga 404 nie wystarcza — motyw bez
+ * `404.php` drukuje wtedy znalezione wpisy) i czy odpowiedź niesie kod 404.
+ */
+const zaslona = [
+  [/register_post_type_args/, "typ lekcji nie jest filtrowany przy rejestracji"],
+  [/'has_archive'\s*\]\s*=\s*false|'has_archive'\s*=>\s*false/, "archiwum typu nie jest wyłączane"],
+  [/'exclude_from_search'\s*\]\s*=\s*true|'exclude_from_search'\s*=>\s*true/, "typ nie jest wykluczany z wyszukiwarki"],
+  [/add_action\(\s*'pre_get_posts'/, "zapytania o listę nie są przechwytywane"],
+  [/->set\(\s*'post__in'\s*,\s*array\(\s*0\s*\)/, "zapytanie o listę nie dostaje pustego wyniku (sama flaga 404 przepuszcza prozę)"],
+  [/->set_404\(\)/, "zapytanie o listę nie jest oznaczane jako 404"],
+  [/status_header\(\s*404\s*\)/, "zasłonięta lista nie oddaje kodu 404"],
+];
+for (const [wzorzec, czego] of zaslona) {
+  if (!wzorzec.test(widok)) {
+    bledy.push(
+      `${PLIK_WIDOKU}: ${czego}. Publiczna lista lekcji wypisuje wtedy prozę płatnego kursu — wyciek całego produktu, bez jednego objawu po stronie właściciela (zmierzone 2026-08-31: 73 lekcje, osiem stron, także kanałem RSS).`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-lekcji-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -165,5 +194,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-lekcji-wp: widok podpięty, dostępu pilnuje Tutor, bez dostępu treść nie jest czytana, renderer ma asercję (z wyjątkiem bloków kodu) i ucieka treść, zrzuty mają wymiary, arkusz zakotwiczony, CSS Tutora nie wchodzi."
+  "straznik-lekcji-wp: widok podpięty, dostępu pilnuje Tutor, bez dostępu treść nie jest czytana, renderer ma asercję (z wyjątkiem bloków kodu) i ucieka treść, zrzuty mają wymiary, arkusz zakotwiczony, CSS Tutora nie wchodzi, publiczne listy lekcji zasłonięte."
 );
