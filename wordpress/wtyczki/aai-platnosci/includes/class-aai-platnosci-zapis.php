@@ -522,6 +522,21 @@ final class Aai_Platnosci_Zapis {
 	 * @param string $course_uuid Uuid kursu.
 	 */
 	public static function kurs_tutora( string $course_uuid ): ?int {
+		/*
+		 * PUSTY UUID NIE MA PRAWA NICZEGO DOPASOWAĆ.
+		 *
+		 * Zapytanie po `meta_value => ''` dopasowuje PIERWSZY LEPSZY wpis
+		 * danego typu — tak w sweepie P5 kopia kursu przejęła cudzy moduł
+		 * i skasowała jego lekcje. Plugin 1 ma tę obronę od tamtej pory
+		 * (`Aai_Sklep_Tutor::znajdz_po_uuid()`), Plugin 2 jej nie miał.
+		 * Dziś ratuje nas przypadek: kursy są dwa, więc pusty uuid trafia
+		 * w dwa wpisy i metoda oddaje -1. Przy JEDNYM kursie oddałaby jego
+		 * id i szew powiązałby z nim cudzy produkt.
+		 */
+		if ( '' === trim( $course_uuid ) ) {
+			return null;
+		}
+
 		$typ = function_exists( 'tutor' ) ? (string) ( tutor()->course_post_type ?? 'courses' ) : 'courses';
 
 		$wpisy = get_posts(

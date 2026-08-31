@@ -2434,6 +2434,17 @@ const MUTACJE = [
         ? s.replace(/delete_option\( '/g, "update_option( '")
         : null,
   },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "pusty uuid znowu dopasowuje pierwszy lepszy kurs (szew wi\u0105\u017ce produkt z cudzym)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "nie odrzuca PUSTEGO identyfikatora",
+    zmien: (s) =>
+      s.includes("if ( '' === trim( $course_uuid ) ) {")
+        ? s.replace("if ( '' === trim( $course_uuid ) ) {", "if ( false ) {")
+        : null,
+  },
   // --- C2: hamulec przy usuwaniu kursu, który ktoś kupił (2026-08-31) ---
   {
     straznik: "straznik-kreatora-wp",
