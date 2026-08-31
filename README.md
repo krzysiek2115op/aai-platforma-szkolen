@@ -291,7 +291,7 @@ repo / ⛔ nie dotyczy z powodem / ⏳ etap WP). Skrót:
 | Twarde limity wejścia (długości, liczności, sufit ceny, 2 MB na ciało żądania mierzone przed parsowaniem) i generyczne komunikaty błędów | ✅ | `straznik-limitow` (10 niezmienników, 12 mutacji), 5 testów limitów, **smoke D6 dowodzi 413 dwiema drogami** |
 | HTTPS/HSTS, RODO, honeypot, konta klientów | ⏳/🔧 | specyfikacja wtyczki WP i decyzje hostingowe |
 | SEO na stronie: `robots.txt`, sitemapa, kanoniki, OpenGraph + miniatury, JSON-LD (Organization, ItemList, Course+Offer, BreadcrumbList, FAQPage) | ✅ | `straznik-seo` (6 niezmienników, 6 mutacji), **smoke SEO porównuje dane strukturalne Z BAZĄ** |
-| Pomiar narzędziami Google na żywym adresie | ✅ | desktop 100/100/100/100; mobile 96–97 wydajności = artefakt symulacji Lantern przyjęty decyzją właściciela (tabela i protokół niżej), reszta kolumn 100 |
+| Pomiar narzędziami Google na żywym adresie | ✅ | powtórzony 2026-08-31: desktop 100/100/100/100 na obu stronach; mobile 97 (katalog) i 94 (strona kursu — treść urosła, koszt siedzi w ładunku hydratacji Nexta i NIE przenosi się na wtyczkę WP), reszta kolumn 100. Tabela i protokół niżej |
 
 > [!NOTE]
 > Tabela mówi „✅" wyłącznie tam, gdzie stoi za tym strażnik, test albo
@@ -344,15 +344,36 @@ Rytuał pomiaru (kolejność jest treścią protokołu):
 
 | Podstrona | Tryb | Wydajność | Dostępność | Dobre praktyki | SEO | LCP | CLS | TBT |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `/szkolenia` | mobile | 97 | 100 | 100 | 100 | 2101 ms | 0 | 23 ms |
-| `/szkolenia` | desktop | 100 | 100 | 100 | 100 | 500 ms | 0 | 6 ms |
-| `/szkolenia/[slug]` | mobile | 96 | 100 | 100 | 100 | 2179 ms | 0 | 0 ms |
-| `/szkolenia/[slug]` | desktop | 100 | 100 | 100 | 100 | 476 ms | 0 | 19 ms |
+| `/szkolenia` | mobile | 97 | 100 | 100 | 100 | 2112 ms | 0 | 22 ms |
+| `/szkolenia` | desktop | 100 | 100 | 100 | 100 | 564 ms | 0 | 17 ms |
+| `/szkolenia/[slug]` | mobile | 94 | 100 | 100 | 100 | 2176 ms | 0 | 251 ms |
+| `/szkolenia/[slug]` | desktop | 100 | 100 | 100 | 100 | 489 ms | 0 | 12 ms |
 
-> Pomiar: PageSpeed Insights (Lighthouse 13.4.1), 2026-08-19, mediana z 5
+> Pomiar: PageSpeed Insights (Lighthouse 13.4.1), 2026-08-31, mediana z 5
 > przebiegów na stronę i tryb, żywy adres podglądu. Liczby wchodzą tu
 > wyłącznie z zapisanego przebiegu (`goldeny/pomiary-lighthouse.json`)
 > — pilnuje tego `straznik-progow`, co do jednostki.
+>
+> **TA TABELA DOTYCZY PROTOTYPU Next.js, NIE PRODUKTU.** Mierzalny jest
+> tylko podgląd statyczny na GitHub Pages, bo PageSpeed Insights to usługa
+> Google i nie dosięgnie lokalnej instalacji WordPressa — a to wtyczka WP
+> jest tym, co pojedzie na produkcję. Różnica nie jest kosmetyczna:
+> ta sama strona kursu waży w prototypie **270 kB z 112 kB ładunku
+> hydratacji w 65 znacznikach `<script>`**, a we wtyczce **125 kB przy
+> ZERZE ładunku i 18 znacznikach** (zmierzone 2026-08-31 na obu
+> instalacjach).
+>
+> **Zmiana wobec 0.25.0 i jej przyczyna.** Strona kursu spadła na mobile
+> z 96 na **94**, a jej TBT urosło z 0 do **251 ms** (pięć zgodnych
+> przebiegów, więc to nie „czkawka PSI"). Przyczyna zmierzona, nie
+> zgadnięta: od tamtego pomiaru urosła TREŚĆ stron sprzedażowych (audyt
+> kursów, 0.33.0), a Next serializuje ją drugi raz jako ładunek
+> hydratacji w dokumencie — lokalny profil wskazuje 706 ms wykonywania
+> skryptów przypisanych samemu dokumentowi, nie plikom `.js`. **Ten koszt
+> nie przenosi się na produkt**: wtyczka WP renderuje tę treść bez ani
+> jednego bajta ładunku hydratacji. Reszta tabeli bez zmian — desktop 100
+> w każdej kolumnie na obu stronach, dostępność, dobre praktyki i SEO 100
+> wszędzie, CLS 0 na czterech pomiarach.
 >
 > **Mobilne 96–97 to artefakt symulacji, przyjęty świadomie** (decyzja
 > właściciela, 2026-08-19, łagodząca warunek „100 w każdej kolumnie"):
@@ -362,8 +383,10 @@ Rytuał pomiaru (kolejność jest treścią protokołu):
 > identyczna co do milisekundy w czterech różnych buildach — to
 > właściwość modelu, nie strony. Każda realna usterka z tej listy
 > została naprawiona pomiarem: CLS 0,137–0,166 → 0 (fonty z preloadem
-> i uzbrojoną korektą metryk), TBT ≤ 27 ms, dostępność, dobre praktyki
-> i SEO = 100 wszędzie, desktop 100 w dziesięciu przebiegach z rzędu.
+> i uzbrojoną korektą metryk), dostępność, dobre praktyki i SEO = 100
+> wszędzie, desktop 100 w dziesięciu przebiegach z rzędu. (Zdanie „TBT
+> ≤ 27 ms" było prawdą pomiaru z 2026-08-19 i przestało nią być przy
+> pomiarze z 2026-08-31 — powód i jego zasięg opisuje akapit wyżej.)
 > Dla porównania: strona główna przy tym samym reżimie ma 94–98
 > na wydajności.
 

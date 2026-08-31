@@ -1,6 +1,6 @@
 {
   "narzedzie": "PageSpeed Insights (Lighthouse 13.4.1)",
-  "data": "2026-08-19",
+  "data": "2026-08-31",
   "adres": "https://matthewplugins.github.io/szkolenia-podglad",
   "przebiegow": 5,
   "agregat": "mediana",
@@ -13,16 +13,16 @@
         "dostepnosc": 100,
         "praktyki": 100,
         "seo": 100,
-        "LCP": 2101,
+        "LCP": 2112,
         "CLS": 0,
-        "TBT": 23,
-        "FCP": 1377,
+        "TBT": 22,
+        "FCP": 1369,
         "wszystkieWydajnosci": [
           97,
           97,
           97,
           97,
-          97
+          96
         ]
       },
       "desktop": {
@@ -30,10 +30,10 @@
         "dostepnosc": 100,
         "praktyki": 100,
         "seo": 100,
-        "LCP": 500,
+        "LCP": 564,
         "CLS": 0,
-        "TBT": 6,
-        "FCP": 250,
+        "TBT": 17,
+        "FCP": 296,
         "wszystkieWydajnosci": [
           100,
           100,
@@ -45,20 +45,20 @@
     },
     "/szkolenia/[slug]": {
       "mobile": {
-        "wydajnosc": 96,
+        "wydajnosc": 94,
         "dostepnosc": 100,
         "praktyki": 100,
         "seo": 100,
-        "LCP": 2179,
+        "LCP": 2176,
         "CLS": 0,
-        "TBT": 0,
-        "FCP": 1506,
+        "TBT": 251,
+        "FCP": 1051,
         "wszystkieWydajnosci": [
-          96,
-          96,
-          96,
-          96,
-          96
+          94,
+          94,
+          95,
+          94,
+          94
         ]
       },
       "desktop": {
@@ -66,10 +66,10 @@
         "dostepnosc": 100,
         "praktyki": 100,
         "seo": 100,
-        "LCP": 476,
+        "LCP": 489,
         "CLS": 0,
-        "TBT": 19,
-        "FCP": 281,
+        "TBT": 12,
+        "FCP": 282,
         "wszystkieWydajnosci": [
           100,
           100,
