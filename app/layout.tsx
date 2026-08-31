@@ -9,7 +9,7 @@ import { nonceCsp } from "@/lib/csp-nonce";
 import "./globals.css";
 
 const OPIS =
-  "Kursy i ebooki Automatic AI — praktyczna wiedza o AI, agentach i automatyzacji procesów.";
+  "Kursy Automatic AI — praktyczna wiedza o AI, agentach i automatyzacji procesów.";
 
 /*
  * Tytuł DOMYŚLNY — dla stron, które nie ustawiają własnego. Sam katalog

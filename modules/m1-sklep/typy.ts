@@ -6,7 +6,21 @@ import { z } from "zod";
  * kanałem JSON. Typy TS wyprowadzane ze schematów — jedna prawda.
  */
 
-export const KursTyp = z.enum(["ebook", "kurs"]);
+/**
+ * Typy produktu — kolumna `courses.type`.
+ *
+ * TYLKO `kurs`. Właściciel zamknął temat ebooków 2026-08-25 słowem
+ * „na zawsze": produktem jest wyłącznie kurs tekstowy za logowaniem.
+ * Kontrakt, który dawałby ebooka do wyboru, byłby zaproszeniem do
+ * złamania tej decyzji jednym kliknięciem — tak samo rozstrzygnęła to
+ * wtyczka WP (`Aai_Sklep_Kontrakt::TYPY`), a prototyp jest jej
+ * specyfikacją, więc nie może obiecywać czegoś innego.
+ *
+ * Kolumny w bazie NIE zwężamy: `CHECK (type IN ('ebook','kurs'))` zostaje,
+ * bo migracja zmieniająca ograniczenie nie kupuje niczego, czego nie daje
+ * kontrakt — a oba kursy mają `kurs` (sprawdzone zapytaniem, nie założone).
+ */
+export const KursTyp = z.enum(["kurs"]);
 export const KursStatus = z.enum(["draft", "published", "archived"]);
 export const SekcjaRodzaj = z.enum([
   "hero",

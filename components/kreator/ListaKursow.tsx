@@ -26,7 +26,7 @@ export type PozycjaListy = {
   id: string;
   slug: string;
   title: string;
-  type: "ebook" | "kurs";
+  type: "kurs";
   status: "draft" | "published" | "archived";
   cena: string;
   badge: string | null;

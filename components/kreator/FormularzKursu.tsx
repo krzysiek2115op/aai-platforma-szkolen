@@ -40,7 +40,7 @@ export type StanKursu = {
   id?: string;
   slug: string;
   title: string;
-  type: "ebook" | "kurs";
+  type: "kurs";
   short_desc: string;
   price_grosze: number;
   cover_url: string;
@@ -80,7 +80,6 @@ const POZIOMY = [
 
 const TYPY = [
   { wartosc: "kurs", tekst: "Kurs" },
-  { wartosc: "ebook", tekst: "Ebook" },
 ];
 
 export default function FormularzKursu({
