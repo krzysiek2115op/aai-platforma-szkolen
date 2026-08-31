@@ -1,0 +1,208 @@
+<mxfile host="app.diagrams.net" agent="Automatic AI" type="device">
+  <diagram id="Ca-y-system" name="Cały system">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1960" pageHeight="980" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="x1" value="Automatic AI — cały system: trzy wtyczki, WordPress, WooCommerce, Tutor LMS" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="x2" value="Jedna instalacja WordPressa. Trzy nasze wtyczki (54 klasy, 9 tabel) plus dwie gotowe, których nie piszemy. Motyw Automatic AI jest osobny — my go tylko nie psujemy." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="Klient" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fontStyle=1;strokeColor=#7a5c00;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="40" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="Właściciel" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fontStyle=1;strokeColor=#7a5c00;" vertex="1" parent="1">
+          <mxGeometry x="60" y="620" width="40" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="g5" value="Co widzi KLIENT (przeglądarka)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#f4fbf2;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="150" y="110" width="380" height="480" as="geometry" />
+        </mxCell>
+        <mxCell id="n6" value="/szkolenia — katalog" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#d5e8d4;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="175" y="155" width="330" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="n7" value="/szkolenia/&amp;lt;kurs&amp;gt; — strona sprzedażowa" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#d5e8d4;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="175" y="211" width="330" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="n8" value="/koszyk/  ·  /kasa/" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#f0f0f0;strokeColor=#8a8a8a;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="175" y="267" width="330" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="n9" value="/moje-konto/ — konto WooCommerce" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#f0f0f0;strokeColor=#8a8a8a;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="175" y="323" width="330" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="n10" value="/szkolenia/moje — kupione kursy" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#d5e8d4;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="175" y="379" width="330" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="n11" value="lekcja — treść kursu (za logowaniem)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#d5e8d4;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="175" y="435" width="330" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="n12" value="Maile: „Ustaw hasło i wejdź”&lt;br&gt;„Twój kurs jest gotowy”" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#dae8fc;strokeColor=#3a6ea5;" vertex="1" parent="1">
+          <mxGeometry x="175" y="500" width="330" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;" edge="1" parent="1" source="a3" target="n6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;" edge="1" parent="1" source="a3" target="n7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;" edge="1" parent="1" source="a3" target="n10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;" edge="1" parent="1" source="a3" target="n11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;strokeColor=#3a6ea5;" edge="1" parent="1" source="n12" target="a3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g18" value="Co widzi WŁAŚCICIEL (kokpit WordPressa)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#fffdf0;strokeColor=#b8912a;" vertex="1" parent="1">
+          <mxGeometry x="150" y="620" width="380" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="n19" value="Kreator kursów&lt;br&gt;Kurs · Sekcje · Program · Treść lekcji" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#d5e8d4;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="175" y="662" width="330" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n20" value="Ekran „Monitoring”" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="175" y="742" width="330" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="n21" value="WP-CLI: wp aai-sklep / aai-platnosci / aai-monitor" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#f0f0f0;strokeColor=#8a8a8a;" vertex="1" parent="1">
+          <mxGeometry x="175" y="796" width="330" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;" edge="1" parent="1" source="a4" target="n19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;" edge="1" parent="1" source="a4" target="n20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g24" value="NASZE TRZY WTYCZKI  (katalog wordpress/wtyczki/)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#fcfcfc;strokeColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="590" y="110" width="480" height="760" as="geometry" />
+        </mxCell>
+        <mxCell id="n25" value="PLUGIN 1 — aai-sklep&lt;br&gt;28 klas · 5 tabel · 26 haków&lt;br&gt;&lt;br&gt;katalog · strony sprzedażowe · kreator&lt;br&gt;widok lekcji · „Moje kursy” · SEO i mapa strony&lt;br&gt;higiena cudzych arkuszy (Tutor/Woo nie łamią motywu)&lt;br&gt;&lt;br&gt;DZIAŁA SAM — bez pozostałych dwóch" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#d5e8d4;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="615" y="150" width="430" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="n26" value="PLUGIN 2 — aai-platnosci&lt;br&gt;13 klas · 2 tabele · 25 haków&lt;br&gt;&lt;br&gt;SZEW, nie kasa: kurs → produkt WooCommerce&lt;br&gt;cena efektywna · 4 stany przycisku zakupu&lt;br&gt;domykanie zamówienia · dwa maile dostarczenia&lt;br&gt;&lt;br&gt;WYMAGA: Pluginu 1, WooCommerce, Tutora" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#dae8fc;strokeColor=#3a6ea5;" vertex="1" parent="1">
+          <mxGeometry x="615" y="385" width="430" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="n27" value="PLUGIN 3 — aai-monitor&lt;br&gt;13 klas · 2 tabele · 10 haków&lt;br&gt;&lt;br&gt;dziennik logowań (90 dni, dane osobowe)&lt;br&gt;pomiar ruchu (400 dni, anonimowo)&lt;br&gt;ekran w kokpicie — czysty odczyt&lt;br&gt;&lt;br&gt;DZIAŁA SAM — rejestruje, niczego nie blokuje" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="615" y="620" width="430" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="n28" value="KOLEJNOŚĆ INSTALACJI:  1 → 2 → 3&lt;br&gt;Plugin 2 bez Pluginu 1 nie ma czego sprzedawać.&lt;br&gt;Plugin 3 jest niezależny, ale idzie na końcu." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fontStyle=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="615" y="800" width="430" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e29" value="zdarzenia kursu  ⟶      ⟵  cena, CTA, zamówienia" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;strokeWidth=3;strokeColor=#3a6ea5;" edge="1" parent="1" source="n25" target="n26">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e30" value="pyta o bramkę logowania" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;strokeWidth=3;strokeColor=#c07830;" edge="1" parent="1" source="n27" target="n25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.9;entryDx=0;entryDy=0;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n19" target="n25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n20" target="n27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e33" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n25" target="n6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n25" target="n11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n26" target="n12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g36" value="GOTOWE WTYCZKI — nie piszemy ich" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#fafafa;strokeColor=#8a8a8a;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="110" width="400" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="n37" value="WooCommerce  11.0.1&lt;br&gt;&lt;br&gt;koszyk · kasa · płatność · faktury&lt;br&gt;konta klientów · zamówienia · zwroty&lt;br&gt;&lt;br&gt;Produkt kursu: virtual, sold_individually,&lt;br&gt;ukryty w katalogu Woo — jedyną witryną&lt;br&gt;zakupu jest NASZA strona sprzedażowa." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#f0f0f0;strokeColor=#8a8a8a;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1145" y="155" width="350" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="n38" value="Tutor LMS  4.0.7&lt;br&gt;&lt;br&gt;zapis na kurs · sprawdzanie dostępu&lt;br&gt;postęp w lekcjach · konta kursantów&lt;br&gt;&lt;br&gt;Dostaje KOPIĘ kursu z naszej bazy.&lt;br&gt;Jego własne strony (/courses/*) idą 301&lt;br&gt;na nasze — klient nie widzi cudzego wyglądu." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#f0f0f0;strokeColor=#8a8a8a;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1145" y="335" width="350" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="e39" value="produkt, cena, blokada koszyka" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n26" target="n37">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e40" value="kopia kursu (w jedną stronę)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;fontSize=11;strokeWidth=3;strokeColor=#4d7f3f;" edge="1" parent="1" source="n25" target="n38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e41" value="opłacone → zapis · zwrot → dostęp znika" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n37" target="n38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e42" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n8" target="n37">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e43" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n9" target="n37">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g44" value="WordPress 6.9  ·  jedna baza MySQL" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="540" width="400" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="n45" value="WordPress&lt;br&gt;konta i hasła · adresy · mapa strony&lt;br&gt;kokpit · biblioteka mediów" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#f0f0f0;strokeColor=#8a8a8a;" vertex="1" parent="1">
+          <mxGeometry x="1145" y="580" width="350" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="d46" value="NASZE TABELE  (własny prefiks)&lt;br&gt;wp_aai_sklep_*     5 tabel&lt;br&gt;wp_aai_platnosci_* 2 tabele&lt;br&gt;wp_aai_monitor_*   2 tabele" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=12;fontStyle=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1145" y="665" width="350" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="d47" value="TABELE WORDPRESSA, WOO I TUTORA&lt;br&gt;wp_posts · wp_users · wp_wc_orders …" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=12;fontStyle=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1145" y="768" width="350" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="e48" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n25" target="d46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e49" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n26" target="d46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e50" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n27" target="d46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e51" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n37" target="d47">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e52" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n38" target="d47">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e53" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n45" target="d47">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t54" value="„WŁASNA BAZA” ZNACZY WŁASNE TABELE,&lt;br&gt;NIE OSOBNĄ BAZĘ MySQL&lt;br&gt;&lt;br&gt;Wszystko stoi w jednej bazie WordPressa, ale każda wtyczka ma własny prefiks i NIE dotyka cudzych tabel — pilnuje tego strażnik w CI.&lt;br&gt;&lt;br&gt;Dzięki jednej bazie działają transakcje, JOIN z kontami WordPressa i JEDNA kopia zapasowa." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingLeft=6;spacingTop=2;fontSize=11;fillColor=#fffde7;strokeColor=#c8b900;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="110" width="340" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="t55" value="ŹRÓDŁO PRAWDY O KURSIE:&lt;br&gt;NASZE TABELE&lt;br&gt;&lt;br&gt;Do Tutora idzie KOPIA, zawsze w jedną stronę. Zmiana zrobiona w Course Builderze Tutora znika przy najbliższym zapisie kursu.&lt;br&gt;&lt;br&gt;Rozjazd tych dwóch kopii to główne ryzyko tej architektury — dlatego ma własną komendę kontrolną:&lt;br&gt;wp aai-sklep sprawdz-tutora" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingLeft=6;spacingTop=2;fontSize=11;fillColor=#fffde7;strokeColor=#c8b900;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="390" width="340" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="t56" value="MOTYW „AUTOMATIC AI”&lt;br&gt;&lt;br&gt;jest osobny i generowany — nie wolno go edytować ręcznie.&lt;br&gt;&lt;br&gt;Wtyczki tylko się do niego dopasowują: pozycję w menu dokładamy w locie, a arkusze Tutora i WooCommerce zdejmujemy ze stron, na których nie mają nic do roboty." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingLeft=6;spacingTop=2;fontSize=11;fillColor=#fffde7;strokeColor=#c8b900;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="660" width="340" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="x57" value="Legenda:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="880" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n58" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#d5e8d4;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="40" y="906" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="x59" value="Plugin 1 — Sklep" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="74" y="906" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="n60" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#dae8fc;strokeColor=#3a6ea5;" vertex="1" parent="1">
+          <mxGeometry x="250" y="906" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="x61" value="Plugin 2 — Płatności" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="284" y="906" width="200" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="n62" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="480" y="906" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="x63" value="Plugin 3 — Monitoring" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="514" y="906" width="210" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="n64" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#f0f0f0;strokeColor=#8a8a8a;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="906" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="x65" value="gotowa wtyczka / WordPress" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="754" y="906" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="x66" value="linia gruba = zapis lub zdarzenie   ·   kropkowana = odczyt   ·   przerywana = pytanie filtrem" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="906" width="700" height="24" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

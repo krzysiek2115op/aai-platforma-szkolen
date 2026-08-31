@@ -23,6 +23,8 @@
     "db1:tresc": "node --env-file-if-exists=.env tools/wgraj-tresc-lekcji.ts",
     "wp:eksport": "node --env-file-if-exists=.env tools/eksport-wp.mjs --do eksport-wp",
     "wp:import": "npm run wp:eksport && podman cp eksport-wp/kursy.json ${STACK_NAZWA:-aai_wp}_cli:/tmp/kursy.json && podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep import /tmp/kursy.json && npm run wp:sync-platnosci",
+    "pakuj": "node tools/pakuj-wtyczki.mjs",
+    "schematy": "node tools/schematy.mjs",
     "wp:sprawdz": "node --env-file-if-exists=.env tools/sprawdz-import-wp.mjs",
     "wp:sync": "podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep sync",
     "wp:tutor": "podman exec ${STACK_NAZWA:-aai_wp}_cli wp --path=/var/www/html aai-sklep sprawdz-tutora",

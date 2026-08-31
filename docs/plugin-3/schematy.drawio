@@ -1,0 +1,204 @@
+<mxfile host="app.diagrams.net" agent="Automatic AI" type="device">
+  <diagram id="1--Jak-to-dzia-a--dla-ka-dego-" name="1. Jak to działa (dla każdego)">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="790" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="x1" value="Automatic AI — Monitoring: jak to działa" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="x2" value="Wtyczka 3 z 3. Odpowiada na dwa pytania właściciela: kto wchodził na konta i co ludzie czytają. Niczego nie blokuje — tylko zapisuje." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="1300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" value="Czujka 1 — kto wchodził na konta" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#fff7ef;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="40" y="110" width="700" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="Ktokolwiek" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fontStyle=1;strokeColor=#7a5c00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="190" width="40" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n5" value="Loguje się&lt;br&gt;&lt;br&gt;udanie albo nieudanie&lt;br&gt;(także cudza próba)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#f0f0f0;strokeColor=#8a8a8a;" vertex="1" parent="1">
+          <mxGeometry x="160" y="165" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="d6" value="Dziennik logowań&lt;br&gt;&lt;br&gt;kiedy · kto · skąd (IP)&lt;br&gt;przeglądarka&lt;br&gt;&lt;br&gt;żyje 90 dni" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=12;fontStyle=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="450" y="160" width="250" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;" edge="1" parent="1" source="a4" target="n5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="zapisujemy" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n5" target="d6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t9" value="PO CO: żeby było widać serię nieudanych prób z jednego adresu — czyli próbę włamania na konto klienta albo właściciela.&lt;br&gt;&lt;br&gt;HASEŁ NIE ZAPISUJEMY NIGDY. Gdy ktoś wpisze hasło w pole loginu, zostaje z niego tylko początek i długość." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingLeft=6;spacingTop=2;fontSize=11;fillColor=#fffde7;strokeColor=#c8b900;" vertex="1" parent="1">
+          <mxGeometry x="160" y="290" width="540" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="g10" value="Czujka 2 — co ludzie czytają" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#fff7ef;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="800" y="110" width="740" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="a11" value="Odwiedzający" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fontStyle=1;strokeColor=#7a5c00;" vertex="1" parent="1">
+          <mxGeometry x="840" y="190" width="40" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n12" value="Czyta stronę&lt;br&gt;&lt;br&gt;katalog, strona kursu,&lt;br&gt;lekcja" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#d5e8d4;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="920" y="165" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="d13" value="Pomiar ruchu&lt;br&gt;&lt;br&gt;adres · kiedy · jak długo&lt;br&gt;&lt;br&gt;ANONIMOWO, żyje 400 dni" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=12;fontStyle=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="160" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;" edge="1" parent="1" source="a11" target="n12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="zapisujemy&lt;br&gt;przy wyjściu ze strony" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n12" target="d13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t16" value="TU NIE MA ANI IP, ANI KONTA, ANI PRZEGLĄDARKI — nic, co łączyłoby odsłonę z człowiekiem. Obu tabel nie da się ze sobą połączyć i to jest celowe.&lt;br&gt;&lt;br&gt;Administratora NIE mierzymy w ogóle." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingLeft=6;spacingTop=2;fontSize=11;fillColor=#fffde7;strokeColor=#c8b900;" vertex="1" parent="1">
+          <mxGeometry x="920" y="290" width="590" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="n17" value="Ekran „Monitoring” w panelu WordPressa&lt;br&gt;&lt;br&gt;· cztery liczby na wierzchu, każda z własnym okresem&lt;br&gt;· dziennik logowań (z filtrem „tylko nieudane”)&lt;br&gt;· ruch: dziś / 7 dni / 30 dni&lt;br&gt;· najczęściej czytane strony&lt;br&gt;· osobno: kto odbił się od logowania" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="560" y="500" width="460" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="d6" target="n17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="d13" target="n17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a20" value="Właściciel" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fontStyle=1;strokeColor=#7a5c00;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="540" width="40" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" value="tylko on to widzi" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;" edge="1" parent="1" source="n17" target="a20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t22" value="CZEGO TU NIE MA — I TO JEST DECYZJA, NIE BRAK&lt;br&gt;&lt;br&gt;· nie blokujemy nikogo, nawet po serii nieudanych prób;&lt;br&gt;· nie pokazujemy sprzedaży — od tego są raporty WooCommerce;&lt;br&gt;· nie ma zewnętrznej analityki, żadne dane nie wychodzą poza tę stronę." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingLeft=6;spacingTop=2;fontSize=11;fillColor=#fffde7;strokeColor=#c8b900;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="480" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="x23" value="Legenda:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="690" width="700" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n24" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="40" y="716" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="x25" value="nasza wtyczka „Monitoring”" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="74" y="716" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="n26" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#d5e8d4;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="320" y="716" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="x27" value="nasza wtyczka „Sklep”" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="354" y="716" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="n28" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=12;fillColor=#f0f0f0;strokeColor=#8a8a8a;" vertex="1" parent="1">
+          <mxGeometry x="560" y="716" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="x29" value="WordPress" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="594" y="716" width="320" height="24" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="2--Architektura--techniczny-" name="2. Architektura (techniczny)">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1620" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="x1" value="aai-monitor — architektura (Plugin 3)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1100" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="x2" value="13 klas · 2 tabele · 10 haków · wystrzałem jest admin-post.php (zero REST, zero wp_ajax_*) · ekran to CZYSTY ODCZYT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="48" width="1400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" value="BAZA  wp_aai_monitor_*" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="300" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" value="logowania&lt;br&gt;czas · zdarzenie · zrodlo&lt;br&gt;user_id · login · ip · agent&lt;br&gt;&lt;br&gt;DANE OSOBOWE — 90 dni" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=12;fontStyle=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="65" y="130" width="250" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" value="wizyty&lt;br&gt;odslona (UNIQUE) · sesja&lt;br&gt;sciezka · bramka · wejscie&lt;br&gt;trwanie_ms&lt;br&gt;&lt;br&gt;ANONIMOWE — 400 dni, sufit 250k" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=12;fontStyle=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="65" y="252" width="250" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="t6" value="TE DWIE TABELE NIE MAJĄ ŻADNEJ WSPÓLNEJ KOLUMNY.&lt;br&gt;&lt;br&gt;Złączenie dałoby profilowanie, którego ten moduł z założenia nie robi — więc nie ma po czym ich skleić." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingLeft=6;spacingTop=2;fontSize=11;fillColor=#fffde7;strokeColor=#c8b900;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="300" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="g7" value="DZIAŁ" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#fff7ef;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="390" y="90" width="330" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="n8" value="Aai_Monitor_Zapis&lt;br&gt;JEDYNY PISARZ&lt;br&gt;&lt;br&gt;· sufity: 4 h czytania (PRZYCINA),&lt;br&gt;  30 dni wieku (ODRZUCA)&lt;br&gt;· kolejne beacony podnoszą wiersz&lt;br&gt;  (GREATEST / LEAST w SQL-u)&lt;br&gt;· retencja przy każdym zapisie" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="410" y="130" width="290" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n9" value="Aai_Monitor_Odczyt&lt;br&gt;kanał JSON — NIGDY nie pisze&lt;br&gt;gotowe agregaty, nie surowe wiersze&lt;br&gt;okna liczone od północy czasu WITRYNY" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="410" y="275" width="290" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n8" target="d4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n8" target="d5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="d4" target="n9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="d5" target="n9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g14" value="Czujka 1 — dziennik logowań (haki rdzenia)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#fff7ef;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="770" y="90" width="400" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="n15" value="Aai_Monitor_Logowania   priorytet 1&lt;br&gt;&lt;br&gt;· set_logged_in_cookie → wiersz „sesja”&lt;br&gt;· wp_login → DOPRECYZOWUJE na „formularz”&lt;br&gt;· wp_login_failed → wiersz „nieudane”&lt;br&gt;&lt;br&gt;DWA haki na sukces, bo auto-login z kasy&lt;br&gt;WooCommerce NIE odpala wp_login —&lt;br&gt;czyli ścieżka każdego nowego klienta.&lt;br&gt;&lt;br&gt;KAŻDY handler w try/catch(Throwable):&lt;br&gt;wyjątek z set_logged_in_cookie wychodzi&lt;br&gt;z kasy Woo = HTTP 500 i przerwany zakup.&lt;br&gt;&lt;br&gt;Hasła nie zapisujemy — login nieistniejącego&lt;br&gt;konta jest MASKOWANY (adm…(19 znaków))." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="795" y="130" width="350" height="235" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n15" target="n8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g17" value="Czujka 2 — pomiar ruchu (wystrzał)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#fff7ef;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="770" y="420" width="800" height="350" as="geometry" />
+        </mxCell>
+        <mxCell id="n18" value="Aai_Monitor_Pomiar   (serwer)&lt;br&gt;podaje assets/pomiar.js na front&lt;br&gt;&lt;br&gt;NIE podaje go: administratorowi ani na 404&lt;br&gt;— strona 404 renderuje się dla DOWOLNEGO&lt;br&gt;adresu, więc rozdawałaby podpisy na&lt;br&gt;ścieżki, których nie ma." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="795" y="465" width="340" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n19" value="pomiar.js   (przeglądarka)&lt;br&gt;mierzy CZAS AKTYWNY — zegar stoi,&lt;br&gt;gdy karta jest ukryta&lt;br&gt;&lt;br&gt;· visibilitychange + pagehide → beacon&lt;br&gt;· pageshow.persisted (bfcache) → NOWA odsłona&lt;br&gt;· identyfikator sesji w sessionStorage&lt;br&gt;· navigator.webdriver → nie mierzymy&lt;br&gt;· sendBeacon z Blobem application/json" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="795" y="610" width="340" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="n20" value="Aai_Monitor_Wizyty   —  admin-post.php&lt;br&gt;akcja: aai_monitor_wizyta  (w QUERY STRINGU!)&lt;br&gt;&lt;br&gt;Rejestrujemy OBIE nazwy haka:&lt;br&gt;admin_post_nopriv_  I  admin_post_&lt;br&gt;— bo strony lekcji są za logowaniem.&lt;br&gt;&lt;br&gt;SITO, w tej kolejności (najpierw darmowe):&lt;br&gt;1. administrator → odrzut&lt;br&gt;2. Content-Type musi być application/json&lt;br&gt;   (text/plain przechodzi cross-origin!)&lt;br&gt;3. Origin / Referer = nasza witryna&lt;br&gt;4. limiter 300/min, okno kotwiczone&lt;br&gt;   do pełnej minuty zegara&lt;br&gt;5. ciało STRUMIENIEM, sufit 1024 B&lt;br&gt;6. ścieżka + PODPIS&lt;br&gt;7. sesja i odsłona: 32 znaki hex&lt;br&gt;&lt;br&gt;ODPOWIADAMY 204 NA WSZYSTKO —&lt;br&gt;i na przyjęcie, i na odrzut." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="465" width="370" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" value="podpisana ścieżka + flaga bramki" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;strokeWidth=1.5;" edge="1" parent="1" source="n18" target="n19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" value="beacon" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n19" target="n20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=3;" edge="1" parent="1" source="n20" target="n8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n24" value="Aai_Monitor_Podpis&lt;br&gt;&lt;br&gt;Strona przy renderze PODPISUJE własną&lt;br&gt;ścieżkę (HMAC, własna sól w opcji).&lt;br&gt;Beacon podpis odsyła.&lt;br&gt;&lt;br&gt;ODWRÓCONE PYTANIE: zamiast „czy ta&lt;br&gt;ścieżka istnieje” (url_to_postid zwraca&lt;br&gt;0 dla WSZYSTKICH naszych tras)&lt;br&gt;dowodzimy, że stronę wyrenderowano.&lt;br&gt;&lt;br&gt;Flaga „bramka logowania” jest CZĘŚCIĄ&lt;br&gt;podpisywanego materiału — nie da się&lt;br&gt;jej podrobić." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="400" y="560" width="300" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="e25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;exitX=1;exitY=0.08;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n24" target="n18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e26" value="weryfikacja hash_equals" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n20" target="n24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g27" value="Ekran w kokpicie — CZYSTY ODCZYT" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#fff7ef;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="90" width="370" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="n28" value="Aai_Monitor_Ekran&lt;br&gt;manage_options · priorytet menu 20&lt;br&gt;&lt;br&gt;ZERO akcji, zero POST-ów, zero nonce'ów —&lt;br&gt;filtry i okna jadą parametrami GET.&lt;br&gt;&lt;br&gt;· cztery kafelki, KAŻDY z własnym okresem&lt;br&gt;· dziennik logowań + „tylko nieudane”&lt;br&gt;· ruch: dziś / 7 / 30 dni&lt;br&gt;· najczęściej czytane strony&lt;br&gt;· osobno odsłony zatrzymane na bramce&lt;br&gt;&lt;br&gt;DRUGI WYZWALACZ RETENCJI: raz na dobę,&lt;br&gt;bo retencja przy zapisie jest leniwa,&lt;br&gt;a WP-Cron na cichej stronie nie wstaje." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="1225" y="130" width="320" height="235" as="geometry" />
+        </mxCell>
+        <mxCell id="e29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;dashPattern=1 3;" edge="1" parent="1" source="n9" target="n28">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n30" value="→ pytamy Plugin 1 filtrem&lt;br&gt;aai_monitor_strona_za_bramka&lt;br&gt;&lt;br&gt;Gość na płatnej lekcji dostaje HTTP 200&lt;br&gt;i pełną stronę — bez tego pytania „top 10&lt;br&gt;czytanych stron” liczyłoby odbicia&lt;br&gt;jako czytanie. Odpowiada widok lekcji." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#d5e8d4;strokeColor=#4d7f3f;" vertex="1" parent="1">
+          <mxGeometry x="400" y="420" width="300" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;labelBackgroundColor=#ffffff;fontSize=11;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="n30" target="n18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n32" value="Aai_Monitor_Zadanie&lt;br&gt;JEDNO miejsce, w którym powstaje IP.&lt;br&gt;NIE czytamy X-Forwarded-For — ten&lt;br&gt;nagłówek ustawia klient." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="340" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n33" value="Aai_Monitor_Prywatnosc · Aai_Monitor_Komunikaty&lt;br&gt;Aai_Monitor_Zaleznosci · Aai_Monitor_Tabele&lt;br&gt;Aai_Monitor_Cli&lt;br&gt;wpis do polityki prywatności, kanał błędów,&lt;br&gt;ostrzeżenie o dryfie wersji, schemat tabel" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+          <mxGeometry x="40" y="665" width="340" height="90" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

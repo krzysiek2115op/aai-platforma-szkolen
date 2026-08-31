@@ -48,7 +48,7 @@ w repo jako specyfikacja wykonawcza i źródło treści.
 
 | | |
 |---|---|
-| **Wersja** | **0.63.1** |
+| **Wersja** | **0.64.0** |
 | **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). Trwają **trzy ostatnie kroki** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) — szczegóły pod tabelą |
 | **Wtyczki WordPressa** | `aai-sklep` — W1–W6, `v0.45.0` · `aai-platnosci` — P0–P6, `v0.53.0` · `aai-monitor` — T0–T4, `v0.58.0`. Każda z osobnym testem ręcznym właściciela (W6, P6, T4) — plus test CAŁOŚCI, sprawdzający je razem |
 | **Trzy ostatnie kroki** | 1. SEO — **ZROBIONY** (`0.60.0`, `0.60.1`) · 2. higiena repo — **TRWA** · 3. audyt końcowy — wytyczne poda właściciel |
@@ -193,12 +193,25 @@ modules/ lib/          34    moduł m1-sklep: kontrakty Zod, odczyt, dyspozytor
 public/                15
 
 tresc-kursow/         331  ← TREŚĆ: 73 lekcje prozy + 91 scenariuszy + zrzuty
-docs/                 119  ← plan, wytyczne, diagramy i dziennik każdego kroku
-tools/                154  ← strażnicy (38), bramki smoke, narzędzia (19)
+docs/                 140  ← plan, wytyczne, schematy i dziennik każdego kroku
+tools/                157  ← strażnicy (39), bramki smoke, narzędzia (21)
   straznicy/ smoke/ zrzuty/ podglad-kursow/ seed/
+docs/schematy/          8  ← podglądy SVG siedmiu schematów draw.io
 goldeny/                9  ← wzorce chroniące przed cichą utratą treści
 agenci/ rejestr/        5  ← przepis na przegląd agent+krytyk, rejestr błędów
 ```
+
+### Dokumentacja wizualna i instrukcja dla klienta
+
+| Dokument | Dla kogo | Co zawiera |
+|---|---|---|
+| [docs/SCHEMATY.md](docs/SCHEMATY.md) | wszyscy | siedem schematów draw.io: każda wtyczka w wersji **prostej** i **technicznej**, plus **diagram całego systemu** — jedyne miejsce pokazujące szwy MIĘDZY wtyczkami i granicę wobec WooCommerce i Tutora |
+| [docs/INSTRUKCJA-INSTALACJI.md](docs/INSTRUKCJA-INSTALACJI.md) | klient nietechniczny | instalacja od A do Z: co dostaje, jak wgrać, w jakiej kolejności, co sprawdzić, co robić przy błędzie i czego nie zmieniać samemu — ze zrzutami ekranu |
+
+Źródłem schematów są pliki `.drawio` (XML, więc żyją w gicie i da się je
+edytować). Podglądy `.svg` powstają komendą `npm run schematy`, bo GitHub
+`.drawio` nie renderuje. Zgodności rysunku z kodem pilnuje
+`straznik-schematow` — patrz tabela strażników niżej.
 
 **Każda wtyczka ma ten sam układ w środku** — plik główny, `includes/`
 (klasy), `assets/` (CSS i JS bez zależności), `szablony/`, `languages/`,
@@ -291,6 +304,8 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run db1:seed` | odtwórz oba kursy od zera: program (lustro bazy) + sekcje sprzedażowe. **UWAGA: najpierw KASUJE kursy o tych slugach**, czyli razem z prozą 73 lekcji — po nim trzeba wgrać treść `npm run db1:tresc` |
 | `npm run db1:sekcje` | wgraj do bazy SAME sekcje sprzedażowe z seeda — bez programu i bez prozy. Do poprawek treści sprzedażowej; `db1:seed` do tego **nie służy**, bo zaczyna od skasowania kursu. **Po każdym przebiegu uruchom `npm run wp:import`**: sekcje podmieniają się parą DELETE + INSERT, więc dostają nowe identyfikatory, a WordPress zostaje ze starymi |
 | `npm run db1:tresc` | wgraj prozę lekcji z `tresc-kursow/**/proza-*.md` do bazy — drogą kreatora (jedyny AJAX); `-- --sprawdz` sam sprawdza, nic nie wysyła |
+| `npm run schematy` | eksportuje siedem schematów draw.io do podglądów SVG i zapisuje skróty źródeł w `docs/schematy/ZRODLA.json`. **Uruchom po KAŻDEJ zmianie pliku `.drawio`** — bez tego podgląd w repo pokazuje starą wersję, a `straznik-schematow` świeci na czerwono. Wymaga draw.io Desktop (ścieżka w `AAI_DRAWIO`) |
+| `npm run pakuj` | składa trzy archiwa ZIP dla klienta (`paczki/aai-*-<wersja>.zip`) — takie, jakie wgrywa się przez „Wtyczki → Wyślij wtyczkę na serwer”. Po spakowaniu **rozpakowuje je z powrotem i porównuje każdy plik co do bajtu**; kod wyjścia `zip` niczego by nie dowodził (lekcja z 0.24.0) |
 | `npm run wp:eksport` | zrzuć oba kursy z Postgresa do `eksport-wp/kursy.json` (format 2: nazwa pola = nazwa kolumny) |
 | `npm run wp:import` | przenieś kursy do tabel wtyczki WordPressa: eksport → kopia do kontenera → `wp aai-sklep import`. **Jedna komenda dla człowieka i dla skryptu** — rozjazd tych dwóch dróg kosztował nas już wydanie (0.24.0, BLAD-012) |
 | `npm run wp:sprawdz` | czy obie bazy niosą tę samą treść? — porównuje Postgres z MySQL wtyczki, lekcja po lekcji (`sha256`), i kończy się kodem wyjścia |
@@ -364,7 +379,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 334 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 340 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie
@@ -395,6 +410,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-seo` | pre-commit + CI | ciche zniknięcie SEO: widok bez kanonika lub bez OpenGraphu, własny blok `application/ld+json` z pominięciem ucieczki znaków (treść z `</script>` zamknęłaby blok skryptu), drugie miejsce czytające przełącznik indeksowania (rozjazd metatagu z `robots.txt`), obraz OG bez `contentType`/`size`, układ bez `metadataBase` |
 | `straznik-obietnic` | pre-commit + CI | strona sprzedażowa obiecująca coś spoza produktu: liczba modułów, lekcji, minut albo zrzutów rozjechana z programem kursu, obietnica wideo w kursie TEKSTOWYM (decyzja 2026-08-19), zawyżona obietnica podzbioru („prompty w N lekcjach”, „N lekcji z pytaniami do wykonawcy”) — klasa wykryta audytem 2026-08-24, gdy publiczny podgląd obiecywał „7 modułów wideo (31 lekcji)” przy 6 modułach i 41 lekcjach |
 | `straznik-sciezek` | pre-commit + CI | adres URL pliku użyty jako ścieżka systemowa: sklejka `file://${process.argv[1]}` i `.pathname` z `new URL(…, import.meta.url)`. W katalogu ze spacją (`Pod strona Szkolenia `) narzędzie milczy z kodem 0 albo nie znajduje własnych plików — tak zamilkł `manifest.mjs`, jedyne źródło prawdy o stanie zrzutów (BLAD-014) |
+| `straznik-schematow` | pre-commit + CI | schematy draw.io rozjeżdżające się z kodem: nazwa klasy na rysunku, której nie ma w kodzie (zmiana nazwy bez poprawki diagramu), klasa w kodzie nieobecna na ŻADNYM schemacie (nowy kod, o którym rysunek milczy), podgląd SVG nieaktualny wobec źródła (porównanie `sha256`, nie dat plików — git dat nie przechowuje) łamanie linii wpisane surowym `<br>`, którego draw.io nie otworzy, oraz **etykietę z pojedynczo uciekłym znacznikiem** — `/szkolenia/<kurs>` renderuje się jako `/szkolenia/`, bo HTML połyka nieznany znacznik, a plik przy tym jest poprawny i eksport kończy się kodem 0. Pilnuje SŁOWNIKA, nie sensu: nie sprawdza, czy strzałka wskazuje właściwą stronę |
 | `straznik-readme` | pre-commit + CI | README kłamiące o stanie repo: strażnik bez wiersza w tabeli (i martwe wiersze), skrypt npm poza sekcją „Skrypty", zła liczba scenariuszy, kotwica spisu treści donikąd — złapał własną nieobecność w tej tabeli przy pierwszym uruchomieniu. **Od 0.62.0 pilnuje też dwóch rzeczy, które przez rok nikomu nie rzuciły się w oczy**: narzędzia `tools/*.mjs` nieobecnego ZARAZEM w README i w `package.json` (cztery z dziewiętnastu były nie do znalezienia, w tym to, które CLAUDE.md każe uruchomić po `git clean`) oraz wiersza tabeli z treścią po zamykającym `|` — GitHub takiego ogona NIE renderuje, więc opis bramki jest dla czytelnika ucięty, a w edytorze wygląda poprawnie |
 | `straznik-wagi-dokumentacji` | pre-commit + CI | masa dokumentacji producentów (55 MB, ~2200 plików) wpuszczona do gita — także przez `git add -f`; git trzyma każdą wersję na stałe, więc pomyłka jest nieodwracalna |
 | `straznik-tresci-lekcji` | pre-commit + CI | materiał kursu wychodzący zza bramki: wspólny odczyt strony wybierający z lekcji `content`/`materials` (wyciek treści 91 lekcji do publicznego HTML-a katalogu i strony sprzedażowej) albo kontrakt `LekcjaKursu` z polem treści; pełny tekst oddaje wyłącznie `trescLekcji()` |

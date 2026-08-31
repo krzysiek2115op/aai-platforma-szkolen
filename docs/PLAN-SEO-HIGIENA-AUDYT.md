@@ -233,7 +233,17 @@ czynność.
 
 ---
 
-## PRZED KROKIEM 3 — schematy draw.io trzech wtyczek
+## PRZED KROKIEM 3 — schematy draw.io trzech wtyczek — **ZROBIONE (0.64.0)**
+
+**Wynik:** siedem diagramów w czterech plikach `.drawio`, indeks
+[SCHEMATY.md](SCHEMATY.md), instrukcja dla klienta nietechnicznego
+[INSTRUKCJA-INSTALACJI.md](INSTRUKCJA-INSTALACJI.md), skrypt pakujący
+`npm run pakuj` i 39. strażnik pilnujący zgodności rysunku z kodem.
+Kodu wtyczek nie tknięto. Pełnia: CHANGELOG 0.64.0 i CLAUDE.md.
+
+Zapis historyczny — tak ten krok wyglądał przed wykonaniem:
+
+### 
 
 **Decyzja właściciela 2026-08-31:** przed audytem końcowym powstają schematy
 w **draw.io** dla WSZYSTKICH TRZECH wtyczek, w dwóch wariantach — dla klienta
