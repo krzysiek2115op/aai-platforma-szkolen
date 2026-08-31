@@ -172,6 +172,7 @@ const powiazanPrzed = powiazan();
 const zamowienPrzed = liczbaZamowien();
 const zapisowWszystkichPrzed = zapisowWszystkich();
 const sprzedazPrzed = php(`echo (string) get_option( '${OPCJA_SPRZEDAZ}', '' );`);
+const sprzedazIstniala = php(`echo get_option( '${OPCJA_SPRZEDAZ}', null ) === null ? 'nie' : 'tak';`) === "tak";
 
 /*
  * MIGAWKA POCZTY. Ten smoke składa i domyka zamówienia, więc WooCommerce
@@ -510,7 +511,18 @@ try {
 } finally {
   /* ── sprzątanie + rachunek sumienia ──────────────────────────────── */
 
-  php(`update_option( '${OPCJA_SPRZEDAZ}', '${sprzedazPrzed}' ); echo 'ok';`);
+  /*
+   * PRZYWRACAMY STAN, NIE „ZAPISUJEMY PUSTĄ WARTOŚĆ". Zmierzone przy teście
+   * całości (2026-08-31): na czystej instalacji opcji NIE MA, a `update_option`
+   * z pustym łańcuchem zostawiał ją istniejącą — semantycznie to dalej
+   * zamknięta sprzedaż, ale stan nie jest ten sam, który zastaliśmy.
+   * Ta sama lekcja co w 0.51.0, tylko w drugą stronę.
+   */
+  if (sprzedazIstniala) {
+    php(`update_option( '${OPCJA_SPRZEDAZ}', '${sprzedazPrzed}' ); echo 'ok';`);
+  } else {
+    php(`delete_option( '${OPCJA_SPRZEDAZ}' ); echo 'ok';`);
+  }
   if (zamowienia.length > 0) {
     /*
      * KASUJEMY PRZEZ API ZAMÓWIENIA, nie przez wp_delete_post(). ZMIERZONE

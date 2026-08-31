@@ -143,6 +143,7 @@ const zamowienPrzed = liczbaZamowien();
 const dostawPrzed = dostaw();
 const zapisowPrzed = zapisow();
 const sprzedazPrzed = php("echo (string) get_option( 'aai_platnosci_sprzedaz_otwarta', '' );");
+const sprzedazIstniala = php("echo get_option( 'aai_platnosci_sprzedaz_otwarta', null ) === null ? 'nie' : 'tak';") === 'tak';
 
 const uzytkownicy = [];
 const zamowienia = [];
@@ -601,7 +602,18 @@ try {
   // `try` — notujemy go zamiast rzucać. Rachunek sumienia i tak zapali się
   // poniżej, bo skrzynka nie wróci wtedy do stanu sprzed przebiegu.
   await wyczysc().catch((e) => console.error(`  (sprzątanie poczty nie doszło do skutku: ${e.message})`));
-  php(`update_option( 'aai_platnosci_sprzedaz_otwarta', '${sprzedazPrzed}' ); echo 'ok';`);
+  /*
+   * PRZYWRACAMY STAN, NIE „ZAPISUJEMY PUSTĄ WARTOŚĆ". Zmierzone przy teście
+   * całości (2026-08-31): na czystej instalacji opcji NIE MA, a `update_option`
+   * z pustym łańcuchem zostawiał ją istniejącą — semantycznie to dalej
+   * zamknięta sprzedaż, ale stan nie jest ten sam, który zastaliśmy.
+   * Ta sama lekcja co w 0.51.0, tylko w drugą stronę.
+   */
+  if (sprzedazIstniala) {
+    php(`update_option( 'aai_platnosci_sprzedaz_otwarta', '${sprzedazPrzed}' ); echo 'ok';`);
+  } else {
+    php("delete_option( 'aai_platnosci_sprzedaz_otwarta' ); echo 'ok';");
+  }
   if (zamowienia.length > 0) {
     php(`foreach ( array( ${zamowienia.join(", ")} ) as $id ) { $o = wc_get_order( $id ); if ( $o ) { $o->delete( true ); } } echo 'ok';`);
   }
