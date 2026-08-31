@@ -31,6 +31,7 @@ w repo jako specyfikacja wykonawcza i źródło treści.
 
 - [Stan projektu](#stan-projektu)
 - [Moduły („pluginy")](#moduły-pluginy)
+- [Gdzie co leży](#gdzie-co-leży)
 - [Stack](#stack)
 - [Wytyczne projektu](#wytyczne-projektu)
 - [Jak tu się pracuje](#jak-tu-się-pracuje)
@@ -47,7 +48,7 @@ w repo jako specyfikacja wykonawcza i źródło treści.
 
 | | |
 |---|---|
-| **Wersja** | **0.62.0** |
+| **Wersja** | **0.63.0** |
 | **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). Trwają **trzy ostatnie kroki** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) — szczegóły pod tabelą |
 | **Wtyczki WordPressa** | `aai-sklep` — W1–W6, `v0.45.0` · `aai-platnosci` — P0–P6, `v0.53.0` · `aai-monitor` — T0–T4, `v0.58.0`. Każda z osobnym testem ręcznym właściciela (W6, P6, T4) — plus test CAŁOŚCI, sprawdzający je razem |
 | **Trzy ostatnie kroki** | 1. SEO — **ZROBIONY** (`0.60.0`, `0.60.1`) · 2. higiena repo — **TRWA** · 3. audyt końcowy — wytyczne poda właściciel |
@@ -55,7 +56,7 @@ w repo jako specyfikacja wykonawcza i źródło treści.
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Podgląd na żywo** | [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia) — statyczny eksport katalogu i stron kursów (`npm run deploy:podglad`), **bez kreatora i AJAX-a**, z `noindex` na czas prac. Służy do pomiarów SEO i wydajności narzędziami Google; **oba kursy są kompletne** (73 lekcje), a teksty sprzedażowe zgodne z produktem (0.33.0) — placeholderami zostają wyłącznie opinie, do pierwszych sprzedaży |
 | **Licencja** | MIT ([LICENSE](LICENSE)) — jak repo strony głównej; fonty Geist osobno na SIL OFL 1.1 ([public/fonts/LICENSE-Geist-OFL.txt](public/fonts/LICENSE-Geist-OFL.txt)) |
-| **Produkcja** | brak — **docelowo WordPress na wykupionym hostingu i domenie** (decyzja zespołu 2026-08-18): sklep zostanie przepisany na wtyczkę WP (PHP + MySQL), a obecny kod Next.js jest prototypem-specyfikacją ([szczegóły](docs/PLAN.md#decyzja-zespołu-2026-08-18--produkcja-na-wordpressie-zastępuje-plan-hosting-nodejs--vps)) |
+| **Produkcja** | **jeszcze nie stoi** — brakuje wykupionego hostingu i domeny `automaticai.pl`. Kod jest gotowy: trzy wtyczki WP działają na lokalnym `:8892`. Do uruchomienia sprzedaży brakuje jeszcze prawdziwej bramki płatności, regulaminu i poczty produkcyjnej ([lista „przed pierwszym klientem"](docs/PLAN-SEO-HIGIENA-AUDYT.md)) |
 
 ### Co jest już gotowe
 
@@ -173,6 +174,42 @@ transakcje, `JOIN` z `wp_users`/`wp_posts` i jeden backup. Sekcje §3–§4
 w PLAN.md zostają jako **lista kontrolna „czego Woo i Tutor NIE robią"** —
 patrz blok „KOREKTA" przy każdej z nich.
 
+## Gdzie co leży
+
+Drzewo zmierzone, nie przepisane (`git ls-files`; liczby to pliki śledzone
+przez gita):
+
+```
+wordpress/            131  ← PRODUKT
+  wtyczki/                   trzy wtyczki, każda w swoich podfolderach
+    aai-sklep/         87    katalog, strony sprzedażowe, kreator, widok lekcji
+    aai-monitor/       20    dziennik logowań i pomiar ruchu
+    aai-platnosci/     17    szew do WooCommerce
+  srodowisko/                postaw.sh — całe WP jedną komendą (:8892)
+    mu-plugins/              obwód bezpieczeństwa (aai-obwod.php)
+
+app/ components/       73  ← PROTOTYP Next.js (specyfikacja wykonawcza)
+modules/ lib/          34    moduł m1-sklep: kontrakty Zod, odczyt, dyspozytor
+public/                15
+
+tresc-kursow/         331  ← TREŚĆ: 73 lekcje prozy + 91 scenariuszy + zrzuty
+docs/                 119  ← plan, wytyczne, diagramy i dziennik każdego kroku
+tools/                154  ← strażnicy (38), bramki smoke, narzędzia (19)
+  straznicy/ smoke/ zrzuty/ podglad-kursow/ seed/
+goldeny/                9  ← wzorce chroniące przed cichą utratą treści
+agenci/ rejestr/        5  ← przepis na przegląd agent+krytyk, rejestr błędów
+```
+
+**Każda wtyczka ma ten sam układ w środku** — plik główny, `includes/`
+(klasy), `assets/` (CSS i JS bez zależności), `szablony/`, `languages/`,
+`index.php`, `uninstall.php`, `readme.txt`.
+
+> [!NOTE]
+> Katalog nazywa się `wordpress/wtyczki/`, bo tak WordPress nazywa miejsce
+> na wtyczki — kto zna WP, wie, na co patrzy. Ścieżka jest **montowana
+> wprost do kontenera** przez `wordpress/srodowisko/compose.yml`, więc
+> zmiana jej nazwy dotknęłaby także dziewięciu strażników i `postaw.sh`.
+
 ## Stack
 
 Prototyp powstał na stacku strony głównej. Decyzją zespołu (2026-08-18)
@@ -197,7 +234,8 @@ Wiążące zasady od właściciela — pełna treść w [docs/WYTYCZNE.md](docs/
 - **naprawa wsteczna `.bak`** — błąd z przeszłości naprawiamy z migawki
   (gałąź `bak/…`), bez kolizji, z wpisem do [rejestru błędów](rejestr/znane-bledy.json)
   i nowym strażnikiem przeciw nawrotom;
-- **statusy GitHuba są wiążące** — czerwone CI/audyt = stop, żadnego merge;
+- **statusy GitHuba są wiążące** — czerwone CI/audyt = stop, żadnego merge
+  (o jedynym wyjątku, awarii rozliczenia Actions, mówi ramka niżej);
 - **goldeny** — wzorcowe wyniki chronią naprawy przed psuciem reszty,
   a agentów przed spadkiem jakości;
 - **każdy agent ma krytyka** — nigdy agent sam;
@@ -212,6 +250,21 @@ Pełny opis: [CONTRIBUTING.md](CONTRIBUTING.md). W skrócie — **Weryfikacja-PR
 ```
 branch → commit → push → PR → CI zielone → merge → (release, deploy gdy potrzebne)
 ```
+
+> [!IMPORTANT]
+> **Od 2026-08-18 CI nie działa i to NIE jest o kodzie.** Organizacja
+> wyczerpała minuty GitHub Actions (plan Free, 2000/mies.), więc każde
+> zadanie pada 2 sekundy po starcie, z zerem kroków i bez logów —
+> do złudzenia jak awaria kodu. Sprawdzaj to NAJPIERW: `gh run view`
+> pokaże `steps: 0`, a rozliczenie potwierdzi
+> `gh api "/organizations/MatthewPlugins/settings/billing/usage"`.
+>
+> Wersje od `0.21.0` wzwyż weszły dlatego **na dowodach lokalnych, każda
+> osobną decyzją właściciela** — nie jest to złamanie zasady „czerwone CI
+> = stop", tylko świadomy wyjątek przy awarii rozliczenia, z `npm run
+> check` i bramkami WP w miejsce CI. **Limit wraca 1 września**; wtedy
+> trzeba potwierdzić **skan sekretów (gitleaks)** — jedyne sprawdzenie
+> bez lokalnego odpowiednika.
 
 - każdy większy krok kończy się tagiem `vX.Y.Z` i releasem na GitHubie,
 - wersję i historię trzyma [CHANGELOG.md](CHANGELOG.md),
