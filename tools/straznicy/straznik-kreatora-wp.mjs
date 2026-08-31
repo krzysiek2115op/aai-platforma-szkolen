@@ -349,10 +349,37 @@ if (existsSync(join(WTYCZKA, PLIK_ZAPISU))) {
     }
   }
 
-  if ("" !== zrodloAkcji && !/usun_kurs\s*\(\s*\$id\s*,\s*self::aktor\(\)\s*,\s*\$zgoda\s*,\s*\$dostep\s*\)/.test(zrodloAkcji)) {
-    bledy.push(
-      `${PLIK_AKCJI}: akcja usuwania nie przekazuje zgody na odebranie dostępu do warstwy zapisu. Panel pytałby, a zapis i tak by kasował — albo odwrotnie: właściciel nie miałby jak potwierdzić i „Usuń" przestałoby działać w ogóle.`
-    );
+  /*
+   * TRZY ZGODY MUSZĄ DOJECHAĆ DO WARSTWY ZAPISU. Każda broni przed inną
+   * stratą: napisana treść, dostęp kupujących, złożone i jeszcze
+   * nieopłacone zamówienia. Wzorzec pyta o KAŻDĄ z osobna — wersja
+   * sprawdzająca całe wywołanie jednym napisem psuła się przy dokładaniu
+   * czwartego argumentu i nie mówiła, KTÓRA zgoda zginęła.
+   */
+  if ("" !== zrodloAkcji) {
+    /* Kotwica na NAZWIE KLASY, nie na samej nazwie metody: bez niej wzorzec
+       trafia w DEFINICJĘ `public static function usun_kurs(): void {`
+       i czyta jej pierwsze wiersze zamiast argumentów wywołania (ta sama
+       pułapka co przy 0.28.0). */
+    const wywolanie = zrodloAkcji.match(/Aai_Sklep_Zapis::usun_kurs\s*\(([^;]*?)\)\s*;/);
+    if (null === wywolanie) {
+      bledy.push(
+        `${PLIK_AKCJI}: akcja usuwania nie woła Aai_Sklep_Zapis::usun_kurs() — strażnik przestał wiedzieć, czego pilnuje.`
+      );
+    } else {
+      const zgody = [
+        ["$zgoda", "na utratę napisanej treści"],
+        ["$dostep", "na odebranie dostępu kupującym"],
+        ["$drodze", "na porzucenie złożonych, nieopłaconych zamówień"],
+      ];
+      for (const [zmienna, opis] of zgody) {
+        if (!wywolanie[1].includes(zmienna)) {
+          bledy.push(
+            `${PLIK_AKCJI}: akcja usuwania nie przekazuje do warstwy zapisu zgody ${opis} (${zmienna}). Panel pytałby, a zapis i tak by kasował — albo odwrotnie: właściciel nie miałby jak potwierdzić i „Usuń" przestałoby działać w ogóle.`
+          );
+        }
+      }
+    }
   }
 
   if ("" !== zrodloListy) {
@@ -365,6 +392,19 @@ if (existsSync(join(WTYCZKA, PLIK_ZAPISU))) {
     if (!/name="pozwol_stracic_dostep"\s+value="0"/.test(zrodloListy)) {
       bledy.push(
         `${PLIK_LISTY}: pole zgody na odebranie dostępu nie zaczyna od ZERA. Bezpieczne ma być domyślnie, a nie dzięki temu, że skrypt się wykonał.`
+      );
+    }
+    if (!/name="pozwol_porzucic_zamowienia"\s+value="0"/.test(zrodloListy)) {
+      bledy.push(
+        `${PLIK_LISTY}: pole zgody na porzucenie zamówień w drodze nie zaczyna od ZERA. Bezpieczne ma być domyślnie, a nie dzięki temu, że skrypt się wykonał.`
+      );
+    }
+    /* Trzecie pytanie też stoi w GAŁĘZI, nie zawsze: kurs bez zamówień
+       w drodze nie ma o co pytać, a okienko zadawane przy każdym kursie
+       klika się odruchowo i przestaje chronić. */
+    if (!/if\s*\(\s*0\s*!==\s*\$aai_w_drodze\s*\)[\s\S]{0,900}?data-aai-potwierdz-w-drodze/.test(zrodloListy)) {
+      bledy.push(
+        `${PLIK_LISTY}: lista nie pyta o ZAMÓWIENIA W DRODZE albo pyta zawsze. Kupujących liczy Tutor po zapisach ukończonych, więc klient czekający na przelew jest dla tamtego pytania NIEWIDZIALNY — usunięcie kursu w tym oknie znaczy „zapłacił i nie dostał nic".`
       );
     }
   }

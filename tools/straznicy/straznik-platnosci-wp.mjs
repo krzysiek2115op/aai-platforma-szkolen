@@ -1095,6 +1095,60 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* 42. ŻADNA NASZA WTYCZKA NIE PRZELICZA ZŁOŻONEGO ZAMÓWIENIA.
+
+   To jest strażnik nad mechanizmem, który JEST CUDZY. WooCommerce zamraża
+   kwotę w chwili złożenia zamówienia: `WC_Checkout::set_data_from_cart()`
+   kopiuje `subtotal`/`total` z koszyka do POZYCJI zamówienia, a
+   `payment_complete()` przy zapłacie niczego już nie przelicza. Dzięki temu
+   przelew czekający trzy dni realizuje się po cenie z chwili zakupu, choćby
+   właściciel w międzyczasie zmienił cenę w kreatorze.
+
+   Nasza rola jest tu wyłącznie NEGATYWNA: nie wolno nam w to wejść. Szew
+   płatności przepisuje cenę do PRODUKTU (`set_regular_price()` — to jest
+   dozwolone i sprawdzane regułą 3), ale ani jedna nasza linia nie ma prawa
+   dotknąć kwot zamówienia. Wywołanie `calculate_totals()` na zamówieniu
+   już złożonym przeliczyłoby je po CENIE BIEŻĄCEJ — klient zapłaciłby inną
+   kwotę niż ta, którą zatwierdził, i nic by się przy tym nie zapaliło.
+
+   Reguła jest zakazem, jak reguły 2 i 3, i celowo obejmuje WSZYSTKIE TRZY
+   wtyczki: monitoring i sklep nie mają dziś powodu dotykać zamówień, więc
+   pojawienie się tam takiego wywołania samo w sobie jest sygnałem.
+
+   Dowód, że zamrożenie DZIAŁA (a nie tylko że my go nie psujemy), robi
+   `smoke-wp-zakup` na danych: zamówienie w on-hold, zmiana ceny kursu,
+   kwota bez drgnienia. Statyczny wzorzec by tego nie zmierzył — to
+   zachowanie cudzego kodu. */
+{
+  const KATALOGI_WTYCZEK = "wordpress/wtyczki";
+  const ZAKAZANE = [
+    [/->\s*calculate_totals\s*\(/, "calculate_totals() na zamówieniu przelicza je po CENIE BIEŻĄCEJ"],
+    [/->\s*set_total\s*\(/, "set_total() nadpisuje zamrożoną kwotę zamówienia"],
+    [/->\s*set_subtotal\s*\(/, "set_subtotal() nadpisuje zamrożoną kwotę pozycji"],
+    [/wc_update_order_item_meta\s*\(/, "wc_update_order_item_meta() pisze wprost do pozycji zamówienia"],
+    [/update_post_meta\s*\([^;]*['"]_line_(total|subtotal)['"]/, "zapis _line_total/_line_subtotal metą"],
+  ];
+
+  const pliki = plikiPhp(KATALOGI_WTYCZEK);
+  /* Samokontrola zakresu: pusta lista znaczyłaby, że reguła przechodzi po
+     pustce. Ta klasa ślepoty kosztowała ten projekt cztery bramki. */
+  if (pliki.length < 20) {
+    bledy.push(
+      `${KATALOGI_WTYCZEK}: reguła 42 nie znalazła plików PHP wtyczek (${pliki.length}) — przechodziłaby po pustce zamiast czegokolwiek pilnować.`
+    );
+  }
+  for (const plik of pliki) {
+    const c = kod(readFileSync(plik, "utf8"));
+    for (const [wzor, powod] of ZAKAZANE) {
+      if (wzor.test(c)) {
+        bledy.push(
+          `${plik}: ${powod}. Kwota zamówienia jest ZAMROŻONA w chwili jego złożenia (WC_Checkout::set_data_from_cart) i to jest jedyna gwarancja, że przelew czekający trzy dni zrealizuje się po cenie, którą klient zatwierdził. Nasz kod nie ma prawa jej ruszyć — cenę zmieniamy wyłącznie na PRODUKCIE (reguła 3).`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1102,5 +1156,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, żadna nasza wtyczka nie przelicza złożonego zamówienia)."
 );

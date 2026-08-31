@@ -253,6 +253,9 @@ final class Aai_Sklep_Cli {
 	 * [--pozwol-stracic-dostep]
 	 * : Zgoda na odebranie dostępu ludziom, którzy ten kurs KUPILI.
 	 *
+	 * [--pozwol-porzucic-zamowienia]
+	 * : Zgoda na porzucenie ZŁOŻONYCH, jeszcze nieopłaconych zamówień za ten kurs.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp aai-sklep usun jak-uzywac-githuba --pozwol-skasowac-tresc
@@ -265,11 +268,12 @@ final class Aai_Sklep_Cli {
 		$aktor  = (string) ( $assoc_args['aktor'] ?? 'wp-cli' );
 		$pozwol = isset( $assoc_args['pozwol-skasowac-tresc'] );
 		$dostep = isset( $assoc_args['pozwol-stracic-dostep'] );
+		$drodze = isset( $assoc_args['pozwol-porzucic-zamowienia'] );
 
 		$id = Aai_Sklep_Raport::id_po_slugu( $kurs ) ?? $kurs;
 
 		try {
-			$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol, $dostep );
+			$liczniki = Aai_Sklep_Zapis::usun_kurs( $id, $aktor, $pozwol, $dostep, $drodze );
 		} catch ( Aai_Sklep_Blad_Zapisu $blad ) {
 			WP_CLI::error( $blad->getMessage() );
 			return;

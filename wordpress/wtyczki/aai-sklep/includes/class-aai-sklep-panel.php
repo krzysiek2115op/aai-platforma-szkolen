@@ -635,13 +635,25 @@ final class Aai_Sklep_Panel {
 				),
 				$ile
 			),
+			'odmowa_w_drodze' => $ile < 0
+				? __( 'Nie udało się sprawdzić, czy ktoś ma za ten kurs złożone zamówienie. Potwierdź, jeśli mimo to chcesz go usunąć.', 'aai-sklep' )
+				: sprintf(
+					/* translators: %d: liczba złożonych, jeszcze nieopłaconych zamówień. */
+					_n(
+						'Za ten kurs złożono %d zamówienie, za które nie wpłynęła jeszcze wpłata — po zapłacie klient nie dostanie materiału. Potwierdź, jeśli naprawdę o to chodzi.',
+						'Za ten kurs złożono %d zamówień, za które nie wpłynęła jeszcze wpłata — po zapłacie klienci nie dostaną materiału. Potwierdź, jeśli naprawdę o to chodzi.',
+						max( 1, $ile ),
+						'aai-sklep'
+					),
+					$ile
+				),
 			'blad'            => __( 'Zapis się nie powiódł. Szczegóły niżej.', 'aai-sklep' ),
 		);
 
 		if ( ! isset( $teksty[ $kod ] ) ) {
 			return;
 		}
-		$zly = in_array( $kod, array( 'bledy', 'blad', 'odmowa_tresci', 'odmowa_dostepu' ), true );
+		$zly = in_array( $kod, array( 'bledy', 'blad', 'odmowa_tresci', 'odmowa_dostepu', 'odmowa_w_drodze' ), true );
 		printf(
 			'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
 			$zly ? 'error' : 'success',

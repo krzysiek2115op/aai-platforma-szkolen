@@ -619,6 +619,14 @@
 					zdarzenie.preventDefault();
 					return;
 				}
+				// TRZECIE PYTANIE: zamówienia złożone i jeszcze nieopłacone.
+				// Klient czekający na przelew nie jest „kupującym" w mierze
+				// Tutora, więc pytanie wyżej go NIE obejmuje.
+				var pytanieOWDrodze = przycisk.getAttribute("data-aai-potwierdz-w-drodze");
+				if (pytanieOWDrodze && !window.confirm(pytanieOWDrodze)) {
+					zdarzenie.preventDefault();
+					return;
+				}
 				// Zgodę na utratę treści podnosi WYŁĄCZNIE świadome
 				// potwierdzenie — bez niego warstwa zapisu odmawia.
 				var zgoda = przycisk.form ? przycisk.form.querySelector("[data-aai-zgoda]") : null;
@@ -630,6 +638,12 @@
 					: null;
 				if (zgodaDostep && pytanieODostep) {
 					zgodaDostep.value = "1";
+				}
+				var zgodaWDrodze = przycisk.form
+					? przycisk.form.querySelector("[data-aai-zgoda-w-drodze]")
+					: null;
+				if (zgodaWDrodze && pytanieOWDrodze) {
+					zgodaWDrodze.value = "1";
 				}
 			});
 		});
