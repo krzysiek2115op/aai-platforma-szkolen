@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **E7.1–E7.6 ZROBIONE (2026-09-02) — CZEKA NA AKCEPTACJĘ WŁAŚCICIELA** | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
+| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. **PRZED E8 trzy polecenia właściciela z 2026-09-02** — sekcja „Polecenia właściciela po E7.6" niżej: modele Fable 5.1 dla kierowników i Konradów, weryfikacja planu sprzed budowy, krytyka planu i realizacji |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -915,6 +915,56 @@ z modelami z `ROLE.md`; `status.mjs --pokaz` kod 0 (SEC i WALID
 uruchomienie audytu wymaga jego osobnego zielonego światła (D10) i osobnej
 zgody na koszt (rząd dwudziestu kilku milionów tokenów, nie mieści się
 w jednej sesji ani w jednym dniu).
+
+---
+
+### POLECENIA WŁAŚCICIELA PO E7.6 (2026-09-02) — DO WYKONANIA PRZED E8
+
+Zapisane w sweepie przed `/clear`, dosłownie wg właściciela, **jeszcze
+niewykonane**. Kolejność jest jego: najpierw 1, potem 2, potem 3, dopiero
+potem rozmowa o E8. **E7 nie został przy tym zaakceptowany wprost** —
+właściciel przeszedł do przygotowań przed uruchomieniem; akceptację E7
+potwierdzić przy okazji, nie zakładać.
+
+1. **Zmiana modeli na czterech agentach, „przed puszczeniem obu sektorów":**
+   kierownik audytu (`aud-kier`), kierownik re-audytu (`rea-kier`) oraz
+   **Konrad w obu sektorach** (`aud-kon`, `rea-kon`) — na **Fable 5.1**
+   (`claude-fable-5-1`). Właściciel doprecyzował, że **Konradów ma być
+   dwóch: jeden w audycie i jeden w re-audycie** — tak już jest (rola `KON`
+   w obu `ROLE.md`), więc to potwierdzenie stanu, nie zmiana. Krytycy tych
+   ról zostają na Opusie (D3 nie zmienione). Wykonanie: to zmiana D8
+   w obu `ROLE.md` (nagłówki `· **Fable 5.1**` i podsumowania modeli),
+   generator czyta model z nagłówka roli (`modeleZRoleMd`), więc trzeba
+   rozszerzyć wzorzec o `Fable` i odwzorować na wartość frontmatteru
+   (`model: fable` — sprawdzić przy wykonaniu, że harness ją przyjmuje;
+   `Agent` zna `fable` w wyborze modelu), reguła 21 pilnuje zgodności
+   generatu; kontrprzykład i mutacja na trzeci model do audytu mutacyjnego;
+   `audyt/ROLE.md` „Model Opus | 5 ról procesowych" i `re-audyt/ROLE.md`
+   „Modele wg D8" poprawić. **Po regeneracji definicji zrestartować sesję**,
+   zanim któregoś z tych czterech się wywoła (lekcja E6/E7.5).
+2. **Weryfikacja CAŁEGO planu sprzed budowy** — czy wszystko jest zrobione:
+   `~/.claude/plans/projekt-pod-strona-szkolenia-stateless-wilkinson.md`
+   (438 linii, wersja 4 zatwierdzona 2026-09-01) punkt po punkcie wobec stanu
+   repo, plus ten plik (definicja ukończenia, 11 pozycji), `REGULAMIN.md`
+   (16 punktów właściciela + rozstrzygnięcia D/P/W/K) i pomiary z E1–E7.
+   Wynik ma być tabelą „pozycja → zrobione / brak → dowód komendą", nie
+   deklaracją.
+3. **Krytyka planu i realizacji okiem krytyka** — właściciel: „chcemy
+   doprowadzić ten projekt audytowy do perfekcji, żeby znalazł KAŻDY możliwy
+   błąd w projekcie". Ma powstać ocena: co zrobić lepiej, jakie braki widać,
+   jakie ulepszenia sektorów; podzielić się wiedzą zdobytą przy budowie
+   i propozycją rozwiązań. Materiał do tej krytyki, zebrany po drodze
+   (nie wyprowadzać od nowa): koszt ~633 tys. tokenów na jedno znalezisko
+   i rząd 25+ mln na komplet; Pogłębiacze bez materiału, dopóki audyt nie
+   dostarczy zgłoszeń (R1–R5 zależą od cudzego wyniku); ról `KIER`, `PSIARZ`,
+   `SKUT`, `STRAZ`, `RAP`, `KON` nie uruchomiono w żadnej próbie; ścieżka
+   odrzuceń `zgloszenie.mjs` nigdy nie przeszła w żywym przebiegu;
+   `porownaj-cykle.mjs` nie ma jeszcze dwóch fal do porównania; brief
+   zamiast `CLAUDE.md` jako jedyne wejście wiedzy; agent bez `Write` może
+   pisać przez `Bash` (K3); pomiar równoległy zanieczyszcza liczniki;
+   prototyp `:3001` nie stoi w czasie re-audytu; `polacz-sektory.mjs` łączy
+   wyłącznie po haszu miejsca (to samo miejsce opisane inną linią się nie
+   połączy); dwie próby dały dwa znaleziska o SEKTORZE na jedno o produkcie.
 
 ---
 
