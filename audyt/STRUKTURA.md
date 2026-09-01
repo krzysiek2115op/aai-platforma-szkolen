@@ -32,7 +32,7 @@ audyt/
     porownaj-cykle.mjs           test powtarzalności (K4')
     polacz-sektory.mjs           audyt + re-audyt (W4)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  osiemnaście kontroli
+    straznik-sektora-audytu.mjs  dziewiętnaście kontroli, OBA sektory
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
@@ -49,6 +49,11 @@ audyt/
   migawki/              przed.json, po.json
   wyniki/               połączone fale i sektory
 ```
+
+Sektor RE-AUDYT ma własny katalog `re-audyt/` o tym samym kształcie
+(`ROLE.md`, `GRANICE.md`, `role/`) na gałęzi `re-audyt/sektor-re-audytu`,
+ale **narzędzia i katalog zgłoszeń są WSPÓLNE** — patrz „Dwa sektory, jeden
+nośnik" niżej.
 
 **Poza repozytorium:**
 `~/.cache/aai-audyt-dokumentacja/` (44 MB) — dokumentacja masowa.
@@ -87,15 +92,60 @@ w generatorze, nie przepisywanie 19 plików.
 
 ---
 
+## Dwa sektory, jeden nośnik
+
+**Sektory są osobne w PRACY, nie w toolchainie** (rozstrzygnięcia właściciela
+2026-09-01). Osobne jest to, co §17 nazywa osobnym: re-audyt nigdy nie
+pracuje na tym samym dziale co audyt i jest krokiem do tyłu. Wspólne zostaje
+to, bez czego łączenie sektorów (W4) nie miałoby jak działać:
+
+| Wspólne | Dlaczego |
+|---|---|
+| `audyt/zgloszenia/` | `polacz-sektory.mjs` łączy oba sektory po HASZU MIEJSCA, czytając jeden katalog. Osobny katalog zerwałby łączenie — a ono jest sensem kroku |
+| `audyt/tools/` | druga kopia `hashMiejsca()` rozjechałaby się po cichu; zmiany narzędzi weszły **na gałęzi audytu, przed odgałęzieniem**, więc gałąź re-audytu nie zmienia cudzego katalogu |
+| `.claude/agents/` | harness widzi jeden katalog; sektory rozróżnia PRZEDROSTEK nazwy (`aud-`, `rea-`) |
+
+| Rozłączne | Jak |
+|---|---|
+| identyfikatory zgłoszeń | `AUD-<DZIAŁ>-NNN` i `REA-<DZIAŁ>-NNN` (reguła 19) |
+| pliki stanu ról | `<sektor>-f<fala>-<ROLA>.json` |
+| `ROLE.md`, `GRANICE.md`, `role/` | osobne katalogi sektorów |
+
+**Siedemnaście z 21 ról re-audytu ma kody wspólne z audytem.** Pogłębiacz
+obszaru SEC JEST re-audytem działu SEC, więc wspólny kod trzyma `GRANICE.md`
+i łączenie po haszu w jednej linii. Własne kody ma cztery role, których audyt
+nie ma: `PSIARZ`, `SKUT`, `STRAZ`, `WALID`. Nie ma `GOLD` ani `WER` —
+**rolę weryfikatora pełni w re-audycie `WALID`** (§16: „w re-audycie działa
+także osobny proces walidacji"), a `werdykt.mjs` nazywa strony ścieżki
+(`krytyk`, `weryfikator`), nie konkretne role, więc nośnik werdyktu obsługuje
+oba sektory bez zmiany.
+
+**Prefiks identyfikatora nie jest nazewnictwem.** `nastepneId()` liczy kolejny
+numer po plikach zaczynających się od `<PREFIKS>-<DZIAŁ>-`, a katalog jest
+jeden — przy wspólnym prefiksie zgłoszenie re-audytu w dziale SEC dostałoby
+nazwę `AUD-SEC-001.json`, którą audyt już zajął. Ciche nadpisanie cudzego
+wpisu, bez jednego objawu. Pilnują tego: samokontrola `zgloszenie.mjs --test`
+(pięć przypadków identyfikatora) i reguła 19 strażnika.
+
+---
+
 ## Niezmiennik sektora
 
 ```
-git diff main --name-only -- . ':!audyt'      →  musi dać 0
+git diff main --name-only -- . ':!audyt' ':!re-audyt'      →  musi dać 0
 ```
 
-**Jedna komenda, bez wyjątków** (rozstrzygnięcie właściciela). Dlatego kod
-sektora mieszka w `audyt/tools/`, a nie w `tools/audyt/`, a generat i
-dokumentacja masowa nie wchodzą do gita.
+**Jedna komenda, bez wyjątków, TA SAMA NA OBU GAŁĘZIACH** (rozstrzygnięcie
+właściciela; drugie wykluczenie doszło przy E7.1). Dlatego kod sektora mieszka
+w `audyt/tools/`, a nie w `tools/audyt/`, a generat i dokumentacja masowa nie
+wchodzą do gita.
+
+Drugie wykluczenie NIE jest kosmetyką i nie zostało dopisane „na wszelki
+wypadek": zmierzone przed zmianą — na gałęzi re-audytu z katalogiem
+`re-audyt/` komenda z jednym wykluczeniem pokazuje WŁASNĄ pracę sektora jako
+naruszenie, czyli bramka świeciłaby na czerwono zawsze, a więc nie znaczyłaby
+nic. Na gałęzi audytu wynik jest identyczny jak dotąd, bo katalogu `re-audyt/`
+tam nie ma.
 
 **Druga twarz tej ceny, zmierzona przy E5:** niezmiennik `git diff` nie widzi
 `.claude/`, ale **strażnicy z `main` skanują DYSK**. Generat z odsyłaczami
@@ -111,7 +161,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 
 ---
 
-## Co pilnuje strażnik sektora — osiemnaście kontroli
+## Co pilnuje strażnik sektorów — dziewiętnaście kontroli
 
 | # | Kontrola | Co się psuje bez niej |
 |---|---|---|
@@ -133,6 +183,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 | 16 | ZWERYFIKOWANE tylko z kompletem werdyktów; próba nigdy cicha | wpis domknięty jednym głosem (§16) albo wyciszony znacznikiem |
 | 17 | stan roli: kody pozycji i niezerowa runda | kierownik liczy złą liczbę otwartych pozycji, a K4' bierze ją na wejściu |
 | 18 | krytyk, który MA zgłaszać, wie CZYM | znalezisko krytyka opisane prozą znika razem z sesją |
+| 19 | identyfikator zgłoszenia zgodny ze swoim SEKTOREM | wpis re-audytu nadpisuje wpis audytu — oba dzielą katalog i kody działów |
 
 Reguły 2, 3, 4, 6, 10, 11 i 12 są **warunkowe**: dopóki `audyt/role/` jest pusty,
 mówią wprost „pominięte". Cisza byłaby nie do odróżnienia od zaliczenia — a katalog
@@ -143,7 +194,22 @@ Reguły 15–18 **dołożył etap E6**: 15 i 16 przy budowie nośnika werdyktu,
 17 i 18 po tym, jak **próba na sucho** wskazała dwie usterki, których żadna
 wcześniejsza kontrola nie widziała. Patrz „Nośnik werdyktu" niżej.
 
-Audyt mutacyjny: **40 mutacji**, 0 przeoczonych, 0 martwych
+**Regułę 19 dołożył etap E7.1**, razem z rozszerzeniem sektorowym: reguły
+dotyczące ról chodzą od tej pory po OBU katalogach (`audyt/role/`
+i `re-audyt/role/`), a komunikaty niosą nazwę sektora, bo „rola SEC nie ma
+KRYTYK.md" przy dwóch sektorach o wspólnych kodach działów nie mówi, którą
+rolę naprawić. Reguła 17 pyta przy okazji, czy rola z pliku stanu **istnieje
+w swoim sektorze** — stan `GOLD` w re-audycie wyglądałby w zestawieniu
+kierownika jak rola, która jeszcze nie zaczęła.
+
+**Komplet ról jest twardy dla sektora zbudowanego do końca.** Audyt ma dziś
+19 z 19 i brak którejkolwiek jest błędem; re-audyt jest w tym samym miejscu,
+w którym audyt był w środku E5, więc jego komplet zostaje MIĘKKI do końca
+E7.4. Ciszy nie ma w żadnym stanie: liczba zbudowanych ról i imienna lista
+brakujących jedzie na wyjściu zawsze — miękki komplet mówi to samo, tylko
+kodem 0.
+
+Audyt mutacyjny: **50 mutacji**, 0 przeoczonych, 0 martwych
 (`audyt/tools/audyt-straznika-sektora.mjs`).
 
 ---

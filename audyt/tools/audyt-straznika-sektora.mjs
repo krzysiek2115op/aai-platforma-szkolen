@@ -30,6 +30,9 @@ const ZGLOSZENIE = "audyt/tools/zgloszenie.mjs";
 const MAPA = "audyt/tools/mapa.mjs";
 const WERDYKT = "audyt/tools/werdykt.mjs";
 const STATUS = "audyt/tools/status.mjs";
+const STRAZNIK = "audyt/tools/straznik-sektora-audytu.mjs";
+/** Plik podkładany POZA `audyt/` na czas mutacji niezmiennika sektora. */
+const SMIEC_RE = join(KORZEN, "re-audyt", "PROBA-NIEZMIENNIKA.md");
 const SMIEC_STAN = join(SEKTOR, "stan", "audyt-f2-PROBA.json");
 
 /** Uruchamia strażnika sektora. Zwraca true, gdy ZAPALIŁ SIĘ (kod != 0). */
@@ -168,6 +171,54 @@ function zPodmienionymi(mapa) {
   }
 }
 
+/* ── mutacje rozszerzenia na RE-AUDYT (E7.1) ──────────────────────────────
+   Trzy rzeczy, które przy wspólnym katalogu zgłoszeń i wspólnych kodach
+   działów psują się CICHO, więc każda musi mieć własną mutację. */
+MUTACJE.push(
+  {
+    opis: "re-audyt dostaje prefiks ID audytu — zgłoszenie NADPISUJE cudzy wpis",
+    plik: WSPOLNE,
+    slad: /zgloszenie\.mjs --test/,
+    zmien: (s) => s.replace(
+      'export const PREFIKS_ID = { audyt: "AUD", "re-audyt": "REA" };',
+      'export const PREFIKS_ID = { audyt: "AUD", "re-audyt": "AUD" };'
+    ),
+  },
+  {
+    opis: "dział sprawdzany wobec SUMY obu sektorów — rola nieistniejąca w sektorze zgłasza",
+    plik: WSPOLNE,
+    slad: /zgloszenie\.mjs --test/,
+    zmien: (s) => s.replace(
+      `  return sektor === "re-audyt"
+    ? [...DZIALY, ...PROCESOWE_WSPOLNE, ...PROCESOWE_RE]
+    : [...DZIALY, ...PROCESOWE];`,
+      "  return [...DZIALY, ...PROCESOWE, ...PROCESOWE_RE];"
+    ),
+  },
+  {
+    /* NIEZMIENNIK SEKTORA. Mutacja zdejmuje drugie wykluczenie i JEDNOCZEŚNIE
+       podkłada plik w `re-audyt/` — bez tego pliku warunek w ogóle nie
+       powstaje i mutacja byłaby MARTWA (ta sama pułapka co „pusty zakres"
+       z E4: mutacja, która nie tworzy warunku, jaki deklaruje, daje fałszywą
+       pewność). Plik jest NIEŚLEDZONY, więc łapie go gałąź `git status`. */
+    opis: "niezmiennik przestaje wykluczać re-audyt/ — bramka świeci na własnej pracy",
+    plik: STRAZNIK,
+    slad: /niezacommitowane zmiany poza/,
+    zmien: (s) => s.replace(
+      `sh("git status --porcelain -- . ':!audyt' ':!re-audyt' ':!.claude'")`,
+      `sh("git status --porcelain -- . ':!audyt' ':!.claude'")`
+    ),
+    przed: () => {
+      mkdirSync(join(KORZEN, "re-audyt"), { recursive: true });
+      writeFileSync(SMIEC_RE, "plik podkładany na czas jednej mutacji\n", "utf8");
+    },
+    po: () => {
+      rmSync(SMIEC_RE, { force: true });
+      rmSync(join(KORZEN, "re-audyt"), { recursive: true, force: true });
+    },
+  },
+);
+
 /* ── MUTACJE PRZEZ ROLĘ PRÓBNĄ ─────────────────────────────────────────────
    Reguł 10, 11 i 12 nie da się sprawdzić mutacją pliku produkcyjnego: dotyczą
    katalogu `audyt/role/`, który w trakcie budowy bywa pusty, a po budowie
@@ -272,7 +323,7 @@ const MUTACJE_ROLI = [
   {
     opis: "katalog roli, której ROLE.md nie zna (agent bez zakresu)",
     wykonaj: () => rolaZSzablonu({ kod: "NIEZNANA" }),
-    slad: /nie odpowiada żadnej roli z ROLE\.md/,
+    slad: /nie odpowiada żadnej roli z \S*ROLE\.md/,
   },
   {
     opis: "pozycja dopisana TYLKO do ROLE.md — agent nigdy jej nie zada",
@@ -317,7 +368,7 @@ const MUTACJE_ROLI = [
         spawnSync("node", ["audyt/tools/generuj-agentow.mjs"], { cwd: KORZEN, stdio: "pipe" });
       }
     },
-    slad: /brakuje 1 ról z ROLE\.md: WER/,
+    slad: /brakuje 1 ról z ROLE\.md .* WER/,
   },
   {
     opis: "wpis ma status ZWERYFIKOWANE, a nie ma ani jednego werdyktu",
@@ -380,6 +431,64 @@ const MUTACJE_ROLI = [
     opis: "KONTRPRZYKŁAD: rola próbna z NIETKNIĘTYCH szablonów NIE może zapalać strażnika",
     wykonaj: () => rolaZSzablonu(),
     oczekujCzerwonego: false,
+  },
+
+  /* ── reguły 17 i 19 wobec DWÓCH SEKTORÓW (E7.1) ─────────────────────────
+     Sektory dzielą katalog zgłoszeń i siedemnaście kodów działów, więc każdy
+     z tych trzech stanów wygląda w dzienniku jak stan poprawny. */
+  {
+    opis: "wpis re-audytu z prefiksem AUDYTU — nazwa pliku zajęta przez cudzy sektor",
+    wykonaj: () => mutacjaWpisu({ sektor: "re-audyt", dzial: "SEC", pozycja: "SEC-01" }),
+    slad: /wymaga prefiksu "REA-"/,
+  },
+  {
+    opis: "wpis audytu z działu, który istnieje wyłącznie w re-audycie",
+    wykonaj: () => mutacjaWpisu({ id: "AUD-PSIARZ-998", dzial: "PSIARZ", pozycja: "PSIARZ-02" }),
+    slad: /dział "PSIARZ" nie istnieje w sektorze "audyt"/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: poprawny wpis re-audytu (REA-, dział wspólny) NIE może zapalać strażnika",
+    wykonaj: () => mutacjaWpisu({ id: "REA-SEC-997", sektor: "re-audyt", dzial: "SEC", pozycja: "SEC-01" }),
+    oczekujCzerwonego: false,
+  },
+  {
+    opis: "stan roli, której w tym sektorze NIE MA — kierownik czeka na wynik roli-widma",
+    wykonaj: () => mutacjaStanu({ sektor: "re-audyt", rola: "GOLD" }),
+    slad: /nie istnieje w sektorze "re-audyt"/,
+  },
+  {
+    /* REGRESJA ZNALEZIONA PRZEZ TĘ MUTACJĘ (E7.1): wzorzec kodu pozycji stał
+       na `[A-Z]{2,5}` i odrzucał `PSIARZ-02` — sześć liter. Kontrprzykład
+       zostaje, żeby sufit długości nie wrócił do liczby wpisanej ręcznie. */
+    opis: "KONTRPRZYKŁAD: stan roli własnej re-audytu (PSIARZ) NIE może zapalać strażnika",
+    wykonaj: () => mutacjaStanu({ sektor: "re-audyt", rola: "PSIARZ", niedomkniete: ["PSIARZ-02"] }),
+    oczekujCzerwonego: false,
+  },
+  {
+    /* DRUGA POŁOWA TEJ SAMEJ USTERKI, starsza: `KON-A5` to prawdziwa pozycja
+       z `ROLE.md`, a Konrad jest rolą pętlową — czyli tą, która przy suficie
+       rund MUSI wypisać niedomknięte. Stary wzorzec nie przyjmował ani jednej
+       jego pozycji. */
+    opis: "KONTRPRZYKŁAD: pozycja Konrada (KON-A5) jest kodem pozycji, nie prozą",
+    wykonaj: () => mutacjaStanu({ rola: "KON", niedomkniete: ["KON-A5"] }),
+    oczekujCzerwonego: false,
+  },
+  {
+    /* Sam katalog `re-audyt/` z plikiem NIE jest naruszeniem niezmiennika —
+       to jest praca sektora re-audytu. Bez tego kontrprzykładu reguła 1
+       mogłaby być po prostu nadwrażliwa i nikt by tego nie zauważył. */
+    opis: "KONTRPRZYKŁAD: plik w re-audyt/ NIE może zapalać niezmiennika sektora",
+    oczekujCzerwonego: false,
+    wykonaj: () => {
+      mkdirSync(join(KORZEN, "re-audyt"), { recursive: true });
+      writeFileSync(SMIEC_RE, "praca sektora re-audytu\n", "utf8");
+      try {
+        return straznikCzerwony();
+      } finally {
+        rmSync(SMIEC_RE, { force: true });
+        rmSync(join(KORZEN, "re-audyt"), { recursive: true, force: true });
+      }
+    },
   },
 ];
 

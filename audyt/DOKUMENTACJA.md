@@ -112,4 +112,4 @@ to w tym projekcie dwie różne rzeczy.
 - **nie pobrał niczego bez kotwicy** — zasada wyżej;
 - **nie ruszył dokumentacji, którą już mieliśmy** — WP, MySQL, Woo, Tutor
   i Next.js zostają tam, gdzie były;
-- **nie tknął kodu produktu** — `git diff main --name-only -- . ':!audyt'` → 0.
+- **nie tknął kodu produktu** — `git diff main --name-only -- . ':!audyt' ':!re-audyt'` → 0.

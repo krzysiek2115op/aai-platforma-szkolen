@@ -15,10 +15,11 @@
  *   node audyt/tools/status.mjs --rola=SEC --fala=1 --status="W TRAKCIE"
  *   node audyt/tools/status.mjs --rola=SEC --fala=1 --runda
  *   node audyt/tools/status.mjs --rola=SEC --fala=1 --status=ZAKOŃCZONE --niedomkniete=SEC-07,SEC-11
+ *   node audyt/tools/status.mjs --rola=PSIARZ --sektor=re-audyt --fala=1 --status="W TRAKCIE"
  */
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { DZIALY, PROCESOWE, SEKTOR, STATUSY, SUFIT_RUND, czytajJSON, zapiszJSON } from "./wspolne.mjs";
+import { KOD_POZYCJI, SEKTOR, SEKTORY, STATUSY, SUFIT_RUND, czytajJSON, roleSektora, zapiszJSON } from "./wspolne.mjs";
 
 const KATALOG = join(SEKTOR, "stan");
 const plikRoli = (sektor, fala, rola) => join(KATALOG, `${sektor}-f${fala}-${rola}.json`);
@@ -50,8 +51,19 @@ if (arg.includes("--pokaz")) {
 const rola = wartosc("rola");
 const fala = Number(wartosc("fala") ?? 1);
 const sektor = wartosc("sektor") ?? "audyt";
-if (!rola || ![...DZIALY, ...PROCESOWE].includes(rola)) {
-  process.stdout.write(`Nieznana rola "${rola}". Znane: ${[...DZIALY, ...PROCESOWE].join(", ")}\n`);
+
+if (!SEKTORY.includes(sektor)) {
+  process.stdout.write(`Nieznany sektor "${sektor}". Znane: ${SEKTORY.join(" | ")}\n`);
+  process.exit(1);
+}
+
+/* ROLA JEST SPRAWDZANA WOBEC SWOJEGO SEKTORA. Suma obu list przyjęłaby
+   `--rola=GOLD --sektor=re-audyt`, czyli stan roli, której w tym sektorze
+   nie ma — a `status.mjs --pokaz` jest miejscem, z którego kierownik czyta,
+   kto pracuje. Rola-widmo w zestawieniu wygląda jak rola, która nie zaczęła. */
+const znaneRole = roleSektora(sektor);
+if (!rola || !znaneRole.includes(rola)) {
+  process.stdout.write(`Rola "${rola}" nie istnieje w sektorze "${sektor}". Znane: ${znaneRole.join(", ")}\n`);
   process.exit(1);
 }
 
@@ -91,8 +103,12 @@ if (nowy) {
  * Wzorzec pyta o KSZTAŁT KODU, nie o obecność myślnika: „PIK-01" przechodzi,
  * „PIK-01 (bo nie zdążyłem)" nie. Powód, dlaczego pozycja została niedomknięta,
  * należy do raportu działu — nie do pola, które się liczy.
+ *
+ * Sam wzorzec mieszka we `wspolne.mjs` — strażnik pyta o TO SAMO przy plikach
+ * stanu (reguła 17), a dwie kopie rozjechałyby się po cichu. Nie jest to obawa
+ * teoretyczna: kopia stąd odrzucała `KON-A5` i `PSIARZ-02`, czyli prawdziwe
+ * kody pozycji dwóch ról pętlowych.
  */
-const KOD_POZYCJI = /^[A-Z]{2,5}-\d{2}$/;
 
 const niedomkniete = wartosc("niedomkniete");
 if (niedomkniete !== undefined) {

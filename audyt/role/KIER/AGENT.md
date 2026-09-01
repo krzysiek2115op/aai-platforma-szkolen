@@ -252,7 +252,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | KIER-04 | Czy dwa działy zgłosiły to samo miejsce (kolizja granicy)? | hash miejsca × dział |
 | KIER-05 | Czy re-audyt wszedł do działu dopiero po wyjściu audytu? | dziennik wejść |
 | KIER-06 | Czy migawka wartości przed i po jest identyczna (W6)? | `migawka-wartosci.mjs` |
-| KIER-07 | Czy `git diff main -- . ':!audyt'` jest puste? | kod wyjścia |
+| KIER-07 | Czy `git diff main -- . ':!audyt' ':!re-audyt'` jest puste? | kod wyjścia |
 
 ## Jak zgłaszasz
 

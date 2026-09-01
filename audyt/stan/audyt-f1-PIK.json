@@ -1,0 +1,16 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "PIK",
+  "status": "ZAKOŃCZONE",
+  "runda": 1,
+  "niedomkniete": [
+    "PIK-01",
+    "PIK-02",
+    "PIK-03",
+    "PIK-04",
+    "PIK-05",
+    "PIK-06",
+    "PIK-07"
+  ]
+}

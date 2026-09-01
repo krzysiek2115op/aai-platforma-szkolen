@@ -22,8 +22,8 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  DZIALY, KORZEN, NIEPEWNOSC, PROCESOWE, PROG_BAZY, STATUSY, SUFIT_RUND,
-  ZGLOSZENIA, czytajJSON, hashMiejsca, wszystkieZgloszenia, zapiszJSON, znormalizuj,
+  KORZEN, NIEPEWNOSC, PREFIKS_ID, PROG_BAZY, SEKTORY, STATUSY, SUFIT_RUND,
+  ZGLOSZENIA, czytajJSON, hashMiejsca, roleSektora, wszystkieZgloszenia, zapiszJSON, znormalizuj,
 } from "./wspolne.mjs";
 
 const WYMAGANE = ["sektor", "fala", "dzial", "pozycja", "stwierdzenie", "miejsce", "dowod", "klasyfikacja", "wplyw"];
@@ -44,9 +44,21 @@ export function powodyOdmowy(z, { korzen = KORZEN } = {}) {
   }
   if (bledy.length) return bledy;
 
-  if (!["audyt", "re-audyt"].includes(z.sektor)) bledy.push(`nieznany sektor "${z.sektor}"`);
+  if (!SEKTORY.includes(z.sektor)) bledy.push(`nieznany sektor "${z.sektor}"`);
   if (![1, 2].includes(z.fala)) bledy.push(`fala musi być 1 albo 2, jest "${z.fala}"`);
-  if (![...DZIALY, ...PROCESOWE].includes(z.dzial)) bledy.push(`nieznany dział "${z.dzial}"`);
+
+  /* DZIAŁ JEST SPRAWDZANY WOBEC SWOJEGO SEKTORA, nie wobec sumy obu list.
+     Sektory mają siedemnaście kodów wspólnych i po kilka własnych: `GOLD`
+     i `WER` istnieją wyłącznie w audycie, `PSIARZ`, `SKUT`, `STRAZ` i `WALID`
+     wyłącznie w re-audycie. Suma list przyjmowałaby zgłoszenie od roli, której
+     w danym sektorze NIE MA — a wtedy kierownik szukałby wyników działu, który
+     w tym przebiegu nie pracował. */
+  if (SEKTORY.includes(z.sektor)) {
+    const znane = roleSektora(z.sektor);
+    if (!znane.includes(z.dzial)) {
+      bledy.push(`dział "${z.dzial}" nie istnieje w sektorze "${z.sektor}" — znane: ${znane.join(", ")}`);
+    }
+  }
   if (z.status && !STATUSY.includes(z.status)) bledy.push(`nieznany status "${z.status}"`);
   if (z.runda !== undefined && (!Number.isInteger(z.runda) || z.runda < 1 || z.runda > SUFIT_RUND)) {
     bledy.push(`runda poza zakresem 1..${SUFIT_RUND} (sufit W3)`);
@@ -115,14 +127,29 @@ export function powodyOdmowy(z, { korzen = KORZEN } = {}) {
   return bledy;
 }
 
-/** Kolejny numer w dziale — ID nadaje narzędzie, nie agent (§11). */
-function nastepneId(dzial) {
-  const istniejace = existsSync(ZGLOSZENIA)
-    ? readdirSync(ZGLOSZENIA).filter((f) => f.startsWith(`AUD-${dzial}-`))
-    : [];
-  const numery = istniejace.map((f) => Number(f.match(/-(\d+)\.json$/)?.[1] ?? 0));
+/**
+ * ID NADAJE NARZĘDZIE, NIE AGENT (§11) — numer jest kolejny w obrębie
+ * pary SEKTOR + DZIAŁ.
+ *
+ * Funkcja jest CZYSTA (dostaje listę istniejących nazw, nie czyta dysku),
+ * żeby samokontrola mogła sprawdzić dokładnie to, co najgroźniejsze: że
+ * zgłoszenie re-audytu NIE dostaje nazwy zajętej przez audyt. Oba sektory
+ * dzielą jeden katalog i siedemnaście kodów działów, więc wspólny prefiks
+ * nadpisałby cudzy wpis po cichu.
+ */
+export function idZgloszenia(dzial, sektor, istniejace) {
+  const prefiks = PREFIKS_ID[sektor];
+  const poczatek = `${prefiks}-${dzial}-`;
+  const numery = istniejace
+    .filter((f) => f.startsWith(poczatek))
+    .map((f) => Number(f.match(/-(\d+)\.json$/)?.[1] ?? 0));
   const kolejny = (numery.length ? Math.max(...numery) : 0) + 1;
-  return `AUD-${dzial}-${String(kolejny).padStart(3, "0")}`;
+  return `${poczatek}${String(kolejny).padStart(3, "0")}`;
+}
+
+function nastepneId(dzial, sektor) {
+  const istniejace = existsSync(ZGLOSZENIA) ? readdirSync(ZGLOSZENIA) : [];
+  return idZgloszenia(dzial, sektor, istniejace);
 }
 
 /* ── samokontrola: `--test` z definicji ukończenia sektora (pozycja 5) ── */
@@ -156,6 +183,27 @@ function samokontrola() {
       dowod: "Linia widoczna w pliku; wartość pochodzi z żądania.",
       klasyfikacja: "wstrzyknięcie", wplyw: "Obcy może odczytać cudze dane.",
     }, false],
+    ["RE-AUDYT: rola własna sektora (PSIARZ)", {
+      sektor: "re-audyt", fala: 1, dzial: "PSIARZ", pozycja: "PSIARZ-02",
+      stwierdzenie: "Zepsucie tej linii nie zapala żadnego strażnika ani testu.",
+      miejsce: { rodzaj: "linia", plik: "audyt/tools/zgloszenie.mjs", linia: 1, tresc: "/**" },
+      dowod: "Mutacja przeszła wszystkie bramki na zielono.",
+      klasyfikacja: "brak bramki", wplyw: "Nawrót klasy przejdzie niezauważony.",
+    }, true],
+    ["rola RE-AUDYTU w sektorze AUDYT", {
+      sektor: "audyt", fala: 1, dzial: "PSIARZ", pozycja: "PSIARZ-02",
+      stwierdzenie: "Zepsucie tej linii nie zapala żadnego strażnika ani testu.",
+      miejsce: { rodzaj: "linia", plik: "audyt/tools/zgloszenie.mjs", linia: 1, tresc: "/**" },
+      dowod: "Mutacja przeszła wszystkie bramki na zielono.",
+      klasyfikacja: "brak bramki", wplyw: "Nawrót klasy przejdzie niezauważony.",
+    }, false],
+    ["rola AUDYTU (GOLD) w sektorze RE-AUDYT", {
+      sektor: "re-audyt", fala: 1, dzial: "GOLD", pozycja: "GOLD-02",
+      stwierdzenie: "Wyjście działu nie niesie ani jednego artefaktu z procedury skilla.",
+      miejsce: { rodzaj: "linia", plik: "audyt/tools/zgloszenie.mjs", linia: 1, tresc: "/**" },
+      dowod: "Raport działu nie zawiera żadnej komendy ani miejsca w kodzie.",
+      klasyfikacja: "proces", wplyw: "GOLD-06 nie ma czego sprawdzić.",
+    }, false],
     ["runda ponad sufitem W3", { sektor: "audyt", fala: 1, dzial: "SEC", pozycja: "SEC-03", runda: SUFIT_RUND + 1, stwierdzenie: "Zapytanie skleja wartość bez prepare, więc wejście trafia do SQL.", miejsce: { rodzaj: "linia", plik: "audyt/tools/zgloszenie.mjs", linia: 1, tresc: "/**" }, dowod: "Linia widoczna w pliku; wartość pochodzi z żądania.", klasyfikacja: "wstrzyknięcie", wplyw: "Obcy odczyta cudze dane." }, false],
   ];
 
@@ -169,8 +217,30 @@ function samokontrola() {
     if (!ok && powody.length) process.stdout.write(`      ${powody[0]}\n`);
     if (!ok && !powody.length) process.stdout.write("      (przyjęte, choć miało zostać odrzucone)\n");
   }
-  process.stdout.write(`\nSamokontrola zgłoszeń: ${przypadki.length - zle}/${przypadki.length}\n`);
-  return zle === 0;
+  /* ── IDENTYFIKATORY: sektory dzielą katalog, więc nazwa pliku MUSI je
+     rozróżniać. Najgroźniejszy przypadek jest ostatni: audyt ma już
+     `AUD-SEC-001`, a re-audyt zgłasza w TYM SAMYM dziale — bez własnego
+     prefiksu dostałby tę samą nazwę i nadpisałby cudzy wpis. */
+  const przypadkiId = [
+    ["audyt zaczyna od AUD-SEC-001", ["SEC", "audyt", []], "AUD-SEC-001"],
+    ["re-audyt zaczyna od REA-SEC-001", ["SEC", "re-audyt", []], "REA-SEC-001"],
+    ["numer rośnie w obrębie sektora", ["SEC", "audyt", ["AUD-SEC-001.json", "AUD-SEC-002.json"]], "AUD-SEC-003"],
+    ["cudzy sektor NIE podbija numeru", ["SEC", "re-audyt", ["REA-SEC-001.json", "AUD-SEC-009.json"]], "REA-SEC-002"],
+    ["re-audyt NIE nadpisuje wpisu audytu", ["SEC", "re-audyt", ["AUD-SEC-001.json"]], "REA-SEC-001"],
+  ];
+  let zleId = 0;
+  for (const [nazwa, [dzial, sektor, istniejace], oczekiwane] of przypadkiId) {
+    const dostal = idZgloszenia(dzial, sektor, istniejace);
+    const ok = dostal === oczekiwane;
+    if (!ok) zleId++;
+    process.stdout.write(`  ${ok ? "✓" : "✗"} ID        ${nazwa}\n`);
+    if (!ok) process.stdout.write(`      oczekiwano ${oczekiwane}, jest ${dostal}\n`);
+  }
+
+  const razem = przypadki.length + przypadkiId.length;
+  const zleRazem = zle + zleId;
+  process.stdout.write(`\nSamokontrola zgłoszeń: ${razem - zleRazem}/${razem}\n`);
+  return zleRazem === 0;
 }
 
 /* ── wejście ── */
@@ -250,7 +320,7 @@ if (powody.length) {
   process.exit(1);
 }
 
-const id = nastepneId(wpis.dzial);
+const id = nastepneId(wpis.dzial, wpis.sektor);
 const gotowe = {
   id,
   ...wpis,

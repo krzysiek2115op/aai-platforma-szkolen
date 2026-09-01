@@ -383,7 +383,7 @@ Kody wyjścia **bez potoku**.
 
 1. `straznik-sektora-audytu.mjs` → kod 0
 2. `audyt-straznikow.mjs straznik-sektora-audytu` → 0 przeoczonych, 0 martwych
-3. `git diff main -- . ':!audyt' ':!tools/audyt' ':!.claude'` → **puste**
+3. `git diff main -- . ':!audyt' ':!re-audyt' ':!.claude'` → **puste**
 4. `mapa.mjs` → zero plików bez działu
 5. `zgloszenie.mjs --test` → bez dowodu i bez miejsca **odrzucone**, komplet przyjęty
 6. `generuj-agentow.mjs --sprawdz` → generat zgodny ze źródłem
@@ -450,7 +450,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E4** — szkielet | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01: „E4 akceptuję teraz") | [`STRUKTURA.md`](STRUKTURA.md), 4 szablony, **10 narzędzi** w `audyt/tools/`, strażnik sektora (9 kontroli) + **11 mutacji** (0 przeoczonych, 0 martwych) |
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
-| **E7** — sektor RE-AUDYT | ⬜ **NASTĘPNY KROK** | gałąź `re-audyt/sektor-re-audytu`, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt**, zmierzone |
+| **E7** — sektor RE-AUDYT | 🚧 **W TOKU** (zielone światło właściciela 2026-09-01) — **E7.1 ZROBIONE** | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
 | **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
@@ -509,7 +509,7 @@ Czym re-audyt różni się od audytu: tabela w sekcji „SEKTOR RE-AUDYT — inn
 lustrzany (P2)". Skrót: audyt czyta i ustala OBRAZ, re-audyt **uruchamia na
 `:8892`**, mierzy ZASIĘG (wszystkie wystąpienia klasy) i projektuje strażnika.
 
-### CZTERY RZECZY ZMIERZONE: narzędzia sektora NIE są przygotowane na re-audyt
+### PIĘĆ RZECZY ZMIERZONYCH: narzędzia sektora NIE są przygotowane na re-audyt
 
 Nie są to domysły — każda pozycja ma pomiar albo linię kodu.
 
@@ -531,21 +531,131 @@ Nie są to domysły — każda pozycja ma pomiar albo linię kodu.
    `ROLE.md` KIER-07, `DOKUMENTACJA.md`). Na gałęzi re-audytu z katalogiem
    `re-audyt/` ta komenda pokazałaby WŁASNĄ pracę jako naruszenie — czyli
    bramka, która świeci na czerwono zawsze, a więc nie znaczy nic.
+   **Potwierdzone URUCHOMIENIOWO 2026-09-01**, nie z lektury pathspeca: przy
+   podstawionym pliku `re-audyt/PROBA.md` stara komenda wypisuje go jako
+   naruszenie, a kandydat z dwoma wykluczeniami daje **0**. Drzewo po próbie
+   sprawdzone jako czyste.
+5. **Wspólny prefiks `AUD-` przy wspólnych kodach działów NADPISAŁBY dane.**
+   Tego w pierwszym pomiarze nie było, a jest twardsze od pozostałych czterech:
+   `nastepneId()` (`zgloszenie.mjs:120-122`) liczy kolejny numer po plikach
+   zaczynających się od `AUD-<DZIAŁ>-`, a oba sektory dzielą JEDEN katalog
+   (pomiar 2). Zgłoszenie re-audytu w dziale SEC dostałoby więc nazwę pliku
+   `AUD-SEC-001.json`, którą audyt już zajął. To nie jest kwestia nazewnictwa,
+   tylko cichej utraty wpisu — stąd rozstrzygnięcie 4 niżej (`REA-`).
 
-### TRZY PYTANIA DO WŁAŚCICIELA PRZED E7
+### CZTERY ROZSTRZYGNIĘCIA WŁAŚCICIELA PRZED E7 (2026-09-01)
 
-1. **Skąd wychodzi gałąź `re-audyt/sektor-re-audytu`** — z `main` czy z
-   `audyt/sektor-audytu`? To nie jest kosmetyka: z `main` gałąź **nie ma narzędzi
-   sektora** (`audyt/tools/`), a re-audyt potrzebuje `zgloszenie.mjs`,
-   `werdykt.mjs`, `status.mjs` i `polacz-sektory.mjs`. Punkt 2 wyżej (jeden
-   katalog zgłoszeń) mocno przemawia za wyjściem z gałęzi audytu.
-2. **Czy narzędzia rozszerzamy, czy re-audyt dostaje własne?** Rozszerzenie jest
-   tańsze i utrzymuje jeden nośnik (W4), ale znaczy, że gałąź re-audytu **zmienia
-   pliki w `audyt/`** — a to koliduje z zasadą „sektory są osobne" (§17).
-3. **Jak brzmi niezmiennik na gałęzi re-audytu?** Kandydat:
-   `git diff main --name-only -- . ':!audyt' ':!re-audyt'` → 0. Wymaga
-   potwierdzenia, bo dziś w czterech miejscach repo stoi wersja z jednym
-   wykluczeniem.
+Wszystkie cztery zapadły przed pierwszą linią kodu E7 i **nie wyprowadza się ich
+od nowa**. Trzy pierwsze odpowiadają na pytania postawione wyżej; czwarte
+zamyka pozycję „do rozstrzygnięcia" z pomiaru 3.
+
+1. **Gałąź `re-audyt/sektor-re-audytu` wychodzi z `audyt/sektor-audytu`**, nie
+   z `main`. Powód rozstrzygający: z `main` gałąź nie ma narzędzi sektora ani
+   wspólnego katalogu zgłoszeń, więc **nie miałaby czym zgłosić znaleziska ani
+   czym połączyć sektorów** (W4) — a połączenie jest sensem całego kroku.
+2. **Narzędzia ROZSZERZAMY, ale zmiany wchodzą NA GAŁĘZI AUDYTU, przed
+   odgałęzieniem.** Listy ról świadome sektora, prefiks identyfikatora i generat
+   `rea-*` powstają w `audyt/tools/` jeszcze na `audyt/sektor-audytu`; gałąź
+   re-audytu dodaje wtedy **wyłącznie katalog `re-audyt/`**. Kolizja z §17
+   („sektory są osobne") znika, bo nie ma jej w commitach — nie dlatego, że ją
+   przemilczeliśmy. Wariant „własne narzędzia w `re-audyt/tools/`" odrzucony:
+   dwie kopie `hashMiejsca()` rozjechałyby się po cichu, a `polacz-sektory.mjs`
+   przestałby widzieć re-audyt.
+3. **Niezmiennik ma JEDNĄ postać dla OBU gałęzi:**
+   ```
+   git diff main --name-only -- . ':!audyt' ':!re-audyt'      →  musi dać 0
+   ```
+   Na gałęzi audytu daje ten sam wynik co dotąd (katalogu `re-audyt/` tam nie
+   ma), więc zasada „jedna komenda, bez wyjątków" zostaje nietknięta. Poprawka
+   wchodzi we wszystkie miejsca, w których stoi wersja z jednym wykluczeniem.
+4. **Prefiks identyfikatora re-audytu to `REA-`, nazwy agentów `rea-*`**, a
+   Pogłębiacze **biorą kody działów audytu** (`SEC`, `FE`, …) w sektorze
+   `re-audyt`. Pogłębiacz obszaru SEC JEST re-audytem działu SEC, więc wspólny
+   kod utrzymuje `GRANICE.md`, łączenie po hashu i tabelę P2 w jednej linii,
+   a rozróżnia je pole `sektor` i prefiks. Nowe kody potrzebne tylko cztery:
+   **`PSIARZ`**, **`SKUT`**, **`STRAZ`**, **`WALID`**; kierownik, raport
+   i Konrad re-audytu to `KIER`/`RAP`/`KON` w sektorze `re-audyt`. Bez `GOLD`
+   i bez `WER` — te zostają przy audycie (§16).
+
+**Rachunek 21 ról:** KIER + 14 Pogłębiaczy + PSIARZ + SKUT + STRAZ + WALID
++ RAP + KON = 21, czyli 42 agentów z krytykami.
+
+### PRZEBIEG E7 — sześć kroków
+
+| # | Krok | Stan |
+|---|---|---|
+| **E7.1** | rozszerzenie narzędzi **na gałęzi audytu**, przed odgałęzieniem | ✅ **ZROBIONE** |
+| **E7.2** | gałąź `re-audyt/sektor-re-audytu` + `re-audyt/GRANICE.md` | ⬜ |
+| **E7.3** | `re-audyt/ROLE.md` — 21 ról: zakres komendą, checklista, „nie bierze" | ⬜ |
+| **E7.4** | 21 × 4 pliki metodą z E5 + utwardzenie kompletu ról | ⬜ |
+| **E7.5** | generat → **restart sesji** → strażnik i mutacje | ⬜ |
+| **E7.6** | **próba na sucho jednej roli re-audytu** (zgoda właściciela 2026-09-01) | ⬜ |
+
+**E7.6 wchodzi na życzenie właściciela** („robimy próbę na sucho tak jak
+z audytem"). Powód nie jest symetrią: ścieżka re-audytu jest INNA — uruchamia
+`:8892`, mierzy zasięg wszystkich wystąpień klasy i projektuje strażnika —
+więc dowód z E6 jej nie obejmuje. E6 pokazał, ile znajduje próba, której nie
+znajduje lektura: cztery usterki niewidzialne dla szesnastu kontroli.
+
+---
+
+### Co zrobił E7.1 (nie wyprowadzać od nowa)
+
+**Narzędzia sektora znają oba sektory.** Zmiany weszły na gałęzi AUDYTU,
+przed odgałęzieniem — dzięki temu gałąź re-audytu doda wyłącznie katalog
+`re-audyt/` i nie zmieni cudzego katalogu (rozstrzygnięcie 2).
+
+| Plik | Co się zmieniło |
+|---|---|
+| `wspolne.mjs` | `SEKTORY`, `SEKTOR_RE`, `roleSektora()`, `PROCESOWE_RE`, `PREFIKS_ID`, `PREFIKS_AGENTA`, `katalogSektora()`, `roleMdSektora()`, `zakresyZRoleMd(sektor)`, **`KOD_POZYCJI`** |
+| `zgloszenie.mjs` | dział sprawdzany wobec SWOJEGO sektora; `idZgloszenia()` czysta i testowalna; samokontrola **13 → 18 przypadków** |
+| `status.mjs` | walidacja sektora i roli w sektorze; wspólny `KOD_POZYCJI` |
+| `generuj-agentow.mjs` | czyta oba katalogi ról, nazywa agentów `aud-*` / `rea-*`, sieroty liczy po obu przedrostkach |
+| `straznik-sektora-audytu.mjs` | reguły ról chodzą po OBU sektorach, komunikaty niosą nazwę sektora; **reguła 19**; reguła 17 pyta o rolę w sektorze; niezmiennik z drugim wykluczeniem |
+| `audyt-straznika-sektora.mjs` | **40 → 50 mutacji** |
+
+**DWIE USTERKI ZNALEZIONE PRZY OKAZJI, OBIE PRZEZ AUDYT MUTACYJNY, obie
+starsze od E7** — i obie w tym samym wzorcu `KOD_POZYCJI`:
+
+- **`KON-A5` nie był kodem pozycji.** Wzorzec brzmiał `/^[A-Z]{2,5}-\d{2}$/`,
+  a Konrad ma pozycje z literą (`KON-A1`…`KON-A6`) i **jest rolą pętlową** —
+  czyli tą, która przy suficie rund MUSI wypisać niedomknięte pozycje.
+  Nie zapisałby ani jednej: `status.mjs` odpowiadałby „to nie jest kod
+  pozycji" na poprawny kod. Usterka jest z E4.
+- **`PSIARZ-02` też nie.** Sześć liter przy sufcie pięciu — czyli pierwsza
+  rola re-audytu wywróciłaby się na pierwszym zapisie stanu.
+
+Wzorzec mieszka teraz w JEDNYM miejscu (`wspolne.mjs`), a sufit długości
+**wyprowadza się z prawdziwych kodów ról**, nie z liczby wpisanej ręcznie —
+nowa rola o dłuższym kodzie nie może po cichu wypaść spod wzorca. Dwa
+kontrprzykłady w audycie mutacyjnym pilnują, żeby sufit nie wrócił.
+
+**Trzecia rzecz, którą pokazał ten sam przebieg:** dwie mutacje z E5/E6 miały
+`slad` przypięty do DOKŁADNEGO BRZMIENIA komunikatu, więc przestały trafiać,
+gdy reguła 12 zaczęła nazywać sektor. Ślady celują teraz w rozstrzygnięcie
+(`/brakuje 1 ról z ROLE\.md .* WER/`), nie w zdanie. To ta sama rodzina co
+dziewięć nawrotów „wzorzec na napis" z `main`.
+
+**KOMPLET RÓL RE-AUDYTU JEST MIĘKKI DO KOŃCA E7.4** i jest to nazwane
+w kodzie (`KOMPLET_TWARDY`), nie przemilczane: czerwony strażnik w połowie
+budowy niczego by nie pilnował, tylko zaszumiał bramkę — dokładnie ta sama
+decyzja, którą podjął E5 dla audytu. Ciszy nie ma w żadnym stanie: liczba
+zbudowanych ról i imienna lista brakujących jedzie na wyjściu zawsze.
+
+**Niezmiennik zmieniony w dziewięciu miejscach**, nie w czterech (pomiar:
+`STRUKTURA.md`, `DOKUMENTACJA.md`, `ROLE.md` KIER-07, `role/KIER/AGENT.md`,
+`role/KIER/SKILL.md`, `role/GOLD/AGENT.md`, `role/GOLD/SKILL.md`,
+`role/RAP/SKILL.md`, definicja ukończenia w tym pliku). Zapis w „Faktach
+zmierzonych przy E1" został oznaczony jako historyczny, nie poprawiony.
+
+**Dowody E7.1:** niezmiennik 0, strażnik **19 kontroli** kod 0, audyt
+mutacyjny **50** (0 przeoczonych, 0 martwych), samokontrole `zgloszenie`
+(18/18), `werdykt`, `mapa` i `generuj-agentow --sprawdz` — wszystkie kod 0.
+Testy negatywne: wspólny prefiks ID zapala 3 z 5 przypadków identyfikatora,
+suma list ról zapala 2 przypadki działów, stary `KOD_POZYCJI` zapala oba nowe
+kontrprzykłady — i nic poza nimi.
+
+---
 
 ### CZEGO E7 NIE ROBI
 
@@ -1015,6 +1125,8 @@ wyjątek od niezmiennika. **Nie robimy tego bez decyzji.**
 
 - **Niezmiennik sektora działa i jest sprawdzalny jedną komendą:**
   `git diff main --name-only -- . ':!audyt'` → musi dać **0** linii.
+  *(Zapis historyczny — od E7.1 komenda ma DRUGIE wykluczenie, `':!re-audyt'`,
+  i jest ta sama na obu gałęziach: `audyt/STRUKTURA.md`.)*
 - **Rozkład 918 plików repo** (podstawa `mapa.mjs`, `git ls-files`):
   `tresc-kursow` 331 · `docs` 140 · `aai-sklep` 87 · `tools/zrzuty` 59 ·
   `components` 47 · `tools/straznicy` 41 · `tools` 31 · `app` 26 ·

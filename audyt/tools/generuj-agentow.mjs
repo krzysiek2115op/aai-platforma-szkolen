@@ -1,8 +1,8 @@
 /**
  * GENERAT AGENTÓW (D1) — "wykonywalni ORAZ udokumentowani".
  *
- * ŹRÓDŁEM jest `audyt/role/<KOD>/AGENT.md` i `KRYTYK.md`; generatem są pliki
- * `.claude/agents/aud-*.md`, które widzi harness. Generat jest JEDNORAZOWY
+ * ŹRÓDŁEM jest `<sektor>/role/<KOD>/AGENT.md` i `KRYTYK.md`; generatem są pliki
+ * `.claude/agents/aud-*.md` (audyt) i `rea-*.md` (re-audyt), które widzi harness. Generat jest JEDNORAZOWY
  * i **nie wchodzi do gita**: powstaje komendą ze źródła, więc nie ma czego
  * commitować, a niezmiennik sektora zostaje nietknięty (`git diff` nie widzi
  * plików nieśledzonych).
@@ -23,10 +23,22 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { KORZEN, SEKTOR } from "./wspolne.mjs";
+import { KORZEN, PREFIKS_AGENTA, SEKTORY, katalogSektora } from "./wspolne.mjs";
 
-const ROLE = join(SEKTOR, "role");
 const CEL = join(KORZEN, ".claude", "agents");
+
+/**
+ * SEKTORY SĄ DWA, ALE KATALOG DEFINICJI JEDEN — harness widzi `.claude/agents/`
+ * i nic poza tym. Rozróżnia je PRZEDROSTEK nazwy (`aud-`, `rea-`), więc
+ * `aud-sec` i `rea-sec` to dwaj różni agenci nad tym samym obszarem: pierwszy
+ * ustala obraz, drugi mierzy zasięg (P2).
+ *
+ * Sektor bez katalogu `role/` jest POMIJANY, nie jest błędem: na gałęzi audytu
+ * `re-audyt/` nie istnieje i tak ma być.
+ */
+const katalogiRol = SEKTORY
+  .map((sektor) => ({ sektor, katalog: join(katalogSektora(sektor), "role") }))
+  .filter(({ katalog }) => existsSync(katalog));
 
 /** Model wg D8: kierownicy i krytycy — Opus, reszta — Sonnet. */
 const OPUS = new Set(["KIER", "GOLD", "KON", "WER", "RAP"]);
@@ -34,25 +46,26 @@ const OPUS = new Set(["KIER", "GOLD", "KON", "WER", "RAP"]);
 const skrot = (s) => createHash("sha256").update(s).digest("hex");
 
 function zrodla() {
-  if (!existsSync(ROLE)) return [];
   const wynik = [];
-  for (const kod of readdirSync(ROLE).sort()) {
-    for (const [plik, rodzaj] of [["AGENT.md", "agent"], ["KRYTYK.md", "krytyk"]]) {
-      const sciezka = join(ROLE, kod, plik);
-      if (existsSync(sciezka)) {
-        wynik.push({ kod, rodzaj, sciezka, tresc: readFileSync(sciezka, "utf8") });
+  for (const { sektor, katalog } of katalogiRol) {
+    for (const kod of readdirSync(katalog).sort()) {
+      for (const [plik, rodzaj] of [["AGENT.md", "agent"], ["KRYTYK.md", "krytyk"]]) {
+        const sciezka = join(katalog, kod, plik);
+        if (existsSync(sciezka)) {
+          wynik.push({ sektor, kod, rodzaj, sciezka, tresc: readFileSync(sciezka, "utf8") });
+        }
       }
     }
   }
   return wynik;
 }
 
-function zbuduj({ kod, rodzaj, tresc }) {
-  const nazwa = `aud-${kod.toLowerCase()}${rodzaj === "krytyk" ? "-krytyk" : ""}`;
+function zbuduj({ sektor, kod, rodzaj, tresc }) {
+  const nazwa = `${PREFIKS_AGENTA[sektor]}${kod.toLowerCase()}${rodzaj === "krytyk" ? "-krytyk" : ""}`;
   const model = rodzaj === "krytyk" || OPUS.has(kod) ? "opus" : "sonnet";
   const opis = tresc.match(/^\*\*Rola\.\*\*\s*(.+)$/m)?.[1]
     ?? tresc.split("\n").find((l) => l.trim() && !l.startsWith("#"))
-    ?? `Rola ${kod} sektora AUDYT`;
+    ?? `Rola ${kod} sektora ${sektor.toUpperCase()}`;
   const naglowek = [
     "---",
     `name: ${nazwa}`,
@@ -61,7 +74,7 @@ function zbuduj({ kod, rodzaj, tresc }) {
     `model: ${model}`,
     "---",
     "",
-    `<!-- GENERAT. Źródło: audyt/role/${kod}/${rodzaj === "krytyk" ? "KRYTYK.md" : "AGENT.md"} -->`,
+    `<!-- GENERAT. Źródło: ${sektor}/role/${kod}/${rodzaj === "krytyk" ? "KRYTYK.md" : "AGENT.md"} -->`,
     `<!-- ZRODLO-SHA256: ${skrot(tresc)} -->`,
     "<!-- Nie edytuj tego pliku — zmiany rób w źródle i uruchom generuj-agentow.mjs -->",
     "",
@@ -73,7 +86,7 @@ const lista = zrodla();
 
 if (!lista.length) {
   process.stdout.write(
-    "Brak źródeł w audyt/role/ — role powstają w E5.\n" +
+    "Brak źródeł w <sektor>/role/ — role audytu powstają w E5, re-audytu w E7.\n" +
     "To NIE jest błąd na tym etapie; generat będzie pusty, dopóki nie ma czego generować.\n"
   );
   process.exit(0);
@@ -107,8 +120,9 @@ for (const z of lista) {
    — agent istnieje, choć nikt go już nie definiuje. */
 if (sprawdz && existsSync(CEL)) {
   const nasze = new Set(lista.map((z) => zbuduj(z).nazwa + ".md"));
-  for (const f of readdirSync(CEL).filter((f) => f.startsWith("aud-") && f.endsWith(".md"))) {
-    if (!nasze.has(f)) bledy.push(`${f}: generat bez źródła w audyt/role/ — rola została skasowana albo przemianowana`);
+  const przedrostki = Object.values(PREFIKS_AGENTA);
+  for (const f of readdirSync(CEL).filter((f) => f.endsWith(".md") && przedrostki.some((p) => f.startsWith(p)))) {
+    if (!nasze.has(f)) bledy.push(`${f}: generat bez źródła w <sektor>/role/ — rola została skasowana albo przemianowana`);
   }
 }
 

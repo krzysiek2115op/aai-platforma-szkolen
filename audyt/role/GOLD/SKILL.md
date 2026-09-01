@@ -64,8 +64,8 @@ node audyt/tools/status.mjs --pokaz
 ls audyt/zgloszenia/AUD-<DZIAŁ>-*.json
 
 # zasada 6 — czy ktokolwiek cokolwiek naprawił
-git diff main --name-only -- . ':!audyt'
-git status --porcelain -- . ':!audyt' ':!.claude'
+git diff main --name-only -- . ':!audyt' ':!re-audyt'
+git status --porcelain -- . ':!audyt' ':!re-audyt' ':!.claude'
 
 # zasada 1 — czy bramka wpuszczania działa
 node audyt/tools/zgloszenie.mjs --test

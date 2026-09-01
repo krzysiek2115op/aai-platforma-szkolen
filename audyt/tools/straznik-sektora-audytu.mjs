@@ -1,5 +1,5 @@
 /**
- * STRAŻNIK SEKTORA AUDYT — osiemnaście kontroli.
+ * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dziewiętnaście kontroli.
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -11,22 +11,28 @@
  * razy (0.29.0 nazwa metody, 0.44.0 nazwa stałej, 0.47.0 napis, dwa razy w P4,
  * raz w przeglądzie T3). Każda reguła niżej pyta o skutek, który da się złamać.
  *
- * KONTROLE WARUNKOWE. Reguły 2, 3, 4 i 6 dotyczą katalogu `audyt/role/`, który
- * powstaje dopiero w E5. Dopóki go nie ma, mówią wprost "pominięte" — cisza
- * byłaby nie do odróżnienia od zaliczenia.
+ * KONTROLE WARUNKOWE. Reguły 2, 3, 4 i 6 dotyczą katalogów `<sektor>/role/`,
+ * z których audytowy powstaje w E5, a re-audytowy w E7. Dopóki katalogu nie ma,
+ * mówią wprost "pominięte" — cisza byłaby nie do odróżnienia od zaliczenia.
+ *
+ * DWA SEKTORY, JEDEN STRAŻNIK (rozstrzygnięcie właściciela 2026-09-01). Sektory
+ * są osobne w PRACY (§17: nigdy na tym samym dziale jednocześnie), nie
+ * w toolchainie: wspólny nośnik zgłoszeń jest warunkiem łączenia po haszu (W4),
+ * a druga kopia tych samych reguł rozjechałaby się po cichu.
  *
  * Użycie: node audyt/tools/straznik-sektora-audytu.mjs
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { DZIALY, KOD_PROBNY, KORZEN, PROCESOWE, ROLE_MD, SEKTOR, wszystkieZgloszenia } from "./wspolne.mjs";
+import {
+  DZIALY, KOD_POZYCJI, KOD_PROBNY, KORZEN, PREFIKS_AGENTA, PREFIKS_ID, SEKTOR, SEKTORY,
+  katalogSektora, roleMdSektora, roleSektora, wszystkieZgloszenia,
+} from "./wspolne.mjs";
 import { powodyOdmowy } from "./zgloszenie.mjs";
 
-const ROLE = join(SEKTOR, "role");
-
 /**
- * KODY ról ustalamy RAZ i z katalogów, nie z plików.
+ * ROLE ustalamy RAZ i z katalogów, nie z plików — dla OBU sektorów naraz.
  *
  * PRZEJŚCIE PO PUSTCE. Do tej poprawki reguły dotyczące ról pytały
  * `existsSync(ROLE)`, a katalog `audyt/role/` istniał od E4 jako PUSTY — więc
@@ -34,11 +40,24 @@ const ROLE = join(SEKTOR, "role");
  * tak samo jak przy komplecie ról. Cisza była nie do odróżnienia od
  * zaliczenia; to ta sama klasa, co test negatywny przechodzący po pustce.
  * Pusty katalog znaczy teraz to samo, co brak katalogu: "pominięte".
+ *
+ * Każdy wpis niesie SEKTOR, bo komunikat "rola SEC nie ma KRYTYK.md" przy
+ * dwóch sektorach o wspólnych kodach działów nie mówi, którą rolę naprawić.
  */
-const KODY_ROL = existsSync(ROLE)
-  ? readdirSync(ROLE, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort()
-  : [];
-const BRAK_ROL = KODY_ROL.length === 0;
+const ROLE_SEKTOROW = SEKTORY.map((sektor) => {
+  const katalog = join(katalogSektora(sektor), "role");
+  const kody = existsSync(katalog)
+    ? readdirSync(katalog, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort()
+    : [];
+  return { sektor, katalog, kody };
+});
+
+/** Płaska lista `{ sektor, katalog, kod }` — po niej chodzą reguły ról. */
+const ROLE_WSZYSTKIE = ROLE_SEKTOROW.flatMap(({ sektor, katalog, kody }) =>
+  kody.map((kod) => ({ sektor, katalog, kod, gdzie: `${sektor}/role/${kod}` }))
+);
+const BRAK_ROL = ROLE_WSZYSTKIE.length === 0;
+
 const bledy = [];
 const pominiete = [];
 const uwagi = [];
@@ -49,47 +68,52 @@ const sh = (k) => execFileSync("bash", ["-c", k], { cwd: KORZEN, encoding: "utf8
    Pytamy o SKUTEK — listę zmienionych plików poza `audyt/` — a nie o to, czy
    ktoś zadeklarował, że nic nie ruszał. */
 {
-  const zmienione = sh("git diff main --name-only -- . ':!audyt'").split("\n").filter(Boolean);
+  // DWA WYKLUCZENIA, JEDNA KOMENDA DLA OBU GAŁĘZI (rozstrzygnięcie właściciela
+  // 2026-09-01). Na gałęzi audytu katalogu `re-audyt/` nie ma, więc wynik jest
+  // ten sam co przy jednym wykluczeniu; na gałęzi re-audytu bez tego drugiego
+  // wykluczenia bramka świeciłaby na czerwono NA WŁASNEJ PRACY — czyli zawsze,
+  // a więc nie znaczyłaby nic. Zmierzone uruchomieniowo przed zmianą.
+  const zmienione = sh("git diff main --name-only -- . ':!audyt' ':!re-audyt'").split("\n").filter(Boolean);
   // `.claude/` jest WYJĄTKIEM NAZWANYM, nie przeoczonym: to generat definicji
   // agentów (D1), z założenia nieśledzony i odtwarzalny jedną komendą ze źródła
   // w `audyt/role/`. Wyjątek jest wąski — pilnuje go reguła 4, która sprawdza
   // zgodność generatu ze źródłem po sha256 ORAZ brak generatów-sierot.
   // Bez tego wyjątku strażnik zapalałby się na własnym, zamierzonym artefakcie.
-  const brudne = sh("git status --porcelain -- . ':!audyt' ':!.claude'").split("\n").filter(Boolean);
+  const brudne = sh("git status --porcelain -- . ':!audyt' ':!re-audyt' ':!.claude'").split("\n").filter(Boolean);
   if (zmienione.length) {
-    bledy.push(`sektor zmienił ${zmienione.length} plików poza audyt/: ${zmienione.slice(0, 5).join(", ")}`);
+    bledy.push(`sektor zmienił ${zmienione.length} plików poza audyt/ i re-audyt/: ${zmienione.slice(0, 5).join(", ")}`);
   }
   if (brudne.length) {
-    bledy.push(`niezacommitowane zmiany poza audyt/: ${brudne.slice(0, 5).join(", ")}`);
+    bledy.push(`niezacommitowane zmiany poza audyt/ i re-audyt/: ${brudne.slice(0, 5).join(", ")}`);
   }
 }
 
 /* ── 2. każda rola ma krytyka (D3, WYTYCZNE N1) ── */
 if (BRAK_ROL) {
-  pominiete.push("2. para agent+krytyk — katalog audyt/role/ powstaje w E5");
+  pominiete.push("2. para agent+krytyk — katalogi <sektor>/role/ powstają w E5 i E7");
 } else {
-  for (const kod of KODY_ROL) {
-    if (!existsSync(join(ROLE, kod, "KRYTYK.md"))) bledy.push(`rola ${kod} nie ma KRYTYK.md (D3: krytyk przy KAŻDEJ roli)`);
+  for (const { katalog, kod, gdzie } of ROLE_WSZYSTKIE) {
+    if (!existsSync(join(katalog, kod, "KRYTYK.md"))) bledy.push(`rola ${gdzie} nie ma KRYTYK.md (D3: krytyk przy KAŻDEJ roli)`);
   }
 }
 
 /* ── 3. komplet pięciu elementów (§5 regulaminu) ── */
 const PIEC = ["Context", "Ograniczenia", "Moduł", "Prompt", "Narzędzia"];
 if (BRAK_ROL) {
-  pominiete.push("3. pięć elementów każdej roli — katalog audyt/role/ powstaje w E5");
+  pominiete.push("3. pięć elementów każdej roli — katalogi <sektor>/role/ powstają w E5 i E7");
 } else {
-  for (const kod of KODY_ROL) {
-    const plik = join(ROLE, kod, "AGENT.md");
-    if (!existsSync(plik)) { bledy.push(`rola ${kod} nie ma AGENT.md`); continue; }
+  for (const { katalog, kod, gdzie } of ROLE_WSZYSTKIE) {
+    const plik = join(katalog, kod, "AGENT.md");
+    if (!existsSync(plik)) { bledy.push(`rola ${gdzie} nie ma AGENT.md`); continue; }
     const t = readFileSync(plik, "utf8");
     const brak = PIEC.filter((e) => !new RegExp(`^##+\\s*${e}`, "im").test(t));
-    if (brak.length) bledy.push(`rola ${kod}: brak elementów §5 — ${brak.join(", ")}`);
+    if (brak.length) bledy.push(`rola ${gdzie}: brak elementów §5 — ${brak.join(", ")}`);
   }
 }
 
 /* ── 4. generat aktualny wobec źródła (D1) ── */
 if (BRAK_ROL) {
-  pominiete.push("4. generat .claude/agents — brak źródeł, powstają w E5");
+  pominiete.push("4. generat .claude/agents — brak źródeł, powstają w E5 i E7");
 } else {
   try {
     execFileSync("node", ["audyt/tools/generuj-agentow.mjs", "--sprawdz"], { cwd: KORZEN, stdio: "pipe" });
@@ -134,40 +158,60 @@ const ZASADY = [
   { nazwa: "drążyć, nie przekazywać", wzorzec: odstepy("nie przekazuje go innemu dzia[łl]owi") },
 ];
 if (BRAK_ROL) {
-  pominiete.push("6. trzy zasady nadrzędne w definicjach — audyt/role/ powstaje w E5");
+  pominiete.push("6. trzy zasady nadrzędne w definicjach — <sektor>/role/ powstaje w E5 i E7");
 } else {
-  for (const kod of KODY_ROL) {
+  for (const { katalog, kod, gdzie } of ROLE_WSZYSTKIE) {
     for (const plik of ["AGENT.md", "KRYTYK.md", "SKILL.md"]) {
-      const sciezka = join(ROLE, kod, plik);
+      const sciezka = join(katalog, kod, plik);
       if (!existsSync(sciezka)) continue;
       const t = readFileSync(sciezka, "utf8");
       const brak = ZASADY.filter((z) => !z.wzorzec.test(t)).map((z) => z.nazwa);
-      if (brak.length) bledy.push(`${kod}/${plik}: brak zasady nadrzędnej — ${brak.join("; ")}`);
+      if (brak.length) bledy.push(`${gdzie}/${plik}: brak zasady nadrzędnej — ${brak.join("; ")}`);
     }
   }
 }
+
+/**
+ * MECHANICZNY ZAKRES OBOWIĄZUJE DZIAŁY. Role procesowe — kierownik, Golden,
+ * Konrad, weryfikator, raport, a w re-audycie także Psiarz, Skutki uboczne,
+ * Strażnikowy i Walidacja — pracują na WYNIKACH działów, nie na liście plików,
+ * więc komenda zakresu nie miałaby czego liczyć.
+ *
+ * Lista bierze się z `DZIALY` we `wspolne.mjs`, nie z własnej kopii: druga
+ * kopia rozjechałaby się po cichu, jak każda w tym repozytorium.
+ */
+const ZAKRES_OBOWIAZKOWY = new Set(DZIALY);
 
 /* ── 7. każda rola ma MECHANICZNY zakres i checklistę (K4') ────────────────
    To jest warunek powtarzalności, nie kosmetyka: rola bez listy sprawdzeń
    robi swobodny przegląd, a swobodny przegląd nie da tego samego wyniku
    w drugiej fali. */
-{
-  const t = readFileSync(ROLE_MD, "utf8");
+for (const { sektor, kody } of ROLE_SEKTOROW) {
+  const plik = roleMdSektora(sektor);
+  if (!existsSync(plik)) {
+    // Katalog ról BEZ dokumentu ról to rola bez zatwierdzonego zakresu —
+    // dokładnie to, przed czym broni K4'. Sam brak obu jest stanem budowy.
+    if (kody.length) bledy.push(`sektor ${sektor} ma ${kody.length} ról na dysku, a nie ma ${sektor}/ROLE.md`);
+    else pominiete.push(`7. ROLE.md sektora ${sektor} — katalogu ${sektor}/ jeszcze nie ma`);
+    continue;
+  }
+  const t = readFileSync(plik, "utf8");
   const sekcje = t.split("\n## ").filter((s) => /^[A-Z]+ —/.test(s));
   const znalezione = new Set();
+  const procesowe = roleSektora(sektor).filter((k) => !ZAKRES_OBOWIAZKOWY.has(k));
   for (const s of sekcje) {
     const kod = s.match(/^([A-Z]+) —/)[1];
     znalezione.add(kod);
-    const maZakres = /\*\*Zakres[^*]*\*\*\n```\n[\s\S]*?\n```/.test(s) || PROCESOWE.includes(kod);
+    const maZakres = /\*\*Zakres[^*]*\*\*\n```\n[\s\S]*?\n```/.test(s) || procesowe.includes(kod);
     // Checklista = tabela z pozycjami postaci KOD-01 / KON-A1.
     const pozycje = (s.match(new RegExp(`^\\| ${kod}-(?:A)?\\d+ \\|`, "gm")) ?? []).length;
-    if (!maZakres) bledy.push(`rola ${kod} w ROLE.md nie ma mechanicznego zakresu (K4')`);
-    if (pozycje < 5) bledy.push(`rola ${kod} ma ${pozycje} pozycji checklisty — za mało, by wyczerpać listę (K4')`);
+    if (!maZakres) bledy.push(`rola ${kod} w ${sektor}/ROLE.md nie ma mechanicznego zakresu (K4')`);
+    if (pozycje < 5) bledy.push(`rola ${kod} (${sektor}) ma ${pozycje} pozycji checklisty — za mało, by wyczerpać listę (K4')`);
   }
-  for (const kod of [...DZIALY, ...PROCESOWE]) {
-    if (!znalezione.has(kod)) bledy.push(`ROLE.md nie opisuje roli ${kod}`);
+  for (const kod of roleSektora(sektor)) {
+    if (!znalezione.has(kod)) bledy.push(`${sektor}/ROLE.md nie opisuje roli ${kod}`);
   }
-  uwagi.push(`ról w ROLE.md: ${znalezione.size}`);
+  uwagi.push(`ról w ${sektor}/ROLE.md: ${znalezione.size}`);
 }
 
 /* ── 8. mapa pokrycia bez sierot (W6, K2) ── */
@@ -213,15 +257,15 @@ const ZASADY_GOLDENA = [
   ["13 po naprawie koniec", odstepy("po naprawie nie dopuszczaj do uruchamiania")],
 ];
 if (BRAK_ROL) {
-  pominiete.push("10. trzynaście zasad Goldena — audyt/role/ powstaje w E5");
+  pominiete.push("10. trzynaście zasad Goldena — <sektor>/role/ powstaje w E5 i E7");
 } else {
-  for (const kod of KODY_ROL) {
+  for (const { katalog, kod, gdzie } of ROLE_WSZYSTKIE) {
     for (const plik of ["AGENT.md", "KRYTYK.md"]) {
-      const sciezka = join(ROLE, kod, plik);
+      const sciezka = join(katalog, kod, plik);
       if (!existsSync(sciezka)) continue;
       const t = readFileSync(sciezka, "utf8");
       const brak = ZASADY_GOLDENA.filter(([, w]) => !w.test(t)).map(([n]) => n);
-      if (brak.length) bledy.push(`${kod}/${plik}: brak zasad Goldena — ${brak.join("; ")}`);
+      if (brak.length) bledy.push(`${gdzie}/${plik}: brak zasad Goldena — ${brak.join("; ")}`);
     }
   }
 }
@@ -257,54 +301,54 @@ function blokiGoldena(tekst) {
 }
 
 if (BRAK_ROL) {
-  pominiete.push("11. golden jako miara — audyt/role/ powstaje w E5");
+  pominiete.push("11. golden jako miara — <sektor>/role/ powstaje w E5 i E7");
 } else {
-  const ZNANE = new Set([...DZIALY, ...PROCESOWE]);
-  for (const kod of KODY_ROL) {
-    const katalog = join(ROLE, kod, "goldeny");
-    if (!existsSync(katalog)) { bledy.push(`rola ${kod} nie ma katalogu goldeny/`); continue; }
+  for (const { sektor, katalog: katalogRol, kod, gdzie } of ROLE_WSZYSTKIE) {
+    const ZNANE = new Set(roleSektora(sektor));
+    const katalog = join(katalogRol, kod, "goldeny");
+    if (!existsSync(katalog)) { bledy.push(`rola ${gdzie} nie ma katalogu goldeny/`); continue; }
     const pliki = readdirSync(katalog).filter((f) => f.endsWith(".md"));
-    if (!pliki.length) { bledy.push(`rola ${kod}: katalog goldeny/ jest pusty`); continue; }
+    if (!pliki.length) { bledy.push(`rola ${gdzie}: katalog goldeny/ jest pusty`); continue; }
 
     let przechodzacych = 0;
     let odrzucanych = 0;
     for (const nazwa of pliki) {
       const bloki = blokiGoldena(readFileSync(join(katalog, nazwa), "utf8"));
-      if (!bloki.length) { bledy.push(`${kod}/goldeny/${nazwa}: brak bloku JSON — golden bez przykładu niczego nie mierzy`); continue; }
+      if (!bloki.length) { bledy.push(`${gdzie}/goldeny/${nazwa}: brak bloku JSON — golden bez przykładu niczego nie mierzy`); continue; }
       for (const [i, b] of bloki.entries()) {
-        const gdzie = `${kod}/goldeny/${nazwa} blok ${i + 1}`;
-        if (!b.sprawdzany) { bledy.push(`${gdzie}: brak znacznika SPRAWDZANY — blok poza miarą`); continue; }
+        const gdzieBlok = `${gdzie}/goldeny/${nazwa} blok ${i + 1}`;
+        if (!b.sprawdzany) { bledy.push(`${gdzieBlok}: brak znacznika SPRAWDZANY — blok poza miarą`); continue; }
         let wpis;
         try { wpis = JSON.parse(b.json); }
-        catch (e) { bledy.push(`${gdzie}: niepoprawny JSON — ${e.message}`); continue; }
+        catch (e) { bledy.push(`${gdzieBlok}: niepoprawny JSON — ${e.message}`); continue; }
         // Dział bierzemy z KATALOGU, nie z wpisu: katalog jest prawdą o tym,
         // czyj to golden. Rozjazd między nimi jest osobnym błędem, bo golden
         // uczyłby wtedy przypisywania znaleziska do cudzego działu (K4').
         if (ZNANE.has(kod)) {
-          if (wpis.dzial !== kod) bledy.push(`${gdzie}: golden roli ${kod} deklaruje dział "${wpis.dzial}"`);
+          if (wpis.dzial !== kod) bledy.push(`${gdzieBlok}: golden roli ${kod} deklaruje dział "${wpis.dzial}"`);
         } else {
           wpis.dzial = DZIALY[0]; // rola próbna z szablonów — kod działu nie jest przedmiotem tej reguły
         }
         const powody = powodyOdmowy(wpis);
         if (b.sprawdzany === "przechodzi") {
           przechodzacych++;
-          if (powody.length) bledy.push(`${gdzie}: miał przejść, a bramka odrzuca — ${powody[0].split("\n")[0]}`);
+          if (powody.length) bledy.push(`${gdzieBlok}: miał przejść, a bramka odrzuca — ${powody[0].split("\n")[0]}`);
         } else {
           odrzucanych++;
           if (!powody.length) {
-            bledy.push(`${gdzie}: miał zostać odrzucony, a bramka go PRZYJMUJE — zły przykład niczego nie uczy`);
+            bledy.push(`${gdzieBlok}: miał zostać odrzucony, a bramka go PRZYJMUJE — zły przykład niczego nie uczy`);
           } else {
             for (const oczekiwany of b.odrzuca) {
               if (!powody.some((p) => p.includes(oczekiwany))) {
-                bledy.push(`${gdzie}: odrzucony, ale NIE z powodu "${oczekiwany}" — zapaliło się co innego`);
+                bledy.push(`${gdzieBlok}: odrzucony, ale NIE z powodu "${oczekiwany}" — zapaliło się co innego`);
               }
             }
           }
         }
       }
     }
-    if (!przechodzacych) bledy.push(`rola ${kod}: golden nie ma ani jednego przykładu DOBREGO`);
-    if (!odrzucanych) bledy.push(`rola ${kod}: golden nie ma ani jednego przykładu ZŁEGO — bez niego nie jest miarą`);
+    if (!przechodzacych) bledy.push(`rola ${gdzie}: golden nie ma ani jednego przykładu DOBREGO`);
+    if (!odrzucanych) bledy.push(`rola ${gdzie}: golden nie ma ani jednego przykładu ZŁEGO — bez niego nie jest miarą`);
   }
 }
 
@@ -319,32 +363,51 @@ if (BRAK_ROL) {
    strażnik w połowie budowy niczego by nie pilnował, tylko zaszumiał bramkę.
    Stan budowy jedzie na wyjściu jako liczba i lista brakujących, żeby częściowy
    sektor nie wyglądał jak gotowy. */
-{
-  const ZNANE = new Set([...DZIALY, ...PROCESOWE]);
-  if (BRAK_ROL) {
-    pominiete.push(`12. komplet plików ról — zbudowano 0 z ${ZNANE.size}`);
-  } else {
-    for (const kod of KODY_ROL) {
-      // KOD_PROBNY to rola budowana z szablonów przez audyt mutacyjny — wyjątek
-      // NAZWANY, jak `.claude/` w regule 1, a nie przeoczony. Wszystkie
-      // pozostałe reguły obowiązują ją tak samo jak rolę prawdziwą; wyjęta jest
-      // wyłącznie spod pytania "czy ROLE.md ją zna", bo z definicji nie zna.
-      if (!ZNANE.has(kod) && kod !== KOD_PROBNY) bledy.push(`katalog audyt/role/${kod} nie odpowiada żadnej roli z ROLE.md`);
-      if (!existsSync(join(ROLE, kod, "SKILL.md"))) {
-        bledy.push(`rola ${kod} nie ma SKILL.md — GOLD-06 nie miałby czego sprawdzać`);
-      }
+/**
+ * KOMPLET JEST TWARDY DLA SEKTORA, KTÓRY JUŻ ZBUDOWANO DO KOŃCA — i to jest
+ * stan, nie przełącznik nastroju.
+ *
+ * Przy E5 komplet ról audytu był w trakcie budowy tylko LICZONY i wypisywany
+ * jako "pominięte": czerwony strażnik w połowie partii nie pilnowałby niczego,
+ * tylko zaszumiał bramkę. Utwardzono go dopiero, gdy wszystkie 19 ról istniało.
+ * Sektor RE-AUDYT jest dziś w tym samym miejscu, w którym audyt był w środku
+ * E5 — dlatego jego komplet zostaje MIĘKKI do końca E7.4, a wtedy `false`
+ * zmienia się na `true` razem z ostatnią rolą.
+ *
+ * CISZY TU NIE MA W ŻADNYM STANIE: liczba zbudowanych ról i imienna lista
+ * brakujących jedzie na wyjściu zawsze — miękki komplet mówi to samo, tylko
+ * kodem 0. Bez tego "częściowy sektor" wyglądałby jak gotowy.
+ */
+const KOMPLET_TWARDY = { audyt: true, "re-audyt": false };
+
+for (const { sektor, katalog, kody } of ROLE_SEKTOROW) {
+  const ZNANE = new Set(roleSektora(sektor));
+  const bezProby = kody.filter((k) => k !== KOD_PROBNY);
+
+  if (!kody.length) {
+    pominiete.push(`12. komplet plików ról sektora ${sektor} — zbudowano 0 z ${ZNANE.size}`);
+    continue;
+  }
+
+  for (const kod of kody) {
+    // KOD_PROBNY to rola budowana z szablonów przez audyt mutacyjny — wyjątek
+    // NAZWANY, jak `.claude/` w regule 1, a nie przeoczony. Wszystkie
+    // pozostałe reguły obowiązują ją tak samo jak rolę prawdziwą; wyjęta jest
+    // wyłącznie spod pytania "czy ROLE.md ją zna", bo z definicji nie zna.
+    if (!ZNANE.has(kod) && kod !== KOD_PROBNY) {
+      bledy.push(`katalog ${sektor}/role/${kod} nie odpowiada żadnej roli z ${sektor}/ROLE.md`);
     }
-    const brakujace = [...ZNANE].filter((k) => !KODY_ROL.includes(k));
-    const zbudowane = KODY_ROL.filter((k) => k !== KOD_PROBNY).length;
-    uwagi.push(`ról zbudowanych: ${zbudowane}/${ZNANE.size}`);
-    // KOMPLET JEST TWARDY OD E5. W trakcie budowy ta pozycja była tylko liczona
-    // i wypisywana jako "pominięte" — czerwony strażnik w połowie partii nie
-    // pilnowałby niczego, tylko zaszumiał bramkę. Od chwili, w której wszystkie
-    // 19 ról istnieje, brak którejkolwiek jest BŁĘDEM: `ROLE.md` opisuje rolę,
-    // której nikt nie wykonuje, a generat nie ma z czego jej zbudować.
-    if (brakujace.length) {
-      bledy.push(`brakuje ${brakujace.length} ról z ROLE.md: ${brakujace.join(", ")} — ROLE.md opisuje role bez definicji`);
+    if (!existsSync(join(katalog, kod, "SKILL.md"))) {
+      bledy.push(`rola ${sektor}/role/${kod} nie ma SKILL.md — GOLD-06 nie miałby czego sprawdzać`);
     }
+  }
+
+  const brakujace = [...ZNANE].filter((k) => !kody.includes(k));
+  uwagi.push(`ról zbudowanych (${sektor}): ${bezProby.length}/${ZNANE.size}`);
+  if (brakujace.length) {
+    const tresc = `sektor ${sektor}: brakuje ${brakujace.length} ról z ROLE.md — ${brakujace.join(", ")}`;
+    if (KOMPLET_TWARDY[sektor]) bledy.push(`${tresc} (ROLE.md opisuje role bez definicji)`);
+    else pominiete.push(`12. komplet ról sektora ${sektor} — ${tresc}; twardnieje na końcu E7.4`);
   }
 }
 
@@ -357,32 +420,34 @@ if (BRAK_ROL) {
 
    Pytamy o POZYCJE, nie o identyczność tekstu: brzmienie pytania wolno
    doprecyzować w jednym miejscu, ale lista sprawdzeń musi być ta sama. */
-{
-  const ZNANE = new Set([...DZIALY, ...PROCESOWE]);
-  if (BRAK_ROL) {
-    pominiete.push("13. checklisty ról zgodne z ROLE.md — audyt/role/ powstaje w E5");
-  } else {
-    const tekst = readFileSync(ROLE_MD, "utf8");
-    const sekcje = new Map();
-    for (const s of tekst.split("\n## ")) {
+if (BRAK_ROL) {
+  pominiete.push("13. checklisty ról zgodne z ROLE.md — <sektor>/role/ powstaje w E5 i E7");
+} else {
+  const sekcjeSektora = new Map();
+  for (const { sektor } of ROLE_SEKTOROW) {
+    const plikRoleMd = roleMdSektora(sektor);
+    if (!existsSync(plikRoleMd)) continue; // brak łapie reguła 7
+    const mapa = new Map();
+    for (const s of readFileSync(plikRoleMd, "utf8").split("\n## ")) {
       const kod = s.match(/^([A-Z]+) —/)?.[1];
-      if (kod) sekcje.set(kod, s);
+      if (kod) mapa.set(kod, s);
     }
-    for (const kod of KODY_ROL) {
-      if (!ZNANE.has(kod)) continue; // rola próbna — ROLE.md jej nie zna z definicji
-      const plik = join(ROLE, kod, "AGENT.md");
-      if (!existsSync(plik)) continue; // brak AGENT.md łapie reguła 3
-      const wzor = new RegExp(`^\\| (${kod}-(?:A)?\\d+) \\|`, "gm");
-      const wRole = [...(sekcje.get(kod) ?? "").matchAll(wzor)].map((m) => m[1]);
-      const wAgencie = [...readFileSync(plik, "utf8").matchAll(wzor)].map((m) => m[1]);
-      const brakUAgenta = wRole.filter((p) => !wAgencie.includes(p));
-      const nadmiar = wAgencie.filter((p) => !wRole.includes(p));
-      if (brakUAgenta.length) {
-        bledy.push(`rola ${kod}: AGENT.md NIE MA pozycji ${brakUAgenta.join(", ")} — agent nigdy nie zada tego pytania`);
-      }
-      if (nadmiar.length) {
-        bledy.push(`rola ${kod}: AGENT.md ma pozycje spoza ROLE.md — ${nadmiar.join(", ")}`);
-      }
+    sekcjeSektora.set(sektor, mapa);
+  }
+  for (const { sektor, katalog, kod, gdzie } of ROLE_WSZYSTKIE) {
+    if (!roleSektora(sektor).includes(kod)) continue; // rola próbna — ROLE.md jej nie zna z definicji
+    const plik = join(katalog, kod, "AGENT.md");
+    if (!existsSync(plik)) continue; // brak AGENT.md łapie reguła 3
+    const wzor = new RegExp(`^\\| (${kod}-(?:A)?\\d+) \\|`, "gm");
+    const wRole = [...(sekcjeSektora.get(sektor)?.get(kod) ?? "").matchAll(wzor)].map((m) => m[1]);
+    const wAgencie = [...readFileSync(plik, "utf8").matchAll(wzor)].map((m) => m[1]);
+    const brakUAgenta = wRole.filter((p) => !wAgencie.includes(p));
+    const nadmiar = wAgencie.filter((p) => !wRole.includes(p));
+    if (brakUAgenta.length) {
+      bledy.push(`rola ${gdzie}: AGENT.md NIE MA pozycji ${brakUAgenta.join(", ")} — agent nigdy nie zada tego pytania`);
+    }
+    if (nadmiar.length) {
+      bledy.push(`rola ${gdzie}: AGENT.md ma pozycje spoza ROLE.md — ${nadmiar.join(", ")}`);
     }
   }
 }
@@ -401,8 +466,9 @@ if (BRAK_ROL) {
    podać do `Read` od korzenia repo), a nie odsyłaczem do kliknięcia. */
 {
   const CEL = join(KORZEN, ".claude", "agents");
+  const przedrostki = Object.values(PREFIKS_AGENTA);
   const generaty = existsSync(CEL)
-    ? readdirSync(CEL).filter((f) => f.startsWith("aud-") && f.endsWith(".md"))
+    ? readdirSync(CEL).filter((f) => f.endsWith(".md") && przedrostki.some((pre) => f.startsWith(pre)))
     : [];
   if (!generaty.length) {
     pominiete.push("14. odsyłacze w generacie — .claude/agents/ jest pusty");
@@ -507,7 +573,6 @@ try {
    To ta sama konstrukcja co reguły 5 i 16. */
 {
   const KATALOG_STANU = join(SEKTOR, "stan");
-  const KOD_POZYCJI = /^[A-Z]{2,5}-\d{2}$/;
   const pliki = existsSync(KATALOG_STANU)
     ? readdirSync(KATALOG_STANU).filter((f) => f.endsWith(".json"))
     : [];
@@ -527,6 +592,16 @@ try {
       }
       if (w.status === "ZAKOŃCZONE" && !(w.runda >= 1)) {
         bledy.push(`stan ${nazwa}: status ZAKOŃCZONE przy runda=${w.runda} — rola, która skończyła, odbyła co najmniej jedną rundę`);
+      }
+      /* ROLA MUSI NALEŻEĆ DO SWOJEGO SEKTORA. `status.mjs --pokaz` jest
+         miejscem, z którego kierownik czyta, kto pracuje; stan roli, której
+         w tym sektorze NIE MA (np. GOLD w re-audycie), wygląda tam jak rola,
+         która jeszcze nie zaczęła — czyli kierownik czekałby na wynik, który
+         nigdy nie powstanie. */
+      if (!SEKTORY.includes(w.sektor)) {
+        bledy.push(`stan ${nazwa}: nieznany sektor "${w.sektor}"`);
+      } else if (!roleSektora(w.sektor).includes(w.rola)) {
+        bledy.push(`stan ${nazwa}: rola "${w.rola}" nie istnieje w sektorze "${w.sektor}" — kierownik czekałby na wynik roli-widma`);
       }
     }
     uwagi.push(`plików stanu sprawdzonych: ${pliki.length}`);
@@ -548,14 +623,14 @@ try {
   const DROGA = /zgloszenie\.mjs\s+--plik=/;
   let sprawdzone = 0;
 
-  for (const kod of KODY_ROL) {
-    const plik = join(ROLE, kod, "KRYTYK.md");
+  for (const { katalog, kod, gdzie } of ROLE_WSZYSTKIE) {
+    const plik = join(katalog, kod, "KRYTYK.md");
     if (!existsSync(plik)) continue;
     const tekst = readFileSync(plik, "utf8");
     sprawdzone++;
     if (NAKAZ.test(tekst) && !DROGA.test(tekst)) {
       bledy.push(
-        `${kod}/KRYTYK.md: każe zgłosić własne znalezisko, ale nie podaje drogi ` +
+        `${gdzie}/KRYTYK.md: każe zgłosić własne znalezisko, ale nie podaje drogi ` +
         "(wywołania zgloszenie.mjs) — znalezisko opisane prozą znika razem z sesją"
       );
     }
@@ -563,6 +638,41 @@ try {
 
   if (!sprawdzone) pominiete.push("18. droga zgłaszania krytyków — brak ról na dysku");
   else uwagi.push(`krytyków z drogą zgłaszania: ${sprawdzone}`);
+}
+
+/* ── 19. identyfikator zgłoszenia zgodny ze swoim SEKTOREM ─────────────────
+   Oba sektory dzielą JEDEN katalog zgłoszeń (warunek łączenia po haszu, W4)
+   i SIEDEMNAŚCIE kodów działów, bo Pogłębiacz obszaru SEC jest re-audytem
+   działu SEC. Rozróżnia je wyłącznie PREFIKS w nazwie wpisu.
+
+   Zmierzone przed E7: `nastepneId()` liczył kolejny numer po plikach
+   zaczynających się od `AUD-<DZIAŁ>-`, więc przy wspólnym prefiksie
+   zgłoszenie re-audytu w dziale SEC dostałoby nazwę `AUD-SEC-001.json`,
+   którą audyt już zajął — CICHE NADPISANIE cudzego wpisu, bez jednego objawu.
+
+   Reguła pyta o ZAWARTOŚĆ katalogu, nie o to, czy wpis przeszedł przez
+   `zgloszenie.mjs`: plik dopisany ręcznie ominąłby narzędzie, a ta reguła nie.
+   To ta sama konstrukcja co reguły 5, 16 i 17. */
+{
+  const wpisy = wszystkieZgloszenia();
+  for (const w of wpisy) {
+    const oczekiwany = PREFIKS_ID[w?.sektor];
+    if (!oczekiwany) {
+      bledy.push(`zgłoszenie ${w?.id ?? "(bez id)"}: nieznany sektor "${w?.sektor}" — wpis nie należy do żadnego przebiegu`);
+      continue;
+    }
+    if (!String(w?.id ?? "").startsWith(`${oczekiwany}-`)) {
+      bledy.push(
+        `zgłoszenie ${w.id}: sektor "${w.sektor}" wymaga prefiksu "${oczekiwany}-" — ` +
+        "sektory dzielą katalog i kody działów, więc wspólny prefiks nadpisuje cudzy wpis"
+      );
+    }
+    if (!roleSektora(w.sektor).includes(w?.dzial)) {
+      bledy.push(`zgłoszenie ${w.id}: dział "${w.dzial}" nie istnieje w sektorze "${w.sektor}"`);
+    }
+  }
+  if (wpisy.length) uwagi.push(`identyfikatorów zgodnych z sektorem: ${wpisy.length}`);
+  else pominiete.push("19. prefiksy identyfikatorów — w sektorze nie ma jeszcze zgłoszeń");
 }
 
 /* ── wynik ── */

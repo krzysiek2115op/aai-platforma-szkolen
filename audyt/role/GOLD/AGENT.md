@@ -126,7 +126,7 @@ Plus dwie rzeczy spoza sektora, których wymagają zasady 3 i 6:
 
 ```
 audyt/role/<DZIAŁ>/SKILL.md              czy dział miał czego użyć
-git diff main --name-only -- . ':!audyt' czy ktokolwiek cokolwiek naprawił
+git diff main --name-only -- . ':!audyt' ':!re-audyt'   czy ktokolwiek cokolwiek naprawił
 ```
 
 ## Prompt

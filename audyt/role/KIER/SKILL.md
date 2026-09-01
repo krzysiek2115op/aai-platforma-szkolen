@@ -59,7 +59,7 @@ node audyt/tools/porownaj-cykle.mjs
 node audyt/tools/polacz-sektory.mjs --fala=1
 node audyt/tools/migawka-wartosci.mjs --porownaj
 node audyt/tools/straznik-sektora-audytu.mjs
-git diff main --name-only -- . ':!audyt'
+git diff main --name-only -- . ':!audyt' ':!re-audyt'
 ```
 
 Kody wyjścia **bez potoku**. Kod 1 z `porownaj-cykle.mjs` znaczy rozjazd albo

@@ -69,7 +69,7 @@ node audyt/tools/migawka-wartosci.mjs --porownaj
 node audyt/tools/porownaj-cykle.mjs
 
 # dowód, że sektor niczego nie naprawił
-git diff main --name-only -- . ':!audyt'
+git diff main --name-only -- . ':!audyt' ':!re-audyt'
 ```
 
 Kody wyjścia **bez potoku**.
