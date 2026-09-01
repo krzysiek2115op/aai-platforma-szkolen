@@ -12,6 +12,12 @@
  * NIE mogą zapalać strażnika; bez nich reguła mogłaby być po prostu
  * nadwrażliwa i nikt by tego nie zauważył.
  *
+ * POLE `wymaga` — mutacja, dla której na tej gałęzi NIE MA MATERIAŁU (np. reguła
+ * dotycząca `re-audyt/ROLE.md`, gdy gałąź audytu tego pliku nie ma), jest
+ * POMIJANA I POLICZONA, nigdy cicho zielona. Bez tego mutacja bez materiału
+ * meldowałaby fałszywe „PRZEPUŚCIŁ" — czyli zaszumiałaby bramkę, zamiast
+ * powiedzieć, że nie miała czego zmierzyć. Wzorzec z audytu projektu (0.35.0).
+ *
  * KOPIA ZAPASOWA POWSTAJE RAZ, PRZED PIERWSZĄ MUTACJĄ. Kopia robiona w kolejnej
  * turze jest już kopią wersji ZMUTOWANEJ — ta pułapka zabrała czas dwa razy
  * w jednej sesji przeglądu T3. Przywracanie idzie przez `finally`.
@@ -33,6 +39,8 @@ const STATUS = "audyt/tools/status.mjs";
 const STRAZNIK = "audyt/tools/straznik-sektora-audytu.mjs";
 /** Plik podkładany POZA `audyt/` na czas mutacji niezmiennika sektora. */
 const SMIEC_RE = join(KORZEN, "re-audyt", "PROBA-NIEZMIENNIKA.md");
+/** Czy katalog `re-audyt/` istniał PRZED mutacją — decyduje, czy wolno go usunąć. */
+let katalogReByl = false;
 const SMIEC_STAN = join(SEKTOR, "stan", "audyt-f2-PROBA.json");
 
 /** Uruchamia strażnika sektora. Zwraca true, gdy ZAPALIŁ SIĘ (kod != 0). */
@@ -209,12 +217,18 @@ MUTACJE.push(
       `sh("git status --porcelain -- . ':!audyt' ':!.claude'")`
     ),
     przed: () => {
+      // SPRZĄTAMY WYŁĄCZNIE TO, CO SAMI ZAŁOŻYLIŚMY. Pierwsza wersja kasowała
+      // katalog `re-audyt/` rekurencyjnie „po sobie" i skasowała PRACĘ SEKTORA
+      // RE-AUDYTU — dwa niezacommitowane dokumenty. To znana klasa z tego
+      // repozytorium: bramka sprzątająca CUDZE dane. Zapamiętujemy, czy katalog
+      // istniał PRZED nami, i usuwamy go tylko wtedy, gdy sami go zrobiliśmy.
+      katalogReByl = existsSync(join(KORZEN, "re-audyt"));
       mkdirSync(join(KORZEN, "re-audyt"), { recursive: true });
       writeFileSync(SMIEC_RE, "plik podkładany na czas jednej mutacji\n", "utf8");
     },
     po: () => {
       rmSync(SMIEC_RE, { force: true });
-      rmSync(join(KORZEN, "re-audyt"), { recursive: true, force: true });
+      if (!katalogReByl) rmSync(join(KORZEN, "re-audyt"), { recursive: true, force: true });
     },
   },
 );
@@ -474,19 +488,61 @@ const MUTACJE_ROLI = [
     oczekujCzerwonego: false,
   },
   {
+    /* REGUŁA 20. Zakres Pogłębiacza jest KOPIĄ zakresu jego działu w audycie,
+       a kopia w tym repozytorium rozjeżdża się po cichu zawsze. Rozjazd znaczy,
+       że re-audyt mierzy inny obszar, niż audyt zbadał — łączenie po haszu (W4)
+       przestaje wtedy cokolwiek znaczyć, a nic tego nie widać. */
+    opis: "zakres Pogłębiacza rozjeżdża się z zakresem jego działu w audycie",
+    wymaga: "re-audyt/ROLE.md",
+    slad: /zakres rozjechał się z działem/,
+    wykonaj: () => zPodmienionymi({
+      "re-audyt/ROLE.md": (s) => s.replace(
+        "git ls-files -- 'docs/PLAN.md' 'docs/WYTYCZNE.md' 'CLAUDE.md' 'CHANGELOG.md'",
+        "git ls-files -- 'docs/PLAN.md' 'docs/WYTYCZNE.md' 'CLAUDE.md'"
+      ),
+    }),
+  },
+  {
+    /* KONTRPRZYKŁAD do reguły 20: porównanie ma pytać o KOMENDĘ, nie o jej
+       łamanie w Markdownie. Bez tego reguła zapalałaby się na przeformatowaniu
+       dokumentu — czyli byłaby nadwrażliwa i nikt by tego nie zauważył. */
+    opis: "KONTRPRZYKŁAD: inne łamanie linii w zakresie Pogłębiacza NIE może zapalać reguły 20",
+    wymaga: "re-audyt/ROLE.md",
+    oczekujCzerwonego: false,
+    wykonaj: () => zPodmienionymi({
+      "re-audyt/ROLE.md": (s) => s.replace(
+        "git ls-files -- 'docs/PLAN.md' 'docs/WYTYCZNE.md' 'CLAUDE.md' 'CHANGELOG.md'",
+        "git ls-files -- 'docs/PLAN.md' 'docs/WYTYCZNE.md'\n  'CLAUDE.md' 'CHANGELOG.md'"
+      ),
+    }),
+  },
+  {
+    /* Pozycje re-audytu noszą literę `R`. Gdyby wzorzec strażnika przyjmował
+       wyłącznie `A` (forma Konrada), CAŁA checklista re-audytu byłaby dla
+       reguły 7 niewidzialna — czyli 21 ról „bez pozycji" przy komplecie. */
+    opis: "Pogłębiacz traci pozycje checklisty — nie ma czego wyczerpać",
+    wymaga: "re-audyt/ROLE.md",
+    slad: /pozycji checklisty — za ma[łl]o/,
+    wykonaj: () => zPodmienionymi({
+      "re-audyt/ROLE.md": (s) => s.replace(/^\| INT-R\d+ \|.*$/gm, ""),
+    }),
+  },
+
+  {
     /* Sam katalog `re-audyt/` z plikiem NIE jest naruszeniem niezmiennika —
        to jest praca sektora re-audytu. Bez tego kontrprzykładu reguła 1
        mogłaby być po prostu nadwrażliwa i nikt by tego nie zauważył. */
     opis: "KONTRPRZYKŁAD: plik w re-audyt/ NIE może zapalać niezmiennika sektora",
     oczekujCzerwonego: false,
     wykonaj: () => {
+      const bylo = existsSync(join(KORZEN, "re-audyt"));
       mkdirSync(join(KORZEN, "re-audyt"), { recursive: true });
       writeFileSync(SMIEC_RE, "praca sektora re-audytu\n", "utf8");
       try {
         return straznikCzerwony();
       } finally {
         rmSync(SMIEC_RE, { force: true });
-        rmSync(join(KORZEN, "re-audyt"), { recursive: true, force: true });
+        if (!bylo) rmSync(join(KORZEN, "re-audyt"), { recursive: true, force: true });
       }
     },
   },
@@ -557,14 +613,19 @@ function mutacjaZgloszenia() {
 
 /* ── przebieg ── */
 
+/** Czy mutacja ma na tej gałęzi materiał do zmierzenia. */
+const maMaterial = (m) => !m.wymaga || existsSync(P(m.wymaga));
+
 const kopie = new Map();
 for (const m of MUTACJE) {
+  if (!maMaterial(m)) continue;
   if (!kopie.has(m.plik)) kopie.set(m.plik, readFileSync(P(m.plik), "utf8"));
 }
 
 let przeoczone = 0;
 let martwe = 0;
 let zle = 0;
+let pominiete = 0;
 
 try {
   // Stan wyjściowy MUSI być zielony, inaczej cały przebieg mierzy nie to.
@@ -575,6 +636,11 @@ try {
   }
 
   for (const m of MUTACJE) {
+    if (!maMaterial(m)) {
+      process.stdout.write(`  – pominięta (brak ${m.wymaga} na tej gałęzi): ${m.opis}\n`);
+      pominiete++;
+      continue;
+    }
     const oryginal = kopie.get(m.plik);
     const zmutowany = m.zmien(oryginal);
     const oczekujCzerwonego = m.oczekujCzerwonego !== false;
@@ -615,6 +681,11 @@ try {
   }
 
   for (const m of MUTACJE_ROLI) {
+    if (!maMaterial(m)) {
+      process.stdout.write(`  – pominięta (brak ${m.wymaga} na tej gałęzi): ${m.opis}\n`);
+      pominiete++;
+      continue;
+    }
     const oczekujCzerwonego = m.oczekujCzerwonego !== false;
     const { czerwony, wyjscie } = m.wykonaj();
     if (oczekujCzerwonego && !czerwony) {
@@ -642,7 +713,10 @@ try {
 }
 
 const razem = MUTACJE.length + MUTACJE_ROLI.length + 1;
-process.stdout.write(`\nMutacje sektora: ${razem}, przeoczone: ${przeoczone}, martwe/złe: ${zle + martwe}\n`);
+process.stdout.write(
+  `\nMutacje sektora: ${razem}, przeoczone: ${przeoczone}, martwe/złe: ${zle + martwe}` +
+  (pominiete ? `, pominięte bez materiału: ${pominiete}` : "") + "\n"
+);
 
 // Po przywróceniu strażnik MUSI wrócić do zieleni — inaczej przebieg coś zostawił.
 const koniec = straznikCzerwony();

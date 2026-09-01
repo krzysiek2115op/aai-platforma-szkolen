@@ -32,7 +32,7 @@ audyt/
     porownaj-cykle.mjs           test powtarzalności (K4')
     polacz-sektory.mjs           audyt + re-audyt (W4)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  dziewiętnaście kontroli, OBA sektory
+    straznik-sektora-audytu.mjs  dwadzieścia kontroli, OBA sektory
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
@@ -161,7 +161,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 
 ---
 
-## Co pilnuje strażnik sektorów — dziewiętnaście kontroli
+## Co pilnuje strażnik sektorów — dwadzieścia kontroli
 
 | # | Kontrola | Co się psuje bez niej |
 |---|---|---|
@@ -184,6 +184,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 | 17 | stan roli: kody pozycji i niezerowa runda | kierownik liczy złą liczbę otwartych pozycji, a K4' bierze ją na wejściu |
 | 18 | krytyk, który MA zgłaszać, wie CZYM | znalezisko krytyka opisane prozą znika razem z sesją |
 | 19 | identyfikator zgłoszenia zgodny ze swoim SEKTOREM | wpis re-audytu nadpisuje wpis audytu — oba dzielą katalog i kody działów |
+| 20 | zakres Pogłębiacza identyczny z zakresem jego działu w audycie | re-audyt mierzy inny obszar, niż audyt zbadał — łączenie po haszu przestaje znaczyć |
 
 Reguły 2, 3, 4, 6, 10, 11 i 12 są **warunkowe**: dopóki `audyt/role/` jest pusty,
 mówią wprost „pominięte". Cisza byłaby nie do odróżnienia od zaliczenia — a katalog
@@ -209,8 +210,16 @@ E7.4. Ciszy nie ma w żadnym stanie: liczba zbudowanych ról i imienna lista
 brakujących jedzie na wyjściu zawsze — miękki komplet mówi to samo, tylko
 kodem 0.
 
-Audyt mutacyjny: **50 mutacji**, 0 przeoczonych, 0 martwych
-(`audyt/tools/audyt-straznika-sektora.mjs`).
+**Reguła 20 doszła przy E7.3.** Zakres Pogłębiacza jest KOPIĄ zakresu jego działu
+w audycie — inaczej łączenie sektorów po haszu (W4) porównywałoby wyniki z dwóch
+różnych obszarów. Kopia jest w dokumencie WPISANA, bo `ROLE.md` czyta człowiek
+i agent, a nie tylko parser; kopia w tym repozytorium rozjeżdża się po cichu
+zawsze, więc musi mieć bramkę.
+
+Audyt mutacyjny: **53 mutacje**, 0 przeoczonych, 0 martwych
+(`audyt/tools/audyt-straznika-sektora.mjs`). Trzy z nich mają pole **`wymaga`**:
+gdy na danej gałęzi nie ma materiału (`re-audyt/ROLE.md` na gałęzi audytu), są
+**pomijane i policzone**, nigdy cicho zielone.
 
 ---
 

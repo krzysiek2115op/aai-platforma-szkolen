@@ -1,5 +1,5 @@
 /**
- * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dziewiętnaście kontroli.
+ * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia kontroli.
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -30,6 +30,7 @@ import {
   katalogSektora, roleMdSektora, roleSektora, wszystkieZgloszenia,
 } from "./wspolne.mjs";
 import { powodyOdmowy } from "./zgloszenie.mjs";
+import { zakresyZRoleMd } from "./wspolne.mjs";
 
 /**
  * ROLE ustalamy RAZ i z katalogów, nie z plików — dla OBU sektorów naraz.
@@ -203,8 +204,9 @@ for (const { sektor, kody } of ROLE_SEKTOROW) {
     const kod = s.match(/^([A-Z]+) —/)[1];
     znalezione.add(kod);
     const maZakres = /\*\*Zakres[^*]*\*\*\n```\n[\s\S]*?\n```/.test(s) || procesowe.includes(kod);
-    // Checklista = tabela z pozycjami postaci KOD-01 / KON-A1.
-    const pozycje = (s.match(new RegExp(`^\\| ${kod}-(?:A)?\\d+ \\|`, "gm")) ?? []).length;
+    // Checklista = tabela z pozycjami postaci KOD-01, KON-A1, SEC-R1.
+    // Litera po myślniku jest OPCJONALNA i dowolna: Konrad ma `A`, re-audyt `R`.
+    const pozycje = (s.match(new RegExp(`^\\| ${kod}-[A-Z]?\\d+ \\|`, "gm")) ?? []).length;
     if (!maZakres) bledy.push(`rola ${kod} w ${sektor}/ROLE.md nie ma mechanicznego zakresu (K4')`);
     if (pozycje < 5) bledy.push(`rola ${kod} (${sektor}) ma ${pozycje} pozycji checklisty — za mało, by wyczerpać listę (K4')`);
   }
@@ -438,7 +440,7 @@ if (BRAK_ROL) {
     if (!roleSektora(sektor).includes(kod)) continue; // rola próbna — ROLE.md jej nie zna z definicji
     const plik = join(katalog, kod, "AGENT.md");
     if (!existsSync(plik)) continue; // brak AGENT.md łapie reguła 3
-    const wzor = new RegExp(`^\\| (${kod}-(?:A)?\\d+) \\|`, "gm");
+    const wzor = new RegExp(`^\\| (${kod}-[A-Z]?\\d+) \\|`, "gm");
     const wRole = [...(sekcjeSektora.get(sektor)?.get(kod) ?? "").matchAll(wzor)].map((m) => m[1]);
     const wAgencie = [...readFileSync(plik, "utf8").matchAll(wzor)].map((m) => m[1]);
     const brakUAgenta = wRole.filter((p) => !wAgencie.includes(p));
@@ -638,6 +640,50 @@ try {
 
   if (!sprawdzone) pominiete.push("18. droga zgłaszania krytyków — brak ról na dysku");
   else uwagi.push(`krytyków z drogą zgłaszania: ${sprawdzone}`);
+}
+
+/* ── 20. zakres Pogłębiacza IDENTYCZNY z zakresem jego działu w audycie ────
+   Pogłębiacz obszaru SEC pogłębia TEN SAM obszar, który zbadał dział SEC.
+   Inny zakres znaczyłby, że re-audyt mierzy co innego, niż audyt zbadał —
+   a wtedy łączenie sektorów po haszu (W4) przestaje cokolwiek znaczyć,
+   bo porównywalibyśmy wyniki z dwóch różnych obszarów.
+
+   Zakres jest w obu dokumentach WPISANY, nie importowany, bo `ROLE.md` czyta
+   człowiek i agent, a nie tylko parser. Kopia w tym repozytorium rozjeżdża się
+   po cichu ZAWSZE — więc kopia musi mieć bramkę. Porównanie po normalizacji
+   białych znaków: liczy KOMENDA, nie jej łamanie w Markdownie.
+
+   Reguła dotyczy WYŁĄCZNIE działów. `KON` re-audytu ma zakres szerszy
+   z założenia (`'audyt' 're-audyt'` — audytuje oba sektory), a role procesowe
+   zakresu nie mają w ogóle. */
+{
+  const plikRe = roleMdSektora("re-audyt");
+  if (!existsSync(plikRe)) {
+    pominiete.push("20. zakresy Pogłębiaczy — re-audyt/ROLE.md jeszcze nie istnieje");
+  } else {
+    const wAudycie = new Map(zakresyZRoleMd("audyt").map((z) => [z.kod, z.komenda]));
+    const wReAudycie = zakresyZRoleMd("re-audyt").filter((z) => DZIALY.includes(z.kod));
+    const plaska = (k) => String(k).replace(/\s+/g, " ").trim();
+    let zgodnych = 0;
+    for (const { kod, komenda } of wReAudycie) {
+      const wzor = wAudycie.get(kod);
+      if (!wzor) {
+        bledy.push(`re-audyt/ROLE.md: Pogłębiacz ${kod} nie ma odpowiednika w audyt/ROLE.md`);
+      } else if (plaska(wzor) !== plaska(komenda)) {
+        bledy.push(
+          `Pogłębiacz ${kod}: zakres rozjechał się z działem ${kod} audytu — ` +
+          "re-audyt mierzyłby inny obszar, niż audyt zbadał, a łączenie po haszu (W4) przestaje znaczyć"
+        );
+      } else {
+        zgodnych++;
+      }
+    }
+    const brak = DZIALY.filter((k) => !wReAudycie.some((z) => z.kod === k));
+    if (brak.length && wReAudycie.length) {
+      bledy.push(`re-audyt/ROLE.md: brak Pogłębiaczy dla działów ${brak.join(", ")}`);
+    }
+    if (zgodnych) uwagi.push(`zakresów Pogłębiaczy zgodnych z audytem: ${zgodnych}/${DZIALY.length}`);
+  }
 }
 
 /* ── 19. identyfikator zgłoszenia zgodny ze swoim SEKTOREM ─────────────────
