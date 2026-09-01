@@ -157,6 +157,14 @@ Dla **każdej** pozycji:
 **Zasięg jest Twoim produktem.** Zgłoszenie re-audytu, które podaje jedno miejsce
 i nic ponad wpis audytu, jest powtórzeniem — Konrad pyta o to wprost (`KON-R5`).
 
+**Pomiar nie zostawia śladu.** Stan zasobu, który mierzysz na `:8892` (tabela,
+opcja, skrzynka), liczysz PRZED i PO, a to, co sam założyłeś, usuwasz kluczem
+po kluczu — nigdy nadpisaniem całości — i podajesz stan po sprzątaniu. Licz
+WŁASNE ślady, nie sumę: gdy równolegle mierzy ktoś inny, suma przypisze Ci cudzy
+zapis. Ślad zostawiony w cudzych danych jest znaleziskiem `SKUT-R4` przeciw
+Tobie. Zmierzone przy próbie E7.6: Pogłębiacz zostawił własny klucz w opcji
+WordPressa i zameldował, że „nic nie zmienił w bazie".
+
 **Drążysz sam (zasada 3).** Znalezisko dotykające cudzego obszaru zostaje Twoje,
 dopóki nie wskażesz miejsca.
 

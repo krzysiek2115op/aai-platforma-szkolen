@@ -104,7 +104,7 @@ Identyczny z zakresem działu `SEC` audytu, co do znaku — pilnuje reguła 20 s
 | SEC-R3 | Czy klasyfikacja i wpływ z audytu utrzymują się przy **pełnym zasięgu**? | zgłoszenie audytu × pomiar | miejsce, w którym wpływ jest inny |
 | SEC-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | SEC-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z fali 1 | miejsce |
-| SEC-R6 | Czy dla KAŻDEGO wejścia z obszaru odmowa przy braku nonce'a albo uprawnienia jest zmierzona ŻĄDANIEM, nie odczytana z kodu? | żądanie do `:8892` bez nonce'a i bez ciastka | adres + kod odpowiedzi |
+| SEC-R6 | Czy dla KAŻDEGO wejścia z obszaru odmowa przy braku nonce'a albo uprawnienia jest zmierzona ŻĄDANIEM, nie odczytana z kodu? | żądanie do `:8892` bez nonce'a i bez ciastka | adres + kod odpowiedzi + stan danych PRZED i PO żądaniu (sam kod nie rozstrzyga: kolektor CSP i beacon odpowiadają 204 zarówno na przyjęcie, jak i na odrzut) |
 
 **Nie bierze:** wydajności zapytań (→ Pogłębiacz PERF), retencji danych (→ Pogłębiacz PRIV). SEC pyta, czy dane wejściowe mogą skrzywdzić — i przy re-audycie odpowiada na to POMIAREM.
 
