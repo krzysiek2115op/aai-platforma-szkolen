@@ -177,6 +177,22 @@ jobs:
           KREATOR_TOKEN: smoke-lekcje-ci-token-testowy-nie-sekret
         run: node tools/smoke/smoke-lekcje.ts
 
+      # Podgląd statyczny renderuje strony kursów Z BAZY, a przy `output: export`
+      # Next wymaga co najmniej JEDNEJ wygenerowanej trasy — pusta lista
+      # z generateStaticParams() wywraca build. Baza główna dostała tu tylko
+      # migracje, a smoke'i serwerowe sprzątają po sobie własne kursy, więc
+      # w tym miejscu jest pusta. Lokalnie tego nie widać: tam baza ma kursy,
+      # i dlatego bramka CSP przechodziła u człowieka, a w CI nie.
+      # Seed wgrywa dwa docelowe kursy; korzystają z nich także smoke podglądu
+      # i SEO, które porównują dane strukturalne Z BAZĄ.
+      # Seed pisze przez dyspozytora, a ten stoi za bramą kreatora — bez
+      # tokenu oddaje `brak-dostepu` (decyzja B z 0.37.0: token krótszy niż
+      # 24 znaki albo przykładowy nie wpuszcza nikogo).
+      - name: Kursy w bazie (podgląd statyczny wymaga treści)
+        env:
+          KREATOR_TOKEN: seed-ci-token-testowy-nie-sekret
+        run: npm run db1:seed
+
       # Polityka CSP sprawdzana na ARTEFAKCIE: nagłówek z nonce'em na
       # żywym serwerze (także na 404 — tam prerender zostawiłby skrypty
       # bez nonce'a) oraz komplet hashy w plikach podglądu. Stoi po

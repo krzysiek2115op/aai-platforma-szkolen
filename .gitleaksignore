@@ -1,0 +1,21 @@
+# Znaleziska gitleaks uznane za FAŁSZYWE ALARMY — każde z uzasadnieniem.
+#
+# Format wpisu: <commit>:<plik>:<reguła>:<linia>
+# Fingerprint wskazuje JEDNO wystąpienie w JEDNYM commicie, więc nowy sekret
+# w tym samym pliku nadal zapala skan. Sprawdzone testem negatywnym
+# (2026-09-01): po podłożeniu klucza do smoke-wp-jezyk.mjs skan znalazł
+# 2 zamiast 1 — czyli wyciszenie nie oślepia pliku.
+#
+# PUŁAPKA POMIARU: fingerprinty różnią się między trybami gitleaksa.
+# Ten plik działa dla `gitleaks git` (tego używa CI, job „Skan sekretów”).
+# Lokalny `gitleaks dir` liczy fingerprint BEZ commita, więc mimo tego wpisu
+# nadal zgłosi znalezisko — to nie jest regresja, tylko inny tryb.
+#
+# ── generic-api-key w tools/smoke/smoke-wp-jezyk.mjs ──────────────────────
+# Tablica FRAZY to lista ANGIELSKICH napisów interfejsu WooCommerce, których
+# bramka szuka na żywej stronie, żeby udowodnić, że klient widzi polszczyznę
+# (BLAD-024, naprawiony w 0.51.0). Gitleaks dopasował sąsiadujące pozycje
+# „Password change” i „Country/Region” jako klucz API. To nazwy pól
+# formularza, nie sekret — plik nie zawiera i nie zawierał żadnych danych
+# uwierzytelniających.
+8d10686d4f18787ada665fa07b6701f56b51078b:tools/smoke/smoke-wp-jezyk.mjs:generic-api-key:101
