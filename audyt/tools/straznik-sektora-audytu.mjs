@@ -1,5 +1,5 @@
 /**
- * STRAŻNIK SEKTORA AUDYT — szesnaście kontroli.
+ * STRAŻNIK SEKTORA AUDYT — osiemnaście kontroli.
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -488,6 +488,81 @@ try {
   }
 
   if (proby.length) uwagi.push(`wpisy PRÓBNE (poza porównaniem fal): ${proby.join(", ")}`);
+}
+
+/* ── 17. stan roli mówi prawdę: kody pozycji i niezerowa runda ─────────────
+   Obie usterki wyszły z PRÓBY NA SUCHO E6, nie z lektury.
+
+   `--niedomkniete` dzieli wejście przecinkiem, więc komentarz w nawiasie
+   zapisywał się jako osobne „pozycje" — siedem realnych pozycji dało dziewięć
+   wpisów, w tym „zgodnie z zakresem próby". Kierownik czyta stąd LICZBĘ
+   otwartych pozycji, a `porownaj-cykle.mjs` bierze ją do porównania fal (K4'),
+   więc dziennik audytu podawał nieprawdę.
+
+   Rola, która zamknęła się z licznikiem `runda 0`, wygląda w zestawieniu jak
+   rola, która nie zrobiła nic — przy roli, która przeszła całą checklistę.
+
+   Reguła pyta o ZAWARTOŚĆ pliku stanu, nie o to, czy przeszedł przez
+   `status.mjs`: plik dopisany ręcznie ominąłby narzędzie, a ta reguła nie.
+   To ta sama konstrukcja co reguły 5 i 16. */
+{
+  const KATALOG_STANU = join(SEKTOR, "stan");
+  const KOD_POZYCJI = /^[A-Z]{2,5}-\d{2}$/;
+  const pliki = existsSync(KATALOG_STANU)
+    ? readdirSync(KATALOG_STANU).filter((f) => f.endsWith(".json"))
+    : [];
+
+  if (!pliki.length) {
+    pominiete.push("17. stan ról — żadna rola nie zaczęła jeszcze pracy");
+  } else {
+    for (const nazwa of pliki) {
+      const w = JSON.parse(readFileSync(join(KATALOG_STANU, nazwa), "utf8"));
+      for (const poz of w.niedomkniete ?? []) {
+        if (!KOD_POZYCJI.test(poz)) {
+          bledy.push(
+            `stan ${nazwa}: "${poz}" nie jest kodem pozycji — kierownik liczy stąd ` +
+            "otwarte pozycje, a porownaj-cykle.mjs bierze tę liczbę do porównania fal"
+          );
+        }
+      }
+      if (w.status === "ZAKOŃCZONE" && !(w.runda >= 1)) {
+        bledy.push(`stan ${nazwa}: status ZAKOŃCZONE przy runda=${w.runda} — rola, która skończyła, odbyła co najmniej jedną rundę`);
+      }
+    }
+    uwagi.push(`plików stanu sprawdzonych: ${pliki.length}`);
+  }
+}
+
+/* ── 18. krytyk, który MA zgłaszać, wie CZYM ────────────────────────────────
+   Zmierzone przy próbie E6: 19 z 19 `KRYTYK.md` kazało „zgłosić ją jako swoje
+   znalezisko", a 0 z 19 mówiło, jak to zrobić — sekcję „Jak zgłaszasz" miał
+   wyłącznie `AGENT.md`. Objawiło się natychmiast: krytyk zgłosił dwie
+   prawdziwe usterki PROZĄ, więc bez przepisania ich w tej samej rozmowie
+   przepadłyby razem z sesją.
+
+   Reguła pyta o PARĘ: skoro plik nakazuje zgłoszenie, musi podać drogę.
+   Celuje w ROZSTRZYGNIĘCIE (czy jest wywołanie narzędzia), nie w nagłówek —
+   sekcja z tytułem „Jak zgłaszasz" i pustą treścią nie prowadzi donikąd. */
+{
+  const NAKAZ = /zg[łl]o[śs]\s+(?:j[ąa]|je)\s+jako\s+swoje\s+znalezisko/i;
+  const DROGA = /zgloszenie\.mjs\s+--plik=/;
+  let sprawdzone = 0;
+
+  for (const kod of KODY_ROL) {
+    const plik = join(ROLE, kod, "KRYTYK.md");
+    if (!existsSync(plik)) continue;
+    const tekst = readFileSync(plik, "utf8");
+    sprawdzone++;
+    if (NAKAZ.test(tekst) && !DROGA.test(tekst)) {
+      bledy.push(
+        `${kod}/KRYTYK.md: każe zgłosić własne znalezisko, ale nie podaje drogi ` +
+        "(wywołania zgloszenie.mjs) — znalezisko opisane prozą znika razem z sesją"
+      );
+    }
+  }
+
+  if (!sprawdzone) pominiete.push("18. droga zgłaszania krytyków — brak ról na dysku");
+  else uwagi.push(`krytyków z drogą zgłaszania: ${sprawdzone}`);
 }
 
 /* ── wynik ── */

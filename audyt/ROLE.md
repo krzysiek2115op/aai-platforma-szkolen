@@ -484,7 +484,7 @@ git ls-files -- 'docs/PLAN.md' 'docs/WYTYCZNE.md' 'CLAUDE.md' 'CHANGELOG.md' \
 | PIK-05 | Czy WYTYCZNE §1–§8 i N1–N3 są przestrzegane w kodzie, który powstał po nich? | `docs/WYTYCZNE.md` × produkt | paragraf + naruszenie |
 | PIK-06 | Czy bramki B1–B7, W1–W6, P0–P6, T0–T4 mają zapisany **wynik**? | CHANGELOG, dokumenty testów | bramka bez wyniku |
 | PIK-07 | Czy rzecz zapowiedziana jako „zostaje do decyzji właściciela" została rozstrzygnięta albo jawnie odłożona? | `grep -n 'ZOSTAJE DO DECYZJI' CLAUDE.md docs` | pozycja bez rozstrzygnięcia |
-| PIK-08 | Czy pozycja „przed pierwszym klientem" jest kompletna? | `PLAN-BUDOWY.md`, `ETAP-WP.md` | pozycja brakująca na liście |
+| PIK-08 | Czy pozycja „przed pierwszym klientem" jest kompletna? | `grep -in 'przed pierwszym klientem' CLAUDE.md docs/PLAN-SEO-HIGIENA-AUDYT.md` (bez `-i` plan SEO daje ZERO — wielka litera) | pozycja brakująca na liście |
 
 **Nie bierze:** prawdziwości liczb w dokumentacji (→ REPO), zgodności schematów z kodem
 (→ ARCH). PIK pyta o **obietnicę wobec produktu**, REPO o **opis wobec kodu**.

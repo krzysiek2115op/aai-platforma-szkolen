@@ -79,8 +79,50 @@ if (nowy) {
   stan.status = nowy;
 }
 
+/**
+ * NIEDOMKNIĘTE POZYCJE to KODY, nie proza — i narzędzie tego pilnuje.
+ *
+ * Zmierzone przy próbie E6: rola podała siedem pozycji z komentarzami
+ * w nawiasach, a `split(",")` pociął komentarze na osobne wpisy i zapisał
+ * DZIEWIĘĆ — w tym dwa, które pozycjami nie są („zgodnie z zakresem próby").
+ * Kierownik czyta stąd LICZBĘ niedomkniętych, a `porownaj-cykle.mjs` bierze ją
+ * jako daną wejściową do K4', więc dziennik audytu podawał nieprawdę.
+ *
+ * Wzorzec pyta o KSZTAŁT KODU, nie o obecność myślnika: „PIK-01" przechodzi,
+ * „PIK-01 (bo nie zdążyłem)" nie. Powód, dlaczego pozycja została niedomknięta,
+ * należy do raportu działu — nie do pola, które się liczy.
+ */
+const KOD_POZYCJI = /^[A-Z]{2,5}-\d{2}$/;
+
 const niedomkniete = wartosc("niedomkniete");
-if (niedomkniete !== undefined) stan.niedomkniete = niedomkniete.split(",").map((s) => s.trim()).filter(Boolean);
+if (niedomkniete !== undefined) {
+  const czesci = niedomkniete.split(",").map((s) => s.trim()).filter(Boolean);
+  const zle = czesci.filter((c) => !KOD_POZYCJI.test(c));
+  if (zle.length) {
+    process.stdout.write(
+      "Lista niedomkniętych przyjmuje WYŁĄCZNIE kody pozycji (np. PIK-02,PIK-07).\n" +
+      "Kierownik liczy stąd, ile pozycji zostało otwartych, a porownaj-cykle.mjs\n" +
+      "bierze tę liczbę do porównania fal — komentarz rozbity przecinkiem zapisałby\n" +
+      "się jako osobna „pozycja\" i zafałszował dziennik.\n\n" +
+      "Nie są kodami pozycji:\n" +
+      zle.map((z) => `  - ${z}\n`).join("") +
+      "\nPowód, dlaczego pozycja została niedomknięta, opisz w raporcie działu.\n"
+    );
+    process.exit(1);
+  }
+  stan.niedomkniete = czesci;
+}
+
+/**
+ * ZAKOŃCZENIE ZNACZY, ŻE ODBYŁA SIĘ CO NAJMNIEJ JEDNA RUNDA.
+ *
+ * Zmierzone przy próbie E6: rola przeszła całą swoją checklistę w jednym
+ * przebiegu, nie wywołała `--runda` ani razu i zamknęła się z licznikiem
+ * `0/5`. Kierownik czyta liczbę rund jako miarę pracy, więc „ZAKOŃCZONE,
+ * runda 0" znaczy dla niego „nie zrobiła nic" — przy roli, która zrobiła
+ * wszystko. Zero rund przy zakończeniu jest sprzeczne samo w sobie.
+ */
+if (stan.status === "ZAKOŃCZONE" && stan.runda === 0) stan.runda = 1;
 
 // Zakończenie z niedomkniętymi pozycjami jest DOZWOLONE, ale musi być JAWNE.
 if (stan.status === "ZAKOŃCZONE" && stan.runda >= SUFIT_RUND && !stan.niedomkniete.length) {

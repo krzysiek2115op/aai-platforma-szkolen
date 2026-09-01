@@ -29,6 +29,8 @@ const WSPOLNE = "audyt/tools/wspolne.mjs";
 const ZGLOSZENIE = "audyt/tools/zgloszenie.mjs";
 const MAPA = "audyt/tools/mapa.mjs";
 const WERDYKT = "audyt/tools/werdykt.mjs";
+const STATUS = "audyt/tools/status.mjs";
+const SMIEC_STAN = join(SEKTOR, "stan", "audyt-f2-PROBA.json");
 
 /** Uruchamia strażnika sektora. Zwraca true, gdy ZAPALIŁ SIĘ (kod != 0). */
 function straznikCzerwony() {
@@ -199,6 +201,22 @@ MUTACJE.push(
     zmien: (s) => s.replace("return Boolean(w.krytyk && w.weryfikator);", "return Boolean(w.krytyk || w.weryfikator);"),
   },
   {
+    opis: "status.mjs przestaje sprawdzać, czy niedomknięta pozycja jest KODEM (komentarz staje się pozycją)",
+    plik: STATUS,
+    slad: /nie jest kodem pozycji/,
+    zmien: (s) => s.replace("const zle = czesci.filter((c) => !KOD_POZYCJI.test(c));", "const zle = [];"),
+    // Mutacja psuje NARZĘDZIE, więc regułę 17 zapala dopiero wpis, który
+    // narzędzie teraz przepuści — stąd plik stanu podłożony na czas pomiaru.
+    przed: () => {
+      mkdirSync(join(SEKTOR, "stan"), { recursive: true });
+      writeFileSync(SMIEC_STAN, JSON.stringify({
+        sektor: "audyt", fala: 2, rola: "PIK", status: "ZAKOŃCZONE", runda: 1,
+        niedomkniete: ["PIK-01 (nie zdążyłem)"],
+      }, null, 2));
+    },
+    po: () => rmSync(SMIEC_STAN, { force: true }),
+  },
+  {
     opis: "bramka zgłoszeń przestaje odrzucać ZNACZNIK PRÓBY dopisany do treści wpisu",
     plik: ZGLOSZENIE,
     slad: /zgloszenie\.mjs --test/,
@@ -332,6 +350,33 @@ const MUTACJE_ROLI = [
     oczekujCzerwonego: false,
   },
   {
+    opis: "z KRYTYK.md znika droga zgłaszania, a nakaz zgłaszania zostaje (znalezisko krytyka ginie z sesją)",
+    wykonaj: () => rolaZSzablonu({ mutuj: { "KRYTYK.md": (s) => s.replace(/node audyt\/tools\/zgloszenie\.mjs --plik=<wpis\.json>/, "opisz je w swojej odpowiedzi") } }),
+    slad: /nie podaje drogi/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: KRYTYK.md BEZ nakazu zgłaszania i BEZ drogi NIE może zapalać strażnika",
+    wykonaj: () => rolaZSzablonu({ mutuj: { "KRYTYK.md": (s) => s
+      .replace(/zgłoś ją jako swoje znalezisko/g, "odnotuj to w werdykcie")
+      .replace(/node audyt\/tools\/zgloszenie\.mjs --plik=<wpis\.json>/, "opisz je w swojej odpowiedzi") } }),
+    oczekujCzerwonego: false,
+  },
+  {
+    opis: "w stanie roli niedomknięta pozycja jest PROZĄ, nie kodem — kierownik liczy złą liczbę otwartych",
+    wykonaj: () => mutacjaStanu({ niedomkniete: ["PIK-02", "zgodnie z zakresem próby"] }),
+    slad: /nie jest kodem pozycji/,
+  },
+  {
+    opis: "rola ZAKOŃCZONE z licznikiem runda 0 — wygląda, jakby nie zrobiła nic",
+    wykonaj: () => mutacjaStanu({ runda: 0 }),
+    slad: /odbyła co najmniej jedną rundę/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: stan z kodami pozycji i niezerową rundą NIE może zapalać strażnika",
+    wykonaj: () => mutacjaStanu({}),
+    oczekujCzerwonego: false,
+  },
+  {
     opis: "KONTRPRZYKŁAD: rola próbna z NIETKNIĘTYCH szablonów NIE może zapalać strażnika",
     wykonaj: () => rolaZSzablonu(),
     oczekujCzerwonego: false,
@@ -369,6 +414,21 @@ function mutacjaWpisu(zmiany) {
     return straznikCzerwony();
   } finally {
     rmSync(SMIEC_WER, { force: true });
+  }
+}
+
+/** Podkłada plik stanu roli o zadanym kształcie i pyta strażnika (reguła 17). */
+function mutacjaStanu(zmiany) {
+  mkdirSync(join(SEKTOR, "stan"), { recursive: true });
+  writeFileSync(SMIEC_STAN, JSON.stringify({
+    sektor: "audyt", fala: 2, rola: "PIK",
+    status: "ZAKOŃCZONE", runda: 1, niedomkniete: ["PIK-02"],
+    ...zmiany,
+  }, null, 2));
+  try {
+    return straznikCzerwony();
+  } finally {
+    rmSync(SMIEC_STAN, { force: true });
   }
 }
 
@@ -416,9 +476,18 @@ try {
       continue;
     }
 
+    // `przed`/`po` — dla mutacji, które psują NARZĘDZIE, a regułę zapala dopiero
+    // dane, które to narzędzie teraz przepuści. Scena musi stanąć przed pomiarem
+    // i zniknąć po nim, także gdy pomiar padnie.
+    m.przed?.();
     writeFileSync(P(m.plik), zmutowany, "utf8");
-    const { czerwony, wyjscie } = straznikCzerwony();
-    writeFileSync(P(m.plik), oryginal, "utf8");
+    let czerwony, wyjscie;
+    try {
+      ({ czerwony, wyjscie } = straznikCzerwony());
+    } finally {
+      writeFileSync(P(m.plik), oryginal, "utf8");
+      m.po?.();
+    }
 
     if (oczekujCzerwonego && !czerwony) {
       process.stdout.write(`  ✗ PRZEPUŚCIŁ: ${m.opis}\n`);

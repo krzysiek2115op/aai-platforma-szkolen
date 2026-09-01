@@ -449,7 +449,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E3** — dokumentacja (7 rodzajów) + Chrome | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01) | [`BRIEF-PROJEKTU.md`](BRIEF-PROJEKTU.md) (15 kB wobec 240 kB `CLAUDE.md`), [`DOKUMENTACJA.md`](DOKUMENTACJA.md), [`ZRODLA-DOKUMENTACJI.md`](ZRODLA-DOKUMENTACJI.md), skrypt z manifestem; **4944 pliki / 44 MB** poza drzewem repo; Chrome 152 sprawdzony pomiarem |
 | **E4** — szkielet | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01: „E4 akceptuję teraz") | [`STRUKTURA.md`](STRUKTURA.md), 4 szablony, **10 narzędzi** w `audyt/tools/`, strażnik sektora (9 kontroli) + **11 mutacji** (0 przeoczonych, 0 martwych) |
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
-| **E6** — generat i próba na sucho | 🚧 **W TOKU — nośnik gotowy, próba ZABLOKOWANA środowiskiem** | **Zrobione:** `werdykt.mjs` (nośnik werdyktu — ścieżka nie miała czym dojechać do końca), znacznik wpisu próbnego, strażnik **14 → 16 kontroli**, mutacje **24 → 34**. **Blokada:** definicje z `.claude/agents/` są dla harnessu NIEWIDZIALNE — patrz „Fakty zmierzone przy E6" niżej. Bez agentów próby nie da się przejść |
+| **E6** — generat i próba na sucho | ✅ **ZROBIONE — ścieżka przejechała do końca**, czeka na akceptację | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ⬜ | gałąź `re-audyt/sektor-re-audytu`, 21 ról + psy |
 | **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
 
@@ -510,9 +510,82 @@ Nie widziała tego ani reguła 5 strażnika (pyta o `id`, `dowod`, `miejsce`,
 `audyt/tools/werdykt.mjs` + dwie kontrole strażnika (15, 16) + dziesięć mutacji.
 Rozstrzygnięcia nośnika: `audyt/STRUKTURA.md`, sekcja „Nośnik werdyktu".
 
-### BLOKADA: agenci sektora są dla harnessu NIEWIDZIALNI
+### PRÓBA PRZESZŁA — pozycja 7 definicji ukończenia spełniona
 
-Wywołanie `aud-pik` zwraca **„Agent type 'aud-pik' not found"**, choć
+```
+NIE ROZPOCZĘTO → W TRAKCIE      aud-pik, fala 1, zakres = 10 plików
+PIK-08 → znalezisko             AUD-PIK-001, bramka przyjęła za pierwszym razem
+                DO WERYFIKACJI
+aud-pik-krytyk  → ODRZUCAM      z kontrdowodem
+aud-wer         → ODRZUCONE     własnym, niezależnym pomiarem
+                ZWERYFIKOWANE
+```
+
+**Sektor zadziałał tak, jak miał.** PIK zgłosił, że lista „przed pierwszym
+klientem" w `CLAUDE.md` pomija dwie pozycje. Krytyk **obalił to pomiarem**:
+dowód twierdził, że pewnych sformułowań nie ma w `CLAUDE.md` (`grep` daje pięć
+trafień) i że blok jest jedynym miejscem zbierającym tę kategorię
+(`docs/PLAN-SEO-HIGIENA-AUDYT.md` zbiera ją pełniej, a README wskazuje ten plik
+wprost). Weryfikator doszedł do tego samego **niezależnie** i dołożył pomiar,
+którego krytyk nie zrobił: pozostałość **„faktury, VAT" JEST czynna** — nie ma
+jej ani w `CLAUDE.md`, ani w planie SEO, ani w README. To osobne, węższe
+znalezisko dla prawdziwego przebiegu.
+
+**Odrzucenie jest wynikiem, nie porażką.** Wpis został z obydwoma werdyktami,
+oznaczony `proba: E6`, i strażnik wypisuje go po ID.
+
+**Czego próba NIE sprawdziła:** ścieżki odrzuceń `zgloszenie.mjs` w żywym
+przebiegu — PIK trafił za pierwszym razem, więc bramka ani razu nie odmówiła.
+Znamy ją wyłącznie z dziesięciu samokontroli `--test`.
+
+### CZTERY USTERKI, KTÓRE WYCIĄGNĘŁA PRÓBA
+
+Wszystkie naprawione; żadnej nie widziała wcześniejsza kontrola, bo trzy
+z czterech ujawniają się dopiero **w działaniu**.
+
+1. **Ścieżka nie miała nośnika werdyktu** (znalezione przed próbą, przy jej
+   przygotowaniu) — patrz sekcja niżej.
+2. **`status.mjs` dzielił `--niedomkniete` przecinkiem**: siedem realnych
+   pozycji zapisało się jako **dziewięć**, w tym „zgodnie z zakresem próby"
+   jako samodzielna pozycja. Kierownik czyta stąd liczbę otwartych pozycji,
+   a `porownaj-cykle.mjs` bierze ją do K4' — dziennik audytu podawał nieprawdę.
+   Pole przyjmuje dziś wyłącznie kody.
+3. **Rola kończąca w jednym przebiegu zapisywała `runda 0/5`** — w zestawieniu
+   wygląda jak rola, która nie zrobiła nic. Zero rund przy zakończeniu jest
+   sprzeczne samo w sobie.
+4. **PIK-08 dało się odhaczyć po pustce.** Kolumna źródeł wskazywała
+   `PLAN-BUDOWY.md` i `ETAP-WP.md`, w których fraza „przed pierwszym klientem"
+   występuje **zero razy**. Audytor idący za checklistą dosłownie znajduje
+   pustkę i może orzec „kompletna". Źródłem jest dziś komenda z `-i` —
+   **bez `-i` plan SEO daje ZERO, bo pisze „Przed pierwszym klientem" wielką
+   literą**, i przy poprawianiu tej usterki o mało nie powtórzyłem jej co do
+   klasy.
+5. **Krytycy mieli zgłaszać własne znaleziska, nie wiedząc czym.** 19 z 19
+   `KRYTYK.md` nakazywało zgłoszenie usterki checklisty, **0 z 19** podawało
+   drogę. Krytyk w próbie zgłosił dwie prawdziwe usterki PROZĄ i obie
+   przepadłyby razem z sesją, gdyby nikt ich nie przepisał w tej samej
+   rozmowie. Sekcja weszła do 19 ról **i do szablonu**, więc E7 ją dziedziczy.
+
+Usterki 2–5 pilnują nowe reguły **17** i **18** strażnika, po mutacji
+i kontrprzykładzie na każdą.
+
+**Zgłoszenie krytyka idzie pod kodem JEGO roli, nie pod `KON`** — mimo że
+`KON-A6` pyta o tę samą klasę. Zasada 3 zabrania przekazywania znaleziska,
+a oba pomiary są różne: Konrad atakuje zakresy PRZED pracą działów, krytyk
+widzi checklistę W DZIAŁANIU.
+
+### BLOKADA, KTÓRĄ ZDJĄŁ RESTART SESJI (zapis historyczny)
+
+**Rozwiązanie: restart sesji Claude Code.** Po nim harness widzi komplet
+38 definicji i próba przeszła bez żadnej zmiany w plikach. Potwierdza to
+hipotezę, której nie dało się sprawdzić z wnętrza sesji: **proces miał wczytany
+rejestr agentów projektu sprzed E5**, czyli sprzed powstania tych plików.
+**Wniosek na przyszłość: po wygenerowaniu nowych definicji ról (E7 doda 21)
+trzeba zrestartować sesję, zanim się je wywoła.** Poniższe pomiary zostają,
+bo opisują objaw, po którym rozpozna się to następnym razem.
+
+Objaw brzmiał tak: wywołanie `aud-pik` zwracało **„Agent type 'aud-pik' not
+found"**, choć
 `.claude/agents/` ma komplet 38 definicji, a `generuj-agentow.mjs --sprawdz`
 melduje zgodność ze źródłem. **Izolacja — ten sam plik definicji, trzy miejsca:**
 
@@ -541,25 +614,28 @@ klasyfikator uprawnień, a niezależnie od tego byłoby architektonicznie złe:
 38 (docelowo ~80) definicji sektora widocznych w KAŻDYM projekcie użytkownika
 to dokładnie ta wada, dla której w E5 odrzucono instalowanie skilli.
 
-**DECYZJA WŁAŚCICIELA (2026-09-01): najpierw RESTART SESJI.** Hipoteza, której
-nie da się sprawdzić z wnętrza sesji: proces mógł wczytać rejestr agentów
-projektu **zanim** E5 utworzyło te pliki (katalog `.claude/` z 05:37, definicje
-z 06:49). Restart kosztuje zero. Jeśli nie pomoże, następny krok to sprawdzenie
-w terminalu (`claude` → `/agents`), które rozstrzyga, czy ograniczenie siedzi
-w rozszerzeniu VSCode.
+**Restart sesji zdjął blokadę** i to zamyka sprawę: przyczyną był rejestr
+agentów wczytany przed powstaniem plików (katalog `.claude/` z 05:37, definicje
+z 06:49). Gdyby objaw wrócił mimo restartu, następnym pomiarem jest terminal
+(`claude` → `/agents`) — rozstrzyga, czy ograniczenie siedzi w rozszerzeniu
+VSCode.
 
-### CZEGO PRÓBA NIE OBEJMOWAŁA — żeby nikt nie uznał jej za przejdzoną
+### CZEGO PRÓBA NIE OBEJMOWAŁA — żeby nikt nie uznał działu za sprawdzony
 
-Checklista PIK **nie została przejdzona**. Sprawdzona jest wyłącznie komenda
-zakresu: daje **10 plików**, zgodnie z zapisem w `ROLE.md`. Zgrubny przelot po
-PIK-06 nie dał znaleziska, ale **wzorzec pomiaru był nieprecyzyjny** (nie łapał
-formy „ZAAKCEPTOWAŁ"), więc nie jest to wynik i nie wolno się na niego powoływać.
+**Próba przeszła ŚCIEŻKĘ, nie dział.** Zakres był zawężony rozkazem właściciela
+(„możesz testować ścieżkę, ale nic więcej"), więc PIK zatrzymał się po pierwszym
+udowodnionym znalezisku:
 
-**Znaleziska PIK nie wymyślamy, żeby ścieżka miała co przewieźć** (zasada 1).
-Po odblokowaniu agentów rolę uruchamia jej WŁASNA definicja — decyzja
-właściciela — bo tylko wtedy próba sprawdza także to, czy agent z 12 kB promptu
-naprawdę idzie checklistą. To jest rzecz, której ręczne przejście ścieżki przez
-agenta głównego **nie sprawdza wcale**.
+- **przejdzone: PIK-08** (plus komenda zakresu — daje 10 plików, zgodnie z `ROLE.md`);
+- **niedomknięte: PIK-01 … PIK-07**, zapisane jawnie w `audyt/stan/`.
+
+Dział PIK **nie jest zaudytowany** i nie wolno tego wpisu tak czytać. Pierwsza
+prawdziwa fala zaczyna PIK od zera.
+
+**Znaleziska nie wymyślamy, żeby ścieżka miała co przewieźć** (zasada 1). To,
+że jedyne znalezisko próby zostało ODRZUCONE przez obie bramki, jest wynikiem
+mocniejszym niż przyjęcie: dowód nie utrzymał się pod pomiarem i sektor to
+wychwycił, dwukrotnie i niezależnie.
 
 ### REGUŁA 11 ZŁAPAŁA ZMIANĘ W TRAKCIE JEJ WPROWADZANIA
 

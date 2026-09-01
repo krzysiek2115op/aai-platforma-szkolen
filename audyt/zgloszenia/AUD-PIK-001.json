@@ -1,0 +1,33 @@
+{
+  "id": "AUD-PIK-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PIK",
+  "pozycja": "PIK-08",
+  "stwierdzenie": "Skonsolidowana lista „przed pierwszym klientem\" w CLAUDE.md pomija dwie pozycje, które inne dokumenty repozytorium wprost przypisują tej samej kategorii: faktury/VAT oraz rozjazd polityki prywatności ze stanem witryny (razem z oceną prawną sessionStorage).",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "CLAUDE.md",
+    "zakres": "blok „POZA MODUŁAMI, przed pierwszym klientem\" (linie 3291-3295, w sekcji domknięcia Pluginu 2/punkt 11)",
+    "mechanizm": "Blok wylicza pięć pozycji (prawdziwa bramka płatności, regulamin, zgoda w kasie na natychmiastowe dostarczenie, domena + HTTPS, poczta produkcyjna) i kończy kropką, jakby to był komplet. Brakuje w nim: (1) „faktury, VAT\" — docs/plugin-2/KROK-P4.md, wiersz tabeli „## 2. Czego P4 nie dotyka\": „prawdziwa bramka płatności, faktury, VAT, regulamin | krok po P6 / przed pierwszym klientem\"; (2) „rozjazd polityki prywatności ze stanem witryny\" i „ocena prawna sessionStorage (ePrivacy)\" — docs/plugin-3/DIAGRAM.md, wiersze 599-600, oba jawnie oznaczone jako pozycja „przed pierwszym klientem\" decyzją właściciela z 2026-08-30. Te dwie pozycje nie mają odpowiednika w bloku CLAUDE.md, choć blok jest jedynym miejscem w repo, które zbiera tę kategorię w jedną listę."
+  },
+  "dowod": "docs/plugin-2/KROK-P4.md:29 — „prawdziwa bramka płatności, faktury, VAT, regulamin | krok po P6 / przed pierwszym klientem\". docs/plugin-3/DIAGRAM.md:599 — „Decyzja właściciela 2026-08-30: zgłosić jako pozycję „przed pierwszym klientem\", nie ruszać\" (rozjazd polityki prywatności); DIAGRAM.md:600 — „Ocena prawna sessionStorage (ePrivacy) […] pozycja „przed pierwszym klientem\"\". Żadne z tych dwóch sformułowań nie występuje w CLAUDE.md (sprawdzone grep-em na całym pliku) — jedyna wzmianka o tej kategorii w CLAUDE.md to blok z linii 3291-3295, i on ich nie wymienia.",
+  "klasyfikacja": "niekompletna lista wymagań przedwdrożeniowych",
+  "wplyw": "CLAUDE.md jest deklarowanym punktem wejścia każdej nowej sesji („strażnik ciągłości: NAJPIERW przeczytaj wskazane tu dokumenty”) i jedynym miejscem zbierającym pozycje „przed pierwszym klientem” w jedną listę. Ktoś planujący wdrożenie na podstawie tego bloku przygotuje bramkę płatności, regulamin, domenę i pocztę, ale nie dowie się stąd o brakujących fakturach/VAT ani o niezgodnej z prawem (nierozstrzygniętej) polityce prywatności — mimo że oba fakty są już ustalone i nazwane gdzie indziej w repo.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "e9008c49c62ca1df2b31441800db29a608f9ef05a35e392d32f36a2dd1965dad",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "Dowod obalony pomiarem. (1) Twierdzenie „zadne z tych dwoch sformulowan nie wystepuje w CLAUDE.md (sprawdzone grep-em na calym pliku)\" jest nieprawda: CLAUDE.md:2860-2862 niesie pozycje polityki prywatnosci TYM SAMYM sformulowaniem co DIAGRAM.md:599 — „zglosic jako pozycje »przed pierwszym klientem«, nie ruszac\". (2) Nieprawda jest tez „blok jest jedynym miejscem w repo, ktore zbiera te kategorie w jedna liste\": docs/PLAN-SEO-HIGIENA-AUDYT.md:312-317 zbiera ja pelniej i WYMIENIA rozjazd polityki prywatnosci, a README.md:467 wskazuje ten plik wprost jako te liste. Na tym stoi caly wplyw — wiec wplyw upada dla polowy zgloszenia. (3) Cytat KROK-P4.md jest w linii 30, nie 29. Zostaje wylacznie brak pozycji „faktury, VAT\" w bloku CLAUDE.md:3291-3295 — to inne, wezsze znalezisko i wymaga wlasnego wpisu z dowodem, ktory sie broni.",
+      "kiedy": "2026-09-01T13:53:28.433Z"
+    },
+    "weryfikator": {
+      "werdykt": "ODRZUCONE",
+      "powod": "Zjawisko nie zachodzi w zglaszanej postaci. WER-02: dwa twierdzenia POMIAROWE dowodu obalone pomiarem. (a) 'Zadne z tych dwoch sformulowan nie wystepuje w CLAUDE.md (sprawdzone grep-em na calym pliku)' jest nieprawda — grep 'przed pierwszym klientem' CLAUDE.md daje 5 trafien (1866, 2357, 2469, 2861, 3291), a CLAUDE.md:2860-2861 niesie pozycje polityki prywatnosci TYM SAMYM sformulowaniem co DIAGRAM.md:599 ('zglosic jako pozycje przed pierwszym klientem, nie ruszac'). (b) 'blok jest jedynym miejscem w repo, ktore zbiera te kategorie w jedna liste' jest nieprawda — docs/PLAN-SEO-HIGIENA-AUDYT.md:312-317 zbiera ja pelniej i WYMIENIA rozjazd polityki prywatnosci, a README.md:59 i :467 wskazuja ten plik wprost jako 'liste przed pierwszym klientem'. WER-03: dla polowy zgloszenia (polityka prywatnosci + sessionStorage) zjawisko jest ZABLOKOWANE dwiema niezaleznymi drogami — czytelnik idacy sciezka CLAUDE.md albo README dowiaduje sie o tej pozycji, wiec deklarowany wplyw nie zachodzi. Zostaje wezsze znalezisko: 'faktury, VAT' nie wystepuja jako pozycja przedwdrozeniowa ani w CLAUDE.md, ani w PLAN-SEO-HIGIENA-AUDYT.md, ani w README (zyja tylko w docs/plugin-2/KROK-P4.md:30, KROK-P5.md:43, DIAGRAM.md:656) — to inne stwierdzenie o innym zasiegu i wymaga wlasnego wpisu z dowodem, ktory sie broni. Uzupelniajaco: cytat KROK-P4 jest w linii 30, nie 29 (tresc zgodna co do znaku); numery DIAGRAM.md 599/600 zgadzaja sie. WER-01 tak (blok istnieje, CLAUDE.md:3291-3295, tresc zgodna z opisem mechanizmu), WER-04 tak (hash e9008c49... przeliczony hashMiejsca — zgodny), WER-05 tak (stwierdzenie jednoznaczne, bez trybu przypuszczajacego) — ale WER-02 i WER-03 rozstrzygaja na nie.",
+      "kiedy": "2026-09-01T13:57:00.538Z"
+    }
+  },
+  "proba": "E6"
+}

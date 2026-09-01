@@ -113,3 +113,41 @@ Dla każdego zgłoszenia: **PRZEPUSZCZAM** albo **ODRZUCAM z powodem**.
 **Odrzucenie NIE kasuje zgłoszenia** — zostaje z werdyktem. Druga fala musi
 trafić na to samo miejsce i dojść do tego samego wniosku; skasowany wpis
 zafałszowałby porównanie fal.
+
+---
+
+## Jak zgłaszasz WŁASNE znalezisko
+
+Twoja sekcja „Prompt" każe zgłosić usterkę checklisty jako **swoje** znalezisko.
+Droga jest ta sama co dla działu — inna nie istnieje:
+
+```
+node audyt/tools/zgloszenie.mjs --plik=<wpis.json>
+```
+
+Wpis musi mieć: `sektor`, `fala`, `dzial`, `pozycja`, `stwierdzenie`, `miejsce`,
+`dowod`, `klasyfikacja`, `wplyw`. **ID nadaje narzędzie, nie Ty** (§11).
+
+**Miejsce ma dwie dopuszczalne formy** (K10'):
+
+- `{"rodzaj":"linia","plik":"…","linia":N,"tresc":"…"}` — treść musi zgadzać się
+  z plikiem co do znaku po normalizacji białych znaków;
+- `{"rodzaj":"mechanizm","plik":"…","zakres":"…","mechanizm":"…"}` — dla braków
+  i kolejności. **Musi nazwać, czego brakuje i gdzie to powinno być.**
+
+**Trzy rzeczy, które odróżniają Twoje zgłoszenie od zgłoszenia działu:**
+
+1. **`dzial` to kod TWOJEJ roli**, nie `KON`. Znalezisko zostaje Twoje —
+   zasada 3 zabrania przekazywania go komukolwiek, także Konradowi, choć
+   `KON-A6` pyta o tę samą klasę. Konrad atakuje zakresy **przed** pracą
+   działów; Ty widzisz checklistę **w działaniu** i to są dwa różne pomiary.
+2. **`pozycja` to pozycja checklisty, której usterka dotyczy** (np. `PIK-08`) —
+   dzięki temu widać, co dokładnie jest zepsute.
+3. **Zgłaszasz usterki SEKTORA, nie produktu.** Checklista, zakres, granica,
+   dowód nie do odtworzenia. Znalezisko o produkcie, którego dział nie zgłosił,
+   **nie jest przedmiotem tej roli** — Twoje Ograniczenia mówią to wprost.
+
+**Bez tego kroku Twoje znalezisko nie istnieje.** Opisane wyłącznie w odpowiedzi
+znika razem z sesją — a przebieg sektora z założenia nie mieści się w jednej.
+Zmierzone przy próbie E6: krytyk zgłosił dwie prawdziwe usterki prozą i obie
+przepadłyby, gdyby nikt ich w tej samej rozmowie nie przepisał.

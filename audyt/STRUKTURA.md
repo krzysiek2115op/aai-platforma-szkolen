@@ -32,7 +32,7 @@ audyt/
     porownaj-cykle.mjs           test powtarzalności (K4')
     polacz-sektory.mjs           audyt + re-audyt (W4)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  szesnaście kontroli
+    straznik-sektora-audytu.mjs  osiemnaście kontroli
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
@@ -111,7 +111,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 
 ---
 
-## Co pilnuje strażnik sektora — szesnaście kontroli
+## Co pilnuje strażnik sektora — osiemnaście kontroli
 
 | # | Kontrola | Co się psuje bez niej |
 |---|---|---|
@@ -131,15 +131,19 @@ mutacje**, uruchamiane na gałęzi sektora.
 | 14 | generat bez martwych odsyłaczy | sektor wywraca `straznik-linkow` z `main` |
 | 15 | `werdykt.mjs --test` przechodzi | krytyk i weryfikator mogą zapisać cokolwiek |
 | 16 | ZWERYFIKOWANE tylko z kompletem werdyktów; próba nigdy cicha | wpis domknięty jednym głosem (§16) albo wyciszony znacznikiem |
+| 17 | stan roli: kody pozycji i niezerowa runda | kierownik liczy złą liczbę otwartych pozycji, a K4' bierze ją na wejściu |
+| 18 | krytyk, który MA zgłaszać, wie CZYM | znalezisko krytyka opisane prozą znika razem z sesją |
 
 Reguły 2, 3, 4, 6, 10, 11 i 12 są **warunkowe**: dopóki `audyt/role/` jest pusty,
 mówią wprost „pominięte". Cisza byłaby nie do odróżnienia od zaliczenia — a katalog
 istniał jako pusty od E4, więc sześć kontroli przechodziło po pustce, dopóki nie
 zaczęły o tym mówić.
 
-Reguły 15 i 16 **dołożył etap E6** — patrz „Nośnik werdyktu" niżej.
+Reguły 15–18 **dołożył etap E6**: 15 i 16 przy budowie nośnika werdyktu,
+17 i 18 po tym, jak **próba na sucho** wskazała dwie usterki, których żadna
+wcześniejsza kontrola nie widziała. Patrz „Nośnik werdyktu" niżej.
 
-Audyt mutacyjny: **34 mutacje**, 0 przeoczonych, 0 martwych
+Audyt mutacyjny: **40 mutacji**, 0 przeoczonych, 0 martwych
 (`audyt/tools/audyt-straznika-sektora.mjs`).
 
 ---
@@ -202,6 +206,36 @@ Dlatego wpis próbny nosi znacznik: `zgloszenie.mjs --oznacz-probe=<ID>
 
 **Wpis próbny ZOSTAJE w repozytorium** (rozstrzygnięcie właściciela
 2026-09-01) — jest materiałem dowodowym etapu, a nie śmieciem.
+
+**Do gita wchodzą wyłącznie `zgloszenia/`.** `stan/` i `migawki/` są stanem
+bieżącym, nie dowodem: plik stanu roli ma jedną nazwę na parę rola+fala, więc
+pierwsza prawdziwa fala go NADPISZE, a migawki nadpisze każde kolejne
+`--zapisz`. Zgłoszenia przeciwnie — **przyrastają i nigdy nie znikają**, także
+odrzucone (K4'). Dlatego tylko one są nośnikiem, który warto wersjonować.
+
+### Co jeszcze wskazała próba na sucho
+
+Dwie rzeczy, których nie widziała żadna z szesnastu wcześniejszych kontroli,
+bo obie ujawniają się dopiero **w działaniu**:
+
+- **`status.mjs` dzielił `--niedomkniete` przecinkiem**, więc komentarz
+  w nawiasie zapisywał się jako osobne „pozycje" — siedem realnych dało
+  dziewięć wpisów. Kierownik czyta stąd LICZBĘ otwartych pozycji,
+  a `porownaj-cykle.mjs` bierze ją do K4'. Pole przyjmuje dziś wyłącznie kody
+  (`PIK-02`), a powód niedomknięcia należy do raportu działu. Rola kończąca
+  w jednym przebiegu zapisywała też `runda 0/5`, czyli wyglądała jak rola,
+  która nie zrobiła nic. Pilnuje reguła 17.
+- **Krytycy mieli zgłaszać własne znaleziska, nie wiedząc czym.** 19 z 19
+  `KRYTYK.md` nakazywało zgłoszenie usterki checklisty, 0 z 19 podawało drogę —
+  sekcję „Jak zgłaszasz" miał wyłącznie `AGENT.md`. Krytyk w próbie zgłosił
+  dwie prawdziwe usterki PROZĄ i obie przepadłyby razem z sesją. Pilnuje
+  reguła 18; sekcja weszła też do `audyt/szablony/KRYTYK.md`, więc E7 ją
+  dziedziczy.
+
+**Zgłoszenie krytyka idzie pod kodem JEGO roli, nie pod `KON`** — mimo że
+`KON-A6` pyta o tę samą klasę. Zasada 3 zabrania przekazywania znaleziska
+komukolwiek, a oba pomiary są różne: Konrad atakuje zakresy **przed** pracą
+działów, krytyk widzi checklistę **w działaniu**.
 
 ---
 
