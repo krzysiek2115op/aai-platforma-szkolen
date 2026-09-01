@@ -31,7 +31,7 @@ audyt/
     porownaj-cykle.mjs           test powtarzalności (K4')
     polacz-sektory.mjs           audyt + re-audyt (W4)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  dwanaście kontroli
+    straznik-sektora-audytu.mjs  czternaście kontroli
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
@@ -95,6 +95,13 @@ git diff main --name-only -- . ':!audyt'      →  musi dać 0
 **Jedna komenda, bez wyjątków** (rozstrzygnięcie właściciela). Dlatego kod
 sektora mieszka w `audyt/tools/`, a nie w `tools/audyt/`, a generat i
 dokumentacja masowa nie wchodzą do gita.
+
+**Druga twarz tej ceny, zmierzona przy E5:** niezmiennik `git diff` nie widzi
+`.claude/`, ale **strażnicy z `main` skanują DYSK**. Generat z odsyłaczami
+względnymi wywrócił `straznik-linkow` przy commicie — 28 martwych odsyłaczy
+w czterech definicjach naraz. Dlatego w plikach ról ścieżki podajemy **od
+korzenia repo, w kodzie inline** (to zarazem forma, której agent potrzebuje do
+`Read`), a pilnuje tego reguła 14 strażnika sektora.
 
 **Cena jest nazwana (K8):** bramki z `main` nas nie pilnują.
 `straznik-wagi-dokumentacji` skanuje wyłącznie `tools/`, a audyt mutacyjny

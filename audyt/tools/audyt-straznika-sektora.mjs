@@ -101,15 +101,6 @@ const MUTACJE = [
       "$1git ls-files -- 'audyt/nie-ma-takiego-pliku'$2"
     ),
   },
-  {
-    opis: "KONTRPRZYKŁAD: dopisanie pozycji do checklisty NIE może zapalać strażnika",
-    plik: ROLE_MD,
-    oczekujCzerwonego: false,
-    zmien: (s) => s.replace(
-      "| SEC-12 |",
-      "| SEC-13 | Czy nowa pozycja da się dopisać bez alarmu? | grep | plik:linia |\n| SEC-12 |"
-    ),
-  },
 ];
 
 /* ── ROLA Z SZABLONU: strażnik NIE MOŻE się na niej zapalić ──────────────────
@@ -144,6 +135,32 @@ function rolaZSzablonu({ pomin = [], mutuj = {}, kod = KOD_PROBNY } = {}) {
     rmSync(join(KORZEN, ".claude", "agents", `${nazwaGeneratu}-krytyk.md`), { force: true });
     // Generat mógł zostać przebudowany bez roli próbnej — przywracamy zgodność,
     // żeby kolejna mutacja nie mierzyła skutku poprzedniej (reguła 4).
+    spawnSync("node", ["audyt/tools/generuj-agentow.mjs"], { cwd: KORZEN, stdio: "pipe" });
+  }
+}
+
+/**
+ * Mutacja obejmująca KILKA plików naraz. Potrzebna od reguły 13: „dopisanie
+ * pozycji do checklisty" jest operacją na DWÓCH plikach (ROLE.md i AGENT.md
+ * roli) i dopiero obie strony razem mówią, czy strażnik reaguje właściwie.
+ */
+function zPodmienionymi(mapa) {
+  const oryginaly = new Map();
+  try {
+    for (const [plik, przeksztalc] of Object.entries(mapa)) {
+      const tresc = readFileSync(P(plik), "utf8");
+      oryginaly.set(plik, tresc);
+      const nowa = przeksztalc(tresc);
+      if (nowa === tresc) return { czerwony: false, wyjscie: `MUTACJA NIC NIE ZMIENIŁA w ${plik}` };
+      writeFileSync(P(plik), nowa, "utf8");
+    }
+    // Regeneracja jest CZĘŚCIĄ operacji, którą mutacja udaje. Bez niej zapala
+    // się reguła 4 (generat nieaktualny) i każda mutacja tej rodziny mierzyłaby
+    // regułę 4 zamiast swojej — czyli maskowałaby to, co miała sprawdzić.
+    spawnSync("node", ["audyt/tools/generuj-agentow.mjs"], { cwd: KORZEN, stdio: "pipe" });
+    return straznikCzerwony();
+  } finally {
+    for (const [plik, tresc] of oryginaly) writeFileSync(P(plik), tresc, "utf8");
     spawnSync("node", ["audyt/tools/generuj-agentow.mjs"], { cwd: KORZEN, stdio: "pipe" });
   }
 }
@@ -206,6 +223,35 @@ const MUTACJE_ROLI = [
     opis: "katalog roli, której ROLE.md nie zna (agent bez zakresu)",
     wykonaj: () => rolaZSzablonu({ kod: "NIEZNANA" }),
     slad: /nie odpowiada żadnej roli z ROLE\.md/,
+  },
+  {
+    opis: "pozycja dopisana TYLKO do ROLE.md — agent nigdy jej nie zada",
+    wykonaj: () => zPodmienionymi({
+      "audyt/ROLE.md": (s) => s.replace("| SEC-12 |", "| SEC-13 | Czy pozycja dojechała do agenta? | grep | plik:linia |\n| SEC-12 |"),
+    }),
+    slad: /AGENT\.md NIE MA pozycji SEC-13/,
+  },
+  {
+    opis: "pozycja dopisana TYLKO do AGENT.md — agent pyta o coś spoza zakresu",
+    wykonaj: () => zPodmienionymi({
+      "audyt/role/SEC/AGENT.md": (s) => s.replace("| SEC-12 |", "| SEC-14 | Pytanie spoza ROLE.md | grep | plik:linia |\n| SEC-12 |"),
+    }),
+    slad: /ma pozycje spoza ROLE\.md — SEC-14/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: pozycja dopisana do OBU plików NIE może zapalać strażnika",
+    oczekujCzerwonego: false,
+    wykonaj: () => zPodmienionymi({
+      "audyt/ROLE.md": (s) => s.replace("| SEC-12 |", "| SEC-13 | Czy pozycja dojechała do agenta? | grep | plik:linia |\n| SEC-12 |"),
+      "audyt/role/SEC/AGENT.md": (s) => s.replace("| SEC-12 |", "| SEC-13 | Czy pozycja dojechała do agenta? | grep | plik:linia |\n| SEC-12 |"),
+    }),
+  },
+  {
+    opis: "odsyłacz względny w definicji roli — martwy po skopiowaniu do .claude/agents",
+    wykonaj: () => zPodmienionymi({
+      "audyt/role/SEC/AGENT.md": (s) => s.replace("## Checklista", "Patrz [tabela granic](../../GRANICE.md).\n\n## Checklista"),
+    }),
+    slad: /nie wskazuje niczego z \.claude\/agents/,
   },
   {
     opis: "KONTRPRZYKŁAD: rola próbna z NIETKNIĘTYCH szablonów NIE może zapalać strażnika",

@@ -1,5 +1,5 @@
 /**
- * STRAŻNIK SEKTORA AUDYT — dwanaście kontroli.
+ * STRAŻNIK SEKTORA AUDYT — czternaście kontroli.
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -340,6 +340,85 @@ if (BRAK_ROL) {
     if (brakujace.length) {
       pominiete.push(`12. komplet ról — brakuje ${brakujace.length}: ${brakujace.join(", ")}`);
     }
+  }
+}
+
+/* ── 13. checklista roli zgodna z ROLE.md, w OBIE strony ───────────────────
+   `ROLE.md` jest dokumentem, który właściciel zaakceptował; AGENT.md miał go
+   PRZENIEŚĆ, nie wymyślić od nowa. Bez tej reguły oba pliki rozjeżdżają się po
+   cichu — dopisana pozycja nigdy nie zostaje zadana, a pozycja usunięta z
+   ROLE.md dalej jest zadawana. Obie strony rozjazdu psują porównanie fal (K4'),
+   bo druga fala pracuje na innej liście pytań niż pierwsza.
+
+   Pytamy o POZYCJE, nie o identyczność tekstu: brzmienie pytania wolno
+   doprecyzować w jednym miejscu, ale lista sprawdzeń musi być ta sama. */
+{
+  const ZNANE = new Set([...DZIALY, ...PROCESOWE]);
+  if (BRAK_ROL) {
+    pominiete.push("13. checklisty ról zgodne z ROLE.md — audyt/role/ powstaje w E5");
+  } else {
+    const tekst = readFileSync(ROLE_MD, "utf8");
+    const sekcje = new Map();
+    for (const s of tekst.split("\n## ")) {
+      const kod = s.match(/^([A-Z]+) —/)?.[1];
+      if (kod) sekcje.set(kod, s);
+    }
+    for (const kod of KODY_ROL) {
+      if (!ZNANE.has(kod)) continue; // rola próbna — ROLE.md jej nie zna z definicji
+      const plik = join(ROLE, kod, "AGENT.md");
+      if (!existsSync(plik)) continue; // brak AGENT.md łapie reguła 3
+      const wzor = new RegExp(`^\\| (${kod}-(?:A)?\\d+) \\|`, "gm");
+      const wRole = [...(sekcje.get(kod) ?? "").matchAll(wzor)].map((m) => m[1]);
+      const wAgencie = [...readFileSync(plik, "utf8").matchAll(wzor)].map((m) => m[1]);
+      const brakUAgenta = wRole.filter((p) => !wAgencie.includes(p));
+      const nadmiar = wAgencie.filter((p) => !wRole.includes(p));
+      if (brakUAgenta.length) {
+        bledy.push(`rola ${kod}: AGENT.md NIE MA pozycji ${brakUAgenta.join(", ")} — agent nigdy nie zada tego pytania`);
+      }
+      if (nadmiar.length) {
+        bledy.push(`rola ${kod}: AGENT.md ma pozycje spoza ROLE.md — ${nadmiar.join(", ")}`);
+      }
+    }
+  }
+}
+
+/* ── 14. generat nie niesie martwych odsyłaczy ─────────────────────────────
+   Treść roli jest KOPIOWANA z `audyt/role/<KOD>/` do `.claude/agents/`, więc
+   każda ścieżka względna przestaje tam wskazywać cokolwiek. Złapał to dopiero
+   `straznik-linkow` z gałęzi `main` — przy commicie, 28 martwymi odsyłaczami
+   w czterech generatach naraz.
+
+   To jest druga twarz kosztu K8: niezmiennik `git diff` nie widzi `.claude/`,
+   ale STRAŻNICY SKANUJĄ DYSK. Sektor, który nie pilnuje własnego generatu,
+   psuje bramkę wspólną dla całego repozytorium.
+
+   Reguła pomija bloki kodu i kod inline: tam ścieżka jest TREŚCIĄ (agent ma ją
+   podać do `Read` od korzenia repo), a nie odsyłaczem do kliknięcia. */
+{
+  const CEL = join(KORZEN, ".claude", "agents");
+  const generaty = existsSync(CEL)
+    ? readdirSync(CEL).filter((f) => f.startsWith("aud-") && f.endsWith(".md"))
+    : [];
+  if (!generaty.length) {
+    pominiete.push("14. odsyłacze w generacie — .claude/agents/ jest pusty");
+  } else {
+    for (const nazwa of generaty) {
+      const tekst = readFileSync(join(CEL, nazwa), "utf8")
+        .replace(/```[\s\S]*?```/g, "")
+        .replace(/`[^`\n]*`/g, "");
+      for (const m of tekst.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
+        const cel = m[1].trim();
+        if (/^(https?:|mailto:|#)/.test(cel)) continue;
+        if (!existsSync(join(CEL, cel.split("#")[0]))) {
+          bledy.push(
+            `generat ${nazwa}: odsyłacz "${cel}" nie wskazuje niczego z .claude/agents/ ` +
+            "— treść roli jest kopiowana do innego katalogu, więc w definicjach ról " +
+            "ścieżki podajemy od korzenia repo, w kodzie inline"
+          );
+        }
+      }
+    }
+    uwagi.push(`generatów sprawdzonych na odsyłacze: ${generaty.length}`);
   }
 }
 
