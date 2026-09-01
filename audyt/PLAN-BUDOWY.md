@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **E7.1–E7.6 ZROBIONE (2026-09-02) — CZEKA NA AKCEPTACJĘ WŁAŚCICIELA** | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. **PRZED E8 trzy polecenia właściciela z 2026-09-02** — sekcja „Polecenia właściciela po E7.6" niżej: modele Fable 5.1 dla kierowników i Konradów, weryfikacja planu sprzed budowy, krytyka planu i realizacji |
+| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. **Trzy polecenia z 2026-09-02 WYKONANE** (sekcja „Polecenia właściciela po E7.6"): modele Fable 5.1 ✅ (wymaga restartu sesji przed wywołaniem), weryfikacja planu ✅ (`WERYFIKACJA-PLANU.md`: 106/15/2), krytyka ✅ (`KRYTYKA-BUDOWY.md`: 21 znalezisk, 20 propozycji, po bramce sędziego). **Przed E8 zostają decyzje właściciela nad tabelą F krytyki i akceptacja E7** |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -942,14 +942,14 @@ potwierdzić przy okazji, nie zakładać.
    `audyt/ROLE.md` „Model Opus | 5 ról procesowych" i `re-audyt/ROLE.md`
    „Modele wg D8" poprawić. **Po regeneracji definicji zrestartować sesję**,
    zanim któregoś z tych czterech się wywoła (lekcja E6/E7.5).
-2. **Weryfikacja CAŁEGO planu sprzed budowy** — czy wszystko jest zrobione:
+2. ✅ **WYKONANE** (patrz niżej). **Weryfikacja CAŁEGO planu sprzed budowy** — czy wszystko jest zrobione:
    `~/.claude/plans/projekt-pod-strona-szkolenia-stateless-wilkinson.md`
    (438 linii, wersja 4 zatwierdzona 2026-09-01) punkt po punkcie wobec stanu
    repo, plus ten plik (definicja ukończenia, 11 pozycji), `REGULAMIN.md`
    (16 punktów właściciela + rozstrzygnięcia D/P/W/K) i pomiary z E1–E7.
    Wynik ma być tabelą „pozycja → zrobione / brak → dowód komendą", nie
    deklaracją.
-3. **Krytyka planu i realizacji okiem krytyka** — właściciel: „chcemy
+3. ✅ **WYKONANE, po własnej bramce** (patrz niżej). **Krytyka planu i realizacji okiem krytyka** — właściciel: „chcemy
    doprowadzić ten projekt audytowy do perfekcji, żeby znalazł KAŻDY możliwy
    błąd w projekcie". Ma powstać ocena: co zrobić lepiej, jakie braki widać,
    jakie ulepszenia sektorów; podzielić się wiedzą zdobytą przy budowie
@@ -980,7 +980,9 @@ więcej niż nagłówki, bo wykonanie odsłoniło ślepotę bramki:
   regeneracji dawała generat ZGODNY z pomiarem i zieloną bramkę, bo pomiar pytał
   tę samą funkcję, która produkuje generat. Reguła odrzuca też alias nieznany
   harnessowi (`opus`/`sonnet`/`haiku`/`fable`);
-- audyt mutacyjny **60 → 66** (0 przeoczonych, 0 martwych): regresja tabeli
+- audyt mutacyjny **60 → 66**, potem **68** po przeoczeniu sędziego z krytyki (rola
+  procesowa BEZ znacznika też spadała po cichu na Sonneta — zamknięte tak samo)
+  (0 przeoczonych, 0 martwych): regresja tabeli
   z regeneracją, `ROLE.md` cofa KIER na Opusa bez regeneracji, nieznany model
   „Fable 5.2", alias-literówka `fable-5.1` w generatorze, to samo dla `rea-kon`
   (`wymaga`), kontrprzykład „zmiana nazwy roli nie zapala reguły";
@@ -998,6 +1000,48 @@ przy starcie procesu — lekcja E6/E7.5): po restarcie wywołać `aud-kier` z pr
 „podaj nazwę modelu z własnego promptu systemowego, nic więcej" — oczekiwane
 „Fable 5.1". **Do tego czasu czterech agentów NIE wywoływać.** Krytycy tych ról
 zostają na Opusie (D3 bez zmian).
+
+#### POLECENIE 2 — WYKONANE 2026-09-02
+
+Wynik: **[`WERYFIKACJA-PLANU.md`](WERYFIKACJA-PLANU.md)** — 123 pozycje planu
+(fakty, decyzje D/P/W/K′, struktura i zakresy 14 działów, przebieg, zgłoszenie,
+nośnik, dokumentacja, kod, etapy, definicja ukończenia, krytyka planu, koszt),
+każda z komendą i wynikiem: **106 ✅, 15 ⚠️ (inaczej niż w planie, z powodem
+zapisanym przy pozycji), 2 ❌** plus trzeci brak liczony jako częściowy:
+(1) ślepota fali 2 tylko w prompcie kierownika; (2) „dziennik wejść" z KIER-05
+nie istnieje; (3) pozycja 8 definicji ukończenia (test negatywny każdej
+kontroli) nie jest artefaktem — mutacje nazywają wprost 11 z 22 reguł.
+Pozycja 11 potwierdzona lokalnie: `npm run check` kod 0 (39 strażników,
+83/83 testów), CI na `main` success 2026-09-01.
+
+#### POLECENIE 3 — WYKONANE 2026-09-02, PO WŁASNEJ BRAMCE
+
+Wynik: **[`KRYTYKA-BUDOWY.md`](KRYTYKA-BUDOWY.md)** — 21 znalezisk w trzech
+klasach (A: audyt nie znajdzie każdego błędu; B: wynik niewiarygodny wobec K4′;
+C: przebieg nie dojedzie), 20 propozycji z kosztem i oznaczeniem, które ruszają
+rozstrzygnięcia właściciela (7, 10, 18), sekcja wiedzy z budowy.
+**Pierwszą wersję ocenił niezależny krytyk** (agent `sedzia`, domyślnie
+odrzucający, 56 pomiarów): 9 potwierdzonych, 7 osłabionych, 1 obalone, sześć
+kolizji propozycji, pięć przeoczeń — BLOKUJĘ. Wszystko naniesione; obalone
+(B6) wycofane; przeoczenia weszły jako B8–B12. **Najważniejsze znalezisko całej
+krytyki pochodzi od sędziego (B8):** `hashMiejsca()` liczy NUMER LINII, więc
+dwie fale opisujące ten sam błąd pod przesuniętą linią dostaną różne hashe,
+a `porownaj-cykle.mjs` ogłosi defekt audytu przy identycznym znalezisku — to
+uderza w K4′ i W4 naraz i jest pozycją nr 1 listy propozycji.
+**B12 zamknięte od razu kodem** (mieści się w poleceniu 1): rola procesowa bez
+znacznika modelu spadała po cichu na Sonneta; `wspolne.mjs` i reguła 21 rzucają
+błąd, mutacja + kontrprzykład (dział bez znacznika zostaje na Sonnecie, D8);
+audyt mutacyjny **66 → 68**.
+
+**Lekcja tej sesji (E10 krytyki):** krytyka bez własnego krytyka miała
+1 znalezisko obalone i 7 osłabionych na 17 — zasada pary (WYTYCZNE N1) dotyczy
+także krytyki sektora.
+
+**STAN PO TRZECH POLECENIACH — co dalej:** (a) **restart sesji** i test
+uruchomieniowy aliasu `fable` na `aud-kier` (polecenie 1); (b) decyzje
+właściciela nad tabelą F krytyki — w szczególności pozycje 1–4, 6, 8
+(wiarygodność wyniku) i 7, 10, 18 (ruszają K4′/K9′); (c) akceptacja E7 wprost;
+(d) dopiero potem E8 = STOP i zielone światło na uruchomienie.
 
 ---
 

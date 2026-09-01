@@ -227,13 +227,14 @@ czyta się odtąd z nagłówka roli w `ROLE.md`. **Od 2026-09-02 modele są trzy
 dla `KIER` i `KON` obu sektorów, polecenie właściciela) i reguła 21 czyta nagłówki
 **własnym odczytem**, nie funkcją generatora — bo pomiar tą samą funkcją, która produkuje
 generat, przepuszczał regresję tabeli modeli po regeneracji; nieznany model w nagłówku
-zapala regułę zamiast spadać na Sonneta. Druga: 21 z 21 `KRYTYK.md`
+zapala regułę zamiast spadać na Sonneta; to samo robi BRAK znacznika przy roli
+procesowej (przeoczenie wskazane przez sędziego przy krytyce budowy). Druga: 21 z 21 `KRYTYK.md`
 re-audytu wskazywało w module wpisy `AUD-<KOD>-*` — krytyk Pogłębiacza SEC
 oceniałby pracę działu SEC AUDYTU, a wpisy `REA-SEC-*` nie miałyby krytyka.
 Usterka przyszła z szablonu, w którym prefiks stał na sztywno; szablon ma
 odtąd `<PREFIKS>`.
 
-Audyt mutacyjny: **66 mutacji**, 0 przeoczonych, 0 martwych
+Audyt mutacyjny: **68 mutacji**, 0 przeoczonych, 0 martwych
 (`audyt/tools/audyt-straznika-sektora.mjs`). Pięć z nich ma pole **`wymaga`**:
 gdy na danej gałęzi nie ma materiału (`re-audyt/ROLE.md` na gałęzi audytu), są
 **pomijane i policzone**, nigdy cicho zielone.

@@ -694,6 +694,23 @@ MUTACJE_ROLI.push(
     },
   },
   {
+    /* Przeoczenie wskazane przez sędziego (2026-09-02): nieznany model był
+       zamknięty, BRAK znacznika nie — rola procesowa bez „· **Opus**" po
+       regeneracji dawała generat i pomiar zgodne co do Sonneta. */
+    opis: "rola procesowa GOLD traci znacznik modelu, generat przebudowany — dotąd cichy fallback na Sonneta z zieloną bramką",
+    slad: /rola procesowa GOLD bez znacznika modelu/,
+    wykonaj: () => zPodmienionymi({
+      [ROLE_MD]: (s) => s.replace("## GOLD — Golden  · **Opus**", "## GOLD — Golden"),
+    }),
+  },
+  {
+    opis: "KONTRPRZYKŁAD: DZIAŁ bez znacznika modelu zostaje na Sonnecie (D8) i NIE zapala reguły 21",
+    oczekujCzerwonego: false,
+    wykonaj: () => zPodmienionymi({
+      [ROLE_MD]: (s) => s.replace("## SEC — Security", "## SEC — Security  · **Sonnet**"),
+    }),
+  },
+  {
     opis: "KONTRPRZYKŁAD: zmiana NAZWY roli w nagłówku (nie modelu) NIE zapala reguły 21",
     oczekujCzerwonego: false,
     wykonaj: () => zPodmienionymi({

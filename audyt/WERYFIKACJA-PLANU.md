@@ -33,7 +33,7 @@ niż w planie (z uzasadnieniem) · ❌ brak.
    wejść. Reguła nakładania żyje tylko w prompcie kierownika.
 3. **Mapa reguła → mutacja nie istnieje**, więc pozycji 8 definicji ukończenia
    („test negatywny KAŻDEJ nowej kontroli") nie da się udowodnić komendą: strażnik
-   ma 22 kontrole, audyt mutacyjny 66 mutacji, ale komentarze mutacji wymieniają
+   ma 22 kontrole, audyt mutacyjny 68 mutacji, ale komentarze mutacji wymieniają
    wprost tylko 11 numerów reguł. Reszta pokrycia jest wiedzą z sesji, nie
    artefaktem.
 
@@ -131,7 +131,7 @@ ich powstania (skąd wzięła się różnica, jest napisane przy pozycji).
 | nośnik: do ~200 JSON w repo, powyżej SQLite; próg do akceptacji | ⚠️ | próg 200 zaakceptowany (`PLAN-BUDOWY.md:1313`); SQLite — patrz W4 |
 | łączenie audyt+re-audyt po hashu miejsca | ✅ | `audyt/tools/polacz-sektory.mjs`; `audyt/wyniki/polaczone-f1.json` istnieje po próbach |
 | `migawka-wartosci.mjs`: liczby bramek, sumy kontrolne, stan tabel, wp:sprawdz, wp:tutor, git diff; rozjazd = zatrzymanie | ✅ | `--porownaj` → „Migawki identyczne — audyt niczego nie zmienił w projekcie", kod 0 |
-| `mapa.mjs`: każdy plik z działem, sierota = niczyj | ✅ | `node audyt/tools/mapa.mjs` → „711 + 399 = 1110 / 1110, SIEROTY 0, sprzeczne 0", kod 0; definicja obszaru = `git ls-files` (`mapa.mjs:38, 42`) — K2 |
+| `mapa.mjs`: każdy plik z działem, sierota = niczyj | ✅ | `node audyt/tools/mapa.mjs` → „711 + 399 = 1110 / 1110, SIEROTY 0, sprzeczne 0", kod 0 (po dopisaniu dwóch dokumentów tej sesji: 712 + 399 = 1111 — liczba rośnie z każdym plikiem sektora, patrz KRYTYKA-BUDOWY B10); definicja obszaru = `git ls-files` (`mapa.mjs:38, 42`) — K2 |
 | 7 rodzajów dokumentacji — wszystkie dociągnięte | ✅ | `DOKUMENTACJA.md:14-24` tabela: 7/7 ✅ po E3; `ls ~/.cache/aai-audyt-dokumentacja` → `agentowa cudzy-kod mdn narzedzia owasp php prawo`; 4944 pliki / 44 MB poza drzewem |
 | specjalistyczna przez deklarację w `AGENT.md` | ✅ | 19/19 „Zestaw specjalistyczny" (sekcja B, P3) |
 | skrypt pobierający idempotentny, z manifestem `KATALOG_DZIALU`/`KATALOGI_MASOWE` | ✅ | `grep -n "export const KATALOG_DZIALU\|export const KATALOGI_MASOWE" audyt/tools/pobierz-dokumentacje-audyt.mjs` → linie 63, 64; `straznik-wagi-dokumentacji` zielony (pre-commit) |
@@ -139,7 +139,7 @@ ich powstania (skąd wzięła się różnica, jest napisane przy pozycji).
 | skrypty: zgloszenie, status, migawka-wartosci, mapa, porownaj-cykle, polacz-sektory, generuj-agentow (7) | ✅ | `ls audyt/tools` → wszystkie 7 + `werdykt.mjs`, `wspolne.mjs`, `pobierz-dokumentacje-audyt.mjs`, strażnik, audyt mutacyjny = **12** |
 | katalog `tools/audyt/` | ⚠️ | jest `audyt/tools/` — `ls tools/audyt` → nie istnieje. Powód zapisany w `STRUKTURA.md:140` (wszystko, co należy do sektora, w jednym katalogu, żeby niezmiennik był jedną komendą) |
 | strażnik sektora: 7 kontroli (branch, krytyk, 5 elementów, generat sha256, dowód+kod+miejsce, 3 zasady, mechaniczny zakres) | ✅ | `grep -c "^/\* ── [0-9]" audyt/tools/straznik-sektora-audytu.mjs` → **22** kontrole (7 z planu + 15 dołożonych po drodze); reguła 7 = `:195` |
-| „plus mutacje w audycie mutacyjnym" | ✅ | `node audyt/tools/audyt-straznika-sektora.mjs` → „Mutacje sektora: 66, przeoczone: 0, martwe/złe: 0", kod 0 |
+| „plus mutacje w audycie mutacyjnym" | ✅ | `node audyt/tools/audyt-straznika-sektora.mjs` → „Mutacje sektora: 68, przeoczone: 0, martwe/złe: 0", kod 0 (66 przy commicie polecenia 1, +2 po przeoczeniu sędziego B12) |
 | ślepota cyklu 2 — trzy warstwy: zakaz w prompcie, czysty kontekst, kontrola w `porownaj-cykle.mjs` | ❌ warstwa 1 | warstwa 3: `porownaj-cykle.mjs:11-15` (kopia co do słowa = podejrzenie); warstwa 2: własność harnessu; **warstwa 1**: `grep -n -i "fal" .claude/agents/aud-sec.md` → 9 trafień, **żadne nie jest zakazem czytania wyników fali 1**; zakaz stoi tylko w `audyt/role/KIER/AGENT.md:225` (brak nr 1) |
 
 ## E. Etapy budowy
@@ -169,7 +169,7 @@ ich powstania (skąd wzięła się różnica, jest napisane przy pozycji).
 | 5 | `zgloszenie.mjs --test` → bez dowodu/miejsca odrzucone, komplet przyjęty | ✅ | 18/18, w tym „BEZ dowodu", „BEZ miejsca", „plik nieistniejący", „treść linii się nie zgadza" → odrzucone |
 | 6 | `generuj-agentow.mjs --sprawdz` → zgodny | ✅ | „Generat zgodny ze źródłem: 80 definicji", kod 0 |
 | 7 | próba na sucho → ZWERYFIKOWANE | ✅ | `AUD-PIK-001` i `REA-SEC-001` → ZWERYFIKOWANE; `REA-SEC-002` → DO WERYFIKACJI (świadomie nieprzewieziony, `PLAN-BUDOWY.md:905`) |
-| 8 | test negatywny KAŻDEJ nowej kontroli | ❌ dowód | 66 mutacji na 22 kontrole, ale `grep -oE "regu[łl][aęy]? [0-9]+"` po mutacjach → wprost tylko reguły **1, 4, 5, 6, 7, 13, 15, 17, 20, 21, 22** (11 z 22). Pokrycie pozostałych 11 nie jest artefaktem (brak nr 3) |
+| 8 | test negatywny KAŻDEJ nowej kontroli | ❌ dowód | 68 mutacji na 22 kontrole, ale `grep -oE "regu[łl][aęy]? [0-9]+"` po mutacjach → wprost tylko reguły **1, 4, 5, 6, 7, 13, 15, 17, 20, 21, 22** (11 z 22). Pokrycie pozostałych 11 nie jest artefaktem (brak nr 3) |
 | 9 | migawka przed i po identyczne | ✅ | `--porownaj` → identyczne, kod 0 |
 | 10 | każda rola ma mechaniczny zakres i checklistę | ✅ | strażnik reguła 7: „ról zbudowanych (audyt): 19/19, (re-audyt): 21/21, zakresów Pogłębiaczy zgodnych z audytem: 14/14" |
 | 11 | na `main` bez zmian: `npm run check` 0, strażnicy 39/39, mutacje 340, testy 83/83 | ✅ | CI na `main` (HEAD `c645895`): `gh run list --branch main -L 3` → `success` 2026-09-01; lokalnie na tej gałęzi (poza sektorami identycznej z `main`): pre-commit „Strażnicy: wszyscy zaliczeni (39)", mutacje 340 (grep), testy 83 (grep); `npm run check` lokalnie → kod **0** (sekcja H) |
