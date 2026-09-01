@@ -447,13 +447,58 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E1** — utrwalenie | ✅ **ZROBIONE, zaakceptowane przez właściciela** | gałąź `audyt/sektor-audytu`, [`audyt/REGULAMIN.md`](REGULAMIN.md) (520 linii), wpis w pamięci projektu, ten plik |
 | **E2** — szkic ról i tabela granic | ✅ **ZROBIONE — czeka na akceptację** | [`ROLE.md`](ROLE.md) (707 linii): 19 ról, **522 pliki przypisane**, 183 pozycje checklist, odwzorowanie 30 klas `BLAD-*`; [`GRANICE.md`](GRANICE.md) (117 linii): 24 pary o przecięciu ≥5 plików |
 | **E3** — dokumentacja (7 rodzajów) + Chrome | ✅ **ZROBIONE — czeka na akceptację** | [`BRIEF-PROJEKTU.md`](BRIEF-PROJEKTU.md) (15 kB wobec 240 kB `CLAUDE.md`), [`DOKUMENTACJA.md`](DOKUMENTACJA.md), [`ZRODLA-DOKUMENTACJI.md`](ZRODLA-DOKUMENTACJI.md), skrypt z manifestem; **4944 pliki / 44 MB** poza drzewem repo; Chrome 152 sprawdzony pomiarem |
-| **E4** — szkielet | ⬜ **NASTĘPNY** (po akceptacji E3) | `STRUKTURA.md`, szablony, `audyt/tools/*`, strażnik sektora + mutacje |
-| **E5** — 19 ról × 4 pliki | ⬜ | ~76 plików źródłowych, każdy z checklistą |
+| **E4** — szkielet | ✅ **ZROBIONE — czeka na akceptację** | [`STRUKTURA.md`](STRUKTURA.md), 4 szablony, **10 narzędzi** w `audyt/tools/`, strażnik sektora (9 kontroli) + **11 mutacji** (0 przeoczonych, 0 martwych) |
+| **E5** — 19 ról × 4 pliki | ⬜ **NASTĘPNY** (po akceptacji E4) | ~76 plików źródłowych z szablonów, każdy z checklistą |
 | **E6** — generat i próba na sucho | ⬜ | `.claude/agents/aud-*.md` |
 | **E7** — sektor RE-AUDYT | ⬜ | gałąź `re-audyt/sektor-re-audytu`, 21 ról + psy |
 | **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
+
+## Fakty zmierzone przy E4 (nie wyprowadzać od nowa)
+
+- **Progi rozstrzygnięte przez właściciela:** nośnik plik → SQLite przy
+  **200 zgłoszeniach**, sufit rund agenta pętlowego **5** (przy suficie rola
+  MUSI wypisać niedomknięte pozycje — cisza po suficie jest luką).
+  `node:sqlite` jest w standardzie node 26, więc przejście na bazę nie dokłada
+  zależności.
+- **Sektor ma WŁASNY audyt mutacyjny.** `tools/straznicy/audyt-straznikow.mjs`
+  leży poza `audyt/`, więc dopisanie do niego mutacji złamałoby niezmiennik.
+  Kontrakt wpisu jest ten sam, żeby dało się je kiedyś połączyć.
+- **`.claude/` jest WYJĄTKIEM NAZWANYM w strażniku, nie przeoczonym.** Generat
+  definicji agentów jest z założenia nieśledzony i odtwarzalny jedną komendą,
+  więc `git diff main` go nie widzi — ale `git status` widzi. Wyjątek jest wąski
+  i pilnuje go reguła 4 (zgodność ze źródłem po sha256 **oraz brak
+  generatów-sierot**, czyli plików `aud-*.md` bez roli w `audyt/role/`).
+- **HASH MIEJSCA bierze TREŚĆ, nie sam adres** — `sha256(rodzaj|plik|linia|
+  treść znormalizowana)` albo `sha256(mechanizm|plik|zakres|nazwa)` dla braków
+  (K10'). Dzięki temu da się go odtworzyć z kodu i nie da się podać „na oko".
+- **`zgloszenie.mjs` SPRAWDZA, CZY MIEJSCE ISTNIEJE**: plik musi być na dysku,
+  a przy formie liniowej treść podana przez agenta musi zgadzać się z treścią
+  w pliku. To jest maszynowa egzekucja zasady 1 — agent nie może wskazać linii,
+  której nie otworzył. Samokontrola `--test` ma **9 przypadków**.
+- **DZIESIĄTY NAWRÓT PUŁAPKI POLSKICH ZNAKÓW, tym razem w kodzie pisanym po to,
+  żeby pilnować dyscypliny.** Wzorzec `/\bwydaje mi si[ęe]\b/i` NIE łapał zdania
+  „Wydaje mi się, że…", bo `\b` wymaga granicy między `\w` a nie-`\w`, a `ę`
+  w JS **nie jest** `\w`. Bramka przepuszczała dokładnie to, czego miała
+  zabraniać. Złapała to samokontrola, nie lektura. **W polskich wzorcach:
+  `\p{L}` z flagą `u`**, nigdy `\b`.
+- **Wzorce szukające ZDANIA muszą być odporne na ZAWIJANIE.** Reguła 6 pytała
+  o „Brak dowodu = brak zgłoszenia" ze zwykłą spacją, a Markdown przełamał to
+  zdanie między słowami — przelot próbny z szablonów dał **trzy fałszywe
+  alarmy**. Odstępy idą teraz jako `\s+`.
+- **Mutacja, która nie tworzy warunku, jaki deklaruje, jest MARTWA i daje
+  fałszywą pewność.** Mutacja „pusty zakres" podmieniała tylko pierwszy
+  pathspec, reszta linii zostawała, zakres dalej zwracał pliki — wyglądało to
+  na dziurę w strażniku, a było dziurą w mutacji.
+- **Zgodność szablonów ze strażnikiem jest STAŁĄ kontrolą**, nie jednorazowym
+  sprawdzeniem: audyt mutacyjny buduje rolę z szablonów przy każdym przebiegu
+  i wymaga, żeby strażnik jej NIE zapalił. Bez tego E5 wywróciłoby się na
+  pierwszej roli, a wyglądałoby to na błąd roli.
+- **Migawka musi mierzyć TAK SAMO jak istniejące bramki.** Pierwsza wersja
+  liczyła testy wzorcem bez kotwicy i bez ograniczenia do repo — dała **2106**
+  zamiast 83. Dwa pomiary tej samej rzeczy muszą dawać tę samą liczbę, inaczej
+  porównanie migawek podnosi fałszywy alarm.
 
 ## Fakty zmierzone przy E3 (nie wyprowadzać od nowa)
 
