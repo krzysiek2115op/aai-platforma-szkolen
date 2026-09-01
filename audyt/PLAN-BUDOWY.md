@@ -500,6 +500,41 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
   zamiast 83. Dwa pomiary tej samej rzeczy muszą dawać tę samą liczbę, inaczej
   porównanie migawek podnosi fałszywy alarm.
 
+### Sweep przed /clear (2026-09-01) — co wyszło poza etapami
+
+**CZTERY NARZĘDZIA NIE MIAŁY ŻADNEGO TESTU.** Strażnik sektora uruchamia
+`mapa.mjs`, `zgloszenie.mjs --test` i `generuj-agentow.mjs`, ale
+`porownaj-cykle.mjs`, `polacz-sektory.mjs`, `status.mjs` i
+`migawka-wartosci.mjs --porownaj` nie były wołane przez nic — nikt by nie
+zauważył, gdyby były zepsute. Przećwiczone na danych syntetycznych, **kody
+wyjścia mierzone bez potoku**:
+
+| Narzędzie | Scenariusz | Kod |
+|---|---|---|
+| `porownaj-cykle` | znalezisko tylko w fali 1 → rozjazd | **1** |
+| `porownaj-cykle` | obie fale zgodne | **0** |
+| `porownaj-cykle` | identyczny opis co do słowa → podejrzenie kopiowania | **1** |
+| `polacz-sektory` | audyt + re-audyt na tym samym hashu | **0**, „potwierdzone przez oba: 1" |
+| `status` | szósta runda ponad sufitem | **1** |
+| `status` | zakończenie po suficie BEZ listy niedomkniętych | **1** |
+| `status` | zakończenie z listą | **0** |
+| `migawka --porownaj` | bez zmian | **0** |
+| `migawka --porownaj` | zmieniony skrót drzewa produktu | **1** |
+
+**PUŁAPKA PRZY SAMYM POMIARZE:** pierwsze sprawdzenie `porownaj-cykle` dało
+„kod: 0" przy poprawnie wykrytym rozjeździe — bo `$?` po `| tail` pokazuje kod
+**potoku**, nie skryptu. Ta sama klasa, którą repo zna od D5. Kody wyjścia
+mierzymy bez potoku, także wtedy, gdy sprawdzamy własne narzędzia.
+
+**Do rozstrzygnięcia przez właściciela:** `CLAUDE.md` w linii ~1285 mówi
+„STAN: E0 i E1 ZROBIONE, NASTĘPNY KROK TO E2" i **będzie się starzeć dalej**,
+bo niezmiennik sektora zabrania go dotknąć. Linia ~1270 na szczęście deleguje
+stan do tego pliku („tabela STANU BUDOWY mówi, na którym etapie jesteśmy"),
+a pamięć projektu niesie stan aktualny — więc nowa sesja trafi we właściwe
+miejsce. Dwie drogi: (a) zostawić i polegać na delegacji + pamięci,
+(b) jednorazowo poprawić `CLAUDE.md` po zamknięciu sektorów, jako świadomy
+wyjątek od niezmiennika. **Nie robimy tego bez decyzji.**
+
 ## Fakty zmierzone przy E3 (nie wyprowadzać od nowa)
 
 - **Kod i dokumentacja sektora żyją w `audyt/`** (rozstrzygnięcie właściciela).
