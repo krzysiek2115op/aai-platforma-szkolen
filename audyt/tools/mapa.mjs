@@ -13,12 +13,21 @@
  * cichu z dokumentem, który właściciel zaakceptował — ta sama zasada, dla
  * której `straznik-wagi-dokumentacji` importuje manifest zamiast trzymać nazwy.
  *
+ * ZAKRESY OBU SEKTORÓW, NIE SAMEGO AUDYTU. Plik jest pokryty, gdy bierze go
+ * co najmniej jeden dział — a Konrad re-audytu bierze `re-audyt/`, czego żaden
+ * zakres audytu nie obejmuje. Bez tej unii dokumenty sektora RE-AUDYT byłyby
+ * SIEROTAMI: plikami, których nie czyta nikt. Zmierzone przy E7.4 — mapa
+ * zgłosiła dokładnie dwa takie pliki, zanim role re-audytu weszły do gita.
+ * Zakresy Pogłębiaczy są identyczne z zakresami działów audytu (reguła 20),
+ * więc unia niczego nie rozmywa: dokłada wyłącznie to, czego audyt nie ma.
+ *
  * Użycie:
  *   node audyt/tools/mapa.mjs            # tabela + kod 1, gdy są sieroty
  *   node audyt/tools/mapa.mjs --json     # do porównania migawek
  */
 import { execFileSync } from "node:child_process";
-import { KORZEN, zakresyZRoleMd } from "./wspolne.mjs";
+import { existsSync } from "node:fs";
+import { KORZEN, SEKTORY, roleMdSektora, zakresyZRoleMd } from "./wspolne.mjs";
 
 /**
  * Wykluczenia z POWODEM. Każdy wiersz musi wskazywać decyzję — wykluczenie
@@ -45,10 +54,24 @@ export function policzMape() {
 
   const dzialy = [];
   const przypisane = new Set();
-  for (const { kod, komenda } of zakresyZRoleMd()) {
-    const pliki = gitPliki(komenda);
-    dzialy.push({ kod, ile: new Set(pliki).size, pusty: pliki.length === 0 });
-    for (const p of pliki) przypisane.add(p);
+  const widziane = new Set();
+  for (const sektor of SEKTORY) {
+    // Sektor bez `ROLE.md` jest POMIJANY, nie jest błędem: na gałęzi audytu
+    // `re-audyt/ROLE.md` nie istnieje i tak ma być.
+    if (!existsSync(roleMdSektora(sektor))) continue;
+    for (const { kod, komenda } of zakresyZRoleMd(sektor)) {
+      const pliki = gitPliki(komenda);
+      // Ten sam kod w obu sektorach (Pogłębiacz bierze kod swojego działu)
+      // pokazujemy w tabeli RAZ — inaczej wyglądałaby na 29 wierszy zamiast 15
+      // i sugerowała, że plik ma dwóch właścicieli. Do pokrycia liczą się
+      // jednak pliki z OBU zakresów: Konrad re-audytu bierze `re-audyt/`,
+      // czego żaden zakres audytu nie obejmuje.
+      if (!widziane.has(kod)) {
+        dzialy.push({ kod, ile: new Set(pliki).size, pusty: pliki.length === 0 });
+        widziane.add(kod);
+      }
+      for (const p of pliki) przypisane.add(p);
+    }
   }
 
   const wykluczone = new Set();

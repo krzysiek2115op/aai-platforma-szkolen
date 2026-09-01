@@ -118,8 +118,17 @@ if (BRAK_ROL) {
 } else {
   try {
     execFileSync("node", ["audyt/tools/generuj-agentow.mjs", "--sprawdz"], { cwd: KORZEN, stdio: "pipe" });
-  } catch {
-    bledy.push("generat .claude/agents/ jest nieaktualny wobec źródła (uruchom generuj-agentow.mjs)");
+  } catch (e) {
+    // POWÓD, NIE SAM FAKT. Bramka mówiąca wyłącznie „nieaktualny" nie odróżnia
+    // generatu starszego od źródła od generatu-SIEROTY, a to są dwie różne
+    // naprawy: pierwsza to przebieg generatora, druga to skasowana rola albo
+    // przełączona gałąź. Wyjście generatora niesie tę różnicę — połykanie go
+    // zamieniało diagnostykę w zgadywanie.
+    const powody = String(e.stdout ?? "").split("\n").filter((l) => l.trim().startsWith("- "));
+    bledy.push(
+      "generat .claude/agents/ jest nieaktualny wobec źródła (uruchom generuj-agentow.mjs)" +
+      (powody.length ? `:\n      ${powody.slice(0, 3).map((l) => l.trim()).join("\n      ")}` : "")
+    );
   }
 }
 
@@ -372,15 +381,17 @@ if (BRAK_ROL) {
  * Przy E5 komplet ról audytu był w trakcie budowy tylko LICZONY i wypisywany
  * jako "pominięte": czerwony strażnik w połowie partii nie pilnowałby niczego,
  * tylko zaszumiał bramkę. Utwardzono go dopiero, gdy wszystkie 19 ról istniało.
- * Sektor RE-AUDYT jest dziś w tym samym miejscu, w którym audyt był w środku
- * E5 — dlatego jego komplet zostaje MIĘKKI do końca E7.4, a wtedy `false`
- * zmienia się na `true` razem z ostatnią rolą.
+ * Sektor RE-AUDYT przeszedł tę samą drogę: komplet był MIĘKKI przez E7.4
+ * i **stwardniał razem z dwudziestą pierwszą rolą**. Od tej chwili brak
+ * którejkolwiek jest błędem, bo `ROLE.md` opisywałby wtedy rolę bez definicji,
+ * a generat nie miałby z czego jej zbudować.
  *
  * CISZY TU NIE MA W ŻADNYM STANIE: liczba zbudowanych ról i imienna lista
- * brakujących jedzie na wyjściu zawsze — miękki komplet mówi to samo, tylko
- * kodem 0. Bez tego "częściowy sektor" wyglądałby jak gotowy.
+ * brakujących jedzie na wyjściu zawsze. Sektor, którego katalog `role/` jeszcze
+ * nie istnieje (re-audyt na gałęzi audytu), mówi "pominięte" — bo nie ma czego
+ * pilnować, a nie dlatego, że jest gotowy.
  */
-const KOMPLET_TWARDY = { audyt: true, "re-audyt": false };
+const KOMPLET_TWARDY = { audyt: true, "re-audyt": true };
 
 for (const { sektor, katalog, kody } of ROLE_SEKTOROW) {
   const ZNANE = new Set(roleSektora(sektor));
