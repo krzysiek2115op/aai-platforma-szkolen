@@ -40,7 +40,7 @@ trzeba.
 
 | Szukasz | Gdzie |
 |---|---|
-| **co robić TERAZ** | sekcja „TRZY OSTATNIE KROKI", koniec — schematy draw.io ZROBIONE (0.64.0), został **audyt końcowy** (wytyczne poda właściciel) |
+| **co robić TERAZ** | sekcja „TRZY OSTATNIE KROKI", koniec — audyt końcowy MA JUŻ ZAKRES (2026-09-01): budujemy sektory AUDYT i RE-AUDYT na osobnych gałęziach; praca na `audyt/sektor-audytu`, stan w `audyt/PLAN-BUDOWY.md` |
 | zasad, których nie wolno złamać | „Twarde zasady" wyżej + [docs/WYTYCZNE.md](docs/WYTYCZNE.md) |
 | prototypu Next.js (działy D1–D7, bramki B1–B7) | „Stan i następny krok" — od początku do „PLUGIN 1 DOMKNIĘTY" |
 | decyzji o etapie WordPress, środowiska `:8892`, motywu | „ETAP WORDPRESS — START" + [docs/ETAP-WP.md](docs/ETAP-WP.md) |
@@ -1257,18 +1257,49 @@ polecenie zabraniało):
 z trzech ostatnich kroków** — SEO (0.60.x) i higiena repo (0.62.0 + 0.63.0)
 są zamknięte, schematy też (0.64.0).
 
-**WŁAŚCICIEL ZAPOWIEDZIAŁ, ŻE BĘDZIE TO NAJWIĘKSZA PRACA** i że
-**wyjaśni całość, gdy będziemy planować**. Zakresu NIE planować z własnej
-inicjatywy i nie zakładać go z nazwy — czekać na jego wytyczne, tak samo
-jak przy schematach (gdzie własny prompt właściciela zmienił kształt kroku).
+**ZAKRES PODANY PRZEZ WŁAŚCICIELA 2026-09-01** — wcześniejszy zapis
+„czekać na jego wytyczne" jest już nieaktualny. Audyt NIE jest jednorazowym
+przeglądem: to **osobny sektor projektu**, a po nim **drugi, osobny sektor
+RE-AUDYT**, bardziej szczegółowy (nie kopia).
 
-Obowiązuje reguła z 2026-08-28: **plan przebiegu kroku + pytania
-doprecyzowujące, i CZEKAĆ NA ZGODĘ**, dopiero potem praca.
+**PRACA TRWA NA OSOBNYCH GAŁĘZIACH, NIGDY NA `main`** (decyzja właściciela,
+gałęzie zostają na zawsze): **`audyt/sektor-audytu`** i docelowo
+`re-audyt/sektor-re-audytu`. Niezmiennik sektora sprawdza JEDNA komenda —
+`git diff main --name-only -- . ':!audyt'` musi dać **0**.
 
-**JUTRO (1 września) WRACA CI** — wtedy dwie rzeczy: domknąć **dependabota
-PR #106** z zielonym checkiem (decyzja właściciela: czekamy na CI) i
-potwierdzić **gitleaks**, jedyne sprawdzenie bez lokalnego odpowiednika,
-czekające od kilkunastu wersji.
+**CZYTAĆ PRZED PRACĄ (na gałęzi sektora):** `audyt/PLAN-BUDOWY.md` — tabela
+STANU BUDOWY mówi, na którym etapie jesteśmy — oraz `audyt/REGULAMIN.md`
+(520 linii, wierny zapis opisu właściciela: 16 punktów, schemat struktury,
+ściąga kolejności, standard raportu, zasady Golden, wszystkie
+rozstrzygnięcia D/P/W/K).
+
+Skrót, żeby nowa sesja nie wyprowadzała tego od nowa: **~40 ról, ~80 agentów**
+(każda rola ma krytyka — WYTYCZNE N1), **14 działów** = 7 ze schematu
+właściciela + 7 naszych, kierownicy i krytycy na **Opusie**, reszta na
+**Sonnecie**, **kursy POZA zakresem**. **Agent Konrad audytuje AUDYT**, nie
+projekt. **Sektory nie naprawiają** — wskazują odizolowane miejsce błędu.
+**Powtarzalność jest zasadą BUDOWY:** druga fala musi dać ten sam wynik,
+a rozjazd znaczy defekt audytu — dlatego każda rola dostaje mechaniczny
+zakres i checklistę, nie swobodny przegląd.
+
+**STAN: E0 i E1 ZROBIONE, NASTĘPNY KROK TO E2** (szkic 19 ról i tabela granic
+między działami). Właściciel akceptuje KAŻDY etap osobno, a **uruchomienie
+audytu wymaga jego zielonego światła** — budowa to co innego niż przebieg.
+
+**CI WRÓCIŁO 1 WRZEŚNIA I JEST ZIELONE W CAŁOŚCI** — pierwszy raz od
+2026-08-17. Odnowione minuty Actions odsłoniły dwie rzeczy ukryte przez
+piętnaście dni, **obie niezależne od dependabota** (`main` padał identycznie):
+fałszywy alarm gitleaksa na liście angielskich fraz WooCommerce w
+`smoke-wp-jezyk.mjs` (wyciszony punktowo w `.gitleaksignore`, z testem
+negatywnym) oraz **regresję jobu „Baza"** — bramka CSP budowała podgląd
+statyczny na PUSTEJ bazie, bo w CI nigdy nie było seeda. **`gitleaks` jest
+POTWIERDZONY** — pozycja czekająca od kilkunastu wersji zamknięta. PR #117
+(naprawa) i #118 (dependabot: next 16.3.3, zod 4.5.2) zmergowane.
+
+**LEKCJA, KTÓRA KOSZTOWAŁA PIĘTNAŚCIE DNI CISZY:** `smoke-csp` z buildem
+podglądu wszedł do CI **po** ostatnim zielonym przebiegu, więc **nigdy przez
+CI nie przeszedł** — był weryfikowany wyłącznie lokalnie, gdzie baza ma kursy.
+**Bramka, której nie widać, jest nie do odróżnienia od bramki, której nie ma.**
 
 ## ═══ ETAP WORDPRESS — START (decyzje właściciela 2026-08-25) ═══
 
