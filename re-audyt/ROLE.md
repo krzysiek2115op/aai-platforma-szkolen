@@ -534,7 +534,7 @@ pełnych cyklach.
 |---|---|---|---|
 | STRAZ-R1 | Czy dla potwierdzonej klasy **istnieje już** strażnik? | `tools/straznicy` × klasa | strażnik + reguła |
 | STRAZ-R2 | Czy ten strażnik pyta o **rozstrzygnięcie**, czy o nazwę albo napis? | wzorzec reguły | wzorzec + co przepuszcza |
-| STRAZ-R3 | Czy klasa ma wpis w [`rejestr/znane-bledy.json`](../rejestr/znane-bledy.json)? | odczyt rejestru | klasa bez wpisu |
+| STRAZ-R3 | Czy klasa ma wpis w `rejestr/znane-bledy.json`? | odczyt rejestru | klasa bez wpisu |
 | STRAZ-R4 | Czy projekt nowej reguły ma **test negatywny i kontrprzykład**? | opis projektu | oba przypadki wypisane |
 | STRAZ-R5 | Czy projekt **nie wymaga** zmiany kodu produktu? | opis projektu | miejsce zmiany |
 | STRAZ-R6 | Czy strażnik dałby się uruchomić **bez postawionego środowiska**, czy musi być warunkowy? | zależności projektu | wymagany zasób |
@@ -606,7 +606,7 @@ git ls-files -- 'audyt' 're-audyt'
 | KON-R1 | Czy istnieje obszar audytu, do którego **nie wchodzi** żaden Pogłębiacz? | zakresy obu `ROLE.md` | obszar |
 | KON-R2 | Czy istnieje klasa potwierdzona przez audyt, której **nikt nie zmierzył** co do zasięgu? | zgłoszenia audytu × zgłoszenia re-audytu | klasa + brak wpisu |
 | KON-R3 | Czy „re-audyt uruchomił to na `:8892`" jest **prawdą** dla każdego takiego zgłoszenia? | treść dowodów | zgłoszenie bez uruchomienia |
-| KON-R4 | Czy granice między `PSIARZ`, `SKUT`, `STRAZ` i `WALID` zostawiają **szczelinę**? | [`GRANICE.md`](GRANICE.md) | znalezisko bez właściciela |
+| KON-R4 | Czy granice między `PSIARZ`, `SKUT`, `STRAZ` i `WALID` zostawiają **szczelinę**? | `re-audyt/GRANICE.md` | znalezisko bez właściciela |
 | KON-R5 | Czy Pogłębiacz **przepisał** wpis audytu zamiast go pogłębić? | wpis audytu × wpis re-audytu | ID + brak przyrostu |
 | KON-R6 | Czy wynik re-audytu zależy od **kolejności** ról? | dwa przeloty × `porownaj-cykle.mjs` | różnica między przelotami |
 
