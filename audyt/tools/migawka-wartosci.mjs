@@ -31,7 +31,13 @@ const licz = (k) => Number(sh(k)) || 0;
  * Liczymy tylko to, czego audyt nie ma prawa dotknąć: wszystko poza `audyt/`.
  */
 function skrotProduktu() {
-  const pliki = sh("git ls-files -- . ':!audyt'").split("\n").filter(Boolean).sort();
+  // DWA WYKLUCZENIA — jedna postać niezmiennika dla obu gałęzi (rozstrzygnięcie
+  // właściciela 2026-09-01). Zmierzone przy przygotowaniu próby E7.6: z jednym
+  // wykluczeniem migawka wliczała 86 plików `re-audyt/` do skrótu PRODUKTU
+  // i meldowała je jako „diff wobec main poza audytem" — czyli na gałęzi
+  // re-audytu liczyła własną pracę sektora jako zmianę w projekcie. Wpis
+  // z E7.1 o „dziewięciu miejscach" tego pliku nie obejmował.
+  const pliki = sh("git ls-files -- . ':!audyt' ':!re-audyt'").split("\n").filter(Boolean).sort();
   const h = createHash("sha256");
   for (const p of pliki) {
     h.update(p).update(":");
@@ -47,8 +53,10 @@ export function zrobMigawke() {
     // git — czy sektor w ogóle ruszył cokolwiek poza sobą
     galaz: sh("git branch --show-current"),
     glowa_main: sh("git rev-parse main"),
-    diff_wobec_main_poza_audytem: licz("git diff main --name-only -- . ':!audyt' | wc -l"),
-    niezacommitowane_poza_audytem: licz("git status --porcelain -- . ':!audyt' | wc -l"),
+    diff_wobec_main_poza_sektorami: licz("git diff main --name-only -- . ':!audyt' ':!re-audyt' | wc -l"),
+    // `.claude/` to generat definicji agentów — wyjątek NAZWANY, ten sam co
+    // w regule 1 strażnika sektora; bez niego pole nigdy nie schodzi do zera.
+    niezacommitowane_poza_sektorami: licz("git status --porcelain -- . ':!audyt' ':!re-audyt' ':!.claude' | wc -l"),
 
     // warstwa dowodowa projektu
     straznikow: licz("ls tools/straznicy/straznik-*.mjs | wc -l"),

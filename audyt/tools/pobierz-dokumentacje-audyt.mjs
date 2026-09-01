@@ -9,7 +9,7 @@
  * KAŻDYM z ~80 agentów i w OBU falach.
  *
  * DLACZEGO TUTAJ, A NIE W `tools/`. Sektor żyje wyłącznie na swojej gałęzi
- * (D7), a niezmiennik brzmi `git diff main --name-only -- . ':!audyt'` → 0.
+ * (D7), a niezmiennik brzmi `git diff main --name-only -- . ':!audyt' ':!re-audyt'` → 0.
  * Skrypt w `tools/` łamałby go przy pierwszym commicie. Cena jest nazwana
  * wprost i jest to świadomy koszt z K8: `straznik-wagi-dokumentacji` z `main`
  * skanuje TYLKO katalog `tools/`, więc tego skryptu NIE WIDZI. Manifest
