@@ -130,7 +130,8 @@ function rolaZSzablonu({ pomin = [], mutuj = {}, kod = KOD_PROBNY } = {}) {
   try {
     for (const nazwa of ["AGENT.md", "KRYTYK.md", "SKILL.md"]) {
       if (pomin.includes(nazwa)) continue;
-      let tresc = readFileSync(join(SZABLONY, nazwa), "utf8").replaceAll("<KOD>", kod).replaceAll("<NAZWA ROLI>", "Próba");
+      let tresc = readFileSync(join(SZABLONY, nazwa), "utf8")
+        .replaceAll("<KOD>", kod).replaceAll("<NAZWA ROLI>", "Próba").replaceAll("<PREFIKS>", "AUD");
       if (mutuj[nazwa]) tresc = mutuj[nazwa](tresc);
       writeFileSync(join(PROBNA, nazwa), tresc, "utf8");
     }
@@ -584,6 +585,55 @@ const MUTACJE_ROLI = [
     },
   },
 ];
+
+/* ── mutacje z przygotowania próby E7.6 (reguły 21 i 22) ───────────────────
+   Obie usterki wyglądały na pracę wykonaną i żadna z 55 mutacji ich nie
+   widziała: generat `rea-walid` na Sonnecie wbrew ROLE.md oraz 21 krytyków
+   re-audytu wskazujących w module wpisy AUDYTU. */
+MUTACJE_ROLI.push(
+  {
+    opis: "generator wraca do listy ról opusowych wpisanej ręcznie — WALID i kierownicy idą na Sonneta",
+    slad: /przypisuje roli \w+ model/,
+    wykonaj: () => zPodmienionymi({
+      "audyt/tools/generuj-agentow.mjs": (s) => s.replace(
+        "const model = modelRoli(sektor, kod, rodzaj);",
+        'const model = rodzaj === "krytyk" ? "opus" : "sonnet";'
+      ),
+    }),
+  },
+  {
+    /* ROLE.md zmienia model, a generatu NIKT NIE PRZEBUDOWAŁ. Reguła 4 tego
+       nie widzi (sha256 źródła bez zmian) — dokładnie ta droga, którą WALID
+       jechał na Sonnecie przez cały E7.5. Celowo BEZ regeneracji. */
+    opis: "ROLE.md przestawia model roli, generat zostaje stary — sha256 źródła tego nie widzi",
+    slad: /przypisuje roli WER model/,
+    wykonaj: () => {
+      const plik = P(ROLE_MD);
+      const org = readFileSync(plik, "utf8");
+      const nowa = org.replace("## WER — Audytor weryfikator  · **Opus**", "## WER — Audytor weryfikator  · **Sonnet**");
+      if (nowa === org) return { czerwony: false, wyjscie: "MUTACJA NIC NIE ZMIENIŁA w audyt/ROLE.md" };
+      writeFileSync(plik, nowa, "utf8");
+      try { return straznikCzerwony(); } finally { writeFileSync(plik, org, "utf8"); }
+    },
+  },
+  {
+    opis: "KONTRPRZYKŁAD: inne odstępy w nagłówku roli NIE mogą zapalać reguły 21",
+    oczekujCzerwonego: false,
+    wykonaj: () => zPodmienionymi({
+      [ROLE_MD]: (s) => s.replace("## RAP — Audytor raportu  · **Opus**", "## RAP — Audytor raportu · **Opus**"),
+    }),
+  },
+  {
+    opis: "szablon krytyka wskazuje zgłoszenia CUDZEGO sektora — prefiks wpisany na sztywno",
+    slad: /krytyk oceniałby pracę cudzego sektora/,
+    wykonaj: () => rolaZSzablonu({ mutuj: { "KRYTYK.md": (s) => s.replace("zgloszenia/AUD-PROBA-", "zgloszenia/REA-PROBA-") } }),
+  },
+  {
+    opis: "KONTRPRZYKŁAD: wzmianka o wpisie drugiego sektora w KRYTYK.md NIE zapala reguły 22",
+    oczekujCzerwonego: false,
+    wykonaj: () => rolaZSzablonu({ mutuj: { "KRYTYK.md": (s) => s + "\nWpis `REA-PROBA-001` drugiego sektora łączy się z tym działem po haszu miejsca.\n" } }),
+  },
+);
 
 /* ── zgłoszenie-śmieć: reguła 5 ma je złapać bez dotykania kodu ── */
 const SMIEC = join(ZGLOSZENIA, "AUD-SEC-999.json");

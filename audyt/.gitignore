@@ -1,0 +1,7 @@
+# STRUKTURA.md, „Wpis PRÓBNY": do gita wchodzą WYŁĄCZNIE zgloszenia/.
+# stan/ ma jedną nazwę pliku na parę rola+fala (pierwsza prawdziwa fala go
+# NADPISZE), a migawki/ nadpisuje każde kolejne --zapisz — to stan bieżący,
+# nie dowód. Zmierzone przy przygotowaniu próby E7.6: cztery takie pliki
+# były śledzone wbrew dokumentowi, od E6.
+stan/
+migawki/

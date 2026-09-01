@@ -1,5 +1,5 @@
 /**
- * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia kontroli.
+ * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia dwie kontrole.
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -27,7 +27,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   DZIALY, KOD_POZYCJI, KOD_PROBNY, KORZEN, PREFIKS_AGENTA, PREFIKS_ID, SEKTOR, SEKTORY,
-  katalogSektora, roleMdSektora, roleSektora, wszystkieZgloszenia,
+  katalogSektora, modelRoli, roleMdSektora, roleSektora, wszystkieZgloszenia,
 } from "./wspolne.mjs";
 import { powodyOdmowy } from "./zgloszenie.mjs";
 import { zakresyZRoleMd } from "./wspolne.mjs";
@@ -730,6 +730,75 @@ try {
   }
   if (wpisy.length) uwagi.push(`identyfikatorów zgodnych z sektorem: ${wpisy.length}`);
   else pominiete.push("19. prefiksy identyfikatorów — w sektorze nie ma jeszcze zgłoszeń");
+}
+
+/* ── 21. model generatu zgodny z ROLE.md (D8) ──────────────────────────────
+   Zmierzone przy przygotowaniu próby E7.6: `re-audyt/ROLE.md` przypisuje
+   WALID model Opus — dwa razy, w nagłówku roli i w podsumowaniu — a generat
+   `rea-walid` miał `model: sonnet`. Generator trzymał WŁASNĄ listę ról
+   opusowych, wpisaną ręcznie przy E4, i nikt jej nie rozszerzył o czwartą rolę
+   procesową re-audytu. Reguła 4 tego nie widzi: porównuje sha256 ŹRÓDŁA
+   (`AGENT.md`), a model w źródle nie stoi. Weryfikator re-audytu pracowałby
+   na innym modelu, niż rozstrzygnął właściciel, bez jednego objawu.
+
+   Reguła pyta o SKUTEK — wiersz `model:` w pliku, który czyta harness —
+   wobec dokumentu zaakceptowanego przez właściciela, nie o to, czy generator
+   ma właściwą listę. */
+{
+  const CEL = join(KORZEN, ".claude", "agents");
+  let sprawdzone = 0;
+  for (const { sektor, kod } of ROLE_WSZYSTKIE) {
+    if (!roleSektora(sektor).includes(kod)) continue; // rola próbna — ROLE.md jej nie zna z definicji
+    for (const rodzaj of ["agent", "krytyk"]) {
+      const nazwa = `${PREFIKS_AGENTA[sektor]}${kod.toLowerCase()}${rodzaj === "krytyk" ? "-krytyk" : ""}.md`;
+      const plik = join(CEL, nazwa);
+      if (!existsSync(plik)) continue; // brak generatu łapie reguła 4
+      const wGeneracie = readFileSync(plik, "utf8").match(/^model:\s*(\S+)/m)?.[1];
+      const wRoleMd = modelRoli(sektor, kod, rodzaj);
+      sprawdzone++;
+      if (wGeneracie !== wRoleMd) {
+        bledy.push(
+          `generat ${nazwa}: model "${wGeneracie}", a ${sektor}/ROLE.md przypisuje roli ${kod} model "${wRoleMd}" (D8) ` +
+          "— rola pracowałaby na innym modelu, niż rozstrzygnął właściciel"
+        );
+      }
+    }
+  }
+  if (sprawdzone) uwagi.push(`modeli generatów zgodnych z ROLE.md: ${sprawdzone}`);
+  else pominiete.push("21. modele generatów — brak generatów na dysku");
+}
+
+/* ── 22. moduł krytyka wskazuje zgłoszenia SWOJEGO sektora ─────────────────
+   Zmierzone przy przygotowaniu próby E7.6: 21 z 21 `KRYTYK.md` re-audytu
+   wskazywało w sekcji „Moduł" pliki `audyt/zgloszenia/AUD-<KOD>-*.json`,
+   czyli wpisy AUDYTU. Krytyk Pogłębiacza SEC oceniałby pracę działu SEC
+   audytu, a wpisy `REA-SEC-*` nie miałyby krytyka — oba sektory dzielą
+   katalog i kody działów, więc nic by się nie zapaliło. Usterka przyszła
+   z szablonu, w którym prefiks stał na sztywno.
+
+   Reguła pyta o ROZSTRZYGNIĘCIE — ścieżkę `zgloszenia/<PREFIKS>-<KOD>-`
+   z prefiksem CUDZEGO sektora przy WŁASNYM kodzie roli — a nie o obecność
+   napisu `AUD-` gdziekolwiek: wzmianka o wpisie drugiego sektora (łączenie
+   po haszu) jest dozwolona i pilnuje jej kontrprzykład w audycie mutacyjnym. */
+{
+  let sprawdzone = 0;
+  for (const { sektor, katalog, kod, gdzie } of ROLE_WSZYSTKIE) {
+    const plik = join(katalog, kod, "KRYTYK.md");
+    if (!existsSync(plik)) continue; // brak KRYTYK.md łapie reguła 2
+    sprawdzone++;
+    const wlasny = PREFIKS_ID[sektor];
+    const cudze = new Set();
+    for (const m of readFileSync(plik, "utf8").matchAll(new RegExp(`zgloszenia/([A-Z]+)-${kod}-`, "g"))) {
+      if (m[1] !== wlasny) cudze.add(m[1]);
+    }
+    if (cudze.size) {
+      bledy.push(
+        `${gdzie}/KRYTYK.md: moduł wskazuje zgłoszenia "${[...cudze].join("/")}-${kod}-*", ` +
+        `a sektor ${sektor} pisze pod "${wlasny}-${kod}-*" — krytyk oceniałby pracę cudzego sektora`
+      );
+    }
+  }
+  if (sprawdzone) uwagi.push(`krytyków wskazujących własny sektor: ${sprawdzone}`);
 }
 
 /* ── wynik ── */
