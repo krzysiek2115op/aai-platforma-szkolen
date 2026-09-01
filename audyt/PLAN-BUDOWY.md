@@ -449,7 +449,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E3** — dokumentacja (7 rodzajów) + Chrome | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01) | [`BRIEF-PROJEKTU.md`](BRIEF-PROJEKTU.md) (15 kB wobec 240 kB `CLAUDE.md`), [`DOKUMENTACJA.md`](DOKUMENTACJA.md), [`ZRODLA-DOKUMENTACJI.md`](ZRODLA-DOKUMENTACJI.md), skrypt z manifestem; **4944 pliki / 44 MB** poza drzewem repo; Chrome 152 sprawdzony pomiarem |
 | **E4** — szkielet | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01: „E4 akceptuję teraz") | [`STRUKTURA.md`](STRUKTURA.md), 4 szablony, **10 narzędzi** w `audyt/tools/`, strażnik sektora (9 kontroli) + **11 mutacji** (0 przeoczonych, 0 martwych) |
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
-| **E6** — generat i próba na sucho | ⬜ **NASTĘPNY KROK** | generat **już powstaje** (wymusza go reguła 4 strażnika, 38 definicji zgodnych ze źródłem); zostaje **próba na sucho JEDNEJ roli przez pełną ścieżkę** — patrz „Co dokładnie obejmuje E6" niżej |
+| **E6** — generat i próba na sucho | 🚧 **W TOKU — nośnik gotowy, próba ZABLOKOWANA środowiskiem** | **Zrobione:** `werdykt.mjs` (nośnik werdyktu — ścieżka nie miała czym dojechać do końca), znacznik wpisu próbnego, strażnik **14 → 16 kontroli**, mutacje **24 → 34**. **Blokada:** definicje z `.claude/agents/` są dla harnessu NIEWIDZIALNE — patrz „Fakty zmierzone przy E6" niżej. Bez agentów próby nie da się przejść |
 | **E7** — sektor RE-AUDYT | ⬜ | gałąź `re-audyt/sektor-re-audytu`, 21 ról + psy |
 | **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
 
@@ -474,23 +474,113 @@ weryfikator   → istnieje / odrzucone
                 ZWERYFIKOWANE
 ```
 
-**TRZY RZECZY DO ROZSTRZYGNIĘCIA Z WŁAŚCICIELEM PRZED E6** (obowiązuje reguła:
-plan kroku + pytania + zgoda):
+**TRZY RZECZY ROZSTRZYGNIĘTE PRZEZ WŁAŚCICIELA (2026-09-01)** — nie pytać o nie
+drugi raz:
 
-1. **Którą rolę puszczamy na sucho.** Kandydat naturalny to rola o wąskim zakresie
-   i tanim materiale — **PIK** (10 plików) albo **INT** (15). Rola szeroka
-   (PERF 116, PROTO 131) kosztuje wielokrotnie więcej i **nie sprawdza niczego
-   więcej o samej ŚCIEŻCE**, bo ścieżka jest ta sama dla każdej roli.
-2. **Czy próba zostawia zgłoszenie w repo, czy sprząta po sobie.** Zostawione jest
-   materiałem dowodowym E6, ale wejdzie do liczników sektora przed właściwym
-   przebiegiem. Sprzątnięte znika razem z dowodem. Uwaga: odrzucone wpisy
-   z założenia NIE znikają (druga fala musi trafić na to samo miejsce).
-3. **Czy próba jest już „uruchomieniem sektora"** w rozumieniu D10. Plan stawia STOP
-   na zielone światło w **E8**, a E6 należy do budowy — ale próba na sucho
-   **naprawdę czyta kod produktu**, więc rozstrzyga to właściciel, nie plan.
+1. **Rolą próbną jest PIK** (10 plików — najmniejszy zakres w sektorze, a jego
+   checklista porównuje dokument z produktem, więc nie wymaga postawionego
+   środowiska WordPressa; próba mierzy ŚCIEŻKĘ, nie środowisko).
+2. **Wpis próbny ZOSTAJE w repozytorium, oznaczony polem `proba`.** Zrobione —
+   `zgloszenie.mjs --oznacz-probe=<ID> --etap=E6`; wpis wypada z porównania fal
+   i z połączenia sektorów, ale nigdy po cichu. Szczegóły i powód:
+   `audyt/STRUKTURA.md`, sekcja „Wpis PRÓBNY".
+3. **Próba NIE jest uruchomieniem sektora w rozumieniu D10** — właściciel:
+   *„nie, nie jest to uruchomienie sektora, to budowa; możesz testować ścieżkę,
+   ale nic więcej"*. STOP na zielone światło zostaje na **E8**. Zakres próby jest
+   przez to węższy niż normalny przebieg roli: **jedno** znalezisko ma przejechać
+   całą ścieżkę, a nie cały dział ma zostać wyczerpany.
 
 **Czego E6 NIE robi:** nie uruchamia pozostałych 18 ról, nie buduje sektora
 RE-AUDYT (to E7), nie wykonuje żadnej naprawy (W2).
+
+---
+
+## Fakty zmierzone przy E6 (nie wyprowadzać od nowa)
+
+### ŚCIEŻKA NIE MIAŁA CZYM DOJECHAĆ DO KOŃCA — nośnik werdyktu
+
+Do E6 ostatnie dwa kroki ścieżki nie miały nośnika maszynowego: `zgloszenie.mjs`
+zapisuje `status` i `werdykt` **raz, przy tworzeniu wpisu**, a `status.mjs`
+prowadzi stan **roli**, nie stan zgłoszenia. Krytyk i weryfikator mogli wydać
+werdykt wyłącznie w rozmowie — a przebieg sektora z założenia nie mieści się
+w jednej sesji. **Pozycja 7 definicji ukończenia sektora była nieosiągalna.**
+
+Nie widziała tego ani reguła 5 strażnika (pyta o `id`, `dowod`, `miejsce`,
+`hash`), ani żadna z 24 mutacji, które wtedy istniały. Powstał
+`audyt/tools/werdykt.mjs` + dwie kontrole strażnika (15, 16) + dziesięć mutacji.
+Rozstrzygnięcia nośnika: `audyt/STRUKTURA.md`, sekcja „Nośnik werdyktu".
+
+### BLOKADA: agenci sektora są dla harnessu NIEWIDZIALNI
+
+Wywołanie `aud-pik` zwraca **„Agent type 'aud-pik' not found"**, choć
+`.claude/agents/` ma komplet 38 definicji, a `generuj-agentow.mjs --sprawdz`
+melduje zgodność ze źródłem. **Izolacja — ten sam plik definicji, trzy miejsca:**
+
+| Definicja leży w… | Wynik wywołania |
+|---|---|
+| `~/.claude/agents/` | **znaleziona** (odmowa dotyczyła uprawnień, nie istnienia) |
+| `<projekt>/.claude/agents/` | **nie znaleziona** |
+| katalog bliźniaczy BEZ końcowej spacji w nazwie | **nie znaleziona** |
+
+**Hipoteza spacji w nazwie katalogu jest OBALONA** trzecim wierszem tabeli —
+harness nie szuka też w wariancie bez spacji (ten katalog został utworzony na
+czas pomiaru i skasowany).
+
+**Rejestr agentów jest ŻYWY, nie wczytywany raz:** plik utworzony w trakcie
+sesji w `~/.claude/agents/` został od razu zobaczony. Asymetria dotyczy więc
+wyłącznie katalogu projektowego.
+
+**Dokumentacja Claude Code (potwierdzone przez `claude-code-guide`):**
+`.claude/agents/` w projekcie jest udokumentowanym miejscem, z priorytetem
+**wyższym** niż katalog użytkownika, i **nie istnieje ustawienie** wskazujące
+dodatkowy katalog z definicjami (`agentDirectories` ani odpowiednik). Czyli
+sektor jest zbudowany zgodnie z dokumentacją, a zawodzi środowisko.
+
+**Kopiowania definicji do `~/.claude/agents/` NIE robimy** — zablokował je
+klasyfikator uprawnień, a niezależnie od tego byłoby architektonicznie złe:
+38 (docelowo ~80) definicji sektora widocznych w KAŻDYM projekcie użytkownika
+to dokładnie ta wada, dla której w E5 odrzucono instalowanie skilli.
+
+**DECYZJA WŁAŚCICIELA (2026-09-01): najpierw RESTART SESJI.** Hipoteza, której
+nie da się sprawdzić z wnętrza sesji: proces mógł wczytać rejestr agentów
+projektu **zanim** E5 utworzyło te pliki (katalog `.claude/` z 05:37, definicje
+z 06:49). Restart kosztuje zero. Jeśli nie pomoże, następny krok to sprawdzenie
+w terminalu (`claude` → `/agents`), które rozstrzyga, czy ograniczenie siedzi
+w rozszerzeniu VSCode.
+
+### CZEGO PRÓBA NIE OBEJMOWAŁA — żeby nikt nie uznał jej za przejdzoną
+
+Checklista PIK **nie została przejdzona**. Sprawdzona jest wyłącznie komenda
+zakresu: daje **10 plików**, zgodnie z zapisem w `ROLE.md`. Zgrubny przelot po
+PIK-06 nie dał znaleziska, ale **wzorzec pomiaru był nieprecyzyjny** (nie łapał
+formy „ZAAKCEPTOWAŁ"), więc nie jest to wynik i nie wolno się na niego powoływać.
+
+**Znaleziska PIK nie wymyślamy, żeby ścieżka miała co przewieźć** (zasada 1).
+Po odblokowaniu agentów rolę uruchamia jej WŁASNA definicja — decyzja
+właściciela — bo tylko wtedy próba sprawdza także to, czy agent z 12 kB promptu
+naprawdę idzie checklistą. To jest rzecz, której ręczne przejście ścieżki przez
+agenta głównego **nie sprawdza wcale**.
+
+### REGUŁA 11 ZŁAPAŁA ZMIANĘ W TRAKCIE JEJ WPROWADZANIA
+
+Dopisanie linii do `zgloszenie.mjs` przesunęło kotwicę goldena WER
+(`audyt/tools/zgloszenie.mjs:209` → `:259`) i strażnik zapalił się przy pierwszym
+przebiegu, zanim golden zdążył zgnić. Kotwica poprawiona w obu blokach.
+**Wniosek na przyszłość: każda zmiana w pliku, który jest czyjąś kotwicą, wymaga
+przebiegu strażnika PRZED commitem** — a nie po.
+
+### PUŁAPKA POMIARU, KTÓRA WRÓCIŁA
+
+Kod wyjścia `migawka-wartosci.mjs --porownaj` zmierzony **za potokiem** (`| tail`)
+pokazał 0 przy komunikacie o braku migawek; bez potoku jest **1**, czyli narzędzie
+jest zdrowe. To ta sama klasa, która w tym repozytorium kosztowała czas przy D5.
+**Kody wyjścia mierzymy BEZ potoku, także we własnych sondach diagnostycznych.**
+
+### MIGAWKA POTWIERDZIŁA NIEZMIENNIK
+
+`migawka-wartosci.mjs` przed pracą i po niej: **identyczne** — „audyt niczego nie
+zmienił w projekcie". Skrót drzewa produktu, 919 plików, 39 strażników,
+340 mutacji projektu, 83 testy.
 
 ---
 
