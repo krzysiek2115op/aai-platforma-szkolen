@@ -584,12 +584,12 @@ zamyka pozycję „do rozstrzygnięcia" z pomiaru 3.
 
 | # | Krok | Stan |
 |---|---|---|
-| **E7.1** | rozszerzenie narzędzi **na gałęzi audytu**, przed odgałęzieniem | ✅ **ZROBIONE** |
-| **E7.2** | gałąź `re-audyt/sektor-re-audytu` + `re-audyt/GRANICE.md` | ⬜ |
-| **E7.3** | `re-audyt/ROLE.md` — 21 ról: zakres komendą, checklista, „nie bierze" | ⬜ |
-| **E7.4** | 21 × 4 pliki metodą z E5 + utwardzenie kompletu ról | ⬜ |
-| **E7.5** | generat → **restart sesji** → strażnik i mutacje | ⬜ |
-| **E7.6** | **próba na sucho jednej roli re-audytu** (zgoda właściciela 2026-09-01) | ⬜ |
+| **E7.1** | rozszerzenie narzędzi **na gałęzi audytu**, przed odgałęzieniem | ✅ **ZROBIONE** (trzy commity) |
+| **E7.2** | gałąź `re-audyt/sektor-re-audytu` + `re-audyt/GRANICE.md` | ✅ **ZROBIONE** |
+| **E7.3** | `re-audyt/ROLE.md` — 21 ról: zakres komendą, checklista, „nie bierze" | ✅ **ZROBIONE** |
+| **E7.4** | 21 × 4 pliki metodą z E5 + utwardzenie kompletu ról | ✅ **ZROBIONE** — 84 pliki, komplet TWARDY |
+| **E7.5** | generat → **restart sesji** → strażnik i mutacje | 🚧 **generat i bramki gotowe; CZEKA NA RESTART SESJI** |
+| **E7.6** | **próba na sucho jednej roli re-audytu** (zgoda właściciela 2026-09-01) | ⬜ — wykonalna dopiero po restarcie |
 
 **E7.6 wchodzi na życzenie właściciela** („robimy próbę na sucho tak jak
 z audytem"). Powód nie jest symetrią: ścieżka re-audytu jest INNA — uruchamia
@@ -654,6 +654,103 @@ mutacyjny **50** (0 przeoczonych, 0 martwych), samokontrole `zgloszenie`
 Testy negatywne: wspólny prefiks ID zapala 3 z 5 przypadków identyfikatora,
 suma list ról zapala 2 przypadki działów, stary `KOD_POZYCJI` zapala oba nowe
 kontrprzykłady — i nic poza nimi.
+
+---
+
+### Co zrobiły E7.2–E7.5 (nie wyprowadzać od nowa)
+
+**Gałąź `re-audyt/sektor-re-audytu` wyszła z gałęzi audytu**, niesie komplet
+narzędzi i wspólny katalog zgłoszeń. Niezmiennik na obu gałęziach ma tę samą
+postać i daje 0.
+
+**`re-audyt/ROLE.md`: 21 ról, 121 pozycji checklist.** Cztery role są własne
+i to one robią z re-audytu inny sektor: `PSIARZ` (psuje kod w miejscu
+znaleziska i pyta, czy cokolwiek szczeka), `SKUT` (skutki uboczne),
+`STRAZ` (projekt strażnika przeciw nawrotowi), `WALID` (weryfikator
+re-audytu — §16). Siedemnaście ról ma kody wspólne z audytem.
+
+**Pozycje noszą literę `R`** (`SEC-R1`) — bez niej byłyby w połączonym wyniku
+nie do odróżnienia od pozycji audytu. Wzorzec strażnika przyjmuje odtąd
+dowolną literę po myślniku, nie tylko `A` Konrada.
+
+**Zakresy Pogłębiaczy POLICZONE, nie przepisane:** 113, 57, 66, 25, 80, 116,
+79, 15, 60, 79, 33, 131, 10, 94 — żaden nie daje zera, wszystkie zgodne
+z audytem co do znaku (reguła 20).
+
+**84 pliki ról zbudowane metodą z E5.** Każda z 21 ról ma WŁASNĄ kotwicę
+goldena — prawdziwą linię ze swojego zakresu, sprawdzaną przy każdym
+przebiegu strażnika.
+
+### CZTERY USTERKI ZŁAPANE PRZEZ WŁASNE BRAMKI PODCZAS E7.2–E7.5
+
+Wszystkie są tej samej rodziny co usterki z E5 i E6: wyglądały na pracę
+wykonaną.
+
+1. **Zły przykład goldena PRZECHODZIŁ przez bramkę — na 21 rolach naraz.**
+   Rusztowanie budowało przykład „treść nie zgadza się z plikiem", doklejając
+   do prawdziwej treści spację, a `znormalizuj()` białe znaki zdejmuje. Golden
+   przestawał być miarą, a wyglądał kompletnie. Zły przykład niesie teraz treść
+   linii SĄSIEDNIEJ — najrealistyczniejszą pomyłkę tej klasy. Złapała
+   **reguła 11**.
+2. **Mapa pokrycia uznała dokumenty re-audytu za SIEROTY** — i miała rację:
+   bierze je wyłącznie Konrad re-audytu, a mapa czytała zakresy samego audytu.
+   Bez unii zakresów obu sektorów `re-audyt/ROLE.md` i `GRANICE.md` były
+   plikami, których nie czyta nikt.
+3. **Przełączenie gałęzi zostawiło 42 GENERATY-SIEROTY** — definicje `rea-*`
+   bez źródła, które harness dalej widzi: żywi agenci bez zakresu. Generator
+   je teraz usuwa (`--sprawdz` zgłasza), a reguła 4 PODAJE POWÓD zamiast mówić
+   tylko „nieaktualny" — bo generat starszy od źródła i generat-sierota to dwie
+   różne naprawy.
+4. **MOJA WŁASNA MUTACJA SKASOWAŁA PRACĘ SEKTORA.** Mutacja niezmiennika
+   zakłada plik w `re-audyt/`, a sprzątała, usuwając CAŁY katalog rekurencyjnie
+   — i zabrała dwa niezacommitowane dokumenty. To znana klasa z tego
+   repozytorium: **bramka sprzątająca CUDZE dane**. Sprząta teraz wyłącznie to,
+   co sama założyła. Odtworzenie zajęło minutę, bo rusztowanie i dane leżały
+   w scratchpadzie — ale gdyby pliki były pisane wprost, przepadłyby.
+
+**Piąta rzecz, mniejsza:** kontrprzykład reguły 20 wstawiał SUROWY przełam
+linii zamiast kontynuacji powłoki, więc rozbijał komendę i zapalał mapę zamiast
+reguły 20. Kontrprzykład psujący co innego, niż deklaruje, mierzy nie to co
+trzeba — rodzina „mutacji martwej" z E4.
+
+### DWIE USTERKI STARSZE OD E7, obie w `KOD_POZYCJI`
+
+Znalazł je audyt mutacyjny przy E7.1 i obie były ciche:
+
+- **`KON-A5` nie był kodem pozycji.** Wzorzec `/^[A-Z]{2,5}-\d{2}$/` nie
+  przyjmował litery, a Konrad ma pozycje `KON-A1`…`KON-A6` i **jest rolą
+  pętlową** — czyli tą, która przy suficie rund MUSI wypisać niedomknięte.
+  Nie zapisałby ani jednej. Usterka jest z E4.
+- **`PSIARZ-02` też nie** — sześć liter przy sufcie pięciu.
+
+Wzorzec jest teraz w jednym miejscu (`wspolne.mjs`), a sufit **wyprowadza się
+z prawdziwych kodów ról**. Dwa kontrprzykłady pilnują, żeby nie wrócił.
+
+### STAN NA KONIEC E7.5
+
+| Bramka | Wynik |
+|---|---|
+| niezmiennik sektora (obie gałęzie) | **0** |
+| `straznik-sektora-audytu.mjs` | **20 kontroli**, kod 0 |
+| audyt mutacyjny | **55 mutacji**, 0 przeoczonych, 0 martwych |
+| role audytu | **19/19** |
+| role re-audytu | **21/21**, komplet TWARDY |
+| generaty | **80** (`aud-*` 38, `rea-*` 42), bez martwych odsyłaczy |
+| krytycy z drogą zgłaszania | **40** |
+| zakresy Pogłębiaczy zgodne z audytem | **14/14** |
+| mapa pokrycia | 628 + 399 = **1027**, 0 sierot |
+
+### CO BLOKUJE E7.6 — RESTART SESJI
+
+**Harness wczytuje rejestr agentów projektu przy starcie procesu**, więc
+42 definicje `rea-*` powstałe w tej sesji są dla niej NIEWIDZIALNE. Sprawdzone:
+lista dostępnych typów agentów niesie wyłącznie `aud-*`. To ta sama blokada,
+która w E6 kosztowała pół sesji śledztwa, zanim restart okazał się całą
+naprawą — i była zapisana w tym pliku jako lekcja DOTYCZĄCA E7 WPROST.
+
+**Próby na sucho (E7.6) nie da się więc wykonać w tej sesji.** Po restarcie
+`rea-*` będą widoczne i próba przejedzie tę samą ścieżkę co w E6, tylko
+metodą re-audytu (uruchomienie, nie lektura).
 
 ---
 
