@@ -1,0 +1,476 @@
+# Plan budowy sektorów AUDYT i RE-AUDYT
+
+## Context
+
+Projekt `Pod strona Szkolenia` (Automatic AI) jest domknięty merytorycznie: trzy wtyczki
+WordPressa skończone i przetestowane ręcznie, etap WP zamknięty, a z trzech ostatnich
+kroków wykonane są SEO (0.60.x), higiena repo (0.62.0/0.63.0) i schematy draw.io (0.64.0).
+Zostaje **audyt końcowy** — ostatni krok projektu.
+
+Audyt ma być **osobnym sektorem projektu**: zestawem wyspecjalizowanych agentów z własnymi
+zakresami, dokumentacją, statusami, kodami zgłoszeń i warstwą kontrolną. Po nim wchodzi
+**drugi, osobny sektor — RE-AUDYT**, który sprawdza to samo **szczegółowiej**.
+
+**Cel tego kroku: ZBUDOWAĆ oba sektory. Nie uruchamiać ich.**
+
+> „dobry audyt i dobry re-audyt = dobrze wykonany projekt, więc dopracujemy go jak tylko
+> się da" — właściciel, 2026-09-01
+
+---
+
+## TRZY ZASADY NADRZĘDNE OBU SEKTORÓW
+
+Wchodzą **dosłownie** do każdej z ~80 definicji (`AGENT.md`, `KRYTYK.md`, `SKILL.md`).
+
+### 1. NIE MA WYMYŚLANIA BŁĘDÓW
+Każde zgłoszenie ma podstawę i możliwość potwierdzenia. Brak dowodu = brak zgłoszenia.
+Egzekwowane maszynowo: `zgloszenie.mjs` **odmawia zapisu** wpisu bez dowodu.
+
+### 2. AUDYT I RE-AUDYT NIE NAPRAWIAJĄ (W2)
+Sektory **znajdują i wskazują**, nigdy nie poprawiają. Produktem jest **odizolowane
+miejsce** błędu. Naprawa jest osobnym krokiem, po dwóch pełnych cyklach.
+
+### 3. SWÓJ ZAKRES — DRĄŻYĆ, NIE PRZEKAZYWAĆ (W10)
+Gdy Security znajdzie błąd, **pracuje nad nim sam**: schodzi głębiej, aż wskaże miejsce.
+Nie przekazuje go innemu działowi dlatego, że dotyka cudzego obszaru, i **nie naprawia**.
+
+---
+
+## POWTARZALNOŚĆ JAKO ZASADA BUDOWY (rozstrzygnięcie K4)
+
+Stanowisko właściciela: **druga fala MUSI dać ten sam wynik. Jeśli nie da — źle zrobiliśmy
+audyt.** Rozbieżność między cyklami nie jest powodem do odrzucania znalezisk, tylko
+**sygnałem defektu sektora**: wracamy naprawić audyt i powtarzamy, a nie idziemy naprawiać
+projekt.
+
+To rozstrzygnięcie ma konsekwencję, która zmienia sposób budowy wszystkich ról:
+
+> **Audyt nie może być swobodnym przeglądem — musi być listą sprawdzeń.**
+> Tylko taki daje ten sam wynik przy drugim przebiegu, mimo że model nie jest
+> deterministyczny.
+
+W praktyce, dla każdej roli:
+
+- **zakres definiowany mechanicznie** — lista plików/wzorców, nie „przejrzyj obszar";
+- **kryteria znaleziska twarde** — checklista pytań z odpowiedzią tak/nie, nie intuicja;
+- **wyczerpanie zamiast pomysłowości** — agent pętlowy (W3) kończy, gdy **przeszedł całą
+  listę**, a nie gdy „nic już nie przychodzi mu do głowy";
+- **dowód = hash miejsca**, więc porównanie cykli jest maszynowe, nie uznaniowe.
+
+Sektor zbudowany inaczej **nie przejdzie własnego testu powtarzalności** — i o to chodzi.
+
+---
+
+## Fakty — zmierzone 2026-09-01
+
+Trzy liczby z pierwszej wersji były błędne i są sprostowane; dwie wyszły z pomiaru, który
+mierzył nie to, co trzeba.
+
+| Co | Wartość | Uwaga |
+|---|---|---|
+| Kod wtyczek WP | **24 144 linie**, 107 plików PHP, **54 klasy** (28/13/13) | |
+| Szablony PHP | **37** | |
+| Prototyp Next.js | **15 371 linii**, 106 plików TS/TSX | |
+| Strażnicy | **39** ~~40~~ | `uruchom-wszystkie.mjs` nie jest strażnikiem |
+| Mutacje | **340** | |
+| Testy jednostkowe | **83** ~~89~~ | mój pomiar łapał `.test(` z RegExp |
+| Bramki smoke | **25** (7 w `npm run check`, 15 WP, 3 pomocnicze) | |
+| Szwy między wtyczkami | **7** ~~6~~ | `aai_sklep_dostepnosc_kursu` ma wystrzał wieloliniowy (`class-aai-sklep-seo.php:293`) |
+| `.claude/` w repo | **nie istnieje** | budujemy od zera |
+| `CLAUDE.md` | **237 476 B**, 3384 linie | |
+| Dokumentacja techniczna | **65 MB**, 3244 pliki (w gicie 75) | |
+| Przeglądarki | tylko Firefox; **Chrome dokładamy** (decyzja właściciela) | Lighthouse mamy dziś przez PSI (API v5 Google) |
+
+---
+
+## Decyzje właściciela (wiążące)
+
+| # | Rozstrzygnięcie |
+|---|---|
+| D1 | Agenci **wykonywalni ORAZ udokumentowani**: `.claude/agents/*.md` generowane ze źródła wg §4 |
+| D2 | **Dwóch kierowników — po jednym na sektor**, obaj z krytykami |
+| D3 | **Krytyk przy KAŻDEJ roli.** Krytycy dostają **te same 7 rodzajów dokumentacji** |
+| D4 | Zakres: wtyczki + prototyp + bramki + repo. **KURSY POZA ZAKRESEM** |
+| D5 | Błędy prototypu **zapisujemy i przekazujemy osobie sprawdzającej projekt** |
+| D6 | Działy: **7 ze schematu + 7 naszych** |
+| D7 | Sektory **żyją tylko na branchach**, nigdy na `main`, zostają na zawsze |
+| D8 | Model: **kierownicy i krytycy — Opus; reszta — Sonnet** |
+| D9 | **Komplet AUDYTU, potem komplet RE-AUDYTU** — nie częściami |
+| D10 | Uruchomienie na **zielone światło właściciela** |
+| P1 | **Konrad łamie założenia W AUDYCIE**, nie w projekcie |
+| P2 | **RE-AUDYT nie jest lustrzany — jest bardziej szczegółowy** |
+| P3 | **Dokumentacja specjalistyczna dla każdej roli**, która potrzebuje więcej |
+| P4 | **Dokumentacja agentowa z wielu AI** — Anthropic, OpenAI, Google i inni |
+| W1 | Wartości obu sektorów trafiają do **raportu** |
+| W2 | **Sektory NIE naprawiają** |
+| W3 | **Agenci pętlowi** — drążą, dopóki nie wyczerpią listy |
+| W4 | Wyniki: **mało → plik, dużo → baza danych** |
+| W5 | **Audyt wychodzi z działu → dopiero wtedy re-audyt do niego wchodzi** |
+| W6 | **Mapa projektu przed i po** |
+| W7 | Dział: **co było na początku, ma być na końcu** |
+| W8 | Dział **„Usprawnienia audytowe"** — narzędzia do testów automatycznych |
+| W9 | **„NIE MA WYMYŚLANIA BŁĘDÓW" do każdego agenta** |
+| W10 | Audytor **drąży do miejsca**, nie przekazuje i nie naprawia |
+| **K4′** | **Druga fala musi dać ten sam wynik**; rozbieżność = defekt audytu, nie powód do odrzucenia znaleziska |
+| **K9′** | Działy **mogą pracować równolegle**, byle audyt i re-audyt **nie nakładały się na tym samym dziale** |
+| **K10′** | Miejsce błędu: linia kodu **albo** plik + zakres + nazwa mechanizmu (dla braków i wyścigów) |
+| **K11′** | **Dokładamy Chrome** do narzędzi automatycznych |
+| **K12′** | **Komunikacja między działami wg schematu właściciela**, z naszymi działami wstawionymi w odpowiednie miejsca |
+
+---
+
+## Struktura i komunikacja (K12′) — schemat właściciela z naszymi działami
+
+```
+                        ┌──────────────────────────────┐
+                        │      AUDYTOR KIEROWNIK       │   Opus + krytyk
+                        │  koordynuje, zbiera wyniki   │
+                        └───────────────┬──────────────┘
+     ┌────────────────┬─────────────────┼─────────────────┬────────────────┐
+     │                │                 │                 │                │
+┌────┴─────┐    ┌─────┴─────┐    ┌──────┴─────┐    ┌──────┴──────┐  ┌──────┴──────┐
+│ SECURITY │    │ FRONTEND  │    │  BACKEND   │────│ BAZA DANYCH │  │  ARCHITEKT  │
+└────┬─────┘    └─────┬─────┘    └──────┬─────┘    │ + migracja  │  └──────┬──────┘
+     │                │                 │          └─────────────┘         │
+┌────┴───────┐  ┌─────┴──────┐   ┌──────┴──────────┐              ┌────────┴───────┐
+│ PRYWATNOŚĆ │  │  PROTOTYP  │   │   INTEGRACJE    │              │  PRAWDA REPO   │
+│ i zgodność │  │  Next.js   │   │ z cudzym kodem  │              │                │
+└────────────┘  └────────────┘   └─────────────────┘              └────────────────┘
+
+┌──────────────┐   ┌──────────────┐   ┌──────────────────┐   ┌──────────────────┐
+│ QA / TESTING │───│ USPRAWNIENIA │   │  PERFORMANCE     │   │ POCZĄTEK I KONIEC│
+│              │   │  AUDYTOWE    │   │                  │   │                  │
+└──────────────┘   └──────────────┘   └────────┬─────────┘   └──────────────────┘
+                                               │
+                                     ┌─────────┴──────────┐
+                                     │ WDROŻENIE          │
+                                     │ i eksploatacja     │
+                                     └────────────────────┘
+
+  ╔═══════════════╗                              ╔══════════════════════════╗
+  ║ AGENT KONRAD  ║  celuje W AUDYT (P1)         ║ GOLDEN                   ║
+  ║ łamie założenia działów audytu               ║ pilnuje zasad i skilli   ║
+  ╚═══════════════╝                              ╚══════════════════════════╝
+
+- - - - - - - - - - - - - - -  POZA AUDYTEM  - - - - - - - - - - - - - - - - - -
+                        ┌──────────────────────────────┐
+                        │     AUDYTOR WERYFIKATOR      │  czy problem istnieje
+                        └───────────────┬──────────────┘
+                        ┌───────────────┴──────────────┐
+                        │       AUDYTOR RAPORTU        │  raport na sam koniec,
+                        └──────────────────────────────┘  gdy wszyscy skończą
+```
+
+**Siedem ze schematu:** Security · Frontend · Backend · Baza danych · QA/Testing ·
+Performance · Architekt.
+**Siedem naszych:** Integracje z cudzym kodem · Prywatność i zgodność · Prawda repo ·
+Wdrożenie i eksploatacja · Prototyp Next.js · Początek i koniec · Usprawnienia audytowe.
+
+Każdy nasz dział jest podwieszony pod najbliższym pokrewnym ze schematu — komunikacja
+biegnie tak, jak na Twoim rysunku, a Kierownik zbiera wszystko. **Migracja danych weszła
+do działu „Baza danych"** (na schemacie BD jest połączona z Backendem, a migracja
+Postgres → nasze tabele → Tutor/Woo to obszar danych); jeśli wolisz ją jako osobny,
+piętnasty dział — powiedz.
+
+### Zakresy działów
+| Dział | Co bierze |
+|---|---|
+| Security | nonce, capability, escaping, SQL, XSS, obwód, CSP, limiter, brama kreatora |
+| Frontend | 37 szablonów, `assets/*`, kolektor panelu, kaskada i warstwy, dostępność |
+| Backend | trzy warstwy zapisu, haki, kontrakty, cykl żądania |
+| Baza danych + migracja | `$wpdb`, dbDelta, transakcje, indeksy; Postgres ↔ nasze tabele ↔ Tutor ↔ Woo; idempotencja; cicha utrata treści |
+| QA / Testing | 39 strażników, 340 mutacji, 25 bramek, 83 testy — **czy mierzą to, co obiecują** |
+| Performance | zapytania na odsłonę, N+1, cache, waga stron |
+| Architekt | granice wtyczek, **7 szwów**, cykle, źródło prawdy, zgodność ze schematami |
+| Integracje z cudzym kodem | Tutor LMS 4.0.7, WooCommerce 11, motyw; wersje |
+| Prywatność i zgodność | IP, retencja 90 dni, polityka prywatności, zobowiązania handlowe |
+| Prawda repo | README, CLAUDE.md, CHANGELOG, schematy vs kod, instrukcja i paczki ZIP |
+| Wdrożenie i eksploatacja | instalacja u klienta, aktywacja/`uninstall.php`, zależności, `postaw.sh` |
+| Prototyp Next.js | 15 371 linii TS/TSX; wynik dla osoby sprawdzającej projekt (D5) |
+| Początek i koniec | czy **zamierzone na starcie jest na końcu**: PLAN.md §2.4, WYTYCZNE, decyzje właściciela, obietnice D1–D7 / W1–W6 / P0–P6 / T0–T4 |
+| Usprawnienia audytowe | **narzędzia do testów automatycznych**: `npm run check`, 15 bramek WP, Lighthouse przez PSI, **Chrome DevTools** (K11′), rig Firefox/BiDi, audyt mutacyjny — dostarcza pozostałym twarde liczby zamiast opinii |
+
+**Tabela granic obowiązkowa** — dla każdej pary sąsiadów (Security↔Prywatność,
+Backend↔BD, QA↔Usprawnienia, Architekt↔Prawda repo, Architekt↔Początek i koniec,
+Frontend↔Prototyp) zdanie „to należy do X, nie do Y". Przy 14 działach jest to warunek
+powtarzalności, nie kosmetyka: nieostra granica znaczy, że w drugiej fali znalezisko
+trafi do innego działu i wynik się rozjedzie.
+
+### Agent Konrad (P1)
+**Konrad audytuje AUDYT, nie projekt.** Produktem są **luki w audycie**. Faza A (przed
+pracą działów) atakuje **zakresy** — czy podział zostawia szczeliny, co nie należy do
+nikogo. Faza B (po raportach) atakuje **wyniki** — „Security sprawdził wszystkie ścieżki
+wejścia" jest dla niego hipotezą do obalenia. Łamanie założeń **systemu** („co, jeśli baza
+nie odpowiada") zostaje przy działach, w ich zakresach.
+
+---
+
+## Przebieg (W5 + K9′)
+
+```
+MAPA PRZED
+  │
+  ├─ AUDYT: działy pracują RÓWNOLEGLE między sobą
+  │     └─ dział kończy → re-audyt może wejść WŁAŚNIE DO NIEGO
+  ├─ RE-AUDYT: wchodzi do działu dopiero po wyjściu audytu z tego działu
+  │
+  ├─ WYNIK CYKLU 1  →  łączenie audyt + re-audyt (plik/baza)
+  │
+  ├─ CYKL 2 na NIEZMIENIONYM kodzie, ślepy na wyniki cyklu 1
+  │
+  ├─ PORÓWNANIE: ten sam wynik?
+  │     ├─ TAK  → błędy potwierdzone → NAPRAWA → KONIEC
+  │     └─ NIE  → DEFEKT AUDYTU → naprawiamy sektor i powtarzamy (K4′)
+  │
+  └─ MAPA PO  →  porównanie wartości początku i końca  →  przegląd mapy
+```
+
+**Reguła nakładania (K9′):** równoległość **wewnątrz** sektora jest dozwolona; audyt
+i re-audyt **nigdy nie pracują na tym samym dziale jednocześnie**. Re-audyt jest krokiem
+do tyłu.
+
+---
+
+## SEKTOR RE-AUDYT — inny, nie lustrzany (P2)
+
+Te same obszary, **inna praca**. Audyt ustala **obraz**; re-audyt mierzy **zasięg**,
+potwierdza uruchomieniowo i zabezpiecza przed nawrotem. **Też nie naprawia.**
+
+| | AUDYT | RE-AUDYT |
+|---|---|---|
+| Pytanie | „czy tu jest problem?" | „ile go dokładnie jest i czy cokolwiek to łapie?" |
+| Metoda | lektura kodu i dokumentacji | **uruchomienie** na `:8892`, pomiar, mutacja |
+| Dowód | miejsce w kodzie | odtworzenie + liczba wystąpień w całym repo |
+| Zasięg | jedno wystąpienie wystarczy | **wszystkie** wystąpienia klasy |
+| Skutki uboczne | poza zakresem | sprawdza regresję (goldeny, §5) |
+| Produkt | lista zgłoszeń | zgłoszenia pogłębione + **projekt strażnika** |
+
+**„Psy" mają gotowe narzędzie: audyt mutacyjny.** Psiarz psuje kod dokładnie w miejscu
+znaleziska i patrzy, **czy cokolwiek szczeka** — strażnik, test, bramka. Milczenie przy
+zepsutym kodzie jest osobnym znaleziskiem. `audyt-straznikow.mjs` robi dokładnie to na 340
+mutacjach, tylko dla strażników.
+
+**Role (każda z krytykiem):** kierownik re-audytu · **Pogłębiacz** ×14 obszarów · **Psiarz**
+· **Skutki uboczne** · **Strażnikowy** · **Walidacja szczegółowa** · **Raport re-audytu** ·
+**Konrad re-audytu**. Razem 21 ról, 42 agentów.
+
+**Sektor AUDYT:** kierownik + Golden + 14 działów + Konrad + weryfikator + raport = **19 ról,
+38 agentów**. Oba sektory: **40 ról, 80 agentów.**
+
+---
+
+## Zgłoszenie — co musi zawierać
+
+| Pole | Wymóg |
+|---|---|
+| ID | `AUD-SEC-001` — nadaje `zgloszenie.mjs`, nie agent |
+| Status | NIE ROZPOCZĘTO / W TRAKCIE / DO WERYFIKACJI / ZWERYFIKOWANE / ZAKOŃCZONE |
+| Agent / dział | kto wykrył |
+| Stwierdzenie | jednoznaczne, nie „wydaje mi się" |
+| **Miejsce** | linia kodu **albo** plik + zakres + nazwa mechanizmu (K10′) |
+| Dowód | co potwierdza; **hash miejsca** liczony maszynowo |
+| Klasyfikacja | kategoria |
+| Wpływ | dlaczego to ma znaczenie dla projektu |
+
+**K10′ w praktyce:** część realnych błędów tego projektu nie miała jednej linii — brak
+klucza kasujący dane, kolejność dwóch zapisów, wyścig, **brakująca** kontrola. Dla nich
+forma bez pojedynczej linii **musi nazwać, czego brakuje i gdzie to powinno być**. Wpisanie
+zmyślonej linii łamałoby zasadę 1.
+
+---
+
+## Nośnik wyników (W1, W4)
+
+| Skala | Nośnik | Dlaczego |
+|---|---|---|
+| do ~200 zgłoszeń | **pliki JSON w repo sektora** | wersjonowalne, diffowalne, przeżywają `/clear` |
+| powyżej | **baza SQLite w katalogu sektora** | zapytania, łączenie cykli, brak puchnięcia repo |
+
+Format zgłoszenia **ten sam w obu nośnikach** — zmienia się warstwa zapisu, nie dane.
+Łączenie audytu z re-audytem po **hashu miejsca**, nie po opisie. Próg 200 do Twojej
+akceptacji.
+
+---
+
+## Mapa i wartości (W6)
+
+`migawka-wartosci.mjs` zapisuje wartości **początku i końca**: liczby bramek (39/340/83/25),
+sumy kontrolne plików produktu, stan tabel, `wp:sprawdz`, `wp:tutor`, `git diff` wobec
+`main`. Rozjazd = **zatrzymanie procesu**, nie notatka. `mapa.mjs` pokazuje, czy każdy plik
+ma przypisany dział; **sierota = plik, którego nie bierze nikt**.
+
+---
+
+## Siedem rodzajów dokumentacji — krok najważniejszy
+
+| Rodzaj | Stan | Do zrobienia |
+|---|---|---|
+| 1. Dziedzinowa | **BRAK** | e-commerce, LMS, prawo konsumenckie, RODO |
+| 2. Techniczna | **JEST 9,6 MB** + `d1–d6` | dociągnąć: bezpieczeństwo wtyczek, wydajność, dostępność |
+| 3. Projektu | **JEST** — 118 `.md`, CLAUDE.md, CHANGELOG, 7 schematów | **BRIEF-PROJEKTU.md** |
+| 4. Funkcjonalna | **JEST** — DIAGRAM.md ×3, KREATOR.md, INSTRUKCJA-INSTALACJI.md | spis funkcji z granicami |
+| 5. Specjalistyczna | **BRAK** | **per rola** (P3) |
+| 6. Systemowa | **BRAK** | przeglądarki, hosting, PHP/MySQL, mobile |
+| 7. Agentowa | częściowo | **wielu dostawców** (P4) |
+
+**Specjalistyczna — mechanizm zamiast zgadywania (P3):** każda rola **deklaruje w swoim
+`AGENT.md`, czego potrzebuje ponad standard**; `DOKUMENTACJA.md` zbiera to w tabelę.
+Kandydaci: Konrad — metody podważania założeń; Security — OWASP i hardening wtyczek;
+Performance — profilowanie i `EXPLAIN`; Prywatność — RODO/UODO; QA — testowanie mutacyjne;
+Usprawnienia — Lighthouse i **Chrome DevTools Protocol**; Integracje — **kod źródłowy Tutora
+i Woo z dysku** (dokumentacja Tutora rozjeżdża się z jego kodem).
+
+Braki dociąga `tools/pobierz-dokumentacje-audyt.mjs` — idempotentny, **eksportujący
+manifest** `KATALOG_DZIALU` / `KATALOGI_MASOWE`, bo `straznik-wagi-dokumentacji` bez tego
+zapala się celowo. Powyżej 8 MB obowiązuje N2.
+
+**BRIEF-PROJEKTU.md decyduje o wykonalności.** Wszyscy mają wiedzieć wszystko o projekcie,
+ale samo `CLAUDE.md` to 237 476 B; przy 80 agentach i dwóch cyklach to dziesiątki megabajtów.
+Brief (~400 linii: architektura, 7 szwów, decyzje wiążące, klasy błędów, mapa obszarów) daje
+tę samą wiedzę za ułamek kosztu — i, co ważniejsze dla K4′, **jest identyczny w obu falach**,
+więc nie wprowadza rozjazdu.
+
+---
+
+## Funkcje kodu — `tools/audyt/`
+
+| Skrypt | Co robi |
+|---|---|
+| `zgloszenie.mjs` | nadaje ID, waliduje pola, liczy **hash miejsca**, **odmawia** przyjęcia bez dowodu i bez miejsca |
+| `status.mjs` | pięć statusów + licznik rund pętli |
+| `migawka-wartosci.mjs` | wartości początku i końca (W6) |
+| `mapa.mjs` | pokrycie: każdy plik przypisany do działu; sieroty |
+| `porownaj-cykle.mjs` | porównanie fal po hashach; **rozjazd = defekt audytu** (K4′) |
+| `polacz-sektory.mjs` | łączy audyt i re-audyt (W4), plik albo baza |
+| `generuj-agentow.mjs` | `audyt/**/AGENT.md` → `.claude/agents/aud-*.md` |
+
+**`straznik-sektora-audytu.mjs`** pilnuje: (1) branch nie zmienia kodu produktu, (2) każda
+rola ma krytyka, (3) komplet pięciu elementów, (4) generat aktualny wobec źródła (sha256,
+wzór ze `straznik-schematow`), (5) każde zgłoszenie ma dowód, kod i miejsce, (6) **każda
+definicja zawiera trzy zasady nadrzędne** (W9), (7) **każda rola ma mechanicznie zdefiniowany
+zakres i checklistę** — warunek powtarzalności z K4′. Plus mutacje w audycie mutacyjnym.
+
+**Ślepota cyklu 2:** agenci fali 2 nie mogą widzieć wyników fali 1 — inaczej przepiszą cudzą
+listę i „ten sam wynik" wyjdzie zawsze, także gdyby audyt był zepsuty. Trzy warstwy: zakaz
+w prompcie, czysty kontekst subagenta, kontrola w `porownaj-cykle.mjs`.
+
+---
+
+## Etapy budowy
+
+| # | Etap | Wynik |
+|---|---|---|
+| **E0** | Zaległość CI (poza sektorem) | dependabot PR #106 zielony, **gitleaks potwierdzony** |
+| **E1** | Utrwalenie | branch `audyt/sektor-audytu`, `audyt/REGULAMIN.md` z Twoim opisem co do punktu, wpis do pamięci projektu |
+| **E2** | Szkic ról i **tabela granic** | kto istnieje, po co, gdzie granice |
+| **E3** | Dokumentacja (7 rodzajów) + Chrome | inwentarz, skrypt pobierający, `ZRODLA.md`, **BRIEF-PROJEKTU.md**, instalacja Chrome'a |
+| **E4** | Szkielet | `STRUKTURA.md`, `DOKUMENTACJA.md`, szablony, `tools/audyt/*`, strażnik + mutacje |
+| **E5** | 19 ról × (AGENT + KRYTYK + SKILL + golden) | ~76 plików sektora AUDYT, każdy z checklistą |
+| **E6** | Generat i próba na sucho | `.claude/agents/aud-*.md`; jedna rola przez pełną ścieżkę |
+| **E7** | Sektor RE-AUDYT | branch `re-audyt/sektor-re-audytu`, 21 ról + psy |
+| **E8** | **STOP — zielone światło** | dopiero potem MAPA PRZED → cykl 1 → cykl 2 → porównanie → naprawa → MAPA PO |
+
+Commity na branch w trakcie pracy, **żadnego PR-a ani merge'a** (D7, D9).
+
+**Co akceptujesz po drodze:** wynik każdego z E1–E7 przed startem następnego; osobno próg
+plik→baza, limit rund pętli, tabelę granic, treść `BRIEF-PROJEKTU.md` i szkic każdej roli.
+
+---
+
+## Definicja ukończenia sektora
+
+Kody wyjścia **bez potoku**.
+
+1. `straznik-sektora-audytu.mjs` → kod 0
+2. `audyt-straznikow.mjs straznik-sektora-audytu` → 0 przeoczonych, 0 martwych
+3. `git diff main -- . ':!audyt' ':!tools/audyt' ':!.claude'` → **puste**
+4. `mapa.mjs` → zero plików bez działu
+5. `zgloszenie.mjs --test` → bez dowodu i bez miejsca **odrzucone**, komplet przyjęty
+6. `generuj-agentow.mjs --sprawdz` → generat zgodny ze źródłem
+7. próba na sucho jednej roli → status ZWERYFIKOWANE
+8. **test negatywny każdej nowej kontroli** — reguła celuje w rozstrzygnięcie, nie w nazwę
+9. `migawka-wartosci.mjs` przed i po → identyczne
+10. każda rola ma **mechaniczny zakres i checklistę** (warunek K4′)
+11. na `main` bez zmian: `npm run check` kod 0, strażnicy 39/39, mutacje 340, testy 83/83
+
+---
+
+## Krytyka planu — co zostało po Twoich rozstrzygnięciach
+
+Rozstrzygnięte przez Ciebie: **K4** (druga fala musi się zgadzać; rozjazd = defekt audytu),
+**K9** (równoległość tak, nakładanie nie), **K10** (dwie formy miejsca), **Chrome** (dokładamy).
+
+Zostają uwagi, które wprowadziłem sam i o których warto wiedzieć:
+
+**K1.** Krytyk dostaje **raport i dowody do punktowego otwarcia**, nie cały obszar — inaczej
+koszt podwaja się bez zysku.
+**K2.** `mapa.mjs` ma definicję obszaru: plik z `git ls-files`; sierota = plik niczyj.
+**K3.** **Nie da się technicznie zabronić agentowi pisania po kodzie** — frontmatter
+ogranicza narzędzia, nie ścieżki, a `Bash` umie pisać. Audytorzy nie dostają `Write`, ale
+prawdziwą gwarancją jest kontrola po fakcie (`git diff` + migawka). Piszę wprost, bo
+obietnica „agent nie może" byłaby nieprawdą.
+**K6.** Tabela granic jest teraz **warunkiem powtarzalności**, nie kosmetyką — przy nieostrej
+granicy druga fala przypisze znalezisko innemu działowi i wynik się rozjedzie.
+**K7.** Krytyk Goldena ma wąskie zadanie: czy Golden nie **blokuje pracy bez podstawy**.
+**K8.** Sektor nie jest pilnowany bramkami z `main` (D7) — strażnik sektora żyje na branchu
+sektora i tam jest uruchamiany. Świadomy koszt.
+
+---
+
+## Koszt
+
+Budowa (E1–E7) jest **tania** — to pisanie plików. Drogie jest uruchomienie: 80 agentów,
+dwie fale, agenci pętlowi dokładają rundy — **ponad 150 uruchomień**, rząd wielu milionów
+tokenów, **nie zmieści się w jednej sesji**. Dlatego wyniki lądują w pliku/bazie natychmiast,
+a nie w kontekście rozmowy.
+
+Koszt obniżają bez straty na jakości: BRIEF zamiast 237 KB `CLAUDE.md`, rozłączne zakresy,
+podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
+
+---
+
+## Czego ten krok NIE robi
+
+- **nie uruchamia audytu** — dopiero po zielonym świetle (D10);
+- **nie naprawia niczego** — ani teraz, ani podczas obu cykli (W2);
+- **nie dotyka kodu wtyczek, prototypu ani `main`** — pilnuje niezmiennik, strażnik i migawka;
+- **nie audytuje kursów** — 73 lekcje prozy poza zakresem (D4);
+- nie kasuje branchy sektorów — zostają na zawsze (D7).
+
+---
+
+## STAN BUDOWY (aktualizować po każdym etapie)
+
+| Etap | Stan | Wynik |
+|---|---|---|
+| **E0** — zaległość CI | ✅ **ZROBIONE 2026-09-01** | CI zielone w całości pierwszy raz od 17 sierpnia; gitleaks potwierdzony; PR #117 (naprawa) i #118 (dependabot) zmergowane. Szczegóły: CHANGELOG, sekcja „Nieopublikowane" |
+| **E1** — utrwalenie | ✅ **ZROBIONE, zaakceptowane przez właściciela** | gałąź `audyt/sektor-audytu`, [`audyt/REGULAMIN.md`](REGULAMIN.md) (520 linii), wpis w pamięci projektu, ten plik |
+| **E2** — szkic ról i tabela granic | ⬜ **NASTĘPNY KROK** | 19 ról audytu: kto istnieje, po co, jaki ma **mechaniczny zakres** (lista ścieżek) i gdzie biegną granice między 14 działami |
+| **E3** — dokumentacja (7 rodzajów) + Chrome | ⬜ | skrypt pobierający z manifestem, `ZRODLA.md`, **BRIEF-PROJEKTU.md** |
+| **E4** — szkielet | ⬜ | `STRUKTURA.md`, `DOKUMENTACJA.md`, szablony, `tools/audyt/*`, strażnik + mutacje |
+| **E5** — 19 ról × 4 pliki | ⬜ | ~76 plików źródłowych, każdy z checklistą |
+| **E6** — generat i próba na sucho | ⬜ | `.claude/agents/aud-*.md` |
+| **E7** — sektor RE-AUDYT | ⬜ | gałąź `re-audyt/sektor-re-audytu`, 21 ról + psy |
+| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
+
+**Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
+
+## Fakty zmierzone przy E1 (nie wyprowadzać od nowa)
+
+- **Niezmiennik sektora działa i jest sprawdzalny jedną komendą:**
+  `git diff main --name-only -- . ':!audyt'` → musi dać **0** linii.
+- **Rozkład 918 plików repo** (podstawa `mapa.mjs`, `git ls-files`):
+  `tresc-kursow` 331 · `docs` 140 · `aai-sklep` 87 · `tools/zrzuty` 59 ·
+  `components` 47 · `tools/straznicy` 41 · `tools` 31 · `app` 26 ·
+  `tools/smoke` 25 · `modules` 21 · `aai-monitor` 20 · korzeń 19 ·
+  `aai-platnosci` 17 · `public` 15 · `lib` 13 · `goldeny` 9 ·
+  `wordpress` 7 · `agenci` 4 · `.github` 3 · `.githooks` 2 ·
+  `tools/seed` 1 · `rejestr` 1.
+- **`mapa.mjs` musi mieć TRZY stany, nie dwa:** przypisany do działu /
+  **świadomie wykluczony** / sierota. `tresc-kursow` to 331 plików
+  wykluczonych decyzją D4 — bez trzeciego stanu wykluczenie i przeoczenie
+  wyglądałyby identycznie.
+- **Środowiska stoją:** `db1_kursy` (Postgres prototypu), `aai_wp_*`
+  (WordPress `:8892` → HTTP 200, Mailpit `:8893` → 200). Weryfikator
+  re-audytu ma gdzie pracować uruchomieniowo.
+- **W repo NIE MA `.claude/`** — definicje wykonywalne budujemy od zera (E6).
