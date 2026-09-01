@@ -285,6 +285,11 @@ export function modeleZRoleMd(sektor) {
         `— znane: ${Object.keys(MODELE_ROL).join(", ")}; cichy fallback na Sonneta jest zabroniony`
       );
     }
+    if (!znacznik && !DZIALY.includes(kod)) {
+      // Rola PROCESOWA bez znacznika spadałaby po cichu na Sonneta (przeoczenie
+      // wskazane przez sędziego 2026-09-02) — tylko działy mają domyślny model (D8).
+      throw new Error(`${sektor}/ROLE.md: rola procesowa ${kod} bez znacznika modelu w nagłówku — cichy fallback na Sonneta jest zabroniony`);
+    }
     mapa.set(kod, znacznik ? MODELE_ROL[znacznik] : "sonnet");
   }
   return mapa;

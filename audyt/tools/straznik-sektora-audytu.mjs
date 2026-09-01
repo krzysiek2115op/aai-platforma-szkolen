@@ -767,7 +767,10 @@ try {
     const sekcja = readFileSync(plik, "utf8").split("\n## ").find((s) => s.startsWith(`${kod} —`));
     if (!sekcja) return null;
     const znacznik = znacznikModelu(sekcja.split("\n")[0]);
-    if (!znacznik) return "sonnet"; // dział bez znacznika — D8
+    if (!znacznik && !DZIALY.includes(kod)) {
+      throw new Error(`${sektor}/ROLE.md: rola procesowa ${kod} bez znacznika modelu w nagłówku — dotąd spadłaby po cichu na Sonneta`);
+    }
+    if (!znacznik) return "sonnet"; // DZIAŁ bez znacznika — D8; rola procesowa musi zadeklarować model
     if (!(znacznik in MODELE_WG_WLASCICIELA)) {
       throw new Error(`${sektor}/ROLE.md: nieznany model "${znacznik}" w nagłówku roli ${kod} — dotąd spadłby po cichu na Sonneta`);
     }
