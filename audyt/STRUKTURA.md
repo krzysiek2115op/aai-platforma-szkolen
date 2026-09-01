@@ -35,8 +35,8 @@ audyt/
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
-  role/                 POWSTAJE W E5 — po katalogu na rolę
-    <KOD>/AGENT.md  KRYTYK.md  SKILL.md  goldeny/
+  role/                 19 ról, po katalogu na rolę (E5)
+    <KOD>/AGENT.md  KRYTYK.md  SKILL.md  goldeny/wzorzec.md
 
     SKILL.md NIE jest instalowany do `.claude/skills/` (rozstrzygnięcie
     właściciela 2026-09-01). Skill jedzie RAZEM ZE SWOJĄ ROLĄ: agent czyta go
@@ -107,6 +107,35 @@ korzenia repo, w kodzie inline** (to zarazem forma, której agent potrzebuje do
 `straznik-wagi-dokumentacji` skanuje wyłącznie `tools/`, a audyt mutacyjny
 projektu leży poza `audyt/` — dlatego sektor ma **własnego strażnika i własne
 mutacje**, uruchamiane na gałęzi sektora.
+
+---
+
+## Co pilnuje strażnik sektora — czternaście kontroli
+
+| # | Kontrola | Co się psuje bez niej |
+|---|---|---|
+| 1 | gałąź nie zmienia kodu produktu | sektor naprawia zamiast wskazywać (W2, D7) |
+| 2 | każda rola ma krytyka | rola bez drugiej pary oczu (D3, WYTYCZNE N1) |
+| 3 | pięć elementów §5 w `AGENT.md` | agent bez zakresu albo bez ograniczeń |
+| 4 | generat zgodny ze źródłem, bez sierot | agent istnieje, choć nikt go już nie definiuje |
+| 5 | każde zgłoszenie ma dowód, miejsce i hash | wpis dopisany ręcznie omija bramkę |
+| 6 | trzy zasady nadrzędne dosłownie | definicja z pustym nagłówkiem niczego nie zabrania (W9) |
+| 7 | mechaniczny zakres i checklista w `ROLE.md` | swobodny przegląd nie da tego samego wyniku w drugiej fali (K4′) |
+| 8 | mapa pokrycia bez sierot | plik, którego nie czyta nikt |
+| 9 | `zgloszenie.mjs --test` przechodzi | bramka wpuszczania znalezisk jest zepsuta |
+| 10 | trzynaście zasad Goldena w `AGENT.md` i `KRYTYK.md` | agent nie wie, wobec czego będzie oceniany |
+| 11 | golden przechodzi przez `powodyOdmowy()` | golden przestaje być miarą i gnije razem z kodem |
+| 12 | komplet 19 ról i czterech plików każdej | `ROLE.md` opisuje rolę bez definicji |
+| 13 | checklista `AGENT.md` zgodna z `ROLE.md` w obie strony | agent nie zada pytania, które właściciel zatwierdził |
+| 14 | generat bez martwych odsyłaczy | sektor wywraca `straznik-linkow` z `main` |
+
+Reguły 2, 3, 4, 6, 10, 11 i 12 są **warunkowe**: dopóki `audyt/role/` jest pusty,
+mówią wprost „pominięte". Cisza byłaby nie do odróżnienia od zaliczenia — a katalog
+istniał jako pusty od E4, więc sześć kontroli przechodziło po pustce, dopóki nie
+zaczęły o tym mówić.
+
+Audyt mutacyjny: **24 mutacje**, 0 przeoczonych, 0 martwych
+(`audyt/tools/audyt-straznika-sektora.mjs`).
 
 ---
 

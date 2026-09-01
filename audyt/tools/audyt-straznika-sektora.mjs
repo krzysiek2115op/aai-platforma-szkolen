@@ -19,7 +19,7 @@
  * Użycie: node audyt/tools/audyt-straznika-sektora.mjs
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { KOD_PROBNY, KORZEN, SEKTOR, ZGLOSZENIA } from "./wspolne.mjs";
 
@@ -252,6 +252,22 @@ const MUTACJE_ROLI = [
       "audyt/role/SEC/AGENT.md": (s) => s.replace("## Checklista", "Patrz [tabela granic](../../GRANICE.md).\n\n## Checklista"),
     }),
     slad: /nie wskazuje niczego z \.claude\/agents/,
+  },
+  {
+    opis: "rola opisana w ROLE.md bez katalogu w audyt/role — agent bez definicji",
+    wykonaj: () => {
+      const kat = join(SEKTOR, "role", "WER");
+      const kopia = join(SEKTOR, "_rola-odlozona-na-czas-mutacji");
+      renameSync(kat, kopia);
+      try {
+        spawnSync("node", ["audyt/tools/generuj-agentow.mjs"], { cwd: KORZEN, stdio: "pipe" });
+        return straznikCzerwony();
+      } finally {
+        renameSync(kopia, kat);
+        spawnSync("node", ["audyt/tools/generuj-agentow.mjs"], { cwd: KORZEN, stdio: "pipe" });
+      }
+    },
+    slad: /brakuje 1 ról z ROLE\.md: WER/,
   },
   {
     opis: "KONTRPRZYKŁAD: rola próbna z NIETKNIĘTYCH szablonów NIE może zapalać strażnika",

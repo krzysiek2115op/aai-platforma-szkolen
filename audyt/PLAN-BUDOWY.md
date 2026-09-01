@@ -448,12 +448,93 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E2** — szkic ról i tabela granic | ✅ **ZROBIONE — czeka na akceptację** | [`ROLE.md`](ROLE.md) (707 linii): 19 ról, **522 pliki przypisane**, 183 pozycje checklist, odwzorowanie 30 klas `BLAD-*`; [`GRANICE.md`](GRANICE.md) (117 linii): 24 pary o przecięciu ≥5 plików |
 | **E3** — dokumentacja (7 rodzajów) + Chrome | ✅ **ZROBIONE — czeka na akceptację** | [`BRIEF-PROJEKTU.md`](BRIEF-PROJEKTU.md) (15 kB wobec 240 kB `CLAUDE.md`), [`DOKUMENTACJA.md`](DOKUMENTACJA.md), [`ZRODLA-DOKUMENTACJI.md`](ZRODLA-DOKUMENTACJI.md), skrypt z manifestem; **4944 pliki / 44 MB** poza drzewem repo; Chrome 152 sprawdzony pomiarem |
 | **E4** — szkielet | ✅ **ZROBIONE — czeka na akceptację** | [`STRUKTURA.md`](STRUKTURA.md), 4 szablony, **10 narzędzi** w `audyt/tools/`, strażnik sektora (9 kontroli) + **11 mutacji** (0 przeoczonych, 0 martwych) |
-| **E5** — 19 ról × 4 pliki | ⬜ **NASTĘPNY** (po akceptacji E4) | ~76 plików źródłowych z szablonów, każdy z checklistą |
-| **E6** — generat i próba na sucho | ⬜ | `.claude/agents/aud-*.md` |
+| **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE — czeka na akceptację** | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
+| **E6** — generat i próba na sucho | ⬜ **NASTĘPNY** (po akceptacji E5) | generat już powstaje (wymusza go reguła 4); zostaje **próba na sucho jednej roli przez pełną ścieżkę** |
 | **E7** — sektor RE-AUDYT | ⬜ | gałąź `re-audyt/sektor-re-audytu`, 21 ról + psy |
 | **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
+
+## Fakty zmierzone przy E5 (nie wyprowadzać od nowa)
+
+- **SKILLE NIE SĄ INSTALOWANE W HARNESSIE** — rozstrzygnięcie właściciela
+  („czy nie da się zrobić tak, że skill będzie tylko na tym agencie, który go
+  potrzebuje, tak samo jak Golden do agenta, a nie na całe repo od razu"),
+  poparte trzema pomiarami: **nie istnieje pole `skills:`** w definicji agenta
+  (frontmatter ma `name`, `description`, `tools`, `model`); **`Skill` to jedna
+  pozycja w `tools:` — wszystko albo nic**, nie da się przydzielić podzbioru;
+  a audytorzy **nie mają `Skill` w narzędziach**, więc skille w `.claude/skills/`
+  byłyby widoczne w każdej sesji tego repo i **nieużywalne przez sektor**.
+  `SKILL.md` jest plikiem roli, wskazywanym ścieżką; ślad dla GOLD-06 bierze się
+  z artefaktów kroków procedury w wyjściu działu.
+- **W PLIKACH RÓL ŚCIEŻKI PODAJEMY OD KORZENIA REPO, W KODZIE INLINE.** Treść
+  `AGENT.md` jest KOPIOWANA do `.claude/agents/`, więc odsyłacz `../../GRANICE.md`
+  przestaje tam wskazywać cokolwiek. Wykrył to **`straznik-linkow` z `main`,
+  przy commicie, 28 martwymi odsyłaczami w czterech generatach naraz** — czyli
+  sektor wywrócił bramkę wspólną dla całego repozytorium. **To jest druga twarz
+  kosztu K8:** niezmiennik `git diff` nie widzi `.claude/`, ale strażnicy
+  **skanują dysk**. Pilnuje tego reguła 14.
+- **PUSTY KATALOG `audyt/role/` DAWAŁ PRZEJŚCIE PO PUSTCE.** Reguły 2, 3, 4 i 6
+  pytały `existsSync`, a katalog istniał od E4 jako pusty — sześć kontroli
+  iterowało po zerze i **milczało**, a wyjście wyglądało identycznie jak przy
+  komplecie ról. Pusty katalog znaczy dziś to samo co brak katalogu: „pominięte"
+  na ekranie. Bez tej poprawki cały E5 mógłby przejść na zielono przy zerze
+  zbudowanych ról.
+- **`zgloszenie.mjs` WYKONYWAŁ SIĘ PRZY IMPORCIE** i kończył proces kodem 1, więc
+  strażnik nie mógł ponownie użyć `powodyOdmowy()`. Ta sama klasa co seed
+  wykonujący się przy imporcie (0.33.0). Bramka głównego modułu użyta we wzorcu
+  odpornym na spację w nazwie katalogu — `resolve(process.argv[1])` wobec
+  `fileURLToPath`, nigdy sklejanie `file://` (BLAD-014).
+- **REGUŁA 11 ZŁAPAŁA BŁĄD W MOICH WŁASNYCH GOLDENACH, zanim ktokolwiek zobaczył
+  pliki.** Kotwice PROTO i USP to prawdziwe linie kodu, a w kodzie są cudzysłowy
+  (`export const dynamic = "force-dynamic";`) — cztery bloki JSON w dwóch rolach
+  naraz były niepoprawne. Bez tej reguły goldeny wyglądałyby dobrze i przestałyby
+  cokolwiek mierzyć.
+- **KONTRPRZYKŁAD Z E4 PRZESTAŁ BYĆ PRAWDZIWY.** Mutacja „dopisanie pozycji do
+  checklisty NIE może zapalać strażnika" opisywała stan, w którym role nie
+  istniały. Od E5 pozycja dopisana WYŁĄCZNIE do `ROLE.md` nigdy nie zostanie
+  zadana, więc strażnik ma się zapalić (reguła 13). Kontrprzykładem jest teraz
+  operacja kompletna: pozycja w obu plikach **plus regeneracja definicji**.
+- **MUTACJA WIELU PLIKÓW MUSI REGENEROWAĆ GENERAT**, inaczej zapala regułę 4
+  zamiast swojej i maskuje to, co miała sprawdzić. Regeneracja jest częścią
+  operacji, którą mutacja udaje.
+- **REGUŁA 12 ZOSTAŁA UTWARDZONA DOPIERO NA KOŃCU E5 i jest to nazwane wprost.**
+  W trakcie budowy komplet ról był tylko **liczony i wypisywany** jako
+  „pominięte" — czerwony strażnik w połowie partii nie pilnowałby niczego, tylko
+  zaszumiał bramkę. Od chwili, w której wszystkie 19 ról istnieje, brak
+  którejkolwiek jest błędem, bo `ROLE.md` opisywałby wtedy rolę bez definicji.
+- **Kotwice goldenów — prawdziwe miejsca, po jednym na rolę.** Każda wskazuje
+  linię z zakresu swojej roli, zweryfikowaną co do znaku; stwierdzenia są
+  ćwiczeniem formy, oznaczonym banerem i polem
+  `"klasyfikacja": "przyklad-dydaktyczny"`. Miejsce jest prawdziwe po to, żeby
+  dało się je otworzyć **i** żeby strażnik zapalił się, gdy kod się zmieni,
+  a golden zostanie w tyle.
+
+| Rola | Kotwica | Rola | Kotwica |
+|---|---|---|---|
+| SEC | `class-aai-sklep-panel-akcje.php:68` | REPO | `README.md:63` |
+| BE | `class-aai-sklep-zapis.php:559` | WDR | `uninstall.php:22` |
+| BD | `class-aai-sklep-zapis.php:934` | PIK | `docs/PLAN.md:114` |
+| INT | `class-aai-sklep-tutor.php:90` | KIER | `audyt/tools/status.mjs:38` |
+| FE | `assets/panel.js:58` | GOLD | `audyt/REGULAMIN.md:256` |
+| PERF | `class-aai-sklep-moje.php:207` | KON | `audyt/GRANICE.md:30` |
+| PROTO | `app/szkolenia/page.serwer.tsx:20` | WER | `audyt/tools/zgloszenie.mjs:209` |
+| USP | `tools/zrzuty/manifest.mjs:97` | RAP | `audyt/PLAN-BUDOWY.md:104` |
+| QA | `audyt-straznikow.mjs:163` | ARCH | `class-aai-sklep-trasy.php:81` |
+| PRIV | `class-aai-monitor-logowania.php:275` | | |
+
+- **Trzy role dostały jawną listę rzeczy, których NIE zgłaszają jako nowe:**
+  rozjazd całej polityki prywatności ze stanem witryny (znany, starszy od
+  Pluginu 3, czeka na prawnika), przełącznik sprzedaży niedostępny klientowi
+  i wersje wtyczek bez związku z wersją repo (oba zgłoszone właścicielowi
+  2026-08-31) oraz świadomie nieaktualna linia `CLAUDE.md` o stanie sektora.
+  Rola ma **potwierdzić, że pozycja nadal jest zapisana**, i tyle. To jest ochrona
+  przed hałasem, nie przed prawdą.
+- **Krytycy KIER i GOLD mają zakres WĘŻSZY niż pozostali** i tak stoi w `ROLE.md`:
+  krytyk kierownika pyta wyłącznie, czy dział nie został zamknięty na deklaracji
+  zamiast na liczbie; krytyk Goldena (K7) — czy Golden nie zablokował pracy bez
+  wskazania złamanej zasady. Krytyk Goldena **nie ocenia przepuszczeń** — od tego
+  są weryfikator i krytycy ról.
 
 ## Fakty zmierzone przy E4 (nie wyprowadzać od nowa)
 

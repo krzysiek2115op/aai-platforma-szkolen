@@ -337,8 +337,13 @@ if (BRAK_ROL) {
     const brakujace = [...ZNANE].filter((k) => !KODY_ROL.includes(k));
     const zbudowane = KODY_ROL.filter((k) => k !== KOD_PROBNY).length;
     uwagi.push(`ról zbudowanych: ${zbudowane}/${ZNANE.size}`);
+    // KOMPLET JEST TWARDY OD E5. W trakcie budowy ta pozycja była tylko liczona
+    // i wypisywana jako "pominięte" — czerwony strażnik w połowie partii nie
+    // pilnowałby niczego, tylko zaszumiał bramkę. Od chwili, w której wszystkie
+    // 19 ról istnieje, brak którejkolwiek jest BŁĘDEM: `ROLE.md` opisuje rolę,
+    // której nikt nie wykonuje, a generat nie ma z czego jej zbudować.
     if (brakujace.length) {
-      pominiete.push(`12. komplet ról — brakuje ${brakujace.length}: ${brakujace.join(", ")}`);
+      bledy.push(`brakuje ${brakujace.length} ról z ROLE.md: ${brakujace.join(", ")} — ROLE.md opisuje role bez definicji`);
     }
   }
 }
