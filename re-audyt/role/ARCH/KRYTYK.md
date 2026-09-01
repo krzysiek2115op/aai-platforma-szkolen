@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `ARCH` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-ARCH-*.json`),
+Wyjście roli `ARCH` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-ARCH-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

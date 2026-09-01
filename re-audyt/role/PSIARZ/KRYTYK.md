@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `PSIARZ` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-PSIARZ-*.json`),
+Wyjście roli `PSIARZ` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-PSIARZ-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `PIK` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-PIK-*.json`),
+Wyjście roli `PIK` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-PIK-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

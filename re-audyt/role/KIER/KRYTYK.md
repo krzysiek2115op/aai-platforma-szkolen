@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `KIER` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-KIER-*.json`),
+Wyjście roli `KIER` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-KIER-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

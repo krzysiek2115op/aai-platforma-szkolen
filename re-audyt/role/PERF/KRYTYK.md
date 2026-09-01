@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `PERF` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-PERF-*.json`),
+Wyjście roli `PERF` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-PERF-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

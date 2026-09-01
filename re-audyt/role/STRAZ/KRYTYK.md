@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `STRAZ` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-STRAZ-*.json`),
+Wyjście roli `STRAZ` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-STRAZ-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

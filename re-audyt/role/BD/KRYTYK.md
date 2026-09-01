@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `BD` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-BD-*.json`),
+Wyjście roli `BD` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-BD-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `RAP` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-RAP-*.json`),
+Wyjście roli `RAP` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-RAP-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

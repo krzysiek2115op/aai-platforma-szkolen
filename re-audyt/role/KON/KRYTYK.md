@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `KON` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-KON-*.json`),
+Wyjście roli `KON` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-KON-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

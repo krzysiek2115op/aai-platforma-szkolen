@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `USP` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-USP-*.json`),
+Wyjście roli `USP` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-USP-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `WDR` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-WDR-*.json`),
+Wyjście roli `WDR` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-WDR-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

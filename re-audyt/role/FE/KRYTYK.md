@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `FE` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-FE-*.json`),
+Wyjście roli `FE` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-FE-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

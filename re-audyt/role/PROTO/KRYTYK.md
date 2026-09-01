@@ -71,7 +71,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `PROTO` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/AUD-PROTO-*.json`),
+Wyjście roli `PROTO` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-PROTO-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt
