@@ -1,0 +1,22 @@
+{
+  "id": "REA-SEC-002",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "SEC",
+  "pozycja": "SEC-R6",
+  "stwierdzenie": "Pozycja SEC-R6 przepisuje dowód, który nie rozstrzyga jej własnego pytania. Kolumna „Dowód\" żąda wyłącznie „adres + kod odpowiedzi\", a na wejściach zakresu SEC kod odpowiedzi jest IDENTYCZNY dla odmowy i dla przyjęcia z zapisem do bazy: kolektor CSP odpowiada 204 zarówno wtedy, gdy cicho odrzuca żądanie, jak i wtedy, gdy dopisuje treść gościa do opcji WordPressa. Pogłębiacz trzymający się przepisanego dowodu odhacza SEC-R6 na wartości, która nie niesie odpowiedzi na pytanie „czy odmowa naprawdę następuje\" — i przeoczy dokładnie tę klasę, której pozycja szuka. Pozycję domyka dopiero pomiar SKUTKU W DANYCH (stan przed i po), którego kolumna dowodu nie wymaga.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "re-audyt/ROLE.md",
+    "linia": 107,
+    "tresc": "| SEC-R6 | Czy dla KAŻDEGO wejścia z obszaru odmowa przy braku nonce'a albo uprawnienia jest zmierzona ŻĄDANIEM, nie odczytana z kodu? | żądanie do `:8892` bez nonce'a i bez ciastka | adres + kod odpowiedzi |"
+  },
+  "dowod": "Dwa żądania na to samo wejście :8892, obie odpowiedzi 204, przeciwny skutek w danych — zmierzone przez krytyka 2026-09-02. (1) PRZYJĘTE I ZAPISANE: curl -s -o /dev/null -w '%{http_code}' -X POST 'http://127.0.0.1:8892/wp-admin/admin-post.php?action=aai_obwod_csp' -H 'Content-Type: application/csp-report' -d '{\"csp-report\":{\"violated-directive\":\"script-src\",\"blocked-uri\":\"http://krytyk-e7.test/x.js\"}}' → kod=204; liczba kluczy opcji (podman exec aai_wp_cli wp option get aai_obwod_csp_raport --format=json | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))') wzrosła o 1 i przybył klucz 'script-src | http://krytyk-e7.test/x.js'. (2) ODRZUCONE: to samo żądanie bez pola violated-directive (-d '{\"csp-report\":{\"blocked-uri\":\"http://krytyk-e7.test/odrzut.js\"}}') → kod=204, liczba kluczy PRZED 8 i PO 8, bez nowego klucza. Powód stałości kodu jest w kodzie: wordpress/srodowisko/mu-plugins/aai-obwod.php:562-563 wykonuje status_header( 204 ); exit; POZA gałęziami — po try/catch, więc każdy cichy return z przyjmij_raport() i każde udane dopisanie kończą się tą samą wartością. Ta sama własność jest na drugim wejściu zakresu: wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-wizyty.php:212 robi return przed zapisem, a odbierz() i tak kończy przez koniec(). Skutek dla sektora jest już widoczny: zgłoszenie REA-SEC-001 powstało WYŁĄCZNIE dlatego, że Pogłębiacz wyszedł poza przepisany dowód i zmierzył opcję przed i po — z samego „adres + kod odpowiedzi\" (204) wyszłaby odpowiedź „odmowa\", czyli odwrotna do prawdy.",
+  "klasyfikacja": "usterka checklisty — przepisany dowód nie rozstrzyga pytania pozycji (pozycja domykalna na wartości bez treści)",
+  "wplyw": "Powtarzalność (K4'). Dwie fale zadają to samo pytanie i mają przepisany ten sam dowód, ale odpowiedź zależy od tego, czy Pogłębiacz z własnej inicjatywy dołoży pomiar skutku w danych: fala trzymająca się kolumny „Dowód\" zamyka SEC-R6 na „204 = odmowa\" i nie zgłasza niczego, fala schodząca głębiej zgłasza publiczny endpoint zapisujący niezweryfikowaną treść gościa. Rozjazd fal przy niezmienionym kodzie jest dokładnie tym, co porownaj-cykle.mjs czyta jako defekt audytu. Klasa jest ta sama co PIK-08 z E6 (pozycja odhaczona po pustce), tylko groźniejsza: tu wartość NIE jest pusta, więc odhaczenie wygląda na pomiar.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "32694cf50982eaf9b8a4d5dce8c2653dacb82a33615637d7ffb7b3183c14755b",
+  "werdykt": null,
+  "proba": "E7"
+}
