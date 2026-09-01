@@ -116,6 +116,24 @@ export function wszystkieZgloszenia() {
 }
 
 /**
+ * Odsiewa wpisy PRÓBNE — te, które powstały przy budowie sektora, a nie
+ * podczas przebiegu. Zwraca dwie listy, nie jedną: narzędzie porównujące ma
+ * POWIEDZIEĆ, ile pominęło. Ciche odsianie byłoby nie do odróżnienia od
+ * kompletu ("no silent caps" — lekcja z tego repozytorium), a wpis próbny
+ * siedzi w prawdziwej fali, bo `zgloszenie.mjs` wymusza `fala` ∈ {1,2}.
+ */
+export function bezProb(lista) {
+  const proby = lista.filter((z) => z?.proba);
+  return { wpisy: lista.filter((z) => !z?.proba), proby };
+}
+
+/** Jedno zdanie o pominiętych próbach — puste, gdy nie było czego pomijać. */
+export function notaOProbach(proby) {
+  if (!proby.length) return "";
+  return `  pominięte wpisy PRÓBNE: ${proby.length} (${proby.map((z) => `${z.id}/${z.proba}`).join(", ")})\n`;
+}
+
+/**
  * Zakresy działów WYPROWADZONE Z `ROLE.md` — nie z osobnej listy.
  *
  * Własna kopia zakresów rozjechałaby się po cichu z dokumentem, który

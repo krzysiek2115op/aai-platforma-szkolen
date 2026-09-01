@@ -13,10 +13,11 @@
  * Użycie: node audyt/tools/polacz-sektory.mjs [--fala=1]
  */
 import { join } from "node:path";
-import { PROG_BAZY, SEKTOR, wszystkieZgloszenia, zapiszJSON } from "./wspolne.mjs";
+import { PROG_BAZY, SEKTOR, bezProb, notaOProbach, wszystkieZgloszenia, zapiszJSON } from "./wspolne.mjs";
 
 const fala = Number(process.argv.find((a) => a.startsWith("--fala="))?.split("=")[1] ?? 1);
-const wszystkie = wszystkieZgloszenia().filter((z) => z.fala === fala);
+// Wpisy PRÓBNE nie są znaleziskiem przebiegu — patrz `bezProb()`.
+const { wpisy: wszystkie, proby } = bezProb(wszystkieZgloszenia().filter((z) => z.fala === fala));
 const audyt = wszystkie.filter((z) => z.sektor === "audyt");
 const reAudyt = wszystkie.filter((z) => z.sektor === "re-audyt");
 
@@ -49,7 +50,8 @@ process.stdout.write(
   `  miejsc razem:        ${polaczone.length}\n` +
   `  potwierdzone przez oba: ${obustronne.length}\n` +
   `  tylko audyt:         ${samAudyt.length}\n` +
-  `  tylko re-audyt:      ${samReAudyt.length}\n\n`
+  `  tylko re-audyt:      ${samReAudyt.length}\n` +
+  notaOProbach(proby) + "\n"
 );
 
 for (const w of samAudyt) {

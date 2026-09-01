@@ -47,10 +47,10 @@ poznasz, że masz przed sobą wzorzec, a nie znalezisko.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/tools/zgloszenie.mjs",
-    "linia": 209,
+    "linia": 259,
     "tresc": "hash: hashMiejsca(wpis.miejsce),"
   },
-  "dowod": "Linia 209 liczy skrót z samego miejsca, więc ponowne przeliczenie z tego samego miejsca musi dać tę samą wartość — dwa skróty obok siebie rozstrzygają.",
+  "dowod": "Linia 259 liczy skrót z samego miejsca, więc ponowne przeliczenie z tego samego miejsca musi dać tę samą wartość — dwa skróty obok siebie rozstrzygają.",
   "klasyfikacja": "przyklad-dydaktyczny",
   "wplyw": "Porównanie fal i połączenie sektorów stoją na tym skrócie, więc wpis z niezgodnym hashem nie połączy się ze swoim odpowiednikiem z drugiej fali."
 }
@@ -142,7 +142,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/tools/zgloszenie.mjs",
-    "linia": 209,
+    "linia": 259,
     "tresc": "hash: hashMiejsca(wpis),"
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",

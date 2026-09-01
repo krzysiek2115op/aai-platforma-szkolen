@@ -193,6 +193,19 @@ ZWERYFIKOWANE (istnieje)
 ZWERYFIKOWANE (odrzucone) — z powodem
 ```
 
+**Werdykt zapisujesz narzędziem, nie w odpowiedzi** — przebieg sektora nie mieści
+się w jednej sesji, więc werdykt wypowiedziany tylko w rozmowie znika przy pierwszym
+`/clear`:
+
+```
+node audyt/tools/werdykt.mjs --id=<AUD-…> --kto=weryfikator --werdykt=ISTNIEJE
+node audyt/tools/werdykt.mjs --id=<AUD-…> --kto=weryfikator --werdykt=ODRZUCONE --powod="<dlaczego>"
+```
+
+Narzędzie **odmawia** odrzucenia bez powodu i **nie pozwala nadpisać** raz wydanego
+werdyktu. Status `ZWERYFIKOWANE` powstaje dopiero z Twojego werdyktu I werdyktu
+krytyka roli — jeden głos wpisu nie domyka, i to jest cały sens §16.
+
 **Odrzucenie jest wynikiem, nie porażką agenta.** Zgłoszenie zostaje z werdyktem,
 bo druga fala musi trafić na to samo miejsce i dojść do tego samego wniosku.
 

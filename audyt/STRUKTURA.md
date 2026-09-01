@@ -25,13 +25,14 @@ audyt/
   tools/                narzędzia sektora (E4)
     wspolne.mjs                  ścieżki, progi, HASH MIEJSCA
     zgloszenie.mjs               jedyna droga wejścia znaleziska
+    werdykt.mjs                  jedyna droga do statusu ZWERYFIKOWANE
     status.mjs                   pięć statusów + rundy pętli
     mapa.mjs                     pokrycie w trzech stanach
     migawka-wartosci.mjs         wartości przed i po (W6)
     porownaj-cykle.mjs           test powtarzalności (K4')
     polacz-sektory.mjs           audyt + re-audyt (W4)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  czternaście kontroli
+    straznik-sektora-audytu.mjs  szesnaście kontroli
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
@@ -110,7 +111,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 
 ---
 
-## Co pilnuje strażnik sektora — czternaście kontroli
+## Co pilnuje strażnik sektora — szesnaście kontroli
 
 | # | Kontrola | Co się psuje bez niej |
 |---|---|---|
@@ -128,14 +129,79 @@ mutacje**, uruchamiane na gałęzi sektora.
 | 12 | komplet 19 ról i czterech plików każdej | `ROLE.md` opisuje rolę bez definicji |
 | 13 | checklista `AGENT.md` zgodna z `ROLE.md` w obie strony | agent nie zada pytania, które właściciel zatwierdził |
 | 14 | generat bez martwych odsyłaczy | sektor wywraca `straznik-linkow` z `main` |
+| 15 | `werdykt.mjs --test` przechodzi | krytyk i weryfikator mogą zapisać cokolwiek |
+| 16 | ZWERYFIKOWANE tylko z kompletem werdyktów; próba nigdy cicha | wpis domknięty jednym głosem (§16) albo wyciszony znacznikiem |
 
 Reguły 2, 3, 4, 6, 10, 11 i 12 są **warunkowe**: dopóki `audyt/role/` jest pusty,
 mówią wprost „pominięte". Cisza byłaby nie do odróżnienia od zaliczenia — a katalog
 istniał jako pusty od E4, więc sześć kontroli przechodziło po pustce, dopóki nie
 zaczęły o tym mówić.
 
-Audyt mutacyjny: **24 mutacje**, 0 przeoczonych, 0 martwych
+Reguły 15 i 16 **dołożył etap E6** — patrz „Nośnik werdyktu" niżej.
+
+Audyt mutacyjny: **34 mutacje**, 0 przeoczonych, 0 martwych
 (`audyt/tools/audyt-straznika-sektora.mjs`).
+
+---
+
+## Nośnik werdyktu — czego szkielet E4 nie miał
+
+**Znalazła to dopiero próba na sucho (E6), czyli dokładnie to, po co się ją robi.**
+
+Do E6 ostatnie dwa kroki cyklu życia nie miały nośnika maszynowego:
+`zgloszenie.mjs` zapisuje `status` i `werdykt` **raz, przy tworzeniu wpisu**,
+a `status.mjs` prowadzi stan **roli**, nie stan zgłoszenia. Krytyk i weryfikator
+mogli więc wydać werdykt wyłącznie w rozmowie — a rozmowa nie przeżywa `/clear`,
+podczas gdy przebieg sektora z założenia nie mieści się w jednej sesji. Pozycja 7
+definicji ukończenia sektora („próba na sucho jednej roli → status
+ZWERYFIKOWANE") była przez to **nieosiągalna**.
+
+Nie widziała tego ani reguła 5 strażnika (pyta o `id`, `dowod`, `miejsce`,
+`hash`), ani żadna z 24 mutacji, które wtedy istniały. **Bramka, której nie
+widać, jest nie do odróżnienia od bramki, której nie ma** — ta sama lekcja co
+`smoke-csp` milczący przez piętnaście dni.
+
+Cztery rozstrzygnięcia tego nośnika:
+
+1. **Dwa werdykty, nie jeden.** Krytyk roli ocenia PRACĘ AGENTA, weryfikator
+   ocenia ZJAWISKO. §16 stawia weryfikatora poza audytem właśnie po to, żeby
+   agent wykrywający nie był jedynym, kto uznaje problem za prawdziwy — więc
+   status `ZWERYFIKOWANE` wymaga OBU. Zbiory werdyktów są rozłączne
+   (`PRZEPUSZCZAM`/`ODRZUCAM` kontra `ISTNIEJE`/`ODRZUCONE`), bo jedno słowo
+   o dwóch znaczeniach w dzienniku audytu jest gorsze od dwóch słów.
+2. **Kolejności NIE wymuszamy.** Schemat cyklu życia rysuje krytyka, Goldena
+   i weryfikatora jako trzy gałęzie z jednego węzła, nie jako łańcuch.
+   Wymuszenie kolejności byłoby regułą, której nie ma w niczym, co właściciel
+   zaakceptował.
+3. **Werdyktu nie da się nadpisać, a odrzucenie musi mieć powód.** Odrzucone
+   zgłoszenie zostaje z werdyktem — druga fala musi dojść do tego samego
+   wniosku (K4'), a wpis poprawiony po fakcie zafałszowałby porównanie.
+   Odrzucenie bez powodu jest ciszą, nie wynikiem.
+4. **Reguła 16 sprawdza W OBIE STRONY.** Sam warunek „ZWERYFIKOWANE wymaga obu
+   werdyktów" przepuściłby wpis z kompletem werdyktów, który utknął na
+   `DO WERYFIKACJI` — a wtedy kierownik szukałby werdyktu, który już jest.
+
+### Wpis PRÓBNY — znacznik etapu budowy
+
+`zgloszenie.mjs` wymusza `fala` ∈ {1, 2}, więc wpis powstały przy budowie
+sektora siedzi w **prawdziwej fali 1** i jest od niej nie do odróżnienia.
+`porownaj-cykle.mjs` zobaczyłby go jako miejsce znane fali 1 i nieznane fali 2,
+czyli jako **rozjazd fal = defekt audytu** (K4'), którym nie jest.
+
+Dlatego wpis próbny nosi znacznik: `zgloszenie.mjs --oznacz-probe=<ID>
+--etap=E6`. Trzy rzeczy o nim, każda z powodem:
+
+- **znacznik NIE jedzie w treści zgłoszenia** — `powodyOdmowy()` odrzuca pole
+  `proba` przysłane przez agenta. Oznaczenie jest decyzją tego, kto prowadzi
+  budowę sektora; gdyby agent mógł je sobie dopisać, miałby drogę na wyciszenie
+  własnego prawdziwego znaleziska;
+- **znacznik MUSI nazwać etap** — pusty łańcuch zapala regułę 16;
+- **znacznik NIGDY nie jest cichy** — strażnik wypisuje wpisy próbne po ID,
+  a `porownaj-cykle.mjs` i `polacz-sektory.mjs` mówią, ile pominęły. Ciche
+  odsianie byłoby nie do odróżnienia od kompletu.
+
+**Wpis próbny ZOSTAJE w repozytorium** (rozstrzygnięcie właściciela
+2026-09-01) — jest materiałem dowodowym etapu, a nie śmieciem.
 
 ---
 
@@ -157,8 +223,11 @@ Audyt mutacyjny: **24 mutacje**, 0 przeoczonych, 0 martwych
         ├─▶ Golden (bramka)      13 zasad — na WYJŚCIU działu, nie w trakcie
         └─▶ weryfikator (WER)    czy problem istnieje — poza audytem (§16)
         │
+        │   werdykt.mjs --id=… --kto=krytyk|weryfikator --werdykt=…
+        │   odrzucenie MUSI mieć powód; werdyktu nie da się nadpisać
         ▼
-  status: ZWERYFIKOWANE          (istnieje albo odrzucone — wpis ZOSTAJE)
+  status: ZWERYFIKOWANE          dopiero po OBU werdyktach
+                                 (istnieje albo odrzucone — wpis ZOSTAJE)
         │
         ▼
   kierownik zbiera → RAP → raport końcowy
@@ -178,6 +247,9 @@ i dojść do tego samego wniosku; skasowany wpis zafałszowałby porównanie.
 | `node audyt/tools/status.mjs --rola=X --fala=N --status=…` | każda rola | na starcie i na końcu |
 | `node audyt/tools/status.mjs --rola=X --fala=N --runda` | rola pętlowa | co rundę |
 | `node audyt/tools/zgloszenie.mjs --plik=…` | każda rola | przy znalezisku |
+| `node audyt/tools/werdykt.mjs --id=… --kto=krytyk --werdykt=…` | krytyk roli | po ocenie zgłoszenia |
+| `node audyt/tools/werdykt.mjs --id=… --kto=weryfikator --werdykt=…` | weryfikator (WER) | po sprawdzeniu zjawiska |
+| `node audyt/tools/werdykt.mjs --pokaz` | kierownik | gdy zbiera wyniki działu |
 | `node audyt/tools/porownaj-cykle.mjs` | kierownik | po obu falach |
 | `node audyt/tools/polacz-sektory.mjs --fala=N` | kierownik | po re-audycie |
 | `node audyt/tools/migawka-wartosci.mjs --porownaj` | kierownik | na koniec |

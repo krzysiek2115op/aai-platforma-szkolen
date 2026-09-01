@@ -17,15 +17,19 @@
  * Użycie: node audyt/tools/porownaj-cykle.mjs [--sektor=audyt]
  * Kod 0 = fale zgodne, 1 = rozjazd (defekt audytu) albo podejrzenie kopiowania.
  */
-import { wszystkieZgloszenia, znormalizuj } from "./wspolne.mjs";
+import { bezProb, notaOProbach, wszystkieZgloszenia, znormalizuj } from "./wspolne.mjs";
 
 const sektor = process.argv.find((a) => a.startsWith("--sektor="))?.split("=")[1] ?? "audyt";
-const wszystkie = wszystkieZgloszenia().filter((z) => z.sektor === sektor);
+// Wpisy PRÓBNE (etapy budowy) siedzą w prawdziwej fali, bo `fala` może być
+// tylko 1 albo 2 — i porównywane z prawdziwym przebiegiem wyglądałyby jak
+// rozjazd fal, czyli jak DEFEKT AUDYTU, którym nie są.
+const { wpisy: wszystkie, proby } = bezProb(wszystkieZgloszenia().filter((z) => z.sektor === sektor));
 const f1 = wszystkie.filter((z) => z.fala === 1);
 const f2 = wszystkie.filter((z) => z.fala === 2);
 
 if (!f1.length || !f2.length) {
   process.stdout.write(`Sektor "${sektor}": fala 1 = ${f1.length} zgłoszeń, fala 2 = ${f2.length}.\n` +
+    notaOProbach(proby) +
     "Porównanie wymaga obu fal.\n");
   process.exit(1);
 }
@@ -53,7 +57,8 @@ process.stdout.write(
   `  tylko w fali 1:    ${tylkoW1.length}\n` +
   `  tylko w fali 2:    ${tylkoW2.length}\n` +
   `  inny dział:        ${innyDzial.length}\n` +
-  `  identyczny opis:   ${podejrzane.length}\n\n`
+  `  identyczny opis:   ${podejrzane.length}\n` +
+  notaOProbach(proby) + "\n"
 );
 
 for (const h of tylkoW1) {

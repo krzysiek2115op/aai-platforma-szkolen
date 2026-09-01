@@ -1,5 +1,5 @@
 /**
- * STRAŻNIK SEKTORA AUDYT — czternaście kontroli.
+ * STRAŻNIK SEKTORA AUDYT — szesnaście kontroli.
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -425,6 +425,69 @@ if (BRAK_ROL) {
     }
     uwagi.push(`generatów sprawdzonych na odsyłacze: ${generaty.length}`);
   }
+}
+
+/* ── 15. narzędzie werdyktów przechodzi własną samokontrolę ────────────────
+   Bliźniak reguły 9. Bez niego ścieżka sektora ma nośnik, którego nikt nie
+   mierzy: krytyk i weryfikator mogliby zapisywać cokolwiek. */
+try {
+  execFileSync("node", ["audyt/tools/werdykt.mjs", "--test"], { cwd: KORZEN, stdio: "pipe" });
+  uwagi.push("werdykt.mjs: samokontrola zaliczona");
+} catch {
+  bledy.push("werdykt.mjs --test NIE przechodzi — bramka werdyktów jest zepsuta");
+}
+
+/* ── 16. status ZWERYFIKOWANE tylko z kompletem werdyktów; próba nigdy cicha ─
+   Pytamy o ZAWARTOŚĆ wpisu, nie o to, czy przeszedł przez `werdykt.mjs` —
+   status dopisany ręcznie do pliku ominąłby narzędzie, a ta reguła nie.
+   To ta sama konstrukcja co reguła 5.
+
+   Sprawdzenie idzie W OBIE STRONY. Sam warunek "ZWERYFIKOWANE wymaga obu
+   werdyktów" przepuściłby wpis z kompletem werdyktów, który UTKNĄŁ na
+   DO WERYFIKACJI — a wtedy kierownik szukałby werdyktu, który już jest.
+
+   Znacznik próby MUSI nazywać etap i MUSI zostać wypisany. Wpis próbny
+   wypada z porównania fal, więc cichy znacznik byłby drogą na wyciszenie
+   prawdziwego znaleziska. */
+{
+  const { WERDYKTY, komplet } = await import("./werdykt.mjs");
+  const ODMOWNE = ["ODRZUCAM", "ODRZUCONE"];
+  const proby = [];
+
+  for (const w of wszystkieZgloszenia()) {
+    const werdykty = w?.werdykt && typeof w.werdykt === "object" ? w.werdykt : {};
+
+    for (const [kto, wpis] of Object.entries(werdykty)) {
+      if (!WERDYKTY[kto]) {
+        bledy.push(`zgłoszenie ${w.id}: werdykt wydała nieznana rola "${kto}"`);
+      } else if (!WERDYKTY[kto].includes(wpis?.werdykt)) {
+        bledy.push(`zgłoszenie ${w.id}: rola "${kto}" ma werdykt "${wpis?.werdykt}" spoza swojego zbioru`);
+      }
+      if (ODMOWNE.includes(wpis?.werdykt) && !String(wpis?.powod ?? "").trim()) {
+        bledy.push(`zgłoszenie ${w.id}: werdykt "${wpis.werdykt}" bez powodu — odrzucenie bez powodu jest ciszą, nie wynikiem`);
+      }
+    }
+
+    if (w?.status === "ZWERYFIKOWANE" && !komplet(w)) {
+      bledy.push(
+        `zgłoszenie ${w.id}: status ZWERYFIKOWANE bez kompletu werdyktów — ` +
+        "§16 wymaga, żeby agent wykrywający nie był jedynym, kto uznaje problem za prawdziwy"
+      );
+    }
+    if (komplet(w) && w?.status !== "ZWERYFIKOWANE") {
+      bledy.push(`zgłoszenie ${w.id}: ma oba werdykty, a status to "${w.status}" — wpis utknął przed ZWERYFIKOWANE`);
+    }
+
+    if (w?.proba !== undefined) {
+      if (typeof w.proba !== "string" || !w.proba.trim()) {
+        bledy.push(`zgłoszenie ${w.id}: znacznik próby musi NAZWAĆ etap budowy, jest "${w.proba}"`);
+      } else {
+        proby.push(`${w.id}/${w.proba}`);
+      }
+    }
+  }
+
+  if (proby.length) uwagi.push(`wpisy PRÓBNE (poza porównaniem fal): ${proby.join(", ")}`);
 }
 
 /* ── wynik ── */

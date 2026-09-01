@@ -21,13 +21,14 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { KOD_PROBNY, KORZEN, SEKTOR, ZGLOSZENIA } from "./wspolne.mjs";
+import { KOD_PROBNY, KORZEN, SEKTOR, ZGLOSZENIA, hashMiejsca } from "./wspolne.mjs";
 
 const P = (s) => join(KORZEN, s);
 const ROLE_MD = "audyt/ROLE.md";
 const WSPOLNE = "audyt/tools/wspolne.mjs";
 const ZGLOSZENIE = "audyt/tools/zgloszenie.mjs";
 const MAPA = "audyt/tools/mapa.mjs";
+const WERDYKT = "audyt/tools/werdykt.mjs";
 
 /** Uruchamia strażnika sektora. Zwraca true, gdy ZAPALIŁ SIĘ (kod != 0). */
 function straznikCzerwony() {
@@ -174,6 +175,37 @@ function zPodmienionymi(mapa) {
    Każda mutacja ma `slad` — tak jak `oczekiwanySlad` w audycie projektu od
    0.47.0. Bez niego mutacja łamiąca dwie reguły naraz maskuje jedną z nich
    i wygląda to na sukces. */
+/* ── mutacje nośnika werdyktów (reguły 15 i 16, dołożone przy E6) ────────── */
+MUTACJE.push(
+  {
+    opis: "bramka werdyktów przestaje wymagać powodu przy odrzuceniu (odrzucenie staje się ciszą)",
+    plik: WERDYKT,
+    slad: /werdykt\.mjs --test/,
+    zmien: (s) => s.replace(
+      "if (ODMOWNE.includes(werdykt) && znormalizuj(powod ?? \"\").length < 20) {",
+      "if (false) {"
+    ),
+  },
+  {
+    opis: "bramka werdyktów pozwala NADPISAĆ cudzy werdykt (fala 2 dostaje poprawiony wpis)",
+    plik: WERDYKT,
+    slad: /werdykt\.mjs --test/,
+    zmien: (s) => s.replace("if (dotychczas[kto]) {", "if (false) {"),
+  },
+  {
+    opis: "komplet werdyktów przestaje wymagać OBU ról (sam krytyk domyka wpis)",
+    plik: WERDYKT,
+    slad: /werdykt\.mjs --test/,
+    zmien: (s) => s.replace("return Boolean(w.krytyk && w.weryfikator);", "return Boolean(w.krytyk || w.weryfikator);"),
+  },
+  {
+    opis: "bramka zgłoszeń przestaje odrzucać ZNACZNIK PRÓBY dopisany do treści wpisu",
+    plik: ZGLOSZENIE,
+    slad: /zgloszenie\.mjs --test/,
+    zmien: (s) => s.replace("if (z.proba !== undefined) {", "if (false) {"),
+  },
+);
+
 const MUTACJE_ROLI = [
   {
     opis: "z szablonu AGENT.md znika jedna z 13 zasad Goldena",
@@ -270,6 +302,36 @@ const MUTACJE_ROLI = [
     slad: /brakuje 1 ról z ROLE\.md: WER/,
   },
   {
+    opis: "wpis ma status ZWERYFIKOWANE, a nie ma ani jednego werdyktu",
+    wykonaj: () => mutacjaWpisu({ status: "ZWERYFIKOWANE" }),
+    slad: /status ZWERYFIKOWANE bez kompletu werdyktów/,
+  },
+  {
+    opis: "wpis ma OBA werdykty, a utknął na DO WERYFIKACJI (kierownik szuka werdyktu, który już jest)",
+    wykonaj: () => mutacjaWpisu({ status: "DO WERYFIKACJI", werdykt: { krytyk: PRZEPUSZCZA, weryfikator: ISTNIEJE } }),
+    slad: /utknął przed ZWERYFIKOWANE/,
+  },
+  {
+    opis: "werdykt odmowny BEZ powodu — odrzucenie staje się ciszą",
+    wykonaj: () => mutacjaWpisu({ werdykt: { krytyk: { werdykt: "ODRZUCAM", powod: "", kiedy: "2026-09-01T00:00:00.000Z" } } }),
+    slad: /bez powodu/,
+  },
+  {
+    opis: "werdykt wydany przez rolę spoza dwóch uprawnionych",
+    wykonaj: () => mutacjaWpisu({ werdykt: { kierownik: PRZEPUSZCZA } }),
+    slad: /nieznana rola/,
+  },
+  {
+    opis: "ZNACZNIK PRÓBY bez nazwanego etapu — wpis wypada z porównania fal po cichu",
+    wykonaj: () => mutacjaWpisu({ proba: "  " }),
+    slad: /znacznik próby musi NAZWAĆ etap/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: wpis próbny Z nazwanym etapem i kompletem werdyktów NIE może zapalać strażnika",
+    wykonaj: () => mutacjaWpisu({ proba: "E6", status: "ZWERYFIKOWANE", werdykt: { krytyk: PRZEPUSZCZA, weryfikator: ISTNIEJE } }),
+    oczekujCzerwonego: false,
+  },
+  {
     opis: "KONTRPRZYKŁAD: rola próbna z NIETKNIĘTYCH szablonów NIE może zapalać strażnika",
     wykonaj: () => rolaZSzablonu(),
     oczekujCzerwonego: false,
@@ -278,6 +340,40 @@ const MUTACJE_ROLI = [
 
 /* ── zgłoszenie-śmieć: reguła 5 ma je złapać bez dotykania kodu ── */
 const SMIEC = join(ZGLOSZENIA, "AUD-SEC-999.json");
+const SMIEC_WER = join(ZGLOSZENIA, "AUD-WER-998.json");
+
+/**
+ * Wpis-atrapa o WŁAŚCIWEJ zawartości poza jednym psutym polem. Reszta pól
+ * musi być poprawna, inaczej zapali się reguła 5 i mutacja zmierzy nie to,
+ * co miała — ta sama pułapka co BLAD-022 ("wysyłka w teście złego wejścia
+ * musi być POZA jednym błędem poprawna").
+ */
+const MIEJSCE_ATRAPY = { rodzaj: "linia", plik: "audyt/tools/werdykt.mjs", linia: 1, tresc: "/**" };
+const WPIS_ATRAPA = {
+  id: "AUD-WER-998",
+  sektor: "audyt", fala: 1, dzial: "WER", pozycja: "WER-01",
+  stwierdzenie: "Wpis-atrapa audytu mutacyjnego — mierzy regułę statusu i werdyktów.",
+  miejsce: MIEJSCE_ATRAPY,
+  dowod: "Wpis powstaje wyłącznie na czas jednej mutacji i jest kasowany w finally.",
+  klasyfikacja: "atrapa", wplyw: "Brak — wpis nie opuszcza przebiegu audytu mutacyjnego.",
+  hash: hashMiejsca(MIEJSCE_ATRAPY),
+  status: "DO WERYFIKACJI",
+  werdykt: null,
+};
+
+/** Podkłada wpis-atrapę o zadanym kształcie i pyta strażnika. */
+function mutacjaWpisu(zmiany) {
+  mkdirSync(ZGLOSZENIA, { recursive: true });
+  writeFileSync(SMIEC_WER, JSON.stringify({ ...WPIS_ATRAPA, ...zmiany }, null, 2));
+  try {
+    return straznikCzerwony();
+  } finally {
+    rmSync(SMIEC_WER, { force: true });
+  }
+}
+
+const PRZEPUSZCZA = { werdykt: "PRZEPUSZCZAM", powod: null, kiedy: "2026-09-01T00:00:00.000Z" };
+const ISTNIEJE = { werdykt: "ISTNIEJE", powod: null, kiedy: "2026-09-01T00:00:00.000Z" };
 
 function mutacjaZgloszenia() {
   mkdirSync(ZGLOSZENIA, { recursive: true });
@@ -364,6 +460,7 @@ try {
 } finally {
   for (const [plik, tresc] of kopie) writeFileSync(P(plik), tresc, "utf8");
   rmSync(SMIEC, { force: true });
+  rmSync(SMIEC_WER, { force: true });
 }
 
 const razem = MUTACJE.length + MUTACJE_ROLI.length + 1;

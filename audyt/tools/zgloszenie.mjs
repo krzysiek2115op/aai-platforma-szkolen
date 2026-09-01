@@ -61,6 +61,16 @@ export function powodyOdmowy(z, { korzen = KORZEN } = {}) {
   if (znormalizuj(z.stwierdzenie).length < 20) bledy.push("stwierdzenie jest za krótkie, by cokolwiek znaczyło");
   if (znormalizuj(z.dowod).length < 20) bledy.push("dowód jest za krótki, by cokolwiek potwierdzał");
 
+  // ZNACZNIK PRÓBY NIE JEDZIE W CIELE WPISU. Wpis oznaczony jako próbny
+  // wypada z porównania fal i z połączenia sektorów, więc gdyby agent mógł go
+  // sobie dopisać, miałby drogę na wyciszenie własnego prawdziwego znaleziska.
+  // Znacznik nadaje osobna komenda `--oznacz-probe`, uruchamiana przez tego,
+  // kto prowadzi BUDOWĘ sektora — to jest decyzja o etapie budowy, nie
+  // o znalezisku.
+  if (z.proba !== undefined) {
+    bledy.push('pole "proba" nie może przyjść w treści zgłoszenia — znacznik nadaje `--oznacz-probe=<ID> --etap=<etap>`');
+  }
+
   // ── MIEJSCE: dwie dopuszczalne formy (K10') ──
   const m = z.miejsce;
   if (!m || typeof m !== "object") return [...bledy, "miejsce musi być obiektem"];
@@ -139,6 +149,13 @@ function samokontrola() {
     ["treść linii NIE ZGADZA SIĘ z plikiem", { sektor: "audyt", fala: 1, dzial: "SEC", pozycja: "SEC-01", stwierdzenie: "Handler nie sprawdza nonce przed użyciem danych.", miejsce: { rodzaj: "linia", plik: "audyt/tools/zgloszenie.mjs", linia: 1, tresc: "tego tam nie ma" }, dowod: "Brak wywołania check_admin_referer.", klasyfikacja: "CSRF", wplyw: "Obcy wykona akcję." }, false],
     ["stwierdzenie niepewne", { sektor: "audyt", fala: 1, dzial: "SEC", pozycja: "SEC-01", stwierdzenie: "Wydaje mi się, że handler nie sprawdza nonce.", miejsce: { rodzaj: "linia", plik: "audyt/tools/zgloszenie.mjs", linia: 1, tresc: "/**" }, dowod: "Brak wywołania check_admin_referer w pliku.", klasyfikacja: "CSRF", wplyw: "Obcy wykona akcję." }, false],
     ["mechanizm bez nazwania, czego brakuje", { sektor: "audyt", fala: 1, dzial: "BE", pozycja: "BE-01", stwierdzenie: "Coś jest nie tak z zapisem w tej metodzie.", miejsce: { rodzaj: "mechanizm", plik: "audyt/tools/wspolne.mjs", zakres: "zapiszJSON", mechanizm: "brak" }, dowod: "Ścieżka zapisu nie ma gałęzi dla braku klucza.", klasyfikacja: "utrata danych", wplyw: "Treść znika." }, false],
+    ["ZNACZNIK PRÓBY dopisany do treści wpisu", {
+      sektor: "audyt", fala: 1, dzial: "SEC", pozycja: "SEC-03", proba: "E6",
+      stwierdzenie: "Zapytanie skleja wartość bez prepare, więc wejście trafia do SQL.",
+      miejsce: { rodzaj: "linia", plik: "audyt/tools/zgloszenie.mjs", linia: 1, tresc: "/**" },
+      dowod: "Linia widoczna w pliku; wartość pochodzi z żądania.",
+      klasyfikacja: "wstrzyknięcie", wplyw: "Obcy może odczytać cudze dane.",
+    }, false],
     ["runda ponad sufitem W3", { sektor: "audyt", fala: 1, dzial: "SEC", pozycja: "SEC-03", runda: SUFIT_RUND + 1, stwierdzenie: "Zapytanie skleja wartość bez prepare, więc wejście trafia do SQL.", miejsce: { rodzaj: "linia", plik: "audyt/tools/zgloszenie.mjs", linia: 1, tresc: "/**" }, dowod: "Linia widoczna w pliku; wartość pochodzi z żądania.", klasyfikacja: "wstrzyknięcie", wplyw: "Obcy odczyta cudze dane." }, false],
   ];
 
@@ -181,9 +198,42 @@ if (argumenty.includes("--test")) {
   process.exit(samokontrola() ? 0 : 1);
 }
 
+/* ── znacznik próby budowy (E6) ──────────────────────────────────────────────
+   Wpis próbny ZOSTAJE w repozytorium jako materiał dowodowy etapu, ale nie
+   może liczyć się jak znalezisko prawdziwej fali: `zgloszenie.mjs` wymusza
+   `fala` ∈ {1,2}, więc bez znacznika próba pisałaby wprost do fali 1
+   i `porownaj-cykle.mjs` porównywałby ją z prawdziwym przebiegiem.
+
+   Osobna komenda, a nie pole we wpisie: oznaczenie jest decyzją tego, kto
+   prowadzi budowę sektora, a nie agenta, który coś znalazł. Znacznik NIGDY
+   nie jest cichy — strażnik wypisuje wpisy próbne po ID. */
+const oznacz = argumenty.find((a) => a.startsWith("--oznacz-probe="))?.slice("--oznacz-probe=".length);
+if (oznacz) {
+  const etap = argumenty.find((a) => a.startsWith("--etap="))?.slice("--etap=".length);
+  if (!etap || !etap.trim()) {
+    process.stdout.write("Znacznik próby musi NAZWAĆ etap budowy: --oznacz-probe=<ID> --etap=E6\n");
+    process.exit(1);
+  }
+  const sciezkaWpisu = join(ZGLOSZENIA, `${oznacz}.json`);
+  const doOznaczenia = existsSync(sciezkaWpisu) ? czytajJSON(sciezkaWpisu) : null;
+  if (!doOznaczenia) {
+    process.stdout.write(`Zgłoszenia ${oznacz} nie ma — nie ma czego oznaczyć.\n`);
+    process.exit(1);
+  }
+  if (doOznaczenia.proba) {
+    process.stdout.write(`${oznacz} jest już oznaczone jako próba etapu ${doOznaczenia.proba}.\n`);
+    process.exit(1);
+  }
+  doOznaczenia.proba = etap.trim();
+  zapiszJSON(sciezkaWpisu, doOznaczenia);
+  process.stdout.write(`${oznacz}: oznaczone jako PRÓBA etapu ${doOznaczenia.proba}.\n` +
+    "  Wypada z porównania fal i z połączenia sektorów, ale zostaje w repozytorium.\n");
+  process.exit(0);
+}
+
 const plik = argumenty.find((a) => a.startsWith("--plik="))?.slice("--plik=".length);
 if (!plik) {
-  process.stdout.write("Użycie: node audyt/tools/zgloszenie.mjs --plik=<wejscie.json> | --test\n");
+  process.stdout.write("Użycie: node audyt/tools/zgloszenie.mjs --plik=<wejscie.json> | --oznacz-probe=<ID> --etap=<etap> | --test\n");
   process.exit(1);
 }
 

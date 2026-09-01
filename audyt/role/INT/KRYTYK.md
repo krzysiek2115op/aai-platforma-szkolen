@@ -106,6 +106,19 @@ Sprawdź też **pracę agenta jako całość**:
 
 Dla każdego zgłoszenia: **PRZEPUSZCZAM** albo **ODRZUCAM z powodem**.
 
+**Werdykt zapisujesz narzędziem, nie w odpowiedzi** — przebieg sektora nie mieści
+się w jednej sesji, więc werdykt wypowiedziany tylko w rozmowie znika przy pierwszym
+`/clear`:
+
+```
+node audyt/tools/werdykt.mjs --id=<AUD-…> --kto=krytyk --werdykt=PRZEPUSZCZAM
+node audyt/tools/werdykt.mjs --id=<AUD-…> --kto=krytyk --werdykt=ODRZUCAM --powod="<dlaczego>"
+```
+
+Narzędzie **odmawia** odrzucenia bez powodu i **nie pozwala nadpisać** raz wydanego
+werdyktu. Status `ZWERYFIKOWANE` nadaje się sam, dopiero gdy dojdzie werdykt
+weryfikatora — Twój głos sam wpisu nie domyka (§16).
+
 **Odrzucenie NIE kasuje zgłoszenia** — zostaje z werdyktem. Druga fala musi
 trafić na to samo miejsce i dojść do tego samego wniosku; skasowany wpis
 zafałszowałby porównanie fal.
