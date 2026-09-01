@@ -446,14 +446,59 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E0** — zaległość CI | ✅ **ZROBIONE 2026-09-01** | CI zielone w całości pierwszy raz od 17 sierpnia; gitleaks potwierdzony; PR #117 (naprawa) i #118 (dependabot) zmergowane. Szczegóły: CHANGELOG, sekcja „Nieopublikowane" |
 | **E1** — utrwalenie | ✅ **ZROBIONE, zaakceptowane przez właściciela** | gałąź `audyt/sektor-audytu`, [`audyt/REGULAMIN.md`](REGULAMIN.md) (520 linii), wpis w pamięci projektu, ten plik |
 | **E2** — szkic ról i tabela granic | ✅ **ZROBIONE — czeka na akceptację** | [`ROLE.md`](ROLE.md) (707 linii): 19 ról, **522 pliki przypisane**, 183 pozycje checklist, odwzorowanie 30 klas `BLAD-*`; [`GRANICE.md`](GRANICE.md) (117 linii): 24 pary o przecięciu ≥5 plików |
-| **E3** — dokumentacja (7 rodzajów) + Chrome | ⬜ **NASTĘPNY** (po akceptacji E2) | skrypt pobierający z manifestem, `ZRODLA.md`, **BRIEF-PROJEKTU.md** |
-| **E4** — szkielet | ⬜ | `STRUKTURA.md`, `DOKUMENTACJA.md`, szablony, `tools/audyt/*`, strażnik + mutacje |
+| **E3** — dokumentacja (7 rodzajów) + Chrome | ✅ **ZROBIONE — czeka na akceptację** | [`BRIEF-PROJEKTU.md`](BRIEF-PROJEKTU.md) (15 kB wobec 240 kB `CLAUDE.md`), [`DOKUMENTACJA.md`](DOKUMENTACJA.md), [`ZRODLA-DOKUMENTACJI.md`](ZRODLA-DOKUMENTACJI.md), skrypt z manifestem; **4944 pliki / 44 MB** poza drzewem repo; Chrome 152 sprawdzony pomiarem |
+| **E4** — szkielet | ⬜ **NASTĘPNY** (po akceptacji E3) | `STRUKTURA.md`, szablony, `audyt/tools/*`, strażnik sektora + mutacje |
 | **E5** — 19 ról × 4 pliki | ⬜ | ~76 plików źródłowych, każdy z checklistą |
 | **E6** — generat i próba na sucho | ⬜ | `.claude/agents/aud-*.md` |
 | **E7** — sektor RE-AUDYT | ⬜ | gałąź `re-audyt/sektor-re-audytu`, 21 ról + psy |
 | **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
+
+## Fakty zmierzone przy E3 (nie wyprowadzać od nowa)
+
+- **Kod i dokumentacja sektora żyją w `audyt/`** (rozstrzygnięcie właściciela).
+  Niezmiennik zostaje JEDNĄ komendą, bez wyjątków. Cena jest z K8:
+  `straznik-wagi-dokumentacji` z `main` skanuje wyłącznie `tools/`, więc naszego
+  skryptu **nie widzi** — przejmie to strażnik sektora w E4.
+- **DOKUMENTACJA MASOWA MUSI LEŻEĆ POZA DRZEWEM REPO, nie tylko poza gitem.**
+  `~/.cache/aai-audyt-dokumentacja/` (44 MB, 4944 pliki). Pierwsza wersja
+  kładła ją w `audyt/dokumentacja/` z zagnieżdżonym `.gitignore`; git był
+  zadowolony, a `straznik-linkow` dał **66 fałszywych alarmów** na bezwzględnych
+  odsyłaczach MDN — **strażnicy skanują DYSK, nie git**. Wykluczenie w strażniku
+  jest wpisane na sztywno na `docs/dokumentacja-techniczna` i sektor nie może go
+  rozszerzyć bez złamania niezmiennika. Ta sama klasa, przez którą motyw mieszka
+  w `~/.cache/automatic-ai-warsztat`. Skrypt **odmawia pracy przy celu w drzewie
+  repo** — test negatywny zrobiony.
+- **Zasada kotwicy** (rozstrzygnięcie właściciela): pobieramy wyłącznie to, na co
+  wskazuje ≥1 pozycja checklisty. Każde źródło ma kotwicę w kodzie i w
+  `ZRODLA-DOKUMENTACJI.md`. Powód liczbowy: materiał czyta ~80 agentów w dwóch
+  falach, więc niepotrzebny dokument to podatek płacony 160 razy.
+- **BRIEF NIE PRZEKAZUJE naszych ocen** (rozstrzygnięcie właściciela): notatki
+  „sprawdzone i bez zarzutu — nie szukać drugi raz" **nie wchodzą**, bo audyt
+  odziedziczyłby nasze martwe pola i dwie fale potwierdziłyby naszą własną
+  ślepotę. Świadoma cena: część pracy zostanie powtórzona.
+- **EUR-Lex i Cellar są niedostępne dla automatu** — `eur-lex.europa.eu` oddaje
+  **HTTP 202 z pustym ciałem** na każdą próbę, `publications.europa.eu` **400**.
+  Teksty prawne bierzemy z `gdpr-info.eu` i `arslege.pl`, z **nazwaną rangą**
+  (wierne przedruki, nie Dziennik Urzędowy).
+- **PRÓG POBRANIA MUSI MIERZYĆ TREŚĆ, NIE PLIK.** Pierwsza wersja liczyła
+  długość razem z nagłówkiem: trzy dokumenty prawne przyszły **puste**, a sam
+  nagłówek waży ~200 B, więc przeszły bramkę i **zameldowały sukces**. Dziś próg
+  to 1500 B samej treści, sprawdzony dwoma testami negatywnymi — źródłem
+  oddającym 202 oraz stubem 175 B z **kodem 200** (`Access_Control_Cheat_Sheet`
+  jest wycofany i odsyła do `Authorization`).
+- **MDN przebudowało drzewo** — treść jest w `reference/` i `guides/`,
+  a małpa w `@layer` **musi** być zakodowana jako `%40`.
+- **Chrome for Testing 152.0.7977.64** w `~/.cache/aai-narzedzia/chrome-linux64/`,
+  bez `sudo` (systemowe `sudo` żąda hasła). **Sterowanie sprawdzone pomiarem**:
+  headless wyrenderował `:8892/szkolenia/` — 59 129 B DOM, poprawny tytuł,
+  263 znaczniki `aai-`, kod 0.
+- **Trzy pułapki grepowania tego repo** (wszystkie wpadły przy pisaniu briefu):
+  `wp_ajax_` trafia w **komentarze**, nazwy akcji są **składane**
+  (`'admin_post_' . self::STALA` — wzorzec literalny znajduje 1 z 6),
+  a wystrzał `aai_sklep_dostepnosc_kursu` jest **wieloliniowy**, więc grep
+  jednoliniowy pokazuje sześć szwów zamiast siedmiu.
 
 ## Fakty zmierzone przy E2 (nie wyprowadzać od nowa)
 
