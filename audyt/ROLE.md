@@ -701,7 +701,12 @@ na zakresach, zanim powstał choćby jeden agent.
 | Model Opus | 5 ról procesowych + **19 krytyków** |
 | Model Sonnet | 14 działów |
 
-**Do rozwinięcia w E5:** każda rola → `AGENT.md` (pięć elementów z §5 regulaminu),
-`KRYTYK.md`, `SKILL.md`, golden z przykładem. **Do zrobienia w E4:** `zgloszenie.mjs`
-(kod, walidacja, hash miejsca), `mapa.mjs` (trzy stany), `migawka-wartosci.mjs`,
-`straznik-sektora-audytu.mjs` z mutacjami.
+**Rozwinięte w E5 (zapis historyczny — było „do rozwinięcia"):** każda z 19 ról ma
+`AGENT.md` (pięć elementów z §5 regulaminu, plus trzynaście zasad Goldena), `KRYTYK.md`,
+`SKILL.md` i golden — **76 plików** w `audyt/role/<KOD>/`. **Zrobione w E4:**
+`zgloszenie.mjs` (kod, walidacja, hash miejsca), `mapa.mjs` (trzy stany),
+`migawka-wartosci.mjs`, `straznik-sektora-audytu.mjs` z mutacjami.
+
+**Ta tabela checklist jest ŹRÓDŁEM dla `AGENT.md` każdej roli** i pilnuje tego reguła 13
+strażnika, w obie strony: pozycja dopisana tylko tutaj nigdy nie zostanie zadana, pozycja
+dopisana tylko w `AGENT.md` jest pytaniem spoza zakresu zatwierdzonego przez właściciela.

@@ -445,15 +445,54 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 |---|---|---|
 | **E0** — zaległość CI | ✅ **ZROBIONE 2026-09-01** | CI zielone w całości pierwszy raz od 17 sierpnia; gitleaks potwierdzony; PR #117 (naprawa) i #118 (dependabot) zmergowane. Szczegóły: CHANGELOG, sekcja „Nieopublikowane" |
 | **E1** — utrwalenie | ✅ **ZROBIONE, zaakceptowane przez właściciela** | gałąź `audyt/sektor-audytu`, [`audyt/REGULAMIN.md`](REGULAMIN.md) (520 linii), wpis w pamięci projektu, ten plik |
-| **E2** — szkic ról i tabela granic | ✅ **ZROBIONE — czeka na akceptację** | [`ROLE.md`](ROLE.md) (707 linii): 19 ról, **522 pliki przypisane**, 183 pozycje checklist, odwzorowanie 30 klas `BLAD-*`; [`GRANICE.md`](GRANICE.md) (117 linii): 24 pary o przecięciu ≥5 plików |
-| **E3** — dokumentacja (7 rodzajów) + Chrome | ✅ **ZROBIONE — czeka na akceptację** | [`BRIEF-PROJEKTU.md`](BRIEF-PROJEKTU.md) (15 kB wobec 240 kB `CLAUDE.md`), [`DOKUMENTACJA.md`](DOKUMENTACJA.md), [`ZRODLA-DOKUMENTACJI.md`](ZRODLA-DOKUMENTACJI.md), skrypt z manifestem; **4944 pliki / 44 MB** poza drzewem repo; Chrome 152 sprawdzony pomiarem |
-| **E4** — szkielet | ✅ **ZROBIONE — czeka na akceptację** | [`STRUKTURA.md`](STRUKTURA.md), 4 szablony, **10 narzędzi** w `audyt/tools/`, strażnik sektora (9 kontroli) + **11 mutacji** (0 przeoczonych, 0 martwych) |
-| **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE — czeka na akceptację** | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
-| **E6** — generat i próba na sucho | ⬜ **NASTĘPNY** (po akceptacji E5) | generat już powstaje (wymusza go reguła 4); zostaje **próba na sucho jednej roli przez pełną ścieżkę** |
+| **E2** — szkic ról i tabela granic | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01) | [`ROLE.md`](ROLE.md) (707 linii): 19 ról, **522 pliki przypisane**, 183 pozycje checklist, odwzorowanie 30 klas `BLAD-*`; [`GRANICE.md`](GRANICE.md) (117 linii): 24 pary o przecięciu ≥5 plików |
+| **E3** — dokumentacja (7 rodzajów) + Chrome | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01) | [`BRIEF-PROJEKTU.md`](BRIEF-PROJEKTU.md) (15 kB wobec 240 kB `CLAUDE.md`), [`DOKUMENTACJA.md`](DOKUMENTACJA.md), [`ZRODLA-DOKUMENTACJI.md`](ZRODLA-DOKUMENTACJI.md), skrypt z manifestem; **4944 pliki / 44 MB** poza drzewem repo; Chrome 152 sprawdzony pomiarem |
+| **E4** — szkielet | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01: „E4 akceptuję teraz") | [`STRUKTURA.md`](STRUKTURA.md), 4 szablony, **10 narzędzi** w `audyt/tools/`, strażnik sektora (9 kontroli) + **11 mutacji** (0 przeoczonych, 0 martwych) |
+| **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
+| **E6** — generat i próba na sucho | ⬜ **NASTĘPNY KROK** | generat **już powstaje** (wymusza go reguła 4 strażnika, 38 definicji zgodnych ze źródłem); zostaje **próba na sucho JEDNEJ roli przez pełną ścieżkę** — patrz „Co dokładnie obejmuje E6" niżej |
 | **E7** — sektor RE-AUDYT | ⬜ | gałąź `re-audyt/sektor-re-audytu`, 21 ról + psy |
 | **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
+
+## Co dokładnie obejmuje E6 (nie wyprowadzać od nowa)
+
+**Generatu NIE trzeba budować** — powstaje sam, bo wymusza go reguła 4 strażnika:
+`generuj-agentow.mjs --sprawdz` musi zgadzać się ze źródłem po `sha256`. Stan na
+koniec E5: **38 definicji** w `.claude/agents/`, kod 0.
+
+Zostaje **PRÓBA NA SUCHO JEDNEJ ROLI przez pełną ścieżkę** — pozycja 7 definicji
+ukończenia sektora. Ścieżka do przejścia:
+
+```
+NIE ROZPOCZĘTO → W TRAKCIE        status.mjs --rola=<KOD> --fala=1
+rola przechodzi swoją checklistę  jedna rola, jedna fala
+znalezisko → zgloszenie.mjs       bramka nadaje ID i hash miejsca
+                DO WERYFIKACJI
+krytyk roli   → PRZEPUSZCZAM / ODRZUCAM z powodem
+weryfikator   → istnieje / odrzucone
+                ZWERYFIKOWANE
+```
+
+**TRZY RZECZY DO ROZSTRZYGNIĘCIA Z WŁAŚCICIELEM PRZED E6** (obowiązuje reguła:
+plan kroku + pytania + zgoda):
+
+1. **Którą rolę puszczamy na sucho.** Kandydat naturalny to rola o wąskim zakresie
+   i tanim materiale — **PIK** (10 plików) albo **INT** (15). Rola szeroka
+   (PERF 116, PROTO 131) kosztuje wielokrotnie więcej i **nie sprawdza niczego
+   więcej o samej ŚCIEŻCE**, bo ścieżka jest ta sama dla każdej roli.
+2. **Czy próba zostawia zgłoszenie w repo, czy sprząta po sobie.** Zostawione jest
+   materiałem dowodowym E6, ale wejdzie do liczników sektora przed właściwym
+   przebiegiem. Sprzątnięte znika razem z dowodem. Uwaga: odrzucone wpisy
+   z założenia NIE znikają (druga fala musi trafić na to samo miejsce).
+3. **Czy próba jest już „uruchomieniem sektora"** w rozumieniu D10. Plan stawia STOP
+   na zielone światło w **E8**, a E6 należy do budowy — ale próba na sucho
+   **naprawdę czyta kod produktu**, więc rozstrzyga to właściciel, nie plan.
+
+**Czego E6 NIE robi:** nie uruchamia pozostałych 18 ról, nie buduje sektora
+RE-AUDYT (to E7), nie wykonuje żadnej naprawy (W2).
+
+---
 
 ## Fakty zmierzone przy E5 (nie wyprowadzać od nowa)
 
@@ -522,6 +561,22 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | USP | `tools/zrzuty/manifest.mjs:97` | RAP | `audyt/PLAN-BUDOWY.md:104` |
 | QA | `audyt-straznikow.mjs:163` | ARCH | `class-aai-sklep-trasy.php:81` |
 | PRIV | `class-aai-monitor-logowania.php:275` | | |
+
+- **JAK POWSTAŁY ROLE — metoda, nie skrypt.** Części mechaniczne (zakres, liczba
+  plików, tabela checklisty, wiersz „Nie bierze", wiersze `GRANICE.md` dotyczące
+  roli) **wyciągnął z `ROLE.md` i `GRANICE.md` skrypt jednorazowy**, żeby nie
+  przepisywać ich ręcznie i nie wprowadzić literówki. Części własne każdej roli
+  (Context specjalistyczny z kotwicą, prompt, procedura skilla, kotwica goldena)
+  są **pisane**, nie generowane.
+  **Skrypt był rusztowaniem i celowo NIE trafił do repozytorium**: role są
+  ŹRÓDŁEM, z którego generuje się `.claude/agents/`, a narzędzie nadpisujące
+  źródło zapraszałoby do skasowania pisanej treści jednym przebiegiem.
+  **Przy E7 (21 ról re-audytu) metodę odtwarza się od nowa** — opis powyżej jest
+  jej pełną specyfikacją, a `ROLE.md` re-audytu będzie miał tę samą strukturę.
+- **`git commit` w tym repo drukuje ~3 tys. tokenów wyjścia strażników** (hook
+  `pre-commit` uruchamia wszystkich 39). Kierowanie tego do pliku i sprawdzanie
+  **kodu wyjścia commita** daje ten sam dowód bez szumu:
+  `git commit -q -F - > /tmp/commit.log 2>&1; echo $?`.
 
 - **Trzy role dostały jawną listę rzeczy, których NIE zgłaszają jako nowe:**
   rozjazd całej polityki prywatności ze stanem witryny (znany, starszy od

@@ -225,6 +225,6 @@ tym samym miejscu jest zgłaszane jako **podejrzenie kopiowania**. Bez tego
 
 ## Czego szkielet nie rozstrzyga
 
-- **treści ról** — powstają w E5 z szablonów;
+- ~~treści ról~~ **powstały w E5** — 19 katalogów w `audyt/role/`, 76 plików;
 - **przebiegu** — sektor nie rusza bez zielonego światła właściciela (D10);
 - **napraw** — sektory nie naprawiają, nigdy (W2).
