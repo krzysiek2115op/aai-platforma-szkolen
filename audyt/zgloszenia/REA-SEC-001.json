@@ -1,0 +1,33 @@
+{
+  "id": "REA-SEC-001",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "SEC",
+  "pozycja": "SEC-R6",
+  "stwierdzenie": "Kolektor raportów CSP (admin_post_nopriv_aai_obwod_csp / admin_post_aai_obwod_csp, metoda Aai_Obwod::zbierz_raport) przyjmuje POST od dowolnego gościa BEZ nonce'a i BEZ ciastka i zapisuje treść żądania do opcji WordPressa aai_obwod_csp_raport — bez żadnej weryfikacji integralności treści (nie ma podpisu ani innego sekretu), jedyną barierą jest miękki limiter 60/min na adres IP i sufit rozmiaru ciała 8192 B. Zmierzone bezpośrednim żądaniem na :8892: POST z dowolnym, spreparowanym blocked-uri zwrócił 204 i DOPISAŁ nowy klucz do opcji aai_obwod_csp_raport (stan przed: 4 klucze, stan po: 5 kluczy, z nowym wpisem 'script-src | http://przyklad-atakujacy.test/x.js'). To jedyne takie miejsce w całym zakresie SEC: drugi publiczny (nopriv) endpoint tego zakresu, admin_post_nopriv_aai_monitor_wizyta, chroni zapis kryptograficznym podpisem (Aai_Monitor_Podpis::pasuje) i przy braku poprawnego podpisu NIE zapisuje wiersza (zmierzone: 17 wierszy przed i po żądaniu bez podpisu) — czyli w całym zakresie SEC jest dokładnie jeden publiczny endpoint zapisujący dane bez weryfikacji integralności treści.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/srodowisko/mu-plugins/aai-obwod.php",
+    "linia": 169,
+    "tresc": "add_action( 'admin_post_nopriv_' . self::RAPORT_AKCJA, array( self::class, 'zbierz_raport' ) );"
+  },
+  "dowod": "curl -s -o /dev/null -w '%{http_code}' -X POST 'http://127.0.0.1:8892/wp-admin/admin-post.php?action=aai_obwod_csp' -H 'Content-Type: application/csp-report' -d '{\"csp-report\":{\"violated-directive\":\"script-src\",\"blocked-uri\":\"http://przyklad-atakujacy.test/x.js\"}}' → kod=204 (brak ciastka, brak nonce'a). podman exec aai_wp_cli wp option get aai_obwod_csp_raport --format=json PRZED: 4 klucze (script-src-attr | inline; font-src | data; img-src | https://secure.gravatar.com/...; script-src-elem | inline). PO: 5 kluczy — dopisany 'script-src | http://przyklad-atakujacy.test/x.js' z ile=1. Zasięg policzony komendą: grep -rn \"admin_post_nopriv_\" wordpress/wtyczki/*/includes/*.php wordpress/srodowisko/mu-plugins/*.php — dokładnie 2 rejestracje w całym zakresie SEC: aai_monitor_wizyta (class-aai-monitor-wizyty.php:111) i aai_obwod_csp (aai-obwod.php:169). Kontrolne żądanie do aai_monitor_wizyta bez poprawnego podpisu (POST z podpis='000...000') zwróciło również 204, ale wp_aai_monitor_wizyty NIE przyrósł (17 wierszy przed i po, mierzone: podman exec aai_wp_cli wp db query 'SELECT COUNT(*) AS n FROM wp_aai_monitor_wizyty;') — czyli ten drugi publiczny endpoint odmawia zapisu przy braku poprawnego dowodu integralności, a aai_obwod_csp nie ma odpowiednika tej bariery.",
+  "klasyfikacja": "brak weryfikacji integralności wejścia publicznego endpointu piszącego do bazy",
+  "wplyw": "Dowolny nieuwierzytelniony gość może wstrzykiwać własne, dowolne (obcięte do 200 znaków) łańcuchy do opcji WordPressa aai_obwod_csp_raport pod pozorem raportu CSP, do 200 różnych kluczy (sufit RAPORT_MAX_RODZAJOW), z limitem 60 zapisów/min na adres IP. Dziś opcja nie ma czytelnika w żadnej wtyczce (grep: raport_csp() jest niewywoływana), więc bezpośredniego wycieku ani XSS nie ma — ale mechanizm zapisuje niezweryfikowaną treść z zewnątrz do bazy bez żadnego sekretu, w odróżnieniu od bliźniaczego publicznego endpointu monitoringu, który tę samą klasę ryzyka domyka podpisem.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "d27abe2130576b2ba4a7f1badfbd992535f7af3c9eeec6ec8da880cafa1e9ac7",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-01T22:45:44.357Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje w zglaszanej postaci, potwierdzone WLASNYM pomiarem, nie przepisane. R1: POST bez ciastka i bez nonce'a na admin-post.php?action=aai_obwod_csp (blocked-uri http://walid-e7.test/r1.js) -> HTTP 204 i NOWY klucz w opcji aai_obwod_csp_raport. R2: powtarzalne dwoma przebiegami - identyczne zadanie podbilo licznik ile 1->2, zadanie z nowym zasobem zalozylo drugi klucz; kontrola przeciw slepocie pomiaru (raport bez violated-directive) dala 204 BEZ zapisu, wiec zapis wynika z tresci mojego zadania, nie z tla. R3: zasieg zgadza sie - policzony po CALYM repo (szerzej niz wzorzec autora) daje DOKLADNIE 2 rejestracje add_action('admin_post_nopriv_...) w PHP: aai-obwod.php:169 i class-aai-monitor-wizyty.php:111, przy zerze wp_ajax_nopriv i zerze register_rest_route; asymetrie potwierdzilem uruchomieniowo sam - beacon monitoringu bez podpisu (Content-Type i Origin poprawne, wiec zadanie doszlo do bariery podpisu) dal 204 i wp_aai_monitor_wizyty 17 wierszy przed i 17 po, zero wierszy ze sciezka walid-e7. Czyli w zakresie SEC jest dokladnie jeden publiczny endpoint zapisujacy bez weryfikacji integralnosci. R4: miejsce zgadza sie co do znaku - linia 169 w pliku rozni sie od pola tresc wylacznie dwoma tabulatorami wiodacymi, a hash przeliczony niezaleznie ta sama definicja (sha256 z ['linia',plik,linia,znormalizuj(tresc)]) daje d27abe2130576b2ba4a7f1badfbd992535f7af3c9eeec6ec8da880cafa1e9ac7, identycznie jak pole hash. R5: klasyfikacja i wplyw maja pokrycie w dowodzie - sufit 200 rodzajow, sufit ciala 8192 B i limit 60/min potwierdzone w kodzie, opcja ma autoload=off, a twierdzenie ograniczajace wlasny wplyw ('opcja nie ma czytelnika') potwierdzone grepem: raport_csp() wystepuje w repo TYLKO jako definicja, zero wywolan. ZASTRZEZENIE, ktore nie zmienia werdyktu: wplyw jest ZANIZONY, nie zawyzony - 'obciete do 200 znaczkow' dotyczy wylacznie czlonu blocked-uri (skroc_zasob), natomiast czlon violated-directive nie ma ZADNEGO sufitu ani sanityzacji; zmierzone zadaniem z dyrektywa 308 znakow, ktore zapisalo klucz dlugosci 318. R6: w obszarze SEC nie ma zadnego wpisu audytu (jedyny wpis audytu to probny AUD-PIK-001, dzial PIK, inny plik i inny hash miejsca), wiec to znalezisko NOWE - i spelnia warunek z re-audyt/GRANICE.md 'Granica z sektorem AUDYT': ma dowod uruchomieniowy, odtworzony przeze mnie niezaleznie. Higiena: trzy wlasne slady walid-e7 usunalem kluczem po kluczu (wp option patch delete), wszystkie klucze zastane zostaly nietkniete co do wartosci, obcego wpisu krytyk-e7 dopisanego w trakcie przez prace rownolegla NIE ruszalem; do wp_aai_monitor_wizyty nic nie trafilo.",
+      "kiedy": "2026-09-01T22:47:26.913Z"
+    }
+  },
+  "proba": "E7"
+}

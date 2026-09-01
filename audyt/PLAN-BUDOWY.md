@@ -450,7 +450,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E4** — szkielet | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01: „E4 akceptuję teraz") | [`STRUKTURA.md`](STRUKTURA.md), 4 szablony, **10 narzędzi** w `audyt/tools/`, strażnik sektora (9 kontroli) + **11 mutacji** (0 przeoczonych, 0 martwych) |
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
-| **E7** — sektor RE-AUDYT | 🚧 **W TOKU** (zielone światło właściciela 2026-09-01) — **E7.1 ZROBIONE** | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
+| **E7** — sektor RE-AUDYT | ✅ **E7.1–E7.6 ZROBIONE (2026-09-02) — CZEKA NA AKCEPTACJĘ WŁAŚCICIELA** | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
 | **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
@@ -588,8 +588,8 @@ zamyka pozycję „do rozstrzygnięcia" z pomiaru 3.
 | **E7.2** | gałąź `re-audyt/sektor-re-audytu` + `re-audyt/GRANICE.md` | ✅ **ZROBIONE** |
 | **E7.3** | `re-audyt/ROLE.md` — 21 ról: zakres komendą, checklista, „nie bierze" | ✅ **ZROBIONE** |
 | **E7.4** | 21 × 4 pliki metodą z E5 + utwardzenie kompletu ról | ✅ **ZROBIONE** — 84 pliki, komplet TWARDY |
-| **E7.5** | generat → **restart sesji** → strażnik i mutacje | 🚧 **generat i bramki gotowe; CZEKA NA RESTART SESJI** |
-| **E7.6** | **próba na sucho jednej roli re-audytu** (zgoda właściciela 2026-09-01) | ⬜ — wykonalna dopiero po restarcie |
+| **E7.5** | generat → **restart sesji** → strażnik i mutacje | ✅ **ZROBIONE** — restart sesji 2026-09-02 zdjął blokadę, harness widzi 42 definicje `rea-*` |
+| **E7.6** | **próba na sucho jednej roli re-audytu** (zgoda właściciela 2026-09-01) | ✅ **ZROBIONE 2026-09-02**: `rea-sec` → `REA-SEC-001` → krytyk PRZEPUSZCZAM → WALID ISTNIEJE → **ZWERYFIKOWANE**; patrz „Próba E7.6" niżej |
 
 **E7.6 wchodzi na życzenie właściciela** („robimy próbę na sucho tak jak
 z audytem"). Powód nie jest symetrią: ścieżka re-audytu jest INNA — uruchamia
@@ -740,7 +740,7 @@ z prawdziwych kodów ról**. Dwa kontrprzykłady pilnują, żeby nie wrócił.
 | zakresy Pogłębiaczy zgodne z audytem | **14/14** |
 | mapa pokrycia | 628 + 399 = **1027**, 0 sierot |
 
-### CO BLOKUJE E7.6 — RESTART SESJI
+### CO BLOKOWAŁO E7.6 — RESTART SESJI (zapis historyczny, blokada zdjęta 2026-09-02)
 
 **Harness wczytuje rejestr agentów projektu przy starcie procesu**, więc
 42 definicje `rea-*` powstałe w tej sesji są dla niej NIEWIDZIALNE. Sprawdzone:
@@ -751,6 +751,170 @@ naprawą — i była zapisana w tym pliku jako lekcja DOTYCZĄCA E7 WPROST.
 **Próby na sucho (E7.6) nie da się więc wykonać w tej sesji.** Po restarcie
 `rea-*` będą widoczne i próba przejedzie tę samą ścieżkę co w E6, tylko
 metodą re-audytu (uruchomienie, nie lektura).
+
+---
+
+### PRZYGOTOWANIE PRÓBY E7.6 — CZTERY USTERKI PRZED PIERWSZYM AGENTEM (2026-09-02)
+
+Po restarcie sesji harness widział komplet 42 definicji `rea-*` — blokada z E7.5
+zniknęła bez zmiany w plikach, tak jak w E6. Zanim wystartował pierwszy agent,
+samo przygotowanie próby wskazało cztery usterki, **wszystkie tej samej rodziny
+co w E6: wyglądały na pracę wykonaną, a żadna z 55 mutacji ich nie widziała.**
+
+1. **Generat `rea-walid` szedł na SONNECIE**, choć `re-audyt/ROLE.md` przypisuje
+   WALID Opusa (D8) — dwa razy: w nagłówku roli i w podsumowaniu. Generator
+   trzymał WŁASNĄ listę ról opusowych wpisaną ręcznie przy E4 (`KIER`, `GOLD`,
+   `KON`, `WER`, `RAP`) i nikt jej nie rozszerzył o czwartą rolę procesową
+   re-audytu. Reguła 4 tego nie widziała: porównuje sha256 ŹRÓDŁA (`AGENT.md`),
+   a model w źródle nie stoi. Weryfikator re-audytu — rola, która rozstrzyga,
+   czy zjawisko istnieje — pracowałby na innym modelu, niż rozstrzygnął
+   właściciel, bez jednego objawu. Zmierzone: 42 generaty, jeden niezgodny.
+   **Model czyta się odtąd z nagłówka roli w `ROLE.md`** (`modelRoli()` we
+   `wspolne.mjs`); pilnuje **reguła 21** strażnika — pyta o wiersz `model:`
+   w pliku, który czyta harness, nie o listę w generatorze.
+2. **21 z 21 `KRYTYK.md` re-audytu wskazywało w module wpisy AUDYTU**
+   (`audyt/zgloszenia/AUD-<KOD>-*.json`). Krytyk Pogłębiacza SEC otworzyłby
+   wpisy działu SEC audytu, a wpisy `REA-SEC-*` nie miałyby krytyka — oba
+   sektory dzielą katalog i kody działów, więc nic by się nie zapaliło.
+   Usterka przyszła z szablonu `audyt/szablony/KRYTYK.md`, w którym prefiks
+   stał na sztywno; szablon ma odtąd `<PREFIKS>`, a pilnuje **reguła 22** —
+   pyta o ścieżkę `zgloszenia/<cudzy prefiks>-<własny kod>-`, nie o obecność
+   napisu `AUD-` (wzmianka o wpisie drugiego sektora jest dozwolona: łączenie
+   po haszu; kontrprzykład w audycie mutacyjnym).
+3. **`STRUKTURA.md` mówi, że do gita wchodzą WYŁĄCZNIE `zgloszenia/`**, a cztery
+   pliki `audyt/stan/` i `audyt/migawki/` były śledzone od E6. Doszedł
+   `audyt/.gitignore`, pliki zdjęte z indeksu.
+4. **`migawka-wartosci.mjs` miał niezmiennik w STAREJ postaci** (jedno
+   wykluczenie) w trzech miejscach: skrót drzewa produktu wliczał 86 plików
+   `re-audyt/` (1005 zamiast 919), pole „diff wobec main poza audytem"
+   pokazywało **86**, a pole niezacommitowanych liczyło generat `.claude/`.
+   Wpis z E7.1 o „dziewięciu miejscach" tego pliku nie obejmował — wyszło przy
+   pierwszym `--zapisz=przed` na gałęzi re-audytu. Po poprawce: 919, 0, 0 —
+   te same liczby co przy E6.
+
+**Dowody po naprawach:** strażnik **20 → 22 kontrole**, kod 0; audyt mutacyjny
+**55 → 60** (0 przeoczonych, 0 martwych) — pięć nowych mutacji: lista opusowa
+w generatorze, `ROLE.md` zmieniony BEZ regeneracji (sha256 tego nie widzi),
+kontrprzykład odstępów w nagłówku roli, prefiks cudzego sektora w szablonie,
+kontrprzykład wzmianki o wpisie drugiego sektora; niezmiennik 0; migawka
+„przed" 919 plików / 0 / 0.
+
+---
+
+### PRÓBA E7.6 — ŚCIEŻKA RE-AUDYTU PRZEJECHANA DO KOŃCA (2026-09-02)
+
+```
+rea-sec (Sonnet)         NIE ROZPOCZĘTO → W TRAKCIE, zakres = 113 plików (policzone)
+  SEC-R1…R4              BEZ MATERIAŁU — w obszarze SEC nie ma ani jednego wpisu
+                         audytu; zapisane jako niedomknięte, NIE odhaczone po pustce
+  SEC-R6                 6 wejść zmierzonych ŻĄDANIEM na :8892 → REA-SEC-001
+                         (kolektor raportów CSP zapisuje treść gościa do opcji WP)
+                         DO WERYFIKACJI
+rea-sec-krytyk (Opus)    → PRZEPUSZCZAM (zjawisko odtworzone własnym żądaniem)
+                         + WŁASNE zgłoszenie REA-SEC-002 (usterka checklisty SEC-R6)
+rea-walid (Opus)         → ISTNIEJE: R1–R6 tak, zasięg podany 2 × zmierzony 2,
+                         hash przeliczony z pliku, dowód powtórzony trzykrotnie
+                         ZWERYFIKOWANE
+```
+
+**Sektor zadziałał metodą RE-AUDYTU, nie audytu** — i to jest dowód, którego E6
+nie dawało: dowód był URUCHOMIENIOWY (żądanie + stan danych przed i po), zasięg
+POLICZONY (dwa publiczne wejścia `nopriv` w całym zakresie SEC, drugie odmawia
+zapisu podpisem), a weryfikator sprawdził nie tylko, czy zjawisko jest, ale czy
+liczby się zgadzają. Wpis przeszedł za pierwszym razem przez bramkę
+i przez OBA werdykty; oba wpisy noszą znacznik `proba: E7` i zostają
+w repozytorium (rozstrzygnięcie właściciela z E6). **Pozycja 7 definicji
+ukończenia jest spełniona także dla re-audytu.**
+
+**Co znalazła próba O PRODUKCIE (jedno znalezisko, do decyzji przy naprawie po
+dwóch cyklach — sektory nie naprawiają, a to była próba):** publiczny kolektor
+raportów CSP w mu-pluginie obwodu (`aai-obwod.php:169`) przyjmuje POST od
+gościa bez nonce'a i bez podpisu i dopisuje klucz do opcji
+`aai_obwod_csp_raport`; barierami są limit 60/min na adres, sufit 8 KB ciała
+i 200 rodzajów w agregacie, a opcja nie ma dziś czytelnika. WALID dołożył
+pomiar, którego autor nie zrobił: **wpływ jest ZANIŻONY** — sufit 200 znaków
+dotyczy tylko `blocked-uri`, a `violated-directive` sufitu nie ma (klucz 318
+znaków zapisał się bez przeszkód). Uczciwie o drugiej stronie: `report-uri`
+z definicji przyjmuje raporty od przeglądarki bez uwierzytelnienia, więc
+podpis jak w beaconie nie jest tu możliwy — pytanie do naprawy brzmi
+o sufit na dyrektywę i o to, czy agregat bez czytelnika w ogóle ma istnieć.
+
+**Co próba znalazła O SEKTORZE — pięć rzeczy, dwie naprawione od razu:**
+
+1. **REA-SEC-002 (krytyk): kolumna „Dowód" pozycji SEC-R6 żądała „adres + kod
+   odpowiedzi", a kod nie rozstrzyga** — kolektor CSP i beacon odpowiadają
+   `204` zarówno na przyjęcie, jak i na odrzut (`status_header( 204 ); exit;`
+   POZA gałęziami). Pogłębiacz trzymający się przepisanego dowodu zamknąłby
+   R6 na „204 = odmowa", czyli ODWROTNIE do prawdy; REA-SEC-001 powstało
+   wyłącznie dlatego, że agent wyszedł poza kolumnę i zmierzył opcję przed
+   i po. Ta sama klasa co PIK-08 z E6, groźniejsza, bo wartość nie jest pusta.
+   **NAPRAWIONE** w `re-audyt/ROLE.md` i `role/SEC/AGENT.md` (kolumna wymaga
+   stanu danych przed i po). Wpis zostaje jako dowód, bez werdyktów — to
+   usterka budowy, rozstrzygnięta budową.
+2. **Pogłębiacz zostawił własny ślad w cudzych danych i zameldował „nic nie
+   zmieniłem w bazie".** Klucz `przyklad-atakujacy.test` został w opcji
+   właściciela; krytyk dołożył swój, WALID po sobie posprzątał kluczem po
+   kluczu. Krytyk słusznie NIE zgłosił tego pod SEC — `GRANICE.md` przypisuje
+   to `SKUT-R4`. **NAPRAWIONE w definicjach 14 Pogłębiaczy** („Pomiar nie
+   zostawia śladu": stan przed i po, sprzątanie własnych śladów, liczenie
+   WŁASNYCH śladów, nie sumy). Dwa ślady sektora usunięte ręcznie jawną
+   listą kluczy (`wp option patch delete`), nigdy nadpisaniem opcji; cztery
+   klucze zastane nietknięte co do wartości.
+3. **Raport agenta przypisał cudzą zmianę narzędziu** („`PLAN-BUDOWY.md`
+   zaktualizowane przez `status.mjs`") — żadne narzędzie sektora tego pliku
+   nie pisze, zmiana była ręczna i wcześniejsza. Złapał to krytyk grepem.
+   Klasa: twierdzenie o pochodzeniu bez pomiaru. Bez naprawy w regułach —
+   od tego jest krytyk i zadziałał.
+4. **Pomiar równoległy zanieczyszcza licznik.** WALID zmierzył przyrost +2
+   przy własnym jednym żądaniu, bo w tej samej minucie pisał krytyk. Liczył
+   własne ślady, więc nie przypisał sobie cudzego zapisu — ale to ta sama
+   pułapka co przy T2 (pomiar równoległy z własną pracą przypisuje jej skutki
+   mierzonemu). W prawdziwym przebiegu krytyk i weryfikator na jednym zasobie
+   idą RÓWNOLEGLE z założenia (kolejności nie wymuszamy), więc zasada „licz
+   własne ślady" weszła do definicji Pogłębiaczy razem z punktem 2.
+5. **Próba weszła do działu, z którego audyt nie wyszedł** — celowo, jako
+   próba ścieżki, i jest to złamanie §17 nazwane, nie przemilczane. WALID
+   odnotował fakt bez werdyktu: `status.mjs --pokaz` nie ma wpisu
+   `audyt f1 SEC`. W prawdziwym przebiegu zatrzymuje to `KIER-R1`; w próbie
+   kierownik nie pracował.
+
+**Migawka i środowisko:** `migawka-wartosci.mjs` przed i po **identyczne**
+(919 plików produktu, 0 / 0); liczniki `:8892` przed i po co do wiersza
+(wizyty 17 / max id 145, logowania 21 / 266, posty 314, konta 2, dostawy 0,
+kursy 2, lekcje 73); dane właściciela z T4 nietknięte; opcja CSP wróciła do
+czterech zastanych kluczy. Żaden agent nie logował się ani nie dotykał kasy.
+
+**Koszt — zmierzony:**
+
+| Agent | Tokeny | Wywołania narzędzi | Czas |
+|---|---|---|---|
+| `rea-sec` (Sonnet, 6 pozycji, zatrzymany po pierwszym zgłoszeniu) | **232 tys.** | 50 | 6,8 min |
+| `rea-sec-krytyk` (Opus, jedno zgłoszenie + własne) | **198 tys.** | 36 | 7,9 min |
+| `rea-walid` (Opus, 6 pozycji na jednym wpisie) | **203 tys.** | 44 | 9,7 min |
+
+**Razem ~633 tys. tokenów za jedno znalezisko przeprowadzone przez ścieżkę**
+— o ~22% więcej niż w E6 (518 tys.), bo metoda re-audytu uruchamia i liczy,
+a nie czyta. Szacunek dla E8 z E6 (rząd 25 mln na komplet) rośnie
+proporcjonalnie dla połowy uruchomień.
+
+**Czego próba NIE obejmowała — żeby nikt nie uznał re-audytu SEC za wykonany:**
+dział SEC **nie jest zre-audytowany** (R1–R5 bez materiału, bo audyt nie
+pracował; R6 bez prototypu, `:3001` nie stał); ról `KIER`, `PSIARZ`, `SKUT`,
+`STRAZ`, `RAP`, `KON` nie uruchomiono — próba przejechała ścieżkę
+Pogłębiacz → krytyk → WALID, tę samą co w E6, tylko metodą re-audytu;
+`REA-SEC-002` nie przeszło ścieżki (usterka sektora rozstrzygnięta budową).
+`polacz-sektory.mjs --fala=1` i `porownaj-cykle.mjs` mówią wprost, ile wpisów
+próbnych pominęły.
+
+**Dowody na koniec E7.6:** strażnik **22 kontrole**, kod 0; audyt mutacyjny
+**60** (0 przeoczonych, 0 martwych); niezmiennik 0; generat 80/80 zgodny
+z modelami z `ROLE.md`; `status.mjs --pokaz` kod 0 (SEC i WALID
+`ZAKOŃCZONE`, runda 1, SEC z sześcioma niedomkniętymi jawnie).
+
+**NASTĘPNY KROK: akceptacja E7 przez właściciela**, potem **E8 = STOP** —
+uruchomienie audytu wymaga jego osobnego zielonego światła (D10) i osobnej
+zgody na koszt (rząd dwudziestu kilku milionów tokenów, nie mieści się
+w jednej sesji ani w jednym dniu).
 
 ---
 
