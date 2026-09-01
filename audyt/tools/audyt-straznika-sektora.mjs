@@ -635,6 +635,73 @@ MUTACJE_ROLI.push(
   },
 );
 
+/* ── mutacje trzeciego modelu (polecenie właściciela 2026-09-02) ──────────
+   Kierownicy i Konradowie obu sektorów idą na Fable 5.1. Cztery drogi, którymi
+   ta decyzja mogłaby PRZEPAŚĆ PO CICHU, plus jedna zmiana dozwolona. Pierwsza
+   z nich (regresja tabeli w wspolne.mjs) była przed 2026-09-02 NIEWIDZIALNA:
+   reguła 21 pytała tę samą funkcję, która produkuje generat. */
+MUTACJE_ROLI.push(
+  {
+    /* Z REGENERACJĄ — bo tak wygląda prawdziwa droga: ktoś psuje tabelę,
+       przebudowuje generat, generat zgadza się z zepsutą funkcją. */
+    opis: "wspolne.mjs odwzorowuje Fable 5.1 na Sonneta, generat przebudowany — kierownik idzie na Sonneta z zieloną bramką",
+    slad: /generat aud-kier\.md: model "sonnet", a audyt\/ROLE\.md przypisuje roli KIER model "fable"/,
+    wykonaj: () => zPodmienionymi({
+      [WSPOLNE]: (s) => s.replace('"Fable 5.1": "fable" }', '"Fable 5.1": "sonnet" }'),
+    }),
+  },
+  {
+    /* BEZ regeneracji — ta sama droga co WER wyżej, na trzecim modelu. */
+    opis: "audyt/ROLE.md cofa KIER na Opusa, generat zostaje na Fable — sha256 źródła tego nie widzi",
+    slad: /przypisuje roli KIER model "opus"/,
+    wykonaj: () => {
+      const plik = P(ROLE_MD);
+      const org = readFileSync(plik, "utf8");
+      const nowa = org.replace("## KIER — Audytor kierownik  · **Fable 5.1**", "## KIER — Audytor kierownik  · **Opus**");
+      if (nowa === org) return { czerwony: false, wyjscie: "MUTACJA NIC NIE ZMIENIŁA w audyt/ROLE.md" };
+      writeFileSync(plik, nowa, "utf8");
+      try { return straznikCzerwony(); } finally { writeFileSync(plik, org, "utf8"); }
+    },
+  },
+  {
+    opis: "nagłówek roli z NIEZNANYM modelem (Fable 5.2) — dotąd spadłby po cichu na Sonneta",
+    slad: /nieznany model "Fable 5\.2" w nagłówku roli KON/,
+    wykonaj: () => zPodmienionymi({
+      [ROLE_MD]: (s) => s.replace("## KON — Agent Konrad  · **Fable 5.1**", "## KON — Agent Konrad  · **Fable 5.2**"),
+    }),
+  },
+  {
+    opis: "generator pisze alias, którego harness nie zna (fable-5.1) — agent bez modelu albo na domyślnym",
+    slad: /"model: fable-5\.1" jest nieznana harnessowi/,
+    wykonaj: () => zPodmienionymi({
+      "audyt/tools/generuj-agentow.mjs": (s) => s.replace(
+        "`model: ${model}`,",
+        "`model: ${model === \"fable\" ? \"fable-5.1\" : model}`,"
+      ),
+    }),
+  },
+  {
+    opis: "re-audyt/ROLE.md cofa KON na Opusa, generat rea-kon zostaje na Fable",
+    slad: /generat rea-kon\.md: model "fable", a re-audyt\/ROLE\.md przypisuje roli KON model "opus"/,
+    wymaga: "re-audyt/ROLE.md",
+    wykonaj: () => {
+      const plik = P("re-audyt/ROLE.md");
+      const org = readFileSync(plik, "utf8");
+      const nowa = org.replace("## KON — Konrad re-audytu  · **Fable 5.1**", "## KON — Konrad re-audytu  · **Opus**");
+      if (nowa === org) return { czerwony: false, wyjscie: "MUTACJA NIC NIE ZMIENIŁA w re-audyt/ROLE.md" };
+      writeFileSync(plik, nowa, "utf8");
+      try { return straznikCzerwony(); } finally { writeFileSync(plik, org, "utf8"); }
+    },
+  },
+  {
+    opis: "KONTRPRZYKŁAD: zmiana NAZWY roli w nagłówku (nie modelu) NIE zapala reguły 21",
+    oczekujCzerwonego: false,
+    wykonaj: () => zPodmienionymi({
+      [ROLE_MD]: (s) => s.replace("## KIER — Audytor kierownik  · **Fable 5.1**", "## KIER — Kierownik audytu  · **Fable 5.1**"),
+    }),
+  },
+);
+
 /* ── zgłoszenie-śmieć: reguła 5 ma je złapać bez dotykania kodu ── */
 const SMIEC = join(ZGLOSZENIA, "AUD-SEC-999.json");
 const SMIEC_WER = join(ZGLOSZENIA, "AUD-WER-998.json");

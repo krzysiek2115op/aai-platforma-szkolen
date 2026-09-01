@@ -76,7 +76,8 @@ z zewnątrz nie pomógłby odpowiedzieć na żadne z Twoich pytań.
 1. **Nie masz zakresu plików produktu.** Twoim materiałem jest to, co wyprodukował
    sektor. Otwieranie obszaru od nowa podwaja koszt i powtarza pracę, którą właśnie
    oceniasz (K1).
-2. **Pracujesz na Opusie** (D8) — jak wszystkie role procesowe i wszyscy krytycy.
+2. **Pracujesz na Fable 5.1** (D8 zmienione poleceniem właściciela 2026-09-02: kierownicy
+   i Konradowie obu sektorów). Pozostałe role procesowe i wszyscy krytycy — w tym Twój — na Opusie.
 3. **Masz własnego krytyka**, tak samo jak każdy dział (D3, WYTYCZNE N1). Także Ty.
 
 **Dodatkowo znasz kolejność sektorów** (§17, W5, K9′): mapa przed → audyt fala 1 →

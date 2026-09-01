@@ -223,14 +223,18 @@ wyglądały na pracę wykonaną i żadna z 55 mutacji ich nie widziała. Generat
 trzymał WŁASNĄ listę ról opusowych wpisaną przy E4 i `rea-walid` (weryfikator
 re-audytu, w `ROLE.md` **Opus**) szedł na Sonneta przez cały E7.5; reguła 4
 tego nie widziała, bo porównuje sha256 źródła, a model w źródle nie stoi. Model
-czyta się odtąd z nagłówka roli w `ROLE.md`. Druga: 21 z 21 `KRYTYK.md`
+czyta się odtąd z nagłówka roli w `ROLE.md`. **Od 2026-09-02 modele są trzy** (Fable 5.1
+dla `KIER` i `KON` obu sektorów, polecenie właściciela) i reguła 21 czyta nagłówki
+**własnym odczytem**, nie funkcją generatora — bo pomiar tą samą funkcją, która produkuje
+generat, przepuszczał regresję tabeli modeli po regeneracji; nieznany model w nagłówku
+zapala regułę zamiast spadać na Sonneta. Druga: 21 z 21 `KRYTYK.md`
 re-audytu wskazywało w module wpisy `AUD-<KOD>-*` — krytyk Pogłębiacza SEC
 oceniałby pracę działu SEC AUDYTU, a wpisy `REA-SEC-*` nie miałyby krytyka.
 Usterka przyszła z szablonu, w którym prefiks stał na sztywno; szablon ma
 odtąd `<PREFIKS>`.
 
-Audyt mutacyjny: **60 mutacji**, 0 przeoczonych, 0 martwych
-(`audyt/tools/audyt-straznika-sektora.mjs`). Cztery z nich mają pole **`wymaga`**:
+Audyt mutacyjny: **66 mutacji**, 0 przeoczonych, 0 martwych
+(`audyt/tools/audyt-straznika-sektora.mjs`). Pięć z nich ma pole **`wymaga`**:
 gdy na danej gałęzi nie ma materiału (`re-audyt/ROLE.md` na gałęzi audytu), są
 **pomijane i policzone**, nigdy cicho zielone.
 
