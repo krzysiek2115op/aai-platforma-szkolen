@@ -449,8 +449,8 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E3** — dokumentacja (7 rodzajów) + Chrome | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01) | [`BRIEF-PROJEKTU.md`](BRIEF-PROJEKTU.md) (15 kB wobec 240 kB `CLAUDE.md`), [`DOKUMENTACJA.md`](DOKUMENTACJA.md), [`ZRODLA-DOKUMENTACJI.md`](ZRODLA-DOKUMENTACJI.md), skrypt z manifestem; **4944 pliki / 44 MB** poza drzewem repo; Chrome 152 sprawdzony pomiarem |
 | **E4** — szkielet | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01: „E4 akceptuję teraz") | [`STRUKTURA.md`](STRUKTURA.md), 4 szablony, **10 narzędzi** w `audyt/tools/`, strażnik sektora (9 kontroli) + **11 mutacji** (0 przeoczonych, 0 martwych) |
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
-| **E6** — generat i próba na sucho | ✅ **ZROBIONE — ścieżka przejechała do końca**, czeka na akceptację | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
-| **E7** — sektor RE-AUDYT | ⬜ | gałąź `re-audyt/sektor-re-audytu`, 21 ról + psy |
+| **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
+| **E7** — sektor RE-AUDYT | ⬜ **NASTĘPNY KROK** | gałąź `re-audyt/sektor-re-audytu`, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt**, zmierzone |
 | **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
@@ -492,6 +492,78 @@ drugi raz:
 
 **Czego E6 NIE robi:** nie uruchamia pozostałych 18 ról, nie buduje sektora
 RE-AUDYT (to E7), nie wykonuje żadnej naprawy (W2).
+
+---
+
+## Co dokładnie obejmuje E7 (nie wyprowadzać od nowa)
+
+Wzorzec pracy jest ten sam co przy E5: `ROLE.md` re-audytu o tej samej strukturze,
+potem 21 katalogów × 4 pliki, generat, strażnik. **Metoda budowy ról jest opisana
+w „Fakty zmierzone przy E5"** (części mechaniczne ze skryptu jednorazowego, części
+własne pisane) — skrypt był rusztowaniem i celowo nie trafił do repozytorium.
+
+**Role re-audytu (21, każda z krytykiem = 42 agentów):** kierownik re-audytu ·
+**Pogłębiacz** ×14 obszarów · **Psiarz** · **Skutki uboczne** · **Strażnikowy** ·
+**Walidacja szczegółowa** · **Raport re-audytu** · **Konrad re-audytu**.
+Czym re-audyt różni się od audytu: tabela w sekcji „SEKTOR RE-AUDYT — inny, nie
+lustrzany (P2)". Skrót: audyt czyta i ustala OBRAZ, re-audyt **uruchamia na
+`:8892`**, mierzy ZASIĘG (wszystkie wystąpienia klasy) i projektuje strażnika.
+
+### CZTERY RZECZY ZMIERZONE: narzędzia sektora NIE są przygotowane na re-audyt
+
+Nie są to domysły — każda pozycja ma pomiar albo linię kodu.
+
+1. **Bramka ODRZUCA każdą rolę re-audytu.** `DZIALY` i `PROCESOWE`
+   (`audyt/tools/wspolne.mjs:32-36`) znają wyłącznie 19 kodów audytu. Zgłoszenie
+   z `dzial: "PSIARZ"` zostało odrzucone uruchomieniowo: „nieznany dział
+   »PSIARZ«", kod 1. **Bez rozszerzenia tych list re-audyt nie zgłosi ANI
+   JEDNEGO znaleziska.**
+2. **Zgłoszenia obu sektorów muszą leżeć w JEDNYM katalogu.**
+   `ZGLOSZENIA = join(SEKTOR, "zgloszenia")`, a `SEKTOR` to `audyt/`
+   (`wspolne.mjs:14-15`). `polacz-sektory.mjs` łączy sektory po hashu, czytając
+   `wszystkieZgloszenia()` — czyli TYLKO ten katalog. Osobny katalog dla
+   re-audytu zerwałby łączenie sektorów (W4), które jest sensem całego kroku.
+3. **Prefiks identyfikatora jest zaszyty jako `AUD-`** (`zgloszenie.mjs:121,125`).
+   Znalezisko re-audytu dostałoby dziś ID nieodróżnialne od audytowego, choć pole
+   `sektor` je rozróżnia. Do rozstrzygnięcia: własny prefiks (`REA-`) czy zostaje
+   wspólny.
+4. **Niezmiennik sektora jest zapisany jako `':!audyt'`** (`STRUKTURA.md`,
+   `ROLE.md` KIER-07, `DOKUMENTACJA.md`). Na gałęzi re-audytu z katalogiem
+   `re-audyt/` ta komenda pokazałaby WŁASNĄ pracę jako naruszenie — czyli
+   bramka, która świeci na czerwono zawsze, a więc nie znaczy nic.
+
+### TRZY PYTANIA DO WŁAŚCICIELA PRZED E7
+
+1. **Skąd wychodzi gałąź `re-audyt/sektor-re-audytu`** — z `main` czy z
+   `audyt/sektor-audytu`? To nie jest kosmetyka: z `main` gałąź **nie ma narzędzi
+   sektora** (`audyt/tools/`), a re-audyt potrzebuje `zgloszenie.mjs`,
+   `werdykt.mjs`, `status.mjs` i `polacz-sektory.mjs`. Punkt 2 wyżej (jeden
+   katalog zgłoszeń) mocno przemawia za wyjściem z gałęzi audytu.
+2. **Czy narzędzia rozszerzamy, czy re-audyt dostaje własne?** Rozszerzenie jest
+   tańsze i utrzymuje jeden nośnik (W4), ale znaczy, że gałąź re-audytu **zmienia
+   pliki w `audyt/`** — a to koliduje z zasadą „sektory są osobne" (§17).
+3. **Jak brzmi niezmiennik na gałęzi re-audytu?** Kandydat:
+   `git diff main --name-only -- . ':!audyt' ':!re-audyt'` → 0. Wymaga
+   potwierdzenia, bo dziś w czterech miejscach repo stoi wersja z jednym
+   wykluczeniem.
+
+### CZEGO E7 NIE ROBI
+
+Nie uruchamia żadnego z sektorów (STOP zostaje na **E8**, D10), nie naprawia
+niczego (W2), nie dotyka kodu produktu poza katalogami sektorów.
+
+### LEKCJA Z E6, KTÓRA DOTYCZY E7 WPROST
+
+**Po wygenerowaniu 21 nowych definicji ról trzeba ZRESTARTOWAĆ SESJĘ, zanim się
+je wywoła** — harness wczytuje rejestr agentów projektu przy starcie procesu.
+W E6 kosztowało to pół sesji śledztwa, zanim restart okazał się całą naprawą.
+
+**Sekcję „Jak zgłaszasz" ma już `audyt/szablony/KRYTYK.md`**, więc krytycy
+re-audytu odziedziczą ją automatycznie. Reguła 18 strażnika sprawdzi to sama.
+
+**Zakres każdej roli liczymy KOMENDĄ i sprawdzamy, że nie daje zera** — usterka
+PIK-08 z E6 (źródła z zerem trafień, pozycja do odhaczenia po pustce) jest tą
+klasą, którą przy 21 nowych rolach najłatwiej powtórzyć 21 razy.
 
 ---
 
@@ -619,6 +691,31 @@ agentów wczytany przed powstaniem plików (katalog `.claude/` z 05:37, definicj
 z 06:49). Gdyby objaw wrócił mimo restartu, następnym pomiarem jest terminal
 (`claude` → `/agents`) — rozstrzyga, czy ograniczenie siedzi w rozszerzeniu
 VSCode.
+
+### KOSZT PRZEBIEGU — ZMIERZONY, nie oszacowany
+
+Trzy uruchomienia próby na tym repozytorium:
+
+| Agent | Tokeny | Wywołania narzędzi |
+|---|---|---|
+| `aud-pik` (Sonnet, 8 pozycji, zatrzymany po jednej) | **181 tys.** | 22 |
+| `aud-pik-krytyk` (Opus, jedno zgłoszenie) | **173 tys.** | 25 |
+| `aud-wer` (Sonnet, 5 pozycji na jednym wpisie) | **163 tys.** | 14 |
+
+**Razem ~518 tys. tokenów za JEDNO znalezisko przeprowadzone przez ścieżkę** —
+przy roli o NAJWĘŻSZYM zakresie w sektorze (10 plików) i przy zakresie zawężonym
+rozkazem. Rola przechodząca całą checklistę na 116 albo 131 plikach (PERF, PROTO)
+będzie wielokrotnie droższa.
+
+Plan mówił „ponad 150 uruchomień, rząd wielu milionów tokenów". Ta liczba jest
+teraz **oparta na pomiarze**: przy ~170 tys. na uruchomienie i 150 uruchomieniach
+wychodzi **rząd 25 milionów tokenów** na komplet obu sektorów i obu fal — i to
+przy założeniu, że przeciętna rola nie jest droższa od najwęższej, co jest
+założeniem optymistycznym.
+
+**Wniosek dla E8:** to nie zmieści się w jednej sesji ani w jednym dniu i wymaga
+świadomej zgody właściciela na koszt, osobno od zgody na uruchomienie. Dlatego
+wyniki lądują w pliku natychmiast, a nie w kontekście rozmowy.
 
 ### CZEGO PRÓBA NIE OBEJMOWAŁA — żeby nikt nie uznał działu za sprawdzony
 
