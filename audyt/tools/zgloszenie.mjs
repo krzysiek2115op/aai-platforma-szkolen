@@ -19,7 +19,8 @@
  * Kod wyjścia 0 = przyjęte, 1 = odrzucone (z powodem na wyjściu).
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   DZIALY, KORZEN, NIEPEWNOSC, PROCESOWE, PROG_BAZY, STATUSY, SUFIT_RUND,
   ZGLOSZENIA, czytajJSON, hashMiejsca, wszystkieZgloszenia, zapiszJSON, znormalizuj,
@@ -157,6 +158,23 @@ function samokontrola() {
 
 /* ── wejście ── */
 
+/**
+ * BRAMKA GŁÓWNEGO MODUŁU. Bez niej samo `import` tego pliku wykonywało CLI:
+ * przy braku `--plik=` proces kończył się kodem 1, więc strażnik sektora nie
+ * mógł ponownie użyć `powodyOdmowy()` — import zabijałby strażnika. To ta sama
+ * klasa co seed wykonujący się przy imporcie (0.33.0), tylko łagodniejsza
+ * w skutkach.
+ *
+ * WZORZEC ODPORNY NA SPACJĘ W NAZWIE KATALOGU. Popularny skrót
+ * `import.meta.url === \`file://${process.argv[1]}\`` w katalogu
+ * "Pod strona Szkolenia " NIGDY nie jest prawdziwy, bo URL koduje spację jako
+ * %20 — narzędzie milczy z kodem 0 i wygląda na sprawne. To jest BLAD-014
+ * i pilnuje go `straznik-sciezek` na `main`.
+ */
+const GLOWNY_MODUL =
+  Boolean(process.argv[1]) && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (GLOWNY_MODUL) {
 const argumenty = process.argv.slice(2);
 
 if (argumenty.includes("--test")) {
@@ -197,4 +215,5 @@ const ile = wszystkieZgloszenia().length;
 process.stdout.write(`Przyjęte: ${id}\n  hash miejsca: ${gotowe.hash.slice(0, 16)}…\n  zgłoszeń w sektorze: ${ile}\n`);
 if (ile > PROG_BAZY) {
   process.stdout.write(`\nUWAGA: przekroczony próg ${PROG_BAZY} zgłoszeń — czas przełączyć nośnik na SQLite (W4).\n`);
+}
 }

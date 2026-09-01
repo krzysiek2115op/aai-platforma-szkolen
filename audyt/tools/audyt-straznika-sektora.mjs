@@ -21,7 +21,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { KORZEN, SEKTOR, ZGLOSZENIA } from "./wspolne.mjs";
+import { KOD_PROBNY, KORZEN, SEKTOR, ZGLOSZENIA } from "./wspolne.mjs";
 
 const P = (s) => join(KORZEN, s);
 const ROLE_MD = "audyt/ROLE.md";
@@ -118,26 +118,101 @@ const MUTACJE = [
    fałszywe alarmy, bo wzorce reguły 6 zakładały, że zdanie mieści się w jednej
    linii, a Markdown je zawija. Gdyby ta kontrola nie została na stałe, E5
    wywróciłoby się na pierwszej roli — a wyglądałoby to na błąd roli. */
-function rolaZSzablonu() {
+function rolaZSzablonu({ pomin = [], mutuj = {}, kod = KOD_PROBNY } = {}) {
   const SZABLONY = join(SEKTOR, "szablony");
-  const PROBNA = join(SEKTOR, "role", "PROBA");
+  const PROBNA = join(SEKTOR, "role", kod);
   mkdirSync(join(PROBNA, "goldeny"), { recursive: true });
   try {
-    for (const [z, d] of [["AGENT.md", "AGENT.md"], ["KRYTYK.md", "KRYTYK.md"], ["SKILL.md", "SKILL.md"]]) {
-      const t = readFileSync(join(SZABLONY, z), "utf8").replaceAll("<KOD>", "PROBA").replaceAll("<NAZWA ROLI>", "Próba");
-      writeFileSync(join(PROBNA, d), t, "utf8");
+    for (const nazwa of ["AGENT.md", "KRYTYK.md", "SKILL.md"]) {
+      if (pomin.includes(nazwa)) continue;
+      let tresc = readFileSync(join(SZABLONY, nazwa), "utf8").replaceAll("<KOD>", kod).replaceAll("<NAZWA ROLI>", "Próba");
+      if (mutuj[nazwa]) tresc = mutuj[nazwa](tresc);
+      writeFileSync(join(PROBNA, nazwa), tresc, "utf8");
     }
-    writeFileSync(join(PROBNA, "goldeny", "wzorzec.md"),
-      readFileSync(join(SZABLONY, "golden.md"), "utf8").replaceAll("<KOD>", "PROBA"), "utf8");
+    if (!pomin.includes("golden.md")) {
+      let g = readFileSync(join(SZABLONY, "golden.md"), "utf8").replaceAll("<KOD>", kod);
+      if (mutuj["golden.md"]) g = mutuj["golden.md"](g);
+      writeFileSync(join(PROBNA, "goldeny", "wzorzec.md"), g, "utf8");
+    }
     spawnSync("node", ["audyt/tools/generuj-agentow.mjs"], { cwd: KORZEN, stdio: "pipe" });
     const { czerwony, wyjscie } = straznikCzerwony();
     return { czerwony, wyjscie };
   } finally {
     rmSync(PROBNA, { recursive: true, force: true });
-    rmSync(join(KORZEN, ".claude", "agents", "aud-proba.md"), { force: true });
-    rmSync(join(KORZEN, ".claude", "agents", "aud-proba-krytyk.md"), { force: true });
+    const nazwaGeneratu = `aud-${kod.toLowerCase()}`;
+    rmSync(join(KORZEN, ".claude", "agents", `${nazwaGeneratu}.md`), { force: true });
+    rmSync(join(KORZEN, ".claude", "agents", `${nazwaGeneratu}-krytyk.md`), { force: true });
+    // Generat mógł zostać przebudowany bez roli próbnej — przywracamy zgodność,
+    // żeby kolejna mutacja nie mierzyła skutku poprzedniej (reguła 4).
+    spawnSync("node", ["audyt/tools/generuj-agentow.mjs"], { cwd: KORZEN, stdio: "pipe" });
   }
 }
+
+/* ── MUTACJE PRZEZ ROLĘ PRÓBNĄ ─────────────────────────────────────────────
+   Reguł 10, 11 i 12 nie da się sprawdzić mutacją pliku produkcyjnego: dotyczą
+   katalogu `audyt/role/`, który w trakcie budowy bywa pusty, a po budowie
+   zawiera pracę, której audyt nie ma prawa psuć. Mutujemy więc SZABLON albo
+   sposób budowy roli próbnej i pytamy, czy strażnik to złapie.
+
+   Każda mutacja ma `slad` — tak jak `oczekiwanySlad` w audycie projektu od
+   0.47.0. Bez niego mutacja łamiąca dwie reguły naraz maskuje jedną z nich
+   i wygląda to na sukces. */
+const MUTACJE_ROLI = [
+  {
+    opis: "z szablonu AGENT.md znika jedna z 13 zasad Goldena",
+    wykonaj: () => rolaZSzablonu({ mutuj: { "AGENT.md": (s) => s.replace("7. Wspieraj strażników tam, gdzie znany problem może wrócić.\n", "") } }),
+    slad: /brak zasad Goldena/,
+  },
+  {
+    opis: "z szablonu KRYTYK.md znika zasada kolejności cyklu",
+    wykonaj: () => rolaZSzablonu({ mutuj: { "KRYTYK.md": (s) => s.replace(/^12\. Pilnuj kolejno.*$/m, "12. Pilnuj czegoś tam.") } }),
+    slad: /KRYTYK\.md: brak zasad Goldena/,
+  },
+  {
+    opis: "GOLDEN ZGNIŁ: dobry przykład wskazuje linię obok",
+    wykonaj: () => rolaZSzablonu({ mutuj: { "golden.md": (s) => s.replace('"linia": 440', '"linia": 441') } }),
+    slad: /miał przejść, a bramka odrzuca/,
+  },
+  {
+    opis: "zły przykład goldena przestaje być zły (bramka go przyjmuje)",
+    wykonaj: () => rolaZSzablonu({ mutuj: { "golden.md": (s) => s
+      .replace('"stwierdzenie": "Wydaje mi się, że tutaj może być problem z walidacją danych wejściowych."',
+               '"stwierdzenie": "Zapytanie skleja wartość z żądania bez prepare, więc wejście trafia do SQL."')
+      .replace('"linia": 99999,\n    "tresc": "coś takiego tam było"',
+               '"linia": 440,\n    "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń **odmawia zapisu** wpisu bez dowodu."') } }),
+    slad: /bramka go PRZYJMUJE/,
+  },
+  {
+    opis: "zły przykład odrzucany, ale NIE z deklarowanego powodu",
+    wykonaj: () => rolaZSzablonu({ mutuj: { "golden.md": (s) => s.replace("<!-- ODRZUCA: NIE ZGADZA -->", "<!-- ODRZUCA: brak pola \"dowod\" -->") } }),
+    slad: /NIE z powodu/,
+  },
+  {
+    opis: "blok goldena traci znacznik SPRAWDZANY (wypada spod miary)",
+    wykonaj: () => rolaZSzablonu({ mutuj: { "golden.md": (s) => s.replace("<!-- SPRAWDZANY: przechodzi -->", "") } }),
+    slad: /brak znacznika SPRAWDZANY/,
+  },
+  {
+    opis: "rola bez SKILL.md — GOLD-06 nie ma czego sprawdzać",
+    wykonaj: () => rolaZSzablonu({ pomin: ["SKILL.md"] }),
+    slad: /nie ma SKILL\.md/,
+  },
+  {
+    opis: "rola bez goldenów — nie ma miary",
+    wykonaj: () => rolaZSzablonu({ pomin: ["golden.md"] }),
+    slad: /katalog goldeny\/ jest pusty/,
+  },
+  {
+    opis: "katalog roli, której ROLE.md nie zna (agent bez zakresu)",
+    wykonaj: () => rolaZSzablonu({ kod: "NIEZNANA" }),
+    slad: /nie odpowiada żadnej roli z ROLE\.md/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: rola próbna z NIETKNIĘTYCH szablonów NIE może zapalać strażnika",
+    wykonaj: () => rolaZSzablonu(),
+    oczekujCzerwonego: false,
+  },
+];
 
 /* ── zgłoszenie-śmieć: reguła 5 ma je złapać bez dotykania kodu ── */
 const SMIEC = join(ZGLOSZENIA, "AUD-SEC-999.json");
@@ -203,12 +278,21 @@ try {
     }
   }
 
-  const r = rolaZSzablonu();
-  if (r.czerwony) {
-    process.stdout.write(`  ✗ FAŁSZYWY ALARM: rola zbudowana z SZABLONÓW zapala strażnika\n      ${r.wyjscie.split("\n").filter(Boolean).slice(1, 4).join("\n      ")}\n`);
-    zle++;
-  } else {
-    process.stdout.write("  ✓ przepuszczone słusznie: rola zbudowana z szablonów przechodzi przez strażnika\n");
+  for (const m of MUTACJE_ROLI) {
+    const oczekujCzerwonego = m.oczekujCzerwonego !== false;
+    const { czerwony, wyjscie } = m.wykonaj();
+    if (oczekujCzerwonego && !czerwony) {
+      process.stdout.write(`  ✗ PRZEPUŚCIŁ: ${m.opis}\n`);
+      przeoczone++;
+    } else if (!oczekujCzerwonego && czerwony) {
+      process.stdout.write(`  ✗ FAŁSZYWY ALARM: ${m.opis}\n      ${wyjscie.split("\n").filter(Boolean).slice(1, 4).join("\n      ")}\n`);
+      zle++;
+    } else if (oczekujCzerwonego && m.slad && !m.slad.test(wyjscie)) {
+      process.stdout.write(`  ✗ ZŁY ŚLAD: ${m.opis}\n      zapaliło się coś innego niż ${m.slad}\n`);
+      zle++;
+    } else {
+      process.stdout.write(`  ✓ ${oczekujCzerwonego ? "złapane" : "przepuszczone słusznie"}: ${m.opis}\n`);
+    }
   }
 
   const z = mutacjaZgloszenia();
@@ -220,7 +304,7 @@ try {
   rmSync(SMIEC, { force: true });
 }
 
-const razem = MUTACJE.length + 2;
+const razem = MUTACJE.length + MUTACJE_ROLI.length + 1;
 process.stdout.write(`\nMutacje sektora: ${razem}, przeoczone: ${przeoczone}, martwe/złe: ${zle + martwe}\n`);
 
 // Po przywróceniu strażnik MUSI wrócić do zieleni — inaczej przebieg coś zostawił.

@@ -31,12 +31,17 @@ audyt/
     porownaj-cykle.mjs           test powtarzalności (K4')
     polacz-sektory.mjs           audyt + re-audyt (W4)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  dziewięć kontroli
+    straznik-sektora-audytu.mjs  dwanaście kontroli
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
   role/                 POWSTAJE W E5 — po katalogu na rolę
     <KOD>/AGENT.md  KRYTYK.md  SKILL.md  goldeny/
+
+    SKILL.md NIE jest instalowany do `.claude/skills/` (rozstrzygnięcie
+    właściciela 2026-09-01). Skill jedzie RAZEM ZE SWOJĄ ROLĄ: agent czyta go
+    ze ścieżki własnym `Read`, więc nie widzi go żadna inna sesja ani żaden
+    inny agent. Powód jest zmierzony, nie estetyczny — patrz niżej.
 
   zgloszenia/           wpisy JSON, ID nadaje narzędzie
   stan/                 status i rundy każdej roli
@@ -52,6 +57,32 @@ w [`ZRODLA-DOKUMENTACJI.md`](ZRODLA-DOKUMENTACJI.md).
 `.claude/agents/aud-*.md` — generat, **nieśledzony przez gita**. Powstaje
 komendą ze źródła w `audyt/role/`, więc nie ma czego commitować i niezmiennik
 zostaje nietknięty.
+
+---
+
+## Skille należą do ról, nie do repozytorium
+
+**Rozstrzygnięcie właściciela (2026-09-01): skill ma być na tym agencie, który
+go potrzebuje — nie na całym repo.** Zmierzone w harnessie, nie założone:
+
+1. **Nie istnieje pole `skills:` w definicji agenta.** Frontmatter ma cztery
+   pola — `name`, `description`, `tools`, `model`. Przypisania „ten skill do
+   tego agenta" nie ma czym zapisać.
+2. **`Skill` to jedna pozycja w `tools:` — wszystko albo nic.** Przyznanie jej
+   otwiera CAŁĄ listę skilli, nie wybrany podzbiór.
+3. **Audytorzy nie mają `Skill` w narzędziach** (`Read, Grep, Glob, Bash`), więc
+   skille zainstalowane do `.claude/skills/` byłyby widoczne w każdej sesji tego
+   repo i **nieużywalne przez sektor**. Najgorsze z obu stron.
+
+Dlatego `SKILL.md` zostaje plikiem roli, a `AGENT.md` wskazuje go ścieżką.
+**Ślad dla GOLD-06** („czy dział użył swojego skilla") bierze się z treści:
+każdy krok procedury kończy się czymś sprawdzalnym — komendą, liczbą albo
+`plik:linia` — więc wyjście działu albo te artefakty niesie, albo skill nie
+został użyty.
+
+Frontmatter `name:`/`description:` w `SKILL.md` **zostaje mimo to**: nic nie
+kosztuje, a gdyby kiedyś zapadła decyzja o instalacji, jest to jedna zmiana
+w generatorze, nie przepisywanie 19 plików.
 
 ---
 

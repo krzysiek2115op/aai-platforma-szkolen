@@ -36,6 +36,19 @@ export const DZIALY = [
 export const PROCESOWE = ["KIER", "GOLD", "KON", "WER", "RAP"];
 
 /**
+ * KOD ROLI PRÓBNEJ audytu mutacyjnego. `audyt-straznika-sektora.mjs` buduje
+ * przy każdym przebiegu rolę z SZABLONÓW i wymaga, żeby strażnik jej NIE
+ * zapalił — inaczej E5 wywróciłoby się na pierwszej roli, a wyglądałoby to na
+ * błąd roli, nie szablonu.
+ *
+ * Nazwa musi być WSPÓLNA dla obu narzędzi. Dwie kopie tego łańcucha rozjechałyby
+ * się po cichu: strażnik zapalałby się na katalogu, który audyt uważa za swój.
+ * To ta sama zasada, dla której zakresy działów wyprowadzamy z `ROLE.md`,
+ * a `straznik-wagi-dokumentacji` czyta manifest ze skryptów pobierających.
+ */
+export const KOD_PROBNY = "PROBA";
+
+/**
  * Zwroty, po których zgłoszenie jest ODRZUCANE. Paragraf 11 regulaminu:
  * NIE "wydaje mi się, że jest błąd", TAK konkretne stwierdzenie z dowodem.
  * Lista celuje w NIEPEWNOŚĆ, nie w jedno słowo — stąd warianty zapisu.

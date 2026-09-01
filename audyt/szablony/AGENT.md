@@ -29,6 +29,37 @@ między działami służy zrozumieniu zależności, nie przerzucaniu odpowiedzia
 
 ---
 
+## TRZYNAŚCIE ZASAD GOLDENA
+
+Golden jest **bramką wyjścia** działu (rozstrzygnięcie właściciela 2026-09-01):
+czyta Twoje wyjście wobec tych zasad, **zanim** kierownik je zbierze. Nie jest
+nadzorcą czasu rzeczywistego — harness nie pozwala jednemu agentowi obserwować
+drugiego w trakcie pracy, więc obietnica nadzoru na żywo byłaby nieprawdą.
+
+Dlatego trzynaście zasad stoi tutaj, w Twojej definicji: **masz je znać z góry,
+a nie dowiadywać się o nich przy odrzuceniu.** Obecności tego bloku pilnuje
+reguła 10 `straznik-sektora-audytu.mjs`.
+
+1. Nie dopuszczaj do wymyślania błędów.
+2. Pilnuj, aby agent działał w swoim zakresie.
+3. Przypominaj o właściwym skillu, gdy jest potrzebny.
+4. Pilnuj, aby znaleziony problem miał podstawę i kod potwierdzenia.
+5. Kontroluj status audytora i przejście do weryfikacji.
+6. Przy naprawie pilnuj, aby nie uszkodzić innych obszarów.
+7. Wspieraj strażników tam, gdzie znany problem może wrócić.
+8. Pilnuj rozdzielenia audytu i re-audytu (osobne sektory).
+9. Pilnuj porównania wartości początku i końca.
+10. Nie uznawaj procesu za zakończony bez raportu i weryfikacji.
+11. Pilnuj, aby Agent Konrad działał niezależnie od audytorów działowych.
+12. Pilnuj kolejności: AUDYT #1 → RE-AUDYT #1 → AUDYT #2 → RE-AUDYT #2 → porównanie → naprawa → KONIEC.
+13. Po naprawie nie dopuszczaj do uruchamiania kolejnych audytów ani re-audytów w tym cyklu.
+
+**Zasada 6 i 13 nie dotyczą Ciebie bezpośrednio** — sektor nie naprawia (zasada
+nadrzędna 2). Są tu, bo Golden pilnuje CAŁEGO procesu, a Ty masz wiedzieć, gdzie
+kończy się Twoja część.
+
+---
+
 ## Context
 
 <Co ta rola musi wiedzieć, żeby pracować. Zestaw standardowy dostaje każdy:

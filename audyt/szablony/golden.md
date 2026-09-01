@@ -1,93 +1,160 @@
-# Golden roli <KOD> — wzorzec dobrego i złego zgłoszenia
+# Golden roli <KOD> — miara, nie dokumentacja
 
-> **SZABLON.** Kopiowany do `audyt/role/<KOD>/goldeny/` w E5.
+> **SZABLON.** Kopiowany do `audyt/role/<KOD>/goldeny/wzorzec.md` w E5.
 > Wzór wzięty z `agenci/przeglad-pr/goldeny/` — jedynego katalogu definicji
 > agenta, jaki to repo miało przed sektorem.
 >
 > Golden nie jest dokumentacją: jest **miarą**. Rola, która nie potrafi
-> odróżnić poniższych dwóch przypadków, nie jest gotowa do pracy.
+> odróżnić poniższych przypadków, nie jest gotowa do pracy.
 
 ---
 
-## PRZYKŁAD DOBRY — tak wygląda zgłoszenie, które przechodzi
+## Ten plik jest SPRAWDZANY MASZYNOWO
 
+Reguła 11 `straznik-sektora-audytu.mjs` przepuszcza każdy blok niżej przez
+`powodyOdmowy()` — **tę samą funkcję**, którą bramka ocenia prawdziwe
+zgłoszenia. Bloki oznaczone `SPRAWDZANY: przechodzi` muszą przejść, oznaczone
+`SPRAWDZANY: odrzucony` muszą zostać odrzucone, i to **z powodu, który
+deklarują** w znaczniku `ODRZUCA`.
+
+Powód takiej konstrukcji jest z historii tego repo: „zapaliło się" nie znaczy
+„zapaliło się z właściwej przyczyny" — mutacja łamiąca dwie reguły naraz
+maskowała jedną z nich, dopóki w 0.47.0 nie doszło pole `oczekiwanySlad`.
+Tu obowiązuje ta sama dyscyplina.
+
+Skutek uboczny jest zamierzony: **golden nie zgnije po cichu**. Gdy wskazane
+miejsce zniknie z kodu albo zmieni treść, strażnik zapali się na goldenie,
+a nie dowie się o tym dopiero agent w trakcie pracy.
+
+---
+
+## PRZYKŁAD DOBRY — forma liniowa
+
+<!-- SPRAWDZANY: przechodzi -->
 ```json
 {
   "sektor": "audyt",
   "fala": 1,
   "dzial": "<KOD>",
-  "pozycja": "<KOD>-NN",
-  "stwierdzenie": "<Jedno zdanie oznajmujące. Co jest nie tak i co z tego wynika. Bez „wydaje mi się”.>",
+  "pozycja": "<KOD>-01",
+  "stwierdzenie": "Zdanie oznajmujące: co jest nie tak i co z tego wynika. Jedna myśl, bez zwrotów niepewności.",
   "miejsce": {
     "rodzaj": "linia",
-    "plik": "<ścieżka od korzenia repo>",
-    "linia": 0,
-    "tresc": "<treść tej linii, co do znaku>"
+    "plik": "audyt/REGULAMIN.md",
+    "linia": 440,
+    "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń **odmawia zapisu** wpisu bez dowodu."
   },
-  "dowod": "<Co potwierdza stwierdzenie. Najlepiej komenda i jej wynik, albo druga linia kodu, która domyka rozumowanie.>",
-  "klasyfikacja": "<kategoria>",
-  "wplyw": "<Dlaczego to ma znaczenie: dla klienta, dla właściciela albo dla danych.>"
+  "dowod": "Komenda i jej wynik albo druga linia kodu, która domyka rozumowanie — o TYM SAMYM, o czym mówi stwierdzenie.",
+  "klasyfikacja": "przyklad-dydaktyczny",
+  "wplyw": "Dlaczego to ma znaczenie: dla klienta, dla właściciela albo dla danych."
 }
 ```
 
 **Dlaczego przechodzi:** stwierdzenie jest jednoznaczne, miejsce da się otworzyć,
-treść linii zgadza się z plikiem, dowód mówi o TYM SAMYM co stwierdzenie, a wpływ
-jest nazwany po skutku, nie po nazwie mechanizmu.
+treść linii zgadza się z plikiem co do znaku po normalizacji białych znaków,
+dowód mówi o TYM SAMYM co stwierdzenie, a wpływ jest nazwany po skutku, nie po
+nazwie mechanizmu.
 
 ---
 
-## PRZYKŁAD ZŁY — i powód odrzucenia
-
-```json
-{
-  "dzial": "<KOD>",
-  "stwierdzenie": "Wydaje mi się, że tutaj może być problem z walidacją.",
-  "miejsce": { "rodzaj": "linia", "plik": "<plik>", "linia": 9999, "tresc": "coś takiego" },
-  "dowod": "widziałem podobny błąd gdzie indziej"
-}
-```
-
-**Cztery powody odrzucenia naraz:**
-
-1. **„Wydaje mi się"** — §11 wymaga jednoznaczności; `zgloszenie.mjs` odrzuca
-   zwrot niepewności maszynowo;
-2. **linia 9999 nie istnieje** — narzędzie sprawdza długość pliku;
-3. **treść linii nie zgadza się z plikiem** — to jest dowód, że pliku nie otwarto;
-4. **dowód nie dotyczy tego miejsca** — „podobny błąd gdzie indziej" nie
-   potwierdza niczego tutaj.
-
----
-
-## Trzeci przypadek — brak, wyścig, kolejność (K10')
+## PRZYKŁAD DOBRY — forma mechanizmu (K10')
 
 Część realnych błędów tego projektu **nie miała jednej linii**: brak klucza
 kasujący dane, odwrotna kolejność dwóch zapisów, brakująca kontrola. Dla nich
-obowiązuje druga forma miejsca:
+jest druga forma miejsca — i istnieje właśnie po to, żeby nie trzeba było
+zmyślać adresu.
 
+<!-- SPRAWDZANY: przechodzi -->
 ```json
 {
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "<KOD>",
+  "pozycja": "<KOD>-02",
+  "stwierdzenie": "Brak sprawdzenia w opisanym zakresie sprawia, że kod nie dotrzymuje własnej obietnicy.",
   "miejsce": {
     "rodzaj": "mechanizm",
-    "plik": "<plik, w którym mechanizmu BRAKUJE>",
-    "zakres": "<metoda, blok albo ścieżka wywołania>",
-    "mechanizm": "<czego brakuje i gdzie to powinno być>"
-  }
+    "plik": "audyt/REGULAMIN.md",
+    "zakres": "sekcja 20 — trzy zasady nadrzędne",
+    "mechanizm": "czego brakuje i gdzie dokładnie powinno być — nazwane wprost, bez zmyślonej linii"
+  },
+  "dowod": "Ścieżka wywołania albo komenda pokazująca, że mechanizmu nie ma tam, gdzie miał być.",
+  "klasyfikacja": "przyklad-dydaktyczny",
+  "wplyw": "Skutek braku: dla klienta, dla właściciela albo dla danych."
 }
 ```
 
-**Wpisanie zmyślonej linii, żeby „mieć adres", łamie zasadę 1.** Forma
-mechanizmu istnieje właśnie po to, żeby nie trzeba było tego robić.
+---
+
+## PRZYKŁAD ZŁY — niepewność i linia poza plikiem
+
+<!-- SPRAWDZANY: odrzucony -->
+<!-- ODRZUCA: zwrot niepewności -->
+<!-- ODRZUCA: wskazano -->
+```json
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "<KOD>",
+  "pozycja": "<KOD>-01",
+  "stwierdzenie": "Wydaje mi się, że tutaj może być problem z walidacją danych wejściowych.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/REGULAMIN.md",
+    "linia": 99999,
+    "tresc": "coś takiego tam było"
+  },
+  "dowod": "widziałem podobny błąd gdzie indziej w tym projekcie, więc pewnie jest i tutaj",
+  "klasyfikacja": "przyklad-dydaktyczny",
+  "wplyw": "nie wiadomo, coś się pewnie zepsuje"
+}
+```
+
+**Dwa powody odrzucenia naraz:** „wydaje mi się" łamie §11, który wymaga
+jednoznaczności; linia 99999 nie istnieje, bo narzędzie sprawdza długość pliku.
+Dowód „podobny błąd gdzie indziej" nie potwierdza niczego **tutaj** — bramka
+tego nie zmierzy, ale krytyk i weryfikator zmierzą.
+
+---
+
+## PRZYKŁAD ZŁY — treść linii nie zgadza się z plikiem
+
+To jest najważniejszy z czterech przypadków, bo wygląda porządnie: numer linii
+istnieje, pola są wypełnione, stwierdzenie jest jednoznaczne. **Nie zgadza się
+treść** — czyli plik nie został otwarty, a adres wzięto z pamięci albo z cudzego
+opisu.
+
+<!-- SPRAWDZANY: odrzucony -->
+<!-- ODRZUCA: NIE ZGADZA -->
+```json
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "<KOD>",
+  "pozycja": "<KOD>-01",
+  "stwierdzenie": "Wskazana linia deklaruje egzekwowanie maszynowe, którego w narzędziu nie ma.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/REGULAMIN.md",
+    "linia": 440,
+    "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń odmawia zapisu wpisu bez dowodu i bez miejsca."
+  },
+  "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",
+  "klasyfikacja": "przyklad-dydaktyczny",
+  "wplyw": "Skutek dla klienta, właściciela albo danych."
+}
+```
 
 ---
 
 ## Sprawdź się
 
-Zanim zaczniesz pracę, przepuść oba przykłady przez bramkę:
+Zanim zaczniesz pracę, przepuść bramkę przez jej własną samokontrolę:
 
 ```
 node audyt/tools/zgloszenie.mjs --test
 ```
 
-Samokontrola przechodzi dziewięć przypadków, w tym wszystkie powyższe.
-Jeśli kiedykolwiek pokaże mniej, bramka wpuszczania znalezisk jest zepsuta —
-i to jest ważniejsze od każdego znaleziska, jakie miałbyś tego dnia zgłosić.
+Samokontrola przechodzi dziewięć przypadków. Jeśli kiedykolwiek pokaże mniej,
+bramka wpuszczania znalezisk jest zepsuta — i to jest ważniejsze od każdego
+znaleziska, jakie miałbyś tego dnia zgłosić.
