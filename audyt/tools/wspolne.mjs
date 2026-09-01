@@ -237,3 +237,38 @@ export function zakresyZRoleMd(sektor = "audyt") {
   }
   return zakresy;
 }
+
+/**
+ * MODEL ROLI WYPROWADZONY Z `ROLE.md` (D8) — nie z listy wpisanej ręcznie.
+ *
+ * Zmierzone przy przygotowaniu próby E7.6: generator trzymał WŁASNY zbiór ról
+ * opusowych (`KIER`, `GOLD`, `KON`, `WER`, `RAP`), wpisany przy E4, i nikt go
+ * nie rozszerzył o czwartą rolę procesową re-audytu. `re-audyt/ROLE.md`
+ * przypisuje `WALID` Opusa DWA RAZY (nagłówek roli i podsumowanie), a generat
+ * `rea-walid` miał `model: sonnet`. Reguła 4 strażnika tego nie widziała —
+ * porównuje sha256 ŹRÓDŁA (`AGENT.md`), a model w źródle nie stoi. Weryfikator
+ * re-audytu pracowałby więc na innym modelu, niż rozstrzygnął właściciel,
+ * bez jednego objawu.
+ *
+ * Źródłem jest nagłówek sekcji roli: `## KOD — nazwa  · **Opus**`. Dział bez
+ * znacznika = Sonnet (D8: „wszystkie działy — Sonnet"). Krytycy — zawsze Opus
+ * (D3), niezależnie od roli, którą oceniają.
+ */
+export function modeleZRoleMd(sektor) {
+  const plik = roleMdSektora(sektor);
+  const mapa = new Map();
+  if (!existsSync(plik)) return mapa;
+  for (const sekcja of readFileSync(plik, "utf8").split("\n## ")) {
+    const naglowek = sekcja.split("\n")[0];
+    const kod = naglowek.match(/^([A-Z]+) —/)?.[1];
+    if (!kod) continue;
+    const model = naglowek.match(/\*\*(Opus|Sonnet)\*\*/)?.[1] ?? "Sonnet";
+    mapa.set(kod, model.toLowerCase());
+  }
+  return mapa;
+}
+
+export function modelRoli(sektor, kod, rodzaj) {
+  if (rodzaj === "krytyk") return "opus";
+  return modeleZRoleMd(sektor).get(kod) ?? "sonnet";
+}

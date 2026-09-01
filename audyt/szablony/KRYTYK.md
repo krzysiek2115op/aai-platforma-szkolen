@@ -75,7 +75,7 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `<KOD>`: jej zgłoszenia (`audyt/zgloszenia/AUD-<KOD>-*.json`),
+Wyjście roli `<KOD>`: jej zgłoszenia (`audyt/zgloszenia/<PREFIKS>-<KOD>-*.json`),
 stan (`audyt/stan/`) i raport działu.
 
 ## Prompt

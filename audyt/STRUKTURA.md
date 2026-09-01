@@ -32,7 +32,7 @@ audyt/
     porownaj-cykle.mjs           test powtarzalności (K4')
     polacz-sektory.mjs           audyt + re-audyt (W4)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  dwadzieścia kontroli, OBA sektory
+    straznik-sektora-audytu.mjs  dwadzieścia dwie kontrole, OBA sektory
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
@@ -161,7 +161,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 
 ---
 
-## Co pilnuje strażnik sektorów — dwadzieścia kontroli
+## Co pilnuje strażnik sektorów — dwadzieścia dwie kontrole
 
 | # | Kontrola | Co się psuje bez niej |
 |---|---|---|
@@ -185,6 +185,8 @@ mutacje**, uruchamiane na gałęzi sektora.
 | 18 | krytyk, który MA zgłaszać, wie CZYM | znalezisko krytyka opisane prozą znika razem z sesją |
 | 19 | identyfikator zgłoszenia zgodny ze swoim SEKTOREM | wpis re-audytu nadpisuje wpis audytu — oba dzielą katalog i kody działów |
 | 20 | zakres Pogłębiacza identyczny z zakresem jego działu w audycie | re-audyt mierzy inny obszar, niż audyt zbadał — łączenie po haszu przestaje znaczyć |
+| 21 | model generatu zgodny z `ROLE.md` (D8) | rola pracuje na innym modelu, niż rozstrzygnął właściciel — sha256 źródła tego nie widzi |
+| 22 | moduł krytyka wskazuje zgłoszenia SWOJEGO sektora | krytyk re-audytu ocenia wpisy audytu, a wpisy `REA-*` nie mają krytyka |
 
 Reguły 2, 3, 4, 6, 10, 11 i 12 są **warunkowe**: dopóki `audyt/role/` jest pusty,
 mówią wprost „pominięte". Cisza byłaby nie do odróżnienia od zaliczenia — a katalog
@@ -216,7 +218,18 @@ różnych obszarów. Kopia jest w dokumencie WPISANA, bo `ROLE.md` czyta człowi
 i agent, a nie tylko parser; kopia w tym repozytorium rozjeżdża się po cichu
 zawsze, więc musi mieć bramkę.
 
-Audyt mutacyjny: **55 mutacji**, 0 przeoczonych, 0 martwych
+**Reguły 21 i 22 dołożyło przygotowanie próby na sucho E7.6** — obie usterki
+wyglądały na pracę wykonaną i żadna z 55 mutacji ich nie widziała. Generator
+trzymał WŁASNĄ listę ról opusowych wpisaną przy E4 i `rea-walid` (weryfikator
+re-audytu, w `ROLE.md` **Opus**) szedł na Sonneta przez cały E7.5; reguła 4
+tego nie widziała, bo porównuje sha256 źródła, a model w źródle nie stoi. Model
+czyta się odtąd z nagłówka roli w `ROLE.md`. Druga: 21 z 21 `KRYTYK.md`
+re-audytu wskazywało w module wpisy `AUD-<KOD>-*` — krytyk Pogłębiacza SEC
+oceniałby pracę działu SEC AUDYTU, a wpisy `REA-SEC-*` nie miałyby krytyka.
+Usterka przyszła z szablonu, w którym prefiks stał na sztywno; szablon ma
+odtąd `<PREFIKS>`.
+
+Audyt mutacyjny: **60 mutacji**, 0 przeoczonych, 0 martwych
 (`audyt/tools/audyt-straznika-sektora.mjs`). Cztery z nich mają pole **`wymaga`**:
 gdy na danej gałęzi nie ma materiału (`re-audyt/ROLE.md` na gałęzi audytu), są
 **pomijane i policzone**, nigdy cicho zielone.

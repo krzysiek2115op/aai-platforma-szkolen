@@ -23,7 +23,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { KORZEN, PREFIKS_AGENTA, SEKTORY, katalogSektora } from "./wspolne.mjs";
+import { KORZEN, PREFIKS_AGENTA, SEKTORY, katalogSektora, modelRoli } from "./wspolne.mjs";
 
 const CEL = join(KORZEN, ".claude", "agents");
 
@@ -40,8 +40,12 @@ const katalogiRol = SEKTORY
   .map((sektor) => ({ sektor, katalog: join(katalogSektora(sektor), "role") }))
   .filter(({ katalog }) => existsSync(katalog));
 
-/** Model wg D8: kierownicy i krytycy — Opus, reszta — Sonnet. */
-const OPUS = new Set(["KIER", "GOLD", "KON", "WER", "RAP"]);
+/**
+ * MODEL WG D8 CZYTAMY Z `ROLE.md`, nie z listy w tym pliku. Lista wpisana
+ * ręcznie przy E4 (`KIER`, `GOLD`, `KON`, `WER`, `RAP`) nie znała `WALID`
+ * i przez cały E7.5 generat `rea-walid` szedł na Sonneta wbrew dokumentowi,
+ * który właściciel zaakceptował. Pilnuje reguła 21 strażnika.
+ */
 
 const skrot = (s) => createHash("sha256").update(s).digest("hex");
 
@@ -62,7 +66,7 @@ function zrodla() {
 
 function zbuduj({ sektor, kod, rodzaj, tresc }) {
   const nazwa = `${PREFIKS_AGENTA[sektor]}${kod.toLowerCase()}${rodzaj === "krytyk" ? "-krytyk" : ""}`;
-  const model = rodzaj === "krytyk" || OPUS.has(kod) ? "opus" : "sonnet";
+  const model = modelRoli(sektor, kod, rodzaj);
   const opis = tresc.match(/^\*\*Rola\.\*\*\s*(.+)$/m)?.[1]
     ?? tresc.split("\n").find((l) => l.trim() && !l.startsWith("#"))
     ?? `Rola ${kod} sektora ${sektor.toUpperCase()}`;
