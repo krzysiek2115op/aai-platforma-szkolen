@@ -449,7 +449,7 @@ nie na liście plików, więc komenda zakresu nie miałaby czego liczyć. Wyjąt
 
 ---
 
-## KIER — Kierownik re-audytu  · **Opus**
+## KIER — Kierownik re-audytu  · **Fable 5.1**
 
 **Po co.** Koordynuje 14 Pogłębiaczy i cztery role własne, zbiera wyniki i **pilnuje
 kolejności §17**: re-audyt wchodzi do działu dopiero po tym, jak audyt z niego wyszedł.
@@ -590,7 +590,7 @@ nazywa, **czego re-audyt nie sprawdził**, i **nie proponuje napraw**.
 
 ---
 
-## KON — Konrad re-audytu  · **Opus**
+## KON — Konrad re-audytu  · **Fable 5.1**
 
 **Po co.** Konrad audytuje **RE-AUDYT, nie projekt** (P1). Produktem są **luki
 w re-audycie**: obszar, do którego nie wchodzi nikt, klasa potwierdzona przez audyt,
@@ -626,5 +626,5 @@ Pogłębiaczach, w ich obszarach. Konrad łamie założenia **re-audytu**.
 | **Razem agentów** (każda rola z krytykiem, WYTYCZNE N1) | **42** |
 | Pozycji checklist | **6 × 14 + 7 + 6 × 5 = 121** |
 
-Modele wg D8: `KIER`, `RAP`, `KON`, `WALID` — **Opus**; pozostałe — **Sonnet**;
-**wszyscy krytycy — Opus**.
+Modele wg D8 (zmiana właściciela 2026-09-02): `KIER`, `KON` — **Fable 5.1**; `RAP`, `WALID` — **Opus**;
+pozostałe — **Sonnet**; **wszyscy krytycy — Opus**.
