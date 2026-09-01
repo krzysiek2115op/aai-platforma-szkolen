@@ -216,10 +216,20 @@ różnych obszarów. Kopia jest w dokumencie WPISANA, bo `ROLE.md` czyta człowi
 i agent, a nie tylko parser; kopia w tym repozytorium rozjeżdża się po cichu
 zawsze, więc musi mieć bramkę.
 
-Audyt mutacyjny: **53 mutacje**, 0 przeoczonych, 0 martwych
-(`audyt/tools/audyt-straznika-sektora.mjs`). Trzy z nich mają pole **`wymaga`**:
+Audyt mutacyjny: **55 mutacji**, 0 przeoczonych, 0 martwych
+(`audyt/tools/audyt-straznika-sektora.mjs`). Cztery z nich mają pole **`wymaga`**:
 gdy na danej gałęzi nie ma materiału (`re-audyt/ROLE.md` na gałęzi audytu), są
 **pomijane i policzone**, nigdy cicho zielone.
+
+**Mapa pokrycia czyta zakresy OBU sektorów** (od E7.4). Dokumenty sektora
+RE-AUDYT bierze wyłącznie Konrad re-audytu — żaden zakres audytu ich nie
+obejmuje, więc bez unii byłyby sierotami. Zmierzone: mapa zgłosiła dokładnie
+dwa takie pliki, zanim unia weszła.
+
+**Generator USUWA generaty bez źródła** (od E7.4), a `--sprawdz` je zgłasza.
+Powód jest eksploatacyjny: przełączenie gałęzi sektora zostawia na dysku
+42 definicje re-audytu bez źródła — żywych agentów bez zakresu. Generat jest
+wyprowadzony ze źródła, nigdy odwrotnie, więc kasowanie niczego nie traci.
 
 ---
 

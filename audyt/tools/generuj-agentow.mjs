@@ -21,7 +21,7 @@
  *   node audyt/tools/generuj-agentow.mjs --sprawdz  # kod 1, gdy generat nieaktualny
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { KORZEN, PREFIKS_AGENTA, SEKTORY, katalogSektora } from "./wspolne.mjs";
 
@@ -115,14 +115,32 @@ for (const z of lista) {
   }
 }
 
-/* Generat-SIEROTA: plik `aud-*.md` bez źródła w `audyt/role/`. Powstaje po
-   skasowaniu albo przemianowaniu roli i jest groźny, bo harness dalej go widzi
-   — agent istnieje, choć nikt go już nie definiuje. */
-if (sprawdz && existsSync(CEL)) {
+/* Generat-SIEROTA: plik `aud-*.md` albo `rea-*.md` bez źródła. Powstaje po
+   skasowaniu roli, po przemianowaniu — i, co zdarza się najczęściej, PO
+   PRZEŁĄCZENIU GAŁĘZI: gałąź audytu nie ma katalogu `re-audyt/role/`, więc
+   42 definicje re-audytu zostają na dysku bez źródła. Jest to groźne, bo
+   harness dalej je widzi: agent istnieje, choć nikt go już nie definiuje.
+
+   `--sprawdz` je ZGŁASZA (to jest bramka), a zwykły przebieg USUWA — generat
+   jest wyprowadzony ze źródła, nigdy odwrotnie, więc kasowanie go niczego nie
+   traci. Bez tego każde przejście między gałęziami sektorów wymagałoby
+   ręcznego sprzątania, a zapomniane sprzątanie zostawia żywego agenta bez
+   definicji zakresu. */
+if (existsSync(CEL)) {
   const nasze = new Set(lista.map((z) => zbuduj(z).nazwa + ".md"));
   const przedrostki = Object.values(PREFIKS_AGENTA);
-  for (const f of readdirSync(CEL).filter((f) => f.endsWith(".md") && przedrostki.some((p) => f.startsWith(p)))) {
-    if (!nasze.has(f)) bledy.push(`${f}: generat bez źródła w <sektor>/role/ — rola została skasowana albo przemianowana`);
+  const sieroty = readdirSync(CEL)
+    .filter((f) => f.endsWith(".md") && przedrostki.some((p) => f.startsWith(p)))
+    .filter((f) => !nasze.has(f));
+  for (const f of sieroty) {
+    if (sprawdz) {
+      bledy.push(`${f}: generat bez źródła w <sektor>/role/ — rola została skasowana albo przemianowana`);
+    } else {
+      rmSync(join(CEL, f), { force: true });
+    }
+  }
+  if (!sprawdz && sieroty.length) {
+    process.stdout.write(`Usunięto ${sieroty.length} generatów bez źródła: ${sieroty.slice(0, 3).join(", ")}${sieroty.length > 3 ? ", …" : ""}\n`);
   }
 }
 

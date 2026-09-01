@@ -505,14 +505,19 @@ const MUTACJE_ROLI = [
   {
     /* KONTRPRZYKŁAD do reguły 20: porównanie ma pytać o KOMENDĘ, nie o jej
        łamanie w Markdownie. Bez tego reguła zapalałaby się na przeformatowaniu
-       dokumentu — czyli byłaby nadwrażliwa i nikt by tego nie zauważył. */
+       dokumentu — czyli byłaby nadwrażliwa i nikt by tego nie zauważył.
+
+       ŁAMIEMY KONTYNUACJĄ POWŁOKI (`\` + nowa linia), nie surowym przełamem.
+       Pierwsza wersja wstawiała gołą nową linię i rozbijała KOMENDĘ — zapalała
+       więc mapę pokrycia, a nie regułę 20. Kontrprzykład, który psuje co
+       innego, niż deklaruje, mierzy nie to co trzeba. */
     opis: "KONTRPRZYKŁAD: inne łamanie linii w zakresie Pogłębiacza NIE może zapalać reguły 20",
     wymaga: "re-audyt/ROLE.md",
     oczekujCzerwonego: false,
     wykonaj: () => zPodmienionymi({
       "re-audyt/ROLE.md": (s) => s.replace(
         "git ls-files -- 'docs/PLAN.md' 'docs/WYTYCZNE.md' 'CLAUDE.md' 'CHANGELOG.md'",
-        "git ls-files -- 'docs/PLAN.md' 'docs/WYTYCZNE.md'\n  'CLAUDE.md' 'CHANGELOG.md'"
+        "git ls-files -- 'docs/PLAN.md' 'docs/WYTYCZNE.md' \\\n  'CLAUDE.md' 'CHANGELOG.md'"
       ),
     }),
   },
@@ -528,6 +533,38 @@ const MUTACJE_ROLI = [
     }),
   },
 
+  {
+    /* MAPA POKRYCIA MUSI WIDZIEĆ OBA SEKTORY. Dokumenty sektora RE-AUDYT bierze
+       wyłącznie Konrad re-audytu — żaden zakres audytu ich nie obejmuje. Bez
+       unii zakresów są SIEROTAMI: plikami, których nie czyta nikt. Zmierzone
+       przy E7.4: mapa zgłosiła dokładnie dwa takie pliki. */
+    opis: "mapa pokrycia przestaje czytać zakresy re-audytu — dokumenty sektora zostają sierotami",
+    wymaga: "re-audyt/ROLE.md",
+    slad: /mapa pokrycia zg[łl]asza sieroty/,
+    wykonaj: () => zPodmienionymi({
+      "audyt/tools/mapa.mjs": (s) => s.replace(
+        "  for (const sektor of SEKTORY) {",
+        '  for (const sektor of ["audyt"]) {'
+      ),
+    }),
+  },
+  {
+    /* GENERAT-SIEROTA PO PRZEŁĄCZENIU GAŁĘZI. Zwykły przebieg generatora ma je
+       USUWAĆ; gdyby przestał, na dysku zostawałby żywy agent bez definicji
+       zakresu, a `--sprawdz` świeciłby na czerwono do ręcznego sprzątania. */
+    opis: "generator przestaje usuwać generaty bez źródła (agent bez definicji zostaje w harnessie)",
+    slad: /generat bez źródła/,
+    wykonaj: () => {
+      const sierota = join(KORZEN, ".claude", "agents", "rea-nieistniejaca.md");
+      writeFileSync(sierota, "---\nname: rea-nieistniejaca\n---\n", "utf8");
+      try {
+        return straznikCzerwony();
+      } finally {
+        rmSync(sierota, { force: true });
+        spawnSync("node", ["audyt/tools/generuj-agentow.mjs"], { cwd: KORZEN, stdio: "pipe" });
+      }
+    },
+  },
   {
     /* Sam katalog `re-audyt/` z plikiem NIE jest naruszeniem niezmiennika —
        to jest praca sektora re-audytu. Bez tego kontrprzykładu reguła 1
