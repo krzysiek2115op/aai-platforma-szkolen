@@ -94,7 +94,7 @@ mierzył nie to, co trzeba.
 | D5 | Błędy prototypu **zapisujemy i przekazujemy osobie sprawdzającej projekt** |
 | D6 | Działy: **7 ze schematu + 7 naszych** |
 | D7 | Sektory **żyją tylko na branchach**, nigdy na `main`, zostają na zawsze |
-| D8 | Model: **kierownicy i krytycy — Opus; reszta — Sonnet** |
+| D8 | Model: **kierownicy i krytycy — Opus; reszta — Sonnet**. **Zmiana właściciela 2026-09-02:** kierownicy (`KIER`) i Konradowie (`KON`) obu sektorów — **Fable 5.1** (`claude-fable-5-1`); pozostałe role procesowe i **wszyscy krytycy zostają na Opusie**, działy na Sonnecie |
 | D9 | **Komplet AUDYTU, potem komplet RE-AUDYTU** — nie częściami |
 | D10 | Uruchomienie na **zielone światło właściciela** |
 | P1 | **Konrad łamie założenia W AUDYCIE**, nie w projekcie |
@@ -123,7 +123,7 @@ mierzył nie to, co trzeba.
 
 ```
                         ┌──────────────────────────────┐
-                        │      AUDYTOR KIEROWNIK       │   Opus + krytyk
+                        │      AUDYTOR KIEROWNIK       │   Fable 5.1 (od 2026-09-02) + krytyk na Opusie
                         │  koordynuje, zbiera wyniki   │
                         └───────────────┬──────────────┘
      ┌────────────────┬─────────────────┼─────────────────┬────────────────┐
@@ -926,7 +926,7 @@ potem rozmowa o E8. **E7 nie został przy tym zaakceptowany wprost** —
 właściciel przeszedł do przygotowań przed uruchomieniem; akceptację E7
 potwierdzić przy okazji, nie zakładać.
 
-1. **Zmiana modeli na czterech agentach, „przed puszczeniem obu sektorów":**
+1. ✅ **WYKONANE** (patrz „Polecenie 1 — wykonane" niżej). **Zmiana modeli na czterech agentach, „przed puszczeniem obu sektorów":**
    kierownik audytu (`aud-kier`), kierownik re-audytu (`rea-kier`) oraz
    **Konrad w obu sektorach** (`aud-kon`, `rea-kon`) — na **Fable 5.1**
    (`claude-fable-5-1`). Właściciel doprecyzował, że **Konradów ma być
@@ -965,6 +965,39 @@ potwierdzić przy okazji, nie zakładać.
    prototyp `:3001` nie stoi w czasie re-audytu; `polacz-sektory.mjs` łączy
    wyłącznie po haszu miejsca (to samo miejsce opisane inną linią się nie
    połączy); dwie próby dały dwa znaleziska o SEKTORZE na jedno o produkcie.
+
+#### POLECENIE 1 — WYKONANE 2026-09-02
+
+Cztery generaty mają `model: fable` (`aud-kier`, `rea-kier`, `aud-kon`, `rea-kon`);
+**45** na Opusie (40 krytyków + GOLD, WER, RAP, RAP re-audytu, WALID), **31** na
+Sonnecie — razem 80, policzone `grep -l "^model:" .claude/agents/*.md`. Zmieniło się
+więcej niż nagłówki, bo wykonanie odsłoniło ślepotę bramki:
+
+- `wspolne.mjs`: tabela `MODELE_ROL` (Opus / Sonnet / Fable 5.1 → alias harnessu);
+  nagłówek z NIEZNANYM modelem **rzuca błąd** zamiast spadać po cichu na Sonneta;
+- **reguła 21 czyta nagłówki `ROLE.md` WŁASNYM odczytem, nie `modelRoli()`** —
+  zmierzone przy wykonaniu: regresja tabeli w `wspolne.mjs` (Fable → sonnet) po
+  regeneracji dawała generat ZGODNY z pomiarem i zieloną bramkę, bo pomiar pytał
+  tę samą funkcję, która produkuje generat. Reguła odrzuca też alias nieznany
+  harnessowi (`opus`/`sonnet`/`haiku`/`fable`);
+- audyt mutacyjny **60 → 66** (0 przeoczonych, 0 martwych): regresja tabeli
+  z regeneracją, `ROLE.md` cofa KIER na Opusa bez regeneracji, nieznany model
+  „Fable 5.2", alias-literówka `fable-5.1` w generatorze, to samo dla `rea-kon`
+  (`wymaga`), kontrprzykład „zmiana nazwy roli nie zapala reguły";
+- `ROLE.md` obu sektorów (nagłówki + podsumowania), `REGULAMIN.md` D8, diagram
+  w tym pliku, `AGENT.md` KIER i KON audytu („Pracujesz na Fable 5.1").
+
+**Alias `fable` we frontmatterze:** binarka harnessu 2.1.257 zna go
+(`e==="fable"||e==="fable[1m]"`, grep po pliku wykonywalnym), to samo, co lista
+modeli narzędzia `Agent`; dokumentacja harnessu (code.claude.com/docs/en/sub-agents
+i model-config) wymienia `fable` jako alias pola `model:` subagenta (sprawdzone
+agentem `claude-code-guide`). Czego dokumentacja NIE mówi: co harness robi
+z wartością nieznaną — dlatego reguła 21 odrzuca alias spoza listy.
+**Potwierdzenie uruchomieniowe wymaga RESTARTU SESJI** (rejestr agentów czytany
+przy starcie procesu — lekcja E6/E7.5): po restarcie wywołać `aud-kier` z prompem
+„podaj nazwę modelu z własnego promptu systemowego, nic więcej" — oczekiwane
+„Fable 5.1". **Do tego czasu czterech agentów NIE wywoływać.** Krytycy tych ról
+zostają na Opusie (D3 bez zmian).
 
 ---
 

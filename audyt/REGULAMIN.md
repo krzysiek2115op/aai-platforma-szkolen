@@ -460,7 +460,7 @@ nie przekazuje go innemu działowi i **nie naprawia**.
 | D5 | Błędy prototypu **zapisujemy i przekazujemy osobie sprawdzającej projekt** |
 | D6 | Działy: **7 ze schematu + 7 naszych** |
 | D7 | Sektory **żyją tylko na swoich branchach**, nigdy na `main`, zostają na zawsze |
-| D8 | Model: **kierownicy i krytycy — Opus; reszta — Sonnet** |
+| D8 | Model: **kierownicy i krytycy — Opus; reszta — Sonnet**. **Zmiana właściciela 2026-09-02:** kierownicy (`KIER`) i Konradowie (`KON`) obu sektorów — **Fable 5.1** (`claude-fable-5-1`); pozostałe role procesowe i **wszyscy krytycy zostają na Opusie**, działy na Sonnecie |
 | D9 | **Komplet AUDYTU, potem komplet RE-AUDYTU** — nie częściami |
 | D10 | Uruchomienie dopiero na **zielone światło właściciela** |
 | P1 | **Konrad łamie założenia W AUDYCIE**, nie w projekcie |

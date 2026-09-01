@@ -524,7 +524,7 @@ git ls-files -- ':(glob)tools/*.mjs' ':(glob)tools/*.sh' ':(glob)tools/*.ts' \
 
 ---
 
-## KIER — Audytor kierownik  · **Opus**
+## KIER — Audytor kierownik  · **Fable 5.1**
 
 **Po co.** Najważniejsza rola audytu (§3 regulaminu). Koordynuje 14 działów, zbiera
 wyniki, pilnuje kolejności wejścia audytu i re-audytu do działów (W5, K9′).
@@ -576,7 +576,7 @@ pracy bez podstawy**. Blokada bez wskazania złamanej zasady jest jego znalezisk
 
 ---
 
-## KON — Agent Konrad  · **Opus**
+## KON — Agent Konrad  · **Fable 5.1**
 
 **Po co.** **Konrad audytuje AUDYT, nie projekt (P1).** Produktem są **luki w audycie**.
 
@@ -698,7 +698,8 @@ na zakresach, zanim powstał choćby jeden agent.
 | Agentów (rola + krytyk, D3) | **38** |
 | Pozycji checklist w działach | **151** |
 | Pozycji checklist w rolach procesowych | **32** |
-| Model Opus | 5 ról procesowych + **19 krytyków** |
+| Model Fable 5.1 | **2 role**: `KIER`, `KON` (polecenie właściciela 2026-09-02) |
+| Model Opus | 3 role procesowe (`GOLD`, `WER`, `RAP`) + **19 krytyków** |
 | Model Sonnet | 14 działów |
 
 **Rozwinięte w E5 (zapis historyczny — było „do rozwinięcia"):** każda z 19 ról ma

@@ -254,6 +254,22 @@ export function zakresyZRoleMd(sektor = "audyt") {
  * znacznika = Sonnet (D8: „wszystkie działy — Sonnet"). Krytycy — zawsze Opus
  * (D3), niezależnie od roli, którą oceniają.
  */
+/**
+ * MODELE ZNANE SEKTOROM: nazwa w nagłówku roli w `ROLE.md` → wartość frontmatteru
+ * `model:`, którą czyta harness. `Fable 5.1` doszło 2026-09-02 (polecenie
+ * właściciela: kierownicy i Konradowie obu sektorów). Nagłówek z NIEZNANYM
+ * modelem RZUCA BŁĄD, a nie spada po cichu na Sonneta — cichy fallback to
+ * dokładnie ta droga, którą WALID jechał na Sonnecie przez cały E7.5.
+ * Strażnik sektora trzyma WŁASNĄ kopię tej tabeli (reguła 21) — celowo, bo
+ * pomiar wykonany tą samą funkcją, która produkuje generat, nie mierzy niczego.
+ */
+export const MODELE_ROL = { Opus: "opus", Sonnet: "sonnet", "Fable 5.1": "fable" };
+
+/** Znacznik modelu z nagłówka roli (`## KOD — nazwa  · **Model**`) albo null. */
+export function znacznikModelu(naglowek) {
+  return naglowek.match(/·\s*\*\*([^*]+)\*\*/)?.[1]?.trim() ?? null;
+}
+
 export function modeleZRoleMd(sektor) {
   const plik = roleMdSektora(sektor);
   const mapa = new Map();
@@ -262,8 +278,14 @@ export function modeleZRoleMd(sektor) {
     const naglowek = sekcja.split("\n")[0];
     const kod = naglowek.match(/^([A-Z]+) —/)?.[1];
     if (!kod) continue;
-    const model = naglowek.match(/\*\*(Opus|Sonnet)\*\*/)?.[1] ?? "Sonnet";
-    mapa.set(kod, model.toLowerCase());
+    const znacznik = znacznikModelu(naglowek);
+    if (znacznik && !(znacznik in MODELE_ROL)) {
+      throw new Error(
+        `${sektor}/ROLE.md: nieznany model "${znacznik}" w nagłówku roli ${kod} ` +
+        `— znane: ${Object.keys(MODELE_ROL).join(", ")}; cichy fallback na Sonneta jest zabroniony`
+      );
+    }
+    mapa.set(kod, znacznik ? MODELE_ROL[znacznik] : "sonnet");
   }
   return mapa;
 }

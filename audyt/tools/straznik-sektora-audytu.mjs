@@ -27,7 +27,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   DZIALY, KOD_POZYCJI, KOD_PROBNY, KORZEN, PREFIKS_AGENTA, PREFIKS_ID, SEKTOR, SEKTORY,
-  katalogSektora, modelRoli, roleMdSektora, roleSektora, wszystkieZgloszenia,
+  katalogSektora, roleMdSektora, roleSektora, wszystkieZgloszenia, znacznikModelu,
 } from "./wspolne.mjs";
 import { powodyOdmowy } from "./zgloszenie.mjs";
 import { zakresyZRoleMd } from "./wspolne.mjs";
@@ -743,9 +743,36 @@ try {
 
    Reguła pyta o SKUTEK — wiersz `model:` w pliku, który czyta harness —
    wobec dokumentu zaakceptowanego przez właściciela, nie o to, czy generator
-   ma właściwą listę. */
+   ma właściwą listę.
+
+   ODCZYT JEST WŁASNY, NIE PRZEZ `modelRoli()` (2026-09-02, trzeci model).
+   Do tej pory reguła pytała tę samą funkcję, która produkuje generat — więc
+   regresja tabeli modeli w `wspolne.mjs` (np. Fable odwzorowane na Sonneta)
+   po regeneracji dawała generat ZGODNY z pomiarem i zieloną bramkę, choć
+   kierownik pracowałby na innym modelu, niż rozstrzygnął właściciel. Kopia
+   tabeli poniżej jest celowa: rozjazd między nią a `MODELE_ROL` zapala
+   regułę, zamiast go ukrywać. Wartość frontmatteru musi być aliasem, który
+   harness zna — literówka w aliasie oznaczałaby agenta, którego harness
+   odrzuci albo podstawi mu model domyślny. */
 {
   const CEL = join(KORZEN, ".claude", "agents");
+  /** Nagłówek roli → alias harnessu. Kopia CELOWO niezależna od wspolne.mjs. */
+  const MODELE_WG_WLASCICIELA = { Opus: "opus", Sonnet: "sonnet", "Fable 5.1": "fable" };
+  /** Aliasy, które harness przyjmuje we frontmatterze `model:` (2.1.257). */
+  const ALIASY_HARNESSU = new Set(["opus", "sonnet", "haiku", "fable"]);
+  const modelZDokumentu = (sektor, kod, rodzaj) => {
+    if (rodzaj === "krytyk") return "opus"; // D3 — krytycy zawsze Opus, niezależnie od roli
+    const plik = roleMdSektora(sektor);
+    if (!existsSync(plik)) return null;
+    const sekcja = readFileSync(plik, "utf8").split("\n## ").find((s) => s.startsWith(`${kod} —`));
+    if (!sekcja) return null;
+    const znacznik = znacznikModelu(sekcja.split("\n")[0]);
+    if (!znacznik) return "sonnet"; // dział bez znacznika — D8
+    if (!(znacznik in MODELE_WG_WLASCICIELA)) {
+      throw new Error(`${sektor}/ROLE.md: nieznany model "${znacznik}" w nagłówku roli ${kod} — dotąd spadłby po cichu na Sonneta`);
+    }
+    return MODELE_WG_WLASCICIELA[znacznik];
+  };
   let sprawdzone = 0;
   for (const { sektor, kod } of ROLE_WSZYSTKIE) {
     if (!roleSektora(sektor).includes(kod)) continue; // rola próbna — ROLE.md jej nie zna z definicji
@@ -754,8 +781,14 @@ try {
       const plik = join(CEL, nazwa);
       if (!existsSync(plik)) continue; // brak generatu łapie reguła 4
       const wGeneracie = readFileSync(plik, "utf8").match(/^model:\s*(\S+)/m)?.[1];
-      const wRoleMd = modelRoli(sektor, kod, rodzaj);
+      let wRoleMd;
+      try { wRoleMd = modelZDokumentu(sektor, kod, rodzaj); }
+      catch (e) { bledy.push(`21. ${e.message}`); continue; }
+      if (wRoleMd === null) continue; // brak ROLE.md albo sekcji łapią reguły 2 i 7
       sprawdzone++;
+      if (!ALIASY_HARNESSU.has(wGeneracie)) {
+        bledy.push(`generat ${nazwa}: wartość "model: ${wGeneracie}" jest nieznana harnessowi (znane: ${[...ALIASY_HARNESSU].join(", ")})`);
+      }
       if (wGeneracie !== wRoleMd) {
         bledy.push(
           `generat ${nazwa}: model "${wGeneracie}", a ${sektor}/ROLE.md przypisuje roli ${kod} model "${wRoleMd}" (D8) ` +
