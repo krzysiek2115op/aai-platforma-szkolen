@@ -5,6 +5,60 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [Nieopublikowane]
+
+### CI wróciło do życia — i od razu pokazało dwie rzeczy ukryte od 17 sierpnia
+
+1 września odnowiły się minuty Actions (organizacja zużyła w sierpniu 2121
+przy limicie 2000, więc od 18 sierpnia każde zadanie padało w 2 sekundy
+z zerem kroków). Pierwszy prawdziwy przebieg pokazał dwa padnięcia —
+**oba niezależne od dependabota**: `main` padał identycznie (przebieg
+33423474121), więc nie były to regresje z PR #106.
+
+### Naprawione
+
+- **Skan sekretów przestaje potykać się o listę angielskich fraz.**
+  Gitleaks 8.30.1 raportował `leaks found: 1` na 469 commitach. Znaleziskiem
+  była tablica `FRAZY` w `tools/smoke/smoke-wp-jezyk.mjs` — lista
+  **angielskich** napisów WooCommerce, których bramka szuka na żywej stronie,
+  żeby udowodnić, że klient widzi polszczyznę (BLAD-024). Reguła
+  `generic-api-key` dopasowała sąsiadujące `"Password change"`
+  i `"Country/Region"`. Sekretu tam nie ma i nie było. Wyciszone przez
+  [`.gitleaksignore`](.gitleaksignore) z fingerprintem wskazującym
+  commit+plik+regułę+linię, więc **nowy sekret w tym samym pliku nadal zapala
+  skan** — sprawdzone testem negatywnym: po podłożeniu klucza skan znalazł
+  2 znaleziska zamiast 1, a plik wrócił z kopii sprzed mutacji co do bajtu.
+- **Bramka CSP w CI dostaje kursy, których podgląd statyczny wymaga.**
+  Job „Baza" padał na `Page "/szkolenia/[slug]/opengraph-image" returned an
+  empty array from "generateStaticParams()"`. Przyczyna zmierzona: baza główna
+  dostaje w tym jobie **tylko migracje**, a smoke'i serwerowe sprzątają po
+  sobie własne kursy — więc w chwili budowania podglądu jest **pusta**, a przy
+  `output: export` Next wymaga co najmniej jednej trasy. Kodu produktu nie
+  tknięto: `generateStaticParams` ma rację, wywracając build na pustej liście.
+  Doszedł krok `npm run db1:seed` przed bramką CSP.
+
+### Zapamiętane
+
+- **Bramka, której nie widać, jest nie do odróżnienia od bramki, której nie
+  ma.** `smoke-csp` z buildem podglądu wszedł do CI commitem `345e7ca`
+  (0.26.0), a ostatni w pełni zielony przebieg CI był **2026-08-17** — dzień
+  przed wyczerpaniem minut. Ta bramka **nigdy nie przeszła przez CI**; była
+  weryfikowana wyłącznie lokalnie, gdzie baza ma kursy. Piętnaście dni
+  i dwadzieścia wersji później okazało się, że w CI nie działa.
+- **Trafna diagnoza to jeszcze nie pełna recepta.** Pierwsze podejście do
+  naprawy padło na `brak-dostepu`: seed pisze przez dyspozytora, a ten od
+  0.37.0 stoi za bramą kreatora (token krótszy niż 24 znaki albo przykładowy
+  nie wpuszcza nikogo). Zmierzyłem, że baza jest pusta, ale nie sprawdziłem,
+  czy narzędzie, którym chcę ją wypełnić, ma w CI prawo pisać.
+- **Pułapka pomiaru w gitleaksie:** fingerprinty różnią się między trybami.
+  `.gitleaksignore` działa dla `gitleaks git` (tego używa CI); lokalny
+  `gitleaks dir` liczy fingerprint bez commita i mimo wpisu nadal zgłosi
+  znalezisko — to nie regresja, tylko inny tryb.
+
+**Stan po naprawie:** CI **zielone w całości** po raz pierwszy od 2026-08-17
+— pięć jobów, w tym trzy kroki jobu „Baza" (CSP, podgląd statyczny, SEO),
+które wcześniej były pomijane, bo job padał przed nimi.
+
 ## [0.64.0] — 2026-08-31
 
 ### Dokumentacja wizualna wszystkich trzech wtyczek — siedem schematów draw.io
