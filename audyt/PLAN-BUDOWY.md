@@ -445,8 +445,8 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 |---|---|---|
 | **E0** — zaległość CI | ✅ **ZROBIONE 2026-09-01** | CI zielone w całości pierwszy raz od 17 sierpnia; gitleaks potwierdzony; PR #117 (naprawa) i #118 (dependabot) zmergowane. Szczegóły: CHANGELOG, sekcja „Nieopublikowane" |
 | **E1** — utrwalenie | ✅ **ZROBIONE, zaakceptowane przez właściciela** | gałąź `audyt/sektor-audytu`, [`audyt/REGULAMIN.md`](REGULAMIN.md) (520 linii), wpis w pamięci projektu, ten plik |
-| **E2** — szkic ról i tabela granic | ⬜ **NASTĘPNY KROK** | 19 ról audytu: kto istnieje, po co, jaki ma **mechaniczny zakres** (lista ścieżek) i gdzie biegną granice między 14 działami |
-| **E3** — dokumentacja (7 rodzajów) + Chrome | ⬜ | skrypt pobierający z manifestem, `ZRODLA.md`, **BRIEF-PROJEKTU.md** |
+| **E2** — szkic ról i tabela granic | ✅ **ZROBIONE — czeka na akceptację** | [`ROLE.md`](ROLE.md) (707 linii): 19 ról, **522 pliki przypisane**, 183 pozycje checklist, odwzorowanie 30 klas `BLAD-*`; [`GRANICE.md`](GRANICE.md) (117 linii): 24 pary o przecięciu ≥5 plików |
+| **E3** — dokumentacja (7 rodzajów) + Chrome | ⬜ **NASTĘPNY** (po akceptacji E2) | skrypt pobierający z manifestem, `ZRODLA.md`, **BRIEF-PROJEKTU.md** |
 | **E4** — szkielet | ⬜ | `STRUKTURA.md`, `DOKUMENTACJA.md`, szablony, `tools/audyt/*`, strażnik + mutacje |
 | **E5** — 19 ról × 4 pliki | ⬜ | ~76 plików źródłowych, każdy z checklistą |
 | **E6** — generat i próba na sucho | ⬜ | `.claude/agents/aud-*.md` |
@@ -454,6 +454,38 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
+
+## Fakty zmierzone przy E2 (nie wyprowadzać od nowa)
+
+- **Model zakresu: „plik × pytanie"** (rozstrzygnięcie właściciela). Listy plików działów
+  nakładają się, wyłączna jest checklista; tabela granic przypisuje **znaleziska**, nie
+  pliki. Uzasadnienie liczbowe w `ROLE.md`.
+- **Golden jest BRAMKĄ WYJŚCIA, nie nadzorcą czasu rzeczywistego** (rozstrzygnięcie
+  właściciela). Harness nie pozwala jednemu agentowi obserwować drugiego w trakcie pracy —
+  13 zasad wchodzi maszynowo do definicji, a Golden czyta **wyjście** działu przed
+  kierownikiem.
+- **Rachunek pokrycia zamyka się co do pliku: 522 przypisane + 399 wykluczone = 921**,
+  zero sierot, zero plików o dwóch stanach. Liczony **z komend zapisanych w `ROLE.md`**,
+  nie z brudnopisu.
+- **Wykluczone (D4) to 399 plików**, nie 373 — poza `tresc-kursow` (331) wypada też
+  pobrana dokumentacja techniczna (68), ale **`ZRODLA.md` zostają** w dziale REPO.
+- **DWIE PUŁAPKI `git ls-files`, obie kosztowały przebieg pomiaru:**
+  (1) **bez `:(glob)` gwiazdka przechodzi przez `/`** — `'wordpress/wtyczki/*/*.php'` daje
+  **107** plików zamiast 9, więc zakres wygląda na precyzyjny i nie ogranicza niczego;
+  (2) **z `:(glob)` pojedyncza gwiazdka zatrzymuje się na `/`** i gubi zagnieżdżone pliki —
+  `'…/szablony/*.php'` widzi **0 z 37** szablonów. Do rekursji: ścieżka katalogu.
+  **Każdy zakres liczymy komendą.**
+- **Przelot Konrada faza A na samych zakresach dał wynik przed powstaniem agentów:**
+  pierwsza wersja zostawiła **45 plików bez właściciela** (w tym oba dokumenty sektora),
+  druga **6 plików jednocześnie przypisanych i wykluczonych**, a odwzorowanie rejestru
+  pokazało **15 klas błędów bez pozycji w żadnej checkliście**. Wszystko domknięte.
+- **Kontrola wpisana do `GRANICE.md` obaliła pierwszą wersję `GRANICE.md`:** plik
+  deklarował pokrycie „każdej pary o nakładających się zakresach", a pomiar pokazał
+  **19 par bez wiersza**, w tym `SEC ∩ PERF` = 94 pliki. Reguła ma dziś **próg ≥5 plików**
+  i jest zgodna z tabelą (24 pary z wierszem, 8 poniżej progu na regule ogólnej).
+- **QA-05 to pozycja z tego tygodnia:** „czy każda bramka z `ci.yml` przeszła kiedykolwiek
+  przez CI na zielono". Regresja jobu „Baza" przeleżała piętnaście dni, bo `smoke-csp`
+  wszedł do CI **po** ostatnim zielonym przebiegu i nigdy przez CI nie przeszedł.
 
 ## Fakty zmierzone przy E1 (nie wyprowadzać od nowa)
 
