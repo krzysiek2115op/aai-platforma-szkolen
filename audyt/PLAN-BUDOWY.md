@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; zrobione 8, 1, 2)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
+| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; zrobione 8, 1, 2, 3)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -1068,7 +1068,7 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 |---|---|---|
 | 1 | hash miejsca bez numeru linii | ✅ **2026-09-02** — reguła 23 (hash zgodny z miejscem), pary kandydatów w `polacz-sektory`, przy okazji **reguła 24** (szablon goldena też jest miarą); mutacje 68 → 73 |
 | 2 | `porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u | ✅ **2026-09-02** — po dyskusji i trzech odpowiedziach właściciela (kod 0 przy SPRZECZNE; NADZBIÓR nazywa falę i liczbę; wpisy `-90` porównywane tak samo); **reguła 25** strażnika (samokontrola narzędzia na atrapach dwóch fal), mutacje 73 → 79; szczegóły w sekcji „POZYCJA 2 — ZROBIONA" niżej |
-| 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza PSIARZ/SKUT/STRAZ/WALID), drzewo wobec `glowa_main`; reguła 17 | 🚧 **projekt spisany 2026-09-02** po sześciu rozstrzygnięciach właściciela (sekcja „POZYCJA 3 — PROJEKT DO AKCEPTACJI"); **czeka na zielone światło na kod** |
+| 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza rolami procesowymi re-audytu), drzewo wobec `glowa_main`; reguła 17 | ✅ **2026-09-02** — po zielonym świetle właściciela („Tak, jedź"): historia przejść w pliku stanu, cztery odmowy z komendą naprawy, `status.mjs --test` (36 przypadków), **reguła 26**, reguła 17 na zawartości; mutacje 79 → **101**; szczegóły w sekcji „POZYCJA 3 — ZROBIONA" niżej |
 | 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | ⬜ |
 | 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ⬜ |
 | 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | ⬜ |
@@ -1079,7 +1079,7 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: pozycja 3 pakietu — projekt SPISANY i przedyskutowany (sześć rozstrzygnięć właściciela 2026-09-02, sekcja „POZYCJA 3 — PROJEKT DO AKCEPTACJI" niżej); kod rusza po zielonym świetle właściciela nad tym tekstem.** Pozycje 8, 1 i 2 zrobione; decyzje o wykonalności na Max ZAPADŁY (sekcja niżej).
+**NASTĘPNY KROK: pozycja 4 pakietu — zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala.** Wg wytycznej właściciela z 2026-09-02 (pozycje dotykające rozstrzygnięć najpierw jako projekt do dyskusji): sprawdzić, czy pozycja 4 wymaga rozstrzygnięć, i jeśli tak — najpierw projekt w tym pliku, kod po akceptacji. Pozycje 8, 1, 2 i 3 zrobione; decyzje o wykonalności na Max ZAPADŁY (sekcja niżej).
 ### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
 
 Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
@@ -1261,7 +1261,7 @@ Dowody pozycji 2: strażnik **25 kontroli**, kod 0; mutacje **79** (0 przeoczony
 0 martwych); `porownaj-cykle.mjs --test` 31/31; niezmiennik 0; generat 80 definicji
 przebudowany.
 
-#### PAKIET E7.7, POZYCJA 3 — PROJEKT DO AKCEPTACJI (2026-09-02), KOD NIE RUSZONY
+#### PAKIET E7.7, POZYCJA 3 — ZROBIONA 2026-09-02 (projekt niżej zaakceptowany: „Tak, jedź"; wynik na końcu sekcji)
 
 Cztery rzeczy zszyte w jedną, bo dotykają tego samego pliku. Każda ma źródło
 w krytyce budowy potwierdzone przez sędziego; stan „dziś" zmierzony lekturą
@@ -1345,6 +1345,73 @@ definicji ról poza KIER-05 i szablonów (to pozycja 6); nie zmienia migawki.
 **Koszt i ryzyko:** `status.mjs` dostaje cztery nowe powody odmowy, więc źle
 zaprojektowana odmowa blokuje rolę i pali tokeny — dlatego każda odmowa drukuje
 komendę naprawy, a samokontrola ma kontrprzykłady na role wolne od blokady.
+
+**WYNIK POZYCJI 3 (2026-09-02) — wykonane co do punktu projektu wyżej:**
+
+- `status.mjs` (155 → 514 linii): czyste `powodyOdmowyStanu()` (fala, kolejność
+  sektorów, cofanie) i `powodyOdmowyDrzewa()` (migawka, przypięty commit, lista
+  plików), `dopiszHistorie()`, `--pokaz --historia`, `--test` = **36 przypadków**
+  (27 na czystych funkcjach + 9 przebiegów CLI na katalogu tymczasowym z migawką
+  przypinającą bieżący `HEAD`). Wejście do działu = status inny niż
+  `NIE ROZPOCZĘTO` **albo** pierwsza runda — `--runda` przed `--status` nie jest
+  furtką obok blokady. Bramka głównego modułu (BLAD-014), pomiar drzewa `git`
+  z listą argumentów, bez powłoki.
+- **reguła 17** na zawartości plików stanu, własnym kodem (jak reguła 21):
+  fala ∈ {1,2}, historia niepusta, czasy ISO niemalejące, ostatni wpis = stan
+  (status, runda, kiedy), a dla 14 działów — Pogłębiacz, który wszedł, wymaga
+  działu audytu tej fali `ZAKOŃCZONE` **z chwilą zakończenia wcześniejszą** niż
+  jego wejście (początek ostatniej serii `ZAKOŃCZONE` w historii — łapie dział
+  cofnięty po fakcie i domknięty ponownie, czego narzędzie odmawia, a plik
+  podłożony ręcznie nie). **Reguła 26**: `status.mjs --test` (czwarty bliźniak
+  9/15/25).
+- **mutacje 79 → 101**: 7 na narzędziu (fala, kolejność, cofanie, brak migawki,
+  różnica drzewa, `.claude/` liczone jako różnica, historia niedopisywana)
+  + 1 kontrprzykład (inne brzmienie komunikatu), 10 na podłożonych plikach
+  (w tym „audyt zakończył się PO wejściu re-audytu" na DWÓCH plikach naraz)
+  + 4 kontrprzykłady (Pogłębiacz po wcześniejszym `ZAKOŃCZONE`; KIER re-audytu
+  bez odpowiednika; cofnięcie bez Pogłębiacza; stan próbny wypisany po nazwie).
+  Atrapa stanu wyprowadza historię z końcowego statusu, więc istniejące
+  kontrprzykłady nie zapaliły reguły 17 na braku dziennika. Wynik: **101,
+  0 przeoczonych, 0 martwych**; strażnik kod 0, diff wobec `main` poza
+  sektorami 0.
+- prostowanie trzech zdań o `porownaj-cykle` — `status.mjs` (komentarz
+  i komunikat), reguła 17 (komentarz i komunikat), `STRUKTURA.md` — na
+  „`porownaj-cykle.mjs` czyta z pliku stanu WYŁĄCZNIE `status`"; ślad mutacji
+  `/nie jest kodem pozycji/` zachowany.
+- KIER-05 w `audyt/ROLE.md` i `role/KIER/AGENT.md` wskazuje
+  `status.mjs --pokaz --historia`; krok 4 `role/KIER/SKILL.md` i krok 1
+  `re-audyt/role/KIER/SKILL.md` mówią, że narzędzie odmawia samo; generat
+  80 definicji odświeżony i zgodny. `STRUKTURA.md`: format pliku stanu
+  z historią i czterema odmowami, wiersz 26 w tabeli reguł, komenda
+  `--pokaz --historia` w „Kto co uruchamia", migawka nazwana warunkiem zapisu.
+- cztery lokalne pliki stanu z prób E6/E7.6 dostały `historia` (jeden wpis,
+  czas = mtime), `kiedy`, `adnotacja` i **`proba: "E6"|"E7.6"`**.
+
+**DWIE RZECZY ROZSTRZYGNIĘTE PRZY WYKONANIU (drobne, odwracalne):**
+1. **Stan PRÓBNY.** Próba E7.6 przejechała Pogłębiacza SEC BEZ działu SEC
+   audytu — dokładnie to, czego reguła 17 odtąd zabrania — więc plik
+   `re-audyt-f1-SEC.json` zapalałby strażnika na zawsze. Zamiast kasować dowód
+   próby, plik stanu dostał znacznik `proba` **o tej samej semantyce, co wpis
+   próbny zgłoszeń**: wypada WYŁĄCZNIE spod kolejności sektorów, wszystkie
+   pozostałe kontrole obowiązują, a strażnik wypisuje stany próbne po nazwie
+   (nigdy cicho). `status.mjs` znacznika nie nadaje — to decyzja prowadzącego
+   budowę, nie roli.
+2. **Golden KIER** (audyt i re-audyt) wskazywał linię 39 `status.mjs`
+   (`ostrzezenie` w `--pokaz`); po przepisaniu pliku linia jest 226 — numer
+   przepięty, treść linii przywrócona co do znaku, hash bez zmian (H1).
+
+**DWIE USTERKI STARSZE, znalezione przy okazji i naprawione:** tabela reguł
+w `STRUKTURA.md` kończyła się na 22 przy nagłówku „dwadzieścia cztery" —
+wiersze 23, 24, 25 z pozycji 1 i 2 nigdy do niej nie weszły (dopisane razem
+z 26); wiersz 17 tej tabeli powtarzał nieprawdę o `porownaj-cykle`.
+
+**LEKCJA TEJ POZYCJI (kosztowała jeden przebieg audytu, ~4 min):** audyt
+mutacyjny robi na starcie KOPIĘ mutowanych plików (m.in. `audyt/ROLE.md`)
+i przywraca ją w `finally` — edycja tych plików W TRAKCIE jego biegu zostaje
+nadpisana bez objawu, a regeneracja generatu w trakcie zaburza pomiar reguły 21
+(pierwszy przebieg: 1 „PRZEPUŚCIŁ" nie z winy strażnika). **Podczas audytu
+mutacyjnego nie dotykać niczego w `audyt/`** — drugi przebieg, bez równoległych
+edycji: 101/0/0.
 
 #### PAKIET E7.7, POZYCJA 1 — ZROBIONA 2026-09-02 (hash miejsca, H1)
 

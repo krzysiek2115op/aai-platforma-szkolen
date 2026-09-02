@@ -47,7 +47,7 @@ poznasz, że masz przed sobą wzorzec, a nie znalezisko.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/tools/status.mjs",
-    "linia": 39,
+    "linia": 226,
     "tresc": "const ostrzezenie = w.runda >= SUFIT_RUND && w.status !== \"ZAKOŃCZONE\" ? \" ← SUFIT RUND\" : \"\";"
   },
   "dowod": "Linia 38 wylicza ostrzeżenie z porównania rundy z sufitem i statusu, a bez tego warunku wydruk wygląda identycznie dla roli wyczerpanej i zakończonej.",
@@ -142,7 +142,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/tools/status.mjs",
-    "linia": 39,
+    "linia": 226,
     "tresc": "const ostrzezenie = w.runda > SUFIT_RUND ? \" ← SUFIT RUND\" : \"\";"
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",

@@ -275,10 +275,7 @@ MUTACJE.push(
     // narzędzie teraz przepuści — stąd plik stanu podłożony na czas pomiaru.
     przed: () => {
       mkdirSync(join(SEKTOR, "stan"), { recursive: true });
-      writeFileSync(SMIEC_STAN, JSON.stringify({
-        sektor: "audyt", fala: 2, rola: "PIK", status: "ZAKOŃCZONE", runda: 1,
-        niedomkniete: ["PIK-01 (nie zdążyłem)"],
-      }, null, 2));
+      writeFileSync(SMIEC_STAN, JSON.stringify(atrapaStanu({ niedomkniete: ["PIK-01 (nie zdążyłem)"] }), null, 2));
     },
     po: () => rmSync(SMIEC_STAN, { force: true }),
   },
@@ -347,6 +344,65 @@ MUTACJE.push(
       "const wDziale = dzial ? wszystkie.filter((z) => z.dzial === dzial) : wszystkie;",
       "const wDziale = wszystkie;"
     ),
+  },
+);
+
+/* ── mutacje stanu ról (pakiet E7.7, pozycja 3, 2026-09-02) ──────────────────
+   `status.mjs` dostał cztery odmowy i dziennik wejść. Strażnik nie ma na czym
+   ich zmierzyć naprawdę (plik stanu powstaje dopiero w fali), więc regresje
+   narzędzia widać wyłącznie przez jego samokontrolę na ATRAPACH (reguła 26).
+   Każda z tych mutacji psuje jedno rozstrzygnięcie właściciela. */
+MUTACJE.push(
+  {
+    opis: "status.mjs przyjmuje falę spoza {1,2} — --fala=3 tworzy audyt-f3-SEC.json po cichu",
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace("  if (!FALE.includes(fala)) {", "  if (false) {"),
+  },
+  {
+    opis: "status.mjs wpuszcza Pogłębiacza do działu, którego audyt nie jest ZAKOŃCZONE (W5)",
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace("    if (!audyt || audyt.status !== ZAKONCZONE) {", "    if (false) {"),
+  },
+  {
+    opis: "status.mjs pozwala cofnąć ZAKOŃCZONE działu, do którego Pogłębiacz już wszedł",
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace("    if (wszedl(re)) {", "    if (false) {"),
+  },
+  {
+    opis: "status.mjs pisze stan BEZ migawki przed.json (nie ma wobec czego mierzyć W2)",
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace("  if (!migawka) {\n    return [", "  if (false) {\n    return ["),
+  },
+  {
+    opis: "status.mjs nie odmawia przy różnicy drzewa produktu wobec glowa_main z migawki",
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace("  if (zmienione.length || brudne.length) {", "  if (false) {"),
+  },
+  {
+    opis: "status.mjs liczy .claude/ jako różnicę drzewa — fałszywa odmowa na własnym generacie",
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace("const POZA_PRODUKTEM = /^(audyt|re-audyt|\\.claude)\\//;", "const POZA_PRODUKTEM = /^(audyt|re-audyt)\\//;"),
+  },
+  {
+    opis: "status.mjs przestaje dopisywać historię przejść — KIER-05 traci dziennik wejść",
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace(
+      "  stan.historia = [...(stan.historia ?? []), { status: stan.status, runda: stan.runda, kiedy: teraz }];",
+      "  stan.historia = stan.historia ?? [];"
+    ),
+  },
+  {
+    opis: "KONTRPRZYKŁAD: inne brzmienie komunikatu odmowy (ta sama komenda naprawy) NIE zapala samokontroli",
+    plik: STATUS,
+    oczekujCzerwonego: false,
+    zmien: (s) => s.replace("Naprawa (kierownik, przed pierwszą falą):", "Naprawa (kierownik, zanim ruszy fala 1):"),
   },
 );
 
@@ -844,6 +900,91 @@ MUTACJE_ROLI.push(
   },
 );
 
+/* ── stany PODŁOŻONE: reguła 17 pilnuje zawartości plików, nie narzędzia ───
+   Plik dopisany ręcznie omija `status.mjs`; te mutacje sprawdzają, że strażnik
+   widzi to samo, co narzędzie odmawia. Czasy T[0] < T[1] < … są atrapami. */
+MUTACJE_ROLI.push(
+  {
+    opis: "Pogłębiacz PIK wszedł, a dział PIK audytu tej fali NIE MA pliku stanu (re-audyt przed wyjściem audytu)",
+    wykonaj: () => mutacjaStanu({ sektor: "re-audyt", status: "W TRAKCIE" }),
+    slad: /przed wyjściem audytu/,
+  },
+  {
+    opis: "Pogłębiacz PIK wszedł, a dział PIK audytu jest dopiero W TRAKCIE",
+    wykonaj: () => mutacjaStanu({ sektor: "re-audyt", status: "W TRAKCIE", kiedy: T[2] }, { status: "W TRAKCIE", kiedy: T[1] }),
+    slad: /przed wyjściem audytu/,
+  },
+  {
+    opis: "dział PIK audytu zakończył się PO wejściu Pogłębiacza — cofnięty po fakcie i domknięty ponownie",
+    wykonaj: () => mutacjaStanu(
+      { sektor: "re-audyt", status: "W TRAKCIE", kiedy: T[2] },
+      { historia: [wpis("W TRAKCIE", 1, T[0]), wpis("ZAKOŃCZONE", 1, T[1]), wpis("W TRAKCIE", 1, T[3]), wpis("ZAKOŃCZONE", 1, T[4])], kiedy: T[4] }
+    ),
+    slad: /PO wejściu re-audytu/,
+  },
+  {
+    opis: "historia przejść BEZ czasu — kolejności wejść nie da się porównać",
+    wykonaj: () => mutacjaStanu({ historia: [{ status: "ZAKOŃCZONE", runda: 1 }] }),
+    slad: /nie jest znacznikiem ISO/,
+  },
+  {
+    opis: "czas w historii nie jest ISO (wczoraj zamiast znacznika)",
+    wykonaj: () => mutacjaStanu({ historia: [wpis("ZAKOŃCZONE", 1, "wczoraj")], kiedy: "wczoraj" }),
+    slad: /nie jest znacznikiem ISO/,
+  },
+  {
+    opis: "historia cofa się w czasie — dziennik wejść przestaje być dziennikiem",
+    wykonaj: () => mutacjaStanu({ historia: [wpis("W TRAKCIE", 0, T[1]), wpis("ZAKOŃCZONE", 1, T[0])], kiedy: T[0] }),
+    slad: /cofa się w czasie/,
+  },
+  {
+    opis: "stan roli BEZ historii przejść — KIER-05 nie ma dziennika wejść",
+    wykonaj: () => mutacjaStanu({ historia: [] }),
+    slad: /brak historii przejść/,
+  },
+  {
+    opis: "ostatni wpis historii nie zgadza się ze stanem — zmiana ominęła dziennik",
+    wykonaj: () => mutacjaStanu({ historia: [wpis("W TRAKCIE", 1, T[0])], kiedy: T[0] }),
+    slad: /ominęła dziennik/,
+  },
+  {
+    opis: "plik stanu z falą 3 — nie należy do żadnego przebiegu",
+    wykonaj: () => mutacjaStanu({ fala: 3 }),
+    slad: /poza \{1, 2\}/,
+  },
+  {
+    opis: "znacznik próby w stanie roli bez nazwanego etapu — wypadałby z kolejności po cichu",
+    wykonaj: () => mutacjaStanu({ proba: "" }),
+    slad: /znacznik próby musi NAZWAĆ/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: Pogłębiacz PIK po WCZEŚNIEJSZYM ZAKOŃCZONE działu PIK audytu NIE zapala strażnika",
+    wykonaj: () => mutacjaStanu(
+      { sektor: "re-audyt", status: "W TRAKCIE", kiedy: T[2] },
+      { historia: [wpis("W TRAKCIE", 1, T[0]), wpis("ZAKOŃCZONE", 1, T[1])], kiedy: T[1] }
+    ),
+    oczekujCzerwonego: false,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: rola procesowa re-audytu (KIER) bez odpowiednika w audycie NIE jest blokowana",
+    wykonaj: () => mutacjaStanu({ sektor: "re-audyt", rola: "KIER", status: "W TRAKCIE", niedomkniete: [] }),
+    oczekujCzerwonego: false,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: dział audytu cofnięty ZAKOŃCZONE → W TRAKCIE BEZ Pogłębiacza przechodzi (zapisane w historii)",
+    wykonaj: () => mutacjaStanu({ status: "W TRAKCIE", historia: [wpis("W TRAKCIE", 1, T[0]), wpis("ZAKOŃCZONE", 1, T[1]), wpis("W TRAKCIE", 1, T[2])], kiedy: T[2] }),
+    oczekujCzerwonego: false,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: stan PRÓBNY Pogłębiacza bez działu audytu wypada spod kolejności jak wpis próbny — i jest wypisany",
+    wykonaj: () => {
+      const r = mutacjaStanu({ sektor: "re-audyt", status: "W TRAKCIE", proba: "E7.6" });
+      return { czerwony: r.czerwony || !/stany PRÓBNE .*E7\.6/.test(r.wyjscie), wyjscie: r.wyjscie };
+    },
+    oczekujCzerwonego: false,
+  },
+);
+
 /* ── zgłoszenie-śmieć: reguła 5 ma je złapać bez dotykania kodu ── */
 const SMIEC = join(ZGLOSZENIA, "AUD-SEC-999.json");
 const SMIEC_WER = join(ZGLOSZENIA, "AUD-WER-998.json");
@@ -878,18 +1019,47 @@ function mutacjaWpisu(zmiany) {
   }
 }
 
-/** Podkłada plik stanu roli o zadanym kształcie i pyta strażnika (reguła 17). */
-function mutacjaStanu(zmiany) {
-  mkdirSync(join(SEKTOR, "stan"), { recursive: true });
-  writeFileSync(SMIEC_STAN, JSON.stringify({
+/** Czasy-atrapy w porządku rosnącym: T[0] < T[1] < T[2] < T[3] < T[4]. */
+const T = ["2026-09-02T10:00:00.000Z", "2026-09-02T10:10:00.000Z", "2026-09-02T10:20:00.000Z", "2026-09-02T10:30:00.000Z", "2026-09-02T10:40:00.000Z"];
+const wpis = (status, runda, kiedy) => ({ status, runda, kiedy });
+
+/**
+ * Atrapa stanu roli o WŁAŚCIWEJ zawartości poza polami podmienionymi.
+ * Historia jest wyprowadzana z końcowego statusu, gdy nie podano jej wprost —
+ * bez tego każdy istniejący kontrprzykład zapalałby regułę 17 na braku
+ * dziennika, a mierzyć miał co innego (pułapka BLAD-022).
+ */
+function atrapaStanu(zmiany) {
+  const s = {
     sektor: "audyt", fala: 2, rola: "PIK",
     status: "ZAKOŃCZONE", runda: 1, niedomkniete: ["PIK-02"],
     ...zmiany,
-  }, null, 2));
+  };
+  if (!("historia" in zmiany)) s.historia = [wpis(s.status, s.runda, s.kiedy ?? T[1])];
+  if (!("kiedy" in zmiany)) s.kiedy = s.historia.at(-1)?.kiedy ?? T[1];
+  return s;
+}
+
+/** Drugi plik stanu — odpowiednik w DRUGIM sektorze (audyt ↔ re-audyt), gdy mutacja mierzy kolejność. */
+const SMIEC_STAN_2 = join(SEKTOR, "stan", "audyt-f2-PROBA-2.json");
+
+/**
+ * Podkłada plik stanu roli o zadanym kształcie i pyta strażnika (reguła 17).
+ * `drugi` — opcjonalny odpowiednik z drugiego sektora (domyślnie: audyt, ta sama fala i rola).
+ */
+function mutacjaStanu(zmiany, drugi = null) {
+  mkdirSync(join(SEKTOR, "stan"), { recursive: true });
+  const pierwszy = atrapaStanu(zmiany);
+  writeFileSync(SMIEC_STAN, JSON.stringify(pierwszy, null, 2));
+  if (drugi) {
+    const sektorDrugiego = pierwszy.sektor === "re-audyt" ? "audyt" : "re-audyt";
+    writeFileSync(SMIEC_STAN_2, JSON.stringify(atrapaStanu({ sektor: sektorDrugiego, fala: pierwszy.fala, rola: pierwszy.rola, ...drugi }), null, 2));
+  }
   try {
     return straznikCzerwony();
   } finally {
     rmSync(SMIEC_STAN, { force: true });
+    rmSync(SMIEC_STAN_2, { force: true });
   }
 }
 
@@ -1006,6 +1176,8 @@ try {
   for (const [plik, tresc] of kopie) writeFileSync(P(plik), tresc, "utf8");
   rmSync(SMIEC, { force: true });
   rmSync(SMIEC_WER, { force: true });
+  rmSync(SMIEC_STAN, { force: true });
+  rmSync(SMIEC_STAN_2, { force: true });
 }
 
 const razem = MUTACJE.length + MUTACJE_ROLI.length + 1;

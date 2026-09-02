@@ -26,13 +26,13 @@ audyt/
     wspolne.mjs                  ścieżki, progi, HASH MIEJSCA
     zgloszenie.mjs               jedyna droga wejścia znaleziska
     werdykt.mjs                  jedyna droga do statusu ZWERYFIKOWANE
-    status.mjs                   pięć statusów + rundy pętli
+    status.mjs                   pięć statusów, rundy pętli, HISTORIA przejść (KIER-05), kolejność sektorów
     mapa.mjs                     pokrycie w trzech stanach
     migawka-wartosci.mjs         wartości przed i po (W6)
     porownaj-cykle.mjs           porównanie fal (K4″): zgodne / nadzbiór / sprzeczne, per dział
     polacz-sektory.mjs           audyt + re-audyt (W4)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  dwadzieścia pięć kontroli, OBA sektory
+    straznik-sektora-audytu.mjs  dwadzieścia sześć kontroli, OBA sektory
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
@@ -161,7 +161,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 
 ---
 
-## Co pilnuje strażnik sektorów — dwadzieścia cztery kontrole
+## Co pilnuje strażnik sektorów — dwadzieścia sześć kontroli
 
 | # | Kontrola | Co się psuje bez niej |
 |---|---|---|
@@ -181,12 +181,16 @@ mutacje**, uruchamiane na gałęzi sektora.
 | 14 | generat bez martwych odsyłaczy | sektor wywraca `straznik-linkow` z `main` |
 | 15 | `werdykt.mjs --test` przechodzi | krytyk i weryfikator mogą zapisać cokolwiek |
 | 16 | ZWERYFIKOWANE tylko z kompletem werdyktów; próba nigdy cicha | wpis domknięty jednym głosem (§16) albo wyciszony znacznikiem |
-| 17 | stan roli: kody pozycji i niezerowa runda | kierownik liczy złą liczbę otwartych pozycji, a K4' bierze ją na wejściu |
+| 17 | stan roli: kody pozycji, niezerowa runda, fala ∈ {1,2}, HISTORIA przejść (czasy ISO, niemalejące, ostatni wpis = stan), KOLEJNOŚĆ sektorów dla 14 działów | kierownik liczy złą liczbę otwartych pozycji (KIER-01); plik podłożony ręcznie wpuszcza re-audyt przed wyjściem audytu (W5) bez objawu |
 | 18 | krytyk, który MA zgłaszać, wie CZYM | znalezisko krytyka opisane prozą znika razem z sesją |
 | 19 | identyfikator zgłoszenia zgodny ze swoim SEKTOREM | wpis re-audytu nadpisuje wpis audytu — oba dzielą katalog i kody działów |
 | 20 | zakres Pogłębiacza identyczny z zakresem jego działu w audycie | re-audyt mierzy inny obszar, niż audyt zbadał — łączenie po haszu przestaje znaczyć |
 | 21 | model generatu zgodny z `ROLE.md` (D8) | rola pracuje na innym modelu, niż rozstrzygnął właściciel — sha256 źródła tego nie widzi |
 | 22 | moduł krytyka wskazuje zgłoszenia SWOJEGO sektora | krytyk re-audytu ocenia wpisy audytu, a wpisy `REA-*` nie mają krytyka |
+| 23 | hash wpisu zgodny z PRZELICZONYM z miejsca (H1) | wpis z hashem policzonym inną formułą nie połączy się z odpowiednikiem — rozjazd fal przy zgodnym wyniku |
+| 24 | szablon goldena też jest miarą | golden każdej nowej roli powstaje z szablonu, który wskazuje linię obok |
+| 25 | `porownaj-cykle.mjs --test` przechodzi | regresja do K4′ (rozjazd = STOP) albo ślepota na werdykty bez objawu do końca dwóch fal |
+| 26 | `status.mjs --test` przechodzi | cztery odmowy narzędzia stanu (fala, kolejność sektorów, cofanie przy Pogłębiaczu, drzewo produktu wobec migawki) bez bramki do pierwszej fali |
 
 Reguły 2, 3, 4, 6, 10, 11 i 12 są **warunkowe**: dopóki `audyt/role/` jest pusty,
 mówią wprost „pominięte". Cisza byłaby nie do odróżnienia od zaliczenia — a katalog
@@ -316,6 +320,43 @@ pierwsza prawdziwa fala go NADPISZE, a migawki nadpisze każde kolejne
 `--zapisz`. Zgłoszenia przeciwnie — **przyrastają i nigdy nie znikają**, także
 odrzucone (K4'). Dlatego tylko one są nośnikiem, który warto wersjonować.
 
+### Plik stanu roli — dziennik wejść (pozycja 3 pakietu E7.7, 2026-09-02)
+
+```json
+{ "sektor": "audyt", "fala": 1, "rola": "SEC", "status": "ZAKOŃCZONE", "runda": 2,
+  "niedomkniete": ["SEC-07"], "kiedy": "2026-09-10T12:30:00.000Z",
+  "historia": [ { "status": "W TRAKCIE", "runda": 0, "kiedy": "2026-09-10T09:00:00.000Z" },
+                { "status": "ZAKOŃCZONE", "runda": 2, "kiedy": "2026-09-10T12:30:00.000Z" } ] }
+```
+
+`historia` dopisuje się przy KAŻDYM zapisie, `kiedy` to ostatnia zmiana. To jest
+nośnik KIER-05 („dziennik wejść") — jeden plik, nie druga kopia prawdy; czyta go
+`status.mjs --pokaz --historia`. Cztery odmowy narzędzia, każda z komendą naprawy
+w komunikacie (sześć rozstrzygnięć właściciela 2026-09-02):
+
+1. **fala ∈ {1, 2}** — ten sam rygor, co w `zgloszenie.mjs`; dotąd `--fala=3`
+   tworzyło `audyt-f3-SEC.json` po cichu;
+2. **kolejność sektorów (W5, K9′)** — Pogłębiacz działu X fali N nie wchodzi
+   (`W TRAKCIE` albo pierwsza runda), dopóki dział X audytu TEJ SAMEJ fali nie
+   jest `ZAKOŃCZONE`. Wyłącznie 14 działów; role procesowe re-audytu (KIER, KON,
+   RAP, PSIARZ, SKUT, STRAZ, WALID) są wolne — audytowy KIER kończy dopiero po
+   całym audycie, więc blokada na nim zamroziłaby sektor;
+3. **cofanie** jest dozwolone i zapisane w historii — ODMOWA tylko dla działu
+   audytu schodzącego z `ZAKOŃCZONE`, do którego Pogłębiacz tej fali już wszedł;
+4. **drzewo produktu** — bez `migawki/przed.json` żadna zmiana stanu nie
+   przechodzi; różnica drzewa produktu wobec `glowa_main` PRZYPIĘTEGO w migawce
+   (commity ORAZ niezacommitowane, poza sektorami i `.claude/`) odmawia zapisu
+   i wypisuje pliki. Wobec przypiętego commita, nie ruchomego `main` — cudzy
+   commit dependabota nie zatrzyma sektora.
+
+Reguła 17 strażnika pilnuje tego samego na ZAWARTOŚCI plików (własnym kodem,
+nie importem z narzędzia): plik podłożony ręcznie ominąłby `status.mjs`, a reguły
+nie. Stan **próbny** (`proba: "E7.6"`) wypada wyłącznie spod kolejności sektorów
+— jak wpis próbny z porównania fal — i jest wypisywany po nazwie; cztery lokalne
+pliki z prób E6/E7.6 dostały historię ręcznie (jeden wpis, czas = mtime), bo próba
+E7.6 przejechała Pogłębiacza SEC bez działu SEC audytu — dokładnie to, czego
+narzędzie odtąd odmawia.
+
 ### Co jeszcze wskazała próba na sucho
 
 Dwie rzeczy, których nie widziała żadna z szesnastu wcześniejszych kontroli,
@@ -323,8 +364,10 @@ bo obie ujawniają się dopiero **w działaniu**:
 
 - **`status.mjs` dzielił `--niedomkniete` przecinkiem**, więc komentarz
   w nawiasie zapisywał się jako osobne „pozycje" — siedem realnych dało
-  dziewięć wpisów. Kierownik czyta stąd LICZBĘ otwartych pozycji,
-  a `porownaj-cykle.mjs` bierze ją do K4'. Pole przyjmuje dziś wyłącznie kody
+  dziewięć wpisów. Kierownik czyta stąd LICZBĘ otwartych pozycji (KIER-01);
+  `porownaj-cykle.mjs` czyta z pliku stanu WYŁĄCZNIE `status` działu — wcześniejszy
+  zapis, że „bierze tę liczbę do K4'", był nieprawdą (sprostowane 2026-09-02
+  w trzech miejscach: tu, `status.mjs`, reguła 17). Pole przyjmuje dziś wyłącznie kody
   (`PIK-02`), a powód niedomknięcia należy do raportu działu. Rola kończąca
   w jednym przebiegu zapisywała też `runda 0/5`, czyli wyglądała jak rola,
   która nie zrobiła nic. Pilnuje reguła 17.
@@ -379,10 +422,11 @@ i dojść do tego samego wniosku; skasowany wpis zafałszowałby porównanie.
 
 | Komenda | Kto | Kiedy |
 |---|---|---|
-| `node audyt/tools/migawka-wartosci.mjs --zapisz=przed` | kierownik | przed pierwszą falą |
+| `node audyt/tools/migawka-wartosci.mjs --zapisz=przed` | kierownik | przed pierwszą falą — **bez niej `status.mjs` odmawia każdej zmiany stanu** |
 | `node audyt/tools/mapa.mjs` | kierownik | przed falą i po niej |
 | `node audyt/tools/status.mjs --rola=X --fala=N --status=…` | każda rola | na starcie i na końcu |
 | `node audyt/tools/status.mjs --rola=X --fala=N --runda` | rola pętlowa | co rundę |
+| `node audyt/tools/status.mjs --pokaz --historia` | kierownik | KIER-05: kolejność wejść z datami, per dział |
 | `node audyt/tools/zgloszenie.mjs --plik=…` | każda rola | przy znalezisku |
 | `node audyt/tools/werdykt.mjs --id=… --kto=krytyk --werdykt=…` | krytyk roli | po ocenie zgłoszenia |
 | `node audyt/tools/werdykt.mjs --id=… --kto=weryfikator --werdykt=…` | weryfikator (WER) | po sprawdzeniu zjawiska |

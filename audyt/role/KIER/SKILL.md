@@ -41,7 +41,10 @@ Przy **każdej** pozycji KIER oraz w dwóch momentach przebiegu: przed pierwszą
    *Wynik:* lista par hash × dział.
 
 4. **Sprawdź dziennik wejść.** Re-audyt wchodzi do działu dopiero po wyjściu audytu
-   z TEGO działu (W5, K9′).
+   z TEGO działu (W5, K9′): `status.mjs --pokaz --historia` — dla każdego działu
+   chwila `ZAKOŃCZONE` audytu musi być WCZEŚNIEJSZA niż wejście Pogłębiacza tej
+   samej fali. Narzędzie samo odmawia wejścia przed czasem (pozycja 3 E7.7), więc
+   sprawdzasz plik, nie pilnujesz ręcznie.
    *Wynik:* dla każdego działu — kolejność wejść z datami.
 
 5. **Porównaj fale i przekaż właścicielowi wynik NAZWANY** (zgodne / nadzbiór /
@@ -55,6 +58,7 @@ Przy **każdej** pozycji KIER oraz w dwóch momentach przebiegu: przed pierwszą
 
 ```
 node audyt/tools/status.mjs --pokaz
+node audyt/tools/status.mjs --pokaz --historia
 node audyt/tools/mapa.mjs
 node audyt/tools/porownaj-cykle.mjs
 node audyt/tools/porownaj-cykle.mjs --dzial=<KOD>
