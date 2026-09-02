@@ -1222,6 +1222,78 @@ function mutacjaZgloszenia() {
 /* ── przebieg ── */
 
 /** Czy mutacja ma na tej gałęzi materiał do zmierzenia. */
+/* ── mutacje reguł 27 / 27b i pozycji otwartej `-90` (pakiet E7.7, 4b + 6) ─
+   Zdanie zakazu jest jedyną warstwą ślepoty fali 2, którą agent NAPRAWDĘ czyta;
+   pozycja `-90` jest jedynym miejscem, gdzie K4″ („szukaj dalej") ma gdzie
+   wylądować. Każda z tych rzeczy ginie z jednego pliku bez objawu, więc każda
+   ma mutację i kontrprzykład. */
+const ZDANIE_ZAKAZU = "nie czytasz wpisów, stanu ani wyników innej fali";
+const BEZ_ZAKAZU = (s) => s.replace(`**${ZDANIE_ZAKAZU}**`, "**pracujesz w swojej fali**");
+const BEZ_WIERSZA_90 = (s) => s.replace(/^\| SEC-90 \|.*\n/m, "");
+MUTACJE_ROLI.push(
+  {
+    opis: "zdanie zakazu czytania innej fali znika z SZABLONU AGENT.md (szablon sprawdzany wprost)",
+    wykonaj: () => zPodmienionymi({ "audyt/szablony/AGENT.md": BEZ_ZAKAZU }),
+    slad: /audyt\/szablony\/AGENT\.md: brak zdania zakazu czytania innej fali/,
+  },
+  {
+    opis: "zdanie zakazu znika z SZABLONU KRYTYK.md — rola próbna z szablonu dziedziczy dziurę",
+    wykonaj: () => rolaZSzablonu({ mutuj: { "KRYTYK.md": BEZ_ZAKAZU } }),
+    slad: /PROBA\/KRYTYK\.md: brak zdania zakazu czytania innej fali/,
+  },
+  {
+    opis: "zdanie zakazu znika z realnej definicji (SEC/AGENT.md) — agent fali 2 ma Read i nie wie, że nie czyta fali 1",
+    wykonaj: () => zPodmienionymi({ "audyt/role/SEC/AGENT.md": BEZ_ZAKAZU }),
+    slad: /audyt\/role\/SEC\/AGENT\.md: brak zdania zakazu czytania innej fali/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: inne łamanie wiersza zdania zakazu NIE może zapalać reguły 27",
+    oczekujCzerwonego: false,
+    wykonaj: () => zPodmienionymi({
+      "audyt/role/SEC/AGENT.md": (s) => s.replace(ZDANIE_ZAKAZU, "nie czytasz wpisów,\nstanu ani wyników\ninnej fali"),
+    }),
+  },
+  {
+    opis: "pozycja otwarta SEC-90 znika z ROLE.md i AGENT.md naraz — „szukaj dalej” nie ma gdzie wylądować (reguła 7)",
+    wykonaj: () => zPodmienionymi({ "audyt/ROLE.md": BEZ_WIERSZA_90, "audyt/role/SEC/AGENT.md": BEZ_WIERSZA_90 }),
+    slad: /rola SEC \(audyt\) nie ma pozycji otwartej SEC-90/,
+  },
+  {
+    opis: "pozycja otwarta SEC-90 znika TYLKO z AGENT.md — 90 liczy się jak każda pozycja (reguła 13)",
+    wykonaj: () => zPodmienionymi({ "audyt/role/SEC/AGENT.md": BEZ_WIERSZA_90 }),
+    slad: /AGENT\.md NIE MA pozycji SEC-90/,
+  },
+  {
+    opis: "wycofane zdanie K4′ wraca do SZABLONU AGENT.md — rola próbna niesie „swobodny przegląd nie da tego samego wyniku\" (27b)",
+    wykonaj: () => rolaZSzablonu({ mutuj: { "AGENT.md": (s) => s.replace(
+      "## Prompt\n",
+      "## Prompt\n\nNie zachęcać do swobodnego przeglądu — swobodny przegląd nie da tego samego\nwyniku w drugiej fali (K4').\n",
+    ) } }),
+    slad: /PROBA\/AGENT\.md: niesie wycofane zdanie K4′/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: słowo „swobodny\" w innym zdaniu NIE może zapalać 27b",
+    oczekujCzerwonego: false,
+    wykonaj: () => zPodmienionymi({
+      "audyt/role/SEC/AGENT.md": (s) => s.replace("## Prompt\n", "## Prompt\n\nSwobodny dobór kolejności narzędzi w obrębie jednej pozycji jest dozwolony.\n"),
+    }),
+  },
+  {
+    opis: "wycofane zdanie K4′ wraca do realnej definicji Pogłębiacza (re-audyt/SEC/AGENT.md)",
+    wymaga: "re-audyt/role/SEC/AGENT.md",
+    wykonaj: () => zPodmienionymi({
+      "re-audyt/role/SEC/AGENT.md": (s) => s.replace("## Prompt\n", "## Prompt\n\nSwobodny przegląd nie da tego samego wyniku w drugiej fali.\n"),
+    }),
+    slad: /re-audyt\/role\/SEC\/AGENT\.md: niesie wycofane zdanie K4′/,
+  },
+  {
+    opis: "Pogłębiacz SEC traci pozycję otwartą SEC-90 w obu plikach (re-audyt, reguła 7)",
+    wymaga: "re-audyt/ROLE.md",
+    wykonaj: () => zPodmienionymi({ "re-audyt/ROLE.md": BEZ_WIERSZA_90, "re-audyt/role/SEC/AGENT.md": BEZ_WIERSZA_90 }),
+    slad: /rola SEC \(re-audyt\) nie ma pozycji otwartej SEC-90/,
+  },
+);
+
 const maMaterial = (m) => !m.wymaga || existsSync(P(m.wymaga));
 
 /**

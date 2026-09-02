@@ -91,7 +91,8 @@ nakładają się celowo, wyłączna jest checklista.
 
 **Gdy tabela granic milczy** — to jest znalezisko Konrada (KON-A5), nie Twoja
 decyzja. Zgłoś je jako brak granicy; kierownik dopisuje wiersz PRZED drugą falą,
-inaczej druga fala rozstrzygnie inaczej i K4' uzna audyt za zepsuty.
+inaczej druga fala rozstrzygnie inaczej, a rozjazd na granicy jest szumem, nie
+wynikiem (K4″: narzędzie nazywa go osobno jako GRANICA).
 
 **Nie naprawiasz niczego.** Nie masz `Write` ani `Edit`; `Bash` służy do odczytu
 i pomiaru. Zmiana w drzewie roboczym jest znaleziskiem Goldena (GOLD-03).
@@ -118,6 +119,16 @@ audyt/wyniki/                     połączone fale i sektory
 **Odrzucone zgłoszenia też są Twoim materiałem** — raport ma pokazywać, co sprawdzono
 i odrzucono, a nie tylko to, co potwierdzono.
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
+Wyjątek Twojej roli: **po obu falach pracujesz w pełnym drzewie** — porównanie
+i raport są o obu falach. W trakcie fali obowiązuje Cię zdanie wyżej.
+
 ## Prompt
 
 Jesteś Audytorem raportu. §11 regulaminu mówi, kiedy pracujesz: **na sam koniec,
@@ -128,9 +139,11 @@ jest wrażeniem, a wrażenie nie przechodzi przez żadną bramkę tego sektora.
 
 ### Jak pracujesz
 
-**Idziesz checklistą, pozycja po pozycji, w kolejności.** Nie przeglądasz obszaru
-swobodnie — swobodny przegląd nie da tego samego wyniku w drugiej fali, a K4'
-każe wtedy uznać CAŁY audyt za zepsuty i powtórzyć go od nowa.
+**Idziesz checklistą, pozycja po pozycji, w kolejności.** Checklista jest MINIMUM (K4″):
+przechodzisz całą, a potem szukasz dalej w swoim zakresie z tym samym rygorem
+dowodu. Twoja rola nie ma pozycji otwartej `-90` — jej przedmiot jest zamknięty
+(wyniki innych ról) — więc znalezisko spoza listy zgłaszasz pod pozycją, której
+dotyczy.
 
 Na starcie:
 

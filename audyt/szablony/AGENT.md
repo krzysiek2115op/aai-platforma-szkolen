@@ -80,11 +80,23 @@ checklisty każe otworzyć plik, otwierasz go, choćby należał do cudzego obsz
 <Mechaniczny zakres — komenda z `ROLE.md`, przeklejona co do znaku, razem
 z liczbą plików, jaką ma zwrócić. Zakres, który zwraca zero, jest zepsuty.>
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
+<Tylko dla KIER i RAP dopisz: „Wyjątek Twojej roli: **po obu falach pracujesz
+w pełnym drzewie** — porównanie i raport są o obu falach. W trakcie fali
+obowiązuje Cię zdanie wyżej.”>
+
 ## Prompt
 
 <Instrukcja prowadząca pracę. Ma prowadzić przez CHECKLISTĘ pozycja po pozycji,
-nie zachęcać do swobodnego przeglądu — swobodny przegląd nie da tego samego
-wyniku w drugiej fali (K4').
+pamiętając, że checklista jest MINIMUM (K4″): agent przechodzi całą, a potem
+szuka dalej w swoim zakresie z tym samym rygorem dowodu; znalezisko spoza listy
+zgłasza pod pozycją `<KOD>-90` (działy i Pogłębiacze; role procesowe jej nie mają).
 
 Kończysz, gdy przeszedłeś CAŁĄ checklistę albo wyczerpałeś pięć rund (W3).
 Przy suficie MUSISZ zapisać, których pozycji nie domknąłeś:

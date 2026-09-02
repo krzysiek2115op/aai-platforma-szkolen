@@ -107,6 +107,7 @@ git ls-files -- ':(glob)wordpress/wtyczki/*/includes/*.php' \
 | SEC-10 | Czy `.env.example` nie zawiera prawdziwego sekretu, a `.gitleaksignore` nie wycisza całego pliku? | `cat .env.example .gitleaksignore` | linia wpisu |
 | SEC-11 | Czy obwód (`aai-obwod.php`) zamyka XML-RPC, enumerację kont i mapę użytkowników? | `wordpress/srodowisko/mu-plugins/aai-obwod.php` | linia reguły albo nazwa brakującej |
 | SEC-12 | Czy `try` obejmuje **wywołanie**, a nie tylko ciało funkcji? (`ArgumentCountError` powstaje przy wywołaniu) | `grep -rn -B2 'catch ( Throwable' wordpress/wtyczki` | plik:linia instrukcji poza `try` |
+| SEC-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** wydajności zapytań (→ PERF), zgodności z RODO i retencji (→ PRIV), treści
 polityki prywatności (→ PRIV), poprawności kontraktu danych (→ BE).
@@ -139,6 +140,7 @@ git ls-files -- 'wordpress/wtyczki/aai-sklep/szablony' \
 | FE-09 | Czy każdy odnośnik w szablonie prowadzi do istniejącej trasy? | szablony × `Aai_Sklep_Trasy::PODSTRONY` | odnośnik + brakująca trasa |
 | FE-10 | Czy strona 404 istnieje dla całej witryny, nie tylko dla `/szkolenia/`? | `class-aai-sklep-trasy.php` | reguła + zakres |
 | FE-11 | Czy cała ścieżka klienta jest po polsku (koszyk, kasa, konto, komunikaty)? | `npm run smoke:wp-jezyk` + przelot tras | fraza angielska + trasa |
+| FE-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** prototypu Next.js (→ PROTO), wagi stron i liczby zapytań (→ PERF), kolizji
 kaskady z arkuszami Tutora/Woo (→ INT), escapowania jako luki bezpieczeństwa (→ SEC).
@@ -170,6 +172,7 @@ git ls-files -- ':(glob)wordpress/wtyczki/*/includes/*.php' ':(glob)wordpress/wt
 | BE-11 | Czy funkcja kontroli **nigdy nie pisze**? | `class-*-cli.php`, metoda `sprawdz` | linia zapisu w ścieżce kontroli |
 | BE-12 | Czy walidacja stoi po stronie **zapisu**, a nie tylko odczytu? | `class-aai-sklep-kontrakt.php`, `modules/m1-sklep/typy.ts` | pole sprawdzane wyłącznie przy odczycie |
 | BE-13 | Czy użyta funkcja rdzenia robi to, co sugeruje jej nazwa? (`wp_http_validate_url` jest od SSRF, nie od odnośników) | `grep -rn 'validate_url\|sanitize_\|wp_kses' wordpress/wtyczki` | wywołanie + skutek uboczny |
+| BE-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** SQL jako powierzchni ataku (→ SEC), schematu tabel i migracji (→ BD),
 granic między wtyczkami (→ ARCH), zachowania cudzych haków (→ INT).
@@ -201,6 +204,7 @@ git ls-files -- ':(glob)wordpress/wtyczki/*/includes/class-*-{tabele,zapis,impor
 | BD-10 | Czy retencja kasuje po **własnym** kluczu, nie po `MIN(id)` całej tabeli? | `class-aai-monitor-zapis.php` | zapytanie kasujące |
 | BD-11 | Czy każde pole kontraktu ma sufit długości i liczności? | `modules/m1-sklep/typy.ts`, `class-aai-sklep-kontrakt.php` | pole bez sufitu |
 | BD-12 | Czy sprawdzenie liczy z tabeli, w której dane **naprawdę leżą** (HPOS ≠ `wp_posts`)? | `grep -rn 'wc_get_orders\|wp_delete_post' wordpress tools` | zapytanie + tabela |
+| BD-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** wstrzyknięć SQL (→ SEC), planów zapytań i indeksów pod kątem czasu
 (→ PERF), zgodności zrzutu z Tutorem jako szwu (→ ARCH), retencji jako wymogu prawnego
@@ -236,6 +240,7 @@ git ls-files -- 'tools/straznicy' 'tools/smoke' 'goldeny' '.github/workflows' \
 | QA-13 | Czy bramka woła **tę samą komendę co człowiek**, a nie narzędzie pod spodem? | `grep -rn 'npx \|node ' tools/smoke` × `package.json` | komenda w bramce vs w `scripts` |
 | QA-14 | Czy pomiar opiera się na **zdarzeniu**, a nie na cudzym tekście (ginie po zmianie języka)? | `grep -rn 'includes(\|match(' tools/smoke` | asercja na cudzym napisie |
 | QA-15 | Czy weryfikacja artefaktu porównuje **każdy** plik wydania, nie jeden? | `tools/sprawdz-zywy.mjs`, `tools/deploy-podglad.sh` | zakres porównania |
+| QA-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 > **QA-05 jest tu z konkretnego powodu.** Regresja jobu „Baza" przeleżała piętnaście dni
 > i dwadzieścia wersji, bo `smoke-csp` wszedł do CI **po** ostatnim zielonym przebiegu
@@ -270,6 +275,7 @@ git ls-files -- ':(glob)wordpress/wtyczki/*/includes/*.php' \
 | PERF-06 | Czy obrazy mają wymiary z pliku, a nie zgadywane? | `class-aai-sklep-zrzuty.php` | źródło wymiaru |
 | PERF-07 | Czy odsłona dokłada niebuforowalny przebieg PHP tam, gdzie nie musi? | `class-aai-monitor-wizyty.php` | ścieżka |
 | PERF-08 | Czy pomiar zapisany w README pochodzi z PSI, nie z lokalnego Lighthouse'a? | `goldeny/pomiary-lighthouse.json`, README | źródło liczby |
+| PERF-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** poprawności zapytań (→ BD), poprawności bramek pomiarowych (→ QA),
 dostarczania Chrome i riga (→ USP).
@@ -298,6 +304,7 @@ git ls-files -- ':(glob)wordpress/wtyczki/*/includes/*.php' ':(glob)wordpress/wt
 | ARCH-07 | Czy wtyczka niższa w kolejności działa bez wyższej (zależności jednokierunkowe)? | `class-*-zaleznosci.php` | kierunek zależności |
 | ARCH-08 | Czy diagram opisuje mechanizm, który w kodzie **istnieje**? | `docs/plugin-*/DIAGRAM.md` × kod | element diagramu bez odpowiednika |
 | ARCH-09 | Czy istnieje cykl zależności między klasami? | mapa `require`/wywołań statycznych | ścieżka cyklu |
+| ARCH-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** treści dokumentacji poza schematami (→ REPO), zgodności z pierwotnym planem
 projektu (→ PIK), zachowania cudzego kodu (→ INT).
@@ -329,6 +336,7 @@ git ls-files -- ':(glob)wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-{tu
 | INT-09 | Czy zapytanie po meta o **pustej** wartości nie dopasuje pierwszego lepszego wpisu? | `grep -rn "meta_value" wordpress/wtyczki` | zapytanie |
 | INT-10 | Czy koszyk zachowuje się tak, jak obiecuje przycisk (jeden kurs = jedna pozycja)? | `class-aai-platnosci-kasa.php` + pomiar na `:8892` | obietnica + zachowanie |
 | INT-11 | Czy skasowanie zamówienia w Woo sprząta zapis po stronie Tutora? | `wp aai-platnosci sprawdz` + pomiar | zamówienie usunięte + zapis pozostały |
+| INT-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** granic naszych wtyczek (→ ARCH), wyglądu naszych stron (→ FE), instalacji
 u klienta (→ WDR).
@@ -359,6 +367,7 @@ git ls-files -- 'wordpress/wtyczki/aai-monitor' 'docs/plugin-3/POLITYKA-PRYWATNO
 | PRIV-08 | Czy mail do klienta nie niesie hasła ani klucza w treści? | `class-aai-platnosci-maile.php` | linia treści |
 | PRIV-09 | Czy powiadomienia rdzenia nie wysyłają danych konta pod niewłaściwy adres? | `grep -rn 'password_change_notification' wordpress` | linia zdjęcia callbacku |
 | PRIV-10 | Czy każdy mail wychodzący do klienta idzie z **naszego** adresu i w naszym wyglądzie? | `class-aai-platnosci-maile.php` + skrzynka `:8893` | mail + nadawca |
+| PRIV-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** bezpieczeństwa jako obrony przed atakiem (→ SEC), poprawności zapisu danych
 (→ BD), prawdziwości liczb w dokumentacji (→ REPO).
@@ -393,6 +402,7 @@ git ls-files -- 'README.md' 'CLAUDE.md' 'CHANGELOG.md' 'CONTRIBUTING.md' 'LICENS
 | REPO-09 | Czy `ZRODLA.md` opisuje to, co skrypt pobierający naprawdę pobiera? | `tools/pobierz-dokumentacje-*.mjs` × `ZRODLA.md` | zakres w skrypcie vs w dokumencie |
 | REPO-10 | Czy schemat draw.io ma aktualny podgląd SVG (sha256)? | `node tools/straznicy/straznik-schematow.mjs` | plik + skrót |
 | REPO-11 | Czy `rejestr/znane-bledy.json` zawiera każdy błąd, który dostał kod `BLAD-*`? | `grep -o 'BLAD-[0-9]*' -r . \| sort -u` × rejestr | kod bez wpisu |
+| REPO-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** zgodności schematów z kodem jako architektury (→ ARCH), obietnic
 z pierwotnego planu (→ PIK), instrukcji instalacji jako procedury (→ WDR).
@@ -424,6 +434,7 @@ git ls-files -- '.editorconfig' '.gitattributes' '.gitignore' '.nvmrc' '.env.exa
 | WDR-08 | Czy klient nietechniczny może wykonać każdą czynność, którą instrukcja mu przypisuje? | instrukcja × dostępne ekrany | czynność wymagająca WP-CLI |
 | WDR-09 | Czy wersja wtyczki w nagłówku ma sens wobec wersji repo? | nagłówki wtyczek × CHANGELOG | wersja |
 | WDR-10 | Czy `.gitignore` nie wypuszcza sekretu i nie chowa artefaktu, który powinien być w repo? | `.gitignore`, `git status --ignored` | wpis |
+| WDR-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** treści instrukcji jako dokumentu (→ REPO), bezpieczeństwa obwodu (→ SEC),
 zależności od Tutora/Woo jako integracji (→ INT).
@@ -457,6 +468,7 @@ git ls-files -- 'app' 'components' 'lib' 'modules' 'public' 'tools/seed' \
 | PROTO-10 | Czy pole sterowane liczbą nie kasuje wpisu w trakcie pisania? | `grep -rn 'type="number"\|valueAsNumber' components` | pole + zachowanie |
 | PROTO-11 | Czy publikacja bierze artefakt z **commita**, a nie z katalogu roboczego? | `tools/deploy-podglad.sh` | linia budowania |
 | PROTO-12 | Czy font ma preload, a niewidzialny element nie jest kandydatem na LCP? | `app/layout.tsx`, `app/globals.css` | linia + wynik pomiaru |
+| PROTO-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** kodu wtyczek WP (→ pozostałe działy). Znalezisko dotyczące **obu** stron
 naraz należy do PROTO tylko w części prototypowej — resztę bierze dział właściwy dla WP.
@@ -485,6 +497,7 @@ git ls-files -- 'docs/PLAN.md' 'docs/WYTYCZNE.md' 'CLAUDE.md' 'CHANGELOG.md' \
 | PIK-06 | Czy bramki B1–B7, W1–W6, P0–P6, T0–T4 mają zapisany **wynik**? | CHANGELOG, dokumenty testów | bramka bez wyniku |
 | PIK-07 | Czy rzecz zapowiedziana jako „zostaje do decyzji właściciela" została rozstrzygnięta albo jawnie odłożona? | `grep -n 'ZOSTAJE DO DECYZJI' CLAUDE.md docs` | pozycja bez rozstrzygnięcia |
 | PIK-08 | Czy pozycja „przed pierwszym klientem" jest kompletna? | `grep -in 'przed pierwszym klientem' CLAUDE.md docs/PLAN-SEO-HIGIENA-AUDYT.md` (bez `-i` plan SEO daje ZERO — wielka litera) | pozycja brakująca na liście |
+| PIK-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** prawdziwości liczb w dokumentacji (→ REPO), zgodności schematów z kodem
 (→ ARCH). PIK pyta o **obietnicę wobec produktu**, REPO o **opis wobec kodu**.
@@ -514,6 +527,7 @@ git ls-files -- ':(glob)tools/*.mjs' ':(glob)tools/*.sh' ':(glob)tools/*.ts' \
 | USP-07 | Czy rig przeglądarkowy stoi **poza** `package.json` projektu? | `ZRZUTY_RIG`, scratchpad | ścieżka riga |
 | USP-08 | Czy każde narzędzie audytu zwraca kod wyjścia **bez potoku**? | `tools/audyt/*` (E4) | kod wyjścia |
 | USP-09 | Czy narzędzie nie bierze adresu `file://` za ścieżkę systemową (katalog ze spacją)? | `node tools/straznicy/straznik-sciezek.mjs` | plik:linia |
+| USP-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** oceny bramek projektu (→ QA), własnych zgłoszeń o produkcie. USP zgłasza
 **brak narzędzia**, nie błąd w kodzie.

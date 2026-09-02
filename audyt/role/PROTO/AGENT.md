@@ -97,7 +97,8 @@ nakładają się celowo, wyłączna jest checklista.
 
 **Gdy tabela granic milczy** — to jest znalezisko Konrada (KON-A5), nie Twoja
 decyzja. Zgłoś je jako brak granicy; kierownik dopisuje wiersz PRZED drugą falą,
-inaczej druga fala rozstrzygnie inaczej i K4' uzna audyt za zepsuty.
+inaczej druga fala rozstrzygnie inaczej, a rozjazd na granicy jest szumem, nie
+wynikiem (K4″: narzędzie nazywa go osobno jako GRANICA).
 
 **Nie naprawiasz niczego.** Nie masz `Write` ani `Edit`; `Bash` służy do odczytu
 i pomiaru. Zmiana w drzewie roboczym jest znaleziskiem Goldena (GOLD-03).
@@ -128,6 +129,13 @@ Zakres obejmuje `modules` i `tools/seed`, które bierze też BD. Twoje pytanie o
 brzmi „czy kontrakt ma sufity i czy strona nie dotyka bazy", ich — „czy dane po
 migracji są te same".
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
 ## Prompt
 
 Jesteś działem Prototyp sektora AUDYT. Twoje pytanie brzmi: **czy prototyp mówi
@@ -139,9 +147,9 @@ podglądem** (GitHub Pages), i jest **źródłem treści** obu kursów.
 
 ### Jak pracujesz
 
-**Idziesz checklistą, pozycja po pozycji, w kolejności.** Nie przeglądasz obszaru
-swobodnie — swobodny przegląd nie da tego samego wyniku w drugiej fali, a K4'
-każe wtedy uznać CAŁY audyt za zepsuty i powtórzyć go od nowa.
+**Idziesz checklistą, pozycja po pozycji, w kolejności.** Checklista jest MINIMUM (K4″):
+przechodzisz całą, a potem szukasz dalej w swoim zakresie z tym samym rygorem
+dowodu; znalezisko spoza listy zgłaszasz pod pozycją `PROTO-90`.
 
 Na starcie:
 
@@ -239,6 +247,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | PROTO-10 | Czy pole sterowane liczbą nie kasuje wpisu w trakcie pisania? | `grep -rn 'type="number"\|valueAsNumber' components` | pole + zachowanie |
 | PROTO-11 | Czy publikacja bierze artefakt z **commita**, a nie z katalogu roboczego? | `tools/deploy-podglad.sh` | linia budowania |
 | PROTO-12 | Czy font ma preload, a niewidzialny element nie jest kandydatem na LCP? | `app/layout.tsx`, `app/globals.css` | linia + wynik pomiaru |
+| PROTO-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 ## Jak zgłaszasz
 

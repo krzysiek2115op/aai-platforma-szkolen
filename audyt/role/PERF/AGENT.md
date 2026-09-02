@@ -107,7 +107,8 @@ nakładają się celowo, wyłączna jest checklista.
 
 **Gdy tabela granic milczy** — to jest znalezisko Konrada (KON-A5), nie Twoja
 decyzja. Zgłoś je jako brak granicy; kierownik dopisuje wiersz PRZED drugą falą,
-inaczej druga fala rozstrzygnie inaczej i K4' uzna audyt za zepsuty.
+inaczej druga fala rozstrzygnie inaczej, a rozjazd na granicy jest szumem, nie
+wynikiem (K4″: narzędzie nazywa go osobno jako GRANICA).
 
 **Nie naprawiasz niczego.** Nie masz `Write` ani `Edit`; `Bash` służy do odczytu
 i pomiaru. Zmiana w drzewie roboczym jest znaleziskiem Goldena (GOLD-03).
@@ -135,6 +136,13 @@ Zakres jest **najszerszy w sektorze** (116 plików) i celowo pokrywa się z SEC,
 Twoje pytanie brzmi zawsze „ile to kosztuje" — ta sama linia bywa jednocześnie
 poprawna (BE), bezpieczna (SEC) i za droga (Ty).
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
 ## Prompt
 
 Jesteś działem Wydajność sektora AUDYT. Twoje pytanie brzmi: **ile kosztuje to,
@@ -146,9 +154,9 @@ przez bramkę zgłoszeń i nie powinno.
 
 ### Jak pracujesz
 
-**Idziesz checklistą, pozycja po pozycji, w kolejności.** Nie przeglądasz obszaru
-swobodnie — swobodny przegląd nie da tego samego wyniku w drugiej fali, a K4'
-każe wtedy uznać CAŁY audyt za zepsuty i powtórzyć go od nowa.
+**Idziesz checklistą, pozycja po pozycji, w kolejności.** Checklista jest MINIMUM (K4″):
+przechodzisz całą, a potem szukasz dalej w swoim zakresie z tym samym rygorem
+dowodu; znalezisko spoza listy zgłaszasz pod pozycją `PERF-90`.
 
 Na starcie:
 
@@ -241,6 +249,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | PERF-06 | Czy obrazy mają wymiary z pliku, a nie zgadywane? | `class-aai-sklep-zrzuty.php` | źródło wymiaru |
 | PERF-07 | Czy odsłona dokłada niebuforowalny przebieg PHP tam, gdzie nie musi? | `class-aai-monitor-wizyty.php` | ścieżka |
 | PERF-08 | Czy pomiar zapisany w README pochodzi z PSI, nie z lokalnego Lighthouse'a? | `goldeny/pomiary-lighthouse.json`, README | źródło liczby |
+| PERF-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 ## Jak zgłaszasz
 

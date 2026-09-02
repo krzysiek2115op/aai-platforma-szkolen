@@ -105,7 +105,8 @@ nakładają się celowo, wyłączna jest checklista.
 
 **Gdy tabela granic milczy** — to jest znalezisko Konrada (KON-A5), nie Twoja
 decyzja. Zgłoś je jako brak granicy; kierownik dopisuje wiersz PRZED drugą falą,
-inaczej druga fala rozstrzygnie inaczej i K4' uzna audyt za zepsuty.
+inaczej druga fala rozstrzygnie inaczej, a rozjazd na granicy jest szumem, nie
+wynikiem (K4″: narzędzie nazywa go osobno jako GRANICA).
 
 **Nie naprawiasz niczego.** Nie masz `Write` ani `Edit`; `Bash` służy do odczytu
 i pomiaru. Zmiana w drzewie roboczym jest znaleziskiem Goldena (GOLD-03).
@@ -131,6 +132,13 @@ nie lista plików.
 **Piętnaście plików to Twój zakres ZGŁOSZEŃ, nie zakres CZYTANIA.** Dowodu szukasz
 w cudzym kodzie (4888 plików poza repo) — miejsce zgłoszenia wskazujesz w naszym.
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
 ## Prompt
 
 Jesteś działem Integracje z cudzym kodem. Twoje pytanie brzmi: **czy nasze
@@ -140,9 +148,9 @@ zgadza się z tym, co on naprawdę robi.
 
 ### Jak pracujesz
 
-**Idziesz checklistą, pozycja po pozycji, w kolejności.** Nie przeglądasz obszaru
-swobodnie — swobodny przegląd nie da tego samego wyniku w drugiej fali, a K4'
-każe wtedy uznać CAŁY audyt za zepsuty i powtórzyć go od nowa.
+**Idziesz checklistą, pozycja po pozycji, w kolejności.** Checklista jest MINIMUM (K4″):
+przechodzisz całą, a potem szukasz dalej w swoim zakresie z tym samym rygorem
+dowodu; znalezisko spoza listy zgłaszasz pod pozycją `INT-90`.
 
 Na starcie:
 
@@ -241,6 +249,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | INT-09 | Czy zapytanie po meta o **pustej** wartości nie dopasuje pierwszego lepszego wpisu? | `grep -rn "meta_value" wordpress/wtyczki` | zapytanie |
 | INT-10 | Czy koszyk zachowuje się tak, jak obiecuje przycisk (jeden kurs = jedna pozycja)? | `class-aai-platnosci-kasa.php` + pomiar na `:8892` | obietnica + zachowanie |
 | INT-11 | Czy skasowanie zamówienia w Woo sprząta zapis po stronie Tutora? | `wp aai-platnosci sprawdz` + pomiar | zamówienie usunięte + zapis pozostały |
+| INT-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 ## Jak zgłaszasz
 
