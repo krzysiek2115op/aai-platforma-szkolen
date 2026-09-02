@@ -19,6 +19,13 @@ Materiał: plan (wersja 4), `REGULAMIN.md`, `ROLE.md` × 2, 80 definicji,
 (`WERYFIKACJA-PLANU.md`), werdykt sędziego. Każde znalezisko ma dowód komendą;
 hipotezy są nazwane.
 
+**ROZSTRZYGNIĘCIA WŁAŚCICIELA (2026-09-02, po lekturze):** K4″ — powtarzalność nie jest
+celem budowy, agenci mają znaleźć WSZYSTKO (unieważnia założenie sekcji A1 i B5, że K4′
+ogranicza pracę agenta); raporty obu fal do lektury właściciela, narzędzie tylko nazywa
+wynik; re-audyt sekwencyjnie — tak; hash bez numeru linii — zgoda; pakiet F2/F3/F4/F6/F8
+— tak; E7 zaakceptowany. Pełnia: `REGULAMIN.md` §15 i §21, `PLAN-BUDOWY.md` „Sześć
+rozstrzygnięć po krytyce" z pakietem roboczym E7.7.
+
 ## Werdykt w trzech zdaniach
 
 Sektory są zbudowane **rzetelnie jako maszyna do powtarzalnego sprawdzania

@@ -349,6 +349,37 @@ Rozbieżność między falami **nie jest powodem do odrzucenia znaleziska** — 
 
 Wyniki obu przebiegów przechowujemy, żeby dało się wykazać powtarzalność.
 
+### Rozstrzygnięcie właściciela (2026-09-02) — K4″, zastępuje odczyt K4′ z 2026-09-01
+
+Dosłownie:
+> „Nie chodzi nam o to, żeby audyt i re-audyt był zrobiony tak, aby znalazł te same
+> błędy co druga fala. To ma się stać samo: po prostu wykryją wszystkie, jakie są
+> w projekcie, i więcej błędów nie będzie, więc 2. fala da ten sam wynik, bo też
+> wykryje błędy. Nie chcemy zrobić tak specjalnie, aby 2 fale dały ten sam wynik
+> dzięki temu, że zmieniamy pracę agentów. **Agenci mają znaleźć wszystko** i dlatego
+> 2. fala ma mieć te same błędy w raporcie, bo też znajduje wszystko. Nie chodzi nam
+> o to, aby audyt i re-audyt był tak zrobiony, aby dawał te same odpowiedzi zawsze."
+>
+> „Raporty z dwóch fal mają być dla nas na zapoznanie się. Nieważne, czy to będą
+> zgodne wyniki, czy nie — to my dalej nad nimi pracujemy, a narzędzie tak może to
+> nazywać: nadzbiorem czy sprzecznością."
+
+Co z tego wynika dla budowy (wiążące):
+
+- **Powtarzalność NIE jest celem budowy ani ograniczeniem pracy agenta.** Zgodność fal
+  ma być SKUTKIEM tego, że obie znalazły wszystko — nie skutkiem tego, że obie
+  dostały tę samą listę i nic poza nią.
+- **Checklista jest MINIMUM, nie sufitem.** Agent przechodzi całą listę (to zostaje —
+  bez tego nie da się zmierzyć, czy nic nie pominął), a potem **szuka dalej w swoim
+  zakresie** wszystkiego, co mogłoby skrzywdzić, z tym samym rygorem dowodu.
+  Zdanie „audyt nie może być swobodnym przeglądem — musi być listą sprawdzeń"
+  z doprecyzowania poniżej traci moc jako OGRANICZENIE; zostaje jako opis minimum.
+- **Rozjazd fal nie zatrzymuje procesu i nie jest z definicji defektem audytu.**
+  Narzędzie porównania NAZYWA wynik (zgodne / nadzbiór / sprzeczne), raporty obu
+  fal idą do właściciela do lektury, a decyzja, co z rozjazdem, należy do niego.
+- Mechaniczny zakres, twarde kryteria dowodu i hash miejsca ZOSTAJĄ — służą
+  sprawdzalności każdego zgłoszenia, nie wymuszaniu zgodności.
+
 ---
 
 ## 16. Walidacja — osobny dział sektora audytu
@@ -477,8 +508,10 @@ nie przekazuje go innemu działowi i **nie naprawia**.
 | W8 | Dział **„Usprawnienia audytowe"** — narzędzia do testów automatycznych |
 | W9 | **„NIE MA WYMYŚLANIA BŁĘDÓW" w wiadomości do każdego agenta** |
 | W10 | Audytor **drąży do miejsca**, nie przekazuje i nie naprawia |
-| K4′ | **Druga fala musi dać ten sam wynik**; rozbieżność = defekt audytu |
-| K9′ | Działy mogą pracować **równolegle**, byle sektory się **nie nakładały** |
+| K4′ | **Druga fala musi dać ten sam wynik**; rozbieżność = defekt audytu. **K4″ (2026-09-02):** agenci mają znaleźć WSZYSTKO, zgodność fal jest skutkiem, nie ograniczeniem; rozjazd = informacja do lektury właściciela, narzędzie nazywa go (zgodne / nadzbiór / sprzeczne), nie zatrzymuje — §15 |
+| K9′ | Działy mogą pracować **równolegle**, byle sektory się **nie nakładały**. **Doprecyzowanie (2026-09-02):** działy RE-AUDYTU pracujące na środowisku `:8892` — **sekwencyjnie**, ze stanem przywracanym ze zrzutu między działami |
+| H1 | **(2026-09-02)** hash miejsca liczony BEZ numeru linii (plik + znormalizowana treść linii, albo plik + zakres) — numer linii zostaje w dowodzie |
+| E7 | **(2026-09-02)** sektor RE-AUDYT ZAAKCEPTOWANY („akceptuję E7") |
 | K10′ | Miejsce błędu: linia kodu **albo** plik + zakres + nazwa mechanizmu |
 | K11′ | **Dokładamy Chrome** do narzędzi automatycznych |
 | K12′ | **Komunikacja wg schematu właściciela**, z naszymi działami w odpowiednich miejscach |

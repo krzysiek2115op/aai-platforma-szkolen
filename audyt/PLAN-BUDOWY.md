@@ -450,8 +450,8 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E4** — szkielet | ✅ **ZROBIONE, ZAAKCEPTOWANE** (właściciel, 2026-09-01: „E4 akceptuję teraz") | [`STRUKTURA.md`](STRUKTURA.md), 4 szablony, **10 narzędzi** w `audyt/tools/`, strażnik sektora (9 kontroli) + **11 mutacji** (0 przeoczonych, 0 martwych) |
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
-| **E7** — sektor RE-AUDYT | ✅ **E7.1–E7.6 ZROBIONE (2026-09-02) — CZEKA NA AKCEPTACJĘ WŁAŚCICIELA** | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. **Trzy polecenia z 2026-09-02 WYKONANE** (sekcja „Polecenia właściciela po E7.6"): modele Fable 5.1 ✅ (wymaga restartu sesji przed wywołaniem), weryfikacja planu ✅ (`WERYFIKACJA-PLANU.md`: 106/15/2), krytyka ✅ (`KRYTYKA-BUDOWY.md`: 21 znalezisk, 20 propozycji, po bramce sędziego). **Przed E8 zostają decyzje właściciela nad tabelą F krytyki i akceptacja E7** |
+| **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
+| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -1042,6 +1042,45 @@ uruchomieniowy aliasu `fable` na `aud-kier` (polecenie 1); (b) decyzje
 właściciela nad tabelą F krytyki — w szczególności pozycje 1–4, 6, 8
 (wiarygodność wyniku) i 7, 10, 18 (ruszają K4′/K9′); (c) akceptacja E7 wprost;
 (d) dopiero potem E8 = STOP i zielone światło na uruchomienie.
+
+### SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE (2026-09-02) — PAKIET PRZED E8
+
+Odpowiedź właściciela na sześć spraw z `KRYTYKA-BUDOWY.md` (tabela F):
+
+1. **K4″ — powtarzalność nie jest celem budowy** (pełny cytat: `REGULAMIN.md` §15).
+   Agenci mają znaleźć WSZYSTKO; zgodność fal ma być skutkiem, nie ograniczeniem.
+   Checklista = minimum, po niej agent szuka dalej w zakresie (pozycja otwarta
+   `<KOD>-90` w każdym dziale). Zdania „swobodny przegląd nie da tego samego wyniku
+   (K4′)" w szablonach i definicjach ról (82 pliki wspominają K4′, 20 — „swobodny
+   przegląd") są do przepisania.
+2. **Raporty obu fal — do lektury właściciela.** `porownaj-cykle.mjs` NAZYWA wynik
+   (zgodne / nadzbiór / sprzeczne), nie zatrzymuje, nie ogłasza „defektu audytu".
+3. **Re-audyt na środowisku sekwencyjnie** (zawężenie K9′ — właściciel: „tak"),
+   przywracanie stanu ze zrzutu między działami, nie `postaw.sh`.
+4. **Hash miejsca bez numeru linii** — zgoda (F1).
+5. **Pakiet wiarygodności F2, F3, F4, F6, F8** — zgoda.
+6. **E7 ZAAKCEPTOWANY** („akceptuję E7"); restart sesji robi właściciel.
+
+**PAKIET ROBOCZY „E7.7" — do wykonania przed E8, w tej kolejności** (każda pozycja
+osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
+
+| # | Pozycja | Stan |
+|---|---|---|
+| 1 | hash miejsca bez numeru linii (`wspolne.mjs`, `zgloszenie.mjs`, `polacz-sektory.mjs`, `porownaj-cykle.mjs`, goldeny ról, reguła 11) | ⬜ |
+| 2 | `porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u | ⬜ |
+| 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza PSIARZ/SKUT/STRAZ/WALID), drzewo wobec `glowa_main`; reguła 17 | ⬜ |
+| 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | ⬜ |
+| 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ⬜ |
+| 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | ⬜ |
+| 7 | re-audyt sekwencyjnie: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu | ⬜ |
+| 8 | test aliasu `fable` po restarcie sesji (`aud-kier`: nazwa modelu) | ⬜ (właściciel restartuje) |
+
+Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
+tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
+wg uznania właściciela.
+
+**NASTĘPNY KROK: pozycja 1 pakietu (hash miejsca).** Po restarcie sesji najpierw
+pozycja 8 (tanie), potem 1.
 
 ---
 
