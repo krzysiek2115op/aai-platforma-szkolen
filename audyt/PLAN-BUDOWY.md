@@ -451,16 +451,18 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; zrobione 8, 1, 2, 3, 4a)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
+| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; zrobione 8, 1, 2, 3, 4a, 4b, 6 — zostały 5 i 7)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
 **GDZIE JESTEŚMY (2026-09-02, wieczór) — dla nowej sesji i dla właściciela, który
 „trochę się pogubił":** OBA sektory są ZBUDOWANE (E1–E7 zaakceptowane) i żaden nie
 został URUCHOMIONY. Trwa pakiet E7.7 — poprawki wiarygodności przed E8 (STOP
-i zielone światło na przebieg). Zrobione: 8, 1, 2, 3, 4a. Zostały: **4b + 6** (jedno
-przejście po 80 definicjach), **5** (macierz reguła → mutacja), **7** (re-audyt
-sekwencyjnie na środowisku). Dopiero potem E8. Katalog `re-audyt/` jest MAŁY z decyzji,
+i zielone światło na przebieg). Zrobione: 8, 1, 2, 3, 4a, **4b + 6** (2026-09-02, noc — jedno
+przejście po 80 definicjach; odpowiedzi właściciela na pięć pytań NIE były zapisane,
+kod poszedł po rekomendacjach — **do potwierdzenia**, sekcja „POZYCJE 4b + 6").
+Zostały: **5** (macierz reguła → mutacja), **7** (re-audyt sekwencyjnie na
+środowisku). Dopiero potem E8. Katalog `re-audyt/` jest MAŁY z decyzji,
 nie z braku: ma tylko to, co jest RÓŻNE od audytu (`ROLE.md` 21 ról, `GRANICE.md`,
 `role/` 84 pliki); narzędzia, zgłoszenia, stan, migawki, szablony i dokumenty są
 WSPÓLNE i mieszkają w `audyt/` (rozstrzygnięcie 2026-09-01: jeden nośnik, W4 — inaczej
@@ -1091,7 +1093,7 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: odpowiedzi właściciela na PIĘĆ PYTAŃ z sekcji „POZYCJE 4b + 6 — PROJEKT DO DYSKUSJI" (niżej), potem `/clear`, potem KOD 4b + 6 jednym przejściem** (szablony → skrypt po 80 definicjach → `ROLE.md` obu sektorów → reguła 27 i rozszerzenie reguły 7 → mutacje → generat → trzy kontrole → przeniesienie `audyt/` na gałąź audytu). Potem pozycje 5 i 7, dopiero potem E8. Zapis historyczny: 4a WYKONANA 2026-09-02 (sekcja „POZYCJA 4a — ZROBIONA"). Lekcja z pozycji 3 obowiązuje dalej: **nie edytować `audyt/` w trakcie audytu mutacyjnego** i sprawdzać `pgrep -f audyt-straznika`, zanim uruchomi się cokolwiek w `audyt/tools/`.
+**NASTĘPNY KROK: pozycja 5 pakietu E7.7 (macierz reguła → mutacja), potem 7 (re-audyt sekwencyjnie na środowisku), dopiero potem E8.** Przy okazji właściciel potwierdza (albo zmienia) pięć założeń z sekcji „POZYCJE 4b + 6 — ZROBIONE" — kod 4b + 6 poszedł po rekomendacjach, bo jego odpowiedzi nie były zapisane. Zapis historyczny: 4b + 6 WYKONANE 2026-09-02 w nocy jednym przejściem (szablony → skrypt po 80 definicjach → `ROLE.md` obu sektorów → reguły 27/27b i rozszerzenie 7 → mutacje → generat → trzy kontrole → przeniesienie `audyt/` na gałąź audytu). Zapis historyczny: 4a WYKONANA 2026-09-02 (sekcja „POZYCJA 4a — ZROBIONA"). Lekcja z pozycji 3 obowiązuje dalej: **nie edytować `audyt/` w trakcie audytu mutacyjnego** i sprawdzać `pgrep -f audyt-straznika`, zanim uruchomi się cokolwiek w `audyt/tools/`.
 ### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
 
 Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
@@ -1405,7 +1407,7 @@ gicie, zanim wejdzie do procedury). Największe ryzyko: sparse checkout, który
 „działa" w lekturze dokumentacji, a nie chowa plików — dlatego egzekwuje go
 `status.mjs` po POLU `fala`, nie zaufanie do gita.
 
-#### PAKIET E7.7, POZYCJE 4b + 6 — PROJEKT DO DYSKUSJI (2026-09-02, wieczór), KOD NIE RUSZONY
+#### PAKIET E7.7, POZYCJE 4b + 6 — ZROBIONE 2026-09-02 w nocy (projekt niżej; wynik i ZAŁOŻENIA do potwierdzenia na końcu sekcji)
 
 Obie pozycje dotykają TYCH SAMYCH 80 plików definicji (40 `AGENT.md` + 40 `KRYTYK.md`
 obu sektorów) i obu szablonów, więc idą jednym przejściem skryptu (rozstrzygnięcie 6
@@ -1495,6 +1497,59 @@ sektora.
 pełny audyt mutacyjny ~15 min). Ryzyko: fraza o innym brzmieniu w którejś z 80
 definicji przechodzi niezmieniona — stąd skrypt WYPISUJE nietrafione pliki, a reguła
 27 i 27b mierzą skutek na każdym pliku, nie na szablonie.
+
+**WYNIK — ZROBIONE (kod po `/clear`, wg sekcji projektu wyżej, jednym przejściem):**
+
+**ZAŁOŻENIE DO POTWIERDZENIA PRZEZ WŁAŚCICIELA.** Odpowiedzi na pięć pytań NIE były
+zapisane w repo ani w checkpoincie sesji (ten kończył się na „Teraz odpowiedzi"). Kod
+poszedł po REKOMENDACJACH: (1) `-90` dla **28 ról działowych** (14 działów + 14
+Pogłębiaczy), role procesowe bez; (2) **jedno stałe zdanie** zakazu, wyjątek KIER
+i RAP obu sektorów jako DOPISEK (zdanie zostaje); (3) **bez `SKILL.md`**; (4) 27b jako
+**reguła**; (5) dokumenty historyczne **nietknięte**. Każda inna odpowiedź jest małą
+zmianą — skrypt przejścia jest idempotentny i wypisuje, czego nie trafił.
+
+**Co powstało (pięć kroków projektu, jeden skrypt `audyt/tools/przejscie-4b6.mjs` —
+zostaje w repo jako dowód; drugi przebieg nie zmienia nic, kod 0):**
+
+| Krok | Skutek zmierzony (licznik skryptu) |
+|---|---|
+| 1. szablony | `AGENT.md`, `KRYTYK.md`: sekcja **„Fala, w której pracujesz"** (2), zdanie o MINIMUM w „Prompt" (1), pytanie 4 krytyka (1) |
+| 2. 80 definicji | zakaz **80/80**; zdanie MINIMUM: audyt 19, Pogłębiacze 14, procesowe re-audytu 7 = **40/40**; „granica" (KON-A5) 19; pytanie 4 **40/40**; ścieżka `F<N>` + `stan/*-f<N>-<KOD>.json` **40/40** KRYTYK.md; KIER audytu: warstwa 1 → „reguła 27" |
+| 3. pozycja otwarta | `<KOD>-90` w `audyt/ROLE.md` 14, `re-audyt/ROLE.md` 14, `AGENT.md` 28; zdanie `re-audyt/ROLE.md:81` → K4″ |
+| 4. strażnik | **reguła 27** (zdanie zakazu w każdym AGENT/KRYTYK + oba szablony sprawdzane WPROST; pyta o zdanie „nie czytasz … innej fali", `\s+`), **27b** (żadna definicja — także SKILL.md — ani szablon nie niesie „swobodny przegląd nie da tego samego wyniku"), **rozszerzenie 7** (dział bez wiersza `-90` = błąd; pyta o WIERSZ TABELI, nie o wzmiankę) |
+| 5. mutacje | audyt **116 → 126**: zakaz znika z szablonu AGENT (wprost) / z szablonu KRYTYK (rola próbna) / z `SEC/AGENT.md`; kontrprzykład: inne łamanie wiersza; `SEC-90` znika z obu plików → reguła 7; tylko z `AGENT.md` → reguła 13; K4′ wraca do szablonu AGENT → 27b; kontrprzykład: „swobodny" w innym zdaniu; K4′ wraca do `re-audyt/SEC/AGENT.md` (`wymaga`); `SEC-90` znika z obu plików re-audytu (`wymaga`) |
+
+**Brzmienie zdania zakazu (stałe co do słowa w 82 plikach; reguła 27 pyta o nie):**
+> Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+> `audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+> Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+> być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
+Dopisek KIER/RAP: „po obu falach pracujesz w pełnym drzewie — porównanie i raport są
+o obu falach. W trakcie fali obowiązuje Cię zdanie wyżej." Zdanie MINIMUM dla działów
+kończy się „znalezisko spoza listy zgłaszasz pod pozycją `<KOD>-90`"; dla ról
+procesowych mówi wprost, że pozycji `-90` nie mają (przedmiot zamknięty).
+
+**Pomiar po przejściu:** `K4'` w definicjach i szablonach: **0** (było 80 plików);
+„swobodny przegląd nie da tego samego wyniku": **0** (było 27); zdanie zakazu: **82**
+(80 + 2 szablony; było 3). Reszta wzmianek o K4′ żyje wyłącznie w dokumentach
+historycznych (KRYTYKA-BUDOWY, WERYFIKACJA-PLANU, sekcje E1–E7 tego pliku, trzy
+zapisy w STRUKTURA.md o niekasowaniu wpisów) — rozstrzygnięcie 5.
+
+**Dwie pułapki pracy (kosztowały po minucie, trzy razy):** cudzysłów ASCII `"`
+zamykający polski cytat „…" wewnątrz łańcucha JS albo Pythona w cudzysłowach to
+`SyntaxError` — w łańcuchach używać `”` albo backticków; oraz `pgrep -f audyt-straznika`
+trafia we WŁASNĄ powłokę (wzorzec stoi w linii komendy) — czytać wynik z `-a`
+i odfiltrować `pgrep`/`zsh -c`, inaczej „audyt biegnie w tle" jest fałszywe.
+
+**Dowody:** `git diff main --name-only -- . ':!audyt' ':!re-audyt'` → 0; strażnik
+sektora kod 0 (29 numerów, 27 w dwóch częściach; „definicji ze zdaniem zakazu innej
+fali: 82"); audyt mutacyjny **126 / 0 przeoczonych / 0 martwych** (pełny przebieg);
+generat 80 definicji zgodny ze źródłem.
+
+**Czego 4b + 6 NIE zrobiło (zgodnie z projektem):** nie zmieniło narzędzi poza
+strażnikiem i audytem; nie ruszyło checklist poza dopisaniem `-90`; nie zmieniło modeli
+ani zakresów; nie uruchomiło sektora.
 
 #### PAKIET E7.7, POZYCJA 4a — ZROBIONA 2026-09-02 (kod po zielonym świetle „po clear kod")
 

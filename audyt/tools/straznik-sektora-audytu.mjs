@@ -1,8 +1,9 @@
 /**
- * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia osiem kontroli (numery 1–29;
- * 27 jest ZAREZERWOWANA dla pozycji 4b pakietu E7.7 — zdanie zakazu czytania
- * innej fali w 80 definicjach — i wejdzie razem z pozycją 6, bo dziś byłaby
- * czerwona na wszystkich osiemdziesięciu plikach).
+ * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia dziewięć kontroli (numery
+ * 1–29; reguła 27 ma dwie części: 27 — zdanie zakazu czytania innej fali
+ * w każdej definicji, 27b — definicja nie niesie wycofanego zdania K4′; obie
+ * weszły 2026-09-02 z pozycjami 4b + 6 pakietu E7.7, a reguła 7 dostała wtedy
+ * wymóg pozycji otwartej `<KOD>-90` dla działów).
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -195,10 +196,14 @@ if (BRAK_ROL) {
  */
 const ZAKRES_OBOWIAZKOWY = new Set(DZIALY);
 
-/* ── 7. każda rola ma MECHANICZNY zakres i checklistę (K4') ────────────────
-   To jest warunek powtarzalności, nie kosmetyka: rola bez listy sprawdzeń
-   robi swobodny przegląd, a swobodny przegląd nie da tego samego wyniku
-   w drugiej fali. */
+/* ── 7. każda rola ma MECHANICZNY zakres i checklistę; dział — pozycję otwartą ─
+   Checklista jest MINIMUM (K4″, REGULAMIN §15): bez listy nie da się zmierzyć,
+   czy rola niczego nie pominęła. Nie jest sufitem — dlatego każdy DZIAŁ (14
+   audytu + 14 Pogłębiaczy; rozstrzygnięcie właściciela 2026-09-02, pytanie 1)
+   ma pozycję otwartą `<KOD>-90`, pod którą ląduje znalezisko spoza listy.
+   Bez niej „szukaj dalej w swoim zakresie" nie ma gdzie wylądować, a
+   `porownaj-cykle` nie ma czego oznaczyć jako otwarte. Role procesowe jej
+   nie mają — ich przedmiot jest zamknięty (wyniki innych ról). */
 for (const { sektor, kody } of ROLE_SEKTOROW) {
   const plik = roleMdSektora(sektor);
   if (!existsSync(plik)) {
@@ -219,8 +224,13 @@ for (const { sektor, kody } of ROLE_SEKTOROW) {
     // Checklista = tabela z pozycjami postaci KOD-01, KON-A1, SEC-R1.
     // Litera po myślniku jest OPCJONALNA i dowolna: Konrad ma `A`, re-audyt `R`.
     const pozycje = (s.match(new RegExp(`^\\| ${kod}-[A-Z]?\\d+ \\|`, "gm")) ?? []).length;
-    if (!maZakres) bledy.push(`rola ${kod} w ${sektor}/ROLE.md nie ma mechanicznego zakresu (K4')`);
-    if (pozycje < 5) bledy.push(`rola ${kod} (${sektor}) ma ${pozycje} pozycji checklisty — za mało, by wyczerpać listę (K4')`);
+    if (!maZakres) bledy.push(`rola ${kod} w ${sektor}/ROLE.md nie ma mechanicznego zakresu (checklista = minimum, K4″)`);
+    if (pozycje < 5) bledy.push(`rola ${kod} (${sektor}) ma ${pozycje} pozycji checklisty — za mało, by wyczerpać listę (K4″: lista jest minimum)`);
+    // Pytamy o WIERSZ TABELI z kodem `<KOD>-90`, nie o wzmiankę w prozie — wzmianka
+    // „zgłaszasz pod SEC-90" przy braku wiersza to pozycja, której nikt nie zada.
+    if (ZAKRES_OBOWIAZKOWY.has(kod) && !new RegExp(`^\\| ${kod}-90 \\|`, "m").test(s)) {
+      bledy.push(`rola ${kod} (${sektor}) nie ma pozycji otwartej ${kod}-90 — „szukaj dalej w zakresie" (K4″) nie ma gdzie wylądować`);
+    }
   }
   for (const kod of roleSektora(sektor)) {
     if (!znalezione.has(kod)) bledy.push(`${sektor}/ROLE.md nie opisuje roli ${kod}`);
@@ -1079,6 +1089,56 @@ try {
     }
   }
   if (sprawdzone) uwagi.push(`krytyków wskazujących własny sektor: ${sprawdzone}`);
+}
+
+/* ── 27. zdanie zakazu czytania innej fali w KAŻDEJ definicji (pozycja 4b E7.7) ─
+   Pierwsza z czterech warstw ślepoty fali 2 (STRUKTURA.md, „Ślepota fali 2 ma
+   CZTERY warstwy"). Do 2026-09-02 zdanie stało w 3 z 80 definicji — agent
+   z `Read`/`Grep`/`Bash` nie miał w definicji ani słowa, że wpisów innej fali
+   nie czyta. Warstwy 2–4 (narzędzie, dysk, porównanie) działają bez niej, ale
+   są siatką; definicja jest tym, co agent NAPRAWDĘ czyta.
+
+   Pytamy o ROZSTRZYGNIĘCIE — zdanie „nie czytasz wpisów, stanu ani wyników
+   innej fali" — nie o nagłówek sekcji „Fala, w której pracujesz": nagłówek
+   z pustą treścią niczego nie zabrania. Odstępy jako `\s+` (lekcja reguły 6):
+   inne łamanie wiersza nie zapala (kontrprzykład w audycie). SZABLONY
+   sprawdzane WPROST, nie tylko przez rolę próbną — nowa rola pisana
+   z szablonu bez zdania dziedziczyłaby dziurę bez objawu. `SKILL.md` zdania
+   nie musi mieć (rozstrzygnięcie właściciela, pytanie 3: harness czyta
+   AGENT/KRYTYK; zakaz w dwóch plikach na rolę, nie w trzech).
+
+   27b — DEFINICJA NIE NIESIE WYCOFANEGO K4′. Zdanie „swobodny przegląd nie da
+   tego samego wyniku" znaczy dziś ODWROTNOŚĆ K4″ (REGULAMIN §15: lista jest
+   MINIMUM, nie sufitem) i stało w 27 plikach. To pytanie o obecność napisu —
+   ale napis JEST rozstrzygnięciem, które właściciel zastąpił; kontrprzykład:
+   słowo „swobodny" w innym zdaniu nie zapala. Reguła, nie jednorazowe
+   przejście skryptu (pytanie 4): szablony żyją dalej, a rola pisana z pamięci
+   E5 wniosłaby K4′ z powrotem bez objawu. Tu SKILL.md też jest sprawdzany —
+   zakazu nie musi mieć, ale wycofanego zdania nieść nie może. */
+const ZAKAZ_INNEJ_FALI = odstepy("nie czytasz wpis[óo]w, stanu ani wynik[óo]w innej fali");
+const WYCOFANE_K4 = odstepy("swobodny przegl[ąa]d nie da tego samego wyniku");
+{
+  const szablony = ["AGENT.md", "KRYTYK.md", "SKILL.md"].map((p) => ({
+    gdzie: `audyt/szablony/${p}`, sciezka: join(SEKTOR, "szablony", p), zakaz: p !== "SKILL.md",
+  }));
+  const definicje = ROLE_WSZYSTKIE.flatMap(({ katalog, kod, gdzie }) =>
+    ["AGENT.md", "KRYTYK.md", "SKILL.md"].map((p) => ({
+      gdzie: `${gdzie}/${p}`, sciezka: join(katalog, kod, p), zakaz: p !== "SKILL.md",
+    }))
+  );
+  let zZakazem = 0;
+  for (const { gdzie, sciezka, zakaz } of [...szablony, ...definicje]) {
+    if (!existsSync(sciezka)) continue; // braki plików łapią reguły 2, 3 i 12
+    const t = readFileSync(sciezka, "utf8");
+    if (zakaz) {
+      if (ZAKAZ_INNEJ_FALI.test(t)) zZakazem++;
+      else bledy.push(`${gdzie}: brak zdania zakazu czytania innej fali (reguła 27 — agent fali 2 ma Read/Bash i nie ma w definicji ani słowa, że wpisów fali 1 nie czyta)`);
+    }
+    if (WYCOFANE_K4.test(t)) {
+      bledy.push(`${gdzie}: niesie wycofane zdanie K4′ „swobodny przegląd nie da tego samego wyniku" (27b — K4″: checklista jest MINIMUM, nie sufitem)`);
+    }
+  }
+  if (zZakazem) uwagi.push(`definicji ze zdaniem zakazu innej fali: ${zZakazem}`);
 }
 
 /* ── wynik ── */

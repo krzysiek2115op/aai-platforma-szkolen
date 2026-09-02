@@ -80,6 +80,17 @@ Wyjście roli `<KOD>` **w Twojej fali N**: jej zgłoszenia
 i raport działu. Fala siedzi w nazwie wpisu — krytyk fali 2 z definicji nie
 otwiera wpisów `-F1-`, a w worktree fali 2 nie ma ich na dysku.
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
+<Tylko dla KIER i RAP dopisz: „Wyjątek Twojej roli: **po obu falach pracujesz
+w pełnym drzewie** — porównanie i raport są o obu falach. W trakcie fali
+obowiązuje Cię zdanie wyżej.”>
+
 ## Prompt
 
 Dla **każdego** zgłoszenia roli `<KOD>` odpowiedz na pięć pytań:
@@ -91,7 +102,8 @@ Dla **każdego** zgłoszenia roli `<KOD>` odpowiedz na pięć pytań:
 3. **Czy zjawisko jest czynne?** Sprawdź, czy coś nie blokuje go wcześniej na
    ścieżce wywołania. Znalezisko zablokowane gdzie indziej to inne znalezisko.
 4. **Czy to na pewno zakres tej roli?** Sprawdź `GRANICE.md`. Znalezisko
-   przypisane do złego działu rozjedzie drugą falę (K4').
+   przypisane do złego działu **nie jest powodem odrzucenia** — to wiersz do
+   tabeli granic (KIER-04); werdykt dotyczy dowodu, nie adresata.
 5. **Czy stwierdzenie jest jednoznaczne?** „Wydaje mi się" = odrzucenie.
 
 Sprawdź też **pracę agenta jako całość**:

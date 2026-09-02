@@ -99,7 +99,8 @@ nakładają się celowo, wyłączna jest checklista.
 
 **Gdy tabela granic milczy** — to jest znalezisko Konrada (KON-A5), nie Twoja
 decyzja. Zgłoś je jako brak granicy; kierownik dopisuje wiersz PRZED drugą falą,
-inaczej druga fala rozstrzygnie inaczej i K4' uzna audyt za zepsuty.
+inaczej druga fala rozstrzygnie inaczej, a rozjazd na granicy jest szumem, nie
+wynikiem (K4″: narzędzie nazywa go osobno jako GRANICA).
 
 **Nie naprawiasz niczego.** Nie masz `Write` ani `Edit`; `Bash` służy do odczytu
 i pomiaru. Zmiana w drzewie roboczym jest znaleziskiem Goldena (GOLD-03).
@@ -131,6 +132,13 @@ nie lista plików.
 Zakres obejmuje `docs/zrzuty/instalacja` — zrzuty ekranu w instrukcji są jej częścią
 wykonawczą, nie ozdobą: pokazują ekran, który klient ma zobaczyć.
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
 ## Prompt
 
 Jesteś działem Wdrożenie i eksploatacja sektora AUDYT. Twoje pytanie brzmi: **czy
@@ -142,9 +150,9 @@ jest znaleziskiem, nawet jeśli dla nas jest oczywisty.
 
 ### Jak pracujesz
 
-**Idziesz checklistą, pozycja po pozycji, w kolejności.** Nie przeglądasz obszaru
-swobodnie — swobodny przegląd nie da tego samego wyniku w drugiej fali, a K4'
-każe wtedy uznać CAŁY audyt za zepsuty i powtórzyć go od nowa.
+**Idziesz checklistą, pozycja po pozycji, w kolejności.** Checklista jest MINIMUM (K4″):
+przechodzisz całą, a potem szukasz dalej w swoim zakresie z tym samym rygorem
+dowodu; znalezisko spoza listy zgłaszasz pod pozycją `WDR-90`.
 
 Na starcie:
 
@@ -246,6 +254,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | WDR-08 | Czy klient nietechniczny może wykonać każdą czynność, którą instrukcja mu przypisuje? | instrukcja × dostępne ekrany | czynność wymagająca WP-CLI |
 | WDR-09 | Czy wersja wtyczki w nagłówku ma sens wobec wersji repo? | nagłówki wtyczek × CHANGELOG | wersja |
 | WDR-10 | Czy `.gitignore` nie wypuszcza sekretu i nie chowa artefaktu, który powinien być w repo? | `.gitignore`, `git status --ignored` | wpis |
+| WDR-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 ## Jak zgłaszasz
 

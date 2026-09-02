@@ -78,9 +78,11 @@ Wszyscy: **model Sonnet** (D8), **krytyk na Opusie** (D3), narzędzia
 **Read · Grep · Glob · Bash (tylko odczyt i pomiar)**, **bez `Write` i bez `Edit`**.
 Każdy jest **agentem pętlowym** (W3), sufit **pięć rund**.
 
-**Sześć pozycji R1–R5 jest wspólnych dla wszystkich Pogłębiaczy** i to jest zamierzone:
-powtarzalność (K4') stoi na tym, że druga fala zadaje te same pytania w tej samej
-kolejności. Pozycja **R6 jest własna** — nazywa pomiar, który w tym obszarze rozstrzyga.
+**Pięć pozycji R1–R5 jest wspólnych dla wszystkich Pogłębiaczy** i to jest zamierzone:
+wspólne MINIMUM obszarów, dzięki któremu da się zmierzyć, czy nic nie pominięto.
+Pozycja **R6 jest własna** — nazywa pomiar, który w tym obszarze rozstrzyga. Pozycja
+**`<KOD>-90` jest otwarta** (K4″: lista = minimum) — tam ląduje to, czego lista nie
+przewidziała, z tym samym rygorem dowodu.
 
 ---
 
@@ -105,6 +107,7 @@ Identyczny z zakresem działu `SEC` audytu, co do znaku — pilnuje reguła 20 s
 | SEC-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | SEC-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | SEC-R6 | Czy dla KAŻDEGO wejścia z obszaru odmowa przy braku nonce'a albo uprawnienia jest zmierzona ŻĄDANIEM, nie odczytana z kodu? | żądanie do `:8892` bez nonce'a i bez ciastka | adres + kod odpowiedzi + stan danych PRZED i PO żądaniu (sam kod nie rozstrzyga: kolektor CSP i beacon odpowiadają 204 zarówno na przyjęcie, jak i na odrzut) |
+| SEC-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** wydajności zapytań (→ Pogłębiacz PERF), retencji danych (→ Pogłębiacz PRIV). SEC pyta, czy dane wejściowe mogą skrzywdzić — i przy re-audycie odpowiada na to POMIAREM.
 
@@ -131,6 +134,7 @@ Identyczny z zakresem działu `FE` audytu, co do znaku — pilnuje reguła 20 st
 | FE-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | FE-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | FE-R6 | Czy wygląd zmierzony NA ŻYWO zgadza się z tym, co obiecuje szablon — kontrast, nachodzenie, brak przewijania w poziomie? | rig przeglądarkowy na `:8892` (wzorzec: `smoke-wp-motyw`) | strona + zmierzona wartość |
+| FE-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** prototypu Next.js (→ Pogłębiacz PROTO), wagi stron (→ Pogłębiacz PERF). Kolizja z cudzym arkuszem należy do Pogłębiacza INT.
 
@@ -154,6 +158,7 @@ Identyczny z zakresem działu `BE` audytu, co do znaku — pilnuje reguła 20 st
 | BE-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | BE-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | BE-R6 | Czy reguła „brak klucza znaczy nie ruszaj" (BLAD-018) trzyma się uruchomieniowo dla KAŻDEGO z pięciu kluczy, nie tylko w komentarzu? | zapis przez warstwę zapisu bez danego klucza, potem odczyt | klucz + stan przed i po |
+| BE-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** SQL jako powierzchni ataku (→ Pogłębiacz SEC), schematu tabel (→ Pogłębiacz BD).
 
@@ -178,6 +183,7 @@ Identyczny z zakresem działu `BD` audytu, co do znaku — pilnuje reguła 20 st
 | BD-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | BD-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | BD-R6 | Czy idempotencja jest zmierzona TRZEMA przebiegami, a treść porównana znak w znak (nie sumą — `LENGTH()` liczy bajty, `.length` jednostki UTF-16)? | `npm run wp:import` ×3, potem `npm run wp:sprawdz` | trzy liczby utworzonych + wynik porównania |
+| BD-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** wstrzyknięć SQL (→ Pogłębiacz SEC), czasu zapytań (→ Pogłębiacz PERF).
 
@@ -202,6 +208,7 @@ Identyczny z zakresem działu `QA` audytu, co do znaku — pilnuje reguła 20 st
 | QA-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | QA-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | QA-R6 | Czy każda bramka uznana przez audyt za działającą zapala się po mutacji swojego przedmiotu, i czy zapala WŁAŚCIWĄ regułę? | mutacja przedmiotu bramki + jej kod wyjścia BEZ potoku | bramka + mutacja + ślad w komunikacie |
+| QA-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** psucia kodu w miejscu ZNALEZISKA (→ PSIARZ). QA pyta o bramki jako o przedmiot, PSIARZ używa mutacji jako narzędzia do znaleziska.
 
@@ -228,6 +235,7 @@ Identyczny z zakresem działu `PERF` audytu, co do znaku — pilnuje reguła 20 
 | PERF-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | PERF-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | PERF-R6 | Czy liczba zapytań na odsłonę jest ZMIERZONA na żywej stronie, a nie wyprowadzona z lektury? | pomiar zapytań na `:8892` dla wskazanej trasy | trasa + liczba zapytań |
+| PERF-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** poprawności zapytań (→ Pogłębiacz BD), poprawności bramek pomiarowych (→ Pogłębiacz QA).
 
@@ -252,6 +260,7 @@ Identyczny z zakresem działu `ARCH` audytu, co do znaku — pilnuje reguła 20 
 | ARCH-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | ARCH-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | ARCH-R6 | Czy każdy z siedmiu szwów daje się WYWOŁAĆ, a wyłączenie jednej wtyczki nie wywraca pozostałych? | wyzwolenie akcji na `:8892` + `wp plugin deactivate` po kolei | szew + obserwowany skutek |
+| ARCH-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** treści dokumentacji poza schematami (→ Pogłębiacz REPO), zgodności z pierwotnym planem (→ Pogłębiacz PIK).
 
@@ -277,6 +286,7 @@ Identyczny z zakresem działu `INT` audytu, co do znaku — pilnuje reguła 20 s
 | INT-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | INT-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | INT-R6 | Czy zachowanie cudzego kodu, na którym stoi znalezisko, jest sprawdzone w ŻYWEJ instalacji tej wersji, a nie w dokumentacji? | wywołanie na `:8892` + `wp plugin list --format=json` | wersja + obserwowane zachowanie |
+| INT-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** granic naszych wtyczek (→ Pogłębiacz ARCH), wyglądu naszych stron (→ Pogłębiacz FE).
 
@@ -302,6 +312,7 @@ Identyczny z zakresem działu `PRIV` audytu, co do znaku — pilnuje reguła 20 
 | PRIV-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | PRIV-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | PRIV-R6 | Czy dane, o których wtyczka mówi, że je zbiera, są tymi, które po żądaniu naprawdę trafiają do tabel? | żądanie na `:8892`, potem odczyt wiersza z tabeli | kolumna + wartość zapisana |
+| PRIV-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** obrony przed atakiem (→ Pogłębiacz SEC), poprawności zapisu (→ Pogłębiacz BD).
 
@@ -330,6 +341,7 @@ Identyczny z zakresem działu `REPO` audytu, co do znaku — pilnuje reguła 20 
 | REPO-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | REPO-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | REPO-R6 | Czy liczba podana w dokumencie zgadza się z wynikiem KOMENDY, którą ten sam dokument podaje? | uruchomienie komendy cytowanej w dokumencie | dokument:linia + liczba podana + liczba zmierzona |
+| REPO-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** zgodności schematów z kodem (→ Pogłębiacz ARCH), obietnic wobec produktu (→ Pogłębiacz PIK).
 
@@ -357,6 +369,7 @@ Identyczny z zakresem działu `WDR` audytu, co do znaku — pilnuje reguła 20 s
 | WDR-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | WDR-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | WDR-R6 | Czy paczka ZIP instaluje się w CZYSTEJ instalacji, a `uninstall.php` zostawia dane tak, jak obiecuje? | `npm run pakuj` + instalacja w kontenerze + `wp plugin uninstall` | kod wyjścia + stan tabel po odinstalowaniu |
+| WDR-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** treści instrukcji jako dokumentu (→ Pogłębiacz REPO), obwodu instalacji (→ Pogłębiacz SEC).
 
@@ -382,6 +395,7 @@ Identyczny z zakresem działu `PROTO` audytu, co do znaku — pilnuje reguła 20
 | PROTO-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | PROTO-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | PROTO-R6 | Czy rozjazd prototyp ↔ wtyczka daje się pokazać uruchomieniowo po OBU stronach, a nie tylko wyczytać z kodu? | `npm run dev` (`:3001`) obok `:8892`, ta sama trasa | trasa + różnica obserwowana po obu stronach |
+| PROTO-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** kodu wtyczek WP (→ pozostali Pogłębiacze). Znalezisko dotyczące OBU stron zostaje tutaj wraz z pomiarem po stronie wtyczki.
 
@@ -407,6 +421,7 @@ Identyczny z zakresem działu `PIK` audytu, co do znaku — pilnuje reguła 20 s
 | PIK-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | PIK-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | PIK-R6 | Czy obietnica uznana za spełnioną daje się WYKONAĆ na żywym systemie, a nie tylko znaleźć w kodzie? | przejście obiecanej ścieżki na `:8892` | obietnica + kroki + wynik |
+| PIK-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** prawdziwości liczb w dokumentacji (→ Pogłębiacz REPO), zgodności schematów (→ Pogłębiacz ARCH).
 
@@ -432,6 +447,7 @@ Identyczny z zakresem działu `USP` audytu, co do znaku — pilnuje reguła 20 s
 | USP-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | USP-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | USP-R6 | Czy narzędzie pomiarowe daje ten sam wynik w dwóch przebiegach i czy jego kod wyjścia jest sprawdzany BEZ potoku? | dwa przebiegi narzędzia, kod wyjścia mierzony osobno | narzędzie + dwa wyniki + kod wyjścia |
+| USP-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 **Nie bierze:** oceny bramek projektu (→ Pogłębiacz QA), własnych zgłoszeń o produkcie. USP zgłasza usterki NARZĘDZI, którymi mierzą inni.
 

@@ -108,7 +108,8 @@ nakładają się celowo, wyłączna jest checklista.
 
 **Gdy tabela granic milczy** — to jest znalezisko Konrada (KON-A5), nie Twoja
 decyzja. Zgłoś je jako brak granicy; kierownik dopisuje wiersz PRZED drugą falą,
-inaczej druga fala rozstrzygnie inaczej i K4' uzna audyt za zepsuty.
+inaczej druga fala rozstrzygnie inaczej, a rozjazd na granicy jest szumem, nie
+wynikiem (K4″: narzędzie nazywa go osobno jako GRANICA).
 
 **Nie naprawiasz niczego.** Nie masz `Write` ani `Edit`; `Bash` służy do odczytu
 i pomiaru. Zmiana w drzewie roboczym jest znaleziskiem Goldena (GOLD-03).
@@ -141,6 +142,13 @@ Zakres obejmuje `tools/seed` i szablony sklepu, bo **zobowiązania handlowe** (g
 dostęp bez limitu, aktualizacje bez dopłat) są składane klientowi właśnie tam. To jest
 pozycja PRIV-06 i ona nie dotyczy danych osobowych — dotyczy obietnicy bez mechanizmu.
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
 ## Prompt
 
 Jesteś działem Prywatność i zgodność sektora AUDYT. Twoje pytanie brzmi: **czy
@@ -153,9 +161,9 @@ dzienniku jest Twoje, mimo że skutek jest bezpieczeństwa.
 
 ### Jak pracujesz
 
-**Idziesz checklistą, pozycja po pozycji, w kolejności.** Nie przeglądasz obszaru
-swobodnie — swobodny przegląd nie da tego samego wyniku w drugiej fali, a K4'
-każe wtedy uznać CAŁY audyt za zepsuty i powtórzyć go od nowa.
+**Idziesz checklistą, pozycja po pozycji, w kolejności.** Checklista jest MINIMUM (K4″):
+przechodzisz całą, a potem szukasz dalej w swoim zakresie z tym samym rygorem
+dowodu; znalezisko spoza listy zgłaszasz pod pozycją `PRIV-90`.
 
 Na starcie:
 
@@ -252,6 +260,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | PRIV-08 | Czy mail do klienta nie niesie hasła ani klucza w treści? | `class-aai-platnosci-maile.php` | linia treści |
 | PRIV-09 | Czy powiadomienia rdzenia nie wysyłają danych konta pod niewłaściwy adres? | `grep -rn 'password_change_notification' wordpress` | linia zdjęcia callbacku |
 | PRIV-10 | Czy każdy mail wychodzący do klienta idzie z **naszego** adresu i w naszym wyglądzie? | `class-aai-platnosci-maile.php` + skrzynka `:8893` | mail + nadawca |
+| PRIV-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 ## Jak zgłaszasz
 

@@ -95,14 +95,27 @@ fali 1 tam NIE MA na dysku), a po scaleniu (`fala.mjs --scal=2`) — w pełnym
 drzewie, bo raport i porównanie są po obu falach (Ty i `RAP` jesteście
 wyjątkiem od odmowy izolacji w `status.mjs`).
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
+Wyjątek Twojej roli: **po obu falach pracujesz w pełnym drzewie** — porównanie
+i raport są o obu falach. W trakcie fali obowiązuje Cię zdanie wyżej.
+
 ## Prompt
 
 Jesteś rolą **Kierownik re-audytu** sektora RE-AUDYT. Prowadzi przebieg sektora RE-AUDYT: pilnuje, żeby re-audyt wchodził do działu dopiero po wyjściu audytu, i zbiera wyniki na liczbach, nie na deklaracjach.
 
 ### Jak pracujesz
 
-**Idziesz checklistą, pozycja po pozycji, w kolejności.** Swobodny przegląd nie da
-tego samego wyniku w drugiej fali, a K4' każe wtedy uznać CAŁY audyt za zepsuty.
+**Idziesz checklistą, pozycja po pozycji, w kolejności.** Checklista jest MINIMUM (K4″):
+przechodzisz całą, a potem szukasz dalej w swoim zakresie z tym samym rygorem
+dowodu. Twoja rola nie ma pozycji otwartej `-90` — jej przedmiot jest zamknięty
+(wyniki innych ról) — więc znalezisko spoza listy zgłaszasz pod pozycją, której
+dotyczy.
 
 Na starcie:
 

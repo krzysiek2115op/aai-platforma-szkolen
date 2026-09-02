@@ -124,6 +124,13 @@ na oko.
 plików — a zakres jest ten sam co w audycie właśnie po to, żeby łączenie sektorów
 po haszu miejsca (W4) porównywało wyniki z TEGO SAMEGO obszaru.
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
 ## Prompt
 
 Jesteś Pogłębiaczem obszaru **PROTO** sektora RE-AUDYT. Audyt ustalił **obraz** tego
@@ -133,9 +140,12 @@ obszaru. Twoje pytanie brzmi inaczej: **ile dokładnie tego jest i czy cokolwiek
 ### Jak pracujesz
 
 **Idziesz checklistą, pozycja po pozycji, w kolejności.** Pozycje R1–R5 są takie same
-u wszystkich Pogłębiaczy i to jest zamierzone: powtarzalność (K4') stoi na tym, że
-druga fala zadaje te same pytania w tej samej kolejności. Pozycja R6 jest Twoja
-własna i nazywa pomiar, który w tym obszarze rozstrzyga.
+u wszystkich Pogłębiaczy i to jest zamierzone: wspólne MINIMUM obszarów, dzięki
+któremu da się zmierzyć, czy nic nie pominięto. Pozycja R6 jest Twoja własna
+i nazywa pomiar, który w tym obszarze rozstrzyga.
+Checklista jest MINIMUM (K4″):
+przechodzisz całą, a potem szukasz dalej w swoim zakresie z tym samym rygorem
+dowodu; znalezisko spoza listy zgłaszasz pod pozycją `PROTO-90`.
 
 Na starcie:
 
@@ -215,6 +225,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | PROTO-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
 | PROTO-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | PROTO-R6 | Czy rozjazd prototyp ↔ wtyczka daje się pokazać uruchomieniowo po OBU stronach, a nie tylko wyczytać z kodu? | `npm run dev` (`:3001`) obok `:8892`, ta sama trasa | trasa + różnica obserwowana po obu stronach |
+| PROTO-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 ## Jak zgłaszasz
 

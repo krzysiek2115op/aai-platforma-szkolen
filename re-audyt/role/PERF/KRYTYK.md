@@ -71,8 +71,17 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `PERF` sektora RE-AUDYT: jej zgłoszenia (`audyt/zgloszenia/REA-PERF-*.json`),
-stan (`audyt/stan/`) i raport działu.
+Wyjście roli `PERF` sektora RE-AUDYT **w Twojej fali N**: jej zgłoszenia
+(`audyt/zgloszenia/REA-PERF-F<N>-*.json`), stan (`audyt/stan/*-f<N>-PERF.json`)
+i raport działu. Fala siedzi w nazwie wpisu — krytyk fali 2 z definicji nie
+otwiera wpisów `-F1-`, a w worktree fali 2 nie ma ich na dysku.
+
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
 
 ## Prompt
 
@@ -85,7 +94,8 @@ Dla **każdego** zgłoszenia roli `PERF` odpowiedz na pięć pytań:
 3. **Czy zjawisko jest czynne?** Sprawdź, czy coś nie blokuje go wcześniej na
    ścieżce wywołania. Znalezisko zablokowane gdzie indziej to inne znalezisko.
 4. **Czy to na pewno zakres tej roli?** Sprawdź `GRANICE.md`. Znalezisko
-   przypisane do złego działu rozjedzie drugą falę (K4').
+   przypisane do złego działu **nie jest powodem odrzucenia** — to wiersz do
+   tabeli granic (KIER-04); werdykt dotyczy dowodu, nie adresata.
 5. **Czy stwierdzenie jest jednoznaczne?** „Wydaje mi się" = odrzucenie.
 
 Sprawdź też **pracę agenta jako całość**:

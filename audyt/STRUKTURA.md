@@ -33,8 +33,9 @@ audyt/
     polacz-sektory.mjs           audyt + re-audyt (W4)
     fala.mjs                     worktree fali 2 ze sparse checkoutem bez fali 1 (--postaw=2 | --scal=2)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  dwadzieścia osiem kontroli (1–29, 27 zarezerwowana dla 4b), OBA sektory
+    straznik-sektora-audytu.mjs  dwadzieścia dziewięć kontroli (1–29; 27 = zakaz innej fali, 27b = brak K4′), OBA sektory
     audyt-straznika-sektora.mjs  mutacje strażnika
+    przejscie-4b6.mjs            jednorazowy skrypt przejścia 4b + 6 (2026-09-02) — dowód, nie narzędzie sektora
     pobierz-dokumentacje-audyt.mjs
 
   role/                 19 ról, po katalogu na rolę (E5)
@@ -175,7 +176,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 | 4 | generat zgodny ze źródłem, bez sierot | agent istnieje, choć nikt go już nie definiuje |
 | 5 | każde zgłoszenie ma dowód, miejsce i hash | wpis dopisany ręcznie omija bramkę |
 | 6 | trzy zasady nadrzędne dosłownie | definicja z pustym nagłówkiem niczego nie zabrania (W9) |
-| 7 | mechaniczny zakres i checklista w `ROLE.md` | swobodny przegląd nie da tego samego wyniku w drugiej fali (K4′) |
+| 7 | mechaniczny zakres i checklista w `ROLE.md`; każdy DZIAŁ (14 + 14 Pogłębiaczy) ma pozycję otwartą `<KOD>-90` | rola bez listy nie da się zmierzyć, czy niczego nie pominęła (K4″: lista = minimum); bez `-90` „szukaj dalej w zakresie" nie ma gdzie wylądować |
 | 8 | mapa pokrycia bez sierot | plik, którego nie czyta nikt |
 | 9 | `zgloszenie.mjs --test` przechodzi | bramka wpuszczania znalezisk jest zepsuta |
 | 10 | trzynaście zasad Goldena w `AGENT.md` i `KRYTYK.md` | agent nie wie, wobec czego będzie oceniany |
@@ -195,7 +196,8 @@ mutacje**, uruchamiane na gałęzi sektora.
 | 24 | szablon goldena też jest miarą | golden każdej nowej roli powstaje z szablonu, który wskazuje linię obok |
 | 25 | `porownaj-cykle.mjs --test` przechodzi | regresja do K4′ (rozjazd = STOP) albo ślepota na werdykty bez objawu do końca dwóch fal |
 | 26 | `status.mjs --test` przechodzi | pięć odmów narzędzia stanu (fala, kolejność sektorów, cofanie przy Pogłębiaczu, drzewo produktu wobec migawki, **izolacja fali 2**) bez bramki do pierwszej fali |
-| 27 | *(zarezerwowana — pozycja 4b pakietu E7.7: zdanie zakazu czytania innej fali w 80 definicjach; wchodzi z pozycją 6)* | agent fali 2 nie ma w definicji zakazu, a ma `Read`/`Grep`/`Bash` |
+| 27 | zdanie zakazu czytania innej fali („nie czytasz wpisów, stanu ani wyników innej fali") w każdym `AGENT.md` i `KRYTYK.md` oraz w obu szablonach (sprawdzanych wprost) | agent fali 2 nie ma w definicji zakazu, a ma `Read`/`Grep`/`Bash` — do 2026-09-02 zdanie stało w 3 z 80 definicji |
+| 27b | żadna definicja (`AGENT.md`, `KRYTYK.md`, `SKILL.md`) ani szablon nie niesie wycofanego zdania K4′ „swobodny przegląd nie da tego samego wyniku" | zdanie znaczy odwrotność K4″ (lista = sufit); rola pisana z pamięci E5 wniosłaby je z powrotem bez objawu |
 | 28 | `stan/` i `migawki/` NIE są ignorowane przez gita | stan fali 2 z worktree nie wraca do drzewa sektora; dziennik wejść przestaje być dowodem |
 | 29 | `fala.mjs --test` przechodzi | worktree fali 2 bez wykluczeń „działa" w lekturze dokumentacji, a agent fali 2 otwiera wpisy fali 1 |
 
@@ -506,7 +508,8 @@ naprawdę działała jedna, czysty kontekst, bo zakaz stał wyłącznie w defini
 kierownika, a wpisy fali 1 leżały w tym samym katalogu):
 
 1. **definicje** — zdanie zakazu czytania wpisów, stanu i wyników innej fali
-   w każdej z 80 definicji (pozycja **4b**, razem z pozycją 6; reguła 27);
+   w każdej z 80 definicji i w obu szablonach (zrobione 2026-09-02, pozycje 4b + 6;
+   reguła 27, wycofane K4′ pilnuje 27b);
 2. **narzędzie** — identyfikator niesie falę (`AUD-SEC-F2-001`, pula numerów
    per fala), a `zgloszenie.mjs` po zapisie drukuje TYLKO ID i hash; liczba
    wpisów i próg 200 żyją w `status.mjs --pokaz` kierownika. Reguła 19′;

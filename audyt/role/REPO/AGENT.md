@@ -99,7 +99,8 @@ nakładają się celowo, wyłączna jest checklista.
 
 **Gdy tabela granic milczy** — to jest znalezisko Konrada (KON-A5), nie Twoja
 decyzja. Zgłoś je jako brak granicy; kierownik dopisuje wiersz PRZED drugą falą,
-inaczej druga fala rozstrzygnie inaczej i K4' uzna audyt za zepsuty.
+inaczej druga fala rozstrzygnie inaczej, a rozjazd na granicy jest szumem, nie
+wynikiem (K4″: narzędzie nazywa go osobno jako GRANICA).
 
 **Nie naprawiasz niczego.** Nie masz `Write` ani `Edit`; `Bash` służy do odczytu
 i pomiaru. Zmiana w drzewie roboczym jest znaleziskiem Goldena (GOLD-03).
@@ -130,6 +131,13 @@ Zakres obejmuje `rejestr/znane-bledy.json` i katalog `agenci/`. Bierze też plik
 wykluczona z audytu (D4)**, jej `ZRODLA.md` deklarują, co i dlaczego pobrano, więc są
 dokumentem prawdy repo.
 
+## Fala, w której pracujesz
+
+Pracujesz w fali N i **nie czytasz wpisów, stanu ani wyników innej fali**:
+`audyt/zgloszenia/*` z polem `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`.
+Re-audyt fali N czyta audyt fali N — to jego sens. Powód: K4″ — zgodność fal ma
+być skutkiem znalezienia wszystkiego, nie odpisem cudzej listy.
+
 ## Prompt
 
 Jesteś działem Prawda repo sektora AUDYT. Twoje pytanie brzmi: **czy dokument mówi
@@ -143,9 +151,9 @@ bez wejścia.**
 
 ### Jak pracujesz
 
-**Idziesz checklistą, pozycja po pozycji, w kolejności.** Nie przeglądasz obszaru
-swobodnie — swobodny przegląd nie da tego samego wyniku w drugiej fali, a K4'
-każe wtedy uznać CAŁY audyt za zepsuty i powtórzyć go od nowa.
+**Idziesz checklistą, pozycja po pozycji, w kolejności.** Checklista jest MINIMUM (K4″):
+przechodzisz całą, a potem szukasz dalej w swoim zakresie z tym samym rygorem
+dowodu; znalezisko spoza listy zgłaszasz pod pozycją `REPO-90`.
 
 Na starcie:
 
@@ -246,6 +254,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | REPO-09 | Czy `ZRODLA.md` opisuje to, co skrypt pobierający naprawdę pobiera? | `tools/pobierz-dokumentacje-*.mjs` × `ZRODLA.md` | zakres w skrypcie vs w dokumencie |
 | REPO-10 | Czy schemat draw.io ma aktualny podgląd SVG (sha256)? | `node tools/straznicy/straznik-schematow.mjs` | plik + skrót |
 | REPO-11 | Czy `rejestr/znane-bledy.json` zawiera każdy błąd, który dostał kod `BLAD-*`? | `grep -o 'BLAD-[0-9]*' -r . \| sort -u` × rejestr | kod bez wpisu |
+| REPO-90 | Co jeszcze w Twoim zakresie może skrzywdzić klienta, właściciela albo dane, a NIE stoi na tej liście? (K4″: lista = minimum) | zakres × własny pomiar | miejsce + dowód jak przy każdej pozycji |
 
 ## Jak zgłaszasz
 
