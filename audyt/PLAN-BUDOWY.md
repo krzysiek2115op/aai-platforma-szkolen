@@ -1079,7 +1079,66 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: pozycja 2 pakietu** (`porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u). Pozycje 8 i 1 zrobione.
+**NASTĘPNY KROK: DYSKUSJA z właścicielem nad projektem pozycji 2** (sekcja „Pozycja 2 — projekt do dyskusji" niżej), dopiero po jego akceptacji kod. Pozycje 8 i 1 zrobione. Reguła właściciela od 2026-09-02: **przed zmianami w kodzie w pakiecie — weryfikacja i dyskusja.**
+#### PAKIET E7.7, POZYCJA 2 — PROJEKT DO DYSKUSJI (2026-09-02), KOD NIE RUSZONY
+
+Polecenie właściciela: **„przed zmianami w kodzie zweryfikujmy wszystko
+i przedyskutujmy"** — obowiązuje dla każdej pozycji pakietu, która dotyka
+rozstrzygnięć (tu: K4″ wchodzi wprost do `porownaj-cykle.mjs`).
+
+**Stan dzisiejszy narzędzia (zmierzony lekturą, nie z pamięci):**
+- porównuje zbiory hashy fali 1 i 2; jakakolwiek różnica → komunikat
+  „ROZJAZD FAL = DEFEKT AUDYTU (K4′)", kod wyjścia 1;
+- nie patrzy na werdykty: wpis POTWIERDZONY w fali 1 i ODRZUCONY w fali 2
+  wyjdą „zgodne" (ten sam hash);
+- nie ma `--dzial=`; porównuje cały sektor naraz;
+- „identyczny opis co do słowa" → podejrzenie kopiowania, kod 1 (to zostaje —
+  to jest ślepota fali 2, nie K4′);
+- **trzy inne miejsca powtarzają stare brzmienie:** `RAP-R4` w `re-audyt/role/RAP/AGENT.md:151`
+  („czy rozjazd fal jest opisany jako DEFEKT audytu"), `KIER` (`audyt/role/KIER/AGENT.md:124, 211`)
+  i `STRUKTURA.md:32` („test powtarzalności (K4′)"); `REGULAMIN.md:330` i `:546`
+  („jeżeli wyniki są zgodne → naprawa") to oryginalny tekst właściciela — zostaje,
+  K4″ go nie unieważnia, tylko dopowiada, co przy NIEzgodności.
+
+**Proponowany kształt (do akceptacji przed kodem):**
+
+1. **Trzy wyniki zamiast dwóch:** ZGODNE (te same hashe, te same stany
+   pochodne), NADZBIÓR (różnica jednostronna — jedna fala ma wszystko, co druga,
+   plus więcej), SPRZECZNE (obie fale mają wpisy, których druga nie ma, ALBO ten
+   sam hash z innym stanem pochodnym). Narzędzie **nazywa**, nie ocenia.
+2. **Stan pochodny werdyktów** liczony w locie, nieprzechowywany (nie rusza §6
+   ani `STATUSY`): POTWIERDZONE = krytyk PRZEPUSZCZAM + weryfikator ISTNIEJE;
+   ODRZUCONE = oba odmowne; SPORNE = jeden tak, drugi nie; BEZ WERDYKTU = brak
+   kompletu. Porównanie idzie po parze (hash, stan pochodny).
+3. **Kod wyjścia:** 0 zawsze, gdy obie fale istnieją i nie ma podejrzenia
+   kopiowania; **1 tylko przy podejrzeniu kopiowania** (ślepota fali 2) albo
+   braku którejś fali. Rozjazd = wynik do lektury, nie STOP. **Pytanie do
+   właściciela:** czy tak — czy jednak kod 1 przy SPRZECZNE, żeby kierownik nie
+   przeszedł dalej bez spojrzenia?
+4. **`--dzial=<KOD>`:** porównanie per dział, żeby urwany przebieg rozliczał
+   działy domknięte (C1 z krytyki). Bez argumentu — cały sektor, z tabelą per
+   dział.
+5. **Raport dla właściciela:** narzędzie zapisuje `audyt/wyniki/porownanie-<sektor>.json`
+   i drukuje listę: każdy wpis z obu fal, stan pochodny, gdzie się różnią —
+   „raporty z dwóch fal mają być dla nas na zapoznanie się".
+6. **Zmiany towarzyszące:** `RAP-R4` przepisać („czy rozjazd fal jest NAZWANY
+   i przedstawiony właścicielowi z obu stron"), komendy KIER bez zmian (tylko
+   opis wyniku), `STRUKTURA.md:32` → „porównanie fal (K4″)", sekcja goldena RAP,
+   mutacje: (a) narzędzie przestaje odróżniać nadzbiór od sprzeczności,
+   (b) przestaje patrzeć na werdykty, (c) kontrprzykład: rozjazd nie daje kodu 1.
+   **Uwaga:** strażnik nie uruchamia `porownaj-cykle.mjs` (wymaga dwóch fal),
+   więc mutacje muszą wołać narzędzie na WPISACH-ATRAPACH dwóch fal — to nowy
+   wzorzec w audycie mutacyjnym (dziś atrapy są jednofalowe).
+
+**Czego pozycja 2 NIE robi:** nie zmienia `werdykt.mjs`, statusów, ani
+`zgloszenie.mjs`; nie dotyka ról poza RAP-R4; nie rusza prób E6/E7.6.
+
+**Pytania otwarte do dyskusji:** (a) kod wyjścia przy SPRZECZNE (pkt 3);
+(b) czy NADZBIÓR ma wskazywać, KTÓRA fala jest większa, i czy to coś znaczy
+dla właściciela; (c) czy wpisy z pozycji otwartej `<KOD>-90` (pozycja 6
+pakietu) porównywać tak samo, czy raportować osobno — K4″ mówi „agenci mają
+znaleźć wszystko", więc chyba tak samo.
+
 #### PAKIET E7.7, POZYCJA 1 — ZROBIONA 2026-09-02 (hash miejsca, H1)
 
 `hashMiejsca()` nie bierze już **numeru linii**: klucz to `plik + znormalizowana
