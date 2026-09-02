@@ -455,14 +455,14 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
-**GDZIE JESTEŚMY (2026-09-02, wieczór) — dla nowej sesji i dla właściciela, który
+**GDZIE JESTEŚMY (2026-09-03) — dla nowej sesji i dla właściciela, który
 „trochę się pogubił":** OBA sektory są ZBUDOWANE (E1–E7 zaakceptowane) i żaden nie
 został URUCHOMIONY. Trwa pakiet E7.7 — poprawki wiarygodności przed E8 (STOP
 i zielone światło na przebieg). Zrobione: 8, 1, 2, 3, 4a, **4b + 6** (2026-09-02, noc — jedno
 przejście po 80 definicjach; odpowiedzi właściciela na pięć pytań NIE były zapisane,
-kod poszedł po rekomendacjach — **do potwierdzenia**, sekcja „POZYCJE 4b + 6").
-Zostały: **5** (macierz reguła → mutacja), **7** (re-audyt sekwencyjnie na
-środowisku). Dopiero potem E8. Katalog `re-audyt/` jest MAŁY z decyzji,
+kod poszedł po rekomendacjach — **do potwierdzenia**, sekcja „POZYCJE 4b + 6"),
+**5** (2026-09-03 — macierz reguła → mutacja; sekcja „POZYCJA 5 — ZROBIONA").
+Została: **7** (re-audyt sekwencyjnie na środowisku). Dopiero potem E8. Katalog `re-audyt/` jest MAŁY z decyzji,
 nie z braku: ma tylko to, co jest RÓŻNE od audytu (`ROLE.md` 21 ról, `GRANICE.md`,
 `role/` 84 pliki); narzędzia, zgłoszenia, stan, migawki, szablony i dokumenty są
 WSPÓLNE i mieszkają w `audyt/` (rozstrzygnięcie 2026-09-01: jeden nośnik, W4 — inaczej
@@ -1083,9 +1083,9 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 | 1 | hash miejsca bez numeru linii | ✅ **2026-09-02** — reguła 23 (hash zgodny z miejscem), pary kandydatów w `polacz-sektory`, przy okazji **reguła 24** (szablon goldena też jest miarą); mutacje 68 → 73 |
 | 2 | `porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u | ✅ **2026-09-02** — po dyskusji i trzech odpowiedziach właściciela (kod 0 przy SPRZECZNE; NADZBIÓR nazywa falę i liczbę; wpisy `-90` porównywane tak samo); **reguła 25** strażnika (samokontrola narzędzia na atrapach dwóch fal), mutacje 73 → 79; szczegóły w sekcji „POZYCJA 2 — ZROBIONA" niżej |
 | 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza rolami procesowymi re-audytu), drzewo wobec `glowa_main`; reguła 17 | ✅ **2026-09-02** — po zielonym świetle właściciela („Tak, jedź"): historia przejść w pliku stanu, cztery odmowy z komendą naprawy, `status.mjs --test` (36 przypadków), **reguła 26**, reguła 17 na zawartości; mutacje 79 → **101**; szczegóły w sekcji „POZYCJA 3 — ZROBIONA" niżej |
-| 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | **4a ✅ 2026-09-02** — ID `AUD-SEC-F2-001` (pula per fala), `zgloszenie.mjs` bez licznika, `status.mjs` odmowa 5 (izolacja fali 2 po POLU), `porownaj-cykle` PODEJRZENIE KOLEJNOŚCI (kod 0), **`fala.mjs --postaw=2 \| --scal=2`** (worktree + sparse checkout), `stan/` i `migawki/` w gicie, reguły 19′/28/29 (**27 zarezerwowana**), R5 „z audytu tej fali", STRUKTURA i KIER obu sektorów; mutacje 101 → **116**; szczegóły w sekcji „POZYCJA 4a — ZROBIONA" niżej. **4b** (zdanie zakazu w 80 definicjach + reguła 27) ⬜ razem z pozycją 6 |
-| 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | 🚧 **projekt ZAAKCEPTOWANY 2026-09-03** („akceptuję wszystkie 5 rekomendacji"; sekcja „POZYCJA 5 — PROJEKT ZAAKCEPTOWANY" niżej), **kod po `/clear`** |
-| 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | 🚧 **projekt spisany 2026-09-02 RAZEM z 4b** (sekcja „POZYCJE 4b + 6 — PROJEKT DO DYSKUSJI" niżej), **pięć pytań do właściciela**, kod po odpowiedziach i po `/clear` |
+| 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | **4a ✅ 2026-09-02** — ID `AUD-SEC-F2-001` (pula per fala), `zgloszenie.mjs` bez licznika, `status.mjs` odmowa 5 (izolacja fali 2 po POLU), `porownaj-cykle` PODEJRZENIE KOLEJNOŚCI (kod 0), **`fala.mjs --postaw=2 \| --scal=2`** (worktree + sparse checkout), `stan/` i `migawki/` w gicie, reguły 19′/28/29 (**27 zarezerwowana**), R5 „z audytu tej fali", STRUKTURA i KIER obu sektorów; mutacje 101 → **116**; szczegóły w sekcji „POZYCJA 4a — ZROBIONA" niżej. **4b ✅ 2026-09-02 (noc)** razem z pozycją 6 — zdanie zakazu w 80 definicjach + 2 szablonach, reguły 27/27b, mutacje 116 → 126 (sekcja „POZYCJE 4b + 6 — ZROBIONE" niżej) |
+| 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ✅ **2026-09-03** — `R<nr>:` w każdym komunikacie strażnika, tablica `REGULY` + samokontrola + `--reguly`, `regula:` w 131 mutacjach, werdykt „ZŁA REGUŁA" (zgodność ŚCISŁA), macierz na wyjściu audytu z kodem 1; mutacje 126 → **131**; dwa pełne audyty (pomiar → dowód); sekcja „POZYCJA 5 — ZROBIONA" niżej |
+| 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | ✅ **2026-09-02 (noc)** razem z 4b, po rekomendacjach (odpowiedzi właściciela nie były zapisane — założenia do potwierdzenia w sekcji „POZYCJE 4b + 6 — ZROBIONE"); zdanie MINIMUM 40/40, `<KOD>-90` w 28 rolach działowych, rozszerzenie reguły 7 |
 | 7 | re-audyt sekwencyjnie: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu | ⬜ |
 | 8 | test aliasu `fable` po restarcie sesji (`aud-kier`: nazwa modelu) | ✅ **2026-09-02, po restarcie:** `aud-kier` zameldował dosłownie „You are powered by the model named Fable 5.1. The exact model ID is claude-fable-5-1". **Koszt faktu:** wywołanie bez ani jednego narzędzia = **142 tys. tokenów** — tyle waży samo wejście roli (definicja + kontekst); przy 80 agentach × 2 fale to ~23 mln tokenów SAMYCH wejść, zanim ktokolwiek otworzy plik |
 
@@ -1093,7 +1093,7 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: po `/clear` od razu KOD pozycji 5** wg sekcji „POZYCJA 5 — PROJEKT ZAAKCEPTOWANY" (cztery kroki: `R<nr>:` + tablica `REGULY` + `--reguly` w strażniku → `regula:` w 125 mutacjach + parser zapalonych reguł + werdykt „ZŁA REGUŁA" → macierz na wyjściu z kodem 1 przy regule bez mutacji → trzy mutacje dla reguł 2, 3, 6 z kontrprzykładem dla 6), bez ponownego pytania o zgodę; dwa pełne audyty (pierwszy = pomiar deklaracji, drugi = dowód); potem trzy kontrole i przeniesienie `audyt/` na gałąź audytu przez worktree. Potem pozycja 7 (re-audyt sekwencyjnie na środowisku), dopiero potem E8. **Założenia 4b + 6** (pięć rekomendacji) nie dostały osobnego potwierdzenia, ale właściciel przy akceptacji pozycji 5 nie zgłosił do nich sprzeciwu — zostają, dopóki nie powie inaczej. Przy okazji właściciel potwierdza (albo zmienia) pięć założeń z sekcji „POZYCJE 4b + 6 — ZROBIONE" — kod 4b + 6 poszedł po rekomendacjach, bo jego odpowiedzi nie były zapisane. Zapis historyczny: 4b + 6 WYKONANE 2026-09-02 w nocy jednym przejściem (szablony → skrypt po 80 definicjach → `ROLE.md` obu sektorów → reguły 27/27b i rozszerzenie 7 → mutacje → generat → trzy kontrole → przeniesienie `audyt/` na gałąź audytu). Zapis historyczny: 4a WYKONANA 2026-09-02 (sekcja „POZYCJA 4a — ZROBIONA"). Lekcja z pozycji 3 obowiązuje dalej: **nie edytować `audyt/` w trakcie audytu mutacyjnego** i sprawdzać `pgrep -f audyt-straznika`, zanim uruchomi się cokolwiek w `audyt/tools/`.
+**NASTĘPNY KROK: pozycja 7 pakietu E7.7** (re-audyt sekwencyjnie na środowisku: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu) — wg reguły pakietu: najpierw PROJEKT do dyskusji w tym pliku (pozycje dotykające rozstrzygnięć), kod po akceptacji. Dopiero potem E8 (STOP, zielone światło właściciela na przebieg). Zapis historyczny: pozycja 5 WYKONANA 2026-09-03 (sekcja „POZYCJA 5 — ZROBIONA"; cztery kroki projektu co do punktu, dwa pełne audyty: pierwszy = pomiar deklaracji z ośmioma rozjazdami, drugi = dowód 131/0/0, macierz 30/30). **Założenia 4b + 6** (pięć rekomendacji) nie dostały osobnego potwierdzenia, ale właściciel przy akceptacji pozycji 5 nie zgłosił do nich sprzeciwu — zostają, dopóki nie powie inaczej. Przy okazji właściciel potwierdza (albo zmienia) pięć założeń z sekcji „POZYCJE 4b + 6 — ZROBIONE" — kod 4b + 6 poszedł po rekomendacjach, bo jego odpowiedzi nie były zapisane. Zapis historyczny: 4b + 6 WYKONANE 2026-09-02 w nocy jednym przejściem (szablony → skrypt po 80 definicjach → `ROLE.md` obu sektorów → reguły 27/27b i rozszerzenie 7 → mutacje → generat → trzy kontrole → przeniesienie `audyt/` na gałąź audytu). Zapis historyczny: 4a WYKONANA 2026-09-02 (sekcja „POZYCJA 4a — ZROBIONA"). Lekcja z pozycji 3 obowiązuje dalej: **nie edytować `audyt/` w trakcie audytu mutacyjnego** i sprawdzać `pgrep -f audyt-straznika`, zanim uruchomi się cokolwiek w `audyt/tools/`.
 ### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
 
 Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
@@ -1407,7 +1407,7 @@ gicie, zanim wejdzie do procedury). Największe ryzyko: sparse checkout, który
 „działa" w lekturze dokumentacji, a nie chowa plików — dlatego egzekwuje go
 `status.mjs` po POLU `fala`, nie zaufanie do gita.
 
-#### PAKIET E7.7, POZYCJA 5 — PROJEKT ZAAKCEPTOWANY (2026-09-03: „akceptuję wszystkie 5 rekomendacji"), KOD PO `/clear`
+#### PAKIET E7.7, POZYCJA 5 — ZROBIONA 2026-09-03 (projekt zaakceptowany tego dnia: „akceptuję wszystkie 5 rekomendacji"; projekt niżej, WYNIK na końcu sekcji)
 
 **ROZSTRZYGNIĘCIA WŁAŚCICIELA (2026-09-03) = pięć rekomendacji niżej, co do słowa:**
 (1) zgodność deklaracji `regula:` z zapaloną regułą **ŚCISŁA** (zbiory równe; pierwszy
@@ -1497,6 +1497,78 @@ deklaracji, nie dowodem; dowodem jest drugi, po korekcie. Drugie ryzyko: mutacja
 zapalająca regułę 4 (generat nieaktualny) „przy okazji" — dziś maskowana przez
 regenerację w `zPodmienionymi`; macierz ścisła to pokaże, jeśli gdzieś regeneracji
 brakuje.
+
+**WYNIK — ZROBIONE 2026-09-03 (kod po `/clear`, cztery kroki projektu co do punktu, jeden commit):**
+
+| Krok | Skutek zmierzony |
+|---|---|
+| 1. strażnik | pomocnik `blad(nr, tekst)` zamiast `bledy.push` — **77 miejsc** (było „~60": licznik był z pamięci, `grep -c` dał 77); tablica **`REGULY`** (30 wpisów: 1–29 + 27b, z polem `warunkowa`) i **samokontrola przy starcie**: każdy numer ma nagłówek `/* ── N.` i odwrotnie, a `warunkowa` zgadza się z obecnością `pominiete.push` w sekcji (trzy testy negatywne: wpis bez sekcji, sekcja bez wpisu, `warunkowa` rozjechana — każdy kod 1); `--reguly` = JSON; `blad()` odrzuca numer spoza tablicy |
+| 2. audyt | `regula:` w **131** mutacjach (liczba, `"27b"`, lista albo `{ nr, wymaga }` — reguła zapalająca się tylko przy materiale na gałęzi, np. 20 przy `re-audyt/ROLE.md`); parser `R<nr>:` z wyjścia; werdykt **„ZŁA REGUŁA"** przy zbiorze zapalonych ≠ zadeklarowanym (ŚCISŁA, rozstrzygnięcie 1), liczony jak „ZŁY ŚLAD"; deklaracje sprawdzane wobec `--reguly` PRZED pierwszą mutacją (literówka zatrzymuje od razu, nie po kwadransie); `slad` zostaje; jeden werdykt `ocen()` dla mutacji pliku, roli próbnej i zgłoszenia-śmiecia |
+| 3. macierz | tylko pełny przebieg (rozstrzygnięcie 5): wiersz na regułę — mutacji zapalających, kontrprzykładów, pominiętych (`wymaga`), materiał z „pominięte — N." strażnika PRZED mutacjami (POMIAR); **kod 1** przy regule z materiałem bez mutacji (rozstrzygnięcie 2) i przy regule pytającej o zdanie (6, 10, 27, 27b) bez kontrprzykładu (rozstrzygnięcie 3); reguła pominięta dla części materiału, ale zapalona = „częściowo" |
+| 4. mutacje | audyt **126 → 131**: rola próbna bez `KRYTYK.md` (→ R2), `AGENT.md` bez nagłówka „Moduł" (→ R3), z szablonu AGENT znika „Brak dowodu = brak zgłoszenia" (→ R6), kontrprzykład: to samo zdanie złamane w innym miejscu wiersza (R6), kontrprzykład: zasada Goldena złamana w innym miejscu wiersza (R10) |
+
+**Dwa pełne audyty, jak zapowiadał projekt.** Pierwszy = POMIAR deklaracji: **8 rozjazdów
+na 131**, wszystkie poprawione do stanu zmierzonego, nie odwrotnie:
+- R20 zapala się „przy okazji" przy zepsutym zakresie działu w `audyt/ROLE.md` (Pogłębiacz
+  traci odpowiednik) — dwie mutacje, deklaracja `{ nr: 20, wymaga: "re-audyt/ROLE.md" }`;
+- R22 przy prefiksie `AUD` dla re-audytu (moduły 21 krytyków wskazują wtedy „cudzy" `REA`);
+- R29 przy dwóch regresjach `zgloszenie.mjs`/`status.mjs` — `fala.mjs --test` pracuje na
+  KOPII prawdziwych narzędzi, więc widzi to samo;
+- **R4 przy nieznanym modelu i przy roli procesowej bez znacznika** — generator odmawia,
+  generat zostaje stary. To dokładnie „drugie ryzyko" z projektu: macierz ścisła to
+  POKAZUJE zamiast maskować; R21 zapala się obok z właściwym śladem, więc dowód stoi;
+- **`status.mjs --test` NIE widzi zdjęcia sprawdzenia kodu pozycji** (`KOD_POZYCJI`) —
+  zapala się wyłącznie R17 na podłożonym pliku stanu. Deklaracja zmniejszona do R17,
+  luka samokontroli `status.mjs` ZAPISANA w komentarzu mutacji, nie naprawiona
+  (pozycja 5 nie zmienia reguł ani narzędzi poza strażnikiem i audytem);
+- R8 NIE zapala się przy zakresie ARCH zamienionym na prozę (mapa liczy resztę zakresów),
+  R24 NIE zapala się przy bramce przepuszczającej niepewność (zły przykład SZABLONU
+  goldena jest odrzucany także z innego powodu);
+- ósmy rozjazd był mój: pseudo-mutacja zgłoszenia-śmiecia oddawała `trafiony` zamiast
+  wyjścia strażnika, więc R5 stała w macierzy jako „BEZ MUTACJI" z kodem 1 — czyli
+  bramka macierzy **zapaliła się na prawdziwym braku, zanim ktokolwiek napisał jej test
+  negatywny**.
+Drugi audyt = DOWÓD: **131 mutacji, 0 przeoczonych, 0 martwych, macierz 30/30 reguł
+z mutacją, bez materiału 0, kod 0.** Reguły 2, 3 i 6 mają pierwszy w historii sektora
+dowód testem negatywnym; 6 i 10 — pierwszy kontrprzykład.
+
+**Znalezisko poza zakresem projektu, naprawione przy okazji (dotyczy audytu, nie reguł):**
+kontrprzykład H1 „przesunięty numer linii w zgłoszeniu NIE zmienia hasha" wskazywał plik
+`REA-SEC-001.json`, który od 4a nazywa się `REA-SEC-F1-001.json` — wracał „bez
+materiału" z zielonym wynikiem, czyli **przechodził po pustce od 2026-09-02**. Ta sama
+klasa w obu pomocnikach: `rolaZSzablonu` i `zPodmienionymi` oddawały przy mutacji, która
+niczego nie zmieniła, `czerwony: false` — dla kontrprzykładu to zaliczenie po pustce.
+Odtąd oba oddają `nicNieZmienila`, a werdykt liczy to jako „MUTACJA NIC NIE ZMIENIŁA"
+dla OBU rodzajów; H1 ma `wymaga` (pominięty i policzony, nigdy cicho zielony).
+
+**Dwie korekty liczb z projektu (pomiar, nie pamięć):** `bledy.push` było 77, nie „~60";
+mutacji 125 + zgłoszenie-śmieć = 126 przed, 131 po (pięć nowych).
+
+**Pułapki tej pozycji:** `${PIPESTATUS[0]}` w zsh jest puste (tu `pipestatus`) — kody
+wyjścia mierzyć BEZ potoku, jak każe lekcja z D5; w mutacji roli próbnej `s.replace()`
+bez trafienia nie ma objawu — stąd `nicNieZmienila` w pomocnikach.
+
+**Trzeci pełny audyt — na GAŁĘZI AUDYTU (worktree, `git checkout <commit> -- audyt`)
+— dołożył dwa rozjazdy, których gałąź re-audytu nie mogła pokazać:** R8 zapala się przy
+zakresie ARCH zamienionym na prozę TYLKO bez `re-audyt/ROLE.md` (zakres Pogłębiacza ARCH
+pokrywa te same 113 plików, więc na gałęzi re-audytu maskuje sieroty mapy), a R22 przy
+prefiksie `AUD` dla re-audytu TYLKO z katalogiem `re-audyt/role`. Deklaracja dostała
+symetryczne pole **`gdyBrak`** (reguła oczekiwana, gdy plik NIE istnieje) obok `wymaga`
+— oba mierzą dysk, nie zgadują gałęzi. **Lekcja:** deklaracja zmierzona na jednej gałęzi
+nie jest dowodem na drugiej; pozycja 5 wymaga pełnego przebiegu na OBU.
+
+**Dowody na gałęzi re-audytu:** `git diff main --name-only -- . ':!audyt' ':!re-audyt'`
+→ 0; strażnik sektora kod 0 (30 numerów w `--reguly`); audyt mutacyjny 131 / 0 / 0,
+macierz 30/30, kod 0. **Na gałęzi audytu:** strażnik kod 0 (pominięte 7, 12, 20 —
+sektor re-audyt), audyt mutacyjny 131 / 0 / 0, 7 mutacji pominiętych (`wymaga`),
+macierz: 29 reguł z mutacją, R20 „bez materiału", R7 i R12 „częściowo" (strażnik
+pomija sektor re-audyt, a mutacje zapalają je na audycie), kod 0 — patrz commit
+przeniesienia na tej gałęzi.
+
+**Czego pozycja 5 NIE zrobiła (zgodnie z projektem):** nie zmieniła żadnej reguły
+merytorycznie (numeracja i komunikaty zostają, doszedł prefiks); nie ruszyła definicji
+ról ani `ROLE.md`; nie zmieniła `wymaga` per mutacja; nie uruchomiła sektora; nie
+naprawiła luki `status.mjs --test` (zapisana).
 
 #### PAKIET E7.7, POZYCJE 4b + 6 — ZROBIONE 2026-09-02 w nocy (projekt niżej; wynik i ZAŁOŻENIA do potwierdzenia na końcu sekcji)
 
