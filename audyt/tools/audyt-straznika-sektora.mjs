@@ -23,6 +23,7 @@
  * w jednej sesji przeglądu T3. Przywracanie idzie przez `finally`.
  *
  * Użycie: node audyt/tools/audyt-straznika-sektora.mjs
+ *         node audyt/tools/audyt-straznika-sektora.mjs --tylko=<regex>   # przebieg celowany, nie dowód
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -139,6 +140,17 @@ const MUTACJE = [
    fałszywe alarmy, bo wzorce reguły 6 zakładały, że zdanie mieści się w jednej
    linii, a Markdown je zawija. Gdyby ta kontrola nie została na stałe, E5
    wywróciłoby się na pierwszej roli — a wyglądałoby to na błąd roli. */
+/**
+ * NUMER LINII DOBREGO BLOKU GOLDENA — czytany z treści, nie wpisany w mutację.
+ * Zmierzone 2026-09-02: cztery mutacje goldenów miały literał `"linia": 471`
+ * (ówczesny numer linii w REGULAMIN.md); po dopisaniu trzech wierszy do
+ * regulaminu szablon goldena wskazywał 474, a mutacje trafiały w BLOK NEGATYWNY
+ * o tym samym starym numerze — nic nie psuły i meldowały „PRZEPUŚCIŁ". Mutacja
+ * przypięta do WARTOŚCI umiera po zmianie wartości (lekcja z 0.35.0).
+ */
+const liniaDobregoBloku = (golden) => Number(golden.match(/"linia":\s*(\d+),/)[1]);
+const przesunLinie = (golden) => golden.replace(/"linia":\s*(\d+),/, (_, n) => `"linia": ${Number(n) + 1},`);
+
 function rolaZSzablonu({ pomin = [], mutuj = {}, kod = KOD_PROBNY } = {}) {
   const SZABLONY = join(SEKTOR, "szablony");
   const PROBNA = join(SEKTOR, "role", kod);
@@ -530,7 +542,7 @@ const MUTACJE_ROLI = [
   },
   {
     opis: "GOLDEN ZGNIŁ: dobry przykład wskazuje linię obok",
-    wykonaj: () => rolaZSzablonu({ mutuj: { "golden.md": (s) => s.replace('"linia": 471', '"linia": 472') } }),
+    wykonaj: () => rolaZSzablonu({ mutuj: { "golden.md": przesunLinie } }),
     slad: /miał przejść, a bramka odrzuca/,
   },
   {
@@ -539,7 +551,7 @@ const MUTACJE_ROLI = [
       .replace('"stwierdzenie": "Wydaje mi się, że tutaj może być problem z walidacją danych wejściowych."',
                '"stwierdzenie": "Zapytanie skleja wartość z żądania bez prepare, więc wejście trafia do SQL."')
       .replace('"linia": 99999,\n    "tresc": "coś takiego tam było"',
-               '"linia": 471,\n    "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń **odmawia zapisu** wpisu bez dowodu."') } }),
+               `"linia": ${liniaDobregoBloku(s)},\n    "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń **odmawia zapisu** wpisu bez dowodu."`) } }),
     slad: /bramka go PRZYJMUJE/,
   },
   {
@@ -1015,7 +1027,7 @@ MUTACJE_ROLI.push(
     opis: "szablon goldena wskazuje linię obok — dobry przykład przestaje przechodzić przez bramkę",
     slad: /szablony\/golden\.md blok \d+: miał przejść/,
     wykonaj: () => zPodmienionymi({
-      "audyt/szablony/golden.md": (s) => s.replace('"linia": 471,', '"linia": 472,'),
+      "audyt/szablony/golden.md": przesunLinie,
     }),
   },
   {
@@ -1212,6 +1224,19 @@ function mutacjaZgloszenia() {
 /** Czy mutacja ma na tej gałęzi materiał do zmierzenia. */
 const maMaterial = (m) => !m.wymaga || existsSync(P(m.wymaga));
 
+/**
+ * `--tylko=<regex>` — przebieg CELOWANY po opisie mutacji, do sprawdzenia
+ * poprawki jednej rodziny bez piętnastu minut pełnego audytu. Wynik takiego
+ * przebiegu NIE jest dowodem sektora (liczy tylko wybrane) i mówi to na
+ * wyjściu; bramką jest wyłącznie przebieg bez filtra.
+ */
+const filtrTylko = process.argv.find((a) => a.startsWith("--tylko="))?.slice("--tylko=".length);
+const TYLKO = filtrTylko ? new RegExp(filtrTylko, "iu") : null;
+const wybrana = (m) => !TYLKO || TYLKO.test(m.opis);
+if (TYLKO) {
+  process.stdout.write(`PRZEBIEG CELOWANY (--tylko=${filtrTylko}) — nie jest dowodem sektora, liczy wyłącznie dopasowane mutacje.\n`);
+}
+
 const kopie = new Map();
 for (const m of MUTACJE) {
   if (!maMaterial(m)) continue;
@@ -1232,6 +1257,7 @@ try {
   }
 
   for (const m of MUTACJE) {
+    if (!wybrana(m)) continue;
     if (!maMaterial(m)) {
       process.stdout.write(`  – pominięta (brak ${m.wymaga} na tej gałęzi): ${m.opis}\n`);
       pominiete++;
@@ -1277,6 +1303,7 @@ try {
   }
 
   for (const m of MUTACJE_ROLI) {
+    if (!wybrana(m)) continue;
     if (!maMaterial(m)) {
       process.stdout.write(`  – pominięta (brak ${m.wymaga} na tej gałęzi): ${m.opis}\n`);
       pominiete++;
@@ -1298,10 +1325,12 @@ try {
     }
   }
 
-  const z = mutacjaZgloszenia();
-  if (!z.czerwony) { process.stdout.write("  ✗ PRZEPUŚCIŁ: zgłoszenie bez dowodu, miejsca i hasha\n"); przeoczone++; }
-  else if (!z.trafiony) { process.stdout.write("  ✗ ZŁY ŚLAD: zgłoszenie-śmieć zapaliło inną regułę\n"); zle++; }
-  else process.stdout.write("  ✓ złapane: zgłoszenie bez dowodu, miejsca i hasha\n");
+  if (!TYLKO) {
+    const z = mutacjaZgloszenia();
+    if (!z.czerwony) { process.stdout.write("  ✗ PRZEPUŚCIŁ: zgłoszenie bez dowodu, miejsca i hasha\n"); przeoczone++; }
+    else if (!z.trafiony) { process.stdout.write("  ✗ ZŁY ŚLAD: zgłoszenie-śmieć zapaliło inną regułę\n"); zle++; }
+    else process.stdout.write("  ✓ złapane: zgłoszenie bez dowodu, miejsca i hasha\n");
+  }
 } finally {
   for (const [plik, tresc] of kopie) writeFileSync(P(plik), tresc, "utf8");
   rmSync(SMIEC, { force: true });
@@ -1310,9 +1339,11 @@ try {
   rmSync(SMIEC_STAN_2, { force: true });
 }
 
-const razem = MUTACJE.length + MUTACJE_ROLI.length + 1;
+const razem = TYLKO
+  ? MUTACJE.filter(wybrana).length + MUTACJE_ROLI.filter(wybrana).length
+  : MUTACJE.length + MUTACJE_ROLI.length + 1;
 process.stdout.write(
-  `\nMutacje sektora: ${razem}, przeoczone: ${przeoczone}, martwe/złe: ${zle + martwe}` +
+  `\n${TYLKO ? "Mutacje CELOWANE (nie dowód sektora)" : "Mutacje sektora"}: ${razem}, przeoczone: ${przeoczone}, martwe/złe: ${zle + martwe}` +
   (pominiete ? `, pominięte bez materiału: ${pominiete}` : "") + "\n"
 );
 

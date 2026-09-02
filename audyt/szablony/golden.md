@@ -136,7 +136,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/REGULAMIN.md",
-    "linia": 471,
+    "linia": 474,
     "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń odmawia zapisu wpisu bez dowodu i bez miejsca."
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",

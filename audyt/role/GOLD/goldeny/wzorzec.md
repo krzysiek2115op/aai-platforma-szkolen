@@ -142,7 +142,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/REGULAMIN.md",
-    "linia": 256,
+    "linia": 259,
     "tresc": "1. Nie dopuszczaj do wymyslania bledow."
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",

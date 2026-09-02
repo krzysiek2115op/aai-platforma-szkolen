@@ -1478,9 +1478,21 @@ a strażnik uruchamiany ręcznie „pokazywał" regresje, których nie było. Le
 w ostrzejszej postaci: **zanim uruchomisz cokolwiek w `audyt/tools/`, sprawdź `pgrep
 -f audyt-straznika`**. Moduł dostał bramkę `GLOWNY_MODUL` jak pozostałe narzędzia.
 
+**Druga pułapka, którą złapał DRUGI pełny przebieg audytu (pierwszy był zielony):**
+cztery mutacje goldenów miały wpisany literał `"linia": 471` — ówczesny numer linii
+w `REGULAMIN.md`. Dopisanie trzech wierszy do §11 (format ID z falą) przesunęło szablon
+goldena na 474, a mutacje trafiały odtąd w BLOK NEGATYWNY o starym numerze: niczego nie
+psuły i meldowały „PRZEPUŚCIŁ" (3) i „ZŁY ŚLAD" (1). **Mutacja przypięta do WARTOŚCI
+umiera po zmianie wartości** — nawrót lekcji z 0.35.0. Numer linii dobrego bloku jest
+teraz czytany z treści goldena (`liniaDobregoBloku`, `przesunLinie`), bloki negatywne
+„NIE ZGADZA" wskazują tę samą linię co blok dobry, a audyt dostał `--tylko=<regex>`
+(przebieg celowany, wprost oznaczony jako NIE-dowód) — sprawdzenie poprawki jednej
+rodziny trwa pół minuty zamiast piętnastu.
+
 **Dowody:** `git diff main --name-only -- . ':!audyt' ':!re-audyt'` → 0; strażnik
-sektora kod 0 (29 numerów, 28 czynnych); audyt mutacyjny 116 / 0 / 0; samokontrole:
-zgłoszenia 27/27, stan 51, porównanie fal, fala.mjs 21.
+sektora kod 0 (29 numerów, 28 czynnych); audyt mutacyjny 116 / 0 / 0 (pełny przebieg
+po obu poprawkach); samokontrole: zgłoszenia 27/27, stan 51, porównanie fal,
+fala.mjs 21.
 
 **CO ZOSTAJE DO 4b (z pozycją 6):** zdanie zakazu w 80 definicjach (+ ścieżka
 `F<N>` w 40 KRYTYK.md, którą szablon już ma), reguła 27 z mutacją „zdanie znika
