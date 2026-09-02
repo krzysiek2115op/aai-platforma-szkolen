@@ -303,7 +303,7 @@ const MUTACJE_ROLI = [
   },
   {
     opis: "GOLDEN ZGNIŁ: dobry przykład wskazuje linię obok",
-    wykonaj: () => rolaZSzablonu({ mutuj: { "golden.md": (s) => s.replace('"linia": 440', '"linia": 441') } }),
+    wykonaj: () => rolaZSzablonu({ mutuj: { "golden.md": (s) => s.replace('"linia": 471', '"linia": 472') } }),
     slad: /miał przejść, a bramka odrzuca/,
   },
   {
@@ -312,7 +312,7 @@ const MUTACJE_ROLI = [
       .replace('"stwierdzenie": "Wydaje mi się, że tutaj może być problem z walidacją danych wejściowych."',
                '"stwierdzenie": "Zapytanie skleja wartość z żądania bez prepare, więc wejście trafia do SQL."')
       .replace('"linia": 99999,\n    "tresc": "coś takiego tam było"',
-               '"linia": 440,\n    "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń **odmawia zapisu** wpisu bez dowodu."') } }),
+               '"linia": 471,\n    "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń **odmawia zapisu** wpisu bez dowodu."') } }),
     slad: /bramka go PRZYJMUJE/,
   },
   {
@@ -715,6 +715,71 @@ MUTACJE_ROLI.push(
     oczekujCzerwonego: false,
     wykonaj: () => zPodmienionymi({
       [ROLE_MD]: (s) => s.replace("## KIER — Audytor kierownik  · **Fable 5.1**", "## KIER — Kierownik audytu  · **Fable 5.1**"),
+    }),
+  },
+);
+
+/* ── mutacje klucza porównania (H1, rozstrzygnięcie właściciela 2026-09-02) ──
+   Hash miejsca jest kluczem, po którym łączą się fale (K4') i sektory (W4).
+   Regresja tej formuły nie ma ŻADNEGO objawu w miejscu, w którym powstaje —
+   wychodzi dopiero jako "rozjazd fal" przy zgodnym wyniku audytu. */
+MUTACJE_ROLI.push(
+  {
+    opis: "hash miejsca wraca do liczenia z NUMEREM LINII — przesunięty kod rozjeżdża fale przy identycznym znalezisku",
+    slad: /nie zgadza się z przeliczonym z miejsca/,
+    wykonaj: () => zPodmienionymi({
+      [WSPOLNE]: (s) => s.replace(
+        '? ["linia", m.plik, znormalizuj(m.tresc ?? "")]',
+        '? ["linia", m.plik, String(m.linia), znormalizuj(m.tresc ?? "")]'
+      ),
+    }),
+  },
+  {
+    opis: "hash miejsca przestaje brać TREŚĆ linii — dwa różne błędy w jednym pliku dostają ten sam klucz",
+    slad: /nie zgadza się z przeliczonym z miejsca/,
+    wykonaj: () => zPodmienionymi({
+      [WSPOLNE]: (s) => s.replace(
+        '? ["linia", m.plik, znormalizuj(m.tresc ?? "")]',
+        '? ["linia", m.plik]'
+      ),
+    }),
+  },
+  {
+    /* DOWÓD H1 OD DRUGIEJ STRONY: przesunięcie numeru linii w istniejącym wpisie
+       nie może niczego zapalić, bo numer NIE jest już kluczem. Gdyby zapalało,
+       znaczyłoby to, że numer wrócił do formuły tylnymi drzwiami. */
+    opis: "KONTRPRZYKŁAD: przesunięty numer linii w zgłoszeniu NIE zmienia hasha (H1)",
+    oczekujCzerwonego: false,
+    wykonaj: () => {
+      const plik = join(ZGLOSZENIA, "REA-SEC-001.json");
+      if (!existsSync(plik)) return { czerwony: false, wyjscie: "brak wpisu próbnego — mutacja bez materiału" };
+      const org = readFileSync(plik, "utf8");
+      const wpis = JSON.parse(org);
+      wpis.miejsce.linia = wpis.miejsce.linia + 1;
+      writeFileSync(plik, JSON.stringify(wpis, null, 2) + "\n", "utf8");
+      try { return straznikCzerwony(); } finally { writeFileSync(plik, org, "utf8"); }
+    },
+  },
+);
+
+MUTACJE_ROLI.push(
+  {
+    /* Ta sama droga, którą szablon zgnił naprawdę: ktoś przesuwa linię
+       w REGULAMIN.md, przykład DOBRY przestaje wskazywać swoją treść. */
+    opis: "szablon goldena wskazuje linię obok — dobry przykład przestaje przechodzić przez bramkę",
+    slad: /szablony\/golden\.md blok \d+: miał przejść/,
+    wykonaj: () => zPodmienionymi({
+      "audyt/szablony/golden.md": (s) => s.replace('"linia": 471,', '"linia": 472,'),
+    }),
+  },
+  {
+    opis: "zły przykład w SZABLONIE goldena przestaje być zły (bramka go przyjmuje)",
+    slad: /szablony\/golden\.md blok \d+: miał zostać odrzucony/,
+    wykonaj: () => zPodmienionymi({
+      "audyt/szablony/golden.md": (s) => s.replace(
+        '"tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń odmawia zapisu wpisu bez dowodu i bez miejsca."',
+        '"tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń **odmawia zapisu** wpisu bez dowodu."'
+      ),
     }),
   },
 );

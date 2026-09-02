@@ -27,7 +27,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   DZIALY, KOD_POZYCJI, KOD_PROBNY, KORZEN, PREFIKS_AGENTA, PREFIKS_ID, SEKTOR, SEKTORY,
-  katalogSektora, roleMdSektora, roleSektora, wszystkieZgloszenia, znacznikModelu,
+  hashMiejsca, katalogSektora, roleMdSektora, roleSektora, wszystkieZgloszenia, znacznikModelu,
 } from "./wspolne.mjs";
 import { powodyOdmowy } from "./zgloszenie.mjs";
 import { zakresyZRoleMd } from "./wspolne.mjs";
@@ -360,6 +360,39 @@ if (BRAK_ROL) {
     }
     if (!przechodzacych) bledy.push(`rola ${gdzie}: golden nie ma ani jednego przykładu DOBREGO`);
     if (!odrzucanych) bledy.push(`rola ${gdzie}: golden nie ma ani jednego przykładu ZŁEGO — bez niego nie jest miarą`);
+  }
+}
+
+/* ── 24. SZABLON goldena też jest miarą (2026-09-02) ───────────────────────
+   Reguła 11 sprawdza goldeny RÓL. Szablonu `<sektor>/szablony/golden.md` nie
+   sprawdzała ŻADNA reguła — a to z niego powstaje golden każdej nowej roli.
+
+   Zmierzone tego samego dnia: dopisanie sekcji K4″ do §15 regulaminu przesunęło
+   linię, którą szablon wskazuje jako przykład DOBRY, o 31 pozycji. Strażnik był
+   przy tym ZIELONY; rozjazd wyszedł dopiero z audytu mutacyjnego, gdy mutacja
+   zbudowała rolę próbną z tego szablonu — czyli przez przypadek, nie przez
+   bramkę. Szablon, z którego kopiuje się miarę, musi spełniać tę samą miarę. */
+{
+  for (const sektor of SEKTORY) {
+    const plik = join(katalogSektora(sektor), "szablony", "golden.md");
+    if (!existsSync(plik)) continue; // sektor bez szablonów łapie reguła 3
+    const bloki = blokiGoldena(readFileSync(plik, "utf8"));
+    if (!bloki.length) { bledy.push(`${sektor}/szablony/golden.md: brak bloku JSON — szablon miary bez przykładu`); continue; }
+    for (const [i, b] of bloki.entries()) {
+      const gdzie = `${sektor}/szablony/golden.md blok ${i + 1}`;
+      if (!b.sprawdzany) { bledy.push(`${gdzie}: brak znacznika SPRAWDZANY`); continue; }
+      let wpis;
+      try { wpis = JSON.parse(b.json.replaceAll("<KOD>", DZIALY[0])); }
+      catch (e) { bledy.push(`${gdzie}: niepoprawny JSON — ${e.message}`); continue; }
+      const powody = powodyOdmowy(wpis);
+      if (b.sprawdzany === "przechodzi" && powody.length) {
+        bledy.push(`${gdzie}: miał przejść, a bramka odrzuca — ${powody[0].split("\n")[0]}`);
+      }
+      if (b.sprawdzany === "odrzucony" && !powody.length) {
+        bledy.push(`${gdzie}: miał zostać odrzucony, a bramka go PRZYJMUJE`);
+      }
+    }
+    uwagi.push(`${sektor}/szablony/golden.md: bloków sprawdzonych ${bloki.length}`);
   }
 }
 
@@ -802,6 +835,32 @@ try {
   }
   if (sprawdzone) uwagi.push(`modeli generatów zgodnych z ROLE.md: ${sprawdzone}`);
   else pominiete.push("21. modele generatów — brak generatów na dysku");
+}
+
+/* ── 23. hash wpisu zgodny z PRZELICZONYM z miejsca (H1) ───────────────────
+   Reguła 5 pyta, czy hash JEST. Nie pyta, czy jest prawdziwy — a hash to klucz,
+   po którym łączą się fale (K4') i sektory (W4), więc wpis z hashem policzonym
+   inną formułą nie połączy się ze swoim odpowiednikiem i wyjdzie jako rozjazd.
+
+   Ta reguła jest jednocześnie bramką na REGRESJĘ H1 (2026-09-02): gdyby
+   `hashMiejsca()` wróciło do liczenia z NUMEREM LINII, hashe zapisane we
+   wpisach przestałyby się zgadzać z przeliczonymi i strażnik to powie —
+   zamiast czekać, aż porównanie fal ogłosi defekt audytu przy zgodnym wyniku. */
+{
+  let sprawdzone = 0;
+  for (const w of wszystkieZgloszenia()) {
+    if (!w?.hash || !w?.miejsce) continue; // brak łapie reguła 5
+    sprawdzone++;
+    const przeliczony = hashMiejsca(w.miejsce);
+    if (w.hash !== przeliczony) {
+      bledy.push(
+        `zgłoszenie ${w.id ?? "(bez id)"}: hash "${w.hash.slice(0, 12)}…" nie zgadza się z przeliczonym ` +
+        `z miejsca "${przeliczony.slice(0, 12)}…" (H1) — wpis nie połączy się ze swoim odpowiednikiem`
+      );
+    }
+  }
+  if (sprawdzone) uwagi.push(`hashów zgodnych z miejscem: ${sprawdzone}`);
+  else pominiete.push("23. hashe zgłoszeń — brak wpisów w sektorze");
 }
 
 /* ── 22. moduł krytyka wskazuje zgłoszenia SWOJEGO sektora ─────────────────

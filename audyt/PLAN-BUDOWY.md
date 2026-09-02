@@ -1066,7 +1066,7 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 
 | # | Pozycja | Stan |
 |---|---|---|
-| 1 | hash miejsca bez numeru linii (`wspolne.mjs`, `zgloszenie.mjs`, `polacz-sektory.mjs`, `porownaj-cykle.mjs`, goldeny ról, reguła 11) | ⬜ |
+| 1 | hash miejsca bez numeru linii | ✅ **2026-09-02** — reguła 23 (hash zgodny z miejscem), pary kandydatów w `polacz-sektory`, przy okazji **reguła 24** (szablon goldena też jest miarą); mutacje 68 → 73 |
 | 2 | `porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u | ⬜ |
 | 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza PSIARZ/SKUT/STRAZ/WALID), drzewo wobec `glowa_main`; reguła 17 | ⬜ |
 | 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | ⬜ |
@@ -1079,7 +1079,44 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: pozycja 1 pakietu (hash miejsca).** Pozycja 8 zrobiona po restarcie.
+**NASTĘPNY KROK: pozycja 2 pakietu** (`porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u). Pozycje 8 i 1 zrobione.
+#### PAKIET E7.7, POZYCJA 1 — ZROBIONA 2026-09-02 (hash miejsca, H1)
+
+`hashMiejsca()` nie bierze już **numeru linii**: klucz to `plik + znormalizowana
+treść linii` (forma liniowa) albo `plik + zakres + mechanizm` (forma mechanizmu).
+Numer został w polu `miejsce.linia` i dalej jest weryfikowany wobec pliku przez
+`zgloszenie.mjs` — jest **dowodem, nie kluczem**. Pomiar po zmianie: ta sama treść
+pod linią 169 i 170 → **ten sam hash**; inna treść, inny plik i inna forma →
+różne. Hashe trzech wpisów próbnych przeliczone (`REA-SEC-001`, `REA-SEC-002`
+zmieniły się, `AUD-PIK-001` nie — to forma mechanizmu).
+
+**Doszła reguła 23 strażnika:** hash wpisu musi zgadzać się z przeliczonym
+z miejsca. Reguła 5 pytała tylko, czy hash JEST. To jest zarazem bramka na
+regresję H1: powrót numeru linii do formuły zapala strażnika od razu, zamiast
+czekać, aż porównanie fal ogłosi defekt audytu przy zgodnym wyniku.
+
+**`polacz-sektory.mjs` wypisuje PARY KANDYDATÓW** — wpisy z tego samego pliku,
+których hashe się różnią. Powód jest strukturalny: audyt opisuje miejsce formą
+liniową (lektura), re-audyt często formą mechanizmu (pomiar), więc ich hashe
+NIE MOGĄ być równe. Narzędzie ich nie scala (zgadywanie byłoby gorsze od
+milczenia), tylko pokazuje człowiekowi, gdzie patrzeć.
+
+**ZNALEZISKO PRZY OKAZJI — szablon goldena zgnił po cichu i nikt tego nie
+pilnował.** Reguła 11 sprawdza goldeny RÓL; `szablony/golden.md`, z którego
+powstaje golden każdej nowej roli, **nie był sprawdzany przez żadną regułę**.
+Dopisanie sekcji K4″ do §15 regulaminu przesunęło wskazywaną w nim linię o 31
+pozycji — strażnik był przy tym ZIELONY, a rozjazd wyszedł dopiero z audytu
+mutacyjnego, gdy mutacja zbudowała rolę próbną z tego szablonu. Czyli przez
+przypadek, nie przez bramkę. **Doszła reguła 24**: szablon goldena przechodzi
+przez tę samą funkcję `powodyOdmowy()`, co goldeny ról.
+
+Audyt mutacyjny **68 → 73**: powrót numeru linii do klucza, klucz bez treści
+linii, kontrprzykład „przesunięty numer linii w zgłoszeniu NIE zmienia hasha"
+(dowód H1 od drugiej strony) oraz dwie mutacje szablonu goldena.
+Dowody: strażnik **24 kontrole**, kod 0; mutacje **73** (0 przeoczonych,
+0 martwych); `zgloszenie.mjs --test` 18/18; `werdykt.mjs --test` 13/13;
+mapa bez sierot; niezmiennik 0.
+
 
 ---
 

@@ -16,7 +16,7 @@
   "wplyw": "Dowolny nieuwierzytelniony gość może wstrzykiwać własne, dowolne (obcięte do 200 znaków) łańcuchy do opcji WordPressa aai_obwod_csp_raport pod pozorem raportu CSP, do 200 różnych kluczy (sufit RAPORT_MAX_RODZAJOW), z limitem 60 zapisów/min na adres IP. Dziś opcja nie ma czytelnika w żadnej wtyczce (grep: raport_csp() jest niewywoływana), więc bezpośredniego wycieku ani XSS nie ma — ale mechanizm zapisuje niezweryfikowaną treść z zewnątrz do bazy bez żadnego sekretu, w odróżnieniu od bliźniaczego publicznego endpointu monitoringu, który tę samą klasę ryzyka domyka podpisem.",
   "status": "ZWERYFIKOWANE",
   "runda": 1,
-  "hash": "d27abe2130576b2ba4a7f1badfbd992535f7af3c9eeec6ec8da880cafa1e9ac7",
+  "hash": "6805e80463f868892b193ecb5ddf026de7ad2c76bd25d6af1c21fe8545d78942",
   "werdykt": {
     "krytyk": {
       "werdykt": "PRZEPUSZCZAM",

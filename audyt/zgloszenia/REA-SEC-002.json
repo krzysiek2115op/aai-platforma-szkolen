@@ -16,7 +16,7 @@
   "wplyw": "Powtarzalność (K4'). Dwie fale zadają to samo pytanie i mają przepisany ten sam dowód, ale odpowiedź zależy od tego, czy Pogłębiacz z własnej inicjatywy dołoży pomiar skutku w danych: fala trzymająca się kolumny „Dowód\" zamyka SEC-R6 na „204 = odmowa\" i nie zgłasza niczego, fala schodząca głębiej zgłasza publiczny endpoint zapisujący niezweryfikowaną treść gościa. Rozjazd fal przy niezmienionym kodzie jest dokładnie tym, co porownaj-cykle.mjs czyta jako defekt audytu. Klasa jest ta sama co PIK-08 z E6 (pozycja odhaczona po pustce), tylko groźniejsza: tu wartość NIE jest pusta, więc odhaczenie wygląda na pomiar.",
   "status": "DO WERYFIKACJI",
   "runda": 1,
-  "hash": "32694cf50982eaf9b8a4d5dce8c2653dacb82a33615637d7ffb7b3183c14755b",
+  "hash": "45a12a626640452f93e179ff8495543708366a5cb20e8e22e85e0027f4ab1c2d",
   "werdykt": null,
   "proba": "E7"
 }

@@ -5,6 +5,13 @@
  * problem?"), re-audyt mierzy ZASIĘG ("ile go dokładnie jest i czy cokolwiek
  * to łapie?") — te same miejsca opisują innymi słowami.
  *
+ * HASH NIE POŁĄCZY WSZYSTKIEGO, CO POWINNO SIĘ POŁĄCZYĆ — i to jest świadome.
+ * Audyt opisuje miejsce formą LINIOWĄ (lektura kodu), re-audyt często formą
+ * MECHANIZMU (pomiar: brak kontroli, wyścig, kolejność), a te dwie formy mają
+ * z definicji różne hashe. Dlatego obok łączenia po haszu narzędzie wypisuje
+ * PARY KANDYDATÓW po samym pliku: nie scala ich (zgadywanie byłoby gorsze od
+ * milczenia), tylko pokazuje człowiekowi, gdzie patrzeć.
+ *
  * NOŚNIK: plik do 200 zgłoszeń, powyżej SQLite (rozstrzygnięcie właściciela
  * 2026-09-01). Format wpisu jest TEN SAM w obu nośnikach — zmienia się warstwa
  * zapisu, nie dane. `node:sqlite` jest w standardzie node 26, więc przejście
@@ -13,7 +20,7 @@
  * Użycie: node audyt/tools/polacz-sektory.mjs [--fala=1]
  */
 import { join } from "node:path";
-import { PROG_BAZY, SEKTOR, bezProb, notaOProbach, wszystkieZgloszenia, zapiszJSON } from "./wspolne.mjs";
+import { PROG_BAZY, SEKTOR, bezProb, kluczPliku, notaOProbach, wszystkieZgloszenia, zapiszJSON } from "./wspolne.mjs";
 
 const fala = Number(process.argv.find((a) => a.startsWith("--fala="))?.split("=")[1] ?? 1);
 // Wpisy PRÓBNE nie są znaleziskiem przebiegu — patrz `bezProb()`.
@@ -67,6 +74,26 @@ if (samAudyt.length) {
     "albo go nie sprawdził, albo sprawdził i nie potwierdził — a wtedy powinien\n" +
     "mieć własny wpis z werdyktem, nie milczeć.\n"
   );
+}
+
+/* ── pary kandydatów: ten sam PLIK, różne hashe (audyt: linia, re-audyt: mechanizm) ── */
+const kandydaci = [];
+for (const a of samAudyt) {
+  for (const r of samReAudyt) {
+    if (kluczPliku(a.miejsce) && kluczPliku(a.miejsce) === kluczPliku(r.miejsce)) {
+      kandydaci.push({ audyt: a.audyt.id, reAudyt: r.reAudyt.id, plik: kluczPliku(a.miejsce) });
+    }
+  }
+}
+if (kandydaci.length) {
+  process.stdout.write(
+    `\nPARY KANDYDATÓW — ten sam plik, różne hashe (${kandydaci.length}):\n` +
+    "Hash nie łączy formy liniowej z formą mechanizmu, więc to NIE jest błąd —\n" +
+    "to miejsca do obejrzenia przez człowieka. Narzędzie ich nie scala.\n"
+  );
+  for (const k of kandydaci) {
+    process.stdout.write(`  KANDYDACI  ${k.audyt} ↔ ${k.reAudyt}  ${k.plik}\n`);
+  }
 }
 
 if (polaczone.length > PROG_BAZY) {
