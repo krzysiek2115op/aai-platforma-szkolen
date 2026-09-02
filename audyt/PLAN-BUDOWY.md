@@ -1073,14 +1073,13 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 | 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ⬜ |
 | 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | ⬜ |
 | 7 | re-audyt sekwencyjnie: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu | ⬜ |
-| 8 | test aliasu `fable` po restarcie sesji (`aud-kier`: nazwa modelu) | ⬜ (właściciel restartuje) |
+| 8 | test aliasu `fable` po restarcie sesji (`aud-kier`: nazwa modelu) | ✅ **2026-09-02, po restarcie:** `aud-kier` zameldował dosłownie „You are powered by the model named Fable 5.1. The exact model ID is claude-fable-5-1". **Koszt faktu:** wywołanie bez ani jednego narzędzia = **142 tys. tokenów** — tyle waży samo wejście roli (definicja + kontekst); przy 80 agentach × 2 fale to ~23 mln tokenów SAMYCH wejść, zanim ktokolwiek otworzy plik |
 
 Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: pozycja 1 pakietu (hash miejsca).** Po restarcie sesji najpierw
-pozycja 8 (tanie), potem 1.
+**NASTĘPNY KROK: pozycja 1 pakietu (hash miejsca).** Pozycja 8 zrobiona po restarcie.
 
 ---
 
