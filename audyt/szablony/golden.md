@@ -41,7 +41,7 @@ a nie dowie się o tym dopiero agent w trakcie pracy.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/REGULAMIN.md",
-    "linia": 440,
+    "linia": 471,
     "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń **odmawia zapisu** wpisu bez dowodu."
   },
   "dowod": "Komenda i jej wynik albo druga linia kodu, która domyka rozumowanie — o TYM SAMYM, o czym mówi stwierdzenie.",
@@ -136,7 +136,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/REGULAMIN.md",
-    "linia": 440,
+    "linia": 471,
     "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń odmawia zapisu wpisu bez dowodu i bez miejsca."
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",

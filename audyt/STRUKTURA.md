@@ -32,7 +32,7 @@ audyt/
     porownaj-cykle.mjs           test powtarzalności (K4')
     polacz-sektory.mjs           audyt + re-audyt (W4)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  dwadzieścia dwie kontrole, OBA sektory
+    straznik-sektora-audytu.mjs  dwadzieścia cztery kontrole, OBA sektory
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
@@ -161,7 +161,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 
 ---
 
-## Co pilnuje strażnik sektorów — dwadzieścia dwie kontrole
+## Co pilnuje strażnik sektorów — dwadzieścia cztery kontrole
 
 | # | Kontrola | Co się psuje bez niej |
 |---|---|---|
@@ -234,7 +234,7 @@ oceniałby pracę działu SEC AUDYTU, a wpisy `REA-SEC-*` nie miałyby krytyka.
 Usterka przyszła z szablonu, w którym prefiks stał na sztywno; szablon ma
 odtąd `<PREFIKS>`.
 
-Audyt mutacyjny: **68 mutacji**, 0 przeoczonych, 0 martwych
+Audyt mutacyjny: **73 mutacje**, 0 przeoczonych, 0 martwych
 (`audyt/tools/audyt-straznika-sektora.mjs`). Pięć z nich ma pole **`wymaga`**:
 gdy na danej gałęzi nie ma materiału (`re-audyt/ROLE.md` na gałęzi audytu), są
 **pomijane i policzone**, nigdy cicho zielone.

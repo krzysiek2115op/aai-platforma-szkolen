@@ -171,17 +171,36 @@ export const znormalizuj = (s) => String(s).replace(/\s+/g, " ").trim();
 /**
  * HASH MIEJSCA — maszynowy klucz łączenia fal i sektorów (K4', W4).
  *
- * Bierze także TREŚĆ miejsca, nie sam adres: dzięki temu daje się odtworzyć
- * z kodu i nie da się go podać "na oko". Dla braków (K10') — gdzie nie ma
- * pojedynczej linii — kluczem jest zakres i nazwa mechanizmu.
+ * Bierze TREŚĆ miejsca, nie sam adres: dzięki temu daje się odtworzyć z kodu
+ * i nie da się go podać "na oko". Dla braków (K10') — gdzie nie ma pojedynczej
+ * linii — kluczem jest zakres i nazwa mechanizmu.
+ *
+ * NUMER LINII NIE WCHODZI DO KLUCZA (H1, rozstrzygnięcie właściciela 2026-09-02).
+ * Do tej pory wchodził — i to była najgroźniejsza cicha usterka sektora, bo
+ * uderzała w obie obietnice naraz. Zmierzone przy krytyce budowy: ta sama treść
+ * linii pod numerem 169 i 170 dawała DWA RÓŻNE hashe, więc dwie fale opisujące
+ * IDENTYCZNE znalezisko po przesunięciu kodu o jedną linię trafiały do rachunku
+ * jako "TYLKO F1" i "TYLKO F2" — `porownaj-cykle.mjs` ogłaszał rozjazd fal przy
+ * zgodnym wyniku, a `polacz-sektory.mjs` nie łączył audytu z re-audytem.
+ * Numer linii zostaje w POLU `miejsce.linia` i dalej jest weryfikowany wobec
+ * pliku (`zgloszenie.mjs`) — jest dowodem, nie kluczem.
  */
 export function hashMiejsca(m) {
   const czesci =
     m.rodzaj === "linia"
-      ? ["linia", m.plik, String(m.linia), znormalizuj(m.tresc ?? "")]
+      ? ["linia", m.plik, znormalizuj(m.tresc ?? "")]
       : ["mechanizm", m.plik, znormalizuj(m.zakres ?? ""), znormalizuj(m.mechanizm ?? "")];
   return createHash("sha256").update(czesci.join(" ")).digest("hex");
 }
+
+/**
+ * KLUCZ POMOCNICZY — sam plik. Nie łączy wpisów (to robi hash), tylko wskazuje
+ * PARY KANDYDATÓW: audyt opisuje miejsce formą liniową (lektura), re-audyt
+ * często formą mechanizmu (pomiar), więc ich hashe różnią się z definicji.
+ * Bez tego `polacz-sektory.mjs` meldowałby "tylko audyt" i "tylko re-audyt"
+ * dla tego samego miejsca, a człowiek nie miałby jak tego zauważyć.
+ */
+export const kluczPliku = (m) => m?.plik ?? "";
 
 export function czytajJSON(sciezka, domyslne = null) {
   if (!existsSync(sciezka)) return domyslne;
