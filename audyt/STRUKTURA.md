@@ -29,10 +29,10 @@ audyt/
     status.mjs                   pięć statusów + rundy pętli
     mapa.mjs                     pokrycie w trzech stanach
     migawka-wartosci.mjs         wartości przed i po (W6)
-    porownaj-cykle.mjs           test powtarzalności (K4')
+    porownaj-cykle.mjs           porównanie fal (K4″): zgodne / nadzbiór / sprzeczne, per dział
     polacz-sektory.mjs           audyt + re-audyt (W4)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  dwadzieścia cztery kontrole, OBA sektory
+    straznik-sektora-audytu.mjs  dwadzieścia pięć kontroli, OBA sektory
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
@@ -293,7 +293,7 @@ Cztery rozstrzygnięcia tego nośnika:
 `zgloszenie.mjs` wymusza `fala` ∈ {1, 2}, więc wpis powstały przy budowie
 sektora siedzi w **prawdziwej fali 1** i jest od niej nie do odróżnienia.
 `porownaj-cykle.mjs` zobaczyłby go jako miejsce znane fali 1 i nieznane fali 2,
-czyli jako **rozjazd fal = defekt audytu** (K4'), którym nie jest.
+czyli jako **rozjazd fal** (NADZBIÓR fali 1), którym nie jest.
 
 Dlatego wpis próbny nosi znacznik: `zgloszenie.mjs --oznacz-probe=<ID>
 --etap=E6`. Trzy rzeczy o nim, każda z powodem:
@@ -418,9 +418,11 @@ MAPA PRZED
   ├─ AUDYT fala 2        na NIEZMIENIONYM kodzie, ślepa na wyniki fali 1
   ├─ RE-AUDYT fala 2
   │
-  ├─ porownaj-cykle.mjs
-  │     ├─ zgodne  → błędy potwierdzone → NAPRAWA (osobny krok)
-  │     └─ rozjazd → DEFEKT AUDYTU: napraw sektor i powtórz (K4')
+  ├─ porownaj-cykle.mjs        NAZYWA wynik, nie ocenia (K4″); także --dzial=<KOD>
+  │     ├─ ZGODNE    → błędy potwierdzone → NAPRAWA (osobny krok)
+  │     ├─ NADZBIÓR  → która fala i o ile → raport do lektury właściciela
+  │     └─ SPRZECZNE → raport do lektury właściciela; decyzja jego, nie narzędzia
+  │        kod 1 WYŁĄCZNIE przy podejrzeniu kopiowania (ślepota fali 2) albo braku fali
   │
   └─ MAPA PO → migawka-wartosci.mjs --porownaj
 ```

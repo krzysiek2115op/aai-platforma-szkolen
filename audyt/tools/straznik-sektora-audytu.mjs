@@ -1,5 +1,5 @@
 /**
- * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia dwie kontrole.
+ * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia pięć kontroli.
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -547,6 +547,21 @@ try {
   uwagi.push("werdykt.mjs: samokontrola zaliczona");
 } catch {
   bledy.push("werdykt.mjs --test NIE przechodzi — bramka werdyktów jest zepsuta");
+}
+
+/* ── 25. narzędzie porównania fal przechodzi własną samokontrolę (K4″) ─────
+   Trzeci bliźniak reguł 9 i 15. `porownaj-cykle.mjs` biegnie dopiero po obu
+   falach, więc strażnik nie ma go na czym uruchomić naprawdę — samokontrola
+   woła je na ATRAPACH dwóch fal (czyste funkcje i przebieg CLI na katalogu
+   tymczasowym). Bez niej regresja do K4′ (rozjazd = kod 1 = STOP), ślepota
+   na werdykty (POTWIERDZONE w fali 1 i ODRZUCONE w fali 2 wychodzą „zgodne")
+   albo martwy `--dzial=` nie miałyby żadnego objawu aż do końca dwóch fal —
+   czyli do chwili, gdy narzędzie jest potrzebne pierwszy raz. */
+try {
+  execFileSync("node", ["audyt/tools/porownaj-cykle.mjs", "--test"], { cwd: KORZEN, stdio: "pipe" });
+  uwagi.push("porownaj-cykle.mjs: samokontrola zaliczona");
+} catch {
+  bledy.push("porownaj-cykle.mjs --test NIE przechodzi — porównanie fal jest zepsute (K4″)");
 }
 
 /* ── 16. status ZWERYFIKOWANE tylko z kompletem werdyktów; próba nigdy cicha ─

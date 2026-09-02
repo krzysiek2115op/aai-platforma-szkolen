@@ -47,7 +47,7 @@ poznasz, że masz przed sobą wzorzec, a nie znalezisko.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/GRANICE.md",
-    "linia": 30,
+    "linia": 32,
     "tresc": "**Gdy tabela milczy:** to jest znalezisko **Konrada, faza A, pozycja KON-A5** (granica"
   },
   "dowod": "Przecięcie zakresów tych dwóch działów liczy powyżej progu pięciu plików, a przegląd tabeli granic nie zwraca dla nich wiersza.",
@@ -142,7 +142,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/GRANICE.md",
-    "linia": 30,
+    "linia": 32,
     "tresc": "**Gdy tabela milczy:** to jest znalezisko Konrada, faza A, pozycja KON-A5 (granica"
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",

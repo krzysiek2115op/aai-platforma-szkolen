@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
+| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; zrobione 8, 1, 2)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -1067,7 +1067,7 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 | # | Pozycja | Stan |
 |---|---|---|
 | 1 | hash miejsca bez numeru linii | ✅ **2026-09-02** — reguła 23 (hash zgodny z miejscem), pary kandydatów w `polacz-sektory`, przy okazji **reguła 24** (szablon goldena też jest miarą); mutacje 68 → 73 |
-| 2 | `porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u | ⬜ |
+| 2 | `porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u | ✅ **2026-09-02** — po dyskusji i trzech odpowiedziach właściciela (kod 0 przy SPRZECZNE; NADZBIÓR nazywa falę i liczbę; wpisy `-90` porównywane tak samo); **reguła 25** strażnika (samokontrola narzędzia na atrapach dwóch fal), mutacje 73 → 79; szczegóły w sekcji „POZYCJA 2 — ZROBIONA" niżej |
 | 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza PSIARZ/SKUT/STRAZ/WALID), drzewo wobec `glowa_main`; reguła 17 | ⬜ |
 | 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | ⬜ |
 | 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ⬜ |
@@ -1079,7 +1079,7 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: (1) decyzja właściciela nad „Wykonalność dwóch fal na planie Max" (Fable zostaje? pomiar `/usage` na próbie kierownika? E8 dzielone per dział?), (2) DYSKUSJA nad projektem pozycji 2** (sekcja „Pozycja 2 — projekt do dyskusji" niżej), dopiero po jego akceptacji kod. Pozycje 8 i 1 zrobione. Reguła właściciela od 2026-09-02: **przed zmianami w kodzie w pakiecie — weryfikacja i dyskusja.**
+**NASTĘPNY KROK: pozycja 3 pakietu** (`status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu poza PSIARZ/SKUT/STRAZ/WALID, drzewo wobec `glowa_main`; reguła 17) — wg reguły właściciela od 2026-09-02 **NAJPIERW projekt do dyskusji w tym pliku, kod po akceptacji**. Przy pozycji 3 sprostować też trzy zdania o `porownaj-cykle.mjs` i liczbie niedomkniętych (znalezisko z pozycji 2, niżej). Pozycje 8, 1 i 2 zrobione; decyzje o wykonalności na Max ZAPADŁY (sekcja niżej).
 ### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
 
 Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
@@ -1132,7 +1132,20 @@ per dział — pozycja 2 pakietu), z włączonymi usage credits jako siatką;
 (d) decyzja o krytykach na Sonnecie — tylko jeśli pomiar z (b) pokaże, że
 Opus nie mieści się nawet w podziale tygodniowym.
 
-#### PAKIET E7.7, POZYCJA 2 — PROJEKT DO DYSKUSJI (2026-09-02), KOD NIE RUSZONY
+**DECYZJA WŁAŚCICIELA (2026-09-02), trzy odpowiedzi:**
+- **(a) Fable 5.1 na KIER/KON ZOSTAJE.**
+- **(b) Odczyt `/usage` przed i po PRÓBIE SUCHEJ KIEROWNIKA (F17) — TAK.** Właściciel
+  odczytuje pasek, agent notuje obie wartości w tym pliku; to jedyny wiarygodny
+  pomiar wagi jednej pełnej ścieżki wobec pułapu Opusa. Próba sucha kierownika
+  (~1 mln tokenów) wymaga OSOBNEJ zgody na koszt w chwili uruchomienia.
+- **(c) Podział E8: wstępnie „jeden ciąg z przerwami"** (przerwy tylko na reset
+  okna 5 h), ale **ostateczna decyzja dopiero po pomiarze (b)** — dosłownie:
+  „założyłbym jeden ciąg z przerwami, ale 100% odpowiem, gdy zrobimy pomiar 1b".
+  `--dzial=` w `porownaj-cykle.mjs` (pozycja 2) zostaje niezależnie od podziału:
+  urwany przebieg i tak ma rozliczać działy domknięte (C1).
+- (d) bez zmian — nie proponować krytyków na Sonnecie, dopóki pomiar tego nie wymusi.
+
+#### PAKIET E7.7, POZYCJA 2 — ZROBIONA 2026-09-02 (projekt niżej zaakceptowany po dyskusji; wynik na końcu sekcji)
 
 Polecenie właściciela: **„przed zmianami w kodzie zweryfikujmy wszystko
 i przedyskutujmy"** — obowiązuje dla każdej pozycji pakietu, która dotyka
@@ -1185,11 +1198,68 @@ rozstrzygnięć (tu: K4″ wchodzi wprost do `porownaj-cykle.mjs`).
 **Czego pozycja 2 NIE robi:** nie zmienia `werdykt.mjs`, statusów, ani
 `zgloszenie.mjs`; nie dotyka ról poza RAP-R4; nie rusza prób E6/E7.6.
 
-**Pytania otwarte do dyskusji:** (a) kod wyjścia przy SPRZECZNE (pkt 3);
-(b) czy NADZBIÓR ma wskazywać, KTÓRA fala jest większa, i czy to coś znaczy
-dla właściciela; (c) czy wpisy z pozycji otwartej `<KOD>-90` (pozycja 6
-pakietu) porównywać tak samo, czy raportować osobno — K4″ mówi „agenci mają
-znaleźć wszystko", więc chyba tak samo.
+**Pytania otwarte do dyskusji — ROZSTRZYGNIĘTE PRZEZ WŁAŚCICIELA (2026-09-02):**
+(a) kod wyjścia przy SPRZECZNE = **0, do lektury** (kod 1 wyłącznie przy podejrzeniu
+kopiowania albo braku fali); (b) NADZBIÓR **nazywa falę i liczbę** („fala 2 ma
+wszystko, co fala 1, i 3 miejsca ponadto"); (c) wpisy z pozycji otwartej `<KOD>-90`
+**porównywane tak samo**, w raporcie tylko oznaczone „(otwarta)". Całość projektu:
+„Akceptuję, pisz kod".
+
+**CO POWSTAŁO (wynik pozycji 2):**
+- `porownaj-cykle.mjs` przepisany: czyste `porownajFale()`, `stanPochodny()`,
+  `kodWyjscia()` + przebieg CLI; trzy wyniki, stan pochodny liczony w locie (nie
+  zapisywany — §6 i `STATUSY` nietknięte), porównanie po parze (hash, stan),
+  `--dzial=<KOD>`, tabela per dział bez argumentu, raport
+  `audyt/wyniki/porownanie-<sektor>[-<DZIAL>].json` + lista każdego wpisu z obu
+  stron z nazwaną różnicą; „inny dział" wypisywany osobno jako GRANICA (KIER-04);
+  ślepota fali 2 (identyczny opis → kod 1) zostaje.
+- **Samokontrola `--test` — 31 przypadków**: czyste funkcje ORAZ przebieg CLI na
+  katalogu tymczasowym z atrapami dwóch fal (`--katalog=<dir>`, używany wyłącznie
+  przez samokontrolę). To jest nowy wzorzec z projektu („mutacje muszą wołać
+  narzędzie na wpisach-atrapach dwóch fal") — atrapy nie dotykają
+  `audyt/zgloszenia/`.
+- **Reguła 25 strażnika**: `porownaj-cykle.mjs --test` musi przechodzić (bliźniak
+  reguł 9 i 15). Strażnik: 24 → **25 kontroli**.
+- **Sześć mutacji** (audyt 73 → **79**): nadzbiór nieodróżniany od sprzeczności;
+  werdykty ignorowane; powrót kodu 1 przy rozjeździe (K4′); kopiowanie bez kodu 1;
+  NADZBIÓR bez nazwania fali; `--dzial=` bez filtra. 0 przeoczonych, 0 martwych.
+- Zmiany towarzyszące: RAP-R4 (`re-audyt/ROLE.md` + `RAP/AGENT.md`) → „czy rozjazd
+  jest NAZWANY i przedstawiony właścicielowi z obu stron, a nie ogłoszony
+  defektem"; `RAP/SKILL.md` krok 4; sekcja KIER „Rozjazd między falami" przepisana
+  na K4″ + `--dzial=` w komendach KIER (AGENT i SKILL); `STRUKTURA.md` (drzewo
+  narzędzi, schemat kolejności, akapit o wpisie próbnym); `audyt/GRANICE.md`
+  i `re-audyt/GRANICE.md` (granica = szum w porównaniu, nie „defekt audytu").
+  **Golden RAP nie niósł starego brzmienia** (sprawdzone grepem) — bez zmian.
+
+**DWA ODSTĘPSTWA OD PROJEKTU, oba nazwane:**
+1. **Obecność fali NIE wynika z liczby wpisów.** Pierwsza wersja `kodWyjscia()`
+   liczyła „brak fali" po zerze wpisów i własna samokontrola to złapała (1 z 30
+   padło): dział, który ZAKOŃCZYŁ falę bez znalezisk, ma zero wpisów tak samo jak
+   fala, której nie było. Różnicę zna wyłącznie `stan/` — więc `--dzial=` i cały
+   sektor pytają o status ZAKOŃCZONE roli, a `kodWyjscia()` dostaje obecność fal
+   z zewnątrz. To jest hak pod pozycję 3 (porządek w `status.mjs`).
+2. Raport per dział zapisuje się pod `porownanie-<sektor>-<DZIAL>.json`, żeby nie
+   nadpisywał raportu całego sektora.
+
+**GOLDENY KONRADÓW ZAPALIŁY SIĘ NATYCHMIAST** — edycja `audyt/GRANICE.md` dodała
+dwie linie i zdanie wskazywane przez oba goldeny KON przesunęło się z linii 30 na 32.
+Reguła 11 zadziałała tak, jak ma (golden nie gnije po cichu); numer poprawiony,
+treść zweryfikowana wobec pliku. Zapamiętać: **każda edycja `GRANICE.md` albo
+`REGULAMIN.md` może przesunąć linię goldena** — strażnik to powie, ale dopiero po
+edycji.
+
+**ZNALEZISKO PRZY OKAZJI, ŚWIADOMIE NIENAPRAWIONE (dotyczy pozycji 3):** trzy
+miejsca twierdzą, że `porownaj-cykle.mjs` „bierze liczbę niedomkniętych pozycji do
+porównania fal" — `status.mjs` (komentarz i komunikat), reguła 17 strażnika
+(komentarz i komunikat) oraz `STRUKTURA.md` (akapit o `--niedomkniete`). Narzędzie
+NIGDY nie czytało `stan/` pod tym kątem, ani przed tą zmianą, ani po niej; od dziś
+czyta `stan/` wyłącznie po status ZAKOŃCZONE. Komunikat reguły 17 jest śladem
+mutacji, więc zdanie prostujemy razem z pozycją 3, która porządkuje `status.mjs`
+i regułę 17 — nie mimochodem.
+
+Dowody pozycji 2: strażnik **25 kontroli**, kod 0; mutacje **79** (0 przeoczonych,
+0 martwych); `porownaj-cykle.mjs --test` 31/31; niezmiennik 0; generat 80 definicji
+przebudowany.
 
 #### PAKIET E7.7, POZYCJA 1 — ZROBIONA 2026-09-02 (hash miejsca, H1)
 

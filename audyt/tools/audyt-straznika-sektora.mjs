@@ -290,6 +290,66 @@ MUTACJE.push(
   },
 );
 
+/* ── mutacje porównania fal (K4″, pakiet E7.7 pozycja 2, 2026-09-02) ─────────
+   Strażnik nie uruchamia `porownaj-cykle.mjs` na prawdziwych danych (wymaga
+   dwóch fal), więc regresje tego narzędzia widać wyłącznie przez jego
+   samokontrolę na ATRAPACH dwóch fal (reguła 25). Każda z tych mutacji psuje
+   jedno rozstrzygnięcie właściciela i pyta, czy samokontrola to zauważy. */
+const POROWNAJ = "audyt/tools/porownaj-cykle.mjs";
+MUTACJE.push(
+  {
+    opis: "porównanie fal przestaje odróżniać NADZBIÓR od SPRZECZNE (każdy rozjazd = sprzeczność)",
+    plik: POROWNAJ,
+    slad: /porownaj-cykle\.mjs --test/,
+    zmien: (s) => s.replace(
+      'else if (innyStan.length || (tylkoW1.length && tylkoW2.length)) wynik = "SPRZECZNE";',
+      'else if (true) wynik = "SPRZECZNE";'
+    ),
+  },
+  {
+    opis: "porównanie fal przestaje patrzeć na werdykty — POTWIERDZONE i ODRZUCONE wychodzą „zgodne\"",
+    plik: POROWNAJ,
+    slad: /porownaj-cykle\.mjs --test/,
+    zmien: (s) => s.replace(
+      'if (!krytyk || !weryfikator) return "BEZ WERDYKTU";',
+      'return "BEZ WERDYKTU";'
+    ),
+  },
+  {
+    opis: "rozjazd fal wraca do kodu 1 (powrót K4′: SPRZECZNE = STOP zamiast lektury)",
+    plik: POROWNAJ,
+    slad: /porownaj-cykle\.mjs --test/,
+    zmien: (s) => s.replace(
+      "export function kodWyjscia({ podejrzane }, obieFale) {",
+      'export function kodWyjscia({ podejrzane, wynik }, obieFale) {\n  if (wynik !== "ZGODNE") return 1;'
+    ),
+  },
+  {
+    opis: "podejrzenie kopiowania przestaje dawać kod 1 — ślepota fali 2 traci trzecią warstwę",
+    plik: POROWNAJ,
+    slad: /porownaj-cykle\.mjs --test/,
+    zmien: (s) => s.replace("if (podejrzane > 0) return 1;", "if (false) return 1;"),
+  },
+  {
+    opis: "NADZBIÓR przestaje mówić, KTÓRA fala jest większa (zawsze „fala 2\")",
+    plik: POROWNAJ,
+    slad: /porownaj-cykle\.mjs --test/,
+    zmien: (s) => s.replace(
+      'const wieksza = wynik === "NADZBIÓR" ? (tylkoW2.length ? 2 : 1) : null;',
+      'const wieksza = wynik === "NADZBIÓR" ? 2 : null;'
+    ),
+  },
+  {
+    opis: "--dzial= przestaje filtrować — porównanie działu liczy cały sektor",
+    plik: POROWNAJ,
+    slad: /porownaj-cykle\.mjs --test/,
+    zmien: (s) => s.replace(
+      "const wDziale = dzial ? wszystkie.filter((z) => z.dzial === dzial) : wszystkie;",
+      "const wDziale = wszystkie;"
+    ),
+  },
+);
+
 const MUTACJE_ROLI = [
   {
     opis: "z szablonu AGENT.md znika jedna z 13 zasad Goldena",
