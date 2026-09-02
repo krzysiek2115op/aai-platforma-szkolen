@@ -215,7 +215,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | WDR-R2 | Ile jest **wszystkich** wystąpień tej klasy w repozytorium — nie tylko wskazane jedno? | komenda zliczająca po całym repo | liczba + lista miejsc |
 | WDR-R3 | Czy klasyfikacja i wpływ z audytu utrzymują się przy **pełnym zasięgu**? | zgłoszenie audytu × pomiar | miejsce, w którym wpływ jest inny |
 | WDR-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
-| WDR-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z fali 1 | miejsce |
+| WDR-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | WDR-R6 | Czy paczka ZIP instaluje się w CZYSTEJ instalacji, a `uninstall.php` zostawia dane tak, jak obiecuje? | `npm run pakuj` + instalacja w kontenerze + `wp plugin uninstall` | kod wyjścia + stan tabel po odinstalowaniu |
 
 ## Jak zgłaszasz

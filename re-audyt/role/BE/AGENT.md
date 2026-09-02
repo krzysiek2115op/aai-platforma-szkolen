@@ -211,7 +211,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | BE-R2 | Ile jest **wszystkich** wystąpień tej klasy w repozytorium — nie tylko wskazane jedno? | komenda zliczająca po całym repo | liczba + lista miejsc |
 | BE-R3 | Czy klasyfikacja i wpływ z audytu utrzymują się przy **pełnym zasięgu**? | zgłoszenie audytu × pomiar | miejsce, w którym wpływ jest inny |
 | BE-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
-| BE-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z fali 1 | miejsce |
+| BE-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | BE-R6 | Czy reguła „brak klucza znaczy nie ruszaj" (BLAD-018) trzyma się uruchomieniowo dla KAŻDEGO z pięciu kluczy, nie tylko w komentarzu? | zapis przez warstwę zapisu bez danego klucza, potem odczyt | klucz + stan przed i po |
 
 ## Jak zgłaszasz

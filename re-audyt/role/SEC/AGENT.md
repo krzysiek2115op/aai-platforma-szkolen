@@ -214,7 +214,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | SEC-R2 | Ile jest **wszystkich** wystąpień tej klasy w repozytorium — nie tylko wskazane jedno? | komenda zliczająca po całym repo | liczba + lista miejsc |
 | SEC-R3 | Czy klasyfikacja i wpływ z audytu utrzymują się przy **pełnym zasięgu**? | zgłoszenie audytu × pomiar | miejsce, w którym wpływ jest inny |
 | SEC-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
-| SEC-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z fali 1 | miejsce |
+| SEC-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | SEC-R6 | Czy dla KAŻDEGO wejścia z obszaru odmowa przy braku nonce'a albo uprawnienia jest zmierzona ŻĄDANIEM, nie odczytana z kodu? | żądanie do `:8892` bez nonce'a i bez ciastka | adres + kod odpowiedzi + stan danych PRZED i PO żądaniu (sam kod nie rozstrzyga: kolektor CSP i beacon odpowiadają 204 zarówno na przyjęcie, jak i na odrzut) |
 
 ## Jak zgłaszasz

@@ -75,8 +75,10 @@ dowodu nie da się ocenić bez zajrzenia.
 
 ## Moduł
 
-Wyjście roli `<KOD>`: jej zgłoszenia (`audyt/zgloszenia/<PREFIKS>-<KOD>-*.json`),
-stan (`audyt/stan/`) i raport działu.
+Wyjście roli `<KOD>` **w Twojej fali N**: jej zgłoszenia
+(`audyt/zgloszenia/<PREFIKS>-<KOD>-F<N>-*.json`), stan (`audyt/stan/*-f<N>-<KOD>.json`)
+i raport działu. Fala siedzi w nazwie wpisu — krytyk fali 2 z definicji nie
+otwiera wpisów `-F1-`, a w worktree fali 2 nie ma ich na dysku.
 
 ## Prompt
 

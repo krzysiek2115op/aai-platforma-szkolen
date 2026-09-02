@@ -88,8 +88,12 @@ node audyt/tools/werdykt.mjs --pokaz
 node audyt/tools/status.mjs --pokaz
 ```
 
-czyli zgłoszenia sektora (`audyt/zgloszenia/REA-*.json`), stan ról
-(`audyt/stan/re-audyt-*.json`) i raporty działów.
+czyli zgłoszenia sektora (`audyt/zgloszenia/REA-<KOD>-F<N>-*.json`), stan ról
+(`audyt/stan/re-audyt-f<N>-*.json`) i raporty działów. W fali 2 pracujesz
+w worktree fali 2 (`fala.mjs --postaw=2` stawia go kierownik audytu; wpisów
+fali 1 tam NIE MA na dysku), a po scaleniu (`fala.mjs --scal=2`) — w pełnym
+drzewie, bo raport i porównanie są po obu falach (Ty i `RAP` jesteście
+wyjątkiem od odmowy izolacji w `status.mjs`).
 
 ## Prompt
 

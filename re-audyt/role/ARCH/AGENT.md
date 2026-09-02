@@ -212,7 +212,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 | ARCH-R2 | Ile jest **wszystkich** wystąpień tej klasy w repozytorium — nie tylko wskazane jedno? | komenda zliczająca po całym repo | liczba + lista miejsc |
 | ARCH-R3 | Czy klasyfikacja i wpływ z audytu utrzymują się przy **pełnym zasięgu**? | zgłoszenie audytu × pomiar | miejsce, w którym wpływ jest inny |
 | ARCH-R4 | Czy w tym obszarze występują klasy znalezione przez **inne** działy audytu? | wszystkie zgłoszenia × zakres tego obszaru | miejsce + klasa |
-| ARCH-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z fali 1 | miejsce |
+| ARCH-R5 | Czy obszar ma mechanizm tej samej klasy, którego audyt **nie zgłosił**? | zakres × lista klas z audytu TEJ fali | miejsce |
 | ARCH-R6 | Czy każdy z siedmiu szwów daje się WYWOŁAĆ, a wyłączenie jednej wtyczki nie wywraca pozostałych? | wyzwolenie akcji na `:8892` + `wp plugin deactivate` po kolei | szew + obserwowany skutek |
 
 ## Jak zgłaszasz

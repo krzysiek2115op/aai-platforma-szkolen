@@ -11,8 +11,8 @@
  * **musi zapisać, których pozycji nie domknął**. Ciche urwanie po piątej rundzie
  * byłoby luką nie do odróżnienia od kompletnej pracy.
  *
- * CZTERY ODMOWY (pakiet E7.7, pozycja 3 — sześć rozstrzygnięć właściciela
- * 2026-09-02), każda z komendą naprawy w komunikacie:
+ * PIĘĆ ODMÓW (cztery z pakietu E7.7, pozycja 3 — sześć rozstrzygnięć właściciela
+ * 2026-09-02; piąta z pozycji 4), każda z komendą naprawy w komunikacie:
  *
  *   1. fala ∈ {1, 2} — do tej pory `--fala=3` tworzyło `audyt-f3-SEC.json`,
  *      a `--fala=abc` plik `audyt-fNaN-SEC.json`, po cichu; `zgloszenie.mjs`
@@ -35,7 +35,20 @@
  *      `--porownaj`): rola, która nadpisała plik w pierwszej godzinie,
  *      pracowała dalej cały dział.
  *
- * Reguły 1–3 siedzą w CZYSTEJ funkcji `powodyOdmowyStanu()`, reguła 4
+ *   5. IZOLACJA FALI 2 (pakiet E7.7, pozycja 4, 2026-09-02; F2 z krytyki
+ *      budowy): rola fali 2 NIE WCHODZI do działu (W TRAKCIE albo pierwsza
+ *      runda), dopóki w drzewie widać JAKIKOLWIEK wpis zgłoszenia albo plik
+ *      stanu z POLEM `fala: 1`. Fala 2 pracuje w osobnym worktree ze sparse
+ *      checkoutem, który chowa `zgloszenia/*-F1-*` i `stan/*-f1-*`
+ *      (`fala.mjs --postaw=2`); gdyby sparse checkout „działał" tylko
+ *      w lekturze dokumentacji, ta odmowa i tak zatrzyma wejście — pyta o POLE,
+ *      nie o nazwę pliku ani o zaufanie do gita. Wpis PRÓBNY fali 1 blokuje TAK
+ *      SAMO (rozstrzygnięte przy kodzie: jeden format, zero wyjątków; próbny
+ *      wpis fali 1 to wciąż czytelny materiał o fali 1). Wyjątek — KIER i RAP
+ *      fali 2 (rozstrzygnięcie 1 właściciela): porównanie fal i raport odbywają
+ *      się PO obu falach, w pełnym drzewie.
+ *
+ * Reguły 1–3 i 5 siedzą w CZYSTEJ funkcji `powodyOdmowyStanu()`, reguła 4
  * w `powodyOdmowyDrzewa()` — obie bez dysku i bez procesu, żeby samokontrola
  * `--test` mogła je wywołać na atrapach (jak `zgloszenie.mjs`/`werdykt.mjs`).
  * Strażnik sektora (reguła 17) sprawdza TE SAME rzeczy na ZAWARTOŚCI plików
@@ -55,12 +68,12 @@
  * — używa go WYŁĄCZNIE samokontrola, na katalogu tymczasowym.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  DZIALY, KOD_POZYCJI, KORZEN, SEKTOR, SEKTORY, STATUSY, SUFIT_RUND, czytajJSON, roleSektora, zapiszJSON,
+  DZIALY, KOD_POZYCJI, KORZEN, PROG_BAZY, SEKTOR, SEKTORY, STATUSY, SUFIT_RUND, czytajJSON, roleSektora, zapiszJSON,
 } from "./wspolne.mjs";
 
 /** Dwie fale — te same, które zna `zgloszenie.mjs`. Trzeciej nie ma w żadnym planie. */
@@ -68,6 +81,9 @@ export const FALE = [1, 2];
 const NIE_ROZPOCZETO = STATUSY[0];
 const ZAKONCZONE = "ZAKOŃCZONE";
 export const KOMENDA_MIGAWKI = "node audyt/tools/migawka-wartosci.mjs --zapisz=przed";
+export const KOMENDA_WORKTREE = "node audyt/tools/fala.mjs --postaw=2";
+/** Role, które w fali 2 pracują także w PEŁNYM drzewie — po obu falach (rozstrzygnięcie 1, 2026-09-02). */
+export const WOLNE_OD_IZOLACJI = ["KIER", "RAP"];
 
 /** Klucz stanu w zestawieniu — ten sam, co nazwa pliku bez rozszerzenia. */
 export const kluczStanu = (sektor, fala, rola) => `${sektor}-f${fala}-${rola}`;
@@ -88,7 +104,7 @@ export const wszedl = (stan) => Boolean(stan) && (stan.status !== NIE_ROZPOCZETO
  *               zostać zapisany.
  * @returns lista powodów odmowy; pusta = wolno zapisać.
  */
-export function powodyOdmowyStanu(stany, zmiana) {
+export function powodyOdmowyStanu(stany, zmiana, widoczne = { faleWpisow: [], przykladWpisu: null }) {
   const { sektor, fala, rola, przed, po } = zmiana;
   const powody = [];
 
@@ -124,6 +140,25 @@ export function powodyOdmowyStanu(stany, zmiana) {
         `(stan: ${re.status}, runda ${re.runda ?? 0}). Re-audyt pracowałby na dziale, który „jeszcze nie wyszedł" (W5).\n` +
         `Naprawa: nie ma jej w narzędziu — wynik działu zostaje ZAKOŃCZONE, poprawki idą jako NOWE zgłoszenia,\n` +
         `a sprawę rozstrzyga kierownik (KIER-05).`
+      );
+    }
+  }
+
+  // 5. Izolacja fali 2: WEJŚCIE (nie każda zmiana) przy widocznej fali 1 → odmowa.
+  const wejscie = wszedl(po) && !wszedl(przed);
+  if (fala === 2 && wejscie && !WOLNE_OD_IZOLACJI.includes(rola)) {
+    const faleStanow = [...stany.values()].map((s) => s?.fala);
+    const wpisowF1 = (widoczne.faleWpisow ?? []).filter((f) => f === 1).length;
+    const stanowF1 = faleStanow.filter((f) => f === 1).length;
+    if (wpisowF1 || stanowF1) {
+      const przyklad = widoczne.przykladWpisu ?? [...stany.values()].find((s) => s?.fala === 1)?.rola ?? "";
+      powody.push(
+        `Fala 2 nie wchodzi do działu, dopóki w drzewie widać falę 1: ${wpisowF1} wpisów zgłoszeń i ${stanowF1} plików stanu ` +
+        `z polem fala: 1${przyklad ? ` (np. ${przyklad})` : ""}.\n` +
+        "Agent fali 2 ma NIE WIDZIEĆ wyników fali 1 (K4″: zgodność fal ma być skutkiem, nie odpisem) — fala 2 pracuje\n" +
+        "w osobnym worktree ze sparse checkoutem, który chowa wpisy `-F1-` i stany `-f1-`. Odmowa pyta o POLE, nie o nazwę.\n" +
+        `Naprawa (kierownik): ${KOMENDA_WORKTREE}   — i uruchom rolę z katalogu worktree.\n` +
+        `Wyjątek: ${WOLNE_OD_IZOLACJI.join(" i ")} fali 2 wchodzą także w pełnym drzewie (porównanie fal i raport po obu falach).`
       );
     }
   }
@@ -186,6 +221,14 @@ export function dopiszHistorie(stan, teraz) {
 
 /* ── odczyt katalogu stanu ─────────────────────────────────────────────── */
 
+/** Fale wpisów zgłoszeń widocznych w drzewie — po POLU `fala`, nie po nazwie pliku. */
+function faleWpisow(katalogZgloszen) {
+  if (!existsSync(katalogZgloszen)) return { fale: [], przyklad: null };
+  const wpisy = readdirSync(katalogZgloszen).filter((n) => n.endsWith(".json")).sort()
+    .map((n) => czytajJSON(join(katalogZgloszen, n))).filter(Boolean);
+  return { fale: wpisy.map((w) => w.fala), przyklad: wpisy.find((w) => w.fala === 1)?.id ?? null };
+}
+
 function wczytajStany(katalogStanu) {
   const stany = new Map();
   if (!existsSync(katalogStanu)) return stany;
@@ -212,6 +255,7 @@ function przebieg(arg) {
   const wartosc = (n) => arg.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3);
   const KATALOG_DANYCH = wartosc("katalog") ?? SEKTOR;
   const KATALOG_STANU = join(KATALOG_DANYCH, "stan");
+  const KATALOG_ZGLOSZEN = join(KATALOG_DANYCH, "zgloszenia");
   const PLIK_MIGAWKI = join(KATALOG_DANYCH, "migawki", "przed.json");
   const plikRoli = (sektor, fala, rola) => join(KATALOG_STANU, `${kluczStanu(sektor, fala, rola)}.json`);
 
@@ -233,6 +277,14 @@ function przebieg(arg) {
         for (const h of w.historia ?? []) process.stdout.write(`      ${h.kiedy}  ${h.status} (runda ${h.runda})\n`);
         if (!w.historia?.length) process.stdout.write("      (brak historii przejść — plik sprzed dziennika wejść)\n");
       }
+    }
+    /* LICZBA ZGŁOSZEŃ I PRÓG 200 ŻYJĄ TUTAJ, nie w wyjściu `zgloszenie.mjs`
+       (pozycja 4 E7.7): ten ekran czyta kierownik, a nie agent fali, któremu
+       liczba cudzych wpisów zdradzałaby wynik fali 1. */
+    const { fale } = faleWpisow(KATALOG_ZGLOSZEN);
+    if (fale.length) {
+      process.stdout.write(`\nZGŁOSZEŃ W SEKTORZE: ${fale.length} (fala 1: ${fale.filter((f) => f === 1).length}, fala 2: ${fale.filter((f) => f === 2).length})\n`);
+      if (fale.length > PROG_BAZY) process.stdout.write(`UWAGA: przekroczony próg ${PROG_BAZY} zgłoszeń — czas przełączyć nośnik na SQLite (W4).\n`);
     }
     const wiszace = stany.filter((w) => w.runda >= SUFIT_RUND && w.status !== ZAKONCZONE);
     return wiszace.length ? 1 : 0;
@@ -365,7 +417,8 @@ function przebieg(arg) {
     return 1;
   }
 
-  const odmowa = powodyOdmowyStanu(wczytajStany(KATALOG_STANU), { sektor, fala, rola, przed, po: stan });
+  const { fale, przyklad } = faleWpisow(KATALOG_ZGLOSZEN);
+  const odmowa = powodyOdmowyStanu(wczytajStany(KATALOG_STANU), { sektor, fala, rola, przed, po: stan }, { faleWpisow: fale, przykladWpisu: przyklad });
   if (odmowa.length) {
     process.stdout.write(odmowa.join("\n") + "\n");
     return 1;
@@ -430,6 +483,22 @@ function samokontrola() {
   sprawdz("COFANIE   KONTRPRZYKŁAD: DO WERYFIKACJI → W TRAKCIE nie jest zejściem z ZAKOŃCZONE", !powodyOdmowyStanu(zestaw(reWszedl), zm("audyt", 1, "SEC", "DO WERYFIKACJI", "W TRAKCIE")).length);
   sprawdz("COFANIE   KONTRPRZYKŁAD: rola procesowa audytu (KIER) cofa się swobodnie", !powodyOdmowyStanu(zestaw(atrapa("re-audyt", 1, "KIER", "W TRAKCIE", 1)), zm("audyt", 1, "KIER", ZAKONCZONE, "W TRAKCIE")).length);
 
+  /* izolacja fali 2 (pozycja 4 E7.7) */
+  const widacF1 = { faleWpisow: [1, 1], przykladWpisu: "AUD-SEC-F1-001" };
+  const widacF2 = { faleWpisow: [2], przykladWpisu: null };
+  const stanF1 = atrapa("audyt", 1, "KIER", ZAKONCZONE, 1, T[1]);
+  sprawdz("IZOLACJA  SEC fali 2 wchodzi przy wpisie z polem fala: 1 → odmowa z komendą fala.mjs", odmawia(powodyOdmowyStanu(zestaw(), zm("audyt", 2, "SEC", null, "W TRAKCIE"), widacF1), /fala\.mjs --postaw=2/));
+  sprawdz("IZOLACJA  komunikat nazywa przykładowy wpis fali 1", odmawia(powodyOdmowyStanu(zestaw(), zm("audyt", 2, "SEC", null, "W TRAKCIE"), widacF1), /AUD-SEC-F1-001/));
+  sprawdz("IZOLACJA  --runda przed statusem to też wejście → odmowa", odmawia(powodyOdmowyStanu(zestaw(), zm("audyt", 2, "SEC", NIE_ROZPOCZETO, NIE_ROZPOCZETO, 1), widacF1), /widać falę 1/));
+  sprawdz("IZOLACJA  plik STANU fali 1 (bez wpisów) też blokuje", odmawia(powodyOdmowyStanu(zestaw(stanF1), zm("audyt", 2, "SEC", null, "W TRAKCIE"), widacF2), /1 plików stanu/));
+  sprawdz("IZOLACJA  Pogłębiacz fali 2 blokowany tak samo (re-audyt)", odmawia(powodyOdmowyStanu(zestaw(atrapa("audyt", 2, "SEC", ZAKONCZONE, 1)), zm("re-audyt", 2, "SEC", null, "W TRAKCIE"), widacF1), /widać falę 1/));
+  sprawdz("IZOLACJA  wpis PRÓBNY fali 1 blokuje TAK SAMO (zero wyjątków w formacie)", odmawia(powodyOdmowyStanu(zestaw(), zm("audyt", 2, "SEC", null, "W TRAKCIE"), { faleWpisow: [1], przykladWpisu: "AUD-PIK-F1-001" }), /AUD-PIK-F1-001/));
+  sprawdz("IZOLACJA  KONTRPRZYKŁAD: wpisy WYŁĄCZNIE fali 2 w drzewie → wolno", !powodyOdmowyStanu(zestaw(atrapa("audyt", 2, "BE", "W TRAKCIE", 1)), zm("audyt", 2, "SEC", null, "W TRAKCIE"), widacF2).length);
+  sprawdz("IZOLACJA  KONTRPRZYKŁAD: fala 1 przy wpisach fali 1 → wolno (to jej własne wpisy)", !powodyOdmowyStanu(zestaw(), zm("audyt", 1, "SEC", null, "W TRAKCIE"), widacF1).length);
+  sprawdz("IZOLACJA  KONTRPRZYKŁAD: KIER i RAP fali 2 wchodzą w pełnym drzewie", ["KIER", "RAP"].every((r) => !powodyOdmowyStanu(zestaw(), zm("audyt", 2, r, null, "W TRAKCIE"), widacF1).length));
+  sprawdz("IZOLACJA  KONTRPRZYKŁAD: zmiana NIE będąca wejściem (W TRAKCIE → ZAKOŃCZONE) po scaleniu → wolno", !powodyOdmowyStanu(zestaw(), zm("audyt", 2, "SEC", "W TRAKCIE", ZAKONCZONE, 2), widacF1).length);
+  sprawdz("IZOLACJA  KONTRPRZYKŁAD: KON fali 2 NIE jest wolny (audytuje audyt swojej fali, nie obu)", odmawia(powodyOdmowyStanu(zestaw(), zm("audyt", 2, "KON", null, "W TRAKCIE"), widacF1), /widać falę 1/));
+
   /* drzewo produktu */
   const MIGAWKA = { glowa_main: "c6458950c3850994fc2fbd8a383284e0d094afcf" };
   sprawdz("DRZEWO    brak migawki → odmowa z komendą --zapisz=przed", odmawia(powodyOdmowyDrzewa(null, { zmienione: [], brudne: [] }), /--zapisz=przed/));
@@ -489,6 +558,24 @@ function samokontrola() {
 
     const pokaz = uruchom("--pokaz", "--historia");
     sprawdz("CLI       --pokaz --historia drukuje czasy przejść", pokaz.kod === 0 && (pokaz.wyjscie.match(/\d{4}-\d{2}-\d{2}T/g) ?? []).length >= 5, `kod ${pokaz.kod}`);
+
+    /* izolacja fali 2 — wpis z POLEM fala: 1 pod nazwą, której sparse checkout by NIE schował */
+    mkdirSync(join(tmp, "zgloszenia"), { recursive: true });
+    const wpisF1 = join(tmp, "zgloszenia", "AUD-SEC-F2-001.json"); // nazwa kłamie, pole mówi prawdę
+    writeFileSync(wpisF1, JSON.stringify({ id: "AUD-SEC-F2-001", sektor: "audyt", fala: 1, dzial: "SEC" }), "utf8");
+    const f2Blok = uruchom("--rola=BE", "--fala=2", "--status=W TRAKCIE");
+    sprawdz("CLI       fala 2 przy wpisie z POLEM fala: 1 (nazwa F2!) → kod 1 z komendą fala.mjs, bez pliku", f2Blok.kod === 1 && f2Blok.wyjscie.includes(KOMENDA_WORKTREE) && !plik("audyt", 2, "BE"), `kod ${f2Blok.kod}: ${f2Blok.wyjscie.trim().slice(0, 120)}`);
+    const kierF2 = uruchom("--rola=KIER", "--fala=2", "--status=W TRAKCIE");
+    sprawdz("CLI       KIER fali 2 w tym samym drzewie → kod 0", kierF2.kod === 0 && plik("audyt", 2, "KIER")?.status === "W TRAKCIE", `kod ${kierF2.kod}: ${kierF2.wyjscie.trim().slice(0, 120)}`);
+    rmSync(wpisF1, { force: true });
+    // Stany fali 1 z wcześniejszych przypadków wciąż leżą w katalogu — plik stanu fali 1 blokuje tak samo.
+    const f2Stan = uruchom("--rola=BE", "--fala=2", "--status=W TRAKCIE");
+    sprawdz("CLI       bez wpisów, ale ze stanami fali 1 na dysku → dalej kod 1 (plików stanu z fala: 1 ≥ 1)", f2Stan.kod === 1 && /plików stanu/.test(f2Stan.wyjscie), `kod ${f2Stan.kod}`);
+    for (const n of readdirSync(join(tmp, "stan"))) if (/-f1-/.test(n)) rmSync(join(tmp, "stan", n), { force: true });
+    const f2Wolno = uruchom("--rola=BE", "--fala=2", "--status=W TRAKCIE");
+    sprawdz("CLI       po schowaniu fali 1 (jak w worktree) → kod 0", f2Wolno.kod === 0 && plik("audyt", 2, "BE")?.status === "W TRAKCIE", `kod ${f2Wolno.kod}: ${f2Wolno.wyjscie.trim().slice(0, 120)}`);
+    const pokaz2 = uruchom("--pokaz");
+    sprawdz("CLI       --pokaz liczy zgłoszenia per fala (licznik przeniesiony z zgloszenie.mjs)", pokaz2.kod === 0 && /ZGŁOSZEŃ W SEKTORZE: 0|Żadna|STAN RÓL/.test(pokaz2.wyjscie), `kod ${pokaz2.kod}`);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

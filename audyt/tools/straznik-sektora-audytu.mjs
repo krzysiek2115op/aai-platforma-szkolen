@@ -1,5 +1,8 @@
 /**
- * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia sześć kontroli.
+ * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia osiem kontroli (numery 1–29;
+ * 27 jest ZAREZERWOWANA dla pozycji 4b pakietu E7.7 — zdanie zakazu czytania
+ * innej fali w 80 definicjach — i wejdzie razem z pozycją 6, bo dziś byłaby
+ * czerwona na wszystkich osiemdziesięciu plikach).
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -22,7 +25,7 @@
  *
  * Użycie: node audyt/tools/straznik-sektora-audytu.mjs
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -577,6 +580,46 @@ try {
   bledy.push("status.mjs --test NIE przechodzi — kolejność sektorów (W5) i dziennik wejść (KIER-05) są bez bramki");
 }
 
+/* ── 28. stan/ i migawki/ NIE są ignorowane przez gita (pozycja 4 E7.7) ───
+   Rozstrzygnięcie właściciela 2026-09-02 (pytanie 4): `audyt/stan/`
+   i `audyt/migawki/` WCHODZĄ do gita. Bez tego izolacja fali 2 worktree'em
+   nie ma jak oddać stanu do głównego drzewa (`fala.mjs --scal=2` scala
+   commity, nie pliki nieśledzone), `porownaj-cykle --dzial=` nie widzi
+   ZAKOŃCZONE fali 2, a dziennik wejść (historia przejść) nie jest dowodem.
+
+   Pytamy `git check-ignore --no-index` o ścieżkę-atrapę w każdym z trzech
+   katalogów nośnika: `--no-index`, bo tracked plik NIE jest raportowany jako
+   ignorowany nawet przy pasującym wzorcu — pomiar na prawdziwym pliku
+   przechodziłby po pustce, dopóki ktoś nie dodałby NOWEGO. Kod 0 = ignorowany. */
+{
+  const atrapy = ["audyt/stan/proba-reguly-28.json", "audyt/migawki/proba-reguly-28.json", "audyt/zgloszenia/proba-reguly-28.json"];
+  for (const sciezka of atrapy) {
+    const r = spawnSync("git", ["check-ignore", "-q", "--no-index", sciezka], { cwd: KORZEN });
+    if (r.status === 0) {
+      bledy.push(
+        `${sciezka.split("/").slice(0, 2).join("/")}/ jest IGNOROWANY przez gita — stan fali 2 z worktree nie wróciłby do drzewa sektora, ` +
+        "a dziennik wejść przestałby być dowodem (rozstrzygnięcie właściciela 2026-09-02: stan/ i migawki/ do gita)"
+      );
+    }
+  }
+  uwagi.push("nośnik (zgloszenia/, stan/, migawki/) śledzony przez gita");
+}
+
+/* ── 29. narzędzie worktree fali 2 przechodzi własną samokontrolę ──────────
+   Piąty bliźniak reguł 9, 15, 25 i 26. `fala.mjs` biegnie dopiero między
+   falami, więc strażnik nie ma go na czym uruchomić naprawdę — samokontrola
+   stawia i scala worktree na TYMCZASOWYM repozytorium z kopią prawdziwych
+   narzędzi i mierzy izolację PARĄ: `status.mjs` w pełnym drzewie odmawia
+   fali 2 (widać falę 1), w worktree wpuszcza. Bez tej reguły worktree bez
+   wykluczeń („działa" w lekturze dokumentacji) nie miałby objawu aż do
+   chwili, gdy agent fali 2 otworzyłby wpis fali 1. */
+try {
+  execFileSync("node", ["audyt/tools/fala.mjs", "--test"], { cwd: KORZEN, stdio: "pipe" });
+  uwagi.push("fala.mjs: samokontrola zaliczona");
+} catch {
+  bledy.push("fala.mjs --test NIE przechodzi — worktree fali 2 nie chowa fali 1 albo nie scala jej stanu (trzecia warstwa ślepoty fali 2)");
+}
+
 /* ── 16. status ZWERYFIKOWANE tylko z kompletem werdyktów; próba nigdy cicha ─
    Pytamy o ZAWARTOŚĆ wpisu, nie o to, czy przeszedł przez `werdykt.mjs` —
    status dopisany ręcznie do pliku ominąłby narzędzie, a ta reguła nie.
@@ -852,7 +895,7 @@ try {
   }
 }
 
-/* ── 19. identyfikator zgłoszenia zgodny ze swoim SEKTOREM ─────────────────
+/* ── 19. identyfikator zgłoszenia zgodny ze swoim SEKTOREM i swoją FALĄ ────
    Oba sektory dzielą JEDEN katalog zgłoszeń (warunek łączenia po haszu, W4)
    i SIEDEMNAŚCIE kodów działów, bo Pogłębiacz obszaru SEC jest re-audytem
    działu SEC. Rozróżnia je wyłącznie PREFIKS w nazwie wpisu.
@@ -864,7 +907,15 @@ try {
 
    Reguła pyta o ZAWARTOŚĆ katalogu, nie o to, czy wpis przeszedł przez
    `zgloszenie.mjs`: plik dopisany ręcznie ominąłby narzędzie, a ta reguła nie.
-   To ta sama konstrukcja co reguły 5, 16 i 17. */
+   To ta sama konstrukcja co reguły 5, 16 i 17.
+
+   19′ (pakiet E7.7, pozycja 4, 2026-09-02): FALA W NAZWIE = POLE `fala`.
+   Identyfikator niesie falę (`AUD-SEC-F2-001`), bo numer ciągły w dziale
+   zdradzał fali 2 liczbę znalezisk fali 1 (F3). Od tej chwili DWIE warstwy
+   ślepoty fali 2 czytają falę z DWÓCH różnych miejsc: sparse checkout worktree
+   chowa wpisy po NAZWIE (`*-F1-*`), a `status.mjs` odmawia wejścia po POLU.
+   Wpis, w którym nazwa mówi F1, a pole 2 (albo odwrotnie), robi jedną z tych
+   warstw ślepą bez objawu — więc rozjazd jest błędem, nie stylem. */
 {
   const wpisy = wszystkieZgloszenia();
   for (const w of wpisy) {
@@ -882,8 +933,20 @@ try {
     if (!roleSektora(w.sektor).includes(w?.dzial)) {
       bledy.push(`zgłoszenie ${w.id}: dział "${w.dzial}" nie istnieje w sektorze "${w.sektor}"`);
     }
+    const falaWNazwie = String(w?.id ?? "").match(/^[A-Z]+-[A-Z]+-F(\d)-\d+$/)?.[1];
+    if (!falaWNazwie) {
+      bledy.push(
+        `zgłoszenie ${w.id}: identyfikator bez fali w nazwie — format to <PREFIKS>-<DZIAŁ>-F<N>-<numer>; ` +
+        "sparse checkout fali 2 chowa wpisy po nazwie, więc wpis bez F<N> byłby widoczny obu falom"
+      );
+    } else if (Number(falaWNazwie) !== w?.fala) {
+      bledy.push(
+        `zgłoszenie ${w.id}: fala w nazwie (F${falaWNazwie}) ≠ pole fala (${w?.fala}) — ` +
+        "sparse checkout chowa wpisy po NAZWIE, a status.mjs odmawia wejścia po POLU; rozjazd czyni jedną z tych warstw ślepą"
+      );
+    }
   }
-  if (wpisy.length) uwagi.push(`identyfikatorów zgodnych z sektorem: ${wpisy.length}`);
+  if (wpisy.length) uwagi.push(`identyfikatorów zgodnych z sektorem i falą: ${wpisy.length}`);
   else pominiete.push("19. prefiksy identyfikatorów — w sektorze nie ma jeszcze zgłoszeń");
 }
 

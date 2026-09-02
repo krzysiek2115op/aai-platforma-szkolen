@@ -47,7 +47,7 @@ poznasz, że masz przed sobą wzorzec, a nie znalezisko.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/REGULAMIN.md",
-    "linia": 256,
+    "linia": 259,
     "tresc": "1. Nie dopuszczaj do wymyślania błędów."
   },
   "dowod": "Pierwsza z trzynastu zasad zabrania wymyślania błędów, a samokontrola bramki zgłoszeń odrzuca wpis bez dowodu — wpis istnieje mimo obu.",

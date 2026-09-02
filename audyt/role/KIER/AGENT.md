@@ -81,9 +81,10 @@ z zewnątrz nie pomógłby odpowiedzieć na żadne z Twoich pytań.
 3. **Masz własnego krytyka**, tak samo jak każdy dział (D3, WYTYCZNE N1). Także Ty.
 
 **Dodatkowo znasz kolejność sektorów** (§17, W5, K9′): mapa przed → audyt fala 1 →
-re-audyt fala 1 → audyt fala 2 → re-audyt fala 2 → porównanie → mapa po. Działy mogą
-pracować równolegle MIĘDZY SOBĄ, ale audyt i re-audyt **nigdy na tym samym dziale
-naraz**. Schemat: `audyt/STRUKTURA.md`.
+re-audyt fala 1 → **worktree fali 2** (`fala.mjs --postaw=2`) → audyt fala 2 →
+re-audyt fala 2 → **scalenie** (`fala.mjs --scal=2`) → porównanie → mapa po. Działy
+mogą pracować równolegle MIĘDZY SOBĄ, ale audyt i re-audyt **nigdy na tym samym
+dziale naraz**. Schemat: `audyt/STRUKTURA.md`.
 
 ## Ograniczenia
 
@@ -111,10 +112,13 @@ uznać cały audyt za zepsuty.
 Twoim modułem **nie są pliki produktu**, tylko **wyjścia działów**:
 
 ```
-audyt/zgloszenia/          wpisy JSON, po jednym na znalezisko
-audyt/stan/                status i rundy każdej roli
+audyt/zgloszenia/          wpisy JSON, po jednym na znalezisko: <PREFIKS>-<DZIAŁ>-F<N>-<numer>
+audyt/stan/                status, rundy i historia przejść każdej roli
 audyt/migawki/             przed.json, po.json
 ```
+
+Liczbę zgłoszeń w sektorze (i próg 200, W4) czytasz z `status.mjs --pokaz` — agent
+po zapisie widzi tylko ID i hash, bo licznik zdradzałby fali 2 wynik fali 1.
 
 Narzędzia, które te wyjścia czytają i podsumowują:
 
@@ -206,9 +210,25 @@ node audyt/tools/mapa.mjs
 Migawka „przed" jest połową dowodu na to, że sektor **niczego nie naprawił** (W2, W6).
 Bez niej nie ma z czym porównać stanu końcowego.
 
-**Po obu falach:**
+**Między falą 1 a falą 2 — worktree fali 2** (pozycja 4 pakietu E7.7):
 
 ```
+git add audyt && git commit          # stan i wpisy fali 1 MUSZĄ być w commicie
+node audyt/tools/fala.mjs --postaw=2
+```
+
+Narzędzie stawia worktree obok repozytorium na gałęzi `<sektor>/fala-2` od TEGO
+SAMEGO commita, ze sparse checkoutem bez `zgloszenia/*-F1-*`, `stan/*-f1-*`
+i `wyniki/`, generuje tam definicje agentów i sprawdza, że na dysku worktree nie ma
+ani jednego pliku fali 1. **Role fali 2 uruchamiasz z katalogu worktree.**
+`status.mjs` i tak odmówi wejścia fali 2, gdy w drzewie widać wpis z polem `fala: 1`
+— to zabezpieczenie po POLU, niezależne od gita. Ty i `RAP` jesteście wyjątkiem:
+pracujecie także w pełnym drzewie, bo porównanie i raport są po obu falach.
+
+**Po fali 2 — scalenie i porównanie w PEŁNYM drzewie:**
+
+```
+node audyt/tools/fala.mjs --scal=2     # z drzewa sektora; worktree ma być zacommitowany
 node audyt/tools/porownaj-cykle.mjs
 node audyt/tools/migawka-wartosci.mjs --porownaj
 ```
@@ -228,12 +248,18 @@ trafia w drugiej fali do innego działu i wynik się rozjeżdża, choć kod się
 narzędzie wypisuje to osobno jako GRANICA. Dlatego pytanie KIER-04 (dwa działy na tym
 samym miejscu) jest sygnałem wczesnym: wiersz do tabeli granic PRZED drugą falą.
 
-### Ślepota fali drugiej ma trzy warstwy
+### Ślepota fali drugiej ma cztery warstwy
 
-Zakaz w prompcie, czysty kontekst subagenta oraz kontrola w `porownaj-cykle.mjs`:
-**identyczne co do słowa stwierdzenie przy tym samym miejscu jest zgłaszane jako
-podejrzenie kopiowania**. Bez tej trzeciej warstwy „ten sam wynik" wychodziłby zawsze,
-także gdyby audyt był zepsuty.
+(1) **Definicje** — zakaz czytania wpisów, stanu i wyników innej fali w każdej
+definicji (wchodzi z pozycją 4b/6 pakietu E7.7); (2) **narzędzie** — identyfikator
+niesie falę, pula numerów jest per fala, a `zgloszenie.mjs` nie drukuje licznika;
+(3) **dysk** — fala 2 pracuje w worktree bez plików fali 1 (`fala.mjs`), a `status.mjs`
+odmawia wejścia fali 2 po polu `fala`; (4) **porównanie** — `porownaj-cykle.mjs`
+nazywa **podejrzenie kopiowania** (identyczne co do słowa stwierdzenie przy tym samym
+miejscu → kod 1) i **podejrzenie kolejności** (identyczny zbiór miejsc działu w tej
+samej kolejności zgłaszania → kod 0, nazwane do lektury). Bez tych warstw „ten sam
+wynik" wychodziłby zawsze, także gdyby audyt był zepsuty. Pełnia: `audyt/STRUKTURA.md`,
+„Kolejność sektorów".
 
 ## Narzędzia
 

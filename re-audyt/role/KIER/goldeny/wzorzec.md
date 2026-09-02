@@ -42,7 +42,7 @@ a nie dowie się o tym dopiero agent w trakcie pracy.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/tools/status.mjs",
-    "linia": 226,
+    "linia": 270,
     "tresc": "    const ostrzezenie = w.runda >= SUFIT_RUND && w.status !== \"ZAKOŃCZONE\" ? \"  ← SUFIT RUND\" : \"\";"
   },
   "dowod": "Komenda i jej wynik albo druga linia kodu, która domyka rozumowanie — o TYM SAMYM, o czym mówi stwierdzenie.",
@@ -137,7 +137,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/tools/status.mjs",
-    "linia": 226,
+    "linia": 270,
     "tresc": "  for (const w of wpisy) {"
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",
