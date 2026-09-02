@@ -10,9 +10,11 @@ obszaru więcej niż jednego. Role i checklisty: [`ROLE.md`](ROLE.md).
 Zakresy plików **nakładają się celowo** (rozstrzygnięcie „plik × pytanie", `ROLE.md`).
 Wyłączna jest checklista. Dopóki granica jest ostra, znalezisko trafia w obu falach do tego
 samego działu i porównanie cykli ma sens. Przy granicy nieostrej **druga fala przypisze je
-gdzie indziej** — i wynik się rozjedzie **mimo że kod się nie zmienił**. Wtedy K4′ każe
-uznać to za defekt audytu i powtórzyć wszystko. Tabela granic jest więc **warunkiem
-powtarzalności**, nie porządkiem na papierze.
+gdzie indziej** — i wynik się rozjedzie **mimo że kod się nie zmienił**. `porownaj-cykle.mjs`
+wypisze to osobno jako GRANICA (K4″: rozjazd jest wynikiem do lektury właściciela, nie
+defektem z definicji) — ale rozjazd z powodu granicy jest szumem, który da się usunąć
+PRZED drugą falą. Tabela granic jest więc **warunkiem czytelnego porównania**, nie
+porządkiem na papierze.
 
 ---
 

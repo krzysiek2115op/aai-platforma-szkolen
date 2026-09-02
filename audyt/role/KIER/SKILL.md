@@ -44,8 +44,9 @@ Przy **każdej** pozycji KIER oraz w dwóch momentach przebiegu: przed pierwszą
    z TEGO działu (W5, K9′).
    *Wynik:* dla każdego działu — kolejność wejść z datami.
 
-5. **Porównaj fale i przeczytaj rozjazdy jako defekt SEKTORA.**
-   *Wynik:* kod wyjścia `porownaj-cykle.mjs` + lista rozjazdów.
+5. **Porównaj fale i przekaż właścicielowi wynik NAZWANY** (zgodne / nadzbiór /
+   sprzeczne, także per dział) — z obu stron, bez oceny (K4″).
+   *Wynik:* wyjście `porownaj-cykle.mjs` + `audyt/wyniki/porownanie-<sektor>.json`.
 
 6. **Porównaj migawki i `git diff`.** To jest dowód, że sektor niczego nie naprawił.
    *Wynik:* dwa kody wyjścia — migawki i niezmiennika.
@@ -56,14 +57,16 @@ Przy **każdej** pozycji KIER oraz w dwóch momentach przebiegu: przed pierwszą
 node audyt/tools/status.mjs --pokaz
 node audyt/tools/mapa.mjs
 node audyt/tools/porownaj-cykle.mjs
+node audyt/tools/porownaj-cykle.mjs --dzial=<KOD>
 node audyt/tools/polacz-sektory.mjs --fala=1
 node audyt/tools/migawka-wartosci.mjs --porownaj
 node audyt/tools/straznik-sektora-audytu.mjs
 git diff main --name-only -- . ':!audyt' ':!re-audyt'
 ```
 
-Kody wyjścia **bez potoku**. Kod 1 z `porownaj-cykle.mjs` znaczy rozjazd albo
-podejrzenie kopiowania — obie rzeczy są Twoje.
+Kody wyjścia **bez potoku**. Kod 1 z `porownaj-cykle.mjs` znaczy WYŁĄCZNIE brak fali
+albo podejrzenie kopiowania — rozjazd fal daje kod 0 i jest wynikiem do lektury
+właściciela (K4″), nie sygnałem do naprawy.
 
 ## Czego ta umiejętność NIE robi
 
@@ -77,7 +80,8 @@ podejrzenie kopiowania — obie rzeczy są Twoje.
 
 - **„Dział zgłosił, że skończył" to nie jest liczba.** Twój krytyk ma jedno zadanie:
   sprawdzić, czy nie zamknąłeś działu na deklaracji.
-- **Rozjazd fal ma najczęściej przyczynę w GRANICY**, nie w kodzie i nie w agencie.
+- **Rozjazd fal z powodu GRANICY jest szumem, nie wynikiem** — narzędzie wypisuje go
+  osobno (GRANICA). Pozostały rozjazd to wynik dla właściciela, nie defekt do naprawy.
 - **Odrzucone zgłoszenie NIE ZNIKA** — zostaje z werdyktem, bo druga fala musi trafić
   na to samo miejsce i dojść do tego samego wniosku.
 - **Powyżej 200 zgłoszeń nośnikiem przestaje być plik** (próg właściciela). Format wpisu

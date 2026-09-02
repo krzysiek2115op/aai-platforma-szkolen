@@ -122,6 +122,7 @@ Narzędzia, które te wyjścia czytają i podsumowują:
 node audyt/tools/status.mjs --pokaz
 node audyt/tools/mapa.mjs
 node audyt/tools/porownaj-cykle.mjs
+node audyt/tools/porownaj-cykle.mjs --dzial=<KOD>
 node audyt/tools/polacz-sektory.mjs --fala=<N>
 node audyt/tools/migawka-wartosci.mjs --porownaj
 ```
@@ -212,15 +213,20 @@ node audyt/tools/porownaj-cykle.mjs
 node audyt/tools/migawka-wartosci.mjs --porownaj
 ```
 
-### Rozjazd między falami to DEFEKT AUDYTU, nie powód do odrzucenia znaleziska
+### Rozjazd między falami to WYNIK do lektury właściciela, nie defekt audytu z definicji
 
-To jest rozstrzygnięcie właściciela (K4′) i najważniejsza rzecz, jaką masz wiedzieć:
-**druga fala MUSI dać ten sam wynik. Jeśli nie da — źle zrobiliśmy audyt.** Wracasz
-naprawić sektor i powtarzasz falę, zamiast iść naprawiać projekt.
+To jest rozstrzygnięcie właściciela (K4″, 2026-09-02, zastępuje K4′): agenci mają znaleźć
+WSZYSTKO, a zgodność fal ma być tego skutkiem, nie ograniczeniem. `porownaj-cykle.mjs`
+NAZYWA wynik — ZGODNE, NADZBIÓR (która fala i o ile), SPRZECZNE — i **nie zatrzymuje**
+przebiegu: kod 1 daje wyłącznie podejrzenie kopiowania albo brak fali. Rozjazdu **nie
+odrzucasz i nie naprawiasz** — oba raporty idą do właściciela z obu stron
+(`audyt/wyniki/porownanie-<sektor>.json` i tabela per dział), a decyzja, co z nim
+zrobić, należy do niego. Rozjazd nie jest też powodem do odrzucenia znaleziska.
 
-Najczęstsza przyczyna rozjazdu nie jest przypadkowa: **nieostra granica**. Znalezisko
-trafia w drugiej fali do innego działu i wynik się rozjeżdża, choć kod się nie zmienił.
-Dlatego pytanie KIER-04 (dwa działy na tym samym miejscu) jest sygnałem wczesnym.
+Jedna przyczyna rozjazdu jest szumem, nie wynikiem: **nieostra granica**. Znalezisko
+trafia w drugiej fali do innego działu i wynik się rozjeżdża, choć kod się nie zmienił —
+narzędzie wypisuje to osobno jako GRANICA. Dlatego pytanie KIER-04 (dwa działy na tym
+samym miejscu) jest sygnałem wczesnym: wiersz do tabeli granic PRZED drugą falą.
 
 ### Ślepota fali drugiej ma trzy warstwy
 
