@@ -1079,7 +1079,59 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: DYSKUSJA z właścicielem nad projektem pozycji 2** (sekcja „Pozycja 2 — projekt do dyskusji" niżej), dopiero po jego akceptacji kod. Pozycje 8 i 1 zrobione. Reguła właściciela od 2026-09-02: **przed zmianami w kodzie w pakiecie — weryfikacja i dyskusja.**
+**NASTĘPNY KROK: (1) decyzja właściciela nad „Wykonalność dwóch fal na planie Max" (Fable zostaje? pomiar `/usage` na próbie kierownika? E8 dzielone per dział?), (2) DYSKUSJA nad projektem pozycji 2** (sekcja „Pozycja 2 — projekt do dyskusji" niżej), dopiero po jego akceptacji kod. Pozycje 8 i 1 zrobione. Reguła właściciela od 2026-09-02: **przed zmianami w kodzie w pakiecie — weryfikacja i dyskusja.**
+### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
+
+Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
+platform.claude.com), 25 wywołań narzędzi; każda liczba ma w jego raporcie
+źródło. Skrót tego, co jest **udokumentowane**, i tego, czego dokumentacja
+**nie podaje**:
+
+| Fakt | Status |
+|---|---|
+| Okno 5 h liczone od pierwszego promptu; limit tygodniowy „across all models" | udokumentowane |
+| Zużycie liczone w TOKENACH ważonych modelem — Opus „several times more per turn than Sonnet" | udokumentowane |
+| Subagenci (`Agent`) wliczają się do tego samego limitu; `/usage` flaguje „subagent-heavy sessions" | udokumentowane |
+| **Fable 5.1 na Max: wliczony do puli tygodniowej z sufitem 50%**, po nim usage credits | udokumentowane |
+| Flagi `fableConsent`/`fableCreditsRequired` w binarce = znany, potwierdzony BUG harnessu (Max błędnie żądał kredytów) | udokumentowane (zgłoszenia #79337, #79341, #79412) |
+| Po wyczerpaniu limitu: **usage credits** po stawkach API, sufit 2000 USD/dzień | udokumentowane |
+| Ceny API: Sonnet 2/10, Opus 5/25, Fable 10/50 USD za mln (in/out); cache read 0,1× (Fable 0,025×) | udokumentowane |
+| Konkretne godziny (Max 5x: 140–280 h Sonnet, 15–35 h Opus / tydzień; 20x: 240–480 / 24–40) | **NIEZWERYFIKOWANE** — z ogłoszenia 08/2025, przez rok limity zmieniały się kilkakrotnie |
+| Współczynnik token ↔ „godzina modelu"; mnożnik cache w limicie Max; interakcja sufitu Fable z pułapem Opusa | **dokumentacja nie podaje** |
+
+**Rachunek (założenia jawne):** przy 25–50 mln tokenów na dwie fale i podziale
+45 Opus / 31 Sonnet / 4 Fable, 90% wejścia, bez cache — **~143–286 USD po
+cenach API**. Sam Opus: 45 ról × 2 fale × ~200 tys. ≈ **18–36 mln tokenów**
+Opusa — i to jest wąskie gardło, bo Opus ma w Max osobny, ciaśniejszy pułap.
+
+**Odpowiedź na pytanie właściciela („czy 2 fale wejdą, czy 5 h nas zatrzyma,
+czy wracać na Opusa"):**
+1. **Okno 5 h NIE zatrzyma dwóch fal — tylko je potnie.** Przebieg i tak nie
+   mieści się w jednej sesji; wyniki lądują w plikach po każdym kroku, więc
+   przerwa na reset okna jest przerwą, nie stratą. Limit TYGODNIOWY jest
+   realnym ograniczeniem.
+2. **Powrót KIER/KON z Fable na Opusa POGORSZYŁBY sprawę**, nie poprawił: Fable
+   ma na Max osobny sufit (50% puli) i nie konkuruje z pułapem Opusa; te cztery
+   role są dziś „poza wąskim gardłem". Na Opusie byłoby 49/80 zamiast 45/80.
+3. **Prawdziwa dźwignia to krytycy (40 ról na Opusie).** Zejście krytyków na
+   Sonneta spuszcza udział Opusa z 56% do 6% — ale to decyzja MERYTORYCZNA
+   (D3, WYTYCZNE N1: krytyk ma być mocniejszy od ocenianego), nie tokenowa.
+   **Nie proponuję jej z własnej inicjatywy.**
+4. **Awaryjnie: usage credits** — nawet gdyby CAŁE dwie fale trzeba było
+   dokupić po API, to rząd 150–300 USD, poniżej dziennego sufitu.
+5. **Jedyny wiarygodny pomiar to `/usage` przed i po jednej pełnej ścieżce na
+   docelowym koncie** (rola + krytyk + weryfikator; mamy dwie takie próby, ale
+   bez odczytu `/usage`). Dokumentacja nie daje współczynnika token↔godzina,
+   więc każdy rachunek „ile okien / ile dni" byłby zmyślony.
+
+**Propozycja do decyzji właściciela (nie wykonana):** (a) Fable na KIER/KON
+zostaje; (b) przed E8 jeden odczyt `/usage` przed i po próbie suchej kierownika
+(F17, i tak potrzebnej) — da realną wagę jednej ścieżki wobec paska Opusa;
+(c) E8 planowany jako przebieg **dzielony na tygodnie per dział** (porównanie
+per dział — pozycja 2 pakietu), z włączonymi usage credits jako siatką;
+(d) decyzja o krytykach na Sonnecie — tylko jeśli pomiar z (b) pokaże, że
+Opus nie mieści się nawet w podziale tygodniowym.
+
 #### PAKIET E7.7, POZYCJA 2 — PROJEKT DO DYSKUSJI (2026-09-02), KOD NIE RUSZONY
 
 Polecenie właściciela: **„przed zmianami w kodzie zweryfikujmy wszystko
