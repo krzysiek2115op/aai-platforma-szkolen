@@ -28,7 +28,9 @@ Na starcie fali, przy wejściu każdego Pogłębiacza do obszaru i przy zbierani
 
 ## Procedura
 
-1. Sprawdź, czy audyt WYSZEDŁ z działu: `status.mjs --pokaz`, rola audytu ma mieć `ZAKOŃCZONE`.
+1. Sprawdź, czy audyt WYSZEDŁ z działu: `status.mjs --pokaz`, rola audytu ma mieć `ZAKOŃCZONE`
+   (narzędzie i tak odmówi postawienia Pogłębiacza przed `ZAKOŃCZONE` działu audytu
+   tej samej fali — pozycja 3 E7.7; role procesowe re-audytu blokada nie dotyczy).
 2. Postaw Pogłębiacza: `status.mjs --rola=<KOD> --sektor=re-audyt --fala=<N> --status="W TRAKCIE"`.
 3. Po jego pracy przeczytaj werdykty: `werdykt.mjs --pokaz` — dział zamykasz na LICZBIE zgłoszeń z kompletem werdyktów, nie na zdaniu agenta.
 4. Po fali: `polacz-sektory.mjs --fala=<N>` i zanotuj trzy liczby z wyjścia.
