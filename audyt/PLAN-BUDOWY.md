@@ -1069,7 +1069,7 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 | 1 | hash miejsca bez numeru linii | ✅ **2026-09-02** — reguła 23 (hash zgodny z miejscem), pary kandydatów w `polacz-sektory`, przy okazji **reguła 24** (szablon goldena też jest miarą); mutacje 68 → 73 |
 | 2 | `porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u | ✅ **2026-09-02** — po dyskusji i trzech odpowiedziach właściciela (kod 0 przy SPRZECZNE; NADZBIÓR nazywa falę i liczbę; wpisy `-90` porównywane tak samo); **reguła 25** strażnika (samokontrola narzędzia na atrapach dwóch fal), mutacje 73 → 79; szczegóły w sekcji „POZYCJA 2 — ZROBIONA" niżej |
 | 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza rolami procesowymi re-audytu), drzewo wobec `glowa_main`; reguła 17 | ✅ **2026-09-02** — po zielonym świetle właściciela („Tak, jedź"): historia przejść w pliku stanu, cztery odmowy z komendą naprawy, `status.mjs --test` (36 przypadków), **reguła 26**, reguła 17 na zawartości; mutacje 79 → **101**; szczegóły w sekcji „POZYCJA 3 — ZROBIONA" niżej |
-| 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | ⬜ |
+| 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | 🚧 **projekt spisany 2026-09-02** (sekcja „POZYCJA 4 — PROJEKT DO DYSKUSJI"); **siedem pytań do właściciela**, kod po rozstrzygnięciach |
 | 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ⬜ |
 | 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | ⬜ |
 | 7 | re-audyt sekwencyjnie: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu | ⬜ |
@@ -1079,7 +1079,7 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: pozycja 4 pakietu — zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala.** Wg wytycznej właściciela z 2026-09-02 (pozycje dotykające rozstrzygnięć najpierw jako projekt do dyskusji): sprawdzić, czy pozycja 4 wymaga rozstrzygnięć, i jeśli tak — najpierw projekt w tym pliku, kod po akceptacji. Pozycje 8, 1, 2 i 3 zrobione; decyzje o wykonalności na Max ZAPADŁY (sekcja niżej).
+**NASTĘPNY KROK: pozycja 4 pakietu — projekt SPISANY (sekcja „POZYCJA 4 — PROJEKT DO DYSKUSJI" niżej), czeka na siedem rozstrzygnięć właściciela; kod po nich.** Pozycja 4 DOTYKA rozstrzygnięć (m.in. `audyt/stan/` w gicie, izolacja fali 2 worktree'em, kod wyjścia przy nadmiernej zgodności), więc wg wytycznej z 2026-09-02 najpierw dyskusja. Pozycje 8, 1, 2 i 3 zrobione; decyzje o wykonalności na Max ZAPADŁY (sekcja niżej).
 ### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
 
 Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
@@ -1260,6 +1260,134 @@ i regułę 17 — nie mimochodem.
 Dowody pozycji 2: strażnik **25 kontroli**, kod 0; mutacje **79** (0 przeoczonych,
 0 martwych); `porownaj-cykle.mjs --test` 31/31; niezmiennik 0; generat 80 definicji
 przebudowany.
+
+#### PAKIET E7.7, POZYCJA 4 — PROJEKT DO DYSKUSJI (2026-09-02), KOD NIE RUSZONY
+
+Pozycja łączy F2 (B1: ślepota fali 2 nie jest zapewniona) i F3 (B9: samo
+narzędzie przecieka wynik fali 1) z `KRYTYKA-BUDOWY.md` — oba potwierdzone
+przez sędziego, oba w pakiecie wiarygodności, na który właściciel się zgodził.
+Stan „dziś" zmierzony (lektura szablonów, 40 definicji, `zgloszenie.mjs`,
+`porownaj-cykle.mjs`, `status.mjs`):
+
+| Co | Stan dziś (zmierzony) | Skutek |
+|---|---|---|
+| zakaz czytania fali 1 | stoi WYŁĄCZNIE w `role/KIER/AGENT.md` (sekcja „Ślepota fali drugiej ma trzy warstwy"); w `szablony/AGENT.md`, `szablony/KRYTYK.md` i w 40 definicjach działów — **0 wystąpień**; każdy agent ma `Read`/`Grep`/`Bash`, a wpisy fali 1 leżą w tym samym drzewie | agent fali 2 otwiera `audyt/zgloszenia/`, przepisuje listę własnymi słowami, sektor ogłasza ZGODNE — także przy zepsutym audycie |
+| numeracja zgłoszeń | ciągła w obrębie sektora i działu (`AUD-SEC-001`, `-002`, …), bez fali w nazwie | agent fali 2 po pierwszym zapisie widzi `AUD-SEC-013` i wie, ile fala 1 znalazła w jego dziale — mimo każdego zakazu |
+| licznik po zapisie | `zgloszenie.mjs` drukuje „zgłoszeń w sektorze: N" i ostrzeżenie o progu 200 | ten sam przeciek drugą drogą |
+| kontrola w `porownaj-cykle.mjs` | tylko stwierdzenie IDENTYCZNE co do słowa przy tym samym miejscu → kod 1 | parafraza przechodzi jako zgodność |
+| izolacja fali 2 | brak — fala 2 pracowałaby w tym samym katalogu, z wpisami i stanem fali 1 na dysku | trzy warstwy „ślepoty" z STRUKTURA.md to dziś jedna (czysty kontekst subagenta) |
+| R5 Pogłębiaczy | 14 definicji + `re-audyt/ROLE.md` mówią „lista klas **z fali 1**" | w fali 2 Pogłębiacz czytałby dosłownie falę 1 zamiast audytu SWOJEJ fali |
+
+**CO MA POWSTAĆ — cztery warstwy, każda z bramką:**
+
+1. **Zakaz DOSŁOWNIE w definicjach** (szablony `AGENT.md` i `KRYTYK.md` + 40 ról
+   + generat): jedno zdanie o stałym brzmieniu, np. „Pracujesz w fali N i **nie
+   czytasz wpisów, stanu ani wyników innej fali**: `audyt/zgloszenia/*` z polem
+   `fala` ≠ N, `audyt/stan/*-f<inna>-*`, `audyt/wyniki/`", plus powód (K4″: zgodność
+   fal ma być skutkiem, nie odpisem). **Reguła 27** strażnika pyta o ZDANIE niosące
+   zakaz (konstrukcja reguł 6 i 10: `\s+` zamiast spacji, granice przez `\p{L}`),
+   mutacja: zdanie znika z szablonu → rola próbna zapala regułę; kontrprzykład:
+   inne łamanie wiersza nie zapala.
+2. **Narzędzie nie zdradza fali 1** (F3): identyfikator niesie falę —
+   `AUD-SEC-F2-001` (prefiks i dział zostają kluczem `nastepneId()`; fala między
+   działem a numerem; pula numerów per fala) — a `zgloszenie.mjs` po zapisie
+   drukuje TYLKO ID i hash. Liczba zgłoszeń i próg SQLite (200) przenoszą się do
+   `--pokaz` kierownika i do uwag strażnika (tam już są). Trzy istniejące wpisy
+   próbne (`AUD-PIK-001`, `REA-SEC-001/002`, wszystkie `fala: 1`) przemianowane
+   `git mv` na `-F1-` — jeden format, zero wyjątków w regułach. **Reguła 19
+   rozszerzona**: `F<N>` w nazwie musi równać się polu `fala`; mutacja: nazwa F1
+   przy `fala: 2`; kontrprzykład: zgodne. `szablony/KRYTYK.md` wskazuje
+   `zgloszenia/<PREFIKS>-<KOD>-F<N>-*.json` — krytyk fali 2 z definicji nie widzi
+   fali 1. `zgloszenie.mjs --test` dostaje przebieg CLI na katalogu tymczasowym
+   (`--katalog=`, jak `status.mjs`/`porownaj-cykle.mjs`): wyjście po zapisie nie
+   zawiera liczby wpisów; mutacja: licznik wraca → `--test` czerwony.
+3. **Izolacja fali 2 na dysku** (F2, punkty 2–3): fala 2 pracuje na TYM SAMYM
+   commicie (inny dałby inne checklisty i generat), ale w **worktree na własnej
+   gałęzi** (np. `audyt/fala-2` od szczytu gałęzi sektora) ze **sparse checkoutem
+   bez wzorców** `audyt/zgloszenia/*-F1-*` i `audyt/stan/*-f1-*`
+   (`git sparse-checkout set --no-cone '/*' '!audyt/zgloszenia/*-F1-*' …`);
+   generat i migawka powstają w worktree komendą. Po fali 2 gałąź wraca merge'em
+   (same nowe pliki — bez konfliktów), a `porownaj-cykle.mjs` biegnie w PEŁNYM
+   drzewie. **`status.mjs` egzekwuje izolację**: `--fala=2` z wejściem do działu
+   (W TRAKCIE albo pierwsza runda) ODMAWIA, gdy w `audyt/zgloszenia/` jest
+   jakikolwiek wpis z **polem** `fala: 1` (pole, nie nazwa) — komunikat podaje
+   komendy worktree i sparse checkoutu; mutacja + przypadek `--test`. **Warunek
+   konieczny**: `audyt/stan/` (i `audyt/migawki/`) MUSZĄ wejść do gita — inaczej
+   stan fali 2 nie wraca do głównego drzewa, `porownaj-cykle --dzial=` nie widzi
+   `ZAKOŃCZONE` fali 2, a dziennik wejść (pozycja 3) nie jest dowodem. To ZMIANA
+   decyzji ze STRUKTURA.md („do gita wchodzą wyłącznie zgłoszenia") — pytanie 4.
+4. **Nadmierna zgodność nazwana** (F2, punkt 4): `porownaj-cykle.mjs` obok
+   „PODEJRZENIE KOPIOWANIA" (stwierdzenie co do słowa → kod 1, bez zmian) dostaje
+   „PODEJRZENIE KOLEJNOŚCI": identyczny zbiór hashy działu w TEJ SAMEJ kolejności
+   zgłaszania (po numerach ID) w obu falach — agent przepisujący listę odtwarza jej
+   kolejność, agent mierzący od nowa raczej nie. Nazwane w wyniku i w JSON,
+   przypadek `--test` + mutacja. Kod wyjścia — pytanie 5.
+
+**Poza tym w pozycji 4:** R5 czternastu Pogłębiaczy i `re-audyt/ROLE.md` —
+„lista klas z fali 1" → „lista klas z audytu TEJ fali" (re-audyt fali N czyta
+audyt fali N — to jego sens i łączenie po haszu W4; zakaz dotyczy INNEJ fali);
+`STRUKTURA.md`: schemat „Kolejność sektorów" z worktree fali 2, sekcja o trzech
+warstwach ślepoty przepisana na cztery (definicje, narzędzie, dysk, porównanie),
+procedura KIER (obu sektorów): krok „postaw worktree fali 2" i „scal po fali".
+
+**SIEDEM PYTAŃ DO WŁAŚCICIELA (rozstrzygnięcia, bez których kod nie rusza):**
+
+1. **Zakres zakazu.** Rola fali N czyta WYŁĄCZNIE wpisy, stan i wyniki fali N;
+   re-audyt fali N czyta audyt fali N (musi); wyjątek: KIER i RAP PO obu falach
+   (porównanie i raport w pełnym drzewie). Zgoda?
+2. **Format ID** `AUD-SEC-F2-001` i przemianowanie trzech wpisów próbnych na
+   `-F1-` (jeden format). Zgoda?
+3. **Licznik** — po zapisie agent widzi tylko ID i hash; liczba wpisów i próg 200
+   wyłącznie w `--pokaz` i u strażnika. Zgoda?
+4. **`audyt/stan/` i `audyt/migawki/` wchodzą do gita** (zmiana decyzji ze
+   STRUKTURA.md), bo bez tego izolacja fali 2 worktree'em nie ma jak oddać stanu,
+   a dziennik wejść z pozycji 3 nie jest dowodem. Alternatywa: ręczne kopiowanie
+   `stan/*-f2-*` po fali (krucha, bez bramki). Rekomendacja: do gita.
+5. **Kod wyjścia przy PODEJRZENIU KOLEJNOŚCI**: 0 (nazwane do lektury, jak
+   NADZBIÓR/SPRZECZNE po K4″) czy 1 (jak kopia co do słowa)? Rekomendacja: **0** —
+   kolejność bywa taka sama, gdy obie fale idą checklistą w tej samej kolejności
+   pozycji; to sygnał, nie dowód.
+6. **Podział na 4a/4b.** Zdanie zakazu wchodzi do 80 plików definicji (40 AGENT
+   + 40 KRYTYK) — tych samych, które pozycja 6 (K4″, „swobodny przegląd", `<KOD>-90`)
+   i tak przepisuje skryptem. Propozycja: **4a teraz** = narzędzia (ID, licznik,
+   `status.mjs`, `porownaj-cykle`), reguła 19′, szablony, STRUKTURA, R5; **4b razem
+   z pozycją 6** = jedno przejście skryptu po 80 definicjach + reguła 27 + generat.
+   Reguła 27 nie może wejść przed 4b (byłaby czerwona na 80 plikach). Zgoda?
+7. **Gdzie żyje worktree fali 2** — propozycja: `/home/krzysiek/Pod-strona-Szkolenia-fala-2`
+   na gałęzi `<sektor>/fala-2`, stawiany i scalany komendą kierownika (osobne
+   narzędzie `fala.mjs --postaw=2 | --scal=2`, z `--test`), żeby kolejność
+   sparse-checkoutu nie zależała od pamięci. Alternatywa: instrukcja w SKILL
+   kierownika bez narzędzia. Rekomendacja: narzędzie (to ta sama klasa, co
+   „komenda, nie pamięć" z przelotu zrzutów).
+
+**Mutacje (plan):** zdanie zakazu znika z szablonu AGENT / z KRYTYK (2);
+nazwa `F1` przy `fala: 2` (1) + kontrprzykład (1); licznik wraca do wyjścia
+`zgloszenie.mjs` (1); `status.mjs` wpuszcza falę 2 przy wpisie `fala: 1`
+w drzewie (1) + kontrprzykład: wpis `fala: 1` z `proba` NIE blokuje? (do
+rozstrzygnięcia przy kodzie — wpis próbny E6 jest fala 1) ; `porownaj-cykle`
+przestaje nazywać kolejność (1) + kontrprzykład: ten sam zbiór w INNEJ
+kolejności nie jest podejrzany (1); `fala.mjs` stawia worktree bez wykluczeń
+(1). Razem ~10, audyt 101 → ~111.
+
+**Kolizje:** pozycja 3 (zrobiona) — `status.mjs` dostaje piątą odmowę w tej
+samej czystej funkcji, `--test` rośnie; pozycja 6 — te same 80 plików (stąd
+pytanie 6); pozycja 7 (re-audyt sekwencyjnie, „KIER-00 co musi stać") — worktree
+fali 2 to kolejna rzecz, która „musi stać", więc 7 dziedziczy z 4 gotową
+komendę; pozycja 5 (macierz reguła → mutacja) liczy także nowe reguły.
+Środowisko `:8892` serwuje wtyczki z GŁÓWNEGO checkoutu (bind mount) — worktree
+fali 2 ma identyczny kod produktu (ten sam commit), więc bramki WP mierzą to
+samo; sektory produktu nie zmieniają, więc rozjazd niemożliwy.
+
+**Czego pozycja 4 NIE robi:** nie zmienia hasha miejsca ani `werdykt.mjs`; nie
+robi kanonicznego promptu roli (F5, poza pakietem); nie usuwa wpisów fali 1 —
+tylko chowa je przed falą 2; nie zmienia semantyki K4″ (narzędzie nazywa, nie
+ocenia).
+
+**Koszt i ryzyko:** S (narzędzia, reguły) + M (worktree i sparse checkout —
+`git sparse-checkout` w trybie non-cone z wykluczeniami wymaga pomiaru na tym
+gicie, zanim wejdzie do procedury). Największe ryzyko: sparse checkout, który
+„działa" w lekturze dokumentacji, a nie chowa plików — dlatego egzekwuje go
+`status.mjs` po POLU `fala`, nie zaufanie do gita.
 
 #### PAKIET E7.7, POZYCJA 3 — ZROBIONA 2026-09-02 (projekt niżej zaakceptowany: „Tak, jedź"; wynik na końcu sekcji)
 
