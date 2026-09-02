@@ -1084,7 +1084,7 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 | 2 | `porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u | ✅ **2026-09-02** — po dyskusji i trzech odpowiedziach właściciela (kod 0 przy SPRZECZNE; NADZBIÓR nazywa falę i liczbę; wpisy `-90` porównywane tak samo); **reguła 25** strażnika (samokontrola narzędzia na atrapach dwóch fal), mutacje 73 → 79; szczegóły w sekcji „POZYCJA 2 — ZROBIONA" niżej |
 | 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza rolami procesowymi re-audytu), drzewo wobec `glowa_main`; reguła 17 | ✅ **2026-09-02** — po zielonym świetle właściciela („Tak, jedź"): historia przejść w pliku stanu, cztery odmowy z komendą naprawy, `status.mjs --test` (36 przypadków), **reguła 26**, reguła 17 na zawartości; mutacje 79 → **101**; szczegóły w sekcji „POZYCJA 3 — ZROBIONA" niżej |
 | 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | **4a ✅ 2026-09-02** — ID `AUD-SEC-F2-001` (pula per fala), `zgloszenie.mjs` bez licznika, `status.mjs` odmowa 5 (izolacja fali 2 po POLU), `porownaj-cykle` PODEJRZENIE KOLEJNOŚCI (kod 0), **`fala.mjs --postaw=2 \| --scal=2`** (worktree + sparse checkout), `stan/` i `migawki/` w gicie, reguły 19′/28/29 (**27 zarezerwowana**), R5 „z audytu tej fali", STRUKTURA i KIER obu sektorów; mutacje 101 → **116**; szczegóły w sekcji „POZYCJA 4a — ZROBIONA" niżej. **4b** (zdanie zakazu w 80 definicjach + reguła 27) ⬜ razem z pozycją 6 |
-| 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ⬜ |
+| 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | 🚧 **projekt spisany 2026-09-03** (sekcja „POZYCJA 5 — PROJEKT DO DYSKUSJI" niżej), **pięć pytań do właściciela**, kod po odpowiedziach i po `/clear` |
 | 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | 🚧 **projekt spisany 2026-09-02 RAZEM z 4b** (sekcja „POZYCJE 4b + 6 — PROJEKT DO DYSKUSJI" niżej), **pięć pytań do właściciela**, kod po odpowiedziach i po `/clear` |
 | 7 | re-audyt sekwencyjnie: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu | ⬜ |
 | 8 | test aliasu `fable` po restarcie sesji (`aud-kier`: nazwa modelu) | ✅ **2026-09-02, po restarcie:** `aud-kier` zameldował dosłownie „You are powered by the model named Fable 5.1. The exact model ID is claude-fable-5-1". **Koszt faktu:** wywołanie bez ani jednego narzędzia = **142 tys. tokenów** — tyle waży samo wejście roli (definicja + kontekst); przy 80 agentach × 2 fale to ~23 mln tokenów SAMYCH wejść, zanim ktokolwiek otworzy plik |
@@ -1093,7 +1093,7 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: pozycja 5 pakietu E7.7 (macierz reguła → mutacja), potem 7 (re-audyt sekwencyjnie na środowisku), dopiero potem E8.** Przy okazji właściciel potwierdza (albo zmienia) pięć założeń z sekcji „POZYCJE 4b + 6 — ZROBIONE" — kod 4b + 6 poszedł po rekomendacjach, bo jego odpowiedzi nie były zapisane. Zapis historyczny: 4b + 6 WYKONANE 2026-09-02 w nocy jednym przejściem (szablony → skrypt po 80 definicjach → `ROLE.md` obu sektorów → reguły 27/27b i rozszerzenie 7 → mutacje → generat → trzy kontrole → przeniesienie `audyt/` na gałąź audytu). Zapis historyczny: 4a WYKONANA 2026-09-02 (sekcja „POZYCJA 4a — ZROBIONA"). Lekcja z pozycji 3 obowiązuje dalej: **nie edytować `audyt/` w trakcie audytu mutacyjnego** i sprawdzać `pgrep -f audyt-straznika`, zanim uruchomi się cokolwiek w `audyt/tools/`.
+**NASTĘPNY KROK: odpowiedzi właściciela na PIĘĆ PYTAŃ z sekcji „POZYCJA 5 — PROJEKT DO DYSKUSJI" (niżej) → sweep przed `/clear` → kod pozycji 5; potem 7 (re-audyt sekwencyjnie na środowisku), dopiero potem E8.** Przy okazji właściciel potwierdza (albo zmienia) pięć założeń z sekcji „POZYCJE 4b + 6 — ZROBIONE" — kod 4b + 6 poszedł po rekomendacjach, bo jego odpowiedzi nie były zapisane. Zapis historyczny: 4b + 6 WYKONANE 2026-09-02 w nocy jednym przejściem (szablony → skrypt po 80 definicjach → `ROLE.md` obu sektorów → reguły 27/27b i rozszerzenie 7 → mutacje → generat → trzy kontrole → przeniesienie `audyt/` na gałąź audytu). Zapis historyczny: 4a WYKONANA 2026-09-02 (sekcja „POZYCJA 4a — ZROBIONA"). Lekcja z pozycji 3 obowiązuje dalej: **nie edytować `audyt/` w trakcie audytu mutacyjnego** i sprawdzać `pgrep -f audyt-straznika`, zanim uruchomi się cokolwiek w `audyt/tools/`.
 ### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
 
 Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
@@ -1406,6 +1406,87 @@ ocenia).
 gicie, zanim wejdzie do procedury). Największe ryzyko: sparse checkout, który
 „działa" w lekturze dokumentacji, a nie chowa plików — dlatego egzekwuje go
 `status.mjs` po POLU `fala`, nie zaufanie do gita.
+
+#### PAKIET E7.7, POZYCJA 5 — PROJEKT DO DYSKUSJI (2026-09-03), KOD NIE RUSZONY
+
+Źródło: krytyka budowy **B7** („pokrycie kontroli testem negatywnym nie jest
+artefaktem — POTWIERDZONE"), tabela F wiersz 8: *reguły drukują `R<numer>:`, mutacje
+deklarują `regula:`, audyt drukuje macierz i czerwieni się przy regule bez mutacji —
+z polem `wymaga` dla reguł warunkowych*. Stan „dziś" zmierzony lekturą obu narzędzi
+(nie z pamięci):
+
+| Co | Pomiar (2026-09-03) | Skutek |
+|---|---|---|
+| numer reguły w komunikacie strażnika | **0** z ~60 `bledy.push` niesie `R<nr>:`; numery mają tylko `pominiete.push` (17 miejsc) | audyt nie wie, KTÓRA reguła się zapaliła — wie tylko, że jakaś |
+| przypisanie mutacji do reguły | `regula:` **0**; **100** mutacji ma `slad` = wzorzec na TEKST komunikatu, **25** kontrprzykładów (bez śladu) | pokrycie reguł liczy się z regexów na napisy — ta sama klasa, przed którą strażnik broni kodu (dziewięć nawrotów) |
+| ślady zbiorcze | `/status\.mjs --test/` ×9, `/porownaj-cykle\.mjs --test/` ×8, `/zgloszenie\.mjs --test/` ×6+3, `/werdykt\.mjs --test/` ×3, `/fala\.mjs --test/` ×2 | 31 mutacji psuje NARZĘDZIE, a regułę zapala samokontrola — poprawne, ale macierz musi to policzyć jako pokrycie reguł 9/15/25/26/29 |
+| reguły bez ANI JEDNEJ mutacji (lektura wzorców wobec komunikatów) | **2** (każda rola ma krytyka), **3** (pięć elementów §5), **6** (trzy zasady nadrzędne dosłownie) | trzy kontrole z E4, które nigdy nie były sprawdzone testem negatywnym — reguła 6 pyta o ZDANIE, więc jest najbardziej narażona na ślepotę „wzorca na napis" |
+| reguły warunkowe (`pominiete` przy braku materiału) | 17 miejsc, m.in. 2, 3, 4, 6, 7, 10–14, 17–21, 23 | na gałęzi audytu 7 mutacji jest pomijanych (`wymaga`), ale nic nie mówi, KTÓRE REGUŁY zostają przez to bez dowodu |
+| macierz na wyjściu audytu | **nie istnieje** — wyjście to lista ✓/✗ i cztery liczby | „126 / 0 / 0" nie odpowiada na pytanie B7: czy każda reguła ma choć jedną mutację, która ją zapala |
+
+**CO MA POWSTAĆ — cztery kroki, jeden commit:**
+
+1. **Strażnik: numer reguły w KAŻDYM komunikacie.** Pomocnik `blad(nr, tekst)`
+   zamiast gołego `bledy.push` (~60 miejsc, zamiana mechaniczna) drukuje
+   `R13: rola audyt/role/SEC: AGENT.md NIE MA pozycji SEC-90`. Reguła 27 ma dwie
+   etykiety: `R27` i `R27b`. Tablica **`REGULY`** na górze pliku (numer, tytuł,
+   `warunkowa: true/false`) z SAMOKONTROLĄ przy starcie: każdy numer z tablicy ma
+   nagłówek sekcji `/* ── N.` i odwrotnie — lista nie może się rozjechać z kodem.
+   `--reguly` drukuje tablicę jako JSON (dla audytu).
+2. **Audyt: `regula:` w każdej mutacji** (liczba albo lista — mutacja psująca dwa
+   pliki może słusznie zapalić dwie reguły). Po każdej mutacji audyt PARSUJE `R<nr>:`
+   z wyjścia strażnika → zbiór zapalonych. Werdykt „ZŁA REGUŁA" (liczy się jak
+   „ZŁY ŚLAD"), gdy zbiór zapalonych ≠ zadeklarowany. `slad` ZOSTAJE — pyta
+   o konkretny komunikat w obrębie reguły (np. „SEC-90", nie „SEC-13").
+   Kontrprzykłady deklarują `regula:` jako dokumentację (strażnik ma być zielony,
+   więc zbiór zapalonych = ∅ i tak).
+3. **Macierz na wyjściu audytu** (pełny przebieg, nie `--tylko`): wiersz na
+   regułę — numer, tytuł, mutacji zapalających, kontrprzykładów, materiał na tej
+   gałęzi (z „pominięte — N." w wyjściu strażnika PRZED mutacjami — POMIAR, nie
+   deklaracja). **Kod 1, gdy reguła z materiałem ma 0 mutacji**; reguła bez
+   materiału = „bez materiału", policzona, nigdy cicho zielona (ten sam wzorzec, co
+   `wymaga` per mutacja).
+4. **Trzy mutacje dla reguł 2, 3, 6** (+ kontrprzykłady tam, gdzie reguła pyta
+   o zdanie): rola próbna bez `KRYTYK.md` (→ R2); `AGENT.md` bez sekcji „Moduł"
+   (→ R3); z szablonu AGENT znika „Brak dowodu = brak zgłoszenia" (→ R6),
+   kontrprzykład: to samo zdanie złamane w innym miejscu wiersza (→ nie zapala).
+
+**PIĘĆ PYTAŃ DO WŁAŚCICIELA** (rekomendacja przy każdym; kod po odpowiedziach i po
+`/clear`):
+
+1. **Zgodność zadeklarowanej reguły z zapaloną — ŚCISŁA (zbiory równe) czy
+   wystarczy, że zadeklarowana jest WŚRÓD zapalonych?** Rekomendacja: **ścisła**.
+   Mutacja, która zapala więcej, niż deklaruje, maskuje (lekcja z P2: „mutacja
+   łamała dwie reguły naraz"); przy pierwszym przebiegu audyt WYPISZE rozjazdy,
+   a deklaracje poprawiam do stanu zmierzonego, nie odwrotnie.
+2. **Reguła bez mutacji = kod 1 audytu (bramka) czy tylko wiersz w macierzy?**
+   Rekomendacja: **kod 1** — inaczej macierz jest raportem, który nikt nie czyta,
+   a B7 pytał właśnie o bramkę. Wyjątek: reguła BEZ MATERIAŁU na gałęzi (mierzony
+   z „pominięte" strażnika, nie deklarowany w audycie).
+3. **Kontrprzykład per reguła — wymagany (kod 1) czy raportowany (kolumna)?**
+   Rekomendacja: **raportowany**; wymagany tylko dla reguł pytających o ZDANIE
+   (6, 10, 27, 27b) — tam „nadwrażliwość" jest realnym ryzykiem, a dziś 27/27b
+   już je mają, 6 i 10 dostają w kroku 4.
+4. **Skąd audyt bierze listę reguł: z tablicy `REGULY` + `--reguly` (z samokontrolą
+   nagłówków) czy parsując źródło strażnika?** Rekomendacja: **tablica** —
+   parsowanie źródła to wzorzec na napis w nowym przebraniu.
+5. **Czy macierz ląduje w repo (plik w `audyt/wyniki/`) czy tylko na wyjściu
+   audytu?** Rekomendacja: **tylko wyjście** + jedno zdanie w STRUKTURA.md, że
+   audyt ją drukuje. Liczby wpisane do dokumentu starzeją się cicho (lekcja 0.35.0:
+   `straznik-readme` pilnuje README, a `audyt/` strażnika readme nie ma).
+
+**Czego pozycja 5 NIE robi:** nie zmienia żadnej reguły merytorycznie (numeracja
+i komunikaty zostają, dochodzi prefiks); nie rusza definicji ról ani ROLE.md; nie
+zmienia `wymaga` per mutacja (zostaje obok macierzy); nie uruchamia sektora.
+
+**Koszt:** S (prefiksy + pomocnik + parser) + S (deklaracje w 125 mutacjach —
+mechanicznie z dzisiejszych `slad`, potem KOREKTA po pierwszym przebiegu, który
+wypisze rozjazdy) + 1 pełny audyt (~15 min) ×2. **Ryzyko:** deklaracja `regula:`
+przepisana ze śladu, a nie zmierzona — dlatego pierwszy przebieg jest POMIAREM
+deklaracji, nie dowodem; dowodem jest drugi, po korekcie. Drugie ryzyko: mutacja
+zapalająca regułę 4 (generat nieaktualny) „przy okazji" — dziś maskowana przez
+regenerację w `zPodmienionymi`; macierz ścisła to pokaże, jeśli gdzieś regeneracji
+brakuje.
 
 #### PAKIET E7.7, POZYCJE 4b + 6 — ZROBIONE 2026-09-02 w nocy (projekt niżej; wynik i ZAŁOŻENIA do potwierdzenia na końcu sekcji)
 
