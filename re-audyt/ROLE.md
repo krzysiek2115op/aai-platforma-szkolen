@@ -582,7 +582,7 @@ nazywa, **czego re-audyt nie sprawdził**, i **nie proponuje napraw**.
 | RAP-R1 | Czy każda liczba w raporcie pochodzi z **narzędzia**, nie z pamięci? | komendy cytowane w raporcie | liczba + komenda |
 | RAP-R2 | Czy raport nazywa, **czego re-audyt nie sprawdził**? | sekcja raportu | lista pominięć |
 | RAP-R3 | Czy raport **nie proponuje napraw** (W2)? | treść raportu | zdanie proponujące |
-| RAP-R4 | Czy rozjazd fal jest opisany jako **defekt audytu**, a nie jako wynik? | `porownaj-cykle.mjs` × raport | zdanie + wynik komendy |
+| RAP-R4 | Czy rozjazd fal jest **NAZWANY** (zgodne / nadzbiór / sprzeczne) i przedstawiony właścicielowi **z obu stron**, a nie ogłoszony defektem audytu (K4″)? | `porownaj-cykle.mjs` × raport | zdanie + wynik komendy |
 | RAP-R5 | Czy wpisy **próbne** są wyłączone z liczb i policzone osobno? | nota z `polacz-sektory.mjs` | liczba pominiętych |
 | RAP-R6 | Czy raport powstał **po** zakończeniu wszystkich ról? | `status.mjs --pokaz` | rola bez statusu ZAKOŃCZONE |
 

@@ -42,7 +42,7 @@ a nie dowie się o tym dopiero agent w trakcie pracy.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/GRANICE.md",
-    "linia": 30,
+    "linia": 32,
     "tresc": "**Gdy tabela milczy:** to jest znalezisko **Konrada, faza A, pozycja KON-A5** (granica"
   },
   "dowod": "Komenda i jej wynik albo druga linia kodu, która domyka rozumowanie — o TYM SAMYM, o czym mówi stwierdzenie.",
@@ -137,7 +137,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/GRANICE.md",
-    "linia": 30,
+    "linia": 32,
     "tresc": "zostawia pytanie bez właściciela). Kierownik **dopisuje wiersz do tej tabeli przed drugą"
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",

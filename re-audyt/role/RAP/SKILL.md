@@ -31,7 +31,10 @@ Na sam koniec, gdy WSZYSTKIE role mają status ZAKOŃCZONE. Raport pisany wcześ
 1. `status.mjs --pokaz` — sprawdź, że nie ma roli bez `ZAKOŃCZONE`.
 2. `werdykt.mjs --pokaz` — policz zgłoszenia i ich werdykty.
 3. `polacz-sektory.mjs --fala=<N>` — trzy liczby plus nota o wpisach próbnych.
-4. `porownaj-cykle.mjs --sektor=re-audyt` po obu falach.
+4. `porownaj-cykle.mjs --sektor=re-audyt` po obu falach — do raportu idzie wynik
+   NAZWANY (zgodne / nadzbiór / sprzeczne) **z obu stron**, także per dział
+   (`--dzial=<KOD>`); kod 1 znaczy wyłącznie kopiowanie albo brak fali, nie
+   defekt audytu (K4″).
 5. Wypisz, CZEGO re-audyt nie sprawdził — pominięcia są wynikiem, nie porażką.
 6. Przeczytaj własny tekst pod kątem zdań proponujących naprawę i usuń je.
 

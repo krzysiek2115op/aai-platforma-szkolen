@@ -12,10 +12,11 @@ własnymi re-audytu**.
 
 ## Dlaczego to nie jest kosmetyka
 
-Ten sam powód co w audycie, tylko ostrzejszy. Re-audyt istnieje po to, żeby fala druga dała
-ten sam wynik co pierwsza; przy nieostrej granicy znalezisko trafi raz do `PSIARZ`, raz do
-Pogłębiacza — i `porownaj-cykle.mjs` uzna **cały audyt za zepsuty** (K4'), choć kod się nie
-zmienił. Tabela granic jest warunkiem powtarzalności, nie porządkiem na papierze.
+Ten sam powód co w audycie, tylko ostrzejszy. Re-audyt ma znaleźć wszystko, a zgodność fal
+ma być tego SKUTKIEM (K4″); przy nieostrej granicy znalezisko trafi raz do `PSIARZ`, raz do
+Pogłębiacza — i `porownaj-cykle.mjs` wypisze rozjazd (GRANICA) z powodu, który nie ma nic
+wspólnego z kodem. Właściciel czytałby wtedy szum zamiast wyniku. Tabela granic jest
+warunkiem czytelnego porównania, nie porządkiem na papierze.
 
 **Gdy tabela milczy:** to jest znalezisko **`KON-R4`**. Kierownik re-audytu dopisuje wiersz
 **przed drugą falą**, inaczej druga fala rozstrzygnie inaczej.
