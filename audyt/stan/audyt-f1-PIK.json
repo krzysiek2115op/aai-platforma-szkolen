@@ -1,0 +1,26 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "PIK",
+  "status": "ZAKOŃCZONE",
+  "runda": 1,
+  "niedomkniete": [
+    "PIK-01",
+    "PIK-02",
+    "PIK-03",
+    "PIK-04",
+    "PIK-05",
+    "PIK-06",
+    "PIK-07"
+  ],
+  "kiedy": "2026-09-01T14:00:11.534Z",
+  "historia": [
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 1,
+      "kiedy": "2026-09-01T14:00:11.534Z"
+    }
+  ],
+  "proba": "E6",
+  "adnotacja": "historia dopisana ręcznie 2026-09-02 przy pozycji 3 pakietu E7.7 — plik z próby E6; czas = mtime pliku, jeden wpis, bo przejść nie zapisywano"
+}

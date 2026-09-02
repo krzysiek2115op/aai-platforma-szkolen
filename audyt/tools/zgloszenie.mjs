@@ -10,20 +10,37 @@
  * "wskazać" linii, której nie otworzył — a to jest dokładnie ta klasa, której
  * §11 regulaminu zabrania ("NIE: wydaje mi się, że jest błąd").
  *
- * ID NADAJE TO NARZĘDZIE, nie agent (§11) — numer jest kolejny w obrębie działu.
+ * ID NADAJE TO NARZĘDZIE, nie agent (§11) — numer jest kolejny w obrębie
+ * SEKTORA, DZIAŁU i FALI: `AUD-SEC-F2-001` (pakiet E7.7, pozycja 4, rozstrzygnięcie
+ * właściciela 2026-09-02). Fala siedzi W NAZWIE, a pula numerów jest osobna dla
+ * każdej fali — bo numer ciągły w obrębie działu ZDRADZAŁ fali 2, ile znalazła
+ * fala 1: agent po pierwszym zapisie widział `AUD-SEC-013` i wiedział, że przed
+ * nim było dwanaście wpisów, mimo każdego zakazu czytania (F3 z krytyki budowy).
+ *
+ * PO ZAPISIE NARZĘDZIE DRUKUJE WYŁĄCZNIE ID I HASH. Do 2026-09-02 drukowało
+ * „zgłoszeń w sektorze: N" i ostrzeżenie o progu 200 — to był ten sam przeciek
+ * drugą drogą. Liczba wpisów i próg SQLite żyją teraz w `status.mjs --pokaz`
+ * kierownika i w uwagach strażnika sektora (reguła 5), gdzie czyta je człowiek
+ * prowadzący przebieg, a nie agent fali.
  *
  * Użycie:
  *   node audyt/tools/zgloszenie.mjs --plik=<wejscie.json>
  *   node audyt/tools/zgloszenie.mjs --test        # samokontrola, patrz niżej
  *
+ * `--katalog=<dir>` przestawia katalog zgłoszeń na `<dir>/zgloszenia` — używa go
+ * WYŁĄCZNIE samokontrola (przebieg CLI na katalogu tymczasowym, jak w
+ * `status.mjs` i `porownaj-cykle.mjs`).
+ *
  * Kod wyjścia 0 = przyjęte, 1 = odrzucone (z powodem na wyjściu).
  */
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  KORZEN, NIEPEWNOSC, PREFIKS_ID, PROG_BAZY, SEKTORY, STATUSY, SUFIT_RUND,
-  ZGLOSZENIA, czytajJSON, hashMiejsca, roleSektora, wszystkieZgloszenia, zapiszJSON, znormalizuj,
+  KORZEN, NIEPEWNOSC, PREFIKS_ID, SEKTORY, STATUSY, SUFIT_RUND,
+  ZGLOSZENIA, czytajJSON, hashMiejsca, roleSektora, zapiszJSON, znormalizuj,
 } from "./wspolne.mjs";
 
 const WYMAGANE = ["sektor", "fala", "dzial", "pozycja", "stwierdzenie", "miejsce", "dowod", "klasyfikacja", "wplyw"];
@@ -129,17 +146,23 @@ export function powodyOdmowy(z, { korzen = KORZEN } = {}) {
 
 /**
  * ID NADAJE NARZĘDZIE, NIE AGENT (§11) — numer jest kolejny w obrębie
- * pary SEKTOR + DZIAŁ.
+ * trójki SEKTOR + DZIAŁ + FALA: `<PREFIKS>-<DZIAŁ>-F<N>-<numer>`.
  *
  * Funkcja jest CZYSTA (dostaje listę istniejących nazw, nie czyta dysku),
  * żeby samokontrola mogła sprawdzić dokładnie to, co najgroźniejsze: że
- * zgłoszenie re-audytu NIE dostaje nazwy zajętej przez audyt. Oba sektory
- * dzielą jeden katalog i siedemnaście kodów działów, więc wspólny prefiks
- * nadpisałby cudzy wpis po cichu.
+ * zgłoszenie re-audytu NIE dostaje nazwy zajętej przez audyt (oba sektory
+ * dzielą jeden katalog i siedemnaście kodów działów) ORAZ że fala 2 zaczyna
+ * od `001` niezależnie od tego, ile wpisów ma fala 1 — wspólna pula numerów
+ * zdradzałaby liczbę cudzych znalezisk samym identyfikatorem.
+ *
+ * Wzorzec nazwy jest jeden dla wszystkich wpisów, także próbnych z E6/E7
+ * (przemianowane na `-F1-` 2026-09-02) — zero wyjątków w regułach.
  */
-export function idZgloszenia(dzial, sektor, istniejace) {
+export const WZORZEC_ID = /^(AUD|REA)-([A-Z]+)-F([12])-(\d{3,})$/;
+
+export function idZgloszenia(dzial, sektor, fala, istniejace) {
   const prefiks = PREFIKS_ID[sektor];
-  const poczatek = `${prefiks}-${dzial}-`;
+  const poczatek = `${prefiks}-${dzial}-F${fala}-`;
   const numery = istniejace
     .filter((f) => f.startsWith(poczatek))
     .map((f) => Number(f.match(/-(\d+)\.json$/)?.[1] ?? 0));
@@ -147,9 +170,9 @@ export function idZgloszenia(dzial, sektor, istniejace) {
   return `${poczatek}${String(kolejny).padStart(3, "0")}`;
 }
 
-function nastepneId(dzial, sektor) {
-  const istniejace = existsSync(ZGLOSZENIA) ? readdirSync(ZGLOSZENIA) : [];
-  return idZgloszenia(dzial, sektor, istniejace);
+function nastepneId(dzial, sektor, fala, katalog) {
+  const istniejace = existsSync(katalog) ? readdirSync(katalog) : [];
+  return idZgloszenia(dzial, sektor, fala, istniejace);
 }
 
 /* ── samokontrola: `--test` z definicji ukończenia sektora (pozycja 5) ── */
@@ -222,23 +245,68 @@ function samokontrola() {
      `AUD-SEC-001`, a re-audyt zgłasza w TYM SAMYM dziale — bez własnego
      prefiksu dostałby tę samą nazwę i nadpisałby cudzy wpis. */
   const przypadkiId = [
-    ["audyt zaczyna od AUD-SEC-001", ["SEC", "audyt", []], "AUD-SEC-001"],
-    ["re-audyt zaczyna od REA-SEC-001", ["SEC", "re-audyt", []], "REA-SEC-001"],
-    ["numer rośnie w obrębie sektora", ["SEC", "audyt", ["AUD-SEC-001.json", "AUD-SEC-002.json"]], "AUD-SEC-003"],
-    ["cudzy sektor NIE podbija numeru", ["SEC", "re-audyt", ["REA-SEC-001.json", "AUD-SEC-009.json"]], "REA-SEC-002"],
-    ["re-audyt NIE nadpisuje wpisu audytu", ["SEC", "re-audyt", ["AUD-SEC-001.json"]], "REA-SEC-001"],
+    ["audyt fali 1 zaczyna od AUD-SEC-F1-001", ["SEC", "audyt", 1, []], "AUD-SEC-F1-001"],
+    ["re-audyt zaczyna od REA-SEC-F1-001", ["SEC", "re-audyt", 1, []], "REA-SEC-F1-001"],
+    ["numer rośnie w obrębie sektora, działu i fali", ["SEC", "audyt", 1, ["AUD-SEC-F1-001.json", "AUD-SEC-F1-002.json"]], "AUD-SEC-F1-003"],
+    ["cudzy sektor NIE podbija numeru", ["SEC", "re-audyt", 1, ["REA-SEC-F1-001.json", "AUD-SEC-F1-009.json"]], "REA-SEC-F1-002"],
+    ["re-audyt NIE nadpisuje wpisu audytu", ["SEC", "re-audyt", 1, ["AUD-SEC-F1-001.json"]], "REA-SEC-F1-001"],
+    ["FALA 2 zaczyna od 001 — liczba wpisów fali 1 NIE wchodzi do identyfikatora (F3)", ["SEC", "audyt", 2, ["AUD-SEC-F1-001.json", "AUD-SEC-F1-012.json"]], "AUD-SEC-F2-001"],
+    ["fala 1 NIE podbija się od wpisów fali 2", ["SEC", "audyt", 1, ["AUD-SEC-F2-004.json", "AUD-SEC-F1-001.json"]], "AUD-SEC-F1-002"],
+    ["stary format bez fali NIE wchodzi do puli (jeden format, zero wyjątków)", ["SEC", "audyt", 1, ["AUD-SEC-007.json"]], "AUD-SEC-F1-001"],
   ];
   let zleId = 0;
-  for (const [nazwa, [dzial, sektor, istniejace], oczekiwane] of przypadkiId) {
-    const dostal = idZgloszenia(dzial, sektor, istniejace);
+  for (const [nazwa, [dzial, sektor, fala, istniejace], oczekiwane] of przypadkiId) {
+    const dostal = idZgloszenia(dzial, sektor, fala, istniejace);
     const ok = dostal === oczekiwane;
     if (!ok) zleId++;
     process.stdout.write(`  ${ok ? "✓" : "✗"} ID        ${nazwa}\n`);
     if (!ok) process.stdout.write(`      oczekiwano ${oczekiwane}, jest ${dostal}\n`);
   }
 
-  const razem = przypadki.length + przypadkiId.length;
-  const zleRazem = zle + zleId;
+  /* ── PRZEBIEG CLI na katalogu tymczasowym — dowód, że narzędzie jest
+     PODPIĘTE do tych funkcji i że jego WYJŚCIE nie zdradza fali 1.
+     Sprawdzamy KSZTAŁT wyjścia co do linii, nie „brak słowa licznik": agent
+     fali 2 ma zobaczyć dokładnie dwie linie — ID i hash — i nic, z czego dałoby
+     się odczytać, ile wpisów leży obok. */
+  let zleCli = 0;
+  const cli = (nazwa, ok, szczegol = "") => {
+    if (!ok) zleCli++;
+    process.stdout.write(`  ${ok ? "✓" : "✗"} CLI       ${nazwa}${!ok && szczegol ? `\n      ${szczegol}` : ""}\n`);
+  };
+  const tmp = mkdtempSync(join(tmpdir(), "zgloszenie-"));
+  try {
+    const wejscie = (fala, nr) => ({
+      sektor: "audyt", fala, dzial: "SEC", pozycja: "SEC-03",
+      stwierdzenie: `Atrapa samokontroli numer ${nr}: zapytanie skleja wartość bez prepare.`,
+      miejsce: { rodzaj: "linia", plik: "audyt/tools/zgloszenie.mjs", linia: 1, tresc: "/**" },
+      dowod: "Atrapa samokontroli — nie opuszcza katalogu tymczasowego.",
+      klasyfikacja: "atrapa", wplyw: "brak",
+    });
+    const uruchom = (wpis) => {
+      const plik = join(tmp, "wejscie.json");
+      writeFileSync(plik, JSON.stringify(wpis), "utf8");
+      const r = spawnSync("node", ["audyt/tools/zgloszenie.mjs", `--katalog=${tmp}`, `--plik=${plik}`], { cwd: KORZEN, encoding: "utf8" });
+      return { kod: r.status, wyjscie: (r.stdout ?? "") + (r.stderr ?? "") };
+    };
+    const KSZTALT = /^Przyjęte: (AUD-SEC-F[12]-\d{3})\n  hash miejsca: [0-9a-f]{16}…\n$/;
+
+    const p1 = uruchom(wejscie(1, 1));
+    cli("pierwszy wpis fali 1 → kod 0, plik AUD-SEC-F1-001.json", p1.kod === 0 && existsSync(join(tmp, "zgloszenia", "AUD-SEC-F1-001.json")), `kod ${p1.kod}: ${p1.wyjscie.trim()}`);
+    cli("wyjście to DOKŁADNIE dwie linie: ID i hash (bez licznika, bez progu)", KSZTALT.test(p1.wyjscie), JSON.stringify(p1.wyjscie));
+    const p2 = uruchom(wejscie(1, 2));
+    cli("drugi wpis fali 1 → AUD-SEC-F1-002, wyjście dalej bez liczby wpisów", p2.kod === 0 && p2.wyjscie.match(KSZTALT)?.[1] === "AUD-SEC-F1-002", JSON.stringify(p2.wyjscie));
+    const p3 = uruchom(wejscie(2, 3));
+    cli("pierwszy wpis fali 2 przy dwóch wpisach fali 1 → AUD-SEC-F2-001", p3.kod === 0 && p3.wyjscie.match(KSZTALT)?.[1] === "AUD-SEC-F2-001", JSON.stringify(p3.wyjscie));
+    const zapisany = czytajJSON(join(tmp, "zgloszenia", "AUD-SEC-F2-001.json"));
+    cli("zapisany wpis niesie id = nazwa pliku, pole fala = 2, hash i status", zapisany?.id === "AUD-SEC-F2-001" && zapisany?.fala === 2 && /^[0-9a-f]{64}$/.test(zapisany?.hash ?? "") && zapisany?.status === "DO WERYFIKACJI");
+    const odrzut = uruchom({ ...wejscie(1, 4), stwierdzenie: "Chyba coś tu skleja wartość bez prepare, ale nie wiem." });
+    cli("wpis niepewny → kod 1 i ODRZUCONE na wyjściu, bez pliku", odrzut.kod === 1 && /ZGŁOSZENIE ODRZUCONE/.test(odrzut.wyjscie) && !existsSync(join(tmp, "zgloszenia", "AUD-SEC-F1-003.json")), `kod ${odrzut.kod}`);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+
+  const razem = przypadki.length + przypadkiId.length + 6;
+  const zleRazem = zle + zleId + zleCli;
   process.stdout.write(`\nSamokontrola zgłoszeń: ${razem - zleRazem}/${razem}\n`);
   return zleRazem === 0;
 }
@@ -268,6 +336,9 @@ if (argumenty.includes("--test")) {
   process.exit(samokontrola() ? 0 : 1);
 }
 
+const wartoscKatalogu = argumenty.find((a) => a.startsWith("--katalog="))?.slice("--katalog=".length);
+const KATALOG_ZGLOSZEN = wartoscKatalogu ? join(resolve(wartoscKatalogu), "zgloszenia") : ZGLOSZENIA;
+
 /* ── znacznik próby budowy (E6) ──────────────────────────────────────────────
    Wpis próbny ZOSTAJE w repozytorium jako materiał dowodowy etapu, ale nie
    może liczyć się jak znalezisko prawdziwej fali: `zgloszenie.mjs` wymusza
@@ -284,7 +355,7 @@ if (oznacz) {
     process.stdout.write("Znacznik próby musi NAZWAĆ etap budowy: --oznacz-probe=<ID> --etap=E6\n");
     process.exit(1);
   }
-  const sciezkaWpisu = join(ZGLOSZENIA, `${oznacz}.json`);
+  const sciezkaWpisu = join(KATALOG_ZGLOSZEN, `${oznacz}.json`);
   const doOznaczenia = existsSync(sciezkaWpisu) ? czytajJSON(sciezkaWpisu) : null;
   if (!doOznaczenia) {
     process.stdout.write(`Zgłoszenia ${oznacz} nie ma — nie ma czego oznaczyć.\n`);
@@ -320,7 +391,7 @@ if (powody.length) {
   process.exit(1);
 }
 
-const id = nastepneId(wpis.dzial, wpis.sektor);
+const id = nastepneId(wpis.dzial, wpis.sektor, wpis.fala, KATALOG_ZGLOSZEN);
 const gotowe = {
   id,
   ...wpis,
@@ -329,11 +400,10 @@ const gotowe = {
   hash: hashMiejsca(wpis.miejsce),
   werdykt: wpis.werdykt ?? null,
 };
-zapiszJSON(join(ZGLOSZENIA, `${id}.json`), gotowe);
+zapiszJSON(join(KATALOG_ZGLOSZEN, `${id}.json`), gotowe);
 
-const ile = wszystkieZgloszenia().length;
-process.stdout.write(`Przyjęte: ${id}\n  hash miejsca: ${gotowe.hash.slice(0, 16)}…\n  zgłoszeń w sektorze: ${ile}\n`);
-if (ile > PROG_BAZY) {
-  process.stdout.write(`\nUWAGA: przekroczony próg ${PROG_BAZY} zgłoszeń — czas przełączyć nośnik na SQLite (W4).\n`);
-}
+/* TYLKO ID I HASH. Liczba wpisów w sektorze i próg 200 (SQLite, W4) NIE są
+   drukowane agentowi — czyta je kierownik w `status.mjs --pokaz` i strażnik
+   sektora (reguła 5). Samokontrola sprawdza KSZTAŁT tego wyjścia co do linii. */
+process.stdout.write(`Przyjęte: ${id}\n  hash miejsca: ${gotowe.hash.slice(0, 16)}…\n`);
 }

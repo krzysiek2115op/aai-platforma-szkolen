@@ -39,6 +39,16 @@
  * subagenta): stwierdzenie IDENTYCZNE co do słowa przy tym samym miejscu to
  * podejrzenie kopiowania i kod 1. Zgodność wtedy niczego nie dowodzi.
  *
+ * PODEJRZENIE KOLEJNOŚCI (pakiet E7.7, pozycja 4, 2026-09-02; F2 punkt 4
+ * z krytyki budowy) — czwarta warstwa ślepoty fali 2, obok zakazu w definicji,
+ * narzędzia nieznającego licznika i worktree bez wpisów fali 1. Gdy dział ma
+ * w obu falach IDENTYCZNY zbiór miejsc zgłoszony w TEJ SAMEJ kolejności (po
+ * numerach ID, co najmniej dwa miejsca), narzędzie to NAZYWA: agent
+ * przepisujący cudzą listę odtwarza jej kolejność, agent mierzący od nowa
+ * raczej nie. To SYGNAŁ, nie dowód — obie fale idące checklistą w tej samej
+ * kolejności pozycji też mogą trafić tak samo — więc KOD WYJŚCIA ZOSTAJE 0
+ * (rozstrzygnięcie 5 właściciela); w wyniku i w JSON stoi lista działów.
+ *
  * `--dzial=<KOD>` porównuje JEDEN dział (C1 z krytyki budowy: urwany przebieg
  * ma rozliczać działy domknięte). Dowodem, że fala w dziale SIĘ ODBYŁA, jest
  * plik stanu roli ze statusem ZAKOŃCZONE — dział bez wpisów i bez takiego stanu
@@ -108,6 +118,22 @@ export function porownajFale(f1, f2) {
   const tylkoW2 = [...h2.keys()].filter((h) => !h1.has(h));
   const wspolne = [...h1.keys()].filter((h) => h2.has(h));
 
+  /* KOLEJNOŚĆ ZGŁASZANIA per dział — hashe w porządku numerów ID, każdy raz. */
+  const numerId = (z) => Number(String(z.id ?? "").match(/(\d+)$/)?.[1] ?? 0);
+  const kolejnoscHashy = (lista, dzial) => {
+    const widziane = new Set();
+    const wynik = [];
+    for (const z of lista.filter((x) => x.dzial === dzial).sort((a, b) => numerId(a) - numerId(b))) {
+      if (!widziane.has(z.hash)) { widziane.add(z.hash); wynik.push(z.hash); }
+    }
+    return wynik;
+  };
+  const podejrzenieKolejnosci = [...new Set([...f1, ...f2].map((z) => z.dzial))].sort().filter((d) => {
+    const k1 = kolejnoscHashy(f1, d);
+    const k2 = kolejnoscHashy(f2, d);
+    return k1.length >= 2 && k1.length === k2.length && k1.every((h, i) => h === k2[i]);
+  });
+
   const innyStan = wspolne.filter((h) => stanPochodny(h1.get(h)) !== stanPochodny(h2.get(h)));
   const innyDzial = wspolne.filter((h) => h1.get(h).dzial !== h2.get(h).dzial);
   const podejrzane = wspolne.filter((h) => znormalizuj(h1.get(h).stwierdzenie) === znormalizuj(h2.get(h).stwierdzenie));
@@ -135,6 +161,7 @@ export function porownajFale(f1, f2) {
     fala1: f1.length, fala2: f2.length,
     wspolne: wspolne.length, tylko_w_fali_1: tylkoW1.length, tylko_w_fali_2: tylkoW2.length,
     inny_stan: innyStan.length, inny_dzial: innyDzial.length, podejrzane: podejrzane.length,
+    podejrzenie_kolejnosci: podejrzenieKolejnosci,
     powtorzone_miejsca: { fala1: powtorzoneW1, fala2: powtorzoneW2 },
     otwarte: [...f1, ...f2].filter(zPozycjiOtwartej).length,
     wpisy,
@@ -220,6 +247,13 @@ function drukujWynik(w, naglowek, proby) {
   }
   if (w.inny_dzial) {
     process.stdout.write(`GRANICA: ${w.inny_dzial} wspólnych miejsc trafiło w obu falach do innego działu — wiersz do tabeli granic (KIER-04).\n`);
+  }
+  if (w.podejrzenie_kolejnosci?.length) {
+    process.stdout.write(
+      `PODEJRZENIE KOLEJNOŚCI (kod 0 — sygnał do lektury, nie dowód): ${w.podejrzenie_kolejnosci.join(", ")} — ` +
+      "identyczny zbiór miejsc zgłoszony w obu falach w TEJ SAMEJ kolejności.\n" +
+      "Agent przepisujący cudzą listę odtwarza jej kolejność; agent mierzący od nowa raczej nie.\n"
+    );
   }
 }
 
@@ -313,7 +347,7 @@ const NIE = { krytyk: { werdykt: "ODRZUCAM", powod: "atrapa" }, weryfikator: { w
 /** Atrapa wpisu jednej fali — poprawna poza tym, co samokontrola celowo zmienia. */
 function atrapa(fala, miejsce, nr, zmiany = {}) {
   return {
-    id: `AUD-SEC-${String(nr).padStart(3, "0")}`, sektor: "audyt", fala, dzial: "SEC", pozycja: "SEC-03",
+    id: `AUD-SEC-F${fala}-${String(nr).padStart(3, "0")}`, sektor: "audyt", fala, dzial: "SEC", pozycja: "SEC-03",
     stwierdzenie: `Atrapa fali ${fala} numer ${nr}: opis tego samego miejsca własnymi słowami.`,
     miejsce, dowod: "Atrapa samokontroli — nie opuszcza katalogu tymczasowego.",
     klasyfikacja: "atrapa", wplyw: "brak", status: "DO WERYFIKACJI", runda: 1,
@@ -372,6 +406,17 @@ function samokontrola() {
   const powt = porownajFale([a1, atrapa(1, MIEJSCE_A, 7, { werdykt: TAK })], [a2]);
   sprawdz("POWTÓRKA  to samo miejsce dwa razy w fali 1 → liczone raz, ZGODNE", powt.wynik === "ZGODNE" && powt.powtorzone_miejsca.fala1 === 1);
 
+  /* kolejność zgłaszania (czwarta warstwa ślepoty fali 2) */
+  const taSama = porownajFale([a1, b1], [a2, b2]);
+  sprawdz("KOLEJNOŚĆ ten sam zbiór w tej samej kolejności (A, B / A, B) → nazwany dział SEC", taSama.podejrzenie_kolejnosci.length === 1 && taSama.podejrzenie_kolejnosci[0] === "SEC", JSON.stringify(taSama.podejrzenie_kolejnosci));
+  const odwrotna = porownajFale([a1, b1], [atrapa(2, MIEJSCE_B, 3, { werdykt: TAK }), atrapa(2, MIEJSCE_A, 4, { werdykt: TAK })]);
+  sprawdz("KOLEJNOŚĆ KONTRPRZYKŁAD: ten sam zbiór w INNEJ kolejności (A, B / B, A) → bez podejrzenia, wynik ZGODNE", odwrotna.podejrzenie_kolejnosci.length === 0 && odwrotna.wynik === "ZGODNE", JSON.stringify(odwrotna.podejrzenie_kolejnosci));
+  const jedno = porownajFale([a1], [a2]);
+  sprawdz("KOLEJNOŚĆ KONTRPRZYKŁAD: jedno wspólne miejsce → bez podejrzenia (kolejność jednego elementu nic nie mówi)", jedno.podejrzenie_kolejnosci.length === 0);
+  const nadzbior = porownajFale([a1, b1], [a2, b2, c2]);
+  sprawdz("KOLEJNOŚĆ KONTRPRZYKŁAD: inny zbiór (NADZBIÓR) → bez podejrzenia", nadzbior.podejrzenie_kolejnosci.length === 0);
+  sprawdz("KOLEJNOŚĆ kod wyjścia przy podejrzeniu kolejności to 0 (rozstrzygnięcie 5)", kodWyjscia(taSama, true) === 0);
+
   /* kod wyjścia — K4″ */
   sprawdz("KOD       SPRZECZNE bez kopiowania → 0 (do lektury, nie STOP)", kodWyjscia(sprz, true) === 0);
   sprawdz("KOD       NADZBIÓR → 0", kodWyjscia(nad2, true) === 0);
@@ -395,27 +440,31 @@ function samokontrola() {
       return { kod: r.status, wyjscie: (r.stdout ?? "") + (r.stderr ?? "") };
     };
 
-    const rozjazd = uruchom({ "zgloszenia/AUD-SEC-001.json": a1, "zgloszenia/AUD-SEC-002.json": b1, "zgloszenia/AUD-SEC-003.json": a2, "zgloszenia/AUD-SEC-005.json": c2 });
+    const rozjazd = uruchom({ "zgloszenia/AUD-SEC-F1-001.json": a1, "zgloszenia/AUD-SEC-F1-002.json": b1, "zgloszenia/AUD-SEC-F2-003.json": a2, "zgloszenia/AUD-SEC-F2-005.json": c2 });
     sprawdz("CLI       rozjazd fal → kod 0 i słowo SPRZECZNE na wyjściu", rozjazd.kod === 0 && /WYNIK: SPRZECZNE/.test(rozjazd.wyjscie), `kod ${rozjazd.kod}`);
     sprawdz("CLI       raport JSON zapisany w <katalog>/wyniki", existsSync(join(tmp, "wyniki", "porownanie-audyt.json")));
 
-    const skopiowane = uruchom({ "zgloszenia/AUD-SEC-001.json": a1, "zgloszenia/AUD-SEC-003.json": atrapa(2, MIEJSCE_A, 3, { werdykt: TAK, stwierdzenie: a1.stwierdzenie }) });
+    const kolejnosc = uruchom({ "zgloszenia/AUD-SEC-F1-001.json": a1, "zgloszenia/AUD-SEC-F1-002.json": b1, "zgloszenia/AUD-SEC-F2-001.json": a2, "zgloszenia/AUD-SEC-F2-002.json": b2 });
+    sprawdz("CLI       ta sama kolejność w obu falach → kod 0 i PODEJRZENIE KOLEJNOŚCI: SEC na wyjściu", kolejnosc.kod === 0 && /PODEJRZENIE KOLEJNOŚCI[^\n]*SEC/.test(kolejnosc.wyjscie), `kod ${kolejnosc.kod}`);
+    sprawdz("CLI       podejrzenie kolejności zapisane w JSON raportu", czytajJSON(join(tmp, "wyniki", "porownanie-audyt.json"))?.podejrzenie_kolejnosci?.[0] === "SEC");
+
+    const skopiowane = uruchom({ "zgloszenia/AUD-SEC-F1-001.json": a1, "zgloszenia/AUD-SEC-F2-003.json": atrapa(2, MIEJSCE_A, 3, { werdykt: TAK, stwierdzenie: a1.stwierdzenie }) });
     sprawdz("CLI       kopia co do słowa → kod 1 i PODEJRZENIE KOPIOWANIA", skopiowane.kod === 1 && /PODEJRZENIE KOPIOWANIA/.test(skopiowane.wyjscie), `kod ${skopiowane.kod}`);
 
-    const bezFali = uruchom({ "zgloszenia/AUD-SEC-001.json": a1 });
+    const bezFali = uruchom({ "zgloszenia/AUD-SEC-F1-001.json": a1 });
     sprawdz("CLI       jedna fala → kod 1", bezFali.kod === 1, `kod ${bezFali.kod}`);
 
-    const dzialBezFali = uruchom({ "zgloszenia/AUD-SEC-001.json": a1 }, ["--dzial=SEC"]);
+    const dzialBezFali = uruchom({ "zgloszenia/AUD-SEC-F1-001.json": a1 }, ["--dzial=SEC"]);
     sprawdz("CLI       --dzial: fala 2 bez wpisów i bez stanu ZAKOŃCZONE → kod 1", dzialBezFali.kod === 1 && /brak fali 2/.test(dzialBezFali.wyjscie), `kod ${dzialBezFali.kod}`);
 
     const dzialPusty = uruchom(
-      { "zgloszenia/AUD-SEC-001.json": a1, "stan/audyt-f2-SEC.json": { sektor: "audyt", fala: 2, rola: "SEC", status: "ZAKOŃCZONE", runda: 1, niedomkniete: [] } },
+      { "zgloszenia/AUD-SEC-F1-001.json": a1, "stan/audyt-f2-SEC.json": { sektor: "audyt", fala: 2, rola: "SEC", status: "ZAKOŃCZONE", runda: 1, niedomkniete: [] } },
       ["--dzial=SEC"]
     );
     sprawdz("CLI       --dzial: fala 2 ZAKOŃCZONA bez wpisów → kod 0, NADZBIÓR fali 1", dzialPusty.kod === 0 && /NADZBIÓR — fala 1/.test(dzialPusty.wyjscie), `kod ${dzialPusty.kod}`);
 
     const dzialFiltr = uruchom(
-      { "zgloszenia/AUD-SEC-001.json": a1, "zgloszenia/AUD-SEC-003.json": a2, "zgloszenia/AUD-BE-001.json": atrapa(1, MIEJSCE_C, 6, { id: "AUD-BE-001", dzial: "BE", pozycja: "BE-01", werdykt: TAK }) },
+      { "zgloszenia/AUD-SEC-F1-001.json": a1, "zgloszenia/AUD-SEC-F2-003.json": a2, "zgloszenia/AUD-BE-F1-001.json": atrapa(1, MIEJSCE_C, 6, { id: "AUD-BE-F1-001", dzial: "BE", pozycja: "BE-01", werdykt: TAK }) },
       ["--dzial=SEC"]
     );
     sprawdz("CLI       --dzial=SEC pomija wpisy działu BE → ZGODNE", dzialFiltr.kod === 0 && /WYNIK: ZGODNE/.test(dzialFiltr.wyjscie) && existsSync(join(tmp, "wyniki", "porownanie-audyt-SEC.json")), `kod ${dzialFiltr.kod}`);

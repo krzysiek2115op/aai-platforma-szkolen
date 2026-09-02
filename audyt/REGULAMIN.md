@@ -211,8 +211,11 @@ Audyt ma dostęp do całego projektu oraz do dokumentacji dobranej do rodzaju ag
 
 Każdy wykazany i przesłany do weryfikacji błąd ma **kod potwierdzenia** — najlepiej
 realizowany **funkcją kodu**. Kod nie jest ozdobnikiem: ma jednoznacznie wiązać zgłoszenie
-z tym, co agent faktycznie wykrył. Format: `AUD-SEC-001` (AUD = audyt, SEC = dział,
-001 = numer zgłoszenia).
+z tym, co agent faktycznie wykrył. Format: `AUD-SEC-F1-001` (AUD = audyt, SEC = dział,
+F1 = fala, 001 = numer zgłoszenia w obrębie działu i fali). *Człon fali doszedł
+2026-09-02 (pakiet E7.7, pozycja 4, rozstrzygnięcie 2 właściciela): numer ciągły
+w dziale zdradzał fali 2 liczbę znalezisk fali 1; pierwotny zapis brzmiał
+`AUD-SEC-001`.*
 
 ### Minimalny standard raportu audytora
 

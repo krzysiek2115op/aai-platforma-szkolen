@@ -47,11 +47,22 @@ Przy **każdej** pozycji KIER oraz w dwóch momentach przebiegu: przed pierwszą
    sprawdzasz plik, nie pilnujesz ręcznie.
    *Wynik:* dla każdego działu — kolejność wejść z datami.
 
-5. **Porównaj fale i przekaż właścicielowi wynik NAZWANY** (zgodne / nadzbiór /
-   sprzeczne, także per dział) — z obu stron, bez oceny (K4″).
+5. **Postaw worktree fali 2 — komendą, nie z pamięci.** Po zacommitowaniu stanu
+   i wpisów fali 1: `fala.mjs --postaw=2`. Narzędzie samo weryfikuje, że na dysku
+   worktree nie ma plików fali 1, i podaje, skąd uruchamiać role fali 2.
+   *Wynik:* kod wyjścia 0 i ścieżka worktree z wyjścia narzędzia.
+
+6. **Scal po fali 2** — z drzewa sektora, gdy worktree jest zacommitowany:
+   `fala.mjs --scal=2`. Worktree znika, gałąź fali kasuje się dopiero po potwierdzeniu
+   scalenia (`git branch -d`, nie `-D`).
+   *Wynik:* liczba plików, które doszły, z podziałem na fale (fala 1 = 0).
+
+7. **Porównaj fale i przekaż właścicielowi wynik NAZWANY** (zgodne / nadzbiór /
+   sprzeczne, także per dział; PODEJRZENIE KOLEJNOŚCI, gdy padnie) — z obu stron,
+   bez oceny (K4″), w PEŁNYM drzewie po scaleniu.
    *Wynik:* wyjście `porownaj-cykle.mjs` + `audyt/wyniki/porownanie-<sektor>.json`.
 
-6. **Porównaj migawki i `git diff`.** To jest dowód, że sektor niczego nie naprawił.
+8. **Porównaj migawki i `git diff`.** To jest dowód, że sektor niczego nie naprawił.
    *Wynik:* dwa kody wyjścia — migawki i niezmiennika.
 
 ## Komendy
@@ -60,6 +71,8 @@ Przy **każdej** pozycji KIER oraz w dwóch momentach przebiegu: przed pierwszą
 node audyt/tools/status.mjs --pokaz
 node audyt/tools/status.mjs --pokaz --historia
 node audyt/tools/mapa.mjs
+node audyt/tools/fala.mjs --postaw=2
+node audyt/tools/fala.mjs --scal=2
 node audyt/tools/porownaj-cykle.mjs
 node audyt/tools/porownaj-cykle.mjs --dzial=<KOD>
 node audyt/tools/polacz-sektory.mjs --fala=1
@@ -89,6 +102,11 @@ właściciela (K4″), nie sygnałem do naprawy.
 - **Odrzucone zgłoszenie NIE ZNIKA** — zostaje z werdyktem, bo druga fala musi trafić
   na to samo miejsce i dojść do tego samego wniosku.
 - **Powyżej 200 zgłoszeń nośnikiem przestaje być plik** (próg właściciela). Format wpisu
-  bez zmian, zmienia się warstwa zapisu — `node:sqlite` jest w standardzie.
+  bez zmian, zmienia się warstwa zapisu — `node:sqlite` jest w standardzie. Licznik
+  czytasz w `status.mjs --pokaz`; agent po zapisie widzi tylko ID i hash.
+- **Fala 2 bez worktree to fala 2 z dostępem do fali 1.** `status.mjs` odmówi wejścia,
+  gdy w drzewie widać wpis z polem `fala: 1` — to nie jest awaria, to komenda
+  `fala.mjs --postaw=2`, której nie uruchomiono. Stan fali 1 musi być w commicie,
+  inaczej worktree go nie dostanie.
 - **Sufit rund to pięć.** Rola, która skończyła na suficie i NIE wypisała niedomkniętych
   pozycji, ma lukę — cisza po suficie wygląda jak wyczerpana lista.

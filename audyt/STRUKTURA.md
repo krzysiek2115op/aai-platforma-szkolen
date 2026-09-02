@@ -29,10 +29,11 @@ audyt/
     status.mjs                   pięć statusów, rundy pętli, HISTORIA przejść (KIER-05), kolejność sektorów
     mapa.mjs                     pokrycie w trzech stanach
     migawka-wartosci.mjs         wartości przed i po (W6)
-    porownaj-cykle.mjs           porównanie fal (K4″): zgodne / nadzbiór / sprzeczne, per dział
+    porownaj-cykle.mjs           porównanie fal (K4″): zgodne / nadzbiór / sprzeczne, per dział; PODEJRZENIE KOLEJNOŚCI
     polacz-sektory.mjs           audyt + re-audyt (W4)
+    fala.mjs                     worktree fali 2 ze sparse checkoutem bez fali 1 (--postaw=2 | --scal=2)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  dwadzieścia sześć kontroli, OBA sektory
+    straznik-sektora-audytu.mjs  dwadzieścia osiem kontroli (1–29, 27 zarezerwowana dla 4b), OBA sektory
     audyt-straznika-sektora.mjs  mutacje strażnika
     pobierz-dokumentacje-audyt.mjs
 
@@ -44,9 +45,9 @@ audyt/
     ze ścieżki własnym `Read`, więc nie widzi go żadna inna sesja ani żaden
     inny agent. Powód jest zmierzony, nie estetyczny — patrz niżej.
 
-  zgloszenia/           wpisy JSON, ID nadaje narzędzie
-  stan/                 status i rundy każdej roli
-  migawki/              przed.json, po.json
+  zgloszenia/           wpisy JSON, ID nadaje narzędzie: <PREFIKS>-<DZIAŁ>-F<N>-<numer>
+  stan/                 status, rundy i HISTORIA każdej roli — W GICIE (od 2026-09-02)
+  migawki/              przed.json, po.json — W GICIE (od 2026-09-02)
   wyniki/               połączone fale i sektory
 ```
 
@@ -121,11 +122,14 @@ także osobny proces walidacji"), a `werdykt.mjs` nazywa strony ścieżki
 oba sektory bez zmiany.
 
 **Prefiks identyfikatora nie jest nazewnictwem.** `nastepneId()` liczy kolejny
-numer po plikach zaczynających się od `<PREFIKS>-<DZIAŁ>-`, a katalog jest
+numer po plikach zaczynających się od `<PREFIKS>-<DZIAŁ>-F<N>-`, a katalog jest
 jeden — przy wspólnym prefiksie zgłoszenie re-audytu w dziale SEC dostałoby
-nazwę `AUD-SEC-001.json`, którą audyt już zajął. Ciche nadpisanie cudzego
-wpisu, bez jednego objawu. Pilnują tego: samokontrola `zgloszenie.mjs --test`
-(pięć przypadków identyfikatora) i reguła 19 strażnika.
+nazwę `AUD-SEC-F1-001.json`, którą audyt już zajął. Ciche nadpisanie cudzego
+wpisu, bez jednego objawu. **Fala w nazwie też nie jest nazewnictwem** (pozycja 4
+E7.7): pula numerów jest osobna dla każdej fali, bo numer ciągły w dziale
+zdradzał fali 2 liczbę znalezisk fali 1. Pilnują tego: samokontrola
+`zgloszenie.mjs --test` (osiem przypadków identyfikatora i przebieg CLI) oraz
+reguła 19 strażnika (prefiks sektora i fala w nazwie = pole `fala`).
 
 ---
 
@@ -161,7 +165,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 
 ---
 
-## Co pilnuje strażnik sektorów — dwadzieścia sześć kontroli
+## Co pilnuje strażnik sektorów — dwadzieścia osiem kontroli
 
 | # | Kontrola | Co się psuje bez niej |
 |---|---|---|
@@ -183,21 +187,25 @@ mutacje**, uruchamiane na gałęzi sektora.
 | 16 | ZWERYFIKOWANE tylko z kompletem werdyktów; próba nigdy cicha | wpis domknięty jednym głosem (§16) albo wyciszony znacznikiem |
 | 17 | stan roli: kody pozycji, niezerowa runda, fala ∈ {1,2}, HISTORIA przejść (czasy ISO, niemalejące, ostatni wpis = stan), KOLEJNOŚĆ sektorów dla 14 działów | kierownik liczy złą liczbę otwartych pozycji (KIER-01); plik podłożony ręcznie wpuszcza re-audyt przed wyjściem audytu (W5) bez objawu |
 | 18 | krytyk, który MA zgłaszać, wie CZYM | znalezisko krytyka opisane prozą znika razem z sesją |
-| 19 | identyfikator zgłoszenia zgodny ze swoim SEKTOREM | wpis re-audytu nadpisuje wpis audytu — oba dzielą katalog i kody działów |
+| 19 | identyfikator zgłoszenia zgodny ze swoim SEKTOREM **i swoją FALĄ** (`F<N>` w nazwie = pole `fala`) | wpis re-audytu nadpisuje wpis audytu — oba dzielą katalog i kody działów; rozjazd nazwy z polem oślepia jedną z dwóch warstw ślepoty fali 2 (sparse checkout chowa po nazwie, `status.mjs` odmawia po polu) |
 | 20 | zakres Pogłębiacza identyczny z zakresem jego działu w audycie | re-audyt mierzy inny obszar, niż audyt zbadał — łączenie po haszu przestaje znaczyć |
 | 21 | model generatu zgodny z `ROLE.md` (D8) | rola pracuje na innym modelu, niż rozstrzygnął właściciel — sha256 źródła tego nie widzi |
 | 22 | moduł krytyka wskazuje zgłoszenia SWOJEGO sektora | krytyk re-audytu ocenia wpisy audytu, a wpisy `REA-*` nie mają krytyka |
 | 23 | hash wpisu zgodny z PRZELICZONYM z miejsca (H1) | wpis z hashem policzonym inną formułą nie połączy się z odpowiednikiem — rozjazd fal przy zgodnym wyniku |
 | 24 | szablon goldena też jest miarą | golden każdej nowej roli powstaje z szablonu, który wskazuje linię obok |
 | 25 | `porownaj-cykle.mjs --test` przechodzi | regresja do K4′ (rozjazd = STOP) albo ślepota na werdykty bez objawu do końca dwóch fal |
-| 26 | `status.mjs --test` przechodzi | cztery odmowy narzędzia stanu (fala, kolejność sektorów, cofanie przy Pogłębiaczu, drzewo produktu wobec migawki) bez bramki do pierwszej fali |
+| 26 | `status.mjs --test` przechodzi | pięć odmów narzędzia stanu (fala, kolejność sektorów, cofanie przy Pogłębiaczu, drzewo produktu wobec migawki, **izolacja fali 2**) bez bramki do pierwszej fali |
+| 27 | *(zarezerwowana — pozycja 4b pakietu E7.7: zdanie zakazu czytania innej fali w 80 definicjach; wchodzi z pozycją 6)* | agent fali 2 nie ma w definicji zakazu, a ma `Read`/`Grep`/`Bash` |
+| 28 | `stan/` i `migawki/` NIE są ignorowane przez gita | stan fali 2 z worktree nie wraca do drzewa sektora; dziennik wejść przestaje być dowodem |
+| 29 | `fala.mjs --test` przechodzi | worktree fali 2 bez wykluczeń „działa" w lekturze dokumentacji, a agent fali 2 otwiera wpisy fali 1 |
 
 Reguły 2, 3, 4, 6, 10, 11 i 12 są **warunkowe**: dopóki `audyt/role/` jest pusty,
 mówią wprost „pominięte". Cisza byłaby nie do odróżnienia od zaliczenia — a katalog
 istniał jako pusty od E4, więc sześć kontroli przechodziło po pustce, dopóki nie
 zaczęły o tym mówić.
 
-Reguły 15–18 **dołożył etap E6**: 15 i 16 przy budowie nośnika werdyktu,
+Reguły 28–29 (i rozszerzenie 19 o falę) **dołożyła pozycja 4a pakietu E7.7**
+(2026-09-02). Reguły 15–18 **dołożył etap E6**: 15 i 16 przy budowie nośnika werdyktu,
 17 i 18 po tym, jak **próba na sucho** wskazała dwie usterki, których żadna
 wcześniejsza kontrola nie widziała. Patrz „Nośnik werdyktu" niżej.
 
@@ -314,11 +322,17 @@ Dlatego wpis próbny nosi znacznik: `zgloszenie.mjs --oznacz-probe=<ID>
 **Wpis próbny ZOSTAJE w repozytorium** (rozstrzygnięcie właściciela
 2026-09-01) — jest materiałem dowodowym etapu, a nie śmieciem.
 
-**Do gita wchodzą wyłącznie `zgloszenia/`.** `stan/` i `migawki/` są stanem
-bieżącym, nie dowodem: plik stanu roli ma jedną nazwę na parę rola+fala, więc
-pierwsza prawdziwa fala go NADPISZE, a migawki nadpisze każde kolejne
-`--zapisz`. Zgłoszenia przeciwnie — **przyrastają i nigdy nie znikają**, także
-odrzucone (K4'). Dlatego tylko one są nośnikiem, który warto wersjonować.
+**Do gita wchodzą `zgloszenia/`, `stan/` I `migawki/`** (zmiana decyzji
+2026-09-02, pakiet E7.7 pozycja 4, pytanie 4 — rozstrzygnięcie właściciela).
+Zapis historyczny brzmiał: „do gita wchodzą wyłącznie `zgloszenia/`, bo `stan/`
+i `migawki/` są stanem bieżącym, nie dowodem". Przestał być prawdziwy z dwóch
+powodów: (1) od pozycji 3 plik stanu niesie HISTORIĘ przejść, czyli dziennik
+wejść KIER-05 — a dziennik poza gitem nie jest dowodem; (2) fala 2 pracuje
+w osobnym worktree (`fala.mjs`), a worktree oddaje do drzewa sektora wyłącznie
+COMMITY — stan fali 2 poza gitem nigdy by nie wrócił i `porownaj-cykle
+--dzial=` nie widziałby jej `ZAKOŃCZONE`. Cztery lokalne pliki stanu z prób
+E6/E7.6 i obie migawki weszły jako materiał dowodowy. Pilnuje reguła 28.
+Zgłoszenia jak dotąd **przyrastają i nigdy nie znikają**, także odrzucone (K4').
 
 ### Plik stanu roli — dziennik wejść (pozycja 3 pakietu E7.7, 2026-09-02)
 
@@ -331,8 +345,9 @@ odrzucone (K4'). Dlatego tylko one są nośnikiem, który warto wersjonować.
 
 `historia` dopisuje się przy KAŻDYM zapisie, `kiedy` to ostatnia zmiana. To jest
 nośnik KIER-05 („dziennik wejść") — jeden plik, nie druga kopia prawdy; czyta go
-`status.mjs --pokaz --historia`. Cztery odmowy narzędzia, każda z komendą naprawy
-w komunikacie (sześć rozstrzygnięć właściciela 2026-09-02):
+`status.mjs --pokaz --historia`. Pięć odmów narzędzia, każda z komendą naprawy
+w komunikacie (cztery z sześciu rozstrzygnięć właściciela 2026-09-02, piąta
+z pozycji 4 pakietu):
 
 1. **fala ∈ {1, 2}** — ten sam rygor, co w `zgloszenie.mjs`; dotąd `--fala=3`
    tworzyło `audyt-f3-SEC.json` po cichu;
@@ -347,7 +362,14 @@ w komunikacie (sześć rozstrzygnięć właściciela 2026-09-02):
    przechodzi; różnica drzewa produktu wobec `glowa_main` PRZYPIĘTEGO w migawce
    (commity ORAZ niezacommitowane, poza sektorami i `.claude/`) odmawia zapisu
    i wypisuje pliki. Wobec przypiętego commita, nie ruchomego `main` — cudzy
-   commit dependabota nie zatrzyma sektora.
+   commit dependabota nie zatrzyma sektora;
+5. **izolacja fali 2** — rola fali 2 nie WCHODZI do działu (`W TRAKCIE` albo
+   pierwsza runda), dopóki w drzewie widać jakikolwiek wpis zgłoszenia albo
+   plik stanu z POLEM `fala: 1` (pole, nie nazwa — sparse checkout może
+   „działać" tylko w lekturze dokumentacji). Wpis PRÓBNY fali 1 blokuje tak
+   samo (jeden format, zero wyjątków). Wyjątek: `KIER` i `RAP` fali 2 wchodzą
+   także w pełnym drzewie — porównanie fal i raport są PO obu falach
+   (rozstrzygnięcie 1). Komunikat podaje `fala.mjs --postaw=2`.
 
 Reguła 17 strażnika pilnuje tego samego na ZAWARTOŚCI plików (własnym kodem,
 nie importem z narzędzia): plik podłożony ręcznie ominąłby `status.mjs`, a reguły
@@ -454,27 +476,53 @@ zależności.
 ## Kolejność sektorów (§17, W5, K9')
 
 ```
-MAPA PRZED
+MAPA PRZED                                    (drzewo sektora, gałąź <sektor>/sektor-…)
   │
   ├─ AUDYT fala 1        działy równolegle MIĘDZY SOBĄ
   │     └─ dział kończy → re-audyt może wejść WŁAŚNIE DO NIEGO
   ├─ RE-AUDYT fala 1     nigdy na tym samym dziale co audyt
-  ├─ AUDYT fala 2        na NIEZMIENIONYM kodzie, ślepa na wyniki fali 1
-  ├─ RE-AUDYT fala 2
+  │     └─ commit: audyt/zgloszenia/*-F1-*, audyt/stan/*-f1-*
   │
-  ├─ porownaj-cykle.mjs        NAZYWA wynik, nie ocenia (K4″); także --dzial=<KOD>
+  ├─ fala.mjs --postaw=2   worktree obok repo, gałąź <sektor>/fala-2 od TEGO SAMEGO commita,
+  │     │                  sparse checkout BEZ *-F1-*, *-f1-* i wyniki/; generat i migawka w worktree
+  │     ├─ AUDYT fala 2        na NIEZMIENIONYM kodzie; wpisów fali 1 NIE MA na dysku
+  │     ├─ RE-AUDYT fala 2     status.mjs odmawia wejścia, gdy w drzewie widać POLE fala: 1
+  │     └─ commit w worktree: *-F2-*, *-f2-*
+  ├─ fala.mjs --scal=2     merge <sektor>/fala-2 → gałąź sektora (same nowe pliki), worktree usunięty
+  │
+  ├─ porownaj-cykle.mjs        NAZYWA wynik, nie ocenia (K4″); także --dzial=<KOD>   (PEŁNE drzewo)
   │     ├─ ZGODNE    → błędy potwierdzone → NAPRAWA (osobny krok)
   │     ├─ NADZBIÓR  → która fala i o ile → raport do lektury właściciela
-  │     └─ SPRZECZNE → raport do lektury właściciela; decyzja jego, nie narzędzia
+  │     ├─ SPRZECZNE → raport do lektury właściciela; decyzja jego, nie narzędzia
+  │     └─ PODEJRZENIE KOLEJNOŚCI → nazwane, kod 0 (sygnał, nie dowód)
   │        kod 1 WYŁĄCZNIE przy podejrzeniu kopiowania (ślepota fali 2) albo braku fali
   │
   └─ MAPA PO → migawka-wartosci.mjs --porownaj
 ```
 
-**Ślepota fali 2 ma trzy warstwy:** zakaz w prompcie, czysty kontekst subagenta
-oraz kontrola w `porownaj-cykle.mjs` — identyczne co do słowa stwierdzenie przy
-tym samym miejscu jest zgłaszane jako **podejrzenie kopiowania**. Bez tego
-„ten sam wynik" wychodziłby zawsze, także gdyby audyt był zepsuty.
+**Ślepota fali 2 ma CZTERY warstwy** (pakiet E7.7, pozycja 4; do 2026-09-02 były
+trzy: zakaz w prompcie, czysty kontekst subagenta, kontrola kopii — a z nich
+naprawdę działała jedna, czysty kontekst, bo zakaz stał wyłącznie w definicji
+kierownika, a wpisy fali 1 leżały w tym samym katalogu):
+
+1. **definicje** — zdanie zakazu czytania wpisów, stanu i wyników innej fali
+   w każdej z 80 definicji (pozycja **4b**, razem z pozycją 6; reguła 27);
+2. **narzędzie** — identyfikator niesie falę (`AUD-SEC-F2-001`, pula numerów
+   per fala), a `zgloszenie.mjs` po zapisie drukuje TYLKO ID i hash; liczba
+   wpisów i próg 200 żyją w `status.mjs --pokaz` kierownika. Reguła 19′;
+3. **dysk** — fala 2 pracuje w worktree ze sparse checkoutem bez `*-F1-*`,
+   `*-f1-*` i `wyniki/` (`fala.mjs`), a `status.mjs` odmawia wejścia fali 2
+   po POLU `fala`, niezależnie od gita. Reguły 26, 28, 29;
+4. **porównanie** — `porownaj-cykle.mjs` nazywa **podejrzenie kopiowania**
+   (stwierdzenie identyczne co do słowa → kod 1) i **podejrzenie kolejności**
+   (identyczny zbiór miejsc działu w tej samej kolejności zgłaszania → kod 0,
+   nazwane). Bez tego „ten sam wynik" wychodziłby zawsze, także gdyby audyt był
+   zepsuty.
+
+Re-audyt fali N czyta audyt fali N — to jego sens (W4, łączenie po haszu);
+zakaz dotyczy INNEJ fali. `KIER` i `RAP` po obu falach pracują w pełnym
+drzewie (porównanie i raport). Wpisy próbne z E6/E7 noszą `-F1-` jak wszystkie
+inne — jeden format, zero wyjątków w regułach.
 
 ---
 

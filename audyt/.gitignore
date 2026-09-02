@@ -1,7 +1,8 @@
-# STRUKTURA.md, „Wpis PRÓBNY": do gita wchodzą WYŁĄCZNIE zgloszenia/.
-# stan/ ma jedną nazwę pliku na parę rola+fala (pierwsza prawdziwa fala go
-# NADPISZE), a migawki/ nadpisuje każde kolejne --zapisz — to stan bieżący,
-# nie dowód. Zmierzone przy przygotowaniu próby E7.6: cztery takie pliki
-# były śledzone wbrew dokumentowi, od E6.
-stan/
-migawki/
+# ROZSTRZYGNIĘCIE WŁAŚCICIELA 2026-09-02 (pakiet E7.7, pozycja 4, pytanie 4):
+# `stan/` i `migawki/` WCHODZĄ DO GITA. Wcześniejszy zapis (STRUKTURA.md, „Wpis
+# PRÓBNY": do gita wyłącznie zgloszenia/) przestał być prawdziwy, gdy fala 2
+# dostała własny worktree ze sparse checkoutem: bez gita stan fali 2 nie ma jak
+# wrócić do głównego drzewa, `porownaj-cykle --dzial=` nie widzi ZAKOŃCZONE
+# fali 2, a dziennik wejść (historia przejść, pozycja 3) nie jest dowodem.
+# Cztery pliki stanu z prób E6/E7.6 i obie migawki weszły jako materiał dowodowy.
+# Reguła 28 strażnika sektora pilnuje, żeby te dwa katalogi NIE wróciły tutaj.

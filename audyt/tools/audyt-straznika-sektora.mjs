@@ -23,11 +23,28 @@
  * w jednej sesji przeglądu T3. Przywracanie idzie przez `finally`.
  *
  * Użycie: node audyt/tools/audyt-straznika-sektora.mjs
+ *         node audyt/tools/audyt-straznika-sektora.mjs --tylko=<regex>   # przebieg celowany, nie dowód
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { KOD_PROBNY, KORZEN, SEKTOR, ZGLOSZENIA, hashMiejsca } from "./wspolne.mjs";
+
+/**
+ * BRAMKA GŁÓWNEGO MODUŁU (dopisana 2026-09-02, pozycja 4a). Do tej pory SAM IMPORT
+ * tego pliku uruchamiał cały audyt mutacyjny — `node -e "import('…')"` odpalony
+ * na próbę mutował pliki sektora przez kilkanaście minut w tle, a strażnik
+ * uruchamiany w tym czasie ręcznie „pokazywał" regresje, których nie było.
+ * Wzorzec odporny na spację w nazwie katalogu (BLAD-014), jak w pozostałych
+ * narzędziach sektora.
+ */
+const GLOWNY_MODUL =
+  Boolean(process.argv[1]) && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (!GLOWNY_MODUL) {
+  process.stdout.write("audyt-straznika-sektora.mjs uruchamia się wyłącznie jako główny moduł: node audyt/tools/audyt-straznika-sektora.mjs\n");
+  process.exit(1);
+}
 
 const P = (s) => join(KORZEN, s);
 const ROLE_MD = "audyt/ROLE.md";
@@ -123,6 +140,17 @@ const MUTACJE = [
    fałszywe alarmy, bo wzorce reguły 6 zakładały, że zdanie mieści się w jednej
    linii, a Markdown je zawija. Gdyby ta kontrola nie została na stałe, E5
    wywróciłoby się na pierwszej roli — a wyglądałoby to na błąd roli. */
+/**
+ * NUMER LINII DOBREGO BLOKU GOLDENA — czytany z treści, nie wpisany w mutację.
+ * Zmierzone 2026-09-02: cztery mutacje goldenów miały literał `"linia": 471`
+ * (ówczesny numer linii w REGULAMIN.md); po dopisaniu trzech wierszy do
+ * regulaminu szablon goldena wskazywał 474, a mutacje trafiały w BLOK NEGATYWNY
+ * o tym samym starym numerze — nic nie psuły i meldowały „PRZEPUŚCIŁ". Mutacja
+ * przypięta do WARTOŚCI umiera po zmianie wartości (lekcja z 0.35.0).
+ */
+const liniaDobregoBloku = (golden) => Number(golden.match(/"linia":\s*(\d+),/)[1]);
+const przesunLinie = (golden) => golden.replace(/"linia":\s*(\d+),/, (_, n) => `"linia": ${Number(n) + 1},`);
+
 function rolaZSzablonu({ pomin = [], mutuj = {}, kod = KOD_PROBNY } = {}) {
   const SZABLONY = join(SEKTOR, "szablony");
   const PROBNA = join(SEKTOR, "role", kod);
@@ -406,6 +434,101 @@ MUTACJE.push(
   },
 );
 
+/* ── mutacje pozycji 4a pakietu E7.7 (2026-09-02): ślepota fali 2 ────────────
+   Cztery warstwy ślepoty (STRUKTURA.md, „Kolejność sektorów"); tu warstwy 2–4
+   i nośnik w gicie. Każda mutacja psuje JEDNO rozstrzygnięcie właściciela
+   i pyta, czy samokontrola narzędzia albo reguła strażnika to zauważy. */
+const FALA = "audyt/tools/fala.mjs";
+const GITIGNORE_SEKTORA = "audyt/.gitignore";
+MUTACJE.push(
+  {
+    opis: "zgloszenie.mjs wraca do drukowania liczby wpisów po zapisie — licznik zdradza fali 2 wynik fali 1 (F3)",
+    plik: ZGLOSZENIE,
+    slad: /zgloszenie\.mjs --test/,
+    zmien: (s) => s.replace(
+      "process.stdout.write(`Przyjęte: ${id}\\n  hash miejsca: ${gotowe.hash.slice(0, 16)}…\\n`);",
+      "process.stdout.write(`Przyjęte: ${id}\\n  hash miejsca: ${gotowe.hash.slice(0, 16)}…\\n  zgłoszeń w sektorze: ${readdirSync(KATALOG_ZGLOSZEN).length}\\n`);"
+    ),
+  },
+  {
+    opis: "identyfikator bez fali w nazwie (powrót do AUD-SEC-001) — numer ciągły w dziale zdradza liczbę wpisów fali 1",
+    plik: ZGLOSZENIE,
+    slad: /zgloszenie\.mjs --test/,
+    zmien: (s) => s.replace("const poczatek = `${prefiks}-${dzial}-F${fala}-`;", "const poczatek = `${prefiks}-${dzial}-`;"),
+  },
+  {
+    opis: "pula numerów WSPÓLNA dla obu fal — fala 2 zaczyna od numeru za ostatnim wpisem fali 1",
+    plik: ZGLOSZENIE,
+    slad: /zgloszenie\.mjs --test/,
+    zmien: (s) => s.replace(
+      "    .filter((f) => f.startsWith(poczatek))\n    .map((f) => Number(f.match(/-(\\d+)\\.json$/)?.[1] ?? 0));",
+      "    .filter((f) => f.startsWith(`${prefiks}-${dzial}-`))\n    .map((f) => Number(f.match(/-(\\d+)\\.json$/)?.[1] ?? 0));"
+    ),
+  },
+  {
+    opis: "status.mjs wpuszcza falę 2 do działu przy wpisie z polem fala: 1 w drzewie (izolacja po POLU znika)",
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace("    if (wpisowF1 || stanowF1) {", "    if (false) {"),
+  },
+  {
+    opis: "status.mjs zwalnia z izolacji KAŻDĄ rolę procesową, nie tylko KIER i RAP (Konrad fali 2 czyta falę 1)",
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace('export const WOLNE_OD_IZOLACJI = ["KIER", "RAP"];', 'export const WOLNE_OD_IZOLACJI = ["KIER", "RAP", "KON", "GOLD", "WER", "PSIARZ", "SKUT", "STRAZ", "WALID"];'),
+  },
+  {
+    opis: "KONTRPRZYKŁAD: inne brzmienie komunikatu odmowy izolacji (ta sama komenda naprawy) NIE zapala samokontroli",
+    plik: STATUS,
+    oczekujCzerwonego: false,
+    zmien: (s) => s.replace("Agent fali 2 ma NIE WIDZIEĆ wyników fali 1", "Agent fali 2 nie może widzieć wyników fali 1"),
+  },
+  {
+    opis: "porownaj-cykle przestaje nazywać PODEJRZENIE KOLEJNOŚCI — czwarta warstwa ślepoty fali 2 znika",
+    plik: POROWNAJ,
+    slad: /porownaj-cykle\.mjs --test/,
+    zmien: (s) => s.replace("    return k1.length >= 2 && k1.length === k2.length && k1.every((h, i) => h === k2[i]);", "    return false;"),
+  },
+  {
+    opis: "podejrzenie kolejności zaczyna dawać kod 1 (wbrew rozstrzygnięciu 5: sygnał, nie STOP)",
+    plik: POROWNAJ,
+    slad: /porownaj-cykle\.mjs --test/,
+    zmien: (s) => s.replace(
+      "export function kodWyjscia({ podejrzane }, obieFale) {",
+      "export function kodWyjscia({ podejrzane, podejrzenie_kolejnosci }, obieFale) {\n  if (podejrzenie_kolejnosci?.length) return 1;"
+    ),
+  },
+  {
+    opis: "KONTRPRZYKŁAD: inne brzmienie zdania po dwukropku w PODEJRZENIU KOLEJNOŚCI NIE zapala samokontroli",
+    plik: POROWNAJ,
+    oczekujCzerwonego: false,
+    zmien: (s) => s.replace("identyczny zbiór miejsc zgłoszony w obu falach w TEJ SAMEJ kolejności.", "ten sam zbiór miejsc w tym samym porządku zgłaszania."),
+  },
+  {
+    /* Worktree BEZ wykluczeń „działa" w lekturze dokumentacji: powstaje, ma
+       gałąź, generat i migawkę — tylko wpisy fali 1 leżą na jego dysku. */
+    opis: "fala.mjs stawia worktree bez wykluczeń — wpisy fali 1 leżą na dysku fali 2",
+    plik: FALA,
+    slad: /fala\.mjs --test/,
+    zmien: (s) => s.replace(
+      '  return ["/*", `!/audyt/zgloszenia/*-F${inna}-*`, `!/audyt/stan/*-f${inna}-*`, "!/audyt/wyniki/*"];',
+      '  return ["/*"];'
+    ),
+  },
+  {
+    opis: "fala.mjs scala niezacommitowany worktree — stan fali 2 zostaje poza merge'em i znika z worktree",
+    plik: FALA,
+    slad: /fala\.mjs --test/,
+    zmien: (s) => s.replace("  if (bW.length) {", "  if (false) {"),
+  },
+  {
+    opis: "stan/ wraca do .gitignore sektora — stan fali 2 z worktree nie wróciłby do drzewa (rozstrzygnięcie 4)",
+    plik: GITIGNORE_SEKTORA,
+    slad: /IGNOROWANY przez gita/,
+    zmien: (s) => s + "stan/\n",
+  },
+);
+
 const MUTACJE_ROLI = [
   {
     opis: "z szablonu AGENT.md znika jedna z 13 zasad Goldena",
@@ -419,7 +542,7 @@ const MUTACJE_ROLI = [
   },
   {
     opis: "GOLDEN ZGNIŁ: dobry przykład wskazuje linię obok",
-    wykonaj: () => rolaZSzablonu({ mutuj: { "golden.md": (s) => s.replace('"linia": 471', '"linia": 472') } }),
+    wykonaj: () => rolaZSzablonu({ mutuj: { "golden.md": przesunLinie } }),
     slad: /miał przejść, a bramka odrzuca/,
   },
   {
@@ -428,7 +551,7 @@ const MUTACJE_ROLI = [
       .replace('"stwierdzenie": "Wydaje mi się, że tutaj może być problem z walidacją danych wejściowych."',
                '"stwierdzenie": "Zapytanie skleja wartość z żądania bez prepare, więc wejście trafia do SQL."')
       .replace('"linia": 99999,\n    "tresc": "coś takiego tam było"',
-               '"linia": 471,\n    "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń **odmawia zapisu** wpisu bez dowodu."') } }),
+               `"linia": ${liniaDobregoBloku(s)},\n    "tresc": "Egzekwowane maszynowo: narzędzie zgłoszeń **odmawia zapisu** wpisu bez dowodu."`) } }),
     slad: /bramka go PRZYJMUJE/,
   },
   {
@@ -574,12 +697,31 @@ const MUTACJE_ROLI = [
   },
   {
     opis: "wpis audytu z działu, który istnieje wyłącznie w re-audycie",
-    wykonaj: () => mutacjaWpisu({ id: "AUD-PSIARZ-998", dzial: "PSIARZ", pozycja: "PSIARZ-02" }),
+    wykonaj: () => mutacjaWpisu({ id: "AUD-PSIARZ-F1-998", dzial: "PSIARZ", pozycja: "PSIARZ-02" }),
     slad: /dział "PSIARZ" nie istnieje w sektorze "audyt"/,
   },
   {
     opis: "KONTRPRZYKŁAD: poprawny wpis re-audytu (REA-, dział wspólny) NIE może zapalać strażnika",
-    wykonaj: () => mutacjaWpisu({ id: "REA-SEC-997", sektor: "re-audyt", dzial: "SEC", pozycja: "SEC-01" }),
+    wykonaj: () => mutacjaWpisu({ id: "REA-SEC-F1-997", sektor: "re-audyt", dzial: "SEC", pozycja: "SEC-01" }),
+    oczekujCzerwonego: false,
+  },
+
+  /* ── reguła 19′: fala w NAZWIE = POLE fala (pozycja 4a E7.7) ─────────────
+     Sparse checkout worktree chowa wpisy po nazwie, `status.mjs` odmawia po
+     polu — wpis, w którym nazwa i pole mówią co innego, oślepia jedną z warstw. */
+  {
+    opis: "wpis nazwany F1 z polem fala: 2 — nazwa i pole mówią co innego",
+    wykonaj: () => mutacjaWpisu({ fala: 2 }),
+    slad: /fala w nazwie \(F1\) ≠ pole fala \(2\)/,
+  },
+  {
+    opis: "wpis w STARYM formacie bez fali w nazwie (AUD-WER-998) — sparse checkout by go nie schował",
+    wykonaj: () => mutacjaWpisu({ id: "AUD-WER-998" }),
+    slad: /bez fali w nazwie/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: wpis fali 2 nazwany F2 NIE może zapalać strażnika",
+    wykonaj: () => mutacjaWpisu({ id: "AUD-WER-F2-998", fala: 2 }),
     oczekujCzerwonego: false,
   },
   {
@@ -885,7 +1027,7 @@ MUTACJE_ROLI.push(
     opis: "szablon goldena wskazuje linię obok — dobry przykład przestaje przechodzić przez bramkę",
     slad: /szablony\/golden\.md blok \d+: miał przejść/,
     wykonaj: () => zPodmienionymi({
-      "audyt/szablony/golden.md": (s) => s.replace('"linia": 471,', '"linia": 472,'),
+      "audyt/szablony/golden.md": przesunLinie,
     }),
   },
   {
@@ -986,8 +1128,8 @@ MUTACJE_ROLI.push(
 );
 
 /* ── zgłoszenie-śmieć: reguła 5 ma je złapać bez dotykania kodu ── */
-const SMIEC = join(ZGLOSZENIA, "AUD-SEC-999.json");
-const SMIEC_WER = join(ZGLOSZENIA, "AUD-WER-998.json");
+const SMIEC = join(ZGLOSZENIA, "AUD-SEC-F1-999.json");
+const SMIEC_WER = join(ZGLOSZENIA, "AUD-WER-F1-998.json");
 
 /**
  * Wpis-atrapa o WŁAŚCIWEJ zawartości poza jednym psutym polem. Reszta pól
@@ -997,7 +1139,7 @@ const SMIEC_WER = join(ZGLOSZENIA, "AUD-WER-998.json");
  */
 const MIEJSCE_ATRAPY = { rodzaj: "linia", plik: "audyt/tools/werdykt.mjs", linia: 1, tresc: "/**" };
 const WPIS_ATRAPA = {
-  id: "AUD-WER-998",
+  id: "AUD-WER-F1-998",
   sektor: "audyt", fala: 1, dzial: "WER", pozycja: "WER-01",
   stwierdzenie: "Wpis-atrapa audytu mutacyjnego — mierzy regułę statusu i werdyktów.",
   miejsce: MIEJSCE_ATRAPY,
@@ -1068,7 +1210,7 @@ const ISTNIEJE = { werdykt: "ISTNIEJE", powod: null, kiedy: "2026-09-01T00:00:00
 
 function mutacjaZgloszenia() {
   mkdirSync(ZGLOSZENIA, { recursive: true });
-  writeFileSync(SMIEC, JSON.stringify({ id: "AUD-SEC-999", sektor: "audyt", fala: 1, dzial: "SEC", stwierdzenie: "cos" }, null, 2));
+  writeFileSync(SMIEC, JSON.stringify({ id: "AUD-SEC-F1-999", sektor: "audyt", fala: 1, dzial: "SEC", stwierdzenie: "cos" }, null, 2));
   try {
     const { czerwony, wyjscie } = straznikCzerwony();
     return { czerwony, trafiony: /brak dowod|brak miejsce|brak hash/.test(wyjscie) };
@@ -1081,6 +1223,19 @@ function mutacjaZgloszenia() {
 
 /** Czy mutacja ma na tej gałęzi materiał do zmierzenia. */
 const maMaterial = (m) => !m.wymaga || existsSync(P(m.wymaga));
+
+/**
+ * `--tylko=<regex>` — przebieg CELOWANY po opisie mutacji, do sprawdzenia
+ * poprawki jednej rodziny bez piętnastu minut pełnego audytu. Wynik takiego
+ * przebiegu NIE jest dowodem sektora (liczy tylko wybrane) i mówi to na
+ * wyjściu; bramką jest wyłącznie przebieg bez filtra.
+ */
+const filtrTylko = process.argv.find((a) => a.startsWith("--tylko="))?.slice("--tylko=".length);
+const TYLKO = filtrTylko ? new RegExp(filtrTylko, "iu") : null;
+const wybrana = (m) => !TYLKO || TYLKO.test(m.opis);
+if (TYLKO) {
+  process.stdout.write(`PRZEBIEG CELOWANY (--tylko=${filtrTylko}) — nie jest dowodem sektora, liczy wyłącznie dopasowane mutacje.\n`);
+}
 
 const kopie = new Map();
 for (const m of MUTACJE) {
@@ -1102,6 +1257,7 @@ try {
   }
 
   for (const m of MUTACJE) {
+    if (!wybrana(m)) continue;
     if (!maMaterial(m)) {
       process.stdout.write(`  – pominięta (brak ${m.wymaga} na tej gałęzi): ${m.opis}\n`);
       pominiete++;
@@ -1147,6 +1303,7 @@ try {
   }
 
   for (const m of MUTACJE_ROLI) {
+    if (!wybrana(m)) continue;
     if (!maMaterial(m)) {
       process.stdout.write(`  – pominięta (brak ${m.wymaga} na tej gałęzi): ${m.opis}\n`);
       pominiete++;
@@ -1168,10 +1325,12 @@ try {
     }
   }
 
-  const z = mutacjaZgloszenia();
-  if (!z.czerwony) { process.stdout.write("  ✗ PRZEPUŚCIŁ: zgłoszenie bez dowodu, miejsca i hasha\n"); przeoczone++; }
-  else if (!z.trafiony) { process.stdout.write("  ✗ ZŁY ŚLAD: zgłoszenie-śmieć zapaliło inną regułę\n"); zle++; }
-  else process.stdout.write("  ✓ złapane: zgłoszenie bez dowodu, miejsca i hasha\n");
+  if (!TYLKO) {
+    const z = mutacjaZgloszenia();
+    if (!z.czerwony) { process.stdout.write("  ✗ PRZEPUŚCIŁ: zgłoszenie bez dowodu, miejsca i hasha\n"); przeoczone++; }
+    else if (!z.trafiony) { process.stdout.write("  ✗ ZŁY ŚLAD: zgłoszenie-śmieć zapaliło inną regułę\n"); zle++; }
+    else process.stdout.write("  ✓ złapane: zgłoszenie bez dowodu, miejsca i hasha\n");
+  }
 } finally {
   for (const [plik, tresc] of kopie) writeFileSync(P(plik), tresc, "utf8");
   rmSync(SMIEC, { force: true });
@@ -1180,9 +1339,11 @@ try {
   rmSync(SMIEC_STAN_2, { force: true });
 }
 
-const razem = MUTACJE.length + MUTACJE_ROLI.length + 1;
+const razem = TYLKO
+  ? MUTACJE.filter(wybrana).length + MUTACJE_ROLI.filter(wybrana).length
+  : MUTACJE.length + MUTACJE_ROLI.length + 1;
 process.stdout.write(
-  `\nMutacje sektora: ${razem}, przeoczone: ${przeoczone}, martwe/złe: ${zle + martwe}` +
+  `\n${TYLKO ? "Mutacje CELOWANE (nie dowód sektora)" : "Mutacje sektora"}: ${razem}, przeoczone: ${przeoczone}, martwe/złe: ${zle + martwe}` +
   (pominiete ? `, pominięte bez materiału: ${pominiete}` : "") + "\n"
 );
 

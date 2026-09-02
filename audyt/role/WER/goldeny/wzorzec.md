@@ -47,7 +47,7 @@ poznasz, że masz przed sobą wzorzec, a nie znalezisko.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/tools/zgloszenie.mjs",
-    "linia": 329,
+    "linia": 400,
     "tresc": "hash: hashMiejsca(wpis.miejsce),"
   },
   "dowod": "Linia 259 liczy skrót z samego miejsca, więc ponowne przeliczenie z tego samego miejsca musi dać tę samą wartość — dwa skróty obok siebie rozstrzygają.",
@@ -142,7 +142,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/tools/zgloszenie.mjs",
-    "linia": 329,
+    "linia": 400,
     "tresc": "hash: hashMiejsca(wpis),"
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",
