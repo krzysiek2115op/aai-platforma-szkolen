@@ -1069,7 +1069,7 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 | 1 | hash miejsca bez numeru linii | ✅ **2026-09-02** — reguła 23 (hash zgodny z miejscem), pary kandydatów w `polacz-sektory`, przy okazji **reguła 24** (szablon goldena też jest miarą); mutacje 68 → 73 |
 | 2 | `porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u | ✅ **2026-09-02** — po dyskusji i trzech odpowiedziach właściciela (kod 0 przy SPRZECZNE; NADZBIÓR nazywa falę i liczbę; wpisy `-90` porównywane tak samo); **reguła 25** strażnika (samokontrola narzędzia na atrapach dwóch fal), mutacje 73 → 79; szczegóły w sekcji „POZYCJA 2 — ZROBIONA" niżej |
 | 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza rolami procesowymi re-audytu), drzewo wobec `glowa_main`; reguła 17 | ✅ **2026-09-02** — po zielonym świetle właściciela („Tak, jedź"): historia przejść w pliku stanu, cztery odmowy z komendą naprawy, `status.mjs --test` (36 przypadków), **reguła 26**, reguła 17 na zawartości; mutacje 79 → **101**; szczegóły w sekcji „POZYCJA 3 — ZROBIONA" niżej |
-| 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | 🚧 **projekt spisany 2026-09-02** (sekcja „POZYCJA 4 — PROJEKT DO DYSKUSJI"); **siedem pytań do właściciela**, kod po rozstrzygnięciach |
+| 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | 🚧 **projekt zaakceptowany 2026-09-02, siedem rozstrzygnięć właściciela ZAPADŁO** (sekcja „POZYCJA 4 — PROJEKT DO DYSKUSJI"); podział: **4a** (narzędzia, reguła 19′, szablony, STRUKTURA, R5) teraz — czeka na zielone światło na kod; **4b** (zdanie zakazu w 80 definicjach + reguła 27) razem z pozycją 6 |
 | 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ⬜ |
 | 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | ⬜ |
 | 7 | re-audyt sekwencyjnie: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu | ⬜ |
@@ -1079,7 +1079,7 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: pozycja 4 pakietu — projekt SPISANY (sekcja „POZYCJA 4 — PROJEKT DO DYSKUSJI" niżej), czeka na siedem rozstrzygnięć właściciela; kod po nich.** Pozycja 4 DOTYKA rozstrzygnięć (m.in. `audyt/stan/` w gicie, izolacja fali 2 worktree'em, kod wyjścia przy nadmiernej zgodności), więc wg wytycznej z 2026-09-02 najpierw dyskusja. Pozycje 8, 1, 2 i 3 zrobione; decyzje o wykonalności na Max ZAPADŁY (sekcja niżej).
+**NASTĘPNY KROK: KOD pozycji 4a** — siedem rozstrzygnięć właściciela ZAPADŁO 2026-09-02 (wszystkie rekomendacje przyjęte, sekcja „POZYCJA 4 — PROJEKT DO DYSKUSJI" niżej); rusza po zielonym świetle nad projektem. Pozycja 4b (80 definicji + reguła 27) idzie razem z pozycją 6. Pozycje 8, 1, 2 i 3 zrobione; decyzje o wykonalności na Max ZAPADŁY (sekcja niżej).
 ### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
 
 Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
@@ -1330,35 +1330,39 @@ audyt fali N — to jego sens i łączenie po haszu W4; zakaz dotyczy INNEJ fali
 warstwach ślepoty przepisana na cztery (definicje, narzędzie, dysk, porównanie),
 procedura KIER (obu sektorów): krok „postaw worktree fali 2" i „scal po fali".
 
-**SIEDEM PYTAŃ DO WŁAŚCICIELA (rozstrzygnięcia, bez których kod nie rusza):**
+**SIEDEM ROZSTRZYGNIĘĆ WŁAŚCICIELA (2026-09-02) — wszystkie rekomendacje PRZYJĘTE** (pytania zostają niżej w brzmieniu, w jakim padły; odpowiedź przy każdym):
 
 1. **Zakres zakazu.** Rola fali N czyta WYŁĄCZNIE wpisy, stan i wyniki fali N;
    re-audyt fali N czyta audyt fali N (musi); wyjątek: KIER i RAP PO obu falach
-   (porównanie i raport w pełnym drzewie). Zgoda?
+   (porównanie i raport w pełnym drzewie). **→ ZGODA.**
 2. **Format ID** `AUD-SEC-F2-001` i przemianowanie trzech wpisów próbnych na
-   `-F1-` (jeden format). Zgoda?
+   `-F1-` (jeden format). **→ ZGODA.**
 3. **Licznik** — po zapisie agent widzi tylko ID i hash; liczba wpisów i próg 200
-   wyłącznie w `--pokaz` i u strażnika. Zgoda?
+   wyłącznie w `--pokaz` i u strażnika. **→ ZGODA.**
 4. **`audyt/stan/` i `audyt/migawki/` wchodzą do gita** (zmiana decyzji ze
    STRUKTURA.md), bo bez tego izolacja fali 2 worktree'em nie ma jak oddać stanu,
    a dziennik wejść z pozycji 3 nie jest dowodem. Alternatywa: ręczne kopiowanie
    `stan/*-f2-*` po fali (krucha, bez bramki). Rekomendacja: do gita.
+   **→ DO GITA** (zmiana decyzji ze STRUKTURA.md; `.gitignore` sektora traci
+   `stan/` i `migawki/`, cztery lokalne pliki stanu z prób wchodzą jako dowód).
 5. **Kod wyjścia przy PODEJRZENIU KOLEJNOŚCI**: 0 (nazwane do lektury, jak
    NADZBIÓR/SPRZECZNE po K4″) czy 1 (jak kopia co do słowa)? Rekomendacja: **0** —
    kolejność bywa taka sama, gdy obie fale idą checklistą w tej samej kolejności
-   pozycji; to sygnał, nie dowód.
+   pozycji; to sygnał, nie dowód. **→ KOD 0, NAZWANE.**
 6. **Podział na 4a/4b.** Zdanie zakazu wchodzi do 80 plików definicji (40 AGENT
    + 40 KRYTYK) — tych samych, które pozycja 6 (K4″, „swobodny przegląd", `<KOD>-90`)
    i tak przepisuje skryptem. Propozycja: **4a teraz** = narzędzia (ID, licznik,
    `status.mjs`, `porownaj-cykle`), reguła 19′, szablony, STRUKTURA, R5; **4b razem
    z pozycją 6** = jedno przejście skryptu po 80 definicjach + reguła 27 + generat.
-   Reguła 27 nie może wejść przed 4b (byłaby czerwona na 80 plikach). Zgoda?
+   Reguła 27 nie może wejść przed 4b (byłaby czerwona na 80 plikach).
+   **→ ZGODA: 4a teraz, 4b z pozycją 6.**
 7. **Gdzie żyje worktree fali 2** — propozycja: `/home/krzysiek/Pod-strona-Szkolenia-fala-2`
    na gałęzi `<sektor>/fala-2`, stawiany i scalany komendą kierownika (osobne
    narzędzie `fala.mjs --postaw=2 | --scal=2`, z `--test`), żeby kolejność
    sparse-checkoutu nie zależała od pamięci. Alternatywa: instrukcja w SKILL
    kierownika bez narzędzia. Rekomendacja: narzędzie (to ta sama klasa, co
-   „komenda, nie pamięć" z przelotu zrzutów).
+   „komenda, nie pamięć" z przelotu zrzutów). **→ NARZĘDZIE `fala.mjs`; R5 → „z audytu
+   tej fali".**
 
 **Mutacje (plan):** zdanie zakazu znika z szablonu AGENT / z KRYTYK (2);
 nazwa `F1` przy `fala: 2` (1) + kontrprzykład (1); licznik wraca do wyjścia
