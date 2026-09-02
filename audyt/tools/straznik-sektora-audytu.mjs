@@ -1,5 +1,5 @@
 /**
- * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia pięć kontroli.
+ * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia sześć kontroli.
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -564,6 +564,19 @@ try {
   bledy.push("porownaj-cykle.mjs --test NIE przechodzi — porównanie fal jest zepsute (K4″)");
 }
 
+/* ── 26. narzędzie stanu ról przechodzi własną samokontrolę (pozycja 3 E7.7) ─
+   Czwarty bliźniak reguł 9, 15 i 25. `status.mjs` dostał cztery odmowy
+   (fala, kolejność sektorów, cofanie przy Pogłębiaczu, drzewo produktu wobec
+   migawki) i dziennik wejść; reguła 17 pilnuje ich SKUTKU w plikach stanu,
+   ale plik stanu powstaje dopiero, gdy rola pracuje — regresja narzędzia
+   między przebiegami nie miałaby żadnego objawu aż do pierwszej fali. */
+try {
+  execFileSync("node", ["audyt/tools/status.mjs", "--test"], { cwd: KORZEN, stdio: "pipe" });
+  uwagi.push("status.mjs: samokontrola zaliczona");
+} catch {
+  bledy.push("status.mjs --test NIE przechodzi — kolejność sektorów (W5) i dziennik wejść (KIER-05) są bez bramki");
+}
+
 /* ── 16. status ZWERYFIKOWANE tylko z kompletem werdyktów; próba nigdy cicha ─
    Pytamy o ZAWARTOŚĆ wpisu, nie o to, czy przeszedł przez `werdykt.mjs` —
    status dopisany ręcznie do pliku ominąłby narzędzie, a ta reguła nie.
@@ -617,21 +630,38 @@ try {
   if (proby.length) uwagi.push(`wpisy PRÓBNE (poza porównaniem fal): ${proby.join(", ")}`);
 }
 
-/* ── 17. stan roli mówi prawdę: kody pozycji i niezerowa runda ─────────────
-   Obie usterki wyszły z PRÓBY NA SUCHO E6, nie z lektury.
+/* ── 17. stan roli mówi prawdę: kody pozycji, runda, fala, HISTORIA, KOLEJNOŚĆ ─
+   Pierwsze dwie usterki wyszły z PRÓBY NA SUCHO E6, nie z lektury.
 
    `--niedomkniete` dzieli wejście przecinkiem, więc komentarz w nawiasie
    zapisywał się jako osobne „pozycje" — siedem realnych pozycji dało dziewięć
    wpisów, w tym „zgodnie z zakresem próby". Kierownik czyta stąd LICZBĘ
-   otwartych pozycji, a `porownaj-cykle.mjs` bierze ją do porównania fal (K4'),
-   więc dziennik audytu podawał nieprawdę.
+   otwartych pozycji (KIER-01); `porownaj-cykle.mjs` czyta z pliku stanu
+   WYŁĄCZNIE `status` działu — wcześniejszy zapis, że „bierze tę liczbę do
+   porównania fal", był nieprawdą (sprostowane 2026-09-02).
 
    Rola, która zamknęła się z licznikiem `runda 0`, wygląda w zestawieniu jak
    rola, która nie zrobiła nic — przy roli, która przeszła całą checklistę.
 
+   OD POZYCJI 3 PAKIETU E7.7 (2026-09-02) reguła pilnuje też tego, czego
+   `status.mjs` do tej pory nie zapisywał wcale: fala ∈ {1, 2}; HISTORIA przejść
+   (dziennik wejść z KIER-05) niepusta, czasy ISO w porządku niemalejącym,
+   ostatni wpis zgodny ze stanem; oraz KOLEJNOŚĆ SEKTORÓW dla czternastu działów
+   — Pogłębiacz, który wszedł, wymaga działu audytu tej samej fali ze statusem
+   ZAKOŃCZONE i z chwilą zakończenia WCZEŚNIEJSZĄ niż jego wejście (W5, K9′).
+   Ten drugi warunek łapie dział cofnięty PO wejściu re-audytu, choć
+   `status.mjs` takiego cofnięcia odmawia — plik dopisany ręcznie ominąłby
+   narzędzie, a ta reguła nie. Role procesowe re-audytu są wolne od blokady
+   (rozstrzygnięcie właściciela 2026-09-02), pilnuje tego kontrprzykład.
+
+   Stan PRÓBNY (`proba: "E7.6"`) wypada wyłącznie spod kolejności sektorów —
+   tak jak wpis próbny wypada z porównania fal — i NIGDY nie jest cichy: idzie
+   na wyjście po nazwie. Próba E7.6 przejechała Pogłębiacza SEC bez działu SEC
+   audytu, czyli dokładnie to, czego ta reguła odtąd zabrania.
+
    Reguła pyta o ZAWARTOŚĆ pliku stanu, nie o to, czy przeszedł przez
-   `status.mjs`: plik dopisany ręcznie ominąłby narzędzie, a ta reguła nie.
-   To ta sama konstrukcja co reguły 5 i 16. */
+   `status.mjs`, i ma WŁASNY kod zamiast importu z narzędzia (jak reguła 21):
+   pomiar tą samą funkcją, która produkuje stan, nie mierzy niczego. */
 {
   const KATALOG_STANU = join(SEKTOR, "stan");
   const pliki = existsSync(KATALOG_STANU)
@@ -641,13 +671,31 @@ try {
   if (!pliki.length) {
     pominiete.push("17. stan ról — żadna rola nie zaczęła jeszcze pracy");
   } else {
-    for (const nazwa of pliki) {
-      const w = JSON.parse(readFileSync(join(KATALOG_STANU, nazwa), "utf8"));
+    const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+    const czas = (k) => Date.parse(k);
+    const NIE_ROZPOCZETO = "NIE ROZPOCZĘTO";
+    /** Wejście: status inny niż NIE ROZPOCZĘTO **albo** choć jedna runda (`--runda` przed statusem to też wejście). */
+    const wszedl = (w) => Boolean(w) && (w.status !== NIE_ROZPOCZETO || (w.runda ?? 0) > 0);
+    const chwilaWejscia = (w) => (w.historia ?? []).find(wszedl)?.kiedy ?? null;
+    /** Chwila zakończenia = początek OSTATNIEJ nieprzerwanej serii ZAKOŃCZONE w historii. */
+    const chwilaZakonczenia = (w) => {
+      const h = w.historia ?? [];
+      let i = h.length;
+      while (i > 0 && h[i - 1]?.status === "ZAKOŃCZONE") i--;
+      return i < h.length ? h[i].kiedy : null;
+    };
+
+    const stany = pliki.map((nazwa) => ({ nazwa, w: JSON.parse(readFileSync(join(KATALOG_STANU, nazwa), "utf8")) }));
+    // Odpowiednik szukany po ZAWARTOŚCI (sektor, fala, rola), nie po nazwie pliku.
+    const poKluczu = new Map(stany.map(({ w }) => [`${w.sektor}-f${w.fala}-${w.rola}`, w]));
+    const probne = [];
+
+    for (const { nazwa, w } of stany) {
       for (const poz of w.niedomkniete ?? []) {
         if (!KOD_POZYCJI.test(poz)) {
           bledy.push(
             `stan ${nazwa}: "${poz}" nie jest kodem pozycji — kierownik liczy stąd ` +
-            "otwarte pozycje, a porownaj-cykle.mjs bierze tę liczbę do porównania fal"
+            "otwarte pozycje (KIER-01), a komentarz rozbity przecinkiem fałszuje tę liczbę"
           );
         }
       }
@@ -664,8 +712,67 @@ try {
       } else if (!roleSektora(w.sektor).includes(w.rola)) {
         bledy.push(`stan ${nazwa}: rola "${w.rola}" nie istnieje w sektorze "${w.sektor}" — kierownik czekałby na wynik roli-widma`);
       }
+
+      if (![1, 2].includes(w.fala)) {
+        bledy.push(`stan ${nazwa}: fala "${w.fala}" poza {1, 2} — zgłoszenia znają tylko dwie fale, taki stan nie należy do żadnego przebiegu`);
+      }
+
+      /* HISTORIA PRZEJŚĆ — dziennik wejść KIER-05. */
+      const h = Array.isArray(w.historia) ? w.historia : [];
+      if (!h.length) {
+        bledy.push(`stan ${nazwa}: brak historii przejść — KIER-05 czyta stąd dziennik wejść, bez niego kolejność sektorów (W5) jest nie do sprawdzenia`);
+      } else {
+        let poprzedni = -Infinity;
+        let zepsuta = false;
+        for (const [i, wpis] of h.entries()) {
+          if (!ISO.test(String(wpis?.kiedy)) || Number.isNaN(czas(wpis.kiedy))) {
+            bledy.push(`stan ${nazwa}: wpis ${i + 1} historii ma czas "${wpis?.kiedy}", który nie jest znacznikiem ISO — kolejności wejść nie da się porównać`);
+            zepsuta = true;
+            break;
+          }
+          if (czas(wpis.kiedy) < poprzedni) {
+            bledy.push(`stan ${nazwa}: historia cofa się w czasie przy wpisie ${i + 1} — dziennik wejść nie jest wtedy dziennikiem`);
+            zepsuta = true;
+            break;
+          }
+          poprzedni = czas(wpis.kiedy);
+        }
+        const ostatni = h[h.length - 1];
+        if (!zepsuta && (ostatni.status !== w.status || ostatni.runda !== w.runda || ostatni.kiedy !== w.kiedy)) {
+          bledy.push(
+            `stan ${nazwa}: ostatni wpis historii (${ostatni.status}, runda ${ostatni.runda}, ${ostatni.kiedy}) ` +
+            `nie zgadza się ze stanem (${w.status}, runda ${w.runda}, ${w.kiedy}) — któraś zmiana ominęła dziennik`
+          );
+        }
+      }
+
+      if (w.proba !== undefined) {
+        if (typeof w.proba !== "string" || !w.proba.trim()) bledy.push(`stan ${nazwa}: znacznik próby musi NAZWAĆ etap budowy, jest "${w.proba}"`);
+        else probne.push(`${nazwa}/${w.proba}`);
+      }
+
+      /* KOLEJNOŚĆ SEKTORÓW — wyłącznie czternaście działów, ta sama fala. */
+      if (w.sektor === "re-audyt" && DZIALY.includes(w.rola) && wszedl(w) && !w.proba) {
+        const audyt = poKluczu.get(`audyt-f${w.fala}-${w.rola}`);
+        if (!audyt || audyt.status !== "ZAKOŃCZONE") {
+          bledy.push(
+            `stan ${nazwa}: Pogłębiacz ${w.rola} fali ${w.fala} wszedł (${w.status}, runda ${w.runda}), a dział ${w.rola} audytu tej fali ` +
+            `${audyt ? `ma status ${audyt.status}` : "nie ma pliku stanu"} — re-audyt wszedł do działu przed wyjściem audytu (W5, K9′)`
+          );
+        } else {
+          const zakonczyl = chwilaZakonczenia(audyt);
+          const wejscie = chwilaWejscia(w);
+          if (zakonczyl && wejscie && !(czas(zakonczyl) < czas(wejscie))) {
+            bledy.push(
+              `stan ${nazwa}: Pogłębiacz ${w.rola} wszedł ${wejscie}, a dział ${w.rola} audytu zakończył ${zakonczyl} — ` +
+              "audyt zakończył się PO wejściu re-audytu (W5); dział cofnięty po fakcie i domknięty ponownie?"
+            );
+          }
+        }
+      }
     }
     uwagi.push(`plików stanu sprawdzonych: ${pliki.length}`);
+    if (probne.length) uwagi.push(`stany PRÓBNE (poza kolejnością sektorów): ${probne.join(", ")}`);
   }
 }
 
