@@ -1068,7 +1068,7 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 |---|---|---|
 | 1 | hash miejsca bez numeru linii | ✅ **2026-09-02** — reguła 23 (hash zgodny z miejscem), pary kandydatów w `polacz-sektory`, przy okazji **reguła 24** (szablon goldena też jest miarą); mutacje 68 → 73 |
 | 2 | `porownaj-cykle.mjs`: zgodne / nadzbiór / sprzeczne, stan pochodny werdyktów, `--dzial=`, bez STOP-u | ✅ **2026-09-02** — po dyskusji i trzech odpowiedziach właściciela (kod 0 przy SPRZECZNE; NADZBIÓR nazywa falę i liczbę; wpisy `-90` porównywane tak samo); **reguła 25** strażnika (samokontrola narzędzia na atrapach dwóch fal), mutacje 73 → 79; szczegóły w sekcji „POZYCJA 2 — ZROBIONA" niżej |
-| 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza PSIARZ/SKUT/STRAZ/WALID), drzewo wobec `glowa_main`; reguła 17 | ⬜ |
+| 3 | `status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu (poza PSIARZ/SKUT/STRAZ/WALID), drzewo wobec `glowa_main`; reguła 17 | 🚧 **projekt spisany 2026-09-02** po sześciu rozstrzygnięciach właściciela (sekcja „POZYCJA 3 — PROJEKT DO AKCEPTACJI"); **czeka na zielone światło na kod** |
 | 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | ⬜ |
 | 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ⬜ |
 | 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | ⬜ |
@@ -1079,7 +1079,7 @@ Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: pozycja 3 pakietu** (`status.mjs`: znaczniki czasu, fala ∈ {1,2}, odmowa re-audytu przed `ZAKOŃCZONE` audytu poza PSIARZ/SKUT/STRAZ/WALID, drzewo wobec `glowa_main`; reguła 17) — wg reguły właściciela od 2026-09-02 **NAJPIERW projekt do dyskusji w tym pliku, kod po akceptacji**. Przy pozycji 3 sprostować też trzy zdania o `porownaj-cykle.mjs` i liczbie niedomkniętych (znalezisko z pozycji 2, niżej). Pozycje 8, 1 i 2 zrobione; decyzje o wykonalności na Max ZAPADŁY (sekcja niżej).
+**NASTĘPNY KROK: pozycja 3 pakietu — projekt SPISANY i przedyskutowany (sześć rozstrzygnięć właściciela 2026-09-02, sekcja „POZYCJA 3 — PROJEKT DO AKCEPTACJI" niżej); kod rusza po zielonym świetle właściciela nad tym tekstem.** Pozycje 8, 1 i 2 zrobione; decyzje o wykonalności na Max ZAPADŁY (sekcja niżej).
 ### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
 
 Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
@@ -1260,6 +1260,91 @@ i regułę 17 — nie mimochodem.
 Dowody pozycji 2: strażnik **25 kontroli**, kod 0; mutacje **79** (0 przeoczonych,
 0 martwych); `porownaj-cykle.mjs --test` 31/31; niezmiennik 0; generat 80 definicji
 przebudowany.
+
+#### PAKIET E7.7, POZYCJA 3 — PROJEKT DO AKCEPTACJI (2026-09-02), KOD NIE RUSZONY
+
+Cztery rzeczy zszyte w jedną, bo dotykają tego samego pliku. Każda ma źródło
+w krytyce budowy potwierdzone przez sędziego; stan „dziś" zmierzony lekturą
+`status.mjs` (cały plik) i `audyt/stan/*.json`:
+
+| Co | Źródło | Stan dziś (zmierzony) |
+|---|---|---|
+| znaczniki czasu + odmowa re-audytu przed `ZAKOŃCZONE` audytu | B2 (W5, K9′) | KIER-05 wskazuje „dziennik wejść", którego NIE MA: pliki stanu bez pola czasu, `status.mjs` bez gałęzi egzekwującej kolejność |
+| fala ∈ {1,2} | B11 | `Number(--fala ?? 1)` bez sprawdzenia — `--fala=3` tworzy `audyt-f3-SEC.json`, `--fala=abc` → `audyt-fNaN-SEC.json`, po cichu; `zgloszenie.mjs` falę waliduje, więc dwa narzędzia mają dwa rygory |
+| drzewo wobec `glowa_main` | C4 | zakaz pisania po produkcie sprawdzany DOPIERO na końcu fali (reguła 1, migawka `--porownaj`); rola, która nadpisała plik w pierwszej godzinie, pracuje dalej cały dział |
+| reguła 17 | B11 | sprawdza sektor, rolę, kody pozycji i rundę — falę pomija; kolejności i czasu nie zna |
+
+**SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA (2026-09-02, pytania doprecyzowujące):**
+
+1. **Blokada kolejności obejmuje WYŁĄCZNIE 14 działów, w tej samej fali.**
+   Pogłębiacz `SEC` fali N nie wejdzie w `W TRAKCIE`, dopóki `audyt-fN-SEC`
+   nie jest `ZAKOŃCZONE`. Role procesowe re-audytu (`KIER`, `KON`, `RAP`,
+   `PSIARZ`, `SKUT`, `STRAZ`, `WALID`) są wolne — audytowy `KIER` kończy
+   dopiero po całym audycie, więc blokada na nim zamroziłaby sektor. To
+   ROZSZERZA wyjątek z B2 (tam tylko cztery role własne) — powód nazwany.
+2. **Pełna historia przejść w pliku stanu:** `historia: [{status, runda, kiedy}]`
+   dopisywana przy każdej zmianie + `kiedy` ostatniej zmiany. To jest nośnik
+   KIER-05 („dziennik wejść") — jeden plik, nie druga kopia prawdy.
+3. **Brak migawki `audyt/migawki/przed.json` = twarda odmowa** każdej zmiany
+   statusu, z komendą `migawka-wartosci.mjs --zapisz=przed` w komunikacie.
+   Zgodne ze STRUKTURA.md (migawka przed pierwszą falą); próby na sucho też
+   zaczynają od migawki.
+4. **Różnica drzewa produktu wobec `glowa_main` z migawki = odmowa zapisu
+   statusu + lista zmienionych plików.** Sprawdzane: `git diff <glowa_main>
+   --name-only -- . ':!audyt' ':!re-audyt'` ORAZ niezacommitowane poza
+   sektorami i `.claude/`. Wobec commita PRZYPIĘTEGO w migawce, nie wobec
+   ruchomego `main` — cudzy commit dependabota nie zatrzyma sektora.
+5. **Reguła 17 pilnuje ZAWARTOŚCI plików stanu, nie narzędzia** (ta sama
+   konstrukcja co reguły 5, 16, 17 dziś): fala ∈ {1,2}; `historia` niepusta,
+   czasy ISO w porządku niemalejącym, ostatni wpis zgodny ze `status`/`runda`;
+   dla 14 działów — `re-audyt-fN-<DZIAŁ>` ze statusem innym niż
+   `NIE ROZPOCZĘTO` wymaga `audyt-fN-<DZIAŁ>` `ZAKOŃCZONE` z czasem
+   WCZEŚNIEJSZYM niż wejście re-audytu.
+6. **Cofnięcie statusu (np. `ZAKOŃCZONE` → `W TRAKCIE`) dozwolone i zapisane
+   w historii — ODMOWA tylko dla działu audytu, do którego Pogłębiacz tej fali
+   już wszedł** (jego plik ma status inny niż `NIE ROZPOCZĘTO`). Inaczej
+   re-audyt pracowałby na dziale, który „jeszcze nie wyszedł", a W5 byłoby
+   złamane po fakcie.
+
+**Proponowany kształt (do akceptacji przed kodem):**
+
+- `status.mjs`: czyste funkcje `powodyOdmowyStanu(stany, zmiana)` (kolejność,
+  cofanie, fala) i `powodyOdmowyDrzewa(migawka, pomiar)` + samokontrola
+  `--test` na atrapach (jak `zgloszenie.mjs`/`werdykt.mjs`); `--pokaz` drukuje
+  `kiedy` i kod 1 przy wiszących bez zmian; każda odmowa podaje komendę naprawy.
+- reguła 17 rozszerzona wg pkt 5 + **reguła 26**: `status.mjs --test` przechodzi
+  (bliźniak reguł 9, 15, 25).
+- mutacje: fala poza {1,2} przyjęta; historia bez czasu / czas nie-ISO / czasy
+  malejące przyjęte; re-audyt wchodzi przed ZAKOŃCZONE audytu (plik podłożony);
+  cofnięcie działu z Pogłębiaczem w środku przyjęte; brak migawki nie odmawia;
+  różnica drzewa nie odmawia; **kontrprzykłady**: rola procesowa re-audytu bez
+  odpowiednika NIE jest blokowana; cofnięcie działu BEZ Pogłębiacza przechodzi;
+  plik `.claude/` nie liczy się jako różnica drzewa.
+- **prostowanie trzech zdań** „`porownaj-cykle.mjs` bierze liczbę niedomkniętych
+  do porównania fal" (`status.mjs` komentarz i komunikat, reguła 17 komentarz
+  i komunikat, `STRUKTURA.md` akapit o `--niedomkniete`) — komunikat reguły 17
+  jest śladem mutacji, więc ślad idzie razem ze zdaniem.
+- KIER-05 w `audyt/ROLE.md` i `role/KIER/AGENT.md`: kolumna „dziennik wejść" →
+  `status.mjs --pokaz` (historia); `STRUKTURA.md`: format pliku stanu
+  z `historia`; `.claude/agents` regeneracja.
+- **cztery lokalne pliki stanu z prób E6/E7.6** (poza gitem) dostają `historia`
+  dopisaną ręcznie z adnotacją; atrapy `mutacjaStanu()` w audycie mutacyjnym
+  dostają `historia`, inaczej istniejące kontrprzykłady zapaliłyby regułę 17.
+
+**Kolizje sprawdzone (nic nie koliduje):** pozycja 2 czyta `stan/` po nazwie
+pliku i polu `status` — oba bez zmian, nowe pola tylko dochodzą; pozycja 7
+(re-audyt sekwencyjnie, „KIER-00 co musi stać") dostaje z pozycji 3 gotowy nośnik
+kolejności; pozycja 6 nie dotyka `status.mjs`; `glowa_main` przypięty w migawce
+chroni przed ruchem `main` (gałąź sektora nie niesie nowych commitów `main`, więc
+diff wobec przypiętego commita zostaje 0).
+
+**Czego pozycja 3 NIE robi:** nie zmienia `STATUSY` ani nazwy pliku stanu; nie
+rusza `werdykt.mjs`, `zgloszenie.mjs`, `porownaj-cykle.mjs`; nie dotyka
+definicji ról poza KIER-05 i szablonów (to pozycja 6); nie zmienia migawki.
+
+**Koszt i ryzyko:** `status.mjs` dostaje cztery nowe powody odmowy, więc źle
+zaprojektowana odmowa blokuje rolę i pali tokeny — dlatego każda odmowa drukuje
+komendę naprawy, a samokontrola ma kontrprzykłady na role wolne od blokady.
 
 #### PAKIET E7.7, POZYCJA 1 — ZROBIONA 2026-09-02 (hash miejsca, H1)
 
