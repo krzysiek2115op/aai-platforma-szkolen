@@ -1,0 +1,21 @@
+{
+  "id": "AUD-REPO-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-02",
+  "stwierdzenie": "docs/PLAN-SEO-HIGIENA-AUDYT.md opisuje krok 3 (audyt końcowy) jako coś, co dopiero czeka na wytyczne właściciela ('Wytyczne do niego poda właściciel przy jego tworzeniu. Nie planować go teraz i nie zakładać zakresu' — linia 276; 'czekać na jego wytyczne' — linia 267), choć wytyczne zostały podane 2026-09-01 (rozstrzygnięcie właściciela cytowane dosłownie w audyt/ROLE.md i audyt/GRANICE.md) i krok jest w trakcie budowy/wykonania: istnieje cały katalog audyt/ z ~40 rolami, checklistami, regulaminem 556 linii i planem budowy 2800+ linii, a fala 1 audytu aktywnie pracuje w chwili odczytu tego dokumentu.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "docs/PLAN-SEO-HIGIENA-AUDYT.md",
+    "linia": 276,
+    "tresc": "**Wytyczne do niego poda właściciel przy jego tworzeniu.** Nie planować go"
+  },
+  "dowod": "audyt/ROLE.md linia 12 nagłówek 'Model zakresu — rozstrzygnięcie właściciela (2026-09-01)' oraz audyt/BRIEF-PROJEKTU.md linia 3 'Etap E3' pokazują, że wytyczne o zakresie audytu końcowego zostały wydane 2026-09-01 — data PO dacie tego dokumentu (2026-08-31, deklarowanej w linii 3 pliku) i po dacie 'NASTĘPNY KROK (2026-08-31)' w linii 263. Katalog audyt/ istnieje w repo z pełną strukturą ról, granic i regulaminu, a status.mjs tego przebiegu (fala 1, rola REPO) potwierdza trwającą pracę — czyli zdanie 'czekać na jego wytyczne' i 'nie planować go teraz' opisuje etap, który już minął.",
+  "klasyfikacja": "deklaracja-stanu-nieaktualna",
+  "wplyw": "Dokument w zakresie repozytorium (docs/PLAN-SEO-HIGIENA-AUDYT.md) twierdzi, że krok 3 czeka na wytyczne właściciela i nie wolno go planować, podczas gdy krok jest już zaplanowany (E0–E7), zbudowany i wykonywany — czytelnik dokumentu dostaje fałszywy obraz tego, na jakim etapie jest projekt.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "251c7bd8dcc1a0f3816ddfb1654d8499be000f29caa448d442f1c1baa2caa0d5",
+  "werdykt": null
+}

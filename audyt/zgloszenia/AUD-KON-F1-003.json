@@ -14,7 +14,7 @@
   "dowod": "Pomiar: linia 321 → 0 plików, linia 323 (`{tutor,woo}-motyw.css`) → 0; te same nazwy bez klamr → 4 + 2 = 6 plików istniejących w gicie. `:(glob)…/assets/tutor-motyw.css` bez klamr → 1. Pozycje INT-05 (`tutor-motyw.css`, `woo-motyw.css`) i INT-07 (`class-aai-sklep-tutor.php`) wskazują pliki spoza zakresu działu. Po naprawie przecięcie INT∩FE = 5, co przekracza próg reguły 1 kontroli granic (wiersz FE ↔ INT istnieje).",
   "klasyfikacja": "zakres przechodzący po pustce",
   "wplyw": "Jedyny plik kopii kursu do Tutora (źródło rozjazdu dwóch kopii — główne ryzyko architektury wg ETAP-WP.md) jest poza zakresem działu od integracji z Tutorem.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "281a7e2e18c8a17a48d1dce84ba635a03f1f0e879cfbb54364d119abb6c69856",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:28.523Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak (ROLE.md:321 zgodna co do znaku, hash zgodny, brzmienie jednoznaczne). WER-02 zmierzone przeze mnie: linia 321 (klamra {tutor,styl-tutora,styl-woo,zasoby}) daje 0 plikow, linia 323 ({tutor,woo}-motyw.css) daje 0, a te same arkusze wskazane osobno daja 2. Caly zakres INT liczy 15, z czego sam podwzorzec ':(glob)wordpress/wtyczki/aai-platnosci/includes/*.php' daje 14 — czyli deklarowane 15 to 14 plikow platnosci plus docs/ETAP-WP.md, dokladnie jak twierdzi zgloszenie, i ani jednego pliku z obu zepsutych podwzorcow. WER-03 CZYNNE: komendy sa w tej samej postaci w audyt/role/INT/AGENT.md:119,121 i re-audyt/role/INT/AGENT.md:114,116; mapa.mjs konczy kodem 0 (INT 15 plikow, zero sierot), bo nie pyta o podwzorce. Policzylem tez przeciecie INT n FE = 0 przy dzisiejszym zakresie, co potwierdza czesc o progu reguly granic: para, ktora po naprawie dzielilaby 5 plikow, dzis nie dzieli zadnego. Skutek nazwany w zgloszeniu jest realny — class-aai-sklep-tutor.php, jedyny plik kopii kursu do Tutora, nie nalezy do zakresu dzialu od integracji, choc pozycja INT-07 wskazuje go z nazwy.",
+      "kiedy": "2026-09-03T16:50:33.854Z"
     }
   }
 }

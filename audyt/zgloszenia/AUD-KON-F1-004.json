@@ -14,7 +14,7 @@
   "dowod": "Pomiar: `git ls-files | grep -E '\\.test\\.(ts|mjs|js)$'` → 8 plików (modules/m1-sklep 4, modules/m1-sklep/db 1, lib 2, components/kreator 1); komenda zakresu QA z ROLE.md przefiltrowana przez `\\.test\\.` → 0. Żadna pozycja QA-01…QA-15 nie wskazuje pliku testu; BD-* i PROTO-* nie mają pozycji o testach. BLAD-002 (testy niszczą wspólną bazę; naprawa w modules/m1-sklep/db/testowa-baza.ts) jest odwzorowany na QA-07, choć plik naprawy jest poza zakresem QA.",
   "klasyfikacja": "deklaracja przedmiotu bez plików w zakresie",
   "wplyw": "Pytanie „czy 83 testy mierzą to, co obiecują” nie ma działu, który miałby te pliki w zakresie; klasa BLAD-002 wraca bez właściciela pliku.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "17dc0052b6e524b5eab53a18183c93100253c3d27818db4a4785b662f24f60a3",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:33.657Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak (ROLE.md:217 zgodna co do znaku, hash zgodny, brzmienie jednoznaczne). WER-02 zmierzone przeze mnie: komenda zakresu QA z ROLE.md daje 80 plikow (tyle, ile deklaruje) i po przefiltrowaniu przez '\\.test\\.' — ZERO; a w repo jest dokladnie 8 plikow testow (components/kreator/kreator.test.ts, lib/limiter.test.ts, lib/proza-lekcji.test.ts, modules/m1-sklep/db/migracje.test.ts oraz cztery dalsze w modules/m1-sklep). Czyli dzial, ktory w 'Po co' bierze na siebie 83 testy, nie ma w zakresie ani jednego pliku, w ktorym te testy zyja. WER-03 CZYNNE — tu nie chodzi o klamre, tylko o sam dobor katalogow, wiec nie naprawi tego zadna poprawka globa; mapa.mjs milczy, bo pliki testow bierze inny dzial (nie sa sierotami), a zaden kontroler nie porownuje sekcji 'Po co' z zakresem. To odroznia to zgloszenie od KON-001/002/003 i czyni je niezaleznym.",
+      "kiedy": "2026-09-03T16:50:33.888Z"
     }
   }
 }

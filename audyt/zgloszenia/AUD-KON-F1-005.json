@@ -14,7 +14,7 @@
   "dowod": "`grep -n 'FE ↔ BE\\|BE ↔ FE' audyt/GRANICE.md` → 0 trafień; ROLE.md:138 = FE-07 wskazuje `class-aai-sklep-menu.php`. Zmierzone przecięcie FE∩BE = 1 (poniżej progu 5 reguły 1 kontroli granic) WYŁĄCZNIE dlatego, że 9 klas FE wypada z zakresu przez zepsuty podwzorzec (linia 126); po naprawie FE∩BE = 10, FE∩ARCH = 10, BD∩ARCH = 10, BD∩PERF = 10 — cztery pary nad progiem bez wiersza w tabeli (`grep` na FE ↔ ARCH, BD ↔ ARCH, BD ↔ PERF → 0).",
   "klasyfikacja": "granica bez właściciela / sprzeczność tabeli z checklistą",
   "wplyw": "Druga fala przypisze znalezisko o menu do innego działu niż pierwsza — rozjazd typu GRANICA w porównaniu cykli, mimo niezmienionego kodu.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "9a3280b495d97165b50eb2e41ccef72de7f740f93021a29f7b46ad4fbf5122ea",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:33.698Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak (GRANICE.md:50 zgodna co do znaku, hash zgodny, brzmienie jednoznaczne). WER-02 sprawdzone przeze mnie: grep na 'FE ↔ BE' i 'BE ↔ FE' w GRANICE.md daje 0 trafien — przejrzalem cala tabele granic (wiersze 42-61) i wiersza laczacego FE z BE tam nie ma, a jedyny przyklad o menu stoi w wierszu BE ↔ PERF i przypisuje go BE. Rownoczesnie ROLE.md:138 (FE-07) pyta 'czy jest dokladnie jedna pozycja z aria-current' i wskazuje class-aai-sklep-menu.php. Dwoch wlascicieli tego samego znaleziska w dokumentach sektora — potwierdzone. WER-03 CZYNNE i domknalem to WLASNYM pomiarem przecięć, bo na nim stoi cala czesc o progu: dzis FE n BE = 1, FE n ARCH = 1, BD n ARCH = 0, BD n PERF = 0 — czyli wszystkie ponizej progu 5, dokladnie jak twierdzi zgloszenie, i wylacznie dlatego, ze dziewiec klas FE wypada przez zepsuty podwzorzec z linii 126. Do tego class-aai-sklep-menu.php nalezy dzis do zakresow SEC, BE, PERF i ARCH, a NIE do FE — wiec konflikt nie jest teoretyczny: dzial, ktory ma to pytanie w checkliscie, nie ma tego pliku, a dzial wskazany w tabeli granic ma plik, ale nie ma pytania. To jest dokladnie material na rozjazd typu GRANICA miedzy falami.",
+      "kiedy": "2026-09-03T16:50:50.976Z"
     }
   }
 }

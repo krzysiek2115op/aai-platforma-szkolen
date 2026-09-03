@@ -14,7 +14,7 @@
   "dowod": "tools/sprawdz-zywy.mjs (linia 54-57) buduje listę doSprawdzenia z DOKŁADNIE jednego argumentu stronaHtml plus zawartości _next/static/chunks — więc dla wywołania z deploy-podglad.sh:128 sprawdzane jest tylko szkolenia.html. Katalog out/ ma jednak osobne pliki HTML dla każdej strony sprzedażowej kursu (np. szkolenia/jak-korzystac-z-claude.html), pliki .css, sitemap.xml, robots.txt i pliki opengraph-image*.png — żaden z nich nie jest porównywany z żywym adresem po publikacji. Wcześniejsza usterka (404 na czterech miniaturach OG, CHANGELOG 0.24.0) pokazała dokładnie tę klasę: build lokalny zielony, a żywy adres inny — obecna kontrola OG w deploy-podglad.sh (linie 70-96) sprawdza wyłącznie, że plik ISTNIEJE W out/ LOKALNIE, nie że żywy serwer faktycznie go oddaje po publikacji.",
   "klasyfikacja": "niepełna weryfikacja artefaktu (jeden plik zamiast całego wydania)",
   "wplyw": "CDN GitHub Pages może serwować nieaktualną albo brakującą wersję strony kursu, arkusza CSS albo miniatury OG przez ≤10 minut cache'u brzegowego (udokumentowane w kodzie), a deploy zakończy się sukcesem, bo weryfikowana jest tylko jedna strona i chunki JS.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "a3631b4652961230bad99555b2a8d64502d95ae2142b6c8c96819b349717abdd",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:34:14.042Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (deploy-podglad.sh:128 zgodna co do znaku), WER-04 hash zgodny, WER-05 jednoznaczne. WER-02: mechanizm potwierdzony w kodzie — sprawdz-zywy.mjs:54-57 buduje liste doSprawdzenia z JEDNEGO argumentu stronaHtml plus zawartosci _next/static/chunks, a deploy wola go raz, z 'szkolenia.html'. Sprawdzilem tez, ze kontrola OG w deploy-podglad.sh:81-95 pyta wylacznie o obecnosc pliku na dysku ('[ ! -f $SCIEZKA ]' w out/), czyli nigdy nie dotyka zywego adresu. WER-03 CZYNNE i zmierzone na ARTEFAKCIE, nie z opisu: w out/ leza dzis szkolenia/jak-korzystac-z-claude.html, szkolenia/jak-uzywac-githuba.html, sitemap.xml, robots.txt, opengraph-image.png oraz katalog okladki — zaden z nich nie wchodzi do listy porownywanej z zywym serwerem. KOREKTA JEDNEGO CZLONU DOWODU (nie zmienia werdyktu, ale druga fala nie powinna jej powtorzyc): twierdzenie, ze 'pliki .css' nie sa porownywane, jest w tym buildzie NIEPRAWDZIWE — jedyny arkusz, out/_next/static/chunks/0p9ecqrayw0ls.css, lezy WEWNATRZ katalogu chunks, wiec sprawdz-zywy porownuje go co do bajtu razem z 11 pozostalymi plikami. Zostaja cztery z pieciu wymienionych kategorii (strony sprzedazowe kursow, mapa strony, robots.txt, miniatury OG) i na nich stoi znalezisko.",
+      "kiedy": "2026-09-03T16:46:38.845Z"
     }
   }
 }

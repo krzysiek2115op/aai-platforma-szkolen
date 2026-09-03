@@ -14,7 +14,7 @@
   "dowod": "Pomiar: `git ls-files -- ':(glob)wordpress/wtyczki/*/includes/class-*-{tabele,zapis,import,odczyt,odczyt-panelu}.php'` → 0; `git ls-files -- wordpress/wtyczki | grep -E 'class-.*-(tabele|zapis|import|odczyt|odczyt-panelu)\\.php$'` → 10 plików (m.in. class-aai-sklep-zapis.php 1099 linii, class-aai-monitor-zapis.php, class-*-tabele.php). Pozycje BD-02, BD-04, BD-07, BD-09, BD-10 wskazują dokładnie te pliki. Suma pozostałych podwzorców = 25 = deklaracja, więc test „komenda daje podaną liczbę” jest cykliczny.",
   "klasyfikacja": "zakres przechodzący po pustce",
   "wplyw": "Warstwa zapisu MySQL — miejsce klasy „cicha utrata treści” — jest formalnie poza zakresem działu, który ma ją badać; pokrycie tych 10 plików pochodzi tylko z SEC/BE/PERF/ARCH, których checklisty nie pytają o transakcje, dbDelta ani retencję.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "de1e92a18268db2bdb5870e18424ffd60e7910f4f8acb28d4feac0730fbda4e1",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:28.479Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak (ROLE.md:189 zgodna co do znaku, hash zgodny, brzmienie jednoznaczne). WER-02 odtworzone wlasnym pomiarem: komenda z klamra daje 25 plikow i ZERO z wordpress/ (grep -c '^wordpress/' na wyniku), rozpisanie wzorca na piec osobnych ':(glob)' daje 10 plikow wtyczek, a caly zakres BD liczy 25 — tyle, ile deklaruje ROLE.md, wiec sprawdzian 'liczba sie zgadza' jest cykliczny i to jest sedno. WER-03 CZYNNE: ta sama komenda stoi w audyt/role/BD/AGENT.md:113 i re-audyt/role/BD/AGENT.md:114, wiec agent BD dostaje ja bez poprawki; mapa.mjs konczy kodem 0 z zerem sierot, bo te 10 plikow bierza inne dzialy. Uzupelnienie o zasiegu: policzylem przeciecia i BD n ARCH = 0 oraz BD n PERF = 0 przy dzisiejszym, zepsutym zakresie — czyli warstwa zapisu MySQL rzeczywiscie nie jest wspoldzielona z tymi dzialami tak, jak sugerowaloby to jej znaczenie. To znalezisko pokrywa sie miejscem-w-innym-pliku z AUD-BD-F1-002 (tamto wskazuje AGENT.md:113, to ROLE.md:189) — nie jest to duplikat, bo ROLE.md jest zrodlem, z ktorego generuja sie AGENT.md i z ktorego czyta mapa.mjs.",
+      "kiedy": "2026-09-03T16:50:10.102Z"
     }
   }
 }

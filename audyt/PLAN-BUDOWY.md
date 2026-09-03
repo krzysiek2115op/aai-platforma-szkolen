@@ -677,6 +677,112 @@ WSZYSTKICH nagłówków i przekierowań — objawem NIE jest błąd, tylko zdrow
   nie powód odrzucenia).
 - **WERYFIKATOR (WER) WSZEDŁ** na 25 zgłoszeń z werdyktem krytyka. To jego pierwsze
   z dwóch wejść — resztę dostanie po zamknięciu partii 2.
+- 2026-09-03 18:1xZ: **ARCH ZAKOŃCZONE, 4 zgłoszenia**, 2 rundy: `AUD-ARCH-F1-001`
+  (ARCH-02: surowy `INSERT INTO {$wpdb->options}` w `class-aai-monitor-podpis.php:190`
+  z pominięciem `add_option()`) i trzy cykle zależności klas (`002` monitoring,
+  `003` płatności, `004` sklep). Siedem szwów żywych, jedno źródło prawdy o kursie,
+  zależności jednokierunkowe — potwierdzone. Krytyk ARCH dostał dwa twarde pytania:
+  czy `straznik-wtyczki-wp` tego miejsca NIE WIDZI, czy widzi i świadomie przepuszcza
+  (strażnik jest zielony), oraz czy „cykl statycznych wywołań `Klasa::`" ma w PHP
+  jakikolwiek SKUTEK wykonawczy przy leniwym autoloaderze, czy jest samym kształtem grafu.
+- 2026-09-03 18:1xZ: **PROTO ZAKOŃCZONE, 1 zgłoszenie, JEDNA runda.** Dwanaście pozycji bez
+  usterki (jeden AJAX pozostał jeden, kontrakt Zod z sufitami, podgląd statyczny z jednym
+  źródłem prawdy, trasa prywatna poza eksportem, publikacja z commita, font z preloadem).
+  `AUD-PROTO-F1-001`: `KursWejscie.slug` nie wyklucza segmentu `kreator`, więc kurs o takim
+  slugu zapisze się, a jego strona sprzedażowa zostanie trwale przesłonięta trasą kreatora
+  — **ta sama klasa co `BLAD-021`, którą wtyczka WP już naprawiła** (`Trasy::PODSTRONY`),
+  a prototyp odpowiednika nie ma. Krytyk PROTO dostał zadanie wprost: jedna runda przy
+  dwunastu pozycjach to albo zdrowy prototyp, albo odhaczenie — ma sprawdzić samodzielnie
+  cztery pozycje, w tym `PROTO-06` (rozjazd z wtyczką), gdzie „nie znalazłem" wygląda
+  identycznie jak „nie szukałem".
+
+### PRZERWANIE FALI 1 PRZEZ LIMIT SESJI (2026-09-03, ~19:00 czasu lokalnego)
+
+**Limit pięciogodzinny ubił DZIEWIĘCIU agentów naraz**, każdego w połowie pracy
+(HTTP 429, „session limit · resets 9:40pm"). Padli: działy **INT, PERF, PRIV, REPO, PIK,
+USP**, krytycy **FE, ARCH, PROTO** i **weryfikator (WER)**. Żaden nie zdążył zapisać
+statusu końcowego — wszyscy zostali z `W TRAKCIE`, część z rundą 0.
+
+**To NIE jest awaria sektora ani utrata pracy:** narzędzia zapisują po każdym kroku, więc
+w repozytorium został pełny dorobek do chwili przerwania — **53 zgłoszenia** (50 fali 1
+plus 3 próbne z budowy). Wznowienie nie wymaga powtarzania niczego, co już zostało zapisane.
+
+**STAN ZMIERZONY PO PRZERWANIU (komendą, nie z pamięci):**
+
+| Rola | Stan | Uwaga |
+|---|---|---|
+| SEC · BE · BD · QA · FE · ARCH · PROTO | **ZAKOŃCZONE** | siedem działów domkniętych |
+| INT · PERF · PRIV · REPO · PIK · USP | **W TRAKCIE** | przerwane w połowie, do wznowienia |
+| KON | **W TRAKCIE**, runda 2 | faza A zamknięta (13 zgłoszeń), faza B przed nim |
+| WER | **W TRAKCIE**, runda 3 | zdążył wydać część werdyktów weryfikatora |
+| KIER | **W TRAKCIE**, runda 0 | drugie wejście (KIER-01…07) dopiero po działach |
+| WDR | nieuruchomiony | świadomie ostatni — jego pozycja restartuje środowisko |
+
+Zgłoszenia wg działu: KON 14 · QA 10 · REPO 5 · ARCH 4 · SEC 3 · FE 3 · BD 3 · PIK 2 ·
+PERF 2 · BE 2 · PROTO 1 · PRIV 1 (+3 próbne z E6/E7).
+**REPO, PIK, PERF i PRIV zdążyły zgłosić, mimo że nie skończyły** — ich wpisy są ważne.
+
+**SPRZĄTANIE PO PRZERWANYCH AGENTACH (zrobione w sweepie):** przerwany dział INT zostawił
+konto **`audyt-int-tmp2`** (ID 111, założone 16:49) **z zapisem na kurs**
+(`tutor_enrolled` 1369, status `completed`). To ta sama klasa co sierota #2153 z wersji
+0.54.0: Tutor liczyłby fałszywego kursanta bez żadnego objawu. Skasowane jawną listą
+identyfikatorów (najpierw zapis, potem konto), zweryfikowane OSOBNYM żądaniem — zapisy
+`tutor_enrolled` **3 → 2**, konta z powrotem `admin` + `klient-test`.
+**Reguła na przyszłość: agent ubity w trakcie pisania do środowiska nie sprząta po sobie
+— sprzątanie należy do orkiestratora i musi iść po jawnej liście, nigdy po zakresie.**
+
+**ROZJAZD DANYCH ŚRODOWISKA — ZMIERZONY, NIE UKRYTY.** Wobec migawki `przed` (16:02Z):
+
+| Tabela | Migawka `przed` | Po przerwaniu | Różnica |
+|---|---|---|---|
+| `wp_aai_monitor_logowania` | 21 | 26 | **+5** |
+| `wp_aai_monitor_wizyty` | 17 | 18 | **+1** |
+| pozostałe (kursy, lekcje, moduły, sekcje, changelog, powiązania, dostawy) | — | — | **bez zmian** |
+
+Przyrost to ślad pracy działów, które logowały się i otwierały strony na `:8892`
+(dział FE swój jeden wiersz usunął sam i to udokumentował). **KIER-06 i migawka `po`
+pokażą tę różnicę** — i tak ma być: to jest wynik, nie usterka do zatarcia. Dane dowodowe
+właściciela z testu T4 zostały nietknięte co do treści; przyrost dotyczy wyłącznie nowych
+wierszy z dzisiejszego dnia.
+
+**JAK WZNOWIĆ PO `/clear` (kolejność wiążąca):**
+
+1. **Sześć przerwanych działów od nowa, równolegle** — INT, PERF, PRIV, REPO, PIK, USP.
+   Szablon polecenia stoi wyżej w tym dzienniku; użyć go co do znaku, bo fala 2 dostanie
+   ten sam. Każdy zacznie od `--status="W TRAKCIE"`, co jest dozwolone (rola już jest
+   w tym stanie) i dopisze wpis do historii.
+2. **Krytycy trzech działów, których krytyk nie zdążył**: FE, ARCH, PROTO — plus krytycy
+   sześciu wznowionych, gdy skończą.
+3. **WER** — drugie wejście, na wszystkie wpisy z werdyktem krytyka bez werdyktu
+   weryfikatora (`werdykt.mjs --pokaz`).
+4. **WDR jako OSTATNI dział** (jego `WDR-06` woła `podman-compose down && ./postaw.sh`).
+5. **KON faza B** → **GOLD** (bramka wyjścia) → **KIER** drugie wejście (KIER-01…07) →
+   **RAP**, każdy z krytykiem.
+6. **Migawka `po` + `--porownaj`**, potem dopiero re-audyt fali 1.
+
+**PRZED KAŻDYM WZNOWIENIEM SPRAWDZIĆ ŚRODOWISKO** — `curl -s -o /dev/null -w '%{http_code}'
+http://127.0.0.1:8892/szkolenia/` oraz `wp aai-sklep sprawdz`; przerwany agent mógł
+zostawić stan pośredni.
+
+**DWA ŚLADY W SEKTORZE, oba usunięte w sweepie:**
+
+1. **`audyt/stan/audyt-f2-PROBA.json`** — plik stanu z atrapy samokontroli (`rola: PIK`,
+   `fala: 2`, czasy `2026-09-02T10:00…10:20Z` z tablicy testowej), nieśledzony przez gita,
+   powstały w trakcie dzisiejszej pracy. **Plik fali 2 leżący w drzewie fali 1** —
+   dokładnie to, czego `status.mjs` broni odmową 5. Usunięty; sprawdzone, że dzisiejszy
+   `status.mjs --test` **nie odtwarza go** (kod 0, zero plików `PROBA` po przebiegu), więc
+   albo zostawiła go wcześniejsza wersja samokontroli, albo agent uruchomił narzędzie
+   ręcznie na fali 2. Przyczyny nie ustalono.
+2. **Strażnik sektora odmówił RAZ, kodem 1, BEZ ANI JEDNEGO SŁOWA POWODU** — wypisał pełne
+   podsumowanie wszystkich reguł i wyszedł jedynką. **Hipotezę „to przez plik atrapy"
+   obaliłem testem w obie strony**: bez pliku kod 0, z przywróconym plikiem też kod 0.
+   Trzy kolejne przebiegi: **0, 0, 0**. Odmowa nie powtórzyła się i **przyczyny NIE
+   USTALIŁEM**; padła w oknie, w którym kasowałem konto-sierotę przez WP-CLI, więc
+   podejrzenie pada na warunkowe reguły 30/31 (pytają o środowisko), ale to jest
+   podejrzenie, nie pomiar. **Nie brać tego za regresję kodu i nie zaczynać śledztwa od
+   nowa bez powtórzenia objawu.** Sama klasa jest znana i zgłoszona w tej fali przez
+   dział QA (`AUD-QA-F1-007`, cichy `process.exit` bez komunikatu) — tyle że tam chodzi
+   o strażników projektu, a tu o strażnika sektora.
 
 ## Co dokładnie obejmuje E6 (nie wyprowadzać od nowa)
 

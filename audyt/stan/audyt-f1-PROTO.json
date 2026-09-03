@@ -2,15 +2,25 @@
   "sektor": "audyt",
   "fala": 1,
   "rola": "PROTO",
-  "status": "W TRAKCIE",
-  "runda": 0,
+  "status": "ZAKOŃCZONE",
+  "runda": 1,
   "niedomkniete": [],
-  "kiedy": "2026-09-03T16:37:34.004Z",
+  "kiedy": "2026-09-03T16:46:20.315Z",
   "historia": [
     {
       "status": "W TRAKCIE",
       "runda": 0,
       "kiedy": "2026-09-03T16:37:34.004Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-03T16:42:21.445Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 1,
+      "kiedy": "2026-09-03T16:46:20.315Z"
     }
   ]
 }

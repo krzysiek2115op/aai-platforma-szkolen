@@ -1,0 +1,21 @@
+{
+  "id": "AUD-PERF-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-03",
+  "stwierdzenie": "Aai_Platnosci_Zapis::produkt_kursu() nie ma pamięci na czas żądania (brak static $pamiec, w odróżnieniu od sąsiedniej Aai_Sklep_Widok::cena_grosze()), a jest wołana wielokrotnie w jednym renderze strony kursu z tym samym argumentem course_uuid — przez trzy przyciski CTA (Aai_Sklep_Widok::cta()->cta_kursu(), filtr aai_sklep_cta_kursu obsługiwany przez Aai_Platnosci_Cta::stan()) i przez dane strukturalne dostępności (filtr aai_sklep_dostepnosc_kursu z class-aai-sklep-seo.php:293, obsługiwany przez Aai_Platnosci_Cta::dostepnosc()) — każde z tych wywołań osobno odpytuje bazę o to samo mapowanie uuid->product_id.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    "zakres": "metoda produkt_kursu (linie 507-515)",
+    "mechanizm": "brak pamięci na czas żądania (static $pamiec) — metoda wykonuje $wpdb->get_var z osobnym zapytaniem SQL przy każdym wywołaniu zamiast zapamiętać wynik dla danego course_uuid na czas żądania, mimo że jest wołana wielokrotnie dla tego samego kursu w jednym renderze strony (z Aai_Platnosci_Cta::stan() i Aai_Platnosci_Cta::dostepnosc())"
+  },
+  "dowod": "Pomiar SAVEQUERIES na żywej instalacji :8892 (gość, cache wyłączony): jedna odsłona GET /szkolenia/jak-korzystac-z-claude/ zawiera 7 identycznych zapytań \"SELECT product_id FROM wp_aai_platnosci_powiazania WHERE course_uuid = '15271730-7a12-4255-943d-cdbb0f990568'\" w tym samym żądaniu (zrzut pełnej listy zapytań $wpdb->queries, filtr uniq -c). Metoda Aai_Sklep_Widok::cena_grosze() (ten sam plugin-1/class-aai-sklep-widok.php, linia 149) ma dokładnie taki mechanizm (static $pamiec) z komentarzem wprost tłumaczącym, że bez niego strona kursu pytałaby o cenę cztery razy i byłaby 'tą samą klasą kosztu, która przy W6 dała 90 zapytań na odsłonę menu' — produkt_kursu() tej ochrony nie ma.",
+  "klasyfikacja": "brak pamięci żądania",
+  "wplyw": "Każda odsłona strony kursu wykonuje to samo zapytanie SQL o mapowanie kurs->produkt wielokrotnie (zmierzone: 7 razy) zamiast raz; koszt mnoży się przez liczbę miejsc odpytujących CTA i dostępność i rośnie z ruchem strony sprzedażowej bez żadnej korzyści (wynik jest stały w obrębie jednego żądania).",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "1a1804c0df98eec30730e475574a42493f5b3a6738811edbf6394e0b0e9cb0de",
+  "werdykt": null
+}

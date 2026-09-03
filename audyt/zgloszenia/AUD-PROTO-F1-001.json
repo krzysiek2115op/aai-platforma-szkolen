@@ -1,0 +1,21 @@
+{
+  "id": "AUD-PROTO-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PROTO",
+  "pozycja": "PROTO-90",
+  "stwierdzenie": "Walidacja slugu kursu (KursWejscie.slug) nie wyklucza segmentów zajętych przez własne trasy katalogu /szkolenia/kreator, więc kurs o slugu \"kreator\" jest tworzony bez błędu, ale jego strona sprzedażowa pod /szkolenia/kreator jest trwale przesłonięta przez statyczną trasę kreatora (Next.js priorytetyzuje segment statyczny nad dynamicznym [slug] na tym samym poziomie) — gość zamiast strony sprzedażowej zawsze dostaje bramę tokenu kreatora.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "modules/m1-sklep/typy.ts",
+    "zakres": "KursWejscie.slug — regex /^[a-z0-9-]+$/ bez wykluczenia zastrzeżonych segmentów",
+    "mechanizm": "brak listy zastrzeżonych slugów (np. \"kreator\") w walidacji KursWejscie — dyspozytor (modules/m1-sklep/dyspozytor.ts) zapisze taki kurs bez ostrzeżenia, mimo że app/szkolenia/kreator/page.serwer.tsx zawsze przechwyci ruch na tym adresie przed app/szkolenia/[slug]/page.serwer.tsx"
+  },
+  "dowod": "app/szkolenia/kreator/page.serwer.tsx istnieje jako statyczny segment /szkolenia/kreator (linia 40: export default async function KreatorPage) obok dynamicznego app/szkolenia/[slug]/page.serwer.tsx; w Next.js App Router statyczny segment ZAWSZE ma pierwszeństwo przed dynamicznym na tym samym poziomie ścieżki. Grep 'grep -n \"slug\" modules/m1-sklep/dyspozytor.ts' pokazuje wyłącznie obsługę konfliktu unikalności (constraint bazy), zero sprawdzenia listy zastrzeżonych wartości. To ta sama klasa błędu, którą wtyczka WordPressa (Aai_Sklep_Trasy::PODSTRONY, BLAD-021) już naprawiła po stronie WP — w prototypie, będącym specyfikacją wykonawczą, analogicznej ochrony nie ma.",
+  "klasyfikacja": "brak walidacji / cichy błąd logiki tras",
+  "wplyw": "Właściciel może w kreatorze utworzyć i opublikować kurs o slugu \"kreator\" (albo zmienić istniejący slug na ten), a jego strona sprzedażowa stanie się niedostępna dla klientów bez jakiegokolwiek komunikatu błędu — kurs zniknie z ruchu sprzedażowego po cichu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "486fced12f0d3f8fffc0d3a29da9c54f990611fbe7dd1dafb6fc48b375e9a00a",
+  "werdykt": null
+}

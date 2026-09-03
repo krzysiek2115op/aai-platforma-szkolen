@@ -1,0 +1,21 @@
+{
+  "id": "AUD-PRIV-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PRIV",
+  "pozycja": "PRIV-02",
+  "stwierdzenie": "Aai_Monitor_Logowania::bezpieczny_login() maskuje nieznane wartosci wpisane w pole loginu, ale zwraca pierwsze 3 znaki wartosci dostownie (mb_substr($podany, 0, 3)) razem z jej dlugoscia; przy nieudanym logowaniu, w ktorym ktos przez pomylke wpisal HASLO w pole loginu, te 3 pierwsze znaki hasla trafiaja jawnym tekstem do kolumny login tabeli logowan na 90 dni, mimo ze zarowno komentarz w tym samym pliku, jak i tresc polityki prywatnosci (docs/plugin-3/POLITYKA-PRYWATNOSCI.md:52) obiecuja wprost: \"Nie zapisujemy hasel ani ich fragmentow\". Zmierzone uruchomieniowo: proba logowania z login=PRIVAUDYT_TajneHaslo123 (nieistniejace konto) zapisala w bazie wiersz z login = \"PRI...(23 znakow)\" - literalny fragment podanej wartosci.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-logowania.php",
+    "linia": 276,
+    "tresc": "mb_substr( $podany, 0, 3 ),"
+  },
+  "dowod": "Kod: class-aai-monitor-logowania.php, metoda bezpieczny_login() (linie 267-279) - dla wartosci nieodpowiadajacej istniejacemu kontu zwraca sprintf('%s...(%d znakow)', mb_substr($podany, 0, 3), mb_strlen($podany)), czyli 3 pierwsze znaki WARTOSCI PODANEJ W POLU LOGINU trafiaja jawnym tekstem do wpdb->insert() w Aai_Monitor_Zapis::dodaj_logowanie() (kolumna login, varchar(60), okno zycia 90 dni - Aai_Monitor_Tabele::OKNO_LOGOWANIA_DNI). Pomiar zywy na srodowisku :8892 (kontener aai_wp_db): curl POST http://127.0.0.1:8892/wp-login.php z log=PRIVAUDYT_TajneHaslo123 (login nieistniejacy, symulujacy haslo wpisane w pole loginu) dal HTTP 200, a zaraz potem SELECT z wp_aai_monitor_logowania (id 273) zwrocil wiersz: zdarzenie='nieudane', zrodlo='', login='PRI...(23 znakow)'. Trzy litery 'PRI' sa doslownym poczatkiem wpisanej wartosci - realnym fragmentem hasla, gdyby taka wartosc byla prawdziwym haslem klienta. Wiersz testowy id=273 usuniety po pomiarze (DELETE ... WHERE id=273), liczba wierszy w tabeli przed i po pomiarze: 25 (bez zmian, zgodnie z migawka audyt/migawki/srodowisko-f1-baza.json). Cytat obietnicy: docs/plugin-3/POLITYKA-PRYWATNOSCI.md:52 \"...oraz nazwe przegladarki. Nie zapisujemy hasel ani\" (linia 53: \"ich fragmentow.\") - dokladnie ta sama tresc jest emitowana przez Aai_Monitor_Prywatnosc::tresc() do kreatora polityki WordPressa. Komentarz w kodzie (linie 253-266) sam przywoluje to zdanie i twierdzi, ze skrocenie do 3 znakow go nie lamie ('nie widac sekretu') - ale trzy znaki sekretu to z definicji jego fragment.",
+  "klasyfikacja": "prywatnosc/zgodnosc — retencja danych szerszych niz deklaracja",
+  "wplyw": "Klient lub administrator, ktory przez pomylke (autouzupelnianie, zla kolejnosc pol, wklejenie w zle miejsce) wpisze haslo w pole loginu i poda przy tym nieistniejace konto, ma trzy pierwsze znaki tego hasla zapisane jawnym tekstem w bazie na 90 dni, widoczne dla kazdego konta z manage_options i obecne w kazdej kopii zapasowej bazy w tym okresie - wbrew jednoznacznej obietnicy handlowej/prawnej z polityki prywatnosci (\"Nie zapisujemy hasel ani ich fragmentow\") i wbrew wlasnemu komentarzowi projektowemu w tym samym pliku kodu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "a5610ddc5ffcd09556a930ef91548d0cc16f1d8216674f921e1fb80d5437aede",
+  "werdykt": null
+}

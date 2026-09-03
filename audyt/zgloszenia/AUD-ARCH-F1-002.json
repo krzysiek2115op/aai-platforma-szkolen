@@ -1,0 +1,21 @@
+{
+  "id": "AUD-ARCH-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "ARCH",
+  "pozycja": "ARCH-09",
+  "stwierdzenie": "W aai-monitor istnieje cykl zależności statycznych między trzema klasami: Aai_Monitor_Komunikaty odwołuje się do Aai_Monitor_Ekran, Aai_Monitor_Ekran wywołuje Aai_Monitor_Zapis, a Aai_Monitor_Zapis wywołuje z powrotem Aai_Monitor_Komunikaty — żadnej z tych trzech klas nie da się zrozumieć ani przetestować w oderwaniu od pozostałych dwóch.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php",
+    "linia": 439,
+    "tresc": "Aai_Monitor_Komunikaty::zapisz( $tresc );"
+  },
+  "dowod": "Trzy strzałki cyklu, każda potwierdzona w kodzie (nie w komentarzu): (1) class-aai-monitor-komunikaty.php:119 `$nasz = str_contains( (string) $ekran->id, Aai_Monitor_Ekran::STRONA ) ...` — Komunikaty zależy od stałej Ekran::STRONA; (2) class-aai-monitor-ekran.php:554 `Aai_Monitor_Zapis::retencja();` — Ekran wywołuje Zapis; (3) class-aai-monitor-zapis.php:439 `Aai_Monitor_Komunikaty::zapisz( $tresc );` w prywatnej metodzie zglos() — Zapis wywołuje z powrotem Komunikaty, zamykając pętlę Komunikaty→Ekran→Zapis→Komunikaty. Wykryte grafem zależności statycznych (Klasa::) zbudowanym ze wszystkich 54 klas wtyczek, z odrzuceniem odniesień w komentarzach blokowych i liniowych.",
+  "klasyfikacja": "granica",
+  "wplyw": "Trzy klasy tworzą jeden nierozerwalny węzeł: zmiana sygnatury w jednej (np. Aai_Monitor_Zapis::retencja()) wymusza sprawdzenie dwóch pozostałych, a żadnej z nich nie da się przetestować w izolacji bez dwóch pozostałych. Granica modułu (ekran/zapis/komunikaty) jest w praktyce zatarta przez wzajemne wywołania w obu kierunkach.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "515c6afedcadd15d143cc1076bdcc9b68832888a9db88bbb6975ced49f7be4ad",
+  "werdykt": null
+}

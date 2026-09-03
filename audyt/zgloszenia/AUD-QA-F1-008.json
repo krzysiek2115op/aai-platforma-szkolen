@@ -14,7 +14,7 @@
   "dowod": "`ls tools/straznicy/*.mjs` daje 39 plików strażników (z wyłączeniem audyt-straznikow.mjs i uruchom-wszystkie.mjs). Uruchomienie `node tools/straznicy/audyt-straznikow.mjs` wypisuje wynik mutacji z nazwą strażnika przy każdej pozycji; `grep -oE \"straznik-[a-z-]+\"` na tym wyjściu i porównanie (`comm -23`) z listą 39 plików wskazuje dokładnie te siedem nazw jako nieobecne w całym wyjściu. Dodatkowo `grep -c \"<nazwa>\" tools/straznicy/audyt-straznikow.mjs` zwraca 0 dla sześciu z nich i 2 dla straznik-hydratacji, ale oba wystąpienia (linie 148-149) należą do INNEJ mutacji (straznik-readme, usunięcie wiersza tabeli), nie do mutacji straznik-hydratacji.",
   "klasyfikacja": "brak testu negatywnego (reguła bez mutacji)",
   "wplyw": "Reguły tych siedmiu strażników (m.in. straznik-migracji — B2/triggery audytu bazy, straznik-fixed — pozycjonowanie elementów fixed pod stopką, straznik-ajax — jeden kanał AJAX) mogą przestać działać po refaktorze i żaden mechanizm w repo tego nie wykryje: `audyt-straznikow.mjs` zgłasza „0 przeoczonych, 0 martwych”, co sugeruje pełne pokrycie, choć dla tych siedmiu bramek pokrycia mutacyjnego nie ma wcale.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "1ba9a8429b2001a64111d10e268e5512a3fc3410117b35eed29b60fc95311d42",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:34:14.125Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (mechanizm w tools/straznicy/audyt-straznikow.mjs, tablica MUTACJE), WER-04 hash zgodny, WER-05 jednoznaczne. WER-02 policzylem to sam, niezaleznie od metody autora: zbior nazw z pola straznik w mutacjach (regex straznik:\\s*\"…\") ma 32 pozycje, plikow straznik-*.mjs jest 39, a roznica to DOKLADNIE te siedem: straznik-ajax, straznik-fixed, straznik-fontow, straznik-hydratacji, straznik-migracji, straznik-odmiany, straznik-progow. Kontrola w druga strone: zero nazw w mutacjach bez odpowiadajacego pliku, wiec liczba 32 nie jest zawyzona literowkami. WER-03 CZYNNE — szukalem czegos, co by o tym braku meldowalo, i nie ma tego: podsumowanie audytu (linie 4225-4234) drukuje wylacznie liczniki zlapanych/przeoczonych/martwych/pominietych MUTACJI i nigdzie nie pyta, czy jakis straznik nie ma ani jednej proby, wiec komunikat '0 przeoczonych, 0 martwych' jest prawdziwy i mimo to sugeruje pelne pokrycie. Kontrola straznik-readme.mjs:165-171 tez tego nie lapie — porownuje liczbe wpisow z liczba w README, nie pokrycie per straznik. Zjawisko nakłada sie z AUD-QA-F1-009 (audyt w ogole nie jest uruchamiany automatycznie), ale jest od niego niezalezne: nawet uruchomiony recznie audyt tych siedmiu bramek nie dotyka.",
+      "kiedy": "2026-09-03T16:47:08.259Z"
     }
   }
 }

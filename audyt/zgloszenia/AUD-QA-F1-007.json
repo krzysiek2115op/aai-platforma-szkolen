@@ -14,7 +14,7 @@
   "dowod": "Porównanie z pozostałymi 'warunkowymi' strażnikami: straznik-frontu-wp.mjs:38-40 drukuje 'straznik-frontu-wp: pominięte — nie ma jeszcze wtyczki aai-sklep.' przed exit(0); straznik-wtyczki-wp.mjs:60 i straznik-tutora.mjs:53 robią to samo. straznik-goldenu-tresci.mjs (linia 31), straznik-scenariuszy.mjs (linia 55) i straznik-odsylaczy-kursu.mjs (linia 71) wychodzą kodem 0 BEZ ŻADNEGO wydruku, gdy brakuje katalogu tresc-kursow — w wyjściu `npm run check`/`uruchom-wszystkie.mjs` taki przebieg jest nie do odróżnienia od przebiegu, który naprawdę porównał sumy kontrolne 91 scenariuszy i nic nie znalazł.",
   "klasyfikacja": "cichy no-op bramki ochrony treści",
   "wplyw": "Gdyby katalog tresc-kursow zniknął z drzewa roboczego (np. niepełny checkout, błąd narzędzia) w środowisku bez zainstalowanego przypomnienia, golden chroniący 91 scenariuszy przed cichą utratą tekstu przestałby cokolwiek sprawdzać, a `npm run check` nadal zakończyłby się zielono bez jednego słowa ostrzeżenia o pominięciu.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "4dbb994e3d3107785e72009c686d625e2ce1677b0cd1077ca8c59539c2b01863",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:34:14.082Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (straznik-goldenu-tresci.mjs:31 zgodna co do znaku), WER-04 hash zgodny, WER-05 jednoznaczne. WER-02 dowod odtworzony przeze mnie w calosci: cisza w tym pliku ORAZ w straznik-scenariuszy.mjs:55 i straznik-odsylaczy-kursu.mjs:71, a konwencja 'pominiete — …' potwierdzona w straznik-frontu-wp.mjs:37, straznik-wtyczki-wp.mjs:58 i straznik-tutora.mjs:52. WER-03 CZYNNE i sprawdzilem, ze nic tego nie kompensuje wyzej: uruchom-wszystkie.mjs:33-42 uruchamia straznika przez spawnSync ze stdio 'inherit' i przy status === 0 drukuje '✔ <plik>' NIE PYTAJAC, czy straznik cokolwiek sprawdzil — wiec cichy exit(0) jest w wyjsciu npm run check nie do odroznienia od pelnego porownania sum kontrolnych. Doprecyzowanie zakresu, wazne dla drugiej fali: warunek wyzwalajacy jest waski, bo tresc-kursow jest SLEDZONA przez gita (331 plikow, git ls-files), wiec katalog nie zniknie po git clean — realne drogi to niepelny/sparse checkout albo bledne narzedzie, czyli te same, ktore w tym repo juz raz zabily bind mount wtyczki. To zmniejsza czestosc, nie znosi zjawiska: gdy warunek zajdzie, bramka milczy i swieci na zielono.",
+      "kiedy": "2026-09-03T16:47:08.205Z"
     }
   }
 }

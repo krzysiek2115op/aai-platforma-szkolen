@@ -1,0 +1,21 @@
+{
+  "id": "AUD-PIK-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PIK",
+  "pozycja": "PIK-05",
+  "stwierdzenie": "WYTYCZNE.md §8 wymaga jednego endpointu AJAX (dyspozytora) na plugin, przyjmującego nazwę akcji jako PARAMETR jednego wywołania — a wtyczka `aai-sklep` (produkt, nie prototyp) rejestruje CZTERY oddzielne, niezależnie wywoływalne trasy `admin-post.php` (cztery różne nazwy akcji), zamiast jednej.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php",
+    "zakres": "metoda rejestrująca akcje kreatora, linie 56-59 (cztery wywołania add_action( 'admin_post_' . self::STAŁA, … ))",
+    "mechanizm": "WYTYCZNE §8 opisuje wystrzał jako: „każdy plugin ma jeden endpoint AJAX (dyspozytor); strony mówią MU, jakiej akcji potrzebują (zapisz, usun, …), a dyspozytor oddaje JSON” — czyli JEDNO wywołanie HTTP, w którym akcja jest parametrem żądania (tak działa prototyp: jeden route.ts, akcja w polu `akcja` ciała żądania). W `aai-sklep` wybór akcji odbywa się przez WYBÓR INNEGO ADRESU (`admin-post.php?action=aai_sklep_zapisz_kurs` / `…zapisz_lekcje` / `…stan_kursu` / `…usun_kurs`) — to są cztery niezależnie zarejestrowane, niezależnie wywoływalne trasy WordPressa (każda ma własny hak `admin_post_<nazwa>`, własną walidację nonce'a i własny punkt wejścia), a nie jeden dyspozytor przyjmujący nazwę akcji jako dane. W żadnym z DIAGRAM-ów Pluginu 1/2/3 ani w CLAUDE.md nie ma decyzji właściciela reinterpretującej §8 dla mechaniki `admin-post.php` WordPressa — sekcja DIAGRAM plugin-1 „Przepływ danych — wystrzał AJAX + kanał JSON obok (WYTYCZNE §8)” opisuje wyłącznie prototyp Next.js."
+  },
+  "dowod": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-panel-akcje.php:36,39,42,45 — cztery stałe z RÓŻNYMI nazwami akcji: ZAPISZ_KURS='aai_sklep_zapisz_kurs', ZAPISZ_LEKCJE='aai_sklep_zapisz_lekcje', STAN_KURSU='aai_sklep_stan_kursu', USUN_KURS='aai_sklep_usun_kurs'. Linie 56-59: cztery osobne `add_action('admin_post_' . self::<STAŁA>, …)` — każda z osobnym hakiem WordPressa, więc HTTP-owo są to cztery różne adresy (`admin-post.php?action=aai_sklep_zapisz_kurs` itd.), nie jeden adres z parametrem akcji. audyt/BRIEF-PROJEKTU.md sekcja 4 potwierdza ten sam fakt niezależnie: „Rejestracji admin_post_* jest sześć, nazw akcji pięć: cztery w kreatorze (Aai_Sklep_Panel_Akcje — zapis kursu, zapis lekcji, stan kursu, usunięcie kursu) i dwie w monitoringu\". docs/WYTYCZNE.md linie 92-118 (§8) — treść: „każdy plugin ma jeden endpoint AJAX (dyspozytor); strony mówią mu, jakiej akcji potrzebują (zapisz, usun, …), a dyspozytor oddaje JSON właściwej stronie\" oraz „nie mnożymy kanałów ponad te dwa — mniej punktów awarii, jedna walidacja, jeden log\". `tools/straznicy/straznik-ajax.mjs` (komentarz linii 1-25) pilnuje tej reguły WYŁĄCZNIE w `app/api/` (prototyp) — nie istnieje odpowiednik dla `wordpress/wtyczki/`, więc rejestracja czterech tras w aai-sklep nie jest przez nic wykrywana.",
+  "klasyfikacja": "wytyczna właściciela niespełniona w kodzie produktu",
+  "wplyw": "WYTYCZNE.md deklaruje wprost: „Zasady obowiązują przez CAŁY projekt. Można je doprecyzowywać, ale nie zmieniać bez decyzji właściciela.\" Produkt (wtyczka aai-sklep, nie prototyp-specyfikacja) ma dziś cztery niezależne punkty wejścia do warstwy zapisu zamiast jednego dyspozytora — dokładnie tę wielość, którą §8 nazywa źródłem dodatkowych punktów awarii, walidacji i logów. Żaden zapis w repo nie dokumentuje decyzji właściciela reinterpretującej albo uchylającej §8 dla mechaniki admin-post.php WordPressa; jedyny strażnik pilnujący tej reguły (`straznik-ajax`) nie obejmuje kodu wtyczek, więc odstępstwo mogłoby się dalej mnożyć bez wykrycia.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "217efb4aa93cb19109428e0eb086d4150a464b6ef629fded9aada3df66ac90b2",
+  "werdykt": null
+}

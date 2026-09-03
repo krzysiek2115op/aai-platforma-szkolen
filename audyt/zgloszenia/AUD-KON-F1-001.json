@@ -14,7 +14,7 @@
   "dowod": "Pomiar: `git ls-files -- ':(glob)wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-{widok,...,styl-woo}.php'` → 0; te same 9 plików wymienione bez klamr → 9; reszta zakresu (szablony+assets+ekran) → 57 = deklaracja. Pozycje FE-05, FE-07, FE-10 wskazują `class-aai-sklep-zasoby/menu/trasy.php`, czyli pliki SPOZA zakresu działu. Kontrola sektora (reguła 8 straznik-sektora-audytu.mjs) woła mapa.mjs, która sprawdza pustkę CAŁEGO działu, nie podwzorca — przechodzi po pustce. Ten sam zapis dziedziczy re-audyt/ROLE.md (4 linie z `glob…{`).",
   "klasyfikacja": "zakres przechodzący po pustce",
   "wplyw": "Dziewięć klas frontu nie liczy się do pokrycia FE; porównanie fal i mapa pokrycia opierają się na zakresie, który nie obejmuje plików własnej checklisty.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "611ffc36df9a0a9d1e529ab0aa91387af978d9baf7a569551c6264649f158fda",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:28.435Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak (ROLE.md:126 zgodna co do znaku, hash przeliczony i zgodny, brzmienie jednoznaczne). WER-02 zmierzone przeze mnie od nowa: podwzorzec z klamra daje 0 plikow, te same dziewiec nazw rozpisanych osobno daje 9, git 2.55.0 — czyli ':(glob)' faktycznie nie rozwija {a,b}. Caly zakres FE liczy 57, dokladnie tyle, ile deklaruje ROLE.md, wiec liczba potwierdza sama siebie. WER-03 CZYNNE i sprawdzilem OBIE mozliwe blokady, zadna nie dziala: (a) ta sama zepsuta komenda jest w audyt/role/FE/AGENT.md:120 i w re-audyt/role/FE/AGENT.md:116, wiec agent nie dostaje wersji poprawionej; (b) kontrola sektora przechodzi — uruchomilem audyt/tools/mapa.mjs, kod 0, SIEROTY 0, bo mapa pyta o pustke CALEGO dzialu (mapa.mjs:70, 'pusty: pliki.length === 0'), a nie o pustke podwzorca, a te 9 plikow bierze inny dzial. POTWIERDZENIE WPROST dla najmocniejszej czesci zgloszenia: policzylem przynaleznosc class-aai-sklep-menu.php przez zakresyZRoleMd — bierze go SEC, BE, PERF i ARCH, a NIE bierze go FE, mimo ze pozycja FE-07 wskazuje ten plik z nazwy. Czyli dzial ma w checkliscie pytanie o plik, ktorego nie ma w swoim zakresie.",
+      "kiedy": "2026-09-03T16:50:10.052Z"
     }
   }
 }

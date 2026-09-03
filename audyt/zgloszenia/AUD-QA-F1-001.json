@@ -14,7 +14,7 @@
   "dowod": "Kurs smoke ma price_grosze: 19900 (linia 36 tego pliku) → 199,00 zł. Podciąg \"199,00\" jest zawarty także w \"1199,00\" i \"2199,00\" (JS: \"1199,00\".includes(\"199,00\") === true), więc mutacja dopisująca cyfrę przed ceną w HTML nie zapaliłaby tej asercji. Ta sama klasa błędu jest udokumentowana w historii projektu jako naprawiona w tools/smoke/smoke-wp-zakup.mjs i smoke-wp-produkty.mjs, ale nigdy nie wróciła do poprawki w smoke-d4.ts/d5.ts/d6.ts.",
   "klasyfikacja": "słaba asercja (podciąg zamiast całej wartości)",
   "wplyw": "Bramka CI 'baza' (job Kod aplikacji / Baza) może zielono przepuścić regresję ceny na katalogu D4, jeśli błędny render doda cyfrę przed poprawną kwotą.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "7ecd2b9b3149d93b00915687d939fab1a678f47cbbe3534924885af346b18182",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "ODRZUCAM",
       "powod": "Miejsce i fakt o podciągu odtworzone, ale wpływ jest nieprawdziwy: w tym samym przebiegu smoke-d4.ts:126 porównuje CAŁĄ pierwszą kartę siatki co do bajtu z goldeny/d4-katalog.html, a golden zawiera '199,00 zł'. Regresja ceny na karcie D4 wywala assert.equal(siatka, golden) — bramka CI nie przepuści jej na zielono. Zjawisko zablokowane niżej na tej samej ścieżce.",
       "kiedy": "2026-09-03T16:34:09.132Z"
+    },
+    "weryfikator": {
+      "werdykt": "ODRZUCONE",
+      "powod": "WER-01/02/04/05 tak (linia 103 zgodna co do znaku po normalizacji, hash 7ecd2b9b... przeliczony i zgodny, fakt o podciagu potwierdzony wlasnym pomiarem: '1199,00'.includes('199,00') === true, kurs smoke ma price_grosze 19900). Rozstrzyga WER-03: zjawisko NIE JEST CZYNNE — jest zablokowane NIZEJ NA TEJ SAMEJ SCIEZCE, w tym samym pliku i w tym samym przebiegu. smoke-d4.ts:109-113 wycina PIERWSZA karte siatki (regex na <ul data-katalog> + pierwszy <li>), asertuje smoke-d4.ts:112, ze pierwsza karta to kurs smoke, a smoke-d4.ts:126 robi assert.equal(siatka, golden) wobec goldeny/d4-katalog.html. Sprawdzilem zawartosc goldenu sam: 1916 B, zawiera dokladnie jedno '199,00' i jedno 'zl' — czyli cena kursu smoke LEZY WEWNATRZ porownywanego co do bajtu fragmentu. Regresja opisana we wplywie ('bledny render doda cyfre przed poprawna kwota') zmienilaby markup pierwszej karty, wiec assert.equal wywali smoke i bramka CI 'baza' NIE przepusci jej na zielono. Golden jest egzekwowany bezwarunkowo: bez GOLDEN_ZAPISZ brak pliku daje assert.fail (117-124). Sam fakt o slabosci asercji zostaje prawdziwy, ale zadeklarowany WPLYW nie zachodzi — a wplyw jest tu cala trescia znaleziska. WAZNE dla drugiej fali i dla odroznienia: ta blokada dotyczy WYLACZNIE D4. Sprawdzilem sasiednie pliki i tam blokady NIE MA — golden D5 (goldeny/d5-program.html, 2920 B) obejmuje tylko <section id='program'> i nie zawiera '299,00' ani razu, a zaden z goldenow D6 nie zawiera '123,00' ani '1/12'.",
+      "kiedy": "2026-09-03T16:43:12.004Z"
     }
   }
 }

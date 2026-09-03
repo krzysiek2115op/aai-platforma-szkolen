@@ -1,0 +1,21 @@
+{
+  "id": "AUD-REPO-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-02",
+  "stwierdzenie": "docs/security-checklist.md deklaruje w nagłówku 'Stan na v0.29.0 (2026-08-19...)' i instruuje wprost 'Przy każdym przeglądzie aktualizować datę w tym nagłówku', ale data nie została zaktualizowana mimo że od v0.29.0 minęło ~35 wersji (dziś v0.64.0) i w tym czasie ZAKOŃCZONO CAŁY etap WordPressa razem z Pluginem 2 i Pluginem 3, o których dokument mówi jako o przyszłości. Pozycja w wierszu 77 ('Polityka prywatności + RODO... wybór LMS (Publigo) ma to częściowo w pudełku') opisuje jako otwarty wybór LMS-a Publigo, podczas gdy wybór zapadł na Tutor LMS + WooCommerce (hybryda), zaimplementowany i wydany, a Publigo pozostało odrzuconym planem B (docs/ETAP-WP.md:484: 'Publigo BOX (plan B) — nie ma darmowej wersji do postawienia obok').",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "docs/security-checklist.md",
+    "linia": 77,
+    "tresc": "| ⏳ | Polityka prywatności + RODO (dane klientów: e-mail, faktury) | Plugin 2/3 — tam pojawiają się dane osobowe klientów; wybór LMS (Publigo) ma to częściowo w pudełku |"
+  },
+  "dowod": "docs/ETAP-WP.md:33-34 pokazuje 'LMS pierwszego wyboru: Tutor LMS (darmowy core) + WooCommerce. Plan B: Publigo BOX' i linia 484 'Publigo BOX (plan B) — nie ma darmowej wersji do postawienia obok'. CLAUDE.md i README.md (linia 240) potwierdzają, że architektura Tutor+WooCommerce jest zaimplementowana i wydana ('WooCommerce + Tutor LMS, spięte naszym szwem'). security-checklist.md:1-11 sam siebie zobowiązuje: 'Przy każdym przeglądzie aktualizować datę w tym nagłówku' — nagłówek mimo to zatrzymał się na v0.29.0/2026-08-19, sprzed decyzji o LMS-ie i sprzed całego etapu WordPressa.",
+  "klasyfikacja": "deklaracja-stanu-nieaktualna",
+  "wplyw": "Dokument bezpieczeństwa w zakresie repo mówi o wyborze LMS-a jako o otwartej kwestii i wskazuje niewłaściwy produkt (Publigo zamiast wdrożonego Tutor LMS + WooCommerce), co dezinformuje każdego, kto sprawdza pokrycie RODO/prywatności wobec faktycznie użytego mechanizmu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "6eab3a344f2eff758af622590edcb15d2bf8dface126b346433ca1256fd4a3ad",
+  "werdykt": null
+}

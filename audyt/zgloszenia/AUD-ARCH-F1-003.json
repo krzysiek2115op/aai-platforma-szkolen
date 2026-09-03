@@ -1,0 +1,21 @@
+{
+  "id": "AUD-ARCH-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "ARCH",
+  "pozycja": "ARCH-09",
+  "stwierdzenie": "W aai-platnosci istnieje dwuwęzłowy cykl zależności statycznych: Aai_Platnosci_Ustawienia wywołuje Aai_Platnosci_Cta, a Aai_Platnosci_Cta wywołuje z powrotem Aai_Platnosci_Ustawienia.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
+    "linia": 106,
+    "tresc": "if ( ! Aai_Platnosci_Ustawienia::sprzedaz_otwarta() ) {"
+  },
+  "dowod": "Dwie strzałki cyklu, obie w rzeczywistym kodzie (nie w komentarzu): (1) class-aai-platnosci-ustawienia.php:390-394, w metodzie sprawdzającej dostępność produktu — `switch ( Aai_Platnosci_Cta::stan_posiadania( $tutor, get_current_user_id() ) ) { case Aai_Platnosci_Cta::MA_KURS: ... case Aai_Platnosci_Cta::W_TOKU: ...}` — Ustawienia zależy od metody i stałych klasy Cta; (2) class-aai-platnosci-cta.php:106, w prywatnej metodzie produkt_do_kupienia() — `if ( ! Aai_Platnosci_Ustawienia::sprzedaz_otwarta() ) { return null; }` — Cta zależy z powrotem od Ustawienia. Wykryte grafem zależności statycznych zbudowanym ze wszystkich 54 klas wtyczek, z odrzuceniem odniesień w komentarzach.",
+  "klasyfikacja": "granica",
+  "wplyw": "Klasa 'ustawień' (Aai_Platnosci_Ustawienia) i klasa 'stanu CTA' (Aai_Platnosci_Cta) zależą od siebie nawzajem — żadna nie jest fundamentem dla drugiej, mimo że nazwa 'Ustawienia' sugeruje warstwę niższego poziomu, od której inne klasy powinny zależeć jednokierunkowo. Test jednostkowy którejkolwiek wymaga obecności drugiej.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "9a3537104166f4def5df97c65eb5fa9eb4aec14f90f63433bf1b2069d4a0f985",
+  "werdykt": null
+}

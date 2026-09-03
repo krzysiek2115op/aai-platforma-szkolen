@@ -1,0 +1,21 @@
+{
+  "id": "AUD-REPO-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-08",
+  "stwierdzenie": "CONTRIBUTING.md twierdzi, że commity z prefiksem konwencjonalnym ('feat:', 'fix:', 'docs:', 'chore:', 'test:', 'refactor:') 'są w historii repo do wersji 0.21.0' — sugerując, że praktyka ustała wraz z tą wersją (2026-08-18). W rzeczywistości na gałęzi main jest co najmniej 65 commitów z takim prefiksem PO tagu v0.21.0, najnowszy z datą 2026-08-21 (trzy dni po wydaniu 0.21.0) — czyli reguła opisuje granicę w czasie, która nie jest prawdziwa: praktyka trwała dalej, a nie skończyła się na 0.21.0.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "CONTRIBUTING.md",
+    "linia": 68,
+    "tresc": "dozwolone dla drobnicy (literówka, bump wersji) i są w historii repo do"
+  },
+  "dowod": "git log --oneline v0.21.0..main | grep -cE '^[a-f0-9]+ (feat|fix|docs|chore|test|refactor):' zwraca 65 (na 507 commitów w tym zakresie). Najświeższy taki commit na main to 'docs: istnienie worktree przestaje uchodzić za dowód, że ktoś w nim pracuje' z datą 2026-08-21 (git log --pretty='%ad %s' --date=short main | grep -E ' (feat|fix|docs|chore|test|refactor): ' | head -1), czyli trzy dni po dacie taga v0.21.0 (2026-08-18, git log -1 --format=%ad --date=short v0.21.0). Łącznie w historii main jest 111 commitów z takim prefiksem.",
+  "klasyfikacja": "reguła-repo-niezgodna-z-praktyka",
+  "wplyw": "CONTRIBUTING.md, dokument opisujący konwencje commitów dla każdego nowego współpracownika (i dla audytora sprawdzającego historię), podaje nieprawdziwą granicę czasową praktyki — czytelnik przeglądający historię PO wersji 0.21.0 i widzący commit z prefiksem może uznać go za odstępstwo od dokumentu, choć dokument sam siebie źle opisuje.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "8efa32e9128b5aed448061d60b3277a0519b1dd444c953716a05b20b400bbcae",
+  "werdykt": null
+}

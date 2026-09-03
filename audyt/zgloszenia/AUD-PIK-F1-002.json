@@ -1,0 +1,21 @@
+{
+  "id": "AUD-PIK-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PIK",
+  "pozycja": "PIK-08",
+  "stwierdzenie": "Pozycja \"faktury, VAT\" jest udokumentowana w trzech miejscach jako element kategorii \"przed pierwszym klientem\", ale jest nieobecna we WSZYSTKICH TRZECH miejscach, które tę kategorię konsolidują dla czytelnika: CLAUDE.md (blok \"POZA MODUŁAMI, przed pierwszym klientem\"), docs/PLAN-SEO-HIGIENA-AUDYT.md (sekcja \"Rzeczy otwarte, o których audyt musi wiedzieć\") i README.md (dwa miejsca odsyłające do tej samej listy).",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "docs/PLAN-SEO-HIGIENA-AUDYT.md",
+    "zakres": "sekcja \"Rzeczy otwarte, o których audyt musi wiedzieć\", linie 308-321 (pozycja \"Przed pierwszym klientem\", linie 312-318)",
+    "mechanizm": "Wiersz \"Przed pierwszym klientem\" (linie 312-318) wylicza: bramkę płatności, regulamin, zgodę w kasie na natychmiastowe dostarczenie, domenę+HTTPS, pocztę produkcyjną i rozjazd polityki prywatności — ale NIE wylicza \"faktury, VAT\", choć ta pozycja jest gdzie indziej w repo jawnie przypisana do tej samej kategorii. Brakuje wiersza albo dopisania \"faktury, VAT\" do istniejącego wyliczenia w tej sekcji, w analogicznym bloku CLAUDE.md:3291-3295 (\"POZA MODUŁAMI, przed pierwszym klientem\") i w README.md (wiersze 59 i 467, które odsyłają czytelnika do tej samej listy w PLAN-SEO-HIGIENA-AUDYT.md jako do kompletu)."
+  },
+  "dowod": "docs/plugin-2/KROK-P4.md:30 — \"| prawdziwa bramka płatności, faktury, VAT, regulamin | krok po P6 / przed pierwszym klientem |\". docs/plugin-2/KROK-P5.md:43 — \"| prawdziwa bramka płatności, faktury, VAT | osobny krok po P6 |\". docs/plugin-2/DIAGRAM.md:656 — \"| prawdziwa bramka płatności, faktury, VAT | wymaga danych firmy i umowy z operatorem | osobny krok po P6 |\". Żadne z trzech miejsc konsolidujących kategorię NIE wymienia faktur/VAT: CLAUDE.md:3291-3295 wylicza pięć pozycji (bramka płatności, regulamin, zgoda w kasie, domena+HTTPS, poczta) bez faktur; docs/PLAN-SEO-HIGIENA-AUDYT.md:312-318 (sekcja jawnie zatytułowana \"Rzeczy otwarte, o których audyt musi wiedzieć\") wylicza sześć pozycji bez faktur; README.md:59 streszcza tę samą listę (\"prawdziwej bramki płatności, regulaminu i poczty produkcyjnej\") i README.md:467 wylicza \"HTTPS/HSTS, RODO, regulamin, zgoda w kasie na natychmiastowe dostarczenie, poczta produkcyjna\" — w obu wierszach README brak faktur/VAT. Sprawdzone grep-em po całym CLAUDE.md, README.md i docs/PLAN-SEO-HIGIENA-AUDYT.md na frazy \"faktur\" i \"VAT\" — zero trafień poza wskazanymi trzema dokumentami technicznymi Pluginu 2.",
+  "klasyfikacja": "niekompletna konsolidacja listy wymagań przedwdrożeniowych",
+  "wplyw": "docs/PLAN-SEO-HIGIENA-AUDYT.md jest dokumentem WPROST zaadresowanym do audytu (\"Rzeczy otwarte, o których audyt musi wiedzieć\"), a README.md dwukrotnie kieruje czytelnika do tej samej listy jako do miejsca, gdzie wypisano wszystko brakujące przed uruchomieniem sprzedaży. Ktoś przygotowujący wdrożenie na podstawie któregokolwiek z tych trzech dokumentów przygotuje bramkę płatności, regulamin, zgodę w kasie, domenę i pocztę, ale nie dowie się z nich, że przed pierwszym klientem trzeba też rozwiązać wystawianie faktur z VAT — mimo że fakt ten jest już ustalony i nazwany w trzech innych miejscach repozytorium.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "7b0bc03f537999751a5a26539e7535d6a82f50c5f0b14c889a57992fa75fc1e6",
+  "werdykt": null
+}

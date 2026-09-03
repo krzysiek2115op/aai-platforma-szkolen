@@ -14,7 +14,7 @@
   "dowod": "\"11/12\".includes(\"1/12\") === true w JS (podciąg od drugiego znaku). Sprawdzenie nie odróżni prawidłowego licznika 1/12 od zepsutego 11/12 czy 21/12, bo oba zawierają szukany podciąg.",
   "klasyfikacja": "słaba asercja (podciąg zamiast całej wartości)",
   "wplyw": "Bramka CI 'baza' (smoke kreatora) może zielono przepuścić błędne liczenie sekcji kursu w edytorze.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "18cb6b0138468588b372aa67a7ab610531cce5b80a997ab880ac0ee46ea27d93",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:34:09.269Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (smoke-d6.ts:143 zgodna co do znaku), WER-02 potwierdzone wlasnym pomiarem ('11/12'.includes('1/12') === true), WER-04 hash 18cb6b0138... przeliczony i zgodny, WER-05 jednoznaczne. WER-03 CZYNNE: zaden golden nie zawiera ciagu '1/12' (sprawdzone grepem po calym katalogu goldeny/), a w bloku edytora (smoke-d6.ts:133-143) pozostale asercje pytaja o slug, pola 'Poziom'/'Badge' i nazwy zakladek — o licznik sekcji pyta wylacznie linia 143. Uwaga na korzysc znaleziska: zle liczenie sekcji jest tu grozniejsze niz w przypadku ceny, bo licznik X/12 jest jedynym sygnalem kompletnosci tresci dla wlasciciela, a mianownik 12 pozostaje staly niezaleznie od licznika.",
+      "kiedy": "2026-09-03T16:43:55.900Z"
     }
   }
 }

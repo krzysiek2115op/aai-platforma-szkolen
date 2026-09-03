@@ -1,0 +1,21 @@
+{
+  "id": "AUD-ARCH-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "ARCH",
+  "pozycja": "ARCH-09",
+  "stwierdzenie": "W aai-sklep istnieje trzywęzłowy cykl zależności statycznych między Aai_Sklep_Trasy, Aai_Sklep_Panel i Aai_Sklep_Kontrakt (Trasy -> Panel -> Kontrakt -> Trasy), a dodatkowo dwuwęzłowy cykl bezpośrednio między Trasy i Panel (Trasy -> Panel -> Trasy) na tej samej krawędzi wyjściowej.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-kontrakt.php",
+    "linia": 503,
+    "tresc": "if ( in_array( $slug, Aai_Sklep_Trasy::zarezerwowane_slugi(), true ) ) {"
+  },
+  "dowod": "Cztery strzałki, wszystkie w rzeczywistym kodzie (nie w komentarzu): (1) class-aai-sklep-trasy.php:184, metoda widzi_szkice() — `return current_user_can( Aai_Sklep_Panel::UPRAWNIENIE );` — Trasy zależy od stałej Panel::UPRAWNIENIE; (2) class-aai-sklep-panel.php:188-191, pasek_administracyjny() — `if ( is_admin() || 'kurs' !== Aai_Sklep_Trasy::widok() ... ) { ... Aai_Sklep_Trasy::slug() ...}` — Panel zależy z powrotem od Trasy (cykl dwuwęzłowy); (3) class-aai-sklep-panel.php:309 — `$pola = Aai_Sklep_Kontrakt::pola_lekcji();` — Panel zależy od Kontrakt; (4) class-aai-sklep-kontrakt.php:503 — `if ( in_array( $slug, Aai_Sklep_Trasy::zarezerwowane_slugi(), true ) )` — Kontrakt zależy z powrotem od Trasy, zamykając trzywęzłowy cykl Trasy→Panel→Kontrakt→Trasy. Wykryte grafem zależności statycznych zbudowanym ze wszystkich 54 klas wtyczek, z odrzuceniem odniesień w komentarzach blokowych i liniowych.",
+  "klasyfikacja": "granica",
+  "wplyw": "Aai_Sklep_Trasy (routing/rewrite) i Aai_Sklep_Panel (kokpit kreatora) są wzajemnie zależne, a Aai_Sklep_Kontrakt (walidacja wejścia formularza) sięga z powrotem do warstwy routingu po listę zarezerwowanych slugów zamiast dostać ją jako parametr — trzy różne odpowiedzialności (adresowanie URL, panel administracyjny, kontrakt danych) nie dają się rozdzielić bez jednoczesnego wczytania całej trójki.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "946a84f94a3cc094df099d9e3e69da77fd63c789adb8ffa9c08a4d703fff2e98",
+  "werdykt": null
+}

@@ -14,7 +14,7 @@
   "dowod": "node -e 'console.log(\"modułów 3\".match(/modu[łl]\\w*\\s+(\\d)/giu))' zwraca null, podczas gdy \"moduł 3\".match(...) i \"modułu 3\".match(...) dopasowują się poprawnie — bo po literze \"ł\" ciąg \"ów\" zawiera \"ó\", którego \\w (nawet z flagą u — u w JS nie rozszerza \\w) nie obejmuje, więc silnik przestaje konsumować znaki przed wymaganym \\s+ i dopasowanie pęka. Sąsiednia reguła w tym samym pliku (linia 165) już używa \\p{L}+ zamiast \\w* dla tej samej rodziny słów, więc naprawiony wzorzec współistnieje w pliku obok niepoprawionego.",
   "klasyfikacja": "ślepota wzorca na polskie znaki (\\w bez \\p{L})",
   "wplyw": "Zdanie z jawnie wymienionym numerem modułu w formie dopełniacza liczby mnogiej („…należy do modułów 4”) nie trafi do zbioru „wprost wymienionych modułów”, więc kontrola B (temat przypisany do złego modułu) może przeoczyć błędne przypisanie tematu w takim zdaniu.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "2b6b5b2735fee245e194f7d374a4479272ace57626a8c01676d22429159a2bfb",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:34:14.007Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (straznik-odsylaczy-kursu.mjs:163 zgodna co do znaku), WER-04 hash 2b6b5b2735... przeliczony i zgodny, WER-05 jednoznaczne. WER-02 dowod dotyczy dokladnie tego mechanizmu i odtworzylem go sam: 'modulow 3'.match(/modu[lł]\\w*\\s+(\\d)/giu) daje null, podczas gdy 'modul 3' i 'modulu 3' dopasowuja sie poprawnie — bo po 'l' ciag 'ow' zaczyna sie od 'o', ktorego \\w nie obejmuje (flaga u tego nie zmienia), wiec \\w* konsumuje zero znakow i wymagane \\s+ pęka. Potwierdzilem tez druga czesc dowodu: sasiednia petla w linii 165 uzywa juz \\p{L}+ dla tej samej rodziny slow, czyli poprawiony i niepoprawiony wzorzec wspolistnieja w jednym pliku. WER-03 CZYNNE — nic tego nie kompensuje: petla z linii 165 zbiera wylacznie liczebniki SLOWNE (LICZEBNIKI, dopasowanie \\p{L}+), wiec numeru zapisanego CYFRA po formie 'modulow' nie wychwyci zadna sciezka, a zbior 'wprost' zostaje pusty i kontrola B traci material. Zastrzezenie ROZSZERZAJACE, nie oslabiajace (zglaszam, bo dotyczy tego samego miejsca): ta sama slepota siedzi w linii 161, gdzie regula wykrywajaca ZAKRES ('w modulach 1-4') tez uzywa \\w* — czyli forma 'modulow 1-4' nie zostanie rozpoznana ani jako zakres, ani jako wskazanie wprost.",
+      "kiedy": "2026-09-03T16:43:55.946Z"
     }
   }
 }

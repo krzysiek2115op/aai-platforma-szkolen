@@ -14,7 +14,7 @@
   "dowod": "\"1299,00\".includes(\"299,00\") === true w JS — podciąg dopasuje się także wtedy, gdy render doda cyfrę przed właściwą kwotą. Wzorzec sprawdzania podciągu ceny jest udokumentowany w repo jako naprawiony w tools/smoke/smoke-wp-zakup.mjs (komentarz przy linii 105: \"Pierwsza wersja pytała html.includes('99,00 zł') i była ŚLEPA\"), ale poprawka nie wróciła do prototypowych smoke'ów D4/D5/D6.",
   "klasyfikacja": "słaba asercja (podciąg zamiast całej wartości)",
   "wplyw": "Bramka CI 'baza' może zielono przepuścić regresję ceny na stronie sprzedażowej D5.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "0977232188c3a37ba58bc57a15dca555d80f803be38842943bc5bb05b4f89a8c",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:34:09.188Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (smoke-d5.ts:110 zgodna co do znaku), WER-02 fakt potwierdzony wlasnym pomiarem ('1299,00'.includes('299,00') === true), WER-04 hash 0977232188... przeliczony i zgodny, WER-05 jednoznaczne. WER-03 CZYNNE — i to jest rozstrzygajaca roznica wobec AUD-QA-F1-001, ktore odrzucilem wlasnie z powodu blokady. Sprawdzilem, czy golden tego smoke'a nie lapie ceny tak, jak lapie ja golden D4: NIE LAPIE. smoke-d5.ts:138-139 wycina do goldenu WYLACZNIE <section id='program'>, a goldeny/d5-program.html (2920 B) nie zawiera ciagu '299,00' ani razu (grep -c dal 0). Przeszedlem tez pozostale asercje strony sprzedazowej w tym samym przebiegu (106-118): dotycza hero, korzysci, programu, FAQ, sekcji problem, data-pasek-kursu i id='cena' — zadna nie porownuje kwoty. Czyli linia 110 jest JEDYNYM strazem ceny na stronie sprzedazowej D5 i regresja dokladajaca cyfre przed kwota przeszlaby na zielono.",
+      "kiedy": "2026-09-03T16:43:31.770Z"
     }
   }
 }

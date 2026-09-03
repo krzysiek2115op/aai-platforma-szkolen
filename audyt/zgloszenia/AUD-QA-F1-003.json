@@ -14,7 +14,7 @@
   "dowod": "\"1123,00\".includes(\"123,00\") === true w JS. Ten sam plik ma jeszcze jedno wystąpienie tej klasy w linii 143 (licznik \"1/12\", gdzie \"11/12\".includes(\"1/12\") === true) — to nie jest odosobniony przypadek, tylko powtórzony wzorzec w obrębie jednego pliku.",
   "klasyfikacja": "słaba asercja (podciąg zamiast całej wartości)",
   "wplyw": "Bramka CI 'baza' (smoke kreatora) może zielono przepuścić regresję ceny wyświetlanej na liście kreatora.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "6fdcd27259eaeaba526e051d95c99a8ff182902fbc2aec059ee2cb5e9bf84e9a",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:34:09.222Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (smoke-d6.ts:129 zgodna co do znaku), WER-02 potwierdzone wlasnym pomiarem ('1123,00'.includes('123,00') === true), WER-04 hash 6fdcd27259... przeliczony i zgodny, WER-05 jednoznaczne. WER-03 CZYNNE — szukalem blokady analogicznej do goldenu D4 i nie ma jej: ZADEN z goldenow D6 (d6-kreator.json, d6-runda.json, d6-lekcja.json) nie zawiera ciagu '123,00' (grep -l po calym katalogu goldeny/ nie zwrocil nic), a przeglad asercji listy kreatora w tym samym przebiegu (smoke-d6.ts:126-130) pokazuje, ze pozostale pytaja o pasek, tytul, status 'Szkic' i badge — o kwote pyta wylacznie linia 129. Uzupelnienie zgodne z dowodem: drugie wystapienie tej klasy w tym samym pliku (linia 143) jest zgloszone osobno jako AUD-QA-F1-004 i weryfikuje sie niezaleznie.",
+      "kiedy": "2026-09-03T16:43:31.804Z"
     }
   }
 }

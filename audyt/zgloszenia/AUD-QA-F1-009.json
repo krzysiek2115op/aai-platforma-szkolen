@@ -14,7 +14,7 @@
   "dowod": "package.json linia 16: \"check\": \"node tools/straznicy/uruchom-wszystkie.mjs && npm run lint && npx tsc --noEmit && npm test && npm run build && npm run smoke\" — brak audyt-straznikow.mjs w łańcuchu. .github/workflows/ci.yml, job \"straznicy\" (linie 62-84), krok \"Uruchom strażników\" woła wyłącznie `node tools/straznicy/uruchom-wszystkie.mjs`. Żaden inny job ci.yml nie wspomina audyt-straznikow.mjs (sprawdzone: grep -n 'audyt-straznikow' .github/workflows/ci.yml nie daje wyniku).",
   "klasyfikacja": "bramka mutacyjna odłączona od automatycznej weryfikacji",
   "wplyw": "Regresja, która wyłącza wykrywalność jednego ze strażników (np. osłabienie wzorca do postaci, która nie zapala się na złym kodzie — udokumentowana w tym repo klasa błędu powtórzona co najmniej dziewięć razy), NIE zostanie wykryta ani przez CI, ani przez `npm run check` — zależy wyłącznie od tego, czy ktoś ręcznie uruchomi `node tools/straznicy/audyt-straznikow.mjs` przed scaleniem.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "c9c68816c434038e78caceae63b0cfa4453ac51d3812ec28db9cbb9e6b22b2b8",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:34:14.172Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (package.json:16, tresc skryptu check zgodna ze zgloszeniem), WER-04 hash zgodny, WER-05 jednoznaczne. WER-02 dowod potwierdzony i ROZSZERZONY o droge, ktorej autor nie sprawdzil: grep 'audyt-straznikow' w package.json daje zero trafien, w .github/workflows/ci.yml zero (jedyne wywolanie strazy w CI to linia 84, uruchom-wszystkie.mjs), ale sprawdzilem tez HAKI GITA, bo to trzecia mozliwa bramka — core.hooksPath wskazuje .githooks, a .githooks/pre-commit wola w linii 67 wylacznie uruchom-wszystkie.mjs; .githooks/pre-push nie wola strazy w ogole. WER-03 CZYNNE — i domknalem ostatnia mozliwa blokade: uruchom-wszystkie.mjs:23-24 filtruje katalog wzorcem f.startsWith('straznik-'), wiec audyt-straznikow.mjs jest z tego przebiegu wykluczony nawet przypadkiem. Poza dokumentacja (README, CHANGELOG, docs/*) i komentarzami w samych straznikach narzedzie nie ma w repo ANI JEDNEGO wywolania automatycznego. Uzupelnienie: straznik-readme.mjs:165-171 czyta ten plik, ale tylko liczy wpisy 'straznik:' i porownuje z liczba w README — nie uruchamia ani jednej mutacji, wiec nie jest zastepcza bramka.",
+      "kiedy": "2026-09-03T16:47:24.460Z"
     }
   }
 }

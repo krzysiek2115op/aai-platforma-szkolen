@@ -14,7 +14,7 @@
   "dowod": "Uruchomienie dokladnie podanej komendy z AGENT.md daje 25 plikow, WSZYSTKIE z modules/ i tools/ — zero z wordpress/wtyczki (sprawdzone: `git ls-files -- ':(glob)wordpress/wtyczki/*/includes/class-*-{tabele,zapis,import,odczyt,odczyt-panelu}.php' 'modules' 'tools/eksport-wp.mjs' 'tools/sprawdz-import-wp.mjs' 'tools/db1-gotowa.mjs' 'tools/seed' | wc -l` -> 25, a wszystkie 25 nazw to modules/m1-sklep/* i tools/*). Rozdzielenie wzorca na piec osobnych patternow ':(glob)' (bez klamry) na tych samych argumentach daje 35 plikow i dopiero wtedy widac 10 plikow wordpress/wtyczki/*/includes/class-*-{tabele,zapis,tabele,import,odczyt,odczyt-panelu}.php (np. wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php), ktore fizycznie istnieja na dysku i sa sledzone przez git (`git ls-files wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tabele.php` zwraca sciezke).",
   "klasyfikacja": "zepsuty zakres audytu (KON-A4) — komenda milczaco pomija pliki",
   "wplyw": "Kazdy agent BD, ktory potraktuje podana komende jako definicje zakresu i uruchomi ja doslownie, dostaje liczbe 25 zgodna z dokumentacja i moze uznac zakres za potwierdzony, mimo ze faktycznie NIE WIDZI zadnego z 10 plikow wordpress/wtyczki/*/includes/class-*-zapis.php i class-*-tabele.php — czyli dokladnie tych plikow, ktorych dotyczy wiekszosc pozycji checklisty BD (BD-01, BD-02, BD-04, BD-05, BD-09, BD-10, BD-12). Zakres wyglada na kompletny (liczba sie zgadza), a w rzeczywistosci pomija polowe wlasnego zakresu bez zadnego sygnalu bledu.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "4ea2a02d6c34b8e8fafaf9497f7b253d7c237da478d7310974be163f3fd8e3d3",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:32:56.179Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: komenda stoi w audyt/role/BD/AGENT.md:113, tresc zgodna ze zgloszeniem. WER-02 dowod odtworzony przeze mnie WLASNYM uruchomieniem, nie przepisany: komenda doslownie z AGENT.md daje 25 plikow, z czego z wordpress/ pochodzi DOKLADNIE 0 (grep -c '^wordpress/' na wyniku); te same argumenty z wzorcem rozbitym na piec osobnych ':(glob)' daja 10 plikow wordpress/wtyczki/*/includes/. Czyli klamra nie jest rozwijana ani przez powloke (jest w pojedynczych cudzyslowach), ani przez pathspec gita. WER-03 CZYNNE i co gorsza WZMOCNIONE przez wlasna dokumentacje: AGENT.md:117-119 mowi 'Ma zwrocic 25 plikow' i 'Zakres, ktory zwraca zero albo liczbe inna niz podana, jest zepsuty' — czyli agent BD, ktory uruchomi komende i dostanie 25, dostaje POTWIERDZENIE, ze zakres jest zdrowy. Nie ma zadnej blokady; proza dwie linie nizej ('Zakres obejmuje obie strony migracji: warstwy zapisu wtyczek WP oraz modules/') jest jedynym sygnalem sprzecznosci, ale nie zatrzymuje agenta, ktoremu liczba sie zgodzila. WER-04 hash 4ea2a02d... przeliczony — zgodny. WER-05 jednoznaczne.",
+      "kiedy": "2026-09-03T16:41:01.369Z"
     }
   }
 }

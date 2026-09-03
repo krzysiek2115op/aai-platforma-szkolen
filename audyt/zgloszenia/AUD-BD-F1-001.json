@@ -14,7 +14,7 @@
   "dowod": "W klasie brak jakiegokolwiek START TRANSACTION/COMMIT/ROLLBACK (grep -rn 'START TRANSACTION' na calym katalogu wtyczek trafia wylacznie w class-aai-sklep-zapis.php:934-939). W synchronizuj_kurs() linia 649-657 tworzy nowy WC_Product_Simple i zapisuje go (produkt->save()), a dopiero pozniej, w linii 747, wywolywane jest powiazanie_ustaw(). Metoda produkt_kursu() (linia 507-515) czyta WYLACZNIE z tabeli powiazania, nigdy nie skanuje istniejacych produktow WooCommerce po innym kluczu, wiec osierocony produkt z poprzedniej przerwanej probki nigdy nie zostanie odnaleziony ani ponownie uzyty.",
   "klasyfikacja": "integralnosc danych — zapis wielotabelowy bez transakcji",
   "wplyw": "Kazde przerwanie procesu (timeout, limit pamieci, restart PHP-FPM) trafiajace miedzy utworzenie produktu a zapis powiazania zostawia trwale osierocony produkt draft w WooCommerce i przy nastepnej synchronizacji tego samego kursu tworzy KOLEJNY nowy produkt zamiast go odnalezc — liczba osieroconych, niepowiazanych produktow rosnie z kazdym takim zdarzeniem, a kontrola (Aai_Platnosci_Zapis/sprawdz) nie ma jak ich wykryc, bo iteruje po wierszach tabeli powiazania.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "8b0cd10f70580b1b8bfbe410267481cbf56f607acba9d9dab14ddd9a130dce89",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:32:51.149Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: mechanizm istnieje, synchronizuj_kurs() od 577, produkt->save() 657, powiazanie_ustaw() 747, zero START TRANSACTION w calej wtyczce aai-platnosci (jedyne trafienie w repo: class-aai-sklep-zapis.php:934-939). WER-02 dowod dotyczy tego samego mechanizmu: produkt_kursu() (507-515) czyta WYLACZNIE SELECT product_id FROM powiazania WHERE course_uuid, wiec produkt utworzony i niepowiazany jest dla niej niewidzialny. WER-03 CZYNNE, sprawdzilem blokade i jej NIE MA: kontrola osierocone() w class-aai-platnosci-cli.php:885-920 iteruje 'SELECT course_uuid, product_id FROM {powiazania}', czyli po wierszach tabeli — produkt bez wiersza nie wchodzi do petli w ogole; znacznik _aai_platnosci_kurs_uuid tez by nie pomogl, bo ustaw_znaczniki_produktu() wola sie dopiero PO udanym powiazanie_ustaw() (760), a przywroc_znaczniki() i naprawa ceny (1158, 1239) obie pytaja tej samej tabeli. WER-04 hash 8b0cd10f... przeliczony niezaleznie — zgodny. WER-05 stwierdzenie jednoznaczne, bez trybu przypuszczajacego. Uzupelnienie na korzysc zgloszenia (nie zmienia werdyktu): osierocony produkt rodzi sie 'draft' + catalog_visibility 'hidden', wiec nie jest kupowalny — szkoda jest smieciowa, nie finansowa, i zgloszenie tak wlasnie ja opisuje, bez zawyzania.",
+      "kiedy": "2026-09-03T16:40:36.031Z"
     }
   }
 }
