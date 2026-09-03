@@ -462,7 +462,8 @@ i zielone światło na przebieg). Zrobione: 8, 1, 2, 3, 4a, **4b + 6** (2026-09-
 przejście po 80 definicjach; odpowiedzi właściciela na pięć pytań NIE były zapisane,
 kod poszedł po rekomendacjach — **do potwierdzenia**, sekcja „POZYCJE 4b + 6"),
 **5** (2026-09-03 — macierz reguła → mutacja; sekcja „POZYCJA 5 — ZROBIONA").
-Została: **7** (re-audyt sekwencyjnie na środowisku). Dopiero potem E8. Katalog `re-audyt/` jest MAŁY z decyzji,
+Została: **7** (re-audyt sekwencyjnie na środowisku) — **projekt spisany 2026-09-03,
+czeka na sześć odpowiedzi właściciela**, kod po `/clear`. Dopiero potem E8. Katalog `re-audyt/` jest MAŁY z decyzji,
 nie z braku: ma tylko to, co jest RÓŻNE od audytu (`ROLE.md` 21 ról, `GRANICE.md`,
 `role/` 84 pliki); narzędzia, zgłoszenia, stan, migawki, szablony i dokumenty są
 WSPÓLNE i mieszkają w `audyt/` (rozstrzygnięcie 2026-09-01: jeden nośnik, W4 — inaczej
@@ -1086,14 +1087,14 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 | 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | **4a ✅ 2026-09-02** — ID `AUD-SEC-F2-001` (pula per fala), `zgloszenie.mjs` bez licznika, `status.mjs` odmowa 5 (izolacja fali 2 po POLU), `porownaj-cykle` PODEJRZENIE KOLEJNOŚCI (kod 0), **`fala.mjs --postaw=2 \| --scal=2`** (worktree + sparse checkout), `stan/` i `migawki/` w gicie, reguły 19′/28/29 (**27 zarezerwowana**), R5 „z audytu tej fali", STRUKTURA i KIER obu sektorów; mutacje 101 → **116**; szczegóły w sekcji „POZYCJA 4a — ZROBIONA" niżej. **4b ✅ 2026-09-02 (noc)** razem z pozycją 6 — zdanie zakazu w 80 definicjach + 2 szablonach, reguły 27/27b, mutacje 116 → 126 (sekcja „POZYCJE 4b + 6 — ZROBIONE" niżej) |
 | 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ✅ **2026-09-03** — `R<nr>:` w każdym komunikacie strażnika, tablica `REGULY` + samokontrola + `--reguly`, `regula:` w 131 mutacjach, werdykt „ZŁA REGUŁA" (zgodność ŚCISŁA), macierz na wyjściu audytu z kodem 1; mutacje 126 → **131**; dwa pełne audyty (pomiar → dowód); sekcja „POZYCJA 5 — ZROBIONA" niżej |
 | 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | ✅ **2026-09-02 (noc)** razem z 4b, po rekomendacjach (odpowiedzi właściciela nie były zapisane — założenia do potwierdzenia w sekcji „POZYCJE 4b + 6 — ZROBIONE"); zdanie MINIMUM 40/40, `<KOD>-90` w 28 rolach działowych, rozszerzenie reguły 7 |
-| 7 | re-audyt sekwencyjnie: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu | ⬜ |
+| 7 | re-audyt sekwencyjnie: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu | 🚧 **projekt spisany 2026-09-03** (sekcja „POZYCJA 7 — PROJEKT DO DYSKUSJI" niżej), **sześć pytań do właściciela**, kod po odpowiedziach i po `/clear` |
 | 8 | test aliasu `fable` po restarcie sesji (`aud-kier`: nazwa modelu) | ✅ **2026-09-02, po restarcie:** `aud-kier` zameldował dosłownie „You are powered by the model named Fable 5.1. The exact model ID is claude-fable-5-1". **Koszt faktu:** wywołanie bez ani jednego narzędzia = **142 tys. tokenów** — tyle waży samo wejście roli (definicja + kontekst); przy 80 agentach × 2 fale to ~23 mln tokenów SAMYCH wejść, zanim ktokolwiek otworzy plik |
 
 Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: pozycja 7 pakietu E7.7** (re-audyt sekwencyjnie na środowisku: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu) — wg reguły pakietu: najpierw PROJEKT do dyskusji w tym pliku (pozycje dotykające rozstrzygnięć), kod po akceptacji. Dopiero potem E8 (STOP, zielone światło właściciela na przebieg). Zapis historyczny: pozycja 5 WYKONANA 2026-09-03 (sekcja „POZYCJA 5 — ZROBIONA"; cztery kroki projektu co do punktu, dwa pełne audyty: pierwszy = pomiar deklaracji z ośmioma rozjazdami, drugi = dowód 131/0/0, macierz 30/30). **Założenia 4b + 6** (pięć rekomendacji) nie dostały osobnego potwierdzenia, ale właściciel przy akceptacji pozycji 5 nie zgłosił do nich sprzeciwu — zostają, dopóki nie powie inaczej. Przy okazji właściciel potwierdza (albo zmienia) pięć założeń z sekcji „POZYCJE 4b + 6 — ZROBIONE" — kod 4b + 6 poszedł po rekomendacjach, bo jego odpowiedzi nie były zapisane. Zapis historyczny: 4b + 6 WYKONANE 2026-09-02 w nocy jednym przejściem (szablony → skrypt po 80 definicjach → `ROLE.md` obu sektorów → reguły 27/27b i rozszerzenie 7 → mutacje → generat → trzy kontrole → przeniesienie `audyt/` na gałąź audytu). Zapis historyczny: 4a WYKONANA 2026-09-02 (sekcja „POZYCJA 4a — ZROBIONA"). Lekcja z pozycji 3 obowiązuje dalej: **nie edytować `audyt/` w trakcie audytu mutacyjnego** i sprawdzać `pgrep -f audyt-straznika`, zanim uruchomi się cokolwiek w `audyt/tools/`.
+**NASTĘPNY KROK: odpowiedzi właściciela na sześć pytań z sekcji „POZYCJA 7 — PROJEKT DO DYSKUSJI" → `/clear` → KOD pozycji 7** wg sześciu kroków tej sekcji (narzędzie `srodowisko.mjs`, migawka z licznikami, `KIER-00`, odmowa 6 w `status.mjs`, reguły 30/31 + mutacje, STRUKTURA/KIER). Dopiero potem E8 (STOP, zielone światło właściciela na przebieg). Zapis historyczny: pozycja 5 WYKONANA 2026-09-03 (sekcja „POZYCJA 5 — ZROBIONA"; cztery kroki projektu co do punktu, dwa pełne audyty: pierwszy = pomiar deklaracji z ośmioma rozjazdami, drugi = dowód 131/0/0, macierz 30/30). **Założenia 4b + 6** (pięć rekomendacji) nie dostały osobnego potwierdzenia, ale właściciel przy akceptacji pozycji 5 nie zgłosił do nich sprzeciwu — zostają, dopóki nie powie inaczej. Przy okazji właściciel potwierdza (albo zmienia) pięć założeń z sekcji „POZYCJE 4b + 6 — ZROBIONE" — kod 4b + 6 poszedł po rekomendacjach, bo jego odpowiedzi nie były zapisane. Zapis historyczny: 4b + 6 WYKONANE 2026-09-02 w nocy jednym przejściem (szablony → skrypt po 80 definicjach → `ROLE.md` obu sektorów → reguły 27/27b i rozszerzenie 7 → mutacje → generat → trzy kontrole → przeniesienie `audyt/` na gałąź audytu). Zapis historyczny: 4a WYKONANA 2026-09-02 (sekcja „POZYCJA 4a — ZROBIONA"). Lekcja z pozycji 3 obowiązuje dalej: **nie edytować `audyt/` w trakcie audytu mutacyjnego** i sprawdzać `pgrep -f audyt-straznika`, zanim uruchomi się cokolwiek w `audyt/tools/`.
 ### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
 
 Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
@@ -1406,6 +1407,127 @@ ocenia).
 gicie, zanim wejdzie do procedury). Największe ryzyko: sparse checkout, który
 „działa" w lekturze dokumentacji, a nie chowa plików — dlatego egzekwuje go
 `status.mjs` po POLU `fala`, nie zaufanie do gita.
+
+#### PAKIET E7.7, POZYCJA 7 — PROJEKT DO DYSKUSJI (2026-09-03), KOD PO ODPOWIEDZIACH I PO `/clear`
+
+Źródło: krytyka budowy **C3** („środowisko jest wspólne, a działy uruchomieniowe mogą
+pracować równolegle — POTWIERDZONE"), tabela F wiersz 18, rozstrzygnięcie właściciela 3
+z 2026-09-02 (*„re-audyt na środowisku sekwencyjnie — tak; przywracanie stanu ze zrzutu
+między działami, nie `postaw.sh`"*), zapisane już w REGULAMIN.md jako doprecyzowanie K9′.
+Sedno C3: Pogłębiacz mierzy LICZBY na `:8892` (zapytania na odsłonę, wiersze w tabelach,
+liczniki przed/po), a drugi Pogłębiacz pracujący równolegle te liczby zanieczyszcza — bez
+jednego objawu. Stan „dziś" zmierzony lekturą i komendami, nie z pamięci:
+
+| Co | Pomiar (2026-09-03) | Skutek |
+|---|---|---|
+| sekwencyjność w dokumentach sektora | REGULAMIN.md (K9′, doprecyzowanie): **jest**; `STRUKTURA.md` „Kolejność sektorów": **0** wzmianek (schemat mówi „działy równolegle MIĘDZY SOBĄ" bez wyjątku); `re-audyt/role/KIER/{AGENT,SKILL}.md`: **0** | kierownik re-audytu ma w definicji procedurę bez słowa o sekwencji i o zrzucie — rozstrzygnięcie właściciela żyje w jednym wierszu regulaminu |
+| egzekwowanie narzędziem | `status.mjs`: pięć odmów, **żadna** nie pyta „czy inny Pogłębiacz jest W TRAKCIE"; reguła 17 strażnika pilnuje kolejności audyt→re-audyt, **nie** dwóch Pogłębiaczy naraz | dwa działy re-audytu wchodzą równolegle bez objawu — dokładnie C3 |
+| `KIER-00` „co musi stać" | **0** w `re-audyt/ROLE.md` i `audyt/ROLE.md`; checklista KIER re-audytu zaczyna się od R1 „czy audyt wyszedł" | nikt nie pyta, czy `:8892` stoi, zanim postawi Pogłębiacza; kontrola „stoi" to dziś `postaw.sh` (452 linie, przebudowuje) |
+| migawka wartości | `migawka-wartosci.mjs`: 11 pól — git, bramki, drzewo produktu; **0** liczników tabel WP, **0** o `:8892` | rozjazd w danych środowiska (wiersz dopisany, zamówienie-widmo, sierota w Tutorze) jest dla W6 niewidzialny |
+| role re-audytu na środowisku | **21 z 21** definicji wspomina `:8892`; 14 Pogłębiaczy ma R1 „odtworzyć uruchomieniowo na `:8892`", **9** ma R6 uruchomieniowe (SEC, FE, PERF, ARCH, INT, PRIV, PROTO, PIK + PERF-R6); SKUT-R4/R5 liczą przed/po na `:8892`; PSIARZ **psuje kod na bind mouncie** — `:8892` serwuje wtyczki z checkoutu, więc mutacja Psiarza jest widoczna każdemu, kto w tej chwili mierzy | „sekwencja Pogłębiaczy" nie wystarczy — Psiarz i role liczące też są stroną |
+| Pogłębiacze PISZĄ do środowiska | PRIV-R6 („żądanie, potem odczyt wiersza z tabeli"), SEC-R6 (żądania bez nonce'a — monitoring zapisuje logowanie), PIK-R6 (przejście obiecanej ścieżki — zakup) | migawka „przed == po" na licznikach byłaby czerwona po każdym dziale, jeśli nic nie przywraca stanu MIĘDZY działami |
+| środowisko `:8892` | 5 kontenerów Up (db, wordpress, mailpit, cli + `db1_kursy`), baza `wordpress` **80 tabel**, `mariadb-dump` w kontenerze `aai_wp_db`; **zrzut 8,2 MB w 197 ms; przywrócenie do świeżego schematu 1,8 s z zachowanym `AUTO_INCREMENT`** (267 na `wp_aai_monitor_logowania`, zmierzone); `wp-content/uploads` **1348 plików, 34 MB** (zrzuty lekcji w mediach — POZA bazą) | przywracanie ze zrzutu kosztuje 2 s, `postaw.sh` — minuty i kasuje dane dowodowe; media trzeba liczyć osobno |
+| dane dowodowe właściciela | `wp_aai_monitor_logowania` **21** (`AUTO_INCREMENT` 267), `wizyty` **17** (146), `wc_orders` **0**, `dostawy` 0 (AI 465), `changelog` 1447 | 12 logowań / 16 odsłon z T4 ciągle tam są, obudowane późniejszymi; zamówienia właściciela NIE wróciły po odtworzeniu od zera (TEST-CALOSCI-WP) |
+| istniejące zrzuty | `~/.cache/aai-kopie/`: dwa `.sql` z 2026-08-31 (14 MB i 7 MB) + dwa `.tsv` liczników — ręczne; `mysqldump`/`mariadb-dump` w `package.json` i `tools/`: **0** | nie ma narzędzia w repo; każdy zrzut to komenda z pamięci |
+| **`information_schema.table_rows` KŁAMIE** (InnoDB szacuje) | `wp_postmeta` 1866 vs `COUNT(*)` **1786**; `wp_options` 447 vs **453**; `changelog` 1420 vs **1447** | liczniki tabel MUSZĄ iść przez `COUNT(*)` na każdej z 80 tabel (milisekundy), inaczej migawka podnosi fałszywe alarmy i przepuszcza prawdziwe |
+
+**CO MA POWSTAĆ — sześć kroków, jeden commit (+ przeniesienie na gałąź audytu):**
+
+1. **Narzędzie `audyt/tools/srodowisko.mjs`** (czyste funkcje + CLI, jak `status.mjs`):
+   `--liczniki` (JSON: dla KAŻDEJ tabeli bazy `wordpress` `COUNT(*)` + `AUTO_INCREMENT`,
+   liczba i suma bajtów plików `uploads/`, lista aktywnych wtyczek, wersje WP/Tutor/Woo
+   z `wp plugin list --format=json`); `--zrzut=<nazwa>` (`mariadb-dump
+   --single-transaction --routines --triggers` z kontenera do `~/.cache/aai-kopie/audyt/<nazwa>.sql`
+   + liczniki obok jako `<nazwa>.json`); `--przywroc=<nazwa>` (DROP + CREATE + import,
+   potem **asercja: liczniki żywej bazy == liczniki zapisane przy zrzucie**, rozjazd = kod 1;
+   odmowa, gdy zrzutu nie ma); `--sprawdz` (to jest komenda KIER-00: 5 kontenerów Up,
+   `:8892` odpowiada, 5 wtyczek aktywnych, zrzut bazowy fali istnieje i liczniki żywej bazy
+   MU ODPOWIADAJĄ, w fali 2 — worktree stoi; `:3001` tylko gdy pyta PROTO); `--test`
+   (samokontrola na TYMCZASOWYM schemacie `proba_srodowisko_<pid>` w tym samym kontenerze:
+   zrzut → zmiana → przywrócenie → liczniki równe; **warunkowa** — bez kontenera mówi
+   „pominięte", jak reguły 2–4). Nazwy kontenerów z `STACK_NAZWA` jak w `package.json`.
+2. **Migawka wartości rozszerzona** o pole `srodowisko` = wynik `--liczniki` (skrót sha256
+   z posortowanej listy `tabela:count:auto_increment` + osobno liczniki naszych 9 tabel
+   `wp_aai_*` i mediów, żeby rozjazd był CZYTELNY, nie tylko wykryty). Gdy `:8892` nie
+   stoi: pole `srodowisko: "niedostępne"` — jawnie, nigdy pominięte; `--porownaj` traktuje
+   „niedostępne" po jednej stronie jako ROZJAZD (kod 1), bo W6 nie da się wtedy rozstrzygnąć.
+3. **`KIER-00` w `re-audyt/ROLE.md` + `re-audyt/role/KIER/AGENT.md`** (reguła 13 wymaga
+   obu stron): *„Czy stoi wszystko, co musi stać, ZANIM wejdzie pierwsza rola na
+   środowisku?"* | `srodowisko.mjs --sprawdz` | kod wyjścia + lista. Procedura KIER (AGENT
+   + SKILL) dostaje kroki: zrzut bazowy `--zrzut=f<N>-baza` PRZED pierwszym Pogłębiaczem;
+   po KAŻDYM dziale: `--zrzut=f<N>-<KOD>-po` (dowód SKUT-R4/R5) → `--przywroc=f<N>-baza`;
+   dopiero potem następny dział. Kierownik audytu (lekturowego) tego NIE dostaje — audyt
+   nie używa `:8892` (ROLE.md: „Metoda: lektura kodu").
+4. **`status.mjs` odmowa 6 — jedna rola na środowisku naraz:** wejście roli z listy
+   `NA_SRODOWISKU` (pytanie 2) w sektorze re-audyt, gdy inna rola z tej listy TEJ SAMEJ
+   fali ma status `W TRAKCIE` → odmowa z nazwą roli, która blokuje, i komendą (jak odmowy
+   1–5; `--test` rośnie). Plik stanu dopisany ręcznie ominąłby narzędzie, więc **reguła 30
+   strażnika**: dwa stany ról `NA_SRODOWISKU` re-audytu tej samej fali z NAKŁADAJĄCYMI SIĘ
+   oknami `W TRAKCIE` w historii = błąd (własny kod, nie import z narzędzia — jak reguły
+   17 i 21). Konstrukcja 17: stan próbny wypada spod reguły i jest wypisany.
+5. **Reguła 31 strażnika**: migawka `przed.json`, jeśli istnieje, niesie pole `srodowisko`
+   (liczniki albo dosłowne „niedostępne") — migawka bez tego pola to migawka sprzed
+   pozycji 7, która nie mierzy W6 na środowisku. Obie istniejące migawki w repo
+   (`audyt/migawki/`) zostają jako historia z polem dopisanym przy pozycji 7 albo
+   przemianowane — do rozstrzygnięcia w kodzie, nie tu.
+6. **Mutacje** (audyt 131 → ~141, każda z `regula:`): odmowa 6 zdjęta z `status.mjs`
+   (→ R26), dwa stany Pogłębiaczy z nakładającymi się oknami (→ R30) + kontrprzykład:
+   okna rozłączne (KIER-R1-kolejność) NIE zapalają, kontrprzykład: rola procesowa (KON)
+   równolegle z Pogłębiaczem NIE zapala; migawka bez pola `srodowisko` (→ R31)
+   + kontrprzykład: „niedostępne" NIE zapala; `srodowisko.mjs --test` psute w trzech
+   miejscach: przywracanie bez asercji liczników, liczniki z `table_rows` zamiast
+   `COUNT(*)` (→ samokontrola widzi rozjazd na `wp_postmeta`), `--sprawdz` bez pytania
+   o zrzut bazowy. Do tego `STRUKTURA.md` (schemat „Kolejność sektorów" z sekwencją
+   i przywracaniem, tabela kontroli 30/31, „Kto co uruchamia") i `re-audyt/ROLE.md`
+   (sekcja przebiegu).
+
+**SZEŚĆ PYTAŃ DO WŁAŚCICIELA** (rekomendacja przy każdym; kod po odpowiedziach i po `/clear`):
+
+1. **Sekwencja egzekwowana NARZĘDZIEM (`status.mjs` odmowa 6 + reguła 30) czy tylko
+   zapisem w procedurze KIER?** Rekomendacja: **narzędziem**. C3 zmierzył dokładnie to,
+   że zapis „w regulaminie" istniał i nic z niego nie wynikało; procedura w prozie to ta
+   sama klasa.
+2. **Kogo obejmuje „jedna rola na środowisku naraz"?** (a) 14 Pogłębiaczy; (b) 14 + PSIARZ
+   (psuje kod na bind mouncie — jego mutacja jest widoczna na `:8892` w trakcie cudzego
+   pomiaru) + WALID (odtwarza zjawiska żądaniami, które piszą do monitoringu);
+   (c) wszystkie 21. Rekomendacja: **(b)** — lista `NA_SRODOWISKU = [...DZIALY, "PSIARZ",
+   "WALID"]` w `wspolne.mjs`; KIER, RAP, KON, SKUT, STRAZ pracują na plikach sektora
+   (SKUT liczy przed/po, ale nie pisze — jego pomiar i tak idzie po przywróceniu).
+3. **Zrzut: jeden bazowy na falę przywracany po każdym dziale, czy dodatkowo zrzut „po
+   dziale" zachowany?** Rekomendacja: **bazowy + „po dziale" zachowany** (8 MB × 14
+   działów × 2 fale ≈ 230 MB, poza repo) — to materiał dowodowy dla SKUT-R4/R5 i jedyna
+   droga, żeby wrócić do stanu, w którym Pogłębiacz coś zobaczył. W repo tylko liczniki
+   (`audyt/migawki/srodowisko-f<N>-<KOD>-po.json`, kilka kB każdy).
+4. **Gdzie żyją zrzuty `.sql`?** Rekomendacja: **poza repo**, `~/.cache/aai-kopie/audyt/`
+   (jak dokumentacja audytu, 44 MB w `~/.cache/`); po `git clean` albo na nowej maszynie
+   zrzut bazowy robi się od nowa z żywego środowiska — jest odtwarzalny, liczniki w repo
+   mówią, czy to ten sam stan.
+5. **Media (`uploads/`, 1348 plików, 34 MB): kopiować przy zrzucie czy tylko liczyć?**
+   Rekomendacja: **liczyć** (liczba, bajty, sha256 posortowanej listy `ścieżka:rozmiar`) —
+   żadna rola nie ma prawa pisać mediów (W2), więc rozjazd licznika = STOP, a kopia 34 MB
+   × 28 razy nie kupuje niczego, czego nie da `wp:zrzuty` w minutę.
+6. **Migawka „niedostępne" (kontenery nie stoją): odmowa wejścia TYLKO rolom
+   `NA_SRODOWISKU` czy całemu re-audytowi?** Rekomendacja: **tylko `NA_SRODOWISKU`** —
+   KON, KIER, RAP czytają pliki sektora i nie potrzebują `:8892`; audyt (lekturowy) w ogóle
+   go nie używa i wchodzi jak dotąd. Ale `--porownaj` z „niedostępne" po jednej stronie =
+   kod 1 zawsze (W6 nierozstrzygnięte to nie jest W6 zaliczone).
+
+**Czego pozycja 7 NIE robi:** nie zmienia checklist Pogłębiaczy (ich R1/R6 zostają — to
+one są POWODEM sekwencji); nie rusza `postaw.sh` ani `compose.yml`; nie stawia prototypu
+`:3001` (PROTO-R6 pyta o niego — `--sprawdz` tylko MELDUJE, czy stoi); nie kopiuje mediów;
+nie uruchamia sektora; nie kasuje danych dowodowych właściciela (zrzut bazowy je ZAWIERA
+i każde przywrócenie je oddaje).
+
+**Koszt:** S (`srodowisko.mjs` + `--test`) + S (migawka, `status.mjs`, dwie reguły, ~10
+mutacji) + S (dokumenty: STRUKTURA.md, `re-audyt/ROLE.md`, KIER re-audytu AGENT + SKILL)
++ 1 pełny audyt mutacyjny ×2 (obie gałęzie, lekcja z pozycji 5). **Ryzyko:** (1) `--test`
+na żywym kontenerze — schemat tymczasowy MUSI mieć nazwę z PID-em i być kasowany w `finally`,
+a test negatywny ma dowieść, że po padnięciu nie zostaje (klasa „bramka sprzątająca cudze
+dane"); (2) `DROP DATABASE wordpress` przy `--przywroc` to najgroźniejsza komenda w całym
+sektorze — przywracanie idzie do schematu TYMCZASOWEGO, asercja liczników, dopiero potem
+`RENAME`/podmiana, nigdy „drop, potem import"; (3) kolizja z `smoke-wp-*` z `main`
+(bramki projektu też piszą na `:8892`) — nie ruszamy, ale `--sprawdz` melduje żywy proces
+`smoke-wp` jako „ktoś inny pracuje na środowisku".
 
 #### PAKIET E7.7, POZYCJA 5 — ZROBIONA 2026-09-03 (projekt zaakceptowany tego dnia: „akceptuję wszystkie 5 rekomendacji"; projekt niżej, WYNIK na końcu sekcji)
 
