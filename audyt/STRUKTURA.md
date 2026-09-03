@@ -28,12 +28,13 @@ audyt/
     werdykt.mjs                  jedyna droga do statusu ZWERYFIKOWANE
     status.mjs                   pięć statusów, rundy pętli, HISTORIA przejść (KIER-05), kolejność sektorów
     mapa.mjs                     pokrycie w trzech stanach
-    migawka-wartosci.mjs         wartości przed i po (W6)
+    migawka-wartosci.mjs         wartości przed i po (W6) — od pozycji 7 E7.7 także pole `srodowisko` (liczniki :8892 albo „niedostępne")
+    srodowisko.mjs               środowisko :8892: --liczniki (COUNT(*) + AUTO_INCREMENT 80 tabel, media, wtyczki), --zrzut, --przywroc (schemat tymczasowy → asercja → RENAME), --sprawdz (KIER-00), --test
     porownaj-cykle.mjs           porównanie fal (K4″): zgodne / nadzbiór / sprzeczne, per dział; PODEJRZENIE KOLEJNOŚCI
     polacz-sektory.mjs           audyt + re-audyt (W4)
     fala.mjs                     worktree fali 2 ze sparse checkoutem bez fali 1 (--postaw=2 | --scal=2)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
-    straznik-sektora-audytu.mjs  dwadzieścia dziewięć kontroli (1–29; 27 = zakaz innej fali, 27b = brak K4′), OBA sektory
+    straznik-sektora-audytu.mjs  trzydzieści jeden kontroli (1–31; 27 = zakaz innej fali, 27b = brak K4′; 30–31 = środowisko), OBA sektory
     audyt-straznika-sektora.mjs  mutacje strażnika; każda deklaruje `regula:`, a pełny przebieg drukuje MACIERZ reguła → mutacja (kod 1 przy regule z materiałem bez mutacji)
     przejscie-4b6.mjs            jednorazowy skrypt przejścia 4b + 6 (2026-09-02) — dowód, nie narzędzie sektora
     pobierz-dokumentacje-audyt.mjs
@@ -48,7 +49,7 @@ audyt/
 
   zgloszenia/           wpisy JSON, ID nadaje narzędzie: <PREFIKS>-<DZIAŁ>-F<N>-<numer>
   stan/                 status, rundy i HISTORIA każdej roli — W GICIE (od 2026-09-02)
-  migawki/              przed.json, po.json — W GICIE (od 2026-09-02)
+  migawki/              przed.json, po.json — W GICIE (od 2026-09-02); srodowisko-<nazwa>.json = liczniki przy każdym zrzucie :8892 (zrzuty .sql poza repo: ~/.cache/aai-kopie/audyt/)
   wyniki/               połączone fale i sektory
 ```
 
@@ -166,7 +167,7 @@ mutacje**, uruchamiane na gałęzi sektora.
 
 ---
 
-## Co pilnuje strażnik sektorów — dwadzieścia osiem kontroli
+## Co pilnuje strażnik sektorów — trzydzieści jeden kontroli
 
 | # | Kontrola | Co się psuje bez niej |
 |---|---|---|
@@ -200,6 +201,8 @@ mutacje**, uruchamiane na gałęzi sektora.
 | 27b | żadna definicja (`AGENT.md`, `KRYTYK.md`, `SKILL.md`) ani szablon nie niesie wycofanego zdania K4′ „swobodny przegląd nie da tego samego wyniku" | zdanie znaczy odwrotność K4″ (lista = sufit); rola pisana z pamięci E5 wniosłaby je z powrotem bez objawu |
 | 28 | `stan/` i `migawki/` NIE są ignorowane przez gita | stan fali 2 z worktree nie wraca do drzewa sektora; dziennik wejść przestaje być dowodem |
 | 29 | `fala.mjs --test` przechodzi | worktree fali 2 bez wykluczeń „działa" w lekturze dokumentacji, a agent fali 2 otwiera wpisy fali 1 |
+| 30 | jedna rola na środowisku `:8892` naraz: okna W TRAKCIE ról `NA_SRODOWISKU` (14 Pogłębiaczy + `PSIARZ` + `WALID`) re-audytu tej samej fali są ROZŁĄCZNE w historii plików stanu; własna kopia listy porównana z `wspolne.mjs` | dwa działy re-audytu mierzą na `:8892` naraz i zanieczyszczają sobie liczby bez objawu (C3); plik stanu dopisany ręcznie omija odmowę 6 `status.mjs` |
+| 31 | środowisko `:8892` jest MIERZONE: migawka `przed.json`/`po.json` niesie pole `srodowisko` (liczniki albo dosłowne „niedostępne"), a `srodowisko.mjs --test` przechodzi (bez kontenera: „pominięte") | rozjazd danych środowiska (wiersz dopisany, zamówienie-widmo, sierota w Tutorze) jest dla W6 niewidzialny; zrzut i przywrócenie bez bramki |
 
 Reguły 2, 3, 4, 6, 10, 11 i 12 są **warunkowe**: dopóki `audyt/role/` jest pusty,
 mówią wprost „pominięte". Cisza byłaby nie do odróżnienia od zaliczenia — a katalog
@@ -207,7 +210,9 @@ istniał jako pusty od E4, więc sześć kontroli przechodziło po pustce, dopó
 zaczęły o tym mówić.
 
 Reguły 28–29 (i rozszerzenie 19 o falę) **dołożyła pozycja 4a pakietu E7.7**
-(2026-09-02). Reguły 15–18 **dołożył etap E6**: 15 i 16 przy budowie nośnika werdyktu,
+(2026-09-02), reguły 30–31 **pozycja 7** (2026-09-03) — obie warunkowe: 30 mówi
+„pominięte", dopóki żadna rola `NA_SRODOWISKU` re-audytu nie ma pliku stanu, 31 — gdy
+nie ma migawki albo nie stoi kontener bazy. Reguły 15–18 **dołożył etap E6**: 15 i 16 przy budowie nośnika werdyktu,
 17 i 18 po tym, jak **próba na sucho** wskazała dwie usterki, których żadna
 wcześniejsza kontrola nie widziała. Patrz „Nośnik werdyktu" niżej.
 
@@ -457,7 +462,10 @@ i dojść do tego samego wniosku; skasowany wpis zafałszowałby porównanie.
 
 | Komenda | Kto | Kiedy |
 |---|---|---|
-| `node audyt/tools/migawka-wartosci.mjs --zapisz=przed` | kierownik | przed pierwszą falą — **bez niej `status.mjs` odmawia każdej zmiany stanu** |
+| `node audyt/tools/migawka-wartosci.mjs --zapisz=przed` | kierownik | przed pierwszą falą — **bez niej `status.mjs` odmawia każdej zmiany stanu**; przy `srodowisko: "niedostępne"` odmawia rolom `NA_SRODOWISKU` |
+| `node audyt/tools/srodowisko.mjs --sprawdz --fala=N` | kierownik re-audytu | KIER-00: zanim wejdzie pierwsza rola na środowisku |
+| `node audyt/tools/srodowisko.mjs --zrzut=fN-baza` | kierownik re-audytu | przed pierwszym Pogłębiaczem fali |
+| `node audyt/tools/srodowisko.mjs --zrzut=fN-<KOD>-po` → `--przywroc=fN-baza` | kierownik re-audytu | po KAŻDEJ roli na środowisku, przed następną (kod 1 = STOP) |
 | `node audyt/tools/mapa.mjs` | kierownik | przed falą i po niej |
 | `node audyt/tools/status.mjs --rola=X --fala=N --status=…` | każda rola | na starcie i na końcu |
 | `node audyt/tools/status.mjs --rola=X --fala=N --runda` | rola pętlowa | co rundę |
@@ -494,7 +502,10 @@ MAPA PRZED                                    (drzewo sektora, gałąź <sektor>
   ├─ AUDYT fala 1        działy równolegle MIĘDZY SOBĄ
   │     └─ dział kończy → re-audyt może wejść WŁAŚNIE DO NIEGO
   ├─ RE-AUDYT fala 1     nigdy na tym samym dziale co audyt
-  │     └─ commit: audyt/zgloszenia/*-F1-*, audyt/stan/*-f1-*
+  │     │                  NA ŚRODOWISKU :8892 SEKWENCYJNIE (14 Pogłębiaczy + PSIARZ + WALID), pozycja 7 E7.7:
+  │     │                  srodowisko.mjs --sprawdz (KIER-00) → --zrzut=f1-baza → rola → --zrzut=f1-<KOD>-po → --przywroc=f1-baza → następna rola
+  │     │                  (status.mjs odmowa 6 + reguła 30; KIER, RAP, KON, SKUT, STRAZ na plikach — równolegle)
+  │     └─ commit: audyt/zgloszenia/*-F1-*, audyt/stan/*-f1-*, audyt/migawki/srodowisko-f1-*.json
   │
   ├─ fala.mjs --postaw=2   worktree obok repo, gałąź <sektor>/fala-2 od TEGO SAMEGO commita,
   │     │                  sparse checkout BEZ *-F1-*, *-f1-* i wyniki/; generat i migawka w worktree
@@ -510,7 +521,7 @@ MAPA PRZED                                    (drzewo sektora, gałąź <sektor>
   │     └─ PODEJRZENIE KOLEJNOŚCI → nazwane, kod 0 (sygnał, nie dowód)
   │        kod 1 WYŁĄCZNIE przy podejrzeniu kopiowania (ślepota fali 2) albo braku fali
   │
-  └─ MAPA PO → migawka-wartosci.mjs --porownaj
+  └─ MAPA PO → migawka-wartosci.mjs --porownaj   (także pole `srodowisko`; „niedostępne" po którejkolwiek stronie = kod 1)
 ```
 
 **Ślepota fali 2 ma CZTERY warstwy** (pakiet E7.7, pozycja 4; do 2026-09-02 były

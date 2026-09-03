@@ -1,9 +1,11 @@
 /**
- * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — dwadzieścia dziewięć kontroli (numery
- * 1–29; reguła 27 ma dwie części: 27 — zdanie zakazu czytania innej fali
+ * STRAŻNIK SEKTORÓW AUDYT i RE-AUDYT — trzydzieści jeden kontroli (numery
+ * 1–31; reguła 27 ma dwie części: 27 — zdanie zakazu czytania innej fali
  * w każdej definicji, 27b — definicja nie niesie wycofanego zdania K4′; obie
  * weszły 2026-09-02 z pozycjami 4b + 6 pakietu E7.7, a reguła 7 dostała wtedy
- * wymóg pozycji otwartej `<KOD>-90` dla działów).
+ * wymóg pozycji otwartej `<KOD>-90` dla działów; reguły 30 i 31 weszły
+ * 2026-09-03 z pozycją 7: jedna rola na środowisku `:8892` naraz i środowisko
+ * MIERZONE w migawce).
  *
  * DLACZEGO TUTAJ, A NIE W `tools/straznicy/`. Sektor żyje wyłącznie na swojej
  * gałęzi (D7) i nie wolno mu dotknąć niczego poza `audyt/`. Strażnik z `main`
@@ -31,7 +33,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  DZIALY, KOD_POZYCJI, KOD_PROBNY, KORZEN, PREFIKS_AGENTA, PREFIKS_ID, SEKTOR, SEKTORY,
+  DZIALY, KOD_POZYCJI, KOD_PROBNY, KORZEN, NA_SRODOWISKU, PREFIKS_AGENTA, PREFIKS_ID, SEKTOR, SEKTORY,
   hashMiejsca, katalogSektora, roleMdSektora, roleSektora, wszystkieZgloszenia, znacznikModelu,
 } from "./wspolne.mjs";
 import { powodyOdmowy } from "./zgloszenie.mjs";
@@ -114,6 +116,8 @@ export const REGULY = [
   { nr: "27b", tytul: "definicja nie niesie wycofanego zdania K4′", warunkowa: false },
   { nr: "28", tytul: "stan/ i migawki/ NIE są ignorowane przez gita", warunkowa: false },
   { nr: "29", tytul: "fala.mjs --test przechodzi", warunkowa: false },
+  { nr: "30", tytul: "jedna rola na środowisku :8892 naraz — okna W TRAKCIE ról NA_SRODOWISKU re-audytu tej samej fali rozłączne (C3)", warunkowa: true },
+  { nr: "31", tytul: "środowisko :8892 jest MIERZONE: migawka niesie pole srodowisko, srodowisko.mjs --test przechodzi", warunkowa: true },
 ];
 
 {
@@ -1228,6 +1232,115 @@ const WYCOFANE_K4 = odstepy("swobodny przegl[ąa]d nie da tego samego wyniku");
     }
   }
   if (zZakazem) uwagi.push(`definicji ze zdaniem zakazu innej fali: ${zZakazem}`);
+}
+
+/* ── 30. jedna rola na środowisku naraz — okna W TRAKCIE rozłączne (pozycja 7 E7.7, C3) ─
+   Pogłębiacz mierzy na `:8892` liczby (zapytania na odsłonę, wiersze, liczniki
+   przed/po), a druga rola pracująca w tym samym czasie te liczby zanieczyszcza
+   bez jednego objawu — dokładnie C3 z krytyki budowy. `status.mjs` odmawia
+   (odmowa 6), ale plik stanu dopisany ręcznie ominąłby narzędzie; ta reguła
+   pyta o HISTORIĘ: dwa stany ról `NA_SRODOWISKU` re-audytu TEJ SAMEJ fali
+   z NAKŁADAJĄCYMI SIĘ oknami W TRAKCIE = błąd. Okno otwiera wpis historii ze
+   statusem W TRAKCIE, zamyka pierwszy następny wpis z innym statusem; okno bez
+   zamknięcia trwa do teraz. Konstrukcja jak w regule 17: stan PRÓBNY wypada
+   spod reguły i jest wypisany po nazwie.
+
+   WŁASNA KOPIA listy `NA_SRODOWISKU` (jak reguła 21 trzyma własną tabelę
+   modeli): pomiar tą samą tablicą, która steruje `status.mjs`, nie mierzy
+   niczego. Rozjazd kopii z `wspolne.mjs` jest błędem tej reguły. */
+{
+  const NA_SRODOWISKU_KOPIA = [
+    "SEC", "FE", "BE", "BD", "QA", "PERF", "ARCH", "INT", "PRIV", "REPO", "WDR", "PROTO", "PIK", "USP",
+    "PSIARZ", "WALID",
+  ];
+  const zWspolnych = [...NA_SRODOWISKU].sort().join(",");
+  const kopia = [...NA_SRODOWISKU_KOPIA].sort().join(",");
+  if (zWspolnych !== kopia) {
+    blad(30, `lista NA_SRODOWISKU w wspolne.mjs (${zWspolnych}) różni się od kopii strażnika (${kopia}) — odmowa 6 status.mjs i ta reguła pilnowałyby różnych zbiorów ról`);
+  }
+  const KATALOG_STANU = join(SEKTOR, "stan");
+  const pliki = existsSync(KATALOG_STANU) ? readdirSync(KATALOG_STANU).filter((f) => f.endsWith(".json")) : [];
+  const stany = pliki.map((nazwa) => ({ nazwa, w: JSON.parse(readFileSync(join(KATALOG_STANU, nazwa), "utf8")) }))
+    .filter(({ w }) => w?.sektor === "re-audyt" && NA_SRODOWISKU_KOPIA.includes(w.rola));
+  if (!stany.length) {
+    pominiete.push("30. okna W TRAKCIE na środowisku — żadna rola NA_SRODOWISKU re-audytu nie ma jeszcze pliku stanu");
+  } else {
+    const probne = stany.filter(({ w }) => w.proba).map(({ nazwa, w }) => `${nazwa}/${w.proba}`);
+    /** Okna [od, do) W TRAKCIE z historii; `do` = Infinity, gdy okno nie zostało zamknięte. */
+    const okna = (w) => {
+      const wynik = [];
+      let od = null;
+      for (const h of w.historia ?? []) {
+        const t = Date.parse(h?.kiedy);
+        if (Number.isNaN(t)) continue; // czasy nie-ISO łapie reguła 17
+        if (h.status === "W TRAKCIE" && od === null) od = t;
+        else if (h.status !== "W TRAKCIE" && od !== null) { wynik.push([od, t]); od = null; }
+      }
+      if (od !== null) wynik.push([od, Infinity]);
+      return wynik;
+    };
+    const zOknami = stany.filter(({ w }) => !w.proba).map((s) => ({ ...s, okna: okna(s.w) }));
+    let sprawdzone = 0;
+    for (let i = 0; i < zOknami.length; i++) {
+      for (let j = i + 1; j < zOknami.length; j++) {
+        const a = zOknami[i];
+        const b = zOknami[j];
+        if (a.w.fala !== b.w.fala) continue;
+        sprawdzone++;
+        for (const [a0, a1] of a.okna) {
+          for (const [b0, b1] of b.okna) {
+            if (a0 < b1 && b0 < a1) {
+              const iso = (t) => (t === Infinity ? "teraz" : new Date(t).toISOString());
+              blad(30,
+                `stany ${a.nazwa} i ${b.nazwa}: ${a.w.rola} W TRAKCIE ${iso(a0)}–${iso(a1)} i ${b.w.rola} W TRAKCIE ${iso(b0)}–${iso(b1)} ` +
+                `NAKŁADAJĄ SIĘ w fali ${a.w.fala} — dwie role na środowisku :8892 naraz zanieczyszczają sobie liczby (C3; jedna rola naraz, potem zrzut i przywrócenie)`
+              );
+            }
+          }
+        }
+      }
+    }
+    uwagi.push(`par stanów ról NA_SRODOWISKU sprawdzonych na nakładanie okien: ${sprawdzone}`);
+    if (probne.length) uwagi.push(`stany PRÓBNE (poza regułą 30): ${probne.join(", ")}`);
+  }
+}
+
+/* ── 31. środowisko :8892 jest MIERZONE (pozycja 7 E7.7) ──────────────────
+   Dwie połowy jednej rzeczy: bez pola `srodowisko` w migawce rozjazd danych
+   środowiska (wiersz dopisany, zamówienie-widmo, sierota w Tutorze) jest dla
+   W6 niewidzialny — migawka bez tego pola jest sprzed pozycji 7 i nie mierzy
+   W6 na środowisku. Pole niesie LICZNIKI (skrót 64 hex, nasze tabele, media)
+   albo DOSŁOWNE „niedostępne" — nigdy pominięcie, nigdy cokolwiek innego.
+   Druga połowa: `srodowisko.mjs --test` (zrzut → zmiana → przywrócenie →
+   liczniki równe, asercja liczników odrzuca podrobiony zrzut, `--sprawdz` pyta
+   o zrzut bazowy, `finally` sprząta po padnięciu) — szósty bliźniak reguł
+   9/15/25/26/29; bez kontenera narzędzie mówi „pominięte" i tak samo mówi ta
+   reguła. */
+{
+  const KATALOG_MIGAWEK = join(SEKTOR, "migawki");
+  const PRAWIDLOWE = (s) =>
+    s === "niedostępne"
+    || (s !== null && typeof s === "object" && /^[0-9a-f]{64}$/.test(String(s.skrot_tabel)) && typeof s.nasze === "object" && typeof s.media === "object");
+  let migawek = 0;
+  for (const nazwa of ["przed.json", "po.json"]) {
+    const sciezka = join(KATALOG_MIGAWEK, nazwa);
+    if (!existsSync(sciezka)) continue;
+    migawek++;
+    const m = JSON.parse(readFileSync(sciezka, "utf8"));
+    if (m.srodowisko === undefined) {
+      blad(31, `migawka audyt/migawki/${nazwa} NIE MA pola srodowisko — to migawka sprzed pozycji 7, która nie mierzy W6 na środowisku :8892 (zapisz ją ponownie: migawka-wartosci.mjs --zapisz=${nazwa.replace(".json", "")})`);
+    } else if (!PRAWIDLOWE(m.srodowisko)) {
+      blad(31, `migawka audyt/migawki/${nazwa}: pole srodowisko nie jest ani licznikami (skrot_tabel, nasze, media), ani dosłownym „niedostępne" — jest: ${JSON.stringify(m.srodowisko).slice(0, 60)}`);
+    }
+  }
+  if (!migawek) pominiete.push("31. migawki — brak audyt/migawki/przed.json (powstaje przed pierwszą falą)");
+  else uwagi.push(`migawek z polem srodowisko sprawdzonych: ${migawek}`);
+
+  const r = spawnSync("node", ["audyt/tools/srodowisko.mjs", "--test"], { cwd: KORZEN, encoding: "utf8" });
+  const wyjscie = (r.stdout ?? "") + (r.stderr ?? "");
+  if (r.status !== 0) blad(31, "srodowisko.mjs --test NIE przechodzi — zrzut, przywrócenie i liczniki środowiska :8892 są bez bramki");
+  else if (/pominięte/.test(wyjscie)) pominiete.push("31. srodowisko.mjs --test — kontener bazy nie stoi, samokontrola pominięta");
+  else uwagi.push("srodowisko.mjs: samokontrola zaliczona");
 }
 
 /* ── wynik ── */

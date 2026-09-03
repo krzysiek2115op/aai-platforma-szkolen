@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; zrobione 8, 1, 2, 3, 4a, 4b, 6 — zostały 5 i 7)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
+| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -461,14 +461,18 @@ został URUCHOMIONY. Trwa pakiet E7.7 — poprawki wiarygodności przed E8 (STOP
 i zielone światło na przebieg). Zrobione: 8, 1, 2, 3, 4a, **4b + 6** (2026-09-02, noc — jedno
 przejście po 80 definicjach; odpowiedzi właściciela na pięć pytań NIE były zapisane,
 kod poszedł po rekomendacjach — **do potwierdzenia**, sekcja „POZYCJE 4b + 6"),
-**5** (2026-09-03 — macierz reguła → mutacja; sekcja „POZYCJA 5 — ZROBIONA").
-Została: **7** (re-audyt sekwencyjnie na środowisku) — **projekt ZAAKCEPTOWANY
-2026-09-03 („potwierdzam rekomendacje")**, kod po `/clear`. Dopiero potem E8. Katalog `re-audyt/` jest MAŁY z decyzji,
+**5** (2026-09-03 — macierz reguła → mutacja; sekcja „POZYCJA 5 — ZROBIONA"),
+**7** (2026-09-03 — re-audyt sekwencyjnie na środowisku: `srodowisko.mjs`, odmowa 6,
+reguły 30/31, `KIER-00`; sekcja „POZYCJA 7 — ZROBIONA"). **Pakiet E7.7 jest KOMPLETNY.
+NASTĘPNY KROK: E8 = STOP — zielone światło właściciela na przebieg**; do potwierdzenia
+przez niego zostają założenia pozycji 4b + 6 (sekcja „POZYCJE 4b + 6"). Przed przebiegiem
+kierownik re-audytu robi `srodowisko.mjs --sprawdz --fala=1` i `--zrzut=f1-baza`, a kierownik
+audytu zapisuje migawkę `przed` od nowa (obecna jest z próby E7.6 z dopisanym polem). Katalog `re-audyt/` jest MAŁY z decyzji,
 nie z braku: ma tylko to, co jest RÓŻNE od audytu (`ROLE.md` 21 ról, `GRANICE.md`,
 `role/` 84 pliki); narzędzia, zgłoszenia, stan, migawki, szablony i dokumenty są
 WSPÓLNE i mieszkają w `audyt/` (rozstrzygnięcie 2026-09-01: jeden nośnik, W4 — inaczej
 `polacz-sektory` nie połączyłoby fal po haszu). Pomiar `git ls-files`: `re-audyt/` 86
-plików, `audyt/` 114 (w tym `role/` 76, `tools/` 13, dokumenty 25).
+plików, `audyt/` 116 (w tym `role/` 76, `tools/` 15, dokumenty 25; pomiar po pozycji 7).
 
 ## Co dokładnie obejmuje E6 (nie wyprowadzać od nowa)
 
@@ -1408,7 +1412,7 @@ gicie, zanim wejdzie do procedury). Największe ryzyko: sparse checkout, który
 „działa" w lekturze dokumentacji, a nie chowa plików — dlatego egzekwuje go
 `status.mjs` po POLU `fala`, nie zaufanie do gita.
 
-#### PAKIET E7.7, POZYCJA 7 — PROJEKT ZAAKCEPTOWANY (2026-09-03: „potwierdzam rekomendacje"), KOD PO `/clear`
+#### PAKIET E7.7, POZYCJA 7 — ZROBIONA 2026-09-03 (projekt zaakceptowany tego dnia: „potwierdzam rekomendacje"; projekt niżej, WYNIK na końcu sekcji)
 
 **ROZSTRZYGNIĘCIA WŁAŚCICIELA (2026-09-03) = sześć rekomendacji niżej, co do słowa:**
 (1) sekwencja egzekwowana **narzędziem** (`status.mjs` odmowa 6 + reguła 30); (2) „jedna
@@ -1538,6 +1542,31 @@ sektorze — przywracanie idzie do schematu TYMCZASOWEGO, asercja liczników, do
 `RENAME`/podmiana, nigdy „drop, potem import"; (3) kolizja z `smoke-wp-*` z `main`
 (bramki projektu też piszą na `:8892`) — nie ruszamy, ale `--sprawdz` melduje żywy proces
 `smoke-wp` jako „ktoś inny pracuje na środowisku".
+
+**WYNIK — ZROBIONE 2026-09-03 (kod po `/clear`, sześć kroków projektu co do punktu, jeden commit + przeniesienie na gałąź audytu):**
+
+| Krok | Skutek zmierzony |
+|---|---|
+| 1. `audyt/tools/srodowisko.mjs` | `--liczniki` (JEDNO zapytanie `UNION ALL` z `COUNT(*)` na każdej z 80 tabel + `AUTO_INCREMENT`, media liczone: 1348 plików / bajty / sha256 listy `ścieżka:rozmiar`, wtyczki i wersje z `wp plugin list --format=json`); `--zrzut=<nazwa>` (`mariadb-dump --single-transaction --routines --triggers` z kontenera do `~/.cache/aai-kopie/audyt/<nazwa>.sql`, liczniki PRZED i PO zrzucie muszą być równe, `<nazwa>.json` obok i kopia w `audyt/migawki/srodowisko-<nazwa>.json`); `--przywroc=<nazwa>` (odmowa bez zrzutu → import do `proba_przywroc_<pid>` → asercja liczników tabel wobec zapisanych → podmiana JEDNYM `RENAME TABLE` → schematy pomocnicze kasowane w `finally`; media rozjechane po podmianie = kod 1); `--sprawdz --fala=N` = KIER-00 (5 kontenerów przez `podman inspect`, `:8892` 200, 5 wtyczek, zrzut bazowy `fN-baza` istnieje I liczniki żywej bazy mu odpowiadają, w fali 2 worktree, cudzy proces `smoke-wp`/`przelot-calosc`/`postaw.sh` = „ktoś inny pracuje", `:3001` tylko meldowany); `--stoi` (dla bramek warunkowych); `--test` warunkowy (bez kontenera „pominięte", kod 0) na schemacie `proba_srodowisko_<pid>` z tabelami z KLUCZEM OBCYM: zrzut → zmiana (3 wiersze + `DROP TABLE`) → przywrócenie → liczniki równe, `AUTO_INCREMENT` wrócił, klucz obcy dalej odrzuca sierotę; podrobiony `.json` → odmowa i cel nietknięty; `--sprawdz` bez zrzutu → kod 1 z ✗ przy zrzucie bazowym; **`--test --padnij` w podprocesie dowodzi, że po padnięciu schemat próbny ZNIKA** (`finally`); `COUNT(*)` liczników porównany z NIEZALEŻNYM `COUNT(*)` na 13 tabelach |
+| 2. migawka | pole `srodowisko` = `{ skrot_tabel, tabel, nasze (9 tabel wp_aai_*), media, wtyczki_aktywne, wersje }` albo DOSŁOWNE `"niedostępne"` (powód drukowany przy `--zapisz`); `--porownaj` porównuje obiekty przez JSON, opisuje rozjazd środowiska PO LUDZKU (która z naszych tabel, o ile; media; wtyczki), a „niedostępne"/brak pola po którejkolwiek stronie = kod 1. Obie migawki z próby E7.6 dostały pole z pomiaru żywego środowiska 2026-09-03 i adnotację (zostają historią; przed pierwszą falą kierownik zapisuje `przed` od nowa) |
+| 3. `KIER-00` | wiersz w `re-audyt/ROLE.md` i `re-audyt/role/KIER/AGENT.md` (reguła 13 obie strony); bez litery `R` celowo — bramka wejścia, nie pozycja audytu (nazwane w ROLE.md); nowa sekcja „Przebieg na środowisku `:8892`" w `re-audyt/ROLE.md` (tabela kiedy → komenda → po co); procedura KIER (AGENT „Sekwencja na środowisku", SKILL kroki 1 i 4, komendy, dwie pułapki). Kierownik AUDYTU nietknięty. Podsumowanie ról: 121 → **122** pozycje |
+| 4. `status.mjs` odmowa 6 | w czystej `powodyOdmowyStanu()`: rola `NA_SRODOWISKU` re-audytu nie wchodzi w W TRAKCIE, gdy inna z listy TEJ SAMEJ fali jest W TRAKCIE (stan próbny nie blokuje) — odmowa nazywa rolę i podaje trzy komendy (jej ZAKOŃCZONE, `--zrzut=fN-<KOD>-po`, `--przywroc=fN-baza`); druga połowa (rozstrzygnięcie 6) w czystej `powodyOdmowySrodowiska()`: migawka „niedostępne" albo bez pola → odmowa TYLKO rolom `NA_SRODOWISKU`, z komendą `--sprawdz --fala=N` i ponownym `--zapisz=przed`. `--test`: +18 przypadków czystych, +4 CLI (PSIARZ blokowany przez SEC → kod 1, po ZAKOŃCZONE SEC kod 0; WALID przy „niedostępne" kod 1, KON kod 0). **Reguła 30** strażnika: własna kopia listy porównana z `wspolne.mjs`, okna W TRAKCIE z HISTORII plików stanu (otwarte = do teraz), pary tej samej fali, stan próbny wypisany poza regułą; warunkowa |
+| 5. **Reguła 31** | `przed.json`/`po.json`, jeśli istnieją, niosą `srodowisko` = liczniki (skrót 64 hex + `nasze` + `media`) albo dosłowne „niedostępne" — cokolwiek innego i brak pola = błąd; druga połowa: `srodowisko.mjs --test` (szósty bliźniak 9/15/25/26/29), „pominięte" bez kontenera |
+| 6. mutacje | audyt **131 → 146** (15 nowych, każda z `regula:`): odmowa 6 zdjęta (→ R26), „niedostępne" zdjęte (→ R26), lista `NA_SRODOWISKU` bez WALID (→ R26 + R30 — rozjazd kopii), dwa nakładające się okna (PSIARZ+WALID; PSIARZ+Pogłębiacz SEC z działem audytu zakończonym wcześniej → R30, nie 17) + **cztery kontrprzykłady R30** (okna rozłączne KIER-R1, KON obok PSIARZA, stan próbny, dwa działy AUDYTU naraz), migawka bez pola i pole = 5 (→ R31) + kontrprzykład „niedostępne", **trzy mutacje `srodowisko.mjs`** (przywracanie bez asercji, `table_rows` zamiast `COUNT(*)`, `--sprawdz` bez pytania o zrzut → R31) z NOWYM polem `wymagaSrodowiska` (bez kontenera bazy pomijane I policzone, jak `wymaga`). Mutacji `finally` NIE ma celowo: zostawiałaby na żywej bazie schemat próbny rodzica — klasa „bramka sprzątająca cudze dane"; `finally` dowodzi każdy `--test` przez `--padnij` |
+
+**Sześć rzeczy ZMIERZONYCH przy kodzie (poza projektem), nie wyprowadzać od nowa:**
+- **`AUTO_INCREMENT` `wp_options` rośnie od SAMYCH ODCZYTÓW** — transienty przy każdym żądaniu HTTP i przy każdym `wp plugin list` (`_site_transient_update_plugins`); pięć odczytów → `2720 → 2722`, liczba wierszy bez zmian, sześć sekund ciszy → nic. Pierwsza samokontrola padła na własnym pomiarze („ktoś pisze do środowiska"). Ten JEDEN licznik (`ULOTNE_AUTO_INCREMENT`) jest poza porównaniami i skrótem, zapisywany i widoczny; wiersze `wp_options` porównywane jak każde inne;
+- **`RENAME TABLE a.t TO b.t, …` przenosi klucze obce razem z tabelą** (eksperyment: FK wskazuje potem schemat `b`, wstawienie sieroty pada), zachowuje `AUTO_INCREMENT` i jest jednym zdaniem atomowym — 9 kluczy obcych w bazie należy do Tutora (`wp_tutor_*`), triggerów 0, widoków 0, procedur 0; grant `wordpress@%` jest na `wordpress.*`, więc podmiana tabel nie rusza uprawnień;
+- zrzut `mariadb-dump wordpress` (bez `--databases`) **nie niesie `USE` ani `CREATE DATABASE`** — narzędzie asertuje to przy każdym zrzucie;
+- `wp plugin list --skip-plugins --skip-themes` daje TEN SAM wynik (porównany co do bajtu) w ~0,7 s zamiast ~1,5 s — strażnik uruchamia `--test` przy każdej mutacji;
+- **samokontrola zostawiła artefakt w repo**: `--zrzut` z CLI szedł z `--katalog-zrzutow=<tmp>`, ale liczniki pisał do `audyt/migawki/` (`srodowisko-f1-baza.json`); złapane `git status`, nie testem — od teraz `--katalog-zrzutow` przekierowuje TAKŻE liczniki, a dodatnia strona KIER-00 idzie w procesie samokontroli;
+- goldeny KIER obu sektorów wskazywały `status.mjs:270` — po dopisaniu odmowy 6 linia przesunęła się na 325 i reguła 11 zapaliła się na obu; numer linii jest dowodem, nie kluczem (H1), więc poprawka to nowy numer, nie nowy hash.
+
+**Koszt czasu, zmierzony:** `srodowisko.mjs --test` ~9 s, strażnik sektora ~13 s (był ~4 s), pełny audyt mutacyjny ~~38 min na gałęzi.
+
+**Dowody na gałęzi re-audytu:** `git diff main --name-only -- . ':!audyt' ':!re-audyt'` → 0; strażnik kod 0 (32 numery w `--reguly`; R30 „par sprawdzonych: 0" + stany próbne wypisane; R31 „migawek: 2, samokontrola zaliczona"); `status.mjs --test`, `srodowisko.mjs --test` kod 0; audyt celowany 16/0/0; audyt mutacyjny ****146 mutacji, 0 przeoczonych, 0 martwych, macierz 32/32 reguł z mutacją (R30: 3 mutacje + 4 kontrprzykłady, R31: 5 + 1), bez materiału 0, kod 0****. **Na gałęzi audytu** (worktree, `git checkout <commit> -- audyt`, generat od nowa): strażnik kod 0 (pominięte 7, 12, 20 — sektor re-audyt; R30 i R31 z materiałem), audyt mutacyjny **146 / 0 / 0**, 7 mutacji pominiętych (`wymaga`), macierz 31 z 32 reguł z mutacją, R20 „bez materiału", R7 i R12 „częściowo", **R30 3 + 4 i R31 5 + 1 na obu gałęziach**, kod 0, 34 min (04:33–05:07).
+
+**Czego pozycja 7 NIE zrobiła (zgodnie z projektem):** nie zmieniła checklist Pogłębiaczy; nie ruszyła `postaw.sh` ani `compose.yml`; nie stawia `:3001`; nie kopiuje mediów; nie uruchomiła sektora; nie skasowała danych dowodowych (zrzut bazowy je zawiera). **Zrzutu `f1-baza` jeszcze NIE MA** — powstaje na starcie fali, komendą kierownika, po zielonym świetle.
 
 #### PAKIET E7.7, POZYCJA 5 — ZROBIONA 2026-09-03 (projekt zaakceptowany tego dnia: „akceptuję wszystkie 5 rekomendacji"; projekt niżej, WYNIK na końcu sekcji)
 

@@ -59,6 +59,8 @@ const ZGLOSZENIE = "audyt/tools/zgloszenie.mjs";
 const MAPA = "audyt/tools/mapa.mjs";
 const WERDYKT = "audyt/tools/werdykt.mjs";
 const STATUS = "audyt/tools/status.mjs";
+const SRODOWISKO = "audyt/tools/srodowisko.mjs";
+const MIGAWKA_PRZED = "audyt/migawki/przed.json";
 const STRAZNIK = "audyt/tools/straznik-sektora-audytu.mjs";
 /** Plik podkładany POZA `audyt/` na czas mutacji niezmiennika sektora. */
 const SMIEC_RE = join(KORZEN, "re-audyt", "PROBA-NIEZMIENNIKA.md");
@@ -1484,7 +1486,158 @@ MUTACJE_ROLI.push(
   },
 );
 
-const maMaterial = (m) => !m.wymaga || existsSync(P(m.wymaga));
+/**
+ * ŚRODOWISKO `:8892` JAKO MATERIAŁ (pozycja 7 E7.7). Mutacje `srodowisko.mjs`
+ * zapalają regułę 31 przez `--test`, który bez kontenera bazy mówi „pominięte"
+ * — więc bez kontenera mutacja NIE ma materiału i jest pomijana I POLICZONA,
+ * jak `wymaga` dla pliku. Pytamy raz na przebieg, narzędzie samo (`--stoi`).
+ */
+const SRODOWISKO_STOI = spawnSync("node", [SRODOWISKO, "--stoi"], { cwd: KORZEN, encoding: "utf8" }).status === 0;
+const maMaterial = (m) => (!m.wymaga || existsSync(P(m.wymaga))) && (!m.wymagaSrodowiska || SRODOWISKO_STOI);
+const czegoBrak = (m) => m.wymaga && !existsSync(P(m.wymaga)) ? m.wymaga : "środowiska :8892 (kontener bazy nie stoi)";
+
+/* ── mutacje pozycji 7 pakietu E7.7 (2026-09-03): jedna rola na środowisku naraz,
+   środowisko mierzone ─────────────────────────────────────────────────────── */
+
+/** Wiele plików stanu naraz (reguła 30 porównuje PARY stanów tego samego sektora). */
+const SMIECI_STANOW = [0, 1, 2].map((i) => join(SEKTOR, "stan", `audyt-f2-PROBA-${i}.json`));
+function mutacjaStanow(lista) {
+  mkdirSync(join(SEKTOR, "stan"), { recursive: true });
+  lista.forEach((z, i) => writeFileSync(SMIECI_STANOW[i], JSON.stringify(atrapaStanu(z), null, 2)));
+  try {
+    return straznikCzerwony();
+  } finally {
+    for (const p of SMIECI_STANOW) rmSync(p, { force: true });
+  }
+}
+const naSrodowisku = (rola, od, do_ = null, reszta = {}) => ({
+  sektor: "re-audyt", rola, status: do_ ? "ZAKOŃCZONE" : "W TRAKCIE", runda: 1, niedomkniete: [],
+  historia: do_ ? [wpis("W TRAKCIE", 1, od), wpis("ZAKOŃCZONE", 1, do_)] : [wpis("W TRAKCIE", 1, od)],
+  kiedy: do_ ?? od, ...reszta,
+});
+const jsonPrzez = (fn) => (s) => { const m = JSON.parse(s); fn(m); return JSON.stringify(m, null, 2) + "\n"; };
+
+MUTACJE.push(
+  {
+    opis: "status.mjs wpuszcza drugą rolę NA_SRODOWISKU na :8892, gdy pierwsza jest W TRAKCIE (odmowa 6, C3)",
+    regula: 26,
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace("    if (blokuje) {\n      powody.push(", "    if (false) {\n      powody.push("),
+  },
+  {
+    opis: "status.mjs wpuszcza rolę NA_SRODOWISKU przy migawce „niedostępne” (rozstrzygnięcie 6)",
+    regula: 26,
+    plik: STATUS,
+    slad: /status\.mjs --test/,
+    zmien: (s) => s.replace('  if (s !== undefined && s !== "niedostępne") return [];', "  return [];"),
+  },
+  {
+    opis: "lista NA_SRODOWISKU traci WALID — odmowa 6 i reguła 30 pilnowałyby różnych zbiorów ról",
+    regula: [26, 30],
+    plik: WSPOLNE,
+    slad: /lista NA_SRODOWISKU w wspolne\.mjs .* różni się od kopii strażnika/,
+    zmien: (s) => s.replace('export const NA_SRODOWISKU = [...DZIALY, "PSIARZ", "WALID"];', 'export const NA_SRODOWISKU = [...DZIALY, "PSIARZ"];'),
+  },
+  {
+    opis: "migawka przed.json BEZ pola srodowisko — migawka sprzed pozycji 7 nie mierzy W6 na :8892 (reguła 31)",
+    regula: 31,
+    plik: MIGAWKA_PRZED,
+    slad: /przed\.json NIE MA pola srodowisko/,
+    zmien: jsonPrzez((m) => { delete m.srodowisko; }),
+  },
+  {
+    opis: "pole srodowisko w przed.json jest liczbą — ani liczniki, ani „niedostępne” (reguła 31)",
+    regula: 31,
+    plik: MIGAWKA_PRZED,
+    slad: /nie jest ani licznikami .* ani dosłownym „niedostępne"/,
+    zmien: jsonPrzez((m) => { m.srodowisko = 5; }),
+  },
+  {
+    opis: "KONTRPRZYKŁAD: dosłowne „niedostępne” w polu srodowisko NIE zapala reguły 31 (jawny stan, nie pominięcie)",
+    regula: 31,
+    oczekujCzerwonego: false,
+    plik: MIGAWKA_PRZED,
+    zmien: jsonPrzez((m) => { m.srodowisko = "niedostępne"; }),
+  },
+  {
+    opis: "srodowisko.mjs przywraca zrzut BEZ asercji liczników w schemacie tymczasowym — podrobiony zrzut wjeżdża do bazy",
+    regula: 31,
+    wymagaSrodowiska: true,
+    plik: SRODOWISKO,
+    slad: /srodowisko\.mjs --test NIE przechodzi/,
+    zmien: (s) => s.replace("    const roznice = porownajTabele(zapisane.tabele, wTmp);\n    if (roznice.length) {", "    const roznice = porownajTabele(zapisane.tabele, wTmp);\n    if (false) {"),
+  },
+  {
+    opis: "srodowisko.mjs liczy wiersze z information_schema.table_rows zamiast COUNT(*) — szacunek InnoDB kłamie (wp_postmeta 1866 wobec 1786)",
+    regula: 31,
+    wymagaSrodowiska: true,
+    plik: SRODOWISKO,
+    slad: /srodowisko\.mjs --test NIE przechodzi/,
+    zmien: (s) => s.replace(
+      "  const wiersze = sql(union);",
+      "  const wiersze = sql(`SELECT table_name, IFNULL(table_rows, 0) FROM information_schema.tables WHERE table_schema='${schemat}' AND table_type='BASE TABLE'`);",
+    ),
+  },
+  {
+    opis: "srodowisko.mjs --sprawdz nie pyta o zrzut bazowy fali — KIER-00 zielone bez stanu, do którego można wrócić",
+    regula: 31,
+    wymagaSrodowiska: true,
+    plik: SRODOWISKO,
+    slad: /srodowisko\.mjs --test NIE przechodzi/,
+    zmien: (s) => s.replace("  const zrzutJest = existsSync(pliki.sql) && existsSync(pliki.json);", "  const zrzutJest = true;"),
+  },
+);
+
+MUTACJE_ROLI.push(
+  {
+    opis: "dwa stany ról NA_SRODOWISKU re-audytu tej samej fali z NAKŁADAJĄCYMI SIĘ oknami W TRAKCIE (PSIARZ i WALID, oba otwarte) — reguła 30",
+    regula: 30,
+    wykonaj: () => mutacjaStanow([naSrodowisku("PSIARZ", T[0]), naSrodowisku("WALID", T[1])]),
+    slad: /PSIARZ W TRAKCIE .* i WALID W TRAKCIE .* NAKŁADAJĄ SIĘ/,
+  },
+  {
+    opis: "Pogłębiacz SEC wchodzi, gdy PSIARZ jest W TRAKCIE (okna nakładają się; dział SEC audytu zakończony wcześniej) — reguła 30, nie 17",
+    regula: 30,
+    wykonaj: () => mutacjaStanow([
+      { sektor: "audyt", rola: "SEC", status: "ZAKOŃCZONE", runda: 1, niedomkniete: [], historia: [wpis("W TRAKCIE", 1, T[0]), wpis("ZAKOŃCZONE", 1, T[1])], kiedy: T[1] },
+      naSrodowisku("PSIARZ", T[2]),
+      naSrodowisku("SEC", T[3]),
+    ]),
+    slad: /PSIARZ W TRAKCIE .* i SEC W TRAKCIE .* NAKŁADAJĄ SIĘ/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: okna ROZŁĄCZNE (SEC zakończył, potem wszedł PSIARZ — kolejność KIER-R1) NIE zapalają reguły 30",
+    regula: 30,
+    oczekujCzerwonego: false,
+    wykonaj: () => mutacjaStanow([
+      { sektor: "audyt", rola: "SEC", status: "ZAKOŃCZONE", runda: 1, niedomkniete: [], historia: [wpis("ZAKOŃCZONE", 1, T[0])], kiedy: T[0] },
+      naSrodowisku("SEC", T[1], T[2]),
+      naSrodowisku("PSIARZ", T[3]),
+    ]),
+  },
+  {
+    opis: "KONTRPRZYKŁAD: rola procesowa na plikach (KON) równolegle z PSIARZEM NIE zapala reguły 30",
+    regula: 30,
+    oczekujCzerwonego: false,
+    wykonaj: () => mutacjaStanow([naSrodowisku("KON", T[0]), naSrodowisku("PSIARZ", T[1])]),
+  },
+  {
+    opis: "KONTRPRZYKŁAD: stan PRÓBNY nakładający się na PSIARZA NIE zapala reguły 30 (wypada spod reguły, wypisany)",
+    regula: 30,
+    oczekujCzerwonego: false,
+    wykonaj: () => mutacjaStanow([naSrodowisku("PSIARZ", T[0]), naSrodowisku("WALID", T[1], null, { proba: "E7.7" })]),
+  },
+  {
+    opis: "KONTRPRZYKŁAD: dwa działy AUDYTU (lektura, nie środowisko) W TRAKCIE naraz NIE zapalają reguły 30",
+    regula: 30,
+    oczekujCzerwonego: false,
+    wykonaj: () => mutacjaStanow([
+      { sektor: "audyt", rola: "SEC", status: "W TRAKCIE", runda: 1, niedomkniete: [], historia: [wpis("W TRAKCIE", 1, T[0])], kiedy: T[0] },
+      { sektor: "audyt", rola: "BE", status: "W TRAKCIE", runda: 1, niedomkniete: [], historia: [wpis("W TRAKCIE", 1, T[1])], kiedy: T[1] },
+    ]),
+  },
+);
 
 /* ── REGUŁA ZADEKLAROWANA = REGUŁA ZAPALONA (pakiet E7.7, pozycja 5, 2026-09-03) ─
    Do tej pozycji audyt wiedział tylko, ŻE strażnik się zapalił (kod ≠ 0) i czy
@@ -1634,7 +1787,7 @@ function ocen(m, { czerwony, wyjscie, nicNieZmienila }) {
 }
 
 function pomin(m) {
-  process.stdout.write(`  – pominięta (brak ${m.wymaga} na tej gałęzi): ${m.opis}\n`);
+  process.stdout.write(`  – pominięta (brak ${czegoBrak(m)} na tej gałęzi): ${m.opis}\n`);
   pominiete++;
   for (const nr of deklaracja(m)?.wszystkie ?? []) pominieteWymaga.set(nr, pominieteWymaga.get(nr) + 1);
 }
@@ -1687,6 +1840,7 @@ try {
   rmSync(SMIEC_WER, { force: true });
   rmSync(SMIEC_STAN, { force: true });
   rmSync(SMIEC_STAN_2, { force: true });
+  for (const p of SMIECI_STANOW) rmSync(p, { force: true });
 }
 
 const razem = TYLKO

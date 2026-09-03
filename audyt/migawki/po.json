@@ -9,5 +9,65 @@
   "bramek_smoke": 16,
   "goldenow": 9,
   "plikow_produktu": 919,
-  "skrot_produktu": "ad03ea833dab9abb91e79856804119663747b379c47ea6a396919d139ce4582b"
+  "skrot_produktu": "ad03ea833dab9abb91e79856804119663747b379c47ea6a396919d139ce4582b",
+  "srodowisko": {
+    "skrot_tabel": "258d9b45d8a22c440196485168b95647eba4b18a96ba42631e77bd9cc7647d9c",
+    "tabel": 80,
+    "nasze": {
+      "wp_aai_monitor_logowania": {
+        "wierszy": 21,
+        "auto_increment": 267
+      },
+      "wp_aai_monitor_wizyty": {
+        "wierszy": 17,
+        "auto_increment": 146
+      },
+      "wp_aai_platnosci_dostawy": {
+        "wierszy": 0,
+        "auto_increment": 465
+      },
+      "wp_aai_platnosci_powiazania": {
+        "wierszy": 2,
+        "auto_increment": null
+      },
+      "wp_aai_sklep_changelog": {
+        "wierszy": 1447,
+        "auto_increment": 1448
+      },
+      "wp_aai_sklep_courses": {
+        "wierszy": 2,
+        "auto_increment": null
+      },
+      "wp_aai_sklep_lessons": {
+        "wierszy": 73,
+        "auto_increment": null
+      },
+      "wp_aai_sklep_modules": {
+        "wierszy": 12,
+        "auto_increment": null
+      },
+      "wp_aai_sklep_sections": {
+        "wierszy": 22,
+        "auto_increment": null
+      }
+    },
+    "media": {
+      "plikow": 1348,
+      "bajtow": 32040025,
+      "skrot": "107256d820683ac03bc02c4d7ce9d92de877af823def0b16b513a3510aae1301"
+    },
+    "wtyczki_aktywne": [
+      "aai-monitor",
+      "aai-platnosci",
+      "aai-sklep",
+      "tutor",
+      "woocommerce"
+    ],
+    "wersje": {
+      "wordpress": "6.9.4",
+      "tutor": "4.0.7",
+      "woocommerce": "11.0.1"
+    }
+  },
+  "adnotacja": "migawka z próby E7.6 (2026-09-02); pole srodowisko dopisane 2026-09-03 przy pozycji 7 pakietu E7.7 z pomiaru ŻYWEGO środowiska w tym dniu (srodowisko.mjs) — przed pierwszą falą kierownik zapisuje migawkę od nowa"
 }
