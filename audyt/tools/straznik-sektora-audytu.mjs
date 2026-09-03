@@ -29,6 +29,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   DZIALY, KOD_POZYCJI, KOD_PROBNY, KORZEN, PREFIKS_AGENTA, PREFIKS_ID, SEKTOR, SEKTORY,
   hashMiejsca, katalogSektora, roleMdSektora, roleSektora, wszystkieZgloszenia, znacznikModelu,
@@ -67,6 +68,94 @@ const bledy = [];
 const pominiete = [];
 const uwagi = [];
 
+/**
+ * TABLICA REGUŁ — jedyne źródło listy kontroli dla audytu mutacyjnego
+ * (pakiet E7.7, pozycja 5, rozstrzygnięcie właściciela 4: tablica + samokontrola,
+ * nie parsowanie źródła strażnika przez audyt — to byłby wzorzec na napis w nowym
+ * przebraniu). Każdy komunikat błędu niesie prefiks `R<nr>:` (pomocnik `blad()`),
+ * więc audyt wie, KTÓRA reguła się zapaliła, a nie tylko, że jakaś.
+ *
+ * `warunkowa` = reguła mówi „pominięte", gdy na gałęzi nie ma materiału.
+ *
+ * SAMOKONTROLA PRZY STARCIE: każdy numer z tablicy ma nagłówek sekcji
+ * `/* ── N.` w tym pliku i odwrotnie, a `warunkowa` zgadza się z obecnością
+ * `pominiete.push` w sekcji. Lista nie może rozjechać się z kodem po cichu —
+ * inaczej audyt liczyłby macierz wobec reguł, których nie ma. Reguła 27 ma dwie
+ * etykiety (`R27`, `R27b`) w jednej sekcji.
+ */
+export const REGULY = [
+  { nr: "1", tytul: "gałąź sektora nie zmienia kodu produktu (D7, W2)", warunkowa: false },
+  { nr: "2", tytul: "każda rola ma krytyka (D3)", warunkowa: true },
+  { nr: "3", tytul: "komplet pięciu elementów §5 w AGENT.md", warunkowa: true },
+  { nr: "4", tytul: "generat aktualny wobec źródła (D1)", warunkowa: true },
+  { nr: "5", tytul: "każde zgłoszenie ma dowód, kod i miejsce", warunkowa: false },
+  { nr: "6", tytul: "trzy zasady nadrzędne DOSŁOWNIE w każdej definicji (W9)", warunkowa: true },
+  { nr: "7", tytul: "mechaniczny zakres, checklista ≥ 5 pozycji, pozycja otwarta -90 (K4″)", warunkowa: true },
+  { nr: "8", tytul: "mapa pokrycia bez sierot (W6, K2)", warunkowa: false },
+  { nr: "9", tytul: "zgloszenie.mjs --test przechodzi", warunkowa: false },
+  { nr: "10", tytul: "trzynaście zasad Goldena DOSŁOWNIE w AGENT.md i KRYTYK.md", warunkowa: true },
+  { nr: "11", tytul: "golden roli jest MIARĄ, nie prozą", warunkowa: true },
+  { nr: "12", tytul: "komplet plików roli i brak ról-sierot", warunkowa: true },
+  { nr: "13", tytul: "checklista roli zgodna z ROLE.md w OBIE strony", warunkowa: true },
+  { nr: "14", tytul: "generat nie niesie martwych odsyłaczy", warunkowa: true },
+  { nr: "15", tytul: "werdykt.mjs --test przechodzi", warunkowa: false },
+  { nr: "16", tytul: "ZWERYFIKOWANE tylko z kompletem werdyktów; próba nazwana", warunkowa: false },
+  { nr: "17", tytul: "stan roli mówi prawdę: kody, runda, fala, historia, kolejność sektorów", warunkowa: true },
+  { nr: "18", tytul: "krytyk, który MA zgłaszać, wie CZYM", warunkowa: true },
+  { nr: "19", tytul: "identyfikator zgłoszenia zgodny z sektorem i falą (19′)", warunkowa: true },
+  { nr: "20", tytul: "zakres Pogłębiacza IDENTYCZNY z zakresem działu audytu", warunkowa: true },
+  { nr: "21", tytul: "model generatu zgodny z ROLE.md (D8)", warunkowa: true },
+  { nr: "22", tytul: "moduł krytyka wskazuje zgłoszenia SWOJEGO sektora", warunkowa: false },
+  { nr: "23", tytul: "hash wpisu zgodny z PRZELICZONYM z miejsca (H1)", warunkowa: true },
+  { nr: "24", tytul: "SZABLON goldena też jest miarą", warunkowa: false },
+  { nr: "25", tytul: "porownaj-cykle.mjs --test przechodzi (K4″)", warunkowa: false },
+  { nr: "26", tytul: "status.mjs --test przechodzi", warunkowa: false },
+  { nr: "27", tytul: "zdanie zakazu czytania innej fali w KAŻDEJ definicji", warunkowa: false },
+  { nr: "27b", tytul: "definicja nie niesie wycofanego zdania K4′", warunkowa: false },
+  { nr: "28", tytul: "stan/ i migawki/ NIE są ignorowane przez gita", warunkowa: false },
+  { nr: "29", tytul: "fala.mjs --test przechodzi", warunkowa: false },
+];
+
+{
+  const zrodlo = readFileSync(fileURLToPath(import.meta.url), "utf8");
+  const sekcje = new Map();
+  for (const m of zrodlo.matchAll(/^\/\* ── (\d+)\.[\s\S]*?(?=^\/\* ── \d+\.|^\/\* ── wynik)/gm)) {
+    sekcje.set(m[1], m[0]);
+  }
+  const usterki = [];
+  const wTablicy = new Set(REGULY.map((r) => r.nr.replace(/[a-z]$/, "")));
+  for (const r of REGULY) {
+    const baza = r.nr.replace(/[a-z]$/, "");
+    const sekcja = sekcje.get(baza);
+    if (!sekcja) { usterki.push(`reguła ${r.nr} z tablicy REGULY nie ma sekcji "/* ── ${baza}." w kodzie`); continue; }
+    if (!/^[a-z]$/.test(r.nr.slice(-1)) && sekcja.includes("pominiete.push(") !== r.warunkowa) {
+      usterki.push(`reguła ${r.nr}: tablica mówi warunkowa=${r.warunkowa}, a sekcja ${sekcja.includes("pominiete.push(") ? "MA" : "NIE MA"} pominiete.push`);
+    }
+  }
+  for (const nr of sekcje.keys()) {
+    if (!wTablicy.has(nr)) usterki.push(`sekcja "/* ── ${nr}." istnieje w kodzie, a tablica REGULY jej nie zna`);
+  }
+  const znane = new Set(REGULY.map((r) => r.nr));
+  if (znane.size !== REGULY.length) usterki.push("tablica REGULY ma powtórzony numer");
+  if (usterki.length) {
+    process.stdout.write("straznik-sektora-audytu: SAMOKONTROLA tablicy REGULY nie przechodzi:\n");
+    for (const u of usterki) process.stdout.write(`  - ${u}\n`);
+    process.exit(1);
+  }
+}
+
+if (process.argv.includes("--reguly")) {
+  process.stdout.write(JSON.stringify(REGULY, null, 2) + "\n");
+  process.exit(0);
+}
+
+/** Jedyne wejście do listy błędów: komunikat dostaje prefiks `R<nr>:`. */
+const ZNANE_NUMERY = new Set(REGULY.map((r) => r.nr));
+function blad(nr, tekst) {
+  if (!ZNANE_NUMERY.has(String(nr))) throw new Error(`blad(): numer reguły "${nr}" nie istnieje w tablicy REGULY`);
+  bledy.push(`R${nr}: ${tekst}`);
+}
+
 const sh = (k) => execFileSync("bash", ["-c", k], { cwd: KORZEN, encoding: "utf8", maxBuffer: 1 << 26 }).trim();
 
 /* ── 1. gałąź sektora nie zmienia kodu produktu (D7, W2) ───────────────────
@@ -86,10 +175,10 @@ const sh = (k) => execFileSync("bash", ["-c", k], { cwd: KORZEN, encoding: "utf8
   // Bez tego wyjątku strażnik zapalałby się na własnym, zamierzonym artefakcie.
   const brudne = sh("git status --porcelain -- . ':!audyt' ':!re-audyt' ':!.claude'").split("\n").filter(Boolean);
   if (zmienione.length) {
-    bledy.push(`sektor zmienił ${zmienione.length} plików poza audyt/ i re-audyt/: ${zmienione.slice(0, 5).join(", ")}`);
+    blad(1, `sektor zmienił ${zmienione.length} plików poza audyt/ i re-audyt/: ${zmienione.slice(0, 5).join(", ")}`);
   }
   if (brudne.length) {
-    bledy.push(`niezacommitowane zmiany poza audyt/ i re-audyt/: ${brudne.slice(0, 5).join(", ")}`);
+    blad(1, `niezacommitowane zmiany poza audyt/ i re-audyt/: ${brudne.slice(0, 5).join(", ")}`);
   }
 }
 
@@ -98,7 +187,7 @@ if (BRAK_ROL) {
   pominiete.push("2. para agent+krytyk — katalogi <sektor>/role/ powstają w E5 i E7");
 } else {
   for (const { katalog, kod, gdzie } of ROLE_WSZYSTKIE) {
-    if (!existsSync(join(katalog, kod, "KRYTYK.md"))) bledy.push(`rola ${gdzie} nie ma KRYTYK.md (D3: krytyk przy KAŻDEJ roli)`);
+    if (!existsSync(join(katalog, kod, "KRYTYK.md"))) blad(2, `rola ${gdzie} nie ma KRYTYK.md (D3: krytyk przy KAŻDEJ roli)`);
   }
 }
 
@@ -109,10 +198,10 @@ if (BRAK_ROL) {
 } else {
   for (const { katalog, kod, gdzie } of ROLE_WSZYSTKIE) {
     const plik = join(katalog, kod, "AGENT.md");
-    if (!existsSync(plik)) { bledy.push(`rola ${gdzie} nie ma AGENT.md`); continue; }
+    if (!existsSync(plik)) { blad(3, `rola ${gdzie} nie ma AGENT.md`); continue; }
     const t = readFileSync(plik, "utf8");
     const brak = PIEC.filter((e) => !new RegExp(`^##+\\s*${e}`, "im").test(t));
-    if (brak.length) bledy.push(`rola ${gdzie}: brak elementów §5 — ${brak.join(", ")}`);
+    if (brak.length) blad(3, `rola ${gdzie}: brak elementów §5 — ${brak.join(", ")}`);
   }
 }
 
@@ -129,7 +218,7 @@ if (BRAK_ROL) {
     // przełączona gałąź. Wyjście generatora niesie tę różnicę — połykanie go
     // zamieniało diagnostykę w zgadywanie.
     const powody = String(e.stdout ?? "").split("\n").filter((l) => l.trim().startsWith("- "));
-    bledy.push(
+    blad(4, 
       "generat .claude/agents/ jest nieaktualny wobec źródła (uruchom generuj-agentow.mjs)" +
       (powody.length ? `:\n      ${powody.slice(0, 3).map((l) => l.trim()).join("\n      ")}` : "")
     );
@@ -147,7 +236,7 @@ if (BRAK_ROL) {
     if (!w?.dowod) braki.push("dowod");
     if (!w?.miejsce) braki.push("miejsce");
     if (!w?.hash) braki.push("hash");
-    if (braki.length) bledy.push(`zgłoszenie ${w?.id ?? "(bez id)"}: brak ${braki.join(", ")}`);
+    if (braki.length) blad(5, `zgłoszenie ${w?.id ?? "(bez id)"}: brak ${braki.join(", ")}`);
   }
   uwagi.push(`zgłoszeń w sektorze: ${z.length}`);
 }
@@ -180,7 +269,7 @@ if (BRAK_ROL) {
       if (!existsSync(sciezka)) continue;
       const t = readFileSync(sciezka, "utf8");
       const brak = ZASADY.filter((z) => !z.wzorzec.test(t)).map((z) => z.nazwa);
-      if (brak.length) bledy.push(`${gdzie}/${plik}: brak zasady nadrzędnej — ${brak.join("; ")}`);
+      if (brak.length) blad(6, `${gdzie}/${plik}: brak zasady nadrzędnej — ${brak.join("; ")}`);
     }
   }
 }
@@ -209,7 +298,7 @@ for (const { sektor, kody } of ROLE_SEKTOROW) {
   if (!existsSync(plik)) {
     // Katalog ról BEZ dokumentu ról to rola bez zatwierdzonego zakresu —
     // dokładnie to, przed czym broni K4'. Sam brak obu jest stanem budowy.
-    if (kody.length) bledy.push(`sektor ${sektor} ma ${kody.length} ról na dysku, a nie ma ${sektor}/ROLE.md`);
+    if (kody.length) blad(7, `sektor ${sektor} ma ${kody.length} ról na dysku, a nie ma ${sektor}/ROLE.md`);
     else pominiete.push(`7. ROLE.md sektora ${sektor} — katalogu ${sektor}/ jeszcze nie ma`);
     continue;
   }
@@ -224,16 +313,16 @@ for (const { sektor, kody } of ROLE_SEKTOROW) {
     // Checklista = tabela z pozycjami postaci KOD-01, KON-A1, SEC-R1.
     // Litera po myślniku jest OPCJONALNA i dowolna: Konrad ma `A`, re-audyt `R`.
     const pozycje = (s.match(new RegExp(`^\\| ${kod}-[A-Z]?\\d+ \\|`, "gm")) ?? []).length;
-    if (!maZakres) bledy.push(`rola ${kod} w ${sektor}/ROLE.md nie ma mechanicznego zakresu (checklista = minimum, K4″)`);
-    if (pozycje < 5) bledy.push(`rola ${kod} (${sektor}) ma ${pozycje} pozycji checklisty — za mało, by wyczerpać listę (K4″: lista jest minimum)`);
+    if (!maZakres) blad(7, `rola ${kod} w ${sektor}/ROLE.md nie ma mechanicznego zakresu (checklista = minimum, K4″)`);
+    if (pozycje < 5) blad(7, `rola ${kod} (${sektor}) ma ${pozycje} pozycji checklisty — za mało, by wyczerpać listę (K4″: lista jest minimum)`);
     // Pytamy o WIERSZ TABELI z kodem `<KOD>-90`, nie o wzmiankę w prozie — wzmianka
     // „zgłaszasz pod SEC-90" przy braku wiersza to pozycja, której nikt nie zada.
     if (ZAKRES_OBOWIAZKOWY.has(kod) && !new RegExp(`^\\| ${kod}-90 \\|`, "m").test(s)) {
-      bledy.push(`rola ${kod} (${sektor}) nie ma pozycji otwartej ${kod}-90 — „szukaj dalej w zakresie" (K4″) nie ma gdzie wylądować`);
+      blad(7, `rola ${kod} (${sektor}) nie ma pozycji otwartej ${kod}-90 — „szukaj dalej w zakresie" (K4″) nie ma gdzie wylądować`);
     }
   }
   for (const kod of roleSektora(sektor)) {
-    if (!znalezione.has(kod)) bledy.push(`${sektor}/ROLE.md nie opisuje roli ${kod}`);
+    if (!znalezione.has(kod)) blad(7, `${sektor}/ROLE.md nie opisuje roli ${kod}`);
   }
   uwagi.push(`ról w ${sektor}/ROLE.md: ${znalezione.size}`);
 }
@@ -243,7 +332,7 @@ try {
   execFileSync("node", ["audyt/tools/mapa.mjs"], { cwd: KORZEN, stdio: "pipe" });
   uwagi.push("mapa pokrycia: bez sierot");
 } catch {
-  bledy.push("mapa pokrycia zgłasza sieroty, sprzeczności albo pusty zakres — uruchom audyt/tools/mapa.mjs");
+  blad(8, "mapa pokrycia zgłasza sieroty, sprzeczności albo pusty zakres — uruchom audyt/tools/mapa.mjs");
 }
 
 /* ── 9. narzędzie zgłoszeń przechodzi własną samokontrolę ── */
@@ -251,7 +340,7 @@ try {
   execFileSync("node", ["audyt/tools/zgloszenie.mjs", "--test"], { cwd: KORZEN, stdio: "pipe" });
   uwagi.push("zgloszenie.mjs: samokontrola zaliczona");
 } catch {
-  bledy.push("zgloszenie.mjs --test NIE przechodzi — bramka wpuszczania znalezisk jest zepsuta");
+  blad(9, "zgloszenie.mjs --test NIE przechodzi — bramka wpuszczania znalezisk jest zepsuta");
 }
 
 /* ── 10. trzynaście zasad Goldena DOSŁOWNIE w AGENT.md i KRYTYK.md ─────────
@@ -289,7 +378,7 @@ if (BRAK_ROL) {
       if (!existsSync(sciezka)) continue;
       const t = readFileSync(sciezka, "utf8");
       const brak = ZASADY_GOLDENA.filter(([, w]) => !w.test(t)).map(([n]) => n);
-      if (brak.length) bledy.push(`${gdzie}/${plik}: brak zasad Goldena — ${brak.join("; ")}`);
+      if (brak.length) blad(10, `${gdzie}/${plik}: brak zasad Goldena — ${brak.join("; ")}`);
     }
   }
 }
@@ -330,49 +419,49 @@ if (BRAK_ROL) {
   for (const { sektor, katalog: katalogRol, kod, gdzie } of ROLE_WSZYSTKIE) {
     const ZNANE = new Set(roleSektora(sektor));
     const katalog = join(katalogRol, kod, "goldeny");
-    if (!existsSync(katalog)) { bledy.push(`rola ${gdzie} nie ma katalogu goldeny/`); continue; }
+    if (!existsSync(katalog)) { blad(11, `rola ${gdzie} nie ma katalogu goldeny/`); continue; }
     const pliki = readdirSync(katalog).filter((f) => f.endsWith(".md"));
-    if (!pliki.length) { bledy.push(`rola ${gdzie}: katalog goldeny/ jest pusty`); continue; }
+    if (!pliki.length) { blad(11, `rola ${gdzie}: katalog goldeny/ jest pusty`); continue; }
 
     let przechodzacych = 0;
     let odrzucanych = 0;
     for (const nazwa of pliki) {
       const bloki = blokiGoldena(readFileSync(join(katalog, nazwa), "utf8"));
-      if (!bloki.length) { bledy.push(`${gdzie}/goldeny/${nazwa}: brak bloku JSON — golden bez przykładu niczego nie mierzy`); continue; }
+      if (!bloki.length) { blad(11, `${gdzie}/goldeny/${nazwa}: brak bloku JSON — golden bez przykładu niczego nie mierzy`); continue; }
       for (const [i, b] of bloki.entries()) {
         const gdzieBlok = `${gdzie}/goldeny/${nazwa} blok ${i + 1}`;
-        if (!b.sprawdzany) { bledy.push(`${gdzieBlok}: brak znacznika SPRAWDZANY — blok poza miarą`); continue; }
+        if (!b.sprawdzany) { blad(11, `${gdzieBlok}: brak znacznika SPRAWDZANY — blok poza miarą`); continue; }
         let wpis;
         try { wpis = JSON.parse(b.json); }
-        catch (e) { bledy.push(`${gdzieBlok}: niepoprawny JSON — ${e.message}`); continue; }
+        catch (e) { blad(11, `${gdzieBlok}: niepoprawny JSON — ${e.message}`); continue; }
         // Dział bierzemy z KATALOGU, nie z wpisu: katalog jest prawdą o tym,
         // czyj to golden. Rozjazd między nimi jest osobnym błędem, bo golden
         // uczyłby wtedy przypisywania znaleziska do cudzego działu (K4').
         if (ZNANE.has(kod)) {
-          if (wpis.dzial !== kod) bledy.push(`${gdzieBlok}: golden roli ${kod} deklaruje dział "${wpis.dzial}"`);
+          if (wpis.dzial !== kod) blad(11, `${gdzieBlok}: golden roli ${kod} deklaruje dział "${wpis.dzial}"`);
         } else {
           wpis.dzial = DZIALY[0]; // rola próbna z szablonów — kod działu nie jest przedmiotem tej reguły
         }
         const powody = powodyOdmowy(wpis);
         if (b.sprawdzany === "przechodzi") {
           przechodzacych++;
-          if (powody.length) bledy.push(`${gdzieBlok}: miał przejść, a bramka odrzuca — ${powody[0].split("\n")[0]}`);
+          if (powody.length) blad(11, `${gdzieBlok}: miał przejść, a bramka odrzuca — ${powody[0].split("\n")[0]}`);
         } else {
           odrzucanych++;
           if (!powody.length) {
-            bledy.push(`${gdzieBlok}: miał zostać odrzucony, a bramka go PRZYJMUJE — zły przykład niczego nie uczy`);
+            blad(11, `${gdzieBlok}: miał zostać odrzucony, a bramka go PRZYJMUJE — zły przykład niczego nie uczy`);
           } else {
             for (const oczekiwany of b.odrzuca) {
               if (!powody.some((p) => p.includes(oczekiwany))) {
-                bledy.push(`${gdzieBlok}: odrzucony, ale NIE z powodu "${oczekiwany}" — zapaliło się co innego`);
+                blad(11, `${gdzieBlok}: odrzucony, ale NIE z powodu "${oczekiwany}" — zapaliło się co innego`);
               }
             }
           }
         }
       }
     }
-    if (!przechodzacych) bledy.push(`rola ${gdzie}: golden nie ma ani jednego przykładu DOBREGO`);
-    if (!odrzucanych) bledy.push(`rola ${gdzie}: golden nie ma ani jednego przykładu ZŁEGO — bez niego nie jest miarą`);
+    if (!przechodzacych) blad(11, `rola ${gdzie}: golden nie ma ani jednego przykładu DOBREGO`);
+    if (!odrzucanych) blad(11, `rola ${gdzie}: golden nie ma ani jednego przykładu ZŁEGO — bez niego nie jest miarą`);
   }
 }
 
@@ -390,19 +479,19 @@ if (BRAK_ROL) {
     const plik = join(katalogSektora(sektor), "szablony", "golden.md");
     if (!existsSync(plik)) continue; // sektor bez szablonów łapie reguła 3
     const bloki = blokiGoldena(readFileSync(plik, "utf8"));
-    if (!bloki.length) { bledy.push(`${sektor}/szablony/golden.md: brak bloku JSON — szablon miary bez przykładu`); continue; }
+    if (!bloki.length) { blad(24, `${sektor}/szablony/golden.md: brak bloku JSON — szablon miary bez przykładu`); continue; }
     for (const [i, b] of bloki.entries()) {
       const gdzie = `${sektor}/szablony/golden.md blok ${i + 1}`;
-      if (!b.sprawdzany) { bledy.push(`${gdzie}: brak znacznika SPRAWDZANY`); continue; }
+      if (!b.sprawdzany) { blad(24, `${gdzie}: brak znacznika SPRAWDZANY`); continue; }
       let wpis;
       try { wpis = JSON.parse(b.json.replaceAll("<KOD>", DZIALY[0])); }
-      catch (e) { bledy.push(`${gdzie}: niepoprawny JSON — ${e.message}`); continue; }
+      catch (e) { blad(24, `${gdzie}: niepoprawny JSON — ${e.message}`); continue; }
       const powody = powodyOdmowy(wpis);
       if (b.sprawdzany === "przechodzi" && powody.length) {
-        bledy.push(`${gdzie}: miał przejść, a bramka odrzuca — ${powody[0].split("\n")[0]}`);
+        blad(24, `${gdzie}: miał przejść, a bramka odrzuca — ${powody[0].split("\n")[0]}`);
       }
       if (b.sprawdzany === "odrzucony" && !powody.length) {
-        bledy.push(`${gdzie}: miał zostać odrzucony, a bramka go PRZYJMUJE`);
+        blad(24, `${gdzie}: miał zostać odrzucony, a bramka go PRZYJMUJE`);
       }
     }
     uwagi.push(`${sektor}/szablony/golden.md: bloków sprawdzonych ${bloki.length}`);
@@ -454,10 +543,10 @@ for (const { sektor, katalog, kody } of ROLE_SEKTOROW) {
     // pozostałe reguły obowiązują ją tak samo jak rolę prawdziwą; wyjęta jest
     // wyłącznie spod pytania "czy ROLE.md ją zna", bo z definicji nie zna.
     if (!ZNANE.has(kod) && kod !== KOD_PROBNY) {
-      bledy.push(`katalog ${sektor}/role/${kod} nie odpowiada żadnej roli z ${sektor}/ROLE.md`);
+      blad(12, `katalog ${sektor}/role/${kod} nie odpowiada żadnej roli z ${sektor}/ROLE.md`);
     }
     if (!existsSync(join(katalog, kod, "SKILL.md"))) {
-      bledy.push(`rola ${sektor}/role/${kod} nie ma SKILL.md — GOLD-06 nie miałby czego sprawdzać`);
+      blad(12, `rola ${sektor}/role/${kod} nie ma SKILL.md — GOLD-06 nie miałby czego sprawdzać`);
     }
   }
 
@@ -465,7 +554,7 @@ for (const { sektor, katalog, kody } of ROLE_SEKTOROW) {
   uwagi.push(`ról zbudowanych (${sektor}): ${bezProby.length}/${ZNANE.size}`);
   if (brakujace.length) {
     const tresc = `sektor ${sektor}: brakuje ${brakujace.length} ról z ROLE.md — ${brakujace.join(", ")}`;
-    if (KOMPLET_TWARDY[sektor]) bledy.push(`${tresc} (ROLE.md opisuje role bez definicji)`);
+    if (KOMPLET_TWARDY[sektor]) blad(12, `${tresc} (ROLE.md opisuje role bez definicji)`);
     else pominiete.push(`12. komplet ról sektora ${sektor} — ${tresc}; twardnieje na końcu E7.4`);
   }
 }
@@ -503,10 +592,10 @@ if (BRAK_ROL) {
     const brakUAgenta = wRole.filter((p) => !wAgencie.includes(p));
     const nadmiar = wAgencie.filter((p) => !wRole.includes(p));
     if (brakUAgenta.length) {
-      bledy.push(`rola ${gdzie}: AGENT.md NIE MA pozycji ${brakUAgenta.join(", ")} — agent nigdy nie zada tego pytania`);
+      blad(13, `rola ${gdzie}: AGENT.md NIE MA pozycji ${brakUAgenta.join(", ")} — agent nigdy nie zada tego pytania`);
     }
     if (nadmiar.length) {
-      bledy.push(`rola ${gdzie}: AGENT.md ma pozycje spoza ROLE.md — ${nadmiar.join(", ")}`);
+      blad(13, `rola ${gdzie}: AGENT.md ma pozycje spoza ROLE.md — ${nadmiar.join(", ")}`);
     }
   }
 }
@@ -540,7 +629,7 @@ if (BRAK_ROL) {
         const cel = m[1].trim();
         if (/^(https?:|mailto:|#)/.test(cel)) continue;
         if (!existsSync(join(CEL, cel.split("#")[0]))) {
-          bledy.push(
+          blad(14, 
             `generat ${nazwa}: odsyłacz "${cel}" nie wskazuje niczego z .claude/agents/ ` +
             "— treść roli jest kopiowana do innego katalogu, więc w definicjach ról " +
             "ścieżki podajemy od korzenia repo, w kodzie inline"
@@ -559,7 +648,7 @@ try {
   execFileSync("node", ["audyt/tools/werdykt.mjs", "--test"], { cwd: KORZEN, stdio: "pipe" });
   uwagi.push("werdykt.mjs: samokontrola zaliczona");
 } catch {
-  bledy.push("werdykt.mjs --test NIE przechodzi — bramka werdyktów jest zepsuta");
+  blad(15, "werdykt.mjs --test NIE przechodzi — bramka werdyktów jest zepsuta");
 }
 
 /* ── 25. narzędzie porównania fal przechodzi własną samokontrolę (K4″) ─────
@@ -574,7 +663,7 @@ try {
   execFileSync("node", ["audyt/tools/porownaj-cykle.mjs", "--test"], { cwd: KORZEN, stdio: "pipe" });
   uwagi.push("porownaj-cykle.mjs: samokontrola zaliczona");
 } catch {
-  bledy.push("porownaj-cykle.mjs --test NIE przechodzi — porównanie fal jest zepsute (K4″)");
+  blad(25, "porownaj-cykle.mjs --test NIE przechodzi — porównanie fal jest zepsute (K4″)");
 }
 
 /* ── 26. narzędzie stanu ról przechodzi własną samokontrolę (pozycja 3 E7.7) ─
@@ -587,7 +676,7 @@ try {
   execFileSync("node", ["audyt/tools/status.mjs", "--test"], { cwd: KORZEN, stdio: "pipe" });
   uwagi.push("status.mjs: samokontrola zaliczona");
 } catch {
-  bledy.push("status.mjs --test NIE przechodzi — kolejność sektorów (W5) i dziennik wejść (KIER-05) są bez bramki");
+  blad(26, "status.mjs --test NIE przechodzi — kolejność sektorów (W5) i dziennik wejść (KIER-05) są bez bramki");
 }
 
 /* ── 28. stan/ i migawki/ NIE są ignorowane przez gita (pozycja 4 E7.7) ───
@@ -606,7 +695,7 @@ try {
   for (const sciezka of atrapy) {
     const r = spawnSync("git", ["check-ignore", "-q", "--no-index", sciezka], { cwd: KORZEN });
     if (r.status === 0) {
-      bledy.push(
+      blad(28, 
         `${sciezka.split("/").slice(0, 2).join("/")}/ jest IGNOROWANY przez gita — stan fali 2 z worktree nie wróciłby do drzewa sektora, ` +
         "a dziennik wejść przestałby być dowodem (rozstrzygnięcie właściciela 2026-09-02: stan/ i migawki/ do gita)"
       );
@@ -627,7 +716,7 @@ try {
   execFileSync("node", ["audyt/tools/fala.mjs", "--test"], { cwd: KORZEN, stdio: "pipe" });
   uwagi.push("fala.mjs: samokontrola zaliczona");
 } catch {
-  bledy.push("fala.mjs --test NIE przechodzi — worktree fali 2 nie chowa fali 1 albo nie scala jej stanu (trzecia warstwa ślepoty fali 2)");
+  blad(29, "fala.mjs --test NIE przechodzi — worktree fali 2 nie chowa fali 1 albo nie scala jej stanu (trzecia warstwa ślepoty fali 2)");
 }
 
 /* ── 16. status ZWERYFIKOWANE tylko z kompletem werdyktów; próba nigdy cicha ─
@@ -652,28 +741,28 @@ try {
 
     for (const [kto, wpis] of Object.entries(werdykty)) {
       if (!WERDYKTY[kto]) {
-        bledy.push(`zgłoszenie ${w.id}: werdykt wydała nieznana rola "${kto}"`);
+        blad(16, `zgłoszenie ${w.id}: werdykt wydała nieznana rola "${kto}"`);
       } else if (!WERDYKTY[kto].includes(wpis?.werdykt)) {
-        bledy.push(`zgłoszenie ${w.id}: rola "${kto}" ma werdykt "${wpis?.werdykt}" spoza swojego zbioru`);
+        blad(16, `zgłoszenie ${w.id}: rola "${kto}" ma werdykt "${wpis?.werdykt}" spoza swojego zbioru`);
       }
       if (ODMOWNE.includes(wpis?.werdykt) && !String(wpis?.powod ?? "").trim()) {
-        bledy.push(`zgłoszenie ${w.id}: werdykt "${wpis.werdykt}" bez powodu — odrzucenie bez powodu jest ciszą, nie wynikiem`);
+        blad(16, `zgłoszenie ${w.id}: werdykt "${wpis.werdykt}" bez powodu — odrzucenie bez powodu jest ciszą, nie wynikiem`);
       }
     }
 
     if (w?.status === "ZWERYFIKOWANE" && !komplet(w)) {
-      bledy.push(
+      blad(16, 
         `zgłoszenie ${w.id}: status ZWERYFIKOWANE bez kompletu werdyktów — ` +
         "§16 wymaga, żeby agent wykrywający nie był jedynym, kto uznaje problem za prawdziwy"
       );
     }
     if (komplet(w) && w?.status !== "ZWERYFIKOWANE") {
-      bledy.push(`zgłoszenie ${w.id}: ma oba werdykty, a status to "${w.status}" — wpis utknął przed ZWERYFIKOWANE`);
+      blad(16, `zgłoszenie ${w.id}: ma oba werdykty, a status to "${w.status}" — wpis utknął przed ZWERYFIKOWANE`);
     }
 
     if (w?.proba !== undefined) {
       if (typeof w.proba !== "string" || !w.proba.trim()) {
-        bledy.push(`zgłoszenie ${w.id}: znacznik próby musi NAZWAĆ etap budowy, jest "${w.proba}"`);
+        blad(16, `zgłoszenie ${w.id}: znacznik próby musi NAZWAĆ etap budowy, jest "${w.proba}"`);
       } else {
         proby.push(`${w.id}/${w.proba}`);
       }
@@ -746,14 +835,14 @@ try {
     for (const { nazwa, w } of stany) {
       for (const poz of w.niedomkniete ?? []) {
         if (!KOD_POZYCJI.test(poz)) {
-          bledy.push(
+          blad(17, 
             `stan ${nazwa}: "${poz}" nie jest kodem pozycji — kierownik liczy stąd ` +
             "otwarte pozycje (KIER-01), a komentarz rozbity przecinkiem fałszuje tę liczbę"
           );
         }
       }
       if (w.status === "ZAKOŃCZONE" && !(w.runda >= 1)) {
-        bledy.push(`stan ${nazwa}: status ZAKOŃCZONE przy runda=${w.runda} — rola, która skończyła, odbyła co najmniej jedną rundę`);
+        blad(17, `stan ${nazwa}: status ZAKOŃCZONE przy runda=${w.runda} — rola, która skończyła, odbyła co najmniej jedną rundę`);
       }
       /* ROLA MUSI NALEŻEĆ DO SWOJEGO SEKTORA. `status.mjs --pokaz` jest
          miejscem, z którego kierownik czyta, kto pracuje; stan roli, której
@@ -761,30 +850,30 @@ try {
          która jeszcze nie zaczęła — czyli kierownik czekałby na wynik, który
          nigdy nie powstanie. */
       if (!SEKTORY.includes(w.sektor)) {
-        bledy.push(`stan ${nazwa}: nieznany sektor "${w.sektor}"`);
+        blad(17, `stan ${nazwa}: nieznany sektor "${w.sektor}"`);
       } else if (!roleSektora(w.sektor).includes(w.rola)) {
-        bledy.push(`stan ${nazwa}: rola "${w.rola}" nie istnieje w sektorze "${w.sektor}" — kierownik czekałby na wynik roli-widma`);
+        blad(17, `stan ${nazwa}: rola "${w.rola}" nie istnieje w sektorze "${w.sektor}" — kierownik czekałby na wynik roli-widma`);
       }
 
       if (![1, 2].includes(w.fala)) {
-        bledy.push(`stan ${nazwa}: fala "${w.fala}" poza {1, 2} — zgłoszenia znają tylko dwie fale, taki stan nie należy do żadnego przebiegu`);
+        blad(17, `stan ${nazwa}: fala "${w.fala}" poza {1, 2} — zgłoszenia znają tylko dwie fale, taki stan nie należy do żadnego przebiegu`);
       }
 
       /* HISTORIA PRZEJŚĆ — dziennik wejść KIER-05. */
       const h = Array.isArray(w.historia) ? w.historia : [];
       if (!h.length) {
-        bledy.push(`stan ${nazwa}: brak historii przejść — KIER-05 czyta stąd dziennik wejść, bez niego kolejność sektorów (W5) jest nie do sprawdzenia`);
+        blad(17, `stan ${nazwa}: brak historii przejść — KIER-05 czyta stąd dziennik wejść, bez niego kolejność sektorów (W5) jest nie do sprawdzenia`);
       } else {
         let poprzedni = -Infinity;
         let zepsuta = false;
         for (const [i, wpis] of h.entries()) {
           if (!ISO.test(String(wpis?.kiedy)) || Number.isNaN(czas(wpis.kiedy))) {
-            bledy.push(`stan ${nazwa}: wpis ${i + 1} historii ma czas "${wpis?.kiedy}", który nie jest znacznikiem ISO — kolejności wejść nie da się porównać`);
+            blad(17, `stan ${nazwa}: wpis ${i + 1} historii ma czas "${wpis?.kiedy}", który nie jest znacznikiem ISO — kolejności wejść nie da się porównać`);
             zepsuta = true;
             break;
           }
           if (czas(wpis.kiedy) < poprzedni) {
-            bledy.push(`stan ${nazwa}: historia cofa się w czasie przy wpisie ${i + 1} — dziennik wejść nie jest wtedy dziennikiem`);
+            blad(17, `stan ${nazwa}: historia cofa się w czasie przy wpisie ${i + 1} — dziennik wejść nie jest wtedy dziennikiem`);
             zepsuta = true;
             break;
           }
@@ -792,7 +881,7 @@ try {
         }
         const ostatni = h[h.length - 1];
         if (!zepsuta && (ostatni.status !== w.status || ostatni.runda !== w.runda || ostatni.kiedy !== w.kiedy)) {
-          bledy.push(
+          blad(17, 
             `stan ${nazwa}: ostatni wpis historii (${ostatni.status}, runda ${ostatni.runda}, ${ostatni.kiedy}) ` +
             `nie zgadza się ze stanem (${w.status}, runda ${w.runda}, ${w.kiedy}) — któraś zmiana ominęła dziennik`
           );
@@ -800,7 +889,7 @@ try {
       }
 
       if (w.proba !== undefined) {
-        if (typeof w.proba !== "string" || !w.proba.trim()) bledy.push(`stan ${nazwa}: znacznik próby musi NAZWAĆ etap budowy, jest "${w.proba}"`);
+        if (typeof w.proba !== "string" || !w.proba.trim()) blad(17, `stan ${nazwa}: znacznik próby musi NAZWAĆ etap budowy, jest "${w.proba}"`);
         else probne.push(`${nazwa}/${w.proba}`);
       }
 
@@ -808,7 +897,7 @@ try {
       if (w.sektor === "re-audyt" && DZIALY.includes(w.rola) && wszedl(w) && !w.proba) {
         const audyt = poKluczu.get(`audyt-f${w.fala}-${w.rola}`);
         if (!audyt || audyt.status !== "ZAKOŃCZONE") {
-          bledy.push(
+          blad(17, 
             `stan ${nazwa}: Pogłębiacz ${w.rola} fali ${w.fala} wszedł (${w.status}, runda ${w.runda}), a dział ${w.rola} audytu tej fali ` +
             `${audyt ? `ma status ${audyt.status}` : "nie ma pliku stanu"} — re-audyt wszedł do działu przed wyjściem audytu (W5, K9′)`
           );
@@ -816,7 +905,7 @@ try {
           const zakonczyl = chwilaZakonczenia(audyt);
           const wejscie = chwilaWejscia(w);
           if (zakonczyl && wejscie && !(czas(zakonczyl) < czas(wejscie))) {
-            bledy.push(
+            blad(17, 
               `stan ${nazwa}: Pogłębiacz ${w.rola} wszedł ${wejscie}, a dział ${w.rola} audytu zakończył ${zakonczyl} — ` +
               "audyt zakończył się PO wejściu re-audytu (W5); dział cofnięty po fakcie i domknięty ponownie?"
             );
@@ -850,7 +939,7 @@ try {
     const tekst = readFileSync(plik, "utf8");
     sprawdzone++;
     if (NAKAZ.test(tekst) && !DROGA.test(tekst)) {
-      bledy.push(
+      blad(18, 
         `${gdzie}/KRYTYK.md: każe zgłosić własne znalezisko, ale nie podaje drogi ` +
         "(wywołania zgloszenie.mjs) — znalezisko opisane prozą znika razem z sesją"
       );
@@ -887,9 +976,9 @@ try {
     for (const { kod, komenda } of wReAudycie) {
       const wzor = wAudycie.get(kod);
       if (!wzor) {
-        bledy.push(`re-audyt/ROLE.md: Pogłębiacz ${kod} nie ma odpowiednika w audyt/ROLE.md`);
+        blad(20, `re-audyt/ROLE.md: Pogłębiacz ${kod} nie ma odpowiednika w audyt/ROLE.md`);
       } else if (plaska(wzor) !== plaska(komenda)) {
-        bledy.push(
+        blad(20, 
           `Pogłębiacz ${kod}: zakres rozjechał się z działem ${kod} audytu — ` +
           "re-audyt mierzyłby inny obszar, niż audyt zbadał, a łączenie po haszu (W4) przestaje znaczyć"
         );
@@ -899,7 +988,7 @@ try {
     }
     const brak = DZIALY.filter((k) => !wReAudycie.some((z) => z.kod === k));
     if (brak.length && wReAudycie.length) {
-      bledy.push(`re-audyt/ROLE.md: brak Pogłębiaczy dla działów ${brak.join(", ")}`);
+      blad(20, `re-audyt/ROLE.md: brak Pogłębiaczy dla działów ${brak.join(", ")}`);
     }
     if (zgodnych) uwagi.push(`zakresów Pogłębiaczy zgodnych z audytem: ${zgodnych}/${DZIALY.length}`);
   }
@@ -931,26 +1020,26 @@ try {
   for (const w of wpisy) {
     const oczekiwany = PREFIKS_ID[w?.sektor];
     if (!oczekiwany) {
-      bledy.push(`zgłoszenie ${w?.id ?? "(bez id)"}: nieznany sektor "${w?.sektor}" — wpis nie należy do żadnego przebiegu`);
+      blad(19, `zgłoszenie ${w?.id ?? "(bez id)"}: nieznany sektor "${w?.sektor}" — wpis nie należy do żadnego przebiegu`);
       continue;
     }
     if (!String(w?.id ?? "").startsWith(`${oczekiwany}-`)) {
-      bledy.push(
+      blad(19, 
         `zgłoszenie ${w.id}: sektor "${w.sektor}" wymaga prefiksu "${oczekiwany}-" — ` +
         "sektory dzielą katalog i kody działów, więc wspólny prefiks nadpisuje cudzy wpis"
       );
     }
     if (!roleSektora(w.sektor).includes(w?.dzial)) {
-      bledy.push(`zgłoszenie ${w.id}: dział "${w.dzial}" nie istnieje w sektorze "${w.sektor}"`);
+      blad(19, `zgłoszenie ${w.id}: dział "${w.dzial}" nie istnieje w sektorze "${w.sektor}"`);
     }
     const falaWNazwie = String(w?.id ?? "").match(/^[A-Z]+-[A-Z]+-F(\d)-\d+$/)?.[1];
     if (!falaWNazwie) {
-      bledy.push(
+      blad(19, 
         `zgłoszenie ${w.id}: identyfikator bez fali w nazwie — format to <PREFIKS>-<DZIAŁ>-F<N>-<numer>; ` +
         "sparse checkout fali 2 chowa wpisy po nazwie, więc wpis bez F<N> byłby widoczny obu falom"
       );
     } else if (Number(falaWNazwie) !== w?.fala) {
-      bledy.push(
+      blad(19, 
         `zgłoszenie ${w.id}: fala w nazwie (F${falaWNazwie}) ≠ pole fala (${w?.fala}) — ` +
         "sparse checkout chowa wpisy po NAZWIE, a status.mjs odmawia wejścia po POLU; rozjazd czyni jedną z tych warstw ślepą"
       );
@@ -1014,14 +1103,14 @@ try {
       const wGeneracie = readFileSync(plik, "utf8").match(/^model:\s*(\S+)/m)?.[1];
       let wRoleMd;
       try { wRoleMd = modelZDokumentu(sektor, kod, rodzaj); }
-      catch (e) { bledy.push(`21. ${e.message}`); continue; }
+      catch (e) { blad(21, e.message); continue; }
       if (wRoleMd === null) continue; // brak ROLE.md albo sekcji łapią reguły 2 i 7
       sprawdzone++;
       if (!ALIASY_HARNESSU.has(wGeneracie)) {
-        bledy.push(`generat ${nazwa}: wartość "model: ${wGeneracie}" jest nieznana harnessowi (znane: ${[...ALIASY_HARNESSU].join(", ")})`);
+        blad(21, `generat ${nazwa}: wartość "model: ${wGeneracie}" jest nieznana harnessowi (znane: ${[...ALIASY_HARNESSU].join(", ")})`);
       }
       if (wGeneracie !== wRoleMd) {
-        bledy.push(
+        blad(21, 
           `generat ${nazwa}: model "${wGeneracie}", a ${sektor}/ROLE.md przypisuje roli ${kod} model "${wRoleMd}" (D8) ` +
           "— rola pracowałaby na innym modelu, niż rozstrzygnął właściciel"
         );
@@ -1048,7 +1137,7 @@ try {
     sprawdzone++;
     const przeliczony = hashMiejsca(w.miejsce);
     if (w.hash !== przeliczony) {
-      bledy.push(
+      blad(23, 
         `zgłoszenie ${w.id ?? "(bez id)"}: hash "${w.hash.slice(0, 12)}…" nie zgadza się z przeliczonym ` +
         `z miejsca "${przeliczony.slice(0, 12)}…" (H1) — wpis nie połączy się ze swoim odpowiednikiem`
       );
@@ -1082,7 +1171,7 @@ try {
       if (m[1] !== wlasny) cudze.add(m[1]);
     }
     if (cudze.size) {
-      bledy.push(
+      blad(22, 
         `${gdzie}/KRYTYK.md: moduł wskazuje zgłoszenia "${[...cudze].join("/")}-${kod}-*", ` +
         `a sektor ${sektor} pisze pod "${wlasny}-${kod}-*" — krytyk oceniałby pracę cudzego sektora`
       );
@@ -1132,10 +1221,10 @@ const WYCOFANE_K4 = odstepy("swobodny przegl[ąa]d nie da tego samego wyniku");
     const t = readFileSync(sciezka, "utf8");
     if (zakaz) {
       if (ZAKAZ_INNEJ_FALI.test(t)) zZakazem++;
-      else bledy.push(`${gdzie}: brak zdania zakazu czytania innej fali (reguła 27 — agent fali 2 ma Read/Bash i nie ma w definicji ani słowa, że wpisów fali 1 nie czyta)`);
+      else blad(27, `${gdzie}: brak zdania zakazu czytania innej fali (reguła 27 — agent fali 2 ma Read/Bash i nie ma w definicji ani słowa, że wpisów fali 1 nie czyta)`);
     }
     if (WYCOFANE_K4.test(t)) {
-      bledy.push(`${gdzie}: niesie wycofane zdanie K4′ „swobodny przegląd nie da tego samego wyniku" (27b — K4″: checklista jest MINIMUM, nie sufitem)`);
+      blad("27b", `${gdzie}: niesie wycofane zdanie K4′ „swobodny przegląd nie da tego samego wyniku" (27b — K4″: checklista jest MINIMUM, nie sufitem)`);
     }
   }
   if (zZakazem) uwagi.push(`definicji ze zdaniem zakazu innej fali: ${zZakazem}`);

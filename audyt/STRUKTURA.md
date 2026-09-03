@@ -34,7 +34,7 @@ audyt/
     fala.mjs                     worktree fali 2 ze sparse checkoutem bez fali 1 (--postaw=2 | --scal=2)
     generuj-agentow.mjs          źródło → .claude/agents (D1)
     straznik-sektora-audytu.mjs  dwadzieścia dziewięć kontroli (1–29; 27 = zakaz innej fali, 27b = brak K4′), OBA sektory
-    audyt-straznika-sektora.mjs  mutacje strażnika
+    audyt-straznika-sektora.mjs  mutacje strażnika; każda deklaruje `regula:`, a pełny przebieg drukuje MACIERZ reguła → mutacja (kod 1 przy regule z materiałem bez mutacji)
     przejscie-4b6.mjs            jednorazowy skrypt przejścia 4b + 6 (2026-09-02) — dowód, nie narzędzie sektora
     pobierz-dokumentacje-audyt.mjs
 
@@ -248,10 +248,21 @@ oceniałby pracę działu SEC AUDYTU, a wpisy `REA-SEC-*` nie miałyby krytyka.
 Usterka przyszła z szablonu, w którym prefiks stał na sztywno; szablon ma
 odtąd `<PREFIKS>`.
 
-Audyt mutacyjny: **73 mutacje**, 0 przeoczonych, 0 martwych
-(`audyt/tools/audyt-straznika-sektora.mjs`). Pięć z nich ma pole **`wymaga`**:
-gdy na danej gałęzi nie ma materiału (`re-audyt/ROLE.md` na gałęzi audytu), są
+Audyt mutacyjny: **131 mutacji** (stan 2026-09-03), 0 przeoczonych, 0 martwych
+(`audyt/tools/audyt-straznika-sektora.mjs`). Mutacje z polem **`wymaga`** —
+gdy na danej gałęzi nie ma materiału (`re-audyt/ROLE.md` na gałęzi audytu) — są
 **pomijane i policzone**, nigdy cicho zielone.
+
+**Reguła zadeklarowana = reguła zapalona (pozycja 5 pakietu E7.7, 2026-09-03).**
+Każdy komunikat strażnika niesie prefiks `R<nr>:` (lista reguł w tablicy `REGULY`
+z samokontrolą wobec nagłówków sekcji; `--reguly` drukuje ją jako JSON), a każda
+mutacja deklaruje `regula:`; audyt parsuje zapalone prefiksy i wymaga zgodności
+ŚCISŁEJ — werdykt „ZŁA REGUŁA" liczy się jak „ZŁY ŚLAD". Na końcu pełnego
+przebiegu audyt **drukuje macierz reguła → mutacja** (mutacji zapalających,
+kontrprzykładów, materiał zmierzony z „pominięte" strażnika) i kończy **kodem 1,
+gdy reguła z materiałem nie ma ani jednej mutacji** albo reguła pytająca o zdanie
+(6, 10, 27, 27b) nie ma kontrprzykładu. Macierz żyje wyłącznie na wyjściu audytu —
+liczby wpisane do dokumentu starzeją się cicho (rozstrzygnięcie właściciela 5).
 
 **Mapa pokrycia czyta zakresy OBU sektorów** (od E7.4). Dokumenty sektora
 RE-AUDYT bierze wyłącznie Konrad re-audytu — żaden zakres audytu ich nie
@@ -459,7 +470,7 @@ i dojść do tego samego wniosku; skasowany wpis zafałszowałby porównanie.
 | `node audyt/tools/polacz-sektory.mjs --fala=N` | kierownik | po re-audycie |
 | `node audyt/tools/migawka-wartosci.mjs --porownaj` | kierownik | na koniec |
 | `node audyt/tools/straznik-sektora-audytu.mjs` | każdy | przed commitem |
-| `node audyt/tools/audyt-straznika-sektora.mjs` | przy zmianie strażnika | zawsze |
+| `node audyt/tools/audyt-straznika-sektora.mjs` | przy zmianie strażnika | zawsze (pełny przebieg drukuje macierz reguła → mutacja) |
 
 ---
 
