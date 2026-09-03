@@ -1,0 +1,27 @@
+{
+  "id": "AUD-QA-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-06",
+  "stwierdzenie": "Smoke D4 sprawdza cenę kursu podciągiem html.includes(\"199,00\") zamiast całej sformatowanej wartości, więc przeszedłby też dla ceny 1199,00 albo 2199,00 zł — dokładnie ta klasa błędu, którą projekt już naprawiał w smoke-wp-zakup i smoke-wp-produkty (BLAD-006/QA-06), tu wraca w oryginalnym smoke'u prototypu.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/smoke/smoke-d4.ts",
+    "linia": 103,
+    "tresc": "assert.ok(html.includes(\"199,00\"), \"brak sformatowanej ceny w HTML\");"
+  },
+  "dowod": "Kurs smoke ma price_grosze: 19900 (linia 36 tego pliku) → 199,00 zł. Podciąg \"199,00\" jest zawarty także w \"1199,00\" i \"2199,00\" (JS: \"1199,00\".includes(\"199,00\") === true), więc mutacja dopisująca cyfrę przed ceną w HTML nie zapaliłaby tej asercji. Ta sama klasa błędu jest udokumentowana w historii projektu jako naprawiona w tools/smoke/smoke-wp-zakup.mjs i smoke-wp-produkty.mjs, ale nigdy nie wróciła do poprawki w smoke-d4.ts/d5.ts/d6.ts.",
+  "klasyfikacja": "słaba asercja (podciąg zamiast całej wartości)",
+  "wplyw": "Bramka CI 'baza' (job Kod aplikacji / Baza) może zielono przepuścić regresję ceny na katalogu D4, jeśli błędny render doda cyfrę przed poprawną kwotą.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "7ecd2b9b3149d93b00915687d939fab1a678f47cbbe3534924885af346b18182",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "Miejsce i fakt o podciągu odtworzone, ale wpływ jest nieprawdziwy: w tym samym przebiegu smoke-d4.ts:126 porównuje CAŁĄ pierwszą kartę siatki co do bajtu z goldeny/d4-katalog.html, a golden zawiera '199,00 zł'. Regresja ceny na karcie D4 wywala assert.equal(siatka, golden) — bramka CI nie przepuści jej na zielono. Zjawisko zablokowane niżej na tej samej ścieżce.",
+      "kiedy": "2026-09-03T16:34:09.132Z"
+    }
+  }
+}

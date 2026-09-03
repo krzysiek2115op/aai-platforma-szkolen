@@ -1,0 +1,21 @@
+{
+  "id": "AUD-SEC-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "SEC",
+  "pozycja": "SEC-01",
+  "stwierdzenie": "Komenda pozycji SEC-01 (używana też przez SEC-02) przeszukuje wyłącznie katalog wordpress/wtyczki, przez co niezalogowany handler admin_post_nopriv_ w mu-pluginie obwodu nie wchodzi w pole widzenia ŻADNEJ pozycji checklisty SEC, mimo że mu-plugins są w zakresie modułu tej roli.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/ROLE.md",
+    "zakres": "wiersz SEC-01 (linia 98) i SEC-02 (linia 99), kolumna \"Komenda / miejsce\"",
+    "mechanizm": "Brakuje ścieżki wordpress/srodowisko/mu-plugins w komendzie grep. Powinna ona obejmować cały zakres modułu roli z AGENT.md (komenda git ls-files wymienia mu-plugins wprost), bo tam stoi para admin_post_nopriv_/admin_post_ kolektora CSP (aai-obwod.php:169-170), czyli wejście osiągalne przez niezalogowanego. SEC-11 kieruje do tego pliku, ale pyta wyłącznie o XML-RPC, enumerację kont i mapę użytkowników, więc handlera nie obejmuje."
+  },
+  "dowod": "Komenda z checklisty dosłownie: `grep -rn \"add_action( 'admin_post\" wordpress/wtyczki` zwraca 6 rejestracji (4 x aai-sklep panel-akcje, 2 x aai-monitor wizyty). Ta sama komenda puszczona na wordpress/srodowisko/mu-plugins zwraca 2 dalsze: aai-obwod.php:169 (admin_post_nopriv_) i :170. Zakres modułu SEC z AGENT.md (git ls-files ... 'wordpress/srodowisko/mu-plugins' ...) zwraca 113 plików i mu-plugins są w środku. `grep -n \"check_admin_referer|wp_verify_nonce\" wordpress/srodowisko/mu-plugins/aai-obwod.php` kończy kodem 1 — zero trafień w całym pliku.",
+  "klasyfikacja": "luka zakresu checklisty",
+  "wplyw": "Publicznie osiągalne wejście do instalacji jest w zakresie roli SEC, a mimo to żadna pozycja jej checklisty nie każe go otworzyć. Dział może przejść całą listę na TAK, nie spojrzawszy na nie ani razu, a druga fala powtórzy to samo — bo powtarzalność zapewnia właśnie ta komenda.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "45e0c4d3e09dd7f155b78ead5fa8f9b0de0f53907ab968ceef016faa1a9b148c",
+  "werdykt": null
+}

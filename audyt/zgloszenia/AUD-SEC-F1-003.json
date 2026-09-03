@@ -1,0 +1,21 @@
+{
+  "id": "AUD-SEC-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "SEC",
+  "pozycja": "SEC-11",
+  "stwierdzenie": "Pozycję SEC-11 da się zamknąć na TAK samym dopasowaniem nazw metod w liście wywołań, bez otwierania ich ciał — kolumna Dowód przyjmuje linię, która jest wyłącznie wywołaniem metody, więc metoda z pustym ciałem przeszłaby tę pozycję tak samo jak działająca.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/ROLE.md",
+    "zakres": "wiersz SEC-11 (linia 108), kolumna \"Dowód\": \"linia reguły albo nazwa brakującej\"",
+    "mechanizm": "Brakuje wymogu wskazania linii samego filtru albo haka WEWNĄTRZ ciała metody (np. add_filter( 'xmlrpc_enabled', ... ), unset( $trasy['/wp/v2/users'] ), wp_sitemaps_add_provider). Dziś warunek spełnia linia z zarejestruj() w aai-obwod.php:157-161, czyli sama nazwa wywołania — dowód celuje w NAZWĘ, nie w ROZSTRZYGNIĘCIE."
+  },
+  "dowod": "Dowód podany przez dział przy tej pozycji to cztery nazwy metod: wylacz_xmlrpc(), zaslon_liste_uzytkownikow(), zaslon_autorow(), zaslon_mape_autorow() — wszystkie widoczne w aai-obwod.php:157-161 jako wywołania w zarejestruj(). Otwarcie ciał (wylacz_xmlrpc: add_filter xmlrpc_enabled/__return_false, xmlrpc_methods/__return_empty_array, zdjęcie X-Pingback; zaslon_liste_uzytkownikow: rest_endpoints z unset /wp/v2/users dla niezalogowanego) pokazuje, że treść jest prawdziwa — ale otwarcie nie było do odpowiedzi potrzebne, bo lista wywołań sama spełnia kolumnę Dowód. Ta klasa błędu (wzorzec na nazwę zamiast na rozstrzygnięcie) nawracała w tym repozytorium wielokrotnie.",
+  "klasyfikacja": "pozycja odhaczalna bez otwarcia pliku",
+  "wplyw": "Pozycja przestaje mierzyć to, o co pyta: opróżnienie ciała którejkolwiek z metod obwodu otwiera XML-RPC albo enumerację kont, a SEC-11 dalej zamyka się na TAK z niezmienionym dowodem. Dotyczy jedynego wejścia checklisty do obwodu instalacji.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "2a65463ecf2fe102663c4922cf79ee489dfea27a7ebe9e591359ad2813b30ffc",
+  "werdykt": null
+}

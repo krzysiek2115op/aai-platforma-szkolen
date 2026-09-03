@@ -1,0 +1,27 @@
+{
+  "id": "AUD-QA-F1-006",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-15",
+  "stwierdzenie": "deploy-podglad.sh woła sprawdz-zywy.mjs wyłącznie dla JEDNEJ strony (szkolenia.html) — weryfikacja żywego adresu porównuje bajt w bajt tylko tę stronę i pliki w _next/static/chunks, ale katalog out/ publikowany na Pages ma też osobne strony HTML dla każdej strony sprzedażowej kursu, CSS-y, mapę strony, robots.txt i miniatury OG (png), których żywa treść po deployu NIE jest w ogóle porównywana z lokalnym artefaktem.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/deploy-podglad.sh",
+    "linia": 128,
+    "tresc": "node tools/sprawdz-zywy.mjs \"${ADRES}\" out szkolenia.html 300"
+  },
+  "dowod": "tools/sprawdz-zywy.mjs (linia 54-57) buduje listę doSprawdzenia z DOKŁADNIE jednego argumentu stronaHtml plus zawartości _next/static/chunks — więc dla wywołania z deploy-podglad.sh:128 sprawdzane jest tylko szkolenia.html. Katalog out/ ma jednak osobne pliki HTML dla każdej strony sprzedażowej kursu (np. szkolenia/jak-korzystac-z-claude.html), pliki .css, sitemap.xml, robots.txt i pliki opengraph-image*.png — żaden z nich nie jest porównywany z żywym adresem po publikacji. Wcześniejsza usterka (404 na czterech miniaturach OG, CHANGELOG 0.24.0) pokazała dokładnie tę klasę: build lokalny zielony, a żywy adres inny — obecna kontrola OG w deploy-podglad.sh (linie 70-96) sprawdza wyłącznie, że plik ISTNIEJE W out/ LOKALNIE, nie że żywy serwer faktycznie go oddaje po publikacji.",
+  "klasyfikacja": "niepełna weryfikacja artefaktu (jeden plik zamiast całego wydania)",
+  "wplyw": "CDN GitHub Pages może serwować nieaktualną albo brakującą wersję strony kursu, arkusza CSS albo miniatury OG przez ≤10 minut cache'u brzegowego (udokumentowane w kodzie), a deploy zakończy się sukcesem, bo weryfikowana jest tylko jedna strona i chunki JS.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "a3631b4652961230bad99555b2a8d64502d95ae2142b6c8c96819b349717abdd",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:34:14.042Z"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-011",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A4",
+  "stwierdzenie": "Pozycja USP-08 wskazuje jako miejsce `tools/audyt/*`, a taki katalog w repozytorium NIE ISTNIEJE — narzędzia audytu leżą w `audyt/tools/` (15 plików); pozycja o kodach wyjścia narzędzi audytu nie ma czego otworzyć.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 528,
+    "tresc": "| USP-08 | Czy każde narzędzie audytu zwraca kod wyjścia **bez potoku**? | `tools/audyt/*` (E4) | kod wyjścia |"
+  },
+  "dowod": "`ls -d tools/audyt` → „Nie ma takiego pliku ani katalogu”; `git ls-files -- tools/audyt | wc -l` → 0; `ls audyt/tools | wc -l` → 15 (status.mjs, zgloszenie.mjs, mapa.mjs, migawka-wartosci.mjs, porownaj-cykle.mjs, srodowisko.mjs …). Zakres USP (`:(glob)tools/*.mjs` itd.) także nie obejmuje `audyt/tools`, więc narzędzia sektora nie są w zakresie żadnego działu poza KON.",
+  "klasyfikacja": "miejsce pozycji nie istnieje",
+  "wplyw": "Pytanie „czy każde narzędzie audytu zwraca kod wyjścia bez potoku” jest zadane wobec pustego wzorca — agent USP odhaczy je bez otwarcia ani jednego z 15 prawdziwych narzędzi.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "0574e4d8e6b8bd184dcda5d296a8103c67659fe880c7b9f090a5fc6d9c64d652",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:33.922Z"
+    }
+  }
+}

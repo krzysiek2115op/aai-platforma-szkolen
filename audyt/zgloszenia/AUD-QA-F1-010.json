@@ -1,0 +1,21 @@
+{
+  "id": "AUD-QA-F1-010",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-11",
+  "stwierdzenie": "Pozycja QA-11 daje się odpowiedzieć BEZ otwarcia jakiegokolwiek pliku — jej jedynym dowodem jest licznik wypisany przez audyt-straznikow.mjs — a ten licznik z definicji nie umie zameldować strażnika, który nie ma ANI JEDNEJ mutacji: liczy tylko mutacje istniejące. Pozycja może więc zostać zamknięta na „tak” (0 przeoczonych, 0 martwych) przy siedmiu bramkach bez pokrycia mutacyjnego, czyli utwierdza w pełnym pokryciu tam, gdzie pokrycia nie ma.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/role/QA/AGENT.md",
+    "linia": 250,
+    "tresc": "| QA-11 | Czy istnieje mutacja **martwa** (nie psuje już niczego) albo **przeoczona**? | `node tools/straznicy/audyt-straznikow.mjs` | licznik |"
+  },
+  "dowod": "AGENT.md linia 234 („otwórz plik — pozycja, na którą da się odpowiedzieć bez otwarcia pliku, jest zepsuta i to jest Twoje znalezisko o checkliście”) stawia wymóg, którego QA-11 nie spełnia: kolumna „Czego szukać” brzmi „licznik”, a kolumna „Komenda / miejsce” podaje wyłącznie uruchomienie narzędzia. Zmierzone przeze mnie uruchomieniowo: `node tools/straznicy/audyt-straznikow.mjs` kończy się kodem 0 i pierwszą linią „audyt-straznikow: 338 złapanych, 0 przeoczonych, 0 martwych, 2 pominiętych (brak materiału) (mutacji: 340)”. Równolegle policzone: `ls tools/straznicy/*.mjs` bez audyt-straznikow i uruchom-wszystkie daje 39 plików, a `grep -oE 'straznik: *\"[a-z-]+\"' tools/straznicy/audyt-straznikow.mjs | sort -u` daje 32 nazwy; `comm -23` obu list wskazuje 7 strażników (straznik-ajax, straznik-fixed, straznik-fontow, straznik-hydratacji, straznik-migracji, straznik-odmiany, straznik-progow) bez ani jednej mutacji. Licznik z QA-11 pokazuje przy tym stanie same zera i ani jednym słowem tej luki nie sygnalizuje.",
+  "klasyfikacja": "usterka checklisty (pozycja odhaczana odczytem cudzego licznika, licznik ślepy na brak pokrycia)",
+  "wplyw": "Rola QA może zamknąć QA-11 na „tak” bez otwarcia pliku i wyjść z przekonaniem, że pokrycie mutacyjne jest pełne, podczas gdy siedmiu z 39 strażników nikt nigdy nie sprawdził testem negatywnym. Druga fala, idąc tą samą pozycją, dostanie ten sam fałszywie uspokajający wynik — czyli powtarzalność audytu zostanie zachowana przy powtarzalnie przeoczonej luce.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "770f338e3de1205aec6c2a53e8e37eacc56783373aee9c639138ce94608d76d6",
+  "werdykt": null
+}

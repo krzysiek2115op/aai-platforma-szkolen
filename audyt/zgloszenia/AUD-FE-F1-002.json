@@ -1,0 +1,21 @@
+{
+  "id": "AUD-FE-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "FE",
+  "pozycja": "FE-11",
+  "stwierdzenie": "Klient widzi cenę kursu w złotych na stronie sprzedażowej ('Dołączam za 299,00 zł'), ale po kliknięciu przez do koszyka/kasy WooCommerce ten sam produkt jest wyceniony w dolarach amerykańskich ('$299.00') — ścieżka zakupu zmienia walutę w połowie, mimo że reszta interfejsu (nagłówki tabeli koszyka, 'Podsumowanie koszyka', 'Przejdź do płatności') jest poprawnie po polsku.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-widok.php",
+    "linia": 182,
+    "tresc": "return number_format( $grosze / 100, 2, ',', self::NBSP ) . self::NBSP . 'zł';"
+  },
+  "dowod": "Na żywej instalacji :8892: strona kursu http://127.0.0.1:8892/szkolenia/jak-korzystac-z-claude/ renderuje przycisk 'Dołączam za 299,00 zł' (formatuj_cene() z widok.php:182, wywoływana przez Aai_Sklep_Widok::cta(), widok.php:246). Po dodaniu tego samego produktu (id 75) do koszyka (`/koszyk/?add-to-cart=75`) i odczytaniu w prawdziwej przeglądarce (Firefox przez puppeteer-core, po pełnej hydratacji bloków Woo, networkidle0 + 3 s) treść /koszyk/ brzmi: 'Produkty w koszyku PRODUKT SZCZEGÓŁY ŁĄCZNIE Jak poprawnie korzystać z Claude $299.00 ... $299.00 PODSUMOWANIE KOSZYKA Dodaj kupony Szacowana łączna kwota $299.00 Przejdź do płatności' — sama liczba (299) się zgadza, ale walutę WooCommerce pokazuje w dolarach ($), nie w złotych. `wordpress/srodowisko/postaw.sh:150,205,330,334` jawnie instaluje i WERYFIKUJE pl_PL (core i wszystkie wtyczki, z twardym `blad` przy niepowodzeniu), ale w całym pliku nie ma ani jednej wzmianki o `woocommerce_currency` — ustawienie waluty sklepu zostaje na domyślnym USD, którego nic nie pilnuje.",
+  "klasyfikacja": "niespójna waluta na ścieżce zakupu",
+  "wplyw": "Klient klikający przycisk z ceną w złotych trafia na koszyk i kasę opisane w dolarach — realne ryzyko utraty zaufania tuż przed płatnością (wygląda jak inna kwota/waluta niż obiecana) i dokładnie ta sama klasa problemu, którą właściciel już raz zgłosił jako BLAD-024 ('kasa, koszyk i konto po angielsku') — tam chodziło o brak tłumaczeń, tu o walutę, ale skutek dla klienta jest identyczny: sklep mówi dwoma różnymi 'językami' na jednej ścieżce zakupu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "a7ea55d2d0fbeaae02e9dd9eded4e8d59d58fadaecdbcbe20d52a3057b1f6a7f",
+  "werdykt": null
+}

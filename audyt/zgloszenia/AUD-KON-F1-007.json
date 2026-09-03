@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-007",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A6",
+  "stwierdzenie": "Siedem pozycji checklist ma za komendę uruchomienie strażnika PROJEKTU, a za dowód jego wynik (QA-11, ARCH-05, REPO-03, REPO-04, REPO-05, REPO-10, USP-09): kod wyjścia 0 daje odpowiedź „tak” bez otwarcia jakiegokolwiek pliku, choć QA-01 sam zakłada, że wzorce tych strażników bywają ślepe (BLAD-013, dziewięć nawrotów).",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 403,
+    "tresc": "| REPO-10 | Czy schemat draw.io ma aktualny podgląd SVG (sha256)? | `node tools/straznicy/straznik-schematow.mjs` | plik + skrót |"
+  },
+  "dowod": "ROLE.md:238 `node tools/straznicy/audyt-straznikow.mjs` | licznik; :302 i :403 `node tools/straznicy/straznik-schematow.mjs`; :396-397 `straznik-readme` reguła 7/8; :398 `straznik-linkow`; :529 `straznik-sciezek.mjs`. W żadnej z tych siedmiu komórek „Komenda / miejsce” nie ma pliku produktu do otwarcia; REPO-01 ma dopisek „+ pomiar ręczny”, te siedem nie. Tabela KON-A3 wiąże BLAD-013 z QA-01, czyli sektor wie, że strażnik nie jest wyrocznią.",
+  "klasyfikacja": "pozycja odhaczalna bez otwarcia pliku",
+  "wplyw": "Audyt powtarza wynik CI zamiast go sprawdzać: ślepy strażnik (klasa wracająca dziewięć razy) daje zielone w obu falach i pozycja wygląda na zamkniętą.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "a44c716b5d4582165b7ee4901c46cc9244d69e7aa7957cefec32241e8d8b4978",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:33.767Z"
+    }
+  }
+}

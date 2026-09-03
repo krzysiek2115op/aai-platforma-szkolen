@@ -1,0 +1,21 @@
+{
+  "id": "AUD-SEC-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "SEC",
+  "pozycja": "SEC-01",
+  "stwierdzenie": "Pozycja SEC-01 pyta, czy KAŻDY handler admin_post_* sprawdza nonce, i nie zostawia miejsca na wejście, które nonce'a nieść nie może; odpowiedź TAK zamyka ją mimo dwóch handlerów beaconu monitoringu, w których w całym pliku nie ma ani jednego wywołania check_admin_referer ani wp_verify_nonce.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-wizyty.php",
+    "linia": 111,
+    "tresc": "add_action( 'admin_post_nopriv_' . self::AKCJA, array( self::class, 'odbierz' ) );"
+  },
+  "dowod": "Komenda pozycji SEC-01 zwraca 6 rejestracji admin_post_*. `grep -n \"check_admin_referer|wp_verify_nonce|check_ajax_referer\" wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-wizyty.php` kończy kodem 1 — zero trafień; ścieżka odbierz() -> obsluz() (linie 134-200) sprawdza uprawnienie, typ ciała, Origin, limiter i podpis ścieżki, ale nonce'a nie sprawdza w ogóle. Kontrola pozytywna w tym samym przebiegu: w class-aai-sklep-panel-akcje.php check_admin_referer stoi w liniach 68, 172, 199, 268. Odpowiedź TAK obejmuje więc 4 z 6 rejestracji zwróconych przez własną komendę pozycji.",
+  "klasyfikacja": "pozycja nierozstrzygalna zgodnie z brzmieniem",
+  "wplyw": "Pozycja o brzmieniu absolutnym zmusza do wyboru między nieprawdziwym TAK a mylącym NIE przy wejściu, które nonce'a nieść nie może z definicji. Odpowiedź TAK zapisana bez wymienienia wyjątków nie daje się odtworzyć z podanego dowodu, a druga fala rozstrzygnie ją inaczej i rozjazd będzie szumem, nie wynikiem.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "c6022e271cd3d15f7c2900bb1ac1b250984bc80ff8061368d2438937af292677",
+  "werdykt": null
+}

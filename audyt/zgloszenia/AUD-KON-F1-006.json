@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-006",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A5",
+  "stwierdzenie": "Trzy pytania odesłane w „Nie bierze” do działu PERF nie mają w checkliście PERF żadnej pozycji: „planów zapytań i indeksów pod kątem czasu” (BD), „wagi stron” (FE; PERF deklaruje ją w „Po co”) oraz „wydajności samych bramek” (QA) — PERF-01…PERF-08 pytają o N+1, liczbę zapytań, pamięć na żądanie, nocache, wspólny arkusz, wymiary obrazów, przebieg PHP i źródło pomiaru.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/ROLE.md",
+    "zakres": "sekcja PERF — checklista PERF-01…PERF-08 (linie 268-278)",
+    "mechanizm": "brak pozycji o indeksach bazy pod kątem czasu, o wadze strony (kB/odsłona) i o czasie przebiegu bramek, do których odsyłają linie 145 (FE), 209-210 (BD) i 251 (QA); USP-03 produkuje tabelę wagi „→ PERF”, a PERF nie ma pozycji, która ją konsumuje"
+  },
+  "dowod": "`sed -n 256,282p audyt/ROLE.md | grep -i 'indeks\\|wag\\|bramek'` → trafia tylko linia „Po co” (waga stron) i „Nie bierze”; w ośmiu pozycjach PERF-01…08 zero wystąpień. Odsyłacze: ROLE.md:145 „wagi stron i liczby zapytań (→ PERF)”, ROLE.md:209-210 „planów zapytań i indeksów pod kątem czasu (→ PERF)”, ROLE.md:251 „wydajności samych bramek (→ PERF)”. PERF-90 jest pozycją otwartą, nie pozycją o indeksach.",
+  "klasyfikacja": "pytanie bez właściciela",
+  "wplyw": "Indeksy MySQL (decyzja T3 „indeksy bez zmian” na 200 000 wierszy), waga stron i czas bramek nie zostaną zadane przez żaden dział — odesłanie kończy się w pustce, a obie fale zgodnie to przemilczą.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "7d14cd042782bdd5f626d6509d6e9503f1c2161d7c516260007b24b4c3578fc3",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:33.736Z"
+    }
+  }
+}

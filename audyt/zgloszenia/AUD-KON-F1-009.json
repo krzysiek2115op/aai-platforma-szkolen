@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-009",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A1",
+  "stwierdzenie": "Rachunek pokrycia w ROLE.md (921 plików, 522 przypisane) i definicja KON w AGENT.md („git ls-files 921 plików”, „522 + 399 = 921”) nie zgadzają się z repozytorium: `git ls-files` → 1121, unia zakresów obu sektorów → 722, a unia samych zakresów AUDYTU → 636, przy czym 86 plików `re-audyt/` jest pokrytych wyłącznie przez sektor RE-AUDYT, którego nie ma w tym przebiegu.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 52,
+    "tresc": "| W repo (`git ls-files`) | **921** |"
+  },
+  "dowod": "`git ls-files | wc -l` → 1121; `node audyt/tools/mapa.mjs` → przypisane 722, wykluczone 399, suma 1121; własne policzenie unii zakresów z audyt/ROLE.md → 636, wykluczone 399, pozostałe 86 = `git ls-files -- re-audyt | wc -l` → 86. audyt/role/KON/AGENT.md:130 podaje „921 plików”, :234 „522 przypisane + 399 wykluczone = 921”. Sprzecznych (przypisany i wykluczony) → 0, zgodnie z deklaracją.",
+  "klasyfikacja": "nieaktualna deklaracja pokrycia w definicji sektora",
+  "wplyw": "Agent, któremu AGENT.md każe zamknąć sumę 522+399=921, dostaje 722+399=1121 i musi rozstrzygać sam, czy mapa jest zepsuta; zero sierot w mapie wynika z unii z sektorem, który w fali AUDYT nie pracuje.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "8dd7df213fa42083e2e96f513c50f292346334c69cfa4264c85ef3114c55071a",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:33.839Z"
+    }
+  }
+}

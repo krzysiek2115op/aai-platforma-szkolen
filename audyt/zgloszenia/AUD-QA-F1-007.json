@@ -1,0 +1,27 @@
+{
+  "id": "AUD-QA-F1-007",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-90",
+  "stwierdzenie": "straznik-goldenu-tresci.mjs (golden chroniący treść 91 scenariuszy przed cichą utratą tekstu) kończy pracę bez ŻADNEGO komunikatu i kodem 0, gdy katalog tresc-kursow nie istnieje — łamiąc własną, ustaloną w tym samym repo konwencję, wg której strażnik warunkowy zawsze drukuje 'pominięte — …' przed process.exit(0) (tak robią m.in. straznik-frontu-wp.mjs, straznik-wtyczki-wp.mjs, straznik-tutora.mjs, straznik-podgladu-kursow.mjs).",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/straznicy/straznik-goldenu-tresci.mjs",
+    "linia": 31,
+    "tresc": "if (!existsSync(KATALOG)) process.exit(0);"
+  },
+  "dowod": "Porównanie z pozostałymi 'warunkowymi' strażnikami: straznik-frontu-wp.mjs:38-40 drukuje 'straznik-frontu-wp: pominięte — nie ma jeszcze wtyczki aai-sklep.' przed exit(0); straznik-wtyczki-wp.mjs:60 i straznik-tutora.mjs:53 robią to samo. straznik-goldenu-tresci.mjs (linia 31), straznik-scenariuszy.mjs (linia 55) i straznik-odsylaczy-kursu.mjs (linia 71) wychodzą kodem 0 BEZ ŻADNEGO wydruku, gdy brakuje katalogu tresc-kursow — w wyjściu `npm run check`/`uruchom-wszystkie.mjs` taki przebieg jest nie do odróżnienia od przebiegu, który naprawdę porównał sumy kontrolne 91 scenariuszy i nic nie znalazł.",
+  "klasyfikacja": "cichy no-op bramki ochrony treści",
+  "wplyw": "Gdyby katalog tresc-kursow zniknął z drzewa roboczego (np. niepełny checkout, błąd narzędzia) w środowisku bez zainstalowanego przypomnienia, golden chroniący 91 scenariuszy przed cichą utratą tekstu przestałby cokolwiek sprawdzać, a `npm run check` nadal zakończyłby się zielono bez jednego słowa ostrzeżenia o pominięciu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "4dbb994e3d3107785e72009c686d625e2ce1677b0cd1077ca8c59539c2b01863",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:34:14.082Z"
+    }
+  }
+}

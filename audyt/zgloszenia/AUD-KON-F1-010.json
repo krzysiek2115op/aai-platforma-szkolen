@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-010",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A4",
+  "stwierdzenie": "Komenda pozycji QA-12 w brzmieniu z ROLE.md (`grep -rn '\\\\\\\\w' tools/straznicy`, cztery backslashe w pliku) trafia 2 linie, a wzorców `\\w` w literałach regex strażników jest 55 w 17 plikach — komenda odpowiada na pytanie o polskie znaki, widząc 2 z 55 wystąpień.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 239,
+    "tresc": "| QA-12 | Czy wzorzec z polskimi znakami używa `\\p{L}` z flagą `u` (`\\w` nie czyta ogonków)? | `grep -rn '\\\\\\\\w' tools/straznicy` | plik:linia wzorca |"
+  },
+  "dowod": "`sed -n 239p audyt/ROLE.md | cat -A` pokazuje `'\\\\\\\\w'` (cztery backslashe, w backtickach — markdown ich nie skraca). Uruchomienie dosłowne `grep -rn '\\\\\\\\w' tools/straznicy | wc -l` → 2; `grep -rn '\\\\w' tools/straznicy | wc -l` → 55 (`-l` → 17 plików). Dowód pozycji ma być „plik:linia wzorca” — 53 wzorce nigdy nie wejdą do dowodu.",
+  "klasyfikacja": "komenda checklisty przechodząca niemal po pustce",
+  "wplyw": "Klasa „\\w nie czyta ogonków” (lekcja z 0.35.0, mutacja maskująca ślepotę strażnika) zostanie sprawdzona na 2 z 55 miejsc, a pozycja zamknie się jako przejrzana.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "517f34f639f355ff8a79885cfa326d4e7b63428a0d0cd480fb2e1d8a67c3f47f",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:33.879Z"
+    }
+  }
+}

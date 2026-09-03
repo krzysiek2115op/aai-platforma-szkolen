@@ -1,0 +1,27 @@
+{
+  "id": "AUD-QA-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-12",
+  "stwierdzenie": "straznik-odsylaczy-kursu.mjs wykrywa wprost wymieniony numer modułu wzorcem /modu[łl]\\w*\\s+(\\d)/giu, ale \\w nie obejmuje polskich znaków spoza podstawowego alfabetu (np. „ó”), więc forma dopełniacza liczby mnogiej „modułów” blokuje dopasowanie wymaganej spacji przed cyfrą — dokładnie ta klasa błędu (\\w nie czyta ogonków), którą repo już raz naprawiło w straznik-readme.mjs (\\p{L}* zamiast \\w*).",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/straznicy/straznik-odsylaczy-kursu.mjs",
+    "linia": 163,
+    "tresc": "for (const m of zdanie.matchAll(/modu[łl]\\w*\\s+(\\d)/giu)) wprost.add(+m[1]);"
+  },
+  "dowod": "node -e 'console.log(\"modułów 3\".match(/modu[łl]\\w*\\s+(\\d)/giu))' zwraca null, podczas gdy \"moduł 3\".match(...) i \"modułu 3\".match(...) dopasowują się poprawnie — bo po literze \"ł\" ciąg \"ów\" zawiera \"ó\", którego \\w (nawet z flagą u — u w JS nie rozszerza \\w) nie obejmuje, więc silnik przestaje konsumować znaki przed wymaganym \\s+ i dopasowanie pęka. Sąsiednia reguła w tym samym pliku (linia 165) już używa \\p{L}+ zamiast \\w* dla tej samej rodziny słów, więc naprawiony wzorzec współistnieje w pliku obok niepoprawionego.",
+  "klasyfikacja": "ślepota wzorca na polskie znaki (\\w bez \\p{L})",
+  "wplyw": "Zdanie z jawnie wymienionym numerem modułu w formie dopełniacza liczby mnogiej („…należy do modułów 4”) nie trafi do zbioru „wprost wymienionych modułów”, więc kontrola B (temat przypisany do złego modułu) może przeoczyć błędne przypisanie tematu w takim zdaniu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "2b6b5b2735fee245e194f7d374a4479272ace57626a8c01676d22429159a2bfb",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:34:14.007Z"
+    }
+  }
+}

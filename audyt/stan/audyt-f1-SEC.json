@@ -1,0 +1,26 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "SEC",
+  "status": "ZAKOŃCZONE",
+  "runda": 1,
+  "niedomkniete": [],
+  "kiedy": "2026-09-03T16:16:46.291Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T16:05:43.609Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-03T16:16:39.521Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 1,
+      "kiedy": "2026-09-03T16:16:46.291Z"
+    }
+  ]
+}

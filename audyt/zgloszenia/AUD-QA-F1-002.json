@@ -1,0 +1,27 @@
+{
+  "id": "AUD-QA-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-06",
+  "stwierdzenie": "Smoke D5 sprawdza cenę strony sprzedażowej podciągiem html.includes(\"299,00\") zamiast całej wartości, więc przeszedłby też dla 1299,00 albo 2299,00 zł — ta sama klasa błędu co QA-06 w smoke-d4.ts, w tym samym katalogu tools/smoke.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/smoke/smoke-d5.ts",
+    "linia": 110,
+    "tresc": "assert.ok(html.includes(\"299,00\"), \"brak ceny\");"
+  },
+  "dowod": "\"1299,00\".includes(\"299,00\") === true w JS — podciąg dopasuje się także wtedy, gdy render doda cyfrę przed właściwą kwotą. Wzorzec sprawdzania podciągu ceny jest udokumentowany w repo jako naprawiony w tools/smoke/smoke-wp-zakup.mjs (komentarz przy linii 105: \"Pierwsza wersja pytała html.includes('99,00 zł') i była ŚLEPA\"), ale poprawka nie wróciła do prototypowych smoke'ów D4/D5/D6.",
+  "klasyfikacja": "słaba asercja (podciąg zamiast całej wartości)",
+  "wplyw": "Bramka CI 'baza' może zielono przepuścić regresję ceny na stronie sprzedażowej D5.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "0977232188c3a37ba58bc57a15dca555d80f803be38842943bc5bb05b4f89a8c",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:34:09.188Z"
+    }
+  }
+}

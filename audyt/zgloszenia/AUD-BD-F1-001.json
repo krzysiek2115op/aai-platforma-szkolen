@@ -1,0 +1,27 @@
+{
+  "id": "AUD-BD-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "BD",
+  "pozycja": "BD-01",
+  "stwierdzenie": "Aai_Platnosci_Zapis::synchronizuj_kurs() pisze bez transakcji do produktu WooCommerce (wp_posts+wp_postmeta) i do naszej tabeli powiazania w osobnych krokach; przerwanie procesu miedzy utworzeniem produktu (produkt->save()) a powiazanie_ustaw() zostawia osierocony produkt draft bez wiersza w powiazania, a kolejne wywolanie synchronizuj_kurs tworzy DRUGI produkt dla tego samego kursu, bo produkt_kursu() nie znajduje osieroconego wpisu.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    "zakres": "Aai_Platnosci_Zapis::synchronizuj_kurs() (od linii 577)",
+    "mechanizm": "brak $wpdb->query('START TRANSACTION') / w_transakcji() wokol calej metody; produkt->save() (linia 657) i powiazanie_ustaw() (linia 747) sa dwoma osobnymi, niepowiazanymi zapisami, wiec przerwanie procesu miedzy nimi nie da sie cofnac"
+  },
+  "dowod": "W klasie brak jakiegokolwiek START TRANSACTION/COMMIT/ROLLBACK (grep -rn 'START TRANSACTION' na calym katalogu wtyczek trafia wylacznie w class-aai-sklep-zapis.php:934-939). W synchronizuj_kurs() linia 649-657 tworzy nowy WC_Product_Simple i zapisuje go (produkt->save()), a dopiero pozniej, w linii 747, wywolywane jest powiazanie_ustaw(). Metoda produkt_kursu() (linia 507-515) czyta WYLACZNIE z tabeli powiazania, nigdy nie skanuje istniejacych produktow WooCommerce po innym kluczu, wiec osierocony produkt z poprzedniej przerwanej probki nigdy nie zostanie odnaleziony ani ponownie uzyty.",
+  "klasyfikacja": "integralnosc danych — zapis wielotabelowy bez transakcji",
+  "wplyw": "Kazde przerwanie procesu (timeout, limit pamieci, restart PHP-FPM) trafiajace miedzy utworzenie produktu a zapis powiazania zostawia trwale osierocony produkt draft w WooCommerce i przy nastepnej synchronizacji tego samego kursu tworzy KOLEJNY nowy produkt zamiast go odnalezc — liczba osieroconych, niepowiazanych produktow rosnie z kazdym takim zdarzeniem, a kontrola (Aai_Platnosci_Zapis/sprawdz) nie ma jak ich wykryc, bo iteruje po wierszach tabeli powiazania.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "8b0cd10f70580b1b8bfbe410267481cbf56f607acba9d9dab14ddd9a130dce89",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:32:51.149Z"
+    }
+  }
+}

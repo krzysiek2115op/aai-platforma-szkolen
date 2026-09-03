@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A4",
+  "stwierdzenie": "Podwzorzec zakresu FE z nawiasami klamrowymi daje ZERO plików: `:(glob)` w git ls-files (2.55.0) nie rozwija `{a,b}`, więc dziewięć klas (widok, lekcja, moje, proza, zasoby, menu, trasy, styl-tutora, styl-woo) NIE wchodzi do zakresu FE, a deklarowana liczba 57 zgadza się tylko dlatego, że była policzona tą samą zepsutą komendą.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 126,
+    "tresc": "  ':(glob)wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-{widok,lekcja,moje,proza,zasoby,menu,trasy,styl-tutora,styl-woo}.php' \\"
+  },
+  "dowod": "Pomiar: `git ls-files -- ':(glob)wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-{widok,...,styl-woo}.php'` → 0; te same 9 plików wymienione bez klamr → 9; reszta zakresu (szablony+assets+ekran) → 57 = deklaracja. Pozycje FE-05, FE-07, FE-10 wskazują `class-aai-sklep-zasoby/menu/trasy.php`, czyli pliki SPOZA zakresu działu. Kontrola sektora (reguła 8 straznik-sektora-audytu.mjs) woła mapa.mjs, która sprawdza pustkę CAŁEGO działu, nie podwzorca — przechodzi po pustce. Ten sam zapis dziedziczy re-audyt/ROLE.md (4 linie z `glob…{`).",
+  "klasyfikacja": "zakres przechodzący po pustce",
+  "wplyw": "Dziewięć klas frontu nie liczy się do pokrycia FE; porównanie fal i mapa pokrycia opierają się na zakresie, który nie obejmuje plików własnej checklisty.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "611ffc36df9a0a9d1e529ab0aa91387af978d9baf7a569551c6264649f158fda",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:28.435Z"
+    }
+  }
+}

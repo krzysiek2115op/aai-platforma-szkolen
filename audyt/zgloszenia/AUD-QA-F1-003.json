@@ -1,0 +1,27 @@
+{
+  "id": "AUD-QA-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-06",
+  "stwierdzenie": "Smoke D6 (kreator) sprawdza cenę kursu podciągiem zCiastkiem.includes(\"123,00\") zamiast całej wartości, więc przeszedłby też dla 1123,00 albo 2123,00 zł — trzecie wystąpienie tej samej klasy błędu w tools/smoke/smoke-d4/d5/d6.ts.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/smoke/smoke-d6.ts",
+    "linia": 129,
+    "tresc": "assert.ok(zCiastkiem.includes(\"123,00\"), \"brak ceny z bazy\");"
+  },
+  "dowod": "\"1123,00\".includes(\"123,00\") === true w JS. Ten sam plik ma jeszcze jedno wystąpienie tej klasy w linii 143 (licznik \"1/12\", gdzie \"11/12\".includes(\"1/12\") === true) — to nie jest odosobniony przypadek, tylko powtórzony wzorzec w obrębie jednego pliku.",
+  "klasyfikacja": "słaba asercja (podciąg zamiast całej wartości)",
+  "wplyw": "Bramka CI 'baza' (smoke kreatora) może zielono przepuścić regresję ceny wyświetlanej na liście kreatora.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "6fdcd27259eaeaba526e051d95c99a8ff182902fbc2aec059ee2cb5e9bf84e9a",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:34:09.222Z"
+    }
+  }
+}

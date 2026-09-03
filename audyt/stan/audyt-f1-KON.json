@@ -1,0 +1,26 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "KON",
+  "status": "W TRAKCIE",
+  "runda": 2,
+  "niedomkniete": [],
+  "kiedy": "2026-09-03T16:26:50.500Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T16:07:02.069Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-03T16:16:46.255Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 2,
+      "kiedy": "2026-09-03T16:26:50.500Z"
+    }
+  ]
+}

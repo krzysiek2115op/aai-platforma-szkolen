@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A4",
+  "stwierdzenie": "Oba podwzorce zakresu INT z nawiasami klamrowymi dają ZERO plików: `class-aai-sklep-tutor.php`, `styl-tutora`, `styl-woo`, `zasoby` oraz `tutor-motyw.css` i `woo-motyw.css` (6 plików) NIE wchodzą do zakresu integracji; zadeklarowane 15 plików to 14 plików aai-platnosci plus ETAP-WP.md.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 321,
+    "tresc": "git ls-files -- ':(glob)wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-{tutor,styl-tutora,styl-woo,zasoby}.php' \\"
+  },
+  "dowod": "Pomiar: linia 321 → 0 plików, linia 323 (`{tutor,woo}-motyw.css`) → 0; te same nazwy bez klamr → 4 + 2 = 6 plików istniejących w gicie. `:(glob)…/assets/tutor-motyw.css` bez klamr → 1. Pozycje INT-05 (`tutor-motyw.css`, `woo-motyw.css`) i INT-07 (`class-aai-sklep-tutor.php`) wskazują pliki spoza zakresu działu. Po naprawie przecięcie INT∩FE = 5, co przekracza próg reguły 1 kontroli granic (wiersz FE ↔ INT istnieje).",
+  "klasyfikacja": "zakres przechodzący po pustce",
+  "wplyw": "Jedyny plik kopii kursu do Tutora (źródło rozjazdu dwóch kopii — główne ryzyko architektury wg ETAP-WP.md) jest poza zakresem działu od integracji z Tutorem.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "281a7e2e18c8a17a48d1dce84ba635a03f1f0e879cfbb54364d119abb6c69856",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:28.523Z"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "AUD-QA-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-06",
+  "stwierdzenie": "Smoke D6 sprawdza licznik sekcji podciągiem edytor.includes(\"1/12\") zamiast całej wartości, więc przeszedłby też, gdyby licznik pokazywał 11/12 albo 21/12 — czwarte wystąpienie tej samej klasy błędu w tym samym katalogu smoke'ów.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/smoke/smoke-d6.ts",
+    "linia": 143,
+    "tresc": "assert.ok(edytor.includes(\"1/12\"), \"licznik sekcji nie liczy z bazy\");"
+  },
+  "dowod": "\"11/12\".includes(\"1/12\") === true w JS (podciąg od drugiego znaku). Sprawdzenie nie odróżni prawidłowego licznika 1/12 od zepsutego 11/12 czy 21/12, bo oba zawierają szukany podciąg.",
+  "klasyfikacja": "słaba asercja (podciąg zamiast całej wartości)",
+  "wplyw": "Bramka CI 'baza' (smoke kreatora) może zielono przepuścić błędne liczenie sekcji kursu w edytorze.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "18cb6b0138468588b372aa67a7ab610531cce5b80a997ab880ac0ee46ea27d93",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:34:09.269Z"
+    }
+  }
+}

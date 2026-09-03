@@ -1,0 +1,51 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "FE",
+  "status": "ZAKOŃCZONE",
+  "runda": 4,
+  "niedomkniete": [],
+  "kiedy": "2026-09-03T16:38:32.592Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T16:05:18.085Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-03T16:31:14.736Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 2,
+      "kiedy": "2026-09-03T16:32:52.663Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 3,
+      "kiedy": "2026-09-03T16:33:20.960Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 3,
+      "kiedy": "2026-09-03T16:33:38.276Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 4,
+      "kiedy": "2026-09-03T16:38:18.291Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 4,
+      "kiedy": "2026-09-03T16:38:18.350Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 4,
+      "kiedy": "2026-09-03T16:38:32.592Z"
+    }
+  ]
+}

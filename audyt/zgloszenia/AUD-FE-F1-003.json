@@ -1,0 +1,21 @@
+{
+  "id": "AUD-FE-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "FE",
+  "pozycja": "FE-11",
+  "stwierdzenie": "Pusty koszyk (/koszyk/) pokazuje klientowi dwa napisy po angielsku — 'Your cart is currently empty!' i 'New in store' — mimo że locale instalacji to pl_PL i reszta tej samej strony (nagłówek, stopka, menu) jest po polsku; weryfikacja języka w postaw.sh sprawdza wyłącznie tłumaczenie PHP-owe ('Billing address' z domeny 'woocommerce'), więc nie wykrywa tej klasy braku.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/srodowisko/postaw.sh",
+    "zakres": "weryfikacja tłumaczeń WooCommerce (blok przy zmiennej proba_tlumaczenia, koniec skryptu)",
+    "mechanizm": "sprawdzenie woła __( 'Billing address', 'woocommerce' ) w PHP, czyli testuje tylko klasyczną domenę tłumaczeń PHP-side; napisy pustego koszyka WooCommerce Blocks ('Your cart is currently empty!', 'New in store') renderuje JavaScript bloku Cart z osobnej paczki tłumaczeń JS (inny mechanizm ładowania niż __()), więc ich brak tłumaczenia nie jest wykrywany przez ten sam test, mimo że test istnieje właśnie po to, żeby wyłapywać angielszczyznę na ścieżce klienta (BLAD-024)"
+  },
+  "dowod": "Zmierzone w prawdziwej przeglądarce (Firefox, puppeteer-core, świeży profil bez ciasteczek, po networkidle0 + 3 s na dokończenie hydratacji bloków Woo) na :8892 z pustym koszykiem: document.body.innerText strony http://127.0.0.1:8892/koszyk/ zawiera dosłownie 'Your cart is currently empty! New in store' pomiędzy poprawnie polskim menu ('Przejdź do treści … Szkolenia Porozmawiajmy') a poprawnie polską stopką ('AUTOMATIC AI © 2026 Automatic AI — wszystkie prawa zastrzeżone Polityka prywatności Polityka cookies'). Ta sama instalacja poprawnie tłumaczy Woo w innych miejscach — po dodaniu produktu do koszyka ten sam widok pokazuje 'Produkty w koszyku', 'PODSUMOWANIE KOSZYKA', 'Przejdź do płatności' — więc locale i pliki .mo działają, a luka dotyczy konkretnie stanu 'pusty koszyk' bloku Cart. Weryfikacja w postaw.sh (blok 'proba_tlumaczenia') sprawdza jedynie __( 'Billing address', 'woocommerce' ), która nie ma związku z tymi dwoma napisami.",
+  "klasyfikacja": "brak tłumaczenia (blok Woo, angielski napis na ścieżce klienta)",
+  "wplyw": "Pierwsza rzecz, jaką widzi gość otwierający koszyk BEZ produktu (np. z linku 'Koszyk' w nawigacji, zanim cokolwiek kupi) to zdanie po angielsku na w pełni polskiej stronie — to ta sama klasa problemu co BLAD-024 ('kasa, koszyk i konto po angielsku'), którą projekt już raz naprawiał i przeciw której postaw.sh ma dedykowaną bramkę — a mimo to bramka jej nie łapie, bo mierzy inny mechanizm tłumaczenia niż ten, który faktycznie zawiódł.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "718f1f9a198b4959fd4672d3ab6ba63f51629574222f9b911e51bae0346c4790",
+  "werdykt": null
+}

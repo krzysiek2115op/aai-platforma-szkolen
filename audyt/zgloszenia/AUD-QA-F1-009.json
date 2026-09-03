@@ -1,0 +1,27 @@
+{
+  "id": "AUD-QA-F1-009",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-90",
+  "stwierdzenie": "audyt-straznikow.mjs — jedyne narzędzie, które dowodzi mutacyjnie, że strażnicy w ogóle wykrywają błędy (340 mutacji) — nie jest wywoływane ani w .github/workflows/ci.yml, ani w skrypcie npm run check; jest to komenda wyłącznie ręczna, o której trzeba pamiętać przy każdej zmianie strażnika.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "package.json",
+    "zakres": "skrypt \"check\" (linia 16)",
+    "mechanizm": "skrypt \"check\" woła uruchom-wszystkie.mjs (pojedynczy przebieg strażników na bieżącym kodzie), ale nigdzie nie woła audyt-straznikow.mjs (przebieg mutacyjny) — to samo dotyczy joba \"straznicy\" w .github/workflows/ci.yml, który też woła tylko uruchom-wszystkie.mjs"
+  },
+  "dowod": "package.json linia 16: \"check\": \"node tools/straznicy/uruchom-wszystkie.mjs && npm run lint && npx tsc --noEmit && npm test && npm run build && npm run smoke\" — brak audyt-straznikow.mjs w łańcuchu. .github/workflows/ci.yml, job \"straznicy\" (linie 62-84), krok \"Uruchom strażników\" woła wyłącznie `node tools/straznicy/uruchom-wszystkie.mjs`. Żaden inny job ci.yml nie wspomina audyt-straznikow.mjs (sprawdzone: grep -n 'audyt-straznikow' .github/workflows/ci.yml nie daje wyniku).",
+  "klasyfikacja": "bramka mutacyjna odłączona od automatycznej weryfikacji",
+  "wplyw": "Regresja, która wyłącza wykrywalność jednego ze strażników (np. osłabienie wzorca do postaci, która nie zapala się na złym kodzie — udokumentowana w tym repo klasa błędu powtórzona co najmniej dziewięć razy), NIE zostanie wykryta ani przez CI, ani przez `npm run check` — zależy wyłącznie od tego, czy ktoś ręcznie uruchomi `node tools/straznicy/audyt-straznikow.mjs` przed scaleniem.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "c9c68816c434038e78caceae63b0cfa4453ac51d3812ec28db9cbb9e6b22b2b8",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:34:14.172Z"
+    }
+  }
+}

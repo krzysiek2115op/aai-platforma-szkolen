@@ -1,0 +1,21 @@
+{
+  "id": "AUD-BE-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "BE",
+  "pozycja": "BE-02",
+  "stwierdzenie": "Komenda pozycji BE-02 jest WĘŻSZA od jej własnego pytania: dopasowuje wyłącznie $wpdb->insert/update/delete, więc nie widzi zapisów w formie $wpdb->query( 'INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP|ALTER' ). W zakresie BE (66 plików) takich wywołań jest dziesięć, a trzy z nich — DROP TABLE na NASZYCH tabelach w uninstall.php każdej z trzech wtyczek — leżą POZA warstwą zapisu, czyli są dokładnie tym dowodem ('plik:linia poza warstwą'), o który ta pozycja prosi, a którego jej komenda wyprodukować nie może.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 163,
+    "tresc": "| BE-02 | Czy każdy zapis do naszych tabel idzie przez warstwę zapisu? | `grep -rn '\\$wpdb->\\(insert\\|update\\|delete\\)' wordpress/wtyczki` | plik:linia poza warstwą |"
+  },
+  "dowod": "1) Komenda dosłownie z BE-02 zwraca 14 trafień, wszystkie w class-*-zapis.php albo w komentarzach — odpowiedź 'tak' jest osiągalna bez zobaczenia ani jednego zapisu formy query(). 2) `grep -rn -e '\\$wpdb->query' -e '\\$wpdb->replace' wordpress/wtyczki` zwraca 14 dalszych miejsc, w tym wordpress/wtyczki/aai-sklep/uninstall.php:43, wordpress/wtyczki/aai-monitor/uninstall.php:41 i wordpress/wtyczki/aai-platnosci/uninstall.php:40 — każde wykonuje DROP TABLE na tabelach z prefiksem wtyczki, z pominięciem warstwy zapisu. 3) Dowód porównawczy w tym samym repo: tools/straznicy/straznik-wtyczki-wp.mjs:187-189 liczy zapisy OBIEMA formami naraz — /\\$wpdb->(insert|update|delete|replace)\\s*\\(/g ORAZ /\\$wpdb->query\\(\\s*[\"']?\\s*(INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP|ALTER)\\b/gi — czyli własne narzędzie projektu pyta o tę samą rzecz szerzej niż checklista sektora. 4) Reguła 10 tego strażnika (linie 220-242) istnieje właśnie dlatego, że wzorzec czytający tylko jedną formę wywołania przepuszczał SQL sklejony wcześniej.",
+  "klasyfikacja": "usterka checklisty — komenda pozycji nie pokrywa klasy przypadków, o którą pyta pozycja; odpowiedź 'tak' jest osiągalna bez zmierzenia całej klasy",
+  "wplyw": "Powtarzalność fal, czyli warunek istnienia sektora. Audytor idący komendą dosłownie (a checklista jest MECHANICZNA właśnie po to, żeby dwie fale dały ten sam wynik) zamyka BE-02 na 'tak' i nigdy nie zobaczy zapisów formy query(). Fala 2, która sięgnie szerzej, odpowie 'nie' i wskaże uninstall.php — rozjazd między falami będzie wtedy skutkiem brzmienia komendy, nie zmiany w kodzie, czyli szumem zamiast wyniku (K4″). Dodatkowo: gdyby kiedykolwiek powstał zapis do naszych tabel formy $wpdb->query() poza warstwą zapisu, ta pozycja przepuści go w milczeniu — a jest to jedyna pozycja w checkliście BE pilnująca niezmiennika 'jedyny pisarz'.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "07da8a4571a6fd7c3037648a095b562be489edb2d39a74b56b5a99d1dae2adf6",
+  "werdykt": null
+}

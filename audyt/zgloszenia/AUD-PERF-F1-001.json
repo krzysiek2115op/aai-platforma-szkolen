@@ -1,0 +1,21 @@
+{
+  "id": "AUD-PERF-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-01",
+  "stwierdzenie": "Aai_Sklep_Tutor::dane_kursu() ma zapytanie SQL wewnątrz podwójnej pętli foreach: dla każdego modułu kursu wykonuje osobne zapytanie o jego lekcje, więc koszt rośnie liniowo z liczbą modułów (N+1). Funkcja jest wołana przez synchronizuj_kurs() po KAŻDYM zapisie kursu w kreatorze oraz w pętli po wszystkich kursach przez porownaj() (komenda wp aai-sklep sprawdz-tutora), gdzie N+1 mnoży się dodatkowo przez liczbę kursów.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php",
+    "linia": 788,
+    "tresc": "foreach ( (array) $wpdb->get_results( $wpdb->prepare( \"SELECT * FROM `$t_lekcje` WHERE module_id = %s ORDER BY position\", (string) $m['id'] ), ARRAY_A ) as $l ) { // phpcs:ignore WordPress.DB.PreparedSQL"
+  },
+  "dowod": "Linia 786 otwiera foreach po modułach (zapytanie do $t_moduly), a wewnątrz jego ciała linia 788 wykonuje KOLEJNE zapytanie $wpdb->get_results do $t_lekcje dla każdego pojedynczego modułu $m['id'] z osobna, zamiast jednego zapytania z WHERE module_id IN (...). Dla kursu z M modułami to M dodatkowych zapytań ponad bazowe 3 (courses+sections+modules). Wywołania: class-aai-sklep-tutor.php:236 (synchronizuj_kurs, hak aai_sklep_kurs_zmieniony po każdym zapisie w kreatorze) i class-aai-sklep-tutor.php:332 (porownaj, wołane w pętli po wszystkich kursach przez wp aai-sklep sprawdz-tutora), co dla instalacji z K kursami i M modułami/kurs daje rząd K*(3+M) zapytań w jednym przebiegu kontroli.",
+  "klasyfikacja": "N+1",
+  "wplyw": "Każdy zapis kursu w kreatorze i każde uruchomienie kontroli sprawdz-tutora kosztuje liniowo więcej zapytań SQL wraz z rosnącą liczbą modułów/kursów, zamiast stałej liczby zapytań przez WHERE ... IN (...).",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "1ed720cdae0bc0034de7fd621b89a106b992acaec3a39dc8019a67677b7a71e5",
+  "werdykt": null
+}

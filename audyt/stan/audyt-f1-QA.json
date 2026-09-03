@@ -1,0 +1,31 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "QA",
+  "status": "ZAKOŃCZONE",
+  "runda": 2,
+  "niedomkniete": [],
+  "kiedy": "2026-09-03T16:25:40.322Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T16:05:11.872Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-03T16:21:19.051Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 2,
+      "kiedy": "2026-09-03T16:25:13.744Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 2,
+      "kiedy": "2026-09-03T16:25:40.322Z"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "AUD-KON-F1-014",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A4",
+  "stwierdzenie": "Pozycja KON-A4 domyka się na \"nie\" samym wynikiem `node audyt/tools/mapa.mjs`, bez otwarcia jakiegokolwiek pliku, bo jedyna maszynowa kontrola pustki zakresów mierzy pustkę CAŁEJ komendy działu, a nie jej podwzorców: przy czterech podwzorcach dających zero plików mapa melduje 15 działów z liczbą >0, zero zakresów pustych i kod wyjścia 0.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/mapa.mjs",
+    "zakres": "pętla po zakresach (linie 62-73) i kontrola pustki (linie 114-120)",
+    "mechanizm": "brak pomiaru pustki KAŻDEGO podwzorca komendy zakresu — `gitPliki(komenda)` uruchamia całą komendę `git ls-files` za jednym razem, a `pusty: pliki.length === 0` (linia 70) rozstrzyga o dziale jako całości; brakuje rozbicia komendy na argumenty i osobnego pomiaru każdego z nich, przez co podwzorzec `:(glob)…{a,b}` dający zero plików jest dla mapy i dla reguły 8 strażnika sektora niewidzialny"
+  },
+  "dowod": "Zmierzone: `node audyt/tools/mapa.mjs` → 15 działów, każdy >0 plików, brak linii \"ZAKRES PUSTY\", kod wyjścia 0. Równocześnie cztery podwzorce z audyt/ROLE.md dają zero: linia 126 (FE) → 0, linia 189 (BD) → 0, linia 321 (INT) → 0, linia 323 (INT) → 0; te same nazwy bez klamr → 9, 10, 4 i 2 pliki istniejące w gicie. Kod: audyt/tools/mapa.mjs:63 `const pliki = gitPliki(komenda)` na komendzie złączonej przez `zakresyZRoleMd` (audyt/tools/wspolne.mjs:273 `blok.replace(/\\\\\\n/g, \" \")`), :70 `pusty: pliki.length === 0`, :115 `m.dzialy.filter((d) => d.pusty)`. Reguła 8 strażnika sektora (audyt/tools/straznik-sektora-audytu.mjs:334-339) woła wyłącznie ten skrypt, a jej komunikat obiecuje wykrycie \"pustego zakresu\". Deklaracje \"Zakres — N plików\" zgadzają się z wynikiem zepsutej komendy (FE 57, BD 25, INT 15), więc porównanie deklaracji z pomiarem też nie zapala.",
+  "klasyfikacja": "pozycja checklisty odhaczalna bez otwarcia pliku / kontrola o zbyt grubej rozdzielczości",
+  "wplyw": "Po naprawie czterech linii ROLE.md ta sama ślepota zostaje dla każdego przyszłego podwzorca: fala 2, zamykając KON-A4 kontrolą sektora, odpowie \"nie\" przy zakresie, który po cichu utracił pliki. Trzy zgłoszenia AUD-KON-F1-001..003 powstały mimo tej kontroli, nie dzięki niej — więc powtarzalność wyniku między falami zależy od czujności agenta, a nie od mechanizmu, co łamie zasadę budowy \"mechaniczny zakres, nie swobodny przegląd\".",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "f9b09bf30cfe9bda899f2604579ec203349b9fa6afaebdb4490b7898297e599a",
+  "werdykt": null
+}

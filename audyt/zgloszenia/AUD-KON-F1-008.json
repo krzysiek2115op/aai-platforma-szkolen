@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-008",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A3",
+  "stwierdzenie": "Klasa BLAD-016 (podmiana danych per węzeł tekstowy omijana przez rozbicie na elementy) jest w tabeli pokrycia oznaczona „wykluczone D4” z uzasadnieniem, że żyje w `tresc-kursow`, a jej mechanizm i naprawa leżą w `tools/zrzuty/asercje.mjs`, `tools/zrzuty/test-asercji.mjs` (zakres USP) i `tools/straznicy/straznik-asercji.mjs` (zakres QA) — plikach PRZYPISANYCH działom; żadna pozycja checklisty tej klasy nie łapie.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 676,
+    "tresc": "| BLAD-001 hydratacja | PROTO-09 | BLAD-016 podmiana per węzeł | *wykluczone D4* |"
+  },
+  "dowod": "rejestr/znane-bledy.json BLAD-016: naprawa = „sprawdzPrywatnosc przyjmuje listę ZASTĘPNIKÓW… `zrob-zrzut.mjs`”, straznik = „tools/zrzuty/test-asercji.mjs (+ straznik-asercji)”. `git ls-files -- tools/zrzuty tools/straznicy | grep asercj` → 4 pliki w gicie; zakres USP (`tools/zrzuty`) i QA (`tools/straznicy`) je obejmują. ROLE.md:692-694 twierdzi: „Obie żyją w tresc-kursow, którego audyt nie rusza”. `grep -n 'rozbici\\|per węzeł\\|zastępnik' audyt/ROLE.md` w checklistach → 0 pozycji.",
+  "klasyfikacja": "klasa błędu bez pozycji, wykluczona pod błędnym uzasadnieniem",
+  "wplyw": "Klasa „maskowanie/podmiana omijana przez rozbicie tokenu” ma odpowiednik poza kursami (maskowanie loginu w dzienniku monitoringu, ucieczka w podpisach) i nikt jej nie zada; wykluczenie wygląda na przeoczenie udokumentowane jako decyzja.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "b5d590f6304c22a07e46568025a879fa2b7babb25bea7c1f9c03646a9812fce8",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:33.801Z"
+    }
+  }
+}

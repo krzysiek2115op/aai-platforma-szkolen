@@ -1,0 +1,27 @@
+{
+  "id": "AUD-BE-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "BE",
+  "pozycja": "BE-10",
+  "stwierdzenie": "Start wtyczki aai-sklep (funkcja rejestrowana na 'plugins_loaded' w aai-sklep.php) NIE jest opakowany w try/catch(Throwable), w odróżnieniu od analogicznych bloków startowych aai-platnosci.php i aai-monitor.php, które po znalezisku z testu całości (2026-08-31) mają CAŁY start w try/catch właśnie po to, żeby brak jednego pliku klasy nie wywalał całej witryny.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    "zakres": "callback add_action('plugins_loaded', ...) w liniach 108-133",
+    "mechanizm": "Brak bloku try { ... } catch (Throwable $e) { ... } wokół trzynastu wywołań ::zarejestruj() (Aai_Sklep_Tabele::dociagnij_schemat, Aai_Sklep_Zasoby, Aai_Sklep_Styl_Tutora, Aai_Sklep_Styl_Woo, Aai_Sklep_Trasy, Aai_Sklep_Moje, Aai_Sklep_Menu, Aai_Sklep_Seo, Aai_Sklep_Sitemap, Aai_Sklep_Panel, Aai_Sklep_Panel_Akcje, Aai_Sklep_Tutor, Aai_Sklep_Lekcja). Autoloader wtyczki (linie 63-74, ten sam plik) po cichu pomija plik nieczytelny (warunek is_readable) i nic nie zgłasza — więc brak lub nieczytelność JEDNEGO z trzynastu plików klas skutkuje fatalnym błędem PHP 'Error: Class ... not found' bez żadnego catch, czyli HTTP 500 na KAŻDYM żądaniu witryny."
+  },
+  "dowod": "wordpress/wtyczki/aai-sklep/aai-sklep.php:108-133 — callback plugins_loaded woła 13 metod ::zarejestruj() bez żadnego try/catch wokół nich. Dla porównania wordpress/wtyczki/aai-platnosci/aai-platnosci.php (blok plugins_loaded, komentarz wprost): \"CAŁY START W `try` — zmierzone przy teście całości (2026-08-31): brak JEDNEGO pliku z `includes/` (autoloader pomija nieczytelny) dawał `Error: Class not found` na każdym żądaniu, czyli HTTP 500 na całej witrynie, łącznie z katalogiem i stronami kursów. Szew płatności nie ma prawa wywrócić sklepu, którego tylko pilnuje — tak samo jak monitoring (ta sama naprawa tego dnia).\" — cały blok tej wtyczki jest wewnątrz try{...}catch(Throwable $e){...}. Identyczny wzorzec (i identyczny cytat 'ta sama naprawa tego dnia') jest w wordpress/wtyczki/aai-monitor/aai-monitor.php. CLAUDE.md (sekcja test całości, 2026-08-31, znalezisko 3) potwierdza, że naprawa objęła wyłącznie 'monitoring i szew płatności' — Plugin 1 (aai-sklep) nie jest tam wymieniony, a kod to potwierdza: jego plik główny nie ma bloku try/catch wokół plugins_loaded.",
+  "klasyfikacja": "brak obsługi błędu startu — kod nie dotrzymuje własnego, udokumentowanego w siostrzanych wtyczkach standardu",
+  "wplyw": "Uszkodzenie albo zniknięcie JEDNEGO z trzynastu plików klas wołanych w plugins_loaded aai-sklep.php (częściowy checkout, martwy bind mount po `git checkout` — udokumentowana w tym samym repo klasa awarii, błąd deploya na hostingu) wywala HTTP 500 na CAŁEJ witrynie przy KAŻDYM żądaniu — nie tylko funkcje sklepu, ale też strony Woo/Tutor, bo błąd PHP nieopakowany w catch przerywa całe wykonanie plugins_loaded dla wszystkich wtyczek ładowanych po aai-sklep. To dokładnie ta klasa błędu (brak JEDNEGO pliku = HTTP 500 na całej witrynie), którą właściciel kazał naprawić w Pluginach 2 i 3 po teście całości 2026-08-31 — w Pluginie 1, flagowej wtyczce dostarczającej katalog /szkolenia i strony sprzedażowe, pozostała nienaprawiona.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "6ccf7e81be3b1f975654dcd0a62896c619633685ccf3f653d67b05bf01cbdc8b",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:24:57.036Z"
+    }
+  }
+}

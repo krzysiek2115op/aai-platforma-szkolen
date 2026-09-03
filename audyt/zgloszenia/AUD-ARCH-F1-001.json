@@ -1,0 +1,21 @@
+{
+  "id": "AUD-ARCH-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "ARCH",
+  "pozycja": "ARCH-02",
+  "stwierdzenie": "Aai_Monitor_Podpis::sol() pisze surowym SQL INSERT wprost do $wpdb->options (cudza tabela WordPressa, nie wtyczki), z pominięciem add_option()/update_option() — granica 'każda wtyczka pisze tylko do własnych tabel' jest przełamana celowo, komentarzem uzasadniona jako obejście wyścigu w add_option(), ale nadal pisze do tabeli, której właścicielem jest rdzeń WP, nie żadna z trzech wtyczek.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php",
+    "linia": 190,
+    "tresc": "$wpdb->query("
+  },
+  "dowod": "Linie 190-196: $wpdb->query( $wpdb->prepare( \"INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'yes') ON DUPLICATE KEY UPDATE option_id = option_id\", ... ) ) — zapis bezpośrednio do $wpdb->options, tabeli rdzenia WordPressa, z pominięciem WP API (add_option/update_option). Grep '$wpdb->\\(posts\\|postmeta\\|users\\|usermeta\\|options\\|term\\|comments\\)' w wordpress/wtyczki pokazuje pięć trafień; pozostałe cztery (class-aai-platnosci-ustawienia.php:775-776, class-aai-platnosci-zapis.php:410, class-aai-platnosci-cli.php:841-842) to same SELECT-y (odczyt), ten jeden jest zapisem (INSERT).",
+  "klasyfikacja": "granica",
+  "wplyw": "Wtyczka aai-monitor sięga poza własną tabelę wprost do struktury rdzenia WordPressa (wp_options), omijając jego API cache'ujące (add_option/update_option) i licząc się z tym świadomie kasowaniem cache obiektowego ręcznie (wp_cache_delete) — to jest dokładnie klasa błędu z GRANICE.md ('to, że wtyczka w ogóle sięga do cudzych tabel → ARCH'), niezależnie od tego, że komentarz w kodzie tłumaczy motywację (wyścig w add_option() nadpisujący sól). Przy migracji WordPressa na inną wersję albo zmianie cache'u opcji ten zapis może przestać być spójny z resztą API opcji.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "bcade24ce1fd7a9d9105bbc862fc04878578b8c1198900d0ef941ab8118b23a2",
+  "werdykt": null
+}

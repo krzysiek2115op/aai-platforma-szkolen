@@ -1,0 +1,27 @@
+{
+  "id": "AUD-QA-F1-008",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-03",
+  "stwierdzenie": "Siedem z 39 strażników nie ma w tools/straznicy/audyt-straznikow.mjs ANI JEDNEJ mutacji: straznik-ajax, straznik-fixed, straznik-fontow, straznik-hydratacji, straznik-migracji, straznik-odmiany, straznik-progow — czyli nikt nigdy nie potwierdził uruchomieniowo, że ich reguły w ogóle się zapalają, gdy kod, który mają pilnować, jest zepsuty.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "tools/straznicy/audyt-straznikow.mjs",
+    "zakres": "tablica mutacji MUTACJE (cały plik, 4234 linie)",
+    "mechanizm": "brak choćby jednego wpisu z polem straznik równym 'straznik-ajax', 'straznik-fixed', 'straznik-fontow', 'straznik-hydratacji', 'straznik-migracji', 'straznik-odmiany' albo 'straznik-progow' — jedyne wystąpienie napisu \"straznik-hydratacji\" w pliku (linie 148-149) to nazwa wiersza usuwana w mutacji TESTUJĄCEJ straznik-readme, nie mutacja tego strażnika"
+  },
+  "dowod": "`ls tools/straznicy/*.mjs` daje 39 plików strażników (z wyłączeniem audyt-straznikow.mjs i uruchom-wszystkie.mjs). Uruchomienie `node tools/straznicy/audyt-straznikow.mjs` wypisuje wynik mutacji z nazwą strażnika przy każdej pozycji; `grep -oE \"straznik-[a-z-]+\"` na tym wyjściu i porównanie (`comm -23`) z listą 39 plików wskazuje dokładnie te siedem nazw jako nieobecne w całym wyjściu. Dodatkowo `grep -c \"<nazwa>\" tools/straznicy/audyt-straznikow.mjs` zwraca 0 dla sześciu z nich i 2 dla straznik-hydratacji, ale oba wystąpienia (linie 148-149) należą do INNEJ mutacji (straznik-readme, usunięcie wiersza tabeli), nie do mutacji straznik-hydratacji.",
+  "klasyfikacja": "brak testu negatywnego (reguła bez mutacji)",
+  "wplyw": "Reguły tych siedmiu strażników (m.in. straznik-migracji — B2/triggery audytu bazy, straznik-fixed — pozycjonowanie elementów fixed pod stopką, straznik-ajax — jeden kanał AJAX) mogą przestać działać po refaktorze i żaden mechanizm w repo tego nie wykryje: `audyt-straznikow.mjs` zgłasza „0 przeoczonych, 0 martwych”, co sugeruje pełne pokrycie, choć dla tych siedmiu bramek pokrycia mutacyjnego nie ma wcale.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "1ba9a8429b2001a64111d10e268e5512a3fc3410117b35eed29b60fc95311d42",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:34:14.125Z"
+    }
+  }
+}

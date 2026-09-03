@@ -1,0 +1,16 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "USP",
+  "status": "W TRAKCIE",
+  "runda": 0,
+  "niedomkniete": [],
+  "kiedy": "2026-09-03T16:37:23.864Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T16:37:23.864Z"
+    }
+  ]
+}

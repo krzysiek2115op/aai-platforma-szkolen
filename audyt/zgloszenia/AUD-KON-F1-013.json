@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-013",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A4",
+  "stwierdzenie": "Porównanie W6 na środowisku :8892 przechodzi po pustce wobec PLIKÓW instalacji: pole `srodowisko` migawki liczy 80 tabel i media, a `wp-config.php` w woluminie `wp_core` został w trakcie fali 1 nadpisany DWA RAZY przez roota (16:07:00 UTC — z komunikatem podmana jako linią 1, co unieruchomiło każdą komendę WP-CLI ładującą WordPressa; ~16:23 UTC — naprawa), i żadna z tych zmian nie ma odbicia w migawce ani w `--porownaj`, choć pierwsza zapaliła regułę 31 strażnika sektora i dała `srodowisko.mjs --liczniki` kod 1.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/migawka-wartosci.mjs",
+    "zakres": "polSrodowiska() i pole `srodowisko` migawki (linie 12-16, 59-101) + migawkaSrodowiska() w audyt/tools/srodowisko.mjs",
+    "mechanizm": "brak w migawce skrótu plików instalacji WordPressa w woluminie wp_core (wp-config.php, wp-content/mu-plugins, katalogi wtyczek na bind mount) — porównanie „przed/po” widzi tylko COUNT(*)/AUTO_INCREMENT tabel i liczniki mediów, więc zapis do wp-config.php między migawkami jest dla W6 niewidoczny, a KIER-06/GOLD-08 odpowiedzą „zgodne”"
+  },
+  "dowod": "Oś czasu UTC z pomiarów: audyt/migawki/przed.json zapisana 16:01:35 z `wtyczki_aktywne` = 5 pozycji (więc `wp plugin list` działało); `stat` wp-config.php w kontenerach aai_wp_cli i aai_wp_wordpress → `2026-09-03 16:07:00.000 root 6207 B`; `bin2hex(substr(file,0,12))` w kontenerze → `74696d653d22323032362d30` = `time=\"2026-0`; kopia pliku na scratchpadzie (6207 B) zaczyna się od `time=\"2026-09-03T18:07:00+02:00\" level=error msg=\"User-selected graph driver …\"`, linia 2 = `<?php`; `wp --debug plugin list` → po „Looking for UTF-16 (LE) BOM” `PHP Parse error: unexpected token \"=\" in Runner.php(1334) : eval()'d code on line 1` (WP-CLI ewaluuje treść wp-config.php, Apache traktuje tekst przed `<?php` jako wyjście — strona 200, `php -l` czysty); `node audyt/tools/srodowisko.mjs --liczniki` → kod 1; `node audyt/tools/straznik-sektora-audytu.mjs` → kod 1, R31 „srodowisko.mjs --test NIE przechodzi” (18 asercji zielonych, pada `wp plugin list`); o 16:25:56 UTC ten sam plik: `stat` → `16:23:27 root 5922 B`, sha256 db015a88… identyczny w obu kontenerach, hex12 `3c3f7068700d0a…` = `<?php`, `wp plugin list` kod 0, `--liczniki` kod 0. 6207 − 5922 = 285 = długość komunikatu podmana (stderr 285 B przy każdym `podman exec`). `git grep wp-config -- ':!*.md'` → żaden skrypt repo ani sektora nie pisze tego pliku; grep w audyt/tools/migawka-wartosci.mjs i srodowisko.mjs → zero pomiaru plików instalacji.",
+  "klasyfikacja": "sprawdzenie W6 ślepe na pliki instalacji + zapis do środowiska w trakcie fali",
+  "wplyw": "Rola albo narzędzie zmieniło konfigurację żywego środowiska w trakcie audytu (W2: sektory nie naprawiają), przez ~16 minut żaden pomiar WP-CLI sektora nie działał, a porównanie początku i końca (W6, KIER-06, GOLD-08) zamelduje zgodność, bo nie mierzy tego, co się zmieniło.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "12ac8ef741d2b29ab0b7954a685f2df5bc1d367ccacac61e568c7d14f8ccbdc3",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:34.005Z"
+    }
+  }
+}

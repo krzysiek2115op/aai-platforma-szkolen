@@ -1,0 +1,27 @@
+{
+  "id": "AUD-BD-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "BD",
+  "pozycja": "BD-90",
+  "stwierdzenie": "Komenda zakresu BD z AGENT.md uzywa wzorca z rozwinieciem klamrowym {tabele,zapis,import,odczyt,odczyt-panelu} wewnatrz pojedynczych cudzyslowow, wiec Bash nie rozwija tego wzorca, a git ':(glob)' rowniez nie obsluguje skladni {a,b,c} (fnmatch nie zna alternatywy klamrowej) — w efekcie wzorzec dopasowuje ZERO plikow wtyczek WordPress zamiast wszystkich 10 klas warstwy zapisu/tabel/importu/odczytu, a calkowita liczba 25 zgadza sie z dokumentacja WYLACZNIE przez przypadek (25 plikow modules/tools bez zadnego pliku wordpress/wtyczki).",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/role/BD/AGENT.md",
+    "zakres": "sekcja 'Moduł', blok z komenda 'git ls-files -- ... class-*-{tabele,zapis,import,odczyt,odczyt-panelu}.php ...'",
+    "mechanizm": "wzorzec z rozwinieciem klamrowym w pojedynczych cudzyslowach nie jest rozwijany przez powloke, a pathspec ':(glob)' gita uzywa fnmatch, ktory nie wspiera skladni {a,b,c} — potrzebne oddzielne wzorce ':(glob)...-tabele.php' ':(glob)...-zapis.php' itd. albo rozwiniecie klamrowe poza cudzyslowem"
+  },
+  "dowod": "Uruchomienie dokladnie podanej komendy z AGENT.md daje 25 plikow, WSZYSTKIE z modules/ i tools/ — zero z wordpress/wtyczki (sprawdzone: `git ls-files -- ':(glob)wordpress/wtyczki/*/includes/class-*-{tabele,zapis,import,odczyt,odczyt-panelu}.php' 'modules' 'tools/eksport-wp.mjs' 'tools/sprawdz-import-wp.mjs' 'tools/db1-gotowa.mjs' 'tools/seed' | wc -l` -> 25, a wszystkie 25 nazw to modules/m1-sklep/* i tools/*). Rozdzielenie wzorca na piec osobnych patternow ':(glob)' (bez klamry) na tych samych argumentach daje 35 plikow i dopiero wtedy widac 10 plikow wordpress/wtyczki/*/includes/class-*-{tabele,zapis,tabele,import,odczyt,odczyt-panelu}.php (np. wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php), ktore fizycznie istnieja na dysku i sa sledzone przez git (`git ls-files wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tabele.php` zwraca sciezke).",
+  "klasyfikacja": "zepsuty zakres audytu (KON-A4) — komenda milczaco pomija pliki",
+  "wplyw": "Kazdy agent BD, ktory potraktuje podana komende jako definicje zakresu i uruchomi ja doslownie, dostaje liczbe 25 zgodna z dokumentacja i moze uznac zakres za potwierdzony, mimo ze faktycznie NIE WIDZI zadnego z 10 plikow wordpress/wtyczki/*/includes/class-*-zapis.php i class-*-tabele.php — czyli dokladnie tych plikow, ktorych dotyczy wiekszosc pozycji checklisty BD (BD-01, BD-02, BD-04, BD-05, BD-09, BD-10, BD-12). Zakres wyglada na kompletny (liczba sie zgadza), a w rzeczywistosci pomija polowe wlasnego zakresu bez zadnego sygnalu bledu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "4ea2a02d6c34b8e8fafaf9497f7b253d7c237da478d7310974be163f3fd8e3d3",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:32:56.179Z"
+    }
+  }
+}

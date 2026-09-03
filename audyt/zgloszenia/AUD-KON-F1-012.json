@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-012",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A5",
+  "stwierdzenie": "Wiersz „PROTO ↔ reszta” oddaje `modules/` i `lib/` w całości działowi PROTO, a trzy checklisty innych działów zadają pytania właśnie w tych plikach — SEC-09 (`lib/kreator-dostep.ts`, `modules/m1-sklep/dyspozytor.ts`), BE-12 i BD-11 (`modules/m1-sklep/typy.ts`) — przy czym BD-11 i PROTO-04 to TO SAMO pytanie o sufity pól w TYM SAMYM pliku, bez wiersza BD ↔ PROTO, który rozstrzygałby właściciela.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/GRANICE.md",
+    "linia": 75,
+    "tresc": "| **PROTO ↔ reszta** | PROTO: `app/`, `components/`, `lib/`, `modules/`. Reszta: `wordpress/` | — | Zgłoszenia PROTO trafiają do **osobnej sekcji raportu** (D5) i nie mieszają się z produktem |"
+  },
+  "dowod": "ROLE.md:205 BD-11 „Czy każde pole kontraktu ma sufit długości i liczności? | modules/m1-sklep/typy.ts, class-aai-sklep-kontrakt.php | pole bez sufitu”; ROLE.md:462 PROTO-04 „Czy kontrakt Zod ma sufit dla każdego pola? | modules/m1-sklep/typy.ts | pole bez sufitu”; ROLE.md:106 SEC-09; ROLE.md:173 BE-12. Przecięcie BD∩PROTO = 22 pliki (≥ 5, próg reguły 1 kontroli granic); `grep -n 'BD ↔ PROTO\\|PROTO ↔ BD' audyt/GRANICE.md` → 0. Wiersz FE ↔ PROTO każe zgłaszać „dwa zgłoszenia, w dwóch działach”, ale dotyczy FE, nie BD/BE/SEC.",
+  "klasyfikacja": "granica sprzeczna z checklistami / pytanie o dwóch właścicielach",
+  "wplyw": "Pole bez sufitu w typy.ts trafi w fali 1 do BD, a w fali 2 do PROTO (albo do obu) — porównanie cykli pokaże rozjazd GRANICA, a raport D5 raz oddzieli, raz nie oddzieli tego znaleziska od produktu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "91da4f5600b8fe682f5c67a15c2a26e8406e06f1c666745a93f46e42e9d94c30",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:33.967Z"
+    }
+  }
+}

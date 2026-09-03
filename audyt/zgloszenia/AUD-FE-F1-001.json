@@ -1,0 +1,21 @@
+{
+  "id": "AUD-FE-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "FE",
+  "pozycja": "FE-03",
+  "stwierdzenie": "Kafelki 'Logowania' i 'Odsłony'/'Sesje' na ekranie monitoringu mają podpis okresu 'od początku pomiaru', ale liczba pod nimi to COUNT(*) z tabeli, z której retencja fizycznie kasuje wiersze starsze niż 90 dni (logowania) i 400 dni (wizyty) — po przekroczeniu tego czasu podpis przestaje mówić prawdę o okresie, którego dotyczy liczba.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-ekran.php",
+    "linia": 244,
+    "tresc": "$od_poczatku = __( 'od początku pomiaru', 'aai-monitor' );"
+  },
+  "dowod": "Kafelki 'Logowania', 'Odsłony' i 'Sesje' (ekran.php:246-274) używają etykiety $od_poczatku i pokazują $stan['logowania']['razem'] oraz $stan['wizyty']['razem']/['sesje']. Te wartości liczy class-aai-monitor-odczyt.php:71 'COUNT(*) AS razem ... FROM logowania' i :83 'SELECT COUNT(*) AS razem, COUNT(DISTINCT sesja) AS sesje ... FROM wizyty' — bez żadnego ograniczenia dat, więc liczba to zawartość CAŁEJ bieżącej tabeli. class-aai-monitor-zapis.php:335 wykonuje 'DELETE FROM logowania WHERE czas < %s' z progiem OKNO_LOGOWANIA_DNI=90 dni (class-aai-monitor-tabele.php:39), a :343 analogiczne DELETE dla wizyt poza ich oknem retencji (400 dni, komentarz zapis.php:366). Retencja uruchamia się przy każdym zapisie ORAZ raz dziennie przy otwarciu tego samego ekranu (ekran.php:549-555, retencja_raz_dziennie). Na instalacji działającej dłużej niż 90/400 dni 'razem' przestaje być sumą 'od początku pomiaru' i staje się sumą z kroczącego okna retencji, a etykieta się nie zmienia.",
+  "klasyfikacja": "mylący podpis liczby (okres)",
+  "wplyw": "Właściciel czytający panel monitoringu na starszej instalacji zobaczy pod napisem 'od początku pomiaru' liczbę zaniżoną przez ciche kasowanie starych wierszy — dokładnie ta klasa rozjazdu etykiety z rzeczywistym zakresem danych, którą właściciel już raz zgłosił w teście ręcznym T4 (decyzja T4-D1), tyle że z innej przyczyny (retencja, nie brak okresu w ogóle).",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "d174925ace264702017a06b3dd9078f36e1ead23f3456ff86eb041f0635c29a3",
+  "werdykt": null
+}

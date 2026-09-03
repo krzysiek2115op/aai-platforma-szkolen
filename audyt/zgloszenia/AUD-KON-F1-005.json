@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A5",
+  "stwierdzenie": "Tabela granic przypisuje „Menu podświetlające dwie pozycje → BE” w wierszu BE ↔ PERF, a dokładnie to pytanie zadaje checklista FE-07 („dokładnie jedna pozycja z aria-current”, plik class-aai-sklep-menu.php); wiersza FE ↔ BE w tabeli NIE MA, więc to samo znalezisko ma w dokumentach sektora dwóch właścicieli.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/GRANICE.md",
+    "linia": 50,
+    "tresc": "| **BE ↔ PERF** | BE: czy wynik jest **poprawny**. PERF: ile **kosztuje** | — | Menu podświetlające dwie pozycje → BE. To samo menu kosztujące 90 zapytań na odsłonę → PERF |"
+  },
+  "dowod": "`grep -n 'FE ↔ BE\\|BE ↔ FE' audyt/GRANICE.md` → 0 trafień; ROLE.md:138 = FE-07 wskazuje `class-aai-sklep-menu.php`. Zmierzone przecięcie FE∩BE = 1 (poniżej progu 5 reguły 1 kontroli granic) WYŁĄCZNIE dlatego, że 9 klas FE wypada z zakresu przez zepsuty podwzorzec (linia 126); po naprawie FE∩BE = 10, FE∩ARCH = 10, BD∩ARCH = 10, BD∩PERF = 10 — cztery pary nad progiem bez wiersza w tabeli (`grep` na FE ↔ ARCH, BD ↔ ARCH, BD ↔ PERF → 0).",
+  "klasyfikacja": "granica bez właściciela / sprzeczność tabeli z checklistą",
+  "wplyw": "Druga fala przypisze znalezisko o menu do innego działu niż pierwsza — rozjazd typu GRANICA w porównaniu cykli, mimo niezmienionego kodu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "9a3280b495d97165b50eb2e41ccef72de7f740f93021a29f7b46ad4fbf5122ea",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:33.698Z"
+    }
+  }
+}

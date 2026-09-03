@@ -1,0 +1,21 @@
+{
+  "id": "AUD-BD-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "BD",
+  "pozycja": "BD-06",
+  "stwierdzenie": "Sektor nie ma nosnika na ODPOWIEDZ pozycji checklisty zamknietej na 'tak' wraz z jej dowodem: status.mjs zapisuje wylacznie status, runde i liste niedomknietych, zgloszenie.mjs przyjmuje wylacznie usterki, a porownaj-cykle.mjs porownuje fale wylacznie po katalogu zgloszen — wiec 11 z 12 pozycji dzialu BD, ktore zamknieto bez zgloszenia, nie zostawilo w repo ani jednego sladu i nie da sie ich zweryfikowac ani porownac miedzy falami. Widac to najostrzej na BD-06, ktorego kolumna 'Dowod' zada 'liczb obu przebiegow' importu: tych liczb nie ma gdzie zapisac, a srodowisko :8892 bylo w czasie pracy dzialu uszkodzone, wiec powstac nie mogly.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/status.mjs",
+    "zakres": "zapis wyniku roli — galezie --status, --runda i --niedomkniete (jedyne pola trafiajace do audyt/stan/audyt-f<N>-<ROLA>.json)",
+    "mechanizm": "brakuje pola/komendy zapisujacej wynik KAZDEJ pozycji checklisty (kod pozycji + odpowiedz tak/nie + dowod, np. uruchomiona komenda i jej liczby). Powinno stac tu, obok --niedomkniete, w tym samym pliku stanu roli — dzis plik stanu niesie tylko status, runde, liste niedomknietych i historie, wiec pozycja przejdzona z otwarciem pliku jest nieodrozninalna od pozycji odhaczonej bez otwarcia. Komentarz w tym samym pliku (linia 443) odsyla powod niedomkniecia 'do raportu dzialu', a raport dzialu nie ma w sektorze zadnego nosnika plikowego: zaden skrypt w audyt/tools go nie zapisuje, a audyt/wyniki/ zawiera wylacznie polaczone zgloszenia."
+  },
+  "dowod": "ZMIERZONE. (1) audyt/stan/audyt-f1-BD.json zawiera wylacznie klucze sektor, fala, rola, status, runda, niedomkniete, kiedy, historia — ani jednego kodu pozycji BD-01..BD-12 z odpowiedzia; 'niedomkniete' jest puste. (2) `node audyt/tools/status.mjs --rola=BD --fala=1 --pokaz` drukuje jeden wiersz 'ZAKONCZONE runda 2/5' — zero informacji o pozycjach. (3) `node audyt/tools/status.mjs --rola=BD --fala=1` odrzuca kod pozycji poza galezia --niedomkniete (WYMAGANE pola narzedzia nie obejmuja odpowiedzi pozycji). (4) audyt/tools/zgloszenie.mjs, stala WYMAGANE (linia 46) = [sektor, fala, dzial, pozycja, stwierdzenie, miejsce, dowod, klasyfikacja, wplyw] — wpis opisuje USTERKE, wiec pozycja bez usterki nie ma czym powstac. (5) audyt/tools/porownaj-cykle.mjs linia 267: `const katalogZgloszen = join(baza, 'zgloszenia')` — porownanie fal czyta WYLACZNIE zgloszenia, wiec odpowiedzi 'tak' sa poza mechanizmem powtarzalnosci K4''. (6) `find audyt -iname '*BD*' -not -path '*/role/BD/*'` zwraca tylko dwa zgloszenia i plik stanu — zadnego raportu dzialu. (7) grep 'raport' po audyt/tools/*.mjs nie znajduje ani jednego zapisu raportu dzialu; audyt/wyniki/ zawiera wylacznie polaczone-f1.json. (8) Kolumna 'Dowod' pozycji BD-06 w audyt/role/BD/AGENT.md brzmi 'liczby obu przebiegow', a kolumna 'Komenda / miejsce' to `wp aai-sklep import` x2.",
+  "klasyfikacja": "dowod nie do odtworzenia — wynik pozycji checklisty poza repo",
+  "wplyw": "Krytyk ma w swojej definicji obowiazek sprawdzic, 'czy pozycje zamkniete naprawde zostaly sprawdzone, czy tylko odhaczone', a z artefaktow sektora jest to niewykonalne dla 11 z 12 pozycji — jedynym sladem pracy dzialu sa jego usterki. Dzial, ktory odpowiedzialby 'tak' na cala checkliste bez otwarcia jednego pliku, zostawia stan bajt w bajt identyczny z dzialem, ktory ja przeszedl. Uderza to wprost w powtarzalnosc, na ktorej stoi caly sektor: porownanie fal widzi tylko zgloszenia, wiec fala 2, ktora przeoczy to, co fala 1 zamknela na 'tak', nie wywola zadnego rozjazdu — obie wygladaja na zgodne. To ta sama klasa, ktora projekt juz raz nazwal: bramka, ktorej WYNIK nie trafia do repo, po tygodniu jest nie do odroznienia od bramki, ktorej nie bylo.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "df43fd641b020a75317a96045251c72adf335c6f60e47c2498b3996ac9bdb5e4",
+  "werdykt": null
+}

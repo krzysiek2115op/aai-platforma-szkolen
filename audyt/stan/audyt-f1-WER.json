@@ -2,17 +2,21 @@
   "sektor": "audyt",
   "fala": 1,
   "rola": "WER",
-  "status": "ZAKOŃCZONE",
-  "runda": 1,
+  "status": "W TRAKCIE",
+  "runda": 0,
   "niedomkniete": [],
-  "kiedy": "2026-09-01T14:00:11.570Z",
+  "kiedy": "2026-09-03T16:38:39.382Z",
   "historia": [
     {
       "status": "ZAKOŃCZONE",
       "runda": 1,
       "kiedy": "2026-09-01T14:00:11.570Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T16:38:39.382Z"
     }
   ],
-  "proba": "E6",
-  "adnotacja": "historia dopisana ręcznie 2026-09-02 przy pozycji 3 pakietu E7.7 — plik z próby E6; czas = mtime pliku, jeden wpis, bo przejść nie zapisywano"
+  "adnotacja": "do 2026-09-03T16:38:39.379Z plik niósł stan PRÓBNY E6; wpisy historii sprzed tej chwili pochodzą z próby, prawdziwa fala zaczęła się od tego wejścia"
 }

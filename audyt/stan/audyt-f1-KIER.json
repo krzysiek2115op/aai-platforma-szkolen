@@ -1,0 +1,16 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "KIER",
+  "status": "W TRAKCIE",
+  "runda": 0,
+  "niedomkniete": [],
+  "kiedy": "2026-09-03T16:02:05.013Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T16:02:05.013Z"
+    }
+  ]
+}

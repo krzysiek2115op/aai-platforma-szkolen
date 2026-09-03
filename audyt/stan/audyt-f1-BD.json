@@ -1,0 +1,31 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "BD",
+  "status": "ZAKOŃCZONE",
+  "runda": 2,
+  "niedomkniete": [],
+  "kiedy": "2026-09-03T16:20:56.414Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T16:04:36.532Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-03T16:19:33.092Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 2,
+      "kiedy": "2026-09-03T16:20:56.367Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 2,
+      "kiedy": "2026-09-03T16:20:56.414Z"
+    }
+  ]
+}

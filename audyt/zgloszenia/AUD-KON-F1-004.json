@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A4",
+  "stwierdzenie": "Dział QA deklaruje w „Po co” 83 testy jako swój przedmiot, a jego zakres (80 plików) nie zawiera ANI JEDNEGO z 8 plików `*.test.ts` w repo — testy leżą w `modules/`, `lib/` i `components/`, czyli w zakresach BD i PROTO, których checklisty nie pytają, czy test mierzy to, co obiecuje.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 217,
+    "tresc": "**Po co.** 39 strażników, 340 mutacji, 25 bramek, 83 testy. Pytanie działu brzmi"
+  },
+  "dowod": "Pomiar: `git ls-files | grep -E '\\.test\\.(ts|mjs|js)$'` → 8 plików (modules/m1-sklep 4, modules/m1-sklep/db 1, lib 2, components/kreator 1); komenda zakresu QA z ROLE.md przefiltrowana przez `\\.test\\.` → 0. Żadna pozycja QA-01…QA-15 nie wskazuje pliku testu; BD-* i PROTO-* nie mają pozycji o testach. BLAD-002 (testy niszczą wspólną bazę; naprawa w modules/m1-sklep/db/testowa-baza.ts) jest odwzorowany na QA-07, choć plik naprawy jest poza zakresem QA.",
+  "klasyfikacja": "deklaracja przedmiotu bez plików w zakresie",
+  "wplyw": "Pytanie „czy 83 testy mierzą to, co obiecują” nie ma działu, który miałby te pliki w zakresie; klasa BLAD-002 wraca bez właściciela pliku.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "17dc0052b6e524b5eab53a18183c93100253c3d27818db4a4785b662f24f60a3",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T16:35:33.657Z"
+    }
+  }
+}
