@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
+| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -463,9 +463,9 @@ przejście po 80 definicjach; odpowiedzi właściciela na pięć pytań NIE był
 kod poszedł po rekomendacjach — **do potwierdzenia**, sekcja „POZYCJE 4b + 6"),
 **5** (2026-09-03 — macierz reguła → mutacja; sekcja „POZYCJA 5 — ZROBIONA"),
 **7** (2026-09-03 — re-audyt sekwencyjnie na środowisku: `srodowisko.mjs`, odmowa 6,
-reguły 30/31, `KIER-00`; sekcja „POZYCJA 7 — ZROBIONA"). **Pakiet E7.7 jest KOMPLETNY.
-NASTĘPNY KROK: E8 = STOP — zielone światło właściciela na przebieg**; do potwierdzenia
-przez niego zostają założenia pozycji 4b + 6 (sekcja „POZYCJE 4b + 6"). Przed przebiegiem
+reguły 30/31, `KIER-00`; sekcja „POZYCJA 7 — ZROBIONA"). **Pakiet E7.7 jest KOMPLETNY,
+założenia pozycji 4b + 6 POTWIERDZONE (2026-09-03). NASTĘPNY KROK: E8 = STOP — zielone
+światło właściciela na przebieg; nic nie czeka na jego odpowiedź.** Przed przebiegiem
 kierownik re-audytu robi `srodowisko.mjs --sprawdz --fala=1` i `--zrzut=f1-baza`, a kierownik
 audytu zapisuje migawkę `przed` od nowa (obecna jest z próby E7.6 z dopisanym polem). Katalog `re-audyt/` jest MAŁY z decyzji,
 nie z braku: ma tylko to, co jest RÓŻNE od audytu (`ROLE.md` 21 ról, `GRANICE.md`,
@@ -1560,7 +1560,8 @@ sektorze — przywracanie idzie do schematu TYMCZASOWEGO, asercja liczników, do
 - zrzut `mariadb-dump wordpress` (bez `--databases`) **nie niesie `USE` ani `CREATE DATABASE`** — narzędzie asertuje to przy każdym zrzucie;
 - `wp plugin list --skip-plugins --skip-themes` daje TEN SAM wynik (porównany co do bajtu) w ~0,7 s zamiast ~1,5 s — strażnik uruchamia `--test` przy każdej mutacji;
 - **samokontrola zostawiła artefakt w repo**: `--zrzut` z CLI szedł z `--katalog-zrzutow=<tmp>`, ale liczniki pisał do `audyt/migawki/` (`srodowisko-f1-baza.json`); złapane `git status`, nie testem — od teraz `--katalog-zrzutow` przekierowuje TAKŻE liczniki, a dodatnia strona KIER-00 idzie w procesie samokontroli;
-- goldeny KIER obu sektorów wskazywały `status.mjs:270` — po dopisaniu odmowy 6 linia przesunęła się na 325 i reguła 11 zapaliła się na obu; numer linii jest dowodem, nie kluczem (H1), więc poprawka to nowy numer, nie nowy hash.
+- goldeny KIER obu sektorów wskazywały `status.mjs:270` — po dopisaniu odmowy 6 linia przesunęła się na 325 i reguła 11 zapaliła się na obu; numer linii jest dowodem, nie kluczem (H1), więc poprawka to nowy numer, nie nowy hash;
+- **NAWRÓT pułapki cudzysłowu ASCII** (opisanej przy 4b + 6): skrypt Pythona z `„…"` w łańcuchu padł z `SyntaxError`, a `git commit --amend` w tym samym łańcuchu komend i tak poszedł — z wolnym miejscem `{WYNIK_AUDYT}` w tym pliku. Złapane `grep -c '{'` PRZED pushem. Reguła: zamiennik tekstu z polskimi cudzysłowami czytać z PLIKU (heredoc), nie z literału, a `commit` nigdy w jednym `&&`-łańcuchu ze skryptem, którego wyjścia nie sprawdzono.
 
 **Koszt czasu, zmierzony:** `srodowisko.mjs --test` ~9 s, strażnik sektora ~13 s (był ~4 s), pełny audyt mutacyjny ~~38 min na gałęzi.
 
@@ -1731,7 +1732,7 @@ merytorycznie (numeracja i komunikaty zostają, doszedł prefiks); nie ruszyła 
 ról ani `ROLE.md`; nie zmieniła `wymaga` per mutacja; nie uruchomiła sektora; nie
 naprawiła luki `status.mjs --test` (zapisana).
 
-#### PAKIET E7.7, POZYCJE 4b + 6 — ZROBIONE 2026-09-02 w nocy (projekt niżej; wynik i ZAŁOŻENIA do potwierdzenia na końcu sekcji)
+#### PAKIET E7.7, POZYCJE 4b + 6 — ZROBIONE 2026-09-02 w nocy, ZAŁOŻENIA POTWIERDZONE PRZEZ WŁAŚCICIELA 2026-09-03 („potwierdzam"; projekt niżej, wynik na końcu sekcji)
 
 Obie pozycje dotykają TYCH SAMYCH 80 plików definicji (40 `AGENT.md` + 40 `KRYTYK.md`
 obu sektorów) i obu szablonów, więc idą jednym przejściem skryptu (rozstrzygnięcie 6
@@ -1824,8 +1825,10 @@ definicji przechodzi niezmieniona — stąd skrypt WYPISUJE nietrafione pliki, a
 
 **WYNIK — ZROBIONE (kod po `/clear`, wg sekcji projektu wyżej, jednym przejściem):**
 
-**ZAŁOŻENIE DO POTWIERDZENIA PRZEZ WŁAŚCICIELA.** Odpowiedzi na pięć pytań NIE były
-zapisane w repo ani w checkpoincie sesji (ten kończył się na „Teraz odpowiedzi"). Kod
+**ZAŁOŻENIA POTWIERDZONE PRZEZ WŁAŚCICIELA 2026-09-03** („potwierdzam" po przedstawieniu
+pięciu pytań z tabelą przyjętych odpowiedzi) — od tej chwili to ROZSTRZYGNIĘCIA, nie
+założenia. Zapis historyczny: odpowiedzi na pięć pytań NIE były zapisane w repo ani
+w checkpoincie sesji (ten kończył się na „Teraz odpowiedzi"), więc kod z 2026-09-02
 poszedł po REKOMENDACJACH: (1) `-90` dla **28 ról działowych** (14 działów + 14
 Pogłębiaczy), role procesowe bez; (2) **jedno stałe zdanie** zakazu, wyjątek KIER
 i RAP obu sektorów jako DOPISEK (zdanie zostaje); (3) **bez `SKILL.md`**; (4) 27b jako
