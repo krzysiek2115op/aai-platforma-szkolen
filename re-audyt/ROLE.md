@@ -72,6 +72,40 @@ po pustce) jest tą klasą, którą przy 21 nowych rolach najłatwiej powtórzy�
 
 ---
 
+## Przebieg na środowisku `:8892` — sekwencja i zrzuty (pozycja 7 pakietu E7.7)
+
+**Jedna rola na środowisku naraz.** Pogłębiacz mierzy na `:8892` LICZBY (zapytania na
+odsłonę, wiersze w tabelach, liczniki przed/po), a druga rola pracująca w tym samym
+czasie te liczby zanieczyszcza bez jednego objawu (krytyka budowy C3). Sekwencja
+obejmuje **14 Pogłębiaczy + `PSIARZ` + `WALID`** — lista `NA_SRODOWISKU`
+w `audyt/tools/wspolne.mjs` (rozstrzygnięcie właściciela 2, 2026-09-03): Psiarz psuje kod
+na bind mouncie, więc jego mutację widzi każdy, kto w tej chwili mierzy; WALID odtwarza
+zjawiska żądaniami, które piszą do monitoringu. `KIER`, `RAP`, `KON`, `SKUT`, `STRAZ`
+pracują na plikach sektora. Działy AUDYTU tej reguły nie mają — audyt czyta kod.
+
+**Egzekwuje to narzędzie, nie proza** (rozstrzygnięcie 1): `status.mjs` odmawia
+wejścia W TRAKCIE, gdy inna rola z listy tej samej fali jest W TRAKCIE (odmowa 6), a reguła
+30 strażnika pyta o HISTORIĘ plików stanu — nakładające się okna W TRAKCIE to błąd, także
+przy pliku dopisanym ręcznie.
+
+**Stan środowiska wraca ze zrzutu między działami, nie z `postaw.sh`** (rozstrzygnięcia 3–5):
+
+| Kiedy | Komenda | Po co |
+|---|---|---|
+| przed pierwszą rolą na środowisku | `node audyt/tools/srodowisko.mjs --sprawdz --fala=<N>` | KIER-00: 5 kontenerów, `:8892`, 5 wtyczek, zrzut bazowy i liczniki, w fali 2 worktree; kod 1 = nikt nie wchodzi |
+| przed pierwszym Pogłębiaczem fali | `node audyt/tools/srodowisko.mjs --zrzut=f<N>-baza` | zrzut bazowy fali + liczniki (`COUNT(*)` i `AUTO_INCREMENT` 80 tabel, media liczone, wtyczki) |
+| po KAŻDEJ roli na środowisku | `node audyt/tools/srodowisko.mjs --zrzut=f<N>-<KOD>-po` | zrzut „po dziale" zachowany — dowód SKUT-R4/R5 i jedyna droga do stanu, w którym rola coś zobaczyła |
+| zaraz potem, przed następną rolą | `node audyt/tools/srodowisko.mjs --przywroc=f<N>-baza` | import do schematu tymczasowego → asercja liczników → podmiana `RENAME TABLE`; rozjazd = kod 1 = STOP |
+
+Zrzuty `.sql` żyją POZA repo (`~/.cache/aai-kopie/audyt/`), w repo zostają liczniki
+(`audyt/migawki/srodowisko-<nazwa>.json`). Media (`uploads/`) są **liczone, nie kopiowane**
+— żadna rola nie ma prawa ich pisać (W2), więc rozjazd licznika mediów = STOP. Migawka
+wartości niesie pole `srodowisko` (liczniki albo dosłowne „niedostępne"); przy
+„niedostępne" role z `NA_SRODOWISKU` nie wchodzą, a `--porownaj` kończy kodem 1
+(rozstrzygnięcie 6).
+
+---
+
 # CZĘŚĆ I — 14 POGŁĘBIACZY
 
 Wszyscy: **model Sonnet** (D8), **krytyk na Opusie** (D3), narzędzia
@@ -470,10 +504,16 @@ nie na liście plików, więc komenda zakresu nie miałaby czego liczyć. Wyjąt
 **Po co.** Koordynuje 14 Pogłębiaczy i cztery role własne, zbiera wyniki i **pilnuje
 kolejności §17**: re-audyt wchodzi do działu dopiero po tym, jak audyt z niego wyszedł.
 Reguła nakładania (K9') jest jego, nie Goldena — Golden pilnuje procesu jako całości,
-kierownik pilnuje TEGO sektora.
+kierownik pilnuje TEGO sektora. Pilnuje też **sekwencji na środowisku** (sekcja „Przebieg
+na środowisku `:8892`" wyżej): zrzut bazowy przed pierwszym Pogłębiaczem, po każdej roli
+na środowisku zrzut „po dziale" i powrót do zrzutu bazowego, dopiero potem następna rola.
+
+`KIER-00` jest bramką WEJŚCIA, nie pozycją audytu — dlatego bez litery `R`: nie ma
+odpowiednika w audycie, który środowiska nie używa (ROLE.md audytu: „Metoda: lektura kodu").
 
 | # | Pytanie (tak/nie) | Komenda / miejsce | Dowód |
 |---|---|---|---|
+| KIER-00 | Czy stoi wszystko, co musi stać, ZANIM wejdzie pierwsza rola na środowisku? | `node audyt/tools/srodowisko.mjs --sprawdz --fala=<N>` | kod wyjścia + lista ✓/✗ |
 | KIER-R1 | Czy audyt **wyszedł** z działu, do którego wchodzi Pogłębiacz? | `status.mjs --pokaz` | dział + status roli audytu |
 | KIER-R2 | Czy każdy Pogłębiacz ma plik stanu i **niezerową rundę**? | `status.mjs --pokaz` | rola bez stanu albo z rundą 0 |
 | KIER-R3 | Czy każde zgłoszenie re-audytu ma **komplet werdyktów** (krytyk + WALID)? | `werdykt.mjs --pokaz` | ID bez kompletu |
@@ -640,7 +680,7 @@ Pogłębiaczach, w ich obszarach. Konrad łamie założenia **re-audytu**.
 | Ról procesowych o kodach wspólnych (`KIER`, `RAP`, `KON`) | **3** |
 | **Razem ról** | **21** |
 | **Razem agentów** (każda rola z krytykiem, WYTYCZNE N1) | **42** |
-| Pozycji checklist | **6 × 14 + 7 + 6 × 5 = 121** |
+| Pozycji checklist | **6 × 14 + 8 + 6 × 5 = 122** (KIER ma od pozycji 7 E7.7 bramkę wejścia `KIER-00`) |
 
 Modele wg D8 (zmiana właściciela 2026-09-02): `KIER`, `KON` — **Fable 5.1**; `RAP`, `WALID` — **Opus**;
 pozostałe — **Sonnet**; **wszyscy krytycy — Opus**.

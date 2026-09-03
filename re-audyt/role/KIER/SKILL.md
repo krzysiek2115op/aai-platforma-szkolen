@@ -33,15 +33,23 @@ Na starcie fali, przy wejściu każdego Pogłębiacza do obszaru i przy zbierani
    fali 1). W pełnym drzewie `status.mjs` odmówi wejścia Pogłębiaczowi fali 2, dopóki
    widać wpis z polem `fala: 1` — to komenda, której nie uruchomiono, nie awaria.
    Po fali: commit w worktree, `fala.mjs --scal=2` z drzewa sektora.
-1. Sprawdź, czy audyt WYSZEDŁ z działu: `status.mjs --pokaz`, rola audytu ma mieć `ZAKOŃCZONE`
+1. KIER-00, zanim wejdzie PIERWSZA rola na środowisku: `node audyt/tools/srodowisko.mjs
+   --sprawdz --fala=<N>` — kod 1 = nikt z listy `NA_SRODOWISKU` nie wchodzi. Zrzut bazowy
+   fali PRZED pierwszym Pogłębiaczem: `node audyt/tools/srodowisko.mjs --zrzut=f<N>-baza`.
+2. Sprawdź, czy audyt WYSZEDŁ z działu: `status.mjs --pokaz`, rola audytu ma mieć `ZAKOŃCZONE`
    (narzędzie i tak odmówi postawienia Pogłębiacza przed `ZAKOŃCZONE` działu audytu
    tej samej fali — pozycja 3 E7.7; role procesowe re-audytu blokada nie dotyczy).
-2. Postaw Pogłębiacza: `status.mjs --rola=<KOD> --sektor=re-audyt --fala=<N> --status="W TRAKCIE"`.
+3. Postaw Pogłębiacza: `status.mjs --rola=<KOD> --sektor=re-audyt --fala=<N> --status="W TRAKCIE"`.
    Pogłębiacz działu X fali N czyta audyt działu X TEJ SAMEJ fali (R5: „lista klas
-   z audytu tej fali") — zakaz dotyczy INNEJ fali, nie audytu własnej.
-3. Po jego pracy przeczytaj werdykty: `werdykt.mjs --pokaz` — dział zamykasz na LICZBIE zgłoszeń z kompletem werdyktów, nie na zdaniu agenta.
-4. Po fali: `polacz-sektory.mjs --fala=<N>` i zanotuj trzy liczby z wyjścia.
-5. Przed zamknięciem fali: niezmiennik sektora i `status.mjs --pokaz` (kod 1 przy wiszących).
+   z audytu tej fali") — zakaz dotyczy INNEJ fali, nie audytu własnej. **Jedna rola na
+   środowisku naraz** (14 Pogłębiaczy + `PSIARZ` + `WALID`): `status.mjs` odmówi drugiej
+   (odmowa 6) i nazwie tę, która blokuje.
+4. Po KAŻDEJ roli na środowisku: `node audyt/tools/srodowisko.mjs --zrzut=f<N>-<KOD>-po`
+   (dowód SKUT-R4/R5, zachowany), potem `node audyt/tools/srodowisko.mjs --przywroc=f<N>-baza`
+   — kod 1 (liczniki albo media rozjechane) = STOP, następna rola nie wchodzi.
+5. Po pracy roli przeczytaj werdykty: `werdykt.mjs --pokaz` — dział zamykasz na LICZBIE zgłoszeń z kompletem werdyktów, nie na zdaniu agenta.
+6. Po fali: `polacz-sektory.mjs --fala=<N>` i zanotuj trzy liczby z wyjścia.
+7. Przed zamknięciem fali: niezmiennik sektora i `status.mjs --pokaz` (kod 1 przy wiszących).
 
 ## Komendy
 
@@ -51,6 +59,8 @@ node audyt/tools/status.mjs --pokaz
 node audyt/tools/zgloszenie.mjs --plik=<wpis.json>
 node audyt/tools/fala.mjs --postaw=2
 node audyt/tools/fala.mjs --scal=2
+node audyt/tools/srodowisko.mjs --sprawdz --fala=<N>
+node audyt/tools/srodowisko.mjs --zrzut=f<N>-baza | --zrzut=f<N>-<KOD>-po | --przywroc=f<N>-baza
 ```
 
 **Kod wyjścia mierzymy bez potoku** — `| tail` maskuje status.
@@ -71,3 +81,9 @@ Ocena pojedynczego znaleziska należy do krytyka roli i do `WALID`. Kierownik ni
   to, co sam założyłeś.
 - **Wzorzec pytający o NAZWĘ zamiast o ROZSTRZYGNIĘCIE** zzieleniał strażnika przy
   zepsutym kodzie dziewięć razy w historii tego repozytorium.
+- **`information_schema.table_rows` KŁAMIE** (InnoDB szacuje: `wp_postmeta` 1866 wobec
+  `COUNT(*)` 1786) — liczniki środowiska idą przez `COUNT(*)`, a `AUTO_INCREMENT`
+  `wp_options` rośnie od samych odczytów (transienty), więc ten jeden licznik nie jest
+  rozjazdem.
+- **Przywrócenie ze zrzutu nigdy „DROP, potem import"** — najpierw schemat tymczasowy
+  i asercja liczników, dopiero potem `RENAME TABLE`; robi to narzędzie, nie ręka.

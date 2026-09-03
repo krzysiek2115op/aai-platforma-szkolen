@@ -42,7 +42,7 @@ a nie dowie się o tym dopiero agent w trakcie pracy.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "audyt/tools/status.mjs",
-    "linia": 270,
+    "linia": 325,
     "tresc": "    const ostrzezenie = w.runda >= SUFIT_RUND && w.status !== \"ZAKOŃCZONE\" ? \"  ← SUFIT RUND\" : \"\";"
   },
   "dowod": "Komenda i jej wynik albo druga linia kodu, która domyka rozumowanie — o TYM SAMYM, o czym mówi stwierdzenie.",

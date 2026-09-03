@@ -126,6 +126,25 @@ node audyt/tools/status.mjs --rola=KIER --sektor=re-audyt --fala=<N> --status="W
 Dla każdej pozycji: uruchom komendę, odpowiedz **tak albo nie**, a gdy odpowiedź
 znaczy usterkę — drąż, aż wskażesz miejsce, i dopiero wtedy zgłoś.
 
+### Sekwencja na środowisku `:8892` (pozycja 7 pakietu E7.7)
+
+**Jedna rola na środowisku naraz**: 14 Pogłębiaczy, `PSIARZ` i `WALID` (lista
+`NA_SRODOWISKU` w `audyt/tools/wspolne.mjs`). Druga rola mierząca w tym samym czasie
+zanieczyszcza liczby pierwszej bez objawu (C3). `status.mjs` odmówi wejścia drugiej
+(odmowa 6), reguła 30 strażnika łapie nakładające się okna W TRAKCIE w historii.
+Stan środowiska wraca ZE ZRZUTU między rolami, nie z `postaw.sh`:
+
+```
+node audyt/tools/srodowisko.mjs --sprawdz --fala=<N>          # KIER-00, zanim wejdzie pierwsza rola na środowisku
+node audyt/tools/srodowisko.mjs --zrzut=f<N>-baza             # PRZED pierwszym Pogłębiaczem fali
+node audyt/tools/srodowisko.mjs --zrzut=f<N>-<KOD>-po         # po KAŻDEJ roli na środowisku (dowód SKUT-R4/R5)
+node audyt/tools/srodowisko.mjs --przywroc=f<N>-baza          # zaraz potem; kod 1 = STOP, następna rola nie wchodzi
+```
+
+Przy migawce `przed.json` z polem `srodowisko: "niedostępne"` role z `NA_SRODOWISKU` nie
+wchodzą — postaw środowisko, `--sprawdz`, zapisz migawkę ponownie. Zrzuty `.sql` leżą
+poza repo (`~/.cache/aai-kopie/audyt/`), liczniki w `audyt/migawki/`.
+
 ### Kiedy kończysz
 
 Jesteś **agentem pętlowym** (W3), sufit **pięć rund**:
@@ -162,6 +181,7 @@ Rozjazd między tą tabelą a `ROLE.md` jest błędem sektora; pilnuje go straż
 
 | # | Pytanie (tak/nie) | Komenda / miejsce | Dowód |
 |---|---|---|---|
+| KIER-00 | Czy stoi wszystko, co musi stać, ZANIM wejdzie pierwsza rola na środowisku? | `node audyt/tools/srodowisko.mjs --sprawdz --fala=<N>` | kod wyjścia + lista ✓/✗ |
 | KIER-R1 | Czy audyt **wyszedł** z działu, do którego wchodzi Pogłębiacz? | `status.mjs --pokaz` | dział + status roli audytu |
 | KIER-R2 | Czy każdy Pogłębiacz ma plik stanu i **niezerową rundę**? | `status.mjs --pokaz` | rola bez stanu albo z rundą 0 |
 | KIER-R3 | Czy każde zgłoszenie re-audytu ma **komplet werdyktów** (krytyk + WALID)? | `werdykt.mjs --pokaz` | ID bez kompletu |

@@ -76,6 +76,24 @@ export const PROCESOWE = ["KIER", "GOLD", "KON", "WER", "RAP"];
  */
 export const PROCESOWE_RE = ["PSIARZ", "SKUT", "STRAZ", "WALID"];
 
+/**
+ * ROLE NA ŚRODOWISKU `:8892` — jedna naraz (pakiet E7.7, pozycja 7; krytyka
+ * budowy C3, rozstrzygnięcie właściciela 2 z 2026-09-03).
+ *
+ * Pogłębiacz mierzy na `:8892` LICZBY (zapytania na odsłonę, wiersze w tabelach,
+ * liczniki przed/po), a druga rola pracująca w tym samym czasie te liczby
+ * zanieczyszcza — bez jednego objawu. Sekwencja obejmuje czternastu Pogłębiaczy,
+ * PSIARZA (psuje kod na bind mouncie, więc jego mutacja jest widoczna każdemu, kto
+ * w tej chwili mierzy) i WALID (odtwarza zjawiska żądaniami, które piszą do
+ * monitoringu). KIER, RAP, KON, SKUT, STRAZ pracują na plikach sektora — SKUT liczy
+ * przed/po, ale nie pisze, a jego pomiar i tak idzie po przywróceniu stanu.
+ *
+ * Jedno źródło dla `status.mjs` (odmowa 6) i `srodowisko.mjs`; strażnik (reguła 30)
+ * trzyma WŁASNĄ kopię i porównuje ją z tą listą — pomiar tą samą tablicą, która
+ * steruje narzędziem, nie mierzy niczego.
+ */
+export const NA_SRODOWISKU = [...DZIALY, "PSIARZ", "WALID"];
+
 /** Role procesowe, które re-audyt ma pod tym samym kodem co audyt. */
 const PROCESOWE_WSPOLNE = ["KIER", "KON", "RAP"];
 

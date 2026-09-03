@@ -11,8 +11,9 @@
  * **musi zapisać, których pozycji nie domknął**. Ciche urwanie po piątej rundzie
  * byłoby luką nie do odróżnienia od kompletnej pracy.
  *
- * PIĘĆ ODMÓW (cztery z pakietu E7.7, pozycja 3 — sześć rozstrzygnięć właściciela
- * 2026-09-02; piąta z pozycji 4), każda z komendą naprawy w komunikacie:
+ * SZEŚĆ ODMÓW (cztery z pakietu E7.7, pozycja 3 — sześć rozstrzygnięć właściciela
+ * 2026-09-02; piąta z pozycji 4, szósta z pozycji 7), każda z komendą naprawy
+ * w komunikacie:
  *
  *   1. fala ∈ {1, 2} — do tej pory `--fala=3` tworzyło `audyt-f3-SEC.json`,
  *      a `--fala=abc` plik `audyt-fNaN-SEC.json`, po cichu; `zgloszenie.mjs`
@@ -48,12 +49,25 @@
  *      fali 2 (rozstrzygnięcie 1 właściciela): porównanie fal i raport odbywają
  *      się PO obu falach, w pełnym drzewie.
  *
- * Reguły 1–3 i 5 siedzą w CZYSTEJ funkcji `powodyOdmowyStanu()`, reguła 4
- * w `powodyOdmowyDrzewa()` — obie bez dysku i bez procesu, żeby samokontrola
- * `--test` mogła je wywołać na atrapach (jak `zgloszenie.mjs`/`werdykt.mjs`).
- * Strażnik sektora (reguła 17) sprawdza TE SAME rzeczy na ZAWARTOŚCI plików
- * stanu własnym kodem, celowo niezależnym od tego pliku: plik dopisany ręcznie
- * ominąłby narzędzie, a reguły nie.
+ *   6. JEDNA ROLA NA ŚRODOWISKU NARAZ (pakiet E7.7, pozycja 7, 2026-09-03; C3
+ *      z krytyki budowy): rola z listy `NA_SRODOWISKU` (14 Pogłębiaczy + PSIARZ
+ *      + WALID, `wspolne.mjs`) w sektorze re-audyt nie wchodzi w W TRAKCIE,
+ *      dopóki inna rola z tej listy TEJ SAMEJ fali jest W TRAKCIE — Pogłębiacz
+ *      mierzy na `:8892` liczby, a druga rola je zanieczyszcza bez objawu.
+ *      Odmowa nazywa rolę, która blokuje, i podaje komendy: jej zakończenie,
+ *      zrzut „po dziale" i powrót do zrzutu bazowego (`srodowisko.mjs`).
+ *      Druga połowa tej odmowy (rozstrzygnięcie 6 właściciela): gdy migawka
+ *      `przed.json` mówi o środowisku „niedostępne" (albo nie ma pola
+ *      `srodowisko`, bo jest sprzed pozycji 7), role z `NA_SRODOWISKU` NIE
+ *      wchodzą — W6 „przed == po" nie da się dla nich rozstrzygnąć; KIER, KON,
+ *      RAP, SKUT, STRAZ wchodzą jak dotąd. Stan PRÓBNY nie blokuje nikogo.
+ *
+ * Reguły 1–3, 5 i 6 siedzą w CZYSTEJ funkcji `powodyOdmowyStanu()`, reguła 4
+ * w `powodyOdmowyDrzewa()`, druga połowa 6 w `powodyOdmowySrodowiska()` — bez
+ * dysku i bez procesu, żeby samokontrola `--test` mogła je wywołać na atrapach
+ * (jak `zgloszenie.mjs`/`werdykt.mjs`). Strażnik sektora (reguły 17 i 30)
+ * sprawdza TE SAME rzeczy na ZAWARTOŚCI plików stanu własnym kodem, celowo
+ * niezależnym od tego pliku: plik dopisany ręcznie ominąłby narzędzie, a reguły nie.
  *
  * Użycie:
  *   node audyt/tools/status.mjs --pokaz                 # kod 1 przy wiszących
@@ -73,7 +87,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  DZIALY, KOD_POZYCJI, KORZEN, PROG_BAZY, SEKTOR, SEKTORY, STATUSY, SUFIT_RUND, czytajJSON, roleSektora, zapiszJSON,
+  DZIALY, KOD_POZYCJI, KORZEN, NA_SRODOWISKU, PROG_BAZY, SEKTOR, SEKTORY, STATUSY, SUFIT_RUND, czytajJSON, roleSektora, zapiszJSON,
 } from "./wspolne.mjs";
 
 /** Dwie fale — te same, które zna `zgloszenie.mjs`. Trzeciej nie ma w żadnym planie. */
@@ -82,6 +96,7 @@ const NIE_ROZPOCZETO = STATUSY[0];
 const ZAKONCZONE = "ZAKOŃCZONE";
 export const KOMENDA_MIGAWKI = "node audyt/tools/migawka-wartosci.mjs --zapisz=przed";
 export const KOMENDA_WORKTREE = "node audyt/tools/fala.mjs --postaw=2";
+export const KOMENDA_SPRAWDZ = "node audyt/tools/srodowisko.mjs --sprawdz --fala=<N>";
 /** Role, które w fali 2 pracują także w PEŁNYM drzewie — po obu falach (rozstrzygnięcie 1, 2026-09-02). */
 export const WOLNE_OD_IZOLACJI = ["KIER", "RAP"];
 
@@ -163,7 +178,47 @@ export function powodyOdmowyStanu(stany, zmiana, widoczne = { faleWpisow: [], pr
     }
   }
 
+  // 6. Jedna rola na środowisku naraz — WYŁĄCZNIE re-audyt, lista NA_SRODOWISKU, ta sama fala.
+  if (sektor === "re-audyt" && NA_SRODOWISKU.includes(rola) && po.status === "W TRAKCIE") {
+    const blokuje = [...stany.values()].find((s) =>
+      s && s.sektor === "re-audyt" && s.fala === fala && s.rola !== rola
+      && NA_SRODOWISKU.includes(s.rola) && s.status === "W TRAKCIE" && !s.proba);
+    if (blokuje) {
+      powody.push(
+        `Rola ${rola} nie wchodzi na środowisko :8892 — w fali ${fala} jest tam już ${blokuje.rola} (W TRAKCIE od ${blokuje.kiedy ?? "?"}).\n` +
+        "Jedna rola na środowisku naraz (NA_SRODOWISKU: 14 Pogłębiaczy + PSIARZ + WALID) — druga zanieczyszcza liczby pierwszej bez objawu (C3).\n" +
+        `Naprawa (kierownik): ${blokuje.rola} kończy —\n` +
+        `  node audyt/tools/status.mjs --rola=${blokuje.rola} --sektor=re-audyt --fala=${fala} --status=ZAKOŃCZONE\n` +
+        "potem zrzut po dziale (dowód SKUT-R4/R5) i powrót do zrzutu bazowego fali:\n" +
+        `  node audyt/tools/srodowisko.mjs --zrzut=f${fala}-${blokuje.rola}-po && node audyt/tools/srodowisko.mjs --przywroc=f${fala}-baza`
+      );
+    }
+  }
+
   return powody;
+}
+
+/* ── czysta reguła środowiska: „niedostępne" nie wpuszcza ról NA_SRODOWISKU ── */
+
+/**
+ * @param migawka zawartość `migawki/przed.json` (już sprawdzona przez regułę 4) albo null
+ * @param zmiana  jak w `powodyOdmowyStanu`
+ * Odmowa dotyczy WEJŚCIA W TRAKCIE roli z `NA_SRODOWISKU` w re-audycie; zejście
+ * z W TRAKCIE, role procesowe na plikach i cały sektor audytu (lektura) przechodzą.
+ */
+export function powodyOdmowySrodowiska(migawka, zmiana) {
+  const { sektor, fala, rola, po } = zmiana;
+  if (!(sektor === "re-audyt" && NA_SRODOWISKU.includes(rola) && po.status === "W TRAKCIE")) return [];
+  const s = migawka?.srodowisko;
+  if (s !== undefined && s !== "niedostępne") return [];
+  return [
+    `Rola ${rola} pracuje na środowisku :8892, a migawka przed.json mówi o nim: ` +
+    `${s === undefined ? "brak pola srodowisko (migawka sprzed pozycji 7 E7.7)" : "„niedostępne\""} — ` +
+    "bez liczników środowiska W6 („przed == po\") nie da się dla tej roli rozstrzygnąć.\n" +
+    "Role spoza NA_SRODOWISKU (KIER, KON, RAP, SKUT, STRAZ) wchodzą bez tego.\n" +
+    "Naprawa (kierownik): postaw środowisko (wordpress/srodowisko/postaw.sh, a przy stojących kontenerach podman start),\n" +
+    `sprawdź je — ${KOMENDA_SPRAWDZ.replace("<N>", String(fala))} — i zapisz migawkę ponownie: ${KOMENDA_MIGAWKI}`,
+  ];
 }
 
 /* ── czysta reguła drzewa produktu (W2) ────────────────────────────────── */
@@ -319,8 +374,9 @@ function przebieg(arg) {
   /* KAŻDA ZMIANA STANU WYMAGA MIGAWKI I NIETKNIĘTEGO PRODUKTU. Sprawdzane
      PRZED czytaniem stanu roli, bo odmowa nie zależy od tego, co rola chce
      zapisać — zależy od tego, czy sektor w ogóle ma prawo pracować. */
+  const migawkaPrzed = czytajJSON(PLIK_MIGAWKI);
   const odmowaDrzewa = (() => {
-    const migawka = czytajJSON(PLIK_MIGAWKI);
+    const migawka = migawkaPrzed;
     if (!migawka) return powodyOdmowyDrzewa(null, null);
     const glowa = String(migawka.glowa_main ?? "");
     if (!/^[0-9a-f]{40}$/.test(glowa)) return powodyOdmowyDrzewa(migawka, null);
@@ -418,7 +474,11 @@ function przebieg(arg) {
   }
 
   const { fale, przyklad } = faleWpisow(KATALOG_ZGLOSZEN);
-  const odmowa = powodyOdmowyStanu(wczytajStany(KATALOG_STANU), { sektor, fala, rola, przed, po: stan }, { faleWpisow: fale, przykladWpisu: przyklad });
+  const zmiana = { sektor, fala, rola, przed, po: stan };
+  const odmowa = [
+    ...powodyOdmowyStanu(wczytajStany(KATALOG_STANU), zmiana, { faleWpisow: fale, przykladWpisu: przyklad }),
+    ...powodyOdmowySrodowiska(migawkaPrzed, zmiana),
+  ];
   if (odmowa.length) {
     process.stdout.write(odmowa.join("\n") + "\n");
     return 1;
@@ -499,6 +559,33 @@ function samokontrola() {
   sprawdz("IZOLACJA  KONTRPRZYKŁAD: zmiana NIE będąca wejściem (W TRAKCIE → ZAKOŃCZONE) po scaleniu → wolno", !powodyOdmowyStanu(zestaw(), zm("audyt", 2, "SEC", "W TRAKCIE", ZAKONCZONE, 2), widacF1).length);
   sprawdz("IZOLACJA  KONTRPRZYKŁAD: KON fali 2 NIE jest wolny (audytuje audyt swojej fali, nie obu)", odmawia(powodyOdmowyStanu(zestaw(), zm("audyt", 2, "KON", null, "W TRAKCIE"), widacF1), /widać falę 1/));
 
+  /* jedna rola na środowisku naraz (pozycja 7 E7.7) */
+  const psiarzWTrakcie = atrapa("re-audyt", 1, "PSIARZ", "W TRAKCIE", 1, T[1]);
+  const walidWTrakcie = atrapa("re-audyt", 1, "WALID", "W TRAKCIE", 1, T[1]);
+  const kierWTrakcie = atrapa("re-audyt", 1, "KIER", "W TRAKCIE", 1, T[1]);
+  const psiarzProbny = { ...atrapa("re-audyt", 1, "PSIARZ", "W TRAKCIE", 1, T[1]), proba: "E7.6" };
+  const naSrodowisku = (powody) => powody.some((p) => /jest tam już/.test(p));
+  sprawdz("ŚRODOWISKO Pogłębiacz SEC przy PSIARZU W TRAKCIE tej fali → odmowa nazywa PSIARZA i komendę --przywroc=f1-baza", odmawia(powodyOdmowyStanu(zestaw(audytZakonczyl, psiarzWTrakcie), zm("re-audyt", 1, "SEC", null, "W TRAKCIE")), /jest tam już PSIARZ[\s\S]*--przywroc=f1-baza/));
+  sprawdz("ŚRODOWISKO WALID przy Pogłębiaczu SEC W TRAKCIE → odmowa nazywa SEC", odmawia(powodyOdmowyStanu(zestaw(reWszedl), zm("re-audyt", 1, "WALID", null, "W TRAKCIE")), /jest tam już SEC/));
+  sprawdz("ŚRODOWISKO --runda roli W TRAKCIE, gdy druga weszła obok → odmowa (dwie naraz to konflikt, nie wyjątek)", odmawia(powodyOdmowyStanu(zestaw(psiarzWTrakcie, walidWTrakcie), zm("re-audyt", 1, "WALID", "W TRAKCIE", "W TRAKCIE", 2)), /jest tam już PSIARZ/));
+  sprawdz("ŚRODOWISKO KONTRPRZYKŁAD: ta sama rola (PSIARZ --runda przy własnym W TRAKCIE) → wolno", !naSrodowisku(powodyOdmowyStanu(zestaw(psiarzWTrakcie), zm("re-audyt", 1, "PSIARZ", "W TRAKCIE", "W TRAKCIE", 2))));
+  sprawdz("ŚRODOWISKO KONTRPRZYKŁAD: KIER (rola na plikach) przy PSIARZU → wolno; PSIARZ przy KIER → wolno", !naSrodowisku(powodyOdmowyStanu(zestaw(psiarzWTrakcie), zm("re-audyt", 1, "KIER", null, "W TRAKCIE"))) && !naSrodowisku(powodyOdmowyStanu(zestaw(kierWTrakcie), zm("re-audyt", 1, "PSIARZ", null, "W TRAKCIE"))));
+  sprawdz("ŚRODOWISKO KONTRPRZYKŁAD: SKUT i STRAZ przy PSIARZU → wolno", ["SKUT", "STRAZ"].every((r) => !naSrodowisku(powodyOdmowyStanu(zestaw(psiarzWTrakcie), zm("re-audyt", 1, r, null, "W TRAKCIE")))));
+  sprawdz("ŚRODOWISKO KONTRPRZYKŁAD: inna FALA nie blokuje", !naSrodowisku(powodyOdmowyStanu(zestaw(psiarzWTrakcie), zm("re-audyt", 2, "WALID", null, "W TRAKCIE"))));
+  sprawdz("ŚRODOWISKO KONTRPRZYKŁAD: rola po DO WERYFIKACJI zwolniła środowisko", !naSrodowisku(powodyOdmowyStanu(zestaw(atrapa("re-audyt", 1, "PSIARZ", "DO WERYFIKACJI", 1)), zm("re-audyt", 1, "WALID", null, "W TRAKCIE"))));
+  sprawdz("ŚRODOWISKO KONTRPRZYKŁAD: stan PRÓBNY nie blokuje", !naSrodowisku(powodyOdmowyStanu(zestaw(psiarzProbny), zm("re-audyt", 1, "WALID", null, "W TRAKCIE"))));
+  sprawdz("ŚRODOWISKO KONTRPRZYKŁAD: sektor AUDYT (lektura) — dwa działy naraz wolno", !naSrodowisku(powodyOdmowyStanu(zestaw(audytWTrakcie), zm("audyt", 1, "BE", null, "W TRAKCIE"))));
+  sprawdz("ŚRODOWISKO KONTRPRZYKŁAD: zejście z W TRAKCIE (ZAKOŃCZONE) przy drugiej roli → wolno (wychodzi, nie wchodzi)", !naSrodowisku(powodyOdmowyStanu(zestaw(psiarzWTrakcie, walidWTrakcie), zm("re-audyt", 1, "WALID", "W TRAKCIE", ZAKONCZONE, 2))));
+
+  /* migawka „niedostępne" (rozstrzygnięcie 6 właściciela) */
+  const MIG_ZE_SRODOWISKIEM = { srodowisko: { skrot_tabel: "x" } };
+  sprawdz("NIEDOSTĘPNE PSIARZ przy migawce „niedostępne\" → odmowa z komendą --sprawdz --fala=1", odmawia(powodyOdmowySrodowiska({ srodowisko: "niedostępne" }, zm("re-audyt", 1, "PSIARZ", null, "W TRAKCIE")), /--sprawdz --fala=1/));
+  sprawdz("NIEDOSTĘPNE migawka BEZ pola srodowisko (sprzed pozycji 7) → odmowa", odmawia(powodyOdmowySrodowiska({ glowa_main: "x" }, zm("re-audyt", 1, "SEC", null, "W TRAKCIE")), /brak pola srodowisko/));
+  sprawdz("NIEDOSTĘPNE KONTRPRZYKŁAD: KIER, KON, RAP, SKUT, STRAZ wchodzą przy „niedostępne\"", ["KIER", "KON", "RAP", "SKUT", "STRAZ"].every((r) => !powodyOdmowySrodowiska({ srodowisko: "niedostępne" }, zm("re-audyt", 1, r, null, "W TRAKCIE")).length));
+  sprawdz("NIEDOSTĘPNE KONTRPRZYKŁAD: liczniki w migawce → wolno", !powodyOdmowySrodowiska(MIG_ZE_SRODOWISKIEM, zm("re-audyt", 1, "SEC", null, "W TRAKCIE")).length);
+  sprawdz("NIEDOSTĘPNE KONTRPRZYKŁAD: dział AUDYTU (lektura) nie pyta o środowisko", !powodyOdmowySrodowiska({ srodowisko: "niedostępne" }, zm("audyt", 1, "SEC", null, "W TRAKCIE")).length);
+  sprawdz("NIEDOSTĘPNE KONTRPRZYKŁAD: zejście PSIARZA do ZAKOŃCZONE przy „niedostępne\" → wolno", !powodyOdmowySrodowiska({ srodowisko: "niedostępne" }, zm("re-audyt", 1, "PSIARZ", "W TRAKCIE", ZAKONCZONE, 1)).length);
+
   /* drzewo produktu */
   const MIGAWKA = { glowa_main: "c6458950c3850994fc2fbd8a383284e0d094afcf" };
   sprawdz("DRZEWO    brak migawki → odmowa z komendą --zapisz=przed", odmawia(powodyOdmowyDrzewa(null, { zmienione: [], brudne: [] }), /--zapisz=przed/));
@@ -534,7 +621,7 @@ function samokontrola() {
     // pilnuje reguła 1 strażnika. Brudne drzewo poza sektorami zapali obie.
     const glowa = execFileSync("git", ["rev-parse", "HEAD"], { cwd: KORZEN, encoding: "utf8" }).trim();
     mkdirSync(join(tmp, "migawki"), { recursive: true });
-    zapiszJSON(join(tmp, "migawki", "przed.json"), { glowa_main: glowa });
+    zapiszJSON(join(tmp, "migawki", "przed.json"), { glowa_main: glowa, srodowisko: { skrot_tabel: "atrapa" } });
 
     const start = uruchom("--rola=SEC", "--fala=1", "--status=W TRAKCIE");
     const s1 = plik("audyt", 1, "SEC");
@@ -553,8 +640,11 @@ function samokontrola() {
     const cofnij = uruchom("--rola=SEC", "--fala=1", "--status=W TRAKCIE");
     sprawdz("CLI       cofnięcie audytu SEC przy Pogłębiaczu → kod 1, plik nietknięty", cofnij.kod === 1 && plik("audyt", 1, "SEC")?.status === ZAKONCZONE && plik("audyt", 1, "SEC")?.historia?.length === 2, `kod ${cofnij.kod}`);
 
+    const psiarzBlok = uruchom("--rola=PSIARZ", "--sektor=re-audyt", "--fala=1", "--status=W TRAKCIE");
+    sprawdz("CLI       PSIARZ przy Pogłębiaczu SEC W TRAKCIE → kod 1 z nazwą SEC i komendą --przywroc, bez pliku", psiarzBlok.kod === 1 && /jest tam już SEC/.test(psiarzBlok.wyjscie) && /--przywroc=f1-baza/.test(psiarzBlok.wyjscie) && !plik("re-audyt", 1, "PSIARZ"), `kod ${psiarzBlok.kod}: ${psiarzBlok.wyjscie.trim().slice(0, 160)}`);
+    const secKoniec = uruchom("--rola=SEC", "--sektor=re-audyt", "--fala=1", "--status=ZAKOŃCZONE");
     const psiarz = uruchom("--rola=PSIARZ", "--sektor=re-audyt", "--fala=1", "--status=W TRAKCIE");
-    sprawdz("CLI       rola procesowa re-audytu (PSIARZ) bez odpowiednika → kod 0", psiarz.kod === 0, `kod ${psiarz.kod}: ${psiarz.wyjscie.trim()}`);
+    sprawdz("CLI       po ZAKOŃCZONE Pogłębiacza SEC rola PSIARZ (bez odpowiednika w audycie) → kod 0", secKoniec.kod === 0 && psiarz.kod === 0, `kody ${secKoniec.kod}/${psiarz.kod}: ${psiarz.wyjscie.trim()}`);
 
     const pokaz = uruchom("--pokaz", "--historia");
     sprawdz("CLI       --pokaz --historia drukuje czasy przejść", pokaz.kod === 0 && (pokaz.wyjscie.match(/\d{4}-\d{2}-\d{2}T/g) ?? []).length >= 5, `kod ${pokaz.kod}`);
@@ -576,6 +666,13 @@ function samokontrola() {
     sprawdz("CLI       po schowaniu fali 1 (jak w worktree) → kod 0", f2Wolno.kod === 0 && plik("audyt", 2, "BE")?.status === "W TRAKCIE", `kod ${f2Wolno.kod}: ${f2Wolno.wyjscie.trim().slice(0, 120)}`);
     const pokaz2 = uruchom("--pokaz");
     sprawdz("CLI       --pokaz liczy zgłoszenia per fala (licznik przeniesiony z zgloszenie.mjs)", pokaz2.kod === 0 && /ZGŁOSZEŃ W SEKTORZE: 0|Żadna|STAN RÓL/.test(pokaz2.wyjscie), `kod ${pokaz2.kod}`);
+
+    /* migawka „niedostępne" — odmowa TYLKO rolom NA_SRODOWISKU (fala 2: stany fali 1 już schowane) */
+    zapiszJSON(join(tmp, "migawki", "przed.json"), { glowa_main: glowa, srodowisko: "niedostępne" });
+    const walidNie = uruchom("--rola=WALID", "--sektor=re-audyt", "--fala=2", "--status=W TRAKCIE");
+    sprawdz("CLI       WALID fali 2 przy migawce „niedostępne\" → kod 1 z komendą --sprawdz --fala=2, bez pliku", walidNie.kod === 1 && /--sprawdz --fala=2/.test(walidNie.wyjscie) && !plik("re-audyt", 2, "WALID"), `kod ${walidNie.kod}: ${walidNie.wyjscie.trim().slice(0, 160)}`);
+    const konNie = uruchom("--rola=KON", "--sektor=re-audyt", "--fala=2", "--status=W TRAKCIE");
+    sprawdz("CLI       KON fali 2 przy tej samej migawce → kod 0 (rola na plikach)", konNie.kod === 0 && plik("re-audyt", 2, "KON")?.status === "W TRAKCIE", `kod ${konNie.kod}: ${konNie.wyjscie.trim().slice(0, 160)}`);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
