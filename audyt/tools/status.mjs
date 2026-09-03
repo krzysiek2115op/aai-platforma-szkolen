@@ -393,6 +393,19 @@ function przebieg(arg) {
     ? structuredClone(przed)
     : { sektor, fala, rola, status: NIE_ROZPOCZETO, runda: 0, niedomkniete: [] };
 
+  /* WEJŚCIE PRAWDZIWEJ FALI NA PLIK Z PRÓBY ZDEJMUJE ZNACZNIK `proba`.
+     Cztery pliki stanu z prób E6/E7.6 leżą w fali 1 ze znacznikiem, który
+     wyłącza je spod kolejności sektorów (reguła 17), odmowy 6 i reguły 30.
+     `structuredClone(przed)` przenosiłby znacznik na PRAWDZIWY stan roli —
+     Pogłębiacz SEC W TRAKCIE z `proba` nie blokowałby WALID-a, a KIER-05 nie
+     widziałby wejścia PIK. Zmierzone 2026-09-03 na starcie E8, przed pierwszym
+     agentem. Ślad próby zostaje w `historia` (wpisy sprzed wejścia) i w adnotacji;
+     licznik rund i lista niedomkniętych należą do próby, nie do fali — startują
+     od zera. Znacznik schodzi WYŁĄCZNIE przy wejściu (W TRAKCIE), nigdy przy
+     `--pokaz` ani przy innej zmianie. */
+  if (przed?.proba && wartosc("status") === "W TRAKCIE") zdejmijProbe(stan, przed.proba, new Date().toISOString());
+
+
   if (arg.includes("--runda")) {
     stan.runda += 1;
     if (stan.runda > SUFIT_RUND) {
@@ -586,6 +599,13 @@ function samokontrola() {
   sprawdz("NIEDOSTĘPNE KONTRPRZYKŁAD: dział AUDYTU (lektura) nie pyta o środowisko", !powodyOdmowySrodowiska({ srodowisko: "niedostępne" }, zm("audyt", 1, "SEC", null, "W TRAKCIE")).length);
   sprawdz("NIEDOSTĘPNE KONTRPRZYKŁAD: zejście PSIARZA do ZAKOŃCZONE przy „niedostępne\" → wolno", !powodyOdmowySrodowiska({ srodowisko: "niedostępne" }, zm("re-audyt", 1, "PSIARZ", "W TRAKCIE", ZAKONCZONE, 1)).length);
 
+  /* próba → prawdziwe wejście */
+  const zProby = { sektor: "audyt", fala: 1, rola: "PIK", status: ZAKONCZONE, runda: 1, niedomkniete: ["PIK-01"], proba: "E6", historia: [{ status: ZAKONCZONE, runda: 1, kiedy: T[0] }] };
+  const poWejsciu = zdejmijProbe(structuredClone(zProby), zProby.proba, T[1]);
+  sprawdz("PRÓBA     wejście W TRAKCIE zdejmuje `proba`, zeruje rundę i niedomknięte, zostawia historię", !("proba" in poWejsciu) && poWejsciu.runda === 0 && poWejsciu.niedomkniete.length === 0 && poWejsciu.historia.length === 1);
+  sprawdz("PRÓBA     adnotacja nazywa etap próby i chwilę wejścia", /E6/.test(poWejsciu.adnotacja) && poWejsciu.adnotacja.includes(T[1]));
+  sprawdz("PRÓBA     KONTRPRZYKŁAD: stan próbny, do którego nikt nie wszedł, dalej nie blokuje środowiska", !naSrodowisku(powodyOdmowyStanu(zestaw(psiarzProbny), zm("re-audyt", 1, "WALID", null, "W TRAKCIE"))));
+
   /* drzewo produktu */
   const MIGAWKA = { glowa_main: "c6458950c3850994fc2fbd8a383284e0d094afcf" };
   sprawdz("DRZEWO    brak migawki → odmowa z komendą --zapisz=przed", odmawia(powodyOdmowyDrzewa(null, { zmienione: [], brudne: [] }), /--zapisz=przed/));
@@ -695,4 +715,16 @@ if (GLOWNY_MODUL) {
   const arg = process.argv.slice(2);
   if (arg.includes("--test")) process.exit(samokontrola() ? 0 : 1);
   process.exit(przebieg(arg));
+}
+
+/**
+ * Zdejmuje znacznik próby ze stanu roli przy PRAWDZIWYM wejściu fali.
+ * Czysta funkcja — testowana w samokontroli na atrapie.
+ */
+export function zdejmijProbe(stan, proba, kiedy) {
+  delete stan.proba;
+  stan.runda = 0;
+  stan.niedomkniete = [];
+  stan.adnotacja = `do ${kiedy} plik niósł stan PRÓBNY ${proba}; wpisy historii sprzed tej chwili pochodzą z próby, prawdziwa fala zaczęła się od tego wejścia`;
+  return stan;
 }

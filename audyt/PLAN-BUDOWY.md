@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | ⬜ | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
+| **E8** — STOP | 🟢 **ZIELONE ŚWIATŁO 2026-09-03** — właściciel: „zielone swiatło puszczamy 1 fale audytu i re audytu"; przebieg fali 1 obu sektorów W TOKU (sekcja „E8 — PRZEBIEG FALI 1" niżej) | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -473,6 +473,57 @@ nie z braku: ma tylko to, co jest RÓŻNE od audytu (`ROLE.md` 21 ról, `GRANICE
 WSPÓLNE i mieszkają w `audyt/` (rozstrzygnięcie 2026-09-01: jeden nośnik, W4 — inaczej
 `polacz-sektory` nie połączyłoby fal po haszu). Pomiar `git ls-files`: `re-audyt/` 86
 plików, `audyt/` 116 (w tym `role/` 76, `tools/` 15, dokumenty 25; pomiar po pozycji 7).
+
+## E8 — PRZEBIEG FALI 1 (start 2026-09-03)
+
+**Zielone światło właściciela (2026-09-03, dosłownie): „zielone swiatło puszczamy 1 fale
+audytu i re audytu".** Zakres zgody: **FALA 1 obu sektorów** (audyt fala 1 → re-audyt
+fala 1). Fala 2 (worktree `fala.mjs --postaw=2`) wymaga osobnego zielonego światła —
+nie ruszać jej z własnej inicjatywy.
+
+**Kto co uruchamia w przebiegu:** agenci ról nie mają narzędzia `Agent`, więc
+KOLEJNOŚĆ URUCHOMIEŃ prowadzi sesja główna (orkiestrator); kierownicy robią swoje
+komendy (migawka, mapa, KIER-00, zrzuty) i swoje checklisty. Plan uruchomień
+(zapisany PRZED startem, żeby po `/clear` dało się wznowić od właściwego miejsca):
+
+1. `aud-kier` (start fali): `migawka-wartosci.mjs --zapisz=przed` OD NOWA, `mapa.mjs`,
+   status `W TRAKCIE`.
+2. `aud-kon` faza A (atakuje ZAKRESY przed pracą działów) → `aud-kon-krytyk`.
+3. 13 działów audytu RÓWNOLEGLE (K9′): SEC FE BE BD QA PERF ARCH INT PRIV REPO PROTO PIK USP;
+   **WDR OSOBNO, PO NICH** — pozycja WDR-06 każe `podman-compose down && ./postaw.sh`,
+   co w trakcie cudzych pomiarów na `:8892` (PERF-02, INT-10/11, PRIV-04, BD-06)
+   zanieczyściłoby liczby. To decyzja orkiestracji, nie zmiana checklisty.
+4. krytyk każdego działu (`aud-<kod>-krytyk`) po zakończeniu działu.
+5. `aud-wer` (werdykty weryfikatora dla wpisów `AUD-*-F1-*`) → `aud-wer-krytyk`.
+6. `aud-gold` (bramka wyjścia, 14 działów) → `aud-gold-krytyk`.
+7. `aud-kon` faza B → krytyk; `aud-kier` (KIER-01…07) → `aud-kier-krytyk`;
+   `aud-rap` → `aud-rap-krytyk`.
+8. RE-AUDYT: `rea-kier` KIER-00 (`srodowisko.mjs --sprawdz --fala=1`) + `--zrzut=f1-baza`
+   DOPIERO TERAZ (po tym, jak audyt skończył dotykać `:8892`).
+9. 14 Pogłębiaczy SEKWENCYJNIE (odmowa 6, reguła 30): rola → `--zrzut=f1-<KOD>-po` →
+   `--przywroc=f1-baza` → krytyk roli → następna.
+10. `rea-walid` (na środowisku, po Pogłębiaczach) → krytyk; `rea-psiarz` → krytyk
+    (każdy z zrzutem „po" i przywróceniem); `rea-skut`, `rea-straz` (na plikach) → krytycy.
+11. `rea-kon` → krytyk; `rea-kier` (R1…R7, `polacz-sektory --fala=1`) → krytyk;
+    `rea-rap` → krytyk.
+12. `migawka-wartosci.mjs --zapisz=po` + `--porownaj`; commit `audyt/zgloszenia/*-F1-*`,
+    `audyt/stan/*-f1-*`, `audyt/migawki/`.
+
+**Ryzyko nazwane przed startem (nie naprawiać w trakcie — zmierzy je KIER-06 i SKUT):**
+działy AUDYTU wykonują na `:8892` pomiary, które PISZĄ (logowanie w smoke'ach, import
+BD-06, `postaw.sh` w WDR-06), a audyt nie ma mechanizmu przywracania ze zrzutu —
+ma go dopiero re-audyt. Pole `srodowisko` migawki `po` może się przez to różnić od
+`przed` bez winy re-audytu; wynik idzie do właściciela jako wynik, nie jest tuszowany.
+
+**Pliki stanu i wpisy z PRÓB (E6/E7.6) leżą w fali 1** (`audyt-f1-PIK`, `audyt-f1-WER`,
+`re-audyt-f1-SEC`, `re-audyt-f1-WALID`, `AUD-PIK-F1-001`, `REA-SEC-F1-001/002`) —
+prawdziwa fala 1 nadpisze pliki stanu tych czterech ról (historia rośnie), a numeracja
+wpisów idzie dalej (`-002`, `-003`). Wpisy próbne zostają ze znacznikiem.
+
+Dziennik przebiegu (co zrobione, co następne) — poniżej, dopisywany w trakcie:
+
+- 2026-09-03: start. Przed startem: strażnik sektora kod 0, generat 80/80, niezmiennik 0,
+  `:8892` stoi (5 kontenerów, `/szkolenia/` 200), mapa bez sierot (722 + 399 = 1121).
 
 ## Co dokładnie obejmuje E6 (nie wyprowadzać od nowa)
 
