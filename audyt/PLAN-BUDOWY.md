@@ -462,8 +462,8 @@ i zielone światło na przebieg). Zrobione: 8, 1, 2, 3, 4a, **4b + 6** (2026-09-
 przejście po 80 definicjach; odpowiedzi właściciela na pięć pytań NIE były zapisane,
 kod poszedł po rekomendacjach — **do potwierdzenia**, sekcja „POZYCJE 4b + 6"),
 **5** (2026-09-03 — macierz reguła → mutacja; sekcja „POZYCJA 5 — ZROBIONA").
-Została: **7** (re-audyt sekwencyjnie na środowisku) — **projekt spisany 2026-09-03,
-czeka na sześć odpowiedzi właściciela**, kod po `/clear`. Dopiero potem E8. Katalog `re-audyt/` jest MAŁY z decyzji,
+Została: **7** (re-audyt sekwencyjnie na środowisku) — **projekt ZAAKCEPTOWANY
+2026-09-03 („potwierdzam rekomendacje")**, kod po `/clear`. Dopiero potem E8. Katalog `re-audyt/` jest MAŁY z decyzji,
 nie z braku: ma tylko to, co jest RÓŻNE od audytu (`ROLE.md` 21 ról, `GRANICE.md`,
 `role/` 84 pliki); narzędzia, zgłoszenia, stan, migawki, szablony i dokumenty są
 WSPÓLNE i mieszkają w `audyt/` (rozstrzygnięcie 2026-09-01: jeden nośnik, W4 — inaczej
@@ -1087,14 +1087,14 @@ osobnym commitem, z mutacją/testem negatywnym, po niej trzy kontrole sektora):
 | 4 | zakaz czytania wyników fali 1 w szablonach + reguła + mutacja; numeracja zgłoszeń per fala | **4a ✅ 2026-09-02** — ID `AUD-SEC-F2-001` (pula per fala), `zgloszenie.mjs` bez licznika, `status.mjs` odmowa 5 (izolacja fali 2 po POLU), `porownaj-cykle` PODEJRZENIE KOLEJNOŚCI (kod 0), **`fala.mjs --postaw=2 \| --scal=2`** (worktree + sparse checkout), `stan/` i `migawki/` w gicie, reguły 19′/28/29 (**27 zarezerwowana**), R5 „z audytu tej fali", STRUKTURA i KIER obu sektorów; mutacje 101 → **116**; szczegóły w sekcji „POZYCJA 4a — ZROBIONA" niżej. **4b ✅ 2026-09-02 (noc)** razem z pozycją 6 — zdanie zakazu w 80 definicjach + 2 szablonach, reguły 27/27b, mutacje 116 → 126 (sekcja „POZYCJE 4b + 6 — ZROBIONE" niżej) |
 | 5 | macierz reguła → mutacja w audycie mutacyjnym (`wymaga` dla reguł warunkowych) | ✅ **2026-09-03** — `R<nr>:` w każdym komunikacie strażnika, tablica `REGULY` + samokontrola + `--reguly`, `regula:` w 131 mutacjach, werdykt „ZŁA REGUŁA" (zgodność ŚCISŁA), macierz na wyjściu audytu z kodem 1; mutacje 126 → **131**; dwa pełne audyty (pomiar → dowód); sekcja „POZYCJA 5 — ZROBIONA" niżej |
 | 6 | K4″ w szablonach i 40 definicjach ról: lista = minimum, pozycja otwarta `<KOD>-90`, regeneracja generatu | ✅ **2026-09-02 (noc)** razem z 4b, po rekomendacjach (odpowiedzi właściciela nie były zapisane — założenia do potwierdzenia w sekcji „POZYCJE 4b + 6 — ZROBIONE"); zdanie MINIMUM 40/40, `<KOD>-90` w 28 rolach działowych, rozszerzenie reguły 7 |
-| 7 | re-audyt sekwencyjnie: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu | 🚧 **projekt spisany 2026-09-03** (sekcja „POZYCJA 7 — PROJEKT DO DYSKUSJI" niżej), **sześć pytań do właściciela**, kod po odpowiedziach i po `/clear` |
+| 7 | re-audyt sekwencyjnie: zapis w `STRUKTURA.md`/KIER, `KIER-00` „co musi stać", migawka z licznikami tabel WP, przywracanie ze zrzutu | 🚧 **projekt ZAAKCEPTOWANY 2026-09-03** („potwierdzam rekomendacje" — sześć rozstrzygnięć w sekcji „POZYCJA 7 — PROJEKT ZAAKCEPTOWANY" niżej), **kod po `/clear`** |
 | 8 | test aliasu `fable` po restarcie sesji (`aud-kier`: nazwa modelu) | ✅ **2026-09-02, po restarcie:** `aud-kier` zameldował dosłownie „You are powered by the model named Fable 5.1. The exact model ID is claude-fable-5-1". **Koszt faktu:** wywołanie bez ani jednego narzędzia = **142 tys. tokenów** — tyle waży samo wejście roli (definicja + kontekst); przy 80 agentach × 2 fale to ~23 mln tokenów SAMYCH wejść, zanim ktokolwiek otworzy plik |
 
 Poza pakietem, do osobnej zgody na koszt: próba sucha kierownika (F17, ~1 mln
 tokenów). Pozostałe propozycje tabeli F (A2–A5, C1, C5, F9, F19, F20) — po pakiecie,
 wg uznania właściciela.
 
-**NASTĘPNY KROK: odpowiedzi właściciela na sześć pytań z sekcji „POZYCJA 7 — PROJEKT DO DYSKUSJI" → `/clear` → KOD pozycji 7** wg sześciu kroków tej sekcji (narzędzie `srodowisko.mjs`, migawka z licznikami, `KIER-00`, odmowa 6 w `status.mjs`, reguły 30/31 + mutacje, STRUKTURA/KIER). Dopiero potem E8 (STOP, zielone światło właściciela na przebieg). Zapis historyczny: pozycja 5 WYKONANA 2026-09-03 (sekcja „POZYCJA 5 — ZROBIONA"; cztery kroki projektu co do punktu, dwa pełne audyty: pierwszy = pomiar deklaracji z ośmioma rozjazdami, drugi = dowód 131/0/0, macierz 30/30). **Założenia 4b + 6** (pięć rekomendacji) nie dostały osobnego potwierdzenia, ale właściciel przy akceptacji pozycji 5 nie zgłosił do nich sprzeciwu — zostają, dopóki nie powie inaczej. Przy okazji właściciel potwierdza (albo zmienia) pięć założeń z sekcji „POZYCJE 4b + 6 — ZROBIONE" — kod 4b + 6 poszedł po rekomendacjach, bo jego odpowiedzi nie były zapisane. Zapis historyczny: 4b + 6 WYKONANE 2026-09-02 w nocy jednym przejściem (szablony → skrypt po 80 definicjach → `ROLE.md` obu sektorów → reguły 27/27b i rozszerzenie 7 → mutacje → generat → trzy kontrole → przeniesienie `audyt/` na gałąź audytu). Zapis historyczny: 4a WYKONANA 2026-09-02 (sekcja „POZYCJA 4a — ZROBIONA"). Lekcja z pozycji 3 obowiązuje dalej: **nie edytować `audyt/` w trakcie audytu mutacyjnego** i sprawdzać `pgrep -f audyt-straznika`, zanim uruchomi się cokolwiek w `audyt/tools/`.
+**NASTĘPNY KROK: po `/clear` od razu KOD pozycji 7** wg sekcji „POZYCJA 7 — PROJEKT ZAAKCEPTOWANY" (sześć rozstrzygnięć = rekomendacje, bez ponownego pytania o zgodę), sześć kroków tej sekcji (narzędzie `srodowisko.mjs`, migawka z licznikami, `KIER-00`, odmowa 6 w `status.mjs`, reguły 30/31 + mutacje, STRUKTURA/KIER). Dopiero potem E8 (STOP, zielone światło właściciela na przebieg). Zapis historyczny: pozycja 5 WYKONANA 2026-09-03 (sekcja „POZYCJA 5 — ZROBIONA"; cztery kroki projektu co do punktu, dwa pełne audyty: pierwszy = pomiar deklaracji z ośmioma rozjazdami, drugi = dowód 131/0/0, macierz 30/30). **Założenia 4b + 6** (pięć rekomendacji) nie dostały osobnego potwierdzenia, ale właściciel przy akceptacji pozycji 5 nie zgłosił do nich sprzeciwu — zostają, dopóki nie powie inaczej. Przy okazji właściciel potwierdza (albo zmienia) pięć założeń z sekcji „POZYCJE 4b + 6 — ZROBIONE" — kod 4b + 6 poszedł po rekomendacjach, bo jego odpowiedzi nie były zapisane. Zapis historyczny: 4b + 6 WYKONANE 2026-09-02 w nocy jednym przejściem (szablony → skrypt po 80 definicjach → `ROLE.md` obu sektorów → reguły 27/27b i rozszerzenie 7 → mutacje → generat → trzy kontrole → przeniesienie `audyt/` na gałąź audytu). Zapis historyczny: 4a WYKONANA 2026-09-02 (sekcja „POZYCJA 4a — ZROBIONA"). Lekcja z pozycji 3 obowiązuje dalej: **nie edytować `audyt/` w trakcie audytu mutacyjnego** i sprawdzać `pgrep -f audyt-straznika`, zanim uruchomi się cokolwiek w `audyt/tools/`.
 ### WYKONALNOŚĆ DWÓCH FAL NA PLANIE MAX (2026-09-02) — pytanie właściciela
 
 Sprawdzone przez subagenta Marka na dokumentacji Anthropic (support.claude.com,
@@ -1408,7 +1408,17 @@ gicie, zanim wejdzie do procedury). Największe ryzyko: sparse checkout, który
 „działa" w lekturze dokumentacji, a nie chowa plików — dlatego egzekwuje go
 `status.mjs` po POLU `fala`, nie zaufanie do gita.
 
-#### PAKIET E7.7, POZYCJA 7 — PROJEKT DO DYSKUSJI (2026-09-03), KOD PO ODPOWIEDZIACH I PO `/clear`
+#### PAKIET E7.7, POZYCJA 7 — PROJEKT ZAAKCEPTOWANY (2026-09-03: „potwierdzam rekomendacje"), KOD PO `/clear`
+
+**ROZSTRZYGNIĘCIA WŁAŚCICIELA (2026-09-03) = sześć rekomendacji niżej, co do słowa:**
+(1) sekwencja egzekwowana **narzędziem** (`status.mjs` odmowa 6 + reguła 30); (2) „jedna
+rola na środowisku naraz" obejmuje **14 Pogłębiaczy + PSIARZ + WALID** (`NA_SRODOWISKU`
+w `wspolne.mjs`); (3) **zrzut bazowy na falę + zrzut „po dziale" zachowany**; (4) zrzuty
+`.sql` **poza repo** (`~/.cache/aai-kopie/audyt/`), w repo liczniki; (5) media **liczone,
+nie kopiowane**, rozjazd = STOP; (6) „niedostępne" = odmowa **tylko rolom `NA_SRODOWISKU`**,
+a `--porownaj` z „niedostępne" po jednej stronie = kod 1. Kod idzie po `/clear` bez
+ponownego pytania o zgodę, wg sześciu kroków niżej. Zapis historyczny: projekt spisany
+2026-09-03 jako „do dyskusji"; odpowiedź właściciela tego samego dnia.
 
 Źródło: krytyka budowy **C3** („środowisko jest wspólne, a działy uruchomieniowe mogą
 pracować równolegle — POTWIERDZONE"), tabela F wiersz 18, rozstrzygnięcie właściciela 3
