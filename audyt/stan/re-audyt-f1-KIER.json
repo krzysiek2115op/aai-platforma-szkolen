@@ -2,10 +2,13 @@
   "sektor": "re-audyt",
   "fala": 1,
   "rola": "KIER",
-  "status": "W TRAKCIE",
-  "runda": 1,
-  "niedomkniete": [],
-  "kiedy": "2026-09-04T08:22:08.241Z",
+  "status": "ZAKOŃCZONE",
+  "runda": 2,
+  "niedomkniete": [
+    "KIER-R3",
+    "KIER-R4"
+  ],
+  "kiedy": "2026-09-04T21:31:28.447Z",
   "historia": [
     {
       "status": "W TRAKCIE",
@@ -16,6 +19,16 @@
       "status": "W TRAKCIE",
       "runda": 1,
       "kiedy": "2026-09-04T08:22:08.241Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 2,
+      "kiedy": "2026-09-04T21:31:28.388Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 2,
+      "kiedy": "2026-09-04T21:31:28.447Z"
     }
   ]
 }

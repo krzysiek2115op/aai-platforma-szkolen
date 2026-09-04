@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "f05264b279c2c01fb6e979cdce75135c1b56280a206bf24c4f5a50c498884247",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "NAJWAZNIEJSZY WPIS TEJ ROLI - I JEDYNY, KTORY TLUMACZY POZOSTALE. R1/R4 miejsce liniowe: re-audyt/ROLE.md linia 540 niesie CO DO ZNAKU wiersz PSIARZ-R1 z komenda mutacja + npm run check (kod BEZ potoku). R3 ZASIEG ZMIERZYLEM SAM, ODCZYTEM package.json: check = uruchom-wszystkie.mjs && lint && tsc --noEmit && test && build && npm run smoke, a smoke to SIEDEM bramek PROTOTYPU (d4, d5, d6, lekcje, csp, podglad, seo) - ANI JEDNEJ z pietnastu bramek smoke:wp-*, ktore stoja w package.json osobno. Czyli komenda pozycji naprawde nie uruchamia zadnej bramki behawioralnej WordPressa, a wszystkie mutacje tej fali dotknely kodu WordPressa. R3 druga polowa, tez przeliczona przeze mnie: kandydaci ISTNIEJA i przeczytalem ich asercje po kolei - smoke-wp-kreator.mjs asertuje po zapisie zBazy.content === TRESC_PROBNA (okolice 437), smoke-wp-tutor.mjs asertuje przy powtornym imporcie { utworzone: 0, zaktualizowane: 0, bez_zmian: 6, usuniete: 0 } (okolice 212), smoke-wp-zakup.mjs przestawia zamowienie recznie na processing i asertuje completed oraz kolejnosc przejsc (388-403). To sa dokladnie te trzy miejsca, ktore wpis wskazuje. R5 wplyw ma pelne pokrycie i JA SAM POSZEDLEM ZA NIM W TEJ RUNDZIE: odrzucilem REA-PSIARZ-F1-003 i REA-PSIARZ-F1-005 wlasnie dlatego, ze twierdza brak pokrycia tam, gdzie bramka istnieje i nie zostala uruchomiona - czyli usterka opisana w tym wpisie zmaterializowala sie w dorobku fali i da sie ja policzyc. R2 powtarzalne, bo to odczyt. R6 pogłębia - to nie jest powtorzenie zadnego wpisu obu sektorow, tylko wskazanie, ze komenda pozycji mierzy inny zbior bramek niz zbior pokrywajacy mutowany modul; hasz wolny.",
+      "kiedy": "2026-09-04T22:10:53.269Z"
+    }
+  }
 }

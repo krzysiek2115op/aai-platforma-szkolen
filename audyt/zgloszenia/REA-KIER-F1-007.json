@@ -1,0 +1,32 @@
+{
+  "id": "REA-KIER-F1-007",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-R7",
+  "stwierdzenie": "Rola WALID fali 1 została zamknięta w dzienniku przebiegu na liczbie, która liczy PRÓBĘ jako pracę fali: wiersz „Werdykty walidatora (jego przebieg) | 53 wpisy: 43 ISTNIEJE, 10 ODRZUCONE, 0 bez werdyktu” (i to samo zdanie w linii 2721, z adnotacją „zmierzone przelotem po plikach”) zawiera werdykt ISTNIEJE dla REA-SEC-F1-001 wydany 2026-09-01T22:47:26Z w próbie E7.6 — trzy dni przed wejściem WALID do fali (2026-09-04T17:26:47Z) — oraz werdykt ODRZUCONE dla próbnego REA-SEC-F1-002; werdyktów WALID fali 1 na wpisach nieprobnych jest 51 (42 ISTNIEJE, 9 ODRZUCONE), w oknie roli 52. Ta sama klasa (deklaracja ≠ artefakt) w commicie c40352e: „Wpisów REA-*: 27 → 74 (199 w sektorze)” przy 75 plikach REA-* w drzewie tego commita (200 w sektorze) — tabela PRZERWANIA CZWARTEGO sumuje rozkład działów do 74, a drzewo niesie REA-SKUT-F1-002 ponad ten rozkład.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/PLAN-BUDOWY.md",
+    "linia": 2879,
+    "tresc": "| Werdykty walidatora (jego przebieg) | **53 wpisy: 43 ISTNIEJE, 10 ODRZUCONE, 0 bez werdyktu** |"
+  },
+  "dowod": "Pomiar 2026-09-04 (drugie wejście KIER re-audytu f1), skrypt po audyt/zgloszenia/REA-*.json: pole werdykt.weryfikator ma 53 wpisy; rozkład: ISTNIEJE 42 + ISTNIEJE na próbnym 1 (REA-SEC-F1-001, kiedy 2026-09-01T22:47:26.913Z, pole proba: E7) + ODRZUCONE 9 + ODRZUCONE na próbnym 1 (REA-SEC-F1-002, kiedy w oknie 2026-09-04); werdykty z polem kiedy w oknie WALID fali 1 (plik stanu re-audyt-f1-WALID.json: W TRAKCIE 2026-09-04T17:26:47.441Z → ZAKOŃCZONE 18:21:43.672Z, adnotacja: „do 2026-09-04T17:26:47.388Z plik niósł stan PRÓBNY E7.6”): 52 (42 ISTNIEJE, 10 ODRZUCONE); poza oknem: 1 (REA-SEC-F1-001, próba). bezProb() ze wspolne.mjs, którym polacz-sektory i porownaj-cykle odsiewają próbne, nie został użyty w przelocie, który dał 53. Commit c40352e: treść „Wpisów REA-*: 27 → 74 (199 w sektorze)”; `git ls-tree --name-only c40352e audyt/zgloszenia/ | grep -c REA-` → 75 (AUD 125, razem 200); tabela w linii 2874: „199 (audyt 125 + re-audyt 74)” z rozkładem sumującym się do 74 (SKUT 1), a drzewo c40352e zawiera REA-SKUT-F1-001 i REA-SKUT-F1-002. Dla porównania commit 9f53ed5 deklaruje 77 (202) i drzewo ma 77 — zgodne. Miejsce liniowe: PLAN-BUDOWY.md:2879 co do znaku; to samo zdanie w linii 2721.",
+  "klasyfikacja": "dział zamknięty na liczbie zawierającej próbę i deklaracja liczby niezgodna z artefaktem (KIER-R7)",
+  "wplyw": "RAP-R1 wymaga liczb z narzędzia; liczba „53 wpisy: 43/10” przepisana do raportu re-audytu zawyża pracę WALID fali 1 o dwa werdykty, z których jeden pochodzi z innego przebiegu (próba E7.6, 2026-09-01), a fala 2 porównana z „53” dostanie rozjazd o 2 bez zmiany w pracy roli. Rozstrzygnięcie KIER: liczba WALID fali 1 do raportu to 51 werdyktów na wpisach nieprobnych (42 ISTNIEJE, 9 ODRZUCONE); liczba wpisów REA po walidatorze to 75, nie 74. Poprawki dziennika należą do orkiestratora, nie do roli.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "cc822b7df0409d7b7099d8911708cff4ead0234542a7095d8bb481e05898bd68",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "ODRZUCAM ZA POMIAR, KTORY ODTWORZYLEM JAKO NIEPRAWDZIWY — NIE ZA TEZE, I NIE ZA LICZBY GLOWNE. Falszywy jest czlon obecny ZAROWNO w stwierdzeniu, JAK I w dowodzie: drzewo commita c40352e NIE ZAWIERA pliku REA-SKUT-F1-002 (git ls-tree c40352e audyt/zgloszenia/REA-SKUT-F1-002.json daje zero wierszy, SKUT ma tam jeden plik), a plikiem ponad zadeklarowany rozklad jest REA-STRAZ-F1-004 — drzewo ma STRAZ 4 przy tabeli mowiacej 3. Wpis wskazuje wiec zla sztuke i buduje na niej zdanie o rozjezdzie rozkladu. To jest ta sama klasa i ten sam prog, na ktorym krytyk odrzucil REA-KON-F1-003 (dwa falszywe pomiary przy zdrowym rdzeniu), wiec przepuszczenie tego wpisu bylby dwiema miarami. ZAPISUJE, CO SIE BRONI I CO ODTWORZYLEM SAM, zeby nikt nie czytal tego odrzucenia jako obalenia zjawiska: PLAN-BUDOWY.md w linii 2879 niesie cytowane zdanie co do znaku, to samo zdanie stoi w linii 2721; werdyktow weryfikatora na wpisach REA jest naprawde 53 (43 ISTNIEJE, 10 ODRZUCONE), z czego jeden — ISTNIEJE dla probnego REA-SEC-F1-001 — ma pole kiedy 2026-09-01T22:47:26Z, czyli sprzed wejscia WALID do fali; na wpisach nieprobnych zostaje 51 (42 ISTNIEJE, 9 ODRZUCONE). Commit c40352e deklaruje 74 wpisy REA przy 75 w drzewie (125 AUD, razem 200 wobec deklarowanych 199), a 9f53ed5 deklaruje 77 i ma 77. Liczby glowne stoja i sa moim pomiarem, nie cytatem z wpisu — RAP moze ich uzyc, powolujac sie na ten werdykt. Wpis zostaje z odrzuceniem, zeby fala 2 trafila na to samo miejsce i doszla do tego samego wniosku.",
+      "kiedy": "2026-09-04T21:49:53.936Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "ROZCHODZE SIE Z KRYTYKIEM I PISZE DLACZEGO. Krytyk ODRZUCIL ten wpis za jeden falszywy pomiar i mial racje co do faktu - potwierdzam wlasnym git ls-tree: drzewo c40352e NIE ZAWIERA REA-SKUT-F1-002 (SKUT ma tam jeden plik), a plikiem ponad zadeklarowany rozklad jest REA-STRAZ-F1-004 (drzewo 4, tabela 3). Ale krytyk ocenia PRACE agenta, a moja pozycja pyta o ZJAWISKO (GRANICE.md linia 49) - i zjawisko we WSKAZANYM MIEJSCU istnieje w calosci. R4: PLAN-BUDOWY.md linia 2879 niesie cytowane zdanie CO DO ZNAKU, to samo zdanie stoi w linii 2721. R1/R3, przeliczone przeze mnie od nowa: werdyktow weryfikatora na wpisach REA jest 53 (43 ISTNIEJE, 10 ODRZUCONE), z czego ISTNIEJE dla REA-SEC-F1-001 ma pole kiedy 2026-09-01T22:47:26.913Z, czyli TRZY DNI przed wejsciem WALID do fali (17:26:47Z), a REA-SEC-F1-002 jest wpisem probnym - na wpisach nieprobnych zostaje 51 (42 ISTNIEJE, 9 ODRZUCONE). Liczba 53/43/10 w dzienniku faktycznie liczy probe jako prace fali. R2 powtarzalne, dwa przebiegi. Drugi czlon tez sie broni na wlasnym pomiarze: c40352e deklaruje 199 (audyt 125 + re-audyt 74), a drzewo ma AUD 125 i REA 75, czyli 200; rozklad dzialow w tabeli sumuje sie do 74 - przeliczylem wiersz po wierszu. Falszywe jest wylacznie WSKAZANIE SZTUKI ponad rozklad, nie liczba i nie teza. R5 wplyw ma pokrycie: obie liczby rozstrzygniecia (51 werdyktow, 75 wpisow) potwierdzam. R6 pogłębia; hasz wolny. UWAGA DLA RAP: cytujac ten wpis brac liczby, nie zdanie o REA-SKUT-F1-002.",
+      "kiedy": "2026-09-04T21:57:12.444Z"
+    }
+  }
+}

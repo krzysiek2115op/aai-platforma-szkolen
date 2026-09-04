@@ -1,0 +1,27 @@
+{
+  "id": "REA-RAP-F1-001",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "RAP",
+  "pozycja": "RAP-R1",
+  "stwierdzenie": "werdykt.mjs --pokaz gubi część wypisu, gdy jego wyjście idzie POTOKIEM, i robi to bez ostrzeżenia oraz z kodem wyjścia 0: blok --pokaz kończy się process.exit(0) w linii 178, a process.stdout skierowane do potoku jest w node strumieniem ASYNCHRONICZNYM, więc dane, które nie zdążyły zejść z bufora, przepadają. Wypis ma 459 225 bajtów przy buforze potoku 64 kB, czyli nie mieści się w nim ani razu. To jest jedyne narzędzie sektora, z którego rola RAP ma brać werdykty do raportu (re-audyt/role/RAP/SKILL.md:32 \"werdykt.mjs --pokaz — policz zgłoszenia i ich werdykty\"), a liczenie 222 wierszy wymaga potoku, bo narzędzie nie drukuje ŻADNEJ liczby zbiorczej.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/werdykt.mjs",
+    "zakres": "blok --pokaz (linie 160-179): pętla wypisująca 222 wiersze zgłoszeń wraz z uzasadnieniami werdyktów, zakończona instrukcją process.exit(0) w linii 178",
+    "mechanizm": "Brakuje oczekiwania na opróżnienie strumienia wyjścia przed zakończeniem procesu. W linii 178, zamiast process.exit(0) kończącego proces natychmiast, powinno stać zakończenie pozwalające node opróżnić bufor (naturalny powrót z bloku albo ustawienie process.exitCode). Brakuje też jakiejkolwiek liczby zbiorczej na końcu tego bloku (razem, per werdykt, z osobną notą o wpisach PRÓBNYCH — funkcje bezProb() i notaOProbach() z wspolne.mjs są w tym pliku nieużywane, grep daje 0 trafień), przez co liczby z tego narzędzia trzeba liczyć potokiem, czyli dokładnie tą drogą, na której wypis się urywa."
+  },
+  "dowod": "POMIAR 1 — dziesięć przebiegów przez potok, liczba bajtów: `for i in $(seq 1 10); do node audyt/tools/werdykt.mjs --pokaz | wc -c; done | sort | uniq -c` daje `1 221934` i `9 459225`, czyli jeden z dziesięciu przebiegów oddał 221 934 z 459 225 bajtów (48 procent) i zakończył się BEZ komunikatu. POMIAR 2 — te same dziesięć przebiegów z PRZEKIEROWANIEM do pliku: `for i in $(seq 1 10); do node audyt/tools/werdykt.mjs --pokaz > /tmp/t.txt; wc -c < /tmp/t.txt; done | sort | uniq -c` daje `10 459225`, czyli przekierowanie do pliku (strumień synchroniczny) nie gubi nic — różnica leży w potoku, nie w danych. POMIAR 3 — objaw w liczeniu, na którym rola RAP by się przewróciła: `node audyt/tools/werdykt.mjs --pokaz | grep -cE \"^  (AUD|REA)-\" ` oddało w jednym przebiegu 140, w innym 170, a prawdziwa liczba wierszy zgłoszeń to 222 (policzone na tym samym wypisie zapisanym do pliku, trzema niezależnymi narzędziami: /usr/bin/grep 222, ugrep 222, node 222). POMIAR 4 — mechanizm: `sed -n '176,180p' audyt/tools/werdykt.mjs` pokazuje `process.exit(0);` jako ostatnią instrukcję bloku; `grep -c \"bezProb\\|notaOProbach\" audyt/tools/werdykt.mjs` daje 0, a ten sam pomiar dla polacz-sektory.mjs i porownaj-cykle.mjs daje po 4. POMIAR 5 — zasięg: pozostałe narzędzia wypisujące przez potok mieszczą się dziś w buforze i nie gubią nic (status.mjs --pokaz 3 527 bajtów, 10 przebiegów bez różnicy; polacz-sektory.mjs --fala=1 17 674 bajty, 5 przebiegów bez różnicy), więc zjawisko jest dziś czynne WYŁĄCZNIE w werdykt.mjs — mimo że polacz-sektory.mjs:106 ma tę samą instrukcję process.exit(0).",
+  "klasyfikacja": "cicha utrata danych na wyjściu narzędzia pomiarowego — zakończenie procesu przed opróżnieniem asynchronicznego strumienia; niedeterministyczne, bez komunikatu, z kodem wyjścia 0",
+  "wplyw": "Rola RAP ma obowiązek brać KAŻDĄ liczbę z narzędzia (pozycja RAP-R1), a narzędzie wskazane jej do tego przez własną umiejętność nie podaje ani jednej liczby zbiorczej — więc liczby trzeba wyprowadzić z wypisu, a wypis przez potok bywa ucięty w połowie bez śladu. Zaniżony wynik wygląda identycznie jak wynik prawdziwy: kod wyjścia 0, ostatni wiersz wypisu wygląda na kompletny wiersz zgłoszenia, brak komunikatu o błędzie. Raport fali, dziennik przebiegu albo bramka wyjścia działu, które policzą werdykty tą drogą, podadzą właścicielowi liczbę mniejszą od prawdziwej i nie będą miały jak tego zauważyć.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "a26ce8e7f7fce191dfea8433444fba93d0dac3a3fb2647545c9f436b1ae3cf54",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzyłem stwierdzenie sam: 15 przebiegów przez potok do grep -cE dało dwa razy 170 zamiast 225 wierszy, z kodem 0 i bez komunikatu. Miejsce zgadza się co do znaku (werdykt.mjs:178 process.exit(0) zamyka blok --pokaz). DWIE USTERKI DOWODU, które nie obalają stwierdzenia, ale nie odtworzyły się u mnie: POMIAR 1 (wc -c, jeden ucięty na dziesięć) nie wystąpił ANI RAZU w 80 przebiegach — urwanie widzę wyłącznie przy WOLNIEJSZYM czytelniku (grep), co przesuwa mechanizm z samego process.exit na zapełnienie potoku przy wolnym odbiorcy; oraz POMIAR 3 podaje 222 jako prawdziwą liczbę wierszy zgłoszeń, a --pokaz NIE odsiewa prób (znacznik [PRÓBA] w linii 172), więc drukuje wszystkie wpisy katalogu: dziś 225, w chwili tamtego pomiaru 223.",
+      "kiedy": "2026-09-04T23:28:19.032Z"
+    }
+  }
+}

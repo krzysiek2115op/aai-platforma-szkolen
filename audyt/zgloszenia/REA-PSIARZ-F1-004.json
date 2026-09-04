@@ -14,7 +14,7 @@
   "dowod": "Kopia pliku PRZED mutacją. Mutacja (sed): linia 195 „&nbsp;zł” → „&nbsp;USD” — diff potwierdza jedną zmienioną linię. `podman exec aai_wp_cli php -l …/lista.php` → „No syntax errors detected”. Pięć bramek uruchomionych PO mutacji, wszystkie kod wyjścia 0, komunikaty identyczne sprzed mutacji. Dodatkowo: `grep -n \"zł\\\\b\" tools/smoke/smoke-wp-kreator.mjs tools/smoke/smoke-wp-front.mjs tools/smoke/smoke-wp-produkty.mjs` — jedyne trafienie asercji waluty jest w smoke-wp-front.mjs:222 (strona sprzedażowa), a nie w smoke-wp-kreator.mjs (panel). Plik przywrócony z kopii, `git status --porcelain` i `git diff --stat` puste po przywróceniu.",
   "klasyfikacja": "milczenie bramki — brak testu (statycznego i dynamicznego) na formatowanie waluty w widoku kokpitu",
   "wplyw": "Potwierdza REA-FE-F1-002: gdyby jedno z sześciu miejsc formatowania waluty naprawdę się rozjechało (np. właściciel zobaczyłby cenę w USD zamiast PLN w liście swoich kursów), żadna dzisiejsza bramka by tego nie wykryła — front jest pilnowany, panel kokpitu nie.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "7c55d199401be7ba1e951e37550c18ca9663c6d1eb6dbabb2ab011b049bc7b51",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "ODRZUCAM",
       "powod": "ODRZUCAM. Pomiar jest uczciwy i powtórzyłbym go z tym samym wynikiem, ale odpowiada na pytanie, którego odpowiedź była znana przed mutacją. KANDYDATA NA BRAMKĘ NIE BYŁO I WPIS SAM TO POKAZUJE: jego własny dowód kończy się grepem, który nie znajduje ani jednej asercji waluty dla kokpitu. Sprawdziłem to niezależnie i szerzej: smoke-wp-panel.mjs — jedyna bramka renderująca panel w prawdziwej przeglądarce — nie ma ani jednego sprawdzenia ceny ani waluty, a panel/lista.php występuje w tools/ tylko w straznik-kreatora-wp.mjs i audyt-straznikow.mjs, i to przy INNEJ własności (pytanie o kupujących, audyt-straznikow.mjs:2490-2499). Zmutowano więc napis, którego nikt nigdy nie obiecał pilnować — cisza była założeniem, nie wynikiem. To czyni wpis powtórzeniem REA-FE-F1-002 (ten już mówi, że DWA z sześciu miejsc formatowania leżą w panelu, czyli u innego adresata), rozszerzonym o zdanie \"i nikt tego nie testuje\", ustalone LEKTURĄ i grepem, nie mutacją. Mutacja nie wniosła do dowodu nic, czego nie dawał grep — a w sektorze, którego metodą jest uruchamianie, to jest zarzut, nie drobiazg.",
       "kiedy": "2026-09-04T19:27:33.018Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "ROZCHODZE SIE Z KRYTYKIEM: on odrzucil za to, ze cisza byla znana przed mutacja (ocena PRACY), ja pytam, czy biala plama istnieje - i istnieje, sprawdzilem ja sam, bez mutacji. R1/R3 POLICZYLEM POKRYCIE OD ZERA: asercja waluty w bramkach dynamicznych pada TYLKO RAZ - tools/smoke/smoke-wp-front.mjs okolice linii 222 sklada oczekiwany napis z niełamliwą spacja i zl, i dotyczy strony sprzedazowej; w tools/smoke/smoke-wp-kreator.mjs i tools/smoke/smoke-wp-panel.mjs (jedynej bramce renderujacej panel w prawdziwej przegladarce) nie ma ANI JEDNEGO trafienia na zl. Sprawdzilem tez, kto w ogole czyta szablon panelu: grep po tools/ daje trzy adresy - straznik-kreatora-wp.mjs linia 332 (stala PLIK_LISTY, uzyta przy regule o KUPUJACYCH, nie o cenie - przeczytalem blok od 330) oraz wpisy audytu mutacyjnego, tez przy innej wlasnosci. Czyli formatowanie waluty w liscie kokpitu nie ma pokrycia ZADNYM testem, statycznym ani dynamicznym, i to jest zjawisko w zglaszanej postaci. R4 miejsce mechanizmowe nazywa czego brakuje i gdzie; plik istnieje. R5 wplyw nie jest zawyzony - wpis nie twierdzi awarii, tylko ze front jest pilnowany, a panel nie, i tak jest w istocie. R2: pomiaru mutacyjnego nie powtarzalem, bo moja rola ma Bash wylacznie do odczytu i pomiaru; rozstrzygnalem statycznie, co jest dla tej tezy wystarczajace - jesli asercji nie ma, cisza nie moze byc przypadkowa. R6 pogłębia REA-FE-F1-002 o odpowiedz, czego pilnuje kto; hasz wolny. UWAGA, ktora podzielam z krytykiem: mutacja nie wniosla tu nic ponad grep - to jest slabosc dowodu, nie zjawiska.",
+      "kiedy": "2026-09-04T22:08:38.212Z"
     }
   }
 }

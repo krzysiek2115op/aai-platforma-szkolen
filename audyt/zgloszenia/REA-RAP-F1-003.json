@@ -1,0 +1,27 @@
+{
+  "id": "REA-RAP-F1-003",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "RAP",
+  "pozycja": "RAP-R1",
+  "stwierdzenie": "audyt/wyniki/polaczone-f1.json — jedyny maszynowy artefakt z wynikiem fali, z którego raport bierze trzy liczby (miejsc razem, potwierdzone przez oba sektory, tylko jeden sektor) — nie zapisuje ANI chwili powstania, ANI liczby wpisów, z których powstał, więc kopia przestarzała jest nie do odróżnienia od świeżej bez ponownego uruchomienia narzędzia. Zmierzone na tej fali: plik zastany na wejściu roli RAP niósł \"razem: 199\", podczas gdy katalog zgłoszeń dawał w tej samej chwili 210 różnych miejsc — plik mylił się o 11 miejsc i nie miał ani jednego pola, po którym dałoby się to zauważyć.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/polacz-sektory.mjs",
+    "zakres": "obiekt zapisywany do audyt/wyniki/polaczone-f<N>.json (linie 45-52): pola fala, razem, obustronne, tylko_audyt, tylko_re_audyt, wpisy",
+    "mechanizm": "Brakuje w zapisywanym obiekcie pól pochodzenia wyniku: chwili powstania (pole kiedy) oraz liczby wpisów wejściowych, z których wynik policzono (np. wpisow_wejsciowych i pominietych_prob). Powinny stać w tym samym obiekcie, obok pola fala, bo to jedyny nośnik tego wyniku — zapisuje go zapiszJSON z wspolne.mjs, które dokleja wyłącznie formatowanie i nie dodaje żadnego pola od siebie. Wzorzec istnieje w tym samym repozytorium i w tym samym katalogu artefaktów: migawki środowiska (audyt/migawki/srodowisko-f1-baza.json) mają pole kiedy jako pierwsze."
+  },
+  "dowod": "POMIAR NA ARTEFAKCIE — `node -e` po kluczach najwyższego poziomu pliku audyt/wyniki/polaczone-f1.json zwraca dokładnie: fala, razem, obustronne, tylko_audyt, tylko_re_audyt, wpisy — bez pola z czasem i bez pola z liczbą wejścia. Ten sam pomiar na artefakcie sąsiedniego narzędzia, audyt/migawki/srodowisko-f1-baza.json, zwraca: kiedy, baza, tabel, skrot_tabel, nasze, tabele, media, wtyczki_aktywne, wersje — czyli chwila powstania jest w tym sektorze zapisywana tam, gdzie ktoś ją przewidział. KOD — `sed -n '45,52p' audyt/tools/polacz-sektory.mjs` pokazuje pełną listę zapisywanych pól, a `sed -n '/export function zapiszJSON/,/^}/p' audyt/tools/wspolne.mjs` pokazuje, że funkcja zapisu robi mkdirSync i writeFileSync, i nie dokłada żadnego pola. OBJAW ZMIERZONY W TEJ FALI — kopia pliku zastana na wejściu roli RAP (zachowana przed jakimkolwiek uruchomieniem narzędzia) ma \"razem: 199\", a `node audyt/tools/polacz-sektory.mjs --fala=1` uruchomione bezpośrednio po tym odczycie wypisało \"miejsc razem: 210\" na tym samym katalogu zgłoszeń; różnica 11 miejsc pochodzi z 23 wpisów złożonych po poprzednim przebiegu narzędzia. Odczyt samego pliku NIE pozwalał tej różnicy zobaczyć: plik nie mówi, kiedy powstał ani z ilu wpisów. CZAS MODYFIKACJI PLIKU NIE ZASTĘPUJE POLA — git nie przechowuje czasów modyfikacji, więc po świeżym klonie albo po `git checkout` znacznik systemu plików pokazuje chwilę pobrania, nie chwilę pomiaru.",
+  "klasyfikacja": "artefakt wyniku bez pochodzenia — brak chwili powstania i rozmiaru wejścia w jedynym maszynowym nośniku wyniku fali",
+  "wplyw": "Pozycja RAP-R1 wymaga, żeby każda liczba w raporcie pochodziła z narzędzia, a nie z pamięci. Liczba przeczytana z tego pliku spełnia ten wymóg tylko pozornie: pochodzi z narzędzia, ale nie wiadomo z KTÓREGO PRZEBIEGU i na jakim materiale. W tej fali plik przez cały czas pracy czterech ról twierdził \"199 miejsc\", gdy katalog miał ich 210 — i była to liczba dostępna każdemu, kto otworzył artefakt zamiast uruchamiać narzędzie. Właściciel czytający raport ma dziś trzy liczby o objętości fali i żadnego sposobu, żeby po samym artefakcie sprawdzić, czy opisują tę samą chwilę co reszta raportu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "4cbbf1e00a6ca5a7aae010c77390046cd10d9dd973ef57ff7f444eb7e69550bc",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone na artefakcie i w kodzie: klucze najwyższego poziomu polaczone-f1.json to dokładnie fala, razem, obustronne, tylko_audyt, tylko_re_audyt, wpisy — bez chwili powstania i bez rozmiaru wejścia; zapiszJSON (wspolne.mjs) robi mkdirSync i writeFileSync i nie dokłada żadnego pola. Porównanie z sąsiadem trafne i mocniejsze, niż pisze wpis: migawka srodowisko-f1-baza.json ma kiedy jako pierwszy klucz, a DRUGIE narzędzie wyniku w tym samym katalogu — porownaj-cykle.mjs:329 — zapisuje kiedy: new Date().toISOString() do własnego artefaktu, czyli w tym sektorze pole pochodzenia jest już standardem, którego brakuje tylko tutaj. Objaw zmierzony w fali potwierdzony niezależnie: zachowana kopia sprzed przeliczenia niesie razem: 199, a katalog dawał wtedy 210 miejsc (213 dziś minus trzy własne wpisy tej roli).",
+      "kiedy": "2026-09-04T23:28:41.665Z"
+    }
+  }
+}

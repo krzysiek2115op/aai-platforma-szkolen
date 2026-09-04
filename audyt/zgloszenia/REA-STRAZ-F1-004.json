@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "0e3b0929ad472fffa0e156e17f27b244411f0a675d02ba4e84bfeefff3c4d083",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "R1 tak. R4 miejsce mechanizmowe trafia co do wiersza: re-audyt/ROLE.md linie 594, 595 i 596 brzmia dokladnie tak, jak cytuje dowod - kolumna Komenda / miejsce niesie opis projektu, opis projektu i zaleznosci projektu, czyli wlasna proze agenta, nie plik ani komende; dla porownania STRAZ-R1..R3 maja przedmiot na dysku. R3 BRAK DROGI ZAPISU POTWIERDZAM ODCZYTEM DWOCH NARZEDZI: zgloszenie.mjs ma liste WYMAGANE zlozona z dziewieciu pol usterki (sektor, fala, dzial, pozycja, stwierdzenie, miejsce, dowod, klasyfikacja, wplyw) i zadne z nich nie jest projektem; audyt/stan/re-audyt-f1-STRAZ.json ma dokladnie pola sektor, fala, rola, status, runda, niedomkniete, kiedy, historia - zadnego miejsca na wytwor roli. R5 POMIAR NA WPISACH POWTORZYLEM SAM I JEST TRAFNY, choc wymagal ostroznosci: proste zliczenie po CALYCH plikach daje dzis kontrprzyk 2 w REA-STRAZ-F1-001 i 1 w -003, wiec wyglada na obalenie - ale rozdzielilem pola WLASNE roli od pola werdykt i wyszlo, ze we wlasnych polach wszystkich trzech wpisow kontrprzyk = 0 i test negatywny = 0, a wszystkie trafienia leza w werdyktach KRYTYKA, dopisanych PO zlozeniu tego wpisu. Teza wpisu dotyczy produktu ROLI i jest prawdziwa. Stan roli tez sie zgadza: ZAKONCZONE, runda 1, niedomkniete puste. R5 druga polowa wplywu ma pokrycie w mojej wlasnej pracy tej rundy - projekt reguly opisany przez role tylko w sesji okazal sie (w pomiarze krytyka, ktory czytalem) jedenastym nawrotem klasy wzorzec na nazwe, a poniewaz nie ma go w repozytorium, nie moze byc przedmiotem zadnego werdyktu; ja tez nie mam czego o nim orzec. To jest dokladnie szkoda, ktora wpis opisuje. R6 pogłębia: AUD-BD-F1-003 i AUD-PIK-F1-006 dotycza braku nosnika na ODPOWIEDZ pozycji, ten wpis braku nosnika na WYTWOR roli - inna rzecz; hasz wolny.",
+      "kiedy": "2026-09-04T22:16:41.704Z"
+    }
+  }
 }

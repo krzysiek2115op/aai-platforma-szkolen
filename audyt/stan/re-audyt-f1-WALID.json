@@ -3,9 +3,11 @@
   "fala": 1,
   "rola": "WALID",
   "status": "ZAKOŃCZONE",
-  "runda": 1,
-  "niedomkniete": [],
-  "kiedy": "2026-09-04T18:21:43.672Z",
+  "runda": 2,
+  "niedomkniete": [
+    "WALID-R2"
+  ],
+  "kiedy": "2026-09-04T22:20:36.656Z",
   "historia": [
     {
       "status": "ZAKOŃCZONE",
@@ -26,6 +28,21 @@
       "status": "ZAKOŃCZONE",
       "runda": 1,
       "kiedy": "2026-09-04T18:21:43.672Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-04T21:53:39.662Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 2,
+      "kiedy": "2026-09-04T22:20:36.586Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 2,
+      "kiedy": "2026-09-04T22:20:36.656Z"
     }
   ],
   "adnotacja": "do 2026-09-04T17:26:47.388Z plik niósł stan PRÓBNY E7.6; wpisy historii sprzed tej chwili pochodzą z próby, prawdziwa fala zaczęła się od tego wejścia"

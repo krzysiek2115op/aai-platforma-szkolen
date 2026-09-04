@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "214680ba70b96cce9829de18ac508a1077a05f21bf44ba0e8f1733bc4f243da8",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "R1 tak. R4 miejsce mechanizmowe trafia: przeczytalem CALA tabele re-audyt/ROLE.md linie 540-545 wiersz po wierszu - szesc pozycji (R1 czy zapala jakakolwiek, R2 czy wlasciwa, R3 czy mutacja stworzyla warunek, R4 kontrprzyklad, R5 czyste drzewo, R6 zgloszenie) i ZADNA nie pyta, czy dla mutowanego miejsca istnial w ogole kandydat na bramke. R3 zasieg: stan bramki nie ma bramki wcale jest realny i czesty, przeliczylem go NIEZALEZNIE, po jednym pomiarze na przypadek - brak licznika zapytan SQL (przelot po tools/ wzorcem SAVEQUERIES i get_num_queries: zero plikow), brak asercji waluty dla kokpitu (zero trafien na zl w smoke-wp-kreator.mjs i smoke-wp-panel.mjs, jedyna asercja w smoke-wp-front.mjs okolice 222), brak reguly dla wnetrza kolektora CSP (zero trafien na limit, transient, przyjmij_raport, zbierz_raport w straznik-obwodu.mjs), brak kontroli tresci docs/PLAN.md (straznik-readme.mjs czyta wylacznie README.md, linie 45-46), brak czytelnika logu PHP (zero plikow w tools/smoke pasujacych do Warning|Notice|debug.log). Piec z pieciu potwierdzone. R5 wplyw ma pokrycie i jest sprawdzalny w moim wlasnym dorobku tej rundy: dwa wpisy tej roli odrzucilem wlasnie za pomylenie tych dwoch stanow, a pieciu innym musialem w werdykcie doprecyzowac, ze bramki nie ma, zamiast ze bramka jest slepa - to sa dwa rozne adresaty naprawy. R6 pogłębia: REA-PSIARZ-F1-011 mowi o zlym RUNNERZE w kolumnie komendy, ten wpis o braku POZYCJI rozstrzygajacej - rozne miejsca w tej samej tabeli, rozne hasze; wolne. UWAGA WLASNA, ktorej wpis nie ma: instrument, ktory wpis wskazuje jako istniejacy (audyt-straznikow.mjs z polami straznik:, plik:, oczekiwanySlad:) faktycznie pokrywa mutowane pliki - sprawdzilem wpisy dla panel/lista.php - wiec pozycja o kandydacie mialaby czym pytac.",
+      "kiedy": "2026-09-04T22:11:11.373Z"
+    }
+  }
 }

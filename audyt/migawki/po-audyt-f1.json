@@ -1,0 +1,72 @@
+{
+  "galaz": "re-audyt/sektor-re-audytu",
+  "glowa_main": "c6458950c3850994fc2fbd8a383284e0d094afcf",
+  "diff_wobec_main_poza_sektorami": 0,
+  "niezacommitowane_poza_sektorami": 0,
+  "straznikow": 39,
+  "mutacji": 340,
+  "testow": 83,
+  "bramek_smoke": 16,
+  "goldenow": 9,
+  "plikow_produktu": 919,
+  "skrot_produktu": "ad03ea833dab9abb91e79856804119663747b379c47ea6a396919d139ce4582b",
+  "srodowisko": {
+    "skrot_tabel": "3b3e6436f1928542749fc89cb4dae3e927936f3caad9e8229c3bc436b23798c3",
+    "tabel": 80,
+    "nasze": {
+      "wp_aai_monitor_logowania": {
+        "wierszy": 26,
+        "auto_increment": 286
+      },
+      "wp_aai_monitor_wizyty": {
+        "wierszy": 30,
+        "auto_increment": 178
+      },
+      "wp_aai_platnosci_dostawy": {
+        "wierszy": 6,
+        "auto_increment": 473
+      },
+      "wp_aai_platnosci_powiazania": {
+        "wierszy": 2,
+        "auto_increment": null
+      },
+      "wp_aai_sklep_changelog": {
+        "wierszy": 1491,
+        "auto_increment": 1492
+      },
+      "wp_aai_sklep_courses": {
+        "wierszy": 2,
+        "auto_increment": null
+      },
+      "wp_aai_sklep_lessons": {
+        "wierszy": 73,
+        "auto_increment": null
+      },
+      "wp_aai_sklep_modules": {
+        "wierszy": 12,
+        "auto_increment": null
+      },
+      "wp_aai_sklep_sections": {
+        "wierszy": 22,
+        "auto_increment": null
+      }
+    },
+    "media": {
+      "plikow": 1343,
+      "bajtow": 31888625,
+      "skrot": "848a52ffdcc2a61ffcb96e8dc43716e89b348707ae309327ff10ff73a4cc4c47"
+    },
+    "wtyczki_aktywne": [
+      "aai-monitor",
+      "aai-platnosci",
+      "aai-sklep",
+      "tutor",
+      "woocommerce"
+    ],
+    "wersje": {
+      "wordpress": "6.9.4",
+      "tutor": "4.0.7",
+      "woocommerce": "11.0.1"
+    }
+  }
+}

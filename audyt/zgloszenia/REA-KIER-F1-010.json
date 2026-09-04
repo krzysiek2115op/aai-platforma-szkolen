@@ -1,0 +1,27 @@
+{
+  "id": "REA-KIER-F1-010",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-R2",
+  "stwierdzenie": "Norma odróżniająca pogłębienie od powtórzenia („Wpis re-audytu musi wnosić zasięg albo odtworzenie, inaczej jest powtórzeniem”) nie ma progu, a jej drugi człon spełnia się przez samo ponowne uruchomienie cudzej komendy — więc reguła nie umie odrzucić niczego. Dowodem jest para REA-KIER-F1-002 i AUD-GOLD-F1-003: oba wpisy mają miejsce IDENTYCZNE CO DO BAJTA (ten sam hasz 2ed5324362305c65…, te same pola zakres i mechanizm), a dowód wpisu re-audytu jest PODZBIOREM dowodu audytu (ten sam ekran status.mjs --pokaz, te same dwa pliki stanu, ten sam grep; audyt niesie ponadto rozjazd licznika zgłoszeń 107 wobec 104 prawdziwych fali 1, o którym wpis re-audytu nie mówi nic) — i mimo to wpis re-audytu normę spełnia, bo powtórzył uruchomienie.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "re-audyt/GRANICE.md",
+    "linia": 62,
+    "tresc": "| Znalezisko **to samo**, opisane innymi słowami | Łączy je HASZ MIEJSCA, nie opis (`polacz-sektory.mjs`). Wpis re-audytu musi wnosić **zasięg albo odtworzenie**, inaczej jest powtórzeniem (`KON-R5`) |"
+  },
+  "dowod": "Pomiar 2026-09-04 (krytyk KIER re-audytu f1). Hasze: skrypt po wszystkich 215 wpisach obu sektorów daje 205 unikalnych haszy i 9 grup wspólnych, wśród nich 2ed5324362305c65… = {AUD-GOLD-F1-003, REA-KIER-F1-002}; hashMiejsca() przeliczony dla obu wpisów zgadza się z zapisanym polem hash. Pola miejsca obu wpisów porównane łańcuch po łańcuchu: rodzaj „mechanizm”, plik „audyt/tools/status.mjs”, zakres „blok --pokaz, pętla wypisująca stany ról (linie 324-335)” i cały tekst mechanizmu — równe. Dowody: AUD-GOLD-F1-003 cytuje uruchomienie status.mjs --pokaz z kodem 0, oba wiersze SEC i WALID, pole proba w obu plikach stanu, grep po status.mjs ORAZ licznik „ZGŁOSZEŃ W SEKTORZE: 107 (fala 1: 107)” przy 104 prawdziwych; REA-KIER-F1-002 cytuje to samo uruchomienie i te same pliki, dokłada wyłącznie mianownik „2 z 16 ról NA_SRODOWISKU” (obie role audyt wymienia z nazwy) i osadzenie pod pozycją KIER-R2. Werdykt weryfikatora na REA-KIER-F1-002 (2026-09-04T17:48:19Z) mówi wprost: „ZJAWISKO ISTNIEJE, ale odpowiedź na moją pozycję R6 brzmi POWTARZA, nie pogłębia… to minimum spełnia normę, dlatego nie odrzucam — ale czy tak słaby wpis ma iść do raportu z jednym werdyktem, rozstrzyga kierownik, nie ja”; w audyt/stan/re-audyt-f1-KIER.json ani w żadnym wpisie KIER nie ma śladu takiego rozstrzygnięcia. Kod: hasz liczy się z pól miejsca (wspolne.mjs, hashMiejsca, linia 206), więc identyczne miejsce ZAWSZE daje wspólny hasz i norma z linii 62 jest jedyną bramką na tej ścieżce.",
+  "klasyfikacja": "granica bez progu — reguła anty-powtórzeniowa (KON-R5), której nie da się złamać",
+  "wplyw": "Reguła, która nie umie odrzucić, przepuszcza w KAŻDEJ fali wpis o miejscu już opisanym przez audyt, z dowodem węższym od audytowego — a porównanie fal liczy to jako miejsce potwierdzone przez oba sektory (w fali 1: 4 miejsca „obustronne”, z czego to jest jedno). Kierownik dostaje sygnał „re-audyt potwierdził audyt” tam, gdzie re-audyt go przepisał. Do rozstrzygnięcia przed falą 2 (zmiana definicji sektora, więc decyzja właściciela): próg dla członu „odtworzenie” — na przykład dowód uruchomieniowy, którego audyt NIE MIAŁ, albo policzony zasięg z mianownikiem spoza wpisu audytu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "41e9750dda4128e31e25e64feb7f7ca4c05de39fa763cde358cf39e8225bdbd3",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "R1 tak - i to jest jedyny wpis fali, ktory pokazuje norme anty-powtorzeniowa NA PRZYKLADZIE, ktory ja lamie bezkarnie. R4 miejsce liniowe: re-audyt/GRANICE.md linia 62 niesie cytowany wiersz CO DO ZNAKU. R1/R3 odtworzone wlasnym skryptem: AUD-GOLD-F1-003 i REA-KIER-F1-002 maja hash rowny co do znaku (2ed5324362305c6585e4a867cb49ba817a7b7be3e08e8925227510e5e945d5e9), a porownanie JSON.stringify obu pol miejsce zwraca TRUE - rodzaj, plik, zakres i caly tekst mechanizmu sa identyczne bajt w bajt, wiec zgodnosc haszy nie jest przypadkiem, tylko skutkiem. Potwierdzam tez kod: hashMiejsca (wspolne.mjs) liczy wylacznie z pol miejsca, bez numeru linii, wiec identyczne miejsce ZAWSZE daje wspolny hasz i norma z linii 62 jest jedyna bramka na tej sciezce. Zasieg pomocniczy zgadza sie co do sztuki na stanie z chwili zgloszenia: 215 plikow, 205 unikalnych haszy, 9 grup wspolnych (dzis, po odsianiu probnych, 215 nieprobnych / 206 haszy / 8 grup - roznica to para SEC z wpisem probnym). R2 powtarzalne. R5 wplyw ma pokrycie w artefakcie, nie w domysle: werdykt weryfikatora na REA-KIER-F1-002 z 17:48:19Z mowi wprost odpowiedz na moja pozycje R6 brzmi POWTARZA, nie poglebia, i to minimum spelnia norme, dlatego nie odrzucam - przeczytalem to zdanie w pliku; jestem autorem tamtego werdyktu i podtrzymuje go. Slad rozstrzygniecia kierownika w tej sprawie faktycznie nie istnieje - sprawdzilem audyt/stan/re-audyt-f1-KIER.json i wpisy KIER. R6 pogłębia - to nie jest powtorzenie zadnego wpisu obu sektorow, tylko wskazanie normy bez progu; hasz wolny.",
+      "kiedy": "2026-09-04T21:58:39.586Z"
+    }
+  }
+}

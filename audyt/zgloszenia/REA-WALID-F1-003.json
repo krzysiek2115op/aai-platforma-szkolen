@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "26552717564b4aef449499abd4b415d2687d21e27dff62fc7cf8c064469609d5",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "PRZEPUSZCZAM — kazdy czlon sprawdzilem osobno i wszystkie stoja. REGULA: GRANICE.md:62 zada zasiegu ALBO odtworzenia i to jedyne zdanie sektora o powtorzeniu; wzorzec -90 daje w tym pliku ZERO trafien (kod 1). KOD MOWI ODWROTNIE NIZ PRAKTYKA: porownaj-cykle.mjs:31-33 stwierdza co do znaku, ze wpisy z pozycji otwartej sa porownywane TAK SAMO i tylko oznaczone, a zPozycjiOtwartej (93) to samo dopasowanie /-90$/ ustawiajace znacznik. CZTERY PARY I ICH WERDYKTY POLICZYLEM SAM po calym katalogu (220 wpisow, wlasna implementacja hashMiejsca, 0 rozjazdow): ARCH-002 ISTNIEJE, KIER-002 ISTNIEJE, PRIV-002 ISTNIEJE, WDR-002 ODRZUCONE — jedyna odrzucona jest jedyna zlozona pod -90. NAJWAZNIEJSZE: sprawdzilem, czy wpis odrzucony naprawde spelnia wiersz 62, bo na tym stoi cala teza. ODTWORZENIE — uruchomilem podman exec aai_wp_cli wp plugin list sam: aai-monitor 0.4.0 active, aai-platnosci 0.1.0 active, aai-sklep 0.6.0 active, zgodnie co do znaku; przeczytalem CALE pole dowod AUD-REPO-F1-009 i nie ma w nim ani jednego pomiaru na instalacji (ls, git ls-files, cytaty z README, git log -1) — sprawdzone tez maszynowo: wzorzec podman|8892|wp plugin daje na tym dowodzie false. ZASIEG — punkt 5 dowodu REA-WDR-F1-002 zawiera go wprost, nie dopisalem mu go: grep na frazie jeszcze nie ma po README.md z korzenia konczy kodem 1, a nieprawda zyje wylacznie w wordpress/README.md:10 i :11 — potwierdzilem oba (sed 8,13p pokazuje dwa wiersze tabeli z ta fraza). Wiersz 62 jest wiec spelniony PODWOJNIE przez wpis odrzucony. Zapisuje, bo to wzmacnia werdykt, a nie oslabia: wpis podwaza WLASNY werdykt roli, ktora go zlozyla (weryfikator napisal przy WDR-002, ze zasiegu nie wnosi) — to jest kierunek uczciwy, nie wygodny. Hasz 26552717 wolny.",
+      "kiedy": "2026-09-04T22:44:27.618Z"
+    }
+  }
 }

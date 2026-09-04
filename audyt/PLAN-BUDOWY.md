@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | 🟢 **ZIELONE ŚWIATŁO 2026-09-03** — właściciel: „zielone swiatło puszczamy 1 fale audytu i re audytu"; przebieg fali 1 W TOKU (sekcja „E8 — PRZEBIEG FALI 1" niżej). **AUDYT FALI 1 ZAMKNIĘTY I ZACOMMITOWANY 2026-09-04** (`6d4a51d`; 19 ról, 127 wpisów, raport `audyt/wyniki/RAPORT-F1-AUDYT.md`). **RE-AUDYT fali 1: WSZYSTKIE 14 POGŁĘBIACZY ZAMKNIĘTYCH 2026-09-04** (SEC FE BE BD QA PERF ARCH INT PRIV REPO PIK USP PROTO WDR, każdy z krytykiem), **walidator zamknął falę** (53 wpisy: 43 ISTNIEJE, 10 ODRZUCONE, 0 bez werdyktu), **PSIARZ, STRAZ i SKUT zamknięte z krytykami** (krytyk SKUT jeszcze nie wchodził), **77 wpisów `REA-*`, 202 w sektorze**. Przerwany na polecenie właściciela — stan, kolejność dokończenia i dwie role pracujące w chwili przerwania w podsekcji **„PRZERWANIE CZWARTE"**. Zapis historyczny: przerwanie trzecie zastało 7 z 14 Pogłębiaczy (podsekcja „PRZERWANIE TRZECIE"). Zapis historyczny: **AUDYT FALI 1 ZAMKNIĘTY 2026-09-04**: wszystkie **19 ról ZAKOŃCZONE**, **127 wpisów**, raport w `audyt/wyniki/RAPORT-F1-AUDYT.md`, strażnik kod 0, niezmiennik 0. Fala przeszła przez TRZY wejścia, których plan uruchomień nie przewidywał (trzecie WER, drugie KIER, krytyk WER na żądanie KIER) — ostatnie z nich obaliło trzy zarzuty, które bez niego poszłyby do raportu jako fakty. Re-audyt fali 1 jeszcze NIE ruszył (punkty 8–12 planu uruchomień) | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
+| **E8** — STOP | 🟢 **ZIELONE ŚWIATŁO 2026-09-03** — właściciel: „zielone swiatło puszczamy 1 fale audytu i re audytu"; przebieg fali 1 W TOKU (sekcja „E8 — PRZEBIEG FALI 1" niżej). **AUDYT FALI 1 ZAMKNIĘTY I ZACOMMITOWANY 2026-09-04** (`6d4a51d`; 19 ról, 127 wpisów, raport `audyt/wyniki/RAPORT-F1-AUDYT.md`). **RE-AUDYT fali 1: WSZYSTKIE 14 POGŁĘBIACZY ZAMKNIĘTYCH 2026-09-04** (SEC FE BE BD QA PERF ARCH INT PRIV REPO PIK USP PROTO WDR, każdy z krytykiem), **walidator zamknął falę** (53 wpisy: 43 ISTNIEJE, 10 ODRZUCONE, 0 bez werdyktu), **PSIARZ, STRAZ i SKUT zamknięte z krytykami** (krytyk SKUT jeszcze nie wchodził), **77 wpisów `REA-*`, 202 w sektorze**. **RE-AUDYT FALI 1 DOMKNIĘTY 2026-09-05** — wszystkie role ZAKOŃCZONE, każda z krytykiem; **WALID wszedł DRUGI RAZ decyzją właściciela** (36 wpisów: 33 ISTNIEJE, 3 ODRZUCONE), raport `audyt/wyniki/RAPORT-F1-RE-AUDYT.md` przepuszczony przez krytyka. Stan: **226 wpisów, 222 nie-próbne, 213 różnych miejsc**, środowisko kod 0, niezmiennik 0. Szczegóły, pięć otwartych usterek narzędzi i trzy decyzje przed falą 2 — podsekcja **„RE-AUDYT FALI 1 DOMKNIĘTY"** na końcu pliku. **FALA 2 WYMAGA OSOBNEGO ZIELONEGO ŚWIATŁA WŁAŚCICIELA.** Zapis historyczny: przerwanie czwarte w podsekcji **„PRZERWANIE CZWARTE"**. Zapis historyczny: przerwanie trzecie zastało 7 z 14 Pogłębiaczy (podsekcja „PRZERWANIE TRZECIE"). Zapis historyczny: **AUDYT FALI 1 ZAMKNIĘTY 2026-09-04**: wszystkie **19 ról ZAKOŃCZONE**, **127 wpisów**, raport w `audyt/wyniki/RAPORT-F1-AUDYT.md`, strażnik kod 0, niezmiennik 0. Fala przeszła przez TRZY wejścia, których plan uruchomień nie przewidywał (trzecie WER, drugie KIER, krytyk WER na żądanie KIER) — ostatnie z nich obaliło trzy zarzuty, które bez niego poszłyby do raportu jako fakty. Re-audyt fali 1 jeszcze NIE ruszył (punkty 8–12 planu uruchomień) | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -5222,3 +5222,140 @@ wyjątek od niezmiennika. **Nie robimy tego bez decyzji.**
   (WordPress `:8892` → HTTP 200, Mailpit `:8893` → 200). Weryfikator
   re-audytu ma gdzie pracować uruchomieniowo.
 - **W repo NIE MA `.claude/`** — definicje wykonywalne budujemy od zera (E6).
+
+---
+
+### RE-AUDYT FALI 1 DOMKNIĘTY (2026-09-05, noc)
+
+**Wszystkie role sektora RE-AUDYT fali 1 są ZAKOŃCZONE, każda z krytykiem.**
+Sesja po `PRZERWANIU CZWARTYM` domknęła: krytyka SKUT, `rea-kon` + krytyk,
+`rea-kier` (drugie wejście, zbieranie fali) + krytyk, **`rea-walid` rundę 2**
+(decyzja właściciela, poza planem kolejności) + krytyk, `rea-rap` + krytyk.
+
+**STAN ZMIERZONY KOMENDĄ NA KONIEC:**
+
+| Rzecz | Wartość |
+|---|---|
+| Wpisów w katalogu | **226** (225 przy raporcie + 1 krytyka RAP) |
+| Nie-próbne | **222** — audyt 124, re-audyt 98 (3 wpisy próbne odsiane) |
+| Werdykty weryfikatora na `REA-*` | **75 ISTNIEJE · 12 ODRZUCONE · 11 brak** |
+| Różnych miejsc | **213** — oba sektory 4 · tylko audyt 118 · tylko re-audyt 91 |
+| Grup powtórzonego hasza | **osiem** (nie dziewięć — dziewiąta istniała tylko z wpisem próbnym) |
+| Raport sektora | `audyt/wyniki/RAPORT-F1-RE-AUDYT.md`, 330 linii, **przepuszczony przez krytyka** |
+| Środowisko `:8892` | `--sprawdz --fala=1` **kod 0**, stan bazowy |
+| Niezmiennik sektora | `git diff main --name-only -- . ':!audyt' ':!re-audyt'` → **0** |
+| Dane właściciela (T4) | **26 logowań, 30 wizyt** — nietknięte |
+
+**NAJCIĘŻSZE ZNALEZISKO CAŁEJ FALI — status `ZWERYFIKOWANE` nie znaczy
+„potwierdzone".** `komplet()` (`audyt/tools/werdykt.mjs:92`) to
+`Boolean(w.krytyk && w.weryfikator)` — pyta o **obecność** werdyktów, nie
+o ich wartość. Zmierzone niezależnie przez RAP i jego krytyka, te same
+identyfikatory: **22 z 57 wpisów `ZWERYFIKOWANE` niesie co najmniej jeden
+werdykt ODRZUCAJĄCY, a 12 — odrzucające OBA.** To jest zdanie o statusie
+każdego wpisu w obu sektorach.
+
+**DRUGIE ZDANIE TEJ WAGI — o tym, w co celuje sektor:** **57 z 98 wpisów
+re-audytu (58%) dotyczy aparatu audytu, 18 produktu WordPressowego.** Audyt
+ma ten sam rozkład (70 ze 124 = 56%).
+
+**DECYZJA WŁAŚCICIELA (2026-09-04): WALID WCHODZI DRUGI RAZ.** Powód: 33 wpisy
+(39% re-audytu) nie miały werdyktu weryfikatora, bo powstały PO zamknięciu
+walidatora o 18:21:43Z, a `status.mjs` nie ma na to odmowy — jego samokontrola
+(`:548`) wprost **asertuje** swobodę kolejności ról PSIARZ/SKUT/STRAZ/WALID.
+Runda 2 objęła **36 wpisów: 33 ISTNIEJE, 3 ODRZUCONE**. Bez tego wejścia
+jedenaście znalezisk przepuszczonych przez krytyka zostałoby na zawsze
+`DO WERYFIKACJI`.
+
+**ROZEJŚĆ WERDYKTÓW JEST DZIESIĘĆ** (nie dziewięć — dziesiąte, `REA-REPO-F1-002`,
+pochodzi z rundy 1). W każdym krytyk odrzucił, a weryfikator uznał zjawisko za
+istniejące. **To nie jest sprzeczność procesu, tylko jego konstrukcja:** krytyk
+ocenia dowód i pracę roli, weryfikator istnienie zjawiska. Walidator dwukrotnie
+**sam sprostował obalone liczby w powodzie werdyktu**, żeby prawdziwy rdzeń nie
+zniknął razem z wadliwym dowodem.
+
+**TRZY NIEPRAWDZIWE LICZBY W TYM DZIENNIKU — potwierdzone trzema niezależnymi
+pomiarami (krytyk KIER, WALID, RAP i jego krytyk):**
+- **`PLAN-BUDOWY.md:2879` mówi „53 wpisy: 43 ISTNIEJE, 10 ODRZUCONE"** o rundzie 1
+  walidatora — prawdziwe jest **51 (42 / 9)**; 53. werdykt pochodzi z **próby E7.6
+  z 2026-09-01T22:47:26Z** (rekonstrukcja 51 + 2 próby = 53 zgadza się dokładnie);
+- **`PLAN-BUDOWY.md:2875` mówi „199 (audyt 125 + re-audyt 74)"** — w drzewie
+  `c40352e` jest **200 (125 + 75)**;
+- **komunikat commita `c40352e` deklaruje 74 wpisy `REA-*`** przy **75** w drzewie.
+
+**ROZJAZD MIGAWEK WARTOŚCI NIE POCHODZI Z RE-AUDYTU — dowiedzione.**
+`migawka-wartosci.mjs --porownaj` pokazuje rozjazd (logowania 21→26, wizyty
+17→30, dostawy 0→6, changelog 1447→1491, media 1348→1343) i mówi „sektor miał
+tylko patrzeć". Porównanie migawki z końca AUDYTU (`audyt/migawki/po-audyt-f1.json`,
+kopia zdjęta przed nadpisaniem) z migawką z końca RE-AUDYTU daje **ZERO różnic we
+wszystkich dwunastu polach** — cały rozjazd powstał w audycie, jest opisany w
+`RAPORT-F1-AUDYT.md:51-52` i w tym dzienniku (linie 1424–1435), a stan końcowy
+(**151 załączników, 1343 pliki, zero brakujących**) zgadza się z dzisiejszym
+pomiarem co do sztuki. **Narzędzie ma jedną parę `przed`/`po` na cały proces**,
+więc nie umie rozdzielić sektorów — to ta sama usterka, którą RAP nazwał od
+drugiej strony („migawka `po` pochodzi z końca audytu, więc `--porownaj` nie
+mówi o re-audycie nic"). Punkt pośredni zachowany jako `po-audyt-f1.json`.
+
+**CZEGO RE-AUDYT FALI 1 NIE SPRAWDZIŁ** (nazwane w raporcie, sekcja 6):
+- **`WALID-R2` niedomknięta** — dla dziesięciu wpisów PSIARZ dowodem jest mutacja
+  śledzonego pliku, a walidator nie ma `Write`/`Edit`; zastąpione rozstrzygnięciem
+  statycznym. **Sekcje „Narzędzia" WALID i PSIARZ są identyczne co do znaku, a ten
+  sam zapis niosą 21 z 21 ról** — czyli PSIARZ zmutował dziesięć śledzonych plików
+  wbrew własnej definicji, a WALID odmówił. Jedno zdanie, dwie przeciwne decyzje
+  w jednej fali (`REA-WALID-F1-007`);
+- **`KIER-R3` i `KIER-R4` niedomknięte** — komplet werdyktów nieosiągalny bez
+  decyzji z zewnątrz; dwa wiersze tabeli granic do dopisania przez właściciela;
+- **PSIARZ zamknął rundę 1 z 19 pozycjami CUDZYCH ról** w polu `niedomkniete`;
+- **zakres Pogłębiacza `BD` nie obejmuje ANI JEDNEGO pliku PHP wtyczek** (10 z 10
+  poza zakresem), więc jego wynik „1 wpis" nie mówi nic o produkcie;
+- **`USP-90` niedomknięta**; **działy `GOLD` i `WER` audytu nie mają Pogłębiacza**
+  (12 wpisów bez pogłębienia; wszystkie pięć pozycji `WER` zamknięte jako
+  niedomknięte przy suficie 5 rund);
+- **118 z 213 miejsc zna wyłącznie audyt**, w tym 21 potwierdzonych dwustronnie
+  wpisów o produkcie bez śladu w re-audycie (`REA-KON-F1-002`);
+- **rozjazdu fal nie da się dziś nazwać** — `porownaj-cykle.mjs` kończy kodem 1
+  („brak fali 2"). To stan procesu, nie defekt audytu (K4″).
+
+**JEDENAŚCIE WPISÓW BEZ WERYFIKATORA TO GRANICA METODY, NIE BRAK:** osiem pod
+kodem `WALID` (nie weryfikuje siebie, innego weryfikatora sektor nie ma) i trzy
+roli `RAP`, która weszła ostatnia. **35 wpisów bez krytyka** to w większości
+własne zgłoszenia krytyków — krytyk nie ocenia siebie.
+
+**PIĘĆ USTEREK NARZĘDZI, KTÓRE ZOSTAJĄ OTWARTE** (sektor nie naprawia):
+1. **`polacz-sektory.mjs` gubi 5 z 222 wpisów po cichu** i **wybiera reprezentanta
+   powtórzonego hasza ODWROTNIE niż `porownaj-cykle.mjs`** (ostatni alfabetycznie
+   zamiast pierwszego) — dla hasza `2c4e967b…` jedno narzędzie wskazuje wpis BEZ
+   WERDYKTU, drugie ZWERYFIKOWANY. **Dopóki tak jest, rozjazd fal na powtórzonych
+   haszach będzie artefaktem kolejności, nie wynikiem** (rozstrzygnięcie KIER);
+2. **`polacz-sektory.mjs` jako jedyne z czterech narzędzi nie ma bramki
+   `GLOWNY_MODUL`** — dowiedzione uruchomieniowo: `--fala=2` kończy kodem 0
+   i TWORZY plik 107 B, choć nie było czego liczyć (`REA-KIER-F1-003`);
+3. **`werdykt.mjs --pokaz` przez potok gubi dane cicho, z kodem 0** — tym chętniej,
+   im wolniejszy odbiorca (`REA-RAP-F1-001`). **Duże wypisy czytać przekierowaniem
+   do pliku, nigdy potokiem**;
+4. **`status.mjs` liczy wpisy próbne razem z wynikiem fali** i nie mówi o tym słowa,
+   podczas gdy dwa inne narzędzia je odsiewają i drukują notę (`REA-RAP-F1-002`);
+5. **`polaczone-f<N>.json` nie zapisuje chwili powstania** — kopia przestarzała jest
+   nie do odróżnienia od świeżej, choć sąsiednie artefakty mają pole `kiedy`
+   (`REA-RAP-F1-003`).
+
+**PROTOKÓŁ ORKIESTRATORA WYKONANY PO KAŻDEJ ROLI** (zrzut RAZ, nadpisuje bez
+ostrzeżenia): `f1-KRYT-SKUT-po`, `f1-KON-po`, `f1-KRYT-KON-po`, `f1-KIER-po`,
+`f1-KRYT-KIER-po`, `f1-WALID-R2-po`, `f1-KRYT-WALID-po`, `f1-RAP-po`,
+`f1-KRYT-RAP-po` — po każdym `--przywroc=f1-baza` i `--sprawdz --fala=1` kod 0.
+**Skrót bazy po każdym przywróceniu identyczny (`3b3e6436f1928542…`)** — żadna
+z tych dziewięciu ról nie zmieniła stanu środowiska.
+
+**LUKA PROTOKOŁU, KTÓREJ NIE ZASYPAŁEM ZMYŚLONĄ WARTOŚCIĄ:** brakuje zrzutów
+`f1-SKUT-po` i `f1-STRAZ-po` — obie role weszły po `f1-PSIARZ-po`, a przed
+`/clear`. Zrzutu wstecz NIE zrobiłem: środowisko stało już na stanie bazowym,
+więc plik nazwany „po" zapisałby stan sprzed roli i kłamał o tym, co rola
+zostawiła.
+
+**NASTĘPNY KROK: FALA 2 WYMAGA OSOBNEGO ZIELONEGO ŚWIATŁA WŁAŚCICIELA.**
+Trzy decyzje do podjęcia PRZED nią (żadnej nie podejmuje agent):
+1. **miejsce WALID w kolejności** — reguła „WALID ostatni przed RAP" wymaga zapisu
+   w `ROLE.md` i w `status.mjs`, inaczej fala 2 z inną kolejnością da SPRZECZNE;
+2. **reguła reprezentanta hasza w OBU narzędziach** — zmiana toolchainu, nie
+   zakresu, więc może wejść między falami;
+3. **klamry w zakresach obu sektorów** (`BD`, `FE`, `INT`, `ARCH`) — bez tego fala 2
+   powtórzy „BD = 25 plików prototypu", a porównanie ogłosi zgodność.

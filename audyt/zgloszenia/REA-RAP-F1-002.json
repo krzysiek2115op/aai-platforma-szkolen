@@ -1,0 +1,27 @@
+{
+  "id": "REA-RAP-F1-002",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "RAP",
+  "pozycja": "RAP-R5",
+  "stwierdzenie": "Jedyny licznik w sektorze odpowiadający na pytanie \"ile jest zgłoszeń\" — wiersz ZGŁOSZEŃ W SEKTORZE w status.mjs:341 — liczy wpisy PRÓBNE razem z wynikiem fali i nie dopisuje o tym ani słowa, więc podaje liczbę o 3 większą od liczby znalezisk fali 1. W tym samym zestawie narzędzi polacz-sektory.mjs i porownaj-cykle.mjs robią odwrotnie: odsiewają próby funkcją bezProb() i drukują notę notaOProbach(). Dwa narzędzia jednego sektora odpowiadają więc na to samo pytanie dwiema różnymi liczbami, a tylko jedno z nich mówi, którą metodą liczy.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/status.mjs",
+    "zakres": "licznik zgłoszeń w bloku --pokaz: funkcja faleWpisow (linie 279-284, mapuje KAŻDY plik JSON katalogu zgłoszeń na jego pole fala) i wiersz wypisu ZGŁOSZEŃ W SEKTORZE (linia 341)",
+    "mechanizm": "Brakuje odsiania wpisów PRÓBNYCH i noty o nich. faleWpisow czyta cały katalog i nie pyta o pole proba ani razu, a wiersz 341 drukuje surową długość tablicy. Powinno tu stać to samo, co w polacz-sektory.mjs (linia 27) i porownaj-cykle.mjs: rozdzielenie listy funkcją bezProb() z wspolne.mjs, liczba liczona z części wpisy oraz notaOProbach(proby) dopisana pod licznikiem. Grep po całym pliku: bezProb i notaOProbach mają w status.mjs ZERO trafień, a w każdym z dwóch pozostałych narzędzi po cztery. Sprawdzenia izolacji fal (linie 166-171) mają liczyć próby dalej — one pytają, czy fala 1 jest widoczna, a nie ile znalazła."
+  },
+  "dowod": "POMIAR — te same dane, dwa narzędzia, dwie liczby, jedno milczenie: `node audyt/tools/status.mjs --pokaz | grep \"ZGŁOSZEŃ W SEKTORZE\"` oddaje \"ZGŁOSZEŃ W SEKTORZE: 223 (fala 1: 223, fala 2: 0)\" BEZ noty o próbach, a `node audyt/tools/polacz-sektory.mjs --fala=1 | grep -E \"miejsc razem|PRÓBNE\"` oddaje \"miejsc razem: 211\" oraz \"pominięte wpisy PRÓBNE: 3 (AUD-PIK-F1-001/E6, REA-SEC-F1-001/E7, REA-SEC-F1-002/E7)\". Wpisy próbne policzone niezależnie po polu proba w katalogu: 3 (AUD-PIK-F1-001 etap E6, REA-SEC-F1-001 i REA-SEC-F1-002 etap E7), więc prawdziwa liczba wpisów fali 1 jest o 3 mniejsza od tej, którą drukuje status.mjs. KOD — `sed -n '279,284p' audyt/tools/status.mjs` pokazuje funkcję faleWpisow, która robi `readdirSync(katalogZgloszen).filter((n) => n.endsWith(\".json\"))` i `wpisy.map((w) => w.fala)`, bez ani jednego odwołania do pola proba; `sed -n '341p' audyt/tools/status.mjs` pokazuje wypis `ZGŁOSZEŃ W SEKTORZE: ${fale.length}`. ZASIĘG — `grep -c \"bezProb\\|notaOProbach\"` daje: status.mjs 0, polacz-sektory.mjs 4, porownaj-cykle.mjs 4, werdykt.mjs 0. WYŁĄCZNOŚĆ — `grep -l \"ZGŁOSZEŃ W SEKTORZE\" audyt/tools/*.mjs` zwraca JEDEN plik (status.mjs), a zgloszenie.mjs ma 0 trafień, czyli w sektorze nie ma drugiego narzędzia, które podałoby tę liczbę inaczej. ŚLAD W DZIENNIKU — obie liczby, którymi dziennik przebiegu opisuje objętość sektora, są liczone metodą Z PRÓBAMI: audyt/PLAN-BUDOWY.md:454 mówi \"77 wpisów `REA-*`, 202 w sektorze\", a linia 2875 \"Wpisów w sektorze | 199 (audyt 125 + re-audyt 74)\".",
+  "klasyfikacja": "rozjazd metody liczenia między narzędziami jednego sektora — licznik bez odsiania wpisów próbnych i bez noty o metodzie",
+  "wplyw": "Pozycja RAP-R5 wymaga od raportu, żeby wpisy próbne były wyłączone z liczb i policzone osobno, a jedyny licznik zgłoszeń w sektorze nie daje ani jednej z tych dwóch rzeczy — kto weźmie liczbę stąd, ten poda właścicielowi objętość fali zawyżoną o wpisy, które nie są znaleziskiem, i nie dowie się z wyjścia, że tak liczy. Rozjazd jest cichy w obie strony: liczba ze status.mjs i liczba z polacz-sektory.mjs różnią się dziś o 3, a nic w wyjściu żadnego z nich nie tłumaczy skąd ta różnica, więc czytelnik dwóch raportów tego samego sektora widzi dwie objętości fali.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "8e5b370e1384ecff5b9a3125937f29691fa10d9986107b9e55b7e2e2a50aab3f",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone co do liczby: status.mjs --pokaz drukuje dziś ZGŁOSZEŃ W SEKTORZE: 225 (fala 1: 225), przy 222 wpisach nie-próbnych — różnica to dokładnie trzy próby. Wyjście nie zawiera ani jednego wystąpienia rdzenia prób (grep -ci = 0). Zasięg policzony i zgodny: bezProb/notaOProbach mają 0 trafień w status.mjs i werdykt.mjs, po 4 w polacz-sektory.mjs i porownaj-cykle.mjs; ZGŁOSZEŃ W SEKTORZE drukuje wyłącznie status.mjs, więc drugiej drogi do tej liczby nie ma. Kod w miejscu się zgadza: faleWpisow (279-284) nie pyta o pole proba, linia 341 drukuje surowe fale.length.",
+      "kiedy": "2026-09-04T23:28:30.473Z"
+    }
+  }
+}

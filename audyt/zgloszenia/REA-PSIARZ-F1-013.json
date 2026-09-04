@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "8b2ea758faf680a837032c679ab40eea95c4b80353ae2ef0821417a3daed2c10",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "R1 tak, i to jest usterka REKORDU, ktora widac golym odczytem. R3 ZASIEG ZGADZA SIE CO DO SZTUKI: audyt/stan/re-audyt-f1-PSIARZ.json ma status ZAKONCZONE, runde 1 i tablice niedomkniete z DOKLADNIE dziewietnastoma pozycjami, w tej samej kolejnosci co we wpisie - PRIV-R1 PRIV-R2 PRIV-90 WDR-R5 WDR-R6 WDR-90 KIER-90 PIK-R6 PROTO-R2 PROTO-R6 ARCH-R4 USP-R6 SEC-R5 INT-R2 FE-R4 BE-R6 QA-R2 REPO-R1 REPO-R5 - i ANI JEDNA nie ma przedrostka PSIARZ-. Wypisalem je z pliku, nie przepisalem z wpisu. Checklista roli ma dokladnie szesc pozycji, wszystkie z przedrostkiem PSIARZ- (re-audyt/ROLE.md 540-545) - przeczytalem. R4 miejsce mechanizmowe trafia w kod: obsluga --niedomkniete w audyt/tools/status.mjs (okolice 450-465) dzieli liste po przecinku i odrzuca WYLACZNIE elementy niepasujace do KOD_POZYCJI, a ten wzorzec w audyt/tools/wspolne.mjs (okolice 184) brzmi ^[A-Z]{2,NAJDLUZSZY_KOD_ROLI}-[A-Z]?\\d{1,2}$ i nie zawiera zadnego odniesienia do roli zapisujacej stan - PRIV-R1 pasuje do niego tak samo dobrze jak PSIARZ-R4. Komunikat odmowy w tym samym miejscu mowi wprost, ze kierownik liczy stad, ile pozycji zostalo otwartych, wiec obce kody wchodza do jego rachunku jako otwarte pozycje TEJ roli. R5 druga polowa wplywu tez ma pokrycie: przejrzalem pola dowod wpisow REA-PSIARZ-F1-001..010 i zaden nie opisuje zmiany DOZWOLONEJ, ktora nie zapala bramki, czyli kontrprzykladu z PSIARZ-R4; dwie kontrole pozytywne, ktore tam sa (wpisy -008 i -009), to zmiany ZAKAZANE, ktore zapalaja - przeciwienstwo tego, o co pyta R4. Rachunek fali jest wiec zawyzony o 19 i zanizony o co najmniej 1. R2 powtarzalne, to odczyt. R6 pogłębia; hasz wolny.",
+      "kiedy": "2026-09-04T22:11:32.465Z"
+    }
+  }
 }

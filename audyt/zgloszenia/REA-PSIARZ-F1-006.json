@@ -14,7 +14,7 @@
   "dowod": "Kopia pliku PRZED mutacją. Mutacja (python3): w pętli foreach modułów dołożona linia $wpdb->get_results(...) o identycznym warunku WHERE module_id = %s jak istniejąca kwerenda o lekcje — diff potwierdza dokładnie jedną dodaną linię (plus komentarz). `podman exec aai_wp_cli php -l …/class-aai-sklep-odczyt.php` → „No syntax errors detected”. Trzy bramki uruchomione PO mutacji: straznik-wtyczki-wp.mjs, straznik-kreatora-wp.mjs, straznik-frontu-wp.mjs — wszystkie kod wyjścia 0, komunikaty identyczne sprzed mutacji. `grep -rl \"SAVEQUERIES\\|get_num_queries\" tools/` → brak wyniku (potwierdza brak JAKIEGOKOLWIEK licznika zapytań w repo). Plik przywrócony z kopii, `git status --porcelain` i `git diff --stat` puste po przywróceniu.",
   "klasyfikacja": "milczenie bramki — całkowity brak instrumentu pomiaru liczby zapytań SQL w zestawie bramek repozytorium",
   "wplyw": "Potwierdza REA-PERF-F1-002 i pokazuje, że problem jest STRUKTURALNY, nie punktowy: sama klasa N+1 może się pogłębiać dowolnie (N+1 → N+2 → N+k) bez wykrycia przez którąkolwiek bramkę statyczną, a w repozytorium nie istnieje żaden dynamiczny odpowiednik (SAVEQUERIES/get_num_queries), który mógłby to złapać na żywym środowisku.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "11c055d5924011e5d7c2d732bd54304b42ec4dec0a58d1d6aae46c79a7f9418c",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "ODRZUCAM",
       "powod": "ODRZUCAM. Fakt uboczny wpisu jest prawdziwy i sprawdziłem go niezależnie, ale mutacja nie ma z nim związku dowodowego. POTWIERDZAM WŁASNYM POMIAREM: /usr/bin/grep -rq \"SAVEQUERIES|get_num_queries\" kończy KODEM 1 (brak trafień) i w tools/, i w wordpress/ — licznika zapytań w repozytorium naprawdę nie ma. Właśnie dlatego KANDYDATA NA BRAMKĘ NIE BYŁO: dołożenie drugiej kwerendy w pętli nie miało szansy zapalić niczego, a trzy uruchomione bramki są statycznymi czytnikami wzorców, które o liczbie zapytań nie mówią nic. Wpis mierzy więc ciszę tam, gdzie cisza była pewna, a swój jedyny nowy fakt (zero liczników zapytań w repo) ustala GREPEM — lekturą, nie uruchomieniem, wbrew metodzie sektora. Ponad REA-PERF-F1-002 nie wnosi nic o produkcie: tamten wpis ma już TRZY niezależne pomiary liczby zapytań (autor symulacją żądania, krytyk dziennikiem ogólnym MariaDB na żywym żądaniu przez Apache, weryfikator filtrem query), czyli klasa N+1 jest tam zmierzona lepiej i z policzonym mianownikiem.",
       "kiedy": "2026-09-04T19:28:02.112Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "ROZCHODZE SIE Z KRYTYKIEM: on odrzucil, bo mutacja nie miala czego zapalic (ocena PRACY), ja pytam o zjawisko - a zjawisko jest szersze niz mutacja i sprawdzilem je sam. R1/R3 POLICZYLEM: przelot wzorcem SAVEQUERIES i get_num_queries po CALYM tools/ nie zwraca ANI JEDNEGO pliku - w repozytorium nie istnieje zaden mechanizm, statyczny ani dynamiczny, liczacy zapytania SQL na zadanie. To znaczy, ze klasa N+1 i kazde jej poglebienie (N+2, N+k) jest strukturalnie poza zasiegiem CALEGO zestawu bramek, a nie tylko trzech uruchomionych przez role. R5 wplyw ma pokrycie w tej samej liczbie: skoro licznika nie ma nigdzie, to npm run check nie ma czym zaswiecic na czerwono - a check faktycznie nie wola ani jednej bramki smoke:wp-*, sprawdzilem package.json (smoke to siedem bramek prototypu). R4 miejsce jest rodzaju mechanizm i nazywa czego brakuje oraz gdzie szukano; plik istnieje. R2 pomiaru mutacyjnego nie powtarzalem, bo moja rola ma Bash wylacznie do odczytu i pomiaru - ale teza tego wpisu nie stoi na mutacji, tylko na nieobecnosci instrumentu, ktora jest sprawdzalna wprost i ktora sprawdzilem. R6 pogłębia REA-PERF-F1-002: tamten wpis mierzy ILE zapytan robi jedno miejsce, ten mowi, ze liczby zapytan nie mierzy w tym repozytorium NIC - to jest inna odpowiedz na inne pytanie; hasz wolny. UWAGA, ktora podzielam z krytykiem: jedyny nowy fakt wpisu ustalono grepem, nie uruchomieniem - to slabosc dowodu wobec metody sektora, nie zjawiska.",
+      "kiedy": "2026-09-04T22:09:16.184Z"
     }
   }
 }

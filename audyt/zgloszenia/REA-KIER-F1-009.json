@@ -1,0 +1,27 @@
+{
+  "id": "REA-KIER-F1-009",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-R7",
+  "stwierdzenie": "Pozycja KIER-R7 — jedyna, która ma wyłapać dział zamknięty na DEKLARACJI zamiast na liczbie — sama nie ma czym się zamknąć: jako źródło dowodu wskazuje „wyjście roli × zgloszenie.mjs”, a wyjście roli NIE JEST artefaktem repozytorium (sektor trzyma zgloszenia/, stan/, migawki/ i wyniki/, katalogu z wyjściami ról nie ma) i `zgloszenie.mjs` nie ma trybu odczytu (CLI zna wyłącznie --plik=, --oznacz-probe= i --test). Po zakończeniu sesji roli nie ma czego otworzyć, więc pozycję da się odhaczyć bez otwarcia jakiegokolwiek pliku — w fali 1 kierownik podstawił za nią dziennik orkiestratora audyt/PLAN-BUDOWY.md, którego kolumna „Komenda / miejsce” tej pozycji nie wymienia.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "re-audyt/ROLE.md",
+    "linia": 523,
+    "tresc": "| KIER-R7 | Czy dział, który re-audyt zamknął, został zamknięty na **liczbie**, a nie na deklaracji? | wyjście roli × `zgloszenie.mjs` | dział + brakująca liczba |"
+  },
+  "dowod": "Pomiar 2026-09-04 (krytyk KIER re-audytu f1). (1) `ls audyt/` daje: BRIEF-PROJEKTU.md, DOKUMENTACJA.md, GRANICE.md, KRYTYKA-BUDOWY.md, migawki, PLAN-BUDOWY.md, REGULAMIN.md, role, ROLE.md, stan, STRUKTURA.md, szablony, tools, WERYFIKACJA-PLANU.md, wyniki, zgloszenia, ZRODLA-DOKUMENTACJI.md — ani jednego katalogu z wyjściami ról; `ls audyt/raporty` → nie istnieje. Wyjście roli żyje w sesji agenta i po niej nie zostaje nic. (2) CLI zgloszenie.mjs: nagłówek użycia (linie 27-28) i przebieg główny (linie 333-377) znają `--test`, `--plik=` i `--oznacz-probe=`; trybu wypisania ani sprawdzenia przyjętego wpisu nie ma, a podanie istniejącego wpisu do --plik= zakłada DUPLIKAT (zmierzone i zgłoszone dla bliźniaczej pozycji audytu w AUD-KIER-F1-006). (3) Skutek w tej fali: jedyny wpis kierownika re-audytu pod KIER-R7 (REA-KIER-F1-007) wskazuje jako miejsce audyt/PLAN-BUDOWY.md:2879 — dziennik orkiestratora, nie wyjście roli i nie wynik narzędzia. Odróżnienie: AUD-KIER-F1-006 dotyczy pozycji KIER-03 SEKTORA AUDYT (audyt/ROLE.md:553) i mówi o braku trybu sprawdzania w narzędziu; ten wpis dotyczy pozycji KIER-R7 RE-AUDYTU i jej PIERWSZEGO członu — źródła, które nie jest artefaktem. AUD-KON-F1-018, AUD-KON-F1-025 i AUD-WER-F1-006 dotyczą komend grep w audyt/ROLE.md, REA-KON-F1-002 kolumny „Dowód” czternastu Pogłębiaczy — żaden nie dotyka tabeli KIER re-audytu.",
+  "klasyfikacja": "pozycja checklisty bez artefaktu — domykalna bez otwarcia pliku",
+  "wplyw": "Pozycja pilnująca, żeby dział nie zamykał się na deklaracji, sama zamyka się na deklaracji. W fali 2 wyjścia ról fali 1 nie będzie już nigdzie, więc odpowiedź na KIER-R7 zależy od tego, co akurat trafiło do dziennika orkiestratora — czyli od dokumentu, który sam bywa nieaktualny (REA-KIER-F1-007 wskazuje w nim liczbę zawierającą werdykt z próby E7.6). Porównanie fal dostanie z tej pozycji sygnał o dzienniku, nie o pracy działów.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "a693affe4acfa80340d81af9075eedcbcf16804c1afc04670c677b65b85b7ee2",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "R1 tak, sprawdzone w obu czlonach zrodla dowodu. R4 miejsce liniowe: re-audyt/ROLE.md linia 523 niesie cytowany wiersz CO DO ZNAKU, z kolumna zrodla wyjscie roli x zgloszenie.mjs; ta sama tabela stoi drugi raz w re-audyt/role/KIER/AGENT.md linia 191. CZLON PIERWSZY: ls audyt/ daje szesnascie pozycji (BRIEF-PROJEKTU.md DOKUMENTACJA.md GRANICE.md KRYTYKA-BUDOWY.md migawki PLAN-BUDOWY.md REGULAMIN.md role ROLE.md stan STRUKTURA.md szablony tools WERYFIKACJA-PLANU.md wyniki zgloszenia ZRODLA-DOKUMENTACJI.md) i ani jednego katalogu z wyjsciami rol; ls audyt/raporty konczy sie bledem - katalog nie istnieje. Wyjscie roli faktycznie nie jest artefaktem repozytorium. CZLON DRUGI: przeczytalem CLI zgloszenie.mjs - linia uzycia (377) wymienia dokladnie --plik=, --oznacz-probe= i --test, naglowek (27-28) to samo; trybu wypisania ani sprawdzenia przyjetego wpisu nie ma. R2 powtarzalne - oba pomiary sa odczytem stanu, powtorzone dwa razy z tym samym wynikiem. R3 zasieg: pozycja jest jedna, wiec zasiegiem jest jej domykalnosc, i ona sie zgadza - jedyny wpis kierownika pod KIER-R7 w tej fali (REA-KIER-F1-007) wskazuje jako miejsce audyt/PLAN-BUDOWY.md:2879, czyli dziennik orkiestratora, ktorego kolumna zrodla tej pozycji nie wymienia; sprawdzilem to w pliku wpisu. R5 klasyfikacja pozycja bez artefaktu wynika wprost z dowodu, nie z domyslu. R6 pogłębia: AUD-KIER-F1-006 dotyczy pozycji KIER-03 sektora AUDYT i braku trybu sprawdzania w narzedziu, ten wpis dotyczy KIER-R7 re-audytu i jego PIERWSZEGO czlonu; hasz wolny w calym katalogu.",
+      "kiedy": "2026-09-04T21:58:17.417Z"
+    }
+  }
+}

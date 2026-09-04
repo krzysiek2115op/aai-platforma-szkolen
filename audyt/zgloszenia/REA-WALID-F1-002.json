@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "d87287f321782faba90fc014d69f8488cea8334f2ba17420c16b06f5e32e602b",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "PRZEPUSZCZAM — dowod konstruktywny odtworzylem sam i jest mocniejszy, niz go opisano. Napisalem WLASNA implementacje hashMiejsca z definicji (wspolne.mjs:206-212, przepisana, nie zaimportowana), ktora NIE OTWIERA ani jednego pliku docelowego, i przeliczylem hasze WSZYSTKICH 220 wpisow katalogu: 220 na 220 zgodnych z polem hash, ZERO rozjazdow. Skrot liczacy sie bez pliku nie moze swiadczyc o zgodnosci z plikiem — to rozstrzyga R4 bez cienia domyslu. NARZEDZIE NIE MA TRYBU ODCZYTU: zgloszenie.mjs zawsze nadaje nowe ID (394) i zapisuje nowy plik (403), powodyOdmowy (53-145) nie zna pojecia wpisu juz istniejacego. ZYWY PRZYPADEK STOI: sed -n 107p re-audyt/ROLE.md daje dzis pozioma kreske, SEC-R6 stoi w linii 143 i konczy sie rozszerzonym brzmieniem o stanie danych PRZED i PO zadaniu, a wpis REA-SEC-F1-002 dalej niesie linie 107 i krotsza tresc — miejsce zestarzalo sie razem z plikiem, a hasz milczy. Potwierdzam tez czwarty punkt: ten wpis ma pole proba rowne E7, a bezProb() (wspolne.mjs:249-250) wycina go z laczenia sektorow, wiec wniosku o slepocie R4 nie niesie dzis zaden wpis wchodzacy do wyniku fali. Kontrola przeciwna, ktora zrobilem sam: zgloszenie.mjs:126 porownuje tresc linii z plikiem CO DO ZNAKU po normalizacji, czyli bramka przy ZAPISIE dziala — zjawisko dotyczy wylacznie okna miedzy zapisem a weryfikacja i wpis nazywa to poprawnie. JEDNA NIESCISLOSC, ktora zapisuje, bo nie zmienia werdyktu: przelot po flagach tego pliku daje SZESC nazw, nie piec — obok --etap, --katalog, --oznacz-probe, --plik i --test pada tez --pokaz, ale oba jego wystapienia (linie 22 i 406) sa KOMENTARZAMI odsylajacymi do status.mjs --pokaz, wiec wniosek wpisu (ten plik nie ma trybu pokazu) jest prawdziwy. Hasz d87287f3 wolny.",
+      "kiedy": "2026-09-04T22:44:02.935Z"
+    }
+  }
 }

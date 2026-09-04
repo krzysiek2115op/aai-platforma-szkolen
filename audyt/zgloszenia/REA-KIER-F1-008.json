@@ -1,0 +1,27 @@
+{
+  "id": "REA-KIER-F1-008",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-R3",
+  "stwierdzenie": "Pozycja KIER-R3 pyta, czy KAŻDE zgłoszenie re-audytu ma komplet werdyktów (krytyk + WALID), a sektor z własnej budowy produkuje wpisy, które kompletu mieć NIE MOGĄ: wpisy własne krytyków nie mają krytyka (nikt nie ocenia pracy krytyka — 23 z 88 wpisów nieprobnych fali 1, wszystkie z werdyktem weryfikatora i bez werdyktu krytyka) oraz cztery wpisy pod kodem WALID, które nie mają ani krytyka, ani weryfikatora, bo jedynym weryfikatorem sektora jest WALID. Odpowiedź „tak” jest więc nieosiągalna w KAŻDEJ fali, w której którykolwiek krytyk cokolwiek zgłosi, a pozycja mierzy budowę sektora zamiast przebiegu — w fali 1 kierownik zostawił ją z tego powodu jako niedomkniętą.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "re-audyt/ROLE.md",
+    "linia": 519,
+    "tresc": "| KIER-R3 | Czy każde zgłoszenie re-audytu ma **komplet werdyktów** (krytyk + WALID)? | `werdykt.mjs --pokaz` | ID bez kompletu |"
+  },
+  "dowod": "Pomiar 2026-09-04 (krytyk KIER re-audytu f1), skrypt po audyt/zgloszenia/REA-*.json z pominięciem wpisów z polem proba: 88 wpisów nieprobnych; komplet obu werdyktów ma 28; bez werdyktu krytyka 38, w tym 23 z obecnym werdyktem weryfikatora (ARCH-004, BE-002, FE-003, INT-004, KIER-001…003, PERF-005/006, PIK-002, PRIV-003…005, PROTO-004, QA-002/003, REPO-003, SEC-004…006, USP-003, WDR-003/004) — to wpisy własne krytyków piętnastu ról; dział WALID ma 4 wpisy (REA-WALID-F1-001…004) BEZ ŻADNEGO werdyktu. Razem 27 wpisów, dla których komplet jest nieosiągalny niezależnie od jakości przebiegu. Konstrukcja, nie przeoczenie: re-audyt/GRANICE.md ma jeden wiersz o krytyku (linia 49: „WALID ocenia ZJAWISKO. Krytyk ocenia PRACĘ agenta … krytyk (zgłasza pod kodem SWOJEJ roli)”) i nie nazywa nikogo, kto ocenia pracę krytyka; `grep -c WALID audyt/tools/werdykt.mjs` daje 0, a samo narzędzie zna wyłącznie dwie strony ścieżki (WERDYKTY, linie 49-52) i nie ma pola autora wpisu. Skutek w stanie roli: audyt/stan/re-audyt-f1-KIER.json ma status ZAKOŃCZONE, runda 2/5 i niedomkniete [KIER-R3, KIER-R4]. Ta sama tabela stoi drugi raz w re-audyt/role/KIER/AGENT.md (kopia „co do znaku”), więc usterka jedzie do agenta dwiema drogami. Odróżnienie od wpisów istniejących: AUD-KON-F1-016 wskazuje NARZĘDZIE (werdykt.mjs — brak drugiej bramki dla wpisów krytyków), REA-KIER-F1-004 wskazuje TABELĘ GRANIC (GRANICE.md:49 — kto weryfikuje wpis o WALID); żaden nie mówi, że sama POZYCJA checklisty pyta o stan, którego sektor osiągnąć nie umie.",
+  "klasyfikacja": "pozycja checklisty z odpowiedzią ustaloną przez budowę sektora — nie do domknięcia w żadnej fali",
+  "wplyw": "KIER-R3 nie odróżnia braku Z ZANIEDBANIA od braku Z KONSTRUKCJI: w fali 1 pierwszy dotyczy 33 wpisów złożonych po zamknięciu roli WALID (te da się domknąć drugim wejściem walidatora), drugi 27 wpisów, których żadne wejście nie domknie. Kierownik każdej fali zostawi tę pozycję niedomkniętą, więc porównanie fal pokaże „ten sam brak” niezależnie od tego, czy przebieg był dobry, czy zły — a to jest dokładnie sygnał, którego pozycja miała dostarczać. Raport potrzebuje z niej dwóch liczb, nie jednej.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "65f8c281d59875383de36614b845232da17b7dd813398643709e58c98946d251",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "R1 tak, i to jest wlasciwosc BUDOWY, nie przebiegu - sprawdzilem to w trzech miejscach naraz. R4 miejsce liniowe: re-audyt/ROLE.md linia 519 niesie cytowany wiersz CO DO ZNAKU; ta sama tabela stoi drugi raz w re-audyt/role/KIER/AGENT.md linia 187, wiec usterka jedzie do agenta dwiema drogami, tak jak mowi dowod. R3 zasieg odtworzony po korekcie na czas: dzis wpisow REA nieprobnych 91, z werdyktem weryfikatora i BEZ krytyka 20 - a to sa dokladnie te 23 z listy zgloszenia minus KIER-001/002/003, ktore dostaly krytyka o 21:48Z, JUZ PO zlozeniu tego wpisu; 91 minus 3 pozniejsze wpisy KIER = 88, czyli mianownik ze zgloszenia. Cztery wpisy REA-WALID-F1-001..004 maja dzis PUSTY obiekt werdykt - zero krytyka, zero weryfikatora - potwierdzam odczytem plikow. R2 powtarzalne. Nieosiagalnosc kompletu potwierdzam u zrodla: GRANICE.md linia 49 nazywa krytyka jako zglaszajacego pod kodem swojej roli i nie nazywa nikogo, kto ocenia PRACE krytyka, a grep WALID audyt/tools/werdykt.mjs daje 0 trafien - narzedzie zna tylko dwie strony sciezki i nie ma pola autora wpisu. R5 wplyw ma pokrycie i nie zawyza: rola nie twierdzi awarii, tylko ze pozycja nie odroznia braku z zaniedbania od braku z konstrukcji, a stan audyt/stan/re-audyt-f1-KIER.json ma niedomkniete [KIER-R3, KIER-R4] - zgadza sie co do znaku. JEDNA LICZBA POBOCZNA NIETRAFIONA: dowod mowi wpisy wlasne krytykow pietnastu rol, a lista 23 identyfikatorow pochodzi od CZTERNASTU rol (ARCH BE FE INT KIER PERF PIK PRIV PROTO QA REPO SEC USP WDR) - przeliczylem. Nie rusza to ani zjawiska, ani zasiegu glownego. R6 pogłębia: AUD-KON-F1-016 mowi o narzedziu, REA-KIER-F1-004 o tabeli granic, ten wpis o samej POZYCJI checklisty; hasz wolny.",
+      "kiedy": "2026-09-04T21:58:04.539Z"
+    }
+  }
+}
