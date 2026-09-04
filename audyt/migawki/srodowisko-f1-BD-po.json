@@ -1,5 +1,5 @@
 {
-  "kiedy": "2026-09-04T08:16:06.329Z",
+  "kiedy": "2026-09-04T10:41:46.571Z",
   "baza": "wordpress",
   "tabel": 80,
   "skrot_tabel": "3b3e6436f1928542749fc89cb4dae3e927936f3caad9e8229c3bc436b23798c3",
@@ -108,7 +108,7 @@
     },
     "wp_options": {
       "wierszy": 423,
-      "auto_increment": 4429
+      "auto_increment": 4443
     },
     "wp_postmeta": {
       "wierszy": 1786,

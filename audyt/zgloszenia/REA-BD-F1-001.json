@@ -1,0 +1,27 @@
+{
+  "id": "REA-BD-F1-001",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "BD",
+  "pozycja": "BD-R2",
+  "stwierdzenie": "Klasa z AUD-BD-F1-001 (zapis wielotabelowy/wielosystemowy bez transakcji) ma w pełnym zakresie BD DRUGIE wystąpienie: Aai_Sklep_Tutor::synchronizuj_kurs() pisze kurs, potem N modułów, potem M lekcji jako osobne wp_insert_post/wp_update_post (brak START TRANSACTION w całym pliku), a na końcu kasuje nadmiar przez usun_nadmiar() — czyli ta sama nieatomowość co w Aai_Platnosci_Zapis::synchronizuj_kurs, tylko o INNYM skutku przerwania: tu retry samo się leczy (zapisz_post szuka po uuid meta_key=_aai_zrodlo_uuid przed wstawieniem), tam retry tworzy DRUGI, osierocony produkt na zawsze niewidzialny dla kontroli. Wpływ z AUD-BD-F1-001 (rosnące, niewykrywalne śmieci) NIE przenosi się więc jednakowo na całą klasę.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php",
+    "zakres": "Aai_Sklep_Tutor::synchronizuj_kurs() (linie 235-272) i zapisz_post() (linie 553-590)",
+    "mechanizm": "brak $wpdb->query('START TRANSACTION') / w_transakcji() wokół pętli 'foreach (self::plan_kursu($kurs) as $pozycja)' (linia 249) — każdy wp_insert_post/wp_update_post (linia 562/565) i każde update_post_meta (linia 587-589) jest osobnym, niepowiązanym zapisem, więc przerwanie procesu w środku pętli zostawia kurs z częścią modułów/lekcji zapisanych, a częścią nie"
+  },
+  "dowod": "Uruchomione WŁASNYM pomiarem 2026-09-04: `grep -n \"START TRANSACTION\" wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php` -> zero trafień (jedyne trafienie w repo dla klasy 'zapis' to class-aai-sklep-zapis.php:934, plik SĄSIEDNI, nie ten). Metoda synchronizuj_kurs (linia 235) woła w pętli (linia 249) zapisz_post (linia 553), która NAJPIERW szuka istniejącego wpisu po uuid (self::znajdz_po_uuid, linia 554) i dopiero przy braku robi wp_insert_post (linia 565) — czyli powtórne wywołanie po przerwaniu ZNAJDZIE już utworzony kurs/moduł i dopisze brakujące dzieci, bez duplikatu. Dla porównania, Aai_Platnosci_Zapis::produkt_kursu() (ten sam plik co AUD-BD-F1-001, linie 507-515) czyta WYŁĄCZNIE z tabeli powiazania i nie ma odpowiednika znajdz_po_uuid po stronie WooCommerce — potwierdzone ponownym uruchomieniem `grep -n \"produkt->save()\" class-aai-platnosci-zapis.php` (linie 657, 725, 900, 1191) wobec braku jakiegokolwiek wyszukania sieroty przed utworzeniem nowego WC_Product_Simple.",
+  "klasyfikacja": "integralnosc danych — zapis wielotabelowy bez transakcji (druga instancja, inny wpływ)",
+  "wplyw": "BD-R2: klasa z AUD-BD-F1-001 nie jest odosobniona — jest jej co najmniej DWA wystąpienia w pełnym zakresie BD. BD-R3: klasyfikacja (integralność danych) utrzymuje się, ale WPŁYW nie jest jednolity w obrębie klasy: w Aai_Platnosci_Zapis przerwanie tworzy trwałe, rosnące, niewykrywalne śmieci (jak opisuje AUD-BD-F1-001); w Aai_Sklep_Tutor przerwanie jest samo-naprawialne przy kolejnym pełnym uruchomieniu synchronizuj_kurs (dopisze brakujące dzieci) i dodatkowo wykrywalne narzędziem Aai_Sklep_Tutor::porownaj(). Ocena ryzyka całej klasy 'BD ma zapisy wielotabelowe bez transakcji' byłaby zawyżona, gdyby przypisać jej jednolicie najgorszy skutek z jednego miejsca.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "6f119f4a11dd79cd52b6fdf7bc47f3f16fea8055aad39007f2a5fb42ae880e57",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T10:50:53.495Z"
+    }
+  }
+}

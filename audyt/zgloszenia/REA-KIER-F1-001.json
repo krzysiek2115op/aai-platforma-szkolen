@@ -1,0 +1,21 @@
+{
+  "id": "REA-KIER-F1-001",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-00",
+  "stwierdzenie": "srodowisko.mjs --zrzut=<nazwa> nadpisuje istniejący zrzut o tej nazwie (plik .sql, .json i kopię liczników w audyt/migawki/) bez odmowy i bez słowa w wyjściu, więc jedyna komenda pozycji KIER-00 kasuje poprzedni punkt przywracania fali — w fali 1 skasowała zrzut f1-baza z otwarcia audytu (2026-09-03T16:39:30Z, commit ec00a0f), a --sprawdz przy rozjeździe liczników z istniejącym zrzutem nie podaje żadnej komendy, choć przy braku zrzutu ją podaje.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/srodowisko.mjs",
+    "zakres": "funkcja zrzut(nazwa, …), linie 253-270, oraz gałąź ✗ liczników w --sprawdz (linia 375)",
+    "mechanizm": "Brakuje sprawdzenia existsSync(pliki.sql) / existsSync(pliki.json) przed writeFileSync(pliki.sql, r.out) i zapiszJSON(pliki.json, po) — odmowy przy istniejącej nazwie (tak jak przywroc() odmawia przy braku, linie 298-299) albo wymogu jawnej flagi nadpisania; w --sprawdz przy rozjeździe liczników (linia 375) brakuje komendy do wykonania, analogicznej do podpowiedzi przy braku zrzutu (linia 371)."
+  },
+  "dowod": "Pomiar 2026-09-04 (KIER-00 re-audytu f1): przed komendą ~/.cache/aai-kopie/audyt/f1-baza.sql miał mtime 2026-09-03 18:39:30 +0200, 8 166 318 B, sha256 446b0c72…, f1-baza.json sha256 efc6477d… (pole kiedy: 2026-09-03T16:39:30Z, logowania 25 wierszy/AI 273; plik w commicie ec00a0f). `node audyt/tools/srodowisko.mjs --zrzut=f1-baza` → kod 0, STDOUT dwie linie (Zrzut \"f1-baza\": … (7.8 MB) … / tabel 80, skrót 3b3e6436f1928542…, media 1343 plików, wtyczki aktywne 5), STDERR pusty — ani słowa, że plik istniał; po komendzie f1-baza.sql 7 825 850 B z innym skrótem, audyt/migawki/srodowisko-f1-baza.json zmodyfikowany (git status: M). Stary zrzut ocalał wyłącznie dlatego, że przed komendą skopiowałem go ręcznie do f1-baza-z-otwarcia-audytu-2026-09-03T1839.{sql,json} (sha256 identyczne z oryginałem). Kod: zrzut() linie 253-270 — mkdirSync, writeFileSync(pliki.sql, r.out), zapiszJSON(pliki.json, po), bez existsSync. --sprawdz --fala=1 przed nadpisaniem: kod 1, wiersz „✗ liczniki żywej bazy = zrzut bazowy f1-baza” z listą rozjazdów i bez komendy (linia 375), gdy wiersz ✗ przy braku zrzutu (linia 371) podaje „zrób go PRZED pierwszym Pogłębiaczem: … --zrzut=f1-baza”.",
+  "klasyfikacja": "cicha utrata dowodu (punkt przywracania nadpisany bez odmowy)",
+  "wplyw": "Powtórne --zrzut=f1-<KOD>-po po przerwanej rundzie Pogłębiacza kasuje dowód SKUT-R4/R5 z pierwszej rundy bez śladu; --zrzut=f1-baza wykonane w złej chwili (po wejściu Pogłębiacza) podmienia punkt przywracania czternastu ról i --przywroc wraca do stanu ze środka przebiegu, a --sprawdz melduje wtedy ✓.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "0dd112a78c4a22fd9ea34703d2abe646493d8c8edaf6cbb9d6644571aed0bcd0",
+  "werdykt": null
+}

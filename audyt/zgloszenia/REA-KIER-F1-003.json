@@ -1,0 +1,21 @@
+{
+  "id": "REA-KIER-F1-003",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-R4",
+  "stwierdzenie": "Komenda pozycji KIER-R4 (`node audyt/tools/polacz-sektory.mjs --fala=1`), która w checkliście kierownika jest POMIAREM (trzy liczby z wyjścia), przy każdym uruchomieniu zapisuje audyt/wyniki/polaczone-f1.json bez trybu samego odczytu — w fali 1 pierwsze uruchomienie przez kierownika re-audytu nadpisało plik zacommitowany w 6d4a51d jako wynik audytu (razem 121 → 122, doszły werdykty krytyka z 04:08Z), więc śledzony artefakt sektora AUDYT zmienia treść w trakcie przebiegu RE-AUDYTU, a kierownik pozbawiony Write i Edit zmienia go komendą z własnej checklisty.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/polacz-sektory.mjs",
+    "zakres": "przebieg główny — zapiszJSON(join(SEKTOR, \"wyniki\", `polaczone-f${fala}.json`), …) w linii 46, wykonywany przy każdym uruchomieniu",
+    "mechanizm": "Brakuje trybu odczytu (np. --pokaz jak w status.mjs i werdykt.mjs, albo zapis tylko przy jawnej fladze --zapisz) — zapis do audyt/wyniki/ jest bezwarunkowy, więc pozycja KIER-R4 nie da się wykonać bez zmiany śledzonego pliku; komenda zakresu roli KIER (werdykt.mjs --pokaz, status.mjs --pokaz) nie pisze, ta jedna pisze."
+  },
+  "dowod": "Pomiar 2026-09-04 (pierwsze wejście KIER re-audytu f1): przed komendą `git status --short audyt/` nie pokazywał audyt/wyniki/polaczone-f1.json; `node audyt/tools/polacz-sektory.mjs --fala=1` → kod 0, wyjście „miejsc razem: 122 / potwierdzone przez oba: 0 / tylko audyt: 122 / tylko re-audyt: 0 / pominięte wpisy PRÓBNE: 3”; po komendzie `git status --short audyt/` → „ M audyt/wyniki/polaczone-f1.json”, `git diff --stat` → 53 insercje / 4 usunięcia, w nagłówku pliku razem: 121 → 122 i tylko_audyt: 121 → 122 (wersja zacommitowana w 6d4a51d była już nieaktualna wobec katalogu zgłoszeń). Kod: polacz-sektory.mjs linia 46 `zapiszJSON(join(SEKTOR, \"wyniki\", …))` bez żadnego warunku; `process.argv` czytany wyłącznie dla --fala= (linia 25) — innych flag narzędzie nie zna.",
+  "klasyfikacja": "komenda pomiarowa z efektem ubocznym w śledzonym artefakcie",
+  "wplyw": "Liczby w audyt/wyniki/polaczone-f1.json zależą od tego, kto ostatni uruchomił pozycję KIER-R4, a nie od zamknięcia sektora; rola bez prawa zapisu zmienia wynik audytu komendą checklisty, a strażnik lub raport czytające ten plik dostają stan ruchomy.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "ce9fa3e9e54a82f280d9e0b82adc9ffe639b4e46539054cb2ac75e3da65a7225",
+  "werdykt": null
+}

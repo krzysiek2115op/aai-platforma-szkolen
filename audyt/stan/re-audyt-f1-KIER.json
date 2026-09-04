@@ -1,0 +1,21 @@
+{
+  "sektor": "re-audyt",
+  "fala": 1,
+  "rola": "KIER",
+  "status": "W TRAKCIE",
+  "runda": 1,
+  "niedomkniete": [],
+  "kiedy": "2026-09-04T08:22:08.241Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-04T08:12:14.631Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-04T08:22:08.241Z"
+    }
+  ]
+}

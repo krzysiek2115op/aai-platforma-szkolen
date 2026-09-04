@@ -1,0 +1,21 @@
+{
+  "id": "REA-ARCH-F1-003",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "ARCH",
+  "pozycja": "ARCH-90",
+  "stwierdzenie": "Aai_Platnosci_Cta::stan() (odbiorca publicznego filtra-szwu aai_sklep_cta_kursu) waliduje wejście `$domyslne` wyłącznie przez is_array(), nie sprawdza obecności klucza 'napis' — przy wejściu z brakującym kluczem metoda kończy się PHP Warning 'Undefined array key' na linii zwracającej wynik, zamiast bezpiecznym stanem domyślnym.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
+    "linia": 177,
+    "tresc": "'napis' => (string) $domyslne['napis'],"
+  },
+  "dowod": "Odtworzone żywo na :8892 (wszystkie wtyczki aktywne, kod PHP w wp eval): `apply_filters('aai_sklep_cta_kursu', array('domyslne'=>true), array('id'=>'15271730-7a12-4255-943d-cdbb0f990568'))` daje w logu kontenera 'PHP Warning: Undefined array key \"napis\" in .../class-aai-platnosci-cta.php on line 177', a metoda mimo to zwraca wynik (nie jest to fatal — E_WARNING nie przerywa wykonania i nie jest łapany przez catch(Throwable) na końcu metody, bo powstaje na linii return, już poza właściwym ciałem obsługi wyjątków). Jedyny realny konsument tego filtra w repo (class-aai-sklep-widok.php:243-245) ZAWSZE dostarcza poprawny kształt (`array('adres'=>..., 'napis'=>...)`), więc w obecnym kodzie usterka jest NIEAKTYWNA — ale sam filtr jest PUBLICZNYM API WordPressa (każda trzecia wtyczka/motyw może go wywołać z dowolnym kształtem), a metoda `stan()` dokumentuje w PHPDoc kontrakt `array{adres:string,napis:string} $domyslne` bez go egzekwować. Dla porównania: `dostepnosc()` w tym samym pliku (linie 65-81) tej klasy słabości NIE ma — tam brakujący klucz 'id' w $kurs jest bezpiecznie obsłużony przez `(string)($kurs['id'] ?? '')`.",
+  "klasyfikacja": "granica",
+  "wplyw": "Szew między aai-sklep i aai-platnosci (filtr aai_sklep_cta_kursu) jest dziś bezpieczny wyłącznie dlatego, że JEDYNY wywołujący go kod przestrzega kontraktu — nie dlatego, że kontrakt jest wymuszony. Zmiana w Pluginie 1 (albo trzecia wtyczka/motyw wołająca ten sam filtr z innym kształtem — dopuszczalne, bo to publiczny hak WordPressa) obudzi to bez żadnego testu, który by to złapał: żaden z 15 istniejących smoke'ów WP nie woła tego filtra z niepełnym wejściem. Szkoda jest ograniczona (PHP Warning, nie fatal; strona sprzedażowa dalej się renderuje, bo błąd jest w linii return, nie w warunku sterującym), ale przy `WP_DEBUG_DISPLAY` włączonym na produkcji ujawniłaby ścieżkę pliku serwera klientowi.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "1e69b30a12ca5ba7c66414ab98807e1e534b67c345b70e3a74a47d7fa2c442c8",
+  "werdykt": null
+}

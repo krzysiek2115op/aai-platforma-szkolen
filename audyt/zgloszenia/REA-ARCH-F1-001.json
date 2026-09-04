@@ -1,0 +1,21 @@
+{
+  "id": "REA-ARCH-F1-001",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "ARCH",
+  "pozycja": "ARCH-R3",
+  "stwierdzenie": "Wpływ opisany w AUD-ARCH-F1-004 dla trzywęzłowego cyklu w aai-sklep (Trasy->Panel->Kontrakt->Trasy) — 'trzy różne odpowiedzialności... nie dają się rozdzielić bez jednoczesnego wczytania całej trójki' — jest fałszywy dla trzeciego ogniwa (Aai_Sklep_Kontrakt), z tego samego powodu, dla którego krytyk odrzucił analogiczne zdanie w AUD-ARCH-F1-002 (leniwy autoloader): Trasy i Panel ładują się razem i eagerly przy każdym żądaniu, a Kontrakt pozostaje niewczytana, dopóki nikt nie otworzy konkretnego ekranu edycji lekcji w kreatorze.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    "linia": 115,
+    "tresc": "Aai_Sklep_Trasy::zarejestruj();"
+  },
+  "dowod": "Zmierzone żywo na :8892 (WP-CLI `wp eval`, wszystkie wtyczki aktywne, bez wcześniejszego wejścia na ekran kreatora): `class_exists('Aai_Sklep_Trasy', false)` = true, `class_exists('Aai_Sklep_Panel', false)` = true, `class_exists('Aai_Sklep_Kontrakt', false)` = false. Przyczyna w kodzie: aai-sklep.php:115 `Aai_Sklep_Trasy::zarejestruj();` i :124 `Aai_Sklep_Panel::zarejestruj();` są wołane BEZWARUNKOWO przy każdym ładowaniu wtyczki (poza try/catch, w bloku plugins_loaded), więc Trasy i Panel ładują się zawsze razem — dokładnie ten sam wzorzec, który w AUD-ARCH-F1-002 dał 'Komunikaty i Ekran wczytane, Zapis nie'. Jedyne odwołanie do Kontrakt w Panelu leży w class-aai-sklep-panel.php:309, wewnątrz metody renderującej WYŁĄCZNIE ekran edycji pojedynczej lekcji (`$pola = Aai_Sklep_Kontrakt::pola_lekcji();`, tuż przed `require … szablony/panel/lekcja.php`), a nie w metodzie rejestrującej. Kontrakt więc pozostaje niewczytany w każdym żądaniu, które nie otwiera akurat tego ekranu — front sklepu, katalog, kokpit z listą kursów, a nawet Trasy<->Panel jako para działają w pełni bez Kontrakt. Graf zależności statycznych zbudowany niezależnie ze wszystkich 54 klas (skrypt własny, parsowanie `class X` i wywołań `Nazwa::`, z odrzuceniem komentarzy blokowych i liniowych) potwierdza dokładnie te same 4 cykle co audyt (0 pominiętych, 0 dodatkowych) — więc granica cyklu jest policzona poprawnie, usterka leży wyłącznie w opisie SKUTKU trzeciego ogniwa.",
+  "klasyfikacja": "granica",
+  "wplyw": "AUD-ARCH-F1-004 ma sprzeczność analogiczną do tej rozstrzygniętej w AUD-ARCH-F1-002 (tam: krytyk ODRZUCAM, weryfikator ISTNIEJE z obniżonym wpływem), ale u niego NIKT jej nie złapał — krytyk dał PRZEPUSZCZAM bez zastrzeżeń, a weryfikator explicite POCHWALIŁ mocniejsze sformułowanie 004 ('tu inaczej niż w 002: zależność jest naprawdę OBUSTRONNA... test jednostkowy którejkolwiek wymaga obecności drugiej') — co jest prawdą TYLKO dla pary Trasy<->Panel, nie dla trójki z Kontrakt. Fala 2, czytając 004 dosłownie, uzna że żadnej z trzech klas (w tym Kontrakt) nie da się przetestować w izolacji — a to jest nieprawda możliwa do obalenia jednym poleceniem `wp eval`. Rozstrzygnięcie tego sporu: dwuwęzłowy cykl Trasy<->Panel — wpływ POTWIERDZONY w pełni (oba ładują się zawsze razem, żadne pytanie o zasięg go nie osłabia); trzywęzłowe rozszerzenie o Kontrakt — wpływ PRZESADZONY, tak jak w 002.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "637a0ae1ab70015d2f8e493ce0cc088fc7764faf40b08c2eb58da4280e54401c",
+  "werdykt": null
+}

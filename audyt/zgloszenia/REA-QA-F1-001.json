@@ -1,0 +1,27 @@
+{
+  "id": "REA-QA-F1-001",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-R5",
+  "stwierdzenie": "Klasa AUD-QA-F1-005 (regex Polish \\w* nie obejmuje diakrytyków tuż za rdzeniem słowa, więc wymagany \\s+ pęka) żyje TAKŻE poza straznik-odsylaczy-kursu.mjs, którego dotyczy audyt: straznik-obietnic.mjs linia 50-51 (wzorce /lekcj\\w*\\s+wideo/i i /kurs\\w*\\s+wideo/i, strażnik broniący decyzji właściciela NIGDY WIDEO) i straznik-licencji.mjs linia 44 (/licencj\\w*\\s+MIT/i) mają dokładnie ten sam wzorzec i tę samą lukę. Potwierdzone URUCHOMIENIOWO mutacją treści: forma z diakrytykiem tuż po rdzenie ('lekcję wideo', biernik) przechodzi przez strażnika bez wykrycia, forma bez tej cechy ('lekcje wideo') jest łapana poprawnie.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/straznicy/straznik-obietnic.mjs",
+    "linia": 50,
+    "tresc": "  /\\d+\\s+modułów?\\s+wideo/i, /godzin[ay]?\\s+wideo/i, /lekcj\\w*\\s+wideo/i,"
+  },
+  "dowod": "Zmierzone w repozytorium (node 24, kody wyjścia BEZ potoku). BASELINE: `node tools/straznicy/straznik-obietnic.mjs` -> exit 0, 'straznik-obietnic: OK (kursów: 2, widoków: 56)'. MUTACJA A (przedmiot bramki — treść skanowana przez strażnika, tools/seed/seed-przyklady.ts, pole hero.obietnica Kursu 1): dopisano zdanie 'Zobacz tę lekcję wideo już dziś' (forma z 'ę' bezpośrednio po rdzeniu 'lekcj'). Uruchomienie `node tools/straznicy/straznik-obietnic.mjs` po mutacji -> EXIT 0, komunikat wciąż 'OK' — zakazana obietnica wideo NIE ZOSTAŁA WYKRYTA. MUTACJA B (kontrola pozytywna, ten sam plik przywrócony do stanu bazowego i zmieniony ponownie): dopisano 'Zobacz te lekcje wideo już dziś' (forma bez diakrytyku tuż po rdzeniu) -> EXIT 1, strażnik poprawnie odmawia. Plik przywrócony bajt w bajt do stanu sprzed obu mutacji (diff przeciw kopii sprzed testu: różnic 0; `git status --short tools/seed/seed-przyklady.ts` puste; ponowne uruchomienie strażnika po przywróceniu -> exit 0 OK, jak w baseline). Mechanizm zweryfikowany osobno w node -e: /lekcj\\w*\\s+wideo/i.test('ta lekcję wideo') === false, .test('te lekcje wideo') === true; /kurs\\w*\\s+wideo/i.test('nasz kursów wideo') === false (forma dopełniacza liczby mnogiej 'kursów' ma 'ó' zaraz po rdzeniu 'kurs'). Trzeci przypadek tej samej rodziny: straznik-licencji.mjs:44 `/licencj\\w*\\s+MIT|MIT \\(\\[LICENSE\\]/i` nie dopasuje 'na licencję MIT' (test: false), 'na licencji MIT' i 'licencja MIT' dopasowuje (test: true) — dziś NIE jest to czynne na produkcji, bo README.md nie używa formy 'licencję' i drugi człon alternatywy ('MIT (\\[LICENSE\\]') łapie obecne brzmienie, więc `node tools/straznicy/straznik-licencji.mjs` kończy exit 0 bez zmian.",
+  "klasyfikacja": "mechanizm bramki (ta sama klasa co AUD-QA-F1-005, nowe miejsca — QA-R5)",
+  "wplyw": "straznik-obietnic.mjs jest jedynym mechanicznym strażnikiem decyzji właściciela z 2026-08-19 'NIE ROBIMY WIDEO' (dokumentacja w nagłówku pliku: powstał po tym, jak katalog obiecywał lekcje wideo mimo kursu tekstowego). Zdanie sprzedażowe napisane w naturalnej odmianie bierne/dopełniaczowej ('Zobacz tę lekcję wideo', 'pakiet kursów wideo') przechodzi bramkę bez wykrycia, mimo że dokładnie taką samą treść w innej odmianie ('lekcje wideo') bramka łapie — czyli skuteczność strażnika zależy od przypadku gramatycznego autora treści, nie od faktu obietnicy. Na dziś żywa treść (tresc-kursow, app/**, components/**, seed) nie zawiera żadnej z tych fraz (sprawdzone grep -rniE po całym skanowanym zakresie — zero trafień), więc luka jest DZIŚ LATENTNA, nie czynna; ryzyko materializuje się przy najbliższej zmianie treści sprzedażowej pisanej odmianą biernika/dopełniacza. straznik-licencji.mjs ma tę samą lukę, ale zneutralizowaną drugim członem alternatywy przy obecnym brzmieniu README — zmiana brzmienia README na 'na licencję MIT' bez zmiany tego drugiego członu przywróci ślepotę.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "72b51cd1a00fb27bddd8dd064576c9042c73f8c435f21640dd4989e2cfe972ab",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T11:23:16.811Z"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "REA-PERF-F1-005",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-R6",
+  "stwierdzenie": "Pozycja PERF-R6 zada pomiaru zapytan na odslonie NA ZYWEJ STRONIE, ale nie mowi, ze pomiar ma isc przez ten sam kanal, co odslona klienta — i przez to przyjela jako „zmierzone” liczby ponad dwukrotnie zanizone. Pogleblacz PERF fali 1 policzyl „/szkolenia/ = 35, strona kursu = 41” licznikiem $wpdb->num_queries wewnatrz pojedynczego `wp eval-file`, ktory symuluje render PO tym, jak WP-CLI juz zabootowal WordPressa. Wszystko, co WordPress, WooCommerce i Tutor odpytuja PODCZAS bootstrapu (opcje, wtyczki, uzytkownik, sesja), zdarza sie przed zalozeniem licznika i nie wchodzi do wyniku. Zmierzone przeze mnie przez Apache, na prawdziwym zadaniu HTTP: /szkolenia/ = 77 zapytan SELECT, strona kursu = 83. Liczby 35 i 41 sa w PLAN-BUDOWY zapisane jako „ZAPYTANIA NA ODSLONE, ZMIERZONE” i posluzyly za mianownik we wplywie REA-PERF-F1-002 („17% z 35, 15% z 41” — naprawde 7,8% i 7,2%).",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "re-audyt/ROLE.md",
+    "linia": 271,
+    "tresc": "| PERF-R6 | Czy liczba zapytań na odsłonę jest ZMIERZONA na żywej stronie, a nie wyprowadzona z lektury? | pomiar zapytań na `:8892` dla wskazanej trasy | trasa + liczba zapytań |"
+  },
+  "dowod": "Przyrzad niezalezny od WordPressa: licznik serwera bazy. `podman exec aai_wp_db mariadb -N -e \"SHOW GLOBAL STATUS WHERE Variable_name IN (Questions,Com_select)\"` odczytany bezposrednio przed i po JEDNYM `curl` na :8892. Szum zmierzony osobno na pliku statycznym (/wp-content/plugins/aai-sklep/assets/sklep.css): Com_select +0, Questions +2 (to moje wlasne dwa odczyty statusu) — czyli metoda ma zerowy szum w SELECT-ach. Wyniki, po dwa przebiegi kazdy, identyczne co do sztuki: GET /szkolenia/ → Com_select +77, Questions +84; GET /szkolenia/jak-uzywac-githuba/ → Com_select +83, Questions +90. Potwierdzenie drugim przyrzadem: dziennik ogolny MariaDB zdjety wokol jednego zadania strony kursu ma 87 instrukcji na dwoch polaczeniach. Wobec tego liczby z metody `wp eval-file` (35 i 41) sa zanizone o 42 zapytania, czyli o 54% i 51%. Roznica MIEDZY trasami (6) zgadza sie w obu metodach, wiec bledna jest wartosc bezwzgledna, nie kierunek. Dodatkowo, i to sprawdzilem osobno, zeby nie twierdzic wiecej niz zmierzylem: dziennik pokazuje, ze render idzie JEDNYM polaczeniem aplikacji (id 5468, wordpress@10.89.4.4) — drugie polaczenie w dzienniku to moj wlasny klient administracyjny gaszacy dziennik, wiec zapytan spoza $wpdb w tym renderze NIE MA i nie one odpowiadaja za roznice. Cala roznica 42 zapytan pochodzi z bootstrapu, ktory `wp eval-file` wykonuje PRZED zalozeniem licznika. Ograniczenie `num_queries` do ruchu przez $wpdb zostaje jednak realne dla kazdego kodu otwierajacego wlasne polaczenie (np. mysqli w cudzej wtyczce) i pomiar po stronie serwera bazy jest na to odporny.",
+  "klasyfikacja": "checklista przyjmuje pomiar spoza kanalu klienta jako pomiar „na zywej stronie” — liczba wchodzi do wynikow sektora zanizona o polowe",
+  "wplyw": "Liczba zapytan na odslonie jest w tym sektorze wartoscia rozstrzygajaca: to ona decyduje o wadze kazdego znaleziska PERF („6 z 41” brzmi inaczej niz „6 z 83”) i to ona pojdzie do porownania fal. Pozycja przyjeta w brzmieniu „ZMIERZONA na zywej stronie” nie odroznia pomiaru przez Apache od symulacji w WP-CLI, wiec druga fala moze powtorzyc ten sam blad i dostac te sama zanizona liczbe, a porownanie fal wykaze zgodnosc — zgodnosc dwoch bledow. Skutek dla projektu jest konkretny: PERF audytu i PERF re-audytu razem nie podaly ani razu prawdziwego kosztu odslony katalogu i strony sprzedazowej, a to jest jedyna metryka, po ktorej wlasciciel moglby ocenic, czy N+1 na trasie goscia warto naprawiac.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "b18f18bab2a0a999c28af7acac57b697276fb1fb632c508574bce9c372a6afa3",
+  "werdykt": null
+}

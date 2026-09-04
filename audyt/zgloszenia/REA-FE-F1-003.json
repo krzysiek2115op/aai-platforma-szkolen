@@ -1,0 +1,21 @@
+{
+  "id": "REA-FE-F1-003",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "FE",
+  "pozycja": "FE-R4",
+  "stwierdzenie": "Komenda zakresu Pogłębiacza FE re-audytu nie obejmuje ani jednego z dziewięciu plików class-aai-sklep-widok/lekcja/moje/proza/zasoby/menu/trasy/styl-tutora/styl-woo.php, bo git ls-files nie rozwija klamer w pathspecu :(glob), a samokontrola tego nie wykrywa, ponieważ deklarowana liczba 57 była policzona tą samą komendą — i w fali 1 dało to fałszywą odpowiedź na FE-R4: pod zakresem zamierzonym (66 plików) leżą w obszarze FE dwa wpisy innego działu audytu, AUD-PERF-F1-005 w class-aai-sklep-lekcja.php i AUD-PERF-F1-006 w class-aai-sklep-moje.php, a pozycja została zamknięta na nie.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "re-audyt/role/FE/AGENT.md",
+    "zakres": "sekcja Moduł: blok komendy git ls-files (wiersz z pathspekiem :(glob) na dziewięć klas aai-sklep) razem ze zdaniem samokontroli Ma zwrócić 57 plików; ta sama komenda stoi w re-audyt/ROLE.md:158",
+    "mechanizm": "Brakuje zakresu, który naprawdę zwraca dziewięć plików klas FE, oraz samokontroli niezależnej od mierzonej komendy. Człon z klamrami trzeba rozpisać na dziewięć osobnych pathspeców, a zdanie kontrolne musi brać liczbę z innego źródła niż ta sama komenda — dziś warunek Zakres, który zwraca zero albo inną liczbę, jest zepsuty nie może się zapalić, bo komenda zwraca DOKŁADNIE zadeklarowane 57 (37 szablonów + 16 assetów sklepu + 3 assety monitoringu + 1 ekran monitoringu), a dziewiąta część zakresu znika bez śladu i bez kodu błędu."
+  },
+  "dowod": "Zmierzone w repozytorium, git 2.55.0 i GNU grep 3.12 (/usr/bin/grep), kody wyjścia bez potoku. (1) Pathspec z klamrami uruchomiony samodzielnie nie wypisuje NICZEGO i kończy kodem 0 — pominięcie jest ciche, nie ma komunikatu. (2) Wszystkie dziewięć plików jest śledzonych: git ls-files na katalogu wordpress/wtyczki/aai-sklep/includes/ przepuszczone przez /usr/bin/grep -E na tych nazwach daje 9 wierszy. (3) Człony zakresu policzone osobno: szablony 37, assets sklepu 16, assets monitoringu 3, ekran monitoringu 1 — razem 57, czyli dokładnie liczba z samokontroli, więc kontrola przechodzi przy dziewięciu brakujących plikach (samokontrola cyrkularna). (4) Skutek dla fali 1 policzony dwa razy tą samą metodą, skryptem czytającym pole miejsce.plik ze wszystkich wpisów audytu tej fali: przecięcie z zakresem ZMIERZONYM (57 plików) daje jeden wpis i jest to własny AUD-FE-F1-001, czyli nie odpowiada na pytanie FE-R4 o inne działy; przecięcie z zakresem ZAMIERZONYM (66 plików: te same 57 plus dziewięć klas dołożonych osobnymi pathspecami) daje dodatkowo AUD-PERF-F1-005 (class-aai-sklep-lekcja.php, brak nagłówków no-cache na widoku prywatnym) i AUD-PERF-F1-006 (class-aai-sklep-moje.php, N+1 dwupoziomowy). (5) Ta sama komenda z klamrami stoi w re-audyt/ROLE.md:158, a AGENT.md nazywa ją identyczną z zakresem działu FE audytu co do znaku — defekt jest dziedziczony przez sektor, nie przepisany z pomyłką. Klasa jest znana audytowi z AUD-KON-F1-001 dla audyt/ROLE.md:126; nowe jest to, że żyje w definicji re-audytu i że w tej fali wyprodukowała złą odpowiedź na pozycję checklisty.",
+  "klasyfikacja": "zepsuty zakres re-audytu (KON-R1) — pathspec z klamrami pomija dziewięć plików po cichu, samokontrola cyrkularna, pozycja FE-R4 domknięta fałszywie",
+  "wplyw": "Pogłębiacz FE fali 1 pracował na zakresie mniejszym o dziewięć plików, w tym o class-aai-sklep-widok.php, w którym leży miejsce wskazane przez AUD-FE-F1-002 i przez jego własne REA-FE-F1-002 — dowód działu odwołuje się więc do pliku formalnie spoza jego zakresu. Pozycja FE-R4 została zamknięta na nie, choć pod zakresem zamierzonym odpowiedź brzmi tak. Fala 2 dostanie ten sam zepsuty zakres i tę samą samokontrolę 57, więc powtórzy tę odpowiedź, a porównanie fal pokaże zgodność — obie fale zmierzą to samo źle. Naprawa należy do budowy sektora, nie do fali.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "16779f41ecc8c7ce59a04663e1ed30c3dcdab315b5596900e8147647f3b81e58",
+  "werdykt": null
+}

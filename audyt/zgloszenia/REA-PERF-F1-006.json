@@ -1,0 +1,21 @@
+{
+  "id": "REA-PERF-F1-006",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-R2",
+  "stwierdzenie": "Pozycja PERF-R2 daje sie odhaczyc BEZ OTWARCIA ANI JEDNEGO PLIKU: jako komende podaje „komenda zliczajaca po calym repo”, a jako dowod „liczba + lista miejsc” — czyli wynik maszyny jest dowodem sam dla siebie, bez wymogu potwierdzenia choc jednego trafienia w zrodle. Ta luka zadzialala w fali 1: PERF zamknal R2 liczba 30 z wlasnego skanera i zadnego z 30 miejsc nie otworzyl, a co najmniej DZIEWIEC z nich to petle, ktorych cialo nie wykonuje zadnego zapytania do bazy, plus jedno liczone dwa razy. Pozostale pozycje tej checklisty maja zaczep w rzeczywistosci (R1 i R6 kaza uruchomic, R5 kaze wskazac miejsce), R2 jako jedyna konczy sie na liczbie.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "re-audyt/ROLE.md",
+    "linia": 267,
+    "tresc": "| PERF-R2 | Ile jest **wszystkich** wystąpień tej klasy w repozytorium — nie tylko wskazane jedno? | komenda zliczająca po całym repo | liczba + lista miejsc |"
+  },
+  "dowod": "Odtworzenie luki na jej ofierze. Napisalem wlasny skaner (Node, wlasny lekser na surowych bajtach — inna implementacja niz jego `token_get_all`, ten sam zbior wywolan: $wpdb->get_results/get_row/get_var/get_col/query oraz get_posts/get_children, cialo petli wyznaczane dopiero PO zamknieciu nawiasu naglowka) i na tych samych 97 plikach .php zakresu dostalem 13 miejsc, nie 30. Roznice sprawdzilem RECZNIE, otwierajac pliki — czynnosci, ktorej R2 nie wymaga. Dziewiec miejsc z jego listy ma cialo petli bez jakiegokolwiek dostepu do bazy: class-aai-platnosci-cli.php:675 (cialo to `$bledy[] = $blad_wiszacy;`), :686 (`WP_CLI::log`), class-aai-platnosci-zapis.php:1052 i :1057 (przypisanie do tablicy), class-aai-sklep-lekcja.php:346 (zagniezdzony foreach po tablicy w pamieci), class-aai-sklep-odczyt.php:122 (`count()` i `+=` na juz wczytanym programie), class-aai-sklep-raport.php:59 (append + json_decode), class-aai-sklep-tutor.php:626 (array_key_exists + opis_roznicy, ktore jest czysta praca na lancuchach) i :778 (append + json_decode). W piatce dalszych (cli.php:869, :893, zrzuty.php:170, platnosci-zapis.php:1057, tutor.php:778) zapytanie stoi w NAGLOWKU foreach, wiec wykonuje sie raz — dokladne przeciwienstwo N+1. Do tego tutor.php:788 to ten sam mechanizm co :786 policzony drugi raz. Kazde z tych stwierdzen sprawdzalne komenda `/usr/bin/grep -n \"\" <plik> | sed -n \"<od>,<do>p\"` (GNU grep 3.12) na wskazanych liniach.",
+  "klasyfikacja": "pozycja checklisty zamykalna bez otwarcia pliku — liczba z narzedzia jest przyjmowana jako dowod bez ani jednego potwierdzenia w zrodle",
+  "wplyw": "R2 jest pozycja, ktora w tym sektorze produkuje LICZBY o zasiegu klas, a liczba zasiegu jest tym, co odroznia „jedno miejsce do naprawy” od „wzorzec w calym repozytorium”. Bez wymogu otwarcia probki kazda rola moze zamknac R2 dowolnie zawyzona liczba z wlasnego wzorca i nikt tego nie zauwazy, bo dowodem jest ta sama liczba. Skutek juz nastapil: dziesieciokrotnosc (30 wobec 3) trafila do PLAN-BUDOWY jako naglowek podsumowania dzialu, a prawdziwy zasieg to 13 — czyli czterokrotnosc. Druga fala, idac ta sama pozycja i innym wzorcem, dostanie inna liczbe i porownanie fal wykaze rozjazd tam, gdzie repozytorium sie nie zmienilo. Naprawa nie wymaga zmiany metody: wystarczy, zeby kolumna „Dowod” zadala obok liczby POTWIERDZENIA PROBKI w zrodle (np. trzech miejsc otwartych i zacytowanych) oraz jawnej definicji, co jest jednym „wystapieniem”.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "ead61647ce36866ba87eedae40e781c7e1bce919c45cd69dec8ad848af21210e",
+  "werdykt": null
+}

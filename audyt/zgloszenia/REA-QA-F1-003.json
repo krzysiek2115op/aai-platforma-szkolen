@@ -1,0 +1,21 @@
+{
+  "id": "REA-QA-F1-003",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-R2",
+  "stwierdzenie": "Zasięg klasy \"\\\\w* po polskim rdzeniu gubi formę z diakrytykiem\" jest w tej fali policzony NIEPEŁNIE: REA-QA-F1-001 podaje trzy nowe miejsca (straznik-obietnic.mjs:50, :51, straznik-licencji.mjs:44) obok jednego z audytu, a klasa ma w zakresie działu co najmniej SIEDEM czynnych wystąpień. Pominięte zostało m.in. straznik-obietnic.mjs:138 — ślepy wzorzec 88 linii NIŻEJ w tym samym pliku, który re-audyt otworzył i zmutował, pilnujący DRUGIEJ z dwóch nieprawd wymienionych w nagłówku tego samego strażnika (\"pliki źródłowe — do pobrania\") — oraz dwa wzorce w straznik-odsylaczy-kursu.mjs (:161 i :165) obok linii :163, którą zgłosił audyt. QA-R2 jest pozycją, której PRODUKTEM jest liczba i lista miejsc, więc niepełna lista jest usterką wykonania tej pozycji, a nie różnicą ocen.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/straznicy/straznik-obietnic.mjs",
+    "linia": 138,
+    "tresc": "  /plik\\w*\\s+(?:źródłow\\w*|do\\s+pobrania)/i,"
+  },
+  "dowod": "Zmierzone URUCHOMIENIOWO, kody wyjścia BEZ potoku, STDOUT i STDERR do osobnych plików; pomiar tekstowy narzędziem GNU grep 3.12 (/usr/bin/grep), nie funkcją powłoki opakowującą ugrep 7.8.4. (1) BASELINE: `node tools/straznicy/straznik-obietnic.mjs` -> exit 0, \"straznik-obietnic: OK (kursów: 2, widoków: 56)\". (2) MUTACJA PRZEDMIOTU BRAMKI (widok, bo wzorzec z linii 138 leci po app/** i components/**): do components/kurs/FinalCta.tsx dopisano linię `const SONDA = \"zestaw plików do pobrania\";` -> `node tools/straznicy/straznik-obietnic.mjs` EXIT 0, obietnica NIEWYKRYTA. (3) KONTROLA POZYTYWNA, ten sam plik, ta sama pozycja, różnica wyłącznie w odmianie: `const SONDA = \"zestaw pliki do pobrania\";` -> EXIT 1 i komunikat \"components/kurs/FinalCta.tsx: widok obiecuje „pliki do pobrania\" — kurs jest TEKSTOWY (decyzja 2026-08-19), a materiałów do pobrania nie ma ani jednego.\" Czyli zapala się WŁAŚCIWA reguła i tylko dla formy bez diakrytyku po rdzeniu \"plik\". (4) Plik przywrócony z kopii zrobionej PRZED pierwszą mutacją: sha256 components/kurs/FinalCta.tsx = 3a30b051ae79e3ec996b7188417aa0fe87c68d82f18650d8bb48672f9e632e71 przed i po, `git status --short` na tym pliku pusty. (5) POLICZENIE CAŁEJ KLASY, nie oszacowanie — wyciąg wszystkich wyrażeń z \\w z 80 plików zakresu (/usr/bin/grep -rnE '\\\\w' po liście z `git ls-files`) i sprawdzenie każdego kandydata w node: ŚLEPE są straznik-obietnic.mjs:50, :51, :138, straznik-licencji.mjs:44, straznik-odsylaczy-kursu.mjs:161 (/modu[łl]\\w*\\s+\\d\\s*[–—-]\\s*\\d/iu — \"modułów 1–3\" nie pasuje, \"moduly 1–3\" pasuje), :163 (zgłoszenie audytu) i :165 (pierwszy człon /modu[łl]\\w*\\s+(\\p{L}+)/); NIE są ślepe straznik-obietnic.mjs:88 i :107 oraz straznik-odsylaczy-kursu.mjs:149, bo po \\w* stoi tam klasa przyjmująca diakrytyk ([^\"]{0,80}? / [^.\\d]{0,14}?) albo nie ma wymogu następnego znaku — sprawdzone testami .test() na formach z ogonkiem i bez. Ósme wystąpienie (straznik-obietnic.mjs:102, /minut\\w*\\s+na/) jest ślepe mechanicznie, ale formy \"minutę na N lekcji\" nie da się napisać po polsku poprawnie, więc go NIE liczę do siedmiu czynnych.",
+  "klasyfikacja": "niepełny zasięg klasy w produkcie pozycji QA-R2 (lista miejsc krótsza od zmierzonej klasy)",
+  "wplyw": "Zasięg jest deklarowanym produktem Pogłębiacza (\"Zasięg jest Twoim produktem\", \"policzysz zasięg\"), a naprawa po dwóch cyklach pójdzie po LIŚCIE MIEJSC z sektora. Lista, która pomija straznik-obietnic.mjs:138, zostawia po naprawie strażnika obietnic w połowie ślepego: poprawiony zostanie wzorzec na \"wideo\", a wzorzec na \"pliki do pobrania\" — drugi z dwóch powodów, dla których ten strażnik w ogóle powstał (nagłówek pliku, linie 30-40) — zostanie ślepy na najczęstszą formę tej obietnicy (\"zestaw plików do pobrania\", \"komplet plików źródłowych\"). Ta sama luka dotyczy straznik-odsylaczy-kursu.mjs: audyt zgłosił linię 163, a linie 161 i 165 mają identyczny wzorzec, więc naprawa \"po zgłoszeniu\" zostawi dwa z trzech miejsc w pliku, którego dotyczy AUD-QA-F1-005.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "4c7aa95c874b4b9b921901aebd9fe29718fca01badbffa7668da13d2edcfb970",
+  "werdykt": null
+}

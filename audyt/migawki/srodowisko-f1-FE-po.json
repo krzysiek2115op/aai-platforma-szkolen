@@ -1,12 +1,12 @@
 {
-  "kiedy": "2026-09-04T08:16:06.329Z",
+  "kiedy": "2026-09-04T09:37:13.431Z",
   "baza": "wordpress",
   "tabel": 80,
-  "skrot_tabel": "3b3e6436f1928542749fc89cb4dae3e927936f3caad9e8229c3bc436b23798c3",
+  "skrot_tabel": "0c6369ec16fab973701af71a9d10fe7b990109a8b70bf02398a88e11cba036a7",
   "nasze": {
     "wp_aai_monitor_logowania": {
       "wierszy": 26,
-      "auto_increment": 286
+      "auto_increment": 288
     },
     "wp_aai_monitor_wizyty": {
       "wierszy": 30,
@@ -44,7 +44,7 @@
   "tabele": {
     "wp_aai_monitor_logowania": {
       "wierszy": 26,
-      "auto_increment": 286
+      "auto_increment": 288
     },
     "wp_aai_monitor_wizyty": {
       "wierszy": 30,
@@ -107,8 +107,8 @@
       "auto_increment": 1
     },
     "wp_options": {
-      "wierszy": 423,
-      "auto_increment": 4429
+      "wierszy": 431,
+      "auto_increment": 4471
     },
     "wp_postmeta": {
       "wierszy": 1786,
@@ -216,7 +216,7 @@
     },
     "wp_usermeta": {
       "wierszy": 48,
-      "auto_increment": 2388
+      "auto_increment": 2389
     },
     "wp_users": {
       "wierszy": 2,
@@ -340,7 +340,7 @@
     },
     "wp_woocommerce_sessions": {
       "wierszy": 294,
-      "auto_increment": 473
+      "auto_increment": 478
     },
     "wp_woocommerce_shipping_zones": {
       "wierszy": 0,

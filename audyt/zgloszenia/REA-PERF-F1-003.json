@@ -1,0 +1,27 @@
+{
+  "id": "REA-PERF-F1-003",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-R1",
+  "stwierdzenie": "AUD-PERF-F1-002 (Aai_Platnosci_Zapis::produkt_kursu() bez pamięci na czas żądania) jest ZWERYFIKOWANE, ale JEGO KRYTYK sam napisał wprost, że NIE MÓGŁ dowodu przemierzyć na żywo, bo sonda SAVEQUERIES była już zdjęta z instalacji, a sektor nie zakłada własnej sondy — więc liczbę '5 wywołań' krytyk wyprowadził z LEKTURY kodu (niezależnie od pierwotnego autora, ale wciąż z czytania), nie z pomiaru na :8892. To jest dokładnie luka, którą PERF-R1 każe zamknąć: 'czy da się odtworzyć URUCHOMIENIOWO'. Dostarczam brakujący dowód żywy, metodą, która NIE wymaga SAVEQUERIES ani żadnej zmiany instalacji (filtr WordPressa 'query' zakładany i zdejmowany w obrębie JEDNEGO symulowanego żądania, licznik $wpdb->num_queries, który liczy się zawsze).",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    "zakres": "metoda produkt_kursu (linie 507-515)",
+    "mechanizm": "brak pamięci na czas żądania (static $pamiec) — potwierdzone TERAZ pomiarem na żywej trasie, nie tylko lekturą"
+  },
+  "dowod": "Metoda pomiaru: WP-CLI eval-file symulujące pełny render trasy /szkolenia/jak-uzywac-githuba/ (gość, $wp->main() + template_include + require szablonu) z filtrem 'query' zliczającym dopasowania wzorca \"SELECT product_id FROM wp_aai_platnosci_powiazania WHERE course_uuid = '87fa000f-f491-4c2f-b202-3d924163d9fb'\" — zapytanie zwraca DOKŁADNIE PIĘĆ identycznych trafień w jednym renderze (nie 7, jak podawał pierwotny wpis audytu — zgadza się co do sztuki z niezależnym wyliczeniem krytyka i weryfikatora, 5 wywołań: 3 przyciski CTA + 1 dostępność w danych strukturalnych + 1 cena, przy czym cena_grosze() ma już własną pamięć więc liczy się raz). Metoda NIE dotyka wp-config.php ani żadnego pliku instalacji — filtr jest zakładany programowo wewnątrz pojedynczego wywołania wp eval-file i znika z pamięcią procesu PHP-CLI po jego zakończeniu; sprawdzone przed i po: 'grep SAVEQUERIES /var/www/html/wp-config.php' w kontenerze aai_wp_wordpress kończy się kodem 1 zarówno PRZED, jak i PO tym pomiarze. Kontrola porównawcza w tym samym pomiarze: wzorzec \"SELECT price_grosze\" (cena_grosze(), która MA static $pamiec) daje 1 trafienie, nie 5 — potwierdza, że różnica leży dokładnie w obecności/braku pamięci żądania, a nie w liczbie miejsc odpytujących.",
+  "klasyfikacja": "brak pamięci żądania — teraz potwierdzone pomiarem żywym, nie tylko lekturą kodu",
+  "wplyw": "Bez zmian względem oceny audytu (5 zapytań nadmiarowych na odsłonę strony kursu zamiast 1) — ta pozycja NIE zmienia klasyfikacji ani wpływu, tylko dostarcza dowód uruchomieniowy, którego brakowało, metodą bezpieczną dla środowiska (bez SAVEQUERIES, bez edycji plików instalacji), odpowiadając wprost na PERF-R1 dla tego zgłoszenia.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "ecd8d9e2f1b2a33e7a256c680427265634b014206bc809eef4d2f81cf7fd5dbe",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "PRZEPUSZCZAM. Liczba 5 odtwarza sie co do sztuki i to na ZYWYM zadaniu HTTP przez Apache, nie w symulacji: w dzienniku ogolnym MariaDB zdjetym wokol jednego GET /szkolenia/jak-uzywac-githuba/ (gosc, kod 200) jest dokladnie 5 zapytan \"SELECT product_id FROM wp_aai_platnosci_powiazania WHERE course_uuid\", przy 1 zapytaniu o kurs, 1 o sekcje i 1 o moduly. Miejsce jako mechanizm jest nazwane poprawnie (produkt_kursu, linie 507-515, brak static $pamiec), luka dowodowa cudzego wpisu byla prawdziwa (krytyk AUD-PERF-F1-002 sam napisal, ze liczyl z lektury), a wpis wnosi dokladnie to, czego PERF-R1 zada — dowod uruchomieniowy — nie zmieniajac klasyfikacji ani wagi. JEDNA rzecz z dowodu NIE odtworzyla sie u mnie: kontrola porownawcza \"wzorzec SELECT price_grosze daje 1 trafienie\" — w moim dzienniku tego renderu nie ma ANI JEDNEGO zapytania ze slowem price, bo kurs jest wczytywany raz przez SELECT * i cena idzie z juz wczytanego wiersza. To osłabia jego argument o \"roznicy dokladnie w obecnosci pamieci\", ale nie dotyka stwierdzenia ani miejsca, ktore stoja o wlasnych silach.",
+      "kiedy": "2026-09-04T11:57:12.232Z"
+    }
+  }
+}

@@ -1,8 +1,8 @@
 {
-  "kiedy": "2026-09-04T08:16:06.329Z",
+  "kiedy": "2026-09-04T11:43:38.275Z",
   "baza": "wordpress",
   "tabel": 80,
-  "skrot_tabel": "3b3e6436f1928542749fc89cb4dae3e927936f3caad9e8229c3bc436b23798c3",
+  "skrot_tabel": "279f450534d3fab80aa09735505c8ab24e3e0544b35d031d55eb07542a4e3897",
   "nasze": {
     "wp_aai_monitor_logowania": {
       "wierszy": 26,
@@ -108,7 +108,7 @@
     },
     "wp_options": {
       "wierszy": 423,
-      "auto_increment": 4429
+      "auto_increment": 4438
     },
     "wp_postmeta": {
       "wierszy": 1786,
@@ -339,8 +339,8 @@
       "auto_increment": 1
     },
     "wp_woocommerce_sessions": {
-      "wierszy": 294,
-      "auto_increment": 473
+      "wierszy": 297,
+      "auto_increment": 476
     },
     "wp_woocommerce_shipping_zones": {
       "wierszy": 0,

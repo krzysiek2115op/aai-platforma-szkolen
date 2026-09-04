@@ -1,0 +1,21 @@
+{
+  "id": "REA-QA-F1-002",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "QA",
+  "pozycja": "QA-R1",
+  "stwierdzenie": "Pozycja QA-R1 jest niejednoznaczna co do WŁASNEGO ZBIORU: mówi \"każde ZWERYFIKOWANE zgłoszenie audytu\", a \"ZWERYFIKOWANE\" nie jest w tym sektorze werdyktem o istnieniu zjawiska, tylko statusem PROCESU nadawanym przez werdykt.mjs KAŻDEMU wpisowi z kompletem werdyktów — także wpisowi, który obaj oceniający ODRZUCILI. Pozycja nie rozstrzyga więc, czy wpis odrzucony należy do zbioru do odtworzenia, a odpowiedź na nią zmienia liczbę odtworzeń bez żadnej zmiany w kodzie projektu. To uderza w warunek powtarzalności sektora (druga fala ma dać ten sam wynik), bo dwie fale mogą przy tej samej treści checklisty odpowiedzieć na R1 na dwóch różnych zbiorach.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "re-audyt/ROLE.md",
+    "linia": 239,
+    "tresc": "| QA-R1 | Czy każde ZWERYFIKOWANE zgłoszenie audytu z tego obszaru daje się **odtworzyć uruchomieniowo**? | `werdykt.mjs --pokaz` × `:8892` | komenda + obserwowany skutek |"
+  },
+  "dowod": "Zmierzone w repozytorium, kody wyjścia BEZ potoku, pomiar tekstowy narzędziem GNU grep 3.12 (/usr/bin/grep), nie funkcją powłoki ugrep. (1) MECHANIZM STATUSU: audyt/tools/werdykt.mjs:211 `if (komplet(wpis)) wpis.status = \"ZWERYFIKOWANE\";` — warunkiem jest wyłącznie KOMPLET werdyktów (funkcja komplet(), opis w komentarzu linii 91: \"Czy wpis ma komplet werdyktów — warunek statusu ZWERYFIKOWANE\"), a nie ich treść; zbiory dozwolonych werdyktów (linia 51) obejmują ISTNIEJE i ODRZUCONE, lista ODMOWNE (linia 55) istnieje osobno i NIE bierze udziału w nadaniu statusu. (2) ZASIĘG POLICZONY, nie oszacowany — przelot python3 po wszystkich audyt/zgloszenia/AUD-*-F1-*.json z polem fala=1: wpisów ze statusem ZWERYFIKOWANE jest 84, z czego 75 ma oba werdykty potwierdzające, a DZIEWIĘĆ ma werdykt odmowny przy TYM SAMYM statusie ZWERYFIKOWANE: AUD-ARCH-F1-002 (krytyk ODRZUCAM, weryfikator ISTNIEJE), AUD-FE-F1-003 (PRZEPUSZCZAM/ODRZUCONE), AUD-PERF-F1-004, AUD-PERF-F1-006, AUD-PIK-F1-001, AUD-PIK-F1-003, AUD-PIK-F1-004, AUD-QA-F1-001, AUD-REPO-F1-008 — sześć działów audytu (ARCH, FE, PERF, PIK, QA, REPO). (3) SKUTEK ZAOBSERWOWANY W TEJ FALI: Pogłębiacz QA odtworzył osiem wpisów (AUD-QA-F1-002…009) i pominął AUD-QA-F1-001 właśnie dlatego, że został odrzucony — czyli sam musiał rozstrzygnąć zakres pozycji, bo pozycja go nie rozstrzyga. Odtworzyłem oba możliwe odczyty na danych: dla działu QA zbiór 'wszystkie ZWERYFIKOWANE' liczy 9 wpisów, zbiór 'ZWERYFIKOWANE i potwierdzone' liczy 8. Wiersz w re-audyt/role/QA/AGENT.md:221 jest kopią tego samego zdania co do znaku (sprawdzone grepem), więc luka jest w źródle, nie w kopii.",
+  "klasyfikacja": "usterka checklisty (pozycja nie definiuje własnego zbioru — status procesu użyty jako werdykt o istnieniu)",
+  "wplyw": "Wiersz R1 jest wspólny dla WSZYSTKICH Pogłębiaczy (definicja: \"Pozycje R1–R5 są takie same u wszystkich Pogłębiaczy i to jest zamierzone: wspólne MINIMUM obszarów, dzięki któremu da się zmierzyć, czy nic nie pominięto\"). Przy dziewięciu wpisach odrzuconych w sześciu działach fali 1 różnica odczytu daje różnicę zbioru w sześciu działach naraz, a rozjazd fal jest w tym sektorze traktowany jako DEFEKT AUDYTU, nie jako różnica ocen — więc niejednoznaczność zamienia się w fałszywy sygnał defektu albo, przy odczycie węższym w obu falach, w trwałe niesprawdzenie odrzuceń: wpis odrzucony powodem \"zjawisko zablokowane wcześniej na ścieżce\" (tak odrzucono AUD-QA-F1-001) nigdy nie dostaje kontroli URUCHOMIENIOWEJ tej blokady, choć to jedyna rzecz, która dzieli tam znalezisko prawdziwe od nieprawdziwego.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "33c0b1dc0fcbba68c451c049bf41de01e663c72ef3eb480cfc5cbe6ab5c54eea",
+  "werdykt": null
+}

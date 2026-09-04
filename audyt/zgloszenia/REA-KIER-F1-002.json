@@ -1,0 +1,21 @@
+{
+  "id": "REA-KIER-F1-002",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-R2",
+  "stwierdzenie": "Pozycja KIER-R2 („czy każdy Pogłębiacz ma plik stanu i niezerową rundę”) odpowiada „tak” dla Pogłębiacza SEC ZANIM SEC wszedł do fali 1: status.mjs --pokaz drukuje „re-audyt f1 SEC ZAKOŃCZONE runda 1/5 2026-09-01T22:36:49.371Z” z sześcioma niedomkniętymi (SEC-R1…SEC-R6) oraz „re-audyt f1 WALID ZAKOŃCZONE runda 1/5”, a oba pliki stanu niosą pole proba: E7.6, którego ten ekran nie pokazuje — jedyne narzędzie pozycji nie odróżnia roli, która pracowała, od pliku z próby budowy.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/status.mjs",
+    "zakres": "blok --pokaz, pętla wypisująca stany ról (linie 324-335)",
+    "mechanizm": "Brakuje odczytu pola proba przy składaniu wiersza roli. Pętla drukuje sektor, falę, rolę, status, rundę, czas, ostrzeżenie o suficie i listę niedomkniętych, a przy --historia także przejścia — nigdzie nie pyta o w.proba, choć to pole istnieje w danych (audyt/stan/re-audyt-f1-SEC.json:20, re-audyt-f1-WALID.json) i choć ten sam plik umie je zdejmować funkcją zdejmijProbe (linia 724). Znacznik przebiegu próbnego powinien być dopisany do wiersza roli w tej pętli, bo to jest ekran, z którego czyta się kolejność sektorów."
+  },
+  "dowod": "Odtworzenie w przebiegu re-audytu fali 1, 2026-09-04T08:12Z (pierwsze wejście KIER, pozycja R2): `node audyt/tools/status.mjs --pokaz` kod 0 drukuje wiersze „re-audyt f1 SEC ZAKOŃCZONE runda 1/5 2026-09-01T22:36:49.371Z” + „NIEDOMKNIĘTE: SEC-R1, SEC-R2, SEC-R3, SEC-R4, SEC-R5, SEC-R6” oraz „re-audyt f1 WALID ZAKOŃCZONE runda 1/5 2026-09-01T22:47:35.170Z”, choć jedyną rolą re-audytu, która weszła do fali, jest KIER (W TRAKCIE od 2026-09-04T08:12:14.631Z). Pliki audyt/stan/re-audyt-f1-SEC.json (linia 23) i re-audyt-f1-WALID.json (linia 16) mają pole \"proba\": \"E7.6\" i adnotację „plik z próby E7.6” (mtime 2026-09-02 18:47, commit e71aad2). status.mjs zeruje rundę i listę niedomkniętych funkcją zdejmijProbe() wyłącznie przy wejściu W TRAKCIE (linia 406), więc do tej chwili KIER-R2 czyta próbę jako pracę fali. Zasięg: 2 z 16 ról NA_SRODOWISKU (SEC, WALID); to samo widzi KIER-R6 — sześć „niedomkniętych” SEC nie pochodzi z tej fali.",
+  "klasyfikacja": "pozycja checklisty przechodząca na danych próbnych",
+  "wplyw": "Kierownik re-audytu zamykający R2 z ekranu --pokaz uznałby SEC i WALID za role, które weszły i odbyły rundę; dziennik fali 1 re-audytu pokazuje do wejścia SEC sześć niedomkniętych pozycji, których fala nie wytworzyła.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "2ed5324362305c6585e4a867cb49ba817a7b7be3e08e8925227510e5e945d5e9",
+  "werdykt": null
+}

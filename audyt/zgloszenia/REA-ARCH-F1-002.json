@@ -1,0 +1,21 @@
+{
+  "id": "REA-ARCH-F1-002",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "ARCH",
+  "pozycja": "ARCH-R1",
+  "stwierdzenie": "AUD-ARCH-F1-002 nosi status ZWERYFIKOWANE mimo sprzecznych werdyktów (krytyk ODRZUCAM, weryfikator ISTNIEJE) — narzędzie nadaje ten status każdemu wpisowi z kompletem werdyktów niezależnie od ich treści (ta sama klasa co REA-QA-F1-002, dziewięć takich wpisów w sześciu działach). Po własnej, niezależnej reprodukcji uruchomieniowej rozstrzygam spór merytorycznie: KRYTYK MIAŁ RACJĘ CO DO SEDNA (część wpływu jest fałszywa), ale jego werdykt ODRZUCAM jest zbyt szeroki — odrzuca całe zgłoszenie, choć rdzeń stwierdzenia (cykl statycznych wywołań Komunikaty->Ekran->Zapis->Komunikaty) jest prawdziwy i policzalny. Trafny werdykt to ten, jaki dał weryfikator: ISTNIEJE, z jawnie obniżonym wpływem — ale samo narzędzie nie potrafi tego odróżnić od zwykłego ZWERYFIKOWANE.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php",
+    "linia": 439,
+    "tresc": "Aai_Monitor_Komunikaty::zapisz( $tresc );"
+  },
+  "dowod": "Odtworzone NIEZALEŻNIE od krytyka (nie przepisane z jego werdyktu), na :8892, WP-CLI `wp eval` w świeżym procesie PHP (autoload resetuje się za każdym wywołaniem `wp eval`): `class_exists('Aai_Monitor_Komunikaty', false)` = true, `class_exists('Aai_Monitor_Ekran', false)` = true, `class_exists('Aai_Monitor_Zapis', false)` = false — BEZ wykonania jakiegokolwiek kodu poza tym sprawdzeniem, czyli sam rutynowy bootstrap wtyczki (nie mój test) już rozdziela ładowanie. Znalazłem też PRZYCZYNĘ w kodzie, czego ani krytyk, ani weryfikator nie podali: aai-monitor.php:146 `Aai_Monitor_Komunikaty::zarejestruj();` jest wołane BEZWARUNKOWO w bloku `plugins_loaded` (poza jakimkolwiek hakiem warunkowym), więc Komunikaty ładuje się zawsze; Ekran ładuje się przez rejestrację `add_action( 'admin_menu', array( 'Aai_Monitor_Ekran', 'menu' ), 20 )` — ale to jest CALLBACK w postaci tablicy z nazwą klasy jako STRING, więc PHP nie wymaga autoloadu przy samej rejestracji; mimo to w moim pomiarze Ekran jest już wczytana na starcie (prawdopodobnie inny wątek bootstrapu, niezależny od cyklu). Zapis natomiast ładuje się WYŁĄCZNIE na żądanie (retencja/zapisz wołane z rzeczywistego zdarzenia: logowanie, beacon wizyt, cron). To znaczy: Komunikaty i Ekran DZIAŁAJĄ RAZEM bez Zapis załadowanej — dwie z trzech klas pracują bez trzeciej, co dosłownie zaprzecza zdaniu zgłoszenia 'żadnej z tych trzech klas nie da się zrozumieć ani przetestować w oderwaniu od pozostałych dwóch'. Sam CYKL (trzy strzałki wywołań statycznych) potwierdzony niezależnie grafem zależności zbudowanym ze wszystkich 54 klas — więc odrzucenie CAŁEGO zgłoszenia (jak zrobił krytyk) byłoby błędem w drugą stronę.",
+  "klasyfikacja": "checklista",
+  "wplyw": "To jest dokładnie przypadek, dla którego re-audyt istnieje: audyt wykrył prawdziwe zjawisko (cykl) i przesadził z jego skutkiem (nierozdzielność), a proces werdyktowania audytu nie ma stanu pomiędzy 'zjawisko jest' i 'zjawiska nie ma' — więc słuszna korekta weryfikatora (obniżony wpływ) i słuszna krytyka (przesada) zderzają się w jednym statusie ZWERYFIKOWANE, z którego fala 2 nie odczyta ŻADNEJ z tych dwóch prawd bez czytania całej treści werdyktów. Moje rozstrzygnięcie dla porównania cykli (`porownaj-cykle.mjs`) i dla ewentualnej naprawy: klasyfikacja 'granica' zostaje, treść stwierdzenia wymaga zawężenia do 'cykl istnieje i utrudnia rozdzielenie kodu, ale NIE uniemożliwia pracy z dwiema z trzech klas bez trzeciej' — patrz też REA-ARCH-F1-001, gdzie ten sam mechanizm (leniwy autoloader oszczędzający trzecie ogniwo trójwęzłowego cyklu) powtarza się w aai-sklep i tam nikt go nie złapał.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "515c6afedcadd15d143cc1076bdcc9b68832888a9db88bbb6975ced49f7be4ad",
+  "werdykt": null
+}

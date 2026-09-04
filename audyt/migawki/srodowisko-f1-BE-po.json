@@ -1,8 +1,8 @@
 {
-  "kiedy": "2026-09-04T08:16:06.329Z",
+  "kiedy": "2026-09-04T10:12:47.195Z",
   "baza": "wordpress",
   "tabel": 80,
-  "skrot_tabel": "3b3e6436f1928542749fc89cb4dae3e927936f3caad9e8229c3bc436b23798c3",
+  "skrot_tabel": "d570b89d353f64f742760865040eaa8162a204e0bc375cdc6e1e03f751eb6346",
   "nasze": {
     "wp_aai_monitor_logowania": {
       "wierszy": 26,
@@ -21,8 +21,8 @@
       "auto_increment": null
     },
     "wp_aai_sklep_changelog": {
-      "wierszy": 1491,
-      "auto_increment": 1492
+      "wierszy": 1535,
+      "auto_increment": 1536
     },
     "wp_aai_sklep_courses": {
       "wierszy": 2,
@@ -59,8 +59,8 @@
       "auto_increment": null
     },
     "wp_aai_sklep_changelog": {
-      "wierszy": 1491,
-      "auto_increment": 1492
+      "wierszy": 1535,
+      "auto_increment": 1536
     },
     "wp_aai_sklep_courses": {
       "wierszy": 2,
@@ -108,15 +108,15 @@
     },
     "wp_options": {
       "wierszy": 423,
-      "auto_increment": 4429
+      "auto_increment": 4440
     },
     "wp_postmeta": {
       "wierszy": 1786,
-      "auto_increment": 7494
+      "auto_increment": 7544
     },
     "wp_posts": {
       "wierszy": 314,
-      "auto_increment": 1527
+      "auto_increment": 1539
     },
     "wp_termmeta": {
       "wierszy": 1,
@@ -364,9 +364,9 @@
     }
   },
   "media": {
-    "plikow": 1343,
-    "bajtow": 31888625,
-    "skrot": "848a52ffdcc2a61ffcb96e8dc43716e89b348707ae309327ff10ff73a4cc4c47"
+    "plikow": 1346,
+    "bajtow": 31889604,
+    "skrot": "e885d52638768565f2300a7cb7b99a46b34cc9972cd597b42716c8c66afc9677"
   },
   "wtyczki_aktywne": [
     "aai-monitor",

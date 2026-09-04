@@ -1,0 +1,27 @@
+{
+  "id": "REA-PERF-F1-002",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-R5",
+  "stwierdzenie": "Aai_Sklep_Odczyt::moduly() ma DOKŁADNIE tę samą klasę N+1 co AUD-PERF-F1-001 (jedno zapytanie o moduły, potem jedno DODATKOWE zapytanie o lekcje NA KAŻDY moduł, zamiast WHERE module_id IN (...)), ale audyt jej nie zgłosił, a ta metoda leży na ścieżce, którą przechodzi KAŻDY gość odwiedzający katalog /szkolenia/ i KAŻDĄ stronę sprzedażową kursu — nie tylko zapis w kreatorze albo komenda CLI (jak w 001), tylko zwykła odsłona. Wołana przez Aai_Sklep_Odczyt::szczegoly_kursu() (jedyna droga wczytania pełnego programu kursu do renderu), a tę z kolei wołają NA ŻYWEJ TRASIE: Aai_Sklep_Trasy.php:203 (strona sprzedażowa /szkolenia/<slug>/, dla KAŻDEGO gościa) i szablony/katalog.php:18 (hero-mockup katalogu /szkolenia/, dla pierwszego kursu z listy) — czyli fires przy KAŻDEJ odsłonie obu stron front-endu, bez cache'a wyniku i bez WHERE ... IN.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-odczyt.php",
+    "linia": 199,
+    "tresc": "$wiersze_lekcji = $wpdb->get_results("
+  },
+  "dowod": "Zmierzone na ŻYWEJ INSTALACJI :8892, metodą in-process (WP-CLI eval-file symulujące pełny cykl $wp->main()+template_include+require szablonu, licznik $wpdb->num_queries — nie wymaga SAVEQUERIES, bo num_queries liczy się zawsze niezależnie od tej stałej, więc pomiar NIE dotyka wp-config.php ani żadnego pliku instalacji). Skrypt-sonda hookuje filtr 'query' TYLKO na czas jednego symulowanego żądania (add_filter w obrębie jednego wp eval-file, bez zapisu do żadnego pliku instalacji) i liczy dopasowania wzorca /FROM `wp_aai_sklep_lessons` WHERE module_id/i. WYNIK: GET /szkolenia/jak-uzywac-githuba/ (gość, kurs o 6 modułach) = 6 trafień identycznego kształtu zapytania, każde dla innego module_id, wewnątrz jednego renderu. GET /szkolenia/ (katalog, gość) = RÓWNIEŻ 6 trafień — bo szablon katalogu (szablony/katalog.php:18: 'Aai_Sklep_Odczyt::szczegoly_kursu( (string) $aai_kursy[0]['slug'] )') woła pełny program PIERWSZEGO kursu z listy do hero-mockupu, płacąc dokładnie ten sam koszt co pełna strona kursu. Kontrola porównawcza: Aai_Sklep_Odczyt::lista_kursow() (katalog, liczniki kart) NIE ma tego problemu — liczy moduły/lekcje/minuty PODZAPYTANIAMI w jednym SELECT (linie 51-63 tego samego pliku, z komentarzem autora wprost tłumaczącym unikanie JOIN-a) — czyli w TEJ SAMEJ KLASIE jest już wzorzec bez N+1, obok wzorca z N+1, w odległości ~150 linii. Całkowita liczba zapytań na odsłonę zmierzona tą samą metodą: /szkolenia/ = 35 zapytań (3 pomiary z rzędu, identyczne), /szkolenia/jak-uzywac-githuba/ = 41 zapytań (3 pomiary z rzędu, identyczne) — 6 z tych 35/41 to właśnie ten mechanizm.",
+  "klasyfikacja": "N+1 (ta sama klasa co AUD-PERF-F1-001), na ścieżce front-end o WIĘKSZYM ruchu niż miejsce już zgłoszone",
+  "wplyw": "AUD-PERF-F1-001 opisuje wpływ jako koszt PO ZAPISIE w kreatorze i przy URUCHOMIENIU komendy CLI sprawdz-tutora — czyli zdarzenia rzadkie, inicjowane przez właściciela. To miejsce jest gorsze pod względem częstości: uruchamia się przy KAŻDEJ odsłonie strony sprzedażowej kursu ORAZ katalogu przez GOŚCIA (klienta, którego strona ma przekonać do zakupu), bez żadnego bufora między zapisami. Przy dzisiejszych 2 kursach/6 modułach koszt to 6 dodatkowych zapytań na odsłonę (rząd 17% z 35, 15% z 41 zapytań całego renderu) i rośnie liniowo z liczbą modułów kursu — dla kursu z np. 20 modułami koszt tej jednej metody urósłby do 20 zapytań na KAŻDĄ odsłonę strony sprzedażowej. Naprawa jednego zgłoszonego miejsca (tutor.php:788) nie usuwa tego kosztu, bo to inna metoda w innej klasie, wołana z innego powodu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "f114180fe8795c77d8a785a57b4fbc58b4c64a7f061f1998c2f4fcf5f9edb09e",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "PRZEPUSZCZAM. Odtworzone INNYM przyrzadem niz jego: dziennik ogolny MariaDB (general_log do pliku w kontenerze bazy, wlaczony i zdjety wokol JEDNEGO prawdziwego zadania HTTP przez Apache, nie symulacji WP-CLI). Strona kursu /szkolenia/jak-uzywac-githuba/: DOKLADNIE 6 zapytan \"FROM `wp_aai_sklep_lessons` WHERE module_id = ...\", kazde z innym uuid modulu, obok 1 zapytania o moduly i 1 o kurs. Katalog /szkolenia/: rowniez DOKLADNIE 6 takich zapytan, z innym kompletem uuid — czyli hero-mockup katalogu naprawde placi pelny koszt programu pierwszego kursu, tak jak mowi wpis. Miejsce istnieje co do znaku (odczyt.php:199 to \"$wiersze_lekcji = $wpdb->get_results(\" wewnatrz foreach otwartego w 196), zjawisko jest czynne na trasie gosca (oba zadania kodem 200, bez logowania), a kontrola porownawcza wpisu tez sie trzyma: lista_kursow() daje 4 zapytania podzapytaniami, nie po jednym na modul. ZASTRZEZENIE, ktore nie zmienia werdyktu, ale zmienia liczbe we \"wplywie\": mianownik 35/41 jest z jego metody WP-CLI i jest zanizony ponad dwukrotnie — na zywym zadaniu przez Apache /szkolenia/ to 77 SELECT-ow, a strona kursu 83 (licznik Com_select MariaDB, szum zmierzony na pliku statycznym = 0). Udzial tego mechanizmu to wiec ~7,8% i ~7,2%, nie 17% i 15%. Sama roznica miedzy trasami (6) zgadza sie w obu metodach.",
+      "kiedy": "2026-09-04T11:56:37.292Z"
+    }
+  }
+}

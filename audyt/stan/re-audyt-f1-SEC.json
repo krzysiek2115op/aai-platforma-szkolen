@@ -4,22 +4,29 @@
   "rola": "SEC",
   "status": "ZAKOŃCZONE",
   "runda": 1,
-  "niedomkniete": [
-    "SEC-R1",
-    "SEC-R2",
-    "SEC-R3",
-    "SEC-R4",
-    "SEC-R5",
-    "SEC-R6"
-  ],
-  "kiedy": "2026-09-01T22:36:49.371Z",
+  "niedomkniete": [],
+  "kiedy": "2026-09-04T08:46:03.802Z",
   "historia": [
     {
       "status": "ZAKOŃCZONE",
       "runda": 1,
       "kiedy": "2026-09-01T22:36:49.371Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-04T08:26:37.248Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-04T08:43:49.613Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 1,
+      "kiedy": "2026-09-04T08:46:03.802Z"
     }
   ],
-  "proba": "E7.6",
-  "adnotacja": "historia dopisana ręcznie 2026-09-02 przy pozycji 3 pakietu E7.7 — plik z próby E7.6; czas = mtime pliku, jeden wpis, bo przejść nie zapisywano"
+  "adnotacja": "do 2026-09-04T08:26:37.244Z plik niósł stan PRÓBNY E7.6; wpisy historii sprzed tej chwili pochodzą z próby, prawdziwa fala zaczęła się od tego wejścia"
 }
