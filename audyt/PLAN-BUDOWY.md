@@ -5359,3 +5359,21 @@ Trzy decyzje do podjęcia PRZED nią (żadnej nie podejmuje agent):
    zakresu, więc może wejść między falami;
 3. **klamry w zakresach obu sektorów** (`BD`, `FE`, `INT`, `ARCH`) — bez tego fala 2
    powtórzy „BD = 25 plików prototypu", a porównanie ogłosi zgodność.
+
+**STRAŻNIK SEKTORA DAJE DZIŚ KOD 1 — SZÓSTA OTWARTA USTERKA NARZĘDZI,
+ZNALEZIONA PO ZAMKNIĘCIU FALI.** `audyt/tools/straznik-sektora-audytu.mjs`
+kończy **kodem 1** z jednym zgłoszeniem reguły **R17**: „Pogłębiacz SEC wszedł
+2026-09-01T22:36:49.371Z, a dział SEC audytu zakończył 2026-09-03T16:16:46.291Z
+— audyt zakończył się PO wejściu re-audytu (W5)". **Zjawiska nie ma:** to wejście
+pochodzi z **próby E7**, co widać w polu `proba: "E7"` wpisów `REA-SEC-F1-001`
+i `-002`. **Strażnik sektora nie odsiewa prób z historii plików stanu** — ta sama
+klasa co `REA-RAP-F1-002` (`status.mjs` liczy próby razem z wynikiem fali), ale
+w innym narzędziu i innym miejscu, więc jest to osobna usterka. Wpisu nie
+składałem: zgłoszenia składają role, a fala jest zamknięta.
+
+**PUŁAPKA POMIARU ZŁAPANA NA WŁASNEJ KOMENDZIE (nawrót klasy z D5):** pierwszy
+przebieg tego strażnika przez `| tail` pokazał **kod 0**, bo potok maskuje kod
+wyjścia. Bez potoku jest **1**. Zapis „strażnik kod 0" przy domknięciu AUDYTU
+(2026-09-04) mógł powstać dokładnie tak — **do sprawdzenia przy fali 2, mierząc
+BEZ POTOKU**. Reguła R17 mogła się zapalić już 2026-09-03, gdy dział SEC audytu
+się zamykał.
