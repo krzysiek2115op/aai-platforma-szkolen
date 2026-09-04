@@ -2,12 +2,10 @@
   "sektor": "re-audyt",
   "fala": 1,
   "rola": "SKUT",
-  "status": "W TRAKCIE",
+  "status": "ZAKOŃCZONE",
   "runda": 1,
-  "niedomkniete": [
-    "SKUT-R6"
-  ],
-  "kiedy": "2026-09-04T19:53:40.786Z",
+  "niedomkniete": [],
+  "kiedy": "2026-09-04T20:20:29.040Z",
   "historia": [
     {
       "status": "W TRAKCIE",
@@ -28,6 +26,11 @@
       "status": "W TRAKCIE",
       "runda": 1,
       "kiedy": "2026-09-04T19:53:40.786Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 1,
+      "kiedy": "2026-09-04T20:20:29.040Z"
     }
   ]
 }
