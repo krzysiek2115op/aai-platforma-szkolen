@@ -1,0 +1,32 @@
+{
+  "id": "AUD-REPO-F1-009",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-02",
+  "stwierdzenie": "wordpress/README.md, tabela na początku pliku, opisuje Plugin 2 i Plugin 3 jako NIEISTNIEJĄCE ('_(jeszcze nie ma)_' w kolumnie 'Katalog') — 'Plugin 2 — płatności' i 'Plugin 3 — panel admina'. W rzeczywistości OBIE wtyczki są dawno napisane, przetestowane i WYDANE: `wordpress/wtyczki/aai-platnosci/` (17 plików, Plugin 2, kroki P0-P6 zakończone testem ręcznym właściciela 2026-08-30, wersja v0.53.0) i `wordpress/wtyczki/aai-monitor/` (20 plików, Plugin 3, kroki T0-T4 zakończone testem ręcznym właściciela 2026-08-31, wersja v0.58.0) — obie wtyczki istnieją na dysku obok już opisanego w tabeli `wtyczki/aai-sklep`. Dodatkowo nazwa 'Plugin 3 — panel admina' jest nieaktualna podwójnie: rola panelu administracyjnego/'redaktora kursów' została ODRZUCONA DEFINITYWNIE (decyzja właściciela 2026-08-30), a Plugin 3 to WYŁĄCZNIE monitoring (dziennik logowań i pomiar ruchu) — sama wtyczka nazywa się `aai-monitor`, nie `aai-panel`, właśnie dlatego, że w tym repo 'panel' oznacza kreator treści, a nie panel administracyjny.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/README.md",
+    "linia": 10,
+    "tresc": "| _(jeszcze nie ma)_ | Plugin 2 — płatności | warstwa sprzedaży i dostawy na styku z WooCommerce |"
+  },
+  "dowod": "`ls wordpress/wtyczki/` pokazuje trzy katalogi: `aai-monitor`, `aai-platnosci`, `aai-sklep`. `git ls-files wordpress/wtyczki/aai-platnosci/ | wc -l` = 17, `git ls-files wordpress/wtyczki/aai-monitor/ | wc -l` = 20 — obie wtyczki są w pełni śledzone przez gita, nie są puste. README.md:53 (główny README repo) potwierdza: 'aai-platnosci — P0–P6, `v0.53.0` · aai-monitor — T0–T4, `v0.58.0`' i linia 150: 'Wszystkie trzy są SKOŃCZONE — każdy przeszedł własny test ręczny właściciela'. README.md:159-165 pokazuje też prawidłową nazwę i zakres Pluginu 3 ('Monitoring... Tylko PATRZY, nikogo nie blokuje') oraz notatkę '\"Panel\" znaczy w tym repo KREATOR treści, nie panel admina — dlatego moduł 3 nazywa się `aai-monitor`. Rola \"redaktora kursów\" została odrzucona definitywnie'. `git log -1 --format=%ad --date=short -- wordpress/README.md` = 2026-08-25, czyli plik nie był aktualizowany od dnia, w którym oba pluginy jeszcze faktycznie nie istniały (W1 Pluginu 1 domknięty tego dnia) — od tego czasu powstały i zamknęły się CAŁE etapy P0-P6 i T0-T4.",
+  "klasyfikacja": "deklaracja-stanu-nieaktualna",
+  "wplyw": "wordpress/README.md — jedyny plik README wewnątrz katalogu, który faktycznie dostaje produkt (trzy wtyczki WordPressa) — twierdzi, że dwie z trzech wtyczek NIE ISTNIEJĄ, choć obie są od dawna napisane, przetestowane i wydane. Ktokolwiek otwiera ten plik jako punkt wejścia do katalogu `wordpress/` (naturalny odruch przy pracy z kodem produktu) dostaje fałszywy obraz kompletności projektu — wygląda to na etap sprzed startu Pluginu 2, podczas gdy cały etap WordPressa jest już zamknięty.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "7811eda6a2f32f17b94de980f1090c7c27f2312b9031d4a4f629534acce94c4d",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.348Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: wordpress/README.md:10 to '| _(jeszcze nie ma)_ | Plugin 2 — platnosci | warstwa sprzedazy i dostawy na styku z WooCommerce |' co do znaku, a wiersz 11 mowi to samo o 'Plugin 3 — panel admina'. WER-02 dowod dotyczy tego samego i policzylem to sam: 'ls wordpress/wtyczki/' pokazuje aai-monitor, aai-platnosci i aai-sklep; 'git ls-files wordpress/wtyczki/aai-platnosci | wc -l' = 17, 'git ls-files wordpress/wtyczki/aai-monitor | wc -l' = 20 — obie wtyczki sa w gicie i niepuste, a glowny README opisuje je jako skonczone i wydane (v0.53.0, v0.58.0). Potwierdzam tez drugi czlon: 'git log -1 --format=%ad --date=short -- wordpress/README.md' = 2026-08-25, czyli plik stoi na dniu, w ktorym obu wtyczek jeszcze nie bylo, a nazwa 'Plugin 3 — panel admina' jest podwojnie nieaktualna (wtyczka nazywa sie aai-monitor, a rola redaktora/panelu zostala odrzucona decyzja wlasciciela). WER-03 CZYNNE. WER-04 hash 7811... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — to README katalogu, ktory JEST produktem.",
+      "kiedy": "2026-09-03T22:09:23.875Z"
+    }
+  }
+}

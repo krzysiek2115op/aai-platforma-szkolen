@@ -14,8 +14,19 @@
   "dowod": "docs/plugin-2/KROK-P4.md:30 — \"| prawdziwa bramka płatności, faktury, VAT, regulamin | krok po P6 / przed pierwszym klientem |\". docs/plugin-2/KROK-P5.md:43 — \"| prawdziwa bramka płatności, faktury, VAT | osobny krok po P6 |\". docs/plugin-2/DIAGRAM.md:656 — \"| prawdziwa bramka płatności, faktury, VAT | wymaga danych firmy i umowy z operatorem | osobny krok po P6 |\". Żadne z trzech miejsc konsolidujących kategorię NIE wymienia faktur/VAT: CLAUDE.md:3291-3295 wylicza pięć pozycji (bramka płatności, regulamin, zgoda w kasie, domena+HTTPS, poczta) bez faktur; docs/PLAN-SEO-HIGIENA-AUDYT.md:312-318 (sekcja jawnie zatytułowana \"Rzeczy otwarte, o których audyt musi wiedzieć\") wylicza sześć pozycji bez faktur; README.md:59 streszcza tę samą listę (\"prawdziwej bramki płatności, regulaminu i poczty produkcyjnej\") i README.md:467 wylicza \"HTTPS/HSTS, RODO, regulamin, zgoda w kasie na natychmiastowe dostarczenie, poczta produkcyjna\" — w obu wierszach README brak faktur/VAT. Sprawdzone grep-em po całym CLAUDE.md, README.md i docs/PLAN-SEO-HIGIENA-AUDYT.md na frazy \"faktur\" i \"VAT\" — zero trafień poza wskazanymi trzema dokumentami technicznymi Pluginu 2.",
   "klasyfikacja": "niekompletna konsolidacja listy wymagań przedwdrożeniowych",
   "wplyw": "docs/PLAN-SEO-HIGIENA-AUDYT.md jest dokumentem WPROST zaadresowanym do audytu (\"Rzeczy otwarte, o których audyt musi wiedzieć\"), a README.md dwukrotnie kieruje czytelnika do tej samej listy jako do miejsca, gdzie wypisano wszystko brakujące przed uruchomieniem sprzedaży. Ktoś przygotowujący wdrożenie na podstawie któregokolwiek z tych trzech dokumentów przygotuje bramkę płatności, regulamin, zgodę w kasie, domenę i pocztę, ale nie dowie się z nich, że przed pierwszym klientem trzeba też rozwiązać wystawianie faktur z VAT — mimo że fakt ten jest już ustalony i nazwany w trzech innych miejscach repozytorium.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "7b0bc03f537999751a5a26539e7535d6a82f50c5f0b14c889a57992fa75fc1e6",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:17:38.522Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie. WER-02 dowod nosny potwierdzony wlasnym odczytem: 'faktury, VAT' jest przypisane do kategorii 'przed pierwszym klientem' w KROK-P4.md:30, KROK-P5.md:43 i DIAGRAM.md:656, a ZADNA z trzech list konsolidujacych tej kategorii ich nie wymienia — PLAN-SEO-HIGIENA-AUDYT.md:312-318 wylicza bramke, regulamin, zgode w kasie, domene+HTTPS, poczte i rozjazd polityki prywatnosci; CLAUDE.md:3291-3295 wylicza piec pozycji bez faktur; README.md:59 i :467 streszczaja te sama liste, tez bez faktur. WER-04 hash 7b0b... zgodny. WER-05 jednoznaczne. PROSTUJE JEDNO ZDANIE DOWODU (nie zmienia werdyktu): teza 'grep na frazy faktur i VAT po calym CLAUDE.md ... zero trafien poza trzema dokumentami Pluginu 2' jest NIEPRAWDZIWA — sam grep daje w CLAUDE.md trafienia w 899, 916, 1008, 1314, 1499, 1862 (faktur) oraz 2178, 2193 (VAT). Zadne z nich nie jest jednak lista przedwdrozeniowa (mowia, ze faktury bierze WooCommerce), wiec nosna czesc stwierdzenia — brak pozycji w listach KONSOLIDUJACYCH — stoi. WER-03 CZYNNE: nic nizej tej listy nie uzupelnia.",
+      "kiedy": "2026-09-03T22:00:29.016Z"
+    }
+  }
 }

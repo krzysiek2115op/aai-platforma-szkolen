@@ -1,0 +1,32 @@
+{
+  "id": "AUD-PERF-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-07",
+  "stwierdzenie": "Każda odsłona frontu (poza adminem i 404) dostaje przez Aai_Monitor_Pomiar::wpnij() skrypt pomiar.js, który po wczytaniu strony wysyła sendBeacon do admin-post.php?action=aai_monitor_wizyta — a admin-post.php zawsze uruchamia pełny bootstrap WordPressa i zapis do bazy. To jest DODATKOWY, niebuforowalny przebieg PHP doliczony do każdej odsłony (włącznie z trasami katalogu i strony kursu, które SAME nie wołają nocache_headers() i są buforowalne), zmierzony na ~60-85 ms, porównywalny z kosztem całej odsłony strony (53-64 ms).",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-wizyty.php",
+    "linia": 111,
+    "tresc": "add_action( 'admin_post_nopriv_' . self::AKCJA, array( self::class, 'odbierz' ) );"
+  },
+  "dowod": "Pomiar czasu na żywej instalacji :8892 (mediana z 3 prób, curl -w %{time_total}): odsłona GET /szkolenia/ (buforowalna, brak nocache_headers) 0.053-0.064s; POST beaconu do /wp-admin/admin-post.php?action=aai_monitor_wizyta z poprawnym podpisem (ważny ładunek JSON wygenerowany przez Aai_Monitor_Pomiar::wpnij(), class-aai-monitor-pomiar.php:79-109, wpinany na wp_enqueue_scripts na KAŻDEJ stronie frontu poza adminem i 404 wg Aai_Monitor_Pomiar::mierzymy(), pomiar.php:140-148) 0.065-0.084s, kod 204. Beacon jest osobnym żądaniem HTTP, więc na hostingu z cache'em stron GET /szkolenia/ mógłby być serwowany z cache'a (0 PHP), ale beacon i tak uruchamia pełny bootstrap admin-post.php + zapis do bazy przy każdej odsłonie mierzonej przeglądarki.",
+  "klasyfikacja": "niebuforowalny przebieg PHP na odsłonę",
+  "wplyw": "Na hostingu z cache'em stron każda odsłona mierzonej strony (poza adminem i 404) dokłada dodatkowy, w pełni niebuforowalny przebieg PHP kosztujący rzędu 60-85 ms i zapis do bazy, niezależnie od tego, czy sama strona jest buforowalna.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "c6022e271cd3d15f7c2900bb1ac1b250984bc80ff8061368d2438937af292677",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "Zgłasza rzecz JUŻ ROZSTRZYGNIĘTĄ: to jest pozycja A11 z przeglądu T3, otwarta świadomie decyzją właściciela ('dodatkowy, niebuforowalny przebieg PHP ~45-50 ms; pozycja wdrożeniowa, kodu nie ruszamy') i zacytowana DOSŁOWNIE w definicji tego samego działu (audyt/role/PERF/AGENT.md). Zgłoszenie nie nazywa A11 ani nie pokazuje, co się wobec niej zmienia. Jedyny przyrost — wyższy koszt (65-84 ms wobec 45-50 ms) — nie odtwarza się: mój pomiar 11 prób na tej samej instalacji daje medianę beaconu 50 ms (min 42, max 79) i medianę odsłony /szkolenia/ 69 ms (min 55, max 86), czyli beacon jest TAŃSZY od strony, a nie droższy, i mieści się w paśmie A11. Do tego oba pomiary czasu powstały na instalacji, którą ten sam dział oprzyrządował SAVEQUERIES i zrzutem każdego zapytania do pliku (wp-config.php kontenera, nie w repo) i tego nie ujawnił — czas mierzony na takim rigu jest zawyżony, więc nawet ten przyrost stoi na skażonym dowodzie.",
+      "kiedy": "2026-09-03T21:30:54.241Z"
+    },
+    "weryfikator": {
+      "werdykt": "ODRZUCONE",
+      "powod": "ZJAWISKO JEST PRAWDZIWE, ALE JUZ ROZSTRZYGNIETE I ZAPISANE, a jedyna rzecz, ktora czynilaby ten wpis nowym, sie nie odtwarza. WER-01 miejsce istnieje (wizyty.php:111, rejestracja admin_post_nopriv). WER-02 dowod prawdziwy co do faktu 'beacon to osobne zadanie z pelnym bootstrapem'. Ale to jest DOSLOWNIE pozycja A11 z przegladu T3, przyjeta decyzja wlasciciela i zacytowana w definicji TEGO SAMEGO dzialu: audyt/role/PERF/AGENT.md:223-224 'Pozycja A11 jest otwarta SWIADOMIE: ... dodatkowy, niebuforowalny przebieg PHP (~45-50 ms). To decyzja wdrozeniowa, nie usterka.' Zgloszenie nie nazywa A11 i nie pokazuje, co sie wobec niej zmienilo. Jedyny przyrost — teza, ze beacon (65-84 ms) kosztuje WIECEJ niz cala odslona (53-64 ms) — obalam WLASNYM pomiarem na instalacji juz OCZYSZCZONEJ z sondy SAVEQUERIES: /szkolenia/ 7 prob 54-97 ms, a POST na admin-post.php?action=aai_monitor_wizyta 5 prob 47-62 ms z kodem 204, czyli beacon jest TANSZY od strony i miesci sie w pasmie ~45-50 ms z A11. Do tego liczby wpisu powstaly na instalacji oprzyrzadowanej SAVEQUERIES i zrzutem kazdego zapytania do pliku (to jest przedmiot AUD-PERF-F1-007), wiec pomiar czasu byl na niej zawyzony. WER-04 hash c602... zgodny, WER-05 brzmienie jednoznaczne. Odrzucam nie dlatego, ze przebiegu PHP nie ma, tylko dlatego, ze wpis oglasza jako znalezisko stan zapisany i przyjety, a jego JEDYNA nadwyzka nad tym zapisem jest liczba, ktorej nie da sie powtorzyc.",
+      "kiedy": "2026-09-03T21:58:34.611Z"
+    }
+  }
+}

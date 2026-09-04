@@ -2,10 +2,10 @@
   "sektor": "audyt",
   "fala": 1,
   "rola": "KON",
-  "status": "W TRAKCIE",
-  "runda": 2,
+  "status": "ZAKOŃCZONE",
+  "runda": 3,
   "niedomkniete": [],
-  "kiedy": "2026-09-03T16:26:50.500Z",
+  "kiedy": "2026-09-03T23:14:00.197Z",
   "historia": [
     {
       "status": "W TRAKCIE",
@@ -21,6 +21,21 @@
       "status": "W TRAKCIE",
       "runda": 2,
       "kiedy": "2026-09-03T16:26:50.500Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 2,
+      "kiedy": "2026-09-03T22:57:44.028Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 3,
+      "kiedy": "2026-09-03T23:14:00.133Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 3,
+      "kiedy": "2026-09-03T23:14:00.197Z"
     }
   ]
 }

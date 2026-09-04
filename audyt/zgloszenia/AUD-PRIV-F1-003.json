@@ -1,0 +1,32 @@
+{
+  "id": "AUD-PRIV-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PRIV",
+  "pozycja": "PRIV-01",
+  "stwierdzenie": "Kolumna 'agent' tabeli wp_aai_monitor_logowania przechowuje SUROWY, PELNY naglowek User-Agent przegladarki (Aai_Monitor_Zadanie::agent(), linie 53-77: komentarz wprost mowi 'Nie parsujemy go na Firefox 140 / Linux... liczy sie dokladny lancuch'), podczas gdy zarowno docs/plugin-3/POLITYKA-PRYWATNOSCI.md (linia 51-53, cytat gotowy do wklejenia na stronie) jak i identyczna tresc generowana kodem (Aai_Monitor_Prywatnosc::tresc(), linia 91) deklaruja zbieranie wylacznie 'nazwy przegladarki'. Pelny User-Agent niesie znacznie wiecej niz nazwe przegladarki: system operacyjny z wersja, architekture (Win64/x64), silnik renderujacy i dokladna wersje przegladarki - to szerszy zakres danych identyfikujacych urzadzenie niz zadeklarowany w polityce.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zadanie.php",
+    "linia": 53,
+    "tresc": "\t * Przeglądarka — surowy user-agent, przycinany dopiero w warstwie zapisu."
+  },
+  "dowod": "Pomiar zywy na :8892: nieudane logowanie POST http://127.0.0.1:8892/wp-login.php z naglowkiem User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36' (realistyczny UA desktopowego Chrome) i login='priv-audyt-agent-test' zapisalo w wp_aai_monitor_logowania (id 281) wiersz z kolumna agent = DOKLADNIE ten sam, pelny lancuch - system operacyjny (Windows NT 10.0, Win64, x64), silnik (AppleWebKit/537.36, KHTML), nazwa i WERSJA przegladarki (Chrome/128.0.0.0) oraz Safari/537.36. Tresc obietnicy - identyczna w docs/plugin-3/POLITYKA-PRYWATNOSCI.md:51-53 ('...adres IP oraz nazwe przegladarki. Nie zapisujemy hasel...') i w kodzie generujacym wpis do kreatora polityki WordPressa (class-aai-monitor-prywatnosc.php:91, ten sam cytat) - mowi o 'nazwie przegladarki', nie o pelnym, technicznym identyfikatorze urzadzenia i systemu. Komentarz w class-aai-monitor-zadanie.php (linie 53-59) sam przyznaje, ze to swiadoma decyzja ('nie parsujemy... liczy sie dokladny lancuch'), uzasadniona wylacznie wartoscia dowodowa przy probie wlamania - a nie skonsultowana z tekstem obietnicy w polityce. Wiersz testowy id=281 usuniety po pomiarze (DELETE ... WHERE id=281).",
+  "klasyfikacja": "prywatnosc/zgodnosc — zakres zbieranych danych szerszy niz deklaracja polityki",
+  "wplyw": "Kazde logowanie (udane i nieudane) zapisuje na 90 dni pelny, techniczny odcisk urzadzenia klienta lub administratora (system operacyjny z wersja, architektura, silnik i wersja przegladarki), mimo ze polityka prywatnosci - w tresci identycznej z ta, ktora sama wtyczka zglasza do kreatora polityki WordPressa - obiecuje zbieranie wylacznie 'nazwy przegladarki'. To realny rozjazd miedzy tym, co system faktycznie robi, a tym, co deklaruje wlasny, wewnetrzny tekst prawny tej samej wtyczki.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "8eba5433984e7622861a8a85d126f003cae7521e37eda6bd2eb1c814579ef122",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:26:25.740Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: zadanie.php:53 to komentarz 'Przegladarka — surowy user-agent, przycinany dopiero w warstwie zapisu.' co do znaku, a 55-58 mowia wprost 'Nie parsujemy go na Firefox 140 / Linux ... liczy sie dokladny lancuch'. WER-02 dowod dotyczy tego samego: obietnica 'adres IP oraz nazwe przegladarki' stoi zarowno w POLITYKA-PRYWATNOSCI.md:51-53, jak i w kodzie generujacym wpis do kreatora polityki (prywatnosc.php:91) — odczytalem oba. ZASIEG POTWIERDZONY ODCZYTEM BAZY, bez zapisu: SELECT LEFT(agent,120) z wp_aai_monitor_logowania pokazuje wartosci przechowywane DOSLOWNIE tak, jak przyszly w naglowku ('Mozilla/5.0', 'curl/8.21.0') — czyli kolumna trzyma to, co poda klient, a prawdziwy naglowek przegladarki niesie system, architekture, silnik i wersje. Pomiaru autora (wstrzykniecie wlasnego UA) NIE POWTARZALEM celowo — wymagalby zapisu do tabeli z danymi dowodowymi wlasciciela; odczyt istniejacych wierszy rozstrzyga to samo. WER-03 CZYNNE: przyciecie w warstwie zapisu dotyczy DLUGOSCI (191 znakow), nie zakresu danych, wiec nic zjawiska nie blokuje. WER-04 hash 8eba... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T22:04:09.396Z"
+    }
+  }
+}

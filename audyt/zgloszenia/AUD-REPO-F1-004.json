@@ -14,8 +14,19 @@
   "dowod": "Nagłówek tabeli (docs/plugin-3/DIAGRAM.md:611) ma 4 znaki '|' = 3 kolumny: '| Krok | Zakres | Bramka dowodowa (niezmienniki zamykane w tym kroku) |'. Wiersz separatora (linia 612) potwierdza 3 kolumny: '|---|---|---|'. Rozbicie linii 613 (wiersz T1) po znaku '|' daje PIĘĆ elementów: pusty (przed pierwszym '|'), 'T1 — fundament...', 'katalog wordpress/...' (1076 znaków), 'strażnicy zieloni...' (358 znaków), '**STAN PO WYKONANIU:** wtyczka stoi...' (741 znaków, BEZ zamykającego '|' na końcu linii) — czyli CZTERY realne komórki wobec trzech zadeklarowanych w nagłówku. To samo w linii 614 (wiersz T2): rozbicie daje sześć elementów, z czego cztery niepuste — czwarta komórka '**STAN PO WYKONANIU:** `Aai_Monitor_Logowania`...' (1209 znaków) jest nadmiarowa. Linia 615 (wiersz T3): siedem elementów, z czego piąty ('**STAN PO WYKONANIU:** `Aai_Monitor_Wizyty`...', 730 znaków) jest nadmiarową piątą komórką po pustej czwartej. Trzy różne wiersze tej samej tabeli mają ten sam defekt strukturalny.",
   "klasyfikacja": "tabela-markdown-obcieta",
   "wplyw": "Czytelnik dokumentu na GitHubie (gdzie renderuje się Markdown) traci całą treść 'STAN PO WYKONANIU' dla kroków T1, T2 i T3 Pluginu 3 — czyli dokładnie te fragmenty, które podsumowują, co naprawdę powstało, ile reguł ma strażnik, ile sprawdzeń ma smoke i jakie usterki znaleziono przy pisaniu kodu. Ten sam dokument ma być, wg README.md, 'jedynym miejscem pokazującym szwy MIĘDZY wtyczkami' — a jego najważniejsze podsumowania wykonania są niewidoczne dla każdego, kto czyta go na GitHubie zamiast w edytorze.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "377342c7197348ee9e8eb18763416553d0a1c665716f164b041870be8badd7e4",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.178Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: DIAGRAM.md:613 to wiersz T1 co do znaku. WER-02 dowod dotyczy tego samego i ROZBILEM WIERSZE SAM, programowo, zamiast liczyc na oko: naglowek (611) ma 3 kolumny, separator (612) '|---|---|---|'; wiersz 613 rozpada sie na komorki o dlugosciach 52 / 1076 / 358 / 741 i NIE konczy sie znakiem '|' — czyli CZTERY komorki wobec trzech zadeklarowanych; wiersz 614: 51 / 282 / 484 / 1209 — tez cztery; wiersz 615: 46 / 560 / 290 / 1 / 730 — piec, z czwarta pusta. Wedlug GFM komorki ponad liczbe z naglowka sa ignorowane, wiec cala tresc 'STAN PO WYKONANIU' (741, 1209 i 730 znakow) nie dociera do czytelnika na GitHubie. WER-03 CZYNNE: straznik-readme (regula 8, ta sama klasa) czyta WYLACZNIE README.md, wiec ten plik jest poza jego zasiegiem. WER-04 hash 3773... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T22:08:41.779Z"
+    }
+  }
 }

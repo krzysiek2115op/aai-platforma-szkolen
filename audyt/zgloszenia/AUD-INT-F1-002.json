@@ -1,0 +1,32 @@
+{
+  "id": "AUD-INT-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "INT",
+  "pozycja": "INT-04",
+  "stwierdzenie": "Pozycja INT-04 nie ma mechanicznego kryterium domknięcia: jej PYTANIE jest sądem o możliwości („czy wyjątek MOŻE wyjść”), a jej DOWÓD jest faktem mechanicznym („linia bez catch ( Throwable )”). Ten sam stan kodu uzasadnia dziś obie odpowiedzi — dowodu jest 2 sztuki (dwa handlery na hakach WooCommerce bez ani jednego try), a dział zamknął pozycję na „nie znaleziono ryzyka”. Druga fala może odpowiedzieć odwrotnie, nie myląc się, co łamie zasadę powtarzalności sektora.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 331,
+    "tresc": "| INT-04 | Czy nasz wyjątek może wyjść do kasy Woo? | handlery na hakach Woo/Tutora | linia bez `catch ( Throwable )` |"
+  },
+  "dowod": "Pomiar wykonany przeze mnie 2026-09-03 na drzewie gałęzi sektora. Wszystkie handlery Pluginu 2 podpięte pod haki NIE nasze (grep add_action/add_filter w wordpress/wtyczki/aai-platnosci/includes/*.php) i ich obudowa try/catch: woocommerce_order_item_needs_processing→czy_wymaga_obslugi (try 112, catch Throwable 116) TAK; woocommerce_order_status_processing→domknij (try 133, catch 177) TAK; woocommerce_created_customer→na_koncie (try 211) TAK; tutor_after_enrolled→na_dostepie (try 244) TAK; woocommerce_add_to_cart_validation→blokada_sprzedazy (try 269) i juz_w_koszyku (try 433) TAK; woocommerce_add_to_cart→zostaw_jeden_kurs (try 488) TAK; template_redirect→przekieruj_ze_strony_produktu (try 336) TAK; save_post_product→na_zapisie_produktu (try 196) TAK; wp_mail_from/wp_mail_from_name (try 146/179) TAK. BEZ ANI JEDNEGO try/catch: (1) class-aai-platnosci-kasa.php:88 Aai_Platnosci_Kasa::link_pozycji, podpięty w tym samym pliku w linii 59 pod woocommerce_cart_item_permalink — czyli hak WooCommerce biegnący przy rysowaniu pozycji koszyka i kasy; ciało woła Aai_Platnosci_Zapis::kurs_produktu() (zapytanie do naszej tabeli), Aai_Sklep_Odczyt::kurs_po_id() i Aai_Sklep_Widok::adres_kursu() z Pluginu 1; (2) class-aai-platnosci-kasa.php:113 Aai_Platnosci_Kasa::na_bloku, podpięty w linii 55 pod render_block_data, z sygnaturą na_bloku( array $blok ): array w pliku z declare( strict_types = 1 ) — czyli klasa błędu, którą projekt już raz zmierzył przy P4 („ArgumentCountError omijał try, bo powstaje PRZY WYWOŁANIU”). Sprawdziłem też drugą połowę pytania: w żadnym z osłoniętych handlerów instrukcja zdolna rzucić nie stoi PRZED try (przed try są wyłącznie unset, rzutowania i is_array/instanceof). Kontrola maszynowa NIE pokrywa tych dwóch linii: tools/straznicy/straznik-platnosci-wp.mjs wymaga catch ( Throwable ) tylko od słuchaczy haków aai_sklep_* (reguła 6, linie 135-159) i od blokady koszyka (reguła 28, linie 552-565). Czyli dowód z kolumny „Dowód” ISTNIEJE i jest dziś dwuelementowy, a pozycja mimo to jest zamknięta na „nie”.",
+  "klasyfikacja": "pozycja checklisty bez mechanicznego kryterium domknięcia — pytanie i dowód mierzą dwie różne rzeczy",
+  "wplyw": "Odpowiedź na INT-04 zależy od tego, czy audytor przeczyta kolumnę „Pytanie” (możliwość — nie udowodniona, więc „nie”), czy kolumnę „Dowód” (istnieje linia bez catch — więc „tak”). Fala 1 wybrała pierwszą i zamknęła pozycję na „nie znaleziono ryzyka”, nie wymieniając ani jednej z dwóch linii, które kolumna dowodu każe wskazać. Fala 2 może wybrać drugą i dać wynik przeciwny bez żadnej zmiany w kodzie — a rozjazd fal jest w tym sektorze sygnałem defektu audytu, więc pozycja w obecnym brzmieniu produkuje fałszywy sygnał. Skutek dla projektu: dwa handlery na hakach kasy WooCommerce zostają poza jakąkolwiek kontrolą — ani strażnik ich nie pilnuje, ani pozycja audytu ich nie wskazuje.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "49c281becaf0f6f2219242e10f0c6e97533bf76a0dfa4a4dfbf0f96b95ef79d5",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:331 to wiersz INT-04 co do znaku, z pytaniem o MOZLIWOSC ('czy nasz wyjatek moze wyjsc do kasy Woo?') i kolumna dowodu o FAKCIE ('linia bez catch ( Throwable )'). WER-02 dowod dotyczy tego samego i sprawdzilem jego rdzen sam: class-aai-platnosci-kasa.php nie ma ANI JEDNEGO 'try' ani 'catch' (grep po calym pliku: zero trafien), a rejestruje dwa handlery na CUDZYCH hakach — linia 55 add_filter('render_block_data', na_bloku) i linia 59 add_filter('woocommerce_cart_item_permalink', link_pozycji, 20, 2), z cialami w 88 (link_pozycji) i 113 (na_bloku, sygnatura array->array w pliku ze strict_types, czyli klasa ArgumentCountError/TypeError powstajaca PRZY WYWOLANIU, opisana w projekcie przy P4). Potwierdzam tez, ze kontrola maszynowa ich nie obejmuje: straznik-platnosci-wp regula 6 (od 135) wymaga catch ( Throwable ) tylko od sluchaczy hakow aai_sklep_*, a regula 28 (od 552) tylko od blokada_sprzedazy. Czyli dowod z kolumny 'Dowod' istnieje i jest dwuelementowy, mimo ze pozycje zamknieto na 'nie'. WER-03 CZYNNE: nic nizej tego nie domyka. WER-04 hash 49c2... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — wpis nie twierdzi, ze wyjatek NA PEWNO leci, tylko ze pozycja nie ma mechanicznego kryterium domkniecia, i to jest zmierzone.",
+      "kiedy": "2026-09-03T21:50:10.452Z"
+    },
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone własnym pomiarem, nie za weryfikatorem: class-aai-platnosci-kasa.php ma 0 wystąpień try/catch w całym pliku (grep -c), a rejestruje dwa handlery na CUDZYCH hakach — :55 add_filter('render_block_data', na_bloku) i :59 add_filter('woocommerce_cart_item_permalink', link_pozycji, 20, 2), z ciałami w :88 i :113; na_bloku ma sygnaturę array->array w pliku z declare( strict_types = 1 ) (:34). ROLE.md:635 pyta o MOŻLIWOŚĆ, kolumna dowodu żąda FAKTU ('linia bez catch ( Throwable )') — fakt istnieje dwukrotnie, a pozycję zamknięto na 'nie'. Sprawdzenie zakresu maszynowego potwierdzone: straznik-platnosci-wp reguła 6 (od :135) obejmuje słuchaczy aai_sklep_*, reguła 28 (od :552) blokadę koszyka — żadna nie widzi tych dwóch linii.",
+      "kiedy": "2026-09-03T22:28:51.048Z"
+    }
+  }
+}

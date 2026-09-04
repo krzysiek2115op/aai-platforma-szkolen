@@ -14,8 +14,19 @@
   "dowod": "Dwie strzałki cyklu, obie w rzeczywistym kodzie (nie w komentarzu): (1) class-aai-platnosci-ustawienia.php:390-394, w metodzie sprawdzającej dostępność produktu — `switch ( Aai_Platnosci_Cta::stan_posiadania( $tutor, get_current_user_id() ) ) { case Aai_Platnosci_Cta::MA_KURS: ... case Aai_Platnosci_Cta::W_TOKU: ...}` — Ustawienia zależy od metody i stałych klasy Cta; (2) class-aai-platnosci-cta.php:106, w prywatnej metodzie produkt_do_kupienia() — `if ( ! Aai_Platnosci_Ustawienia::sprzedaz_otwarta() ) { return null; }` — Cta zależy z powrotem od Ustawienia. Wykryte grafem zależności statycznych zbudowanym ze wszystkich 54 klas wtyczek, z odrzuceniem odniesień w komentarzach.",
   "klasyfikacja": "granica",
   "wplyw": "Klasa 'ustawień' (Aai_Platnosci_Ustawienia) i klasa 'stanu CTA' (Aai_Platnosci_Cta) zależą od siebie nawzajem — żadna nie jest fundamentem dla drugiej, mimo że nazwa 'Ustawienia' sugeruje warstwę niższego poziomu, od której inne klasy powinny zależeć jednokierunkowo. Test jednostkowy którejkolwiek wymaga obecności drugiej.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "9a3537104166f4def5df97c65eb5fa9eb4aec14f90f63433bf1b2069d4a0f985",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:30:23.499Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: cta.php:106 'if ( ! Aai_Platnosci_Ustawienia::sprzedaz_otwarta() ) {' co do znaku; druga strzalka potwierdzona wlasnym odczytem ustawienia.php:390 'switch ( Aai_Platnosci_Cta::stan_posiadania( $tutor, get_current_user_id() ) )' plus stale Cta::MA_KURS i Cta::W_TOKU w 391 i 394. WER-02 dowod dotyczy tego samego mechanizmu — obie strzalki to wywolania w kodzie, nie wzmianki w komentarzu. WER-03 czynne. WER-04 hash 515c... zgodny. WER-05 jednoznaczne. WPLYW NIE ZAWYZONY, i tu inaczej niz w AUD-ARCH-F1-002: zaleznosc jest naprawde OBUSTRONNA miedzy tymi samymi dwiema klasami, wiec zdanie 'test jednostkowy ktorejkolwiek wymaga obecnosci drugiej' jest prawdziwe; zgloszenie nie twierdzi awarii ani sprzegniecia ladowania.",
+      "kiedy": "2026-09-03T21:42:20.180Z"
+    }
+  }
 }

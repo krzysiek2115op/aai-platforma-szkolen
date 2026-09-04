@@ -2,15 +2,40 @@
   "sektor": "audyt",
   "fala": 1,
   "rola": "REPO",
-  "status": "W TRAKCIE",
-  "runda": 0,
+  "status": "ZAKOŃCZONE",
+  "runda": 3,
   "niedomkniete": [],
-  "kiedy": "2026-09-03T16:37:34.509Z",
+  "kiedy": "2026-09-03T21:14:58.813Z",
   "historia": [
     {
       "status": "W TRAKCIE",
       "runda": 0,
       "kiedy": "2026-09-03T16:37:34.509Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T20:58:32.572Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-03T21:08:51.603Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 2,
+      "kiedy": "2026-09-03T21:13:28.139Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 3,
+      "kiedy": "2026-09-03T21:14:39.501Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 3,
+      "kiedy": "2026-09-03T21:14:58.813Z"
     }
   ]
 }

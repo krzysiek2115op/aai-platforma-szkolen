@@ -14,8 +14,19 @@
   "dowod": "Cztery strzałki, wszystkie w rzeczywistym kodzie (nie w komentarzu): (1) class-aai-sklep-trasy.php:184, metoda widzi_szkice() — `return current_user_can( Aai_Sklep_Panel::UPRAWNIENIE );` — Trasy zależy od stałej Panel::UPRAWNIENIE; (2) class-aai-sklep-panel.php:188-191, pasek_administracyjny() — `if ( is_admin() || 'kurs' !== Aai_Sklep_Trasy::widok() ... ) { ... Aai_Sklep_Trasy::slug() ...}` — Panel zależy z powrotem od Trasy (cykl dwuwęzłowy); (3) class-aai-sklep-panel.php:309 — `$pola = Aai_Sklep_Kontrakt::pola_lekcji();` — Panel zależy od Kontrakt; (4) class-aai-sklep-kontrakt.php:503 — `if ( in_array( $slug, Aai_Sklep_Trasy::zarezerwowane_slugi(), true ) )` — Kontrakt zależy z powrotem od Trasy, zamykając trzywęzłowy cykl Trasy→Panel→Kontrakt→Trasy. Wykryte grafem zależności statycznych zbudowanym ze wszystkich 54 klas wtyczek, z odrzuceniem odniesień w komentarzach blokowych i liniowych.",
   "klasyfikacja": "granica",
   "wplyw": "Aai_Sklep_Trasy (routing/rewrite) i Aai_Sklep_Panel (kokpit kreatora) są wzajemnie zależne, a Aai_Sklep_Kontrakt (walidacja wejścia formularza) sięga z powrotem do warstwy routingu po listę zarezerwowanych slugów zamiast dostać ją jako parametr — trzy różne odpowiedzialności (adresowanie URL, panel administracyjny, kontrakt danych) nie dają się rozdzielić bez jednoczesnego wczytania całej trójki.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "946a84f94a3cc094df099d9e3e69da77fd63c789adb8ffa9c08a4d703fff2e98",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:30:23.552Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: kontrakt.php:503 'if ( in_array( $slug, Aai_Sklep_Trasy::zarezerwowane_slugi(), true ) ) {' co do znaku. Pozostale trzy strzalki potwierdzone wlasnym odczytem: trasy.php:184 'return current_user_can( Aai_Sklep_Panel::UPRAWNIENIE );', panel.php:188 'if ( is_admin() || \"kurs\" !== Aai_Sklep_Trasy::widok() ...' i panel.php:191 'Aai_Sklep_Trasy::slug()', panel.php:309 '$pola = Aai_Sklep_Kontrakt::pola_lekcji();'. Oba cykle sa wiec zamkniete: dwuwezlowy Trasy<->Panel i trojwezlowy Trasy->Panel->Kontrakt->Trasy. WER-02 dowod trafia w te same wywolania, nie w sasiednie. WER-03 czynne. WER-04 hash 946a... zgodny. WER-05 jednoznaczne. WPLYW NIE ZAWYZONY: cykl Trasy<->Panel jest obustronny w scislym sensie, wiec zdanie o niemoznosci rozdzielenia trojki jest tu uzasadnione inaczej niz w AUD-ARCH-F1-002 (tam kazda klasa siegala po jedna, nie po obie).",
+      "kiedy": "2026-09-03T21:42:33.290Z"
+    }
+  }
 }

@@ -1,0 +1,27 @@
+{
+  "id": "AUD-FE-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "FE",
+  "pozycja": "FE-11",
+  "stwierdzenie": "Bramka `npm run smoke:wp-jezyk`, którą checklista FE-11 podaje jako komendę pozycji, strukturalnie nie widzi stanu, w którym leży usterka: mierzy `/koszyk/` dopiero po tym, jak linię wyżej sama włożyła produkt do koszyka, więc PUSTEGO koszyka nie ogląda nigdy, a jej lista fraz jest zamknięta i nie zawiera ani jednego napisu z bloku pustego koszyka ani żadnego pytania o walutę — dlatego melduje 25/25 i zdanie „ścieżka klienta w całości po polsku”, podczas gdy pusty `/koszyk/` pokazuje trzy napisy po angielsku, tytuł karty brzmi „Cart”, a każda cena na tej ścieżce to `$299.00`.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/smoke/smoke-wp-jezyk.mjs",
+    "linia": 182,
+    "tresc": "  await zmierz(`/kasa/?add-to-cart=${produkt}`, \"KASA\", \"Automatic AI\");"
+  },
+  "dowod": "Zmierzone na :8892 (środowisko zdrowe: nagłówek CSP obecny, /courses/ oddaje 301). 1) BRAMKA: `ZRZUTY_RIG=<rig> npm run smoke:wp-jezyk` kończy KODEM 0 i napisem „OK (25 sprawdzeń — ścieżka klienta w całości po polsku)”. 2) TEN SAM ADRES W STANIE PUSTYM, prawdziwa przeglądarka (puppeteer-core + /usr/bin/firefox, webDriverBiDi, networkidle0 + 3 s): innerText `/koszyk/` = „… Szkolenia Porozmawiajmy Your cart is currently empty! New in store [ STATUS · ONLINE ] …”. 3) To NIE są napisy z paczki tłumaczeń JS: `curl -s http://127.0.0.1:8892/koszyk/` ma oba już w HTML serwera, a `wp post get 6 --field=post_content` pokazuje je jako DOSŁOWNY tekst strony (linia 77 `<h2 …>Your cart is currently empty!</h2>`, linia 85 `<h2 …>New in store</h2>`, linia 11 trzeci napis „You may be interested in…”) — treść wpisu, której żaden mechanizm tłumaczeń nie dotyka. Tytuł strony też jest angielski: wiersz id 6 w wp_posts ma post_title „Cart”, a znacznik title oddaje „Cart – Automatic AI (środowisko robocze)”. 4) WALUTA na tej samej ścieżce, przy tej samej zielonej bramce: Store API `/wp-json/wc/store/v1/cart` zwraca currency_code=USD i currency_prefix=$, a przeglądarka liczy na `/kasa/?add-to-cart=75` PIĘĆ wystąpień `$299.00` i ZERO `299,00 zł`; na `/koszyk/` trzy i zero. 5) PRZYCZYNA ŚLEPOTY W KODZIE BRAMKI: linie 182–183 wołają `zmierz('/kasa/?add-to-cart=…')` przed `zmierz('/koszyk/')` na jednej karcie z jednym ciasteczkiem sesji, a `grep -n 'empty-cart|opróżni|WC()->cart' tools/smoke/smoke-wp-jezyk.mjs` nie zwraca NIC — koszyk nie jest między pomiarami opróżniany; lista FRAZY (linie 108–116) jest zamknięta i nie ma w niej ani „Your cart is currently empty!”, ani „New in store”, ani „You may be interested in”, ani żadnego pytania o symbol waluty.",
+  "klasyfikacja": "pozycja checklisty domykana cudzą bramką, która nie może zobaczyć usterki",
+  "wplyw": "FE-11 da się zamknąć na „tak, po polsku” bez otwarcia jednego ekranu — wystarczy zielona cudza bramka, a ta jest zielona z powodu KOLEJNOŚCI własnych kroków, nie z powodu stanu produktu. Druga fala, idąc tą samą komendą, dostanie ten sam zielony wynik i tę samą nieprawdę, więc powtarzalność audytu potwierdzi tu stan, którego nie ma. To ta sama klasa, którą projekt nazwał przy CI: bramka, której nie widać, jest nie do odróżnienia od bramki, której nie ma.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "7d36cdefb8078abb43ef760347f84de487a0b3f7a90acc5e4eefd8b23305433c",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: smoke-wp-jezyk.mjs:182 to 'await zmierz(`/kasa/?add-to-cart=${produkt}`, \"KASA\", \"Automatic AI\");' co do znaku, a 183 mierzy '/koszyk/' — czyli koszyk ogladany JEST dopiero z produktem w srodku. WER-02 dowod dotyczy tego samego i odtworzylem KAZDY punkt wlasnym pomiarem: (a) URUCHOMILEM bramke — 'ZRZUTY_RIG=/tmp/rig npm run smoke:wp-jezyk' konczy KODEM 0 i napisem 'OK (25 sprawdzen — sciezka klienta w calosci po polsku)'; (b) w tym samym czasie curl '/koszyk/' oddaje 'Your cart is currently empty!' i 'New in store', a <title> brzmi 'Cart – Automatic AI'; (c) 'wp post get 6 --field=post_content' potwierdza, ze te napisy to DOSLOWNA tresc wpisu (linie 11, 77, 85), a post_title strony to 'Cart'; (d) waluta na tej samej sciezce: 'wp option get woocommerce_currency' = USD, wc_price(299) = $299.00; (e) przyczyna slepoty w kodzie bramki potwierdzona: lista FRAZY (108-116) jest zamknieta i nie ma w niej ani jednego z tych napisow ani pytania o walute, a grep -E 'empty-cart|oprozni|WC\\(\\)->cart|currency|waluta' po calym pliku bramki nie zwraca NIC — koszyk nie jest miedzy pomiarami oprozniany. WER-03 CZYNNE: FE-11 (ROLE.md:142) podaje ta bramke jako komende pozycji, wiec nie ma nizej niczego, co by ten stan zobaczylo. WER-04 hash 7d36... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — zielona bramka przy trzech angielskich napisach i cenach w dolarach jest faktem zmierzonym w jednym przebiegu.",
+      "kiedy": "2026-09-03T21:48:27.575Z"
+    }
+  }
+}

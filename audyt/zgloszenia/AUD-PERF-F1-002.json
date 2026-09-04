@@ -14,8 +14,19 @@
   "dowod": "Pomiar SAVEQUERIES na żywej instalacji :8892 (gość, cache wyłączony): jedna odsłona GET /szkolenia/jak-korzystac-z-claude/ zawiera 7 identycznych zapytań \"SELECT product_id FROM wp_aai_platnosci_powiazania WHERE course_uuid = '15271730-7a12-4255-943d-cdbb0f990568'\" w tym samym żądaniu (zrzut pełnej listy zapytań $wpdb->queries, filtr uniq -c). Metoda Aai_Sklep_Widok::cena_grosze() (ten sam plugin-1/class-aai-sklep-widok.php, linia 149) ma dokładnie taki mechanizm (static $pamiec) z komentarzem wprost tłumaczącym, że bez niego strona kursu pytałaby o cenę cztery razy i byłaby 'tą samą klasą kosztu, która przy W6 dała 90 zapytań na odsłonę menu' — produkt_kursu() tej ochrony nie ma.",
   "klasyfikacja": "brak pamięci żądania",
   "wplyw": "Każda odsłona strony kursu wykonuje to samo zapytanie SQL o mapowanie kurs->produkt wielokrotnie (zmierzone: 7 razy) zamiast raz; koszt mnoży się przez liczbę miejsc odpytujących CTA i dostępność i rośnie z ruchem strony sprzedażowej bez żadnej korzyści (wynik jest stały w obrębie jednego żądania).",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "1a1804c0df98eec30730e475574a42493f5b3a6738811edbf6394e0b0e9cb0de",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Mechanizm odtworzony: w pliku nie ma ani jednego 'static $', a bliźniacza Aai_Sklep_Widok::cena_grosze() ma pamięć żądania. Pomiar własny (zrzut SQL, CLI i HTTP zgodnie): 5, nie 7, identycznych zapytań o powiazania na render strony kursu dla gościa (2 dla właściciela kursu, 2 na katalogu) — liczba 7 z dowodu NIE odtwarza się w żadnym stanie, jaki umiem osiągnąć; stwierdzenie i miejsce zostają prawdziwe.",
+      "kiedy": "2026-09-03T21:30:21.435Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm: produkt_kursu() stoi w 507-515 i robi $wpdb->get_var( prepare( 'SELECT product_id FROM {tabela} WHERE course_uuid = %s' ) ) bez zadnej pamieci — w calym pliku jest ZERO wystapien 'static $' (policzone), a blizniacza Aai_Sklep_Widok::cena_grosze() ma 'static $pamiec = array();' w linii 150. WER-02 dowod dotyczy tego samego mechanizmu. ZASIEG POPRAWIONY: liczba 7 z dowodu sie NIE potwierdza — wyprowadzilem ja z kodu niezaleznie i wychodzi PIEC wywolan na render strony kursu: trzy przyciski CTA (szablony czesci/cena.php:83, czesci/final-cta.php:26, sekcje/hero.php:53 -> Widok::cta -> cta_kursu -> filtr aai_sklep_cta_kursu -> Cta::stan -> produkt_kursu w cta.php:112), raz dostepnosc w danych strukturalnych (seo.php:293) i raz cena (cena.php:63, ale tylko RAZ, bo cena_grosze ma pamiec) — co zgadza sie co do sztuki z niezaleznym pomiarem krytyka (5). NIE MOGLEM tego przemierzyc na zywo, bo sonde SAVEQUERIES zdjeto z instalacji przed moja weryfikacja (to jest przedmiot AUD-PERF-F1-007), a wlasnej sondy nie zakladam — sektor nie zmienia srodowiska; mowie to wprost zamiast podawac cudza liczbe za swoja. Roznica 7 wobec 5 nie rusza stwierdzenia ani miejsca. WER-03 CZYNNE. WER-04 hash 1a18... zgodny. WER-05 jednoznaczne.",
+      "kiedy": "2026-09-03T21:57:48.854Z"
+    }
+  }
 }

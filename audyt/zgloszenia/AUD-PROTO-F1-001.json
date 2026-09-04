@@ -14,8 +14,19 @@
   "dowod": "app/szkolenia/kreator/page.serwer.tsx istnieje jako statyczny segment /szkolenia/kreator (linia 40: export default async function KreatorPage) obok dynamicznego app/szkolenia/[slug]/page.serwer.tsx; w Next.js App Router statyczny segment ZAWSZE ma pierwszeństwo przed dynamicznym na tym samym poziomie ścieżki. Grep 'grep -n \"slug\" modules/m1-sklep/dyspozytor.ts' pokazuje wyłącznie obsługę konfliktu unikalności (constraint bazy), zero sprawdzenia listy zastrzeżonych wartości. To ta sama klasa błędu, którą wtyczka WordPressa (Aai_Sklep_Trasy::PODSTRONY, BLAD-021) już naprawiła po stronie WP — w prototypie, będącym specyfikacją wykonawczą, analogicznej ochrony nie ma.",
   "klasyfikacja": "brak walidacji / cichy błąd logiki tras",
   "wplyw": "Właściciel może w kreatorze utworzyć i opublikować kurs o slugu \"kreator\" (albo zmienić istniejący slug na ten), a jego strona sprzedażowa stanie się niedostępna dla klientów bez jakiegokolwiek komunikatu błędu — kurs zniknie z ruchu sprzedażowego po cichu.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "486fced12f0d3f8fffc0d3a29da9c54f990611fbe7dd1dafb6fc48b375e9a00a",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:33:01.675Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie: typy.ts, walidacja KursWejscie.slug — sprawdzilem, ze w 461-465 stoi 'slug: z.string()...regex(/^[a-z0-9-]+$/, ...)' i ANI JEDNEGO wykluczenia wartosci zastrzezonej; grep 'zarezerwowane' po typy.ts i dyspozytor.ts nie daje trafienia. WER-02 dowod dotyczy tego samego: oba pliki tras istnieja obok siebie — app/szkolenia/kreator/page.serwer.tsx (segment statyczny) i app/szkolenia/[slug]/page.serwer.tsx (dynamiczny), a pierwszenstwo segmentu statycznego nad dynamicznym na tym samym poziomie jest zachowaniem routera, nie zalozeniem autora. WER-03 CZYNNE: sprawdzilem, czy cos nizej to zatrzymuje — nie; dyspozytor pilnuje wylacznie unikalnosci slugu (ograniczenie bazy), wiec 'kreator' przechodzi. WER-04 hash 486f... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony: to dokladny odpowiednik BLAD-021, ktory w produkcie WP juz naprawiono (Aai_Sklep_Trasy::PODSTRONY) — w prototypie, ktory jest specyfikacja wykonawcza, ochrony nie ma.",
+      "kiedy": "2026-09-03T22:06:03.347Z"
+    }
+  }
 }

@@ -1,0 +1,32 @@
+{
+  "id": "AUD-PERF-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-04",
+  "stwierdzenie": "Widok pojedynczej lekcji (szablony/lekcja.php, wybierany przez Aai_Sklep_Lekcja::wybierz_szablon() w class-aai-sklep-lekcja.php) NIE woła nocache_headers(), mimo że jego treść jest zależna od tożsamości oglądającego: Aai_Sklep_Lekcja::czy_wolno() (linie 551-562) decyduje o dostępie przez current_user_can('manage_options') i tutor_utils()->has_enrolled_content_access(), a szablon lekcja.php na tej podstawie renderuje ALBO pełną treść lekcji (proza, materiały, znacznik 'przerobiona' z postępem konkretnego konta) ALBO bramkę logowania — pod tym samym adresem URL. Jedyne wystąpienie nocache_headers() w tym pliku (linia 184, w odpowiedz_zaslony()) dotyczy zupełnie innej ścieżki — zablokowanej LISTY/archiwum lekcji (404), nie pojedynczej strony lekcji, którą oglądają kupujący.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-lekcja.php",
+    "zakres": "metoda wybierz_szablon (linie 222-227), wołana z template_include (linia 58) — brak wywołania nocache_headers() przed zwróceniem szablonu lekcja.php",
+    "mechanizm": "brak nocache_headers() na ścieżce renderu pojedynczej lekcji: Aai_Sklep_Trasy::wybierz_szablon() woła nocache_headers() dla widoku 'moje' (class-aai-sklep-trasy.php:278) z komentarzem wprost tłumaczącym, że 'treść zależy od KONTA oglądającego' i bez tych nagłówków 'cache strony albo CDN bez reguły na ciasteczko logowania mógłby wydać listę kursów jednego klienta drugiemu' — ta sama przesłanka dotyczy strony lekcji (dostęp i status 'przerobiona' też zależą od konta), a tam wywołania brakuje."
+  },
+  "dowod": "grep -n nocache_headers wordpress/wtyczki/aai-sklep/includes/*.php daje TRZY trafienia: class-aai-sklep-lekcja.php:184 (odpowiedz_zaslony — zablokowane archiwum/lista, template_redirect priorytet 1) oraz class-aai-sklep-trasy.php:232 i :278 (404 własnych tras i widok 'moje'). Ścieżka renderu pojedynczej lekcji (wybierz_szablon(), linie 222-227, podpięta pod template_include w linii 58) nie zawiera wywołania. Treść zależna od użytkownika potwierdzona w kodzie: czy_wolno() (linie 551-562) zwraca różny wynik dla current_user_can('manage_options'), tutor_utils()->has_enrolled_content_access() i gościa na zapowiedzi, a szablony/lekcja.php (linie 18-60) renderuje różną treść w zależności od $dane['dostep'] i $dane['ukonczona'] pod tym samym adresem URL.",
+  "klasyfikacja": "brak nagłówków no-cache na widoku prywatnym",
+  "wplyw": "Na hostingu z buforowaniem stron pełnej treści (page cache/CDN bez reguły na ciasteczko logowania) strona pojedynczej lekcji może zostać zbuforowana w wariancie jednego użytkownika (np. z pełną treścią i jego statusem 'przerobiona') i wydana kolejnym odwiedzającym pod tym samym adresem, albo odwrotnie — kupujący dostanie zbuforowaną bramkę logowania zamiast opłaconej treści.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "bc8326ab90e57b902ac072561337f63d9bd12d5f5de4a4d048ffcedca1bf0d8f",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone NA ŻYWEJ TRASIE nagłówkami, nie lekturą: GET lekcji płatnej jako gość = HTTP 200 BEZ jakiegokolwiek Cache-Control; ten sam adres zalogowanym = pełny zestaw no-cache. Że to nie nasza linia, dowodzi kontrola różnicowa: katalog /szkolenia/, który nikomu nie obiecuje nocache_headers(), zalogowanemu oddaje IDENTYCZNY zestaw — nagłówek stawia stos (Woo), nie Plugin 1. grep potwierdza 3 wystąpienia nocache_headers(), żadne na ścieżce wybierz_szablon().",
+      "kiedy": "2026-09-03T21:30:27.595Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie. WER-02 dowod dotyczy tego samego i sprawdzilem obie polowy sam: (a) 'grep -n nocache_headers wordpress/wtyczki/aai-sklep/includes/*.php' daje DOKLADNIE trzy trafienia — lekcja.php:184 (odpowiedz_zaslony, czyli zaslona listy/archiwum), trasy.php:232 (404 naszych tras) i trasy.php:278 (widok 'moje') — zadne na sciezce wybierz_szablon(); (b) POMIAR NA ZYWEJ TRASIE, nie lektura: GET http://127.0.0.1:8892/courses/jak-uzywac-githuba/lessons/konfiguracja-gita-na-twoim-komputerze/ jako GOSC oddaje HTTP 200 BEZ ANI JEDNEGO naglowka Cache-Control/Expires/Pragma, a tresc to bramka logowania (w HTML 'Zaloguj' i 'Ta lekcja'). Czyli strona, ktorej tresc zalezy od tozsamosci, jest dla cache'a stron w pelni buforowalna. Dla porownania te same lekcje pod adresem /lesson/<slug>/ oddaja 404 i TAM naglowki no-cache sa (to wlasnie linia 184 — inna sciezka, dokladnie jak mowi zgloszenie). WER-03 CZYNNE. WER-04 hash bc83... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony: wpis warunkuje szkode hostingiem z page cache i tak jest — u nas dzis cache'a stron nie ma.",
+      "kiedy": "2026-09-03T21:58:13.257Z"
+    }
+  }
+}

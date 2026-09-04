@@ -1,0 +1,27 @@
+{
+  "id": "AUD-PROTO-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PROTO",
+  "pozycja": "PROTO-02",
+  "stwierdzenie": "Komenda pozycji PROTO-02 celuje w KATALOG, a nie w rozstrzygnięcie, o które pozycja pyta: `git ls-files 'app/api/**'` policzy wyłącznie pliki pod app/api, więc drugi endpoint mutujący położony gdziekolwiek indziej w app/ (np. app/szkolenia/wystrzal/route.serwer.ts — Next traktuje każdy route.* w app/ jako trasę, a pageExtensions w trybie serwerowym obejmuje serwer.ts) nie zostanie policzony ANI RAZU. Pozycja domyka się na „nie\" samą liczbą 1, bez otwarcia jakiegokolwiek pliku, a jedyny mechaniczny kontroler tej reguły (tools/straznicy/straznik-ajax.mjs) ma DOKŁADNIE TEN SAM ślepy punkt i sam się do niego przyznaje.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 460,
+    "tresc": "| PROTO-02 | Czy jeden AJAX pozostał jeden (WYTYCZNE §8)? | `git ls-files 'app/api/**'` | liczba tras |"
+  },
+  "dowod": "Pomiar 1 — komenda z checklisty: `git ls-files 'app/api/**'` → jeden wiersz `app/api/szkolenia/route.serwer.ts`, kod 0. Pomiar 2 — zakres kontrolera: `grep -n 'const API' tools/straznicy/straznik-ajax.mjs` → linia 31 `const API = join(\"app\", \"api\");`, a komentarz tego samego pliku (linia 24) mówi wprost: „Dopóki nie ma katalogu app/api, strażnik przechodzi.\" Czyli i checklista, i strażnik pytają o zawartość jednego katalogu, podczas gdy pozycja pyta o niezmiennik WYTYCZNE §8 („jedna baza = JEDEN AJAX\"), który nie jest związany z żadną ścieżką. Pomiar 3 — nazewnictwo w tym repo pokazuje, że wzorzec na nazwę jest tu zawodny: jedyny endpoint nazywa się `route.serwer.ts`, więc grep `app/.*route\\.(ts|tsx|js)$` po całym `git ls-files` daje ZERO trafień. To ta sama klasa, którą repo zna z 0.29.0, 0.44.0, 0.47.0 i P4 (wzorzec celujący w nazwę/miejsce zamiast w rozstrzygnięcie).",
+  "klasyfikacja": "usterka checklisty — komenda węższa niż pytanie; pozycja domyka się bez otwarcia pliku",
+  "wplyw": "Dodanie drugiego kanału mutującego poza app/api przechodzi przez audyt niezauważone: PROTO-02 pokaże dalej „1\", a straznik-ajax będzie zielony. Audyt zamknąłby wtedy na „nie\" pozycję, której przedmiot właśnie został złamany — a druga fala, licząc tą samą komendą, potwierdzi ten sam błędny wynik i rozjazd fal niczego nie ujawni.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "cf47ff0ca78033936f5ba74aea2d2e11aaf67b51bdaabc6c55eb720057809c7b",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:460 to wiersz PROTO-02 co do znaku. WER-02 dowod dotyczy tego samego i odtworzylem wszystkie trzy pomiary: (1) 'git ls-files app/api/**' zwraca JEDEN wiersz (app/api/szkolenia/route.serwer.ts), kod 0 — pozycja zamyka sie liczba 1 bez otwarcia pliku; (2) straznik-ajax.mjs:31 'const API = join(\"app\", \"api\");', a jego wlasny komentarz w linii 24 mowi 'Dopoki nie ma katalogu app/api, straznik przechodzi' — czyli jedyny kontroler tej reguly ma ten sam slepy punkt i sam sie do niego przyznaje; (3) wzorzec na nazwe jest tu zawodny: 'git ls-files | grep -cE \"app/.*route\\.(ts|tsx|js)\\$\"' daje ZERO, bo jedyny endpoint nazywa sie route.serwer.ts. WER-03 CZYNNE. WER-04 hash cf47... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — wpis nie twierdzi, ze drugi kanal ISTNIEJE, tylko ze jego dolozenie przeszloby niezauwazone, i to jest zmierzone.",
+      "kiedy": "2026-09-03T22:06:11.462Z"
+    }
+  }
+}

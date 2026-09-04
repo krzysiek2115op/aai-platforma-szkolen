@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "f9b09bf30cfe9bda899f2604579ec203349b9fa6afaebdb4490b7898297e599a",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie: mapa.mjs, petla po zakresach i kontrola pustki. WER-02 dowod dotyczy tego samego i ODTWORZYLEM GO CO DO LICZBY: 'node audyt/tools/mapa.mjs' konczy KODEM 0, wypisuje 15 dzialow, kazdy z liczba > 0, ZERO linii o pustym zakresie; a te same cztery podwzorce uruchomione osobno daja zero plikow — ROLE.md:126 (FE, klamry {widok,lekcja,moje,proza,zasoby,menu,trasy,styl-tutora,styl-woo}) -> 0, ale te same dziewiec nazw wypisanych wprost -> 9 plikow w gicie; ROLE.md:189 (BD) -> 0; ROLE.md:321 (INT) -> 0; ROLE.md:323 (INT, assets/{tutor,woo}-motyw.css) -> 0. Czyli pustka podwzorca jest niewidzialna dla mapy i dla reguly 8 straznika sektora, ktora wola wylacznie ten skrypt. WER-03 CZYNNE: kontrola konczy sie kodem 0, wiec nie ma nizej niczego, co by to zatrzymalo. WER-04 hash f9b0... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — to nie jest to samo zgloszenie co AUD-KON-F1-001..003 (tamte wskazuja KONKRETNE zepsute linie ROLE.md, to wskazuje slepote kontroli, ktora je przepuscila).",
+      "kiedy": "2026-09-03T21:53:45.880Z"
+    }
+  }
 }

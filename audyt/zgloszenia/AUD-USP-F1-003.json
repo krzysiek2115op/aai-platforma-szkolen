@@ -1,0 +1,32 @@
+{
+  "id": "AUD-USP-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "USP",
+  "pozycja": "USP-06",
+  "stwierdzenie": "Rejestr znanych klas błędów trzyma opis klasy jako wolny tekst bez maszynowego wzorca, a w repo nie istnieje żaden skrypt, który policzyłby wystąpienia danej klasy błędu w całym repo — każdy taki pomiar wymaga ręcznie skonstruowanego grepa wyprowadzonego ad hoc z opisu.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "rejestr/znane-bledy.json",
+    "zakres": "schemat wpisu w tablicy bledy[] (pola: id, data, klasa, dowod, skutek, naprawa, test, straznik)",
+    "mechanizm": "brak pola z maszynowym wzorcem wyszukiwania (np. regex) dla klasy błędu i brak skryptu w tools/ ani audyt/tools/ liczącego jego wystąpienia w repo"
+  },
+  "dowod": "Odczyt rejestru: 30 wpisów w bledy[], każdy z polem klasa jako wolny tekst (np. 'hydratacja/mutacja-html-przed-hydratacja-bez-tlumika'), zero pola z regexem. grep -rln 'znane-bledy|klasa.*bledu' tools/ audyt/tools/ zwraca tylko 3 pliki (straznik-fixed.mjs, straznik-fontow.mjs, straznik-hydratacji.mjs) - każdy pilnuje JEDNEJ konkretnej, już naprawionej usterki, żaden nie jest narzędziem ogólnego przeznaczenia do liczenia wystąpień dowolnej klasy. ls tools/*.mjs audyt/tools/*.mjs nie zawiera skryptu o nazwie sugerującej takie przeznaczenie.",
+  "klasyfikacja": "brak narzędzia",
+  "wplyw": "Re-audyt, chcąc sprawdzić, czy dana znana klasa błędu (np. dziewięciokrotny nawrót 'wzorca celującego w nazwę') wróciła gdzie indziej w repo, musi za każdym razem samodzielnie wymyślić wzorzec wyszukiwania z opisu słownego - niepełny wzorzec przeoczy nawrót, a nie ma jak porównać go z wzorcem użytym poprzednio, bo żaden nie jest zapisany.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "95b46fd3442a9f75fc3a687ee29f61321f24684a2280b5e2764fdb5503aee242",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:23:59.927Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie: schemat wpisu w rejestr/znane-bledy.json. WER-02 dowod dotyczy tego samego i policzylem to sam: rejestr ma 30 wpisow, a klucze wpisu to dokladnie id, data, klasa, dowod, skutek, naprawa, test, straznik — ZERO pola z maszynowym wzorcem; 'grep -rln znane-bledy tools/ audyt/tools/' zwraca trzy pliki (straznik-fixed, straznik-hydratacji, straznik-fontow) i kazdy z nich pilnuje JEDNEJ konkretnej, juz naprawionej usterki, zaden nie jest narzedziem ogolnego przeznaczenia do liczenia wystapien klasy. WER-03 CZYNNE. WER-04 hash 95b4... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony, a moge go potwierdzic z wlasnej pracy: dzis, weryfikujac wpisy tej fali, trzykrotnie musialem sam wymyslac wzorzec dla klasy 'wzorzec celujacy w nazwe zamiast w rozstrzygniecie' i za kazdym razem byl to inny grep — dokladnie ten koszt, ktory zgloszenie opisuje.",
+      "kiedy": "2026-09-03T22:14:06.564Z"
+    }
+  }
+}

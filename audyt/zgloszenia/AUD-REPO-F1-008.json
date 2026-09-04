@@ -1,0 +1,32 @@
+{
+  "id": "AUD-REPO-F1-008",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-02",
+  "stwierdzenie": "docs/security-checklist.md, sekcja 5 'Konta i dostęp', oznacza pozycję 'Konta klientów, sesje, reset hasła, brute force' stanem ⏳ ('świadomie odłożone do etapu WP') z powodem 'Plugin 3 + LMS za logowaniem — cała kategoria wchodzi ze specyfikacją WP', czyli jako coś NIEZROBIONEGO. W rzeczywistości Plugin 2 i Plugin 3 są SKOŃCZONE, a mechanizm kont klientów/sesji/resetu hasła/limitowania logowań DZIAŁA i jest udokumentowany jako ✅ w README.md samego repozytorium ('Konta klientów, koszyk, płatności, dostęp do materiału za logowaniem | ✅ | WooCommerce + Tutor LMS spięte Pluginem 2'), z dowodami: dziennik logowań Pluginu 3 (`aai-monitor`, kroki T1-T2) rejestrujący nieudane próby logowania z limitem ekranu 7 dni, mechanizm resetu hasła przez WooCommerce/WordPress zmierzony i wykorzystany (mail 'Ustaw hasło'), zwroty odbierające dostęp (P5) — to są dokładnie elementy wymienione w tej samej pozycji jako brakujące. Ten sam dokument (wiersz 88, sekcja 4) osobno odwołuje się do gałęzi `plugin-1-sklep-kursow` jako miejsca do ochrony branch protection, choć gałęzią domyślną repo jest `main` od 2026-08-25 (README.md:55) — dokument nie był aktualizowany ani razu odkąd to nastąpiło, mimo własnej instrukcji w nagłówku 'Przy każdym przeglądzie aktualizować datę w tym nagłówku'.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "docs/security-checklist.md",
+    "linia": 99,
+    "tresc": "| ⏳ | Konta klientów, sesje, reset hasła, brute force | Plugin 3 + LMS za logowaniem — cała kategoria wchodzi ze specyfikacją WP |"
+  },
+  "dowod": "README.md:465 (tabela SEO i bezpieczeństwo): '| Konta klientów, koszyk, płatności, dostęp do materiału za logowaniem | ✅ | WooCommerce + Tutor LMS spięte Pluginem 2; smoke'i wp-zakup, wp-maile, wp-zwroty |' — bezpośrednia sprzeczność ze stanem ⏳ w security-checklist.md dla tego samego obszaru. README.md:53 potwierdza obie wtyczki jako SKOŃCZONE: 'aai-platnosci — P0–P6, v0.53.0 · aai-monitor — T0–T4, v0.58.0'. Dziennik logowań (Plugin 3, T2) rejestruje nieudane próby — README.md:87-91 opisuje 'nieudane próby zasilają jedyny alarm ekranu — licznik z ostatnich 7 dni'. Osobno: docs/security-checklist.md:88 '| 🔧 | Branch protection na `plugin-1-sklep-kursow` | ...' wobec README.md:55 'Gałąź domyślna | `main` — wrócił nią 2026-08-25'. Nagłówek pliku (linia 11) nakazuje 'Przy każdym przeglądzie aktualizować datę w tym nagłówku', a data (linia 3) stoi na v0.29.0/2026-08-19 mimo ~35 wersji i całego ukończonego etapu WordPressa między tą datą a dziś.",
+  "klasyfikacja": "deklaracja-stanu-nieaktualna",
+  "wplyw": "Dwa dokumenty bezpieczeństwa w tym samym repozytorium (README.md i docs/security-checklist.md) podają SPRZECZNY stan tej samej pozycji — jeden mówi ✅ zrobione, drugi ⏳ czeka na etap, który już minął. Ktoś oceniający pokrycie bezpieczeństwa kont klientów wyłącznie na podstawie security-checklist.md (dokumentu, który z nazwy powinien być bardziej szczegółowy) dostanie fałszywy obraz braku pokrycia w obszarze, który faktycznie ma zaimplementowany i przetestowany mechanizm.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "4ffbe73253c4bab6de6f4bf4fa7495a7e01cd80c51a5a7d9c91bcec537449e1b",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "Sprzeczność ⏳ (security-checklist.md:99) wobec ✅ (README.md:465) jest prawdziwa i sam ją odtworzyłem, ale stwierdzenie zawiera element ZMIERZALNIE FAŁSZYWY: 'mechanizm ... limitowania logowań DZIAŁA'. Pomiar: brute force jest ŚWIADOMIE OTWARTY decyzją właściciela D6 ('REJESTRUJEMY, NIE BLOKUJEMY' — docs/plugin-3/DIAGRAM.md:64-66), w kodzie trzech wtyczek nie ma ani jednego ogranicznika prób logowania, a przytoczony dowód (dziennik logowań Pluginu 3) REJESTRUJE nieudane próby, nie limituje ich — dowód sąsiaduje ze stwierdzeniem zamiast je potwierdzać. Przywołane README:465 też nie mówi o brute force. To akurat ten jeden z czterech elementów wiersza, którego odroczenie jest nadal zasadne: naprawa wg tego wpisu zamknęłaby po cichu pozycję zostawioną otwarcie (docs/plugin-1/KROK-2-ZABEZPIECZENIA.md:47 rozbił ten sam wiersz na dwa właśnie po to). Do przepisania: wiersz 99 wymaga ROZBICIA (konta/sesje/reset = zrobione, brute force = otwarte jawnie), a nie odhaczenia w całości.",
+      "kiedy": "2026-09-03T21:28:46.166Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: security-checklist.md:99 to '| ⏳ | Konta klientow, sesje, reset hasla, brute force | Plugin 3 + LMS za logowaniem — cala kategoria wchodzi ze specyfikacja WP |' co do znaku. WER-02 dowod NOSNY potwierdzony: README.md:465 mowi o tym samym obszarze '✅ WooCommerce + Tutor LMS spiete Pluginem 2', a docs/plugin-1/KROK-2-ZABEZPIECZENIA.md:47 mowi wprost '| Konta klientow, sesje, reset hasla (§5) | ZROBIONE — dowiozly WordPress, WooCommerce i Tutor (Plugin 2, kroki P3b–P4) |'. Sprzecznosc ⏳ wobec ✅ jest wiec realna i sam ja odtworzylem; potwierdzam tez drugi czlon (linia 88 celuje w branch protection na 'plugin-1-sklep-kursow', gdy galezia domyslna jest 'main' od 2026-08-25) i naglowek zatrzymany na v0.29.0 mimo wlasnego nakazu aktualizacji. ZASIEG POPRAWIONY — i tu przyznaje racje krytykowi, bo sprawdzilem to sam: czlon 'limitowania logowan DZIALA' jest FALSZYWY. W kodzie trzech wtyczek nie ma ani jednego ogranicznika prob logowania; jedyne trafienie to 'add_action( \"wp_login_failed\", ... porazka )' w class-aai-monitor-logowania.php:102, ktore ZAPISUJE probe, a nie blokuje; brute force jest otwarty SWIADOMIE decyzja D6, a DIAGRAM.md:64-66 zada wprost, zeby ten wiersz ROZBIC ('konta, sesje i reset hasla sa ZROBIONE, a brute force zostaje otwarty jawnie ... zeby nie zniknal po cichu'). Zjawisko wiec ISTNIEJE dla trzech z czterech elementow wiersza; odhaczenie calego wiersza zamknieloby po cichu pozycje zostawiona otwarta. WER-03 CZYNNE. WER-04 hash 4ffb... zgodny. WER-05 jednoznaczne.",
+      "kiedy": "2026-09-03T22:09:45.138Z"
+    }
+  }
+}

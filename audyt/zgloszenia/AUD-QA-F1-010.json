@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "770f338e3de1205aec6c2a53e8e37eacc56783373aee9c639138ce94608d76d6",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: QA/AGENT.md:250 to wiersz QA-11 co do znaku, z kolumna dowodu 'licznik'. WER-02 dowod dotyczy tego samego i policzylem WSZYSTKO sam, co do sztuki: 'node tools/straznicy/audyt-straznikow.mjs' konczy kodem 0 i pierwsza linia 'audyt-straznikow: 338 zlapanych, 0 przeoczonych, 0 martwych, 2 pominietych (brak materialu) (mutacji: 340)'; 'ls tools/straznicy/*.mjs' bez audyt-straznikow i uruchom-wszystkie daje 39 plikow, a nazw strażników w mutacjach jest 32; 'comm -23' obu list daje DOKLADNIE te siedem, ktore wymienia zgloszenie: straznik-ajax, straznik-fixed, straznik-fontow, straznik-hydratacji, straznik-migracji, straznik-odmiany, straznik-progow. Licznik pokazuje przy tym same zera i luki nie sygnalizuje — bo z definicji liczy tylko mutacje ISTNIEJACE. WER-03 CZYNNE. WER-04 hash 770f... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony. Odnotowuje zbieznosc z AUD-KON-F1-007 (siedem pozycji odhaczalnych cudzym straznikiem) — to samo zjawisko widziane z drugiej strony, ale ten wpis dodaje rzecz wlasna i mocniejsza: ten konkretny licznik jest slepy na BRAK pokrycia.",
+      "kiedy": "2026-09-03T22:06:37.771Z"
+    }
+  }
 }

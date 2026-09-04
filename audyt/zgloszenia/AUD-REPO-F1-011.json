@@ -1,0 +1,32 @@
+{
+  "id": "AUD-REPO-F1-011",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-02",
+  "stwierdzenie": "docs/PLAN.md, sekcja 5 'Workflow (ustalony z właścicielem)', punkt 1, opisuje plan pracy 'na dedykowanym branchu' dla każdego z trzech pluginów: `plugin-1-sklep-kursow` → `plugin-2-platnosci` → `plugin-3-admin-panel`, 'po ukończeniu i akceptacji merge do `main`'. Gałęzie `plugin-2-platnosci` i `plugin-3-admin-panel` NIGDY nie powstały — Plugin 2 (`aai-platnosci`) i Plugin 3 (`aai-monitor`) zostały zbudowane na etapie WordPressa serią osobnych gałęzi cech (np. `feat/p1-fundament-platnosci`, `feat/t1-fundament-monitora`) mergowanych bezpośrednio do `main`, zgodnie z workflow 'Weryfikacja-PR' z CONTRIBUTING.md, a nie wg planu z tej sekcji. To DOKŁADNIE ta sama klasa nieprawdy (te same dwie nazwy gałęzi), którą krok higieny repo (0.63.0) już raz znalazł i naprawił w tabeli 'Moduły' w README.md ('CAŁA tabela Moduły w README wskazywała branche, które nie istnieją') — tylko że naprawa objęła README, a NIE objęła tego samego zdania w docs/PLAN.md, dokumencie, z którego ta sama nieprawda pierwotnie pochodziła.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "docs/PLAN.md",
+    "linia": 249,
+    "tresc": "1. Praca nad każdym pluginem na **dedykowanym branchu**: `plugin-1-sklep-kursow` → `plugin-2-platnosci` → `plugin-3-admin-panel`; po ukończeniu i akceptacji merge do `main`."
+  },
+  "dowod": "`git branch -a` (uruchomione podczas audytu) nie zwraca ŻADNEJ gałęzi zawierającej `plugin-2` ani `plugin-3` — istnieją wyłącznie `main`, `plugin-1-sklep-kursow`, sześć `bak/*` i gałąź dependabota (potwierdzone też `git ls-remote --heads origin`). CHANGELOG.md i README.md dokumentują realny przebieg: Plugin 2 wszedł krokami P0-P6 na gałęziach `feat/p1-fundament-platnosci`, `feat/p2-produkt-z-ceny` itd. (każda zmergowana i skasowana), Plugin 3 krokami T0-T4 na gałęziach `feat/t1-fundament-monitora` itd. — obie wtyczki mieszkają w `wordpress/wtyczki/aai-platnosci` i `wordpress/wtyczki/aai-monitor` na gałęzi `main`, NIE na dedykowanych gałęziach modułowych. docs/PLAN.md samo w sobie ma już PRECEDENS naprawy tej klasy — sekcja 3 (linia 171) i sekcja 4 (linia 208) mają bloki 'KOREKTA' korygujące bazy `db2_klienci`/`db3_monitoring` na rzecz tabel `wp_aai_*` — ale identyczna korekta nie objęła nazw gałęzi w sekcji 5, mimo że to ten sam plik.",
+  "klasyfikacja": "deklaracja-stanu-nieaktualna",
+  "wplyw": "Czytelnik docs/PLAN.md (dokument opisujący jak toczy się praca nad projektem) dostaje fałszywy obraz struktury gałęzi repo — te same dwie nieistniejące nazwy gałęzi, których naprawę README.md już raz odnotowało jako zamkniętą (0.63.0), żyją dalej w dokumencie źródłowym, z którego pierwotnie się wzięły. Ktoś szukający gałęzi Pluginu 2 lub 3 wg tego planu nie znajdzie ich pod żadną z podanych nazw.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "e5b0e0ddd28d1b2f62c47b836e078da950d19e8b8d47b02e425a7b7a78173c40",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.428Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: docs/PLAN.md:249 to '1. Praca nad kazdym pluginem na **dedykowanym branchu**: plugin-1-sklep-kursow -> plugin-2-platnosci -> plugin-3-admin-panel; po ukonczeniu i akceptacji merge do main.' co do znaku. WER-02 dowod dotyczy tego samego i policzylem to sam: 'git ls-remote --heads origin | grep -c \"plugin-2\\|plugin-3\"' daje ZERO — obie nazwy galezi nigdy nie powstaly, a obie wtyczki (aai-platnosci, aai-monitor) mieszkaja na main. WER-03 CZYNNE: naprawa tej samej nieprawdy w README (0.63.0) nie objela tego pliku, wiec nic nizej jej nie prostuje. WER-04 hash e5b0... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T22:10:39.897Z"
+    }
+  }
+}

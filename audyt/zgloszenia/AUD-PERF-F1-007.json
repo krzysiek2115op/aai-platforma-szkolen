@@ -1,0 +1,27 @@
+{
+  "id": "AUD-PERF-F1-007",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-02",
+  "stwierdzenie": "Checklista PERF-02 żąda pomiaru SAVEQUERIES na instalacji :8892, a sektor nie daje żadnego sposobu wykonania go bez zmiany plików instalacji WordPressa LEŻĄCYCH POZA repozytorium, nie wymaga zdjęcia oprzyrządowania po pomiarze i nie ma bramki, która taką zmianę zobaczy. Skutek jest dziś czynny: instalacja :8892 stoi z sondą pomiarową wpisaną do wp-config.php kontenera (SAVEQUERIES plus zrzut każdego zapytania do pliku), której nie ma w repozytorium, a dział zameldował sprzątnięcie wyłącznie tymczasowego mu-pluginu.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/role/PERF/AGENT.md",
+    "zakres": "checklista, wiersz PERF-02 — kolumna 'Komenda / miejsce': 'pomiar SAVEQUERIES na :8892'",
+    "mechanizm": "brak kroku przywracającego stan instalacji po pomiarze i brak wskazania metody pomiaru nietrwale zmieniającej instalację: wiersz PERF-02 nazywa narzędzie (SAVEQUERIES), którego w repozytorium nie ma (potwierdza to AUD-USP-F1-001), więc jedyna droga do liczby prowadzi przez edycję wp-config.php w wolumenie kontenera; ani ten wiersz, ani sekcja 'Kiedy kończysz' tej samej definicji nie żądają zdjęcia sondy, a audyt/tools/migawka-wartosci.mjs i git widzą wyłącznie drzewo repozytorium, więc zmiana instalacji nie zapala niczego"
+  },
+  "dowod": "Stan zmierzony 2026-09-03 na żywej instalacji, po zakończeniu pracy działu (status PERF: ZAKOŃCZONE, 21:14:37Z). W kontenerze aai_wp_wordpress plik /var/www/html/wp-config.php (mtime 2026-09-03 16:38:32 UTC, właściciel zmieniony na root wobec www-data pozostałych plików instalacji, sha256 3399e7b154a7c9e0a70e5aec8df93c46b5f6c235e4d21d77058002530648dda3) ma w liniach 139-152 blok: define('SAVEQUERIES', true) oraz register_shutdown_function dopisujący liczbę zapytań do /tmp/aai_perf.log i pełną listę zapytań do /tmp/aai_perf_dump.log. Sonda jest CZYNNA: log rósł w trakcie tej weryfikacji (aai_perf.log 15288 B, aai_perf_dump.log 5527693 B, oba mtime 21:26 UTC). W /tmp kontenera leżą też dwa dalsze ślady pomiaru: perf-snippet.php (293 B, 16:15 UTC — dopisywany fragment) i aai_dbg_before.php (6216 B, 16:36 UTC — kopia wp-config.php ZAWIERAJĄCA JUŻ pierwszą wersję sondy, czyli w kontenerze NIE MA kopii stanu sprzed zmiany). Repozytorium jest czyste: grep -rl 'SAVEQUERIES' po drzewie daje zero trafień, git status nie pokazuje niczego poza plikami sektora, a tymczasowy mu-plugin zzz-aai-audyt-perf-tmp.php nie istnieje ani na dysku, ani w kontenerze — czyli zameldowane sprzątanie objęło jedyny ślad, który akurat był w repozytorium. Skutek dla dowodów tej fali: SAVEQUERIES każe WordPressowi zapamiętać każde zapytanie ze śladem stosu, więc KAŻDY pomiar czasu wykonany na tej instalacji po 16:38 UTC jest zawyżony — dotyczy to pomiaru czasu w AUD-PERF-F1-004 (65-84 ms) i pomiaru Lighthouse'a cytowanego w AUD-USP-F1-002.",
+  "klasyfikacja": "dowód nie do odtworzenia / oprzyrządowanie zostawione czynne poza zasięgiem bramek",
+  "wplyw": "Każdy pomiar czasu i pamięci wykonany w tej fali na :8892 jest obciążony oprzyrządowaniem, o którym nie wie ani raport działu, ani żadna bramka, więc druga fala mierząca na instalacji sprzątniętej dostanie inne liczby przy niezmienionym kodzie i rozjazd zostanie odczytany jako różnica w produkcie. Instalacja została przy tym w stanie, którego nie da się przywrócić z niczego, co dział zapisał: jedyna kopia wp-config.php w kontenerze niesie już sondę.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "d78cb2254c0fd91b4da0df0abef0634a74c781f12880bbf7937851eaf7011f5c",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie: PERF/AGENT.md:245 wiersz PERF-02 ma w kolumnie komendy doslownie 'pomiar SAVEQUERIES na :8892'. WER-02 dowod dotyczy tego samego i rdzen sprawdzilem sam: (a) w calym repozytorium slowo SAVEQUERIES wystepuje WYLACZNIE w plikach sektora (zgloszenia, AGENT.md PERF, SKILL.md USP, PLAN-BUDOWY) i w ZADNYM narzedziu — nie ma czym tego zmierzyc bez tkniecia instalacji; (b) w sekcji 'Kiedy konczysz' definicji PERF nie ma ani jednego slowa o przywroceniu stanu instalacji (grep na przywroc/sprzatn/zdejm/sonda: zero trafien); (c) migawka sektora tego nie widzi — migawkaSrodowiska() (srodowisko.mjs:236-239) zwraca tylko skrot_tabel, tabel, nasze, media, wtyczki_aktywne, wersje, a skrot_produktu liczy pliki REPO. WER-03 CZYNNE CO DO MECHANIZMU. UCZCIWIE O STANIE: czlon 'skutek jest dzis czynny' PRZESTAL byc prawdziwy przed moja weryfikacja — sprawdzilem kontener i sonda jest ZDJETA (grep SAVEQUERIES/aai_perf w /var/www/html/wp-config.php: brak trafien; /tmp/aai_perf.log, /tmp/aai_perf_dump.log, /tmp/perf-snippet.php i /tmp/aai_dbg_before.php nie istnieja). To NIE obala zgloszenia: sonda dzialala i zostala usunieta dopiero po jego zlozeniu, przez kogos spoza dzialu, a luka, ktora wpis nazywa — brak kroku przywracajacego i brak bramki widzacej zmiane instalacji — jest nietknieta. WER-04 hash d78c... zgodny. WER-05 jednoznaczne.",
+      "kiedy": "2026-09-03T21:59:06.814Z"
+    }
+  }
+}

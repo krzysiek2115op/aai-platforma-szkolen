@@ -14,7 +14,7 @@
   "dowod": "rejestr/znane-bledy.json BLAD-016: naprawa = „sprawdzPrywatnosc przyjmuje listę ZASTĘPNIKÓW… `zrob-zrzut.mjs`”, straznik = „tools/zrzuty/test-asercji.mjs (+ straznik-asercji)”. `git ls-files -- tools/zrzuty tools/straznicy | grep asercj` → 4 pliki w gicie; zakres USP (`tools/zrzuty`) i QA (`tools/straznicy`) je obejmują. ROLE.md:692-694 twierdzi: „Obie żyją w tresc-kursow, którego audyt nie rusza”. `grep -n 'rozbici\\|per węzeł\\|zastępnik' audyt/ROLE.md` w checklistach → 0 pozycji.",
   "klasyfikacja": "klasa błędu bez pozycji, wykluczona pod błędnym uzasadnieniem",
   "wplyw": "Klasa „maskowanie/podmiana omijana przez rozbicie tokenu” ma odpowiednik poza kursami (maskowanie loginu w dzienniku monitoringu, ucieczka w podpisach) i nikt jej nie zada; wykluczenie wygląda na przeoczenie udokumentowane jako decyzja.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "b5d590f6304c22a07e46568025a879fa2b7babb25bea7c1f9c03646a9812fce8",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:33.801Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:676 to wiersz '| BLAD-001 hydratacja | PROTO-09 | BLAD-016 podmiana per wezel | *wykluczone D4* |' co do znaku. WER-02 dowod dotyczy tego samego, sprawdzilem obie polowy sam: (a) w rejestrze BLAD-016 pola 'naprawa' i 'straznik' wskazuja 'sprawdzPrywatnosc ... zrob-zrzut.mjs' oraz 'tools/zrzuty/test-asercji.mjs (+ straznik-asercji)', a 'git ls-files -- tools/zrzuty tools/straznicy | grep asercj' daje CZTERY sledzone pliki (straznik-asercji.mjs, asercje.mjs, test-asercji.mjs, scenariusz) — czyli mechanizm i naprawa leza w zakresach USP i QA, nie w tresc-kursow; (b) ROLE.md:692-694 twierdzi wprost 'Obie zyja w tresc-kursow, ktorego audyt nie rusza' — to jest nieprawda o TEJ klasie; (c) grep 'rozbici|per wezel|zastepnik' po calym ROLE.md daje JEDNO trafienie i jest nim sam wiersz tabeli pokrycia, wiec ZADNA pozycja checklisty tej klasy nie zadaje. WER-03 CZYNNE: wykluczenie jest zapisane, wiec nic nizej go nie prostuje. WER-04 hash b5d5... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — wpis nie twierdzi istnienia dziury w produkcie, tylko braku pozycji dla klasy, ktorej odpowiednik istnieje poza kursami.",
+      "kiedy": "2026-09-03T21:52:32.836Z"
     }
   }
 }

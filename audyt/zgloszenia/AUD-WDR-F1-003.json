@@ -1,0 +1,27 @@
+{
+  "id": "AUD-WDR-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "WDR",
+  "pozycja": "WDR-90",
+  "stwierdzenie": "Dwie usterki utrzymaniowe w standardowym pliku WordPressa `readme.txt`: (1) tylko `aai-sklep` MA plik `readme.txt` w repo — `aai-platnosci` i `aai-monitor` nie mają go w ogóle, mimo że jest to standardowy plik każdej wtyczki WordPress (opis, wymagania, changelog widoczny w panelu); (2) `readme.txt` wtyczki `aai-sklep` deklaruje `Stable tag: 0.3.0` i jego `== Changelog ==` kończy się na wersji 0.3.0, podczas gdy nagłówek pliku głównego `aai-sklep.php` deklaruje `Version: 0.6.0` — ta sama wtyczka pokazuje DWA różne numery wersji w dwóch swoich własnych plikach, a readme milczy o trzech kolejnych wersjach zmian (W4, W5×2, W6).",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-sklep/readme.txt",
+    "linia": 6,
+    "tresc": "Stable tag: 0.3.0"
+  },
+  "dowod": "git ls-files -- ':(glob)wordpress/wtyczki/*/readme.txt' => tylko wordpress/wtyczki/aai-sklep/readme.txt (aai-platnosci i aai-monitor bez readme.txt); grep -m1 'Version:' wordpress/wtyczki/aai-sklep/aai-sklep.php => 'Version: 0.6.0' wobec 'Stable tag: 0.3.0' w readme.txt tej samej wtyczki; sekcja Changelog readme.txt zawiera wyłącznie wpisy 0.1.0-0.3.0",
+  "klasyfikacja": "UTRZYMANIE",
+  "wplyw": "Osoba wspierająca instalację (albo klient czytający readme.txt w poszukiwaniu informacji o wtyczce) trafia na sprzeczne dane o wersji w obrębie jednej wtyczki i na changelog nieaktualny o trzy wersje; brak readme.txt w dwóch z trzech wtyczek to niekonsekwencja utrudniająca wsparcie — nie ma gdzie sprawdzić wymagań ani historii zmian bez czytania kodu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "8fbe5fb6fd3205959ef6881acc51abcd054a53dab5cc821ffed0ca44cc6336e3",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone wlasnym pomiarem, oba czlony. (1) Miejsce istnieje co do znaku: readme.txt:6 to 'Stable tag: 0.3.0'. (2) 'git ls-files -- :(glob)wordpress/wtyczki/*/readme.txt' zwraca DOKLADNIE JEDEN plik (aai-sklep) — aai-platnosci i aai-monitor nie maja go wcale. (3) Naglowek aai-sklep.php deklaruje 'Version: 0.6.0' (odczytalem sam), a sekcja '== Changelog ==' w readme.txt ma wpisy 0.3.0, 0.2.0, 0.1.0 i nic wyzej — czyli ta sama wtyczka podaje dwa numery i milczy o trzech wersjach. (4) Zakres: plik jest WPROST w komendzie zakresu WDR (':(glob)wordpress/wtyczki/*/readme.txt'). (5) Jednoznaczne, a klasyfikacja UTRZYMANIE jest uczciwa — nie podnosi tego do usterki klienta. KOREKTA WPLYWU, nie podwazajaca wpisu: zdanie o kliencie 'czytajacym readme.txt' i o 'changelogu widocznym w panelu' jest ZAWYZONE — instrukcja kaze klientowi NIE rozpakowywac ZIP-a (INSTRUKCJA:30-31, 108-109), a WordPress parsuje readme.txt tylko dla wtyczek z wordpress.org, wiec przy wgraniu z pliku nie renderuje go nigdzie. Zostaje realny czlon: rozjazd wersji wewnatrz jednej wtyczki i brak pliku w dwoch z trzech, czyli material dla osoby utrzymujacej — i to wystarcza, bo dowod dotyczy dokladnie tego, co stwierdzenie.",
+      "kiedy": "2026-09-03T23:05:40.195Z"
+    }
+  }
+}

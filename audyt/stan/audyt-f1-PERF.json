@@ -2,15 +2,35 @@
   "sektor": "audyt",
   "fala": 1,
   "rola": "PERF",
-  "status": "W TRAKCIE",
-  "runda": 0,
+  "status": "ZAKOŃCZONE",
+  "runda": 2,
   "niedomkniete": [],
-  "kiedy": "2026-09-03T16:04:59.974Z",
+  "kiedy": "2026-09-03T21:14:37.192Z",
   "historia": [
     {
       "status": "W TRAKCIE",
       "runda": 0,
       "kiedy": "2026-09-03T16:04:59.974Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T20:58:06.278Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-03T21:10:27.428Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 2,
+      "kiedy": "2026-09-03T21:14:24.636Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 2,
+      "kiedy": "2026-09-03T21:14:37.192Z"
     }
   ]
 }

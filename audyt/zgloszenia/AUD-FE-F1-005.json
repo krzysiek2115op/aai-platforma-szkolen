@@ -1,0 +1,27 @@
+{
+  "id": "AUD-FE-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "FE",
+  "pozycja": "FE-11",
+  "stwierdzenie": "Tabela granic nie rozstrzyga, czyje jest znalezisko, w którym klient widzi u nas coś złego wyłącznie przez USTAWIENIE cudzej wtyczki albo stan instalacji, którego nasz kod nie stawia i żadna bramka nie pilnuje: cztery działy mają swój wiersz z WDR (SEC ↔ WDR w linii 46, REPO ↔ WDR 60, ARCH ↔ WDR 73, BE ↔ WDR 74), a FE — dział, którego pytaniem jest właśnie „co widzi klient” — nie ma z WDR żadnego wiersza, przy pięciu wierszach FE z innymi działami (44, 51, 52, 53, 68).",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/GRANICE.md",
+    "zakres": "tabela granic, wiersze FE (44, 51, 52, 53, 68) i wiersze z WDR (46, 60, 73, 74)",
+    "mechanizm": "Brakuje wiersza FE ↔ WDR (albo równoważnego rozstrzygnięcia w wierszach FE), który mówiłby, do kogo należy usterka widoczna dla klienta na NASZEJ stronie, ale mająca przyczynę w konfiguracji instalacji albo cudzej wtyczki. Powinien stać w tej samej tabeli, między wierszami FE a wierszami WDR, i rozstrzygać przykładem tak jak pozostałe 34 wiersze — np. „cena w złotych na naszej stronie i $299.00 w koszyku Woo, bo woocommerce_currency = USD” oraz „angielski napis w treści strony koszyka założonej przez WooCommerce”."
+  },
+  "dowod": "`grep -n 'WDR' audyt/GRANICE.md` daje CZTERY wiersze: 46 SEC ↔ WDR, 60 REPO ↔ WDR, 73 ARCH ↔ WDR, 74 BE ↔ WDR. `grep -n 'FE' audyt/GRANICE.md` daje PIĘĆ wierszy FE: 44 (SEC ↔ FE), 51 (FE ↔ PERF), 52 (FE ↔ INT), 53 (FE ↔ PROTO), 68 (FE ↔ PRIV) — żaden z nich nie wymienia WDR ani konfiguracji instalacji; cała tabela ma 34 wiersze (`grep -c '^| \\*\\*' audyt/GRANICE.md`). Że luka jest CZYNNA, a nie teoretyczna, widać na dwóch zgłoszeniach tej fali, które wpadły dokładnie w nią: AUD-FE-F1-002 (waluta) — zmierzone `wp option get woocommerce_currency` = USD, `wp eval 'echo get_woocommerce_currency()'` = USD, `wc_price(299)` = $299.00, a `grep -rn 'currency|waluta' wordpress/wtyczki --include=*.php` trafia w NASZYM kodzie jedno miejsce (class-aai-sklep-seo.php:285, priceCurrency PLN w danych strukturalnych) i ani jednego, które by tę opcję ustawiało lub sprawdzało; `grep -rn 'currency|PLN|waluta' wordpress/srodowisko/` nie zwraca NIC. Oraz AUD-FE-F1-003 (angielski pusty koszyk) — napisy są dosłowną treścią wpisu strony założonej przez WooCommerce (`wp post get 6 --field=post_content`, linie 11, 77, 85), a nie tekstem naszego szablonu. W obu wypadkach skutek widzi klient na ścieżce naszego sklepu (FE), a miejsce zmiany leży poza naszym kodem (WDR/lista wdrożeniowa) — i tabela nie mówi, kto to bierze.",
+  "klasyfikacja": "brak wiersza w tabeli granic (usterka widoczna u nas, przyczyna w konfiguracji)",
+  "wplyw": "Bez tego wiersza dwa prawdziwe, zmierzone znaleziska tej fali nie mają przypisanego właściciela, a druga fala rozstrzygnie je inaczej niż pierwsza — raz jako FE, raz jako WDR albo wcale. Rozjazd na granicy jest szumem, nie wynikiem: porównanie fal pokaże wtedy różnicę, której źródłem jest tabela, a nie produkt. Wiersz musi wejść PRZED drugą falą, inaczej porównanie cykli mierzy własną nieostrość.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "b7b785d1a7db9976045bde900acc9250b04fc39b25762958db757b4feebf7c33",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce w formie mechanizmu i nazwane poprawnie (K10' — mowi, czego brakuje i gdzie ma stac). Policzone przeze mnie, nie przepisane: 'grep -n WDR audyt/GRANICE.md' daje DOKLADNIE cztery wiersze — 46 SEC<->WDR, 60 REPO<->WDR, 73 ARCH<->WDR, 74 BE<->WDR; wiersze FE to 44, 51, 52, 53, 68 i ZADEN nie wymienia WDR ani konfiguracji instalacji; cala tabela ma 34 wiersze ('grep -c ^| \\*\\*'). WER-02 dowod dotyczy tego samego: sprawdzilem, ze luka jest CZYNNA, a nie teoretyczna, wlasnym pomiarem obu przykladow — 'wp option get woocommerce_currency' = USD przy naszej stronie piszacej '299,00 zl', oraz 'wp post get 6 --field=post_content' pokazujacy angielskie naglowki jako tresc wpisu strony zalozonej przez WooCommerce. W obu wypadkach skutek widzi klient na sciezce naszego sklepu (FE), a miejsce zmiany lezy poza naszym kodem (WDR). WER-03 CZYNNE: nic nizej tego nie rozstrzyga — to jest wprost KON-A5 (tabela granic milczy), wiec wiersz musi wejsc PRZED druga fala, inaczej rozjazd na granicy bedzie szumem zamiast wynikiem (K4''). WER-04 hash b7b7... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T21:48:43.818Z"
+    }
+  }
+}

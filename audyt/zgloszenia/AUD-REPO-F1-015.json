@@ -1,0 +1,27 @@
+{
+  "id": "AUD-REPO-F1-015",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-90",
+  "stwierdzenie": "Audyt mutacyjny strażnika sektora KASUJE Z audyt/ROLE.md całą definicję roli PIK — 29 linii, od linii 477 do 506 — i przywraca ją WYŁĄCZNIE przez blok `finally` w tym samym procesie. `finally` nie wykonuje się, gdy proces zostanie zabity (limit sesji, SIGKILL, OOM, padnięcie maszyny), a w narzędziu nie ma ani obsługi sygnałów (zero trafień na `process.on`, `SIGINT`, `SIGTERM`), ani znacznika „mutacja w toku\", ani kopii na dysku (`kopie` to Map w pamięci procesu, przywracana w zewnętrznym `finally`, audyt-straznika-sektora.mjs:1837). Skutkiem zabicia procesu w oknie jednej mutacji jest ROLE.md bez jednej roli — dokładnie stan zaobserwowany w tej fali (brak całej definicji PIK, ~28 linii, przywrócone przez orkiestratora z HEAD, aktora nie ustalono). Narzędzie jest więc udokumentowanym mechanizmem powstawania tego uszkodzenia, a jedyną istniejącą siatką jest to, że NASTĘPNY jego przebieg zatrzyma się na czerwonym strażniku — czyli wykrycie zależy od tego, czy ktoś uruchomi tę samą komendę drugi raz, i nie chroni ról czytających ROLE.md w międzyczasie.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/tools/audyt-straznika-sektora.mjs",
+    "linia": 105,
+    "tresc": "    zmien: (s) => s.replace(/\\n## PIK — Początek i koniec[\\s\\S]*?(?=\\n## USP —)/, \"\\n\"),"
+  },
+  "dowod": "1) Mutacja: audyt-straznika-sektora.mjs:100-106 — `opis: \"z ROLE.md znika cała rola\"`, `plik: ROLE_MD` (stała `ROLE_MD = \"audyt/ROLE.md\"`, linia 56), `zmien` kasujący blok od nagłówka `## PIK — Początek i koniec` do `## USP —`. 2) Rozmiar skutku ZMIERZONY na dzisiejszym pliku: to samo wyrażenie zastosowane do audyt/ROLE.md dopasowuje 2157 znaków = 29 linii, linie 477–506. Zgadza się z zaobserwowanym uszkodzeniem (brak całej definicji PIK). 3) Zapis odbywa się na PRAWDZIWYM pliku: pętla główna, linia 1818 `writeFileSync(P(m.plik), zmutowany, \"utf8\")`, przywrócenie w `finally` linia 1823-1824 `writeFileSync(P(m.plik), oryginal, \"utf8\")`. 4) Brak jakiegokolwiek zabezpieczenia poza `finally`: `grep -n \"lock|blokad|marker|w-toku|process.on(\"` w tym pliku → zero trafień; `grep -n \"SIGINT|SIGTERM|signal\"` → zero trafień. 5) Komentarz nagłówkowy narzędzia (linia 23) sam deklaruje: „Przywracanie idzie przez `finally`\" — czyli ograniczenie jest znane i nazwane, ale nie ma dla niego siatki. 6) Kontekst wykonalności: ta fala została przerwana limitem (odnotowane w audyt/PLAN-BUDOWY.md, sekcja przebiegu fali 1), więc zabicie procesu w trakcie pracy sektora jest w tym przebiegu zdarzeniem zaobserwowanym, nie hipotezą.",
+  "klasyfikacja": "narzedzie-sektora-niszczy-zrodlo-prawdy-sektora",
+  "wplyw": "audyt/ROLE.md jest jedynym źródłem zakresów i checklist dla ~40 ról obu sektorów i z niego generują się pliki agentów. Zabicie audytu mutacyjnego w oknie jednej mutacji zostawia ten plik bez całej roli, BEZ ŚLADU I BEZ ALARMU — rola bez definicji nie zgłasza się jako brakująca, tylko przestaje istnieć, a agent ją czytający dostaje niepełny zakres i przechodzi checklistę, której już nie ma. Uszkodzenie tej klasy zdarzyło się w tej fali i zostało wykryte przypadkiem, po fakcie; drugą falę taki stan rozjechałby cicho, bo różnica wyników wyglądałaby jak różnica pracy audytorów, a nie jak brak nośnika.",
+  "runda": 1,
+  "status": "DO WERYFIKACJI",
+  "hash": "50ca1a2100e18b2db96490f7455362e3ea778e71654e3efe982219618d0fb4cb",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: audyt-straznika-sektora.mjs:105 to \"zmien: (s) => s.replace(/\\n## PIK — Poczatek i koniec[\\s\\S]*?(?=\\n## USP —)/, \\\"\\n\\\"),\" co do znaku, w mutacji o opisie 'z ROLE.md znika cala rola', z plikiem ROLE_MD. WER-02 dowod dotyczy tego samego i ODTWORZYLEM POMIAR SAM, na dzisiejszym pliku: to samo wyrazenie dopasowuje w audyt/ROLE.md 2157 znakow = 29 linii, od linii 477 — czyli skutek mutacji to usuniecie calej definicji roli PIK, zgodnie z opisem. Potwierdzam tez brak siatki: zapis idzie na PRAWDZIWY plik (writeFileSync w 1819), przywrocenie stoi wylacznie w 'finally' (1823-1824), a 'grep -cE \"process\\.on\\(|SIGINT|SIGTERM\"' po calym pliku daje ZERO — nie ma obslugi sygnalow, znacznika 'mutacja w toku' ani kopii na dysku. WER-03 CZYNNE i to nie jest hipoteza: ta fala ZOSTALA przerwana limitem sesji (sam wchodze w nia drugi raz z tego powodu), wiec zabicie procesu w oknie mutacji jest w tym przebiegu zdarzeniem obserwowanym. WER-04 hash 50ca... zgodny. WER-05 jednoznaczne. Wplyw NIE zawyzony — ROLE.md jest jedynym zrodlem zakresow i checklist dla rol obu sektorow, a rola bez definicji nie zglasza sie jako brakujaca.",
+      "kiedy": "2026-09-03T22:11:23.556Z"
+    }
+  }
+}

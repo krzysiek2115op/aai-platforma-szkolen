@@ -14,8 +14,19 @@
   "dowod": "docs/ETAP-WP.md:33-34 pokazuje 'LMS pierwszego wyboru: Tutor LMS (darmowy core) + WooCommerce. Plan B: Publigo BOX' i linia 484 'Publigo BOX (plan B) — nie ma darmowej wersji do postawienia obok'. CLAUDE.md i README.md (linia 240) potwierdzają, że architektura Tutor+WooCommerce jest zaimplementowana i wydana ('WooCommerce + Tutor LMS, spięte naszym szwem'). security-checklist.md:1-11 sam siebie zobowiązuje: 'Przy każdym przeglądzie aktualizować datę w tym nagłówku' — nagłówek mimo to zatrzymał się na v0.29.0/2026-08-19, sprzed decyzji o LMS-ie i sprzed całego etapu WordPressa.",
   "klasyfikacja": "deklaracja-stanu-nieaktualna",
   "wplyw": "Dokument bezpieczeństwa w zakresie repo mówi o wyborze LMS-a jako o otwartej kwestii i wskazuje niewłaściwy produkt (Publigo zamiast wdrożonego Tutor LMS + WooCommerce), co dezinformuje każdego, kto sprawdza pokrycie RODO/prywatności wobec faktycznie użytego mechanizmu.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "6eab3a344f2eff758af622590edcb15d2bf8dface126b346433ca1256fd4a3ad",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.142Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: security-checklist.md:77 to wiersz '| ⏳ | Polityka prywatnosci + RODO ... wybor LMS (Publigo) ma to czesciowo w pudelku |' co do znaku. WER-02 dowod dotyczy tego samego i sprawdzilem oba czlony sam: naglowek pliku (linia 3) stoi na 'Stan na v0.29.0 (2026-08-19 ...)', a linia 11 tego samego pliku sama nakazuje 'Przy kazdym przegladzie aktualizowac date w tym naglowku' — dzis najswiezszy tag to v0.64.0; wybor LMS-a zapadl na Tutor LMS + WooCommerce (ETAP-WP.md nazywa Publigo BOX planem B, ktory odpadl), a hybryda jest zaimplementowana i wydana. WER-03 CZYNNE: nic nizej tego nie prostuje — plik jest jedynym dokumentem bezpieczenstwa tej klasy. WER-04 hash 6eab... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T22:08:33.365Z"
+    }
+  }
 }

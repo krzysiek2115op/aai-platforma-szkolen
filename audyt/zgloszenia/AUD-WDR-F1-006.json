@@ -1,0 +1,21 @@
+{
+  "id": "AUD-WDR-F1-006",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "WDR",
+  "pozycja": "WDR-09",
+  "stwierdzenie": "Pozycja WDR-09 pyta, czy wersja wtyczki w nagłówku „ma sens wobec wersji repo”, ale NIGDZIE — ani w checkliście, ani w repozytorium — nie istnieje kryterium, wobec którego ten sens się rozstrzyga. Kolumna „Dowód” podaje jedno słowo „wersja”, bez progu i bez oczekiwanej relacji. W repo nie ma żadnej reguły wiążącej nagłówek `Version:` wtyczki z wersją repo: `straznik-wersji.mjs` nie zawiera ani jednego wystąpienia słowa „wtyczk” ani łańcucha „Version”, a `straznik-readme.mjs` nie sprawdza tej relacji. Przy braku kryterium obie odpowiedzi są obronne: „tak”, bo osobny semver na wtyczkę jest normą WordPressa, i „nie”, bo instrukcja każe klientowi przy zgłoszeniu problemu przepisać te numery (INSTRUKCJA-INSTALACJI.md:259-260), a jedynym dziennikiem zmian w repo jest CHANGELOG liczony wersjami repo (dziś 0.64.0), do którego 0.6.0 / 0.1.0 / 0.4.0 nie mają jak się odnieść.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 435,
+    "tresc": "| WDR-09 | Czy wersja wtyczki w nagłówku ma sens wobec wersji repo? | nagłówki wtyczek × CHANGELOG | wersja |"
+  },
+  "dowod": "1) BRAK KRYTERIUM W CHECKLIŚCIE: kolumna „Dowód” wiersza WDR-09 zawiera wyłącznie słowo „wersja” — bez progu, bez oczekiwanej relacji, w odróżnieniu od sąsiednich wierszy, które podają rozstrzygnięcie wprost (WDR-03 „linia”, WDR-06 „kod wyjścia + treść weryfikacji”, WDR-07 „pozycja + skutek pominięcia”). 2) BRAK REFERENTU W REPO: `grep -n 'wtyczk\\|aai-sklep\\|Version' tools/straznicy/straznik-wersji.mjs` => ZERO trafień; `grep -n 'wtyczk' tools/straznicy/straznik-readme.mjs` => jedno trafienie (:183) i jest to komentarz o dokumentacji, nie o wersjach; w CONTRIBUTING.md i README.md `grep -n 'Version:'` => zero. 3) STAN, KTÓREGO POZYCJA DOTYCZY: nagłówki to 'Version: 0.6.0' (aai-sklep), '0.1.0' (aai-platnosci), '0.4.0' (aai-monitor) — odczytane przeze mnie z trzech plików głównych; wersja repo w CHANGELOG to 0.64.0. 4) OBIE ODPOWIEDZI OBRONNE, więc pozycja nie jest mechaniczna: dział fali 1 zamknął ją trzecią wartością — „tak (znane), nie duplikuję” — czyli ani „tak”, ani „nie”, wbrew wymogowi definicji roli („odpowiedz tak albo nie, nigdy »chyba«”).",
+  "klasyfikacja": "CHECKLISTA",
+  "wplyw": "Pozycja bez rozstrzygalnego kryterium daje wynik zależny od audytora, a nie od stanu produktu — fala 2 może odpowiedzieć odwrotnie przy identycznym kodzie. Dodatkowo furtka „znane, nie duplikuję” pozwala zamknąć pozycję odwołaniem do historii korespondencji z właścicielem, której NIE MA w `audyt/BRIEF-PROJEKTU.md` (jedynym dopuszczonym wejściu wiedzy — sprawdzone: brief nie wymienia ani 0.6.0, ani 0.1.0, ani 0.4.0), czyli wiedzą spoza kontekstu obu fal.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "75f1f8cdd91f592e438aafa16f1ea5be3452c322626ea5a7371223359bb15f6e",
+  "werdykt": null
+}

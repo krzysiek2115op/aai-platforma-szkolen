@@ -1,0 +1,32 @@
+{
+  "id": "AUD-REPO-F1-010",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-02",
+  "stwierdzenie": ".github/PULL_REQUEST_TEMPLATE.md instruuje autora PR-a: 'CI stoi do 1 września 2026 (wyczerpany limit minut Actions organizacji). Do tego czasu dowody odtwarzamy lokalnie i wklejamy TUTAJ... Po powrocie CI: potwierdzić gitleaks, bo jako jedyny nie ma lokalnego odpowiednika.' Ten stan opisuje przeszłość: CI wróciło do życia 1 września 2026 i jest zielone (potwierdzone wieloma udanymi przebiegami `gh run list`, m.in. przebiegi z 2026-09-01T01:0x), a `gitleaks` ZOSTAŁ POTWIERDZONY (CHANGELOG.md, sekcja 'Naprawione' pod '[Nieopublikowane]': 'Skan sekretów przestaje potykać się o listę angielskich fraz' — opisuje NAPRAWĘ realnego znaleziska gitleaksa po powrocie CI, czyli mechanizm faktycznie działał i był używany). Szablon PR-a dalej instruuje każdego nowego autora, żeby traktował CI jako martwe i wklejał lokalne dowody zamiast polegać na CI.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": ".github/PULL_REQUEST_TEMPLATE.md",
+    "linia": 22,
+    "tresc": "<!-- CI stoi do 1 września 2026 (wyczerpany limit minut Actions organizacji)."
+  },
+  "dowod": "`gh run list --limit 5` (uruchomione podczas audytu) zwraca pięć przebiegów CI ze statusem `completed success`, wszystkie z 2026-09-01, w tym 'Merge pull request #119...' na 'main' i przebieg dependabota — czyli CI DZIAŁA i jest zielone. CHANGELOG.md linie 8-16 ('## [Nieopublikowane]', nagłówek 'CI wróciło do życia — i od razu pokazało dwie rzeczy ukryte od 17 sierpnia'): '1 września odnowiły się minuty Actions... Pierwszy prawdziwy przebieg pokazał dwa padnięcia'. CHANGELOG.md linie 19-28 opisują NAPRAWĘ znaleziska gitleaksa ('Gitleaks 8.30.1 raportował leaks found: 1 na 469 commitach... Wyciszone przez .gitleaksignore') — dowód, że skan sekretów faktycznie zadziałał w CI i został obsłużony, czyli krok 'potwierdzić gitleaks' jest już wykonany.",
+  "klasyfikacja": "deklaracja-stanu-nieaktualna",
+  "wplyw": "Każdy nowy PR w tym repo dostaje w formularzu instrukcję opartą na nieaktualnym założeniu — że CI nie działa i trzeba wklejać lokalne dowody zamiast na nim polegać. To dodatkowa, zbędna dziś praca (albo pominięcie realnej bramki CI, jeśli autor uwierzy, że wynik CI nie liczy się aż do potwierdzenia gitleaksa, które już nastąpiło).",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "81249d05d744ec6e8ac6319e97c6a2cd6260f20c21d41b44ad1cde2a030ea2b6",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.389Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: .github/PULL_REQUEST_TEMPLATE.md:22 to '<!-- CI stoi do 1 wrzesnia 2026 (wyczerpany limit minut Actions organizacji).' co do znaku. WER-02 dowod dotyczy tego samego i odtworzylem go sam: 'gh run list' pokazuje przebiegi 'completed success' z 2026-09-01 (m.in. 33457403640 na main, 2m10s), czyli CI dziala i jest zielone, a CHANGELOG w sekcji nieopublikowanej opisuje NAPRAWE realnego znaleziska gitleaksa po powrocie CI — czyli krok 'potwierdzic gitleaks', ktory szablon zapowiada jako przyszly, juz sie odbyl. WER-03 CZYNNE: szablon jest wstrzykiwany do KAZDEGO nowego PR-a, nic tego nizej nie prostuje. WER-04 hash 8124... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T22:10:34.099Z"
+    }
+  }
+}

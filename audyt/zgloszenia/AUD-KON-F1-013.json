@@ -14,7 +14,7 @@
   "dowod": "Oś czasu UTC z pomiarów: audyt/migawki/przed.json zapisana 16:01:35 z `wtyczki_aktywne` = 5 pozycji (więc `wp plugin list` działało); `stat` wp-config.php w kontenerach aai_wp_cli i aai_wp_wordpress → `2026-09-03 16:07:00.000 root 6207 B`; `bin2hex(substr(file,0,12))` w kontenerze → `74696d653d22323032362d30` = `time=\"2026-0`; kopia pliku na scratchpadzie (6207 B) zaczyna się od `time=\"2026-09-03T18:07:00+02:00\" level=error msg=\"User-selected graph driver …\"`, linia 2 = `<?php`; `wp --debug plugin list` → po „Looking for UTF-16 (LE) BOM” `PHP Parse error: unexpected token \"=\" in Runner.php(1334) : eval()'d code on line 1` (WP-CLI ewaluuje treść wp-config.php, Apache traktuje tekst przed `<?php` jako wyjście — strona 200, `php -l` czysty); `node audyt/tools/srodowisko.mjs --liczniki` → kod 1; `node audyt/tools/straznik-sektora-audytu.mjs` → kod 1, R31 „srodowisko.mjs --test NIE przechodzi” (18 asercji zielonych, pada `wp plugin list`); o 16:25:56 UTC ten sam plik: `stat` → `16:23:27 root 5922 B`, sha256 db015a88… identyczny w obu kontenerach, hex12 `3c3f7068700d0a…` = `<?php`, `wp plugin list` kod 0, `--liczniki` kod 0. 6207 − 5922 = 285 = długość komunikatu podmana (stderr 285 B przy każdym `podman exec`). `git grep wp-config -- ':!*.md'` → żaden skrypt repo ani sektora nie pisze tego pliku; grep w audyt/tools/migawka-wartosci.mjs i srodowisko.mjs → zero pomiaru plików instalacji.",
   "klasyfikacja": "sprawdzenie W6 ślepe na pliki instalacji + zapis do środowiska w trakcie fali",
   "wplyw": "Rola albo narzędzie zmieniło konfigurację żywego środowiska w trakcie audytu (W2: sektory nie naprawiają), przez ~16 minut żaden pomiar WP-CLI sektora nie działał, a porównanie początku i końca (W6, KIER-06, GOLD-08) zamelduje zgodność, bo nie mierzy tego, co się zmieniło.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "12ac8ef741d2b29ab0b7954a685f2df5bc1d367ccacac61e568c7d14f8ccbdc3",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:34.005Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie. WER-02 dowod i stwierdzenie mowia o tym samym; ROZSTRZYGAJACA polowe sprawdzilem sam i potwierdzam: migawkaSrodowiska() (srodowisko.mjs:236-239) zwraca WYLACZNIE skrot_tabel, tabel, nasze, media, wtyczki_aktywne, wersje — ani jednego skrotu PLIKU instalacji; w migawka-wartosci.mjs pole 'srodowisko' bierze dokladnie ten wynik (polSrodowiska), a skrot_produktu liczy pliki REPO, nie woluminu wp_core. Czyli zapis do wp-config.php miedzy migawkami jest dla porownania W6 niewidzialny — to jest sedno wpisu i jest prawdziwe. Potwierdzam tez, ze zaden skrypt repo tego pliku nie pisze ('git grep wp-config -- :!*.md' trafia tylko w to zgloszenie i w komentarze wtyczki monitoringu). CZESC HISTORYCZNA (dwa zapisy roota o 16:07 i 16:23) jest z natury nieodtwarzalna po nadpisaniu pliku i tego nie udaje: mowie wprost, ze zmierzylem STAN DZISIEJSZY i on niezaleznie potwierdza mechanizm — wp-config.php ma teraz mtime 2026-09-03 21:33:59 UTC, wlasciciela 'http', 5922 B i sha256 db015a88..., czyli TRZECI zapis do pliku w trakcie fali (zdjecie sondy SAVEQUERIES), ktorego migawka rowniez nie widzi. WER-03 CZYNNE. WER-04 hash 12ac... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony: druga polowa stwierdzenia ('rola albo narzedzie zmienilo konfiguracje zywego srodowiska w trakcie audytu') jest przez ten pomiar wzmocniona, nie oslabiona.",
+      "kiedy": "2026-09-03T21:54:05.757Z"
     }
   }
 }

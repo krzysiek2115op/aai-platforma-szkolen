@@ -14,8 +14,19 @@
   "dowod": "Linie 190-196: $wpdb->query( $wpdb->prepare( \"INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'yes') ON DUPLICATE KEY UPDATE option_id = option_id\", ... ) ) — zapis bezpośrednio do $wpdb->options, tabeli rdzenia WordPressa, z pominięciem WP API (add_option/update_option). Grep '$wpdb->\\(posts\\|postmeta\\|users\\|usermeta\\|options\\|term\\|comments\\)' w wordpress/wtyczki pokazuje pięć trafień; pozostałe cztery (class-aai-platnosci-ustawienia.php:775-776, class-aai-platnosci-zapis.php:410, class-aai-platnosci-cli.php:841-842) to same SELECT-y (odczyt), ten jeden jest zapisem (INSERT).",
   "klasyfikacja": "granica",
   "wplyw": "Wtyczka aai-monitor sięga poza własną tabelę wprost do struktury rdzenia WordPressa (wp_options), omijając jego API cache'ujące (add_option/update_option) i licząc się z tym świadomie kasowaniem cache obiektowego ręcznie (wp_cache_delete) — to jest dokładnie klasa błędu z GRANICE.md ('to, że wtyczka w ogóle sięga do cudzych tabel → ARCH'), niezależnie od tego, że komentarz w kodzie tłumaczy motywację (wyścig w add_option() nadpisujący sól). Przy migracji WordPressa na inną wersję albo zmianie cache'u opcji ten zapis może przestać być spójny z resztą API opcji.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "bcade24ce1fd7a9d9105bbc862fc04878578b8c1198900d0ef941ab8118b23a2",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:30:04.868Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: podpis.php:190 to '$wpdb->query(' co do znaku, a INSERT INTO {$wpdb->options} stoi w 192. WER-02 dowod dotyczy tego samego: moj wlasny grep -rnE '\\$wpdb->(options|posts|postmeta|users|usermeta|terms|comments)' na wordpress/wtyczki daje 7 linii w 5 miejscach zapytan i DOKLADNIE JEDNO z nich jest zapisem (podpis.php:192), reszta to SELECT-y. ZASIEG POPRAWIONY: zgloszenie wymienia cztery pozostale trafienia jako trzy miejsca (ustawienia:775-776, zapis:410, cli:841-842) i pomija czwarty SELECT — podpis.php:204 (SELECT option_value FROM {$wpdb->options}); liczba 'piec trafien' jest poprawna, wyliczenie niepelne o jedno. WER-03 CZYNNE: sol() to jedyna droga do soli podpisu, wolana przy kazdym renderze znacznika, nic tego nie blokuje — pisze surowo do tabeli rdzenia z jawnym pominieciem add_option() i recznym wp_cache_delete. WER-04 hash bcade24c... przeliczony niezaleznie — zgodny. WER-05 stwierdzenie jednoznaczne, bez trybu przypuszczajacego. Wplyw NIE zawyzony: zgloszenie nie twierdzi awarii, tylko przekroczenie granicy z GRANICE.md, i tak jest w istocie.",
+      "kiedy": "2026-09-03T21:41:45.358Z"
+    }
+  }
 }

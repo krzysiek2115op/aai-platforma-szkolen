@@ -14,7 +14,7 @@
   "dowod": "`ls -d tools/audyt` → „Nie ma takiego pliku ani katalogu”; `git ls-files -- tools/audyt | wc -l` → 0; `ls audyt/tools | wc -l` → 15 (status.mjs, zgloszenie.mjs, mapa.mjs, migawka-wartosci.mjs, porownaj-cykle.mjs, srodowisko.mjs …). Zakres USP (`:(glob)tools/*.mjs` itd.) także nie obejmuje `audyt/tools`, więc narzędzia sektora nie są w zakresie żadnego działu poza KON.",
   "klasyfikacja": "miejsce pozycji nie istnieje",
   "wplyw": "Pytanie „czy każde narzędzie audytu zwraca kod wyjścia bez potoku” jest zadane wobec pustego wzorca — agent USP odhaczy je bez otwarcia ani jednego z 15 prawdziwych narzędzi.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "0574e4d8e6b8bd184dcda5d296a8103c67659fe880c7b9f090a5fc6d9c64d652",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:33.922Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:528 to wiersz USP-08 co do znaku, z miejscem 'tools/audyt/* (E4)'. WER-02 dowod dotyczy tego samego i sprawdzilem go sam: 'ls -d tools/audyt' -> 'nie ma takiego pliku ani katalogu', 'git ls-files -- tools/audyt | wc -l' -> 0, a 'ls audyt/tools | wc -l' -> 15. Czyli pozycja o kodach wyjscia narzedzi audytu wskazuje sciezke, ktorej w repozytorium nie ma, a prawdziwe narzedzia leza pod inna. WER-03 CZYNNE: nic nizej tego nie prostuje — zakres USP nie obejmuje audyt/tools, wiec agent USP nie trafi tam przypadkiem. WER-04 hash 0574... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T21:52:58.061Z"
     }
   }
 }

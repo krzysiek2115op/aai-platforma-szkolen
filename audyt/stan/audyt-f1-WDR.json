@@ -1,0 +1,26 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "WDR",
+  "status": "ZAKOŃCZONE",
+  "runda": 1,
+  "niedomkniete": [],
+  "kiedy": "2026-09-03T22:55:29.775Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T22:31:32.329Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-03T22:54:17.693Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 1,
+      "kiedy": "2026-09-03T22:55:29.775Z"
+    }
+  ]
+}

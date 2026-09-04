@@ -1,0 +1,27 @@
+{
+  "id": "AUD-PIK-F1-006",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PIK",
+  "pozycja": "PIK-90",
+  "stwierdzenie": "Sektor nie ma nosnika, w ktorym rola zapisuje WYNIK pojedynczej pozycji checklisty. Stan roli niesie tylko status, runde i liste niedomknietych, a lista niedomknietych powstaje wylacznie przy suficie pieciu rund — wiec rola konczaca wczesniej zostawia zero sladu po pozycjach zamknietych na nie. Pozycja przejrzana i nieprzejrzana wygladaja wtedy identycznie, a krytyk i kierownik nie maja czego sprawdzic poza samymi zgloszeniami.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/status.mjs",
+    "zakres": "zapis stanu roli — obiekt o kluczach sektor, fala, rola, status, runda, niedomkniete, kiedy, historia (audyt/stan/audyt-f1-*.json)",
+    "mechanizm": "Brakuje pola z wynikiem KAZDEJ pozycji checklisty (kod pozycji -> tak/nie/nie dotyczy + slad pomiaru) zapisywanego przy przejsciu rundy, obok istniejacego pola niedomkniete. Dzis pole niedomkniete jest wymagane tylko przy suficie pieciu rund (status.mjs:414-415), a przy zakonczeniu w rundzie 1 zostaje puste — nie z pomiaru, tylko z braku miejsca na zapis. Nosnik powinien lezec tam, gdzie juz lezy stan roli, bo tylko on jest pisany przez narzedzie i przezywa /clear."
+  },
+  "dowod": "Pomiar na tej fali. (1) node -e Object.keys(audyt/stan/audyt-f1-QA.json) -> sektor, fala, rola, status, runda, niedomkniete, kiedy, historia — ani jednego pola per pozycja; ten sam ksztalt ma audyt/stan/audyt-f1-PIK.json. (2) audyt/tools/status.mjs:414-415 wymusza liste niedomknietych WYLACZNIE przy przekroczeniu sufitu rund; poza tym przypadkiem narzedzie o pozycjach nie pyta i nie ma parametru, ktorym daloby sie wynik pozycji zapisac (status.mjs --pomoc wypisuje wylacznie role sektora, uzycie w naglowku pliku, linie 70-80, zna tylko --status, --runda, --niedomkniete). (3) Skutek zmierzony na roli PIK fali 1: stan mowi status ZAKONCZONE, runda 1, niedomkniete [], a w audyt/zgloszeniach sa cztery wpisy dotykajace trzech pozycji (PIK-05, PIK-07, PIK-08 dwukrotnie). Dla pozycji PIK-01, PIK-02, PIK-03, PIK-04, PIK-06 i PIK-90 nie istnieje w sektorze ZADEN artefakt mowiacy, czy zostaly przejrzane — kazda z nich wyglada tak samo, czy audytor ja zmierzyl i nic nie znalazl, czy pominal ja w calosci.",
+  "klasyfikacja": "luka nosnika sektora — wynik pozycji checklisty nie jest nigdzie zapisywany",
+  "wplyw": "Cala konstrukcja sektora stoi na tym, ze checklista jest MINIMUM przechodzonym w calosci (ROLE.md, definicje rol: konczysz, gdy przeszedles CALA checkliste, a nie gdy nic juz nie przychodzi do glowy) i ze druga fala ma dac ten sam wynik. Obu tych rzeczy nie da sie dzis sprawdzic: krytyk roli ma w definicji zadanie oceny, czy pozycje zamkniete na nie naprawdę zostaly sprawdzone, i nie ma na to ani jednego dowodu do otwarcia; kierownik liczy otwarte pozycje z pola niedomkniete, ktore przy zakonczeniu przed sufitem jest puste z definicji, wiec dziennik audytu pokazuje komplet tam, gdzie mogl byc przeglad czesciowy. Przy porownaniu fal roznica liczby zgloszen bedzie nie do rozstrzygniecia — nie bedzie wiadomo, czy fala 2 znalazla wiecej, czy fala 1 mniej przejrzala. Cena bledu jest asymetryczna: pozycja pominieta w ciszy wyglada jak pozycja czysta, czyli audyt melduje zdrowie tam, gdzie nikt nie patrzyl.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "8b9f6b5b73e2ac2c7e184dd1502402145bc3d902989185fa0bcc069f03734937",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie (status.mjs, zapis stanu roli). WER-02 dowod dotyczy tego samego i sprawdzilem kazdy punkt sam: (a) stan roli PIK ma klucze sektor,fala,rola,status,runda,niedomkniete,kiedy,historia,adnotacja — ani jednego pola per pozycja; (b) status.mjs:411-417 wymusza liste niedomknietych WYLACZNIE po przekroczeniu SUFIT_RUND, a poza tym narzedzie o pozycjach nie pyta; (c) stan PIK to 'ZAKONCZONE, runda 1, niedomkniete []' przy dziewieciu pozycjach dzialu (PIK-01..08 + PIK-90), a zgloszenia dotykaja PIK-05, PIK-07, PIK-08 i PIK-90 — dla PIK-01, PIK-02, PIK-03, PIK-04 i PIK-06 nie ma w sektorze zadnego artefaktu. ZASIEG POPRAWIONY: wpis wymienia w tej grupie takze PIK-90, a PIK-90 slad JUZ MA — jest nim to wlasnie zgloszenie; grupa bez sladu liczy piec pozycji, nie szesc. WER-03 CZYNNE. WER-04 hash 8b9f... zgodny. WER-05 jednoznaczne. Odnotowuje, ze to ta sama klasa co AUD-BD-F1-003 (tez zweryfikowane jako ISTNIEJE) — dwa dzialy trafily w nia niezaleznie, co ja wzmacnia; ten wpis dodaje do niej rzecz, ktorej tamten nie ma: pole 'niedomkniete' jest puste Z DEFINICJI przy zakonczeniu przed sufitem, wiec cisza nie odroznia przegladu pelnego od czesciowego.",
+      "kiedy": "2026-09-03T22:01:30.751Z"
+    }
+  }
+}

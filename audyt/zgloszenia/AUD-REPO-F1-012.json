@@ -1,0 +1,32 @@
+{
+  "id": "AUD-REPO-F1-012",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-02",
+  "stwierdzenie": "Ostatnia sekcja docs/ETAP-WP.md, 'Następne kroki' (linie 989-1019, sam koniec 1019-liniowego dokumentu), zatrzymuje się na stanie sprzed Pluginu 2 i 3: pozycja 5 mówi 'NASTĘPNY MODUŁ: Plugin 2 — płatności. Przed pisaniem kodu musi zapaść decyzja właściciela GDZIE MIESZKA CENA... Zakres Pluginu 2 doprecyzowujemy pytaniami do właściciela przed startem' — jako otwarte zadanie, choć TA SAMA decyzja jest już opisana WCZEŚNIEJ W TYM SAMYM PLIKU (nagłówek '### DECYZJA WŁAŚCICIELA (2026-08-26): gdzie mieszka CENA', linia 899) i cały Plugin 2 jest od dawna SKOŃCZONY (v0.53.0, test ręczny P6 zaliczony 2026-08-30). Pozycja 6 mówi 'Po ukończeniu WSZYSTKICH wtyczek — test całości na lokalnym WP z warsztatu `wordpress/` (sekcja \"Test finalny wtyczek\" wyżej)' — ale realny test całości (0.59.0, zaliczony przez właściciela 2026-08-31) wykonano na INNYM środowisku niż to opisane w referowanej sekcji: nie na warsztacie `wordpress/` (Docker, port `:8890`, `skrypty/start.sh`), tylko na `wordpress/srodowisko/` (podman, port `:8892`, `postaw.sh`) — CLAUDE.md wprost odnotowuje, że przy teście całości 'warsztat motywu `:8890` pominięty'. Ani Plugin 3 (T0-T4, skończony v0.58.0), ani żaden z tych faktów nie ma odzwierciedlenia w tej sekcji.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "docs/ETAP-WP.md",
+    "linia": 1014,
+    "tresc": "5. **NASTĘPNY MODUŁ: Plugin 2 — płatności.** Przed pisaniem kodu musi zapaść"
+  },
+  "dowod": "docs/ETAP-WP.md:899 nagłówek '### DECYZJA WŁAŚCICIELA (2026-08-26): gdzie mieszka CENA' — decyzja, na którą pozycja 5 'Następnych kroków' każe czekać, już ZAPADŁA i jest opisana w TYM SAMYM PLIKU wyżej. README.md:53 potwierdza obie wtyczki jako SKOŃCZONE ('aai-platnosci — P0–P6, v0.53.0 · aai-monitor — T0–T4, v0.58.0'), README.md:150-151 'Wszystkie trzy są SKOŃCZONE... na koniec sprawdzono je RAZEM (test całości, zaliczony 2026-08-31)'. docs/ETAP-WP.md:405-424 (sekcja 'Test finalny wtyczek', do której odsyła pozycja 6) opisuje plan testu na warsztacie `wordpress/` z Dockerem na porcie `:8890` — inny mechanizm niż faktycznie użyty. Sekcja żadnym słowem nie wspomina, że plan się zmienił.",
+  "klasyfikacja": "deklaracja-stanu-nieaktualna",
+  "wplyw": "Ostatnia sekcja 1019-liniowego dokumentu planistycznego — miejsce, gdzie czytelnik naturalnie szuka odpowiedzi 'co dalej' — przedstawia jako otwarte dwa zadania, które są od dawna zamknięte (cały etap WordPressa, wszystkie trzy wtyczki, test całości), a jedno z nich odsyła do opisu środowiska testowego, które w praktyce zostało zastąpione innym. Czytelnik kończący lekturę tego dokumentu (typowy sposób czytania dokumentacji: od góry, aż do sekcji 'następne kroki') wychodzi z fałszywym obrazem, że projekt utknął na etapie sprzed Pluginu 2.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "1c80c34f425ad029dd835801dca2b09b61e25803ec46def54757a2765c350be7",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.468Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: docs/ETAP-WP.md:1014 to '5. **NASTEPNY MODUL: Plugin 2 — platnosci.** Przed pisaniem kodu musi zapasc' co do znaku, w ostatniej sekcji 1019-liniowego dokumentu. WER-02 dowod dotyczy tego samego i sprawdzilem oba czlony sam: decyzja, na ktora ta pozycja kaze czekac, stoi WYZEJ W TYM SAMYM PLIKU (linia 899, naglowek '### DECYZJA WLASCICIELA (2026-08-26): gdzie mieszka CENA'), a Plugin 2 jest skonczony i wydany (v0.53.0), tak samo Plugin 3 (v0.58.0). WER-03 CZYNNE: to ostatnia sekcja dokumentu, wiec nie ma nizej niczego, co by ja prostowalo. WER-04 hash 1c80... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — czytelnik konczacy lekture na sekcji 'nastepne kroki' dostaje obraz sprzed Pluginu 2.",
+      "kiedy": "2026-09-03T22:10:52.728Z"
+    }
+  }
+}

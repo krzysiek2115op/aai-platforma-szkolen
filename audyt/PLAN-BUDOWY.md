@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | 🟢 **ZIELONE ŚWIATŁO 2026-09-03** — właściciel: „zielone swiatło puszczamy 1 fale audytu i re audytu"; przebieg fali 1 obu sektorów W TOKU (sekcja „E8 — PRZEBIEG FALI 1" niżej) | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
+| **E8** — STOP | 🟢 **ZIELONE ŚWIATŁO 2026-09-03** — właściciel: „zielone swiatło puszczamy 1 fale audytu i re audytu"; przebieg fali 1 W TOKU (sekcja „E8 — PRZEBIEG FALI 1" niżej). STAN 2026-09-04: audyt fali 1 ma **16 z 17 ról ZAKOŃCZONYCH** i **107 wpisów**; zostały **GOLD** (padł na limicie sesji przed zapisem), **trzecie wejście WER** (20 wpisów bez werdyktu weryfikatora), **KIER** (drugie wejście) i **RAP** — kolejność w podsekcji „PRZERWANIE DRUGIE". Re-audyt fali 1 jeszcze NIE ruszył | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -783,6 +783,760 @@ zostawić stan pośredni.
    nowa bez powtórzenia objawu.** Sama klasa jest znana i zgłoszona w tej fali przez
    dział QA (`AUD-QA-F1-007`, cichy `process.exit` bez komunikatu) — tyle że tam chodzi
    o strażników projektu, a tu o strażnika sektora.
+
+### WZNOWIENIE FALI 1 PO `/clear` (2026-09-03, wieczór)
+
+**Kontrola środowiska przed wznowieniem wykryła DRUGI ślad po przerwanym dziale INT** —
+poza kontem `audyt-int-tmp2` i zapisem na kurs, sprzątniętymi w poprzednim sweepie,
+w tabeli `wp_aai_platnosci_dostawy` stały **dwa wiersze (`id` 465 i 466, oba 16:49:52)**
+po zamówieniu **1368, którego już nie ma** (`wp_wc_orders` puste, zero zamówień w całej
+instalacji). Przez to `wp aai-platnosci sprawdz` kończyło **kodem 1** — a nie kod
+płatności był tego przyczyną, tylko cudzy niedokończony przebieg.
+
+Sprzątnięte **jawną listą identyfikatorów** (`DELETE … WHERE id IN (465,466)`), razem
+z opcją `aai_platnosci_blad`, w której wtyczka trzymała komunikat o niewysłanej
+wiadomości. Weryfikacja ARTEFAKTU: `dostawy` **0** (zgodnie z migawką `przed`),
+`powiazania` **2**, zamówienia **0**, konta `admin` + `klient-test`, zapisy
+`tutor_enrolled` **2**, `wp aai-sklep|aai-platnosci|aai-monitor sprawdz` → kod **0**,
+`/szkolenia/` → **200**.
+
+**Rozjazd monitoringu bez zmian od pomiaru po przerwaniu:** `logowania` **26**
+(migawka `przed`: 21), `wizyty` **18** (`przed`: 17) — to ślad pracy działów na `:8892`,
+pokaże go KIER-06 i migawka `po`. Pozostałe tabele bez zmian.
+
+**Wzmocnienie reguły o sprzątaniu:** ślad ubitego agenta potrafi być rozłożony na kilka
+NOŚNIKÓW — konto, zapis na kurs, wiersz dziennika dostaw i opcja z komunikatem błędu.
+Sprzątanie jednego z nich zostawia kontrolę czerwoną, a czerwona kontrola przed startem
+działów wygląda jak regresja produktu. **Sprzątając po agencie, przejdź WSZYSTKIE nośniki,
+które jego ścieżka dotyka**, i domykaj to kodem wyjścia kontroli, nie samą liczbą wierszy.
+
+Wznowione tym samym szablonem polecenia co partie 1 i 2: **INT, PERF, PRIV, REPO, PIK,
+USP** równolegle; potem krytycy **FE, ARCH, PROTO**, potem krytycy sześciu wznowionych,
+**WER**, **WDR** jako ostatni dział, dalej **KON faza B → GOLD → KIER → RAP**.
+
+**SZABLON POLECENIA MA WADĘ, KTÓRA POWTÓRZY SIĘ W FALI 2 — nazwana, nie naprawiana
+w trakcie (K4″: parametr poza definicją roli musi być w obu falach ten sam).** Zdanie
+„Nie czytasz CLAUDE.md ani wpisów/stanu innej fali" jest sprzeczne z definicją roli
+**PIK**: `ROLE.md` (PIK-03, PIK-06, PIK-07, PIK-08) wprost każe jej ten plik czytać,
+a `BRIEF-PROJEKTU.md` §11 nazywa PIK **jedynym wyjątkiem** od tego zakazu. Dział fali 1
+zachował się poprawnie — czytał wg definicji roli i zgłosił sprzeczność w meldunku, tak
+jak wcześniejsze wpisy `AUD-PIK-F1-001…003` tej samej fali, które CLAUDE.md cytują.
+**Do decyzji właściciela przed falą 2:** albo szablon dostaje wyjątek dla PIK, albo zakaz
+przenosi się do definicji ról (gdzie ma wyjątek), a z szablonu znika. Zmiana szablonu
+w trakcie fali 1 zafałszowałaby porównanie fal, więc jej nie robimy.
+
+- 2026-09-03, wieczór: **PIK ZAKOŃCZONE** (wznowienie), 1 runda w tej sesji, zero
+  niedomkniętych. Cztery pozycje na „nie": PIK-05 (`AUD-PIK-F1-003`, cztery niezależne
+  trasy `admin-post.php` w `aai-sklep` zamiast jednego dyspozytora — WYTYCZNE §8),
+  PIK-07 (**nowe `AUD-PIK-F1-004`**: pozycja „kompozycja hero katalogu po usunięciu
+  pływaka gwarancji", zgłoszona właścicielowi dwukrotnie przy P5, znika bez śladu
+  z 900+ dalszych linii dziennika, z CHANGELOG i z planu trzech ostatnich kroków),
+  PIK-08 (`AUD-PIK-F1-002`, brak faktur i VAT na listach „przed pierwszym klientem").
+  Krytyk PIK uruchomiony z zadaniem sprawdzenia trzech pozycji zamkniętych na „tak"
+  — jedna runda na całej checkliście to albo zdrowy obszar, albo odhaczenie.
+- 2026-09-03, wieczór: **USP ZAKOŃCZONE**, 3 zgłoszenia (`AUD-USP-F1-001…003`), 1 runda,
+  zero niedomkniętych. Wszystkie trzy mówią o BRAKU NARZĘDZIA, nie o produkcie: nie ma
+  czym policzyć zapytań na odsłonę (`SAVEQUERIES` — zero trafień w repo), narzędzie wagi
+  strony domyślnie mierzy prototyp zamiast wtyczki, a rejestr 30 błędów nie ma wzorca
+  maszynowego, więc zasięgu klasy nie da się policzyć skryptem.
+  **Dział zgłosił WŁASNY INCYDENT na środowisku i naprawił go:** przypadkowe wywołanie
+  `tools/wgraj-sekcje.ts --help` rozjechało identyfikatory sekcji między Postgresem
+  a `:8892` (ta sama klasa co pułapka `db1:sekcje` z P5 — warstwa zapisu podmienia sekcje
+  parą DELETE + INSERT), naprawione `npm run wp:import`. Krytyk USP dostał zadanie
+  sprawdzenia stanu własnym pomiarem ORAZ rozstrzygnięcia, czy pomiary działu wykonane
+  PO incydencie nie są nim zanieczyszczone.
+  **Krytyk USP dostał też rozbieżność zakresu do rozstrzygnięcia:** Konrad zgłosił, że
+  pozycja `USP-08` wskazuje katalog `tools/audyt/*`, którego nie ma; dział odpowiedział
+  „tak", mierząc `audyt/tools/*.mjs` — katalog o ODWRÓCONEJ kolejności segmentów.
+- 2026-09-03, wieczór: **INT ZAKOŃCZONE**, 1 zgłoszenie, 2 rundy, zero niedomkniętych.
+  `AUD-INT-F1-001` (INT-11) zmierzone na `:8892`: **skasowanie zamówienia
+  (`wp wc shop_order delete --force`) NIE cofa wpisu `tutor_enrolled`** — `is_enrolled()`
+  dalej oddaje `true`, czyli dostęp zostaje po zniknięciu podstawy zakupu. Osiem pozycji
+  na „tak", INT-03 i INT-04 na „nie znaleziono ryzyka".
+  Krytyk INT dostał cztery zadania, w tym **pomiar własnego zakresu obiema formami
+  komendy** (`AUD-KON-F1-004`: podwzorce z klamrą dają zero plików, a deklarowana liczba
+  zgadza się, bo policzono ją tą samą zepsutą komendą) i sprawdzenie INT-04 pod kątem
+  instrukcji rzucającej PRZED `try` — klasa, która w tym projekcie raz już przeszła obok
+  reguły pytającej o samą obecność słowa.
+  **Ślad pomiaru INT zostaje w `wp_aai_platnosci_dostawy`** (wiersze `id` 467 i 468 po
+  zamówieniu 1370, oba `21:07:30`, wynik `wyslano`). **Nie kasuję ich**: w odróżnieniu od
+  wierszy 465/466 nie psują kontroli (`aai-platnosci sprawdz` kod **0**), a migawka `po`
+  ma ten przyrost pokazać jako wynik pracy fali, nie zatrzeć. Reguła, która z tego wychodzi:
+  **sprzątamy ślad, który UNIERUCHAMIA narzędzie pomiarowe; ślad, który tylko przesuwa
+  liczbę, idzie do migawki.**
+- 2026-09-03, wieczór: **PRIV ZAKOŃCZONE**, 3 zgłoszenia, 2 rundy, zero niedomkniętych.
+  Najcięższe jest `AUD-PRIV-F1-002` (PRIV-07): `get_privacy_policy_url()` na `:8892`
+  zwraca **pusty łańcuch**, bo opcja wskazuje SZKIC (ID 3) zamiast opublikowanej strony
+  (ID 23) — czyli zdanie w kasie powołuje się na politykę prywatności **bez działającego
+  odnośnika**, wprost przeciwnie do rozstrzygnięcia C3 z 2026-08-31 („polityka ZOSTAJE,
+  bo jest podpięta i klikalna"). Do tego `AUD-PRIV-F1-003` (PRIV-01): kolumna `agent`
+  w `wp_aai_monitor_logowania` trzyma **surowy User-Agent**, choć polityka i kod obiecują
+  „nazwę przeglądarki" — zmierzone żywym zapisem, wiersz skasowany przez dział.
+  `AUD-PRIV-F1-001` (PRIV-02, trzy pierwsze znaki wpisanej wartości jawnym tekstem przy
+  nieistniejącym koncie) pochodzi z poprzedniej sesji tej fali.
+  Krytyk PRIV dostał do rozstrzygnięcia rzecz decydującą o wadze `002`: czy pusty odnośnik
+  bierze się z KONFIGURACJI tego środowiska, czy z NASZEGO kodu, który powołuje się na
+  politykę, nie sprawdziwszy, że istnieje — od tego zależy, czy zjawisko przeżyje wdrożenie
+  u klienta. Do tego pomiar ZASIĘGU surowego User-Agenta i pytanie, czy „tak" na PRIV-05
+  (sprzeczność polityki ze stanem witryny) odpowiada na brzmienie pozycji, czy na inne
+  pytanie.
+- 2026-09-03, wieczór: **PERF ZAKOŃCZONE**, 6 zgłoszeń, 2 rundy, zero niedomkniętych.
+  Trzy N+1 (`tutor.php` per moduł, `cli.php` per powiazanie, `moje.php` dwupoziomowy),
+  `produkt_kursu()` bez pamięci na żądanie (7 razy to samo zapytanie na odsłonę), brak
+  `nocache_headers()` na trasie pojedynczej lekcji mimo treści zależnej od konta, oraz
+  beacon monitoringu jako dodatkowy niebuforowalny przebieg PHP. Zmierzone zapytania na
+  trasę: katalog 77–81, kurs 83, moje 111, lekcja 88.
+  Krytyk PERF dostał pięć zadań, w tym **własny pomiar tych liczb** (w tym repozytorium
+  liczba zapytań wyprowadzona z lektury myliła się już o rząd wielkości) i rozstrzygnięcie,
+  czy zgłoszenie o beaconie wnosi cokolwiek ponad **pozycję A11, którą właściciel
+  ŚWIADOMIE ZOSTAWIŁ OTWARTĄ** przy przeglądzie T3 („pozycja wdrożeniowa, kodu nie
+  ruszamy") — i czy 65–84 ms zgadza się z tamtym pomiarem 45–50 ms.
+  Dział mierzył tymczasowym mu-pluginem `zzz-aai-audyt-perf-tmp.php`, który usunął;
+  `git status` to potwierdza.
+- 2026-09-03, wieczór: **REPO ZAKOŃCZONE**, **13 zgłoszeń** (5 odziedziczonych z przerwanej
+  sesji + 8 nowych), 3 rundy, zero niedomkniętych — najwięcej w tej fali. Cztery pozycje na
+  „nie": nieprawdy w prozie ośmiu dokumentów, wiersze tabeli z treścią po zamykającym `|`
+  w `docs/plugin-3/DIAGRAM.md`, `straznik-linkow` nie sprawdzający kotwic `#…` poza README,
+  oraz CONTRIBUTING mówiący „prefiksy do wersji 0.21.0" przy 65+ commitach z prefiksem PO
+  tym tagu. Krytyk REPO dostał jako zadanie główne rozstrzygnięcie, **ile z trzynastu to
+  osobne zjawiska**, kryterium przyjętym już przy `AUD-KON-F1-004` (różne miejsce, różny
+  zbiór skutków, osobna naprawa = osobne zgłoszenie).
+
+### USZKODZENIE `audyt/ROLE.md` W TRAKCIE FALI — źródło prawdy sektora straciło całą rolę
+
+**Zgłosiły to niezależnie DWA działy** (PERF i REPO), obserwując w drzewie zmianę
+w `audyt/ROLE.md`, której same nie zrobiły. Zmierzone przez orkiestratora: `git diff`
+pokazał **28 usunięć i zero wstawek** — z pliku zniknęła **CAŁA definicja roli PIK**:
+nagłówek „PIK — Początek i koniec", komenda zakresu (10 plików) i wszystkie pozycje
+`PIK-01…PIK-90` wraz z sekcją „Nie bierze".
+
+**Przywrócone** z HEAD (`git checkout -- audyt/ROLE.md`, kopia uszkodzonej wersji odłożona
+poza repo). Weryfikacja ARTEFAKTU, nie procesu: `git diff` pusty, **osiem pozycji `PIK-0*`
+z powrotem**, `generuj-agentow.mjs --sprawdz` kod **0**. Definicje w `.claude/agents/`
+nie ucierpiały — generat zgadza się ze źródłem po `sha256`.
+
+**AKTORA NIE USTALONO.** Uszkodzenie padło w oknie pracy sześciu równoległych działów;
+żadne narzędzie sektora tego pliku nie zapisuje. Klasa jest ta sama co incydent
+`wp-config.php` z wcześniejszej partii: **cudzy przebieg nadpisuje plik, którego nie miał
+dotykać, a objawem nie jest błąd — tylko cisza.**
+
+**DLACZEGO TO JEST GROŹNE, a nie tylko brzydkie:** krytyk PIK pracował w tym oknie i mógł
+zastać `ROLE.md` BEZ checklisty roli, którą ocenia — czyli sprawdzać dział bez jego
+pytań. Dostał o tym wiadomość z poleceniem przeczytania sekcji PIK od nowa i wskazania
+w meldunku, czy któryś werdykt wydał na niepełnym pliku.
+
+**Do decyzji właściciela przed falą 2:** sektor nie ma dziś ŻADNEJ bramki na własne pliki
+źródłowe. `generuj-agentow.mjs --sprawdz` porównuje generat ze źródłem, więc złapałby
+rozjazd definicji **dopiero po regeneracji** — samo uszkodzenie `ROLE.md` przechodzi
+u niego bez słowa, bo generat i tak jest starszy. Migawka wartości też tego nie liczy
+(ta sama luka, którą Konrad nazwał w `AUD-KON-F1-013` dla plików instalacji WordPressa).
+
+- 2026-09-03, wieczór: **KRYTYK PIK — jedno PRZEPUSZCZAM, DWA ODRZUCAM, dwa własne
+  zgłoszenia.** Odrzucenia mają dowód i **obalają meldunek działu**: (1) `AUD-PIK-F1-003`
+  (rzekome cztery niezależne trasy `admin-post.php`) upada w pliku, który samo zgłoszenie
+  wskazuje — cztery formularze POST-ują na JEDEN adres, a akcja jedzie jako DANE
+  w `name="action"`, czyli dokładnie wg WYTYCZNE §8, a decyzja właściciela „POTWIERDZONE
+  2026-08-28" mówi to wprost; (2) `AUD-PIK-F1-004` (rzekomo zapomniana „kompozycja hero
+  katalogu") upada, bo pozycja ma OBA ślady: jawne odłożenie w `KROK-P5.md:319,325`
+  i rozstrzygnięcie w `TEST-RECZNY-P6.md` („akceptuje wszystko").
+  **`AUD-PIK-F1-005` jest ważniejszy niż każde z odrzuconych zgłoszeń działu, bo wyjaśnia
+  ICH PRZYCZYNĘ:** komenda pozycji `PIK-07` w `ROLE.md:498` brzmi
+  `grep -n 'ZOSTAJE DO DECYZJI' CLAUDE.md docs` i **NIE CZYTA katalogu `docs`** — bez `-r`
+  GNU grep kończy kodem 2 („docs: Jest katalogiem"), a `ugrep` z powłoki sesji pomija
+  katalog **w ciszy z kodem 0**; do tego wzorzec wielkimi literami nie trafia w nagłówek
+  „Zostaje do decyzji właściciela". Czyli pozycja o rzeczach nierozstrzygniętych czyta
+  jeden plik zamiast całej dokumentacji — **i pójdzie w tej samej postaci do fali 2**.
+  `AUD-PIK-F1-006`: sektor nie ma nośnika na WYNIK pojedynczej pozycji — dla sześciu
+  pozycji tej roli nie istnieje żaden artefakt mówiący, czy je przejrzano (drugie,
+  niezależne trafienie w tę samą lukę co `AUD-BD-F1-003`).
+  Krytyk zweryfikował własnym pomiarem trzy pozycje na „tak" (PIK-02, PIK-03, PIK-06 —
+  przeliczył 26 bramek B/W/P/T, każda ma zapisany wynik) i potwierdził, że czytał pełną
+  checklistę z `audyt/role/PIK/AGENT.md`, więc **uszkodzenie `ROLE.md` nie zafałszowało
+  ani jednego jego werdyktu**. Rozstrzygnął też sprzeczność szablonu: CLAUDE.md jako
+  WEJŚCIE WIEDZY jest zakazane, jako PRZEDMIOT audytu wymagane — dział czytał go jako
+  przedmiot, więc wartość wyniku stoi.
+- 2026-09-03, wieczór: **KRYTYK INT — PRZEPUSZCZAM `AUD-INT-F1-001` i poszedł DALEJ niż
+  dział.** Odtworzył u siebie (zamówienie 1373 → zapis 1374 → `delete --force`): wiersz
+  zamówienia znika, zapis zostaje `completed`, `is_enrolled` = TAK. **Zmierzył też ścieżkę
+  KOSZA**, której dział nie sprawdził: `delete` BEZ `--force` (status `trash`) też
+  zostawia dostęp — czyli obie połowy „Kosz → Usuń trwale" są dziurawe, nie tylko druga.
+  Granica nazwana: brak reakcji na usunięcie zamówienia jest zachowaniem **Tutora** (zero
+  haków `woocommerce_*delete_order` w jego kodzie), ale P5 przyjął odbieranie dostępu jako
+  NASZE wymaganie (`smoke-wp-zwroty`), a milcząca kontrola `aai-platnosci sprawdz` to nasz
+  kod — więc pozycja zostaje przy INT.
+  **Pomiar zakresu INT (punkt, o który był proszony):** komenda z `ROLE.md:321-323` daje
+  **15** plików, te same ścieżki bez klamry — **21**; stracone sześć:
+  `assets/tutor-motyw.css`, `assets/woo-motyw.css`, `class-aai-sklep-styl-tutora.php`,
+  `class-aai-sklep-styl-woo.php`, `class-aai-sklep-tutor.php`, `class-aai-sklep-zasoby.php`.
+  Skutek policzony co do pozycji: **INT-07 miało 1 z 1 pliku dowodowego poza zakresem,
+  INT-05 — 2 z 2**. Krytyk NIE zdublował tego zgłoszeniem (`AUD-KON-F1-003` już
+  ZWERYFIKOWANE), tylko potwierdził niezależnym pomiarem — tak ma działać para.
+  **INT-04 sprawdzone samodzielnie i obalone: dwa handlery Pluginu 2 na cudzych hakach NIE
+  MAJĄ ŻADNEGO `try`** — `Aai_Platnosci_Kasa::link_pozycji` (hak
+  `woocommerce_cart_item_permalink`, woła naszą tabelę i dwie klasy Pluginu 1) oraz
+  `::na_bloku` (hak `render_block_data`, sygnatura z typem zwrotnym przy
+  `strict_types = 1`). Strażnik pokrywa tylko haki `aai_sklep_*` i blokadę koszyka — tych
+  dwóch linii nie pilnuje NIC. Druga połowa pytania wyszła czysto: w żadnym osłoniętym
+  handlerze instrukcja zdolna rzucić nie stoi PRZED `try`.
+  Własne `AUD-INT-F1-002`: pozycja INT-04 nie ma mechanicznego kryterium domknięcia —
+  pytanie jest sądem o możliwości, dowód faktem, więc **fala 2 może odpowiedzieć odwrotnie
+  bez żadnej zmiany w kodzie i wyprodukować fałszywy sygnał rozjazdu fal**.
+  Środowisko przywrócone do stanu zastanego, sprzątnięte jawną listą; zmierzone po:
+  zamówienia 0, zapisy 2, konta 2, kursy 2, lekcje 73, trzy kontrole kod 0.
+- 2026-09-03, wieczór: **KRYTYK USP — trzy razy PRZEPUSZCZAM, jedno własne zgłoszenie
+  i DWA ustalenia ważniejsze od werdyktów.**
+  Rozbieżność zakresu rozstrzygnięta na korzyść działu: pozycja `USP-08` w `ROLE.md:500`
+  każe otworzyć `tools/audyt/*`, **katalog nieistniejący**, a narzędzia E4 leżą
+  w `audyt/tools/` — dział zmierzył realny dorobek, więc jego „tak" NIE powstało po
+  pustce; wadliwy jest zapis pozycji (odwrócone segmenty ścieżki **plus** to, że
+  `audyt/tools/` nie mieści się w żadnym globie 94-plikowego zakresu USP, czyli pozycji
+  nie da się domknąć bez wyjścia poza własny zakres). Nie zdublował tego zgłoszeniem,
+  bo ma je Konrad (`AUD-KON-F1-011`).
+  **Incydent `wgraj-sekcje` miał DWA zapisy, nie jeden** (`course_changelog`, actor
+  `wgraj-sekcje`: 21:07:56 i 21:08:48, po 22 delete + 22 create). Naprawa mimo to pełna,
+  sprawdzona niezależnie: `wp:sprawdz` kod 0 (73/73 co do znaku), `wp:tutor` kod 0
+  (87 obiektów, 0 różnic). Zmieniły się identyfikatory, nie tekst.
+  **`AUD-USP-F1-004` trafia w lukę orkiestracji, nie w produkt:** zamek „jedna rola na
+  środowisku `:8892` naraz" istnieje WYŁĄCZNIE dla sektora re-audyt (`status.mjs:182`
+  warunek `sektor === "re-audyt"`, reguła 30 strażnika), a checklisty AUDYTU każą mierzyć
+  na tym samym stanowisku (PERF-02, INT-10, PRIV-04, USP-01/03). W fali 1 **sześć działów
+  miało nakładające się okna `W TRAKCIE`** (zmierzone z pól `historia`) i nie padła ani
+  jedna odmowa.
+
+### DRUGIE SKAŻENIE `wp-config.php` — tym razem CZYNNE, i domyka śledztwo o aktora
+
+**Znalazł krytyk USP, potwierdzone pomiarem orkiestratora.** W `wp-config.php` kontenera
+stoi **wstrzyknięta sonda pomiarowa spoza repozytorium**, linie 139–150:
+`define('SAVEQUERIES', true)` + `register_shutdown_function` dopisujący liczbę zapytań do
+`/tmp/aai_perf.log` i pełne zrzuty do `/tmp/aai_perf_dump.log`. Plik ma mtime
+**16:38:32 UTC**, a log **rośnie do teraz** (21:25 UTC) — czyli sonda była czynna przez
+całą pracę wszystkich późniejszych ról.
+
+**Zostawił ją dział PERF**, który w meldunku napisał wyłącznie o tymczasowym mu-pluginie
+`zzz-aai-audyt-perf-tmp.php` i o zapisie do `wp-config.php` nie wspomniał ani słowem.
+
+**To domyka pytanie o aktora wcześniejszego uszkodzenia.** Trzy zapisy do tego samego
+pliku w jednym oknie: **16:07** i **16:21 UTC** (obca linia stderr podmana przed `<?php`,
+przez którą zniknęły `Content-Security-Policy` i `X-Content-Type-Options`, a `/courses/`
+oddawało 200 zamiast 301) oraz **16:38 UTC** (ta sonda). Wcześniejszy zapis dziennika
+mówił „aktora NIE USTALONO" i był prawdziwy w chwili pisania — teraz trop jest jeden
+i wskazuje na instrumentację PERF, wykonywaną przekierowaniem wyjścia `podman` bez
+rozdzielenia strumieni.
+
+**Co to unieważnia:** `SAVEQUERIES` każe WordPressowi trzymać w pamięci każde zapytanie
+z backtrace, więc **każdy pomiar CZASU i PAMIĘCI wykonany po 16:38 UTC jest zawyżony** —
+w tym pomiar beaconu 65–84 ms z `AUD-PERF-F1-004` (zderzany z decyzją właściciela A11,
+gdzie stoi 45–50 ms) i pomiar Lighthouse'a cytowany w dowodzie `AUD-USP-F1-002`.
+
+**Sondy nie zdejmuję, dopóki nie skończy krytyk PERF** — bez niej nie odtworzy pomiarów
+działu. Dostał o niej wiadomość z poleceniem powiedzenia wprost, czy jego liczby powstały
+z cudzej sondy, czy z własnego mechanizmu. Zdjęcie i weryfikacja artefaktu (nagłówki,
+`/courses/` → 301, kontrole trzech wtyczek) idzie zaraz po jego meldunku.
+
+**LEKCJA, KTÓREJ NIE MIAŁ ŻADEN WCZEŚNIEJSZY ZAPIS:** rachunek sumienia agenta obejmuje
+to, co agent PAMIĘTA, że zmienił. Dział PERF sprzątnął mu-plugin, o którym pamiętał,
+i zostawił czynną modyfikację pliku konfiguracyjnego, o której nie napisał. **Bramka musi
+liczyć PLIKI INSTALACJI, nie deklaracje agenta** — dokładnie ta luka, którą Konrad nazwał
+w `AUD-KON-F1-013` (migawka wartości sektora nie liczy plików WordPressa).
+
+### AKTOR USZKODZENIA `ROLE.md` USTALONY — to WŁASNE narzędzie sektora
+
+**Znalazł krytyk REPO** (`AUD-REPO-F1-015`), pomiarem, nie domysłem.
+`audyt/tools/audyt-straznika-sektora.mjs:105` ma mutację o opisie **„z ROLE.md znika cała
+rola"**, która wycina z pliku wszystko od `## PIK — Początek i koniec` do `## USP —`.
+Zmierzone na dzisiejszym pliku: **2157 znaków, 29 linii, zakres 477–506** — zgadza się co
+do znaku z zaobserwowanym uszkodzeniem.
+
+**Dlaczego to wyszło poza narzędzie:** plik przywraca wyłącznie blok `finally`, kopia
+oryginału żyje **tylko w pamięci procesu**, nie ma obsługi sygnałów ani znacznika „trwa
+mutacja". Proces ubity — a ta fala była już raz ubita limitem sesji — zostawia
+`audyt/ROLE.md` **trwale bez jednej roli**, i nic tego nie zgłasza.
+
+To jest **ta sama klasa co sonda w `wp-config.php`**, tylko wewnątrz sektora: narzędzie
+psuje przedmiot pomiaru celowo i liczy na to, że zdąży posprzątać.
+
+**Do decyzji właściciela przed falą 2** (sektory nie naprawiają — W2): mutacja pliku
+źródłowego sektora potrzebuje kopii NA DYSKU i znacznika, żeby następny przebieg umiał
+powiedzieć „poprzedni nie dokończył", zamiast pracować na okaleczonym `ROLE.md`.
+
+- 2026-09-03, wieczór: **KRYTYK REPO — dwanaście PRZEPUSZCZAM, jedno ODRZUCAM, dwa własne
+  zgłoszenia.** Rozstrzygnął pytanie główne: **13 z 13 to osobne zjawiska, zero
+  duplikatów** — trzynaście różnych linii w dwunastu plikach; dziesięć dzieli jedną
+  PRZYCZYNĘ („proza o stanie starzeje się cicho"), ale każde ma inne miejsce, inny zbiór
+  faktów i osobną naprawę.
+  **`AUD-REPO-F1-008` ODRZUCONE z dowodem odwrotnym niż zgłoszenie:** wpis twierdził, że
+  „limitowanie logowań DZIAŁA", a pomiar mówi przeciwnie (decyzja D6 „rejestrujemy, nie
+  blokujemy", zero ograniczników w kodzie) — czyli naprawa wg tego wpisu **zamknęłaby po
+  cichu pozycję słusznie otwartą**.
+  Zasięg `AUD-REPO-F1-004` przeliczony własnym parserem GFM na 413 plikach: naiwny grep
+  daje 95 fałszywych trafień, parser — **dokładnie te trzy wiersze**, wszystkie
+  w `docs/plugin-3/DIAGRAM.md`. Zjawisko żyje przy ZIELONYM strażniku, stąd własne
+  `AUD-REPO-F1-014`: pozycja `REPO-04` pyta o KAŻDY wiersz tabeli w repo, a przypisana
+  jej komenda (`straznik-readme` reguła 8) czyta **1 plik z 413**.
+  Sprawdził też liczby, których strażnik NIE pilnuje (drzewo README, 21 narzędzi,
+  39 strażników, 148 zrzutów, 73 lekcje) — zgadzają się; oraz `BLAD-001…030` bez dziury
+  i 55 tagów, każdy z wpisem w CHANGELOG.
+- 2026-09-03, wieczór: **KRYTYK PRIV — trzy razy PRZEPUSZCZAM, trzy własne zgłoszenia,
+  i jedno ustalenie, które zmienia wagę zgłoszenia `002` z „usterka środowiska" na
+  „usterka, którą klient dostanie z pudełka".**
+  `wp-admin/includes/upgrade.php:418` ustawia `wp_page_for_privacy_policy` na stronę
+  **w stanie szkicu przy KAŻDEJ instalacji WordPressa**, a `get_privacy_policy_url()`
+  oddaje adres tylko dla `publish` — czyli pusty odnośnik jest stanem **DOMYŚLNYM**, nie
+  cechą `:8892`. Nasz kod dokłada dwie rzeczy: zdanie o zgodzie drukuje się mimo tego, że
+  dokumentu nie da się otworzyć, a **remedium w `postaw.sh:168-171` stoi PRZED importem
+  treści (:219-231), który tę stronę dopiero tworzy** — przy stawianiu od zera nie ma
+  czego znaleźć. Nic tego nie pyta: ani strażnik, ani smoke, ani `aai-platnosci sprawdz`.
+  **Zdanie z rozstrzygnięcia C3 („polityka zostaje, bo jest podpięta i klikalna") jest
+  nieprawdziwe domyślnie, nie wyjątkowo.**
+  Zasięg surowego User-Agenta policzony: **jedna kolumna, jedna tabela** — dział nie
+  zawyżył ani nie zaniżył. Trzy pozycje „tak" potwierdzone własnym pomiarem (w tym
+  retencja: wstawiony wiersz sprzed dat granicznych znika, żaden inny nie ubywa).
+  **PRIV-05 obalone: dział odpowiedział na inne pytanie** — pozycja brzmi „czy polityka
+  zgadza się ze stanem witryny", a odpowiedź „tak (znany, nie pogorszył się)" odpowiada
+  na pytanie o NOWOŚĆ zjawiska; pomiar daje przeciwnie (strona trzy razy wypiera się
+  ciastek, `/wp-login.php` oddaje `Set-Cookie`).
+  Trzy własne zgłoszenia trafiają w NOŚNIK sektora, nie w produkt: brak miejsca na wynik
+  pozycji (`porownaj-cykle.mjs` czyta ze stanu wyłącznie `status`, więc **ta sama błędna
+  odpowiedź w obu falach da „ZGODNE"**), odwrócona polaryzacja „tak/nie" w dwóch
+  pozycjach z dziesięciu bez reguły rozstrzygającej, oraz odpowiedź wisząca na wartości
+  opcji, której migawka nie widzi (porównuje **liczbę wierszy** `wp_options`, nie wartości)
+  — jedno uruchomienie `postaw.sh` odwróci odpowiedź w fali 2 przy migawce „przed == po".
+- 2026-09-03, wieczór: **KRYTYK ARCH — trzy PRZEPUSZCZAM, jedno ODRZUCAM, jedno własne
+  zgłoszenie; wszystkie trzy twarde pytania zamknięte POMIAREM.**
+  **(a) Strażnik tego miejsca NIE WIDZI i nie ma czym widzieć:** żadna z 11 reguł
+  `straznik-wtyczki-wp` nie mówi o tabelach RDZENIA (3 = prefiks, 8 = nasze tabele,
+  11 = tabele siostry). Udowodnione mutacją na KOPII drzewa:
+  `$wpdb->query( $wpdb->prepare( "INSERT INTO {$tabela}…" ) )` poza warstwą zapisu daje
+  **kod 0**, a ten sam zapis literałem — **kod 1**. Czyli niezmiennik 8 jest ślepy na formę
+  z `prepare()`; to **dziesiąty nawrót klasy „wzorzec pyta o kształt zapisu, nie
+  o rozstrzygnięcie"**.
+  **(b) Pominięcie `add_option()` to INTENCJA udokumentowana W KODZIE**, nie w dzienniku —
+  nad zapisem stoi 20-linijkowy komentarz z powodem, a powód krytyk sprawdził w cudzym
+  kodzie: `wp-includes/option.php:1143` faktycznie pisze `INSERT … ON DUPLICATE KEY UPDATE`
+  i wkłada wartość do `alloptions`, więc nadpisałby sól zwycięzcy wyścigu. Zgłoszenie
+  celuje w samą granicę (wtyczka pisze do tabeli rdzenia), nie w brak uzasadnienia — stąd
+  PRZEPUSZCZAM mimo świadomej intencji.
+  **(c) Cykl wywołań statycznych NIE MA przy leniwym autoloaderze żadnego skutku
+  wykonawczego** — zmierzone dwukrotnie (model w PHP i żywy WordPress: `Aai_Sklep_Kontrakt`
+  wczytana sama, delta = tylko ona). Waga trzech zgłoszeń o cyklach spada więc do
+  czytelności i utrzymania. Krytyk rozstrzygnął przy tym, że **to trzy zjawiska, nie jedno
+  policzone trzykrotnie** (trzy wtyczki, rozłączne zbiory klas, trzy niezależne naprawy).
+  **`AUD-ARCH-F1-002` ODRZUCONE** nie za sam cykl (ten potwierdzony co do linii), tylko za
+  drugą połowę stwierdzenia: w żywym żądaniu WP-CLI dwie z trzech klas pracują **bez
+  trzeciej**, która nie jest wczytana wcale.
+  **(d)** Siedem szwów sprawdzone własnym pomiarem, BEZ opierania się na
+  `straznik-schematow`: każdy ma nadawcę i odbiorcę w kodzie, odbiorcy rejestrowani przy
+  starcie wtyczek, wszystkie nazwy są na schematach `.drawio` i **kierunki się zgadzają**.
+  Przy okazji potwierdzone dwa dalsze „tak": wszystkie `add_rewrite_rule` wyłącznie
+  w `Aai_Sklep_Trasy`, a zależność jest jednokierunkowa (`aai-sklep` → **zero** odwołań do
+  klas sióstr, w drugą stronę **16**).
+  Własne `AUD-ARCH-F1-005`: komenda pozycji `ARCH-02` w `ROLE.md:299` pyta o
+  `$wpdb->prefix` w katalogu wtyczek, więc **nie umie znaleźć klasy, o którą pozycja pyta**
+  — daje 8 wierszy o własnym prefiksie, zero o tabelach rdzenia; pozycję da się zamknąć na
+  „nie" bez otwarcia pliku, przy zerowej bramce maszynowej dla tej klasy.
+- 2026-09-03, wieczór: **KRYTYK PERF — cztery PRZEPUSZCZAM, DWA ODRZUCAM, jedno własne
+  zgłoszenie; liczby policzone WŁASNYM mechanizmem** (bootstrap podawany ze stdin, zero
+  plików tworzonych w kontenerze), skrzyżowanym z pomiarem po HTTP.
+  Jego liczby wobec liczb działu: katalog **74** (dział 77–81) · strona kursu **80**
+  (83) · „moje" **108–113** (111) · lekcja **85**, lekcja gościa na bramce **64** (88).
+  Rząd i porządek się zgadzają, więc **metody nie zgłasza**.
+  **`AUD-PERF-F1-004` ODRZUCONE — to jest A11**, pozycja otwarta decyzją właściciela
+  i zacytowana dosłownie w definicji roli; zgłoszenie jej nie nazywa, a przyrost 65–84 ms
+  **nie odtwarza się**: przy 11 próbach strona ma 69 ms mediany, a beacon **50 ms**, czyli
+  jest TAŃSZY od strony i mieści się w paśmie A11 (45–50 ms). Przy okazji podał liczbę,
+  której dział nie podał: sam beacon kosztuje **88 zapytań** na odsłonę.
+  **`AUD-PERF-F1-006` ODRZUCONE, bo wskazuje NIE TO MIEJSCE:** linia 277
+  (`is_completed_lesson`) daje **0 zapytań** przy 40 wywołaniach; realny N+1 siedzi
+  w `lekcje_kursu()` 333–334.
+  `AUD-PERF-F1-002` przepuszczone, ale z korektą liczby: identycznych zapytań o
+  `powiazania` jest **5**, nie 7 — siódemka nie odtwarza się w żadnym stanie.
+  `AUD-PERF-F1-005` potwierdzone ŻYWYMI nagłówkami (gość na płatnej lekcji = 200 **bez**
+  `Cache-Control`), z kontrolą różnicową na `/szkolenia/`, żeby odróżnić naszą linię od
+  cudzych nagłówków w stosie.
+  Własne `AUD-PERF-F1-007`: checklista PERF-02 **żąda pomiaru `SAVEQUERIES`, którego w repo
+  nie ma**, nie podaje metody nietrwałej i **nie wymaga zdjęcia oprzyrządowania** —
+  a `migawka-wartosci.mjs` i git widzą wyłącznie drzewo repo, więc zmiana instalacji nie
+  zapala niczego. To jest przyczyna systemowa incydentu z sondą, nie jego opis.
+
+### SONDA `wp-config.php` ZDJĘTA — i pułapka, którą po drodze złapał artefakt
+
+Zdjęta po meldunku krytyka PERF (wcześniej nie, żeby mógł odtworzyć pomiary działu;
+sam jej nie ruszał — jego próbę podmiany zablokował klasyfikator uprawnień, więc jego
+pomiary CZASU powstały na tym samym oprzyrządowaniu; liczby zapytań są na to odporne).
+
+**PUŁAPKA, KTÓREJ NIE WOLNO POWTÓRZYĆ:** pierwsza wersja poprawki powstała w Pythonie
+(`open().read()` → `split` → `join`) i **po cichu przekonwertowała końce linii w CAŁYM
+pliku**. `wp-config.php` kontenera ma **CRLF** (139 znaków `CR`), a sonda była wstrzyknięta
+liniami z samym `LF` — czyli wersja pythonowa miała **zero CR** i zmieniłaby każdą linię
+pliku konfiguracyjnego, nie piętnaście. Złapało to **porównanie bajtowe** (`cmp` → „różnią
+się: bajt 6, linia 1"), a nie lektura diffa, który przez heurystykę wyrównania wyglądał
+na przepisanie całego pliku. Poprawka poszła `sed '139,153d'`, bo `sed` pracuje na
+bajtach: wynik ma **139 linii i te same 139 CR**, zero trafień `SAVEQUERIES`/`aai_perf`.
+
+**Weryfikacja ARTEFAKTU, nie procesu:** strona zaczyna się od `<!doctype html>`, wracają
+`X-Content-Type-Options: nosniff` i `Content-Security-Policy`, `/courses/` → **301** na
+`/szkolenia/`, `wp aai-sklep|aai-platnosci|aai-monitor sprawdz` → kod **0**.
+Sprzątnięte jawną listą także cztery ślady w `/tmp` kontenera (`aai_perf.log`,
+`aai_perf_dump.log` 5,7 MB, `perf-snippet.php`, `aai_dbg_before.php`) i katalog
+`/tmp/cykl_krytyk` po krytyku ARCH. Kopia pliku SPRZED zdjęcia sondy leży poza repo.
+
+**SPROSTOWANIE do wcześniejszego zapisu tego dziennika:** teza, że sonda domyka śledztwo
+o aktora uszkodzenia `wp-config.php`, **NIE UTRZYMAŁA SIĘ**. Krytyk PERF zmierzył metodę:
+sonda weszła osobnym plikiem dopisywanym wewnątrz kontenera, co **nie przechodzi przez
+przekierowanie wyjścia `podman`**, a plik zaczyna się czystym `<?php`. Aktora zapisów
+z 16:07 i 16:21 UTC **dalej nie ustalono** — zbieżność czasu nie jest dowodem metody.
+- 2026-09-03, wieczór: **KRYTYK PROTO — PRZEPUSZCZAM, pięć pozycji sprawdzonych
+  samodzielnie (nie cztery), i rozstrzygnięcie pytania głównego: obszar ZDROWY, zamknięcie
+  CZĘŚCIOWO deklaratywne.**
+  `AUD-PROTO-F1-001` odtworzone uruchomieniowo w trzech krokach: kontrakt naprawdę
+  przepuszcza slug `kreator` (a także `moje` i `api`), własny sorter tras Nexta z tego repo
+  stawia statyczny kreator PRZED `[slug]`, i nic nie blokuje wcześniej (baza ma na slugu
+  tylko `UNIQUE`, bez `CHECK`). **Wagę obniżył pomiarem, nie opinią:** kreator istnieje
+  wyłącznie jako `page.serwer.tsx`, więc w publikowanym podglądzie kolizji NIE MA — to dług
+  zamknięty w trybie, którego produkt nie używa.
+  **PROTO-06 potwierdzone POMIAREM, nie lekturą** — maszynowe porównanie prototypu z żywą
+  wtyczką (`SCHEMATY_SEKCJI` × `wp aai-sklep opis --format=json`): 12/12 rodzajów sekcji,
+  **wszystkie nazwy pól identyczne, 0 różnic**, zgodne limity, `KursTyp` po obu stronach,
+  opis katalogu **co do znaku**, zdanie C3 na obu stronach. Klasy „ebookowej" nie ma nigdzie.
+  **PROTO-08 NIE potwierdzone: artefaktu, którego pozycja żąda, po prostu nie ma**
+  (`ls -ld out` → kod 2; `.next` jest buildem SERWEROWYM, nie eksportem). Obszar jest
+  pilnowany przez `smoke-podglad`, ale **dowodu działu nie ma** — ta jedna pozycja została
+  odhaczona, nie sprawdzona.
+  **Zakres PROTO jako jedyny NIE jest dotknięty defektem klamrowym** — zero `:(glob)`,
+  przeliczony wprost daje **131 plików**, dokładnie tyle, ile deklaruje `ROLE.md`.
+  Dwa własne zgłoszenia trafiają w checklistę: komenda PROTO-02 celuje w KATALOG
+  (`app/api/**`), więc nie zobaczy endpointu poza nim — a `straznik-ajax.mjs` ma **ten sam
+  ślepy punkt i przyznaje się do niego we własnym komentarzu**; oraz PROTO-08 żąda dowodu
+  z nieistniejącego artefaktu, nie wskazując tańszej drogi, która w repo jest.
+- 2026-09-03, wieczór: **KRYTYK FE — trzy razy PRZEPUSZCZAM, dwa własne zgłoszenia, i to
+  on domyka sprawę waluty.**
+  Waluta zmierzona TRZECI raz, inną drogą niż dział: strona kursu obiecuje
+  `Dołączam za 299,00 zł`, a Store API koszyka oddaje `currency_code=USD` — przeglądarka
+  liczy **pięć** `$299.00` w KASIE i trzy w koszyku, `299,00 zł` **zero razy**.
+  **Przyczyna: `woocommerce_currency = USD`, czyli ustawienie WooCommerce, nie nasz kod**
+  (w naszym kodzie zero miejsc stawiających albo sprawdzających walutę). Ale zasięg jest
+  większy, niż zgłosił dział: `wc_price()` obsługuje też kasę, mail zamówienia i konto,
+  a **nasz JSON-LD deklaruje `priceCurrency: PLN`, gdy sklep rozlicza w USD**
+  (`class-aai-sklep-seo.php:285`). To wiersz na listę wdrożeniową, nie wina wtyczki.
+  **Mechanizm angielskiego koszyka opisany przez dział był NIETRAFNY** przy prawdziwym
+  objawie: to nie paczka tłumaczeń JS — napisy są **dosłowną treścią wpisu strony**
+  (`wp post get 6`), a tytuł strony to `Cart`. Krytyk przepuścił zgłoszenie (miejsce
+  trzyma), ale prawdziwy mechanizm zapisał we własnym wpisie, **żeby w rekordzie nie
+  został fałsz** — to jest wzorcowe użycie pary.
+  **`AUD-FE-F1-004` jest cięższe od wszystkich trzech zgłoszeń działu razem:** bramka
+  `smoke:wp-jezyk`, którą checklista podaje jako komendę pozycji FE-11, **NIE MOŻE
+  zobaczyć tej usterki** — mierzy `/koszyk/` dopiero po tym, jak sama włożyła produkt
+  (nic go nie opróżnia), a lista fraz jest zamknięta i nie zna napisów pustego koszyka
+  ani waluty. Bramka świeci **kod 0 i „25 sprawdzeń — ścieżka klienta w całości po
+  polsku"**, gdy ten sam adres pusty mówi „Your cart is currently empty!". **Druga fala
+  dostanie tą komendą ten sam zielony wynik.**
+  Zakres FE zmierzony obiema formami: klamra → **0 plików**, te same nazwy bez klamr →
+  **9**; reszta zakresu daje 57, czyli **deklarowane „57" zgadza się BEZ dziewiątki
+  i samokontrola nie ma jak się zapalić**. Wypadły m.in. `widok`, `lekcja`, `moje`,
+  `zasoby`, `menu`, `trasy` — a pozycje **FE-05, FE-07, FE-09 i FE-10 wskazują właśnie te
+  pliki**, więc ich zamknięcie na „tak" nie znaczy „sprawdzone".
+  Drugie własne zgłoszenie: `audyt/GRANICE.md` **nie ma wiersza FE ↔ WDR** — cztery działy
+  mają swój wiersz z WDR, FE nie ma żadnego o usterce widocznej u nas, a mającej przyczynę
+  w konfiguracji cudzej wtyczki. Dwa zgłoszenia tej fali wpadły dokładnie w tę lukę.
+
+**WSZYSTKIE CZTERNAŚCIE DZIAŁÓW MA KRYTYKA. Zgłoszeń w katalogu: 87.**
+Weryfikator (WER) wszedł drugi raz — na każdy wpis fali 1 bez werdyktu weryfikatora,
+z trzema rzeczami do sprawdzenia wyprowadzonymi z tej fali: **miejsce co do linii**
+(dwa wpisy wskazywały złą linię albo zły mechanizm przy prawdziwym zjawisku),
+**zasięg** (jeden podał 7 przy zmierzonych 5) i **wpływ** (jeden upadł, bo zjawisko
+było zablokowane niżej na tej samej ścieżce).
+
+- 2026-09-03/04, noc: **WERYFIKATOR ZAKOŃCZYŁ — komplet fali 1: 85 wpisów, KAŻDY
+  z werdyktem weryfikatora. 78 ISTNIEJE, 7 ODRZUCONE**, 4 rundy, zero niedomkniętych
+  (67 werdyktów z tego wejścia, 18 z pierwszego, przerwanego). Wpisy `[PRÓBA E7]`
+  i sektora `re-audyt` nietknięte.
+  **Pięć odrzuceń tego wejścia** — każde z własnym pomiarem, nie z powtórzenia cudzego:
+  `AUD-FE-F1-003` (objaw prawdziwy, mechanizm nazwany błędnie — napisy są treścią wpisu
+  strony id 6, nie paczką tłumaczeń; ten sam objaw poprawnie lokalizuje `AUD-FE-F1-004`),
+  `AUD-PERF-F1-004` (to pozycja **A11**, przyjęta decyzją właściciela i zacytowana wprost
+  w definicji roli PERF; nadwyżka nie odtwarza się — na oczyszczonej instalacji strona
+  54–97 ms, endpoint **47–62 ms**), `AUD-PERF-F1-006` (40 wywołań `is_completed_lesson`
+  = **0 zapytań**, Tutor czyta `get_user_meta`), oraz `AUD-PIK-F1-003` i `-004`
+  (te same, które odrzucił krytyk PIK).
+  **Trzynaście wpisów dostało poprawiony zasięg albo wpływ przy werdykcie ISTNIEJE** —
+  to jest właściwa reakcja na „zjawisko prawdziwe, liczba nieprawdziwa". Najważniejsze:
+  `AUD-ARCH-F1-002` (wpływ zawyżony — dwie z trzech klas pracują bez trzeciej),
+  `AUD-BE-F1-002` (**11**, nie 10 zapisów formy `query()`), `AUD-PERF-F1-002` (**5**, nie 7),
+  `AUD-USP-F1-001` (**21**, nie 19 narzędzi), `AUD-REPO-F1-007` („8 miesięcy" to w istocie
+  **dwa tygodnie**), `AUD-PIK-F1-006` (pięć, nie sześć pozycji bez śladu),
+  `AUD-KON-F1-009` (rozjazd **większy** niż zgłoszono: 1186/787 wobec 1121/722).
+  **`AUD-REPO-F1-008` — weryfikator potwierdził ODRZUCENIE krytyka i dołożył wskazówkę
+  wykonawczą:** wiersz o brute force wymaga **ROZBICIA** (konta/sesje/reset zrobione,
+  brute force otwarty jawnie decyzją **D6**), a nie odhaczenia — bo naprawa wg wpisu
+  zamknęłaby po cichu pozycję zostawioną otwarcie.
+  **Trzy pomiary wykonał ODCZYTEM zamiast zapisu**, bo dotykały danych dowodowych
+  właściciela (`AUD-PRIV-F1-001`, `-003`, `AUD-INT-F1-001`) — w każdym znalazł dowód
+  rozstrzygający bez pisania do bazy (m.in. `EnrollmentModel::is_enrolled()` pyta wyłącznie
+  `wp_posts`). Krytyk WER ma ocenić, czy to jest ostrożność, czy obniżenie poprzeczki —
+  krytyk INT ten sam wpis odtworzył ZAPISEM i poszedł dalej (ścieżka kosza).
+  Niezmiennik po jego pracy: `git diff main --name-only -- . ':!audyt' ':!re-audyt'` = **0**.
+- 2026-09-03/04, noc: **KRYTYK WERYFIKATORA — odpowiedź na pytanie główne brzmi
+  „zmierzyłem", nie „nie znalazłem powodu, żeby odrzucić".** Odtworzył samodzielnie
+  **dziesięć** wpisów z werdyktem ISTNIEJE (w tym cztery wybrane celowo jako
+  „wyglądające na przepisane" — najkrótsze uzasadnienia i najwyższe pokrycie słownikowe
+  z dowodem autora) i **wszystkie dziesięć zgodziło się co do liczby i co do znaku**,
+  łącznie z poprawką numeru linii, którą weryfikator wniósł PONAD autora.
+  **Wszystkie SIEDEM odrzuceń uznane za SŁUSZNE**, każde na własnym pomiarze.
+  Dwie rzeczy, które przy tym wyszły i są warte więcej niż same werdykty:
+  (1) **podpora czasowa odrzucenia `AUD-PERF-F1-004` jest wadliwa, choć werdykt trafny** —
+  `koniec()` oddaje **204 na KAŻDEJ ścieżce**, a po 21:19 nie przybył ani jeden wiersz
+  `wizyty`, więc pięć POST-ów weryfikatora **odpadło przed zapisem**: mierzył ścieżkę
+  TAŃSZĄ niż ta, o której mówi wpis. Werdykt stoi na czym innym (wpis nie nazywa A11),
+  ale liczba pod nim nie mierzy tego, co obiecuje;
+  (2) **`AUD-PERF-F1-002` to jedyne miejsce, gdzie niezależność weryfikatora się osunęła** —
+  statyczne policzenie miejsc wywołania nie obala pomiaru runtime, a on podparł je liczbą
+  krytyka zamiast własnym przebiegiem.
+  **Trzy pomiary „odczytem zamiast zapisu" ocenione jako OSTROŻNOŚĆ, nie obniżenie
+  poprzeczki** — a w dwóch wypadkach odczyt okazał się MOCNIEJSZY od zapisu: w kolumnie
+  `agent` leży realne `Mozilla/5.0 (X11; Linux x86_64; rv:153.0) … Firefox/153.0` (system,
+  architektura, silnik i wersja wobec obiecanej „nazwy przeglądarki"), a dowód dla
+  `AUD-INT-F1-001` jest SZERSZY niż zapis krytyka: `EnrollmentModel::is_enrolled()` nigdy
+  nie pyta o zamówienie i w naszych trzech wtyczkach jest **0** haków na kasowanie i kosz,
+  co zamyka WSZYSTKIE drogi usunięcia, gdy test krytyka zamykał dwie.
+  **Stan mechaniczny policzony samodzielnie: 85 z 85 wpisów ma werdykt weryfikatora, ale
+  22 z nich NIE MA werdyktu krytyka w ogóle** — tam weryfikator jest jedynym drugim
+  czytelnikiem. To są w większości własne znaleziska krytyków, których nikt nie krytykuje;
+  materiał do decyzji przed falą 2. Krytyk WER stemplował z tych 22 tylko **dwa**, i tylko
+  dlatego, że odtworzył oba dowody własnym pomiarem — reszty świadomie nie tknął,
+  bo stempel bez pomiaru byłby dokładnie tym, czego ta rola ma nie robić.
+  Dwa własne zgłoszenia trafiają w NOŚNIK: `hashMiejsca()` **nie czyta dysku** (przeliczył
+  **87/87** hashy z samych JSON-ów, nie otwierając ani jednego pliku produktu — w tym
+  **28 miejsc typu „mechanizm", których nic w sektorze nigdy nie porównuje z plikiem**),
+  a kolumna dowodu żąda ścieżki wywołania, gdy **13 z 42** wpisów o miejscu w kodzie
+  zamknięto samym słowem „CZYNNE", bo `werdykt.mjs` żąda powodu wyłącznie od werdyktów
+  odmownych.
+- 2026-09-03/04, noc: **WDR URUCHOMIONY JAKO OSTATNI DZIAŁ.** Stan zmierzony bezpośrednio
+  przed jego startem (do porównania po restarcie środowiska, którego wymaga WDR-06):
+  logowania **26** · wizyty **30** · kursy 2 · lekcje 73 · sekcje 22 · moduły 12 ·
+  changelog **1491** · powiązania 2 · dostawy **6** · zamówienia 0; trzy kontrole kod 0,
+  `/szkolenia/` 200, `/courses/` → 301, oba nagłówki bezpieczeństwa obecne.
+  Dostał trzy fakty tej fali jako materiał wprost do swojej roli: dwukrotną modyfikację
+  `wp-config.php` spoza repozytorium (**`postaw.sh` nie ma niczego, co wykryłoby rozjazd
+  pliku konfiguracyjnego instalacji z tym, co stawia skrypt**), remedium polityki
+  prywatności stojące PRZED importem treści, który tę stronę dopiero tworzy, oraz walutę
+  USD w sklepie obiecującym złotówki.
+- 2026-09-04, noc: **WDR ZAKOŃCZONE — WSZYSTKIE CZTERNAŚCIE DZIAŁÓW FALI 1 DOMKNIĘTE.**
+  Cztery zgłoszenia, 1 runda, zero niedomkniętych; zakres 33 pliki, zgodny z definicją.
+  Trzy pozycje na „nie": **WDR-01** (instrukcja ośmiokrotnie mówi „napisz do nas"
+  i **nie podaje ani jednego adresu kontaktowego**), **WDR-06** (przy pełnym resecie
+  sekcja polityki prywatności biegnie PRZED importem treści, więc na czystej instalacji
+  `get_privacy_policy_url()` jest puste — **a weryfikacja artefaktu w skrypcie tego nie
+  łapie**; to samo zjawisko, które dział PRIV zgłosił od strony klienta) i **WDR-90**
+  (`readme.txt` niespójny wewnętrznie i nieobecny w dwóch wtyczkach z trzech; waluta USD).
+  Siedem pozycji na „tak" ma dowody URUCHOMIENIOWE, nie z lektury: deaktywacja
+  `aai-platnosci` przestawia produkty na `draft`, a reaktywacja z powrotem na `publish`;
+  wyłączenie Woo i Tutora zostawia `/szkolenia` na 200 i daje czytelny komunikat zamiast
+  fatala; `npm run pakuj` przechodzi, a WordPress odczytuje nagłówki wszystkich trzech
+  paczek.
+  **Środowisko przywrócone CO DO WIERSZA** po jego pełnym teście `--skasuj` + `postaw.sh`
+  — zmierzone przeze mnie niezależnie: logowania 26 · wizyty 30 · kursy 2 · lekcje 73 ·
+  changelog 1491 · dostawy 6, trzy kontrole kod 0, `/szkolenia/` **200**, `/courses/`
+  **301**. Kopia bazy sprzed tamtego testu leży poza repo
+  (`~/.cache/aai-kopie/wdr-przed-testem-od-zera.sql`).
+  Ograniczenie nazwane przez dział, nie ukryte: DNS w kontenerach był w tej sesji
+  niedostępny, więc paczki Woo i Tutora kopiował z hosta — krytyk WDR ma rozstrzygnąć,
+  czy mogło to zmienić wynik którejkolwiek pozycji, zwłaszcza WDR-06.
+  **Uruchomieni równolegle: krytyk WDR i KONRAD, FAZA B** (Konrad na gotowych wynikach
+  całej fali, z ośmioma tropami do sprawdzenia własnym pomiarem — w tym pytaniem, czy
+  samokontrola zakresu ma jak się zapalić w pozostałych dotkniętych działach, ile pomiarów
+  fali powstało na oprzyrządowanej instalacji i czy `porownaj-cykle.mjs` odróżni błędną
+  odpowiedź powtórzoną w obu falach od zgodności).
+- 2026-09-04, noc: **KRYTYK WDR — cztery razy PRZEPUSZCZAM, dwa własne zgłoszenia, i to
+  on znajduje najgroźniejszą usterkę CHECKLISTY w całej fali.**
+  **`AUD-WDR-F1-005`: komenda pozycji WDR-06 (`podman-compose down && ./postaw.sh`) NIE
+  ODTWARZA stanu, o który pozycja pyta.** Baza żyje w nazwanym wolumenie `db_data`,
+  a `down` **bez `-v`** go nie kasuje; reset robi wyłącznie `--skasuj`, co sam `postaw.sh`
+  rozdziela jawnie. Skutek zmierzony: po komendzie z checklisty strona polityki przeżywa,
+  sekcja 4c się udaje i pozycja odpowiada **„tak"** — czyli **audytor idący checklistą
+  dosłownie NIE MA JAK zobaczyć `AUD-WDR-F1-002`**. Dział zobaczył je tylko dlatego, że
+  zrobił WIĘCEJ, niż checklista każe.
+  **Dowód historyczny, którego nikt nie inscenizował:** środowisko wstało od zera
+  2026-08-31 (wpis polityki ma `post_date 2026-08-31 01:20:46`), a opcja
+  `wp_page_for_privacy_policy` trzymała wartość **3** aż do 2026-09-03 — czyli tamten
+  przebieg od zera kroku 4c **faktycznie go nie wykonał**. Krytyk odtworzył całe zjawisko
+  **bez kasowania środowiska**, pięcioma pomiarami, bo na żywej instalacji objawu już nie
+  widać (opcja = 23).
+  **Waluta rozstrzygnięta jako NIE-duplikat**, mimo trzeciego zgłoszenia w tej fali: FE
+  pyta „co widzi klient" i stoi na `widok.php`, WDR stoi na `postaw.sh` i odpowiada na
+  pytanie, którego FE zadać nie mógł — **czy ktokolwiek tę opcję ustawia**. Zmierzone:
+  `grep` waluty na 452 liniach `postaw.sh` → **kod 1, zero trafień**, choć skrypt instaluje
+  Woo i konfiguruje bramkę; ta sama komenda na `INSTRUKCJA-INSTALACJI.md` → **kod 1**,
+  czyli tabela „Rzeczy do ustawienia poza wtyczkami", istniejąca dokładnie po to, waluty
+  **nie wymienia**. **Uwaga dla kierownika:** wpis nosi `WDR-90`, a trafia wprost
+  w **WDR-07** — pozycję zamkniętą na „tak" przy zjawisku będącym jej własną odpowiedzią
+  „nie".
+  **Cztery pozycje „tak" sprawdzone własnym pomiarem, wszystkie potwierdzone** — w tym
+  najdroższa do przeoczenia **WDR-03**: wszystkie trzy `uninstall.php` mają bramkę, a opcji
+  zezwalającej na kasowanie **nikt nigdzie nie ustawia** (na żywo wszystkie trzy `false`).
+  Przy WDR-08 dołożył obserwację, która wiąże dwie pozycje: „tak" jest prawdziwe, ale
+  **wyłącznie dzięki odesłaniu, które nie ma adresu** (`AUD-WDR-F1-001`).
+  **„Już zgłoszone właścicielowi" ODRZUCONE jako podstawa niezgłoszenia** — audyt zbiera
+  STAN, nie historię korespondencji; gorzej, ta wiedza **nie miała skąd przyjść w tej
+  fali** (jedyne dopuszczone wejście, `BRIEF-PROJEKTU.md`, nie zawiera ani jednej z trzech
+  wersji wtyczek). Zamknięcie pozycji trzecią wartością „tak (znane)" — ani „tak", ani
+  „nie" — łamie wymóg definicji roli. Stąd drugie własne zgłoszenie: **`WDR-09` nie ma
+  rozstrzygalnego kryterium**, więc fala 2 może odpowiedzieć odwrotnie przy identycznym
+  kodzie.
+  **Brak DNS w kontenerach oceniony jako ograniczenie środowiska, nie zmiana wyniku** —
+  sekcje 4, 4c i 7 są w całości lokalne, a instalacja postawiona Z SIECIĄ 2026-08-31
+  pokazuje tę samą walutę USD. Odnotowana nieścisłość METODY działu: przy braku DNS
+  `postaw.sh` przerywa na instalacji tłumaczeń, więc opis „`--skasuj` + `postaw.sh`,
+  zweryfikowane uruchomieniowo" nie jest precyzyjny — wniosku to nie rusza, bo krytyk
+  odtworzył go niezależnie.
+  Krytyk nie uruchomił **ani jednego zapisu** (same odczyty i `GET`); migawka zgadza się
+  co do wiersza.
+- 2026-09-04, noc: **KONRAD ZAMKNĄŁ FAZĘ B — dziesięć nowych zgłoszeń
+  (`AUD-KON-F1-015…024`), razem 24 w tej fali.** Wszystkie sześć pozycji z policzenia,
+  trzy na „tak".
+  **Najcięższe ustalenie dotyczy POWTARZALNOŚCI, czyli sensu całej budowy:**
+  `AUD-KON-F1-015` — **test zakresu jest CYRKULARNY**. Deklarowana liczba plików zgadza się
+  z policzoną, bo obie policzono TĄ SAMĄ zepsutą komendą: FE **57 = 57 przy realnych 66**,
+  BD **25 = 25 przy 35**, INT **15 = 15 przy 21**. Samokontrola nie ma jak się zapalić —
+  to luka w SAMOKONTROLI, nie w zakresie.
+  `AUD-KON-F1-017`: **hash miejsca dla „mechanizmu" to hash PROZY** — trzy wpisy o tym
+  samym `status.mjs` mają trzy różne hashe, a takich wpisów jest **30 z 95**. Porównanie
+  fal jest dla nich z konstrukcji albo rozjazdem, albo kopiowaniem — nigdy pomiarem.
+  `AUD-KON-F1-023`: **~83 mutacje sektora wiszą na jednym `finally`**, w trzech miejscach,
+  **zero `process.on`** — czyli uszkodzenie `ROLE.md` nie było wypadkiem jednej mutacji,
+  tylko klasą.
+  `AUD-KON-F1-024`: **wpis nie ma czasu utworzenia**, więc nie da się rozliczyć, które
+  pomiary powstały pod sondą `SAVEQUERIES` — Konrad policzył **13 pomiarów pod sondą**,
+  a okna uszkodzenia `wp-config.php` (16:07–16:23) **nie da się przypisać do żadnego
+  wpisu**. Jego `AUD-KON-F1-013` przewidziało mechanizm, ale nie skutek.
+  `AUD-KON-F1-018/019/020`: **12 z 49 komend checklisty nie wykonuje się dosłownie albo
+  patrzy obok klasy, o którą pozycja pyta** — to nie są trzy przykłady, to zmierzona klasa.
+  Konrad **nie zdublował** czterech rzeczy zgłoszonych już przez innych (nośnik bez wyniku
+  pozycji, zamek środowiska tylko dla re-audytu) — sprawdził je i wskazał cudze wpisy.
+  **Jego odpowiedź na pytanie „czy wynikowi tej fali można ufać":** ufać można wpisom
+  z kompletem werdyktów, czytanym jako obraz **KODU**; **nie** można ufać pomiarom
+  na `:8892` z partii 2 (sonda), ani zgodności fal dla 30 „mechanizmów", ani pozycjom
+  zamkniętym na „tak" — bo nie zostawiają śladu.
+
+### TEST WDR SKASOWAŁ BIBLIOTEKĘ MEDIÓW — naprawione, i to jest lekcja o przywracaniu
+
+**Zgłosił Konrad w fazie B; potwierdzone i naprawione przez orkiestratora.** Po teście
+`--skasuj` + `postaw.sh` środowisko wyglądało na przywrócone **co do wiersza** (dwa
+niezależne pomiary tabel to potwierdzały), ale na dysku zostało **7 plików z 1348**:
+`--skasuj` kasuje wolumen `wp_uploads`, a przywrócenie poszło **wyłącznie ze zrzutu bazy**.
+Baza mówiła „151 załączników", dysk mówił „siedem" — i **żadna z trzech kontroli wtyczek
+tego nie widzi**, bo pytają o dane, nie o pliki.
+
+**Naprawa i weryfikacja artefaktem:** `npm run wp:zrzuty` → `148 zaktualizowanych`,
+7 → **1329 plików**. Zostały jednak DWA braki — okładki obu kursów — i tu wyszła druga
+warstwa tej samej pułapki: **`wp aai-platnosci sync` meldował „bez zmian 2"**, bo
+idempotencja pyta o ISTNIENIE WIERSZA załącznika, nie o istnienie PLIKU. Dopiero
+skasowanie dwóch osieroconych wierszy jawną listą (`74`, `76`) i powtórzenie sync
+(`zaktualizowane 2`) odtworzyło okładki i miniatury obu produktów.
+Stan końcowy zmierzony: **151 załączników, 1343 pliki, ZERO plików brakujących**
+(pętla `file_exists` po wszystkich załącznikach), miniatury obu produktów ustawione,
+`wp:sprawdz` **73/73 co do znaku**, `sprawdz-tutora` **0 różnic**, trzy kontrole kod **0**.
+
+**LEKCJA (nowa klasa, do decyzji przed falą 2):** „przywrócenie ze zrzutu bazy" nie jest
+przywróceniem środowiska, a **kontrola, która pyta tylko o dane, nie odróżni instalacji
+kompletnej od instalacji bez plików**. Ta sama ślepota siedzi w idempotencji: mechanizm
+pytający „czy wiersz istnieje" zamiast „czy artefakt istnieje" **utrwala brak zamiast go
+naprawić**.
+
+- 2026-09-04, noc: **KRYTYK KONRADA — dziesięć razy PRZEPUSZCZAM, dwa własne zgłoszenia,
+  i w trzech miejscach POSZEDŁ DALEJ niż Konrad.**
+  **(1) Test zakresu nie może się zapalić NIGDZIE**, nie tylko w trzech działach:
+  deklaracja równa się wynikowi komendy dla **14 z 14** działów. Utracone 25 plików
+  (FE 57→66, BD 25→35, INT 15→21) **nie są sierotami** — biorą je inne działy, więc szkodą
+  jest **utrata PYTAŃ** FE/BD/INT, nie brak pokrycia. To zawęża wagę i jest ważniejsze niż
+  sama liczba.
+  **(2) Klasa wadliwych komend jest DWA RAZY większa, niż zgłosił Konrad:** pozycji
+  z komendą wykonywalną jest **65, nie 49**, a wadliwych **30 z 65 (46%)**, nie 12.
+  Konrad pominął jedną padającą (`REPO-06`), ale sedno leży gdzie indziej: **23 pozycje
+  ślepną przy odczycie komendy z WYRENDEROWANEJ tabeli** (BE-02 14→0, QA-14 238→0,
+  SEC-04 275→0), bo `\|` jest naraz ucieczką potoku w Markdownie i alternatywą w BRE.
+  **Tego kierunku nie zgłosił nikt** — stąd jego własne `AUD-KON-F1-025`.
+  **(3) Sprzeczność WDR-06 ROZSTRZYGNIĘTA pomiarem topologii wolumenów: oba wpisy są
+  prawdziwe, bo dotyczą INNYCH komend, a granicą jest flaga `-v`.** `compose.yml` ma dwa
+  wolumeny nazwane (`db_data` i `wp_core` na `/var/www/html`), a **uploads nie ma własnego
+  montowania — media leżą w `wp_core`**. Czyli: `down` bez `-v` (komenda z checklisty)
+  zostawia oba i **nie odpowiada na pytanie pozycji**, a `--skasuj` (`down -v`) kasuje oba
+  **razem z mediami**. To są dwie połowy jednej wady: **komenda z checklisty jest ślepa,
+  a jedyna, która umie odpowiedzieć, niszczy jedyne stanowisko pomiarowe.** Oba wpisy mają
+  ten sam hash miejsca.
+  **(4) „13 pomiarów pod sondą" odtworzone** — Konrad nie wziął tej liczby z powietrza mimo
+  braku pola czasu we wpisach: zrekonstruował ją z plików STANU ról, które znaczniki czasu
+  mają. Krytyk dostał 14; różnicę wyjaśnił na korzyść Konrada (jeden wpis wspomina sondę
+  tylko po to, by stwierdzić jej BRAK).
+  Sprawdził też wszystkie dziesięć odesłań Konrada do cudzych wpisów — **żadne nie idzie
+  w próżnię**.
+  Drugie własne zgłoszenie (`AUD-KON-F1-026`): **checklista Konrada nie ma pozycji
+  pytającej, czy komenda pozycji ZMIENIA PRZEDMIOT POMIARU** — przez co trzy jego
+  najcięższe znaleziska tej fali trafiły do pozycji o zakresie, a **fala 2 nie ma czym ich
+  szukać**.
+  **Zgłosił własną usterkę pracy, nieproszony:** w jednym werdykcie odwrócone apostrofy
+  weszły w podstawienie powłoki i wycięły dwa słowa (sens ocalał, `werdykt.mjs` nie
+  pozwala nadpisać). Pozostałe dziewięć składał z pliku — **to jest ta sama pułapka
+  cudzysłowów, przed którą ostrzega instrukcja przebiegu**.
+
+### PRZERWANIE DRUGIE — limit sesji na roli GOLD (2026-09-04, ~02:00)
+
+**GOLD padł na HTTP 429 („session limit · resets 2:40am") PRZED jakimkolwiek zapisem** —
+zdążył wypisać tylko zdanie o tym, że zaczyna czytać swoją rolę. **Nic nie zginęło i nic
+nie trzeba powtarzać:** jego plik stanu nie powstał, żaden wpis nie ma jego śladu.
+To NIE jest awaria sektora.
+
+**STAN ZMIERZONY KOMENDĄ PRZED `/clear` (nie z pamięci):**
+
+| Rzecz | Wartość |
+|---|---|
+| Role ZAKOŃCZONE | **16 z 17**: ARCH BD BE FE INT KON PERF PIK PRIV PROTO QA REPO SEC USP WDR WER |
+| Rola `W TRAKCIE` | **KIER**, runda 0 — jego drugie wejście (KIER-01…07) jeszcze przed nim |
+| Nieuruchomione | **GOLD** (padł na limicie) i **RAP** |
+| Wpisów w katalogu | **107** |
+| Bez werdyktu weryfikatora | **21** — z tego 20 fali 1: **KON 12 · WDR 6 · WER 2** (+1 wpis próbny `REA-SEC`) |
+| Strażnik sektora | kod **0** |
+| Niezmiennik `git diff main -- . ':!audyt' ':!re-audyt'` | **0** |
+| Środowisko `:8892` | `/szkolenia/` **200**, `/courses/` **301**, trzy kontrole kod **0**, 151 załączników i 1343 pliki bez brakującego, treść 73/73 co do znaku, kopia w Tutorze 0 różnic |
+
+**RZECZ, KTÓREJ PLAN URUCHOMIEŃ NIE PRZEWIDZIAŁ, a którą trzeba zrobić przed raportem:
+weryfikator musi wejść TRZECI raz.** Jego status to ZAKOŃCZONE, ale po jego wyjściu
+powstało **20 nowych wpisów** — wszystkie własne znaleziska WDR, Konrada z fazy B i krytyka
+weryfikatora. Bez tego wejścia raport policzy je jako wpisy bez drugiego czytelnika,
+a `AUD-KON-F1-016` mówi wprost, że sektor nie ma dla takich wpisów żadnej bramki.
+
+**KOLEJNOŚĆ WZNOWIENIA PO `/clear` (wiążąca, zastępuje punkty 5–6 poprzedniej listy):**
+
+1. **GOLD** — bramka wyjścia czternastu działów (uruchomienie od nowa, nic nie zostało po
+   przerwanym) → `aud-gold-krytyk`.
+2. **WER, trzecie wejście** — werdykty dla 20 wpisów bez weryfikatora (`werdykt.mjs
+   --pokaz`, lista liczona komendą, nie z tej tabeli) → jego krytyk już był, więc krytyka
+   powtarzać nie trzeba, chyba że GOLD każe.
+3. **KIER**, drugie wejście: KIER-01…07, `migawka-wartosci.mjs --zapisz=po` i `--porownaj`
+   → `aud-kier-krytyk`. **KIER-06 ZOBACZY rozjazd środowiska i tak ma być** — przyrost
+   `logowania` 21→26 i `wizyty` 17→30 to ślad pracy działów, wynik, nie usterka do zatarcia.
+4. **RAP** → `aud-rap-krytyk`.
+5. Commit wpisów i stanu; dopiero **potem** re-audyt fali 1 (punkty 8–12 planu uruchomień).
+
+**PRZED KAŻDYM WZNOWIENIEM SPRAWDZIĆ ŚRODOWISKO** — `curl` na `/szkolenia/` oraz trzy
+`sprawdz`; przerwany agent mógł zostawić stan pośredni. **Sprzątanie po agentach zawsze
+jawną listą identyfikatorów, nigdy zakresem** — w tej fali ślad ubitego agenta okazał się
+rozłożony na CZTERY nośniki (konto, zapis na kurs, wiersz dziennika dostaw, opcja
+z komunikatem błędu), a osobno test WDR skasował wolumen mediów, czego żadna kontroła
+wtyczek nie widzi, bo pytają o dane, nie o pliki.
+
+**CZTERY PUŁAPKI TEJ SESJI, które wrócą** (dopisane do tych z pierwszego przerwania):
+1. **`podman` sypie na STDERR przy KAŻDYM wywołaniu** — przekierowanie wyjścia do pliku
+   bez rozdzielenia strumieni wkłada ten hałas do treści pliku; gdy plikiem jest
+   `wp-config.php`, skutkiem jest cicha utrata WSZYSTKICH nagłówków i przekierowań.
+2. **Edycja cudzego pliku w Pythonie konwertuje końce linii** — `wp-config.php` kontenera
+   ma **CRLF**, a `open().read()` + `join` daje plik bez ani jednego `CR`. Diff wygląda
+   wtedy na przepisanie całości; złapało to dopiero **porównanie bajtowe** (`cmp`).
+   Do usunięcia linii z cudzego pliku używać `sed`, który pracuje na bajtach.
+3. **Idempotencja pytająca o WIERSZ zamiast o PLIK utrwala brak** — `aai-platnosci sync`
+   meldował „bez zmian 2" przy dwóch okładkach, których na dysku nie było.
+4. **Odwrócone apostrofy w łańcuchu przekazywanym do powłoki** wchodzą w podstawienie
+   i wycinają słowa z zapisanego werdyktu (zgłosił to sam krytyk Konrada). W treściach dla
+   narzędzi sektora używać plików, nie argumentów wiersza poleceń.
 
 ## Co dokładnie obejmuje E6 (nie wyprowadzać od nowa)
 

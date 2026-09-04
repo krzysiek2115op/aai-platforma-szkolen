@@ -1,0 +1,27 @@
+{
+  "id": "AUD-REPO-F1-014",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-04",
+  "stwierdzenie": "Pozycja REPO-04 pyta o KAŻDY wiersz tabeli w repozytorium („Czy żaden wiersz tabeli nie ma treści po zamykającym |?\"), a przypisana jej komenda — `straznik-readme` reguła 8 — czyta WYŁĄCZNIE README.md: cała reguła operuje na zmiennej `readme` (`readme.split(\"\\n\").forEach(...)`, straznik-readme.mjs:218), więc pokrywa 1 plik z 413 śledzonych plików .md. Pozycję da się dziś odhaczyć na „nie\" bez otwarcia ani jednego pliku, mimo że zjawisko W REPO ISTNIEJE: mój niezależny skan (parser GFM pomijający `\\|` i kod inline) znalazł w docs/plugin-3/DIAGRAM.md trzy wiersze z komórkami ponad liczbę zadeklarowaną w nagłówku (613, 614, 615) i jeden ogon po zamykającym `|` (613) — przy `straznik-readme` ZIELONYM. Reguła 8 powstała 2026-08-31 właśnie po to, by tę klasę łapać; jej zakres nie objął plików, w których klasa faktycznie żyje.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/role/REPO/AGENT.md",
+    "linia": 249,
+    "tresc": "| REPO-04 | Czy żaden wiersz tabeli nie ma treści po zamykającym `\\|`? | `straznik-readme` reguła 8 | plik:linia |"
+  },
+  "dowod": "1) Zasięg strażnika: tools/straznicy/straznik-readme.mjs:216-228 — pętla reguły 8 to `readme.split(\"\\n\").forEach(...)`, a `readme` to treść README.md; żadna ścieżka tej reguły nie czyta innego pliku. 2) Strażnik jest ZIELONY: `node tools/straznicy/straznik-readme.mjs` → kod 0, komunikat „README zgodne ze stanem repo\". 3) Zjawisko istnieje poza jego zasięgiem: własny skan wszystkich 413 plików .md z `git ls-files` (bez docs/dokumentacja-techniczna/), dzielący wiersze wg GFM — pomijający `\\|` i `|` wewnątrz kodu inline, liczbę kolumn biorący z wiersza separatora — dał 1 ogon po zamykającym `|` (docs/plugin-3/DIAGRAM.md:613) i 3 wiersze z nadmiarowymi komórkami (docs/plugin-3/DIAGRAM.md:613 = 4 wobec 3, :614 = 4 wobec 3, :615 = 5 wobec 3). Naiwny skan bez obsługi `\\|` i kodu inline dawał 95 trafień — czyli sprawdzenie tej pozycji „na oko\" grepem też jej nie mierzy. 4) Ta sama klasa, ten sam wzorzec usterki checklisty co przy REPO-05 (AUD-REPO-F1-006): komenda przypisana pozycji nie bada tego, o co pozycja pyta.",
+  "klasyfikacja": "checklista-komenda-nie-mierzy-pozycji",
+  "wplyw": "Dwie fale audytu mogą odhaczyć REPO-04 na „nie\" wyłącznie kodem wyjścia cudzego strażnika i obie będą zgodne — a zgodność będzie skutkiem wspólnej ślepoty, nie wspólnego pomiaru. Zjawisko, którego pozycja ma pilnować, żyje dziś w dokumencie opisującym szwy między trzema wtyczkami: trzy podsumowania „STAN PO WYKONANIU\" kroków T1–T3 są na GitHubie niewidoczne. Znalazł je dział, ale ZNALAZŁ MIMO CHECKLISTY, nie dzięki niej — przy innym doborze plików do czytania pozycja przeszłaby na zielono po pustce.",
+  "runda": 1,
+  "status": "DO WERYFIKACJI",
+  "hash": "ac0233af8b982251f0ac70ad74da6e4e35f85faf448ae2e3666e6797e80c74db",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: REPO/AGENT.md:249 to wiersz REPO-04 co do znaku, z komenda 'straznik-readme regula 8'. WER-02 dowod dotyczy tego samego i sprawdzilem kazdy punkt sam: (a) zasieg reguly — straznik-readme.mjs:218 to 'readme.split(\"\\n\").forEach((linia, i) => {', czyli petla biegnie po TRESCI README.md i po niczym wiecej; (b) straznik jest ZIELONY — 'node tools/straznicy/straznik-readme.mjs' kod 0; (c) zjawisko istnieje poza jego zasiegiem — rozbilem programowo wiersze 613, 614 i 615 docs/plugin-3/DIAGRAM.md wobec 3-kolumnowego naglowka i wychodzi odpowiednio 4, 4 i 5 komorek, przy czym 613 nie konczy sie zamykajacym '|'; (d) skala: 'git ls-files *.md' daje 488 plikow, a bez docs/dokumentacja-techniczna 413 — regula pokrywa jeden z nich. WER-03 CZYNNE. WER-04 hash ac02... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony: to samo zjawisko, ktore opisuje AUD-REPO-F1-004 od strony dokumentu, tu jest opisane od strony bramki — i oba zweryfikowalem osobnym pomiarem.",
+      "kiedy": "2026-09-03T22:11:13.413Z"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "AUD-REPO-F1-013",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-02",
+  "stwierdzenie": "docs/plugin-1/PLAN-FINAL-PLUGINU-1.md, punkt 4 kroku 4 ('Kolejność gałęzi'), oznacza jako '← TO ZOSTAŁO' (czyli jedyne, co pozostało do zrobienia): 'merge modułu na `main`, przywrócenie gałęzi domyślnej, tag + release'. To zadanie zostało wykonane 2026-08-25 — README.md:55 wprost: 'Gałąź domyślna | `main` — wrócił nią 2026-08-25 razem ze scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0`)'. Dokument nie ma żadnej adnotacji przy tym punkcie informującej, że zadanie zostało zamknięte, mimo że pozostała część tego samego dokumentu (dwie linie niżej) już powołuje się na zdarzenia PO scaleniu ('B7 ZALICZONA przez właściciela 2026-08-25... Kolejność po Pluginie 1: etap WordPressa, NIE Plugin 2') — czyli dokument jest wewnętrznie sprzeczny co do tego, czy krok 4 jest zamknięty.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "docs/plugin-1/PLAN-FINAL-PLUGINU-1.md",
+    "linia": 254,
+    "tresc": "4. **← TO ZOSTAŁO:** merge modułu na `main`, przywrócenie gałęzi domyślnej,"
+  },
+  "dowod": "README.md:55: 'Gałąź domyślna | `main` — wrócił nią 2026-08-25 razem ze scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0`)'. `git branch --show-current` na `main` (sprawdzone pośrednio przez `git ls-remote --heads origin` wcześniej w tym audycie) potwierdza istnienie taga `v0.37.0`. docs/plugin-1/PLAN-FINAL-PLUGINU-1.md:266-268 (dwie linie po znalezisku) mówi 'B7 ZALICZONA przez właściciela 2026-08-25' i cytuje decyzję 'Kolejność po Pluginie 1: etap WordPressa, NIE Plugin 2' — czyli sam dokument opisuje zdarzenia, które nastąpiły PO wykonaniu punktu 4, ale punkt 4 wciąż nosi etykietę 'TO ZOSTAŁO' bez adnotacji o wykonaniu.",
+  "klasyfikacja": "deklaracja-stanu-nieaktualna",
+  "wplyw": "Dokument planu domknięcia Pluginu 1 przedstawia jako wciąż otwarty krok, który jest zamknięty od dawna (od momentu, gdy sam Plugin 1 stał się ukończony), a w tym samym dokumencie kilka linii dalej odwołuje się do zdarzeń, które nastąpiły dopiero PO tym kroku — wewnętrzna sprzeczność utrudniająca ustalenie, na jakim etapie faktycznie jest projekt komuś, kto czyta wyłącznie ten plik.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "72d3343a9d1f6c82b6700e3f4782e04948b092a64fa81922a5ceefb79f83f92a",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.512Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: PLAN-FINAL-PLUGINU-1.md:254 to '4. **<- TO ZOSTALO:** merge modulu na main, przywrocenie galezi domyslnej,' co do znaku, a punkt 3 tuz nad nim jest juz przekreslony jako ZROBIONE. WER-02 dowod dotyczy tego samego: README.md:55 mowi 'Galaz domyslna | main — wrocil nia 2026-08-25 razem ze scaleniem ukonczonego Pluginu 1 (PR #62, tag v0.37.0)', czyli zadanie oznaczone jako pozostale jest wykonane. PROSTUJE NUMER LINII W DOWODZIE (nie zmienia werdyktu): zdanie 'B7 ZALICZONA przez wlasciciela 2026-08-25' stoi w linii 271, nie 266-268 jak podaje wpis — sprzecznosc wewnetrzna dokumentu jest wiec prawdziwa, tylko odleglosc podana niescisle. WER-03 CZYNNE. WER-04 hash 72d3... zgodny. WER-05 jednoznaczne.",
+      "kiedy": "2026-09-03T22:10:59.524Z"
+    }
+  }
+}

@@ -14,7 +14,7 @@
   "dowod": "`sed -n 239p audyt/ROLE.md | cat -A` pokazuje `'\\\\\\\\w'` (cztery backslashe, w backtickach — markdown ich nie skraca). Uruchomienie dosłowne `grep -rn '\\\\\\\\w' tools/straznicy | wc -l` → 2; `grep -rn '\\\\w' tools/straznicy | wc -l` → 55 (`-l` → 17 plików). Dowód pozycji ma być „plik:linia wzorca” — 53 wzorce nigdy nie wejdą do dowodu.",
   "klasyfikacja": "komenda checklisty przechodząca niemal po pustce",
   "wplyw": "Klasa „\\w nie czyta ogonków” (lekcja z 0.35.0, mutacja maskująca ślepotę strażnika) zostanie sprawdzona na 2 z 55 miejsc, a pozycja zamknie się jako przejrzana.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "517f34f639f355ff8a79885cfa326d4e7b63428a0d0cd480fb2e1d8a67c3f47f",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:33.879Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:239 to wiersz QA-12 co do znaku; 'cat -A' potwierdza w komorce komendy CZTERY backslashe przed w. WER-02 dowod dotyczy tego samego i odtworzylem obie liczby sam: 'grep -rn \"\\\\\\\\w\" tools/straznicy | wc -l' (komenda doslownie z checklisty) daje 2, a 'grep -rn \"\\\\w\" tools/straznicy | wc -l' daje 55 w 17 plikach. Czyli komenda widzi 2 z 55 miejsc, a kolumna dowodu zada 'plik:linia wzorca'. WER-03 CZYNNE: nic nizej tego nie prostuje. WER-04 hash 517f... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — wpis nie twierdzi, ze ktorys z 53 wzorcow jest dzis zepsuty, tylko ze pozycja ich nie oglada.",
+      "kiedy": "2026-09-03T21:52:52.914Z"
     }
   }
 }

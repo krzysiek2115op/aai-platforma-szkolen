@@ -1,0 +1,27 @@
+{
+  "id": "AUD-PRIV-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PRIV",
+  "pozycja": "PRIV-05",
+  "stwierdzenie": "Pozycja PRIV-05 („Czy polityka prywatności zgadza się ze stanem witryny (ciastka Woo i WP)?”) została w fali 1 zamknięta na „tak” z adnotacją „znany, zgłoszony wcześniej, nie pogorszył się”, a pomiar daje odpowiedź PRZECIWNĄ: opublikowana polityka na :8892 trzy razy wypiera się ciastek, a witryna ciastko stawia. Adnotacja odpowiada na inne pytanie (czy zjawisko jest nowe), niż brzmi pozycja (czy polityka zgadza się ze stanem). Sektor nie ma przy tym ŻADNEGO nośnika, w którym ta odpowiedź by żyła: plik stanu roli trzyma wyłącznie status, rundę i listę niedomkniętych, a porownaj-cykle.mjs porównuje wyłącznie zgłoszenia i status roli — więc pozycja zamknięta na odpowiedź sprzeczną z pomiarem nie zostawia w sektorze śladu i jest niewidzialna dla porównania fal, na którym stoi cała powtarzalność (K4″).",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/status.mjs",
+    "zakres": "zapis stanu roli — pola sektor, fala, rola, status, runda, niedomkniete (linie 450-465 i 513)",
+    "mechanizm": "brakuje pola trzymającego ODPOWIEDŹ (tak/nie) na każdą pozycję checklisty; powinno stać w pliku stanu roli audyt/stan/<sektor>-f<N>-<ROLA>.json obok pola „niedomkniete”, bo porownaj-cykle.mjs czyta z tego pliku WYŁĄCZNIE „status” (linia 196) i porównuje wyłącznie pary (hash miejsca, stan werdyktu) ze zgłoszeń — pozycji zamkniętych bez zgłoszenia nie widzi nic"
+  },
+  "dowod": "1) BRZMIENIE POZYCJI: audyt/ROLE.md:364 — „PRIV-05 | Czy polityka prywatności zgadza się ze **stanem witryny** (ciastka Woo i WP)? | POLITYKA-PRYWATNOSCI.md × lista ciastek instalacji | cytat vs stan”. Odpowiedź „tak” znaczy w tym brzmieniu „zgadza się”. 2) POMIAR ODPOWIEDZI PRZECIWNEJ, żywy, wykonany przeze mnie: curl http://127.0.0.1:8892/polityka-prywatnosci/ → HTTP 200, a w treści strony trzy zdania (grep): „nie używa cookies ani narzędzi analitycznych.”, „nie używamy cookies, localStorage, analityki ani profilowania.”, „nie używa cookies ani podobnych technologii”. Równolegle curl -D - http://127.0.0.1:8892/wp-login.php zwraca nagłówek „Set-Cookie: wordpress_test_cookie=WP%20Cookie%20check; path=/; HttpOnly”, czyli ta sama witryna ciastko stawia. Rozjazd jest też spisany cytat po cytacie w docs/plugin-3/POLITYKA-PRYWATNOSCI.md:116-118 (tabela „Znalezisko: polityka wypiera się rzeczy, które witryna już robi”). Odpowiedź na pozycję w brzmieniu z ROLE.md wynosi więc „nie”. 3) BRAK NOŚNIKA, zmierzony w plikach sektora: audyt/stan/audyt-f1-PRIV.json zawiera wyłącznie klucze sektor, fala, rola, status, runda, niedomkniete, kiedy, historia — ani jednej odpowiedzi na PRIV-01..PRIV-10; status.mjs:513 buduje dokładnie ten kształt, a komentarz status.mjs:442-443 mówi wprost „Powód … należy do raportu działu — nie do pola, które się liczy”. 4) NIEWIDZIALNOŚĆ DLA PORÓWNANIA FAL: porownaj-cykle.mjs:96 bierze ze zgłoszenia (id, dzial, pozycja, stan, otwarta), :137 porównuje stany pochodne wspólnych HASZY MIEJSC, a :196 czyta z pliku stanu wyłącznie „status === ZAKOŃCZONE”. Pozycja zamknięta na „tak” bez zgłoszenia nie wchodzi do żadnego z tych porównań, więc ta sama błędna odpowiedź w obu falach da wynik ZGODNE.",
+  "klasyfikacja": "usterka sektora — odpowiedź na pozycję checklisty sprzeczna z pomiarem i bez nośnika, niewidzialna dla porównania fal",
+  "wplyw": "Powtarzalność sektora (K4″, zasada budowy: druga fala musi dać ten sam wynik) stoi na porównaniu, które widzi wyłącznie zgłoszenia. Pozycja domknięta na odpowiedź sprzeczną z pomiarem znika bez śladu: kierownik nie ma czego zebrać, weryfikator nie ma czego sprawdzić, a porownaj-cykle.mjs zamelduje ZGODNE także wtedy, gdy obie fale przeoczyły to samo. W tym konkretnym przypadku znika z audytu rozjazd dokumentu prawnego ze stanem witryny — czyli pozycja, dla której dział PRIV w ogóle istnieje.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "b0e4145b6b0940da5aac8947242d51509499ef467a80dc71820c83482227c69a",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie. WER-02 dowod dotyczy tego samego i sprawdzilem trzy nosne punkty sam: (1) ROLE.md:364 pyta 'Czy polityka prywatnosci zgadza sie ze STANEM WITRYNY (ciastka Woo i WP)?', wiec 'tak' znaczy 'zgadza sie'; (2) POMIAR daje odpowiedz PRZECIWNA — curl na /polityka-prywatnosci/ zwraca trzy zdania wypierajace sie ciastek ('nie uzywa cookies ani narzedzi analitycznych', 'nie uzywamy cookies, localStorage, analityki ani profilowania', 'nie uzywa cookies ani podobnych technologii'), a curl -D na /wp-login.php oddaje 'Set-Cookie: wordpress_test_cookie=WP%20Cookie%20check; path=/; HttpOnly'; (3) NOSNIKA NIE MA — audyt/stan/audyt-f1-PRIV.json ma klucze sektor,fala,rola,status,runda,niedomkniete,kiedy,historia, a porownaj-cykle.mjs:196 czyta z tego pliku tylko status. WER-03 CZYNNE. WER-04 hash b0e4... zgodny. WER-05 jednoznaczne. UCZCIWIE O GRANICY MOJEGO POMIARU: samej adnotacji dzialu ('znany, zglosozony wczesniej, nie pogorszyl sie') nie da sie w repozytorium odnalezc — i to nie oslabia wpisu, tylko jest doslownie jego teza: odpowiedzi pozycji nie maja gdzie zyc. Odnotowuje pokrewienstwo z AUD-BD-F1-003 i AUD-PIK-F1-006 (ta sama luka nosnika, trzy dzialy niezaleznie); ten wpis dodaje do niej konkret: pozycje zamknieta na odpowiedz SPRZECZNA Z POMIAREM.",
+      "kiedy": "2026-09-03T22:04:22.577Z"
+    }
+  }
+}

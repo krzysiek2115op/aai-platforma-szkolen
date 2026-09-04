@@ -14,7 +14,7 @@
   "dowod": "`sed -n 256,282p audyt/ROLE.md | grep -i 'indeks\\|wag\\|bramek'` → trafia tylko linia „Po co” (waga stron) i „Nie bierze”; w ośmiu pozycjach PERF-01…08 zero wystąpień. Odsyłacze: ROLE.md:145 „wagi stron i liczby zapytań (→ PERF)”, ROLE.md:209-210 „planów zapytań i indeksów pod kątem czasu (→ PERF)”, ROLE.md:251 „wydajności samych bramek (→ PERF)”. PERF-90 jest pozycją otwartą, nie pozycją o indeksach.",
   "klasyfikacja": "pytanie bez właściciela",
   "wplyw": "Indeksy MySQL (decyzja T3 „indeksy bez zmian” na 200 000 wierszy), waga stron i czas bramek nie zostaną zadane przez żaden dział — odesłanie kończy się w pustce, a obie fale zgodnie to przemilczą.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "7d14cd042782bdd5f626d6509d6e9503f1c2161d7c516260007b24b4c3578fc3",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:33.736Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie: sekcja PERF, wiersze PERF-01..08 (270-277). WER-02 dowod dotyczy tego samego, przeczytalem osiem wierszy w calosci: PERF-01 N+1, 02 liczba zapytan na odslone, 03 pamiec w zadaniu, 04 nocache_headers, 05 wspolny arkusz, 06 wymiary obrazow, 07 niebuforowalny przebieg PHP, 08 zrodlo pomiaru PSI — ANI JEDEN nie pyta o indeksy bazy pod katem czasu, o wage strony w kB ani o czas przebiegu bramek; slowa 'indeks', 'waga' i 'bramek' pojawiaja sie w sekcji PERF wylacznie w 'Po co' i w 'Nie bierze'. Odsylacze potwierdzone co do linii: 145 'wagi stron i liczby zapytan (-> PERF)', 209-210 'planow zapytan i indeksow pod katem czasu (-> PERF)', 251 'wydajnosci samych bramek (-> PERF)'. PERF-90 jest pozycja otwarta, wiec nie jest odbiorca konkretnego odeslania. WER-03 CZYNNE: odeslanie konczy sie w pustce, nic nizej tego nie przechwytuje. WER-04 hash 7d14... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T21:52:08.446Z"
     }
   }
 }

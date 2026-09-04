@@ -1,0 +1,32 @@
+{
+  "id": "AUD-PRIV-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PRIV",
+  "pozycja": "PRIV-02",
+  "stwierdzenie": "Checklista działu PRIV ma ODWRÓCONĄ polaryzację odpowiedzi w dwóch z dziesięciu pozycji: w ośmiu („czy przechowuje tylko to, co deklaruje polityka”, „czy nie ma żadnej kolumny”, „czy retencja się wykonuje”, „czy zgadza się”, „czy dokument istnieje”, „czy mail nie niesie hasła”, „czy nie wysyłają pod niewłaściwy adres”, „czy idzie z naszego adresu”) odpowiedź „tak” znaczy ZDROWO, a w PRIV-02 („Czy hasło może trafić do bazy przez pole loginu?”) i PRIV-06 („Czy strona sprzedażowa obiecuje coś, czego produkt nie robi?”) odpowiedź „tak” znaczy USTERKA. Tabela nie ma ani kolumny, ani zdania, które by to rozstrzygało, więc zapis „PRIV-02: tak” i „PRIV-05: tak” znaczą rzeczy przeciwne, a odczytać to da się wyłącznie przez ponowne przeczytanie brzmienia każdej pozycji.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/ROLE.md",
+    "zakres": "tabela działu PRIV, wiersze PRIV-01…PRIV-10 (linie 360-369) wraz z nagłówkiem „Pytanie (tak/nie)”",
+    "mechanizm": "brakuje kolumny albo zdania mówiącego, KTÓRA odpowiedź znaczy „zdrowo”; powinno stać w nagłówku tabeli działu (kolumna „Pytanie (tak/nie)”, linia 358) albo w brzmieniu samych pozycji — dziś osiem pozycji jest sformułowanych tak, że „tak” = zdrowo, a PRIV-02 i PRIV-06 tak, że „tak” = usterka"
+  },
+  "dowod": "Odczyt audyt/ROLE.md, wiersze 358-369 (nagłówek tabeli „| # | Pytanie (tak/nie) | Komenda / miejsce | Dowód |” i dziesięć wierszy PRIV-01…PRIV-10). Rozbiór brzmienia, pozycja po pozycji: PRIV-01 „Czy dziennik logowań przechowuje **tylko** to, co deklaruje polityka?” (tak = zdrowo), PRIV-02 „Czy hasło **może** trafić do bazy przez pole loginu?” (tak = USTERKA), PRIV-03 „Czy dziennik ruchu **nie ma żadnej** kolumny łączącej z kontem?” (tak = zdrowo), PRIV-04 „Czy retencja (90 / 400 dni) naprawdę się wykonuje?” (tak = zdrowo), PRIV-05 „Czy polityka prywatności zgadza się ze **stanem witryny**?” (tak = zdrowo), PRIV-06 „Czy strona sprzedażowa obiecuje coś, czego produkt nie robi?” (tak = USTERKA), PRIV-07 „Czy kasa powołuje się na dokument, który **istnieje**?” (tak = zdrowo), PRIV-08 „Czy mail do klienta nie niesie hasła ani klucza w treści?” (tak = zdrowo), PRIV-09 „Czy powiadomienia rdzenia nie wysyłają danych konta pod niewłaściwy adres?” (tak = zdrowo), PRIV-10 „Czy każdy mail … idzie z **naszego** adresu i w naszym wyglądzie?” (tak = zdrowo). Osiem do dwóch, bez żadnego znacznika w tabeli. Skutek widać na wyjściu fali 1 tego działu: PRIV-02 zamknięto na „tak” i powstało zgłoszenie AUD-PRIV-F1-001 (bo „tak” znaczyło tam usterkę), a PRIV-05 zamknięto na „tak” bez zgłoszenia (bo „tak” miało znaczyć zdrowo) — ta sama litera w tym samym raporcie oznacza dwa przeciwne rozstrzygnięcia. Kontrola zakresu tego zgłoszenia: sprawdziłem także, że nagłówek tabeli działu jest w ROLE.md jeden i ten sam dla wszystkich działów („Pytanie (tak/nie)”), więc rozstrzygnięcia nie ma również poza tabelą PRIV.",
+  "klasyfikacja": "usterka sektora — checklista bez reguły, która odpowiedź znaczy „zdrowo”; zapis „tak” jest niejednoznaczny",
+  "wplyw": "Raport działu i porównanie fal operują odpowiedziami „tak/nie”, a te znaczą w tej samej tabeli dwie przeciwne rzeczy. Kierownik zbierający wyjście czternastu działów oraz krytyk sprawdzający, czy pozycja domknięta na „nie” naprawdę została sprawdzona, muszą przy każdej pozycji wrócić do jej brzmienia; pomyłka nie zapala niczego, bo żadne narzędzie sektora odpowiedzi nie czyta. Ta sama dwuznaczność jest najkrótszą drogą do zamknięcia pozycji o usterce słowem „tak” — co w tej fali stało się na PRIV-05.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "322ad4658e117aa43d60f561bc2c19622220e521641935bf6c4b658ce03ecf73",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie: tabela PRIV, naglowek 'Pytanie (tak/nie)' (358) i wiersze 360-369. WER-02 dowod dotyczy tego samego i przeszedlem rozbior SAM, wiersz po wierszu: PRIV-01 'przechowuje TYLKO to, co deklaruje polityka' (tak=zdrowo), PRIV-02 'Czy haslo MOZE trafic do bazy przez pole loginu?' (tak=USTERKA), PRIV-03 'nie ma ZADNEJ kolumny laczacej z kontem' (tak=zdrowo), PRIV-04 'retencja naprawde sie wykonuje' (tak=zdrowo), PRIV-05 'polityka zgadza sie ze stanem witryny' (tak=zdrowo), PRIV-06 'Czy strona sprzedazowa obiecuje cos, czego produkt nie robi?' (tak=USTERKA), PRIV-07 'kasa powoluje sie na dokument, ktory ISTNIEJE' (tak=zdrowo), PRIV-08 'mail NIE niesie hasla' (tak=zdrowo), PRIV-09 'powiadomienia NIE wysylaja pod niewlasciwy adres' (tak=zdrowo), PRIV-10 'idzie z NASZEGO adresu' (tak=zdrowo). Osiem do dwoch, a w tabeli nie ma ani kolumny, ani zdania rozstrzygajacego — naglowek brzmi tylko 'Pytanie (tak/nie)'. WER-03 CZYNNE. WER-04 hash 322a... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony i ma potwierdzenie w wyjsciu tej samej fali: PRIV-02 zamknieto na 'tak' Z zgloszeniem, PRIV-05 na 'tak' BEZ zgloszenia — ta sama litera znaczy w jednym raporcie dwie przeciwne rzeczy.",
+      "kiedy": "2026-09-03T22:04:39.379Z"
+    },
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Rozbiór polaryzacji przeszedłem sam, wiersz po wierszu, na audyt/ROLE.md:358-369. Nagłówek tabeli brzmi wyłącznie '| # | Pytanie (tak/nie) | Komenda / miejsce | Dowód |' — nie ma kolumny ani zdania mówiącego, która odpowiedź znaczy 'zdrowo'. Osiem pozycji jest sformułowanych tak, że 'tak' = zdrowo (PRIV-01 'przechowuje TYLKO to, co deklaruje polityka', -03 'nie ma ŻADNEJ kolumny łączącej z kontem', -04 'retencja naprawdę się wykonuje', -05 'polityka zgadza się ze stanem witryny', -07 'dokument, który ISTNIEJE', -08 'mail NIE niesie hasła', -09 'NIE wysyłają pod niewłaściwy adres', -10 'idzie z NASZEGO adresu'), a dwie odwrotnie: PRIV-02 'Czy hasło MOŻE trafić do bazy przez pole loginu?' i PRIV-06 'Czy strona sprzedażowa obiecuje coś, czego produkt nie robi?'. Stosunek 8:2 potwierdzony, miejsce w formie mechanizmu nazywa czego brakuje i gdzie (K10'). Wpływ ma potwierdzenie w wyjściu tej samej fali: PRIV-02 zamknięte na 'tak' ZE zgłoszeniem (AUD-PRIV-F1-001), PRIV-05 na 'tak' BEZ zgłoszenia.",
+      "kiedy": "2026-09-03T22:29:03.979Z"
+    }
+  }
+}

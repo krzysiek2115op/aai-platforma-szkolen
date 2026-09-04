@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-021",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A4",
+  "runda": 2,
+  "stwierdzenie": "Pozycja WDR-06 każe audytowi, który ma tylko patrzeć (W2, W6), wykonać `podman-compose down && ./postaw.sh` na jedynym środowisku pomiarowym fali; wykonanie w fali 1 (AUD-WDR-F1-002: `podman-compose down -v`/`--skasuj` + `./postaw.sh`) skasowało wolumin mediów — 150 ze 151 załączników oddaje dziś 404, darmowa lekcja pokazuje dwa obrazy 404, pole `srodowisko.media` migawki spadło z 1348 plików/32 040 025 B do 7 plików/22 201 B — a rachunek sumienia działu liczył wyłącznie wiersze bazy, więc zameldował przywrócenie stanu; W6 dla środowiska jest po tej pozycji nie do zaliczenia.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 432,
+    "tresc": "| WDR-06 | Czy `postaw.sh` wstaje **od zera** i kończy weryfikacją artefaktu? | `podman-compose down && ./postaw.sh` | kod wyjścia + treść weryfikacji |"
+  },
+  "dowod": "audyt/migawki/przed.json (commit ec00a0f) i srodowisko-f1-baza.json (kiedy 2026-09-03T16:39:30Z): media {plikow:1348, bajtow:32040025, skrot:107256d8…}. migawkaSrodowiska() policzone w pamięci 2026-09-03 ~23:05 UTC: media {plikow:7, bajtow:22201, skrot:7ac259a5…}; `podman exec aai_wp_wordpress find wp-content/uploads -type f | wc -l` → 7, `du -sk` → 40; `wp post list --post_type=attachment --format=count` → 151; `wp eval` po wszystkich 151 wp_get_attachment_url + curl → 1× 200 (woocommerce-placeholder.webp), 150× 404 (m.in. uploads/2026/08/z01-pusta-rozmowa-na-claude.webp); strona darmowej lekcji /courses/jak-korzystac-z-claude/lessons/czym-jest-claude-i-co-potrafi/ ma 2 `<img src=…uploads/2026/08/…>` → oba 404. `podman ps` o 23:06 UTC: aai_wp_wordpress/aai_wp_db/aai_wp_cli/aai_wp_mailpit „Up 26 minutes” (odtworzone ~22:40 UTC, w oknie WDR W TRAKCIE 22:31:32–22:55:29Z). Dowód AUD-WDR-F1-002 co do znaku: „po `podman-compose down -v`/`--skasuj` i ponownym `./postaw.sh` (zainstalowane WordPress+WooCommerce+Tutor ręcznie …) Środowisko przywrócone do stanu sprzed testu (import zrzutu bazy sprzed operacji), zweryfikowane identyczną migawką liczb (26·30·2·73·22·12·1491·2·6·0)” — dziesięć liczb to COUNT(*) tabel, żadna nie liczy plików uploads. srodowisko.mjs:26 sam mówi: „Media (wp-content/uploads, 1348 plików, 34 MB) leżą POZA bazą”. status.mjs odmowa 4 (powodyOdmowyDrzewa, linie 233-261) mierzy wyłącznie drzewo git, więc po tej operacji role pracowały dalej bez odmowy.",
+  "klasyfikacja": "pozycja checklisty każe zmienić środowisko pomiarowe — audyt naprawia/psuje zamiast patrzeć",
+  "wplyw": "Każda rola mierząca na :8892 po 22:40 UTC (weryfikator, krytycy, ewentualna fala 2 na tym samym stanowisku) widzi lekcje bez zrzutów; migawka „po” da rozjazd media 1348→7 i zatrzyma proces (W6), a sprawcą jest komenda wpisana do checklisty, nie agent, który ją posłusznie wykonał.",
+  "status": "DO WERYFIKACJI",
+  "hash": "f71004b177c9316e0557ba99e41731c60e9c3955d3c1bf905e3ecf6cccb8c09d",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone POMIAREM TOPOLOGII WOLUMENOW, ktory rozstrzyga sprawe u zrodla, a nie przepisaniem cudzego dowodu — bo szkody na zywej instalacji juz nie widac (zmierzylem dzis: 1343 pliki w uploads, 151 zalacznikow, zero brakujacych; orkiestrator naprawil to przed moim wejsciem). ROZSTRZYGNIECIE: wordpress/srodowisko/compose.yml deklaruje DWA wolumeny nazwane — db_data (baza) oraz wp_core zamontowany na /var/www/html — a katalog uploads NIE MA wlasnego montowania (bind mounty obejmuja tylko motyw, trzy nasze wtyczki i mu-plugins), wiec media leza WEWNATRZ wp_core. Oba wolumeny istnieja dzis pod nazwami aai_wp_db_data i aai_wp_wp_core. Stad: podman-compose down BEZ -v zostawia oba, a --skasuj, ktore wola down -v, kasuje oba RAZEM Z MEDIAMI. To zamyka lancuch przyczynowy wpisu i tlumaczy zmierzony przez orkiestratora spadek 1348 plikow do 7 przy nietknietej bazie (151 wierszy zalacznikow), czyli stan, ktorego zadna z trzech kontroli wtyczek nie widzi, bo pytaja o dane, nie o pliki. GRANICA, ktora nazywam wprost, bo wpis jej nie nazywa: zniszczenia dokonala komenda --skasuj (down -v), a NIE komenda z checklisty (down bez -v). Konrad podaje to uczciwie we wlasnym nawiasie, wiec nie wprowadza w blad, ale otwierajace zdanie wiaze skutek z komenda pozycji sciślej, niz wynika z dowodu. NIE JEST TO SPRZECZNE z AUD-WDR-F1-005 (ten sam hash miejsca, ta sama pozycja WDR-06): oba wpisy opisuja INNE komendy i sa dwiema polowami jednej wady — komenda z checklisty nie resetuje, wiec nie umie odpowiedziec na pytanie pozycji o wstawanie od zera, a jedyna komenda, ktora umie na nie odpowiedziec, niszczy jedyne stanowisko pomiarowe fali. Zjawisko czynne pozostaje: tresc pozycji WDR-06 jest niezmieniona, wiec fala 2 stanie przed tym samym wyborem. Zastrzezenie: zdania wpisu w czasie terazniejszym o 404 na zalacznikach i o dwoch obrazach w darmowej lekcji sa juz nieaktualne — byly prawdziwe w chwili pomiaru, dzis szkoda jest naprawiona.",
+      "kiedy": "2026-09-03T23:35:53.914Z"
+    }
+  }
+}

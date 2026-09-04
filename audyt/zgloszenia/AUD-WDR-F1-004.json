@@ -1,0 +1,27 @@
+{
+  "id": "AUD-WDR-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "WDR",
+  "pozycja": "WDR-90",
+  "stwierdzenie": "Sklep rozlicza transakcje w USD (`woocommerce_currency = USD`), a strony sprzedażowe i strony sklepu (nasze szablony) pokazują ceny wyłącznie w złotówkach ('299,00 zł'). `wordpress/srodowisko/postaw.sh` NIGDY nie ustawia `woocommerce_currency` — grep na cały skrypt zwraca zero trafień na 'currency'. Zmierzone na koszyku przez prawdziwy Store API (mechanizm napędzający kasę, na którym klient faktycznie płaci): endpoint zwraca `currency_code: USD, currency_symbol: $`. Klient widzi na stronie kursu '299,00 zł', a w koszyku/kasie tę samą kwotę oznaczoną dolarem — rozjazd widoczny w trakcie prawdziwego zakupu, nie tylko techniczny. `docs/INSTRUKCJA-INSTALACJI.md` (sekcja 2 'Czego potrzebujesz' i sekcja 10 'Rzeczy, które zostają do ustawienia poza wtyczkami') nie wspomina o konieczności sprawdzenia/ustawienia waluty WooCommerce ani razu.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/srodowisko/postaw.sh",
+    "zakres": "cały plik — brak jakiegokolwiek ustawienia opcji `woocommerce_currency` lub `woocommerce_currency_pos`",
+    "mechanizm": "Skrypt instaluje WooCommerce (`wp plugin install woocommerce --activate`) i konfiguruje bramkę testową (`woocommerce_bacs_settings`), ale nigdy nie woła `wp option update woocommerce_currency PLN` ani odpowiednika — WooCommerce zostaje na domyślnej walucie instalacji (USD), niezależnie od locale pl_PL ustawionego wcześniej dla rdzenia WordPressa"
+  },
+  "dowod": "grep -n currency wordpress/srodowisko/postaw.sh => brak wyników; live pomiar :8892 po świeżej instalacji: `wp option get woocommerce_currency` => USD; `wp eval 'echo wc_get_product(73)->get_price_html();'` => '$349.00'; `curl -s http://127.0.0.1:8892/wp-json/wc/store/v1/cart` => {\"currency_code\":\"USD\",\"currency_symbol\":\"$\", ...}; ta sama strona sprzedażowa (nasz szablon) pokazuje '299,00 zł' (własny formatter niezależny od ustawienia Woo, sprawdzone curl na /szkolenia/jak-korzystac-z-claude/); grep -n 'waluta\\|currency\\|USD\\|PLN' docs/INSTRUKCJA-INSTALACJI.md => brak wyników",
+  "klasyfikacja": "WYKONALNOŚĆ",
+  "wplyw": "Klient stawiający sklep wg instrukcji zobaczy poprawne złotówki na stronie kursu, ale w koszyku i kasie kwoty oznaczone dolarem — realny klient płacący kartą/przelewem zobaczy walutę niezgodną z ofertą w trakcie zakupu, a instrukcja nie ostrzega o tym kroku ani go nie każe sprawdzić.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "c05d2e41e0799ec84d4674ae1a9c9a26223caebdf1e8613ddd763e1951419cbb",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "NIE JEST TO TRZECIE ZGLOSZENIE TEGO SAMEGO — wnosi czlon, ktorego FE zmierzyc nie mogl, bo to nie jest pytanie FE. Kryterium duplikatu fali (inne miejsce, inny zbior skutkow, osobna naprawa) spelnione w calosci: AUD-FE-F1-002 stoi na widok.php:182 (nasz formatter zawsze pisze 'zl') i pyta, CO WIDZI KLIENT; ten wpis stoi na postaw.sh i pyta, CZY KTOKOLWIEK TE OPCJE USTAWIA — i to jest pytanie WDR (WDR-07: pozycja wdrozeniowa, ktorej nikt nie zapisal). Naprawa jest inna: FE trzeba rozstrzygnac, ktora z trzech kopii prawdy klamie; tutaj trzeba DOPISAC krok do skryptu i wiersz do instrukcji. Odtworzylem KAZDY czlon sam: 'grep -in currency|waluta|PLN' na postaw.sh konczy KODEM 1 — zero trafien w 452 liniach, wiec skrypt instalujacy WooCommerce nigdy waluty nie dotyka; 'wp option get woocommerce_currency' = USD; 'wp eval get_woocommerce_currency()' = USD, a wc_price(299) oddaje '.00'; Store API '/wp-json/wc/store/v1/cart' oddaje currency_code USD, currency_symbol $; 'grep -in waluta|currency|zlot|USD|PLN docs/INSTRUKCJA-INSTALACJI.md' konczy KODEM 1 — ani jednego trafienia, wiec ani sekcja 2, ani tabela §10 'Rzeczy, ktore zostaja do ustawienia poza wtyczkami' (ktora istnieje dokladnie po to) o walucie nie mowi. CZYNNE dzis, nie hipotetycznie: 'aai_platnosci_sprzedaz_otwarta' = tak, wiec droga do koszyka jest otwarta. Miejsce w formie mechanizmu nazwane poprawnie wg K10' — mowi, CZEGO brakuje (ustawienia woocommerce_currency) i GDZIE ma stac (obok konfiguracji bramki bacs w sekcji 6). UWAGA DLA KIER, nie powod odrzucenia: wpis nosi pozycje WDR-90 ('poza lista'), choc trafia wprost w WDR-07 — a to znaczy, ze WDR-07 zostalo zamkniete na 'tak' przy zjawisku, ktore jest jego wlasna odpowiedzia 'nie'. Osobno: seo.php:285 wpisuje na sztywno priceCurrency 'PLN', czyli trzecia kopie tej samej prawdy, tez niezgodna z Woo — to jednak koniec lezacy w kodzie, czyli material FE, nie ten wpis.",
+      "kiedy": "2026-09-03T23:06:05.897Z"
+    }
+  }
+}

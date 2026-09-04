@@ -1,0 +1,21 @@
+{
+  "id": "AUD-WER-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "WER",
+  "pozycja": "WER-04",
+  "stwierdzenie": "Pozycja WER-04 daje się zamknąć BEZ otwarcia pliku, którego zgłoszenie dotyczy: hashMiejsca() liczy skrót wyłącznie z pól samego wpisu (rodzaj, plik, treść albo zakres+mechanizm), więc „ponowne policzenie” potwierdza wyłącznie, że wpis jest spójny SAM ZE SOBĄ, a nie że opisuje stan pliku. Dla 28 z 87 wpisów, których miejsce ma rodzaj „mechanizm”, nic w całym łańcuchu sektora nigdy nie porównuje treści miejsca z plikiem — a rola zamknęła WER-04 formułą „hash … zgodny” we wszystkich 85 wpisach fali 1 sektora audyt.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 636,
+    "tresc": "| WER-04 | Czy hash miejsca zgadza się z treścią? | ponowne policzenie |"
+  },
+  "dowod": "Pomiar własny 2026-09-04 na gałęzi sektora. (1) audyt/tools/wspolne.mjs:206-213 — hashMiejsca(m) składa skrót z ['linia', m.plik, znormalizuj(m.tresc)] albo ['mechanizm', m.plik, znormalizuj(m.zakres), znormalizuj(m.mechanizm)] i liczy sha256 z tego łańcucha; funkcja nie ma ani jednego odczytu dysku. (2) Przeliczyłem WSZYSTKIE 87 hashy w audyt/zgloszenia wyłącznie z plików JSON, bez ani jednego odczytu pliku wskazanego w polu miejsce.plik — wynik: 87 zgodnych, 0 rozjazdów, w tym 28 miejsc rodzaju „mechanizm”. (3) Weryfikacja treści wobec pliku istnieje wyłącznie w audyt/tools/zgloszenie.mjs, w chwili SKŁADANIA wpisu i tylko dla rodzaju „linia” — nie w werdykt.mjs i nie w checkliście WER. (4) Skutek w wyjściu fali: fraza „hash … zgodny” występuje w uzasadnieniu weryfikatora we wszystkich 85 wpisach AUD-*-F1-*, także tam, gdzie miejsce jest mechanizmem (np. AUD-PERF-F1-002, AUD-INT-F1-001, AUD-PRIV-F1-005).",
+  "klasyfikacja": "pozycja checklisty domykalna bez otwarcia pliku (dowód potwierdza wpis wobec samego siebie)",
+  "wplyw": "Jedna z pięciu pozycji roli, która ma być twardym sprawdzeniem miejsca, nie mierzy niczego o pliku: wpis z miejscem wymyślonym albo nieaktualnym przechodzi WER-04 tak samo jak wpis prawdziwy, o ile nikt ręcznie nie zmienił pola miejsce. Przy 28 miejscach typu „mechanizm” nie ma w sektorze ANI JEDNEGO kroku porównującego opis miejsca z plikiem, więc druga fala, powtarzając WER-04 zgodnie z instrukcją, dostanie ten sam wynik niezależnie od tego, czy plik nadal wygląda tak, jak opisuje wpis.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "38ca33adb30fdacac463577551be95821e8ddbb832142bb5d52fa87f4c9d02b6",
+  "werdykt": null
+}

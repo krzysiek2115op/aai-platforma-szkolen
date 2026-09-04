@@ -1,0 +1,27 @@
+{
+  "id": "AUD-ARCH-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "ARCH",
+  "pozycja": "ARCH-02",
+  "stwierdzenie": "Komenda pozycji ARCH-02 („Czy któraś wtyczka pisze do CUDZYCH tabel?\") nie umie znaleźć klasy błędu, o którą pyta: `grep -rn '$wpdb->prefix' wordpress/wtyczki` pokazuje wyłącznie miejsca składania WŁASNYCH nazw tabel, a jedyny w repozytorium zapis do tabeli rdzenia WordPressa ($wpdb->options) nie zawiera łańcucha `$wpdb->prefix` i w tym wyniku nie występuje. Pozycję da się odhaczyć na „nie\" bez otwarcia ani jednego pliku, a żaden z 39 strażników tej klasy nie pilnuje.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 299,
+    "tresc": "| ARCH-02 | Czy któraś wtyczka pisze do **cudzych** tabel? | `grep -rn '\\$wpdb->prefix' wordpress/wtyczki` | plik:linia + nazwa tabeli |"
+  },
+  "dowod": "(1) Komenda z checklisty, uruchomiona w repozytorium, daje 8 wierszy — wszystkie o WŁASNYM prefiksie (class-aai-sklep-tabele.php:34, class-aai-monitor-tabele.php:78, class-aai-platnosci-tabele.php:46, trzy uninstall.php, jeden komentarz, jedno SHOW TABLES); `grep -rn '$wpdb->prefix' wordpress/wtyczki | grep -c options` = 0. Prawdziwy zapis do cudzej tabeli leży w class-aai-monitor-podpis.php:190-196 (INSERT INTO {$wpdb->options}) i w tym wyniku NIE MA GO, bo `$wpdb->options` to inny łańcuch niż `$wpdb->prefix`. (2) Pozycji nie domyka też żadna bramka maszynowa — zmierzone mutacją na KOPII drzewa wtyczek w katalogu tymczasowym (repozytorium nietknięte): straznik-wtyczki-wp na kopii bez zmian kod 0; po dopisaniu do class-aai-monitor-ekran.php (plik POZA warstwą zapisu) instrukcji `$wpdb->query( $wpdb->prepare( \"INSERT INTO {$tabela} (sesja) VALUES (%s)\", 'x' ) )` strażnik dalej kod 0, choć jego niezmiennik 8 obiecuje „do naszych tabel pisze wyłącznie warstwa zapisu\"; ta sama instrukcja w postaci literału `$wpdb->query( \"INSERT INTO {$tabela} …\" )` daje kod 1 z komunikatem niezmiennika 8. Wzorzec niezmiennika 8 czyta łańcuch stojący PRZY `$wpdb->query(`, więc zapis owinięty w `$wpdb->prepare()` — czyli dokładnie forma z podpis.php:190 — jest dla niego niewidzialny. Żadna reguła strażnika nie mówi w ogóle o tabelach RDZENIA WordPressa: reguła 3 pilnuje prefiksu, 8 naszych tabel, 11 tabel siostrzanej wtyczki.",
+  "klasyfikacja": "checklista",
+  "wplyw": "ARCH-02 jest jedyną pozycją, która ma wyłapać przekroczenie granicy „wtyczka pisze poza własne tabele\" (GRANICE.md przypisuje tę klasę wprost do ARCH). Audytor idący za komendą dosłownie zamyka ją na „nie\" po jednym grepie, w którym szukanego zapisu nie ma z definicji, a bramka maszynowa tej klasy nie pilnuje w żadnej postaci. Fala 1 znalazła to miejsce mimo checklisty, własnym szerszym grepem — fala 2, jeśli pójdzie za komendą, odpowie „nie\" i porównanie fal pokaże rozjazd, którego przyczyną będzie checklista, nie kod. Komenda powinna pytać o KLASĘ tabel ($wpdb->options|posts|postmeta|users|usermeta|terms|comments) i rozdzielać odczyt od zapisu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "3bd709697ecaca462e28354d9d75599344bd2848dce9d8cbd66f43fbe43163e9",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:299 to wiersz ARCH-02 co do znaku, z komenda grep -rn '\\$wpdb->prefix' wordpress/wtyczki. WER-02 dowod potwierdzony WLASNYM pomiarem, nie przepisany: (a) ta komenda daje 8 wierszy, wszystkie o WLASNYM prefiksie (tabele x3, uninstall x3, komentarz, SHOW TABLES), a 'grep ... | grep -c options' daje 0 — czyli jedyny w repo zapis do tabeli rdzenia (podpis.php:192, INSERT INTO {$wpdb->options}) w wyniku komendy NIE WYSTEPUJE, bo nie zawiera lancucha $wpdb->prefix; (b) sprawdzilem tez druga polowe dowodu w kodzie straznika: regula 8 w tools/straznicy/straznik-wtyczki-wp.mjs:189 ma wzorzec /\\$wpdb->query\\(\\s*[\"']?\\s*(INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP|ALTER)/, ktory wymaga literalu SQL STOJACEGO PRZY wywolaniu — zapis owiniety w $wpdb->prepare() (dokladnie forma z podpis.php:190) jest dla niego niewidzialny; zadna z regul strazniks nie mowi o tabelach RDZENIA (3 pilnuje prefiksu, 8 naszych tabel, 11 tabel siostrzanej wtyczki). WER-03 CZYNNE: nic nizej na sciezce tej pozycji nie domyka — ani druga komenda, ani bramka maszynowa. WER-04 hash 3bd7... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony: to defekt checklisty, a nie kodu, i tak jest zaklasyfikowany.",
+      "kiedy": "2026-09-03T21:42:45.681Z"
+    }
+  }
+}

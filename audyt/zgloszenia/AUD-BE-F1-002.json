@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "07da8a4571a6fd7c3037648a095b562be489edb2d39a74b56b5a99d1dae2adf6",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:163 to wiersz BE-02 co do znaku. WER-02 dowod trafia w to samo, odtworzony wlasnymi komendami: komenda z checklisty daje 14 trafien i wszystkie leza w class-*-zapis.php albo w KOMENTARZACH (tutor.php:583, maile.php:255, zadanie.php:80) — 'tak' jest osiagalne bez zobaczenia ani jednego zapisu formy query(); a 'grep -rn $wpdb->query' daje 14 dalszych miejsc, w tym uninstall.php:43/41/40 z 'DROP TABLE IF EXISTS' na tabelach z prefiksem wtyczki, poza warstwa zapisu — czyli dokladnie dowod, o ktory pozycja prosi. Potwierdzam tez dowod porownawczy: straznik-wtyczki-wp.mjs:187-189 liczy OBIE formy naraz. ZASIEG POPRAWIONY: zapisow formy $wpdb->query() z czasownikiem zmieniajacym dane jest w zakresie BE JEDENASCIE, nie dziesiec — uninstall x3 (DROP), platnosci-zapis 86 UPDATE / 96 INSERT / 166 INSERT IGNORE, podpis 190 INSERT, monitor-zapis 242 UPDATE / 333 DELETE / 341 DELETE / 392 DELETE (pozostale trzy z 14 to START TRANSACTION/COMMIT/ROLLBACK, czyli sterowanie transakcja, nie zapis). Roznica nie rusza stwierdzenia: trzy DROP-y poza warstwa zapisu sa i komenda ich nie widzi. WER-03 CZYNNE. WER-04 hash 07da... zgodny. WER-05 jednoznaczne.",
+      "kiedy": "2026-09-03T21:44:46.757Z"
+    }
+  }
 }

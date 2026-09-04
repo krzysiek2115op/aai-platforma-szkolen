@@ -1,0 +1,32 @@
+{
+  "id": "AUD-PERF-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-01",
+  "stwierdzenie": "Aai_Platnosci_Cli::osierocone() wykonuje zapytanie SQL wewnątrz foreach: dla każdego wiersza tabeli powiazania osobno woła Aai_Sklep_Odczyt::kurs_po_id() (kolejne zapytanie SELECT do wp_aai_sklep_courses), zamiast pobrać wszystkie potrzebne kursy jednym zapytaniem WHERE id IN (...). Metoda jest wołana przez sprawdz() — komendę `wp aai-platnosci sprawdz`, która jest punktem kontrolnym uruchamianym przy KAŻDYM postawieniu środowiska (postaw.sh:361).",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    "linia": 894,
+    "tresc": "$kurs = Aai_Sklep_Odczyt::kurs_po_id( (string) $wiersz['course_uuid'] );"
+  },
+  "dowod": "Linia 893 otwiera foreach po wynikach $wpdb->get_results( \"SELECT course_uuid, product_id FROM {$tabela}\" ) (tabela powiazania), a wewnątrz jego ciała linia 894 wywołuje Aai_Sklep_Odczyt::kurs_po_id(), która w class-aai-sklep-odczyt.php:269-272 wykonuje własne $wpdb->get_row( $wpdb->prepare( \"SELECT * FROM `$t_kursy` WHERE id = %s\", $id ) ) — czyli osobne zapytanie SQL per wiersz powiazania, zamiast jednego zapytania z WHERE id IN (...). Wywołanie: class-aai-platnosci-cli.php:664, wewnątrz sprawdz() (komenda `wp aai-platnosci sprawdz`), która per postaw.sh:361 jest punktem kontrolnym uruchamianym przy każdym postawieniu środowiska.",
+  "klasyfikacja": "N+1",
+  "wplyw": "Każde uruchomienie kontroli `wp aai-platnosci sprawdz` (w tym każdy `postaw.sh`) kosztuje liniowo więcej zapytań SQL wraz z rosnącą liczbą powiązań kurs-produkt, zamiast stałej liczby zapytań przez WHERE ... IN (...); przy dzisiejszych 2 powiązaniach koszt jest niski, ale mechanizm skaluje się źle.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "84569fd93107766ee5e6f862de7cbc85e876c1730ebe615ce85f2235a2591fcf",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone własnym pomiarem: osierocone() = 3 zapytania przy 2 wierszach powiazania (1 lista + N x kurs_po_id), linia 894 zgodna co do znaku. Skala jest ograniczona liczbą kursów i dziś to 2 zapytania nadmiarowe — werdykt dotyczy dowodu, nie wagi.",
+      "kiedy": "2026-09-03T21:30:11.959Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: cli.php:894 to '$kurs = Aai_Sklep_Odczyt::kurs_po_id( (string) $wiersz['course_uuid'] );' co do znaku, wewnatrz foreach otwartego w 893 po 'SELECT course_uuid, product_id FROM {tabela}'. WER-02 dowod dotyczy tego samego: kurs_po_id() w odczyt.php:269-272 robi wlasne $wpdb->get_row( prepare( 'SELECT * FROM `$t_kursy` WHERE id = %s' ) ), czyli osobne zapytanie na wiersz powiazania; wywolanie osierocone() potwierdzone w cli.php:664 wewnatrz sprawdz(). WER-03 CZYNNE. WER-04 hash 8456... zgodny. WER-05 jednoznaczne. WPLYW NIE ZAWYZONY — i to jest rzadki przypadek, gdzie zgloszenie samo obniza wlasna wage: pisze wprost 'przy dzisiejszych 2 powiazaniach koszt jest niski, ale mechanizm skaluje sie zle', co zgadza sie z pomiarem (2 kursy = 2 nadmiarowe zapytania na przebieg kontroli).",
+      "kiedy": "2026-09-03T21:58:01.091Z"
+    }
+  }
+}

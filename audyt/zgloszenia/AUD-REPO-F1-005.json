@@ -14,8 +14,19 @@
   "dowod": "git log --oneline v0.21.0..main | grep -cE '^[a-f0-9]+ (feat|fix|docs|chore|test|refactor):' zwraca 65 (na 507 commitów w tym zakresie). Najświeższy taki commit na main to 'docs: istnienie worktree przestaje uchodzić za dowód, że ktoś w nim pracuje' z datą 2026-08-21 (git log --pretty='%ad %s' --date=short main | grep -E ' (feat|fix|docs|chore|test|refactor): ' | head -1), czyli trzy dni po dacie taga v0.21.0 (2026-08-18, git log -1 --format=%ad --date=short v0.21.0). Łącznie w historii main jest 111 commitów z takim prefiksem.",
   "klasyfikacja": "reguła-repo-niezgodna-z-praktyka",
   "wplyw": "CONTRIBUTING.md, dokument opisujący konwencje commitów dla każdego nowego współpracownika (i dla audytora sprawdzającego historię), podaje nieprawdziwą granicę czasową praktyki — czytelnik przeglądający historię PO wersji 0.21.0 i widzący commit z prefiksem może uznać go za odstępstwo od dokumentu, choć dokument sam siebie źle opisuje.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "8efa32e9128b5aed448061d60b3277a0519b1dd444c953716a05b20b400bbcae",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.225Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: CONTRIBUTING.md:68 to 'dozwolone dla drobnicy (literowka, bump wersji) i sa w historii repo do' co do znaku, a zdanie konczy sie w 69 'wersji 0.21.0'. WER-02 dowod dotyczy tego samego i policzylem to sam: 'git log --oneline v0.21.0..main | grep -cE \"^[a-f0-9]+ (feat|fix|docs|chore|test|refactor):\"' daje 65 — czyli 65 commitow z prefiksem konwencjonalnym PO tagu v0.21.0, wiec granica 'do wersji 0.21.0' jest nieprawdziwa. WER-03 CZYNNE: zdania nie prostuje nic nizej, a straznik-readme pilnuje README, nie CONTRIBUTING. WER-04 hash 8efa... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — wpis nie twierdzi, ze konwencja jest lamana, tylko ze dokument zle opisuje wlasna historie.",
+      "kiedy": "2026-09-03T22:08:53.550Z"
+    }
+  }
 }

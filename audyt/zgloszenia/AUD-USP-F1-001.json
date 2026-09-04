@@ -1,0 +1,32 @@
+{
+  "id": "AUD-USP-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "USP",
+  "pozycja": "USP-02",
+  "stwierdzenie": "Nie istnieje żadne narzędzie ani stała SAVEQUERIES pozwalające policzyć liczbę zapytań SQL na odsłonę żadnej z tras produktu, więc PERF nie ma jak dostać tej liczby dla katalogu, strony kursu, koszyka ani kasy.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/srodowisko/compose.yml",
+    "zakres": "blok definiujący stałe wp-config (WP_DEBUG, WP_DEBUG_LOG, WP_DEBUG_DISPLAY)",
+    "mechanizm": "brak stałej SAVEQUERIES obok WP_DEBUG oraz brak skryptu w tools/*.mjs zliczającego $wpdb->queries (albo get_num_queries()) na żądanie dla wskazanej trasy"
+  },
+  "dowod": "grep -rn SAVEQUERIES wordpress/ tools/ -> 0 trafień; grep -rn 'num_queries|wpdb->queries' wordpress/wtyczki/ tools/ -> 0 trafień; ls tools/*.mjs (19 plików) nie zawiera narzędzia z 'zapytan'/'query' w nazwie ani treści liczącego zapytania per żądanie.",
+  "klasyfikacja": "brak narzędzia pomiarowego",
+  "wplyw": "PERF nie może dziś zmierzyć kosztu zapytań SQL żadnej trasy powtarzalnie; wcześniejsze ustalenie o 90 zapytaniach na odsłonę menu (naprawione 2026-08-25) powstało z jednorazowego, nieprzechowanego pomiaru, którego nie da się dziś powtórzyć ani zastosować do innej trasy.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "9680d1143a301bf2e85598853a62ba5fcbbab9ec3f01ab1b69c2777bd93f8348",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:23:59.857Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie (compose.yml, blok stalych wp-config + brak narzedzia w tools/). WER-02 dowod dotyczy tego samego i odtworzylem go sam: 'grep -rn SAVEQUERIES wordpress/ tools/' konczy KODEM 1 (zero trafien) i 'grep -rnE \"num_queries|wpdb->queries\" wordpress/wtyczki/ tools/' rowniez KODEM 1 — czyli ani stalej, ani narzedzia liczacego zapytania na zadanie w repo nie ma. ZASIEG POPRAWIONY: 'ls tools/*.mjs | wc -l' daje dzis 21, nie 19 jak podaje dowod; zadne z tych 21 narzedzi nie liczy zapytan i to sie nie zmienia. WER-03 CZYNNE — i mam na to mocniejsze potwierdzenie niz sam grep: PERF, zeby wykonac swoja pozycje PERF-02, musial wpisac SAVEQUERIES recznie do wp-config.php kontenera (przedmiot AUD-PERF-F1-007), czyli brak narzedzia zmusil dzial do zmiany srodowiska. WER-04 hash 9680... zgodny. WER-05 jednoznaczne.",
+      "kiedy": "2026-09-03T22:13:43.838Z"
+    }
+  }
+}

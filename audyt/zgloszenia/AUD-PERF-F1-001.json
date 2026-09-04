@@ -14,8 +14,19 @@
   "dowod": "Linia 786 otwiera foreach po modułach (zapytanie do $t_moduly), a wewnątrz jego ciała linia 788 wykonuje KOLEJNE zapytanie $wpdb->get_results do $t_lekcje dla każdego pojedynczego modułu $m['id'] z osobna, zamiast jednego zapytania z WHERE module_id IN (...). Dla kursu z M modułami to M dodatkowych zapytań ponad bazowe 3 (courses+sections+modules). Wywołania: class-aai-sklep-tutor.php:236 (synchronizuj_kurs, hak aai_sklep_kurs_zmieniony po każdym zapisie w kreatorze) i class-aai-sklep-tutor.php:332 (porownaj, wołane w pętli po wszystkich kursach przez wp aai-sklep sprawdz-tutora), co dla instalacji z K kursami i M modułami/kurs daje rząd K*(3+M) zapytań w jednym przebiegu kontroli.",
   "klasyfikacja": "N+1",
   "wplyw": "Każdy zapis kursu w kreatorze i każde uruchomienie kontroli sprawdz-tutora kosztuje liniowo więcej zapytań SQL wraz z rosnącą liczbą modułów/kursów, zamiast stałej liczby zapytań przez WHERE ... IN (...).",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "1ed720cdae0bc0034de7fd621b89a106b992acaec3a39dc8019a67677b7a71e5",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone własnym pomiarem: Aai_Sklep_Tutor::porownaj() = 271 zapytań, w tym 12 zapytań o lekcje per moduł wobec 2 zapytań o moduły (2 kursy x 6 modułów) — pętla i miejsce (linia 788) zgodne co do znaku.",
+      "kiedy": "2026-09-03T21:30:09.421Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: tutor.php:788 to zagniezdzony 'foreach ( (array) $wpdb->get_results( $wpdb->prepare( \"SELECT * FROM `$t_lekcje` WHERE module_id = %s ORDER BY position\" ...' co do znaku, a linia 786 otwiera zewnetrzny foreach po modulach z osobnym get_results — czyli zapytanie w petli, N+1, w formie podrecznikowej. WER-02 dowod dotyczy tego samego; sam sprawdzilem tez oba wywolania: 236 'kurs = self::dane_kursu( $id );' w synchronizuj_kurs i 332 to samo w porownaj, wiec koszt mnozy sie przez liczbe kursow przy 'wp aai-sklep sprawdz-tutora'. WER-03 CZYNNE — nic tej petli nie omija ani nie buforuje. WER-04 hash 1ed7... zgodny. WER-05 jednoznaczne. Wplyw NIE zawyzony i wprost skromny: wpis mowi o rzedzie K*(3+M) zapytan, nie o awarii.",
+      "kiedy": "2026-09-03T21:57:36.046Z"
+    }
+  }
 }

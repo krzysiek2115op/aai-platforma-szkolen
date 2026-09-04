@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "2a65463ecf2fe102663c4922cf79ee489dfea27a7ebe9e591359ad2813b30ffc",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie: ROLE.md:108, wiersz SEC-11, kolumna Dowod 'linia reguly albo nazwa brakujacej'. WER-02 dowod dotyczy tego samego i sprawdzilem to sam: aai-obwod.php:157-161 to CIAG WYWOLAN w zarejestruj() — self::wylacz_xmlrpc(); self::odchudz_head(); self::zaslon_liste_uzytkownikow(); self::zaslon_autorow(); self::zaslon_mape_autorow(); — czyli linie, ktore spelniaja kolumne Dowod, sa samymi NAZWAMI, a nie regulami. Otworzylem cialo jednej z nich na kontrole i tresc jest prawdziwa, ale wlasnie o to chodzi: do odpowiedzi TAK otwarcie nie bylo potrzebne, wiec metoda z pustym cialem przeszlaby te pozycje tak samo. WER-03 CZYNNE: SEC-11 jest jedynym wejsciem checklisty do obwodu, wiec nic nizej tego nie domyka. WER-04 hash 2a65... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — to znany w tym repozytorium nawrot klasy 'wzorzec na nazwe zamiast na rozstrzygniecie', ktory sam zmierzylem dzis niezaleznie w dwoch innych miejscach (regula 8 straznik-wtyczki-wp slepa na $wpdb->prepare, regula 8 straznik-readme czytajaca wylacznie README).",
+      "kiedy": "2026-09-03T22:12:35.974Z"
+    }
+  }
 }

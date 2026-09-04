@@ -1,0 +1,32 @@
+{
+  "id": "AUD-PERF-F1-006",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PERF",
+  "pozycja": "PERF-01",
+  "stwierdzenie": "Aai_Sklep_Moje::kursy() (widok 'Moje kursy', /szkolenia/moje/) ma DWUPOZIOMOWY N+1: dla każdego kursu, na który klient jest zapisany, woła self::lekcje_kursu($id_kursu), która wewnątrz robi osobny get_posts() dla KAŻDEGO modułu kursu (linia 333-334), a potem dla KAŻDEJ lekcji tego kursu woła tutor_utils()->is_completed_lesson() (linia 277) — osobne zapytanie na lekcję. Łączny koszt rośnie z iloczynem liczby kursów, modułów i lekcji zapisanego klienta, nie ze stałą liczbą zapytań.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-moje.php",
+    "linia": 277,
+    "tresc": "if ( tutor_utils()->is_completed_lesson( $lekcja['id'], $uzytkownik ) ) {"
+  },
+  "dowod": "Pomiar SAVEQUERIES-owy (num_queries) na żywej instalacji :8892, klient-test zalogowany, zapisany na oba kursy (73 lekcje razem): GET /szkolenia/moje/ = 111 zapytań (stabilne w 2 pomiarach), wobec 77-83 dla katalogu i strony kursu (ta sama instalacja, ten sam gość). Ścieżka kodu: kursy() (linia 253) woła w foreach po zapisanych kursach (linia 263) self::lekcje_kursu($id_kursu) (linia 273); lekcje_kursu() (linia 314) robi jedno get_posts() po modułach, a POTEM w foreach ( (array) $moduly as $id_modulu ) (linia 333) osobne get_posts() dla lekcji KAŻDEGO modułu (linia 334-343) — N+1 pierwszego stopnia. Wewnątrz kursy() kolejny foreach ( $lekcje as $lekcja ) (linia 276) woła tutor_utils()->is_completed_lesson() (linia 277) dla KAŻDEJ lekcji z osobna — N+1 drugiego stopnia.",
+  "klasyfikacja": "N+1 (dwupoziomowy)",
+  "wplyw": "Odsłona /szkolenia/moje/ kosztuje dziś 111 zapytań przy 2 kursach/73 lekcjach i rośnie liniowo z liczbą modułów i lekcji zapisanych kursów klienta — dla klienta zapisanego na więcej kursów albo przy rozroście programu koszt tej jednej strony przewyższy koszt katalogu i strony kursu razem wzięte.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "4556559c04e97a63f5f2e9fde26315052cd9a45365e20055d9fd1e39171d8adf",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "Miejsce izolowane przez zgłoszenie (linia 277, tutor_utils()->is_completed_lesson) NIE generuje ani jednego zapytania: pomiar własny — 40 wywołań w pętli = 0 zapytań, bo Tutor czyta to przez get_user_meta(), a WordPress bierze całą meta użytkownika jednym zapytaniem. 'N+1 drugiego stopnia' nie istnieje, więc upada i klasyfikacja ('dwupoziomowy'), i wpływ ('rośnie z iloczynem kursów, modułów i LEKCJI'). Dowód (111 zapytań na /szkolenia/moje/) jest prawdziwy, ale sąsiaduje ze stwierdzeniem zamiast je potwierdzać: własny zrzut SQL tej trasy pokazuje 12 zapytań per moduł i 2 o moduły, czyli koszt rośnie z liczbą MODUŁÓW, i siedzi w lekcje_kursu() (linie 333-334) — a to inne miejsce niż wskazane.",
+      "kiedy": "2026-09-03T21:30:39.111Z"
+    },
+    "weryfikator": {
+      "werdykt": "ODRZUCONE",
+      "powod": "MIEJSCE WSKAZANE CO DO LINII JEST ZLE, a stwierdzenie stoi wlasnie na nim. WER-01 linia 277 istnieje co do znaku. WER-02 ZAWODZI: wpis oglasza 'N+1 drugiego stopnia' na tej linii — osobne zapytanie na KAZDA lekcje przez tutor_utils()->is_completed_lesson(). Zmierzylem to sam na zywej instalacji, bez zmiany czegokolwiek: 'wp eval' z licznikiem $wpdb->num_queries wokol PETLI 40 wywolan is_completed_lesson dla konta klient-test daje 'wywolan: 40 zapytan: 0'. Przyczyna jest w cudzym kodzie i tez ja sprawdzilem: Utils.php:1950-1960 czyta to przez get_user_meta(), a WordPress wciaga cala mete uzytkownika jednym zapytaniem. Wiec drugiego stopnia N+1 nie ma, a razem z nim upada klasyfikacja ('dwupoziomowy') i wplyw ('rosnie z iloczynem kursow, modulow i LEKCJI'). Dowod (111 zapytan na /szkolenia/moje/) jest prawdziwy, ale SASIADUJE ze stwierdzeniem zamiast je potwierdzac — koszt rosnie z liczba MODULOW i siedzi w lekcje_kursu() (linie 333-334, get_posts per modul), czyli w innym miejscu niz izolowane. WER-04 hash 4556... zgodny. WER-05 brzmienie jednoznaczne. Odrzucenie NIE znaczy, ze /szkolenia/moje/ jest tanie: N+1 po MODULACH tam jest i powinno wejsc jako osobne zgloszenie z miejscem w lekcje_kursu().",
+      "kiedy": "2026-09-03T21:58:47.010Z"
+    }
+  }
+}

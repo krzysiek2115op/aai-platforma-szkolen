@@ -1,0 +1,32 @@
+{
+  "id": "AUD-REPO-F1-007",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-02",
+  "stwierdzenie": "docs/dokumentacja-techniczna/wordpress/ZRODLA.md, w tabeli 'Świadomie poza zakresem', uzasadnia brak dokumentacji motywu Automatic AI zdaniem 'konwersję ma kolega z zespołu; DO CZASU JEJ OTRZYMANIA projektujemy agnostycznie wobec motywu i testujemy na `twentytwentyfive` (blokowy) oraz `kredyt-kompas` (klasyczny)'. To opisuje stan TYMCZASOWY sprzed otrzymania motywu (dokument datowany 2026-08-19), który już następnego dnia (2026-08-20) przestał być aktualny: motyw Automatic AI został dostarczony do repo strony głównej, a od tego momentu CAŁY etap WordPressa (wszystkie trzy wtyczki, `postaw.sh`, wszystkie smoke'i wp-*) projektuje się i testuje WYŁĄCZNIE na PRAWDZIWYM motywie `automatic-ai` — `twentytwentyfive` i `kredyt-kompas` nie są już używane nigdzie w repo jako środowisko testowe. Zdanie w ZRODLA.md nie zostało zaktualizowane mimo że reguła 4 tego samego dokumentu ('Zasady użycia', pkt 3) każe odświeżać treść 'przy większej zmianie w projekcie wtyczki'.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "docs/dokumentacja-techniczna/wordpress/ZRODLA.md",
+    "linia": 136,
+    "tresc": "| motyw Automatic AI | konwersję ma kolega z zespołu; do czasu jej otrzymania projektujemy agnostycznie wobec motywu i testujemy na `twentytwentyfive` (blokowy) oraz `kredyt-kompas` (klasyczny) |"
+  },
+  "dowod": "docs/ETAP-WP.md:182 '~~Jak zdobyć motyw strony głównej?~~ MAMY GO 2026-08-20', linia 247 nagłówek 'Motyw Automatic AI — mamy go (2026-08-20)', linia 225 'Nieaktualne od 2026-08-20 — motyw mamy'. wordpress/srodowisko/postaw.sh:30 klonuje `https://github.com/MatthewPlugins/automatic-ai.git`, linia 176-178 aktywuje `wpcli theme activate automatic-ai`, linia 316 sprawdza wprost, że strona ładuje nawigację motywu Automatic AI (`blad \"strona odpowiada, ale to NIE jest motyw Automatic AI...\"`) — żaden fragment `postaw.sh` ani żadnego smoke'a `smoke-wp-*` nie odwołuje się do `twentytwentyfive` ani `kredyt-kompas` (`grep -rn 'twentytwentyfive\\|kredyt-kompas' wordpress/ tools/smoke/` nie zwraca żadnego wyniku poza samym ZRODLA.md). Data pobrania dokumentacji WP w tym samym pliku (linia 9) to 2026-08-19, dzień PRZED otrzymaniem motywu.",
+  "klasyfikacja": "deklaracja-stanu-nieaktualna",
+  "wplyw": "Czytelnik ZRODLA.md (dokumentu opisującego, co i dlaczego pobrano na etap WP) dostaje nieprawdziwy obraz architektury testowej projektu — sugeruje, że wtyczki są dziś projektowane 'agnostycznie wobec motywu' na zastępczych motywach WordPressa, podczas gdy od 8 miesięcy (2026-08-20 do dziś) cały etap WP stoi na PRAWDZIWYM motywie Automatic AI i żaden zastępczy motyw nie jest już częścią procesu.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "947401d2da3624e89c3161f06cb0d430a9e27fe597fa8498a65d7d20206590d6",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.305Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ZRODLA.md:136 to wiersz '| motyw Automatic AI | konwersje ma kolega z zespolu; do czasu jej otrzymania projektujemy agnostycznie wobec motywu i testujemy na twentytwentyfive (blokowy) oraz kredyt-kompas (klasyczny) |' co do znaku. WER-02 dowod dotyczy tego samego i sprawdzilem go sam: 'grep -rn twentytwentyfive wordpress/ tools/smoke/' konczy KODEM 1 — ani jednego trafienia, czyli zadne z tych dwoch srodowisk zastepczych nie jest juz czescia procesu; postaw.sh klonuje repo automatic-ai, aktywuje motyw 'automatic-ai' i wprost weryfikuje, ze strona jest na tym motywie. WER-03 CZYNNE. WER-04 hash 9474... zgodny. WER-05 jednoznaczne. PROSTUJE JEDNA LICZBE WE WPLYWIE (nie zmienia werdyktu): wpis pisze 'od 8 miesiecy (2026-08-20 do dzis)' — miedzy ta data a dniem weryfikacji minelo okolo DWOCH TYGODNI, nie osiem miesiecy; nieaktualnosc dokumentu jest prawdziwa, jej dlugosc podana bledna.",
+      "kiedy": "2026-09-03T22:09:14.692Z"
+    }
+  }
+}

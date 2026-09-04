@@ -1,0 +1,27 @@
+{
+  "id": "AUD-USP-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "USP",
+  "pozycja": "USP-03",
+  "stwierdzenie": "Reguła sektora „jedna rola na środowisku :8892 naraz\" obowiązuje WYŁĄCZNIE w sektorze re-audyt — ani status.mjs (odmowa 6), ani reguła 30 strażnika sektora nie obejmują sektora audyt, choć jego checklisty każą mierzyć na tym samym :8892 (PERF-02, INT-10, PRIV-04, USP-01/03). W fali 1 sześć działów audytu miało nakładające się okna W TRAKCIE i mierzyło na wspólnym stanowisku równocześnie.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/tools/status.mjs",
+    "linia": 182,
+    "tresc": "  if (sektor === \"re-audyt\" && NA_SRODOWISKU.includes(rola) && po.status === \"W TRAKCIE\") {"
+  },
+  "dowod": "1) status.mjs:181-182 — komentarz „WYŁĄCZNIE re-audyt\" i warunek `sektor === \"re-audyt\"` przed sprawdzeniem NA_SRODOWISKU; straznik-sektora-audytu.mjs:119 — tytuł reguły 30 brzmi „okna W TRAKCIE ról NA_SRODOWISKU RE-AUDYTU tej samej fali rozłączne\", a jej opis (linie 1237-1250) mówi wprost o Pogłębiaczu. Żaden z dwóch zamków nie pyta o sektor audyt. 2) Pomiar okien z plików stanu audyt/stan/audyt-f1-*.json (pole historia): USP W TRAKCIE 20:57:37→21:12:14, PERF 20:58:06→21:14:37, PIK 20:59:03→21:10:18, PRIV 20:57:18→21:13:31, REPO 20:58:32→21:14:58, INT 20:57:02→21:12:09 — sześć działów jednocześnie, zero odmów. 3) Zanieczyszczenie ZMIERZONE w tym oknie: (a) `podman exec aai_wp_wordpress grep -n SAVEQUERIES /var/www/html/wp-config.php` → linia 139 `define('SAVEQUERIES', true);` plus `register_shutdown_function` dopisujący do /tmp/aai_perf.log listę WSZYSTKICH zapytań każdego żądania; mtime pliku 2026-09-03 16:38:32 UTC, sonda jest CZYNNA teraz i nie pochodzi z repo (compose.yml:51-55 ma tylko FS_METHOD, WP_DEBUG, WP_DEBUG_LOG, WP_DEBUG_DISPLAY); (b) w bazie Postgresa `select to_char(created_at,'YYYY-MM-DD HH24:MI:SS'), action, count(*) from course_changelog where actor='wgraj-sekcje'` → dwa zapisy 2026-09-03 21:07:56 i 21:08:48 (22 delete + 22 create każdy), czyli w środku okien wszystkich sześciu działów.",
+  "klasyfikacja": "brak izolacji stanowiska pomiarowego w sektorze audyt",
+  "wplyw": "Każda liczba zmierzona przez dział audytu na :8892 w fali 1 jest nie do odtworzenia: powstała na instalacji instrumentowanej cudzą sondą i przy cudzych zapisach do bazy, a sektor nie ma jak stwierdzić, która rola co zmieniła. Druga fala, wchodząc na czyste stanowisko, dostanie inne liczby niż pierwsza — i rozjazd będzie wyglądał na defekt produktu zamiast na defekt przebiegu. To ta sama przyczyna (C3), dla której zamek powstał dla re-audytu.",
+  "runda": 1,
+  "status": "DO WERYFIKACJI",
+  "hash": "3ee4bb448153c0fba7a23e2d87c93cf1037a2ca54e420da86ae99165e5f7c646",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: status.mjs:182 to 'if (sektor === \"re-audyt\" && NA_SRODOWISKU.includes(rola) && po.status === \"W TRAKCIE\") {' co do znaku, a komentarz linie wyzej mowi wprost 'WYLACZNIE re-audyt'. WER-02 dowod dotyczy tego samego i sprawdzilem KAZDY czlon sam: (a) drugi zamek tez pyta o re-audyt — straznik-sektora-audytu.mjs:119, tytul reguly 30: 'jedna rola na srodowisku :8892 naraz — okna W TRAKCIE rol NA_SRODOWISKU re-audytu tej samej fali rozlaczne (C3)'; (b) okna sa nalozone i to SZERZEJ, niz podaje wpis — z plikow stanu wyliczylem wejscia W TRAKCIE: PERF 16:04:59, INT 16:36:35, PRIV 16:37:01, PIK 16:37:19, USP 16:37:23, REPO 16:37:34, a zakonczenia dopiero 21:10-21:15 UTC; szesc dzialow pracowalo rownoczesnie i nie padla ani jedna odmowa; (c) ZANIECZYSZCZENIE POTWIERDZONE MOIM POMIAREM: w bazie Postgresa 'select actor, count(*), max(created_at) from course_changelog group by 1' pokazuje aktora 'wgraj-sekcje' z 267 wpisami i ostatnim zapisem 2026-09-03 21:08:48 UTC — czyli cudzy zapis do wspolnego stanu W SRODKU okien wszystkich szesciu dzialow. Czlon (a) dowodu o czynnej sondzie SAVEQUERIES juz sie nie odtwarza (sonde zdjeto — sprawdzilem kontener), ale to nie oslabia wpisu: sonda tam byla w oknie pomiarow i jest osobnym znaleziskiem (AUD-PERF-F1-007). WER-03 CZYNNE. WER-04 hash 3ee4... zgodny. WER-05 jednoznaczne. Wplyw NIE zawyzony.",
+      "kiedy": "2026-09-03T22:14:21.519Z"
+    }
+  }
+}

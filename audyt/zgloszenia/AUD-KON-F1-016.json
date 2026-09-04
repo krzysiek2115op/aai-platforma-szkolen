@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-016",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A5",
+  "runda": 2,
+  "stwierdzenie": "Sektor nie ma drugiej bramki dla zgłoszeń, których autorem jest krytyk roli, ani dla zgłoszeń o weryfikatorze: werdykt.mjs zna dwie strony ścieżki (krytyk, weryfikator) i wymaga obu do statusu ZWERYFIKOWANE, a wpis nie niesie pola autora — w fali 1 24 wpisów sektora audyt nie ma werdyktu krytyka (zostaną DO WERYFIKACJI na zawsze), 9 wpisów nie ma żadnego weryfikatora (WDR ×6: weryfikator ZAKOŃCZYŁ 22:14:57 UTC przed wejściem WDR 22:31:32; WER-001/002: przedmiotem jest sam weryfikator; REA-SEC-002), a porownaj-cykle.mjs policzy wszystkie jako „BEZ WERDYKTU”.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/werdykt.mjs",
+    "zakres": "WERDYKTY (linie 49-52) i komplet() (linie 92-95) — dwie strony ścieżki werdyktu: krytyk i weryfikator; zapis statusu w linii 211",
+    "mechanizm": "brak strony werdyktu dla wpisu, którego autorem jest krytyk roli (nikt nie krytykuje krytyka), brak weryfikatora dla wpisu o weryfikatorze, i brak pola autora we wpisie (zgloszenie.mjs, obiekt `gotowe` linie 395-402), przez które dałoby się te wpisy w ogóle odróżnić — komplet() nigdy nie jest dla nich spełniony"
+  },
+  "dowod": "Policzone skryptem po audyt/zgloszenia/*.json (2026-09-03 ~23:10 UTC): 95 wpisów; bez werdyktu krytyka 25 (24 w sektorze audyt); z werdyktem weryfikatora ISTNIEJE i statusem DO WERYFIKACJI 20; bez werdyktu weryfikatora 9: AUD-WDR-F1-001, AUD-WDR-F1-002, AUD-WDR-F1-003, AUD-WDR-F1-004, AUD-WDR-F1-005, AUD-WDR-F1-006, AUD-WER-F1-001, AUD-WER-F1-002, REA-SEC-F1-002. Zbiór kluczy wszystkich wpisów: id sektor fala dzial pozycja stwierdzenie miejsce dowod klasyfikacja wplyw status runda hash werdykt proba — pola autora nie ma. werdykt.mjs:92-95 komplet() = Boolean(w.krytyk && w.weryfikator); :211 status ZWERYFIKOWANE tylko przy komplecie. porownaj-cykle.mjs:84 stanPochodny → „BEZ WERDYKTU” przy braku którejkolwiek strony. Stan ról: audyt-f1-WER.json ZAKOŃCZONE 2026-09-03T22:14:57Z, audyt-f1-WDR.json W TRAKCIE od 22:31:32Z, ZAKOŃCZONE 22:55:29Z. PLAN-BUDOWY.md nazywa te wpisy „własnymi zgłoszeniami krytyków” (linie 566, 986, 1079, 1207, 1211, 1307) — czyli sektor wie, że istnieją, i nie ma dla nich procedury.",
+  "klasyfikacja": "pytanie bez właściciela — kto weryfikuje znalezisko krytyka i kto weryfikuje znalezisko o weryfikatorze",
+  "wplyw": "Blisko jedna czwarta wpisów fali 1 ma jednego czytelnika albo żadnego: RAP-01 („każde zgłoszenie ma werdykt weryfikatora”) jest dla 9 wpisów fałszywe, a 24 wpisów nie osiągnie ZWERYFIKOWANE żadną komendą sektora; w porównaniu fal te miejsca dostaną stan BEZ WERDYKTU, więc identyczne znalezisko potwierdzone w fali 2 wyjdzie jako „inny stan” → SPRZECZNE.",
+  "status": "DO WERYFIKACJI",
+  "hash": "5696a589fa856f6fd78954664145f4ba839c39d960854be446da1634721ece38",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone przeze mnie na kodzie i na danych. Mechanizm: werdykt.mjs komplet() = Boolean(w.krytyk && w.weryfikator), a status ZWERYFIKOWANE nadawany jest wylacznie przy komplecie (zapis statusu tuz po komplet()) — czyli wpis, dla ktorego jedna ze stron nie ma wlasciciela, nie osiagnie tego statusu ZADNA komenda sektora. Brak pola autora potwierdzony niezaleznie: zbior kluczy WSZYSTKICH 105 wpisow to dowod dzial fala hash id klasyfikacja miejsce pozycja proba runda sektor status stwierdzenie werdykt wplyw — ani jednego znacznika autora, wiec wpisow krytyka nie da sie nawet odroznic maszynowo od wpisow dzialu. Liczby: dzis bez werdyktu krytyka 35 (34 w sektorze audyt), bez werdyktu weryfikatora 19 — to liczby Konrada (24 i 9) POWIEKSZONE dokladnie o jego wlasne 10 wpisow fazy B zlozonych po jego pomiarze, a lista dziewieciu bez weryfikatora zgadza sie co do identyfikatora (AUD-WDR-F1-001..006, AUD-WER-F1-001, AUD-WER-F1-002, REA-SEC-F1-002). Okna rol potwierdzone z audyt/stan: WER ZAKONCZONE 2026-09-03T22:14:57Z, WDR pracowal 22:31:32-22:55:29Z, czyli weryfikator skonczyl PRZED wejsciem WDR i nie mial czego zweryfikowac — przyczyna nazwana we wpisie jest prawdziwa, a nie domniemana. Wplyw sprawdzony w kodzie: porownaj-cykle.mjs wyprowadza stan ze stanPochodny(), wiec te miejsca wejda do porownania fal jako BEZ WERDYKTU.",
+      "kiedy": "2026-09-03T23:34:05.084Z"
+    }
+  }
+}

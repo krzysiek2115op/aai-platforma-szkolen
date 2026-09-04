@@ -1,0 +1,32 @@
+{
+  "id": "AUD-REPO-F1-006",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "REPO",
+  "pozycja": "REPO-05",
+  "stwierdzenie": "Narzędzie przypisane pozycji REPO-05 (`straznik-linkow`) jawnie NIE sprawdza kotwic `#sekcja` — jego własny komentarz nagłówkowy mówi wprost: 'adresów http(s) i kotwic `#sekcja` nie dotyka — ich weryfikacja wymaga sieci i nie jest zadaniem na pre-commit', a regex dopasowujący linki (`/\\[[^\\]]*\\]\\(([^)#\\s]+)(#[^)\\s]*)?\\)/g`) wymaga niepustego segmentu PRZED `#`, więc link czysto kotwicowy w formie `[tekst](#naglowek)` w ogóle nie wchodzi do dopasowania `cel` i jego cel nigdy nie jest badany. Jedynym strażnikiem faktycznie sprawdzającym kotwice `#naglowek` jest `straznik-readme`, ale WYŁĄCZNIE dla samego pliku README.md (`kotwica(naglowek)` operuje na zmiennej `readme` wczytanej z README.md, `matchAll` biegnie po treści README). Żaden strażnik nie sprawdza kotwic wewnątrz pozostałych ~139 plików `.md` repozytorium (np. docs/INSTRUKCJA-INSTALACJI.md, docs/plugin-3/DIAGRAM.md, docs/ETAP-WP.md), choć te pliki mają własne spisy treści z linkami `[...](#...)`. Ręczna weryfikacja WSZYSTKICH 11 kotwic tego typu poza README nie wykazała dziś błędu — ale to jest przypadek, nie gwarancja mechanizmu: pozycję REPO-05 da się dziś »zaliczyć« bez otwarcia jednego pliku, bo przypisana komenda milczy niezależnie od tego, czy kotwica jest żywa czy martwa.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/straznicy/straznik-linkow.mjs",
+    "linia": 10,
+    "tresc": " * Sprawdza wyłącznie linki względne (`[x](docs/PLAN.md)`); adresów"
+  },
+  "dowod": "tools/straznicy/straznik-linkow.mjs:10-11 (komentarz): 'Sprawdza wyłącznie linki względne (...); adresów http(s) i kotwic `#sekcja` nie dotyka — ich weryfikacja wymaga sieci i nie jest zadaniem na pre-commit.' Regex w linii 74: `/\\[[^\\]]*\\]\\(([^)#\\s]+)(#[^)\\s]*)?\\)/g` — grupa `cel` (`[^)#\\s]+`) wymaga co najmniej jednego znaku innego niż `)`, `#` lub biały znak PRZED ewentualnym `#fragment`, więc link postaci `[tekst](#slug)` (bez segmentu ścieżki) nie pasuje do wzorca w ogóle i nie trafia do sprawdzenia `existsSync`. straznik-readme.mjs:97-125 pokazuje, że kotwice `#naglowek` SĄ sprawdzane, ale funkcja `kotwica()`/`kotwicaPojedynczo()` działa na zmiennej `readme` (treść README.md) i pętla `for (const [, cel] of bezKodu.matchAll(...))` w linii 123 iteruje po `bezKodu` — pochodnej README.md, nie innych plików. Uruchomienie obu strażników potwierdza brak komunikatu o innych plikach: `node tools/straznicy/straznik-linkow.mjs` kod 0 bez wypisania czegokolwiek o kotwicach, `node tools/straznicy/straznik-readme.mjs` kod 0 z komunikatem ograniczonym do README. Samodzielna weryfikacja (rekonstrukcja algorytmu slugów GitHuba: lowercase, usunięcie znaków spoza `[\\w\\s-]`, zamiana spacji na myślniki bez kolapsowania) na wszystkich plikach `.md` repo poza README (z wyłączeniem docs/dokumentacja-techniczna/) znalazła 11 linków kotwicowych i 0 martwych — dziś nie ma żywego skutku, ale mechanizm sprawdzający go nie istnieje.",
+  "klasyfikacja": "checklista-komenda-nie-mierzy-pozycji",
+  "wplyw": "Pozycja REPO-05 checklisty zleca sprawdzenie komendą (`straznik-linkow`), która z definicji nie bada tego, o co pyta pozycja — kotwic prowadzących do nagłówków. Poza README.md (jedynym plikiem objętym straznik-readme) żaden mechanizm nie chroni ~139 pozostałych plików `.md` przed martwą kotwicą — usterka tej klasy (analogiczna do już znalezionej w README: 'kotwica spisu treści donikąd') mogłaby powstać w dowolnym z tych dokumentów (np. po zmianie tytułu sekcji w docs/INSTRUKCJA-INSTALACJI.md, dokumencie kierowanym do klienta nietechnicznego) i żadna bramka by jej nie złapała.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "c8a0eb0e955e5f3fd8f94f4ad85b9d13cc29a78dfd085434cbda930ff203be7e",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.262Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: straznik-linkow.mjs:10 to ' * Sprawdza wylacznie linki wzgledne (`[x](docs/PLAN.md)`); adresow' co do znaku, a 11 konczy zdanie 'http(s) i kotwic `#sekcja` nie dotyka'. WER-02 dowod dotyczy tego samego i sprawdzilem sam rozstrzygajacy szczegol: wzorzec w linii 73 to /\\[[^\\]]*\\]\\(([^)#\\s]+)(#[^)\\s]*)?\\)/g — grupa celu wymaga CO NAJMNIEJ JEDNEGO znaku przed opcjonalnym '#', wiec link czysto kotwicowy '[tekst](#naglowek)' nie pasuje do wzorca w ogole i nigdy nie trafia do sprawdzenia. Potwierdzam tez druga polowe: kotwice sprawdza tylko straznik-readme i tylko dla README.md. WER-03 CZYNNE co do MECHANIZMU — i zgloszenie samo uczciwie pisze, ze dzis nie ma zywego skutku (11 kotwic poza README, zero martwych), wiec WPLYW NIE JEST ZAWYZONY; to znalezisko o braku bramki, nie o zepsutym linku. WER-04 hash c8a0... zgodny. WER-05 jednoznaczne.",
+      "kiedy": "2026-09-03T22:09:01.025Z"
+    }
+  }
+}

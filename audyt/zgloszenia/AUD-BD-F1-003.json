@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "df43fd641b020a75317a96045251c72adf335c6f60e47c2498b3996ac9bdb5e4",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce w formie mechanizmu i nazwane poprawnie (K10'): audyt/tools/status.mjs, galezie --status/--runda/--niedomkniete. WER-02 dowod dotyczy tego samego, sprawdzilem WLASNYM pomiarem kazdy punkt: (a) audyt/stan/audyt-f1-BD.json ma dokladnie klucze sektor,fala,rola,status,runda,niedomkniete,kiedy,historia — ani jednego kodu pozycji z odpowiedzia, 'niedomkniete' puste; (b) WYMAGANE w zgloszenie.mjs:46 to [sektor,fala,dzial,pozycja,stwierdzenie,miejsce,dowod,klasyfikacja,wplyw], czyli opis USTERKI — pozycja bez usterki nie ma czym powstac; (c) porownaj-cykle.mjs:267 czyta join(baza,'zgloszenia') i nic wiecej; (d) przeszedlem WSZYSTKIE zapisy w audyt/tools (writeFileSync/zapiszJSON): pisza sie stan roli, zgloszenia, migawki, wyniki porownania fal i pliki agentow — ZADEN nie zapisuje raportu dzialu ani odpowiedzi pozycji; audyt/wyniki/ ma jeden plik, polaczone-f1.json. ZASIEG SPRAWDZONY LICZENIEM i zgadza sie: dzial BD ma 12 pozycji BD-01..BD-12 (plus otwarta BD-90), a zgloszenia fali 1 pokrywaja BD-01, BD-06 i BD-90 — w chwili powstania wpisu bylo ich dwa, wiec '11 z 12' jest prawdziwe. WER-03 CZYNNE: nie ma nizej na tej sciezce niczego, co by wynik pozycji zapisalo. WER-04 hash df43... zgodny. WER-05 jednoznaczne. Wplyw NIE zawyzony: uderza w K4'' — porownanie fal widzi wylacznie zgloszenia.",
+      "kiedy": "2026-09-03T21:44:35.914Z"
+    }
+  }
 }

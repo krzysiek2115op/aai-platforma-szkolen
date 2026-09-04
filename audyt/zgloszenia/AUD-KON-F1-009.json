@@ -14,7 +14,7 @@
   "dowod": "`git ls-files | wc -l` → 1121; `node audyt/tools/mapa.mjs` → przypisane 722, wykluczone 399, suma 1121; własne policzenie unii zakresów z audyt/ROLE.md → 636, wykluczone 399, pozostałe 86 = `git ls-files -- re-audyt | wc -l` → 86. audyt/role/KON/AGENT.md:130 podaje „921 plików”, :234 „522 przypisane + 399 wykluczone = 921”. Sprzecznych (przypisany i wykluczony) → 0, zgodnie z deklaracją.",
   "klasyfikacja": "nieaktualna deklaracja pokrycia w definicji sektora",
   "wplyw": "Agent, któremu AGENT.md każe zamknąć sumę 522+399=921, dostaje 722+399=1121 i musi rozstrzygać sam, czy mapa jest zepsuta; zero sierot w mapie wynika z unii z sektorem, który w fali AUDYT nie pracuje.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "8dd7df213fa42083e2e96f513c50f292346334c69cfa4264c85ef3114c55071a",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:33.839Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:52 to '| W repo (git ls-files) | **921** |' co do znaku; AGENT.md KON:130 '921 plikow' i :234 '522 przypisane + 399 wykluczone = 921' potwierdzone odczytem. WER-02 dowod dotyczy tego samego i jest prawdziwy — ale ZASIEG (liczby) POPRAWIAM, bo licze DZIS wlasnym pomiarem: 'git ls-files | wc -l' daje 1186 (nie 1121), a 'node audyt/tools/mapa.mjs' konczy kodem 0 z bilansem 'przypisane 787, wykluczone 399, suma 787 + 399 = 1186 / 1186' (nie 722). Roznica wobec liczb we wpisie bierze sie z plikow, ktore sektor dopisal miedzy jego powstaniem a moim pomiarem, i NIE rusza stwierdzenia: rozjazd 921 wobec rzeczywistosci jest dzis wiekszy, nie mniejszy. Potwierdzam tez 'git ls-files -- re-audyt | wc -l' = 86 oraz zero sierot i zero sprzecznych w mapie. WER-03 CZYNNE: nic nizej nie prostuje deklaracji w ROLE.md/AGENT.md. WER-04 hash 8dd7... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T21:52:41.747Z"
     }
   }
 }

@@ -14,8 +14,19 @@
   "dowod": "Trzy strzałki cyklu, każda potwierdzona w kodzie (nie w komentarzu): (1) class-aai-monitor-komunikaty.php:119 `$nasz = str_contains( (string) $ekran->id, Aai_Monitor_Ekran::STRONA ) ...` — Komunikaty zależy od stałej Ekran::STRONA; (2) class-aai-monitor-ekran.php:554 `Aai_Monitor_Zapis::retencja();` — Ekran wywołuje Zapis; (3) class-aai-monitor-zapis.php:439 `Aai_Monitor_Komunikaty::zapisz( $tresc );` w prywatnej metodzie zglos() — Zapis wywołuje z powrotem Komunikaty, zamykając pętlę Komunikaty→Ekran→Zapis→Komunikaty. Wykryte grafem zależności statycznych (Klasa::) zbudowanym ze wszystkich 54 klas wtyczek, z odrzuceniem odniesień w komentarzach blokowych i liniowych.",
   "klasyfikacja": "granica",
   "wplyw": "Trzy klasy tworzą jeden nierozerwalny węzeł: zmiana sygnatury w jednej (np. Aai_Monitor_Zapis::retencja()) wymusza sprawdzenie dwóch pozostałych, a żadnej z nich nie da się przetestować w izolacji bez dwóch pozostałych. Granica modułu (ekran/zapis/komunikaty) jest w praktyce zatarta przez wzajemne wywołania w obu kierunkach.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "515c6afedcadd15d143cc1076bdcc9b68832888a9db88bbb6975ced49f7be4ad",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "Cykl Komunikaty→Ekran→Zapis→Komunikaty potwierdzam co do linii (komunikaty:119, ekran:554, zapis:439), ale DRUGA POŁOWA STWIERDZENIA jest nieprawdziwa i obalam ją pomiarem: 'żadnej z tych trzech klas nie da się zrozumieć ani przetestować w oderwaniu od pozostałych dwóch'. W żywym żądaniu WP-CLI (wp eval na :8892) Aai_Monitor_Komunikaty i Aai_Monitor_Ekran są WCZYTANE, a Aai_Monitor_Zapis NIE JEST wczytana wcale — dwie z trzech pracują bez trzeciej. Osobno zmierzone na modelu (php w kontenerze, autoloader leniwy, dwie klasy wołające się wzajemnie statycznie): klasa A ładuje się i działa, gdy pliku B nikt nie tknął, B wchodzi dopiero przy krzyżującym wywołaniu, zero błędu i zero zależności od kolejności. Cykl wywołań statycznych przy leniwym autoloaderze nie tworzy sprzęgnięcia ładowania, więc dowód (trzy miejsca wywołań) potwierdza kształt grafu, a nie skutek, który stwierdzenie ogłasza.",
+      "kiedy": "2026-09-03T21:30:17.730Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, wszystkie trzy ogniwa co do linii: komunikaty.php:119 'Aai_Monitor_Ekran::STRONA', ekran.php:554 'Aai_Monitor_Zapis::retencja();', zapis.php:439 'Aai_Monitor_Komunikaty::zapisz( $tresc );' — cykl Komunikaty->Ekran->Zapis->Komunikaty ISTNIEJE i to jest dokladnie to, o co pyta ARCH-09 ('Czy istnieje cykl zaleznosci miedzy klasami?', dowod = sciezka cyklu). WER-04 hash zgodny (przeliczony). WER-03 czynne: to statyczne wywolania w kodzie, nic ich nie blokuje. WPLYW ZAWYZONY I OBNIZAM GO — wlasny pomiar: 'wp eval' na :8892 pokazuje class_exists bez autoloadu true/true/false, czyli Komunikaty i Ekran pracuja w zywym zadaniu BEZ wczytanej klasy Zapis; autoloader w aai-monitor.php:47-58 jest leniwy (spl_autoload_register + require_once przy pierwszym uzyciu), wiec cykl wywolan statycznych nie tworzy sprzegniecia ladowania. Do tego kazda z trzech klas siega po DOKLADNIE JEDNA z pozostalych, nie po obie, wiec zdanie 'zadnej z tych trzech klas nie da sie zrozumiec ani przetestowac w oderwaniu od pozostalych dwoch' jest nadmiarowe. Zjawisko istnieje jako CYKL; szkoda jest mniejsza niz opisana. Odrzucenie calego wpisu powiedzialoby fali 2 'cyklu nie ma', a cykl jest.",
+      "kiedy": "2026-09-03T21:42:12.536Z"
+    }
+  }
 }

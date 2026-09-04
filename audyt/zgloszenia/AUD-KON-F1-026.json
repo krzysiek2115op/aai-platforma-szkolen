@@ -1,0 +1,21 @@
+{
+  "id": "AUD-KON-F1-026",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A6",
+  "stwierdzenie": "Checklista Konrada (KON-A1..A6, ROLE.md:607-612) nie ma ani jednej pozycji pytającej, czy komenda pozycji ZMIENIA przedmiot pomiaru, choć niezmiennik W2 („Sektory NIE naprawiają”, REGULAMIN.md:505) jest podstawowym niezmiennikiem sektora: trzy najcięższe znaleziska fazy B — AUD-KON-F1-021 (WDR-06 prowadzi do skasowania wolumenu z mediami), AUD-KON-F1-022 (QA-11 mutuje 76 plików produktu i robi git add -f) i AUD-KON-F1-023 (audyt strażnika sektora mutuje ~83 miejsca własnej definicji sektora) — musiały zostać złożone pod KON-A4, która pyta wyłącznie „czy któryś zakres daje zero plików”, i żadna z pozostałych pięciu pozycji ich nie zadaje.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/ROLE.md",
+    "zakres": "checklista roli KON — sześć wierszy pozycji w liniach 607-612 (KON-A1 plik bez właściciela, KON-A2 plik przypisany i wykluczony, KON-A3 klasa błędu bez pozycji, KON-A4 zakres dający zero plików, KON-A5 pytanie bez właściciela na granicy działów, KON-A6 odpowiedź „tak” bez otwarcia pliku)",
+    "mechanizm": "brak pozycji pytającej, czy komenda którejkolwiek pozycji checklisty zmienia stan przedmiotu pomiaru — produktu, środowiska :8892 albo samej definicji sektora; sześć istniejących pozycji pyta wyłącznie o POKRYCIE (kto bierze plik, czy zakres nie jest pusty, czy klasa błędu ma właściciela) i o SIŁĘ pytania (czy da się odpowiedzieć bez otwarcia pliku), a żadna nie pyta o KOSZT jego zadania, więc audytor idący checklistą mechanicznie nie ma pozycji, która by go tam zaprowadziła"
+  },
+  "dowod": "Policzone i wyszukane 2026-09-04. (1) ZAKRES CHECKLISTY: audyt/ROLE.md niesie dokładnie 6 wierszy pozycji KON (linie 607-612), treść każdej wypisana w polu zakres — żadna nie zawiera słowa o zmianie stanu. (2) NIEZMIENNIK ISTNIEJE I MA WŁAŚCICIELI GDZIE INDZIEJ: W2 stoi w audyt/REGULAMIN.md:505 („Sektory NIE naprawiają”), a w całym ROLE.md odwołują się do niego DWIE pozycje — GOLD-03 (ROLE.md:581, „Czy agent naprawił cokolwiek (W2)?”) i RAP-06 (ROLE.md:658, „Czy raport nie proponuje napraw (W2)?”). Obie pytają o zachowanie AGENTA albo o treść RAPORTU, żadna o treść KOMENDY POZYCJI. Wyrażenie „tylko patrz” nie występuje w ROLE.md ani razu. (3) SKUTEK WIDAĆ W ROZKŁADZIE WPISÓW: 25 zgłoszeń KON fali 1 rozkłada się na pozycje jako KON-A4 14, KON-A6 5, KON-A5 4, KON-A3 1, KON-A1 1. Z czternastu wpisów pod KON-A4 tylko sześć dotyczy zakresu, o który ta pozycja pyta (001, 002, 003, 004, 014, 015); pozostałe osiem (010, 011, 013, 017, 021, 022, 023, 024) nie dotyczy zakresu wcale — KON-A4 pełni rolę pozycji-zbiornika. (4) POTWIERDZENIE, ŻE KLASA JEST REALNA, a nie hipotetyczna: dwie z tych komend zostały w fali 1 wykonane i zostawiły ślad — wykonanie WDR-06 skończyło się utratą mediów (na dysku 7 plików z 1348 przy nietkniętych 151 wierszach załączników w bazie, stan naprawiony przez kierownika przed moim wejściem; dziś zmierzyłem 1343 pliki i 151 załączników), a QA-11 uruchomił dział QA (AUD-QA-F1-008, -009 i -010 cytują wynik tego narzędzia). (5) NIE DUPLIKAT trzech wpisów, które ten brak ujawniły: one nazywają trzy KONKRETNE komendy (WDR-06, QA-11, audyt strażnika sektora), a przedmiotem tego wpisu jest brak pozycji w checkliście Konrada, czyli powód, dla którego druga fala nie ma czym ich szukać.",
+  "klasyfikacja": "brak pozycji dla klasy — checklista audytora audytu nie pyta o koszt własnych komend",
+  "wplyw": "Trzy najcięższe znaleziska tej fazy powstały POZA checklistą, z inwencji agenta, a nie z pozycji, którą fala 2 dostanie do wykonania: idąc KON-A1..A6 mechanicznie, druga fala nie ma pozycji prowadzącej do pytania „czy komenda pozycji zmienia przedmiot pomiaru”, więc najprawdopodobniej nie zgłosi ani WDR-06, ani QA-11, ani mutacji definicji sektora. Porównanie fal pokaże wtedy te miejsca jako „tylko fala 1” i ogłosi rozjazd, którego źródłem jest brak pozycji w checkliście, a nie zmiana w przedmiocie audytu — czyli defekt audytu w rozumieniu K4″. Do tego KON-A4 gromadzi dziś wpisy ośmiu różnych klas, więc jej wynik nie mówi już nic o tym, o co pyta.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "34a697c42b10762414dde708fad521ff2fce446c2c43c65a2da0ce29a8bc098b",
+  "werdykt": null
+}

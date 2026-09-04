@@ -14,7 +14,7 @@
   "dowod": "ROLE.md:238 `node tools/straznicy/audyt-straznikow.mjs` | licznik; :302 i :403 `node tools/straznicy/straznik-schematow.mjs`; :396-397 `straznik-readme` reguła 7/8; :398 `straznik-linkow`; :529 `straznik-sciezek.mjs`. W żadnej z tych siedmiu komórek „Komenda / miejsce” nie ma pliku produktu do otwarcia; REPO-01 ma dopisek „+ pomiar ręczny”, te siedem nie. Tabela KON-A3 wiąże BLAD-013 z QA-01, czyli sektor wie, że strażnik nie jest wyrocznią.",
   "klasyfikacja": "pozycja odhaczalna bez otwarcia pliku",
   "wplyw": "Audyt powtarza wynik CI zamiast go sprawdzać: ślepy strażnik (klasa wracająca dziewięć razy) daje zielone w obu falach i pozycja wygląda na zamkniętą.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "a44c716b5d4582165b7ee4901c46cc9244d69e7aa7957cefec32241e8d8b4978",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": null,
       "kiedy": "2026-09-03T16:35:33.767Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:403 to wiersz REPO-10 co do znaku. WER-02 dowod trafia w to samo — odczytalem wszystkie siedem komorek sam: 238 QA-11 'node tools/straznicy/audyt-straznikow.mjs | licznik', 302 ARCH-05 i 403 REPO-10 'node tools/straznicy/straznik-schematow.mjs', 396 REPO-03 'straznik-readme regula 7', 397 REPO-04 'straznik-readme regula 8', 398 REPO-05 'straznik-linkow', 529 USP-09 'node tools/straznicy/straznik-sciezek.mjs'. W zadnej z nich kolumna 'Komenda / miejsce' nie wskazuje pliku produktu do otwarcia — kod wyjscia 0 wystarczy do odpowiedzi 'tak'. WER-03 CZYNNE: nic nizej nie zada otwarcia pliku, a sam sektor w tabeli KON-A3 wiaze BLAD-013 z QA-01, wiec wie, ze wzorce strażnikow bywaja slepe (potwierdzam to niezaleznie: w tej samej fali zmierzylem dwie takie slepoty — regula 8 straznik-wtyczki-wp nie widzi zapisu owinietego w $wpdb->prepare, a straznik-platnosci-wp nie obejmuje handlerow z class-aai-platnosci-kasa.php). WER-04 hash a44c... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T21:52:17.984Z"
     }
   }
 }

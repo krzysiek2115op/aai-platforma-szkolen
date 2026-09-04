@@ -1,0 +1,27 @@
+{
+  "id": "AUD-PROTO-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PROTO",
+  "pozycja": "PROTO-08",
+  "stwierdzenie": "Pozycja PROTO-08 żąda jako dowodu „pliku w out/\", ale artefakt `out/` NIE ISTNIEJE w drzewie i nie istniał w chwili zamknięcia działu, a jego wytworzenie wymaga pełnego przebiegu `npm run build:podglad`. Pozycja została więc domknięta na „nie\" bez wykonania własnej komendy, a sektor nie ma miejsca, w którym pozycja zamknięta na „nie\" zostawia jakikolwiek ślad — plik stanu roli notuje tylko status, rundę i listę niedomkniętych (dla PROTO pustą). Checklista nie wskazuje przy tym ŻADNEJ tańszej równoważnej drogi, choć taka istnieje w repo: tools/smoke/smoke-podglad.ts sam buduje podgląd i asertuje brak kreatora oraz endpointu AJAX w out/.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 466,
+    "tresc": "| PROTO-08 | Czy trasa prywatna nie wchodzi do eksportu statycznego? | `npm run build:podglad` + zawartość `out/` | plik w `out/` |"
+  },
+  "dowod": "Pomiar 1 — artefaktu nie ma: `ls -ld out` → „nie ma dostępu do 'out': Nie ma takiego pliku ani katalogu\", kod 2. Pomiar 2 — czasu na jego wytworzenie nie było: audyt/stan/audyt-f1-PROTO.json notuje wejście roli 2026-09-03T16:37:34Z i zamknięcie 16:46:20Z, czyli 8 min 46 s na WSZYSTKIE trzynaście pozycji, w tym PROTO-06 (porównanie prototypu z wtyczką WP) i PROTO-08 (pełny build eksportu statycznego). Pomiar 3 — jedyny build w repo jest PÓŹNIEJSZY i jest buildem SERWEROWYM, nie eksportem: `stat -c '%y' .next` → 2026-09-03 18:49:41, a .next/server/app-paths-manifest.json zawiera `/api/szkolenia/route` i `/szkolenia/kreator/page`, których eksport statyczny z definicji nie zawiera. Pomiar 4 — tańsza droga istnieje i nie jest w checkliście: `grep -nE 'kreator|out' tools/smoke/smoke-podglad.ts` → linia 107 `assert.ok(existsSync(\"out\")…)`, linia 125 `assert.ok(!plik.includes(\"kreator\")…)`, linia 126 asercja o `out/api`.",
+  "klasyfikacja": "usterka checklisty — dowód wymagany, artefakt nieobecny, brak śladu po pozycji zamkniętej na „nie”",
+  "wplyw": "Najdroższa pozycja checklisty PROTO jest w praktyce domykana deklaratywnie, a po zamknięciu roli nie da się odróżnić „sprawdziłem i nie ma\" od „nie sprawdziłem\" — to znosi wartość dowodową całego wyniku działu i psuje porównanie fal, bo druga fala może domknąć tę pozycję tak samo deklaratywnie i zgodność fal będzie pozorna.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "ed31fd125dc10f56cc0b1de19cd756b487bb249cf24320fbac8fa6e385e18843",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:466 to wiersz PROTO-08 co do znaku, z dowodem 'plik w out/'. WER-02 dowod dotyczy tego samego i odtworzylem go sam: 'ls -ld out' konczy KODEM 2 ('nie ma dostepu do out'), czyli artefaktu zadanego przez kolumne dowodu NIE MA w drzewie; stan roli PROTO notuje wejscie 2026-09-03T16:37:34Z i zamkniecie 16:46:20Z, czyli 8 min 46 s na wszystkie pozycje dzialu — na pelny 'npm run build:podglad' to nie starcza; 'niedomkniete' jest puste. Potwierdzam tez czwarty punkt: tansza rownowazna droga istnieje w repo i nie stoi w checkliscie (tools/smoke/smoke-podglad.ts sam buduje podglad i asertuje brak kreatora oraz app/api w out/). WER-03 CZYNNE: nic nizej nie wymusza wykonania komendy ani nie zostawia sladu po pozycji zamknietej na 'nie'. WER-04 hash ed31... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — wpis nie twierdzi, ze trasa prywatna JEST w eksporcie (nie jest: smoke-podglad tego pilnuje w bramkach projektu), tylko ze pozycja audytu domknela sie deklaratywnie.",
+      "kiedy": "2026-09-03T22:06:26.584Z"
+    }
+  }
+}

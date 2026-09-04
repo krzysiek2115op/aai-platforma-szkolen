@@ -1,0 +1,21 @@
+{
+  "id": "AUD-WDR-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "WDR",
+  "pozycja": "WDR-06",
+  "stwierdzenie": "Komenda podana w checkliście przy WDR-06 NIE odtwarza stanu, o który ta pozycja pyta. Pozycja pyta, czy `postaw.sh` wstaje OD ZERA, a komenda `podman-compose down && ./postaw.sh` zostawia dane: baza żyje w NAZWANYM wolumenie `db_data` (wordpress/srodowisko/docker-compose.yml:35 i :126-128), a `podman-compose down` bez `-v` wolumenów nie kasuje. Pełny reset robi wyłącznie `./postaw.sh --skasuj`, które woła `podman-compose down -v` (postaw.sh:55-58). Różnica nie jest kosmetyczna: to ONA rozstrzyga odpowiedź na tę pozycję. Sekcja 4c skryptu (postaw.sh:168-171) czyta opublikowaną stronę `polityka-prywatnosci`, którą tworzy dopiero sekcja 7 (:228-232). Po komendzie z checklisty ta strona przeżywa w `db_data`, więc 4c się udaje i pozycja odpowiada „tak”. Po prawdziwym resecie strony nie ma, krok jest martwy, a weryfikacja artefaktu (sekcja 9) tego nie sprawdza — czyli odpowiedź brzmi „nie”. Audytor idący checklistą DOSŁOWNIE nie ma jak zobaczyć usterki, którą ta pozycja ma znaleźć.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 432,
+    "tresc": "| WDR-06 | Czy `postaw.sh` wstaje **od zera** i kończy weryfikacją artefaktu? | `podman-compose down && ./postaw.sh` | kod wyjścia + treść weryfikacji |"
+  },
+  "dowod": "1) WOLUMEN: `grep -n 'db_data' wordpress/srodowisko/docker-compose.yml` => :35 'db_data:/var/lib/mysql' oraz :127 w sekcji `volumes:` (:126) — czyli wolumen NAZWANY, nie bind mount. 2) `podman-compose down` bez `-v` nazwanych wolumenów nie usuwa; potwierdza to sam skrypt, który rozdziela te dwie rzeczy JAWNIE: postaw.sh:20 '--skasuj # skasuj kontenery I DANE (pełny reset)' wobec :19 '--zatrzymaj # zatrzymaj kontenery (dane zostają)', a w kodzie :54 '--zatrzymaj) … podman-compose down; exit 0' wobec :57 'podman-compose down -v'. 3) SKUTEK ZMIERZONY W TEJ FALI: na środowisku, które wstało od zera 2026-08-31 (wpis strony polityki ma post_date '2026-08-31 01:20:46'), opcja `wp_page_for_privacy_policy` trzymała wartość 3 (szkic 'Privacy Policy') do 2026-09-03 — czyli przebieg od zera kroku 4c nie wykonał; po kolejnym przebiegu postaw.sh na ISTNIEJĄCEJ bazie zmierzyłem `wp option get wp_page_for_privacy_policy` = 23 i `get_privacy_policy_url()` = 'http://127.0.0.1:8892/polityka-prywatnosci/'. Ten sam skrypt daje więc DWIE różne odpowiedzi na WDR-06 zależnie od tego, czy wolumen skasowano — a checklista wskazuje wariant, który usterkę ukrywa. 4) Że strona pochodzi z sekcji 7: `grep -c polityka /praca/skrypty/import-strony.php` => 0, plik czyta '/praca/import/strony.json' (:10), a tam stoi '\"slug\": \"polityka-prywatnosci\"'.",
+  "klasyfikacja": "CHECKLISTA",
+  "wplyw": "Pozycja WDR-06 jest w fali 1 odpowiadalna dwojako, a komenda z kolumny „Komenda / miejsce” prowadzi do odpowiedzi FAŁSZYWIE USPOKAJAJĄCEJ. Fala 2, idąc checklistą dosłownie, odpowie „tak” i nie znajdzie AUD-WDR-F1-002 — rozjazd fal wyjdzie wtedy z instrukcji audytu, nie ze zmiany w produkcie, czyli dokładnie ten szum, którego zakazuje K4″.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "f71004b177c9316e0557ba99e41731c60e9c3955d3c1bf905e3ecf6cccb8c09d",
+  "werdykt": null
+}

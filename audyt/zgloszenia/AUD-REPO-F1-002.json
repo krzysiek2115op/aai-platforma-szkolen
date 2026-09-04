@@ -14,8 +14,19 @@
   "dowod": "audyt/ROLE.md linia 12 nagłówek 'Model zakresu — rozstrzygnięcie właściciela (2026-09-01)' oraz audyt/BRIEF-PROJEKTU.md linia 3 'Etap E3' pokazują, że wytyczne o zakresie audytu końcowego zostały wydane 2026-09-01 — data PO dacie tego dokumentu (2026-08-31, deklarowanej w linii 3 pliku) i po dacie 'NASTĘPNY KROK (2026-08-31)' w linii 263. Katalog audyt/ istnieje w repo z pełną strukturą ról, granic i regulaminu, a status.mjs tego przebiegu (fala 1, rola REPO) potwierdza trwającą pracę — czyli zdanie 'czekać na jego wytyczne' i 'nie planować go teraz' opisuje etap, który już minął.",
   "klasyfikacja": "deklaracja-stanu-nieaktualna",
   "wplyw": "Dokument w zakresie repozytorium (docs/PLAN-SEO-HIGIENA-AUDYT.md) twierdzi, że krok 3 czeka na wytyczne właściciela i nie wolno go planować, podczas gdy krok jest już zaplanowany (E0–E7), zbudowany i wykonywany — czytelnik dokumentu dostaje fałszywy obraz tego, na jakim etapie jest projekt.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "251c7bd8dcc1a0f3816ddfb1654d8499be000f29caa448d442f1c1baa2caa0d5",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.089Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: PLAN-SEO-HIGIENA-AUDYT.md:276 to '**Wytyczne do niego poda wlasciciel przy jego tworzeniu.** Nie planowac go' co do znaku, a :267 konczy sie 'czekac na jego wytyczne'. WER-02 dowod dotyczy tego samego i potwierdzam go stanem repozytorium, ktore sam czytam: katalog audyt/ istnieje z ROLE.md, GRANICE.md, REGULAMIN.md, PLAN-BUDOWY.md i szescioma pozostalymi dokumentami, a ROLE.md niesie naglowek 'rozstrzygniecie wlasciciela (2026-09-01)'; sam pracuje w tej chwili jako rola tego sektora, wiec krok jest nie tylko zaplanowany, ale wykonywany. Zdanie 'nie planowac go teraz i nie zakladac zakresu' opisuje etap, ktory minal. WER-03 CZYNNE. WER-04 hash 251c... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony.",
+      "kiedy": "2026-09-03T22:08:20.596Z"
+    }
+  }
 }

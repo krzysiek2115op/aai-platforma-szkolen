@@ -1,0 +1,32 @@
+{
+  "id": "AUD-PRIV-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PRIV",
+  "pozycja": "PRIV-07",
+  "stwierdzenie": "Aai_Platnosci_Kasa::zdanie() sklada w kasie zdanie 'Kontynuujac zamowienie, wyrazasz zgode na nasza Polityke prywatnosci.' i linkuje je WYLACZNIE wtedy, gdy get_privacy_policy_url() zwroci niepusty adres (linia 164: $adres = get_privacy_policy_url(); linia 165-167: link tylko gdy $adres !== ''). Na zywej instalacji :8892 get_privacy_policy_url() zwraca PUSTY LANCUCH, bo opcja WordPressa wp_page_for_privacy_policy wskazuje na strone ID=3 ('Privacy Policy', domyslna angielska strona WordPressa, status DRAFT), a nie na prawdziwa, opublikowana strone 'Polityka prywatnosci' (ID=23, status publish, adres /polityka-prywatnosci/, tresc realna i zgodna z motywem). Skutek: klient w kasie czyta zdanie o zgodzie na 'Polityke prywatnosci' BEZ dzialajacego odnosnika - dokladnie ta sama wada (tekst bez klikalnego odnosnika do dokumentu), ktora ta sama klasa PHP miala naprawic dla 'Warunkow i zasad' (komentarz linii 5-14 tego pliku). Co wiecej, komentarz w tym samym pliku (linie 12-14) twierdzi wprost: 'polityka prywatnosci ZOSTAJE, bo jest podpieta i klikalna' - to zdanie jest dzis NIEPRAWDZIWE wobec stanu instalacji: strona istnieje, ale nie jest 'podpieta' w opcji, ktora czyta get_privacy_policy_url(), wiec w praktyce NIE jest klikalna.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-kasa.php",
+    "linia": 164,
+    "tresc": "$adres = function_exists( 'get_privacy_policy_url' ) ? (string) get_privacy_policy_url() : '';"
+  },
+  "dowod": "Pomiar zywy na :8892 (kontener aai_wp_cli, wp eval): get_option('wp_page_for_privacy_policy') = 3; get_post(3)->post_title = 'Privacy Policy', post_status = 'draft'; get_privacy_policy_url() = '' (pusty lancuch). Rownolegle: get_page_by_path('polityka-prywatnosci')->ID = 23, post_status = 'publish', get_permalink(23) = 'http://127.0.0.1:8892/polityka-prywatnosci/' - strona zywa, wczesniej odczytana i zawierajaca realna tresc polityki (potwierdzone przy PRIV-05). Skoro $adres jest pusty, metoda zdanie() (linie 162-170) wchodzi w galaz $link = $nazwa (linia 167, plain text 'Polityke prywatnosci' bez znacznika <a>) i takie zdanie trafia do atrybutu 'text' bloku woocommerce/checkout-terms-block (metoda na_bloku/przejdz), czyli do tego, co widzi klient w kasie. Komentarz linii 12-14 tego samego pliku ('polityka prywatnosci ZOSTAJE, bo jest podpieta i klikalna') jest przez to sprzeczny ze zmierzonym stanem wykonania kodu na tej instalacji.",
+  "klasyfikacja": "prywatnosc/zgodnosc — dokument prawny przywolywany w kasie bez dzialajacego odnosnika mimo istnienia strony",
+  "wplyw": "Klient w kasie czyta, ze wyraza zgode na Polityke prywatnosci, ale nie ma jak jej przeczytac jednym kliknieciem z tego miejsca (dokladnie wada, ktora ten kod mial wyeliminowac dla regulaminu) — mimo ze prawdziwa, poprawna strona polityki istnieje i dziala pod innym adresem. Naprawa nie wymaga zmiany kodu wtyczki, tylko poprawnego ustawienia opcji WordPressa Ustawienia -> Prywatnosc (wskazanie strony ID 23 zamiast domyslnej szkicowej ID 3) — ale dopoki nikt tego nie zrobi, obietnica z kodu ('podpieta i klikalna') jest niedotrzymana na zywej instalacji.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "a3e3997440132c5f3526bce999a681d1a772116993bedd3e8337d684f277548c",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:26:25.696Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: kasa.php:164 to '$adres = function_exists( \"get_privacy_policy_url\" ) ? (string) get_privacy_policy_url() : \"\";' co do znaku, a 165-167 robia link TYLKO gdy adres niepusty. WER-02 dowod dotyczy tego samego i ODTWORZYLEM GO SAM na zywej instalacji, jednym 'wp eval' bez zadnego zapisu: get_option('wp_page_for_privacy_policy') = 3, get_post(3) = 'Privacy Policy'/draft, get_privacy_policy_url() = PUSTY LANCUCH, a rownolegle get_page_by_path('polityka-prywatnosci') = ID 23, status publish. Skoro adres pusty, zdanie() wchodzi w galaz '$link = $nazwa' i klient w kasie czyta 'Kontynuujac zamowienie, wyrazasz zgode na nasza Polityke prywatnosci.' BEZ znacznika <a>. Potwierdzam tez sprzecznosc z komentarzem: kasa.php:12-14 mowi 'polityka prywatnosci ZOSTAJE, bo jest podpieta i klikalna' — na tej instalacji nie jest podpieta. WER-03 CZYNNE. WER-04 hash a3e3... zgodny. WER-05 jednoznaczne. WPLYW NIE ZAWYZONY, i wpis sam pisze uczciwie, ze naprawa nie wymaga zmiany kodu, tylko ustawienia opcji. Powiazanie: AUD-PRIV-F1-006 (tez zweryfikowane) pokazuje, ze jedno uruchomienie postaw.sh te opcje przestawia — czyli to zjawisko jest odwracalne dryfem srodowiska i fala 2 moze go nie zobaczyc.",
+      "kiedy": "2026-09-03T22:03:51.338Z"
+    }
+  }
+}

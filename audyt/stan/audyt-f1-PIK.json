@@ -2,10 +2,10 @@
   "sektor": "audyt",
   "fala": 1,
   "rola": "PIK",
-  "status": "W TRAKCIE",
-  "runda": 0,
+  "status": "ZAKOŃCZONE",
+  "runda": 1,
   "niedomkniete": [],
-  "kiedy": "2026-09-03T16:37:19.931Z",
+  "kiedy": "2026-09-03T21:10:18.105Z",
   "historia": [
     {
       "status": "ZAKOŃCZONE",
@@ -16,6 +16,21 @@
       "status": "W TRAKCIE",
       "runda": 0,
       "kiedy": "2026-09-03T16:37:19.931Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-03T20:59:03.626Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-03T21:09:52.044Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 1,
+      "kiedy": "2026-09-03T21:10:18.105Z"
     }
   ],
   "adnotacja": "do 2026-09-03T16:37:19.929Z plik niósł stan PRÓBNY E6; wpisy historii sprzed tej chwili pochodzą z próby, prawdziwa fala zaczęła się od tego wejścia"

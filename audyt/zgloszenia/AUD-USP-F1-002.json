@@ -1,0 +1,32 @@
+{
+  "id": "AUD-USP-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "USP",
+  "pozycja": "USP-03",
+  "stwierdzenie": "Jedyne narzędzie mierzące odsłonę przez Chrome DevTools Protocol (tools/pomiar-lighthouse.mjs) domyślnie celuje w adres prototypu na GitHub Pages, nie w produkt na :8892, a jego tabela wynikowa nie niesie wagi strony (total-byte-weight), mimo że audyt Lighthouse'a ją zwraca.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/pomiar-lighthouse.mjs",
+    "linia": 116,
+    "tresc": "for (const k of [\"wydajnosc\", \"dostepnosc\", \"praktyki\", \"seo\", \"LCP\", \"CLS\", \"TBT\", \"FCP\"]) {"
+  },
+  "dowod": "Uruchomiono narzędzie z ADRES_POMIARU=http://127.0.0.1:8892 (produkt) — zadziałało (exit 0, wyniki 98/100/97/100), ale lista pól zapisywanych do goldeny/pomiary-lighthouse.json (linia 116) nie zawiera total-byte-weight. Bezpośrednie wywołanie samego Lighthouse'a na tym samym adresie (/szkolenia/) dało w surowym audits.total-byte-weight.numericValue wartość 154427 (bajtów) - dana istnieje w źródle, ale skrypt jej nie wyciąga. Domyślny ADRES (linia 35) to https://matthewplugins.github.io/szkolenia-podglad, czyli prototyp Next.js, a nie produkt WordPress.",
+  "klasyfikacja": "niekompletne narzędzie pomiarowe",
+  "wplyw": "PERF, chcąc dostać gotową tabelę wagi+czasu odsłony DLA PRODUKTU, nie ma tego z pudełka: musi wiedzieć o przestawieniu ADRES_POMIARU na :8892 i ręcznie wyciągnąć total-byte-weight z surowego JSON-a Lighthouse'a, bo repo tego nie robi.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "3eecaf4e87f3b2c25575d1f821a5a573baf0703272f3544433694a533f0b995c",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:23:59.893Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: pomiar-lighthouse.mjs:116 to 'for (const k of [\"wydajnosc\", \"dostepnosc\", \"praktyki\", \"seo\", \"LCP\", \"CLS\", \"TBT\", \"FCP\"]) {' co do znaku — lista pol zapisywanych do goldena NIE zawiera total-byte-weight. WER-02 dowod dotyczy tego samego i sprawdzilem druga polowe sam: linia 35 to 'const ADRES = process.env.ADRES_POMIARU || \"https://matthewplugins.github.io/szkolenia-podglad\";', czyli domyslnym celem jest prototyp na GitHub Pages, a nie produkt na :8892. Samego uruchomienia Lighthouse'a NIE powtarzalem — pomiar czasu na tej instalacji i tak nie bylby dzis porownywalny z liczbami autora, bo zdjeto z niej sonde SAVEQUERIES (AUD-PERF-F1-007); rozstrzygajace dla tej pozycji jest to, czego narzedzie NIE ZAPISUJE, a to widac w kodzie. WER-03 CZYNNE. WER-04 hash 3eec... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — wpis nie twierdzi, ze narzedzie nie dziala, tylko ze nie daje PERF gotowej tabeli wagi dla produktu.",
+      "kiedy": "2026-09-03T22:13:52.227Z"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "AUD-INT-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "INT",
+  "pozycja": "INT-11",
+  "stwierdzenie": "Skasowanie zamówienia WooCommerce (nie zmiana statusu, lecz literalne usunięcie wiersza z wp_wc_orders) NIE odbiera dostępu do kursu w Tutorze: zapis (tutor_enrolled) zostaje na zawsze w statusie completed, bo Tutor odbiera dostęp wyłącznie reagując na hak woocommerce_order_status_changed (WooCommerce.php, enrolled_courses_status_change), a ten hak nie odpala się przy usunięciu całego rekordu zamówienia. Żadna klasa Pluginu 2 nie rejestruje mechanizmu na wypadek zniknięcia zamówienia.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    "zakres": "Aai_Platnosci_Dostarczanie::zarejestruj() (linie 65-79) — jedyna klasa Pluginu 2 wiążąca cykl życia zamówienia z dostępem do kursu",
+    "mechanizm": "Brak jakiegokolwiek haka na usunięcie zamówienia (np. woocommerce_before_delete_order / before_delete_post na wp_wc_orders, albo bezpośrednie sprawdzenie w komendzie CLI sprawdz()), który skasowałby albo cofnął status zapisu Tutora (tutor_enrolled) powiązanego z usuniętym zamówieniem przez meta _tutor_enrolled_by_order_id. Klasa rejestruje wyłącznie woocommerce_order_item_needs_processing i woocommerce_order_status_processing — oba dotyczą PRZEJŚĆ statusu, żadne nie odpala się przy fizycznym usunięciu wiersza zamówienia. Komenda wp aai-platnosci sprawdz (class-aai-platnosci-cli.php, metoda sprawdz()) też nigdy nie odpytuje zgodności wp_wc_orders z tutor_enrolled — sprawdza wyłącznie rozjazd kurs<->produkt, duplikaty uuid i osierocone PRODUKTY (Aai_Sklep <-> Woo), nigdy osierocone ZAPISY (Woo order <-> Tutor enrollment)."
+  },
+  "dowod": "Zmierzone na :8892, 2026-09-03, środowisko odtworzone bez modyfikacji poza własnymi śladami (posprzątane po teście): (1) utworzono testowego użytkownika (wp user create, ID 112) i zamówienie WooCommerce na produkt kursu #75 (wp wc shop_order create --line_items=[{product_id:75}], porcelain zwrócił ID 1370); (2) przestawiono status na 'processing' (wp wc shop_order update 1370 --status=processing) — mechanizm needs_processing z tej samej klasy Aai_Platnosci_Dostarczanie automatycznie domknął zamówienie do 'wc-completed' (SELECT id,status,customer_id FROM wp_wc_orders WHERE id=1370 -> completed), co potwierdziło zapis Tutora: wp_posts ID 1371, post_type=tutor_enrolled, post_status=completed, post_author=112, post_parent=116 (kurs 'Jak poprawnie korzystać z Claude'), postmeta _tutor_enrolled_by_order_id=1370; (3) skasowano całe zamówienie (wp wc shop_order delete 1370 --force=true -> 'Success: Usunięto shop_order 1370'), po czym SELECT id,status FROM wp_wc_orders WHERE id=1370 zwrócił PUSTY wynik (zamówienia nie ma); (4) mimo to wp eval 'echo tutor_utils()->is_enrolled(116, 112)' zwrócił TAK (prawda) — użytkownik nadal ma pełen dostęp do kursu, choć zamówienie, z którego ten dostęp wynikał, fizycznie nie istnieje. Kod odpowiedzialny za odbieranie dostępu przy zwrocie (Aai_Sklep_Tutor / Tutor WooCommerce.php enrolled_courses_status_change) słucha WYŁĄCZNIE woocommerce_order_status_changed (grep w /home/krzysiek/.cache/aai-audyt-dokumentacja/cudzy-kod/tutor/classes/WooCommerce.php: 3 rejestracje tego haka, linie 69/76/82, i ZERO rejestracji jakiegokolwiek haka na usunięcie zamówienia — grep -rn 'woocommerce_delete_order|woocommerce_trash_order|woocommerce_before_delete_order' w całym katalogu tutor/ nie daje wyników). Środowisko posprzątane po pomiarze: wp post delete 1371 --force, wp user delete 112 --yes; po sprzątaniu COUNT(*) FROM wp_wc_orders = 0, COUNT(*) FROM wp_posts WHERE post_type=tutor_enrolled = 2 (stan zastany), wp aai-platnosci sprawdz i wp aai-sklep sprawdz obie kod 0.",
+  "klasyfikacja": "brak synchronizacji cyklu życia — założenie, że Tutor sam pilnuje dostępu wobec stanu zamówienia, jest prawdziwe TYLKO dla zmiany statusu, nie dla usunięcia rekordu",
+  "wplyw": "WooCommerce udostępnia usuwanie zamówień administratorowi wprost z panelu (Kosz -> Usuń trwale) oraz przez REST/WP-CLI, a jego własne mechanizmy retencji danych osobowych (class-wc-privacy.php: woocommerce_trash_pending_orders — domyślnie aktywne trashowanie zamówień pending po zadanym czasie, oraz zaplanowane zadania anonimizacji/kasowania kont) prowadzą do tego samego stanu końcowego. Skutek: klient, którego zamówienie zniknęło (bezpowrotnie, przez pomyłkę admina, retencję RODO albo porządki), zachowuje TRWAŁY dostęp do kursu bez jakiegokolwiek śladu w Woo, a właściciel nie ma jak tego wykryć — komenda wp aai-platnosci sprawdz nie sprawdza tej zgodności i kończy kodem 0.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "908231432e9ee09b5aebf7eadb513816e90bf663f3fdcec4f89f867dc7ac0ace",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:21:17.498Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce w formie mechanizmu nazwane poprawnie: Dostarczanie::zarejestruj() zaczyna sie w 70 i rejestruje wylacznie woocommerce_order_item_needs_processing oraz woocommerce_order_status_processing — zadnego haka na usuniecie zamowienia. WER-02 dowod dotyczy tego samego, potwierdzilem go NIEZALEZNIE i bez tworzenia zamowien na srodowisku z danymi wlasciciela: (a) 'grep -rnE \"delete_order|trash_order|before_delete_post|deleted_post|wp_trash_post\" wordpress/wtyczki' zwraca ZERO trafien — zadna z trzech naszych wtyczek nie slucha usuniecia; (b) w zrodle Tutora 3 rejestracje woocommerce_order_status_changed (WooCommerce.php:69/76/82) i ZERO haka na usuniecie/trash zamowienia w calym katalogu; (c) DOWOD ROZSTRZYGAJACY, mocniejszy niz test na zywo: EnrollmentModel::is_enrolled() (models/EnrollmentModel.php:171-210) pyta WYLACZNIE wp_posts o wpis tutor_enrolled po post_parent i post_author, nigdy o istnienie zamowienia — wiec skasowanie wiersza zamowienia nie ma jak odebrac dostepu; (d) 'grep -nE \"tutor_enrolled|_tutor_enrolled_by_order_id|wc_orders\" class-aai-platnosci-cli.php' zwraca ZERO, czyli kontrola naprawde nie sprawdza tej zgodnosci i konczy kodem 0. WER-03 CZYNNE — nie ma nizej na tej sciezce niczego, co by dostep cofnelo. WER-04 hash 9082... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony: opisuje trwaly dostep bez sladu w Woo i slepote kontroli, i tyle wlasnie wynika z pomiaru.",
+      "kiedy": "2026-09-03T21:49:59.950Z"
+    }
+  }
+}

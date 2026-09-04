@@ -1,0 +1,21 @@
+{
+  "id": "AUD-WER-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "WER",
+  "pozycja": "WER-03",
+  "stwierdzenie": "Pozycja WER-03 nazywa w kolumnie „Dowód” konkretny artefakt — ścieżkę wywołania — ale nic w sektorze nie wymaga jego zapisania, więc pozycja domyka się jednym słowem: w 13 z 42 wpisów fali 1 sektora audyt, których miejsce leży w KODZIE, weryfikator zamknął WER-03 samym wyrazem „CZYNNE”, bez ani jednego elementu ścieżki wywołania. WER-03 jest przy tym pozycją rozstrzygającą — to na niej, i tylko na niej, oparte są dwa z siedmiu odrzuceń fali (AUD-QA-F1-001, AUD-PIK-F1-001).",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 635,
+    "tresc": "| WER-03 | Czy zjawisko jest **czynne**, czy zablokowane gdzie indziej? | ścieżka wywołania |"
+  },
+  "dowod": "Pomiar własny 2026-09-04 na wyjściu roli WER w fali 1. Z 85 wpisów AUD-*-F1-* miejsce wskazuje plik wykonywalny (nie .md/.json/.txt) w 42 wpisach, dokument w 43. Wycinając z uzasadnienia weryfikatora zdanie zaczynające się od „WER-03” do pierwszej kropki, uzasadnienie krótsze niż 30 znaków ma 26 wpisów, z tego 13 o miejscu w KODZIE: AUD-ARCH-F1-003, AUD-ARCH-F1-004, AUD-FE-F1-004, AUD-KON-F1-013, AUD-PERF-F1-002, AUD-PERF-F1-003, AUD-PERF-F1-005, AUD-PIK-F1-006, AUD-PRIV-F1-002, AUD-PRIV-F1-004, AUD-PRIV-F1-006, AUD-USP-F1-002, AUD-USP-F1-004 — w każdym z nich cała odpowiedź brzmi „WER-03 CZYNNE.” albo „WER-03 czynne.”. Dla kontrastu ten sam pomiar pokazuje, że gdy rola ścieżkę podała, artefakt jest w uzasadnieniu i daje się odtworzyć: AUD-PERF-F1-006 (odrzucone) niesie pomiar „40 wywołań is_completed_lesson = 0 zapytań”, który powtórzyłem sam w kontenerze aai_wp_cli i otrzymałem „wywolan: 40 zapytan: 0”; AUD-QA-F1-001 niesie ścieżkę smoke-d4.ts:109-126 → goldeny/d4-katalog.html, którą również odtworzyłem (golden 1916 B, dokładnie jedno wystąpienie „199,00”). Różnicy między tymi dwiema klasami uzasadnień nie wymusza nic: werdykt.mjs żąda powodu wyłącznie od werdyktów odmownych (audyt/tools/werdykt.mjs:84), a ROLE.md nie stawia przy WER-03 żadnego warunku kształtu odpowiedzi.",
+  "klasyfikacja": "pozycja bez wymuszonego dowodu — zamykana deklaracją zamiast artefaktu, który sama nazywa",
+  "wplyw": "„Czynne” to jedyna z pięciu pozycji, która odróżnia znalezisko prawdziwe od zjawiska zablokowanego niżej na tej samej ścieżce, i jedyna, która w tej fali samodzielnie odwróciła werdykt krytyka. Zamknięta jednym słowem nie zostawia drugiej fali niczego do powtórzenia: przy 13 wpisach o miejscu w kodzie nie da się dziś sprawdzić, czy ścieżkę wywołania w ogóle otwarto, czy przyjęto ją za oczywistą — a to jest dokładnie ta różnica, którą rola WER ma wnosić ponad krytyka.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "901af9b093325bb72f105a4529ee61a7a1bb71689409822264f94f486b2b6081",
+  "werdykt": null
+}

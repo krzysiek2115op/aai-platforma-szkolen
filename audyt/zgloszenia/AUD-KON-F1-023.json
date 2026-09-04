@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-023",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A4",
+  "runda": 2,
+  "stwierdzenie": "Mutacja z audyt/tools/audyt-straznika-sektora.mjs:105 (AUD-REPO-F1-015) nie jest wyjątkiem, lecz konstrukcją całego narzędzia: 51 mutacji `plik:` pisze do 14 realnych plików sektora (status.mjs ×14, porownaj-cykle.mjs ×9, zgloszenie.mjs ×6, ROLE.md ×4, wspolne.mjs ×4, migawki/przed.json ×3, srodowisko.mjs ×3, werdykt.mjs ×3, fala.mjs ×2, …), 29 wywołań zPodmienionymi() podmieniają realne AGENT.md/ROLE.md OBU sektorów i regenerują .claude/agents, a 3 mutacje inline piszą do ROLE.md; kopie żyją wyłącznie w Map w pamięci, przywracanie idzie wyłącznie przez `finally`, a narzędzie nie ma ani jednego `process.on(` — każde z ~83 miejsc zostawia po ubiciu procesu trwale okaleczony plik sektora.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/audyt-straznika-sektora.mjs",
+    "zakres": "pętla po MUTACJE (linie 1807-1829: writeFileSync(P(m.plik), zmutowany) → straznikCzerwony() → finally writeFileSync oryginału), zPodmienionymi() (219-238), mutacje inline (978-983, 1030-1035, 1069-1070) i końcowe finally (1837-1843)",
+    "mechanizm": "brak kopii mutowanych plików NA DYSKU, brak znacznika „trwa mutacja” i brak obsługi sygnałów dla całej rodziny mutacji piszących do realnych plików sektora — kopia w `kopie` (Map w pamięci) i przywrócenie w `finally` nie przeżywają SIGKILL/limitu sesji, a następny przebieg nie ma jak stwierdzić, że pracuje na okaleczonym pliku"
+  },
+  "dowod": "`grep -o 'plik: [A-Z_]*' audyt/tools/audyt-straznika-sektora.mjs | sort | uniq -c` → STATUS 14, POROWNAJ 9, ZGLOSZENIE 6, ROLE_MD 4, WSPOLNE 4, MIGAWKA_PRZED 3, SRODOWISKO 3, WERDYKT 3, FALA 2, MAPA 1, STRAZNIK 1, GITIGNORE_SEKTORA 1 (stałe z linii 56-64, 363, 495-496 wskazują realne ścieżki audyt/…); `grep -c 'zPodmienionymi('` → 29 (definicja + 28 użyć, w tym „re-audyt/role/SEC/AGENT.md” linia 1438 i „re-audyt/ROLE.md” 1446, każde ze spawnSync generuj-agentow.mjs, który przepisuje .claude/agents); linie 978-983, 1030-1035, 1069-1070: `writeFileSync(plik, nowa); try { return straznikCzerwony(); } finally { writeFileSync(plik, org) }` na P(ROLE_MD); `grep -n 'process.on(\\|SIGINT\\|SIGTERM'` → 0 trafień. Incydent tej fali (PLAN-BUDOWY.md „AKTOR USZKODZENIA ROLE.md USTALONY”): ROLE.md bez roli PIK po ubiciu przebiegu — to linia 105, jedna z tych ~83.",
+  "klasyfikacja": "klasa: narzędzie mutuje przedmiot pomiaru bez trwałej kopii — nie jedno miejsce, lecz konstrukcja",
+  "wplyw": "Każde uruchomienie strażnikowego audytu mutacyjnego w trakcie fali stawia całą definicję sektora (ROLE.md, narzędzia, migawka przed.json, generat agentów) na jednym `finally`; po ubiciu procesu fala pracuje dalej na zmienionych regułach i zmienionej migawce, a żadna kontrola tego nie nazywa.",
+  "status": "DO WERYFIKACJI",
+  "hash": "976d3d28de47cc878db723cf29cf8011616e17a2f096a29c569a4b2e5a1b268f",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone statycznie, cala rozpiska zgadza sie co do sztuki. Zliczenie deklaracji plikow w tablicy mutacji daje dokladnie rozklad z wpisu: STATUS 14, POROWNAJ 9, ZGLOSZENIE 6, WSPOLNE 4, ROLE_MD 4, WERDYKT 3, SRODOWISKO 3, MIGAWKA_PRZED 3, FALA 2, STRAZNIK 1, MAPA 1, GITIGNORE_SEKTORA 1 — razem 51 mutacji piszacych do realnych plikow sektora. Wywolan zPodmienionymi() jest 29, a mutacje inline dokladaja 3, co daje podana we wpisie liczbe rzedu 83 miejsc. Liczba wywolan process.on( oraz wystapien SIGINT i SIGTERM w calym pliku wynosi 0 — czyli kopie zyja wylacznie w pamieci, a przywracanie stoi na samym finally. Teza o klasie, a nie o pojedynczym miejscu, jest uprawniona: mutowane sa nie tylko narzedzia, ale takze ROLE.md, czyli definicja rol, oraz migawka przed.json, czyli punkt odniesienia dla pytania, czy sektor tylko patrzyl — wiec po ubiciu procesu fala pracuje na zmienionych regulach i zmienionym punkcie odniesienia naraz. Incydent tej fali potwierdza czynnosc zjawiska niezaleznie: AUD-REPO-F1-015 opisuje utrate calej definicji roli PIK z ROLE.md przy ubitym przebiegu, czyli realizacje dokladnie tego scenariusza na jednej z tych mutacji. Wpis nie duplikuje tamtego, tylko go uogolnia z jednego miejsca na konstrukcje narzedzia, i mowi to wprost.",
+      "kiedy": "2026-09-03T23:36:28.420Z"
+    }
+  }
+}

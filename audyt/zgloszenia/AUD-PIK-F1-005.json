@@ -1,0 +1,27 @@
+{
+  "id": "AUD-PIK-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "PIK",
+  "pozycja": "PIK-07",
+  "stwierdzenie": "Komenda checklisty PIK-07 nie przeszukuje katalogu docs, choc go wymienia: brak -r sprawia, ze grep pomija argument katalogowy (GNU grep: komunikat \"Jest katalogiem\" i kod wyjscia 2; ugrep w tym srodowisku: cisza, kod 0), a do tego wzorzec jest wrazliwy na wielkosc liter, wiec nie trafia w naglowki sekcji \"Zostaje do decyzji wlasciciela\" w docs. Audytor idacy komenda doslownie dostaje wylacznie piec trafien z CLAUDE.md i nie widzi ani jednej pozycji z docs.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 498,
+    "tresc": "| PIK-07 | Czy rzecz zapowiedziana jako „zostaje do decyzji właściciela\" została rozstrzygnięta albo jawnie odłożona? | `grep -n 'ZOSTAJE DO DECYZJI' CLAUDE.md docs` | pozycja bez rozstrzygnięcia |"
+  },
+  "dowod": "Pomiar, obie implementacje grepa, kody wyjscia bez potoku. (1) Komenda doslownie z checklisty: grep -n ZOSTAJE DO DECYZJI CLAUDE.md docs -> piec trafien, wszystkie z CLAUDE.md (695, 2301, 2411, 2467, 2805), zero z docs; /usr/bin/grep (GNU grep 3.12) dopisuje na stderr \"docs: Jest katalogiem\" i konczy KODEM 2, a grep w powloce sesji (ugrep 7.8.4, funkcja z snapshotu) pomija katalog w ciszy z kodem 0. (2) Ta sama komenda z -r: te same piec trafien, dalej zero z docs, bo wzorzec jest wielkimi literami. (3) Z -r i wariantem malych liter (grep -rn ZOSTAJE DO DECYZJI albo Zostaje do decyzji) dochodzi docs/plugin-2/KROK-P5.md:319 \"## 10. Zostaje do decyzji wlasciciela\" — sekcja z trzema pozycjami, w tym jedna nierozstrzygnieta (zgoda w kasie na natychmiastowe dostarczenie). (4) Autor checklisty zna te klase pulapki: sasiednia pozycja PIK-08 ma w kolumnie komendy jawne ostrzezenie (bez -i plan SEO daje ZERO — wielka litera), wiec w PIK-07 brakuje zabezpieczenia, ktore obok uznano za konieczne.",
+  "klasyfikacja": "usterka checklisty sektora — komenda pozycji nie pokrywa zadeklarowanego zakresu",
+  "wplyw": "Pozycja PIK-07 pyta o rzeczy zapowiedziane jako zostaje do decyzji wlasciciela, a jej jedyna komenda milczy o calym katalogu docs — czyli o miejscu, w ktorym te pozycje sa prowadzone tabelami sekcji Zostaje do decyzji wlasciciela (KROK-P5.md) i domykane scenariuszami testow recznych. Skutek nie jest hipotetyczny: zgloszenie AUD-PIK-F1-004 tej samej fali twierdzi, ze pozycja kompozycja hero katalogu zniknela bez sladu i nie jest jawnie odlozona, podczas gdy oba slady leza wlasnie w docs/plugin-2 (KROK-P5.md:325 — jawne odlozenie; TEST-RECZNY-P6.md:92-94 i :3 — pytanie zadane wlascicielowi i zapisany wynik akceptuje wszystko). Komenda, ktora obiecuje katalog i go nie czyta, produkuje falszywe znaleziska nie znalazlem i jednoczesnie pozwala zamknac pozycje na nie bez otwarcia ani jednego pliku z docs — w obie strony jest nie do odroznienia od pozycji nieprzejrzanej. Ta sama komenda pojdzie do fali 2, wiec bez poprawki rozjazd fal na tej pozycji bedzie skutkiem narzedzia, nie kodu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "0cbef8297e2c5d33f981672530c3c437147251cc19a5a3f4e6284193175b9390",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: ROLE.md:498 to wiersz PIK-07 co do znaku, z komenda grep -n 'ZOSTAJE DO DECYZJI' CLAUDE.md docs. WER-02 dowod dotyczy tego samego i odtworzylem go co do kodu wyjscia: uruchomiona doslownie w /usr/bin/grep daje PIEC trafien, wszystkie z CLAUDE.md (695, 2301, 2411, 2467, 2805), na stderr 'grep: docs: Jest katalogiem' i KOD WYJSCIA 2 — ani jednego trafienia z docs; dopiero '-r -i' pokazuje docs/plugin-2/KROK-P5.md:319 '## 10. Zostaje do decyzji wlasciciela'. Potwierdzam tez czwarty punkt dowodu: sasiedni wiersz PIK-08 (ROLE.md:499) ma w kolumnie komendy jawne ostrzezenie 'bez -i plan SEO daje ZERO — wielka litera', czyli autor checklisty zna te klase pulapki i w PIK-07 zabezpieczenia brakuje. WER-03 CZYNNE i skutek NIE jest hipotetyczny: sam sprawdzilem, ze AUD-PIK-F1-004 tej samej fali oglosil zgubienie pozycji, ktorej oba slady leza wlasnie w docs/plugin-2 — odrzucilem ten wpis dzis, a jego przyczyna jest tu. WER-04 hash 0cbe... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — raczej udokumentowany skutkiem.",
+      "kiedy": "2026-09-03T22:01:12.838Z"
+    }
+  }
+}

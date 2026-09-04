@@ -14,8 +14,19 @@
   "dowod": "git tag --sort=-creatordate pokazuje v0.64.0, v0.63.1, v0.63.0, v0.62.0 — wszystkie istnieją jako wydane tagi. CHANGELOG.md linie 206 i 269 mają nagłówki '## [0.63.0] — 2026-08-31' i '## [0.62.0] — 2026-08-31'. README.md:52 (wiersz 'Etap', tej samej tabeli 'Stan projektu') mówi 'higiena repo (0.62.0/0.63.0) — plus schematy draw.io (0.64.0). Został audyt końcowy' — czyli dwie linijki tego samego pliku podają sprzeczny stan tego samego kroku ('TRWA' kontra ukończone i wydane).",
   "klasyfikacja": "deklaracja-stanu-nieaktualna",
   "wplyw": "Czytelnik README (właściciel, nowy współpracownik, audytor) trafia na sprzeczną informację o stanie projektu w jednej tabeli — jedna komórka mówi, że krok trwa, sąsiednia komórka tej samej tabeli mówi, że jest gotowy i wydany, a trzeci krok (audyt) jest opisany jako czekający na wytyczne, choć wytyczne już są i praca nad nim trwa aktywnie.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "0e11cadfe21a8b5d1a901bd669abf5e557802a343cc7b26b7454abc0c79ae4df",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:28:30.047Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: README.md:54 to '| **Trzy ostatnie kroki** | 1. SEO — ZROBIONY (0.60.0, 0.60.1) · 2. higiena repo — TRWA · 3. audyt koncowy — wytyczne poda wlasciciel |' co do znaku. WER-02 dowod dotyczy tego samego i sprawdzilem obie strony sprzecznosci sam: README.md:52 (ten sam plik, ta sama tabela, DWIE LINIE WYZEJ) mowi 'Z trzech ostatnich krokow zrobione sa dwa — SEO (0.60.x) i higiena repo (0.62.0/0.63.0) — plus schematy draw.io (0.64.0). Zostal audyt koncowy'; 'git tag --sort=-creatordate' potwierdza istnienie v0.64.0, v0.63.1, v0.63.0 i v0.62.0. WER-03 CZYNNE. WER-04 hash 0e11... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — to jedna tabela, ktora zaprzecza samej sobie.",
+      "kiedy": "2026-09-03T22:08:13.442Z"
+    }
+  }
 }

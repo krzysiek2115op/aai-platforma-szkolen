@@ -14,8 +14,19 @@
   "dowod": "Zmierzone w prawdziwej przeglądarce (Firefox, puppeteer-core, świeży profil bez ciasteczek, po networkidle0 + 3 s na dokończenie hydratacji bloków Woo) na :8892 z pustym koszykiem: document.body.innerText strony http://127.0.0.1:8892/koszyk/ zawiera dosłownie 'Your cart is currently empty! New in store' pomiędzy poprawnie polskim menu ('Przejdź do treści … Szkolenia Porozmawiajmy') a poprawnie polską stopką ('AUTOMATIC AI © 2026 Automatic AI — wszystkie prawa zastrzeżone Polityka prywatności Polityka cookies'). Ta sama instalacja poprawnie tłumaczy Woo w innych miejscach — po dodaniu produktu do koszyka ten sam widok pokazuje 'Produkty w koszyku', 'PODSUMOWANIE KOSZYKA', 'Przejdź do płatności' — więc locale i pliki .mo działają, a luka dotyczy konkretnie stanu 'pusty koszyk' bloku Cart. Weryfikacja w postaw.sh (blok 'proba_tlumaczenia') sprawdza jedynie __( 'Billing address', 'woocommerce' ), która nie ma związku z tymi dwoma napisami.",
   "klasyfikacja": "brak tłumaczenia (blok Woo, angielski napis na ścieżce klienta)",
   "wplyw": "Pierwsza rzecz, jaką widzi gość otwierający koszyk BEZ produktu (np. z linku 'Koszyk' w nawigacji, zanim cokolwiek kupi) to zdanie po angielsku na w pełni polskiej stronie — to ta sama klasa problemu co BLAD-024 ('kasa, koszyk i konto po angielsku'), którą projekt już raz naprawiał i przeciw której postaw.sh ma dedykowaną bramkę — a mimo to bramka jej nie łapie, bo mierzy inny mechanizm tłumaczenia niż ten, który faktycznie zawiódł.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "718f1f9a198b4959fd4672d3ab6ba63f51629574222f9b911e51bae0346c4790",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-03T21:33:58.859Z"
+    },
+    "weryfikator": {
+      "werdykt": "ODRZUCONE",
+      "powod": "OBJAW PRAWDZIWY, MECHANIZM NAZWANY BLEDNIE — a mechanizm jest tu cala trescia miejsca (K10': miejsce w formie mechanizmu MUSI nazwac, czego brakuje i gdzie). WER-01 miejsce istnieje: blok weryfikacji tlumaczen w postaw.sh jest. WER-02 ZAWODZI: miejsce twierdzi, ze napisy 'Your cart is currently empty!' i 'New in store' renderuje JavaScript bloku Cart 'z osobnej paczki tlumaczen JS (inny mechanizm ladowania niz __())' i ze dlatego test PHP-owy ich nie widzi. Zmierzylem to sam i jest inaczej: oba napisy stoja juz w HTML z serwera ('curl -s http://127.0.0.1:8892/koszyk/' je zawiera), a 'wp post get 6 --field=post_content' pokazuje je jako DOSLOWNA TRESC WPISU strony (linia 77 '<h2 ...>Your cart is currently empty!</h2>', linia 85 '<h2 ...>New in store</h2>', linia 11 'You may be interested in&hellip;'), do tego post_title tej strony to 'Cart'. Tresc wpisu nie przechodzi przez ZADEN mechanizm tlumaczen — ani PHP-owy, ani JS-owy — wiec zdanie 'brak tlumaczenia tej klasy' i cale wyjasnienie 'inna paczka tlumaczen' opisuje przyczyne, ktorej nie ma. Dowod (pomiar innerText w przegladarce) potwierdza OBJAW, ale nie potwierdza mechanizmu, ktory wpis oglasza — to wprost usterka WER-02 'dowod prawdziwy, ale o czym innym'. WER-04 hash 718f... zgodny, WER-05 brzmienie jednoznaczne. ODRZUCENIE NIE ZNACZY, ZE OBJAWU NIE MA: angielszczyzna na pustym koszyku jest i zostaje opisana poprawnie w AUD-FE-F1-004, ktore lokalizuje ja jako tresc wpisu id 6, a nie jako brak tlumaczenia. Fala 2 ma trafic na to samo miejsce i dojsc do tego samego wniosku.",
+      "kiedy": "2026-09-03T21:48:15.523Z"
+    }
+  }
 }

@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KON-F1-020",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KON",
+  "pozycja": "KON-A6",
+  "runda": 2,
+  "stwierdzenie": "Komenda pozycji PERF-01 jest w dosłownym brzmieniu niewykonywalna i patrzy w złą stronę: skopiowana z tabeli kończy się kodem 2 (`\\|` z ucieczki markdown trafia do grepa jako nazwa pliku `|`), a po ręcznej poprawce `-B5 'foreach'` pokazuje pięć linii PRZED pętlą, podczas gdy zapytanie N+1 stoi W ciele pętli, po `foreach`; wzorzec `$wpdb` nie widzi też N+1 przez metody (get_post_meta, wc_get_product, tutor_utils) — 27 takich linii w 8 liniach za foreach.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 270,
+    "tresc": "| PERF-01 | Czy któraś ścieżka robi zapytanie **w pętli** (N+1)? | `grep -rn -B5 'foreach' wordpress/wtyczki \\| grep '\\$wpdb'` | plik:linia pętli |"
+  },
+  "dowod": "Uruchomienie co do znaku (`bash -o pipefail -c \"grep -rn -B5 'foreach' wordpress/wtyczki \\| grep '\\$wpdb'\"`) → kod 2, stderr „grep: |: Nie ma takiego pliku ani katalogu”, 2067 linii na stdout (całe wyjście pierwszego grepa bez filtra). Po zamianie `\\|` na `|`: `-B5 'foreach' | grep '\\$wpdb'` → 26 linii; `-A15 'foreach' | grep '\\$wpdb'` → 31 linii; `-A8 'foreach' | grep -cE 'get_post_meta|wc_get_product|get_option|tutor_utils|->kurs_po|->lekcje|->odczyt|get_posts|new WP_Query|is_enrolled'` → 27. Dział PERF zgłosił trzy N+1 (AUD-PERF-F1-001/003/006) własnym pomiarem SAVEQUERIES, nie tą komendą — komenda nie była narzędziem, którym pozycję domknięto.",
+  "klasyfikacja": "komenda pozycji niewykonywalna dosłownie i celująca w złą stronę",
+  "wplyw": "Pozycja PERF-01 nie ma powtarzalnej metody: każda fala buduje własny pomiar, a wynik zależy od inwencji agenta, nie od checklisty — dokładnie to, czemu K4″ miał zapobiec.",
+  "status": "DO WERYFIKACJI",
+  "hash": "f92e46a252de41fdf6adafee38db52e2cfa4b792fc194eff43a28e3bc26b41fc",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone co do znaku i co do liczby, cztery pomiary, wszystkie zgodne z wpisem. Uruchomienie komendy dokladnie w brzmieniu ze zrodla ROLE.md przez bash -o pipefail -c konczy sie kodem 2, na stderr stoi \"grep: |: Nie ma takiego pliku ani katalogu\", a na stdout laduje 2067 linii, czyli CALE wyjscie pierwszego grepa bez filtra — to najgorszy mozliwy skutek, bo pozycja wyglada wtedy na bogato udokumentowana. Po naprawieniu potoku: piec linii kontekstu PRZED foreach z filtrem na zmienna bazy daje 26 linii, pietnascie linii PO daje 31, a osiem linii po foreach zawiera 27 wywolan metod (get_post_meta, wc_get_product, get_option, tutor_utils i dalsze), ktorych wzorzec szukajacy zmiennej bazy nie zobaczy w ogole. Wszystkie cztery liczby (2067, 26, 31, 27) odtworzone dokladnie. Kierunek jest bledny bezspornie: zapytanie N+1 stoi W CIELE petli, a kontekst poprzedzajacy pokazuje to, co ja poprzedza. Sprawdzilem tez teze o metodzie faktycznie uzytej przez dzial: trzy zgloszenia PERF o N plus jeden powstaly z wlasnego pomiaru, nie z tej komendy, wiec pozycja nie zostala domknieta narzedziem, ktore checklista podaje.",
+      "kiedy": "2026-09-03T23:35:24.878Z"
+    }
+  }
+}

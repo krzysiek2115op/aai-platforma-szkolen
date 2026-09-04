@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "c6022e271cd3d15f7c2900bb1ac1b250984bc80ff8061368d2438937af292677",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: wizyty.php:111 to 'add_action( \"admin_post_nopriv_\" . self::AKCJA, array( self::class, \"odbierz\" ) );' co do znaku. WER-02 dowod dotyczy tego samego i policzylem obie strony sam: 'grep -nE \"check_admin_referer|wp_verify_nonce|check_ajax_referer\" class-aai-monitor-wizyty.php' konczy KODEM 1 (zero trafien), a kontrola pozytywna w tym samym przebiegu — class-aai-sklep-panel-akcje.php ma check_admin_referer w liniach 68, 172, 199 i 268. Czyli odpowiedz TAK na pozycje o brzmieniu 'KAZDY handler admin_post_*' obejmuje 4 z 6 rejestracji zwroconych przez jej wlasna komende. WER-03 CZYNNE co do PYTANIA — i tu zaznaczam wprost, ze zgloszenie NIE twierdzi dziury w bezpieczenstwie: sciezka odbierz()->obsluz() ma wlasne sito (typ ciala, Origin, limiter, podpis sciezki), a beacon z definicji nonce'a niesc nie moze, wiec wplyw NIE jest zawyzony — usterka dotyczy brzmienia pozycji, nie kodu. WER-04 hash c602... zgodny (ten sam hash miejsca co AUD-PERF-F1-004, bo oba wpisy wskazuja te sama linie — to poprawne, opisuja rozne zjawiska). WER-05 jednoznaczne.",
+      "kiedy": "2026-09-03T22:12:17.544Z"
+    }
+  }
 }

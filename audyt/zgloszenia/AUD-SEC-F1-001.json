@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "45e0c4d3e09dd7f155b78ead5fa8f9b0de0f53907ab968ceef016faa1a9b148c",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak, miejsce jako mechanizm nazwane poprawnie (ROLE.md, wiersze SEC-01/SEC-02, kolumna komendy). WER-02 dowod dotyczy tego samego i odtworzylem go co do liczby: komenda z checklisty 'grep -rn \"add_action( admin_post\" wordpress/wtyczki' daje 6 rejestracji, a ta sama komenda na wordpress/srodowisko/mu-plugins daje DWIE dalsze — aai-obwod.php:169 'admin_post_nopriv_' i :170 'admin_post_'; 'grep -nE \"check_admin_referer|wp_verify_nonce\" aai-obwod.php' konczy KODEM 1, czyli zero trafien w calym pliku. Sprawdzilem tez, ze mu-plugins SA w zakresie modulu SEC: komenda zakresu z ROLE.md daje 113 plikow, w tym dwa z wordpress/srodowisko/mu-plugins. WER-03 CZYNNE: SEC-11 kieruje do tego pliku, ale pyta wylacznie o XML-RPC, enumeracje kont i mape uzytkownikow, wiec handlera nie obejmuje — nie ma nizej nic, co kazaloby go otworzyc. WER-04 hash 45e0... zgodny. WER-05 jednoznaczne. Wplyw nie zawyzony — wpis nie twierdzi, ze handler jest dziurawy, tylko ze zadna pozycja SEC nie kaze go obejrzec.",
+      "kiedy": "2026-09-03T22:12:07.700Z"
+    }
+  }
 }
