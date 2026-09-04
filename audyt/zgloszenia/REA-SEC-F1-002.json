@@ -17,6 +17,12 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "45a12a626640452f93e179ff8495543708366a5cb20e8e22e85e0027f4ab1c2d",
-  "werdykt": null,
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ODRZUCONE",
+      "powod": "ODRZUCONE, bo zjawiska DZIS NIE MA - i pisze wprost, ze to NIE jest zarzut wobec pracy proby, tylko stwierdzenie stanu na dzien mojej weryfikacji. To wpis PROBNY (pole proba: E7), a wpisy probne sa wylaczone z laczenia sektorow, wiec ten werdykt nie wchodzi do wyniku fali 1. CO ZMIERZYLEM. Wpis wskazuje wiersz SEC-R6 w re-audyt/ROLE.md, linia 107, i zarzuca mu, ze kolumna dowodu zada wylacznie adresu i kodu odpowiedzi, choc na wejsciach SEC kod 204 jest identyczny dla odmowy i dla przyjecia z zapisem. Sprawdzilem plik dzis: linia 107 to POZIOMA KRESKA (---), a wiersz SEC-R6 stoi w linii 143 i brzmi INACZEJ niz cytat we wpisie - dopisano do niego dokladnie to, czego wpis zadal: stan danych PRZED i PO zadaniu (sam kod nie rozstrzyga: kolektor CSP i beacon odpowiadaja 204 zarowno na przyjecie, jak i na odrzut). Porownalem oba lancuchy znak po znaku: tresc z pola miejsca nie zgadza sie ani z linia 107, ani ze 143. R4 zawodzi wiec podwojnie - numer linii przesunal sie, a tresc zostala poprawiona - i zawodzi R1, bo pozycja checklisty juz nie ma wady, ktora wpis opisuje. Zjawisko nie istnieje w zglaszanej postaci, bo ZOSTALO NAPRAWIONE w zrodle. UWAGA, KTORA JEST TU WAZNIEJSZA OD WERDYKTU: hasz miejsca dalej sie zgadza z polem hash, mimo ze tresc z pliku juz nie. To dlatego, ze hashMiejsca dla formy liniowej liczy sie z trojki [linia, plik, znormalizowana TRESC Z WPISU], a nie z tresci ODCZYTANEJ Z PLIKU - hasz potwierdza wiec wewnetrzna spojnosc wpisu, nie jego zgodnosc z repozytorium. Zgodny hasz przy rozjezdzie tresci to sygnal, ze wpis zestarzal sie razem z plikiem; zadne narzedzie sektora tego nie zglasza. To dopelnia obraz z REA-WDR-F1-004 (hasz liczony i drukowany, ale z niczym nieporownywany) o drugi kierunek: hasz nie tylko nie wykrywa POWTORZEN, ale tez nie wykrywa ZESTARZENIA sie miejsca.",
+      "kiedy": "2026-09-04T18:13:12.316Z"
+    }
+  },
   "proba": "E7"
 }

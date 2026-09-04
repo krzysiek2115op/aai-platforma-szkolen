@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "2ed5324362305c6585e4a867cb49ba817a7b7be3e08e8925227510e5e945d5e9",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "ZJAWISKO ISTNIEJE, ale odpowiedz na moja pozycje R6 brzmi POWTARZA, nie poglebia - i to jest wazniejsze niz sam werdykt, wiec pisze to jako pierwsze. TO JEST JEDNA Z SIEDMIU PAR O WSPOLNYM HASZU MIEJSCA w obu sektorach: 2ed53243... dzieli z AUD-GOLD-F1-003, ktore ma status ZWERYFIKOWANE od 2026-09-04T02:35Z, czyli od chwili SZESC GODZIN WCZESNIEJSZEJ niz wejscie kierownika re-audytu (08:12Z). Pola miejsca sa BAJT W BAJT identyczne - porownalem zakres i mechanizm lancuch po lancuchu, oba rowne - i to jest jedyny powod, dla ktorego hasze sie zgadzaja. Co gorsza, dowod wpisu audytu jest SZERSZY, nie wezszy: obejmuje te same dwa pliki stanu i ten sam grep po status.mjs, a PONADTO trzy wpisy probne i rozjazd licznika zgloszen (107 drukowanych wobec 104 prawdziwych fali 1), o czym wpis re-audytu nie mowi nic. Zasieg 2 z 16 rol NA_SRODOWISKU nie jest wiec niczym nowym - audyt wymienia te same dwie role z nazwy. Wedlug re-audyt/GRANICE.md wpis o tym samym haszu musi wnosic ZASIEG ALBO ODTWORZENIE; zasiegu nie wnosi, wnosi wylacznie wlasne odtworzenie w przebiegu re-audytu i osadzenie pod pozycja KIER-R2. To minimum spelnia norme, dlatego nie odrzucam - ale czy tak slaby wpis ma isc do raportu z jednym werdyktem, rozstrzyga kierownik, nie ja. DLACZEGO MIMO TO ISTNIEJE: usterke narzedzia potwierdzilem sam. Petla --pokaz (324-335) sklada wiersz z sektora, fali, roli, statusu, rundy, czasu, ostrzezenia o suficie i listy niedomknietych - i NIE PYTA o w.proba ani o w.adnotacja, choc ten sam plik umie znacznik zdejmowac (zdejmijProbe, 724) i robi to wylacznie przy wejsciu W TRAKCIE (406). ZASTRZEZENIE O MOIM WLASNYM SLADZIE, ktore musi zostac zapisane: dokladnego ekranu z dowodu NIE DA SIE JUZ ODTWORZYC, bo oba znaczniki proba zostaly zdjete wejsciami do fali - SEC o 08:26:37Z, a WALID o 17:26:47Z, czyli MOIM WLASNYM wejsciem na poczatku tej weryfikacji. Sprawdzilem stan po: oba pliki maja dzis proba usuniete i adnotacje mowiaca, ze do podanej chwili plik niosl stan PROBNY E7.6. Usterka zostaje, bo tej adnotacji petla --pokaz tez nie drukuje - ale demonstracja z dowodu jest juz historyczna i fala 2 nie zobaczy jej na ekranie.",
+      "kiedy": "2026-09-04T17:48:19.317Z"
+    }
+  }
 }

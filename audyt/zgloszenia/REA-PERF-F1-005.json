@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "b18f18bab2a0a999c28af7acac57b697276fb1fb632c508574bce9c372a6afa3",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje, a liczby zgadzaja sie z moimi CO DO SZTUKI. Odtworzylem pomiar tym samym przyrzadem, ale wlasnymi przebiegami: SHOW GLOBAL STATUS licznika Com_select odczytany bezposrednio przed i po JEDNYM curl na :8892. R1/R2 (dwa przebiegi kazdej trasy, wyniki identyczne): GET /szkolenia/ daje +77 SELECT-ow (Questions +84), GET /szkolenia/jak-uzywac-githuba/ daje +83 (Questions +90). Kontrola przeciw slepocie pomiaru, ta sama, ktora podaje wpis: GET pliku statycznego /wp-content/plugins/aai-sklep/assets/sklep.css daje Com_select +0 i Questions +2, przy czym te dwa to moje wlasne odczyty statusu - czyli metoda ma zerowy szum w SELECT-ach i mierzy to, co ma mierzyc. R3: rozjazd wobec liczb przyjetych przez sektor wynosi 42 zapytania na obu trasach, czyli 54 i 51 procent - a roznica MIEDZY trasami (6) zgadza sie w obu metodach, wiec bledna jest wartosc bezwzgledna, nie kierunek. R5: skutek dla sektora sprawdzilem w zrodle, nie na slowo - PLAN-BUDOWY.md:2473 niesie zdanie ZAPYTANIA NA ODSLONE, ZMIERZONE (po trzy stabilne przebiegi): /szkolenia/ 35, a linia 2475 liczy udzial jako 6 z 41. Obie liczby sa wiec zapisane w dorobku fali jako pomiar i obie sa zanizone. R4: miejsce zgadza sie co do znaku (re-audyt/ROLE.md:271), hash rowny przeliczonemu. R6: hasz nie pokrywa sie z zadnym innym wpisem obu sektorow; przedmiotem jest checklista re-audytu, wiec wpisu audytu o tym miejscu byc nie moze. To jest jeden z najwartosciowszych wpisow tej fali, bo naprawia MIANOWNIK, po ktorym wazy sie kazde znalezisko PERF - a robi to bez zmiany metody, samym wskazaniem, ze pomiar ma isc kanalem klienta.",
+      "kiedy": "2026-09-04T17:52:41.144Z"
+    }
+  }
 }

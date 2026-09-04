@@ -1,0 +1,27 @@
+{
+  "id": "REA-PRIV-F1-005",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PRIV",
+  "pozycja": "PRIV-90",
+  "stwierdzenie": "Migawka środowiska liczy tabele bazy, pliki mediów, wtyczki i wersje, ale NIE liczy niczego ze skrzynki Mailpita — a skrzynka jest nośnikiem POZA bazą, więc przeżywa --przywroc dokładnie tak, jak przeżyły je pliki wc-logs zostawione przez rolę INT. Różnica jest taka, że pliki są liczone (klucz media, ze skrótem) i tamten ślad zapalił kod 1, a wiadomości nie są liczone przez nic: ani migawka nie ma na nie pola, ani kontrola KIER-00 nie pyta o ich liczbę (sprawdza wyłącznie, że KONTENER aai_wp_mailpit stoi). Rola, która wyśle mail — a ścieżkę zakupu przechodzi PIK-R6 i to samo robi część bramek projektu — zostawia ślad, którego żaden mechanizm sektora nie widzi i nie przywraca.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/srodowisko.mjs",
+    "zakres": "liczniki migawki (klucze kiedy, baza, tabel, skrot_tabel, nasze, tabele, media, wtyczki_aktywne, wersje) oraz kontrola KIER-00 w funkcji sprawdz; jedyne wystąpienie Mailpita to nazwa kontenera w KONTENERY (linia 66)",
+    "mechanizm": "brakuje licznika zawartości skrzynki: migawka powinna mieć obok klucza media pole z liczbą wiadomości w Mailpicie (GET http://127.0.0.1:8893/api/v1/messages, pole total), a --przywroc i --sprawdz powinny je porównywać jak każdy inny licznik — dziś nośnik, który przeżywa przywrócenie bazy, jest poza pomiarem w całości"
+  },
+  "dowod": "Pomiar własny, wyłącznie odczyt. 1) KSZTAŁT MIGAWKI: audyt/migawki/srodowisko-f1-baza.json ma klucze kiedy, baza, tabel, skrot_tabel, nasze, tabele, media, wtyczki_aktywne, wersje — żadnego o poczcie (odczyt pliku, lista kluczy). 2) KOD: /usr/bin/grep -n -i po wzorcach mailpit, poczt, 8893 w audyt/tools/srodowisko.mjs daje JEDNO trafienie — linia 66, nazwa kontenera w mapie KONTENERY. Nie ma ani jednego wywołania API skrzynki. 3) KONTROLA URUCHOMIONA: node audyt/tools/srodowisko.mjs --sprawdz --fala=1 kończy kodem 0 (mierzone bez potoku) i drukuje jedenaście pozycji, wśród nich kontener aai_wp_mailpit (mailpit) stoi oraz liczniki żywej bazy = zrzut bazowy f1-baza — ani jednej o zawartości skrzynki. 4) SKRZYNKA JEST DZIŚ PUSTA I TO WŁAŚNIE POKAZUJE LUKĘ: GET http://127.0.0.1:8893/api/v1/messages?limit=1 zwraca total 0, czyli stan zgodny z bazowym — ale gdyby było inaczej, sektor odpowiedziałby dokładnie tak samo, bo nie ma czego porównać. 5) KLASA JUŻ RAZ ZADZIAŁAŁA: ślad POZA bazą (pliki wc-logs po roli INT) zatrzymał protokół dopiero dlatego, że pliki mediów SĄ liczone i mają skrót; poczta tej ochrony nie ma. Nie wysłałem żadnej wiadomości — dowód jest z odczytu kodu, migawek i uruchomionej kontroli, nie z zabrudzenia skrzynki.",
+  "klasyfikacja": "usterka sektora — nośnik poza bazą, który przeżywa przywrócenie, nie jest w ogóle liczony przez migawkę ani kontrolę",
+  "wplyw": "Protokół środowiska ma trzy nośniki: bazę (zrzut i przywrócenie), pliki (licznik i skrót mediów) i pocztę (nic). Wiadomość zostawiona przez rolę przeżyje --przywroc, wejdzie do pola widzenia następnej roli i zafałszuje jej pomiar — a rachunek sumienia zamelduje czysto, bo nie ma czego porównać. To ta sama luka, którą pliki wc-logs pokazały na roli INT, tyle że o klasę groźniejsza: tam mechanizm zadziałał i zatrzymał sektor, tutaj mechanizmu nie ma wcale. Naprawa jest tania i mieści się w istniejącym kształcie migawki: jedno pole z liczbą wiadomości i jedno porównanie.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "9bd605e05343e4e717371dd26f77329ee53bbfae39d52cf531fb3c7cbe010ffa",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje, sprawdzone przeze mnie trzema odczytami i bez wyslania ani jednej wiadomosci. R1/R5 - ksztalt migawki: audyt/migawki/srodowisko-f1-baza.json ma dokladnie dziewiec kluczy - kiedy, baza, tabel, skrot_tabel, nasze, tabele, media, wtyczki_aktywne, wersje - i ani jednego o poczcie; sprawdzilem to odczytem listy kluczy, nie okiem. R5 - kod: w audyt/tools/srodowisko.mjs wzorzec mailpit, poczt, 8893 daje DOKLADNIE JEDNO trafienie, linia 66, i jest to nazwa kontenera w mapie KONTENERY; ani jednego wywolania API skrzynki. Kontrola KIER-00 uruchomiona przeze mnie na wejsciu konczy kodem 0 i drukuje jedenascie pozycji, w tym kontener aai_wp_mailpit stoi - czyli pyta o ISTNIENIE kontenera, nie o zawartosc skrzynki. R2/R3 - stan dzisiejszy: GET http://127.0.0.1:8893/api/v1/messages?limit=1 zwraca total 0, wiec skrzynka jest pusta i zgodna z bazowa. To NIE oslabia wpisu, tylko potwierdza jego sedno w najczystszej postaci: przy total 0 i przy total 40 sektor odpowiedzialby DOKLADNIE TAK SAMO, bo nie ma czego porownac. R4: miejsce rodzaju mechanizm, plik istnieje, wskazany zakres zgadza sie, hash rowny przeliczonemu. R5 dalej - argument z klasa juz raz zadzialala broni sie: pliki poza baza SA liczone (klucz media ze skrotem sciezek i rozmiarow, porownanie w liniach 150-152) i wlasnie dlatego slad plikowy zapalil kod 1, a poczta tej ochrony nie ma w ogole. Roznica miedzy tymi dwoma nosnikami jest zmierzalna w kodzie, nie zalozona. R6: hasz nie pokrywa sie z zadnym innym wpisem obu sektorow. Rozliczenie mojego sladu: wszystkie trzy pomiary byly odczytem (plik migawki, wzorzec w zrodle, GET do API skrzynki); niczego nie wyslalem i niczego nie skasowalem, skrzynka po mojej weryfikacji dalej ma total 0.",
+      "kiedy": "2026-09-04T18:06:38.169Z"
+    }
+  }
+}

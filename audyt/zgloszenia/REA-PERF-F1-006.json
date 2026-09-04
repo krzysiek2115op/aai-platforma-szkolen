@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "ead61647ce36866ba87eedae40e781c7e1bce919c45cd69dec8ad848af21210e",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje, a jego liczba zgadza sie z policzona przeze mnie NIEZALEZNIE - trzecia implementacja, nie jego i nie autora PERF. Napisalem wlasny skaner w Node: czyszcze komentarze i tresc lancuchow zachowujac dlugosc, znajduje naglowki foreach/while/for, dopasowuje nawiasy NAGLOWKA, potem klamry CIALA i pytam o dostep do bazy WYLACZNIE w ciele. Na tych samych 97 plikach .php zakresu PERF (komenda zakresu daje 116 pozycji, z tego 97 PHP - zgadza sie z deklaracja) wychodzi 13 MIEJSC, nie 30. Do tego 7 petli ma zapytanie w NAGLOWKU, czyli wykonywane RAZ - to jest przeciwienstwo N+1 i najpewniej glowne zrodlo zawyzenia. Sprawdzilem, ze moj skaner nie jest slepy: znajduje tutor.php:786, czyli miejsce z AUD-PERF-F1-001, oraz moje.php:333, czyli miejsce, ktore weryfikator wskazal PO odrzuceniu falszywego tropu w AUD-PERF-F1-006. Sprawdzilem tez wlasna slepa plame: skaner pomija petle w skladni alternatywnej, wiec policzylem je osobno - jest ich 45, ale ZADEN z plikow, w ktorych stoja, nie zawiera ani jednego -> ani get_posts(, wiec ta plama jest pusta i 13 nie jest zanizone z tego powodu. R5 - kontrprzyklady otwarlem RECZNIE, po jednym, tak jak wpis kaze robic: cli.php:675 ma w ciele bledy[] = blad_wiszacy, a zapytanie stoi w naglowku; cli.php:686 ma WP_CLI::log; platnosci-zapis.php:1052 i :1057 maja przypisanie do tablicy, przy czym w :1057 wpdb->get_col stoi w NAGLOWKU foreach; lekcja.php:346 to zagniezdzony foreach po tablicy w pamieci; odczyt.php:122 to count() i += na juz wczytanym programie; raport.php:59 to append i json_decode po wierszach pobranych wczesniej; tutor.php:786 i :788 to JEDEN mechanizm policzony dwa razy - 786 otwiera petle po modulach, 788 jest jej wnetrzem. Kazdy z tych kontrprzykladow potwierdzilem cytatem z pliku. R4: miejsce zgadza sie co do znaku (re-audyt/ROLE.md:267), hash rowny przeliczonemu. R6: hasz nie pokrywa sie z zadnym innym wpisem obu sektorow. Uwaga o roli: ten wpis nie ma werdyktu krytyka, bo napisal go krytyk dzialu, a krytyk nie ocenia samego siebie - to nie jest brak i nie wplywa na moj werdykt.",
+      "kiedy": "2026-09-04T17:53:08.087Z"
+    }
+  }
 }

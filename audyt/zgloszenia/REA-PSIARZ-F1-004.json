@@ -1,0 +1,27 @@
+{
+  "id": "REA-PSIARZ-F1-004",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R1",
+  "stwierdzenie": "Mutacja w miejscu z REA-FE-F1-002 (wordpress/wtyczki/aai-sklep/szablony/panel/lista.php, linia 195 — waluta twardo wpisana jako „zł” obok kwoty ceny kursu w liście kokpitu) na „USD” NIE zapaliła ŻADNEJ z pięciu sprawdzonych bramek statycznych (straznik-frontu-wp.mjs, straznik-kreatora-wp.mjs, straznik-seo.mjs, straznik-obietnic.mjs, straznik-wtyczki-wp.mjs — wszystkie kod wyjścia 0, komunikat identyczny sprzed mutacji), a przegląd smoke'ów pokazał, że asercja waluty istnieje TYLKO dla strony sprzedażowej frontu (tools/smoke/smoke-wp-front.mjs:222), nie dla listy kursów w kokpicie.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "tools/smoke/smoke-wp-kreator.mjs",
+    "zakres": "cały plik — brak sprawdzenia formatowania waluty na liście kursów kokpitu (szablony/panel/lista.php)",
+    "mechanizm": "smoke-wp-kreator.mjs sprawdza cenę WYŁĄCZNIE jako liczbę groszy w bazie (linia ok. 342: „cena „199,90 zł” zapisana jako … groszy”), nigdy jako tekst renderowany w panelu kokpitu. smoke-wp-front.mjs ma asercję na literał „zł” (linia 222), ale dotyczy ona wyłącznie strony sprzedażowej /szkolenia/<slug>, nie szablonu panel/lista.php — więc z sześciu miejsc formatowania waluty wymienionych w REA-FE-F1-002 co najmniej jedno (lista kursów w kokpicie) nie ma pokrycia ŻADNYM testem, statycznym ani dynamicznym."
+  },
+  "dowod": "Kopia pliku PRZED mutacją. Mutacja (sed): linia 195 „&nbsp;zł” → „&nbsp;USD” — diff potwierdza jedną zmienioną linię. `podman exec aai_wp_cli php -l …/lista.php` → „No syntax errors detected”. Pięć bramek uruchomionych PO mutacji, wszystkie kod wyjścia 0, komunikaty identyczne sprzed mutacji. Dodatkowo: `grep -n \"zł\\\\b\" tools/smoke/smoke-wp-kreator.mjs tools/smoke/smoke-wp-front.mjs tools/smoke/smoke-wp-produkty.mjs` — jedyne trafienie asercji waluty jest w smoke-wp-front.mjs:222 (strona sprzedażowa), a nie w smoke-wp-kreator.mjs (panel). Plik przywrócony z kopii, `git status --porcelain` i `git diff --stat` puste po przywróceniu.",
+  "klasyfikacja": "milczenie bramki — brak testu (statycznego i dynamicznego) na formatowanie waluty w widoku kokpitu",
+  "wplyw": "Potwierdza REA-FE-F1-002: gdyby jedno z sześciu miejsc formatowania waluty naprawdę się rozjechało (np. właściciel zobaczyłby cenę w USD zamiast PLN w liście swoich kursów), żadna dzisiejsza bramka by tego nie wykryła — front jest pilnowany, panel kokpitu nie.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "7c55d199401be7ba1e951e37550c18ca9663c6d1eb6dbabb2ab011b049bc7b51",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "ODRZUCAM. Pomiar jest uczciwy i powtórzyłbym go z tym samym wynikiem, ale odpowiada na pytanie, którego odpowiedź była znana przed mutacją. KANDYDATA NA BRAMKĘ NIE BYŁO I WPIS SAM TO POKAZUJE: jego własny dowód kończy się grepem, który nie znajduje ani jednej asercji waluty dla kokpitu. Sprawdziłem to niezależnie i szerzej: smoke-wp-panel.mjs — jedyna bramka renderująca panel w prawdziwej przeglądarce — nie ma ani jednego sprawdzenia ceny ani waluty, a panel/lista.php występuje w tools/ tylko w straznik-kreatora-wp.mjs i audyt-straznikow.mjs, i to przy INNEJ własności (pytanie o kupujących, audyt-straznikow.mjs:2490-2499). Zmutowano więc napis, którego nikt nigdy nie obiecał pilnować — cisza była założeniem, nie wynikiem. To czyni wpis powtórzeniem REA-FE-F1-002 (ten już mówi, że DWA z sześciu miejsc formatowania leżą w panelu, czyli u innego adresata), rozszerzonym o zdanie \"i nikt tego nie testuje\", ustalone LEKTURĄ i grepem, nie mutacją. Mutacja nie wniosła do dowodu nic, czego nie dawał grep — a w sektorze, którego metodą jest uruchamianie, to jest zarzut, nie drobiazg.",
+      "kiedy": "2026-09-04T19:27:33.018Z"
+    }
+  }
+}

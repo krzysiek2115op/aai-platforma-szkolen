@@ -1,0 +1,27 @@
+{
+  "id": "REA-PSIARZ-F1-001",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R1",
+  "stwierdzenie": "Mutacja w miejscu z REA-ARCH-F1-003 (Aai_Platnosci_Cta::stan(), linia 177 — dostęp do $domyslne['napis']) podmieniona na dostęp do klucza $domyslne['nieistniejacy_klucz'] (gwarantowanie nieistniejącego w każdym wywołaniu, bo żaden wywołujący filtra aai_sklep_cta_kursu nigdy nie ustawia takiego klucza) NIE zapaliła ŻADNEJ bramki: straznik-platnosci-wp.mjs zwrócił kod wyjścia 0 z identycznym komunikatem sprzed mutacji, mimo że linia 177 gwarantuje PHP Warning 'Undefined array key' przy każdym wywołaniu tej gałęzi metody.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "tools/straznicy/straznik-platnosci-wp.mjs",
+    "zakres": "cały plik (35 sprawdzeń wypisanych w komunikacie „szew w porządku”), reguły o niezmienniku 17 (catch Throwable) i o stanie W_TOKU",
+    "mechanizm": "Brak reguły sprawdzającej dostęp do kluczy tablicy $domyslne w Aai_Platnosci_Cta::stan() (wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php:177). Strażnik pilnuje wyłącznie obecności catch(Throwable) i literału stanu „w toku”, więc dostęp do niesprawdzonego klucza tablicy wejściowej na tej linii przechodzi niezauważony, choć PHP Warning nie jest Throwable i nie trafia do żadnego z dwóch mechanizmów, których strażnik pilnuje."
+  },
+  "dowod": "Procedura PSIARZ 1-6 (SKILL.md): (1) kopia pliku zrobiona PRZED mutacją (cp class-aai-platnosci-cta.php do scratchpadu); (2) mutacja sed -i \"177s/\\$domyslne\\['napis'\\]/\\$domyslne['nieistniejacy_klucz']/\" — diff pokazał dokładnie jedną zmienioną linię; (3) `podman exec aai_wp_cli php -l …/class-aai-platnosci-cta.php` → „No syntax errors detected” (mutacja jest realnym, wykonywalnym kodem, nie literówką łamiącą parser); (4) `node tools/straznicy/straznik-platnosci-wp.mjs` PRZED i PO mutacją: oba razy kod wyjścia 0 i IDENTYCZNY tekst „szew w porządku (…)”; (5) ślad: żadna z 35 wymienionych w komunikacie fraz nie dotyczy dostępu do kluczy $domyslne; (6) plik przywrócony z kopii, `git status --porcelain -- <plik>` puste, `git diff --stat` puste — potwierdzone po przywróceniu.",
+  "klasyfikacja": "milczenie bramki — brak reguły statycznej na niesprawdzony dostęp do tablicy wejściowej filtra",
+  "wplyw": "Potwierdza i pogłębia REA-ARCH-F1-003/AUD-ARCH-F1-003: nie tylko sam kod ma ten defekt, ale ŻADNA istniejąca bramka (straznik-platnosci-wp.mjs, 35 sprawdzeń) nie zareagowałaby, gdyby ten defekt POGŁĘBIŁ SIĘ do gwarantowanego warninga na każdym wywołaniu — regresja tej klasy przeszłaby przez CI (npm run check) niezauważona.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "2b56f95ab381a01627a2a4a7d48c47715afb9c7d5c6c2715c2b11fee5ddbedd9",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "ODRZUCAM. Miejsce i mechanizm odtworzyłem; rzecz nie w prawdziwości zdania, tylko w tym, że mierzy tautologię. PYTANIE ROZSTRZYGAJĄCE: czy dla tej mutacji istniał w ogóle KANDYDAT na bramkę. Nie istniał, a wpis tego nie nazywa. (1) MUTACJA JEST NIEOBSERWOWALNA POZA LOGIEM: konsument filtra (class-aai-sklep-widok.php:266-270) przy pustym napisie wraca do domyślnego, a ten domyślny jest IDENTYCZNY z podmienionym (widok.php:246 buduje \"Dołączam za <cena>\"), adres kasy zostaje niepusty — więc wyjście strony po mutacji jest co do znaku takie samo. Jedynym skutkiem jest E_WARNING w logu. (2) ŻADNA BRAMKA W TYM REPOZYTORIUM NIE CZYTA LOGU PHP: przelot po tools/smoke/*.mjs wzorcem Warning|Notice|debug.log daje ZERO trafień (GNU grep 3.12), statycznego analizatora PHP nie ma w ogóle. Cisza była więc przesądzona przed mutacją, a nie zmierzona. (3) ZDANIE O CI JEST NIEZMIERZONE: dowód wymienia JEDNĄ bramkę (straznik-platnosci-wp), a wpływ twierdzi o \"npm run check\", którego wpis nie uruchomił — i który dla kodu WordPressa nie zawiera ANI JEDNEJ bramki behawioralnej (package.json:16 kontra smoke:wp-* w 34-49). (4) PONAD REA-ARCH-F1-003 NIE WNOSI FAKTU: tamten wpis, jego krytyk i weryfikator zmierzyli już to samo ostrzeżenie na tej samej linii, a krytyk zmierzył DODATKOWO fallback konsumenta, którego ten wpis nie zauważył i który unieważnia jego obraz skutku. To powtórzenie z mutacją w roli ozdoby (KON-R5).",
+      "kiedy": "2026-09-04T19:26:49.363Z"
+    }
+  }
+}

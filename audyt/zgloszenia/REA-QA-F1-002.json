@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "33c0b1dc0fcbba68c451c049bf41de01e663c72ef3eb480cfc5cbe6ab5c54eea",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje, a wszystkie liczby zgadzaja sie z policzonymi przeze mnie. R1/R5 - mechanizm w kodzie: werdykt.mjs:211 brzmi if (komplet(wpis)) wpis.status = ZWERYFIKOWANE, a komplet() (opis w komentarzu przy linii 91) pyta wylacznie o OBECNOSC obu werdyktow, nie o ich tresc; zbiory dozwolonych werdyktow obejmuja ISTNIEJE i ODRZUCONE, a lista ODMOWNE zyje osobno i nie bierze udzialu w nadaniu statusu. Status jest wiec stanem PROCESU, nie werdyktem o istnieniu - dokladnie jak mowi stwierdzenie. R3 - zasieg policzony przeze mnie wlasnym przelotem po katalogu zgloszen: wpisow AUD fali 1 ze statusem ZWERYFIKOWANE jest 84, z czego DZIEWIEC ma werdykt odmowny, w SZESCIU dzialach (ARCH, FE, PERF, PIK, QA, REPO) - AUD-ARCH-F1-002, AUD-FE-F1-003, AUD-PERF-F1-004, AUD-PERF-F1-006, AUD-PIK-F1-001, AUD-PIK-F1-003, AUD-PIK-F1-004, AUD-QA-F1-001, AUD-REPO-F1-008. Zgadza sie co do sztuki i co do listy. Dla samego dzialu QA policzylem osobno: dziewiec wpisow ZWERYFIKOWANYCH, z czego jeden odmowny (AUD-QA-F1-001) - czyli dwa mozliwe odczyty pozycji daja zbiory 9 i 8, tak jak podaje dowod. R4: miejsce zgadza sie co do znaku (re-audyt/ROLE.md:239), hash rowny przeliczonemu; sprawdzilem tez, ze wiersz w re-audyt/role/QA/AGENT.md:221 jest kopia BAJT W BAJT (porownanie lancuchow, nie oko) - wiec luka jest w zrodle, nie w kopii. R5: waga ma pokrycie - R1 jest wierszem WSPOLNYM wszystkich Poglebiaczy, wiec niejednoznacznosc dziala na szesc dzialow naraz. R6: hasz nie pokrywa sie z zadnym innym wpisem obu sektorow; przedmiotem jest checklista re-audytu, wiec wpisu audytu o tym miejscu byc nie moze. Odnotowuje pokrewienstwo z REA-ARCH-F1-002, ktore opisuje ten sam mechanizm narzedzia, ale wskazuje INNE miejsce (kod wtyczki, gdzie zjawisko sie objawilo) i ma inny hasz - to nie jest dublet.",
+      "kiedy": "2026-09-04T17:58:16.507Z"
+    }
+  }
 }

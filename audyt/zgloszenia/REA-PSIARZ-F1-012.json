@@ -1,0 +1,21 @@
+{
+  "id": "REA-PSIARZ-F1-012",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R2",
+  "stwierdzenie": "Checklista roli PSIARZ (re-audyt/ROLE.md, wiersze 540-545) nie ma ANI JEDNEJ pozycji pytającej, czy dla mutowanego miejsca istniał w ogóle KANDYDAT na bramkę — mechanizm (strażnik, smoke, test, kontrola CLI, reguła CI), który MIAŁ się zapalić. R1 pyta „czy zapala jakąkolwiek”, R2 „czy właściwą, czy coś innego”, R3 „czy mutacja stworzyła warunek”, R4 o kontrprzykład, R5 o czyste drzewo, R6 o zgłoszenie. Wszystkie sześć da się domknąć na zielono, mutując miejsce, którego żaden mechanizm nigdy nie obiecał pilnować — a wtedy cisza jest własnością zadania, nie odkryciem, i wpis powtarza znalezisko, które sam cytuje. Zmierzone na tym przebiegu: w pięciu z dziesięciu wpisów fali 1 kandydata nie było wcale (REA-PSIARZ-F1-001, -004, -006, -007, -010), a mimo to każdy jest klasyfikowany jako „milczenie bramki”.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "re-audyt/ROLE.md",
+    "zakres": "tabela checklisty roli PSIARZ, wiersze 540-545 (pozycje PSIARZ-R1 … PSIARZ-R6)",
+    "mechanizm": "Brak pozycji poprzedzającej R1, która wymagałaby WSKAZANIA I NAZWANIA kandydata na bramkę dla mutowanego miejsca (z komendą: przelot po tools/straznicy/, tools/smoke/, wpisach tools/straznicy/audyt-straznikow.mjs i skryptach package.json), oraz rozstrzygnięcia „bramka istnieje i jest ślepa” kontra „bramki nie ma wcale” — dwóch stanów o różnym adresacie naprawy. Bez tej pozycji R1 i R2 są odpowiedzią na pytanie, którego nikt nie zadał: R2 pyta o ślad w komunikacie bramki, która się zapaliła, a milczy o przypadku, w którym nie istniała żadna bramka mogąca się zapalić."
+  },
+  "dowod": "(1) Cała tabela odczytana wprost: re-audyt/ROLE.md:540-545 — sześć wierszy, żaden nie zawiera słowa o istnieniu bramki pokrywającej miejsce; ta sama tabela przeklejona co do znaku w re-audyt/role/PSIARZ/AGENT.md:158-163. Procedura w re-audyt/role/PSIARZ/SKILL.md (kroki 1-7) też o to nie pyta: krok 5 pyta o ŚLAD zapalonej reguły, krok 7 każe zgłosić ciszę bez warunku. (2) Że stan „nie ma bramki wcale” jest realny i częsty, zmierzyłem sam, po jednym pomiarze na wpis: brak licznika zapytań SQL — /usr/bin/grep -rq \"SAVEQUERIES|get_num_queries\" kończy KODEM 1 w tools/ i w wordpress/; brak asercji waluty dla kokpitu — smoke-wp-panel.mjs nie sprawdza ceny ani waluty, a panel/lista.php pada w tools/ tylko przy innej własności (audyt-straznikow.mjs:2490-2499); brak reguły dla wnętrza kolektora CSP — w straznik-obwodu.mjs nie ma słów „limit”, „transient”, „przyjmij_raport”, „zbierz_raport”, a jedyna reguła o kolektorze pyta o report-uri (:133-135); brak kontroli treści docs/PLAN.md — straznik-readme.mjs:45-46 czyta wyłącznie README.md; brak czytelnika logu PHP — przelot po tools/smoke/*.mjs wzorcem Warning|Notice|debug.log daje zero trafień. (3) Repozytorium MA własny instrument odpowiadający na pytanie „czy to miejsce jest w ogóle pilnowane” — tools/straznicy/audyt-straznikow.mjs z wpisami `straznik:`, `plik:` i `oczekiwanySlad:` (m.in. dla wszystkich sześciu plików mutowanych w tej fali) — i ani checklista, ani SKILL.md, ani żaden z dziesięciu wpisów fali 1 nie wspomina o nim ani razu.",
+  "klasyfikacja": "usterka checklisty — brak pozycji rozstrzygającej między „bramka istnieje i jest ślepa” a „bramki nie ma”, przez co pozycje R1-R6 domykają się także wtedy, gdy pomiar nie mógł dać innego wyniku niż cisza",
+  "wplyw": "Rola oddaje jako znalezisko zdanie, które jest tautologią: mutacja w miejscu, gdzie nic nie obiecuje pokrycia, zawsze da ciszę. Kierownik i naprawa dostają listę „milczących bramek”, w której połowa pozycji nie ma bramki do naprawienia, a adresat pracy jest inny (dopisać pokrycie kontra poprawić ślepy wzorzec). Fala 2 idąca tą samą checklistą powtórzy ten sam rozkład, więc zgodność fal potwierdzi metodę zamiast produktu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "214680ba70b96cce9829de18ac508a1077a05f21bf44ba0e8f1733bc4f243da8",
+  "werdykt": null
+}

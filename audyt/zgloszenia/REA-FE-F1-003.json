@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "16779f41ecc8c7ce59a04663e1ed30c3dcdab315b5596900e8147647f3b81e58",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje i KAZDA liczba zgadza sie z policzona przeze mnie. R1/R2 (dwa przebiegi, kody bez potoku): pathspec z klamrami uruchomiony SAM zwraca ZERO wierszy i konczy KODEM 0 - pominiecie jest ciche, git nie mowi ani slowa. Pelna komenda zakresu daje DOKLADNIE 57. Czlony policzone osobno: szablony 37, assets sklepu 16, assets monitoringu 3, ekran monitoringu 1 - suma 57, czyli samokontrola Ma zwrocic 57 plikow jest CYRKULARNA: liczba deklarowana pochodzi z tej samej komendy, ktora ma sprawdzac, wiec warunek zakres zwracajacy inna liczbe jest zepsuty nie moze sie zapalic przy dziewieciu brakujacych plikach. R3: wszystkie dziewiec plikow klas JEST sledzonych - git ls-files po katalogu includes przefiltrowane wyrazeniem rozszerzonym daje dokladnie 9 wierszy, wiec nie chodzi o pliki nieistniejace. R5: skutek dla fali 1 policzylem sam, skryptem czytajacym pole miejsce.plik ze WSZYSTKICH wpisow audytu fali 1 (bez probnych) i przecinajacym je z obydwoma zakresami. Zakres ZMIERZONY (57) daje jeden wpis: AUD-FE-F1-001. Zakres ZAMIERZONY (66 = 57 plus dziewiec klas dolozonych osobno) daje trzy wpisy WIECEJ: AUD-FE-F1-002 (class-aai-sklep-widok.php), AUD-PERF-F1-005 (class-aai-sklep-lekcja.php) i AUD-PERF-F1-006 (class-aai-sklep-moje.php). Wynik jest wiec MOCNIEJSZY niz zgloszony: wpis wymienia dwa wpisy innego dzialu, a w zakresie zamierzonym lezy takze wlasny wpis audytu dzialu FE, czyli AUD-FE-F1-002 - dokladnie ten, na ktorym opiera sie REA-FE-F1-002 tego samego Poglebiacza. Odpowiedz NIE na pozycje FE-R4 byla wiec falszywa, a przy poprawnym zakresie brzmi TAK. R4: miejsce rodzaju mechanizm, plik istnieje, hash przeliczony niezaleznie rowny polu; komenda stoi takze w re-audyt/ROLE.md:158, wiec defekt jest dziedziczony przez sektor, a nie przepisany z pomylka. R6: hasz nie pokrywa sie z zadnym wpisem obu sektorow. Klasa jest audytowi znana z AUD-KON-F1-001 dla audyt/ROLE.md:126, ale to inne miejsce i inny plik, wiec to nie jest powtorzenie.",
+      "kiedy": "2026-09-04T17:39:58.687Z"
+    }
+  }
 }

@@ -1,0 +1,27 @@
+{
+  "id": "REA-PSIARZ-F1-003",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R1",
+  "stwierdzenie": "Mutacja w miejscu z REA-BD-F1-001 (Aai_Sklep_Tutor::zapisz_post(), linia 554) — zastąpienie wyniku self::znajdz_po_uuid() stałą 0, czyli całkowite wyłączenie mechanizmu samo-naprawy (dopasowania po uuid przed wstawieniem) opisanego w tym zgłoszeniu jako różnica ratująca tę klasę wobec Aai_Platnosci_Zapis — NIE zapaliła straznik-tutora.mjs ani straznik-wtyczki-wp.mjs, oba kod wyjścia 0 z komunikatem identycznym sprzed mutacji.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "tools/straznicy/straznik-tutora.mjs",
+    "zakres": "cały plik (9 sprawdzeń wypisanych w komunikacie), w szczególności reguła o znajdz_po_uuid (linie ok. 194-201)",
+    "mechanizm": "Jedyna reguła dotycząca znajdz_po_uuid sprawdza, czy TA FUNKCJA odrzuca pusty identyfikator — nie sprawdza, czy zapisz_post() w ogóle UŻYWA jej wyniku do zdecydowania między wp_update_post a wp_insert_post. Podmiana wywołania na stałą 0 zostawia definicję znajdz_po_uuid nietkniętą (więc jej własna reguła dalej przechodzi), a mechanizm anty-duplikatowy przestaje działać bez żadnego śladu w kodzie, którego strażnik by szukał."
+  },
+  "dowod": "Kopia pliku PRZED mutacją. Mutacja (sed): linia 554 zmieniona z „$istniejacy = self::znajdz_po_uuid( $uuid, (string) $dane['post_type'] );” na „$istniejacy = 0; // PSIARZ-MUTACJA: self-heal wylaczony” — diff potwierdza jedną zmienioną linię. `podman exec aai_wp_cli php -l …/class-aai-sklep-tutor.php` → „No syntax errors detected”. straznik-tutora.mjs i straznik-wtyczki-wp.mjs uruchomione PO mutacji: oba kod wyjścia 0, komunikaty identyczne co przed mutacją (m.in. fraza „pusty uuid nie dopasowuje cudzego wpisu” — prawdziwa, ale niezwiązana z tym, co zmutowano). Plik przywrócony z kopii, `git status --porcelain` i `git diff --stat` puste po przywróceniu.",
+  "klasyfikacja": "milczenie bramki — brak reguły łączącej wynik wyszukania po uuid z decyzją insert/update",
+  "wplyw": "Rozszerza REA-BD-F1-001: różnica ratująca Aai_Sklep_Tutor wobec Aai_Platnosci_Zapis (self-heal po przerwaniu) opiera się na WŁAŚCIWOŚCI KODU, której żadna bramka nie mierzy bezpośrednio — usunięcie tej właściwości (np. przez pomyłkę przy przyszłej refaktoryzacji) dawałoby DOKŁADNIE tę samą klasę rosnących, niewykrywalnych duplikatów co w Pluginie 2, a strażnik pozostałby zielony.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "cfdb56ee56cac37260c5f321d81782ff93cb274962e56fd9ebaf15dcd858d3ef",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "ODRZUCAM. Cisza dwóch strażników jest zapewne prawdziwa, ale teza wpisu — że żadna bramka nie mierzy tej właściwości bezpośrednio — jest OBALONA przez asercję, która w repozytorium istnieje i której wpis ani nie uruchomił, ani nie wymienił. KANDYDAT PIERWSZY: smoke-wp-tutor.mjs:212 asertuje, że POWTÓRNY import daje { utworzone: 0, zaktualizowane: 0, bez_zmian: 6, usuniete: 0 }, poprzedzone :191 (pierwszy import tworzy 6 wpisów). Mutacja \"$istniejacy = 0\" sprawia, że zapisz_post ZAWSZE wstawia nowy wpis, więc drugi przebieg nie ma prawa dać bez_zmian 6 — czyli bramka idempotencji kopii istnieje dokładnie po to, po co wpis twierdzi, że nic nie istnieje. KANDYDAT DRUGI: wp aai-sklep sprawdz-tutora (npm run wp:tutor), kontrola z kodem wyjścia 1 przy rozjeździe, pytająca m.in. o duplikaty uuid; smoke woła ją w :84. BRAMKA NIEURUCHOMIONA NIE JEST BRAMKĄ MILCZĄCĄ. Dowód wpisu opiera się wyłącznie na dwóch bramkach STATYCZNYCH, które self-healu nigdy nie obiecywały, a wniosek jest formułowany o mechanizmie w ogóle. Ponad REA-BD-F1-001 (ISTNIEJE) wpis nie wnosi nowego faktu: tamten wpis i jego weryfikator opisują linię 554 jako różnicę ratującą tę klasę i wskazują ją co do numeru.",
+      "kiedy": "2026-09-04T19:27:32.983Z"
+    }
+  }
+}

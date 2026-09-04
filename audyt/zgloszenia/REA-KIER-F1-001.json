@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "0dd112a78c4a22fd9ea34703d2abe646493d8c8edaf6cbb9d6644571aed0bcd0",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje, sprawdzone przeze mnie w kodzie i w artefaktach na dysku - NIE powtarzalem samego nadpisania, bo powtorzenie skasowaloby dzisiejszy punkt przywracania fali, czyli wyprodukowaloby dokladnie te szkode, o ktorej wpis mowi. R1/R5 w kodzie: zrzut() (od 253) po sprawdzeniu licznikow robi mkdirSync, writeFileSync(pliki.sql, r.out) i zapiszJSON(pliki.json, po) BEZ ani jednego existsSync - nadpisanie jest bezwarunkowe i nieme. Asymetria, na ktorej wpis stoi, jest realna: przywroc() (296-299) ODMAWIA przy braku plikow, z komunikatem i z podana komenda naprawy. W --sprawdz to samo rozroznienie: wiersz o istnieniu zrzutu (371) niesie komende do wykonania, a wiersz liczniki zywej bazy = zrzut bazowy (375) podaje wylacznie liste rozjazdow i zadnej komendy. R2/R3 na artefaktach: w ~/.cache/aai-kopie/audyt lezy f1-baza.sql z 2026-09-04 10:16 o rozmiarze 7825850 B oraz f1-baza-z-otwarcia-audytu-2026-09-03T1839.sql z 2026-09-03 18:39 o rozmiarze 8166318 B - czyli zrzut z otwarcia audytu przetrwal WYLACZNIE dlatego, ze ktos skopiowal go recznie pod inna nazwa przed komenda; rozmiary i czasy zgadzaja sie z podanymi co do bajta i co do minuty. Migawka audyt/migawki/srodowisko-f1-baza.json byla commitowana w ec00a0f i zmieniona w d784dd2, co potwierdza, ze nadpisanie doszlo do skutku takze w sledzonym pliku. R4: miejsce rodzaju mechanizm, plik istnieje, wskazane linie zgadzaja sie z trescia, hash rowny przeliczonemu. R6: hasz nie pokrywa sie z zadnym innym wpisem obu sektorow. Wplyw ma pokrycie: przy nadpisaniu punktu przywracania --przywroc wraca do stanu ze srodka przebiegu, a --sprawdz melduje wtedy zgodnosc, bo porownuje zywa baze z tym samym, nadpisanym plikiem - petla zamyka sie sama i nie ma czego zapalic.",
+      "kiedy": "2026-09-04T17:47:19.724Z"
+    }
+  }
 }

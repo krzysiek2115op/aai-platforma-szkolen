@@ -1,0 +1,27 @@
+{
+  "id": "REA-PSIARZ-F1-002",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R1",
+  "stwierdzenie": "Mutacja w miejscu z REA-BE-F1-001 (Aai_Sklep_Zapis::zapisz_tresc_lekcji(), linie 375-376) — zamiana warunkowego fallbacku ($tresc['tresc'] ?? '') na BEZWARUNKOWE czyszczenie 'content' => '' i 'materials' => json(array()) niezależnie od wejścia — NIE zapaliła ŻADNEJ z trzech bramek, które czytają ten plik: straznik-kreatora-wp.mjs, straznik-wtyczki-wp.mjs i straznik-lekcji-wp.mjs, wszystkie kod wyjścia 0 z komunikatem identycznym sprzed mutacji.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "tools/straznicy/straznik-kreatora-wp.mjs",
+    "zakres": "reguła 6 „zapis programu nie kasuje treści” (linie 283-313), wzorzec array_key_exists('content'|'materials', $l)",
+    "mechanizm": "Wzorzec regex reguły 6 szuka literału array_key_exists('content', $l) GDZIEKOLWIEK w całym pliku class-aai-sklep-zapis.php, a nie w konkretnej metodzie. Ten sam literał istnieje poprawnie w zapisz_program() (linia 627/633, zmienna $l), więc obecność tekstu w pliku wystarcza do zielonego wyniku niezależnie od tego, co dzieje się w INNEJ metodzie tego samego pliku — zapisz_tresc_lekcji() (linie 333-380, zmienna $tresc), która nie ma żadnego array_key_exists i której nie dotyczy istniejący wzorzec tekstowy."
+  },
+  "dowod": "Kopia pliku PRZED mutacją. Mutacja (python3, zamiana bloku): linie 375-376 zmienione z \"'content' => (string)($tresc['tresc'] ?? ''), 'materials' => self::json($tresc['materialy'] ?? array()),\" na \"'content' => '', 'materials' => self::json(array()),\" — diff potwierdza dokładnie te dwie linie. `podman exec aai_wp_cli php -l …/class-aai-sklep-zapis.php` → „No syntax errors detected”. Trzy bramki uruchomione PO mutacji, wszystkie kod wyjścia 0: straznik-kreatora-wp.mjs (komunikat zawiera frazę „brak klucza znaczy „nie ruszaj” (treść, materiały, sekcje, program, stan)” — czyli TWIERDZI, że własność jest spełniona, mimo że dla tej metody treść jest teraz ZAWSZE kasowana), straznik-wtyczki-wp.mjs, straznik-lekcji-wp.mjs — identyczne komunikaty jak przed mutacją. Plik przywrócony z kopii, `git status --porcelain` i `git diff --stat` puste po przywróceniu.",
+  "klasyfikacja": "milczenie bramki — reguła oparta na obecności tekstu w CAŁYM pliku, nie na miejscu jego wystąpienia (klasa „wzorzec na obecność zamiast na rozstrzygnięcie”, dziewiąty/dziesiąty nawrót w tym repozytorium)",
+  "wplyw": "Potwierdza REA-BE-F1-001 mutacją: metoda edytora pojedynczej lekcji w kokpicie (zapisz_tresc_lekcji) może CAŁKOWICIE i BEZWARUNKOWO wykasować treść i materiały każdej zapisywanej lekcji, a straznik-kreatora-wp.mjs — który w swoim komunikacie explicite twierdzi, że „brak klucza znaczy nie ruszaj” obowiązuje dla „treści” i „materiałów” — pozostaje zielony. Komunikat strażnika jest w tym punkcie nieprawdziwy wobec realnego stanu kodu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "533de70d12d7b7f3e50555e3eda3ec9a1de7c55ee6eded7352d4c8c69828f565",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "PRZEPUSZCZAM — jedyny z dziesięciu wpisów, który pokazuje bramkę ISTNIEJĄCĄ I ŚLEPĄ, a nie brak bramki. ODTWORZYŁEM MUTACJĘ SAM: linie 375-376 zamienione na bezwarunkowe 'content' => '' i 'materials' => self::json( array() ) (python3, asercja na jedno wystąpienie, git diff = 2 linie), po czym trzy bramki, kod wyjścia mierzony BEZ potoku: straznik-kreatora-wp 0, straznik-wtyczki-wp 0, straznik-lekcji-wp 0, komunikaty identyczne — w tym zdanie \"brak klucza znaczy nie ruszaj (treść, materiały, sekcje, program, stan)\", które w chwili pomiaru było nieprawdziwe. Plik przywrócony z kopii sprzed mutacji, sha256 równy wyjściowemu, drzewo produktu czyste. MECHANIZM WE WPISIE ZGADZA SIĘ CO DO ZNAKU: straznik-kreatora-wp.mjs:287 składa new RegExp(\"array_key_exists\\\\(\\\\s*'content'\\\\s*,\\\\s*\\\\$l\\\\s*\\\\)\") i testuje go na CAŁYM ŹRÓDLE pliku, nie na metodzie; literał żyje w zapisz_kurs (627/633), więc reguła jest zielona niezależnie od tego, co robi zapisz_tresc_lekcji. To dziesiąty nawrót klasy \"wzorzec na obecność zamiast na rozstrzygnięcie\". DWA ZASTRZEŻENIA, które nie zmieniają werdyktu, ale MUSZĄ pójść dalej. (a) KANDYDAT DYNAMICZNY ISTNIEJE I NIE ZOSTAŁ URUCHOMIONY: smoke-wp-kreator.mjs:421-429 wysyła akcję aai_sklep_zapisz_lekcje, czyli dokładnie tę drogę, i w :437 asertuje zBazy.content === TRESC_PROBNA, a zaraz dalej materiały — ta mutacja łamie obie asercje. Wpisu NIE WOLNO czytać jako \"nic by tego nie złapało\"; wolno jako \"strażnik statyczny jest ślepy, a jego komunikat kłamie\". (b) komentarz reguły 6 mówi o zapisz_kurs (zmienna $l), więc formalnie nigdy nie obiecywała tej metody — obietnicę bez kwalifikatora składa KOMUNIKAT SUKCESU. Rdzeń (bramka zielona przy złamanej własności, którą ogłasza) stoi.",
+      "kiedy": "2026-09-04T19:27:09.743Z"
+    }
+  }
+}

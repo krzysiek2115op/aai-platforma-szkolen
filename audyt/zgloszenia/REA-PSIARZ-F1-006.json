@@ -1,0 +1,27 @@
+{
+  "id": "REA-PSIARZ-F1-006",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R1",
+  "stwierdzenie": "Mutacja w miejscu z REA-PERF-F1-002 (Aai_Sklep_Odczyt::moduly(), linia 199 — kwerenda o lekcje w pętli per moduł) — dołożenie DRUGIEJ, całkowicie zbędnej kwerendy per moduł (N+2 zamiast N+1) — nie zapaliła ŻADNEJ z trzech bramek statycznych sprawdzonych (straznik-wtyczki-wp.mjs, straznik-kreatora-wp.mjs, straznik-frontu-wp.mjs), wszystkie kod wyjścia 0. Sprawdzone też: w całym katalogu tools/ nie istnieje ani jedno wystąpienie SAVEQUERIES ani get_num_queries — w repozytorium nie ma ŻADNEGO mechanizmu (statycznego ani dynamicznego) liczącego zapytania SQL na żądanie.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "tools/smoke/smoke-wp-produkty.mjs",
+    "zakres": "cały katalog tools/ — brak jakiegokolwiek narzędzia liczącego zapytania SQL na żądanie (weryfikowane grep -rl \"SAVEQUERIES\\|get_num_queries\" tools/ → zero trafień)",
+    "mechanizm": "Żaden strażnik ani smoke tego repozytorium nie mierzy liczby zapytań SQL wykonanych przy renderowaniu strony kursu/katalogu. Klasa N+1 (i jej pogłębienie do N+2, N+3, …) jest więc strukturalnie niewidoczna dla całego zestawu bramek `npm run check` — może rosnąć bez ograniczeń bez jednego czerwonego wyniku."
+  },
+  "dowod": "Kopia pliku PRZED mutacją. Mutacja (python3): w pętli foreach modułów dołożona linia $wpdb->get_results(...) o identycznym warunku WHERE module_id = %s jak istniejąca kwerenda o lekcje — diff potwierdza dokładnie jedną dodaną linię (plus komentarz). `podman exec aai_wp_cli php -l …/class-aai-sklep-odczyt.php` → „No syntax errors detected”. Trzy bramki uruchomione PO mutacji: straznik-wtyczki-wp.mjs, straznik-kreatora-wp.mjs, straznik-frontu-wp.mjs — wszystkie kod wyjścia 0, komunikaty identyczne sprzed mutacji. `grep -rl \"SAVEQUERIES\\|get_num_queries\" tools/` → brak wyniku (potwierdza brak JAKIEGOKOLWIEK licznika zapytań w repo). Plik przywrócony z kopii, `git status --porcelain` i `git diff --stat` puste po przywróceniu.",
+  "klasyfikacja": "milczenie bramki — całkowity brak instrumentu pomiaru liczby zapytań SQL w zestawie bramek repozytorium",
+  "wplyw": "Potwierdza REA-PERF-F1-002 i pokazuje, że problem jest STRUKTURALNY, nie punktowy: sama klasa N+1 może się pogłębiać dowolnie (N+1 → N+2 → N+k) bez wykrycia przez którąkolwiek bramkę statyczną, a w repozytorium nie istnieje żaden dynamiczny odpowiednik (SAVEQUERIES/get_num_queries), który mógłby to złapać na żywym środowisku.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "11c055d5924011e5d7c2d732bd54304b42ec4dec0a58d1d6aae46c79a7f9418c",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "ODRZUCAM. Fakt uboczny wpisu jest prawdziwy i sprawdziłem go niezależnie, ale mutacja nie ma z nim związku dowodowego. POTWIERDZAM WŁASNYM POMIAREM: /usr/bin/grep -rq \"SAVEQUERIES|get_num_queries\" kończy KODEM 1 (brak trafień) i w tools/, i w wordpress/ — licznika zapytań w repozytorium naprawdę nie ma. Właśnie dlatego KANDYDATA NA BRAMKĘ NIE BYŁO: dołożenie drugiej kwerendy w pętli nie miało szansy zapalić niczego, a trzy uruchomione bramki są statycznymi czytnikami wzorców, które o liczbie zapytań nie mówią nic. Wpis mierzy więc ciszę tam, gdzie cisza była pewna, a swój jedyny nowy fakt (zero liczników zapytań w repo) ustala GREPEM — lekturą, nie uruchomieniem, wbrew metodzie sektora. Ponad REA-PERF-F1-002 nie wnosi nic o produkcie: tamten wpis ma już TRZY niezależne pomiary liczby zapytań (autor symulacją żądania, krytyk dziennikiem ogólnym MariaDB na żywym żądaniu przez Apache, weryfikator filtrem query), czyli klasa N+1 jest tam zmierzona lepiej i z policzonym mianownikiem.",
+      "kiedy": "2026-09-04T19:28:02.112Z"
+    }
+  }
+}

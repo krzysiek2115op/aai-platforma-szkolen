@@ -1,0 +1,26 @@
+{
+  "sektor": "re-audyt",
+  "fala": 1,
+  "rola": "INT",
+  "status": "ZAKOŃCZONE",
+  "runda": 1,
+  "niedomkniete": [],
+  "kiedy": "2026-09-04T13:02:39.344Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-04T12:41:56.577Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-04T13:02:25.227Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 1,
+      "kiedy": "2026-09-04T13:02:39.344Z"
+    }
+  ]
+}

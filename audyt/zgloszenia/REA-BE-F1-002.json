@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "db21292734befc9c76e934f68b7bc808e7aaa15fdb54fdd4940c796be969a200",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje i zasieg zgadza sie co do sztuki. R1/R2 (dwa przebiegi, identyczne, kody bez potoku): akapit Pomiar nie zostawia sladu stoi w re-audyt/role/BE/AGENT.md:166-172 i wylicza dokladnie trzy zasoby - tabela, opcja, skrzynka; wyszukanie w tych siedmiu wierszach wzorca AUTO_INCREMENT|media|plik|srodowisko.mjs daje ZERO trafien (GNU grep 3.12, kod wyjscia 1). R3: akapit niesie 14 plikow rol (grep -rl po re-audyt/role/*/AGENT.md), czyli tyle, ile podaje wpis. R5: druga polowa twierdzenia - ze instrument sektora mierzy WIECEJ, niz wymaga akapit - potwierdzona w kodzie narzedzia, nie z opisu: srodowisko.mjs:42 zapowiada COUNT(*) + AUTO_INCREMENT kazdej tabeli i media, a porownanie robi to naprawde - linia 141 zglasza rozjazd AUTO_INCREMENT, linie 150-152 rozjazd liczby plikow mediow, ich sumy bajtow i skrotu listy sciezek. Jest tez galaz na falszywy alarm (ULOTNE_AUTO_INCREMENT z wp_options, linia 84), wiec narzedzie nie jest po prostu czulsze przez przypadek - roznica miedzy nim a akapitem jest zaprojektowana po jednej stronie i nieopisana po drugiej. R4: miejsce rodzaju mechanizm, plik istnieje, hash przeliczony niezaleznie rowny polu, a zakres 166-172 wskazuje faktycznie ten akapit. CZEGO NIE ODTWARZALEM I MOWIE TO WPROST: nie powtarzalem ani zapisu syntetycznego kursu, ani testu BE-R1 usuwajacego plik klasy, bo obie drogi zostawiaja slad, ktorego sam cofnac nie moge (dziennik audytu jest niezmienny z zalozenia, a protokol zrzutu i przywrocenia nalezy do orkiestratora). Liczby 1491->1501 i 1343->1346 pochodza wiec z cudzego pomiaru i tak je traktuje - jako ilustracje, nie jako podstawe werdyktu. Podstawa jest to, co zmierzylem sam: akapit definiuje wezszy zbior zasobow niz bramka, ktora go rozlicza, a rozliczenie w tej fali bylo dostepne komenda, ktorej akapit nie wymienia. Stan srodowiska po mojej weryfikacji sprawdzony: srodowisko.mjs --sprawdz --fala=1 kod 0. R6: hasz nie pokrywa sie z zadnym innym wpisem; przedmiotem jest material re-audytu, wiec wpisu audytu o tym miejscu nie ma i byc nie moze.",
+      "kiedy": "2026-09-04T17:37:39.106Z"
+    }
+  }
 }

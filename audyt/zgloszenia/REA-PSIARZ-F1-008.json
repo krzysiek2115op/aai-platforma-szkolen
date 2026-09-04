@@ -1,0 +1,27 @@
+{
+  "id": "REA-PSIARZ-F1-008",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R2",
+  "stwierdzenie": "Reprodukcja niezależną mutacją treści (tools/seed/seed-przyklady.ts, linia 75) potwierdza dokładnie klasę z REA-QA-F1-001: fraza „lekcję wideo” (biernik, diakrytyk „ę” zaraz po rdzeniu „lekcj”) dopisana do opisu sekcji sprzedażowej NIE zapala straznik-obietnic.mjs (kod wyjścia 0), a ta sama fraza bez diakrytyku („lekcje wideo”) zapala go poprawnie (kod wyjścia 1, komunikat wskazuje dokładnie wzorzec /lekcj\\w*\\s+wideo/i) — czyli reguła zapala się na WŁAŚCIWY wzorzec przy formie bez diakrytyku, ale milczy (zapala się COŚ INNEGO — a właściwie NIC) przy formie z diakrytykiem, mimo identycznej treści merytorycznej (obietnica wideo).",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/straznicy/straznik-obietnic.mjs",
+    "linia": 50,
+    "tresc": "  /\\d+\\s+modułów?\\s+wideo/i, /godzin[ay]?\\s+wideo/i, /lekcj\\w*\\s+wideo/i,"
+  },
+  "dowod": "Kopia pliku PRZED mutacją (tools/seed/seed-przyklady.ts). Krok 1: linia 75 zmieniona z „…w każdej lekcji i zrzutami z prawdziwych ekranów,” na „…w każdej lekcji i zrzutami — PSIARZ-MUTACJA znajdziesz też lekcję wideo w środku z prawdziwych ekranów,” (forma z diakrytykiem „ę”). `node tools/straznicy/straznik-obietnic.mjs` → „straznik-obietnic: OK (kursów: 2, widoków: 56)”, kod wyjścia 0 — MILCZENIE mimo jawnej frazy o wideo. Krok 2 (kontrola pozytywna, ten sam plik): zamiana „lekcję” → „lekcje” (bez diakrytyku) — `node tools/straznicy/straznik-obietnic.mjs` → usterka „obiecuje wideo (/lekcj\\w*\\s+wideo/i) — kurs jest TEKSTOWY”, kod wyjścia 1. Krok 3: plik przywrócony z kopii, `node tools/straznicy/straznik-obietnic.mjs` → „OK” ponownie, `git status --porcelain -- tools/seed/seed-przyklady.ts` puste po przywróceniu.",
+  "klasyfikacja": "milczenie bramki — regex \\w* (JS) nie obejmuje polskich znaków diakrytycznych, więc \\s+ zaraz po rdzeniu z odmienioną końcówką nie dopasowuje",
+  "wplyw": "Niezależnie odtwarza rdzeń REA-QA-F1-001 przez własną mutację (nie tylko lekturę kodu): decyzja właściciela „NIGDY WIDEO” ma bramkę, która NIE działa dla każdej formy fleksyjnej polskiego rzeczownika — forma dopełniacza/biernika z „ę” tuż za rdzeniem przechodzi przez kontrolę niewykrytą, mimo że mianownik/miejscownik tej samej frazy jest łapany poprawnie.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "72b51cd1a00fb27bddd8dd064576c9042c73f8c435f21640dd4989e2cfe972ab",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "ODRZUCAM — to nie jest pogłębienie, tylko ten sam wpis drugi raz. HASZ MIEJSCA JEST IDENTYCZNY z REA-QA-F1-001: 72b51cd1a00fb27bddd8dd064576c9042c73f8c435f21640dd4989e2cfe972ab, ta sama linia straznik-obietnic.mjs:50, ta sama treść (porównane programowo, nie na oko). Co ważniejsze, tamten wpis — ZWERYFIKOWANY, ISTNIEJE — niesie już DOKŁADNIE tę samą demonstrację i tymi samymi dwiema formami: \"Potwierdzone URUCHOMIENIOWO mutacją treści: forma z diakrytykiem tuż po rdzeniu (biernik) przechodzi przez strażnika bez wykrycia, forma bez tej cechy jest łapana poprawnie\". Powtórzenie tej samej mutacji na innym pliku wejściowym nie dodaje faktu, zasięgu ani miejsca — to KON-R5. Samego pomiaru nie kwestionuję: kontrola pozytywna zadziałała, a wzorzec /lekcj\\w*\\s+wideo/i rzeczywiście nie dopasowuje formy z \"ę\" tuż za rdzeniem, bo \\w w JS nie obejmuje polskich liter. Kwestionuję istnienie tego wpisu OBOK wpisu o tym samym haszu: przy łączeniu sektorów i porównaniu fal ta sama usterka zostanie policzona dwa razy, a rola dostanie zaliczoną pozycję za cudzą pracę.",
+      "kiedy": "2026-09-04T19:28:28.636Z"
+    }
+  }
+}

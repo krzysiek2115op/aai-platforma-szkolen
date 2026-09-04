@@ -1,0 +1,21 @@
+{
+  "id": "REA-PSIARZ-F1-013",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R6",
+  "stwierdzenie": "Rekord zamknięcia roli PSIARZ fali 1 (audyt/stan/re-audyt-f1-PSIARZ.json) deklaruje jako NIEDOMKNIĘTE dziewiętnaście pozycji, z których ANI JEDNA nie należy do checklisty tej roli: PRIV-R1, PRIV-R2, PRIV-90, WDR-R5, WDR-R6, WDR-90, KIER-90, PIK-R6, PROTO-R2, PROTO-R6, ARCH-R4, USP-R6, SEC-R5, INT-R2, FE-R4, BE-R6, QA-R2, REPO-R1, REPO-R5 — to pozycje CUDZYCH ról, użyte jako lista „czego nie zmutowałem”. audyt/tools/status.mjs przyjmuje je bez zastrzeżeń, bo sprawdza wyłącznie KSZTAŁT kodu pozycji (KOD_POZYCJI w audyt/tools/wspolne.mjs:184 = /^[A-Z]{2,6}-[A-Z]?\\d{1,2}$/), nigdy jego związku z rolą zapisującą stan. Skutkiem są dwie nieprawdy w rekordzie sektora naraz: sektor twierdzi, że PSIARZ zostawił otwarte PRIV-R1 (nieprawda — PRIV-R1 należy do PRIV i jest rozliczane osobno) oraz że PSIARZ domknął wszystkie własne pozycje R1-R6, w tym R4 (kontrprzykład), dla której w żadnym z dziesięciu wpisów nie ma dowodu.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/status.mjs",
+    "zakres": "obsługa --niedomkniete, linie 450-465 (walidacja listy przed zapisem do stanu)",
+    "mechanizm": "Brak sprawdzenia, że przedrostek każdego podanego kodu pozycji jest kodem ROLI zapisującej stan (a przy rolach o zamkniętym przedmiocie — że kod należy do jej własnej checklisty w ROLE.md). Walidacja kończy się na KOD_POZYCJI (wspolne.mjs:184), czyli na kształcie „DWIE DO SZEŚĆ WIELKICH LITER, myślnik, opcjonalna litera, jedna do dwóch cyfr”; komentarz w tym samym miejscu (status.mjs:456) mówi wprost, że kierownik liczy stąd liczbę otwartych pozycji (KIER-01), więc obce kody wchodzą do jego rachunku jako otwarte pozycje tej roli."
+  },
+  "dowod": "(1) Rekord odczytany wprost: audyt/stan/re-audyt-f1-PSIARZ.json ma status ZAKOŃCZONE, rundę 1 i tablicę `niedomkniete` z dziewiętnastoma wpisami wymienionymi w stwierdzeniu; żaden nie zaczyna się od „PSIARZ-”. (2) Checklista tej roli ma dokładnie sześć pozycji i wszystkie mają przedrostek PSIARZ-: re-audyt/ROLE.md:540-545, przepisane co do znaku w re-audyt/role/PSIARZ/AGENT.md:158-163. (3) Że narzędzie nie ma jak tego odrzucić: status.mjs:450-465 dzieli listę po przecinku i odrzuca wyłącznie elementy niepasujące do KOD_POZYCJI; wzorzec odczytany w audyt/tools/wspolne.mjs:184 nie zawiera żadnego odniesienia do roli. Kody PRIV-R1 czy REPO-R5 pasują do niego tak samo dobrze jak PSIARZ-R4. (4) Że pozycja R4 nie ma pokrycia w wyjściu: przelot po polach `dowod` wpisów REA-PSIARZ-F1-001..010 — żaden nie opisuje zmiany DOZWOLONEJ, która nie zapala bramki (kontrprzykład); dwie kontrole pozytywne, które tam są (wpisy -008 i -009), są zmianami ZAKAZANYMI, które zapalają, czyli przeciwieństwem tego, o co pyta R4.",
+  "klasyfikacja": "usterka rekordu przebiegu — pole rozliczające rolę z jej WŁASNEJ checklisty przyjmuje pozycje cudzych ról, więc deklaracja niedomknięcia mówi o czymś innym, niż liczy kierownik",
+  "wplyw": "Kierownik i porównanie fal czytają `niedomkniete` jako listę pozycji, których TA rola nie zamknęła. Tu dostają dziewiętnaście pozycji cudzych ról (z których część ich właściciele domknęli) i zero informacji o tym, że własna pozycja PSIARZ-R4 nie ma dowodu. Rachunek otwartych pozycji fali jest przez to zawyżony o dziewiętnaście i zaniżony o co najmniej jedną, a fala 2, porównując rozliczenia, zobaczy rozjazd, którego przyczyną jest zapis, nie praca.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "8b2ea758faf680a837032c679ab40eea95c4b80353ae2ef0821417a3daed2c10",
+  "werdykt": null
+}

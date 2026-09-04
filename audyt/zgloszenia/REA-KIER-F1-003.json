@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "ce9fa3e9e54a82f280d9e0b82adc9ffe639b4e46539054cb2ac75e3da65a7225",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje, sprawdzone przeze mnie w ZRODLE narzedzia - komendy NIE uruchamialem, bo jej uruchomienie samo nadpisuje sledzony plik, czyli powtorzyloby zgloszona szkode; to jest ten rzadki przypadek, w ktorym odtworzenie byloby wyrzadzeniem szkody, wiec czytam kod. R1/R5: polacz-sektory.mjs czyta process.argv WYLACZNIE dla --fala= (linia 25) i nie zna zadnej innej flagi - nie ma ani --pokaz, ani --zapisz, choc status.mjs i werdykt.mjs oba maja tryb samego odczytu. Zapis w linii 46 to gole zapiszJSON(join(SEKTOR, wyniki, polaczone-f<fala>.json), ...) w przebiegu glownym, bez ani jednego warunku - wiec KAZDE uruchomienie pozycji KIER-R4 zmienia sledzony artefakt sektora AUDYT. R3: liczby z wyjscia daja sie potwierdzic niezaleznie - sam policzylem hasze wszystkich wpisow obu sektorow i wychodzi 178 wpisow przy 171 unikalnych haszach i siedmiu parach wspoldzielacych hasz, co zgadza sie z arytmetyka laczenia opisana w tym pliku (miejsca = unikalne hasze). Potwierdzilem tez, ze narzedzie pomija wpisy PROBNE (bezProb w linii 27), wiec liczba 3 pominietych w cytowanym wyjsciu ma pokrycie w danych. R4: miejsce rodzaju mechanizm, plik istnieje, linia 46 zgadza sie z opisem, hash rowny przeliczonemu. R2 - odtworzenia NIE POWTARZALEM i mowie to wprost, zeby nikt nie wzial mojego werdyktu za drugi pomiar: slad w git po tamtym uruchomieniu jest historia, ktora widzialem, ale sam go nie wytworzylem. R6: hasz nie pokrywa sie z zadnym innym wpisem obu sektorow. DOKLADAM JEDNA RZECZ, ktora sprawdzilem przy okazji i ktora wzmacnia wplyw, a nie zmienia werdyktu: polacz-sektory NIE FILTRUJE wpisow po werdykcie - laczy wszystko, co nie jest probne, wiec plik wyniku zmienia sie takze wtedy, gdy zmieni sie sam katalog zgloszen, i liczba w nim naprawde zalezy od chwili ostatniego uruchomienia, a nie od zamkniecia sektora.",
+      "kiedy": "2026-09-04T17:47:45.690Z"
+    }
+  }
 }

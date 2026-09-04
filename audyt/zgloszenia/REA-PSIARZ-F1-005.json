@@ -1,0 +1,27 @@
+{
+  "id": "REA-PSIARZ-F1-005",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R1",
+  "stwierdzenie": "Mutacja w miejscu z REA-INT-F1-001/003 (Aai_Platnosci_Dostarczanie::zarejestruj(), linia 86) — zakomentowanie JEDYNEGO haka domykającego zamówienie (add_action('woocommerce_order_status_processing', …)), czyli usunięcie CAŁEGO mechanizmu automatycznego domykania zamówień produktów cyfrowych opisanego w tej klasie — NIE zapaliła straznik-platnosci-wp.mjs, kod wyjścia 0 z komunikatem identycznym sprzed mutacji.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "tools/straznicy/straznik-platnosci-wp.mjs",
+    "zakres": "cały plik — brak reguły weryfikującej REJESTRACJĘ haków w Aai_Platnosci_Dostarczanie::zarejestruj() (linie 70-86 pliku class-aai-platnosci-dostarczanie.php)",
+    "mechanizm": "Strażnik sprawdza WEWNĘTRZNE właściwości metod nasłuchujących haki (m.in. czy łapią Throwable — niezmiennik 17), ale nie sprawdza, czy hak w ogóle POZOSTAJE ZAREJESTROWANY. Usunięcie add_action('woocommerce_order_status_processing', …) na linii 86 nie narusza żadnego z istniejących wzorców regex, bo metoda domknij() (cel haka) sama w sobie jest nietknięta — brakuje jej po prostu wywołania."
+  },
+  "dowod": "Kopia pliku PRZED mutacją. Mutacja (sed): linia 86 poprzedzona komentarzem „// PSIARZ-MUTACJA: ” — diff potwierdza jedną zmienioną linię, add_action nie jest już wykonywalnym kodem. `podman exec aai_wp_cli php -l …/class-aai-platnosci-dostarczanie.php` → „No syntax errors detected” (komentarz jest poprawną składnią, mutacja jest realna). `node tools/straznicy/straznik-platnosci-wp.mjs` PO mutacji: kod wyjścia 0, komunikat IDENTYCZNY jak przed mutacją (35 fraz, w tym „zamówienia mieszane nie są domykane” i „domknięcie na koniec żądania” — obie prawdziwe zdania o INNYCH częściach kodu, żadna nie dotyczy usuniętej rejestracji). Plik przywrócony z kopii, `git status --porcelain` i `git diff --stat` puste po przywróceniu.",
+  "klasyfikacja": "milczenie bramki — brak reguły statycznej weryfikującej obecność rejestracji haka cyklu życia zamówienia",
+  "wplyw": "Potwierdza i rozszerza REA-INT-F1-001/003: brak jest nie tylko haka na USUNIĘCIE zamówienia (jak zgłasza audyt), ale też brak jest JAKIEJKOLWIEK bramki, która wykryłaby regresję polegającą na wypadnięciu JUŻ ISTNIEJĄCEGO haka domykającego — mechanizm „klient płacący przelewem dostaje dostęp po zaksięgowaniu wpłaty” (decyzja właściciela P3b) mógłby przestać działać w całości bez żadnego czerwonego wyniku w npm run check.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "f3911776575c841893bb8682d38a30a888b4c8cb5a91e724d252702b74fe4b7f",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "ODRZUCAM na DWÓCH niezależnych podstawach. Ciszę strażnika odtworzyłem sam, więc nie odrzucam pomiaru, tylko to, co wpis z niego wyprowadza. POWTÓRZENIE: zakomentowałem linię 86 (add_action woocommerce_order_status_processing → domknij), straznik-platnosci-wp kod wyjścia 0 BEZ potoku, komunikat identyczny — i rzeczywiście zawiera frazę \"domknięcie na koniec żądania\", czyli twierdzi o mechanizmie, którego rejestracji już nie ma. Plik przywrócony z kopii, sha256 równy wyjściowemu. PODSTAWA 1 — STWIERDZENIE JEST NIEPRAWDZIWE CO DO ZAKRESU MUTACJI. Wpis mówi o \"usunięciu CAŁEGO mechanizmu automatycznego domykania zamówień opisanego w tej klasie\". Klasa rejestruje DWA mechanizmy: filtr woocommerce_order_item_needs_processing (linia 71) — drogę GŁÓWNĄ, dzięki której produkt kursu nigdy nie wymaga obsługi i payment_complete idzie prosto do completed — oraz hak z linii 86, który sam plik nazywa SIATKĄ na ręczną zmianę statusu w panelu. Mutacja zdjęła siatkę i zostawiła drogę główną, więc opis skutku jest zawyżony. PODSTAWA 2 — KANDYDAT NA BRAMKĘ ISTNIEJE I NIE ZOSTAŁ URUCHOMIONY: smoke-wp-zakup.mjs:390-403 przestawia zamówienie RĘCZNIE na processing i asertuje, że kończy jako completed (:403), a osobno kolejność przejść on-hold>processing przed processing>completed (:399) — czyli mierzy dokładnie skutek zdjętej rejestracji. Wpis go nie uruchomił i nie wymienił, a mimo to twierdzi \"brak JAKIEJKOLWIEK bramki\" i \"bez żadnego czerwonego wyniku w npm run check\". npm run check nie zawiera ANI JEDNEJ bramki WP (package.json:16 kontra smoke:wp-* w 34-49) i również nie został uruchomiony. Bramka nieuruchomiona nie jest bramką milczącą. ODNOTOWUJĘ, bo to ma wartość i przepada razem z werdyktem: ślepota komunikatu strażnika (twierdzi o domknięciu przy zdjętej rejestracji) jest realna i sam ją zmierzyłem — ale wpis zbudował wniosek nie na niej, tylko na fałszywym zdaniu ogólnym.",
+      "kiedy": "2026-09-04T19:28:02.064Z"
+    }
+  }
+}

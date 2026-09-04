@@ -1,0 +1,21 @@
+{
+  "id": "REA-PSIARZ-F1-011",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R1",
+  "stwierdzenie": "Komenda pozycji PSIARZ-R1 (mutacja + `npm run check`) NIE MOŻE odpowiedzieć na pytanie tej pozycji dla kodu, który rola mutuje: `npm run check` (package.json:16) nie uruchamia ANI JEDNEJ z szesnastu bramek behawioralnych WordPressa — te żyją wyłącznie w osobnych skryptach `smoke:wp-*` (package.json:34-49), poza `check`. Wszystkie dziesięć mutacji fali 1 dotknęło kodu WordPressa, więc rola, której produktem jest zdanie „nic nie zaszczekało”, ma w checkliście wskazany runner strukturalnie niezdolny do zaszczekania. Skutek zmierzony na tym przebiegu: osiem z dziesięciu wpisów orzeka ciszę wyłącznie na podstawie strażników statycznych, a dla co najmniej trzech miejsc bramka pokrywająca ISTNIEJE i nie została uruchomiona — smoke-wp-kreator.mjs:437 (treść lekcji po zapisie), smoke-wp-tutor.mjs:212 (powtórny import ma dać bez_zmian, nie utworzone), smoke-wp-zakup.mjs:403 (ręczne przestawienie na processing ma skończyć jako completed).",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "re-audyt/ROLE.md",
+    "linia": 540,
+    "tresc": "| PSIARZ-R1 | Czy zepsucie kodu w miejscu znaleziska zapala **jakąkolwiek** bramkę? | mutacja + `npm run check` (kod BEZ potoku) | mutacja + kod wyjścia |"
+  },
+  "dowod": "(1) Zawartość `check` odczytana wprost: package.json:16 = uruchom-wszystkie.mjs && lint && tsc --noEmit && test && build && `npm run smoke`, a `smoke` (package.json:15) to siedem smoke-ów PROTOTYPU (d4, d5, d6, lekcje, csp, podglad, seo) — ani jednego pliku z tools/smoke/smoke-wp-*. Bramki WP stoją osobno w package.json:34-49 (szesnaście wpisów `smoke:wp-*`). (2) Że kandydaci istnieją, sprawdziłem czytając ich asercje: smoke-wp-kreator.mjs:421-429 wysyła akcję aai_sklep_zapisz_lekcje i w :437 asertuje `zBazy.content === TRESC_PROBNA`; smoke-wp-tutor.mjs:212 asertuje `{ utworzone: 0, zaktualizowane: 0, bez_zmian: 6, usuniete: 0 }` przy powtórnym imporcie; smoke-wp-zakup.mjs:390-403 przestawia zamówienie na processing i asertuje status `completed` oraz kolejność przejść. (3) Że rola faktycznie tego nie uruchomiła: pole `dowod` wszystkich dziesięciu wpisów REA-PSIARZ-F1-001..010 wymienia wyłącznie skrypty `tools/straznicy/*.mjs`; ani jeden nie wymienia `npm run check` ani żadnego `smoke:wp-*`. (4) Dwie mutacje powtórzyłem sam (kopia przed mutacją, przywrócenie z kopii, sha256 zgodne): bezwarunkowe czyszczenie content/materials w class-aai-sklep-zapis.php:375-376 — trzy strażniki kod 0 bez potoku; zakomentowana rejestracja haka w class-aai-platnosci-dostarczanie.php:86 — straznik-platnosci-wp kod 0 bez potoku. Cisza strażników jest więc realna; brakuje kroku, który pyta bramkę umiejącą odpowiedzieć.",
+  "klasyfikacja": "usterka checklisty — komenda pozycji mierzy inny zbiór bramek niż zbiór pokrywający moduł, który rola mutuje; pozycję da się domknąć na zielono, nie uruchamiając ani jednej bramki zdolnej zareagować",
+  "wplyw": "Rola produkuje zdania „żadna bramka nie zareagowała”, które są prawdziwe o strażnikach statycznych i nieprawdziwe o repozytorium. Fala 2 i naprawa czytają je jako mapę białych plam i mogą dopisać reguły tam, gdzie pokrycie już jest, a pominąć miejsca naprawdę odsłonięte. W tym przebiegu dotyczy to trzech z dziesięciu wpisów wprost (REA-PSIARZ-F1-002, -003, -005) i całej klasyfikacji „milczenie bramki” pozostałych.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "f05264b279c2c01fb6e979cdce75135c1b56280a206bf24c4f5a50c498884247",
+  "werdykt": null
+}

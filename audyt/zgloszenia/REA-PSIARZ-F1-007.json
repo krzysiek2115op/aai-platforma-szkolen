@@ -1,0 +1,27 @@
+{
+  "id": "REA-PSIARZ-F1-007",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R1",
+  "stwierdzenie": "Mutacja w miejscu z REA-SEC-F1-001/003 (mu-plugins/aai-obwod.php, kolektor raportów CSP, linie 572-580 — JEDYNA weryfikacja istniejąca na tym publicznym, niezalogowanym punkcie zapisu: rate-limit 60 raportów/minutę per IP) — całkowite usunięcie tego bloku — NIE zapaliła straznik-obwodu.mjs, kod wyjścia 0 z komunikatem identycznym sprzed mutacji.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "tools/straznicy/straznik-obwodu.mjs",
+    "zakres": "cały plik — brak reguły weryfikującej obecność rate-limitu w Aai_Obwod::przyjmij_raport()",
+    "mechanizm": "straznik-obwodu.mjs sprawdza XML-RPC, S-2/author enum, hasła aplikacji, cztery nagłówki HTTP, CSP z nonce+hashami i „kolektor” (obecność mechanizmu jako takiego), ale nie sprawdza ŻADNEJ z wewnętrznych zabezpieczeń przyjmij_raport() — ani rate-limitu, ani sufitu długości ciała, ani (zgodnie z REA-SEC-F1-001/003) nonce'a czy Content-Type. Usunięcie CAŁEGO bloku rate-limitu (linie 572-580) nie narusza żadnego istniejącego wzorca."
+  },
+  "dowod": "Kopia pliku PRZED mutacją. Mutacja (python3): blok kodu ustalający $adres, sprawdzający transient i wywołujący set_transient (8 linii) zastąpiony jednym komentarzem „// PSIARZ-MUTACJA: rate-limit wylaczony calkowicie” — diff potwierdza usunięcie dokładnie tego bloku. `podman exec aai_wp_cli php -l …/aai-obwod.php` (ścieżka w kontenerze: /var/www/html/wp-content/mu-plugins/aai-obwod.php) → „No syntax errors detected”. `node tools/straznicy/straznik-obwodu.mjs` PO mutacji: kod wyjścia 0, komunikat IDENTYCZNY sprzed mutacji („obwód na miejscu (XML-RPC off, S-2 + author enum + mapa autorów, mapa bez dostawcy oddaje 404, hasła aplikacji off, 4 nagłówki, CSP egzekwujące z nonce + 2 hashe + kolektor, hash motywu zgodny)”). Plik przywrócony z kopii, `git status --porcelain` i `git diff --stat` puste po przywróceniu.",
+  "klasyfikacja": "milczenie bramki — brak reguły weryfikującej wewnętrzne zabezpieczenia publicznego, niezalogowanego endpointu zapisu",
+  "wplyw": "Rozszerza REA-SEC-F1-001/003: kolektor CSP nie tylko od początku nie ma nonce'a/Content-Type (jak zgłasza audyt), ale JEDYNA istniejąca ochrona (rate-limit) też może zostać usunięta bez żadnego czerwonego wyniku — cały endpoint jest poza zasięgiem automatycznej kontroli integralności, mimo że przyjmuje anonimowe żądania POST i pisze do opcji WordPressa.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "4b0d56333d971abbf5ef1c77b31b61a5a5f281f6b0d813d870a04b2daacdfd71",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "ODRZUCAM. Cisza jest prawdziwa, ale była przesądzona: KANDYDATA NA BRAMKĘ NIE BYŁO. Sprawdziłem straznik-obwodu.mjs sam — jedyna reguła dotycząca kolektora pyta o obecność report-uri w nagłówku CSP (:133-135), a słów \"limit\", \"transient\", \"przyjmij_raport\", \"zbierz_raport\" nie ma w tym pliku ani razu; poza nim aai-obwod.php występuje w tools/ wyłącznie w audyt-straznikow.mjs:91 (definicja ścieżki). Bramki dynamicznej dla mu-plugina obwodu nie ma żadnej. Usunięcie bloku 571-580 nie miało więc czego zapalić, a wpis podaje ciszę jako WYNIK, choć jest ona ZAŁOŻENIEM — i tego nie nazywa. Ponad REA-SEC-F1-001 i REA-SEC-F1-003 (oba ISTNIEJE, oba o tym samym endpoincie i tej samej linii 169) zostaje jedno zdanie: że jedyna istniejąca ochrona też jest niepilnowana — a to zdanie daje ten sam grep, który wpis i tak wykonał. ODNOTOWUJĘ DODATKOWO, bo osłabia wpływ: plik leży w wordpress/srodowisko/mu-plugins/, czyli w mu-pluginie STANOWISKA, a nie w żadnej z trzech wtyczek oddawanych klientowi — zdanie o regresji przechodzącej przez kontrolę integralności dotyczy więc kodu, którego żadna paczka ZIP nie wozi.",
+      "kiedy": "2026-09-04T19:28:28.595Z"
+    }
+  }
+}

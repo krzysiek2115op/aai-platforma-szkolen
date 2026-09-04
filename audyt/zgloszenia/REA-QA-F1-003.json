@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "4c7aa95c874b4b9b921901aebd9fe29718fca01badbffa7668da13d2edcfb970",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje, a policzony zasieg zgadza sie z moim. R1/R2: sprawdzilem w node kazdy wzorzec z listy siedmiu na parze form roznicych sie wylacznie diakrytykiem tuz za rdzeniem. Slepe sa wszystkie wymienione: obietnic:50 (lekcj), :51 (kurs), :138 (plik - zestaw plikow do pobrania NIE pasuje, zestaw pliki do pobrania pasuje), licencji:44 (licencj), odsylaczy:161 (modulow 1-3 nie pasuje, moduly 1-3 pasuje) oraz :163 i :165, gdzie pierwszy czlon ma ten sam ksztalt. To jest siedem, czyli liczba ze stwierdzenia. R3 - i to jest czesc, ktora robi z tego wpisu dobra prace: sprawdzilem takze KONTRPRZYKLADY, ktore wpis sam wyklucza, i wyklucza je SLUSZNIE. obietnic:88 ma po \\w* klase [^\"]{0,80}? przyjmujaca diakrytyk, :107 nie wymaga nastepnego znaku, odsylaczy:149 ma [^.\\d]{0,14}? - zadne z tych trzech nie jest slepe. Wykluczenie obietnic:102 (/minut\\w*\\s+na/) tez sie broni, bo formy minute na N lekcji nie da sie napisac poprawnie po polsku. Rola nie zawyzyla listy przez doliczenie wszystkiego, co ma \\w*, i to jest dokladnie przeciwienstwo bledu, za ktory odrzucilem REA-PERF-F1-001. R4: miejsce zgadza sie co do znaku (straznik-obietnic.mjs:138), hash rowny przeliczonemu. R5: wplyw ma pokrycie w tresci pliku - wzorzec z linii 138 pilnuje DRUGIEJ z dwoch nieprawd, dla ktorych ten straznik powstal, wiec naprawa po niepelnej liscie zostawilaby go w polowie slepego. R6: hasz nie pokrywa sie z zadnym innym wpisem obu sektorow. Wobec REA-QA-F1-001 nie jest to spor - tamten wpis stoi pod QA-R5 i wymienia NOWE miejsca bez twierdzenia o komplecie, ten stoi pod QA-R2 i liczy klase; obie liczby sa prawdziwe w swoich granicach. Mutacji plikow nie powtarzalem: nie mam prawa zapisu, a semantyke wzorcow zmierzylem wprost, wiec mutacja niczego by nie dolozyla.",
+      "kiedy": "2026-09-04T17:57:53.164Z"
+    }
+  }
 }

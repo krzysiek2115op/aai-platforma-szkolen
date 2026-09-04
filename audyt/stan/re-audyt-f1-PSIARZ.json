@@ -1,0 +1,46 @@
+{
+  "sektor": "re-audyt",
+  "fala": 1,
+  "rola": "PSIARZ",
+  "status": "ZAKOŃCZONE",
+  "runda": 1,
+  "niedomkniete": [
+    "PRIV-R1",
+    "PRIV-R2",
+    "PRIV-90",
+    "WDR-R5",
+    "WDR-R6",
+    "WDR-90",
+    "KIER-90",
+    "PIK-R6",
+    "PROTO-R2",
+    "PROTO-R6",
+    "ARCH-R4",
+    "USP-R6",
+    "SEC-R5",
+    "INT-R2",
+    "FE-R4",
+    "BE-R6",
+    "QA-R2",
+    "REPO-R1",
+    "REPO-R5"
+  ],
+  "kiedy": "2026-09-04T19:11:53.340Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-04T18:52:43.081Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-04T19:11:48.466Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 1,
+      "kiedy": "2026-09-04T19:11:53.340Z"
+    }
+  ]
+}

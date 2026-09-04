@@ -1,0 +1,27 @@
+{
+  "id": "REA-PSIARZ-F1-009",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R2",
+  "stwierdzenie": "Mutacja README.md (jedyne miejsce z liczbą „na N sposobów”, linia 382) z „340 sposobów” na „341 sposobów”, przy audyt-straznikow.mjs NIETKNIĘTYM (340 zadeklarowanych wpisów straznik:), zapaliła straznik-readme.mjs poprawnie (kod wyjścia 1, komunikat „README podaje audyt „na 341 sposobów”, a mutacji w audyt-straznikow.mjs jest 340” — dokładnie ta reguła, o którą chodzi). To POTWIERDZA mechanizm reguły 6 opisany w REA-USP-F1-001: reguła porównuje WYŁĄCZNIE dwie liczby TEKSTOWE (README kontra zadeklarowane wpisy straznik: w źródle), nigdy z REALNYM wynikiem uruchomienia audyt-straznikow.mjs (338 złapanych + 2 pominiętych z 340 zadeklarowanych) — więc strukturalnie NIE MOŻE wykryć rozjazdu między liczbą zadeklarowaną a liczbą faktycznie zweryfikowaną, bo tej drugiej nigdzie nie czyta.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/straznicy/straznik-readme.mjs",
+    "linia": 167,
+    "tresc": "    const mutacji = (readFileSync(audyt, \"utf8\").match(/^\\s*straznik:/gm) ?? []).length;"
+  },
+  "dowod": "Kopia README.md PRZED mutacją. Mutacja (sed): linia 382 „> 340 sposobów …” → „> 341 sposobów …” — diff potwierdza jedną zmienioną linię. `node tools/straznicy/straznik-readme.mjs` PO mutacji → kod wyjścia 1, komunikat dokładnie „README podaje audyt „na 341 sposobów”, a mutacji w audyt-straznikow.mjs jest 340.” (kontrola pozytywna: reguła 6 fizycznie działa i reaguje na rozjazd tekst-kontra-tekst). Plik przywrócony z kopii, `node tools/straznicy/straznik-readme.mjs` → ponownie „OK”, `git status --porcelain -- README.md` puste po przywróceniu. Osobno, lekturą kodu (linia 167 cytowana w polu miejsce): jedyne źródło liczby „mutacji” to zliczenie wzorca `^\\s*straznik:` w PLIKU ŹRÓDŁOWYM audyt-straznikow.mjs — funkcja nigdzie nie czyta ani nie uruchamia audyt-straznikow.mjs, więc nie ma dostępu do liczby FAKTYCZNIE złapanych/pominiętych mutacji przy realnym przebiegu.",
+  "klasyfikacja": "milczenie bramki (strukturalne, nie doraźne) — reguła 6 porównuje deklarację z deklaracją, nigdy z wynikiem wykonania",
+  "wplyw": "Potwierdza REA-USP-F1-001 mutacją kontrolną: bramka reaguje na rozjazd liczb TEKSTOWYCH (co dowodzi, że mechanizm jest aktywny), ale z konstrukcji nie jest w stanie zauważyć, że deklarowana liczba (340) i realnie zweryfikowana liczba (338, z 2 pominiętymi z braku materiału) się różnią — README może więc zostać zielone przy dowolnie niskiej REALNEJ liczbie zweryfikowanych sposobów, dopóki liczba zadeklarowana w kodzie źródłowym się zgadza.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "2c4e967b8260239a07fcd6f38e6d581767117ae8681dc3c908aab27c10f355de",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "ODRZUCAM z dwóch powodów, z których każdy wystarcza. (1) HASZ MIEJSCA JEST IDENTYCZNY z REA-USP-F1-001: 2c4e967b8260239a07fcd6f38e6d581767117ae8681dc3c908aab27c10f355de, ta sama linia straznik-readme.mjs:167, ta sama treść (porównane programowo). Tamten wpis — ZWERYFIKOWANY, ISTNIEJE — niesie już całą tezę: reguła 6 porównuje deklarację z deklaracją i nigdy z wynikiem uruchomienia, a realny przebieg to 338 złapanych plus 2 pominięte z 340 zadeklarowanych. (2) TO NIE JEST ZNALEZISKO TEJ ROLI, BO MUTACJA SIĘ ZAPALIŁA: kod wyjścia 1, właściwy komunikat, i wpis sam to pisze. Produktem roli jest CISZA przy zepsutym kodzie; tutaj jest szczeknięcie, czyli kontrola pozytywna dowodząca, że reguła żyje — i nic ponadto. Twierdzenie o ślepocie STRUKTURALNEJ wpis wyprowadza z LEKTURY linii 167, nie z mutacji. Mutacja, która by je udowodniła, musiałaby obniżyć REALNĄ liczbę zweryfikowanych mutacji przy nietkniętej liczbie zadeklarowanej i pokazać, że strażnik dalej milczy — takiej mutacji nie ma. W sektorze, którego metodą jest uruchamianie, a nie czytanie, to jest luka dowodu, a klasyfikacja \"milczenie bramki\" jest wprost sprzeczna z własnym pomiarem wpisu (kod 1).",
+      "kiedy": "2026-09-04T19:28:53.855Z"
+    }
+  }
+}

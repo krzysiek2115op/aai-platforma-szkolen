@@ -1,0 +1,27 @@
+{
+  "id": "REA-PSIARZ-F1-010",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "PSIARZ",
+  "pozycja": "PSIARZ-R1",
+  "stwierdzenie": "Mutacja docs/PLAN.md (linia 201 — nagłówek deklarujący branch `plugin-3-admin-panel`, ten sam, co REA-REPO-F1-001 potwierdza jako nieistniejący i już wcześniej zgłoszony przez audyt dla sąsiedniej linii 249) na jawnie zmyśloną nazwę `plugin-ZMYSLONA-GALAZ-PSIARZ-9999` NIE zapaliła żadnej z trzech bramek, które mogłyby teoretycznie dotyczyć treści tego pliku (straznik-linkow.mjs, straznik-readme.mjs, straznik-schematow.mjs) — wszystkie kod wyjścia 0, komunikaty identyczne sprzed mutacji.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "tools/straznicy/straznik-readme.mjs",
+    "zakres": "linia 45-46 (const readme = readFileSync(\"README.md\", \"utf8\")) — jedyny plik prozy, który ten strażnik czyta",
+    "mechanizm": "straznik-readme.mjs czyta WYŁĄCZNIE README.md (linia 45: if (!existsSync(\"README.md\")) process.exit(0); linia 46: readFileSync(\"README.md\")) — żadna z jego siedmiu reguł nie dotyczy docs/PLAN.md ani żadnego innego dokumentu w docs/. straznik-linkow.mjs czyta docs/PLAN.md, ale wyłącznie żeby sprawdzić, czy odnośniki markdown [x](y) prowadzą do istniejących plików — nie sprawdza treści nagłówków ani nazw gałęzi. Efekt: docs/PLAN.md może twierdzić dowolną nieprawdę o strukturze repozytorium (nazwy gałęzi, nazwy baz danych — jak już potwierdził audyt tej fali) bez jednej czerwonej bramki."
+  },
+  "dowod": "Kopia docs/PLAN.md PRZED mutacją. Mutacja (sed): linia 201 „## 4. Plugin 3 — Panel admina (branch `plugin-3-admin-panel`, później)” → „…(branch `plugin-ZMYSLONA-GALAZ-PSIARZ-9999`, później)” — diff potwierdza jedną zmienioną linię. `grep -rl \"PLAN\\.md\" tools/straznicy/*.mjs` → jedyne trafienie: straznik-linkow.mjs. Trzy bramki uruchomione PO mutacji: straznik-linkow.mjs (kod 0 — sprawdza tylko istnienie linkowanych plików, nie treść), straznik-readme.mjs (kod 0 — w ogóle nie czyta docs/PLAN.md), straznik-schematow.mjs (kod 0 — dotyczy diagramów .drawio, nie PLAN.md). Plik przywrócony z kopii, `git status --porcelain -- docs/PLAN.md` puste po przywróceniu.",
+  "klasyfikacja": "milczenie bramki — brak jakiejkolwiek kontroli treściowej dla docs/PLAN.md (poza sprawdzeniem linków)",
+  "wplyw": "Potwierdza i rozszerza REA-REPO-F1-001: problem nie jest ograniczony do dwóch znanych linii (201, 249) w tym pliku — CAŁY plik docs/PLAN.md jest strukturalnie poza zasięgiem kontroli treściowej `npm run check`. Dowolna przyszła zmiana architektury repozytorium (nowa gałąź, skasowana baza, zmieniona nazwa modułu) może zostawić ten dokument w dowolnym stopniu nieaktualnym bez jednego czerwonego wyniku.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "3525b9709f9ed88cd7f4da15ef22eb3ad14160d358c1dcd06100ab9101948e1a",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "ODRZUCAM. Cisza jest prawdziwa i była pewna z góry — KANDYDATA NA BRAMKĘ NIE BYŁO, a wpis sam to wykazuje: straznik-readme czyta WYŁĄCZNIE README.md (:45-46), straznik-linkow sprawdza istnienie plików docelowych odnośników, straznik-schematow dotyczy plików .drawio. Żaden z nich nigdy nie obiecywał treści docs/PLAN.md, więc podmiana nazwy gałęzi w nagłówku nie miała czego zapalić; mutacja nie wniosła do dowodu nic ponad grep \"PLAN.md\" po tools/straznicy/, który wpis i tak wykonał. Ponad REA-REPO-F1-001 (ISTNIEJE) nie ma tu nowego faktu o produkcie: tamten wpis ma jako swoje MIEJSCE dokładnie tę linię, którą zmutowano — docs/PLAN.md:201 — i wylicza policzony zasięg klasy (linie 160, 201 i 76 tego pliku oraz docs/ETAP-WP.md:58). Zdanie \"cały plik jest poza kontrolą treściową\" jest wnioskiem z tamtego znaleziska, nie nowym pomiarem. Odnotowuję też, że mutacja miała najsłabszy możliwy przedmiot: proza dokumentu, o której żaden mechanizm repozytorium nie twierdzi, że jest pilnowana — czyli dokładnie ten dobór celu, który daje ciszę bez informacji.",
+      "kiedy": "2026-09-04T19:28:53.895Z"
+    }
+  }
+}

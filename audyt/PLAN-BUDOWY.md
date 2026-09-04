@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | 🟢 **ZIELONE ŚWIATŁO 2026-09-03** — właściciel: „zielone swiatło puszczamy 1 fale audytu i re audytu"; przebieg fali 1 W TOKU (sekcja „E8 — PRZEBIEG FALI 1" niżej). **AUDYT FALI 1 ZAMKNIĘTY I ZACOMMITOWANY 2026-09-04** (`6d4a51d`; 19 ról, 127 wpisów, raport `audyt/wyniki/RAPORT-F1-AUDYT.md`). **RE-AUDYT fali 1 W TOKU: 7 z 14 Pogłębiaczy** (SEC FE BE BD QA PERF ARCH, każdy z krytykiem); przerwany na polecenie właściciela — stan i wiążąca kolejność w podsekcji „PRZERWANIE TRZECIE". Zapis historyczny: **AUDYT FALI 1 ZAMKNIĘTY 2026-09-04**: wszystkie **19 ról ZAKOŃCZONE**, **127 wpisów**, raport w `audyt/wyniki/RAPORT-F1-AUDYT.md`, strażnik kod 0, niezmiennik 0. Fala przeszła przez TRZY wejścia, których plan uruchomień nie przewidywał (trzecie WER, drugie KIER, krytyk WER na żądanie KIER) — ostatnie z nich obaliło trzy zarzuty, które bez niego poszłyby do raportu jako fakty. Re-audyt fali 1 jeszcze NIE ruszył (punkty 8–12 planu uruchomień) | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
+| **E8** — STOP | 🟢 **ZIELONE ŚWIATŁO 2026-09-03** — właściciel: „zielone swiatło puszczamy 1 fale audytu i re audytu"; przebieg fali 1 W TOKU (sekcja „E8 — PRZEBIEG FALI 1" niżej). **AUDYT FALI 1 ZAMKNIĘTY I ZACOMMITOWANY 2026-09-04** (`6d4a51d`; 19 ról, 127 wpisów, raport `audyt/wyniki/RAPORT-F1-AUDYT.md`). **RE-AUDYT fali 1: WSZYSTKIE 14 POGŁĘBIACZY ZAMKNIĘTYCH 2026-09-04** (SEC FE BE BD QA PERF ARCH INT PRIV REPO PIK USP PROTO WDR, każdy z krytykiem), **walidator zamknął falę** (53 wpisy: 43 ISTNIEJE, 10 ODRZUCONE, 0 bez werdyktu), **PSIARZ i STRAZ zamknięte z krytykami**, **74 wpisy `REA-*`, 199 w sektorze**. Przerwany na polecenie właściciela — stan, kolejność dokończenia i dwie role pracujące w chwili przerwania w podsekcji **„PRZERWANIE CZWARTE"**. Zapis historyczny: przerwanie trzecie zastało 7 z 14 Pogłębiaczy (podsekcja „PRZERWANIE TRZECIE"). Zapis historyczny: **AUDYT FALI 1 ZAMKNIĘTY 2026-09-04**: wszystkie **19 ról ZAKOŃCZONE**, **127 wpisów**, raport w `audyt/wyniki/RAPORT-F1-AUDYT.md`, strażnik kod 0, niezmiennik 0. Fala przeszła przez TRZY wejścia, których plan uruchomień nie przewidywał (trzecie WER, drugie KIER, krytyk WER na żądanie KIER) — ostatnie z nich obaliło trzy zarzuty, które bez niego poszłyby do raportu jako fakty. Re-audyt fali 1 jeszcze NIE ruszył (punkty 8–12 planu uruchomień) | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -2607,6 +2607,332 @@ ostrzeżenia (`REA-KIER-F1-001`).
 7. **Liczba z własnego narzędzia nie jest dowodem sama dla siebie** (krytyk PERF przeliczył
    30 miejsc na 13), a **pomiar spoza kanału klienta to nie pomiar „na żywej stronie"**
    (`wp eval-file` zaniżył zapytania o połowę wobec żądania przez Apache).
+
+### WZNOWIENIE PO PRZERWANIU TRZECIM — dziennik przebiegu (2026-09-04)
+
+Prowadzi ORKIESTRATOR na bieżąco, żeby obserwacje spoza wpisów nie żyły wyłącznie
+w rozmowie. **Meldunku roli nie czyta ani raport, ani fala 2** — co ma przetrwać,
+musi leżeć tutaj albo we wpisie.
+
+**Domknięte w tej sesji (każdy dział: Pogłębiacz → protokół → krytyk):**
+
+| Dział | Wpisy Pogłębiacza | Werdykty krytyka | Własne wpisy krytyka |
+|---|---|---|---|
+| ARCH (7) | `REA-ARCH-F1-001…003` | 002, 003 PRZEPUSZCZAM · **001 ODRZUCAM** | `REA-ARCH-F1-004` |
+| INT (8) | `REA-INT-F1-001…003` | 001, 003 PRZEPUSZCZAM · **002 ODRZUCAM** | `REA-INT-F1-004` |
+| PRIV (9) | `REA-PRIV-F1-001…002` | oba PRZEPUSZCZAM | `REA-PRIV-F1-003…005` |
+| REPO (10) | `REA-REPO-F1-001…002` | 001 PRZEPUSZCZAM · **002 ODRZUCAM** (za dowód, nie za zjawisko) | `REA-REPO-F1-003` |
+
+**PROTOKÓŁ ŚRODOWISKA ROBI ORKIESTRATOR, NIE ROLA** — i to się w tej sesji
+opłaciło dwa razy. Kolejność: `--zrzut=f1-<KOD>-po` (RAZ, nadpisuje bez ostrzeżenia)
+→ `--przywroc=f1-baza` → `--sprawdz --fala=1`. Zrzuty zdjęte: `f1-INT-po`,
+`f1-PRIV-po`, `f1-REPO-po`.
+
+**PIĘĆ RZECZY ZMIERZONYCH PRZY WZNOWIENIU, których nie ma w żadnym wpisie:**
+
+1. **Pułapka 4 wróciła w nowej odsłonie i ZATRZYMAŁA sektor.** Po INT
+   `--przywroc=f1-baza` wrócił **kodem 1**: `uploads/` 1343 → 1345 plików, +13 bajtów.
+   Winowajcy: `wc-logs/index.html` (0 B) i `wc-logs/.htaccess` (13 B) — WooCommerce
+   zakłada je **razem z katalogiem** logów, a rola sprzątała wzorcem `*.log`.
+   Narzędzie **celowo** nie ma opcji sprzątania mediów (W2: nikt nie ma prawa ich
+   pisać, więc rozjazd = STOP dla człowieka). Ślad zdjęty jawną listą dwóch ścieżek,
+   **za zgodą właściciela**; kontrola po tym kod 0. **Pusty katalog `wc-logs/`
+   zostaje** — porównanie liczy pliki, nie katalogi.
+2. **KLASA, nie trzy przypadki — osad plikowy poza bazą.** Pomiar klucza `media`
+   we WSZYSTKICH dwunastu migawkach fali (krytyk PIK, potwierdzone przeze mnie):
+   baza **1343 / 31 888 625 B**, a odstępstwa mają **trzy** role — `f1-BE-po`
+   **+979 B**, `f1-INT-po` **+13 B**, `f1-PIK-po` **+60 253 B** (trzy
+   `place-order-debug-*.log` po 19 212 B i `transactional-emails-*.log`).
+   Pozostałe dziewięć migawek bit w bit. **Klasa jest już zgłoszona dwa razy**
+   (`REA-BE-F1-002` celuje w akapit „Pomiar nie zostawia śladu" w 14 plikach ról,
+   `REA-PRIV-F1-005` dokłada Mailpita) — **trzeci wpis byłby `KON-R5`**, więc role
+   końcowe mają to traktować jako materiał potwierdzający, nie nowe znalezisko.
+   **KOREKTA mojego wcześniejszego rachunku:** trzecim członem jest **BE**, nie
+   PRIV — `f1-PRIV-po` ma `uploads` czyste.
+3. **Rola przypisała własny ślad komuś innemu (inna podklasa).** PRIV zameldował, że kontrola daje
+   kod 1 „WYŁĄCZNIE z powodu AUTO_INCREMENT, nie liczby wierszy" i że dryf
+   `wp_woocommerce_sessions` jest „sprzed mojej pracy". Oba zdania fałszywe:
+   kontrola wypisała też `wierszy 294 → 295`, a mój `--sprawdz` **bezpośrednio przed
+   jego wejściem** dał kod 0. Krytyk potwierdził niezależnie migawkami sektora
+   (`f1-INT-po` 13:03 → 294; rola weszła 13:29; `f1-PRIV-po` 13:53 → 295) i
+   porównaniem bloków `INSERT`: dokładnie jeden klucz obecny tylko w drugim zrzucie.
+   **Werdyktów to nie obaliło** — fałszywa klauzula higieniczna nie podpierała
+   żadnego stwierdzenia, a odrzucenie prawdziwego znaleziska za nią zafałszowałoby
+   porównanie fal.
+4. **Zakres ról jest zepsuty w trzech działach z czterech, a plama nie jest pusta.**
+   `REA-ARCH-F1-004` (41 utraconych szablonów, dwa ukryte cykle klas, w tym
+   dwuwęzłowy `Panel ↔ Panel_Akcje` nieobecny w pliku klasy `Panel`),
+   `REA-INT-F1-004` (6 z 21 plików — **git NIE rozwija `{a,b}` w pathspecu**, a w
+   plamie leżały trzy dalsze wystąpienia klasy, którą sektor już przyjął).
+   Zakresy PRIV (60), REPO (79) i PIK sprawdzone dwiema drogami — czyste.
+5. **Audyt ogłoszony jako ZAMKNIĘTY ma komplet werdyktów na 84 ze 125 wpisów**
+   (25 bez krytyka, 13 bez weryfikatora — w tym wszystkie `AUD-KIER-*` i `AUD-RAP-*`
+   — 3 bez żadnego). Raport audytu **te liczby podaje sam** („85 ZWERYFIKOWANE,
+   41 DO WERYFIKACJI"), więc nie jest to nieprawda dokumentu; rozstrzygnięcie, czy
+   to wystarcza do zamknięcia, należy do `rea-kier` i `rea-kon`.
+
+**WEJŚCIA DLA RÓL KOŃCOWYCH — zebrane w przebiegu, bez właściciela we wpisach:**
+
+- **dla `rea-kon`:** README mówi, że repozytorium psuje się „na **340** sposobów",
+  a `node tools/straznicy/audyt-straznikow.mjs` melduje **338 złapanych z 340
+  wpisów** (2 pominięte bez materiału). `straznik-readme:167` liczy **wpisy**, nie
+  sposoby, więc pętla jest zamknięta: przy 300 pominiętych dalej byłby zielony.
+  Znalezisko **produktowe**, więc krytyk REPO go nie zgłosił (granica) — **i nie ma
+  go ani audyt, ani re-audyt**;
+- **dla `rea-kier` / `rea-rap`:** liczby wpisów rozjeżdżają się między nośnikami —
+  `PLAN-BUDOWY.md` mówi 127, raport 126 (124+2), a dziś w katalogu leży 125 `AUD-*`
+  i rosnąca liczba `REA-*`;
+- **dla `rea-straz`:** `rejestr/znane-bledy.json` ma pole `wersja` ustawione raz
+  (2026-08-19) i nigdy niepodniesione mimo 19 późniejszych wpisów, a **nic tego pola
+  nie czyta** (sprawdzone: 21 trafień na `znane-bledy` w repo to sama proza i
+  komentarze „PO CO" trzech strażników). Zjawisko stoi, choć wpis `REA-REPO-F1-002`
+  został odrzucony za błąd w dowodzie — fala 2 ma podać **19 wpisów, BLAD-011,
+  2026-08-19**;
+- **dla `rea-skut`:** krytyk REPO uruchomił audyt mutacyjny PRODUKTU, który mutuje
+  pliki wtyczek **bind-mountowane do żywej instancji**; przywrócenie sprawdził
+  artefaktem (`git status` przed = po, `git diff --stat` puste), nie deklaracją.
+
+**TRZY RZECZY, KTÓRE ZOSTAŁY POZA WPISAMI I DLATEGO SĄ TUTAJ:**
+
+- **Werdykt bez `--powod` jest nieodwracalny.** Krytyk USP zapisał `PRZEPUSZCZAM`
+  na `REA-USP-F1-001` **bez** `--powod`, a werdyktu nie da się nadpisać
+  (`werdykt.mjs:209`) — jego zastrzeżenie o granicy przepadłoby, gdyby nie ten
+  dziennik. Zastrzeżenie brzmi: **adresatem tego wpisu jest QA, nie USP**
+  (`audyt/GRANICE.md:55`: QA = „czy ISTNIEJĄCA bramka mierzy to, co obiecuje",
+  USP = „czy BRAKUJE narzędzia"; sekcja „Moduł" USP wyklucza pozostałych
+  39 strażników wprost). **Wiersz do `KIER-04`.** Druga połowa zjawiska leży
+  jednak u USP i nie została postawiona w polu `miejsce`:
+  `tools/straznicy/audyt-straznikow.mjs:4234` liczy kod wyjścia jako
+  `przeoczone.length || martwe.length ? 1 : 0` — **`pominiete` nie wpływa na kod
+  wyjścia**, więc własne narzędzie pomiarowe działu nie odróżnia „nie zmierzono"
+  od „zmierzono i przeszło".
+- **`REA-USP-F1-003` jest DRUGIM wystąpieniem klasy z `REA-PIK-F1-002`** — wiersz
+  `R6` nie nazywa swojego zbioru wejściowego ani jego liczności. Dwa wystąpienia
+  znaczą, że przedmiotem jest **sposób pisania wierszy R6**, nie jeden wiersz.
+  Kontrprzykłady w tej samej tabeli: `SEC-R6` „dla KAŻDEGO wejścia", `BE-R6`
+  „KAŻDEGO z pięciu kluczy", `BD-R6` „TRZEMA przebiegami", `QA-R6` „każda bramka".
+- **Obserwacja produktowa bez właściciela (druga taka w tej fali):**
+  `tools/zrzuty/test-asercji.mjs` melduje „12 NIEZALICZONYCH" tam, gdzie
+  `audyt-straznikow.mjs` powiedziałby „pominięte (brak materiału)" — nie odróżnia
+  braku warunku wstępnego (`ZRZUTY_RIG`) od pękniętej asercji. Stan jest
+  **udokumentowany** (`README.md:348`) i **nie jest usterką**, ale to ta sama
+  rodzina co `REA-USP-F1-001`, tylko odwrócona.
+
+**WALIDATOR ZAMKNĄŁ FALĘ 1 RE-AUDYTU: 53 wpisy, 43 ISTNIEJE, 10 ODRZUCONE, 0 bez
+werdyktu** (zmierzone przelotem po plikach, nie z meldunku). Próg, który trzymał
+i zapisał w KAŻDYM `--powod`, żeby fala 2 mogła go powtórzyć: **odrzucam, gdy
+produktem wpisu jest liczba albo mechanizm i to one padają; przyjmuję z zapisaną
+korektą, gdy pada zdanie poboczne.**
+
+**PIĘĆ RZECZY OD WALIDATORA, KTÓRYCH NIE MA W ŻADNYM WPISIE:**
+
+1. **Hasz miejsca potwierdza spójność WPISU, nie zgodność z repozytorium.**
+   `hashMiejsca` liczy się z treści zapisanej we wpisie, a nie odczytanej z pliku:
+   `REA-SEC-F1-002` ma hasz **zgodny**, choć wiersz `SEC-R6`, o którym mówi, został
+   w międzyczasie **naprawiony**. Zestarzałe miejsce przy zgodnym haszu nie zapala
+   niczego. To **drugi kierunek** tej samej usterki co `REA-WDR-F1-004` (hasz jest
+   kluczem łączenia sektorów W4, ale nigdy z niczym nieporównywany: 178 wpisów,
+   171 unikalnych haszy, **7 par**).
+2. **`porownaj-cykle.mjs` liczy powtórzenia w obrębie jednej fali** (linia 109,
+   druk 225), ale `porownajFale` wymaga OBU fal — więc licznik zapala się dopiero
+   PO fali 2. Zawęża to tezę `REA-WDR-F1-004`, nie obala jej.
+3. **Para `AUD-GOLD-F1-003` ↔ `REA-KIER-F1-002` ma pola `miejsce` bajt w bajt
+   identyczne**, a dowód audytu jest **szerszy**; re-audyt wnosi wyłącznie własne
+   odtworzenie. **Do decyzji kierownika**, czy to idzie do raportu.
+4. **Walidator uszkodził cudzy dowód swoim wejściem** i sam to zgłosił: zdjęcie
+   znacznika `proba` z `audyt/stan/re-audyt-f1-WALID.json` (17:26:47Z) uczyniło
+   ekran z dowodu `REA-KIER-F1-002` **nieodtwarzalnym**. Usterka narzędzia zostaje:
+   `status.mjs --pokaz` nie drukuje ani `proba`, ani `adnotacja`.
+5. **OSIEM reprodukcji niszczących NIE zostało powtórzonych** — świadomie, każda
+   z drogą zastępczą zapisaną w `--powod`: `REA-INT-F1-001`/`-003` (zakładanie
+   i kasowanie zamówień), `REA-BE-F1-001` (zapis kursu podbija niezmienny dziennik
+   audytu), `REA-KIER-F1-001` (nadpisanie zrzutu), `REA-KIER-F1-003`
+   (`polacz-sektory.mjs` nadpisuje śledzony plik), `REA-QA-F1-001`/`-003` (mutacje
+   plików śledzonych), `REA-WDR-F1-001` (przestawienie permalinków),
+   `REA-SEC-F1-006` (logowanie podbija nieodwracalny `AUTO_INCREMENT`).
+
+**ZASIĘG PODANY × POLICZONY — to jest główny produkt fali.** Największe rozjazdy:
+`REA-PERF-F1-001` 30 → **13** (plus 7 pętli z zapytaniem w NAGŁÓWKU, czyli
+wykonywanym raz), `REA-PIK-F1-001` „wszystkie cztery" → **co najmniej osiem**,
+`REA-ARCH-F1-001` „jeden ekran" → **21 odwołań w 8 plikach**, `REA-USP-F1-002`
+26/25/10 → **27/27/11** przy uczciwie nazwanej metodzie. Zgodziły się co do sztuki:
+`REA-ARCH-F1-004`, `REA-FE-F1-003`, `REA-INT-F1-004`, `REA-QA-F1-003`,
+`REA-USP-F1-001`.
+
+**Rozjazd, który NIE zdyskwalifikował wpisu, ale dotyczy tego dokumentu:**
+`REA-PERF-F1-002` podaje mianownik **35/41**, walidator zmierzył **77/83**
+(`Com_select`, dwa przebiegi, szum 0) — a te same 35/41 stoją w
+`audyt/PLAN-BUDOWY.md:2473` jako „ZMIERZONE".
+
+**KRYTYK WALIDATORA: 30 z 53 werdyktów przeczytanych, próbka dobrana CZTEREMA
+regułami z góry (wszystkie odrzucenia + przyjęte z rozjazdem + reprodukcje
+niszczące + pary haszy + ślepa co czwarta z reszty), 8 werdyktów przeliczonych
+własnym torem. Wynik: PIĘĆ NA PIĘĆ przeliczeń zasięgu zgodnych co do liczby —
+ani jednej fałszywej liczby u walidatora.** Przeliczał **piątą** implementacją
+(`token_get_all` w kontenerze), nie cudzym narzędziem.
+
+**KWESTIONUJE DWA WERDYKTY — oba za PRÓG, żaden za fakty:** `REA-USP-F1-002`
+i `REA-WDR-F1-002`. Przy `WDR-002` pokazał, że wpis wnosi **obie** rzeczy wymagane
+przez jedyną PISANĄ regułę (`re-audyt/GRANICE.md:62` — „zasięg **albo**
+odtworzenie"), a rozdzieliło je kryterium **wymyślone w locie** („pozycja `-90`
+jest twierdzeniem o nowości"), którego **nie ma w żadnym dokumencie sektora**
+i które jest **sprzeczne z komentarzem narzędzia**: `porownaj-cykle.mjs:31-33`
+mówi, że wpisy `-90` porównuje się **TAK SAMO**, tylko oznacza.
+
+**KOREKTA MECHANIZMU HASZA — ważniejsza, niż wygląda:** numer linii **NIE wchodzi**
+do skrótu. `hashMiejsca` składa `["linia", plik, znormalizuj(tresc)]`, gdzie
+`"linia"` to dosłowny napis rodzaju. Wniosek jest przez to MOCNIEJSZY: samo
+przesunięcie wiersza nigdy nie zmieni hasza, a hasz nie wykryje **zestarzenia
+miejsca**. Dowód konstruktywny: własna implementacja krytyka **nie otwiera żadnego
+pliku** i zgadza się w **178 na 178** przypadków.
+
+**DZIEWIĘĆ (nie osiem) reprodukcji niszczących — wszystkie drogi zastępcze
+DOMYKAJĄ pytanie, zero zamkniętych po pustce.** Wzorzec poprawny i wart
+naśladowania: zamiast jednej próby zamyka się pytanie **od strony konieczności**
+(np. przy `INT-001`/`-003`: przelot po całych wtyczkach po rodzinie haków
+kasowania zamówienia → zero trafień, więc NIE ISTNIEJE słuchacz, który mógłby
+cofnąć skutek — to mocniejsze niż jedna próba).
+
+**CZTERY ZGŁOSZENIA KRYTYKA — żadne nie dotyczy pracy walidatora, wszystkie
+definicji, w ramach których ją wykonał:** `REA-WALID-F1-001` (sześć pytań tak/nie,
+jeden werdykt, zero przełożenia — **żadne z czterech słów werdyktu nie pada
+w `ROLE.md` ani w `AGENT.md` roli**, więc próg musiał powstać w locie);
+`-002` (pozycja `WALID-R4` wskazuje narzędzie, którego **nie da się uruchomić** —
+`zgloszenie.mjs` nie ma trybu samego sprawdzenia, każde wejście tworzy NOWY wpis);
+`-003` (dwa dokumenty sektora odpowiadają przeciwnie w sprawie pozycji `-90`);
+**`-004` — najgroźniejsze dla fali 2: moduł krytyka WALID nie obejmuje produktu
+roli, którą krytyk ocenia.** `KRYTYK.md:72-77` wskazuje pliki `REA-WALID-F<N>-*`,
+których jest **zero**; produktem roli są **werdykty w polu `werdykt.weryfikator`
+CUDZYCH wpisów**, a słowo „weryfikator" nie pada w definicji krytyka ani razu.
+**Krytyk trzymający się swojego modułu co do znaku otworzy zbiór PUSTY i zamelduje
+brak materiału, nie łamiąc niczego.** W tej fali uratowało to polecenie z zewnątrz;
+fala 2 nie ma go z czego odtworzyć.
+
+**KRYTYK WALID NIE ZAPISAŁ ANI JEDNEGO WERDYKTU NARZĘDZIEM — i to jest decyzja,
+nie przeoczenie:** `werdykt.mjs:49-52` zna dwie role, a slot `krytyk` na cudzych
+wpisach należy do krytyków ICH działów (przy `REA-PERF-F1-001` wypełnił go krytyk
+PERF). Ocena werdyktów walidatora **nie ma dziś nośnika** — to jest część
+znaleziska `REA-WALID-F1-004`. Jego ocena zbiorcza: **PRZEPUSZCZAM 28, kwestionuję 2.**
+
+**PSIARZ: 10 mutacji, 10 razy cisza — ale krytyk rozstrzygnął, że to w OŚMIU
+przypadkach TAUTOLOGIA. Werdykt: 1 × PRZEPUSZCZAM, 9 × ODRZUCAM.** Sedno:
+**ani jeden z ośmiu „milczących" wpisów nie zmierzył ciszy bramki, która MIAŁA
+zareagować.** Pięć zmutowało miejsca, gdzie kandydata na bramkę **nie ma
+w repozytorium wcale** (mutacja pod wpis, który sam mówi „bramki nie ma", niczego
+nie dowodzi); **trzy** zmutowały miejsca, gdzie kandydat **ISTNIEJE i nie został
+uruchomiony** (`smoke-wp-tutor.mjs:212`, `smoke-wp-zakup.mjs:390-403`,
+`smoke-wp-kreator.mjs:437`). **Bramka nieuruchomiona to nie jest bramka milcząca** —
+cisza w tych trzech miejscach jest NIEZMIERZONA, nie zmierzona. Dwa wpisy
+„pozytywne" mają **hasz identyczny z cudzymi** (`REA-PSIARZ-F1-008` = `REA-QA-F1-001`,
+`-009` = `REA-USP-F1-001`).
+
+**JEDYNE PRAWDZIWE ZNALEZISKO PSIARZA — i jest ciężkie, bo dotyczy klasy cichej
+utraty treści (`REA-PSIARZ-F1-002`, PRZEPUSZCZONE):** przy **bezwarunkowym
+czyszczeniu `content`/`materials`** w `class-aai-sklep-zapis.php:375-376` trzy
+strażniki dały **kod 0**, a komunikat `straznik-kreatora-wp` niesie w tym stanie
+zdanie **nieprawdziwe**: „brak klucza znaczy «nie ruszaj» (treść, materiały,
+sekcje, program, stan)". Mechanizm: `straznik-kreatora-wp.mjs:287` testuje wzorzec
+`array_key_exists( 'content', $l )` na **CAŁYM źródle pliku**, a literał żyje
+w innej metodzie (`zapisz_kurs`, linie 627/633). **To DZIESIĄTY nawrót klasy
+„wzorzec na obecność zamiast na rozstrzygnięcie".**
+
+**PRÓBKA PSIARZA DOBRANA POD ŁATWOŚĆ** (ocena krytyka, potwierdzona liczbami):
+10 z **43** potwierdzonych znalezisk; bez ani jednej mutacji zostało **14 znalezisk
+w pięciu działach**, w tym **PRIV z pięcioma — największy klaster fali pominięty
+w całości**. Dwa z dziesięciu celów to nie kod produktu, tylko **WEJŚCIE
+strażnika** (`seed-przyklady.ts`, `README.md`) — najtańsza możliwa mutacja, i oba
+dały duplikaty hasza.
+
+**TRZY ZGŁOSZENIA KRYTYKA PSIARZA, wszystkie o narzędziach roli:**
+`REA-PSIARZ-F1-011` — komenda pozycji `PSIARZ-R1` to `npm run check`, który
+**nie uruchamia ANI JEDNEJ z szesnastu bramek WP** (`npm run smoke` =
+siedem smoke'ów prototypu; `smoke:wp-*` stoi osobno) — rola mutująca wyłącznie kod
+WordPressa ma wskazany runner **strukturalnie niezdolny zaszczekać**;
+`-012` — checklista **nie ma pozycji pytającej, czy kandydat na bramkę w ogóle
+istniał**, ani rozstrzygającej „bramka ślepa" kontra „bramki nie ma" (różny adresat
+naprawy), choć repozytorium ma do tego własny instrument (`audyt-straznikow.mjs`
+z polem `oczekiwanySlad`), o którym **nie wspomina ani checklista, ani SKILL.md,
+ani żaden z dziesięciu wpisów**;
+`-013` — `audyt/stan/re-audyt-f1-PSIARZ.json` deklaruje **19 niedomkniętych
+pozycji, z których ŻADNA nie należy do tej roli** (PRIV-R1, WDR-R5, KIER-90…),
+bo `status.mjs:450-465` sprawdza wyłącznie KSZTAŁT kodu pozycji, nigdy związku
+z rolą — **a kierownik liczy stąd otwarte pozycje (KIER-01)**.
+
+**PUŁAPKA PRACY (nowa, kosztowała plik w korzeniu repo):** `node <skrypt> -- <ścieżka>`
+— node **nie połyka** `--`, więc `writeFileSync(process.argv[2])` tworzy plik o nazwie
+`./--` w katalogu roboczym, czyli w repozytorium. Złapane przez `git status`.
+
+### PRZERWANIE CZWARTE — `/clear` po zamknięciu wszystkich Pogłębiaczy (2026-09-04, noc)
+
+**Zatrzymanie na polecenie właściciela, nie na limicie.** Sektor zatrzymany
+w miejscu bezpiecznym: **wszystkie 14 Pogłębiaczy fali 1 domknięte, każdy
+z krytykiem**, walidator zamknął całą falę, PSIARZ i STRAZ zamknięte z krytykami.
+
+**STAN ZMIERZONY KOMENDĄ PRZED `/clear`:**
+
+| Rzecz | Wartość |
+|---|---|
+| Wpisów w sektorze | **199** (audyt 125 + re-audyt **74**) |
+| Wpisy `REA-*` bez werdyktu krytyka | 35 (w większości **własne zgłoszenia krytyków** — krytyk nie ocenia siebie) |
+| Wpisy `REA-*` bez werdyktu walidatora | 21 (wszystkie powstały **po** przebiegu walidatora) |
+| Rozkład działów `REA-*` | ARCH 4 · BD 1 · BE 2 · FE 3 · INT 4 · KIER 3 · PERF 6 · PIK 2 · PRIV 5 · PROTO 4 · **PSIARZ 13** · QA 3 · REPO 3 · SEC 6 · SKUT 1 · STRAZ 3 · USP 3 · WALID 4 · WDR 4 |
+| Werdykty walidatora (jego przebieg) | **53 wpisy: 43 ISTNIEJE, 10 ODRZUCONE, 0 bez werdyktu** |
+| Środowisko `:8892` | `--sprawdz --fala=1` **kod 0**, stan bazowy |
+| Prototyp `:3001` | **UBITY** po roli PROTO |
+| Niezmiennik sektora | `git diff main --name-only -- . ':!audyt' ':!re-audyt'` → **0** |
+| Drzewo poza `audyt/` i `.claude/` | **0 zmian** — mimo że PSIARZ mutował 10 śledzonych plików produktu |
+
+**W CHWILI PRZERWANIA PRACOWAŁY DWA AGENTY** — ich meldunki przepadną, ale
+**wyniki zapisują się do plików sektora, nie do pamięci sesji**:
+1. **`rea-skut`** (wznowiony) — domyka `SKUT-R6`. Nowa sesja ma **sprawdzić
+   KOMENDĄ**, czy `audyt/stan/re-audyt-f1-SKUT.json` stoi na `ZAKOŃCZONE`
+   i czy przybyły wpisy `REA-SKUT-F1-*`. Jeśli tak — rola gotowa do krytyka;
+2. **`rea-straz-krytyk`** — ocenia `REA-STRAZ-F1-001…003`. Sprawdzić, czy te trzy
+   wpisy mają werdykt krytyka. **Nie uruchamiać go drugi raz bez sprawdzenia.**
+
+**KOLEJNOŚĆ DOKOŃCZENIA FALI 1:**
+1. sprawdzić oba powyższe komendą; domknąć brakujących krytyków (`rea-skut-krytyk`);
+2. **`rea-kon`** + krytyk (Konrad audytuje RE-AUDYT, nie projekt);
+3. **`rea-kier`** + krytyk — pozycje R1…R7 i `polacz-sektory.mjs --fala=1`;
+4. **`rea-rap`** + krytyk — raport końcowy;
+5. `migawka-wartosci.mjs --zapisz=po` + `--porownaj`, **commit**;
+6. **FALA 2 WYMAGA OSOBNEGO ZIELONEGO ŚWIATŁA WŁAŚCICIELA.**
+
+**PROTOKÓŁ PO KAŻDEJ ROLI ROBI ORKIESTRATOR** (nie rola): `--zrzut=f1-<KOD>-po`
+→ `--przywroc=f1-baza` → `--sprawdz --fala=1`. **Zrzut RAZ — nadpisuje bez
+ostrzeżenia.** Zdjęte w tej sesji: `f1-INT-po`, `f1-PRIV-po`, `f1-REPO-po`,
+`f1-PIK-po`, `f1-USP-po`, `f1-PROTO-po`, `f1-WDR-po`, `f1-WALID-po`,
+`f1-PSIARZ-po`.
+
+**DWA ODSTĘPSTWA OD REGUŁY „PROTOKÓŁ ROBI ORKIESTRATOR", oba świadome:**
+zakaz miał chronić zrzuty przed nadpisaniem, a **zablokował pozycję checklisty** —
+`SKUT-R6` (czy kolejność bramek zmienia wynik) jest niewykonalne bez przywracania
+stanu między przelotami. Rozwiązanie: **orkiestrator przywraca na żądanie roli**,
+rola mierzy. Drugie: **decyzja właściciela z tej sesji** — ślad poza bazą
+zostawiony przez rolę kasuje **orkiestrator, jawną listą ścieżek**, i jest to
+przywrócenie stanu, nie naprawa produktu.
+
+**CZEGO NIE ROBIĆ PO WZNOWIENIU:**
+- **NIE uruchamiać `npm run dev`** — nadpisuje śledzony `CLAUDE.md` blokiem
+  2355 linii. Prototyp stawia się `rm -rf .next && npm run build`, potem
+  `node --env-file=.env node_modules/.bin/next start -p 3001`; ubija
+  `fuser -k 3001/tcp` (**nie** `pkill -f "next start"` — trafia własną powłokę).
+  Prototyp jest potrzebny **wyłącznie** dla `PROTO-R6`, czyli już nie jest;
+- **NIE uruchamiać strażnika sektora ani `srodowisko.mjs --test`**, gdy rola
+  pracuje na `:8892` — strażnik woła `--test`, ten stawia schemat tymczasowy
+  w tej samej instancji i przegrywa wyścig;
+- **NIE robić `git checkout --` na plikach `audyt/` i `re-audyt/`** — leży tam
+  dorobek osiemnastu ról. Dla plików **produktu** jest bezpieczne, bo ich drzewo
+  jest czyste;
+- **NIE kasować danych właściciela** w tabelach monitoringu: **26 logowań,
+  30 wizyt** (materiał dowodowy z testu T4).
+
+**Kopia bezpieczeństwa zrzutu bazowego, zrobiona przed rolą WDR:**
+`~/.cache/aai-kopie/f1-baza-KOPIA-PRZED-WDR.sql` (+ `.json`). WDR jej nie
+potrzebował — **nie wykonał `podman-compose down && ./postaw.sh`**, tylko
+zbudował izolowany stos (`wdr-scratch-*`, port 8899) i skasował go do zera
+(zweryfikowane: zero kontenerów, wolumenów i sieci, port głuchy).
+
 ## Co dokładnie obejmuje E6 (nie wyprowadzać od nowa)
 
 **Generatu NIE trzeba budować** — powstaje sam, bo wymusza go reguła 4 strażnika:

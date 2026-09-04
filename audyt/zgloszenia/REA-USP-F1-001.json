@@ -1,0 +1,32 @@
+{
+  "id": "REA-USP-F1-001",
+  "sektor": "re-audyt",
+  "fala": 1,
+  "dzial": "USP",
+  "pozycja": "USP-R5",
+  "stwierdzenie": "Reguła 6 straznik-readme.mjs porównuje liczbę z README („340 sposobów”) wyłącznie z LICZBĄ ZADEKLAROWANYCH wpisów `^\\s*straznik:` w źródle audyt-straznikow.mjs, nigdy z jego rzeczywistym wynikiem uruchomienia — a ten dziś wynosi 338 złapanych + 2 pominiętych (brak materiału), z 340 zadeklarowanych. Bramka nie odróżnia więc „zadeklarowano 340 prób” od „zweryfikowano 340 sposobów zepsucia repo”, więc zostaje zielona nawet wtedy, gdy realnie zweryfikowana liczba jest niższa niż deklarowana — dokładnie ta sama klasa niekompletnego narzędzia pomiarowego, jaką audyt zgłosił w AUD-USP-F1-002 dla tools/pomiar-lighthouse.mjs, tylko w innym miejscu, którego audyt tej fali nie zgłosił.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "tools/straznicy/straznik-readme.mjs",
+    "linia": 167,
+    "tresc": "    const mutacji = (readFileSync(audyt, \"utf8\").match(/^\\s*straznik:/gm) ?? []).length;"
+  },
+  "dowod": "Uruchomiono DWA niezależne przebiegi `node tools/straznicy/audyt-straznikow.mjs` (bez potoku): oba KOD=0, oba drukują identyczny pierwszy wiersz „audyt-straznikow: 338 złapanych, 0 przeoczonych, 0 martwych, 2 pominiętych (brak materiału) (mutacji: 340)”, wskazane pominięcia to straznik-podgladu-kursow (dwie mutacje, „brak materiału do próby” — generowany podgląd kursów nie stoi lokalnie); `diff` obu przebiegów PUSTY (342/342 linie identyczne), `git status --porcelain` identyczny przed i po obu przebiegach (samo-czyszczące finally działa). README.md:382 brzmi dosłownie „> 340 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)” — bez żadnego zastrzeżenia o pominięciach. straznik-readme.mjs:167 liczy `(readFileSync(audyt,'utf8').match(/^\\s*straznik:/gm) ?? []).length` — STATYCZNY grep po ŹRÓDLE narzędzia, NIE wywołanie samego narzędzia i odczyt jego podsumowania; `grep -cE '^\\s*straznik:' tools/straznicy/audyt-straznikow.mjs` daje 340, co dziś PRZYPADKIEM zgadza się z liczbą zadeklarowanych mutacji w podsumowaniu narzędzia — bo obie liczby pochodzą z tego samego wzorca zastosowanego do tego samego pliku, nie dlatego, że reguła sprawdziła wynik. Uruchomiono `node tools/straznicy/straznik-readme.mjs` osobno: KOD=0, komunikat „README zgodne ze stanem repo (39 strażników w tabeli, skrypty npm pokryte, kotwice i liczby testów/mutacji zgodne)” — czyli bramka deklaruje zgodność liczb mutacji, mimo że nigdy nie odczytała pola „338 złapanych” ani „2 pominiętych” z wyjścia audyt-straznikow.mjs.",
+  "klasyfikacja": "niekompletne narzędzie pomiarowe (bramka mierzy DEKLARACJĘ, nie WYNIK)",
+  "wplyw": "README twierdzi, że audyt mutacyjny „psuje repo na 340 sposobów” i „oczekuje właściwej reakcji” na KAŻDY z nich, a straznik-readme ma to pilnować — ale dziś realnie zweryfikowanych (captured) jest 338, nie 340: dwie mutacje straznik-podgladu-kursow nigdy nie są wykonywane (brak materiału), więc repo NIE jest dziś psute tymi dwoma sposobami, tylko o nich się milczy. Gdyby liczba pominiętych urosła (np. do kilkudziesięciu, bo materiał kolejnych mutacji zniknie z dysku), README dalej podawałoby „340 sposobów”, a straznik-readme dalej byłby zielony — bo jego reguła 6 nigdy nie czyta pola „pominiętych” ani „przeoczonych” z wyjścia narzędzia, tylko liczy wpisy w jego źródle. Re-audyt (PSIARZ, KIER) czytający wyłącznie ten strażnik jako dowód „audyt mutacyjny kompletny” dostałby fałszywe potwierdzenie.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "2c4e967b8260239a07fcd6f38e6d581767117ae8681dc3c908aab27c10f355de",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T15:56:46.422Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "Zjawisko istnieje, potwierdzone przeze mnie wlasnym uruchomieniem obu stron porownania. R1/R2: node tools/straznicy/audyt-straznikow.mjs kod wyjscia 0 (mierzony BEZ potoku), pierwszy wiersz brzmi audyt-straznikow: 338 zlapanych, 0 przeoczonych, 0 martwych, 2 pominietych (brak materialu) (mutacji: 340). Rownolegle policzylem wpisy w zrodle: grep -cE na wzorcu poczatku linii straznik: daje 340. Czyli 340 zadeklarowanych wobec 338 zweryfikowanych - roznica jest realna i dokladnie taka, jak podaje wpis. R4/R5 - mechanizm w kodzie, nie z domyslu: straznik-readme.mjs, regula 6, w linii 167 liczy mutacji jako dopasowania wzorca po TRESCI ZRODLA narzedzia (readFileSync(audyt).match(/^\\s*straznik:/gm)), po czym porownuje z liczba z README - nigdy nie uruchamia narzedzia i nigdy nie czyta pol zlapanych ani pominietych z jego podsumowania. README.md:382 brzmi 340 sposobow (mutacje + kontrprzyklady) bez zadnego zastrzezenia o pominieciach. Bramka porownuje wiec liczbe z README z liczba z tego samego pliku zrodlowego - dwie strony tej samej deklaracji, a nie deklaracje z wynikiem. R3: zasieg maly i w calosci sprawdzony - jedna regula, jedno narzedzie, jedna liczba w README. R6: hasz nie pokrywa sie z zadnym innym wpisem obu sektorow; klasa jest ta sama co AUD-USP-F1-002, ale miejsce inne, wiec to poglebienie. HIGIENA MOJEGO POMIARU: audyt mutacyjny psuje pliki i przywraca je w finally, wiec zmierzylem to osobno - git status --porcelain przed i po przebiegu ma te sama liczbe pozycji (65) i identyczna tresc (diff pusty). Uruchomilem narzedzie RAZ, nie dwa razy jak autor, bo powtarzalnosc wyniku nie jest tu przedmiotem sporu, a kazdy przebieg to okno, w ktorym repozytorium jest chwilowo zepsute.",
+      "kiedy": "2026-09-04T18:02:40.266Z"
+    }
+  }
+}
