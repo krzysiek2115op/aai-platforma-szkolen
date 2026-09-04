@@ -14,7 +14,7 @@
   "dowod": "grep -c -i \"napisz do nas\\|zapytaj nas\\|umówimy się\" docs/INSTRUKCJA-INSTALACJI.md => 8; grep -n -i \"kontakt@\\|mailto\\|@automaticai\\|telefon\" docs/INSTRUKCJA-INSTALACJI.md => brak wyników poza jednym wystąpieniem słowa \"kontaktu\" w innym kontekście (linia 218, o CTA na stronie sklepu, nie o kanale kontaktu z autorami wtyczek)",
   "klasyfikacja": "WYKONALNOŚĆ",
   "wplyw": "Klient, który trafi na jeden z ośmiu wymienionych warunków (np. brak WooCommerce, chęć otwarcia sprzedaży, potrzeba usunięcia wtyczki), nie ma żadnego sposobu skontaktowania się z autorem — instrukcja obiecuje ścieżkę wsparcia, której fizycznie nie da się wykonać.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "runda": 1,
   "hash": "a2c72ef3c9bcaa4c6af378d5f733490922aa9c808b16b269ee691e2c4b314009",
   "werdykt": {
@@ -22,6 +22,11 @@
       "werdykt": "PRZEPUSZCZAM",
       "powod": "Odtworzone wlasnym pomiarem. (1) Miejsce istnieje: INSTRUKCJA-INSTALACJI.md:51 to 'nas przed instalacja** — wtyczki bez nich nie zadzialaja poprawnie.' co do znaku. (2) Dowod trafia w stwierdzenie, nie obok: policzylem sam — 7x 'napisz do nas' + 'poprosz nas' + 'umowimy sie' = 9 odeslan (WDR podal 8 wezszym wzorcem, wiec zanizyl), a grep na '@|mailto|http|telefon|kontakt' daje w calym pliku CZTERY trafienia i ZADNE nie jest kanalem kontaktu (70 i 158 to przykladowy adres 'twojastrona.pl', 218 to CTA sklepu, 281 to wiersz o hostingu). (3) CZYNNE i sprawdzone SZERZEJ niz wpis: droga zapasowa tez nie istnieje — KOLEJNOSC-INSTALACJI.txt sklada pakuj-wtyczki.mjs:283-288 i jego cala tresc to lista plikow + odsylacz do tej samej instrukcji, bez kontaktu; jedyny adres w naglowkach wszystkich trzech wtyczek to 'Plugin URI: github.com/MatthewPlugins/Pod-strona-Szkolenia', czyli repozytorium kodu, a nie kanal wsparcia (i WordPress nie pokazuje 'Wyswietl szczegoly' dla wtyczki wgranej z pliku ZIP). (4) Zakres WDR poprawny wobec granicy z REPO: instrukcja nie klamie, tylko przypisuje klientowi krok NIEWYKONALNY — to strona 'czy da sie ja wykonac'. (5) Jednoznaczne.",
       "kiedy": "2026-09-03T23:04:53.708Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak: docs/INSTRUKCJA-INSTALACJI.md linia 51 zgodna co do znaku, hash zgodny, brzmienie jednoznaczne. WER-02 dowod odtworzyl sie CO DO LICZBY: wzorzec na trzy zwroty odsylajace do autorow daje 8 trafien, a wzorzec na kanal kontaktu (adres pocztowy, odsylacz mailto, domena, telefon) daje ZERO trafien w calym pliku. WER-03 CZYNNE: sprawdzilem, czy kanal kontaktu stoi gdzie indziej w materiale, ktory klient dostaje - w INSTRUKCJA-INSTALACJI.md, SCHEMATY.md i README.md nie ma ani jednego adresu ani odsylacza mailto, wiec nic tej luki nie zamyka, a osiem odeslan pada w krokach koniecznych do wykonania.",
+      "kiedy": "2026-09-04T02:35:20.175Z"
     }
   }
 }

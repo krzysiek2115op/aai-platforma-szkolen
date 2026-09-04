@@ -1,0 +1,32 @@
+{
+  "id": "AUD-GOLD-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "GOLD",
+  "pozycja": "GOLD-08",
+  "stwierdzenie": "Porównanie wartości początku i końca dla fali 1 nie zostało wykonane, a komenda, która ma je wykonać, melduje dziś ROZJAZD i kod wyjścia 1 przy zerowej różnicy wszystkich wartości produktu i środowiska: migawka po.json pochodzi z próby E7.6 i jest STARSZA (2026-09-03 03:48) od migawki przed.json (2026-09-03 19:11), a jedyną różnicą między nimi jest pole opisowe adnotacja, które porównanie liczy jako zmianę wartości.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/tools/migawka-wartosci.mjs",
+    "linia": 152,
+    "tresc": "  const rozjazdy = Object.keys({ ...przed, ...po }).filter((k) => napis(przed[k]) !== napis(po[k]));"
+  },
+  "dowod": "Uruchomienie 'node audyt/tools/migawka-wartosci.mjs --porownaj' (2026-09-04, kod wyjścia zmierzony BEZ potoku) daje kod 1 i wypis: 'ROZJAZD MIGAWEK — to zatrzymuje proces (W2, W6).' oraz jedną pozycję rozjazdu — 'adnotacja / przed: undefined / po: migawka z próby E7.6 (2026-09-02); pole srodowisko dopisane 2026-09-03' — i zdanie 'Sektor miał tylko patrzeć. Zmiana wartości znaczy, że coś ruszył.' Porównanie obu plików wprost pokazuje, że żadna wartość produktu ani środowiska się nie różni: galaz, glowa_main c6458950, diff_wobec_main_poza_sektorami 0, straznikow 39, mutacji 340, testow 83, bramek_smoke 16, goldenow 9, plikow_produktu 919, skrot_produktu ad03ea83..., skrot_tabel 258d9b45..., wszystkie dziewięć liczników naszych tabel i skrót mediów 107256d8... są identyczne. Czasy: 'stat -c %y audyt/migawki/*.json' → po.json 2026-09-03 03:48:56, przed.json 2026-09-03 19:11:26 — migawka końca jest o piętnaście godzin starsza od migawki początku. Fala 1 zaczęła się 2026-09-03T16:02:05.013Z (audyt/stan/audyt-f1-KIER.json, pierwszy wpis historii), więc w chwili zapisu przed.json siedem ról miało już status ZAKOŃCZONE: SEC 16:16:46, BE 16:17:50, BD 16:20:56, QA 16:25:40, FE 16:38:32, ARCH 16:45:17, PROTO 16:46:20. Grep 'proba' po audyt/tools/migawka-wartosci.mjs nie daje ani jednego trafienia — narzędzie nie ma pojęcia znacznika próby, a linia 152 bierze do porównania sumę kluczy obu obiektów, więc pole opisowe waży tyle samo co skrót produktu.",
+  "klasyfikacja": "porównanie początek-koniec niewykonane; komunikat rozjazdu nieprawdziwy wobec zmierzonych wartości",
+  "wplyw": "Pozycja GOLD-08, pozycja KIER-06 i zasada 9 mają jeden dowód: migawkę. Dziś ten dowód nie odpowiada na swoje pytanie, bo porównuje początek fali 1 z końcem PRÓBY E7.6, a nie z końcem fali 1 — a przy tym zwraca kod 1, czyli sygnał zarezerwowany dla sytuacji, w której audyt coś ruszył. Kod 1 przy zerowej zmianie wartości uczy, że kod 1 tego narzędzia nic nie znaczy, więc prawdziwy rozjazd wartości przy zamykaniu fali zostanie odczytany jako ten sam znany szum. Do tego migawka początku powstała po zakończeniu siedmiu ról, więc nawet po dopisaniu migawki końca porównanie nie obejmie tego, co te siedem ról zastało i zostawiło.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "9158b76bf78bfc1d7a233d8f90d659df40a237a31a8b4561d9722116e91d1b3f",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T02:18:18.400Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak: audyt/tools/migawka-wartosci.mjs linia 152 zgodna co do znaku, hash 9158b76b... zgodny, brzmienie jednoznaczne. WER-02 dowod dotyczy tego samego mechanizmu i odtworzylem go co do znaku: node audyt/tools/migawka-wartosci.mjs --porownaj konczy KODEM 1 (mierzone bez potoku) i wypisuje ROZJAZD MIGAWEK oraz DOKLADNIE JEDNA pozycje rozjazdu - adnotacja, przed undefined, po migawka z proby E7.6 - czyli zadna wartosc produktu ani srodowiska sie nie rozni. Potwierdzilem tez odwrocona chronologie: stat daje po.json 2026-09-03 03:48:56 i przed.json 2026-09-03 19:11:26, wiec migawka konca jest o pietnascie godzin starsza od migawki poczatku. WER-03 CZYNNE: linia 152 bierze sume kluczy obu obiektow, wiec pole opisowe wazy tyle samo co skrot produktu, a grep proba po tym pliku daje ZERO trafien - narzedzie nie ma pojecia znacznika proby i nic tego nizej nie lapie.",
+      "kiedy": "2026-09-04T02:35:19.552Z"
+    }
+  }
+}

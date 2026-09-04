@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "34a697c42b10762414dde708fad521ff2fce446c2c43c65a2da0ce29a8bc098b",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (miejsce mechanizmowe, checklista KON w ROLE.md 607-612 otwarta - szesc wierszy, tresc kazdego przeczytana), WER-04 hash zgodny, WER-05 jednoznaczne. WER-02 dowod dotyczy tego samego braku i potwierdzilem obie mierzalne czesci: zadna z szesciu pozycji KON nie pyta o zmiane stanu przedmiotu pomiaru (pytaja o pokrycie plikow, o zakres pusty, o klase bledu bez wlasciciela, o granice bez wlasciciela i o sile pytania), a rozklad wpisow KON fali 1 to dzis KON-A4 14, KON-A6 6, KON-A5 4, KON-A3 1, KON-A1 1 - czyli KON-A4 rzeczywiscie pelni role pozycji-zbiornika, bo trzy najciezsze znaleziska o koszcie komendy trafily wlasnie tam. Roznica jednej sztuki wobec dowodu (26 zamiast 25 wpisow, KON-A6 6 zamiast 5) bierze sie stad, ze sam ten wpis doszedl po zliczeniu. WER-03 CZYNNE: niezmiennik W2 istnieje w REGULAMIN.md, ale w ROLE.md odwoluja sie do niego tylko GOLD-03 i RAP-06, ktore pytaja o zachowanie agenta i o tresc raportu, nie o tresc komendy pozycji - wiec brak nie jest niczym pokryty.",
+      "kiedy": "2026-09-04T02:35:20.130Z"
+    }
+  }
 }

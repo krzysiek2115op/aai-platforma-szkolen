@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "f71004b177c9316e0557ba99e41731c60e9c3955d3c1bf905e3ecf6cccb8c09d",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak: audyt/ROLE.md linia 432 zgodna co do znaku, hash zgodny, brzmienie jednoznaczne. WER-02 - dowod w czesci rozstrzygajacej trafia w stwierdzenie i odtworzylem go: wolumen db_data jest NAZWANY (deklaracja montazu w linii 35 i wpis w sekcji volumes w linii 127), a sam skrypt rozdziela obie operacje JAWNIE - galaz zatrzymaj wola down bez flagi kasowania wolumenow z komentarzem dane zostaja, a galaz skasuj wola down -v z komunikatem kasuje razem z danymi; kolejnosc sekcji 4c przed sekcja 7 potwierdzilem osobno przy AUD-WDR-F1-002, a dzisiejsza wartosc opcji polityki rowna 23 zgadza sie z opisem przebiegu na istniejacej bazie. WER-03 CZYNNE: komenda z checklisty rzeczywiscie zostawia baze, wiec pozycja domyka sie na tak, a usterka, ktora ma znalezc, zostaje niewidoczna; nic tego nie kompensuje, bo weryfikacja artefaktu tego stanu nie sprawdza. ZASTRZEZENIE, ktore nie odwraca werdyktu: dowod dwukrotnie cytuje sciezke wordpress/srodowisko/docker-compose.yml, a takiego pliku w repozytorium NIE MA - plik nazywa sie compose.yml, przy czym podane numery linii 35 i 127 zgadzaja sie z nim co do sztuki. Zglaszam to osobno pod WER-02.",
+      "kiedy": "2026-09-04T02:35:20.342Z"
+    }
+  }
 }

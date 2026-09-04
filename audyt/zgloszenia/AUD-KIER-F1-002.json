@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KIER-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-05",
+  "stwierdzenie": "status.mjs przyjmuje --runda dla roli, która ma już status ZAKOŃCZONE, bez wymogu ponownego wejścia (--status=\"W TRAKCIE\"), więc dziennik wejść zapisuje rundy odbyte formalnie po wyjściu roli i nie da się z niego odczytać, kiedy rola weszła do działu po raz drugi; w fali 1 rola FE ma w historii trzy zapisy ZAKOŃCZONE (runda 4) po ZAKOŃCZONE (runda 3) bez żadnego W TRAKCIE między nimi.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/tools/status.mjs",
+    "linia": 409,
+    "tresc": "if (arg.includes(\"--runda\")) {"
+  },
+  "dowod": "audyt/stan/audyt-f1-FE.json, historia (odczyt pliku i status.mjs --pokaz --historia): 2026-09-03T16:33:38.276Z ZAKOŃCZONE runda 3 → 16:38:18.291Z ZAKOŃCZONE runda 4 → 16:38:18.350Z ZAKOŃCZONE runda 4 → 16:38:32.592Z ZAKOŃCZONE runda 4. status.mjs linie 409-418: gałąź --runda wykonuje stan.runda += 1 i sprawdza wyłącznie sufit (SUFIT_RUND), nie status; grep -n ZAKOŃCZONE w gałęziach zapisu pliku pokazuje tylko podbicie rundy 0→1 (linia 477) i wymóg listy niedomkniętych przy suficie (linia 480) — żadna reguła nie odmawia --runda przy stan.status === ZAKOŃCZONE. Poprawne ponowne wejście dla porównania: WER 2026-09-03T22:14:57Z ZAKOŃCZONE 4 → 2026-09-04T02:22:54Z W TRAKCIE 4.",
+  "klasyfikacja": "dziennik wejść — brak reguły",
+  "wplyw": "KIER-05 czyta z historii chwilę wyjścia audytu z działu; gdy --runda po ZAKOŃCZONE jest dopuszczalne, ostatni zapis ZAKOŃCZONE nie jest chwilą wyjścia, a liczba rund roli (FE 4/5) obejmuje rundę bez otwartego statusu — porównanie „re-audyt po wyjściu audytu” opiera się na znaczniku, który rola może przesuwać po zamknięciu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "363bfc191a0470a696f5aa7459bda9cad1544e6eb59e3246952213228dc3254b",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone wlasnym odczytem kodu i pliku stanu. MIEJSCE: status.mjs linia 409 brzmi co do znaku jak podano. DOWOD POTWIERDZA STWIERDZENIE: galaz --runda (409-418) podbija runde i sprawdza WYLACZNIE sufit; przeszukalem wszystkie wystapienia stalej ZAKONCZONE w status.mjs (96, 139, 150, 344, 477, 480 i dalej juz tylko samokontrola) i zadne z nich nie odmawia podbicia rundy roli zamknietej - przeciwnie, wlasna samokontrola narzedzia ma kontrprzyklad ZAKONCZONE do ZAKONCZONE jako dozwolony. Historia FE odtworzona co do znacznika czasu: 16:33:38.276Z ZAKONCZONE runda 3, potem 16:38:18.291Z, 16:38:18.350Z i 16:38:32.592Z - trzy wpisy ZAKONCZONE runda 4 bez ani jednego W TRAKCIE miedzy nimi. Kontrola pozytywna z dowodu tez sie zgadza: WER ma 22:14:57.721Z ZAKONCZONE runda 4, a nastepnie 2026-09-04T02:22:54.863Z W TRAKCIE runda 4, czyli poprawne ponowne wejscie wyglada inaczej. ZJAWISKO CZYNNE: reguly odmowy nie ma dzis w kodzie, wiec fala 2 zapisze taka sama historie. ZAKRES: KIER-05 czyta wlasnie ten dziennik. BRZMIENIE jednoznaczne.",
+      "kiedy": "2026-09-04T03:19:20.203Z"
+    }
+  }
+}

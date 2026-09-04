@@ -15,13 +15,18 @@
   "dowod": "tools/straznicy/audyt-straznikow.mjs:4183 `writeFileSync(m.plik, zmutowany);` na plikach produktu (`grep -o 'plik: \"[^\"]*\"' | sort -u | wc -l` → 76, m.in. app/api/szkolenia/route.serwer.ts, app/layout.tsx, app/robots.ts); :4168 `spawnSync(\"git\", [\"add\", \"-f\", m.nowyPlik.sciezka])`; przywracanie :4205-4216 w `finally` z kontrolą sha; `grep -c 'process.on(' tools/straznicy/audyt-straznikow.mjs` → 0 (brak SIGINT/SIGTERM). Ta sama klasa co AUD-REPO-F1-015 (narzędzie psuje przedmiot pomiaru i liczy, że zdąży posprzątać) — tyle że tu przedmiotem jest PRODUKT, którego sektor nie ma prawa dotknąć (W2), a wywołanie stoi w checkliście jako komenda pozycji. audyt/zgloszenia/AUD-QA-F1-008/009/010 zawierają „audyt-straznikow” w dowodach — dział uruchomił narzędzie w trakcie fali. status.mjs:233-261 powodyOdmowyDrzewa: każdy zmieniony plik poza audyt/re-audyt/.claude blokuje zapis stanu każdej roli.",
   "klasyfikacja": "komenda pozycji audytu mutuje drzewo produktu",
   "wplyw": "Jedno przerwanie (limit sesji, SIGKILL) w trakcie QA-11 zostawia produkt z mutacją strażnika i indeks git z obcym plikiem; wygląda to jak złamanie W2 przez sektor, blokuje status.mjs wszystkim rolom i unieważnia W6 — a przyczyną jest treść checklisty.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "hash": "f9e55d86a5df331afc8e22f1956a83555c3861b28c17a1e95a7373855d87f8e6",
   "werdykt": {
     "krytyk": {
       "werdykt": "PRZEPUSZCZAM",
       "powod": "Odtworzone STATYCZNIE, celowo bez uruchamiania narzedzia — uruchomienie go byloby wykonaniem dokladnie tej czynnosci, ktora wpis nazywa szkodliwa, a sektor ma tylko patrzec (W2). Liczby zgadzaja sie co do jednej: unikalnych plikow produktu wymienionych w mutacjach 76, zapis zmutowanej tresci przez writeFileSync na pliku mutacji w linii 4183, dodanie nowego pliku do indeksu przez git add -f w linii 4168, a liczba wywolan process.on( w calym pliku wynosi 0 — czyli przywracanie stoi wylacznie na finally i nie przezyje SIGKILL ani limitu sesji. Druga polowa lancucha sprawdzona w kodzie sektora: powodyOdmowyDrzewa() w status.mjs odrzuca zapis stanu KAZDEJ roli, gdy choc jeden plik produktu rozni sie od migawki albo jest niezacommitowany (filtr POZA PRODUKTEM przepuszcza tylko katalogi sektora), i podaje jako naprawe git checkout — wiec jedno przerwanie w trakcie QA-11 blokuje wszystkie role, dokladnie jak opisuje pole wplyw. Potwierdzone tez, ze pozycja nie jest teoretyczna: AUD-QA-F1-008, -009 i -010 cytuja to narzedzie, przy czym AUD-QA-F1-010 dotyczy wprost pozycji QA-11. Miejsce zgadza sie z plikiem: ROLE.md linia 238 niesie wiersz QA-11 z ta komenda. Klasyfikacja trafna — przedmiotem mutacji jest PRODUKT, ktorego sektor nie ma prawa dotknac, a wywolanie stoi w checkliscie jako komenda pozycji.",
       "kiedy": "2026-09-03T23:36:28.367Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak (audyt/ROLE.md linia 238 zgodna co do znaku, hash zgodny, brzmienie jednoznaczne). WER-02 dowod dotyczy tego samego narzedzia i odtworzylem wszystkie trzy liczby: unikalnych sciezek w polach plik audytu mutacyjnego jest 76, wywolanie git add z flaga wymuszenia wystepuje raz, a proces nie rejestruje ANI JEDNEGO process.on, wiec nie ma obslugi SIGINT ani SIGTERM i przywracanie stoi wylacznie na finally. WER-03 CZYNNE: sciezka od pozycji do skutku jest kompletna - QA-11 podaje to wywolanie jako komende pozycji, dzial QA je wykonal (trzy wpisy QA cytuja jego wynik), a powodyOdmowyDrzewa w status.mjs zamienia kazdy zmieniony plik produktu w blokade zapisu stanu KAZDEJ roli; nic po drodze nie chroni przed ubiciem procesu w trakcie mutacji.",
+      "kiedy": "2026-09-04T02:35:19.951Z"
     }
   }
 }

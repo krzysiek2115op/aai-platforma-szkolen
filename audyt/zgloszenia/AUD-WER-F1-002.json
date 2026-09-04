@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "901af9b093325bb72f105a4529ee61a7a1bb71689409822264f94f486b2b6081",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "Dowod nie odtwarza sie co do listy, ktora sam podaje. Powtorzylem pomiar bez ciecia na pierwszej kropce, biorac fragment od WER-03 do znacznika WER-04: z trzynastu wymienionych wpisow DWANASCIE ma cala odpowiedz WER-03 CZYNNE (14 znakow), ale AUD-FE-F1-004 ma 126 znakow i NAZYWA sciezke wywolania - WER-03 CZYNNE: FE-11 (ROLE.md:142) podaje ta bramke jako komende pozycji, wiec nie ma nizej niczego, co by ten stan zobaczylo. Filtr autora uciął ten fragment na kropce wewnatrz ROLE.md i zamienil argument o sciezce w goly wyraz. Zdanie dowodu w kazdym z nich cala odpowiedz brzmi WER-03 CZYNNE jest wiec falszywe wobec wpisu wskazanego imiennie, a liczba 13 zawyzona o jeden - wpis przypisuje usterke miejscu, ktore jej nie ma (zasada nadrzedna 1). Zjawisko samo stoi i mierze je na DWANASCIE wpisow: druga fala ma trafic na te sama liste pomniejszona o AUD-FE-F1-004.",
+      "kiedy": "2026-09-04T03:32:30.223Z"
+    }
+  }
 }

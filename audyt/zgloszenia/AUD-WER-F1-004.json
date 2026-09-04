@@ -1,0 +1,27 @@
+{
+  "id": "AUD-WER-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "WER",
+  "pozycja": "WER-02",
+  "stwierdzenie": "Dowod AUD-KON-F1-018 wymienia cztery komendy checklisty padajace uruchomione co do znaku, ale jedna z nich - PIK-07 - u mnie NIE PADA: komenda z wiersza PIK-07 konczy sie kodem 0, wypisuje piec trafien i ma PUSTY strumien bledow, a nie kod 2 z komunikatem o katalogu, ktory dowod jej przypisuje. Trzy pozostale (PERF-01, REPO-11, SEC-02) odtwarzaja sie co do znaku, wiec liczba komend padajacych wynosi trzy, nie cztery, a udzial 12 z 49 opiera sie o jeden skladnik mniej, niz deklaruje.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/zgloszenia/AUD-KON-F1-018.json",
+    "zakres": "pole dowod, blok wyliczajacy komendy padajace uruchomione co do znaku - czlon dotyczacy PIK-07 (cytat: PIK-07 kod 2 grep dwukropek docs dwukropek Jest katalogiem); to samo w polu stwierdzenie, czlon 4 padaja uruchomione co do znaku",
+    "mechanizm": "Brakuje zgodnosci miedzy cytowanym wynikiem a wynikiem powtorzenia: w miejscu, w ktorym dowod podaje dla PIK-07 kod 2 i komunikat o katalogu, powtorzenie tej samej komendy daje kod 0, piec trafien i pusty strumien bledow. Sektor nie ma kroku, ktory powtarzalby pomiary cytowane w dowodach - ani zgloszenie.mjs (sprawdza obecnosc pola dowod, nie jego tresc), ani werdykt.mjs (zero odczytow pliku), ani strazNIK sektora, ktory komend pozycji nie uruchamia."
+  },
+  "dowod": "Pomiar wlasny 2026-09-04 na galezi sektora, kody wyjscia mierzone bez potoku, drzewo produktu nietkniete (git status czysty, roznica wobec main poza katalogami sektorow zerowa). (1) POWTORZENIE PIK-07 co do znaku: komenda z wiersza PIK-07 w audyt/ROLE.md linia 498 (grep z opcja n, wzorzec ZOSTAJE DO DECYZJI, argumenty CLAUDE.md i docs) daje kod wyjscia 0, piec linii na wyjsciu standardowym i ZERO znakow na wyjsciu bledow - powtorzone dwa razy, wynik ten sam. GNU grep tej instalacji pomija katalog podany bez opcji rekurencji w milczeniu, wiec komunikat cytowany w dowodzie nie powstaje, a kod wyjscia bierze sie z trafien w CLAUDE.md. (2) KONTROLA, ze pozostale trzy sie odtwarzaja, czyli ze rozjazd dotyczy jednego skladnika, a nie calego bloku: PERF-01 uruchomiony co do znaku konczy kodem 2 ze stderr grep dwukropek pionowa kreska dwukropek Nie ma takiego pliku ani katalogu i 2067 liniami na stdout; REPO-11 kodem 2 ze skladnia grepa; SEC-02 bez sciezki kodem 1 i czytaniem strumienia wejsciowego. (3) KONTROLA drugiego bloku dowodu (komendy celujace obok klasy) - odtwarza sie w calosci: SEC-06 daje 1 trafienie, INT-03 daje 31 dopasowan add_action przy 19 pominietych add_filter, PERF-01 po poprawce skladni daje 26, 31 i 27 linii, a w wyjsciu komendy SEC-12 linia try z klamra pojawia sie 11 razy przy 48 blokach catch. (4) Wpis dostal ode mnie werdykt ISTNIEJE, bo zjawisko, o ktorym orzeka, jest czynne - to zgloszenie dotyczy WYLACZNIE jednego skladnika jego dowodu.",
+  "klasyfikacja": "dowod czesciowo nieodtwarzalny - jeden z czterech cytowanych pomiarow daje przy powtorzeniu inny wynik",
+  "wplyw": "Druga fala powtarzajaca ten pomiar dostanie dla PIK-07 kod 0 zamiast 2 i stanie przed wyborem, ktorego sektor nie rozstrzyga: uznac wpis za nieodtwarzalny w calosci czy tylko skorygowac liczbe. Oba wyjscia daja inny wynik niz fala 1, przy niezmienionym kodzie - czyli dokladnie ten rozjazd, ktorego mechaniczny zakres i checklista mialy nie dopuscic. Klasa jest szersza od tego wpisu: nic w sektorze nie powtarza pomiarow cytowanych w dowodach, a zachowanie grepa wobec katalogu podanego bez rekurencji jest zalezne od wersji i konfiguracji, wiec kazdy dowod opierajacy sie na komunikacie bledu narzedzia ma date waznosci.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "62f825f9793de5d56ec11e8e150f2f0c491ccda9cea61d9070160c19fa625c56",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "Odwrotnie niz twierdzi wpis: dowod AUD-KON-F1-018 odtwarza sie co do znaku, a nie odtwarza sie pomiar autora. Komenda PIK-07 uruchomiona pod SYSTEMOWYM /usr/bin/grep (GNU grep 3.12) przez bash -o pipefail -c daje KOD 2, piec linii na stdout i na stderr komunikat docs: Jest katalogiem - dokladnie to, co cytuje dowod KON-018, i dokladnie tak, jak KON-018 mierzyl (wlasnie bash -c). Kod 0 z pustym strumieniem bledow, ktory wpis podaje jako swoj wynik, daje WYLACZNIE ugrep 7.8.4 podstawiony pod nazwe grep przez funkcje powloki agenta - autor uruchomil wiec INNY PROGRAM, a nie te sama komende. Zdanie dowodu GNU grep tej instalacji pomija katalog podany bez opcji rekurencji w milczeniu jest wprost falszywe: GNU grep tej instalacji katalog zglasza i konczy kodem 2. Rozstrzygajace: ta sama roznica jest juz zmierzona i ZWERYFIKOWANA w tej fali w AUD-PIK-F1-005 (GNU kod 2, ugrep cisza z kodem 0), a uzasadnienie weryfikatora tamtego wpisu z 2026-09-03 podaje wlasnie kod 2 spod /usr/bin/grep - wpis zaprzecza pomiarowi, ktory jego wlasna rola potwierdzila dzien wczesniej. Zjawisko obalanego wpisu stoi: komend padajacych uruchomione co do znaku jest CZTERY, udzial 12 z 49 bez zmian.",
+      "kiedy": "2026-09-04T03:32:30.304Z"
+    }
+  }
+}

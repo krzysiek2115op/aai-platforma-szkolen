@@ -15,13 +15,18 @@
   "dowod": "`grep -rn -B2 'catch ( Throwable' wordpress/wtyczki` → 191 linii; w tym wyjściu linia `try {` pojawia się 11 razy (tylko przy blokach o ciele ≤ 1 linii), więc dla pozostałych bloków komenda nie pokazuje nawet początku try, tym bardziej instrukcji przed nim. `grep -rn -B1 'try {' wordpress/wtyczki` → 29 miejsc z linią poprzedzającą `try` — to jest pole widzenia, którego pytanie wymaga. Klasa błędu z historii repo (CLAUDE.md, przegląd T2: „ArgumentCountError omijał try (powstaje PRZY WYWOŁANIU)”; przegląd T2: „reguła o catch ( Throwable ) ślepa — instrukcja LINIĘ przed try przechodziła na zielono”) leży dokładnie w liniach, których -B2 od catch nie obejmuje.",
   "klasyfikacja": "komenda pozycji celuje obok klasy błędu",
   "wplyw": "SEC-12 w obu falach zamknie się tym samym niewidzącym pomiarem — nawrót klasy ArgumentCountError na ścieżce kasy Woo nie ma w checkliście pozycji, która by go zobaczyła.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "hash": "7f5c4b1a23c6e6272e851cf443473e0b48d1eefb00dff4a647c0cf627abb4e5b",
   "werdykt": {
     "krytyk": {
       "werdykt": "PRZEPUSZCZAM",
       "powod": "Odtworzone co do liczby, GNU grep 3.12, 2026-09-04. Komenda pozycji daje 191 linii wyjscia, a linia otwierajaca blok try pojawia sie w tym wyjsciu 11 razy — obie liczby zgadzaja sie z wpisem co do jednego. W drzewie wtyczek jest 59 blokow try i 48 wystapien catch ( Throwable, wiec dla 37 z 48 blokow komenda nie pokazuje nawet linii otwierajacej, tym bardziej instrukcji stojacej PRZED nia. Dwie linie kontekstu przed catch to z definicji koniec CIALA try, a pytanie pozycji dotyczy instrukcji POZA blokiem — kolumna \"co ma byc dowodem\" mowi wprost \"plik:linia instrukcji poza try\", czyli komenda nie pokazuje tego, czego sama pozycja zada jako dowodu. Klasa bledu jest realna i udokumentowana w repo: przeglad T2 zapisal, ze ArgumentCountError omija try, bo powstaje PRZY WYWOLANIU, oraz ze regula pytajaca o obecnosc catch ( Throwable byla slepa na instrukcje linie przed try. Zastrzezenie bez wplywu na werdykt: liczba 29 miejsc podana we wpisie dla wariantu z kontekstem przed try mi sie nie odtworzyla (naliczylem 59 blokow try), ale jest to liczba poboczna, ilustrujaca pole widzenia alternatywy, a nie podstawa stwierdzenia; stwierdzenie stoi na 191 i 11, ktore zgadzaja sie dokladnie.",
       "kiedy": "2026-09-03T23:35:24.832Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak: audyt/ROLE.md linia 109 zgodna co do znaku, hash zgodny, brzmienie jednoznaczne. WER-02 - czesc decydujaca dowodu trafia w stwierdzenie i sprawdzilem ja sam: w wyjsciu komendy pozycji linia try z klamra pojawia sie DOKLADNIE 11 razy, przy 48 blokach catch w calym zakresie, wiec dla 37 blokow komenda nie pokazuje nawet poczatku try, tym bardziej instrukcji stojacej przed nim - to jest dokladnie ta roznica, o ktorej mowi stwierdzenie. WER-03 CZYNNE: pozycja pyta o instrukcje przed try, a jej wlasna komenda ogląda koniec ciala try, i nic tego nie kompensuje - w checkliście SEC nie ma drugiej pozycji o tej klasie. ZASTRZEZENIE do dwoch liczb pomocniczych, ktore werdyktu nie odwraca: nie odtwarzaja sie u mnie - komenda pozycji daje 175 linii, nie 191, a grep -rn -B1 na try daje 59 dopasowan, 97 linii kontekstu i 39 grup, nie 29 miejsc; drzewo produktu jest przy tym nietkniete. Zglaszam to osobno pod WER-02.",
+      "kiedy": "2026-09-04T02:35:19.839Z"
     }
   }
 }

@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KIER-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-03",
+  "stwierdzenie": "zgloszenie.mjs przyjmuje miejsce liniowe w plikach, które sektor sam nadpisuje w trakcie fali (audyt/stan/*), więc wpis przestaje być odtwarzalny po pierwszym kolejnym wejściu roli: AUD-GOLD-F1-001 wskazuje audyt/stan/audyt-f1-WER.json:7 z treścią „\"niedomkniete\": [],”, a po trzecim wejściu WER (2026-09-04T02:37:57Z) linia 7 brzmi „\"niedomkniete\": [” — powodyOdmowy() odrzuca dziś ten wpis, choć został przyjęty, przepuszczony przez krytyka (02:18:18Z) i potwierdzony przez weryfikatora (02:35:19Z).",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/zgloszenie.mjs",
+    "zakres": "powodyOdmowy() — sprawdzenie miejsce.plik i zgodności miejsce.tresc z linią (linie 57-77) oraz obiekt gotowe (linia 395)",
+    "mechanizm": "brakuje rozróżnienia plików produktu od plików nośnika sektora (audyt/stan/*, audyt/migawki/*), które narzędzia sektora nadpisują w trakcie fali — odmowa takiego miejsca powinna stać w powodyOdmowy obok sprawdzenia istnienia pliku; albo brakuje zamrożenia wskazanej linii w obiekcie gotowe (kopia treści z chwili przyjęcia), żeby zgodność dała się sprawdzić po zmianie pliku"
+  },
+  "dowod": "node: import { powodyOdmowy } z audyt/tools/zgloszenie.mjs wywołane na wszystkich 116 wpisach — odrzucone 4: AUD-PIK-F1-001, REA-SEC-F1-001, REA-SEC-F1-002 (pole proba; wpisy próbne E6/E7 poza falą) oraz AUD-GOLD-F1-001: „treść linii 7 NIE ZGADZA SIĘ z podaną / w pliku: \"niedomkniete\": [ / podano: \"niedomkniete\": [],”. audyt/stan/audyt-f1-WER.json historia: ZAKOŃCZONE 2026-09-03T22:14:57Z (niedomkniete []) → W TRAKCIE 2026-09-04T02:22:54Z → ZAKOŃCZONE 02:37:57Z z niedomkniete WER-01…WER-05. Werdykty w AUD-GOLD-F1-001.json: krytyk PRZEPUSZCZAM 02:18:18Z, weryfikator ISTNIEJE 02:35:19Z — oba przed zmianą linii. zgloszenie.mjs 57-77 sprawdza istnienie pliku i zgodność linii wyłącznie w chwili przyjęcia; obiekt gotowe (linia 395) niesie id, status, runda, hash, werdykt — bez kopii treści pliku.",
+  "klasyfikacja": "nośnik — wpis nieodtwarzalny",
+  "wplyw": "Fala 2 i re-audyt nie potwierdzą miejsca AUD-GOLD-F1-001 narzędziem, którym je przyjęto; każde zgłoszenie o stanie roli (klasa GOLD-05) dezaktualizuje się w chwili, gdy rola na nie zareaguje — czyli dokładnie wtedy, gdy zgłoszenie zadziała.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "4b7a5a2faef1f0620c9c49876fb52211d6ac0f0a0a7e1e21370e9d4d25b694f3",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone URUCHOMIENIOWO. Puscilem powodyOdmowy() po wszystkich 121 wpisach katalogu i dostalem dokladnie cztery odrzucenia: AUD-PIK-F1-001, REA-SEC-F1-001 i REA-SEC-F1-002 na polu proba (wpisy probne) oraz AUD-GOLD-F1-001 z komunikatem tresc linii 7 NIE ZGADZA SIE z podana, w pliku dwukropek niedomkniete otwarty nawias kwadratowy, podano dwukropek niedomkniete pusta lista - czyli co do slowa jak w dowodzie. Historia audyt-f1-WER.json potwierdza przyczyne: ZAKONCZONE 2026-09-03T22:14:57.721Z z pusta lista, W TRAKCIE 2026-09-04T02:22:54.863Z, ZAKONCZONE 02:37:57.647Z z piecioma pozycjami; werdykty w AUD-GOLD-F1-001 sa z 02:18:18Z i 02:35:19Z, wiec oba przed zmiana linii. Sprawdzilem tez druga polowe mechanizmu: obiekt gotowe (linia 395) niesie id, status, runde, hash i werdykt, bez kopii tresci pliku, a hashMiejsca liczy skrot z pol samego wpisu - nic w sektorze nie zamraza wskazanej linii. ZASTRZEZENIE, ktore NIE odwraca werdyktu: zakres miejsca podaje linie 57-77 jako miejsce sprawdzenia miejsce.plik i zgodnosci tresci, a te sprawdzenia leza w liniach 109-135 tej samej funkcji (57-77 to pola wymagane, sektor, fala i dzial). Pole mechanizm wskazuje jednak wlasciwy punkt wprost - obok sprawdzenia istnienia pliku, ktore jest w linii 112 - wiec miejsce da sie znalezc bez zgadywania i odtworzylem je bez pomocy tamtego zakresu. ZJAWISKO CZYNNE, ZAKRES KIER-03 wlasciwy, brzmienie jednoznaczne.",
+      "kiedy": "2026-09-04T03:19:39.451Z"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "AUD-KIER-F1-006",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-03",
+  "stwierdzenie": "Kolumna Dowod pozycji KIER-03 wskazuje wynik zgloszenie.mjs, a narzedzie NIE MA trybu sprawdzania wpisu juz przyjetego: jego CLI zna wylacznie --plik= (TWORZY nowy wpis), --oznacz-probe= i --test (samokontrola na przypadkach syntetycznych). Podanie istniejacego wpisu do --plik= nie waliduje go, tylko zaklada DUPLIKAT z nowym identyfikatorem i konczy kodem 0 - zmierzone: audyt/zgloszenia/AUD-KIER-F1-002.json podany do --plik= z --katalog=<tmp> wyprodukowal nowy plik AUD-KIER-F1-001.json z ta sama trescia. Pozycje da sie dzis domknac wylacznie importem funkcji powodyOdmowy() z modulu - czyli droga, ktorej kolumna Dowod nie nazywa - albo deklaracja.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 553,
+    "tresc": "| KIER-03 | Czy każde zgłoszenie ma dowód, miejsce i kod? | wynik `zgloszenie.mjs` |"
+  },
+  "dowod": "grep -n na audyt/tools/zgloszenie.mjs: naglowek Uzycie (linie 26-28) wymienia --plik=<wejscie.json> i --test; rozbior argumentow w liniach 333-377 zna --test (335), --oznacz-probe= (351) z --etap= (353), --katalog= (339) i --plik= (375), a przy braku --plik= drukuje jedno zdanie uzycia (377) - ZADNEJ galezi sprawdzajacej wpis juz przyjety. Sciezka tworzenia: powody.length -> kod 1 (linie 388-393), w przeciwnym razie nastepneId() i zapis obiektu gotowe (395-402). POMIAR WLASNY (kod wyjscia bez potoku): node audyt/tools/zgloszenie.mjs --katalog=<tmp> --plik=audyt/zgloszenia/AUD-KIER-F1-002.json -> kod 0, wyjscie 'Przyjete: AUD-KIER-F1-001 / hash miejsca: 363bfc191a0470a6...', w katalogu tymczasowym powstal AUD-KIER-F1-001.json; hash 363bfc19... jest hashem miejsca wpisu -002, czyli tresc zostala skopiowana pod cudzy numer. Katalog repozytorium nietkniety: audyt/zgloszenia/*.json dalej 121 plikow. Dla porownania droga faktycznie uzyta w tej fali (dowod AUD-KIER-F1-003): import powodyOdmowy z modulu i przebieg po wszystkich wpisach - funkcja jest eksportowana (linia 53), ale nie ma dla niej ZADNEJ komendy.",
+  "klasyfikacja": "checklista - dowod nazwany komenda, ktorej narzedzie nie ma",
+  "wplyw": "KIER-03 pyta o WSZYSTKIE wpisy fali (121), a jedyna komenda narzedzia z kolumny Dowod dopisuje 122. wpis zamiast odpowiedziec na pytanie. W fali 2 kierownik idacy za kolumna doslownie albo zanieczysci fale duplikatami z przesunieta numeracja, albo zamknie pozycje deklaracja; w obu razach porownanie fal dostanie dla KIER-03 inny material niz w fali 1, gdzie odpowiedz powstala importem funkcji nienazwanej w checkliscie.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "27131567cf27fd140416f5411a590802be8af77865ff6cfa21075f1baa8f9c7b",
+  "werdykt": null
+}

@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "38ca33adb30fdacac463577551be95821e8ddbb832142bb5d52fa87f4c9d02b6",
-  "werdykt": null
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone w calosci wlasnym pomiarem. (1) hashMiejsca w audyt/tools/wspolne.mjs sklada skrot wylacznie z pol wpisu i nie ma ani jednego odczytu dysku; przeliczylem 122 z 122 hashy WYLACZNIE z plikow JSON, bez otwarcia ani jednego pliku wskazanego w miejsce.plik - 122 zgodne, 0 rozjazdow, w tym 42 miejsca rodzaju mechanizm. (2) Nic tego nie kompensuje, czyli zjawisko jest czynne: zgloszenie.mjs porownuje tresc z plikiem tylko przy formie liniowej i tylko przy SKLADANIU wpisu (linie 117-131), przy formie mechanizmu sprawdza samo istnienie pliku, werdykt.mjs ma jedyne existsSync na pliku samego zgloszenia (linia 197), a regula straznika sektora przelicza hash rowniez z pola miejsce (straznik-sektora-audytu.mjs:1142), nie z dysku. (3) Skutek w wyjsciu fali potwierdzony: formula o zgodnym hashu stoi w 38 z 38 uzasadnien weryfikatora przy miejscach rodzaju mechanizm. Miejsce audyt/ROLE.md:636 zgadza sie co do znaku, stwierdzenie jednoznaczne, zakres wlasnej checklisty roli. Liczby wpisu (87/85/28) to migawka z chwili pomiaru - dzis jest 122/120/42, bo fala dopisala wpisy po tej dacie; wniosek od tej liczby nie zalezy.",
+      "kiedy": "2026-09-04T03:32:30.162Z"
+    }
+  }
 }

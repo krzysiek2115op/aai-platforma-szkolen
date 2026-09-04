@@ -1,0 +1,27 @@
+{
+  "id": "AUD-WER-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "WER",
+  "pozycja": "WER-02",
+  "stwierdzenie": "Dowod AUD-WDR-F1-005 dwukrotnie cytuje jako zrodlo plik wordpress/srodowisko/docker-compose.yml, ktorego w repozytorium NIE MA - komenda podana w dowodzie (grep na db_data w tym pliku) konczy sie bledem o braku pliku, a nie wynikiem, ktory dowod przypisuje. Wlasciwy plik nazywa sie wordpress/srodowisko/compose.yml i niesie te tresc pod tymi samymi numerami linii 35 i 127, wiec teza wpisu jest prawdziwa, ale jego dowod w tej czesci nie jest odtwarzalny komenda, ktora sam podaje.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/zgloszenia/AUD-WDR-F1-005.json",
+    "zakres": "pole dowod, punkt 1 (WOLUMEN) - fragment cytujacy sciezke wordpress/srodowisko/docker-compose.yml oraz to samo odwolanie w polu stwierdzenie",
+    "mechanizm": "Brakuje istniejacej sciezki pliku w dowodzie: w miejscu, w ktorym dowod nazywa zrodlo pomiaru, powinna stac sciezka wordpress/srodowisko/compose.yml - jedyny plik compose tego srodowiska sledzony przez gita. Sektor nie ma zadnego kroku, ktory sprawdzalby istnienie sciezek CYTOWANYCH W DOWODZIE: zgloszenie.mjs weryfikuje wobec dysku wylacznie pole miejsce i tylko przy formie liniowej (linie 117-131), a werdykt.mjs nie czyta zadnego pliku (zero wywolan readFileSync)."
+  },
+  "dowod": "Pomiar wlasny 2026-09-04 na galezi sektora, kody wyjscia bez potoku. (1) Sciezka z dowodu nie istnieje: ls wordpress/srodowisko wypisuje compose.yml, mu-plugins, postaw.sh, README.md - pliku docker-compose.yml tam nie ma, a grep na nim konczy sie komunikatem No such file or directory. (2) Tresc, ktora dowod przypisuje nieistniejacemu plikowi, lezy w compose.yml POD TYMI SAMYMI NUMERAMI: linia 35 to montaz db_data ukosnik var ukosnik lib ukosnik mysql, linia 127 to wpis db_data w sekcji volumes - czyli pomyłka dotyczy nazwy pliku, nie faktu. (3) Ta sama sciezka pada w tym wpisie dwa razy: raz w polu stwierdzenie (docker-compose.yml dwukropek 35 i dwukropek 126-128), raz w polu dowod (punkt 1). (4) Kontrola, czy to nie jest cecha calego dzialu: pozostale piec wpisow WDR fali 1 cytuje wylacznie sciezki istniejace - sprawdzilem docs/INSTRUKCJA-INSTALACJI.md, wordpress/wtyczki/aai-sklep/readme.txt, wordpress/wtyczki/aai-sklep/aai-sklep.php, wordpress/srodowisko/postaw.sh i tools/straznicy/straznik-wersji.mjs, kazdy istnieje. (5) Kontrola, czy cokolwiek w sektorze to lapie: zgloszenie.mjs sprawdza wobec dysku tylko miejsce.plik i tylko dla formy liniowej, wiec sciezka wpisana w prozie dowodu nie przechodzi przez zadna bramke.",
+  "klasyfikacja": "dowod nieodtwarzalny - komenda dowodu wskazuje plik, ktorego nie ma; teza wpisu zostaje prawdziwa",
+  "wplyw": "Druga fala, powtarzajac pomiar doslownie z dowodu, dostanie blad zamiast liczby i bedzie musiala sama zgadnac, ktory plik autor mial na mysli - a od zgadywania zalezy, czy potwierdzi znalezisko, czy uzna je za nieodtwarzalne. To jest rozjazd fal powstajacy bez ani jednej zmiany w kodzie. Klasa jest szersza niz ten wpis: sektor weryfikuje wobec dysku wylacznie pole miejsce i tylko przy formie liniowej, wiec kazda sciezka wpisana w prozie dowodu jest dzis nieweryfikowana, a wlasnie proza dowodu niesie komendy, ktorymi znalezisko sie powtarza.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "1668d3bc2458c52200f570fc60adb927713e25e9d3e3dac8bb74bd81e4213a11",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone po obu stronach. Sciezka z dowodu AUD-WDR-F1-005 nie istnieje: test -e wordpress/srodowisko/docker-compose.yml konczy kodem 1, a grep na niej kodem 2 z komunikatem o braku pliku w OBU implementacjach grepa tej maszyny (GNU grep 3.12 i ugrep 7.8.4) - czyli rozjazd nie zalezy od narzedzia. Tresc, ktora dowod przypisuje nieistniejacemu plikowi, lezy w wordpress/srodowisko/compose.yml pod tymi samymi numerami: linia 35 montaz db_data ukosnik var ukosnik lib ukosnik mysql, linia 126 naglowek volumes, linia 127 wpis db_data - odczytane sed. Sledzone pliki compose to docker-compose.yml w KORZENIU repo i wordpress/srodowisko/compose.yml; w katalogu srodowiska jest wylacznie ten drugi. Kontrola autora sie broni: pozostale piec wpisow WDR cytuje w pelnych sciezkach wylacznie pliki istniejace (sprawdzone po kolei). Zjawisko obalanego wpisu NIE upada - wolumen db_data jest nazwany i przezywa down bez opcji kasowania wolumenow - wiec werdykt ISTNIEJE na AUD-WDR-F1-005 zostaje sluszny, a zgloszenie dotyczy wylacznie odtwarzalnosci jego dowodu, co autor napisal wprost.",
+      "kiedy": "2026-09-04T03:32:30.267Z"
+    }
+  }
+}

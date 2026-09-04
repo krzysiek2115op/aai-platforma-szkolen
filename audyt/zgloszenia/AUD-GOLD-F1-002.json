@@ -1,0 +1,32 @@
+{
+  "id": "AUD-GOLD-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "GOLD",
+  "pozycja": "GOLD-06",
+  "stwierdzenie": "Cztery zgłoszenia działu QA o tej samej klasie (AUD-QA-F1-001, -002, -003, -004, wszystkie pozycja QA-06, klasyfikacja \"słaba asercja\") nie niosą ani jednego artefaktu kroków 3 i 5 procedury audyt/role/QA/SKILL.md — nie ma w nich dwóch kodów wyjścia bramki przed mutacją i po niej ani liczby padłych sprawdzeń wobec wszystkich; dowodem jest w każdym z nich wyłącznie rozumowanie o zachowaniu funkcji includes w JavaScripcie, bez uruchomienia bramki, którą opisują.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/zgloszenia/AUD-QA-F1-001.json",
+    "zakres": "pole \"dowod\" — i to samo pole w AUD-QA-F1-002.json, AUD-QA-F1-003.json, AUD-QA-F1-004.json",
+    "mechanizm": "Brakuje artefaktu kroku 3 SKILL.md QA (\"Wynik: kod wyjścia przed mutacją i po niej — dwie liczby\", audyt/role/QA/SKILL.md:42-45) oraz kroku 5 (\"Wynik: dwie liczby — padłych i wszystkich\", SKILL.md:51-53). Te dwie pary liczb powinny stać w polu dowod każdego z czterech wpisów; w żadnym z nich nie ma ani kodu wyjścia bramki, ani liczby padłych sprawdzeń."
+  },
+  "dowod": "Odczyt pola dowod czterech wpisów (2026-09-04): AUD-QA-F1-001 — \"Podciąg 199,00 jest zawarty także w 1199,00 (JS: \\\"1199,00\\\".includes(\\\"199,00\\\") === true), więc mutacja dopisująca cyfrę przed ceną w HTML nie zapaliłaby tej asercji\"; AUD-QA-F1-002 — \"1299,00\".includes(\"299,00\") === true w JS; AUD-QA-F1-003 — \"1123,00\".includes(\"123,00\") === true w JS; AUD-QA-F1-004 — \"11/12\".includes(\"1/12\") === true w JS. Wszystkie cztery mówią w trybie warunkowym \"nie zapaliłaby\", żaden nie podaje kodu wyjścia uruchomionej bramki. Pomiar różnicowy w tym samym dziale: pozostałe sześć zgłoszeń QA artefakt ma — AUD-QA-F1-005 cytuje wykonanie 'node -e ...match(/modu[łl]\\w*\\s+(\\d)/giu)' i jego wynik null, AUD-QA-F1-008 cytuje 'ls tools/straznicy/*.mjs' = 39 plików, uruchomienie 'node tools/straznicy/audyt-straznikow.mjs' i porównanie comm -23. Rozjazd nie jest więc cechą działu, tylko tych czterech wpisów. Skutek jest już zmierzony w sektorze niezależnie ode mnie: weryfikator ODRZUCIŁ AUD-QA-F1-001 z powodem, że zjawisko nie jest czynne, bo ta sama ścieżka smoke-d4.ts:109-126 porównuje siatkę z goldenem — czyli krok 3 skilla (uruchom bramkę) rozstrzygnąłby to przed zgłoszeniem.",
+  "klasyfikacja": "brak śladu użycia skilla działu — pozycja domknięta rozumowaniem zamiast pomiarem wymaganym przez procedurę",
+  "wplyw": "Bramka, o której orzeka się bez uruchomienia, dostaje werdykt na podstawie lektury wzorca, a nie zachowania — czyli dokładnie tej klasy, przed którą ostrzega krok 2 tej samej procedury. Jeden z czterech wpisów już upadł na weryfikacji z tego powodu, a trzy pozostałe (AUD-QA-F1-002, -003, -004) mają werdykt ISTNIEJE wydany bez ani jednego uruchomienia bramki po żadnej ze stron, więc do raportu fali 1 wchodzą jako potwierdzone znaleziska o sile dowodu niższej, niż wymaga ich własna procedura. W fali 2 ten sam dział przy tej samej checkliście może uruchomić bramkę i dostać inny wynik — rozjazd fal powstanie wtedy bez żadnej zmiany w kodzie.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "6fe7f6bb79a6e2e176a3a1c51b366a1d3af62e2a4f1e219282c771ba51926745",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T02:18:18.328Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak: miejsce w formie mechanizmu, plik AUD-QA-F1-001.json istnieje, a pole dowod w nim i w trzech pozostalych wpisach otworzylem. WER-04 hash 6fe7f6bb... zgodny. WER-02 dowod dotyczy dokladnie tego, co twierdzi stwierdzenie: odczytalem pola dowod czterech wpisow QA-06 i w zadnym nie ma ani kodu wyjscia bramki, ani liczby padlych sprawdzen wobec wszystkich - jest wylacznie rozumowanie o includes w JS w trybie warunkowym; roznicowo AUD-QA-F1-005 ma artefakt uruchomienia (node -e ... zwraca null), wiec brak nie jest cecha calego dzialu. Kroki 3 i 5 audyt/role/QA/SKILL.md faktycznie zadaja dwoch par liczb (linie 42-45 i 51-53) - sprawdzone w pliku. WER-03 CZYNNE: nic nie wymusza artefaktu na tej sciezce - zgloszenie.mjs sprawdza obecnosc pola dowod, nie jego ksztalt, a werdykt.mjs nie czyta zadnego pliku (0 wywolan readFileSync); skutek jest juz zmaterializowany, bo trzy z czterech wpisow maja ISTNIEJE, a czwarty upadl na WER-03. WER-05 jednoznaczne.",
+      "kiedy": "2026-09-04T02:35:19.460Z"
+    }
+  }
+}

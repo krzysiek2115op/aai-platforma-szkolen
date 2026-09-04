@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KIER-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-06",
+  "stwierdzenie": "Sektor NAPRAWIŁ wspólne środowisko pomiarowe w trakcie fali 1: dziennik przebiegu zapisuje, że dział USP po własnym incydencie (wywołanie tools/wgraj-sekcje.ts --help) uruchomił `npm run wp:import`, a to wywołanie jest źródłem 44 wpisów aktora import-postgres w wp_aai_sklep_changelog o 2026-09-03 21:09 UTC (22 delete + 22 create wierszy sections, komplet sekcji obu kursów) — czyli rozjazdu migawki przed/po (changelog 1447→1491), którą KIER-06 ma porównać; naprawa wykonana przez sektor, który ma tylko patrzeć (W2, W6), jest naruszeniem zasady nadrzędnej 2 niezależnie od tego, że przywróciła spójność identyfikatorów.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/PLAN-BUDOWY.md",
+    "linia": 845,
+    "tresc": "parą DELETE + INSERT), naprawione `npm run wp:import`. Krytyk USP dostał zadanie"
+  },
+  "dowod": "Własny SELECT na :8892 (mariadb, strefa serwera SYSTEM, NOW()=2026-09-04 02:56:48 = UTC_TIMESTAMP()=2026-09-04 02:56:48): GROUP BY actor, action, tabela dla created_at ≥ 2026-09-03 daje import-postgres create sections 22 (2026-09-03 21:09:01…2026-09-03 21:09:01); import-postgres delete sections 22 (2026-09-03 21:09:01…2026-09-03 21:09:01); ostatni wpis dziennika sprzed 2026-09-03: 2026-08-31 16:52:00; COUNT(*) dziś 1491. audyt/stan/audyt-f1-USP.json historia: W TRAKCIE 2026-09-03T20:57:37Z → ZAKOŃCZONE 21:12:14Z — okno obejmuje 21:09Z; w tym samym oknie żadna inna rola nie ma wpisu w dowodach o uruchomieniu importu (grep wp:import|import-postgres|aai-sklep import w audyt/zgloszenia trafia tylko AUD-BD-F1-003 — dział zamknięty 16:20Z — i AUD-GOLD-F1-005). audyt/PLAN-BUDOWY.md 842-845: „Dział zgłosił WŁASNY INCYDENT na środowisku i naprawił go: przypadkowe wywołanie tools/wgraj-sekcje.ts --help rozjechało identyfikatory sekcji […] naprawione npm run wp:import”. migawka-wartosci.mjs --porownaj po --zapisz=po (2026-09-04): wp_aai_sklep_changelog wierszy 1447 → 1491, AUTO_INCREMENT 1448 → 1492; skutek zgłoszony jako AUD-GOLD-F1-005 (przed.json:34), tu wskazany sprawca, mechanizm i zapis w dzienniku sektora.",
+  "klasyfikacja": "naprawa w trakcie sektora (W2/W6)",
+  "wplyw": "Migawka „po” fali 1 różni się od „przed” w tabeli changelog o 44 wiersze wytworzone przez sam sektor, więc porównanie W6 nie odróżnia zmian, które zrobił audyt, od zmian, które zastałby produkt; pomiary działów wykonane po 21:09Z (INT, PERF, PIK, PRIV, REPO, USP — wszystkie zamknięte 21:10–21:15Z) biegły na środowisku innym niż to, na którym zaczęły.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "5dc42eddef15649472ca478cf32b6a5937996c5f9c094d17178dab493112d6fd",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone WLASNYM POMIAREM na :8892, nie przepisane. MIEJSCE: audyt/PLAN-BUDOWY.md linia 845 zgodna co do znaku, takze w wersji z HEAD (dopiski orkiestratora tej sesji leza od linii 1541, wiec numer sie nie przesunal). BAZA: moj SELECT z grupowaniem po actor, action, tabela na wp_aai_sklep_changelog daje dla created_at od 2026-09-03 dokladnie dwa wiersze - import-postgres create sections 22 sztuk oraz import-postgres delete sections 22 sztuk, oba z MIN i MAX rownym 2026-09-03 21:09:01; ostatni wpis sprzed tej doby to 2026-08-31 16:52:00, suma dzis 1491, AUTO_INCREMENT 1492. Czas serwera potwierdzony jako UTC (NOW rowne UTC_TIMESTAMP). MIGAWKI: przed.json ma dla tej tabeli 1447 wierszy i AUTO_INCREMENT 1448, po.json 1491 i 1492 - roznica 44 dokladnie jak w dowodzie. Uruchomilem tez migawka-wartosci.mjs --porownaj: kod 1, a rozjazd jest WYLACZNIE na licznikach :8892 (logowania 21 na 26, wizyty 17 na 30, dostawy 0 na 6, changelog 1447 na 1491, media 1348 na 1343) - produkt bez rozjazdu, czyli tak, jak kierownik zamknal KIER-06. PRZYPISANIE SPRAWCY UDOWODNIONE, nie zgadniete: PLAN-BUDOWY 842-845 mowi wprost, ze dzial zglosil wlasny incydent i naprawil go komenda npm run wp:import; historia audyt-f1-USP.json ma okno W TRAKCIE 2026-09-03T20:57:37.326Z do ZAKONCZONE 21:12:14.632Z, ktore obejmuje 21:09Z; grep po katalogu zgloszen na wp:import, import-postgres i aai-sklep import trafia poza wpisem kierownika tylko AUD-BD-F1-003 (dzial zamkniety 16:20Z) i AUD-GOLD-F1-005. ZJAWISKO CZYNNE - 44 wiersze leza w bazie i w migawce po. ZAKRES KIER-06 wlasciwy, brzmienie jednoznaczne. Zastrzezenie bez wplywu na werdykt: miejsce wskazuje plik, ktory sektor dopisuje w trakcie fali, czyli te sama klase, ktora opisuje AUD-KIER-F1-003 - dzis sie zgadza, ale zestarzeje sie razem z dziennikiem.",
+      "kiedy": "2026-09-04T03:20:29.359Z"
+    }
+  }
+}

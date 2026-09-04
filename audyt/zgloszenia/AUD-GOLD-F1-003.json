@@ -1,0 +1,32 @@
+{
+  "id": "AUD-GOLD-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "GOLD",
+  "pozycja": "GOLD-07",
+  "stwierdzenie": "Dziennik ról, który jest jedynym dowodem pozycji GOLD-07 i KIER-05, nie odróżnia przebiegu PRÓBNEGO od prawdziwego: status.mjs --pokaz drukuje wiersze re-audytu fali 1 dla ról SEC i WALID jako ZAKOŃCZONE z datą 2026-09-01, czyli DWA DNI PRZED zakończeniem audytu tego samego działu SEC (2026-09-03), a znacznik proba: E7.6, który te wiersze unieważnia, siedzi w plikach stanu i nie trafia na ekran ani jednym znakiem.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/status.mjs",
+    "zakres": "blok --pokaz, pętla wypisująca stany ról (linie 324-335)",
+    "mechanizm": "Brakuje odczytu pola proba przy składaniu wiersza roli. Pętla drukuje sektor, falę, rolę, status, rundę, czas, ostrzeżenie o suficie i listę niedomkniętych, a przy --historia także przejścia — nigdzie nie pyta o w.proba, choć to pole istnieje w danych (audyt/stan/re-audyt-f1-SEC.json:20, re-audyt-f1-WALID.json) i choć ten sam plik umie je zdejmować funkcją zdejmijProbe (linia 724). Znacznik przebiegu próbnego powinien być dopisany do wiersza roli w tej pętli, bo to jest ekran, z którego czyta się kolejność sektorów."
+  },
+  "dowod": "Uruchomienie 'node audyt/tools/status.mjs --pokaz' (2026-09-04, kod wyjścia 0) daje dwadzieścia wierszy, w tym: 're-audyt f1 SEC ZAKOŃCZONE runda 1/5 2026-09-01T22:36:49.371Z' z listą NIEDOMKNIĘTE SEC-R1..SEC-R6 oraz 're-audyt f1 WALID ZAKOŃCZONE runda 1/5 2026-09-01T22:47:35.170Z', a obok 'audyt f1 SEC ZAKOŃCZONE runda 1/5 2026-09-03T16:16:46.291Z'. Odczytane z ekranu wprost, kolejność jest odwrotna do wymaganej. Prawda leży w plikach, których ekran nie pokazuje: audyt/stan/re-audyt-f1-SEC.json ma pole \"proba\": \"E7.6\" i adnotację 'plik z próby E7.6; czas = mtime pliku, jeden wpis, bo przejść nie zapisywano', to samo re-audyt-f1-WALID.json. Grep 'proba' po audyt/tools/status.mjs daje trafienia w liniach 185, 396, 406, 579, 602-607, 724-728 i ANI JEDNEGO w blokach 317-343, czyli w całym --pokaz. Ta sama luka dotyczy zgłoszeń: REA-SEC-F1-001 i REA-SEC-F1-002 mają pole proba: E7, a AUD-PIK-F1-001 pole proba: E6, i licznik 'ZGŁOSZEŃ W SEKTORZE: 107 (fala 1: 107)' drukowany przez ten sam ekran (linia 341) liczy je razem z prawdziwymi, choć wpisów prawdziwych fali 1 jest 104.",
+  "klasyfikacja": "nośnik kolejności nie rozróżnia przebiegu próbnego od prawdziwego — pozycja GOLD-07 i KIER-05 nierozstrzygalna z własnego dowodu",
+  "wplyw": "Pozycja GOLD-07 i pozycja KIER-05 mają w checkliście wskazany JEDEN dowód — dziennik z status.mjs --pokaz --historia. Czytany dosłownie, ten dowód mówi dziś, że re-audyt SEC zakończył się przed audytem SEC, czyli że zasada 12 została złamana; czytany z plikami stanu w ręku mówi coś przeciwnego. Kto domknie pozycję ekranem, orzeknie fałszywie w jedną albo w drugą stronę, zależnie od tego, czy zajrzał do plików. W fali 2 ta sama pozycja rozstrzygnie się tak, jak akurat wypadnie lektura — a to jest rozjazd fal bez zmiany w kodzie. Liczba zgłoszeń podana na tym samym ekranie (107 zamiast 104 prawdziwych fali 1) wchodzi tą samą drogą do bilansu kierownika.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "2ed5324362305c6585e4a867cb49ba817a7b7be3e08e8925227510e5e945d5e9",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T02:18:18.369Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (miejsce mechanizmowe, petla --pokaz w audyt/tools/status.mjs 317-343 otwarta), WER-04 hash 2ed53243... zgodny, WER-05 jednoznaczne. WER-02 dowod trafia w stwierdzenie i odtworzylem go sam: node audyt/tools/status.mjs --pokaz konczy kodem 0 i drukuje re-audyt f1 SEC ZAKONCZONE 2026-09-01T22:36:49.371Z oraz re-audyt f1 WALID ZAKONCZONE 2026-09-01T22:47:35.170Z obok audyt f1 SEC ZAKONCZONE 2026-09-03T16:16:46.291Z, a znacznika proby nie drukuje ani jednym znakiem; oba pliki stanu re-audytu niosa pole proba rowne E7.6 (linie 23 i 16). WER-03 CZYNNE: przeczytalem cala petle wypisujaca i ona nie siega w.proba - sklada sektor, fale, role, status, runde, czas, ostrzezenie o suficie i niedomkniete, a funkcja zdejmijProbe z tego samego pliku (724) dziala tylko przy wejsciu W TRAKCIE, wiec nic nie kompensuje. Potwierdzilem tez druga czesc: licznik z linii 341 pokazuje dzis 113 wpisow razem z trzema niosacymi pole proba (AUD-PIK-F1-001, REA-SEC-F1-001, REA-SEC-F1-002).",
+      "kiedy": "2026-09-04T02:35:19.510Z"
+    }
+  }
+}

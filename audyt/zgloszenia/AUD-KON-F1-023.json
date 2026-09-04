@@ -15,13 +15,18 @@
   "dowod": "`grep -o 'plik: [A-Z_]*' audyt/tools/audyt-straznika-sektora.mjs | sort | uniq -c` → STATUS 14, POROWNAJ 9, ZGLOSZENIE 6, ROLE_MD 4, WSPOLNE 4, MIGAWKA_PRZED 3, SRODOWISKO 3, WERDYKT 3, FALA 2, MAPA 1, STRAZNIK 1, GITIGNORE_SEKTORA 1 (stałe z linii 56-64, 363, 495-496 wskazują realne ścieżki audyt/…); `grep -c 'zPodmienionymi('` → 29 (definicja + 28 użyć, w tym „re-audyt/role/SEC/AGENT.md” linia 1438 i „re-audyt/ROLE.md” 1446, każde ze spawnSync generuj-agentow.mjs, który przepisuje .claude/agents); linie 978-983, 1030-1035, 1069-1070: `writeFileSync(plik, nowa); try { return straznikCzerwony(); } finally { writeFileSync(plik, org) }` na P(ROLE_MD); `grep -n 'process.on(\\|SIGINT\\|SIGTERM'` → 0 trafień. Incydent tej fali (PLAN-BUDOWY.md „AKTOR USZKODZENIA ROLE.md USTALONY”): ROLE.md bez roli PIK po ubiciu przebiegu — to linia 105, jedna z tych ~83.",
   "klasyfikacja": "klasa: narzędzie mutuje przedmiot pomiaru bez trwałej kopii — nie jedno miejsce, lecz konstrukcja",
   "wplyw": "Każde uruchomienie strażnikowego audytu mutacyjnego w trakcie fali stawia całą definicję sektora (ROLE.md, narzędzia, migawka przed.json, generat agentów) na jednym `finally`; po ubiciu procesu fala pracuje dalej na zmienionych regułach i zmienionej migawce, a żadna kontrola tego nie nazywa.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "hash": "976d3d28de47cc878db723cf29cf8011616e17a2f096a29c569a4b2e5a1b268f",
   "werdykt": {
     "krytyk": {
       "werdykt": "PRZEPUSZCZAM",
       "powod": "Odtworzone statycznie, cala rozpiska zgadza sie co do sztuki. Zliczenie deklaracji plikow w tablicy mutacji daje dokladnie rozklad z wpisu: STATUS 14, POROWNAJ 9, ZGLOSZENIE 6, WSPOLNE 4, ROLE_MD 4, WERDYKT 3, SRODOWISKO 3, MIGAWKA_PRZED 3, FALA 2, STRAZNIK 1, MAPA 1, GITIGNORE_SEKTORA 1 — razem 51 mutacji piszacych do realnych plikow sektora. Wywolan zPodmienionymi() jest 29, a mutacje inline dokladaja 3, co daje podana we wpisie liczbe rzedu 83 miejsc. Liczba wywolan process.on( oraz wystapien SIGINT i SIGTERM w calym pliku wynosi 0 — czyli kopie zyja wylacznie w pamieci, a przywracanie stoi na samym finally. Teza o klasie, a nie o pojedynczym miejscu, jest uprawniona: mutowane sa nie tylko narzedzia, ale takze ROLE.md, czyli definicja rol, oraz migawka przed.json, czyli punkt odniesienia dla pytania, czy sektor tylko patrzyl — wiec po ubiciu procesu fala pracuje na zmienionych regulach i zmienionym punkcie odniesienia naraz. Incydent tej fali potwierdza czynnosc zjawiska niezaleznie: AUD-REPO-F1-015 opisuje utrate calej definicji roli PIK z ROLE.md przy ubitym przebiegu, czyli realizacje dokladnie tego scenariusza na jednej z tych mutacji. Wpis nie duplikuje tamtego, tylko go uogolnia z jednego miejsca na konstrukcje narzedzia, i mowi to wprost.",
       "kiedy": "2026-09-03T23:36:28.420Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (miejsce mechanizmowe, wskazane petle i finally w audyt/tools/audyt-straznika-sektora.mjs otwarte), WER-04 hash zgodny, WER-05 jednoznaczne. WER-02 dowod odtworzyl sie CO DO SZTUKI: rozklad mutacji po plikach daje STATUS 14, POROWNAJ 9, ZGLOSZENIE 6, ROLE_MD 4, WSPOLNE 4, MIGAWKA_PRZED 3, SRODOWISKO 3, WERDYKT 3, FALA 2, MAPA 1, STRAZNIK 1, GITIGNORE_SEKTORA 1 - dokladnie te liczby, ktore podaje wpis; wywolan zPodmienionymi jest 29; wzorzec na process.on, SIGINT i SIGTERM daje ZERO trafien. WER-03 CZYNNE: przywracanie idzie wylacznie przez finally, a kopie zyja w mapie w pamieci, wiec ubicie procesu zostawia okaleczony plik sektora i nic nizej tego nie lapie; incydent ROLE.md bez roli PIK w tej fali jest materialnym potwierdzeniem, ze klasa nie jest hipotetyczna.",
+      "kiedy": "2026-09-04T02:35:20.005Z"
     }
   }
 }

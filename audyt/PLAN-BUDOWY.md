@@ -451,7 +451,7 @@ podział modeli (D8), krytyk czytający raport zamiast obszaru (K1).
 | **E5** — 19 ról × 4 pliki | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear przechodzimy do e6") | **76 plików źródłowych** w `audyt/role/<KOD>/` (AGENT + KRYTYK + SKILL + golden), **38 definicji** w generacie; strażnik **14 kontroli**, audyt mutacyjny **24 mutacje** (0 przeoczonych, 0 martwych) |
 | **E6** — generat i próba na sucho | ✅ **ZROBIONE, PRZYJĘTE** (właściciel, 2026-09-01: „po clear e7") | Próba: `aud-pik` → `AUD-PIK-001` → `aud-pik-krytyk` (ODRZUCAM) → `aud-wer` (ODRZUCONE) → **ZWERYFIKOWANE**. Powstał `werdykt.mjs` (ścieżka nie miała czym dojechać do końca) i znacznik wpisu próbnego; próba wskazała **cztery dalsze usterki**. Strażnik **14 → 18 kontroli**, mutacje **24 → 40**. Blokada „harness nie widzi agentów" zniknęła po **restarcie sesji** |
 | **E7** — sektor RE-AUDYT | ✅ **ZROBIONE I ZAAKCEPTOWANE** (właściciel, 2026-09-02: „akceptuję E7") | gałąź `re-audyt/sektor-re-audytu` z gałęzi audytu, 21 ról + psy — patrz „Co dokładnie obejmuje E7" niżej: **narzędzia sektora NIE są dziś przygotowane na re-audyt** (pięć pozycji zmierzonych), rozstrzygnięcia właściciela z 2026-09-01 w sekcji „CZTERY ROZSTRZYGNIĘCIA" |
-| **E8** — STOP | 🟢 **ZIELONE ŚWIATŁO 2026-09-03** — właściciel: „zielone swiatło puszczamy 1 fale audytu i re audytu"; przebieg fali 1 W TOKU (sekcja „E8 — PRZEBIEG FALI 1" niżej). STAN 2026-09-04: audyt fali 1 ma **16 z 17 ról ZAKOŃCZONYCH** i **107 wpisów**; zostały **GOLD** (padł na limicie sesji przed zapisem), **trzecie wejście WER** (20 wpisów bez werdyktu weryfikatora), **KIER** (drugie wejście) i **RAP** — kolejność w podsekcji „PRZERWANIE DRUGIE". Re-audyt fali 1 jeszcze NIE ruszył | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
+| **E8** — STOP | 🟢 **ZIELONE ŚWIATŁO 2026-09-03** — właściciel: „zielone swiatło puszczamy 1 fale audytu i re audytu"; przebieg fali 1 W TOKU (sekcja „E8 — PRZEBIEG FALI 1" niżej). **AUDYT FALI 1 ZAMKNIĘTY 2026-09-04**: wszystkie **19 ról ZAKOŃCZONE**, **127 wpisów**, raport w `audyt/wyniki/RAPORT-F1-AUDYT.md`, strażnik kod 0, niezmiennik 0. Fala przeszła przez TRZY wejścia, których plan uruchomień nie przewidywał (trzecie WER, drugie KIER, krytyk WER na żądanie KIER) — ostatnie z nich obaliło trzy zarzuty, które bez niego poszłyby do raportu jako fakty. Re-audyt fali 1 jeszcze NIE ruszył (punkty 8–12 planu uruchomień) | **zielone światło właściciela** przed uruchomieniem. Trzy polecenia z 2026-09-02 WYKONANE; po krytyce **sześć rozstrzygnięć właściciela** i **pakiet roboczy E7.7 (8 pozycji; **WSZYSTKIE ZROBIONE** — ostatnia, 7, 2026-09-03; założenia 4b + 6 potwierdzone tego dnia)** — sekcja „SZEŚĆ ROZSTRZYGNIĘĆ WŁAŚCICIELA PO KRYTYCE" niżej. **NAJWAŻNIEJSZE: K4″ zmienia sens powtarzalności** (agenci mają znaleźć wszystko; zgodność fal = skutek, nie ograniczenie) |
 
 **Właściciel akceptuje KAŻDY etap osobno** przed startem następnego.
 
@@ -1538,6 +1538,414 @@ wtyczek nie widzi, bo pytają o dane, nie o pliki.
    i wycinają słowa z zapisanego werdyktu (zgłosił to sam krytyk Konrada). W treściach dla
    narzędzi sektora używać plików, nie argumentów wiersza poleceń.
 
+
+### WZNOWIENIE TRZECIE — GOLD zaliczony (2026-09-04)
+
+**Kontrola środowiska przed wznowieniem: czysto.** `:8892` pięć kontenerów,
+`/szkolenia/` **200**, `/courses/` **301**, trzy `sprawdz` kod **0**, strażnik sektora
+kod **0**, niezmiennik `git diff main -- . ':!audyt' ':!re-audyt'` **0**, wpisów **107**,
+role 16 ZAKOŃCZONE + KIER `W TRAKCIE` runda 0.
+
+**Lista wpisów bez werdyktu weryfikatora policzona komendą przed startem, nie z tabeli:**
+`node -e` po `audyt/zgloszenia/*.json` z pytaniem o `werdykt.weryfikator` daje **21** —
+`AUD-KON-F1-015…026` (12), `AUD-WDR-F1-001…006` (6), `AUD-WER-F1-001/002` (2) oraz
+`REA-SEC-F1-002` (wpis próbny E7, sektor re-audyt, poza falą 1 audytu). Zgodne
+z tabelą przerwania co do sztuki. **UWAGA NA POMIAR:** status wpisu `DO WERYFIKACJI`
+NIE znaczy „bez weryfikatora" — wpis z werdyktem `ISTNIEJE` i bez krytyka nosi ten sam
+status; liczenie po statusie daje fałszywe 54 zamiast 21. Pytać o pole, nie o status.
+
+**GOLD ZAKOŃCZONE, 3 rundy, 0 niedomkniętych, 5 zgłoszeń** (`AUD-GOLD-F1-001…005`),
+**bez blokad wyjścia** — każde znalezisko wskazuje numer zasady i cytat. Osiem pozycji:
+GOLD-01 wymyślone zgłoszenia **nie** (re-walidacja 105 wpisów funkcją `powodyOdmowy`:
+0 odmów, 0 rozjazdów hasza; `zgloszenie.mjs --test` 27/27) · GOLD-02 wyjście poza zakres
+**nie** (0 rozjazdów dział↔prefiks pozycji na 107) · GOLD-03 **tak, ktoś zmienił** —
+poza sektorem `git diff main` 0 plików, ale środowisko `:8892` zmienione w trakcie fali:
+changelog 1447→1491, **44 wpisy `sections` aktora `import-postgres` o 21:09**, media
+1348→1343 plików (`AUD-GOLD-F1-005`) · GOLD-04 przekazanie zamiast drążenia **nie**
+(4 trafienia wzorców, wszystkie pozorne) · GOLD-05 **stan roli kłamie**: `audyt-f1-WER.json`
+ma ZAKOŃCZONE z `niedomkniete: []` przy 20 wpisach bez werdyktu weryfikatora, wszystkie
+powstałe po 22:14:57 (`AUD-GOLD-F1-001`) · GOLD-06 **cztery wpisy QA bez artefaktu skilla**
+(`AUD-QA-F1-001…004` bez kroków 3 i 5 `QA/SKILL.md`, choć QA-005 i QA-008 go mają —
+rozjazd wewnątrz jednego działu, `AUD-GOLD-F1-002`) · GOLD-07 kolejność sektorów
+**zachowana, ale dziennik jej nie pokazuje** (`--pokaz` drukuje próbę E7.6 obok pracy fali,
+znacznik `proba` jest w plikach, a `status.mjs` go nie drukuje — `AUD-GOLD-F1-003`) ·
+GOLD-08 **porównanie wartości niewykonane**: `migawka-wartosci.mjs --porownaj` kod **1**
+przy zerowej różnicy wartości (rozjazd tylko w polu `adnotacja`), a `po.json` z 03:48 jest
+STARSZY od `przed.json` z 19:11 i sam `przed.json` powstał po zakończeniu siedmiu ról
+(`AUD-GOLD-F1-004`).
+
+**GOLD rozliczył własne ślady pomiarem, nie deklaracją:** trzy odczyty
+`migawkaSrodowiska()` w odstępach dały wartości identyczne co do bajta (media 1343 /
+31 888 625 B, logowania 26, wizyty 30, dostawy 6, changelog 1491, skrót `3b3e6436f192`).
+
+**DWIE RZECZY, KTÓRE GOLD ODDAJE KIEROWNIKOWI WPROST:** fala 1 nie ma migawki końca,
+a KIER stoi `W TRAKCIE` od 16:02 — zasada 10 nie jest naruszona, bo proces nie jest
+zamknięty, ale zamknięcie go bez rozstrzygnięcia `AUD-GOLD-F1-001` i `-005` znaczyłoby
+przyjęcie wyniku z 20 niezweryfikowanymi wpisami i ze środowiskiem innym niż zastane.
+
+**SZABLON POLECENIA DLA KRYTYKA — dziennik go NIE MIAŁ** (miał tylko szablon działu),
+więc powstał tutaj i fala 2 dostanie ten sam; zmienia się wyłącznie `<KOD>`, numer fali
+i wyliczenie ocenianych wpisów:
+„Repozytorium: /home/krzysiek/Pod strona Szkolenia  (katalog kończy się SPACJĄ — cytuj
+ścieżkę). Gałąź sektora. SEKTOR: audyt. FALA: 1. Jesteś KRYTYKIEM roli <KOD>. Pracuj
+dokładnie wg swojej definicji: oceniasz pracę agenta <KOD> tej fali — pięć pytań do
+KAŻDEGO z jego zgłoszeń (<lista ID>) oraz jego pracę jako całość (czy przeszedł CAŁĄ
+checklistę, czy pozycje zamknięte na „nie" naprawdę sprawdzono, czy któraś pozycja da się
+odhaczyć bez otwarcia pliku). Domyślnie ODRZUCASZ — przepuszczasz to, co sam potrafisz
+odtworzyć. Werdykt zapisujesz narzędziem sektora dla każdego wpisu; własne znalezisko
+zgłaszasz przez `zgloszenie.mjs --plik=…` (plik wpisu zapisz w katalogu tymczasowym, nie
+w repo — treści do narzędzi przekazuj plikiem, nigdy argumentem powłoki, bo odwrócone
+apostrofy wchodzą w podstawienie). Kody wyjścia bez potoku. Nie czytasz CLAUDE.md ani
+wpisów/stanu innej fali. Nie zmieniasz niczego w drzewie poza tym, co zapisują narzędzia
+sektora. Pomiar na :8892 (jeśli go potrzebujesz): licz stan przed i po, sprzątaj wyłącznie
+własne ślady, jawną listą identyfikatorów, nigdy zakresem. Meldunek końcowy do 30 linii:
+tabela wpis → werdykt → dowód w jednej linii, lista własnych ID zgłoszeń, kody wyjścia."
+
+**KRYTYK GOLD: 5 z 5 PRZEPUSZCZAM, każde odtworzone samodzielnie** — nie przepisane.
+`AUD-GOLD-F1-005` odtworzył na `:8892` samymi SELECT-ami i doprecyzował liczby: dziennik
+daje **dokładnie** `sections create import-postgres 22` + `sections delete import-postgres 22`
+o 2026-09-03 21:09 (poprzedni wpis 2026-08-31), skrót tabel `3b3e6436…` wobec `258d9b45…`
+w migawce, media 1343/31 888 625 B wobec 1348/32 040 025 B. Trzy pozycje zamknięte przez
+GOLD na „nie" krytyk sprawdził sam i wszystkie obronił (GOLD-02: 112/112 bez pozycji spoza
+działu; GOLD-04: jedyne trafienie „należy do FE" to własny zakres Konrada; GOLD-01:
+7 odrzuceń weryfikatora dotyczy zjawisk obalonych, nie wpisów bez dowodu).
+
+**WŁASNE ZNALEZISKO KRYTYKA — `AUD-GOLD-F1-006`: pozycja GOLD-05 jest MARTWA.**
+`zgloszenie.mjs:394-402` nadaje `id` i `status` **bezwarunkowo**, innej sankcjonowanej
+drogi do rejestru nie ma, a strażnik wpisów nie sprawdza — więc odpowiedź „każdy wpis ma
+kod i status" wynika z kodu jednego narzędzia i daje się odhaczyć bez otwarcia ani jednego
+wpisu. Dowód z zachowania, nie z lektury: agent GOLD złożył pod tą pozycją wpis o statusie
+roli WER, czyli po cichu podmienił jej przedmiot. **W fali 2 ten slot może dostać jeszcze
+inny temat albo zostać odczytany dosłownie — i oba przebiegi będą zgodne z checklistą.**
+
+**TRZECIE WEJŚCIE WER MA ZAKRES 26 WPISÓW, nie 20** — lista przeliczona komendą po
+zakończeniu krytyka GOLD: do dwudziestu z tabeli przerwania (KON 12 · WDR 6 · WER 2)
+doszło **sześć wpisów GOLD-owych** (`AUD-GOLD-F1-001…006`), które też nie mają drugiego
+czytelnika. `REA-SEC-F1-002` zostaje poza zakresem — to próba E7 sektora re-audyt.
+**Dwa wpisy zakresu są własnymi wpisami weryfikatora** (`AUD-WER-F1-001/002`), a jego
+definicja tego przypadku nie rozstrzyga; polecenie każe mu postąpić wg definicji i nazwać
+rozstrzygnięcie wprost, zamiast je przemilczeć.
+
+**WER, TRZECIE WEJŚCIE — ZAMKNIĘTE: 24 werdykty `ISTNIEJE`, dwa wstrzymane, trzy nowe
+wpisy.** Lista zakresu przeliczona przez niego samego zgodziła się z podaną co do sztuki
+(26 wpisów). Wszystkie 24 werdykty odtworzone własnym pomiarem, nie przepisane.
+
+**TRZY DOWODY, KTÓRE SIĘ NIE ODTWORZYŁY — i to jest wynik tego wejścia**, bo zjawisko
+w każdym z nich istnieje, ale dowód wskazuje na coś innego niż stwierdzenie (klasa
+„dowód nieodtwarzalny", wszystkie trzy zgłoszone pod WER-02):
+- `AUD-WER-F1-003` — dowód `AUD-WDR-F1-005` cytuje ścieżkę `docker-compose.yml`, której
+  w repozytorium NIE MA (plik nazywa się `compose.yml`); sam wolumen `db_data` istnieje
+  i zjawisko stoi.
+- `AUD-WER-F1-004` — w dowodzie `AUD-KON-F1-018` pozycja PIK-07 miała paść, a pada kod 0
+  z pięcioma trafieniami; trzy pozostałe człony (PERF-01, REPO-11, SEC-02) odtwarzają się.
+- `AUD-WER-F1-005` — liczby 191 i 29 z dowodu `AUD-KON-F1-019` dają dziś 175 oraz
+  59/97/39, a jednostka pomiaru nie jest w dowodzie nazwana.
+
+**ROZSTRZYGNIĘCIE WERYFIKATORA O WŁASNYCH WPISACH, NAZWANE WPROST (nie przemilczane):
+wstrzymał się od werdyktu na `AUD-WER-F1-001…005`.** Powód wprost z §16: sensem tej roli
+jest to, żeby wykrywający nie był jedynym, kto uznaje problem za prawdziwy — własny
+werdykt sfabrykowałby drugiego czytelnika, którego nie ma. Merytorycznie sprawdził oba
+starsze wpisy i oba się potwierdzają, ale potwierdzenie musi wydać ktoś inny. Status
+zamknął ZAKOŃCZONE z **niedomkniętymi WER-01…05** — nie dlatego, że pytań nie zadał
+(zadał wszystkie do 26 wpisów), tylko dlatego, że dla pięciu wpisów produkt roli nie
+istnieje. **To jest dokładnie przypadek, który nazywa `AUD-KON-F1-016`** (zbiór werdyktów
+zna dwie strony i żąda obu, a pola autora wpisu w ogóle nie ma).
+
+**STAN PO WEJŚCIU, policzony komendą:** 116 wpisów · bez werdyktu weryfikatora **6**
+(`AUD-WER-F1-001…005` + `REA-SEC-F1-002`) · bez werdyktu krytyka **31** · strażnik kod 0 ·
+niezmiennik 0. **Rozróżnienia, które z tych 31 są wpisami krytyków (a więc z definicji
+nie mają własnego krytyka), NIE DA SIĘ zrobić maszynowo** — sprawdzone: pole pozycji
+wygląda tak samo dla wpisu działu i wpisu jego krytyka, a pola autora nie ma. To ten sam
+brak, który opisuje `AUD-KON-F1-016`, i on właśnie kosztuje: raport nie umie policzyć,
+ile wpisów naprawdę czekało na drugiego czytelnika.
+
+**DECYZJA ORKIESTRACJI: nie dokładam wejścia krytyka WER z własnej inicjatywy.** Wiążąca
+kolejność wznowienia mówi „krytyka powtarzać nie trzeba, chyba że GOLD każe", a GOLD nie
+wystawił blokad — choć pracował PRZED powstaniem tych trzech wpisów. Rozstrzygnięcie
+oddane KIER wprost w poleceniu, bo to on jest w sektorze rozstrzygającym o zamknięciu
+fali; ma powiedzieć, czy fala może się zamknąć z pięcioma wpisami bez drugiego czytelnika.
+
+**KIER, DRUGIE (ZAMYKAJĄCE) WEJŚCIE — ZROBIONE, 5 zgłoszeń, 2 rundy, zero niedomkniętych.
+ROZSTRZYGNIĘCIE KIEROWNIKA: FALA 1 NIE ZAMYKA SIĘ NA OBECNYM STANIE.** Powód podany
+przez niego wprost: `AUD-WER-F1-001…005` są **jedynymi wpisami fali bez ANI JEDNEGO
+niezależnego czytelnika** (każdy inny ma krytyka albo weryfikatora), a trzy z nich
+(`-003/-004/-005`) **obalają dowody cudzych wpisów już zweryfikowanych** (WDR-005,
+KON-018, KON-019) — przyjęcie ich bez czytelnika znaczyłoby, że raport niesie zarzut
+niesprawdzony przez nikogo. **Żąda jednego dodatkowego wejścia KRYTYKA roli WER**
+(rola przewidziana N1, dotąd nieuruchomiona wobec tych wpisów: 0 z 5 werdyktów), mówiąc
+wprost, że wiążąca kolejność wznowienia tego nie przewiduje, ale to jedyna bramka, jaką
+regulamin dla tych wpisów daje — i tańsza niż otwarcie fali 2 z pięcioma niesprawdzonymi
+zarzutami. Drugiego weryfikatora NIE żąda, bo taki w sektorze nie istnieje (KON-016).
+
+**Pozycje na „nie" — dwie:** KIER-01 (WER zamknięte z 5/5 pozycji niedomkniętych na
+suficie rund; „całą checklistę" da się dla 16 ról policzyć wyłącznie jako różnicę
+„wszystkie − niedomknięte", bo licznika z kolumny Dowód nie produkuje żadne narzędzie —
+`AUD-KIER-F1-001`) i KIER-06 (`--porownaj` kod **1**: produkt identyczny co do skrótu,
+rozjazd wyłącznie na `:8892`).
+
+**SPRAWCA 44 WPISÓW `sections` USTALONY — i to nie był dział, który je zgłosił:**
+`npm run wp:import` uruchomiony przez dział **USP** o 21:09:01Z (KIER dotarł do tego
+własnym SELECT-em, nie z cudzej relacji). Rozjazd środowiska wobec migawki `przed`:
+logowania 21→26, wizyty 17→30, **dostawy 0→6**, changelog 1447→1491, media 1348→1343
+(`AUD-KIER-F1-005`).
+
+**DWIE KOLIZJE GRANIC (KIER-04), obie rozstrzygnięte, żadna nie jest duplikatem:**
+`wizyty.php:111` PERF-004 × SEC-002 (ta sama linia, dwa różne pytania — rozstrzyga wiersz
+SEC↔PERF tabeli granic) oraz `ROLE.md:432` KON-021 × WDR-005 (dwa różne zjawiska w jednej
+linii; KON jest rolą procesową, nie działem). **Trzy wiersze granic do DOPISANIA PRZED
+FALĄ 2** (z fazy A Konrada): `AUD-KON-F1-005` (FE↔BE), `-006` (checklista PERF),
+`-012` (BD↔PROTO) — kierownik nie ma `Write`, więc to zadanie kroku budowy, nie przebiegu.
+
+**TRZY DALSZE ZNALEZISKA KIEROWNIKA:** `AUD-KIER-F1-002` — `status.mjs:409` przyjmuje
+`--runda` PO zamknięciu roli (FE ma trzy wpisy `ZAKOŃCZONE(4)` po `ZAKOŃCZONE(3)`, bez
+`W TRAKCIE` między nimi); `AUD-KIER-F1-003` — miejsce wskazane przez `AUD-GOLD-F1-001`
+(`audyt/stan/audyt-f1-WER.json:7`) **przestało zgadzać się po trzecim wejściu WER**, czyli
+hash miejsca starzeje się razem z plikiem, który opisuje; `AUD-KIER-F1-004` — **strażnik
+sektora padł kodem 1 (reguła R31) bez treści za pierwszym przebiegiem i przeszedł sześć
+razy z rzędu potem**.
+
+**SONDA ORKIESTRATORA DO R31 (nie duplikuje badania krytyka):** cztery kolejne przebiegi
+strażnika dały kod **0**, ale **każdy trwa ~30 sekund** — piąty przebiegł się w limit
+dwóch minut i sondę ubiło (kod 143). Podejrzenie do sprawdzenia przez krytyka, nie wniosek:
+niestabilność może być skutkiem OBCIĄŻENIA maszyny pracą równoległych agentów, a nie
+treści reguły. **Bramka niestabilna to inny problem niż bramka błędna.**
+
+**MIGAWKA KOŃCA FALI ZAPISANA — i nadpisała cudzy plik:** `audyt/migawki/po.json` sprzed
+zapisu był migawką **próby E7.6** (mtime 2026-09-03 03:48, `sha256 c75e293c…`) i to on był
+przedmiotem `AUD-GOLD-F1-004`; teraz stoi tam migawka końca fali 1 (`sha256 ea3a5057…`).
+Zapis nazwany przez kierownika wprost, nie po cichu.
+
+**Stan po jego wejściu:** **121 wpisów**, wszystkie 17 ról ZAKOŃCZONE, strażnik kod 0,
+`status.mjs --pokaz` kod 0, `git diff main --name-only -- . ':!audyt' ':!re-audyt'`
+**0 plików**.
+
+**DECYZJA ORKIESTRACJI: żądania krytyka WER NIE wykonuję od razu.** Najpierw wchodzi
+**krytyk KIER** — wiążąca kolejność stawia go tu, a on jest jedynym, kto może to żądanie
+podważyć; uruchomienie dodatkowego wejścia na podstawie rozstrzygnięcia, którego jeszcze
+nikt nie sprawdził, byłoby dokładnie tym, przed czym broni para agent + krytyk.
+
+**KRYTYK KIER: 5 z 5 PRZEPUSZCZAM, każdy odtworzony u siebie.** Potwierdził sprawcę
+44 wpisów własnym SELECT-em (22 × create + 22 × delete `sections`, wszystkie
+2026-09-03 21:09:01 UTC, okno działu USP 20:57:37Z–21:12:14Z je obejmuje) i niezależnie
+policzył kolizje granic z KIER-04 — wyszły dokładnie te dwie, które podał kierownik.
+
+**ŻĄDANIE WEJŚCIA KRYTYKA WER: ZASADNE, wejście ma się odbyć.** Krytyk nie przyjął tego
+na słowo — **sprawdził najostrzejszy z zarzutów wprost**: komenda pozycji PIK-07
+uruchomiona u niego co do znaku kończy **kodem 0, 5 trafień, pusty stderr**, czyli
+`AUD-WER-F1-004` ma rację, a `AUD-KON-F1-018` (wpis **ZWERYFIKOWANY** — z krytykiem
+I weryfikatorem) przypisuje jej kod 2. **Zarzut obalający wpis zweryfikowany, którego nikt
+poza autorem nie czytał, poszedłby do raportu jako fakt.**
+
+**NIESTABILNOŚĆ STRAŻNIKA: NIE ODTWORZONA, ale mechanizm WSKAZANY — i to jest ważniejsze
+niż sam kod wyjścia.** Dwanaście przebiegów bez potoku (6 × `srodowisko.mjs --test`,
+6 × strażnik) dało kod 0 za każdym razem; sonda orkiestratora dała cztery kolejne zera
+przy ~30 s na przebieg. Krytyk wskazał natomiast przyczynę możliwego wyścigu:
+`srodowisko.mjs:500-502` robi **zrzut ŻYWEJ bazy i zaraz potem porównuje z nią liczniki**,
+a liczba WIERSZY `wp_options` jest porównywana (wyłączony jest tylko jej `AUTO_INCREMENT`);
+w bazie leżą **3 przeterminowane transienty**, kasowane przy pierwszym sięgnięciu.
+**Werdykt: bramka NIESTABILNA, nie błędna, a usterką jest NIEME padnięcie** — komunikat
+R31 nie niesie ani jednego przypadku samokontroli, więc wyścigu nie da się odróżnić od
+prawdziwego rozjazdu.
+
+**WŁASNE ZNALEZISKO KRYTYKA — `AUD-KIER-F1-006`, udowodnione URUCHOMIENIOWO i groźne:**
+kolumna Dowód pozycji KIER-03 każe pokazać „wynik `zgloszenie.mjs`", a narzędzie **nie ma
+trybu sprawdzania wpisu już przyjętego** — zna wyłącznie `--plik=` (który TWORZY wpis),
+`--oznacz-probe=` i `--test`. Podanie istniejącego `AUD-KIER-F1-002.json` do `--plik=`
+dało **kod 0 i NOWY plik pod cudzym numerem** `AUD-KIER-F1-001.json` z tą samą treścią.
+Pozycja domyka się dziś wyłącznie importem `powodyOdmowy()` — drogą, której checklista
+nie nazywa — albo deklaracją.
+
+**Stan po jego wejściu: 122 wpisy**, strażnik kod 0, niezmiennik **0 plików**. Ślad na
+środowisku rozliczony: po dwunastu przebiegach liczniki różnią się **wyłącznie**
+`AUTO_INCREMENT` `wp_options` (4329 → 4360, z definicji wyłączony z porównania), media
+1343 → 1343, `skrot_tabel` bez zmian.
+
+**KRYTYK WER URUCHOMIONY — poza planem uruchomień, na żądanie KIER potwierdzone przez
+jego krytyka.** Zakres: pięć wpisów `AUD-WER-F1-001…005`, z poleceniem sprawdzenia OBU
+STRON przy trzech obalających cudze dowody (czy komenda z obalanego dowodu naprawdę daje
+inny wynik ORAZ czy zjawisko obalanego wpisu przez to upada, czy stoi dalej — **dowód
+nieodtwarzalny to co innego niż zjawisko nieistniejące**) oraz oceny, czy wstrzymanie się
+weryfikatora od werdyktu na własnych wpisach było poprawne, czy było ucieczką.
+
+
+### NAJWAŻNIEJSZE ZNALEZISKO CAŁEJ FALI — audyt nie znał własnego stanowiska pomiarowego
+
+**Wyszło z wejścia, którego plan uruchomień NIE PRZEWIDYWAŁ, i tylko dlatego wyszło.**
+Krytyk WER **ODRZUCIŁ trzy z pięciu** wpisów weryfikatora i podał przyczynę:
+**`grep` w powłoce agenta to funkcja opakowująca `ugrep 7.8.4`, a `/usr/bin/grep` to
+`GNU grep 3.12`.** Orkiestrator potwierdził to niezależnie u siebie (`type grep` wskazuje
+funkcję z `shell-snapshots/…`, obie wersje zmierzone osobno). **Sektor nigdzie nie nazywa
+implementacji narzędzia komend checklisty** — `grep -rn` po pięciu dokumentach ustrojowych
+za nazwą narzędzia kończy kodem 1, zero trafień — a dotyczy to **48 wierszy pozycji
+z komendą `grep`** (`AUD-WER-F1-006`).
+
+**Trzy zmierzone rozjazdy tej samej komendy:** PIK-07 kod **2** (GNU, `docs: Jest
+katalogiem`) wobec kodu **0** (ugrep); SEC-12 **191 linii** (GNU) wobec **175** (ugrep);
+`-B1 'try {'` 176/58/59 wobec 156/38/59.
+
+**SKUTEK JUŻ SIĘ ZMATERIALIZOWAŁ I BYŁ GROŹNY:** `AUD-WER-F1-004` i `-005` zamieniły
+artefakt własnego stanowiska w **zarzut wobec cudzej, POPRAWNEJ pracy** — obalały dowody
+wpisów `AUD-KON-F1-018` i `-019`, które mają komplet werdyktów (krytyk + weryfikator).
+Gorzka ironia: ta sama rola **zweryfikowała poprawny pomiar dzień wcześniej**
+(`AUD-PIK-F1-005`: „GNU kod 2, ugrep cisza kod 0") i nie przeniosła własnej wiedzy o jeden
+dzień do przodu. Trzeci odrzucony (`AUD-WER-F1-002`) padł inaczej: filtr autora uciął
+cytowany fragment na kropce w „ROLE.md" i jeden z 13 wpisów miał jednak pełne uzasadnienie
+— zjawisko stoi na dwunastu.
+
+**PRZY TRZECH WPISACH OBALAJĄCYCH KRYTYK SPRAWDZIŁ OBIE STRONY i to jest wzorzec do
+powtórzenia: ŻADNE z trzech obalanych zjawisk nie upada.** Dowód nieodtwarzalny to co
+innego niż zjawisko nieistniejące — wolumen `db_data` istnieje mimo złej ścieżki w dowodzie
+(`AUD-WER-F1-003` PRZEPUSZCZONY), cztery komendy KON-018 faktycznie padają, 11 wystąpień
+`try` w KON-019 potwierdzone co do sztuki. Werdykty `ISTNIEJE` na obalanych wpisach zostają
+słuszne.
+
+**OCENA WSTRZYMANIA SIĘ WERYFIKATORA OD WERDYKTU NA WŁASNYCH WPISACH: POPRAWNE, nie
+ucieczka.** Rola nie zamilkła — złożyła wpisy, zadeklarowała wszystkie pięć pozycji jako
+`niedomkniete` na suficie rund i zgłosiła zastrzeżenie wprost w uzasadnieniu. **Zastrzeżenie
+krytyka warte zapamiętania:** pole `niedomkniete` NIE ODRÓŻNIA „zamknięte dla 110 wpisów,
+niezamknięte dla 5 własnych" od „nie zamknąłem nic" — czytelnik stanu widzi rolę kończącą
+z pustą checklistą.
+
+**LEKCJA O SAMYM PROCESIE, ważniejsza od pojedynczych wpisów:** wejście krytyka WER
+zażądał KIER, żeby raport nie poniósł niesprawdzonego zarzutu — i **potwierdziło swoją
+potrzebę w ODWROTNYM kierunku, niż zakładano**: nie potwierdziło trzech zarzutów, tylko je
+obaliło. Gdyby fala zamknęła się na wiążącej kolejności wznowienia, raport niósłby jako
+fakt trzy zarzuty wobec poprawnej pracy. **Bramka dostawiona dlatego, że ktoś policzył,
+kto czego jeszcze nie przeczytał — nie dlatego, że plan ją przewidział.**
+
+**Stan przed RAP:** **123 wpisy** (85 ZWERYFIKOWANE, 38 DO WERYFIKACJI), bez ŻADNEGO
+werdyktu zostają **3**: `AUD-KIER-F1-006` i `AUD-WER-F1-006` (oba wpisy krytyków, którzy
+z definicji własnego krytyka nie mają — `AUD-KON-F1-016`) oraz `REA-SEC-F1-002` (próba E7,
+sektor re-audyt). Wszystkie 19 ról ZAKOŃCZONE, strażnik kod 0, niezmiennik **0 plików**.
+
+### RAP — RAPORT FALI 1 ZŁOŻONY (2026-09-04), i sam nie miał gdzie się zapisać
+
+**PIERWSZE, CO RAPORT ZGŁOSIŁ, TO BRAK WŁASNEGO NOŚNIKA** (`AUD-RAP-F1-001`, pozycja
+RAP-02): **żadne z 15 narzędzi `audyt/tools/` raportu nie zapisuje, a rola nie ma `Write`**
+— czyli produkt końcowy całego sektora istniał wyłącznie jako meldunek agenta i zginąłby
+razem z sesją. Treść przeniósł do repo **orkiestrator**, co do zdania, z nagłówkiem
+nazywającym autorstwo wprost: **[audyt/wyniki/RAPORT-F1-AUDYT.md](wyniki/RAPORT-F1-AUDYT.md)**.
+Krytyk RAP dostał polecenie SPRAWDZENIA tej deklaracji o wiernym przeniesieniu — bo
+„przepisałem wiernie" to deklaracja, a nie dowód.
+
+**LICZBY RAPORTU (własne przeliczenie roli, nie przepisane z dziennika):** 126 wpisów
+(audyt 124, re-audyt 2), z tego **3 próbne** → **123 prawdziwe wpisy fali 1**. Statusy:
+**85 ZWERYFIKOWANE, 41 DO WERYFIKACJI**. Weryfikator: **ISTNIEJE 103 · ODRZUCONE 7 ·
+brak 16**. Krytyk: **PRZEPUSZCZAM 84 · ODRZUCAM 11 · brak 31**. Miejsca: 81 liniowych,
+45 mechanizmów. **19 ról ZAKOŃCZONE.** Pozycje: 197 w `ROLE.md`, **65 z co najmniej jednym
+wpisem**. Mapa pokrycia **1241/1241** (842 przypisane, 399 wykluczone, 0 sierot,
+0 sprzecznych). Złączenie sektorów: **121 miejsc, 0 potwierdzonych przez oba** — re-audyt
+fali 1 nie ruszył.
+
+**ODRZUCONE TEŻ SĄ WYNIKIEM — i raport je policzył:** 7 wpisów obalił weryfikator
+(m.in. „ZJAWISKO NIE ISTNIEJE", „miejsce wskazane co do linii jest złe", rzecz już
+rozstrzygnięta decyzją właściciela), 11 odrzucił krytyk, a **dwa z odrzuconych przez
+krytyka mają mimo to weryfikatora `ISTNIEJE`** (`AUD-ARCH-F1-002`, `AUD-REPO-F1-008`).
+
+**TRZECIE ZNALEZISKO RAPORTU JEST O SAMYM NOŚNIKU WYNIKÓW** (`AUD-RAP-F1-003`):
+**9 wpisów nosi status `ZWERYFIKOWANE` mimo werdyktu ODRZUCAJĄCEGO**, bo `komplet()`
+w `werdykt.mjs:94` pyta o OBECNOŚĆ obu werdyktów, nie o ich wartość — a `polacz-sektory.mjs`
+nie czyta pola `werdykt` ANI RAZU. Czyli złączenie sektorów, na którym stanie porównanie
+fal, nie odróżnia wpisu potwierdzonego od obalonego.
+
+**DRUGIE ZNALEZISKO — 24 WIERSZE ŚRODOWISKA BEZ AUTORA** (`AUD-RAP-F1-002`): rozjazd
+`:8892` ma nazwanego sprawcę tylko dla dwóch z pięciu pozycji (changelog +44 = `wp:import`
+działu USP; media −5 = skasowany wolumen z pozycji WDR-06). Dla **logowania +5, wizyty +13,
+dostawy +6** żadne zgłoszenie sektora nie wskazuje autora, a w dzienniku logowań stoi konto
+**`audyt-int-tmp` (16:48:23Z), którego nazwa nie pada w ANI JEDNYM zgłoszeniu**.
+
+**STRONA REPOZYTORIUM ZGODNA CO DO ZNAKU** — z 38 pól migawki 26 zgodnych, a wszystkie 12
+rozjechanych leży w środowisku: gałąź, głowa `main`, `diff` 0, **strażników 39, mutacji 340,
+testów 83, bramek smoke 16, goldenów 9, plików produktu 919**, skrót produktu identyczny.
+**Sektor produktu nie tknął.**
+
+**SEKCJA „CZEGO AUDYT NIE SPRAWDZIŁ" MA SIEDEM POZYCJI** i jest częścią raportu, nie
+przypisem — m.in. kursy poza zakresem (399 z 1241 plików), **trzy działy na zakresie
+węższym niż deklarowany** (FE traci 9 klas, BD wszystkie 10 plików PHP wtyczek, INT 6),
+**132 pozycje checklist bez ani jednego wpisu przy braku nośnika odpowiedzi „tak"**, WER
+zamknięty na suficie rund z pięcioma niedomkniętymi pozycjami z pięciu i brak porównania
+fal (`porownaj-cykle.mjs` kod 1 — fali 2 nie ma).
+
+**PODZIAŁ ZNALEZISK PO MIEJSCU, dla czytelnika spoza sektora:** **produkt WP 27** ·
+dokumenty sektora audyt **69** · dokumentacja i repo 17 · bramki i narzędzia repo 11 ·
+**prototyp D5 — JEDEN wpis** (`AUD-PROTO-F1-001`, `modules/m1-sklep/typy.ts`).
+
+**RÓŻNICE, KTÓRE RAP ZGŁOSIŁ WOBEC STANU PODANEGO MU NA STARCIE** (przelicza sam, tak ma
+w poleceniu): wpisów było 123, jest 126 — trzy jego własne; `DO WERYFIKACJI` 38 → 41;
+oraz **korekta identyfikatorów w moim poleceniu**: pozycja o pustych zakresach to
+`AUD-KON-F1-001/-002/-003`, nie `-004` (tamten dotyczy testów QA). **`RAP-90` NIE ISTNIEJE**
+w `ROLE.md` — RAP ma sześć pozycji, więc znaleziska spoza listy złożył pod pozycjami,
+których dotyczą.
+
+
+**ZJAWISKO Z `AUD-KIER-F1-004` ZAOBSERWOWANE PO RAZ DRUGI — przez orkiestratora, w tej
+samej sesji.** Strażnik sektora dał **kod 1**, a trzy kolejne przebiegi bezpośrednio po nim
+**kod 0** (wcześniej w tej sesji: cztery kolejne zera, potem znów zera). Krytyk KIER go
+NIE odtworzył w dwunastu przebiegach — czyli dwa niezależne padnięcia w jednej sesji przy
+kilkunastu przejściach są dziś jedynym materiałem o tym zjawisku. **Komunikat przepadł
+przez MOJĄ pułapkę pomiaru: uruchomiłem strażnika z `>/dev/null 2>&1`, więc kod wyjścia
+znam, a powodu nie.** Kolejne przebiegi robione już z rozdzielonymi strumieniami do plików
+— i wszystkie miały PUSTY stderr przy kodzie 0. To wzmacnia wniosek krytyka KIER:
+**usterką jest nieme padnięcie**, bo bez treści komunikatu nie da się odróżnić wyścigu na
+`wp_options` (mechanizm wskazany: `srodowisko.mjs:500-502` zrzuca ŻYWĄ bazę i zaraz
+porównuje z nią liczniki, a trzy przeterminowane transienty kasują się przy pierwszym
+sięgnięciu) od prawdziwego rozjazdu wartości.
+
+**LEKCJA DLA KAŻDEGO POMIARU W TYM SEKTORZE:** `>/dev/null 2>&1` przy sprawdzaniu kodu
+wyjścia zabija dowód dokładnie wtedy, gdy jest potrzebny — bo interesujący jest przebieg,
+który padł, a nie te, które przeszły. Przekierowywać STDOUT i STDERR do OSOBNYCH plików,
+nawet przy „rutynowej" kontroli.
+
+### FALA 1 SEKTORA AUDYT — ZAMKNIĘTA (2026-09-04, ~06:30)
+
+**Krytyk RAP był ostatnim wejściem: 3 z 3 PRZEPUSZCZAM, każde odtworzone samodzielnie.**
+Odtworzył WSZYSTKIE liczby raportu i zgodziły się co do sztuki — **poza jedną**:
+„65 pozycji z co najmniej jednym wpisem" (i wyprowadzone z niej „132 pozycje bez wpisu")
+daje w pomiarze **67 i 130**, przy tym samym, poprawnym mianowniku 197. Zgłoszone jako
+`AUD-RAP-F1-004`, wskazane co do linii. **Liczby w raporcie zostawiono NIEPOPRAWIONE**,
+bo są przedmiotem tego wpisu, a sektory nie naprawiają tego, co zgłaszają — zamiast tego
+raport ma na końcu sekcję **„SPROSTOWANIE PO KRYTYCE"** z prawidłowymi wartościami.
+
+**MOJA DEKLARACJA O WIERNYM PRZENIESIENIU RAPORTU ZOSTAŁA SPRAWDZONA, nie przyjęta na
+słowo** — i to jest wzorzec, bo orkiestrator jest w tym sektorze jedynym uczestnikiem bez
+własnego krytyka. Krytyk sprawdził ją w OBIE strony: żadnego twierdzenia dodanego, żadnego
+pominiętego; wszystkie cytowane ID istnieją i mają opisane werdykty. Nie rozstrzygnął
+(i nie musiał), czy błędna liczba powstała w meldunku roli, czy przy przenoszeniu.
+
+**DZIEWIĘĆ WPISÓW `ZWERYFIKOWANE` MIMO WERDYKTU ODRZUCAJĄCEGO — potwierdzone imiennie:**
+`AUD-FE-F1-003`, `AUD-PERF-F1-004`, `-006`, `AUD-PIK-F1-001`, `-003`, `-004`,
+`AUD-QA-F1-001` (weryfikator ODRZUCONE) oraz `AUD-ARCH-F1-002` i `AUD-REPO-F1-008`
+(weryfikator ISTNIEJE, krytyk ODRZUCAM). **Pięć z obalonych stoi w wyjściu
+`polacz-sektory.mjs` jako „TYLKO AUDYT"** — czyli narzędzie, na którym stanie porównanie
+fal, poda obalone znalezisko jako wynik sektora.
+
+**KRYTYK NIE ZNALAZŁ ÓSMEJ POZYCJI GRANIC i powiedział, dlaczego jej nie zgłasza:**
+jedyny kandydat — że fala mierzyła środowisko, które sama zmieniła w trakcie (siedem ról
+zamknęło się PRZED zmianami z 21:07–21:19Z) — **jest w raporcie**, tylko w sekcji
+„Wartości początku i końca", nie na liście granic. **Zarzut z samego umiejscowienia byłby
+wymyślaniem błędu.** Sprawdził też, że działów z klamrą w zakresie jest DOKŁADNIE trzy
+(pomiar na wszystkich 15 zakresach), więc czwartego przeoczonego nie ma.
+
+**RAP-06 (zakaz proponowania napraw) TRZYMA SIĘ** — dziewięć wzorców języka doradczego po
+całym pliku daje 5 trafień, wszystkie w zdaniach o samym zakazie albo opisowych; form
+ukrytych („brakuje X, powinno być Y") w prozie nie ma.
+
+**PUŁAPKA POMIARU ORKIESTRATORA, którą krytyk RAP obszedł świadomie i której warto się
+trzymać:** wszystkie jego pomiary tekstowe biegły pod `/usr/bin/grep` (GNU grep 3.12),
+nie pod funkcją powłoki opakowującą `ugrep 7.8.4` — i napisał to w meldunku. Po
+`AUD-WER-F1-006` to jest w tym sektorze wymóg, nie uprzejmość.
+
+**STAN KOŃCOWY FALI 1 AUDYTU (policzony komendą):** wpisów **127** · wszystkie **19 ról
+ZAKOŃCZONE** · niedomknięte tylko WER-01…05 · strażnik sektora kod **0** · niezmiennik
+`git diff main -- . ':!audyt' ':!re-audyt'` **0 plików** · raport w
+[audyt/wyniki/RAPORT-F1-AUDYT.md](wyniki/RAPORT-F1-AUDYT.md).
+
+**NASTĘPNY KROK: commit wpisów i stanu fali 1, potem RE-AUDYT FALI 1** (punkty 8–12 planu
+uruchomień: `rea-kier` KIER-00 z `--zrzut=f1-baza`, 14 Pogłębiaczy SEKWENCYJNIE z zrzutem
+i przywróceniem po każdym, `rea-walid`, `rea-psiarz`, `rea-skut`, `rea-straz`, `rea-kon`,
+`rea-kier`, `rea-rap` — każdy z krytykiem). **Fala 2 wymaga OSOBNEGO zielonego światła
+właściciela** i wg KIER nie ruszy przed dopisaniem trzech wierszy granic
+(`AUD-KON-F1-005`, `-006`, `-012`) — to zadanie kroku budowy, bo role nie mają `Write`.
 ## Co dokładnie obejmuje E6 (nie wyprowadzać od nowa)
 
 **Generatu NIE trzeba budować** — powstaje sam, bo wymusza go reguła 4 strażnika:

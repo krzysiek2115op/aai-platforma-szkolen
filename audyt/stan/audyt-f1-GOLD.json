@@ -1,0 +1,36 @@
+{
+  "sektor": "audyt",
+  "fala": 1,
+  "rola": "GOLD",
+  "status": "ZAKOŃCZONE",
+  "runda": 3,
+  "niedomkniete": [],
+  "kiedy": "2026-09-04T02:09:03.831Z",
+  "historia": [
+    {
+      "status": "W TRAKCIE",
+      "runda": 0,
+      "kiedy": "2026-09-04T01:49:08.253Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 1,
+      "kiedy": "2026-09-04T02:02:25.103Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 2,
+      "kiedy": "2026-09-04T02:06:18.289Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 3,
+      "kiedy": "2026-09-04T02:09:03.775Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 3,
+      "kiedy": "2026-09-04T02:09:03.831Z"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "AUD-GOLD-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "GOLD",
+  "pozycja": "GOLD-03",
+  "stwierdzenie": "Sektor, który miał tylko patrzeć, ZMIENIŁ dane produktu na jedynym środowisku pomiarowym w trakcie fali 1: dziennik audytu wtyczki aai-sklep zapisał 2026-09-03 o 21:09 czterdzieści cztery wpisy o aktorze import-postgres — dwadzieścia dwa skasowania i dwadzieścia dwa utworzenia wierszy tabeli sections, czyli komplet sekcji obu kursów — a poprzedni wpis w tym dzienniku pochodził z 2026-08-31, trzy dni wcześniej.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/migawki/przed.json",
+    "linia": 34,
+    "tresc": "        \"wierszy\": 1447,"
+  },
+  "dowod": "Migawka początku fali (audyt/migawki/przed.json, zapisana 2026-09-03 19:11:26) podaje w polu srodowisko.nasze.wp_aai_sklep_changelog wierszy 1447 i auto_increment 1448, media plikow 1348 i bajtow 32040025, skrot_tabel 258d9b45d8a2... Mój własny odczyt tego samego środowiska (2026-09-04, funkcja migawkaSrodowiska z audyt/tools/srodowisko.mjs, same SELECT-y) daje: changelog 1491 wierszy i auto_increment 1492, media 1343 plikow i 31888625 bajtow, skrot_tabel 3b3e6436f192... Sonda kontrolna: drugi odczyt w odstępie minuty dał wartości identyczne co do liczby, więc moje własne żądania niczego nie dopisują. Przypisanie zmiany jest jednoznaczne z samego dziennika: 'SELECT tabela, action, actor, COUNT(*) FROM wp_aai_sklep_changelog WHERE created_at >= 2026-09-03 00:00:00 GROUP BY tabela, action, actor' zwraca dokładnie dwa wiersze — 'sections create import-postgres 22' i 'sections delete import-postgres 22'; 'SELECT DATE_FORMAT(created_at, %Y-%m-%d %H:%i), COUNT(*) ... GROUP BY 1 ORDER BY 1 DESC' pokazuje '2026-09-03 21:09 → 44', a następny w kolejności wpis to '2026-08-31 16:52 → 16'. O 21:09 fala 1 trwała (start 2026-09-03T16:02:05.013Z, audyt/stan/audyt-f1-KIER.json), a role PIK, INT, USP, PRIV, PERF i REPO zakończyły pracę między 21:10:18 a 21:14:58. Poza rolami sektora nikt w tym oknie na tym środowisku nie pracował: drzewo poza sektorem jest nietknięte (git diff main --name-only -- . ':!audyt' ':!re-audyt' → 0 plików, 114 commitów gałęzi nie dotyka ani jednego pliku produktu).",
+  "klasyfikacja": "zmiana danych produktu przez sektor, który miał wyłącznie patrzeć (zasada nadrzędna 2)",
+  "wplyw": "Identyfikatory wszystkich dwudziestu dwóch sekcji obu kursów zostały podmienione parą DELETE + INSERT w środku fali, a razem z nimi zmienił się skrót całej bazy (skrot_tabel) i zawartość biblioteki mediów (o pięć plików i 151400 bajtów mniej). Fala 2 zastanie inne środowisko niż fala 1, więc każda pozycja checklisty rozstrzygana pomiarem na :8892 może dać inną odpowiedź bez żadnej zmiany w kodzie — a to jest dokładnie ten rozjazd, którego zakaz zmieniania czegokolwiek miał nie dopuścić. Migawka nie zatrzyma tego sama: pole srodowisko istnieje w przed.json, ale migawka końca fali nie została zapisana (po.json pochodzi z próby E7.6 i jest starsza od przed.json), więc dziś nikt nie zobaczy tej różnicy inaczej niż ręcznym odczytem.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "afc2295e8661f191075c87f5a90058f7a241d1f649e02a922ef5a66d373226e3",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T02:18:18.435Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak (audyt/migawki/przed.json linia 34 zgodna, hash afc2295e... zgodny, brzmienie jednoznaczne). WER-02 dowod dotyczy tego samego zjawiska i ODTWORZYLEM GO SAM, samymi SELECT-ami: migawkaSrodowiska z audyt/tools/srodowisko.mjs daje dzis changelog 1491 wierszy i auto_increment 1492 wobec 1447/1448 w migawce, media 1343 pliki i 31888625 bajtow wobec 1348 i 32040025, skrot_tabel 3b3e6436f192... wobec 258d9b45d8a2...; przypisanie zmiany potwierdzone wprost z dziennika - zapytanie grupujace po tabeli, akcji i aktorze zwraca dokladnie dwa wiersze, sections create import-postgres 22 i sections delete import-postgres 22, a grupowanie po minucie pokazuje 2026-09-03 21:09 rowne 44 i nastepny w kolejnosci wpis dopiero 2026-08-31 16:52. Okno 21:09 lezy wewnatrz fali 1 (start 16:02:05.013Z). WER-03 CZYNNE: zmiana jest faktem w bazie, a nic jej nie wychwytuje - powodyOdmowyDrzewa w status.mjs (233-261) mierzy WYLACZNIE drzewo gita, wiec role pracowaly dalej bez odmowy, a migawka konca fali nie istnieje. ZASTRZEZENIE, ktore nie oslabia werdyktu: przypisanie sprawcy sektorowi opiera sie na tym, ze w tym oknie nikt inny na :8892 nie pracowal - to wniosek z okolicznosci, nie slad aktora w dzienniku, bo kolumna actor niesie import-postgres, czyli nazwe procesu, nie roli.",
+      "kiedy": "2026-09-04T02:35:19.592Z"
+    }
+  }
+}

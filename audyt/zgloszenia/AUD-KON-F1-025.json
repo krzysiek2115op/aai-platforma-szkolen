@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "34f3304ff5ae46260069a364bae7302ae662deae039337986fd2b436a15736e1",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01 tak (miejsce mechanizmowe, wskazane 25 wierszy kolumny Komenda w ROLE.md otwarte), WER-04 hash zgodny, WER-05 jednoznaczne. WER-02 dowod trafia w stwierdzenie i odtworzylem jego DOWOD ROZSTRZYGAJACY na BE-02 (ROLE.md 163): forma zrodlowa z ucieczka daje 14 trafien, a ta sama komenda po zamianie ucieczki na zwykla kreske daje 0 trafien i kod 1, bo w BRE nawiasy i kreska sa znakami doslownymi; kierunek przeciwny potwierdzilem na PERF-01 i REPO-11, gdzie forma zrodlowa konczy kodem 2. WER-03 CZYNNE: nic nie rozstrzyga, ktora forma jest kanoniczna, i nic obu nie porownuje - w strazniku sektora nie ma reguly uruchamiajacej komendy pozycji, a mapa.mjs uruchamia wylacznie zakresy dzialow. Odroznienie od AUD-KON-F1-018 jest realne: tamten wpis liczy komendy padajace i celujace obok klasy, a ten nazywa 23 pozycje slepnace przy odczycie z wyrenderowanej tabeli - to inne zjawisko i inne miejsce.",
+      "kiedy": "2026-09-04T02:35:20.083Z"
+    }
+  }
 }

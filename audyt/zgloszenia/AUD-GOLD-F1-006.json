@@ -1,0 +1,27 @@
+{
+  "id": "AUD-GOLD-F1-006",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "GOLD",
+  "pozycja": "GOLD-05",
+  "stwierdzenie": "Pozycja GOLD-05 checklisty (\"Czy kazde zgloszenie ma kod i status?\") jest martwa: odpowiedz wynika z samego kodu narzedzia zapisujacego rejestr, bez otwierania choćby jednego wpisu, i nie moze brzmiec inaczej niz \"nie\" — audyt/tools/zgloszenie.mjs nadaje id i status BEZWARUNKOWO przy kazdym zapisie, a innej sankcjonowanej drogi do rejestru nie ma (AGENT.md:260 — \"ID nadaje narzedzie, nie Ty\"). Agent GOLD w praktyce nie odpowiedzial na to pytanie: pod pozycja GOLD-05 zlozyl zgloszenie o zupelnie innym przedmiocie.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 583,
+    "tresc": "| GOLD-05 | Czy każde zgłoszenie ma kod i status? | rejestr zgłoszeń |"
+  },
+  "dowod": "1) Gwarancja z kodu (2026-09-04): audyt/tools/zgloszenie.mjs:394 liczy id = nastepneId(...), a obiekt zapisywany w liniach 395-401 ma id oraz status: wpis.status ?? \"DO WERYFIKACJI\" — oba pola BEZ zadnej galezi warunkowej, po czym :402 zapisuje plik pod nazwa ${id}.json. Nie ma sciezki zapisu bez tych pol. 2) Kontrola empiryczna po CALYM rejestrze (112 plikow audyt/zgloszenia/*.json): wpisow bez id albo bez status — 0; wpisow, w ktorych id nie rowna sie nazwie pliku — 0; statusy wylacznie ZWERYFIKOWANE (66) i DO WERYFIKACJI (46), czyli obie wartosci z listy STATUSY narzedzia. 3) Kontrola, czy pilnuje tego cos jeszcze: grep \"zgloszenia\" po audyt/tools/straznik-sektora-audytu.mjs daje trafienia wylacznie w atrapie reguly 28 (:698), w komunikacie o sledzeniu nosnika przez gita (:708) i w regule o sekcji \"Modul\" (:1156-1174) — strazNIK nie sprawdza ani id, ani statusu wpisu, wiec jedynym gwarantem jest wlasnie narzedzie zapisu. 4) Dowod z zachowania, nie z lektury: agent GOLD zlozyl pod pozycja GOLD-05 wpis AUD-GOLD-F1-001, ktorego stwierdzenie dotyczy statusu ROLI WER i dwudziestu wpisow bez werdyktu weryfikatora — a wiec przedmiotu zasady 5 z trzynastu (\"Kontroluj status audytora i przejscie do weryfikacji\"), a nie pytania \"czy kazde zgloszenie ma kod i status\". Slot pozycji zostal po cichu podmieniony na inny temat, bo pytanie dosłowne nie ma czego znalezc. 5) Kontrola zakresu tego znaleziska: pozostale siedem pozycji GOLD tej cechy NIE ma — GOLD-03 wymaga uruchomienia git diff na zywym drzewie, GOLD-06 lektury wyjscia dzialu i jego SKILL.md, GOLD-07 dziennika status.mjs, GOLD-08 obu migawek; zaden z nich nie jest rozstrzygalny z kodu jednego narzedzia.",
+  "klasyfikacja": "usterka checkListy — pozycja rozstrzygalna bez otwarcia pliku, odpowiedz zagwarantowana przez narzedzie zapisujace rejestr",
+  "wplyw": "Checklista GOLD ma osiem pozycji i jest MINIMUM roli procesowej; jedna z osmiu nie wykonuje zadnej pracy, bo jej odpowiedz jest ustalona z gory przez zgloszenie.mjs. Skutek jest juz widoczny w fali 1: agent uzyl tego slotu na inny przedmiot (status roli WER), czyli pozycja stala sie de facto wolnym miejscem na dowolne znalezisko procesowe. W fali 2 ten sam slot moze zostac uzyty na jeszcze inny temat albo odczytany dosłownie i zamkniety na \"nie\" bez zadnego wpisu — i oba przebiegi beda zgodne z checklista. To jest rozjazd fal powstajacy bez jednej zmiany w kodzie produktu, czyli dokladnie ta klasa, ktorej mechaniczny zakres i checklista mialy nie dopuscic. Dodatkowo pozycja o zagwarantowanej odpowiedzi uczy, ze odhaczenie pozycji nic nie kosztuje — a to ta sama klasa co bramka, ktora nigdy sie nie zapala.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "c48d11e467789eb34d8b2ff46bbbdeedeb8945bc7813b11effd20d90cefba30c",
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak: audyt/ROLE.md linia 583 zgodna co do znaku, hash c48d11e4... zgodny, brzmienie jednoznaczne. WER-02 dowod dotyczy dokladnie tego, co twierdzi stwierdzenie, i sprawdzilem obie jego czesci: zgloszenie.mjs sklada obiekt gotowe w liniach 394-402 z id z nastepneId oraz status rowne wpis.status albo DO WERYFIKACJI, oba BEZ galezi warunkowej, po czym zapisuje plik pod nazwa id.json; moja wlasna kontrola po calym rejestrze (113 plikow) daje 0 wpisow bez id, 0 bez status, 0 rozjazdow nazwy pliku z id i wylacznie dwie wartosci statusu (ZWERYFIKOWANE 66, DO WERYFIKACJI 47). Potwierdzilem tez, ze nic poza narzedziem tego nie pilnuje - w straznik-sektora-audytu.mjs trafienia na zgloszenia sa tylko w atrapie reguly 28, w komunikacie o nosniku i w regule o sekcji Modul. WER-03 CZYNNE: pytanie nie ma czego znalezc, bo jedyna sankcjonowana droga do rejestru gwarantuje odpowiedz z gory, a skutek jest juz w danych - slot GOLD-05 zostal w tej fali uzyty na inny przedmiot (AUD-GOLD-F1-001 orzeka o statusie roli WER).",
+      "kiedy": "2026-09-04T02:35:19.638Z"
+    }
+  }
+}

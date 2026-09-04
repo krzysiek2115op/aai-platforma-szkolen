@@ -1,0 +1,21 @@
+{
+  "id": "AUD-RAP-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "RAP",
+  "pozycja": "RAP-02",
+  "stwierdzenie": "Raport koncowy fali 1 podaje liczbe pozycji checklist z co najmniej jednym wpisem jako 65, a wyprowadzona z niej liczbe pozycji bez sladu jako 132, i ani jedna z tych dwoch liczb nie odtwarza sie: przeliczenie tego samego zbioru wlasnym pomiarem, przy identycznym mianowniku 197 (183 numerowane + 14 otwartych -90), ktory raport podaje poprawnie, daje 67 pozycji z wpisem i 130 bez wpisu, wiec drugi czytelnik nie dochodzi do liczby zapisanej w raporcie, a ta sama nieodtwarzalna liczba niesie pozycje 5 sekcji granic.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/wyniki/RAPORT-F1-AUDYT.md",
+    "linia": 25,
+    "tresc": "| Pozycje checklist | 197 w `ROLE.md` (183 numerowane + 14 otwartych `-90`), **65 z co najmniej jednym wpisem** |"
+  },
+  "dowod": "Pomiar wlasny 2026-09-04 na galezi sektora, kody wyjscia bez potoku; komendy tekstowe pod systemowym /usr/bin/grep (GNU grep 3.12-modified), bo nazwa grep w powloce agenta to funkcja opakowujaca ugrep 7.8.4 (AUD-WER-F1-006). (1) MIANOWNIK ZGADZA SIE: /usr/bin/grep -cE '^\\| *[A-Z]{2,5}-(A?[0-9]{1,2}) *\\|' audyt/ROLE.md daje 197, a rozbicie na 183 numerowane i 14 z sufiksem -90 zgadza sie co do sztuki. (2) LICZNIK NIE ZGADZA SIE: pierwsza kolumna kazdego wiersza tabel ROLE.md przepuszczona przez WALIDATOR SEKTORA KOD_POZYCJI z audyt/tools/wspolne.mjs (/^[A-Z]{2,6}-[A-Z]?\\d{1,2}$/) daje 197 unikalnych pozycji; zestawienie ich z polem pozycja wszystkich 126 plikow audyt/zgloszenia/*.json daje 67 pozycji majacych co najmniej jeden wpis i 130 nieposiadajacych zadnego. Raport podaje 65 i 132. (3) POMIAR NIE ZALEZY OD CHWILI: wszystkie trzy wpisy roli RAP (05:48:43, 05:49:30, 05:52:10 czasu plikow) sa najmlodsze w katalogu, wiec komplet 126 wpisow istnial juz w chwili pisania raportu; policzenie zbioru bez trzech wpisow wlasnych roli daje 64, a nie 65, wiec roznicy nie tlumaczy ani moment pomiaru, ani pominiecie wlasnych zgloszen. (4) BLAD JEST ODOSOBNIONY, NIE SYSTEMOWY: pozostale liczby raportu odtworzylem co do sztuki - 126 wpisow (audyt 124, re-audyt 2, wszystkie fala 1), 85 ZWERYFIKOWANE i 41 DO WERYFIKACJI, weryfikator ISTNIEJE 103 / ODRZUCONE 7 / brak 16, krytyk PRZEPUSZCZAM 84 / ODRZUCAM 11 / brak 31, szesc wpisow bez zadnego werdyktu o dokladnie tych identyfikatorach, 81 miejsc liniowych i 45 mechanizmow, mapa 842 przypisane + 399 wykluczone = 1241/1241 przy kodzie 0, polacz-sektory 121 miejsc i 0 potwierdzonych przez oba sektory przy kodzie 0, porownaj-cykle kod 1, migawka-wartosci --porownaj kod 1 z 38 polami (26 zgodnych, 12 rozjechanych, wszystkie w srodowisku), straznik sektora kod 0 i git diff main poza sektorami 0 linii. (5) LICZBA JEST NOSNA, NIE OZDOBNA: ta sama wartosc wraca w pozycji 5 sekcji granic (linie 98-99 raportu: '132 pozycje checklist nie maja ani jednego wpisu'), czyli w zdaniu, ktore ma nazywac zasieg niesprawdzonego.",
+  "klasyfikacja": "liczba w raporcie koncowym nie do odtworzenia przez drugiego czytelnika - pozycja RAP-02 niespelniona dla jednego wiersza tabeli i dla wyprowadzonej z niego pozycji sekcji granic",
+  "wplyw": "RAP-02 pyta, czy raport podaje liczby, nie wrazenia, a sens tego pytania jest taki, ze kazda liczba raportu ma byc odtwarzalna narzedziem sektora. Tutaj odtworzenie daje inny wynik w obie strony: raport zawyza o dwa zasieg pozycji bez sladu i zaniza o dwa pokrycie checklisty. Skutek dla powtarzalnosci jest bezposredni, bo raport fali 1 jest materialem porownawczym dla fali 2: fala 2 policzy pokrycie tym samym sposobem i wyjdzie jej rozjazd wobec fali 1 tam, gdzie zadna z fal nie pracowala inaczej. Skutek dla czytelnika jest taki, ze pozycja 5 sekcji granic - zdanie o tym, po ilu pozycjach nie zostal slad - jest jedynym miejscem raportu, ktorego nie potwierdza pomiar, a stoi w sekcji, ktora ma byc najostrozniejsza z calego dokumentu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "4c46f863f21b5bfcff0cbbd89e29d4fa12eb49c2a76fced08a2fd085c62725bb",
+  "werdykt": null
+}

@@ -1,0 +1,27 @@
+{
+  "id": "AUD-WER-F1-005",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "WER",
+  "pozycja": "WER-02",
+  "stwierdzenie": "Dwie liczby, na ktorych stoi ilosciowa czesc dowodu AUD-KON-F1-019, nie odtwarzaja sie przy powtorzeniu tych samych komend na tym samym, nietknietym drzewie: komenda pozycji SEC-12 daje u mnie 175 linii, a nie 191, a grep z opcja B1 na wzorcu try z klamra daje 59 dopasowan, 97 linii kontekstu i 39 grup rozdzielonych separatorem - zadna z tych liczb nie jest 29, ktore dowod podaje jako liczbe miejsc. Czesc rozstrzygajaca tego samego dowodu odtwarza sie co do sztuki (11 wystapien linii try w wyjsciu komendy pozycji), wiec teza wpisu zostaje prawdziwa, a nieodtwarzalna jest jego skala.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/zgloszenia/AUD-KON-F1-019.json",
+    "zakres": "pole dowod - dwie liczby otwierajace: liczba linii wyjscia komendy pozycji SEC-12 (podane 191) oraz liczba miejsc z linia poprzedzajaca try (podane 29)",
+    "mechanizm": "Brakuje zgodnosci cytowanych liczb z wynikiem powtorzenia i brakuje w nich definicji jednostki liczenia: dowod nie mowi, czy 29 miejsc to dopasowania wzorca, linie kontekstu czy grupy rozdzielone separatorem, wiec nie da sie stwierdzic, ktory z trzech moich wynikow (59, 97, 39) mial nim byc. W miejscu tych dwoch liczb powinien stac wynik dajacy sie powtorzyc razem z nazwa liczonej jednostki. Nic w sektorze tego nie sprawdza - zgloszenie.mjs weryfikuje wobec dysku wylacznie pole miejsce i tylko przy formie liniowej, a werdykt.mjs nie czyta zadnego pliku."
+  },
+  "dowod": "Pomiar wlasny 2026-09-04, kody wyjscia bez potoku, na drzewie identycznym z tym, ktore mial autor wpisu: git status czysty, roznica wobec main poza katalogami audyt i re-audyt zerowa, zadny plik w katalogu wtyczek niesledzony. (1) LICZBA PIERWSZA: komenda z wiersza SEC-12 (grep z opcjami r, n i B2, wzorzec catch nawias Throwable, katalog wtyczek) daje 175 linii lacznie, z czego 144 to linie tresci i 31 to separatory grup - dowod podaje 191. Rozbior zgadza sie sam ze soba: blokow catch jest 48, wiec 48 razy 3 daje maksimum 144 linii tresci, ktore zmierzylem. Liczby 191 nie da sie osiagnac zadnym z trzech sposobow liczenia. (2) LICZBA DRUGA: grep z opcjami r, n i B1 na wzorcu try z klamra daje 59 dopasowan wzorca, 97 linii kontekstu i 38 separatorow, czyli 39 grup - dowod podaje 29 miejsc i nie nazywa jednostki. (3) KONTROLA, ze czesc rozstrzygajaca JEST odtwarzalna, czyli ze rozjazd dotyczy skali, a nie tezy: w wyjsciu komendy pozycji linia try z klamra pojawia sie DOKLADNIE 11 razy, co jest liczba podana w dowodzie co do sztuki, i to ona dowodzi tezy - przy 48 blokach catch komenda dla 37 z nich nie pokazuje nawet poczatku try, tym bardziej instrukcji przed nim. (4) Wpis dostal ode mnie werdykt ISTNIEJE wlasnie na tej podstawie; to zgloszenie dotyczy WYLACZNIE dwoch liczb otwierajacych jego dowod.",
+  "klasyfikacja": "dowod z liczbami nieodtwarzalnymi i bez nazwanej jednostki liczenia; teza wpisu zostaje prawdziwa",
+  "wplyw": "Druga fala powtarzajaca te komendy dostanie 175 i 59 zamiast 191 i 29, i nie bedzie miala jak rozstrzygnac, czy roznica wzieła sie ze zmiany w kodzie, z innej wersji narzedzia, czy z innego sposobu liczenia - bo dowod jednostki nie nazywa. Kazde z tych trzech wyjasnien prowadzi do innego werdyktu na tym samym miejscu, wiec pozycja rozjedzie sie miedzy falami bez zmiany w kodzie. Klasa jest szersza od tego wpisu: liczba linii wyjscia grepa z kontekstem zalezy od tego, czy liczy sie separatory grup i czy konteksty sie nakladaja, a zaden dowod fali 1 tego nie precyzuje, wiec kazda liczba tego rodzaju jest w drugiej fali sporna.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "ceb215bc06b7c26783c4987e5f5c689604c182d94aadf79b70ebfc6c27e746ef",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "ODRZUCAM",
+      "powod": "Pierwsza z dwoch liczb odtwarza sie co do sztuki. Komenda pozycji SEC-12 uruchomiona pod systemowym /usr/bin/grep (GNU grep 3.12) w bash -o pipefail -c daje DOKLADNIE 191 linii - liczbe, ktora podaje dowod AUD-KON-F1-019. Wynik 175 pochodzi z ugrep 7.8.4 podstawionego pod nazwe grep przez funkcje powloki agenta, wiec przeslanka wpisu o powtorzeniu TYCH SAMYCH komend na tym samym drzewie nie zachodzi - uruchomiono inny program. Tak samo liczby alternatywne: pod GNU grep komenda z opcja B1 na wzorcu try z klamra daje 176 linii, 58 separatorow, 59 dopasowan i 59 grup, a nie 39 grup i 97 linii kontekstu. Zostaje wylacznie druga polowa zarzutu: liczba 29 nie odtwarza sie w ZADNEJ implementacji ani zadnym sposobie liczenia, a dowod nie nazywa jednostki - to jest prawdziwe i warte fali drugiej, ale wpis jako calosc stoi na przeslance, ktorej sam nie spelnil, i kwestionuje liczbe odtwarzalna. Zjawisko obalanego wpisu stoi: 11 wystapien linii try w wyjsciu komendy pozycji potwierdzam, wiec werdykt ISTNIEJE na AUD-KON-F1-019 zostaje sluszny.",
+      "kiedy": "2026-09-04T03:32:30.340Z"
+    }
+  }
+}

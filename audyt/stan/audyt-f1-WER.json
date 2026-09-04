@@ -3,9 +3,15 @@
   "fala": 1,
   "rola": "WER",
   "status": "ZAKOŃCZONE",
-  "runda": 4,
-  "niedomkniete": [],
-  "kiedy": "2026-09-03T22:14:57.721Z",
+  "runda": 5,
+  "niedomkniete": [
+    "WER-01",
+    "WER-02",
+    "WER-03",
+    "WER-04",
+    "WER-05"
+  ],
+  "kiedy": "2026-09-04T02:37:57.647Z",
   "historia": [
     {
       "status": "ZAKOŃCZONE",
@@ -46,6 +52,21 @@
       "status": "ZAKOŃCZONE",
       "runda": 4,
       "kiedy": "2026-09-03T22:14:57.721Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 4,
+      "kiedy": "2026-09-04T02:22:54.863Z"
+    },
+    {
+      "status": "W TRAKCIE",
+      "runda": 5,
+      "kiedy": "2026-09-04T02:37:20.134Z"
+    },
+    {
+      "status": "ZAKOŃCZONE",
+      "runda": 5,
+      "kiedy": "2026-09-04T02:37:57.647Z"
     }
   ],
   "adnotacja": "do 2026-09-03T16:38:39.379Z plik niósł stan PRÓBNY E6; wpisy historii sprzed tej chwili pochodzą z próby, prawdziwa fala zaczęła się od tego wejścia"

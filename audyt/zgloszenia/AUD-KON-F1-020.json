@@ -15,13 +15,18 @@
   "dowod": "Uruchomienie co do znaku (`bash -o pipefail -c \"grep -rn -B5 'foreach' wordpress/wtyczki \\| grep '\\$wpdb'\"`) → kod 2, stderr „grep: |: Nie ma takiego pliku ani katalogu”, 2067 linii na stdout (całe wyjście pierwszego grepa bez filtra). Po zamianie `\\|` na `|`: `-B5 'foreach' | grep '\\$wpdb'` → 26 linii; `-A15 'foreach' | grep '\\$wpdb'` → 31 linii; `-A8 'foreach' | grep -cE 'get_post_meta|wc_get_product|get_option|tutor_utils|->kurs_po|->lekcje|->odczyt|get_posts|new WP_Query|is_enrolled'` → 27. Dział PERF zgłosił trzy N+1 (AUD-PERF-F1-001/003/006) własnym pomiarem SAVEQUERIES, nie tą komendą — komenda nie była narzędziem, którym pozycję domknięto.",
   "klasyfikacja": "komenda pozycji niewykonywalna dosłownie i celująca w złą stronę",
   "wplyw": "Pozycja PERF-01 nie ma powtarzalnej metody: każda fala buduje własny pomiar, a wynik zależy od inwencji agenta, nie od checklisty — dokładnie to, czemu K4″ miał zapobiec.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "hash": "f92e46a252de41fdf6adafee38db52e2cfa4b792fc194eff43a28e3bc26b41fc",
   "werdykt": {
     "krytyk": {
       "werdykt": "PRZEPUSZCZAM",
       "powod": "Odtworzone co do znaku i co do liczby, cztery pomiary, wszystkie zgodne z wpisem. Uruchomienie komendy dokladnie w brzmieniu ze zrodla ROLE.md przez bash -o pipefail -c konczy sie kodem 2, na stderr stoi \"grep: |: Nie ma takiego pliku ani katalogu\", a na stdout laduje 2067 linii, czyli CALE wyjscie pierwszego grepa bez filtra — to najgorszy mozliwy skutek, bo pozycja wyglada wtedy na bogato udokumentowana. Po naprawieniu potoku: piec linii kontekstu PRZED foreach z filtrem na zmienna bazy daje 26 linii, pietnascie linii PO daje 31, a osiem linii po foreach zawiera 27 wywolan metod (get_post_meta, wc_get_product, get_option, tutor_utils i dalsze), ktorych wzorzec szukajacy zmiennej bazy nie zobaczy w ogole. Wszystkie cztery liczby (2067, 26, 31, 27) odtworzone dokladnie. Kierunek jest bledny bezspornie: zapytanie N+1 stoi W CIELE petli, a kontekst poprzedzajacy pokazuje to, co ja poprzedza. Sprawdzilem tez teze o metodzie faktycznie uzytej przez dzial: trzy zgloszenia PERF o N plus jeden powstaly z wlasnego pomiaru, nie z tej komendy, wiec pozycja nie zostala domknieta narzedziem, ktore checklista podaje.",
       "kiedy": "2026-09-03T23:35:24.878Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak (audyt/ROLE.md linia 270 zgodna co do znaku, hash zgodny, brzmienie jednoznaczne). WER-02 dowod odtworzyl sie CO DO ZNAKU I CO DO LICZBY: uruchomienie komendy w dokladnym brzmieniu z tabeli konczy KODEM 2 (mierzone bez potoku), stderr niesie grep dwukropek pionowa kreska nie ma takiego pliku ani katalogu, a na stdout wychodzi 2067 linii, czyli cale wyjscie pierwszego grepa bez filtra; po zamianie ucieczki na zwykly potok -B5 daje 26 linii, -A15 daje 31, a -A8 z wzorcem na wywolania metod daje 27. WER-03 CZYNNE: pozycja pyta o zapytanie W CIELE petli, a komenda oglada piec linii PRZED nia, wiec pole widzenia jest po zlej stronie petli niezaleznie od poprawki skladniowej; dzial PERF domknal pozycje wlasnym pomiarem SAVEQUERIES, a nie ta komenda, wiec nic tej wady nie kompensuje w checkliście.",
+      "kiedy": "2026-09-04T02:35:19.877Z"
     }
   }
 }

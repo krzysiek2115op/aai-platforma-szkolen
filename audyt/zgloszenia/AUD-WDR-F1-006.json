@@ -17,5 +17,11 @@
   "status": "DO WERYFIKACJI",
   "runda": 1,
   "hash": "75f1f8cdd91f592e438aafa16f1ea5be3452c322626ea5a7371223359bb15f6e",
-  "werdykt": null
+  "werdykt": {
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak: audyt/ROLE.md linia 435 zgodna co do znaku, hash zgodny, brzmienie jednoznaczne (wpis nie mowi chyba - orzeka o braku kryterium). WER-02 dowod dotyczy tego samego braku i potwierdzilem jego czesc mierzalna: kolumna Dowod wiersza WDR-09 zawiera wylacznie slowo wersja, bez progu i bez oczekiwanej relacji, w odroznieniu od sasiednich wierszy; wzorzec na wtyczk, aai-sklep i Version w tools/straznicy/straznik-wersji.mjs daje ZERO trafien; naglowki trzech wtyczek to 0.6.0, 0.1.0 i 0.4.0 przy wersji repozytorium 0.64.0. WER-03 CZYNNE: nie ma w repozytorium zadnego referentu, wobec ktorego sens tej relacji dalby sie rozstrzygnac, wiec obie odpowiedzi zostaja obronne i pozycja nie jest mechaniczna - dowodem materialnym jest to, ze dzial fali 1 zamknal ja trzecia wartoscia zamiast tak albo nie.",
+      "kiedy": "2026-09-04T02:35:20.385Z"
+    }
+  }
 }

@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KIER-F1-004",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-06",
+  "stwierdzenie": "Reguła 31 strażnika sektora przy niezerowym kodzie srodowisko.mjs --test melduje jedno stałe zdanie i odrzuca zebrane wyjście testu (zmienna wyjscie służy dalej wyłącznie do wykrycia słowa „pominięte”), więc padnięcie tej bramki jest niediagnozowalne; w tym wejściu strażnik padł na R31 raz na sześć uruchomień (kod 1), a samo srodowisko.mjs --test uruchomione osobno przeszło sześć razy z rzędu (kod 0) — z tego, co strażnik wypisał, nie da się ustalić, który przypadek samokontroli padł.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/tools/straznik-sektora-audytu.mjs",
+    "linia": 1341,
+    "tresc": "if (r.status !== 0) blad(31, \"srodowisko.mjs --test NIE przechodzi — zrzut, przywrócenie i liczniki środowiska :8892 są bez bramki\");"
+  },
+  "dowod": "Przebieg 1 (2026-09-04 ok. 02:43Z, bez innego procesu sektora na :8892): node audyt/tools/straznik-sektora-audytu.mjs → kod 1; cała treść o R31 to jedna linia „- R31: srodowisko.mjs --test NIE przechodzi — zrzut, przywrócenie i liczniki środowiska :8892 są bez bramki”. Przebiegi 2–6 tego samego strażnika (02:5x–03:0xZ) → kod 0 z uwagą „srodowisko.mjs: samokontrola zaliczona”. node audyt/tools/srodowisko.mjs --test uruchomione osobno sześć razy → kod 0 za każdym razem, ostatnia linia „Samokontrola środowiska: wszystkie przypadki zaliczone” (13 ✓). straznik-sektora-audytu.mjs 1339-1343: const wyjscie = (r.stdout ?? \"\") + (r.stderr ?? \"\"); if (r.status !== 0) blad(31, «zdanie stałe»); else if (/pominięte/.test(wyjscie)) … — wyjscie nie trafia do komunikatu błędu. Kody wyjścia mierzone bez potoku.",
+  "klasyfikacja": "bramka — komunikat bez treści",
+  "wplyw": "Bramka W6 na środowisku (zrzut, przywrócenie, liczniki) pada niedeterministycznie i nikt nie dowiaduje się, w którym przypadku samokontroli — kierownik widzi tylko kod 1 albo 0; rozstrzygnięcie „środowisko jest mierzone” zależy od tego, który przebieg strażnika trafi na commit, a przyczyna jednorazowego padnięcia nie zostawia śladu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "d20262fc1827f8e8264fbcf37631b8000fc5404492081ff0d3526c5ffe320a01",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "PRZEPUSZCZAM CZESC, KTORA ODTWORZYLEM, i nazywam wprost, czego nie odtworzylem. MIEJSCE: straznik-sektora-audytu.mjs linia 1341 zgodna co do znaku. RDZEN STWIERDZENIA POTWIERDZONY LEKTURA: linie 1339-1343 skladaja stdout i stderr w zmienna wyjscie, po czym przy niezerowym kodzie wolaja blad(31) z jednym stalym zdaniem, a zebrane wyjscie sluzy juz tylko do wykrycia slowa pominiete - komunikat padniecia tej bramki nie niesie ANI JEDNEGO przypadku samokontroli. To jest usterka czynna i niezalezna od czestosci padniec. CZEGO NIE ODTWORZYLEM: niestabilnosci. Uruchomilem srodowisko.mjs --test szesc razy (kody 0, 0, 0, 0, 0, 0) i strazniki szesc razy (kody 0, 0, 0, 0, 0, 0), wszystkie bez potoku - dwanascie przebiegow, zero padniec, za kazdym razem uwaga srodowisko.mjs dwukropek samokontrola zaliczona. Nie mam wiec dowodu na czestosc raz na szesc, mam natomiast mechanizm, ktory ja tlumaczy i ktory wskazuje ten sam plik: przypadek KIER-00 w liniach 500-502 robi ZRZUT ZYWEJ bazy i zaraz potem porownuje z nia liczniki, a liczba WIERSZY wp_options jest porownywana (z porownania wylaczony jest tylko jej AUTO_INCREMENT, fakt 5) - kazdy zapis do zywej bazy miedzy tymi dwoma odczytami daje kod 1. W bazie leza dzis trzy przeterminowane transienty, ktore WordPress kasuje przy pierwszym siegnieciu. Rozliczam wlasny slad: liczniki przed i po moich dwunastu przebiegach roznia sie WYLACZNIE AUTO_INCREMENT wp_options (4329 na 4360), skrot_tabel bez zmian, media bez zmian - zaden porownywany licznik nie ruszony.",
+      "kiedy": "2026-09-04T03:20:04.400Z"
+    }
+  }
+}

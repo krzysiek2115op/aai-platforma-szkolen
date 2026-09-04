@@ -1,0 +1,27 @@
+{
+  "id": "AUD-RAP-F1-003",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "RAP",
+  "pozycja": "RAP-01",
+  "stwierdzenie": "Status ZWERYFIKOWANE nie odroznia wpisu POTWIERDZONEGO od OBALONEGO: komplet() pyta wylacznie o OBECNOSC obu werdyktow, nie o ich wartosc, wiec 9 z 85 wpisow o tym statusie niesie werdykt odrzucajacy, w tym 7 obalonych przez weryfikatora slowem ODRZUCONE, czyli takich, w ktorych zjawiska nie ma; polacz-sektory.mjs, ktory buduje liste miejsc znanych sektorowi, nie czyta pola werdykt ANI RAZU i wciaga te miejsca na rowni z potwierdzonymi.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/tools/werdykt.mjs",
+    "linia": 94,
+    "tresc": "  return Boolean(w.krytyk && w.weryfikator);"
+  },
+  "dowod": "Pomiar wlasny 2026-09-04 na galezi sektora, kody wyjscia bez potoku, komendy tekstowe pod systemowym /usr/bin/grep (GNU grep 3.12-modified; nazwa grep w powloce agenta to funkcja opakowujaca ugrep 7.8.4 - AUD-WER-F1-006). (1) MECHANIZM: audyt/tools/werdykt.mjs:92-95 to komplet(), ktorego jedynym testem jest Boolean(w.krytyk && w.weryfikator); :211 brzmi 'if (komplet(wpis)) wpis.status = \"ZWERYFIKOWANE\";' - wartosc werdyktu nie wchodzi do warunku. (2) LICZBY: wlasne przeliczenie wszystkich plikow audyt/zgloszenia/*.json daje 85 wpisow o statusie ZWERYFIKOWANE, z czego 9 ma werdykt odrzucajacy po ktorejkolwiek stronie, a 7 ma weryfikatora ODRZUCONE: AUD-FE-F1-003, AUD-PERF-F1-004, AUD-PERF-F1-006, AUD-PIK-F1-001, AUD-PIK-F1-003, AUD-PIK-F1-004, AUD-QA-F1-001. Powody weryfikatora nazywaja te wpisy wprost: 'ZJAWISKO NIE ISTNIEJE' (AUD-PIK-F1-003, AUD-PIK-F1-004), 'Zjawisko nie zachodzi w zglaszanej postaci' (AUD-PIK-F1-001), 'MIEJSCE WSKAZANE CO DO LINII JEST ZLE' (AUD-PERF-F1-006). Pozostale dwa z dziewieciu to AUD-ARCH-F1-002 i AUD-REPO-F1-008 - krytyk ODRZUCAM, weryfikator ISTNIEJE. (3) ODRZUCONE WCHODZA DO POROWNANIA SEKTOROW: /usr/bin/grep -c werdykt audyt/tools/polacz-sektory.mjs daje 1, a to jedyne trafienie jest w tekscie komunikatu (linia 75), nie w kodzie; wyjscie node audyt/tools/polacz-sektory.mjs --fala=1 wymienia jako 'TYLKO AUDYT' miejsca wpisow obalonych: AUD-FE-F1-003, AUD-PERF-F1-006, AUD-PIK-F1-003, AUD-PIK-F1-004 i AUD-QA-F1-001. (4) NIE MYLIC Z SASIEDNIMI ZNALEZISKAMI: AUD-KON-F1-016 dotyczy BRAKU werdyktu (wpisy krytykow i wpisy o weryfikatorze), a AUD-GOLD-F1-001 statusu roli WER - zadne z nich nie dotyka tego, ze status wpisu ignoruje WARTOSC werdyktu.",
+  "klasyfikacja": "status wpisu nie niesie wyniku weryfikacji - jedno slowo na potwierdzenie i na obalenie",
+  "wplyw": "RAP-01 pyta, czy kazde zgloszenie w raporcie ma werdykt weryfikatora, i pilnuje tym samym, zeby raport nie niosl zarzutu, ktorego nikt nie sprawdzil. Sam status tego nie zapewnia: czytelnik biorący liste ZWERYFIKOWANYCH dostaje 85 pozycji, z ktorych 7 opisuje zjawiska nieistniejace, a narzedzie laczace sektory liczy je jako miejsca znane audytowi. W porownaniu fal skutek jest odwrotny do zamierzonego: fala 2, ktora poprawnie NIE zglosi obalonego zjawiska, wyjdzie na rozjazd wobec fali 1.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "815c48f3806a1a27152cb7df1e97208c4a8183adb30eb945a60c71a92d34d7b8",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T04:08:21.407Z"
+    }
+  }
+}

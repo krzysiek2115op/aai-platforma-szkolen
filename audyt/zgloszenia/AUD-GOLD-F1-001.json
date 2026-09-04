@@ -1,0 +1,32 @@
+{
+  "id": "AUD-GOLD-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "GOLD",
+  "pozycja": "GOLD-05",
+  "stwierdzenie": "Rola WER zamknęła fazę weryfikacji statusem ZAKOŃCZONE z PUSTĄ listą niedomkniętych, a dwadzieścia zgłoszeń audytu fali 1 powstałych po jej wyjściu nie ma werdyktu weryfikatora — stan sektora mówi kierownikowi, że weryfikacja jest wyczerpana, podczas gdy 20 ze 104 wpisów fali (19 procent) nie zostało zweryfikowanych przez nikogo.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/stan/audyt-f1-WER.json",
+    "linia": 7,
+    "tresc": "  \"niedomkniete\": [],"
+  },
+  "dowod": "Przeliczone własnym skryptem po wszystkich 107 plikach audyt/zgloszenia/*.json (2026-09-04): 21 wpisów nie ma pola werdykt.weryfikator, z tego 20 to wpisy audytu fali 1 (AUD-KON-F1-015..026, AUD-WDR-F1-001..006, AUD-WER-F1-001..002), a jeden to REA-SEC-F1-002 z sektora re-audyt, oznaczony jako proba E7. Plik stanu audyt/stan/audyt-f1-WER.json:4-7 niesie status ZAKOŃCZONE, rundę 4 i niedomkniete: [] — czyli deklarację, że nic nie zostało otwarte. Czas wyjścia WER to 2026-09-03T22:14:57.721Z (pole kiedy, linia 8); mtime wszystkich dwudziestu wpisów bez werdyktu jest PÓŹNIEJSZY: AUD-WER-F1-001 22:27:54, AUD-WDR-F1-001..006 od 23:04:53 do 23:07:53, AUD-KON-F1-015..026 od 23:33:02 do 23:38:55. Mechanizm statusu działa poprawnie i nie jest przyczyną: audyt/tools/werdykt.mjs:211 przestawia status na ZWERYFIKOWANE wyłącznie przy komplecie obu werdyktów, a wpisów ZWERYFIKOWANE bez werdyktu weryfikatora jest ZERO.",
+  "klasyfikacja": "status roli sprzeczny z danymi — deklaracja wyczerpania przy niezweryfikowanej piątej części wpisów",
+  "wplyw": "status.mjs --pokaz, czyli ekran, z którego kierownik czyta gotowość działów, drukuje dla WER wiersz ZAKOŃCZONE bez ani jednej pozycji niedomkniętej, więc zebranie wyjścia sektora i raport mogą powstać na założeniu, że każde zgłoszenie fali 1 przeszło weryfikację. Dwadzieścia wpisów wejdzie wtedy do wyniku fali ze statusem DO WERYFIKACJI, którego nikt nie rozstrzygnął, a w porównaniu z falą 2 zachowają się jak zgłoszenia zweryfikowane, bo porównanie idzie po hashu miejsca, nie po werdykcie.",
+  "status": "ZWERYFIKOWANE",
+  "runda": 1,
+  "hash": "d5b06d9be42c900719479ca934ccfcfeb9b8be9a4492b5c175fcf5b48183dacc",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T02:18:18.285Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04 tak: audyt/stan/audyt-f1-WER.json linia 7 zgodna co do znaku, hash d5b06d9b... przeliczony i zgodny. WER-02 dowod dotyczy tego samego mechanizmu: historia w tym samym pliku ma wpis ZAKONCZONE runda 4 o 2026-09-03T22:14:57.721Z przy niedomkniete puste, a moj wlasny przelot po katalogu zgloszen potwierdzil brak pola werdykt.weryfikator w wymienionych 20 wpisach (dzis jest ich 26, bo doszlo szesc wpisow GOLD). WER-03 CZYNNE: sciezka jest krotka i niczym nieprzerwana - status.mjs --pokaz czyta stany z audyt/stan i drukuje wiersz roli bez pytania o pokrycie werdyktami (petla 324-335), a werdykt.mjs:211 nadaje ZWERYFIKOWANE wylacznie przy komplecie obu werdyktow, wiec nic nizej tego nie zatrzymuje; wpisow ZWERYFIKOWANE bez weryfikatora jest zero. Moje trzecie wejscie jest SKUTKIEM tego znaleziska, nie jego blokada. WER-05 jednoznaczne.",
+      "kiedy": "2026-09-04T02:35:19.427Z"
+    }
+  }
+}

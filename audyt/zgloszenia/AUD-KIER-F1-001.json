@@ -1,0 +1,27 @@
+{
+  "id": "AUD-KIER-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "KIER",
+  "pozycja": "KIER-01",
+  "stwierdzenie": "Kolumna Dowód pozycji KIER-01 wskazuje „licznik pozycji zamkniętych / wszystkich”, a żadne narzędzie sektora takiego licznika nie produkuje: plik stanu roli niesie wyłącznie status, rundę i listę niedomkniętych, a wpis zgłoszenia niesie pozycję tylko przy usterce — więc jedyną liczbą, jaką kierownik może podstawić, jest (wszystkie − niedomknięte), czyli deklaracja roli, nie pomiar; pozycja KIER-01 domyka się bez otwarcia żadnego pliku poza plikiem stanu.",
+  "miejsce": {
+    "rodzaj": "linia",
+    "plik": "audyt/ROLE.md",
+    "linia": 551,
+    "tresc": "| KIER-01 | Czy każdy dział ma status `ZAKOŃCZONE` i przeszedł **całą** checklistę? | licznik pozycji zamkniętych / wszystkich |"
+  },
+  "dowod": "audyt/stan/audyt-f1-*.json (20 plików): pola sektor, fala, rola, status, runda, niedomkniete, kiedy, historia — brak pola z listą pozycji zamkniętych. status.mjs --pokaz i --pokaz --historia drukują status, rundę i niedomknięte; mapa.mjs liczy PLIKI (842 przypisane, 0 sierot), nie pozycje. Pozycje mające jakikolwiek ślad we wpisach fali 1 (policzone z 116 plików audyt/zgloszenia): ARCH 2/10, BD 3/13, BE 2/14, FE 2/12, INT 2/12, PERF 5/9, PIK 4/9, PRIV 4/11, PROTO 3/13, QA 6/16, REPO 5/12, SEC 2/13, USP 3/10, WDR 4/11 — pozostałe pozycje nie mają w repo żadnego śladu poza pustą listą niedomkniętych. Ta sama luka od strony działu: AUD-BD-F1-003 (BD-06) i AUD-PIK-F1-006 (PIK-90); pozycja zamknięta na „nie” bez wykonania własnej komendy: AUD-PROTO-F1-003 (PROTO-08).",
+  "klasyfikacja": "checklista — dowód nie do wytworzenia",
+  "wplyw": "KIER-01 daje się odhaczyć wyłącznie z deklaracji roli; w fali 2 ta sama pozycja da „tak” także wtedy, gdy dział pominie połowę checklisty, o ile nie wpisze niczego do niedomkniętych — pozycja nie odróżnia działu, który przeszedł checklistę, od działu, który jej nie zadał.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "c3fb2ec48d36ba7bc228812519a67035b9a5310bf9460c7e1c1a416f9bdd6d4e",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": "Odtworzone w calosci wlasnym pomiarem, nie przepisane. MIEJSCE: audyt/ROLE.md linia 551 zgodna co do znaku. DOWOD POTWIERDZA STWIERDZENIE, a nie sasiaduje z nim: przeliczylem klucze wszystkich 18 plikow audyt/stan/audyt-f1-*.json - kazdy niesie dokladnie sektor, fala, rola, status, runda, niedomkniete, kiedy, historia (PIK i WER dodatkowo adnotacja), zadnego pola z lista pozycji zamknietych; status.mjs --pokaz drukuje status, runde i niedomkniete, kod 0. Policzylem tez sam pozycje majace slad we wpisach fali 1 i wyszly te same liczby co w dowodzie (ARCH 2, BD 3, BE 2, FE 2, INT 2, PERF 5, PIK 4, PRIV 4, PROTO 3, QA 6, REPO 5, SEC 2, USP 3, WDR 4); moje SEC 3 obejmuje SEC-R6, ktore pochodzi z wpisow PROBNYCH re-audytu, wiec liczba dzialu sie zgadza. Roznica 116 wobec dzisiejszych 121 plikow to piec wlasnych wpisow kierownika, zlozonych po zliczeniu. ZJAWISKO CZYNNE: jedyna liczba, jaka da sie dzis podstawic pod kolumne Dowod, to wszystkie minus niedomkniete, czyli deklaracja roli. ZAKRES: KIER-01 to wlasna pozycja kierownika, wiec to jest dokladnie ta klasa, ktorej ma szukac krytyk - checklista domykalna bez otwarcia pliku. BRZMIENIE jednoznaczne.",
+      "kiedy": "2026-09-04T03:19:03.757Z"
+    }
+  }
+}

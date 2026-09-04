@@ -1,0 +1,27 @@
+{
+  "id": "AUD-RAP-F1-002",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "RAP",
+  "pozycja": "RAP-04",
+  "stwierdzenie": "Rozjazd migawek przed/po fali 1 jest w trzech piatych NIEPRZYPISANY: z piatki tabel i katalogu mediow, ktore sie rozjechaly, zgloszenia fali wskazuja sprawce tylko dla changelogu (44 wiersze, AUD-GOLD-F1-005 i AUD-KIER-F1-005) i dla mediow (ubytek 5 plikow, AUD-KON-F1-021), natomiast dla 24 wierszy powstalych w tabelach logowan (+5), wizyt (+13) i dostaw (+6) zadne ze 124 zgloszen sektora nie nazywa autora, wiec porownanie W6 melduje kod 1 bez mozliwosci powiedzenia, co ten kod znaczy.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/tools/migawka-wartosci.mjs",
+    "zakres": "opiszRozjazdSrodowiska() (linie 112-129) i blok --porownaj (linie 145-171), w tym zdanie zamykajace 'Sektor mial tylko patrzec. Zmiana wartosci znaczy, ze cos ruszyl.' (linia 170)",
+    "mechanizm": "Brakuje rejestru dotkniec srodowiska: nosnika, w ktorym rola zapisuje, ze uruchomila cos na instalacji 8892, oraz wiazania tego zapisu z roznica wartosci przy porownaniu. Migawka trzyma wylacznie LICZBY (liczba wierszy i AUTO_INCREMENT per tabela, liczba i suma bajtow mediow), wiec porownanie umie powiedziec ILE sie zmienilo i NIE UMIE powiedziec KTO. Rejestr powinien stac obok migawek, w audyt/migawki/, i byc wymagany przez ROLE.md tam, gdzie pozycja kaze uruchomic komende na 8892 - tak samo jak srodowisko.mjs przypina wersje WordPressa, Tutora i Woo do kazdego pomiaru; porownanie powinno go przywolywac w tym samym miejscu, w ktorym drukuje rozjazd."
+  },
+  "dowod": "Pomiar wlasny 2026-09-04 na galezi sektora, kody wyjscia bez potoku, komendy tekstowe pod systemowym /usr/bin/grep (GNU grep 3.12-modified; nazwa grep w powloce agenta to funkcja opakowujaca ugrep 7.8.4 - AUD-WER-F1-006). (1) ROZJAZD: node audyt/tools/migawka-wartosci.mjs --porownaj konczy KODEM 1; wlasne plaskie porownanie obu migawek pole po polu daje 38 pol, z tego 26 zgodnych i 12 rozjechanych, i WSZYSTKIE 12 leza w galezi srodowisko - strona repozytorium (galaz, glowa main, diff wobec main, straznikow 39, mutacji 340, testow 83, bramek smoke 16, goldenow 9, plikow produktu 919, skrot produktu) jest zgodna co do znaku. (2) CO SIE ZMIENILO: logowania 21 na 26 wierszy (AUTO_INCREMENT 267 na 286), wizyty 17 na 30 (146 na 178), dostawy 0 na 6 (465 na 473), changelog 1447 na 1491 (1448 na 1492), media 1348 plikow / 32040025 B na 1343 / 31888625 B. (3) WIERSZE POWSTALY W OKNIE FALI - odczyt przez sql() z audyt/tools/srodowisko.mjs, same SELECT-y: szesc wierszy wp_aai_platnosci_dostawy ma id 467-472 i czasy 2026-09-03 21:07:30, 21:17:17 i 21:18:56; piec najnowszych wierszy wp_aai_monitor_logowania ma id 267-270 i 277 oraz czasy od 2026-09-03 16:16:03 do 16:48:23, a wpis id 277 niesie login audyt-int-tmp, czyli konto zalozone przez sam sektor; wizyty maja 13 wierszy nowszych niz migawka przed, od 2026-09-03 16:40:31 do 21:19:25. (4) BRAK PRZYPISANIA: /usr/bin/grep -rl po katalogu audyt/zgloszenia daje dla wp_aai_platnosci_dostawy ZERO plikow, dla audyt-int-tmp ZERO plikow, dla wp_aai_monitor_wizyty jeden plik (REA-SEC-F1-001, ktory dotyczy kolektora raportow CSP, nie zmiany danych) i dla wp_aai_monitor_logowania dwa pliki (AUD-PRIV-F1-001 i AUD-PRIV-F1-003, oba o TRESCI kolumn w kodzie produktu, nie o powstaniu wierszy). (5) CO JEST PRZYPISANE: AUD-GOLD-F1-005 i AUD-KIER-F1-005 (oba miejsca wskazuja te sama zmiane) nazywaja 44 wpisy aktora import-postgres w changelogu z 2026-09-03 21:09:01, a AUD-KON-F1-021 nazywa skasowanie woluminu mediow przez pozycje WDR-06.",
+  "klasyfikacja": "porownanie poczatku i konca nierozstrzygalne - rozjazd bez wskazania autora dla trzech z pieciu zmienionych tabel",
+  "wplyw": "Pozycja RAP-04 ma pokazac wartosci poczatku i konca oraz ich zgodnosc, a W6 traktuje rozjazd jako zatrzymanie procesu. Dzis raport moze podac liczby i nie moze podac przyczyny 24 z 68 zmienionych wierszy, wiec czytelnik nie odrozni zmiany, ktora zrobil audyt, od zmiany, ktora zastal. Konsekwencja dla powtarzalnosci jest bezposrednia: fala 2 wystartuje z innego stanu srodowiska niz fala 1 i nie bedzie wiadomo, ktore rozjazdy wolno odjac jako wlasne, a ktore nie - a sektor audyt nie ma czym przywrocic stanu, bo mechanizm odtworzenia ze zrzutu istnieje dopiero po stronie re-audytu.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "bb6757f23326d24f15e9a41433d9e7a8d54d4458cd978fddcb2ee24f856e2aea",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T04:08:21.373Z"
+    }
+  }
+}

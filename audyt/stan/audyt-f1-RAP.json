@@ -1,36 +1,31 @@
 {
   "sektor": "audyt",
   "fala": 1,
-  "rola": "KIER",
+  "rola": "RAP",
   "status": "ZAKOŃCZONE",
   "runda": 2,
   "niedomkniete": [],
-  "kiedy": "2026-09-04T02:57:11.884Z",
+  "kiedy": "2026-09-04T03:53:03.173Z",
   "historia": [
     {
       "status": "W TRAKCIE",
       "runda": 0,
-      "kiedy": "2026-09-03T16:02:05.013Z"
-    },
-    {
-      "status": "W TRAKCIE",
-      "runda": 0,
-      "kiedy": "2026-09-04T02:41:22.730Z"
+      "kiedy": "2026-09-04T03:37:49.023Z"
     },
     {
       "status": "W TRAKCIE",
       "runda": 1,
-      "kiedy": "2026-09-04T02:55:32.448Z"
+      "kiedy": "2026-09-04T03:49:46.195Z"
     },
     {
       "status": "W TRAKCIE",
       "runda": 2,
-      "kiedy": "2026-09-04T02:56:49.332Z"
+      "kiedy": "2026-09-04T03:52:15.630Z"
     },
     {
       "status": "ZAKOŃCZONE",
       "runda": 2,
-      "kiedy": "2026-09-04T02:57:11.884Z"
+      "kiedy": "2026-09-04T03:53:03.173Z"
     }
   ]
 }

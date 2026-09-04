@@ -15,13 +15,18 @@
   "dowod": "Uruchomienie każdego zakresu z ROLE.md przez zakresyZRoleMd() (2026-09-03, git 2.55.0): FE 57, BD 25, INT 15 — co do sztuki równe deklaracjom „Zakres — 57/25/15 plików”. Te same komendy z klamrami rozpisanymi na osobne ścieżki: FE `git ls-files -- szablony assets(sklep) assets(monitor) 9×class-aai-sklep-{…}.php class-aai-monitor-ekran.php` → 66; BD: `modules tools/eksport-wp.mjs tools/sprawdz-import-wp.mjs tools/db1-gotowa.mjs tools/seed` → 25 PLUS `ls wordpress/wtyczki/*/includes/ | grep -E 'class-.*-(tabele|zapis|import|odczyt|odczyt-panelu)\\.php'` → 10, razem 35; INT rozpisane → 21. Różnica 9+10+6 = 25 plików. `grep -n 'plików\\|Zakres —' audyt/tools/straznik-sektora-audytu.mjs` → żadna reguła nie czyta liczby z nagłówka „Zakres — N plików”; mapa.mjs (linie 62-73, 114-120) drukuje liczby bez porównania z deklaracją. Potwierdzenie tej samej obserwacji dla FE niezależnie u krytyka FE (PLAN-BUDOWY.md, wpis „KRYTYK FE”).",
   "klasyfikacja": "samokontrola zakresu cyrkularna — deklaracja wyprowadzona z mierzonej komendy",
   "wplyw": "Zakres zepsuty i zakres poprawny wyglądają w ROLE.md identycznie; 25 plików (m.in. class-aai-sklep-zapis.php, -tutor.php, class-*-tabele.php, tutor-motyw.css) formalnie należy do FE/BD/INT, a komendy tych działów ich nie zwracają — w fali 2 ten sam test przejdzie tak samo i pozycja KON-A4 nie ma czego zapalić poza ręcznym rozpisaniem klamr.",
-  "status": "DO WERYFIKACJI",
+  "status": "ZWERYFIKOWANE",
   "hash": "4e0e6e2107393e7a978bfe9cae0fb56488436f56106e845e998c66dc666436b9",
   "werdykt": {
     "krytyk": {
       "werdykt": "PRZEPUSZCZAM",
       "powod": "Przeliczone PRZEZE MNIE, obiema formami, dla wszystkich trzech dzialow (git 2.55.0, 2026-09-04). Deklaracja = wynik komendy co do sztuki dla WSZYSTKICH 14 dzialow (SEC 113, FE 57, BE 66, BD 25, QA 80, PERF 116, ARCH 79, INT 15, PRIV 60, REPO 79, WDR 33, PROTO 131, PIK 10, USP 94) — czyli test z ROLE.md:32 nie ma jak sie zapalic dla zadnego. Podwzorzec z klamrami daje ZERO: ':(glob)…class-aai-sklep-{widok,lekcja,…}.php' → 0 (git nie rozwija klamr w pathspec, wildmatch ich nie zna), a te 9 plikow ISTNIEJE (sprawdzone jawna lista). Po rozpisaniu klamr: FE 57→66, BD 25→35, INT 15→21, roznica 9+10+6 = 25 plikow — liczby Konrada odtworzone co do jednego. Klamra siedzi w komendzie obok DZIALAJACYCH sciezek, wiec brak trafien jest niewidoczny. Potwierdzone tez, ze nikt tego nie porownuje: mapa.mjs wykrywa wylacznie zakres CALKOWICIE pusty (pole , linia ~70 i kod wyjscia na koncu), a liczby z naglowka 'Zakres — N plikow' nie czyta ani mapa.mjs, ani zadna regula straznika sektora. Uwaga nie zmieniajaca werdyktu: te 25 plikow NIE jest sierotami (mapa: SIEROTY 0) — biora je inne dzialy, wiec skutkiem jest utrata pytan wlasciwych dla FE/BD/INT, a nie brak pokrycia; wpis tego nie myli, mowi wprost o zakresach tych trzech dzialow.",
       "kiedy": "2026-09-03T23:33:24.379Z"
+    },
+    "weryfikator": {
+      "werdykt": "ISTNIEJE",
+      "powod": "WER-01/04/05 tak (audyt/ROLE.md linia 32 zgodna, hash zgodny, brzmienie jednoznaczne). WER-02 dowod dotyczy tego samego mechanizmu i ODTWORZYLEM WSZYSTKIE TRZY LICZBY: mapa.mjs uruchamiajaca zakresy z ROLE.md daje FE 57, BD 25, INT 15, czyli dokladnie tyle, ile deklaruja naglowki Zakres w liniach 122, 187 i 319; te same zakresy z klamrami rozpisanymi na osobne sciezki daja FE 66, BD 35, INT 21, czyli roznice 9 plus 10 plus 6 rowna 25. WER-03 CZYNNE: sprawdzilem, czy ktos porownuje deklaracje z pomiarem - w straznik-sektora-audytu.mjs nie ma reguly czytajacej naglowek Zakres, a mapa.mjs drukuje liczby bez porownania z deklaracja, wiec test z linii 32 nie ma jak sie zapalic i przechodzi na zielono przy utracie 25 plikow.",
+      "kiedy": "2026-09-04T02:35:19.675Z"
     }
   }
 }

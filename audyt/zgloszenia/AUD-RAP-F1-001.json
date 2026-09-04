@@ -1,0 +1,27 @@
+{
+  "id": "AUD-RAP-F1-001",
+  "sektor": "audyt",
+  "fala": 1,
+  "dzial": "RAP",
+  "pozycja": "RAP-02",
+  "stwierdzenie": "Raport koncowy nie ma w sektorze zadnego nosnika: zadne z 15 narzedzi w audyt/tools nie zapisuje raportu w rozumieniu paragrafu 11 REGULAMIN.md, a definicja roli RAP odbiera jej Write i Edit, wiec jedyny artefakt, o ktory pytaja wszystkie szesc pozycji RAP-01..RAP-06, powstaje wylacznie jako ulotne wyjscie agenta i nie da sie go pokazac ani drugiemu czytelnikowi, ani porownaniu fal.",
+  "miejsce": {
+    "rodzaj": "mechanizm",
+    "plik": "audyt/REGULAMIN.md",
+    "zakres": "paragraf 11, sekcja 'Minimalny standard raportu audytora' (tabela dziesieciu pol, linie 219-236) oraz zdanie 'RAPORT KONCOWY POWSTAJE, GDY AUDYTORZY ZAKONCZA SWOJE ZAKRESY' (linia 236); powiazana zasada Golden 10 (linia 268)",
+    "mechanizm": "Brakuje dwoch rzeczy naraz: SCIEZKI, pod ktora raport ma zostac zapisany, i NARZEDZIA, ktore go tam zapisuje. Standard nazywa dziesiec pol raportu i moment jego powstania, ale nie mowi, gdzie raport zostaje po zakonczeniu roli. Sciezka powinna stac w paragrafie 11 obok standardu (tak jak katalog audyt/migawki/ jest nazwany dla wartosci poczatku i konca), a zapis powinien robic narzedzie sektora w audyt/tools, tak jak wartosci zapisuje migawka-wartosci.mjs --zapisz=, a polaczenie sektorow polacz-sektory.mjs."
+  },
+  "dowod": "Pomiar wlasny 2026-09-04 na galezi sektora, kody wyjscia bez potoku, wszystkie komendy pod systemowym /usr/bin/grep (GNU grep 3.12-modified; powloka agenta ma pod nazwa grep funkcje opakowujaca ugrep 7.8.4 - AUD-WER-F1-006). (1) NARZEDZI JEST 15: ls audyt/tools/*.mjs daje 15. (2) ZAPISUJE 9 z nich: /usr/bin/grep -l writeFileSync audyt/tools/*.mjs daje audyt-straznika-sektora, fala, generuj-agentow, porownaj-cykle, przejscie-4b6, srodowisko, status, wspolne, zgloszenie. Przedmiotem zapisu sa wylacznie: wpisy zgloszen (zgloszenie.mjs:287), stan rol i migawki (wspolne.mjs:230), pliki agentow (generuj-agentow.mjs:117), zrzut SQL srodowiska (srodowisko.mjs:269) oraz katalogi tymczasowe samokontroli (fala.mjs:327, porownaj-cykle.mjs:437, status.mjs:675, srodowisko.mjs:473) i podmiana tekstu w przejscie-4b6.mjs:102. (3) SLOWO raport w kodzie narzedzi wystepuje w kontekscie zapisu tylko w porownaj-cykle.mjs:445 i :449, i dotyczy MASZYNOWEGO porownania fal (wyniki/porownanie-audyt.json), nie raportu z paragrafu 11. (4) KATALOG WYNIKOW: ls audyt/wyniki/ daje jeden plik, polaczone-f1.json, czyli wyjscie polacz-sektory.mjs. (5) ROLA NIE MOZE ZAPISAC SAMA: audyt/role/RAP/AGENT.md:224 wymienia narzedzia jako Read, Grep, Glob i Bash (tylko odczyt i pomiar), a :226 mowi wprost 'Bez Write i bez Edit'. (6) PLAN NIE UZUPELNIA TEJ LUKI: /usr/bin/grep -n RAP audyt/PLAN-BUDOWY.md daje 27 trafien i zadne z nich nie podaje sciezki raportu; sekcja E8 wymienia RAP jako ostatni krok kolejnosci (linie 815, 1517), nie jako producenta pliku.",
+  "klasyfikacja": "luka nosnika sektora - artefakt wymagany przez paragraf 11 nie ma sciezki ani narzedzia zapisu",
+  "wplyw": "Zasada Golden 10 mowi, ze proces nie jest zakonczony bez raportu, a W1 wymaga, by wartosci obu sektorow trafily do raportu. Skoro raport nie zostaje w repozytorium, to po zakonczeniu roli nie ma czego sprawdzic: krytyk RAP i weryfikator nie maja przedmiotu, pozycje RAP-01..RAP-06 sa nierozstrzygalne dla kogokolwiek poza samym autorem, a fala 2 nie bedzie miala z czym porownac raportu fali 1. To ta sama klasa, ktora dla pojedynczych pozycji checklisty opisuja AUD-BD-F1-003 i AUD-PIK-F1-006, tyle ze dotyczy artefaktu koncowego calego sektora.",
+  "status": "DO WERYFIKACJI",
+  "runda": 1,
+  "hash": "bd3b70c759e91f6088ae03e3a2bbb04c6f94707581fa0e4ee0a22e97a04c5670",
+  "werdykt": {
+    "krytyk": {
+      "werdykt": "PRZEPUSZCZAM",
+      "powod": null,
+      "kiedy": "2026-09-04T04:08:15.626Z"
+    }
+  }
+}
