@@ -179,9 +179,16 @@ final class Aai_Sklep_Trasy {
 	 * W prototypie rozstrzygał o tym token bramy kreatora; tutaj rozstrzyga
 	 * uprawnienie WordPressa. Dla wszystkich innych kurs w statusie `draft`
 	 * po prostu nie istnieje — trasa oddaje 404, nie „brak dostępu".
+	 *
+	 * PYTAMY O STAŁĄ WTYCZKI, NIE O KLASĘ KOKPITU. Routing biegnie na
+	 * KAŻDYM żądaniu frontu i nie ma powodu wiedzieć, że istnieje panel
+	 * administracyjny; panel z kolei musi znać trasy (odnośnik „Edytuj
+	 * kurs" w pasku). Odwołanie do `Aai_Sklep_Panel::UPRAWNIENIE` robiło
+	 * z tego cykl — dwie klasy zależne od siebie nawzajem, żadna nie
+	 * fundamentem (AUD-ARCH-F1-004). Wartość jest ta sama co przedtem.
 	 */
 	public static function widzi_szkice(): bool {
-		return current_user_can( Aai_Sklep_Panel::UPRAWNIENIE );
+		return current_user_can( AAI_SKLEP_UPRAWNIENIE );
 	}
 
 	/**

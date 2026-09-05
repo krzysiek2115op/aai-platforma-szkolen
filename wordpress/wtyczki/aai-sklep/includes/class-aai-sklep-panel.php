@@ -57,7 +57,7 @@ final class Aai_Sklep_Panel {
 	 * Gdyby doszła druga osoba, WordPress pozwala nadać jej konto albo
 	 * dorobić rolę wtedy.
 	 */
-	public const UPRAWNIENIE = 'manage_options';
+	public const UPRAWNIENIE = AAI_SKLEP_UPRAWNIENIE;
 
 	/** Strona z listą kursów. */
 	public const STRONA_LISTA = 'aai-sklep';

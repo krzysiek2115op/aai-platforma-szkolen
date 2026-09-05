@@ -621,11 +621,38 @@ sprawdz(
   `wartość wpisana w pole loginu trafiła do dziennika DOSŁOWNIE — a bywa nią hasło (A1). W polu „login” zapisano: „${poSekrecie[0]?.login}”. Nieistniejące konto ma być maskowane; istniejące zostaje dosłownie, bo to sedno pytania „kogo próbowano podszyć”.`
 );
 sprawdz(
-  (poSekrecie[0]?.login ?? "").startsWith(SEKRET.slice(0, 3)),
-  "zamaskowany login stracił początek — wtedy nie widać wzorca ataku (adm…, roo…, tes…), a po to ta kolumna istnieje"
+  !(poSekrecie[0]?.login ?? "").includes(SEKRET.slice(0, 3)),
+  `wartość, która NIE JEST loginem (ma znak spoza \`sanitize_user\`), zostawiła w dzienniku swój początek: „${poSekrecie[0]?.login}”. W pole loginu trafia czasem hasło (A1) — wtedy każdy zachowany znak jest fragmentem sekretu na 90 dni, wbrew zdaniu polityki „Nie zapisujemy haseł ani ich fragmentów”. Wzorzec ataku (adm…, roo…) zostaje przy wartościach, które loginem być mogą — to sprawdza asercja niżej`
 );
 
 /* A1, druga strona: ISTNIEJĄCE konto zapisujemy dosłownie. */
+/*
+ * DRUGA POŁOWA A1 — wzorzec ataku ma przetrwać.
+ * Maskowanie sekretu nie może zabrać kolumnie sensu: wartość, która MOŻE być
+ * loginem (przechodzi `sanitize_user` w trybie ścisłym bez zmiany), zostawia
+ * początek, bo po to ta kolumna istnieje. Bez tej asercji naprawa wycieku
+ * mogłaby wyciszyć dziennik w całości i nikt by tego nie zauważył.
+ */
+const WZORZEC_ATAKU = "administrator_probny";
+const przedWzorcem = maxId();
+await gosc2().pobierz("/wp-login.php");
+await gosc2().pobierz("/wp-login.php", {
+  method: "POST",
+  headers: { "content-type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    log: WZORZEC_ATAKU,
+    pwd: "nieistotne",
+    "wp-submit": "Zaloguj",
+    testcookie: "1",
+  }).toString(),
+});
+const poWzorcu = nowszeNiz(przedWzorcem);
+sprawdz(
+  (poWzorcu[0]?.login ?? "").startsWith(WZORZEC_ATAKU.slice(0, 3)) &&
+    (poWzorcu[0]?.login ?? "").includes(String(WZORZEC_ATAKU.length)),
+  `wartość mogąca być loginem straciła początek: „${poWzorcu[0]?.login}” — wtedy nie widać wzorca ataku (adm…, roo…, tes…), a po to ta kolumna istnieje`
+);
+
 const przedIstniejacym = maxId();
 await gosc2().pobierz("/wp-login.php", {
   method: "POST",

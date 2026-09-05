@@ -49,8 +49,10 @@ melduje wtyczka (jedno źródło treści: `Aai_Monitor_Prywatnosc::tresc()`).
 > Ta witryna prowadzi dziennik logowań do kont. Przy każdym udanym
 > i nieudanym logowaniu zapisujemy: datę i godzinę, konto (a przy
 > nieudanej próbie — login wpisany w formularzu), sposób zalogowania,
-> adres IP oraz nazwę przeglądarki. Nie zapisujemy haseł ani ich
-> fragmentów.
+> adres IP oraz pełny identyfikator przeglądarki (tak zwany User-Agent —
+> nazwę i wersję przeglądarki oraz systemu operacyjnego, dokładnie w tej
+> postaci, w jakiej przysyła je przeglądarka). Nie zapisujemy haseł ani
+> ich fragmentów.
 >
 > Robimy to wyłącznie w celu bezpieczeństwa kont — żeby zobaczyć, czy
 > ktoś próbuje włamać się na konto klienta lub administratora (art. 6
