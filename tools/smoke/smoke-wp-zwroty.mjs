@@ -482,6 +482,22 @@ try {
     // Przez API zamówienia, nie `wp_delete_post()`: pod HPOS ta druga
     // droga nie kasuje NICZEGO i wychodzi cicho (BLAD-026).
     php(`foreach ( array( ${zamowienia.join(", ")} ) as $id ) { $o = wc_get_order( $id ); if ( $o ) { $o->delete( true ); } } echo 'ok';`);
+    /*
+     * ŚLADY W CUDZYCH TABELACH PO WŁASNYCH ZAMÓWIENIACH TEŻ SĄ NASZE (wzorzec
+     * z `smoke-wp-zakup`). Hak wtyczki sprząta wyłącznie zamówienia w 100 %
+     * z kursów (zamek 1) — zamówienie z samym cudzym produktem (zamObcy)
+     * zostawia więc pięć notatek, a kontrola słusznie liczy je jako sieroty.
+     * Zmierzone 2026-09-05: każdy przebieg tej bramki zostawiał 5 notatek po
+     * zamObcy i gasił kontrolę (kod 1) — poprzedni pomiar „39 zielonych"
+     * był sprzed reguły liczącej sieroty. Bramka sprząta je SAMA, po jawnej
+     * liście własnych zamówień, przez API właścicieli tabel — nigdy zakresem
+     * ani komendą `sieroty --usun`, która kasowałaby też cudze.
+     */
+    php(
+      `foreach ( array( ${zamowienia.join(", ")} ) as $id ) {` +
+        ` if ( class_exists( '\\TUTOR\\Earnings' ) ) { \\TUTOR\\Earnings::get_instance()->delete_earning_by_order( $id ); }` +
+        ` foreach ( (array) wc_get_order_notes( array( 'order_id' => $id ) ) as $n ) { wc_delete_order_note( (int) $n->id ); } } echo 'ok';`
+    );
     php(
       `global $wpdb; $wpdb->query( "DELETE FROM " . Aai_Platnosci_Tabele::tabela( 'dostawy' ) .` +
         ` " WHERE identyfikator IN ( ${zamowienia.join(", ")} )" ); echo 'ok';`

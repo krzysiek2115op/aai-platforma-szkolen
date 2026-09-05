@@ -158,10 +158,23 @@ audytu).
 ### Dowody
 
 Strażnicy **39/39**, audyt mutacyjny **351** (349 złapanych, 0 przeoczonych,
-0 martwych), `npm run check` kod 0, bramki WP: zakup **58** · monitor **181** ·
-zwroty 39 · front 86 · produkty 85 · płatności 23; `wp:sprawdz` 73/73 co do
-znaku, kopia w Tutorze 0 różnic, `aai-platnosci sprawdz` i `aai-monitor
-sprawdz` kod 0, cykle zależności 0/0/0.
+0 martwych), `npm run check` kod 0, testy 83/83. Przelot WSZYSTKICH piętnastu
+bramek WP przed PR-em (kody wyjścia bez potoku): dane 30 · front 86 · tutor 44
+· lekcja 57 · kreator 102 · panel 55 · płatności 23 · produkty 85 · zakup
+**58** · zwroty 39 · maile 62 · język 25 · motyw 91 · monitor **181** · seo 169;
+`wp:sprawdz` 73/73 co do znaku, kopia w Tutorze 0 różnic, `aai-platnosci
+sprawdz` i `aai-monitor sprawdz` kod 0, cykle zależności 0/0/0.
+
+**Przelot złapał usterkę higieny bramki, której nie widziały pomiary z sesji
+napraw:** `smoke-wp-zwroty` kasował swoje zamówienie z CUDZYM produktem, hak
+wtyczki słusznie nie ruszał jego notatek (zamek 1), więc **każdy przebieg
+zostawiał 5 osieroconych notatek** i gasił kontrolę (kod 1) — a razem z nią
+trzy asercje `smoke-wp-maile`, która biegła po nim. Wcześniejsze „zwroty 39"
+było zmierzone PRZED regułą liczącą sieroty. Bramka sprząta teraz własne
+ślady w cudzych tabelach po jawnej liście zamówień, przez API właścicieli
+tabel — ten sam wzorzec co `smoke-wp-zakup`. Dowód: trzy przebiegi z rzędu
+(przed naprawą 1 z 39 czerwone i 5 sierot, po naprawie 39/39 i kontrola
+kod 0).
 
 ### CI wróciło do życia — i od razu pokazało dwie rzeczy ukryte od 17 sierpnia
 
