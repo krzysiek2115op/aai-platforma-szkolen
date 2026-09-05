@@ -441,6 +441,143 @@ final class Aai_Platnosci_Cli {
 	 * @when after_wp_load
 	 */
 	/**
+	 * Osierocone ślady po zamówieniach, których już nie ma (REA-INT-F1-003).
+	 *
+	 * Dwie CUDZE tabele, obie sprawdzane wyłącznie ODCZYTEM (L11: kontrola
+	 * nigdy nie pisze): wiersze księgowe Tutora (`wp_tutor_earnings`) i notatki
+	 * zamówień Woo (`wp_comments` typu `order_note`) wskazujące `order_id`,
+	 * którego nie ma w `wp_wc_orders` (HPOS) ani w `wp_posts` (magazyn
+	 * starszy). Do 0.2.0 kontrola o żadną z nich nie pytała — 12 osieroconych
+	 * wierszy księgowych i 1345 notatek przy zerze zamówień przechodziło jako
+	 * kod 0. Kasuje osobna, jawna komenda `sieroty --usun`, po id.
+	 *
+	 * @return array{bledy:string[],earnings:int[],notatki:int[]}
+	 */
+	private static function sieroty_po_zamowieniach(): array {
+		global $wpdb;
+		$puste = array( 'bledy' => array(), 'earnings' => array(), 'notatki' => array() );
+		if ( ! function_exists( 'wc_get_orders' ) ) {
+			return $puste;
+		}
+		try {
+			/*
+			 * NAZWY CUDZYCH TABEL Z ICH WŁAŚCICIELI, NIE SKLEJANE: `$wpdb->tutor_earnings`
+			 * ustawia sam Tutor (Tutor.php), `{$wpdb->prefix}wc_orders` to tabela
+			 * HPOS Woo, `{$wpdb->posts}`/`{$wpdb->comments}` — rdzeń. Istniejące
+			 * zamówienia liczymy w OBU magazynach, więc „nie ma zamówienia" znaczy
+			 * „nie ma go w żadnym". Dwa literały SQL zamiast składanego, bo SQL do
+			 * $wpdb idzie w tym repo dosłownie (reguła 6 straznik-wtyczki-wp).
+			 */
+			// O magazyn zamówień pytamy Woo jego własnym API, nie składaniem nazwy tabeli.
+			$ma_hpos = class_exists( '\\Automattic\\WooCommerce\\Utilities\\OrderUtil' ) && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+			$ma_earn = isset( $wpdb->tutor_earnings ) && $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( (string) $wpdb->tutor_earnings ) ) ) === $wpdb->tutor_earnings;
+
+			$earnings = array();
+			if ( $ma_earn ) {
+				$earnings = $ma_hpos
+					? $wpdb->get_col( "SELECT e.earning_id FROM {$wpdb->tutor_earnings} e LEFT JOIN ( SELECT id FROM {$wpdb->prefix}wc_orders UNION SELECT ID AS id FROM {$wpdb->posts} WHERE post_type = 'shop_order' ) z ON z.id = e.order_id WHERE z.id IS NULL AND e.order_id > 0 ORDER BY e.earning_id" ) // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+					: $wpdb->get_col( "SELECT e.earning_id FROM {$wpdb->tutor_earnings} e LEFT JOIN ( SELECT ID AS id FROM {$wpdb->posts} WHERE post_type = 'shop_order' ) z ON z.id = e.order_id WHERE z.id IS NULL AND e.order_id > 0 ORDER BY e.earning_id" ); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+			}
+			$earnings = array_map( 'intval', (array) $earnings );
+			$notatki  = $ma_hpos
+				? $wpdb->get_col( "SELECT c.comment_ID FROM {$wpdb->comments} c LEFT JOIN ( SELECT id FROM {$wpdb->prefix}wc_orders UNION SELECT ID AS id FROM {$wpdb->posts} WHERE post_type = 'shop_order' ) z ON z.id = c.comment_post_ID WHERE c.comment_type = 'order_note' AND z.id IS NULL ORDER BY c.comment_ID" ) // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+				: $wpdb->get_col( "SELECT c.comment_ID FROM {$wpdb->comments} c LEFT JOIN ( SELECT ID AS id FROM {$wpdb->posts} WHERE post_type = 'shop_order' ) z ON z.id = c.comment_post_ID WHERE c.comment_type = 'order_note' AND z.id IS NULL ORDER BY c.comment_ID" ); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+			$notatki  = array_map( 'intval', (array) $notatki );
+
+			$bledy = array();
+			if ( array() !== $earnings ) {
+				$bledy[] = sprintf(
+					'%d wiersz(y) księgowych Tutora (wp_tutor_earnings) wskazuje zamówienia, których nie ma: earning_id %s%s. Raport przychodu liczy pieniądze z zamówień skasowanych. Obejrzyj i skasuj po id: wp aai-platnosci sieroty [--usun]',
+					count( $earnings ),
+					implode( ', ', array_slice( $earnings, 0, 20 ) ),
+					count( $earnings ) > 20 ? ', …' : ''
+				);
+			}
+			if ( array() !== $notatki ) {
+				$bledy[] = sprintf(
+					'%d notatek zamówień WooCommerce (wp_comments/order_note) wskazuje zamówienia, których nie ma: comment_ID %s%s. Historia przypięta do nieistniejących id. Obejrzyj i skasuj po id: wp aai-platnosci sieroty [--usun]',
+					count( $notatki ),
+					implode( ', ', array_slice( $notatki, 0, 20 ) ),
+					count( $notatki ) > 20 ? ', …' : ''
+				);
+			}
+			return array( 'bledy' => $bledy, 'earnings' => $earnings, 'notatki' => $notatki );
+		} catch ( Throwable $e ) {
+			return array( 'bledy' => array( 'nie udało się policzyć sierot po zamówieniach: ' . $e->getMessage() ), 'earnings' => array(), 'notatki' => array() );
+		}
+	}
+
+	/**
+	 * Osierocone ślady po skasowanych zamówieniach — lista, a na żądanie kasowanie.
+	 *
+	 * Bez `--usun` wyłącznie WYPISUJE identyfikatory (kontrola i tak je liczy).
+	 * Z `--usun` kasuje DOKŁADNIE wypisane wiersze — wyłącznie przez publiczne
+	 * API właścicieli tabel (\TUTOR\Earnings::delete_earning_by_order,
+	 * wc_delete_order_note), po jawnej liście id, nigdy zakresem ani datą.
+	 * To jedyna droga kasowania sierot HISTORYCZNYCH (sprzed 0.2.0) — hak
+	 * kasowania zamówienia sprząta tylko za sobą, i tylko zamówienia w 100%
+	 * z kursów.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--usun]
+	 * : Skasuj wypisane wiersze (przez API Tutora i Woo, po id).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp aai-platnosci sieroty
+	 *     wp aai-platnosci sieroty --usun
+	 *
+	 * @when after_wp_load
+	 *
+	 * @param array $args  Argumenty pozycyjne (nieużywane).
+	 * @param array $opcje Opcje.
+	 */
+	public function sieroty( array $args = array(), array $opcje = array() ): void {
+		unset( $args );
+		$sieroty = self::sieroty_po_zamowieniach();
+		if ( array() === $sieroty['earnings'] && array() === $sieroty['notatki'] ) {
+			WP_CLI::success( 'sieroty: żaden wiersz księgowy ani notatka nie wskazuje skasowanego zamówienia.' );
+			return;
+		}
+		WP_CLI::line( 'earnings (wp_tutor_earnings.earning_id): ' . ( array() === $sieroty['earnings'] ? '—' : implode( ', ', $sieroty['earnings'] ) ) );
+		WP_CLI::line( 'notatki (wp_comments.comment_ID):        ' . ( array() === $sieroty['notatki'] ? '—' : implode( ', ', $sieroty['notatki'] ) ) );
+		if ( empty( $opcje['usun'] ) ) {
+			WP_CLI::warning( sprintf( 'sieroty: %d wierszy księgowych i %d notatek do rozstrzygnięcia. Kasuje `--usun`.', count( $sieroty['earnings'] ), count( $sieroty['notatki'] ) ) );
+			return;
+		}
+
+		$skasowane_e = 0;
+		if ( array() !== $sieroty['earnings'] && class_exists( '\TUTOR\Earnings' ) ) {
+			global $wpdb;
+			$ksiegowosc = \TUTOR\Earnings::get_instance();
+			// API Tutora kasuje po ORDER_ID — bierzemy order_id z wypisanych
+			// wierszy (odczyt), a kasowanie zlecamy właścicielowi tabeli.
+			// Każdy earning_id osobno przez prepare — bez sklejania listy w SQL.
+			$order_ids = array();
+			foreach ( $sieroty['earnings'] as $earning_id ) {
+				$order_id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT order_id FROM {$wpdb->tutor_earnings} WHERE earning_id = %d", (int) $earning_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+				if ( $order_id > 0 ) {
+					$order_ids[ $order_id ] = $order_id;
+				}
+			}
+			foreach ( $order_ids as $order_id ) {
+				if ( $order_id > 0 && ! wc_get_order( $order_id ) ) {
+					$ksiegowosc->delete_earning_by_order( $order_id );
+					++$skasowane_e;
+				}
+			}
+		}
+		$skasowane_n = 0;
+		foreach ( $sieroty['notatki'] as $id_notatki ) {
+			if ( wc_delete_order_note( (int) $id_notatki ) ) {
+				++$skasowane_n;
+			}
+		}
+		WP_CLI::success( sprintf( 'sieroty: skasowano księgowość %d zamówień i %d notatek.', $skasowane_e, $skasowane_n ) );
+	}
+
+	/**
 	 * Zamówienia kursów, które UTKNĘŁY w `processing`.
 	 *
 	 * Pułapka 8 schematu. Zamówienie złożone wyłącznie z kursów domykamy
@@ -700,6 +837,9 @@ final class Aai_Platnosci_Cli {
 		}
 		foreach ( self::zamowienia_wiszace() as $blad_wiszacy ) {
 			$bledy[] = $blad_wiszacy;
+		}
+		foreach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {
+			$bledy[] = $blad_sieroty;
 		}
 		$pro = self::tutor_pro();
 		if ( '' !== $pro ) {

@@ -3414,55 +3414,56 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-## ═══ NAPRAWY PO AUDYCIE — TRWAJĄ (2026-09-05) ═══
+## ═══ NAPRAWY PO AUDYCIE — KOD GOTOWY, CZEKA PR (2026-09-05) ═══
 
 **CZYTAĆ PRZED PRACĄ: [docs/NAPRAWY-PO-AUDYCIE.md](docs/NAPRAWY-PO-AUDYCIE.md)**
-— decyzje właściciela D1–D7, stan 27 z 33 usterek, sześć pozycji otwartych,
-ustalenia o przyspieszeniu fali i pułapki tej sesji.
+— decyzje właściciela D1–D11, stan **32 z 33** usterek, siedem lekcji tej pracy
+(w tym trzy zmierzone w cudzym kodzie), pułapki sesji i szacunki dalszych kroków.
 
-**GAŁĄŹ PRACY: `fix/naprawy-audytu-f1`** (od `main`, sześć commitów
-`a516fe4` … `2bd68b7`). Katalogi `audyt/` i `re-audyt/` na niej NIE ISTNIEJĄ —
-sektory żyją na `re-audyt/sektor-re-audytu`, a lista 33 usterek pochodzi
-z `audyt/zgloszenia/` tamtej gałęzi.
+**GAŁĄŹ PRACY: `fix/naprawy-audytu-f1`** (od `main`; commity `a516fe4` …
+`ea51d98` + commit sierot). Katalogi `audyt/` i `re-audyt/` na niej NIE
+ISTNIEJĄ — sektory żyją na `re-audyt/sektor-re-audytu`, lista 33 usterek
+w `audyt/zgloszenia/` tamtej gałęzi. CHANGELOG **0.65.0** i README są gotowe
+(wersja podbita, strażnik wersji zielony).
 
-**DECYZJA WŁAŚCICIELA (2026-09-05): FALA 2 ODWOŁANA, ROBIMY NAPRAWY.**
-Powód podany wprost: fala 2 z definicji bada POWTARZALNOŚĆ audytu, czyli sam
-audyt, a *„zależy nam bardziej, aby projekt nie był wadliwy"*. Termin: projekt
-gotowy **do niedzieli**. Po naprawach ma pójść **fala kontrolna** — tylko
-14 Pogłębiaczy, BEZ dziewięciu ról procesowych, **potokiem** (dział kończy
-audyt → wchodzi re-audyt tego działu, audyt idzie dalej).
+**DECYZJA WŁAŚCICIELA (2026-09-05): FALA 2 ODWOŁANA, ZROBILIŚMY NAPRAWY.**
+Po nich idzie **fala kontrolna** — 14 Pogłębiaczy, BEZ ról procesowych,
+**potokiem** (dozwolone: `KIER-R1` pilnuje tylko kolejności w obrębie działu).
 
-**POTOK JEST DOZWOLONY — sprawdzone, nie założone:** `KIER-R1` pilnuje
-wyłącznie tego, żeby re-audyt wszedł do działu PO audycie TEGO SAMEGO działu.
-Sekwencyjność całych sektorów w fali 1 była nadmiarowa i to ona kosztowała
-72 godziny rozpiętości.
+**CO ZOSTAŁO Z 33: JEDNA usterka świadomie u właściciela** — `REA-PRIV-F1-001`
+(polityka prywatności wypiera się ciasteczek; treść prawna, prawnik, „przed
+pierwszym klientem"). `REA-ARCH-F1-002` nie dotyczy produktu. **Napraw kodu
+NIE ZOSTAŁO.**
 
-**LICZBA, KTÓRA ZMIENIŁA PLAN:** ze 223 nie-próbnych wpisów obu sektorów
-**tylko 95 wskazuje kod produktu, a 128 sam aparat audytu**; dwustronnie
-potwierdzonych usterek KODU WTYCZEK jest **33**. To one są przedmiotem napraw.
+**SIEDEM LEKCJI TEJ PRACY (pełnia w dokumencie; nie odkrywać od nowa):**
+1. bramka broniła usterki (fragment hasła jako WYMAGANIE w smoke'u);
+2. strażnik zablokował commit i miał rację (`is_tutor_order()` bez `wc_get_order()`);
+3. dowód fałszywie negatywny przez cudzy cache (Tutor pisze status surowo);
+4. **hak na priorytecie 10 nie działał NIGDY, a wywołany wprost działał** —
+   `WC_Post_Data::before_delete_order()` kasuje pozycje zamówienia na tym
+   samym priorytecie, zanim dojdzie do nas; nasz biegnie na 1;
+5. `is_tutor_order()` = meta zakładana tylko w KASIE, nie „zamówienie kursu";
+6. `wc_get_order_notes()` z `limit => -1` oddaje jedną notatkę, a `get_comments()`
+   zero (filtr Woo) — bez limitu jest komplet;
+7. **reguła strażnika przypięta do PLIKU milknie po refactorze** (reguła 20
+   przeszła na zielono z pustą pętlą) — reguły idą za DECYZJĄ po całym
+   katalogu i mają samokontrolę zakresu.
 
-**STAN NA 2026-09-05, 05:00: 27 z 33 zrobionych**, strażnicy **39/39**, bramki
-`wp-front` 86 · `wp-produkty` 85 · `wp-platnosci` 23 · `wp:sprawdz` 73/73 co do
-znaku. Każda naprawa z pomiarem przed/po i testem negatywnym.
+**PUŁAPKI: `| tail` maskuje kod wyjścia (dwa razy w jednej sesji); PHP wtyczek
+edytować tylko, gdy żaden smoke nie biegnie na `:8892`; `git stash push --
+<plik>` gdy strażnik pilnuje kodu, którego jeszcze nie ma.**
 
-**TRZY ZNALEZISKA WAŻNIEJSZE NIŻ SAME NAPRAWY:**
-1. **Bramka broniła usterki** — `smoke-wp-monitor` asertował, że fragment
-   wartości wpisanej w pole loginu MA zostać w bazie, choć bywa nią hasło
-   i polityka obiecuje coś przeciwnego. Dowód utrwalał wyciek jako wymaganie.
-2. **Strażnik zablokował commit agenta i miał rację** — hak wołał
-   `is_tutor_order()` bez `wc_get_order()`, a `before_delete_post` dostaje
-   KAŻDY wpis; na stronie czy załączniku byłby biały ekran.
-3. **Dowód wyszedł fałszywie negatywny przez cudzy cache** — Tutor zmienia
-   status zapisu surowym `$wpdb->update` bez czyszczenia cache
-   (`Utils.php:2478`), więc `get_post_status()` w tym samym żądaniu kłamie.
-   **Zła była metoda pomiaru, nie kod.**
+**ŚRODOWISKO `:8892` (stan po sesji):** monitoring 26 logowań / 30 wizyt (dane
+właściciela z T4, ślady testowe skasowane jawną listą — D5), sieroty po
+zamówieniach 0/0 (historyczne skasowane `sieroty --usun` — D11, zrzut w
+`~/.cache/aai-kopie/`), zamówienia 0, kontrole obu wtyczek kod 0, sprzedaż
+OTWARTA, konto `klient-test` (NIE kasować).
 
-**PUŁAPKA, KTÓRA ZŁAPAŁA MNIE DWA RAZY W JEDNEJ SESJI: `| tail` maskuje kod
-wyjścia.** Strażnik sektora przez potok pokazał 0, bez potoku daje 1. Kody
-wyjścia mierzyć BEZ POTOKU, zawsze — także własne komendy diagnostyczne.
-
-**NASTĘPNY KROK:** (1) skasować ślady testowe monitoringu jawną listą id —
-zgoda właściciela jest, tabele mają 46/45 zamiast jego 26/30 z testu T4;
-(2) rozciąć cykl w `aai-platnosci` (decyzja właściciela, cena policzona
-w dokumencie); (3) trzy otwarte usterki albo świadome odłożenie; (4) PR →
-`main`, tag, release; (5) fala kontrolna.
+**NASTĘPNY KROK (w tej kolejności):**
+1. Jeśli commit sierot jeszcze nie leży na gałęzi: `git status` → zakończyć
+   commitem (finalny `smoke-wp-zakup` ma dać **58/58**).
+2. **PR `fix/naprawy-audytu-f1` → `main`, tag `v0.65.0`, release** (~1 h:
+   pełny `npm run check`, przelot bramek WP, weryfikacja artefaktu
+   `git diff origin/main <szczyt>` PUSTY).
+3. **Fala kontrolna** potokiem, dwa tory środowiskowe (~pół dnia–dzień
+   zegarowo), na `re-audyt/sektor-re-audytu` po scaleniu `main`.

@@ -4148,6 +4148,68 @@ const MUTACJE = [
         : null,
   },
 
+  {
+    // REA-INT-F1-003, zamek 1: sprzątanie księgowości bez odmowy na zamówieniu mieszanym.
+    straznik: "straznik-platnosci-wp",
+    opis: "hak kasowania sprząta księgowość także po zamówieniu MIESZANYM (cudzy produkt traci swoją historię i przychód)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "zamówieniu MIESZANYM",
+    zmien: (s) =>
+      s.includes("\t\t\tif ( ! self::same_kursy( $zamowienie ) ) {\n\t\t\t\treturn;\n\t\t\t}\n")
+        ? s.replace("\t\t\tif ( ! self::same_kursy( $zamowienie ) ) {\n\t\t\t\treturn;\n\t\t\t}\n", "")
+        : null,
+  },
+  {
+    // REA-INT-F1-003, zamek 3: earning kasowany mimo wypłat instruktora (saldo zmienia się wstecz).
+    straznik: "straznik-platnosci-wp",
+    opis: "księgowość Tutora kasowana bez sprawdzenia wypłat instruktora — saldo zmienia się wstecz",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "miał wypłaty",
+    zmien: (s) => (s.includes("if ( $wyplaty > 0 ) {") ? s.replace("if ( $wyplaty > 0 ) {", "if ( false ) {") : null),
+  },
+  {
+    // REA-INT-F1-003, zamek 2: surowy DELETE do tabeli Tutora zamiast jego API.
+    straznik: "straznik-platnosci-wp",
+    opis: "księgowość Tutora kasowana surowym DELETE do jego tabeli zamiast przez Earnings API (zapis do cudzej tabeli)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "surowo do cudzej tabeli",
+    zmien: (s) =>
+      s.includes("$ksiegowosc->delete_earning_by_order( $id_zamowienia );")
+        ? s.replace(
+            "$ksiegowosc->delete_earning_by_order( $id_zamowienia );",
+            "global $wpdb; $wpdb->delete( $wpdb->prefix . 'tutor_earnings', array( 'order_id' => $id_zamowienia ) );"
+          )
+        : null,
+  },
+  {
+    // REA-INT-F1-003, zamek 5: kontrola przestaje liczyć sieroty (ślepota sprzed naprawy wraca).
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola przestaje wołać licznik sierot po zamówieniach — osierocona księgowość i notatki znów przechodzą jako kod 0",
+    plik: CLI_PLATNOSCI,
+    wymaga: () => existsSync(CLI_PLATNOSCI),
+    oczekiwanySlad: "sprawdz() jej nie woła",
+    zmien: (s) =>
+      s.includes("\t\tforeach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {\n\t\t\t$bledy[] = $blad_sieroty;\n\t\t}\n")
+        ? s.replace("\t\tforeach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {\n\t\t\t$bledy[] = $blad_sieroty;\n\t\t}\n", "")
+        : null,
+  },
+
+  {
+    // REA-INT-F1-003, zamek 0: hak wraca na priorytet 10 — Woo kasuje pozycje przed nami, sprzątanie nie zachodzi nigdy.
+    straznik: "straznik-platnosci-wp",
+    opis: "hak kasowania zamówienia wraca na priorytet 10 — Woo kasuje pozycje przed nami i sprzątanie nie zachodzi NIGDY (zmierzone)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "KASUJE POZYCJE",
+    zmien: (s) =>
+      s.includes("array( self::class, 'zamowienie_znika' ), 1, 2 );")
+        ? s.replace("array( self::class, 'zamowienie_znika' ), 1, 2 );", "array( self::class, 'zamowienie_znika' ), 10, 2 );")
+        : null,
+  },
+
   /* ─────────────── straznik-schematow (schematy draw.io) ─────────────── */
   {
     straznik: "straznik-schematow",

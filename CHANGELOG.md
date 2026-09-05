@@ -5,7 +5,163 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
-## [Nieopublikowane]
+## [0.65.0] — 2026-09-05
+
+### Naprawy po audycie fali 1 — 32 z 33 potwierdzonych usterek kodu wtyczek
+
+Audyt i re-audyt fali 1 (gałąź `re-audyt/sektor-re-audytu`, katalog
+`audyt/zgloszenia/`) potwierdziły dwustronnie **33 usterki w kodzie produktu**
+(krytyk PRZEPUSZCZAM + weryfikator ISTNIEJE). Decyzja właściciela z 2026-09-05:
+**naprawy zamiast drugiej fali audytu** — fala 2 bada powtarzalność audytu,
+czyli sam audyt, a „zależy nam bardziej, aby projekt nie był wadliwy". Po
+naprawach idzie fala kontrolna: 14 Pogłębiaczy, potokiem, bez ról procesowych.
+Standard KAŻDEJ naprawy, bez wyjątku: pomiar PRZED → naprawa → pomiar PO →
+test negatywny (cofnięcie naprawy musi zapalić pomiar) → bramki. Dowody
+uruchomieniowe na `:8892`, nie z lektury. Stan, decyzje D1–D7 i pułapki:
+[docs/NAPRAWY-PO-AUDYCIE.md](docs/NAPRAWY-PO-AUDYCIE.md).
+
+**Jedna usterka ZOSTAJE ŚWIADOMIE** — `REA-PRIV-F1-001` (polityka
+prywatności na czterech publicznych stronach wypiera się ciasteczek, choć
+witryna je stawia): treść prawna właściciela, wymaga prawnika, pozycja „przed
+pierwszym klientem". `REA-ARCH-F1-002` nie dotyczy produktu (usterka aparatu
+audytu).
+
+### Naprawione — sprzedaż, dane, dostęp (czerwone)
+
+- **Cicha utrata treści lekcji** przy zapisie kursu (`AUD-BD-F1-001` i pokrewne)
+  — warstwa zapisu przestaje kasować to, czego nie przysłano.
+- **Kasa liczyła w USD** przy złotówkowym katalogu — waluta ma jedno źródło
+  i kontrolę rozjazdu z kodem 1.
+- **Skasowane zamówienie zostawiało dostęp do kursu** (`AUD-INT-F1-001`) — hak
+  kasowania odbiera zapis w Tutorze jego własnym API. Pierwszy dowód wyszedł
+  fałszywie negatywny: Tutor zmienia status zapisu surowym `$wpdb->update` bez
+  czyszczenia cache (`Utils.php:2478`), więc `get_post_status()` w tym samym
+  żądaniu kłamie — **zła była metoda pomiaru, nie kod**.
+- **Skasowane zamówienie zostawiało osierocone wiersze księgowe Tutora
+  (`wp_tutor_earnings`) i notatki WooCommerce (`wp_comments/order_note`)**
+  (`REA-INT-F1-003`) — a kontrola nie pytała o żadną z tych tabel (zero trafień
+  w `cli.php`): 12 wierszy księgowych i 1345 notatek przy ZERZE zamówień
+  przechodziło jako kod 0. Decyzja właściciela: naprawa najgłębsza, z ryzykiem
+  sprowadzonym do zera, jeśli się da. Hak sprząta oba ślady pod **pięcioma
+  zamkami**: (1) wyłącznie zamówienie w 100 % z naszych kursów — mieszane
+  zostaje nietknięte; (2) wyłącznie przez publiczne API właścicieli tabel
+  (`\TUTOR\Earnings::delete_earning_by_order`, `wc_delete_order_note`) — nigdy
+  surowym SQL-em; (3) księgowość Tutora tylko, gdy instruktor **nie miał ani
+  jednej wypłaty** (`WithdrawModel::get_withdrawal_count`) — earning, który
+  zasilił wypłatę, po skasowaniu zmieniałby saldo wstecz, więc wtedy meldujemy
+  zamiast kasować; (4) każdy krok w osobnym `try/catch`; (5) kontrola `sprawdz`
+  LICZY sieroty w obu tabelach i świeci kodem 1 z listą id, ale ich **nie
+  kasuje** — kasuje osobna, jawna komenda `wp aai-platnosci sieroty --usun`,
+  po id, przez te same API.
+  **Trzy fakty zmierzone w cudzym kodzie po drodze**, każdy zmieniał kod:
+  (a) `is_tutor_order()` czyta metę, którą Tutor zakłada tylko w KASIE —
+  zamówienie z `wc_create_order()` + `add_product()` (WP-CLI, import, cudza
+  wtyczka) jej nie ma, choć Tutor dolicza mu przychód; „nasze" rozstrzygamy
+  więc także po własnej tabeli powiązań; (b) `wc_get_order_notes()` z `limit
+  => -1` oddaje **jedną** notatkę (Woo mapuje `limit` na `number`, a `-1`
+  staje się `1`), a `get_comments()` wprost oddaje **zero**, bo Woo wycina
+  notatki zamówień z każdego zapytania o komentarze filtrem `comments_clauses`
+  — używamy `wc_get_order_notes()` bez limitu; (c) **na priorytecie 10 tego
+  samego haka `WC_Post_Data::before_delete_order()` kasuje POZYCJE zamówienia
+  zanim dojdzie do nas** — nasz callback pytał wtedy o zamówienie bez pozycji,
+  dostawał „nie nasze" i wychodził; sprzątanie nie działo się NIGDY przy
+  prawdziwym kasowaniu, choć wywołane wprost działało. Hak biegnie teraz na
+  priorytecie 1. Złapał to dowód uruchomieniowy (własne zamówienie po
+  skasowaniu: `1:3` zamiast `0:0`), nie przegląd kodu.
+  Pilnują: reguły 43–45 `straznik-platnosci-wp` (odmowa na mieszanym PRZED
+  sprzątaniem, bramka wypłat w strukturze `if/else`, osobne `try`, priorytet
+  < 10, cudze tabele tylko przez API, kontrola liczy i nie kasuje), 5 mutacji
+  w audycie, `smoke-wp-zakup` 51 → **58** (własne → `0:0`, mieszane nietknięte,
+  kontrola nazywa i nie kasuje, sprzątanie własnych śladów przez API).
+  Sieroty historyczne na `:8892` (12 + 1345 + ślady tej sesji) skasowane
+  komendą za zgodą właściciela, po zrzucie tabel do `~/.cache/aai-kopie`.
+
+### Naprawione — architektura (granice i cykle)
+
+- **Cykle zależności: 3 → 0 we wszystkich trzech wtyczkach.** `aai-sklep`
+  (`AUD-ARCH-F1-004`, 2 cykle): routing znał klasę kokpitu tylko po to, żeby
+  odczytać stałą uprawnienia — stała poszła do bootstrapu. `aai-platnosci`
+  (`AUD-ARCH-F1-003`, decyzja właściciela D6 mimo policzonej ceny): przycisk
+  zakupu pytał ustawienia o otwartą sprzedaż, a ustawienia pytały przycisk
+  o stan posiadania kursu; decyzja „co ten człowiek ma z tym kursem" mieszka
+  teraz w klasie-liściu `Aai_Platnosci_Posiadanie` (zero zależności od klas
+  wtyczki), pytają o nią przycisk, blokada koszyka i szew. `aai-monitor`
+  (znalezisko spoza listy 33, wyszło przy pomiarze cykli; właściciel: napraw
+  teraz): kanał błędów i kontrola zależności znały klasę ekranu tylko dla
+  sluga — slug jest stałą wtyczki `AAI_MONITOR_STRONA`. Pomiar detektorem
+  odtwarzającym metodę audytu (krawędź = nazwa klasy użyta w KODZIE; komentarz
+  nie jest zależnością).
+  **Dwie reguły strażnika zachowały się przy tym dokładnie tak, jak ta rodzina
+  pułapek zawsze:** obie były przypięte do PLIKU `cta.php`; po wyprowadzeniu
+  decyzji reguła 16 zapaliła się fałszywie, a reguła 20 **umilkła** — pętla
+  nie miała po czym iterować, więc przeszła na zielono przy zachowanej
+  gwarancji. Obie idą teraz za decyzją po całym katalogu klas i mają
+  samokontrolę zakresu (pusty zakres = błąd, nie cisza). Reguła 16 przy
+  okazji wzmocniona: pyta o zapis UKOŃCZONY (`is_enrolled(..., true)`),
+  bo w tej samej funkcji stoi drugie wywołanie i sama obecność nazwy
+  przepuszczała mutację.
+- **Monitoring nie pisze do żadnej tabeli rdzenia** (`AUD-ARCH-F1-001`,
+  decyzja właściciela: własna tabela z fallbackiem). Sól podpisu ścieżek
+  leżała w `wp_options` wpisana surowym INSERT-em — jedyny zapis do cudzej
+  tabeli w repo, i nie z niedbalstwa: `add_option()` przy wyścigu dwóch
+  pierwszych żądań NADPISUJE sól zwycięzcy (`ON DUPLICATE KEY UPDATE` z
+  `VALUES(option_value)`), a beacon odpowiada 204 zawsze, więc pomiar
+  zamilkłby bez objawu. Od 0.5.0 wtyczki sól mieszka w
+  `wp_aai_monitor_ustawienia` (klucz PK, zapis pusty przy konflikcie, przez
+  warstwę zapisu, z odczytem zwrotnym). **Migracja jest fallbackiem:** tabela
+  → stara opcja (PRZEJĘTA co do znaku) → nowa wartość; sól nie zmienia się
+  ani na chwilę, tabela powstaje przez `dociagnij_schemat()` bez ponownej
+  aktywacji. Kontrola nazywa trzy stany (brak / tylko w opcji / dwa miejsca
+  RÓŻNE — kod 1). Udowodnione na `:8892`: wartość w tabeli identyczna
+  z opcją (64 znaki), fallback po skasowaniu wiersza odtwarza tę samą
+  wartość. Reguły 15b/15c strażnika (w tym: ŻADEN plik wtyczki nie pisze
+  surowo do tabel rdzenia), `smoke-wp-monitor` 174 → **181**.
+- **Przerwana synchronizacja z Tutorem ma strażnika swojej jedynej obrony**
+  (`REA-BD-F1-001`). Zgłoszenie ma rację: zapis kurs → moduły → lekcje idzie
+  bez transakcji, ale powtórzenie DOPISUJE brakujące dzieci zamiast mnożyć
+  komplet — zmierzone (5 lekcji + 1 moduł skasowane z kopii → kontrola kod 1
+  → `sync` → „6 utworzonych, 0 usuniętych", 73/12, kod 0, zero duplikatów).
+  Transakcji nie dokładamy (`wp_insert_post()` jej nie ma; wzorcem tej klasy
+  jest idempotencja). Tej własności nie pilnowało NIC — nowa reguła
+  `straznik-tutora` pyta o STRUKTURĘ decyzji (wyszukanie po uuid → gałąź
+  aktualizacji, brak → wstawienie).
+
+### Naprawione — prywatność, bezpieczeństwo, wydajność, instalacja
+
+- **Dziennik logowań przestaje zapisywać fragmenty haseł** (`AUD-PRIV-F1-001`):
+  w pole loginu trafia czasem hasło, a `bezpieczny_login()` zostawiał trzy
+  pierwsze znaki na 90 dni. **Bramka BRONIŁA tej usterki** — `smoke-wp-monitor`
+  asertował, że fragment MA zostać w bazie. Naprawa objęła kod i bramkę.
+- Polityka prywatności mówi „pełny User-Agent", a nie „nazwa przeglądarki"
+  (`AUD-PRIV-F1-003`); kasa nie powołuje się na politykę, której strony nie ma
+  (`AUD-PRIV-F1-002`).
+- **Start `aai-sklep` w `try/catch`** (`AUD-BE-F1-001`) — brak jednego pliku
+  dawał HTTP 500 na całej witrynie; teraz 200 i komunikat.
+- **Idempotencja produktu** (koniec duplikatów po przerwanej synchronizacji),
+  sito typu treści w kolektorze CSP, walidacja wejścia filtra CTA, podpisy
+  kafelków zgodne z retencją.
+- **Wydajność**: 3× N+1, pamięć żądania, nagłówki cache lekcji i zasobów
+  statycznych — każda zmierzona przed i po.
+- **Dokumentacja i wdrożenie**: README wtyczek, kolejność w `postaw.sh`,
+  `readme.txt` ×3, narzędzie `npm run wp:zapytania`. Repo przestało twierdzić,
+  że dwie wtyczki nie istnieją.
+- **Ślady testowe z monitoringu skasowane** jawną listą 20 + 15 identyfikatorów
+  (decyzja D5): tabele wróciły z 46/45 do **26 logowań / 30 wizyt** —
+  dokładnie do danych właściciela z testu T4. Zrzut sprzed kasowania
+  w `~/.cache/aai-kopie`.
+
+### Wersje wtyczek
+
+`aai-platnosci` 0.1.0 → **0.2.0** (nowa komenda i zachowanie haka),
+`aai-monitor` 0.4.0 → **0.5.0** (trzecia tabela, migracja soli).
+
+### Dowody
+
+Strażnicy **39/39**, audyt mutacyjny **351** (349 złapanych, 0 przeoczonych,
+0 martwych), `npm run check` kod 0, bramki WP: zakup **58** · monitor **181** ·
+zwroty 39 · front 86 · produkty 85 · płatności 23; `wp:sprawdz` 73/73 co do
+znaku, kopia w Tutorze 0 różnic, `aai-platnosci sprawdz` i `aai-monitor
+sprawdz` kod 0, cykle zależności 0/0/0.
 
 ### CI wróciło do życia — i od razu pokazało dwie rzeczy ukryte od 17 sierpnia
 

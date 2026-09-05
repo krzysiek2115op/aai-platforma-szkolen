@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -52,6 +52,15 @@ wersję projektu — o tej mówi `CHANGELOG.md` w korzeniu repozytorium. Wersja
 wtyczki została nadana przy kroku P1 i przy kolejnych krokach (P2–P6) NIE była
 podnoszona, więc historię zmian po fundamencie czyta się z `CHANGELOG.md`
 (wersje projektu 0.47.0–0.53.0), a nie stąd.
+
+= 0.2.0 =
+* Skasowane zamówienie sprząta po sobie księgowość Tutora i notatki
+  WooCommerce — wyłącznie przez API obu wtyczek, tylko dla zamówień
+  złożonych w całości z kursów i tylko, gdy instruktor nie miał wypłat.
+  Kontrola `sprawdz` liczy osierocone wiersze (kod 1), a `sieroty --usun`
+  kasuje je po jawnej liście identyfikatorów. Decyzja „co ten klient ma
+  z tym kursem" mieszka w klasie-liściu — koniec cyklu zależności między
+  przyciskiem zakupu a blokadą koszyka.
 
 = 0.1.0 =
 * Fundament: dwie tabele (`powiazania`, `dostawy`), jedyna warstwa zapisu,
