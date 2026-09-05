@@ -41,7 +41,7 @@ Katalog kursów, strony sprzedażowe, kreator, widok lekcji.
 ## Plugin 2 — `aai-platnosci`
 
 Szew między kursem a WooCommerce i Tutorem. Nie jest kasą ani bramką płatności.
-**13 klas · 2 tabele · 25 haków.**
+**14 klas · 2 tabele · 25 haków.**
 
 | Wariant | Podgląd |
 |---|---|

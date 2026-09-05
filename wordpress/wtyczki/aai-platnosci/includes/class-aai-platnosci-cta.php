@@ -199,26 +199,14 @@ final class Aai_Platnosci_Cta {
 		}
 	}
 
-	/**
-	 * Statusy zapisu, przy których zamówienie NAPRAWDĘ jeszcze trwa.
-	 *
-	 * Tutor nadpisuje status zapisu statusem ZAMÓWIENIA
-	 * (`WooCommerce::enrolled_courses_status_change()` → `course_enrol_status_change()`),
-	 * więc lista jest listą statusów WooCommerce, a nie trzech stałych Tutora.
-	 * `pending` jest też stanem, który nadaje `do_enroll()` kursowi płatnemu
-	 * ZANIM zamówienie zostanie opłacone.
-	 *
-	 * PUBLICZNA, bo „w drodze" ma w tej wtyczce jedną definicję: pyta o nią
-	 * także szew, licząc zamówienia zagrożone usunięciem kursu. Dwie osobne
-	 * listy tych samych trzech nazw rozjechałyby się przy pierwszej zmianie.
+	/*
+	 * STANY POSIADANIA I LISTA STATUSÓW „W DRODZE" MIESZKAJĄ W KLASIE-LIŚCIU
+	 * `Aai_Platnosci_Posiadanie`. Nie dlatego, że przycisk ich nie używa —
+	 * używa — tylko dlatego, że używają ich także `Ustawienia` (blokada
+	 * drugiego zakupu) i szew (zamówienia w drodze). Trzymane tutaj robiły
+	 * z przycisku zależność tamtych dwóch i zamykały cykl
+	 * `Cta → Ustawienia → Cta` (AUD-ARCH-F1-003).
 	 */
-	public const ZAMOWIENIE_TRWA = array( 'pending', 'on-hold', 'processing' );
-
-	/**
-	 * Stany posiadania kursu przez konkretnego człowieka.
-	 */
-	public const MA_KURS = 'ma';
-	public const W_TOKU  = 'w_toku';
 
 	/**
 	 * Stan wynikający z tego, co ten klient już ma — albo `null`, gdy nie ma nic.
@@ -228,67 +216,18 @@ final class Aai_Platnosci_Cta {
 	 * @return array{adres:string,napis:string}|null
 	 */
 	private static function stan_klienta( int $kurs_tutora, int $user_id ): ?array {
-		switch ( self::stan_posiadania( $kurs_tutora, $user_id ) ) {
-			case self::MA_KURS:
+		switch ( Aai_Platnosci_Posiadanie::stan_posiadania( $kurs_tutora, $user_id ) ) {
+			case Aai_Platnosci_Posiadanie::MA_KURS:
 				return array(
 					'adres' => Aai_Sklep_Moje::adres(),
 					'napis' => 'Przejdź do kursu',
 				);
-			case self::W_TOKU:
+			case Aai_Platnosci_Posiadanie::W_TOKU:
 				return array(
 					'adres' => Aai_Sklep_Moje::adres(),
 					'napis' => 'Zamówienie w toku',
 				);
 		}
 		return null;
-	}
-
-	/**
-	 * Co ten człowiek ma z tym kursem: nic, dostęp, albo trwające zamówienie.
-	 *
-	 * JEDNO ŹRÓDŁO TEJ DECYZJI (krok P4). Pyta o nią przycisk na stronie
-	 * ORAZ blokada koszyka — a dwie kopie tego samego warunku to zawsze
-	 * możliwy rozjazd: przycisk mówiłby „Przejdź do kursu", a koszyk
-	 * przyjmowałby zakup tego samego kursu drugi raz.
-	 *
-	 * @param int $kurs_tutora Id wpisu kursu w Tutorze.
-	 * @param int $user_id     Id człowieka.
-	 * @return string '' | self::MA_KURS | self::W_TOKU
-	 */
-	public static function stan_posiadania( int $kurs_tutora, int $user_id ): string {
-		if ( $kurs_tutora <= 0 || $user_id <= 0 || ! function_exists( 'tutor_utils' ) ) {
-			return '';
-		}
-		// Trzeci argument `true` = wyłącznie zapis UKOŃCZONY, czyli realny
-		// dostęp do materiału.
-		if ( tutor_utils()->is_enrolled( $kurs_tutora, $user_id, true ) ) {
-			return self::MA_KURS;
-		}
-
-		/*
-		 * ZAPIS ISTNIEJE, ALE NIE DAJE DOSTĘPU — i tu trzeba zapytać O JEGO
-		 * STATUS, a nie poprzestać na samym istnieniu.
-		 *
-		 * DLACZEGO: Tutor tworzy zapis JUŻ przy składaniu zamówienia i nigdy
-		 * go nie kasuje — anulowanie albo zwrot tylko przestawia mu status na
-		 * `cancelled` / `refunded`. Wersja pytająca wyłącznie „czy zapis
-		 * istnieje" pokazywała więc „Zamówienie w toku” KLIENTOWI, KTÓREGO
-		 * ZAMÓWIENIE ANULOWANO — na zawsze, bez możliwości kupienia jeszcze
-		 * raz. Zmierzone na `:8892` przy przeglądzie P3b: zamówienie
-		 * przestawione na `cancelled` zostawiało zapis `cancelled`, a przycisk
-		 * zakupu znikał bezpowrotnie.
-		 *
-		 * `is_enrolled()` nie oddaje statusu w swoim SELECT-cie, ale oddaje
-		 * `ID` wpisu — status czytamy więc WordPressem, zamiast pisać własne
-		 * zapytanie do cudzej tabeli.
-		 */
-		$zapis = tutor_utils()->is_enrolled( $kurs_tutora, $user_id, false );
-		if ( is_object( $zapis ) && isset( $zapis->ID ) ) {
-			$status = (string) get_post_status( (int) $zapis->ID );
-			if ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {
-				return self::W_TOKU;
-			}
-		}
-		return '';
 	}
 }

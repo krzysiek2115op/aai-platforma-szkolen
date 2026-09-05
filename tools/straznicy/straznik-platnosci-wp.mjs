@@ -340,6 +340,96 @@ if (!existsSync(USTAWIENIA)) {
     );
   }
 
+  /* 16 i 20. STAN POSIADANIA KURSU — reguły idą za DECYZJĄ, nie za PLIKIEM.
+
+     Do 0.65.0 obie czytały wyłącznie `class-aai-platnosci-cta.php`, bo tam
+     wtedy mieszkało rozstrzygnięcie. Rozcięcie cyklu `Cta → Ustawienia → Cta`
+     (AUD-ARCH-F1-003) przeniosło je do klasy-liścia — i wersja przypięta do
+     pliku zachowała się dokładnie tak, jak ta rodzina pułapek zachowuje się
+     zawsze: reguła 16 zapaliła się fałszywie, a reguła 20 UMILKŁA, bo jej
+     pętla nie miała po czym iterować. Milczenie jest gorsze: gwarancja była
+     zachowana co do znaku, a strażnik przestał jej pilnować i nikt by tego
+     nie zobaczył.
+
+     Dlatego szukamy teraz w KAŻDYM pliku klas wtyczki miejsca, w którym
+     zapada rozstrzygnięcie („mam kurs" / „zamówienie w toku"), i stawiamy
+     wymagania funkcji, która je podejmuje. Przeniesienie metody gdziekolwiek
+     indziej w tej wtyczce zostawia obie reguły żywe. */
+  {
+    const KAT_KLAS = join(KATALOG, "includes");
+    const zrodla = existsSync(KAT_KLAS)
+      ? readdirSync(KAT_KLAS)
+          .filter((n) => n.startsWith("class-") && n.endsWith(".php"))
+          .map((n) => ({ plik: join(KAT_KLAS, n), c: kod(readFileSync(join(KAT_KLAS, n), "utf8")) }))
+      : [];
+
+    // Samokontrola zakresu: bez plików obie reguły przeszłyby po pustce.
+    if (zrodla.length === 0) {
+      bledy.push(
+        `${KAT_KLAS}: nie widzę ANI JEDNEGO pliku klasy wtyczki — reguły 16 i 20 nie mają czego sprawdzić i przeszłyby po pustce.`
+      );
+    }
+
+    /* Funkcja, w której padło dopasowanie: od poprzedniego `function` do
+       następnego nagłówka metody. Ten sam sposób cięcia, co w wersji
+       jednoplikowej. */
+    const blokFunkcji = (c, poz) => {
+      const start = c.lastIndexOf("function ", poz);
+      const dalej = c.indexOf("\n\tpublic", poz);
+      return c.slice(start < 0 ? 0 : start, dalej >= 0 ? Math.max(poz, dalej) : c.length);
+    };
+
+    /* 16. stan „klient ma ten kurs" pyta o ZAPIS. `dostep` jest prawdziwy
+       także dla lekcji-zapowiedzi i dla administratora, więc pokazywałby
+       „Przejdź do kursu" komuś, kto nic nie kupił (pułapka z W6). */
+    let decyzjeMaKurs = 0;
+    for (const { plik, c } of zrodla) {
+      for (const m of c.matchAll(/return\s+(?:self|Aai_Platnosci_Posiadanie|static)::MA_KURS\s*;/g)) {
+        decyzjeMaKurs += 1;
+        /* Nie samo `is_enrolled(`, tylko pytanie o zapis UKOŃCZONY (trzeci
+           argument `true`). Pierwsza wersja tej reguły pytała o obecność
+           wywołania w całym pliku i przechodziła po mutacji, bo w tej samej
+           funkcji stoi DRUGIE wywołanie — to samo, którym rozpoznajemy stan
+           „w toku". Zapis nieukończony daje dostęp dopiero po wpłacie, więc
+           „mam kurs" bez tej flagi obiecywałby materiał komuś, kto właśnie
+           zamówił przelewem. */
+        if (!/is_enrolled\s*\([^;]*,\s*true\s*\)/.test(blokFunkcji(c, m.index))) {
+          bledy.push(
+            `${plik}: rozstrzygnięcie „klient ma ten kurs" zapada bez pytania Tutora o ZAPIS (is_enrolled). Pytanie o sam dostęp jest prawdziwe też dla zapowiedzi i dla administratora — „Przejdź do kursu" zobaczyłby ktoś, kto niczego nie kupił.`
+          );
+        }
+      }
+    }
+    if (decyzjeMaKurs === 0) {
+      bledy.push(
+        `${KAT_KLAS}: nigdzie nie zapada rozstrzygnięcie „klient ma ten kurs" (return ...::MA_KURS). Bez niego kupujący widzi na stronie kursu zachętę do kupienia go drugi raz.`
+      );
+    }
+
+    /* 20. stan „zamówienie w toku" pyta o STATUS zapisu, nie o samo jego
+       istnienie. Tutor tworzy zapis przy składaniu zamówienia i nigdy go nie
+       kasuje — anulowanie tylko przestawia status. Pytanie o istnienie
+       zostawiało klienta z anulowanym zamówieniem bez przycisku zakupu
+       NA ZAWSZE (zmierzone). */
+    let decyzjeWToku = 0;
+    for (const { plik, c } of zrodla) {
+      for (const m of c.matchAll(/return\s+(?:self|Aai_Platnosci_Posiadanie|static)::W_TOKU\s*;/g)) {
+        decyzjeWToku += 1;
+        const blok = blokFunkcji(c, m.index);
+        if (!/get_post_status\s*\(/.test(blok) || !/in_array\s*\([^)]*ZAMOWIENIE_TRWA/.test(blok)) {
+          bledy.push(
+            `${plik}: rozstrzygnięcie „zamówienie w toku" zapada bez sprawdzenia STATUSU zapisu (get_post_status + in_array po liście statusów trwających). Zapis Tutora zostaje po anulowaniu i zwrocie, więc pytanie o samo jego istnienie odbiera takiemu klientowi przycisk zakupu bezpowrotnie.`
+          );
+        }
+      }
+    }
+    if (decyzjeWToku === 0) {
+      bledy.push(
+        `${KAT_KLAS}: nie widzę stanu „zamówienie w toku" (ani jednego rozstrzygnięcia W_TOKU). Bez niego klient czekający na przelew widzi zachętę do ponownego zakupu.`
+      );
+    }
+  }
+
   /* 14–17. Niezmienniki kroku P3b: dostarczanie i przycisk zakupu. */
   const dostarczanie = join(KATALOG, "includes", "class-aai-platnosci-dostarczanie.php");
   const cta = join(KATALOG, "includes", "class-aai-platnosci-cta.php");
@@ -391,15 +481,6 @@ if (!existsSync(USTAWIENIA)) {
   } else {
     const c = kod(readFileSync(cta, "utf8"));
 
-    /* 16. stan „klient ma ten kurs" pyta o ZAPIS. `dostep` jest prawdziwy
-       także dla lekcji-zapowiedzi i dla administratora, więc pokazywałby
-       „Przejdź do kursu" komuś, kto nic nie kupił (pułapka z W6). */
-    if (!/is_enrolled\s*\(/.test(c)) {
-      bledy.push(
-        `${cta}: przycisk nie pyta Tutora o ZAPIS (is_enrolled). Pytanie o sam dostęp jest prawdziwe też dla zapowiedzi i dla administratora — „Przejdź do kursu" zobaczyłby ktoś, kto niczego nie kupił.`
-      );
-    }
-
     /* 17. jedna decyzja „czy da się kupić" na całą klasę. Reguła celowo NIE
        pyta o nazwę metody (ta klasa błędu wracała trzykrotnie: 0.29.0,
        0.44.0, 0.47.0) — liczy MIEJSCA, w których warunek sprzedaży jest
@@ -422,37 +503,6 @@ if (!existsSync(USTAWIENIA)) {
       bledy.push(
         `${cta}: decyzja „czy da się kupić" nie pyta WooCommerce o kupowalność produktu. Sam status „publish” to za mało — produkt z pustą ceną jest opublikowany, a koszyk i tak odmówi; klient kliknąłby „Kup teraz" i trafił na kasę, która go odrzuca.`
       );
-    }
-
-    /* 20. stan „zamówienie w toku" pyta o STATUS zapisu, nie o samo jego
-       istnienie. Tutor tworzy zapis przy składaniu zamówienia i nigdy go nie
-       kasuje — anulowanie tylko przestawia status. Pytanie o istnienie
-       zostawiało klienta z anulowanym zamówieniem bez przycisku zakupu
-       NA ZAWSZE (zmierzone).
-
-       Wzorzec celuje w DECYZJĘ, nie w nazwę funkcji (pierwsza wersja pytała
-       o `stan_klienta(` i refactor wynoszący logikę do `stan_posiadania()`
-       zapalił ją mimo zachowanej gwarancji — czwarty nawrót klasy wzorca na
-       nazwę: 0.29.0, 0.44.0, 0.47.0, c6c9c97). Szukamy więc KAŻDEGO miejsca,
-       w którym zapada rozstrzygnięcie „w toku" (`return self::W_TOKU` albo
-       napis przycisku), i wymagamy, żeby funkcja podejmująca je na podstawie
-       zapisu Tutora czytała jego STATUS (`get_post_status` + lista statusów
-       trwających w `in_array`). */
-    const decyzjeWToku = [...c.matchAll(/return\s+self::W_TOKU\s*;/g)];
-    if (decyzjeWToku.length === 0 && !c.includes("Zamówienie w toku")) {
-      bledy.push(
-        `${cta}: nie widzę stanu „zamówienie w toku" (ani stałej W_TOKU, ani napisu). Bez niego klient czekający na przelew widzi zachętę do ponownego zakupu.`
-      );
-    }
-    for (const m of decyzjeWToku) {
-      const startF = c.lastIndexOf("function ", m.index);
-      const dalejF = c.indexOf("\n\tpublic", m.index) >= 0 ? c.indexOf("\n\tpublic", m.index) : c.length;
-      const blokF = c.slice(startF, Math.max(m.index, dalejF));
-      if (!/get_post_status\s*\(/.test(blokF) || !/in_array\s*\([^)]*ZAMOWIENIE_TRWA/.test(blokF)) {
-        bledy.push(
-          `${cta}: rozstrzygnięcie „zamówienie w toku" zapada bez sprawdzenia STATUSU zapisu (get_post_status + in_array po liście statusów trwających). Zapis Tutora zostaje po anulowaniu i zwrocie, więc pytanie o samo jego istnienie odbiera takiemu klientowi przycisk zakupu bezpowrotnie.`
-        );
-      }
     }
 
     /* 18. dostępność oferty nie zależy od oglądającego — dane strukturalne

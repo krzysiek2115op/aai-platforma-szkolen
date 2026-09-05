@@ -1728,11 +1728,33 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-platnosci-wp",
-    opis: "przycisk pyta o DOSTĘP zamiast o zapis („Przejdź do kursu” dla zapowiedzi i dla administratora)",
-    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
-    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
-    oczekiwanySlad: "nie pyta Tutora o ZAPIS",
+    opis: "decyzja „mam kurs” pyta o DOSTĘP zamiast o zapis („Przejdź do kursu” dla zapowiedzi i dla administratora)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php"),
+    oczekiwanySlad: "bez pytania Tutora o ZAPIS",
     zmien: (s) => (s.includes("is_enrolled(") ? s.split("is_enrolled(").join("ma_dostep_do_kursu(") : null),
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "decyzja „mam kurs” przestaje wymagać zapisu UKOŃCZONEGO (kurs obiecany komuś, kto właśnie zamówił przelewem)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php"),
+    oczekiwanySlad: "bez pytania Tutora o ZAPIS",
+    zmien: (s) =>
+      s.includes("is_enrolled( $kurs_tutora, $user_id, true )")
+        ? s.replace("is_enrolled( $kurs_tutora, $user_id, true )", "is_enrolled( $kurs_tutora, $user_id, false )")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "rozstrzygnięcie „w toku” znika z całej wtyczki (reguła przypięta do jednego pliku by tego nie zobaczyła)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php"),
+    oczekiwanySlad: "nie widzę stanu „zamówienie w toku",
+    zmien: (s) =>
+      s.includes("\t\t\t\treturn self::W_TOKU;")
+        ? s.replace("\t\t\t\treturn self::W_TOKU;", "\t\t\t\treturn '';")
+        : null,
   },
   {
     straznik: "straznik-platnosci-wp",
@@ -1778,8 +1800,8 @@ const MUTACJE = [
   {
     straznik: "straznik-platnosci-wp",
     opis: "stan „zamówienie w toku” przestaje patrzeć na STATUS zapisu (anulowane zamówienie blokuje zakup na zawsze)",
-    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
-    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php"),
     oczekiwanySlad: "bez sprawdzenia STATUSU zapisu",
     zmien: (s) =>
       s.includes("\t\t\t$status = (string) get_post_status( (int) $zapis->ID );\n\t\t\tif ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {")
