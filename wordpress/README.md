@@ -2,17 +2,30 @@
 
 Strona Automatic AI to **motyw** WordPressa (robi go kolega z zespołu,
 generowany z Next.js). Nasza praca to **trzy wtyczki** do tej samej
-instalacji — decyzja właściciela z 2026-08-25:
+instalacji — decyzja właściciela z 2026-08-25. **Wszystkie trzy są
+skończone**, każda po własnym teście ręcznym właściciela, a na koniec
+sprawdzone razem ([test całości](../docs/TEST-CALOSCI-WP.md)):
 
-| Katalog | Wtyczka | Zakres |
-|---|---|---|
-| `wtyczki/aai-sklep` | **Plugin 1 — sklep z kursami** | katalog `/szkolenia`, strony sprzedażowe, kreator treści, audyt |
-| _(jeszcze nie ma)_ | Plugin 2 — płatności | warstwa sprzedaży i dostawy na styku z WooCommerce |
-| _(jeszcze nie ma)_ | Plugin 3 — panel admina | panel, monitoring, `page_visits` |
+| Katalog | Wtyczka | Zakres | Stan |
+|---|---|---|---|
+| `wtyczki/aai-sklep` | **Plugin 1 — sklep z kursami** | katalog `/szkolenia`, strony sprzedażowe, kreator treści, widok kupionej lekcji, dziennik zmian | ✅ kroki W1–W6 (wersja projektu `v0.45.0`) |
+| `wtyczki/aai-platnosci` | **Plugin 2 — płatności** | SZEW do WooCommerce: kurs → produkt, konto przy zakupie, dostęp po opłacie, dwa maile, zwroty | ✅ kroki P0–P6 (wersja projektu `v0.53.0`) |
+| `wtyczki/aai-monitor` | **Plugin 3 — monitoring** | dziennik logowań (kto, kiedy, skąd) i pomiar ruchu — ekran w kokpicie; tylko PATRZY, nikogo nie blokuje | ✅ kroki T0–T4 (wersja projektu `v0.58.0`) |
+
+> [!NOTE]
+> Moduł 3 nazywa się **`aai-monitor`, nie `aai-panel`** — „panel" znaczy
+> w tym repozytorium KREATOR treści, a nie panel administracyjny. Rola
+> „redaktora kursów" została **odrzucona definitywnie** (decyzja właściciela
+> z 2026-08-30): kreator stoi na uprawnieniu `manage_options`, a konta
+> klientów daje WooCommerce.
 
 Czego te wtyczki **nie robią**, bo robią to gotowe rzeczy: kont i dostępu
 do materiału (Tutor LMS), koszyka, płatności i faktur (WooCommerce).
 Uzasadnienie podziału: [docs/ETAP-WP.md](../docs/ETAP-WP.md).
+
+Wersje w tabeli to wersje PROJEKTU (`CHANGELOG.md` w korzeniu). Każda
+wtyczka ma osobno swoją własną, mniejszą wersję w nagłówku pliku głównego
+i w `readme.txt` — to dwie różne numeracje i nie należy ich porównywać.
 
 ## Szybki start
 
@@ -22,9 +35,9 @@ cd wordpress/srodowisko
 ```
 
 Po chwili masz na `http://127.0.0.1:8892` **żywą stronę Automatic AI**
-z motywem, treścią, WooCommerce, Tutor LMS i naszą wtyczką. Dane do
-panelu: `admin` + hasło z `wordpress/srodowisko/.env` (plik generuje się
-sam i nie wchodzi do repo).
+z motywem, treścią, WooCommerce, Tutor LMS i wszystkimi trzema naszymi
+wtyczkami. Dane do panelu: `admin` + hasło z `wordpress/srodowisko/.env`
+(plik generuje się sam i nie wchodzi do repo).
 
 ```bash
 ./postaw.sh --pobierz       # wymuś świeży motyw i treść strony głównej
@@ -40,7 +53,7 @@ natychmiast po zapisie pokazuje POPRZEDNI stan kodu — przy testach
 negatywnych wygląda to jak „strażnik przepuścił mutację". Między zapisem
 a pomiarem odczekaj ≥ 3 s.
 
-## Kursy w tabelach wtyczki
+## Kursy w tabelach wtyczki `aai-sklep`
 
 Treść obu kursów żyje w prototypie (PostgreSQL). Do tabel `wp_aai_sklep_*`
 przenosi ją jedna komenda — z repo, nie z kontenera:
@@ -55,7 +68,7 @@ rusza wierszy, które się nie zmieniły — nie dopisuje wtedy nawet linii
 do dziennika audytu. Dlatego „dziennik nie urósł" jest tu twardym testem,
 a nie ozdobą.
 
-Komendy wtyczki (`wp aai-sklep --help` w kontenerze):
+Komendy wtyczki `aai-sklep` (`wp aai-sklep --help` w kontenerze):
 
 | Komenda | Co robi |
 |---|---|
@@ -90,6 +103,33 @@ więc klasy zmienią się przy pierwszej regeneracji.
 ```bash
 npm run smoke:wp-front      # trasy, treść vs baza, menu, 301, SEO (bez przeglądarki)
 ZRZUTY_RIG=/tmp/rig npm run smoke:wp-motyw   # wygląd: nachodzenie, kontrast, jasne plamy
+```
+
+## Płatności i monitoring (Pluginy 2 i 3)
+
+Obie wtyczki mają własne komendy WP-CLI, a ich **kontrole kończą się kodem
+wyjścia 1**, gdy coś jest rozjechane — dlatego `postaw.sh` woła je w swojej
+weryfikacji i cytuje ich własne wiersze, zamiast zgadywać powód po samym
+kodzie.
+
+| Komenda | Co robi |
+|---|---|
+| `wp aai-platnosci sync [<slug>]` | zbiorcza naprawa szwu kurs → produkt WooCommerce |
+| `wp aai-platnosci sprawdz` | kontrola rozjazdu: cena, widoczność, powiązania, sieroty |
+| `wp aai-platnosci dostawy [--ponow=<id>]` | dziennik dostarczenia (dostęp i maile), z ręczną ponowką |
+| `wp aai-platnosci sprzedaz otworz\|zamknij` | otwiera i zamyka sprzedaż (blokada koszyka) |
+| `wp aai-monitor sprawdz` | kontrola monitoringu; **nigdy niczego nie zapisuje** |
+| `wp aai-monitor wyczysc-blad` | kasuje kanał błędów po naprawie |
+
+Bramki obu wtyczek (wszystkie wymagają stojącego `:8892`):
+
+```bash
+npm run smoke:wp-platnosci   # fundament: tabele, warstwa zapisu, deaktywacja
+npm run smoke:wp-produkty    # szew kurs → produkt: cena, kolejność, kontrola
+npm run smoke:wp-zakup       # ścieżka zakupu i cztery stany przycisku
+npm run smoke:wp-maile       # dwa maile dostarczenia i dziennik dostaw
+npm run smoke:wp-zwroty      # zwrot odbiera dostęp, częściowy go nie rusza
+ZRZUTY_RIG=/tmp/rig npm run smoke:wp-monitor   # dziennik logowań i pomiar ruchu (WYMAGA przeglądarki)
 ```
 
 ## Dlaczego skrypt, a nie instrukcja

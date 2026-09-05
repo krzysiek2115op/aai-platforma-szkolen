@@ -116,7 +116,7 @@ final class Aai_Monitor_Komunikaty {
 		if ( null === $ekran ) {
 			return;
 		}
-		$nasz = str_contains( (string) $ekran->id, Aai_Monitor_Ekran::STRONA ) || 'plugins' === $ekran->id;
+		$nasz = str_contains( (string) $ekran->id, AAI_MONITOR_STRONA ) || 'plugins' === $ekran->id;
 		if ( ! $nasz ) {
 			return;
 		}

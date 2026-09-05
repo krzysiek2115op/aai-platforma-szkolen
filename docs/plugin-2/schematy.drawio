@@ -114,7 +114,7 @@
         <mxCell id="x1" value="aai-platnosci — architektura (Plugin 2)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1100" height="28" as="geometry" />
         </mxCell>
-        <mxCell id="x2" value="13 klas · 2 tabele · 25 haków WooCommerce/Tutora · zero własnych tras REST i zero wp_ajax_* · wystrzałem są kanały zakupowe Woo" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="x2" value="14 klas · 2 tabele · 25 haków WooCommerce/Tutora · zero własnych tras REST i zero wp_ajax_* · wystrzałem są kanały zakupowe Woo" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="40" y="48" width="1400" height="20" as="geometry" />
         </mxCell>
         <mxCell id="g3" value="BAZA  wp_aai_platnosci_*" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
@@ -224,6 +224,18 @@
         </mxCell>
         <mxCell id="t38" value="TRZY RZECZY, KTÓRE MUSZĄ ZOSTAĆ&lt;br&gt;&lt;br&gt;1. Filtry ustawień rejestrujemy PRZY INCLUDE pliku, nie na plugins_loaded — Tutor czyta monetize_by w swoim konstruktorze i filtr przyszedłby za późno.&lt;br&gt;&lt;br&gt;2. Znacznik dostawy jest ATOMOWY (UNIQUE w bazie), bo cudzy hak potrafi pobiec rekurencyjnie.&lt;br&gt;&lt;br&gt;3. Wyłączenie wtyczki zdejmuje produkty na draft — inaczej zostałyby kupowalne bez działającego szwu." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingLeft=6;spacingTop=2;fontSize=11;fillColor=#fffde7;strokeColor=#c8b900;" vertex="1" parent="1">
           <mxGeometry x="1200" y="90" width="380" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="n40" value="Aai_Platnosci_Posiadanie — KLASA-LIŚĆ&lt;br&gt;Co ten człowiek ma z tym kursem: nic · dostęp · zamówienie w drodze.&lt;br&gt;Jedno źródło tej decyzji dla przycisku, blokady drugiego zakupu i szwu.&lt;br&gt;Nie zna ANI JEDNEJ klasy tej wtyczki — pyta tylko Tutora i WordPressa." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="390" y="800" width="780" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e41" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;endArrow=block;" edge="1" parent="1" source="n29" target="n40">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e42" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;endArrow=block;" edge="1" parent="1" source="n18" target="n40">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e43" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;endArrow=block;" edge="1" parent="1" source="n12" target="n40">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="n39" value="POZOSTAŁE KLASY&lt;br&gt;&lt;br&gt;Aai_Platnosci_Kasa — zdanie o zgodach w kasie:&lt;br&gt;  Woo powołuje się na regulamin, którego NIE MA;&lt;br&gt;  poprawia też odnośnik pozycji koszyka&lt;br&gt;Aai_Platnosci_Tabele — schemat obu tabel&lt;br&gt;Aai_Platnosci_Cli — sync · sprzedaz · dostawy · sprawdz&lt;br&gt;Aai_Platnosci_Zaleznosci — komunikat zamiast białego&lt;br&gt;  ekranu, gdy brakuje Woo albo Tutora&lt;br&gt;Aai_Platnosci_Komunikaty — kanał błędów szwu&lt;br&gt;Aai_Platnosci_Sitemap — nasze adresy poza mapą strony" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#dae8fc;strokeColor=#3a6ea5;" vertex="1" parent="1">
           <mxGeometry x="770" y="640" width="400" height="145" as="geometry" />

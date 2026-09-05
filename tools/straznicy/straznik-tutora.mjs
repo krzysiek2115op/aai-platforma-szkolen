@@ -204,6 +204,59 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/* PRZERWANA SYNCHRONIZACJA MA SIĘ SAMA WYLECZYĆ — I TO JEST CAŁA JEJ OBRONA.
+
+   REA-BD-F1-001: `synchronizuj_kurs()` pisze kurs, potem moduły, potem lekcje
+   jako osobne zapisy — bez transakcji, bo `wp_insert_post()` transakcji nie
+   obsługuje. Przerwanie w środku pętli zostawia kopię niekompletną. Wolno tak
+   tylko pod jednym warunkiem: powtórzenie synchronizacji DOPISUJE brakujące
+   dzieci, zamiast tworzyć drugi komplet. Ten warunek jest dziś spełniony,
+   bo zapis szuka wpisu po uuid PRZED wstawieniem nowego.
+
+   ZMIERZONE 2026-09-05 na `:8892`: skasowanie 5 lekcji i 1 modułu z kopii
+   dało kontroli kod 1; powtórzony `wp aai-sklep sync` → „6 utworzonych,
+   0 usuniętych", stan wrócił do 73 lekcji i 12 modułów, kontrola kod 0,
+   ZERO duplikatów.
+
+   Bez tej reguły nic nie pilnowało tamtej własności: zapis bezwarunkowy
+   mnożyłby komplet przy KAŻDEJ synchronizacji, a rozstrzygnięcie „to samo
+   znalezisko jest tu łagodne" straciłoby podstawę. Reguła pyta o STRUKTURĘ
+   decyzji (istniejący wpis → gałąź aktualizacji, brak → gałąź wstawienia),
+   nie o nazwę metody wyszukującej — ta pułapka wracała w tym repo
+   dziewięć razy. */
+{
+  const plik = join(WTYCZKA, PLIK_KOPII);
+  const tresc = readFileSync(plik, "utf8");
+  const wstawienia = [...tresc.matchAll(/wp_insert_post\s*\(/g)];
+
+  if (wstawienia.length === 0) {
+    bledy.push(
+      `${plik}: nie ma ani jednego wstawienia wpisu — reguła idempotencji kopii przeszłaby po pustce. Sprawdź, czy kopia powstaje inaczej.`
+    );
+  }
+
+  for (const m of wstawienia) {
+    const start = tresc.lastIndexOf("function ", m.index);
+    const blok = tresc.slice(start < 0 ? 0 : start, m.index);
+
+    // 1. wynik wyszukania istniejącego wpisu po uuid trafia do zmiennej,
+    // 2. na niej zapada rozstrzygnięcie „już jest",
+    // 3. wstawienie leży w gałęzi przeciwnej.
+    const przypisanie = blok.match(/\$(\w+)\s*=\s*[^;]*\(\s*\$uuid\b[^;]*\)\s*;/);
+    const zmienna = przypisanie ? przypisanie[1] : null;
+    const rozstrzygniecie = zmienna
+      ? new RegExp(`if\\s*\\(\\s*\\$${zmienna}\\s*>\\s*0\\s*\\)`).test(blok)
+      : false;
+    const galazPrzeciwna = /\}\s*else\s*\{/.test(blok);
+
+    if (!zmienna || !rozstrzygniecie || !galazPrzeciwna) {
+      bledy.push(
+        `${plik}: wpis Tutora powstaje BEZ WARUNKU „czy taki już jest" (wyszukanie po uuid → gałąź aktualizacji, brak → gałąź wstawienia). Synchronizacja nie ma transakcji, więc jedyną obroną przed przerwaniem jest to, że powtórzenie dopisuje brakujące dzieci — bez tego warunku każdy przebieg tworzyłby DRUGI komplet modułów i lekcji (REA-BD-F1-001).`
+      );
+    }
+  }
+}
+
 /* UKRYCIE KURSU NIE MA PRAWA ODEBRAĆ DOSTĘPU KUPUJĄCEMU — ANI ROZDAĆ GO OBCEMU.
 
    Znalezisko 2 testu całości (2026-08-31) i decyzja właściciela: „Ukryj"
@@ -267,5 +320,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu."
 );

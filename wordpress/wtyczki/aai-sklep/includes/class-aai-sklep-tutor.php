@@ -782,11 +782,42 @@ final class Aai_Sklep_Tutor {
 			);
 		}
 
-		$moduly = array();
-		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `$t_moduly` WHERE course_id = %s ORDER BY position", $id ), ARRAY_A ) as $m ) { // phpcs:ignore WordPress.DB.PreparedSQL
-			$lekcje = array();
-			foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `$t_lekcje` WHERE module_id = %s ORDER BY position", (string) $m['id'] ), ARRAY_A ) as $l ) { // phpcs:ignore WordPress.DB.PreparedSQL
-				$lekcje[] = array(
+		$wiersze_modulow = (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `$t_moduly` WHERE course_id = %s ORDER BY position", $id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL
+
+		/*
+		 * JEDNO zapytanie o WSZYSTKIE lekcje kursu, nie jedno na moduł.
+		 *
+		 * Do tej poprawki lekcje pobierała pętla wewnątrz pętli po modułach,
+		 * więc koszt rósł liniowo z programem kursu — a `dane_kursu()`
+		 * wołają DWA miejsca, w których to się mnoży: `synchronizuj_kurs()`
+		 * po KAŻDYM zapisie w kreatorze oraz `porownaj()` w pętli po
+		 * wszystkich kursach (komenda `wp aai-sklep sprawdz-tutora`, punkt
+		 * kontrolny `postaw.sh`). Zmierzone przed poprawką: 6 zapytań
+		 * o lekcje na jeden kurs o 6 modułach.
+		 *
+		 * `JOIN`, a nie `IN (...)`, z tego samego powodu co w
+		 * `Aai_Sklep_Odczyt::moduly()`: lista `%s, %s, …` musiałaby wejść
+		 * do literału SQL jako zmienna spoza klasy tabel, czego zabrania
+		 * reguła 6 `straznik-wtyczki-wp`, a pusta lista w `IN ()` jest
+		 * błędem składni.
+		 */
+		$lekcje_modulu = array();
+		if ( array() !== $wiersze_modulow ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL
+			$wiersze_lekcji = (array) $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT l.* FROM `$t_lekcje` l
+					   INNER JOIN `$t_moduly` m ON m.id = l.module_id
+					  WHERE m.course_id = %s
+					  ORDER BY m.position, l.position",
+					$id
+				),
+				ARRAY_A
+			);
+			// Grupowanie zachowuje kolejność z `ORDER BY`, więc lekcje
+			// w module zostają ułożone po `position` — jak przed zmianą.
+			foreach ( $wiersze_lekcji as $l ) {
+				$lekcje_modulu[ (string) $l['module_id'] ][] = array(
 					'id'           => (string) $l['id'],
 					'position'     => (int) $l['position'],
 					'title'        => (string) $l['title'],
@@ -796,12 +827,16 @@ final class Aai_Sklep_Tutor {
 					'content'      => (string) $l['content'],
 				);
 			}
+		}
+
+		$moduly = array();
+		foreach ( $wiersze_modulow as $m ) {
 			$moduly[] = array(
 				'id'       => (string) $m['id'],
 				'position' => (int) $m['position'],
 				'title'    => (string) $m['title'],
 				'summary'  => null === $m['summary'] ? null : (string) $m['summary'],
-				'lekcje'   => $lekcje,
+				'lekcje'   => $lekcje_modulu[ (string) $m['id'] ] ?? array(),
 			);
 		}
 

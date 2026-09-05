@@ -197,10 +197,11 @@ przez API koszyka był atrapą):
 | `on-hold` | **0** | „Zamówienie na ten kurs już czeka na płatność…" |
 | brak zapisu | **1** | — (odmowa trafia tylko w swój przypadek) |
 
-Decyzję „czy ten człowiek ma ten kurs" podejmuje **jedna metoda**
-(`Aai_Platnosci_Cta::stan_posiadania()`) — pyta jej przycisk na stronie ORAZ
-blokada koszyka; dwie kopie tego warunku rozjechałyby się przy pierwszej
-zmianie.
+Decyzję „czy ten człowiek ma ten kurs" podejmuje **jedna metoda** — pyta jej
+przycisk na stronie ORAZ blokada koszyka; dwie kopie tego warunku rozjechałyby
+się przy pierwszej zmianie. Od **0.65.0** mieszka ona w klasie-liściu
+`Aai_Platnosci_Posiadanie::stan_posiadania()`, a nie w `Aai_Platnosci_Cta` —
+trzymana w przycisku zamykała cykl `Cta → Ustawienia → Cta` (AUD-ARCH-F1-003).
 
 ### Trzy znaleziska E3–E4 (własne pomiary, naprawione przed commitem)
 
@@ -256,6 +257,12 @@ Niezmiennik 20 (stan „zamówienie w toku”) **przepisany**: pytał o nazwę
 zapalił go mimo zachowanej gwarancji — **czwarty nawrót wzorca na nazwę**
 (0.29.0, 0.44.0, 0.47.0, c6c9c97). Teraz szuka KAŻDEGO rozstrzygnięcia
 `return self::W_TOKU` i wymaga przy nim odczytu statusu.
+
+**Dopisek z 0.65.0.** Ta poprawka wystarczyła na jeden refactor, bo dalej
+czytała JEDEN PLIK. Gdy decyzja wyprowadziła się z `cta.php` do klasy-liścia,
+reguła 20 **umilkła** (pętla nie miała po czym iterować), a reguła 16 zapaliła
+się **fałszywie**. Obie idą teraz za decyzją po CAŁYM katalogu `includes/`
+i mają samokontrolę zakresu — pusty zakres jest błędem, nie ciszą.
 
 **Audyt mutacyjny 191 → 198**, każda nowa z `oczekiwanySlad`. Wynik:
 **196 złapanych, 0 przeoczonych, 0 martwych**, 2 pominięte (brak materiału).

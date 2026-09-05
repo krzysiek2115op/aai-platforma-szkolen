@@ -223,6 +223,25 @@ final class Aai_Sklep_Lekcja {
 		if ( ! self::czy_nasza() ) {
 			return $szablon;
 		}
+
+		/*
+		 * Treść zależy od KONTA oglądającego, więc odpowiedzi nie wolno
+		 * odłożyć na półkę. Pod jednym adresem lekcji `czy_wolno()` oddaje
+		 * ALBO pełną prozę z materiałami i znacznikiem „przerobiona" tego
+		 * konta, ALBO bramkę logowania — o różnicy decyduje
+		 * `current_user_can( 'manage_options' )` i zapis w Tutorze.
+		 * Bez tych nagłówków cache strony albo CDN bez reguły na ciasteczko
+		 * logowania mógłby wydać opłaconą lekcję komuś, kto jej nie kupił,
+		 * albo odwrotnie — pokazać kupującemu zbuforowaną bramkę.
+		 *
+		 * Ta sama przesłanka i to samo miejsce co w
+		 * `Aai_Sklep_Trasy::wybierz_szablon()` dla widoku „moje".
+		 * Bezwarunkowo, także dla lekcji-zapowiedzi: ona też wygląda
+		 * inaczej zalogowanemu, a indeksu i tak nie tracimy — `nie_indeksuj()`
+		 * daje KAŻDEJ lekcji `noindex, nofollow`.
+		 */
+		nocache_headers();
+
 		return AAI_SKLEP_KATALOG . 'szablony/lekcja.php';
 	}
 

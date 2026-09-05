@@ -33,6 +33,9 @@ final class Aai_Platnosci_Zapis {
 	 */
 	private const META_OKLADKA_KURS = '_aai_platnosci_okladka_kurs';
 
+	/** Meta produktu WooCommerce wskazujące kurs, z którego powstał. */
+	private const ZNACZNIK_ZRODLA = '_aai_zrodlo_uuid';
+
 	/** Skrót PLIKU, z którego powstał załącznik — decyduje o przewgraniu. */
 	private const META_OKLADKA_SHA = '_aai_platnosci_okladka_sha';
 
@@ -46,6 +49,29 @@ final class Aai_Platnosci_Zapis {
 	 * z zapisami). Dlatego zapisujemy ją w chwili usunięcia.
 	 */
 	private const META_UTRACONY_DOSTEP = '_aai_platnosci_utracony_dostep';
+
+	/**
+	 * Pamięć mapowania kurs → produkt NA CZAS JEDNEGO ŻĄDANIA.
+	 *
+	 * Strona sprzedażowa pyta o to samo mapowanie PIĘĆ razy w jednym
+	 * renderze (zmierzone na `:8892`, gość: trzy przyciski CTA przez
+	 * `Aai_Platnosci_Cta::stan()`, dostępność w danych strukturalnych
+	 * przez `Cta::dostepnosc()` i cena przez `Aai_Platnosci_Cena`), a
+	 * odpowiedź w obrębie żądania jest stała. To ta sama klasa kosztu,
+	 * dla której `Aai_Sklep_Widok::cena_grosze()` ma swoją pamięć —
+	 * i ta sama, która przy W6 dała 90 zapytań na odsłonę menu.
+	 *
+	 * DLACZEGO WŁAŚCIWOŚĆ KLASY, A NIE `static $pamiec` W METODZIE.
+	 * Bo tę pamięć trzeba UNIEWAŻNIAĆ: `powiazanie_ustaw()`
+	 * i `powiazanie_usun()` zmieniają dokładnie to mapowanie, a
+	 * `synchronizuj_kurs()` czyta je PO zapisie w tym samym przebiegu
+	 * (komenda `sync` robi tak dla każdego kursu z rzędu). Pamięć
+	 * zamknięta w metodzie nie dałaby się wyczyścić i oddawałaby wartość
+	 * sprzed zapisu — czyli kupiłaby zapytanie kosztem prawdy.
+	 *
+	 * @var array<string,int|null>
+	 */
+	private static array $pamiec_produktow = array();
 
 	/**
 	 * Ustawia (lub odświeża) powiązanie kursu z produktem WooCommerce.
@@ -104,6 +130,9 @@ final class Aai_Platnosci_Zapis {
 		}
 		$wpdb->suppress_errors( $cicho );
 
+		// Mapowanie właśnie się zmieniło — pamięć żądania przestaje być prawdą.
+		self::zapomnij_produkt( $course_uuid );
+
 		return false !== $wynik;
 	}
 
@@ -120,6 +149,9 @@ final class Aai_Platnosci_Zapis {
 			array( 'course_uuid' => $course_uuid ),
 			array( '%s' )
 		);
+
+		// Mapowanie właśnie zniknęło — pamięć żądania przestaje być prawdą.
+		self::zapomnij_produkt( $course_uuid );
 	}
 
 	/**
@@ -505,13 +537,76 @@ final class Aai_Platnosci_Zapis {
 	}
 
 	public static function produkt_kursu( string $course_uuid ): ?int {
+		// `array_key_exists`, nie `isset`: BRAK produktu (null) też jest
+		// odpowiedzią i też ma być zapamiętany — inaczej kurs bez produktu
+		// pytałby bazę tyle samo razy co przed poprawką.
+		if ( array_key_exists( $course_uuid, self::$pamiec_produktow ) ) {
+			return self::$pamiec_produktow[ $course_uuid ];
+		}
+
 		global $wpdb;
 		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
 		$id = $wpdb->get_var(
 			$wpdb->prepare( "SELECT product_id FROM {$tabela} WHERE course_uuid = %s", $course_uuid )
 		);
-		return null === $id ? null : (int) $id;
+
+		$wynik                                  = null === $id ? null : (int) $id;
+		self::$pamiec_produktow[ $course_uuid ] = $wynik;
+		return $wynik;
+	}
+
+	/**
+	 * Produkt oznaczony jako pochodzący z danego kursu — także taki,
+	 * który NIE MA jeszcze wiersza w tabeli powiązań.
+	 *
+	 * To jedyna droga do odnalezienia produktu-sieroty po przerwanym
+	 * zapisie. Pusty uuid nie ma prawa niczego dopasować (ta sama obrona
+	 * co w `kurs_tutora()`: zapytanie po pustej wartości meta trafia
+	 * w pierwszy lepszy wpis).
+	 *
+	 * @param string $course_uuid Uuid kursu.
+	 * @return int|null Id produktu albo null.
+	 */
+	private static function produkt_po_znaczniku( string $course_uuid ): ?int {
+		if ( '' === trim( $course_uuid ) || ! function_exists( 'wc_get_products' ) ) {
+			return null;
+		}
+
+		$znalezione = wc_get_products(
+			array(
+				'limit'      => 2,
+				'status'     => array( 'draft', 'publish', 'pending', 'private' ),
+				'return'     => 'ids',
+				'meta_key'   => self::ZNACZNIK_ZRODLA, // phpcs:ignore WordPress.DB.SlowDBQuery
+				'meta_value' => $course_uuid, // phpcs:ignore WordPress.DB.SlowDBQuery
+			)
+		);
+
+		// Więcej niż jeden znacznik znaczy, że duplikat JUŻ powstał —
+		// wtedy nie zgadujemy, który jest prawdziwy. Kontrola to pokaże.
+		if ( ! is_array( $znalezione ) || 1 !== count( $znalezione ) ) {
+			return null;
+		}
+
+		return (int) $znalezione[0];
+	}
+
+	/**
+	 * Zapomina zapamiętane mapowanie kurs → produkt.
+	 *
+	 * Woła ją KAŻDY zapis zmieniający to mapowanie. Bez tego kolejny
+	 * odczyt w tym samym żądaniu oddałby stan sprzed zapisu — a czyta go
+	 * m.in. `synchronizuj_kurs()` zaraz po `powiazanie_ustaw()`.
+	 *
+	 * @param string $course_uuid Uuid kursu; pusty łańcuch = zapomnij wszystko.
+	 */
+	private static function zapomnij_produkt( string $course_uuid = '' ): void {
+		if ( '' === $course_uuid ) {
+			self::$pamiec_produktow = array();
+			return;
+		}
+		unset( self::$pamiec_produktow[ $course_uuid ] );
 	}
 
 	/**
@@ -642,11 +737,48 @@ final class Aai_Platnosci_Zapis {
 		$produkt    = null !== $product_id ? wc_get_product( $product_id ) : false;
 
 		if ( ! $produkt ) {
+			/*
+			 * NAJPIERW SZUKAMY SIEROTY, DOPIERO POTEM TWORZYMY.
+			 *
+			 * `produkt_kursu()` pyta tabelę POWIĄZAŃ, a produkt powstaje
+			 * PRZED wpisem do niej — więc przerwanie procesu między
+			 * `$produkt->save()` a `powiazanie_ustaw()` (fatal, timeout,
+			 * restart) zostawia produkt bez powiązania. Przy następnym
+			 * przebiegu tabela dalej milczy i powstawał DRUGI produkt dla
+			 * tego samego kursu: dwie ceny, dwa adresy zakupu, a kontrola
+			 * meldowała sierotę bez wskazania, który jest prawdziwy.
+			 *
+			 * Zapisu wielotabelowego nie da się tu domknąć transakcją:
+			 * produkt zakłada WooCommerce własnym API, przez własne
+			 * połączenie i własne cache, więc `START TRANSACTION` objąłby
+			 * naszą tabelę, a nie jego wpisy. Zamiast atomowości dajemy
+			 * IDEMPOTENCJĘ: znacznik pochodzenia na produkcie sprawia, że
+			 * powtórzone wywołanie ODNAJDUJE sierotę i domyka powiązanie,
+			 * zamiast mnożyć produkty.
+			 */
+			$sierota = self::produkt_po_znaczniku( $course_uuid );
+
+			if ( null !== $sierota ) {
+				$produkt = wc_get_product( $sierota );
+
+				// `$product_id` MUSI iść w parze z `$produkt` — dalszy ciąg
+				// metody (status, powiązanie, kontrola) używa identyfikatora,
+				// a nie obiektu. Bez tej linii sierota zostaje odnaleziona,
+				// ale identyfikator zostaje `null` i metoda przerywa się na
+				// „set_status() on false" — zmierzone.
+				if ( $produkt ) {
+					$product_id = $sierota;
+				}
+			}
+		}
+
+		if ( ! $produkt ) {
 			// Produkt rodzi się jako DRAFT (B3) i UKRYTY w katalogu Woo
 			// (decyzja właściciela 2026-08-28): jedyną witryną zakupu jest
 			// nasza strona sprzedażowa — klient nie ma trafiać na produkt
 			// w cudzym wyglądzie.
 			$produkt = new WC_Product_Simple();
+			$produkt->update_meta_data( self::ZNACZNIK_ZRODLA, $course_uuid );
 			$produkt->set_name( wp_slash( $kurs['title'] ) );
 			$produkt->set_short_description( wp_slash( $opis ) );
 			$produkt->set_status( 'draft' );
@@ -663,6 +795,15 @@ final class Aai_Platnosci_Zapis {
 		} else {
 			// Aktualizacja TYLKO przy realnej różnicy.
 			$zmiany = false;
+
+			// Znacznik pochodzenia uzupełniamy też produktom, które powstały
+			// PRZED tą poprawką — bez tego idempotencja obejmowałaby wyłącznie
+			// produkty założone od dziś, a sierotę po starym produkcie dalej
+			// dałoby się zduplikować.
+			if ( (string) $produkt->get_meta( self::ZNACZNIK_ZRODLA, true ) !== $course_uuid ) {
+				$produkt->update_meta_data( self::ZNACZNIK_ZRODLA, $course_uuid );
+				$zmiany = true;
+			}
 			if ( $produkt->get_name( 'edit' ) !== $kurs['title'] ) {
 				$produkt->set_name( wp_slash( $kurs['title'] ) );
 				$zmiany = true;

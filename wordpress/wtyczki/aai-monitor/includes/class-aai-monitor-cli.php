@@ -222,8 +222,8 @@ final class Aai_Monitor_Cli {
 		 * kontrola tylko PYTA (N16 — kontrola nigdy nie pisze), więc
 		 * naprawą jest ponowne włączenie wtyczki.
 		 */
-		if ( ! Aai_Monitor_Podpis::gotowa() ) {
-			$bledy[] = 'brak soli podpisu ścieżek — beacony wizyt będą odrzucane po cichu. Napraw: wp plugin deactivate aai-monitor && wp plugin activate aai-monitor';
+		foreach ( Aai_Monitor_Podpis::stan_soli() as $blad_soli ) {
+			$bledy[] = $blad_soli;
 		}
 
 		/* 5. wersje cudzego kodu */

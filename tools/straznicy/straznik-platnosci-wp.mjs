@@ -340,6 +340,96 @@ if (!existsSync(USTAWIENIA)) {
     );
   }
 
+  /* 16 i 20. STAN POSIADANIA KURSU — reguły idą za DECYZJĄ, nie za PLIKIEM.
+
+     Do 0.65.0 obie czytały wyłącznie `class-aai-platnosci-cta.php`, bo tam
+     wtedy mieszkało rozstrzygnięcie. Rozcięcie cyklu `Cta → Ustawienia → Cta`
+     (AUD-ARCH-F1-003) przeniosło je do klasy-liścia — i wersja przypięta do
+     pliku zachowała się dokładnie tak, jak ta rodzina pułapek zachowuje się
+     zawsze: reguła 16 zapaliła się fałszywie, a reguła 20 UMILKŁA, bo jej
+     pętla nie miała po czym iterować. Milczenie jest gorsze: gwarancja była
+     zachowana co do znaku, a strażnik przestał jej pilnować i nikt by tego
+     nie zobaczył.
+
+     Dlatego szukamy teraz w KAŻDYM pliku klas wtyczki miejsca, w którym
+     zapada rozstrzygnięcie („mam kurs" / „zamówienie w toku"), i stawiamy
+     wymagania funkcji, która je podejmuje. Przeniesienie metody gdziekolwiek
+     indziej w tej wtyczce zostawia obie reguły żywe. */
+  {
+    const KAT_KLAS = join(KATALOG, "includes");
+    const zrodla = existsSync(KAT_KLAS)
+      ? readdirSync(KAT_KLAS)
+          .filter((n) => n.startsWith("class-") && n.endsWith(".php"))
+          .map((n) => ({ plik: join(KAT_KLAS, n), c: kod(readFileSync(join(KAT_KLAS, n), "utf8")) }))
+      : [];
+
+    // Samokontrola zakresu: bez plików obie reguły przeszłyby po pustce.
+    if (zrodla.length === 0) {
+      bledy.push(
+        `${KAT_KLAS}: nie widzę ANI JEDNEGO pliku klasy wtyczki — reguły 16 i 20 nie mają czego sprawdzić i przeszłyby po pustce.`
+      );
+    }
+
+    /* Funkcja, w której padło dopasowanie: od poprzedniego `function` do
+       następnego nagłówka metody. Ten sam sposób cięcia, co w wersji
+       jednoplikowej. */
+    const blokFunkcji = (c, poz) => {
+      const start = c.lastIndexOf("function ", poz);
+      const dalej = c.indexOf("\n\tpublic", poz);
+      return c.slice(start < 0 ? 0 : start, dalej >= 0 ? Math.max(poz, dalej) : c.length);
+    };
+
+    /* 16. stan „klient ma ten kurs" pyta o ZAPIS. `dostep` jest prawdziwy
+       także dla lekcji-zapowiedzi i dla administratora, więc pokazywałby
+       „Przejdź do kursu" komuś, kto nic nie kupił (pułapka z W6). */
+    let decyzjeMaKurs = 0;
+    for (const { plik, c } of zrodla) {
+      for (const m of c.matchAll(/return\s+(?:self|Aai_Platnosci_Posiadanie|static)::MA_KURS\s*;/g)) {
+        decyzjeMaKurs += 1;
+        /* Nie samo `is_enrolled(`, tylko pytanie o zapis UKOŃCZONY (trzeci
+           argument `true`). Pierwsza wersja tej reguły pytała o obecność
+           wywołania w całym pliku i przechodziła po mutacji, bo w tej samej
+           funkcji stoi DRUGIE wywołanie — to samo, którym rozpoznajemy stan
+           „w toku". Zapis nieukończony daje dostęp dopiero po wpłacie, więc
+           „mam kurs" bez tej flagi obiecywałby materiał komuś, kto właśnie
+           zamówił przelewem. */
+        if (!/is_enrolled\s*\([^;]*,\s*true\s*\)/.test(blokFunkcji(c, m.index))) {
+          bledy.push(
+            `${plik}: rozstrzygnięcie „klient ma ten kurs" zapada bez pytania Tutora o ZAPIS (is_enrolled). Pytanie o sam dostęp jest prawdziwe też dla zapowiedzi i dla administratora — „Przejdź do kursu" zobaczyłby ktoś, kto niczego nie kupił.`
+          );
+        }
+      }
+    }
+    if (decyzjeMaKurs === 0) {
+      bledy.push(
+        `${KAT_KLAS}: nigdzie nie zapada rozstrzygnięcie „klient ma ten kurs" (return ...::MA_KURS). Bez niego kupujący widzi na stronie kursu zachętę do kupienia go drugi raz.`
+      );
+    }
+
+    /* 20. stan „zamówienie w toku" pyta o STATUS zapisu, nie o samo jego
+       istnienie. Tutor tworzy zapis przy składaniu zamówienia i nigdy go nie
+       kasuje — anulowanie tylko przestawia status. Pytanie o istnienie
+       zostawiało klienta z anulowanym zamówieniem bez przycisku zakupu
+       NA ZAWSZE (zmierzone). */
+    let decyzjeWToku = 0;
+    for (const { plik, c } of zrodla) {
+      for (const m of c.matchAll(/return\s+(?:self|Aai_Platnosci_Posiadanie|static)::W_TOKU\s*;/g)) {
+        decyzjeWToku += 1;
+        const blok = blokFunkcji(c, m.index);
+        if (!/get_post_status\s*\(/.test(blok) || !/in_array\s*\([^)]*ZAMOWIENIE_TRWA/.test(blok)) {
+          bledy.push(
+            `${plik}: rozstrzygnięcie „zamówienie w toku" zapada bez sprawdzenia STATUSU zapisu (get_post_status + in_array po liście statusów trwających). Zapis Tutora zostaje po anulowaniu i zwrocie, więc pytanie o samo jego istnienie odbiera takiemu klientowi przycisk zakupu bezpowrotnie.`
+          );
+        }
+      }
+    }
+    if (decyzjeWToku === 0) {
+      bledy.push(
+        `${KAT_KLAS}: nie widzę stanu „zamówienie w toku" (ani jednego rozstrzygnięcia W_TOKU). Bez niego klient czekający na przelew widzi zachętę do ponownego zakupu.`
+      );
+    }
+  }
+
   /* 14–17. Niezmienniki kroku P3b: dostarczanie i przycisk zakupu. */
   const dostarczanie = join(KATALOG, "includes", "class-aai-platnosci-dostarczanie.php");
   const cta = join(KATALOG, "includes", "class-aai-platnosci-cta.php");
@@ -391,15 +481,6 @@ if (!existsSync(USTAWIENIA)) {
   } else {
     const c = kod(readFileSync(cta, "utf8"));
 
-    /* 16. stan „klient ma ten kurs" pyta o ZAPIS. `dostep` jest prawdziwy
-       także dla lekcji-zapowiedzi i dla administratora, więc pokazywałby
-       „Przejdź do kursu" komuś, kto nic nie kupił (pułapka z W6). */
-    if (!/is_enrolled\s*\(/.test(c)) {
-      bledy.push(
-        `${cta}: przycisk nie pyta Tutora o ZAPIS (is_enrolled). Pytanie o sam dostęp jest prawdziwe też dla zapowiedzi i dla administratora — „Przejdź do kursu" zobaczyłby ktoś, kto niczego nie kupił.`
-      );
-    }
-
     /* 17. jedna decyzja „czy da się kupić" na całą klasę. Reguła celowo NIE
        pyta o nazwę metody (ta klasa błędu wracała trzykrotnie: 0.29.0,
        0.44.0, 0.47.0) — liczy MIEJSCA, w których warunek sprzedaży jest
@@ -422,37 +503,6 @@ if (!existsSync(USTAWIENIA)) {
       bledy.push(
         `${cta}: decyzja „czy da się kupić" nie pyta WooCommerce o kupowalność produktu. Sam status „publish” to za mało — produkt z pustą ceną jest opublikowany, a koszyk i tak odmówi; klient kliknąłby „Kup teraz" i trafił na kasę, która go odrzuca.`
       );
-    }
-
-    /* 20. stan „zamówienie w toku" pyta o STATUS zapisu, nie o samo jego
-       istnienie. Tutor tworzy zapis przy składaniu zamówienia i nigdy go nie
-       kasuje — anulowanie tylko przestawia status. Pytanie o istnienie
-       zostawiało klienta z anulowanym zamówieniem bez przycisku zakupu
-       NA ZAWSZE (zmierzone).
-
-       Wzorzec celuje w DECYZJĘ, nie w nazwę funkcji (pierwsza wersja pytała
-       o `stan_klienta(` i refactor wynoszący logikę do `stan_posiadania()`
-       zapalił ją mimo zachowanej gwarancji — czwarty nawrót klasy wzorca na
-       nazwę: 0.29.0, 0.44.0, 0.47.0, c6c9c97). Szukamy więc KAŻDEGO miejsca,
-       w którym zapada rozstrzygnięcie „w toku" (`return self::W_TOKU` albo
-       napis przycisku), i wymagamy, żeby funkcja podejmująca je na podstawie
-       zapisu Tutora czytała jego STATUS (`get_post_status` + lista statusów
-       trwających w `in_array`). */
-    const decyzjeWToku = [...c.matchAll(/return\s+self::W_TOKU\s*;/g)];
-    if (decyzjeWToku.length === 0 && !c.includes("Zamówienie w toku")) {
-      bledy.push(
-        `${cta}: nie widzę stanu „zamówienie w toku" (ani stałej W_TOKU, ani napisu). Bez niego klient czekający na przelew widzi zachętę do ponownego zakupu.`
-      );
-    }
-    for (const m of decyzjeWToku) {
-      const startF = c.lastIndexOf("function ", m.index);
-      const dalejF = c.indexOf("\n\tpublic", m.index) >= 0 ? c.indexOf("\n\tpublic", m.index) : c.length;
-      const blokF = c.slice(startF, Math.max(m.index, dalejF));
-      if (!/get_post_status\s*\(/.test(blokF) || !/in_array\s*\([^)]*ZAMOWIENIE_TRWA/.test(blokF)) {
-        bledy.push(
-          `${cta}: rozstrzygnięcie „zamówienie w toku" zapada bez sprawdzenia STATUSU zapisu (get_post_status + in_array po liście statusów trwających). Zapis Tutora zostaje po anulowaniu i zwrocie, więc pytanie o samo jego istnienie odbiera takiemu klientowi przycisk zakupu bezpowrotnie.`
-        );
-      }
     }
 
     /* 18. dostępność oferty nie zależy od oglądającego — dane strukturalne
@@ -1198,6 +1248,124 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* 43. SKASOWANE ZAMÓWIENIE SPRZĄTA SWOJĄ KSIĘGOWOŚĆ — ALE TYLKO WŁASNĄ (REA-INT-F1-003).
+
+   Woo pod HPOS kasuje zamówienie surowym DELETE z pominięciem wp_delete_post(),
+   więc notatki zamówienia (wp_comments/order_note) zostają; Tutor słucha
+   wyłącznie zmian statusu, więc jego wiersz księgowy (wp_tutor_earnings) też.
+   Sprzątamy je w haku kasowania — pod PIĘCIOMA zamkami, bo ten hak dostaje
+   KAŻDY kasowany wpis, a tabele są cudze:
+     (1) wyłącznie zamówienie w 100% z naszych kursów (same_kursy) — mieszane
+         zostaje nietknięte, bo księgowość cudzego produktu nie jest nasza;
+     (2) wyłącznie przez publiczne API właścicieli tabel (reguła 44);
+     (3) księgowość Tutora TYLKO wtedy, gdy instruktor nie ma ANI JEDNEJ
+         wypłaty — skasowany earning po wypłacie zmienia saldo wstecz;
+     (4) każdy krok w osobnym try/catch (awaria sprzątania nie blokuje
+         kasowania);
+     (5) kontrola liczy sieroty i świeci kodem 1, nie kasując (reguła 45).
+   Tu pilnujemy zamków 1, 3 i 4 w STRUKTURZE metody: wywołania sprzątające
+   muszą leżeć ZA odmową na zamówieniu mieszanym i ZA odmową przy wypłatach. */
+{
+  const dost = join(KATALOG, "includes", "class-aai-platnosci-dostarczanie.php");
+  if (existsSync(dost)) {
+    const c = kod(readFileSync(dost, "utf8"));
+    const start = c.indexOf("function zamowienie_znika(");
+    const koniec = start >= 0 ? c.indexOf("\n\tpublic", start + 10) : -1;
+    const blok = start >= 0 ? c.slice(start, koniec > 0 ? koniec : c.length) : "";
+    const earnings = blok.indexOf("delete_earning_by_order(");
+    const notatki = blok.indexOf("wc_delete_order_note(");
+    if (earnings < 0 || notatki < 0) {
+      bledy.push(
+        `${dost}: hak kasowania zamówienia nie sprząta księgowości Tutora (delete_earning_by_order) albo notatek Woo (wc_delete_order_note). Skasowane zamówienie zostawia wiersz przychodu dla zamówienia, którego nie ma, i historię przypiętą do nieistniejącego id (REA-INT-F1-003).`
+      );
+    } else {
+      // Zamek 0 (zmierzony 2026-09-05): hak MUSI biec PRZED callbackami Woo
+      // na priorytecie 10 — `WC_Post_Data::before_delete_order()` kasuje tam
+      // POZYCJE zamówienia, więc od 10 w górę `same_kursy()` widzi pustkę,
+      // odpowiada „nie nasze" i sprzątanie nie dzieje się NIGDY, bez objawu.
+      const rej = c.match(/add_action\(\s*'woocommerce_before_delete_order'\s*,\s*array\(\s*self::class\s*,\s*'zamowienie_znika'\s*\)\s*,\s*(\d+)/);
+      if (!rej) {
+        bledy.push(`${dost}: nie widzę rejestracji zamowienie_znika na woocommerce_before_delete_order z jawnym priorytetem — domyślne 10 biegnie PO tym, jak Woo skasuje pozycje zamówienia, i sprzątanie nigdy nie zachodzi.`);
+      } else if (Number(rej[1]) >= 10) {
+        bledy.push(`${dost}: zamowienie_znika zarejestrowane na priorytecie ${rej[1]}. Na 10 Woo (WC_Post_Data::before_delete_order, zarejestrowane wcześniej) KASUJE POZYCJE zamówienia zanim dojdzie do nas — same_kursy() widzi pustkę i hak wychodzi bez sprzątania, bez objawu (zmierzone). Ma być < 10.`);
+      }
+      // Zamek 1: odmowa na zamówieniu mieszanym PRZED pierwszym sprzątaniem.
+      const odmowaMieszane = blok.search(/if\s*\(\s*!\s*self::same_kursy\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/);
+      if (odmowaMieszane < 0 || odmowaMieszane > Math.min(earnings, notatki)) {
+        bledy.push(
+          `${dost}: sprzątanie księgowości po skasowanym zamówieniu nie jest poprzedzone odmową na zamówieniu MIESZANYM (if ( ! self::same_kursy(...) ) { return; }). Zamówienie z cudzym produktem ma cudzą księgowość — jej kasowanie to strata cudzych danych bez objawu.`
+        );
+      }
+      // Zamek 3: księgowość Tutora tylko przy zerze wypłat instruktora.
+      // Struktura: licznik wypłat → `if ( $x > 0 ) { …nie kasuj… } else { …delete_earning_by_order… }`.
+      const odWyplat = blok.slice(blok.lastIndexOf("get_withdrawal_count", earnings), earnings + 40);
+      if (!/get_withdrawal_count\s*\(/.test(odWyplat) || !/if\s*\(\s*\$\w+\s*>\s*0\s*\)\s*\{[^}]*\}\s*else\s*\{[^}]*delete_earning_by_order\s*\(/.test(odWyplat)) {
+        bledy.push(
+          `${dost}: wiersz księgowy Tutora jest kasowany BEZ sprawdzenia, czy instruktor miał wypłaty (WithdrawModel::get_withdrawal_count → przy > 0 nie kasujemy). Earning, który zasilił już wypłatę, po skasowaniu zmienia saldo wstecz — to jedyne ryzyko tej naprawy, którego nie zdejmuje żaden inny zamek.`
+        );
+      }
+      // Zamek 4: osobny try wokół każdego sprzątania.
+      const tryPrzedE = blok.lastIndexOf("try {", earnings);
+      const tryPrzedN = blok.lastIndexOf("try {", notatki);
+      if (tryPrzedE < 0 || tryPrzedN < 0 || tryPrzedE === tryPrzedN) {
+        bledy.push(
+          `${dost}: sprzątanie księgowości i notatek nie ma OSOBNYCH try/catch. Awaria jednego (np. Tutor bez klasy Earnings) zabrałaby drugie i wywróciła kasowanie zamówienia w panelu — a to cudza operacja, której nasz błąd nie ma prawa przerwać.`
+        );
+      }
+    }
+  }
+}
+
+/* 44. DO CUDZEJ KSIĘGOWOŚCI TYLKO PRZEZ API WŁAŚCICIELA — NIGDY SUROWYM SQL-EM.
+   Tutor: \TUTOR\Earnings::delete_earning_by_order(); Woo: wc_delete_order_note().
+   Surowy DELETE/UPDATE na wp_tutor_earnings, wp_comments czy wp_commentmeta
+   z naszej wtyczki to zapis do cudzej tabeli — klasa AUD-ARCH-F1-001. */
+{
+  for (const plik of plikiPhp(KATALOG)) {
+    const c = kod(readFileSync(plik, "utf8"));
+    const m = c.match(/(DELETE\s+FROM|UPDATE|INSERT\s+INTO|REPLACE\s+INTO)\s+[^;]{0,80}?(tutor_earnings|tutor_withdraws|\$wpdb->comments|\$wpdb->commentmeta|\bwp_comments\b)/i)
+      || c.match(/\$wpdb->(delete|update|insert|replace)\s*\(\s*[^,]{0,80}?(tutor_earnings|tutor_withdraws|\$wpdb->comments|\$wpdb->commentmeta)/i);
+    if (m) {
+      bledy.push(`${plik}: pisze surowo do cudzej tabeli (${m[2]}). Księgowość Tutora rusza wyłącznie \TUTOR\Earnings, notatki zamówienia wyłącznie wc_delete_order_note() — zapis obok API właściciela to strata cudzych danych bez dziennika i bez jego reguł.`);
+    }
+  }
+}
+
+/* 45. KONTROLA LICZY SIEROTY PO ZAMÓWIENIACH — I NIE KASUJE ICH.
+   `wp aai-platnosci sprawdz` przez rok nie pytało ani o wp_tutor_earnings,
+   ani o notatki zamówień (zero trafień w cli.php), więc 12 osieroconych
+   wierszy księgowych i 1345 notatek przy zerze zamówień przechodziło jako
+   kod 0. Kontrola ma je POLICZYĆ (kod 1 z listą id), a kasowanie zostaje
+   osobnej, jawnej komendzie — L11: kontrola nigdy nie pisze. */
+{
+  const cli = join(KATALOG, "includes", "class-aai-platnosci-cli.php");
+  if (existsSync(cli)) {
+    const c = kod(readFileSync(cli, "utf8"));
+    const sprawdzStart = c.indexOf("function sprawdz(");
+    const sprawdzKoniec = c.indexOf("\n\tpublic", sprawdzStart + 10);
+    const sprawdz = c.slice(sprawdzStart, sprawdzKoniec > 0 ? sprawdzKoniec : c.length);
+    // Która metoda pyta o obie tabele? Szukamy po ZACHOWANIU (SELECT z obu
+    // nazw i warunkiem „bez zamówienia"), nie po nazwie.
+    const metody = [...c.matchAll(/function\s+(\w+)\s*\(/g)].map((m) => ({ nazwa: m[1], od: m.index }));
+    const pytaOSieroty = metody.filter((m, i) => {
+      const cialo = c.slice(m.od, metody[i + 1] ? metody[i + 1].od : c.length);
+      return /tutor_earnings/.test(cialo) && /order_note/.test(cialo) && /(LEFT\s+JOIN|NOT\s+IN|NOT\s+EXISTS)/i.test(cialo) && /SELECT/i.test(cialo);
+    });
+    if (pytaOSieroty.length === 0) {
+      bledy.push(`${cli}: żadna metoda kontroli nie pyta o osierocone wiersze księgowe Tutora i notatki zamówień (SELECT z tutor_earnings + order_note + LEFT JOIN/NOT IN). Po skasowaniu zamówienia zostają wiersze bez zamówienia, a kontrola melduje zero (REA-INT-F1-003).`);
+    } else if (!pytaOSieroty.some((m) => new RegExp(`self::${m.nazwa}\\s*\\(`).test(sprawdz))) {
+      bledy.push(`${cli}: metoda licząca sieroty istnieje (${pytaOSieroty.map((m) => m.nazwa).join(", ")}), ale sprawdz() jej nie woła — kontrola dalej ślepa na osierocone wiersze księgowe i notatki.`);
+    }
+    for (const m of pytaOSieroty) {
+      const i = metody.findIndex((x) => x.nazwa === m.nazwa);
+      const cialo = c.slice(m.od, metody[i + 1] ? metody[i + 1].od : c.length);
+      if (/\$wpdb->(delete|query\s*\(\s*["']?\s*DELETE)|delete_earning_by_order|wc_delete_order_note/i.test(cialo)) {
+        bledy.push(`${cli}: metoda licząca sieroty (${m.nazwa}) także KASUJE. Kontrola nie pisze (L11) — kasowanie należy do osobnej, jawnej komendy z listą identyfikatorów.`);
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1205,5 +1373,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty)."
 );

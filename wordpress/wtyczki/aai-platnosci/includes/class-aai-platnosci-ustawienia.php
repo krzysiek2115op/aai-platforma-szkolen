@@ -363,8 +363,11 @@ final class Aai_Platnosci_Ustawienia {
 	 * kursu", ale adres kasy jest zwykłym odnośnikiem GET: da się go
 	 * zapamiętać, wysłać znajomemu albo mieć w zakładkach.
 	 *
-	 * Warunek pytamy TĄ SAMĄ metodą co przycisk (`stan_posiadania`) —
-	 * dwie kopie tej decyzji rozjechałyby się przy pierwszej zmianie.
+	 * Warunek pytamy TĄ SAMĄ metodą co przycisk
+	 * (`Aai_Platnosci_Posiadanie::stan_posiadania`) — dwie kopie tej decyzji
+	 * rozjechałyby się przy pierwszej zmianie. Metoda mieszka w klasie-liściu,
+	 * a nie w przycisku, żeby blokada koszyka nie zależała od warstwy widoku
+	 * (AUD-ARCH-F1-003).
 	 *
 	 * Gościa nie pytamy: nie wiemy, kim jest. Powracającego klienta
 	 * przechwytuje blok logowania w kasie (B16).
@@ -372,7 +375,7 @@ final class Aai_Platnosci_Ustawienia {
 	 * @param int $product_id Id produktu kursu.
 	 */
 	private static function wolno_kupic_ten_kurs( int $product_id ): bool {
-		if ( ! is_user_logged_in() || ! class_exists( 'Aai_Platnosci_Cta' ) ) {
+		if ( ! is_user_logged_in() || ! class_exists( 'Aai_Platnosci_Posiadanie' ) ) {
 			return true;
 		}
 		$uuid = Aai_Platnosci_Zapis::kurs_produktu( $product_id );
@@ -387,11 +390,11 @@ final class Aai_Platnosci_Ustawienia {
 			// i tak o nim mówi.
 			return true;
 		}
-		switch ( Aai_Platnosci_Cta::stan_posiadania( $tutor, get_current_user_id() ) ) {
-			case Aai_Platnosci_Cta::MA_KURS:
+		switch ( Aai_Platnosci_Posiadanie::stan_posiadania( $tutor, get_current_user_id() ) ) {
+			case Aai_Platnosci_Posiadanie::MA_KURS:
 				self::odmow( __( 'Ten kurs już masz — znajdziesz go na stronie „Moje kursy". Drugi zakup nic by nie dodał.', 'aai-platnosci' ) );
 				return false;
-			case Aai_Platnosci_Cta::W_TOKU:
+			case Aai_Platnosci_Posiadanie::W_TOKU:
 				self::odmow( __( 'Zamówienie na ten kurs już czeka na płatność — dostęp pojawi się, gdy wpłata dojdzie. Nie trzeba zamawiać drugi raz.', 'aai-platnosci' ) );
 				return false;
 		}

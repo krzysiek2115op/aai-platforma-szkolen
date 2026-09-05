@@ -35,7 +35,7 @@ if ( ! get_option( 'aai_monitor_kasuj_dane_przy_usuwaniu' ) ) {
 	return;
 }
 
-foreach ( array( 'logowania', 'wizyty' ) as $tabela ) {
+foreach ( array( 'logowania', 'wizyty', 'ustawienia' ) as $tabela ) {
 	// Nazwa tabeli to identyfikator złożony z prefiksu instalacji i stałej
 	// z kodu — żaden fragment nie pochodzi z zewnątrz.
 	$wpdb->query( 'DROP TABLE IF EXISTS `' . $prefiks . $tabela . '`' ); // phpcs:ignore WordPress.DB.PreparedSQL
@@ -44,4 +44,7 @@ foreach ( array( 'logowania', 'wizyty' ) as $tabela ) {
 delete_option( 'aai_monitor_wersja_schematu' );
 delete_option( 'aai_monitor_blad' );
 delete_option( 'aai_monitor_kasuj_dane_przy_usuwaniu' );
+// Sól podpisu sprzed 0.5.0 (od 0.5.0 mieszka w tabeli `ustawienia`, którą
+// właśnie skasowaliśmy) — zostaje TYLKO wtedy, gdy właściciel kazał zostawić dane.
+delete_option( 'aai_monitor_sol_podpisu' );
 delete_transient( 'aai_monitor_retencja_dnia' );

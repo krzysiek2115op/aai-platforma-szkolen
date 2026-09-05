@@ -89,7 +89,7 @@ final class Aai_Monitor_Zaleznosci {
 			return;
 		}
 		$ekran = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( null === $ekran || ! str_contains( (string) $ekran->id, Aai_Monitor_Ekran::STRONA ) ) {
+		if ( null === $ekran || ! str_contains( (string) $ekran->id, AAI_MONITOR_STRONA ) ) {
 			return;
 		}
 		printf(

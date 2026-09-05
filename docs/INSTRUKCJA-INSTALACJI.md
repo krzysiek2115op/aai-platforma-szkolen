@@ -281,6 +281,23 @@ załatwić osobno, zanim ruszy prawdziwa sprzedaż.
 | **Adres internetowy i certyfikat HTTPS** | Firma hostingowa |
 | **Wysyłanie poczty** (maile po zakupie) | Firma hostingowa albo wtyczka do wysyłki poczty |
 | **Widoczność w wyszukiwarce Google** | Sprawdź, czy w *Ustawienia → Czytanie* **nie jest** zaznaczone „Proś wyszukiwarki o nieindeksowanie tej witryny” |
+| **Waluta sklepu** | Ty — sprawdź to **przed pierwszą sprzedażą**, patrz ostrzeżenie niżej |
+
+
+> ### ⚠️ Waluta — sprawdź to, zanim ktokolwiek kupi
+>
+> WooCommerce po instalacji ustawia walutę na **dolary amerykańskie** i nigdy
+> o to nie pyta. Strony kursów pokazują ceny w złotówkach niezależnie od tego
+> ustawienia — więc klient zobaczy „299,00 zł" na stronie kursu i **tę samą
+> liczbę oznaczoną dolarem w koszyku i w kasie**, czyli dokładnie tam, gdzie
+> płaci.
+>
+> **Jak sprawdzić:** *WooCommerce → Ustawienia → Ogólne → Waluta*.
+> Ma być **Złoty polski (zł)**. Jeśli jest co innego — zmień i zapisz.
+>
+> Wtyczki tego nie ustawią za Ciebie: waluta jest ustawieniem sklepu, a nie
+> naszym, i nie mamy prawa zmieniać jej komuś bez pytania. Kontrola
+> `wp aai-platnosci sprawdz` powie Ci, gdy waluta rozjeżdża się z cenami.
 
 ---
 

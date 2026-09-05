@@ -370,11 +370,20 @@ final class Aai_Sklep_Zapis {
 				$id_kursu = $kurs;
 				unset( $wiersz['kurs'] );
 
-				$docelowa = array(
-					'id'        => $id_lekcji,
-					'content'   => (string) ( $tresc['tresc'] ?? '' ),
-					'materials' => self::json( $tresc['materialy'] ?? array() ),
-				);
+				// BRAK KLUCZA ZNACZY „NIE RUSZAJ" (BLAD-018) — tak samo jak
+				// w `zapisz_kurs()`. Ta metoda jest publicznym wejściem warstwy
+				// zapisu (woła ją też `wp aai-sklep proza <plik>`), więc nie może
+				// zakładać, że wywołujący przyśle komplet pól: `?? ''` wypłukałoby
+				// prozę lekcji do pustki i zameldowało sukces.
+				$docelowa = array( 'id' => $id_lekcji );
+
+				if ( array_key_exists( 'tresc', $tresc ) ) {
+					$docelowa['content'] = (string) $tresc['tresc'];
+				}
+
+				if ( array_key_exists( 'materialy', $tresc ) ) {
+					$docelowa['materials'] = self::json( $tresc['materialy'] );
+				}
 
 				if ( ! self::rozni_sie( $wiersz, $docelowa ) ) {
 					++$liczniki['bez_zmian'];

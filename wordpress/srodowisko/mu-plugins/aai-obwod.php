@@ -151,6 +151,15 @@ final class Aai_Obwod {
 	/** Sufit ciała raportu w bajtach — raport CSP mieści się z zapasem. */
 	private const RAPORT_SUFIT_B = 8192;
 
+	/**
+	 * Typy treści, w których przeglądarka wysyła raport naruszenia CSP.
+	 *
+	 * `application/csp-report` — mechanizm `report-uri`;
+	 * `application/reports+json` — Reporting API (`report-to`);
+	 * `application/json` — wysyłka własna, np. z testu.
+	 */
+	private const RAPORT_TYPY = array( 'application/csp-report', 'application/reports+json', 'application/json' );
+
 	/** Ile RÓŻNYCH rodzajów naruszeń trzymamy (dyrektywa+zasób). */
 	private const RAPORT_MAX_RODZAJOW = 200;
 
@@ -567,6 +576,29 @@ final class Aai_Obwod {
 	 * Właściwa obsługa raportu — każdy `return` to cichy odrzut.
 	 */
 	private static function przyjmij_raport(): void {
+		/*
+		 * TYP TREŚCI — pierwsze sito, przed rate-limitem.
+		 *
+		 * To jest publiczny, niezalogowany punkt zapisu: nonce'a mieć nie może
+		 * (raport wysyła przeglądarka sama, bez naszego kodu), ale bez ŻADNEJ
+		 * weryfikacji każdy POST z internetu dopisuje się do agregatu, który
+		 * właściciel czyta jako sygnał bezpieczeństwa. Zatrucie tego sygnału
+		 * jest tańsze niż jego wytworzenie.
+		 *
+		 * `Origin` NIE nadaje się na sito — przeglądarki wysyłają raporty CSP
+		 * bez niego, więc wymóg zabiłby cały mechanizm. Typ treści nadaje się:
+		 * raport idzie zawsze jako `application/csp-report` (report-uri),
+		 * `application/reports+json` (Reporting API) albo `application/json`.
+		 * Odcina to formularze i `text/plain`, czyli wszystko, co wysyła się
+		 * najłatwiej — bliźniaczy beacon monitoringu stoi na tej samej zasadzie.
+		 */
+		$typ = isset( $_SERVER['CONTENT_TYPE'] ) ? strtolower( (string) $_SERVER['CONTENT_TYPE'] ) : '';
+		$typ = trim( explode( ';', $typ )[0] );
+
+		if ( ! in_array( $typ, self::RAPORT_TYPY, true ) ) {
+			return;
+		}
+
 		// Rate-limit: najwyżej 60 raportów na minutę z adresu. Klucz jako
 		// skrót — pełne IP nie trafia nigdzie (kolektor jest anonimowy).
 		$adres = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '';
