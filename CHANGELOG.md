@@ -5,6 +5,53 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.70.0] — 2026-09-05
+
+### Naprawy po polowaniu, priorytet P3 — dokumentacja
+
+Każda pozycja zweryfikowana **komendą**, nie przepisana z planu: część
+zdążyła się zdezaktualizować przez wcześniejsze naprawy tej serii.
+
+- **CONTRIBUTING** obiecywał „docelowy hosting Node.js" i „komplet: 3 moduły
+  + 3 bazy". Produktem są wtyczki WordPressa (decyzja zespołu 2026-08-18),
+  a trzy osobne bazy nigdy nie powstały — jedyną bazą Postgresa jest
+  `db1_kursy` prototypu.
+- **README** nazywał `docs/security-checklist.md` „utrzymywanym"; plik stoi
+  od 2026-08-19 i ma **zero** wzmianek o trzech wtyczkach, Woo i Tutorze.
+  Mówi to teraz wprost i odsyła do dokumentów opisujących stan faktyczny.
+- **README** mówił „CI: cztery joby" przy pięciu; `straznik-csp` deklarował
+  „Dziewięć niezmienników" przy dziesięciu, `straznik-limitera`
+  „Jedenaście" przy trzynastu; liczniki plików `wordpress/` 135 → **136**
+  i `docs/` 140 → **142**.
+- **CLAUDE.md** deklarował „P1 W TOKU" przy P1 i P2 wydanych.
+
+### Sześć wierszy tabel dłuższych niż ich nagłówek
+
+GitHub ucina takie wiersze w milczeniu, a w edytorze wyglądają poprawnie.
+Dwa chowały **2677 znaków** opisu kroków T2 i T3 w DIAGRAM.md Pluginu 3;
+jeden był w README — w wierszu opisującym dokładnie tę klasę błędu.
+Pilnuje tego **reguła 9 `straznik-readme`, czytająca WSZYSTKIE dokumenty
+markdown w repo** (dotąd czytała tylko README), z samokontrolą zakresu
+i mutacją.
+
+**Pierwsza naprawa tych tabel ZEPSUŁA TREŚĆ i złapał to golden treści
+kursów:** scalanie nadmiarowych komórek rozbiło `Edit|Write` — składnię
+matchera hooków — na `Edit| Write`. Poprawnie jest uciec kreskę
+(`Edit\|Write`); treść merytoryczna zostaje co do słowa.
+
+### Wersje wtyczek podbite pierwszy raz od ich powstania
+
+`aai-sklep` 0.6.0 → **0.7.0**, `aai-platnosci` 0.2.0 → **0.3.0**,
+`aai-monitor` 0.5.0 → **0.6.0**. Nagłówek `Version` nie był ruszany od
+25–30 sierpnia mimo dziesiątek zmian kodu, więc nazwa paczki dla klienta
+nie znaczyła nic. Od 0.69.0 pilnuje tego `npm run pakuj` (odmowa nadpisania
+archiwum o innej treści) i strażnik (zgodność `Version` ze `Stable tag`).
+
+### Liczby
+
+Audyt mutacyjny 390 → **391** (0 przeoczonych, 0 martwych), strażnicy
+**39/39**.
+
 ## [0.69.0] — 2026-09-05
 
 ### Naprawy po polowaniu, priorytet P2 — bramki, które nie mierzyły swojego

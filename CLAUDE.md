@@ -3601,7 +3601,7 @@ gałąź błędu"): policzyć KAŻDE miejsce zapisu i sprawdzić gałąź poraż
 starcie **UCINA `CLAUDE.md` o 2355 linii** (zostaje 1167 z 3522). Po KAŻDYM devie:
 `git diff --stat CLAUDE.md` → `git checkout -- CLAUDE.md`.
 
-## ═══ NAPRAWY PO POLOWANIU — P0 WYDANE (0.66.0), P1 W TOKU ═══
+## ═══ NAPRAWY PO POLOWANIU — P0, P1 i P2 WYDANE (0.66.0 … 0.69.0) ═══
 
 **CZYTAĆ PRZED PRACĄ: [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md)**
 — kolejność P0–P4, decyzje właściciela i reguły wykonania.
@@ -3626,16 +3626,45 @@ materiału · dziennik logowań zapisywał fragmenty haseł · awaria jednej kla
 otwierała wyciek 73 lekcji (135 kB w kanale RSS) · `postaw.sh` padał u obcego
 klienta · wyłączenie płatności zostawiało cudze ustawienia przestawione.
 
-**P1 W TOKU — gałąź `fix/po-polowaniu-p1` (od `main`, wypchnięta, BEZ PR-a).**
-Sześć z ośmiu pozycji zrobionych, każda z testem negatywnym i regułą strażnika;
-CHANGELOG **0.67.0** i README gotowe. **NASTĘPNY KROK: `npm run check` → PR →
-zielone CI → merge → tag `v0.67.0` + release.**
+**P1 ZAMKNIĘTY W DWÓCH WYDANIACH, OBA PRZY CI ZIELONYM 5/5:**
+- **`v0.67.0`** (PR #125) — sześć pozycji: awaria Tutora zamykała sklep
+  zalogowanym klientom (HTTP 500 także w KASIE) · kopia kursu w koszu uciszała
+  hamulec C2 · dostawa nie do ponowienia blokowała środowisko na zawsze ·
+  hamulce operacji niszczącej degradowały się na „zezwól" · synchronizacja
+  kasowała lekcje z Course Buildera · dziennik logowań rósł bez granicy,
+  a sufit kasował po DZIURZE w identyfikatorach;
+- **`v0.68.0`** (PR #126) — dwie ostatnie: **poz. 7** i **poz. 10**.
 
-**CO ZOSTAŁO Z P1 — trzy pozycje, świadomie nietknięte:**
-- **poz. 7** (okno bez znacznika przy tworzeniu produktu Woo; `sync` tworzy
-  drugi produkt, `sprawdz` kod 0) — niezaczęte;
-- **poz. 10** (zamówienie MIESZANE zostawia `wp_tutor_earnings` + 3 notatki) —
-  niezaczęte;
+**NAJWAŻNIEJSZE Z 0.68.0, spoza zgłoszenia — nie wyprowadzać od nowa:**
+`wc_get_products()` **NIE WIDZI produktu bez wiersza w
+`wp_wc_product_meta_lookup`**, a ten powstaje na SAMYM KOŃCU
+`WC_Product::save()`. Idempotencja z 0.65.0 stała więc na wyszukiwaniu
+strukturalnie ślepym dokładnie na przypadek, dla którego istnieje (zmierzone:
+przy dwóch produktach ze znacznikiem `wc_get_products()` oddał JEDEN, a to samo
+pytanie do bazy — obydwa). Znacznik pochodzenia jedzie dziś hakiem
+`save_post_product` na priorytecie 1, a rezerwacja w opcji czyni przerwane
+zakładanie produktu WIDOCZNYM dla kontroli.
+Poz. 10: zamek sprzątania pyta `ma_kurs()` zamiast `same_kursy()`, i musiał
+objąć DWA miejsca — pierwsza poprawka dawała dalej 1:3, bo wcześniej stał drugi
+taki warunek, przez co zamówienie mieszane nie oddawało też DOSTĘPU.
+
+**P2 ZAMKNIĘTY: `v0.69.0`** (PR #127) — cztery rzeczy: wyłączona wtyczka
+uciszała kontrolę, która jej nie dotyczy (waluta EUR: z Pluginem 1 kod 1,
+bez niego **kod 0 i cisza**) · paczka o tej samej nazwie mogła nieść inną treść
+(porównujemy TREŚĆ, nie bajty — ZIP niesie mtime, a `git checkout` je
+przestawia) · sześć gałęzi strażników z 0.65.0 bez mutacji · **sonda QA**
+(decyzja właściciela 3), która znalazła DWIE asercje o wycieku
+nieopublikowanego kursu niewykonujące się ani razu od powstania bramek.
+Poz. 14, 15 i 17 z tabeli P2 były już zrobione — sprawdzone komendą, nie
+przepisane z planu.
+
+**TRZY BRAMKI BRONIŁY USTEREK W TEJ SERII** (0.66.0, 0.67.0 i 0.68.0) i **dwa
+razy popełniłem klasę, którą to repo już nazwało**: reguły wstawione ZA
+`process.exit(1)` strażnika (jak w przeglądzie T2) oraz wzorzec pytający
+o SŁOWO, nie o rozstrzygnięcie (ósmy i dziewiąty nawrót). Obie złapał **audyt
+mutacyjny, nie lektura** — puszczać go po KAŻDYM refaktorze.
+
+**CO ZOSTAŁO ŚWIADOMIE NIETKNIĘTE:**
 - **poz. 13, połowa druga: kolektor CSP** w `wordpress/srodowisko/mu-plugins/aai-obwod.php`
   przyjmuje `application/json` bez weryfikacji integralności. **ZMIERZONE
   I ODŁOŻONE ŚWIADOMIE**, z trzema faktami: (a) `raport_csp()` NIE MA
@@ -3657,7 +3686,7 @@ dziennika leży teraz w `~/.cache/aai-kopie/dziennik-logowan-20260905.sql`.
 **Pomiar, który podnosi `AUTO_INCREMENT` albo kasuje masowo, robi się WYŁĄCZNIE
 po zrzuceniu tabeli do pliku** — i dopiero to pozwoliło powtórzyć dowód
 bezpiecznie. Sama usterka (kasowanie po DZIURZE w identyfikatorach, nie po
-liczbie wierszy) jest naprawiona w tej gałęzi.
+liczbie wierszy) jest naprawiona i wydana w `v0.67.0`.
 
 **LEKCJA POWTARZALNA Z CAŁEJ SESJI: wzorzec przypięty do WYRAŻENIA umiera albo
 kłamie przy pierwszym refaktorze.** Cztery przypadki w jednej sesji: wzmocnienie
@@ -3667,15 +3696,49 @@ o starcie pod `try` (brała PIERWSZY `try`, a osłona ma własny) i uśmierciła
 cztery mutacje. **Trzy z czterech złapał audyt mutacyjny, nie lektura** — więc
 audyt mutacyjny puszczać po KAŻDYM refaktorze, nie tylko po nowej regule.
 
-**TRZY BRAMKI BRONIŁY USTEREK** (0.66.0 i 0.67.0): dwie asercje wymagające, żeby
+**BRAMKI BRONIŁY USTEREK — cztery razy w tej serii** (0.66.0, 0.67.0, 0.68.0):
+dwie asercje wymagające, żeby
 prefiks hasła przetrwał; test sufitu wymagający skasowania wiersza po skoku
 `AUTO_INCREMENT`; test „synchronizacja nie kasuje cudzych wpisów" tworzący obcy
-wpis **bez `post_parent`**, czyli poza zasięgiem mierzonej pętli. **Przy każdej
-naprawie sprawdzać, czy bramka nie utrwala właśnie tego, co się naprawia.**
+wpis **bez `post_parent`**, czyli poza zasięgiem mierzonej pętli; a przy poz. 10
+`smoke-wp-zakup` WYMAGAŁ, żeby po skasowaniu zamówienia mieszanego ślady
+zostały. **Przy każdej naprawie sprawdzać, czy bramka nie utrwala właśnie tego,
+co się naprawia.**
+
+**P3 (dokumentacja) — ZROBIONY w tej samej serii.** Sprostowane: CONTRIBUTING
+obiecywał „hosting Node.js" i „3 bazy" (produktem są wtyczki WP, a jedyną bazą
+Postgresa jest `db1_kursy`); README nazywał `docs/security-checklist.md`
+„utrzymywanym", choć plik stoi od 2026-08-19 i nie ma w nim ANI JEDNEJ wzmianki
+o trzech wtyczkach, Woo ani Tutorze; README mówił „CI: cztery joby" przy
+pięciu; `straznik-csp` deklarował „Dziewięć" niezmienników przy dziesięciu,
+`straznik-limitera` „Jedenaście" przy trzynastu; liczniki plików w drzewie
+(`wordpress/` 135 → 136, `docs/` 140 → 142).
+
+**SZEŚĆ WIERSZY TABEL MIAŁO WIĘCEJ KOMÓREK NIŻ ICH NAGŁÓWEK** — GitHub ucina
+takie w milczeniu, a w edytorze wyglądają poprawnie. Dwa z nich chowały
+**2677 znaków** opisu kroków T2 i T3 w `docs/plugin-3/DIAGRAM.md`, a jeden był
+w README, w wierszu opisującym… dokładnie tę klasę błędu (znak `|` w kodzie
+inline też jest separatorem — trzeba `\|`). Pilnuje tego teraz **reguła 9
+`straznik-readme`, czytająca WSZYSTKIE dokumenty markdown w repo**, nie tylko
+README.
+
+**WERSJE WTYCZEK PODBITE PO RAZ PIERWSZY OD ICH POWSTANIA:** `aai-sklep`
+0.6.0 → **0.7.0**, `aai-platnosci` 0.2.0 → **0.3.0**, `aai-monitor`
+0.5.0 → **0.6.0**. Nagłówek `Version` nie był ruszany od 25–30 sierpnia mimo
+dziesiątek zmian kodu, więc nazwa paczki dla klienta nie znaczyła nic. Od
+0.69.0 `npm run pakuj` odmawia nadpisania archiwum o tej samej nazwie i INNEJ
+treści, a strażnik pilnuje zgodności `Version` ze `Stable tag` w `readme.txt`.
 
 **ŚRODOWISKO `:8892` (stan na koniec sesji):** pięć wtyczek aktywnych, obie
-kontrole kod 0, sprzedaż OTWARTA, kursy 2 (oba `published`), konto
-`klient-test` (NIE kasować), **dziennik monitoringu 41 logowań / 35 wizyt**
-(dane dowodowe właściciela z T4 — NIE kasować), `AUTO_INCREMENT` dziennika
-podniesiony do 200 001 przez sondę (nieszkodliwy po naprawie — sufit potwierdza
-liczbę wierszy przed kasowaniem).
+kontrole kod 0, sprzedaż OTWARTA, kursy 2 (oba `published`), produkty 2,
+powiązania 2, konto `klient-test` (NIE kasować), **dziennik monitoringu
+41 logowań / 35 wizyt** (dane dowodowe właściciela z T4 — NIE kasować),
+`AUTO_INCREMENT` dziennika podniesiony do 200 001 przez sondę (nieszkodliwy po
+naprawie — sufit potwierdza liczbę wierszy przed kasowaniem).
+
+**ZOSTAJE: P4** — reszta pozycji z
+[docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md)
+(architektura MAR-A-07…29, płatności Z-1…Z-11, prototyp `materialy:
+.default([])`, maile M2) oraz **kolektor CSP** — świadomie odłożony, patrz
+wyżej. Pozycję `REA-PRIV-F1-001` (polityka prywatności) rozstrzyga właściciel
+z prawnikiem, nie my.
