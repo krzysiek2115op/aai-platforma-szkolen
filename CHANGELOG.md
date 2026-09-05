@@ -5,6 +5,62 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.72.0] — 2026-09-06
+
+### Naprawy po polowaniu, P4 — tura druga: dwa ogniwa mierzone odczytem
+
+Obie te operacje idą przez API, które **nie oddaje użytecznego wyniku**,
+więc jedyną uczciwą drogą jest odczyt po zapisie.
+
+**1. Produkt stawał się kupowalny na słowo honoru (Z-4).** O tym, czy
+produkt pójdzie na `publish`, rozstrzyga `$komplet` — ustawiane zaraz po
+dwóch `update_post_meta()` w Tutorze, bez pytania, czy zapisy doszły. Cudza
+wtyczka LMS/membership rejestrująca filtr `update_post_metadata` na
+`_tutor_course_product_id` (robi tak niejedna) blokuje zapis, a wtedy
+produkt jest opublikowany, strona pokazuje przycisk do kasy, klient płaci
+i `do_enroll()` nie ma czego zapisać. To jest „klient płaci i nie dostaje
+nic" (B3).
+
+Mierzymy **odczytem obu mety**, nie wynikiem `update_post_meta()` — ta
+funkcja oddaje `false` także wtedy, gdy wartość już była taka sama, czyli
+w stanie ustalonym, w którym wszystko jest w porządku. Przy nieudanym
+zapisie produkt zostaje szkicem, a synchronizacja mówi wprost dlaczego.
+
+**2. Odebranie dostępu po skasowaniu zamówienia nie było weryfikowane
+niczym (Z-8).** `course_enrol_status_change()` Tutora robi surowy
+`$wpdb->update` i **odrzuca jego wynik**, więc wywołanie „udaje się"
+zawsze. Przy nieudanym zapisie klient zachowywał kurs po obciążeniu
+zwrotnym, a nikt się o tym nie dowiadywał. Sprawdzamy `status_zapisu()` —
+własne narzędzie napisane dokładnie dlatego, że temu zapisowi nie można
+ufać.
+
+**Pusty status znaczy „wpisu już nie ma" i to też jest odebranie dostępu** —
+pierwsza wersja tej asercji brała to za porażkę i zapalała kontrolę po
+każdym przebiegu bramki zwrotów (zmierzone: 1 z 39).
+
+### Bramka mierzy dokładnie scenariusz B3
+
+`smoke-wp-produkty` 95 → **101 sprawdzeń**: filtr blokujący zapis mety na
+czas jednej synchronizacji, potem sprawdzenie, że produkt **został
+szkicem** i że synchronizacja o tym powiedziała, a po zdjęciu blokady
+wróciła publikacja i powiązanie. Test negatywny zapala 2 z 101.
+
+**Pierwszy przelot tego bloku mierzył NIEISTNIEJĄCY produkt** — używał
+identyfikatorów sprzed bloku 9, który kasuje kurs testowy, i raportował
+„publish" tam, gdzie nie było nic. Identyfikatory czyta teraz na świeżo,
+a blok sprząta po sobie kurs, który odtworzył.
+
+### Mutacja umarła przy refaktorze — po raz kolejny
+
+Naprawa Z-7 z 0.71.0 opakowała `remove_cart_item()` w warunek liczący
+zdjęte pozycje, przez co kotwica mutacji („gołe wywołanie") przestała
+pasować i mutacja przestała cokolwiek mierzyć. Złapał to audyt mutacyjny.
+
+### Liczby
+
+Audyt mutacyjny 392 → **394** (0 przeoczonych, 0 martwych), strażnicy
+**39/39**, `smoke-wp-produkty` **101**, `smoke-wp-zwroty` 39.
+
 ## [0.71.0] — 2026-09-06
 
 ### Naprawy po polowaniu, priorytet P4 — pierwsza tura

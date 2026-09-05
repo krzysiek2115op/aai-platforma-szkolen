@@ -1311,6 +1311,31 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-platnosci-wp, P4: kupowalność i odebranie dostępu (Z-4, Z-8) ---
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kupowalność produktu wraca do ustawiania na wiarę ($komplet = true) — klient płaci za kurs, którego nie dostanie",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "na sztywno",
+    zmien: (s) => {
+      const i = s.indexOf("$komplet = 'paid' ===");
+      if (i < 0) return null;
+      const j = s.indexOf("\n\t\t\t}\n\t\t}", i);
+      return j < 0 ? null : `${s.slice(0, i)}$komplet = true;${s.slice(j)}`;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "odebranie dostępu po skasowaniu zamówienia przestaje być weryfikowane odczytem — klient zachowuje kurs po obciążeniu zwrotnym",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "nie jest weryfikowane odczytem",
+    zmien: (s) =>
+      s.includes("$status_po = Aai_Platnosci_Zapis::status_zapisu( $id_zapisu );")
+        ? s.replace("$status_po = Aai_Platnosci_Zapis::status_zapisu( $id_zapisu );", "$status_po = 'cancelled';")
+        : null,
+  },
   // --- straznik-platnosci-wp, P4: zapis, który melduje skutek, musi go sprawdzić ---
   {
     straznik: "straznik-platnosci-wp",
@@ -1577,9 +1602,12 @@ const MUTACJE = [
     plik: USTAWIENIA_PLATNOSCI,
     wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
     oczekiwanySlad: "niczego nie usuwa z koszyka",
+    // Naprawa Z-7 opakowała wywołanie w warunek liczący zdjęte pozycje, więc
+    // kotwica z gołym wywołaniem przestała pasować i mutacja UMARŁA. Kotwiczymy
+    // na samej nazwie metody, niezależnie od otoczki.
     zmien: (s) =>
-      s.includes("$koszyk->remove_cart_item( $klucz );")
-        ? s.replace("$koszyk->remove_cart_item( $klucz );", "")
+      s.includes("remove_cart_item( $klucz )")
+        ? s.replace(/if \( \$koszyk->remove_cart_item\( \$klucz \) \) \{[\s\S]*?\n\t\t\t\t\}/, "").replace("$koszyk->remove_cart_item( $klucz );", "")
         : null,
   },
   {

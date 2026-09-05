@@ -1061,7 +1061,34 @@ final class Aai_Platnosci_Zapis {
 				// KOLEJNOŚĆ B2: price_type NAJPIERW, product_id NA KOŃCU.
 				update_post_meta( $tutor_id, '_tutor_course_price_type', 'paid' );
 				update_post_meta( $tutor_id, '_tutor_course_product_id', (int) $product_id );
-				$komplet = true;
+
+				/*
+				 * OSTATNIE OGNIWO KOMPLETU MIERZYMY, NIE PRZYJMUJEMY NA WIARĘ.
+				 *
+				 * `$komplet` rozstrzyga, czy produkt pójdzie na `publish`,
+				 * czyli czy kurs da się KUPIĆ. Do 0.71.0 ustawialiśmy je zaraz
+				 * po dwóch `update_post_meta()`, bez pytania, czy zapisy
+				 * doszły. Cudza wtyczka LMS/membership rejestrująca filtr
+				 * `update_post_metadata` na `_tutor_course_product_id` (robi
+				 * tak niejedna) blokuje zapis — a wtedy produkt jest
+				 * opublikowany, strona pokazuje `InStock` i przycisk do kasy,
+				 * klient płaci, a `do_enroll()` nie ma czego zapisać. To
+				 * dokładnie „klient płaci i nie dostaje nic" (B3).
+				 *
+				 * Mierzymy ODCZYTEM PO ZAPISIE, nie wynikiem
+				 * `update_post_meta()`: ta funkcja oddaje `false` także wtedy,
+				 * gdy wartość już była taka sama — czyli w stanie ustalonym,
+				 * w którym wszystko jest w porządku. Tak samo pyta kontrola
+				 * w `rozjazdy_kursu()`.
+				 */
+				$komplet = 'paid' === (string) get_post_meta( $tutor_id, '_tutor_course_price_type', true )
+					&& (int) $product_id === (int) get_post_meta( $tutor_id, '_tutor_course_product_id', true );
+				if ( ! $komplet ) {
+					$w['uwagi'][] = sprintf(
+						'powiązanie kursu z produktem %d NIE zapisało się w Tutorze (ktoś blokuje update_post_metadata?) — produkt zostaje szkicem, żeby nikt nie zapłacił za kurs, którego nie dostanie',
+						$product_id
+					);
+				}
 			}
 		}
 

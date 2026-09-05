@@ -307,7 +307,40 @@ final class Aai_Platnosci_Dostarczanie {
 					$id_zapisu = (int) ( $zapis['enrolled_id'] ?? 0 );
 
 					if ( $id_zapisu > 0 ) {
+						/*
+						 * ODCZYT PO ZAPISIE, BO CUDZE API NIE ODDAJE WYNIKU.
+						 *
+						 * `course_enrol_status_change()` Tutora robi surowy
+						 * `$wpdb->update` i ODRZUCA jego wynik (Utils.php),
+						 * więc wywołanie „udaje się" zawsze. Odebranie
+						 * dostępu po skasowaniu zamówienia było przez to
+						 * jedyną operacją w tym haku bez żadnej osłony:
+						 * przy nieudanym zapisie klient zachowywał kurs po
+						 * obciążeniu zwrotnym, a nikt się o tym nie
+						 * dowiadywał. Mamy do tego własne narzędzie —
+						 * `status_zapisu()` — napisane dokładnie dlatego,
+						 * że temu zapisowi nie można ufać.
+						 */
 						tutor_utils()->course_enrol_status_change( $id_zapisu, 'cancelled' );
+						/*
+						 * PUSTY STATUS ZNACZY „WPISU JUŻ NIE MA" — a to też
+						 * jest odebranie dostępu, nie awaria. `status_zapisu()`
+						 * czyta bazę wprost, więc dla skasowanego wiersza
+						 * oddaje pusty łańcuch; pierwsza wersja tej asercji
+						 * brała to za porażkę i zapalała kontrolę po KAŻDYM
+						 * przebiegu bramki zwrotów (zmierzone: 1 z 39).
+						 */
+						$status_po = Aai_Platnosci_Zapis::status_zapisu( $id_zapisu );
+						if ( '' !== $status_po && 'cancelled' !== $status_po ) {
+							Aai_Platnosci_Komunikaty::zapisz(
+								sprintf(
+									'NIE UDAŁO SIĘ odebrać dostępu po skasowaniu zamówienia %d: zapis %d dalej ma status „%s". Klient zachowuje kurs — rozstrzygnij ręcznie.',
+									(int) $id_zamowienia,
+									$id_zapisu,
+									$status_po
+								)
+							);
+						}
 					}
 				}
 			}
