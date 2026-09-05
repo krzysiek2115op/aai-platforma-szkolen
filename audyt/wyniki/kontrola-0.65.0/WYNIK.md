@@ -40,22 +40,41 @@ liczy się ustalenie krytyka (dowód uruchomieniowy w pliku `<KOD>.md`).
 | REPO | AUD-REPO-F1-009 | NAPRAWIONE | **NAPRAWIONE** | |
 | SEC | REA-SEC-F1-003 | NIENAPRAWIONE | **NIENAPRAWIONE (naprawa częściowa, świadomie węższa, w repo nienazwana)** | `application/json` bez integralności → 204 + zapis; sufity: 60/min/IP, po 200 rodzajach prawdziwe naruszenia CSP giną |
 | USP | AUD-USP-F1-001 | NAPRAWIONE | **NAPRAWIONE** | `zapytania-wp.mjs` powtarzalne (0 odchylenia mediany) |
-| WDR | AUD-WDR-F1-002 | _(w toku)_ | | |
-| WDR | AUD-WDR-F1-003 | _(w toku)_ | | |
-| WDR | AUD-WDR-F1-004 | _(w toku)_ | | |
+| WDR | AUD-WDR-F1-002 | NAPRAWIONE | **NAPRAWIONE** | kolejność sekcji polityki prywatności; `get_privacy_policy_url()` niepuste |
+| WDR | AUD-WDR-F1-003 | NAPRAWIONE | **NAPRAWIONE** | `readme.txt` w trzech wtyczkach, `Stable tag` = `Version` (ale NIEPILNOWANE — patrz regresje) |
+| WDR | AUD-WDR-F1-004 | NAPRAWIONE | **NAPRAWIONE** | waluta PLN; krytyk domierzył testem negatywnym: USD → `sprawdz` kod 1 |
 
-## Bilans (30 wpisów zamkniętych, 3 WDR w toku)
+## Bilans — 33 wpisy, WSZYSTKIE zamknięte po krytyku
 
-Stan po 12 działach (30 wpisów; WDR 3 wpisy w toku — rola przerwana limitem API):
-- **NAPRAWIONE: 22** (INT 2, BE 1, BD 1 potwierdzone+pilnowane, ARCH 4, PERF 7, PRIV 3, FE 3, REPO 1, USP 1 — bez PRIV-001 i BD/INT częściowych)
-- **CZĘŚCIOWO (klasa żyje w węższym oknie, tylko wykrywana): 3** — REA-INT-F1-003 (mieszane), AUD-BD-F1-001 (okno znacznika), REA-SEC-F1-003 (kolektor CSP; naprawa świadomie węższa, nienazwana w repo)
-- **NIENAPRAWIONE: 2** — AUD-PRIV-F1-001 (fragmenty haseł w dzienniku — czynny wyciek), REA-PRIV-F1-001 (decyzja właściciela, treść prawna)
-- **NIE DOTYCZY PRODUKTU: 1** — REA-ARCH-F1-002
-- **Regresje/nowe klasy z rund: 11** (lista niżej), w tym jedna średnia (500 z jednego pliku) i jedna z dowodów (ślepe asercje).
-- Werdykty krytyków: PRZEPUSZCZAM 4 (ARCH, FE, USP, SEC-wpis), ODRZUCAM 8 (BE, INT, BD, REPO, PIK, PERF, PRIV, QA) — w SIEDMIU z ośmiu odrzuceń werdykt wpisu został potwierdzony, a odrzucenie dotyczy dowodu/zasięgu roli; w JEDNYM (PRIV) krytyk odwrócił werdykt NAPRAWIONE → NIENAPRAWIONE.
-**M > 0 → naprawy zwykłą drogą od `main`** — plan: `PLAN-DO-NIEDZIELI.md`.
+Wszystkie **14 działów** przeszły rolę **i** krytyka. Werdykt liczy się po krytyku.
 
-## Regresje i nowe klasy znalezione przez rundy (wszystkie POZA wejściem, nie naprawiane)
+| Werdykt | Ile | Które |
+|---|---|---|
+| **NAPRAWIONE** | **27** | INT 2 · BE 2 · BD 1 · ARCH 4 · PERF 7 · PRIV 3 · FE 3 · REPO 1 · USP 1 · WDR 3 |
+| **CZĘŚCIOWO** (klasa żyje w węższym oknie, w najlepszym razie wykrywana) | **3** | REA-INT-F1-003 (zamówienie mieszane), AUD-BD-F1-001 (okno znacznika), REA-SEC-F1-003 (kolektor CSP — naprawa świadomie węższa, w repo nienazwana) |
+| **NIENAPRAWIONE** | **2** | AUD-PRIV-F1-001 (fragmenty haseł w dzienniku — **czynny wyciek**), REA-PRIV-F1-001 (decyzja właściciela, treść prawna) |
+| **NIE DOTYCZY PRODUKTU** | **1** | REA-ARCH-F1-002 (wpis o aparacie audytu) |
+| **razem** | **33** | zgadza się z `WEJSCIE.md` |
+
+**KOREKTA POPRZEDNIEGO BILANSU (istotna, bo to ta sama klasa błędu, którą fala tropi).**
+Poprzedni zapis podawał „NAPRAWIONE: 22" przy 30 wpisach — **dwa błędy naraz**: wyliczenka
+w nawiasie sumowała się do 23, nie 22, a `BE` policzono jako 1 przy DWÓCH wpisach
+NAPRAWIONYCH w tabeli (krytyk BE odwrócił werdykt roli `AUD-BE-F1-001` na NAPRAWIONE
+co do mechanizmu). Poprawnie dla 30 wpisów było **24**; z trzema wpisami WDR jest **27**.
+Liczba w prozie rozjechała się z tabelą tuż obok — dokładnie to, co dwie tury higieny repo
+nazwały „martwym polem strażnika".
+
+**Werdykty krytyków: PRZEPUSZCZAM 4 · ODRZUCAM 10** (BE, INT, BD, REPO, PIK, PERF, PRIV, QA,
+PROTO, WDR). W **dziewięciu z dziesięciu** odrzuceń werdykt wpisu został potwierdzony,
+a odrzucenie dotyczy **dowodu albo zasięgu roli**; w JEDNYM (PRIV) krytyk odwrócił werdykt
+`NAPRAWIONE → NIENAPRAWIONE`. To jest najważniejsza liczba tej fali: **bramka krytyka
+zadziałała w 10 przypadkach na 14**, a bez niej sześć werdyktów stałoby na dowodzie,
+który nie dowodzi tezy.
+
+**M > 0 → naprawy zwykłą drogą od `main`** (zasada 2: sektor nie naprawia).
+Plan: `PLAN-DO-NIEDZIELI.md`.
+
+## Regresje i nowe klasy znalezione przez rundy — 16 pozycji (wszystkie POZA wejściem, nie naprawiane)
 
 1. **BE / krytyk BE** — statyczne wywołanie klasy wtyczki bez `class_exists()` z zarejestrowanego haka albo z poziomu pliku: uszkodzenie JEDNEGO pliku klasy = HTTP 500 na całej witrynie. Zmierzone 3 pliki na 42 (`class-aai-sklep-tutor.php`, `class-aai-sklep-moje.php`, `class-aai-platnosci-ustawienia.php`). Try/catch z 0.65.0 tego nie obejmuje.
 2. **krytyk BD** — okno bez znacznika przy tworzeniu produktu Woo: `sync` po przerwaniu tworzy drugi produkt, kontrola tego nie widzi (pyta o inną metę).
@@ -68,6 +87,11 @@ Stan po 12 działach (30 wpisów; WDR 3 wpisy w toku — rola przerwana limitem 
 9. **krytyk PIK** — procedura WYTYCZNE §1 (`.bak` + rejestr błędów) nieużywana od 0.59.0: 11 wydań bez wpisu do rejestru, 15 bez `bak/*` — utrwalona praktyka, nie regresja 0.65.0.
 10. **krytyk USP** — `zapytania-wp.mjs` zostawia ślad `recently_activated` w `wp_options`; przerwanie sygnałem zostawia `active_plugins` z dziurą; narzędzie nie mierzy sesji zalogowanej.
 11. **orkiestracja (WDR)** — `postaw.sh` na świeżej instancji pada: najnowsze Woo z wp.org wymaga WP 7.0 przy obrazie 6.9.4 (patrz WDR.md).
+12. **krytyk WDR — dwie różne paczki noszą tę samą nazwę.** `readme.txt` i `Version` wtyczek nie pilnuje ŻADEN strażnik (`grep` po `tools/straznicy/*.mjs` → **0 trafień**). Precedens jest żywy: 8 plików kodu `aai-sklep` zmieniono w 0.65.0 przy `Version 0.6.0`, więc `npm run pakuj` produkuje **dwa różne archiwa o nazwie `aai-sklep-0.6.0.zip`**. Klient kupujący wtyczkę nie odróżni ich niczym. Do tego katalog `paczki/` nie jest czyszczony (5 archiwów, w tym wersje sprzed).
+13. **krytyk WDR — zasięg rozjazdu wersji policzony źle w samym zgłoszeniu.** Miejsc deklarujących wersję WordPressa/PHP jest **9 plików**, nie cztery: rola i wskazówka M1 pomijały `docs/plugin-1/schematy.drawio:120` oraz jego podgląd `docs/schematy/plugin-1-techniczny.svg` — schemat przyjęty przez właściciela, trzymany w zgodzie po `sha256`, więc naprawa wersji bez niego zapali `straznik-schematow`.
+14. **krytyk WDR — kontrola waluty jest ślepa przy nieaktywnym Pluginie 1.** `wp aai-platnosci sprawdz --skip-plugins=aai-sklep` wychodzi **kodem 0 przed** sprawdzeniem waluty (`class-aai-platnosci-cli.php:707-712`) — kontrola melduje zdrowie, nie sprawdziwszy tego, co obiecuje.
+15. **krytyk PROTO — prototyp został z klasą, którą produkt naprawił w 0.65.0.** `modules/m1-sklep/typy.ts:346` ma `materialy: z.array(MaterialLekcji).max(12).default([])`; `.default()` czyni klucz opcjonalnym, a `dyspozytor.ts:299` pisze `materials=$3` bezwarunkowo — **żądanie z samym `tresc` kasuje materiały lekcji**. To ta sama cicha utrata treści, którą po stronie WP zamknął `REA-BE-F1-001` (`array_key_exists` → brak klucza znaczy „nie ruszaj"). Prototyp nie jest produktem, ale JEST specyfikacją wykonawczą, więc od 0.65.0 specyfikacja przeczy produktowi. Potwierdzone niezależnie przez agenta głównego.
+16. **krytyk PROTO — rozjazd kopii sprzedażowej proto ↔ WP.** 6 rozjazdów × 2 kursy w tekstach zaszytych w szablonach po obu stronach (np. `components/kurs/SekcjaKorzysci.tsx:22` vs `wordpress/wtyczki/aai-sklep/szablony/sekcje/benefits.php:18`); odsyłacz „przeczytaj za darmo" proto 1 / WP 4. **Dane z bazy zgadzają się co do znaku — rozjeżdża się wyłącznie kopia zaszyta w kodzie.** Żaden rozjazd nie pochodzi z 0.65.0. CSP i nagłówki bezpieczeństwa nie zostały porównane ani razu, choć `proxy.serwer.ts` jest w zakresie PROTO, a `5d4b875` dotknął kolektora CSP.
 
 ## Czego fala NIE zrobiła (nazwane, nie przemilczane)
 

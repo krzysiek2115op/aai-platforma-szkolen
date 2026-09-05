@@ -325,7 +325,13 @@ MUTACJE.push(
   },
   {
     opis: "komplet werdyktów przestaje wymagać OBU ról (sam krytyk domyka wpis)",
-    regula: 15,
+    // DWIE reguły, nie jedna — i to jest poprawne, nie niedokładność. Zamiana AND
+    // na OR w `komplet()` psuje naraz samokontrolę bramki werdyktów (R15) i sam
+    // niezmiennik „ZWERYFIKOWANE tylko z kompletem werdyktów" (R16), bo R16 liczy
+    // komplet TĄ funkcją. Zawężanie mutacji do jednej reguły byłoby udawaniem, że
+    // te gwarancje są niezależne. Wykryte przez pełny przebieg audytu 2026-09-05
+    // (148 mutacji, 0 przeoczonych, ta jedna liczona jako „zła").
+    regula: [15, 16],
     plik: WERDYKT,
     slad: /werdykt\.mjs --test/,
     zmien: (s) => s.replace("return Boolean(w.krytyk && w.weryfikator);", "return Boolean(w.krytyk || w.weryfikator);"),

@@ -200,3 +200,75 @@ nowej sesji):
 Po ich meldunkach zostaje: bilans w `WYNIK.md` (3 wpisy WDR + werdykty krytyków), pełny audyt
 mutacyjny strażnika sektora w tle (>10 min, nic równolegle; ubity zostawia mutację — `kill`
 po PID, nigdy `pkill -f`), commit, docs-PR do `main` ze zdaniem o fali w CLAUDE.md i README.
+
+## Wznowienie po `/clear` (16:00–…) — domknięcie fali
+
+Sesja wznowiona po `/clear`. Oba subagenty wystartowane przed `/clear` **przeżyły go** i dowiozły
+meldunki do nowej sesji (potwierdzenie reguły z pamięci projektu: subagent przeżywa `/clear`).
+
+| Rola | Wynik | Krytyk |
+|---|---|---|
+| **WDR** (powtórka, tor B) | dokończył przerwany łańcuch (`wp:sync` → `wp:zrzuty` → `wp:klient`, kod 0) zamiast stawiać od zera — tor B był już świeżą instalacją. **3/3 NAPRAWIONE.** Poza wejściem: rozjazd wersji w 4 miejscach (M1) i `postaw.sh:172` padający na czystym środowisku | **ODRZUCAM** przy potwierdzonych 3/3 — patrz niżej |
+| **krytyk PROTO** (powtórka) | — | **ODRZUCAM** — patrz niżej |
+
+### Krytyk WDR — pięć powodów odrzucenia (werdykty wpisów potwierdzone 3/3)
+
+1. **Dowód mija się z drogą klienta.** `AUD-WDR-F1-004` wskazywał wprost
+   `docs/INSTRUKCJA-INSTALACJI.md`, a rola dowodziła naprawy skryptem warsztatu
+   (`postaw.sh`), którego obcy klient nigdy nie uruchamia. Naprawa dla klienta ISTNIEJE
+   (`INSTRUKCJA-INSTALACJI.md:280-300`, +17 linii w 0.65.0) — znalazł ją dopiero krytyk.
+2. **Kontrola waluty zaliczona bez testu negatywnego.** Krytyk zrobił prawdziwy:
+   USD → `aai-platnosci sprawdz` **kod 1** z nazwaną walutą, PLN → 0. Przy okazji granica,
+   której nikt nie nazwał: przy nieaktywnym Pluginie 1 kontrola wychodzi **kodem 0 PRZED**
+   sprawdzeniem waluty (`class-aai-platnosci-cli.php:707-712`).
+3. **Zasięg policzony źle:** wersję deklaruje **9 plików**, nie cztery — pominięte
+   `docs/plugin-1/schematy.drawio:120` i podgląd `docs/schematy/plugin-1-techniczny.svg`
+   (pilnowany po `sha256`, więc naprawa wersji bez niego zapali `straznik-schematow`).
+4. **Dowód sąsiadujący:** rola zmierzyła odmowę `wp plugin install` (wp-cli), a napisała
+   o blokadzie AKTYWACJI przez WordPressa. Krytyk potwierdził mechanizm syntetyczną wtyczką
+   (`plugin_wp_incompatible`, plik skasowany). Wniosek o niewykonalności „6.5+" **stoi**.
+5. **Sprzeczność w nagłówku raportu** („`postaw.sh` od zera, kod 0" wobec własnego §2:
+   „działa wyłącznie dzięki ręcznemu pinowaniu"). Zmierzone z kontenera po czasach
+   instalacji: `woocommerce` 13:53:07 UTC = reinstalacja roli.
+
+**Nowe, poza wejściem:** `readme.txt` i `Version` wtyczek nie pilnuje ŻADEN strażnik
+(0 trafień w `tools/straznicy/*.mjs`), a precedens jest żywy — 8 plików kodu `aai-sklep`
+zmieniono w 0.65.0 przy `Version 0.6.0`, więc **dwa różne archiwa noszą nazwę
+`aai-sklep-0.6.0.zip`**. Katalog `paczki/` nie jest czyszczony (5 archiwów).
+
+### Krytyk PROTO — odrzucenie, które znalazło usterkę w prototypie
+
+Rola twierdziła, że kontrakt Zod `TrescLekcji` wymaga OBU pól, więc częściowy zapis nie jest
+możliwym stanem wejścia. **Obalone uruchomieniowo i potwierdzone niezależnie przez agenta
+głównego:** `modules/m1-sklep/typy.ts:346` ma `materialy: …default([])`, a `.default()` czyni
+klucz OPCJONALNYM; `dyspozytor.ts:299` pisze `materials=$3` bezwarunkowo — **żądanie z samym
+`tresc` kasuje materiały lekcji.** Ta sama cicha utrata treści, którą po stronie WP zamknął
+`REA-BE-F1-001`. Ochrona istnieje wyłącznie dla `tresc`.
+
+Drugi powód: „10 porównań" było doborem, nie wyliczeniem z listy napraw — nieporuszone osie
+to 6 rozjazdów kopii sprzedażowej × 2 kursy, odsyłacz „przeczytaj za darmo" (proto 1 / WP 4)
+oraz **CSP i nagłówki bezpieczeństwa nieporównane ani razu**, choć `proxy.serwer.ts` jest
+w zakresie PROTO, a `5d4b875` dotknął kolektora CSP. Potwierdzone: diff w zakresie PROTO =
+1 linia `package.json`; `PreOrder` pochodzi z `5a26a7b` (2026-08-19, `v0.25.0`), czyli
+sprzed 0.65.0, i jest **jedynym** rozjazdem merytorycznym (14/18 pól `Course`/`Offer` zgodnych).
+Sprostowanie do raportu roli: zdanie „naprawy zrobione wyłącznie w `wordpress/`" jest fałszywe
+(25 z 60 plików leży poza), choć konkluzja stoi — `docs/plugin-1/`, `tools/seed`, `modules`
+mają **0 zmian**.
+
+### Zrzuty końcowe
+
+- `k-WDR-po` (tor B): kod 0, 75 tabel, skrót `8b3ff70f…`, media 1347, wtyczki 5.
+- `k-PROTO-po` (tor A): kod 0, 81 tabel, skrót `2d87770c…`, media 1343, wtyczki 5.
+
+### Korekta bilansu
+
+Poprzedni bilans podawał „NAPRAWIONE: 22" przy 30 wpisach — **dwa błędy naraz**: wyliczenka
+w nawiasie sumowała się do 23, a `BE` policzono jako 1 przy DWÓCH wpisach NAPRAWIONYCH
+w tabeli obok. Poprawnie było 24; z WDR jest **27 z 33**. Liczba w prozie rozjechała się
+z tabelą w tym samym pliku — dokładnie klasa z dwóch tur higieny repo.
+
+### Kopia bezpieczeństwa przed audytem mutacyjnym
+
+`~/.cache/aai-kopie/audyt-tools-przed-mutacjami.tgz` (128 kB) — wprost z lekcji z 12:36:
+ubity audyt zostawia NIEPRZYWRÓCONĄ mutację, bo SIGTERM omija `finally`, a `git checkout --`
+kasowałby przy okazji niezacommitowaną pracę. Przywracanie z tej kopii, nie z gita.
