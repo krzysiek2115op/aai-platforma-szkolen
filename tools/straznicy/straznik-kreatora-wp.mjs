@@ -334,8 +334,14 @@ if (existsSync(join(WTYCZKA, PLIK_ZAPISU))) {
   const zrodloListy = existsSync(join(WTYCZKA, PLIK_LISTY)) ? kod(czytaj(PLIK_LISTY)) : "";
 
   if ("" !== zrodloZapisu && /function usun_kurs/.test(zrodloZapisu)) {
+    // Dopuszczamy OBIE postaci warunku: `> 0` i mocniejszą `0 !==`, która
+    // zatrzymuje także przy „nie wiem" (-1). Reguła pyta o TO, ŻE HAMULEC
+    // JEST, a nie o dokładny kształt porównania — anchorowanie do jednego
+    // wyrażenia zamieniło ją 2026-09-05 w fałszywy alarm dokładnie wtedy,
+    // gdy hamulec został WZMOCNIONY. Siły porównania pilnuje osobna reguła
+    // niżej („hamulce nie degradują się na »zezwól«").
     const odmawia =
-      /\$kupujacy\s*>\s*0\s*&&\s*!\s*\$pozwol_dostep|!\s*\$pozwol_dostep\s*&&\s*\$kupujacy\s*>\s*0/.test(zrodloZapisu) &&
+      /(\$kupujacy\s*>\s*0|0\s*!==\s*\$kupujacy)\s*&&\s*!\s*\$pozwol_dostep|!\s*\$pozwol_dostep\s*&&\s*(\$kupujacy\s*>\s*0|0\s*!==\s*\$kupujacy)/.test(zrodloZapisu) &&
       /throw new Aai_Sklep_Blad_Zapisu[\s\S]{0,900}?'kupujacy'\s*=>/.test(zrodloZapisu);
     if (!odmawia) {
       bledy.push(
@@ -513,6 +519,68 @@ if (!dopasowanieGranic) {
   }
 }
 
+/*
+ * HAMULCE OPERACJI NISZCZĄCEJ NIE DEGRADUJĄ SIĘ NA „ZEZWÓL".
+ *
+ * Usunięcie kursu ma trzy hamulce. Pierwszy pyta NASZE tabele i trzyma zawsze.
+ * Dwa pozostałe pytają NA ZEWNĄTRZ — Tutora o kupujących, Plugin 2 o zamówienia
+ * w drodze — i oba miały tę samą wadę: cisza była nieodróżnialna od zmierzonego
+ * zera.
+ *
+ * Protokół „-1 = nie wiem" istniał i był poprawnie obsłużony, ale był
+ * NIEOSIĄGALNY dokładnie wtedy, gdy naprawdę nie wiadomo: przy nieobecnym
+ * Pluginie 2 `apply_filters` oddawało domyślne `0`, a `kupujacy()` przy
+ * wyłączonym Tutorze zwracało `0`. Scenariusz z pomiaru: właściciel wyłącza
+ * wtyczkę na czas diagnozy, usuwa kurs, panel pokazuje „0 kupujących,
+ * 0 zamówień" i NIE PYTA O NIC — a klient, który dzień wcześniej wybrał
+ * przelew, księguje wpłatę i nie dostaje nic.
+ *
+ * Reguła pilnuje trzech rozstrzygnięć:
+ *   1. hamulec kupujących zatrzymuje przy KAŻDEJ wartości różnej od zera
+ *      (`0 !==`), nie tylko przy dodatniej;
+ *   2. wartość domyślna filtru zamówień NIE jest literalnym zerem — ma
+ *      wynikać z dowodu (czy tabele Pluginu 2 w ogóle istnieją);
+ *   3. `kupujacy()` umie oddać „nie wiem" — czyli w ogóle zna wartość ujemną.
+ */
+{
+  const ZAPIS = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php";
+  const TUTOR = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php";
+
+  if (!existsSync(ZAPIS) || !existsSync(TUTOR)) {
+    bledy.push(`${ZAPIS}: nie znalazłem warstwy zapisu albo klasy kopii — reguła o hamulcach nie ma czego sprawdzić.`);
+  } else {
+    const zapis = kod(readFileSync(ZAPIS, "utf8"));
+    const tutor = kod(readFileSync(TUTOR, "utf8"));
+
+    if (!/\$kupujacy\s*>\s*0|0\s*!==\s*\$kupujacy/.test(zapis)) {
+      bledy.push(
+        `${ZAPIS}: nie znalazłem hamulca pytającego o liczbę kupujących — samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+      );
+    } else if (/\$kupujacy\s*>\s*0\s*&&\s*!\s*\$pozwol/.test(zapis)) {
+      bledy.push(
+        `${ZAPIS}: hamulec kupujących zatrzymuje tylko przy liczbie DODATNIEJ, więc „nie wiem" (-1) przechodzi jak zmierzone zero. Przy wyłączonym Tutorze na instalacji, która sprzedawała, kurs kasuje się bez ani jednego pytania — a ludzie tracą dostęp do czegoś, za co zapłacili.`
+      );
+    }
+
+    const filtr = zapis.match(/apply_filters\(\s*'aai_sklep_zamowienia_w_drodze',\s*([^,]+),/);
+    if (!filtr) {
+      bledy.push(
+        `${ZAPIS}: nie znalazłem filtru aai_sklep_zamowienia_w_drodze — samokontrola zakresu.`
+      );
+    } else if (/^\s*0\s*$/.test(filtr[1])) {
+      bledy.push(
+        `${ZAPIS}: domyślna odpowiedź na „ile zamówień w drodze" to literalne 0, czyli ZGODA NA USUNIĘCIE, gdy Plugin 2 milczy. Protokół „-1 = nie wiem" staje się wtedy nieosiągalny dokładnie w sytuacji, dla której powstał. Domyślna ma wynikać z dowodu — czy tabele Pluginu 2 w ogóle istnieją.`
+      );
+    }
+
+    if (!/return\s+\$slad\s*>\s*0\s*\?\s*-1\s*:\s*0|-1\s*:\s*0/.test(tutor)) {
+      bledy.push(
+        `${TUTOR}: kupujacy() nie umie odpowiedzieć „nie wiem". Brak Tutora nie zawsze znaczy zero: na instalacji, która sprzedawała, zapisy dalej leżą w bazie, a hamulec przed skasowaniem kursu musi to odróżnić od pustego sklepu.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-kreatora-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -520,5 +588,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-kreatora-wp: kontrakt sekcji pokrywa prototyp, każde pole ma etykietę, rodzaje wchodzą do panelu, akcje mają nonce i uprawnienie, treść lekcji ma opis, brak klucza znaczy „nie ruszaj” (treść, materiały, sekcje, program, stan), adresy sprawdzane bez DNS-u, front nie dotyka materiału, formularz nie niesie stanu kursu, każdy rekord panelu jest granicą zakresu kolektora, usunięcie kursu z kupującymi wymaga osobnej zgody."
+  "straznik-kreatora-wp: kontrakt sekcji pokrywa prototyp, każde pole ma etykietę, rodzaje wchodzą do panelu, akcje mają nonce i uprawnienie, treść lekcji ma opis, brak klucza znaczy „nie ruszaj” (treść, materiały, sekcje, program, stan), adresy sprawdzane bez DNS-u, front nie dotyka materiału, formularz nie niesie stanu kursu, każdy rekord panelu jest granicą zakresu kolektora, usunięcie kursu z kupującymi wymaga osobnej zgody, hamulce nie degradują się na „zezwól” przy milczeniu."
 );

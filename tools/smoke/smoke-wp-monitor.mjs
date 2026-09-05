@@ -1099,18 +1099,47 @@ for (const [opis, opcje] of odrzuty) {
   ).stdout.trim();
   sprawdz(/^\d+$/.test(kopia), `nie udało się odłożyć kopii tabeli ruchu („${kopia}”) — bez niej ten pomiar skasowałby zastane wiersze`);
 
-  const wynik = phpEval(
+  /*
+   * DWIE POŁOWY, BO PIERWSZA WERSJA TEGO POMIARU WYMAGAŁA KASOWANIA DANYCH.
+   *
+   * Sprawdzała, że po skoku AUTO_INCREMENT zostaje sam nowy wiersz — czyli
+   * utrwalała zachowanie, w którym DZIURA w identyfikatorach kasuje wiersze,
+   * których wcale nie ma za dużo. Zmierzone 2026-09-05 na dzienniku logowań:
+   * 41 wierszy, MAX(id) = 334, AUTO_INCREMENT = 200 001 po wcześniejszym
+   * pomiarze — pierwszy zapis po takim stanie skasował WSZYSTKO, łącznie
+   * z dowodowymi logowaniami właściciela. Bramka broniłaby tego zachowania.
+   *
+   * Mierzymy więc oba warunki osobno.
+   */
+
+  // (a) DZIURA W IDENTYFIKATORACH NIE KASUJE NICZEGO, gdy wierszy jest mało.
+  const poDziurze = phpEval(
     "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
       " $sufit = Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT;" +
       " Aai_Monitor_Zapis::dodaj_wizyte( array( 'odslona' => str_repeat('a',32), 'sesja' => str_repeat('1',32), 'sciezka' => '/sufit-stary/', 'trwanie_ms' => 1000, 'wiek_ms' => 2000 ) );" +
       " $stary = (int) $wpdb->get_var( \"SELECT MAX(id) FROM `{$t}`\" );" +
       " $skok = $stary + $sufit + 100; $wpdb->query( \"ALTER TABLE `{$t}` AUTO_INCREMENT = {$skok}\" );" +
       " Aai_Monitor_Zapis::dodaj_wizyte( array( 'odslona' => str_repeat('b',32), 'sesja' => str_repeat('2',32), 'sciezka' => '/sufit-nowy/', 'trwanie_ms' => 1000, 'wiek_ms' => 2000 ) );" +
-      " echo implode( ',', $wpdb->get_col( \"SELECT sciezka FROM `{$t}` ORDER BY id\" ) );"
+      " echo (int) $wpdb->get_var( \"SELECT COUNT(*) FROM `{$t}` WHERE sciezka = '/sufit-stary/'\" );"
   ).stdout.trim();
   sprawdz(
-    wynik === "/sufit-nowy/",
-    `sufit liczby wierszy nie ściął najstarszych wierszy (zostało: „${wynik}”) — tabela ruchu rośnie bez granicy, a kafelki ekranu liczą ją bez okna czasu (A2)`
+    poDziurze === "1",
+    `wiersz sprzed skoku AUTO_INCREMENT ZNIKNĄŁ (zostało go ${poDziurze}) — sufit skasował dane po samej DZIURZE w identyfikatorach, a nie po liczbie wierszy. Tak przepadły dowodowe logowania właściciela.`
+  );
+
+  // (b) PRAWDZIWY NADMIAR JEST ŚCINANY. Sufitu produkcyjnego (ćwierć miliona
+  //     wierszy) nie da się osiągnąć w bramce, więc wołamy tę samą prywatną
+  //     metodę refleksją, z sufitem 1 — mierzymy LOGIKĘ, nie stałą.
+  const poNadmiarze = phpEval(
+    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " $m = new ReflectionMethod( 'Aai_Monitor_Zapis', 'przytnij_liczbe' ); $m->setAccessible( true );" +
+      " $ile = (int) $m->invoke( null, 'wizyty', 1 );" +
+      " $zostalo = (int) $wpdb->get_var( \"SELECT COUNT(*) FROM `{$t}`\" );" +
+      " echo $ile . '/' . $zostalo;"
+  ).stdout.trim();
+  sprawdz(
+    /^\d+\/1$/.test(poNadmiarze) && poNadmiarze !== "0/1",
+    `sufit nie ściął nadmiaru przy suficie 1 (dostałem „${poNadmiarze}", oczekiwałem „N/1" z N > 0) — tabela ruchu rosłaby bez granicy, a kafelki ekranu liczą ją bez okna czasu (A2)`
   );
 
   // Przywracamy stan zastany CO DO WIERSZA, razem z licznikiem

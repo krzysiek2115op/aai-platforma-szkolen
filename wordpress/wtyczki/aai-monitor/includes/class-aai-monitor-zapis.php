@@ -382,6 +382,7 @@ final class Aai_Monitor_Zapis {
 						self::teraz_utc( 0, -Aai_Monitor_Tabele::OKNO_LOGOWANIA_DNI )
 					)
 				); // phpcs:ignore WordPress.DB.PreparedSQL
+				$ile = (int) $ile + self::przytnij_liczbe( 'logowania', Aai_Monitor_Tabele::SUFIT_WIERSZY_LOGOWAN );
 			} else {
 				$t   = Aai_Monitor_Tabele::tabela( 'wizyty' );
 				$ile = $wpdb->query(
@@ -390,7 +391,7 @@ final class Aai_Monitor_Zapis {
 						self::teraz_utc( 0, -Aai_Monitor_Tabele::OKNO_WIZYTY_DNI )
 					)
 				); // phpcs:ignore WordPress.DB.PreparedSQL
-				$ile = (int) $ile + self::przytnij_liczbe_wizyt();
+				$ile = (int) $ile + self::przytnij_liczbe( 'wizyty', Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT );
 			}
 			if ( false === $ile ) {
 				self::zglos( 'retencja nie zadziałała: ' . $wpdb->last_error );
@@ -404,7 +405,12 @@ final class Aai_Monitor_Zapis {
 	}
 
 	/**
-	 * Ścina tabelę ruchu do sufitu liczby wierszy (A2, decyzja właściciela).
+	 * Ścina tabelę do sufitu liczby wierszy (A2, decyzja właściciela).
+	 *
+	 * OBIE TABELE, nie tylko ruch. Od 2026-09-05 ten sam sufit ma dziennik
+	 * logowań: nieudane logowanie zapisuje KAŻDY, kto wyśle formularz
+	 * (zmierzone: 28 wierszy w 1,4 s), a wszystkie takie wiersze są młodsze
+	 * niż 90 dni, więc retencja po wieku nie rusza ich w ogóle.
 	 *
 	 * WIEK NIE WYSTARCZY JAKO JEDYNE KRYTERIUM: podpis ścieżki stoi jawnie
 	 * w HTML i jest wielokrotnego użytku, więc jeden nieuwierzytelniony
@@ -412,17 +418,33 @@ final class Aai_Monitor_Zapis {
 	 * a wszystkie są młodsze niż 400 dni, czyli retencja po wieku ich nie
 	 * rusza. Sufit ścina NAJSTARSZE, bo to one najmniej znaczą.
 	 *
-	 * LICZYMY ROZPIĘTOŚĆ IDENTYFIKATORÓW, NIE WIERSZY. `COUNT(*)` przy
-	 * KAŻDYM zapisie kosztowałby pełny skan tabeli, a beacon jest
+	 * LICZYMY NAJPIERW ROZPIĘTOŚĆ IDENTYFIKATORÓW, NIE WIERSZY. `COUNT(*)`
+	 * przy KAŻDYM zapisie kosztowałby pełny skan tabeli, a beacon jest
 	 * najczęstszym zapisem tego modułu. Rozpiętość `MAX(id) − MIN(id)` jest
 	 * z definicji NIE MNIEJSZA niż liczba wierszy i bierze się z indeksu,
-	 * więc jako granica jest bezpieczna: gdy nie przekracza sufitu, wierszy
-	 * na pewno też nie ma za dużo i nie dotykamy tabeli w ogóle.
+	 * więc jako WSTĘPNE sito jest bezpieczna: gdy nie przekracza sufitu,
+	 * wierszy na pewno też nie ma za dużo i nie dotykamy tabeli w ogóle.
+	 *
+	 * ALE ROZPIĘTOŚĆ NIE WYSTARCZA DO KASOWANIA — i to jest różnica, która
+	 * kosztowała dane. Rozpiętość rośnie od DZIUR w identyfikatorach, a te
+	 * robią się przy każdym masowym usunięciu: sprzątaniu po testach,
+	 * czyszczeniu śladów, `ALTER TABLE … AUTO_INCREMENT`. Zmierzone
+	 * 2026-09-05 na dzienniku logowań: 41 wierszy, `MAX(id)` = 334,
+	 * a `AUTO_INCREMENT` = 200 001 po wcześniejszym pomiarze. Pierwszy zapis
+	 * po takim stanie dawał rozpiętość 200 000 przy 42 wierszach — i sufit
+	 * skasował WSZYSTKO, łącznie z dowodowymi logowaniami właściciela.
+	 * Fałszywy alarm sita zamieniał się wprost w utratę danych.
+	 *
+	 * Dlatego po przekroczeniu sita PYTAMY O PRAWDZIWĄ LICZBĘ. `COUNT(*)`
+	 * biegnie wtedy najwyżej raz na tabelę, i to tylko w stanie, w którym
+	 * i tak podejrzewamy, że jest duża — a próg kasowania wyznacza
+	 * IDENTYFIKATOR wiersza stojącego dokładnie na granicy sufitu, nie
+	 * arytmetyka na `MAX(id)`.
 	 */
-	private static function przytnij_liczbe_wizyt(): int {
+	private static function przytnij_liczbe( string $ktora, int $sufit ): int {
 		global $wpdb;
 
-		$t = Aai_Monitor_Tabele::tabela( 'wizyty' );
+		$t = Aai_Monitor_Tabele::tabela( $ktora );
 
 		$granice = $wpdb->get_row( "SELECT MIN(`id`) AS naj_starszy, MAX(`id`) AS naj_nowszy FROM `{$t}`" ); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
 		if ( null === $granice || null === $granice->naj_nowszy ) {
@@ -430,13 +452,30 @@ final class Aai_Monitor_Zapis {
 		}
 
 		$rozpietosc = (int) $granice->naj_nowszy - (int) $granice->naj_starszy + 1;
-		if ( $rozpietosc <= Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT ) {
+		if ( $rozpietosc <= $sufit ) {
 			return 0;
 		}
 
-		$prog = (int) $granice->naj_nowszy - Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT;
-		$ile  = $wpdb->query(
-			$wpdb->prepare( "DELETE FROM `{$t}` WHERE `id` <= %d", $prog )
+		// Sito powiedziało „może być za dużo". Teraz pytamy, ILE JEST NAPRAWDĘ.
+		$wierszy = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$t}`" ); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+		if ( $wierszy <= $sufit ) {
+			return 0;
+		}
+
+		/*
+		 * Próg to IDENTYFIKATOR wiersza stojącego dokładnie na granicy sufitu,
+		 * a nie `MAX(id) − sufit`: przy dziurach w identyfikatorach ta druga
+		 * arytmetyka kasuje wiersze, których wcale nie ma za dużo.
+		 */
+		$prog = $wpdb->get_var(
+			$wpdb->prepare( "SELECT `id` FROM `{$t}` ORDER BY `id` DESC LIMIT 1 OFFSET %d", $sufit )
+		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+		if ( null === $prog ) {
+			return 0;
+		}
+
+		$ile = $wpdb->query(
+			$wpdb->prepare( "DELETE FROM `{$t}` WHERE `id` <= %d", (int) $prog )
 		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
 
 		return false === $ile ? 0 : (int) $ile;

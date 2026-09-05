@@ -2521,9 +2521,12 @@ const MUTACJE = [
     plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
     wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
     oczekiwanySlad: "nie odmawia skasowania kursu, który ktoś KUPIŁ",
+    // PRZEKOTWICZONE 2026-09-05: warunek hamulca został WZMOCNIONY z `> 0`
+    // na `0 !==` (zatrzymuje też przy „nie wiem" = -1), więc wzorzec celujący
+    // w dawne porównanie przestał pasować i mutacja UMARŁA.
     zmien: (s) =>
-      s.includes("if ( $kupujacy > 0 && ! $pozwol_dostep ) {")
-        ? s.replace("if ( $kupujacy > 0 && ! $pozwol_dostep ) {", "if ( false ) {")
+      s.includes("if ( 0 !== $kupujacy && ! $pozwol_dostep ) {")
+        ? s.replace("if ( 0 !== $kupujacy && ! $pozwol_dostep ) {", "if ( false ) {")
         : null,
   },
   {
@@ -4395,6 +4398,127 @@ const MUTACJE = [
       s.includes("function zapamietaj_zastane(")
         ? s.replace("function zapamietaj_zastane(", "function zapamietaj_zastane_inaczej(")
         : null,
+  },
+  // --- naprawy po polowaniu (P1, 2026-09-05) ---
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "pytanie o kursy klienta wraca poza osłonę — awaria Tutora daje zalogowanemu 500 na każdej stronie",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-menu.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-menu.php"),
+    oczekiwanySlad: "POZA try/catch",
+    zmien: (s) => {
+      const a = "\t\t\ttry {\n\t\t\t\t$ma_kursy = Aai_Sklep_Moje::ma_kursy();\n\t\t\t} catch ( Throwable $e ) {\n\t\t\t\t$ma_kursy = false;";
+      const b = "\t\t\t$ma_kursy = Aai_Sklep_Moje::ma_kursy();\n\t\t\tif ( false ) {\n\t\t\t\t$ma_kursy = false;";
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "wyszukiwanie kopii po uuid przestaje widzieć kosz — hamulec C2 milczy przy żywych zapisach",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "NIE OBEJMUJE kosza",
+    zmien: (s) => {
+      const a = "'post_status' => array_keys( get_post_stati() ),\n\t\t\t\t'numberposts' => 1,";
+      return s.includes(a) ? s.replace(a, "'post_status' => 'any',\n\t\t\t\t'numberposts' => 1,") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "reguła o koszu traci zapytanie z oczu (samokontrola zakresu)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "PO PUSTCE",
+    zmien: (s) => {
+      const a = "\t\t\t\t'post_status' => array_keys( get_post_stati() ),\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola przestaje uznawać dostawę zamkniętą ręcznie — wpis nie do ponowienia blokuje postaw.sh na zawsze",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    oczekiwanySlad: "nie uznaje dostawy zamkniętej",
+    zmien: (s) => {
+      const a = "\t\tif ( Aai_Platnosci_Maile::zamkniety_recznie( $wynik ) ) {\n\t\t\treturn true;\n\t\t}\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "zamknięcie dostawy przestaje odmawiać przy pustym powodzie — rozstrzygnięcie zamienia się w kasowanie śladu",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    oczekiwanySlad: "nie ODMAWIA przy pustym powodzie",
+    zmien: (s) => {
+      const a = "\t\t\tif ( '' === $powod ) {";
+      return s.includes(a) ? s.replace(a, "\t\t\tif ( false ) {") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "znika rozpoznanie dostawy zamkniętej ręcznie (samokontrola zakresu)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "rozpoznania dostawy zamkniętej",
+    zmien: (s) =>
+      s.includes("public static function zamkniety_recznie(")
+        ? s.replace("public static function zamkniety_recznie(", "public static function zamkniety_recznie_inaczej(")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "hamulec kupujących znowu zatrzymuje tylko przy liczbie dodatniej — „nie wiem” przechodzi jak zero",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    oczekiwanySlad: "tylko przy liczbie DODATNIEJ",
+    zmien: (s) =>
+      s.includes("if ( 0 !== $kupujacy && ! $pozwol_dostep ) {")
+        ? s.replace("if ( 0 !== $kupujacy && ! $pozwol_dostep ) {", "if ( $kupujacy > 0 && ! $pozwol_dostep ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "domyślna odpowiedź o zamówienia w drodze wraca na literalne 0 — cisza znaczy zgodę na usunięcie",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    oczekiwanySlad: "literalne 0",
+    zmien: (s) => {
+      const a = "apply_filters( 'aai_sklep_zamowienia_w_drodze', self::domyslne_zamowienia_w_drodze( $id ), $id )";
+      return s.includes(a) ? s.replace(a, "apply_filters( 'aai_sklep_zamowienia_w_drodze', 0, $id )") : null;
+    },
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "kupujacy() przestaje umieć powiedzieć „nie wiem” przy wyłączonym Tutorze",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "nie umie odpowiedzieć",
+    zmien: (s) =>
+      s.includes("return $slad > 0 ? -1 : 0;") ? s.replace("return $slad > 0 ? -1 : 0;", "return 0;") : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "synchronizacja znowu kasuje wpisy z Course Buildera (uuid pusty) — force, bez kosza, bez cofnięcia",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "rodzajów wpisów, a tylko",
+    zmien: (s) => {
+      const a = "if ( '' === $uuid || in_array( $uuid, $zostaja, true ) ) {";
+      return s.includes(a) ? s.split(a).join("if ( in_array( $uuid, $zostaja, true ) ) {") : null;
+    },
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "dziennik logowań traci sufit liczby wierszy — rośnie bez ograniczenia mimo retencji po wieku",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php"),
+    oczekiwanySlad: "nie jest przycinana po LICZBIE",
+    zmien: (s) => {
+      const a = "$ile = (int) $ile + self::przytnij_liczbe( 'logowania', Aai_Monitor_Tabele::SUFIT_WIERSZY_LOGOWAN );";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
   },
 ];
 

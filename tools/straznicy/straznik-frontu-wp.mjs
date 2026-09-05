@@ -412,6 +412,47 @@ if (existsSync(join(WTYCZKA, PLIK_SITEMAP)) && existsSync(join(WTYCZKA, PLIK_DOS
   }
 }
 
+/*
+ * PYTANIE O KURSY KLIENTA JEDZIE W OSŁONIE — ODPOWIADA NA NIE CUDZA WTYCZKA.
+ *
+ * `Aai_Sklep_Moje::ma_kursy()` pyta Tutora i naszą bazę, a wynik decyduje
+ * o pozycji „Moje kursy". Menu wstrzykujemy w nagłówek KAŻDEJ strony, więc
+ * rzut stamtąd przerywa całe żądanie.
+ *
+ * ZMIERZONE (rzut wstrzyknięty w `ma_kursy()`): gość dostaje 200, a ZALOGOWANY
+ * KLIENT **HTTP 500 na każdej stronie** — głównej, katalogu, koszyku, KASIE
+ * i własnym koncie. Awaria cudzej wtyczki albo uszkodzona tabela Tutora
+ * zamykają więc sklep dokładnie tym ludziom, którzy już zapłacili albo
+ * właśnie płacą. Po naprawie te same adresy oddają 200 przy tej samej awarii.
+ *
+ * Reguła pyta o ROZSTRZYGNIĘCIE: wywołanie stoi wewnątrz `try … } catch`.
+ * Ma samokontrolę zakresu — brak wywołania w ogóle jest błędem, nie ciszą.
+ */
+{
+  const menuTresc = existsSync(join(WTYCZKA, MENU)) ? czytaj(MENU) : "";
+  const wywolania = [...menuTresc.matchAll(/Aai_Sklep_Moje::ma_kursy\s*\(/g)];
+  if (menuTresc === "") {
+    // brak pliku zgłasza już reguła wyżej
+  } else if (wywolania.length === 0) {
+    bledy.push(
+      `${MENU}: nie znalazłem wywołania Aai_Sklep_Moje::ma_kursy() — reguła o osłonie nie ma czego pilnować, a milcząca reguła jest gorsza niż jej brak.`
+    );
+  } else {
+    const zakresy = [];
+    for (const t of menuTresc.matchAll(/\btry\s*\{/g)) {
+      const c = menuTresc.indexOf("} catch", t.index);
+      if (c !== -1) zakresy.push([t.index, c]);
+    }
+    for (const w of wywolania) {
+      if (!zakresy.some(([o, c]) => w.index > o && w.index < c)) {
+        bledy.push(
+          `${MENU}: Aai_Sklep_Moje::ma_kursy() wołane POZA try/catch. Odpowiada na to cudza wtyczka (Tutor), a menu idzie w nagłówek każdej strony — zmierzone: rzut stamtąd daje zalogowanemu klientowi HTTP 500 na stronie głównej, w katalogu, w koszyku, w KASIE i na jego koncie. Pozycja w menu to wygoda nawigacyjna, nie bramka dostępu: przy awarii ma jej nie być, a witryna ma stać.`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-frontu-wp:");
   for (const b of bledy) console.error(`  - ${b}`);

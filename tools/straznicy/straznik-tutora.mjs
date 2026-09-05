@@ -201,6 +201,34 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
         `${plik}: znajdz_po_uuid() nie odrzuca PUSTEGO identyfikatora przed zapytaniem. Zapytanie po pustym meta dopasowuje pierwszy lepszy wpis, więc kopia przejmuje CUDZY moduł i kasuje jego lekcje jako nadmiar (sweep P5: tak zniknęło 18 lekcji Kursu 2).`
       );
     }
+
+    /*
+     * KOSZ TEŻ JEST STANEM. `post_status => 'any'` znaczy w WordPressie
+     * „każdy status POZA `trash` i `auto-draft`", więc kopia kursu wrzucona
+     * do kosza stawała się dla nas niewidzialna. Skutki były dwa i oba ciche:
+     * `kupujacy()` zwracał 0 przy ŻYWYCH zapisach — zmierzone: 4 zapisy
+     * `completed` w bazie, a hamulec C2 („ten kurs ma N kupujących")
+     * nie pytał o nic i właściciel kasował kurs, za który zapłacono —
+     * a synchronizacja zakładała DRUGĄ kopię obok tej w koszu.
+     *
+     * Reguła pyta o samo wyszukiwanie po uuid, nie o inne zapytania w pliku:
+     * `usun_nadmiar()` ma prawo NIE widzieć kosza (nie widzieć = nie kasować).
+     */
+    const poczatekZapytania = tresc.indexOf("get_posts", i);
+    const zapytanie = tresc.slice(poczatekZapytania, tresc.indexOf(")", tresc.indexOf("meta_value", poczatekZapytania)));
+    // SAMOKONTROLA ZAKRESU: pusty wycinek znaczy, że reguła nie czyta
+    // zapytania — i milczy zamiast pilnować. Pierwsza wersja szukała
+    // `meta_value` od POCZĄTKU METODY, więc trafiała przed `get_posts`
+    // i wycinek wychodził PUSTY; test negatywny przeszedł na zielono.
+    if (!/'post_status'\s*=>/.test(zapytanie)) {
+      bledy.push(
+        `${plik}: nie umiem odczytać zapytania znajdz_po_uuid() — reguła o koszu nie ma czego sprawdzić i przeszłaby PO PUSTCE.`
+      );
+    } else if (/'post_status'\s*=>\s*'any'/.test(zapytanie)) {
+      bledy.push(
+        `${plik}: znajdz_po_uuid() szuka po 'any', a to w WordPressie NIE OBEJMUJE kosza. Kopia kursu w koszu przestaje istnieć dla kupujacy() — zmierzone: 0 przy czterech żywych zapisach, więc hamulec C2 milczy i kurs opłacony przez ludzi kasuje się bez pytania. Do tego synchronizacja zakłada wtedy drugą kopię obok tej w koszu.`
+      );
+    }
   }
 }
 
@@ -313,6 +341,44 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/*
+ * SYNCHRONIZACJA NIE KASUJE CUDZEJ PRACY — I TO MA BYĆ W KODZIE, NIE TYLKO
+ * W OBIETNICY.
+ *
+ * `usun_nadmiar()` kasowała każdy wpis, którego uuid nie było na liście
+ * „zostają". Wpis dodany ręcznie w Course Builderze Tutora ma uuid PUSTY,
+ * a pusty nigdy na tej liście nie jest — więc leciało
+ * `wp_delete_post( $id, true )`: force, z pominięciem kosza, bez cofnięcia.
+ * Zaprzeczało to obietnicy zapisanej w DWÓCH miejscach repozytorium
+ * (CLAUDE.md i README), a bramka, która miała tego dowodzić, tworzyła obcy
+ * wpis BEZ `post_parent` — strukturalnie poza zasięgiem pętli — więc
+ * przechodziła PO PUSTCE.
+ *
+ * Reguła pyta o rozstrzygnięcie: pusty uuid ma kończyć obieg pętli, zanim
+ * dojdzie do kasowania.
+ */
+{
+  const plikKopii = join(WTYCZKA, PLIK_KOPII);
+  const tresc = readFileSync(plikKopii, "utf8");
+  const i = tresc.indexOf("function usun_nadmiar");
+  if (i < 0) {
+    bledy.push(
+      `${plikKopii}: nie ma usun_nadmiar() — samokontrola zakresu: reguła o cudzych wpisach nie ma czego pilnować.`
+    );
+  } else {
+    const cialo = tresc.slice(i, tresc.indexOf("\n\t}", i));
+    const kasowania = (cialo.match(/wp_delete_post\s*\(/g) ?? []).length;
+    const oslony = (cialo.match(/''\s*===\s*\$uuid\s*\|\||\|\|\s*''\s*===\s*\$uuid/g) ?? []).length;
+    if (kasowania === 0) {
+      bledy.push(`${plikKopii}: usun_nadmiar() nic nie kasuje — samokontrola zakresu, reguła mierzyłaby pustkę.`);
+    } else if (oslony < kasowania) {
+      bledy.push(
+        `${plikKopii}: usun_nadmiar() kasuje ${kasowania} rodzajów wpisów, a tylko ${oslony} sprawdza pusty uuid. Wpis dodany ręcznie w Course Builderze ma uuid PUSTY — leci wtedy wp_delete_post(force), bez kosza i bez cofnięcia, razem z postępem klientów, którzy tę lekcję odhaczyli. CLAUDE.md i README obiecują, że tego NIE robimy.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-tutora:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -320,5 +386,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają."
 );

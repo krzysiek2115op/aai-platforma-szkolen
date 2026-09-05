@@ -670,6 +670,27 @@ final class Aai_Sklep_Tutor {
 	/**
 	 * Kasuje wpisy pod kursem, których nie ma już w naszych tabelach.
 	 *
+	 * WPIS BEZ NASZEGO UUID JEST CUDZY I ZOSTAJE.
+	 *
+	 * Do 2026-09-05 pętla kasowała KAŻDY wpis, którego uuid nie było na
+	 * liście — a wpis dodany ręcznie w Course Builderze Tutora ma uuid pusty,
+	 * więc `in_array( '', $zostaja, true )` było zawsze fałszem i leciało
+	 * `wp_delete_post( $id, true )`: force, z pominięciem kosza, bez cofnięcia.
+	 *
+	 * Scenariusz: właściciel dopisuje w Course Builderze bonusową lekcję albo
+	 * erratę (Tutor jest jego naturalnym edytorem), wraca do kreatora,
+	 * poprawia jedno zdanie w opisie kursu i klika „Zapisz". Synchronizacja
+	 * kasuje tamtą lekcję BEZPOWROTNIE, razem z postępem klientów, którzy ją
+	 * odhaczyli. Panel melduje „Kurs zapisany", kontrola kod 0.
+	 *
+	 * Przeczyło to obietnicy zapisanej w DWÓCH miejscach repozytorium —
+	 * `CLAUDE.md` („synchronizacja nie kasuje wpisów spoza kreatora —
+	 * kasowanie cudzej pracy to nie jest jej rola") i README. Obietnica
+	 * została; kod ją teraz dotrzymuje.
+	 *
+	 * Kontrola `sprawdz-tutora` dalej takie wpisy POKAZUJE jako obce —
+	 * i to jest właściwy podział ról: mówimy o nich, nie kasujemy ich.
+	 *
 	 * @param int           $id_kursu Wpis kursu w Tutorze.
 	 * @param array<string> $zostaja  Uuid-y, które mają zostać.
 	 *
@@ -701,7 +722,8 @@ final class Aai_Sklep_Tutor {
 			);
 			foreach ( (array) $lekcje as $id_lekcji ) {
 				$uuid = (string) get_post_meta( (int) $id_lekcji, self::META_UUID, true );
-				if ( in_array( $uuid, $zostaja, true ) ) {
+				// CUDZE ZOSTAJE. Patrz komentarz przy metodzie.
+				if ( '' === $uuid || in_array( $uuid, $zostaja, true ) ) {
 					continue;
 				}
 				wp_delete_post( (int) $id_lekcji, true );
@@ -709,7 +731,7 @@ final class Aai_Sklep_Tutor {
 			}
 
 			$uuid = (string) get_post_meta( (int) $id_modulu, self::META_UUID, true );
-			if ( in_array( $uuid, $zostaja, true ) ) {
+			if ( '' === $uuid || in_array( $uuid, $zostaja, true ) ) {
 				continue;
 			}
 			wp_delete_post( (int) $id_modulu, true );
@@ -901,10 +923,30 @@ final class Aai_Sklep_Tutor {
 		if ( '' === trim( $uuid ) ) {
 			return 0;
 		}
+		/*
+		 * KOSZ TEŻ JEST STANEM — `'any'` GO NIE OBEJMUJE.
+		 *
+		 * `post_status => 'any'` w WordPressie znaczy „każdy status POZA
+		 * `trash` i `auto-draft`". Kopia kursu wrzucona do kosza (ręcznie
+		 * w kokpicie Tutora, cudzą wtyczką, przy porządkach) stawała się więc
+		 * dla nas NIEWIDZIALNA, a skutki miała dwa, oba ciche:
+		 *
+		 *   1. `kupujacy()` zwracał 0 przy żywych zapisach — ZMIERZONE: kopia
+		 *      w koszu daje `kupujacy() = 0`, gdy `wp_posts` ma dalej 4 zapisy
+		 *      `completed`. Hamulec C2 („ten kurs ma N kupujących — stracą
+		 *      dostęp") NIE PYTAŁ WTEDY O NIC, więc właściciel kasował kurs,
+		 *      za który ludzie zapłacili, i nic go nie zatrzymywało;
+		 *   2. synchronizacja nie znajdowała kopii i zakładała DRUGĄ, obok
+		 *      tej w koszu.
+		 *
+		 * Pytamy więc o KAŻDY zarejestrowany status. `get_post_stati()` niesie
+		 * też `trash` i `auto-draft`, a przy okazji własne statusy Tutora —
+		 * czyli listę szerszą niż `'any'` z definicji, bez zgadywania nazw.
+		 */
 		$znalezione = get_posts(
 			array(
 				'post_type'   => $typ,
-				'post_status' => 'any',
+				'post_status' => array_keys( get_post_stati() ),
 				'numberposts' => 1,
 				'fields'      => 'ids',
 				'meta_key'    => self::META_UUID, // phpcs:ignore WordPress.DB.SlowDBQuery
@@ -912,6 +954,34 @@ final class Aai_Sklep_Tutor {
 			)
 		);
 		return $znalezione ? (int) $znalezione[0] : 0;
+	}
+
+	/**
+	 * Czy TEN kurs jest powiązany ze sprzedażą — id produktu albo 0.
+	 *
+	 * PO CO. Hamulec przed skasowaniem kursu pyta Plugin 2 o zamówienia
+	 * w drodze. Gdy Pluginu 2 nie ma, nikt nie odpowiada — i trzeba
+	 * rozstrzygnąć, czy cisza znaczy „nie ma zamówień", czy „nie wiem".
+	 * Rozstrzyga DOWÓD przy samym kursie: `_tutor_course_price_type` = `paid`
+	 * i `_tutor_course_product_id` zakłada WYŁĄCZNIE Plugin 2, przy wiązaniu
+	 * kursu z produktem WooCommerce. Kurs, który to niesie, był w sprzedaży —
+	 * więc mógł mieć zamówienia i cisza jest niewiedzą. Kurs, który tego nie
+	 * ma, nie miał czego sprzedać.
+	 *
+	 * Pytamy o meta, nie o tabele Pluginu 2: ta klasa nie ma prawa zależeć od
+	 * kodu, o którego NIEOBECNOŚĆ właśnie pyta.
+	 *
+	 * @param string $uuid Identyfikator kursu z naszych tabel.
+	 */
+	public static function produkt_kursu( string $uuid ): int {
+		if ( '' === trim( $uuid ) ) {
+			return 0;
+		}
+		$id = self::znajdz_po_uuid( $uuid, self::typy()['kurs'] );
+		if ( $id <= 0 ) {
+			return 0;
+		}
+		return (int) get_post_meta( $id, '_tutor_course_product_id', true );
 	}
 
 	/**
@@ -935,8 +1005,35 @@ final class Aai_Sklep_Tutor {
 	 * @param string $uuid Identyfikator kursu z naszych tabel.
 	 */
 	public static function kupujacy( string $uuid ): int {
-		if ( '' === trim( $uuid ) || ! self::dostepny() || ! function_exists( 'tutor_utils' ) ) {
+		if ( '' === trim( $uuid ) ) {
 			return 0;
+		}
+		/*
+		 * BRAK TUTORA TO NIE ZAWSZE ZERO — CZASEM TO „NIE WIEM".
+		 *
+		 * Do 2026-09-05 stało tu twarde `return 0`, uzasadnione zdaniem: bez
+		 * LMS-a nikt nie ma się gdzie zalogować po materiał, więc nikt dostępu
+		 * nie traci. Zdanie jest prawdziwe dla instalacji, na której Tutora
+		 * NIGDY nie było. Nie jest prawdziwe dla instalacji, która sprzedawała
+		 * i ma wtyczkę chwilowo wyłączoną — na czas diagnozy konfliktu, przy
+		 * aktualizacji, po awarii. Wtedy zapisy dalej leżą w bazie, a my
+		 * meldowaliśmy „0 kupujących" i hamulec przed skasowaniem kursu
+		 * milczał: właściciel kasował kurs, za który ludzie zapłacili, nie
+		 * dostając ANI JEDNEGO pytania.
+		 *
+		 * Rozstrzyga DOWÓD, nie domysł: jeśli w bazie jest choć jeden zapis
+		 * Tutora, to znaczy, że Tutor tu był i pracował — więc jego milczenie
+		 * jest niewiedzą, nie zerem. Oddajemy wtedy `-1`, czyli ten sam
+		 * protokół „nie wiem", którym posługuje się już hamulec zamówień
+		 * w drodze. Na instalacji, która Tutora nigdy nie miała, zapisów nie
+		 * ma i zero zostaje zerem — nikt nie blokuje usuwania na pustym sklepie.
+		 */
+		if ( ! self::dostepny() || ! function_exists( 'tutor_utils' ) ) {
+			global $wpdb;
+			$slad = (int) $wpdb->get_var(
+				$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s LIMIT 1", 'tutor_enrolled' )
+			);
+			return $slad > 0 ? -1 : 0;
 		}
 		$id = self::znajdz_po_uuid( $uuid, self::typy()['kurs'] );
 		if ( $id <= 0 ) {

@@ -5,6 +5,70 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.67.0] — 2026-09-05
+
+### Naprawy po polowaniu, priorytet P1 — sześć z ośmiu pozycji
+
+Kolejność i uzasadnienie: [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md).
+P1 to pozycje, w których **dane albo decyzje właściciela są obchodzone po
+cichu**. Każda naprawa ma pomiar PRZED, pomiar PO i test negatywny.
+
+**1. Awaria Tutora zamykała sklep zalogowanym klientom.** Zmierzone (rzut
+wstrzyknięty w `ma_kursy()`): gość dostaje 200, a ZALOGOWANY KLIENT **HTTP 500
+na każdej stronie** — głównej, w katalogu, w koszyku, w KASIE i na własnym
+koncie. Menu wstrzykujemy w nagłówek każdej strony, więc rzut z pytania
+o kursy przerywał całe żądanie. Pytanie jedzie teraz w osłonie; po naprawie te
+same adresy oddają 200.
+
+**2. Kopia kursu w koszu uciszała hamulec przed skasowaniem kursu.**
+`post_status => 'any'` NIE obejmuje w WordPressie kosza. Zmierzone:
+`kupujacy()` spada z 4 na **0**, gdy kopia jest w koszu, przy czterech żywych
+zapisach `completed` — hamulec C2 nie pytał wtedy o nic, a synchronizacja
+zakładała drugą kopię obok tej w koszu.
+
+**3. Dostawa, której nie da się ponowić, blokowała środowisko na zawsze.**
+`dostep/<id>` z pustym wynikiem i `mail_konta/<id>` skasowanego konta nie dają
+się ponowić, a kontrola kazała uruchamiać właśnie ponowienie — i jest punktem
+kontrolnym `postaw.sh`, czyli kroku zerowego każdego testu ręcznego. Powstało
+`dostawy --zamknij=<zdarzenie>/<id> --powod="…"`; **powód jest obowiązkowy**,
+bo to cała różnica między rozstrzygnięciem a zamiataniem pod dywan.
+
+**4. Hamulce operacji niszczącej degradowały się na „zezwól".** Protokół
+„-1 = nie wiem" istniał, ale był NIEOSIĄGALNY dokładnie wtedy, gdy naprawdę
+nie wiadomo: nieobecny Plugin 2 dawał domyślne `0`, wyłączony Tutor też.
+Rozstrzyga teraz DOWÓD — zapisy Tutora w bazie i `_tutor_course_product_id`
+przy kursie. Zmierzone: przy obu wtyczkach wyłączonych usunięcie kursu odmawia
+dwa razy, osobnym zdaniem dla każdego hamulca.
+
+**5. Synchronizacja kasowała lekcje dopisane w Course Builderze.** Wpis dodany
+ręcznie ma uuid PUSTY, a pusty nigdy nie był na liście „zostają" — leciało
+`wp_delete_post(force)`, bez kosza i bez cofnięcia, razem z postępem klientów.
+Repozytorium obiecywało w DWÓCH miejscach ochronę, której kod nie miał.
+
+**6. Dziennik logowań rósł bez granicy, a sufit kasował po dziurze w id.**
+Doszedł sufit liczby wierszy (nieudane logowanie zapisuje każdy: 28 wierszy
+w 1,4 s). Przy okazji wyszło, że sufit ruchu kasował po ROZPIĘTOŚCI
+identyfikatorów — a ta rośnie od dziur po masowych usunięciach. Kasowanie
+potwierdza teraz prawdziwą liczbę wierszy, a próg wyznacza identyfikator
+wiersza na granicy sufitu.
+
+### Trzy bramki broniły usterek
+
+`smoke-wp-monitor` wymagał, żeby sufit skasował wiersz po samym skoku
+`AUTO_INCREMENT` — czyli utrwalał zachowanie, które w tej sesji zabrało
+dowodowe logowania właściciela. `smoke-wp-tutor` dowodził, że synchronizacja
+nie kasuje cudzych wpisów, tworząc obcy wpis **bez `post_parent`** —
+strukturalnie poza zasięgiem pętli, więc asercja nie mogła się nie udać.
+Do tego dwie asercje wymagające prefiksu hasła, zdjęte w 0.66.0.
+
+### Cztery wzorce przypięte do wyrażenia
+
+Wzmocnienie hamulca C2 (`> 0` → `0 !==`) zamieniło istniejącą regułę
+w FAŁSZYWY ALARM i uśmierciło jej mutację; osłona `$bezpiecznie(…)` z 0.66.0
+oślepiła regułę monitoringu o starcie pod `try` (brała PIERWSZY `try` w haku,
+a osłona ma własny). Wszystkie przekotwiczone; trzy z czterech złapał audyt
+mutacyjny, nie lektura.
+
 ## [0.66.0] — 2026-09-05
 
 ### Naprawy po polowaniu, priorytet P0 — pięć rzeczy, przez które klient traci

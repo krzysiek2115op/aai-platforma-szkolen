@@ -167,10 +167,12 @@ final class Aai_Sklep_Zapis {
 		 * stanie odmawiamy, bo cisza znaczyłaby zgodę na skasowanie cudzego,
 		 * właśnie opłacanego zakupu.
 		 *
-		 * @param int    $ile Domyślnie zero — sklep bez płatności nie ma zamówień.
+		 * @param int    $ile Domyślna: zero na sklepie, który nigdy nie miał
+		 *                    płatności; `-1` (nie wiem), gdy tabele Pluginu 2
+		 *                    ISTNIEJĄ, a nikt nie odpowiedział.
 		 * @param string $id  Identyfikator kursu.
 		 */
-		$w_drodze = (int) apply_filters( 'aai_sklep_zamowienia_w_drodze', 0, $id );
+		$w_drodze = (int) apply_filters( 'aai_sklep_zamowienia_w_drodze', self::domyslne_zamowienia_w_drodze( $id ), $id );
 
 		self::w_transakcji(
 			static function () use ( $id, $aktor, $pozwol_skasowac_tresc, $pozwol_stracic_dostep, $pozwol_porzucic_zamowienia, $kupujacy, $w_drodze, &$liczniki ): void {
@@ -187,6 +189,43 @@ final class Aai_Sklep_Zapis {
 		do_action( 'aai_sklep_kurs_usuniety', $id, $kupujacy );
 
 		return $liczniki;
+	}
+
+	/**
+	 * Domyślna odpowiedź na „ile zamówień w drodze", gdy nikt nie odpowiada.
+	 *
+	 * PROTOKÓŁ „-1 = NIE WIEM" BYŁ NIEOSIĄGALNY DOKŁADNIE WTEDY, GDY NAPRAWDĘ
+	 * NIE WIADOMO. Dostawcą odpowiedzi jest Plugin 2 i jest starannie
+	 * fail-closed w środku: przy wyjątku oddaje `-1`, a hamulec na `-1`
+	 * odmawia. Tyle że przy wtyczce NIEOBECNEJ `apply_filters` oddawało
+	 * wartość domyślną `0`, czyli „nie ma zamówień" — zgodę na usunięcie.
+	 *
+	 * Komentarz broniący tego zdaniem „sklep bez płatności nie ma zamówień"
+	 * jest prawdziwy dla instalacji, na której Pluginu 2 NIGDY nie było.
+	 * Nie jest prawdziwy dla instalacji, która sprzedawała i ma wtyczkę
+	 * chwilowo wyłączoną — a wtedy właściciel usuwa kurs, widząc „0 zamówień",
+	 * i klient, który dzień wcześniej wybrał przelew, księguje wpłatę i nie
+	 * dostaje nic. To jest dokładnie ten wypadek, po którym ten hamulec
+	 * powstał.
+	 *
+	 * Rozstrzyga DOWÓD PRZY SAMYM KURSIE: `_tutor_course_product_id` zakłada
+	 * WYŁĄCZNIE Plugin 2, przy wiązaniu kursu z produktem WooCommerce. Kurs,
+	 * który to niesie, BYŁ w sprzedaży — więc mógł mieć zamówienia i cisza
+	 * jest niewiedzą. Kurs, który tego nie ma, nie miał czego sprzedać i zero
+	 * jest prawdą.
+	 *
+	 * Pytamy o meta kursu, a NIE o tabele Pluginu 2 — z dwóch powodów. Ta
+	 * warstwa nie ma prawa zależeć od kodu, o którego nieobecność właśnie
+	 * pyta; a nazwy tabel mają w tym projekcie jedno źródło (klasa tabel
+	 * własnej wtyczki) i pilnuje tego strażnik, który złapał pierwszą wersję
+	 * tej metody. Dowód przy kursie jest przy okazji PRECYZYJNIEJSZY:
+	 * odpowiada „czy TEN kurs mógł mieć zamówienia", a nie „czy wtyczka
+	 * kiedykolwiek tu była".
+	 *
+	 * @param string $id Identyfikator kursu.
+	 */
+	private static function domyslne_zamowienia_w_drodze( string $id ): int {
+		return Aai_Sklep_Tutor::produkt_kursu( $id ) > 0 ? -1 : 0;
 	}
 
 	/**
@@ -245,18 +284,28 @@ final class Aai_Sklep_Zapis {
 			);
 		}
 
-		if ( $kupujacy > 0 && ! $pozwol_dostep ) {
+		/*
+		 * `-1` znaczy „nie udało się sprawdzić" i zatrzymuje TAK SAMO jak
+		 * liczba dodatnia — ten sam protokół, co przy zamówieniach w drodze.
+		 * Do 2026-09-05 warunek brzmiał `> 0`, więc niewiedza była
+		 * nieodróżnialna od zmierzonego zera i hamulec milczał dokładnie
+		 * wtedy, gdy najbardziej był potrzebny (wyłączony Tutor przy
+		 * instalacji, która sprzedawała).
+		 */
+		if ( 0 !== $kupujacy && ! $pozwol_dostep ) {
 			throw new Aai_Sklep_Blad_Zapisu(
-				sprintf(
-					/* translators: %d: liczba osób z dostępem do kursu. */
-					_n(
-						'Ten kurs ma %d kupującego — straci dostęp do materiału. Usunięcie wymaga jawnej zgody.',
-						'Ten kurs ma %d kupujących — stracą dostęp do materiału. Usunięcie wymaga jawnej zgody.',
-						$kupujacy,
-						'aai-sklep'
+				$kupujacy < 0
+					? __( 'Nie udało się sprawdzić, ilu ludzi ma dostęp do tego kursu — Tutor LMS nie odpowiada, a w bazie są jego zapisy. Usunięcie wymaga jawnej zgody.', 'aai-sklep' )
+					: sprintf(
+						/* translators: %d: liczba osób z dostępem do kursu. */
+						_n(
+							'Ten kurs ma %d kupującego — straci dostęp do materiału. Usunięcie wymaga jawnej zgody.',
+							'Ten kurs ma %d kupujących — stracą dostęp do materiału. Usunięcie wymaga jawnej zgody.',
+							$kupujacy,
+							'aai-sklep'
+						),
+						$kupujacy
 					),
-					$kupujacy
-				),
 				array( 'kupujacy' => $kupujacy )
 			);
 		}
