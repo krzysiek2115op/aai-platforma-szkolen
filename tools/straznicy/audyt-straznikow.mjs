@@ -2521,9 +2521,12 @@ const MUTACJE = [
     plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
     wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
     oczekiwanySlad: "nie odmawia skasowania kursu, który ktoś KUPIŁ",
+    // PRZEKOTWICZONE 2026-09-05: warunek hamulca został WZMOCNIONY z `> 0`
+    // na `0 !==` (zatrzymuje też przy „nie wiem" = -1), więc wzorzec celujący
+    // w dawne porównanie przestał pasować i mutacja UMARŁA.
     zmien: (s) =>
-      s.includes("if ( $kupujacy > 0 && ! $pozwol_dostep ) {")
-        ? s.replace("if ( $kupujacy > 0 && ! $pozwol_dostep ) {", "if ( false ) {")
+      s.includes("if ( 0 !== $kupujacy && ! $pozwol_dostep ) {")
+        ? s.replace("if ( 0 !== $kupujacy && ! $pozwol_dostep ) {", "if ( false ) {")
         : null,
   },
   {
@@ -4463,6 +4466,37 @@ const MUTACJE = [
       s.includes("public static function zamkniety_recznie(")
         ? s.replace("public static function zamkniety_recznie(", "public static function zamkniety_recznie_inaczej(")
         : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "hamulec kupujących znowu zatrzymuje tylko przy liczbie dodatniej — „nie wiem” przechodzi jak zero",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    oczekiwanySlad: "tylko przy liczbie DODATNIEJ",
+    zmien: (s) =>
+      s.includes("if ( 0 !== $kupujacy && ! $pozwol_dostep ) {")
+        ? s.replace("if ( 0 !== $kupujacy && ! $pozwol_dostep ) {", "if ( $kupujacy > 0 && ! $pozwol_dostep ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "domyślna odpowiedź o zamówienia w drodze wraca na literalne 0 — cisza znaczy zgodę na usunięcie",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    oczekiwanySlad: "literalne 0",
+    zmien: (s) => {
+      const a = "apply_filters( 'aai_sklep_zamowienia_w_drodze', self::domyslne_zamowienia_w_drodze( $id ), $id )";
+      return s.includes(a) ? s.replace(a, "apply_filters( 'aai_sklep_zamowienia_w_drodze', 0, $id )") : null;
+    },
+  },
+  {
+    straznik: "straznik-kreatora-wp",
+    opis: "kupujacy() przestaje umieć powiedzieć „nie wiem” przy wyłączonym Tutorze",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "nie umie odpowiedzieć",
+    zmien: (s) =>
+      s.includes("return $slad > 0 ? -1 : 0;") ? s.replace("return $slad > 0 ? -1 : 0;", "return 0;") : null,
   },
 ];
 
