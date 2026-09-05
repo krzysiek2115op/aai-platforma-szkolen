@@ -1282,6 +1282,27 @@ final class Aai_Platnosci_Zapis {
 		wp_update_attachment_metadata( (int) $id, wp_generate_attachment_metadata( (int) $id, $wgrany['file'] ) );
 		update_post_meta( (int) $id, self::META_OKLADKA_KURS, wp_slash( $course_uuid ) );
 		update_post_meta( (int) $id, self::META_OKLADKA_SHA, wp_slash( $sha ) );
+
+		/*
+		 * ZNACZNIKI TOŻSAMOŚCI SPRAWDZAMY ODCZYTEM — INACZEJ RODZI SIĘ SIEROTA.
+		 *
+		 * Załącznik bez tych dwóch met jest dla `zalacznik_okladki()`
+		 * niewidzialny, więc KAŻDA następna synchronizacja wgrywa NOWĄ kopię
+		 * tego samego pliku. Właściciel poprawiający zdanie w kursie raz
+		 * dziennie miałby po miesiącu trzydzieści kopii okładki w bibliotece
+		 * mediów, z przyrostkami `-1`…`-30` — czyli dokładnie nazwy „które
+		 * kłamią o historii pliku", czego ta metoda miała uniknąć.
+		 *
+		 * Przy nieudanym zapisie kasujemy świeży załącznik i wychodzimy
+		 * zerem: brak okładki jest stanem odwracalnym (produkt dostanie
+		 * zastępnik), a sierota-widmo mnoży się przy każdym zapisie.
+		 */
+		$oznaczony = (string) get_post_meta( (int) $id, self::META_OKLADKA_KURS, true ) === $course_uuid
+			&& (string) get_post_meta( (int) $id, self::META_OKLADKA_SHA, true ) === $sha;
+		if ( ! $oznaczony ) {
+			wp_delete_attachment( (int) $id, true );
+			return 0;
+		}
 		/*
 		 * TEKST ALTERNATYWNY. Bez niego WooCommerce drukuje w koszyku
 		 * i w kasie `<img alt="">` — czytnik ekranu mówi klientowi

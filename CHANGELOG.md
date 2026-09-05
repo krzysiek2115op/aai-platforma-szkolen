@@ -5,6 +5,72 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.73.0] — 2026-09-06
+
+### Naprawy po polowaniu, P4 — tura trzecia: trzy usterki bez objawu
+
+Wspólna cecha całej trójki: **nic się nie zapala**. Produkt działa, kontrola
+milczy, klient dostaje stronę — a mimo to każda z nich odbiera coś, co
+wtyczka obiecuje.
+
+**1. Każda synchronizacja wgrywała nową kopię okładki (Z-5).** Znaczniki
+tożsamości załącznika (`_aai_platnosci_okladka_kurs` i `_sha`) zapisywane
+były bez sprawdzenia. Załącznik, któremu ich nie nadano, jest dla
+`zalacznik_okladki()` **niewidzialny** — więc następny zapis kursu wgrywa
+ten sam plik jeszcze raz. Właściciel poprawiający zdanie w kursie raz
+dziennie miałby po miesiącu trzydzieści kopii okładki z przyrostkami
+`-1`…`-30`, czyli dokładnie nazwy „kłamiące o historii pliku", których ta
+metoda miała unikać.
+
+Potwierdzamy **odczytem po zapisie**, bo `update_post_meta()` oddaje `false`
+także przy wartości niezmienionej (zmierzone w 0.71.0). Przy nieudanym
+oznaczeniu świeży załącznik jest kasowany, a metoda wychodzi zerem: brak
+okładki jest stanem odwracalnym (produkt dostaje zastępnik), a sierota-widmo
+mnoży się przy **każdym** zapisie.
+
+**2. Kasa wracała do powoływania się na nieistniejący regulamin (Z-1).**
+`zdanie()` oddaje pusty tekst, gdy instalacja nie ma nawet strony polityki
+prywatności — i wtedy `na_bloku()` wychodziło z bloku **nietkniętego**,
+czyli oddawało głos domyślnemu zdaniu WooCommerce o „Warunkach i zasadach",
+których w tej instalacji nie ma. Własny docblock `przejdz()` mówił wprost,
+że pusty tekst ma **usuwać** zdanie z bloku zgód; ta gałąź nigdy nie dawała
+mu szansy. To ten sam błąd, który 0.52.0 naprawiało dla instalacji
+z polityką — tyle że dla instalacji bez niej.
+
+**3. Jedyny handler szwu z twardym typem siedział na trasie płatnej treści
+(MAR-A-20).** `Aai_Sklep_Lekcja::za_bramka()` przyjmował `bool` bez wartości
+domyślnej, w pliku z `declare( strict_types = 1 )` i bez osłony. To filtr
+**publiczny**: dowolny callback o niższym priorytecie mógł oddać `1` albo
+`null`, co dawało `TypeError` — biały ekran na stronie lekcji, za którą
+klient zapłacił. Cztery z pięciu pozostałych handlerów miały już `mixed`
+z domyślną i `catch ( Throwable )`; ten był wyjątkiem.
+
+### Trzy nowe reguły — każda z testem negatywnym
+
+- **`straznik-platnosci-wp`**: znacznik świeżej okładki musi być potwierdzony
+  **odczytem obu met**, a nieudane oznaczenie musi skasować załącznik
+  i wyjść zerem; puste zdanie o zgodach **też** wchodzi do bloku kasy.
+- **`straznik-wtyczki-wp`, niezmiennik 13**: handler szwu `aai_*` nie ma na
+  pierwszym parametrze twardego typu skalarnego i ma `catch ( Throwable )`.
+  Reguła idzie za **decyzją po całym katalogu wtyczek**, nie za plikiem —
+  lekcja z 0.65.0, gdzie reguła przypięta do pliku umilkła po refaktorze.
+
+Reguła 13 ma **samokontrolę zakresu**: liczy zarejestrowane szwy i zapala
+się, gdy jest ich mniej niż pięć. Bez tego w dniu, w którym ktoś zmieni
+sposób rejestracji, cała reguła przeszłaby po pustce — dziesiąty raz w tym
+projekcie.
+
+**Przy okazji sprostowane liczby w nagłówku `straznik-wtyczki-wp`**:
+mówił „DZIEWIĘĆ NIEZMIENNIKÓW" i wyliczał dziesięć, przy trzynastu
+w kodzie. Dokładnie klasa błędu, którą 0.70.0 naprawiało w `straznik-csp`
+i `straznik-limitera`.
+
+### Liczby
+
+Audyt mutacyjny 394 → **400** (0 przeoczonych, 0 martwych), strażnicy
+**39/39**. Sześć nowych mutacji cofa naprawy do stanu sprzed 0.73.0, czyli
+mierzy dokładnie to, co reguły mają trzymać.
+
 ## [0.72.0] — 2026-09-06
 
 ### Naprawy po polowaniu, P4 — tura druga: dwa ogniwa mierzone odczytem

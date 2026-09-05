@@ -9,7 +9,7 @@
  * późno. To ta sama klasa co CSP i limiter w prototypie: strona działa,
  * tylko przestaje chronić.
  *
- * DZIEWIĘĆ NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
+ * TRZYNAŚCIE NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
  *   1. plik główny ma komplet nagłówków WordPressa,
  *   2. każdy plik PHP blokuje bezpośrednie wywołanie (`ABSPATH`),
  *   3. nazwy tabel składa WYŁĄCZNIE klasa tabel — nigdzie indziej nie
@@ -28,7 +28,14 @@
  *      (BLAD-020: zapis bez zmian meldował „zapisano" i puchł dziennik),
  *  10. SQL jedzie do `$wpdb->` DOSŁOWNIE, nie zmienną — inaczej reguła 6
  *      go nie widzi i cała granica „wartość przez prepare()" przestaje
- *      obowiązywać dla każdego, kto sklei zapytanie linijkę wyżej.
+ *      obowiązywać dla każdego, kto sklei zapytanie linijkę wyżej,
+ *  11. żadna wtyczka nie pisze do tabel siostry — cudze dane wyłącznie
+ *      przez publiczne API właściciela,
+ *  12. archiwum o tej samej nazwie niesie tę samą TREŚĆ — nazwa paczki
+ *      jest dla klienta obietnicą wersji,
+ *  13. handler szwu `aai_*` przyjmuje cudzą odpowiedź bez twardego typu
+ *      i ma osłonę `catch ( Throwable )` — filtr jest publiczny, a te
+ *      biegną w kasie i na stronie płatnej lekcji (MAR-A-20).
  *
  * Użycie: node tools/straznicy/straznik-wtyczki-wp.mjs
  */
@@ -335,6 +342,71 @@ for (const wtyczka of wtyczki) {
   }
 }
 
+/* 13. HANDLER SZWU PRZYJMUJE CUDZĄ ODPOWIEDŹ I NIE WYWRACA CUDZEGO ŻĄDANIA
+      (MAR-A-20).
+
+   Siedem szwów spina trzy wtyczki; PIĘĆ z nich to filtry `aai_*` (dwa
+   pozostałe — `aai_sklep_kurs_zmieniony` i `_usuniety` — są akcjami i mają
+   własne reguły). Filtr jest PUBLICZNY:
+   przed nami może stanąć dowolny callback i oddać `1`, `null` albo tablicę
+   zamiast obiecanego kształtu. W pliku z `declare( strict_types = 1 )`
+   twardy typ skalarny na pierwszym parametrze zamienia to w `TypeError` —
+   czyli w BIAŁY EKRAN, i to na stronie, za którą klient zapłacił, bo
+   `aai_monitor_strona_za_bramka` pyta właśnie widok lekcji.
+
+   Cztery z pięciu handlerów miały już `mixed` i `try/catch ( Throwable )`;
+   `Aai_Sklep_Lekcja::za_bramka()` był jedynym wyjątkiem i to on siedzi na
+   trasie płatnej treści. Reguła pyta o dwie rzeczy naraz, obie
+   o ROZSTRZYGNIĘCIU, nie o nazwie: kształt pierwszego parametru i obecność
+   osłony w ciele. Bez samokontroli zakresu przeszłaby po pustce w dniu,
+   w którym ktoś zmieni sposób rejestracji szwów. */
+{
+  const SZWOW_CO_NAJMNIEJ = 5;
+  const handlery = [];
+  for (const wtyczka of wtyczki) {
+    for (const plik of plikiPhp(join(KATALOG_WTYCZEK, wtyczka))) {
+      const tresc = kod(readFileSync(plik, "utf8"));
+      for (const m of tresc.matchAll(
+        /add_filter\(\s*'(aai_[a-z0-9_]+)'\s*,\s*array\(\s*self::class\s*,\s*'(\w+)'/g
+      )) {
+        handlery.push({ plik, tresc, filtr: m[1], metoda: m[2] });
+      }
+    }
+  }
+
+  if (handlery.length < SZWOW_CO_NAJMNIEJ) {
+    bledy.push(
+      `straznik-wtyczki-wp: znalazłem ${handlery.length} handlerów szwów aai_* przy oczekiwanych co najmniej ${SZWOW_CO_NAJMNIEJ} — reguła o kształcie handlera przechodziłaby po pustce (samokontrola zakresu, MAR-A-20). Sprawdź, czy szwy nie są rejestrowane inaczej niż add_filter( 'aai_…', array( self::class, '…' ) ).`
+    );
+  }
+
+  for (const h of handlery) {
+    const od = h.tresc.indexOf(`function ${h.metoda}(`);
+    if (od < 0) {
+      bledy.push(
+        `${h.plik}: szew ${h.filtr} wskazuje na self::${h.metoda}(), której w tym pliku nie ma — filtr jest martwy albo handler wyprowadził się bez zmiany rejestracji (MAR-A-20).`
+      );
+      continue;
+    }
+    const sygnatura = h.tresc.slice(od, h.tresc.indexOf(")", od) + 1);
+    const pierwszy = sygnatura.slice(sygnatura.indexOf("(") + 1).split(",")[0].trim();
+    // Twardy typ skalarny PRZED zmienną = TypeError przy cudzej odpowiedzi.
+    if (/^\??\s*(bool|int|float|string|array|iterable|callable)\s+\$/i.test(pierwszy)) {
+      bledy.push(
+        `${h.plik}: handler szwu ${h.filtr} (${h.metoda}) ma na pierwszym parametrze twardy typ „${pierwszy.split("$")[0].trim()}". To filtr PUBLICZNY — cudzy callback o niższym priorytecie może oddać 1 albo null, a przy strict_types daje to TypeError, czyli biały ekran na stronie klienta. Przyjmuj mixed z wartością domyślną i sprawdzaj kształt w ciele (MAR-A-20).`
+      );
+    }
+    const doKonca = h.tresc.slice(od);
+    const nast = doKonca.slice(1).search(/\n\t(?:private|public|protected)\s/);
+    const cialo = nast > 0 ? doKonca.slice(0, nast + 1) : doKonca;
+    if (!/catch\s*\(\s*\\?Throwable\s/.test(cialo)) {
+      bledy.push(
+        `${h.plik}: handler szwu ${h.filtr} (${h.metoda}) nie ma osłony catch ( Throwable ). Rzut z NASZEJ strony wychodzi wtedy do cudzego żądania — a te filtry biegną m.in. w kasie WooCommerce i na stronie lekcji, więc awaria u nas wywraca zakup albo płatną treść (MAR-A-20).`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-wtyczki-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -342,5 +414,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę).`
 );

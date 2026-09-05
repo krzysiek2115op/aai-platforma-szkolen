@@ -199,12 +199,30 @@ final class Aai_Sklep_Lekcja {
 	 *
 	 * @param bool $za_bramka Odpowiedź dotychczasowa.
 	 */
-	public static function za_bramka( bool $za_bramka ): bool {
-		if ( $za_bramka ) {
+	public static function za_bramka( $za_bramka = false ): bool {
+		/*
+		 * `mixed` Z WARTOŚCIĄ DOMYŚLNĄ I OSŁONA — jak każdy handler szwu.
+		 *
+		 * To filtr PUBLICZNY: dowolny callback o niższym priorytecie może
+		 * podać `1`, `null` albo cokolwiek innego. Przy twardym typie `bool`
+		 * i `declare( strict_types = 1 )` z tego pliku dawałoby to `TypeError`
+		 * na stronie lekcji — czyli biały ekran klientowi, który za tę lekcję
+		 * zapłacił. Pozostałe sześć handlerów szwów w tym projekcie przyjmuje
+		 * `mixed` z domyślną i waliduje kształt; ten był jedynym wyjątkiem.
+		 *
+		 * `try/catch` obejmuje odczyt danych lekcji: awaria po naszej stronie
+		 * ma zwrócić „nie wiem, nie za bramką" (czyli NIE oznaczać odsłony
+		 * jako zatrzymanej), a nie wywracać cudzego żądania.
+		 */
+		if ( ! empty( $za_bramka ) ) {
 			return true;
 		}
-		$dane = self::dane();
-		return null !== $dane && empty( $dane['dostep'] );
+		try {
+			$dane = self::dane();
+			return null !== $dane && empty( $dane['dostep'] );
+		} catch ( Throwable $e ) {
+			return false;
+		}
 	}
 
 	/**
