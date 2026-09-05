@@ -3601,7 +3601,7 @@ gałąź błędu"): policzyć KAŻDE miejsce zapisu i sprawdzić gałąź poraż
 starcie **UCINA `CLAUDE.md` o 2355 linii** (zostaje 1167 z 3522). Po KAŻDYM devie:
 `git diff --stat CLAUDE.md` → `git checkout -- CLAUDE.md`.
 
-## ═══ NAPRAWY PO POLOWANIU — P0, P1 i P2 WYDANE (0.66.0 … 0.69.0) ═══
+## ═══ NAPRAWY PO POLOWANIU — P0…P4 WYDANE (0.66.0 … 0.72.0), P4 TRWA ═══
 
 **CZYTAĆ PRZED PRACĄ: [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md)**
 — kolejność P0–P4, decyzje właściciela i reguły wykonania.
@@ -3729,6 +3729,33 @@ dziesiątek zmian kodu, więc nazwa paczki dla klienta nie znaczyła nic. Od
 0.69.0 `npm run pakuj` odmawia nadpisania archiwum o tej samej nazwie i INNEJ
 treści, a strażnik pilnuje zgodności `Version` ze `Stable tag` w `readme.txt`.
 
+**SIEDEM RZECZY ZMIERZONYCH W TEJ SERII, KTÓRYCH NIE WYPROWADZAĆ OD NOWA:**
+1. **`wc_get_products()` NIE WIDZI produktu bez wiersza w
+   `wp_wc_product_meta_lookup`**, a ten powstaje na SAMYM KOŃCU
+   `WC_Product::save()` — idempotencja z 0.65.0 była strukturalnie ślepa
+   dokładnie na przypadek, dla którego istnieje.
+2. **`update_post_meta()` oddaje `false` także wtedy, gdy wartość już była
+   taka sama** — jedynym uczciwym pomiarem jest odczyt po zapisie.
+3. **`course_enrol_status_change()` Tutora odrzuca wynik swojego
+   `$wpdb->update`**, a pusty status z `status_zapisu()` znaczy „wpisu już
+   nie ma", czyli też odebranie dostępu.
+4. **ZIP niesie czasy modyfikacji**, więc porównanie paczek po bajtach
+   zapala się po samym `touch`/`git checkout` — porównuj TREŚĆ plików.
+5. **`oczyscTresc()` prototypu pomija puste listy**, więc „brak klucza =
+   nie ruszaj" wymaga, żeby panel wysyłał klucz JAWNIE.
+6. **Wiersz tabeli Markdowna dłuższy niż nagłówek jest na GitHubie UCINANY
+   w milczeniu**; `|` w kodzie inline też jest separatorem — pisz `\|`.
+7. **`wp aai-platnosci sprawdz` przy braku Pluginu 1 nie liczy już rzeczy
+   od niego niezależnych na osobnej ścieżce** — jedna metoda
+   `bledy_poza_kursami()` obsługuje obie drogi wyjścia.
+
+**BRAMKI BRONIŁY USTEREK PIĘĆ RAZY W TEJ SERII** (0.66.0 dwa razy, 0.67.0,
+0.68.0, 0.71.0) i **trzy razy popełniłem klasę, którą to repo już nazwało**:
+reguły wstawione ZA `process.exit(1)`, wzorzec pytający o SŁOWO zamiast
+o rozstrzygnięcie (ósmy i dziewiąty nawrót) oraz mutacje uśmiercone przez
+własny refaktor (trzy sztuki). **Wszystkie złapał audyt mutacyjny, nie
+lektura** — puszczać go po KAŻDYM refaktorze kodu produktu.
+
 **ŚRODOWISKO `:8892` (stan na koniec sesji):** pięć wtyczek aktywnych, obie
 kontrole kod 0, sprzedaż OTWARTA, kursy 2 (oba `published`), produkty 2,
 powiązania 2, konto `klient-test` (NIE kasować), **dziennik monitoringu
@@ -3736,9 +3763,41 @@ powiązania 2, konto `klient-test` (NIE kasować), **dziennik monitoringu
 `AUTO_INCREMENT` dziennika podniesiony do 200 001 przez sondę (nieszkodliwy po
 naprawie — sufit potwierdza liczbę wierszy przed kasowaniem).
 
-**ZOSTAJE: P4** — reszta pozycji z
+**P3 ZAMKNIĘTY: `v0.70.0`** (PR #128) — dokumentacja; szczegóły niżej.
+
+**P4 W TOKU — DWIE TURY WYDANE, TRZECIA NA GAŁĘZI:**
+- **`v0.71.0`** (PR #129) — klasa „operacja melduje skutek, którego nie
+  sprawdziła": zdjęcie kursu ze sprzedaży (Z-3), trzy z czterech metod
+  o kontrakcie „czy stan się ZMIENIŁ" (Z-6), odmowa drugiego kursu
+  w koszyku (Z-7). Do tego **prototyp przestał przeczyć produktowi**:
+  `TrescLekcji` miał `materialy: …default([])`, więc zapis samej prozy
+  KASOWAŁ materiały lekcji — ta sama klasa, którą wtyczka WP zamknęła
+  w 0.65.0. Maile dostały `Reply-To`.
+- **`v0.72.0`** (PR #130) — dwa ogniwa mierzone ODCZYTEM, bo cudze API nie
+  oddaje użytecznego wyniku: kupowalność produktu (Z-4, „klient płaci i nie
+  dostaje nic" — B3) i odebranie dostępu po skasowaniu zamówienia (Z-8).
+- **GAŁĄŹ `fix/po-polowaniu-p4c` (wypchnięta, commit `97bcaa3`) —
+  PRACA NIEDOKOŃCZONA, BEZ PR-a.** Trzy naprawy napisane i sprawdzone
+  strażnikami (39/39) oraz bramkami (produkty 101, lekcja, zakup 60):
+  **Z-5** (znaczniki okładki bez sprawdzenia → każda synchronizacja wgrywa
+  nową kopię pliku), **Z-1** (kasa wraca do zdania o nieistniejącym
+  regulaminie, gdy nie ma nawet polityki prywatności), **MAR-A-20**
+  (`za_bramka()` — jedyny handler szwu z twardym typem i bez osłony, cudzy
+  callback dawał `TypeError` na stronie lekcji).
+  **BRAKUJE TAM: testów negatywnych, reguł strażnika, mutacji w audycie,
+  wpisu CHANGELOG i PR-a.** Zaczynając od tej gałęzi, zacząć od nich.
+
+**ZOSTAJE PO P4c:** reszta pozycji z
 [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md)
-(architektura MAR-A-07…29, płatności Z-1…Z-11, prototyp `materialy:
-.default([])`, maile M2) oraz **kolektor CSP** — świadomie odłożony, patrz
-wyżej. Pozycję `REA-PRIV-F1-001` (polityka prywatności) rozstrzyga właściciel
+(architektura MAR-A-07…29 poza MAR-A-20, płatności Z-11) oraz **kolektor
+CSP** — świadomie odłożony, patrz wyżej. Zrobione już: Z-1, Z-3…Z-8,
+prototyp `materialy`, maile M2 (`Reply-To`).
+**MAR-A-27 (produkt-sierota niewidzialny dla obu kontroli sierot) jest
+POKRYTE naprawą z 0.68.0** — `duplikaty_uuid()` pyta dziś o oba klucze,
+w tym `_aai_zrodlo_uuid`; potwierdzić przy okazji, nie szukać od nowa.
+**Warte rozważenia z listy architektury:** MAR-A-07 (kontrola Pluginu 1 nie
+umie zawieść — jedyna z trzech bez kodu wyjścia i bez punktu kontrolnego
+w `postaw.sh`) i MAR-A-09 (zależność P2 → P1 niezadeklarowana nagłówkiem
+`Requires Plugins`; NAJPIERW zmierzyć, czy WordPress honoruje ten nagłówek
+dla wtyczek spoza katalogu WP.org). Pozycję `REA-PRIV-F1-001` (polityka prywatności) rozstrzyga właściciel
 z prawnikiem, nie my.
