@@ -249,6 +249,7 @@ const zamowienia = [];
 // Identyfikatory potrzebne w `finally` (const w bloku try tam nie sięga).
 let zamAutoZewn = 0;
 let zamMieszaneZewn = 0;
+let zamObceZewn = 0;
 try {
   /* ── 1. cena z jednego źródła (K2) ───────────────────────────────── */
 
@@ -418,6 +419,13 @@ try {
   const zamMieszane = zamowienie([produkt, obcy], "", true);
   zamMieszaneZewn = zamMieszane;
   zamowienia.push(zamMieszane);
+
+  // Zamówienie BEZ ani jednego naszego kursu — druga strona zamka 1.
+  // Bez niego pomiar dowodziłby tylko, że sprzątamy, a nie że sprzątamy
+  // WYŁĄCZNIE po sobie; ten hak dostaje KAŻDY kasowany wpis.
+  const zamObce = zamowienie([obcy], "", true);
+  zamObceZewn = zamObce;
+  zamowienia.push(zamObce);
   sprawdz(
     statusZamowienia(zamMieszane) === "processing",
     `zamówienie MIESZANE ma status „${statusZamowienia(zamMieszane)}” — cudzy towar czeka na wysyłkę, a zamówienie wygląda na zrealizowane`
@@ -705,39 +713,51 @@ try {
      *
      * Woo pod HPOS nie kasuje notatek zamówienia (surowy DELETE z pominięciem
      * wp_delete_post), Tutor nie kasuje wiersza księgowego (słucha tylko zmian
-     * statusu). Nasz hak sprząta oba — ale wyłącznie po zamówieniu w 100%
-     * z naszych kursów, przez API właścicieli tabel. Mierzymy OBIE połowy:
-     * własne zamówienie → 0:0 po skasowaniu; zamówienie MIESZANE → ślady
-     * nietknięte (cudzy produkt ma cudzą księgowość). Anty-ślepota: przed
-     * kasowaniem oba muszą MIEĆ ślady, inaczej „0:0 po" nic nie dowodzi. */
-    if (zamAutoZewn > 0 && zamMieszaneZewn > 0) {
+     * statusu). Nasz hak sprząta oba — po KAŻDYM zamówieniu, w którym był
+     * choć jeden nasz kurs, przez API właścicieli tabel. Mierzymy OBIE
+     * połowy: zamówienie z kursem (własne I mieszane) → 0:0 po skasowaniu;
+     * zamówienie BEZ naszego kursu → ślady nietknięte, bo tam nie mamy nic
+     * do posprzątania. Anty-ślepota: przed kasowaniem każde musi MIEĆ
+     * ślady, inaczej „0:0 po" nic nie dowodzi.
+     *
+     * Do 0.67.0 zamek pytał `same_kursy()` („w 100% kursy") i ta bramka
+     * WYMAGAŁA, żeby ślady po zamówieniu mieszanym zostały — czyli broniła
+     * usterki: zmierzone 1 earning + 3 notatki sieroty na każde takie
+     * zamówienie. */
+    if (zamAutoZewn > 0 && zamMieszaneZewn > 0 && zamObceZewn > 0) {
       const zamAuto = zamAutoZewn;
       const zamMieszane = zamMieszaneZewn;
       const [eA, nA] = sladyZamowienia(zamAuto).split(":").map(Number);
       const [eM, nM] = sladyZamowienia(zamMieszane).split(":").map(Number);
+      const zamObce = zamObceZewn;
+      const [eO, nO] = sladyZamowienia(zamObce).split(":").map(Number);
       sprawdz(eA >= 1 && nA >= 1, `własne zamówienie ${zamAuto} nie ma śladów przed kasowaniem (earnings ${eA}, notatki ${nA}) — pomiar sprzątania byłby ślepy`);
-      sprawdz(eM >= 1 && nM >= 1, `zamówienie mieszane ${zamMieszane} nie ma śladów przed kasowaniem (earnings ${eM}, notatki ${nM}) — pomiar „nietknięte” byłby ślepy`);
-      php(`$o = wc_get_order( ${zamAuto} ); if ( $o ) { $o->delete( true ); } $o = wc_get_order( ${zamMieszane} ); if ( $o ) { $o->delete( true ); } echo 'ok';`);
+      sprawdz(eM >= 1 && nM >= 1, `zamówienie mieszane ${zamMieszane} nie ma śladów przed kasowaniem (earnings ${eM}, notatki ${nM}) — pomiar sprzątania byłby ślepy`);
+      sprawdz(nO >= 1, `zamówienie bez naszego kursu ${zamObce} nie ma notatek przed kasowaniem — pomiar „nietknięte” byłby ślepy`);
+      php(`$o = wc_get_order( ${zamAuto} ); if ( $o ) { $o->delete( true ); } $o = wc_get_order( ${zamMieszane} ); if ( $o ) { $o->delete( true ); } $o = wc_get_order( ${zamObce} ); if ( $o ) { $o->delete( true ); } echo 'ok';`);
       sprawdz(
         sladyZamowienia(zamAuto) === "0:0",
         `po skasowaniu własnego zamówienia ${zamAuto} zostały ślady (earnings:notatki = ${sladyZamowienia(zamAuto)}) — raport przychodu Tutora liczy pieniądze z zamówienia, którego nie ma (REA-INT-F1-003)`
       );
       sprawdz(
-        sladyZamowienia(zamMieszane) === `${eM}:${nM}`,
-        `po skasowaniu zamówienia MIESZANEGO ${zamMieszane} hak ruszył cudzą księgowość albo historię (przed ${eM}:${nM}, po ${sladyZamowienia(zamMieszane)}) — zamek 1 nie trzyma`
+        sladyZamowienia(zamMieszane) === "0:0",
+        `po skasowaniu zamówienia MIESZANEGO ${zamMieszane} zostały ślady (earnings:notatki = ${sladyZamowienia(zamMieszane)}) — klient kupił w nim nasz kurs, więc sprzątanie po tym zamówieniu jest nasze (P1 poz. 10)`
       );
-      // Kontrola ma NAZWAĆ sieroty po zamówieniu mieszanym (kod 1 z ich id) — i nie kasować.
+      sprawdz(
+        sladyZamowienia(zamObce) === `${eO}:${nO}`,
+        `po skasowaniu zamówienia BEZ naszego kursu ${zamObce} hak ruszył cudzą historię (przed ${eO}:${nO}, po ${sladyZamowienia(zamObce)}) — zamek 1 nie trzyma i kasujemy cudze dane`
+      );
+      // Kontrola ma NAZWAĆ sieroty po cudzym zamówieniu (kod 1 z ich id) — i nie kasować.
       const kontrola = wp("aai-platnosci", "sprawdz");
-      sprawdz(kontrola.kod === 1 && /sierot|wskazuje zamówienia, których nie ma/.test(kontrola.err + kontrola.out), "kontrola nie zapala się na osieroconych śladach po skasowanym zamówieniu mieszanym — ślepota sprzed naprawy wróciła");
-      sprawdz(sladyZamowienia(zamMieszane) === `${eM}:${nM}`, "kontrola SKASOWAŁA sieroty — kontrola nie pisze (L11), kasowanie należy do jawnej komendy");
-      // Sprzątamy WŁASNE ślady po zamówieniu mieszanym przez API właścicieli tabel (po id, nie zakresem).
+      sprawdz(kontrola.kod === 1 && /sierot|wskazuje zamówienia, których nie ma/.test(kontrola.err + kontrola.out), "kontrola nie zapala się na osieroconych śladach po skasowanym zamówieniu — ślepota sprzed naprawy wróciła");
+      sprawdz(sladyZamowienia(zamObce) === `${eO}:${nO}`, "kontrola SKASOWAŁA sieroty — kontrola nie pisze (L11), kasowanie należy do jawnej komendy");
+      // Sprzątamy ślady po CUDZYM zamówieniu, które sami stworzyliśmy — po id, nie zakresem.
       php(
-        `if ( class_exists( '\\TUTOR\\Earnings' ) ) { \\TUTOR\\Earnings::get_instance()->delete_earning_by_order( ${zamMieszane} ); }` +
-          ` global $wpdb; foreach ( (array) $wpdb->get_col( $wpdb->prepare( "SELECT comment_ID FROM {$wpdb->comments} WHERE comment_type = 'order_note' AND comment_post_ID = %d", ${zamMieszane} ) ) as $id ) { wc_delete_order_note( (int) $id ); } echo 'ok';`
+        `global $wpdb; foreach ( (array) $wpdb->get_col( $wpdb->prepare( "SELECT comment_ID FROM {$wpdb->comments} WHERE comment_type = 'order_note' AND comment_post_ID = %d", ${zamObce} ) ) as $id ) { wc_delete_order_note( (int) $id ); } echo 'ok';`
       );
-      sprawdz(sladyZamowienia(zamMieszane) === "0:0", `smoke nie posprzątał własnych śladów po zamówieniu mieszanym (${sladyZamowienia(zamMieszane)})`);
+      sprawdz(sladyZamowienia(zamObce) === "0:0", `smoke nie posprzątał własnych śladów po zamówieniu obcym (${sladyZamowienia(zamObce)})`);
     } else {
-      sprawdz(false, "brak zamówień zamAuto/zamMieszane w zasięgu bloku sprzątania — pomiar sprzątania księgowości przeszedłby po pustce");
+      sprawdz(false, "brak zamówień zamAuto/zamMieszane/zamObce w zasięgu bloku sprzątania — pomiar sprzątania księgowości przeszedłby po pustce");
     }
     php(`foreach ( array( ${zamowienia.join(", ")} ) as $id ) { $o = wc_get_order( $id ); if ( $o ) { $o->delete( true ); } } echo 'ok';`);
     /*

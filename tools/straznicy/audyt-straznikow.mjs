@@ -4249,15 +4249,27 @@ const MUTACJE = [
   },
 
   {
-    // REA-INT-F1-003, zamek 1: sprzątanie księgowości bez odmowy na zamówieniu mieszanym.
+    // P1 poz. 10, zamek 1: sprzątanie bez odmowy na zamówieniu BEZ naszego kursu.
     straznik: "straznik-platnosci-wp",
-    opis: "hak kasowania sprząta księgowość także po zamówieniu MIESZANYM (cudzy produkt traci swoją historię i przychód)",
+    opis: "hak kasowania sprząta księgowość po KAŻDYM zamówieniu — także po cudzym, w którym nie było żadnego naszego kursu",
     plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
     wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
-    oczekiwanySlad: "zamówieniu MIESZANYM",
+    oczekiwanySlad: "BEZ NASZEGO KURSU",
     zmien: (s) =>
-      s.includes("\t\t\tif ( ! self::same_kursy( $zamowienie ) ) {\n\t\t\t\treturn;\n\t\t\t}\n")
-        ? s.replace("\t\t\tif ( ! self::same_kursy( $zamowienie ) ) {\n\t\t\t\treturn;\n\t\t\t}\n", "")
+      s.includes("\t\t\tif ( ! self::ma_kurs( $zamowienie ) ) {\n\t\t\t\treturn;\n\t\t\t}\n")
+        ? s.replace("\t\t\tif ( ! self::ma_kurs( $zamowienie ) ) {\n\t\t\t\treturn;\n\t\t\t}\n", "")
+        : null,
+  },
+  {
+    // P1 poz. 10: zamek wraca do „w 100% kursy" — mieszane znowu zostawia sieroty.
+    straznik: "straznik-platnosci-wp",
+    opis: "zamek sprzątania wraca do same_kursy() — zamówienie mieszane znowu zostawia earning i notatki bez zamówienia",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "wrócił do same_kursy()",
+    zmien: (s) =>
+      s.includes("\t\t\tif ( ! self::ma_kurs( $zamowienie ) ) {")
+        ? s.replace("\t\t\tif ( ! self::ma_kurs( $zamowienie ) ) {", "\t\t\tif ( ! self::same_kursy( $zamowienie ) ) {")
         : null,
   },
   {

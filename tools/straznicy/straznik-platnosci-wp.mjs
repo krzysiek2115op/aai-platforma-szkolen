@@ -1255,8 +1255,13 @@ if (!existsSync(USTAWIENIA)) {
    wyłącznie zmian statusu, więc jego wiersz księgowy (wp_tutor_earnings) też.
    Sprzątamy je w haku kasowania — pod PIĘCIOMA zamkami, bo ten hak dostaje
    KAŻDY kasowany wpis, a tabele są cudze:
-     (1) wyłącznie zamówienie w 100% z naszych kursów (same_kursy) — mieszane
-         zostaje nietknięte, bo księgowość cudzego produktu nie jest nasza;
+     (1) wyłącznie zamówienie zawierające CHOĆ JEDEN nasz kurs (ma_kurs) —
+         zamówienia bez ani jednego kursu nie dotykamy wcale. Do 0.67.0
+         warunek brzmiał „w 100% z naszych kursów" i przez to zamówienie
+         MIESZANE zostawiało sieroty: zmierzone 1 earning + 3 notatki na
+         zamówienie. Wiersz księgowy Tutora powstaje wyłącznie za kurs,
+         a notatki i tak przepadają z zamówieniem w drugim trybie
+         magazynu Woo — więc sprzątamy je także tam;
      (2) wyłącznie przez publiczne API właścicieli tabel (reguła 44);
      (3) księgowość Tutora TYLKO wtedy, gdy instruktor nie ma ANI JEDNEJ
          wypłaty — skasowany earning po wypłacie zmienia saldo wstecz;
@@ -1289,11 +1294,19 @@ if (!existsSync(USTAWIENIA)) {
       } else if (Number(rej[1]) >= 10) {
         bledy.push(`${dost}: zamowienie_znika zarejestrowane na priorytecie ${rej[1]}. Na 10 Woo (WC_Post_Data::before_delete_order, zarejestrowane wcześniej) KASUJE POZYCJE zamówienia zanim dojdzie do nas — same_kursy() widzi pustkę i hak wychodzi bez sprzątania, bez objawu (zmierzone). Ma być < 10.`);
       }
-      // Zamek 1: odmowa na zamówieniu mieszanym PRZED pierwszym sprzątaniem.
-      const odmowaMieszane = blok.search(/if\s*\(\s*!\s*self::same_kursy\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/);
-      if (odmowaMieszane < 0 || odmowaMieszane > Math.min(earnings, notatki)) {
+      // Zamek 1: odmowa na zamówieniu BEZ naszego kursu PRZED pierwszym
+      // sprzątaniem. Pytamy o `ma_kurs`, nie o `same_kursy` — ta druga
+      // odpowiada na inne pytanie (czy wolno zamówienie DOMKNĄĆ) i użyta
+      // tutaj zostawiała sieroty po każdym zamówieniu mieszanym.
+      const odmowaObcego = blok.search(/if\s*\(\s*!\s*self::ma_kurs\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/);
+      if (odmowaObcego < 0 || odmowaObcego > Math.min(earnings, notatki)) {
         bledy.push(
-          `${dost}: sprzątanie księgowości po skasowanym zamówieniu nie jest poprzedzone odmową na zamówieniu MIESZANYM (if ( ! self::same_kursy(...) ) { return; }). Zamówienie z cudzym produktem ma cudzą księgowość — jej kasowanie to strata cudzych danych bez objawu.`
+          `${dost}: sprzątanie po skasowanym zamówieniu nie jest poprzedzone odmową na zamówieniu BEZ NASZEGO KURSU (if ( ! self::ma_kurs(...) ) { return; }). Ten hak dostaje KAŻDY kasowany wpis — bez tej odmowy kasowałby cudzą księgowość i cudzą historię.`
+        );
+      }
+      if (/if\s*\(\s*!\s*self::same_kursy\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/.test(blok)) {
+        bledy.push(
+          `${dost}: zamek sprzątania wrócił do same_kursy() — a ten warunek jest prawdziwy tylko dla zamówień złożonych WYŁĄCZNIE z kursów. Zamówienie mieszane wychodzi wtedy nietknięte i zostawia wiersz księgowy oraz notatki wskazujące zamówienie, którego nie ma (zmierzone: 1 + 3).`
         );
       }
       // Zamek 3: księgowość Tutora tylko przy zerze wypłat instruktora.
