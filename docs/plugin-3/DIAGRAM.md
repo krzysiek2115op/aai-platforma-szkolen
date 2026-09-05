@@ -210,9 +210,12 @@ Twarde zasady kanałów — te same co w Pluginie 1:
 
 Co jest czym w tym module:
 
-- **BAZA** — dwie tabele z własnym prefiksem w bazie WP (decyzja
+- **BAZA** — trzy tabele z własnym prefiksem w bazie WP (decyzja
   2026-08-25 o „własnej BD"): `logowania` mówi, kto i skąd wchodził na
-  konto; `wizyty` mówi, co oglądano i jak długo. Nikt inny tego nie ma (F7);
+  konto; `wizyty` mówi, co oglądano i jak długo. Nikt inny tego nie ma (F7).
+  Trzecia, `ustawienia` (od 0.5.0), nie trzyma danych o ludziach — tylko stan
+  wtyczki, dziś jeden wiersz: sól podpisu ścieżek, która do 0.5.0 leżała
+  w `wp_options` wpisana surowym INSERT-em do tabeli rdzenia (AUD-ARCH-F1-001);
 - **DZIAŁ** — jedna klasa zapisu jako **jedyne** miejsce piszące, wzorem
   `Aai_Sklep_Zapis` i `Aai_Platnosci_Zapis`. Tu mieszka też retencja (nie
   w cronie: WP-Cron na mało odwiedzanej stronie potrafi nie wstać całymi
@@ -258,7 +261,7 @@ z założenia nie robi.
 
 | Pojęcie projektu | W WordPressie konkretnie |
 |---|---|
-| BAZA Pluginu 3 | dwie tabele przez `dbDelta` przy aktywacji (wzorem `Aai_Platnosci_Tabele`: opcja wersji schematu, `tabela()`, `wszystkie()`): `wp_aai_monitor_logowania`, `wp_aai_monitor_wizyty` — kontrakt w sekcji 7 |
+| BAZA Pluginu 3 | dwie tabele przez `dbDelta` przy aktywacji (wzorem `Aai_Platnosci_Tabele`: opcja wersji schematu, `tabela()`, `wszystkie()`): `wp_aai_monitor_logowania`, `wp_aai_monitor_wizyty`, `wp_aai_monitor_ustawienia` (od 0.5.0) — kontrakt w sekcji 7 |
 | DZIAŁ-DYSPOZYTOR | `Aai_Monitor_Zapis` w `includes/class-aai-monitor-zapis.php` — jedyny pisarz (nazwa pliku **musi** trzymać tę konwencję: po niej rozpoznaje warstwę zapisu istniejący `straznik-wtyczki-wp`); wartości przez `$wpdb->prepare()`/`insert()`; retencja przy zapisie |
 | WYSTRZAŁ (jedyny AJAX) | **`admin-post.php`, akcja zarejestrowana POD OBIEMA NAZWAMI: `admin_post_nopriv_{action}` ORAZ `admin_post_{action}`** — ten sam kanał platformy, którym idzie „Zapisz kurs" Pluginu 1 (6 wywołań `admin_post_*`); w repo nie ma **ani jednej** trasy REST i ani jednego `wp_ajax_*`, więc REST byłby pierwszym wyjątkiem od konwencji. **Dwie nazwy są konieczne, nie ostrożnościowe** (F17): wizyty liczymy wszystkim oprócz zalogowanych adminów (D3), więc beacon klienta czytającego lekcję idzie gałęzią dla ZALOGOWANYCH — sama rejestracja `nopriv` gubiłaby po cichu cały ruch za logowaniem, czyli dokładnie strony lekcji. **Nazwa akcji jedzie w query stringu** (`?action=aai_monitor_wizyta`), bo ciało JSON nie trafia do `$_POST` (F18). Ciało czytamy z `php://input` i sami dekodujemy — **dzięki temu pułapka F9 w ogóle nas nie dotyczy**, bo nie zależymy od parsera REST |
 | zdarzenia logowania (haki) | `set_logged_in_cookie` (powstała sesja — łapie TAKŻE auto-login z kasy, F3/F4), `wp_login` (doprecyzowanie źródła na „formularz", F1), `wp_login_failed` (porażka, F2). **Każdy handler owinięty `try { } catch ( Throwable )`** (F11) |
@@ -489,7 +492,7 @@ akcji, zero nonce'ów. Paginacja i filtry przez parametry GET (formularz
 
 Gdy `aai-sklep` nieaktywny: własna pozycja top-level.
 
-## 7. Kontrakt danych: dwie tabele
+## 7. Kontrakt danych: dwie tabele danych i jedna tabela stanu
 
 **`wp_aai_monitor_logowania`** — dane osobowe, okno 90 dni (D2):
 
@@ -514,6 +517,21 @@ Gdy `aai-sklep` nieaktywny: własna pozycja top-level.
 | `sciezka` | `varchar(191)` | ekran: top 10 stron |
 | `wejscie` | `datetime` (UTC) | ekran: okna dziś/7/30 + retencja. **Liczone przez SERWER**: `wejscie = now() − wiek_ms`, gdzie `wiek_ms` to czas od wejścia na stronę do wysłania beaconu. **NIE `now() − trwanie_ms`** — odkąd `trwanie_ms` znaczy czas AKTYWNY, karta otwarta o 9:00, czytana dwie minuty i zamknięta o 17:00 zapisałaby wejście o 16:58 (P16). Beacon przychodzi przy WYJŚCIU, więc samo `now()` byłoby momentem wyjścia i wizyta zaczęta o 23:50 lądowałaby w następnej dobie. Klientowi nie ufamy w żadnym ZNACZNIKU czasu: obie wartości to RÓŻNICE, obie przycinane sufitem |
 | `trwanie_ms` | `int unsigned` | ekran: czas łączny i średni. Znaczy **czas AKTYWNY** — zegar stoi, gdy karta jest ukryta (R2) — więc liczba odpowiada na pytanie „ile realnie czytali", a nie „jak długo karta była otwarta". Sufit 4 h narzucony w dziale |
+
+**`wp_aai_monitor_ustawienia`** — stan wtyczki, bez retencji (od 0.5.0, AUD-ARCH-F1-001):
+
+| kolumna | typ | czytelnik |
+|---|---|---|
+| `klucz` | `varchar(64)` **PK** | `Aai_Monitor_Podpis` (`sol_podpisu`). Klucz główny ROZSTRZYGA wyścig: zapis idzie `INSERT … ON DUPLICATE KEY UPDATE klucz = klucz` — pusty przy konflikcie, pierwszy pisarz wygrywa |
+| `wartosc` | `text` | sól podpisu (64 znaki). `text`, nie `varchar`, żeby następne ustawienie nie wymagało zmiany schematu |
+
+Dlaczego nie `wp_options`: `add_option()` przy konflikcie NADPISUJE
+(`VALUES(option_value)`), więc jedyną bezpieczną drogą był surowy INSERT do
+tabeli rdzenia — zapis do cudzej tabeli. Migracja z 0.4.0 jest fallbackiem
+w `sol()`: tabela → stara opcja (PRZEJĘTA co do znaku) → nowa wartość, więc
+sól nie zmienia się ani na chwilę; kontrola świeci kodem 1, gdy oba miejsca
+niosą różne wartości. Pilnują: `straznik-monitora-wp` 15b/15c,
+`smoke-wp-monitor` 10c9–10c9c.
 
 Zasady wspólne (wzorem P1/P2): `dbDelta` + opcja wersji schematu; nazwy
 tabel z jednego miejsca; wartości wyłącznie przez `prepare()`/`insert()`;

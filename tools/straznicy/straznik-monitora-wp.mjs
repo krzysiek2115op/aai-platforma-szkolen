@@ -322,25 +322,78 @@ if (existsSync(CLI)) {
   }
 }
 
-/* ——— 15b. (A7) sól podpisu powstaje zapisem, który NIE nadpisuje ——— */
+/* ——— 15b. (A7 + AUD-ARCH-F1-001) sól podpisu: zapis pusty przy konflikcie, do NASZEJ tabeli ——— */
 
 /*
- * `add_option()` pisze `INSERT … ON DUPLICATE KEY UPDATE` (zmierzone
- * w option.php), więc przy wyścigu dwóch pierwszych żądań NADPISUJE sól
- * tego, kto zdążył pierwszy — a jego strony są już w przeglądarkach
- * i noszą podpisy liczone starą wartością. Żaden odczyt zwrotny tego nie
- * naprawi, bo w bazie leży wtedy już nasza sól. Objawu brak: beacon
- * odpowiada 204 zawsze, więc odsłony po prostu przestają się zapisywać.
+ * Dwie gwarancje, obie o tym samym wierszu:
+ *
+ *  1. ZAPIS NIE NADPISUJE (A7). `add_option()` pisze `INSERT … ON DUPLICATE
+ *     KEY UPDATE` z `VALUES(option_value)` (zmierzone w option.php), więc
+ *     przy wyścigu dwóch pierwszych żądań NADPISUJE sól tego, kto zdążył
+ *     pierwszy — a jego strony są już w przeglądarkach i noszą podpisy
+ *     liczone starą wartością. Objawu brak: beacon odpowiada 204 zawsze.
+ *     Zapis ma być pusty przy konflikcie: `ON DUPLICATE KEY UPDATE k = k`.
+ *
+ *  2. ZAPIS IDZIE DO NASZEJ TABELI, NIE DO `wp_options` (AUD-ARCH-F1-001).
+ *     Do 0.5.0 gwarancję 1 kupowaliśmy surowym INSERT-em do tabeli rdzenia
+ *     — jedynym zapisem do cudzej tabeli w całym repo. Od 0.5.0 sól mieszka
+ *     w `ustawienia`, a pisze ją warstwa zapisu (`ustawienie_utworz`).
+ *     Reguła pyta o ZACHOWANIE w dwóch miejscach: tworzenie soli nie może
+ *     dotykać `$wpdb->options` ani `add_option()`, a metoda warstwy zapisu
+ *     musi mieć pusty `ON DUPLICATE`. Samo przeniesienie wywołania do innej
+ *     metody niczego nie osłabia — pytamy o obie połowy niezależnie.
  */
 if (existsSync(PODPIS)) {
   const tresc = kod(readFileSync(PODPIS, "utf8"));
   const tworzenie = cialoMetody(tresc, "sol");
   if (null === tworzenie) {
     bledy.push(`${PODPIS}: nie znalazłem metody sol() — reguła o powstawaniu soli nie ma czego sprawdzić i milczy.`);
-  } else if (/add_option\s*\(/.test(tworzenie) || !/ON DUPLICATE KEY UPDATE\s+option_id\s*=\s*option_id/.test(tworzenie)) {
+  } else {
+    if (/add_option\s*\(|update_option\s*\(/.test(tworzenie) || /\$wpdb->options/.test(tworzenie)) {
+      bledy.push(
+        `${PODPIS}: tworzenie soli pisze do \`wp_options\` (add_option/update_option albo surowo do \$wpdb->options). Od 0.5.0 sól mieszka w naszej tabeli \`ustawienia\` — zapis do tabeli rdzenia to przełamana granica wtyczki (AUD-ARCH-F1-001), a \`add_option()\` przy wyścigu NADPISUJE sól zwycięzcy (A7).`
+      );
+    }
+    if (!/ustawienie_utworz\s*\(/.test(tworzenie)) {
+      bledy.push(
+        `${PODPIS}: tworzenie soli nie idzie przez warstwę zapisu (\`Aai_Monitor_Zapis::ustawienie_utworz\`). Zapis obok niej nie ma gwarancji „pusty przy konflikcie” — przegrany wyścig kasowałby sól zwycięzcy, a sito odrzucałoby jego strony w milczeniu (A7).`
+      );
+    }
+  }
+  // Sól z tabeli ma być czytana PRZED sięgnięciem do starej opcji — inaczej
+  // migracja nigdy nie kończy się przejęciem, a kontrola świeci na zawsze.
+  if (tworzenie && tworzenie.indexOf("sol_z_tabeli") > tworzenie.indexOf("sol_z_opcji") ) {
+    bledy.push(`${PODPIS}: sol() pyta starą opcję PRZED własną tabelą — po migracji dalej rządzi wp_options, a tabela jest ozdobą.`);
+  }
+}
+if (existsSync(WARSTWA_ZAPISU)) {
+  const zapis = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+  const utworz = cialoMetody(zapis, "ustawienie_utworz");
+  if (null === utworz) {
+    bledy.push(`${WARSTWA_ZAPISU}: nie ma metody ustawienie_utworz() — sól nie ma jak powstać przez warstwę zapisu.`);
+  } else if (!/ON DUPLICATE KEY UPDATE\s+`?(\w+)`?\s*=\s*`?\1`?/.test(utworz) || /REPLACE\s+INTO|INSERT\s+IGNORE|VALUES\s*\(\s*`?wartosc`?\s*\)/i.test(utworz)) {
     bledy.push(
-      `${PODPIS}: sól podpisu powstaje zapisem, który NADPISUJE istniejącą wartość (A7). Przy wyścigu dwóch pierwszych żądań przegrany kasuje sól zwycięzcy, a strony wysłane przez zwycięzcę niosą już podpisy liczone starą solą — sito odrzuci je w milczeniu. Zapis ma być pusty przy konflikcie (\`ON DUPLICATE KEY UPDATE option_id = option_id\`), nie \`add_option()\`.`
-    );
+      `${WARSTWA_ZAPISU}: ustawienie_utworz() nie jest zapisem PUSTYM przy konflikcie (oczekuję \`ON DUPLICATE KEY UPDATE klucz = klucz\`, nie REPLACE/INSERT IGNORE/VALUES(wartosc)). Przy wyścigu dwóch pierwszych żądań przegrany nadpisałby sól zwycięzcy, a strony wysłane przez zwycięzcę niosą już podpisy liczone starą solą — sito odrzuci je w milczeniu (A7).`
+      );
+  }
+  if (utworz && !/\$wpdb->get_var\s*\(/.test(utworz)) {
+    bledy.push(`${WARSTWA_ZAPISU}: ustawienie_utworz() nie czyta wartości Z BAZY po zapisie — przegrany wyścigu dostałby własną, niezapisaną sól i podpisywał nią strony, których sito nie przyjmie (A7).`);
+  }
+}
+
+/* ——— 15c. (AUD-ARCH-F1-001) ŻADEN plik wtyczki nie pisze do tabel rdzenia ——— */
+
+/*
+ * Granica „wtyczka pisze tylko do swoich tabel" była do 0.5.0 przełamana
+ * w jednym miejscu (sól). Po naprawie pilnujemy, żeby drugie takie miejsce
+ * nie weszło po cichu: surowy INSERT/UPDATE/DELETE/REPLACE do
+ * `$wpdb->options|posts|postmeta|users|usermeta|comments|terms*` jest
+ * błędem w każdym pliku wtyczki. Odczyty (SELECT) są dozwolone.
+ */
+for (const [plik, tresc] of kodWtyczki) {
+  const m = tresc.match(/(INSERT\s+INTO|UPDATE|DELETE\s+FROM|REPLACE\s+INTO)\s+`?\{?\$wpdb->(options|posts|postmeta|users|usermeta|comments|commentmeta|terms|termmeta|term_taxonomy|term_relationships)\b/i);
+  if (m) {
+    bledy.push(`${plik}: pisze surowym SQL-em do tabeli rdzenia WordPressa (${m[1]} \$wpdb->${m[2]}). Wtyczka pisze wyłącznie do WŁASNYCH tabel; do cudzych — przez API właściciela (AUD-ARCH-F1-001).`);
   }
 }
 

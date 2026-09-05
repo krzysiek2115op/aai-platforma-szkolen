@@ -82,7 +82,7 @@
         <mxCell id="n26" value="PLUGIN 2 — aai-platnosci&lt;br&gt;14 klas · 2 tabele · 25 haków&lt;br&gt;&lt;br&gt;SZEW, nie kasa: kurs → produkt WooCommerce&lt;br&gt;cena efektywna · 4 stany przycisku zakupu&lt;br&gt;domykanie zamówienia · dwa maile dostarczenia&lt;br&gt;&lt;br&gt;WYMAGA: Pluginu 1, WooCommerce, Tutora" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#dae8fc;strokeColor=#3a6ea5;" vertex="1" parent="1">
           <mxGeometry x="615" y="385" width="430" height="165" as="geometry" />
         </mxCell>
-        <mxCell id="n27" value="PLUGIN 3 — aai-monitor&lt;br&gt;13 klas · 2 tabele · 10 haków&lt;br&gt;&lt;br&gt;dziennik logowań (90 dni, dane osobowe)&lt;br&gt;pomiar ruchu (400 dni, anonimowo)&lt;br&gt;ekran w kokpicie — czysty odczyt&lt;br&gt;&lt;br&gt;DZIAŁA SAM — rejestruje, niczego nie blokuje" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
+        <mxCell id="n27" value="PLUGIN 3 — aai-monitor&lt;br&gt;13 klas · 3 tabele · 10 haków&lt;br&gt;&lt;br&gt;dziennik logowań (90 dni, dane osobowe)&lt;br&gt;pomiar ruchu (400 dni, anonimowo)&lt;br&gt;ekran w kokpicie — czysty odczyt&lt;br&gt;&lt;br&gt;DZIAŁA SAM — rejestruje, niczego nie blokuje" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#ffe6cc;strokeColor=#c07830;" vertex="1" parent="1">
           <mxGeometry x="615" y="620" width="430" height="165" as="geometry" />
         </mxCell>
         <mxCell id="n28" value="KOLEJNOŚĆ INSTALACJI:  1 → 2 → 3&lt;br&gt;Plugin 2 bez Pluginu 1 nie ma czego sprzedawać.&lt;br&gt;Plugin 3 jest niezależny, ale idzie na końcu." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fontStyle=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
@@ -139,7 +139,7 @@
         <mxCell id="n45" value="WordPress&lt;br&gt;konta i hasła · adresy · mapa strony&lt;br&gt;kokpit · biblioteka mediów" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;verticalAlign=middle;align=center;fontSize=11;fillColor=#f0f0f0;strokeColor=#8a8a8a;" vertex="1" parent="1">
           <mxGeometry x="1145" y="580" width="350" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="d46" value="NASZE TABELE  (własny prefiks)&lt;br&gt;wp_aai_sklep_*     5 tabel&lt;br&gt;wp_aai_platnosci_* 2 tabele&lt;br&gt;wp_aai_monitor_*   2 tabele" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=12;fontStyle=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+        <mxCell id="d46" value="NASZE TABELE  (własny prefiks)&lt;br&gt;wp_aai_sklep_*     5 tabel&lt;br&gt;wp_aai_platnosci_* 2 tabele&lt;br&gt;wp_aai_monitor_*   3 tabele" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=12;fontStyle=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="1145" y="665" width="350" height="90" as="geometry" />
         </mxCell>
         <mxCell id="d47" value="TABELE WORDPRESSA, WOO I TUTORA&lt;br&gt;wp_posts · wp_users · wp_wc_orders …" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=12;fontStyle=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">

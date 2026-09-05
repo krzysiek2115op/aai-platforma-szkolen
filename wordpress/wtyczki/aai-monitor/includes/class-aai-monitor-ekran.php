@@ -29,9 +29,10 @@ defined( 'ABSPATH' ) || exit;
 final class Aai_Monitor_Ekran {
 
 	/**
-	 * Slug naszej podstrony.
+	 * Slug naszej podstrony — wartość ze stałej wtyczki, żeby klasy pytające
+	 * o slug nie musiały znać ekranu (patrz `AAI_MONITOR_STRONA`).
 	 */
-	public const STRONA = 'aai-monitor';
+	public const STRONA = AAI_MONITOR_STRONA;
 
 	/**
 	 * Uprawnienie: to samo, którym kreator wpuszcza do sklepu.

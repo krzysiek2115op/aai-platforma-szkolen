@@ -3639,18 +3639,61 @@ const MUTACJE = [
         : null,
   },
   {
-    // A7: `add_option()` nadpisuje sól zwycięzcy, a jego strony są już
-    // w przeglądarkach z podpisami liczonymi starą wartością.
+    // A7 + AUD-ARCH-F1-001: tworzenie soli wraca do `add_option()` —
+    // przegrany wyścig kasuje sól zwycięzcy I wtyczka znów pisze do wp_options.
     straznik: "straznik-monitora-wp",
-    opis: "sól podpisu wraca do add_option() — przegrany wyścig kasuje sól zwycięzcy",
+    opis: "sól podpisu wraca do add_option() — przegrany wyścig kasuje sól zwycięzcy, a wtyczka pisze do wp_options",
     plik: PODPIS_MONITORA,
     wymaga: () => existsSync(PODPIS_MONITORA),
-    oczekiwanySlad: "NADPISUJE istniejącą wartość",
+    oczekiwanySlad: "tworzenie soli pisze do `wp_options`",
+    zmien: (s) =>
+      s.includes("$zapisana = Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat );")
+        ? s.replace(
+            "$zapisana = Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat );",
+            "add_option( self::OPCJA_SOLI, $kandydat, '', true ); $zapisana = $kandydat;"
+          )
+        : null,
+  },
+  {
+    // AUD-ARCH-F1-001: surowy INSERT do tabeli rdzenia wraca — granica
+    // „wtyczka pisze tylko do swoich tabel" przełamana po cichu.
+    straznik: "straznik-monitora-wp",
+    opis: "tworzenie soli znów pisze surowym INSERT-em do $wpdb->options (zapis do tabeli rdzenia)",
+    plik: PODPIS_MONITORA,
+    wymaga: () => existsSync(PODPIS_MONITORA),
+    oczekiwanySlad: "tabeli rdzenia WordPressa",
+    zmien: (s) =>
+      s.includes("$zapisana = Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat );")
+        ? s.replace(
+            "$zapisana = Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat );",
+            "global $wpdb; $wpdb->query( $wpdb->prepare( \"INSERT INTO {$wpdb->options} (option_name, option_value) VALUES (%s, %s) ON DUPLICATE KEY UPDATE option_id = option_id\", self::OPCJA_SOLI, $kandydat ) ); $zapisana = $kandydat;"
+          )
+        : null,
+  },
+  {
+    // A7 w warstwie zapisu: zapis ustawienia przestaje być pusty przy konflikcie.
+    straznik: "straznik-monitora-wp",
+    opis: "zapis ustawienia nadpisuje przy konflikcie (VALUES(wartosc)) — przegrany wyścig kasuje sól zwycięzcy",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php"),
+    oczekiwanySlad: "nie jest zapisem PUSTYM",
+    zmien: (s) =>
+      s.includes("ON DUPLICATE KEY UPDATE `klucz` = `klucz`")
+        ? s.replace("ON DUPLICATE KEY UPDATE `klucz` = `klucz`", "ON DUPLICATE KEY UPDATE `wartosc` = VALUES(`wartosc`)")
+        : null,
+  },
+  {
+    // A7: wołający dostaje własną, niezapisaną wartość zamiast tej z bazy.
+    straznik: "straznik-monitora-wp",
+    opis: "zapis ustawienia oddaje wartość PROPONOWANĄ zamiast odczytanej z bazy — przegrany podpisuje własną solą",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php"),
+    oczekiwanySlad: "nie czyta wartości Z BAZY",
     zmien: (s) => {
-      const i = s.indexOf("\t\t$wpdb->query(\n\t\t\t$wpdb->prepare(\n\t\t\t\t\"INSERT INTO {$wpdb->options}");
+      const i = s.indexOf("\t\t\t$w_bazie = $wpdb->get_var(");
       if (i < 0) return null;
-      const j = s.indexOf("\t\treturn is_string( $zapisana )", i);
-      return j < 0 ? null : s.slice(0, i) + "\t\tadd_option( self::OPCJA_SOLI, $sol, '', true );\n\t\t$zapisana = get_option( self::OPCJA_SOLI );\n" + s.slice(j);
+      const j = s.indexOf("return is_string( $w_bazie )", i);
+      return j < 0 ? null : s.slice(0, i) + "\t\t\treturn $wartosc;\n\t\t\t" + s.slice(j);
     },
   },
   {

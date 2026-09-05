@@ -261,6 +261,52 @@ final class Aai_Monitor_Zapis {
 	}
 
 	/**
+	 * Zapisuje ustawienie WYŁĄCZNIE wtedy, gdy go jeszcze nie ma — i oddaje
+	 * wartość, która NAPRAWDĘ leży w bazie.
+	 *
+	 * To zapis dla wartości, które mają powstać raz i nigdy się nie zmienić
+	 * (dziś: sól podpisu ścieżek). Przy wyścigu dwóch pierwszych żądań
+	 * pierwszy pisarz wygrywa, reszta niczego nie rusza — `ON DUPLICATE KEY
+	 * UPDATE klucz = klucz` to zapis PUSTY przy konflikcie. Nie `INSERT
+	 * IGNORE`, bo ten ucisza WSZYSTKIE błędy zapisu, a my chcemy uciszyć
+	 * dokładnie jeden: „ten klucz już jest". Nie `add_option()`, bo ten przy
+	 * konflikcie NADPISUJE (option.php: `VALUES(option_value)`) — i to był
+	 * powód, dla którego sól do 0.5.0 leżała w `wp_options` wpisana surowym
+	 * INSERT-em, czyli zapisem do tabeli rdzenia (AUD-ARCH-F1-001).
+	 *
+	 * Odczyt zwrotny jest obowiązkowy: wołający ma używać wartości Z BAZY,
+	 * nie tej, którą próbował wpisać — przegrany wyścigu inaczej podpisywałby
+	 * własną solą strony, których sito nigdy nie przyjmie.
+	 *
+	 * @param string $klucz   Klucz ustawienia (≤ 64 znaki).
+	 * @param string $wartosc Wartość proponowana, gdy klucza jeszcze nie ma.
+	 * @return string|null Wartość z bazy po zapisie; `null`, gdy zapis i odczyt zawiodły.
+	 */
+	public static function ustawienie_utworz( string $klucz, string $wartosc ): ?string {
+		global $wpdb;
+		$t = Aai_Monitor_Tabele::tabela( 'ustawienia' );
+		try {
+			$wynik = $wpdb->query(
+				$wpdb->prepare(
+					"INSERT INTO `{$t}` (`klucz`, `wartosc`) VALUES (%s, %s) ON DUPLICATE KEY UPDATE `klucz` = `klucz`",
+					self::przytnij( $klucz, 64 ),
+					$wartosc
+				)
+			); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+			if ( false === $wynik ) {
+				self::zglos( 'nie udało się zapisać ustawienia „' . $klucz . '”: ' . $wpdb->last_error );
+			}
+			$w_bazie = $wpdb->get_var(
+				$wpdb->prepare( "SELECT `wartosc` FROM `{$t}` WHERE `klucz` = %s", self::przytnij( $klucz, 64 ) )
+			); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+			return is_string( $w_bazie ) && '' !== $w_bazie ? $w_bazie : null;
+		} catch ( Throwable $e ) {
+			self::zglos( 'nie udało się zapisać ustawienia „' . $klucz . '”: ' . $e->getMessage() );
+			return null;
+		}
+	}
+
+	/**
 	 * Kasuje wiersze starsze niż okno — obie tabele naraz.
 	 *
 	 * DRUGI WYZWALACZ retencji, obok zapisu: woła go ekran panelu, raz

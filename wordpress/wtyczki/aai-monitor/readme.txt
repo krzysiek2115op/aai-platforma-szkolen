@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -45,6 +45,13 @@ natywnym mechanizmem WordPressa (Narzędzia → Prywatność).
 Numeruje WERSJĘ WTYCZKI (stała `AAI_MONITOR_WERSJA` w pliku głównym), a nie
 wersję projektu — o tej mówi `CHANGELOG.md` w korzeniu repozytorium.
 
+= 0.5.0 =
+* Sól podpisu ścieżek mieszka we własnej tabeli `ustawienia`, nie w
+  `wp_options` — wtyczka nie pisze już do żadnej tabeli rdzenia. Istniejąca
+  sól jest przejmowana bez zmiany wartości, więc podpisy stron już
+  wysłanych do przeglądarek zostają ważne. Slug ekranu jest stałą wtyczki,
+  a nie klasy ekranu (koniec cyklu zależności między trzema klasami).
+
 = 0.4.0 =
 * Pomiar czasu czytania przestaje urywać się przy pierwszym przełączeniu
   karty, a kafelki ekranu podpisują własny okres, zamiast dzielić jeden
@@ -61,6 +68,6 @@ wersję projektu — o tej mówi `CHANGELOG.md` w korzeniu repozytorium.
   i wpis do polityki prywatności.
 
 = 0.1.0 =
-* Fundament: dwie tabele (`logowania` 90 dni, `wizyty` 400 dni), jedyna
+* Fundament: dwie tabele danych (`logowania` 90 dni, `wizyty` 400 dni), jedyna
   warstwa zapisu z retencją, ekran w kokpicie i kanał błędów.
   Odinstalowanie nie kasuje danych.
