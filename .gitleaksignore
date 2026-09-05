@@ -19,3 +19,26 @@
 # formularza, nie sekret — plik nie zawiera i nie zawierał żadnych danych
 # uwierzytelniających.
 8d10686d4f18787ada665fa07b6701f56b51078b:tools/smoke/smoke-wp-jezyk.mjs:generic-api-key:101
+
+# ── generic-api-key w audyt/wyniki/kontrola-0.65.0/PRIV.md ────────────────
+# Dział PRIV fali kontrolnej 0.65.0 rozlicza się w raporcie z KAŻDEGO wiersza,
+# który po sobie zostawił. Jednym z nich była sesja gościa WooCommerce, więc
+# w tabeli „kod wyjścia” stoi dosłowna komenda, która ją skasowała — razem
+# z 30-znakowym `session_key`. Gitleaks widzi ciąg heksadecymalny przy słowie
+# `key` i dopasowuje go jako klucz API.
+#
+# DLACZEGO TO NIE JEST SEKRET — zmierzone, nie założone:
+#   1. to identyfikator sesji GOŚCIA z lokalnego warsztatu `127.0.0.1:8892`,
+#      który nigdy nie był publiczny;
+#   2. wiersz JUŻ NIE ISTNIEJE — skasowała go ta sama komenda, którą cytuje
+#      dokument. Sprawdzone zapytaniem: `SELECT COUNT(*) FROM
+#      wp_woocommerce_sessions WHERE session_key='t_d101…'` zwraca `0`;
+#   3. wartość nie występuje w ŻADNYM pliku drzewa roboczego (`grep -r`
+#      po całym repo poza `.git`) — żyje wyłącznie w historii gita, więc
+#      wyciszenie fingerprintu jest jedyną drogą bez przepisywania historii
+#      wypchniętej gałęzi sektora.
+#
+# Sesja WooCommerce nie uwierzytelnia konta ani usługi: to koszyk gościa.
+# Gdyby kiedyś doszedł tu wiersz z prawdziwym sekretem, fingerprint jest
+# przypięty do JEDNEGO commita i JEDNEJ linii, więc skan zapali się na nowo.
+fe136732db314c0f56e1ef74605fc4302585ce60:audyt/wyniki/kontrola-0.65.0/PRIV.md:generic-api-key:64
