@@ -84,6 +84,25 @@ final class Aai_Platnosci_Dostarczanie {
 		 * (`WooCommerce::mark_order_complete()`).
 		 */
 		add_action( 'woocommerce_order_status_processing', array( self::class, 'domknij' ), 20, 2 );
+
+		/*
+		 * SKASOWANIE zamówienia, a nie zmiana jego statusu (AUD-INT-F1-001).
+		 *
+		 * Tutor odbiera dostęp WYŁĄCZNIE reagując na `woocommerce_order_status_changed`
+		 * (`WooCommerce::enrolled_courses_status_change`), a ten hak nie odpala się,
+		 * gdy zamówienie znika w całości. Skutek zmierzony uruchomieniowo na obu
+		 * kursach katalogu: zapis `tutor_enrolled` zostaje na zawsze `completed`,
+		 * więc klient, którego zamówienie skasowano — przez pomyłkę administratora,
+		 * przez retencję RODO WooCommerce (`woocommerce_trash_pending_orders`) albo
+		 * przy porządkach — zachowuje dostęp do kursu bez śladu zakupu.
+		 *
+		 * Dwa haki, bo instalacja może stać na obu magazynach zamówień:
+		 * `woocommerce_before_delete_order` (HPOS, własne tabele `wp_wc_orders`)
+		 * oraz `before_delete_post` (magazyn starszy, zamówienia we `wp_posts`).
+		 * Oba biegną PRZED usunięciem, więc powiązania jeszcze istnieją.
+		 */
+		add_action( 'woocommerce_before_delete_order', array( self::class, 'zamowienie_znika' ), 10, 1 );
+		add_action( 'before_delete_post', array( self::class, 'zamowienie_znika' ), 10, 1 );
 	}
 
 	/**
@@ -200,6 +219,74 @@ final class Aai_Platnosci_Dostarczanie {
 	 * @param WC_Order $order Zamówienie.
 	 * @return bool
 	 */
+	/**
+	 * Odbiera dostęp do kursów, gdy zamówienie jest kasowane.
+	 *
+	 * Wywoływana z DWÓCH haków (HPOS i magazyn starszy), więc musi być
+	 * odporna na wywołanie dla czegokolwiek — `before_delete_post` odpala się
+	 * przy usuwaniu KAŻDEGO wpisu WordPressa, nie tylko zamówienia.
+	 *
+	 * Nie odbieramy dostępu sami: prosimy o to Tutora jego własnym API
+	 * (`course_enrol_status_change`), tym samym, którego używa przy zwrocie.
+	 * Dzięki temu jego księgowość i liczniki widzą to jak każde inne cofnięcie,
+	 * a my nie tworzymy drugiej definicji tego, co znaczy „dostęp odebrany".
+	 *
+	 * `Throwable`, bo ta metoda biegnie w środku usuwania zamówienia
+	 * w panelu administratora — nasz błąd nie może wywrócić cudzej operacji
+	 * ani zostawić zamówienia w połowie skasowanego.
+	 *
+	 * @param int $id_zamowienia Id kasowanego zamówienia (albo dowolnego wpisu).
+	 * @return void
+	 */
+	public static function zamowienie_znika( $id_zamowienia ): void {
+		try {
+			$id_zamowienia = (int) $id_zamowienia;
+
+			if ( $id_zamowienia <= 0 || ! function_exists( 'tutor_utils' ) ) {
+				return;
+			}
+
+			/*
+			 * NAJPIERW `wc_get_order()`, DOPIERO POTEM `is_tutor_order()`.
+			 * Ta metoda biegnie z `before_delete_post`, czyli dostaje KAŻDY
+			 * kasowany wpis WordPressa — stronę, załącznik, lekcję. Tutorowe
+			 * `is_tutor_order()` robi `->get_meta()` na wyniku `wc_get_order()`
+			 * BEZ sprawdzenia, czy zamówienie istnieje, więc na cudzym
+			 * identyfikatorze daje fatal: biały ekran zamiast skasowanego wpisu
+			 * (pułapka 14 schematu Pluginu 2).
+			 */
+			if ( ! function_exists( 'wc_get_order' ) || ! wc_get_order( $id_zamowienia ) ) {
+				return;
+			}
+
+			if ( ! tutor_utils()->is_tutor_order( $id_zamowienia ) ) {
+				return;
+			}
+
+			$zapisy = tutor_utils()->get_course_enrolled_ids_by_order_id( $id_zamowienia );
+
+			if ( ! is_array( $zapisy ) || array() === $zapisy ) {
+				return;
+			}
+
+			foreach ( $zapisy as $zapis ) {
+				$id_zapisu = (int) ( $zapis['enrolled_id'] ?? 0 );
+
+				if ( $id_zapisu > 0 ) {
+					tutor_utils()->course_enrol_status_change( $id_zapisu, 'cancelled' );
+				}
+			}
+		} catch ( Throwable $e ) {
+			Aai_Platnosci_Komunikaty::zapisz(
+				sprintf(
+					'nie udało się odebrać dostępu po skasowaniu zamówienia %d: %s',
+					(int) $id_zamowienia,
+					$e->getMessage()
+				)
+			);
+		}
+	}
+
 	private static function same_kursy( WC_Order $order ): bool {
 		$kursow = 0;
 		foreach ( $order->get_items() as $pozycja ) {

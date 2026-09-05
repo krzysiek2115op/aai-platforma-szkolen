@@ -216,6 +216,21 @@ if [ "$(wpcli option get woocommerce_bacs_settings --format=json 2>/dev/null | g
   wpcli eval '$u = (array) get_option( "woocommerce_bacs_settings", array() ); $u["enabled"] = "yes"; $u["title"] = "Przelew bankowy"; update_option( "woocommerce_bacs_settings", $u );'
 fi
 
+# WALUTA. WooCommerce startuje z `USD` i NIGDY nie pyta o zmianę, a nasze
+# szablony drukują ceny w złotówkach na sztywno (`299,00 zł`). Rozjazd jest
+# niewidoczny na stronie kursu i wychodzi dopiero W KASIE, na której klient
+# płaci: Store API oddawało `currency_code: USD, currency_symbol: $` przy tej
+# samej kwocie, którą oferta podaje w złotych (AUD-WDR-F1-004).
+# To ustawienie ŚRODOWISKA, nie wtyczki — ale bez niego warsztat mierzy
+# ścieżkę zakupu, której klient nigdy nie zobaczy.
+if [ "$(wpcli option get woocommerce_currency 2>/dev/null || true)" != "PLN" ]; then
+  komunikat "Ustawiam walutę sklepu na PLN"
+  wpcli option update woocommerce_currency PLN >/dev/null
+  wpcli option update woocommerce_currency_pos right_space >/dev/null
+  wpcli option update woocommerce_price_decimal_sep ',' >/dev/null
+  wpcli option update woocommerce_price_thousand_sep ' ' >/dev/null
+fi
+
 # --- 7. treść strony głównej (menu, strony, blog) --------------------------
 #
 # Bez niej nie da się sprawdzić najważniejszej rzeczy w tym etapie:
