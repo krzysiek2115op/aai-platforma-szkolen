@@ -1435,6 +1435,70 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/*
+ * DOSTAWA, KTÓREJ NIE DA SIĘ PONOWIĆ, MA DROGĘ WYJŚCIA — I MA POWÓD.
+ *
+ * Kontrola melduje kodem 1 każdą dostawę, która nie doszła do skutku, i podaje
+ * komendę naprawy. Są jednak wpisy, których ponowić NIE DA SIĘ NIGDY —
+ * zmierzone na żywej instalacji: `dostep/<id>` z pustym wynikiem („zdarzenie
+ * »dostep« nie jest mailem — nie ma czego ponawiać") i `mail_konta/<id>` konta,
+ * które skasowano („konto już nie istnieje"). Kontrola świeciła przy nich
+ * czerwono NA ZAWSZE, każąc uruchamiać komendę, która nie mogła pomóc.
+ * A `wp aai-platnosci sprawdz` jest punktem kontrolnym `postaw.sh`, czyli
+ * KROKU ZEROWEGO każdego testu ręcznego — jeden taki wiersz blokował stawianie
+ * środowiska.
+ *
+ * Reguła pilnuje DWÓCH decyzji, które ta droga wyjścia niesie:
+ *   1. kontrola UZNAJE zamknięcie ręczne — bez tego wyjścia nie ma wcale;
+ *   2. zamknięcie WYMAGA powodu — i to jest cała różnica między
+ *      rozstrzygnięciem a zamiataniem pod dywan. Wiersz zostaje w dzienniku
+ *      i ma mówić, co się naprawdę stało.
+ */
+{
+  const PLIK_CLI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php";
+  const PLIK_MAILI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php";
+
+  if (!existsSync(PLIK_CLI) || !existsSync(PLIK_MAILI)) {
+    bledy.push(`${PLIK_CLI}: nie znalazłem plików komendy i maili — reguła o zamykaniu dostaw nie ma czego sprawdzić.`);
+  } else {
+    const cli = kod(readFileSync(PLIK_CLI, "utf8"));
+    const maile = kod(readFileSync(PLIK_MAILI, "utf8"));
+
+    if (!/function\s+zamkniety_recznie\s*\(/.test(maile)) {
+      bledy.push(
+        `${PLIK_MAILI}: nie ma rozpoznania dostawy zamkniętej ręcznie. Bez niego wpis, którego NIE DA SIĘ ponowić (dostep bez wyniku, mail konta skasowanego), trzyma kontrolę na kodzie 1 na zawsze — a kontrola jest punktem kontrolnym postaw.sh.`
+      );
+    }
+
+    const orzeka = cli.match(/function\s+czy_dostawa_w_porzadku\s*\([^)]*\)[^{]*\{([\s\S]*?)\n\t\}/);
+    if (!orzeka) {
+      bledy.push(
+        `${PLIK_CLI}: nie znalazłem czy_dostawa_w_porzadku() — samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+      );
+    } else if (!/zamkniety_recznie\s*\(/.test(orzeka[1])) {
+      bledy.push(
+        `${PLIK_CLI}: kontrola nie uznaje dostawy zamkniętej ręcznie, więc wpis nie do ponowienia świeci na czerwono na zawsze i blokuje postaw.sh — czyli krok zerowy każdego testu ręcznego.`
+      );
+    }
+
+    const komenda = cli.match(/\$zamknij\s*=[\s\S]*?\n\t\t\}/);
+    if (!komenda) {
+      bledy.push(
+        `${PLIK_CLI}: nie ma komendy zamykającej dostawę ręcznie — kontrola wskazuje wyjście, którego nie ma. Samokontrola zakresu.`
+      );
+      // PYTAMY O ROZSTRZYGNIĘCIE, NIE O SŁOWO. Pierwsza wersja sprawdzała,
+      // czy w bloku pada „powod" i czy jest gdziekolwiek `WP_CLI::error(` —
+      // a oba warunki są spełnione także wtedy, gdy powód dostaje wartość
+      // domyślną i nikt o niego nie pyta (test negatywny przeszedł na
+      // zielono). Pytamy więc o ODMOWĘ przy pustym powodzie.
+    } else if (!/''\s*===\s*\$powod[\s\S]{0,200}?WP_CLI::error\s*\(/.test(komenda[0])) {
+      bledy.push(
+        `${PLIK_CLI}: zamknięcie ręczne nie ODMAWIA przy pustym powodzie. Wtedy przestaje być rozstrzygnięciem, a staje się kasowaniem śladu: wiersz zostaje w dzienniku i ma mówić, DLACZEGO uznano sprawę za załatwioną.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1442,5 +1506,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem)."
 );

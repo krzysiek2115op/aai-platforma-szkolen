@@ -4431,6 +4431,39 @@ const MUTACJE = [
       return s.includes(a) ? s.replace(a, "") : null;
     },
   },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola przestaje uznawać dostawę zamkniętą ręcznie — wpis nie do ponowienia blokuje postaw.sh na zawsze",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    oczekiwanySlad: "nie uznaje dostawy zamkniętej",
+    zmien: (s) => {
+      const a = "\t\tif ( Aai_Platnosci_Maile::zamkniety_recznie( $wynik ) ) {\n\t\t\treturn true;\n\t\t}\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "zamknięcie dostawy przestaje odmawiać przy pustym powodzie — rozstrzygnięcie zamienia się w kasowanie śladu",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    oczekiwanySlad: "nie ODMAWIA przy pustym powodzie",
+    zmien: (s) => {
+      const a = "\t\t\tif ( '' === $powod ) {";
+      return s.includes(a) ? s.replace(a, "\t\t\tif ( false ) {") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "znika rozpoznanie dostawy zamkniętej ręcznie (samokontrola zakresu)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "rozpoznania dostawy zamkniętej",
+    zmien: (s) =>
+      s.includes("public static function zamkniety_recznie(")
+        ? s.replace("public static function zamkniety_recznie(", "public static function zamkniety_recznie_inaczej(")
+        : null,
+  },
 ];
 
 

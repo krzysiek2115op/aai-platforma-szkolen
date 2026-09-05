@@ -255,10 +255,21 @@ final class Aai_Platnosci_Cli {
 	 * którą mail wychodzi drugi raz — znacznik broni przed duplikatem
 	 * z cudzej rekurencji, nie przed decyzją właściciela.
 	 *
+	 * [--zamknij=<zdarzenie-ukosnik-id>]
+	 * : Uznaj dostawę za rozstrzygniętą, gdy ponowić się jej NIE DA:
+	 * `dostep/<id>` nie jest mailem, a konto z `mail_konta/<id>` mogło
+	 * zostać skasowane. Bez tej drogi kontrola świeciła przy takim wpisie
+	 * czerwono na zawsze i blokowała `postaw.sh`. Wymaga `--powod`.
+	 *
+	 * [--powod=<tekst>]
+	 * : Dlaczego sprawa jest rozstrzygnięta. Obowiązkowy przy `--zamknij` —
+	 * wiersz ZOSTAJE w dzienniku i ma mówić, co się naprawdę stało.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp aai-platnosci dostawy
 	 *     wp aai-platnosci dostawy --ponow=mail_konta/41
+	 *     wp aai-platnosci dostawy --zamknij=dostep/41 --powod="klient ma dostęp, sprawdzone ręcznie"
 	 *
 	 * @when after_wp_load
 	 *
@@ -269,6 +280,45 @@ final class Aai_Platnosci_Cli {
 		unset( $args );
 		if ( ! Aai_Platnosci_Tabele::istnieja() ) {
 			WP_CLI::error( 'brak tabel wtyczki — aktywuj ją ponownie.' );
+		}
+
+		/*
+		 * ZAMKNIĘCIE RĘCZNE — jedyna droga wyjścia dla dostawy, której NIE DA
+		 * SIĘ ponowić. Zmierzone dead endy: `dostep/<id>` z pustym wynikiem
+		 * („zdarzenie »dostep« nie jest mailem") i `mail_konta/<id>` konta,
+		 * którego już nie ma („konto już nie istnieje"). Kontrola świeciła
+		 * przy nich czerwono NA ZAWSZE i kazała uruchamiać komendę, która
+		 * nie mogła pomóc — a jest punktem kontrolnym `postaw.sh`, czyli
+		 * kroku zerowego każdego testu ręcznego.
+		 *
+		 * POWÓD JEST OBOWIĄZKOWY i to jest cała różnica między zamknięciem
+		 * a zamiataniem pod dywan: wiersz zostaje w dzienniku i mówi, KTO
+		 * uznał sprawę za rozstrzygniętą i DLACZEGO. Zamykamy wyłącznie
+		 * wpisy, które już są w dzienniku — ta sama ochrona co przy
+		 * ponawianiu.
+		 */
+		$zamknij = (string) ( $opcje['zamknij'] ?? '' );
+		if ( '' !== $zamknij ) {
+			$powod = trim( (string) ( $opcje['powod'] ?? '' ) );
+			if ( '' === $powod ) {
+				WP_CLI::error( 'zamknięcie ręczne wymaga --powod="…" — wpis zostaje w dzienniku i ma mówić, dlaczego uznano sprawę za rozstrzygniętą.' );
+			}
+			$czesci = explode( '/', $zamknij, 2 );
+			if ( 2 !== count( $czesci ) || '' === $czesci[0] || ! ctype_digit( $czesci[1] ) ) {
+				WP_CLI::error( 'oczekiwałem postaci `zdarzenie/id`, np. dostep/41.' );
+			}
+			$zdarzenie     = $czesci[0];
+			$identyfikator = (int) $czesci[1];
+			if ( ! Aai_Platnosci_Zapis::dostawa_istnieje( $zdarzenie, $identyfikator ) ) {
+				WP_CLI::error( sprintf( 'dziennik nie zna dostawy %s/%d — zamykamy wyłącznie wpisy, które w nim są.', $zdarzenie, $identyfikator ) );
+			}
+			Aai_Platnosci_Zapis::dostawa_wynik(
+				$zdarzenie,
+				$identyfikator,
+				Aai_Platnosci_Maile::WYNIK_ZAMKNIETY . $powod
+			);
+			WP_CLI::success( sprintf( 'zamknięte ręcznie: %s — %s', $zamknij, $powod ) );
+			return;
 		}
 
 		$ponow = (string) ( $opcje['ponow'] ?? '' );
@@ -320,6 +370,12 @@ final class Aai_Platnosci_Cli {
 	 * @param string $wynik     Zapisany rezultat.
 	 */
 	private static function czy_dostawa_w_porzadku( string $zdarzenie, string $wynik ): bool {
+		// Rozstrzygnięcie CZŁOWIEKA, z powodem w treści — patrz
+		// `Aai_Platnosci_Maile::WYNIK_ZAMKNIETY`. Dotyczy każdego zdarzenia,
+		// bo dead endy trafiały się w obu rodzinach (dostęp i maile).
+		if ( Aai_Platnosci_Maile::zamkniety_recznie( $wynik ) ) {
+			return true;
+		}
 		if ( Aai_Platnosci_Maile::ZDARZENIE_DOSTEP === $zdarzenie ) {
 			return '' !== $wynik;
 		}
@@ -359,11 +415,20 @@ final class Aai_Platnosci_Cli {
 			if ( self::czy_dostawa_w_porzadku( (string) $w->zdarzenie, (string) $w->wynik ) ) {
 				continue;
 			}
+			/*
+			 * Komunikat podaje OBIE drogi, bo ponowienie nie zawsze jest
+			 * możliwe: `dostep` nie jest mailem, a konto z maila 1 mogło
+			 * zostać skasowane. Do 2026-09-05 stała tu tylko pierwsza droga
+			 * i przy takim wpisie kontrola świeciła czerwono NA ZAWSZE,
+			 * blokując `postaw.sh`.
+			 */
 			$bledy[] = sprintf(
-				'dostawa %s/%d NIE doszła do skutku (%s). Napraw: wp aai-platnosci dostawy --ponow=%s/%d',
+				'dostawa %s/%d NIE doszła do skutku (%s). Ponów: wp aai-platnosci dostawy --ponow=%s/%d — a jeśli ponowić się nie da (dostęp przyznany inaczej, konto skasowane), zamknij z powodem: wp aai-platnosci dostawy --zamknij=%s/%d --powod="…"',
 				$w->zdarzenie,
 				$w->identyfikator,
 				'' === $w->wynik ? 'brak potwierdzenia wysyłki — żądanie padło między znacznikiem a wysyłką' : $w->wynik,
+				$w->zdarzenie,
+				$w->identyfikator,
 				$w->zdarzenie,
 				$w->identyfikator
 			);

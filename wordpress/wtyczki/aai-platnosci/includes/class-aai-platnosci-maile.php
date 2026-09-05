@@ -80,6 +80,38 @@ final class Aai_Platnosci_Maile {
 	public const WYNIK_POMINIETY = 'pominięto: opłacone od razu — link do hasła jedzie w mailu o kursie';
 
 	/**
+	 * Przedrostek wyniku zamkniętego RĘCZNIE przez człowieka.
+	 *
+	 * PO CO TO ISTNIEJE. Kontrola melduje kodem 1 każdą dostawę, która nie
+	 * doszła do skutku, i podaje komendę naprawy: `dostawy --ponow=…`. Są
+	 * jednak wpisy, których ponowić NIE DA SIĘ NIGDY — zmierzone na żywej
+	 * instalacji:
+	 *   · `dostep/<id>` z pustym wynikiem: `ponow()` odpowiada „zdarzenie
+	 *     »dostep« nie jest mailem — nie ma czego ponawiać";
+	 *   · `mail_konta/<id>` konta, którego już nie ma: „konto <id> już nie
+	 *     istnieje".
+	 * Kontrola świeciła wtedy na czerwono NA ZAWSZE, każąc uruchamiać
+	 * komendę, która nie mogła pomóc. A `wp aai-platnosci sprawdz` jest
+	 * punktem kontrolnym `postaw.sh`, czyli KROKU ZEROWEGO każdego testu
+	 * ręcznego — jeden taki wiersz blokował stawianie środowiska.
+	 *
+	 * Zamknięcie ręczne NIE JEST ukryciem błędu: wiersz zostaje w dzienniku,
+	 * niesie datę i POWÓD podany przez człowieka, a powodu nie da się
+	 * pominąć. To zapis decyzji („sprawdziłem, klient dostał dostęp inną
+	 * drogą"), a nie kasowanie śladu.
+	 */
+	public const WYNIK_ZAMKNIETY = 'zamknięte ręcznie: ';
+
+	/**
+	 * Czy wynik znaczy „człowiek to rozstrzygnął i opisał".
+	 *
+	 * @param string $wynik Zapisany rezultat.
+	 */
+	public static function zamkniety_recznie( string $wynik ): bool {
+		return str_starts_with( $wynik, self::WYNIK_ZAMKNIETY );
+	}
+
+	/**
 	 * Wiadomości zgłoszone do wysłania na końcu żądania.
 	 *
 	 * @var array<string,callable>
@@ -343,10 +375,16 @@ final class Aai_Platnosci_Maile {
 		}
 		Aai_Platnosci_Komunikaty::zapisz(
 			sprintf(
-				'wiadomość %s/%d NIE wyszła (%s) — klient jej nie dostał. Ponów: wp aai-platnosci dostawy --ponow=%s/%d',
+				// Obie drogi, tak samo jak w komunikacie kontroli: ponowienie
+				// bywa NIEMOŻLIWE (konto skasowane), a wtedy jedynym wyjściem
+				// jest zamknięcie z powodem — inaczej komunikat zostaje na
+				// ekranie właściciela na zawsze.
+				'wiadomość %s/%d NIE wyszła (%s) — klient jej nie dostał. Ponów: wp aai-platnosci dostawy --ponow=%s/%d — a jeśli ponowić się nie da, zamknij z powodem: wp aai-platnosci dostawy --zamknij=%s/%d --powod="…"',
 				$zdarzenie,
 				$identyfikator,
 				$wynik,
+				$zdarzenie,
+				$identyfikator,
 				$zdarzenie,
 				$identyfikator
 			),
