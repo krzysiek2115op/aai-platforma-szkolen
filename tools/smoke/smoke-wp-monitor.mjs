@@ -621,11 +621,38 @@ sprawdz(
   `wartość wpisana w pole loginu trafiła do dziennika DOSŁOWNIE — a bywa nią hasło (A1). W polu „login” zapisano: „${poSekrecie[0]?.login}”. Nieistniejące konto ma być maskowane; istniejące zostaje dosłownie, bo to sedno pytania „kogo próbowano podszyć”.`
 );
 sprawdz(
-  (poSekrecie[0]?.login ?? "").startsWith(SEKRET.slice(0, 3)),
-  "zamaskowany login stracił początek — wtedy nie widać wzorca ataku (adm…, roo…, tes…), a po to ta kolumna istnieje"
+  !(poSekrecie[0]?.login ?? "").includes(SEKRET.slice(0, 3)),
+  `wartość, która NIE JEST loginem (ma znak spoza \`sanitize_user\`), zostawiła w dzienniku swój początek: „${poSekrecie[0]?.login}”. W pole loginu trafia czasem hasło (A1) — wtedy każdy zachowany znak jest fragmentem sekretu na 90 dni, wbrew zdaniu polityki „Nie zapisujemy haseł ani ich fragmentów”. Wzorzec ataku (adm…, roo…) zostaje przy wartościach, które loginem być mogą — to sprawdza asercja niżej`
 );
 
 /* A1, druga strona: ISTNIEJĄCE konto zapisujemy dosłownie. */
+/*
+ * DRUGA POŁOWA A1 — wzorzec ataku ma przetrwać.
+ * Maskowanie sekretu nie może zabrać kolumnie sensu: wartość, która MOŻE być
+ * loginem (przechodzi `sanitize_user` w trybie ścisłym bez zmiany), zostawia
+ * początek, bo po to ta kolumna istnieje. Bez tej asercji naprawa wycieku
+ * mogłaby wyciszyć dziennik w całości i nikt by tego nie zauważył.
+ */
+const WZORZEC_ATAKU = "administrator_probny";
+const przedWzorcem = maxId();
+await gosc2().pobierz("/wp-login.php");
+await gosc2().pobierz("/wp-login.php", {
+  method: "POST",
+  headers: { "content-type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    log: WZORZEC_ATAKU,
+    pwd: "nieistotne",
+    "wp-submit": "Zaloguj",
+    testcookie: "1",
+  }).toString(),
+});
+const poWzorcu = nowszeNiz(przedWzorcem);
+sprawdz(
+  (poWzorcu[0]?.login ?? "").startsWith(WZORZEC_ATAKU.slice(0, 3)) &&
+    (poWzorcu[0]?.login ?? "").includes(String(WZORZEC_ATAKU.length)),
+  `wartość mogąca być loginem straciła początek: „${poWzorcu[0]?.login}” — wtedy nie widać wzorca ataku (adm…, roo…, tes…), a po to ta kolumna istnieje`
+);
+
 const przedIstniejacym = maxId();
 await gosc2().pobierz("/wp-login.php", {
   method: "POST",
@@ -1157,36 +1184,38 @@ for (const [opis, opcje] of odrzuty) {
   );
 }
 
-/* 10c9. PO WYŚCIGU O SÓL WSZYSCY PODPISUJĄ TĄ SAMĄ (A7).
+/* 10c9. PO WYŚCIGU O SÓL WSZYSCY PODPISUJĄ TĄ SAMĄ (A7) — I SÓL MIESZKA U NAS.
  *
  * Sól podpisu powstaje leniwie, przy pierwszym użyciu. Gdy dwa żądania
- * trafią w ten moment naraz, `add_option()` pisze `INSERT … ON DUPLICATE
- * KEY UPDATE` (zmierzone w kodzie WordPressa) — czyli NADPISUJE sól tego,
- * kto zdążył pierwszy, choć jego strony są już w przeglądarkach i noszą
- * podpisy liczone starą wartością. Sito odrzuca je potem w milczeniu:
- * beacon odpowiada 204 zawsze.
+ * trafią w ten moment naraz, przegrany NIE MOŻE nadpisać soli zwycięzcy —
+ * strony zwycięzcy są już w przeglądarkach i noszą podpisy liczone jego
+ * wartością, a sito odrzuciłoby je w milczeniu (beacon odpowiada 204
+ * zawsze). Do 0.5.0 sól leżała w `wp_options` wpisana surowym INSERT-em
+ * do tabeli rdzenia, bo `add_option()` przy konflikcie nadpisuje; od 0.5.0
+ * mieszka we WŁASNEJ tabeli `ustawienia` (AUD-ARCH-F1-001), a zapis idzie
+ * przez warstwę zapisu i jest pusty przy konflikcie.
  *
- * ODTWORZENIE PRZEGRANEGO MUSI BYĆ WIERNE i pierwsza wersja tego pomiaru
- * wierna NIE BYŁA — wstawiała cudzą sól do bazy, a potem czyściła pamięć
- * `alloptions`, więc nasz proces natychmiast ją WIDZIAŁ i nigdy nie
- * wchodził w gałąź tworzenia. Sprawdzenie przechodziło na zielono także
- * na kodzie sprzed naprawy, czyli nie mierzyło niczego. Kolejność ma
- * znaczenie: najpierw ładujemy pamięć BEZ soli, dopiero potem zwycięzca
- * wstawia swój wiersz.
- *
- * Na koniec przywracamy sól instalacji — inaczej unieważnilibyśmy podpisy
- * stron wyrenderowanych wcześniej w tym przebiegu. */
+ * ODTWORZENIE PRZEGRANEGO MUSI BYĆ WIERNE: najpierw zdejmujemy wiersz
+ * soli z tabeli I starą opcję (inaczej `sol()` nie wejdzie w gałąź
+ * tworzenia), dopiero potem zwycięzca wstawia swój wiersz, a nasz proces
+ * próbuje wstawić własny. Na koniec przywracamy sól instalacji co do
+ * znaku — inaczej unieważnilibyśmy podpisy stron wyrenderowanych
+ * wcześniej w tym przebiegu. */
 {
   const wynik = phpEval(
-    "global $wpdb; $o = 'aai_monitor_sol_podpisu'; $oryginal = get_option( $o );" +
-      " delete_option( $o );" +
-      " wp_load_alloptions();" +
-      " $wpdb->insert( $wpdb->options, array( 'option_name' => $o, 'option_value' => 'SOL_ZWYCIEZCY', 'autoload' => 'yes' ) );" +
+    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('ustawienia'); $o = 'aai_monitor_sol_podpisu';" +
+      " $orygTab = $wpdb->get_var( $wpdb->prepare( \"SELECT wartosc FROM `{$t}` WHERE klucz = %s\", 'sol_podpisu' ) );" +
+      " $orygOpc = get_option( $o );" +
+      " $wpdb->delete( $t, array( 'klucz' => 'sol_podpisu' ) ); delete_option( $o ); wp_cache_delete( 'alloptions', 'options' );" +
+      " $wpdb->insert( $t, array( 'klucz' => 'sol_podpisu', 'wartosc' => 'SOL_ZWYCIEZCY' ) );" +
       " $m = new ReflectionMethod( 'Aai_Monitor_Podpis', 'sol' ); $m->setAccessible( true ); $uzyta = $m->invoke( null );" +
-      " $wbazie = $wpdb->get_var( $wpdb->prepare( \"SELECT option_value FROM {$wpdb->options} WHERE option_name = %s\", $o ) );" +
-      " delete_option( $o ); if ( is_string( $oryginal ) && '' !== $oryginal ) { add_option( $o, $oryginal, '', true ); }" +
-      " wp_cache_delete( 'alloptions', 'options' );" +
-      " echo $uzyta, '|', $wbazie, '|', ( get_option( $o ) === $oryginal ? 'przywrocona' : 'ZGUBIONA' );"
+      " $wbazie = $wpdb->get_var( $wpdb->prepare( \"SELECT wartosc FROM `{$t}` WHERE klucz = %s\", 'sol_podpisu' ) );" +
+      " $wopcji = get_option( $o, 'BRAK' );" +
+      " $wpdb->delete( $t, array( 'klucz' => 'sol_podpisu' ) );" +
+      " if ( is_string( $orygTab ) && '' !== $orygTab ) { $wpdb->insert( $t, array( 'klucz' => 'sol_podpisu', 'wartosc' => $orygTab ) ); }" +
+      " if ( is_string( $orygOpc ) && '' !== $orygOpc ) { add_option( $o, $orygOpc, '', true ); } wp_cache_delete( 'alloptions', 'options' );" +
+      " $poTab = $wpdb->get_var( $wpdb->prepare( \"SELECT wartosc FROM `{$t}` WHERE klucz = %s\", 'sol_podpisu' ) );" +
+      " echo $uzyta, '|', $wbazie, '|', $wopcji, '|', ( $poTab === $orygTab && get_option( $o ) === $orygOpc ? 'przywrocona' : 'ZGUBIONA' );"
   ).stdout.trim().split("|");
   sprawdz(
     wynik[0] === "SOL_ZWYCIEZCY",
@@ -1196,7 +1225,54 @@ for (const [opis, opcje] of odrzuty) {
     wynik[1] === "SOL_ZWYCIEZCY",
     "przegrany NADPISAŁ sól zwycięzcy — unieważnia tym podpisy wszystkich stron, które ten zdążył wysłać do przeglądarek (A7)"
   );
-  sprawdz(wynik[2] === "przywrocona", "pomiar nie oddał instalacji jej własnej soli — unieważniłby podpisy stron wyrenderowanych wcześniej");
+  sprawdz(
+    wynik[2] === "BRAK",
+    "tworzenie soli ZAPISAŁO coś do wp_options — od 0.5.0 sól mieszka wyłącznie w naszej tabeli `ustawienia`, a zapis do tabeli rdzenia to przełamana granica wtyczki (AUD-ARCH-F1-001)"
+  );
+  sprawdz(wynik[3] === "przywrocona", "pomiar nie oddał instalacji jej własnej soli — unieważniłby podpisy stron wyrenderowanych wcześniej");
+}
+
+/* 10c9b. MIGRACJA SOLI JEST FALLBACKIEM: wartość ze starej opcji jest
+ * PRZEJMOWANA do tabeli CO DO ZNAKU, więc aktualizacja z 0.4.0 nie zmienia
+ * soli ani na chwilę. Odtwarzamy instalację sprzed 0.5.0 (opcja jest, wiersza
+ * w tabeli nie ma), wołamy sol() i sprawdzamy trzy rzeczy: użyta wartość =
+ * stara, w tabeli = stara, a kontrola PRZED przejęciem świeci kodem 1 (stan po
+ * aktualizacji ma być widoczny, nie domniemany), PO przejęciu kodem 0. */
+{
+  const wynik = phpEval(
+    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('ustawienia'); $o = 'aai_monitor_sol_podpisu';" +
+      " $orygTab = $wpdb->get_var( $wpdb->prepare( \"SELECT wartosc FROM `{$t}` WHERE klucz = %s\", 'sol_podpisu' ) );" +
+      " $orygOpc = get_option( $o );" +
+      " $wpdb->delete( $t, array( 'klucz' => 'sol_podpisu' ) ); delete_option( $o ); wp_cache_delete( 'alloptions', 'options' );" +
+      " add_option( $o, 'STARA_SOL_Z_0_4_0', '', true );" +
+      " $przed = Aai_Monitor_Podpis::stan_soli();" +
+      " $m = new ReflectionMethod( 'Aai_Monitor_Podpis', 'sol' ); $m->setAccessible( true ); $uzyta = $m->invoke( null );" +
+      " $wbazie = $wpdb->get_var( $wpdb->prepare( \"SELECT wartosc FROM `{$t}` WHERE klucz = %s\", 'sol_podpisu' ) );" +
+      " $po = Aai_Monitor_Podpis::stan_soli();" +
+      " $wpdb->delete( $t, array( 'klucz' => 'sol_podpisu' ) ); delete_option( $o );" +
+      " if ( is_string( $orygTab ) && '' !== $orygTab ) { $wpdb->insert( $t, array( 'klucz' => 'sol_podpisu', 'wartosc' => $orygTab ) ); }" +
+      " if ( is_string( $orygOpc ) && '' !== $orygOpc ) { add_option( $o, $orygOpc, '', true ); } wp_cache_delete( 'alloptions', 'options' );" +
+      " echo $uzyta, '|', $wbazie, '|', count( $przed ), '|', count( $po );"
+  ).stdout.trim().split("|");
+  sprawdz(wynik[0] === "STARA_SOL_Z_0_4_0", `po aktualizacji sol() użyło „${wynik[0]}” zamiast wartości ze starej opcji — strony wysłane przed migracją straciłyby ważne podpisy`);
+  sprawdz(wynik[1] === "STARA_SOL_Z_0_4_0", `migracja wpisała do tabeli „${wynik[1]}” zamiast przejąć starą wartość co do znaku`);
+  sprawdz(wynik[2] === "1", `kontrola przed przejęciem soli oddała ${wynik[2]} uwag zamiast 1 — stan „sól tylko w starej opcji” ma być WIDOCZNY, nie domniemany`);
+  sprawdz(wynik[3] === "0", `kontrola po przejęciu soli dalej ma ${wynik[3]} uwag — migracja nie domyka się w jednym kroku`);
+}
+
+/* 10c9c. ROZJAZD DWÓCH MIEJSC TO KOD 1. Gdy tabela i stara opcja niosą RÓŻNE
+ * sole, część stron w przeglądarkach ma podpisy, których sito nie przyjmie —
+ * dokładnie tryb awarii, przed którym ma chronić migracja. Kontrola ma to
+ * NAZWAĆ, nie przemilczeć. */
+{
+  const wynik = phpEval(
+    "global $wpdb; $o = 'aai_monitor_sol_podpisu'; $orygOpc = get_option( $o );" +
+      " delete_option( $o ); add_option( $o, 'INNA_NIZ_W_TABELI', '', true ); wp_cache_delete( 'alloptions', 'options' );" +
+      " $stan = Aai_Monitor_Podpis::stan_soli();" +
+      " delete_option( $o ); if ( is_string( $orygOpc ) && '' !== $orygOpc ) { add_option( $o, $orygOpc, '', true ); } wp_cache_delete( 'alloptions', 'options' );" +
+      " echo count( $stan ), '|', ( isset( $stan[0] ) && str_contains( $stan[0], 'RÓŻNI SIĘ' ) ? 'nazwany' : 'inny' );"
+  ).stdout.trim().split("|");
+  sprawdz(wynik[0] === "1" && wynik[1] === "nazwany", "kontrola nie nazywa rozjazdu soli między tabelą a starą opcją — część stron nosi podpisy, których sito nie przyjmie, a kontrola milczy");
 }
 
 /* 10c10. KONTROLA ŚWIECI KODEM 1 PRZY ROZJEŹDZIE POCHODZENIA (A4).

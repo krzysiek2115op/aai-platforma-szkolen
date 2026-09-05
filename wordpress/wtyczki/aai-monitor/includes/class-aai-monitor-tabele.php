@@ -87,7 +87,7 @@ final class Aai_Monitor_Tabele {
 	public static function wszystkie(): array {
 		return array_map(
 			array( self::class, 'tabela' ),
-			array( 'logowania', 'wizyty' )
+			array( 'logowania', 'wizyty', 'ustawienia' )
 		);
 	}
 
@@ -107,6 +107,7 @@ final class Aai_Monitor_Tabele {
 
 		$l = self::tabela( 'logowania' );
 		$w = self::tabela( 'wizyty' );
+		$u = self::tabela( 'ustawienia' );
 
 		/*
 		 * INDEKSY: tu stoi WYŁĄCZNIE ten, który obsługuje retencję —
@@ -181,6 +182,33 @@ final class Aai_Monitor_Tabele {
 			) {$kolacja};"
 		);
 
+		/*
+		 * `ustawienia` — kilka wierszy stanu wtyczki, których NIE WOLNO trzymać
+		 * w `wp_options`. Dziś jeden: sól podpisu ścieżek (AUD-ARCH-F1-001).
+		 *
+		 * DLACZEGO NIE OPCJA. Sól ma powstać RAZ i nigdy nie zmienić wartości
+		 * — strony wysłane do przeglądarek noszą podpisy liczone tą solą,
+		 * a beacon odpowiada 204 zawsze, więc podmiana soli uciszyłaby pomiar
+		 * bez objawu. `add_option()` przy wyścigu dwóch pierwszych żądań
+		 * NADPISUJE wartość zwycięzcy (option.php: `ON DUPLICATE KEY UPDATE`
+		 * z `VALUES(option_value)`), więc jedyną bezpieczną drogą był surowy
+		 * INSERT do tabeli rdzenia — zapis do cudzej tabeli, przełamanie
+		 * granicy „wtyczka pisze tylko do swoich tabel". Własna tabela daje
+		 * tę samą atomowość (klucz główny + zapis pusty przy konflikcie)
+		 * bez sięgania poza swój prefiks.
+		 *
+		 * `klucz` jest kluczem GŁÓWNYM: to on rozstrzyga wyścig. `wartosc`
+		 * jako `text`, nie `varchar` — sól ma 64 znaki, ale tabela ma
+		 * przetrwać następne ustawienie bez zmiany schematu.
+		 */
+		dbDelta(
+			"CREATE TABLE {$u} (
+				klucz varchar(64) NOT NULL,
+				wartosc text NOT NULL,
+				PRIMARY KEY  (klucz)
+			) {$kolacja};"
+		);
+
 		update_option( self::OPCJA_WERSJI, AAI_MONITOR_WERSJA, false );
 	}
 
@@ -195,7 +223,7 @@ final class Aai_Monitor_Tabele {
 	}
 
 	/**
-	 * Czy obie tabele istnieją w bazie — pytanie kontroli, nie założenie.
+	 * Czy wszystkie nasze tabele istnieją w bazie — pytanie kontroli, nie założenie.
 	 */
 	public static function istnieja(): bool {
 		return array() === self::brakujace();

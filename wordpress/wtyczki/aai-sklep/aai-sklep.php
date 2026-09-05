@@ -43,6 +43,22 @@ const AAI_SKLEP_WERSJA = '0.6.0';
  */
 const AAI_SKLEP_PREFIKS = 'aai_sklep_';
 
+/**
+ * UPRAWNIENIE WŁAŚCICIELA — jedno na całą wtyczkę.
+ *
+ * Mieszka TU, a nie w klasie kokpitu, bo pytają o nie dwie różne warstwy:
+ * kokpit (menu kreatora, akcje zapisu) i TRASY na froncie (czy oglądający
+ * widzi kurs w statusie `draft`). Dopóki stała była własnością
+ * `Aai_Sklep_Panel`, warstwa routingu musiała znać klasę panelu, a panel
+ * znał trasy — czyli dwie klasy zależały od siebie nawzajem i żadna nie
+ * była fundamentem dla drugiej (zgłoszenie AUD-ARCH-F1-004). Konfiguracja
+ * wtyczki jest niżej od obu, tak samo jak `AAI_SKLEP_PREFIKS`.
+ *
+ * Wartość bez zmian: `manage_options`. Rola „redaktora kursów" odpadła
+ * definitywnie decyzją właściciela (D5, 2026-08-30).
+ */
+const AAI_SKLEP_UPRAWNIENIE = 'manage_options';
+
 const AAI_SKLEP_PLIK = __FILE__;
 define( 'AAI_SKLEP_KATALOG', plugin_dir_path( __FILE__ ) );
 define( 'AAI_SKLEP_URL', plugin_dir_url( __FILE__ ) );
@@ -108,6 +124,30 @@ register_deactivation_hook(
 add_action(
 	'plugins_loaded',
 	static function (): void {
+		/*
+		 * CAŁY START W `try` — ten sam standard, co w `aai-platnosci`
+		 * i `aai-monitor` (naprawa z testu całości, 2026-08-31). Autoloader
+		 * wyżej POMIJA plik nieczytelny (warunek `is_readable`, bez `else`),
+		 * więc brak albo uszkodzenie JEDNEGO z trzynastu plików klas dawało
+		 * `Error: Class not found` w tym haku, czyli **HTTP 500 na całej
+		 * witrynie i przy każdym żądaniu** — także na stronach Woo i Tutora,
+		 * bo nieprzechwycony błąd przerywa `plugins_loaded` wszystkim
+		 * wtyczkom ładowanym po nas.
+		 *
+		 * Klasa awarii jest w tym projekcie udokumentowana i powtarzalna:
+		 * martwy bind mount kontenera po `git checkout`, częściowy wgrywanie
+		 * przez FTP, `git clean`. Obie siostry dostały tę ochronę; sklep,
+		 * czyli JEDYNA wtyczka rysująca katalog i strony sprzedażowe, jej
+		 * nie miał (zgłoszenie AUD-BE-F1-001).
+		 *
+		 * CENA jest świadoma: przy uszkodzonym pliku sklep nie działa, ale
+		 * reszta witryny stoi, a właściciel dostaje komunikat zamiast
+		 * białego ekranu. `aai-sklep` nie ma kanału błędów (klasy
+		 * `Komunikaty` jak siostry), więc meldujemy do logu serwera
+		 * i notką w kokpicie — obie drogi nie potrzebują ani jednej
+		 * naszej klasy, czyli działają dokładnie wtedy, gdy klas brakuje.
+		 */
+		try {
 		Aai_Sklep_Tabele::dociagnij_schemat();
 		Aai_Sklep_Zasoby::zarejestruj();
 		Aai_Sklep_Styl_Tutora::zarejestruj();
@@ -129,6 +169,21 @@ add_action(
 		Aai_Sklep_Tutor::zarejestruj();
 		// Widok lekcji (krok W5) — NASZ szablon w miejsce Tutorowego.
 		Aai_Sklep_Lekcja::zarejestruj();
+		} catch ( Throwable $e ) {
+			$powod = 'aai-sklep: nie udało się uruchomić sklepu z kursami: ' . $e->getMessage();
+			error_log( $powod ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			add_action(
+				'admin_notices',
+				static function () use ( $powod ): void {
+					if ( ! current_user_can( AAI_SKLEP_UPRAWNIENIE ) ) {
+						return;
+					}
+					echo '<div class="notice notice-error"><p>'
+						. esc_html( $powod )
+						. '</p></div>';
+				}
+			);
+		}
 	}
 );
 

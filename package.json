@@ -31,6 +31,7 @@
     "wp:zrzuty": "node tools/wgraj-zrzuty-wp.mjs",
     "wp:proza": "node tools/sprawdz-proze-php.mjs",
     "wp:klient": "node tools/wp-klient-testowy.mjs",
+    "wp:zapytania": "node tools/zapytania-wp.mjs",
     "smoke:wp": "node tools/smoke/smoke-wp-dane.mjs",
     "smoke:wp-front": "node tools/smoke/smoke-wp-front.mjs",
     "smoke:wp-motyw": "node tools/smoke/smoke-wp-motyw.mjs",

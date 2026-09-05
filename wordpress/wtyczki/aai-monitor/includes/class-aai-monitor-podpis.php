@@ -28,7 +28,9 @@
  * rotowane (wylogowanie wszystkich, reakcja na incydent, panel
  * hostingu). Podpis oparty na nich przestałby pasować do stron już
  * wysłanych do przeglądarek i pomiar zamilkłby — znowu bezobjawowo.
- * Własna sól żyje w opcji i zmienia się wtedy, kiedy MY tak zdecydujemy.
+ * Własna sól żyje w NASZEJ tabeli `ustawienia` (do 0.5.0: w opcji, wpisywanej
+ * surowym INSERT-em do tabeli rdzenia — AUD-ARCH-F1-001) i zmienia się wtedy,
+ * kiedy MY tak zdecydujemy.
  *
  * @package Aai_Monitor
  */
@@ -44,6 +46,15 @@ final class Aai_Monitor_Podpis {
 
 	/**
 	 * Opcja z solą podpisu.
+	 */
+	/**
+	 * Klucz soli w naszej tabeli `ustawienia` (od 0.5.0).
+	 */
+	private const KLUCZ_SOLI = 'sol_podpisu';
+
+	/**
+	 * Opcja, w której sól leżała do 0.5.0 — czytana WYŁĄCZNIE po to, żeby
+	 * ją PRZEJĄĆ do tabeli bez zmiany wartości. Nigdy więcej nie pisana.
 	 */
 	private const OPCJA_SOLI = 'aai_monitor_sol_podpisu';
 
@@ -130,7 +141,62 @@ final class Aai_Monitor_Podpis {
 	 * własną, czysto odczytową drogę.
 	 */
 	public static function gotowa(): bool {
-		return is_string( get_option( self::OPCJA_SOLI ) ) && '' !== get_option( self::OPCJA_SOLI );
+		return '' !== self::sol_z_tabeli() || '' !== self::sol_z_opcji();
+	}
+
+	/**
+	 * Co jest nie tak z solą — lista dla kontroli (pusta = porządek).
+	 *
+	 * Trzy stany, każdy z innym skutkiem, więc każdy nazwany osobno:
+	 *  - brak soli gdziekolwiek → beacony będą odrzucane po cichu;
+	 *  - sól TYLKO w starej opcji → działa, ale pierwsza odsłona ją dopiero
+	 *    przejmie; kontrola mówi to wprost, żeby stan po aktualizacji był
+	 *    widoczny, a nie domniemany;
+	 *  - sól w tabeli I w opcji, RÓŻNE → to jest tryb awarii migracji:
+	 *    strony wysłane przed przejęciem noszą podpisy starą wartością,
+	 *    a sito liczy nową. Kod 1, nie ostrzeżenie.
+	 *
+	 * Wyłącznie ODCZYT (N16) — kontrola nie ma prawa niczego naprawiać.
+	 *
+	 * @return string[]
+	 */
+	public static function stan_soli(): array {
+		$w_tabeli = self::sol_z_tabeli();
+		$w_opcji  = self::sol_z_opcji();
+		if ( '' === $w_tabeli && '' === $w_opcji ) {
+			return array( 'brak soli podpisu ścieżek — beacony wizyt będą odrzucane po cichu. Napraw: wp plugin deactivate aai-monitor && wp plugin activate aai-monitor' );
+		}
+		if ( '' === $w_tabeli ) {
+			return array( 'sól podpisu leży jeszcze tylko w starej opcji `' . self::OPCJA_SOLI . '` — pierwsza odsłona frontu przejmie ją do tabeli `ustawienia` bez zmiany wartości; jeśli ten komunikat nie znika, tabela nie powstała (wp plugin deactivate aai-monitor && wp plugin activate aai-monitor)' );
+		}
+		if ( '' !== $w_opcji && ! hash_equals( $w_tabeli, $w_opcji ) ) {
+			return array( 'sól podpisu w tabeli `ustawienia` RÓŻNI SIĘ od soli w starej opcji `' . self::OPCJA_SOLI . '` — strony wysłane przed migracją noszą podpisy, których sito nie przyjmie. Ustal, która wartość jest tą, którą podpisano strony, i usuń drugą (delete_option albo DELETE z tabeli); obu naraz zostawić nie wolno' );
+		}
+		return array();
+	}
+
+	/**
+	 * Sól z naszej tabeli albo pusty łańcuch. Czysty odczyt.
+	 */
+	private static function sol_z_tabeli(): string {
+		global $wpdb;
+		try {
+			$t = Aai_Monitor_Tabele::tabela( 'ustawienia' );
+			$v = $wpdb->get_var(
+				$wpdb->prepare( "SELECT `wartosc` FROM `{$t}` WHERE `klucz` = %s", self::KLUCZ_SOLI )
+			); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+			return is_string( $v ) ? $v : '';
+		} catch ( Throwable $e ) {
+			return '';
+		}
+	}
+
+	/**
+	 * Sól ze STAREJ opcji (sprzed 0.5.0) albo pusty łańcuch. Czysty odczyt.
+	 */
+	private static function sol_z_opcji(): string {
+		$v = get_option( self::OPCJA_SOLI );
+		return is_string( $v ) ? $v : '';
 	}
 
 	/**
@@ -143,67 +209,39 @@ final class Aai_Monitor_Podpis {
 	/* ————————————————————————— wnętrze ————————————————————————— */
 
 	/**
-	 * Sól podpisu — z opcji, a przy pierwszym użyciu tworzona.
+	 * Sól podpisu — z naszej tabeli; w razie potrzeby powstaje RAZ.
 	 *
-	 * Tworzenie leniwe, bo aktywacja to nie jedyna droga, którą wtyczka
-	 * trafia na instalację (kopiowanie katalogu, przywracanie kopii
-	 * zapasowej, `wp plugin activate --network`). Brak soli oznaczałby
-	 * podpisy liczone z pustego łańcucha — czyli takie same u wszystkich.
+	 * KOLEJNOŚĆ JEST MIGRACJĄ (0.5.0, AUD-ARCH-F1-001):
+	 *  1. tabela `ustawienia` → to jest dom soli;
+	 *  2. stara opcja `wp_options` → PRZEJMUJEMY jej wartość do tabeli,
+	 *     co do znaku. Dzięki temu instalacja aktualizowana z 0.4.0 nie
+	 *     zmienia soli ani na chwilę, a strony wysłane wcześniej do
+	 *     przeglądarek zachowują ważne podpisy. Opcji nie kasujemy —
+	 *     kontrola porównuje oba miejsca i zapala się, gdyby się rozjechały;
+	 *  3. dopiero gdy nie ma ani jednej — nowa, losowa.
 	 *
-	 * Opcja jest `autoload`, bo pyta o nią KAŻDA odsłona frontu; osobne
-	 * zapytanie na stronę byłoby droższe niż 64 bajty w pamięci.
+	 * ZAPIS IDZIE PRZEZ WARSTWĘ ZAPISU, jak każdy zapis tej wtyczki, i jest
+	 * pusty przy konflikcie (pierwszy pisarz wygrywa). Używamy wartości
+	 * ODCZYTANEJ z bazy, nie tej, którą próbowaliśmy wpisać — przegrany
+	 * wyścigu inaczej podpisywałby strony solą, której sito nie zna (A7).
+	 *
+	 * Gdy zapis zawiedzie (np. tabeli jeszcze nie ma), wracamy z tym, co
+	 * mamy — przejętą wartością z opcji albo świeżą — i nie kładziemy
+	 * strony: brak soli oznaczałby podpisy liczone z pustego łańcucha.
 	 */
 	private static function sol(): string {
-		$sol = get_option( self::OPCJA_SOLI );
-		if ( is_string( $sol ) && '' !== $sol ) {
+		$sol = self::sol_z_tabeli();
+		if ( '' !== $sol ) {
 			return $sol;
 		}
-		global $wpdb;
 
-		$sol = wp_generate_password( 64, true, true );
+		$kandydat = self::sol_z_opcji();
+		if ( '' === $kandydat ) {
+			$kandydat = wp_generate_password( 64, true, true );
+		}
 
-		/*
-		 * SÓL POWSTAJE ZAPISEM, KTÓRY NIE NADPISUJE — i to jest naprawa A7
-		 * z przeglądu T3. Poprzedni kod obiecywał w komentarzu, że przy
-		 * wyścigu dwóch żądań „czytamy z powrotem, żeby oba używały TEJ
-		 * SAMEJ soli”. NIEPRAWDA, i to podwójna — zmierzona w kodzie
-		 * WordPressa oraz uruchomieniowo:
-		 *
-		 *  1. `add_option()` pisze `INSERT … ON DUPLICATE KEY UPDATE`
-		 *     (option.php:1143), więc NADPISUJE sól tego, kto zdążył
-		 *     pierwszy — a jego strony są już w przeglądarkach czytelników
-		 *     i noszą podpisy liczone starą solą;
-		 *  2. zaraz potem WordPress WKŁADA naszą wartość do pamięci
-		 *     `alloptions` zamiast ją unieważnić, więc żaden odczyt zwrotny
-		 *     — ani przez `get_option()`, ani wprost z bazy — nie może już
-		 *     tego wykryć. Pierwsza wersja tej naprawy pytała bazę i była
-		 *     przez to POZORNA: baza niosła już naszą sól.
-		 *
-		 * Objawu nie ma żadnego: beacon odpowiada 204 zawsze, więc odsłony
-		 * po prostu przestają się zapisywać.
-		 *
-		 * `ON DUPLICATE KEY UPDATE option_id = option_id` to zapis pusty
-		 * przy konflikcie — pierwszy pisarz wygrywa, reszta niczego nie
-		 * rusza. Nie `INSERT IGNORE`, bo ten ucisza WSZYSTKIE błędy zapisu,
-		 * a my chcemy uciszyć dokładnie jeden: „ta sól już jest”.
-		 */
-		$wpdb->query(
-			$wpdb->prepare(
-				"INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'yes') ON DUPLICATE KEY UPDATE option_id = option_id",
-				self::OPCJA_SOLI,
-				$sol
-			)
-		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+		$zapisana = Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat );
 
-		// Pisaliśmy z pominięciem `add_option()`, więc pamięci podręczne
-		// nic o tym nie wiedzą — a od tej chwili to BAZA ma rację.
-		wp_cache_delete( 'alloptions', 'options' );
-		wp_cache_delete( self::OPCJA_SOLI, 'options' );
-
-		$zapisana = $wpdb->get_var(
-			$wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", self::OPCJA_SOLI )
-		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
-
-		return is_string( $zapisana ) && '' !== $zapisana ? $zapisana : $sol;
+		return is_string( $zapisana ) && '' !== $zapisana ? $zapisana : $kandydat;
 	}
 }

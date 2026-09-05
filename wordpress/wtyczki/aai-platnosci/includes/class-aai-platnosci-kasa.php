@@ -154,17 +154,23 @@ final class Aai_Platnosci_Kasa {
 	 * Zdanie, które zobaczy klient.
 	 *
 	 * Tekst trafia do `dangerouslySetInnerHTML`, więc składamy go sami
-	 * i przepuszczamy adres przez `esc_url`. Gdy strony polityki nie ma,
-	 * zostaje sama nazwa bez odnośnika — dokładnie tak, jak WooCommerce
-	 * robi z brakującym regulaminem; obiecywanie odnośnika, którego nie ma,
-	 * byłoby powtórzeniem błędu, który ta klasa naprawia.
+	 * i przepuszczamy adres przez `esc_url`.
+	 *
+	 * GDY STRONY POLITYKI NIE MA, ZDANIE NIE PADA W OGÓLE. Wcześniej
+	 * zostawała sama nazwa bez odnośnika — a to znaczyło, że klient „wyraża
+	 * zgodę" na dokument, którego nie ma jak przeczytać. To ta sama klasa,
+	 * którą ta wtyczka naprawiła przy regulaminie: kasa nie powołuje się na
+	 * dokument, którego klient nie może otworzyć. Pusty tekst usuwa zdanie
+	 * z bloku zgód, bo `przejdz()` ustawia atrybut bezwarunkowo.
 	 */
 	private static function zdanie(): string {
-		$nazwa = 'Politykę prywatności';
 		$adres = function_exists( 'get_privacy_policy_url' ) ? (string) get_privacy_policy_url() : '';
-		$link  = '' !== $adres
-			? '<a href="' . esc_url( $adres ) . '" target="_blank" rel="noreferrer noopener">' . $nazwa . '</a>'
-			: $nazwa;
+
+		if ( '' === $adres ) {
+			return '';
+		}
+
+		$link = '<a href="' . esc_url( $adres ) . '" target="_blank" rel="noreferrer noopener">Politykę prywatności</a>';
 
 		return 'Kontynuując zamówienie, wyrażasz zgodę na naszą ' . $link . '.';
 	}

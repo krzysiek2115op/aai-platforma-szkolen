@@ -105,7 +105,7 @@ final class Aai_Platnosci_Szew {
 	 * To są dwie różne straty i dlatego są dwa różne pytania: tam ktoś
 	 * TRACI dostęp, tu ktoś ZAPŁACI i go nie dostanie.
 	 *
-	 * Statusy bierzemy te same, którymi `Aai_Platnosci_Cta` rozpoznaje
+	 * Statusy bierzemy te same, którymi `Aai_Platnosci_Posiadanie` rozpoznaje
 	 * „zamówienie w toku" — jedna definicja „w drodze" w całej wtyczce.
 	 *
 	 * PRZY BŁĘDZIE ODDAJEMY -1, czyli „nie wiem". Plugin 1 traktuje to jak
@@ -161,7 +161,7 @@ final class Aai_Platnosci_Szew {
 			array(
 				'limit'  => -1,
 				'return' => 'ids',
-				'status' => Aai_Platnosci_Cta::ZAMOWIENIE_TRWA,
+				'status' => Aai_Platnosci_Posiadanie::ZAMOWIENIE_TRWA,
 			)
 		);
 		foreach ( (array) $zamowienia as $id_zamowienia ) {

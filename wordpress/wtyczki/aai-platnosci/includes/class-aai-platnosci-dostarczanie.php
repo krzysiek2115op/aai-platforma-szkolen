@@ -84,6 +84,36 @@ final class Aai_Platnosci_Dostarczanie {
 		 * (`WooCommerce::mark_order_complete()`).
 		 */
 		add_action( 'woocommerce_order_status_processing', array( self::class, 'domknij' ), 20, 2 );
+
+		/*
+		 * SKASOWANIE zamówienia, a nie zmiana jego statusu (AUD-INT-F1-001).
+		 *
+		 * Tutor odbiera dostęp WYŁĄCZNIE reagując na `woocommerce_order_status_changed`
+		 * (`WooCommerce::enrolled_courses_status_change`), a ten hak nie odpala się,
+		 * gdy zamówienie znika w całości. Skutek zmierzony uruchomieniowo na obu
+		 * kursach katalogu: zapis `tutor_enrolled` zostaje na zawsze `completed`,
+		 * więc klient, którego zamówienie skasowano — przez pomyłkę administratora,
+		 * przez retencję RODO WooCommerce (`woocommerce_trash_pending_orders`) albo
+		 * przy porządkach — zachowuje dostęp do kursu bez śladu zakupu.
+		 *
+		 * Dwa haki, bo instalacja może stać na obu magazynach zamówień:
+		 * `woocommerce_before_delete_order` (HPOS, własne tabele `wp_wc_orders`)
+		 * oraz `before_delete_post` (magazyn starszy, zamówienia we `wp_posts`).
+		 * Oba biegną PRZED usunięciem, więc powiązania jeszcze istnieją.
+		 */
+		/*
+		 * PRIORYTET 1, NIE 10 — ZMIERZONE 2026-09-05. Na priorytecie 10 tego
+		 * samego haka Woo rejestruje `WC_Post_Data::before_delete_order()`,
+		 * a ta metoda KASUJE POZYCJE ZAMÓWIENIA (`delete_order_items`) zanim
+		 * dojdzie do nas (rejestrowała się wcześniej, więc biegnie wcześniej).
+		 * Nasz callback pytał wtedy `same_kursy()` zamówienie BEZ pozycji,
+		 * dostawał „nie nasze" i wychodził — sprzątanie księgowości i notatek
+		 * nie działo się NIGDY przy prawdziwym kasowaniu, choć wywołane wprost
+		 * działało. Bez objawu: hak nie ma czytelnika. Na 1 widzimy zamówienie
+		 * takie, jakie było.
+		 */
+		add_action( 'woocommerce_before_delete_order', array( self::class, 'zamowienie_znika' ), 1, 2 );
+		add_action( 'before_delete_post', array( self::class, 'zamowienie_znika' ), 1, 1 );
 	}
 
 	/**
@@ -200,6 +230,175 @@ final class Aai_Platnosci_Dostarczanie {
 	 * @param WC_Order $order Zamówienie.
 	 * @return bool
 	 */
+	/**
+	 * Odbiera dostęp do kursów, gdy zamówienie jest kasowane — i sprząta po nim
+	 * księgowość Tutora oraz notatki Woo, pod zamkami opisanymi w kodzie.
+	 *
+	 * Wywoływana z DWÓCH haków (HPOS i magazyn starszy), więc musi być
+	 * odporna na wywołanie dla czegokolwiek — `before_delete_post` odpala się
+	 * przy usuwaniu KAŻDEGO wpisu WordPressa, nie tylko zamówienia.
+	 *
+	 * Nie odbieramy dostępu sami: prosimy o to Tutora jego własnym API
+	 * (`course_enrol_status_change`), tym samym, którego używa przy zwrocie.
+	 * Dzięki temu jego księgowość i liczniki widzą to jak każde inne cofnięcie,
+	 * a my nie tworzymy drugiej definicji tego, co znaczy „dostęp odebrany".
+	 *
+	 * `Throwable`, bo ta metoda biegnie w środku usuwania zamówienia
+	 * w panelu administratora — nasz błąd nie może wywrócić cudzej operacji
+	 * ani zostawić zamówienia w połowie skasowanego.
+	 *
+	 * @param int   $id_zamowienia Id kasowanego zamówienia (albo dowolnego wpisu).
+	 * @param mixed $obiekt        Zamówienie z haka HPOS (drugi argument) albo nic.
+	 * @return void
+	 */
+	public static function zamowienie_znika( $id_zamowienia, $obiekt = null ): void {
+		try {
+			$id_zamowienia = (int) $id_zamowienia;
+
+			if ( $id_zamowienia <= 0 || ! function_exists( 'tutor_utils' ) ) {
+				return;
+			}
+
+			/*
+			 * NAJPIERW `wc_get_order()`, DOPIERO POTEM `is_tutor_order()`.
+			 * Ta metoda biegnie z `before_delete_post`, czyli dostaje KAŻDY
+			 * kasowany wpis WordPressa — stronę, załącznik, lekcję. Tutorowe
+			 * `is_tutor_order()` robi `->get_meta()` na wyniku `wc_get_order()`
+			 * BEZ sprawdzenia, czy zamówienie istnieje, więc na cudzym
+			 * identyfikatorze daje fatal: biały ekran zamiast skasowanego wpisu
+			 * (pułapka 14 schematu Pluginu 2).
+			 */
+			if ( ! function_exists( 'wc_get_order' ) || ! wc_get_order( $id_zamowienia ) ) {
+				return;
+			}
+
+			// Hak HPOS podaje zamówienie w drugim argumencie — bierzemy je,
+			// zamiast czytać drugi raz; magazyn starszy podaje samo id.
+			$zamowienie = $obiekt instanceof WC_Order ? $obiekt : wc_get_order( $id_zamowienia );
+			if ( ! $zamowienie instanceof WC_Order ) {
+				return;
+			}
+
+			/*
+			 * „NASZE" ROZSTRZYGAMY DWOMA PYTANIAMI, NIE JEDNYM. `is_tutor_order()`
+			 * czyta metę `_is_tutor_order_for_course`, którą Tutor zakłada przy
+			 * składaniu zamówienia W KASIE. ZMIERZONE 2026-09-05: zamówienie
+			 * utworzone `wc_create_order()` + `add_product()` (WP-CLI, import,
+			 * cudza wtyczka) tej mety NIE MA, choć Tutor dołożył mu wiersz
+			 * księgowy — dla takiego zamówienia hak wychodził tu bez śladu
+			 * i zostawiał zapis, earning i notatki. Zamówienie złożone
+			 * w całości z naszych kursów (nasza tabela powiązań) jest nasze
+			 * niezależnie od tego, czy Tutor zdążył je oznaczyć.
+			 */
+			if ( ! tutor_utils()->is_tutor_order( $id_zamowienia ) && ! self::same_kursy( $zamowienie ) ) {
+				return;
+			}
+
+			$zapisy = tutor_utils()->get_course_enrolled_ids_by_order_id( $id_zamowienia );
+
+			if ( is_array( $zapisy ) ) {
+				foreach ( $zapisy as $zapis ) {
+					$id_zapisu = (int) ( $zapis['enrolled_id'] ?? 0 );
+
+					if ( $id_zapisu > 0 ) {
+						tutor_utils()->course_enrol_status_change( $id_zapisu, 'cancelled' );
+					}
+				}
+			}
+
+			/*
+			 * SPRZĄTANIE PO ZAMÓWIENIU, KTÓREGO ZA CHWILĘ NIE BĘDZIE (REA-INT-F1-003).
+			 *
+			 * Woo pod HPOS kasuje zamówienie surowym DELETE z pominięciem
+			 * wp_delete_post(), więc jego notatki (historia „status zmieniony",
+			 * „mail wysłany" w wp_comments) zostają przypięte do id, którego nie
+			 * ma; w trybie starszego magazynu Woo kasuje je razem z wpisem, więc
+			 * sprzątając, PRZYWRACAMY zachowanie, które Woo ma w swoim drugim
+			 * trybie. Tutor słucha wyłącznie zmian statusu, więc jego wiersz
+			 * księgowy (wp_tutor_earnings: „przychód X z zamówienia N") zostaje
+			 * bez zamówienia. Zmierzone przy re-audycie: 2 earnings + 10 notatek
+			 * po dwóch skasowanych zamówieniach, kontrola kod 0.
+			 *
+			 * Tabele są CUDZE, a ten hak dostaje KAŻDY kasowany wpis — stąd
+			 * zamki, każdy osobno (decyzja właściciela 2026-09-05: naprawa
+			 * najgłębsza z ryzykiem sprowadzonym do zera, jeśli się da):
+			 */
+
+			// Zamek 1: wyłącznie zamówienie złożone W CAŁOŚCI z naszych kursów.
+			// Zamówienie mieszane ma cudzą księgowość i cudzą historię — zostaje.
+			if ( ! self::same_kursy( $zamowienie ) ) {
+				return;
+			}
+
+			// Zamek 2 (księgowość Tutora): tylko przez JEGO publiczne API
+			// (\TUTOR\Earnings, od 3.0.0) — nigdy surowym SQL-em do jego tabeli.
+			// Zamek 3: tylko gdy instruktor NIE MIAŁ ANI JEDNEJ WYPŁATY —
+			// earning, który zasilił już wypłatę, po skasowaniu zmienia saldo
+			// wstecz. Wtedy nie kasujemy, tylko meldujemy; decyzja należy do
+			// człowieka i do księgowości, nie do haka.
+			// Zamek 4: osobny try — awaria tu nie zabiera notatek ani kasowania.
+			try {
+				$ksiegowosc = class_exists( '\TUTOR\Earnings' ) ? \TUTOR\Earnings::get_instance() : null;
+				if ( $ksiegowosc && method_exists( $ksiegowosc, 'delete_earning_by_order' ) && method_exists( $ksiegowosc, 'get_order_earnings' ) ) {
+					$wyplaty = 0;
+					foreach ( (array) $ksiegowosc->get_order_earnings( $id_zamowienia ) as $wiersz ) {
+						$instruktor = (int) ( is_object( $wiersz ) ? ( $wiersz->user_id ?? 0 ) : ( $wiersz['user_id'] ?? 0 ) );
+						if ( $instruktor > 0 && class_exists( '\Tutor\Models\WithdrawModel' ) ) {
+							$wyplaty += (int) \Tutor\Models\WithdrawModel::get_withdrawal_count( array( 'user_id' => $instruktor ) );
+						}
+					}
+					if ( $wyplaty > 0 ) {
+						Aai_Platnosci_Komunikaty::zapisz(
+							sprintf(
+								'zamówienie %d skasowane, ale jego wiersz księgowy Tutora ZOSTAJE: instruktor ma już %d wypłat(y), więc skasowanie zmieniłoby saldo wstecz — rozstrzygnij ręcznie (wp aai-platnosci sieroty)',
+								(int) $id_zamowienia,
+								$wyplaty
+							)
+						);
+					} else {
+						$ksiegowosc->delete_earning_by_order( $id_zamowienia );
+					}
+				}
+			} catch ( Throwable $e ) {
+				Aai_Platnosci_Komunikaty::zapisz(
+					sprintf( 'nie udało się sprzątnąć księgowości Tutora po skasowaniu zamówienia %d: %s', (int) $id_zamowienia, $e->getMessage() )
+				);
+			}
+
+			// Zamek 2 (notatki Woo): tylko przez JEGO API — `wc_get_order_notes()`
+			// + `wc_delete_order_note()`, jawnie po id notatki, nigdy zakresem.
+			// BEZ `limit`: Woo mapuje je na `number` zapytania o komentarze,
+			// a `-1` staje się tam `1` (zmierzone: 1 z 3 notatek). NIE
+			// `get_comments()` wprost: Woo wycina notatki zamówień z każdego
+			// zapytania o komentarze filtrem `comments_clauses` i tylko własne
+			// `wc_get_order_notes()` zdejmuje go na czas odczytu (zmierzone:
+			// `get_comments` oddaje 0 przy 3 notatkach w bazie).
+			// Zamek 4: osobny try.
+			try {
+				if ( function_exists( 'wc_get_order_notes' ) && function_exists( 'wc_delete_order_note' ) ) {
+					foreach ( (array) wc_get_order_notes( array( 'order_id' => $id_zamowienia ) ) as $notatka ) {
+						$id_notatki = (int) ( is_object( $notatka ) ? ( $notatka->id ?? 0 ) : 0 );
+						if ( $id_notatki > 0 ) {
+							wc_delete_order_note( $id_notatki );
+						}
+					}
+				}
+			} catch ( Throwable $e ) {
+				Aai_Platnosci_Komunikaty::zapisz(
+					sprintf( 'nie udało się sprzątnąć notatek po skasowaniu zamówienia %d: %s', (int) $id_zamowienia, $e->getMessage() )
+				);
+			}
+		} catch ( Throwable $e ) {
+			Aai_Platnosci_Komunikaty::zapisz(
+				sprintf(
+					'nie udało się odebrać dostępu po skasowaniu zamówienia %d: %s',
+					(int) $id_zamowienia,
+					$e->getMessage()
+				)
+			);
+		}
+	}
+
 	private static function same_kursy( WC_Order $order ): bool {
 		$kursow = 0;
 		foreach ( $order->get_items() as $pozycja ) {

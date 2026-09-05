@@ -271,11 +271,36 @@ final class Aai_Monitor_Logowania {
 		if ( false !== get_user_by( 'login', $podany ) || false !== get_user_by( 'email', $podany ) ) {
 			return $podany;
 		}
-		return sprintf(
-			'%s…(%d znaków)',
-			mb_substr( $podany, 0, 3 ),
-			mb_strlen( $podany )
-		);
+		/*
+		 * POCZĄTEK POKAZUJEMY TYLKO WTEDY, GDY WARTOŚĆ MOŻE BYĆ LOGINEM.
+		 *
+		 * Trzy pierwsze znaki pokazują wzorzec ataku (`adm…`, `roo…`, `tes…`)
+		 * i po to ta kolumna istnieje. Ale w pole loginu trafia czasem HASŁO
+		 * — autouzupełnianie, zły układ klawiatury, pomyłka o jedno pole —
+		 * i wtedy te trzy znaki są fragmentem sekretu zapisanym jawnym
+		 * tekstem na 90 dni, w każdej kopii bazy, wbrew zdaniu z polityki
+		 * prywatności („Nie zapisujemy haseł ani ich fragmentów").
+		 *
+		 * Rozstrzyga KSZTAŁT wartości, nie zgadywanie intencji: login
+		 * WordPressa przechodzi przez `sanitize_user()` w trybie ścisłym bez
+		 * zmiany, bo mieści się w `a-z A-Z 0-9 _ . - @` i spacji. Wartość,
+		 * która tego nie przechodzi (`MojeTajneHaslo#2026`), sekretem być
+		 * może — i wtedy nie zostawiamy z niej ani jednego znaku.
+		 *
+		 * Nie porównujemy z `$_POST['pwd']` — zabrania tego N5 i słusznie:
+		 * kod, który raz dotknie hasła, przy następnej poprawce je zapisze.
+		 */
+		$wyglada_na_login = ( $podany === sanitize_user( $podany, true ) );
+
+		if ( $wyglada_na_login ) {
+			return sprintf(
+				'%s…(%d znaków)',
+				mb_substr( $podany, 0, 3 ),
+				mb_strlen( $podany )
+			);
+		}
+
+		return sprintf( '…(%d znaków, nie jest loginem)', mb_strlen( $podany ) );
 	}
 
 	/**

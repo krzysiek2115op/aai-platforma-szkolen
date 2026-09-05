@@ -3,7 +3,7 @@
  * Plugin Name:       Automatic AI — Płatności
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Szew między sklepem kursów a WooCommerce i Tutor LMS: produkt z naszej ceny, powiązanie z kursem, dostawa dostępu i maili. Druga z trzech wtyczek Automatic AI — własnej kasy ani bramki płatności NIE zawiera.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Automatic AI
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  * WERSJA WTYCZKI, nie wersja projektu (CHANGELOG repo jest źródłem prawdy
  * o wersji projektu). Stała steruje dociąganiem schematu tabel.
  */
-const AAI_PLATNOSCI_WERSJA = '0.1.0';
+const AAI_PLATNOSCI_WERSJA = '0.2.0';
 
 /**
  * PREFIKS TABEL — ta sama decyzja właściciela co przy `aai-sklep`

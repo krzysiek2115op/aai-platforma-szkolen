@@ -3,7 +3,7 @@
  * Plugin Name:       Automatic AI — Monitoring
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Dziennik logowań (kto, kiedy, skąd) i pomiar wizyt (co oglądano i jak długo), plus ekran w kokpicie dla administratora. Trzecia z trzech wtyczek Automatic AI — rejestruje, niczego nie blokuje.
- * Version:           0.4.0
+ * Version:           0.5.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Automatic AI
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  * WERSJA WTYCZKI, nie wersja projektu (źródłem prawdy o wersji projektu
  * jest CHANGELOG repo). Stała steruje dociąganiem schematu tabel.
  */
-const AAI_MONITOR_WERSJA = '0.4.0';
+const AAI_MONITOR_WERSJA = '0.5.0';
 
 /**
  * PREFIKS TABEL — ta sama decyzja właściciela co przy `aai-sklep`
@@ -36,6 +36,21 @@ const AAI_MONITOR_WERSJA = '0.4.0';
  * ten moduł z założenia nie robi (D3, schemat: docs/plugin-3/DIAGRAM.md).
  */
 const AAI_MONITOR_PREFIKS = 'aai_monitor_';
+
+/**
+ * Slug podstrony kokpitu — tu, a nie w klasie ekranu.
+ *
+ * Pytają o niego trzy klasy: ekran (rysuje się pod tym adresem), kanał
+ * błędów (pokazuje komunikat TYLKO na naszym ekranie i na liście wtyczek)
+ * i kontrola zależności (to samo). Dopóki slug był stałą `Aai_Monitor_Ekran`,
+ * dwie ostatnie znały klasę ekranu wyłącznie po to, żeby odczytać napis —
+ * a ekran zna warstwę zapisu, która zna kanał błędów. Trzy klasy zamykały
+ * przez to cykl `Ekran → Zapis → Komunikaty → Ekran`, ta sama klasa
+ * znaleziska co AUD-ARCH-F1-004 w `aai-sklep` (znalezione przy pomiarze
+ * cykli 2026-09-05, poza listą audytu). Konfiguracja wtyczki jest niżej od
+ * wszystkich trzech, tak samo jak `AAI_MONITOR_PREFIKS`. Wartość bez zmian.
+ */
+const AAI_MONITOR_STRONA = 'aai-monitor';
 
 define( 'AAI_MONITOR_KATALOG', plugin_dir_path( __FILE__ ) );
 define( 'AAI_MONITOR_URL', plugin_dir_url( __FILE__ ) );

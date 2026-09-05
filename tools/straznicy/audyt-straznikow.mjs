@@ -1728,11 +1728,33 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-platnosci-wp",
-    opis: "przycisk pyta o DOSTĘP zamiast o zapis („Przejdź do kursu” dla zapowiedzi i dla administratora)",
-    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
-    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
-    oczekiwanySlad: "nie pyta Tutora o ZAPIS",
+    opis: "decyzja „mam kurs” pyta o DOSTĘP zamiast o zapis („Przejdź do kursu” dla zapowiedzi i dla administratora)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php"),
+    oczekiwanySlad: "bez pytania Tutora o ZAPIS",
     zmien: (s) => (s.includes("is_enrolled(") ? s.split("is_enrolled(").join("ma_dostep_do_kursu(") : null),
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "decyzja „mam kurs” przestaje wymagać zapisu UKOŃCZONEGO (kurs obiecany komuś, kto właśnie zamówił przelewem)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php"),
+    oczekiwanySlad: "bez pytania Tutora o ZAPIS",
+    zmien: (s) =>
+      s.includes("is_enrolled( $kurs_tutora, $user_id, true )")
+        ? s.replace("is_enrolled( $kurs_tutora, $user_id, true )", "is_enrolled( $kurs_tutora, $user_id, false )")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "rozstrzygnięcie „w toku” znika z całej wtyczki (reguła przypięta do jednego pliku by tego nie zobaczyła)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php"),
+    oczekiwanySlad: "nie widzę stanu „zamówienie w toku",
+    zmien: (s) =>
+      s.includes("\t\t\t\treturn self::W_TOKU;")
+        ? s.replace("\t\t\t\treturn self::W_TOKU;", "\t\t\t\treturn '';")
+        : null,
   },
   {
     straznik: "straznik-platnosci-wp",
@@ -1778,8 +1800,8 @@ const MUTACJE = [
   {
     straznik: "straznik-platnosci-wp",
     opis: "stan „zamówienie w toku” przestaje patrzeć na STATUS zapisu (anulowane zamówienie blokuje zakup na zawsze)",
-    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php",
-    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cta.php"),
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php"),
     oczekiwanySlad: "bez sprawdzenia STATUSU zapisu",
     zmien: (s) =>
       s.includes("\t\t\t$status = (string) get_post_status( (int) $zapis->ID );\n\t\t\tif ( in_array( $status, self::ZAMOWIENIE_TRWA, true ) ) {")
@@ -2400,6 +2422,20 @@ const MUTACJE = [
         ? s.replace(
             "update_post_meta( (int) $id, $klucz, wp_slash( $wartosc ) );",
             "update_post_meta( (int) $id, $klucz, $wartosc );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "wpis Tutora powstaje bezwarunkowo — przerwana synchronizacja przestaje się leczyć i mnoży komplet (REA-BD-F1-001)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "BEZ WARUNKU",
+    zmien: (s) =>
+      s.includes("\t\t$istniejacy = self::znajdz_po_uuid( $uuid, (string) $dane['post_type'] );")
+        ? s.replace(
+            "\t\t$istniejacy = self::znajdz_po_uuid( $uuid, (string) $dane['post_type'] );",
+            "\t\t$istniejacy = 0;"
           )
         : null,
   },
@@ -3603,18 +3639,61 @@ const MUTACJE = [
         : null,
   },
   {
-    // A7: `add_option()` nadpisuje sól zwycięzcy, a jego strony są już
-    // w przeglądarkach z podpisami liczonymi starą wartością.
+    // A7 + AUD-ARCH-F1-001: tworzenie soli wraca do `add_option()` —
+    // przegrany wyścig kasuje sól zwycięzcy I wtyczka znów pisze do wp_options.
     straznik: "straznik-monitora-wp",
-    opis: "sól podpisu wraca do add_option() — przegrany wyścig kasuje sól zwycięzcy",
+    opis: "sól podpisu wraca do add_option() — przegrany wyścig kasuje sól zwycięzcy, a wtyczka pisze do wp_options",
     plik: PODPIS_MONITORA,
     wymaga: () => existsSync(PODPIS_MONITORA),
-    oczekiwanySlad: "NADPISUJE istniejącą wartość",
+    oczekiwanySlad: "tworzenie soli pisze do `wp_options`",
+    zmien: (s) =>
+      s.includes("$zapisana = Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat );")
+        ? s.replace(
+            "$zapisana = Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat );",
+            "add_option( self::OPCJA_SOLI, $kandydat, '', true ); $zapisana = $kandydat;"
+          )
+        : null,
+  },
+  {
+    // AUD-ARCH-F1-001: surowy INSERT do tabeli rdzenia wraca — granica
+    // „wtyczka pisze tylko do swoich tabel" przełamana po cichu.
+    straznik: "straznik-monitora-wp",
+    opis: "tworzenie soli znów pisze surowym INSERT-em do $wpdb->options (zapis do tabeli rdzenia)",
+    plik: PODPIS_MONITORA,
+    wymaga: () => existsSync(PODPIS_MONITORA),
+    oczekiwanySlad: "tabeli rdzenia WordPressa",
+    zmien: (s) =>
+      s.includes("$zapisana = Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat );")
+        ? s.replace(
+            "$zapisana = Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat );",
+            "global $wpdb; $wpdb->query( $wpdb->prepare( \"INSERT INTO {$wpdb->options} (option_name, option_value) VALUES (%s, %s) ON DUPLICATE KEY UPDATE option_id = option_id\", self::OPCJA_SOLI, $kandydat ) ); $zapisana = $kandydat;"
+          )
+        : null,
+  },
+  {
+    // A7 w warstwie zapisu: zapis ustawienia przestaje być pusty przy konflikcie.
+    straznik: "straznik-monitora-wp",
+    opis: "zapis ustawienia nadpisuje przy konflikcie (VALUES(wartosc)) — przegrany wyścig kasuje sól zwycięzcy",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php"),
+    oczekiwanySlad: "nie jest zapisem PUSTYM",
+    zmien: (s) =>
+      s.includes("ON DUPLICATE KEY UPDATE `klucz` = `klucz`")
+        ? s.replace("ON DUPLICATE KEY UPDATE `klucz` = `klucz`", "ON DUPLICATE KEY UPDATE `wartosc` = VALUES(`wartosc`)")
+        : null,
+  },
+  {
+    // A7: wołający dostaje własną, niezapisaną wartość zamiast tej z bazy.
+    straznik: "straznik-monitora-wp",
+    opis: "zapis ustawienia oddaje wartość PROPONOWANĄ zamiast odczytanej z bazy — przegrany podpisuje własną solą",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php"),
+    oczekiwanySlad: "nie czyta wartości Z BAZY",
     zmien: (s) => {
-      const i = s.indexOf("\t\t$wpdb->query(\n\t\t\t$wpdb->prepare(\n\t\t\t\t\"INSERT INTO {$wpdb->options}");
+      const i = s.indexOf("\t\t\t$w_bazie = $wpdb->get_var(");
       if (i < 0) return null;
-      const j = s.indexOf("\t\treturn is_string( $zapisana )", i);
-      return j < 0 ? null : s.slice(0, i) + "\t\tadd_option( self::OPCJA_SOLI, $sol, '', true );\n\t\t$zapisana = get_option( self::OPCJA_SOLI );\n" + s.slice(j);
+      const j = s.indexOf("return is_string( $w_bazie )", i);
+      return j < 0 ? null : s.slice(0, i) + "\t\t\treturn $wartosc;\n\t\t\t" + s.slice(j);
     },
   },
   {
@@ -4066,6 +4145,68 @@ const MUTACJE = [
     zmien: (s) =>
       s.includes("array_merge( $juz, $strony )")
         ? s.replace("array_merge( $juz, $strony )", "$strony")
+        : null,
+  },
+
+  {
+    // REA-INT-F1-003, zamek 1: sprzątanie księgowości bez odmowy na zamówieniu mieszanym.
+    straznik: "straznik-platnosci-wp",
+    opis: "hak kasowania sprząta księgowość także po zamówieniu MIESZANYM (cudzy produkt traci swoją historię i przychód)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "zamówieniu MIESZANYM",
+    zmien: (s) =>
+      s.includes("\t\t\tif ( ! self::same_kursy( $zamowienie ) ) {\n\t\t\t\treturn;\n\t\t\t}\n")
+        ? s.replace("\t\t\tif ( ! self::same_kursy( $zamowienie ) ) {\n\t\t\t\treturn;\n\t\t\t}\n", "")
+        : null,
+  },
+  {
+    // REA-INT-F1-003, zamek 3: earning kasowany mimo wypłat instruktora (saldo zmienia się wstecz).
+    straznik: "straznik-platnosci-wp",
+    opis: "księgowość Tutora kasowana bez sprawdzenia wypłat instruktora — saldo zmienia się wstecz",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "miał wypłaty",
+    zmien: (s) => (s.includes("if ( $wyplaty > 0 ) {") ? s.replace("if ( $wyplaty > 0 ) {", "if ( false ) {") : null),
+  },
+  {
+    // REA-INT-F1-003, zamek 2: surowy DELETE do tabeli Tutora zamiast jego API.
+    straznik: "straznik-platnosci-wp",
+    opis: "księgowość Tutora kasowana surowym DELETE do jego tabeli zamiast przez Earnings API (zapis do cudzej tabeli)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "surowo do cudzej tabeli",
+    zmien: (s) =>
+      s.includes("$ksiegowosc->delete_earning_by_order( $id_zamowienia );")
+        ? s.replace(
+            "$ksiegowosc->delete_earning_by_order( $id_zamowienia );",
+            "global $wpdb; $wpdb->delete( $wpdb->prefix . 'tutor_earnings', array( 'order_id' => $id_zamowienia ) );"
+          )
+        : null,
+  },
+  {
+    // REA-INT-F1-003, zamek 5: kontrola przestaje liczyć sieroty (ślepota sprzed naprawy wraca).
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola przestaje wołać licznik sierot po zamówieniach — osierocona księgowość i notatki znów przechodzą jako kod 0",
+    plik: CLI_PLATNOSCI,
+    wymaga: () => existsSync(CLI_PLATNOSCI),
+    oczekiwanySlad: "sprawdz() jej nie woła",
+    zmien: (s) =>
+      s.includes("\t\tforeach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {\n\t\t\t$bledy[] = $blad_sieroty;\n\t\t}\n")
+        ? s.replace("\t\tforeach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {\n\t\t\t$bledy[] = $blad_sieroty;\n\t\t}\n", "")
+        : null,
+  },
+
+  {
+    // REA-INT-F1-003, zamek 0: hak wraca na priorytet 10 — Woo kasuje pozycje przed nami, sprzątanie nie zachodzi nigdy.
+    straznik: "straznik-platnosci-wp",
+    opis: "hak kasowania zamówienia wraca na priorytet 10 — Woo kasuje pozycje przed nami i sprzątanie nie zachodzi NIGDY (zmierzone)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "KASUJE POZYCJE",
+    zmien: (s) =>
+      s.includes("array( self::class, 'zamowienie_znika' ), 1, 2 );")
+        ? s.replace("array( self::class, 'zamowienie_znika' ), 1, 2 );", "array( self::class, 'zamowienie_znika' ), 10, 2 );")
         : null,
   },
 

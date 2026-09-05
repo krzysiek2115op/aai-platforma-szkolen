@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.3.0
+Stable tag: 0.6.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -25,6 +25,25 @@ sprzedaż i faktury bierze WooCommerce, konta i dostęp do materiału Tutor LMS.
 * WooCommerce i Tutor LMS — dopiero przy sprzedaży i dostępie do materiału
 
 == Changelog ==
+
+Numeruje WERSJĘ WTYCZKI (stała `AAI_SKLEP_WERSJA` w pliku głównym), a nie
+wersję projektu — o tej mówi `CHANGELOG.md` w korzeniu repozytorium.
+
+= 0.6.0 =
+* Kopia kursu w Tutorze odświeżana po KAŻDYM udanym zapisie, z kontrolą
+  rozjazdu (`wp aai-sklep sprawdz-tutora`).
+* Widok kupionej lekcji w NASZYM szablonie, nie w Tutorowym: skład Markdownu
+  w PHP, zrzuty z biblioteki mediów, „Moje kursy" i bramka logowania.
+
+= 0.5.0 =
+* Kreator treści w kokpicie WordPressa: lista kursów z licznikami, edytor
+  kursu (Kurs / Sekcje / Program) z jednym zapisem i osobny edytor treści
+  lekcji. Do bazy pisze wyłącznie warstwa zapisu.
+
+= 0.4.0 =
+* Front z własnych tabel: katalog `/szkolenia`, strony sprzedażowe
+  `/szkolenia/<slug>`, pozycja „Szkolenia" w menu motywu oraz przekierowania
+  `/courses/…` na nasz jedyny adres kanoniczny.
 
 = 0.3.0 =
 * Warstwa integracji Tutor ↔ motyw Automatic AI: odstęp pod nagłówek,
