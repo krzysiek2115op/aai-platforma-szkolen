@@ -153,24 +153,6 @@ wpcli language core install pl_PL --activate >/dev/null 2>&1 \
 # (sekcja 6) — patrz komentarz tam. Tutaj jest za wcześnie: na czystej
 # bazie WooCommerce i Tutora jeszcze nie ma.
 
-# --- 4c. strona polityki prywatności ---------------------------------------
-#
-# Znalezione przy śledztwie po teście właściciela: kasa mówi klientowi
-# „Twoje dane osobowe zostaną użyte … opisanych w naszej [polityce
-# prywatności]", a `wp_page_for_privacy_policy` wskazywało SZKIC
-# WordPressa („Privacy Policy", status draft, treść to domyślne
-# „Suggested text: Our website address is:"). Prawdziwa polityka leży
-# w treści motywu Automatic AI.
-#
-# Wskazujemy opublikowaną stronę motywu, jeśli istnieje. Nie tworzymy
-# jej sami — treść prawna należy do właściciela, nie do skryptu.
-
-polityka="$(wpcli post list --post_type=page --post_status=publish --name=polityka-prywatnosci --field=ID 2>/dev/null | head -1)"
-if [ -n "$polityka" ]; then
-  komunikat "Wskazuję politykę prywatności (strona $polityka)"
-  wpcli option update wp_page_for_privacy_policy "$polityka" >/dev/null
-fi
-
 # --- 5. motyw --------------------------------------------------------------
 
 if [ "$(wpcli theme get automatic-ai --field=status 2>/dev/null || echo brak)" != "active" ]; then
@@ -244,6 +226,37 @@ if ! wpcli post list --post_type=page --name=uslugi --format=count | grep -q '^1
   komunikat "Importuję treść strony (idempotentnie)"
   wpcli eval-file /praca/skrypty/import-strony.php || true
   wpcli eval-file /praca/skrypty/import-blog.php || true
+fi
+
+# --- 7b. strona polityki prywatności ---------------------------------------
+#
+# Znalezione przy śledztwie po teście właściciela: kasa mówi klientowi
+# „Twoje dane osobowe zostaną użyte … opisanych w naszej [polityce
+# prywatności]", a `wp_page_for_privacy_policy` wskazywało SZKIC
+# WordPressa („Privacy Policy", status draft, treść to domyślne
+# „Suggested text: Our website address is:"). Prawdziwa polityka leży
+# w treści motywu Automatic AI.
+#
+# Wskazujemy opublikowaną stronę motywu, jeśli istnieje. Nie tworzymy
+# jej sami — treść prawna należy do właściciela, nie do skryptu.
+#
+# TEN KROK MUSI STAĆ ZA SEKCJĄ 7, i to nie jest kosmetyka kolejności.
+# Do 2026-09-04 stał jako „4c", czyli PRZED importem treści — a stronę
+# `polityka-prywatnosci` tworzy dopiero ten import (jest w `strony.json`
+# warsztatu, `import-strony.php` nie zna jej z nazwy). Na PRAWDZIWIE
+# czystej bazie zapytanie niżej wracało więc puste, warunek był fałszywy
+# i opcja NIGDY nie zostawała ustawiona: instalacja od zera kończyła się
+# z `wp_page_for_privacy_policy = 3` (domyślny SZKIC WordPressa) i pustym
+# `get_privacy_policy_url()`, czyli z martwym odnośnikiem w kasie.
+# Objawu nie było widać, bo przy każdym KOLEJNYM przebiegu na tej samej
+# bazie strona już istniała i opcja się prostowała — dokładnie ta sama
+# rodzina co tłumaczenia wtyczek w sekcji 6. Weryfikacja (sekcja 9) pyta
+# teraz o SKUTEK: czy klient dostaje niepusty adres polityki.
+
+polityka="$(wpcli post list --post_type=page --post_status=publish --name=polityka-prywatnosci --field=ID 2>/dev/null | head -1)"
+if [ -n "$polityka" ] && [ "$(wpcli option get wp_page_for_privacy_policy 2>/dev/null || true)" != "$polityka" ]; then
+  komunikat "Wskazuję politykę prywatności (strona $polityka)"
+  wpcli option update wp_page_for_privacy_policy "$polityka" >/dev/null
 fi
 
 # --- 8. nasza wtyczka ------------------------------------------------------
@@ -349,6 +362,17 @@ proba_tlumaczenia="$(wpcli eval 'echo __( "Billing address", "woocommerce" );' 2
   || blad "tłumaczenia WooCommerce nie działają (napis „Billing address\" wraca po angielsku) — sam locale nie wystarczy, brakuje plików .mo"
 grep -q 'aria-label="Nawigacja mobilna"' "$ODPOWIEDZ" \
   || blad "brak nawigacji mobilnej — pozycja w menu musi wejść do OBU"
+
+# POLITYKA PRYWATNOŚCI — pytamy o SKUTEK, nie o wykonanie kroku 7b.
+# Kasa WooCommerce drukuje klientowi zdanie z odnośnikiem do polityki;
+# gdy `wp_page_for_privacy_policy` wskazuje szkic albo nic, WordPress
+# oddaje PUSTY adres i zdanie zostaje bez linku — a skrypt do 2026-09-04
+# meldował „Środowisko gotowe", bo weryfikacja o to nie pytała wcale
+# (AUD-WDR-F1-002). Pytamy o adres, bo to jego widzi klient; sama wartość
+# opcji może wskazywać stronę nieopublikowaną i wtedy adres jest pusty.
+adres_polityki="$(wpcli eval 'echo get_privacy_policy_url();' 2>/dev/null || echo '')"
+[ -n "$adres_polityki" ] \
+  || blad "WordPress nie zna adresu polityki prywatności (get_privacy_policy_url() pusty) — kasa obieca klientowi odnośnik, którego nie ma. Sprawdź, czy import treści utworzył stronę „polityka-prywatnosci\" i czy sekcja 7b ustawiła wp_page_for_privacy_policy"
 
 if [ -f ../wtyczki/aai-sklep/aai-sklep.php ]; then
   [ "$(wpcli plugin get aai-sklep --field=status)" = "active" ] \

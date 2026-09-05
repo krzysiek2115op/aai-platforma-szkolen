@@ -180,11 +180,11 @@ Drzewo zmierzone, nie przepisane (`git ls-files`; liczby to pliki śledzone
 przez gita):
 
 ```
-wordpress/            131  ← PRODUKT
+wordpress/            135  ← PRODUKT
   wtyczki/                   trzy wtyczki, każda w swoich podfolderach
-    aai-sklep/         87    katalog, strony sprzedażowe, kreator, widok lekcji
-    aai-monitor/       20    dziennik logowań i pomiar ruchu
-    aai-platnosci/     17    szew do WooCommerce
+    aai-sklep/         88    katalog, strony sprzedażowe, kreator, widok lekcji
+    aai-monitor/       22    dziennik logowań i pomiar ruchu
+    aai-platnosci/     18    szew do WooCommerce
   srodowisko/                postaw.sh — całe WP jedną komendą (:8892)
     mu-plugins/              obwód bezpieczeństwa (aai-obwod.php)
 
@@ -194,7 +194,7 @@ public/                15
 
 tresc-kursow/         331  ← TREŚĆ: 73 lekcje prozy + 91 scenariuszy + zrzuty
 docs/                 140  ← plan, wytyczne, schematy i dziennik każdego kroku
-tools/                157  ← strażnicy (39), bramki smoke, narzędzia (21)
+tools/                158  ← strażnicy (39), bramki smoke, narzędzia (22)
   straznicy/ smoke/ zrzuty/ podglad-kursow/ seed/
 docs/schematy/          8  ← podglądy SVG siedmiu schematów draw.io
 goldeny/                9  ← wzorce chroniące przed cichą utratą treści
@@ -315,6 +315,7 @@ Codzienne — opisane pytaniem, na które odpowiadają:
 | `npm run wp:zrzuty` | wgrywa 148 zrzutów z lekcji do biblioteki mediów WordPressa (idempotentnie, po `sha256`); renderer podmienia ścieżkę z prozy na adres załącznika dopiero przy wyświetlaniu, więc treść w bazie zostaje nietknięta |
 | `npm run wp:proza` | dowód różnicowy renderera: te same 73 lekcje przez PHP wtyczki i przez `marked` z podglądu — tekst musi zgadzać się CO DO SŁOWA, struktura co do znacznika (wymaga riga z `marked`) |
 | `npm run wp:klient` | zakłada konto **klienta** (`klient-test`, rola `subscriber`, pasek narzędzi zgaszony) i zapisuje je na wszystkie opublikowane kursy — do testu ręcznego W6, bo administrator widzi materiał z definicji i testowałby nie to pytanie; hasło ląduje w `wordpress/srodowisko/.env` (poza gitem), a dostęp jest weryfikowany w OSOBNYM żądaniu, bo Tutor trzyma zapisy w pamięci żądania. `--usun` kasuje konto po teście |
+| `npm run wp:zapytania` | **ile zapytań SQL kosztuje jedna odsłona** — pomiar, nie szacunek: stawia w kontenerze tymczasową wtyczkę pomiarową (poza repo, kasowana w `finally`), odpytuje trasy prawdziwym żądaniem HTTP i czyta `get_num_queries()` po `shutdown`. Domyślnie strona główna, katalog, strona kursu, koszyk i kasa; `--trasa=` zawęża, `--powtorzenia=` uśrednia medianą, `--sql` dokłada najczęściej powtarzane zapytania (stała `SAVEQUERIES` definiowana tylko dla mierzonego żądania — LISTA jest wtedy niepełna, LICZNIK pełny), `--sufit=N` daje kod 1 po przekroczeniu. Pomiar, który nie zebrał ANI JEDNEGO wiersza, kończy się kodem 1 zamiast tabelą kresek (wymaga `wordpress/srodowisko/postaw.sh`; poza CI) |
 | `npm run smoke:wp` | czy warstwa zapisu wtyczki znosi przestawianie kolejności, przenoszenie lekcji między modułami i odmawia skasowania napisanej treści? (wymaga `wordpress/srodowisko/postaw.sh`; poza CI — tam nie ma podmana) |
 | `npm run smoke:wp-front` | czy `/szkolenia` i `/szkolenia/<slug>` na WordPressie pokazują to, co jest W BAZIE? — tytuły, ceny, moduły i lekcje, sekcje sprzedażowe, kanonik i dane strukturalne, 404 na nieistniejącym kursie, 301 z `/courses/*`, pozycja „Szkolenia" w obu nawigacjach motywu, a „Moje kursy" i „Moje konto" NIE pokazują się gościowi (wymaga `wordpress/srodowisko/postaw.sh`; poza CI) |
 | `npm run smoke:wp-motyw` | czy wszystko wygląda jak motyw? — mierzy w prawdziwej przeglądarce **dziewięć stron** (katalog, strona kursu, widok lekcji, „Moje kursy", konto WooCommerce, dwie strony Tutora oraz — z produktem kursu w koszyku gościa i blokadą sprzedaży otwieraną wyłącznie na czas pomiaru — koszyk `/koszyk/` i kasę `/kasa/`): nachodzenie nagłówka, kontrast każdego napisu, jasne plamy i kolizje klas motywu z cudzym CSS-em (wymaga riga: `ZRZUTY_RIG` z `puppeteer-core`; poza CI) |
