@@ -362,8 +362,24 @@ if (existsSync(PODPIS)) {
   }
   // Sól z tabeli ma być czytana PRZED sięgnięciem do starej opcji — inaczej
   // migracja nigdy nie kończy się przejęciem, a kontrola świeci na zawsze.
-  if (tworzenie && tworzenie.indexOf("sol_z_tabeli") > tworzenie.indexOf("sol_z_opcji") ) {
-    bledy.push(`${PODPIS}: sol() pyta starą opcję PRZED własną tabelą — po migracji dalej rządzi wp_options, a tabela jest ozdobą.`);
+  if (tworzenie) {
+    /*
+     * NAJPIERW „CZY OBA PYTANIA W OGÓLE PADAJĄ", POTEM KOLEJNOŚĆ.
+     *
+     * Pierwsza wersja porównywała same `indexOf`, a brakujące wywołanie
+     * daje -1 — więc `sol()`, które w ogóle nie pyta tabeli, przechodziło
+     * jako „dobra kolejność" (złapane mutacją przy P1 poz. 16). Reguła
+     * o kolejności musi zacząć od tego, że jest co ustawiać w kolejności.
+     */
+    const wTabeli = tworzenie.indexOf("sol_z_tabeli");
+    const wOpcji = tworzenie.indexOf("sol_z_opcji");
+    if (wTabeli < 0) {
+      bledy.push(`${PODPIS}: sol() nie pyta o sól WŁASNEJ tabeli — cała migracja z wp_options jest wtedy martwa, a tabela ozdobą.`);
+    } else if (wOpcji < 0) {
+      bledy.push(`${PODPIS}: sol() nie sięga po starą sól z wp_options — instalacja sprzed migracji straci podpisy stron już wysłanych do przeglądarek.`);
+    } else if (wTabeli > wOpcji) {
+      bledy.push(`${PODPIS}: sol() pyta starą opcję PRZED własną tabelą — po migracji dalej rządzi wp_options, a tabela jest ozdobą.`);
+    }
   }
 }
 if (existsSync(WARSTWA_ZAPISU)) {

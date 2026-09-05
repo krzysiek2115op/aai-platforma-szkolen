@@ -5,6 +5,69 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.69.0] — 2026-09-05
+
+### Naprawy po polowaniu, priorytet P2 — bramki, które nie mierzyły swojego
+
+P2 to pozycje, w których **bramka jest zielona, a nie dowodzi tego, co
+obiecuje** — każda taka ukrywa kolejne błędy. Kolejność i uzasadnienie:
+[docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md).
+
+Trzy pozycje z tabeli P2 były już zrobione i sprawdziliśmy to komendą,
+zamiast przepisywać z planu: poz. 14 (droga klienta do ukrytego kursu)
+weszła z 0.66.0, poz. 15 (asercje „zamek 1 nie trzyma") razem z poz. 10
+w 0.68.0, poz. 17 (obcy wpis bez `post_parent`) w 0.67.0.
+
+**1. Wyłączona wtyczka przestaje uciszać kontrolę, która jej nie dotyczy
+(poz. 19).** Kontrola płatności ma dwie drogi wyjścia przy niekompletnym
+otoczeniu i obie kończyły się gołym `WP_CLI::halt( 0 )` — ginęły razem
+z nimi rzeczy od brakującej wtyczki NIEZALEŻNE. Zmierzone: przy walucie
+sklepu EUR kontrola z Pluginem 1 kończy **kodem 1** i nazywa rozjazd,
+a po wyłączeniu Pluginu 1 — **kodem 0 i ciszą**. Rozjazdy niezależne
+zbiera teraz jedna metoda wołana z obu dróg; pomijana jest dokładnie
+jedna rzecz, pętla po kursach.
+
+**2. Paczka o tej samej nazwie przestaje móc nieść inną treść (poz. 18).**
+Nazwa archiwum bierze wersję z nagłówka wtyczki, a treść z bieżącego
+kodu — kod zmieniony bez podbicia wersji dawał więc **dwa różne
+`aai-sklep-0.6.0.zip`**, bez ostrzeżenia. Pakowanie odmawia teraz
+nadpisania i mówi, co zrobić. **Porównujemy TREŚĆ, nie bajty archiwum**:
+ZIP niesie czasy modyfikacji, a `git checkout` przestawia je wszystkim
+plikom — pierwsza wersja zapaliła się po samym `touch`. Doszła też
+reguła, że `Version` z nagłówka musi zgadzać się ze `Stable tag`
+w `readme.txt`; nie pilnowało tego nic.
+
+**3. Sześć gałęzi strażników z 0.65.0 przestaje być bez pokrycia
+(poz. 16).** Wszystkie są żywe, ale żadnej nie pilnowała mutacja — mogły
+umrzeć po cichu przy pierwszym refaktorze. Przy okazji obnażyła się
+dziura w regule o kolejności źródeł soli: porównywała dwa `indexOf`,
+a brakujące wywołanie daje −1, więc `sol()` w ogóle nie pytające własnej
+tabeli przechodziło jako „dobra kolejność".
+
+**4. Sonda na terenie QA (decyzja właściciela 3).** Mechaniczne kryteria
+zamiast swobodnego przeglądu. Dwa pierwsze (sprawdzenia za końcowym
+`process.exit(1)`, `includes()` na fragmencie wartości) dały zero
+trafień. Trzecie dało dwa prawdziwe: `smoke-wp-front` i `smoke-wp-seo`
+sprawdzały wyciek kursu nieopublikowanego pętlą po liście, która na tej
+instalacji jest PUSTA — obie asercje nie wykonały się **ani razu od
+powstania bramek**. Obie robią teraz przedmiot pomiaru same.
+
+### Klasa, którą popełniłem po drodze — i to dwa razy
+
+Dwie nowe reguły o pakowaniu wstawiłem ZA `process.exit(1)` strażnika,
+więc ich błędy nie mogły dać czerwonego kodu; mutacje przeszły na zielono.
+To ta sama klasa, którą przegląd T2 nazwał w sześciu bramkach naraz.
+Osobno: reguła o walucie pytała, czy w metodzie pada SŁOWO „waluta" —
+a ono pada w komentarzu (ósmy nawrót tej rodziny). Obie złapał audyt
+mutacyjny, nie lektura.
+
+### Liczby
+
+Bramki: `smoke-wp-platnosci` 23 → **27**, `smoke-wp-front` 86 → **89**,
+`smoke-wp-seo` 169 → **172**. Audyt mutacyjny 379 → **390**
+(0 przeoczonych, 0 martwych). Testy negatywne każdej naprawy trafiają
+dokładnie w swoje: 2 z 27, 1 z 89, 1 z 172.
+
 ## [0.68.0] — 2026-09-05
 
 ### Naprawy po polowaniu, priorytet P1 — dwie ostatnie pozycje

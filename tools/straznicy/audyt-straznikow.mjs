@@ -1223,6 +1223,149 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- P1 poz. 16: gałęzie strażników z 0.65.0, które NIE MIAŁY mutacji ---
+  // Sześć gałęzi wskazał krytyk QA fali kontrolnej: każda jest ŻYWA (zapala
+  // regułę), ale żadna nie była pilnowana przez audyt — czyli mogła umrzeć
+  // po cichu przy pierwszym refaktorze.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "sprzątanie notatek traci własny try/catch — awaria po stronie Woo przerywa kasowanie zamówienia",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "try/catch",
+    zmien: (s) =>
+      s.includes("\t\t\t// Zamek 4: osobny try.\n\t\t\ttry {\n\t\t\t\tif ( function_exists( 'wc_get_order_notes' )")
+        ? s.replace(
+            "\t\t\t// Zamek 4: osobny try.\n\t\t\ttry {\n\t\t\t\tif ( function_exists( 'wc_get_order_notes' )",
+            "\t\t\t// Zamek 4: osobny try.\n\t\t\tif ( true ) {\n\t\t\t\tif ( function_exists( 'wc_get_order_notes' )"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "hak kasowania zamówienia traci jawny priorytet — Woo kasuje pozycje zanim dojdzie do nas, więc sprzątanie nie dzieje się NIGDY",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "jawnym priorytetem",
+    zmien: (s) =>
+      /add_action\(\s*'woocommerce_before_delete_order'\s*,\s*array\( self::class, 'zamowienie_znika' \)\s*,\s*\d+\s*,\s*\d+\s*\)/.test(s)
+        ? s.replace(
+            /add_action\(\s*'woocommerce_before_delete_order'\s*,\s*(array\( self::class, 'zamowienie_znika' \))\s*,\s*\d+\s*,\s*\d+\s*\)/,
+            "add_action( 'woocommerce_before_delete_order', $1 )"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "licznik sierot łączy tabele przez INNER JOIN — wiersz bez zamówienia wypada z wyniku, więc kontrola liczy zawsze zero",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    oczekiwanySlad: "osierocone",
+    zmien: (s) => (s.includes("LEFT JOIN") ? s.split("LEFT JOIN").join("INNER JOIN") : null),
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "rozstrzygnięcie „klient ma ten kurs” przestaje być stałą — przycisk i dostępność czytają luźny napis",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php"),
+    oczekiwanySlad: "ma ten kurs",
+    zmien: (s) =>
+      s.includes("\t\t\treturn self::MA_KURS;") ? s.replace("\t\t\treturn self::MA_KURS;", "\t\t\treturn 'ma';") : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "sól podpisu pytana najpierw w starej opcji, a dopiero potem w tabeli — własna tabela staje się ozdobą",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php"),
+    oczekiwanySlad: "sol()",
+    zmien: (s) =>
+      s.includes("\t\t$sol = self::sol_z_tabeli();")
+        ? s.replace("\t\t$sol = self::sol_z_tabeli();", "\t\t$sol = self::sol_z_opcji();")
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "sól zapisywana surowym INSERT-em z pominięciem warstwy zapisu",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php"),
+    oczekiwanySlad: "warstw",
+    zmien: (s) =>
+      s.includes("Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat )")
+        ? s.replace(
+            "Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat )",
+            "( function () use ( $kandydat ) { global $wpdb; $wpdb->query( 'SELECT 1' ); return $kandydat; } )()"
+          )
+        : null,
+  },
+  // --- straznik-wtyczki-wp, P1 poz. 18: wersje wtyczek i paczki dla klienta ---
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "readme.txt podaje inną wersję niż nagłówek wtyczki — klient czyta w opisie co innego, niż ma w pliku",
+    plik: "wordpress/wtyczki/aai-monitor/readme.txt",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/readme.txt"),
+    oczekiwanySlad: "Stable tag",
+    zmien: (s) =>
+      /^Stable tag:\s*\S+\s*$/m.test(s) ? s.replace(/^Stable tag:\s*\S+\s*$/m, "Stable tag: 0.0.1") : null,
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "pakowanie nadpisuje archiwum o tej samej nazwie bez sprawdzenia treści — dwa różne pliki dla klienta",
+    plik: "tools/pakuj-wtyczki.mjs",
+    wymaga: () => existsSync("tools/pakuj-wtyczki.mjs"),
+    oczekiwanySlad: "bez sprawdzenia, czy niesie tę samą treść",
+    zmien: (s) =>
+      s.includes("if (existsSync(paczka) && !tresciSieZgadzaja(paczka, wtyczka, pliki)) {")
+        ? s.replace("if (existsSync(paczka) && !tresciSieZgadzaja(paczka, wtyczka, pliki)) {", "if (false) {")
+        : null,
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "porównanie treści archiwum znika — bramka zaczyna krzyczeć po każdym git checkout (mtime w ZIP-ie)",
+    plik: "tools/pakuj-wtyczki.mjs",
+    wymaga: () => existsSync("tools/pakuj-wtyczki.mjs"),
+    oczekiwanySlad: "brak porównania TREŚCI",
+    zmien: (s) =>
+      s.includes("function tresciSieZgadzaja(")
+        ? s.replace("function tresciSieZgadzaja(", "function porownajTresci(").replace(
+            "!tresciSieZgadzaja(paczka, wtyczka, pliki)",
+            "!porownajTresci(paczka, wtyczka, pliki)"
+          )
+        : null,
+  },
+  // --- straznik-platnosci-wp, P1 poz. 19: wyłączona wtyczka a reszta kontroli ---
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "gałąź braku zależności wraca do gołego halt(0) — wyłączenie jednej wtyczki ucisza walutę, dostawy i sieroty",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    oczekiwanySlad: "wychodzi kodem 0",
+    zmien: (s) =>
+      s.includes("\t\t\t$poza = self::bledy_poza_kursami();")
+        ? s.replace(
+            "\t\t\t$poza = self::bledy_poza_kursami();\n\t\t\tif ( array() !== $poza ) {\n\t\t\t\tforeach ( $poza as $blad_poza ) {\n\t\t\t\t\tWP_CLI::error( $blad_poza, false );\n\t\t\t\t}\n\t\t\t\tWP_CLI::halt( 1 );\n\t\t\t}\n",
+            ""
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "metoda zbiorcza przestaje pytać o walutę — rozjazd waluty znika z obu dróg wyjścia kontroli",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    oczekiwanySlad: "nie porównuje waluty sklepu z PLN",
+    // Mutacja USUWA sprawdzenie, zamiast je obchodzić. Pierwsza wersja
+    // nadpisywała zmienną tuż po przypisaniu (`$x = waluta(); $x = 'PLN';`)
+    // — i słusznie przeszła: takiej zmiany nie złapie żaden wzorzec bez
+    // interpretera PHP, więc mutacja mierzyłaby granicę narzędzia, nie
+    // gwarancję produktu.
+    zmien: (s) =>
+      s.includes("\t\t\t$waluta = (string) get_woocommerce_currency();")
+        ? s.replace(
+            /\t\tif \( function_exists\( 'get_woocommerce_currency' \) \) \{\n[\s\S]*?\n\t\t\}\n/,
+            ""
+          )
+        : null,
+  },
   // --- straznik-platnosci-wp, reguły okna przerwania (P1 poz. 7) ---
   // Okno między wierszem produktu a jego meta. Każda z pięciu mutacji
   // odtwarza inny sposób, na jaki naprawa mogłaby zniknąć po refaktorze.
@@ -4303,9 +4446,15 @@ const MUTACJE = [
     plik: CLI_PLATNOSCI,
     wymaga: () => existsSync(CLI_PLATNOSCI),
     oczekiwanySlad: "sprawdz() jej nie woła",
+    // Kod przeniósł się do bledy_poza_kursami() (P1 poz. 19) i wcięcie urosło
+    // o jeden poziom — kotwica z dawnym wcięciem przestała pasować, a mutacja
+    // wyglądała na zieloną. Kotwiczymy na TREŚCI pętli, nie na wcięciu.
     zmien: (s) =>
-      s.includes("\t\tforeach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {\n\t\t\t$bledy[] = $blad_sieroty;\n\t\t}\n")
-        ? s.replace("\t\tforeach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {\n\t\t\t$bledy[] = $blad_sieroty;\n\t\t}\n", "")
+      s.includes("foreach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {")
+        ? s.replace(
+            /\t+foreach \( self::sieroty_po_zamowieniach\(\)\['bledy'\] as \$blad_sieroty \) \{\n[\s\S]*?\n\t+\}\n/,
+            ""
+          )
         : null,
   },
 

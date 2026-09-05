@@ -127,6 +127,40 @@ async function main() {
     `nasza mapa ma ${naszeAdresy.length} adresów, a powinna mieć ${opublikowane.length + 1} (katalog + kursy opublikowane)`
   );
 
+  /*
+   * MAPA NIE WYSTAWIA UKRYTEGO KURSU — z przedmiotem pomiaru.
+   *
+   * Pętla niżej filtruje kursy nieopublikowane, a instalacja ma oba
+   * opublikowane — więc od powstania bramki nie wykonała się ANI RAZU.
+   * Dlatego stan robimy sami: ukrywamy jeden prawdziwy kurs, pytamy mapę
+   * jeszcze raz i przywracamy publikację.
+   */
+  {
+    const probka = opublikowane[0];
+    sprawdz(
+      undefined !== probka,
+      "instalacja nie ma opublikowanego kursu — pomiar mapy wobec ukrytego kursu nie miałby czego ukryć"
+    );
+    if (probka) {
+      let adresyPoUkryciu = [];
+      try {
+        wp("eval", `Aai_Sklep_Zapis::ustaw_status('${probka.id}','archived','smoke-wp-seo');`);
+        adresyPoUkryciu = nasza ? adresy(await (await fetch(nasza)).text()) : [];
+      } finally {
+        wp("eval", `Aai_Sklep_Zapis::ustaw_status('${probka.id}','published','smoke-wp-seo');`);
+      }
+      sprawdz(
+        !adresyPoUkryciu.some((a) => new URL(a).pathname === `/szkolenia/${probka.slug}/`),
+        `nasza mapa wystawia UKRYTY kurs „${probka.slug}" — wyszukiwarka zaprasza na stronę, której klient nie kupi`
+      );
+      const adresyPoPrzywroceniu = nasza ? adresy(await (await fetch(nasza)).text()) : [];
+      sprawdz(
+        adresyPoPrzywroceniu.some((a) => new URL(a).pathname === `/szkolenia/${probka.slug}/`),
+        `bramka nie przywróciła publikacji kursu „${probka.slug}" — zniknąłby z mapy po jej przebiegu`
+      );
+    }
+  }
+
   const ukryte = kontrola.kursy.filter((k) => k.status !== "published");
   for (const kurs of ukryte) {
     sprawdz(
