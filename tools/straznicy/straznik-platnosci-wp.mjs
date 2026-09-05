@@ -1641,6 +1641,64 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* WYŁĄCZONA WTYCZKA NIE UCISZA KONTROLI, KTÓRA JEJ NIE DOTYCZY (P1 poz. 19).
+
+   Kontrola ma dwie drogi wyjścia przy niekompletnym otoczeniu i obie kończyły
+   się gołym `halt( 0 )` — a razem z nimi ginęły rzeczy od brakującej wtyczki
+   NIEZALEŻNE: waluta sklepu, cudze ustawienia przestawione instalatorem,
+   dziennik dostaw, zamówienia wiszące, sieroty po skasowanych zamówieniach.
+   Zmierzone: przy walucie EUR kontrola z Pluginem 1 kończyła kodem 1
+   i nazywała rozjazd, a bez Pluginu 1 — kodem 0 i ciszą. */
+{
+  const SCIEZKA_CLI_19 = join(KATALOG, "includes", "class-aai-platnosci-cli.php");
+  const cli19 = kod(readFileSync(SCIEZKA_CLI_19, "utf8"));
+
+  const zbiorcza = cli19.match(/function bledy_poza_kursami\(\)[\s\S]*?\n\t\}/);
+  if (!zbiorcza) {
+    bledy.push(
+      `${SCIEZKA_CLI_19}: nie ma metody zbierającej rozjazdy NIEZALEŻNE od danych Pluginu 1 (bledy_poza_kursami). Bez niej każda droga wyjścia kontroli pyta o co innego, a wyłączenie jednej wtyczki ucisza kontrole, które jej nie dotyczą (P1 poz. 19).`
+    );
+  } else {
+    // Metoda ma naprawdę o coś pytać — samokontrola zakresu.
+    for (const co of ["bledy_dostaw", "sieroty_po_zamowieniach"]) {
+      if (!zbiorcza[0].includes(co)) {
+        bledy.push(
+          `${SCIEZKA_CLI_19}: bledy_poza_kursami() nie pyta o ${co}. Ta metoda jest jedynym miejscem, z którego obie drogi wyjścia kontroli biorą rozjazdy niezależne od kursów — czego tu nie ma, tego nie sprawdza nikt przy wyłączonej wtyczce.`
+        );
+      }
+    }
+    /*
+     * WALUTA: pytamy o ROZSTRZYGNIĘCIE, nie o słowo. Pierwsza wersja tej
+     * reguły sprawdzała, czy w metodzie pada napis „waluta" — a on pada
+     * w komentarzu i w komunikacie, więc mutacja zrywająca porównanie
+     * PRZESZŁA (złapał ją audyt mutacyjny, nie lektura). Ósmy nawrót tej
+     * rodziny w tym projekcie. Sprawdzamy więc, że wartość z
+     * `get_woocommerce_currency()` trafia do zmiennej, KTÓRA jest potem
+     * porównywana z 'PLN'.
+     */
+    const zWoo = zbiorcza[0].match(/(\$\w+)\s*=\s*\(string\)\s*get_woocommerce_currency\(\)/);
+    const porownanie = zWoo && new RegExp(`'PLN'\\s*!==\\s*\\${zWoo[1]}\\b`).test(zbiorcza[0]);
+    if (!porownanie) {
+      bledy.push(
+        `${SCIEZKA_CLI_19}: bledy_poza_kursami() nie porównuje waluty sklepu z PLN (wartość z get_woocommerce_currency() musi trafić do zmiennej, która jest potem sprawdzana). Strony kursów drukują „zł" na sztywno — bez tego porównania klient widzi w kasie inną walutę niż w ofercie, a kontrola milczy.`
+      );
+    }
+  }
+
+  // Droga wyjścia przy brakujących zależnościach MUSI zapytać zbiorczą metodę
+  // i mieć wyjście kodem 1 — pytamy o ROZSTRZYGNIĘCIE (halt 1), nie o napis.
+  const galaz = cli19.match(/\$brak = Aai_Platnosci_Zaleznosci::brakuje\(\);[\s\S]*?WP_CLI::halt\( 0 \);/);
+  if (!galaz) {
+    bledy.push(
+      `${SCIEZKA_CLI_19}: nie znalazłem gałęzi „brakuje zależności" kończącej się halt( 0 ) — samokontrola zakresu reguły o uciszaniu kontroli.`
+    );
+  } else if (!/bledy_poza_kursami\(\)[\s\S]{0,400}?WP_CLI::halt\( 1 \);/.test(galaz[0])) {
+    bledy.push(
+      `${SCIEZKA_CLI_19}: gałąź „brakuje zależności" wychodzi kodem 0, nie pytając wcześniej bledy_poza_kursami() i nie mając wyjścia kodem 1. Wyłączenie JEDNEJ wtyczki ucisza wtedy walutę, dziennik dostaw i sieroty — rzeczy, które z nią nie mają nic wspólnego (P1 poz. 19, zmierzone).`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1648,5 +1706,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products)."
 );

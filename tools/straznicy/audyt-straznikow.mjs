@@ -1223,6 +1223,40 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-platnosci-wp, P1 poz. 19: wyłączona wtyczka a reszta kontroli ---
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "gałąź braku zależności wraca do gołego halt(0) — wyłączenie jednej wtyczki ucisza walutę, dostawy i sieroty",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    oczekiwanySlad: "wychodzi kodem 0",
+    zmien: (s) =>
+      s.includes("\t\t\t$poza = self::bledy_poza_kursami();")
+        ? s.replace(
+            "\t\t\t$poza = self::bledy_poza_kursami();\n\t\t\tif ( array() !== $poza ) {\n\t\t\t\tforeach ( $poza as $blad_poza ) {\n\t\t\t\t\tWP_CLI::error( $blad_poza, false );\n\t\t\t\t}\n\t\t\t\tWP_CLI::halt( 1 );\n\t\t\t}\n",
+            ""
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "metoda zbiorcza przestaje pytać o walutę — rozjazd waluty znika z obu dróg wyjścia kontroli",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    oczekiwanySlad: "nie porównuje waluty sklepu z PLN",
+    // Mutacja USUWA sprawdzenie, zamiast je obchodzić. Pierwsza wersja
+    // nadpisywała zmienną tuż po przypisaniu (`$x = waluta(); $x = 'PLN';`)
+    // — i słusznie przeszła: takiej zmiany nie złapie żaden wzorzec bez
+    // interpretera PHP, więc mutacja mierzyłaby granicę narzędzia, nie
+    // gwarancję produktu.
+    zmien: (s) =>
+      s.includes("\t\t\t$waluta = (string) get_woocommerce_currency();")
+        ? s.replace(
+            /\t\tif \( function_exists\( 'get_woocommerce_currency' \) \) \{\n[\s\S]*?\n\t\t\}\n/,
+            ""
+          )
+        : null,
+  },
   // --- straznik-platnosci-wp, reguły okna przerwania (P1 poz. 7) ---
   // Okno między wierszem produktu a jego meta. Każda z pięciu mutacji
   // odtwarza inny sposób, na jaki naprawa mogłaby zniknąć po refaktorze.
@@ -4303,9 +4337,15 @@ const MUTACJE = [
     plik: CLI_PLATNOSCI,
     wymaga: () => existsSync(CLI_PLATNOSCI),
     oczekiwanySlad: "sprawdz() jej nie woła",
+    // Kod przeniósł się do bledy_poza_kursami() (P1 poz. 19) i wcięcie urosło
+    // o jeden poziom — kotwica z dawnym wcięciem przestała pasować, a mutacja
+    // wyglądała na zieloną. Kotwiczymy na TREŚCI pętli, nie na wcięciu.
     zmien: (s) =>
-      s.includes("\t\tforeach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {\n\t\t\t$bledy[] = $blad_sieroty;\n\t\t}\n")
-        ? s.replace("\t\tforeach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {\n\t\t\t$bledy[] = $blad_sieroty;\n\t\t}\n", "")
+      s.includes("foreach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {")
+        ? s.replace(
+            /\t+foreach \( self::sieroty_po_zamowieniach\(\)\['bledy'\] as \$blad_sieroty \) \{\n[\s\S]*?\n\t+\}\n/,
+            ""
+          )
         : null,
   },
 
