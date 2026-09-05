@@ -379,6 +379,147 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/* ALARM O ROZJEŹDZIE KOPII MUSI UMIEĆ ZGASNĄĆ (MAR-A-08).
+
+   Do 0.74.0 stan błędu synchronizacji żył w JEDNYM `update_option()`
+   i był zatrzaskiem oraz kłamcą naraz — Plugin 2 opisał tę wadę u siebie
+   słowo w słowo i naprawił, a Plugin 1 miał ją dalej, w JEDYNYM alarmie
+   o cichym rozjeździe kopii dla klientów:
+
+     - awaria kursu B nadpisywała zapamiętaną awarię kursu A;
+     - udana kopia flagi NIE kasowała, więc notatka w kokpicie obiecywała
+       „zapisanie kursu jeszcze raz robi to samo", robiła to naprawdę
+       i wisiała dalej (BLAD-018);
+     - `sprawdz-tutora` wliczało flagę do zgody, więc po dowolnej
+       historycznej awarii kontrola świeciła kodem 1 NA ZAWSZE.
+
+   Reguła pyta o dwie rzeczy, obie o rozstrzygnięciu: czy stan jest MAPĄ
+   (zapis dopisuje do odczytanej mapy, a nie nadpisuje slot) i czy udana
+   synchronizacja gasi wpis TEGO kursu. */
+{
+  const plik = join(WTYCZKA, PLIK_KOPII);
+  const c = kod(readFileSync(plik, "utf8"));
+
+  const iZapamietaj = c.indexOf("function zapamietaj_blad(");
+  if (iZapamietaj < 0) {
+    bledy.push(`${plik}: nie ma zapamietaj_blad() — samokontrola zakresu: reguła o cyklu życia alarmu nie ma czego pilnować (MAR-A-08).`);
+  } else {
+    const cialo = c.slice(iZapamietaj, c.indexOf("\n\t}", iZapamietaj));
+    // Mapa: zapis czyta stan i dopisuje pod kluczem kursu.
+    if (!/\$\w+\s*=\s*self::bledy\(\)/.test(cialo) || !/\$\w+\[\s*\$id\s*\]\s*=/.test(cialo)) {
+      bledy.push(
+        `${plik}: zapamietaj_blad() nie dopisuje do MAPY per kurs (brak odczytu self::bledy() albo przypisania pod $id). Jeden slot to zatrzask i kłamca naraz: awaria kursu B kasuje alarm kursu A, a alarm nie ma jak zgasnąć po naprawie (MAR-A-08).`
+      );
+    }
+  }
+
+  const iNaZmianie = c.indexOf("function na_zmianie(");
+  if (iNaZmianie < 0) {
+    bledy.push(`${plik}: nie ma na_zmianie() — samokontrola zakresu reguły o gaszeniu alarmu (MAR-A-08).`);
+  } else {
+    const cialo = c.slice(iNaZmianie, c.indexOf("\n\t}", iNaZmianie));
+    // Gaszenie MUSI być w gałęzi sukcesu (przed catch), i to dla TEGO kursu.
+    const doCatch = cialo.split("catch")[0];
+    if (!/zapomnij_blad\(\s*\$id\s*\)/.test(doCatch)) {
+      bledy.push(
+        `${plik}: udana kopia nie gasi alarmu tego kursu (brak zapomnij_blad( $id ) w gałęzi sukcesu na_zmianie()). Notatka w kokpicie obiecuje wtedy naprawę, wykonuje ją i wisi dalej, a kontrola świeci kodem 1 przy danych zgodnych co do znaku (MAR-A-08, BLAD-018).`
+      );
+    }
+  }
+}
+
+/* DROGI MASOWE OGŁASZAJĄ ZMIANĘ WTYCZKOM SIOSTRZANYM (MAR-A-10, MAR-A-17).
+
+   `wp aai-sklep sync` i import wołały `synchronizuj_kurs()` WPROST,
+   z pominięciem akcji `aai_sklep_kurs_zmieniony`. Skutki były różne i oba
+   ciche: import na świeżej instalacji zostawiał WSZYSTKIE produkty jako
+   `draft` (katalog działa, nic nie da się kupić — zmierzone), a `sync`
+   odtwarzający skasowany wpis kursu nie odtwarzał pary met powiązania,
+   czyli tego końca, który rozdaje kurs ZA DARMO.
+
+   Reguła pyta o zachowanie, nie o nazwę pliku: żadna droga poza samą
+   klasą kopii nie wywołuje `synchronizuj_kurs()` bez ogłoszenia. */
+{
+  const OGLASZA = "synchronizuj_i_oglos";
+  const kopiaPlik = join(WTYCZKA, PLIK_KOPII);
+  const kopiaKod = kod(readFileSync(kopiaPlik, "utf8"));
+
+  // Samokontrola zakresu: metoda ogłaszająca musi istnieć i naprawdę emitować.
+  const iOglos = kopiaKod.indexOf(`function ${OGLASZA}(`);
+  if (iOglos < 0) {
+    bledy.push(`${kopiaPlik}: nie ma ${OGLASZA}() — drogi masowe nie mają czym ogłosić zmiany siostrom (MAR-A-10/A-17).`);
+  } else {
+    const cialo = kopiaKod.slice(iOglos, kopiaKod.indexOf("\n\t}", iOglos));
+    if (!/do_action\(\s*'aai_sklep_kurs_zmieniony'/.test(cialo)) {
+      bledy.push(`${kopiaPlik}: ${OGLASZA}() nie emituje aai_sklep_kurs_zmieniony — nazwa obiecuje ogłoszenie, którego nie ma (MAR-A-10/A-17).`);
+    }
+    // Własna kopia MUSI być na czas ogłoszenia wstrzymana, a stan PRZYWRÓCONY,
+    // nie wyzerowany: import wstrzymuje na całą pętlę.
+    if (!/\$\w+\s*=\s*self::\$wstrzymana[\s\S]{0,200}?self::\$wstrzymana\s*=\s*true[\s\S]{0,400}?finally[\s\S]{0,200}?self::\$wstrzymana\s*=\s*\$\w+/.test(cialo)) {
+      bledy.push(
+        `${kopiaPlik}: ${OGLASZA}() nie wstrzymuje własnej kopii na czas ogłoszenia z przywróceniem poprzedniego stanu. Bez wstrzymania na_zmianie() przechodzi całą pracę drugi raz; bez przywrócenia (a nie wyzerowania) import odsłania kopię w środku swojej pętli (MAR-A-10/A-17).`
+      );
+    }
+  }
+
+  // Żadne miejsce POZA klasą kopii nie woła synchronizuj_kurs() wprost.
+  const pliki = [];
+  const zbierz = (k) => {
+    for (const w of readdirSync(k)) {
+      const s = join(k, w);
+      if (statSync(s).isDirectory()) zbierz(s);
+      else if (w.endsWith(".php")) pliki.push(s);
+    }
+  };
+  zbierz(WTYCZKA);
+  let wolan = 0;
+  for (const p of pliki) {
+    if (p.endsWith(PLIK_KOPII)) continue;
+    const t = kod(readFileSync(p, "utf8"));
+    for (const m of t.matchAll(/Aai_Sklep_Tutor::synchronizuj_kurs\s*\(/g)) {
+      wolan += 1;
+      const nr = t.slice(0, m.index).split("\n").length;
+      bledy.push(
+        `${p}:${nr}: woła synchronizuj_kurs() z pominięciem ogłoszenia. Plugin 2 nie dostaje wtedy sygnału: po imporcie produkty zostają szkicami (nic nie da się kupić), a po odtworzeniu skasowanego wpisu kurs zostaje bez pary met powiązania, czyli rozdawany za darmo. Wołaj ${OGLASZA}() (MAR-A-10/A-17).`
+      );
+    }
+  }
+  // Samokontrola: obie drogi masowe muszą tej metody używać.
+  const uzycia = pliki.filter((p) => !p.endsWith(PLIK_KOPII)).filter((p) => new RegExp(OGLASZA).test(readFileSync(p, "utf8"))).length;
+  if (0 === wolan && uzycia < 2) {
+    bledy.push(
+      `${WTYCZKA}: tylko ${uzycia} plik(i) poza klasą kopii wołają ${OGLASZA}() przy oczekiwanych co najmniej 2 (sync i import) — reguła o ogłaszaniu przechodziłaby po pustce (samokontrola zakresu, MAR-A-10/A-17).`
+    );
+  }
+}
+
+/* POWRÓT WTYCZKI OGŁASZA KURSY SIOSTROM (MAR-A-14).
+
+   Deaktywacja Pluginu 2 przestawia produkty na `draft`, a jego aktywacja
+   próbuje to cofnąć — i wychodzi na braku Pluginu 1, gdy ten był wtedy
+   wyłączony. Bez pętli w haku aktywacji powrót Pluginu 1 nie synchronizował
+   NICZEGO: sklep miał działający katalog, w którym nic nie dało się kupić,
+   do ręcznego `wp aai-platnosci sync` (zmierzone). */
+{
+  const g = kod(czytaj(PLIK_GLOWNY));
+  const i = g.indexOf("register_activation_hook");
+  if (i < 0) {
+    bledy.push(`${join(WTYCZKA, PLIK_GLOWNY)}: nie ma haka aktywacji — samokontrola zakresu reguły o ogłaszaniu kursów po powrocie wtyczki (MAR-A-14).`);
+  } else {
+    const blok = g.slice(i, i + 2500);
+    if (!/do_action\(\s*'aai_sklep_kurs_zmieniony'/.test(blok)) {
+      bledy.push(
+        `${join(WTYCZKA, PLIK_GLOWNY)}: aktywacja nie ogłasza kursów (brak do_action aai_sklep_kurs_zmieniony w haku aktywacji). Powrót tej wtyczki po wyłączeniu zostawia wtedy produkty Pluginu 2 jako szkice na zawsze — katalog działa, kupić nie da się nic, i nic tego nie zgłasza (MAR-A-14).`
+      );
+    }
+    if (!/catch\s*\(\s*\\?Throwable\s/.test(blok)) {
+      bledy.push(
+        `${join(WTYCZKA, PLIK_GLOWNY)}: hak aktywacji nie ma osłony catch ( Throwable ). Wyjątek przy aktywacji wtyczki to dla właściciela biały ekran w kokpicie (MAR-A-14).`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-tutora:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -386,5 +527,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają, alarm o rozjeździe jest mapą per kurs i gaśnie po naprawie, drogi masowe ogłaszają zmianę siostrom, a powrót wtyczki ogłasza kursy."
 );

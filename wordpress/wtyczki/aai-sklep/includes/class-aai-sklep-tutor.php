@@ -185,6 +185,48 @@ final class Aai_Sklep_Tutor {
 	}
 
 	/**
+	 * Odtwarza kopię kursu i OGŁASZA to wtyczkom siostrzanym.
+	 *
+	 * PO CO TO ISTNIEJE. Dwie drogi masowe — `wp aai-sklep sync` i import —
+	 * wołały `synchronizuj_kurs()` WPROST, z pominięciem akcji
+	 * `aai_sklep_kurs_zmieniony`. Skutki były różne i oba ciche:
+	 *
+	 *   - IMPORT (MAR-A-17): akcja leci w środku pętli, gdy kopii kursu
+	 *     w Tutorze jeszcze NIE MA, więc Plugin 2 nie ma czego powiązać
+	 *     i zostawia produkt jako `draft` z uwagą „dokończy sync". Po
+	 *     pętli import synchronizował Tutora z pominięciem akcji, czyli
+	 *     Plugin 2 nie dostawał drugiej szansy: na świeżej instalacji
+	 *     katalog działał, a ŻADNEGO kursu nie dało się kupić.
+	 *   - SYNC (MAR-A-10): gdy wpisu kursu w Tutorze nie było (skasowany
+	 *     ręcznie, kosz), sync tworzył nowy — BEZ pary met powiązania
+	 *     `_tutor_course_price_type` / `_tutor_course_product_id`. To ten
+	 *     koniec powiązania rozdaje kurs za darmo: `Course::enroll_now()`
+	 *     Tutora zapisuje na każdy kurs niebędący `purchasable`, a przy
+	 *     silniku `wc` `purchasable` czyta wyłącznie te dwie mety.
+	 *
+	 * WŁASNA KOPIA JEST NA CZAS OGŁOSZENIA WSTRZYMANA — inaczej `na_zmianie()`
+	 * przeszłoby całą pracę drugi raz. Poprzedni stan wstrzymania jest
+	 * przywracany, nie zerowany: import wstrzymuje kopię na całą pętlę
+	 * i `wznow()` w środku odsłoniłby ją przedwcześnie.
+	 *
+	 * @param string $id Uuid kursu.
+	 * @return array<string,int> Liczniki kopii.
+	 */
+	public static function synchronizuj_i_oglos( string $id ): array {
+		$liczniki = self::synchronizuj_kurs( $id );
+
+		$byla             = self::$wstrzymana;
+		self::$wstrzymana = true;
+		try {
+			do_action( 'aai_sklep_kurs_zmieniony', $id, $liczniki );
+		} finally {
+			self::$wstrzymana = $byla;
+		}
+
+		return $liczniki;
+	}
+
+	/**
 	 * Reakcja na zmianę kursu w naszych tabelach.
 	 *
 	 * WOŁAMY TAKŻE PRZY „BEZ ZMIAN". To nie jest przeoczenie: zapis bez
@@ -202,6 +244,12 @@ final class Aai_Sklep_Tutor {
 		}
 		try {
 			self::synchronizuj_kurs( $id );
+			/*
+			 * UDANA KOPIA GASI ALARM TEGO KURSU — inaczej notatka w kokpicie
+			 * obiecuje naprawę, wykonuje ją i wisi dalej, a kontrola świeci
+			 * kodem 1 przy danych zgodnych co do znaku (MAR-A-20 → MAR-A-08).
+			 */
+			self::zapomnij_blad( $id );
 		} catch ( Throwable $blad ) {
 			self::zapamietaj_blad( $id, $blad->getMessage() );
 		}
@@ -402,18 +450,70 @@ final class Aai_Sklep_Tutor {
 	}
 
 	/**
-	 * Ostatni zapamiętany błąd synchronizacji (albo null).
+	 * Wszystkie zapamiętane błędy synchronizacji — MAPA `uuid kursu → wpis`.
+	 *
+	 * DLACZEGO MAPA, A NIE JEDEN SLOT. Do 0.74.0 stan błędu żył w jednym
+	 * `update_option()` i był zatrzaskiem oraz kłamcą naraz — dokładnie tak,
+	 * jak Plugin 2 opisał to u siebie (`Aai_Platnosci_Komunikaty`) i naprawił,
+	 * a Plugin 1 miał tę wadę dalej, w JEDYNYM alarmie o cichym rozjeździe
+	 * kopii dla klientów:
+	 *
+	 *   - awaria kursu B nadpisywała zapamiętaną awarię kursu A, więc alarm
+	 *     gasł dokładnie tam, gdzie miał świecić;
+	 *   - `na_zmianie()` po UDANEJ kopii flagi nie kasowało, więc notatka
+	 *     w kokpicie obiecywała „zapisanie kursu jeszcze raz robi to samo",
+	 *     robiła to naprawdę — i wisiała dalej (nieprawda w dokumentacji
+	 *     o zachowaniu, klasa BLAD-018);
+	 *   - `wp aai-sklep sprawdz-tutora` wliczało tę flagę do zgody, więc po
+	 *     dowolnej historycznej awarii kontrola świeciła **kodem 1 na zawsze**,
+	 *     przy danych zgodnych co do znaku. Kontrola, która nie umie
+	 *     zzielenieć, uczy, żeby jej nie ufać.
+	 *
+	 * @return array<string,array{kurs:string,komunikat:string,kiedy:string}>
+	 */
+	public static function bledy(): array {
+		$mapa = get_option( self::OPCJA_BLEDU, array() );
+		return is_array( $mapa ) ? $mapa : array();
+	}
+
+	/**
+	 * Najnowszy zapamiętany błąd synchronizacji (albo null).
 	 *
 	 * @return array{kurs:string,komunikat:string,kiedy:string}|null
 	 */
 	public static function ostatni_blad(): ?array {
-		$blad = get_option( self::OPCJA_BLEDU, null );
-		return is_array( $blad ) ? $blad : null;
+		$mapa = self::bledy();
+		if ( array() === $mapa ) {
+			return null;
+		}
+		$wpisy = array_values( $mapa );
+		usort( $wpisy, static fn( $a, $b ) => strcmp( (string) ( $a['kiedy'] ?? '' ), (string) ( $b['kiedy'] ?? '' ) ) );
+		return (array) end( $wpisy );
 	}
 
-	/** Kasuje zapamiętany błąd — po udanej synchronizacji nie ma czego pokazywać. */
-	public static function zapomnij_blad(): void {
-		delete_option( self::OPCJA_BLEDU );
+	/**
+	 * Kasuje zapamiętany błąd — po udanej kopii nie ma czego pokazywać.
+	 *
+	 * Bez argumentu kasuje CAŁĄ mapę (tak działa `wp aai-sklep sync`, który
+	 * przechodzi wszystkie kursy). Z uuid kasuje wpis DOKŁADNIE tego kursu —
+	 * i to jest droga, którą idzie każdy udany zapis w kreatorze, żeby alarm
+	 * gasł tam, gdzie naprawa naprawdę nastąpiła.
+	 */
+	public static function zapomnij_blad( string $id = '' ): void {
+		if ( '' === $id ) {
+			delete_option( self::OPCJA_BLEDU );
+			return;
+		}
+		$mapa = self::bledy();
+		if ( ! array_key_exists( $id, $mapa ) ) {
+			return;
+		}
+		unset( $mapa[ $id ] );
+		if ( array() === $mapa ) {
+			delete_option( self::OPCJA_BLEDU );
+			return;
+		}
+		update_option( self::OPCJA_BLEDU, $mapa, false );
 	}
 
 	/* ————————————————————— plan kopii ————————————————————— */
@@ -1176,14 +1276,12 @@ final class Aai_Sklep_Tutor {
 	 * @param string $komunikat Treść błędu.
 	 */
 	private static function zapamietaj_blad( string $id, string $komunikat ): void {
-		update_option(
-			self::OPCJA_BLEDU,
-			array(
-				'kurs'      => $id,
-				'komunikat' => $komunikat,
-				'kiedy'     => gmdate( 'Y-m-d H:i:s' ),
-			),
-			false
+		$mapa         = self::bledy();
+		$mapa[ $id ]  = array(
+			'kurs'      => $id,
+			'komunikat' => $komunikat,
+			'kiedy'     => gmdate( 'Y-m-d H:i:s' ),
 		);
+		update_option( self::OPCJA_BLEDU, $mapa, false );
 	}
 }

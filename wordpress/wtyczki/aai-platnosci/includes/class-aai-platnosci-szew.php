@@ -54,6 +54,19 @@ final class Aai_Platnosci_Szew {
 			$w = Aai_Platnosci_Zapis::synchronizuj_kurs( $id );
 			if ( array() === $w['uwagi'] ) {
 				Aai_Platnosci_Komunikaty::wyczysc( $id );
+				/*
+				 * UDANA SYNCHRONIZACJA UNIEWAŻNIA UWAGĘ OGÓLNĄ (MAR-A-14).
+				 *
+				 * Aktywacja bez Pluginu 1 zapisuje pod `_ogolny` uwagę
+				 * „brak Pluginu 1 — nie ma czego synchronizować". Kasowało
+				 * ją TYLKO ręczne `wp aai-platnosci sync`, więc po powrocie
+				 * Pluginu 1 kontrola świeciła kodem 1, a kokpit straszył
+				 * właściciela — przy produktach już opublikowanych
+				 * i sprzedaży działającej. Skoro właśnie zsynchronizowaliśmy
+				 * kurs, to zdanie jest po prostu nieprawdziwe: alarm, który
+				 * nie umie zgasnąć, uczy, żeby mu nie ufać (MAR-A-08).
+				 */
+				Aai_Platnosci_Komunikaty::wyczysc();
 			} else {
 				Aai_Platnosci_Komunikaty::zapisz( implode( '; ', $w['uwagi'] ), $id );
 			}

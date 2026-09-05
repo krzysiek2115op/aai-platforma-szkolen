@@ -48,7 +48,7 @@ w repo jako specyfikacja wykonawcza i źródło treści.
 
 | | |
 |---|---|
-| **Wersja** | **0.73.0** |
+| **Wersja** | **0.74.0** |
 | **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). **Trzy ostatnie kroki** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) są ZROBIONE: SEO (0.60.x), higiena repo (0.62.0/0.63.0) i audyt końcowy — plus [schematy draw.io](docs/SCHEMATY.md) (0.64.0). **Fala 1 audytu ODBYTA, a z jej 33 potwierdzonych usterek NAPRAWIONE są 32** (0.65.0, [stan i decyzje](docs/NAPRAWY-PO-AUDYCIE.md)); trzydziesta trzecia to treść polityki prywatności — **świadomie u właściciela**, wymaga prawnika. Fala kontrolna domknięta; dalej [naprawy po polowaniu](docs/PLAN-NAPRAW-PO-POLOWANIU.md) |
 | **Wtyczki WordPressa** | `aai-sklep` — W1–W6, `v0.45.0` · `aai-platnosci` — P0–P6, `v0.53.0` · `aai-monitor` — T0–T4, `v0.58.0`. Każda z osobnym testem ręcznym właściciela (W6, P6, T4) — plus test CAŁOŚCI, sprawdzający je razem |
 | **Trzy ostatnie kroki** | Wszystkie trzy **ZROBIONE**: 1. SEO (`0.60.0`, `0.60.1`) · 2. higiena repo (`0.62.0`, `0.63.0`) · 3. audyt końcowy — fala 1 odbyta, 32 z jej 33 usterek naprawione (`0.65.0`), fala kontrolna domknięta. Dalej idą **naprawy po polowaniu** ([plan P0–P4](docs/PLAN-NAPRAW-PO-POLOWANIU.md)) |
@@ -387,7 +387,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 400 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 410 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie

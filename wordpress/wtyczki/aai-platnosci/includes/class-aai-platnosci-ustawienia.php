@@ -344,7 +344,29 @@ final class Aai_Platnosci_Ustawienia {
 				return;
 			}
 			$uuid = Aai_Platnosci_Zapis::kurs_produktu( (int) get_queried_object_id() );
-			if ( null === $uuid || ! class_exists( 'Aai_Sklep_Odczyt' ) || ! class_exists( 'Aai_Sklep_Widok' ) ) {
+			if ( null === $uuid ) {
+				return;
+			}
+			/*
+			 * WYŁĄCZONY PLUGIN 1 NIE MA PRAWA ODSŁONIĆ TYCH DRZWI (MAR-A-15).
+			 *
+			 * Do 0.74.0 brak Pluginu 1 kończył tę metodę `return`-em, więc
+			 * `/product/<slug>/` wracało jako druga strona sprzedażowa
+			 * w wyglądzie WooCommerce — przy kursie, którego danych ani
+			 * strony sprzedażowej już nie ma. To dokładnie stan zamknięty
+			 * w 0.59.0, tylko wchodzący tylnymi drzwiami: `hidden` chowa
+			 * produkt z LIST, własnego adresu nie zamyka.
+			 *
+			 * Nie mamy dokąd przekierować (nasza strona sprzedażowa nie
+			 * istnieje bez Pluginu 1), więc adres oddaje 404. Sprzedaży to
+			 * nie zabiera niczego, czego wyłączony Plugin 1 i tak nie
+			 * odebrał: kursu bez jego danych nie ma jak dostarczyć.
+			 */
+			if ( ! class_exists( 'Aai_Sklep_Odczyt' ) || ! class_exists( 'Aai_Sklep_Widok' ) ) {
+				global $wp_query;
+				$wp_query->set_404();
+				status_header( 404 );
+				nocache_headers();
 				return;
 			}
 			$kurs = Aai_Sklep_Odczyt::kurs_po_id( $uuid );
