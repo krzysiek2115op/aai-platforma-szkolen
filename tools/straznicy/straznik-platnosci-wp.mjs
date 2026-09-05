@@ -1764,6 +1764,91 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* ZNACZNIK TOŻSAMOŚCI ŚWIEŻEJ OKŁADKI SPRAWDZAMY ODCZYTEM (P4, Z-5).
+
+   `zalacznik_okladki()` rozpoznaje wgraną wcześniej okładkę po DWÓCH
+   metach. Załącznik, któremu ich nie zapisano, jest dla tego pytania
+   NIEWIDZIALNY — więc każda następna synchronizacja wgrywa nową kopię
+   tego samego pliku (`okladka-1.png`, `-2`, `-3`…). Objawu nie ma
+   żadnego: produkt dostaje obrazek, kontrola milczy, rośnie tylko
+   biblioteka mediów właściciela.
+
+   `update_post_meta()` oddaje `false` TAKŻE przy wartości niezmienionej
+   (zmierzone w 0.71.0), więc jedyną uczciwą drogą jest ODCZYT po
+   zapisie. Przy niepowodzeniu świeży załącznik ma zniknąć: brak okładki
+   jest stanem odwracalnym, a sierota-widmo mnoży się przy każdym
+   zapisie. Reguła pyta o ROZSTRZYGNIĘCIE (odczyt obu met i kasowanie
+   w gałęzi porażki), nie o nazwę metody ani o obecność stałych. */
+{
+  const zapisOkladki = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+  const odWgraj = zapisOkladki.indexOf("function wgraj_okladke(");
+  if (odWgraj < 0) {
+    // Samokontrola zakresu: bez tej metody reguła przechodziłaby po pustce.
+    if (/wp_insert_attachment\s*\(/.test(zapisOkladki)) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: wtyczka wgrywa załączniki, a nie ma wgraj_okladke() — reguła o znaczniku tożsamości okładki nie ma czego pilnować i przeszłaby po pustce (Z-5).`
+      );
+    }
+  } else {
+    const doKonca = zapisOkladki.slice(odWgraj);
+    const nastepna = doKonca.slice(1).search(/\n\t(?:private|public|protected)\s/);
+    const cialo = nastepna > 0 ? doKonca.slice(0, nastepna + 1) : doKonca;
+
+    // (a) Znaczniki muszą być POTWIERDZONE odczytem — obie mety, nie jedna.
+    const odczyty = [...cialo.matchAll(/get_post_meta\s*\(\s*\(int\)\s*\$id\s*,\s*self::(META_OKLADKA_\w+)/g)].map(
+      (m) => m[1]
+    );
+    if (!odczyty.includes("META_OKLADKA_KURS") || !odczyty.includes("META_OKLADKA_SHA")) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: wgraj_okladke() nie potwierdza ODCZYTEM obu znaczników tożsamości okładki (kurs i sha). Bez nich zalacznik_okladki() nie rozpozna własnego pliku i KAŻDA synchronizacja wgra kolejną kopię okładki — bez jednego objawu, poza puchnącą biblioteką mediów (Z-5).`
+      );
+    }
+    // (b) Nieudany zapis MUSI skasować świeży załącznik i wyjść zerem.
+    if (!/if\s*\(\s*!\s*\$\w+\s*\)\s*\{[\s\S]{0,300}?wp_delete_attachment\s*\(\s*\(int\)\s*\$id\s*,\s*true\s*\)[\s\S]{0,120}?return\s+0\s*;/.test(cialo)) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: wgraj_okladke() nie sprząta po nieudanym oznaczeniu (brak wp_delete_attachment + return 0 w gałęzi porażki). Nieoznaczony załącznik jest niewidzialny dla wyszukiwania i zostaje w bibliotece na zawsze, a następny zapis kursu doda kolejny (Z-5).`
+      );
+    }
+  }
+}
+
+/* PUSTE ZDANIE O ZGODACH TEŻ MUSI WEJŚĆ DO BLOKU (P4, Z-1).
+
+   Druga połowa reguły 34a, której brakowało. `zdanie()` oddaje PUSTY
+   łańcuch, gdy instalacja nie ma nawet strony polityki prywatności —
+   i właśnie wtedy podmiana jest najbardziej potrzebna, bo WooCommerce
+   drukuje wtedy swoje domyślne zdanie o „Warunkach i zasadach", których
+   w tej instalacji nie ma. Wcześniejsze wyjście z bloku przy pustym
+   tekście oddawało głos cudzej wersji dokładnie w tym przypadku.
+
+   Reguła celuje w ROZSTRZYGNIĘCIE: między odczytem zdania a zejściem
+   w drzewo bloków nie wolno postawić wyjścia zależnego od pustki. */
+{
+  const KASA_Z1 = join(KATALOG, "includes", "class-aai-platnosci-kasa.php");
+  if (existsSync(KASA_Z1)) {
+    const k = kod(readFileSync(KASA_Z1, "utf8"));
+    const od = k.indexOf("function na_bloku(");
+    if (od < 0) {
+      if (/render_block_data/.test(k)) {
+        bledy.push(
+          `${KASA_Z1}: jest filtr render_block_data, a nie ma na_bloku() — reguła o pustym zdaniu zgód pilnowałaby pustki (samokontrola zakresu, Z-1).`
+        );
+      }
+    } else {
+      const doK = k.slice(od);
+      const nast = doK.slice(1).search(/\n\t(?:private|public|protected)\s/);
+      const cialoNaBloku = nast > 0 ? doK.slice(0, nast + 1) : doK;
+      const poZdaniu = cialoNaBloku.slice(cialoNaBloku.indexOf("self::zdanie()"));
+      const doPrzejdz = poZdaniu.slice(0, poZdaniu.indexOf("self::przejdz("));
+      if (/return\s+\$blok\s*;/.test(doPrzejdz)) {
+        bledy.push(
+          `${KASA_Z1}: na_bloku() wychodzi z bloku NIETKNIĘTEGO między odczytem zdania a zejściem w drzewo. Pusty tekst znaczy „nie ma nawet polityki prywatności" — czyli przypadek, w którym podmiana jest najbardziej potrzebna, bo WooCommerce drukuje wtedy zdanie o nieistniejących „Warunkach i zasadach" (Z-1).`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1771,5 +1856,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, każdy zapis wpisu odbiera swój wynik, kupowalność i odebranie dostępu mierzone odczytem, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, każdy zapis wpisu odbiera swój wynik, kupowalność i odebranie dostępu mierzone odczytem, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products, znacznik świeżej okładki potwierdzany odczytem i sprzątany przy porażce, puste zdanie o zgodach też wchodzi do bloku kasy)."
 );

@@ -4828,6 +4828,82 @@ const MUTACJE = [
       return s.includes(a) ? s.replace(a, "") : null;
     },
   },
+  /* P4c — trzy naprawy: Z-5 (okładka), Z-1 (zdanie o zgodach), MAR-A-20
+     (kształt handlera szwu). Każda mutacja cofa NAPRAWĘ do stanu sprzed
+     0.73.0 — czyli mierzy dokładnie to, co reguła ma trzymać. */
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "znika potwierdzenie znaczników okładki odczytem — nieoznaczony załącznik mnoży kopie przy każdej synchronizacji (Z-5)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "nie potwierdza ODCZYTEM obu znaczników",
+    zmien: (s) => {
+      const a =
+        "\t\t$oznaczony = (string) get_post_meta( (int) $id, self::META_OKLADKA_KURS, true ) === $course_uuid\n" +
+        "\t\t\t&& (string) get_post_meta( (int) $id, self::META_OKLADKA_SHA, true ) === $sha;\n" +
+        "\t\tif ( ! $oznaczony ) {\n\t\t\twp_delete_attachment( (int) $id, true );\n\t\t\treturn 0;\n\t\t}\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "okładka przestaje sprzątać po nieudanym oznaczeniu — sierota zostaje w bibliotece mediów na zawsze (Z-5)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "nie sprząta po nieudanym oznaczeniu",
+    zmien: (s) => {
+      const a = "\t\tif ( ! $oznaczony ) {\n\t\t\twp_delete_attachment( (int) $id, true );\n\t\t\treturn 0;\n\t\t}\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kasa znowu wychodzi z bloku przy pustym zdaniu — WooCommerce dopowiada „Warunki i zasady”, których nie ma (Z-1)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-kasa.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-kasa.php"),
+    oczekiwanySlad: "wychodzi z bloku NIETKNIĘTEGO",
+    zmien: (s) => {
+      const a = "\t\t$tekst = self::zdanie();\n\t\t$blok['innerBlocks']";
+      const b = "\t\t$tekst = self::zdanie();\n\t\tif ( '' === $tekst ) {\n\t\t\treturn $blok;\n\t\t}\n\t\t$blok['innerBlocks']";
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "handler szwu wraca na twardy typ bool — cudzy callback daje TypeError na płatnej lekcji (MAR-A-20)",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "twardy typ",
+    zmien: (s) => {
+      const a = "public static function za_bramka( $za_bramka = false ): bool {";
+      return s.includes(a) ? s.replace(a, "public static function za_bramka( bool $za_bramka ): bool {") : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "handler szwu traci osłonę Throwable — nasza awaria wychodzi do cudzego żądania (MAR-A-20)",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "osłony catch ( Throwable )",
+    zmien: (s) => {
+      const a =
+        "\t\ttry {\n\t\t\t$dane = self::dane();\n\t\t\treturn null !== $dane && empty( $dane['dostep'] );\n" +
+        "\t\t} catch ( Throwable $e ) {\n\t\t\treturn false;\n\t\t}";
+      const b = "\t\t$dane = self::dane();\n\t\treturn null !== $dane && empty( $dane['dostep'] );";
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "znika rejestracja jednego szwu — reguła o kształcie handlerów przechodziłaby po mniejszej liczbie (samokontrola zakresu)",
+    plik: KLASA_LEKCJI,
+    wymaga: () => existsSync(KLASA_LEKCJI),
+    oczekiwanySlad: "samokontrola zakresu",
+    zmien: (s) => {
+      const a = "\t\tadd_filter( 'aai_monitor_strona_za_bramka', array( self::class, 'za_bramka' ) );\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
 ];
 
 
