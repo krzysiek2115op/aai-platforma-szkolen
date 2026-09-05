@@ -3492,12 +3492,31 @@ skasowana, artefakt zweryfikowany (`git diff ac6cb48 origin/main` PUSTY —
 lekcja z 0.37.0). Kontener po przełączeniu gałęzi widzi nowe pliki (bind
 mount żywy), obie kontrole kod 0.**
 
-**NASTĘPNY KROK CAŁEGO PROJEKTU: FALA KONTROLNA** (decyzje D3 + D4): 14
-Pogłębiaczy, BEZ ról procesowych, potokiem (dział kończy audyt → wchodzi
-re-audyt tego działu), dwa tory środowiskowe (`postaw.sh` z
-`WP_PORT`/`MAILPIT_PORT`/`STACK_NAZWA`; pamięci starcza na DWA). Praca na
-gałęzi `re-audyt/sektor-re-audytu` (tam żyją sektory) **po scaleniu do niej
-`main`** (0.65.0). Zakres: WYŁĄCZNIE potwierdzenie, że 32 naprawy trzymają
-i nie przyniosły regresji — bez ról procesowych, bez raportu o aparacie.
-Szacunek: pół dnia do dnia zegarowo. Po fali: zapis wyniku w tym pliku
-i README, ewentualne poprawki, koniec projektu wg planu.
+**NASTĘPNY KROK CAŁEGO PROJEKTU: FALA KONTROLNA — ZIELONE ŚWIATŁO DANE
+(właściciel, 2026-09-05), KOD PO `/clear`.** Cztery decyzje (D12–D16) i pełny
+protokół przebiegu leżą NA GAŁĘZI SEKTORA `re-audyt/sektor-re-audytu`, koniec
+`audyt/PLAN-BUDOWY.md` (sekcje „FALA KONTROLNA PO 0.65.0 — PROJEKT DO DYSKUSJI"
+i „— DECYZJE WŁAŚCICIELA I PROTOKÓŁ PRZEBIEGU"). Skrót, żeby nowa sesja nie
+wyprowadzała tego od nowa:
+- **zakres WĄSKI**: 14 Pogłębiaczy `rea-<KOD>` + 14 krytyków = 28 agentów;
+  działy audytu i role procesowe NIE wchodzą;
+- **nośnik B, poza numeracją fal**: bez `status.mjs`/`zgloszenie.mjs` (znają
+  tylko fale 1 i 2, a fala 2 to „ten sam commit, bez wpisów F1" — odwrotność
+  kontroli); wynik roli = `audyt/wyniki/kontrola-0.65.0/<KOD>.md`, werdykt
+  krytyka pod spodem; zrzuty `srodowisko.mjs --zrzut=k-baza` / `k-<KOD>-po`;
+- **wejście = 33 wpisy o produkcie w 11 działach**, policzone komendą
+  (`audyt/wyniki/kontrola-0.65.0/WEJSCIE.md`; QA, PROTO, PIK mają 0 — tylko
+  rundy regresji);
+- **drugi tor**: `STACK_NAZWA=aai_wp_b WP_PORT=8894 MAILPIT_PORT=8895
+  ./postaw.sh`; jedna rola naraz na tor; WDR na końcu swojego toru;
+- **R17 strażnika sektora**: przed falą odsiać wpisy historii z polem `proba`
+  (fałszywy alarm z prób E7), z testem negatywnym;
+- **kolejność po `/clear`**: niezmiennik 0 → R17 → tor B → zrzuty bazowe →
+  Pogłębiacze wg wagi napraw (INT, BE, BD, ARCH → PERF, PRIV, SEC, FE → REPO,
+  USP, WDR → QA, PROTO, PIK) → `WYNIK.md` → docs-PR. **M > 0 NIENAPRAWIONE →
+  naprawy zwykłą drogą od `main`, nie w sektorze.**
+- **`.claude/agents/` (80 definicji) NIE jest w gicie** — to generat; gdy go
+  brak: `node audyt/tools/generuj-agentow.mjs` na gałęzi sektora.
+- **LEKCJA ze scalenia 0.65.0 do sektora:** wzorce goldenów ról wskazują
+  LINIE kodu produktu — każda zmiana kodu wymaga ich przekotwiczenia (BD/BE/PRIV
+  przesunięte, naprawione `86f186c`), inaczej strażnik sektora świeci R11.
