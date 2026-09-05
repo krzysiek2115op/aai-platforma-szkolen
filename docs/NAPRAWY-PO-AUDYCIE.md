@@ -52,6 +52,14 @@ Dowody uruchomieniowe, nie z lektury.
 `smoke:wp-platnosci` 23, `wp:sprawdz` **73/73 co do znaku**, `aai-platnosci
 sprawdz` i `aai-monitor sprawdz` kod 0, **cykle zależności 0/0/0**.
 
+**Przelot WSZYSTKICH 15 bramek przed PR-em (2026-09-05, sesja PR): 15/15
+zielone** — ale dopiero po dwóch naprawach ŚRODOWISKA DOWODOWEGO, nie kodu:
+(1) `smoke-wp-zwroty` zostawiał 5 osieroconych notatek po zamówieniu z cudzym
+produktem (hak słusznie ich nie rusza — zamek 1) i gasił kontrolę oraz trzy
+asercje `smoke-wp-maile` biegnącej po nim; „zwroty 39" wyżej było zmierzone
+PRZED regułą liczącą sieroty — bramka sprząta teraz sama, wzorzec z zakupu
+(commit `c3f2dd9`); (2) DNS kontenera — patrz pułapki niżej.
+
 ---
 
 ## Trzy rzeczy, które wyszły po drodze i są ważniejsze niż same naprawy
@@ -135,6 +143,17 @@ samokontrolę zakresu.
 - **Kontener nie ma sieci** (`curl` → 000), więc `wp language install` pada
   i katalog `wp-content/languages` nie powstaje. To źródło 10 z 25 czerwonych
   w `smoke-wp-jezyk` i **usterka procedury, nie kodu**.
+  **PRZYCZYNA ZNALEZIONA I USUNIĘTA (2026-09-05, sesja PR):** kontener MA
+  sieć po IP (`curl http://1.1.1.1` → 301), nie ma tylko **DNS** — `aardvark-dns`
+  podmana (proces wspólny dla wszystkich sieci użytkownika, uruchomiony
+  2026-08-28) trzymał nieaktualny upstream, a bezpośrednio `192.168.1.1`
+  i `169.254.1.1` odpowiadały z kontenera. Samo `podman-compose down &&
+  ./postaw.sh` **NIE odświeża aardvarka**, bo przy życiu trzyma go kontener
+  `db1_kursy` z drugiej sieci. Naprawa: `podman-compose down` → `kill
+  <pid aardvark-dns>` (pid w `/run/user/1000/containers/networks/aardvark-dns/aardvark.pid`)
+  → `./postaw.sh`; podman stawia świeży proces przy pierwszym kontenerze.
+  Po tym `getent hosts api.wordpress.org` w kontenerze odpowiada, katalog
+  tłumaczeń ma 276 plików wtyczek, `smoke-wp-jezyk` **25/25**.
 - **Kasowanie z bazy jest blokowane przez zabezpieczenie sesji** — wymaga
   wyraźnej zgody właściciela. Zakazu nie obchodzić.
 - **Bramki zmieniają środowisko między pomiarami.** `smoke-wp-zakup` po
