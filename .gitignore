@@ -63,3 +63,17 @@ eksport-wp/
 
 # Paczki dla klienta — powstają z npm run pakuj, nie wchodzą do repo.
 paczki/
+
+# Definicje agentów sektorów audytu — GENERAT, nie źródło.
+#
+# Powstają z `audyt/ROLE.md` i `audyt/role/*` komendą
+# `node audyt/tools/generuj-agentow.mjs` (na gałęzi sektora, bo tylko tam
+# istnieje katalog `audyt/`). Osiemdziesiąt plików, które zmieniają się przy
+# każdej poprawce definicji roli — trzymanie ich w gicie dawałoby drugą kopię
+# obok źródła, czyli dokładnie ten rozjazd, którego pilnuje `straznik-sektora-audytu`
+# regułą 21 (model generatu zgodny z ROLE.md).
+#
+# Wpis jest tu także dlatego, że hurtowy `git add -A` wciągnął je raz na
+# gałąź `main`, gdzie sektorów nie ma w ogóle — ta sama klasa co zrzut ekranu
+# usunięty PR-em #87.
+.claude/agents/
