@@ -3,7 +3,7 @@
  * Plugin Name:       Automatic AI — Sklep z kursami
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Katalog /szkolenia, strony sprzedażowe kursów i kreator treści. Pierwsza z trzech wtyczek Automatic AI; sprzedaż bierze WooCommerce, dostęp do materiału Tutor LMS.
- * Version:           0.7.0
+ * Version:           0.8.0
  * Requires at least: 6.9
  * Requires PHP:      8.1
  * Author:            Automatic AI
@@ -106,6 +106,30 @@ register_activation_hook(
 		// najbliższe żądanie przepłukało reguły i `/szkolenia` odpowiadało
 		// od razu, a nie dopiero po ręcznym zapisaniu bezpośrednich odnośników.
 		Aai_Sklep_Trasy::wymus_przeplukanie();
+
+		/*
+		 * POWRÓT TEJ WTYCZKI OGŁASZA KURSY SIOSTROM (MAR-A-14).
+		 *
+		 * Deaktywacja Pluginu 2 przestawia produkty na `draft`, a jego
+		 * aktywacja próbuje to cofnąć — ale wychodzi na braku
+		 * `Aai_Sklep_Odczyt`, gdy Plugin 1 jest wtedy wyłączony. Bez tej
+		 * pętli powrót Pluginu 1 nie synchronizował NICZEGO, więc produkty
+		 * zostawały szkicami do ręcznego `wp aai-platnosci sync` — czyli
+		 * sklep z działającym katalogiem, w którym nic nie da się kupić,
+		 * i to bez jednego objawu.
+		 *
+		 * Osłona jest warunkiem, nie ostrożnością: aktywacja wtyczki, która
+		 * rzuci wyjątek, kończy się dla właściciela białym ekranem
+		 * w kokpicie. Kursy są dwa, a nie dwa tysiące — koszt tej pętli
+		 * jest jednorazowy i mierzalny.
+		 */
+		try {
+			foreach ( Aai_Sklep_Tutor::identyfikatory_kursow() as $id ) {
+				do_action( 'aai_sklep_kurs_zmieniony', $id, array() );
+			}
+		} catch ( Throwable $e ) {
+			error_log( 'aai-sklep: aktywacja nie ogłosiła kursów: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		}
 	}
 );
 

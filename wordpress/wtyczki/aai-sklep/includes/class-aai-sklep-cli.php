@@ -325,18 +325,27 @@ final class Aai_Sklep_Cli {
 
 		foreach ( $idki as $id ) {
 			try {
-				$liczniki = Aai_Sklep_Tutor::synchronizuj_kurs( $id );
+				$liczniki = Aai_Sklep_Tutor::synchronizuj_i_oglos( $id );
 			} catch ( Aai_Sklep_Blad_Zapisu $blad ) {
 				WP_CLI::error( $blad->getMessage() );
 				return;
 			}
+			/*
+			 * ALARM GASI SIĘ PER KURS, TAKŻE TUTAJ.
+			 *
+			 * Globalne kasowanie na końcu miało dwie twarze i obie były złe:
+			 * `sync <slug>` gasiło błędy CUDZYCH kursów (alarm znikał tam,
+			 * gdzie nadal był prawdziwy), a `sync` bez argumentu i tak
+			 * przerywa na pierwszej awarii, więc do kasowania nie dochodziło.
+			 * Gasimy dokładnie ten kurs, który właśnie się udał.
+			 */
+			Aai_Sklep_Tutor::zapomnij_blad( $id );
 			foreach ( $liczniki as $klucz => $ile ) {
 				$razem[ $klucz ] += $ile;
 			}
 			WP_CLI::log( sprintf( '  %s: %s', $id, self::liczniki_tekstem( $liczniki ) ) );
 		}
 
-		Aai_Sklep_Tutor::zapomnij_blad();
 		WP_CLI::success( 'Kopia w Tutorze: ' . self::liczniki_tekstem( $razem ) );
 	}
 
@@ -384,9 +393,16 @@ final class Aai_Sklep_Cli {
 		$kurs = (string) ( $args[0] ?? '' );
 		$id   = '' === $kurs ? null : ( Aai_Sklep_Raport::id_po_slugu( $kurs ) ?? $kurs );
 
-		$wynik          = Aai_Sklep_Tutor::porownaj( $id );
+		$wynik = Aai_Sklep_Tutor::porownaj( $id );
+		/*
+		 * Alarm jest MAPĄ per kurs, więc kontrola pokazuje wszystkie wpisy,
+		 * a nie tylko ostatni (`blad` zostaje dla zgodności formatu). Po
+		 * naprawie mapa jest pusta sama z siebie — udana kopia gasi swój
+		 * wpis — więc kontrola potrafi wreszcie zzielenieć (MAR-A-08).
+		 */
+		$wynik['bledy'] = Aai_Sklep_Tutor::bledy();
 		$wynik['blad']  = Aai_Sklep_Tutor::ostatni_blad();
-		$wynik['zgoda'] = array() === $wynik['roznice'] && null === $wynik['blad'];
+		$wynik['zgoda'] = array() === $wynik['roznice'] && array() === $wynik['bledy'];
 
 		if ( 'json' === ( $assoc_args['format'] ?? 'podsumowanie' ) ) {
 			WP_CLI::line( (string) wp_json_encode( $wynik, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );

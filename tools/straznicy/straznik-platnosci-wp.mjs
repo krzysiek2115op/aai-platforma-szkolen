@@ -1849,6 +1849,75 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* WYŁĄCZONY PLUGIN 1 NIE ODSŁANIA DRUGIEJ STRONY SPRZEDAŻOWEJ (MAR-A-15).
+
+   Produkt kursu jest `publish` i tylko `hidden` w katalogu — a `hidden`
+   chowa go z LIST, własnego adresu nie zamyka. Przekierowanie na naszą
+   stronę sprzedażową kończyło się `return`-em, gdy Pluginu 1 nie było,
+   więc `/product/<slug>/` wracało jako druga strona sprzedażowa w wyglądzie
+   WooCommerce — przy kursie, którego danych ani strony już nie ma
+   (zmierzone: HTTP 200 z tytułem produktu i przyciskiem kupna).
+
+   Nie ma dokąd przekierować, więc adres ma oddać 404. Reguła pyta
+   o ROZSTRZYGNIĘCIE w gałęzi „nie ma Pluginu 1", nie o obecność słowa. */
+{
+  const U = join(KATALOG, "includes", "class-aai-platnosci-ustawienia.php");
+  if (!existsSync(U)) {
+    bledy.push(`${U}: brak klasy ustawień — nie ma czym zamknąć adresu produktu przy wyłączonym Pluginie 1 (MAR-A-15).`);
+  } else {
+    const u = kod(readFileSync(U, "utf8"));
+    const i = u.indexOf("function przekieruj_ze_strony_produktu(");
+    if (i < 0) {
+      bledy.push(`${U}: nie ma przekieruj_ze_strony_produktu() — adres /product/<slug>/ jest drugą stroną sprzedażową w cudzym wyglądzie (MAR-A-15).`);
+    } else {
+      const cialo = u.slice(i, u.indexOf("\n\t}", i));
+      // Gałąź „brak Pluginu 1" musi kończyć się 404, nie gołym return.
+      const m = cialo.match(/if\s*\(\s*!\s*class_exists\(\s*'Aai_Sklep_Odczyt'[\s\S]{0,400}?\n\t\t\t\}/);
+      if (!m) {
+        bledy.push(
+          `${U}: nie widzę gałęzi „brak Pluginu 1" w przekieruj_ze_strony_produktu() — reguła o zamykaniu adresu produktu przechodziłaby po pustce (samokontrola zakresu, MAR-A-15).`
+        );
+      } else if (!/set_404\s*\(\s*\)/.test(m[0]) || !/status_header\(\s*404\s*\)/.test(m[0])) {
+        bledy.push(
+          `${U}: przy wyłączonym Pluginie 1 adres produktu kursu nie oddaje 404 (brak set_404 + status_header w tej gałęzi). Wraca wtedy druga strona sprzedażowa w wyglądzie WooCommerce — stan zamknięty w 0.59.0, wchodzący tylnymi drzwiami (MAR-A-15).`
+        );
+      }
+    }
+  }
+}
+
+/* UDANA SYNCHRONIZACJA UNIEWAŻNIA UWAGĘ OGÓLNĄ (MAR-A-14).
+
+   Aktywacja bez Pluginu 1 zapisuje pod `_ogolny` uwagę „brak Pluginu 1 —
+   nie ma czego synchronizować". Kasowało ją TYLKO ręczne
+   `wp aai-platnosci sync`, więc po powrocie Pluginu 1 kontrola świeciła
+   kodem 1, a kokpit straszył właściciela — przy produktach już
+   opublikowanych i sprzedaży działającej (zmierzone). To ta sama klasa co
+   MAR-A-08 w Pluginie 1: alarm, który nie umie zgasnąć, uczy, żeby mu nie
+   ufać — a ta wtyczka opisała tę wadę u siebie i naprawiła ją dla kluczy
+   kursów, zostawiając klucz ogólny. */
+{
+  const S = join(KATALOG, "includes", "class-aai-platnosci-szew.php");
+  if (!existsSync(S)) {
+    bledy.push(`${S}: brak klasy szwu — samokontrola zakresu reguły o gaszeniu uwagi ogólnej (MAR-A-14).`);
+  } else {
+    const s = kod(readFileSync(S, "utf8"));
+    const i = s.indexOf("function na_zmianie(");
+    if (i < 0) {
+      bledy.push(`${S}: nie ma na_zmianie() — samokontrola zakresu reguły o gaszeniu uwagi ogólnej (MAR-A-14).`);
+    } else {
+      const cialo = s.slice(i, s.indexOf("\n\t}", i));
+      const sukces = cialo.split("} else")[0];
+      // W gałęzi sukcesu gasimy i klucz kursu, i klucz ogólny (wywołanie bez argumentu).
+      if (!/Aai_Platnosci_Komunikaty::wyczysc\(\s*\)/.test(sukces)) {
+        bledy.push(
+          `${S}: udana synchronizacja kursu nie gasi uwagi OGÓLNEJ (brak Komunikaty::wyczysc() bez argumentu w gałęzi sukcesu). Uwaga „brak Pluginu 1 — nie ma czego synchronizować" wisi wtedy po jego powrocie, a kontrola świeci kodem 1 przy działającej sprzedaży (MAR-A-14).`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1856,5 +1925,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, każdy zapis wpisu odbiera swój wynik, kupowalność i odebranie dostępu mierzone odczytem, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products, znacznik świeżej okładki potwierdzany odczytem i sprzątany przy porażce, puste zdanie o zgodach też wchodzi do bloku kasy)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, każdy zapis wpisu odbiera swój wynik, kupowalność i odebranie dostępu mierzone odczytem, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products, znacznik świeżej okładki potwierdzany odczytem i sprzątany przy porażce, puste zdanie o zgodach też wchodzi do bloku kasy, wyłączony Plugin 1 nie odsłania drugiej strony sprzedażowej, a udana synchronizacja gasi uwagę ogólną)."
 );

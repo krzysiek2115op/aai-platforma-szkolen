@@ -5,6 +5,102 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.74.0] — 2026-09-06
+
+### Naprawy po polowaniu, P4 — tura architektury: pięć alarmów, które nie umiały zgasnąć albo nie miały komu zadzwonić
+
+Wspólny mianownik tej tury: **mechanizm istnieje, ale nie dojeżdża**. Każda
+z pięciu pozycji przechodziła wszystkie 39 strażników i 15 bramek, bo żadna
+nie jest błędem składni ani logiki w jednym miejscu — wszystkie są przerwanym
+ogniwem między dwiema wtyczkami.
+
+**MAR-A-08 — jedyny alarm o cichym rozjeździe kopii nie umiał zgasnąć.** Stan
+błędu synchronizacji Tutora żył w JEDNYM `update_option()` i był zatrzaskiem
+oraz kłamcą naraz: awaria kursu B nadpisywała alarm kursu A, udana kopia flagi
+nie kasowała, a `sprawdz-tutora` wliczało ją do zgody — czyli po dowolnej
+historycznej awarii kontrola świeciła **kodem 1 na zawsze**, przy danych
+zgodnych co do znaku. Notatka w kokpicie obiecywała przy tym „zapisanie kursu
+jeszcze raz robi to samo": robiła to naprawdę i **wisiała dalej** (BLAD-018).
+
+Plugin 2 opisał tę wadę u siebie słowo w słowo i naprawił; Plugin 1 miał ją
+dalej. Stan jest dziś **mapą per kurs**, gasi go każda udana kopia TEGO kursu —
+także z wiersza poleceń, gdzie `sync <slug>` gasił wcześniej alarmy **cudzych**
+kursów.
+
+**MAR-A-10 i MAR-A-17 — dwie drogi masowe omijały szew.** `wp aai-sklep sync`
+i import wołały `synchronizuj_kurs()` wprost, z pominięciem akcji
+`aai_sklep_kurs_zmieniony`. Skutki były różne i oba ciche:
+
+- **import na świeżej instalacji zostawiał WSZYSTKIE produkty jako `draft`** —
+  katalog działa, strony sprzedażowe działają, a **żadnego kursu nie da się
+  kupić**. Zmierzone: po skasowaniu kopii w Tutorze i imporcie oba produkty
+  `draft`, `is_purchasable() = false`, kontrola płatności kod 1;
+- **sync odtwarzający skasowany wpis kursu nie odtwarzał pary met powiązania** —
+  a to ten koniec rozdaje kurs **za darmo**: `Course::enroll_now()` Tutora
+  zapisuje na każdy kurs niebędący `purchasable`, a `purchasable` przy silniku
+  `wc` czyta wyłącznie te dwie mety. Zmierzone: po skasowaniu wpisu i `sync`
+  nowy wpis miał `price_type=''`, `product_id=''`.
+
+Obie drogi idą teraz przez `Aai_Sklep_Tutor::synchronizuj_i_oglos()`, które
+ogłasza zmianę siostrom **przy wstrzymanej własnej kopii** (inaczej ta sama
+praca leciałaby drugi raz) i **przywraca** poprzedni stan wstrzymania zamiast
+go zerować — import wstrzymuje kopię na całą swoją pętlę.
+
+**MAR-A-14 — powrót Pluginu 1 nie odzyskiwał sprzedaży.** Deaktywacja Pluginu 2
+przestawia produkty na `draft`, jego aktywacja próbuje to cofnąć i wychodzi na
+braku Pluginu 1. Powrót Pluginu 1 **nie synchronizował niczego**, więc produkty
+zostawały szkicami do ręcznej komendy. Hak aktywacji ogłasza teraz kursy;
+osłona `Throwable` jest tam warunkiem, nie ostrożnością — wyjątek przy
+aktywacji to dla właściciela biały ekran w kokpicie.
+
+Druga połowa tej samej pozycji siedziała w Pluginie 2: uwaga „brak Pluginu 1 —
+nie ma czego synchronizować" wisiała pod kluczem `_ogolny` po powrocie
+Pluginu 1, a kasowało ją tylko ręczne `sync`. Gasi ją teraz każda udana
+synchronizacja kursu, bo to zdanie przestaje wtedy być prawdziwe.
+
+**MAR-A-15 — wyłączony Plugin 1 odsłaniał drugą stronę sprzedażową.** Produkt
+kursu jest `publish` i tylko `hidden` w katalogu, a `hidden` chowa go z LIST —
+własnego adresu nie zamyka. Przekierowanie na naszą stronę kończyło się
+`return`-em przy braku Pluginu 1, więc `/product/<slug>/` wracało jako strona
+sprzedażowa **w wyglądzie WooCommerce**, przy kursie, którego danych już nie ma.
+Zmierzone: HTTP 200 z tytułem produktu i przyciskiem kupna. Nie ma dokąd
+przekierować, więc adres oddaje **404** (zmierzone po naprawie: zero śladów
+strony produktu, tytuł „Strona nie została znaleziona").
+
+### Dowody: pięć napraw, pięć pomiarów uruchomieniowych, dziesięć testów negatywnych
+
+Każda naprawa ma pomiar na żywej instalacji **przed i po**, każdy w wariancie
+odwróconym. Jeden z nich okazał się początkowo **ślepy** — test MAR-A-17
+przechodził, bo kopia kursu w Tutorze już istniała, czyli warunek usterki nie
+zachodził. Powtórzony na właściwym stanie (skasowana kopia + produkty na
+`draft`) rozdzielił oba warianty ostro: bez naprawy nic nie da się kupić.
+
+Doszło **pięć reguł strażników** — trzy w `straznik-tutora` (alarm jest mapą
+i gaśnie po naprawie; drogi masowe ogłaszają zmianę siostrom; powrót wtyczki
+ogłasza kursy) i dwie w `straznik-platnosci-wp` (wyłączony Plugin 1 nie
+odsłania drugiej strony sprzedażowej; udana synchronizacja gasi uwagę ogólną).
+Każda ma samokontrolę zakresu i pyta o rozstrzygnięcie, nie o nazwę.
+
+**Mój refaktor uśmiercił istniejącą mutację — po raz kolejny.** Dopisanie
+gaszenia alarmu w gałęzi sukcesu `na_zmianie()` sprawiło, że mutacja
+podmieniająca cały blok `try` przestała pasować i **wyglądała na zieloną, nie
+mierząc niczego**. Złapał to audyt mutacyjny, nie lektura. Mutacja jest teraz
+przekotwiczona na ZACHOWANIE — podmienia typ łapanego wyjątku, cokolwiek jest
+w środku bloku.
+
+### Liczby
+
+Audyt mutacyjny 400 → **410** (408 złapanych, 0 przeoczonych, 0 martwych,
+2 pominięte bez materiału), strażnicy **39/39**, `npm run check` kod 0,
+**15/15 bramek WP**: monitor 184 · seo 172 · kreator 102 · produkty 101 ·
+motyw 91 · front 89 · lekcja 64 · maile 62 · zakup 60 · panel 55 · tutor 49 ·
+zwroty 39 · dane 30 · język 25 · płatności 27. Wszystkie cztery kontrole
+(`wp:sprawdz`, `sprawdz-tutora`, `aai-platnosci sprawdz`, `aai-monitor
+sprawdz`) kod 0; proza **73/73 co do znaku**, kopia w Tutorze **0 różnic**.
+
+Wersje wtyczek: `aai-sklep` 0.7.0 → **0.8.0**, `aai-platnosci` 0.3.0 →
+**0.4.0** (nazwa paczki dla klienta jest obietnicą wersji — reguła z 0.69.0).
+
 ## [0.73.0] — 2026-09-06
 
 ### Naprawy po polowaniu, P4 — tura trzecia: trzy usterki bez objawu

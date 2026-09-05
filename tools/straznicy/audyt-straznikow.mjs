@@ -2740,13 +2740,20 @@ const MUTACJE = [
     opis: "słuchacz zmiany przestaje łapać wyjątek (awaria Tutora wywala właścicielowi zapis treści)",
     plik: KLASA_TUTORA,
     wymaga: () => existsSync(KLASA_TUTORA),
-    zmien: (s) =>
-      s.includes("\t\t} catch ( Throwable $blad ) {\n\t\t\tself::zapamietaj_blad( $id, $blad->getMessage() );\n\t\t}")
-        ? s.replace(
-            "\t\ttry {\n\t\t\tself::synchronizuj_kurs( $id );\n\t\t} catch ( Throwable $blad ) {\n\t\t\tself::zapamietaj_blad( $id, $blad->getMessage() );\n\t\t}",
-            "\t\tself::synchronizuj_kurs( $id );"
-          )
-        : null,
+    /* KOTWICA NA ZACHOWANIU, NIE NA TREŚCI BLOKU `try`.
+       Pierwsza wersja podmieniała cały blok razem z jego wnętrzem, więc
+       naprawa MAR-A-08 (dopisane gaszenie alarmu w gałęzi sukcesu)
+       UŚMIERCIŁA tę mutację — wyglądała na zieloną, nie mierząc niczego.
+       Podmieniamy więc TYP łapanego wyjątku w ciele na_zmianie(): Throwable
+       przestaje być łapany, cokolwiek jest w środku. */
+    zmien: (s) => {
+      const i = s.indexOf("function na_zmianie(");
+      if (i < 0) return null;
+      const koniec = s.indexOf("\n\t}", i);
+      const cialo = s.slice(i, koniec);
+      if (!cialo.includes("catch ( Throwable $blad ) {")) return null;
+      return s.slice(0, i) + cialo.replace("catch ( Throwable $blad ) {", "catch ( InvalidArgumentException $blad ) {") + s.slice(koniec);
+    },
   },
   {
     straznik: "straznik-platnosci-wp",
@@ -4901,6 +4908,123 @@ const MUTACJE = [
     oczekiwanySlad: "samokontrola zakresu",
     zmien: (s) => {
       const a = "\t\tadd_filter( 'aai_monitor_strona_za_bramka', array( self::class, 'za_bramka' ) );\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  /* P4d — tura architektury: MAR-A-08, A-10, A-14, A-15, A-17. Każda mutacja
+     cofa naprawę do stanu sprzed 0.74.0. */
+  {
+    straznik: "straznik-tutora",
+    opis: "alarm o rozjeździe wraca na jeden slot — awaria kursu B kasuje alarm kursu A (MAR-A-08)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "MAPY per kurs",
+    zmien: (s) => {
+      const a = "\t\t$mapa         = self::bledy();\n\t\t$mapa[ $id ]  = array(";
+      return s.includes(a) ? s.replace(a, "\t\t$mapa         = array();\n\t\t$mapa[ $id ]  = array(") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "udana kopia przestaje gasić alarm tego kursu — notatka obiecuje naprawę, wykonuje ją i wisi dalej (MAR-A-08)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "nie gasi alarmu tego kursu",
+    zmien: (s) => {
+      const a = "\t\t\tself::zapomnij_blad( $id );\n\t\t} catch ( Throwable $blad ) {";
+      return s.includes(a) ? s.replace(a, "\t\t} catch ( Throwable $blad ) {") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "sync wraca do wołania synchronizuj_kurs() wprost — odtworzony wpis zostaje bez powiązania, czyli kurs za darmo (MAR-A-10)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-cli.php"),
+    oczekiwanySlad: "pominięciem ogłoszenia",
+    zmien: (s) => {
+      const a = "Aai_Sklep_Tutor::synchronizuj_i_oglos( $id )";
+      return s.includes(a) ? s.replace(a, "Aai_Sklep_Tutor::synchronizuj_kurs( $id )") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "import wraca do wołania wprost — na świeżej instalacji żadnego kursu nie da się kupić (MAR-A-17)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-import.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-import.php"),
+    oczekiwanySlad: "pominięciem ogłoszenia",
+    zmien: (s) => {
+      const a = "Aai_Sklep_Tutor::synchronizuj_i_oglos( (string) $kurs['id'] )";
+      return s.includes(a) ? s.replace(a, "Aai_Sklep_Tutor::synchronizuj_kurs( (string) $kurs['id'] )") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "ogłoszenie przestaje wstrzymywać własną kopię — na_zmianie() przechodzi całą pracę drugi raz (MAR-A-10)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "nie wstrzymuje własnej kopii",
+    zmien: (s) => {
+      const a =
+        "\t\t$byla             = self::$wstrzymana;\n\t\tself::$wstrzymana = true;\n\t\ttry {\n" +
+        "\t\t\tdo_action( 'aai_sklep_kurs_zmieniony', $id, $liczniki );\n\t\t} finally {\n" +
+        "\t\t\tself::$wstrzymana = $byla;\n\t\t}";
+      return s.includes(a) ? s.replace(a, "\t\tdo_action( 'aai_sklep_kurs_zmieniony', $id, $liczniki );") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "znika metoda ogłaszająca — drogi masowe nie mają czym powiadomić sióstr (samokontrola zakresu)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "nie ma synchronizuj_i_oglos()",
+    zmien: (s) => {
+      const a = "public static function synchronizuj_i_oglos(";
+      return s.includes(a) ? s.replace(a, "public static function synchronizuj_i_oglos_inaczej(") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "aktywacja przestaje ogłaszać kursy — powrót wtyczki zostawia produkty szkicami na zawsze (MAR-A-14)",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    oczekiwanySlad: "aktywacja nie ogłasza kursów",
+    zmien: (s) => {
+      const a = "do_action( 'aai_sklep_kurs_zmieniony', $id, array() );";
+      return s.includes(a) ? s.replace(a, "unset( $id );") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "adres produktu przy wyłączonym Pluginie 1 wraca do gołego return — druga strona sprzedażowa w wyglądzie Woo (MAR-A-15)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php"),
+    oczekiwanySlad: "nie oddaje 404",
+    zmien: (s) => {
+      const a =
+        "\t\t\t\tglobal $wp_query;\n\t\t\t\t$wp_query->set_404();\n" +
+        "\t\t\t\tstatus_header( 404 );\n\t\t\t\tnocache_headers();\n\t\t\t\treturn;";
+      return s.includes(a) ? s.replace(a, "\t\t\t\treturn;") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "znika gałąź „brak Pluginu 1” — reguła o zamykaniu adresu produktu przechodziłaby po pustce (samokontrola)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php"),
+    oczekiwanySlad: "przechodziłaby po pustce",
+    zmien: (s) => {
+      const a = "if ( ! class_exists( 'Aai_Sklep_Odczyt' ) || ! class_exists( 'Aai_Sklep_Widok' ) ) {";
+      return s.includes(a) ? s.replace(a, "if ( false ) {") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "udana synchronizacja przestaje gasić uwagę ogólną — kontrola świeci kodem 1 przy działającej sprzedaży (MAR-A-14)",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-szew.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-szew.php"),
+    oczekiwanySlad: "uwagi OGÓLNEJ",
+    zmien: (s) => {
+      const a = "\t\t\t\tAai_Platnosci_Komunikaty::wyczysc();";
       return s.includes(a) ? s.replace(a, "") : null;
     },
   },
