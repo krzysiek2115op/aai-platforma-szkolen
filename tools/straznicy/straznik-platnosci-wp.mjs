@@ -1255,8 +1255,13 @@ if (!existsSync(USTAWIENIA)) {
    wyłącznie zmian statusu, więc jego wiersz księgowy (wp_tutor_earnings) też.
    Sprzątamy je w haku kasowania — pod PIĘCIOMA zamkami, bo ten hak dostaje
    KAŻDY kasowany wpis, a tabele są cudze:
-     (1) wyłącznie zamówienie w 100% z naszych kursów (same_kursy) — mieszane
-         zostaje nietknięte, bo księgowość cudzego produktu nie jest nasza;
+     (1) wyłącznie zamówienie zawierające CHOĆ JEDEN nasz kurs (ma_kurs) —
+         zamówienia bez ani jednego kursu nie dotykamy wcale. Do 0.67.0
+         warunek brzmiał „w 100% z naszych kursów" i przez to zamówienie
+         MIESZANE zostawiało sieroty: zmierzone 1 earning + 3 notatki na
+         zamówienie. Wiersz księgowy Tutora powstaje wyłącznie za kurs,
+         a notatki i tak przepadają z zamówieniem w drugim trybie
+         magazynu Woo — więc sprzątamy je także tam;
      (2) wyłącznie przez publiczne API właścicieli tabel (reguła 44);
      (3) księgowość Tutora TYLKO wtedy, gdy instruktor nie ma ANI JEDNEJ
          wypłaty — skasowany earning po wypłacie zmienia saldo wstecz;
@@ -1289,11 +1294,19 @@ if (!existsSync(USTAWIENIA)) {
       } else if (Number(rej[1]) >= 10) {
         bledy.push(`${dost}: zamowienie_znika zarejestrowane na priorytecie ${rej[1]}. Na 10 Woo (WC_Post_Data::before_delete_order, zarejestrowane wcześniej) KASUJE POZYCJE zamówienia zanim dojdzie do nas — same_kursy() widzi pustkę i hak wychodzi bez sprzątania, bez objawu (zmierzone). Ma być < 10.`);
       }
-      // Zamek 1: odmowa na zamówieniu mieszanym PRZED pierwszym sprzątaniem.
-      const odmowaMieszane = blok.search(/if\s*\(\s*!\s*self::same_kursy\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/);
-      if (odmowaMieszane < 0 || odmowaMieszane > Math.min(earnings, notatki)) {
+      // Zamek 1: odmowa na zamówieniu BEZ naszego kursu PRZED pierwszym
+      // sprzątaniem. Pytamy o `ma_kurs`, nie o `same_kursy` — ta druga
+      // odpowiada na inne pytanie (czy wolno zamówienie DOMKNĄĆ) i użyta
+      // tutaj zostawiała sieroty po każdym zamówieniu mieszanym.
+      const odmowaObcego = blok.search(/if\s*\(\s*!\s*self::ma_kurs\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/);
+      if (odmowaObcego < 0 || odmowaObcego > Math.min(earnings, notatki)) {
         bledy.push(
-          `${dost}: sprzątanie księgowości po skasowanym zamówieniu nie jest poprzedzone odmową na zamówieniu MIESZANYM (if ( ! self::same_kursy(...) ) { return; }). Zamówienie z cudzym produktem ma cudzą księgowość — jej kasowanie to strata cudzych danych bez objawu.`
+          `${dost}: sprzątanie po skasowanym zamówieniu nie jest poprzedzone odmową na zamówieniu BEZ NASZEGO KURSU (if ( ! self::ma_kurs(...) ) { return; }). Ten hak dostaje KAŻDY kasowany wpis — bez tej odmowy kasowałby cudzą księgowość i cudzą historię.`
+        );
+      }
+      if (/if\s*\(\s*!\s*self::same_kursy\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/.test(blok)) {
+        bledy.push(
+          `${dost}: zamek sprzątania wrócił do same_kursy() — a ten warunek jest prawdziwy tylko dla zamówień złożonych WYŁĄCZNIE z kursów. Zamówienie mieszane wychodzi wtedy nietknięte i zostawia wiersz księgowy oraz notatki wskazujące zamówienie, którego nie ma (zmierzone: 1 + 3).`
         );
       }
       // Zamek 3: księgowość Tutora tylko przy zerze wypłat instruktora.
@@ -1499,6 +1512,135 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/*
+ * OKNO PRZERWANIA PRZY ZAKŁADANIU PRODUKTU (P1 poz. 7).
+ *
+ * Wiersz produktu powstaje `wp_insert_post`-em WEWNĄTRZ
+ * `WC_Product::save()`, a meta ustawione `update_meta_data()` lądują
+ * w bazie dopiero `save_meta_data()` — kilkadziesiąt linii dalej.
+ * Przerwanie w tym oknie zostawiało produkt z zerem meta: bez znacznika
+ * idempotencja nie miała czego znaleźć, następny przebieg zakładał
+ * produkt OBOK, a kontrola meldowała kod 0 (wszystko zmierzone).
+ *
+ * Wszystkie cztery reguły niżej pytają o ROZSTRZYGNIĘCIE, nie o napis —
+ * dziewięć nawrotów tamtej pułapki w tym projekcie.
+ */
+{
+  const zapisOkno = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+
+  // Blok tworzenia produktu — od `new WC_Product_Simple()` do chwili,
+  // w której metoda melduje utworzenie.
+  const blok = zapisOkno.match(/new WC_Product_Simple\(\)[\s\S]*?\$w\['produkt_utworzony'\]\s*=\s*1;/);
+  if (!blok) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: nie znalazłem bloku tworzenia produktu (new WC_Product_Simple … produkt_utworzony). Samokontrola zakresu — reguły okna przerwania mierzyłyby pustkę.`
+    );
+  } else {
+    const b = blok[0];
+
+    // (1) Znacznik MUSI jechać hakiem odpalanym w środku wp_insert_post,
+    // na priorytecie niższym niż cokolwiek cudzego.
+    const podpiety = b.match(/add_action\(\s*'save_post_product'\s*,\s*(\$[A-Za-z_]\w*)\s*,\s*1\s*\)/);
+    // Pytamy o POWIĄZANIE zmiennej, nie o sąsiedztwo napisów: nazwa haka
+    // i słowo ZNACZNIK_ZRODLA mogą stać obok siebie w kodzie, który nic
+    // nie zapisuje (to dokładnie ta pułapka, którą ten projekt złapał
+    // dziewięć razy). Sprawdzamy, że callback podpięty pod hak NAPRAWDĘ
+    // pisze znacznik do bazy.
+    const pisze =
+      null !== podpiety &&
+      new RegExp(
+        `\\${podpiety[1]}\\s*=\\s*(static\\s+)?function[\\s\\S]{0,300}?update_post_meta\\s*\\([\\s\\S]{0,120}?ZNACZNIK_ZRODLA`
+      ).test(b);
+    if (!pisze) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: nowy produkt nie dostaje znacznika pochodzenia hakiem 'save_post_product' na priorytecie 1. Meta zapisana przez update_meta_data() ląduje dopiero w save_meta_data(), więc przerwanie zostawia produkt-widmo BEZ znacznika — niewidzialny dla idempotencji i dla kontroli (P1 poz. 7, zmierzone).`
+      );
+    }
+
+    // (2) Hak zdejmowany ZAWSZE — inaczej rzut z dalszej części save()
+    // zostawia go na resztę żądania i oznacza cudzy produkt.
+    if (!/finally\s*\{[\s\S]{0,300}?remove_action\(\s*'save_post_product'/.test(b)) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: hak nadający znacznik nie jest zdejmowany w finally. Rzut z dalszej części save() zostawiłby go na resztę żądania — nasz znacznik siadłby na pierwszym cudzym produkcie zapisanym po nim.`
+      );
+    }
+
+    // (3) Znacznika NIE wolno dokładać równolegle do obiektu: save_meta_data()
+    // uzna go za metę nową (bez meta_id) i dopisze DRUGI wiersz.
+    if (/\$produkt->update_meta_data\(\s*self::ZNACZNIK_ZRODLA/.test(b)) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: znacznik pochodzenia jedzie RÓWNIEŻ przez update_meta_data() na nowym obiekcie. save_meta_data() nie zna wiersza dopisanego hakiem, więc doda drugi o tej samej nazwie — a wtedy produkt_po_znaczniku() widzi „duplikat" tam, gdzie jest jeden produkt.`
+      );
+    }
+
+    // (4) Rezerwacja otwierana PRZED zapisem — po to, żeby przeżyła przerwanie.
+    const przedSave = b.indexOf("rezerwacja_zacznij(");
+    const save = b.indexOf("$produkt->save()");
+    if (przedSave < 0 || save < 0 || przedSave > save) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: rezerwacja „zakładam produkt" nie jest otwierana PRZED $produkt->save(). Cała jej wartość polega na tym, że przeżyje przerwanie — otwarta po zapisie nie odnotuje niczego, gdy zapis padnie.`
+      );
+    }
+  }
+
+  // (5) Rezerwacja zamykana dopiero, gdy powiązanie STOI — nie wcześniej.
+  if (!/powiazanie_ustaw\([\s\S]{0,600}?\}\s*else\s*\{[\s\S]{0,300}?rezerwacja_zamknij\(/.test(zapisOkno)) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: rezerwacja nie jest zamykana w gałęzi udanego powiazanie_ustaw(). Zamknięta wcześniej przestaje pilnować dokładnie tego odcinka, dla którego istnieje; niezamykana wcale — świeci w kontroli na zawsze.`
+    );
+  }
+
+  // (6) Wyszukiwanie sieroty pyta BAZĘ. `wc_get_products()` dokłada tabelę
+  // `wc_product_meta_lookup`, do której wiersz trafia na samym końcu save() —
+  // czyli tą drogą produkt z przerwanego zapisu jest niewidzialny (zmierzone:
+  // przy dwóch produktach ze znacznikiem oddaje jeden).
+  const poZnaczniku = zapisOkno.match(/function produkt_po_znaczniku\([\s\S]*?\n\t\}/);
+  if (!poZnaczniku) {
+    bledy.push(`${WARSTWA_ZAPISU}: nie znalazłem produkt_po_znaczniku() — samokontrola zakresu.`);
+  } else {
+    if (/wc_get_products\s*\(/.test(poZnaczniku[0])) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: produkt_po_znaczniku() szuka przez wc_get_products(). Ta droga odpytuje przez wc_product_meta_lookup, którego wiersz powstaje NA KOŃCU save() — więc nie widzi produktu z przerwanego zapisu, czyli dokładnie tego przypadku, dla którego ta metoda istnieje (P1 poz. 7, zmierzone).`
+      );
+    }
+    if (!/post_type\s*=\s*'product'/.test(poZnaczniku[0])) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: produkt_po_znaczniku() nie zawęża zapytania do post_type = 'product'. Znacznik _aai_zrodlo_uuid nosi też każda kopia kursu w Tutorze (typ courses) — bez tego warunku metoda dopasuje wpis LMS-a jako produkt.`
+      );
+    }
+  }
+}
+
+{
+  const SCIEZKA_CLI = join(KATALOG, "includes", "class-aai-platnosci-cli.php");
+  const cliOkno = kod(readFileSync(SCIEZKA_CLI, "utf8"));
+
+  // (7) Kontrola MUSI widzieć przerwane zakładanie produktu.
+  const wSprawdz = cliOkno.match(/function sprawdz\(\)[\s\S]*?\n\t\}/);
+  if (!wSprawdz) {
+    bledy.push(`${SCIEZKA_CLI}: nie znalazłem sprawdz() — samokontrola zakresu reguły o rezerwacjach.`);
+  } else if (!/rezerwacje_wiszace\(\)/.test(wSprawdz[0])) {
+    bledy.push(
+      `${SCIEZKA_CLI}: kontrola nie pyta o rezerwacje przerwanego zakładania produktu. Bez tego produkt-widmo bez powiązania zostaje w bazie, a sprawdz kończy kodem 0 — zmierzone przed naprawą.`
+    );
+  }
+
+  // (8) Duplikaty po OBU kluczach: naprawa odnajduje sierotę po
+  // `_aai_zrodlo_uuid`, a wykrywanie pytało wyłącznie o `_aai_platnosci_kurs_uuid`.
+  const dup = cliOkno.match(/function duplikaty_uuid\(\)[\s\S]*?\n\t\}/);
+  if (!dup) {
+    bledy.push(`${SCIEZKA_CLI}: nie znalazłem duplikaty_uuid() — samokontrola zakresu.`);
+  } else {
+    for (const klucz of ["_aai_platnosci_kurs_uuid", "_aai_zrodlo_uuid"]) {
+      if (!dup[0].includes(klucz)) {
+        bledy.push(
+          `${SCIEZKA_CLI}: duplikaty_uuid() nie pyta o metę ${klucz}. Wykrywanie duplikatu i odnajdywanie sieroty muszą stać na TYCH SAMYCH kluczach — inaczej dopasowanie jest już loterią, a kontrola milczy.`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1506,5 +1648,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products)."
 );

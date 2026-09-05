@@ -287,10 +287,16 @@ final class Aai_Platnosci_Dostarczanie {
 			 * cudza wtyczka) tej mety NIE MA, choć Tutor dołożył mu wiersz
 			 * księgowy — dla takiego zamówienia hak wychodził tu bez śladu
 			 * i zostawiał zapis, earning i notatki. Zamówienie złożone
-			 * w całości z naszych kursów (nasza tabela powiązań) jest nasze
+			 * zawierające nasz kurs (nasza tabela powiązań) jest nasze
 			 * niezależnie od tego, czy Tutor zdążył je oznaczyć.
+			 *
+			 * Pytamy `ma_kurs()`, nie `same_kursy()`: do 0.67.0 zamówienie
+			 * MIESZANE (kurs + zwykły produkt) wychodziło tędy bez śladu,
+			 * choć klient dostał za nie dostęp do kursu. Zmierzone: po jego
+			 * skasowaniu zostawał zapis, wiersz `wp_tutor_earnings`
+			 * i 3 notatki wskazujące zamówienie, którego nie ma.
 			 */
-			if ( ! tutor_utils()->is_tutor_order( $id_zamowienia ) && ! self::same_kursy( $zamowienie ) ) {
+			if ( ! tutor_utils()->is_tutor_order( $id_zamowienia ) && ! self::ma_kurs( $zamowienie ) ) {
 				return;
 			}
 
@@ -324,9 +330,23 @@ final class Aai_Platnosci_Dostarczanie {
 			 * najgłębsza z ryzykiem sprowadzonym do zera, jeśli się da):
 			 */
 
-			// Zamek 1: wyłącznie zamówienie złożone W CAŁOŚCI z naszych kursów.
-			// Zamówienie mieszane ma cudzą księgowość i cudzą historię — zostaje.
-			if ( ! self::same_kursy( $zamowienie ) ) {
+			/*
+			 * Zamek 1: zamówienie musi zawierać CHOĆ JEDEN nasz kurs.
+			 *
+			 * Do 0.67.0 warunek brzmiał „W CAŁOŚCI z naszych kursów"
+			 * i zamówienie MIESZANE wychodziło stąd nietknięte. Zmierzone:
+			 * kurs + zwykły produkt, po skasowaniu zostawał 1 wiersz
+			 * `wp_tutor_earnings` i 3 notatki wskazujące zamówienie,
+			 * którego nie ma — dokładnie ta klasa, którą ten blok zamyka
+			 * dla zamówień jednorodnych.
+			 *
+			 * Rachunek jest ten sam po obu stronach: wiersz księgowy Tutora
+			 * powstaje WYŁĄCZNIE za kurs, a notatki i tak przepadają razem
+			 * z zamówieniem w drugim trybie magazynu Woo. Zamówienia BEZ
+			 * ani jednego naszego kursu nie dotykamy — tam nie mamy nic
+			 * do posprzątania i nic do powiedzenia.
+			 */
+			if ( ! self::ma_kurs( $zamowienie ) ) {
 				return;
 			}
 
@@ -397,6 +417,29 @@ final class Aai_Platnosci_Dostarczanie {
 				)
 			);
 		}
+	}
+
+	/**
+	 * Czy zamówienie zawiera CHOĆ JEDEN nasz kurs.
+	 *
+	 * Odpowiada na inne pytanie niż `same_kursy()` i dlatego jest osobno:
+	 * tamta decyduje, czy wolno zamówienie DOMKNĄĆ (a domykać wolno tylko
+	 * takie, w którym nie ma czego wysłać), ta — czy mamy po nim co
+	 * sprzątać.
+	 *
+	 * @param WC_Order $order Zamówienie.
+	 * @return bool
+	 */
+	private static function ma_kurs( WC_Order $order ): bool {
+		foreach ( $order->get_items() as $pozycja ) {
+			if ( ! $pozycja instanceof WC_Order_Item_Product ) {
+				continue;
+			}
+			if ( Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $pozycja->get_product_id() ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static function same_kursy( WC_Order $order ): bool {

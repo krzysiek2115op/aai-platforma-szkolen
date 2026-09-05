@@ -431,6 +431,113 @@ php(`Aai_Sklep_Zapis::usun_kurs('${KURS}', 'smoke-p2', true, true);`);
 sprawdz(wp("post", "get", String(produkt), "--field=post_status").out === "draft", "po usunięciu kursu produkt nie jest draft");
 sprawdz(wp("post", "get", String(produkt), "--field=ID").out === String(produkt), "po usunięciu kursu produkt ZNIKNĄŁ — kasowanie jest zakazane (niezmiennik 13)");
 
+/* ── 10. przerwanie WEWNĄTRZ WC_Product::save() ─────────────────────── */
+
+/*
+ * NAJTRUDNIEJSZY STAN TEGO SZWU: wiersz produktu już jest, meta jeszcze
+ * nie. Wiersz powstaje `wp_insert_post`-em w środku `WC_Product::save()`,
+ * a meta ustawione przez `update_meta_data()` lądują w bazie dopiero
+ * `save_meta_data()` — kilkadziesiąt linii dalej. Przerwanie w tym oknie
+ * zostawiało produkt z ZEREM meta: bez znacznika idempotencja nie miała
+ * czego znaleźć i następny przebieg zakładał produkt OBOK, a kontrola
+ * meldowała kod 0.
+ *
+ * Bramka mierzy trzy rzeczy naraz, bo każda z osobna przechodzi przy
+ * zepsutej naprawie: (a) że widmo MA znacznik, (b) że wisi rezerwacja
+ * i kontrola o niej mówi, (c) że powtórzony sync PRZEJMUJE widmo zamiast
+ * mnożyć produkty — liczbą produktów, nie komunikatem.
+ */
+const KURS_OKNO = "aaaa0000-0000-4000-8000-00000okno01";
+const SLUG_OKNO = "smoke-okno-przerwania";
+
+/** Sprzątanie sceny okna — wołane też PRZED próbą, żeby ślad po ubitym przebiegu nie mierzył za nas. */
+const sprzatnijOkno = () => {
+  wp("aai-sklep", "usun", SLUG_OKNO);
+  php(
+    `global $wpdb; $t = Aai_Platnosci_Tabele::tabela("powiazania");` +
+      ` $wpdb->query($wpdb->prepare("DELETE FROM {$t} WHERE course_uuid = %s", "${KURS_OKNO}"));` +
+      ` $ids = $wpdb->get_col($wpdb->prepare("SELECT p.ID FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID` +
+      ` WHERE p.post_type = 'product' AND pm.meta_key = '_aai_zrodlo_uuid' AND pm.meta_value = %s", "${KURS_OKNO}"));` +
+      ` foreach ($ids as $id) { wp_delete_post((int) $id, true); }` +
+      ` $r = get_option("aai_platnosci_produkt_w_budowie", array());` +
+      ` if (is_array($r) && array_key_exists("${KURS_OKNO}", $r)) { unset($r["${KURS_OKNO}"]); update_option("aai_platnosci_produkt_w_budowie", $r, false); }` +
+      ` echo "ok";`
+  );
+};
+
+sprzatnijOkno();
+const produktowPrzedOknem = liczbaProduktow();
+
+// Rzut PO naszym haku znacznika (priorytet 10 > 1) = przerwanie dokładnie
+// w oknie między zapisem wiersza a zapisem meta przez WooCommerce.
+php(
+  `add_action('save_post_product', function ($id) { throw new RuntimeException('smoke: przerwanie w oknie save()'); }, 10);` +
+    ` $k = array('id' => '${KURS_OKNO}', 'slug' => '${SLUG_OKNO}', 'title' => 'Smoke okno przerwania', 'type' => 'kurs',` +
+    ` 'short_desc' => 'smoke', 'price_grosze' => 12300, 'cover_url' => null, 'status' => 'published',` +
+    ` 'badge' => null, 'level' => null, 'sekcje' => array(), 'moduly' => array());` +
+    ` Aai_Sklep_Zapis::zapisz_kurs($k, 'smoke-okno', true); echo 'ok';`
+);
+
+const widmo = Number(
+  php(
+    `global $wpdb; echo (int) $wpdb->get_var($wpdb->prepare("SELECT p.ID FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID` +
+      ` WHERE p.post_type = 'product' AND pm.meta_key = '_aai_zrodlo_uuid' AND pm.meta_value = %s LIMIT 1", "${KURS_OKNO}"));`
+  )
+);
+sprawdz(
+  widmo > 0,
+  "przerwanie w oknie save() zostawiło produkt BEZ znacznika — idempotencja nie ma czego znaleźć i następny sync założy produkt obok"
+);
+sprawdz(
+  liczbaProduktow() === produktowPrzedOknem + 1,
+  `przerwanie miało zostawić dokładnie JEDEN produkt-widmo, a zostawiło ${liczbaProduktow() - produktowPrzedOknem}`
+);
+sprawdz(
+  wartosc(`(int) Aai_Platnosci_Zapis::produkt_kursu('${KURS_OKNO}')`) === "0",
+  "widmo z przerwanego zapisu ma powiązanie — scena pomiaru jest inna, niż zakłada ten blok"
+);
+sprawdz(
+  php(`echo wp_json_encode(array_keys(Aai_Platnosci_Zapis::rezerwacje()));`).includes(KURS_OKNO),
+  "po przerwaniu nie została otwarta rezerwacja — kontrola nie ma po czym poznać, że produkt zakładał się i nie dokończył"
+);
+
+// Rezerwacja młodsza niż minuta jest z założenia meldowana jako „w trakcie",
+// więc cofamy jej czas — inaczej mierzylibyśmy okno degradacji, nie wykrywanie.
+php(
+  `$r = get_option("aai_platnosci_produkt_w_budowie", array());` +
+    ` if (isset($r["${KURS_OKNO}"])) { $r["${KURS_OKNO}"]["czas"] = time() - 600; update_option("aai_platnosci_produkt_w_budowie", $r, false); } echo "ok";`
+);
+const poPrzerwaniu = wp("aai-platnosci", "sprawdz");
+sprawdz(
+  poPrzerwaniu.kod === 1,
+  `przerwane zakładanie produktu nie zapala kontroli (kod ${poPrzerwaniu.kod}) — produkt-widmo zostaje w bazie niewidzialny`
+);
+sprawdz(
+  `${poPrzerwaniu.out}${poPrzerwaniu.err}`.includes("produkt-widmo"),
+  "kontrola zapaliła się z innego powodu niż przerwane zakładanie produktu — sprawdzenie mierzyłoby cudzy rozjazd"
+);
+
+// Sedno: powtórzony przebieg ma PRZEJĄĆ widmo, nie założyć drugiego produktu.
+wp("aai-platnosci", "sync", SLUG_OKNO);
+sprawdz(
+  liczbaProduktow() === produktowPrzedOknem + 1,
+  `powtórzony sync założył produkt obok widma — produktów ${liczbaProduktow()} zamiast ${produktowPrzedOknem + 1} (dwie ceny, dwa adresy zakupu)`
+);
+sprawdz(
+  wartosc(`(int) Aai_Platnosci_Zapis::produkt_kursu('${KURS_OKNO}')`) === String(widmo),
+  "sync powiązał kurs z INNYM produktem niż odnalezione widmo"
+);
+sprawdz(
+  !php(`echo wp_json_encode(array_keys(Aai_Platnosci_Zapis::rezerwacje()));`).includes(KURS_OKNO),
+  "rezerwacja została otwarta po domknięciu powiązania — kontrola świeciłaby na zawsze"
+);
+
+sprzatnijOkno();
+sprawdz(
+  liczbaProduktow() === produktowPrzedOknem,
+  `blok okna przerwania zostawił produkt: przed ${produktowPrzedOknem}, po ${liczbaProduktow()}`
+);
+
 /* ── sprzątanie + rachunek sumienia ─────────────────────────────────── */
 
 php(`Aai_Platnosci_Zapis::powiazanie_usun('${KURS}');`);

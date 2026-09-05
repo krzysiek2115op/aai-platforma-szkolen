@@ -5,6 +5,76 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.68.0] — 2026-09-05
+
+### Naprawy po polowaniu, priorytet P1 — dwie ostatnie pozycje
+
+Kolejność i uzasadnienie: [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md).
+Obie naprawy mają pomiar PRZED, pomiar PO i test negatywny; obie dostały
+reguły strażnika, bo bramki WP nie biegną w CI.
+
+**1. Przerwane zakładanie produktu przestaje mnożyć produkty i milczeć
+(poz. 7).** Wiersz produktu WooCommerce powstaje `wp_insert_post`-em WEWNĄTRZ
+`WC_Product::save()`, a meta ustawione `update_meta_data()` lądują w bazie
+dopiero `save_meta_data()` — kilkadziesiąt linii dalej. Zmierzone przed
+naprawą (rzut z haka `save_post_product`): wiersz `product`, `draft`,
+**ile meta = 0**, znacznik `NULL`, a `wp aai-platnosci sprawdz` **kod 0**.
+Bez znacznika idempotencja z 0.65.0 nie miała czego znaleźć i następny
+przebieg zakładał produkt obok — dwie ceny, dwa adresy zakupu.
+
+Przy okazji wyszła rzecz spoza zgłoszenia, groźniejsza od niego:
+`produkt_po_znaczniku()` szukał przez `wc_get_products()`, a ta droga
+odpytuje przez `wc_product_meta_lookup`, którego wiersz powstaje na SAMYM
+KOŃCU `save()`. **Zmierzone: przy dwóch produktach ze znacznikiem
+`wc_get_products()` oddał JEDEN, a to samo pytanie do bazy — obydwa.**
+Idempotencja stała więc na wyszukiwaniu strukturalnie ślepym dokładnie na
+przypadek, dla którego istnieje.
+
+Trzy zamki: znacznik jedzie hakiem `save_post_product` na priorytecie 1
+(zdejmowanym w `finally`); rezerwacja otwierana przed `save()` i zamykana
+dopiero po zapisie powiązania czyni przerwanie WIDOCZNYM dla kontroli;
+`duplikaty_uuid()` pyta o oba klucze — dotąd wykrywanie i naprawa stały na
+dwóch różnych metach. Pomiar po naprawie: widmo ma znacznik, kontrola kod 1
+z instrukcją, powtórzony `sync` melduje „utworzone 0, zaktualizowane 1",
+a produktów jest tyle samo.
+
+**2. Skasowane zamówienie mieszane przestaje zostawiać księgowość bez
+zamówienia (poz. 10).** Hak sprzątający wychodził, gdy zamówienie nie było
+złożone WYŁĄCZNIE z naszych kursów. Zmierzone (kurs + zwykły produkt,
+opłacone, skasowane): zostawał **1 wiersz `wp_tutor_earnings` i 3 notatki**
+wskazujące zamówienie, którego nie ma. Po naprawie: **0 i 0**.
+
+Zamek pyta teraz `ma_kurs()` zamiast `same_kursy()`; ta druga zostaje tam,
+gdzie odpowiada na swoje pytanie — czy wolno zamówienie DOMKNĄĆ. Poprawka
+musiała objąć DWA miejsca: pierwsza wersja zmieniła tylko zamek przy
+sprzątaniu i pomiar dalej dawał 1:3, bo wcześniej stał drugi taki warunek,
+rozstrzygający „czy to zamówienie jest nasze" — przez co zamówienie
+mieszane nie oddawało również DOSTĘPU.
+
+### Bramka broniła usterki — trzeci raz w tej serii
+
+`smoke-wp-zakup` WYMAGAŁ, żeby po skasowaniu zamówienia mieszanego ślady
+zostały („zamek 1 nie trzyma"). Asercja jest odwrócona, a w jej miejsce
+doszedł przypadek, którego nie było: zamówienie BEZ ani jednego naszego
+kursu — tam ślady mają zostać nietknięte, bo ten hak dostaje KAŻDY kasowany
+wpis. Bez tej pary pomiar dowodziłby, że sprzątamy, ale nie że sprzątamy
+wyłącznie po sobie.
+
+### Dwie mutacje przekotwiczone, jedna martwa wymieniona
+
+Warunek „pusty uuid" powtarza się dziś w TRZECH metodach warstwy zapisu,
+a mutacja podmieniała PIERWSZE trafienie — od tej wersji psuła inną metodę
+niż ta, której broni reguła. Mutacja zamka sprzątania umarła razem
+z `same_kursy()` w tym miejscu i została zastąpiona dwiema żywymi.
+
+### Liczby
+
+Bramki: `smoke-wp-produkty` 85 → **95**, `smoke-wp-zakup` 58 → **60**.
+Strażnik płatności: osiem nowych reguł okna przerwania, reguła 43
+przekotwiczona. Audyt mutacyjny 372 → **379** (0 przeoczonych, 0 martwych).
+Testy negatywne: znacznik z powrotem przez `update_meta_data` zapala 5 z 95;
+powrót do `same_kursy()` zapala 1 z 60.
+
 ## [0.67.0] — 2026-09-05
 
 ### Naprawy po polowaniu, priorytet P1 — sześć z ośmiu pozycji

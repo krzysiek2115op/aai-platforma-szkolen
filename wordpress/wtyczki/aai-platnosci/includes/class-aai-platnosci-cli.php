@@ -889,6 +889,13 @@ final class Aai_Platnosci_Cli {
 			foreach ( self::duplikaty_uuid() as $blad_uuid ) {
 				$bledy[] = $blad_uuid;
 			}
+			$rezerwacje = self::rezerwacje_wiszace();
+			foreach ( $rezerwacje['bledy'] as $blad_rezerwacji ) {
+				$bledy[] = $blad_rezerwacji;
+			}
+			foreach ( $rezerwacje['info'] as $info_rezerwacji ) {
+				$w_trakcie[] = $info_rezerwacji;
+			}
 			$osierocone = self::osierocone();
 			foreach ( $osierocone['bledy'] as $blad_sieroty ) {
 				$bledy[] = $blad_sieroty;
@@ -1068,16 +1075,77 @@ final class Aai_Platnosci_Cli {
 	 */
 	private static function duplikaty_uuid(): array {
 		global $wpdb;
-		$powtorki = $wpdb->get_col(
-			"SELECT pm.meta_value FROM {$wpdb->postmeta} pm
-			JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'product'
-			WHERE pm.meta_key = '_aai_platnosci_kurs_uuid'
-			GROUP BY pm.meta_value HAVING COUNT(*) > 1"
+
+		/*
+		 * PYTAMY O OBA KLUCZE, BO NAPRAWA I WYKRYWANIE STAŁY NA RÓŻNYCH.
+		 *
+		 * Idempotencja tworzenia produktu odnajduje sierotę po
+		 * `_aai_zrodlo_uuid`, a ta kontrola pytała wyłącznie
+		 * o `_aai_platnosci_kurs_uuid`. Duplikat z dwoma znacznikami
+		 * pochodzenia, a jednym kursowym, przechodził więc kodem 0 —
+		 * dopasowanie było już loterią, a nikt tego nie mówił.
+		 */
+		$bledy = array();
+		foreach ( array( '_aai_platnosci_kurs_uuid', '_aai_zrodlo_uuid' ) as $klucz ) {
+			$powtorki = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT pm.meta_value FROM {$wpdb->postmeta} pm
+					JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'product'
+					WHERE pm.meta_key = %s
+					GROUP BY pm.meta_value HAVING COUNT(*) > 1",
+					$klucz
+				)
+			);
+			foreach ( (array) $powtorki as $uuid ) {
+				$bledy[] = sprintf(
+					'DWA produkty z uuid %s (meta %s) — dopasowanie stało się loterią (B4)',
+					(string) $uuid,
+					$klucz
+				);
+			}
+		}
+		return $bledy;
+	}
+
+	/**
+	 * Rezerwacje produktów, których zakładanie się nie domknęło.
+	 *
+	 * Rezerwację otwiera warstwa zapisu tuż przed `WC_Product::save()`
+	 * i zamyka dopiero, gdy powiązanie stoi w naszej tabeli. Wpis, który
+	 * został, znaczy więc jedno: łańcuch przerwał się w środku i gdzieś
+	 * w bazie może leżeć produkt-widmo — wiersz `product` bez powiązania,
+	 * a przy przerwaniu w najgorszym momencie także bez znacznika.
+	 *
+	 * Świeżą rezerwację (do 60 s) meldujemy jako „w trakcie", nie jako
+	 * błąd — tyle samo, ile wynosi okno degradacji przy kopii w Tutorze,
+	 * i z tego samego powodu: przebieg mógł jeszcze nie skończyć.
+	 *
+	 * @return array{bledy:string[], info:string[]}
+	 */
+	private static function rezerwacje_wiszace(): array {
+		$wynik = array(
+			'bledy' => array(),
+			'info'  => array(),
 		);
-		return array_map(
-			static fn( $uuid ) => sprintf( 'DWA produkty z uuid %s — dopasowanie stało się loterią (B4)', (string) $uuid ),
-			$powtorki
-		);
+		if ( ! class_exists( 'Aai_Platnosci_Zapis' ) ) {
+			return $wynik;
+		}
+		foreach ( Aai_Platnosci_Zapis::rezerwacje() as $uuid => $wpis ) {
+			$czas  = isset( $wpis['czas'] ) ? (int) $wpis['czas'] : 0;
+			$tytul = isset( $wpis['tytul'] ) ? (string) $wpis['tytul'] : '';
+			$wiek  = time() - $czas;
+			if ( $czas > 0 && $wiek < 60 ) {
+				$wynik['info'][] = sprintf( 'produkt kursu „%s" zakładany właśnie teraz (%d s temu)', $tytul, $wiek );
+				continue;
+			}
+			$wynik['bledy'][] = sprintf(
+				'zakładanie produktu dla kursu „%s" (uuid %s) przerwało się %s — w bazie może leżeć produkt-widmo bez powiązania. Sprawdź szkice produktów o tym tytule i skasuj zbędny, potem: wp aai-platnosci sync',
+				$tytul,
+				(string) $uuid,
+				$czas > 0 ? sprintf( '%d s temu', $wiek ) : 'w nieznanym momencie'
+			);
+		}
+		return $wynik;
 	}
 
 	/**
