@@ -128,7 +128,32 @@ final class Aai_Sklep_Menu {
 		// `ma_kursy()`, nie `kursy()`: menu potrzebuje odpowiedzi „tak/nie",
 		// a policzenie postępu kosztuje 45 zapytań — na każdej odsłonie
 		// każdej strony i dwa razy, bo kotwice nawigacji są dwie.
-		if ( is_user_logged_in() && class_exists( 'Aai_Sklep_Moje' ) && Aai_Sklep_Moje::ma_kursy() ) {
+		/*
+		 * PYTANIE O KURSY W `try`, BO ODPOWIADA NA NIE CUDZA WTYCZKA.
+		 *
+		 * `ma_kursy()` pyta Tutora (`get_enrolled_courses_ids_by_user`) i naszą
+		 * bazę. Menu wstrzykujemy w nagłówek KAŻDEJ strony, więc rzut stąd
+		 * przerywa całe żądanie. ZMIERZONE (rzut wstrzyknięty w `ma_kursy()`):
+		 * gość dostaje 200, a ZALOGOWANY KLIENT **HTTP 500 na każdej stronie** —
+		 * stronie głównej, katalogu, koszyku, KASIE i własnym koncie. Czyli
+		 * awaria cudzej wtyczki albo uszkodzona tabela Tutora zamykają sklep
+		 * dokładnie tym ludziom, którzy już zapłacili albo właśnie płacą.
+		 *
+		 * Przy awarii pozycji po prostu NIE MA. To jest wygoda nawigacyjna, nie
+		 * bramka dostępu: kurs zostaje dostępny pod swoim adresem, a witryna
+		 * stoi. Ta sama zasada, co przy starcie wtyczki — sklep bez menu jest
+		 * gorszy od sklepu z menu i nieporównanie lepszy od białego ekranu.
+		 */
+		$ma_kursy = false;
+		if ( is_user_logged_in() && class_exists( 'Aai_Sklep_Moje' ) ) {
+			try {
+				$ma_kursy = Aai_Sklep_Moje::ma_kursy();
+			} catch ( Throwable $e ) {
+				$ma_kursy = false;
+				error_log( 'aai-sklep: nie udało się sprawdzić kursów klienta do menu: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
+		}
+		if ( $ma_kursy ) {
 			$pozycje[] = array(
 				'adres' => Aai_Sklep_Moje::adres(),
 				'napis' => self::NAPIS_MOJE,
