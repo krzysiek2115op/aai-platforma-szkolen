@@ -3600,3 +3600,82 @@ gałąź błędu"): policzyć KAŻDE miejsce zapisu i sprawdzić gałąź poraż
 **PUŁAPKA, KTÓRA WRÓCIŁA DWA RAZY W JEDNEJ SESJI:** `npm run dev` (Next 16) przy
 starcie **UCINA `CLAUDE.md` o 2355 linii** (zostaje 1167 z 3522). Po KAŻDYM devie:
 `git diff --stat CLAUDE.md` → `git checkout -- CLAUDE.md`.
+
+## ═══ NAPRAWY PO POLOWANIU — P0 WYDANE (0.66.0), P1 W TOKU ═══
+
+**CZYTAĆ PRZED PRACĄ: [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md)**
+— kolejność P0–P4, decyzje właściciela i reguły wykonania.
+
+**DECYZJA WŁAŚCICIELA (2026-09-05, wieczór): TRYB AUTONOMICZNY.** Naprawy robi
+agent SAM, do końca, wybierając opcje rekomendowane i NIE zadając pytań; raport
+dopiero na końcu. Wolno scalać do `main`, tagować i robić release'y — **wyłącznie
+przy zielonym CI**. PR na priorytet (P0, P1, P2, P3, P4). Wolno zmieniać rzeczy
+widoczne dla klienta, ale KAŻDA taka zmiana idzie do raportu osobno. Osiem ram
+decyzyjnych: pamięć `tryb-autonomiczny-naprawy`.
+
+**DRUGA DECYZJA (2026-09-05, ~19:50): RELEASE O PÓŁNOCY.** „Gdy wybije
+niedzielę" — tag + release + push tego, co zdążone; reszta po północy i kolejny
+tag. Agent doprecyzował i właściciel tego nie zakwestionował: **o północy nie
+wchodzi naprawa niedokończona** — jeśli coś jest w połowie dowodu, zostaje na
+gałęzi i wchodzi do następnego releasu.
+
+**P0 ZAMKNIĘTE: PR #124 zmergowany do `main` przy CI ZIELONYM 5/5, tag `v0.66.0`
++ release, gałąź skasowana, artefakt zweryfikowany (`git diff <szczyt>
+origin/main` PUSTY).** Pięć napraw: ukrycie kursu zabierało kupującemu drogę do
+materiału · dziennik logowań zapisywał fragmenty haseł · awaria jednej klasy
+otwierała wyciek 73 lekcji (135 kB w kanale RSS) · `postaw.sh` padał u obcego
+klienta · wyłączenie płatności zostawiało cudze ustawienia przestawione.
+
+**P1 W TOKU — gałąź `fix/po-polowaniu-p1` (od `main`, wypchnięta, BEZ PR-a).**
+Sześć z ośmiu pozycji zrobionych, każda z testem negatywnym i regułą strażnika;
+CHANGELOG **0.67.0** i README gotowe. **NASTĘPNY KROK: `npm run check` → PR →
+zielone CI → merge → tag `v0.67.0` + release.**
+
+**CO ZOSTAŁO Z P1 — trzy pozycje, świadomie nietknięte:**
+- **poz. 7** (okno bez znacznika przy tworzeniu produktu Woo; `sync` tworzy
+  drugi produkt, `sprawdz` kod 0) — niezaczęte;
+- **poz. 10** (zamówienie MIESZANE zostawia `wp_tutor_earnings` + 3 notatki) —
+  niezaczęte;
+- **poz. 13, połowa druga: kolektor CSP** w `wordpress/srodowisko/mu-plugins/aai-obwod.php`
+  przyjmuje `application/json` bez weryfikacji integralności. **ZMIERZONE
+  I ODŁOŻONE ŚWIADOMIE**, z trzema faktami: (a) `raport_csp()` NIE MA
+  ANI JEDNEGO CZYTELNIKA w repo — dane są zapisywane i nigdy nieczytane;
+  (b) mu-plugin **nie wchodzi do paczek dla klienta** (`npm run pakuj` go nie
+  bierze), więc dziś jego ekspozycja to wyłącznie warsztat `127.0.0.1:8892`;
+  (c) podpisu jak przy beaconie **nie da się dorobić** — raport CSP wysyła
+  silnik przeglądarki, który niczego nie podpisze. Trzy drogi do rozważenia:
+  usunąć kolektor (dane i tak bez czytelnika), pisać do `error_log` zamiast do
+  `wp_options`, albo zostawić i nazwać ryzyko. **To decyzja projektowa —
+  wymaga rozstrzygnięcia, nie pośpiechu.**
+
+**BŁĄD, KTÓRY POPEŁNIŁEM W TEJ SESJI — DO ZAPAMIĘTANIA.** Sonda sufitu wierszy
+podniosła `AUTO_INCREMENT` dziennika logowań do 200 001 przy `MAX(id)` = 334.
+Pierwszy zapis po takim stanie dał rozpiętość 200 000 i sufit **skasował
+wszystkie 41 wierszy, w tym dowodowe logowania właściciela z testu T4**.
+Odtworzone z `~/.cache/aai-kopie/monitor-przed-kasowaniem-20260905.sql`; kopia
+dziennika leży teraz w `~/.cache/aai-kopie/dziennik-logowan-20260905.sql`.
+**Pomiar, który podnosi `AUTO_INCREMENT` albo kasuje masowo, robi się WYŁĄCZNIE
+po zrzuceniu tabeli do pliku** — i dopiero to pozwoliło powtórzyć dowód
+bezpiecznie. Sama usterka (kasowanie po DZIURZE w identyfikatorach, nie po
+liczbie wierszy) jest naprawiona w tej gałęzi.
+
+**LEKCJA POWTARZALNA Z CAŁEJ SESJI: wzorzec przypięty do WYRAŻENIA umiera albo
+kłamie przy pierwszym refaktorze.** Cztery przypadki w jednej sesji: wzmocnienie
+hamulca C2 (`> 0` → `0 !==`) zamieniło istniejącą regułę w fałszywy alarm
+i uśmierciło jej mutację; osłona `$bezpiecznie(…)` oślepiła regułę monitoringu
+o starcie pod `try` (brała PIERWSZY `try`, a osłona ma własny) i uśmierciła
+cztery mutacje. **Trzy z czterech złapał audyt mutacyjny, nie lektura** — więc
+audyt mutacyjny puszczać po KAŻDYM refaktorze, nie tylko po nowej regule.
+
+**TRZY BRAMKI BRONIŁY USTEREK** (0.66.0 i 0.67.0): dwie asercje wymagające, żeby
+prefiks hasła przetrwał; test sufitu wymagający skasowania wiersza po skoku
+`AUTO_INCREMENT`; test „synchronizacja nie kasuje cudzych wpisów" tworzący obcy
+wpis **bez `post_parent`**, czyli poza zasięgiem mierzonej pętli. **Przy każdej
+naprawie sprawdzać, czy bramka nie utrwala właśnie tego, co się naprawia.**
+
+**ŚRODOWISKO `:8892` (stan na koniec sesji):** pięć wtyczek aktywnych, obie
+kontrole kod 0, sprzedaż OTWARTA, kursy 2 (oba `published`), konto
+`klient-test` (NIE kasować), **dziennik monitoringu 41 logowań / 35 wizyt**
+(dane dowodowe właściciela z T4 — NIE kasować), `AUTO_INCREMENT` dziennika
+podniesiony do 200 001 przez sondę (nieszkodliwy po naprawie — sufit potwierdza
+liczbę wierszy przed kasowaniem).
