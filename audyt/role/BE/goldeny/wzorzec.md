@@ -47,10 +47,10 @@ poznasz, że masz przed sobą wzorzec, a nie znalezisko.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
-    "linia": 559,
+    "linia": 568,
     "tresc": "$zmieniamy_sekcje = array_key_exists( 'sekcje', $kurs ) && null !== $kurs['sekcje'];"
   },
-  "dowod": "Linia 559 pyta o array_key_exists i osobno o null, a komentarz nad metodą obiecuje, że brak klucza znaczy nie ruszaj — obietnica i kod stoją obok siebie.",
+  "dowod": "Linia 568 pyta o array_key_exists i osobno o null, a komentarz nad metodą obiecuje, że brak klucza znaczy nie ruszaj — obietnica i kod stoją obok siebie.",
   "klasyfikacja": "przyklad-dydaktyczny",
   "wplyw": "Zapis kursu przez klienta interfejsu, który nie przysłał klucza, kasuje wszystkie sekcje strony sprzedażowej i melduje sukces."
 }

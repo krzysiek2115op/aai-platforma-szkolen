@@ -5377,3 +5377,103 @@ wyjścia. Bez potoku jest **1**. Zapis „strażnik kod 0" przy domknięciu AUDY
 (2026-09-04) mógł powstać dokładnie tak — **do sprawdzenia przy fali 2, mierząc
 BEZ POTOKU**. Reguła R17 mogła się zapalić już 2026-09-03, gdy dział SEC audytu
 się zamykał.
+
+### FALA KONTROLNA PO 0.65.0 — PROJEKT DO DYSKUSJI (2026-09-05, po wydaniu napraw)
+
+**Kontekst:** naprawy 32 z 33 usterek weszły na `main` jako **0.65.0** (PR #120,
+CI zielone 5/5, tag + release). Decyzje właściciela D1–D4 z 2026-09-05
+(`docs/NAPRAWY-PO-AUDYCIE.md`): fala 2 ODWOŁANA, po naprawach **fala
+kontrolna — 14 Pogłębiaczy, BEZ ról procesowych, potokiem, dwa tory
+środowiskowe**. Zgodnie z wytyczną „pakiet E7.7: przed kodem dyskusja"
+najpierw projekt, kod i przebieg po akceptacji. **Uruchomienie fali wymaga
+osobnego zielonego światła** (jak przy fali 1: „zielone światło puszczamy…").
+
+**Warunki wejścia — ZROBIONE w tej sesji (zmierzone, nie założone):**
+- `main` (0.65.0) scalony do gałęzi sektora: `20fb250`; niezmiennik
+  `git diff main --name-only -- . ':!audyt' ':!re-audyt'` → **0**;
+- **scalenie przesunęło linie kodu, do których odwoływały się wzorce goldenów
+  trzech ról** (BD 934→943, BE 559→568, PRIV 275→297, w obu sektorach) —
+  strażnik sektora świecił sześcioma R11; wzorce przekotwiczone po TREŚCI linii
+  (skrypt: linia = jedyne wystąpienie `tresc` w pliku). To pierwsza lekcja fali
+  kontrolnej: **goldeny ról wskazują linie, więc każda zmiana kodu produktu
+  wymaga ich przekotwiczenia PRZED wejściem ról**;
+- strażnik sektora: **kod 1 wyłącznie przez R17** (fałszywy alarm z prób E7,
+  opisany przy domknięciu re-audytu — usterka narzędzia, nie zjawisko);
+- `srodowisko.mjs --test` **kod 0**; `--sprawdz --fala=1` kod 1 **wyłącznie**
+  przez prototyp `:3001` (potrzebny tylko PROTO-R6 — stawiać `npm run dev`
+  przed rolą PROTO); `:8892` po `postaw.sh` od nowa, obie kontrole kod 0,
+  dane właściciela 26/30, sieroty 0/0.
+
+**Trzy rzeczy, których narzędzia sektora NIE umieją, a fala kontrolna
+potrzebuje (zmierzone w kodzie narzędzi):**
+1. `status.mjs` i `zgloszenie.mjs` przyjmują **wyłącznie `--fala=1|2`**
+   (odmowa 1, test CLI `--fala=3 → kod 1`);
+2. **fala 2 znaczy „ten sam commit co fala 1, w worktree ze sparse checkoutem
+   BEZ wpisów F1"** (`fala.mjs`) — czyli DOKŁADNIE ODWROTNIE niż fala
+   kontrolna, która musi WIDZIEĆ wpisy F1 i pracować na NOWYM commicie;
+3. `NA_SRODOWISKU` (14 działów + PSIARZ + WALID) dopuszcza **jedną rolę naraz**
+   na środowisku — stąd drugi tor.
+
+**Dwa warianty nośnika (do rozstrzygnięcia):**
+- **A — rozszerzyć narzędzia** o falę kontrolną (`--fala=K` albo pole
+  `kontrola: "0.65.0"`): odmowy w `status.mjs`, `zgloszenie.mjs`, reguły
+  R-strażnika sektora, generat agentów. Koszt: pół dnia budowy + własne
+  bramki + mutacje, ZANIM ruszy pierwsza rola.
+- **B — REKOMENDOWANY: fala kontrolna POZA numeracją fal.** Role nie używają
+  `status.mjs`/`zgloszenie.mjs` (nie składają nowych zgłoszeń — odpowiadają
+  na pytanie „czy naprawa trzyma"). Produkt roli: jeden plik
+  `audyt/wyniki/kontrola-0.65.0/<KOD>.md` z tabelą **wpis F1 → werdykt
+  NAPRAWIONE / NIENAPRAWIONE / NIE DOTYCZY PRODUKTU → dowód uruchomieniowy
+  na 0.65.0 (komenda + wynik)** oraz sekcją „regresje w moim zakresie"
+  (rundy własnej checklisty); krytyk dopisuje werdykt pod spodem.
+  Środowisko przez `srodowisko.mjs` z etykietami wolnymi od numeru fali
+  (`--zrzut=k-baza`, `--zrzut=k-<KOD>-po`, `--przywroc=k-baza` — etykieta
+  jest dowolna, sprawdzone w kodzie; tylko `--sprawdz --fala=N` pyta o
+  `f<N>-baza`). Bez `porownaj-cykle.mjs`, bo fala kontrolna NIE mierzy
+  powtarzalności (D1). Koszt budowy: **zero kodu narzędzi**.
+
+**Wejście każdej roli (identyczne w obu wariantach):** jej wpisy F1 ze
+statusem `ZWERYFIKOWANE` przy **obu** werdyktach pozytywnych (krytyk
+PRZEPUSZCZAM + weryfikator ISTNIEJE) i miejscu w produkcie; commity napraw
+`a516fe4 … 582d4b9` z mapą commit → wpis z `docs/NAPRAWY-PO-AUDYCIE.md`;
+szablon polecenia z E8 z dopiskiem „SEKTOR: re-audyt, KONTROLA 0.65.0". Rola
+NIE naprawia (zasada 2) i NIE zgłasza spoza zakresu (zasada 3).
+
+**Zakres — dwa odczyty D3/D4 (do rozstrzygnięcia):**
+- **wąski (D3 dosłownie):** 14 Pogłębiaczy `rea-<KOD>` + 14 krytyków = **28
+  agentów**; pomiar uruchomieniowy na 0.65.0. Fala 1: Pogłębiacz kosztował
+  ~360–630 tys. tokenów → **~8–12 mln tokenów**, pół dnia zegarowo na dwóch
+  torach;
+- **szeroki (D4 „z działu wychodzi audyt, wchodzi re-audyt"):** dodatkowo 14
+  działów `aud-<KOD>` z krytykami PRZED Pogłębiaczami (lektura z checklistą
+  na 0.65.0 — łapie regresje, których żaden wpis F1 nie nazywa) = **56
+  agentów, ~16–24 mln tokenów**, dzień zegarowo.
+  Rekomendacja: **wąski**, bo cel fali (D3) to „czy 32 naprawy trzymają",
+  a regresje w zakresie działu Pogłębiacz i tak mierzy własną checklistą;
+  szeroki dopiero, gdyby wąski wykazał NIENAPRAWIONE.
+
+**Potok i dwa tory (D4):** kolejność wg wagi napraw — INT, BE, BD, ARCH
+(czerwone) → PERF, PRIV, SEC, FE, QA → REPO, WDR, PROTO, PIK, USP. Role
+mierzące na środowisku: **jedna naraz na tor**; tor A = `:8892`, tor B =
+druga instancja `STACK_NAZWA=aai_wp_b WP_PORT=8894 MAILPIT_PORT=8895
+./postaw.sh` (pamięć: ~3 GB dostępne, drugie środowisko się mieści — pomiar
+z `docs/NAPRAWY-PO-AUDYCIE.md`); bramki biorą adres z `WP_ADRES`,
+`srodowisko.mjs` z `WP_PORT`. Role czytające wyłącznie kod (REPO, PIK, USP,
+część ARCH/PROTO) idą równolegle bez środowiska. **WDR (postaw.sh od zera)
+osobno, na końcu toru** — jak w fali 1.
+
+**Czego fala kontrolna NIE robi:** nie składa raportu o aparacie, nie
+uruchamia KIER/GOLD/KON/WER/RAP/WALID/PSIARZ/SKUT/STRAZ, nie mierzy
+powtarzalności, nie naprawia. Wynik: tabela 14 plików + jedno zdanie w
+CLAUDE.md/README „fala kontrolna: N NAPRAWIONE, M NIENAPRAWIONE" — jeśli
+M > 0, naprawy idą zwykłą drogą (gałąź od `main`, PR), nie w sektorze.
+
+**CZTERY PYTANIA DO WŁAŚCICIELA (żadne nie jest rozstrzygane przez agenta):**
+1. Zielone światło na przebieg i **zakres: wąski (28 agentów) czy szeroki (56)?**
+2. **Nośnik: wariant B** (poza numeracją fal, zero kodu narzędzi) czy A
+   (rozszerzenie narzędzi, pół dnia budowy)?
+3. **Drugi tor środowiskowy** — stawiać (szybciej, pamięć na styk) czy jeden
+   tor (wolniej, bezpieczniej)?
+4. **R17 strażnika sektora** (fałszywy alarm z prób E7): odsiać próby w
+   narzędziu przed falą (zmiana toolchainu, mała) czy zostawić czerwony
+   z nazwanym powodem?
