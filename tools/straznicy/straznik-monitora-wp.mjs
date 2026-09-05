@@ -948,6 +948,47 @@ if (existsSync(GLOWNY)) {
   }
 }
 
+/*
+ * OBIE TABELE MONITORINGU MAJĄ SUFIT LICZBY WIERSZY, NIE TYLKO WIEK.
+ *
+ * Ruch dostał go przy przeglądzie T3 (A2). Dziennik logowań został z samą
+ * retencją po WIEKU — a nieudane logowanie zapisuje KAŻDY, kto wyśle
+ * formularz. Zmierzone tempo: 28 wierszy w 1,4 s, czyli ~72 000 na godzinę.
+ * Wszystkie te wiersze są młodsze niż 90 dni, więc retencja po wieku nie
+ * rusza ich w ogóle: jedna uparta próba zgadywania hasła rozdyma tabelę,
+ * kopie zapasowe i ekran właściciela, a jedynym hamulcem jest limiter.
+ *
+ * Reguła pyta o rozstrzygnięcie: przycinanie po liczbie wierszy jest
+ * wywoływane dla OBU tabel. Ma samokontrolę zakresu.
+ */
+{
+  const ZAPIS = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php";
+  const TABELE = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-tabele.php";
+  if (!existsSync(ZAPIS) || !existsSync(TABELE)) {
+    bledy.push(`${ZAPIS}: nie znalazłem warstwy zapisu monitoringu — reguła o sufitach nie ma czego sprawdzić.`);
+  } else {
+    const zapis = kod(readFileSync(ZAPIS, "utf8"));
+    const tabele = kod(readFileSync(TABELE, "utf8"));
+    const wywolania = (zapis.match(/przytnij_liczbe\s*\(/g) ?? []).length;
+    if (wywolania === 0) {
+      bledy.push(
+        `${ZAPIS}: nie ma przycinania po liczbie wierszy — samokontrola zakresu: reguła o sufitach przechodziłaby PO PUSTCE.`
+      );
+    } else {
+      for (const [ktora, stala] of [["logowania", "SUFIT_WIERSZY_LOGOWAN"], ["wizyty", "SUFIT_WIERSZY_WIZYT"]]) {
+        if (!new RegExp(`przytnij_liczbe\\s*\\(\\s*'${ktora}'`).test(zapis)) {
+          bledy.push(
+            `${ZAPIS}: tabela „${ktora}" nie jest przycinana po LICZBIE wierszy, tylko po wieku. Wiersze młodsze niż okno retencji rosną wtedy bez ograniczenia — przy dzienniku logowań zmierzono 28 wierszy w 1,4 s, czyli ~72 000 na godzinę, wszystkie młodsze niż 90 dni.`
+          );
+        }
+        if (!new RegExp(`const ${stala}\\s*=\\s*\\d+`).test(tabele)) {
+          bledy.push(`${TABELE}: brak stałej ${stala} — sufit tabeli „${ktora}" nie ma wartości.`);
+        }
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-monitora-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -955,5 +996,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test, wystrzał ma obie nazwy akcji i akcję w query stringu, wymaga typu JSON i czyta ciało strumieniem, skryptu nie dostaje admin ani strona 404, skrypt wysyła raz i wraca do życia po bfcache, teksty ekranu bez podwójnej ucieczki, polityka w repo zgodna z kodem)."
+  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test, wystrzał ma obie nazwy akcji i akcję w query stringu, wymaga typu JSON i czyta ciało strumieniem, skryptu nie dostaje admin ani strona 404, skrypt wysyła raz i wraca do życia po bfcache, teksty ekranu bez podwójnej ucieczki, polityka w repo zgodna z kodem, obie tabele mają sufit liczby wierszy)."
 );

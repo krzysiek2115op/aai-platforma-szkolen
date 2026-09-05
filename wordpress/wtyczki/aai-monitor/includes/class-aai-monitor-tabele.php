@@ -69,6 +69,21 @@ final class Aai_Monitor_Tabele {
 	public const SUFIT_WIERSZY_WIZYT = 250000;
 
 	/**
+	 * Sufit liczby wierszy dziennika logowań.
+	 *
+	 * WIEK NIE WYSTARCZY, tak samo jak przy ruchu. Nieudane logowanie zapisuje
+	 * KAŻDY, kto wyśle formularz — zmierzone tempo to 28 wierszy w 1,4 s, czyli
+	 * ~72 000 na godzinę i ~1,7 mln na dobę. Wszystkie są młodsze niż 90 dni,
+	 * więc retencja po wieku nie rusza ich w ogóle: jedna uparta próba
+	 * zgadywania hasła rozdyma tabelę, kopie zapasowe i ekran właściciela.
+	 *
+	 * Sufit jest niższy niż przy ruchu, bo dziennik logowań ma inny cel:
+	 * pokazać SERIE prób, nie zebrać komplet historii. Sto tysięcy wierszy to
+	 * przy normalnym ruchu lata, a przy ataku — okno, w którym widać wzorzec.
+	 */
+	public const SUFIT_WIERSZY_LOGOWAN = 100000;
+
+	/**
 	 * Pełna nazwa tabeli z prefiksem instalacji i prefiksem wtyczki.
 	 *
 	 * @param string $nazwa Nazwa bez prefiksów, np. `logowania`.

@@ -4509,6 +4509,17 @@ const MUTACJE = [
       return s.includes(a) ? s.split(a).join("if ( in_array( $uuid, $zostaja, true ) ) {") : null;
     },
   },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "dziennik logowań traci sufit liczby wierszy — rośnie bez ograniczenia mimo retencji po wieku",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php"),
+    oczekiwanySlad: "nie jest przycinana po LICZBIE",
+    zmien: (s) => {
+      const a = "$ile = (int) $ile + self::przytnij_liczbe( 'logowania', Aai_Monitor_Tabele::SUFIT_WIERSZY_LOGOWAN );";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
 ];
 
 
