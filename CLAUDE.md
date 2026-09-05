@@ -3413,3 +3413,56 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## ═══ NAPRAWY PO AUDYCIE — TRWAJĄ (2026-09-05) ═══
+
+**CZYTAĆ PRZED PRACĄ: [docs/NAPRAWY-PO-AUDYCIE.md](docs/NAPRAWY-PO-AUDYCIE.md)**
+— decyzje właściciela D1–D7, stan 27 z 33 usterek, sześć pozycji otwartych,
+ustalenia o przyspieszeniu fali i pułapki tej sesji.
+
+**GAŁĄŹ PRACY: `fix/naprawy-audytu-f1`** (od `main`, sześć commitów
+`a516fe4` … `2bd68b7`). Katalogi `audyt/` i `re-audyt/` na niej NIE ISTNIEJĄ —
+sektory żyją na `re-audyt/sektor-re-audytu`, a lista 33 usterek pochodzi
+z `audyt/zgloszenia/` tamtej gałęzi.
+
+**DECYZJA WŁAŚCICIELA (2026-09-05): FALA 2 ODWOŁANA, ROBIMY NAPRAWY.**
+Powód podany wprost: fala 2 z definicji bada POWTARZALNOŚĆ audytu, czyli sam
+audyt, a *„zależy nam bardziej, aby projekt nie był wadliwy"*. Termin: projekt
+gotowy **do niedzieli**. Po naprawach ma pójść **fala kontrolna** — tylko
+14 Pogłębiaczy, BEZ dziewięciu ról procesowych, **potokiem** (dział kończy
+audyt → wchodzi re-audyt tego działu, audyt idzie dalej).
+
+**POTOK JEST DOZWOLONY — sprawdzone, nie założone:** `KIER-R1` pilnuje
+wyłącznie tego, żeby re-audyt wszedł do działu PO audycie TEGO SAMEGO działu.
+Sekwencyjność całych sektorów w fali 1 była nadmiarowa i to ona kosztowała
+72 godziny rozpiętości.
+
+**LICZBA, KTÓRA ZMIENIŁA PLAN:** ze 223 nie-próbnych wpisów obu sektorów
+**tylko 95 wskazuje kod produktu, a 128 sam aparat audytu**; dwustronnie
+potwierdzonych usterek KODU WTYCZEK jest **33**. To one są przedmiotem napraw.
+
+**STAN NA 2026-09-05, 05:00: 27 z 33 zrobionych**, strażnicy **39/39**, bramki
+`wp-front` 86 · `wp-produkty` 85 · `wp-platnosci` 23 · `wp:sprawdz` 73/73 co do
+znaku. Każda naprawa z pomiarem przed/po i testem negatywnym.
+
+**TRZY ZNALEZISKA WAŻNIEJSZE NIŻ SAME NAPRAWY:**
+1. **Bramka broniła usterki** — `smoke-wp-monitor` asertował, że fragment
+   wartości wpisanej w pole loginu MA zostać w bazie, choć bywa nią hasło
+   i polityka obiecuje coś przeciwnego. Dowód utrwalał wyciek jako wymaganie.
+2. **Strażnik zablokował commit agenta i miał rację** — hak wołał
+   `is_tutor_order()` bez `wc_get_order()`, a `before_delete_post` dostaje
+   KAŻDY wpis; na stronie czy załączniku byłby biały ekran.
+3. **Dowód wyszedł fałszywie negatywny przez cudzy cache** — Tutor zmienia
+   status zapisu surowym `$wpdb->update` bez czyszczenia cache
+   (`Utils.php:2478`), więc `get_post_status()` w tym samym żądaniu kłamie.
+   **Zła była metoda pomiaru, nie kod.**
+
+**PUŁAPKA, KTÓRA ZŁAPAŁA MNIE DWA RAZY W JEDNEJ SESJI: `| tail` maskuje kod
+wyjścia.** Strażnik sektora przez potok pokazał 0, bez potoku daje 1. Kody
+wyjścia mierzyć BEZ POTOKU, zawsze — także własne komendy diagnostyczne.
+
+**NASTĘPNY KROK:** (1) skasować ślady testowe monitoringu jawną listą id —
+zgoda właściciela jest, tabele mają 46/45 zamiast jego 26/30 z testu T4;
+(2) rozciąć cykl w `aai-platnosci` (decyzja właściciela, cena policzona
+w dokumencie); (3) trzy otwarte usterki albo świadome odłożenie; (4) PR →
+`main`, tag, release; (5) fala kontrolna.
