@@ -2329,8 +2329,11 @@ const MUTACJE = [
     plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
     wymaga: () => existsSync(KLASA_TUTORA),
     zmien: (s) =>
-      s.includes("Aai_Sklep_Tutor::zarejestruj();")
-        ? s.replace("Aai_Sklep_Tutor::zarejestruj();", "")
+      // PRZEKOTWICZONE 2026-09-05: rejestracje jadą przez osłonę
+      // `$bezpiecznie(...)`, więc dawny wzorzec „…::zarejestruj();" przestał
+      // pasować i mutacja UMARŁA — wyglądała na zieloną, nie testując niczego.
+      s.includes("static fn() => Aai_Sklep_Tutor::zarejestruj()")
+        ? s.replace(/\n\t\t\$bezpiecznie\([^\n]*Aai_Sklep_Tutor::zarejestruj\(\)[^\n]*\);/, "")
         : null,
   },
   {
@@ -2623,8 +2626,9 @@ const MUTACJE = [
     plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
     wymaga: () => existsSync(KLASA_LEKCJI),
     zmien: (s) =>
-      s.includes("Aai_Sklep_Lekcja::zarejestruj();")
-        ? s.replace("Aai_Sklep_Lekcja::zarejestruj();", "")
+      // PRZEKOTWICZONE 2026-09-05 — patrz uwaga przy mutacji kopii do Tutora.
+      s.includes("static fn() => Aai_Sklep_Lekcja::zarejestruj()")
+        ? s.replace(/\n\t\t\$bezpiecznie\([^\n]*Aai_Sklep_Lekcja::zarejestruj\(\)[^\n]*\);/, "")
         : null,
   },
   {
@@ -3300,10 +3304,12 @@ const MUTACJE = [
     wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/aai-monitor.php"),
     oczekiwanySlad: "poza try/catch",
     zmien: (s) =>
-      s.includes("\t\ttry {\n\t\t\tAai_Monitor_Tabele::dociagnij_schemat();")
+      // PRZEKOTWICZONE 2026-09-05: kroki startu jadą przez osłonę
+      // `$bezpiecznie(...)` wewnątrz `try`, więc dawny wzorzec przestał pasować.
+      s.includes("\t\ttry {\n\t\t\t$bezpiecznie( 'schemat tabel'")
         ? s.replace(
-            "\t\ttry {\n\t\t\tAai_Monitor_Tabele::dociagnij_schemat();",
-            "\t\tAai_Monitor_Tabele::dociagnij_schemat();\n\t\ttry {"
+            "\t\ttry {\n\t\t\t$bezpiecznie( 'schemat tabel'",
+            "\t\tAai_Monitor_Tabele::dociagnij_schemat();\n\t\ttry {\n\t\t\t$bezpiecznie( 'schemat tabel'"
           )
         : null,
   },
@@ -3394,8 +3400,9 @@ const MUTACJE = [
     wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/aai-monitor.php"),
     oczekiwanySlad: "nie woła Aai_Monitor_Logowania::zarejestruj()",
     zmien: (s) =>
-      s.includes("Aai_Monitor_Logowania::zarejestruj();")
-        ? s.replace("Aai_Monitor_Logowania::zarejestruj();", "/* zdjęte */")
+      // PRZEKOTWICZONE 2026-09-05 — patrz uwaga przy mutacji kopii do Tutora.
+      s.includes("static fn() => Aai_Monitor_Logowania::zarejestruj()")
+        ? s.replace(/\n\t\t\t\$bezpiecznie\([^\n]*Aai_Monitor_Logowania::zarejestruj\(\)[^\n]*\);/, "")
         : null,
   },
   {
@@ -4271,6 +4278,124 @@ const MUTACJE = [
     oczekiwanySlad: "nie ma ich na ŻADNYM schemacie",
   },
 
+  // --- naprawy po polowaniu (P0, 2026-09-05) ---
+  // Cztery naprawy, w których BRAMKA MILCZAŁABY przy zepsutym kodzie: wyciek
+  // fragmentów haseł, wyciek 73 lekcji po awarii jednej klasy, rozjazd wersji
+  // i zniszczony punkt przywracania cudzych ustawień. Każda dostała regułę
+  // strażnika, więc każda dostaje tu mutację.
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "maskowanie loginu znowu zostawia początek wartości — fragment hasła wraca do dziennika",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: "wycina kawałek podanej wartości",
+    zmien: (s) =>
+      s.includes("return sprintf( '…(%d znaków, konto nie istnieje)', mb_strlen( $podany ) );")
+        ? s.replace(
+            "return sprintf( '…(%d znaków, konto nie istnieje)', mb_strlen( $podany ) );",
+            "return sprintf( '%s…(%d znaków)', mb_substr( $podany, 0, 3 ), mb_strlen( $podany ) );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "maskująca metoda zmienia nazwę — reguła o fragmentach haseł traci przedmiot",
+    plik: LOGOWANIA_MONITORA,
+    wymaga: () => existsSync(LOGOWANIA_MONITORA),
+    oczekiwanySlad: "PO PUSTCE",
+    zmien: (s) =>
+      s.includes("function bezpieczny_login(")
+        ? s.replace("function bezpieczny_login(", "function bezpieczny_login_inaczej(")
+        : null,
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "zamek publicznych list lekcji wraca na KONIEC startu — awaria czegokolwiek przed nim otwiera wyciek",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    oczekiwanySlad: "a nie Aai_Sklep_Lekcja",
+    zmien: (s) => {
+      const zamek = "\t\t$bezpiecznie( 'widok lekcji i zamki publicznych list', static fn() => Aai_Sklep_Lekcja::zarejestruj() );\n";
+      const ostatnia = "\t\t$bezpiecznie( 'kopia kursu w Tutorze', static fn() => Aai_Sklep_Tutor::zarejestruj() );";
+      if (!s.includes(zamek) || !s.includes(ostatnia)) return null;
+      return s.replace(zamek, "").replace(ostatnia, ostatnia + "\n" + zamek.replace(/\n$/, ""));
+    },
+  },
+  {
+    straznik: "straznik-lekcji-wp",
+    opis: "rejestracje wracają pod JEDEN try — awaria pierwszej zabiera zamek wycieku",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    oczekiwanySlad: "jeden blok try obejmuje",
+    zmien: (s) => {
+      if (!s.includes("$bezpiecznie( 'schemat tabel'")) return null;
+      const cialo = s
+        .replace(/\$bezpiecznie\(\s*'[^']*',\s*static fn\(\) => (Aai_Sklep_\w+::\w+\(\))\s*\);/g, "$1;")
+        .replace("$awarie = array();", "try {");
+      return cialo.includes("try {") ? cialo.replace("if ( array() !== $awarie ) {", "} catch ( Throwable $e ) { $awarie = array(1); }\n\t\tif ( array() !== $awarie ) {") : null;
+    },
+  },
+  {
+    straznik: "straznik-wersji",
+    opis: "jedno z kilkunastu miejsc deklaruje inny minimalny WordPress",
+    plik: "wordpress/wtyczki/aai-sklep/readme.txt",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/readme.txt"),
+    oczekiwanySlad: "niejednakowo",
+    zmien: (s) =>
+      /^Requires at least: 6\.9$/m.test(s) ? s.replace(/^Requires at least: 6\.9$/m, "Requires at least: 6.5") : null,
+  },
+  {
+    straznik: "straznik-wersji",
+    opis: "Stable tag rozjeżdża się z Version — dwa wydania wyjdą jako ten sam plik ZIP",
+    plik: "wordpress/wtyczki/aai-sklep/readme.txt",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/readme.txt"),
+    oczekiwanySlad: "TEN SAM plik ZIP",
+    zmien: (s) => (/^Stable tag: /m.test(s) ? s.replace(/^Stable tag: .*$/m, "Stable tag: 0.0.1-mutacja") : null),
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "punkt przywracania cudzych ustawień daje się nadpisać drugą naprawą",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "nie wychodzi wcześniej",
+    zmien: (s) => {
+      const warunek = "\t\tif ( array_key_exists( $klucz, $stan ) ) {\n\t\t\treturn; // NIGDY nie nadpisujemy — patrz komentarz wyżej.\n\t\t}\n";
+      return s.includes(warunek) ? s.replace(warunek, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "punkt przywracania pyta o klucz przez isset() — zastane „false” i 0 dają się nadpisać",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "przez isset()",
+    zmien: (s) =>
+      s.includes("if ( array_key_exists( $klucz, $stan ) ) {")
+        ? s.replace("if ( array_key_exists( $klucz, $stan ) ) {", "if ( isset( $stan[ $klucz ] ) ) {")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "deaktywacja przestaje przywracać zastane ustawienia — punkt przywracania staje się martwym wierszem",
+    plik: "wordpress/wtyczki/aai-platnosci/aai-platnosci.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    oczekiwanySlad: "nie przywraca zastanych ustawień",
+    zmien: (s) =>
+      s.includes("Aai_Platnosci_Ustawienia::przywroc_stan_zastany();")
+        ? s.replace("Aai_Platnosci_Ustawienia::przywroc_stan_zastany();", "/* zdjęte mutacją */;")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "metoda zapisująca punkt przywracania zmienia nazwę — reguła traci przedmiot",
+    plik: USTAWIENIA_PLATNOSCI,
+    wymaga: () => existsSync(USTAWIENIA_PLATNOSCI),
+    oczekiwanySlad: "PO PUSTCE",
+    zmien: (s) =>
+      s.includes("function zapamietaj_zastane(")
+        ? s.replace("function zapamietaj_zastane(", "function zapamietaj_zastane_inaczej(")
+        : null,
+  },
 ];
 
 

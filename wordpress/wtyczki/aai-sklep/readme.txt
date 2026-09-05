@@ -1,6 +1,6 @@
 === Automatic AI — Sklep z kursami ===
 Contributors: automaticai
-Requires at least: 6.5
+Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.1
 Stable tag: 0.6.0
@@ -20,7 +20,7 @@ sprzedaż i faktury bierze WooCommerce, konta i dostęp do materiału Tutor LMS.
 
 == Wymagania ==
 
-* WordPress 6.5+, PHP 8.1+
+* WordPress 6.9+, PHP 8.1+
 * motyw Automatic AI (wtyczka dopasowuje się do niego, ale działa też na innych)
 * WooCommerce i Tutor LMS — dopiero przy sprzedaży i dostępie do materiału
 

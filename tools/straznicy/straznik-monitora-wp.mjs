@@ -589,6 +589,53 @@ for (const [plik, tresc] of kodWtyczki) {
   }
 }
 
+/*
+ * 5b. (N5, druga połowa) Z WARTOŚCI NIEISTNIEJĄCEGO KONTA NIE ZOSTAJE ZNAK.
+ *
+ * Reguła 5 wyżej pilnuje, żeby kod nie sięgnął po hasło z żądania. Nie broniła
+ * jednak przed drugą drogą, którą hasło NAPRAWDĘ wyciekło: rdzeń sam podaje
+ * `wp_login_failed` wartość wpisaną w pole loginu, a w to pole hasło trafia
+ * przy autouzupełnianiu, złym układzie klawiatury i pomyłce o jedno pole.
+ * Maskowanie zostawiało trzy pierwsze znaki, „gdy wartość wygląda na login" —
+ * a kryterium `sanitize_user( $x, true ) === $x` przepuszcza KAŻDE hasło bez
+ * znaku specjalnego. Zmierzone przez prawdziwy formularz: „Haslo123" wylądowało
+ * w bazie jako „Has…(8 znaków)" na 90 dni, w każdej kopii zapasowej i na ekranie
+ * każdego z `manage_options` — wbrew zdaniu, które sama ta wtyczka drukuje
+ * w polityce prywatności.
+ *
+ * REGUŁA CELUJE W ROZSTRZYGNIĘCIE, NIE W NAZWĘ (dziewięć nawrotów tej pułapki
+ * w tym projekcie): pytamy, czy maskujący kod WYCINA KAWAŁEK podanej wartości —
+ * dowolną funkcją krojącą łańcuch. Nie pytamy o nazwę stałej, kryterium ani
+ * komentarz, bo każde z nich da się przemianować, zostawiając wyciek.
+ *
+ * Dlaczego tutaj, a nie tylko w bramce: `smoke-wp-monitor` mierzy to na żywej
+ * instalacji i jest mocniejszym dowodem, ale wymaga kontenera i NIE biegnie
+ * w CI. Ta reguła biegnie w `npm run check` przy każdym commicie.
+ */
+{
+  const PLIK_LOGOWAN = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-logowania.php";
+  const wpis = kodWtyczki.find(([plik]) => plik === PLIK_LOGOWAN);
+  if (!wpis) {
+    bledy.push(
+      `${PLIK_LOGOWAN}: nie znalazłem pliku producenta dziennika logowań (5b) — reguła nie ma czego sprawdzić, a milcząca reguła jest gorsza niż jej brak.`
+    );
+  } else {
+    const ciało = wpis[1].match(/function\s+bezpieczny_login\s*\([^)]*\)[^{]*\{([\s\S]*?)\n\t\}/);
+    if (!ciało) {
+      bledy.push(
+        `${PLIK_LOGOWAN}: nie znalazłem ciała bezpieczny_login() (5b). Samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+      );
+    } else {
+      const kroi = ciało[1].match(/\b(?:mb_substr|substr|mb_strcut|str_split|preg_replace)\s*\(/);
+      if (kroi) {
+        bledy.push(
+          `${PLIK_LOGOWAN}: bezpieczny_login() wycina kawałek podanej wartości (${kroi[0].trim()}) na ścieżce maskowania (N5, 5b). W pole loginu trafia czasem HASŁO, a kształt go od loginu NIE odróżnia — sanitize_user( $x, true ) przepuszcza każde hasło bez znaku specjalnego. Wartość, która nie wskazuje ISTNIEJĄCEGO konta, ma zostawić samą długość: ani jednego znaku.`
+        );
+      }
+    }
+  }
+}
+
 /* ————————————— 6. (N15) awaria zapisu jest głośna ————————————— */
 
 if (existsSync(WARSTWA_ZAPISU)) {
@@ -862,15 +909,34 @@ if (existsSync(GLOWNY)) {
   const start = zrodlo.indexOf("'plugins_loaded'");
   if (start !== -1) {
     const blok = zrodlo.slice(start);
-    const otwarcie = blok.indexOf("try {");
-    const zamkniecie = blok.indexOf("} catch");
+    /*
+     * KAŻDY ZAKRES `try … } catch` OSOBNO, nie „pierwszy w pliku".
+     *
+     * Pierwsza wersja brała `blok.indexOf("try {")` i uznawała za chronione
+     * wszystko, co stoi dalej. Działało, dopóki w haku był JEDEN `try`.
+     * Od 2026-09-05 każdy krok startu jedzie przez osłonę `$bezpiecznie(…)`,
+     * a ta ma WŁASNY `try` w swoim ciele — i ten własny stoi PIERWSZY. Reguła
+     * zaczęła więc uznawać za chronione dosłownie wszystko po definicji
+     * pomocnika, łącznie z wywołaniami wystawionymi poza ochronę. Wykrył to
+     * audyt mutacyjny (mutacja „start wychodzi poza try/catch" przeszła), nie
+     * lektura.
+     *
+     * Teraz liczymy WSZYSTKIE pary `try … } catch` i pytamy, czy wywołanie
+     * mieści się w którejkolwiek. Wywołania po ostatnim `} catch` pomijamy
+     * świadomie: tam mieszka sam raport o błędzie, strzeżony `class_exists` —
+     * reguła pytająca też o nie zapalałaby się na poprawnym kodzie
+     * (sprawdzone: najwcześniejsza wersja tak właśnie robiła).
+     */
+    const zakresy = [];
+    for (const t of blok.matchAll(/\btry\s*\{/g)) {
+      const c = blok.indexOf("} catch", t.index);
+      if (c !== -1) zakresy.push([t.index, c]);
+    }
+    const ostatnieZamkniecie = zakresy.length ? Math.max(...zakresy.map(([, c]) => c)) : -1;
     const pozaOslona = [];
-    // Wywołanie PRZED `try` jest niechronione. Wywołania po `} catch`
-    // pomijamy świadomie: tam mieszka sam raport o błędzie, strzeżony
-    // `class_exists` — reguła pytająca też o nie zapalałaby się na
-    // poprawnym kodzie (sprawdzone: pierwsza wersja tak właśnie robiła).
     for (const m of blok.matchAll(/Aai_Monitor_[A-Za-z_]+::(?:zarejestruj|dociagnij_schemat|utworz)\(/g)) {
-      if (otwarcie === -1 || zamkniecie === -1 || m.index < otwarcie) {
+      if (m.index > ostatnieZamkniecie) continue;
+      if (!zakresy.some(([o, c]) => m.index > o && m.index < c)) {
         pozaOslona.push(m[0]);
       }
     }

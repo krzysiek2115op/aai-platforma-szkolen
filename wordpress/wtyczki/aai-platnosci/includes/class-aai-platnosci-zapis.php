@@ -331,6 +331,32 @@ final class Aai_Platnosci_Zapis {
 	}
 
 	/**
+	 * Przywraca ZASTANY status strony — droga powrotna dla `strona_na_szkic()`.
+	 *
+	 * Deaktywacja wtyczki oddaje cudze ustawienia takimi, jakie je zastaliśmy
+	 * (punkt przywracania `aai_platnosci_stan_zastany`). Strony natywnej kasy
+	 * Tutora schodzą przy aktywacji na `draft`; bez tej metody zostawałyby tak
+	 * na zawsze. Zapis wpisów rusza WYŁĄCZNIE ta warstwa (niezmiennik 10
+	 * schematu), więc droga powrotna mieszka tutaj, a nie w klasie ustawień.
+	 *
+	 * @param int    $id     Id strony.
+	 * @param string $status Status, jaki strona miała przed naszą zmianą.
+	 * @return bool Czy stan się ZMIENIŁ.
+	 */
+	public static function przywroc_status_strony( int $id, string $status ): bool {
+		if ( $id <= 0 || '' === $status || null === get_post( $id ) || get_post_status( $id ) === $status ) {
+			return false;
+		}
+		wp_update_post(
+			array(
+				'ID'          => $id,
+				'post_status' => $status,
+			)
+		);
+		return true;
+	}
+
+	/**
 	 * Slug strony WP (polskie adresy koszyka i kasy, P3a).
 	 *
 	 * @param int    $id   Id strony.

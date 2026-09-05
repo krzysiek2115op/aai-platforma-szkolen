@@ -1366,6 +1366,75 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/*
+ * PUNKT PRZYWRACANIA CUDZYCH USTAWIEŃ JEST NIENADPISYWALNY.
+ *
+ * Aktywacja przestawia kilkanaście ustawień, które nie należą do tej wtyczki:
+ * dwa klucze `tutor_option`, cztery opcje WooCommerce, status dwóch stron
+ * natywnej kasy Tutora i slugi koszyka oraz kasy. Do 2026-09-05 wartość sprzed
+ * zmiany żyła WYŁĄCZNIE na wyjściu komendy, a deaktywacja cofała jedną z nich.
+ * Klient wyłączający wtyczkę na stałe zostawał z Tutorem w trybie `wc` bez
+ * szwu, który ten tryb obsługiwał.
+ *
+ * CAŁY CIĘŻAR NAPRAWY SIEDZI W JEDNYM WARUNKU: raz zapisanego klucza nie
+ * nadpisujemy NIGDY. Bez niego wystarczy, żeby cokolwiek przestawiło
+ * ustawienie między dwoma przebiegami `napraw()` — aktualizacja Tutora, ręczna
+ * zmiana, cudza wtyczka — a punkt przywracania zapisze wartość Z NASZEJ ERY
+ * jako „zastaną" i przestanie istnieć, NIE DAJĄC ŻADNEGO OBJAWU. Zmierzone:
+ * po zdjęciu warunku punkt przesuwa się z „free" na „wc_subscription", czyli
+ * na wartość, której klient nigdy nie ustawił.
+ *
+ * Reguła pyta o ROZSTRZYGNIĘCIE, nie o nazwę metody ani o komentarz:
+ *   1. istnieje wyjście wcześniejsze zależne od OBECNOŚCI klucza w mapie,
+ *      i stoi PRZED zapisem;
+ *   2. sprawdzenie NIE idzie przez `isset()` — `false`, `''` i `0` to legalne
+ *      wartości zastane, a `isset()` uznałby je za brak i pozwolił nadpisać;
+ *   3. deaktywacja wtyczki NAPRAWDĘ woła przywracanie — punkt przywracania,
+ *      którego nikt nie odczytuje, jest tylko wierszem w bazie.
+ */
+{
+  const PLIK_USTAWIEN = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php";
+  const PLIK_GLOWNY = "wordpress/wtyczki/aai-platnosci/aai-platnosci.php";
+
+  if (!existsSync(PLIK_USTAWIEN) || !existsSync(PLIK_GLOWNY)) {
+    bledy.push(`${PLIK_USTAWIEN}: nie znalazłem plików wtyczki płatności — reguła o punkcie przywracania nie ma czego sprawdzić.`);
+  } else {
+    const tresc = kod(readFileSync(PLIK_USTAWIEN, "utf8"));
+    const zapis = tresc.match(/function\s+zapamietaj_zastane\s*\([^)]*\)[^{]*\{([\s\S]*?)\n\t\}/);
+
+    if (!zapis) {
+      bledy.push(
+        `${PLIK_USTAWIEN}: nie znalazłem metody zapisującej punkt przywracania (zapamietaj_zastane). Samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+      );
+    } else {
+      const cialo = zapis[1];
+      const pozycjaWyjscia = cialo.search(/array_key_exists\s*\([^)]*\)\s*\)?\s*\{?\s*(?:\n\s*)?return\b/);
+      const pozycjaZapisu = cialo.search(/update_option\s*\(/);
+
+      if (pozycjaWyjscia < 0) {
+        bledy.push(
+          `${PLIK_USTAWIEN}: zapamietaj_zastane() nie wychodzi wcześniej, gdy klucz JUŻ JEST w mapie. Wtedy druga naprawa zapisze jako „zastaną" wartość z NASZEJ ery i punkt przywracania przestanie istnieć — bez żadnego objawu. Cudze ustawienia klienta zostaną wtedy przestawione na zawsze.`
+        );
+      } else if (pozycjaZapisu >= 0 && pozycjaWyjscia > pozycjaZapisu) {
+        bledy.push(
+          `${PLIK_USTAWIEN}: zapamietaj_zastane() sprawdza obecność klucza DOPIERO PO zapisie — kolejność czyni warunek dekoracją.`
+        );
+      }
+      if (/isset\s*\(\s*\$\w+\s*\[/.test(cialo)) {
+        bledy.push(
+          `${PLIK_USTAWIEN}: zapamietaj_zastane() pyta o klucz przez isset(). Zastane „false", "" i 0 są legalnymi wartościami, a isset() uzna je za brak i pozwoli nadpisać punkt przywracania właśnie tam, gdzie klient miał ustawienie wyłączone.`
+        );
+      }
+    }
+
+    if (!/przywroc_stan_zastany\s*\(/.test(kod(readFileSync(PLIK_GLOWNY, "utf8")))) {
+      bledy.push(
+        `${PLIK_GLOWNY}: deaktywacja wtyczki nie przywraca zastanych ustawień. Punkt przywracania, którego nikt nie odczytuje, jest tylko wierszem w bazie — klient zostaje z Tutorem w trybie „wc" bez szwu, który ten tryb obsługiwał.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1373,5 +1442,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji)."
 );

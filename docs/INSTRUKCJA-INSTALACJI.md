@@ -51,7 +51,7 @@ Zanim zaczniesz, sprawdź cztery rzeczy. Jeśli którejś nie masz, **napisz do
 nas przed instalacją** — wtyczki bez nich nie zadziałają poprawnie.
 
 - [ ] **Dostęp do panelu WordPressa** — adres, login i hasło administratora.
-- [ ] **WordPress w wersji 6.5 lub nowszej** oraz **PHP 8.1 lub nowsze**.
+- [ ] **WordPress w wersji 6.9 lub nowszej** oraz **PHP 8.1 lub nowsze**.
       Gdzie to sprawdzić: *Kokpit → Narzędzia → Stan witryny → Informacje*.
 - [ ] **Wtyczka WooCommerce** — włączona. To ona obsługuje koszyk i płatności.
 - [ ] **Wtyczka Tutor LMS** — włączona. To ona pilnuje, kto ma dostęp do kursu.

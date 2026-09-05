@@ -117,7 +117,7 @@
         <mxCell id="x1" value="aai-sklep — architektura (Plugin 1)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1000" height="28" as="geometry" />
         </mxCell>
-        <mxCell id="x2" value="28 klas · 5 tabel · 26 haków WordPressa/WooCommerce · autoloader bez Composera · PHP 8.1, WP 6.5+" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="x2" value="28 klas · 5 tabel · 26 haków WordPressa/WooCommerce · autoloader bez Composera · PHP 8.1, WP 6.9+" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="40" y="48" width="1300" height="20" as="geometry" />
         </mxCell>
         <mxCell id="g3" value="BAZA  wp_aai_sklep_*" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=13;fontStyle=1;dashed=0;opacity=100;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">

@@ -5,6 +5,93 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.66.0] — 2026-09-05
+
+### Naprawy po polowaniu, priorytet P0 — pięć rzeczy, przez które klient traci
+
+Kolejność i uzasadnienie: [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md).
+P0 to pozycje, w których **klient płacący coś traci albo instalacja jest
+niemożliwa**. Każda naprawa ma pomiar PRZED, pomiar PO i test negatywny;
+każda dostała regułę strażnika, bo bramki WP nie biegną w CI.
+
+**1. Ukrycie kursu zabierało kupującemu drogę do materiału.** Przy obu kursach
+`archived` Tutor miał DWA żywe zapisy, a `ma_kursy()` zwracało NIE i strona
+mówiła klientowi, że nie ma żadnego kursu. Obie drogi, które klient zna (menu
+i kafelek), pytały `lista_kursow()` — zapytanie z filtrem `status = 'published'`,
+odpowiadające na pytanie „co jest w SPRZEDAŻY". „Moje kursy" pytają o co
+innego: „co ten człowiek KUPIŁ". Powstał osobny czytelnik
+`lista_kursow_posiadane()`; `lista_kursow()` zostaje bajt w bajt taka, jaka
+była, bo jej trzej konsumenci (katalog, mapa strony, JSON-LD) mają rację.
+Sprzeczne z decyzją C1, doprecyzowaną 2026-09-05.
+
+**2. Dziennik logowań zapisywał fragmenty haseł.** Zmierzone prawdziwym
+formularzem: „Haslo123" lądowało jako „Has…(8 znaków)" na 90 dni, w każdej
+kopii bazy i na ekranie każdego z `manage_options`. Kryterium kształtu
+(`sanitize_user( $x, true ) === $x`) przepuszcza KAŻDE hasło bez znaku
+specjalnego. Zniknęło w całości — zwężone wpuszczałoby dalej hasła, których
+akurat nie przewidzieliśmy. Wartość niewskazująca istniejącego konta zostawia
+teraz samą długość. **Dwie asercje bramki WYMAGAŁY dotąd, żeby prefiks
+przetrwał** — bramka pilnowała mechanizmu, którym sekret wyciekał.
+
+**3. Awaria jednej klasy otwierała wyciek 73 lekcji.** Trzynaście rejestracji
+stało pod jednym `try`, a `Aai_Sklep_Lekcja` — jedyna zakładająca zamki na
+publiczne listy lekcji — była OSTATNIA. Zmierzone (rzut w rejestrację nr 2
+z 13): strona główna oddaje 200, nic nie wygląda na zepsute, a
+`/?post_type=lesson&feed=rss2` oddaje anonimowi **135 kB płatnej treści**
+w 10 wpisach. Zamek idzie teraz PIERWSZY, a każda rejestracja ma własną
+osłonę — to samo w `aai-monitor`, gdzie sześć kroków dzieliło jeden `try`.
+Skutek uboczny naprawy z 2026-08-31, która zamieniła głośne HTTP 500 na cichy
+prefiks systemu.
+
+**4. `postaw.sh` padał u obcego klienta, a wtyczki obiecywały zły WordPress.**
+`wp plugin install woocommerce` bez `--version` ciągnie dziś 11.1.0, wymagające
+WP 7.0 przy obrazie 6.9.4 — a `set -euo pipefail` przerywa CAŁY skrypt. Woo
+i Tutor są przypięte do 11.0.1 i 4.0.7, czyli wersji, na których zmierzono
+wszystko, co ten projekt twierdzi o cudzym kodzie. `Requires at least: 6.5`
+było nieprawdą w **dwunastu** miejscach (nie dziewięciu — policzone): nasze
+wtyczki wymagają Woo, a Woo wymaga 6.9.
+
+**5. Wyłączenie wtyczki płatności zostawiało cudze ustawienia przestawione.**
+Aktywacja rusza kilkanaście ustawień, które do niej nie należą; deaktywacja
+cofała DOKŁADNIE JEDNO. Klient zostawał z Tutorem w trybie `wc` bez szwu,
+który ten tryb obsługiwał. Powstał punkt przywracania
+`aai_platnosci_stan_zastany`, zapisywany przy PIERWSZYM dotknięciu każdego
+klucza i **nigdy nienadpisywany** — bez tego warunku wystarczy, żeby cokolwiek
+przestawiło ustawienie między dwoma naprawami, a punkt zapisze wartość z naszej
+ery jako „zastaną" i przestanie istnieć bez żadnego objawu.
+
+### Bramki
+
+Doszło **pięć reguł strażników** (`straznik-monitora-wp` 5b,
+`straznik-lekcji-wp` o kolejności i izolacji startu, dwie w `straznik-wersji`,
+`straznik-platnosci-wp` o punkcie przywracania) i **dziesięć mutacji**
+(351 → 361). `smoke-wp-lekcja` mierzy wreszcie DROGĘ KLIENTA
+(`/szkolenia/moje/`), a nie tylko bezpośredni adres lekcji — obie dotychczasowe
+bramki decyzji C1 sprawdzały drogę, której klient nie zna.
+
+### Trzy ślepe pomiary złapane własnymi testami negatywnymi
+
+- asercja o martwym odsyłaczu składała adres WZGLĘDNY, a szablon drukuje
+  BEZWZGLĘDNY — **przechodziła po pustce**, i mutacja przywracająca defekt
+  wyszła na zielono. Wzorzec bierze się teraz z żywej strony i ma kontrprzykład;
+- reguła o kolejności startu czytała plik SUROWY, więc znajdowała
+  `Aai_Sklep_Lekcja::zarejestruj()` we WŁASNYM KOMENTARZU objaśniającym,
+  dlaczego zamek stoi pierwszy — czytała prozę o kodzie zamiast kodu;
+- test negatywny punktu przywracania uruchamiał `napraw()` dwa razy pod rząd,
+  a przy drugim przebiegu gałąź zapisu w ogóle nie biegła. Defekt wymaga
+  ZMIANY MIĘDZY przebiegami.
+
+### Widoczne dla klienta
+
+- kafelek kursu wycofanego ze sprzedaży niesie zdanie **„Kurs wycofany ze
+  sprzedaży — Twój dostęp zostaje."**, a jego tytuł przestaje być odsyłaczem
+  (strona sprzedażowa ukrytego kursu oddaje 404 — i tak ma być);
+- tekst wtyczki w polityce prywatności mówi teraz, że przy nieudanej próbie
+  zapisujemy **nazwę istniejącego konta albo samą długość wpisanej wartości**.
+  Stojące obok zdanie „Nie zapisujemy haseł ani ich fragmentów" było
+  nieprawdą; teraz jest prawdą;
+- instrukcja instalacji wymaga **WordPressa 6.9**, nie 6.5.
+
 ## [0.65.0] — 2026-09-05
 
 ### Naprawy po audycie fali 1 — 32 z 33 potwierdzonych usterek kodu wtyczek

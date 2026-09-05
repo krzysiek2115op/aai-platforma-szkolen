@@ -61,6 +61,12 @@ final class Aai_Platnosci_Ustawienia {
 	public const OPCJA_SPRZEDAZ = 'aai_platnosci_sprzedaz_otwarta';
 
 	/**
+	 * Punkt przywracania cudzych ustawień — mapa „klucz → wartość zastana".
+	 * Zapisywana przy PIERWSZYM dotknięciu każdego klucza i NIGDY potem.
+	 */
+	public const OPCJA_STAN_ZASTANY = 'aai_platnosci_stan_zastany';
+
+	/**
 	 * Wartość opcji znacząca „otwarte". Wszystko inne = zamknięte.
 	 */
 	public const SPRZEDAZ_OTWARTA = 'tak';
@@ -556,6 +562,7 @@ final class Aai_Platnosci_Ustawienia {
 			foreach ( self::TUTOR_DOCELOWE as $klucz => $docelowa ) {
 				$obecna = (string) ( $opcje[ $klucz ] ?? '' );
 				if ( $obecna !== $docelowa ) {
+					self::zapamietaj_zastane( 'tutor_option:' . $klucz, $opcje[ $klucz ] ?? '' );
 					$zmiany[]        = sprintf( 'tutor_option[%s]: „%s" → „%s"', $klucz, '' === $obecna ? '(brak)' : $obecna, $docelowa );
 					$opcje[ $klucz ] = $docelowa;
 					$zapisac         = true;
@@ -567,6 +574,9 @@ final class Aai_Platnosci_Ustawienia {
 
 			foreach ( self::STRONY_TUTORA as $klucz ) {
 				$id = (int) ( $opcje[ $klucz ] ?? 0 );
+				if ( $id > 0 && null !== get_post( $id ) ) {
+					self::zapamietaj_zastane( 'strona_status:' . $id, get_post_status( $id ) );
+				}
 				if ( Aai_Platnosci_Zapis::strona_na_szkic( $id ) ) {
 					$zmiany[] = sprintf( 'strona natywnej kasy Tutora %d (%s) → draft', $id, $klucz );
 				}
@@ -575,6 +585,7 @@ final class Aai_Platnosci_Ustawienia {
 
 		foreach ( self::WOO_DOCELOWE as $klucz => $docelowa ) {
 			if ( (string) get_option( $klucz, '' ) !== $docelowa ) {
+				self::zapamietaj_zastane( 'opcja:' . $klucz, get_option( $klucz, '' ) );
 				$zmiany[] = sprintf( '%s: „%s" → „%s"', $klucz, (string) get_option( $klucz, '(brak)' ), $docelowa );
 				update_option( $klucz, $docelowa );
 			}
@@ -605,6 +616,7 @@ final class Aai_Platnosci_Ustawienia {
 				continue;
 			}
 			$obecny = (string) get_post_field( 'post_name', $id );
+			self::zapamietaj_zastane( 'strona_slug:' . $id, $obecny );
 			if ( Aai_Platnosci_Zapis::ustaw_slug_strony( $id, $slug ) ) {
 				// ZMIERZONE przy P3a: `wp_old_slug_redirect` nie obejmuje
 				// stron — stary adres oddaje 404, nie 301. To jest w porządku
@@ -823,6 +835,111 @@ final class Aai_Platnosci_Ustawienia {
 	 */
 	public static function przywroc_mail_woo(): bool {
 		return self::ustaw_mail_woo( 'yes' );
+	}
+
+	/**
+	 * Stan sprzedaży dla kontroli — nazwany, nie przemilczany.
+	 */
+	/**
+	 * Punkt przywracania: wartości CUDZYCH ustawień sprzed naszego dotknięcia.
+	 *
+	 * PO CO. `napraw()` przestawia kilkanaście ustawień, które NIE NALEŻĄ do
+	 * tej wtyczki: dwa klucze `tutor_option`, cztery opcje WooCommerce, mail
+	 * „nowe konto", status dwóch stron natywnej kasy Tutora i slugi koszyka
+	 * oraz kasy. Do 2026-09-05 wartość sprzed zmiany żyła WYŁĄCZNIE na wyjściu
+	 * komendy — w opisie tekstowym, którego nikt nie czyta po tygodniu —
+	 * a deaktywacja cofała DOKŁADNIE JEDNĄ z nich (mail). Klient, który
+	 * wyłączy wtyczkę na stałe, zostawał z Tutorem przestawionym na tryb `wc`
+	 * bez szwu, który ten tryb obsługiwał: sprzedaż kursów przez Tutora
+	 * przestaje działać, a nic tego nie tłumaczy.
+	 *
+	 * CAŁY CIĘŻAR TEJ MAPY SIEDZI W JEDNYM ZDANIU: RAZ ZAPISANEGO KLUCZA NIE
+	 * NADPISUJEMY NIGDY. Drugie uruchomienie `napraw()` zastałoby już NASZE
+	 * wartości i zapisało je jako „zastane" — punkt przywracania przestałby
+	 * istnieć, nie dając ŻADNEGO objawu. Dlatego warunek jest na obecności
+	 * klucza (`array_key_exists`), a nie na jego prawdziwości: `false`, `''`
+	 * i `0` to legalne wartości zastane, a `isset()` uznałoby je za brak.
+	 *
+	 * CZEGO TU NIE MA I DLACZEGO: treści stron koszyka i kasy. `napraw()`
+	 * dopisuje do nich klasę ciemnych pól i blok komunikatów, ale to zmiany
+	 * DOPISUJĄCE i idempotentne — a przywracanie cudzej treści strony znaczyłoby
+	 * nadpisanie jej stanem sprzed tygodni, razem ze wszystkim, co właściciel
+	 * zdążył tam zmienić. Cudzej treści nie zgadujemy (ta sama zasada, co przy
+	 * kontroli rozbitych nazw klas: `--napraw` ich nie cofa).
+	 *
+	 * @param string $klucz    Nazwa ustawienia w naszej mapie.
+	 * @param mixed  $wartosc  Wartość ZASTANA, sprzed naszej zmiany.
+	 */
+	private static function zapamietaj_zastane( string $klucz, $wartosc ): void {
+		$stan = get_option( self::OPCJA_STAN_ZASTANY, array() );
+		if ( ! is_array( $stan ) ) {
+			$stan = array();
+		}
+		if ( array_key_exists( $klucz, $stan ) ) {
+			return; // NIGDY nie nadpisujemy — patrz komentarz wyżej.
+		}
+		$stan[ $klucz ] = $wartosc;
+		update_option( self::OPCJA_STAN_ZASTANY, $stan, false );
+	}
+
+	/**
+	 * Oddaje cudze ustawienia takimi, jakie zastaliśmy. Woła deaktywacja.
+	 *
+	 * Mapy NIE kasujemy: ponowna aktywacja ma zastać ten sam punkt
+	 * przywracania, a nie zapisać jako „zastane" wartości, które sama przed
+	 * chwilą przywróciła.
+	 *
+	 * @return string[] Opisy przywróconych wartości (pusta lista = nic do roboty).
+	 */
+	public static function przywroc_stan_zastany(): array {
+		$stan = get_option( self::OPCJA_STAN_ZASTANY, array() );
+		if ( ! is_array( $stan ) || array() === $stan ) {
+			return array();
+		}
+		$zrobione = array();
+
+		$opcje_tutora = (array) get_option( 'tutor_option', array() );
+		$zapisac      = false;
+
+		foreach ( $stan as $klucz => $wartosc ) {
+			if ( str_starts_with( $klucz, 'tutor_option:' ) ) {
+				$pole = substr( $klucz, strlen( 'tutor_option:' ) );
+				if ( ( $opcje_tutora[ $pole ] ?? null ) !== $wartosc ) {
+					$opcje_tutora[ $pole ] = $wartosc;
+					$zapisac               = true;
+					$zrobione[]            = sprintf( 'tutor_option[%s] → „%s"', $pole, (string) $wartosc );
+				}
+				continue;
+			}
+			if ( str_starts_with( $klucz, 'opcja:' ) ) {
+				$nazwa = substr( $klucz, strlen( 'opcja:' ) );
+				if ( (string) get_option( $nazwa, '' ) !== (string) $wartosc ) {
+					update_option( $nazwa, $wartosc );
+					$zrobione[] = sprintf( '%s → „%s"', $nazwa, (string) $wartosc );
+				}
+				continue;
+			}
+			// Wpisy rusza WYŁĄCZNIE warstwa zapisu (niezmiennik 10 schematu) —
+			// także w drodze powrotnej.
+			if ( str_starts_with( $klucz, 'strona_status:' ) ) {
+				$id = (int) substr( $klucz, strlen( 'strona_status:' ) );
+				if ( Aai_Platnosci_Zapis::przywroc_status_strony( $id, (string) $wartosc ) ) {
+					$zrobione[] = sprintf( 'strona %d → status „%s"', $id, (string) $wartosc );
+				}
+				continue;
+			}
+			if ( str_starts_with( $klucz, 'strona_slug:' ) ) {
+				$id = (int) substr( $klucz, strlen( 'strona_slug:' ) );
+				if ( Aai_Platnosci_Zapis::ustaw_slug_strony( $id, (string) $wartosc ) ) {
+					$zrobione[] = sprintf( 'strona %d → slug „%s"', $id, (string) $wartosc );
+				}
+			}
+		}
+
+		if ( $zapisac ) {
+			update_option( 'tutor_option', $opcje_tutora );
+		}
+		return $zrobione;
 	}
 
 	/**
