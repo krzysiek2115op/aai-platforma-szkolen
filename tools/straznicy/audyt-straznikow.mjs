@@ -4396,6 +4396,41 @@ const MUTACJE = [
         ? s.replace("function zapamietaj_zastane(", "function zapamietaj_zastane_inaczej(")
         : null,
   },
+  // --- naprawy po polowaniu (P1, 2026-09-05) ---
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "pytanie o kursy klienta wraca poza osłonę — awaria Tutora daje zalogowanemu 500 na każdej stronie",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-menu.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-menu.php"),
+    oczekiwanySlad: "POZA try/catch",
+    zmien: (s) => {
+      const a = "\t\t\ttry {\n\t\t\t\t$ma_kursy = Aai_Sklep_Moje::ma_kursy();\n\t\t\t} catch ( Throwable $e ) {\n\t\t\t\t$ma_kursy = false;";
+      const b = "\t\t\t$ma_kursy = Aai_Sklep_Moje::ma_kursy();\n\t\t\tif ( false ) {\n\t\t\t\t$ma_kursy = false;";
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "wyszukiwanie kopii po uuid przestaje widzieć kosz — hamulec C2 milczy przy żywych zapisach",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "NIE OBEJMUJE kosza",
+    zmien: (s) => {
+      const a = "'post_status' => array_keys( get_post_stati() ),\n\t\t\t\t'numberposts' => 1,";
+      return s.includes(a) ? s.replace(a, "'post_status' => 'any',\n\t\t\t\t'numberposts' => 1,") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "reguła o koszu traci zapytanie z oczu (samokontrola zakresu)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "PO PUSTCE",
+    zmien: (s) => {
+      const a = "\t\t\t\t'post_status' => array_keys( get_post_stati() ),\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
 ];
 
 

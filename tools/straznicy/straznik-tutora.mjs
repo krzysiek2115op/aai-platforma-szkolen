@@ -201,6 +201,34 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
         `${plik}: znajdz_po_uuid() nie odrzuca PUSTEGO identyfikatora przed zapytaniem. Zapytanie po pustym meta dopasowuje pierwszy lepszy wpis, więc kopia przejmuje CUDZY moduł i kasuje jego lekcje jako nadmiar (sweep P5: tak zniknęło 18 lekcji Kursu 2).`
       );
     }
+
+    /*
+     * KOSZ TEŻ JEST STANEM. `post_status => 'any'` znaczy w WordPressie
+     * „każdy status POZA `trash` i `auto-draft`", więc kopia kursu wrzucona
+     * do kosza stawała się dla nas niewidzialna. Skutki były dwa i oba ciche:
+     * `kupujacy()` zwracał 0 przy ŻYWYCH zapisach — zmierzone: 4 zapisy
+     * `completed` w bazie, a hamulec C2 („ten kurs ma N kupujących")
+     * nie pytał o nic i właściciel kasował kurs, za który zapłacono —
+     * a synchronizacja zakładała DRUGĄ kopię obok tej w koszu.
+     *
+     * Reguła pyta o samo wyszukiwanie po uuid, nie o inne zapytania w pliku:
+     * `usun_nadmiar()` ma prawo NIE widzieć kosza (nie widzieć = nie kasować).
+     */
+    const poczatekZapytania = tresc.indexOf("get_posts", i);
+    const zapytanie = tresc.slice(poczatekZapytania, tresc.indexOf(")", tresc.indexOf("meta_value", poczatekZapytania)));
+    // SAMOKONTROLA ZAKRESU: pusty wycinek znaczy, że reguła nie czyta
+    // zapytania — i milczy zamiast pilnować. Pierwsza wersja szukała
+    // `meta_value` od POCZĄTKU METODY, więc trafiała przed `get_posts`
+    // i wycinek wychodził PUSTY; test negatywny przeszedł na zielono.
+    if (!/'post_status'\s*=>/.test(zapytanie)) {
+      bledy.push(
+        `${plik}: nie umiem odczytać zapytania znajdz_po_uuid() — reguła o koszu nie ma czego sprawdzić i przeszłaby PO PUSTCE.`
+      );
+    } else if (/'post_status'\s*=>\s*'any'/.test(zapytanie)) {
+      bledy.push(
+        `${plik}: znajdz_po_uuid() szuka po 'any', a to w WordPressie NIE OBEJMUJE kosza. Kopia kursu w koszu przestaje istnieć dla kupujacy() — zmierzone: 0 przy czterech żywych zapisach, więc hamulec C2 milczy i kurs opłacony przez ludzi kasuje się bez pytania. Do tego synchronizacja zakłada wtedy drugą kopię obok tej w koszu.`
+      );
+    }
   }
 }
 

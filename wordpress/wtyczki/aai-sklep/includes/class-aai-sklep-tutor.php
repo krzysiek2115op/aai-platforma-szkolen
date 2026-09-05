@@ -901,10 +901,30 @@ final class Aai_Sklep_Tutor {
 		if ( '' === trim( $uuid ) ) {
 			return 0;
 		}
+		/*
+		 * KOSZ TEŻ JEST STANEM — `'any'` GO NIE OBEJMUJE.
+		 *
+		 * `post_status => 'any'` w WordPressie znaczy „każdy status POZA
+		 * `trash` i `auto-draft`". Kopia kursu wrzucona do kosza (ręcznie
+		 * w kokpicie Tutora, cudzą wtyczką, przy porządkach) stawała się więc
+		 * dla nas NIEWIDZIALNA, a skutki miała dwa, oba ciche:
+		 *
+		 *   1. `kupujacy()` zwracał 0 przy żywych zapisach — ZMIERZONE: kopia
+		 *      w koszu daje `kupujacy() = 0`, gdy `wp_posts` ma dalej 4 zapisy
+		 *      `completed`. Hamulec C2 („ten kurs ma N kupujących — stracą
+		 *      dostęp") NIE PYTAŁ WTEDY O NIC, więc właściciel kasował kurs,
+		 *      za który ludzie zapłacili, i nic go nie zatrzymywało;
+		 *   2. synchronizacja nie znajdowała kopii i zakładała DRUGĄ, obok
+		 *      tej w koszu.
+		 *
+		 * Pytamy więc o KAŻDY zarejestrowany status. `get_post_stati()` niesie
+		 * też `trash` i `auto-draft`, a przy okazji własne statusy Tutora —
+		 * czyli listę szerszą niż `'any'` z definicji, bez zgadywania nazw.
+		 */
 		$znalezione = get_posts(
 			array(
 				'post_type'   => $typ,
-				'post_status' => 'any',
+				'post_status' => array_keys( get_post_stati() ),
 				'numberposts' => 1,
 				'fields'      => 'ids',
 				'meta_key'    => self::META_UUID, // phpcs:ignore WordPress.DB.SlowDBQuery
