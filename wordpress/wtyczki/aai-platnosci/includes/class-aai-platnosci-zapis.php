@@ -36,6 +36,18 @@ final class Aai_Platnosci_Zapis {
 	/** Meta produktu WooCommerce wskazujące kurs, z którego powstał. */
 	private const ZNACZNIK_ZRODLA = '_aai_zrodlo_uuid';
 
+	/**
+	 * Kursy, dla których produkt JEST WŁAŚNIE ZAKŁADANY.
+	 *
+	 * Rezerwacja żyje od chwili tuż przed `WC_Product::save()` do chwili,
+	 * w której powiązanie stoi w naszej tabeli. Istnieje po to, żeby
+	 * przerwanie w środku tego łańcucha było WIDOCZNE — bez niej produkt
+	 * powstały z przerwanego zapisu nie ma ani znacznika, ani powiązania,
+	 * czyli nie odróżnia się niczym od cudzego szkicu, a kontrola milczy
+	 * (zmierzone: `sprawdz` kod 0 przy sierocie w bazie).
+	 */
+	private const OPCJA_W_BUDOWIE = 'aai_platnosci_produkt_w_budowie';
+
 	/** Skrót PLIKU, z którego powstał załącznik — decyduje o przewgraniu. */
 	private const META_OKLADKA_SHA = '_aai_platnosci_okladka_sha';
 
@@ -595,17 +607,41 @@ final class Aai_Platnosci_Zapis {
 	 * @return int|null Id produktu albo null.
 	 */
 	private static function produkt_po_znaczniku( string $course_uuid ): ?int {
-		if ( '' === trim( $course_uuid ) || ! function_exists( 'wc_get_products' ) ) {
+		if ( '' === trim( $course_uuid ) ) {
 			return null;
 		}
 
-		$znalezione = wc_get_products(
-			array(
-				'limit'      => 2,
-				'status'     => array( 'draft', 'publish', 'pending', 'private' ),
-				'return'     => 'ids',
-				'meta_key'   => self::ZNACZNIK_ZRODLA, // phpcs:ignore WordPress.DB.SlowDBQuery
-				'meta_value' => $course_uuid, // phpcs:ignore WordPress.DB.SlowDBQuery
+		global $wpdb;
+
+		/*
+		 * PYTAMY BAZĘ, NIE `wc_get_products()` — I TO NIE JEST DROBIAZG.
+		 *
+		 * `wc_get_products()` odpytuje przez własny data store, który
+		 * dokłada do zapytania tabelę `wc_product_meta_lookup`. Wiersz
+		 * w niej powstaje na SAMYM KOŃCU `WC_Product::save()`, już po
+		 * zapisie meta — więc produkt z przerwanego zapisu jest dla tej
+		 * drogi NIEWIDZIALNY, choć ma nasz znacznik i leży w `wp_posts`.
+		 * Zmierzone: przy trzech wpisach ze znacznikiem
+		 * `wc_get_products()` oddał JEDEN (ten kompletny), a to samo
+		 * pytanie do bazy — obydwa produkty. Idempotencja stała więc na
+		 * wyszukiwaniu, które nie umiało znaleźć dokładnie tego przypadku,
+		 * dla którego istnieje.
+		 *
+		 * Warunek `post_type = 'product'` jest tu KONIECZNY, nie
+		 * ozdobny: `_aai_zrodlo_uuid` nosi też każda kopia kursu
+		 * w Tutorze (typ `courses`), więc zapytanie bez niego dopasowałoby
+		 * wpis LMS-a jako „produkt".
+		 */
+		$znalezione = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT p.ID FROM {$wpdb->posts} p
+				JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID
+				WHERE p.post_type = 'product'
+				AND p.post_status IN ( 'draft', 'publish', 'pending', 'private' )
+				AND pm.meta_key = %s AND pm.meta_value = %s
+				LIMIT 2",
+				self::ZNACZNIK_ZRODLA,
+				$course_uuid
 			)
 		);
 
@@ -616,6 +652,53 @@ final class Aai_Platnosci_Zapis {
 		}
 
 		return (int) $znalezione[0];
+	}
+
+	/**
+	 * Otwiera rezerwację: „dla tego kursu zakładam właśnie produkt".
+	 *
+	 * Zapisujemy PRZED `save()`, bo cała wartość tego wpisu polega na
+	 * tym, że przeżyje przerwanie. Wartością jest czas — po nim widać,
+	 * czy przerwanie było przed chwilą (przebieg trwa), czy wisi od dni.
+	 *
+	 * @param string $course_uuid Uuid kursu.
+	 * @param string $tytul       Tytuł kursu — żeby operator wiedział, czego szukać.
+	 */
+	private static function rezerwacja_zacznij( string $course_uuid, string $tytul ): void {
+		if ( '' === trim( $course_uuid ) ) {
+			return;
+		}
+		$w_budowie                 = self::rezerwacje();
+		$w_budowie[ $course_uuid ] = array(
+			'czas'  => time(),
+			'tytul' => $tytul,
+		);
+		update_option( self::OPCJA_W_BUDOWIE, $w_budowie, false );
+	}
+
+	/**
+	 * Zamyka rezerwację — łańcuch doszedł do powiązania, produkt jest nasz
+	 * i odnajdywalny.
+	 *
+	 * @param string $course_uuid Uuid kursu.
+	 */
+	private static function rezerwacja_zamknij( string $course_uuid ): void {
+		$w_budowie = self::rezerwacje();
+		if ( ! array_key_exists( $course_uuid, $w_budowie ) ) {
+			return;
+		}
+		unset( $w_budowie[ $course_uuid ] );
+		update_option( self::OPCJA_W_BUDOWIE, $w_budowie, false );
+	}
+
+	/**
+	 * Otwarte rezerwacje — czyta je kontrola.
+	 *
+	 * @return array<string, array{czas:int, tytul:string}>
+	 */
+	public static function rezerwacje(): array {
+		$w_budowie = get_option( self::OPCJA_W_BUDOWIE, array() );
+		return is_array( $w_budowie ) ? $w_budowie : array();
 	}
 
 	/**
@@ -804,7 +887,6 @@ final class Aai_Platnosci_Zapis {
 			// nasza strona sprzedażowa — klient nie ma trafiać na produkt
 			// w cudzym wyglądzie.
 			$produkt = new WC_Product_Simple();
-			$produkt->update_meta_data( self::ZNACZNIK_ZRODLA, $course_uuid );
 			$produkt->set_name( wp_slash( $kurs['title'] ) );
 			$produkt->set_short_description( wp_slash( $opis ) );
 			$produkt->set_status( 'draft' );
@@ -812,7 +894,40 @@ final class Aai_Platnosci_Zapis {
 			$produkt->set_sold_individually( true );
 			$produkt->set_catalog_visibility( 'hidden' );
 			$produkt->set_regular_price( $cena );
-			$product_id = $produkt->save();
+
+			/*
+			 * ZNACZNIK JEDZIE HAKIEM, NIE `update_meta_data()` — I TO JEST
+			 * CAŁA RÓŻNICA MIĘDZY SIEROTĄ ODNAJDYWALNĄ A NIEWIDZIALNĄ.
+			 *
+			 * Wiersz produktu powstaje `wp_insert_post()`-em WEWNĄTRZ
+			 * `WC_Product::save()`, a meta ustawione przez
+			 * `update_meta_data()` lądują w bazie dopiero
+			 * `save_meta_data()` — kilkadziesiąt linii dalej, w tej samej
+			 * metodzie. Przerwanie w tym oknie zostawiało produkt
+			 * z ZEREM meta (zmierzone: rzut z `save_post_product`
+			 * priorytet 1 → wiersz `product`, `draft`, `ile meta = 0`),
+			 * więc `produkt_po_znaczniku()` nie miał czego znaleźć
+			 * i następny przebieg zakładał produkt obok.
+			 *
+			 * `save_post_product` odpala się w środku `wp_insert_post()`,
+			 * zaraz po zapisie wiersza — znacznik siada tam, gdzie okno
+			 * dotąd się zaczynało. Znacznika NIE dokładamy równocześnie
+			 * do obiektu: `save_meta_data()` uznałby go za metę nową
+			 * (bez `meta_id`) i dopisał DRUGI wiersz o tej samej nazwie.
+			 */
+			$znacznik_natychmiast = static function ( $id_nowego ) use ( $course_uuid ) {
+				update_post_meta( (int) $id_nowego, self::ZNACZNIK_ZRODLA, $course_uuid );
+			};
+			self::rezerwacja_zacznij( $course_uuid, (string) ( $kurs['title'] ?? '' ) );
+			add_action( 'save_post_product', $znacznik_natychmiast, 1 );
+			try {
+				$product_id = $produkt->save();
+			} finally {
+				// Zdejmujemy ZAWSZE — inaczej rzut z dalszej części `save()`
+				// zostawiłby hak na resztę żądania i nadał nasz znacznik
+				// pierwszemu cudzemu produktowi zapisanemu po nim.
+				remove_action( 'save_post_product', $znacznik_natychmiast, 1 );
+			}
 			if ( $product_id <= 0 ) {
 				$w['uwagi'][] = 'WooCommerce nie utworzyło produktu';
 				return $w;
@@ -920,6 +1035,10 @@ final class Aai_Platnosci_Zapis {
 				? sprintf( 'produkt %d jest już powiązany z INNYM kursem — odmowa (B4)', $product_id )
 				: sprintf( 'nie udało się zapisać powiązania produktu %d: %s', $product_id, (string) $wpdb->last_error );
 		} else {
+			// Powiązanie stoi — produkt jest odnajdywalny naszą tabelą,
+			// więc rezerwacja nie ma już czego pilnować.
+			self::rezerwacja_zamknij( $course_uuid );
+
 			// Znaczniki PO zapisie: handler Tutora na `save_post_product`
 			// czyta $_POST i przy programowym zapisie KASUJE `_tutor_product`
 			// (pułapka 2 schematu) — dlatego stawiamy je po każdym save(),

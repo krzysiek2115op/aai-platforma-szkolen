@@ -1223,6 +1223,87 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-platnosci-wp, reguły okna przerwania (P1 poz. 7) ---
+  // Okno między wierszem produktu a jego meta. Każda z pięciu mutacji
+  // odtwarza inny sposób, na jaki naprawa mogłaby zniknąć po refaktorze.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "znacznik pochodzenia wraca do update_meta_data() — produkt z przerwanego zapisu znowu bez meta",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    oczekiwanySlad: "priorytecie 1",
+    zmien: (s) =>
+      s.includes("update_post_meta( (int) $id_nowego, self::ZNACZNIK_ZRODLA, $course_uuid );")
+        ? s.replace(
+            "update_post_meta( (int) $id_nowego, self::ZNACZNIK_ZRODLA, $course_uuid );",
+            "unset( $id_nowego );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "hak znacznika nie jest zdejmowany w finally — po rzucie oznaczy pierwszy cudzy produkt",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    oczekiwanySlad: "finally",
+    zmien: (s) =>
+      s.includes("} finally {\n\t\t\t\t// Zdejmujemy ZAWSZE")
+        ? s.replace("} finally {", "} catch ( Throwable $e ) {\n\t\t\t\tthrow $e;\n\t\t\t} finally_wylaczone( function () {")
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "rezerwacja otwierana PO zapisie produktu — nie przeżyje przerwania, czyli nie odnotuje niczego",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    oczekiwanySlad: "PRZED",
+    zmien: (s) =>
+      s.includes("\t\t\tself::rezerwacja_zacznij( $course_uuid, (string) ( $kurs['title'] ?? '' ) );\n\t\t\tadd_action(")
+        ? s.replace(
+            "\t\t\tself::rezerwacja_zacznij( $course_uuid, (string) ( $kurs['title'] ?? '' ) );\n\t\t\tadd_action(",
+            "\t\t\tadd_action("
+          ).replace(
+            "\t\t\t$w['produkt_utworzony'] = 1;",
+            "\t\t\tself::rezerwacja_zacznij( $course_uuid, (string) ( $kurs['title'] ?? '' ) );\n\t\t\t$w['produkt_utworzony'] = 1;"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "produkt_po_znaczniku() wraca do wc_get_products() — droga strukturalnie ślepa na produkt z przerwanego zapisu",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    oczekiwanySlad: "wc_get_products",
+    zmien: (s) =>
+      s.includes("\t\t$znalezione = $wpdb->get_col(")
+        ? s.replace(
+            "\t\t$znalezione = $wpdb->get_col(",
+            "\t\t$znalezione = wc_get_products( array( 'limit' => 2, 'return' => 'ids' ) ); $nieuzywane = $wpdb->get_col("
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "kontrola przestaje pytać o przerwane zakładanie produktu — widmo znowu niewidzialne",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    oczekiwanySlad: "rezerwacje",
+    zmien: (s) =>
+      s.includes("$rezerwacje = self::rezerwacje_wiszace();")
+        ? s.replace(
+            "$rezerwacje = self::rezerwacje_wiszace();",
+            "$rezerwacje = array( 'bledy' => array(), 'info' => array() );"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "duplikaty_uuid() znowu pyta tylko o jeden klucz — wykrywanie i naprawa rozjeżdżają się",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    oczekiwanySlad: "_aai_zrodlo_uuid",
+    zmien: (s) =>
+      s.includes("foreach ( array( '_aai_platnosci_kurs_uuid', '_aai_zrodlo_uuid' ) as $klucz ) {")
+        ? s.replace(
+            "foreach ( array( '_aai_platnosci_kurs_uuid', '_aai_zrodlo_uuid' ) as $klucz ) {",
+            "foreach ( array( '_aai_platnosci_kurs_uuid' ) as $klucz ) {"
+          )
+        : null,
+  },
   // --- straznik-platnosci-wp, reguła 33 (bramki widzą zamówienia, BLAD-026) ---
   // Klasa, przez którą narosło 146 zamówień-widm na koncie, na którym
   // właściciel ogląda sklep oczami klienta. Obie połowy mają mutację:
@@ -2509,9 +2590,18 @@ const MUTACJE = [
     plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
     wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
     oczekiwanySlad: "nie odrzuca PUSTEGO identyfikatora",
+    // KOTWICA Z KONTEKSTEM, NIE PIERWSZE WYSTĄPIENIE. Warunek „pusty uuid"
+    // powtarza się dziś w trzech metodach (doszły produkt_po_znaczniku()
+    // i rezerwacja_zacznij() przy P1 poz. 7), a `replace` podmienia
+    // PIERWSZE trafienie — mutacja zaczęła więc psuć inną metodę niż ta,
+    // której broni reguła, i przestała cokolwiek mierzyć. Celujemy
+    // w kurs_tutora() przez linię, która występuje wyłącznie w niej.
     zmien: (s) =>
-      s.includes("if ( '' === trim( $course_uuid ) ) {")
-        ? s.replace("if ( '' === trim( $course_uuid ) ) {", "if ( false ) {")
+      s.includes("\t\t$typ = function_exists( 'tutor' )")
+        ? s.replace(
+            "if ( '' === trim( $course_uuid ) ) {\n\t\t\treturn null;\n\t\t}\n\n\t\t$typ = function_exists( 'tutor' )",
+            "if ( false ) {\n\t\t\treturn null;\n\t\t}\n\n\t\t$typ = function_exists( 'tutor' )"
+          )
         : null,
   },
   // --- C2: hamulec przy usuwaniu kursu, który ktoś kupił (2026-08-31) ---
