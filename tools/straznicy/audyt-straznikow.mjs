@@ -2427,6 +2427,20 @@ const MUTACJE = [
   },
   {
     straznik: "straznik-tutora",
+    opis: "wpis Tutora powstaje bezwarunkowo — przerwana synchronizacja przestaje się leczyć i mnoży komplet (REA-BD-F1-001)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "BEZ WARUNKU",
+    zmien: (s) =>
+      s.includes("\t\t$istniejacy = self::znajdz_po_uuid( $uuid, (string) $dane['post_type'] );")
+        ? s.replace(
+            "\t\t$istniejacy = self::znajdz_po_uuid( $uuid, (string) $dane['post_type'] );",
+            "\t\t$istniejacy = 0;"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-tutora",
     opis: "spłaszczenie sekcji traci asercję (JSON wyjeżdża na stronę kursu dla człowieka)",
     plik: KLASA_TUTORA,
     wymaga: () => existsSync(KLASA_TUTORA),
