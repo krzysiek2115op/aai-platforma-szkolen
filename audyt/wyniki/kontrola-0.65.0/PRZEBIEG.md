@@ -177,3 +177,26 @@ uruchomieniu deva na tej gałęzi: `git diff --stat CLAUDE.md` — inaczej niezm
 
 **Po wznowieniu Krzysiek przekazał przegląd Mariusza** — zapisany w `PLAN-DO-NIEDZIELI.md`
 (ten katalog) razem z planem napraw; to jest NASTĘPNY KROK po domknięciu fali.
+
+## Wznowienie 15:42–16:05 i stan przed `/clear`
+
+Commit sektora `fe13673` (R17 + 12 wyników + werdykty + PLAN-DO-NIEDZIELI.md); niezmiennik
+`git diff main --name-only -- . ':!audyt' ':!re-audyt'` = **0**, strażnik sektora kod 0,
+strażnicy produktu **39/39**.
+
+**PUŁAPKA POTWIERDZONA DWA RAZY:** `npm run dev` (Next 16) przy starcie **ucina `CLAUDE.md`
+o 2355 linii** (zostaje 1167 z 3522). Za każdym razem: po starcie deva `git diff --stat
+CLAUDE.md` → `git checkout -- CLAUDE.md`. Bez tego commit sektora wciągnąłby okaleczony plik
+spoza `audyt/` i złamał niezmiennik 0.
+
+**W TLE PRZY `/clear` BIEGNĄ DWIE ROLE** (subagenci przeżywają clear — notyfikacje przyjdą do
+nowej sesji):
+- **WDR (powtórka)** na torze B (`:8894`) — wolno mu burzyć i stawiać tor B; ma też zmierzyć
+  rozjazd wersji z przeglądu Mariusza (M1);
+- **krytyk PROTO (powtórka)** na torze A (`:8892`) + prototyp `:3001` (dev server DZIAŁA,
+  PID z tej sesji — po zakończeniu krytyka można go zatrzymać przez `fuser -k 3001/tcp`,
+  a potem SPRAWDZIĆ `git diff --stat CLAUDE.md`).
+
+Po ich meldunkach zostaje: bilans w `WYNIK.md` (3 wpisy WDR + werdykty krytyków), pełny audyt
+mutacyjny strażnika sektora w tle (>10 min, nic równolegle; ubity zostawia mutację — `kill`
+po PID, nigdy `pkill -f`), commit, docs-PR do `main` ze zdaniem o fali w CLAUDE.md i README.
