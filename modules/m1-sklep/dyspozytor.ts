@@ -294,11 +294,20 @@ async function zapiszTrescLekcji(
   aktor: string
 ): Promise<string> {
   return wTransakcji(aktor, async (k) => {
-    const { rows } = await k.query(
-      `UPDATE course_lessons SET content=$2, materials=$3 WHERE id=$1
+    // Brak klucza `materialy` = „nie ruszaj tej kolumny". Zapis samej prozy
+    // nie ma prawa skasować materiałów lekcji (klasa cichej utraty treści).
+    const { rows } =
+      undefined === tresc.materialy
+        ? await k.query(
+            `UPDATE course_lessons SET content=$2 WHERE id=$1
        RETURNING id`,
-      [id, tresc.tresc, JSON.stringify(tresc.materialy)]
-    );
+            [id, tresc.tresc]
+          )
+        : await k.query(
+            `UPDATE course_lessons SET content=$2, materials=$3 WHERE id=$1
+       RETURNING id`,
+            [id, tresc.tresc, JSON.stringify(tresc.materialy)]
+          );
     if (rows.length === 0) throw new BladDyspozytora("nie-znaleziono");
     return rows[0].id;
   });

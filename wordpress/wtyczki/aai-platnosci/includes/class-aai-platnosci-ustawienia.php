@@ -517,8 +517,24 @@ final class Aai_Platnosci_Ustawienia {
 			if ( array() === $do_zdjecia ) {
 				return;
 			}
+			/*
+			 * WYNIK SPRAWDZAMY — komunikat obiecuje klientowi SKUTEK.
+			 *
+			 * `remove_cart_item()` oddaje `false`, gdy pozycji nie ma albo
+			 * cudzy filtr `woocommerce_cart_item_removed` przerwie akcję.
+			 * Bez tego sprawdzenia klient czytał „w koszyku został jeden
+			 * kurs", mając w nim dwa — i dowiadywał się dopiero w kasie.
+			 */
+			$zdjete = 0;
 			foreach ( $do_zdjecia as $klucz ) {
-				$koszyk->remove_cart_item( $klucz );
+				if ( $koszyk->remove_cart_item( $klucz ) ) {
+					++$zdjete;
+				}
+			}
+			if ( $zdjete !== count( $do_zdjecia ) ) {
+				// Nie obiecujemy skutku, którego nie ma. Klient zobaczy stan
+				// koszyka taki, jaki jest, zamiast zdania, które kłamie.
+				return;
 			}
 			$produkt = wc_get_product( (int) $product_id );
 			if ( function_exists( 'wc_add_notice' ) && $produkt ) {

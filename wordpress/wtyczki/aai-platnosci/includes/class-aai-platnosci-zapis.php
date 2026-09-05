@@ -333,13 +333,14 @@ final class Aai_Platnosci_Zapis {
 		if ( $id <= 0 || 'publish' !== get_post_status( $id ) ) {
 			return false;
 		}
-		wp_update_post(
+		$w = wp_update_post(
 			array(
 				'ID'          => $id,
 				'post_status' => 'draft',
-			)
+			),
+			true
 		);
-		return true;
+		return ! is_wp_error( $w ) && $w > 0;
 	}
 
 	/**
@@ -359,13 +360,14 @@ final class Aai_Platnosci_Zapis {
 		if ( $id <= 0 || '' === $status || null === get_post( $id ) || get_post_status( $id ) === $status ) {
 			return false;
 		}
-		wp_update_post(
+		$w = wp_update_post(
 			array(
 				'ID'          => $id,
 				'post_status' => $status,
-			)
+			),
+			true
 		);
-		return true;
+		return ! is_wp_error( $w ) && $w > 0;
 	}
 
 	/**
@@ -379,13 +381,14 @@ final class Aai_Platnosci_Zapis {
 		if ( $id <= 0 || null === get_post( $id ) || (string) get_post_field( 'post_name', $id ) === $slug ) {
 			return false;
 		}
-		wp_update_post(
+		$w = wp_update_post(
 			array(
 				'ID'        => $id,
 				'post_name' => $slug,
-			)
+			),
+			true
 		);
-		return true;
+		return ! is_wp_error( $w ) && $w > 0;
 	}
 
 	/**
@@ -432,13 +435,14 @@ final class Aai_Platnosci_Zapis {
 		if ( null === $nowa || $nowa === $tresc ) {
 			return false;
 		}
-		wp_update_post(
+		$w = wp_update_post(
 			array(
 				'ID'           => $id,
 				'post_content' => $nowa,
-			)
+			),
+			true
 		);
-		return true;
+		return ! is_wp_error( $w ) && $w > 0;
 	}
 
 	/**
@@ -1297,14 +1301,33 @@ final class Aai_Platnosci_Zapis {
 
 		$product_id = self::produkt_kursu( $course_uuid );
 		if ( null !== $product_id && 'draft' !== get_post_status( $product_id ) && false !== get_post_status( $product_id ) ) {
-			wp_update_post(
+			/*
+			 * WYNIK SPRAWDZAMY, BO „ZDJĘTY" ZNACZY „NIE DA SIĘ KUPIĆ".
+			 *
+			 * Do 0.71.0 stało tu gołe `wp_update_post( … )` i bezwarunkowe
+			 * `$w['zdjety'] = 1`. Gdy zapis nie doszedł (cudzy filtr
+			 * `wp_insert_post_data`, blokada bazy), produkt zostawał
+			 * `publish` i KUPOWALNY, a komenda meldowała, że kurs jest
+			 * zdjęty ze sprzedaży. Sprzeczność wychodziła dopiero przy
+			 * następnej kontroli — albo przy kliencie, który zapłacił.
+			 */
+			$zdjecie = wp_update_post(
 				array(
 					'ID'          => $product_id,
 					'post_status' => 'draft',
-				)
+				),
+				true
 			);
-			self::ustaw_znaczniki_produktu( $product_id, $course_uuid );
-			$w['zdjety'] = 1;
+			if ( is_wp_error( $zdjecie ) || $zdjecie <= 0 ) {
+				$w['uwagi'][] = sprintf(
+					'NIE UDAŁO SIĘ zdjąć produktu %d ze sprzedaży (%s) — kurs dalej można kupić. Powtórz: wp aai-platnosci sync',
+					$product_id,
+					is_wp_error( $zdjecie ) ? $zdjecie->get_error_message() : 'zapis nie zmienił wiersza'
+				);
+			} else {
+				self::ustaw_znaczniki_produktu( $product_id, $course_uuid );
+				$w['zdjety'] = 1;
+			}
 		} else {
 			$w['bez_zmian'] = 1;
 		}

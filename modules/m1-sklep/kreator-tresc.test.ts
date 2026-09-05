@@ -202,7 +202,15 @@ test("kreator produkuje treść LEKCJI, którą przyjmuje kontrakt TrescLekcji",
   // pisania, a materiały są opcjonalne
   const pusta = TrescLekcji.safeParse(oczyscTresc(OPIS_LEKCJI, pustaTresc(OPIS_LEKCJI)));
   assert.ok(pusta.success, JSON.stringify(pusta.error?.issues));
-  assert.deepEqual(pusta.data?.materialy, [], "brak materiałów = pusta tablica, nie null");
+  /*
+   * BRAK KLUCZA ZOSTAJE BRAKIEM KLUCZA (od 0.71.0).
+   *
+   * Do tej wersji kontrakt miał `.default([])` i dorabiał tu pustą listę —
+   * przez co zapis samej prozy KASOWAŁ materiały lekcji. Dziś brak klucza
+   * znaczy w dyspozytorze „nie ruszaj tej kolumny", a panel, który chce
+   * wyczyścić materiały, wysyła pustą listę JAWNIE (EdytorLekcji).
+   */
+  assert.equal(pusta.data?.materialy, undefined, "kontrakt nie ma prawa dorabiać pustej listy — to kasowanie materiałów");
 });
 
 test("świeży materiał ma rodzaj z listy, a niedokończony nie jedzie do bazy", () => {

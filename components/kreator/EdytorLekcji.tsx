@@ -104,10 +104,22 @@ export default function EdytorLekcji({
     setBlad(null);
     setBledy({});
 
+    /*
+     * KLUCZ `materialy` JEDZIE ZAWSZE — także pusty.
+     *
+     * `oczyscTresc()` pomija puste listy nieobowiązkowe, a od 0.71.0 brak
+     * klucza znaczy w dyspozytorze „nie ruszaj tej kolumny" (bo zapis samej
+     * prozy nie ma prawa skasować materiałów). Bez tej linii właściciel,
+     * który usunie w panelu wszystkie materiały, nie miałby jak ich
+     * wyczyścić: wysyłka nie niosłaby klucza, więc baza zostałaby po
+     * staremu. Panel wyraża intencję JAWNIE — tak samo jak panel wtyczki WP,
+     * który od 0.42.0 zawsze wysyła komplet kluczy.
+     */
+    const oczyszczona = oczyscTresc(opis, stan);
     const wynik = await wystrzel({
       akcja: "zapisz-tresc-lekcji",
       id: lekcja.id,
-      tresc: oczyscTresc(opis, stan),
+      tresc: { ...oczyszczona, materialy: oczyszczona.materialy ?? [] },
     });
     setZapisuje(false);
 

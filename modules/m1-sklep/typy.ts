@@ -343,7 +343,16 @@ export type SekcjaRodzajNazwa = keyof typeof SCHEMATY_SEKCJI;
  */
 export const TrescLekcji = z.object({
   tresc: z.string().max(120_000),
-  materialy: z.array(MaterialLekcji).max(12).default([]),
+  /*
+   * BRAK KLUCZA ZNACZY „NIE RUSZAJ", NIE „WYCZYŚĆ".
+   *
+   * Do 0.71.0 stało tu `.default([])`, więc zapis treści bez klucza
+   * `materialy` nadpisywał kolumnę pustą listą — czyli KASOWAŁ materiały
+   * lekcji, meldując sukces. To ta sama klasa, którą produkt (wtyczka WP)
+   * zamknął w 0.65.0 regułą „brak klucza znaczy nie ruszaj"; prototyp jest
+   * specyfikacją wykonawczą, więc przeczył wtedy produktowi.
+   */
+  materialy: z.array(MaterialLekcji).max(12).optional(),
 });
 export type TrescLekcji = z.infer<typeof TrescLekcji>;
 

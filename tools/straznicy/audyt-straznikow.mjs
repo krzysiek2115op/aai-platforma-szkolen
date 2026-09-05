@@ -1311,6 +1311,21 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-platnosci-wp, P4: zapis, który melduje skutek, musi go sprawdzić ---
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "zapis wpisu przestaje odbierać wynik — metoda melduje zmianę, której mogło nie być",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "bez odebrania wyniku",
+    zmien: (s) =>
+      s.includes("\t\t$w = wp_update_post(\n\t\t\tarray(\n\t\t\t\t'ID'        => $id,\n\t\t\t\t'post_name' => $slug,\n\t\t\t),\n\t\t\ttrue\n\t\t);")
+        ? s.replace(
+            "\t\t$w = wp_update_post(\n\t\t\tarray(\n\t\t\t\t'ID'        => $id,\n\t\t\t\t'post_name' => $slug,\n\t\t\t),\n\t\t\ttrue\n\t\t);",
+            "\t\twp_update_post(\n\t\t\tarray(\n\t\t\t\t'ID'        => $id,\n\t\t\t\t'post_name' => $slug,\n\t\t\t)\n\t\t);\n\t\t$w = 1;"
+          )
+        : null,
+  },
   // --- straznik-wtyczki-wp, P1 poz. 18: wersje wtyczek i paczki dla klienta ---
   {
     straznik: "straznik-wtyczki-wp",
