@@ -192,38 +192,66 @@ final class Aai_Sklep_Odczyt {
 			ARRAY_A
 		);
 
-		$moduly = array();
-		foreach ( (array) $wiersze_modulow as $modul ) {
-			$id_modulu = (string) $modul['id'];
-
-			$wiersze_lekcji = $wpdb->get_results(
+		/*
+		 * JEDNO zapytanie o WSZYSTKIE lekcje kursu, nie jedno na moduł.
+		 *
+		 * Do tej poprawki pętla po modułach wykonywała osobne
+		 * `SELECT ... WHERE module_id = %s` dla KAŻDEGO modułu, więc koszt
+		 * rósł liniowo z programem kursu — a ta metoda leży na trasie,
+		 * którą przechodzi KAŻDY gość katalogu `/szkolenia/` i KAŻDEJ
+		 * strony sprzedażowej. Zmierzone na `:8892` przed poprawką:
+		 * 6 zapytań na odsłonę przy kursie o 6 modułach, przy 37
+		 * zapytaniach całej strony kursu.
+		 *
+		 * DLACZEGO `JOIN`, A NIE `IN (...)`. Lista identyfikatorów
+		 * wymagałaby sklejenia ciągu `%s, %s, …` do treści zapytania,
+		 * czyli zmiennej spoza klasy tabel w literale SQL — dokładnie
+		 * tego zabrania reguła 6 `straznik-wtyczki-wp` (a zbudowanie
+		 * zapytania wcześniej łamie regułę 10). `JOIN` po `course_id`
+		 * modułu zostaje literałem stojącym PRZY wywołaniu, przechodzi
+		 * przez `prepare()` z jedną wartością i nie ma przypadku pustej
+		 * listy, który w `IN ()` jest błędem składni.
+		 */
+		$wiersze_lekcji = array();
+		if ( array() !== (array) $wiersze_modulow ) {
+			$wiersze_lekcji = (array) $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT id, position, title, duration_min, preview,
-					        (content IS NOT NULL AND content <> '') AS ma_tresc
-					   FROM `$t_lekcje` WHERE module_id = %s ORDER BY position",
-					$id_modulu
+					"SELECT l.module_id, l.id, l.position, l.title, l.duration_min, l.preview,
+					        (l.content IS NOT NULL AND l.content <> '') AS ma_tresc
+					   FROM `$t_lekcje` l
+					   INNER JOIN `$t_moduly` m ON m.id = l.module_id
+					  WHERE m.course_id = %s
+					  ORDER BY m.position, l.position",
+					$id_kursu
 				),
 				ARRAY_A
 			);
+		}
 
-			$lekcje = array();
-			foreach ( (array) $wiersze_lekcji as $lekcja ) {
-				$lekcje[] = array(
-					'id'           => (string) $lekcja['id'],
-					'position'     => (int) $lekcja['position'],
-					'title'        => (string) $lekcja['title'],
-					'duration_min' => null === $lekcja['duration_min'] ? null : (int) $lekcja['duration_min'],
-					'preview'      => (bool) (int) $lekcja['preview'],
-					'ma_tresc'     => (bool) (int) $lekcja['ma_tresc'],
-				);
-			}
+		// Grupowanie zachowuje kolejność z `ORDER BY`, więc lekcje w każdym
+		// module zostają ułożone po `position` — tak samo jak przed zmianą.
+		$lekcje_modulu = array();
+		foreach ( $wiersze_lekcji as $lekcja ) {
+			$lekcje_modulu[ (string) $lekcja['module_id'] ][] = array(
+				'id'           => (string) $lekcja['id'],
+				'position'     => (int) $lekcja['position'],
+				'title'        => (string) $lekcja['title'],
+				'duration_min' => null === $lekcja['duration_min'] ? null : (int) $lekcja['duration_min'],
+				'preview'      => (bool) (int) $lekcja['preview'],
+				'ma_tresc'     => (bool) (int) $lekcja['ma_tresc'],
+			);
+		}
+
+		$moduly = array();
+		foreach ( (array) $wiersze_modulow as $modul ) {
+			$id_modulu = (string) $modul['id'];
 
 			$moduly[] = array(
 				'id'       => $id_modulu,
 				'position' => (int) $modul['position'],
 				'title'    => (string) $modul['title'],
 				'summary'  => null === $modul['summary'] ? null : (string) $modul['summary'],
-				'lessons'  => $lekcje,
+				'lessons'  => $lekcje_modulu[ $id_modulu ] ?? array(),
 			);
 		}
 		return $moduly;
@@ -278,6 +306,37 @@ final class Aai_Sklep_Odczyt {
 		$kurs = self::karta( $wiersz );
 		unset( $kurs['modules_count'], $kurs['lessons_count'], $kurs['total_min'] );
 		return $kurs;
+	}
+
+	/**
+	 * Stany WSZYSTKICH kursów naraz: uuid → status. Publiczny odczyt dla
+	 * innych wtyczek (L2), rodzeństwo `kurs_po_id()`.
+	 *
+	 * Powstało dla Pluginu 2: `Aai_Platnosci_Cli::osierocone()` przechodzi
+	 * po wierszach tabeli `powiazania` i o KAŻDYM pytało osobno przez
+	 * `kurs_po_id()` — jedno zapytanie na wiersz, czyli N+1 w komendzie
+	 * `wp aai-platnosci sprawdz`, którą `postaw.sh` uruchamia jako punkt
+	 * kontrolny przy każdym postawieniu środowiska.
+	 *
+	 * Oddaje SAM STATUS, nie kartę, i to jest treść, nie oszczędność:
+	 * jedyne, czego potrzebuje pytający, to odróżnić kurs opublikowany od
+	 * nieopublikowanego i od USUNIĘTEGO. Brak klucza w mapie znaczy „nie
+	 * ma takiego kursu" — tak samo jak `null` z `kurs_po_id()`. Karta
+	 * z cenami i okładkami w pętli kontrolnej nie ma czego robić.
+	 *
+	 * @return array<string,string> Mapa uuid → status.
+	 */
+	public static function statusy_kursow(): array {
+		global $wpdb;
+
+		$t_kursy = Aai_Sklep_Tabele::tabela( 'courses' );
+
+		$mapa = array();
+		// phpcs:ignore WordPress.DB.PreparedSQL -- nazwa tabeli z klasy tabel, zapytanie bez wartości.
+		foreach ( (array) $wpdb->get_results( "SELECT id, status FROM `$t_kursy`", ARRAY_A ) as $wiersz ) {
+			$mapa[ (string) $wiersz['id'] ] = (string) $wiersz['status'];
+		}
+		return $mapa;
 	}
 
 	/**

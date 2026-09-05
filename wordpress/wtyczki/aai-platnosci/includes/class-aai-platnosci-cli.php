@@ -889,14 +889,29 @@ final class Aai_Platnosci_Cli {
 			'bledy' => array(),
 		);
 		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
+
+		/*
+		 * Stany kursów JEDNYM zapytaniem, przed pętlą.
+		 *
+		 * Do tej poprawki każdy wiersz `powiazania` pytał osobno przez
+		 * `Aai_Sklep_Odczyt::kurs_po_id()`, czyli N+1 w komendzie, którą
+		 * `postaw.sh` uruchamia jako punkt kontrolny przy KAŻDYM
+		 * postawieniu środowiska. Pytanie jest tu jedno — czy kurs istnieje
+		 * i czy jest opublikowany — więc pyta o nie mapa, nie karta na
+		 * wiersz. Brak klucza w mapie znaczy dokładnie to, co `null`
+		 * z `kurs_po_id()`: kursu nie ma.
+		 */
+		$statusy = Aai_Sklep_Odczyt::statusy_kursow();
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
 		foreach ( $wpdb->get_results( "SELECT course_uuid, product_id FROM {$tabela}", ARRAY_A ) as $wiersz ) {
-			$kurs = Aai_Sklep_Odczyt::kurs_po_id( (string) $wiersz['course_uuid'] );
-			if ( null !== $kurs && 'published' === $kurs['status'] ) {
+			$uuid         = (string) $wiersz['course_uuid'];
+			$status_kursu = $statusy[ $uuid ] ?? null;
+			if ( 'published' === $status_kursu ) {
 				continue;
 			}
 			$status   = (string) get_post_status( (int) $wiersz['product_id'] );
-			$opis     = null === $kurs ? 'kurs usunięty' : 'kurs ' . $kurs['status'];
+			$opis     = null === $status_kursu ? 'kurs usunięty' : 'kurs ' . $status_kursu;
 			$zdanie   = sprintf( 'produkt %d osierocony (%s), status %s', (int) $wiersz['product_id'], $opis, $status );
 			$utracony = Aai_Platnosci_Zapis::utracony_dostep( (int) $wiersz['product_id'] );
 			if ( 'publish' === $status ) {

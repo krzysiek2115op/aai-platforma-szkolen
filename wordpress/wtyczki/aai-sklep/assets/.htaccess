@@ -1,0 +1,57 @@
+# Bufor przeglądarki dla statycznych zasobów wtyczki.
+#
+# PO CO. Bez tego Apache oddaje te pliki wyłącznie z nagłówkami
+# WALIDACYJNYMI (Last-Modified, ETag), więc każdy powrót tego samego
+# klienta — a wracający kupujący, który czyta kolejne lekcje, jest
+# głównym scenariuszem użycia tego produktu — płaci rundę warunkowego
+# żądania po plik, który się nie zmienił. Zmierzone na `:8892`:
+# `curl -D -` na sklep.css, sklep.js i lekcja.css oddawał 200 z ETagiem
+# i BEZ Cache-Control oraz BEZ Expires.
+#
+# DLACZEGO CSS I JS DOSTAJĄ ROK, A OBRAZY GODZINĘ. Bo to dwie różne
+# rzeczy pod względem unieważniania:
+#   * arkusze i skrypty WordPress podaje przez `wp_enqueue_*` z wersją
+#     wtyczki w adresie (`?ver=0.6.0`), a paczka dla klienta bierze numer
+#     z nagłówka wtyczki — nowy plik dojeżdża do klienta wyłącznie razem
+#     z nową wersją wtyczki, czyli pod NOWYM adresem. Długi bufor jest
+#     wtedy bezpieczny, bo stary adres nigdy nie zaczyna oddawać nowej
+#     treści;
+#   * obrazy okładek idą z kolumny `cover_url` (np.
+#     `/okladki/<slug>.svg`) — BEZ wersji w adresie. Podmiana okładki
+#     zostawia ten sam adres, więc rok bufora zamroziłby klientowi starą
+#     grafikę i nie byłoby jak jej odwołać. Godzina zdejmuje koszt
+#     powtarzanej walidacji w obrębie sesji czytania i sama się goi.
+#
+# UWAGA PRZY PRACY NAD KODEM: edycja `assets/*.css` albo `*.js` BEZ
+# podbicia wersji wtyczki nie zmienia adresu, więc przeglądarka, która
+# już ten plik ma, zobaczy stary przez rok. W środowisku warsztatowym
+# odświeżaj twardo (Ctrl+Shift+R) albo podbij stałą wersji wtyczki.
+#
+# `<IfModule>` jest tu obowiązkowe: na cudzym hostingu `mod_expires`
+# bywa wyłączony, a dyrektywa bez modułu wywraca CAŁEGO Apache'a błędem
+# 500 — czyli plik dołożony dla wydajności położyłby sklep.
+
+<IfModule mod_expires.c>
+	ExpiresActive On
+
+	# Adres niesie wersję wtyczki — treść pod nim się nie zmienia.
+	ExpiresByType text/css                  "access plus 1 year"
+	ExpiresByType application/javascript    "access plus 1 year"
+	ExpiresByType text/javascript           "access plus 1 year"
+
+	# Adres wersji NIE niesie — bufor krótki i samogojący.
+	ExpiresByType image/svg+xml             "access plus 1 hour"
+	ExpiresByType image/png                 "access plus 1 hour"
+	ExpiresByType image/jpeg                "access plus 1 hour"
+	ExpiresByType image/webp                "access plus 1 hour"
+</IfModule>
+
+# `immutable` oszczędza rundę także przy odświeżaniu strony, ale
+# `mod_headers` nie jest wszędzie włączony (w naszym kontenerze
+# warsztatowym NIE jest), więc to dodatek, nie fundament — całość działa
+# bez niego, na samym `mod_expires`.
+<IfModule mod_headers.c>
+	<FilesMatch "\.(css|js)$">
+		Header append Cache-Control "immutable"
+	</FilesMatch>
+</IfModule>

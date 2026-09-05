@@ -48,6 +48,29 @@ final class Aai_Platnosci_Zapis {
 	private const META_UTRACONY_DOSTEP = '_aai_platnosci_utracony_dostep';
 
 	/**
+	 * Pamięć mapowania kurs → produkt NA CZAS JEDNEGO ŻĄDANIA.
+	 *
+	 * Strona sprzedażowa pyta o to samo mapowanie PIĘĆ razy w jednym
+	 * renderze (zmierzone na `:8892`, gość: trzy przyciski CTA przez
+	 * `Aai_Platnosci_Cta::stan()`, dostępność w danych strukturalnych
+	 * przez `Cta::dostepnosc()` i cena przez `Aai_Platnosci_Cena`), a
+	 * odpowiedź w obrębie żądania jest stała. To ta sama klasa kosztu,
+	 * dla której `Aai_Sklep_Widok::cena_grosze()` ma swoją pamięć —
+	 * i ta sama, która przy W6 dała 90 zapytań na odsłonę menu.
+	 *
+	 * DLACZEGO WŁAŚCIWOŚĆ KLASY, A NIE `static $pamiec` W METODZIE.
+	 * Bo tę pamięć trzeba UNIEWAŻNIAĆ: `powiazanie_ustaw()`
+	 * i `powiazanie_usun()` zmieniają dokładnie to mapowanie, a
+	 * `synchronizuj_kurs()` czyta je PO zapisie w tym samym przebiegu
+	 * (komenda `sync` robi tak dla każdego kursu z rzędu). Pamięć
+	 * zamknięta w metodzie nie dałaby się wyczyścić i oddawałaby wartość
+	 * sprzed zapisu — czyli kupiłaby zapytanie kosztem prawdy.
+	 *
+	 * @var array<string,int|null>
+	 */
+	private static array $pamiec_produktow = array();
+
+	/**
 	 * Ustawia (lub odświeża) powiązanie kursu z produktem WooCommerce.
 	 *
 	 * Idempotentne: ten sam wpis drugi raz tylko odświeża `sync_ts`.
@@ -104,6 +127,9 @@ final class Aai_Platnosci_Zapis {
 		}
 		$wpdb->suppress_errors( $cicho );
 
+		// Mapowanie właśnie się zmieniło — pamięć żądania przestaje być prawdą.
+		self::zapomnij_produkt( $course_uuid );
+
 		return false !== $wynik;
 	}
 
@@ -120,6 +146,9 @@ final class Aai_Platnosci_Zapis {
 			array( 'course_uuid' => $course_uuid ),
 			array( '%s' )
 		);
+
+		// Mapowanie właśnie zniknęło — pamięć żądania przestaje być prawdą.
+		self::zapomnij_produkt( $course_uuid );
 	}
 
 	/**
@@ -505,13 +534,40 @@ final class Aai_Platnosci_Zapis {
 	}
 
 	public static function produkt_kursu( string $course_uuid ): ?int {
+		// `array_key_exists`, nie `isset`: BRAK produktu (null) też jest
+		// odpowiedzią i też ma być zapamiętany — inaczej kurs bez produktu
+		// pytałby bazę tyle samo razy co przed poprawką.
+		if ( array_key_exists( $course_uuid, self::$pamiec_produktow ) ) {
+			return self::$pamiec_produktow[ $course_uuid ];
+		}
+
 		global $wpdb;
 		$tabela = Aai_Platnosci_Tabele::tabela( 'powiazania' );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nazwa tabeli z klasy tabel.
 		$id = $wpdb->get_var(
 			$wpdb->prepare( "SELECT product_id FROM {$tabela} WHERE course_uuid = %s", $course_uuid )
 		);
-		return null === $id ? null : (int) $id;
+
+		$wynik                                  = null === $id ? null : (int) $id;
+		self::$pamiec_produktow[ $course_uuid ] = $wynik;
+		return $wynik;
+	}
+
+	/**
+	 * Zapomina zapamiętane mapowanie kurs → produkt.
+	 *
+	 * Woła ją KAŻDY zapis zmieniający to mapowanie. Bez tego kolejny
+	 * odczyt w tym samym żądaniu oddałby stan sprzed zapisu — a czyta go
+	 * m.in. `synchronizuj_kurs()` zaraz po `powiazanie_ustaw()`.
+	 *
+	 * @param string $course_uuid Uuid kursu; pusty łańcuch = zapomnij wszystko.
+	 */
+	private static function zapomnij_produkt( string $course_uuid = '' ): void {
+		if ( '' === $course_uuid ) {
+			self::$pamiec_produktow = array();
+			return;
+		}
+		unset( self::$pamiec_produktow[ $course_uuid ] );
 	}
 
 	/**
