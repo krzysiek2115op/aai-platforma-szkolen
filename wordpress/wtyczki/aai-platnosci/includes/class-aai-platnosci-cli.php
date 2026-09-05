@@ -609,6 +609,32 @@ final class Aai_Platnosci_Cli {
 			$bledy[] = $rozjazd_ustawien;
 		}
 
+		/*
+		 * WALUTA SKLEPU MUSI ZGADZAĆ SIĘ Z TĄ, KTÓRĄ DRUKUJE STRONA.
+		 *
+		 * Strony sprzedażowe Pluginu 1 formatują cenę ze znakiem „zł"
+		 * WPISANYM NA SZTYWNO — w sześciu miejscach, żadne nie pyta
+		 * WooCommerce o walutę. To świadome: katalog ma działać bez Pluginu 2
+		 * i bez Woo. Ceną tej niezależności jest możliwość rozjazdu, więc
+		 * rozjazd musi mieć KONTROLĘ, a nie tylko dobre intencje.
+		 *
+		 * WooCommerce startuje z `USD` i nigdy o to nie pyta. Klient widział
+		 * wtedy „Dołączam za 299,00 zł" na stronie kursu i tę samą liczbę
+		 * z dolarem w kasie, czyli dokładnie tam, gdzie płaci (AUD-WDR-F1-004,
+		 * AUD-FE-F1-002). Nie zmieniamy waluty za właściciela — to ustawienie
+		 * sklepu, nie nasze — ale mówimy o rozjeździe głośno i kodem 1.
+		 */
+		if ( function_exists( 'get_woocommerce_currency' ) ) {
+			$waluta = (string) get_woocommerce_currency();
+
+			if ( 'PLN' !== $waluta ) {
+				$bledy[] = sprintf(
+					'waluta sklepu to %s, a strony kursów drukują ceny w złotych — klient zobaczy inną walutę w kasie niż w ofercie. Napraw: wp option update woocommerce_currency PLN',
+					$waluta
+				);
+			}
+		}
+
 		$w_trakcie   = array();
 		$w_trakcie[] = Aai_Platnosci_Ustawienia::stan_sprzedazy();
 		if ( ! class_exists( 'Aai_Sklep_Odczyt' ) ) {

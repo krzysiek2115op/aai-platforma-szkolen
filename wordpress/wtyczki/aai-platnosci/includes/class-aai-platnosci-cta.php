@@ -131,9 +131,23 @@ final class Aai_Platnosci_Cta {
 	 * @return array{adres:string,napis:string}
 	 */
 	public static function stan( $domyslne, $kurs = array() ): array {
+		/*
+		 * KSZTAŁT, NIE TYLKO TYP.
+		 *
+		 * To jest odbiorca PUBLICZNEGO filtra-szwu (`aai_sklep_cta_kursu`),
+		 * więc wejście może przyjść od kogokolwiek — także od cudzej wtyczki,
+		 * która zwróci tablicę bez kompletu kluczy. `is_array()` samo w sobie
+		 * przepuszczało `array()` i każdy niepełny kształt, a dalej metoda
+		 * i jej wołający sięgają po `napis` i `adres` wprost. Uzupełniamy
+		 * brakujące klucze zamiast ufać, że nadawca je przyśle: przycisk bez
+		 * napisu jest niewidoczny dla klienta, a wyjątek na tej ścieżce
+		 * zabiera stronę sprzedażową.
+		 */
 		if ( ! is_array( $domyslne ) ) {
-			$domyslne = array( 'adres' => '', 'napis' => '' );
+			$domyslne = array();
 		}
+
+		$domyslne = array_merge( array( 'adres' => '', 'napis' => '' ), $domyslne );
 		try {
 			if ( ! is_array( $kurs ) ) {
 				return $domyslne;

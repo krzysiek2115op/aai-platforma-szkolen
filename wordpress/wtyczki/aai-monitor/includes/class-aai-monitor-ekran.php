@@ -241,12 +241,23 @@ final class Aai_Monitor_Ekran {
 	 * @param array<string,array<string,mixed>> $stan Podsumowanie z działu.
 	 */
 	private static function kafelki( array $stan ): void {
-		$od_poczatku = __( 'od początku pomiaru', 'aai-monitor' );
+		/*
+		 * PODPIS MUSI ZGADZAĆ SIĘ Z RETENCJĄ, INACZEJ KŁAMIE O SPADKU.
+		 *
+		 * Liczba pod kafelkiem to `COUNT(*)` z tabeli, z której retencja
+		 * FIZYCZNIE kasuje wiersze starsze niż 90 dni (logowania) i 400 dni
+		 * (ruch). Podpis „od początku pomiaru" obiecywał sumę narastającą,
+		 * więc po pierwszym sprzątaniu liczba spadłaby bez powodu widocznego
+		 * dla czytającego — a to jedyny ekran, z którego właściciel czyta
+		 * bezpieczeństwo kont. Okres nazywamy tak, jak działa naprawdę.
+		 */
+		$okres_logowan = __( 'ostatnie 90 dni', 'aai-monitor' );
+		$okres_ruchu   = __( 'ostatnie 400 dni', 'aai-monitor' );
 
 		$kafelki = array(
 			array(
 				'etykieta' => __( 'Logowania', 'aai-monitor' ),
-				'okres'    => $od_poczatku,
+				'okres'    => $okres_logowan,
 				'wartosc'  => (int) $stan['logowania']['razem'],
 				'alarm'    => false,
 			),
@@ -262,13 +273,13 @@ final class Aai_Monitor_Ekran {
 			),
 			array(
 				'etykieta' => __( 'Odsłony', 'aai-monitor' ),
-				'okres'    => $od_poczatku,
+				'okres'    => $okres_ruchu,
 				'wartosc'  => (int) $stan['wizyty']['razem'],
 				'alarm'    => false,
 			),
 			array(
 				'etykieta' => __( 'Sesje', 'aai-monitor' ),
-				'okres'    => $od_poczatku,
+				'okres'    => $okres_ruchu,
 				'wartosc'  => (int) $stan['wizyty']['sesje'],
 				'alarm'    => false,
 			),
