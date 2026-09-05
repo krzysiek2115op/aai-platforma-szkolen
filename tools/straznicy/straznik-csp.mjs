@@ -8,7 +8,7 @@
  * działa tak samo, tylko przestaje chronić. Dlatego pilnujemy nie
  * „czy jest polityka", ale „czy nadal mówi to, co miała mówić".
  *
- * Dziewięć niezmienników, każdy z własną mutacją w audyt-straznikow:
+ * Dziesięć niezmienników, każdy z własną mutacją w audyt-straznikow:
  *  1. plik proxy nazywa się `proxy.serwer.ts` (nie `proxy.ts`),
  *  2. eksport jest DOMYŚLNY (Next 16.3.1 nie widzi nazwanego `proxy`
  *     w pliku o niestandardowym rozszerzeniu),

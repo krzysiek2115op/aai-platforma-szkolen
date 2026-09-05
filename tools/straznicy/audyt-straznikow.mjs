@@ -1223,6 +1223,20 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-readme, P1 poz. 23: tabele w CAŁYM repo, nie tylko w README ---
+  {
+    straznik: "straznik-readme",
+    opis: "wiersz tabeli z nadmiarową komórką w dokumencie POZA README — GitHub utnie go w milczeniu",
+    plik: "docs/SCHEMATY.md",
+    wymaga: () => existsSync("docs/SCHEMATY.md"),
+    oczekiwanySlad: "komórek przy nagłówku",
+    zmien: (s) => {
+      const i = s.indexOf("|---");
+      if (i < 0) return null;
+      const koniec = s.indexOf("\n", i);
+      return `${s.slice(0, koniec + 1)}| nadmiar | nadmiar | nadmiar | nadmiar | nadmiar | nadmiar |\n${s.slice(koniec + 1)}`;
+    },
+  },
   // --- P1 poz. 16: gałęzie strażników z 0.65.0, które NIE MIAŁY mutacji ---
   // Sześć gałęzi wskazał krytyk QA fali kontrolnej: każda jest ŻYWA (zapala
   // regułę), ale żadna nie była pilnowana przez audyt — czyli mogła umrzeć

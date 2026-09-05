@@ -8,7 +8,7 @@
  * strona działa. Ochrona, której brak nie objawia się błędem, wymaga
  * strażnika — inaczej wraca przy pierwszym przepisaniu pliku.
  *
- * Jedenaście niezmienników, każdy z własną mutacją w audyt-straznikow:
+ * Trzynaście niezmienników, każdy z własną mutacją w audyt-straznikow:
  *   1. `lib/limiter.ts` istnieje,
  *   2. limiter nie importuje `next/*` (ma być testowalny bez serwera),
  *   3. limiter ma test jednostkowy (`lib/limiter.test.ts`),
