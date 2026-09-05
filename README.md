@@ -49,9 +49,9 @@ w repo jako specyfikacja wykonawcza i źródło treści.
 | | |
 |---|---|
 | **Wersja** | **0.65.0** |
-| **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). Z **trzech ostatnich kroków** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) zrobione są dwa — SEO (0.60.x) i higiena repo (0.62.0/0.63.0) — plus [schematy draw.io](docs/SCHEMATY.md) (0.64.0). **Audyt końcowy (fala 1) ODBYTY, a jego 33 potwierdzone usterki NAPRAWIONE** (0.65.0, [stan i decyzje](docs/NAPRAWY-PO-AUDYCIE.md)); została fala kontrolna |
+| **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). **Trzy ostatnie kroki** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) są ZROBIONE: SEO (0.60.x), higiena repo (0.62.0/0.63.0) i audyt końcowy — plus [schematy draw.io](docs/SCHEMATY.md) (0.64.0). **Fala 1 audytu ODBYTA, a z jej 33 potwierdzonych usterek NAPRAWIONE są 32** (0.65.0, [stan i decyzje](docs/NAPRAWY-PO-AUDYCIE.md)); trzydziesta trzecia to treść polityki prywatności — **świadomie u właściciela**, wymaga prawnika. Fala kontrolna domknięta; dalej [naprawy po polowaniu](docs/PLAN-NAPRAW-PO-POLOWANIU.md) |
 | **Wtyczki WordPressa** | `aai-sklep` — W1–W6, `v0.45.0` · `aai-platnosci` — P0–P6, `v0.53.0` · `aai-monitor` — T0–T4, `v0.58.0`. Każda z osobnym testem ręcznym właściciela (W6, P6, T4) — plus test CAŁOŚCI, sprawdzający je razem |
-| **Trzy ostatnie kroki** | 1. SEO — **ZROBIONY** (`0.60.0`, `0.60.1`) · 2. higiena repo — **TRWA** · 3. audyt końcowy — wytyczne poda właściciel |
+| **Trzy ostatnie kroki** | Wszystkie trzy **ZROBIONE**: 1. SEO (`0.60.0`, `0.60.1`) · 2. higiena repo (`0.62.0`, `0.63.0`) · 3. audyt końcowy — fala 1 odbyta, 32 z jej 33 usterek naprawione (`0.65.0`), fala kontrolna domknięta. Dalej idą **naprawy po polowaniu** ([plan P0–P4](docs/PLAN-NAPRAW-PO-POLOWANIU.md)) |
 | **Gałąź domyślna** | `main` — wrócił nią 2026-08-25 razem ze scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0`). Do tego dnia domyślną była `plugin-1-sklep-kursow`, bo `main` stał celowo na 0.3.4 ([PLAN.md §5](docs/PLAN.md): moduł wchodzi na gałąź główną po ukończeniu i akceptacji całości). Gałąź modułu zostaje jako historia — jej drzewo jest identyczne z `main` |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Podgląd na żywo** | [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia) — statyczny eksport katalogu i stron kursów (`npm run deploy:podglad`), **bez kreatora i AJAX-a**, z `noindex` na czas prac. Służy do pomiarów SEO i wydajności narzędziami Google; **oba kursy są kompletne** (73 lekcje), a teksty sprzedażowe zgodne z produktem (0.33.0) — placeholderami zostają wyłącznie opinie, do pierwszych sprzedaży |
@@ -135,7 +135,14 @@ kopii kursów w Tutorze i 73 adresów lekcji zza bramki, produktów Woo
 oddających 301, koszyka, kasy i konta klienta. Zamknięta została też **trzecia
 droga do loginu administratora**: mapa autorów drukowała go wprost, choć
 `/author/<login>/` oddaje 404 od 0.59.0. Podstrona ma wreszcie manifest i
-rastry ikony, więc daje się zainstalować jako skrót z własnym znakiem
+rastry ikony, więc daje się zainstalować jako skrót z własnym znakiem.
+
+**Krok 2 — higiena repo — ZROBIONY** (`0.62.0`, `0.63.0`): repozytorium
+przestało twierdzić, że wydane kroki trwają, a wynik testu całości trzech
+wtyczek trafił wreszcie do repo. **Krok 3 — audyt końcowy — ODBYTY**: fala 1
+potwierdziła dwustronnie 33 usterki kodu, 32 z nich naprawiła wersja `0.65.0`,
+a fala kontrolna sprawdziła te naprawy dział po dziale. Co dalej —
+[plan napraw po polowaniu](docs/PLAN-NAPRAW-PO-POLOWANIU.md).
 
 
 > [!IMPORTANT]

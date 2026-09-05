@@ -3520,3 +3520,83 @@ wyprowadzała tego od nowa:
 - **LEKCJA ze scalenia 0.65.0 do sektora:** wzorce goldenów ról wskazują
   LINIE kodu produktu — każda zmiana kodu wymaga ich przekotwiczenia (BD/BE/PRIV
   przesunięte, naprawione `86f186c`), inaczej strażnik sektora świeci R11.
+
+## ═══ FALA KONTROLNA 0.65.0 — DOMKNIĘTA (2026-09-05) ═══
+
+**CZYTAĆ PRZED NAPRAWAMI: [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md)**
+— kolejność P0–P4, decyzje właściciela i reguły wykonania. Materiał źródłowy
+(raporty sond i wyniki działów) leży na gałęzi sektora `re-audyt/sektor-re-audytu`
+w `audyt/wyniki/` — **`main` nie ma katalogu `audyt/` i to jest celowe**.
+
+**Fala sprawdzała, czy naprawy 0.65.0 naprawdę naprawiły to, co deklarują.**
+Wszystkie **14 działów** przeszły rolę **i** krytyka; wejście 33 wpisy w 11 działach.
+
+**Bilans po krytyku:** NAPRAWIONE **27** · CZĘŚCIOWO **3** · NIENAPRAWIONE **2** ·
+nie dotyczy produktu **1**.
+
+**Najważniejsza liczba: krytycy PRZEPUŚCILI 4, ODRZUCILI 10.** W dziewięciu
+z dziesięciu odrzuceń werdykt wpisu był POPRAWNY, a odrzucenie dotyczyło **dowodu
+albo zasięgu roli** — czyli bez bramki krytyka sześć werdyktów stałoby na dowodzie,
+który nie dowodzi tezy. To zmierzony argument za parą agent+krytyk (WYTYCZNE N1).
+
+**Audyt mutacyjny strażnika sektora: 148 mutacji, 0 przeoczonych.** Jedna „zła"
+(deklarowała R15, zapalała R15+R16) naprawiona deklaracją `regula: [15, 16]` —
+mutacja psuje NAPRAWDĘ dwie gwarancje, więc zawężanie jej byłoby udawaniem,
+że są niezależne.
+
+**BILANS W REPO BYŁ ZŁY I ZOSTAŁ PRZELICZONY:** podawał „NAPRAWIONE 22" przy
+30 wpisach, choć wyliczenka w nawiasie sumowała się do 23, a dział BE policzono
+jako 1 przy DWÓCH wpisach naprawionych w tabeli obok. **Liczba w prozie rozjechała
+się z tabelą w tym samym pliku** — dokładnie klasa, którą ta fala tropiła.
+
+### Polowanie po przeglądzie zewnętrznym (2026-09-05)
+
+Zewnętrzny recenzent zgłosił **7 błędów (1 duży, 3 średnie, 3 małe)** i **nie podał,
+jakie** — poza dwiema wskazówkami (rozjazd wersji WordPressa; maile do klienta).
+Decyzja właściciela: **resztę znajdujemy sami, o listę już nie pytamy.** Jego oceny
+(security 10 · SEO 10 · BD 10 · audyt 9,5 · architektura 9 · QA 9 · dokumentacja 8,5
+· **płatności 8**) posłużyły jako **mapa terenu**.
+
+**Jego lista NIE jest nadzbiorem naszej** — dał security 10/10, a mamy tam czynny
+wyciek fragmentów haseł do dziennika 90-dniowego. Naprawiamy OBIE listy.
+
+**Metoda:** trzy sondy-agenty na terenach o najniższych ocenach, każda z MECHANICZNYM
+kryterium zamiast swobodnego przeglądu, agent główny jako krytyk weryfikujący
+uruchomieniowo. **50 znalezisk** (płatności 13, architektura 29, dokumentacja 8).
+Kryterium dla płatności wzięte wprost ze zrzutu recenzenta („moduł → baza →
+gałąź błędu"): policzyć KAŻDE miejsce zapisu i sprawdzić gałąź porażki —
+**67 miejsc, 37 bez sprawdzenia wyniku, 9 meldujących „stan się zmienił" mimo to.**
+
+**DWA DUŻE, oba potwierdzone niezależnie:**
+1. **Ukrycie kursu odbiera kupującemu drogę do materiału.** Znalazły dwie sondy
+   osobno, agent główny zmierzył na koncie `klient-test`: przy obu kursach
+   `archived` Tutor ma **2 zapisy**, a `ma_kursy()` zwraca **NIE**, `kursy()` **0**
+   i strona mówi klientowi, że nie ma żadnego kursu. Przyczyna: `Aai_Sklep_Moje`
+   przecina zapisy z `lista_kursow()`, a ta ma `WHERE c.status = 'published'`.
+   **Sprzeczne z decyzją C1** (2026-08-31). Docblock `ma_kursy()` rozumuje to
+   świadomie — rozumowanie było poprawne PRZED C1 i nikt do niego nie wrócił.
+   **Obie bramki dowodzące C1 sprawdzają bezpośredni adres lekcji — drogę, której
+   klient nie zna; jedynej, którą ma, nie sprawdza nic.**
+2. **Trzynaście rejestracji pod jednym `try`** (`aai-sklep.php:150`), a zamek
+   wycieku 73 lekcji jest **OSTATNI** (`class-aai-sklep-lekcja.php:63-64`).
+   Rzut w którejkolwiek z 12 wcześniejszych — pierwsza to odwołanie do BAZY —
+   zostawia witrynę działającą, notkę widoczną tylko dla admina i `?post_type=lesson`
+   znowu oddające **73 lekcje płatnej treści** anonimowi. **Spowodowała to naprawa
+   `AUD-BE-F1-001` z 0.65.0**: zamieniła głośne HTTP 500 na cichy prefiks systemu.
+
+**DECYZJE WŁAŚCICIELA (2026-09-05), wiążące dla całej fazy napraw:**
+- **„Ukryj" ZOSTAJE kupującym** — ukryty kurs znika z katalogu i sprzedaży, ale
+  zostaje w „Moich kursach" tego, kto go kupił. To **dotrzymanie** C1, nie zmiana.
+  Odrzucone: „zostaw i tylko ostrzegaj" oraz „dołóż inną drogę".
+- **Zakres: WSZYSTKO, co znaleźliśmy** (~50 pozycji). Agent zgłosił, że to się nie
+  zmieści do niedzieli przy dyscyplinie tego repo; właściciel potwierdził zakres.
+- **Naprawy wykonuje agent SAM, bez udziału właściciela**, wybierając opcje
+  rekomendowane; raport dopiero na końcu. Wolno scalać do `main`, tagować i robić
+  release'y — **wyłącznie przy zielonym CI**. **PR na priorytet: P0–P4.**
+  Wolno zmieniać rzeczy widoczne dla klienta, gdy naprawa tego wymaga — każda taka
+  zmiana idzie do raportu osobno. Duża przebudowa: **robić, jeśli da się ją
+  zabezpieczyć testem negatywnym i bramką**; jeśli nie — odłożyć i napisać dlaczego.
+
+**PUŁAPKA, KTÓRA WRÓCIŁA DWA RAZY W JEDNEJ SESJI:** `npm run dev` (Next 16) przy
+starcie **UCINA `CLAUDE.md` o 2355 linii** (zostaje 1167 z 3522). Po KAŻDYM devie:
+`git diff --stat CLAUDE.md` → `git checkout -- CLAUDE.md`.
