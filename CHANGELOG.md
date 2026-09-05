@@ -5,6 +5,65 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.71.0] — 2026-09-06
+
+### Naprawy po polowaniu, priorytet P4 — pierwsza tura
+
+P4 to reszta znalezisk polowania. Ta tura bierze **jedną klasę i domyka ją
+regułą**: operacja, która melduje skutek, musi ten skutek sprawdzić.
+
+**1. Zdjęcie kursu ze sprzedaży meldowało sukces bez ani jednej weryfikacji
+(Z-3).** `zdejmij_kurs()` ustawiało `zdjety = 1` bez pytania, czy produkt
+naprawdę zszedł na `draft`. Przy nieudanym zapisie (cudzy filtr
+`wp_insert_post_data`, blokada bazy) kurs zostawał **kupowalny**, a komenda
+meldowała, że jest zdjęty ze sprzedaży.
+
+**2. Trzy z czterech metod o kontrakcie „czy stan się ZMIENIŁ" nie sprawdzały
+zapisu (Z-6).** `strona_na_szkic()`, `przywroc_status_strony()`,
+`ustaw_slug_strony()` i `dopisz_klase_bloku()` robiły
+`wp_update_post( … ); return true;`, choć piąta metoda w tym samym pliku
+sprawdza wynik wzorcowo. `sync --napraw` mógł drukować „slug strony
+poprawiony", a `sprawdz` sekundę później — „strona ma zły slug".
+
+**3. Odmowa drugiego kursu w koszyku obiecywała klientowi skutek, którego nie
+sprawdzała (Z-7).** `remove_cart_item()` oddaje `false`, gdy pozycji nie ma
+albo cudzy filtr przerwie akcję; klient czytał „w koszyku został jeden kurs",
+mając w nim dwa.
+
+**Regułę tej klasy pilnuje `straznik-platnosci-wp`**: w warstwie zapisu nie ma
+`wp_update_post()` wywołanego w próżnię (test negatywny: gołe wywołanie zapala
+regułę).
+
+### Prototyp przestaje przeczyć produktowi
+
+`TrescLekcji` miał `materialy: …default([])`, więc **zapis samej prozy
+nadpisywał kolumnę pustą listą i KASOWAŁ materiały lekcji**, meldując sukces.
+To ta sama klasa cichej utraty treści, którą wtyczka WP zamknęła w 0.65.0
+regułą „brak klucza znaczy nie ruszaj" — a prototyp jest specyfikacją
+wykonawczą, więc przeczył wtedy produktowi.
+
+Klucz jest teraz opcjonalny, dyspozytor rusza kolumnę tylko wtedy, gdy klucz
+przyszedł, a **`EdytorLekcji` wysyła go ZAWSZE** — bo `oczyscTresc()` pomija
+puste listy, więc bez tej poprawki właściciel nie miałby jak wyczyścić
+materiałów. Nowy test regresji sprawdza obie intencje (brak klucza zostawia,
+pusta lista wprost czyści) i przywraca stan po sobie.
+
+**Test WYMAGAŁ starego zachowania** („brak materiałów = pusta tablica, nie
+null") — piąta bramka broniąca usterki w tej serii. Asercja jest odwrócona.
+
+### Maile mają `Reply-To`
+
+Nasze wiadomości szły z adresu sklepu albo administratora, bez adresu zwrotnego
+— klient, który odpisał („nie mogę wejść na kurs"), trafiał tam, gdzie trafiał.
+Adres bierzemy z tych samych źródeł co nadawcę, więc nie ma nowego ustawienia;
+przy pustym nagłówek po prostu nie powstaje.
+
+### Liczby
+
+Testy 83 → **84**, audyt mutacyjny 391 → **392** (0 przeoczonych, 0 martwych),
+strażnicy **39/39**, bramki WP: płatności 27 · produkty 95 · zakup 60 ·
+maile 62.
+
 ## [0.70.0] — 2026-09-05
 
 ### Naprawy po polowaniu, priorytet P3 — dokumentacja

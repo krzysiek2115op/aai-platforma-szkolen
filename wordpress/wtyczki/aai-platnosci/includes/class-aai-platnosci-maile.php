@@ -173,6 +173,25 @@ final class Aai_Platnosci_Maile {
 	 * @param string|mixed $adres Adres nadawcy proponowany przez WordPressa.
 	 * @return string
 	 */
+	/**
+	 * Adres, na który klient może ODPISAĆ.
+	 *
+	 * Świadomie te same źródła co nadawca (adres sklepu, potem adres
+	 * administratora) — nie wprowadzamy nowego ustawienia, którego nikt by
+	 * nie wypełnił. Pusty wynik znaczy „nie dokładaj nagłówka".
+	 *
+	 * @return string
+	 */
+	private static function adres_odpowiedzi(): string {
+		foreach ( array( 'woocommerce_email_from_address', 'admin_email' ) as $opcja ) {
+			$kandydat = (string) get_option( $opcja, '' );
+			if ( '' !== $kandydat && is_email( $kandydat ) ) {
+				return $kandydat;
+			}
+		}
+		return '';
+	}
+
 	public static function nadawca_adres( $adres ): string {
 		$adres = (string) $adres;
 		try {
@@ -751,12 +770,21 @@ final class Aai_Platnosci_Maile {
 		add_action( 'wp_mail_failed', $zapamietaj );
 		add_action( 'phpmailer_init', $alternatywa );
 		try {
-			$poszlo = wp_mail(
-				$do,
-				$temat,
-				$html,
-				array( 'Content-Type: text/html; charset=UTF-8', 'From: ' . self::nadawca() )
-			);
+			/*
+			 * `Reply-To` ZAWSZE, bo nadawca bywa skrzynką, której nikt nie czyta.
+			 *
+			 * Nasze maile idą z adresu sklepu albo administratora; klient,
+			 * który odpisze („nie mogę wejść na kurs"), trafiał dotąd tam,
+			 * gdzie trafiał — bez gwarancji, że ktokolwiek to zobaczy.
+			 * Adres bierzemy z tych samych źródeł co nadawcę, więc nie
+			 * wprowadza nowego ustawienia; przy pustym po prostu go nie ma.
+			 */
+			$naglowki = array( 'Content-Type: text/html; charset=UTF-8', 'From: ' . self::nadawca() );
+			$odpowiedz = self::adres_odpowiedzi();
+			if ( '' !== $odpowiedz ) {
+				$naglowki[] = 'Reply-To: ' . $odpowiedz;
+			}
+			$poszlo = wp_mail( $do, $temat, $html, $naglowki );
 		} finally {
 			// `finally`, bo `wp_mail()` potrafi rzucić wyjątkiem PHPMailera
 			// przy nietypowej konfiguracji — filtr zostawiony w miejscu

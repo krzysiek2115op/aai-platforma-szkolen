@@ -1699,6 +1699,38 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* ZAPIS, KTÓRY MELDUJE SKUTEK, MUSI GO SPRAWDZIĆ (P4, klasa Z-3…Z-8).
+
+   Sonda polowania policzyła w tej wtyczce 67 miejsc zapisu, z czego 37 bez
+   sprawdzenia wyniku, a 9 meldujących „stan się zmienił" mimo to. Najgorszy
+   przypadek: zdjęcie kursu ze sprzedaży ustawiało `zdjety = 1` bez pytania,
+   czy produkt naprawdę zszedł na `draft` — przy nieudanym zapisie kurs
+   zostawał KUPOWALNY, a komenda meldowała sukces.
+
+   Reguła pilnuje jednej rzeczy: w warstwie zapisu Pluginu 2 nie ma
+   `wp_update_post()` wywołanego „w próżnię". Wynik ma trafić do zmiennej
+   (a co się z nim dzieje dalej, sprawdzają reguły wyżej i bramki). */
+{
+  const ZAPIS_P4 = WARSTWA_ZAPISU;
+  const kodZapisu = kod(readFileSync(ZAPIS_P4, "utf8"));
+  const wszystkie = [...kodZapisu.matchAll(/(^|\n)(\s*)([^\n]*?)wp_update_post\(/g)];
+  if (wszystkie.length === 0) {
+    bledy.push(
+      `${ZAPIS_P4}: nie znalazłem ANI JEDNEGO wp_update_post() — reguła o sprawdzaniu wyniku przechodziłaby po pustce (samokontrola zakresu).`
+    );
+  }
+  for (const m of wszystkie) {
+    const przed = m[3].trim();
+    // Wynik musi iść do zmiennej albo wprost do warunku/zwrotu.
+    if (!/[=(]\s*$|return\s*$|!\s*$/.test(przed)) {
+      const nr = kodZapisu.slice(0, m.index).split("\n").length + (m[1] === "\n" ? 1 : 0);
+      bledy.push(
+        `${ZAPIS_P4}:${nr}: wp_update_post() wywołane bez odebrania wyniku. WordPress oddaje 0 albo WP_Error, gdy zapis nie doszedł (cudzy filtr wp_insert_data, blokada bazy) — a metoda melduje wtedy skutek, którego nie ma. Wzorzec: $w = wp_update_post( …, true ); ! is_wp_error( $w ) && $w > 0.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1706,5 +1738,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, każdy zapis wpisu odbiera swój wynik, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products)."
 );

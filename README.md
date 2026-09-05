@@ -48,7 +48,7 @@ w repo jako specyfikacja wykonawcza i źródło treści.
 
 | | |
 |---|---|
-| **Wersja** | **0.70.0** |
+| **Wersja** | **0.71.0** |
 | **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). **Trzy ostatnie kroki** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) są ZROBIONE: SEO (0.60.x), higiena repo (0.62.0/0.63.0) i audyt końcowy — plus [schematy draw.io](docs/SCHEMATY.md) (0.64.0). **Fala 1 audytu ODBYTA, a z jej 33 potwierdzonych usterek NAPRAWIONE są 32** (0.65.0, [stan i decyzje](docs/NAPRAWY-PO-AUDYCIE.md)); trzydziesta trzecia to treść polityki prywatności — **świadomie u właściciela**, wymaga prawnika. Fala kontrolna domknięta; dalej [naprawy po polowaniu](docs/PLAN-NAPRAW-PO-POLOWANIU.md) |
 | **Wtyczki WordPressa** | `aai-sklep` — W1–W6, `v0.45.0` · `aai-platnosci` — P0–P6, `v0.53.0` · `aai-monitor` — T0–T4, `v0.58.0`. Każda z osobnym testem ręcznym właściciela (W6, P6, T4) — plus test CAŁOŚCI, sprawdzający je razem |
 | **Trzy ostatnie kroki** | Wszystkie trzy **ZROBIONE**: 1. SEO (`0.60.0`, `0.60.1`) · 2. higiena repo (`0.62.0`, `0.63.0`) · 3. audyt końcowy — fala 1 odbyta, 32 z jej 33 usterek naprawione (`0.65.0`), fala kontrolna domknięta. Dalej idą **naprawy po polowaniu** ([plan P0–P4](docs/PLAN-NAPRAW-PO-POLOWANIU.md)) |
@@ -387,7 +387,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 391 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 392 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie
@@ -439,7 +439,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
 
 CI: pięć jobów — „Zakres zmian", strażnicy i skan sekretów chodzą ZAWSZE; „Kod
-aplikacji" (lint → tsc → build) i „Baza" (83 testy na osobnej bazie
+aplikacji" (lint → tsc → build) i „Baza" (84 testy na osobnej bazie
 `db1_kursy_test`, migracje, build, siedem smoke'ów) tylko gdy zmiana
 dotyka kodu. Rozstrzyga job „Zakres zmian" zwykłym `git diff` — commit
 czysto treściowy (większość commitów D7) nie pali minut na build.
@@ -594,7 +594,7 @@ git config core.hooksPath .githooks   # włącza haki — raz, obowiązkowo
 npm ci                                # zależności (Node 24+)
 cp .env.example .env                  # lokalna konfiguracja (baza, KREATOR_TOKEN)
 npm run db1:migruj                    # migracje + triggery (bazę podniesie pretest)
-npm test                              # 83 testy; sam podnosi kontener bazy
+npm test                              # 84 testy; sam podnosi kontener bazy
 npm run db1:seed                      # program + sekcje sprzedażowe (UWAGA: kasuje kursy)
 npm run dev                           # → http://localhost:3001/szkolenia
 ```

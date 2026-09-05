@@ -207,7 +207,10 @@ export function czytajProze(surowy: string, sciezka: string): ProzaPliku {
     tytulModulu,
     tytulLekcji,
     tresc: sprawdzone.data.tresc,
-    materialy: sprawdzone.data.materialy,
+    // Kontrakt oddaje `materialy` opcjonalnie (brak klucza = „nie ruszaj”
+    // przy ZAPISIE), ale czytelnik prozy chce zawsze listy — pusta jest tu
+    // poprawną odpowiedzią, bo plik prozy materiałów nie niesie.
+    materialy: sprawdzone.data.materialy ?? [],
   };
 }
 
