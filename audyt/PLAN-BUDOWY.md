@@ -5477,3 +5477,98 @@ M > 0, naprawy idą zwykłą drogą (gałąź od `main`, PR), nie w sektorze.
 4. **R17 strażnika sektora** (fałszywy alarm z prób E7): odsiać próby w
    narzędziu przed falą (zmiana toolchainu, mała) czy zostawić czerwony
    z nazwanym powodem?
+
+### FALA KONTROLNA PO 0.65.0 — DECYZJE WŁAŚCICIELA I PROTOKÓŁ PRZEBIEGU (2026-09-05)
+
+**Cztery odpowiedzi właściciela na cztery pytania z projektu wyżej (dosłownie:
+„1.zielone swiatło na waski. 2.B 3.drugi tor rekomendowane 4.rekomendacja
+zrob sweep przed clear i po clear kod"):**
+
+| # | Decyzja | Znaczenie wykonawcze |
+|---|---|---|
+| **D12** | **ZIELONE ŚWIATŁO, zakres WĄSKI** | 14 Pogłębiaczy `rea-<KOD>` + 14 krytyków `rea-<KOD>-krytyk` = 28 agentów. Działy audytu NIE wchodzą. |
+| **D13** | **Nośnik B** | Fala POZA numeracją fal: bez `status.mjs`/`zgloszenie.mjs`, wynik roli = `audyt/wyniki/kontrola-0.65.0/<KOD>.md`, werdykt krytyka pod spodem tego samego pliku. Zero kodu narzędzi. |
+| **D14** | **Drugi tor środowiskowy** (rekomendacja przyjęta) | Tor A `:8892`, tor B osobna instancja `postaw.sh` (`STACK_NAZWA=aai_wp_b WP_PORT=8894 MAILPIT_PORT=8895`). Jedna rola naraz na tor. |
+| **D15** | **R17: odsiać próby w narzędziu** (rekomendacja przyjęta) | `straznik-sektora-audytu.mjs` R17 ma pomijać wpisy historii stanu z polem `proba` (tak jak reguła kolejności sektorów pomija stan próbny, komentarz `:803`). Zmiana z testem negatywnym, PRZED falą. |
+| **D16** | **Sweep przed `/clear`, kod PO `/clear`** | Ta sesja: decyzje i protokół do repo. Następna: R17 → tor B → fala. |
+
+**WEJŚCIE FALI: `audyt/wyniki/kontrola-0.65.0/WEJSCIE.md` — 33 wpisy w 11
+działach, policzone komendą** (ARCH 5 · PERF 7 · PRIV 5 · FE 3 · INT 3 · WDR 3 ·
+BD 2 · BE 2 · REPO 1 · SEC 1 · USP 1; **QA, PROTO, PIK = 0** — tylko rundy
+regresji). Kryterium = to, którym sesja napraw wybrała 33: wpis fali 1 bez
+`proba`, krytyk `PRZEPUSZCZAM` **i** weryfikator `ISTNIEJE`, `miejsce.plik`
+pod `wordpress/`. Odtworzenie (z korzenia repo na gałęzi sektora):
+
+```
+python3 -c "
+import json,glob,ast,collections
+c=collections.Counter()
+for f in glob.glob('audyt/zgloszenia/*.json'):
+    d=json.load(open(f))
+    if d.get('proba'): continue
+    w=d.get('werdykt') or {}
+    w=ast.literal_eval(w) if isinstance(w,str) else w
+    m=d.get('miejsce'); m=ast.literal_eval(m) if isinstance(m,str) else m
+    if (w.get('krytyk') or {}).get('werdykt')=='PRZEPUSZCZAM' and (w.get('weryfikator') or {}).get('werdykt')=='ISTNIEJE' and str((m or {}).get('plik','')).startswith('wordpress/'): c[d['dzial']]+=1
+print(sum(c.values()), dict(c))"
+```
+Musi dać `33`. Inna liczba = zmienił się katalog zgłoszeń, zatrzymać się.
+
+**KOLEJNOŚĆ PO `/clear` (komenda, nie pamięć):**
+1. `git checkout re-audyt/sektor-re-audytu` (jeśli inaczej), `git diff main
+   --name-only -- . ':!audyt' ':!re-audyt' | wc -l` → **0**; po scaleniu
+   docs-PR ze wskaźnikiem w CLAUDE.md: `git merge main` i ponownie 0.
+2. **R17 (D15):** zmiana w `audyt/tools/straznik-sektora-audytu.mjs` — wpis
+   historii stanu z polem `proba` nie wchodzi do porównania „wejście
+   re-audytu vs koniec audytu"; test negatywny (stan bez `proba` z tą samą
+   datą MUSI dalej zapalać R17); strażnik sektora **kod 0 bez potoku**;
+   `node audyt/tools/audyt-straznika-sektora.mjs` jeśli ma mutacje R17.
+3. **Tor B:** `cd wordpress/srodowisko && STACK_NAZWA=aai_wp_b WP_PORT=8894
+   MAILPIT_PORT=8895 ./postaw.sh` — kod 0; `free -g` przed (≥ 2 GB
+   dostępne) i po; obie kontrole na torze B kod 0; `WP_PORT=8894 node
+   audyt/tools/srodowisko.mjs --liczniki` działa. Jeśli pamięć < 1 GB po
+   postawieniu — tor B zdjąć i jechać jednym torem (decyzja orkiestracji,
+   nie właściciela; zapisać).
+4. **Zrzuty bazowe:** `node audyt/tools/srodowisko.mjs --zrzut=k-baza`
+   (tor A) i `WP_PORT=8894 … --zrzut=k-baza-b` (tor B). Prototyp `:3001`
+   (`npm run dev`) tylko przed rolą PROTO.
+5. **Pogłębiacze, kolejność wg wagi napraw:** INT, BE, BD, ARCH → PERF,
+   PRIV, SEC, FE → REPO, USP, WDR → QA, PROTO, PIK. Tor A i B równolegle,
+   po jednej roli na tor; role czytające wyłącznie kod (REPO, USP, PIK,
+   PROTO bez :3001) bez toru. **WDR osobno, na końcu SWOJEGO toru**
+   (`postaw.sh` od zera zanieczyszcza cudze pomiary — jak w fali 1).
+   Po każdej roli: `--zrzut=k-<KOD>-po` → `--przywroc=k-baza` (albo
+   `k-baza-b`) → krytyk roli → następna.
+6. Po 14 rolach: tabela zbiorcza `audyt/wyniki/kontrola-0.65.0/WYNIK.md`
+   (N NAPRAWIONE / M NIENAPRAWIONE / NIE DOTYCZY, regresje), commit na
+   gałęzi sektora, zdanie w CLAUDE.md i README przez docs-PR do `main`.
+   **M > 0 → naprawy zwykłą drogą** (gałąź od `main`, PR), nie w sektorze.
+
+**SZABLON POLECENIA DLA POGŁĘBIACZA KONTROLI (parametry poza definicją
+roli — identyczne dla każdego z 14; zmienia się tylko `<KOD>` i tor):**
+„Repozytorium: /home/krzysiek/Pod strona Szkolenia  (katalog kończy się
+SPACJĄ — cytuj ścieżkę). Gałąź `re-audyt/sektor-re-audytu`, kod produktu =
+0.65.0. SEKTOR: re-audyt. To jest **FALA KONTROLNA (nośnik B)**, NIE fala 1
+ani 2: NIE używasz `status.mjs` ani `zgloszenie.mjs`, NIE składasz nowych
+zgłoszeń. Jesteś Pogłębiaczem <KOD>. Wejście: wiersze działu <KOD> z
+`audyt/wyniki/kontrola-0.65.0/WEJSCIE.md` (otwórz każdy wpis
+`audyt/zgloszenia/<ID>.json`) oraz `docs/NAPRAWY-PO-AUDYCIE.md` (mapa
+commit → naprawa). Dla KAŻDEGO wpisu: powtórz oryginalny dowód na 0.65.0
+(komenda, plik, wynik) i orzeknij NAPRAWIONE / NIENAPRAWIONE / NIE DOTYCZY
+PRODUKTU, z dowodem w jednej linii. Potem rundy regresji w swoim zakresie
+wg własnej definicji roli (checklista pozycja po pozycji, tak/nie, dowód).
+Środowisko: tor <A: http://127.0.0.1:8892 | B: http://127.0.0.1:8894>;
+bramki bierz z `WP_ADRES=<adres>`, `srodowisko.mjs` z `WP_PORT=<port>`;
+licz stan przed i po, sprzątaj wyłącznie własne ślady. NIE naprawiasz
+(zasada 2), NIE zgłaszasz spoza zakresu (zasada 3), nie czytasz CLAUDE.md.
+Kody wyjścia bez potoku. Wynik zapisz do
+`audyt/wyniki/kontrola-0.65.0/<KOD>.md`: tabela wpis → werdykt → dowód,
+sekcja „Regresje w zakresie" (albo „brak — N pozycji sprawdzonych"),
+sekcja „Niedomknięte" z powodem, komendy i kody wyjścia. Meldunek końcowy
+do 30 linii." Krytyk dostaje ten sam plik i dopisuje pod spodem sekcję
+„Werdykt krytyka: PRZEPUSZCZAM / ODRZUCAM + powód" — nie edytuje treści roli.
+
+**Koszt (z fali 1, nie oszacowany od nowa):** Pogłębiacz 360–630 tys.
+tokenów, krytyk mniej; 28 agentów ≈ 8–12 mln tokenów, pół dnia zegarowo
+na dwóch torach. Modele wg generatu (`rea-*` Sonnet, krytycy Opus) —
+nie zmieniać bez decyzji właściciela.
