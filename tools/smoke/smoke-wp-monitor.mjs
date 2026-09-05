@@ -561,15 +561,21 @@ sprawdz(
   `nieudana próba nie zostawiła wiersza „nieudane” (dostałem ${poPorazce.length}). Bez niej licznik porażek z 7 dni — JEDYNA funkcja alarmowa ekranu — pokazuje zero niezależnie od tego, ile razy ktoś próbował się włamać (N5).`
 );
 /*
- * Login NIEISTNIEJĄCEGO konta jest maskowany — celowo, od przeglądu T2:
- * w tym polu bywa HASŁO (A1 niżej). Zostaje początek i długość, czyli
- * wzorzec ataku bez sekretu. Istniejące konta zapisujemy dosłownie
- * i tego pilnuje osobne sprawdzenie w bloku A1.
+ * Login NIEISTNIEJĄCEGO konta jest maskowany do SAMEJ DŁUGOŚCI (od 2026-09-05).
+ * Do tego dnia zostawał jeszcze początek, „bo widać wzorzec ataku" — a że
+ * w tym polu bywa HASŁO (A1 niżej), były to trzy pierwsze znaki sekretu
+ * w bazie na 90 dni. Kształt wartości tego nie rozstrzygał: kryterium
+ * `sanitize_user( $x, true ) === $x` przepuszcza każde hasło bez znaku
+ * specjalnego. Istniejące konta zapisujemy dosłownie i tego pilnuje osobne
+ * sprawdzenie w bloku A1 — tam mieszka cała wartość dowodowa.
  */
 sprawdz(
-  (poPorazce[0]?.login ?? "").startsWith(LOGIN_NIEISTNIEJACY.slice(0, 3)) &&
-    (poPorazce[0]?.login ?? "").includes(String(LOGIN_NIEISTNIEJACY.length)),
-  `wiersz porażki zapisał login „${poPorazce[0]?.login}” — oczekiwano początku „${LOGIN_NIEISTNIEJACY.slice(0, 3)}” i długości ${LOGIN_NIEISTNIEJACY.length}. To jedyna informacja o tym, kogo próbowano podszyć, więc nie może zniknąć w całości`
+  (poPorazce[0]?.login ?? "").includes(String(LOGIN_NIEISTNIEJACY.length)),
+  `wiersz porażki nie zapisał nawet długości podanej wartości: „${poPorazce[0]?.login}” — bez niej nie widać ANI śladu próby`
+);
+sprawdz(
+  !(poPorazce[0]?.login ?? "").includes(LOGIN_NIEISTNIEJACY.slice(0, 3)),
+  `wiersz porażki zostawił początek podanej wartości: „${poPorazce[0]?.login}”. W polu loginu bywa hasło (A1), a kształt nie odróżnia go od loginu — więc z wartości nieistniejącego konta nie zostaje ani jeden znak`
 );
 sprawdz(
   poPorazce[0]?.user_id === null,
@@ -622,16 +628,29 @@ sprawdz(
 );
 sprawdz(
   !(poSekrecie[0]?.login ?? "").includes(SEKRET.slice(0, 3)),
-  `wartość, która NIE JEST loginem (ma znak spoza \`sanitize_user\`), zostawiła w dzienniku swój początek: „${poSekrecie[0]?.login}”. W pole loginu trafia czasem hasło (A1) — wtedy każdy zachowany znak jest fragmentem sekretu na 90 dni, wbrew zdaniu polityki „Nie zapisujemy haseł ani ich fragmentów”. Wzorzec ataku (adm…, roo…) zostaje przy wartościach, które loginem być mogą — to sprawdza asercja niżej`
+  `wartość nieistniejącego konta zostawiła w dzienniku swój początek: „${poSekrecie[0]?.login}”. W pole loginu trafia czasem hasło (A1) — wtedy każdy zachowany znak jest fragmentem sekretu na 90 dni, wbrew zdaniu polityki „Nie zapisujemy haseł ani ich fragmentów”. Od 2026-09-05 nie zostawiamy znaku z ŻADNEJ wartości, która nie wskazuje konta — kształt jej nie odróżnia`
 );
 
-/* A1, druga strona: ISTNIEJĄCE konto zapisujemy dosłownie. */
 /*
- * DRUGA POŁOWA A1 — wzorzec ataku ma przetrwać.
- * Maskowanie sekretu nie może zabrać kolumnie sensu: wartość, która MOŻE być
- * loginem (przechodzi `sanitize_user` w trybie ścisłym bez zmiany), zostawia
- * początek, bo po to ta kolumna istnieje. Bez tej asercji naprawa wycieku
- * mogłaby wyciszyć dziennik w całości i nikt by tego nie zauważył.
+ * DRUGA POŁOWA A1 — WARTOŚĆ O KSZTAŁCIE LOGINU TEŻ NIE ZOSTAWIA ZNAKU.
+ *
+ * TA ASERCJA WYMAGAŁA WCZEŚNIEJ WYCIEKU, i to jest jej cała historia.
+ * Brzmiała: „wartość mogąca być loginem MUSI zostawić początek, bo po to ta
+ * kolumna istnieje" — czyli bramka pilnowała, żeby prefiks przetrwał. Tyle że
+ * kryterium „może być loginem" to `sanitize_user( $x, true ) === $x`, które
+ * przepuszcza KAŻDE hasło bez znaku specjalnego. Zmierzone przez prawdziwy
+ * formularz: `Haslo123` → `Has…(8 znaków)`, `MojeTajneHaslo2026` →
+ * `Moj…(18 znaków)`. Bramka broniła usterki — druga taka w tym repozytorium.
+ *
+ * Od 2026-09-05 wartość, która NIE wskazuje istniejącego konta, nie zostawia
+ * ANI JEDNEGO znaku, niezależnie od kształtu. Wartości dowodowej pilnuje
+ * asercja niżej: istniejące konto dalej zapisujemy dosłownie — i tam sekretu
+ * z definicji nie ma. Wzorzec ataku na loginy NIEISTNIEJĄCE oddajemy
+ * świadomie: nie da się po kształcie odróżnić loginu od hasła.
+ *
+ * Kontrprzykład jest w tej samej asercji: wiersz MUSI powstać i MUSI nieść
+ * długość. Inaczej „nie ma prefiksu" przechodziłoby też wtedy, gdyby dziennik
+ * przestał zapisywać cokolwiek.
  */
 const WZORZEC_ATAKU = "administrator_probny";
 const przedWzorcem = maxId();
@@ -648,10 +667,15 @@ await gosc2().pobierz("/wp-login.php", {
 });
 const poWzorcu = nowszeNiz(przedWzorcem);
 sprawdz(
-  (poWzorcu[0]?.login ?? "").startsWith(WZORZEC_ATAKU.slice(0, 3)) &&
-    (poWzorcu[0]?.login ?? "").includes(String(WZORZEC_ATAKU.length)),
-  `wartość mogąca być loginem straciła początek: „${poWzorcu[0]?.login}” — wtedy nie widać wzorca ataku (adm…, roo…, tes…), a po to ta kolumna istnieje`
+  poWzorcu.length === 1 && (poWzorcu[0]?.login ?? "").includes(String(WZORZEC_ATAKU.length)),
+  `próba na NIEISTNIEJĄCE konto nie zostawiła w dzienniku wiersza z długością wartości: „${poWzorcu[0]?.login}” (wierszy: ${poWzorcu.length}) — bez tego asercja „nie ma prefiksu" przechodziłaby także przy martwym dzienniku`
 );
+sprawdz(
+  !(poWzorcu[0]?.login ?? "").includes(WZORZEC_ATAKU.slice(0, 3)),
+  `wartość o kształcie loginu zostawiła w dzienniku swój początek: „${poWzorcu[0]?.login}”. Kształt NIE odróżnia loginu od hasła: „Haslo123” przechodzi sanitize_user w trybie ścisłym tak samo jak „admin”, więc każdy zachowany znak bywa fragmentem sekretu na 90 dni, wbrew zdaniu polityki „Nie zapisujemy haseł ani ich fragmentów”`
+);
+
+/* A1, druga strona: ISTNIEJĄCE konto zapisujemy dosłownie. */
 
 const przedIstniejacym = maxId();
 await gosc2().pobierz("/wp-login.php", {
