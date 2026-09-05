@@ -166,10 +166,27 @@ fi
 # bierze Tutor, koszyk i płatności WooCommerce. Nasze wtyczki nie
 # przepisują tego, co te dwie mają z pudełka.
 
+# WERSJE SĄ PRZYPIĘTE, I TO NIE JEST OSTROŻNOŚĆ NA WYROST.
+#
+# `wp plugin install woocommerce` bez `--version` ciągnie NAJNOWSZE wydanie,
+# a to wymaga już WordPressa 7.0. Obraz tego warsztatu stoi na 6.9.4
+# (compose.yml), więc instalacja kończy się odmową — a że skrypt biegnie pod
+# `set -euo pipefail`, przerywa się CAŁY, w połowie stawiania środowiska.
+# U obcego klienta, który dostaje tę procedurę jako jedyną drogę do
+# uruchomienia wtyczek, znaczy to „nie da się zainstalować", bez wskazówki
+# dlaczego.
+#
+# Przypięte są DOKŁADNIE te wersje, na których zmierzono wszystko, co ten
+# projekt twierdzi o cudzym kodzie: Woo 11.0.1 i Tutor 4.0.7 (fakty F1–F18
+# schematów, integracja Tutor↔Woo, mapy statusów, blokada koszyka). Podniesienie
+# którejkolwiek to decyzja, po której trzeba potwierdzić te fakty od nowa —
+# nie skutek uboczny stawiania środowiska w losowym dniu.
+declare -A WERSJE_WTYCZEK=( [woocommerce]="11.0.1" [tutor]="4.0.7" )
+
 for wtyczka in woocommerce tutor; do
   if [ "$(wpcli plugin get "$wtyczka" --field=status 2>/dev/null || echo brak)" = "brak" ]; then
-    komunikat "Instaluję ${wtyczka}"
-    wpcli plugin install "$wtyczka" --activate
+    komunikat "Instaluję ${wtyczka} ${WERSJE_WTYCZEK[$wtyczka]}"
+    wpcli plugin install "$wtyczka" --version="${WERSJE_WTYCZEK[$wtyczka]}" --activate
   elif [ "$(wpcli plugin get "$wtyczka" --field=status)" != "active" ]; then
     wpcli plugin activate "$wtyczka"
   fi

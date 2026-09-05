@@ -4,7 +4,7 @@
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Katalog /szkolenia, strony sprzedażowe kursów i kreator treści. Pierwsza z trzech wtyczek Automatic AI; sprzedaż bierze WooCommerce, dostęp do materiału Tutor LMS.
  * Version:           0.6.0
- * Requires at least: 6.5
+ * Requires at least: 6.9
  * Requires PHP:      8.1
  * Author:            Automatic AI
  * License:           MIT

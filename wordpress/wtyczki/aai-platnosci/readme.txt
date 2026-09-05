@@ -1,6 +1,6 @@
 === Automatic AI — Płatności ===
 Contributors: automaticai
-Requires at least: 6.5
+Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.1
 Stable tag: 0.2.0
@@ -30,7 +30,7 @@ Klientów, zamówień i płatności nie duplikujemy — mieszkają w WooCommerce
 
 == Wymagania ==
 
-* WordPress 6.5+, PHP 8.1+
+* WordPress 6.9+, PHP 8.1+
 * wtyczka `aai-sklep` (źródło prawdy o kursie i o cenie katalogowej)
 * WooCommerce (koszyk, kasa, faktury) i Tutor LMS (konta, dostęp do materiału)
 

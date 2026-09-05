@@ -1,6 +1,6 @@
 === Automatic AI — Monitoring ===
 Contributors: automaticai
-Requires at least: 6.5
+Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.1
 Stable tag: 0.5.0
@@ -31,7 +31,7 @@ natywnym mechanizmem WordPressa (Narzędzia → Prywatność).
 
 == Wymagania ==
 
-* WordPress 6.5+, PHP 8.1+
+* WordPress 6.9+, PHP 8.1+
 * nie wymaga ani WooCommerce, ani Tutor LMS, ani wtyczki `aai-sklep`
 
 == Komendy WP-CLI ==

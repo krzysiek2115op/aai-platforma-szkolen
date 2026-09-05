@@ -4,7 +4,7 @@
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Dziennik logowań (kto, kiedy, skąd) i pomiar wizyt (co oglądano i jak długo), plus ekran w kokpicie dla administratora. Trzecia z trzech wtyczek Automatic AI — rejestruje, niczego nie blokuje.
  * Version:           0.5.0
- * Requires at least: 6.5
+ * Requires at least: 6.9
  * Requires PHP:      8.1
  * Author:            Automatic AI
  * License:           MIT
