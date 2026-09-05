@@ -3414,17 +3414,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-## ═══ NAPRAWY PO AUDYCIE — KOD GOTOWY, CZEKA PR (2026-09-05) ═══
+## ═══ NAPRAWY PO AUDYCIE — PR #120 OTWARTY Z KOMPLETEM DOWODÓW (2026-09-05) ═══
 
 **CZYTAĆ PRZED PRACĄ: [docs/NAPRAWY-PO-AUDYCIE.md](docs/NAPRAWY-PO-AUDYCIE.md)**
 — decyzje właściciela D1–D11, stan **32 z 33** usterek, siedem lekcji tej pracy
 (w tym trzy zmierzone w cudzym kodzie), pułapki sesji i szacunki dalszych kroków.
 
-**GAŁĄŹ PRACY: `fix/naprawy-audytu-f1`** (od `main`; commity `a516fe4` …
-`ea51d98` + commit sierot). Katalogi `audyt/` i `re-audyt/` na niej NIE
-ISTNIEJĄ — sektory żyją na `re-audyt/sektor-re-audytu`, lista 33 usterek
-w `audyt/zgloszenia/` tamtej gałęzi. CHANGELOG **0.65.0** i README są gotowe
-(wersja podbita, strażnik wersji zielony).
+**GAŁĄŹ: `fix/naprawy-audytu-f1`** (od `main`; commity `a516fe4` … `582d4b9`
+napraw + `c3f2dd9` higiena bramki zwrotów + `7089136` dokument). Katalogi
+`audyt/` i `re-audyt/` na niej NIE ISTNIEJĄ — sektory żyją na
+`re-audyt/sektor-re-audytu`, lista 33 usterek w `audyt/zgloszenia/` tamtej
+gałęzi. CHANGELOG **0.65.0** i README gotowe.
 
 **DECYZJA WŁAŚCICIELA (2026-09-05): FALA 2 ODWOŁANA, ZROBILIŚMY NAPRAWY.**
 Po nich idzie **fala kontrolna** — 14 Pogłębiaczy, BEZ ról procesowych,
@@ -3434,6 +3434,30 @@ Po nich idzie **fala kontrolna** — 14 Pogłębiaczy, BEZ ról procesowych,
 (polityka prywatności wypiera się ciasteczek; treść prawna, prawnik, „przed
 pierwszym klientem"). `REA-ARCH-F1-002` nie dotyczy produktu. **Napraw kodu
 NIE ZOSTAŁO.**
+
+**DOWODY PRZED PR-em (sesja 2026-09-05, wszystkie kody wyjścia BEZ potoku):**
+`npm run check` kod 0 (strażnicy 39/39, testy 83/83, lint, tsc, build,
+7 smoke'ów prototypu), audyt mutacyjny **351** (349 złapanych, 0 przeoczonych,
+0 martwych), **15/15 bramek WP**: dane 30 · front 86 · tutor 44 · lekcja 57 ·
+kreator 102 · panel 55 · płatności 23 · produkty 85 · zakup 58 · zwroty 39 ·
+maile 62 · język 25 · motyw 91 · monitor 181 · seo 169; `wp:sprawdz` kod 0
+(73/73 co do znaku), `wp:tutor` 0 różnic, obie kontrole kod 0.
+
+**PRZELOT ZŁAPAŁ DWIE RZECZY, KTÓRYCH POMIARY SESJI NAPRAW NIE WIDZIAŁY
+(obie w ŚRODOWISKU DOWODOWYM, nie w kodzie wtyczek):**
+1. **`smoke-wp-zwroty` zostawiał 5 osieroconych notatek** po zamówieniu z cudzym
+   produktem (hak słusznie ich nie rusza — zamek 1) i gasił kontrolę, a z nią
+   trzy asercje `smoke-wp-maile` biegnącej po nim. „Zwroty 39" z sesji napraw
+   było zmierzone PRZED regułą liczącą sieroty. Naprawione (`c3f2dd9`, wzorzec
+   z zakupu), dowód: 1 z 39 → 39/39, sieroty 0. **Lekcja: nowa reguła kontroli
+   wymaga powtórzenia KAŻDEJ bramki, która ją woła — nie tylko tej, przy której
+   powstała.**
+2. **DNS kontenera** — zapis „kontener nie ma sieci" nazywał objaw: sieć po IP
+   działa, nie działał `aardvark-dns` podmana z nieaktualnym upstreamem, którego
+   `down`/`postaw.sh` NIE odświeża (trzyma go przy życiu `db1_kursy` z drugiej
+   sieci). Naprawa: `podman-compose down` → `kill <pid aardvark-dns>` →
+   `./postaw.sh`. Po tym tłumaczenia wchodzą (276 plików) i `smoke-wp-jezyk`
+   25/25. Szczegóły: pułapki w NAPRAWY-PO-AUDYCIE.md.
 
 **SIEDEM LEKCJI TEJ PRACY (pełnia w dokumencie; nie odkrywać od nowa):**
 1. bramka broniła usterki (fragment hasła jako WYMAGANIE w smoke'u);
@@ -3449,21 +3473,22 @@ NIE ZOSTAŁO.**
    przeszła na zielono z pustą pętlą) — reguły idą za DECYZJĄ po całym
    katalogu i mają samokontrolę zakresu.
 
-**PUŁAPKI: `| tail` maskuje kod wyjścia (dwa razy w jednej sesji); PHP wtyczek
-edytować tylko, gdy żaden smoke nie biegnie na `:8892`; `git stash push --
-<plik>` gdy strażnik pilnuje kodu, którego jeszcze nie ma.**
+**PUŁAPKI: `| tail` maskuje kod wyjścia; w zsh `${PIPESTATUS[0]}` jest PUSTE
+(zmienna nazywa się `pipestatus`) — mierz `$?` bez potoku; PHP wtyczek edytować
+i audyt mutacyjny puszczać tylko, gdy żaden smoke ani `postaw.sh` nie biegnie
+na `:8892`; `git stash push -- <plik>` gdy strażnik pilnuje kodu, którego
+jeszcze nie ma; komentarze zamówień Woo mają daty w UTC (kontener), nie
+lokalne.**
 
-**ŚRODOWISKO `:8892` (stan po sesji):** monitoring 26 logowań / 30 wizyt (dane
-właściciela z T4, ślady testowe skasowane jawną listą — D5), sieroty po
-zamówieniach 0/0 (historyczne skasowane `sieroty --usun` — D11, zrzut w
-`~/.cache/aai-kopie/`), zamówienia 0, kontrole obu wtyczek kod 0, sprzedaż
-OTWARTA, konto `klient-test` (NIE kasować).
+**ŚRODOWISKO `:8892` (stan po sesji PR):** postawione od nowa `postaw.sh`
+(kod 0), monitoring 26 logowań / 30 wizyt (dane właściciela z T4), sieroty
+0/0, zamówienia 0, kontrole obu wtyczek kod 0, sprzedaż OTWARTA, konto
+`klient-test` (NIE kasować), tłumaczenia wgrane.
 
 **NASTĘPNY KROK (w tej kolejności):**
-1. Jeśli commit sierot jeszcze nie leży na gałęzi: `git status` → zakończyć
-   commitem (finalny `smoke-wp-zakup` ma dać **58/58**).
-2. **PR `fix/naprawy-audytu-f1` → `main`, tag `v0.65.0`, release** (~1 h:
-   pełny `npm run check`, przelot bramek WP, weryfikacja artefaktu
-   `git diff origin/main <szczyt>` PUSTY).
+1. **PR #120** (`fix/naprawy-audytu-f1` → `main`): CI zielone → `gh pr merge
+   --merge --delete-branch` (merge commit, jak #119) → tag `v0.65.0` + release
+   → weryfikacja artefaktu `git diff origin/main <szczyt>` PUSTY.
+2. Zapis wyniku merge'u w tym pliku (osobny docs-PR, jak #119).
 3. **Fala kontrolna** potokiem, dwa tory środowiskowe (~pół dnia–dzień
    zegarowo), na `re-audyt/sektor-re-audytu` po scaleniu `main`.
