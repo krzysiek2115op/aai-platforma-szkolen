@@ -1731,6 +1731,39 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* OSTATNIE OGNIWO SPRZEDAŻY I ODEBRANIA DOSTĘPU MIERZYMY ODCZYTEM (P4, Z-4/Z-8).
+
+   Obie te operacje idą przez API, które NIE ODDAJE użytecznego wyniku:
+   `update_post_meta()` zwraca `false` także wtedy, gdy wartość już była taka
+   sama, a `course_enrol_status_change()` Tutora robi surowy `$wpdb->update`
+   i odrzuca jego wynik. Jedyną uczciwą drogą jest odczyt po zapisie — tak
+   samo, jak pyta kontrola. */
+{
+  const zapisOgniwo = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+  // $komplet rozstrzyga, czy produkt pójdzie na `publish`, czyli czy kurs
+  // da się KUPIĆ. Nie wolno go ustawiać na wiarę po samych zapisach.
+  if (/\$komplet\s*=\s*true\s*;/.test(zapisOgniwo)) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: $komplet ustawiane na sztywno (= true). To ono decyduje, czy produkt idzie na publish, czyli czy kurs da się kupić — a zapis powiązania w Tutorze może zostać zablokowany cudzym filtrem update_post_metadata. Mierz ODCZYTEM po zapisie (get_post_meta), nie wynikiem update_post_meta(), bo ten oddaje false także przy wartości niezmienionej (Z-4).`
+    );
+  }
+  if (!/\$komplet\s*=\s*'paid'\s*===[\s\S]{0,400}?get_post_meta\([\s\S]{0,200}?_tutor_course_product_id/.test(zapisOgniwo)) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: $komplet nie jest wyprowadzane z ODCZYTU obu mety powiązania w Tutorze. Bez tego produkt staje się kupowalny na słowo honoru, a klient płaci za kurs, którego do_enroll() nie ma czego zapisać (B3).`
+    );
+  }
+
+  const dostOgniwo = join(KATALOG, "includes", "class-aai-platnosci-dostarczanie.php");
+  if (existsSync(dostOgniwo)) {
+    const d = kod(readFileSync(dostOgniwo, "utf8"));
+    if (!/course_enrol_status_change\([\s\S]{0,400}?status_zapisu\(/.test(d)) {
+      bledy.push(
+        `${dostOgniwo}: odebranie dostępu po skasowaniu zamówienia nie jest weryfikowane odczytem (status_zapisu). Tutor odrzuca wynik swojego $wpdb->update, więc wywołanie „udaje się" zawsze — przy nieudanym zapisie klient zachowuje kurs po obciążeniu zwrotnym, a nikt się o tym nie dowiaduje (Z-8).`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1738,5 +1771,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, każdy zapis wpisu odbiera swój wynik, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, każdy zapis wpisu odbiera swój wynik, kupowalność i odebranie dostępu mierzone odczytem, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products)."
 );

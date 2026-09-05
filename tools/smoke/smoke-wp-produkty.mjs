@@ -431,6 +431,81 @@ php(`Aai_Sklep_Zapis::usun_kurs('${KURS}', 'smoke-p2', true, true);`);
 sprawdz(wp("post", "get", String(produkt), "--field=post_status").out === "draft", "po usunięciu kursu produkt nie jest draft");
 sprawdz(wp("post", "get", String(produkt), "--field=ID").out === String(produkt), "po usunięciu kursu produkt ZNIKNĄŁ — kasowanie jest zakazane (niezmiennik 13)");
 
+/* ── 9b. zablokowany zapis powiązania NIE publikuje produktu ────────── */
+
+/*
+ * „KLIENT PŁACI I NIE DOSTAJE NIC" (B3) — najgroźniejszy stan tego szwu.
+ *
+ * O tym, czy produkt pójdzie na `publish` (czyli czy kurs da się KUPIĆ),
+ * rozstrzyga `$komplet`. Do 0.71.0 ustawialiśmy je zaraz po dwóch
+ * `update_post_meta()` w Tutorze, bez pytania, czy zapisy doszły. Cudza
+ * wtyczka LMS/membership rejestrująca filtr `update_post_metadata` na
+ * `_tutor_course_product_id` (robi tak niejedna) blokuje zapis — a wtedy
+ * produkt jest opublikowany, strona pokazuje przycisk do kasy, klient
+ * płaci, a `do_enroll()` nie ma czego zapisać.
+ *
+ * Mierzymy dokładnie ten scenariusz: filtr blokujący zapis TEJ mety na
+ * czas jednej synchronizacji.
+ */
+{
+  zapiszKurs("published", 19900);
+  wp("aai-platnosci", "sync", SLUG);
+  /*
+   * IDENTYFIKATORY CZYTAMY NA ŚWIEŻO. Blok 9 kasuje kurs testowy, więc
+   * `produkt` i `tutor` z początku przebiegu wskazują wtedy wpisy, których
+   * już nie ma — pierwszy przelot tego bloku mierzył przez to NIEISTNIEJĄCY
+   * produkt i raportował „publish” tam, gdzie nie było nic.
+   */
+  const produkt9b = produktKursu();
+  const tutor9b = tutorKursu();
+  sprawdz(produkt9b > 0 && tutor9b > 0, "scena 9b nie powstała (produkt albo kopia w Tutorze) — pomiar byłby ślepy");
+  sprawdz(
+    wp("post", "get", String(produkt9b), "--field=post_status").out === "publish",
+    "scena 9b: produkt miał być publish przed pomiarem — inaczej „został draft” nic nie dowodzi"
+  );
+
+  // Zdejmujemy metę i blokujemy jej ponowny zapis — tak samo zachowa się
+  // cudzy filtr, który po prostu odmawia.
+  php(`delete_post_meta(${tutor9b}, '_tutor_course_product_id');`);
+  const wynikBlokady = php(
+    `add_filter( 'update_post_metadata', function ( $x, $id, $klucz ) {` +
+      ` return '_tutor_course_product_id' === $klucz ? false : $x; }, 10, 3 );` +
+      ` $w = Aai_Platnosci_Zapis::synchronizuj_kurs( '${KURS}' );` +
+      ` echo get_post_status( ${produkt9b} ) . '|' . ( empty( $w['uwagi'] ) ? '' : implode( ' ', $w['uwagi'] ) );`
+  );
+  const [statusPoBlokadzie, uwagi] = wynikBlokady.split("|");
+  sprawdz(
+    statusPoBlokadzie === "draft",
+    `zablokowany zapis powiązania zostawił produkt w „${statusPoBlokadzie}” — kurs da się kupić, a Tutor nie ma czego zapisać przy zakupie (B3)`
+  );
+  sprawdz(
+    /NIE zapisało się w Tutorze/.test(uwagi),
+    "synchronizacja nie POWIEDZIAŁA, że powiązanie się nie zapisało — cichy szkic wygląda jak zwykły stan przejściowy"
+  );
+
+  // Przywracamy: bez filtru ta sama synchronizacja ma dokończyć robotę.
+  wp("aai-platnosci", "sync", SLUG);
+  sprawdz(
+    wp("post", "get", String(produkt9b), "--field=post_status").out === "publish",
+    "po zdjęciu blokady synchronizacja nie przywróciła publikacji produktu"
+  );
+  sprawdz(
+    wartosc(`(int) get_post_meta( ${tutor9b}, '_tutor_course_product_id', true )`) === String(produkt9b),
+    "po zdjęciu blokady powiązanie w Tutorze nie wróciło"
+  );
+
+  /*
+   * Ten blok ODTWORZYŁ kurs testowy skasowany w bloku 9, więc musi go
+   * skasować z powrotem — inaczej końcowe sprzątanie zdejmuje produkt
+   * i powiązanie, a kurs zostaje i kontrola słusznie świeci „kurs płatny
+   * bez wiersza w powiazania" (zmierzone).
+   */
+  php(`Aai_Sklep_Zapis::usun_kurs('${KURS}', 'smoke-p2', true, true);`);
+  php(`Aai_Platnosci_Zapis::powiazanie_usun('${KURS}');`);
+  wp("post", "delete", String(produkt9b), "--force");
+  if (tutor9b > 0) wp("post", "delete", String(tutor9b), "--force");
+}
+
 /* ── 10. przerwanie WEWNĄTRZ WC_Product::save() ─────────────────────── */
 
 /*
