@@ -121,11 +121,37 @@ add_action(
 		 * bronić, sam by się wywrócił. Bez kanału zostaje log serwera —
 		 * gorzej widoczny, ale nie wywraca strony.
 		 */
+		/*
+		 * KAŻDY KROK WE WŁASNEJ OSŁONIE (2026-09-05). Wszystkie sześć stało
+		 * pod JEDNYM `try`, więc awaria pierwszego — a pierwszy sięga do BAZY
+		 * — zabierała pięć pozostałych: dziennik logowań, timer wizyt, ekran
+		 * i wpis do polityki prywatności milkły razem, na jeden komunikat.
+		 * Monitoring, który cicho przestaje mierzyć, jest gorszy niż jego brak:
+		 * pusty ekran czyta się jak „nikt nie próbował się włamać".
+		 * Ta sama naprawa co w `aai-sklep`, gdzie skutek był cięższy (zamek
+		 * wycieku płatnej treści stał ostatni pod tym samym `try`).
+		 */
+		$awarie = array();
+
+		/**
+		 * Uruchamia jeden krok startu tak, żeby jego awaria nie zabrała reszty.
+		 *
+		 * @param string   $nazwa Nazwa kroku — trafia do komunikatu.
+		 * @param callable $krok  Rejestracja do wykonania.
+		 */
+		$bezpiecznie = static function ( string $nazwa, callable $krok ) use ( &$awarie ): void {
+			try {
+				$krok();
+			} catch ( Throwable $e ) {
+				$awarie[] = $nazwa . ': ' . $e->getMessage();
+			}
+		};
+
 		try {
-			Aai_Monitor_Tabele::dociagnij_schemat();
+			$bezpiecznie( 'schemat tabel', static fn() => Aai_Monitor_Tabele::dociagnij_schemat() );
 			// Wersje, na których dowiedziono haki — różnica NIE blokuje
 			// wtyczki, tylko każe potwierdzić fakty od nowa (L17 z P2).
-			Aai_Monitor_Zaleznosci::zarejestruj();
+			$bezpiecznie( 'zależności', static fn() => Aai_Monitor_Zaleznosci::zarejestruj() );
 		// Ekran kokpitu. Priorytet 20, bo wtyczki ładują się alfabetycznie
 		// i `aai-monitor` biegnie PRZED `aai-sklep` — przy domyślnym
 		// priorytecie nasza pozycja wchodziłaby do podmenu Pluginu 1
@@ -150,15 +176,19 @@ add_action(
 		 * żądaniu, także na froncie sklepu. Monitoring nie ma prawa
 		 * wywrócić strony, której tylko się przygląda.
 		 */
-			Aai_Monitor_Logowania::zarejestruj();
-			Aai_Monitor_Wizyty::zarejestruj();
-			Aai_Monitor_Pomiar::zarejestruj();
-			Aai_Monitor_Prywatnosc::zarejestruj();
+			$bezpiecznie( 'dziennik logowań', static fn() => Aai_Monitor_Logowania::zarejestruj() );
+			$bezpiecznie( 'timer wizyt', static fn() => Aai_Monitor_Wizyty::zarejestruj() );
+			$bezpiecznie( 'pomiar', static fn() => Aai_Monitor_Pomiar::zarejestruj() );
+			$bezpiecznie( 'wpis do polityki prywatności', static fn() => Aai_Monitor_Prywatnosc::zarejestruj() );
 			// Kanał błędów: zapis biegnie w cudzym żądaniu i łapie
 			// `Throwable`, więc bez tego uszkodzona tabela dawałaby PUSTĄ
 			// listę logowań, czytaną jak „nikt nie próbował" — fałszywy
 			// negatyw na jedynym ekranie, który ma ostrzegać (P13).
-			Aai_Monitor_Komunikaty::zarejestruj();
+			$bezpiecznie( 'kanał błędów', static fn() => Aai_Monitor_Komunikaty::zarejestruj() );
+
+			if ( array() !== $awarie ) {
+				throw new RuntimeException( implode( ' | ', $awarie ) );
+			}
 		} catch ( Throwable $e ) {
 			if ( class_exists( 'Aai_Monitor_Komunikaty' ) ) {
 				Aai_Monitor_Komunikaty::zapisz( 'nie udało się uruchomić monitoringu: ' . $e->getMessage() );
