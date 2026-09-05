@@ -1223,6 +1223,80 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- P1 poz. 16: gałęzie strażników z 0.65.0, które NIE MIAŁY mutacji ---
+  // Sześć gałęzi wskazał krytyk QA fali kontrolnej: każda jest ŻYWA (zapala
+  // regułę), ale żadna nie była pilnowana przez audyt — czyli mogła umrzeć
+  // po cichu przy pierwszym refaktorze.
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "sprzątanie notatek traci własny try/catch — awaria po stronie Woo przerywa kasowanie zamówienia",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "try/catch",
+    zmien: (s) =>
+      s.includes("\t\t\t// Zamek 4: osobny try.\n\t\t\ttry {\n\t\t\t\tif ( function_exists( 'wc_get_order_notes' )")
+        ? s.replace(
+            "\t\t\t// Zamek 4: osobny try.\n\t\t\ttry {\n\t\t\t\tif ( function_exists( 'wc_get_order_notes' )",
+            "\t\t\t// Zamek 4: osobny try.\n\t\t\tif ( true ) {\n\t\t\t\tif ( function_exists( 'wc_get_order_notes' )"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "hak kasowania zamówienia traci jawny priorytet — Woo kasuje pozycje zanim dojdzie do nas, więc sprzątanie nie dzieje się NIGDY",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-dostarczanie.php"),
+    oczekiwanySlad: "jawnym priorytetem",
+    zmien: (s) =>
+      /add_action\(\s*'woocommerce_before_delete_order'\s*,\s*array\( self::class, 'zamowienie_znika' \)\s*,\s*\d+\s*,\s*\d+\s*\)/.test(s)
+        ? s.replace(
+            /add_action\(\s*'woocommerce_before_delete_order'\s*,\s*(array\( self::class, 'zamowienie_znika' \))\s*,\s*\d+\s*,\s*\d+\s*\)/,
+            "add_action( 'woocommerce_before_delete_order', $1 )"
+          )
+        : null,
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "licznik sierot łączy tabele przez INNER JOIN — wiersz bez zamówienia wypada z wyniku, więc kontrola liczy zawsze zero",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php"),
+    oczekiwanySlad: "osierocone",
+    zmien: (s) => (s.includes("LEFT JOIN") ? s.split("LEFT JOIN").join("INNER JOIN") : null),
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "rozstrzygnięcie „klient ma ten kurs” przestaje być stałą — przycisk i dostępność czytają luźny napis",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-posiadanie.php"),
+    oczekiwanySlad: "ma ten kurs",
+    zmien: (s) =>
+      s.includes("\t\t\treturn self::MA_KURS;") ? s.replace("\t\t\treturn self::MA_KURS;", "\t\t\treturn 'ma';") : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "sól podpisu pytana najpierw w starej opcji, a dopiero potem w tabeli — własna tabela staje się ozdobą",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php"),
+    oczekiwanySlad: "sol()",
+    zmien: (s) =>
+      s.includes("\t\t$sol = self::sol_z_tabeli();")
+        ? s.replace("\t\t$sol = self::sol_z_tabeli();", "\t\t$sol = self::sol_z_opcji();")
+        : null,
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "sól zapisywana surowym INSERT-em z pominięciem warstwy zapisu",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-podpis.php"),
+    oczekiwanySlad: "warstw",
+    zmien: (s) =>
+      s.includes("Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat )")
+        ? s.replace(
+            "Aai_Monitor_Zapis::ustawienie_utworz( self::KLUCZ_SOLI, $kandydat )",
+            "( function () use ( $kandydat ) { global $wpdb; $wpdb->query( 'SELECT 1' ); return $kandydat; } )()"
+          )
+        : null,
+  },
   // --- straznik-wtyczki-wp, P1 poz. 18: wersje wtyczek i paczki dla klienta ---
   {
     straznik: "straznik-wtyczki-wp",
