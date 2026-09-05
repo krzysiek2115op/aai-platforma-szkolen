@@ -1199,6 +1199,28 @@ MUTACJE_ROLI.push(
     slad: /PO wejściu re-audytu/,
   },
   {
+    /* D15 (2026-09-05): wpis historii z próby na sucho NIE jest wejściem fali.
+       Zmierzone na SEC: próba E7.6 zostawiła w historii wpis z 2026-09-01,
+       dział SEC audytu zakończył się 2026-09-03, prawdziwe wejście 2026-09-04 —
+       reguła brała wpis próbny za wejście i zatrzymywała falę kontrolną. */
+    opis: "wpis próbny w historii Pogłębiacza (BEZ pola `proba`) sprzed zakończenia działu audytu MUSI zapalać regułę",
+    regula: 17,
+    wykonaj: () => mutacjaStanu(
+      { sektor: "re-audyt", status: "W TRAKCIE", kiedy: T[3], historia: [wpis("ZAKOŃCZONE", 1, T[0]), wpis("W TRAKCIE", 0, T[3])], runda: 0 },
+      { historia: [wpis("W TRAKCIE", 1, T[1]), wpis("ZAKOŃCZONE", 1, T[2])], kiedy: T[2] }
+    ),
+    slad: /PO wejściu re-audytu/,
+  },
+  {
+    opis: "KONTRPRZYKŁAD: ten sam wpis OZNACZONY `proba` nie jest wejściem — chwilą wejścia jest pierwszy wpis prawdziwej fali",
+    regula: 17,
+    wykonaj: () => mutacjaStanu(
+      { sektor: "re-audyt", status: "W TRAKCIE", kiedy: T[3], historia: [{ ...wpis("ZAKOŃCZONE", 1, T[0]), proba: "E7.6" }, wpis("W TRAKCIE", 0, T[3])], runda: 0 },
+      { historia: [wpis("W TRAKCIE", 1, T[1]), wpis("ZAKOŃCZONE", 1, T[2])], kiedy: T[2] }
+    ),
+    oczekujCzerwonego: false,
+  },
+  {
     opis: "historia przejść BEZ czasu — kolejności wejść nie da się porównać",
     regula: 17,
     wykonaj: () => mutacjaStanu({ historia: [{ status: "ZAKOŃCZONE", runda: 1 }] }),

@@ -1,0 +1,391 @@
+{
+  "kiedy": "2026-09-05T08:51:47.185Z",
+  "baza": "wordpress",
+  "tabel": 81,
+  "skrot_tabel": "1685ecd77349f0ad83b2cac076a4ec3a42a733b802c972febf548c52f64da150",
+  "nasze": {
+    "wp_aai_monitor_logowania": {
+      "wierszy": 26,
+      "auto_increment": 387
+    },
+    "wp_aai_monitor_ustawienia": {
+      "wierszy": 1,
+      "auto_increment": null
+    },
+    "wp_aai_monitor_wizyty": {
+      "wierszy": 30,
+      "auto_increment": 242
+    },
+    "wp_aai_platnosci_dostawy": {
+      "wierszy": 6,
+      "auto_increment": 627
+    },
+    "wp_aai_platnosci_powiazania": {
+      "wierszy": 2,
+      "auto_increment": null
+    },
+    "wp_aai_sklep_changelog": {
+      "wierszy": 1829,
+      "auto_increment": 1830
+    },
+    "wp_aai_sklep_courses": {
+      "wierszy": 2,
+      "auto_increment": null
+    },
+    "wp_aai_sklep_lessons": {
+      "wierszy": 73,
+      "auto_increment": null
+    },
+    "wp_aai_sklep_modules": {
+      "wierszy": 12,
+      "auto_increment": null
+    },
+    "wp_aai_sklep_sections": {
+      "wierszy": 22,
+      "auto_increment": null
+    }
+  },
+  "tabele": {
+    "wp_aai_monitor_logowania": {
+      "wierszy": 26,
+      "auto_increment": 387
+    },
+    "wp_aai_monitor_ustawienia": {
+      "wierszy": 1,
+      "auto_increment": null
+    },
+    "wp_aai_monitor_wizyty": {
+      "wierszy": 30,
+      "auto_increment": 242
+    },
+    "wp_aai_platnosci_dostawy": {
+      "wierszy": 6,
+      "auto_increment": 627
+    },
+    "wp_aai_platnosci_powiazania": {
+      "wierszy": 2,
+      "auto_increment": null
+    },
+    "wp_aai_sklep_changelog": {
+      "wierszy": 1829,
+      "auto_increment": 1830
+    },
+    "wp_aai_sklep_courses": {
+      "wierszy": 2,
+      "auto_increment": null
+    },
+    "wp_aai_sklep_lessons": {
+      "wierszy": 73,
+      "auto_increment": null
+    },
+    "wp_aai_sklep_modules": {
+      "wierszy": 12,
+      "auto_increment": null
+    },
+    "wp_aai_sklep_sections": {
+      "wierszy": 22,
+      "auto_increment": null
+    },
+    "wp_actionscheduler_actions": {
+      "wierszy": 437,
+      "auto_increment": 442
+    },
+    "wp_actionscheduler_claims": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_actionscheduler_groups": {
+      "wierszy": 6,
+      "auto_increment": 7
+    },
+    "wp_actionscheduler_logs": {
+      "wierszy": 437,
+      "auto_increment": 438
+    },
+    "wp_commentmeta": {
+      "wierszy": 0,
+      "auto_increment": 1693
+    },
+    "wp_comments": {
+      "wierszy": 1,
+      "auto_increment": 1694
+    },
+    "wp_links": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_options": {
+      "wierszy": 435,
+      "auto_increment": 5255
+    },
+    "wp_postmeta": {
+      "wierszy": 1904,
+      "auto_increment": 9185
+    },
+    "wp_posts": {
+      "wierszy": 314,
+      "auto_increment": 1865
+    },
+    "wp_termmeta": {
+      "wierszy": 1,
+      "auto_increment": 2
+    },
+    "wp_terms": {
+      "wierszy": 94,
+      "auto_increment": 95
+    },
+    "wp_term_relationships": {
+      "wierszy": 171,
+      "auto_increment": null
+    },
+    "wp_term_taxonomy": {
+      "wierszy": 94,
+      "auto_increment": 95
+    },
+    "wp_tutor_carts": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_cart_items": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_coupons": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_coupon_applications": {
+      "wierszy": 0,
+      "auto_increment": null
+    },
+    "wp_tutor_coupon_usages": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_customers": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_earnings": {
+      "wierszy": 0,
+      "auto_increment": 396
+    },
+    "wp_tutor_legal_consents": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_legal_consent_logs": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_ordermeta": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_orders": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_order_itemmeta": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_order_items": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_quiz_attempts": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_quiz_attempt_answers": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_quiz_questions": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_quiz_question_answers": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_scheduler": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_user_consents": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_tutor_withdraws": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_usermeta": {
+      "wierszy": 49,
+      "auto_increment": 3133
+    },
+    "wp_users": {
+      "wierszy": 2,
+      "auto_increment": 153
+    },
+    "wp_wc_admin_notes": {
+      "wierszy": 1,
+      "auto_increment": 2
+    },
+    "wp_wc_admin_note_actions": {
+      "wierszy": 1,
+      "auto_increment": 2
+    },
+    "wp_wc_category_lookup": {
+      "wierszy": 0,
+      "auto_increment": null
+    },
+    "wp_wc_customer_lookup": {
+      "wierszy": 0,
+      "auto_increment": 95
+    },
+    "wp_wc_download_log": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_wc_email_unsubscribes": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_wc_orders": {
+      "wierszy": 0,
+      "auto_increment": null
+    },
+    "wp_wc_orders_meta": {
+      "wierszy": 0,
+      "auto_increment": 1629
+    },
+    "wp_wc_order_addresses": {
+      "wierszy": 0,
+      "auto_increment": 429
+    },
+    "wp_wc_order_coupon_lookup": {
+      "wierszy": 0,
+      "auto_increment": null
+    },
+    "wp_wc_order_operational_data": {
+      "wierszy": 0,
+      "auto_increment": 4200
+    },
+    "wp_wc_order_product_lookup": {
+      "wierszy": 0,
+      "auto_increment": null
+    },
+    "wp_wc_order_stats": {
+      "wierszy": 0,
+      "auto_increment": null
+    },
+    "wp_wc_order_tax_lookup": {
+      "wierszy": 0,
+      "auto_increment": null
+    },
+    "wp_wc_product_attributes_lookup": {
+      "wierszy": 0,
+      "auto_increment": null
+    },
+    "wp_wc_product_download_directories": {
+      "wierszy": 2,
+      "auto_increment": 3
+    },
+    "wp_wc_product_meta_lookup": {
+      "wierszy": 2,
+      "auto_increment": null
+    },
+    "wp_wc_rate_limits": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_wc_reserved_stock": {
+      "wierszy": 0,
+      "auto_increment": null
+    },
+    "wp_wc_tax_rate_classes": {
+      "wierszy": 2,
+      "auto_increment": 3
+    },
+    "wp_wc_webhooks": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_api_keys": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_attribute_taxonomies": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_downloadable_product_permissions": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_log": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_order_itemmeta": {
+      "wierszy": 300,
+      "auto_increment": 4603
+    },
+    "wp_woocommerce_order_items": {
+      "wierszy": 30,
+      "auto_increment": 509
+    },
+    "wp_woocommerce_payment_tokenmeta": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_payment_tokens": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_sessions": {
+      "wierszy": 366,
+      "auto_increment": 577
+    },
+    "wp_woocommerce_shipping_zones": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_shipping_zone_locations": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_shipping_zone_methods": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_tax_rates": {
+      "wierszy": 0,
+      "auto_increment": 1
+    },
+    "wp_woocommerce_tax_rate_locations": {
+      "wierszy": 0,
+      "auto_increment": 1
+    }
+  },
+  "media": {
+    "plikow": 1343,
+    "bajtow": 31888625,
+    "skrot": "848a52ffdcc2a61ffcb96e8dc43716e89b348707ae309327ff10ff73a4cc4c47"
+  },
+  "wtyczki_aktywne": [
+    "aai-monitor",
+    "aai-platnosci",
+    "aai-sklep",
+    "tutor",
+    "woocommerce"
+  ],
+  "wersje": {
+    "wordpress": "6.9.4",
+    "tutor": "4.0.7",
+    "woocommerce": "11.0.1"
+  }
+}

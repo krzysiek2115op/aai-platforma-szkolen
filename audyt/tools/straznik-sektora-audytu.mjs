@@ -805,6 +805,15 @@ try {
    na wyjście po nazwie. Próba E7.6 przejechała Pogłębiacza SEC bez działu SEC
    audytu, czyli dokładnie to, czego ta reguła odtąd zabrania.
 
+   WPIS HISTORII z polem `proba` (D15, 2026-09-05) też wypada z porównania —
+   ale tylko ten wpis, nie cały stan. Wejście prawdziwej fali na plik z próby
+   zostawia wpisy próbne w historii (`zdejmijProbe` w `status.mjs`), więc bez
+   tego rozróżnienia chwilą wejścia Pogłębiacza SEC był wpis z 2026-09-01
+   (próba E7.6), wcześniejszy niż zakończenie działu SEC audytu z 2026-09-03 —
+   fałszywy alarm, który zatrzymał falę kontrolną. Wpis próbny jest OZNACZONY
+   polem, nie rozpoznawany po dacie z adnotacji: wpis BEZ pola i z tą samą datą
+   MUSI dalej zapalać regułę (pilnuje tego mutacja z kontrprzykładem).
+
    Reguła pyta o ZAWARTOŚĆ pliku stanu, nie o to, czy przeszedł przez
    `status.mjs`, i ma WŁASNY kod zamiast importu z narzędzia (jak reguła 21):
    pomiar tą samą funkcją, która produkuje stan, nie mierzy niczego. */
@@ -822,7 +831,9 @@ try {
     const NIE_ROZPOCZETO = "NIE ROZPOCZĘTO";
     /** Wejście: status inny niż NIE ROZPOCZĘTO **albo** choć jedna runda (`--runda` przed statusem to też wejście). */
     const wszedl = (w) => Boolean(w) && (w.status !== NIE_ROZPOCZETO || (w.runda ?? 0) > 0);
-    const chwilaWejscia = (w) => (w.historia ?? []).find(wszedl)?.kiedy ?? null;
+    /** Wpis historii z polem `proba` pochodzi z próby na sucho — nie jest wejściem fali (D15, 2026-09-05). */
+    const zProby = (wpis) => typeof wpis?.proba === "string" && wpis.proba.trim() !== "";
+    const chwilaWejscia = (w) => (w.historia ?? []).find((wpis) => !zProby(wpis) && wszedl(wpis))?.kiedy ?? null;
     /** Chwila zakończenia = początek OSTATNIEJ nieprzerwanej serii ZAKOŃCZONE w historii. */
     const chwilaZakonczenia = (w) => {
       const h = w.historia ?? [];
@@ -919,6 +930,8 @@ try {
     }
     uwagi.push(`plików stanu sprawdzonych: ${pliki.length}`);
     if (probne.length) uwagi.push(`stany PRÓBNE (poza kolejnością sektorów): ${probne.join(", ")}`);
+    const wpisyProbne = stany.flatMap(({ nazwa, w }) => (w.historia ?? []).filter(zProby).map((x) => `${nazwa}/${x.proba}@${x.kiedy}`));
+    if (wpisyProbne.length) uwagi.push(`wpisy historii z PRÓBY (poza chwilą wejścia): ${wpisyProbne.join(", ")}`);
   }
 }
 

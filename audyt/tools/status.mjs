@@ -603,6 +603,7 @@ function samokontrola() {
   const zProby = { sektor: "audyt", fala: 1, rola: "PIK", status: ZAKONCZONE, runda: 1, niedomkniete: ["PIK-01"], proba: "E6", historia: [{ status: ZAKONCZONE, runda: 1, kiedy: T[0] }] };
   const poWejsciu = zdejmijProbe(structuredClone(zProby), zProby.proba, T[1]);
   sprawdz("PRÓBA     wejście W TRAKCIE zdejmuje `proba`, zeruje rundę i niedomknięte, zostawia historię", !("proba" in poWejsciu) && poWejsciu.runda === 0 && poWejsciu.niedomkniete.length === 0 && poWejsciu.historia.length === 1);
+  sprawdz("PRÓBA     wpisy historii sprzed wejścia dostają znacznik próby (D15)", poWejsciu.historia[0].proba === "E6" && poWejsciu.historia[0].kiedy === T[0]);
   sprawdz("PRÓBA     adnotacja nazywa etap próby i chwilę wejścia", /E6/.test(poWejsciu.adnotacja) && poWejsciu.adnotacja.includes(T[1]));
   sprawdz("PRÓBA     KONTRPRZYKŁAD: stan próbny, do którego nikt nie wszedł, dalej nie blokuje środowiska", !naSrodowisku(powodyOdmowyStanu(zestaw(psiarzProbny), zm("re-audyt", 1, "WALID", null, "W TRAKCIE"))));
 
@@ -723,6 +724,10 @@ if (GLOWNY_MODUL) {
  */
 export function zdejmijProbe(stan, proba, kiedy) {
   delete stan.proba;
+  /* Wpisy historii sprzed wejścia dostają znacznik próby — reguła 17 strażnika
+     sektora pomija je przy liczeniu chwili wejścia (D15, 2026-09-05); bez tego
+     wpis z próby udawał wejście fali i zapalał kolejność sektorów (SEC, E7.6). */
+  stan.historia = (stan.historia ?? []).map((w) => (w.proba ? w : { ...w, proba }));
   stan.runda = 0;
   stan.niedomkniete = [];
   stan.adnotacja = `do ${kiedy} plik niósł stan PRÓBNY ${proba}; wpisy historii sprzed tej chwili pochodzą z próby, prawdziwa fala zaczęła się od tego wejścia`;

@@ -10,7 +10,8 @@
     {
       "status": "ZAKOŃCZONE",
       "runda": 1,
-      "kiedy": "2026-09-01T22:36:49.371Z"
+      "kiedy": "2026-09-01T22:36:49.371Z",
+      "proba": "E7.6"
     },
     {
       "status": "W TRAKCIE",
