@@ -3414,7 +3414,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-## ═══ NAPRAWY PO AUDYCIE — PR #120 OTWARTY Z KOMPLETEM DOWODÓW (2026-09-05) ═══
+## ═══ NAPRAWY PO AUDYCIE — WYDANE JAKO 0.65.0 (PR #120, 2026-09-05) ═══
 
 **CZYTAĆ PRZED PRACĄ: [docs/NAPRAWY-PO-AUDYCIE.md](docs/NAPRAWY-PO-AUDYCIE.md)**
 — decyzje właściciela D1–D11, stan **32 z 33** usterek, siedem lekcji tej pracy
@@ -3485,10 +3485,19 @@ lokalne.**
 0/0, zamówienia 0, kontrole obu wtyczek kod 0, sprzedaż OTWARTA, konto
 `klient-test` (NIE kasować), tłumaczenia wgrane.
 
-**NASTĘPNY KROK (w tej kolejności):**
-1. **PR #120** (`fix/naprawy-audytu-f1` → `main`): CI zielone → `gh pr merge
-   --merge --delete-branch` (merge commit, jak #119) → tag `v0.65.0` + release
-   → weryfikacja artefaktu `git diff origin/main <szczyt>` PUSTY.
-2. Zapis wyniku merge'u w tym pliku (osobny docs-PR, jak #119).
-3. **Fala kontrolna** potokiem, dwa tory środowiskowe (~pół dnia–dzień
-   zegarowo), na `re-audyt/sektor-re-audytu` po scaleniu `main`.
+**ZAMKNIĘTE W REPO (2026-09-05): PR #120 zmergowany do `main` (merge commit
+`381bc3b`) przy **CI zielonym 5/5 — pierwszy PR tego repo scalony na zielonym CI
+od 17 sierpnia, gitleaks przeszedł** — tag `v0.65.0` + release, gałąź
+skasowana, artefakt zweryfikowany (`git diff ac6cb48 origin/main` PUSTY —
+lekcja z 0.37.0). Kontener po przełączeniu gałęzi widzi nowe pliki (bind
+mount żywy), obie kontrole kod 0.**
+
+**NASTĘPNY KROK CAŁEGO PROJEKTU: FALA KONTROLNA** (decyzje D3 + D4): 14
+Pogłębiaczy, BEZ ról procesowych, potokiem (dział kończy audyt → wchodzi
+re-audyt tego działu), dwa tory środowiskowe (`postaw.sh` z
+`WP_PORT`/`MAILPIT_PORT`/`STACK_NAZWA`; pamięci starcza na DWA). Praca na
+gałęzi `re-audyt/sektor-re-audytu` (tam żyją sektory) **po scaleniu do niej
+`main`** (0.65.0). Zakres: WYŁĄCZNIE potwierdzenie, że 32 naprawy trzymają
+i nie przyniosły regresji — bez ról procesowych, bez raportu o aparacie.
+Szacunek: pół dnia do dnia zegarowo. Po fali: zapis wyniku w tym pliku
+i README, ewentualne poprawki, koniec projektu wg planu.
