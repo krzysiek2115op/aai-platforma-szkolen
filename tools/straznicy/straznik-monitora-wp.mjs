@@ -909,15 +909,34 @@ if (existsSync(GLOWNY)) {
   const start = zrodlo.indexOf("'plugins_loaded'");
   if (start !== -1) {
     const blok = zrodlo.slice(start);
-    const otwarcie = blok.indexOf("try {");
-    const zamkniecie = blok.indexOf("} catch");
+    /*
+     * KAŻDY ZAKRES `try … } catch` OSOBNO, nie „pierwszy w pliku".
+     *
+     * Pierwsza wersja brała `blok.indexOf("try {")` i uznawała za chronione
+     * wszystko, co stoi dalej. Działało, dopóki w haku był JEDEN `try`.
+     * Od 2026-09-05 każdy krok startu jedzie przez osłonę `$bezpiecznie(…)`,
+     * a ta ma WŁASNY `try` w swoim ciele — i ten własny stoi PIERWSZY. Reguła
+     * zaczęła więc uznawać za chronione dosłownie wszystko po definicji
+     * pomocnika, łącznie z wywołaniami wystawionymi poza ochronę. Wykrył to
+     * audyt mutacyjny (mutacja „start wychodzi poza try/catch" przeszła), nie
+     * lektura.
+     *
+     * Teraz liczymy WSZYSTKIE pary `try … } catch` i pytamy, czy wywołanie
+     * mieści się w którejkolwiek. Wywołania po ostatnim `} catch` pomijamy
+     * świadomie: tam mieszka sam raport o błędzie, strzeżony `class_exists` —
+     * reguła pytająca też o nie zapalałaby się na poprawnym kodzie
+     * (sprawdzone: najwcześniejsza wersja tak właśnie robiła).
+     */
+    const zakresy = [];
+    for (const t of blok.matchAll(/\btry\s*\{/g)) {
+      const c = blok.indexOf("} catch", t.index);
+      if (c !== -1) zakresy.push([t.index, c]);
+    }
+    const ostatnieZamkniecie = zakresy.length ? Math.max(...zakresy.map(([, c]) => c)) : -1;
     const pozaOslona = [];
-    // Wywołanie PRZED `try` jest niechronione. Wywołania po `} catch`
-    // pomijamy świadomie: tam mieszka sam raport o błędzie, strzeżony
-    // `class_exists` — reguła pytająca też o nie zapalałaby się na
-    // poprawnym kodzie (sprawdzone: pierwsza wersja tak właśnie robiła).
     for (const m of blok.matchAll(/Aai_Monitor_[A-Za-z_]+::(?:zarejestruj|dociagnij_schemat|utworz)\(/g)) {
-      if (otwarcie === -1 || zamkniecie === -1 || m.index < otwarcie) {
+      if (m.index > ostatnieZamkniecie) continue;
+      if (!zakresy.some(([o, c]) => m.index > o && m.index < c)) {
         pozaOslona.push(m[0]);
       }
     }
