@@ -74,6 +74,67 @@ final class Aai_Sklep_Odczyt {
 	}
 
 	/**
+	 * „Moje kursy": WSZYSTKIE kursy, niezależnie od stanu sprzedaży.
+	 *
+	 * PO CO OSOBNA METODA. `lista_kursow()` odpowiada na pytanie „co jest
+	 * w sprzedaży" i ma rację, filtrując po `published` — pytają o to katalog,
+	 * mapa strony i dane strukturalne. Ale „Moje kursy" pytają o coś innego:
+	 * „co ten człowiek KUPIŁ". Kurs wycofany ze sprzedaży dalej jest jego.
+	 *
+	 * Dopóki obie listy szły z tego samego zapytania, ukrycie kursu w kreatorze
+	 * zabierało kupującemu jedyną drogę do materiału: zapisy w Tutorze zostawały
+	 * nietknięte, ale przecięcie z listą opublikowanych było puste, więc strona
+	 * mówiła klientowi, że nie ma żadnego kursu. Zmierzone na koncie testowym:
+	 * 2 zapisy w Tutorze, `ma_kursy()` = NIE, `kursy()` = 0.
+	 *
+	 * To przeczyło decyzji właściciela C1 (2026-08-31), doprecyzowanej
+	 * 2026-09-05: **ukryty kurs znika z katalogu i ze sprzedaży, ale ZOSTAJE
+	 * w „Moich kursach" tego, kto go kupił**. Dostępu do materiału i tak nie
+	 * pilnuje status naszego wiersza, tylko ZAPIS w Tutorze — sam adres lekcji
+	 * działał przez cały czas. Brakowało wyłącznie drogi, którą klient zna.
+	 *
+	 * DLACZEGO ZAPYTANIE JEST PRZEPISANE, A NIE WSPÓŁDZIELONE. Niezmiennik
+	 * `straznik-wtyczki-wp` (reguła 10) każe trzymać SQL literałem PRZY
+	 * wywołaniu `$wpdb->`, bo kontroler wartości czyta łańcuch stojący w tym
+	 * miejscu — zapytanie sklejone wcześniej przechodziłoby bez sprawdzenia.
+	 * Cena to kilkanaście powtórzonych linii; zyskiem jest to, że
+	 * `lista_kursow()` zostaje BAJT W BAJT taka, jaka była, więc katalog,
+	 * mapa strony i JSON-LD nie mają jak się zmienić. NIE scalać ich
+	 * „dla porządku".
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function lista_kursow_posiadane(): array {
+		global $wpdb;
+
+		$t_kursy  = Aai_Sklep_Tabele::tabela( 'courses' );
+		$t_moduly = Aai_Sklep_Tabele::tabela( 'modules' );
+		$t_lekcje = Aai_Sklep_Tabele::tabela( 'lessons' );
+
+		$wiersze = $wpdb->get_results(
+			"SELECT c.id, c.slug, c.title, c.type, c.short_desc, c.price_grosze,
+			        c.cover_url, c.status, c.badge, c.level,
+			        (SELECT COUNT(*) FROM `$t_moduly` m WHERE m.course_id = c.id)
+			          AS modules_count,
+			        (SELECT COUNT(*) FROM `$t_lekcje` l
+			           JOIN `$t_moduly` m ON m.id = l.module_id
+			          WHERE m.course_id = c.id) AS lessons_count,
+			        (SELECT COALESCE(SUM(l.duration_min), 0) FROM `$t_lekcje` l
+			           JOIN `$t_moduly` m ON m.id = l.module_id
+			          WHERE m.course_id = c.id) AS total_min
+			   FROM `$t_kursy` c
+			  ORDER BY c.created_at DESC", // phpcs:ignore WordPress.DB.PreparedSQL
+			ARRAY_A
+		);
+
+		$kursy = array();
+		foreach ( (array) $wiersze as $wiersz ) {
+			$kursy[] = self::karta( $wiersz );
+		}
+		return $kursy;
+	}
+
+	/**
 	 * Strona sprzedażowa: pełny kurs z sekcjami, modułami i lekcjami.
 	 *
 	 * Szkice widzi wyłącznie ten, kto nimi zarządza — dla wszystkich

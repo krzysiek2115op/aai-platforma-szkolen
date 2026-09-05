@@ -78,6 +78,11 @@ require __DIR__ . '/czesci/tlo.php';
 					<?php
 					$aai_okladka = Aai_Sklep_Widok::okladka( $aai_kurs['cover_url'] );
 					$aai_dalej   = $aai_kurs['dalej'];
+					// Kurs wycofany ze sprzedaży ZOSTAJE temu, kto go kupił
+					// (decyzja C1, doprecyzowana 2026-09-05). Jego strona
+					// sprzedażowa oddaje jednak 404 — i słusznie, bo nie ma
+					// czego sprzedawać — więc tytuł NIE MOŻE tam prowadzić.
+					$aai_wycofany = 'archived' === $aai_kurs['status'];
 					?>
 					<li class="aai-panel aai-unos aai-moje-karta aai-reveal" data-aai-cascade-item>
 						<div class="aai-moje-glowa">
@@ -91,10 +96,19 @@ require __DIR__ . '/czesci/tlo.php';
 									<p class="aai-etykieta"><?php echo esc_html( $aai_kurs['badge'] ); ?></p>
 								<?php endif; ?>
 								<h2 class="aai-moje-tytul">
-									<a href="<?php echo esc_url( Aai_Sklep_Widok::adres_kursu( $aai_kurs['slug'] ) ); ?>">
+									<?php if ( $aai_wycofany ) : ?>
 										<?php echo esc_html( $aai_kurs['title'] ); ?>
-									</a>
+									<?php else : ?>
+										<a href="<?php echo esc_url( Aai_Sklep_Widok::adres_kursu( $aai_kurs['slug'] ) ); ?>">
+											<?php echo esc_html( $aai_kurs['title'] ); ?>
+										</a>
+									<?php endif; ?>
 								</h2>
+								<?php if ( $aai_wycofany ) : ?>
+									<p class="aai-moje-wycofany">
+										Kurs wycofany ze sprzedaży — Twój dostęp zostaje.
+									</p>
+								<?php endif; ?>
 							</div>
 						</div>
 

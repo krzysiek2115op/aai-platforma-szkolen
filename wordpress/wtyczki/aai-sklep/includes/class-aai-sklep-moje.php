@@ -200,9 +200,17 @@ final class Aai_Sklep_Moje {
 	 *
 	 * Menu potrzebuje odpowiedzi „tak/nie" na każdej odsłonie każdej strony,
 	 * a nie postępu w lekcjach. Pytamy więc o listę zapisów (jedno zapytanie)
-	 * i sprawdzamy, czy choć jeden zapis wskazuje kurs, który u NAS istnieje
-	 * i jest opublikowany — bo tylko taki ma co pokazać. Bez tego drugiego
-	 * warunku pozycja „Moje kursy" prowadziłaby czasem do pustej listy.
+	 * i sprawdzamy, czy choć jeden zapis wskazuje kurs, który u NAS istnieje —
+	 * bo tylko taki ma co pokazać.
+	 *
+	 * O STAN SPRZEDAŻY NIE PYTAMY, i to jest sedno. Do 2026-09-05 warunek
+	 * brzmiał „istnieje I JEST OPUBLIKOWANY", a rozumowanie pod nim było
+	 * świadome: pozycja „Moje kursy" nie ma prowadzić do pustej listy. Tyle
+	 * że po decyzji C1 („Ukryj" zdejmuje kurs ze sprzedaży, nie odbiera go
+	 * kupującym) lista przestała być pusta — pusty był tylko WYNIK TEGO
+	 * WARUNKU. Ukrycie obu kursów zabierało klientowi menu, kafelki i jedyną
+	 * drogę do materiału, za który zapłacił, przy dwóch żywych zapisach
+	 * w Tutorze. Rozumowanie było poprawne PRZED C1 i nikt do niego nie wrócił.
 	 */
 	public static function ma_kursy(): bool {
 		if ( null !== self::$pamiec ) {
@@ -220,7 +228,7 @@ final class Aai_Sklep_Moje {
 		}
 
 		$nasze = array();
-		foreach ( Aai_Sklep_Odczyt::lista_kursow() as $kurs ) {
+		foreach ( Aai_Sklep_Odczyt::lista_kursow_posiadane() as $kurs ) {
 			$nasze[ $kurs['id'] ] = true;
 		}
 
@@ -255,7 +263,7 @@ final class Aai_Sklep_Moje {
 		// Nasze kursy po uuid — dopasowanie idzie po `_aai_zrodlo_uuid`, nie po
 		// slugu, tak samo jak synchronizacja do Tutora (slug bywa poprawiany).
 		$nasze = array();
-		foreach ( Aai_Sklep_Odczyt::lista_kursow() as $kurs ) {
+		foreach ( Aai_Sklep_Odczyt::lista_kursow_posiadane() as $kurs ) {
 			$nasze[ $kurs['id'] ] = $kurs;
 		}
 
@@ -263,9 +271,11 @@ final class Aai_Sklep_Moje {
 		foreach ( $zapisane as $id_kursu ) {
 			$id_kursu = (int) $id_kursu;
 			$uuid     = (string) get_post_meta( $id_kursu, Aai_Sklep_Tutor::META_UUID, true );
-			// Kurs spoza kreatora albo cofnięty do szkicu: klient jest na niego
-			// zapisany, ale my nie mamy czego pokazać. Milczymy — obietnica
-			// „masz dostęp" bez treści byłaby gorsza niż brak kafelka.
+			// Kurs spoza kreatora: klient jest na niego zapisany w Tutorze,
+			// ale u NAS takiego wiersza nie ma, więc nie mamy czego pokazać.
+			// Milczymy — obietnica „masz dostęp" bez treści byłaby gorsza niż
+			// brak kafelka. Kurs UKRYTY tu NIE wpada: jest nasz, klient go
+			// kupił i dostaje kafelek z adnotacją o wycofaniu ze sprzedaży.
 			if ( '' === $uuid || ! isset( $nasze[ $uuid ] ) ) {
 				continue;
 			}

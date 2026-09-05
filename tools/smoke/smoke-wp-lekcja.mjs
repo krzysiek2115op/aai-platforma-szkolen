@@ -480,7 +480,7 @@ try {
   const kursProbki = JSON.parse(
     wp("eval", `global $wpdb; $l = $wpdb->prefix . "aai_sklep_lessons"; $m = $wpdb->prefix . "aai_sklep_modules"; $c = $wpdb->prefix . "aai_sklep_courses";
       $id = $wpdb->get_var($wpdb->prepare("SELECT m.course_id FROM \`$l\` l JOIN \`$m\` m ON m.id = l.module_id WHERE l.id = %s", "${probka.uuid}"));
-      $k = $wpdb->get_row($wpdb->prepare("SELECT id, slug, status FROM \`$c\` WHERE id = %s", $id), ARRAY_A);
+      $k = $wpdb->get_row($wpdb->prepare("SELECT id, slug, status, title FROM \`$c\` WHERE id = %s", $id), ARRAY_A);
       $z = $wpdb->get_row($wpdb->prepare("SELECT l.id FROM \`$l\` l JOIN \`$m\` m ON m.id = l.module_id WHERE m.course_id = %s AND l.preview = 1 ORDER BY m.position, l.position LIMIT 1", $id), ARRAY_A);
       $zp = $z ? get_posts(["post_type"=>"lesson","post_status"=>"any","numberposts"=>1,"meta_key"=>"_aai_zrodlo_uuid","meta_value"=>$z["id"]]) : array();
       echo json_encode(array("kurs"=>$k, "zapowiedz"=>$zp ? get_permalink($zp[0]->ID) : null));`)
@@ -517,6 +517,47 @@ try {
       "kupujący nie czyta materiału opublikowanego kursu — pomiar ukrycia nie miałby punktu odniesienia"
     );
 
+    /*
+     * DROGA KLIENTA, NIE ADRES LEKCJI.
+     *
+     * Wszystko powyżej pyta o BEZPOŚREDNI adres lekcji — drogę, której klient
+     * nie zna i której nigdzie nie dostaje. Jedyna, którą ma, to „Moje kursy":
+     * pozycja w menu (`ma_kursy()`) i kafelek na `/szkolenia/moje/` (`kursy()`).
+     * Do 2026-09-05 obie szły przez `lista_kursow()`, czyli przez filtr
+     * `status = 'published'`, więc ukrycie kursu zabierało kupującemu menu
+     * i kafelek naraz — przy dwóch żywych zapisach w Tutorze i przy adresie
+     * lekcji, który działał. Ten pomiar był ślepy na całe zdarzenie.
+     *
+     * Kontrprzykład stoi tu, PRZED ukryciem: bez niego asercje „po ukryciu
+     * kafelek jest" przechodziłyby także wtedy, gdyby „Moje kursy" nie
+     * działały w ogóle.
+     */
+    const mojePrzedHtml = await (await kupujacy.pobierz("/szkolenia/moje/")).text();
+    const mojePrzed = tekst(mojePrzedHtml);
+    sprawdz(
+      mojePrzed.includes(kursProbki.kurs.title),
+      `kupujący nie widzi swojego kursu na „Moich kursach" PRZED ukryciem — pomiar drogi klienta nie miałby punktu odniesienia`
+    );
+    sprawdz(
+      !mojePrzed.includes("Kurs wycofany ze sprzedaży"),
+      `opublikowany kurs jest opisany jako wycofany ze sprzedaży — adnotacja pojawia się niezależnie od stanu, czyli nic nie znaczy`
+    );
+
+    /*
+     * Wzorzec odsyłacza bierzemy Z ŻYWEJ STRONY, nie z wyobrażenia o niej.
+     * Pierwsza wersja tego pomiaru składała adres WZGLĘDNY (`/szkolenia/…`),
+     * a szablon drukuje BEZWZGLĘDNY (`http://…/szkolenia/…`) — więc wzorzec
+     * nie pasował do niczego i asercja „kafelek nie prowadzi na 404"
+     * przechodziła PO PUSTCE. Złapał to dopiero test negatywny: mutacja
+     * przywracająca martwy odsyłacz przeszła na zielono. Stąd kontrprzykład
+     * poniżej — on pilnuje samego wzorca.
+     */
+    const hrefSprzedazowej = `href="${ADRES}/szkolenia/${kursProbki.kurs.slug}/"`;
+    sprawdz(
+      mojePrzedHtml.includes(hrefSprzedazowej),
+      `kafelek opublikowanego kursu NIE prowadzi na jego stronę sprzedażową — wzorzec odsyłacza nie pasuje do żywej strony, więc pomiar „po ukryciu nie ma odsyłacza" przechodziłby po pustce`
+    );
+
     wp("eval", `Aai_Sklep_Zapis::ustaw_status('${kursProbki.kurs.id}','archived','smoke-wp-lekcja');`);
 
     const poUkryciu = await kupujacy.pobierz(probka.adres);
@@ -528,6 +569,27 @@ try {
 
     const sprzedazowa = await sesja().pobierz(`/szkolenia/${kursProbki.kurs.slug}/`);
     sprawdz(sprzedazowa.status === 404, `strona sprzedażowa ukrytego kursu oddała ${sprzedazowa.status} zamiast 404 — kurs nie zniknął ze sklepu`);
+
+    // Droga klienta PO ukryciu: kafelek zostaje, mówi dlaczego, i nie prowadzi
+    // na stronę sprzedażową, która przed chwilą oddała 404.
+    const odpMoje = await kupujacy.pobierz("/szkolenia/moje/");
+    const mojePo = odpMoje.status === 200 ? await odpMoje.text() : "";
+    sprawdz(
+      tekst(mojePo).includes(kursProbki.kurs.title),
+      `KUPUJĄCY STRACIŁ DROGĘ DO KURSU PO UKRYCIU (HTTP ${odpMoje.status}) — „Moje kursy" nie wymieniają kursu, za który zapłacił, choć zapis w Tutorze żyje`
+    );
+    sprawdz(
+      tekst(mojePo).includes("Kurs wycofany ze sprzedaży"),
+      `kafelek ukrytego kursu nie mówi, że kurs wycofano ze sprzedaży — zniknięcie z katalogu wygląda dla klienta jak awaria`
+    );
+    sprawdz(
+      !mojePo.includes(hrefSprzedazowej),
+      `kafelek ukrytego kursu prowadzi na jego stronę sprzedażową, która oddaje 404 — klient dostaje martwy odsyłacz zamiast kursu`
+    );
+    sprawdz(
+      JSON.parse(wp("eval", `wp_set_current_user(${idKupujacego}); echo json_encode(Aai_Sklep_Moje::ma_kursy());`).trim().split("\n").pop()) === true,
+      `menu nie pokazuje kupującemu pozycji „Moje kursy" po ukryciu kursu — droga do materiału znika z każdej strony witryny`
+    );
 
     if (kursProbki.zapowiedz) {
       const zapowiedzPoUkryciu = tekst(await (await sesja().pobierz(kursProbki.zapowiedz)).text());

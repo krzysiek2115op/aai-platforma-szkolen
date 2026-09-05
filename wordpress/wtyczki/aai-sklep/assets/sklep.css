@@ -2560,6 +2560,17 @@ html.js .aai-sklep .aai-reveal-widoczny {
 	letter-spacing: 0.02em;
 }
 
+/*
+ * Kurs wycofany ze sprzedaży. Klient, który go kupił, ma go dalej (C1), ale
+ * bez tej adnotacji zniknięcie kursu z katalogu wyglądałoby dla niego jak
+ * awaria. Ton stonowany — to informacja, nie ostrzeżenie: nic nie stracił.
+ */
+.aai-sklep .aai-moje-wycofany {
+	margin: 0.25rem 0 0;
+	font-size: 0.8125rem;
+	color: var(--aai-steel);
+}
+
 .aai-sklep .aai-moje-akcja {
 	align-self: flex-start;
 }
