@@ -330,6 +330,59 @@ try {
   );
   eval_php(`wp_delete_post(${obcy}, true);`);
 
+  /*
+   * 10b. TEN SAM ZAKAZ, ALE W MIEJSCU, DO KTÓREGO SYNCHRONIZACJA SIĘGA.
+   *
+   * Sprawdzenie wyżej tworzy obcy wpis typu KURS, BEZ `post_parent` —
+   * a `usun_nadmiar()` przeszukuje wyłącznie POTOMKÓW naszego kursu. Obiekt
+   * bez rodzica jest więc strukturalnie poza jej zasięgiem i asercja
+   * „synchronizacja skasowała CUDZY wpis" NIE MOGŁA SIĘ NIE UDAĆ. To był
+   * dziewiąty w tym projekcie test przechodzący po pustce — i utrwalał
+   * nieprawdę, bo repozytorium obiecuje w dwóch miejscach ochronę, której
+   * kod NIE MIAŁ: wpis dodany w Course Builderze ma uuid pusty, a pusty uuid
+   * nigdy nie był na liście „zostają", więc leciał `wp_delete_post(force)`.
+   *
+   * Ten przypadek zachodzi NAPRAWDĘ: właściciel dopisuje bonusową lekcję
+   * w Course Builderze, wraca do kreatora, poprawia zdanie w opisie i klika
+   * „Zapisz" — a lekcja znika bezpowrotnie razem z postępem klientów.
+   * Mierzymy więc obcy MODUŁ pod naszym kursem i obcą LEKCJĘ pod naszym
+   * modułem, czyli dokładnie te dwa miejsca, po których pętla chodzi.
+   */
+  const idKopii = Number(eval_php(`
+    $k = get_posts(["post_type"=>Aai_Sklep_Tutor::typy()["kurs"],"post_status"=>array_keys(get_post_stati()),"numberposts"=>1,"fields"=>"ids","meta_key"=>"_aai_zrodlo_uuid","meta_value"=>"${KURS}"]);
+    echo $k ? (int) $k[0] : 0;
+  `));
+  sprawdz(idKopii > 0, "nie znalazłem kopii kursu w Tutorze — sprawdzenie 10b nie miałoby gdzie umieścić cudzych wpisów");
+
+  const naszModul = Number(eval_php(`
+    $m = get_posts(["post_type"=>Aai_Sklep_Tutor::typy()["modul"],"post_status"=>array_keys(get_post_stati()),"numberposts"=>1,"fields"=>"ids","post_parent"=>${idKopii}]);
+    echo $m ? (int) $m[0] : 0;
+  `));
+  sprawdz(naszModul > 0, "kopia kursu nie ma ani jednego modułu — nie ma pod czym powiesić cudzej lekcji");
+
+  const obcyModul = Number(eval_php(`
+    echo (int) wp_insert_post(["post_type"=>Aai_Sklep_Tutor::typy()["modul"],"post_status"=>"publish","post_title"=>"MODUŁ Z COURSE BUILDERA","post_parent"=>${idKopii}]);
+  `));
+  const obcaLekcja = Number(eval_php(`
+    echo (int) wp_insert_post(["post_type"=>Aai_Sklep_Tutor::typy()["lekcja"],"post_status"=>"publish","post_title"=>"BONUSOWA LEKCJA Z COURSE BUILDERA","post_parent"=>${naszModul}]);
+  `));
+  sprawdz(obcyModul > 0 && obcaLekcja > 0, "nie udało się utworzyć cudzych wpisów POD kursem — bez nich 10b przechodzi po pustce");
+
+  wp("aai-sklep", "sync");
+
+  rowne(
+    eval_php(`echo get_post(${obcaLekcja}) ? "jest" : "nie ma";`),
+    "jest",
+    "synchronizacja skasowała CUDZĄ LEKCJĘ dopisaną w Course Builderze pod NASZYM modułem — repozytorium obiecuje w dwóch miejscach, że tego nie robi, a klient traci lekcję razem z postępem tych, którzy ją odhaczyli"
+  );
+  rowne(
+    eval_php(`echo get_post(${obcyModul}) ? "jest" : "nie ma";`),
+    "jest",
+    "synchronizacja skasowała CUDZY MODUŁ dopisany w Course Builderze pod naszym kursem"
+  );
+
+  eval_php(`wp_delete_post(${obcaLekcja}, true); wp_delete_post(${obcyModul}, true);`);
+
   // 11. Usunięcie kursu u nas kasuje całą kopię.
   const usuniecie = wp("aai-sklep", "usun", SLUG, "--pozwol-skasowac-tresc", "--aktor=smoke-tutor");
   sprawdz(usuniecie.kod === 0, `usunięcie kursu padło: ${usuniecie.stderr}`);

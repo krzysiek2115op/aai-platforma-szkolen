@@ -341,6 +341,44 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/*
+ * SYNCHRONIZACJA NIE KASUJE CUDZEJ PRACY — I TO MA BYĆ W KODZIE, NIE TYLKO
+ * W OBIETNICY.
+ *
+ * `usun_nadmiar()` kasowała każdy wpis, którego uuid nie było na liście
+ * „zostają". Wpis dodany ręcznie w Course Builderze Tutora ma uuid PUSTY,
+ * a pusty nigdy na tej liście nie jest — więc leciało
+ * `wp_delete_post( $id, true )`: force, z pominięciem kosza, bez cofnięcia.
+ * Zaprzeczało to obietnicy zapisanej w DWÓCH miejscach repozytorium
+ * (CLAUDE.md i README), a bramka, która miała tego dowodzić, tworzyła obcy
+ * wpis BEZ `post_parent` — strukturalnie poza zasięgiem pętli — więc
+ * przechodziła PO PUSTCE.
+ *
+ * Reguła pyta o rozstrzygnięcie: pusty uuid ma kończyć obieg pętli, zanim
+ * dojdzie do kasowania.
+ */
+{
+  const plikKopii = join(WTYCZKA, PLIK_KOPII);
+  const tresc = readFileSync(plikKopii, "utf8");
+  const i = tresc.indexOf("function usun_nadmiar");
+  if (i < 0) {
+    bledy.push(
+      `${plikKopii}: nie ma usun_nadmiar() — samokontrola zakresu: reguła o cudzych wpisach nie ma czego pilnować.`
+    );
+  } else {
+    const cialo = tresc.slice(i, tresc.indexOf("\n\t}", i));
+    const kasowania = (cialo.match(/wp_delete_post\s*\(/g) ?? []).length;
+    const oslony = (cialo.match(/''\s*===\s*\$uuid\s*\|\||\|\|\s*''\s*===\s*\$uuid/g) ?? []).length;
+    if (kasowania === 0) {
+      bledy.push(`${plikKopii}: usun_nadmiar() nic nie kasuje — samokontrola zakresu, reguła mierzyłaby pustkę.`);
+    } else if (oslony < kasowania) {
+      bledy.push(
+        `${plikKopii}: usun_nadmiar() kasuje ${kasowania} rodzajów wpisów, a tylko ${oslony} sprawdza pusty uuid. Wpis dodany ręcznie w Course Builderze ma uuid PUSTY — leci wtedy wp_delete_post(force), bez kosza i bez cofnięcia, razem z postępem klientów, którzy tę lekcję odhaczyli. CLAUDE.md i README obiecują, że tego NIE robimy.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-tutora:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -348,5 +386,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają."
 );

@@ -670,6 +670,27 @@ final class Aai_Sklep_Tutor {
 	/**
 	 * Kasuje wpisy pod kursem, których nie ma już w naszych tabelach.
 	 *
+	 * WPIS BEZ NASZEGO UUID JEST CUDZY I ZOSTAJE.
+	 *
+	 * Do 2026-09-05 pętla kasowała KAŻDY wpis, którego uuid nie było na
+	 * liście — a wpis dodany ręcznie w Course Builderze Tutora ma uuid pusty,
+	 * więc `in_array( '', $zostaja, true )` było zawsze fałszem i leciało
+	 * `wp_delete_post( $id, true )`: force, z pominięciem kosza, bez cofnięcia.
+	 *
+	 * Scenariusz: właściciel dopisuje w Course Builderze bonusową lekcję albo
+	 * erratę (Tutor jest jego naturalnym edytorem), wraca do kreatora,
+	 * poprawia jedno zdanie w opisie kursu i klika „Zapisz". Synchronizacja
+	 * kasuje tamtą lekcję BEZPOWROTNIE, razem z postępem klientów, którzy ją
+	 * odhaczyli. Panel melduje „Kurs zapisany", kontrola kod 0.
+	 *
+	 * Przeczyło to obietnicy zapisanej w DWÓCH miejscach repozytorium —
+	 * `CLAUDE.md` („synchronizacja nie kasuje wpisów spoza kreatora —
+	 * kasowanie cudzej pracy to nie jest jej rola") i README. Obietnica
+	 * została; kod ją teraz dotrzymuje.
+	 *
+	 * Kontrola `sprawdz-tutora` dalej takie wpisy POKAZUJE jako obce —
+	 * i to jest właściwy podział ról: mówimy o nich, nie kasujemy ich.
+	 *
 	 * @param int           $id_kursu Wpis kursu w Tutorze.
 	 * @param array<string> $zostaja  Uuid-y, które mają zostać.
 	 *
@@ -701,7 +722,8 @@ final class Aai_Sklep_Tutor {
 			);
 			foreach ( (array) $lekcje as $id_lekcji ) {
 				$uuid = (string) get_post_meta( (int) $id_lekcji, self::META_UUID, true );
-				if ( in_array( $uuid, $zostaja, true ) ) {
+				// CUDZE ZOSTAJE. Patrz komentarz przy metodzie.
+				if ( '' === $uuid || in_array( $uuid, $zostaja, true ) ) {
 					continue;
 				}
 				wp_delete_post( (int) $id_lekcji, true );
@@ -709,7 +731,7 @@ final class Aai_Sklep_Tutor {
 			}
 
 			$uuid = (string) get_post_meta( (int) $id_modulu, self::META_UUID, true );
-			if ( in_array( $uuid, $zostaja, true ) ) {
+			if ( '' === $uuid || in_array( $uuid, $zostaja, true ) ) {
 				continue;
 			}
 			wp_delete_post( (int) $id_modulu, true );

@@ -4498,6 +4498,17 @@ const MUTACJE = [
     zmien: (s) =>
       s.includes("return $slad > 0 ? -1 : 0;") ? s.replace("return $slad > 0 ? -1 : 0;", "return 0;") : null,
   },
+  {
+    straznik: "straznik-tutora",
+    opis: "synchronizacja znowu kasuje wpisy z Course Buildera (uuid pusty) — force, bez kosza, bez cofnięcia",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "rodzajów wpisów, a tylko",
+    zmien: (s) => {
+      const a = "if ( '' === $uuid || in_array( $uuid, $zostaja, true ) ) {";
+      return s.includes(a) ? s.split(a).join("if ( in_array( $uuid, $zostaja, true ) ) {") : null;
+    },
+  },
 ];
 
 
