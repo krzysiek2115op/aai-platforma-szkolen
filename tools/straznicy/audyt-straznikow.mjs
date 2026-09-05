@@ -1223,6 +1223,41 @@ const MUTACJE = [
           )
         : null,
   },
+  // --- straznik-wtyczki-wp, P1 poz. 18: wersje wtyczek i paczki dla klienta ---
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "readme.txt podaje inną wersję niż nagłówek wtyczki — klient czyta w opisie co innego, niż ma w pliku",
+    plik: "wordpress/wtyczki/aai-monitor/readme.txt",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/readme.txt"),
+    oczekiwanySlad: "Stable tag",
+    zmien: (s) =>
+      /^Stable tag:\s*\S+\s*$/m.test(s) ? s.replace(/^Stable tag:\s*\S+\s*$/m, "Stable tag: 0.0.1") : null,
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "pakowanie nadpisuje archiwum o tej samej nazwie bez sprawdzenia treści — dwa różne pliki dla klienta",
+    plik: "tools/pakuj-wtyczki.mjs",
+    wymaga: () => existsSync("tools/pakuj-wtyczki.mjs"),
+    oczekiwanySlad: "bez sprawdzenia, czy niesie tę samą treść",
+    zmien: (s) =>
+      s.includes("if (existsSync(paczka) && !tresciSieZgadzaja(paczka, wtyczka, pliki)) {")
+        ? s.replace("if (existsSync(paczka) && !tresciSieZgadzaja(paczka, wtyczka, pliki)) {", "if (false) {")
+        : null,
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "porównanie treści archiwum znika — bramka zaczyna krzyczeć po każdym git checkout (mtime w ZIP-ie)",
+    plik: "tools/pakuj-wtyczki.mjs",
+    wymaga: () => existsSync("tools/pakuj-wtyczki.mjs"),
+    oczekiwanySlad: "brak porównania TREŚCI",
+    zmien: (s) =>
+      s.includes("function tresciSieZgadzaja(")
+        ? s.replace("function tresciSieZgadzaja(", "function porownajTresci(").replace(
+            "!tresciSieZgadzaja(paczka, wtyczka, pliki)",
+            "!porownajTresci(paczka, wtyczka, pliki)"
+          )
+        : null,
+  },
   // --- straznik-platnosci-wp, P1 poz. 19: wyłączona wtyczka a reszta kontroli ---
   {
     straznik: "straznik-platnosci-wp",

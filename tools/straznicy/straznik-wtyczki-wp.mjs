@@ -91,6 +91,32 @@ for (const wtyczka of wtyczki) {
     }
   }
 
+  /* 1b. wersja w nagłówku = wersja w readme.txt (P1 poz. 18)
+
+     Nazwa paczki dla klienta bierze wersję z nagłówka wtyczki, a `readme.txt`
+     podaje ją drugi raz jako `Stable tag`. Rozjazd tych dwóch liczb znaczy,
+     że klient czyta w opisie inną wersję, niż ma w pliku — a przy sprzedaży
+     obcemu człowiekowi to jedyne dwa miejsca, po których może się poznać.
+     Nie pilnowało tego NIC. */
+  const wersjaNaglowka = trescGlownego.match(/^\s*\*\s*Version:\s*(\S+)\s*$/m);
+  const readme = join(katalog, "readme.txt");
+  if (!wersjaNaglowka) {
+    bledy.push(
+      `${glowny}: nagłówek „Version:" nie ma wartości, którą da się odczytać — nazwa paczki dla klienta bierze się właśnie stąd.`
+    );
+  } else if (existsSync(readme)) {
+    const stabilna = readFileSync(readme, "utf8").match(/^Stable tag:\s*(\S+)\s*$/m);
+    if (!stabilna) {
+      bledy.push(
+        `${readme}: brak wiersza „Stable tag:" — WordPress i katalog wtyczek czytają wersję właśnie stąd, a klient porównuje ją z nagłówkiem.`
+      );
+    } else if (stabilna[1] !== wersjaNaglowka[1]) {
+      bledy.push(
+        `${readme}: „Stable tag: ${stabilna[1]}" przy nagłówku „Version: ${wersjaNaglowka[1]}" — dwie różne wersje tej samej wtyczki w dwóch plikach, które klient ogląda obok siebie. Paczka nazwie się po nagłówku, a opis powie co innego.`
+      );
+    }
+  }
+
   /* 2. ochrona przed bezpośrednim wywołaniem */
   for (const plik of plikiPhp(katalog)) {
     const tresc = readFileSync(plik, "utf8");
@@ -281,6 +307,34 @@ for (const wtyczka of wtyczki) {
   }
 }
 
+/* 12. PACZKA O TEJ SAMEJ NAZWIE MA MIEĆ TĘ SAMĄ TREŚĆ (P1 poz. 18).
+
+   Nazwa archiwum bierze wersję z nagłówka wtyczki, a treść z bieżącego kodu.
+   Bez tej odmowy kod zmieniony bez podbicia wersji dawał DWA RÓŻNE archiwa
+   `aai-sklep-0.6.0.zip` — i klient nie miał jak sprawdzić, które ma. */
+{
+  const PAKUJ = "tools/pakuj-wtyczki.mjs";
+  if (!existsSync(PAKUJ)) {
+    bledy.push(`${PAKUJ}: nie ma narzędzia pakującego — instrukcja dla klienta każe wgrać plik ZIP, którego nikt nie produkuje.`);
+  } else {
+    const p = readFileSync(PAKUJ, "utf8");
+    // Pytamy o ROZSTRZYGNIĘCIE: istnieje archiwum + treść się nie zgadza → wyjście błędem.
+    if (!/existsSync\(\s*paczka\s*\)\s*&&\s*![A-Za-z]\w*\([\s\S]{0,200}?\)\s*\)\s*\{[\s\S]{0,900}?process\.exit\(\s*1\s*\)/.test(p)) {
+      bledy.push(
+        `${PAKUJ}: pakowanie nadpisuje istniejące archiwum bez sprawdzenia, czy niesie tę samą treść. Nazwa paczki to obietnica wersji — dwa różne pliki o jednej nazwie są dla klienta nie do odróżnienia (P1 poz. 18).`
+      );
+    }
+    // I o to, że porównuje TREŚĆ, nie bajty: ZIP zapisuje mtime, a `git checkout`
+    // przestawia je wszystkim plikom — porównanie bajtów dawałoby fałszywy alarm
+    // po każdym przełączeniu gałęzi (zmierzone: wystarczył `touch`).
+    if (!/function tresciSieZgadzaja\(/.test(p)) {
+      bledy.push(
+        `${PAKUJ}: brak porównania TREŚCI archiwum (tresciSieZgadzaja). Porównanie bajtów ZIP-a zapala się po samym touch/git checkout, bo archiwum niesie czasy modyfikacji — bramka, która krzyczy zawsze, zostanie wyłączona.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-wtyczki-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -288,5 +342,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść).`
 );

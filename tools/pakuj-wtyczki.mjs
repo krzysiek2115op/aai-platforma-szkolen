@@ -204,6 +204,55 @@ export function wersjaWtyczki(wtyczka) {
  * cudzym narzędziem (`unzip`), a nie własnym kodem, który mógłby
  * powtórzyć ten sam błąd w drugą stronę.
  */
+/**
+ * Czy archiwum na dysku niesie DOKŁADNIE tę treść, co bieżące pliki.
+ *
+ * Porównujemy TREŚĆ, nie bajty archiwum. ZIP zapisuje czas modyfikacji
+ * każdego pliku, więc dwa archiwa z identyczną zawartością różnią się po
+ * samym `touch` — a `git checkout` i `git clone` przestawiają mtime
+ * wszystkim plikom. Porównanie bajtów dawałoby więc fałszywy alarm po
+ * każdym przełączeniu gałęzi (zmierzone: `touch readme.txt` wystarczył).
+ *
+ * @param {string} paczka  Ścieżka istniejącego archiwum.
+ * @param {string} wtyczka Nazwa wtyczki (katalog na szczycie archiwum).
+ * @param {Array}  pliki   Bieżące pliki wtyczki.
+ * @returns {boolean}
+ */
+function tresciSieZgadzaja(paczka, wtyczka, pliki) {
+  const tymczasowy = mkdtempSync(path.join(tmpdir(), "aai-paczka-stara-"));
+  try {
+    execFileSync("unzip", ["-qq", "-o", paczka, "-d", tymczasowy], { stdio: "pipe" });
+    const korzen = path.join(tymczasowy, wtyczka);
+    if (!existsSync(korzen)) return false;
+
+    const zArchiwum = new Map();
+    const obejdz = (katalog, prefiks) => {
+      for (const wpis of readdirSync(katalog, { withFileTypes: true })) {
+        const pelna = path.join(katalog, wpis.name);
+        const wzgledna = prefiks ? `${prefiks}/${wpis.name}` : wpis.name;
+        if (wpis.isDirectory()) obejdz(pelna, wzgledna);
+        else zArchiwum.set(wzgledna, readFileSync(pelna));
+      }
+    };
+    obejdz(korzen, "");
+
+    const biezace = pliki.filter((p) => !p.katalog);
+    if (biezace.length !== zArchiwum.size) return false;
+    for (const plik of biezace) {
+      const wzgledna = plik.nazwa.slice(wtyczka.length + 1);
+      const wArchiwum = zArchiwum.get(wzgledna);
+      if (undefined === wArchiwum || !wArchiwum.equals(plik.dane)) return false;
+    }
+    return true;
+  } catch {
+    // Nieczytelne archiwum traktujemy jak inną treść — lepiej odmówić
+    // i kazać człowiekowi spojrzeć, niż po cichu nadpisać.
+    return false;
+  } finally {
+    rmSync(tymczasowy, { recursive: true, force: true });
+  }
+}
+
 function sprawdzPaczke(paczka, wtyczka, pliki) {
   const tymczasowy = mkdtempSync(path.join(tmpdir(), "aai-paczka-"));
   try {
@@ -272,7 +321,40 @@ function main() {
     pliki.unshift({ nazwa: `${wtyczka}/`, katalog: true, mtime: statSync(katalog).mtime });
 
     const paczka = path.join(wyjscie, `${wtyczka}-${wersja}.zip`);
-    writeFileSync(paczka, zbudujZip(pliki));
+    const archiwum = zbudujZip(pliki);
+
+    /*
+     * NAZWA PACZKI TO OBIETNICA, NIE ETYKIETA.
+     *
+     * Nazwa bierze wersję z nagłówka wtyczki, a treść — z bieżącego kodu.
+     * Kod zmieniony bez podbicia wersji dawał więc DWA RÓŻNE archiwa
+     * o tej samej nazwie, i to bez jednego ostrzeżenia: klient, który ma
+     * `aai-sklep-0.6.0.zip`, nie miał jak sprawdzić, którą to jest wersją.
+     * Ponowne spakowanie TEJ SAMEJ treści zostawiamy ciche — narzędzie ma
+     * być idempotentne.
+     */
+    if (existsSync(paczka) && !tresciSieZgadzaja(paczka, wtyczka, pliki)) {
+      {
+        console.error(
+          `${path.basename(paczka)}: w ${wyjscie} leży JUŻ archiwum o tej nazwie i INNEJ treści.\n` +
+            `  Kod ${wtyczka} zmienił się bez podbicia wersji (nagłówek Version: ${wersja}).\n` +
+            `  Podbij wersję w ${wtyczka}/${wtyczka}.php i w readme.txt (Stable tag),\n` +
+            `  albo skasuj stare archiwum, jeśli świadomie budujesz je od nowa.`
+        );
+        process.exit(1);
+      }
+    }
+
+    // Stare wersje TEJ SAMEJ wtyczki zostają na dysku — klient dostałby wtedy
+    // katalog z dwiema paczkami i musiałby zgadywać. Mówimy o tym wprost.
+    const stareWersje = readdirSync(wyjscie).filter(
+      (n) => n.startsWith(`${wtyczka}-`) && n.endsWith(".zip") && n !== path.basename(paczka)
+    );
+    if (stareWersje.length > 0) {
+      console.log(`  UWAGA: w ${wyjscie} leżą też starsze archiwa ${wtyczka}: ${stareWersje.join(", ")} — skasuj je przed wysłaniem klientowi.`);
+    }
+
+    writeFileSync(paczka, archiwum);
 
     const porownanych = sprawdzPaczke(paczka, wtyczka, pliki);
     const rozmiar = (statSync(paczka).size / 1024).toFixed(0);
