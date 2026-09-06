@@ -3801,3 +3801,108 @@ w `postaw.sh`) i MAR-A-09 (zależność P2 → P1 niezadeklarowana nagłówkiem
 `Requires Plugins`; NAJPIERW zmierzyć, czy WordPress honoruje ten nagłówek
 dla wtyczek spoza katalogu WP.org). Pozycję `REA-PRIV-F1-001` (polityka prywatności) rozstrzyga właściciel
 z prawnikiem, nie my.
+
+## ═══ NAPRAWY PO POLOWANIU — TRZY WYDANIA I GAŁĄŹ W TOKU (2026-09-06) ═══
+
+**WYDANE W TEJ SESJI, KAŻDE PRZY ZIELONYM CI** (tag + release + artefakt
+zweryfikowany `git diff <szczyt> origin/main` PUSTY):
+
+**`v0.73.0` (PR #132) — domknięcie gałęzi `p4c`.** Kod Z-5, Z-1 i MAR-A-20 leżał
+tam od `97bcaa3` bez ani jednej bramki. Doszły trzy reguły (w tym **13. niezmiennik
+`straznik-wtyczki-wp`**: handler szwu `aai_*` bez twardego typu i z `catch
+( Throwable )`, idący za DECYZJĄ po całym katalogu wtyczek, z samokontrolą zakresu)
+i sześć mutacji. **PUŁAPKA NA STARCIE:** gałąź stała commit za `main` (PR #131) —
+scalenie `main` do niej PRZED PR-em było konieczne, inaczej merge cofnąłby tamtą
+pracę. Sprawdzać `git diff main --stat` zaraz po checkoucie.
+
+**`v0.74.0` (PR #133) — pięć alarmów architektury.** Wspólny mianownik: mechanizm
+istnieje, ale **nie dojeżdża**; każda pozycja przechodziła 39 strażników i 15
+bramek, bo wszystkie są przerwanym ogniwem MIĘDZY wtyczkami.
+- **MAR-A-08** — jedyny alarm o cichym rozjeździe kopii nie umiał zgasnąć: jeden
+  slot `update_option()` był zatrzaskiem i kłamcą naraz (awaria kursu B kasowała
+  alarm kursu A; udana kopia flagi nie kasowała; `sprawdz-tutora` świeciło **kodem 1
+  NA ZAWSZE** przy danych zgodnych co do znaku). Dziś **mapa per kurs**, gaszona
+  przez każdą udaną kopię TEGO kursu — także `sync <slug>`, który wcześniej gasił
+  alarmy CUDZYCH kursów.
+- **MAR-A-17** — import zostawiał WSZYSTKIE produkty jako `draft`: katalog działa,
+  **kupić nie da się nic** (zmierzone: `is_purchasable() = false`, kontrola kod 1).
+- **MAR-A-10** — `sync` odtwarzający skasowany wpis kursu nie odtwarzał pary met
+  powiązania, czyli zostawiał kurs w stanie **rozdawanym za darmo**.
+- **MAR-A-14** — powrót Pluginu 1 nie odzyskiwał sprzedaży; druga połowa w Pluginie 2:
+  uwaga „brak Pluginu 1" wisiała pod `_ogolny` po jego powrocie.
+- **MAR-A-15** — wyłączony Plugin 1 odsłaniał **drugą stronę sprzedażową w wyglądzie
+  WooCommerce** (zmierzone: HTTP 200 z tytułem produktu i przyciskiem kupna). Dziś 404.
+Obie drogi masowe idą przez **`Aai_Sklep_Tutor::synchronizuj_i_oglos()`**, które
+ogłasza zmianę siostrom przy WSTRZYMANEJ własnej kopii i PRZYWRACA poprzedni stan
+wstrzymania zamiast go zerować (import wstrzymuje kopię na całą swoją pętlę).
+
+**`v0.75.0` (PR #134) — kontrola, która nie umiała zawieść.**
+- **MAR-A-07** — `wp aai-sklep sprawdz` kończyło zerem ZAWSZE, więc `postaw.sh` nie
+  miał czego z niej odczytać; Plugin 1 był jedyną z trzech wtyczek bez punktu
+  kontrolnego i bez klasy zależności. Dziś kod 1 przy: braku tabeli · kursie
+  opublikowanym bez ani jednej lekcji · **braku Tutora przy opublikowanych kursach** ·
+  trwającej awarii kopii. Tryb `--format=json` kończy tym samym kodem.
+- **MAR-A-12** — jedna sekcja o nieznanym kształcie kończyła CAŁĄ kontrolę fatalem
+  (zmierzone: z naprawą 39 sprawdzonych obiektów drugiego kursu, bez niej zero).
+- **MAR-A-16** — „czyści po sobie do zera" było nieprawdą. Zmierzone **pełnym
+  odinstalowaniem obu wtyczek z przywróceniem bazy ze zrzutu**: zostawało 148
+  załączników, 89 wpisów Tutora z naszymi metami i **flaga
+  `aai_platnosci_sprzedaz_otwarta`**, przez którą świeża instalacja sprzedawała
+  **od pierwszej sekundy przy pustym dzienniku dostaw**. Po naprawie: nasze mety 0,
+  wpisy 0, załączniki 0, flaga skasowana, a **184 mety `_aai_*` należące do MOTYWU
+  nietknięte**.
+- **MAR-A-13** (część) — `Aai_Sklep_Zasoby` spadało na `null` tam, gdzie cztery inne
+  wyprowadzenia tego samego faktu spadają na `'courses'`.
+
+**GAŁĄŹ `fix/po-polowaniu-p4f` (wypchnięta, `e74be20`) — PRACA NIEDOKOŃCZONA, BEZ PR-a.**
+Kod i dowody napisane: **strażnicy 39/39, audyt mutacyjny 429** (427 złapanych,
+0 przeoczonych, 0 martwych). **BRAKUJE: `npm run check`, przelotu 15 bramek WP, wpisu
+CHANGELOG, podbicia wersji wtyczek i PR-a.** Zawiera MAR-A-22, 23, 24, 25, 26, 28, 29
+— w tym **MAR-A-24**, gdzie klient klikał „Oznacz jako przerobioną" i **nic się nie
+działo**, przy poprawnym HTML-u (szablon sięgał po `tutor()->nonce_action`, czyli
+WŁAŚCIWOŚĆ obiektu cudzej wtyczki, nie API).
+
+**ZOSTAJE PO P4f:** MAR-A-05 (strażnik granic nie skanuje PHP), **A-09**
+(`Requires Plugins` — najpierw ZMIERZYĆ, czy WP honoruje ten nagłówek dla wtyczek
+spoza katalogu WP.org), A-11 (brak automatycznego wykrywacza rozjazdu — decyzja
+projektowa: cron), A-18 (downgrade porównuje wersje `!==`, nie kolejnością), A-19
+(kolejność ładowania odwrotna do zależności — do zapisania jako założenie), A-21
+(deaktywacja prawdopodobnie utrwala reguły przepisywania — nie do rozstrzygnięcia
+statycznie), płatności **Z-11**, oraz **kolektor CSP** (świadomie odłożony, trzy
+zmierzone powody wyżej). **MAR-A-27 jest POKRYTE** naprawą z 0.68.0 — sprawdzone
+komendą, nie szukać od nowa.
+
+### Sześć lekcji tej sesji
+
+1. **TEST NEGATYWNY PRZESZEDŁ PO PUSTCE — DWA RAZY.** Przy MAR-A-17 kopia w Tutorze
+   już istniała, więc warunek usterki nie zachodził; przy MAR-A-24 lekcja była już
+   odhaczona, więc formularza i tak nie było. Oba wykryte porównaniem z OCZEKIWANYM
+   STANEM SCENY, nie lekturą wyniku. **Przed testem negatywnym ustaw scenę i sprawdź,
+   że warunek usterki naprawdę zachodzi.**
+2. **Mój refaktor uśmiercił istniejącą mutację** (kotwiczyła na treści bloku `try`,
+   w którym dopisałem gaszenie alarmu) — wyglądała na zieloną, nie mierząc niczego.
+   Złapał to audyt mutacyjny, nie lektura. Jest przekotwiczona na ZACHOWANIE.
+3. **Strażnik zapalił się na MOIM kodzie i miał rację** — kasowanie wpisów Tutora
+   w `uninstall.php` łamie niezmiennik „wpisy Tutora rusza jedno miejsce". Wyjątek
+   jest wąski (odinstalowanie biegnie przy wyłączonej wtyczce, więc nie ma ANI JEDNEJ
+   naszej klasy) i pyta o **jawną zgodę właściciela**.
+4. **Dziesiąty nawrót pułapki „wzorzec na napis"** — w regule, którą sam pisałem:
+   pytała o wystąpienie nazwy flagi, a ta pada też przy `delete_option`.
+5. **Reguła oskarżyła NIEWINNEGO** — zapaliła się na monitoringu, który nie zapisuje
+   ani jednej mety. Ma dziś kontrprzykład w audycie jako mutację oczekującą ZIELONEGO.
+6. **Przywrócenie BAZY ze zrzutu NIE przywraca PLIKÓW** —
+   `wp_delete_attachment(, true)` kasuje je z dysku, więc po teście odinstalowania
+   trzeba `npm run wp:zrzuty` (padło na tym `smoke-wp-lekcja`). Podobnie zapisy
+   Tutora: konto `klient-test` straciło kursy i wymagało `npm run wp:klient`.
+
+**PUŁAPKA POWŁOKI (kosztowała fałszywy alarm):** zsh **nie dzieli zmiennych na słowa**,
+więc `for k in "aai-sklep sprawdz"; do wp $k` wysyła JEDEN argument i daje mylące
+„is not a registered wp command" — wygląda jak martwy bind mount. Do tego `| grep`
+maskuje kod wyjścia tak samo jak `| tail`.
+
+**ŚRODOWISKO `:8892` (stan na koniec sesji):** pięć wtyczek aktywnych, sprzedaż
+OTWARTA, kursy 2, produkty 2 (`publish`), powiązania 2, konto `klient-test` na obu
+kursach (**odtworzone `npm run wp:klient` — NIE kasować**), zrzuty 148 w bibliotece,
+wszystkie cztery kontrole kod 0, `wp:sprawdz` 73/73 co do znaku, `wp:tutor` 0 różnic.
+Kopie bazy z tej sesji: `~/.cache/aai-kopie/przed-mar-a-10-20260906.sql`
+i `~/.cache/aai-kopie/przed-uninstall-20260906-0203.sql`.
