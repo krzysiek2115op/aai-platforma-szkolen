@@ -14,6 +14,29 @@ gałęziach (niezmiennik sektora: `git diff main --name-only -- . ':!audyt'`).
 Ten plik jest ich wyciągiem wykonawczym, przeniesionym na `main`, bo naprawy
 robi się właśnie stąd.
 
+## STAN: PLAN WYKONANY W CAŁOŚCI (2026-09-06)
+
+**Ta lista jest zamknięta.** Wszystkie priorytety P0–P4 wydane, każdy na
+`main`, z tagiem i release'em, artefakt po każdym merge'u zweryfikowany
+(`git diff <szczyt> origin/main` PUSTY):
+
+| Priorytet | Wydania |
+|---|---|
+| P0 | `v0.66.0` |
+| P1 | `v0.67.0`, `v0.68.0` |
+| P2 | `v0.69.0` |
+| P3 | `v0.70.0` |
+| P4 | `v0.71.0` … `v0.77.0` (siedem tur) |
+
+**Napraw kodu z tej listy nie zostało.** Jedyna otwarta pozycja to
+`REA-PRIV-F1-001` — polityka prywatności wypiera się ciasteczek, które
+WooCommerce i WordPress stawiają. To **treść prawna**: decyzja właściciela
+i prawnik, pozycja „przed pierwszym klientem", nie naprawa kodu.
+
+Co która tura naprawiła — CHANGELOG (0.66.0 … 0.77.0) i dziennik ciągłości
+w `CLAUDE.md`. **Poniższe tabele zostają jako materiał źródłowy**: mówią,
+co było znalezione i dlaczego, a nie co jest do zrobienia.
+
 ## Decyzje właściciela z 2026-09-05 (wiążące)
 
 1. **„Ukryj" ZOSTAJE kupującym** — ukryty kurs znika z katalogu, wyszukiwarki
