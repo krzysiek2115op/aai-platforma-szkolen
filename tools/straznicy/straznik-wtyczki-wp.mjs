@@ -127,6 +127,33 @@ for (const wtyczka of wtyczki) {
     }
   }
 
+  /* 1c. wersja w nagłówku = stała `*_WERSJA` w tym samym pliku
+
+     Ta stała jest w tym produkcie DWIEMA rzeczami naraz: numerem schematu
+     (`Tabele::dociagnij_schemat()` porównuje ją z opcją i tylko przy
+     różnicy puszcza `dbDelta`) ORAZ przełamywaczem pamięci przeglądarki
+     przy KAŻDYM arkuszu i skrypcie wtyczki (`wp_enqueue_*( …, WERSJA )`).
+
+     Zmierzone przed dołożeniem tej reguły: nagłówek `aai-sklep` doszedł do
+     0.9.0, a stała stała na 0.6.0 od 2026-08-25 — przez DZIESIĘĆ commitów,
+     które zmieniały pliki w `assets/`. Klient, który zaktualizuje wtyczkę,
+     dostaje więc adres arkusza z tym samym `?ver=`, czyli **stary CSS
+     z własnego cache'u przy nowym HTML-u** — objaw wygląda jak zepsuty
+     wygląd po aktualizacji, a nie jak nieruszona liczba. Wszystkie trzy
+     wtyczki miały ten rozjazd. */
+  if (wersjaNaglowka) {
+    const stala = trescGlownego.match(/^const\s+AAI_[A-Z]+_WERSJA\s*=\s*'([^']+)';/m);
+    if (!stala) {
+      bledy.push(
+        `${glowny}: nie ma stałej AAI_…_WERSJA — a to ona przełamuje pamięć przeglądarki przy arkuszach i skryptach wtyczki oraz decyduje o przebiegu dbDelta.`
+      );
+    } else if (stala[1] !== wersjaNaglowka[1]) {
+      bledy.push(
+        `${glowny}: stała AAI_…_WERSJA = „${stala[1]}" przy nagłówku „Version: ${wersjaNaglowka[1]}". Ta stała jedzie w adresie KAŻDEGO arkusza i skryptu wtyczki, więc klient po aktualizacji dostaje nowy HTML i STARY CSS z własnego cache'u — objaw wygląda jak zepsuty wygląd, nie jak nieruszona liczba.`
+      );
+    }
+  }
+
   /* 2. ochrona przed bezpośrednim wywołaniem */
   for (const plik of plikiPhp(katalog)) {
     const tresc = readFileSync(plik, "utf8");
@@ -219,12 +246,39 @@ for (const wtyczka of wtyczki) {
   for (const plik of plikiPhp(katalog)) {
     if (plik === warstwaZapisu || plik.endsWith("uninstall.php")) continue;
     const tresc = kod(readFileSync(plik, "utf8"));
+    /*
+     * WZORZEC MUSI WIDZIEĆ IDIOM, KTÓREGO REPO UŻYWA (MAR-A-29).
+     *
+     * Pierwsza wersja pytała o `$wpdb->query( "INSERT …` — czyli o łańcuch
+     * ZARAZ po nawiasie. Nie widziała więc
+     * `$wpdb->query( $wpdb->prepare( "INSERT …" ) )`, a to jest idiom
+     * używany w tym repo (warstwa zapisu Pluginu 2). Ten sam kod w dowolnym
+     * innym pliku przechodziłby na zielono — czyli reguła, która ma łapać
+     * zapis niedający objawu, sama nie widziała najczęstszej jego formy.
+     *
+     * Pytamy więc o SŁOWO KLUCZOWE SQL-a w argumentach `query()`, niezależnie
+     * od tego, ile owijek stoi po drodze.
+     */
     const zapisy = [
       ...tresc.matchAll(/\$wpdb->(insert|update|delete|replace)\s*\(/g),
       ...tresc.matchAll(
-        /\$wpdb->query\(\s*["']?\s*(INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP|ALTER)\b/gi
+        /\$wpdb->query\([^;]{0,200}?["']\s*(INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP|ALTER)\b/gi
       ),
     ].map((m) => m[1].toLowerCase());
+    /*
+     * OBEJŚCIE 2 (MAR-A-29): nazwa NASZEJ tabeli sklejona wprost
+     * `{$wpdb->prefix}aai_sklep_lessons` omijała reguły 3, 6, 10 i 11 naraz,
+     * bo reguła 6 usuwa `$wpdb->\w+` z łańcucha przed sprawdzeniem, a ten
+     * idiom w repo już występuje (przy CUDZYCH tabelach Woo, gdzie jest
+     * poprawny). Do NASZYCH tabel nazwa ma iść WYŁĄCZNIE z klasy tabel.
+     */
+    for (const m of tresc.matchAll(/\{\$wpdb->prefix\}\s*aai_\w+/g)) {
+      const nr = tresc.slice(0, m.index).split("\n").length;
+      bledy.push(
+        `${plik}:${nr}: składa nazwę NASZEJ tabeli wprost („${m[0]}") zamiast brać ją z klasy tabel. Ten idiom omija naraz cztery reguły tego strażnika — prefiks znika przed sprawdzeniem, więc zapis do naszych tabel poza warstwą zapisu przeszedłby na zielono (MAR-A-29).`
+      );
+    }
+
     if (zapisy.length > 0) {
       bledy.push(
         `${plik}: pisze do bazy z pominięciem warstwy zapisu (${[...new Set(zapisy)].join(", ")}). Do naszych tabel wolno pisać wyłącznie z ${warstwaZapisu} — tam mieszkają transakcja, dziennik audytu i odmowa skasowania napisanej treści. Zapis obok nich niczego nie zgłasza; po prostu tych rzeczy nie ma.`
@@ -464,5 +518,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę, odinstalowanie sprząta też poza własnymi tabelami).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt i ze stałą przełamującą cache, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę, odinstalowanie sprząta też poza własnymi tabelami).`
 );

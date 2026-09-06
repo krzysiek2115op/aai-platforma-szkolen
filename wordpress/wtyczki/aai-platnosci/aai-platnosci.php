@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  * WERSJA WTYCZKI, nie wersja projektu (CHANGELOG repo jest źródłem prawdy
  * o wersji projektu). Stała steruje dociąganiem schematu tabel.
  */
-const AAI_PLATNOSCI_WERSJA = '0.2.0';
+const AAI_PLATNOSCI_WERSJA = '0.5.0';
 
 /**
  * PREFIKS TABEL — ta sama decyzja właściciela co przy `aai-sklep`

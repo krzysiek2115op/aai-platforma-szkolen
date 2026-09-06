@@ -5144,6 +5144,121 @@ const MUTACJE = [
       return s.includes(a) ? s.replace(a, "if ( false ) {") : null;
     },
   },
+  /* P4f — granica szablonu (A-22…A-25), komplet zrzutów (A-28), obejścia
+     reguły zapisu (A-29), menu konta (A-26). */
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "szablon wraca do sięgania po globalny obiekt Tutora — przycisk wygląda poprawnie i po cichu nie działa (MAR-A-24)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/czesci/lekcja-odhacz.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/czesci/lekcja-odhacz.php"),
+    oczekiwanySlad: "globalny obiekt Tutora",
+    zmien: (s) => {
+      const a = "<?php echo $pole_nonce; // phpcs:ignore WordPress.Security.EscapeOutput — gotowy HTML z wp_nonce_field() ?>";
+      return s.includes(a) ? s.replace(a, "<?php wp_nonce_field( tutor()->nonce_action, tutor()->nonce, false ); ?>") : null;
+    },
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "most nonce'a przestaje odmawiać przy braku właściwości Tutora (MAR-A-24)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "nie odmawia przy braku właściwości",
+    zmien: (s) => {
+      const a = "\t\tif ( '' === $akcja || '' === $nazwa ) {\n\t\t\treturn false;\n\t\t}\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "pasek lekcji wraca do pytania cudzej wtyczki w pętli — 82 wywołania na odsłonę (MAR-A-23)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/czesci/pasek-lekcji.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/czesci/pasek-lekcji.php"),
+    oczekiwanySlad: "pyta o ukończenie lekcji z szablonu",
+    zmien: (s) => {
+      const a = "in_array( (int) $aai_poz['post_id'], $aai_ukonczone, true )";
+      return s.includes(a) ? s.replace(a, "Aai_Sklep_Lekcja::ukonczona( (int) $aai_poz['post_id'] )") : null;
+    },
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "katalog wraca do wołania warstwy odczytu wprost — ta sama lista powstaje dwa razy na odsłonę (MAR-A-22)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/katalog.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/katalog.php"),
+    oczekiwanySlad: "woła warstwę odczytu wprost",
+    zmien: (s) => {
+      const a = "Aai_Sklep_Trasy::katalog()";
+      return s.includes(a) ? s.replace(a, "Aai_Sklep_Odczyt::lista_kursow()") : null;
+    },
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "szablon 404 wraca do rozstrzygania trasy z $_SERVER i literału (MAR-A-25)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/nie-znaleziono.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/nie-znaleziono.php"),
+    oczekiwanySlad: "czyta $_SERVER",
+    zmien: (s) => {
+      const a = "$aai_o_kursie = Aai_Sklep_Trasy::zadanie_w_sklepie();";
+      const b = "$aai_o_kursie = str_starts_with( ltrim( (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ), '/' ), 'szkolenia' );";
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "kontrola przestaje liczyć zrzuty, których żąda proza — klient czyta lekcję z podpisanymi dziurami (MAR-A-28)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zrzuty.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zrzuty.php"),
+    oczekiwanySlad: "nie ma brakujace()",
+    zmien: (s) => {
+      const a = "	public static function brakujace(): array {";
+      return s.includes(a) ? s.replace(a, "	public static function brakujace_inaczej(): array {") : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "reguła zapisu przestaje widzieć query( prepare( \"UPDATE …\" ) ) — idiom używany w tym repo (MAR-A-29)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-raport.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-raport.php"),
+    oczekiwanySlad: "pominięciem warstwy zapisu",
+    zmien: (s) => {
+      const a = "	public static function stan(): array {";
+      const b = "	public static function stan(): array {\n\t\tglobal $wpdb;\n\t\t$wpdb->query( $wpdb->prepare( 'UPDATE `x` SET a = %s', 'b' ) );";
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "nazwa NASZEJ tabeli sklejona wprost omija cztery reguły naraz (MAR-A-29)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-raport.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-raport.php"),
+    oczekiwanySlad: "składa nazwę NASZEJ tabeli wprost",
+    zmien: (s) => {
+      const a = "	public static function stan(): array {";
+      const b = "	public static function stan(): array {\n\t\tglobal $wpdb;\n\t\t$x = \"SELECT * FROM {$wpdb->prefix}aai_sklep_lessons\";";
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "menu konta WooCommerce znowu dokłada „Moje kursy” bezwarunkowo — pusta lista dla kogoś bez kursu (MAR-A-26)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-moje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-moje.php"),
+    oczekiwanySlad: "bezwarunkowo",
+    zmien: (s) => {
+      const a = "\t\ttry {\n\t\t\tif ( ! self::ma_kursy() ) {\n\t\t\t\treturn $pozycje;\n\t\t\t}\n\t\t} catch ( Throwable $e ) {\n\t\t\treturn $pozycje;\n\t\t}\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "stała przełamująca cache zostaje w tyle za nagłówkiem — klient dostaje nowy HTML i STARY arkusz z własnego cache'u",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    oczekiwanySlad: "przy nagłówku",
+    zmien: (s) => {
+      const a = s.match(/^const AAI_SKLEP_WERSJA = '([^']+)';/m);
+      return a ? s.replace(a[0], "const AAI_SKLEP_WERSJA = '0.1.0';") : null;
+    },
+  },
 ];
 
 

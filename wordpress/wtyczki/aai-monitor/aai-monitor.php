@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  * WERSJA WTYCZKI, nie wersja projektu (źródłem prawdy o wersji projektu
  * jest CHANGELOG repo). Stała steruje dociąganiem schematu tabel.
  */
-const AAI_MONITOR_WERSJA = '0.5.0';
+const AAI_MONITOR_WERSJA = '0.6.0';
 
 /**
  * PREFIKS TABEL — ta sama decyzja właściciela co przy `aai-sklep`

@@ -249,7 +249,24 @@ final class Aai_Sklep_Cli {
 			}
 		}
 
-		/* 4. Zapamiętana awaria kopii. Mapa jest per kurs i gaśnie po udanej
+		/* 4. Zrzuty, których żąda proza, a których nie ma w bibliotece.
+		      Klient widzi wtedy podpisaną dziurę „brak pliku" w środku
+		      lekcji, za którą zapłacił — a do 0.76.0 nie mówiło o tym NIC
+		      (MAR-A-28). Ta sama klasa ugryzła nas przy teście
+		      odinstalowania: przywrócenie BAZY nie przywraca PLIKÓW. */
+		if ( class_exists( 'Aai_Sklep_Zrzuty' ) ) {
+			$braki_zrzutow = Aai_Sklep_Zrzuty::brakujace();
+			foreach ( $braki_zrzutow as $wpis ) {
+				$bledy[] = sprintf(
+					'lekcja „%s" żąda %d zrzutu/ów, których nie ma w bibliotece (%s) — klient widzi w treści podpisane dziury. Uruchom `npm run wp:zrzuty`.',
+					(string) $wpis['tytul'],
+					count( (array) $wpis['brakuje'] ),
+					implode( ', ', array_slice( (array) $wpis['brakuje'], 0, 3 ) )
+				);
+			}
+		}
+
+		/* 5. Zapamiętana awaria kopii. Mapa jest per kurs i gaśnie po udanej
 		      synchronizacji (MAR-A-08), więc niepusta znaczy „rozjazd TRWA". */
 		if ( class_exists( 'Aai_Sklep_Tutor' ) ) {
 			foreach ( Aai_Sklep_Tutor::bledy() as $wpis ) {

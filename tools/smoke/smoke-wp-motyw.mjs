@@ -741,8 +741,57 @@ sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da si
  * wyżej. Pytania te same co przy Tutorze — bo problem jest ten sam: reguły
  * Woo stoją poza warstwami kaskady motywu i biją go niezależnie od
  * kolejności ładowania.
+ *
+ * MIERZYMY MENU KONTA KOGOŚ, KTO MA KURS (MAR-A-26). Do 0.76.0 pozycja
+ * „Moje kursy" wchodziła tu BEZWARUNKOWO, więc widział ją także ktoś bez
+ * ani jednego zakupu — a menu motywu pytało `ma_kursy()`. Ta sama klasa
+ * miała więc dwie prawdy o tej samej stronie. Odkąd oba wejścia pytają tak
+ * samo, ta bramka musi zrobić to, co robi smoke lekcji: ZAŁOŻYĆ scenę.
+ * Bez zapisu na kurs mierzyłaby konto, dla którego pozycji ma nie być —
+ * i „nie ma pozycji" znaczyłoby co innego, niż wygląda (klasa „test po
+ * pustce", dwa nawroty w tym repozytorium w tej samej sesji).
+ *
+ * Druga połowa reguły — że bez kursu pozycji NIE MA — mierzy się taniej
+ * pytaniem WordPressa wprost, bez drugiej odsłony w przeglądarce.
  */
+const _idAdmina = Number(wpEval("echo (int) get_user_by('login','admin')->ID;").split("\n").pop());
+const _idKursuKonta = Number(
+  wpEval(
+    '$k = get_posts( array( "post_type" => "courses", "numberposts" => 1, "post_status" => "publish", "fields" => "ids", "meta_key" => "_aai_zrodlo_uuid" ) ); echo (int) ( $k[0] ?? 0 );'
+  )
+    .split("\n")
+    .pop()
+);
+
+sprawdz(
+  _idAdmina > 0 && _idKursuKonta > 0,
+  `nie znalazłem konta „admin" (${_idAdmina}) albo kopii kursu w Tutorze (${_idKursuKonta}) — menu konta nie da się zmierzyć na żadnym z dwóch stanów`
+);
+
 {
+  const bez = wpEval(
+    `wp_set_current_user( ${_idAdmina} ); echo implode( ",", array_keys( wc_get_account_menu_items() ) );`
+  )
+    .split("\n")
+    .pop();
+  sprawdz(
+    !bez.startsWith("aai-moje-kursy"),
+    `menu konta dokłada „Moje kursy" komuś BEZ ani jednego kursu (${bez}) — a menu motywu pyta ma_kursy(). Dwa wejścia do tej samej strony z różnymi regułami to dwie prawdy o tym samym; klient trafiłby na pustą listę (MAR-A-26)`
+  );
+}
+
+let _zapisanoNaKonto = false;
+if (_idAdmina > 0 && _idKursuKonta > 0) {
+  // Zapis MUSI być `completed` — przy kursie płatnym `do_enroll()` daje
+  // `pending`, czyli kogoś, kto ZACZĄŁ zakup, a nie kupującego (B2).
+  wpEval(
+    `$z = tutor_utils()->do_enroll( ${_idKursuKonta}, 0, ${_idAdmina} );` +
+      ` if ( $z ) { wp_update_post( array( "ID" => (int) $z, "post_status" => "completed" ) ); }`
+  );
+  _zapisanoNaKonto = true;
+}
+
+try {
   const m = await zmierz(SCIEZKA_KONTA, ZAKRES_KONTA, { bezPaskaAdmina: true });
 
   sprawdz(
@@ -805,6 +854,15 @@ sprawdz(await zaloguj(), "nie udało się zalogować — widoku lekcji nie da si
     `  ${SCIEZKA_KONTA}: nagłówek do ${m.naglowekDol} px, ${m.zmierzonych} elementów, ` +
       `${m.nachodzace.length} nachodzeń, ${m.jasne.length} jasnych plam, ${m.nieczytelne.length} napisów < ${MIN_KONTRAST}:1`
   );
+} finally {
+  if (_zapisanoNaKonto) {
+    // Sprzątamy po ID konta i kursu, nie po przedrostku — sprzątanie po
+    // wzorcu zostawia sieroty (lekcja z 0.43.0). Siódma strona ma znowu
+    // pokazać stan „konto bez zakupów", bo taki opisuje jej komentarz.
+    wpEval(
+      `foreach ( get_posts( array( "post_type" => "tutor_enrolled", "post_status" => "any", "author" => ${_idAdmina}, "post_parent" => ${_idKursuKonta}, "numberposts" => -1, "fields" => "ids" ) ) as $z ) { wp_delete_post( (int) $z, true ); }`
+    );
+  }
 }
 
 /*

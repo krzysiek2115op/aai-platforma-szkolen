@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.9.0
+Stable tag: 0.10.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -28,6 +28,30 @@ sprzedaż i faktury bierze WooCommerce, konta i dostęp do materiału Tutor LMS.
 
 Numeruje WERSJĘ WTYCZKI (stała `AAI_SKLEP_WERSJA` w pliku głównym), a nie
 wersję projektu — o tej mówi `CHANGELOG.md` w korzeniu repozytorium.
+
+= 0.10.0 =
+* Szablony nie rozstrzygają już same ani o trasie, ani o cudzej wtyczce:
+  nonce Tutora idzie przez most, który ODMAWIA zamiast drukować przycisk
+  działający po cichu na niby; postęp lekcji liczony raz zamiast w pętli;
+  katalog i mapa strony czytają tę samą listę raz.
+* Kontrola `wp aai-sklep sprawdz` liczy zrzuty, których żąda proza — brak
+  pliku w bibliotece mediów przestał być niewidzialny dla kontroli.
+
+= 0.9.0 =
+* Kontrola sklepu umie zawieść: kod 1 przy braku tabeli, kursie bez lekcji,
+  braku Tutora przy opublikowanych kursach i trwającej awarii kopii.
+* Odinstalowanie sprząta także poza własnymi tabelami (załączniki zrzutów
+  i mety w kopii Tutora), nie ruszając cudzych danych.
+
+= 0.8.0 =
+* Alarm o rozjeździe kopii w Tutorze jest mapą per kurs i gaśnie po udanej
+  naprawie; import i synchronizacja masowa ogłaszają zmianę siostrom.
+* Wyłączony Plugin 1 nie odsłania już strony produktu w wyglądzie
+  WooCommerce.
+
+= 0.7.0 =
+* Podbicie wersji razem z porządkami w dokumentacji projektu (nagłówek
+  wtyczki nie był ruszany od jej powstania).
 
 = 0.6.0 =
 * Kopia kursu w Tutorze odświeżana po KAŻDYM udanym zapisie, z kontrolą

@@ -615,6 +615,38 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/* KONTROLA LICZY ZRZUTY, KTÓRYCH ŻĄDA PROZA (MAR-A-28).
+
+   Źródłem prawdy są pliki repo, kopią biblioteka mediów, a przeniesienie
+   jest RĘCZNE i nie było wpięte w nic, co biegnie na produkcji. Po
+   pominięciu trzeciej komendy odtworzenia klient czyta lekcję z podpisanymi
+   dziurami „brak pliku", a obie kontrole świecą kod 0 — bo `ile()` zwraca
+   samą liczbę, a bramki repo nie sięgają na żywą instalację. Ta sama klasa
+   ugryzła nas przy teście odinstalowania: przywrócenie BAZY ze zrzutu NIE
+   przywraca plików. */
+{
+  const Z = join(WTYCZKA, "includes", "class-aai-sklep-zrzuty.php");
+  const cli = join(WTYCZKA, "includes", "class-aai-sklep-cli.php");
+  if (!existsSync(Z)) {
+    bledy.push(`${Z}: nie ma klasy zrzutów — samokontrola zakresu reguły o komplecie zrzutów (MAR-A-28).`);
+  } else {
+    const z = kod(readFileSync(Z, "utf8"));
+    if (!/function brakujace\(/.test(z)) {
+      bledy.push(
+        `${Z}: nie ma brakujace() — nic na żywej instalacji nie porównuje kompletu zrzutów z tym, czego żąda proza. Klient widzi wtedy podpisane dziury w środku lekcji, za którą zapłacił, a kontrole świecą kod 0 (MAR-A-28).`
+      );
+    }
+    if (existsSync(cli)) {
+      const c = kod(readFileSync(cli, "utf8"));
+      if (!/Aai_Sklep_Zrzuty::brakujace\(/.test(c)) {
+        bledy.push(
+          `${cli}: kontrola nie liczy zrzutów, których żąda proza (brak wywołania Zrzuty::brakujace). Mechanizm bez wpięcia jest deklaracją, nie kontrolą (MAR-A-28).`
+        );
+      }
+    }
+  }
+}
+
 /* BRAK TUTORA JEST WIDOCZNY, NIE CICHY (MAR-A-07).
 
    `Aai_Sklep_Tutor::na_zmianie()` wychodzi cicho przez `! dostepny()`, więc
@@ -653,5 +685,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają, alarm o rozjeździe jest mapą per kurs i gaśnie po naprawie, drogi masowe ogłaszają zmianę siostrom, powrót wtyczki ogłasza kursy, kontrola izoluje kurs i umie zawieść, a brak Tutora jest widoczny."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają, alarm o rozjeździe jest mapą per kurs i gaśnie po naprawie, drogi masowe ogłaszają zmianę siostrom, powrót wtyczki ogłasza kursy, kontrola izoluje kurs i umie zawieść, liczy zrzuty żądane przez prozę, a brak Tutora jest widoczny."
 );

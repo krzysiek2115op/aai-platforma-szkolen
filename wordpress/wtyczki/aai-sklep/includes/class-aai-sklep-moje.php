@@ -133,6 +133,27 @@ final class Aai_Sklep_Moje {
 	 * @return array<string,string>
 	 */
 	public static function menu_konta( array $pozycje ): array {
+		/*
+		 * TEN SAM WARUNEK, CO W MENU MOTYWU (MAR-A-26).
+		 *
+		 * Do 0.76.0 to wejście dokładało pozycję BEZWARUNKOWO, podczas gdy
+		 * menu motywu pyta `ma_kursy()`. Ta sama klasa stosowała więc własny
+		 * warunek w jednym ze swoich dwóch wejść: subskrybent bez kursu,
+		 * administrator albo klient po anulowanym zamówieniu widział na
+		 * `/my-account/` „Moje kursy" jako PIERWSZĄ pozycję i trafiał na
+		 * pustą listę. Szkody nie było (stan pusty jest obsłużony uczciwie),
+		 * ale dwa wejścia z różnymi regułami to dwie prawdy o tym samym.
+		 *
+		 * Osłona jak w menu motywu: odpowiada cudza wtyczka, a wyjątek
+		 * z filtru menu konta wywróciłby klientowi całą stronę konta.
+		 */
+		try {
+			if ( ! self::ma_kursy() ) {
+				return $pozycje;
+			}
+		} catch ( Throwable $e ) {
+			return $pozycje;
+		}
 		return array_merge(
 			array( self::KLUCZ_WOO => __( 'Moje kursy', 'aai-sklep' ) ),
 			$pozycje

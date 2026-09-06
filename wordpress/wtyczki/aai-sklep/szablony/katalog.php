@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$aai_kursy   = Aai_Sklep_Odczyt::lista_kursow();
+$aai_kursy   = Aai_Sklep_Trasy::katalog();
 $aai_flagowy = empty( $aai_kursy )
 	? null
 	: Aai_Sklep_Odczyt::szczegoly_kursu( (string) $aai_kursy[0]['slug'] );

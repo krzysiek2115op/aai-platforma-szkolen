@@ -16,7 +16,13 @@
 defined( 'ABSPATH' ) || exit;
 
 /** @var array<string,mixed> $dane */
-$aai_ukonczonych = Aai_Sklep_Lekcja::ile_ukonczonych( $dane['program'] );
+/*
+ * POSTĘP LICZONY RAZ, NIE W PODWÓJNEJ PĘTLI (MAR-A-23). Ten szablon pytał
+ * wcześniej cudzą wtyczkę osobno dla licznika i osobno dla KAŻDEGO wiersza
+ * spisu — 82 wywołania na odsłonę przy kursie z 41 lekcjami.
+ */
+$aai_ukonczone   = Aai_Sklep_Lekcja::ukonczone( $dane['program'] );
+$aai_ukonczonych = count( $aai_ukonczone );
 ?>
 <header class="aai-pasek" data-aai-pasek>
 	<nav aria-label="Nawigacja lekcji" class="aai-pasek-pigulka">
@@ -55,7 +61,7 @@ $aai_ukonczonych = Aai_Sklep_Lekcja::ile_ukonczonych( $dane['program'] );
 								<li>
 									<a href="<?php echo esc_url( $aai_poz['adres'] ); ?>"
 										<?php echo $aai_poz['id'] === $dane['lekcja']['id'] ? ' aria-current="page"' : ''; ?>
-										<?php echo $aai_poz['post_id'] > 0 && Aai_Sklep_Lekcja::ukonczona( (int) $aai_poz['post_id'] ) ? ' data-aai-przeczytana="1"' : ''; ?>>
+										<?php echo in_array( (int) $aai_poz['post_id'], $aai_ukonczone, true ) ? ' data-aai-przeczytana="1"' : ''; ?>>
 										<span class="aai-spis-nr"><?php echo (int) $aai_poz['modul']; ?>.<?php echo (int) $aai_poz['nr']; ?></span>
 										<span><?php echo esc_html( $aai_poz['tytul'] ); ?></span>
 									</a>
