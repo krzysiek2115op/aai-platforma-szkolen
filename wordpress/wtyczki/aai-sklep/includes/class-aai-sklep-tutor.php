@@ -179,6 +179,40 @@ final class Aai_Sklep_Tutor {
 		self::$wstrzymana = true;
 	}
 
+	/**
+	 * Drukuje pole nonce'a wymagane przez handler „przerobiłem lekcję" Tutora.
+	 *
+	 * PO CO OSOBNA METODA (MAR-A-24). Do 0.76.0 robił to szablon, sięgając
+	 * WPROST po `tutor()->nonce_action` i `tutor()->nonce` — jedyne w 37
+	 * szablonach odwołanie do globalnego obiektu cudzej wtyczki, omijające
+	 * TĘ KLASĘ, która deklaruje się jedynym mostem do Tutora.
+	 *
+	 * Cena tego skrótu jest większa, niż wygląda. To nie jest API, tylko
+	 * zwykłe właściwości obiektu: po ich przemianowaniu `wp_nonce_field()`
+	 * dostaje `null`, generuje pole o DOMYŚLNEJ nazwie, formularz renderuje
+	 * się normalnie — i Tutor odrzuca żądanie. Klient klika „Oznacz jako
+	 * przerobioną", **nic się nie dzieje**, pasek postępu stoi, a żadna
+	 * z bramek tego nie zobaczy, bo HTML jest i przycisk jest.
+	 *
+	 * Stąd asercja: brak którejkolwiek właściwości nie ma prawa wydrukować
+	 * przycisku, który zawiedzie po cichu. Wolimy nie pokazać przycisku niż
+	 * pokazać taki, który nie działa.
+	 *
+	 * @return bool Czy pole udało się wydrukować.
+	 */
+	public static function pole_nonce_lekcji(): bool {
+		if ( ! self::dostepny() ) {
+			return false;
+		}
+		$akcja = (string) ( tutor()->nonce_action ?? '' );
+		$nazwa = (string) ( tutor()->nonce ?? '' );
+		if ( '' === $akcja || '' === $nazwa ) {
+			return false;
+		}
+		wp_nonce_field( $akcja, $nazwa, false );
+		return true;
+	}
+
 	/** Wznowienie synchronizacji. */
 	public static function wznow(): void {
 		self::$wstrzymana = false;

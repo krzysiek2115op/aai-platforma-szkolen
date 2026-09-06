@@ -159,6 +159,66 @@ final class Aai_Sklep_Zrzuty {
 	}
 
 	/**
+	 * Czego proza żąda, a czego nie ma w bibliotece — po lekcji.
+	 *
+	 * PO CO (MAR-A-28). Źródłem prawdy są pliki repo, kopią biblioteka
+	 * mediów, a przeniesienie jest RĘCZNE (`wp aai-sklep zrzuty <manifest>`)
+	 * i nie było wpięte w `postaw.sh`. Odtworzenie środowiska wymaga trzech
+	 * komend; po pominięciu trzeciej klient czyta lekcję z podpisanymi
+	 * dziurami („brak pliku"), a obie kontrole świecą kod 0. Nic na żywej
+	 * instalacji nie porównywało kompletu — `ile()` zwraca samą liczbę,
+	 * a bramki repo nie sięgają na produkcję.
+	 *
+	 * Ta metoda pyta o to, co widzi KLIENT: czy dla każdego obrazu żądanego
+	 * przez prozę istnieje wpis w bibliotece. Ta sama klasa błędu ugryzła nas
+	 * w tej sesji — przywrócenie bazy ze zrzutu nie przywraca PLIKÓW.
+	 *
+	 * @return array<int,array{lekcja:string,tytul:string,brakuje:string[]}>
+	 */
+	public static function brakujace(): array {
+		global $wpdb;
+
+		$tabela  = Aai_Sklep_Tabele::tabela( 'lessons' );
+		$wiersze = $wpdb->get_results( "SELECT id, title, content FROM `$tabela`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL
+
+		$wynik = array();
+		foreach ( (array) $wiersze as $lekcja ) {
+			/*
+			 * BLOKI KODU I KOD W LINII NIE SĄ ŻĄDANIEM ZRZUTU.
+			 *
+			 * Lekcja „Markdown: formatowanie na GitHubie" UCZY tej składni,
+			 * więc zawiera przykłady `![opis](sciezka/obraz.png)`, które
+			 * nie są obrazami — pierwsza wersja tej kontroli zgłosiła je
+			 * jako brakujące zrzuty. To znana w tym projekcie klasa
+			 * fałszywego alarmu: `straznik-linkow` przerabiał ją w 0.21.0
+			 * i tak samo pomija bloki kodu.
+			 */
+			$tresc = (string) $lekcja['content'];
+			$tresc = (string) preg_replace( '/```[\s\S]*?```/u', '', $tresc );
+			$tresc = (string) preg_replace( '/`[^`\n]*`/u', '', $tresc );
+			if ( '' === $tresc || ! preg_match_all( '/!\[[^\]]*\]\(([^)]+)\)/u', $tresc, $trafienia ) ) {
+				continue;
+			}
+			$mapa  = self::mapa( (string) $lekcja['id'] );
+			$braki = array();
+			foreach ( $trafienia[1] as $zrodlo ) {
+				$zrodlo = trim( $zrodlo );
+				if ( ! array_key_exists( $zrodlo, $mapa ) ) {
+					$braki[] = $zrodlo;
+				}
+			}
+			if ( array() !== $braki ) {
+				$wynik[] = array(
+					'lekcja'  => (string) $lekcja['id'],
+					'tytul'   => (string) $lekcja['title'],
+					'brakuje' => array_values( array_unique( $braki ) ),
+				);
+			}
+		}
+		return $wynik;
+	}
+
+	/**
 	 * Kasuje zrzuty lekcji, których nie ma już w manifeście.
 	 *
 	 * @param array<int,string> $klucze Klucze `lekcja|nazwa`, które mają zostać.

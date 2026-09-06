@@ -219,12 +219,39 @@ for (const wtyczka of wtyczki) {
   for (const plik of plikiPhp(katalog)) {
     if (plik === warstwaZapisu || plik.endsWith("uninstall.php")) continue;
     const tresc = kod(readFileSync(plik, "utf8"));
+    /*
+     * WZORZEC MUSI WIDZIEĆ IDIOM, KTÓREGO REPO UŻYWA (MAR-A-29).
+     *
+     * Pierwsza wersja pytała o `$wpdb->query( "INSERT …` — czyli o łańcuch
+     * ZARAZ po nawiasie. Nie widziała więc
+     * `$wpdb->query( $wpdb->prepare( "INSERT …" ) )`, a to jest idiom
+     * używany w tym repo (warstwa zapisu Pluginu 2). Ten sam kod w dowolnym
+     * innym pliku przechodziłby na zielono — czyli reguła, która ma łapać
+     * zapis niedający objawu, sama nie widziała najczęstszej jego formy.
+     *
+     * Pytamy więc o SŁOWO KLUCZOWE SQL-a w argumentach `query()`, niezależnie
+     * od tego, ile owijek stoi po drodze.
+     */
     const zapisy = [
       ...tresc.matchAll(/\$wpdb->(insert|update|delete|replace)\s*\(/g),
       ...tresc.matchAll(
-        /\$wpdb->query\(\s*["']?\s*(INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP|ALTER)\b/gi
+        /\$wpdb->query\([^;]{0,200}?["']\s*(INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP|ALTER)\b/gi
       ),
     ].map((m) => m[1].toLowerCase());
+    /*
+     * OBEJŚCIE 2 (MAR-A-29): nazwa NASZEJ tabeli sklejona wprost
+     * `{$wpdb->prefix}aai_sklep_lessons` omijała reguły 3, 6, 10 i 11 naraz,
+     * bo reguła 6 usuwa `$wpdb->\w+` z łańcucha przed sprawdzeniem, a ten
+     * idiom w repo już występuje (przy CUDZYCH tabelach Woo, gdzie jest
+     * poprawny). Do NASZYCH tabel nazwa ma iść WYŁĄCZNIE z klasy tabel.
+     */
+    for (const m of tresc.matchAll(/\{\$wpdb->prefix\}\s*aai_\w+/g)) {
+      const nr = tresc.slice(0, m.index).split("\n").length;
+      bledy.push(
+        `${plik}:${nr}: składa nazwę NASZEJ tabeli wprost („${m[0]}") zamiast brać ją z klasy tabel. Ten idiom omija naraz cztery reguły tego strażnika — prefiks znika przed sprawdzeniem, więc zapis do naszych tabel poza warstwą zapisu przeszedłby na zielono (MAR-A-29).`
+      );
+    }
+
     if (zapisy.length > 0) {
       bledy.push(
         `${plik}: pisze do bazy z pominięciem warstwy zapisu (${[...new Set(zapisy)].join(", ")}). Do naszych tabel wolno pisać wyłącznie z ${warstwaZapisu} — tam mieszkają transakcja, dziennik audytu i odmowa skasowania napisanej treści. Zapis obok nich niczego nie zgłasza; po prostu tych rzeczy nie ma.`

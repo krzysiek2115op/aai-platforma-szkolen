@@ -656,14 +656,55 @@ final class Aai_Sklep_Lekcja {
 	 * @param array<int,array<string,mixed>> $program Program z `dane()`.
 	 */
 	public static function ile_ukonczonych( array $program ): int {
-		$ile = 0;
+		return count( self::ukonczone( $program ) );
+	}
+
+	/**
+	 * Które lekcje programu klient ma odhaczone — POLICZONE RAZ (MAR-A-23).
+	 *
+	 * PO CO. Pigułka lekcji pytała cudzą wtyczkę w PODWÓJNEJ PĘTLI, z warstwy
+	 * widoku: raz zbiorczo (licznik postępu), raz per wiersz spisu. Przy
+	 * Kursie 1 (41 lekcji) to **82 wywołania do Tutora na jedną odsłonę**,
+	 * mimo że szablon deklaruje w docblocku, że oczekuje gotowych `$dane`.
+	 *
+	 * To nie jest dziś znalezisko wydajnościowe: `is_completed_lesson()` to
+	 * `get_user_meta()`, czyli jedno zapytanie na całą metę użytkownika.
+	 * Jest architektoniczne — cena tej pętli zależy w całości od cudzej
+	 * implementacji, a Tutor już raz zamienił podobny odczyt na
+	 * `$wpdb->get_row` (`is_completed_course()`). Taka zmiana zrobiłaby
+	 * z tego 82 zapytania na odsłonę, bez zmiany ani jednej naszej linii
+	 * i bez żadnego objawu poza wolniejszą stroną.
+	 *
+	 * Pamięć jest na czas ŻĄDANIA i kluczowana identyfikatorami wpisów —
+	 * odhaczenie lekcji jedzie osobnym żądaniem POST, więc nie ma jak
+	 * zobaczyć nieaktualnej odpowiedzi.
+	 *
+	 * @param array<int,array<string,mixed>> $program Program kursu.
+	 * @return array<int,int> Identyfikatory wpisów lekcji odhaczonych.
+	 */
+	public static function ukonczone( array $program ): array {
+		static $pamiec = array();
+
+		$wpisy = array();
 		foreach ( $program as $modul ) {
 			foreach ( $modul['lekcje'] as $lekcja ) {
-				if ( $lekcja['post_id'] > 0 && self::ukonczona( (int) $lekcja['post_id'] ) ) {
-					++$ile;
+				if ( (int) $lekcja['post_id'] > 0 ) {
+					$wpisy[] = (int) $lekcja['post_id'];
 				}
 			}
 		}
-		return $ile;
+		$klucz = md5( (string) wp_json_encode( $wpisy ) );
+		if ( array_key_exists( $klucz, $pamiec ) ) {
+			return $pamiec[ $klucz ];
+		}
+
+		$ukonczone = array();
+		foreach ( $wpisy as $id_postu ) {
+			if ( self::ukonczona( $id_postu ) ) {
+				$ukonczone[] = $id_postu;
+			}
+		}
+		$pamiec[ $klucz ] = $ukonczone;
+		return $ukonczone;
 	}
 }

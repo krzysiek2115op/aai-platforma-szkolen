@@ -199,7 +199,7 @@ final class Aai_Sklep_Seo {
 
 		if ( 'katalog' === $widok ) {
 			return array(
-				self::lista_katalogu( Aai_Sklep_Odczyt::lista_kursow() ),
+				self::lista_katalogu( Aai_Sklep_Trasy::katalog() ),
 				self::okruszki( $okruszki ),
 			);
 		}
