@@ -5248,6 +5248,17 @@ const MUTACJE = [
       return s.includes(a) ? s.replace(a, "") : null;
     },
   },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "stała przełamująca cache zostaje w tyle za nagłówkiem — klient dostaje nowy HTML i STARY arkusz z własnego cache'u",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    oczekiwanySlad: "przy nagłówku",
+    zmien: (s) => {
+      const a = s.match(/^const AAI_SKLEP_WERSJA = '([^']+)';/m);
+      return a ? s.replace(a[0], "const AAI_SKLEP_WERSJA = '0.1.0';") : null;
+    },
+  },
 ];
 
 

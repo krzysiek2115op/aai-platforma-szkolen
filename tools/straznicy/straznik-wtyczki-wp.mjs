@@ -127,6 +127,33 @@ for (const wtyczka of wtyczki) {
     }
   }
 
+  /* 1c. wersja w nagłówku = stała `*_WERSJA` w tym samym pliku
+
+     Ta stała jest w tym produkcie DWIEMA rzeczami naraz: numerem schematu
+     (`Tabele::dociagnij_schemat()` porównuje ją z opcją i tylko przy
+     różnicy puszcza `dbDelta`) ORAZ przełamywaczem pamięci przeglądarki
+     przy KAŻDYM arkuszu i skrypcie wtyczki (`wp_enqueue_*( …, WERSJA )`).
+
+     Zmierzone przed dołożeniem tej reguły: nagłówek `aai-sklep` doszedł do
+     0.9.0, a stała stała na 0.6.0 od 2026-08-25 — przez DZIESIĘĆ commitów,
+     które zmieniały pliki w `assets/`. Klient, który zaktualizuje wtyczkę,
+     dostaje więc adres arkusza z tym samym `?ver=`, czyli **stary CSS
+     z własnego cache'u przy nowym HTML-u** — objaw wygląda jak zepsuty
+     wygląd po aktualizacji, a nie jak nieruszona liczba. Wszystkie trzy
+     wtyczki miały ten rozjazd. */
+  if (wersjaNaglowka) {
+    const stala = trescGlownego.match(/^const\s+AAI_[A-Z]+_WERSJA\s*=\s*'([^']+)';/m);
+    if (!stala) {
+      bledy.push(
+        `${glowny}: nie ma stałej AAI_…_WERSJA — a to ona przełamuje pamięć przeglądarki przy arkuszach i skryptach wtyczki oraz decyduje o przebiegu dbDelta.`
+      );
+    } else if (stala[1] !== wersjaNaglowka[1]) {
+      bledy.push(
+        `${glowny}: stała AAI_…_WERSJA = „${stala[1]}" przy nagłówku „Version: ${wersjaNaglowka[1]}". Ta stała jedzie w adresie KAŻDEGO arkusza i skryptu wtyczki, więc klient po aktualizacji dostaje nowy HTML i STARY CSS z własnego cache'u — objaw wygląda jak zepsuty wygląd, nie jak nieruszona liczba.`
+      );
+    }
+  }
+
   /* 2. ochrona przed bezpośrednim wywołaniem */
   for (const plik of plikiPhp(katalog)) {
     const tresc = readFileSync(plik, "utf8");
@@ -491,5 +518,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę, odinstalowanie sprząta też poza własnymi tabelami).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt i ze stałą przełamującą cache, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę, odinstalowanie sprząta też poza własnymi tabelami).`
 );

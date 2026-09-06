@@ -5,6 +5,136 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.76.0] — 2026-09-06
+
+### Naprawy po polowaniu, P4 — granica szablonu, komplet zrzutów i trzy obejścia reguły zapisu
+
+Siedem pozycji architektury (MAR-A-22, 23, 24, 25, 26, 28, 29). Wspólny
+mianownik pierwszych czterech: **szablon rozstrzygał sam** — o trasie albo
+o cudzej wtyczce — choć jego własny docblock mówi, że dostaje gotowe dane.
+Każde z tych rozstrzygnięć miało inną cenę, a żadne nie dawało objawu, po
+którym poznałaby je bramka.
+
+**MAR-A-24 — klient klikał „Oznacz jako przerobioną" i NIC SIĘ NIE DZIAŁO.**
+`szablony/czesci/lekcja-odhacz.php` składał nonce z `tutor()->nonce_action`
+i `tutor()->nonce` — a to nie jest API Tutora, tylko **zwykłe właściwości
+jego obiektu**. Po ich przemianowaniu `wp_nonce_field()` dostaje `null`,
+drukuje pole o domyślnej nazwie `_wpnonce`, Tutor odrzuca żądanie i wraca na
+tę samą stronę. **HTML jest przy tym poprawny**, formularz jest na miejscu,
+przycisk wygląda jak zawsze — więc ani strażnik, ani bramka mierząca stronę
+nie mają czego zauważyć; jedynym objawem jest pasek postępu, który stoi.
+
+Mostem jest dziś `Aai_Sklep_Tutor::pole_nonce_lekcji()`, i **odmawia**, gdy
+którejś właściwości nie ma. Szablon nie drukuje wtedy przycisku, tylko
+uczciwą notę: wolimy nie pokazać przycisku niż pokazać taki, który zawodzi po
+cichu. Zmierzone w przeglądarce na koncie `klient-test`: pole `_tutor_nonce`
+obecne, kliknięcie odhacza lekcję i podnosi pasek; po mutacji mostu
+formularza nie ma i jest nota.
+
+**MAR-A-23 — 82 wywołania do cudzej wtyczki na jedną odsłonę.**
+`szablony/czesci/pasek-lekcji.php` pytał Tutora o ukończenie lekcji
+w **podwójnej pętli** (moduły × lekcje), czyli przy kursie z 41 lekcjami
+dwa razy po 41 — mimo że jego własny docblock deklaruje, że oczekuje
+gotowych danych. Cena tego pytania zależy w całości od implementacji, której
+nie kontrolujemy. `Aai_Sklep_Lekcja::ukonczone()` liczy raz i pamięta na czas
+żądania (zmierzone: drugie wywołanie z pamięci, oba 0,06 ms).
+
+**MAR-A-22 — ta sama lista kursów powstawała dwa razy na odsłonę.**
+`szablony/katalog.php` wołał warstwę odczytu wprost, a tę samą listę pobiera
+`Aai_Sklep_Seo` na `wp_head`. Poza ceną liczy się to, że **dwa niezależne
+odczyty tej samej rzeczy w jednym żądaniu mogą się rozjechać** — wyszukiwarka
+dostałaby wtedy inny katalog niż człowiek. Katalog idzie dziś przez
+`Aai_Sklep_Trasy::katalog()`, wzorem istniejącego `kurs()`.
+
+**MAR-A-25 — jedyny z 37 szablonów, który czytał `$_SERVER`.**
+`szablony/nie-znaleziono.php` sam rozstrzygał, czy adres należy do sklepu,
+i miał jego korzeń wpisany literałem. Szablon z własnym literałem trasy mówi
+o starym adresie dzień po jego zmianie. Doszła stała `Aai_Sklep_Trasy::KORZEN`
+— to z niej składane są też reguły przepisywania, więc jest jedno źródło.
+
+**MAR-A-26 — dwa wejścia do „Moich kursów", dwie różne reguły widoczności.**
+Menu motywu pyta `ma_kursy()`, a menu konta WooCommerce dokładało pozycję
+**bezwarunkowo** — czyli ta sama klasa stosowała własny warunek tylko
+w jednym ze swoich dwóch wejść. Subskrybent bez kursu, administrator albo
+klient po anulowanym zamówieniu widział „Moje kursy" jako pierwszą pozycję
+konta i trafiał na pustą listę.
+
+**MAR-A-28 — klient czytał lekcję z podpisanymi dziurami, a kontrole świeciły
+kod 0.** Źródłem prawdy o zrzutach są pliki repo, kopią biblioteka mediów,
+a przeniesienie jest **ręczne** (`npm run wp:zrzuty`) i nie było wpięte
+w nic, co biegnie na żywej instalacji. Odtworzenie środowiska wymaga trzech
+komend; po pominięciu trzeciej lekcja pokazuje znacznik „brak pliku"
+w miejscu obrazu, a `ile()` zwraca samą liczbę, więc nikt tego nie porównuje
+z tym, **czego żąda proza**. Ta sama klasa ugryzła nas w poprzedniej turze:
+przywrócenie BAZY ze zrzutu nie przywraca PLIKÓW.
+
+`Aai_Sklep_Zrzuty::brakujace()` pyta o to, co widzi klient, i jest wpięte
+w `wp aai-sklep sprawdz`. Pierwsza wersja dała **fałszywy alarm** na lekcji
+o Markdownie, która UCZY tej składni — pomijamy więc bloki kodu i kod
+w linii, dokładnie jak `straznik-linkow` od 0.21.0.
+
+**MAR-A-29 — reguła „do naszych tabel pisze tylko warstwa zapisu" miała trzy
+obejścia.** Nie widziała `$wpdb->query( $wpdb->prepare( "UPDATE …" ) )` —
+a to **idiom używany w tym repozytorium** (warstwa zapisu Pluginu 2) — bo
+pytała o łańcuch zaraz po nawiasie. Nie widziała też nazwy naszej tabeli
+sklejonej wprost `{$wpdb->prefix}aai_sklep_lessons`, która omijała naraz
+**cztery reguły tego strażnika**, bo jedna z nich usuwa `$wpdb->\w+`
+z łańcucha przed sprawdzeniem. Reguła, która ma łapać zapis niedający
+objawu, sama nie widziała jego najczęstszej formy.
+
+**Przy okazji, ZMIERZONE, nie z listy: wszystkie trzy wtyczki podawały
+klientowi stary arkusz po aktualizacji.** Stała `AAI_*_WERSJA` jest w tym
+produkcie dwiema rzeczami naraz — numerem schematu dla `dbDelta` **i**
+przełamywaczem pamięci przeglądarki w adresie każdego arkusza i skryptu
+(`wp_enqueue_*( …, WERSJA )`). Nagłówek `aai-sklep` doszedł tymczasem do
+0.9.0, a stała stała na **0.6.0 od 25 sierpnia** — przez dziesięć commitów,
+które zmieniały pliki w `assets/`. Klient, który zaktualizuje wtyczkę,
+dostaje więc nowy HTML i **stary CSS z własnego cache'u**; objaw wygląda jak
+zepsuty wygląd po aktualizacji, nie jak nieruszona liczba. Siostry miały ten
+sam rozjazd (0.2.0 przy 0.5.0 i 0.5.0 przy 0.6.0). Wersje są dziś zgodne we
+wszystkich trzech miejscach — nagłówek, `Stable tag`, stała — a pilnuje tego
+nowa reguła `straznik-wtyczki-wp` z własną mutacją.
+
+Wersja wtyczki `aai-sklep`: **0.9.0 → 0.10.0**.
+
+### Dowody
+
+**Osiem reguł strażników**, **jedenaście testów negatywnych**, **dziesięć
+mutacji** (audyt 420 → **430**). Reguła o granicy szablonu idzie po
+**wszystkich 37 plikach** katalogu `szablony/`, nie po nazwach — lekcja
+z 0.65.0, gdzie reguła przypięta do pliku umilkła po refaktorze — i ma
+samokontrolę zakresu (mniej niż 20 szablonów = błąd, nie cisza).
+
+**Ta sesja złapała mnie dwa razy na tym samym: test negatywny przechodzący
+PO PUSTCE.** Raz przy MAR-A-17 z poprzedniej tury (kopia w Tutorze już
+istniała, więc warunek usterki nie zachodził), raz przy MAR-A-24 (lekcja była
+już odhaczona, więc formularza i tak nie było — „nie ma przycisku" znaczyło
+co innego, niż wyglądało). Oba wykryte **porównaniem z oczekiwanym stanem
+sceny**, nie lekturą wyniku. Przed testem negatywnym trzeba zapytać, czy
+warunek usterki w tej chwili w ogóle zachodzi, i sprawdzić to pomiarem.
+
+**Bramka broniła starego zachowania — po raz szósty w tej serii.**
+`smoke-wp-motyw` mierzy `/my-account/` **zalogowany jako `admin`**
+i asertował, że „Moje kursy" są pierwszą pozycją menu konta. Po naprawie
+A-26 admin — który nie ma ani jednego zakupu — słusznie tej pozycji nie
+dostaje, więc bramka zapaliła się na **1 z 91 sprawdzeń**, choć kod był
+poprawny. Poprawiona bramka **zakłada scenę**, tak jak robi to od dawna
+smoke lekcji: zapisuje admina na kurs (statusem `completed`, bo przy kursie
+płatnym `do_enroll()` daje `pending`, czyli kogoś, kto dopiero ZACZĄŁ zakup),
+mierzy menu kupującego i zapis cofa. Drugą połowę reguły — że **bez kursu
+pozycji NIE MA** — mierzy taniej, pytaniem WordPressa wprost, bez drugiej
+odsłony w przeglądarce.
+
+### Liczby
+
+Audyt mutacyjny 420 → **430** (428 złapanych, 0 przeoczonych, 0 martwych),
+strażnicy **39/39**, `npm run check` kod 0 (testy 84/84, lint, tsc, build,
+7 smoke'ów prototypu), `postaw.sh` kod 0, **15/15 bramek WP** (dane 30 ·
+front 89 · tutor 49 · lekcja 64 · kreator 102 · panel 55 · płatności 27 ·
+produkty 101 · zakup 60 · zwroty 39 · maile 62 · język 25 · monitor 184 ·
+seo 174 · motyw 93), cztery kontrole kod 0, proza 73/73 co do znaku, kopia
+w Tutorze 0 różnic.
+
 ## [0.75.0] — 2026-09-06
 
 ### Naprawy po polowaniu, P4 — kontrola, która nie umiała zawieść, i sprzątanie, które nie sprzątało
