@@ -201,8 +201,23 @@ if (existsSync(WARSTWA_ZAPISU)) {
 
   const zdejmowanie = zapis.match(/function zdejmij_kurs[\s\S]*?\n\tpublic static function/);
   if (zdejmowanie) {
-    const dType = zdejmowanie[0].indexOf("_tutor_course_price_type");
-    const dId = zdejmowanie[0].indexOf("_tutor_course_product_id");
+    /*
+     * MIERZYMY POZYCJĘ WYWOŁANIA ZMIENIAJĄCEGO, NIE NAZWY META.
+     *
+     * Do 0.78.0 reguła brała pierwsze wystąpienie nazwy klucza. Gdy obok
+     * zapisu stanęła jego WERYFIKACJA odczytem (`get_post_meta` z tą samą
+     * nazwą), pierwsze wystąpienie przestało wskazywać zapis — i mutacja
+     * odwracająca kolejność zaczęła przechodzić na zielono. Złapał to
+     * audyt mutacyjny, nie lektura; klasa znana w tym repozytorium jako
+     * „wzorzec na napis zamiast na rozstrzygnięcie".
+     */
+    const dId = zdejmowanie[0].search(/delete_post_meta\([^)]*_tutor_course_product_id/);
+    const dType = zdejmowanie[0].search(/update_post_meta\([^)]*_tutor_course_price_type/);
+    if (dId < 0) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: nie znalazłem odpięcia product_id w zdejmij_kurs() (B2). Samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+      );
+    }
     if (dId >= 0 && dType >= 0 && dId > dType) {
       bledy.push(
         `${WARSTWA_ZAPISU}: ZŁA KOLEJNOŚĆ ZDEJMOWANIA (B2) — przy rozpinaniu pary product_id musi znikać PIERWSZY. Odwrotna kolejność zostawia okno, w którym kurs jest „darmowy", ale wciąż powiązany z produktem.`
@@ -1918,6 +1933,61 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/* ————————— zapis dziennika i powiązania ODDAJE swój wynik —————————
+   Zgłoszone z zewnątrz (0.78.0). `dostawa_wynik()` i `powiazanie_usun()`
+   były metodami `void`, które odrzucały wynik zapytania. Zmierzone:
+   przy zablokowanym UPDATE komenda „dostawy --zamknij" meldowała
+   „Success" przy niezmienionym wierszu, a kontrola upominała się o tę
+   dostawę dalej i blokowała postaw.sh. Przy zablokowanym DELETE zostawał
+   wiersz wskazujący produkt kursu, którego już nie ma.
+
+   Reguła pyta o ROZSTRZYGNIĘCIE (typ zwracany i sprawdzenie u wołającego),
+   nie o obecność nazwy — to nawracająca pułapka tego repozytorium. */
+{
+  const zapis = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php";
+  const cli = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php";
+  const maile = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php";
+
+  if (existsSync(zapis)) {
+    const z = kod(readFileSync(zapis, "utf8"));
+
+    for (const [metoda, po_co] of [
+      ["dostawa_wynik", "rezultat dostawy nie trafiłby do dziennika, a kontrola upominałaby się o nią w nieskończoność"],
+      ["powiazanie_usun", "zostałby wiersz wskazujący produkt kursu, którego już nie ma"],
+      ["ustaw_znaczniki_produktu", "produkt straciłby znaczniki sterujące domknięciem zamówienia i integracją Tutora"],
+    ]) {
+      const m = z.match(new RegExp(`public static function ${metoda}\\s*\\([^)]*\\)\\s*:\\s*(\\w+)`));
+      if (!m) {
+        bledy.push(
+          `${zapis}: nie znalazłem deklaracji ${metoda}() — samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+        );
+      } else if ("void" === m[1]) {
+        bledy.push(
+          `${zapis}: ${metoda}() jest void, więc nie ma jak powiedzieć, że zapis się nie udał — ${po_co}. Oddaj wynik i potwierdź stan odczytem.`
+        );
+      }
+    }
+  }
+
+  if (existsSync(cli)) {
+    const c = kod(readFileSync(cli, "utf8"));
+    if (/Aai_Platnosci_Zapis::dostawa_wynik\(/.test(c) && !/if\s*\(\s*!\s*Aai_Platnosci_Zapis::dostawa_wynik\(/.test(c)) {
+      bledy.push(
+        `${cli}: ręczne zamknięcie dostawy nie sprawdza, czy zapis doszedł — komenda meldowała wtedy sukces przy niezmienionym wierszu, a kontrola dalej blokowała postaw.sh (zmierzone).`
+      );
+    }
+  }
+
+  if (existsSync(maile)) {
+    const m = kod(readFileSync(maile, "utf8"));
+    if (!/\$zapisany\s*=\s*Aai_Platnosci_Zapis::dostawa_wynik\(/.test(m)) {
+      bledy.push(
+        `${maile}: zapisz_wynik() nie odbiera wyniku dostawa_wynik(). Przy nieudanym zapisie udana wysyłka CZYŚCI komunikat, który dostawa_wynik() postawiła przed chwilą pod tym samym kluczem — naprawa jednej niemej usterki robi drugą.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1925,5 +1995,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, każdy zapis wpisu odbiera swój wynik, kupowalność i odebranie dostępu mierzone odczytem, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products, znacznik świeżej okładki potwierdzany odczytem i sprzątany przy porażce, puste zdanie o zgodach też wchodzi do bloku kasy, wyłączony Plugin 1 nie odsłania drugiej strony sprzedażowej, a udana synchronizacja gasi uwagę ogólną)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, każdy zapis wpisu odbiera swój wynik, kupowalność i odebranie dostępu mierzone odczytem, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products, znacznik świeżej okładki potwierdzany odczytem i sprzątany przy porażce, puste zdanie o zgodach też wchodzi do bloku kasy, wyłączony Plugin 1 nie odsłania drugiej strony sprzedażowej, udana synchronizacja gasi uwagę ogólną, a zapis dziennika, powiązania i znaczników oddaje swój wynik i jest sprawdzany przez wołających)."
 );

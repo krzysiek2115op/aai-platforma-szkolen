@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.7.0
+Stable tag: 0.8.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -44,6 +44,9 @@ natywnym mechanizmem WordPressa (Narzędzia → Prywatność).
 
 Numeruje WERSJĘ WTYCZKI (stała `AAI_MONITOR_WERSJA` w pliku głównym), a nie
 wersję projektu — o tej mówi `CHANGELOG.md` w korzeniu repozytorium.
+
+= 0.8.0 =
+Zapis, który się nie udał, przestaje meldować sukces: wynik każdej zmiany stanu jest sprawdzany, a kontrola widzi awarie, które wcześniej były nieme.
 
 = 0.7.0 =
 * Wgranie STARSZEJ wtyczki na nowszy schemat nie uruchamia starego `dbDelta`

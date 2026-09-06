@@ -42,6 +42,17 @@ final class Aai_Monitor_Pomiar {
 	public const UCHWYT = 'aai-monitor-pomiar';
 
 	/**
+	 * Filtr, którym pytamy, czy ta strona jest bramką logowania.
+	 *
+	 * Stała, a nie literał w dwóch miejscach: o ten sam filtr pyta
+	 * `za_bramka()` i kontrola `wp aai-monitor sprawdz` (czy ktokolwiek
+	 * na niego odpowiada). Nazwa wpisana dwa razy rozjeżdża się przy
+	 * pierwszej zmianie, a wtedy kontrola pytałaby o filtr, którego nikt
+	 * nie używa, i milczała o tym, który jest naprawdę potrzebny.
+	 */
+	public const FILTR_BRAMKI = 'aai_monitor_strona_za_bramka';
+
+	/**
 	 * Rejestracja — wołane z pliku głównego.
 	 */
 	public static function zarejestruj(): void {
@@ -127,7 +138,7 @@ final class Aai_Monitor_Pomiar {
 	 * więc klient nie może jej sobie zmienić.
 	 */
 	public static function za_bramka(): bool {
-		return (bool) apply_filters( 'aai_monitor_strona_za_bramka', false );
+		return (bool) apply_filters( self::FILTR_BRAMKI, false );
 	}
 
 	/**

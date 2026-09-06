@@ -1831,17 +1831,16 @@ const MUTACJE = [
       // do WNĘTRZA `if`, więc kolejność zostawała poprawna i mutacja nic
       // nie testowała — audyt to pokazał (wadliwa mutacja jest groźniejsza
       // niż jej brak; ta sama lekcja co w 0.35.0).
-      const blok =
-        "\t\t\tdelete_post_meta( $tutor_id, '_tutor_course_product_id' );\n" +
-        "\t\t\tif ( null !== $cel_price_type ) {\n" +
-        "\t\t\t\tupdate_post_meta( $tutor_id, '_tutor_course_price_type', $cel_price_type );\n" +
-        "\t\t\t}";
-      const odwrocony =
-        "\t\t\tif ( null !== $cel_price_type ) {\n" +
-        "\t\t\t\tupdate_post_meta( $tutor_id, '_tutor_course_price_type', $cel_price_type );\n" +
-        "\t\t\t}\n" +
-        "\t\t\tdelete_post_meta( $tutor_id, '_tutor_course_product_id' );";
-      return s.includes(blok) ? s.replace(blok, odwrocony) : null;
+      // PRZEKOTWICZONE 0.78.0: między te dwa wywołania weszła weryfikacja
+      // odczytem (obie mety rozstrzygają o dostępie bez zapłaty), więc
+      // mutacja zakotwiczona na SĄSIEDZTWIE linii przestała cokolwiek
+      // testować. Odwracamy kolejność przez przeniesienie samego
+      // `delete_post_meta` na koniec bloku Tutora — mierzone jest
+      // ROZSTRZYGNIĘCIE (co dzieje się pierwsze), nie układ tekstu.
+      const usuniecie = "\t\t\tdelete_post_meta( $tutor_id, '_tutor_course_product_id' );\n";
+      const koniec = "\t\t}\n\n\t\t$product_id = self::produkt_kursu( $course_uuid );";
+      if (!s.includes(usuniecie) || !s.includes(koniec)) return null;
+      return s.replace(usuniecie, "").replace(koniec, usuniecie + koniec);
     },
   },
   {
@@ -4831,8 +4830,11 @@ const MUTACJE = [
     wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php"),
     oczekiwanySlad: "nie jest przycinana po LICZBIE",
     zmien: (s) => {
-      const a = "$ile = (int) $ile + self::przytnij_liczbe( 'logowania', Aai_Monitor_Tabele::SUFIT_WIERSZY_LOGOWAN );";
-      return s.includes(a) ? s.replace(a, "") : null;
+      // PRZEKOTWICZONE 0.78.0: sprawdzenie wyniku DELETE weszło PRZED
+      // rzutowanie, więc linia zmieniła kształt. Mutacja celuje teraz
+      // w samo WYWOŁANIE sufitu, niezależnie od tego, co stoi obok.
+      const a = "self::przytnij_liczbe( 'logowania', Aai_Monitor_Tabele::SUFIT_WIERSZY_LOGOWAN )";
+      return s.includes(a) ? s.replace(a, "0") : null;
     },
   },
   /* P4c — trzy naprawy: Z-5 (okładka), Z-1 (zdanie o zgodach), MAR-A-20
@@ -5382,6 +5384,153 @@ const MUTACJE = [
     zmien: (s) => {
       const a = " * Requires Plugins:  aai-sklep\n";
       return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+
+  /* 0.78.0 — zapis, który się nie udał, przestaje meldować sukces. Każda
+     mutacja cofa naprawę do stanu sprzed 0.78.0, czyli mierzy dokładnie to,
+     co reguła ma trzymać. */
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "sprawdzenie awarii DELETE wraca ZA rzutowanie — retencja milczy przy zablokowanym kasowaniu (zgłoszenie zewnętrzne)",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php"),
+    oczekiwanySlad: "jest rzutowana, a POTEM porównywana",
+    zmien: (s) => {
+      const a = `				if ( false === $ile ) {
+					self::zglos( 'retencja nie zadziałała: ' . $wpdb->last_error );
+					return 0;
+				}
+				return (int) $ile + self::przytnij_liczbe( 'logowania', Aai_Monitor_Tabele::SUFIT_WIERSZY_LOGOWAN );`;
+      const b = `				$ile = (int) $ile + self::przytnij_liczbe( 'logowania', Aai_Monitor_Tabele::SUFIT_WIERSZY_LOGOWAN );
+				if ( false === $ile ) {
+					self::zglos( 'retencja nie zadziałała: ' . $wpdb->last_error );
+					return 0;
+				}
+				return (int) $ile;`;
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "nieudane ścinanie sufitem przestaje być słyszalne — tabela rośnie, a kanał błędów milczy",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php"),
+    oczekiwanySlad: "nie zgłasza awarii",
+    zmien: (s) => {
+      const a = `self::zglos( 'retencja nie zadziałała: nie udało się ściąć tabeli do sufitu: ' . $wpdb->last_error );`;
+      const b = `/* mutacja: cisza */`;
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "znika sprawdzenie COMMIT — zapis oddaje liczniki sukcesu, a w bazie zostaje stara treść (15a)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php"),
+    oczekiwanySlad: "COMMIT nie jest sprawdzany",
+    zmien: (s) => {
+      const a = `		if ( false === $wpdb->query( 'COMMIT' ) ) {`;
+      const b = `		$wpdb->query( 'COMMIT' );
+		if ( false ) {`;
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "liczniki tabel znowu rzutują null na zero — reguła o braku tabeli staje się martwa (15b)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-raport.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-raport.php"),
+    oczekiwanySlad: "nie pyta o ISTNIENIE tabeli",
+    zmien: (s) => {
+      const a = `			$istnieje = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $tabela ) );`;
+      const b = `			$istnieje = $tabela;`;
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "kontrola przestaje porównywać długość treści z PHP i z bazy — sonda na korupcję kodowania znowu bez czytelnika (15c)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-cli.php"),
+    oczekiwanySlad: "nie porównuje długości treści",
+    zmien: (s) => {
+      const a = `					$w_php = (int) ( $lekcja['znakow_php'] ?? 0 );`;
+      const b = `					$w_php = 0;`;
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "zapis kopii przestaje dowodzić skutku met — synchronizacja melduje sukces przy zablokowanym zapisie (8a)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php"),
+    oczekiwanySlad: "nie dowodzi skutku",
+    zmien: (s) => {
+      const a = `		$po_zapisie = self::rozjazdy_postu( get_post( (int) $id ), $dane, $meta );`;
+      const b = `		$po_zapisie = array();`;
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "kontrola przestaje widzieć powtórzone uuid — dopasowanie zostaje loterią, a nikt tego nie mówi (8b)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php"),
+    oczekiwanySlad: "nie pyta o powtórzone uuid",
+    zmien: (s) => {
+      const a = `			foreach ( self::powtorzone_uuid() as $uuid => $ile ) {`;
+      const b = `			foreach ( array() as $uuid => $ile ) {`;
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "dostawa_wynik() wraca do void — ręczne zamknięcie melduje sukces przy niezmienionym wierszu",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "jest void",
+    zmien: (s) => {
+      const a = `	public static function dostawa_wynik( string $zdarzenie, int $identyfikator, string $wynik ): bool {`;
+      const b = `	public static function dostawa_wynik( string $zdarzenie, int $identyfikator, string $wynik ): void {`;
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "powiazanie_usun() wraca do void — zostaje wiersz wskazujący produkt kursu, którego nie ma",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php"),
+    oczekiwanySlad: "jest void",
+    zmien: (s) => {
+      const a = `	public static function powiazanie_usun( string $course_uuid ): bool {`;
+      const b = `	public static function powiazanie_usun( string $course_uuid ): void {`;
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-platnosci-wp",
+    opis: "zapisz_wynik() przestaje odbierać wynik zapisu — udana wysyłka kasuje alarm o nieudanym zapisie",
+    plik: "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php"),
+    oczekiwanySlad: "nie odbiera wyniku",
+    zmien: (s) => {
+      const a = `		$zapisany = Aai_Platnosci_Zapis::dostawa_wynik( $zdarzenie, $identyfikator, $wynik );`;
+      const b = `		Aai_Platnosci_Zapis::dostawa_wynik( $zdarzenie, $identyfikator, $wynik );
+		$zapisany = true;`;
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-monitora-wp",
+    opis: "kontrola przestaje pytać, czy ktokolwiek odpowiada o bramkę logowania (19)",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-cli.php"),
+    oczekiwanySlad: "nie pyta, czy ktokolwiek odpowiada",
+    zmien: (s) => {
+      const a = `			if ( false === has_filter( Aai_Monitor_Pomiar::FILTR_BRAMKI ) ) {`;
+      const b = `			if ( false ) {`;
+      return s.includes(a) ? s.replace(a, b) : null;
     },
   },
 ];

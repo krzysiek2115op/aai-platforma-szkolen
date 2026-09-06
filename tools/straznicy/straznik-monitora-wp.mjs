@@ -1005,6 +1005,53 @@ if (existsSync(GLOWNY)) {
   }
 }
 
+/* ————————— 19. kontrola pyta, czy ktokolwiek odpowiada o bramkę —————————
+   Kolumna „bramka" odróżnia „ktoś przeczytał lekcję" od „ktoś odbił się
+   od logowania" — i jest jedyną liczbą na ekranie, która to potrafi.
+   Monitoring sam nie wie, co jest bramką: pyta filtrem, a odpowiada widok
+   lekcji Pluginu 1. Gdy rejestracja zniknie, flaga jest zawsze fałszywa,
+   dane wyglądają zdrowo i NIC się nie zapala. Zmierzone 0.78.0 mutacją
+   zdejmującą add_filter w Pluginie 1: kontrola milczała. */
+{
+  const cli = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-cli.php";
+  const pomiar = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-pomiar.php";
+  if (existsSync(cli) && existsSync(pomiar)) {
+    const c = kod(readFileSync(cli, "utf8"));
+    const pm = kod(readFileSync(pomiar, "utf8"));
+
+    if (!/has_filter\s*\(\s*Aai_Monitor_Pomiar::FILTR_BRAMKI/.test(c)) {
+      bledy.push(
+        `${cli}: kontrola nie pyta, czy ktokolwiek odpowiada na filtr bramki logowania (19). Bez odpowiadającego kolumna „bramka" jest zawsze fałszywa, a ekran pokazuje odbicia od logowania jako zwykłe odsłony — dane są ciche i wyglądają zdrowo.`
+      );
+    }
+    if (!/public const FILTR_BRAMKI/.test(pm)) {
+      bledy.push(
+        `${pomiar}: nazwa filtru bramki nie jest stałą (19). Wpisana dwa razy rozjeżdża się przy pierwszej zmianie, a wtedy kontrola pyta o filtr, którego nikt nie używa, i milczy o tym, który jest naprawdę potrzebny.`
+      );
+    }
+  }
+}
+
+/* ————————— 20. każda gałąź retencji jest SŁYSZALNA —————————
+   Retencja ma dwie drogi kasowania: po wieku i po suficie liczby wierszy.
+   Obie mogą zawieść, obie milczą z natury (biegną w cudzym żądaniu), więc
+   obie muszą zgłaszać awarię do kanału błędów. Do 0.78.0 zgłaszała tylko
+   pierwsza, a i to sprawdzeniem, które stało za rzutowaniem i było martwe. */
+{
+  const zapis = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php";
+  if (existsSync(zapis)) {
+    const t = kod(readFileSync(zapis, "utf8"));
+    const sufit = t.match(/private static function przytnij_liczbe\([\s\S]*?\n\t\}/);
+    if (!sufit) {
+      bledy.push(`${zapis}: nie znalazłem ciała przytnij_liczbe() (20). Samokontrola zakresu.`);
+    } else if (!/self::zglos\s*\(/.test(sufit[0])) {
+      bledy.push(
+        `${zapis}: ścinanie tabeli do sufitu nie zgłasza awarii (20). Nieudane kasowanie oddaje wtedy zero, czyli liczbę nie do odróżnienia od „nie było czego kasować" — tabela rośnie dalej, a jedyny ekran, który miałby o tym powiedzieć, milczy.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-monitora-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1012,5 +1059,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test, wystrzał ma obie nazwy akcji i akcję w query stringu, wymaga typu JSON i czyta ciało strumieniem, skryptu nie dostaje admin ani strona 404, skrypt wysyła raz i wraca do życia po bfcache, teksty ekranu bez podwójnej ucieczki, polityka w repo zgodna z kodem, obie tabele mają sufit liczby wierszy)."
+  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test, wystrzał ma obie nazwy akcji i akcję w query stringu, wymaga typu JSON i czyta ciało strumieniem, skryptu nie dostaje admin ani strona 404, skrypt wysyła raz i wraca do życia po bfcache, teksty ekranu bez podwójnej ucieczki, polityka w repo zgodna z kodem, obie tabele mają sufit liczby wierszy, kontrola pyta, czy ktokolwiek odpowiada o bramkę logowania, a obie gałęzie retencji są słyszalne)."
 );

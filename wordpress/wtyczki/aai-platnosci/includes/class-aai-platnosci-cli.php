@@ -989,6 +989,36 @@ final class Aai_Platnosci_Cli {
 				);
 			}
 		}
+		/*
+		 * NASZE FILTRY W PLUGINIE 1 MUSZĄ BYĆ PODPIĘTE.
+		 *
+		 * Cena efektywna, treść przycisku i dostępność oferty jadą na
+		 * stronę kursu przez trzy filtry Pluginu 1, a rejestruje je ta
+		 * wtyczka. Gdy rejestracja zniknie (refaktor, wyjątek przy starcie
+		 * złapany osłoną, zmiana nazwy filtru po tamtej stronie), strona
+		 * wraca do ceny katalogowej i do przycisku „kontakt" — sprzedaż
+		 * cichnie, a wszystkie pozostałe kontrole świecą zielono, bo
+		 * produkty, powiązania i dziennik są w porządku.
+		 *
+		 * Pytamy o WŁASNĄ rejestrację, nie o cudzą: gdy Pluginu 1 nie ma,
+		 * pytanie nie ma sensu i nie jest zadawane.
+		 */
+		if ( Aai_Platnosci_Zaleznosci::jest_sklep() ) {
+			foreach ( array(
+				'aai_sklep_cena_kursu'       => 'cena efektywna z WooCommerce',
+				'aai_sklep_cta_kursu'        => 'treść przycisku zakupu',
+				'aai_sklep_dostepnosc_kursu' => 'dostępność oferty w danych strukturalnych',
+			) as $filtr => $po_co ) {
+				if ( false === has_filter( $filtr ) ) {
+					$bledy[] = sprintf(
+						'nikt nie odpowiada na filtr `%s` (%s) — strona kursu pokazuje wtedy stan sprzed Pluginu 2, czyli cenę katalogową i przycisk kontaktu zamiast zakupu.',
+						$filtr,
+						$po_co
+					);
+				}
+			}
+		}
+
 		foreach ( self::bledy_dostaw() as $blad_dostawy ) {
 			$bledy[] = $blad_dostawy;
 		}

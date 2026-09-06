@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.6.0
+Stable tag: 0.7.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -52,6 +52,9 @@ wersję projektu — o tej mówi `CHANGELOG.md` w korzeniu repozytorium. Wersja
 wtyczki została nadana przy kroku P1 i przy kolejnych krokach (P2–P6) NIE była
 podnoszona, więc historię zmian po fundamencie czyta się z `CHANGELOG.md`
 (wersje projektu 0.47.0–0.53.0), a nie stąd.
+
+= 0.7.0 =
+Zapis, który się nie udał, przestaje meldować sukces: wynik każdej zmiany stanu jest sprawdzany, a kontrola widzi awarie, które wcześniej były nieme.
 
 = 0.6.0 =
 * Nagłówek `Requires Plugins: aai-sklep` — WordPress sam odmawia aktywacji

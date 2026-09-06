@@ -766,6 +766,54 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/* ————————— 8. zapis kopii DOWODZI skutku, a kontrola widzi duplikaty —————————
+   Dwie strony jednej sprawy, obie zgłoszone z zewnątrz (0.78.0).
+
+   (a) `zapisz_post()` kończył się pętlą `update_post_meta()` i oddawał
+       „zaktualizowane" bez pytania, czy cokolwiek doszło. Zmierzone
+       filtrem blokującym jedną metę: kopia meldowała sukces, błędów zero,
+       a słuchacz gasił na tej podstawie alarm kursu.
+
+   (b) `porownaj()` szuka wpisu tą SAMĄ funkcją co zapis, a ta pyta o jeden
+       wpis. Przy dwóch wpisach z tym samym uuid brała pierwszy z brzegu
+       i nigdy tego nie zgłaszała — kontrola powielała ślepotę zapisu
+       zamiast ją wykrywać. Duplikat powstaje wprost z (a): nieudany zapis
+       znacznika sprawia, że następna synchronizacja nie znajduje wpisu
+       i zakłada drugi. */
+{
+  const t = kod(czytaj(PLIK_KOPII));
+
+  const zapis = t.match(/private static function zapisz_post\([\s\S]*?\n\t\}/);
+  if (!zapis) {
+    bledy.push(
+      `${join(WTYCZKA, PLIK_KOPII)}: nie znalazłem ciała zapisz_post() (8a). Samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+    );
+  } else if (
+    // Pytamy o ROZSTRZYGNIĘCIE, nie o obecność nazwy: `rozjazdy_postu`
+    // pada w tej metodzie także WYŻEJ, w gałęzi „czy trzeba pisać", więc
+    // wzorzec na samą nazwę przechodził po wyłączeniu dowodu skutku
+    // (złapał to audyt mutacyjny — dziesiąty nawrót tej pułapki).
+    !/\$po_zapisie\s*=\s*self::rozjazdy_postu\s*\(/.test(zapis[0]) ||
+    !/array\(\)\s*!==\s*\$po_zapisie/.test(zapis[0]) ||
+    !/throw new Aai_Sklep_Blad_Zapisu/.test(zapis[0])
+  ) {
+    bledy.push(
+      `${join(WTYCZKA, PLIK_KOPII)}: zapisz_post() nie dowodzi skutku po zapisie met (8a). Samo wywołanie update_post_meta() nie mówi, czy zapis doszedł — cudzy filtr update_post_metadata potrafi go zatrzymać, a wtedy kopia melduje „zaktualizowane", błędów jest zero i alarm kursu GAŚNIE. Pytaj po zapisie tą samą funkcją, którą pyta kontrola, i rzuć wyjątek przy różnicy.`
+    );
+  }
+
+  const kontrola = t.match(/public static function porownaj\([\s\S]*?\n\t\}/);
+  if (!kontrola) {
+    bledy.push(
+      `${join(WTYCZKA, PLIK_KOPII)}: nie znalazłem ciała porownaj() (8b). Samokontrola zakresu.`
+    );
+  } else if (!/powtorzone_uuid\s*\(/.test(kontrola[0])) {
+    bledy.push(
+      `${join(WTYCZKA, PLIK_KOPII)}: kontrola nie pyta o powtórzone uuid (8b). znajdz_po_uuid() bierze wtedy pierwszy wpis z brzegu, dopasowanie jest loterią, a usun_nadmiar() może skasować niewłaściwy wpis — i nikt tego nie zgłasza. Plugin 2 ma tę obronę dla własnych produktów od P2 (B4).`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-tutora:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -773,5 +821,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają, alarm o rozjeździe jest mapą per kurs i gaśnie po naprawie, drogi masowe ogłaszają zmianę siostrom, powrót wtyczki ogłasza kursy, kontrola izoluje kurs i umie zawieść, liczy zrzuty żądane przez prozę, przerwana kopia zostawia ślad, codzienna kontrola jest wpięta i umie zgasnąć, a brak Tutora jest widoczny."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają, alarm o rozjeździe jest mapą per kurs i gaśnie po naprawie, drogi masowe ogłaszają zmianę siostrom, powrót wtyczki ogłasza kursy, kontrola izoluje kurs i umie zawieść, liczy zrzuty żądane przez prozę, przerwana kopia zostawia ślad, codzienna kontrola jest wpięta i umie zgasnąć, brak Tutora jest widoczny, zapis kopii dowodzi skutku met, a kontrola widzi powtórzone uuid."
 );

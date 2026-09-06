@@ -228,6 +228,49 @@ final class Aai_Sklep_Cli {
 			}
 		}
 
+		/*
+		 * 1b. TRZY LICZBY DŁUGOŚCI TREŚCI MAJĄ SIĘ ZGADZAĆ.
+		 *
+		 * `Aai_Sklep_Raport::stan()` liczy długość każdej lekcji na trzy
+		 * sposoby: `mb_strlen()` w PHP, `CHAR_LENGTH()` i `LENGTH()`
+		 * w MySQL. Robi to od W2 jako sondę na cichą korupcję kodowania —
+		 * i do 0.78.0 NIKT PO STRONIE WORDPRESSA TYCH LICZB NIE
+		 * PORÓWNYWAŁ. Zmierzone: podłożenie stanu, w którym PHP liczy 100
+		 * znaków, a baza 40, dawało w kontroli ZERO błędów. Porównanie
+		 * robiło wyłącznie `tools/sprawdz-import-wp.mjs`, czyli narzędzie
+		 * deweloperskie wymagające bazy Postgresa, której produkcja nie ma.
+		 *
+		 * Rozjazd PHP vs `CHAR_LENGTH` znaczy, że połączenie ma inne
+		 * kodowanie niż tabela — wtedy polskie znaki i emoji zapisują się
+		 * jako znaki zapytania albo krzaki, a treść kursu psuje się po
+		 * cichu, przy zielonych wszystkich pozostałych kontrolach. Zdarza
+		 * się po migracji bazy, zmianie hostingu i imporcie zrzutu bez
+		 * wymuszonego `utf8mb4`.
+		 *
+		 * `LENGTH()` (bajty) NIE MUSI równać się znakom i nigdy nie
+		 * porównujemy go z nimi: w UTF-8 polska litera zajmuje dwa bajty,
+		 * a emoji cztery. Bajty są tu wyłącznie po to, żeby komunikat mógł
+		 * pokazać, w którą stronę poszedł rozjazd.
+		 */
+		foreach ( (array) ( $stan['kursy'] ?? array() ) as $kurs ) {
+			foreach ( (array) ( $kurs['moduly'] ?? array() ) as $modul ) {
+				foreach ( (array) ( $modul['lekcje'] ?? array() ) as $lekcja ) {
+					$w_php = (int) ( $lekcja['znakow_php'] ?? 0 );
+					$w_sql = (int) ( $lekcja['znakow_sql'] ?? 0 );
+					if ( $w_php === $w_sql ) {
+						continue;
+					}
+					$bledy[] = sprintf(
+						'lekcja `%s` ma %d znaków według PHP i %d według bazy (%d bajtów) — połączenie ma inne kodowanie niż tabela, a treść kursu psuje się po cichu.',
+						(string) ( $lekcja['slug'] ?? $lekcja['title'] ?? '?' ),
+						$w_php,
+						$w_sql,
+						(int) ( $lekcja['bajtow_sql'] ?? 0 )
+					);
+				}
+			}
+		}
+
 		/* 2. Kurs opublikowany, a nie ma czego dostarczyć. Katalog i strona
 		      sprzedażowa obiecują wtedy produkt, którego nie ma. */
 		foreach ( (array) ( $stan['kursy'] ?? array() ) as $kurs ) {

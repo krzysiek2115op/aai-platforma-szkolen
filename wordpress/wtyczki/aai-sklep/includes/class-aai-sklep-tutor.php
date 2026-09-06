@@ -607,6 +607,32 @@ final class Aai_Sklep_Tutor {
 					);
 				}
 			}
+
+			/*
+			 * DWA WPISY Z TYM SAMYM UUID — dopasowanie staje się loterią.
+			 *
+			 * `znajdz_po_uuid()` pyta o JEDEN wpis (`numberposts => 1`),
+			 * więc przy powtórce bierze pierwszy z brzegu, a kolejność nie
+			 * jest niczym gwarantowana: raz aktualizujemy jeden wpis, raz
+			 * drugi, a `usun_nadmiar()` może skasować ten, którego akurat
+			 * nie wybraliśmy. Do 0.78.0 kontrola tego nie widziała, bo
+			 * pytała tą samą metodą, co zapis — czyli powielała jego
+			 * ślepotę zamiast ją wykrywać.
+			 *
+			 * Plugin 2 ma tę obronę dla własnych produktów od P2 (B4);
+			 * Plugin 1 dla WŁASNEJ kopii jej nie miał, choć to on tworzy
+			 * te wpisy i to jego kopia niesie treść kursu.
+			 */
+			foreach ( self::powtorzone_uuid() as $uuid => $ile ) {
+				$roznice[] = array(
+					'rodzaj' => 'duplikat',
+					'co'     => $uuid,
+					'opis'   => sprintf(
+						'%d wpisów Tutora niesie ten sam uuid — dopasowanie przy synchronizacji jest loterią, a nadmiar może skasować niewłaściwy wpis',
+						$ile
+					),
+				);
+			}
 		}
 
 		return array(
@@ -1194,6 +1220,54 @@ final class Aai_Sklep_Tutor {
 	}
 
 	/* ————————————————————— drobiazgi ————————————————————— */
+
+	/**
+	 * Uuid-y noszone przez WIĘCEJ NIŻ JEDEN wpis Tutora (uuid => ile).
+	 *
+	 * Pytamy bazę wprost, a nie przez `get_posts()`, bo pytanie brzmi
+	 * „ile wpisów ma tę wartość", a `get_posts()` z `numberposts => 1`
+	 * odpowiada „przynajmniej jeden" — czyli dokładnie tak samo dla stanu
+	 * zdrowego i chorego. Zakres to nasze trzy typy wpisów; cudze wpisy
+	 * z tym samym uuid też się liczą, bo synchronizacja natrafi na nie
+	 * tak samo.
+	 *
+	 * @return array<string,int>
+	 */
+	private static function powtorzone_uuid(): array {
+		global $wpdb;
+
+		/*
+		 * ZAPYTANIE BEZ ANI JEDNEJ WKLEJONEJ ZMIENNEJ. Lista naszych typów
+		 * wpisu jest krótka i nie zmienia się w trakcie żądania, więc
+		 * zamiast budować `IN ( %s, %s, %s )` sklejaniem — czego zakazuje
+		 * niezmiennik 6 tej wtyczki, i słusznie, bo granica między
+		 * wejściem a bazą ma być jedna — pytamy o same pary
+		 * (uuid, typ wpisu) i liczymy je w PHP. Wpisów jest rząd stu, więc
+		 * koszt jest żaden, a zapytanie zostaje literałem.
+		 */
+		$typy = array_values( self::typy() );
+
+		$pary = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT pm.meta_value AS uuid, p.post_type AS typ
+				FROM {$wpdb->postmeta} pm
+				JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+				WHERE pm.meta_key = %s AND pm.meta_value <> ''",
+				self::META_UUID
+			)
+		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+
+		$ile = array();
+		foreach ( (array) $pary as $para ) {
+			if ( ! in_array( (string) $para->typ, $typy, true ) ) {
+				continue;
+			}
+			$uuid           = (string) $para->uuid;
+			$ile[ $uuid ] = ( $ile[ $uuid ] ?? 0 ) + 1;
+		}
+
+		return array_filter( $ile, static fn( int $n ): bool => $n > 1 );
+	}
 
 	/**
 	 * Wpis Tutora po naszym uuid. Zwraca ID albo 0.
