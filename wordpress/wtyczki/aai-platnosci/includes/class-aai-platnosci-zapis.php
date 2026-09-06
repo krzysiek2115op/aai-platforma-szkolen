@@ -152,11 +152,21 @@ final class Aai_Platnosci_Zapis {
 	 * Usuwa powiązanie kursu. Produkt zostaje (nigdy go nie kasujemy) —
 	 * o jego statusie decyduje osobno logika stanów z sekcji 9.3 schematu.
 	 *
+	 * WYNIK KASOWANIA ODDAJEMY I SPRAWDZAMY. Do 0.78.0 metoda była `void`
+	 * i odrzucała wynik `$wpdb->delete()`: przy nieudanym kasowaniu
+	 * (zmierzone wyzwalaczem blokującym `DELETE`) wiersz zostawał, a
+	 * wołający — słuchacz usunięcia kursu — szedł dalej przekonany, że
+	 * powiązania nie ma. Zostaje wtedy wiersz wskazujący na kurs, którego
+	 * nie ma w naszych tabelach, czyli dokładnie to, co kontrola nazywa
+	 * sierotą, tyle że nikt tego nie zgłasza w chwili powstania.
+	 *
 	 * @param string $course_uuid Uuid kursu.
+	 *
+	 * @return bool Czy wiersza powiązania na pewno już nie ma.
 	 */
-	public static function powiazanie_usun( string $course_uuid ): void {
+	public static function powiazanie_usun( string $course_uuid ): bool {
 		global $wpdb;
-		$wpdb->delete(
+		$usuniete = $wpdb->delete(
 			Aai_Platnosci_Tabele::tabela( 'powiazania' ),
 			array( 'course_uuid' => $course_uuid ),
 			array( '%s' )
@@ -164,6 +174,20 @@ final class Aai_Platnosci_Zapis {
 
 		// Mapowanie właśnie zniknęło — pamięć żądania przestaje być prawdą.
 		self::zapomnij_produkt( $course_uuid );
+
+		if ( false === $usuniete ) {
+			Aai_Platnosci_Komunikaty::zapisz(
+				sprintf(
+					'nie udało się usunąć powiązania kursu %s (%s) — w tabeli został wiersz wskazujący produkt kursu, którego już nie ma. Sprawdź: wp aai-platnosci sprawdz',
+					$course_uuid,
+					$wpdb->last_error
+				),
+				$course_uuid
+			);
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -296,13 +320,33 @@ final class Aai_Platnosci_Zapis {
 	 * `wp_mail()` znany dopiero po wysyłce). Nie tworzy wiersza —
 	 * od tworzenia jest `dostawa_odnotuj()`.
 	 *
+	 * WYNIK ZAPISU ODDAJEMY, A STAN POTWIERDZAMY ODCZYTEM. Do 0.78.0
+	 * metoda była `void` i odrzucała wynik `$wpdb->update()`, przez co
+	 * kłamała na trzy sposoby naraz (zmierzone wyzwalaczem blokującym
+	 * `UPDATE`):
+	 *
+	 *   - `wp aai-platnosci dostawy --zamknij=…` meldowało „Success:
+	 *     zamknięte ręcznie", a wiersz zostawał nietknięty, więc kontrola
+	 *     świeciła kodem 1 dalej i blokowała `postaw.sh`;
+	 *   - udana wysyłka maila nie zapisywała się jako `wyslano`, więc przy
+	 *     następnym przebiegu wyglądała na niedoręczoną;
+	 *   - mail 1 wolno pominąć WYŁĄCZNIE po potwierdzonym `wyslano` maila 2
+	 *     — a to potwierdzenie czyta się z tej właśnie kolumny.
+	 *
+	 * Samo `false === $wynik` nie wystarcza, bo `$wpdb->update()` oddaje
+	 * zero także wtedy, gdy wiersza NIE MA (ponowienie po literówce w id).
+	 * Dlatego stan potwierdzamy odczytem — tą samą drogą, którą Plugin 2
+	 * potwierdza kupowalność produktu i znaczniki okładki (Z-4, Z-5).
+	 *
 	 * @param string $zdarzenie     Zdarzenie.
 	 * @param int    $identyfikator Identyfikator.
 	 * @param string $wynik         Rezultat.
+	 *
+	 * @return bool Czy w dzienniku NAPRAWDĘ stoi ten rezultat.
 	 */
-	public static function dostawa_wynik( string $zdarzenie, int $identyfikator, string $wynik ): void {
+	public static function dostawa_wynik( string $zdarzenie, int $identyfikator, string $wynik ): bool {
 		global $wpdb;
-		$wpdb->update(
+		$zapis = $wpdb->update(
 			Aai_Platnosci_Tabele::tabela( 'dostawy' ),
 			array( 'wynik' => $wynik ),
 			array(
@@ -312,6 +356,23 @@ final class Aai_Platnosci_Zapis {
 			array( '%s' ),
 			array( '%s', '%d' )
 		);
+
+		$w_bazie = self::dostawa_rezultat( $zdarzenie, $identyfikator );
+		if ( $wynik === $w_bazie ) {
+			return true;
+		}
+
+		Aai_Platnosci_Komunikaty::zapisz(
+			sprintf(
+				'nie udało się zapisać rezultatu dostawy %s/%d (%s) — dziennik dalej pokazuje „%s", więc kontrola będzie się o nią upominać. Powtórz komendę.',
+				$zdarzenie,
+				$identyfikator,
+				false === $zapis ? $wpdb->last_error : ( null === $w_bazie ? 'nie ma takiego wpisu w dzienniku' : 'wiersz się nie zmienił' ),
+				null === $w_bazie ? '—' : $w_bazie
+			),
+			Aai_Platnosci_Komunikaty::KLUCZ_MAILA . $zdarzenie . '/' . $identyfikator
+		);
+		return false;
 	}
 
 	/**
@@ -1340,10 +1401,34 @@ final class Aai_Platnosci_Zapis {
 
 		$tutor_id = self::kurs_tutora( $course_uuid );
 		if ( is_int( $tutor_id ) && $tutor_id > 0 ) {
-			// Kolejność ODWROTNA do wiązania (B2).
+			/*
+			 * Kolejność ODWROTNA do wiązania (B2) — i OBA ZAPISY MIERZYMY
+			 * ODCZYTEM, tak samo jak wiązanie (Z-4). Do 0.78.0 sprawdzany
+			 * był tylko status produktu, choć to właśnie te dwie mety
+			 * rozstrzygają o dostępie: kurs z `product_id`, ale bez
+			 * `price_type = paid`, Tutor zapisuje od razu jako `completed`,
+			 * czyli ROZDAJE DOSTĘP BEZ ZAPŁATY (korekta niezmiennika 14
+			 * przy P5). Stan mieszany powstaje, gdy jeden z tych dwóch
+			 * zapisów przejdzie, a drugi nie — a cudzy filtr
+			 * `update_post_metadata` albo `delete_post_metadata` potrafi
+			 * zatrzymać dokładnie jeden z nich.
+			 */
 			delete_post_meta( $tutor_id, '_tutor_course_product_id' );
+			if ( '' !== (string) get_post_meta( $tutor_id, '_tutor_course_product_id', true ) ) {
+				$w['uwagi'][] = sprintf(
+					'NIE UDAŁO SIĘ odpiąć produktu od kursu %d w Tutorze — kurs dalej wskazuje produkt i może rozdawać dostęp. Powtórz: wp aai-platnosci sync',
+					$tutor_id
+				);
+			}
 			if ( null !== $cel_price_type ) {
 				update_post_meta( $tutor_id, '_tutor_course_price_type', $cel_price_type );
+				if ( $cel_price_type !== (string) get_post_meta( $tutor_id, '_tutor_course_price_type', true ) ) {
+					$w['uwagi'][] = sprintf(
+						'NIE UDAŁO SIĘ ustawić rodzaju ceny kursu %d na „%s" w Tutorze. Powtórz: wp aai-platnosci sync',
+						$tutor_id,
+						$cel_price_type
+					);
+				}
 			}
 		}
 
@@ -1458,6 +1543,26 @@ final class Aai_Platnosci_Zapis {
 			return;
 		}
 		update_post_meta( $product_id, self::META_UTRACONY_DOSTEP, (string) $kupujacy );
+
+		/*
+		 * ODCZYT PO ZAPISIE, bo ten znacznik jest JEDYNYM śladem po ludziach,
+		 * którzy stracili dostęp razem z kursem — czyta go kontrola i to on
+		 * każe jej skończyć kodem 1 (C2b). Gdy zapis nie dojdzie, sierota
+		 * wygląda jak zwykły produkt bez kursu, a fakt, że ktoś za niego
+		 * zapłacił, przepada bezpowrotnie: kursu już nie ma, więc liczby nie
+		 * da się odtworzyć.
+		 */
+		if ( (string) $kupujacy !== (string) get_post_meta( $product_id, self::META_UTRACONY_DOSTEP, true ) ) {
+			Aai_Platnosci_Komunikaty::zapisz(
+				sprintf(
+					'nie udało się zapisać na produkcie %d, że %d kupujących straciło dostęp razem z kursem %s — kontrola nie upomni się o tych ludzi. Zapisz tę liczbę ręcznie.',
+					$product_id,
+					$kupujacy,
+					$course_uuid
+				),
+				$course_uuid
+			);
+		}
 	}
 
 	/**
@@ -1490,10 +1595,47 @@ final class Aai_Platnosci_Zapis {
 	 * @param int    $product_id  Id produktu.
 	 * @param string $course_uuid Uuid kursu.
 	 */
-	public static function ustaw_znaczniki_produktu( int $product_id, string $course_uuid ): void {
+	public static function ustaw_znaczniki_produktu( int $product_id, string $course_uuid ): bool {
 		update_post_meta( $product_id, '_tutor_product', 'yes' );
 		update_post_meta( $product_id, '_virtual', 'yes' );
 		update_post_meta( $product_id, '_aai_platnosci_kurs_uuid', $course_uuid );
+
+		/*
+		 * POTWIERDZAMY ODCZYTEM, nie wynikiem `update_post_meta()` — ta
+		 * funkcja oddaje `false` także przy wartości NIEZMIENIONEJ, czyli
+		 * w stanie ustalonym, w którym wszystko jest w porządku (zmierzone
+		 * przy Z-4). Każdy z tych trzech kluczy robi co innego i każdy
+		 * kosztuje, gdy zniknie: `_virtual` steruje `needs_processing()`
+		 * WooCommerce, czyli automatycznym domknięciem zamówienia
+		 * (P3b) — bez niego zakup zawisa w „w realizacji", a klient nie
+		 * dostaje maila o kursie; `_tutor_product` włącza integrację
+		 * Tutora; `_aai_platnosci_kurs_uuid` jest znacznikiem pochodzenia,
+		 * po którym kontrola rozpoznaje NASZE produkty i sieroty.
+		 */
+		$brakuje = array();
+		foreach ( array(
+			'_tutor_product'           => 'yes',
+			'_virtual'                 => 'yes',
+			'_aai_platnosci_kurs_uuid' => $course_uuid,
+		) as $klucz => $ma_byc ) {
+			if ( $ma_byc !== (string) get_post_meta( $product_id, $klucz, true ) ) {
+				$brakuje[] = $klucz;
+			}
+		}
+
+		if ( array() !== $brakuje ) {
+			Aai_Platnosci_Komunikaty::zapisz(
+				sprintf(
+					'produkt %d nie przyjął znaczników (%s) — sprzedaż kursu może działać wadliwie (domknięcie zamówienia, integracja Tutora, rozpoznanie własnego produktu). Powtórz: wp aai-platnosci sync',
+					$product_id,
+					implode( ', ', $brakuje )
+				),
+				$course_uuid
+			);
+			return false;
+		}
+
+		return true;
 	}
 
 

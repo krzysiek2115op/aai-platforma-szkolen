@@ -5,6 +5,124 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.78.0] — 2026-09-06
+
+### Zapis, który się nie udał, przestaje meldować sukces
+
+Przegląd zewnętrzny wskazał dwa miejsca; przelot całą klasą znalazł
+**jedenaście**, w trzech wtyczkach. Wspólny mianownik: operacja zmieniała
+stan i **odrzucała wynik tej zmiany**, więc meldowała skutek, którego nie
+sprawdziła. Każda pozycja zmierzona uruchomieniowo — wyzwalaczem SQL
+blokującym pojedyncze zapytanie albo filtrem blokującym jeden zapis meta —
+a nie wyprowadzona z lektury.
+
+Dwie odmiany tej samej wady. Pierwsza: metoda `void`, która nie ma jak
+powiedzieć, że nie zadziałała. Druga, groźniejsza, bo wygląda jak
+zabezpieczenie: **sprawdzenie postawione ZA rzutowaniem**. `$wpdb` oddaje
+przy awarii `false`, `get_var()` przy braku tabeli `null`, a `(int)`
+zamienia jedno i drugie w zero — więc `if ( false === $x )` po konwersji
+jest martwym kodem, który przechodzi każdą lekturę.
+
+**Plugin 3 — retencja milczała przy nieudanym kasowaniu.** Sprawdzenie
+w `sprzataj()` stało za linią `$ile = (int) $ile + przytnij_liczbe()`.
+Zmierzone: przy zablokowanym `DELETE` retencja oddaje 0, stary wiersz
+zostaje, **kanał błędów PUSTY**. Dotyczyło danych osobowych — pełnych
+adresów IP z obietnicą 90 dni w polityce prywatności — czyli awaria była
+niema dokładnie tam, gdzie niezmiennik N15 wymaga głośnej. Nieudane
+ścinanie sufitem też nie zgłaszało nic.
+
+**Plugin 1 — nieudany COMMIT gubił zmianę właściciela.** `w_transakcji()`
+puszczało `START TRANSACTION`, `COMMIT` i `ROLLBACK` bez sprawdzenia.
+Zmierzone: przy zablokowanym `COMMIT` baza wycofuje transakcję przy
+rozłączeniu, a `zapisz_kurs()` oddaje liczniki sukcesu, panel pisze „Kurs
+zapisany", `aai_sklep_kurs_zmieniony` ogłasza zmianę siostrom — i w bazie
+zostaje stara treść. Nieudany `ROLLBACK` zostawia dane w połowie, a
+wołający czytał pierwotny wyjątek jak „nic się nie stało"; niesie teraz
+zdanie o nieudanym wycofaniu.
+
+**Plugin 1 — kopia w Tutorze meldowała sukces przy zablokowanym zapisie.**
+`zapisz_post()` kończył się pętlą `update_post_meta()`. Zmierzone filtrem
+blokującym jedną metę: `zaktualizowane: 1`, błędów zero, a słuchacz gasił
+na tej podstawie **alarm kursu**. Dowód skutku stoi teraz przy zapisie
+i pyta tą samą funkcją, którą pyta kontrola.
+
+**Plugin 1 — 148 zrzutów mogło się mnożyć w bibliotece mediów.** Trzy
+znaczniki tożsamości załącznika zapisywane bez potwierdzenia; załącznik bez
+nich jest niewidzialny dla wszystkich zapytań tej klasy, więc każdy kolejny
+przebieg wgrywałby te same pliki od nowa. Ta sama klasa co Z-5 w Pluginie 2,
+naprawiona tam w 0.73.0.
+
+**Plugin 2 — cztery zapisy bez odbioru wyniku.** `dostawa_wynik()` była
+`void`: zmierzone, że `dostawy --zamknij` meldowało „Success" przy
+niezmienionym wierszu, a kontrola upominała się o tę dostawę dalej
+i blokowała `postaw.sh`. `powiazanie_usun()` zostawiała wiersz wskazujący
+produkt kursu, którego nie ma. `zdejmij_kurs()` sprawdzało status produktu,
+ale **nie dwie mety Tutora — a to one rozstrzygają o dostępie bez zapłaty**
+(korekta niezmiennika 14 z P5). Znaczniki produktu (`_virtual` steruje
+automatycznym domknięciem zamówienia) i znacznik utraconego dostępu
+potwierdzane są teraz odczytem.
+
+### Kontrole, które nie umiały zawieść
+
+**`wp aai-sklep sprawdz` miało tę samą wadę, co zgłoszenie.** Reguła „brak
+tabeli to nie zero wierszy — to sklep bez nośnika" nie mogła zajść, bo
+`liczniki_tabel()` rzutowały `null` na `int`. Zmierzone przez schowanie
+tabeli `courses`: **„Success: Sklep w porządku." z kodem 0**. Gorzej,
+wyciszało kaskadowo — przy braku tabeli lista kursów jest pusta, więc dwie
+kolejne reguły przechodziły po pustce. Istnienie tabeli rozstrzyga teraz
+`SHOW TABLES LIKE`, tak jak w obu siostrzanych wtyczkach.
+
+**Sonda na cichą korupcję kodowania nie miała czytelnika.** Kontrola liczy
+długość każdej lekcji w PHP i w bazie od kroku W2, a komentarz nazywa to
+wprost sondą — i **nikt tych liczb nie porównywał**. Zmierzone: podłożenie
+stanu „100 znaków w PHP, 40 w bazie" dawało zero błędów. Porównywało to
+wyłącznie narzędzie deweloperskie wymagające bazy Postgresa, której
+produkcja nie ma.
+
+**Kontrola kopii powielała ślepotę zapisu.** Szukała wpisu tą samą funkcją
+co zapis, a ta pyta o jeden wpis, więc przy dwóch wpisach z tym samym
+identyfikatorem brała pierwszy z brzegu i nigdy tego nie zgłaszała.
+Duplikat powstaje wprost z wady wyżej: nieudany zapis znacznika sprawia, że
+następna synchronizacja nie znajduje wpisu i zakłada drugi.
+
+**Dwa szwy między wtyczkami nie miały pytającego.** Cena, treść przycisku
+i dostępność oferty jadą na stronę kursu trzema filtrami Pluginu 1, a
+rejestruje je Plugin 2; gdyby rejestracja zniknęła, sprzedaż ucichłaby przy
+zielonych wszystkich kontrolach. Tak samo kolumna „bramka" w danych ruchu:
+monitoring pyta filtrem, a odpowiada widok lekcji Pluginu 1 — bez
+odpowiadającego flaga jest zawsze fałszywa i dane wyglądają zdrowo.
+Zmierzone mutacją zdejmującą rejestrację: obie kontrole milczały.
+
+### Bramki
+
+Dwie nowe reguły `straznik-wtyczki-wp`: **czternasta celuje w KLASĘ** —
+szuka sprawdzenia `false`/`null` postawionego za rzutowaniem tej samej
+zmiennej, w każdym pliku każdej z trzech wtyczek, z samokontrolą zakresu;
+piętnasta pilnuje trzech zapytań transakcji, pytania o istnienie tabeli
+i porównania kodowania. Do tego reguły w `straznik-tutora` (dowód skutku
+met, powtórzone identyfikatory), `straznik-monitora-wp` (obie gałęzie
+retencji słyszalne, kontrola pyta o odpowiadającego na filtr bramki)
+i `straznik-platnosci-wp` (trzy metody zapisu nie są `void`, a wołający
+odbierają ich wynik).
+
+**Audyt mutacyjny 441 → 452** (450 złapanych, 0 przeoczonych, 0 martwych).
+Przy okazji naprawione dwie rzeczy, które wyszły dopiero z niego:
+
+- **moje własne naprawy uśmierciły dwie istniejące mutacje** — obie były
+  zakotwiczone na układzie linii, który zmieniłem; przekotwiczone na
+  zachowanie;
+- **weryfikacja odczytem oślepiła istniejącą regułę kolejności B2**: reguła
+  brała pierwsze wystąpienie nazwy mety, a dopisany `get_post_meta` z tą
+  samą nazwą przesunął to wystąpienie. Reguła mierzy teraz pozycję
+  WYWOŁANIA ZMIENIAJĄCEGO. Ta sama klasa dopadła regułę, którą napisałem
+  w tym samym przelocie: pytała o nazwę funkcji padającą w metodzie dwa
+  razy. **Obie złapał audyt mutacyjny, nie lektura.**
+
+### Liczby
+
+Strażnicy **39/39**, audyt mutacyjny **452**, `npm run check` kod 0. Wersje
+wtyczek: `aai-sklep` 0.12.0, `aai-platnosci` 0.7.0, `aai-monitor` 0.8.0.
+
 ## [0.77.0] — 2026-09-06
 
 ### Naprawy po polowaniu, P4 — ostatnia tura: rzeczy, o które nikt nie pytał

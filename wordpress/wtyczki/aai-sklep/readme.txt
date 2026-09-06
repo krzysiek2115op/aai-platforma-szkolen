@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.11.0
+Stable tag: 0.12.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -28,6 +28,9 @@ sprzedaż i faktury bierze WooCommerce, konta i dostęp do materiału Tutor LMS.
 
 Numeruje WERSJĘ WTYCZKI (stała `AAI_SKLEP_WERSJA` w pliku głównym), a nie
 wersję projektu — o tej mówi `CHANGELOG.md` w korzeniu repozytorium.
+
+= 0.12.0 =
+Zapis, który się nie udał, przestaje meldować sukces: wynik każdej zmiany stanu jest sprawdzany, a kontrola widzi awarie, które wcześniej były nieme.
 
 = 0.11.0 =
 * Deaktywacja ZDEJMUJE nasze reguły przepisywania, zamiast je utrwalać —

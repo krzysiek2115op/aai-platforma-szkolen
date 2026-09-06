@@ -361,6 +361,20 @@ final class Aai_Monitor_Zapis {
 	 * prywatności. Ceną jest jedno wolniejsze żądanie po długiej ciszy —
 	 * płacone raz, na kolumnie z indeksem.
 	 *
+	 * WYNIK `DELETE` SPRAWDZAMY PRZY WYWOŁANIU, PRZED JAKIMKOLWIEK
+	 * RZUTOWANIEM — i to jest naprawa, nie ozdoba. Do 0.78.0 sprawdzenie
+	 * `false === $ile` stało ZA linią `$ile = (int) $ile + przytnij_liczbe()`,
+	 * czyli za rzutowaniem, które zamienia `false` w zero. Warunek nie mógł
+	 * więc zajść NIGDY: zmierzone wyzwalaczem blokującym `DELETE` —
+	 * `retencja()` oddawała 0, stary wiersz zostawał w tabeli, a kanał
+	 * błędów był PUSTY. Awaria retencji danych osobowych (pełne adresy IP,
+	 * 90 dni obiecane w polityce prywatności) była całkowicie niema, wbrew
+	 * niezmiennikowi N15 „awaria zapisu jest GŁOŚNA".
+	 *
+	 * Klasa błędu jest starsza niż ten plik: sprawdzenie postawione za
+	 * konwersją typu to sprawdzenie martwe. Ta sama pułapka mieszkała
+	 * w transakcji Pluginu 1 (`Aai_Sklep_Zapis::w_transakcji()`).
+	 *
 	 * KAŻDE ZAPYTANIE STOI TU DOSŁOWNIE, przy swoim `$wpdb->prepare()`,
 	 * zamiast być składane ze zmiennych. Wersja ze zmienną nazwą kolumny
 	 * była krótsza i NIEWIDZIALNA dla `straznik-wtyczki-wp`: jego reguła
@@ -382,22 +396,25 @@ final class Aai_Monitor_Zapis {
 						self::teraz_utc( 0, -Aai_Monitor_Tabele::OKNO_LOGOWANIA_DNI )
 					)
 				); // phpcs:ignore WordPress.DB.PreparedSQL
-				$ile = (int) $ile + self::przytnij_liczbe( 'logowania', Aai_Monitor_Tabele::SUFIT_WIERSZY_LOGOWAN );
-			} else {
-				$t   = Aai_Monitor_Tabele::tabela( 'wizyty' );
-				$ile = $wpdb->query(
-					$wpdb->prepare(
-						"DELETE FROM `{$t}` WHERE `wejscie` < %s",
-						self::teraz_utc( 0, -Aai_Monitor_Tabele::OKNO_WIZYTY_DNI )
-					)
-				); // phpcs:ignore WordPress.DB.PreparedSQL
-				$ile = (int) $ile + self::przytnij_liczbe( 'wizyty', Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT );
+				if ( false === $ile ) {
+					self::zglos( 'retencja nie zadziałała: ' . $wpdb->last_error );
+					return 0;
+				}
+				return (int) $ile + self::przytnij_liczbe( 'logowania', Aai_Monitor_Tabele::SUFIT_WIERSZY_LOGOWAN );
 			}
+
+			$t   = Aai_Monitor_Tabele::tabela( 'wizyty' );
+			$ile = $wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM `{$t}` WHERE `wejscie` < %s",
+					self::teraz_utc( 0, -Aai_Monitor_Tabele::OKNO_WIZYTY_DNI )
+				)
+			); // phpcs:ignore WordPress.DB.PreparedSQL
 			if ( false === $ile ) {
 				self::zglos( 'retencja nie zadziałała: ' . $wpdb->last_error );
 				return 0;
 			}
-			return (int) $ile;
+			return (int) $ile + self::przytnij_liczbe( 'wizyty', Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT );
 		} catch ( Throwable $e ) {
 			self::zglos( 'retencja nie zadziałała: ' . $e->getMessage() );
 			return 0;
@@ -478,7 +495,19 @@ final class Aai_Monitor_Zapis {
 			$wpdb->prepare( "DELETE FROM `{$t}` WHERE `id` <= %d", (int) $prog )
 		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
 
-		return false === $ile ? 0 : (int) $ile;
+		if ( false === $ile ) {
+			/*
+			 * Nieudane ścinanie sufitem MUSI być słyszalne z tego samego
+			 * powodu, co nieudana retencja po wieku: tabela rośnie dalej,
+			 * a jedyny ekran, który miałby o tym powiedzieć, milczy. Do
+			 * 0.78.0 stało tu samo `return 0`, czyli liczba nie do
+			 * odróżnienia od „nie było czego kasować".
+			 */
+			self::zglos( 'retencja nie zadziałała: nie udało się ściąć tabeli do sufitu: ' . $wpdb->last_error );
+			return 0;
+		}
+
+		return (int) $ile;
 	}
 
 	/**

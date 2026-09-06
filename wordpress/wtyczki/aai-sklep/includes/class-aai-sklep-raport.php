@@ -156,15 +156,39 @@ final class Aai_Sklep_Raport {
 	 * ozdoby: „dziennik nie urósł po powtórnym imporcie" to najostrzejszy
 	 * test idempotencji, jaki mamy.
 	 *
-	 * @return array<string,int>
+	 * BRAKUJĄCA TABELA ODDAJE `null`, A NIE ZERO — i to jest naprawa,
+	 * nie szczegół typu. Do 0.78.0 stało tu rzutowanie `(int)` na wyniku
+	 * `get_var()`, które przy nieistniejącej tabeli zwraca `null`; zero
+	 * czytało się wtedy jak „tabela jest, tylko pusta". Kontrola
+	 * `wp aai-sklep sprawdz` ma regułę wprost dla tego przypadku
+	 * („brak tabeli to nie zero wierszy — to sklep bez nośnika"), ale
+	 * porównywała z `null`, którego nigdy nie dostawała: reguła była
+	 * MARTWA. Zmierzone przez schowanie tabeli `courses` — komenda
+	 * odpowiedziała „Success: Sklep w porządku." z kodem 0, przy sklepie
+	 * bez ani jednego kursu w bazie.
+	 *
+	 * Istnienie tabeli rozstrzyga `SHOW TABLES LIKE`, tak jak w Pluginie 2
+	 * (`Aai_Platnosci_Tabele::istnieja()`) i w Pluginie 3
+	 * (`Aai_Monitor_Tabele::brakujace()`) — samo `COUNT(*)` na nieistniejącej
+	 * tabeli zapisuje przy okazji błąd bazy, którego nikt nie czyta.
+	 *
+	 * @return array<string,int|null> Liczba wierszy albo `null`, gdy tabeli nie ma.
 	 */
 	public static function liczniki_tabel(): array {
 		global $wpdb;
 
 		$wynik = array();
 		foreach ( array( 'courses', 'sections', 'modules', 'lessons', 'changelog' ) as $nazwa ) {
-			$tabela            = Aai_Sklep_Tabele::tabela( $nazwa );
-			$wynik[ $nazwa ] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$tabela`" ); // phpcs:ignore WordPress.DB.PreparedSQL
+			$tabela = Aai_Sklep_Tabele::tabela( $nazwa );
+
+			$istnieje = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $tabela ) );
+			if ( $istnieje !== $tabela ) {
+				$wynik[ $nazwa ] = null;
+				continue;
+			}
+
+			$ile             = $wpdb->get_var( "SELECT COUNT(*) FROM `$tabela`" ); // phpcs:ignore WordPress.DB.PreparedSQL
+			$wynik[ $nazwa ] = null === $ile ? null : (int) $ile;
 		}
 		return $wynik;
 	}

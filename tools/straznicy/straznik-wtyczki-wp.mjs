@@ -624,6 +624,118 @@ for (const wtyczka of wtyczki) {
   }
 }
 
+/* ————————— 14. sprawdzenie awarii nie stoi ZA rzutowaniem —————————
+   Klasa błędu, nie miejsce. `$wpdb->query/insert/update/delete` oddaje
+   `false` przy awarii, a `get_var()` oddaje `null`, gdy nie ma czego
+   policzyć. Rzutowanie na `int` zamienia oba w zero, więc sprawdzenie
+   postawione PO nim nie może zajść NIGDY — jest martwym kodem, który
+   wygląda jak zabezpieczenie i przechodzi każdą lekturę.
+
+   Zmierzone dwa razy w tym repozytorium, w dwóch różnych wtyczkach:
+     - `Aai_Monitor_Zapis::sprzataj()` — zablokowany DELETE, retencja
+       oddaje 0, kanał błędów PUSTY (zgłoszenie zewnętrzne, 0.78.0);
+     - `Aai_Sklep_Raport::liczniki_tabel()` + reguła kontroli — schowana
+       tabela `courses`, a komenda mówi „Sklep w porządku." kodem 0.
+
+   Reguła celuje w ZACHOWANIE: szuka przypisania z rzutowaniem, po którym
+   ta sama zmienna jest porównywana z `false` albo `null`. Nie pyta
+   o nazwy metod ani o napisy — to nawracająca pułapka tego repozytorium
+   (dziesięć nawrotów do 0.77.0). */
+{
+  const RZUTUJACE = /^\s*(?:\$(\w+)\s*=\s*(?:\(\s*(?:int|integer|float|string|bool|boolean)\s*\)|intval\s*\(|floatval\s*\(|strval\s*\())/;
+  let sprawdzonych = 0;
+
+  for (const wtyczka of wtyczki) {
+    for (const plik of plikiPhp(join(KATALOG_WTYCZEK, wtyczka))) {
+      const linie = kod(readFileSync(plik, "utf8")).split("\n");
+      for (let i = 0; i < linie.length; i += 1) {
+        const m = linie[i].match(RZUTUJACE);
+        if (!m || !m[1]) continue;
+        sprawdzonych += 1;
+        const zmienna = m[1];
+        // Szukamy porównania z false/null tej samej zmiennej w najbliższych
+        // ośmiu liniach — dalej to już inna myśl, nie ta sama decyzja.
+        const okno = linie.slice(i + 1, i + 9).join("\n");
+        const martwe = new RegExp(
+          `(?:false|null)\\s*===?\\s*\\$${zmienna}\\b|\\$${zmienna}\\s*===?\\s*(?:false|null)`
+        );
+        if (martwe.test(okno)) {
+          bledy.push(
+            `${relative(".", plik)}:${i + 1}: zmienna $${zmienna} jest rzutowana, a POTEM porównywana z false/null — po rzutowaniu obie te wartości są zerem, więc sprawdzenie nie może zajść i jest martwym kodem. Sprawdź wynik PRZY wywołaniu, przed jakąkolwiek konwersją.`
+          );
+        }
+      }
+    }
+  }
+
+  if (sprawdzonych < 20) {
+    bledy.push(
+      `samokontrola zakresu reguły 14: znalazłem tylko ${sprawdzonych} przypisań z rzutowaniem w trzech wtyczkach. Tak mało znaczy, że wzorzec przestał trafiać w kod — reguła przechodziłaby PO PUSTCE.`
+    );
+  }
+}
+
+/* ————————— 15. transakcja i kontrola Pluginu 1 umieją zawieść —————————
+   (a) `w_transakcji()` puszczało trzy zapytania bez sprawdzenia. Nieudany
+       COMMIT jest ZMIERZONY: baza wycofuje transakcję przy rozłączeniu,
+       zapis oddaje liczniki sukcesu, panel pisze „Kurs zapisany", a w bazie
+       zostaje stara treść — cicha utrata zmiany właściciela.
+   (b) `liczniki_tabel()` rzutowały wynik na int, więc brakująca tabela
+       docierała do kontroli jako zero i reguła „brak tabeli to nie zero
+       wierszy" była martwa. ZMIERZONE: schowana tabela courses, a komenda
+       mówi „Sklep w porządku." kodem 0.
+   (c) kontrola liczy długość treści na trzy sposoby od W2 i do 0.78.0
+       nigdy ich nie porównywała — sonda na cichą korupcję kodowania
+       zbierała dane, których nikt nie czytał. */
+{
+  const zapisP1 = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php";
+  const raport = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-raport.php";
+  const cliP1 = "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-cli.php";
+
+  if (existsSync(zapisP1)) {
+    const t = kod(readFileSync(zapisP1, "utf8"));
+    const m = t.match(/private static function w_transakcji\([\s\S]*?\n\t\}/);
+    if (!m) {
+      bledy.push(`${zapisP1}: nie znalazłem ciała w_transakcji() (15a). Samokontrola zakresu.`);
+    } else {
+      for (const zapytanie of ["START TRANSACTION", "COMMIT", "ROLLBACK"]) {
+        const sprawdzone = new RegExp(
+          `false === \\$wpdb->query\\(\\s*'${zapytanie}'\\s*\\)`
+        ).test(m[0]);
+        if (!sprawdzone) {
+          bledy.push(
+            `${zapisP1}: wynik zapytania ${zapytanie} nie jest sprawdzany (15a). Nieudany COMMIT znaczy, że zapis oddaje liczniki sukcesu, a w bazie zostaje stara treść; nieudany ROLLBACK zostawia dane w połowie, a wołający czyta pierwotny wyjątek jak „nic się nie stało".`
+          );
+        }
+      }
+    }
+  }
+
+  if (existsSync(raport)) {
+    const t = kod(readFileSync(raport, "utf8"));
+    const m = t.match(/public static function liczniki_tabel\([\s\S]*?\n\t\}/);
+    if (!m) {
+      bledy.push(`${raport}: nie znalazłem ciała liczniki_tabel() (15b). Samokontrola zakresu.`);
+    } else if (!/SHOW TABLES LIKE/.test(m[0])) {
+      bledy.push(
+        `${raport}: liczniki_tabel() nie pyta o ISTNIENIE tabeli (15b). Samo COUNT(*) na nieistniejącej tabeli oddaje null, a po rzutowaniu na int wygląda jak „tabela jest, tylko pusta" — reguła kontroli o braku tabeli staje się wtedy martwa. Obie siostrzane wtyczki pytają SHOW TABLES LIKE.`
+      );
+    }
+  }
+
+  if (existsSync(cliP1)) {
+    const t = kod(readFileSync(cliP1, "utf8"));
+    const m = t.match(/private static function bledy_stanu\([\s\S]*?\n\t\}/);
+    if (!m) {
+      bledy.push(`${cliP1}: nie znalazłem ciała bledy_stanu() (15c). Samokontrola zakresu.`);
+    } else if (!/znakow_php/.test(m[0]) || !/znakow_sql/.test(m[0])) {
+      bledy.push(
+        `${cliP1}: kontrola nie porównuje długości treści liczonej w PHP z długością liczoną przez bazę (15c). Te liczby są zbierane przy każdym uruchomieniu jako sonda na cichą korupcję kodowania — nieporównane nie mówią nic, a rozjazd znaczy, że połączenie ma inne kodowanie niż tabela i treść kursów psuje się po cichu.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-wtyczki-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -631,5 +743,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt i ze stałą przełamującą cache, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę, odinstalowanie sprząta też poza własnymi tabelami, a spis handlerów kończących żądanie na priorytecie 1 się zgadza).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt i ze stałą przełamującą cache, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę, odinstalowanie sprząta też poza własnymi tabelami, spis handlerów kończących żądanie na priorytecie 1 się zgadza, żadne sprawdzenie awarii nie stoi za rzutowaniem, które zamienia false i null w zero, transakcja Pluginu 1 sprawdza wszystkie trzy zapytania, a jego kontrola widzi brak tabeli i rozjazd kodowania).`
 );
