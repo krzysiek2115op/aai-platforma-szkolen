@@ -4014,3 +4014,29 @@ Zaplanowane zdarzenie `aai_sklep_kontrola_kopii` (codziennie).
 i WordPress je stawiają. To treść prawna, wymaga prawnika, pozycja „przed
 pierwszym klientem". **Napraw kodu z listy polowania nie zostało.**
 
+**═══ NASTĘPNY KROK CAŁEGO PROJEKTU: DO DECYZJI WŁAŚCICIELA ═══**
+(stan na 2026-09-06, po wydaniu `v0.77.0`)
+
+**Nie ma zaplanowanej roboty.** Wszystko, co miało nośnik w postaci listy,
+jest wykonane: prototyp (0.37.0), etap WordPressa i trzy wtyczki (0.59.0),
+trzy ostatnie kroki — SEO, higiena repo, audyt końcowy (0.60.x, 0.62.0,
+0.63.0), schematy draw.io (0.64.0), fala 1 audytu i jej naprawy (0.65.0),
+fala kontrolna, oraz **cała lista z polowania: P0–P4, `v0.66.0` … `v0.77.0`**.
+
+**Otwarte świadomie, w kolejności, w jakiej same się upomną:**
+1. **Polityka prywatności** (`REA-PRIV-F1-001`) — wypiera się ciasteczek,
+   które Woo i WordPress stawiają. Treść prawna: właściciel + prawnik.
+2. **Lista „przed pierwszym klientem"**
+   ([PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md)): prawdziwa
+   bramka płatności (Tpay/PayU/P24 jako wtyczka do Woo), regulamin, zgoda
+   w kasie na natychmiastowe dostarczenie treści cyfrowej (wyłącza ustawowe
+   14 dni odstąpienia), domena `automaticai.pl` + HTTPS, poczta produkcyjna,
+   `blog_public` na 1 przy wdrożeniu (ta jedna opcja bramkuje CAŁĄ sitemapę).
+3. **Lista wdrożeniowa SEO** — pozycje poza naszymi wtyczkami (blog,
+   `/shop/`, `sample-page`, kategorie, tagi).
+
+**Czego NIE proponować z własnej inicjatywy** (decyzje właściciela, nie
+zaległości): rozbudowa ekranu monitoringu (odwołana 2026-08-31), e-booki
+i PDF-y jako produkt („NIGDY", 2026-08-25), wideo w kursach, mobilny TBT
+prototypu, gwarancja zwrotu na stronach sprzedażowych, siła akcentu volt,
+jasne zrzuty na ciemnym tle, poświata za kursorem, schematy draw.io.
