@@ -5028,6 +5028,122 @@ const MUTACJE = [
       return s.includes(a) ? s.replace(a, "") : null;
     },
   },
+  /* P4e — MAR-A-07 i MAR-A-12: kontrola izoluje kurs i umie zawieść. */
+  {
+    straznik: "straznik-tutora",
+    opis: "kontrola traci osłonę wokół planu kursu — jedna zła sekcja kończy CAŁY przebieg fatalem (MAR-A-12)",
+    plik: KLASA_TUTORA,
+    wymaga: () => existsSync(KLASA_TUTORA),
+    oczekiwanySlad: "bez osłony Throwable",
+    zmien: (s) => {
+      const a = "\t\t\ttry {\n\t\t\t\t$plan = self::plan_kursu( $kurs );\n\t\t\t} catch ( Throwable $e ) {";
+      const b = "\t\t\tif ( true ) {\n\t\t\t\t$plan = self::plan_kursu( $kurs );\n\t\t\t} else if ( false ) { $e = null;";
+      return s.includes(a) ? s.replace(a, b) : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "kontrola sklepu traci jedyną drogę do kodu wyjścia — kończy zerem zawsze (MAR-A-07)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-cli.php"),
+    oczekiwanySlad: "ani jednej drogi do kodu wyjścia",
+    zmien: (s) => {
+      const a = "\t\t\tWP_CLI::error( sprintf( 'sklep w stanie do naprawy (%d)', count( $bledy ) ) );";
+      return s.includes(a) ? s.replace(a, "\t\t\tWP_CLI::log( 'sklep w stanie do naprawy' );") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "tryb JSON kontroli ucisza kod wyjścia — skrypt czytający wyjście uzna sukces (MAR-A-07)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-cli.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-cli.php"),
+    oczekiwanySlad: "nie kończy kodem 1 przy błędach",
+    zmien: (s) => {
+      const a = "\t\t\t\tWP_CLI::halt( 1 );";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "postaw.sh przestaje uruchamiać kontrolę sklepu — krok zerowy testu przechodzi przy sklepie do naprawy (MAR-A-07)",
+    plik: "wordpress/srodowisko/postaw.sh",
+    wymaga: () => existsSync("wordpress/srodowisko/postaw.sh"),
+    oczekiwanySlad: "punktu kontrolnego",
+    zmien: (s) => {
+      const a = 'if ! powod="$(wpcli aai-sklep sprawdz 2>&1)"; then';
+      return s.includes(a) ? s.replace(a, "if false; then") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "klasa zależności przestaje pytać jedno źródło o obecność Tutora — dwie kopie warunku (MAR-A-13)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zaleznosci.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zaleznosci.php"),
+    oczekiwanySlad: "niezależnie od Aai_Sklep_Tutor::dostepny()",
+    zmien: (s) => {
+      const a = "return class_exists( 'Aai_Sklep_Tutor' ) && Aai_Sklep_Tutor::dostepny();";
+      return s.includes(a) ? s.replace(a, "return function_exists( 'tutor' );") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "klasa zależności nie jest podpięta — brak Tutora znowu cichy (MAR-A-07)",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    oczekiwanySlad: "nie jest podpięta w pliku głównym",
+    zmien: (s) => {
+      const a = "\t\t$bezpiecznie( 'komunikat o brakujących zależnościach', static fn() => Aai_Sklep_Zaleznosci::zarejestruj() );\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  /* P4e — MAR-A-16: odinstalowanie sprząta też poza własnymi tabelami. */
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "odinstalowanie sklepu przestaje sprzątać swoje meta — po „wyczyszczeniu do zera” zostaje 148 załączników i 89 wpisów ze znacznikami (MAR-A-16)",
+    plik: "wordpress/wtyczki/aai-sklep/uninstall.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/uninstall.php"),
+    oczekiwanySlad: "zostawia swoje meta",
+    zmien: (s) => {
+      const m = s.match(/foreach \( array\( '_aai_zrodlo_uuid'[\s\S]*?\n\}\n/);
+      return m ? s.replace(m[0], "") : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "flaga sprzedaży przeżywa odinstalowanie — świeża instalacja sprzedaje od pierwszej sekundy przy pustym dzienniku dostaw (MAR-A-16)",
+    plik: "wordpress/wtyczki/aai-platnosci/uninstall.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/uninstall.php"),
+    oczekiwanySlad: "aai_platnosci_sprzedaz_otwarta",
+    zmien: (s) => {
+      const a = "delete_option( 'aai_platnosci_sprzedaz_otwarta' );\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    /* KONTRPRZYKŁAD: monitoring nie zapisuje ani jednej mety, więc reguła
+       o sprzątaniu met NIE MA prawa go oskarżyć. Pierwsza wersja reguły to
+       robiła — zapaliła się na wtyczce, która nie dotyka żadnego wpisu. */
+    straznik: "straznik-wtyczki-wp",
+    opis: "kontrprzykład: monitoring bez zapisu met nie jest oskarżany o niesprzątanie ich",
+    plik: "wordpress/wtyczki/aai-monitor/uninstall.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/uninstall.php"),
+    oczekujCzerwonego: false,
+    zmien: (s) => {
+      const a = "delete_option( 'aai_monitor_sol_podpisu' );";
+      return s.includes(a) ? s.replace(a, "delete_option( 'aai_monitor_sol_podpisu' ); // kontrprzykład") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "odinstalowanie kasuje wpisy Tutora BEZ bramki zgody właściciela (MAR-A-16)",
+    plik: "wordpress/wtyczki/aai-sklep/uninstall.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/uninstall.php"),
+    oczekiwanySlad: "BEZ jawnej zgody",
+    zmien: (s) => {
+      const a = "if ( ! get_option( 'aai_sklep_kasuj_dane_przy_usuwaniu' ) ) {";
+      return s.includes(a) ? s.replace(a, "if ( false ) {") : null;
+    },
+  },
 ];
 
 
