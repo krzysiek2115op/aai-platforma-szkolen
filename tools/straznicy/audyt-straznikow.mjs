@@ -5259,6 +5259,131 @@ const MUTACJE = [
       return a ? s.replace(a[0], "const AAI_SKLEP_WERSJA = '0.1.0';") : null;
     },
   },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "deaktywacja wraca do flush_rewrite_rules() — UTRWALA nasze trasy zamiast je zdjąć, a wyłączony sklep oddaje 200 ze stroną główną (MAR-A-21)",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    oczekiwanySlad: "UTRWALA",
+    zmien: (s) => {
+      const a = "\t\tAai_Sklep_Trasy::zdejmij_reguly();";
+      return s.includes(a) ? s.replace(a, "\t\tflush_rewrite_rules();") : null;
+    },
+  },
+  {
+    straznik: "straznik-frontu-wp",
+    opis: "zdejmij_reguly() przestaje kasować tablicę reguł — przepłukanie zapisuje nasze trasy z powrotem (MAR-A-21)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-trasy.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-trasy.php"),
+    oczekiwanySlad: "nie kasuje opcji",
+    zmien: (s) => {
+      const a = "\t\tdelete_option( 'rewrite_rules' );\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "dociagnij_schemat() wraca do zwykłej nierówności — downgrade uruchamia stare dbDelta na nowszym schemacie (MAR-A-18)",
+    plik: "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-tabele.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-tabele.php"),
+    oczekiwanySlad: "KOLEJNOŚCI wersji",
+    zmien: (s) => {
+      const a = "version_compare( $w_bazie, AAI_MONITOR_WERSJA, '>' )";
+      return s.includes(a) ? s.replace(a, "$w_bazie !== AAI_MONITOR_WERSJA") : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "czwarty handler kończący żądanie na priorytecie 1 wchodzi bez decyzji o rozłączności (MAR-A-19)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-moje.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-moje.php"),
+    oczekiwanySlad: "rozjechały się ze spisem",
+    zmien: (s) => {
+      const a = "add_action( 'template_redirect', array( self::class, 'przekieruj_z_panelu' ), 5 );";
+      return s.includes(a) ? s.replace(a, a.replace("), 5 )", "), 1 )")) : null;
+    },
+  },
+  {
+    straznik: "straznik-obwodu",
+    opis: "kolektor CSP wraca do zapisu w bazie — nieuwierzytelniony POST z internetu znowu pisze do wspólnego stanu",
+    plik: "wordpress/srodowisko/mu-plugins/aai-obwod.php",
+    wymaga: () => existsSync("wordpress/srodowisko/mu-plugins/aai-obwod.php"),
+    oczekiwanySlad: "zapisuje raport do bazy",
+    zmien: (s) => {
+      const a = "\t\terror_log( 'aai-obwod: naruszenie CSP — ' . $klucz );";
+      return s.includes(a)
+        ? s.replace(a, "\t\tupdate_option( self::RAPORT_OPCJA, array( $klucz => 1 ), false );")
+        : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "codzienna kontrola kopii przestaje być planowana — jedynym wykrywaczem rozjazdu zostaje komenda, której nikt nie uruchamia (MAR-A-11)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php"),
+    oczekiwanySlad: "nie planuje okresowej kontroli",
+    zmien: (s) => {
+      const a = "wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::HAK_KONTROLI );";
+      return s.includes(a) ? s.replace(a, "do_action( 'aai_sklep_nic' );") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "alarm codziennej kontroli przestaje gasnąć przy zgodzie — wraca wada MAR-A-08 (MAR-A-11)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php"),
+    oczekiwanySlad: "nie gasi własnego alarmu",
+    zmien: (s) => {
+      const a = "\t\t\t\tself::zapomnij_blad( self::KLUCZ_KONTROLI );\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "deaktywacja zostawia zdarzenie kontroli w harmonogramie — cron woła klasę, której już nie ma (MAR-A-11)",
+    plik: "wordpress/wtyczki/aai-sklep/aai-sklep.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/aai-sklep.php"),
+    oczekiwanySlad: "nie zdejmuje zdarzenia",
+    zmien: (s) => {
+      const a = "\t\twp_clear_scheduled_hook( Aai_Sklep_Tutor::HAK_KONTROLI );\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
+  {
+    straznik: "straznik-tutora",
+    opis: "znacznik przerwania przenosi się ZA try — fatal PHP nie zostawia po kopii żadnego śladu (Z-11)",
+    plik: "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-tutor.php"),
+    oczekiwanySlad: "PRZED pętlą kopiowania",
+    zmien: (s) => {
+      const a = "\t\tself::zapamietaj_blad( $id, self::SLAD_PRZERWANIA );\n\t\ttry {\n\t\t\tself::synchronizuj_kurs( $id );";
+      return s.includes(a) ? s.replace(a, "\t\ttry {\n\t\t\tself::synchronizuj_kurs( $id );") : null;
+    },
+  },
+  {
+    straznik: "straznik-granic",
+    opis: "szablon wtyczki sięga po bazę wprost — granica §8 obowiązuje znowu tylko w prototypie (MAR-A-05)",
+    plik: "wordpress/wtyczki/aai-sklep/szablony/katalog.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-sklep/szablony/katalog.php"),
+    oczekiwanySlad: "szablon dotyka bazy",
+    zmien: (s) => {
+      const a = "defined( 'ABSPATH' ) || exit;";
+      return s.includes(a)
+        ? s.replace(a, a + "\nglobal $wpdb; $aai_x = $wpdb->get_results( 'SELECT 1' );")
+        : null;
+    },
+  },
+  {
+    straznik: "straznik-wtyczki-wp",
+    opis: "zależność niezbywalna znika z nagłówka — WordPress przestaje bronić kolejności instalacji (MAR-A-09)",
+    plik: "wordpress/wtyczki/aai-platnosci/aai-platnosci.php",
+    wymaga: () => existsSync("wordpress/wtyczki/aai-platnosci/aai-platnosci.php"),
+    oczekiwanySlad: "Requires Plugins",
+    zmien: (s) => {
+      const a = " * Requires Plugins:  aai-sklep\n";
+      return s.includes(a) ? s.replace(a, "") : null;
+    },
+  },
 ];
 
 

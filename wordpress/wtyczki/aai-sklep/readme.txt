@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.10.0
+Stable tag: 0.11.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -28,6 +28,17 @@ sprzedaż i faktury bierze WooCommerce, konta i dostęp do materiału Tutor LMS.
 
 Numeruje WERSJĘ WTYCZKI (stała `AAI_SKLEP_WERSJA` w pliku głównym), a nie
 wersję projektu — o tej mówi `CHANGELOG.md` w korzeniu repozytorium.
+
+= 0.11.0 =
+* Deaktywacja ZDEJMUJE nasze reguły przepisywania, zamiast je utrwalać —
+  wyłączona wtyczka nie zostawia już trzech adresów oddających stronę główną
+  z kodem 200.
+* Codzienna kontrola kopii w Tutorze: wykrywa rozjazd, próbuje go zaleczyć
+  powtórzeniem kopii i gasi własny alarm, gdy się uda.
+* Przerwana kopia (fatal PHP, limit czasu, restart) zostawia ślad w kokpicie
+  i w kontroli — wcześniej znikała bez objawu.
+* Wgranie STARSZEJ wtyczki na nowszy schemat nie uruchamia już starego
+  `dbDelta`.
 
 = 0.10.0 =
 * Szablony nie rozstrzygają już same ani o trasie, ani o cudzej wtyczce:

@@ -43,7 +43,7 @@
  * Użycie: node tools/straznicy/straznik-wtyczki-wp.mjs
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
 const KATALOG_WTYCZEK = "wordpress/wtyczki";
 const bledy = [];
@@ -151,6 +151,70 @@ for (const wtyczka of wtyczki) {
       bledy.push(
         `${glowny}: stała AAI_…_WERSJA = „${stala[1]}" przy nagłówku „Version: ${wersjaNaglowka[1]}". Ta stała jedzie w adresie KAŻDEGO arkusza i skryptu wtyczki, więc klient po aktualizacji dostaje nowy HTML i STARY CSS z własnego cache'u — objaw wygląda jak zepsuty wygląd, nie jak nieruszona liczba.`
       );
+    }
+  }
+
+  /* 1d. schemat NOWSZY niż kod nie jest cofany (MAR-A-18)
+
+     Wszystkie trzy `dociagnij_schemat()` porównywały wersję zwykłą
+     nierównością, a nierówność spełnia też DOWNGRADE. Wgranie starszej
+     wtyczki na nowszy schemat uruchamiało więc `utworz()` STAREJ wersji
+     i zapisywało starą wersję jako aktualną. Dziś nieszkodliwe (historia
+     schematu zna wyłącznie dodawanie), ale `dbDelta` wystawia
+     `ALTER … CHANGE` przy różnicy typu kolumny, a instalacja stoi na
+     nieścisłym `sql_mode` — pierwsze zwężenie typu utnie treść po cichu.
+
+     Reguła pyta o ROZSTRZYGNIĘCIE: czy w tej metodzie w ogóle porównuje
+     się kolejność wersji. Zmierzone testem negatywnym: bez tej gałęzi
+     wersja 9.9.9 w bazie zostaje nadpisana bieżącą przy pierwszym
+     żądaniu. */
+  {
+    const tabele = plikiPhp(katalog).filter((f) => /tabele\.php$/.test(f));
+    for (const plik of tabele) {
+      const t = kod(readFileSync(plik, "utf8"));
+      const i = t.indexOf("function dociagnij_schemat(");
+      if (i < 0) {
+        continue;
+      }
+      const koniec = t.indexOf("\n\t}", i);
+      const cialo = t.slice(i, koniec < 0 ? undefined : koniec);
+      if (!/version_compare\s*\(/.test(cialo)) {
+        bledy.push(
+          `${plik}: dociagnij_schemat() nie porównuje KOLEJNOŚCI wersji (brak version_compare). Zwykła nierówność spełnia też downgrade, więc starsza wtyczka uruchomi na nowszym schemacie swoje dbDelta — a ono wystawia ALTER … CHANGE przy różnicy typu kolumny i przy nieścisłym sql_mode utnie treść po cichu (MAR-A-18).`
+        );
+      }
+    }
+  }
+
+  /* 1e. zależność niezbywalna jest zadeklarowana PLATFORMIE (MAR-A-09)
+
+     `Requires Plugins:` (WordPress 6.5+) blokuje aktywację wtyczki bez
+     jej zależności. ZMIERZONE na tej instalacji: przy wyłączonym
+     `aai-sklep` aktywacja `aai-platnosci` z tym nagłówkiem kończy się
+     odmową i komunikatem nazywającym brakującą wtyczkę — czyli nagłówek
+     działa także dla wtyczek spoza katalogu WP.org.
+
+     Bez niego jedynym nośnikiem kolejności był plik tekstowy w paczce
+     i proza instrukcji, czyli prośba do człowieka. Prześledzona ścieżka
+     „klient aktywuje Płatności pierwsze" przestawia 13 cudzych ustawień
+     (w tym `monetize_by`), nie zakłada ANI JEDNEGO produktu i kończy
+     kontrolę kodem 0.
+
+     Reguła pyta o ZACHOWANIE, nie o nazwę wtyczki: jeżeli kod tej wtyczki
+     odwołuje się do klas siostry, siostra ma być w nagłówku. */
+  {
+    const siostry = wtyczki.filter((w) => w !== wtyczka);
+    const wymagane = (trescGlownego.match(/^\s*\*\s*Requires Plugins:\s*(.+)$/m)?.[1] ?? "")
+      .split(",")
+      .map((x) => x.trim());
+    for (const siostra of siostry) {
+      const klasa = new RegExp(`\\b${siostra.replace(/-/g, "_").replace(/^aai_/, "Aai_")}_\\w+::`, "i");
+      const uzywa = plikiPhp(katalog).some((f) => klasa.test(kod(readFileSync(f, "utf8"))));
+      if (uzywa && !wymagane.includes(siostra)) {
+        bledy.push(
+          `${glowny}: kod tej wtyczki woła klasy wtyczki „${siostra}", a nagłówek „Requires Plugins:" jej nie wymienia. WordPress od 6.5 potrafi odmówić aktywacji bez zależności (zmierzone na tej instalacji) — bez tego jedynym nośnikiem kolejności instalacji jest prośba do człowieka, a zła kolejność przestawia cudze ustawienia i nie zakłada ani jednego produktu (MAR-A-09).`
+        );
+      }
     }
   }
 
@@ -511,6 +575,55 @@ for (const wtyczka of wtyczki) {
   }
 }
 
+/* KOLEJNOŚĆ ŁADOWANIA JEST ODWROTNA DO ZALEŻNOŚCI — ZAPISANE JAKO ZAŁOŻENIE
+   (MAR-A-19).
+
+   WordPress ładuje wtyczki ALFABETYCZNIE: `aai-monitor` → `aai-platnosci`
+   → `aai-sklep`, czyli Plugin 3, potem 2, na końcu 1 — dokładnie odwrotnie
+   niż zależności. Projekt obszedł to już raz punktowo (menu monitoringu
+   rejestruje się z priorytetem 20 właśnie dlatego), ale nigdzie nie było
+   napisane, że to WŁAŚCIWOŚĆ, na której coś stoi.
+
+   Najostrzejszym miejscem są handlery `template_redirect` na priorytecie 1:
+   jest ich TRZY, w DWÓCH wtyczkach, a każdy może zakończyć żądanie
+   przekierowaniem. Dziś nic się nie psuje, bo ich zbiory żądań są
+   ROZŁĄCZNE — ale przy kolizji o wyniku rozstrzygałaby nazwa pliku
+   wtyczki, czyli rzecz, której nikt świadomie nie wybrał.
+
+   Reguła nie zabrania czwartego handlera. Wymusza DECYZJĘ: dopisanie go
+   zapala tę bramkę, więc ktoś musi wtedy sprawdzić rozłączność zbiorów
+   i dopisać go tutaj świadomie. */
+{
+  const OCZEKIWANE_PRIO_1 = [
+    "aai-sklep/includes/class-aai-sklep-trasy.php: przekieruj_z_tutora",
+    "aai-sklep/includes/class-aai-sklep-lekcja.php: odpowiedz_zaslony",
+    "aai-platnosci/includes/class-aai-platnosci-ustawienia.php: przekieruj_ze_strony_produktu",
+  ];
+  const znalezione = [];
+  for (const wtyczka of wtyczki) {
+    for (const plik of plikiPhp(join(KATALOG_WTYCZEK, wtyczka))) {
+      const t = kod(readFileSync(plik, "utf8"));
+      for (const m of t.matchAll(
+        /add_action\(\s*'template_redirect'\s*,\s*array\(\s*self::class\s*,\s*'(\w+)'\s*\)\s*,\s*(\d+)\s*\)/g
+      )) {
+        if (Number(m[2]) === 1) {
+          znalezione.push(`${relative(KATALOG_WTYCZEK, plik)}: ${m[1]}`);
+        }
+      }
+    }
+  }
+  const brak = OCZEKIWANE_PRIO_1.filter((x) => !znalezione.includes(x));
+  const nadmiar = znalezione.filter((x) => !OCZEKIWANE_PRIO_1.includes(x));
+  if (brak.length > 0 || nadmiar.length > 0) {
+    bledy.push(
+      `handlery template_redirect na priorytecie 1 rozjechały się ze spisem w tym strażniku` +
+        (nadmiar.length > 0 ? ` (doszło: ${nadmiar.join(", ")})` : "") +
+        (brak.length > 0 ? ` (zniknęło: ${brak.join(", ")})` : "") +
+        `. Każdy z nich może zakończyć żądanie przekierowaniem, a wtyczki ładują się ALFABETYCZNIE, czyli odwrotnie do zależności — przy kolizji o wyniku rozstrzygnęłaby nazwa pliku wtyczki. Sprawdź, czy zbiory żądań są nadal rozłączne, i dopisz zmianę do spisu świadomie (MAR-A-19).`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-wtyczki-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -518,5 +631,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt i ze stałą przełamującą cache, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę, odinstalowanie sprząta też poza własnymi tabelami).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt i ze stałą przełamującą cache, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę, odinstalowanie sprząta też poza własnymi tabelami, a spis handlerów kończących żądanie na priorytecie 1 się zgadza).`
 );

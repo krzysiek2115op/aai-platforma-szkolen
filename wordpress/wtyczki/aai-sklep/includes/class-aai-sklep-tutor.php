@@ -139,6 +139,65 @@ final class Aai_Sklep_Tutor {
 	public static function zarejestruj(): void {
 		add_action( 'aai_sklep_kurs_zmieniony', array( self::class, 'na_zmianie' ), 10, 1 );
 		add_action( 'aai_sklep_kurs_usuniety', array( self::class, 'na_usunieciu' ), 10, 1 );
+
+		/*
+		 * JEDYNY WYKRYWACZ ROZJAZDU, KTÓRY DZIAŁA SAM (MAR-A-11).
+		 *
+		 * Do tej wersji WSZYSTKIE porównania kopii żyły w komendach WP-CLI,
+		 * a `porownaj()` była wołana z jednego miejsca w całym repozytorium.
+		 * Alarmy pasywne istniały, ale wyłącznie na ekranach, na które trzeba
+		 * WEJŚĆ. Na produkcji nikt nie uruchamia komend — więc ręczna edycja
+		 * w Course Builderze, skasowanie wpisu kursu albo produkt przestawiony
+		 * przez cudzą wtyczkę nie zostawiały ani wyjątku, ani wpisu w opcji
+		 * błędu. Rozjazd czekał, aż ktoś sam z siebie zada pytanie.
+		 */
+		add_action( self::HAK_KONTROLI, array( self::class, 'kontrola_okresowa' ) );
+		if ( ! wp_next_scheduled( self::HAK_KONTROLI ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::HAK_KONTROLI );
+		}
+	}
+
+	/**
+	 * Codzienna kontrola kopii — wykrywa rozjazd i próbuje go zaleczyć.
+	 *
+	 * WYKRYWACZ JEST TEŻ LEKARZEM, i to nie jest wygoda, tylko warunek
+	 * SAMOGAŚNIĘCIA alarmu. Gdyby ta kontrola tylko zapalała wpis w mapie
+	 * błędów, gasiłby go dopiero następny przebieg — a do tego czasu
+	 * właściciel widziałby w kokpicie alarm o rozjeździe, który sam już
+	 * naprawił zapisem kursu. To jest dokładnie wada, którą naprawiał
+	 * MAR-A-08: alarm, który nie umie zgasnąć.
+	 *
+	 * Kopia jedzie w jedną stronę i jest idempotentna, więc powtórzenie
+	 * kopiowania nie może zaszkodzić — to ta sama operacja, którą właściciel
+	 * wykonuje ręcznie, klikając „Zapisz kurs".
+	 */
+	public static function kontrola_okresowa(): void {
+		if ( ! self::dostepny() ) {
+			return;
+		}
+		try {
+			$wynik = self::porownaj();
+			if ( array() !== $wynik['roznice'] ) {
+				foreach ( self::identyfikatory_kursow() as $id ) {
+					self::synchronizuj_i_oglos( $id );
+				}
+				$wynik = self::porownaj();
+			}
+
+			if ( array() === $wynik['roznice'] ) {
+				self::zapomnij_blad( self::KLUCZ_KONTROLI );
+				return;
+			}
+			self::zapamietaj_blad(
+				self::KLUCZ_KONTROLI,
+				sprintf(
+					'codzienna kontrola znalazła %d różnic i nie zaleczyła ich powtórzeniem kopii — sprawdź „wp aai-sklep sprawdz-tutora"',
+					count( $wynik['roznice'] )
+				)
+			);
+		} catch ( Throwable $blad ) {
+			self::zapamietaj_blad( self::KLUCZ_KONTROLI, 'codzienna kontrola kopii padła: ' . $blad->getMessage() );
+		}
 	}
 
 	/**
@@ -272,10 +331,53 @@ final class Aai_Sklep_Tutor {
 	 *
 	 * @param string $id Identyfikator kursu w naszych tabelach.
 	 */
+	/**
+	 * Ślad zostawiany na czas kopiowania — patrz na_zmianie() (Z-11).
+	 *
+	 * Widzi go kokpit i `wp aai-sklep sprawdz-tutora`, bo mieszka w tej
+	 * samej mapie co prawdziwe błędy. Zostaje wyłącznie wtedy, gdy proces
+	 * umarł w pół drogi: fatal PHP, limit czasu, restart, `kill`.
+	 */
+	/**
+	 * Zdarzenie codziennej kontroli kopii (MAR-A-11).
+	 */
+	public const HAK_KONTROLI = 'aai_sklep_kontrola_kopii';
+
+	/**
+	 * Klucz w mapie alarmów zarezerwowany dla kontroli okresowej.
+	 *
+	 * Nie jest identyfikatorem kursu — zaczyna się od podkreślenia, żeby
+	 * nie mógł zderzyć się z żadnym uuid.
+	 */
+	public const KLUCZ_KONTROLI = '_kontrola_okresowa';
+
+	public const SLAD_PRZERWANIA = 'kopia przerwana w pół — zapisz kurs jeszcze raz (fatal PHP, limit czasu albo restart procesu)';
+
 	public static function na_zmianie( string $id ): void {
 		if ( self::$wstrzymana || ! self::dostepny() ) {
 			return;
 		}
+		/*
+		 * ZNACZNIK „W TRAKCIE" STAWIAMY PRZED PĘTLĄ (Z-11).
+		 *
+		 * `Aai_Sklep_Zapis` ma prawdziwą transakcję z `ROLLBACK`, ale kopia
+		 * do Tutora to 87 wpisów przez Posts API — całkowicie POZA nią i bez
+		 * rollbacku. `catch ( Throwable )` niżej łapie wyjątki, a
+		 * `max_execution_time`, wyczerpanie pamięci i `kill` to w PHP FATAL
+		 * ERROR, nie wyjątek: nie wykona się wtedy ani `zapomnij_blad`, ani
+		 * `zapamietaj_blad`, więc urwanie kopii na 40. wpisie nie zostawiało
+		 * ŻADNEGO śladu. Klienci czytali materiał sprzed poprawki, nadmiar
+		 * nie był sprzątnięty, a właściciel nie miał powodu uruchamiać
+		 * kontroli, bo panel milczał.
+		 *
+		 * Wpis zapisany PRZED pętlą znika przy każdym normalnym końcu —
+		 * udanym (`zapomnij_blad`) i nieudanym (nadpisuje go prawdziwy
+		 * komunikat). Zostaje wyłącznie po śmierci procesu, i wtedy jest
+		 * prawdą. Ceną jest fałszywy alarm dla kogoś, kto zajrzy do kokpitu
+		 * DOKŁADNIE w trakcie zapisu — trwa to ułamek sekundy i znika przy
+		 * następnym odświeżeniu, a alternatywą jest cisza po utracie danych.
+		 */
+		self::zapamietaj_blad( $id, self::SLAD_PRZERWANIA );
 		try {
 			self::synchronizuj_kurs( $id );
 			/*
@@ -298,8 +400,12 @@ final class Aai_Sklep_Tutor {
 		if ( self::$wstrzymana || ! self::dostepny() ) {
 			return;
 		}
+		// Ten sam znacznik co przy kopiowaniu (Z-11): kasowanie też chodzi
+		// po wpisach w pętli i też może zginąć od fatala w pół drogi.
+		self::zapamietaj_blad( $id, self::SLAD_PRZERWANIA );
 		try {
 			self::usun_kopie( $id );
+			self::zapomnij_blad( $id );
 		} catch ( Throwable $blad ) {
 			self::zapamietaj_blad( $id, $blad->getMessage() );
 		}

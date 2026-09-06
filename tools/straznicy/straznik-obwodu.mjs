@@ -217,8 +217,42 @@ if (!header) {
   }
 }
 
+/* KOLEKTOR CSP NIE PISZE DO BAZY.
+
+   To jedyny w tym repozytorium punkt zapisu, który z natury NIE MOŻE być
+   uwierzytelniony: raport wysyła silnik przeglądarki, więc nie da się go
+   podpisać ani opatrzyć nonce'em (bliźniaczy beacon monitoringu podpisujemy
+   tylko dlatego, że materiał do podpisu drukujemy sami). Dopóki wynik
+   lądował w `wp_options`, każdy POST z internetu, który przeszedł sito typu
+   treści, zapisywał się do wspólnego stanu aplikacji — a agregat nie miał
+   w całym repozytorium ANI JEDNEGO czytelnika.
+
+   Nośnikiem jest dziennik serwera: nie jest wspólnym stanem, rotuje sam
+   i bywa czytany. Sito typu treści i limit z adresu zostają. */
+{
+  const t = readFileSync(MU, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const i = t.indexOf("function dopisz_do_agregatu(");
+  if (i < 0) {
+    bledy.push(
+      "aai-obwod.php: nie ma dopisz_do_agregatu() — samokontrola zakresu reguły o nieuwierzytelnionym zapisie kolektora CSP."
+    );
+  } else {
+    const cialo = t.slice(i, t.indexOf("\n\t}", i));
+    if (/update_option\s*\(/.test(cialo) || /\$wpdb\b/.test(cialo)) {
+      bledy.push(
+        "aai-obwod.php: kolektor CSP zapisuje raport do bazy. To punkt PUBLICZNY i z natury nieuwierzytelniony (raport wysyła przeglądarka, nie nasz kod), więc każdy POST z internetu dopisywałby się do wspólnego stanu aplikacji. Nośnikiem ma być dziennik serwera."
+      );
+    }
+    if (!/error_log\s*\(/.test(cialo)) {
+      bledy.push(
+        "aai-obwod.php: kolektor CSP niczego nie zapisuje — naruszenie polityki przepadałoby bez śladu, a to jedyny sygnał o zmianie w cudzym statycznym skrypcie pod egzekwowaniem."
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error(`straznik-obwodu: ${bledy.length} naruszeń:\n- ${bledy.join("\n- ")}`);
   process.exit(1);
 }
-console.log("straznik-obwodu: obwód na miejscu (XML-RPC off, S-2 + author enum + mapa autorów, mapa bez dostawcy oddaje 404, hasła aplikacji off, 4 nagłówki, CSP egzekwujące z nonce + 2 hashe + kolektor, hash motywu zgodny).");
+console.log("straznik-obwodu: obwód na miejscu (XML-RPC off, S-2 + author enum + mapa autorów, mapa bez dostawcy oddaje 404, hasła aplikacji off, 4 nagłówki, CSP egzekwujące z nonce + 2 hashe + kolektor piszący do dziennika, nie do bazy, hash motywu zgodny).");
