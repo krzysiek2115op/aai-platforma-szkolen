@@ -212,7 +212,16 @@ final class Aai_Sklep_Cli {
 	private static function bledy_stanu( array $stan ): array {
 		$bledy = array();
 
-		/* 1. Brak tabeli to nie „zero wierszy" — to sklep bez nośnika. */
+		/*
+		 * 1. Brak tabeli to nie „zero wierszy" — to sklep bez nośnika.
+		 *
+		 * Reguła istnieje od MAR-A-07, ale do 0.78.0 nie mogła zajść:
+		 * `Aai_Sklep_Raport::liczniki_tabel()` rzutowało wynik na `int`,
+		 * więc `null` z nieistniejącej tabeli docierał tu jako zero
+		 * (zmierzone: przy schowanej tabeli `courses` komenda meldowała
+		 * „Sklep w porządku."). Warunek jest teraz osiągalny, bo liczniki
+		 * oddają `null` i pytają o istnienie tabeli wprost.
+		 */
 		foreach ( (array) ( $stan['tabele'] ?? array() ) as $nazwa => $ile ) {
 			if ( null === $ile ) {
 				$bledy[] = sprintf( 'tabela `%s` nie istnieje — schemat nie doszedł do końca; wyłącz i włącz wtyczkę.', $nazwa );

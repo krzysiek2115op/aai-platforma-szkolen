@@ -856,6 +856,35 @@ final class Aai_Sklep_Tutor {
 			update_post_meta( (int) $id, $klucz, wp_slash( $wartosc ) );
 		}
 
+		/*
+		 * DOWÓD SKUTKU STOI TU, A NIE TYLKO W KONTROLI (0.78.0).
+		 *
+		 * Do tej wersji metoda kończyła się na pętli `update_post_meta()`
+		 * i oddawała `zaktualizowane` bez pytania, czy cokolwiek doszło.
+		 * Zmierzone filtrem `update_post_metadata` blokującym jedną metę:
+		 * synchronizacja meldowała `zaktualizowane: 1`, `bledy()` było
+		 * puste, a `na_zmianie()` GASIŁO na tej podstawie alarm kursu —
+		 * czyli udana z pozoru kopia kasowała ostrzeżenie o kopii, która
+		 * się nie udała.
+		 *
+		 * Pytamy TĄ SAMĄ funkcją, którą pyta kontrola i którą pytaliśmy
+		 * wyżej o „czy trzeba pisać" — dzięki temu nie ma stanu, który
+		 * zapis uznaje za zrobiony, a `sprawdz-tutora` za rozjazd.
+		 * Rozjazd tuż po zapisie znaczy, że zapisu nie było: wyjątek
+		 * zatrzymuje kopiowanie, słuchacz zapamiętuje błąd, a kokpit
+		 * i kontrola mówią o nim właścicielowi.
+		 */
+		$po_zapisie = self::rozjazdy_postu( get_post( (int) $id ), $dane, $meta );
+		if ( array() !== $po_zapisie ) {
+			throw new Aai_Sklep_Blad_Zapisu(
+				sprintf(
+					'%s: zapis nie doszedł do skutku (%s)',
+					$dane['post_title'],
+					implode( '; ', array_slice( $po_zapisie, 0, 3 ) )
+				)
+			);
+		}
+
 		return array( (int) $id, $stan );
 	}
 
@@ -993,7 +1022,11 @@ final class Aai_Sklep_Tutor {
 				if ( '' === $uuid || in_array( $uuid, $zostaja, true ) ) {
 					continue;
 				}
-				wp_delete_post( (int) $id_lekcji, true );
+				if ( ! wp_delete_post( (int) $id_lekcji, true ) instanceof WP_Post ) {
+					throw new Aai_Sklep_Blad_Zapisu(
+						sprintf( 'nie udało się skasować nadmiarowej lekcji %d w Tutorze', (int) $id_lekcji )
+					);
+				}
 				++$skasowane;
 			}
 

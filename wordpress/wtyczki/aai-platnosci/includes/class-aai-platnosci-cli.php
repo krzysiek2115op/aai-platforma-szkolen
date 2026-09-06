@@ -312,11 +312,19 @@ final class Aai_Platnosci_Cli {
 			if ( ! Aai_Platnosci_Zapis::dostawa_istnieje( $zdarzenie, $identyfikator ) ) {
 				WP_CLI::error( sprintf( 'dziennik nie zna dostawy %s/%d — zamykamy wyłącznie wpisy, które w nim są.', $zdarzenie, $identyfikator ) );
 			}
-			Aai_Platnosci_Zapis::dostawa_wynik(
+			if ( ! Aai_Platnosci_Zapis::dostawa_wynik(
 				$zdarzenie,
 				$identyfikator,
 				Aai_Platnosci_Maile::WYNIK_ZAMKNIETY . $powod
-			);
+			) ) {
+				/*
+				 * Bez tego sprawdzenia komenda meldowała „Success" przy
+				 * NIEZMIENIONYM wierszu (zmierzone), a kontrola upominała
+				 * się o tę dostawę dalej — i blokowała `postaw.sh`, którego
+				 * jedynym wyjściem miało być właśnie to zamknięcie.
+				 */
+				WP_CLI::error( sprintf( 'nie udało się zamknąć dostawy %s — dziennik się nie zmienił, powód nie jest zapisany.', $zamknij ) );
+			}
 			WP_CLI::success( sprintf( 'zamknięte ręcznie: %s — %s', $zamknij, $powod ) );
 			return;
 		}

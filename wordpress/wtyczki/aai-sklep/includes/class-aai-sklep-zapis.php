@@ -982,20 +982,72 @@ final class Aai_Sklep_Zapis {
 	/**
 	 * Transakcja. Awaria w środku cofa CAŁY kurs, nie jego połowę.
 	 *
+	 * KAŻDE Z TRZECH ZAPYTAŃ ODDAJE WYNIK I KAŻDY JEST SPRAWDZANY. Do
+	 * 0.78.0 stały tu trzy gołe `$wpdb->query()`, a każde z nich mogło
+	 * zawieść po cichu i znaczyło co innego:
+	 *
+	 *   - nieudany `START TRANSACTION` — ciało leci BEZ transakcji, więc
+	 *     awaria w środku zostawia kurs w połowie, choć cała ta metoda
+	 *     istnieje po to, żeby tak się nie stało;
+	 *   - nieudany `COMMIT` — najgorszy z trzech i ZMIERZONY: baza wycofuje
+	 *     transakcję przy rozłączeniu, `zapisz_kurs()` oddaje liczniki
+	 *     sukcesu (`zaktualizowane: 1`), panel pisze „Kurs zapisany",
+	 *     `aai_sklep_kurs_zmieniony` ogłasza zmianę siostrom — a w bazie
+	 *     zostaje stara treść. Zmiana właściciela przepada bez jednego
+	 *     objawu, czyli klasa cichej utraty treści, której to repozytorium
+	 *     pilnuje najmocniej;
+	 *   - nieudany `ROLLBACK` — dane ZOSTAJĄ w połowie. Wyjątek z ciała
+	 *     leci dalej (i dobrze), ale wołający przeczyta go jako „nic się
+	 *     nie stało", a stan jest niespójny. Dlatego dokładamy do niego
+	 *     zdanie o nieudanym wycofaniu, zamiast je przemilczeć.
+	 *
+	 * Sprawdzenie stoi PRZY wywołaniu i porównuje z `false` BEZ rzutowania.
+	 * Rzutowanie na `int` przed porównaniem zamienia `false` w zero i czyni
+	 * sprawdzenie martwym — dokładnie tak umarła kontrola retencji
+	 * w Pluginie 3 (patrz `Aai_Monitor_Zapis::sprzataj()`).
+	 *
 	 * @param callable $praca Ciało transakcji.
 	 *
+	 * @throws Aai_Sklep_Blad_Zapisu Gdy baza odmówi otwarcia albo zatwierdzenia.
 	 * @throws Throwable Cokolwiek rzuci ciało — po wycofaniu zmian.
 	 */
 	private static function w_transakcji( callable $praca ): void {
 		global $wpdb;
 
-		$wpdb->query( 'START TRANSACTION' );
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+			throw new Aai_Sklep_Blad_Zapisu(
+				sprintf( 'nie udało się otworzyć transakcji: %s', $wpdb->last_error )
+			);
+		}
+
 		try {
 			$praca();
-			$wpdb->query( 'COMMIT' );
 		} catch ( Throwable $blad ) {
-			$wpdb->query( 'ROLLBACK' );
+			if ( false === $wpdb->query( 'ROLLBACK' ) ) {
+				/*
+				 * Dane towarzyszące niosą oryginalny komunikat, bo klasa
+				 * wyjątku tego projektu nie przyjmuje poprzednika — jej
+				 * drugi argument to tablica dla człowieka (liczba lekcji
+				 * z treścią itp.), nie kod błędu. Bez tej gałęzi wołający
+				 * zobaczyłby wyłącznie pierwotną awarię i przeczytał ją
+				 * jako „nic się nie stało, transakcja wycofana".
+				 */
+				throw new Aai_Sklep_Blad_Zapisu(
+					sprintf(
+						'zapis padł (%s), a wycofanie zmian NIE POWIODŁO SIĘ (%s) — dane mogą być w połowie, sprawdź kurs przed kolejnym zapisem',
+						$blad->getMessage(),
+						$wpdb->last_error
+					),
+					array( 'pierwotny_blad' => $blad->getMessage() )
+				);
+			}
 			throw $blad;
+		}
+
+		if ( false === $wpdb->query( 'COMMIT' ) ) {
+			throw new Aai_Sklep_Blad_Zapisu(
+				sprintf( 'nie udało się zatwierdzić zapisu: %s', $wpdb->last_error )
+			);
 		}
 	}
 

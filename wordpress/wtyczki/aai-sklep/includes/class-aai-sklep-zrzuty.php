@@ -334,5 +334,36 @@ final class Aai_Sklep_Zrzuty {
 		update_post_meta( (int) $id, self::META_LEKCJA, wp_slash( $lekcja ) );
 		update_post_meta( (int) $id, self::META_NAZWA, wp_slash( $nazwa ) );
 		update_post_meta( (int) $id, self::META_SHA, wp_slash( $sha ) );
+
+		/*
+		 * ZNACZNIKI POTWIERDZAMY ODCZYTEM, A NIEOZNACZONY PLIK KASUJEMY.
+		 *
+		 * To te trzy klucze CZYNIĄ załącznik naszym: wszystkie zapytania
+		 * tej klasy szukają po `meta_key = _aai_zrzut_lekcja`, więc plik
+		 * bez znacznika jest dla niej NIEWIDZIALNY — a wtedy każdy kolejny
+		 * przebieg `wp aai-sklep zrzuty` wgrywa go od nowa (zmierzone:
+		 * załącznik bez znaczników nie trafia do wyniku zapytania). Przy
+		 * 148 zrzutach jeden nieudany zapis meta zamienia bibliotekę
+		 * mediów w hałdę kopii z przyrostkami `-1`, `-2`, `-3`.
+		 *
+		 * Ta sama klasa co Z-5 w Pluginie 2 (znaczniki tożsamości okładki),
+		 * naprawiona tam w 0.73.0 — tu została do 0.78.0.
+		 *
+		 * Odczyt, nie wynik `update_post_meta()`: ta funkcja oddaje `false`
+		 * także wtedy, gdy wartość już była taka sama.
+		 */
+		$oznaczony = (string) get_post_meta( (int) $id, self::META_LEKCJA, true ) === $lekcja
+			&& (string) get_post_meta( (int) $id, self::META_NAZWA, true ) === $nazwa
+			&& (string) get_post_meta( (int) $id, self::META_SHA, true ) === $sha;
+
+		if ( ! $oznaczony ) {
+			// Świeży, nierozpoznawalny plik kasujemy: brak zrzutu jest
+			// stanem odwracalnym (lekcja pokazuje podpis), a sierota-widmo
+			// mnoży się przy KAŻDYM przebiegu.
+			wp_delete_attachment( (int) $id, true );
+			throw new Aai_Sklep_Blad_Zapisu(
+				sprintf( 'zrzut %s wgrał się, ale nie przyjął znaczników — usunięty, żeby nie mnożył kopii', $nazwa )
+			);
+		}
 	}
 }

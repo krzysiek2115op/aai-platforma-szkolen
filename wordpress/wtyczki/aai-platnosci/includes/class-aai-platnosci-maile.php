@@ -384,8 +384,19 @@ final class Aai_Platnosci_Maile {
 	 * @param string $wynik         Rezultat wysyłki.
 	 */
 	private static function zapisz_wynik( string $zdarzenie, int $identyfikator, string $wynik ): void {
-		Aai_Platnosci_Zapis::dostawa_wynik( $zdarzenie, $identyfikator, $wynik );
-		$klucz = Aai_Platnosci_Komunikaty::KLUCZ_MAILA . $zdarzenie . '/' . $identyfikator;
+		$zapisany = Aai_Platnosci_Zapis::dostawa_wynik( $zdarzenie, $identyfikator, $wynik );
+		$klucz    = Aai_Platnosci_Komunikaty::KLUCZ_MAILA . $zdarzenie . '/' . $identyfikator;
+		if ( ! $zapisany ) {
+			/*
+			 * Rezultat NIE trafił do dziennika — a wtedy nie wolno zdjąć
+			 * komunikatu, nawet gdy sama wysyłka się udała. Komunikat
+			 * o nieudanym zapisie postawiła przed chwilą `dostawa_wynik()`
+			 * pod TYM SAMYM kluczem, więc wyczyszczenie go tutaj skasowałoby
+			 * jedyny ślad po awarii — czyli naprawa jednej niemej usterki
+			 * zrobiłaby drugą.
+			 */
+			return;
+		}
 		if ( self::WYNIK_OK === $wynik || self::WYNIK_POMINIETY === $wynik ) {
 			// Udana wysyłka zdejmuje DOKŁADNIE swój komunikat — także
 			// wtedy, gdy poszła dopiero ponowieniem z wiersza poleceń.
