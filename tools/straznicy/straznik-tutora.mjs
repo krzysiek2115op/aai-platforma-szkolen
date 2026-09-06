@@ -647,6 +647,94 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/* CODZIENNA KONTROLA KOPII ISTNIEJE, JEST WPIĘTA I UMIE ZGASNĄĆ (MAR-A-11).
+
+   Do 0.77.0 wszystkie porównania kopii żyły w komendach WP-CLI, a na
+   produkcji nikt komend nie uruchamia — ręczna edycja w Course Builderze
+   albo skasowany wpis kursu nie zostawiały ani wyjątku, ani wpisu w opcji
+   błędu. Zmierzone: rozjazd → kontrola kod 1 → uruchomienie zdarzenia
+   (0,28 s) → kod 0, a przy WYŁĄCZONYM leczeniu (mutacja) → wpis alarmu
+   pod własnym kluczem.
+
+   Trzy rzeczy naraz, bo każda z osobna daje mechanizm bez skutku:
+   zdarzenie ma być zaplanowane, callback podpięty, a alarm ma się GASIĆ
+   sam przy zgodzie — inaczej wracamy do wady MAR-A-08 (alarm, którego nie
+   da się zgasić). */
+{
+  const t = kod(readFileSync(join( WTYCZKA, PLIK_KOPII ), "utf8"));
+  const glowny = join(WTYCZKA, "aai-sklep.php");
+
+  if (!/wp_schedule_event\s*\(/.test(t) || !/HAK_KONTROLI/.test(t)) {
+    bledy.push(
+      `${join( WTYCZKA, PLIK_KOPII )}: nie planuje okresowej kontroli kopii (brak wp_schedule_event z HAK_KONTROLI). Bez niej JEDYNYM wykrywaczem rozjazdu jest komenda, którą ktoś musi sam z siebie uruchomić — a na produkcji nikt tego nie robi (MAR-A-11).`
+    );
+  }
+  const i = t.indexOf("function kontrola_okresowa(");
+  if (i < 0) {
+    bledy.push(`${join( WTYCZKA, PLIK_KOPII )}: nie ma kontrola_okresowa() — samokontrola zakresu reguły o codziennej kontroli (MAR-A-11).`);
+  } else {
+    const cialo = t.slice(i, t.indexOf("\n\t}", i));
+    if (!/zapomnij_blad\s*\(\s*self::KLUCZ_KONTROLI\s*\)/.test(cialo)) {
+      bledy.push(
+        `${join( WTYCZKA, PLIK_KOPII )}: kontrola_okresowa() nie gasi własnego alarmu przy zgodzie. Alarm, który zapala się sam i nie umie zgasnąć, to wada naprawiana w 0.74.0 (MAR-A-08): kokpit obiecuje naprawę, właściciel ją wykonuje, a wpis wisi dalej (MAR-A-11).`
+      );
+    }
+    if (!/zapamietaj_blad\s*\(\s*self::KLUCZ_KONTROLI/.test(cialo)) {
+      bledy.push(
+        `${join( WTYCZKA, PLIK_KOPII )}: kontrola_okresowa() nie zapala alarmu, gdy rozjazdu nie da się zaleczyć. Kontrola, która przy porażce milczy, jest gorsza od jej braku (MAR-A-11).`
+      );
+    }
+  }
+  if (existsSync(glowny)) {
+    const g = kod(readFileSync(glowny, "utf8"));
+    const d = g.indexOf("register_deactivation_hook(");
+    const cialo = d < 0 ? "" : g.slice(d, g.indexOf("\n);", d));
+    if (!/wp_clear_scheduled_hook\s*\(/.test(cialo)) {
+      bledy.push(
+        `${glowny}: deaktywacja nie zdejmuje zdarzenia okresowej kontroli. Zdarzenie zostawione w harmonogramie woła klasę, której po deaktywacji nie ma (MAR-A-11).`
+      );
+    }
+  }
+}
+
+/* PRZERWANA KOPIA ZOSTAWIA ŚLAD, ZANIM ZACZNIE (Z-11).
+
+   Warstwa zapisu ma transakcję z `ROLLBACK`, ale kopia do Tutora to 87
+   wpisów przez Posts API — poza nią i bez rollbacku. `catch ( Throwable )`
+   łapie wyjątki, a `max_execution_time`, wyczerpanie pamięci i `kill` to
+   w PHP FATAL ERROR, nie wyjątek: nie wykona się wtedy ANI zapamiętanie
+   błędu, ANI zgaszenie alarmu. Urwanie kopii na 40. wpisie nie zostawiało
+   więc żadnego śladu — klienci czytali materiał sprzed poprawki, nadmiar
+   nie był sprzątnięty, a panel milczał.
+
+   Znacznik zapisany PRZED pętlą znika przy każdym normalnym końcu i zostaje
+   wyłącznie po śmierci procesu. Zmierzone: z takim wpisem `sprawdz-tutora`
+   i `sprawdz` kończą KODEM 1, a powtórzony `sync` gasi go i obie wracają
+   do zera. */
+{
+  const t = kod(readFileSync(join( WTYCZKA, PLIK_KOPII ), "utf8"));
+  if (!/const SLAD_PRZERWANIA\s*=/.test(t)) {
+    bledy.push(
+      `${join( WTYCZKA, PLIK_KOPII )}: nie ma stałej SLAD_PRZERWANIA — przerwana kopia (fatal, limit czasu, kill) nie zostawia po sobie żadnego śladu, a wtedy rozjazd wykryje dopiero ktoś, kto sam z siebie uruchomi kontrolę (Z-11).`
+    );
+  }
+  for (const nazwa of ["na_zmianie", "na_usunieciu"]) {
+    const i = t.indexOf(`function ${nazwa}(`);
+    if (i < 0) {
+      bledy.push(`${join( WTYCZKA, PLIK_KOPII )}: nie ma ${nazwa}() — samokontrola zakresu reguły o śladzie przerwanej kopii (Z-11).`);
+      continue;
+    }
+    const cialo = t.slice(i, t.indexOf("\n\t}", i));
+    const slad = cialo.indexOf("SLAD_PRZERWANIA");
+    const proba = cialo.indexOf("try {");
+    if (slad < 0 || proba < 0 || slad > proba) {
+      bledy.push(
+        `${join( WTYCZKA, PLIK_KOPII )}: ${nazwa}() nie zostawia znacznika przerwania PRZED pętlą kopiowania. Po bloku try jest za późno: fatal PHP nie jest wyjątkiem, więc żaden catch się nie wykona i przerwana kopia nie zostawi śladu (Z-11).`
+      );
+    }
+  }
+}
+
 /* BRAK TUTORA JEST WIDOCZNY, NIE CICHY (MAR-A-07).
 
    `Aai_Sklep_Tutor::na_zmianie()` wychodzi cicho przez `! dostepny()`, więc
@@ -685,5 +773,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają, alarm o rozjeździe jest mapą per kurs i gaśnie po naprawie, drogi masowe ogłaszają zmianę siostrom, powrót wtyczki ogłasza kursy, kontrola izoluje kurs i umie zawieść, liczy zrzuty żądane przez prozę, a brak Tutora jest widoczny."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają, alarm o rozjeździe jest mapą per kurs i gaśnie po naprawie, drogi masowe ogłaszają zmianę siostrom, powrót wtyczki ogłasza kursy, kontrola izoluje kurs i umie zawieść, liczy zrzuty żądane przez prozę, przerwana kopia zostawia ślad, codzienna kontrola jest wpięta i umie zgasnąć, a brak Tutora jest widoczny."
 );

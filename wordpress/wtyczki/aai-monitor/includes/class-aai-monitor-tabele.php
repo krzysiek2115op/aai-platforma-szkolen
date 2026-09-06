@@ -228,13 +228,35 @@ final class Aai_Monitor_Tabele {
 	}
 
 	/**
-	 * Dociąga zmiany schematu po aktualizacji wtyczki — bez wołania
-	 * `dbDelta` przy każdym żądaniu.
+	 * Dociąga schemat po aktualizacji wtyczki — ale NIGDY po jej cofnięciu.
+	 *
+	 * Sprawdzenie jest jedną opcją z cache'u, czyli tanie przy każdym
+	 * żądaniu; `dbDelta` (kosztowne) rusza wyłącznie wtedy, gdy wersja
+	 * w bazie jest STARSZA od wersji w kodzie.
+	 *
+	 * DLACZEGO NIE ZWYKŁE `!==` (MAR-A-18). Nierówność spełnia też
+	 * DOWNGRADE — wgranie starszej wtyczki na nowszy schemat. Wtedy
+	 * uruchamiał się `utworz()` STAREJ wersji i zapisywał starą wersję jako
+	 * aktualną. Dziś byłoby to nieszkodliwe (historia schematu zna wyłącznie
+	 * dodawanie, a `dbDelta` nie usuwa kolumn), ale ryzyko jest konkretne:
+	 * `dbDelta` wystawia `ALTER … CHANGE`, gdy typ kolumny się różni, a ta
+	 * instalacja stoi na nieścisłym `sql_mode` — pierwsze zwężenie w historii
+	 * (choćby `lessons.content` z `mediumtext` na `text`) UCIĘŁOBY PROZĘ
+	 * LEKCJI po cichu. Schemat nowszy niż kod zostaje więc nietknięty,
+	 * a rozjazd trafia do dziennika serwera zamiast do danych.
 	 */
 	public static function dociagnij_schemat(): void {
-		if ( get_option( self::OPCJA_WERSJI ) !== AAI_MONITOR_WERSJA ) {
-			self::utworz();
+		$w_bazie = (string) get_option( self::OPCJA_WERSJI, '' );
+		if ( AAI_MONITOR_WERSJA === $w_bazie ) {
+			return;
 		}
+		if ( '' !== $w_bazie && version_compare( $w_bazie, AAI_MONITOR_WERSJA, '>' ) ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				'aai-monitor: schemat w bazie (' . $w_bazie . ') jest NOWSZY niż kod (' . AAI_MONITOR_WERSJA . ') — nie cofam go. Wgraj wtyczkę w wersji co najmniej takiej, jaka stoi w bazie.'
+			);
+			return;
+		}
+		self::utworz();
 	}
 
 	/**

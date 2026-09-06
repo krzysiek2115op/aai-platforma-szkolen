@@ -18,6 +18,12 @@
  *      API (modules/mX-...(/index)?) — strona dostaje JSON od działu,
  *      nie grzebie w jego bebechach (db/, sql itd.).
  *
+ * CO ŁAPIE W PHP PRODUKTU (pliki .php w katalogach `szablony`
+ * każdej wtyczki, MAR-A-05):
+ *   5. `$wpdb` w szablonie — widok dostaje gotowe dane od klasy wtyczki,
+ *   6. sięganie po nazwy tabel (Aai_…_Tabele::) — to sprawa warstwy danych,
+ *   7. wołanie warstwy zapisu z widoku — render nie zmienia stanu.
+ *
  * Dopóki katalogów app/ i modules/ nie ma, strażnik przechodzi —
  * pilnuje kodu, nie planów.
  *
@@ -97,6 +103,69 @@ if (existsSync(join(KORZEN, "app")) || existsSync(join(KORZEN, "modules"))) {
       if (!wlasnyModul && glebiej && !/^\/index(\.[tj]s)?$/.test(glebiej)) {
         bledy.push(
           `${wzgledna}: import z wnętrza modułu ${docelowy} (…${glebiej}) — spoza modułu wolno importować tylko jego publiczne API (modules/${docelowy}).`
+        );
+      }
+    }
+  }
+}
+
+/* TA SAMA GRANICA W KODZIE, KTÓRY NAPRAWDĘ WDRAŻAMY (MAR-A-05).
+
+   Ten strażnik nosił w nagłówku wytyczną §8 („strona nie ma prawa dotknąć
+   bazy"), a skanował WYŁĄCZNIE pliki JS/TS prototypu — 240 plików w zasięgu,
+   ZERO plików PHP produktu przy 108 istniejących. Reguła obowiązywała więc
+   dokładnie tam, gdzie nic się nie wdraża: szablon wtyczki mógł zrobić
+   `$wpdb->get_results()` i przejść `npm run check` bez śladu.
+
+   Produktem są dziś trzy wtyczki WordPressa, a rolę „strony" pełnią ich
+   szablony. Dostają gotowe dane od klas wtyczki — i to jest sprawdzane
+   POMIAREM, nie deklaracją: w chwili dołożenia tej reguły `$wpdb`
+   w szablonach nie było ani razu, więc jest ona zabezpieczeniem przed
+   nawrotem, nie sprzątaniem. */
+{
+  const KATALOG_WTYCZEK = join(KORZEN, "wordpress", "wtyczki");
+  if (existsSync(KATALOG_WTYCZEK)) {
+    const szablony = [];
+    const zbierz = (k) => {
+      if (!existsSync(k)) return;
+      for (const w of readdirSync(k)) {
+        const sciezka = join(k, w);
+        if (statSync(sciezka).isDirectory()) zbierz(sciezka);
+        else if (w.endsWith(".php")) szablony.push(sciezka);
+      }
+    };
+    for (const wtyczka of readdirSync(KATALOG_WTYCZEK)) {
+      zbierz(join(KATALOG_WTYCZEK, wtyczka, "szablony"));
+    }
+
+    if (szablony.length < 20) {
+      bledy.push(
+        `wordpress/wtyczki/*/szablony: znalazłem ${szablony.length} szablonów przy oczekiwanych co najmniej 20 — reguła o granicy strona/baza przechodziłaby po pustce (samokontrola zakresu).`
+      );
+    }
+
+    for (const plik of szablony) {
+      const tresc = readFileSync(plik, "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "");
+      const wzgledna = relative(KORZEN, plik);
+
+      for (const m of tresc.matchAll(/\$wpdb\b/g)) {
+        const nr = tresc.slice(0, m.index).split("\n").length;
+        bledy.push(
+          `${wzgledna}:${nr}: szablon dotyka bazy ($wpdb). Dane idą BAZA → DZIAŁ → STRONA (WYTYCZNE §8): szablon dostaje gotowe od klasy wtyczki, a zapytanie w widoku omija warstwę odczytu, jej pamięć podręczną i jej kontrakt (MAR-A-05).`
+        );
+      }
+      for (const m of tresc.matchAll(/\bAai_\w+_Tabele::/g)) {
+        const nr = tresc.slice(0, m.index).split("\n").length;
+        bledy.push(
+          `${wzgledna}:${nr}: szablon sięga po nazwy tabel (Aai_…_Tabele::). To pierwszy krok do zapytania w widoku — nazwy tabel są sprawą warstwy danych, nie strony (MAR-A-05).`
+        );
+      }
+      for (const m of tresc.matchAll(/\bAai_\w+_Zapis::/g)) {
+        const nr = tresc.slice(0, m.index).split("\n").length;
+        bledy.push(
+          `${wzgledna}:${nr}: szablon woła warstwę ZAPISU. Widok renderuje odpowiedź, a nie zmienia stan — zapis w szablonie wykona się przy każdym renderze, także przy tym z cudzego kodu (MAR-A-05).`
         );
       }
     }

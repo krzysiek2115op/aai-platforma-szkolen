@@ -70,6 +70,36 @@ Dziennik logowań i pomiar ruchu. Rejestruje, niczego nie blokuje.
 
 ---
 
+## Założenie, którego nie widać na żadnym rysunku: kolejność ładowania
+
+WordPress ładuje wtyczki **alfabetycznie**: `aai-monitor` → `aai-platnosci`
+→ `aai-sklep`, czyli **Plugin 3, potem 2, na końcu 1 — dokładnie odwrotnie
+niż zależności**. Projekt obchodzi to punktowo (menu monitoringu rejestruje
+się z priorytetem 20 właśnie dlatego), ale sama właściwość nigdzie nie była
+zapisana, więc łatwo o nią zahaczyć przy kolejnej zmianie.
+
+Najostrzejsze miejsce to handlery `template_redirect` na **priorytecie 1**:
+jest ich **trzy, w dwóch wtyczkach**, a każdy może zakończyć żądanie
+przekierowaniem:
+
+| wtyczka | klasa i metoda | czego dotyczy |
+|---|---|---|
+| `aai-platnosci` | `Aai_Platnosci_Ustawienia::przekieruj_ze_strony_produktu` | `/product/<slug>/` → nasza strona sprzedażowa |
+| `aai-sklep` | `Aai_Sklep_Trasy::przekieruj_z_tutora` | `/courses/…` → `/szkolenia/…` |
+| `aai-sklep` | `Aai_Sklep_Lekcja::odpowiedz_zaslony` | zasłona publicznych list lekcji |
+
+Dziś nic się nie psuje, bo **ich zbiory żądań są rozłączne**. Gdyby przestały
+być, o wyniku rozstrzygnęłaby nazwa pliku wtyczki — czyli rzecz, której nikt
+świadomie nie wybrał. Dlatego czwarty taki handler zapala
+`straznik-wtyczki-wp`: bramka nie zabrania go dołożyć, tylko wymusza
+**decyzję** i sprawdzenie rozłączności.
+
+Zależność niezbywalna jest za to zadeklarowana platformie: `aai-platnosci`
+ma w nagłówku `Requires Plugins: aai-sklep`, więc WordPress **odmawia jego
+aktywacji** bez Pluginu 1 (zmierzone na instalacji warsztatowej).
+
+---
+
 ## Jak z tym pracować
 
 ### Edycja

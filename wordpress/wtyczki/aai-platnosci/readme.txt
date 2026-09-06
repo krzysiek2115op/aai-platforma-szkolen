@@ -3,7 +3,7 @@ Contributors: automaticai
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.5.0
+Stable tag: 0.6.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -52,6 +52,24 @@ wersję projektu — o tej mówi `CHANGELOG.md` w korzeniu repozytorium. Wersja
 wtyczki została nadana przy kroku P1 i przy kolejnych krokach (P2–P6) NIE była
 podnoszona, więc historię zmian po fundamencie czyta się z `CHANGELOG.md`
 (wersje projektu 0.47.0–0.53.0), a nie stąd.
+
+= 0.6.0 =
+* Nagłówek `Requires Plugins: aai-sklep` — WordPress sam odmawia aktywacji
+  bez Pluginu 1, zamiast pozwolić przestawić cudze ustawienia i nie założyć
+  ani jednego produktu.
+* Wgranie STARSZEJ wtyczki na nowszy schemat nie uruchamia starego `dbDelta`.
+
+= 0.5.0 =
+* Kontrola przestaje meldować zerem sklep, który sprzedaje bez danych,
+  a odinstalowanie nie zostawia flagi otwartej sprzedaży.
+
+= 0.4.0 =
+* Powrót Pluginu 1 odzyskuje sprzedaż; uwaga o jego braku gaśnie razem
+  z jego powrotem.
+
+= 0.3.0 =
+* Podbicie wersji razem z porządkami w dokumentacji projektu (nagłówek
+  wtyczki nie był ruszany od jej powstania).
 
 = 0.2.0 =
 * Skasowane zamówienie sprząta po sobie księgowość Tutora i notatki

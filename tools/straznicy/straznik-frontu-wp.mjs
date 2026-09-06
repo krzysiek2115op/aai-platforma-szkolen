@@ -578,6 +578,58 @@ const kodPhp = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm
   }
 }
 
+/* DEAKTYWACJA ZDEJMUJE NASZE REGUŁY, ZAMIAST JE UTRWALAĆ (MAR-A-21).
+
+   ZMIERZONE na żywej instalacji, nie wyczytane z dokumentacji. Hak
+   deaktywacji biegnie w żądaniu, w którym wtyczka była aktywna na starcie,
+   czyli PO `init` — nasze trzy reguły siedzą już wtedy w `$wp_rewrite`.
+   Gołe `flush_rewrite_rules()` regeneruje z niego tablicę i zapisuje ją,
+   więc deaktywacja UTRWALAŁA to, co miała usunąć: po
+   `wp plugin deactivate aai-sklep` w opcji `rewrite_rules` dalej stały
+   nasze trzy wpisy, a `/szkolenia/`, `/szkolenia/<slug>/`
+   i `/szkolenia/moje/` oddawały HTTP 200 ze STRONĄ GŁÓWNĄ zamiast 404 —
+   trzy adresy duplikatu dla wyszukiwarki przy wyłączonej wtyczce.
+   Po naprawie: 0 naszych reguł i uczciwe 404. */
+{
+  const glowny = join(WTYCZKA, "aai-sklep.php");
+  const trasy = join(WTYCZKA, "includes", "class-aai-sklep-trasy.php");
+  if (existsSync(glowny)) {
+    const t = kodPhp(readFileSync(glowny, "utf8"));
+    const i = t.indexOf("register_deactivation_hook(");
+    if (i < 0) {
+      bledy.push(
+        `${glowny}: nie ma register_deactivation_hook — samokontrola zakresu reguły o regułach przepisywania przy deaktywacji (MAR-A-21).`
+      );
+    } else {
+      const cialo = t.slice(i, t.indexOf("\n);", i));
+      if (/\bflush_rewrite_rules\s*\(/.test(cialo)) {
+        bledy.push(
+          `${glowny}: hak deaktywacji woła flush_rewrite_rules(). To NIE zdejmuje naszych reguł, tylko je UTRWALA — hak biegnie po init, więc regeneracja obejmuje reguły tej wtyczki, a wyłączony sklep zostawia trzy adresy oddające 200 ze stroną główną (MAR-A-21).`
+        );
+      }
+      if (!/Aai_Sklep_Trasy::zdejmij_reguly\s*\(/.test(cialo)) {
+        bledy.push(
+          `${glowny}: hak deaktywacji nie zdejmuje reguł przepisywania (brak Aai_Sklep_Trasy::zdejmij_reguly). Bez tego wyłączona wtyczka zostawia własne trasy w wp_options (MAR-A-21).`
+        );
+      }
+    }
+  }
+  if (existsSync(trasy)) {
+    const t = kodPhp(readFileSync(trasy, "utf8"));
+    const i = t.indexOf("function zdejmij_reguly(");
+    if (i < 0) {
+      bledy.push(`${trasy}: nie ma zdejmij_reguly() — hak deaktywacji nie ma czym zdjąć naszych tras (MAR-A-21).`);
+    } else {
+      const cialo = t.slice(i, t.indexOf("\n\t}", i));
+      if (!/delete_option\s*\(\s*'rewrite_rules'\s*\)/.test(cialo)) {
+        bledy.push(
+          `${trasy}: zdejmij_reguly() nie kasuje opcji „rewrite_rules". Tylko skasowanie tablicy każe WordPressowi zbudować ją od nowa BEZ nas; każde jej przepłukanie przy aktywnej wtyczce zapisuje nasze reguły z powrotem (MAR-A-21).`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-frontu-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -585,5 +637,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, widok prywatny bez cache'u, wygaszanie ruchu, slug kursu nie zajmuje naszej podstrony, logowanie klienta nie prowadzi na wp-login, mapa strony wystawia nasze trasy i nie wystawia kopii z Tutora, a szablony nie rozstrzygają same ani o trasie, ani o cudzej wtyczce).`
+  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, widok prywatny bez cache'u, wygaszanie ruchu, slug kursu nie zajmuje naszej podstrony, logowanie klienta nie prowadzi na wp-login, mapa strony wystawia nasze trasy i nie wystawia kopii z Tutora, a szablony nie rozstrzygają same ani o trasie, ani o cudzej wtyczce; deaktywacja zdejmuje nasze reguły, zamiast je utrwalać).`
 );

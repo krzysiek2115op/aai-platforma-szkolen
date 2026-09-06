@@ -5,6 +5,124 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.77.0] — 2026-09-06
+
+### Naprawy po polowaniu, P4 — ostatnia tura: rzeczy, o które nikt nie pytał
+
+Osiem pozycji zamykających listę z polowania (MAR-A-05, 09, 11, 18, 19, 21
+i Z-11 oraz kolektor CSP). Wspólny mianownik: **mechanizm nie ma pytającego**
+— żadna z tych rzeczy nie psuła się przy kliknięciu, wszystkie czekały na
+zdarzenie, którego nikt nie obserwuje.
+
+**MAR-A-21 — deaktywacja UTRWALAŁA nasze trasy, zamiast je zdjąć.** Hak
+deaktywacji biegnie w żądaniu, w którym wtyczka była aktywna na starcie,
+czyli PO `init` — nasze trzy reguły siedzą już wtedy w `$wp_rewrite`, więc
+gołe `flush_rewrite_rules()` zapisywało je z powrotem. **Zmierzone:** po
+`wp plugin deactivate aai-sklep` opcja `rewrite_rules` dalej miała trzy nasze
+wpisy, a `/szkolenia/`, `/szkolenia/<slug>/` i `/szkolenia/moje/` oddawały
+**HTTP 200 ze STRONĄ GŁÓWNĄ** — trzy adresy duplikatu dla wyszukiwarki przy
+wyłączonej wtyczce. Po naprawie: 0 naszych reguł, uczciwe 404, a ponowna
+aktywacja odtwarza wszystkie trzy.
+
+**MAR-A-11 — w całym systemie nie było ANI JEDNEGO automatycznego wykrywacza
+rozjazdu.** Wszystkie porównania kopii żyły w komendach WP-CLI, a alarmy
+pasywne wyłącznie na ekranach, na które trzeba wejść. Ręczna edycja w Course
+Builderze, skasowany wpis kursu albo produkt przestawiony przez cudzą wtyczkę
+nie rzucają wyjątku, więc nie zostawiały nawet wpisu w opcji błędu — rozjazd
+czekał, aż ktoś sam z siebie zada pytanie. Na produkcji nikt komend nie
+uruchamia.
+
+Doszło **codzienne zdarzenie** (`aai_sklep_kontrola_kopii`), które porównuje
+kopię i — gdy widzi różnice — **próbuje ją zaleczyć** powtórzeniem kopiowania,
+czyli tym samym, co właściciel robi ręcznie przyciskiem „Zapisz kurs".
+Wykrywacz jest lekarzem nie dla wygody, tylko żeby alarm **umiał zgasnąć**:
+inaczej wracałaby wada MAR-A-08 z 0.74.0. Zmierzone w obie strony: podmieniony
+tytuł kopii → kontrola kod 1 → zdarzenie (0,28 s) → kod 0; a przy WYŁĄCZONYM
+leczeniu (mutacja) → wpis alarmu pod własnym kluczem i kod 1 obu kontroli.
+
+**Z-11 — przerwana kopia nie zostawiała ŻADNEGO śladu.** Warstwa zapisu ma
+transakcję z `ROLLBACK`, ale kopia do Tutora to 87 wpisów przez Posts API,
+poza nią. `catch ( Throwable )` łapie wyjątki, a `max_execution_time`,
+wyczerpanie pamięci i `kill` to w PHP **fatal error, nie wyjątek** — nie
+wykonywało się wtedy ani zapamiętanie błędu, ani zgaszenie alarmu. Kopia
+urwana na 40. wpisie kończyła się ciszą: klienci czytali materiał sprzed
+poprawki, nadmiaru nikt nie sprzątnął, panel milczał. Znacznik stawiamy
+teraz PRZED pętlą; znika przy każdym normalnym końcu i zostaje wyłącznie po
+śmierci procesu.
+
+**MAR-A-09 — zależność niezbywalna nie była zadeklarowana platformie.**
+`Aai_Platnosci_Zaleznosci` nazywa Plugin 1 zależnością niezbywalną, a jedynym
+nośnikiem kolejności instalacji był plik tekstowy w paczce, czyli prośba do
+człowieka. **Zmierzone na tej instalacji:** nagłówek `Requires Plugins:`
+(WordPress 6.5+) działa także dla wtyczek spoza katalogu WP.org — przy
+wyłączonym `aai-sklep` aktywacja płatności kończy się **odmową** i
+komunikatem nazywającym brakującą wtyczkę. Bez tego zła kolejność przestawiała
+13 cudzych ustawień, nie zakładała ani jednego produktu i kończyła kontrolę
+kodem 0.
+
+**MAR-A-18 — downgrade nie miał żadnego zabezpieczenia.** Wszystkie trzy
+`dociagnij_schemat()` porównywały wersję zwykłą nierównością, a nierówność
+spełnia też **cofnięcie** wtyczki: starsza wtyczka uruchamiała swoje `dbDelta`
+na nowszym schemacie i zapisywała starą wersję jako aktualną. Dziś
+nieszkodliwe, ale ryzyko jest konkretne — `dbDelta` wystawia `ALTER … CHANGE`
+przy różnicy typu kolumny, a instalacja stoi na nieścisłym `sql_mode`, więc
+pierwsze zwężenie typu (choćby `lessons.content` z `mediumtext` na `text`)
+**uciełoby prozę lekcji po cichu**. Test negatywny: bez bramki wersja 9.9.9
+w bazie zostaje nadpisana bieżącą przy pierwszym żądaniu.
+
+**MAR-A-05 — jedyny strażnik granicy warstw nie skanował ANI JEDNEGO pliku
+produktu.** Nosił w nagłówku wytyczną §8 („strona nie ma prawa dotknąć
+bazy"), a czytał wyłącznie JS/TS prototypu: 240 plików w zasięgu, **zero
+plików PHP** przy 108 istniejących. Reguła obowiązywała dokładnie tam, gdzie
+nic się nie wdraża. Dziś obejmuje szablony wszystkich trzech wtyczek
+(`$wpdb`, nazwy tabel, warstwa zapisu) — i jest zabezpieczeniem przed
+nawrotem, nie sprzątaniem: w chwili dołożenia naruszeń było **zero**.
+
+**MAR-A-19 — kolejność ładowania jest odwrotna do zależności i nigdzie nie
+było to zapisane.** WordPress ładuje wtyczki alfabetycznie, czyli Plugin 3,
+2, 1. Najostrzejsze miejsce to **trzy handlery `template_redirect` na
+priorytecie 1, w dwóch wtyczkach**, z których każdy może zakończyć żądanie.
+Dziś ich zbiory żądań są rozłączne — gdyby przestały być, rozstrzygałaby
+nazwa pliku wtyczki. Założenie jest opisane w
+[docs/SCHEMATY.md](docs/SCHEMATY.md), a czwarty taki handler zapala bramkę:
+nie po to, żeby go zabronić, tylko żeby wymusić **decyzję**.
+
+**Kolektor CSP przestał pisać do bazy.** To jedyny punkt zapisu w tym
+repozytorium, który z natury NIE MOŻE być uwierzytelniony — raport wysyła
+silnik przeglądarki, więc nie da się go podpisać ani opatrzyć nonce'em.
+Dopóki wynik lądował w `wp_options`, każdy POST z internetu, który przeszedł
+sito typu treści, zapisywał się do wspólnego stanu aplikacji — a agregat nie
+miał w całym repozytorium **ani jednego czytelnika**. Nośnikiem jest dziś
+dziennik serwera: nie jest wspólnym stanem, rotuje sam i bywa czytany. Sito
+typu treści i limit 60 raportów na minutę z adresu zostają. Zmierzone: raport
+→ 204, linia w dzienniku, **zero** nowych wierszy w `wp_options`.
+
+### Dowody
+
+**Sześć nowych reguł strażników** (w tym pierwsza w `straznik-granic`
+czytająca PHP), **jedenaście mutacji** (audyt 430 → **441**) i **dziewięć
+testów negatywnych**, każdy potwierdzony uruchomieniowo PRZED naprawą.
+
+**Test negatywny znowu przeszedł po pustce — i znowu przez scenę.** Pierwsza
+próba reguły o granicy szablonu wstawiała `$wpdb` w **trzeciej linii pliku**,
+czyli w środku bloku komentarza, który reguła słusznie usuwa przed
+sprawdzeniem. Guard milczał, wyglądało to na sukces. Druga pułapka tego samego
+dnia: sprawdzenie znacznika przerwania czytało opcję o **zmyślonej nazwie**
+(`aai_sklep_blad_tutora` zamiast `aai_sklep_tutor_blad`) i pokazywało „kontrola
+nie reaguje" — czyli wynik o niczym.
+
+### Liczby
+
+Audyt mutacyjny 430 → **441** (439 złapanych, 0 przeoczonych, 0 martwych,
+2 pominięte bez materiału), strażnicy **39/39**, `npm run check` kod 0 (testy
+84/84, lint, tsc, build, 7 smoke'ów prototypu), `postaw.sh` kod 0, **15/15
+bramek WP** (dane 30 · front 89 · tutor 49 · lekcja 64 · kreator 102 ·
+panel 55 · płatności 27 · produkty 101 · zakup 60 · zwroty 39 · maile 62 ·
+język 25 · monitor 184 · seo 172 · motyw 93), cztery kontrole kod 0, proza
+**73/73 co do znaku**, kopia w Tutorze **0 różnic**. Wersje wtyczek: `aai-sklep`
+0.10.0 → **0.11.0**, `aai-platnosci` 0.5.0 → **0.6.0**, `aai-monitor`
+0.6.0 → **0.7.0**.
+
 ## [0.76.0] — 2026-09-06
 
 ### Naprawy po polowaniu, P4 — granica szablonu, komplet zrzutów i trzy obejścia reguły zapisu

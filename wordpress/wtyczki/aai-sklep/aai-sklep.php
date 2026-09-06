@@ -3,7 +3,7 @@
  * Plugin Name:       Automatic AI — Sklep z kursami
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Katalog /szkolenia, strony sprzedażowe kursów i kreator treści. Pierwsza z trzech wtyczek Automatic AI; sprzedaż bierze WooCommerce, dostęp do materiału Tutor LMS.
- * Version:           0.10.0
+ * Version:           0.11.0
  * Requires at least: 6.9
  * Requires PHP:      8.1
  * Author:            Automatic AI
@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
  * `straznik-wersji`), a wtyczka dopiero się rodzi. Ta stała steruje
  * jedną rzeczą: czy przy wczytaniu trzeba dociągnąć schemat tabel.
  */
-const AAI_SKLEP_WERSJA = '0.10.0';
+const AAI_SKLEP_WERSJA = '0.11.0';
 
 /**
  * PREFIKS TABEL — decyzja właściciela z 2026-08-25.
@@ -141,7 +141,13 @@ register_activation_hook(
 register_deactivation_hook(
 	__FILE__,
 	static function (): void {
-		flush_rewrite_rules();
+		// NIE `flush_rewrite_rules()` — ono UTRWALA nasze reguły, bo hak
+		// biegnie po `init` (MAR-A-21, zmierzone). Patrz Trasy::zdejmij_reguly().
+		Aai_Sklep_Trasy::zdejmij_reguly();
+
+		// Codzienna kontrola kopii idzie razem z wtyczką (MAR-A-11) —
+		// zdarzenie zostawione w harmonogramie wołałoby nieistniejącą klasę.
+		wp_clear_scheduled_hook( Aai_Sklep_Tutor::HAK_KONTROLI );
 	}
 );
 

@@ -169,6 +169,33 @@ final class Aai_Sklep_Trasy {
 	}
 
 	/**
+	 * Zdejmuje nasze reguły przy deaktywacji — ZAMIAST je utrwalać (MAR-A-21).
+	 *
+	 * ZMIERZONE, nie wyczytane. Hak deaktywacji biegnie w żądaniu, w którym
+	 * wtyczka była aktywna na starcie, czyli PO `init` — a nasze trzy reguły
+	 * siedzą już wtedy w `$wp_rewrite`. Gołe `flush_rewrite_rules()`
+	 * regeneruje z niego tablicę i zapisuje do `wp_options`, więc
+	 * deaktywacja UTRWALAŁA to, co miała usunąć: po `wp plugin deactivate
+	 * aai-sklep` w opcji `rewrite_rules` dalej stały nasze trzy wpisy.
+	 *
+	 * Cena była widoczna dla wyszukiwarki: `/szkolenia/`,
+	 * `/szkolenia/<slug>/` i `/szkolenia/moje/` oddawały wtedy **HTTP 200
+	 * ze STRONĄ GŁÓWNĄ** (reguła ustawia naszą zmienną zapytania, nikt jej
+	 * nie obsługuje, WordPress spada na front), zamiast uczciwego 404.
+	 * Trzy adresy z treścią strony głównej to duplikat, nie „wyłączona
+	 * wtyczka".
+	 *
+	 * Dlatego KASUJEMY tablicę zamiast ją przepłukiwać: WordPress zbuduje
+	 * ją od nowa przy następnym żądaniu, już bez nas — bo nas wtedy nie ma.
+	 * Znacznik wersji reguł też idzie, żeby powrót wtyczki przepłukał je
+	 * od zera.
+	 */
+	public static function zdejmij_reguly(): void {
+		delete_option( 'rewrite_rules' );
+		delete_option( self::OPCJA_REGUL );
+	}
+
+	/**
 	 * Nasze zmienne zapytania.
 	 *
 	 * @param string[] $zmienne Zmienne WordPressa.
