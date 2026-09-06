@@ -111,12 +111,24 @@ final class Aai_Sklep_Zasoby {
 			return false;
 		}
 
-		// Typy wpisów bierzemy Z TUTORA, nie z listy wpisanej na sztywno —
-		// nazwy CPT bywały w historii Tutora konfigurowalne.
+		/*
+		 * Typy wpisów bierzemy Z TUTORA, nie z listy wpisanej na sztywno —
+		 * nazwy CPT bywały w historii Tutora konfigurowalne.
+		 *
+		 * FALLBACK MUSI BYĆ TAKI SAM JAK WSZĘDZIE INDZIEJ (MAR-A-13). Do
+		 * 0.75.0 stało tu `?? null`, zjadane przez `array_filter`, podczas
+		 * gdy cztery pozostałe wyprowadzenia tego samego faktu spadały na
+		 * `'courses'` / `'lesson'`. Gdyby Tutor przemianował te właściwości,
+		 * wszyscy inni działaliby dalej, a TA funkcja przestałaby rozpoznawać
+		 * strony kursów — czyli `Aai_Sklep_Styl_Tutora` nie dodałby arkusza
+		 * integracji, a `Aai_Sklep_Zasoby` ZDJĄŁBY arkusz Tutora ze strony,
+		 * która go potrzebuje. To dokładnie objaw z 0.40.0: reguła Tutora
+		 * poza warstwą kaskady bijąca motyw.
+		 */
 		$typy = array_filter(
 			array(
-				tutor()->course_post_type ?? null,
-				tutor()->lesson_post_type ?? null,
+				tutor()->course_post_type ?? 'courses',
+				tutor()->lesson_post_type ?? 'lesson',
 				'tutor_quiz',
 				'tutor_assignments',
 			)

@@ -5,6 +5,91 @@ wersjonowanie [SemVer](https://semver.org/lang/pl/). Najnowszy wpis na górze.
 Pierwszy nagłówek wersji w tym pliku jest **źródłem prawdy o wersji projektu**
 — pilnuje tego `tools/straznicy/straznik-wersji.mjs`.
 
+## [0.75.0] — 2026-09-06
+
+### Naprawy po polowaniu, P4 — kontrola, która nie umiała zawieść, i sprzątanie, które nie sprzątało
+
+**MAR-A-07 — `wp aai-sklep sprawdz` kończyło zerem ZAWSZE.** Wypisywało
+liczniki tabel i statystyki kursów i nie miało ani jednego `WP_CLI::error`.
+Obie siostrzane wtyczki mają kontrolę z kodem 1 i **`postaw.sh` uruchamia je
+jako punkty kontrolne** — Pluginu 1 nie uruchamiał w ogóle, bo nie było czego
+odczytać. `docs/INSTRUKCJA-INSTALACJI.md` nie wymienia żadnej kontroli
+Pluginu 1, więc weryfikacja po wdrożeniu była w całości „na oko".
+
+Kontrola świeci dziś kodem 1, gdy: brakuje którejś tabeli · kurs jest
+opublikowany bez ani jednej lekcji (katalog obiecuje produkt, którego nie ma)
+· **nie ma Tutora przy opublikowanych kursach** (klient kupi kurs, którego nie
+ma jak przeczytać) · trwa zapamiętana awaria kopii. Tryb `--format=json`
+kończy tym samym kodem — kontrola, która milczy tylko dlatego, że ktoś
+poprosił o JSON, jest gorsza od jej braku.
+
+Do tego **`Aai_Sklep_Zaleznosci`**: przy wyłączonym Tutorze
+`Aai_Sklep_Tutor::na_zmianie()` wychodzi cicho, więc każdy zapis kursu
+zostawiał kopię coraz starszą i **nie mówiło o tym NIC**. Plugin 1 miał
+w 28 klasach dokładnie jedno `admin_notices` — to z `catch` w bootstrapie.
+
+**MAR-A-12 — jedna zła sekcja kończyła całą kontrolę fatalem.**
+`plan_kursu()` woła `linie_tutora()`, a ta słusznie rzuca wyjątek przy sekcji
+o nieznanym kształcie — tyle że obsługuje i ZAPIS, i KONTROLĘ. W kontroli
+wyjątek szedł przez pętlę po kursach bez osłony. Zmierzone na żywej
+instalacji: z naprawą **różnica `blad_planu` i 39 sprawdzonych obiektów
+drugiego kursu**, bez niej — nieprzechwycony wyjątek i zero sprawdzonych.
+Siostrzana `synchronizuj_wszystkie()` ma `try/catch` per kurs od początku.
+
+**MAR-A-16 — „czyści po sobie do zera" było nieprawdą.**
+`aai-sklep/uninstall.php` deklarował to w nagłówku, a kasował **wyłącznie
+pięć tabel**. Zmierzone na żywej instalacji przez pełne odinstalowanie
+i przywrócenie ze zrzutu: zostawało **148 załączników zrzutów, 89 wpisów
+Tutora z naszymi metami i dwie własne opcje**. W Pluginie 2 przeżywała pełne
+odinstalowanie flaga `aai_platnosci_sprzedaz_otwarta` — czyli po ponownej
+instalacji **sprzedaż była otwarta od pierwszej sekundy, przy pustym
+dzienniku dostaw**, wbrew własnej deklaracji „SPRZEDAŻ OTWIERA CZŁOWIEK, NIE
+AKTUALIZACJA".
+
+Po naprawie ten sam pomiar: nasze mety **0**, wpisy **0**, załączniki **0**,
+flaga **skasowana** — a 184 mety `_aai_*` **należące do motywu** zostały
+nietknięte. Odinstalowanie sprząta po sobie, nie po innych.
+
+**MAR-A-13, część o rozbieżnym zachowaniu awaryjnym.** Pięć niezależnych
+wyprowadzeń „jak nazywa się typ wpisu kursu w Tutorze"; cztery spadają na
+`'courses'`, a `Aai_Sklep_Zasoby` spadał na `null` zjadany przez
+`array_filter`. Gdyby Tutor przemianował te właściwości, wszyscy inni
+działaliby dalej, a ta jedna funkcja przestałaby rozpoznawać strony kursów —
+czyli arkusz integracji by nie wszedł, a arkusz Tutora zostałby **zdjęty ze
+strony, która go potrzebuje**. To dokładnie objaw z 0.40.0.
+
+### Dowody
+
+Cztery pomiary uruchomieniowe na żywej instalacji (w tym pełne odinstalowanie
+obu wtyczek z przywróceniem bazy ze zrzutu), **osiem testów negatywnych**,
+**siedem nowych reguł** i **dziewięć mutacji** (audyt 410 → **420**).
+
+**Strażnik złapał moje własne naruszenie granicy.** Kasowanie wpisów Tutora
+w `uninstall.php` łamie niezmiennik „wpisy Tutora rusza jedno miejsce" —
+i słusznie się zapaliło. Wyjątek jest **wąski i uzasadniony**: odinstalowanie
+biegnie przy wyłączonej wtyczce, więc nie ma ani jednej naszej klasy, a bez
+tego obietnica „do zera" musiałaby zostać nieprawdziwa. Reguła sprawdza, że
+kasowanie stoi **za jawną zgodą właściciela**.
+
+**Dziesiąty nawrót pułapki „wzorzec na napis".** Pierwsza wersja tej reguły
+pytała o samo wystąpienie nazwy flagi — a ta pada w pliku także przy
+`delete_option`, więc mutacja zamieniająca warunek na `false` przechodziła.
+Złapał to **mój własny test negatywny**, nie lektura. Reguła pyta dziś
+o bramkę: warunek na fladze kończący `return`.
+
+**Reguła oskarżyła niewinnego i dostała kontrprzykład.** Pierwsza wersja
+reguły o sprzątaniu met zapaliła się na monitoringu, który **nie zapisuje ani
+jednej mety** (zmierzone: 0 wywołań). Pyta teraz najpierw, czy wtyczka
+w ogóle ma co sprzątać — a kontrprzykład jest w audycie jako mutacja
+oczekująca ZIELONEGO.
+
+### Liczby
+
+Audyt mutacyjny 410 → **420** (418 złapanych, 0 przeoczonych, 0 martwych,
+2 pominięte bez materiału), strażnicy **39/39**, `npm run check` kod 0,
+`postaw.sh` kod 0 (ma teraz punkt kontrolny Pluginu 1), 15/15 bramek WP,
+cztery kontrole kod 0.
+
 ## [0.74.0] — 2026-09-06
 
 ### Naprawy po polowaniu, P4 — tura architektury: pięć alarmów, które nie umiały zgasnąć albo nie miały komu zadzwonić

@@ -387,7 +387,34 @@ final class Aai_Sklep_Tutor {
 				continue;
 			}
 
-			foreach ( self::plan_kursu( $kurs ) as $pozycja ) {
+			/*
+			 * JEDEN CHORY KURS NIE MOŻE ZAKOŃCZYĆ KONTROLI (MAR-A-12).
+			 *
+			 * `plan_kursu()` woła `linie_tutora()`, a ta SŁUSZNIE rzuca
+			 * wyjątek przy sekcji o nieznanym kształcie — tyle że ta sama
+			 * metoda obsługuje ZAPIS i KONTROLĘ. W kontroli wyjątek
+			 * przechodził przez pętlę bez osłony, więc jedna zła sekcja
+			 * w jednym kursie kończyła `wp aai-sklep sprawdz-tutora`
+			 * NIEPRZECHWYCONYM wyjątkiem (kod 255) i pozostałe kursy
+			 * zostawały niesprawdzone — kontrola milkła dokładnie tam,
+			 * gdzie miała mówić najgłośniej.
+			 *
+			 * Siostrzana `Aai_Platnosci_Zapis::synchronizuj_wszystkie()` ma
+			 * `try/catch` per kurs od początku; tu go brakowało. Awaria jest
+			 * teraz RÓŻNICĄ (kod 1 z opisem), a nie końcem przebiegu.
+			 */
+			try {
+				$plan = self::plan_kursu( $kurs );
+			} catch ( Throwable $e ) {
+				$roznice[] = array(
+					'rodzaj' => 'blad_planu',
+					'co'     => $kurs['slug'],
+					'opis'   => 'nie da się wyliczyć kopii tego kursu: ' . $e->getMessage(),
+				);
+				continue;
+			}
+
+			foreach ( $plan as $pozycja ) {
 				++$sprawdzonych;
 				$id_postu = self::znajdz_po_uuid( $pozycja['uuid'], $pozycja['dane']['post_type'] );
 				$znane[]  = $pozycja['uuid'];

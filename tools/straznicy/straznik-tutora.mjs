@@ -136,6 +136,34 @@ const PISZE_WPISY = /\b(wp_insert_post|wp_update_post|wp_delete_post|set_post_th
 
 for (const plik of plikiPhp()) {
   if (plik === PLIK_KOPII) continue;
+  /*
+   * JEDEN WYJĄTEK, WĄSKI I UZASADNIONY: `uninstall.php` (MAR-A-16).
+   *
+   * Granica „wpisy Tutora rusza jedno miejsce" chroni przed DWOMA AUTORAMI
+   * kopii w czasie życia wtyczki. Odinstalowanie to koniec tego życia:
+   * wtyczka jest już wyłączona, więc ten plik NIE MA ANI JEDNEJ naszej
+   * klasy — nie może wołać klasy kopii, nawet gdyby chciał. Bez tego
+   * wyjątku obietnica „czyści po sobie do zera" musiałaby zostać
+   * nieprawdziwa, a po wyczyszczeniu witryny zostawałoby 89 wpisów Tutora
+   * i 148 załączników, do których nikt nie ma już źródła.
+   *
+   * Wyjątek jest wąski: sprawdzamy, że kasowanie w tym pliku stoi ZA jawną
+   * zgodą właściciela, a nie wykonuje się przy każdym odinstalowaniu.
+   */
+  if (plik.endsWith("uninstall.php")) {
+    const u = kod(czytaj(plik));
+    /* Pytamy o BRAMKĘ (warunek na fladze kończący `return`), nie o samo
+       wystąpienie jej nazwy — ta pada w pliku także przy `delete_option`,
+       więc wzorzec na napis przechodził po zamianie warunku na `false`
+       (złapane własnym testem negatywnym; dziesiąty nawrót tej pułapki). */
+    const maBramke = /if\s*\(\s*!\s*get_option\(\s*'[a-z_]*kasuj_dane_przy_usuwaniu'[\s\S]{0,400}?return;/.test(u);
+    if (PISZE_WPISY.test(u) && !maBramke) {
+      bledy.push(
+        `${plik}: kasuje wpisy WordPressa BEZ jawnej zgody właściciela (brak bramki kasuj_dane_przy_usuwaniu). Odinstalowanie ma prawo sprzątać po sobie tylko wtedy, gdy ktoś o to poprosił (MAR-A-16).`
+      );
+    }
+    continue;
+  }
   if (PISZE_WPISY.test(kod(czytaj(plik)))) {
     bledy.push(
       `${plik}: tworzy albo kasuje wpisy WordPressa poza klasą kopii. Wszystko, co dotyka wpisów Tutora, musi iść przez jedno miejsce — inaczej kopia zaczyna mieć dwóch autorów i przestaje dać się porównać ze źródłem.`
@@ -520,6 +548,104 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/* KONTROLA IZOLUJE KURS I UMIE ZAWIEŚĆ (MAR-A-12, MAR-A-07).
+
+   (a) `plan_kursu()` woła `linie_tutora()`, a ta SŁUSZNIE rzuca wyjątek
+       przy sekcji o nieznanym kształcie — tyle że ta sama metoda obsługuje
+       ZAPIS i KONTROLĘ. W kontroli wyjątek szedł przez pętlę po kursach bez
+       osłony, więc jedna zła sekcja kończyła `sprawdz-tutora`
+       NIEPRZECHWYCONYM wyjątkiem i pozostałe kursy zostawały niesprawdzone
+       (zmierzone: z naprawą 39 obiektów drugiego kursu, bez niej — fatal).
+
+   (b) `wp aai-sklep sprawdz` NIE UMIAŁO ZAWIEŚĆ: wypisywało liczniki
+       i kończyło zerem zawsze, więc `postaw.sh` nie miał czego uruchomić
+       i jako JEDYNA z trzech wtyczek Plugin 1 nie miał punktu kontrolnego.
+       Kontrola, która nie umie być czerwona, jest deklaracją, nie kontrolą. */
+{
+  const cli = join(WTYCZKA, "includes", "class-aai-sklep-cli.php");
+  const kopiaPlik = join(WTYCZKA, PLIK_KOPII);
+
+  // (a) pętla kontroli izoluje kurs.
+  const c = kod(readFileSync(kopiaPlik, "utf8"));
+  const i = c.indexOf("function porownaj(");
+  if (i < 0) {
+    bledy.push(`${kopiaPlik}: nie ma porownaj() — samokontrola zakresu reguły o izolacji kursu w kontroli (MAR-A-12).`);
+  } else {
+    const cialo = c.slice(i, c.indexOf("\n\tpublic static function", i + 20));
+    if (!/try\s*\{[\s\S]{0,200}?plan_kursu\([\s\S]{0,200}?catch\s*\(\s*\\?Throwable/.test(cialo)) {
+      bledy.push(
+        `${kopiaPlik}: porownaj() woła plan_kursu() bez osłony Throwable. Jedna sekcja o nieznanym kształcie kończy wtedy CAŁĄ kontrolę nieprzechwyconym wyjątkiem, a pozostałe kursy zostają niesprawdzone — kontrola milknie dokładnie tam, gdzie ma mówić najgłośniej (MAR-A-12).`
+      );
+    }
+  }
+
+  // (b) kontrola sklepu ma drogę do kodu wyjścia != 0.
+  if (!existsSync(cli)) {
+    bledy.push(`${cli}: nie ma komend wtyczki — samokontrola zakresu reguły o kontroli z kodem wyjścia (MAR-A-07).`);
+  } else {
+    const k = kod(readFileSync(cli, "utf8"));
+    const iS = k.indexOf("function sprawdz(");
+    if (iS < 0) {
+      bledy.push(`${cli}: nie ma komendy sprawdz() — Plugin 1 zostaje jedyną wtyczką bez kontroli (MAR-A-07).`);
+    } else {
+      const cialoS = k.slice(iS, k.indexOf("\n\tprivate static function", iS) > 0 ? k.indexOf("\n\tprivate static function", iS) : k.length);
+      if (!/WP_CLI::error\(/.test(cialoS)) {
+        bledy.push(
+          `${cli}: sprawdz() nie ma ani jednej drogi do kodu wyjścia != 0 (brak WP_CLI::error). Kontrola, która kończy zerem ZAWSZE, nie jest kontrolą — postaw.sh nie ma czego z niej odczytać, a instrukcja instalacji zostaje z weryfikacją „na oko" (MAR-A-07).`
+        );
+      }
+      // Tryb JSON nie może uciszać kodu wyjścia.
+      if (!/'json'[\s\S]{0,600}?WP_CLI::halt\(\s*1\s*\)/.test(cialoS)) {
+        bledy.push(
+          `${cli}: sprawdz( --format=json ) nie kończy kodem 1 przy błędach. Kontrola, która milczy tylko dlatego, że ktoś poprosił o JSON, jest gorsza od jej braku: skrypt czytający wyjście uzna sukces (MAR-A-07).`
+        );
+      }
+    }
+  }
+
+  // (b2) …a postaw.sh MUSI ją uruchamiać jako punkt kontrolny.
+  const POSTAW = "wordpress/srodowisko/postaw.sh";
+  if (existsSync(POSTAW)) {
+    const p = readFileSync(POSTAW, "utf8");
+    if (!/if\s*!\s*powod=.*aai-sklep sprawdz/.test(p)) {
+      bledy.push(
+        `${POSTAW}: nie uruchamia „wp aai-sklep sprawdz” jako punktu kontrolnego (obie siostry mają swój). Krok zerowy każdego testu ręcznego przechodzi wtedy przy sklepie w stanie do naprawy (MAR-A-07).`
+      );
+    }
+  }
+}
+
+/* BRAK TUTORA JEST WIDOCZNY, NIE CICHY (MAR-A-07).
+
+   `Aai_Sklep_Tutor::na_zmianie()` wychodzi cicho przez `! dostepny()`, więc
+   przy wyłączonym Tutorze każdy zapis kursu zostawiał kopię coraz starszą
+   i NIKT się o tym nie dowiadywał. Obie siostrzane wtyczki mają klasę
+   zależności z komunikatem w kokpicie; ta jedna miała w 28 klasach dokładnie
+   jedno `admin_notices` — to z `catch` w bootstrapie. */
+{
+  const Z = join(WTYCZKA, "includes", "class-aai-sklep-zaleznosci.php");
+  if (!existsSync(Z)) {
+    bledy.push(`${Z}: brak klasy zależności — wyłączony Tutor nie mówi klientowi ani właścicielowi NIC, a kopia kursu przestaje nadążać (MAR-A-07).`);
+  } else {
+    const z = kod(readFileSync(Z, "utf8"));
+    if (!/add_action\(\s*'admin_notices'/.test(z)) {
+      bledy.push(`${Z}: klasa zależności nie rejestruje komunikatu kokpitu — brak Tutora zostaje cichy (MAR-A-07).`);
+    }
+    // Jedno źródło odpowiedzi: pytamy tę samą metodę, co reszta kodu.
+    if (!/Aai_Sklep_Tutor::dostepny\(\)/.test(z)) {
+      bledy.push(
+        `${Z}: klasa zależności wyprowadza obecność Tutora niezależnie od Aai_Sklep_Tutor::dostepny(). Dwie kopie tego warunku rozjadą się przy pierwszej zmianie w Tutorze, a komunikat zacznie mówić co innego niż kod, który z tej odpowiedzi korzysta (MAR-A-13).`
+      );
+    }
+    const g = kod(czytaj(PLIK_GLOWNY));
+    if (!/Aai_Sklep_Zaleznosci::zarejestruj\(\)/.test(g)) {
+      bledy.push(
+        `${join(WTYCZKA, PLIK_GLOWNY)}: klasa zależności nie jest podpięta w pliku głównym — kod żyje, ale nikt go nie słucha (lekcja z uruchom-wszystkie.mjs).`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-tutora:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -527,5 +653,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają, alarm o rozjeździe jest mapą per kurs i gaśnie po naprawie, drogi masowe ogłaszają zmianę siostrom, a powrót wtyczki ogłasza kursy."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają, alarm o rozjeździe jest mapą per kurs i gaśnie po naprawie, drogi masowe ogłaszają zmianę siostrom, powrót wtyczki ogłasza kursy, kontrola izoluje kurs i umie zawieść, a brak Tutora jest widoczny."
 );

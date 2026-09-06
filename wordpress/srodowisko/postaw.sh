@@ -396,6 +396,20 @@ if [ -f ../wtyczki/aai-sklep/aai-sklep.php ]; then
     || blad "wtyczka aai-sklep nie jest aktywna"
   wpcli eval 'echo Aai_Sklep_Tabele::czy_gotowe() ? "tabele-ok" : "tabele-brak";' \
     | grep -q "tabele-ok" || blad "wtyczka aktywna, ale jej tabele nie powstały"
+
+  # PUNKT KONTROLNY (MAR-A-07). Do 0.75.0 `wp aai-sklep sprawdz` NIE UMIAŁO
+  # zawieść — wypisywało liczniki i kończyło zerem zawsze — więc ten skrypt
+  # nie miał czego uruchomić i jako JEDYNA z trzech wtyczek Plugin 1 nie miał
+  # tu punktu kontrolnego. Kontrola świeci dziś kodem 1, gdy brakuje tabeli,
+  # gdy kurs jest opublikowany bez ani jednej lekcji, gdy nie ma Tutora przy
+  # opublikowanych kursach (klient kupiłby kurs, którego nie ma jak
+  # przeczytać) albo gdy zapamiętana awaria kopii wciąż trwa.
+  # CYTUJEMY jej własne wiersze — lekcja Z1 z testu ręcznego 0.51.0.
+  if ! powod="$(wpcli aai-sklep sprawdz 2>&1)"; then
+    blad "kontrola sklepu zgłasza problem:
+$(printf '%s\n' "$powod" | grep -iE '^(Error|Warning):' | head -5)
+  Pełny opis: wp aai-sklep sprawdz"
+  fi
 fi
 
 if [ -f ../wtyczki/aai-platnosci/aai-platnosci.php ]; then

@@ -3,7 +3,7 @@
  * Plugin Name:       Automatic AI — Sklep z kursami
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Katalog /szkolenia, strony sprzedażowe kursów i kreator treści. Pierwsza z trzech wtyczek Automatic AI; sprzedaż bierze WooCommerce, dostęp do materiału Tutor LMS.
- * Version:           0.8.0
+ * Version:           0.9.0
  * Requires at least: 6.9
  * Requires PHP:      8.1
  * Author:            Automatic AI
@@ -207,6 +207,7 @@ add_action(
 
 		// ZAMEK WYCIEKU PIERWSZY — patrz komentarz wyżej. Nie przestawiać.
 		$bezpiecznie( 'widok lekcji i zamki publicznych list', static fn() => Aai_Sklep_Lekcja::zarejestruj() );
+		$bezpiecznie( 'komunikat o brakujących zależnościach', static fn() => Aai_Sklep_Zaleznosci::zarejestruj() );
 
 		$bezpiecznie( 'schemat tabel', static fn() => Aai_Sklep_Tabele::dociagnij_schemat() );
 		$bezpiecznie( 'zasoby', static fn() => Aai_Sklep_Zasoby::zarejestruj() );

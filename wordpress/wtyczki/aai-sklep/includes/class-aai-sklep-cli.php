@@ -146,7 +146,14 @@ final class Aai_Sklep_Cli {
 		if ( 'json' === ( $assoc_args['format'] ?? 'podsumowanie' ) ) {
 			// Bez `pretty`: to wejście dla skryptu, nie dla oka, a plik
 			// z 73 lekcjami i tak nie nadaje się do czytania w terminalu.
+			$stan['bledy'] = self::bledy_stanu( $stan );
 			WP_CLI::line( (string) wp_json_encode( $stan, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+			// KOD WYJŚCIA TAKI SAM W OBU FORMATACH. Kontrola, która milczy
+			// kodem 0 tylko dlatego, że ktoś poprosił o JSON, jest gorsza
+			// od jej braku — skrypt czytający wyjście uzna sukces.
+			if ( array() !== $stan['bledy'] ) {
+				WP_CLI::halt( 1 );
+			}
 			return;
 		}
 
@@ -174,6 +181,88 @@ final class Aai_Sklep_Cli {
 				)
 			);
 		}
+
+		$bledy = self::bledy_stanu( $stan );
+		if ( array() !== $bledy ) {
+			foreach ( $bledy as $b ) {
+				WP_CLI::warning( $b );
+			}
+			WP_CLI::error( sprintf( 'sklep w stanie do naprawy (%d)', count( $bledy ) ) );
+			return;
+		}
+
+		WP_CLI::success( 'Sklep w porządku.' );
+	}
+
+	/**
+	 * Co w stanie sklepu jest realnym błędem — lista opisów (pusta = w porządku).
+	 *
+	 * PO CO. Do 0.75.0 `wp aai-sklep sprawdz` NIE UMIAŁO ZAWIEŚĆ: wypisywało
+	 * liczniki i statystyki i kończyło zerem zawsze. Obie siostrzane wtyczki
+	 * mają kontrolę z kodem 1, a `postaw.sh` uruchamia je jako punkty
+	 * kontrolne — tej jednej nie uruchamiał nikt, bo nie było czego czytać
+	 * (MAR-A-07). Instrukcja instalacji nie wymieniała ŻADNEJ kontroli
+	 * Pluginu 1, więc weryfikacja po wdrożeniu była w całości „na oko".
+	 *
+	 * L11: KONTROLA NIGDY NIE PISZE. Wszystkie pytania są odczytem.
+	 *
+	 * @param array<string,mixed> $stan Wynik Aai_Sklep_Raport::stan().
+	 * @return string[]
+	 */
+	private static function bledy_stanu( array $stan ): array {
+		$bledy = array();
+
+		/* 1. Brak tabeli to nie „zero wierszy" — to sklep bez nośnika. */
+		foreach ( (array) ( $stan['tabele'] ?? array() ) as $nazwa => $ile ) {
+			if ( null === $ile ) {
+				$bledy[] = sprintf( 'tabela `%s` nie istnieje — schemat nie doszedł do końca; wyłącz i włącz wtyczkę.', $nazwa );
+			}
+		}
+
+		/* 2. Kurs opublikowany, a nie ma czego dostarczyć. Katalog i strona
+		      sprzedażowa obiecują wtedy produkt, którego nie ma. */
+		foreach ( (array) ( $stan['kursy'] ?? array() ) as $kurs ) {
+			if ( 'published' !== (string) ( $kurs['status'] ?? '' ) ) {
+				continue;
+			}
+			$lekcji = 0;
+			foreach ( (array) ( $kurs['moduly'] ?? array() ) as $modul ) {
+				$lekcji += count( (array) ( $modul['lekcje'] ?? array() ) );
+			}
+			if ( 0 === $lekcji ) {
+				$bledy[] = sprintf( 'kurs `%s` jest opublikowany i nie ma ani jednej lekcji — katalog obiecuje produkt, którego nie ma.', (string) $kurs['slug'] );
+			}
+		}
+
+		/* 3. Bez Tutora nie ma materiału za logowaniem — a klient płaci
+		      właśnie za niego. Cisza w tym miejscu kosztowała najwięcej:
+		      każdy zapis kursu zostawiał kopię coraz starszą, bez objawu. */
+		if ( class_exists( 'Aai_Sklep_Zaleznosci' ) && ! Aai_Sklep_Zaleznosci::jest_tutor() ) {
+			$opublikowanych = 0;
+			foreach ( (array) ( $stan['kursy'] ?? array() ) as $kurs ) {
+				if ( 'published' === (string) ( $kurs['status'] ?? '' ) ) {
+					++$opublikowanych;
+				}
+			}
+			if ( $opublikowanych > 0 ) {
+				$bledy[] = sprintf( 'nie ma Tutor LMS, a %d kurs(ów) jest opublikowanych — klient kupi kurs, którego nie ma jak przeczytać.', $opublikowanych );
+			}
+		}
+
+		/* 4. Zapamiętana awaria kopii. Mapa jest per kurs i gaśnie po udanej
+		      synchronizacji (MAR-A-08), więc niepusta znaczy „rozjazd TRWA". */
+		if ( class_exists( 'Aai_Sklep_Tutor' ) ) {
+			foreach ( Aai_Sklep_Tutor::bledy() as $wpis ) {
+				$bledy[] = sprintf(
+					'kopia kursu %s nie nadążyła za zapisem (%s, %s) — uruchom `wp aai-sklep sync`.',
+					(string) ( $wpis['kurs'] ?? '?' ),
+					(string) ( $wpis['komunikat'] ?? '?' ),
+					(string) ( $wpis['kiedy'] ?? '?' )
+				);
+			}
+		}
+
+		return $bledy;
 	}
 
 	/**

@@ -9,7 +9,7 @@
  * późno. To ta sama klasa co CSP i limiter w prototypie: strona działa,
  * tylko przestaje chronić.
  *
- * TRZYNAŚCIE NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
+ * CZTERNAŚCIE NIEZMIENNIKÓW (każdy z własną mutacją w audyt-straznikow):
  *   1. plik główny ma komplet nagłówków WordPressa,
  *   2. każdy plik PHP blokuje bezpośrednie wywołanie (`ABSPATH`),
  *   3. nazwy tabel składa WYŁĄCZNIE klasa tabel — nigdzie indziej nie
@@ -35,7 +35,10 @@
  *      jest dla klienta obietnicą wersji,
  *  13. handler szwu `aai_*` przyjmuje cudzą odpowiedź bez twardego typu
  *      i ma osłonę `catch ( Throwable )` — filtr jest publiczny, a te
- *      biegną w kasie i na stronie płatnej lekcji (MAR-A-20).
+ *      biegną w kasie i na stronie płatnej lekcji (MAR-A-20),
+ *  14. odinstalowanie deklarujące kasowanie sprząta TAKŻE poza własnymi
+ *      tabelami i nie zostawia opcji zmieniającej zachowanie świeżej
+ *      instalacji (MAR-A-16).
  *
  * Użycie: node tools/straznicy/straznik-wtyczki-wp.mjs
  */
@@ -407,6 +410,53 @@ for (const wtyczka of wtyczki) {
   }
 }
 
+/* 14. „CZYŚCI DO ZERA" MUSI ZNACZYĆ TAKŻE POZA WŁASNYMI TABELAMI (MAR-A-16).
+
+   `aai-sklep/uninstall.php` deklarował czyszczenie „do zera", a kasował
+   wyłącznie pięć tabel. Po pełnym odinstalowaniu zostawało w instalacji 148
+   załączników zrzutów, wpisy Tutora z ośmioma naszymi metami i dwie własne
+   opcje; w Pluginie 2 przeżywała PEŁNE odinstalowanie flaga
+   `aai_platnosci_sprzedaz_otwarta` — czyli po ponownej instalacji sprzedaż
+   była otwarta od pierwszej sekundy, przy pustym dzienniku dostaw, wbrew
+   własnej deklaracji „SPRZEDAŻ OTWIERA CZŁOWIEK, NIE AKTUALIZACJA".
+
+   Reguła pyta o dwie rzeczy: czy wtyczka deklarująca kasowanie sprząta
+   TAKŻE swoje meta (a nie tylko `DROP TABLE`) i czy żadna nie zostawia
+   opcji zmieniającej zachowanie po ponownej instalacji. */
+{
+  // Opcje, których przeżycie ZMIENIA zachowanie świeżej instalacji.
+  const GROZNE_OPCJE = {
+    "aai-platnosci": ["aai_platnosci_sprzedaz_otwarta"],
+  };
+  for (const wtyczka of wtyczki) {
+    const u = join(KATALOG_WTYCZEK, wtyczka, "uninstall.php");
+    if (!existsSync(u)) continue; // reguła 4 pilnuje istnienia
+    const t = kod(readFileSync(u, "utf8"));
+    // Interesuje nas WYŁĄCZNIE gałąź kasowania (po `return;` gałęzi „zostaw").
+    const iGaleziKasowania = t.indexOf("return;");
+    const kasujaca = iGaleziKasowania < 0 ? t : t.slice(iGaleziKasowania);
+
+    /* KONTRPRZYKŁAD: wtyczka, która nigdy nie zapisuje mety, nie ma czego
+       po sobie sprzątać. Bez tego pytania reguła oskarżała monitoring —
+       a on nie dotyka ani jednego wpisu (zmierzone: 0 wywołań zapisu mety). */
+    const pisze = plikiPhp(join(KATALOG_WTYCZEK, wtyczka)).some((f) =>
+      /(update|add)_post_meta\s*\(/.test(kod(readFileSync(f, "utf8")))
+    );
+    if (pisze && /DROP TABLE/i.test(kasujaca) && !/delete_post_meta_by_key\s*\(/.test(kasujaca)) {
+      bledy.push(
+        `${u}: kasuje własne tabele, a zostawia swoje meta na cudzych wpisach (brak delete_post_meta_by_key). „Czyści do zera" musi znaczyć także poza własnymi tabelami — inaczej po wyczyszczeniu witryny zostają nasze znaczniki na wpisach i mediach, a obietnica w nagłówku jest nieprawdziwa (MAR-A-16).`
+      );
+    }
+    for (const opcja of GROZNE_OPCJE[wtyczka] ?? []) {
+      if (!new RegExp(`delete_option\\(\\s*'${opcja}'`).test(kasujaca)) {
+        bledy.push(
+          `${u}: nie kasuje opcji \`${opcja}\`, która przeżywa odinstalowanie i ZMIENIA zachowanie świeżej instalacji. Sprzedaż otwarta od pierwszej sekundy przy pustym dzienniku dostaw to nie jest decyzja człowieka, choć wtyczka deklaruje, że tylko nią bywa (MAR-A-16).`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-wtyczki-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -414,5 +464,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę).`
+  `straznik-wtyczki-wp: ${wtyczki.length} wtyczka/wtyczki w porządku (nagłówki, wersja zgodna z readme.txt, blokada wywołania, jedno źródło nazw tabel, uninstall nie kasuje treści bez zgody, wartości przez prepare, SQL literałem przy wywołaniu, zapis tylko przez warstwę zapisu, JSON o stałym kształcie, żadna nie sięga po tabele siostry, paczka o tej samej nazwie niesie tę samą treść, handler szwu przyjmuje cudzą odpowiedź i ma osłonę, odinstalowanie sprząta też poza własnymi tabelami).`
 );
