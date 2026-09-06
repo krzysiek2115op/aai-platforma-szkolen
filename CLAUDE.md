@@ -4014,10 +4014,132 @@ Zaplanowane zdarzenie `aai_sklep_kontrola_kopii` (codziennie).
 i WordPress je stawiają. To treść prawna, wymaga prawnika, pozycja „przed
 pierwszym klientem". **Napraw kodu z listy polowania nie zostało.**
 
-**═══ NASTĘPNY KROK CAŁEGO PROJEKTU: DO DECYZJI WŁAŚCICIELA ═══**
-(stan na 2026-09-06, po wydaniu `v0.77.0`)
+## ═══ 0.78.0 — ZAPIS, KTÓRY SIĘ NIE UDAŁ, PRZESTAJE MELDOWAĆ SUKCES ═══
 
-**Nie ma zaplanowanej roboty.** Wszystko, co miało nośnik w postaci listy,
+**Wydane 2026-09-06 przy ZIELONYM CI** (PR #140, tag `v0.78.0` + release,
+gałąź skasowana, artefakt zweryfikowany pustym `git diff <szczyt> origin/main`).
+Pełny opis: CHANGELOG 0.78.0. Werdykty i pułapki: pamięć `mariusz-runda-2`.
+
+**Wejście: DRUGI przegląd zewnętrzny (Mariusz).** Zgłosił dwa miejsca —
+`class-aai-sklep-tutor.php` („nie ma pełnego proof-of-effect dla wszystkich
+meta, 95% zrobione") i `class-aai-monitor-zapis.php` („monitor nie zgłasza
+błędu delete… to samo z update… to samo `dostawa_wynik()`"). Polecenie
+właściciela: **zweryfikować i albo obronić, albo przyznać.**
+
+**OBA POTWIERDZONE POMIAREM, jedno miejsce OBRONIONE.** Metoda dowodu:
+wyzwalacz SQL blokujący POJEDYNCZE zapytanie (`BEFORE DELETE`/`BEFORE UPDATE`
+z `SIGNAL SQLSTATE '45000'`) oraz filtr `update_post_metadata` blokujący
+JEDEN zapis meta. Obroniona została `podnies_wizyte()`: zwraca `true`, ale
+awarię ZGŁASZA do kanału, więc `sprawdz` świeci kodem 1.
+
+**PRZELOT CAŁĄ KLASĄ ZNALAZŁ JEDENAŚCIE MIEJSC W TRZECH WTYCZKACH.** Klasa:
+operacja zmienia stan i **odrzuca wynik tej zmiany**. Dwie odmiany —
+metoda `void`, która nie ma jak powiedzieć, że nie zadziałała, oraz
+**sprawdzenie postawione ZA rzutowaniem**: `$wpdb` oddaje przy awarii
+`false`, `get_var()` przy braku tabeli `null`, a `(int)` zamienia jedno
+i drugie w zero, więc `if ( false === $x )` po konwersji jest MARTWE
+i przechodzi każdą lekturę.
+
+**Najcięższe nie było w zgłoszeniu:** zablokowany `COMMIT` w
+`Aai_Sklep_Zapis::w_transakcji()` — baza wycofuje transakcję przy
+rozłączeniu, a `zapisz_kurs()` oddaje liczniki sukcesu, panel pisze „Kurs
+zapisany", `aai_sklep_kurs_zmieniony` ogłasza zmianę siostrom i w bazie
+zostaje stara treść. **Cicha utrata zmiany właściciela.**
+
+**CZTERY KONTROLE NIE UMIAŁY ZAWIEŚĆ — najważniejsze znalezisko sesji:**
+- **`wp aai-sklep sprawdz` miało DOKŁADNIE tę samą wadę, co zgłoszenie.**
+  Reguła „brak tabeli to nie zero wierszy — to sklep bez nośnika" nie mogła
+  zajść, bo `liczniki_tabel()` rzutowały `null` na `int`. **Zmierzone przez
+  schowanie tabeli `courses`: „Success: Sklep w porządku." z kodem 0**, przy
+  kaskadowym wyciszeniu dwóch kolejnych reguł (pusta lista kursów → obie
+  przechodzą po pustce). Istnienie tabeli rozstrzyga teraz `SHOW TABLES
+  LIKE`, jak w obu siostrzanych wtyczkach.
+- **Sonda na cichą korupcję kodowania nie miała czytelnika** — długość
+  lekcji liczona w PHP i w bazie od kroku W2, nigdy nieporównana; podłożony
+  rozjazd „100 znaków vs 40" dawał zero błędów. Porównywało to WYŁĄCZNIE
+  `tools/sprawdz-import-wp.mjs`, wymagające Postgresa, którego produkcja
+  nie ma.
+- **Kontrola kopii powielała ślepotę zapisu** — `porownaj()` szukało wpisu
+  tą samą funkcją co `zapisz_post()`, a ta pyta o JEDEN wpis. Duplikat
+  identyfikatora powstaje wprost z wady wyżej: nieudany zapis znacznika →
+  następna synchronizacja nie znajduje wpisu → zakłada drugi.
+- **Dwa szwy między wtyczkami nie miały pytającego** — trzy filtry ceny,
+  przycisku i dostępności (rejestruje Plugin 2) oraz filtr bramki logowania
+  (rejestruje Plugin 1). Zmierzone mutacją zdejmującą rejestrację: obie
+  kontrole milczały, a sprzedaż cichła przy zielonych bramkach.
+
+**BRAMKI:** **reguła 14 `straznik-wtyczki-wp` celuje w KLASĘ, nie w
+miejsce** — szuka sprawdzenia `false`/`null` postawionego za rzutowaniem
+tej samej zmiennej, w każdym pliku trzech wtyczek, z samokontrolą zakresu
+(< 20 przypisań = reguła przechodzi po pustce). Reguła 15 pilnuje trzech
+zapytań transakcji, pytania o istnienie tabeli i porównania kodowania.
+Do tego reguły w `straznik-tutora` (dowód skutku met, powtórzone uuid),
+`straznik-monitora-wp` (obie gałęzie retencji słyszalne, kontrola pyta
+o odpowiadającego na filtr bramki) i `straznik-platnosci-wp` (trzy metody
+zapisu nie są `void`, a wołający odbierają ich wynik).
+**Audyt mutacyjny 441 → 452** (450 złapanych, 0 przeoczonych, 0 martwych).
+
+**TRZY RZECZY WYSZŁY DOPIERO Z AUDYTU MUTACYJNEGO, NIE Z LEKTURY:**
+(1) moje naprawy **uśmierciły dwie istniejące mutacje** zakotwiczone na
+układzie linii — przekotwiczone na zachowanie; (2) **weryfikacja odczytem
+oślepiła istniejącą regułę kolejności B2**: reguła brała PIERWSZE
+wystąpienie nazwy mety, a dopisany `get_post_meta` z tą samą nazwą je
+przesunął — mierzy teraz pozycję WYWOŁANIA ZMIENIAJĄCEGO; (3) ta sama
+klasa dopadła regułę pisaną w tym samym przelocie (pytała o nazwę funkcji
+padającą w metodzie dwa razy). **Audyt mutacyjny puszczać po KAŻDEJ
+naprawie dotykającej cudzej mety, nie tylko po nowej regule.**
+
+**KOREKTA WŁASNEJ OCENY (właściciel: „bądź obiektywny w 100%"):** pierwszy
+werdykt agenta brzmiał „oba średnie" i był SKRZYWIONY przez rolę obrońcy,
+o którą właściciel prosił wcześniej. Po sprawdzeniu, że kontrola
+monitoringu **nie biegnie na produkcji sama** (zero crona, zero haka,
+`postaw.sh` to warsztat, a instrukcja mówi klientowi, że WP-CLI „robimy
+my"), waga wróciła do zgłoszonej: **1 duży, 1 średni**. Trzy rzeczy
+zgłoszone właścicielowi jako „inne klasy" też skorygowano: duplikaty uuid
+okazały się SKUTKIEM i sąsiadem zgłoszenia (ta sama klasa, ten sam plik,
+dwie wspólne funkcje), a filtry i sonda kodowania to BRAKI KONTROLI, nie
+czynne usterki.
+
+**Wersje wtyczek:** `aai-sklep` **0.12.0**, `aai-platnosci` **0.7.0**,
+`aai-monitor` **0.8.0**. Dowody: `npm run check` kod 0, strażnicy **39/39**,
+audyt mutacyjny **452**, **15/15 bramek WP** (dane 30 · front 89 · tutor 49
+· lekcja 64 · kreator 102 · panel 55 · płatności 27 · produkty 101 · zakup
+60 · zwroty 39 · maile 62 · język 25 · motyw 93 · monitor 184 · seo 172),
+`wp:sprawdz` 73/73 co do znaku, `wp:tutor` 0 różnic, cztery kontrole kod 0.
+
+**PUŁAPKA, KTÓRA KOSZTOWAŁA TRZY FAŁSZYWE PADNIĘCIA:** bramka **ubita
+limitem czasu** zostawia kurs testowy, produkty i zamówienia — i wtedy
+`wp-zakup`, `wp-zwroty` oraz `wp-maile` padają na CUDZYCH śmieciach
+(„smoke zostawił produkt: przed 4, po 5"). Sprzątać po ZNAKACH (tytuł
+zaczynający się od `Smoke`, slug z `smoke`), **nigdy po zakresie
+identyfikatorów**; po sprzątaniu `wp aai-platnosci sieroty --usun` na
+notatki zamówień. Powtórzone bramki przeszły 60/60, 39/39 i 62/62.
+
+**WYTYCZNA WŁAŚCICIELA (2026-09-06), obowiązuje dalej:** gdy w trakcie
+naprawy znajdę błąd **innej klasy niż zgłoszona**, mam go zweryfikować
+i **poinformować właściciela PRZED naprawieniem** — z wyjaśnieniem, skąd
+się bierze. Nie dotyczy pozycji tej samej klasy, którą właśnie naprawiam.
+
+**═══ NASTĘPNY KROK CAŁEGO PROJEKTU: FALA KONTROLNA PO 0.78.0 ═══**
+(decyzja właściciela 2026-09-06: *„po clear puścimy audyt tak jak
+puściliśmy wcześniej 2 fale, czyli ta krótsza, aby sprawdził do cna
+projekt, czy na pewno nie ma tam już błędów"*)
+
+**To ta sama forma co fala kontrolna po 0.65.0: 14 Pogłębiaczy `rea-<KOD>`
++ 14 krytyków = 28 agentów, nośnik B, potokiem.** Działy audytu i role
+procesowe NIE wchodzą. **Protokół przebiegu, wejście i szablon polecenia
+leżą NA GAŁĘZI SEKTORA `re-audyt/sektor-re-audytu`**, koniec
+`audyt/PLAN-BUDOWY.md`, sekcja „FALA KONTROLNA PO 0.78.0" — CZYTAĆ TAM,
+nie wyprowadzać od nowa. `main` nie ma katalogu `audyt/` i to jest celowe.
+
+Różnica wobec fali po 0.65.0: tamta weryfikowała 33 konkretne wpisy fali 1,
+a **ta ma odpowiedzieć na pytanie „czy na pewno nie ma już błędów"** —
+więc wejściem są naprawy z trzynastu wydań (`v0.66.0` … `v0.78.0`) ORAZ
+pełne rundy regresji w zakresie każdego działu wg jego definicji roli.
+
+**═══ CO ZOSTAJE PO FALI (stan na 2026-09-06) ═══**
+
+**Nie ma innej zaplanowanej roboty.** Wszystko, co miało nośnik w postaci listy,
 jest wykonane: prototyp (0.37.0), etap WordPressa i trzy wtyczki (0.59.0),
 trzy ostatnie kroki — SEO, higiena repo, audyt końcowy (0.60.x, 0.62.0,
 0.63.0), schematy draw.io (0.64.0), fala 1 audytu i jej naprawy (0.65.0),
