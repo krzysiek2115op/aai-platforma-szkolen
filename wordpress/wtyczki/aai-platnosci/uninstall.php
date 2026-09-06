@@ -42,3 +42,34 @@ foreach ( array( 'powiazania', 'dostawy' ) as $tabela ) {
 
 delete_option( 'aai_platnosci_wersja_schematu' );
 delete_option( 'aai_platnosci_kasuj_dane_przy_usuwaniu' );
+
+/*
+ * ——— FLAGA SPRZEDAŻY NIE MOŻE PRZEŻYĆ ODINSTALOWANIA (MAR-A-16) ———
+ *
+ * `Aai_Platnosci_Ustawienia` deklaruje wprost: „SPRZEDAŻ OTWIERA CZŁOWIEK,
+ * NIE AKTUALIZACJA". Do 0.75.0 `aai_platnosci_sprzedaz_otwarta` przeżywała
+ * PEŁNE odinstalowanie z kasowaniem danych — więc po ponownej instalacji
+ * tabele powstawały puste, `napraw()` ustawiało silnik, synchronizacja
+ * publikowała produkty i **sprzedaż była otwarta od pierwszej sekundy**,
+ * przy PUSTYM dzienniku `dostawy`, czyli przy skasowanym nośniku
+ * idempotencji maili. Deklaracja, którą kasowanie danych po cichu omija,
+ * nie jest decyzją człowieka.
+ */
+delete_option( 'aai_platnosci_sprzedaz_otwarta' );
+delete_option( 'aai_platnosci_blad' );
+delete_option( 'aai_platnosci_punkt_przywracania' );
+
+/* Nasze znaczniki na produktach WooCommerce. Produktów NIE kasujemy —
+   niezmiennik 13 mówi, że ta wtyczka nigdy nie kasuje produktu; są w koszyku
+   i w historii zamówień klientów. Zdejmujemy z nich tylko nasze meta. */
+foreach ( array( '_aai_platnosci_kurs_uuid', '_aai_platnosci_okladka_kurs', '_aai_platnosci_okladka_sha' ) as $klucz ) {
+	delete_post_meta_by_key( $klucz );
+}
+
+/*
+ * CO TEN PLIK ZOSTAWIA ZAWSZE:
+ *   - produkty WooCommerce, zamówienia i konta klientów (patrz wyżej),
+ *   - ustawienia Woo i Tutora przestawione przy aktywacji — cofa je
+ *     DEAKTYWACJA z punktu przywracania, a nie ten plik: on wykonuje się
+ *     PO niej i miałby skąd czytać tylko śmieci.
+ */

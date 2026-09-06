@@ -561,15 +561,21 @@ sprawdz(
   `nieudana próba nie zostawiła wiersza „nieudane” (dostałem ${poPorazce.length}). Bez niej licznik porażek z 7 dni — JEDYNA funkcja alarmowa ekranu — pokazuje zero niezależnie od tego, ile razy ktoś próbował się włamać (N5).`
 );
 /*
- * Login NIEISTNIEJĄCEGO konta jest maskowany — celowo, od przeglądu T2:
- * w tym polu bywa HASŁO (A1 niżej). Zostaje początek i długość, czyli
- * wzorzec ataku bez sekretu. Istniejące konta zapisujemy dosłownie
- * i tego pilnuje osobne sprawdzenie w bloku A1.
+ * Login NIEISTNIEJĄCEGO konta jest maskowany do SAMEJ DŁUGOŚCI (od 2026-09-05).
+ * Do tego dnia zostawał jeszcze początek, „bo widać wzorzec ataku" — a że
+ * w tym polu bywa HASŁO (A1 niżej), były to trzy pierwsze znaki sekretu
+ * w bazie na 90 dni. Kształt wartości tego nie rozstrzygał: kryterium
+ * `sanitize_user( $x, true ) === $x` przepuszcza każde hasło bez znaku
+ * specjalnego. Istniejące konta zapisujemy dosłownie i tego pilnuje osobne
+ * sprawdzenie w bloku A1 — tam mieszka cała wartość dowodowa.
  */
 sprawdz(
-  (poPorazce[0]?.login ?? "").startsWith(LOGIN_NIEISTNIEJACY.slice(0, 3)) &&
-    (poPorazce[0]?.login ?? "").includes(String(LOGIN_NIEISTNIEJACY.length)),
-  `wiersz porażki zapisał login „${poPorazce[0]?.login}” — oczekiwano początku „${LOGIN_NIEISTNIEJACY.slice(0, 3)}” i długości ${LOGIN_NIEISTNIEJACY.length}. To jedyna informacja o tym, kogo próbowano podszyć, więc nie może zniknąć w całości`
+  (poPorazce[0]?.login ?? "").includes(String(LOGIN_NIEISTNIEJACY.length)),
+  `wiersz porażki nie zapisał nawet długości podanej wartości: „${poPorazce[0]?.login}” — bez niej nie widać ANI śladu próby`
+);
+sprawdz(
+  !(poPorazce[0]?.login ?? "").includes(LOGIN_NIEISTNIEJACY.slice(0, 3)),
+  `wiersz porażki zostawił początek podanej wartości: „${poPorazce[0]?.login}”. W polu loginu bywa hasło (A1), a kształt nie odróżnia go od loginu — więc z wartości nieistniejącego konta nie zostaje ani jeden znak`
 );
 sprawdz(
   poPorazce[0]?.user_id === null,
@@ -622,16 +628,29 @@ sprawdz(
 );
 sprawdz(
   !(poSekrecie[0]?.login ?? "").includes(SEKRET.slice(0, 3)),
-  `wartość, która NIE JEST loginem (ma znak spoza \`sanitize_user\`), zostawiła w dzienniku swój początek: „${poSekrecie[0]?.login}”. W pole loginu trafia czasem hasło (A1) — wtedy każdy zachowany znak jest fragmentem sekretu na 90 dni, wbrew zdaniu polityki „Nie zapisujemy haseł ani ich fragmentów”. Wzorzec ataku (adm…, roo…) zostaje przy wartościach, które loginem być mogą — to sprawdza asercja niżej`
+  `wartość nieistniejącego konta zostawiła w dzienniku swój początek: „${poSekrecie[0]?.login}”. W pole loginu trafia czasem hasło (A1) — wtedy każdy zachowany znak jest fragmentem sekretu na 90 dni, wbrew zdaniu polityki „Nie zapisujemy haseł ani ich fragmentów”. Od 2026-09-05 nie zostawiamy znaku z ŻADNEJ wartości, która nie wskazuje konta — kształt jej nie odróżnia`
 );
 
-/* A1, druga strona: ISTNIEJĄCE konto zapisujemy dosłownie. */
 /*
- * DRUGA POŁOWA A1 — wzorzec ataku ma przetrwać.
- * Maskowanie sekretu nie może zabrać kolumnie sensu: wartość, która MOŻE być
- * loginem (przechodzi `sanitize_user` w trybie ścisłym bez zmiany), zostawia
- * początek, bo po to ta kolumna istnieje. Bez tej asercji naprawa wycieku
- * mogłaby wyciszyć dziennik w całości i nikt by tego nie zauważył.
+ * DRUGA POŁOWA A1 — WARTOŚĆ O KSZTAŁCIE LOGINU TEŻ NIE ZOSTAWIA ZNAKU.
+ *
+ * TA ASERCJA WYMAGAŁA WCZEŚNIEJ WYCIEKU, i to jest jej cała historia.
+ * Brzmiała: „wartość mogąca być loginem MUSI zostawić początek, bo po to ta
+ * kolumna istnieje" — czyli bramka pilnowała, żeby prefiks przetrwał. Tyle że
+ * kryterium „może być loginem" to `sanitize_user( $x, true ) === $x`, które
+ * przepuszcza KAŻDE hasło bez znaku specjalnego. Zmierzone przez prawdziwy
+ * formularz: `Haslo123` → `Has…(8 znaków)`, `MojeTajneHaslo2026` →
+ * `Moj…(18 znaków)`. Bramka broniła usterki — druga taka w tym repozytorium.
+ *
+ * Od 2026-09-05 wartość, która NIE wskazuje istniejącego konta, nie zostawia
+ * ANI JEDNEGO znaku, niezależnie od kształtu. Wartości dowodowej pilnuje
+ * asercja niżej: istniejące konto dalej zapisujemy dosłownie — i tam sekretu
+ * z definicji nie ma. Wzorzec ataku na loginy NIEISTNIEJĄCE oddajemy
+ * świadomie: nie da się po kształcie odróżnić loginu od hasła.
+ *
+ * Kontrprzykład jest w tej samej asercji: wiersz MUSI powstać i MUSI nieść
+ * długość. Inaczej „nie ma prefiksu" przechodziłoby też wtedy, gdyby dziennik
+ * przestał zapisywać cokolwiek.
  */
 const WZORZEC_ATAKU = "administrator_probny";
 const przedWzorcem = maxId();
@@ -648,10 +667,15 @@ await gosc2().pobierz("/wp-login.php", {
 });
 const poWzorcu = nowszeNiz(przedWzorcem);
 sprawdz(
-  (poWzorcu[0]?.login ?? "").startsWith(WZORZEC_ATAKU.slice(0, 3)) &&
-    (poWzorcu[0]?.login ?? "").includes(String(WZORZEC_ATAKU.length)),
-  `wartość mogąca być loginem straciła początek: „${poWzorcu[0]?.login}” — wtedy nie widać wzorca ataku (adm…, roo…, tes…), a po to ta kolumna istnieje`
+  poWzorcu.length === 1 && (poWzorcu[0]?.login ?? "").includes(String(WZORZEC_ATAKU.length)),
+  `próba na NIEISTNIEJĄCE konto nie zostawiła w dzienniku wiersza z długością wartości: „${poWzorcu[0]?.login}” (wierszy: ${poWzorcu.length}) — bez tego asercja „nie ma prefiksu" przechodziłaby także przy martwym dzienniku`
 );
+sprawdz(
+  !(poWzorcu[0]?.login ?? "").includes(WZORZEC_ATAKU.slice(0, 3)),
+  `wartość o kształcie loginu zostawiła w dzienniku swój początek: „${poWzorcu[0]?.login}”. Kształt NIE odróżnia loginu od hasła: „Haslo123” przechodzi sanitize_user w trybie ścisłym tak samo jak „admin”, więc każdy zachowany znak bywa fragmentem sekretu na 90 dni, wbrew zdaniu polityki „Nie zapisujemy haseł ani ich fragmentów”`
+);
+
+/* A1, druga strona: ISTNIEJĄCE konto zapisujemy dosłownie. */
 
 const przedIstniejacym = maxId();
 await gosc2().pobierz("/wp-login.php", {
@@ -1075,18 +1099,47 @@ for (const [opis, opcje] of odrzuty) {
   ).stdout.trim();
   sprawdz(/^\d+$/.test(kopia), `nie udało się odłożyć kopii tabeli ruchu („${kopia}”) — bez niej ten pomiar skasowałby zastane wiersze`);
 
-  const wynik = phpEval(
+  /*
+   * DWIE POŁOWY, BO PIERWSZA WERSJA TEGO POMIARU WYMAGAŁA KASOWANIA DANYCH.
+   *
+   * Sprawdzała, że po skoku AUTO_INCREMENT zostaje sam nowy wiersz — czyli
+   * utrwalała zachowanie, w którym DZIURA w identyfikatorach kasuje wiersze,
+   * których wcale nie ma za dużo. Zmierzone 2026-09-05 na dzienniku logowań:
+   * 41 wierszy, MAX(id) = 334, AUTO_INCREMENT = 200 001 po wcześniejszym
+   * pomiarze — pierwszy zapis po takim stanie skasował WSZYSTKO, łącznie
+   * z dowodowymi logowaniami właściciela. Bramka broniłaby tego zachowania.
+   *
+   * Mierzymy więc oba warunki osobno.
+   */
+
+  // (a) DZIURA W IDENTYFIKATORACH NIE KASUJE NICZEGO, gdy wierszy jest mało.
+  const poDziurze = phpEval(
     "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
       " $sufit = Aai_Monitor_Tabele::SUFIT_WIERSZY_WIZYT;" +
       " Aai_Monitor_Zapis::dodaj_wizyte( array( 'odslona' => str_repeat('a',32), 'sesja' => str_repeat('1',32), 'sciezka' => '/sufit-stary/', 'trwanie_ms' => 1000, 'wiek_ms' => 2000 ) );" +
       " $stary = (int) $wpdb->get_var( \"SELECT MAX(id) FROM `{$t}`\" );" +
       " $skok = $stary + $sufit + 100; $wpdb->query( \"ALTER TABLE `{$t}` AUTO_INCREMENT = {$skok}\" );" +
       " Aai_Monitor_Zapis::dodaj_wizyte( array( 'odslona' => str_repeat('b',32), 'sesja' => str_repeat('2',32), 'sciezka' => '/sufit-nowy/', 'trwanie_ms' => 1000, 'wiek_ms' => 2000 ) );" +
-      " echo implode( ',', $wpdb->get_col( \"SELECT sciezka FROM `{$t}` ORDER BY id\" ) );"
+      " echo (int) $wpdb->get_var( \"SELECT COUNT(*) FROM `{$t}` WHERE sciezka = '/sufit-stary/'\" );"
   ).stdout.trim();
   sprawdz(
-    wynik === "/sufit-nowy/",
-    `sufit liczby wierszy nie ściął najstarszych wierszy (zostało: „${wynik}”) — tabela ruchu rośnie bez granicy, a kafelki ekranu liczą ją bez okna czasu (A2)`
+    poDziurze === "1",
+    `wiersz sprzed skoku AUTO_INCREMENT ZNIKNĄŁ (zostało go ${poDziurze}) — sufit skasował dane po samej DZIURZE w identyfikatorach, a nie po liczbie wierszy. Tak przepadły dowodowe logowania właściciela.`
+  );
+
+  // (b) PRAWDZIWY NADMIAR JEST ŚCINANY. Sufitu produkcyjnego (ćwierć miliona
+  //     wierszy) nie da się osiągnąć w bramce, więc wołamy tę samą prywatną
+  //     metodę refleksją, z sufitem 1 — mierzymy LOGIKĘ, nie stałą.
+  const poNadmiarze = phpEval(
+    "global $wpdb; $t = Aai_Monitor_Tabele::tabela('wizyty');" +
+      " $m = new ReflectionMethod( 'Aai_Monitor_Zapis', 'przytnij_liczbe' ); $m->setAccessible( true );" +
+      " $ile = (int) $m->invoke( null, 'wizyty', 1 );" +
+      " $zostalo = (int) $wpdb->get_var( \"SELECT COUNT(*) FROM `{$t}`\" );" +
+      " echo $ile . '/' . $zostalo;"
+  ).stdout.trim();
+  sprawdz(
+    /^\d+\/1$/.test(poNadmiarze) && poNadmiarze !== "0/1",
+    `sufit nie ściął nadmiaru przy suficie 1 (dostałem „${poNadmiarze}", oczekiwałem „N/1" z N > 0) — tabela ruchu rosłaby bez granicy, a kafelki ekranu liczą ją bez okna czasu (A2)`
   );
 
   // Przywracamy stan zastany CO DO WIERSZA, razem z licznikiem

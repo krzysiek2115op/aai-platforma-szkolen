@@ -114,10 +114,17 @@ final class Aai_Platnosci_Kasa {
 		if ( ( $blok['blockName'] ?? '' ) !== self::BLOK_KASY ) {
 			return $blok;
 		}
+		/*
+		 * PUSTY TEKST TEŻ WCHODZI — I TO JEST CAŁY SENS TEJ KLASY.
+		 *
+		 * `zdanie()` oddaje pusty łańcuch, gdy nie ma nawet strony polityki
+		 * prywatności. Do 0.72.0 wychodziliśmy wtedy z bloku NIETKNIĘTEGO,
+		 * czyli oddawaliśmy głos domyślnemu zdaniu WooCommerce — a ono
+		 * powołuje się na „Warunki i zasady", których w tej instalacji nie
+		 * ma. Własny docblock `przejdz()` mówił wprost, że pusty tekst ma
+		 * USUWAĆ zdanie z bloku zgód; ta gałąź nie dawała mu nigdy szansy.
+		 */
 		$tekst = self::zdanie();
-		if ( '' === $tekst ) {
-			return $blok;
-		}
 		$blok['innerBlocks'] = self::przejdz( (array) ( $blok['innerBlocks'] ?? array() ), $tekst );
 		return $blok;
 	}

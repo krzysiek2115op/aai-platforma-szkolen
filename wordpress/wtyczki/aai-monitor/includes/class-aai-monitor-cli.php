@@ -216,6 +216,33 @@ final class Aai_Monitor_Cli {
 		}
 
 		/*
+		 * 4b2. KTO ODPOWIADA NA PYTANIE O BRAMKĘ LOGOWANIA.
+		 *
+		 * Kolumna `bramka` w tabeli ruchu mówi, czy odsłona zatrzymała się
+		 * na bramce logowania — i jest jedyną liczbą na ekranie, która
+		 * odróżnia „ktoś czytał lekcję" od „ktoś odbił się od logowania".
+		 * Monitoring sam NIE WIE, co jest bramką: pyta o to filtrem, a
+		 * odpowiada widok lekcji Pluginu 1. Gdy nikt nie odpowiada (Plugin 1
+		 * wyłączony, zerwana rejestracja po refaktorze), flaga jest zawsze
+		 * fałszywa, ekran pokazuje same „przeczytane" i NIC się nie zapala —
+		 * dane są ciche i wyglądają zdrowo.
+		 *
+		 * Pytamy tylko wtedy, gdy Plugin 1 W OGÓLE JEST. Bez niego brak
+		 * odpowiadającego nie jest usterką, tylko brakiem tego, kto miałby
+		 * odpowiedzieć — i wtedy nie ma też żadnych stron za logowaniem.
+		 */
+		if ( class_exists( 'Aai_Sklep_Lekcja' ) ) {
+			if ( false === has_filter( Aai_Monitor_Pomiar::FILTR_BRAMKI ) ) {
+				$bledy[] = sprintf(
+					'nikt nie odpowiada na filtr `%s`, choć Plugin 1 jest włączony — kolumna „bramka" w danych ruchu będzie zawsze fałszywa, a ekran pokaże odbicia od logowania jako zwykłe odsłony.',
+					Aai_Monitor_Pomiar::FILTR_BRAMKI
+				);
+			} else {
+				WP_CLI::line( 'Bramka logowania: pytanie ma odpowiadającego.' );
+			}
+		}
+
+		/*
 		 * 4c. SÓL PODPISU. Bez niej beacon nie ma jak dowieść, że ścieżka
 		 * jest prawdziwa — a odrzuty są ciche (204 jak przyjęcia), więc
 		 * objawem byłaby pusta tabela ruchu. Sól powstaje przy aktywacji;

@@ -362,8 +362,24 @@ if (existsSync(PODPIS)) {
   }
   // Sól z tabeli ma być czytana PRZED sięgnięciem do starej opcji — inaczej
   // migracja nigdy nie kończy się przejęciem, a kontrola świeci na zawsze.
-  if (tworzenie && tworzenie.indexOf("sol_z_tabeli") > tworzenie.indexOf("sol_z_opcji") ) {
-    bledy.push(`${PODPIS}: sol() pyta starą opcję PRZED własną tabelą — po migracji dalej rządzi wp_options, a tabela jest ozdobą.`);
+  if (tworzenie) {
+    /*
+     * NAJPIERW „CZY OBA PYTANIA W OGÓLE PADAJĄ", POTEM KOLEJNOŚĆ.
+     *
+     * Pierwsza wersja porównywała same `indexOf`, a brakujące wywołanie
+     * daje -1 — więc `sol()`, które w ogóle nie pyta tabeli, przechodziło
+     * jako „dobra kolejność" (złapane mutacją przy P1 poz. 16). Reguła
+     * o kolejności musi zacząć od tego, że jest co ustawiać w kolejności.
+     */
+    const wTabeli = tworzenie.indexOf("sol_z_tabeli");
+    const wOpcji = tworzenie.indexOf("sol_z_opcji");
+    if (wTabeli < 0) {
+      bledy.push(`${PODPIS}: sol() nie pyta o sól WŁASNEJ tabeli — cała migracja z wp_options jest wtedy martwa, a tabela ozdobą.`);
+    } else if (wOpcji < 0) {
+      bledy.push(`${PODPIS}: sol() nie sięga po starą sól z wp_options — instalacja sprzed migracji straci podpisy stron już wysłanych do przeglądarek.`);
+    } else if (wTabeli > wOpcji) {
+      bledy.push(`${PODPIS}: sol() pyta starą opcję PRZED własną tabelą — po migracji dalej rządzi wp_options, a tabela jest ozdobą.`);
+    }
   }
 }
 if (existsSync(WARSTWA_ZAPISU)) {
@@ -586,6 +602,53 @@ for (const [plik, tresc] of kodWtyczki) {
     bledy.push(
       `${plik}: kod sięga po hasło z żądania (N5). Dziennik logowań zapisuje, KTO i SKĄD próbował — nigdy CZYM. Hak porażki hasła nie niesie, więc jedyną drogą do niego jest świadome sięgnięcie do $_POST; dlatego zakaz stoi tutaj, a nie w recenzji.`
     );
+  }
+}
+
+/*
+ * 5b. (N5, druga połowa) Z WARTOŚCI NIEISTNIEJĄCEGO KONTA NIE ZOSTAJE ZNAK.
+ *
+ * Reguła 5 wyżej pilnuje, żeby kod nie sięgnął po hasło z żądania. Nie broniła
+ * jednak przed drugą drogą, którą hasło NAPRAWDĘ wyciekło: rdzeń sam podaje
+ * `wp_login_failed` wartość wpisaną w pole loginu, a w to pole hasło trafia
+ * przy autouzupełnianiu, złym układzie klawiatury i pomyłce o jedno pole.
+ * Maskowanie zostawiało trzy pierwsze znaki, „gdy wartość wygląda na login" —
+ * a kryterium `sanitize_user( $x, true ) === $x` przepuszcza KAŻDE hasło bez
+ * znaku specjalnego. Zmierzone przez prawdziwy formularz: „Haslo123" wylądowało
+ * w bazie jako „Has…(8 znaków)" na 90 dni, w każdej kopii zapasowej i na ekranie
+ * każdego z `manage_options` — wbrew zdaniu, które sama ta wtyczka drukuje
+ * w polityce prywatności.
+ *
+ * REGUŁA CELUJE W ROZSTRZYGNIĘCIE, NIE W NAZWĘ (dziewięć nawrotów tej pułapki
+ * w tym projekcie): pytamy, czy maskujący kod WYCINA KAWAŁEK podanej wartości —
+ * dowolną funkcją krojącą łańcuch. Nie pytamy o nazwę stałej, kryterium ani
+ * komentarz, bo każde z nich da się przemianować, zostawiając wyciek.
+ *
+ * Dlaczego tutaj, a nie tylko w bramce: `smoke-wp-monitor` mierzy to na żywej
+ * instalacji i jest mocniejszym dowodem, ale wymaga kontenera i NIE biegnie
+ * w CI. Ta reguła biegnie w `npm run check` przy każdym commicie.
+ */
+{
+  const PLIK_LOGOWAN = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-logowania.php";
+  const wpis = kodWtyczki.find(([plik]) => plik === PLIK_LOGOWAN);
+  if (!wpis) {
+    bledy.push(
+      `${PLIK_LOGOWAN}: nie znalazłem pliku producenta dziennika logowań (5b) — reguła nie ma czego sprawdzić, a milcząca reguła jest gorsza niż jej brak.`
+    );
+  } else {
+    const ciało = wpis[1].match(/function\s+bezpieczny_login\s*\([^)]*\)[^{]*\{([\s\S]*?)\n\t\}/);
+    if (!ciało) {
+      bledy.push(
+        `${PLIK_LOGOWAN}: nie znalazłem ciała bezpieczny_login() (5b). Samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+      );
+    } else {
+      const kroi = ciało[1].match(/\b(?:mb_substr|substr|mb_strcut|str_split|preg_replace)\s*\(/);
+      if (kroi) {
+        bledy.push(
+          `${PLIK_LOGOWAN}: bezpieczny_login() wycina kawałek podanej wartości (${kroi[0].trim()}) na ścieżce maskowania (N5, 5b). W pole loginu trafia czasem HASŁO, a kształt go od loginu NIE odróżnia — sanitize_user( $x, true ) przepuszcza każde hasło bez znaku specjalnego. Wartość, która nie wskazuje ISTNIEJĄCEGO konta, ma zostawić samą długość: ani jednego znaku.`
+        );
+      }
+    }
   }
 }
 
@@ -862,21 +925,128 @@ if (existsSync(GLOWNY)) {
   const start = zrodlo.indexOf("'plugins_loaded'");
   if (start !== -1) {
     const blok = zrodlo.slice(start);
-    const otwarcie = blok.indexOf("try {");
-    const zamkniecie = blok.indexOf("} catch");
+    /*
+     * KAŻDY ZAKRES `try … } catch` OSOBNO, nie „pierwszy w pliku".
+     *
+     * Pierwsza wersja brała `blok.indexOf("try {")` i uznawała za chronione
+     * wszystko, co stoi dalej. Działało, dopóki w haku był JEDEN `try`.
+     * Od 2026-09-05 każdy krok startu jedzie przez osłonę `$bezpiecznie(…)`,
+     * a ta ma WŁASNY `try` w swoim ciele — i ten własny stoi PIERWSZY. Reguła
+     * zaczęła więc uznawać za chronione dosłownie wszystko po definicji
+     * pomocnika, łącznie z wywołaniami wystawionymi poza ochronę. Wykrył to
+     * audyt mutacyjny (mutacja „start wychodzi poza try/catch" przeszła), nie
+     * lektura.
+     *
+     * Teraz liczymy WSZYSTKIE pary `try … } catch` i pytamy, czy wywołanie
+     * mieści się w którejkolwiek. Wywołania po ostatnim `} catch` pomijamy
+     * świadomie: tam mieszka sam raport o błędzie, strzeżony `class_exists` —
+     * reguła pytająca też o nie zapalałaby się na poprawnym kodzie
+     * (sprawdzone: najwcześniejsza wersja tak właśnie robiła).
+     */
+    const zakresy = [];
+    for (const t of blok.matchAll(/\btry\s*\{/g)) {
+      const c = blok.indexOf("} catch", t.index);
+      if (c !== -1) zakresy.push([t.index, c]);
+    }
+    const ostatnieZamkniecie = zakresy.length ? Math.max(...zakresy.map(([, c]) => c)) : -1;
     const pozaOslona = [];
-    // Wywołanie PRZED `try` jest niechronione. Wywołania po `} catch`
-    // pomijamy świadomie: tam mieszka sam raport o błędzie, strzeżony
-    // `class_exists` — reguła pytająca też o nie zapalałaby się na
-    // poprawnym kodzie (sprawdzone: pierwsza wersja tak właśnie robiła).
     for (const m of blok.matchAll(/Aai_Monitor_[A-Za-z_]+::(?:zarejestruj|dociagnij_schemat|utworz)\(/g)) {
-      if (otwarcie === -1 || zamkniecie === -1 || m.index < otwarcie) {
+      if (m.index > ostatnieZamkniecie) continue;
+      if (!zakresy.some(([o, c]) => m.index > o && m.index < c)) {
         pozaOslona.push(m[0]);
       }
     }
     if (pozaOslona.length > 0) {
       bledy.push(
         `${plikGlowny}: ${pozaOslona.length} wywołań startu poza try/catch (np. ${pozaOslona[0]}). Brak jednego pliku z includes/ daje wtedy HTTP 500 na CAŁEJ witrynie — zmierzone 2026-08-31.`
+      );
+    }
+  }
+}
+
+/*
+ * OBIE TABELE MONITORINGU MAJĄ SUFIT LICZBY WIERSZY, NIE TYLKO WIEK.
+ *
+ * Ruch dostał go przy przeglądzie T3 (A2). Dziennik logowań został z samą
+ * retencją po WIEKU — a nieudane logowanie zapisuje KAŻDY, kto wyśle
+ * formularz. Zmierzone tempo: 28 wierszy w 1,4 s, czyli ~72 000 na godzinę.
+ * Wszystkie te wiersze są młodsze niż 90 dni, więc retencja po wieku nie
+ * rusza ich w ogóle: jedna uparta próba zgadywania hasła rozdyma tabelę,
+ * kopie zapasowe i ekran właściciela, a jedynym hamulcem jest limiter.
+ *
+ * Reguła pyta o rozstrzygnięcie: przycinanie po liczbie wierszy jest
+ * wywoływane dla OBU tabel. Ma samokontrolę zakresu.
+ */
+{
+  const ZAPIS = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php";
+  const TABELE = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-tabele.php";
+  if (!existsSync(ZAPIS) || !existsSync(TABELE)) {
+    bledy.push(`${ZAPIS}: nie znalazłem warstwy zapisu monitoringu — reguła o sufitach nie ma czego sprawdzić.`);
+  } else {
+    const zapis = kod(readFileSync(ZAPIS, "utf8"));
+    const tabele = kod(readFileSync(TABELE, "utf8"));
+    const wywolania = (zapis.match(/przytnij_liczbe\s*\(/g) ?? []).length;
+    if (wywolania === 0) {
+      bledy.push(
+        `${ZAPIS}: nie ma przycinania po liczbie wierszy — samokontrola zakresu: reguła o sufitach przechodziłaby PO PUSTCE.`
+      );
+    } else {
+      for (const [ktora, stala] of [["logowania", "SUFIT_WIERSZY_LOGOWAN"], ["wizyty", "SUFIT_WIERSZY_WIZYT"]]) {
+        if (!new RegExp(`przytnij_liczbe\\s*\\(\\s*'${ktora}'`).test(zapis)) {
+          bledy.push(
+            `${ZAPIS}: tabela „${ktora}" nie jest przycinana po LICZBIE wierszy, tylko po wieku. Wiersze młodsze niż okno retencji rosną wtedy bez ograniczenia — przy dzienniku logowań zmierzono 28 wierszy w 1,4 s, czyli ~72 000 na godzinę, wszystkie młodsze niż 90 dni.`
+          );
+        }
+        if (!new RegExp(`const ${stala}\\s*=\\s*\\d+`).test(tabele)) {
+          bledy.push(`${TABELE}: brak stałej ${stala} — sufit tabeli „${ktora}" nie ma wartości.`);
+        }
+      }
+    }
+  }
+}
+
+/* ————————— 19. kontrola pyta, czy ktokolwiek odpowiada o bramkę —————————
+   Kolumna „bramka" odróżnia „ktoś przeczytał lekcję" od „ktoś odbił się
+   od logowania" — i jest jedyną liczbą na ekranie, która to potrafi.
+   Monitoring sam nie wie, co jest bramką: pyta filtrem, a odpowiada widok
+   lekcji Pluginu 1. Gdy rejestracja zniknie, flaga jest zawsze fałszywa,
+   dane wyglądają zdrowo i NIC się nie zapala. Zmierzone 0.78.0 mutacją
+   zdejmującą add_filter w Pluginie 1: kontrola milczała. */
+{
+  const cli = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-cli.php";
+  const pomiar = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-pomiar.php";
+  if (existsSync(cli) && existsSync(pomiar)) {
+    const c = kod(readFileSync(cli, "utf8"));
+    const pm = kod(readFileSync(pomiar, "utf8"));
+
+    if (!/has_filter\s*\(\s*Aai_Monitor_Pomiar::FILTR_BRAMKI/.test(c)) {
+      bledy.push(
+        `${cli}: kontrola nie pyta, czy ktokolwiek odpowiada na filtr bramki logowania (19). Bez odpowiadającego kolumna „bramka" jest zawsze fałszywa, a ekran pokazuje odbicia od logowania jako zwykłe odsłony — dane są ciche i wyglądają zdrowo.`
+      );
+    }
+    if (!/public const FILTR_BRAMKI/.test(pm)) {
+      bledy.push(
+        `${pomiar}: nazwa filtru bramki nie jest stałą (19). Wpisana dwa razy rozjeżdża się przy pierwszej zmianie, a wtedy kontrola pyta o filtr, którego nikt nie używa, i milczy o tym, który jest naprawdę potrzebny.`
+      );
+    }
+  }
+}
+
+/* ————————— 20. każda gałąź retencji jest SŁYSZALNA —————————
+   Retencja ma dwie drogi kasowania: po wieku i po suficie liczby wierszy.
+   Obie mogą zawieść, obie milczą z natury (biegną w cudzym żądaniu), więc
+   obie muszą zgłaszać awarię do kanału błędów. Do 0.78.0 zgłaszała tylko
+   pierwsza, a i to sprawdzeniem, które stało za rzutowaniem i było martwe. */
+{
+  const zapis = "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-zapis.php";
+  if (existsSync(zapis)) {
+    const t = kod(readFileSync(zapis, "utf8"));
+    const sufit = t.match(/private static function przytnij_liczbe\([\s\S]*?\n\t\}/);
+    if (!sufit) {
+      bledy.push(`${zapis}: nie znalazłem ciała przytnij_liczbe() (20). Samokontrola zakresu.`);
+    } else if (!/self::zglos\s*\(/.test(sufit[0])) {
+      bledy.push(
+        `${zapis}: ścinanie tabeli do sufitu nie zgłasza awarii (20). Nieudane kasowanie oddaje wtedy zero, czyli liczbę nie do odróżnienia od „nie było czego kasować" — tabela rośnie dalej, a jedyny ekran, który miałby o tym powiedzieć, milczy.`
       );
     }
   }
@@ -889,5 +1059,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test, wystrzał ma obie nazwy akcji i akcję w query stringu, wymaga typu JSON i czyta ciało strumieniem, skryptu nie dostaje admin ani strona 404, skrypt wysyła raz i wraca do życia po bfcache, teksty ekranu bez podwójnej ucieczki, polityka w repo zgodna z kodem)."
+  "straznik-monitora-wp: monitoring w porządku (ekran czystym odczytem, kontrola nie pisze, cudze dane nietknięte, ruch anonimowy, hasło poza dziennikiem, awaria zapisu głośna, retencja z dwoma wyzwalaczami, ekran mówi prawdę o czujkach, handlery cudzych haków łapią Throwable, źródło doprecyzowane zamiast dublowane, trzy ścieżki logowania mają swoje haki, producent melduje czujkę i jest podpięty w pliku głównym, kontrola pyta o tabelę odłożoną przez przerwany test, wystrzał ma obie nazwy akcji i akcję w query stringu, wymaga typu JSON i czyta ciało strumieniem, skryptu nie dostaje admin ani strona 404, skrypt wysyła raz i wraca do życia po bfcache, teksty ekranu bez podwójnej ucieczki, polityka w repo zgodna z kodem, obie tabele mają sufit liczby wierszy, kontrola pyta, czy ktokolwiek odpowiada o bramkę logowania, a obie gałęzie retencji są słyszalne)."
 );

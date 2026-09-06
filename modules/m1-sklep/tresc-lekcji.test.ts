@@ -120,6 +120,58 @@ test("treść lekcji: zapis i odczyt w obie strony", { skip: !JEST_BAZA }, async
   assert.equal(po?.materialy[1].opis, "Źródło lekcji");
 });
 
+test(
+  "zapis prozy BEZ klucza materialy nie kasuje materiałów",
+  { skip: !JEST_BAZA },
+  async () => {
+    /*
+     * Klasa cichej utraty treści. Do 0.71.0 kontrakt miał
+     * `materialy: …default([])`, więc zapis samej prozy nadpisywał kolumnę
+     * PUSTĄ listą i kasował materiały lekcji, meldując sukces. Produkt
+     * (wtyczka WP) zamknął tę klasę w 0.65.0 regułą „brak klucza znaczy
+     * nie ruszaj" — prototyp jest specyfikacją wykonawczą, więc przeczył
+     * wtedy produktowi.
+     */
+    const przed = await trescLekcji(idLekcji);
+    assert.equal(przed?.materialy.length, 2, "scena: lekcja ma mieć materiały, inaczej pomiar jest ślepy");
+
+    const wynik = await obsluzAkcje({
+      akcja: "zapisz-tresc-lekcji",
+      token: TOKEN,
+      id: idLekcji,
+      tresc: { tresc: "Sama proza, bez klucza materialy." },
+    });
+    assert.equal(wynik.ok, true);
+
+    const po = await trescLekcji(idLekcji);
+    assert.equal(po?.tresc, "Sama proza, bez klucza materialy.");
+    assert.equal(po?.materialy.length, 2, "zapis samej prozy SKASOWAŁ materiały lekcji");
+    assert.equal(po?.materialy[1].opis, "Źródło lekcji");
+
+    // Pusta lista PODANA WPROST dalej znaczy „wyczyść" — to inna intencja.
+    await obsluzAkcje({
+      akcja: "zapisz-tresc-lekcji",
+      token: TOKEN,
+      id: idLekcji,
+      tresc: { tresc: "Sama proza, bez klucza materialy.", materialy: [] },
+    });
+    const poWyczyszczeniu = await trescLekcji(idLekcji);
+    assert.equal(poWyczyszczeniu?.materialy.length, 0, "jawna pusta lista miała wyczyścić materiały");
+
+    // Przywracamy stan zastany — kolejne testy w tym pliku czytają tę lekcję
+    // i bez tego mierzyłyby ślad po tym teście, nie swój przedmiot.
+    await obsluzAkcje({
+      akcja: "zapisz-tresc-lekcji",
+      token: TOKEN,
+      id: idLekcji,
+      tresc: { tresc: przed!.tresc, materialy: przed!.materialy },
+    });
+    const przywrocone = await trescLekcji(idLekcji);
+    assert.equal(przywrocone?.tresc, przed?.tresc, "test nie przywrócił treści lekcji");
+    assert.equal(przywrocone?.materialy.length, przed?.materialy.length, "test nie przywrócił materiałów");
+  }
+);
+
 test("strona widzi FLAGĘ, nigdy tekstu lekcji", { skip: !JEST_BAZA }, async () => {
   const kurs = await szczegolyKursuPoId(idKursu);
   const lekcje = kurs!.modules[0].lessons;

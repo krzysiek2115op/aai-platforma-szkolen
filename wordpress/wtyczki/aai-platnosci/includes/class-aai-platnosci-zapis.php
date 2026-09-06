@@ -36,6 +36,18 @@ final class Aai_Platnosci_Zapis {
 	/** Meta produktu WooCommerce wskazujące kurs, z którego powstał. */
 	private const ZNACZNIK_ZRODLA = '_aai_zrodlo_uuid';
 
+	/**
+	 * Kursy, dla których produkt JEST WŁAŚNIE ZAKŁADANY.
+	 *
+	 * Rezerwacja żyje od chwili tuż przed `WC_Product::save()` do chwili,
+	 * w której powiązanie stoi w naszej tabeli. Istnieje po to, żeby
+	 * przerwanie w środku tego łańcucha było WIDOCZNE — bez niej produkt
+	 * powstały z przerwanego zapisu nie ma ani znacznika, ani powiązania,
+	 * czyli nie odróżnia się niczym od cudzego szkicu, a kontrola milczy
+	 * (zmierzone: `sprawdz` kod 0 przy sierocie w bazie).
+	 */
+	private const OPCJA_W_BUDOWIE = 'aai_platnosci_produkt_w_budowie';
+
 	/** Skrót PLIKU, z którego powstał załącznik — decyduje o przewgraniu. */
 	private const META_OKLADKA_SHA = '_aai_platnosci_okladka_sha';
 
@@ -140,11 +152,21 @@ final class Aai_Platnosci_Zapis {
 	 * Usuwa powiązanie kursu. Produkt zostaje (nigdy go nie kasujemy) —
 	 * o jego statusie decyduje osobno logika stanów z sekcji 9.3 schematu.
 	 *
+	 * WYNIK KASOWANIA ODDAJEMY I SPRAWDZAMY. Do 0.78.0 metoda była `void`
+	 * i odrzucała wynik `$wpdb->delete()`: przy nieudanym kasowaniu
+	 * (zmierzone wyzwalaczem blokującym `DELETE`) wiersz zostawał, a
+	 * wołający — słuchacz usunięcia kursu — szedł dalej przekonany, że
+	 * powiązania nie ma. Zostaje wtedy wiersz wskazujący na kurs, którego
+	 * nie ma w naszych tabelach, czyli dokładnie to, co kontrola nazywa
+	 * sierotą, tyle że nikt tego nie zgłasza w chwili powstania.
+	 *
 	 * @param string $course_uuid Uuid kursu.
+	 *
+	 * @return bool Czy wiersza powiązania na pewno już nie ma.
 	 */
-	public static function powiazanie_usun( string $course_uuid ): void {
+	public static function powiazanie_usun( string $course_uuid ): bool {
 		global $wpdb;
-		$wpdb->delete(
+		$usuniete = $wpdb->delete(
 			Aai_Platnosci_Tabele::tabela( 'powiazania' ),
 			array( 'course_uuid' => $course_uuid ),
 			array( '%s' )
@@ -152,6 +174,20 @@ final class Aai_Platnosci_Zapis {
 
 		// Mapowanie właśnie zniknęło — pamięć żądania przestaje być prawdą.
 		self::zapomnij_produkt( $course_uuid );
+
+		if ( false === $usuniete ) {
+			Aai_Platnosci_Komunikaty::zapisz(
+				sprintf(
+					'nie udało się usunąć powiązania kursu %s (%s) — w tabeli został wiersz wskazujący produkt kursu, którego już nie ma. Sprawdź: wp aai-platnosci sprawdz',
+					$course_uuid,
+					$wpdb->last_error
+				),
+				$course_uuid
+			);
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -284,13 +320,33 @@ final class Aai_Platnosci_Zapis {
 	 * `wp_mail()` znany dopiero po wysyłce). Nie tworzy wiersza —
 	 * od tworzenia jest `dostawa_odnotuj()`.
 	 *
+	 * WYNIK ZAPISU ODDAJEMY, A STAN POTWIERDZAMY ODCZYTEM. Do 0.78.0
+	 * metoda była `void` i odrzucała wynik `$wpdb->update()`, przez co
+	 * kłamała na trzy sposoby naraz (zmierzone wyzwalaczem blokującym
+	 * `UPDATE`):
+	 *
+	 *   - `wp aai-platnosci dostawy --zamknij=…` meldowało „Success:
+	 *     zamknięte ręcznie", a wiersz zostawał nietknięty, więc kontrola
+	 *     świeciła kodem 1 dalej i blokowała `postaw.sh`;
+	 *   - udana wysyłka maila nie zapisywała się jako `wyslano`, więc przy
+	 *     następnym przebiegu wyglądała na niedoręczoną;
+	 *   - mail 1 wolno pominąć WYŁĄCZNIE po potwierdzonym `wyslano` maila 2
+	 *     — a to potwierdzenie czyta się z tej właśnie kolumny.
+	 *
+	 * Samo `false === $wynik` nie wystarcza, bo `$wpdb->update()` oddaje
+	 * zero także wtedy, gdy wiersza NIE MA (ponowienie po literówce w id).
+	 * Dlatego stan potwierdzamy odczytem — tą samą drogą, którą Plugin 2
+	 * potwierdza kupowalność produktu i znaczniki okładki (Z-4, Z-5).
+	 *
 	 * @param string $zdarzenie     Zdarzenie.
 	 * @param int    $identyfikator Identyfikator.
 	 * @param string $wynik         Rezultat.
+	 *
+	 * @return bool Czy w dzienniku NAPRAWDĘ stoi ten rezultat.
 	 */
-	public static function dostawa_wynik( string $zdarzenie, int $identyfikator, string $wynik ): void {
+	public static function dostawa_wynik( string $zdarzenie, int $identyfikator, string $wynik ): bool {
 		global $wpdb;
-		$wpdb->update(
+		$zapis = $wpdb->update(
 			Aai_Platnosci_Tabele::tabela( 'dostawy' ),
 			array( 'wynik' => $wynik ),
 			array(
@@ -300,6 +356,23 @@ final class Aai_Platnosci_Zapis {
 			array( '%s' ),
 			array( '%s', '%d' )
 		);
+
+		$w_bazie = self::dostawa_rezultat( $zdarzenie, $identyfikator );
+		if ( $wynik === $w_bazie ) {
+			return true;
+		}
+
+		Aai_Platnosci_Komunikaty::zapisz(
+			sprintf(
+				'nie udało się zapisać rezultatu dostawy %s/%d (%s) — dziennik dalej pokazuje „%s", więc kontrola będzie się o nią upominać. Powtórz komendę.',
+				$zdarzenie,
+				$identyfikator,
+				false === $zapis ? $wpdb->last_error : ( null === $w_bazie ? 'nie ma takiego wpisu w dzienniku' : 'wiersz się nie zmienił' ),
+				null === $w_bazie ? '—' : $w_bazie
+			),
+			Aai_Platnosci_Komunikaty::KLUCZ_MAILA . $zdarzenie . '/' . $identyfikator
+		);
+		return false;
 	}
 
 	/**
@@ -321,13 +394,41 @@ final class Aai_Platnosci_Zapis {
 		if ( $id <= 0 || 'publish' !== get_post_status( $id ) ) {
 			return false;
 		}
-		wp_update_post(
+		$w = wp_update_post(
 			array(
 				'ID'          => $id,
 				'post_status' => 'draft',
-			)
+			),
+			true
 		);
-		return true;
+		return ! is_wp_error( $w ) && $w > 0;
+	}
+
+	/**
+	 * Przywraca ZASTANY status strony — droga powrotna dla `strona_na_szkic()`.
+	 *
+	 * Deaktywacja wtyczki oddaje cudze ustawienia takimi, jakie je zastaliśmy
+	 * (punkt przywracania `aai_platnosci_stan_zastany`). Strony natywnej kasy
+	 * Tutora schodzą przy aktywacji na `draft`; bez tej metody zostawałyby tak
+	 * na zawsze. Zapis wpisów rusza WYŁĄCZNIE ta warstwa (niezmiennik 10
+	 * schematu), więc droga powrotna mieszka tutaj, a nie w klasie ustawień.
+	 *
+	 * @param int    $id     Id strony.
+	 * @param string $status Status, jaki strona miała przed naszą zmianą.
+	 * @return bool Czy stan się ZMIENIŁ.
+	 */
+	public static function przywroc_status_strony( int $id, string $status ): bool {
+		if ( $id <= 0 || '' === $status || null === get_post( $id ) || get_post_status( $id ) === $status ) {
+			return false;
+		}
+		$w = wp_update_post(
+			array(
+				'ID'          => $id,
+				'post_status' => $status,
+			),
+			true
+		);
+		return ! is_wp_error( $w ) && $w > 0;
 	}
 
 	/**
@@ -341,13 +442,14 @@ final class Aai_Platnosci_Zapis {
 		if ( $id <= 0 || null === get_post( $id ) || (string) get_post_field( 'post_name', $id ) === $slug ) {
 			return false;
 		}
-		wp_update_post(
+		$w = wp_update_post(
 			array(
 				'ID'        => $id,
 				'post_name' => $slug,
-			)
+			),
+			true
 		);
-		return true;
+		return ! is_wp_error( $w ) && $w > 0;
 	}
 
 	/**
@@ -394,13 +496,14 @@ final class Aai_Platnosci_Zapis {
 		if ( null === $nowa || $nowa === $tresc ) {
 			return false;
 		}
-		wp_update_post(
+		$w = wp_update_post(
 			array(
 				'ID'           => $id,
 				'post_content' => $nowa,
-			)
+			),
+			true
 		);
-		return true;
+		return ! is_wp_error( $w ) && $w > 0;
 	}
 
 	/**
@@ -569,17 +672,41 @@ final class Aai_Platnosci_Zapis {
 	 * @return int|null Id produktu albo null.
 	 */
 	private static function produkt_po_znaczniku( string $course_uuid ): ?int {
-		if ( '' === trim( $course_uuid ) || ! function_exists( 'wc_get_products' ) ) {
+		if ( '' === trim( $course_uuid ) ) {
 			return null;
 		}
 
-		$znalezione = wc_get_products(
-			array(
-				'limit'      => 2,
-				'status'     => array( 'draft', 'publish', 'pending', 'private' ),
-				'return'     => 'ids',
-				'meta_key'   => self::ZNACZNIK_ZRODLA, // phpcs:ignore WordPress.DB.SlowDBQuery
-				'meta_value' => $course_uuid, // phpcs:ignore WordPress.DB.SlowDBQuery
+		global $wpdb;
+
+		/*
+		 * PYTAMY BAZĘ, NIE `wc_get_products()` — I TO NIE JEST DROBIAZG.
+		 *
+		 * `wc_get_products()` odpytuje przez własny data store, który
+		 * dokłada do zapytania tabelę `wc_product_meta_lookup`. Wiersz
+		 * w niej powstaje na SAMYM KOŃCU `WC_Product::save()`, już po
+		 * zapisie meta — więc produkt z przerwanego zapisu jest dla tej
+		 * drogi NIEWIDZIALNY, choć ma nasz znacznik i leży w `wp_posts`.
+		 * Zmierzone: przy trzech wpisach ze znacznikiem
+		 * `wc_get_products()` oddał JEDEN (ten kompletny), a to samo
+		 * pytanie do bazy — obydwa produkty. Idempotencja stała więc na
+		 * wyszukiwaniu, które nie umiało znaleźć dokładnie tego przypadku,
+		 * dla którego istnieje.
+		 *
+		 * Warunek `post_type = 'product'` jest tu KONIECZNY, nie
+		 * ozdobny: `_aai_zrodlo_uuid` nosi też każda kopia kursu
+		 * w Tutorze (typ `courses`), więc zapytanie bez niego dopasowałoby
+		 * wpis LMS-a jako „produkt".
+		 */
+		$znalezione = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT p.ID FROM {$wpdb->posts} p
+				JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID
+				WHERE p.post_type = 'product'
+				AND p.post_status IN ( 'draft', 'publish', 'pending', 'private' )
+				AND pm.meta_key = %s AND pm.meta_value = %s
+				LIMIT 2",
+				self::ZNACZNIK_ZRODLA,
+				$course_uuid
 			)
 		);
 
@@ -590,6 +717,53 @@ final class Aai_Platnosci_Zapis {
 		}
 
 		return (int) $znalezione[0];
+	}
+
+	/**
+	 * Otwiera rezerwację: „dla tego kursu zakładam właśnie produkt".
+	 *
+	 * Zapisujemy PRZED `save()`, bo cała wartość tego wpisu polega na
+	 * tym, że przeżyje przerwanie. Wartością jest czas — po nim widać,
+	 * czy przerwanie było przed chwilą (przebieg trwa), czy wisi od dni.
+	 *
+	 * @param string $course_uuid Uuid kursu.
+	 * @param string $tytul       Tytuł kursu — żeby operator wiedział, czego szukać.
+	 */
+	private static function rezerwacja_zacznij( string $course_uuid, string $tytul ): void {
+		if ( '' === trim( $course_uuid ) ) {
+			return;
+		}
+		$w_budowie                 = self::rezerwacje();
+		$w_budowie[ $course_uuid ] = array(
+			'czas'  => time(),
+			'tytul' => $tytul,
+		);
+		update_option( self::OPCJA_W_BUDOWIE, $w_budowie, false );
+	}
+
+	/**
+	 * Zamyka rezerwację — łańcuch doszedł do powiązania, produkt jest nasz
+	 * i odnajdywalny.
+	 *
+	 * @param string $course_uuid Uuid kursu.
+	 */
+	private static function rezerwacja_zamknij( string $course_uuid ): void {
+		$w_budowie = self::rezerwacje();
+		if ( ! array_key_exists( $course_uuid, $w_budowie ) ) {
+			return;
+		}
+		unset( $w_budowie[ $course_uuid ] );
+		update_option( self::OPCJA_W_BUDOWIE, $w_budowie, false );
+	}
+
+	/**
+	 * Otwarte rezerwacje — czyta je kontrola.
+	 *
+	 * @return array<string, array{czas:int, tytul:string}>
+	 */
+	public static function rezerwacje(): array {
+		$w_budowie = get_option( self::OPCJA_W_BUDOWIE, array() );
+		return is_array( $w_budowie ) ? $w_budowie : array();
 	}
 
 	/**
@@ -778,7 +952,6 @@ final class Aai_Platnosci_Zapis {
 			// nasza strona sprzedażowa — klient nie ma trafiać na produkt
 			// w cudzym wyglądzie.
 			$produkt = new WC_Product_Simple();
-			$produkt->update_meta_data( self::ZNACZNIK_ZRODLA, $course_uuid );
 			$produkt->set_name( wp_slash( $kurs['title'] ) );
 			$produkt->set_short_description( wp_slash( $opis ) );
 			$produkt->set_status( 'draft' );
@@ -786,7 +959,40 @@ final class Aai_Platnosci_Zapis {
 			$produkt->set_sold_individually( true );
 			$produkt->set_catalog_visibility( 'hidden' );
 			$produkt->set_regular_price( $cena );
-			$product_id = $produkt->save();
+
+			/*
+			 * ZNACZNIK JEDZIE HAKIEM, NIE `update_meta_data()` — I TO JEST
+			 * CAŁA RÓŻNICA MIĘDZY SIEROTĄ ODNAJDYWALNĄ A NIEWIDZIALNĄ.
+			 *
+			 * Wiersz produktu powstaje `wp_insert_post()`-em WEWNĄTRZ
+			 * `WC_Product::save()`, a meta ustawione przez
+			 * `update_meta_data()` lądują w bazie dopiero
+			 * `save_meta_data()` — kilkadziesiąt linii dalej, w tej samej
+			 * metodzie. Przerwanie w tym oknie zostawiało produkt
+			 * z ZEREM meta (zmierzone: rzut z `save_post_product`
+			 * priorytet 1 → wiersz `product`, `draft`, `ile meta = 0`),
+			 * więc `produkt_po_znaczniku()` nie miał czego znaleźć
+			 * i następny przebieg zakładał produkt obok.
+			 *
+			 * `save_post_product` odpala się w środku `wp_insert_post()`,
+			 * zaraz po zapisie wiersza — znacznik siada tam, gdzie okno
+			 * dotąd się zaczynało. Znacznika NIE dokładamy równocześnie
+			 * do obiektu: `save_meta_data()` uznałby go za metę nową
+			 * (bez `meta_id`) i dopisał DRUGI wiersz o tej samej nazwie.
+			 */
+			$znacznik_natychmiast = static function ( $id_nowego ) use ( $course_uuid ) {
+				update_post_meta( (int) $id_nowego, self::ZNACZNIK_ZRODLA, $course_uuid );
+			};
+			self::rezerwacja_zacznij( $course_uuid, (string) ( $kurs['title'] ?? '' ) );
+			add_action( 'save_post_product', $znacznik_natychmiast, 1 );
+			try {
+				$product_id = $produkt->save();
+			} finally {
+				// Zdejmujemy ZAWSZE — inaczej rzut z dalszej części `save()`
+				// zostawiłby hak na resztę żądania i nadał nasz znacznik
+				// pierwszemu cudzemu produktowi zapisanemu po nim.
+				remove_action( 'save_post_product', $znacznik_natychmiast, 1 );
+			}
 			if ( $product_id <= 0 ) {
 				$w['uwagi'][] = 'WooCommerce nie utworzyło produktu';
 				return $w;
@@ -894,6 +1100,10 @@ final class Aai_Platnosci_Zapis {
 				? sprintf( 'produkt %d jest już powiązany z INNYM kursem — odmowa (B4)', $product_id )
 				: sprintf( 'nie udało się zapisać powiązania produktu %d: %s', $product_id, (string) $wpdb->last_error );
 		} else {
+			// Powiązanie stoi — produkt jest odnajdywalny naszą tabelą,
+			// więc rezerwacja nie ma już czego pilnować.
+			self::rezerwacja_zamknij( $course_uuid );
+
 			// Znaczniki PO zapisie: handler Tutora na `save_post_product`
 			// czyta $_POST i przy programowym zapisie KASUJE `_tutor_product`
 			// (pułapka 2 schematu) — dlatego stawiamy je po każdym save(),
@@ -912,7 +1122,34 @@ final class Aai_Platnosci_Zapis {
 				// KOLEJNOŚĆ B2: price_type NAJPIERW, product_id NA KOŃCU.
 				update_post_meta( $tutor_id, '_tutor_course_price_type', 'paid' );
 				update_post_meta( $tutor_id, '_tutor_course_product_id', (int) $product_id );
-				$komplet = true;
+
+				/*
+				 * OSTATNIE OGNIWO KOMPLETU MIERZYMY, NIE PRZYJMUJEMY NA WIARĘ.
+				 *
+				 * `$komplet` rozstrzyga, czy produkt pójdzie na `publish`,
+				 * czyli czy kurs da się KUPIĆ. Do 0.71.0 ustawialiśmy je zaraz
+				 * po dwóch `update_post_meta()`, bez pytania, czy zapisy
+				 * doszły. Cudza wtyczka LMS/membership rejestrująca filtr
+				 * `update_post_metadata` na `_tutor_course_product_id` (robi
+				 * tak niejedna) blokuje zapis — a wtedy produkt jest
+				 * opublikowany, strona pokazuje `InStock` i przycisk do kasy,
+				 * klient płaci, a `do_enroll()` nie ma czego zapisać. To
+				 * dokładnie „klient płaci i nie dostaje nic" (B3).
+				 *
+				 * Mierzymy ODCZYTEM PO ZAPISIE, nie wynikiem
+				 * `update_post_meta()`: ta funkcja oddaje `false` także wtedy,
+				 * gdy wartość już była taka sama — czyli w stanie ustalonym,
+				 * w którym wszystko jest w porządku. Tak samo pyta kontrola
+				 * w `rozjazdy_kursu()`.
+				 */
+				$komplet = 'paid' === (string) get_post_meta( $tutor_id, '_tutor_course_price_type', true )
+					&& (int) $product_id === (int) get_post_meta( $tutor_id, '_tutor_course_product_id', true );
+				if ( ! $komplet ) {
+					$w['uwagi'][] = sprintf(
+						'powiązanie kursu z produktem %d NIE zapisało się w Tutorze (ktoś blokuje update_post_metadata?) — produkt zostaje szkicem, żeby nikt nie zapłacił za kurs, którego nie dostanie',
+						$product_id
+					);
+				}
 			}
 		}
 
@@ -1106,6 +1343,27 @@ final class Aai_Platnosci_Zapis {
 		wp_update_attachment_metadata( (int) $id, wp_generate_attachment_metadata( (int) $id, $wgrany['file'] ) );
 		update_post_meta( (int) $id, self::META_OKLADKA_KURS, wp_slash( $course_uuid ) );
 		update_post_meta( (int) $id, self::META_OKLADKA_SHA, wp_slash( $sha ) );
+
+		/*
+		 * ZNACZNIKI TOŻSAMOŚCI SPRAWDZAMY ODCZYTEM — INACZEJ RODZI SIĘ SIEROTA.
+		 *
+		 * Załącznik bez tych dwóch met jest dla `zalacznik_okladki()`
+		 * niewidzialny, więc KAŻDA następna synchronizacja wgrywa NOWĄ kopię
+		 * tego samego pliku. Właściciel poprawiający zdanie w kursie raz
+		 * dziennie miałby po miesiącu trzydzieści kopii okładki w bibliotece
+		 * mediów, z przyrostkami `-1`…`-30` — czyli dokładnie nazwy „które
+		 * kłamią o historii pliku", czego ta metoda miała uniknąć.
+		 *
+		 * Przy nieudanym zapisie kasujemy świeży załącznik i wychodzimy
+		 * zerem: brak okładki jest stanem odwracalnym (produkt dostanie
+		 * zastępnik), a sierota-widmo mnoży się przy każdym zapisie.
+		 */
+		$oznaczony = (string) get_post_meta( (int) $id, self::META_OKLADKA_KURS, true ) === $course_uuid
+			&& (string) get_post_meta( (int) $id, self::META_OKLADKA_SHA, true ) === $sha;
+		if ( ! $oznaczony ) {
+			wp_delete_attachment( (int) $id, true );
+			return 0;
+		}
 		/*
 		 * TEKST ALTERNATYWNY. Bez niego WooCommerce drukuje w koszyku
 		 * i w kasie `<img alt="">` — czytnik ekranu mówi klientowi
@@ -1143,23 +1401,66 @@ final class Aai_Platnosci_Zapis {
 
 		$tutor_id = self::kurs_tutora( $course_uuid );
 		if ( is_int( $tutor_id ) && $tutor_id > 0 ) {
-			// Kolejność ODWROTNA do wiązania (B2).
+			/*
+			 * Kolejność ODWROTNA do wiązania (B2) — i OBA ZAPISY MIERZYMY
+			 * ODCZYTEM, tak samo jak wiązanie (Z-4). Do 0.78.0 sprawdzany
+			 * był tylko status produktu, choć to właśnie te dwie mety
+			 * rozstrzygają o dostępie: kurs z `product_id`, ale bez
+			 * `price_type = paid`, Tutor zapisuje od razu jako `completed`,
+			 * czyli ROZDAJE DOSTĘP BEZ ZAPŁATY (korekta niezmiennika 14
+			 * przy P5). Stan mieszany powstaje, gdy jeden z tych dwóch
+			 * zapisów przejdzie, a drugi nie — a cudzy filtr
+			 * `update_post_metadata` albo `delete_post_metadata` potrafi
+			 * zatrzymać dokładnie jeden z nich.
+			 */
 			delete_post_meta( $tutor_id, '_tutor_course_product_id' );
+			if ( '' !== (string) get_post_meta( $tutor_id, '_tutor_course_product_id', true ) ) {
+				$w['uwagi'][] = sprintf(
+					'NIE UDAŁO SIĘ odpiąć produktu od kursu %d w Tutorze — kurs dalej wskazuje produkt i może rozdawać dostęp. Powtórz: wp aai-platnosci sync',
+					$tutor_id
+				);
+			}
 			if ( null !== $cel_price_type ) {
 				update_post_meta( $tutor_id, '_tutor_course_price_type', $cel_price_type );
+				if ( $cel_price_type !== (string) get_post_meta( $tutor_id, '_tutor_course_price_type', true ) ) {
+					$w['uwagi'][] = sprintf(
+						'NIE UDAŁO SIĘ ustawić rodzaju ceny kursu %d na „%s" w Tutorze. Powtórz: wp aai-platnosci sync',
+						$tutor_id,
+						$cel_price_type
+					);
+				}
 			}
 		}
 
 		$product_id = self::produkt_kursu( $course_uuid );
 		if ( null !== $product_id && 'draft' !== get_post_status( $product_id ) && false !== get_post_status( $product_id ) ) {
-			wp_update_post(
+			/*
+			 * WYNIK SPRAWDZAMY, BO „ZDJĘTY" ZNACZY „NIE DA SIĘ KUPIĆ".
+			 *
+			 * Do 0.71.0 stało tu gołe `wp_update_post( … )` i bezwarunkowe
+			 * `$w['zdjety'] = 1`. Gdy zapis nie doszedł (cudzy filtr
+			 * `wp_insert_post_data`, blokada bazy), produkt zostawał
+			 * `publish` i KUPOWALNY, a komenda meldowała, że kurs jest
+			 * zdjęty ze sprzedaży. Sprzeczność wychodziła dopiero przy
+			 * następnej kontroli — albo przy kliencie, który zapłacił.
+			 */
+			$zdjecie = wp_update_post(
 				array(
 					'ID'          => $product_id,
 					'post_status' => 'draft',
-				)
+				),
+				true
 			);
-			self::ustaw_znaczniki_produktu( $product_id, $course_uuid );
-			$w['zdjety'] = 1;
+			if ( is_wp_error( $zdjecie ) || $zdjecie <= 0 ) {
+				$w['uwagi'][] = sprintf(
+					'NIE UDAŁO SIĘ zdjąć produktu %d ze sprzedaży (%s) — kurs dalej można kupić. Powtórz: wp aai-platnosci sync',
+					$product_id,
+					is_wp_error( $zdjecie ) ? $zdjecie->get_error_message() : 'zapis nie zmienił wiersza'
+				);
+			} else {
+				self::ustaw_znaczniki_produktu( $product_id, $course_uuid );
+				$w['zdjety'] = 1;
+			}
 		} else {
 			$w['bez_zmian'] = 1;
 		}
@@ -1242,6 +1543,26 @@ final class Aai_Platnosci_Zapis {
 			return;
 		}
 		update_post_meta( $product_id, self::META_UTRACONY_DOSTEP, (string) $kupujacy );
+
+		/*
+		 * ODCZYT PO ZAPISIE, bo ten znacznik jest JEDYNYM śladem po ludziach,
+		 * którzy stracili dostęp razem z kursem — czyta go kontrola i to on
+		 * każe jej skończyć kodem 1 (C2b). Gdy zapis nie dojdzie, sierota
+		 * wygląda jak zwykły produkt bez kursu, a fakt, że ktoś za niego
+		 * zapłacił, przepada bezpowrotnie: kursu już nie ma, więc liczby nie
+		 * da się odtworzyć.
+		 */
+		if ( (string) $kupujacy !== (string) get_post_meta( $product_id, self::META_UTRACONY_DOSTEP, true ) ) {
+			Aai_Platnosci_Komunikaty::zapisz(
+				sprintf(
+					'nie udało się zapisać na produkcie %d, że %d kupujących straciło dostęp razem z kursem %s — kontrola nie upomni się o tych ludzi. Zapisz tę liczbę ręcznie.',
+					$product_id,
+					$kupujacy,
+					$course_uuid
+				),
+				$course_uuid
+			);
+		}
 	}
 
 	/**
@@ -1274,10 +1595,47 @@ final class Aai_Platnosci_Zapis {
 	 * @param int    $product_id  Id produktu.
 	 * @param string $course_uuid Uuid kursu.
 	 */
-	public static function ustaw_znaczniki_produktu( int $product_id, string $course_uuid ): void {
+	public static function ustaw_znaczniki_produktu( int $product_id, string $course_uuid ): bool {
 		update_post_meta( $product_id, '_tutor_product', 'yes' );
 		update_post_meta( $product_id, '_virtual', 'yes' );
 		update_post_meta( $product_id, '_aai_platnosci_kurs_uuid', $course_uuid );
+
+		/*
+		 * POTWIERDZAMY ODCZYTEM, nie wynikiem `update_post_meta()` — ta
+		 * funkcja oddaje `false` także przy wartości NIEZMIENIONEJ, czyli
+		 * w stanie ustalonym, w którym wszystko jest w porządku (zmierzone
+		 * przy Z-4). Każdy z tych trzech kluczy robi co innego i każdy
+		 * kosztuje, gdy zniknie: `_virtual` steruje `needs_processing()`
+		 * WooCommerce, czyli automatycznym domknięciem zamówienia
+		 * (P3b) — bez niego zakup zawisa w „w realizacji", a klient nie
+		 * dostaje maila o kursie; `_tutor_product` włącza integrację
+		 * Tutora; `_aai_platnosci_kurs_uuid` jest znacznikiem pochodzenia,
+		 * po którym kontrola rozpoznaje NASZE produkty i sieroty.
+		 */
+		$brakuje = array();
+		foreach ( array(
+			'_tutor_product'           => 'yes',
+			'_virtual'                 => 'yes',
+			'_aai_platnosci_kurs_uuid' => $course_uuid,
+		) as $klucz => $ma_byc ) {
+			if ( $ma_byc !== (string) get_post_meta( $product_id, $klucz, true ) ) {
+				$brakuje[] = $klucz;
+			}
+		}
+
+		if ( array() !== $brakuje ) {
+			Aai_Platnosci_Komunikaty::zapisz(
+				sprintf(
+					'produkt %d nie przyjął znaczników (%s) — sprzedaż kursu może działać wadliwie (domknięcie zamówienia, integracja Tutora, rozpoznanie własnego produktu). Powtórz: wp aai-platnosci sync',
+					$product_id,
+					implode( ', ', $brakuje )
+				),
+				$course_uuid
+			);
+			return false;
+		}
+
+		return true;
 	}
 
 

@@ -80,6 +80,38 @@ final class Aai_Platnosci_Maile {
 	public const WYNIK_POMINIETY = 'pominięto: opłacone od razu — link do hasła jedzie w mailu o kursie';
 
 	/**
+	 * Przedrostek wyniku zamkniętego RĘCZNIE przez człowieka.
+	 *
+	 * PO CO TO ISTNIEJE. Kontrola melduje kodem 1 każdą dostawę, która nie
+	 * doszła do skutku, i podaje komendę naprawy: `dostawy --ponow=…`. Są
+	 * jednak wpisy, których ponowić NIE DA SIĘ NIGDY — zmierzone na żywej
+	 * instalacji:
+	 *   · `dostep/<id>` z pustym wynikiem: `ponow()` odpowiada „zdarzenie
+	 *     »dostep« nie jest mailem — nie ma czego ponawiać";
+	 *   · `mail_konta/<id>` konta, którego już nie ma: „konto <id> już nie
+	 *     istnieje".
+	 * Kontrola świeciła wtedy na czerwono NA ZAWSZE, każąc uruchamiać
+	 * komendę, która nie mogła pomóc. A `wp aai-platnosci sprawdz` jest
+	 * punktem kontrolnym `postaw.sh`, czyli KROKU ZEROWEGO każdego testu
+	 * ręcznego — jeden taki wiersz blokował stawianie środowiska.
+	 *
+	 * Zamknięcie ręczne NIE JEST ukryciem błędu: wiersz zostaje w dzienniku,
+	 * niesie datę i POWÓD podany przez człowieka, a powodu nie da się
+	 * pominąć. To zapis decyzji („sprawdziłem, klient dostał dostęp inną
+	 * drogą"), a nie kasowanie śladu.
+	 */
+	public const WYNIK_ZAMKNIETY = 'zamknięte ręcznie: ';
+
+	/**
+	 * Czy wynik znaczy „człowiek to rozstrzygnął i opisał".
+	 *
+	 * @param string $wynik Zapisany rezultat.
+	 */
+	public static function zamkniety_recznie( string $wynik ): bool {
+		return str_starts_with( $wynik, self::WYNIK_ZAMKNIETY );
+	}
+
+	/**
 	 * Wiadomości zgłoszone do wysłania na końcu żądania.
 	 *
 	 * @var array<string,callable>
@@ -141,6 +173,25 @@ final class Aai_Platnosci_Maile {
 	 * @param string|mixed $adres Adres nadawcy proponowany przez WordPressa.
 	 * @return string
 	 */
+	/**
+	 * Adres, na który klient może ODPISAĆ.
+	 *
+	 * Świadomie te same źródła co nadawca (adres sklepu, potem adres
+	 * administratora) — nie wprowadzamy nowego ustawienia, którego nikt by
+	 * nie wypełnił. Pusty wynik znaczy „nie dokładaj nagłówka".
+	 *
+	 * @return string
+	 */
+	private static function adres_odpowiedzi(): string {
+		foreach ( array( 'woocommerce_email_from_address', 'admin_email' ) as $opcja ) {
+			$kandydat = (string) get_option( $opcja, '' );
+			if ( '' !== $kandydat && is_email( $kandydat ) ) {
+				return $kandydat;
+			}
+		}
+		return '';
+	}
+
 	public static function nadawca_adres( $adres ): string {
 		$adres = (string) $adres;
 		try {
@@ -333,8 +384,19 @@ final class Aai_Platnosci_Maile {
 	 * @param string $wynik         Rezultat wysyłki.
 	 */
 	private static function zapisz_wynik( string $zdarzenie, int $identyfikator, string $wynik ): void {
-		Aai_Platnosci_Zapis::dostawa_wynik( $zdarzenie, $identyfikator, $wynik );
-		$klucz = Aai_Platnosci_Komunikaty::KLUCZ_MAILA . $zdarzenie . '/' . $identyfikator;
+		$zapisany = Aai_Platnosci_Zapis::dostawa_wynik( $zdarzenie, $identyfikator, $wynik );
+		$klucz    = Aai_Platnosci_Komunikaty::KLUCZ_MAILA . $zdarzenie . '/' . $identyfikator;
+		if ( ! $zapisany ) {
+			/*
+			 * Rezultat NIE trafił do dziennika — a wtedy nie wolno zdjąć
+			 * komunikatu, nawet gdy sama wysyłka się udała. Komunikat
+			 * o nieudanym zapisie postawiła przed chwilą `dostawa_wynik()`
+			 * pod TYM SAMYM kluczem, więc wyczyszczenie go tutaj skasowałoby
+			 * jedyny ślad po awarii — czyli naprawa jednej niemej usterki
+			 * zrobiłaby drugą.
+			 */
+			return;
+		}
 		if ( self::WYNIK_OK === $wynik || self::WYNIK_POMINIETY === $wynik ) {
 			// Udana wysyłka zdejmuje DOKŁADNIE swój komunikat — także
 			// wtedy, gdy poszła dopiero ponowieniem z wiersza poleceń.
@@ -343,10 +405,16 @@ final class Aai_Platnosci_Maile {
 		}
 		Aai_Platnosci_Komunikaty::zapisz(
 			sprintf(
-				'wiadomość %s/%d NIE wyszła (%s) — klient jej nie dostał. Ponów: wp aai-platnosci dostawy --ponow=%s/%d',
+				// Obie drogi, tak samo jak w komunikacie kontroli: ponowienie
+				// bywa NIEMOŻLIWE (konto skasowane), a wtedy jedynym wyjściem
+				// jest zamknięcie z powodem — inaczej komunikat zostaje na
+				// ekranie właściciela na zawsze.
+				'wiadomość %s/%d NIE wyszła (%s) — klient jej nie dostał. Ponów: wp aai-platnosci dostawy --ponow=%s/%d — a jeśli ponowić się nie da, zamknij z powodem: wp aai-platnosci dostawy --zamknij=%s/%d --powod="…"',
 				$zdarzenie,
 				$identyfikator,
 				$wynik,
+				$zdarzenie,
+				$identyfikator,
 				$zdarzenie,
 				$identyfikator
 			),
@@ -713,12 +781,21 @@ final class Aai_Platnosci_Maile {
 		add_action( 'wp_mail_failed', $zapamietaj );
 		add_action( 'phpmailer_init', $alternatywa );
 		try {
-			$poszlo = wp_mail(
-				$do,
-				$temat,
-				$html,
-				array( 'Content-Type: text/html; charset=UTF-8', 'From: ' . self::nadawca() )
-			);
+			/*
+			 * `Reply-To` ZAWSZE, bo nadawca bywa skrzynką, której nikt nie czyta.
+			 *
+			 * Nasze maile idą z adresu sklepu albo administratora; klient,
+			 * który odpisze („nie mogę wejść na kurs"), trafiał dotąd tam,
+			 * gdzie trafiał — bez gwarancji, że ktokolwiek to zobaczy.
+			 * Adres bierzemy z tych samych źródeł co nadawcę, więc nie
+			 * wprowadza nowego ustawienia; przy pustym po prostu go nie ma.
+			 */
+			$naglowki = array( 'Content-Type: text/html; charset=UTF-8', 'From: ' . self::nadawca() );
+			$odpowiedz = self::adres_odpowiedzi();
+			if ( '' !== $odpowiedz ) {
+				$naglowki[] = 'Reply-To: ' . $odpowiedz;
+			}
+			$poszlo = wp_mail( $do, $temat, $html, $naglowki );
 		} finally {
 			// `finally`, bo `wp_mail()` potrafi rzucić wyjątkiem PHPMailera
 			// przy nietypowej konfiguracji — filtr zostawiony w miejscu

@@ -146,7 +146,14 @@ final class Aai_Sklep_Cli {
 		if ( 'json' === ( $assoc_args['format'] ?? 'podsumowanie' ) ) {
 			// Bez `pretty`: to wejście dla skryptu, nie dla oka, a plik
 			// z 73 lekcjami i tak nie nadaje się do czytania w terminalu.
+			$stan['bledy'] = self::bledy_stanu( $stan );
 			WP_CLI::line( (string) wp_json_encode( $stan, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+			// KOD WYJŚCIA TAKI SAM W OBU FORMATACH. Kontrola, która milczy
+			// kodem 0 tylko dlatego, że ktoś poprosił o JSON, jest gorsza
+			// od jej braku — skrypt czytający wyjście uzna sukces.
+			if ( array() !== $stan['bledy'] ) {
+				WP_CLI::halt( 1 );
+			}
 			return;
 		}
 
@@ -174,6 +181,157 @@ final class Aai_Sklep_Cli {
 				)
 			);
 		}
+
+		$bledy = self::bledy_stanu( $stan );
+		if ( array() !== $bledy ) {
+			foreach ( $bledy as $b ) {
+				WP_CLI::warning( $b );
+			}
+			WP_CLI::error( sprintf( 'sklep w stanie do naprawy (%d)', count( $bledy ) ) );
+			return;
+		}
+
+		WP_CLI::success( 'Sklep w porządku.' );
+	}
+
+	/**
+	 * Co w stanie sklepu jest realnym błędem — lista opisów (pusta = w porządku).
+	 *
+	 * PO CO. Do 0.75.0 `wp aai-sklep sprawdz` NIE UMIAŁO ZAWIEŚĆ: wypisywało
+	 * liczniki i statystyki i kończyło zerem zawsze. Obie siostrzane wtyczki
+	 * mają kontrolę z kodem 1, a `postaw.sh` uruchamia je jako punkty
+	 * kontrolne — tej jednej nie uruchamiał nikt, bo nie było czego czytać
+	 * (MAR-A-07). Instrukcja instalacji nie wymieniała ŻADNEJ kontroli
+	 * Pluginu 1, więc weryfikacja po wdrożeniu była w całości „na oko".
+	 *
+	 * L11: KONTROLA NIGDY NIE PISZE. Wszystkie pytania są odczytem.
+	 *
+	 * @param array<string,mixed> $stan Wynik Aai_Sklep_Raport::stan().
+	 * @return string[]
+	 */
+	private static function bledy_stanu( array $stan ): array {
+		$bledy = array();
+
+		/*
+		 * 1. Brak tabeli to nie „zero wierszy" — to sklep bez nośnika.
+		 *
+		 * Reguła istnieje od MAR-A-07, ale do 0.78.0 nie mogła zajść:
+		 * `Aai_Sklep_Raport::liczniki_tabel()` rzutowało wynik na `int`,
+		 * więc `null` z nieistniejącej tabeli docierał tu jako zero
+		 * (zmierzone: przy schowanej tabeli `courses` komenda meldowała
+		 * „Sklep w porządku."). Warunek jest teraz osiągalny, bo liczniki
+		 * oddają `null` i pytają o istnienie tabeli wprost.
+		 */
+		foreach ( (array) ( $stan['tabele'] ?? array() ) as $nazwa => $ile ) {
+			if ( null === $ile ) {
+				$bledy[] = sprintf( 'tabela `%s` nie istnieje — schemat nie doszedł do końca; wyłącz i włącz wtyczkę.', $nazwa );
+			}
+		}
+
+		/*
+		 * 1b. TRZY LICZBY DŁUGOŚCI TREŚCI MAJĄ SIĘ ZGADZAĆ.
+		 *
+		 * `Aai_Sklep_Raport::stan()` liczy długość każdej lekcji na trzy
+		 * sposoby: `mb_strlen()` w PHP, `CHAR_LENGTH()` i `LENGTH()`
+		 * w MySQL. Robi to od W2 jako sondę na cichą korupcję kodowania —
+		 * i do 0.78.0 NIKT PO STRONIE WORDPRESSA TYCH LICZB NIE
+		 * PORÓWNYWAŁ. Zmierzone: podłożenie stanu, w którym PHP liczy 100
+		 * znaków, a baza 40, dawało w kontroli ZERO błędów. Porównanie
+		 * robiło wyłącznie `tools/sprawdz-import-wp.mjs`, czyli narzędzie
+		 * deweloperskie wymagające bazy Postgresa, której produkcja nie ma.
+		 *
+		 * Rozjazd PHP vs `CHAR_LENGTH` znaczy, że połączenie ma inne
+		 * kodowanie niż tabela — wtedy polskie znaki i emoji zapisują się
+		 * jako znaki zapytania albo krzaki, a treść kursu psuje się po
+		 * cichu, przy zielonych wszystkich pozostałych kontrolach. Zdarza
+		 * się po migracji bazy, zmianie hostingu i imporcie zrzutu bez
+		 * wymuszonego `utf8mb4`.
+		 *
+		 * `LENGTH()` (bajty) NIE MUSI równać się znakom i nigdy nie
+		 * porównujemy go z nimi: w UTF-8 polska litera zajmuje dwa bajty,
+		 * a emoji cztery. Bajty są tu wyłącznie po to, żeby komunikat mógł
+		 * pokazać, w którą stronę poszedł rozjazd.
+		 */
+		foreach ( (array) ( $stan['kursy'] ?? array() ) as $kurs ) {
+			foreach ( (array) ( $kurs['moduly'] ?? array() ) as $modul ) {
+				foreach ( (array) ( $modul['lekcje'] ?? array() ) as $lekcja ) {
+					$w_php = (int) ( $lekcja['znakow_php'] ?? 0 );
+					$w_sql = (int) ( $lekcja['znakow_sql'] ?? 0 );
+					if ( $w_php === $w_sql ) {
+						continue;
+					}
+					$bledy[] = sprintf(
+						'lekcja `%s` ma %d znaków według PHP i %d według bazy (%d bajtów) — połączenie ma inne kodowanie niż tabela, a treść kursu psuje się po cichu.',
+						(string) ( $lekcja['slug'] ?? $lekcja['title'] ?? '?' ),
+						$w_php,
+						$w_sql,
+						(int) ( $lekcja['bajtow_sql'] ?? 0 )
+					);
+				}
+			}
+		}
+
+		/* 2. Kurs opublikowany, a nie ma czego dostarczyć. Katalog i strona
+		      sprzedażowa obiecują wtedy produkt, którego nie ma. */
+		foreach ( (array) ( $stan['kursy'] ?? array() ) as $kurs ) {
+			if ( 'published' !== (string) ( $kurs['status'] ?? '' ) ) {
+				continue;
+			}
+			$lekcji = 0;
+			foreach ( (array) ( $kurs['moduly'] ?? array() ) as $modul ) {
+				$lekcji += count( (array) ( $modul['lekcje'] ?? array() ) );
+			}
+			if ( 0 === $lekcji ) {
+				$bledy[] = sprintf( 'kurs `%s` jest opublikowany i nie ma ani jednej lekcji — katalog obiecuje produkt, którego nie ma.', (string) $kurs['slug'] );
+			}
+		}
+
+		/* 3. Bez Tutora nie ma materiału za logowaniem — a klient płaci
+		      właśnie za niego. Cisza w tym miejscu kosztowała najwięcej:
+		      każdy zapis kursu zostawiał kopię coraz starszą, bez objawu. */
+		if ( class_exists( 'Aai_Sklep_Zaleznosci' ) && ! Aai_Sklep_Zaleznosci::jest_tutor() ) {
+			$opublikowanych = 0;
+			foreach ( (array) ( $stan['kursy'] ?? array() ) as $kurs ) {
+				if ( 'published' === (string) ( $kurs['status'] ?? '' ) ) {
+					++$opublikowanych;
+				}
+			}
+			if ( $opublikowanych > 0 ) {
+				$bledy[] = sprintf( 'nie ma Tutor LMS, a %d kurs(ów) jest opublikowanych — klient kupi kurs, którego nie ma jak przeczytać.', $opublikowanych );
+			}
+		}
+
+		/* 4. Zrzuty, których żąda proza, a których nie ma w bibliotece.
+		      Klient widzi wtedy podpisaną dziurę „brak pliku" w środku
+		      lekcji, za którą zapłacił — a do 0.76.0 nie mówiło o tym NIC
+		      (MAR-A-28). Ta sama klasa ugryzła nas przy teście
+		      odinstalowania: przywrócenie BAZY nie przywraca PLIKÓW. */
+		if ( class_exists( 'Aai_Sklep_Zrzuty' ) ) {
+			$braki_zrzutow = Aai_Sklep_Zrzuty::brakujace();
+			foreach ( $braki_zrzutow as $wpis ) {
+				$bledy[] = sprintf(
+					'lekcja „%s" żąda %d zrzutu/ów, których nie ma w bibliotece (%s) — klient widzi w treści podpisane dziury. Uruchom `npm run wp:zrzuty`.',
+					(string) $wpis['tytul'],
+					count( (array) $wpis['brakuje'] ),
+					implode( ', ', array_slice( (array) $wpis['brakuje'], 0, 3 ) )
+				);
+			}
+		}
+
+		/* 5. Zapamiętana awaria kopii. Mapa jest per kurs i gaśnie po udanej
+		      synchronizacji (MAR-A-08), więc niepusta znaczy „rozjazd TRWA". */
+		if ( class_exists( 'Aai_Sklep_Tutor' ) ) {
+			foreach ( Aai_Sklep_Tutor::bledy() as $wpis ) {
+				$bledy[] = sprintf(
+					'kopia kursu %s nie nadążyła za zapisem (%s, %s) — uruchom `wp aai-sklep sync`.',
+					(string) ( $wpis['kurs'] ?? '?' ),
+					(string) ( $wpis['komunikat'] ?? '?' ),
+					(string) ( $wpis['kiedy'] ?? '?' )
+				);
+			}
+		}
+
+		return $bledy;
 	}
 
 	/**
@@ -325,18 +483,27 @@ final class Aai_Sklep_Cli {
 
 		foreach ( $idki as $id ) {
 			try {
-				$liczniki = Aai_Sklep_Tutor::synchronizuj_kurs( $id );
+				$liczniki = Aai_Sklep_Tutor::synchronizuj_i_oglos( $id );
 			} catch ( Aai_Sklep_Blad_Zapisu $blad ) {
 				WP_CLI::error( $blad->getMessage() );
 				return;
 			}
+			/*
+			 * ALARM GASI SIĘ PER KURS, TAKŻE TUTAJ.
+			 *
+			 * Globalne kasowanie na końcu miało dwie twarze i obie były złe:
+			 * `sync <slug>` gasiło błędy CUDZYCH kursów (alarm znikał tam,
+			 * gdzie nadal był prawdziwy), a `sync` bez argumentu i tak
+			 * przerywa na pierwszej awarii, więc do kasowania nie dochodziło.
+			 * Gasimy dokładnie ten kurs, który właśnie się udał.
+			 */
+			Aai_Sklep_Tutor::zapomnij_blad( $id );
 			foreach ( $liczniki as $klucz => $ile ) {
 				$razem[ $klucz ] += $ile;
 			}
 			WP_CLI::log( sprintf( '  %s: %s', $id, self::liczniki_tekstem( $liczniki ) ) );
 		}
 
-		Aai_Sklep_Tutor::zapomnij_blad();
 		WP_CLI::success( 'Kopia w Tutorze: ' . self::liczniki_tekstem( $razem ) );
 	}
 
@@ -384,9 +551,16 @@ final class Aai_Sklep_Cli {
 		$kurs = (string) ( $args[0] ?? '' );
 		$id   = '' === $kurs ? null : ( Aai_Sklep_Raport::id_po_slugu( $kurs ) ?? $kurs );
 
-		$wynik          = Aai_Sklep_Tutor::porownaj( $id );
+		$wynik = Aai_Sklep_Tutor::porownaj( $id );
+		/*
+		 * Alarm jest MAPĄ per kurs, więc kontrola pokazuje wszystkie wpisy,
+		 * a nie tylko ostatni (`blad` zostaje dla zgodności formatu). Po
+		 * naprawie mapa jest pusta sama z siebie — udana kopia gasi swój
+		 * wpis — więc kontrola potrafi wreszcie zzielenieć (MAR-A-08).
+		 */
+		$wynik['bledy'] = Aai_Sklep_Tutor::bledy();
 		$wynik['blad']  = Aai_Sklep_Tutor::ostatni_blad();
-		$wynik['zgoda'] = array() === $wynik['roznice'] && null === $wynik['blad'];
+		$wynik['zgoda'] = array() === $wynik['roznice'] && array() === $wynik['bledy'];
 
 		if ( 'json' === ( $assoc_args['format'] ?? 'podsumowanie' ) ) {
 			WP_CLI::line( (string) wp_json_encode( $wynik, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );

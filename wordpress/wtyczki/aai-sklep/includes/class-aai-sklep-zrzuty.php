@@ -159,6 +159,66 @@ final class Aai_Sklep_Zrzuty {
 	}
 
 	/**
+	 * Czego proza żąda, a czego nie ma w bibliotece — po lekcji.
+	 *
+	 * PO CO (MAR-A-28). Źródłem prawdy są pliki repo, kopią biblioteka
+	 * mediów, a przeniesienie jest RĘCZNE (`wp aai-sklep zrzuty <manifest>`)
+	 * i nie było wpięte w `postaw.sh`. Odtworzenie środowiska wymaga trzech
+	 * komend; po pominięciu trzeciej klient czyta lekcję z podpisanymi
+	 * dziurami („brak pliku"), a obie kontrole świecą kod 0. Nic na żywej
+	 * instalacji nie porównywało kompletu — `ile()` zwraca samą liczbę,
+	 * a bramki repo nie sięgają na produkcję.
+	 *
+	 * Ta metoda pyta o to, co widzi KLIENT: czy dla każdego obrazu żądanego
+	 * przez prozę istnieje wpis w bibliotece. Ta sama klasa błędu ugryzła nas
+	 * w tej sesji — przywrócenie bazy ze zrzutu nie przywraca PLIKÓW.
+	 *
+	 * @return array<int,array{lekcja:string,tytul:string,brakuje:string[]}>
+	 */
+	public static function brakujace(): array {
+		global $wpdb;
+
+		$tabela  = Aai_Sklep_Tabele::tabela( 'lessons' );
+		$wiersze = $wpdb->get_results( "SELECT id, title, content FROM `$tabela`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL
+
+		$wynik = array();
+		foreach ( (array) $wiersze as $lekcja ) {
+			/*
+			 * BLOKI KODU I KOD W LINII NIE SĄ ŻĄDANIEM ZRZUTU.
+			 *
+			 * Lekcja „Markdown: formatowanie na GitHubie" UCZY tej składni,
+			 * więc zawiera przykłady `![opis](sciezka/obraz.png)`, które
+			 * nie są obrazami — pierwsza wersja tej kontroli zgłosiła je
+			 * jako brakujące zrzuty. To znana w tym projekcie klasa
+			 * fałszywego alarmu: `straznik-linkow` przerabiał ją w 0.21.0
+			 * i tak samo pomija bloki kodu.
+			 */
+			$tresc = (string) $lekcja['content'];
+			$tresc = (string) preg_replace( '/```[\s\S]*?```/u', '', $tresc );
+			$tresc = (string) preg_replace( '/`[^`\n]*`/u', '', $tresc );
+			if ( '' === $tresc || ! preg_match_all( '/!\[[^\]]*\]\(([^)]+)\)/u', $tresc, $trafienia ) ) {
+				continue;
+			}
+			$mapa  = self::mapa( (string) $lekcja['id'] );
+			$braki = array();
+			foreach ( $trafienia[1] as $zrodlo ) {
+				$zrodlo = trim( $zrodlo );
+				if ( ! array_key_exists( $zrodlo, $mapa ) ) {
+					$braki[] = $zrodlo;
+				}
+			}
+			if ( array() !== $braki ) {
+				$wynik[] = array(
+					'lekcja'  => (string) $lekcja['id'],
+					'tytul'   => (string) $lekcja['title'],
+					'brakuje' => array_values( array_unique( $braki ) ),
+				);
+			}
+		}
+		return $wynik;
+	}
+
+	/**
 	 * Kasuje zrzuty lekcji, których nie ma już w manifeście.
 	 *
 	 * @param array<int,string> $klucze Klucze `lekcja|nazwa`, które mają zostać.
@@ -274,5 +334,36 @@ final class Aai_Sklep_Zrzuty {
 		update_post_meta( (int) $id, self::META_LEKCJA, wp_slash( $lekcja ) );
 		update_post_meta( (int) $id, self::META_NAZWA, wp_slash( $nazwa ) );
 		update_post_meta( (int) $id, self::META_SHA, wp_slash( $sha ) );
+
+		/*
+		 * ZNACZNIKI POTWIERDZAMY ODCZYTEM, A NIEOZNACZONY PLIK KASUJEMY.
+		 *
+		 * To te trzy klucze CZYNIĄ załącznik naszym: wszystkie zapytania
+		 * tej klasy szukają po `meta_key = _aai_zrzut_lekcja`, więc plik
+		 * bez znacznika jest dla niej NIEWIDZIALNY — a wtedy każdy kolejny
+		 * przebieg `wp aai-sklep zrzuty` wgrywa go od nowa (zmierzone:
+		 * załącznik bez znaczników nie trafia do wyniku zapytania). Przy
+		 * 148 zrzutach jeden nieudany zapis meta zamienia bibliotekę
+		 * mediów w hałdę kopii z przyrostkami `-1`, `-2`, `-3`.
+		 *
+		 * Ta sama klasa co Z-5 w Pluginie 2 (znaczniki tożsamości okładki),
+		 * naprawiona tam w 0.73.0 — tu została do 0.78.0.
+		 *
+		 * Odczyt, nie wynik `update_post_meta()`: ta funkcja oddaje `false`
+		 * także wtedy, gdy wartość już była taka sama.
+		 */
+		$oznaczony = (string) get_post_meta( (int) $id, self::META_LEKCJA, true ) === $lekcja
+			&& (string) get_post_meta( (int) $id, self::META_NAZWA, true ) === $nazwa
+			&& (string) get_post_meta( (int) $id, self::META_SHA, true ) === $sha;
+
+		if ( ! $oznaczony ) {
+			// Świeży, nierozpoznawalny plik kasujemy: brak zrzutu jest
+			// stanem odwracalnym (lekcja pokazuje podpis), a sierota-widmo
+			// mnoży się przy KAŻDYM przebiegu.
+			wp_delete_attachment( (int) $id, true );
+			throw new Aai_Sklep_Blad_Zapisu(
+				sprintf( 'zrzut %s wgrał się, ale nie przyjął znaczników — usunięty, żeby nie mnożył kopii', $nazwa )
+			);
+		}
 	}
 }

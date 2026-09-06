@@ -3520,3 +3520,645 @@ wyprowadzała tego od nowa:
 - **LEKCJA ze scalenia 0.65.0 do sektora:** wzorce goldenów ról wskazują
   LINIE kodu produktu — każda zmiana kodu wymaga ich przekotwiczenia (BD/BE/PRIV
   przesunięte, naprawione `86f186c`), inaczej strażnik sektora świeci R11.
+
+## ═══ FALA KONTROLNA 0.65.0 — DOMKNIĘTA (2026-09-05) ═══
+
+**CZYTAĆ PRZED NAPRAWAMI: [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md)**
+— kolejność P0–P4, decyzje właściciela i reguły wykonania. Materiał źródłowy
+(raporty sond i wyniki działów) leży na gałęzi sektora `re-audyt/sektor-re-audytu`
+w `audyt/wyniki/` — **`main` nie ma katalogu `audyt/` i to jest celowe**.
+
+**Fala sprawdzała, czy naprawy 0.65.0 naprawdę naprawiły to, co deklarują.**
+Wszystkie **14 działów** przeszły rolę **i** krytyka; wejście 33 wpisy w 11 działach.
+
+**Bilans po krytyku:** NAPRAWIONE **27** · CZĘŚCIOWO **3** · NIENAPRAWIONE **2** ·
+nie dotyczy produktu **1**.
+
+**Najważniejsza liczba: krytycy PRZEPUŚCILI 4, ODRZUCILI 10.** W dziewięciu
+z dziesięciu odrzuceń werdykt wpisu był POPRAWNY, a odrzucenie dotyczyło **dowodu
+albo zasięgu roli** — czyli bez bramki krytyka sześć werdyktów stałoby na dowodzie,
+który nie dowodzi tezy. To zmierzony argument za parą agent+krytyk (WYTYCZNE N1).
+
+**Audyt mutacyjny strażnika sektora: 148 mutacji, 0 przeoczonych.** Jedna „zła"
+(deklarowała R15, zapalała R15+R16) naprawiona deklaracją `regula: [15, 16]` —
+mutacja psuje NAPRAWDĘ dwie gwarancje, więc zawężanie jej byłoby udawaniem,
+że są niezależne.
+
+**BILANS W REPO BYŁ ZŁY I ZOSTAŁ PRZELICZONY:** podawał „NAPRAWIONE 22" przy
+30 wpisach, choć wyliczenka w nawiasie sumowała się do 23, a dział BE policzono
+jako 1 przy DWÓCH wpisach naprawionych w tabeli obok. **Liczba w prozie rozjechała
+się z tabelą w tym samym pliku** — dokładnie klasa, którą ta fala tropiła.
+
+### Polowanie po przeglądzie zewnętrznym (2026-09-05)
+
+Zewnętrzny recenzent zgłosił **7 błędów (1 duży, 3 średnie, 3 małe)** i **nie podał,
+jakie** — poza dwiema wskazówkami (rozjazd wersji WordPressa; maile do klienta).
+Decyzja właściciela: **resztę znajdujemy sami, o listę już nie pytamy.** Jego oceny
+(security 10 · SEO 10 · BD 10 · audyt 9,5 · architektura 9 · QA 9 · dokumentacja 8,5
+· **płatności 8**) posłużyły jako **mapa terenu**.
+
+**Jego lista NIE jest nadzbiorem naszej** — dał security 10/10, a mamy tam czynny
+wyciek fragmentów haseł do dziennika 90-dniowego. Naprawiamy OBIE listy.
+
+**Metoda:** trzy sondy-agenty na terenach o najniższych ocenach, każda z MECHANICZNYM
+kryterium zamiast swobodnego przeglądu, agent główny jako krytyk weryfikujący
+uruchomieniowo. **50 znalezisk** (płatności 13, architektura 29, dokumentacja 8).
+Kryterium dla płatności wzięte wprost ze zrzutu recenzenta („moduł → baza →
+gałąź błędu"): policzyć KAŻDE miejsce zapisu i sprawdzić gałąź porażki —
+**67 miejsc, 37 bez sprawdzenia wyniku, 9 meldujących „stan się zmienił" mimo to.**
+
+**DWA DUŻE, oba potwierdzone niezależnie:**
+1. **Ukrycie kursu odbiera kupującemu drogę do materiału.** Znalazły dwie sondy
+   osobno, agent główny zmierzył na koncie `klient-test`: przy obu kursach
+   `archived` Tutor ma **2 zapisy**, a `ma_kursy()` zwraca **NIE**, `kursy()` **0**
+   i strona mówi klientowi, że nie ma żadnego kursu. Przyczyna: `Aai_Sklep_Moje`
+   przecina zapisy z `lista_kursow()`, a ta ma `WHERE c.status = 'published'`.
+   **Sprzeczne z decyzją C1** (2026-08-31). Docblock `ma_kursy()` rozumuje to
+   świadomie — rozumowanie było poprawne PRZED C1 i nikt do niego nie wrócił.
+   **Obie bramki dowodzące C1 sprawdzają bezpośredni adres lekcji — drogę, której
+   klient nie zna; jedynej, którą ma, nie sprawdza nic.**
+2. **Trzynaście rejestracji pod jednym `try`** (`aai-sklep.php:150`), a zamek
+   wycieku 73 lekcji jest **OSTATNI** (`class-aai-sklep-lekcja.php:63-64`).
+   Rzut w którejkolwiek z 12 wcześniejszych — pierwsza to odwołanie do BAZY —
+   zostawia witrynę działającą, notkę widoczną tylko dla admina i `?post_type=lesson`
+   znowu oddające **73 lekcje płatnej treści** anonimowi. **Spowodowała to naprawa
+   `AUD-BE-F1-001` z 0.65.0**: zamieniła głośne HTTP 500 na cichy prefiks systemu.
+
+**DECYZJE WŁAŚCICIELA (2026-09-05), wiążące dla całej fazy napraw:**
+- **„Ukryj" ZOSTAJE kupującym** — ukryty kurs znika z katalogu i sprzedaży, ale
+  zostaje w „Moich kursach" tego, kto go kupił. To **dotrzymanie** C1, nie zmiana.
+  Odrzucone: „zostaw i tylko ostrzegaj" oraz „dołóż inną drogę".
+- **Zakres: WSZYSTKO, co znaleźliśmy** (~50 pozycji). Agent zgłosił, że to się nie
+  zmieści do niedzieli przy dyscyplinie tego repo; właściciel potwierdził zakres.
+- **Naprawy wykonuje agent SAM, bez udziału właściciela**, wybierając opcje
+  rekomendowane; raport dopiero na końcu. Wolno scalać do `main`, tagować i robić
+  release'y — **wyłącznie przy zielonym CI**. **PR na priorytet: P0–P4.**
+  Wolno zmieniać rzeczy widoczne dla klienta, gdy naprawa tego wymaga — każda taka
+  zmiana idzie do raportu osobno. Duża przebudowa: **robić, jeśli da się ją
+  zabezpieczyć testem negatywnym i bramką**; jeśli nie — odłożyć i napisać dlaczego.
+
+**PUŁAPKA, KTÓRA WRÓCIŁA DWA RAZY W JEDNEJ SESJI:** `npm run dev` (Next 16) przy
+starcie **UCINA `CLAUDE.md` o 2355 linii** (zostaje 1167 z 3522). Po KAŻDYM devie:
+`git diff --stat CLAUDE.md` → `git checkout -- CLAUDE.md`.
+
+## ═══ NAPRAWY PO POLOWANIU — P0…P4 WYDANE (0.66.0 … 0.72.0), P4 TRWA ═══
+
+**CZYTAĆ PRZED PRACĄ: [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md)**
+— kolejność P0–P4, decyzje właściciela i reguły wykonania.
+
+**DECYZJA WŁAŚCICIELA (2026-09-05, wieczór): TRYB AUTONOMICZNY.** Naprawy robi
+agent SAM, do końca, wybierając opcje rekomendowane i NIE zadając pytań; raport
+dopiero na końcu. Wolno scalać do `main`, tagować i robić release'y — **wyłącznie
+przy zielonym CI**. PR na priorytet (P0, P1, P2, P3, P4). Wolno zmieniać rzeczy
+widoczne dla klienta, ale KAŻDA taka zmiana idzie do raportu osobno. Osiem ram
+decyzyjnych: pamięć `tryb-autonomiczny-naprawy`.
+
+**DRUGA DECYZJA (2026-09-05, ~19:50): RELEASE O PÓŁNOCY.** „Gdy wybije
+niedzielę" — tag + release + push tego, co zdążone; reszta po północy i kolejny
+tag. Agent doprecyzował i właściciel tego nie zakwestionował: **o północy nie
+wchodzi naprawa niedokończona** — jeśli coś jest w połowie dowodu, zostaje na
+gałęzi i wchodzi do następnego releasu.
+
+**P0 ZAMKNIĘTE: PR #124 zmergowany do `main` przy CI ZIELONYM 5/5, tag `v0.66.0`
++ release, gałąź skasowana, artefakt zweryfikowany (`git diff <szczyt>
+origin/main` PUSTY).** Pięć napraw: ukrycie kursu zabierało kupującemu drogę do
+materiału · dziennik logowań zapisywał fragmenty haseł · awaria jednej klasy
+otwierała wyciek 73 lekcji (135 kB w kanale RSS) · `postaw.sh` padał u obcego
+klienta · wyłączenie płatności zostawiało cudze ustawienia przestawione.
+
+**P1 ZAMKNIĘTY W DWÓCH WYDANIACH, OBA PRZY CI ZIELONYM 5/5:**
+- **`v0.67.0`** (PR #125) — sześć pozycji: awaria Tutora zamykała sklep
+  zalogowanym klientom (HTTP 500 także w KASIE) · kopia kursu w koszu uciszała
+  hamulec C2 · dostawa nie do ponowienia blokowała środowisko na zawsze ·
+  hamulce operacji niszczącej degradowały się na „zezwól" · synchronizacja
+  kasowała lekcje z Course Buildera · dziennik logowań rósł bez granicy,
+  a sufit kasował po DZIURZE w identyfikatorach;
+- **`v0.68.0`** (PR #126) — dwie ostatnie: **poz. 7** i **poz. 10**.
+
+**NAJWAŻNIEJSZE Z 0.68.0, spoza zgłoszenia — nie wyprowadzać od nowa:**
+`wc_get_products()` **NIE WIDZI produktu bez wiersza w
+`wp_wc_product_meta_lookup`**, a ten powstaje na SAMYM KOŃCU
+`WC_Product::save()`. Idempotencja z 0.65.0 stała więc na wyszukiwaniu
+strukturalnie ślepym dokładnie na przypadek, dla którego istnieje (zmierzone:
+przy dwóch produktach ze znacznikiem `wc_get_products()` oddał JEDEN, a to samo
+pytanie do bazy — obydwa). Znacznik pochodzenia jedzie dziś hakiem
+`save_post_product` na priorytecie 1, a rezerwacja w opcji czyni przerwane
+zakładanie produktu WIDOCZNYM dla kontroli.
+Poz. 10: zamek sprzątania pyta `ma_kurs()` zamiast `same_kursy()`, i musiał
+objąć DWA miejsca — pierwsza poprawka dawała dalej 1:3, bo wcześniej stał drugi
+taki warunek, przez co zamówienie mieszane nie oddawało też DOSTĘPU.
+
+**P2 ZAMKNIĘTY: `v0.69.0`** (PR #127) — cztery rzeczy: wyłączona wtyczka
+uciszała kontrolę, która jej nie dotyczy (waluta EUR: z Pluginem 1 kod 1,
+bez niego **kod 0 i cisza**) · paczka o tej samej nazwie mogła nieść inną treść
+(porównujemy TREŚĆ, nie bajty — ZIP niesie mtime, a `git checkout` je
+przestawia) · sześć gałęzi strażników z 0.65.0 bez mutacji · **sonda QA**
+(decyzja właściciela 3), która znalazła DWIE asercje o wycieku
+nieopublikowanego kursu niewykonujące się ani razu od powstania bramek.
+Poz. 14, 15 i 17 z tabeli P2 były już zrobione — sprawdzone komendą, nie
+przepisane z planu.
+
+**TRZY BRAMKI BRONIŁY USTEREK W TEJ SERII** (0.66.0, 0.67.0 i 0.68.0) i **dwa
+razy popełniłem klasę, którą to repo już nazwało**: reguły wstawione ZA
+`process.exit(1)` strażnika (jak w przeglądzie T2) oraz wzorzec pytający
+o SŁOWO, nie o rozstrzygnięcie (ósmy i dziewiąty nawrót). Obie złapał **audyt
+mutacyjny, nie lektura** — puszczać go po KAŻDYM refaktorze.
+
+**CO ZOSTAŁO ŚWIADOMIE NIETKNIĘTE:**
+- **poz. 13, połowa druga: kolektor CSP** w `wordpress/srodowisko/mu-plugins/aai-obwod.php`
+  przyjmuje `application/json` bez weryfikacji integralności. **ZMIERZONE
+  I ODŁOŻONE ŚWIADOMIE**, z trzema faktami: (a) `raport_csp()` NIE MA
+  ANI JEDNEGO CZYTELNIKA w repo — dane są zapisywane i nigdy nieczytane;
+  (b) mu-plugin **nie wchodzi do paczek dla klienta** (`npm run pakuj` go nie
+  bierze), więc dziś jego ekspozycja to wyłącznie warsztat `127.0.0.1:8892`;
+  (c) podpisu jak przy beaconie **nie da się dorobić** — raport CSP wysyła
+  silnik przeglądarki, który niczego nie podpisze. Trzy drogi do rozważenia:
+  usunąć kolektor (dane i tak bez czytelnika), pisać do `error_log` zamiast do
+  `wp_options`, albo zostawić i nazwać ryzyko. **To decyzja projektowa —
+  wymaga rozstrzygnięcia, nie pośpiechu.**
+
+**BŁĄD, KTÓRY POPEŁNIŁEM W TEJ SESJI — DO ZAPAMIĘTANIA.** Sonda sufitu wierszy
+podniosła `AUTO_INCREMENT` dziennika logowań do 200 001 przy `MAX(id)` = 334.
+Pierwszy zapis po takim stanie dał rozpiętość 200 000 i sufit **skasował
+wszystkie 41 wierszy, w tym dowodowe logowania właściciela z testu T4**.
+Odtworzone z `~/.cache/aai-kopie/monitor-przed-kasowaniem-20260905.sql`; kopia
+dziennika leży teraz w `~/.cache/aai-kopie/dziennik-logowan-20260905.sql`.
+**Pomiar, który podnosi `AUTO_INCREMENT` albo kasuje masowo, robi się WYŁĄCZNIE
+po zrzuceniu tabeli do pliku** — i dopiero to pozwoliło powtórzyć dowód
+bezpiecznie. Sama usterka (kasowanie po DZIURZE w identyfikatorach, nie po
+liczbie wierszy) jest naprawiona i wydana w `v0.67.0`.
+
+**LEKCJA POWTARZALNA Z CAŁEJ SESJI: wzorzec przypięty do WYRAŻENIA umiera albo
+kłamie przy pierwszym refaktorze.** Cztery przypadki w jednej sesji: wzmocnienie
+hamulca C2 (`> 0` → `0 !==`) zamieniło istniejącą regułę w fałszywy alarm
+i uśmierciło jej mutację; osłona `$bezpiecznie(…)` oślepiła regułę monitoringu
+o starcie pod `try` (brała PIERWSZY `try`, a osłona ma własny) i uśmierciła
+cztery mutacje. **Trzy z czterech złapał audyt mutacyjny, nie lektura** — więc
+audyt mutacyjny puszczać po KAŻDYM refaktorze, nie tylko po nowej regule.
+
+**BRAMKI BRONIŁY USTEREK — cztery razy w tej serii** (0.66.0, 0.67.0, 0.68.0):
+dwie asercje wymagające, żeby
+prefiks hasła przetrwał; test sufitu wymagający skasowania wiersza po skoku
+`AUTO_INCREMENT`; test „synchronizacja nie kasuje cudzych wpisów" tworzący obcy
+wpis **bez `post_parent`**, czyli poza zasięgiem mierzonej pętli; a przy poz. 10
+`smoke-wp-zakup` WYMAGAŁ, żeby po skasowaniu zamówienia mieszanego ślady
+zostały. **Przy każdej naprawie sprawdzać, czy bramka nie utrwala właśnie tego,
+co się naprawia.**
+
+**P3 (dokumentacja) — ZROBIONY w tej samej serii.** Sprostowane: CONTRIBUTING
+obiecywał „hosting Node.js" i „3 bazy" (produktem są wtyczki WP, a jedyną bazą
+Postgresa jest `db1_kursy`); README nazywał `docs/security-checklist.md`
+„utrzymywanym", choć plik stoi od 2026-08-19 i nie ma w nim ANI JEDNEJ wzmianki
+o trzech wtyczkach, Woo ani Tutorze; README mówił „CI: cztery joby" przy
+pięciu; `straznik-csp` deklarował „Dziewięć" niezmienników przy dziesięciu,
+`straznik-limitera` „Jedenaście" przy trzynastu; liczniki plików w drzewie
+(`wordpress/` 135 → 136, `docs/` 140 → 142).
+
+**SZEŚĆ WIERSZY TABEL MIAŁO WIĘCEJ KOMÓREK NIŻ ICH NAGŁÓWEK** — GitHub ucina
+takie w milczeniu, a w edytorze wyglądają poprawnie. Dwa z nich chowały
+**2677 znaków** opisu kroków T2 i T3 w `docs/plugin-3/DIAGRAM.md`, a jeden był
+w README, w wierszu opisującym… dokładnie tę klasę błędu (znak `|` w kodzie
+inline też jest separatorem — trzeba `\|`). Pilnuje tego teraz **reguła 9
+`straznik-readme`, czytająca WSZYSTKIE dokumenty markdown w repo**, nie tylko
+README.
+
+**WERSJE WTYCZEK PODBITE PO RAZ PIERWSZY OD ICH POWSTANIA:** `aai-sklep`
+0.6.0 → **0.7.0**, `aai-platnosci` 0.2.0 → **0.3.0**, `aai-monitor`
+0.5.0 → **0.6.0**. Nagłówek `Version` nie był ruszany od 25–30 sierpnia mimo
+dziesiątek zmian kodu, więc nazwa paczki dla klienta nie znaczyła nic. Od
+0.69.0 `npm run pakuj` odmawia nadpisania archiwum o tej samej nazwie i INNEJ
+treści, a strażnik pilnuje zgodności `Version` ze `Stable tag` w `readme.txt`.
+
+**SIEDEM RZECZY ZMIERZONYCH W TEJ SERII, KTÓRYCH NIE WYPROWADZAĆ OD NOWA:**
+1. **`wc_get_products()` NIE WIDZI produktu bez wiersza w
+   `wp_wc_product_meta_lookup`**, a ten powstaje na SAMYM KOŃCU
+   `WC_Product::save()` — idempotencja z 0.65.0 była strukturalnie ślepa
+   dokładnie na przypadek, dla którego istnieje.
+2. **`update_post_meta()` oddaje `false` także wtedy, gdy wartość już była
+   taka sama** — jedynym uczciwym pomiarem jest odczyt po zapisie.
+3. **`course_enrol_status_change()` Tutora odrzuca wynik swojego
+   `$wpdb->update`**, a pusty status z `status_zapisu()` znaczy „wpisu już
+   nie ma", czyli też odebranie dostępu.
+4. **ZIP niesie czasy modyfikacji**, więc porównanie paczek po bajtach
+   zapala się po samym `touch`/`git checkout` — porównuj TREŚĆ plików.
+5. **`oczyscTresc()` prototypu pomija puste listy**, więc „brak klucza =
+   nie ruszaj" wymaga, żeby panel wysyłał klucz JAWNIE.
+6. **Wiersz tabeli Markdowna dłuższy niż nagłówek jest na GitHubie UCINANY
+   w milczeniu**; `|` w kodzie inline też jest separatorem — pisz `\|`.
+7. **`wp aai-platnosci sprawdz` przy braku Pluginu 1 nie liczy już rzeczy
+   od niego niezależnych na osobnej ścieżce** — jedna metoda
+   `bledy_poza_kursami()` obsługuje obie drogi wyjścia.
+
+**BRAMKI BRONIŁY USTEREK PIĘĆ RAZY W TEJ SERII** (0.66.0 dwa razy, 0.67.0,
+0.68.0, 0.71.0) i **trzy razy popełniłem klasę, którą to repo już nazwało**:
+reguły wstawione ZA `process.exit(1)`, wzorzec pytający o SŁOWO zamiast
+o rozstrzygnięcie (ósmy i dziewiąty nawrót) oraz mutacje uśmiercone przez
+własny refaktor (trzy sztuki). **Wszystkie złapał audyt mutacyjny, nie
+lektura** — puszczać go po KAŻDYM refaktorze kodu produktu.
+
+**ŚRODOWISKO `:8892` (stan na koniec sesji):** pięć wtyczek aktywnych, obie
+kontrole kod 0, sprzedaż OTWARTA, kursy 2 (oba `published`), produkty 2,
+powiązania 2, konto `klient-test` (NIE kasować), **dziennik monitoringu
+41 logowań / 35 wizyt** (dane dowodowe właściciela z T4 — NIE kasować),
+`AUTO_INCREMENT` dziennika podniesiony do 200 001 przez sondę (nieszkodliwy po
+naprawie — sufit potwierdza liczbę wierszy przed kasowaniem).
+
+**P3 ZAMKNIĘTY: `v0.70.0`** (PR #128) — dokumentacja; szczegóły niżej.
+
+**P4 W TOKU — DWIE TURY WYDANE, TRZECIA NA GAŁĘZI:**
+- **`v0.71.0`** (PR #129) — klasa „operacja melduje skutek, którego nie
+  sprawdziła": zdjęcie kursu ze sprzedaży (Z-3), trzy z czterech metod
+  o kontrakcie „czy stan się ZMIENIŁ" (Z-6), odmowa drugiego kursu
+  w koszyku (Z-7). Do tego **prototyp przestał przeczyć produktowi**:
+  `TrescLekcji` miał `materialy: …default([])`, więc zapis samej prozy
+  KASOWAŁ materiały lekcji — ta sama klasa, którą wtyczka WP zamknęła
+  w 0.65.0. Maile dostały `Reply-To`.
+- **`v0.72.0`** (PR #130) — dwa ogniwa mierzone ODCZYTEM, bo cudze API nie
+  oddaje użytecznego wyniku: kupowalność produktu (Z-4, „klient płaci i nie
+  dostaje nic" — B3) i odebranie dostępu po skasowaniu zamówienia (Z-8).
+- **GAŁĄŹ `fix/po-polowaniu-p4c` (wypchnięta, commit `97bcaa3`) —
+  PRACA NIEDOKOŃCZONA, BEZ PR-a.** Trzy naprawy napisane i sprawdzone
+  strażnikami (39/39) oraz bramkami (produkty 101, lekcja, zakup 60):
+  **Z-5** (znaczniki okładki bez sprawdzenia → każda synchronizacja wgrywa
+  nową kopię pliku), **Z-1** (kasa wraca do zdania o nieistniejącym
+  regulaminie, gdy nie ma nawet polityki prywatności), **MAR-A-20**
+  (`za_bramka()` — jedyny handler szwu z twardym typem i bez osłony, cudzy
+  callback dawał `TypeError` na stronie lekcji).
+  **BRAKUJE TAM: testów negatywnych, reguł strażnika, mutacji w audycie,
+  wpisu CHANGELOG i PR-a.** Zaczynając od tej gałęzi, zacząć od nich.
+
+**ZOSTAJE PO P4c:** reszta pozycji z
+[docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md)
+(architektura MAR-A-07…29 poza MAR-A-20, płatności Z-11) oraz **kolektor
+CSP** — świadomie odłożony, patrz wyżej. Zrobione już: Z-1, Z-3…Z-8,
+prototyp `materialy`, maile M2 (`Reply-To`).
+**MAR-A-27 (produkt-sierota niewidzialny dla obu kontroli sierot) jest
+POKRYTE naprawą z 0.68.0** — `duplikaty_uuid()` pyta dziś o oba klucze,
+w tym `_aai_zrodlo_uuid`; potwierdzić przy okazji, nie szukać od nowa.
+**Warte rozważenia z listy architektury:** MAR-A-07 (kontrola Pluginu 1 nie
+umie zawieść — jedyna z trzech bez kodu wyjścia i bez punktu kontrolnego
+w `postaw.sh`) i MAR-A-09 (zależność P2 → P1 niezadeklarowana nagłówkiem
+`Requires Plugins`; NAJPIERW zmierzyć, czy WordPress honoruje ten nagłówek
+dla wtyczek spoza katalogu WP.org). Pozycję `REA-PRIV-F1-001` (polityka prywatności) rozstrzyga właściciel
+z prawnikiem, nie my.
+
+## ═══ NAPRAWY PO POLOWANIU — TRZY WYDANIA I GAŁĄŹ W TOKU (2026-09-06) ═══
+
+**WYDANE W TEJ SESJI, KAŻDE PRZY ZIELONYM CI** (tag + release + artefakt
+zweryfikowany `git diff <szczyt> origin/main` PUSTY):
+
+**`v0.73.0` (PR #132) — domknięcie gałęzi `p4c`.** Kod Z-5, Z-1 i MAR-A-20 leżał
+tam od `97bcaa3` bez ani jednej bramki. Doszły trzy reguły (w tym **13. niezmiennik
+`straznik-wtyczki-wp`**: handler szwu `aai_*` bez twardego typu i z `catch
+( Throwable )`, idący za DECYZJĄ po całym katalogu wtyczek, z samokontrolą zakresu)
+i sześć mutacji. **PUŁAPKA NA STARCIE:** gałąź stała commit za `main` (PR #131) —
+scalenie `main` do niej PRZED PR-em było konieczne, inaczej merge cofnąłby tamtą
+pracę. Sprawdzać `git diff main --stat` zaraz po checkoucie.
+
+**`v0.74.0` (PR #133) — pięć alarmów architektury.** Wspólny mianownik: mechanizm
+istnieje, ale **nie dojeżdża**; każda pozycja przechodziła 39 strażników i 15
+bramek, bo wszystkie są przerwanym ogniwem MIĘDZY wtyczkami.
+- **MAR-A-08** — jedyny alarm o cichym rozjeździe kopii nie umiał zgasnąć: jeden
+  slot `update_option()` był zatrzaskiem i kłamcą naraz (awaria kursu B kasowała
+  alarm kursu A; udana kopia flagi nie kasowała; `sprawdz-tutora` świeciło **kodem 1
+  NA ZAWSZE** przy danych zgodnych co do znaku). Dziś **mapa per kurs**, gaszona
+  przez każdą udaną kopię TEGO kursu — także `sync <slug>`, który wcześniej gasił
+  alarmy CUDZYCH kursów.
+- **MAR-A-17** — import zostawiał WSZYSTKIE produkty jako `draft`: katalog działa,
+  **kupić nie da się nic** (zmierzone: `is_purchasable() = false`, kontrola kod 1).
+- **MAR-A-10** — `sync` odtwarzający skasowany wpis kursu nie odtwarzał pary met
+  powiązania, czyli zostawiał kurs w stanie **rozdawanym za darmo**.
+- **MAR-A-14** — powrót Pluginu 1 nie odzyskiwał sprzedaży; druga połowa w Pluginie 2:
+  uwaga „brak Pluginu 1" wisiała pod `_ogolny` po jego powrocie.
+- **MAR-A-15** — wyłączony Plugin 1 odsłaniał **drugą stronę sprzedażową w wyglądzie
+  WooCommerce** (zmierzone: HTTP 200 z tytułem produktu i przyciskiem kupna). Dziś 404.
+Obie drogi masowe idą przez **`Aai_Sklep_Tutor::synchronizuj_i_oglos()`**, które
+ogłasza zmianę siostrom przy WSTRZYMANEJ własnej kopii i PRZYWRACA poprzedni stan
+wstrzymania zamiast go zerować (import wstrzymuje kopię na całą swoją pętlę).
+
+**`v0.75.0` (PR #134) — kontrola, która nie umiała zawieść.**
+- **MAR-A-07** — `wp aai-sklep sprawdz` kończyło zerem ZAWSZE, więc `postaw.sh` nie
+  miał czego z niej odczytać; Plugin 1 był jedyną z trzech wtyczek bez punktu
+  kontrolnego i bez klasy zależności. Dziś kod 1 przy: braku tabeli · kursie
+  opublikowanym bez ani jednej lekcji · **braku Tutora przy opublikowanych kursach** ·
+  trwającej awarii kopii. Tryb `--format=json` kończy tym samym kodem.
+- **MAR-A-12** — jedna sekcja o nieznanym kształcie kończyła CAŁĄ kontrolę fatalem
+  (zmierzone: z naprawą 39 sprawdzonych obiektów drugiego kursu, bez niej zero).
+- **MAR-A-16** — „czyści po sobie do zera" było nieprawdą. Zmierzone **pełnym
+  odinstalowaniem obu wtyczek z przywróceniem bazy ze zrzutu**: zostawało 148
+  załączników, 89 wpisów Tutora z naszymi metami i **flaga
+  `aai_platnosci_sprzedaz_otwarta`**, przez którą świeża instalacja sprzedawała
+  **od pierwszej sekundy przy pustym dzienniku dostaw**. Po naprawie: nasze mety 0,
+  wpisy 0, załączniki 0, flaga skasowana, a **184 mety `_aai_*` należące do MOTYWU
+  nietknięte**.
+- **MAR-A-13** (część) — `Aai_Sklep_Zasoby` spadało na `null` tam, gdzie cztery inne
+  wyprowadzenia tego samego faktu spadają na `'courses'`.
+
+**GAŁĄŹ `fix/po-polowaniu-p4f` (wypchnięta, `e74be20`) — PRACA NIEDOKOŃCZONA, BEZ PR-a.**
+Kod i dowody napisane: **strażnicy 39/39, audyt mutacyjny 429** (427 złapanych,
+0 przeoczonych, 0 martwych). **BRAKUJE: `npm run check`, przelotu 15 bramek WP, wpisu
+CHANGELOG, podbicia wersji wtyczek i PR-a.** Zawiera MAR-A-22, 23, 24, 25, 26, 28, 29
+— w tym **MAR-A-24**, gdzie klient klikał „Oznacz jako przerobioną" i **nic się nie
+działo**, przy poprawnym HTML-u (szablon sięgał po `tutor()->nonce_action`, czyli
+WŁAŚCIWOŚĆ obiektu cudzej wtyczki, nie API).
+
+**ZOSTAJE PO P4f:** MAR-A-05 (strażnik granic nie skanuje PHP), **A-09**
+(`Requires Plugins` — najpierw ZMIERZYĆ, czy WP honoruje ten nagłówek dla wtyczek
+spoza katalogu WP.org), A-11 (brak automatycznego wykrywacza rozjazdu — decyzja
+projektowa: cron), A-18 (downgrade porównuje wersje `!==`, nie kolejnością), A-19
+(kolejność ładowania odwrotna do zależności — do zapisania jako założenie), A-21
+(deaktywacja prawdopodobnie utrwala reguły przepisywania — nie do rozstrzygnięcia
+statycznie), płatności **Z-11**, oraz **kolektor CSP** (świadomie odłożony, trzy
+zmierzone powody wyżej). **MAR-A-27 jest POKRYTE** naprawą z 0.68.0 — sprawdzone
+komendą, nie szukać od nowa.
+
+### Sześć lekcji tej sesji
+
+1. **TEST NEGATYWNY PRZESZEDŁ PO PUSTCE — DWA RAZY.** Przy MAR-A-17 kopia w Tutorze
+   już istniała, więc warunek usterki nie zachodził; przy MAR-A-24 lekcja była już
+   odhaczona, więc formularza i tak nie było. Oba wykryte porównaniem z OCZEKIWANYM
+   STANEM SCENY, nie lekturą wyniku. **Przed testem negatywnym ustaw scenę i sprawdź,
+   że warunek usterki naprawdę zachodzi.**
+2. **Mój refaktor uśmiercił istniejącą mutację** (kotwiczyła na treści bloku `try`,
+   w którym dopisałem gaszenie alarmu) — wyglądała na zieloną, nie mierząc niczego.
+   Złapał to audyt mutacyjny, nie lektura. Jest przekotwiczona na ZACHOWANIE.
+3. **Strażnik zapalił się na MOIM kodzie i miał rację** — kasowanie wpisów Tutora
+   w `uninstall.php` łamie niezmiennik „wpisy Tutora rusza jedno miejsce". Wyjątek
+   jest wąski (odinstalowanie biegnie przy wyłączonej wtyczce, więc nie ma ANI JEDNEJ
+   naszej klasy) i pyta o **jawną zgodę właściciela**.
+4. **Dziesiąty nawrót pułapki „wzorzec na napis"** — w regule, którą sam pisałem:
+   pytała o wystąpienie nazwy flagi, a ta pada też przy `delete_option`.
+5. **Reguła oskarżyła NIEWINNEGO** — zapaliła się na monitoringu, który nie zapisuje
+   ani jednej mety. Ma dziś kontrprzykład w audycie jako mutację oczekującą ZIELONEGO.
+6. **Przywrócenie BAZY ze zrzutu NIE przywraca PLIKÓW** —
+   `wp_delete_attachment(, true)` kasuje je z dysku, więc po teście odinstalowania
+   trzeba `npm run wp:zrzuty` (padło na tym `smoke-wp-lekcja`). Podobnie zapisy
+   Tutora: konto `klient-test` straciło kursy i wymagało `npm run wp:klient`.
+
+**PUŁAPKA POWŁOKI (kosztowała fałszywy alarm):** zsh **nie dzieli zmiennych na słowa**,
+więc `for k in "aai-sklep sprawdz"; do wp $k` wysyła JEDEN argument i daje mylące
+„is not a registered wp command" — wygląda jak martwy bind mount. Do tego `| grep`
+maskuje kod wyjścia tak samo jak `| tail`.
+
+**ŚRODOWISKO `:8892` (stan na koniec sesji):** pięć wtyczek aktywnych, sprzedaż
+OTWARTA, kursy 2, produkty 2 (`publish`), powiązania 2, konto `klient-test` na obu
+kursach (**odtworzone `npm run wp:klient` — NIE kasować**), zrzuty 148 w bibliotece,
+wszystkie cztery kontrole kod 0, `wp:sprawdz` 73/73 co do znaku, `wp:tutor` 0 różnic.
+Kopie bazy z tej sesji: `~/.cache/aai-kopie/przed-mar-a-10-20260906.sql`
+i `~/.cache/aai-kopie/przed-uninstall-20260906-0203.sql`.
+
+## ═══ P4 DOMKNIĘTY: 0.76.0 i 0.77.0 — LISTA Z POLOWANIA ZAMKNIĘTA (2026-09-06) ═══
+
+**CZYTAĆ PRZED PRACĄ: [docs/PLAN-NAPRAW-PO-POLOWANIU.md](docs/PLAN-NAPRAW-PO-POLOWANIU.md)**
+— kolejność P0–P4 i reguły wykonania. Materiał źródłowy (raporty trzech sond)
+leży na gałęzi sektora `re-audyt/sektor-re-audytu` w
+`audyt/wyniki/polowanie-mariusz/`; `main` nie ma katalogu `audyt/` i to jest
+celowe.
+
+**OBA WYDANIA PRZY CZYSTYM CI, artefakt zweryfikowany (`git diff <szczyt>
+origin/main` PUSTY — lekcja z 0.37.0), gałęzie skasowane.**
+
+**`v0.76.0` (PR #136) — szósta tura P4: MAR-A-22, 23, 24, 25, 26, 28, 29.**
+Cztery pierwsze o tej samej granicy: **szablon rozstrzygał sam** — o trasie
+albo o cudzej wtyczce — choć jego własny docblock mówi, że dostaje gotowe dane.
+- **A-24: klient klikał „Oznacz jako przerobioną" i NIC SIĘ NIE DZIAŁO.**
+  Szablon składał nonce z `tutor()->nonce_action` — to **właściwości obiektu**
+  cudzej wtyczki, nie API. Po ich przemianowaniu `wp_nonce_field()` dostaje
+  `null`, drukuje `_wpnonce`, Tutor odrzuca żądanie, a **HTML jest poprawny**,
+  więc żadna bramka nie ma czego zauważyć. Most `pole_nonce_lekcji()` ODMAWIA,
+  a szablon woli nie pokazać przycisku niż pokazać taki, który zawodzi po cichu.
+- **A-23:** 82 wywołania do cudzej wtyczki na odsłonę (podwójna pętla).
+  **A-22:** ta sama lista kursów pobierana dwa razy w jednym żądaniu (katalog
+  + SEO na `wp_head`) — poza ceną liczy się to, że dwa odczyty tej samej rzeczy
+  mogą się rozjechać. **A-25:** jedyny z 37 szablonów czytający `$_SERVER`.
+  **A-26:** dwa wejścia do „Moich kursów" z RÓŻNYMI regułami widoczności.
+- **A-28:** klient czytał lekcję z podpisanymi dziurami („brak pliku"), a obie
+  kontrole świeciły kod 0 — nic na żywej instalacji nie porównywało kompletu
+  zrzutów z tym, **czego żąda proza**. **A-29:** reguła „do naszych tabel pisze
+  tylko warstwa zapisu" miała TRZY obejścia, w tym idiom
+  `query( prepare( "UPDATE …" ) )` **używany w tym repozytorium**.
+
+**`v0.77.0` (PR #137) — ostatnia tura: MAR-A-05, 09, 11, 18, 19, 21, Z-11
+i kolektor CSP.** Wspólny mianownik: **mechanizm nie ma pytającego** — nic
+z tego nie psuło się przy kliknięciu.
+- **A-21: deaktywacja UTRWALAŁA nasze trasy.** Hak biegnie PO `init`, więc
+  nasze reguły są już w `$wp_rewrite`, a gołe `flush_rewrite_rules()`
+  zapisywało je z powrotem. **Zmierzone:** po `wp plugin deactivate aai-sklep`
+  trzy adresy `/szkolenia/…` oddawały **HTTP 200 ze STRONĄ GŁÓWNĄ** zamiast
+  404. Naprawa: `delete_option( 'rewrite_rules' )`, nie przepłukanie.
+- **A-11: nie istniał ANI JEDEN automatyczny wykrywacz rozjazdu.** Doszło
+  **codzienne zdarzenie** `aai_sklep_kontrola_kopii`, które porównuje kopię i
+  przy różnicach PRÓBUJE JĄ ZALECZYĆ powtórzeniem kopiowania. Wykrywacz jest
+  lekarzem nie dla wygody, tylko **żeby alarm umiał zgasnąć** — inaczej wraca
+  wada MAR-A-08. Zmierzone w obie strony (0,28 s na przebieg).
+- **Z-11: przerwana kopia nie zostawiała śladu.** `max_execution_time`, brak
+  pamięci i `kill` to w PHP **FATAL ERROR, nie wyjątek** — nie wykonuje się
+  wtedy ani `catch`, ani gaszenie alarmu. Znacznik stoi PRZED pętlą.
+- **A-09: `Requires Plugins:` DZIAŁA dla wtyczek spoza WP.org** — zmierzone:
+  przy wyłączonym `aai-sklep` aktywacja płatności kończy się odmową.
+- **A-18:** downgrade uruchamiał stare `dbDelta` (`!==` zamiast
+  `version_compare`) — przy nieścisłym `sql_mode` pierwsze zwężenie typu
+  utnie prozę lekcji po cichu. **A-05:** `straznik-granic` skanował 240 plików
+  JS/TS i **ZERO PHP** przy 108 istniejących — reguła §8 obowiązywała tam,
+  gdzie nic się nie wdraża. **A-19:** kolejność ładowania jest alfabetyczna,
+  czyli odwrotna do zależności; trzy handlery `template_redirect` na prio 1
+  w dwóch wtyczkach są bezpieczne tylko dzięki rozłączności zbiorów żądań —
+  opisane w [docs/SCHEMATY.md](docs/SCHEMATY.md), czwarty zapala bramkę.
+- **Kolektor CSP przestał pisać do bazy.** To jedyny punkt zapisu, który
+  z natury NIE MOŻE być uwierzytelniony (raport wysyła silnik przeglądarki),
+  a agregat nie miał w repo **ani jednego czytelnika** — więc jedyną pewną
+  konsekwencją tego zapisu było to, że komuś obcemu wolno pisać. Nośnikiem
+  jest dziennik serwera.
+
+**PRZY OKAZJI, ZMIERZONE — wszystkie trzy wtyczki podawały klientowi STARY
+ARKUSZ po aktualizacji.** Stała `AAI_*_WERSJA` jest naraz numerem schematu dla
+`dbDelta` **i** przełamywaczem cache'u w adresie każdego arkusza i skryptu,
+a stała na 0.6.0 od 25 sierpnia — przez dziesięć commitów zmieniających
+`assets/`. Objaw wygląda jak zepsuty wygląd po aktualizacji, nie jak nieruszona
+liczba. Wersje wtyczek: `aai-sklep` **0.11.0**, `aai-platnosci` **0.6.0**,
+`aai-monitor` **0.7.0**; ich `readme.txt` mają uzupełnione brakujące wpisy.
+
+### Trzy lekcje tych dwóch wydań
+
+1. **BRAMKA BRONIŁA STAREGO ZACHOWANIA — szósty raz w tej serii.**
+   `smoke-wp-motyw` mierzy `/my-account/` jako `admin` i wymagała, żeby „Moje
+   kursy" były pierwszą pozycją menu konta — a po A-26 admin bez zakupów
+   słusznie ich nie dostaje. Bramka **ZAKŁADA teraz scenę** (zapis admina na
+   kurs statusem `completed`, pomiar, cofnięcie w `finally`), a drugą połowę
+   reguły mierzy taniej pytaniem WordPressa wprost.
+2. **TEST NEGATYWNY PRZESZEDŁ PO PUSTCE — dwa razy, oba przez SCENĘ, nie przez
+   regułę.** Raz `$wpdb` wstawiony w trzeciej linii pliku wylądował w środku
+   bloku komentarza, który reguła słusznie usuwa przed sprawdzeniem; raz
+   sprawdzenie czytało opcję o **zmyślonej nazwie** (`aai_sklep_blad_tutora`
+   zamiast `aai_sklep_tutor_blad`) i pokazywało „kontrola nie reaguje".
+   **Przed mutacją sprawdź POMIAREM, że warunek usterki naprawdę zachodzi.**
+3. **`| head` maskuje kod wyjścia tak samo jak `| tail`** — przy teście
+   negatywnym reguły A-09 „EXIT=0" pochodziło z `head`, nie ze strażnika.
+   Mierz `$?` bez potoku.
+
+**PUŁAPKA ŚRODOWISKA (wróciła):** `smoke-wp-kreator` padł RAZ w pełnym
+przelocie na `UND_ERR_SOCKET` („other side closed") — Node trzyma keep-alive,
+a Apache zrywa bezczynne połączenie. Uruchomiony osobno przeszedł 102/102.
+**Padnięcie na `SocketError` to nie regresja kodu; powtórz bramkę osobno.**
+Drugi objaw tej klasy: przerwana bramka kreatora zostawia kurs testowy, przez
+co `smoke-wp-panel` liczy o 11 sprawdzeń więcej (55 przy dwóch kursach).
+
+**STAN NA KONIEC SESJI — `:8892`:** pięć wtyczek aktywnych, wszystkie cztery
+kontrole kod 0, kursy 2, produkty 2, powiązania 2, sprzedaż OTWARTA, konto
+`klient-test` (**NIE kasować**), zapisów admina 0, dziennik monitoringu
+**68 logowań / 37 wizyt** (dane dowodowe właściciela z T4 plus ślady bramek).
+Zaplanowane zdarzenie `aai_sklep_kontrola_kopii` (codziennie).
+
+**ZOSTAJE PO CAŁEJ LIŚCIE POLOWANIA — JEDNA POZYCJA, ŚWIADOMIE U WŁAŚCICIELA:**
+`REA-PRIV-F1-001` — polityka prywatności wypiera się ciasteczek, choć Woo
+i WordPress je stawiają. To treść prawna, wymaga prawnika, pozycja „przed
+pierwszym klientem". **Napraw kodu z listy polowania nie zostało.**
+
+## ═══ 0.78.0 — ZAPIS, KTÓRY SIĘ NIE UDAŁ, PRZESTAJE MELDOWAĆ SUKCES ═══
+
+**Wydane 2026-09-06 przy ZIELONYM CI** (PR #140, tag `v0.78.0` + release,
+gałąź skasowana, artefakt zweryfikowany pustym `git diff <szczyt> origin/main`).
+Pełny opis: CHANGELOG 0.78.0. Werdykty i pułapki: pamięć `mariusz-runda-2`.
+
+**Wejście: DRUGI przegląd zewnętrzny (Mariusz).** Zgłosił dwa miejsca —
+`class-aai-sklep-tutor.php` („nie ma pełnego proof-of-effect dla wszystkich
+meta, 95% zrobione") i `class-aai-monitor-zapis.php` („monitor nie zgłasza
+błędu delete… to samo z update… to samo `dostawa_wynik()`"). Polecenie
+właściciela: **zweryfikować i albo obronić, albo przyznać.**
+
+**OBA POTWIERDZONE POMIAREM, jedno miejsce OBRONIONE.** Metoda dowodu:
+wyzwalacz SQL blokujący POJEDYNCZE zapytanie (`BEFORE DELETE`/`BEFORE UPDATE`
+z `SIGNAL SQLSTATE '45000'`) oraz filtr `update_post_metadata` blokujący
+JEDEN zapis meta. Obroniona została `podnies_wizyte()`: zwraca `true`, ale
+awarię ZGŁASZA do kanału, więc `sprawdz` świeci kodem 1.
+
+**PRZELOT CAŁĄ KLASĄ ZNALAZŁ JEDENAŚCIE MIEJSC W TRZECH WTYCZKACH.** Klasa:
+operacja zmienia stan i **odrzuca wynik tej zmiany**. Dwie odmiany —
+metoda `void`, która nie ma jak powiedzieć, że nie zadziałała, oraz
+**sprawdzenie postawione ZA rzutowaniem**: `$wpdb` oddaje przy awarii
+`false`, `get_var()` przy braku tabeli `null`, a `(int)` zamienia jedno
+i drugie w zero, więc `if ( false === $x )` po konwersji jest MARTWE
+i przechodzi każdą lekturę.
+
+**Najcięższe nie było w zgłoszeniu:** zablokowany `COMMIT` w
+`Aai_Sklep_Zapis::w_transakcji()` — baza wycofuje transakcję przy
+rozłączeniu, a `zapisz_kurs()` oddaje liczniki sukcesu, panel pisze „Kurs
+zapisany", `aai_sklep_kurs_zmieniony` ogłasza zmianę siostrom i w bazie
+zostaje stara treść. **Cicha utrata zmiany właściciela.**
+
+**CZTERY KONTROLE NIE UMIAŁY ZAWIEŚĆ — najważniejsze znalezisko sesji:**
+- **`wp aai-sklep sprawdz` miało DOKŁADNIE tę samą wadę, co zgłoszenie.**
+  Reguła „brak tabeli to nie zero wierszy — to sklep bez nośnika" nie mogła
+  zajść, bo `liczniki_tabel()` rzutowały `null` na `int`. **Zmierzone przez
+  schowanie tabeli `courses`: „Success: Sklep w porządku." z kodem 0**, przy
+  kaskadowym wyciszeniu dwóch kolejnych reguł (pusta lista kursów → obie
+  przechodzą po pustce). Istnienie tabeli rozstrzyga teraz `SHOW TABLES
+  LIKE`, jak w obu siostrzanych wtyczkach.
+- **Sonda na cichą korupcję kodowania nie miała czytelnika** — długość
+  lekcji liczona w PHP i w bazie od kroku W2, nigdy nieporównana; podłożony
+  rozjazd „100 znaków vs 40" dawał zero błędów. Porównywało to WYŁĄCZNIE
+  `tools/sprawdz-import-wp.mjs`, wymagające Postgresa, którego produkcja
+  nie ma.
+- **Kontrola kopii powielała ślepotę zapisu** — `porownaj()` szukało wpisu
+  tą samą funkcją co `zapisz_post()`, a ta pyta o JEDEN wpis. Duplikat
+  identyfikatora powstaje wprost z wady wyżej: nieudany zapis znacznika →
+  następna synchronizacja nie znajduje wpisu → zakłada drugi.
+- **Dwa szwy między wtyczkami nie miały pytającego** — trzy filtry ceny,
+  przycisku i dostępności (rejestruje Plugin 2) oraz filtr bramki logowania
+  (rejestruje Plugin 1). Zmierzone mutacją zdejmującą rejestrację: obie
+  kontrole milczały, a sprzedaż cichła przy zielonych bramkach.
+
+**BRAMKI:** **reguła 14 `straznik-wtyczki-wp` celuje w KLASĘ, nie w
+miejsce** — szuka sprawdzenia `false`/`null` postawionego za rzutowaniem
+tej samej zmiennej, w każdym pliku trzech wtyczek, z samokontrolą zakresu
+(< 20 przypisań = reguła przechodzi po pustce). Reguła 15 pilnuje trzech
+zapytań transakcji, pytania o istnienie tabeli i porównania kodowania.
+Do tego reguły w `straznik-tutora` (dowód skutku met, powtórzone uuid),
+`straznik-monitora-wp` (obie gałęzie retencji słyszalne, kontrola pyta
+o odpowiadającego na filtr bramki) i `straznik-platnosci-wp` (trzy metody
+zapisu nie są `void`, a wołający odbierają ich wynik).
+**Audyt mutacyjny 441 → 452** (450 złapanych, 0 przeoczonych, 0 martwych).
+
+**TRZY RZECZY WYSZŁY DOPIERO Z AUDYTU MUTACYJNEGO, NIE Z LEKTURY:**
+(1) moje naprawy **uśmierciły dwie istniejące mutacje** zakotwiczone na
+układzie linii — przekotwiczone na zachowanie; (2) **weryfikacja odczytem
+oślepiła istniejącą regułę kolejności B2**: reguła brała PIERWSZE
+wystąpienie nazwy mety, a dopisany `get_post_meta` z tą samą nazwą je
+przesunął — mierzy teraz pozycję WYWOŁANIA ZMIENIAJĄCEGO; (3) ta sama
+klasa dopadła regułę pisaną w tym samym przelocie (pytała o nazwę funkcji
+padającą w metodzie dwa razy). **Audyt mutacyjny puszczać po KAŻDEJ
+naprawie dotykającej cudzej mety, nie tylko po nowej regule.**
+
+**KOREKTA WŁASNEJ OCENY (właściciel: „bądź obiektywny w 100%"):** pierwszy
+werdykt agenta brzmiał „oba średnie" i był SKRZYWIONY przez rolę obrońcy,
+o którą właściciel prosił wcześniej. Po sprawdzeniu, że kontrola
+monitoringu **nie biegnie na produkcji sama** (zero crona, zero haka,
+`postaw.sh` to warsztat, a instrukcja mówi klientowi, że WP-CLI „robimy
+my"), waga wróciła do zgłoszonej: **1 duży, 1 średni**. Trzy rzeczy
+zgłoszone właścicielowi jako „inne klasy" też skorygowano: duplikaty uuid
+okazały się SKUTKIEM i sąsiadem zgłoszenia (ta sama klasa, ten sam plik,
+dwie wspólne funkcje), a filtry i sonda kodowania to BRAKI KONTROLI, nie
+czynne usterki.
+
+**Wersje wtyczek:** `aai-sklep` **0.12.0**, `aai-platnosci` **0.7.0**,
+`aai-monitor` **0.8.0**. Dowody: `npm run check` kod 0, strażnicy **39/39**,
+audyt mutacyjny **452**, **15/15 bramek WP** (dane 30 · front 89 · tutor 49
+· lekcja 64 · kreator 102 · panel 55 · płatności 27 · produkty 101 · zakup
+60 · zwroty 39 · maile 62 · język 25 · motyw 93 · monitor 184 · seo 172),
+`wp:sprawdz` 73/73 co do znaku, `wp:tutor` 0 różnic, cztery kontrole kod 0.
+
+**PUŁAPKA, KTÓRA KOSZTOWAŁA TRZY FAŁSZYWE PADNIĘCIA:** bramka **ubita
+limitem czasu** zostawia kurs testowy, produkty i zamówienia — i wtedy
+`wp-zakup`, `wp-zwroty` oraz `wp-maile` padają na CUDZYCH śmieciach
+(„smoke zostawił produkt: przed 4, po 5"). Sprzątać po ZNAKACH (tytuł
+zaczynający się od `Smoke`, slug z `smoke`), **nigdy po zakresie
+identyfikatorów**; po sprzątaniu `wp aai-platnosci sieroty --usun` na
+notatki zamówień. Powtórzone bramki przeszły 60/60, 39/39 i 62/62.
+
+**WYTYCZNA WŁAŚCICIELA (2026-09-06), obowiązuje dalej:** gdy w trakcie
+naprawy znajdę błąd **innej klasy niż zgłoszona**, mam go zweryfikować
+i **poinformować właściciela PRZED naprawieniem** — z wyjaśnieniem, skąd
+się bierze. Nie dotyczy pozycji tej samej klasy, którą właśnie naprawiam.
+
+**═══ NASTĘPNY KROK CAŁEGO PROJEKTU: FALA KONTROLNA PO 0.78.0 ═══**
+(decyzja właściciela 2026-09-06: *„po clear puścimy audyt tak jak
+puściliśmy wcześniej 2 fale, czyli ta krótsza, aby sprawdził do cna
+projekt, czy na pewno nie ma tam już błędów"*)
+
+**To ta sama forma co fala kontrolna po 0.65.0: 14 Pogłębiaczy `rea-<KOD>`
++ 14 krytyków = 28 agentów, nośnik B, potokiem.** Działy audytu i role
+procesowe NIE wchodzą. **Protokół przebiegu, wejście i szablon polecenia
+leżą NA GAŁĘZI SEKTORA `re-audyt/sektor-re-audytu`**, koniec
+`audyt/PLAN-BUDOWY.md`, sekcja „FALA KONTROLNA PO 0.78.0" — CZYTAĆ TAM,
+nie wyprowadzać od nowa. `main` nie ma katalogu `audyt/` i to jest celowe.
+
+Różnica wobec fali po 0.65.0: tamta weryfikowała 33 konkretne wpisy fali 1,
+a **ta ma odpowiedzieć na pytanie „czy na pewno nie ma już błędów"** —
+więc wejściem są naprawy z trzynastu wydań (`v0.66.0` … `v0.78.0`) ORAZ
+pełne rundy regresji w zakresie każdego działu wg jego definicji roli.
+
+**═══ CO ZOSTAJE PO FALI (stan na 2026-09-06) ═══**
+
+**Nie ma innej zaplanowanej roboty.** Wszystko, co miało nośnik w postaci listy,
+jest wykonane: prototyp (0.37.0), etap WordPressa i trzy wtyczki (0.59.0),
+trzy ostatnie kroki — SEO, higiena repo, audyt końcowy (0.60.x, 0.62.0,
+0.63.0), schematy draw.io (0.64.0), fala 1 audytu i jej naprawy (0.65.0),
+fala kontrolna, oraz **cała lista z polowania: P0–P4, `v0.66.0` … `v0.77.0`**.
+
+**Otwarte świadomie, w kolejności, w jakiej same się upomną:**
+1. **Polityka prywatności** (`REA-PRIV-F1-001`) — wypiera się ciasteczek,
+   które Woo i WordPress stawiają. Treść prawna: właściciel + prawnik.
+2. **Lista „przed pierwszym klientem"**
+   ([PLAN-SEO-HIGIENA-AUDYT.md](docs/PLAN-SEO-HIGIENA-AUDYT.md)): prawdziwa
+   bramka płatności (Tpay/PayU/P24 jako wtyczka do Woo), regulamin, zgoda
+   w kasie na natychmiastowe dostarczenie treści cyfrowej (wyłącza ustawowe
+   14 dni odstąpienia), domena `automaticai.pl` + HTTPS, poczta produkcyjna,
+   `blog_public` na 1 przy wdrożeniu (ta jedna opcja bramkuje CAŁĄ sitemapę).
+3. **Lista wdrożeniowa SEO** — pozycje poza naszymi wtyczkami (blog,
+   `/shop/`, `sample-page`, kategorie, tagi).
+
+**Czego NIE proponować z własnej inicjatywy** (decyzje właściciela, nie
+zaległości): rozbudowa ekranu monitoringu (odwołana 2026-08-31), e-booki
+i PDF-y jako produkt („NIGDY", 2026-08-25), wideo w kursach, mobilny TBT
+prototypu, gwarancja zwrotu na stronach sprzedażowych, siła akcentu volt,
+jasne zrzuty na ciemnym tle, poświata za kursorem, schematy draw.io.

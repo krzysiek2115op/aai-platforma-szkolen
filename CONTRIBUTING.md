@@ -2,7 +2,8 @@
 
 Konkrety specyficzne dla tego projektu. Konwencje przejęte z
 [automatic-ai](https://github.com/MatthewPlugins/automatic-ai)
-i z projektu egzaminacyjnego „3 pluginy 3 bazy danych".
+i z projektu egzaminacyjnego „3 pluginy 3 bazy danych" — to nazwa zadania,
+nie opis dzisiejszej architektury (patrz „Wersjonowanie" niżej).
 
 ## Pierwsze uruchomienie
 
@@ -36,13 +37,20 @@ branch → commit(y) → push → PR → CI zielone → merge → (release, depl
 5. **Release** — po każdym WIĘKSZYM kroku: podbicie wersji w `CHANGELOG.md`
    i `README.md` (tabela „Stan projektu"), tag `vX.Y.Z`, release na GitHubie
    z opisem z changeloga. Rozjazd wersji zatrzyma `straznik-wersji`.
-6. **Deploy** — gdy będzie co i gdzie wdrażać (docelowy hosting Node.js).
+6. **Deploy** — gdy będzie co i gdzie wdrażać. Produktem są **wtyczki
+   WordPressa** (decyzja zespołu 2026-08-18), więc wdrożenie to hosting WP
+   z motywem Automatic AI, nie serwer Node.js; paczki robi `npm run pakuj`,
+   instrukcja dla klienta: [docs/INSTRUKCJA-INSTALACJI.md](docs/INSTRUKCJA-INSTALACJI.md).
 
 ## Wersjonowanie (SemVer, projekt przedprodukcyjny)
 
 - `0.X.0` — każdy większy krok (ukończony etap, nowa funkcjonalność),
 - `0.X.Y` — poprawki w ramach etapu,
-- `1.0.0` — komplet: 3 moduły + 3 bazy, zaakceptowane przez właściciela.
+- `1.0.0` — komplet: trzy wtyczki WordPressa (`aai-sklep`, `aai-platnosci`,
+  `aai-monitor`) z własnymi tabelami w bazie WP, zaakceptowane przez
+  właściciela. Trzy osobne bazy z pierwotnego planu nigdy nie powstały:
+  jedyną bazą Postgresa jest `db1_kursy` prototypu, a wtyczki trzymają dane
+  w tabelach z własnym prefiksem w bazie WordPressa.
 
 ## Konwencje commitów
 

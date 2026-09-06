@@ -141,6 +141,45 @@ for (const kurs of opublikowane) {
   );
 }
 
+/*
+ * WYCIEK SZKICU DO KATALOGU — z przedmiotem pomiaru, nie na wiarę.
+ *
+ * Do 0.69.0 stała tu sama pętla po `stan.kursy.filter(status !== published)`.
+ * Instalacja ma DWA kursy i oba opublikowane, więc lista była PUSTA, pętla nie
+ * wykonywała ani jednego sprawdzenia i bramka meldowała komplet — dziesiąte
+ * przejście po pustce w tym projekcie. Asercja „szkic nie wycieka" nie
+ * wykonała się tu ANI RAZU od powstania bramki.
+ *
+ * Dlatego stan robimy SAMI: ukrywamy jeden prawdziwy kurs (ten sam wzorzec co
+ * `smoke-wp-lekcja`), pytamy katalog jeszcze raz i przywracamy publikację.
+ */
+{
+  const opublikowane = stan.kursy.filter((k) => k.status === "published");
+  sprawdz(
+    opublikowane.length > 0,
+    "instalacja nie ma ANI JEDNEGO opublikowanego kursu — pomiar wycieku szkicu nie miałby czego ukryć"
+  );
+  const probka = opublikowane[0];
+  if (probka) {
+    try {
+      wp("eval", `Aai_Sklep_Zapis::ustaw_status('${probka.id}','archived','smoke-wp-front');`);
+      const poUkryciu = await pobierz("/szkolenia/");
+      sprawdz(
+        !poUkryciu.widoczne.includes(ucieczka(probka.title)),
+        `/szkolenia/: WYCIEK SZKICU — po ukryciu kursu w katalogu dalej widać „${probka.title}"`
+      );
+    } finally {
+      wp("eval", `Aai_Sklep_Zapis::ustaw_status('${probka.id}','published','smoke-wp-front');`);
+    }
+    const poPrzywroceniu = await pobierz("/szkolenia/");
+    sprawdz(
+      poPrzywroceniu.widoczne.includes(ucieczka(probka.title)),
+      `bramka nie przywróciła publikacji kursu „${probka.title}" — zniknąłby z katalogu po jej przebiegu`
+    );
+  }
+}
+
+// I to samo dla kursów, które są nieopublikowane NA STAŁE (gdyby takie były).
 const szkice = stan.kursy.filter((k) => k.status !== "published");
 for (const kurs of szkice) {
   sprawdz(

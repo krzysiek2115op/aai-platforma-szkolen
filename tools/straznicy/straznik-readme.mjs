@@ -41,6 +41,7 @@
  */
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { execSync } from "node:child_process";
 
 if (!existsSync("README.md")) process.exit(0);
 const readme = readFileSync("README.md", "utf8");
@@ -228,6 +229,60 @@ function policzTesty(katalog) {
   });
 }
 
+/* 9. TABELE W CAŁYM REPO, NIE TYLKO W README (P1 poz. 23).
+
+   Wiersz o innej liczbie komórek niż nagłówek jego tabeli renderuje się na
+   GitHubie UCIĘTY — nadmiarowe komórki po prostu znikają, a w edytorze
+   wszystko wygląda poprawnie. Reguła 8 pilnowała tego tylko w README;
+   zmierzone przy P1 poz. 23: sześć takich wierszy w repo, w tym DWA
+   w `docs/plugin-3/DIAGRAM.md` chowające 2677 znaków opisu kroków T2 i T3
+   — i jeden w samym README, w wierszu opisującym… tę właśnie klasę błędu.
+
+   Znak `|` wewnątrz kodu inline też jest separatorem kolumny — w tabeli
+   trzeba go pisać `\|`. */
+{
+  const dokumenty = execSync("git ls-files '*.md'", { encoding: "utf8" })
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  if (dokumenty.length === 0) {
+    bledy.push("reguła tabel nie znalazła ANI JEDNEGO dokumentu markdown — przechodziłaby po pustce (samokontrola zakresu).");
+  }
+  let sprawdzonychTabel = 0;
+  for (const plik of dokumenty) {
+    const linie = readFileSync(plik, "utf8").split("\n");
+    let kolumn = 0;
+    let wKodzie = false;
+    for (const [i, l] of linie.entries()) {
+      if (/^\s*```/.test(l)) {
+        wKodzie = !wKodzie;
+        continue;
+      }
+      if (wKodzie) continue;
+      const t = l.trim();
+      if (!t.startsWith("|")) {
+        kolumn = 0;
+        continue;
+      }
+      // `\|` to uciekniona kreska — nie liczy się jako granica komórki.
+      const komorek = t.replace(/\\\|/g, "").split("|").length - 2;
+      if (/^\|[\s:-]+\|[\s:|-]*$/.test(t)) {
+        kolumn = komorek;
+        sprawdzonychTabel += 1;
+        continue;
+      }
+      if (kolumn > 0 && komorek !== kolumn) {
+        bledy.push(
+          `${plik}:${i + 1}: wiersz tabeli ma ${komorek} komórek przy nagłówku o ${kolumn} — GitHub utnie nadmiarowe, a w edytorze wygląda poprawnie. Znak | w kodzie inline pisz jako \\|.`
+        );
+      }
+    }
+  }
+  if (sprawdzonychTabel === 0) {
+    bledy.push("reguła tabel nie znalazła ANI JEDNEJ tabeli w repo — przechodziłaby po pustce (samokontrola zakresu).");
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-readme:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -238,5 +293,5 @@ if (bledy.length > 0) {
   process.exit(1);
 }
 console.log(
-  `straznik-readme: README zgodne ze stanem repo (${naDysku.length} strażników w tabeli, skrypty npm pokryte, kotwice i liczby testów/mutacji zgodne).`,
+  `straznik-readme: README zgodne ze stanem repo (${naDysku.length} strażników w tabeli, skrypty npm pokryte, kotwice i liczby testów/mutacji zgodne, tabele w całym repo bez uciętych wierszy).`,
 );

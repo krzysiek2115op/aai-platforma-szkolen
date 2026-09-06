@@ -69,6 +69,21 @@ final class Aai_Monitor_Tabele {
 	public const SUFIT_WIERSZY_WIZYT = 250000;
 
 	/**
+	 * Sufit liczby wierszy dziennika logowań.
+	 *
+	 * WIEK NIE WYSTARCZY, tak samo jak przy ruchu. Nieudane logowanie zapisuje
+	 * KAŻDY, kto wyśle formularz — zmierzone tempo to 28 wierszy w 1,4 s, czyli
+	 * ~72 000 na godzinę i ~1,7 mln na dobę. Wszystkie są młodsze niż 90 dni,
+	 * więc retencja po wieku nie rusza ich w ogóle: jedna uparta próba
+	 * zgadywania hasła rozdyma tabelę, kopie zapasowe i ekran właściciela.
+	 *
+	 * Sufit jest niższy niż przy ruchu, bo dziennik logowań ma inny cel:
+	 * pokazać SERIE prób, nie zebrać komplet historii. Sto tysięcy wierszy to
+	 * przy normalnym ruchu lata, a przy ataku — okno, w którym widać wzorzec.
+	 */
+	public const SUFIT_WIERSZY_LOGOWAN = 100000;
+
+	/**
 	 * Pełna nazwa tabeli z prefiksem instalacji i prefiksem wtyczki.
 	 *
 	 * @param string $nazwa Nazwa bez prefiksów, np. `logowania`.
@@ -213,13 +228,35 @@ final class Aai_Monitor_Tabele {
 	}
 
 	/**
-	 * Dociąga zmiany schematu po aktualizacji wtyczki — bez wołania
-	 * `dbDelta` przy każdym żądaniu.
+	 * Dociąga schemat po aktualizacji wtyczki — ale NIGDY po jej cofnięciu.
+	 *
+	 * Sprawdzenie jest jedną opcją z cache'u, czyli tanie przy każdym
+	 * żądaniu; `dbDelta` (kosztowne) rusza wyłącznie wtedy, gdy wersja
+	 * w bazie jest STARSZA od wersji w kodzie.
+	 *
+	 * DLACZEGO NIE ZWYKŁE `!==` (MAR-A-18). Nierówność spełnia też
+	 * DOWNGRADE — wgranie starszej wtyczki na nowszy schemat. Wtedy
+	 * uruchamiał się `utworz()` STAREJ wersji i zapisywał starą wersję jako
+	 * aktualną. Dziś byłoby to nieszkodliwe (historia schematu zna wyłącznie
+	 * dodawanie, a `dbDelta` nie usuwa kolumn), ale ryzyko jest konkretne:
+	 * `dbDelta` wystawia `ALTER … CHANGE`, gdy typ kolumny się różni, a ta
+	 * instalacja stoi na nieścisłym `sql_mode` — pierwsze zwężenie w historii
+	 * (choćby `lessons.content` z `mediumtext` na `text`) UCIĘŁOBY PROZĘ
+	 * LEKCJI po cichu. Schemat nowszy niż kod zostaje więc nietknięty,
+	 * a rozjazd trafia do dziennika serwera zamiast do danych.
 	 */
 	public static function dociagnij_schemat(): void {
-		if ( get_option( self::OPCJA_WERSJI ) !== AAI_MONITOR_WERSJA ) {
-			self::utworz();
+		$w_bazie = (string) get_option( self::OPCJA_WERSJI, '' );
+		if ( AAI_MONITOR_WERSJA === $w_bazie ) {
+			return;
 		}
+		if ( '' !== $w_bazie && version_compare( $w_bazie, AAI_MONITOR_WERSJA, '>' ) ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				'aai-monitor: schemat w bazie (' . $w_bazie . ') jest NOWSZY niż kod (' . AAI_MONITOR_WERSJA . ') — nie cofam go. Wgraj wtyczkę w wersji co najmniej takiej, jaka stoi w bazie.'
+			);
+			return;
+		}
+		self::utworz();
 	}
 
 	/**

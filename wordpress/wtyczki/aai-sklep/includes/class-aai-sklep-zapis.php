@@ -167,10 +167,12 @@ final class Aai_Sklep_Zapis {
 		 * stanie odmawiamy, bo cisza znaczyłaby zgodę na skasowanie cudzego,
 		 * właśnie opłacanego zakupu.
 		 *
-		 * @param int    $ile Domyślnie zero — sklep bez płatności nie ma zamówień.
+		 * @param int    $ile Domyślna: zero na sklepie, który nigdy nie miał
+		 *                    płatności; `-1` (nie wiem), gdy tabele Pluginu 2
+		 *                    ISTNIEJĄ, a nikt nie odpowiedział.
 		 * @param string $id  Identyfikator kursu.
 		 */
-		$w_drodze = (int) apply_filters( 'aai_sklep_zamowienia_w_drodze', 0, $id );
+		$w_drodze = (int) apply_filters( 'aai_sklep_zamowienia_w_drodze', self::domyslne_zamowienia_w_drodze( $id ), $id );
 
 		self::w_transakcji(
 			static function () use ( $id, $aktor, $pozwol_skasowac_tresc, $pozwol_stracic_dostep, $pozwol_porzucic_zamowienia, $kupujacy, $w_drodze, &$liczniki ): void {
@@ -187,6 +189,43 @@ final class Aai_Sklep_Zapis {
 		do_action( 'aai_sklep_kurs_usuniety', $id, $kupujacy );
 
 		return $liczniki;
+	}
+
+	/**
+	 * Domyślna odpowiedź na „ile zamówień w drodze", gdy nikt nie odpowiada.
+	 *
+	 * PROTOKÓŁ „-1 = NIE WIEM" BYŁ NIEOSIĄGALNY DOKŁADNIE WTEDY, GDY NAPRAWDĘ
+	 * NIE WIADOMO. Dostawcą odpowiedzi jest Plugin 2 i jest starannie
+	 * fail-closed w środku: przy wyjątku oddaje `-1`, a hamulec na `-1`
+	 * odmawia. Tyle że przy wtyczce NIEOBECNEJ `apply_filters` oddawało
+	 * wartość domyślną `0`, czyli „nie ma zamówień" — zgodę na usunięcie.
+	 *
+	 * Komentarz broniący tego zdaniem „sklep bez płatności nie ma zamówień"
+	 * jest prawdziwy dla instalacji, na której Pluginu 2 NIGDY nie było.
+	 * Nie jest prawdziwy dla instalacji, która sprzedawała i ma wtyczkę
+	 * chwilowo wyłączoną — a wtedy właściciel usuwa kurs, widząc „0 zamówień",
+	 * i klient, który dzień wcześniej wybrał przelew, księguje wpłatę i nie
+	 * dostaje nic. To jest dokładnie ten wypadek, po którym ten hamulec
+	 * powstał.
+	 *
+	 * Rozstrzyga DOWÓD PRZY SAMYM KURSIE: `_tutor_course_product_id` zakłada
+	 * WYŁĄCZNIE Plugin 2, przy wiązaniu kursu z produktem WooCommerce. Kurs,
+	 * który to niesie, BYŁ w sprzedaży — więc mógł mieć zamówienia i cisza
+	 * jest niewiedzą. Kurs, który tego nie ma, nie miał czego sprzedać i zero
+	 * jest prawdą.
+	 *
+	 * Pytamy o meta kursu, a NIE o tabele Pluginu 2 — z dwóch powodów. Ta
+	 * warstwa nie ma prawa zależeć od kodu, o którego nieobecność właśnie
+	 * pyta; a nazwy tabel mają w tym projekcie jedno źródło (klasa tabel
+	 * własnej wtyczki) i pilnuje tego strażnik, który złapał pierwszą wersję
+	 * tej metody. Dowód przy kursie jest przy okazji PRECYZYJNIEJSZY:
+	 * odpowiada „czy TEN kurs mógł mieć zamówienia", a nie „czy wtyczka
+	 * kiedykolwiek tu była".
+	 *
+	 * @param string $id Identyfikator kursu.
+	 */
+	private static function domyslne_zamowienia_w_drodze( string $id ): int {
+		return Aai_Sklep_Tutor::produkt_kursu( $id ) > 0 ? -1 : 0;
 	}
 
 	/**
@@ -245,18 +284,28 @@ final class Aai_Sklep_Zapis {
 			);
 		}
 
-		if ( $kupujacy > 0 && ! $pozwol_dostep ) {
+		/*
+		 * `-1` znaczy „nie udało się sprawdzić" i zatrzymuje TAK SAMO jak
+		 * liczba dodatnia — ten sam protokół, co przy zamówieniach w drodze.
+		 * Do 2026-09-05 warunek brzmiał `> 0`, więc niewiedza była
+		 * nieodróżnialna od zmierzonego zera i hamulec milczał dokładnie
+		 * wtedy, gdy najbardziej był potrzebny (wyłączony Tutor przy
+		 * instalacji, która sprzedawała).
+		 */
+		if ( 0 !== $kupujacy && ! $pozwol_dostep ) {
 			throw new Aai_Sklep_Blad_Zapisu(
-				sprintf(
-					/* translators: %d: liczba osób z dostępem do kursu. */
-					_n(
-						'Ten kurs ma %d kupującego — straci dostęp do materiału. Usunięcie wymaga jawnej zgody.',
-						'Ten kurs ma %d kupujących — stracą dostęp do materiału. Usunięcie wymaga jawnej zgody.',
-						$kupujacy,
-						'aai-sklep'
+				$kupujacy < 0
+					? __( 'Nie udało się sprawdzić, ilu ludzi ma dostęp do tego kursu — Tutor LMS nie odpowiada, a w bazie są jego zapisy. Usunięcie wymaga jawnej zgody.', 'aai-sklep' )
+					: sprintf(
+						/* translators: %d: liczba osób z dostępem do kursu. */
+						_n(
+							'Ten kurs ma %d kupującego — straci dostęp do materiału. Usunięcie wymaga jawnej zgody.',
+							'Ten kurs ma %d kupujących — stracą dostęp do materiału. Usunięcie wymaga jawnej zgody.',
+							$kupujacy,
+							'aai-sklep'
+						),
+						$kupujacy
 					),
-					$kupujacy
-				),
 				array( 'kupujacy' => $kupujacy )
 			);
 		}
@@ -933,20 +982,72 @@ final class Aai_Sklep_Zapis {
 	/**
 	 * Transakcja. Awaria w środku cofa CAŁY kurs, nie jego połowę.
 	 *
+	 * KAŻDE Z TRZECH ZAPYTAŃ ODDAJE WYNIK I KAŻDY JEST SPRAWDZANY. Do
+	 * 0.78.0 stały tu trzy gołe `$wpdb->query()`, a każde z nich mogło
+	 * zawieść po cichu i znaczyło co innego:
+	 *
+	 *   - nieudany `START TRANSACTION` — ciało leci BEZ transakcji, więc
+	 *     awaria w środku zostawia kurs w połowie, choć cała ta metoda
+	 *     istnieje po to, żeby tak się nie stało;
+	 *   - nieudany `COMMIT` — najgorszy z trzech i ZMIERZONY: baza wycofuje
+	 *     transakcję przy rozłączeniu, `zapisz_kurs()` oddaje liczniki
+	 *     sukcesu (`zaktualizowane: 1`), panel pisze „Kurs zapisany",
+	 *     `aai_sklep_kurs_zmieniony` ogłasza zmianę siostrom — a w bazie
+	 *     zostaje stara treść. Zmiana właściciela przepada bez jednego
+	 *     objawu, czyli klasa cichej utraty treści, której to repozytorium
+	 *     pilnuje najmocniej;
+	 *   - nieudany `ROLLBACK` — dane ZOSTAJĄ w połowie. Wyjątek z ciała
+	 *     leci dalej (i dobrze), ale wołający przeczyta go jako „nic się
+	 *     nie stało", a stan jest niespójny. Dlatego dokładamy do niego
+	 *     zdanie o nieudanym wycofaniu, zamiast je przemilczeć.
+	 *
+	 * Sprawdzenie stoi PRZY wywołaniu i porównuje z `false` BEZ rzutowania.
+	 * Rzutowanie na `int` przed porównaniem zamienia `false` w zero i czyni
+	 * sprawdzenie martwym — dokładnie tak umarła kontrola retencji
+	 * w Pluginie 3 (patrz `Aai_Monitor_Zapis::sprzataj()`).
+	 *
 	 * @param callable $praca Ciało transakcji.
 	 *
+	 * @throws Aai_Sklep_Blad_Zapisu Gdy baza odmówi otwarcia albo zatwierdzenia.
 	 * @throws Throwable Cokolwiek rzuci ciało — po wycofaniu zmian.
 	 */
 	private static function w_transakcji( callable $praca ): void {
 		global $wpdb;
 
-		$wpdb->query( 'START TRANSACTION' );
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+			throw new Aai_Sklep_Blad_Zapisu(
+				sprintf( 'nie udało się otworzyć transakcji: %s', $wpdb->last_error )
+			);
+		}
+
 		try {
 			$praca();
-			$wpdb->query( 'COMMIT' );
 		} catch ( Throwable $blad ) {
-			$wpdb->query( 'ROLLBACK' );
+			if ( false === $wpdb->query( 'ROLLBACK' ) ) {
+				/*
+				 * Dane towarzyszące niosą oryginalny komunikat, bo klasa
+				 * wyjątku tego projektu nie przyjmuje poprzednika — jej
+				 * drugi argument to tablica dla człowieka (liczba lekcji
+				 * z treścią itp.), nie kod błędu. Bez tej gałęzi wołający
+				 * zobaczyłby wyłącznie pierwotną awarię i przeczytał ją
+				 * jako „nic się nie stało, transakcja wycofana".
+				 */
+				throw new Aai_Sklep_Blad_Zapisu(
+					sprintf(
+						'zapis padł (%s), a wycofanie zmian NIE POWIODŁO SIĘ (%s) — dane mogą być w połowie, sprawdź kurs przed kolejnym zapisem',
+						$blad->getMessage(),
+						$wpdb->last_error
+					),
+					array( 'pierwotny_blad' => $blad->getMessage() )
+				);
+			}
 			throw $blad;
+		}
+
+		if ( false === $wpdb->query( 'COMMIT' ) ) {
+			throw new Aai_Sklep_Blad_Zapisu(
+				sprintf( 'nie udało się zatwierdzić zapisu: %s', $wpdb->last_error )
+			);
 		}
 	}
 

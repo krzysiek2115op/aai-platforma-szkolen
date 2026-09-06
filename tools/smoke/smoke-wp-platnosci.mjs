@@ -174,6 +174,55 @@ sprawdz(
   `po deaktywacji Woo i sync --napraw silnik w BAZIE to „${monetizePo}", a przed testem był „${monetizePrzed}" — sprzątanie nie przywróciło stanu`
 );
 
+/* ── 5b. wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy ── */
+
+/*
+ * P1 poz. 19. Do 0.68.0 brak Pluginu 1 kończył kontrolę gołym `halt( 0 )`,
+ * przez co ginęło WSZYSTKO, o co kontrola już zapytała i o co miała jeszcze
+ * zapytać — a to są rzeczy od Pluginu 1 niezależne: waluta sklepu, cudze
+ * ustawienia przestawione instalatorem, dziennik dostaw, zamówienia wiszące,
+ * sieroty po skasowanych zamówieniach.
+ *
+ * Mierzymy najostrzejszym przypadkiem: waluta rozjechana, sprzedaż zamknięta
+ * (żeby kod 1 NIE mógł wziąć się z kupowalnych produktów — to inny, już
+ * pilnowany stan) i Plugin 1 wyłączony. Kontrola ma powiedzieć o walucie.
+ */
+const walutaPrzed = phpEval('echo (string) get_option("woocommerce_currency", "");').stdout;
+const sprzedazPrzed = phpEval('echo (string) get_option("aai_platnosci_sprzedaz_otwarta", "");').stdout;
+try {
+  wp("option", "update", "woocommerce_currency", "EUR");
+  wp("aai-platnosci", "sprzedaz", "zamknij");
+  wp("plugin", "deactivate", "aai-sklep");
+  const bezSklepu = wp("aai-platnosci", "sprawdz");
+  const mowiOWalucie = /waluta sklepu to EUR/.test(bezSklepu.stdout + bezSklepu.stderr);
+  sprawdz(
+    bezSklepu.kod === 1,
+    `bez Pluginu 1 kontrola oddała kod ${bezSklepu.kod} przy walucie EUR — wyłączenie JEDNEJ wtyczki ucisza kontrole, które jej nie dotyczą (P1 poz. 19)`
+  );
+  sprawdz(
+    mowiOWalucie,
+    "bez Pluginu 1 kontrola nie NAZYWA rozjazdu waluty — kod 1 bez powodu jest nie do naprawienia przez człowieka"
+  );
+} finally {
+  // Przywracamy stan ZASTANY, nie „domyślny" — smoke-wp-motyw zamykał tak
+  // kiedyś sklep za sobą i wyglądało to jak awaria strony kursu.
+  wp("plugin", "activate", "aai-sklep");
+  wp("option", "update", "woocommerce_currency", walutaPrzed === "" ? "PLN" : walutaPrzed);
+  if (sprzedazPrzed === "") {
+    phpEval('delete_option("aai_platnosci_sprzedaz_otwarta"); echo "ok";');
+  } else {
+    phpEval(`update_option("aai_platnosci_sprzedaz_otwarta", "${sprzedazPrzed}"); echo "ok";`);
+  }
+}
+sprawdz(
+  phpEval('echo (string) get_option("woocommerce_currency", "");').stdout === walutaPrzed,
+  "bramka nie przywróciła waluty sklepu — następne pomiary mierzyłyby jej własny ślad"
+);
+sprawdz(
+  phpEval('echo (string) get_option("aai_platnosci_sprzedaz_otwarta", "");').stdout === sprzedazPrzed,
+  "bramka nie przywróciła stanu sprzedaży — sklep zostałby zamknięty po jej przebiegu"
+);
+
 /* ── 6. żaden ekran nie jest biały ──────────────────────────────────── */
 
 sprawdz((await http("/szkolenia/")) === 200, "front /szkolenia/ nie oddaje 200 przy aktywnym aai-platnosci");

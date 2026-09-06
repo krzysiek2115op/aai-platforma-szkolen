@@ -213,6 +213,67 @@ for (const [wzorzec, czego] of zaslona) {
   }
 }
 
+/*
+ * ZAMEK WYCIEKU POWSTAJE PIERWSZY, A JEDNA AWARIA NIE ZABIERA RESZTY.
+ *
+ * `Aai_Sklep_Lekcja::zarejestruj()` zakłada filtry, które zasłaniają publiczne
+ * listy lekcji (`register_post_type_args`, `pre_get_posts`) — pilnują ich
+ * reguły wyżej. Reguły wyżej nie pytały jednak, CZY TE FILTRY W OGÓLE
+ * POWSTAJĄ. Do 2026-09-05 trzynaście rejestracji stało pod jednym `try`,
+ * a ta była OSTATNIA: rzut w którejkolwiek z dwunastu wcześniejszych
+ * (pierwsza sięga do BAZY) przeskakiwał do `catch`, zamki nie powstawały,
+ * a witryna działała dalej z otwartą dziurą.
+ *
+ * ZMIERZONE, rzut wstrzyknięty w rejestrację nr 2 z 13: strona główna oddaje
+ * 200, a `/?post_type=lesson&feed=rss2` oddaje anonimowi 135 kB PŁATNEJ
+ * TREŚCI w 10 wpisach, z prawdziwymi tytułami lekcji. Przy zdrowym kodzie ten
+ * sam adres oddaje 404. Notka o błędzie jest widoczna wyłącznie dla
+ * administratora w kokpicie, więc nikt nie musiał tego zauważyć.
+ *
+ * Reguła pyta o DWIE rzeczy, obie o kolejność i izolację, nie o nazwy:
+ *   1. rejestracja widoku lekcji jest PIERWSZA spośród wszystkich rejestracji
+ *      w pliku wtyczki;
+ *   2. w haku startowym nie ma `try` obejmującego więcej niż jedną
+ *      rejestrację — bo taki `try` przywraca dokładnie tamten stan.
+ */
+{
+  const PLIK_WTYCZKI = "wordpress/wtyczki/aai-sklep/aai-sklep.php";
+  if (!existsSync(PLIK_WTYCZKI)) {
+    bledy.push(`${PLIK_WTYCZKI}: nie znalazłem pliku wtyczki — reguła o kolejności zamków nie ma czego sprawdzić.`);
+  } else {
+    /*
+     * KOMENTARZE ZDEJMUJEMY PRZED SZUKANIEM. Pierwsza wersja tej reguły
+     * czytała plik surowy i znajdowała `Aai_Sklep_Lekcja::zarejestruj()`
+     * w KOMENTARZU objaśniającym, dlaczego zamek stoi pierwszy — więc
+     * warunek „pierwsza rejestracja to Lekcja" był spełniony zawsze,
+     * także po przeniesieniu zamka na koniec listy. Wykrył to test
+     * negatywny, nie lektura.
+     */
+    const plik = kod(readFileSync(PLIK_WTYCZKI, "utf8"));
+    const hak = plik.slice(plik.indexOf("'plugins_loaded'"));
+    const rejestracje = [...hak.matchAll(/Aai_Sklep_(\w+)::(?:zarejestruj|dociagnij_schemat)\s*\(/g)].map((m) => m[1]);
+
+    if (rejestracje.length < 5) {
+      bledy.push(
+        `${PLIK_WTYCZKI}: w haku startowym widzę ${rejestracje.length} rejestracji — za mało, żeby ta reguła cokolwiek znaczyła. Samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+      );
+    } else if (rejestracje[0] !== "Lekcja") {
+      bledy.push(
+        `${PLIK_WTYCZKI}: pierwszą rejestracją w starcie wtyczki jest Aai_Sklep_${rejestracje[0]}, a nie Aai_Sklep_Lekcja. To ona zakłada zamki na publiczne listy lekcji — awaria czegokolwiek przed nią zostawia witrynę DZIAŁAJĄCĄ i rozdającą płatną treść przez /?post_type=lesson (zmierzone: 135 kB w kanale RSS). Ochrona produktu nie może zależeć od powodzenia rzeczy przed nią.`
+      );
+    }
+
+    for (const blok of hak.matchAll(/\btry\s*\{([\s\S]*?)\n\t\t\}\s*catch/g)) {
+      const ile = [...blok[1].matchAll(/Aai_Sklep_\w+::(?:zarejestruj|dociagnij_schemat)\s*\(/g)].length;
+      if (ile > 1) {
+        bledy.push(
+          `${PLIK_WTYCZKI}: jeden blok try obejmuje ${ile} rejestracji. Wtedy awaria pierwszej zabiera wszystkie następne — a wśród nich zamek wycieku lekcji. Każda rejestracja ma mieć WŁASNĄ osłonę.`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-lekcji-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -220,5 +281,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-lekcji-wp: widok podpięty, dostępu pilnuje Tutor, bez dostępu treść nie jest czytana, renderer ma asercję (z wyjątkiem bloków kodu) i ucieka treść, zrzuty mają wymiary, arkusz zakotwiczony, CSS Tutora nie wchodzi, publiczne listy lekcji zasłonięte, zapowiedź gaśnie razem z kursem."
+  "straznik-lekcji-wp: widok podpięty, dostępu pilnuje Tutor, bez dostępu treść nie jest czytana, renderer ma asercję (z wyjątkiem bloków kodu) i ucieka treść, zrzuty mają wymiary, arkusz zakotwiczony, CSS Tutora nie wchodzi, publiczne listy lekcji zasłonięte i ich zamek powstaje PIERWSZY, zapowiedź gaśnie razem z kursem."
 );

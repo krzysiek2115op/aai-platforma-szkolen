@@ -168,7 +168,7 @@ final class Aai_Sklep_Import {
 		);
 		if ( Aai_Sklep_Tutor::dostepny() ) {
 			foreach ( $paczka['kursy'] as $kurs ) {
-				foreach ( Aai_Sklep_Tutor::synchronizuj_kurs( (string) $kurs['id'] ) as $klucz => $ile ) {
+				foreach ( Aai_Sklep_Tutor::synchronizuj_i_oglos( (string) $kurs['id'] ) as $klucz => $ile ) {
 					$tutor[ $klucz ] += $ile;
 				}
 			}

@@ -3,9 +3,10 @@
  * Plugin Name:       Automatic AI — Płatności
  * Plugin URI:        https://github.com/MatthewPlugins/Pod-strona-Szkolenia
  * Description:       Szew między sklepem kursów a WooCommerce i Tutor LMS: produkt z naszej ceny, powiązanie z kursem, dostawa dostępu i maili. Druga z trzech wtyczek Automatic AI — własnej kasy ani bramki płatności NIE zawiera.
- * Version:           0.2.0
- * Requires at least: 6.5
+ * Version:           0.7.0
+ * Requires at least: 6.9
  * Requires PHP:      8.1
+ * Requires Plugins:  aai-sklep
  * Author:            Automatic AI
  * License:           MIT
  * License URI:       https://opensource.org/licenses/MIT
@@ -22,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
  * WERSJA WTYCZKI, nie wersja projektu (CHANGELOG repo jest źródłem prawdy
  * o wersji projektu). Stała steruje dociąganiem schematu tabel.
  */
-const AAI_PLATNOSCI_WERSJA = '0.2.0';
+const AAI_PLATNOSCI_WERSJA = '0.7.0';
 
 /**
  * PREFIKS TABEL — ta sama decyzja właściciela co przy `aai-sklep`
@@ -138,6 +139,26 @@ register_deactivation_hook(
 			Aai_Platnosci_Ustawienia::przywroc_mail_woo();
 		} catch ( Throwable $e ) {
 			Aai_Platnosci_Komunikaty::zapisz( 'przy przywracaniu maila WooCommerce: ' . $e->getMessage() );
+		}
+		/*
+		 * CUDZE USTAWIENIA WRACAJĄ TAKIE, JAKIE JE ZASTALIŚMY.
+		 *
+		 * Aktywacja przestawia kilkanaście ustawień, które nie należą do tej
+		 * wtyczki: dwa klucze `tutor_option`, cztery opcje WooCommerce, status
+		 * dwóch stron natywnej kasy Tutora i slugi koszyka oraz kasy. Do
+		 * 2026-09-05 deaktywacja cofała z tego DOKŁADNIE JEDNĄ rzecz — mail
+		 * powyżej — a wartość sprzed zmiany żyła wyłącznie na wyjściu komendy.
+		 * Klient wyłączający wtyczkę na stałe zostawał z Tutorem w trybie `wc`
+		 * bez szwu, który ten tryb obsługiwał: sprzedaż kursów przestaje
+		 * działać, a nic tego nie tłumaczy.
+		 *
+		 * Osobny `try`, bo to jest niezależne od maila: awaria jednego nie ma
+		 * prawa zabrać drugiego (ta sama zasada, co przy starcie obu sióstr).
+		 */
+		try {
+			Aai_Platnosci_Ustawienia::przywroc_stan_zastany();
+		} catch ( Throwable $e ) {
+			Aai_Platnosci_Komunikaty::zapisz( 'przy przywracaniu zastanych ustawień: ' . $e->getMessage() );
 		}
 	}
 );

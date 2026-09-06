@@ -139,6 +139,65 @@ final class Aai_Sklep_Tutor {
 	public static function zarejestruj(): void {
 		add_action( 'aai_sklep_kurs_zmieniony', array( self::class, 'na_zmianie' ), 10, 1 );
 		add_action( 'aai_sklep_kurs_usuniety', array( self::class, 'na_usunieciu' ), 10, 1 );
+
+		/*
+		 * JEDYNY WYKRYWACZ ROZJAZDU, KTÓRY DZIAŁA SAM (MAR-A-11).
+		 *
+		 * Do tej wersji WSZYSTKIE porównania kopii żyły w komendach WP-CLI,
+		 * a `porownaj()` była wołana z jednego miejsca w całym repozytorium.
+		 * Alarmy pasywne istniały, ale wyłącznie na ekranach, na które trzeba
+		 * WEJŚĆ. Na produkcji nikt nie uruchamia komend — więc ręczna edycja
+		 * w Course Builderze, skasowanie wpisu kursu albo produkt przestawiony
+		 * przez cudzą wtyczkę nie zostawiały ani wyjątku, ani wpisu w opcji
+		 * błędu. Rozjazd czekał, aż ktoś sam z siebie zada pytanie.
+		 */
+		add_action( self::HAK_KONTROLI, array( self::class, 'kontrola_okresowa' ) );
+		if ( ! wp_next_scheduled( self::HAK_KONTROLI ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::HAK_KONTROLI );
+		}
+	}
+
+	/**
+	 * Codzienna kontrola kopii — wykrywa rozjazd i próbuje go zaleczyć.
+	 *
+	 * WYKRYWACZ JEST TEŻ LEKARZEM, i to nie jest wygoda, tylko warunek
+	 * SAMOGAŚNIĘCIA alarmu. Gdyby ta kontrola tylko zapalała wpis w mapie
+	 * błędów, gasiłby go dopiero następny przebieg — a do tego czasu
+	 * właściciel widziałby w kokpicie alarm o rozjeździe, który sam już
+	 * naprawił zapisem kursu. To jest dokładnie wada, którą naprawiał
+	 * MAR-A-08: alarm, który nie umie zgasnąć.
+	 *
+	 * Kopia jedzie w jedną stronę i jest idempotentna, więc powtórzenie
+	 * kopiowania nie może zaszkodzić — to ta sama operacja, którą właściciel
+	 * wykonuje ręcznie, klikając „Zapisz kurs".
+	 */
+	public static function kontrola_okresowa(): void {
+		if ( ! self::dostepny() ) {
+			return;
+		}
+		try {
+			$wynik = self::porownaj();
+			if ( array() !== $wynik['roznice'] ) {
+				foreach ( self::identyfikatory_kursow() as $id ) {
+					self::synchronizuj_i_oglos( $id );
+				}
+				$wynik = self::porownaj();
+			}
+
+			if ( array() === $wynik['roznice'] ) {
+				self::zapomnij_blad( self::KLUCZ_KONTROLI );
+				return;
+			}
+			self::zapamietaj_blad(
+				self::KLUCZ_KONTROLI,
+				sprintf(
+					'codzienna kontrola znalazła %d różnic i nie zaleczyła ich powtórzeniem kopii — sprawdź „wp aai-sklep sprawdz-tutora"',
+					count( $wynik['roznice'] )
+				)
+			);
+		} catch ( Throwable $blad ) {
+			self::zapamietaj_blad( self::KLUCZ_KONTROLI, 'codzienna kontrola kopii padła: ' . $blad->getMessage() );
+		}
 	}
 
 	/**
@@ -179,9 +238,85 @@ final class Aai_Sklep_Tutor {
 		self::$wstrzymana = true;
 	}
 
+	/**
+	 * Drukuje pole nonce'a wymagane przez handler „przerobiłem lekcję" Tutora.
+	 *
+	 * PO CO OSOBNA METODA (MAR-A-24). Do 0.76.0 robił to szablon, sięgając
+	 * WPROST po `tutor()->nonce_action` i `tutor()->nonce` — jedyne w 37
+	 * szablonach odwołanie do globalnego obiektu cudzej wtyczki, omijające
+	 * TĘ KLASĘ, która deklaruje się jedynym mostem do Tutora.
+	 *
+	 * Cena tego skrótu jest większa, niż wygląda. To nie jest API, tylko
+	 * zwykłe właściwości obiektu: po ich przemianowaniu `wp_nonce_field()`
+	 * dostaje `null`, generuje pole o DOMYŚLNEJ nazwie, formularz renderuje
+	 * się normalnie — i Tutor odrzuca żądanie. Klient klika „Oznacz jako
+	 * przerobioną", **nic się nie dzieje**, pasek postępu stoi, a żadna
+	 * z bramek tego nie zobaczy, bo HTML jest i przycisk jest.
+	 *
+	 * Stąd asercja: brak którejkolwiek właściwości nie ma prawa wydrukować
+	 * przycisku, który zawiedzie po cichu. Wolimy nie pokazać przycisku niż
+	 * pokazać taki, który nie działa.
+	 *
+	 * @return bool Czy pole udało się wydrukować.
+	 */
+	public static function pole_nonce_lekcji(): bool {
+		if ( ! self::dostepny() ) {
+			return false;
+		}
+		$akcja = (string) ( tutor()->nonce_action ?? '' );
+		$nazwa = (string) ( tutor()->nonce ?? '' );
+		if ( '' === $akcja || '' === $nazwa ) {
+			return false;
+		}
+		wp_nonce_field( $akcja, $nazwa, false );
+		return true;
+	}
+
 	/** Wznowienie synchronizacji. */
 	public static function wznow(): void {
 		self::$wstrzymana = false;
+	}
+
+	/**
+	 * Odtwarza kopię kursu i OGŁASZA to wtyczkom siostrzanym.
+	 *
+	 * PO CO TO ISTNIEJE. Dwie drogi masowe — `wp aai-sklep sync` i import —
+	 * wołały `synchronizuj_kurs()` WPROST, z pominięciem akcji
+	 * `aai_sklep_kurs_zmieniony`. Skutki były różne i oba ciche:
+	 *
+	 *   - IMPORT (MAR-A-17): akcja leci w środku pętli, gdy kopii kursu
+	 *     w Tutorze jeszcze NIE MA, więc Plugin 2 nie ma czego powiązać
+	 *     i zostawia produkt jako `draft` z uwagą „dokończy sync". Po
+	 *     pętli import synchronizował Tutora z pominięciem akcji, czyli
+	 *     Plugin 2 nie dostawał drugiej szansy: na świeżej instalacji
+	 *     katalog działał, a ŻADNEGO kursu nie dało się kupić.
+	 *   - SYNC (MAR-A-10): gdy wpisu kursu w Tutorze nie było (skasowany
+	 *     ręcznie, kosz), sync tworzył nowy — BEZ pary met powiązania
+	 *     `_tutor_course_price_type` / `_tutor_course_product_id`. To ten
+	 *     koniec powiązania rozdaje kurs za darmo: `Course::enroll_now()`
+	 *     Tutora zapisuje na każdy kurs niebędący `purchasable`, a przy
+	 *     silniku `wc` `purchasable` czyta wyłącznie te dwie mety.
+	 *
+	 * WŁASNA KOPIA JEST NA CZAS OGŁOSZENIA WSTRZYMANA — inaczej `na_zmianie()`
+	 * przeszłoby całą pracę drugi raz. Poprzedni stan wstrzymania jest
+	 * przywracany, nie zerowany: import wstrzymuje kopię na całą pętlę
+	 * i `wznow()` w środku odsłoniłby ją przedwcześnie.
+	 *
+	 * @param string $id Uuid kursu.
+	 * @return array<string,int> Liczniki kopii.
+	 */
+	public static function synchronizuj_i_oglos( string $id ): array {
+		$liczniki = self::synchronizuj_kurs( $id );
+
+		$byla             = self::$wstrzymana;
+		self::$wstrzymana = true;
+		try {
+			do_action( 'aai_sklep_kurs_zmieniony', $id, $liczniki );
+		} finally {
+			self::$wstrzymana = $byla;
+		}
+
+		return $liczniki;
 	}
 
 	/**
@@ -196,12 +331,61 @@ final class Aai_Sklep_Tutor {
 	 *
 	 * @param string $id Identyfikator kursu w naszych tabelach.
 	 */
+	/**
+	 * Ślad zostawiany na czas kopiowania — patrz na_zmianie() (Z-11).
+	 *
+	 * Widzi go kokpit i `wp aai-sklep sprawdz-tutora`, bo mieszka w tej
+	 * samej mapie co prawdziwe błędy. Zostaje wyłącznie wtedy, gdy proces
+	 * umarł w pół drogi: fatal PHP, limit czasu, restart, `kill`.
+	 */
+	/**
+	 * Zdarzenie codziennej kontroli kopii (MAR-A-11).
+	 */
+	public const HAK_KONTROLI = 'aai_sklep_kontrola_kopii';
+
+	/**
+	 * Klucz w mapie alarmów zarezerwowany dla kontroli okresowej.
+	 *
+	 * Nie jest identyfikatorem kursu — zaczyna się od podkreślenia, żeby
+	 * nie mógł zderzyć się z żadnym uuid.
+	 */
+	public const KLUCZ_KONTROLI = '_kontrola_okresowa';
+
+	public const SLAD_PRZERWANIA = 'kopia przerwana w pół — zapisz kurs jeszcze raz (fatal PHP, limit czasu albo restart procesu)';
+
 	public static function na_zmianie( string $id ): void {
 		if ( self::$wstrzymana || ! self::dostepny() ) {
 			return;
 		}
+		/*
+		 * ZNACZNIK „W TRAKCIE" STAWIAMY PRZED PĘTLĄ (Z-11).
+		 *
+		 * `Aai_Sklep_Zapis` ma prawdziwą transakcję z `ROLLBACK`, ale kopia
+		 * do Tutora to 87 wpisów przez Posts API — całkowicie POZA nią i bez
+		 * rollbacku. `catch ( Throwable )` niżej łapie wyjątki, a
+		 * `max_execution_time`, wyczerpanie pamięci i `kill` to w PHP FATAL
+		 * ERROR, nie wyjątek: nie wykona się wtedy ani `zapomnij_blad`, ani
+		 * `zapamietaj_blad`, więc urwanie kopii na 40. wpisie nie zostawiało
+		 * ŻADNEGO śladu. Klienci czytali materiał sprzed poprawki, nadmiar
+		 * nie był sprzątnięty, a właściciel nie miał powodu uruchamiać
+		 * kontroli, bo panel milczał.
+		 *
+		 * Wpis zapisany PRZED pętlą znika przy każdym normalnym końcu —
+		 * udanym (`zapomnij_blad`) i nieudanym (nadpisuje go prawdziwy
+		 * komunikat). Zostaje wyłącznie po śmierci procesu, i wtedy jest
+		 * prawdą. Ceną jest fałszywy alarm dla kogoś, kto zajrzy do kokpitu
+		 * DOKŁADNIE w trakcie zapisu — trwa to ułamek sekundy i znika przy
+		 * następnym odświeżeniu, a alternatywą jest cisza po utracie danych.
+		 */
+		self::zapamietaj_blad( $id, self::SLAD_PRZERWANIA );
 		try {
 			self::synchronizuj_kurs( $id );
+			/*
+			 * UDANA KOPIA GASI ALARM TEGO KURSU — inaczej notatka w kokpicie
+			 * obiecuje naprawę, wykonuje ją i wisi dalej, a kontrola świeci
+			 * kodem 1 przy danych zgodnych co do znaku (MAR-A-20 → MAR-A-08).
+			 */
+			self::zapomnij_blad( $id );
 		} catch ( Throwable $blad ) {
 			self::zapamietaj_blad( $id, $blad->getMessage() );
 		}
@@ -216,8 +400,12 @@ final class Aai_Sklep_Tutor {
 		if ( self::$wstrzymana || ! self::dostepny() ) {
 			return;
 		}
+		// Ten sam znacznik co przy kopiowaniu (Z-11): kasowanie też chodzi
+		// po wpisach w pętli i też może zginąć od fatala w pół drogi.
+		self::zapamietaj_blad( $id, self::SLAD_PRZERWANIA );
 		try {
 			self::usun_kopie( $id );
+			self::zapomnij_blad( $id );
 		} catch ( Throwable $blad ) {
 			self::zapamietaj_blad( $id, $blad->getMessage() );
 		}
@@ -339,7 +527,34 @@ final class Aai_Sklep_Tutor {
 				continue;
 			}
 
-			foreach ( self::plan_kursu( $kurs ) as $pozycja ) {
+			/*
+			 * JEDEN CHORY KURS NIE MOŻE ZAKOŃCZYĆ KONTROLI (MAR-A-12).
+			 *
+			 * `plan_kursu()` woła `linie_tutora()`, a ta SŁUSZNIE rzuca
+			 * wyjątek przy sekcji o nieznanym kształcie — tyle że ta sama
+			 * metoda obsługuje ZAPIS i KONTROLĘ. W kontroli wyjątek
+			 * przechodził przez pętlę bez osłony, więc jedna zła sekcja
+			 * w jednym kursie kończyła `wp aai-sklep sprawdz-tutora`
+			 * NIEPRZECHWYCONYM wyjątkiem (kod 255) i pozostałe kursy
+			 * zostawały niesprawdzone — kontrola milkła dokładnie tam,
+			 * gdzie miała mówić najgłośniej.
+			 *
+			 * Siostrzana `Aai_Platnosci_Zapis::synchronizuj_wszystkie()` ma
+			 * `try/catch` per kurs od początku; tu go brakowało. Awaria jest
+			 * teraz RÓŻNICĄ (kod 1 z opisem), a nie końcem przebiegu.
+			 */
+			try {
+				$plan = self::plan_kursu( $kurs );
+			} catch ( Throwable $e ) {
+				$roznice[] = array(
+					'rodzaj' => 'blad_planu',
+					'co'     => $kurs['slug'],
+					'opis'   => 'nie da się wyliczyć kopii tego kursu: ' . $e->getMessage(),
+				);
+				continue;
+			}
+
+			foreach ( $plan as $pozycja ) {
 				++$sprawdzonych;
 				$id_postu = self::znajdz_po_uuid( $pozycja['uuid'], $pozycja['dane']['post_type'] );
 				$znane[]  = $pozycja['uuid'];
@@ -392,6 +607,32 @@ final class Aai_Sklep_Tutor {
 					);
 				}
 			}
+
+			/*
+			 * DWA WPISY Z TYM SAMYM UUID — dopasowanie staje się loterią.
+			 *
+			 * `znajdz_po_uuid()` pyta o JEDEN wpis (`numberposts => 1`),
+			 * więc przy powtórce bierze pierwszy z brzegu, a kolejność nie
+			 * jest niczym gwarantowana: raz aktualizujemy jeden wpis, raz
+			 * drugi, a `usun_nadmiar()` może skasować ten, którego akurat
+			 * nie wybraliśmy. Do 0.78.0 kontrola tego nie widziała, bo
+			 * pytała tą samą metodą, co zapis — czyli powielała jego
+			 * ślepotę zamiast ją wykrywać.
+			 *
+			 * Plugin 2 ma tę obronę dla własnych produktów od P2 (B4);
+			 * Plugin 1 dla WŁASNEJ kopii jej nie miał, choć to on tworzy
+			 * te wpisy i to jego kopia niesie treść kursu.
+			 */
+			foreach ( self::powtorzone_uuid() as $uuid => $ile ) {
+				$roznice[] = array(
+					'rodzaj' => 'duplikat',
+					'co'     => $uuid,
+					'opis'   => sprintf(
+						'%d wpisów Tutora niesie ten sam uuid — dopasowanie przy synchronizacji jest loterią, a nadmiar może skasować niewłaściwy wpis',
+						$ile
+					),
+				);
+			}
 		}
 
 		return array(
@@ -402,18 +643,70 @@ final class Aai_Sklep_Tutor {
 	}
 
 	/**
-	 * Ostatni zapamiętany błąd synchronizacji (albo null).
+	 * Wszystkie zapamiętane błędy synchronizacji — MAPA `uuid kursu → wpis`.
+	 *
+	 * DLACZEGO MAPA, A NIE JEDEN SLOT. Do 0.74.0 stan błędu żył w jednym
+	 * `update_option()` i był zatrzaskiem oraz kłamcą naraz — dokładnie tak,
+	 * jak Plugin 2 opisał to u siebie (`Aai_Platnosci_Komunikaty`) i naprawił,
+	 * a Plugin 1 miał tę wadę dalej, w JEDYNYM alarmie o cichym rozjeździe
+	 * kopii dla klientów:
+	 *
+	 *   - awaria kursu B nadpisywała zapamiętaną awarię kursu A, więc alarm
+	 *     gasł dokładnie tam, gdzie miał świecić;
+	 *   - `na_zmianie()` po UDANEJ kopii flagi nie kasowało, więc notatka
+	 *     w kokpicie obiecywała „zapisanie kursu jeszcze raz robi to samo",
+	 *     robiła to naprawdę — i wisiała dalej (nieprawda w dokumentacji
+	 *     o zachowaniu, klasa BLAD-018);
+	 *   - `wp aai-sklep sprawdz-tutora` wliczało tę flagę do zgody, więc po
+	 *     dowolnej historycznej awarii kontrola świeciła **kodem 1 na zawsze**,
+	 *     przy danych zgodnych co do znaku. Kontrola, która nie umie
+	 *     zzielenieć, uczy, żeby jej nie ufać.
+	 *
+	 * @return array<string,array{kurs:string,komunikat:string,kiedy:string}>
+	 */
+	public static function bledy(): array {
+		$mapa = get_option( self::OPCJA_BLEDU, array() );
+		return is_array( $mapa ) ? $mapa : array();
+	}
+
+	/**
+	 * Najnowszy zapamiętany błąd synchronizacji (albo null).
 	 *
 	 * @return array{kurs:string,komunikat:string,kiedy:string}|null
 	 */
 	public static function ostatni_blad(): ?array {
-		$blad = get_option( self::OPCJA_BLEDU, null );
-		return is_array( $blad ) ? $blad : null;
+		$mapa = self::bledy();
+		if ( array() === $mapa ) {
+			return null;
+		}
+		$wpisy = array_values( $mapa );
+		usort( $wpisy, static fn( $a, $b ) => strcmp( (string) ( $a['kiedy'] ?? '' ), (string) ( $b['kiedy'] ?? '' ) ) );
+		return (array) end( $wpisy );
 	}
 
-	/** Kasuje zapamiętany błąd — po udanej synchronizacji nie ma czego pokazywać. */
-	public static function zapomnij_blad(): void {
-		delete_option( self::OPCJA_BLEDU );
+	/**
+	 * Kasuje zapamiętany błąd — po udanej kopii nie ma czego pokazywać.
+	 *
+	 * Bez argumentu kasuje CAŁĄ mapę (tak działa `wp aai-sklep sync`, który
+	 * przechodzi wszystkie kursy). Z uuid kasuje wpis DOKŁADNIE tego kursu —
+	 * i to jest droga, którą idzie każdy udany zapis w kreatorze, żeby alarm
+	 * gasł tam, gdzie naprawa naprawdę nastąpiła.
+	 */
+	public static function zapomnij_blad( string $id = '' ): void {
+		if ( '' === $id ) {
+			delete_option( self::OPCJA_BLEDU );
+			return;
+		}
+		$mapa = self::bledy();
+		if ( ! array_key_exists( $id, $mapa ) ) {
+			return;
+		}
+		unset( $mapa[ $id ] );
+		if ( array() === $mapa ) {
+			delete_option( self::OPCJA_BLEDU );
+			return;
+		}
+		update_option( self::OPCJA_BLEDU, $mapa, false );
 	}
 
 	/* ————————————————————— plan kopii ————————————————————— */
@@ -589,6 +882,35 @@ final class Aai_Sklep_Tutor {
 			update_post_meta( (int) $id, $klucz, wp_slash( $wartosc ) );
 		}
 
+		/*
+		 * DOWÓD SKUTKU STOI TU, A NIE TYLKO W KONTROLI (0.78.0).
+		 *
+		 * Do tej wersji metoda kończyła się na pętli `update_post_meta()`
+		 * i oddawała `zaktualizowane` bez pytania, czy cokolwiek doszło.
+		 * Zmierzone filtrem `update_post_metadata` blokującym jedną metę:
+		 * synchronizacja meldowała `zaktualizowane: 1`, `bledy()` było
+		 * puste, a `na_zmianie()` GASIŁO na tej podstawie alarm kursu —
+		 * czyli udana z pozoru kopia kasowała ostrzeżenie o kopii, która
+		 * się nie udała.
+		 *
+		 * Pytamy TĄ SAMĄ funkcją, którą pyta kontrola i którą pytaliśmy
+		 * wyżej o „czy trzeba pisać" — dzięki temu nie ma stanu, który
+		 * zapis uznaje za zrobiony, a `sprawdz-tutora` za rozjazd.
+		 * Rozjazd tuż po zapisie znaczy, że zapisu nie było: wyjątek
+		 * zatrzymuje kopiowanie, słuchacz zapamiętuje błąd, a kokpit
+		 * i kontrola mówią o nim właścicielowi.
+		 */
+		$po_zapisie = self::rozjazdy_postu( get_post( (int) $id ), $dane, $meta );
+		if ( array() !== $po_zapisie ) {
+			throw new Aai_Sklep_Blad_Zapisu(
+				sprintf(
+					'%s: zapis nie doszedł do skutku (%s)',
+					$dane['post_title'],
+					implode( '; ', array_slice( $po_zapisie, 0, 3 ) )
+				)
+			);
+		}
+
 		return array( (int) $id, $stan );
 	}
 
@@ -670,6 +992,27 @@ final class Aai_Sklep_Tutor {
 	/**
 	 * Kasuje wpisy pod kursem, których nie ma już w naszych tabelach.
 	 *
+	 * WPIS BEZ NASZEGO UUID JEST CUDZY I ZOSTAJE.
+	 *
+	 * Do 2026-09-05 pętla kasowała KAŻDY wpis, którego uuid nie było na
+	 * liście — a wpis dodany ręcznie w Course Builderze Tutora ma uuid pusty,
+	 * więc `in_array( '', $zostaja, true )` było zawsze fałszem i leciało
+	 * `wp_delete_post( $id, true )`: force, z pominięciem kosza, bez cofnięcia.
+	 *
+	 * Scenariusz: właściciel dopisuje w Course Builderze bonusową lekcję albo
+	 * erratę (Tutor jest jego naturalnym edytorem), wraca do kreatora,
+	 * poprawia jedno zdanie w opisie kursu i klika „Zapisz". Synchronizacja
+	 * kasuje tamtą lekcję BEZPOWROTNIE, razem z postępem klientów, którzy ją
+	 * odhaczyli. Panel melduje „Kurs zapisany", kontrola kod 0.
+	 *
+	 * Przeczyło to obietnicy zapisanej w DWÓCH miejscach repozytorium —
+	 * `CLAUDE.md` („synchronizacja nie kasuje wpisów spoza kreatora —
+	 * kasowanie cudzej pracy to nie jest jej rola") i README. Obietnica
+	 * została; kod ją teraz dotrzymuje.
+	 *
+	 * Kontrola `sprawdz-tutora` dalej takie wpisy POKAZUJE jako obce —
+	 * i to jest właściwy podział ról: mówimy o nich, nie kasujemy ich.
+	 *
 	 * @param int           $id_kursu Wpis kursu w Tutorze.
 	 * @param array<string> $zostaja  Uuid-y, które mają zostać.
 	 *
@@ -701,15 +1044,20 @@ final class Aai_Sklep_Tutor {
 			);
 			foreach ( (array) $lekcje as $id_lekcji ) {
 				$uuid = (string) get_post_meta( (int) $id_lekcji, self::META_UUID, true );
-				if ( in_array( $uuid, $zostaja, true ) ) {
+				// CUDZE ZOSTAJE. Patrz komentarz przy metodzie.
+				if ( '' === $uuid || in_array( $uuid, $zostaja, true ) ) {
 					continue;
 				}
-				wp_delete_post( (int) $id_lekcji, true );
+				if ( ! wp_delete_post( (int) $id_lekcji, true ) instanceof WP_Post ) {
+					throw new Aai_Sklep_Blad_Zapisu(
+						sprintf( 'nie udało się skasować nadmiarowej lekcji %d w Tutorze', (int) $id_lekcji )
+					);
+				}
 				++$skasowane;
 			}
 
 			$uuid = (string) get_post_meta( (int) $id_modulu, self::META_UUID, true );
-			if ( in_array( $uuid, $zostaja, true ) ) {
+			if ( '' === $uuid || in_array( $uuid, $zostaja, true ) ) {
 				continue;
 			}
 			wp_delete_post( (int) $id_modulu, true );
@@ -874,6 +1222,54 @@ final class Aai_Sklep_Tutor {
 	/* ————————————————————— drobiazgi ————————————————————— */
 
 	/**
+	 * Uuid-y noszone przez WIĘCEJ NIŻ JEDEN wpis Tutora (uuid => ile).
+	 *
+	 * Pytamy bazę wprost, a nie przez `get_posts()`, bo pytanie brzmi
+	 * „ile wpisów ma tę wartość", a `get_posts()` z `numberposts => 1`
+	 * odpowiada „przynajmniej jeden" — czyli dokładnie tak samo dla stanu
+	 * zdrowego i chorego. Zakres to nasze trzy typy wpisów; cudze wpisy
+	 * z tym samym uuid też się liczą, bo synchronizacja natrafi na nie
+	 * tak samo.
+	 *
+	 * @return array<string,int>
+	 */
+	private static function powtorzone_uuid(): array {
+		global $wpdb;
+
+		/*
+		 * ZAPYTANIE BEZ ANI JEDNEJ WKLEJONEJ ZMIENNEJ. Lista naszych typów
+		 * wpisu jest krótka i nie zmienia się w trakcie żądania, więc
+		 * zamiast budować `IN ( %s, %s, %s )` sklejaniem — czego zakazuje
+		 * niezmiennik 6 tej wtyczki, i słusznie, bo granica między
+		 * wejściem a bazą ma być jedna — pytamy o same pary
+		 * (uuid, typ wpisu) i liczymy je w PHP. Wpisów jest rząd stu, więc
+		 * koszt jest żaden, a zapytanie zostaje literałem.
+		 */
+		$typy = array_values( self::typy() );
+
+		$pary = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT pm.meta_value AS uuid, p.post_type AS typ
+				FROM {$wpdb->postmeta} pm
+				JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+				WHERE pm.meta_key = %s AND pm.meta_value <> ''",
+				self::META_UUID
+			)
+		); // phpcs:ignore WordPress.DB.PreparedSQL,WordPress.DB.DirectDatabaseQuery
+
+		$ile = array();
+		foreach ( (array) $pary as $para ) {
+			if ( ! in_array( (string) $para->typ, $typy, true ) ) {
+				continue;
+			}
+			$uuid           = (string) $para->uuid;
+			$ile[ $uuid ] = ( $ile[ $uuid ] ?? 0 ) + 1;
+		}
+
+		return array_filter( $ile, static fn( int $n ): bool => $n > 1 );
+	}
+
+	/**
 	 * Wpis Tutora po naszym uuid. Zwraca ID albo 0.
 	 *
 	 * `post_status => any` obejmuje szkice — inaczej powtórna synchronizacja
@@ -901,10 +1297,30 @@ final class Aai_Sklep_Tutor {
 		if ( '' === trim( $uuid ) ) {
 			return 0;
 		}
+		/*
+		 * KOSZ TEŻ JEST STANEM — `'any'` GO NIE OBEJMUJE.
+		 *
+		 * `post_status => 'any'` w WordPressie znaczy „każdy status POZA
+		 * `trash` i `auto-draft`". Kopia kursu wrzucona do kosza (ręcznie
+		 * w kokpicie Tutora, cudzą wtyczką, przy porządkach) stawała się więc
+		 * dla nas NIEWIDZIALNA, a skutki miała dwa, oba ciche:
+		 *
+		 *   1. `kupujacy()` zwracał 0 przy żywych zapisach — ZMIERZONE: kopia
+		 *      w koszu daje `kupujacy() = 0`, gdy `wp_posts` ma dalej 4 zapisy
+		 *      `completed`. Hamulec C2 („ten kurs ma N kupujących — stracą
+		 *      dostęp") NIE PYTAŁ WTEDY O NIC, więc właściciel kasował kurs,
+		 *      za który ludzie zapłacili, i nic go nie zatrzymywało;
+		 *   2. synchronizacja nie znajdowała kopii i zakładała DRUGĄ, obok
+		 *      tej w koszu.
+		 *
+		 * Pytamy więc o KAŻDY zarejestrowany status. `get_post_stati()` niesie
+		 * też `trash` i `auto-draft`, a przy okazji własne statusy Tutora —
+		 * czyli listę szerszą niż `'any'` z definicji, bez zgadywania nazw.
+		 */
 		$znalezione = get_posts(
 			array(
 				'post_type'   => $typ,
-				'post_status' => 'any',
+				'post_status' => array_keys( get_post_stati() ),
 				'numberposts' => 1,
 				'fields'      => 'ids',
 				'meta_key'    => self::META_UUID, // phpcs:ignore WordPress.DB.SlowDBQuery
@@ -912,6 +1328,34 @@ final class Aai_Sklep_Tutor {
 			)
 		);
 		return $znalezione ? (int) $znalezione[0] : 0;
+	}
+
+	/**
+	 * Czy TEN kurs jest powiązany ze sprzedażą — id produktu albo 0.
+	 *
+	 * PO CO. Hamulec przed skasowaniem kursu pyta Plugin 2 o zamówienia
+	 * w drodze. Gdy Pluginu 2 nie ma, nikt nie odpowiada — i trzeba
+	 * rozstrzygnąć, czy cisza znaczy „nie ma zamówień", czy „nie wiem".
+	 * Rozstrzyga DOWÓD przy samym kursie: `_tutor_course_price_type` = `paid`
+	 * i `_tutor_course_product_id` zakłada WYŁĄCZNIE Plugin 2, przy wiązaniu
+	 * kursu z produktem WooCommerce. Kurs, który to niesie, był w sprzedaży —
+	 * więc mógł mieć zamówienia i cisza jest niewiedzą. Kurs, który tego nie
+	 * ma, nie miał czego sprzedać.
+	 *
+	 * Pytamy o meta, nie o tabele Pluginu 2: ta klasa nie ma prawa zależeć od
+	 * kodu, o którego NIEOBECNOŚĆ właśnie pyta.
+	 *
+	 * @param string $uuid Identyfikator kursu z naszych tabel.
+	 */
+	public static function produkt_kursu( string $uuid ): int {
+		if ( '' === trim( $uuid ) ) {
+			return 0;
+		}
+		$id = self::znajdz_po_uuid( $uuid, self::typy()['kurs'] );
+		if ( $id <= 0 ) {
+			return 0;
+		}
+		return (int) get_post_meta( $id, '_tutor_course_product_id', true );
 	}
 
 	/**
@@ -935,8 +1379,35 @@ final class Aai_Sklep_Tutor {
 	 * @param string $uuid Identyfikator kursu z naszych tabel.
 	 */
 	public static function kupujacy( string $uuid ): int {
-		if ( '' === trim( $uuid ) || ! self::dostepny() || ! function_exists( 'tutor_utils' ) ) {
+		if ( '' === trim( $uuid ) ) {
 			return 0;
+		}
+		/*
+		 * BRAK TUTORA TO NIE ZAWSZE ZERO — CZASEM TO „NIE WIEM".
+		 *
+		 * Do 2026-09-05 stało tu twarde `return 0`, uzasadnione zdaniem: bez
+		 * LMS-a nikt nie ma się gdzie zalogować po materiał, więc nikt dostępu
+		 * nie traci. Zdanie jest prawdziwe dla instalacji, na której Tutora
+		 * NIGDY nie było. Nie jest prawdziwe dla instalacji, która sprzedawała
+		 * i ma wtyczkę chwilowo wyłączoną — na czas diagnozy konfliktu, przy
+		 * aktualizacji, po awarii. Wtedy zapisy dalej leżą w bazie, a my
+		 * meldowaliśmy „0 kupujących" i hamulec przed skasowaniem kursu
+		 * milczał: właściciel kasował kurs, za który ludzie zapłacili, nie
+		 * dostając ANI JEDNEGO pytania.
+		 *
+		 * Rozstrzyga DOWÓD, nie domysł: jeśli w bazie jest choć jeden zapis
+		 * Tutora, to znaczy, że Tutor tu był i pracował — więc jego milczenie
+		 * jest niewiedzą, nie zerem. Oddajemy wtedy `-1`, czyli ten sam
+		 * protokół „nie wiem", którym posługuje się już hamulec zamówień
+		 * w drodze. Na instalacji, która Tutora nigdy nie miała, zapisów nie
+		 * ma i zero zostaje zerem — nikt nie blokuje usuwania na pustym sklepie.
+		 */
+		if ( ! self::dostepny() || ! function_exists( 'tutor_utils' ) ) {
+			global $wpdb;
+			$slad = (int) $wpdb->get_var(
+				$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s LIMIT 1", 'tutor_enrolled' )
+			);
+			return $slad > 0 ? -1 : 0;
 		}
 		$id = self::znajdz_po_uuid( $uuid, self::typy()['kurs'] );
 		if ( $id <= 0 ) {
@@ -1079,14 +1550,12 @@ final class Aai_Sklep_Tutor {
 	 * @param string $komunikat Treść błędu.
 	 */
 	private static function zapamietaj_blad( string $id, string $komunikat ): void {
-		update_option(
-			self::OPCJA_BLEDU,
-			array(
-				'kurs'      => $id,
-				'komunikat' => $komunikat,
-				'kiedy'     => gmdate( 'Y-m-d H:i:s' ),
-			),
-			false
+		$mapa         = self::bledy();
+		$mapa[ $id ]  = array(
+			'kurs'      => $id,
+			'komunikat' => $komunikat,
+			'kiedy'     => gmdate( 'Y-m-d H:i:s' ),
 		);
+		update_option( self::OPCJA_BLEDU, $mapa, false );
 	}
 }

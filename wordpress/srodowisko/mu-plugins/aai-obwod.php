@@ -145,7 +145,7 @@ final class Aai_Obwod {
 	 */
 	private static $nonce = null;
 
-	/** Opcja z agregatem naruszeń (nie autoload — czyta ją tylko ekran/strażnik). */
+	/** Opcja z agregatem naruszeń ze STARSZEJ wersji — dziś tylko do skasowania. */
 	private const RAPORT_OPCJA = 'aai_obwod_csp_raport';
 
 	/** Sufit ciała raportu w bajtach — raport CSP mieści się z zapasem. */
@@ -160,9 +160,6 @@ final class Aai_Obwod {
 	 */
 	private const RAPORT_TYPY = array( 'application/csp-report', 'application/reports+json', 'application/json' );
 
-	/** Ile RÓŻNYCH rodzajów naruszeń trzymamy (dyrektywa+zasób). */
-	private const RAPORT_MAX_RODZAJOW = 200;
-
 	public static function zarejestruj(): void {
 		self::wylacz_xmlrpc();
 		self::odchudz_head();
@@ -173,6 +170,9 @@ final class Aai_Obwod {
 		self::wylacz_hasla_aplikacji();
 		self::podpisz_skrypty();
 		add_action( 'send_headers', array( self::class, 'naglowki' ) );
+		// Jednorazowe sprzątanie po starszej wersji kolektora (raporty CSP
+		// szły wtedy do `wp_options`, dziś idą do dziennika serwera).
+		add_action( 'admin_init', array( self::class, 'sprzatnij_stary_agregat' ) );
 		// Kolektor CSP — obie gałęzie `admin-post.php` (raport przychodzi
 		// z przeglądarki gościa I zalogowanego; to dwa rozłączne haki).
 		add_action( 'admin_post_nopriv_' . self::RAPORT_AKCJA, array( self::class, 'zbierz_raport' ) );
@@ -668,35 +668,37 @@ final class Aai_Obwod {
 	 * @param string $klucz Dyrektywa + zasób.
 	 */
 	private static function dopisz_do_agregatu( string $klucz ): void {
-		$agregat = get_option( self::RAPORT_OPCJA );
-		if ( ! is_array( $agregat ) ) {
-			$agregat = array();
-		}
-		if ( isset( $agregat[ $klucz ] ) ) {
-			$agregat[ $klucz ]['ile']      = (int) $agregat[ $klucz ]['ile'] + 1;
-			$agregat[ $klucz ]['ostatnie'] = time();
-		} elseif ( count( $agregat ) < self::RAPORT_MAX_RODZAJOW ) {
-			$agregat[ $klucz ] = array(
-				'ile'      => 1,
-				'pierwsze' => time(),
-				'ostatnie' => time(),
-			);
-		} else {
-			// Sufit rodzajów osiągnięty — nie rośniemy w nieskończoność.
-			// Nowy, nieznany rodzaj przepada, znane dalej się liczą.
-			return;
-		}
-		update_option( self::RAPORT_OPCJA, $agregat, false );
+		/*
+		 * RAPORT IDZIE DO DZIENNIKA SERWERA, NIE DO BAZY.
+		 *
+		 * Ten punkt jest z natury PUBLICZNY i NIEUWIERZYTELNIONY — raport
+		 * CSP wysyła silnik przeglądarki, więc nie da się go podpisać ani
+		 * opatrzyć nonce'em (bliźniaczy beacon monitoringu podpisujemy tylko
+		 * dlatego, że materiał do podpisu drukujemy sami). Dopóki wynik
+		 * lądował w `wp_options`, każdy POST z internetu, który przeszedł
+		 * sito typu treści, ZAPISYWAŁ SIĘ DO BAZY — a agregat nie miał
+		 * w całym repozytorium ANI JEDNEGO czytelnika, więc jedyną pewną
+		 * konsekwencją tego zapisu było to, że komuś obcemu wolno pisać.
+		 *
+		 * Dziennik serwera jest tu lepszym nośnikiem z trzech powodów: nie
+		 * jest wspólnym stanem aplikacji, rotuje sam i naprawdę bywa
+		 * czytany. Sito typu treści i limit 60 raportów na minutę z adresu
+		 * ZOSTAJĄ — bez nich dziennik zalałby ktoś, kto zna adres.
+		 */
+		error_log( 'aai-obwod: naruszenie CSP — ' . $klucz ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 	}
 
 	/**
-	 * Agregat naruszeń — dla przyszłego ekranu/strażnika (czysty odczyt).
+	 * Sprząta agregat zostawiony przez starszą wersję tego pliku.
 	 *
-	 * @return array<string,array<string,int>>
+	 * Raporty CSP nie mieszkają już w bazie (patrz `dopisz_do_agregatu`),
+	 * a opcja bez czytelnika to śmieć — kasujemy ją raz, przy pierwszym
+	 * żądaniu po aktualizacji.
 	 */
-	public static function raport_csp(): array {
-		$agregat = get_option( self::RAPORT_OPCJA );
-		return is_array( $agregat ) ? $agregat : array();
+	public static function sprzatnij_stary_agregat(): void {
+		if ( false !== get_option( self::RAPORT_OPCJA, false ) ) {
+			delete_option( self::RAPORT_OPCJA );
+		}
 	}
 }
 

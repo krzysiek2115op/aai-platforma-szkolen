@@ -20,8 +20,16 @@ defined( 'ABSPATH' ) || exit;
  * `/szkolenia` to najczęściej nieaktualny link do kursu; każdy inny —
  * zwykłe „nie ma takiej strony", i nie wolno mu mówić o szkoleniach.
  */
-$aai_sciezka = (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH );
-$aai_o_kursie = str_starts_with( ltrim( $aai_sciezka, '/' ), 'szkolenia' );
+/*
+ * O TRASIE ROZSTRZYGA KLASA TRAS, NIE SZABLON (MAR-A-25).
+ *
+ * Do 0.76.0 ten szablon czytał surowy `REQUEST_URI` i miał prefiks
+ * `'szkolenia'` wpisany literałem — jedyny z 37 szablonów czytający
+ * `$_SERVER` i jedyny z literałem trasy. Wtyczka trzyma ścieżki
+ * w `Aai_Sklep_Moje::SCIEZKA` i `Aai_Sklep_Trasy::PODSTRONY`; po zmianie
+ * adresu sklepu ten jeden plik mówiłby dalej o starym.
+ */
+$aai_o_kursie = Aai_Sklep_Trasy::zadanie_w_sklepie();
 
 get_header();
 ?>

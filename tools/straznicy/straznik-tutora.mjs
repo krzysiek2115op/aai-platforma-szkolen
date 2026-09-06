@@ -136,6 +136,34 @@ const PISZE_WPISY = /\b(wp_insert_post|wp_update_post|wp_delete_post|set_post_th
 
 for (const plik of plikiPhp()) {
   if (plik === PLIK_KOPII) continue;
+  /*
+   * JEDEN WYJĄTEK, WĄSKI I UZASADNIONY: `uninstall.php` (MAR-A-16).
+   *
+   * Granica „wpisy Tutora rusza jedno miejsce" chroni przed DWOMA AUTORAMI
+   * kopii w czasie życia wtyczki. Odinstalowanie to koniec tego życia:
+   * wtyczka jest już wyłączona, więc ten plik NIE MA ANI JEDNEJ naszej
+   * klasy — nie może wołać klasy kopii, nawet gdyby chciał. Bez tego
+   * wyjątku obietnica „czyści po sobie do zera" musiałaby zostać
+   * nieprawdziwa, a po wyczyszczeniu witryny zostawałoby 89 wpisów Tutora
+   * i 148 załączników, do których nikt nie ma już źródła.
+   *
+   * Wyjątek jest wąski: sprawdzamy, że kasowanie w tym pliku stoi ZA jawną
+   * zgodą właściciela, a nie wykonuje się przy każdym odinstalowaniu.
+   */
+  if (plik.endsWith("uninstall.php")) {
+    const u = kod(czytaj(plik));
+    /* Pytamy o BRAMKĘ (warunek na fladze kończący `return`), nie o samo
+       wystąpienie jej nazwy — ta pada w pliku także przy `delete_option`,
+       więc wzorzec na napis przechodził po zamianie warunku na `false`
+       (złapane własnym testem negatywnym; dziesiąty nawrót tej pułapki). */
+    const maBramke = /if\s*\(\s*!\s*get_option\(\s*'[a-z_]*kasuj_dane_przy_usuwaniu'[\s\S]{0,400}?return;/.test(u);
+    if (PISZE_WPISY.test(u) && !maBramke) {
+      bledy.push(
+        `${plik}: kasuje wpisy WordPressa BEZ jawnej zgody właściciela (brak bramki kasuj_dane_przy_usuwaniu). Odinstalowanie ma prawo sprzątać po sobie tylko wtedy, gdy ktoś o to poprosił (MAR-A-16).`
+      );
+    }
+    continue;
+  }
   if (PISZE_WPISY.test(kod(czytaj(plik)))) {
     bledy.push(
       `${plik}: tworzy albo kasuje wpisy WordPressa poza klasą kopii. Wszystko, co dotyka wpisów Tutora, musi iść przez jedno miejsce — inaczej kopia zaczyna mieć dwóch autorów i przestaje dać się porównać ze źródłem.`
@@ -199,6 +227,34 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
     if (!/(''|""|0)\s*===\s*(trim\s*\(\s*)?\$uuid|\$uuid\s*===\s*('' |''|"")|empty\s*\(\s*\$uuid\s*\)|''\s*===\s*trim/.test(naglowek) || !/return\s+0\s*;/.test(naglowek)) {
       bledy.push(
         `${plik}: znajdz_po_uuid() nie odrzuca PUSTEGO identyfikatora przed zapytaniem. Zapytanie po pustym meta dopasowuje pierwszy lepszy wpis, więc kopia przejmuje CUDZY moduł i kasuje jego lekcje jako nadmiar (sweep P5: tak zniknęło 18 lekcji Kursu 2).`
+      );
+    }
+
+    /*
+     * KOSZ TEŻ JEST STANEM. `post_status => 'any'` znaczy w WordPressie
+     * „każdy status POZA `trash` i `auto-draft`", więc kopia kursu wrzucona
+     * do kosza stawała się dla nas niewidzialna. Skutki były dwa i oba ciche:
+     * `kupujacy()` zwracał 0 przy ŻYWYCH zapisach — zmierzone: 4 zapisy
+     * `completed` w bazie, a hamulec C2 („ten kurs ma N kupujących")
+     * nie pytał o nic i właściciel kasował kurs, za który zapłacono —
+     * a synchronizacja zakładała DRUGĄ kopię obok tej w koszu.
+     *
+     * Reguła pyta o samo wyszukiwanie po uuid, nie o inne zapytania w pliku:
+     * `usun_nadmiar()` ma prawo NIE widzieć kosza (nie widzieć = nie kasować).
+     */
+    const poczatekZapytania = tresc.indexOf("get_posts", i);
+    const zapytanie = tresc.slice(poczatekZapytania, tresc.indexOf(")", tresc.indexOf("meta_value", poczatekZapytania)));
+    // SAMOKONTROLA ZAKRESU: pusty wycinek znaczy, że reguła nie czyta
+    // zapytania — i milczy zamiast pilnować. Pierwsza wersja szukała
+    // `meta_value` od POCZĄTKU METODY, więc trafiała przed `get_posts`
+    // i wycinek wychodził PUSTY; test negatywny przeszedł na zielono.
+    if (!/'post_status'\s*=>/.test(zapytanie)) {
+      bledy.push(
+        `${plik}: nie umiem odczytać zapytania znajdz_po_uuid() — reguła o koszu nie ma czego sprawdzić i przeszłaby PO PUSTCE.`
+      );
+    } else if (/'post_status'\s*=>\s*'any'/.test(zapytanie)) {
+      bledy.push(
+        `${plik}: znajdz_po_uuid() szuka po 'any', a to w WordPressie NIE OBEJMUJE kosza. Kopia kursu w koszu przestaje istnieć dla kupujacy() — zmierzone: 0 przy czterech żywych zapisach, więc hamulec C2 milczy i kurs opłacony przez ludzi kasuje się bez pytania. Do tego synchronizacja zakłada wtedy drugą kopię obok tej w koszu.`
       );
     }
   }
@@ -313,6 +369,451 @@ for (const sluchacz of ["na_zmianie", "na_usunieciu"]) {
   }
 }
 
+/*
+ * SYNCHRONIZACJA NIE KASUJE CUDZEJ PRACY — I TO MA BYĆ W KODZIE, NIE TYLKO
+ * W OBIETNICY.
+ *
+ * `usun_nadmiar()` kasowała każdy wpis, którego uuid nie było na liście
+ * „zostają". Wpis dodany ręcznie w Course Builderze Tutora ma uuid PUSTY,
+ * a pusty nigdy na tej liście nie jest — więc leciało
+ * `wp_delete_post( $id, true )`: force, z pominięciem kosza, bez cofnięcia.
+ * Zaprzeczało to obietnicy zapisanej w DWÓCH miejscach repozytorium
+ * (CLAUDE.md i README), a bramka, która miała tego dowodzić, tworzyła obcy
+ * wpis BEZ `post_parent` — strukturalnie poza zasięgiem pętli — więc
+ * przechodziła PO PUSTCE.
+ *
+ * Reguła pyta o rozstrzygnięcie: pusty uuid ma kończyć obieg pętli, zanim
+ * dojdzie do kasowania.
+ */
+{
+  const plikKopii = join(WTYCZKA, PLIK_KOPII);
+  const tresc = readFileSync(plikKopii, "utf8");
+  const i = tresc.indexOf("function usun_nadmiar");
+  if (i < 0) {
+    bledy.push(
+      `${plikKopii}: nie ma usun_nadmiar() — samokontrola zakresu: reguła o cudzych wpisach nie ma czego pilnować.`
+    );
+  } else {
+    const cialo = tresc.slice(i, tresc.indexOf("\n\t}", i));
+    const kasowania = (cialo.match(/wp_delete_post\s*\(/g) ?? []).length;
+    const oslony = (cialo.match(/''\s*===\s*\$uuid\s*\|\||\|\|\s*''\s*===\s*\$uuid/g) ?? []).length;
+    if (kasowania === 0) {
+      bledy.push(`${plikKopii}: usun_nadmiar() nic nie kasuje — samokontrola zakresu, reguła mierzyłaby pustkę.`);
+    } else if (oslony < kasowania) {
+      bledy.push(
+        `${plikKopii}: usun_nadmiar() kasuje ${kasowania} rodzajów wpisów, a tylko ${oslony} sprawdza pusty uuid. Wpis dodany ręcznie w Course Builderze ma uuid PUSTY — leci wtedy wp_delete_post(force), bez kosza i bez cofnięcia, razem z postępem klientów, którzy tę lekcję odhaczyli. CLAUDE.md i README obiecują, że tego NIE robimy.`
+      );
+    }
+  }
+}
+
+/* ALARM O ROZJEŹDZIE KOPII MUSI UMIEĆ ZGASNĄĆ (MAR-A-08).
+
+   Do 0.74.0 stan błędu synchronizacji żył w JEDNYM `update_option()`
+   i był zatrzaskiem oraz kłamcą naraz — Plugin 2 opisał tę wadę u siebie
+   słowo w słowo i naprawił, a Plugin 1 miał ją dalej, w JEDYNYM alarmie
+   o cichym rozjeździe kopii dla klientów:
+
+     - awaria kursu B nadpisywała zapamiętaną awarię kursu A;
+     - udana kopia flagi NIE kasowała, więc notatka w kokpicie obiecywała
+       „zapisanie kursu jeszcze raz robi to samo", robiła to naprawdę
+       i wisiała dalej (BLAD-018);
+     - `sprawdz-tutora` wliczało flagę do zgody, więc po dowolnej
+       historycznej awarii kontrola świeciła kodem 1 NA ZAWSZE.
+
+   Reguła pyta o dwie rzeczy, obie o rozstrzygnięciu: czy stan jest MAPĄ
+   (zapis dopisuje do odczytanej mapy, a nie nadpisuje slot) i czy udana
+   synchronizacja gasi wpis TEGO kursu. */
+{
+  const plik = join(WTYCZKA, PLIK_KOPII);
+  const c = kod(readFileSync(plik, "utf8"));
+
+  const iZapamietaj = c.indexOf("function zapamietaj_blad(");
+  if (iZapamietaj < 0) {
+    bledy.push(`${plik}: nie ma zapamietaj_blad() — samokontrola zakresu: reguła o cyklu życia alarmu nie ma czego pilnować (MAR-A-08).`);
+  } else {
+    const cialo = c.slice(iZapamietaj, c.indexOf("\n\t}", iZapamietaj));
+    // Mapa: zapis czyta stan i dopisuje pod kluczem kursu.
+    if (!/\$\w+\s*=\s*self::bledy\(\)/.test(cialo) || !/\$\w+\[\s*\$id\s*\]\s*=/.test(cialo)) {
+      bledy.push(
+        `${plik}: zapamietaj_blad() nie dopisuje do MAPY per kurs (brak odczytu self::bledy() albo przypisania pod $id). Jeden slot to zatrzask i kłamca naraz: awaria kursu B kasuje alarm kursu A, a alarm nie ma jak zgasnąć po naprawie (MAR-A-08).`
+      );
+    }
+  }
+
+  const iNaZmianie = c.indexOf("function na_zmianie(");
+  if (iNaZmianie < 0) {
+    bledy.push(`${plik}: nie ma na_zmianie() — samokontrola zakresu reguły o gaszeniu alarmu (MAR-A-08).`);
+  } else {
+    const cialo = c.slice(iNaZmianie, c.indexOf("\n\t}", iNaZmianie));
+    // Gaszenie MUSI być w gałęzi sukcesu (przed catch), i to dla TEGO kursu.
+    const doCatch = cialo.split("catch")[0];
+    if (!/zapomnij_blad\(\s*\$id\s*\)/.test(doCatch)) {
+      bledy.push(
+        `${plik}: udana kopia nie gasi alarmu tego kursu (brak zapomnij_blad( $id ) w gałęzi sukcesu na_zmianie()). Notatka w kokpicie obiecuje wtedy naprawę, wykonuje ją i wisi dalej, a kontrola świeci kodem 1 przy danych zgodnych co do znaku (MAR-A-08, BLAD-018).`
+      );
+    }
+  }
+}
+
+/* DROGI MASOWE OGŁASZAJĄ ZMIANĘ WTYCZKOM SIOSTRZANYM (MAR-A-10, MAR-A-17).
+
+   `wp aai-sklep sync` i import wołały `synchronizuj_kurs()` WPROST,
+   z pominięciem akcji `aai_sklep_kurs_zmieniony`. Skutki były różne i oba
+   ciche: import na świeżej instalacji zostawiał WSZYSTKIE produkty jako
+   `draft` (katalog działa, nic nie da się kupić — zmierzone), a `sync`
+   odtwarzający skasowany wpis kursu nie odtwarzał pary met powiązania,
+   czyli tego końca, który rozdaje kurs ZA DARMO.
+
+   Reguła pyta o zachowanie, nie o nazwę pliku: żadna droga poza samą
+   klasą kopii nie wywołuje `synchronizuj_kurs()` bez ogłoszenia. */
+{
+  const OGLASZA = "synchronizuj_i_oglos";
+  const kopiaPlik = join(WTYCZKA, PLIK_KOPII);
+  const kopiaKod = kod(readFileSync(kopiaPlik, "utf8"));
+
+  // Samokontrola zakresu: metoda ogłaszająca musi istnieć i naprawdę emitować.
+  const iOglos = kopiaKod.indexOf(`function ${OGLASZA}(`);
+  if (iOglos < 0) {
+    bledy.push(`${kopiaPlik}: nie ma ${OGLASZA}() — drogi masowe nie mają czym ogłosić zmiany siostrom (MAR-A-10/A-17).`);
+  } else {
+    const cialo = kopiaKod.slice(iOglos, kopiaKod.indexOf("\n\t}", iOglos));
+    if (!/do_action\(\s*'aai_sklep_kurs_zmieniony'/.test(cialo)) {
+      bledy.push(`${kopiaPlik}: ${OGLASZA}() nie emituje aai_sklep_kurs_zmieniony — nazwa obiecuje ogłoszenie, którego nie ma (MAR-A-10/A-17).`);
+    }
+    // Własna kopia MUSI być na czas ogłoszenia wstrzymana, a stan PRZYWRÓCONY,
+    // nie wyzerowany: import wstrzymuje na całą pętlę.
+    if (!/\$\w+\s*=\s*self::\$wstrzymana[\s\S]{0,200}?self::\$wstrzymana\s*=\s*true[\s\S]{0,400}?finally[\s\S]{0,200}?self::\$wstrzymana\s*=\s*\$\w+/.test(cialo)) {
+      bledy.push(
+        `${kopiaPlik}: ${OGLASZA}() nie wstrzymuje własnej kopii na czas ogłoszenia z przywróceniem poprzedniego stanu. Bez wstrzymania na_zmianie() przechodzi całą pracę drugi raz; bez przywrócenia (a nie wyzerowania) import odsłania kopię w środku swojej pętli (MAR-A-10/A-17).`
+      );
+    }
+  }
+
+  // Żadne miejsce POZA klasą kopii nie woła synchronizuj_kurs() wprost.
+  const pliki = [];
+  const zbierz = (k) => {
+    for (const w of readdirSync(k)) {
+      const s = join(k, w);
+      if (statSync(s).isDirectory()) zbierz(s);
+      else if (w.endsWith(".php")) pliki.push(s);
+    }
+  };
+  zbierz(WTYCZKA);
+  let wolan = 0;
+  for (const p of pliki) {
+    if (p.endsWith(PLIK_KOPII)) continue;
+    const t = kod(readFileSync(p, "utf8"));
+    for (const m of t.matchAll(/Aai_Sklep_Tutor::synchronizuj_kurs\s*\(/g)) {
+      wolan += 1;
+      const nr = t.slice(0, m.index).split("\n").length;
+      bledy.push(
+        `${p}:${nr}: woła synchronizuj_kurs() z pominięciem ogłoszenia. Plugin 2 nie dostaje wtedy sygnału: po imporcie produkty zostają szkicami (nic nie da się kupić), a po odtworzeniu skasowanego wpisu kurs zostaje bez pary met powiązania, czyli rozdawany za darmo. Wołaj ${OGLASZA}() (MAR-A-10/A-17).`
+      );
+    }
+  }
+  // Samokontrola: obie drogi masowe muszą tej metody używać.
+  const uzycia = pliki.filter((p) => !p.endsWith(PLIK_KOPII)).filter((p) => new RegExp(OGLASZA).test(readFileSync(p, "utf8"))).length;
+  if (0 === wolan && uzycia < 2) {
+    bledy.push(
+      `${WTYCZKA}: tylko ${uzycia} plik(i) poza klasą kopii wołają ${OGLASZA}() przy oczekiwanych co najmniej 2 (sync i import) — reguła o ogłaszaniu przechodziłaby po pustce (samokontrola zakresu, MAR-A-10/A-17).`
+    );
+  }
+}
+
+/* POWRÓT WTYCZKI OGŁASZA KURSY SIOSTROM (MAR-A-14).
+
+   Deaktywacja Pluginu 2 przestawia produkty na `draft`, a jego aktywacja
+   próbuje to cofnąć — i wychodzi na braku Pluginu 1, gdy ten był wtedy
+   wyłączony. Bez pętli w haku aktywacji powrót Pluginu 1 nie synchronizował
+   NICZEGO: sklep miał działający katalog, w którym nic nie dało się kupić,
+   do ręcznego `wp aai-platnosci sync` (zmierzone). */
+{
+  const g = kod(czytaj(PLIK_GLOWNY));
+  const i = g.indexOf("register_activation_hook");
+  if (i < 0) {
+    bledy.push(`${join(WTYCZKA, PLIK_GLOWNY)}: nie ma haka aktywacji — samokontrola zakresu reguły o ogłaszaniu kursów po powrocie wtyczki (MAR-A-14).`);
+  } else {
+    const blok = g.slice(i, i + 2500);
+    if (!/do_action\(\s*'aai_sklep_kurs_zmieniony'/.test(blok)) {
+      bledy.push(
+        `${join(WTYCZKA, PLIK_GLOWNY)}: aktywacja nie ogłasza kursów (brak do_action aai_sklep_kurs_zmieniony w haku aktywacji). Powrót tej wtyczki po wyłączeniu zostawia wtedy produkty Pluginu 2 jako szkice na zawsze — katalog działa, kupić nie da się nic, i nic tego nie zgłasza (MAR-A-14).`
+      );
+    }
+    if (!/catch\s*\(\s*\\?Throwable\s/.test(blok)) {
+      bledy.push(
+        `${join(WTYCZKA, PLIK_GLOWNY)}: hak aktywacji nie ma osłony catch ( Throwable ). Wyjątek przy aktywacji wtyczki to dla właściciela biały ekran w kokpicie (MAR-A-14).`
+      );
+    }
+  }
+}
+
+/* KONTROLA IZOLUJE KURS I UMIE ZAWIEŚĆ (MAR-A-12, MAR-A-07).
+
+   (a) `plan_kursu()` woła `linie_tutora()`, a ta SŁUSZNIE rzuca wyjątek
+       przy sekcji o nieznanym kształcie — tyle że ta sama metoda obsługuje
+       ZAPIS i KONTROLĘ. W kontroli wyjątek szedł przez pętlę po kursach bez
+       osłony, więc jedna zła sekcja kończyła `sprawdz-tutora`
+       NIEPRZECHWYCONYM wyjątkiem i pozostałe kursy zostawały niesprawdzone
+       (zmierzone: z naprawą 39 obiektów drugiego kursu, bez niej — fatal).
+
+   (b) `wp aai-sklep sprawdz` NIE UMIAŁO ZAWIEŚĆ: wypisywało liczniki
+       i kończyło zerem zawsze, więc `postaw.sh` nie miał czego uruchomić
+       i jako JEDYNA z trzech wtyczek Plugin 1 nie miał punktu kontrolnego.
+       Kontrola, która nie umie być czerwona, jest deklaracją, nie kontrolą. */
+{
+  const cli = join(WTYCZKA, "includes", "class-aai-sklep-cli.php");
+  const kopiaPlik = join(WTYCZKA, PLIK_KOPII);
+
+  // (a) pętla kontroli izoluje kurs.
+  const c = kod(readFileSync(kopiaPlik, "utf8"));
+  const i = c.indexOf("function porownaj(");
+  if (i < 0) {
+    bledy.push(`${kopiaPlik}: nie ma porownaj() — samokontrola zakresu reguły o izolacji kursu w kontroli (MAR-A-12).`);
+  } else {
+    const cialo = c.slice(i, c.indexOf("\n\tpublic static function", i + 20));
+    if (!/try\s*\{[\s\S]{0,200}?plan_kursu\([\s\S]{0,200}?catch\s*\(\s*\\?Throwable/.test(cialo)) {
+      bledy.push(
+        `${kopiaPlik}: porownaj() woła plan_kursu() bez osłony Throwable. Jedna sekcja o nieznanym kształcie kończy wtedy CAŁĄ kontrolę nieprzechwyconym wyjątkiem, a pozostałe kursy zostają niesprawdzone — kontrola milknie dokładnie tam, gdzie ma mówić najgłośniej (MAR-A-12).`
+      );
+    }
+  }
+
+  // (b) kontrola sklepu ma drogę do kodu wyjścia != 0.
+  if (!existsSync(cli)) {
+    bledy.push(`${cli}: nie ma komend wtyczki — samokontrola zakresu reguły o kontroli z kodem wyjścia (MAR-A-07).`);
+  } else {
+    const k = kod(readFileSync(cli, "utf8"));
+    const iS = k.indexOf("function sprawdz(");
+    if (iS < 0) {
+      bledy.push(`${cli}: nie ma komendy sprawdz() — Plugin 1 zostaje jedyną wtyczką bez kontroli (MAR-A-07).`);
+    } else {
+      const cialoS = k.slice(iS, k.indexOf("\n\tprivate static function", iS) > 0 ? k.indexOf("\n\tprivate static function", iS) : k.length);
+      if (!/WP_CLI::error\(/.test(cialoS)) {
+        bledy.push(
+          `${cli}: sprawdz() nie ma ani jednej drogi do kodu wyjścia != 0 (brak WP_CLI::error). Kontrola, która kończy zerem ZAWSZE, nie jest kontrolą — postaw.sh nie ma czego z niej odczytać, a instrukcja instalacji zostaje z weryfikacją „na oko" (MAR-A-07).`
+        );
+      }
+      // Tryb JSON nie może uciszać kodu wyjścia.
+      if (!/'json'[\s\S]{0,600}?WP_CLI::halt\(\s*1\s*\)/.test(cialoS)) {
+        bledy.push(
+          `${cli}: sprawdz( --format=json ) nie kończy kodem 1 przy błędach. Kontrola, która milczy tylko dlatego, że ktoś poprosił o JSON, jest gorsza od jej braku: skrypt czytający wyjście uzna sukces (MAR-A-07).`
+        );
+      }
+    }
+  }
+
+  // (b2) …a postaw.sh MUSI ją uruchamiać jako punkt kontrolny.
+  const POSTAW = "wordpress/srodowisko/postaw.sh";
+  if (existsSync(POSTAW)) {
+    const p = readFileSync(POSTAW, "utf8");
+    if (!/if\s*!\s*powod=.*aai-sklep sprawdz/.test(p)) {
+      bledy.push(
+        `${POSTAW}: nie uruchamia „wp aai-sklep sprawdz” jako punktu kontrolnego (obie siostry mają swój). Krok zerowy każdego testu ręcznego przechodzi wtedy przy sklepie w stanie do naprawy (MAR-A-07).`
+      );
+    }
+  }
+}
+
+/* KONTROLA LICZY ZRZUTY, KTÓRYCH ŻĄDA PROZA (MAR-A-28).
+
+   Źródłem prawdy są pliki repo, kopią biblioteka mediów, a przeniesienie
+   jest RĘCZNE i nie było wpięte w nic, co biegnie na produkcji. Po
+   pominięciu trzeciej komendy odtworzenia klient czyta lekcję z podpisanymi
+   dziurami „brak pliku", a obie kontrole świecą kod 0 — bo `ile()` zwraca
+   samą liczbę, a bramki repo nie sięgają na żywą instalację. Ta sama klasa
+   ugryzła nas przy teście odinstalowania: przywrócenie BAZY ze zrzutu NIE
+   przywraca plików. */
+{
+  const Z = join(WTYCZKA, "includes", "class-aai-sklep-zrzuty.php");
+  const cli = join(WTYCZKA, "includes", "class-aai-sklep-cli.php");
+  if (!existsSync(Z)) {
+    bledy.push(`${Z}: nie ma klasy zrzutów — samokontrola zakresu reguły o komplecie zrzutów (MAR-A-28).`);
+  } else {
+    const z = kod(readFileSync(Z, "utf8"));
+    if (!/function brakujace\(/.test(z)) {
+      bledy.push(
+        `${Z}: nie ma brakujace() — nic na żywej instalacji nie porównuje kompletu zrzutów z tym, czego żąda proza. Klient widzi wtedy podpisane dziury w środku lekcji, za którą zapłacił, a kontrole świecą kod 0 (MAR-A-28).`
+      );
+    }
+    if (existsSync(cli)) {
+      const c = kod(readFileSync(cli, "utf8"));
+      if (!/Aai_Sklep_Zrzuty::brakujace\(/.test(c)) {
+        bledy.push(
+          `${cli}: kontrola nie liczy zrzutów, których żąda proza (brak wywołania Zrzuty::brakujace). Mechanizm bez wpięcia jest deklaracją, nie kontrolą (MAR-A-28).`
+        );
+      }
+    }
+  }
+}
+
+/* CODZIENNA KONTROLA KOPII ISTNIEJE, JEST WPIĘTA I UMIE ZGASNĄĆ (MAR-A-11).
+
+   Do 0.77.0 wszystkie porównania kopii żyły w komendach WP-CLI, a na
+   produkcji nikt komend nie uruchamia — ręczna edycja w Course Builderze
+   albo skasowany wpis kursu nie zostawiały ani wyjątku, ani wpisu w opcji
+   błędu. Zmierzone: rozjazd → kontrola kod 1 → uruchomienie zdarzenia
+   (0,28 s) → kod 0, a przy WYŁĄCZONYM leczeniu (mutacja) → wpis alarmu
+   pod własnym kluczem.
+
+   Trzy rzeczy naraz, bo każda z osobna daje mechanizm bez skutku:
+   zdarzenie ma być zaplanowane, callback podpięty, a alarm ma się GASIĆ
+   sam przy zgodzie — inaczej wracamy do wady MAR-A-08 (alarm, którego nie
+   da się zgasić). */
+{
+  const t = kod(readFileSync(join( WTYCZKA, PLIK_KOPII ), "utf8"));
+  const glowny = join(WTYCZKA, "aai-sklep.php");
+
+  if (!/wp_schedule_event\s*\(/.test(t) || !/HAK_KONTROLI/.test(t)) {
+    bledy.push(
+      `${join( WTYCZKA, PLIK_KOPII )}: nie planuje okresowej kontroli kopii (brak wp_schedule_event z HAK_KONTROLI). Bez niej JEDYNYM wykrywaczem rozjazdu jest komenda, którą ktoś musi sam z siebie uruchomić — a na produkcji nikt tego nie robi (MAR-A-11).`
+    );
+  }
+  const i = t.indexOf("function kontrola_okresowa(");
+  if (i < 0) {
+    bledy.push(`${join( WTYCZKA, PLIK_KOPII )}: nie ma kontrola_okresowa() — samokontrola zakresu reguły o codziennej kontroli (MAR-A-11).`);
+  } else {
+    const cialo = t.slice(i, t.indexOf("\n\t}", i));
+    if (!/zapomnij_blad\s*\(\s*self::KLUCZ_KONTROLI\s*\)/.test(cialo)) {
+      bledy.push(
+        `${join( WTYCZKA, PLIK_KOPII )}: kontrola_okresowa() nie gasi własnego alarmu przy zgodzie. Alarm, który zapala się sam i nie umie zgasnąć, to wada naprawiana w 0.74.0 (MAR-A-08): kokpit obiecuje naprawę, właściciel ją wykonuje, a wpis wisi dalej (MAR-A-11).`
+      );
+    }
+    if (!/zapamietaj_blad\s*\(\s*self::KLUCZ_KONTROLI/.test(cialo)) {
+      bledy.push(
+        `${join( WTYCZKA, PLIK_KOPII )}: kontrola_okresowa() nie zapala alarmu, gdy rozjazdu nie da się zaleczyć. Kontrola, która przy porażce milczy, jest gorsza od jej braku (MAR-A-11).`
+      );
+    }
+  }
+  if (existsSync(glowny)) {
+    const g = kod(readFileSync(glowny, "utf8"));
+    const d = g.indexOf("register_deactivation_hook(");
+    const cialo = d < 0 ? "" : g.slice(d, g.indexOf("\n);", d));
+    if (!/wp_clear_scheduled_hook\s*\(/.test(cialo)) {
+      bledy.push(
+        `${glowny}: deaktywacja nie zdejmuje zdarzenia okresowej kontroli. Zdarzenie zostawione w harmonogramie woła klasę, której po deaktywacji nie ma (MAR-A-11).`
+      );
+    }
+  }
+}
+
+/* PRZERWANA KOPIA ZOSTAWIA ŚLAD, ZANIM ZACZNIE (Z-11).
+
+   Warstwa zapisu ma transakcję z `ROLLBACK`, ale kopia do Tutora to 87
+   wpisów przez Posts API — poza nią i bez rollbacku. `catch ( Throwable )`
+   łapie wyjątki, a `max_execution_time`, wyczerpanie pamięci i `kill` to
+   w PHP FATAL ERROR, nie wyjątek: nie wykona się wtedy ANI zapamiętanie
+   błędu, ANI zgaszenie alarmu. Urwanie kopii na 40. wpisie nie zostawiało
+   więc żadnego śladu — klienci czytali materiał sprzed poprawki, nadmiar
+   nie był sprzątnięty, a panel milczał.
+
+   Znacznik zapisany PRZED pętlą znika przy każdym normalnym końcu i zostaje
+   wyłącznie po śmierci procesu. Zmierzone: z takim wpisem `sprawdz-tutora`
+   i `sprawdz` kończą KODEM 1, a powtórzony `sync` gasi go i obie wracają
+   do zera. */
+{
+  const t = kod(readFileSync(join( WTYCZKA, PLIK_KOPII ), "utf8"));
+  if (!/const SLAD_PRZERWANIA\s*=/.test(t)) {
+    bledy.push(
+      `${join( WTYCZKA, PLIK_KOPII )}: nie ma stałej SLAD_PRZERWANIA — przerwana kopia (fatal, limit czasu, kill) nie zostawia po sobie żadnego śladu, a wtedy rozjazd wykryje dopiero ktoś, kto sam z siebie uruchomi kontrolę (Z-11).`
+    );
+  }
+  for (const nazwa of ["na_zmianie", "na_usunieciu"]) {
+    const i = t.indexOf(`function ${nazwa}(`);
+    if (i < 0) {
+      bledy.push(`${join( WTYCZKA, PLIK_KOPII )}: nie ma ${nazwa}() — samokontrola zakresu reguły o śladzie przerwanej kopii (Z-11).`);
+      continue;
+    }
+    const cialo = t.slice(i, t.indexOf("\n\t}", i));
+    const slad = cialo.indexOf("SLAD_PRZERWANIA");
+    const proba = cialo.indexOf("try {");
+    if (slad < 0 || proba < 0 || slad > proba) {
+      bledy.push(
+        `${join( WTYCZKA, PLIK_KOPII )}: ${nazwa}() nie zostawia znacznika przerwania PRZED pętlą kopiowania. Po bloku try jest za późno: fatal PHP nie jest wyjątkiem, więc żaden catch się nie wykona i przerwana kopia nie zostawi śladu (Z-11).`
+      );
+    }
+  }
+}
+
+/* BRAK TUTORA JEST WIDOCZNY, NIE CICHY (MAR-A-07).
+
+   `Aai_Sklep_Tutor::na_zmianie()` wychodzi cicho przez `! dostepny()`, więc
+   przy wyłączonym Tutorze każdy zapis kursu zostawiał kopię coraz starszą
+   i NIKT się o tym nie dowiadywał. Obie siostrzane wtyczki mają klasę
+   zależności z komunikatem w kokpicie; ta jedna miała w 28 klasach dokładnie
+   jedno `admin_notices` — to z `catch` w bootstrapie. */
+{
+  const Z = join(WTYCZKA, "includes", "class-aai-sklep-zaleznosci.php");
+  if (!existsSync(Z)) {
+    bledy.push(`${Z}: brak klasy zależności — wyłączony Tutor nie mówi klientowi ani właścicielowi NIC, a kopia kursu przestaje nadążać (MAR-A-07).`);
+  } else {
+    const z = kod(readFileSync(Z, "utf8"));
+    if (!/add_action\(\s*'admin_notices'/.test(z)) {
+      bledy.push(`${Z}: klasa zależności nie rejestruje komunikatu kokpitu — brak Tutora zostaje cichy (MAR-A-07).`);
+    }
+    // Jedno źródło odpowiedzi: pytamy tę samą metodę, co reszta kodu.
+    if (!/Aai_Sklep_Tutor::dostepny\(\)/.test(z)) {
+      bledy.push(
+        `${Z}: klasa zależności wyprowadza obecność Tutora niezależnie od Aai_Sklep_Tutor::dostepny(). Dwie kopie tego warunku rozjadą się przy pierwszej zmianie w Tutorze, a komunikat zacznie mówić co innego niż kod, który z tej odpowiedzi korzysta (MAR-A-13).`
+      );
+    }
+    const g = kod(czytaj(PLIK_GLOWNY));
+    if (!/Aai_Sklep_Zaleznosci::zarejestruj\(\)/.test(g)) {
+      bledy.push(
+        `${join(WTYCZKA, PLIK_GLOWNY)}: klasa zależności nie jest podpięta w pliku głównym — kod żyje, ale nikt go nie słucha (lekcja z uruchom-wszystkie.mjs).`
+      );
+    }
+  }
+}
+
+/* ————————— 8. zapis kopii DOWODZI skutku, a kontrola widzi duplikaty —————————
+   Dwie strony jednej sprawy, obie zgłoszone z zewnątrz (0.78.0).
+
+   (a) `zapisz_post()` kończył się pętlą `update_post_meta()` i oddawał
+       „zaktualizowane" bez pytania, czy cokolwiek doszło. Zmierzone
+       filtrem blokującym jedną metę: kopia meldowała sukces, błędów zero,
+       a słuchacz gasił na tej podstawie alarm kursu.
+
+   (b) `porownaj()` szuka wpisu tą SAMĄ funkcją co zapis, a ta pyta o jeden
+       wpis. Przy dwóch wpisach z tym samym uuid brała pierwszy z brzegu
+       i nigdy tego nie zgłaszała — kontrola powielała ślepotę zapisu
+       zamiast ją wykrywać. Duplikat powstaje wprost z (a): nieudany zapis
+       znacznika sprawia, że następna synchronizacja nie znajduje wpisu
+       i zakłada drugi. */
+{
+  const t = kod(czytaj(PLIK_KOPII));
+
+  const zapis = t.match(/private static function zapisz_post\([\s\S]*?\n\t\}/);
+  if (!zapis) {
+    bledy.push(
+      `${join(WTYCZKA, PLIK_KOPII)}: nie znalazłem ciała zapisz_post() (8a). Samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+    );
+  } else if (
+    // Pytamy o ROZSTRZYGNIĘCIE, nie o obecność nazwy: `rozjazdy_postu`
+    // pada w tej metodzie także WYŻEJ, w gałęzi „czy trzeba pisać", więc
+    // wzorzec na samą nazwę przechodził po wyłączeniu dowodu skutku
+    // (złapał to audyt mutacyjny — dziesiąty nawrót tej pułapki).
+    !/\$po_zapisie\s*=\s*self::rozjazdy_postu\s*\(/.test(zapis[0]) ||
+    !/array\(\)\s*!==\s*\$po_zapisie/.test(zapis[0]) ||
+    !/throw new Aai_Sklep_Blad_Zapisu/.test(zapis[0])
+  ) {
+    bledy.push(
+      `${join(WTYCZKA, PLIK_KOPII)}: zapisz_post() nie dowodzi skutku po zapisie met (8a). Samo wywołanie update_post_meta() nie mówi, czy zapis doszedł — cudzy filtr update_post_metadata potrafi go zatrzymać, a wtedy kopia melduje „zaktualizowane", błędów jest zero i alarm kursu GAŚNIE. Pytaj po zapisie tą samą funkcją, którą pyta kontrola, i rzuć wyjątek przy różnicy.`
+    );
+  }
+
+  const kontrola = t.match(/public static function porownaj\([\s\S]*?\n\t\}/);
+  if (!kontrola) {
+    bledy.push(
+      `${join(WTYCZKA, PLIK_KOPII)}: nie znalazłem ciała porownaj() (8b). Samokontrola zakresu.`
+    );
+  } else if (!/powtorzone_uuid\s*\(/.test(kontrola[0])) {
+    bledy.push(
+      `${join(WTYCZKA, PLIK_KOPII)}: kontrola nie pyta o powtórzone uuid (8b). znajdz_po_uuid() bierze wtedy pierwszy wpis z brzegu, dopasowanie jest loterią, a usun_nadmiar() może skasować niewłaściwy wpis — i nikt tego nie zgłasza. Plugin 2 ma tę obronę dla własnych produktów od P2 (B4).`
+    );
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-tutora:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -320,5 +821,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu."
+  "straznik-tutora: kopia jest podpięta, jedzie w jedną stronę, każdy zapis ją ogłasza, wpisy Tutora rusza jedno miejsce, meta przez wp_slash, spłaszczenie sekcji ma asercję, awaria kopii nie cofa zapisu, pusty uuid nie dopasowuje cudzego wpisu, przerwana synchronizacja leczy się powtórzeniem zamiast mnożyć komplet, ukrycie kursu nie odbiera dostępu kupującemu ani nie rozdaje go obcemu, cudze wpisy z Course Buildera zostają, alarm o rozjeździe jest mapą per kurs i gaśnie po naprawie, drogi masowe ogłaszają zmianę siostrom, powrót wtyczki ogłasza kursy, kontrola izoluje kurs i umie zawieść, liczy zrzuty żądane przez prozę, przerwana kopia zostawia ślad, codzienna kontrola jest wpięta i umie zgasnąć, brak Tutora jest widoczny, zapis kopii dowodzi skutku met, a kontrola widzi powtórzone uuid."
 );

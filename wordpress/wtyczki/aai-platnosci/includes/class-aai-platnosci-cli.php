@@ -255,10 +255,21 @@ final class Aai_Platnosci_Cli {
 	 * którą mail wychodzi drugi raz — znacznik broni przed duplikatem
 	 * z cudzej rekurencji, nie przed decyzją właściciela.
 	 *
+	 * [--zamknij=<zdarzenie-ukosnik-id>]
+	 * : Uznaj dostawę za rozstrzygniętą, gdy ponowić się jej NIE DA:
+	 * `dostep/<id>` nie jest mailem, a konto z `mail_konta/<id>` mogło
+	 * zostać skasowane. Bez tej drogi kontrola świeciła przy takim wpisie
+	 * czerwono na zawsze i blokowała `postaw.sh`. Wymaga `--powod`.
+	 *
+	 * [--powod=<tekst>]
+	 * : Dlaczego sprawa jest rozstrzygnięta. Obowiązkowy przy `--zamknij` —
+	 * wiersz ZOSTAJE w dzienniku i ma mówić, co się naprawdę stało.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp aai-platnosci dostawy
 	 *     wp aai-platnosci dostawy --ponow=mail_konta/41
+	 *     wp aai-platnosci dostawy --zamknij=dostep/41 --powod="klient ma dostęp, sprawdzone ręcznie"
 	 *
 	 * @when after_wp_load
 	 *
@@ -269,6 +280,53 @@ final class Aai_Platnosci_Cli {
 		unset( $args );
 		if ( ! Aai_Platnosci_Tabele::istnieja() ) {
 			WP_CLI::error( 'brak tabel wtyczki — aktywuj ją ponownie.' );
+		}
+
+		/*
+		 * ZAMKNIĘCIE RĘCZNE — jedyna droga wyjścia dla dostawy, której NIE DA
+		 * SIĘ ponowić. Zmierzone dead endy: `dostep/<id>` z pustym wynikiem
+		 * („zdarzenie »dostep« nie jest mailem") i `mail_konta/<id>` konta,
+		 * którego już nie ma („konto już nie istnieje"). Kontrola świeciła
+		 * przy nich czerwono NA ZAWSZE i kazała uruchamiać komendę, która
+		 * nie mogła pomóc — a jest punktem kontrolnym `postaw.sh`, czyli
+		 * kroku zerowego każdego testu ręcznego.
+		 *
+		 * POWÓD JEST OBOWIĄZKOWY i to jest cała różnica między zamknięciem
+		 * a zamiataniem pod dywan: wiersz zostaje w dzienniku i mówi, KTO
+		 * uznał sprawę za rozstrzygniętą i DLACZEGO. Zamykamy wyłącznie
+		 * wpisy, które już są w dzienniku — ta sama ochrona co przy
+		 * ponawianiu.
+		 */
+		$zamknij = (string) ( $opcje['zamknij'] ?? '' );
+		if ( '' !== $zamknij ) {
+			$powod = trim( (string) ( $opcje['powod'] ?? '' ) );
+			if ( '' === $powod ) {
+				WP_CLI::error( 'zamknięcie ręczne wymaga --powod="…" — wpis zostaje w dzienniku i ma mówić, dlaczego uznano sprawę za rozstrzygniętą.' );
+			}
+			$czesci = explode( '/', $zamknij, 2 );
+			if ( 2 !== count( $czesci ) || '' === $czesci[0] || ! ctype_digit( $czesci[1] ) ) {
+				WP_CLI::error( 'oczekiwałem postaci `zdarzenie/id`, np. dostep/41.' );
+			}
+			$zdarzenie     = $czesci[0];
+			$identyfikator = (int) $czesci[1];
+			if ( ! Aai_Platnosci_Zapis::dostawa_istnieje( $zdarzenie, $identyfikator ) ) {
+				WP_CLI::error( sprintf( 'dziennik nie zna dostawy %s/%d — zamykamy wyłącznie wpisy, które w nim są.', $zdarzenie, $identyfikator ) );
+			}
+			if ( ! Aai_Platnosci_Zapis::dostawa_wynik(
+				$zdarzenie,
+				$identyfikator,
+				Aai_Platnosci_Maile::WYNIK_ZAMKNIETY . $powod
+			) ) {
+				/*
+				 * Bez tego sprawdzenia komenda meldowała „Success" przy
+				 * NIEZMIENIONYM wierszu (zmierzone), a kontrola upominała
+				 * się o tę dostawę dalej — i blokowała `postaw.sh`, którego
+				 * jedynym wyjściem miało być właśnie to zamknięcie.
+				 */
+				WP_CLI::error( sprintf( 'nie udało się zamknąć dostawy %s — dziennik się nie zmienił, powód nie jest zapisany.', $zamknij ) );
+			}
+			WP_CLI::success( sprintf( 'zamknięte ręcznie: %s — %s', $zamknij, $powod ) );
+			return;
 		}
 
 		$ponow = (string) ( $opcje['ponow'] ?? '' );
@@ -320,6 +378,12 @@ final class Aai_Platnosci_Cli {
 	 * @param string $wynik     Zapisany rezultat.
 	 */
 	private static function czy_dostawa_w_porzadku( string $zdarzenie, string $wynik ): bool {
+		// Rozstrzygnięcie CZŁOWIEKA, z powodem w treści — patrz
+		// `Aai_Platnosci_Maile::WYNIK_ZAMKNIETY`. Dotyczy każdego zdarzenia,
+		// bo dead endy trafiały się w obu rodzinach (dostęp i maile).
+		if ( Aai_Platnosci_Maile::zamkniety_recznie( $wynik ) ) {
+			return true;
+		}
 		if ( Aai_Platnosci_Maile::ZDARZENIE_DOSTEP === $zdarzenie ) {
 			return '' !== $wynik;
 		}
@@ -359,11 +423,20 @@ final class Aai_Platnosci_Cli {
 			if ( self::czy_dostawa_w_porzadku( (string) $w->zdarzenie, (string) $w->wynik ) ) {
 				continue;
 			}
+			/*
+			 * Komunikat podaje OBIE drogi, bo ponowienie nie zawsze jest
+			 * możliwe: `dostep` nie jest mailem, a konto z maila 1 mogło
+			 * zostać skasowane. Do 2026-09-05 stała tu tylko pierwsza droga
+			 * i przy takim wpisie kontrola świeciła czerwono NA ZAWSZE,
+			 * blokując `postaw.sh`.
+			 */
 			$bledy[] = sprintf(
-				'dostawa %s/%d NIE doszła do skutku (%s). Napraw: wp aai-platnosci dostawy --ponow=%s/%d',
+				'dostawa %s/%d NIE doszła do skutku (%s). Ponów: wp aai-platnosci dostawy --ponow=%s/%d — a jeśli ponowić się nie da (dostęp przyznany inaczej, konto skasowane), zamknij z powodem: wp aai-platnosci dostawy --zamknij=%s/%d --powod="…"',
 				$w->zdarzenie,
 				$w->identyfikator,
 				'' === $w->wynik ? 'brak potwierdzenia wysyłki — żądanie padło między znacznikiem a wysyłką' : $w->wynik,
+				$w->zdarzenie,
+				$w->identyfikator,
 				$w->zdarzenie,
 				$w->identyfikator
 			);
@@ -709,6 +782,22 @@ final class Aai_Platnosci_Cli {
 			// zdania czyta się jak „sprawdziłem i jest w porządku" — a to
 			// dwie różne rzeczy (B2).
 			WP_CLI::log( 'sprawdz: kontrola rozjazdu POMINIĘTA — nie było z czym porównywać produktów.' );
+
+			/*
+			 * ALE RESZTY NIE ODPUSZCZAMY (P1 poz. 19). Do 0.68.0 stało tu
+			 * gołe `halt( 0 )`, więc wyłączenie JEDNEJ wtyczki uciszało
+			 * kontrole, które z nią nie mają nic wspólnego. Zmierzone:
+			 * przy walucie sklepu EUR kontrola z Pluginem 1 kończyła kodem 1
+			 * i nazywała rozjazd, a bez Pluginu 1 — kodem 0 i ciszą, choć
+			 * waluta jest ustawieniem SKLEPU, nie kursu.
+			 */
+			$poza = self::bledy_poza_kursami();
+			if ( array() !== $poza ) {
+				foreach ( $poza as $blad_poza ) {
+					WP_CLI::error( $blad_poza, false );
+				}
+				WP_CLI::halt( 1 );
+			}
 			WP_CLI::halt( 0 );
 		}
 
@@ -742,47 +831,28 @@ final class Aai_Platnosci_Cli {
 		 * naprawą jest `sync --napraw`. Stan sprzedaży (zamknięta do P4)
 		 * jest NAZYWANY osobno — to stan projektowany, nie rozjazd.
 		 */
-		foreach ( Aai_Platnosci_Ustawienia::rozjazdy() as $rozjazd_ustawien ) {
-			$bledy[] = $rozjazd_ustawien;
-		}
-
-		/*
-		 * WALUTA SKLEPU MUSI ZGADZAĆ SIĘ Z TĄ, KTÓRĄ DRUKUJE STRONA.
-		 *
-		 * Strony sprzedażowe Pluginu 1 formatują cenę ze znakiem „zł"
-		 * WPISANYM NA SZTYWNO — w sześciu miejscach, żadne nie pyta
-		 * WooCommerce o walutę. To świadome: katalog ma działać bez Pluginu 2
-		 * i bez Woo. Ceną tej niezależności jest możliwość rozjazdu, więc
-		 * rozjazd musi mieć KONTROLĘ, a nie tylko dobre intencje.
-		 *
-		 * WooCommerce startuje z `USD` i nigdy o to nie pyta. Klient widział
-		 * wtedy „Dołączam za 299,00 zł" na stronie kursu i tę samą liczbę
-		 * z dolarem w kasie, czyli dokładnie tam, gdzie płaci (AUD-WDR-F1-004,
-		 * AUD-FE-F1-002). Nie zmieniamy waluty za właściciela — to ustawienie
-		 * sklepu, nie nasze — ale mówimy o rozjeździe głośno i kodem 1.
-		 */
-		if ( function_exists( 'get_woocommerce_currency' ) ) {
-			$waluta = (string) get_woocommerce_currency();
-
-			if ( 'PLN' !== $waluta ) {
-				$bledy[] = sprintf(
-					'waluta sklepu to %s, a strony kursów drukują ceny w złotych — klient zobaczy inną walutę w kasie niż w ofercie. Napraw: wp option update woocommerce_currency PLN',
-					$waluta
-				);
-			}
-		}
 
 		$w_trakcie   = array();
 		$w_trakcie[] = Aai_Platnosci_Ustawienia::stan_sprzedazy();
 		if ( ! class_exists( 'Aai_Sklep_Odczyt' ) ) {
-			// B2: brak Pluginu 1 to stan nazwany (kod 0), ale kontrola
-			// NIE MA PRAWA meldować sukcesu, nie sprawdziwszy ani jednego
-			// kursu — pierwsza wersja mówiła „Success" i milczała o tym.
-			WP_CLI::log( 'sprawdz: kontrola rozjazdu POMINIĘTA — nie ma wtyczki „Automatic AI — Sklep" (Plugin 1), więc nie ma z czym porównywać produktów.' );
-			foreach ( $w_trakcie as $info ) {
-				WP_CLI::log( 'sprawdz: ' . $info );
-			}
-			WP_CLI::halt( 0 );
+			/*
+			 * B2: brak Pluginu 1 to stan nazwany, ale kontrola NIE MA PRAWA
+			 * meldować sukcesu, nie sprawdziwszy ani jednego kursu —
+			 * pierwsza wersja mówiła „Success" i milczała o tym.
+			 *
+			 * NIE WYCHODZIMY TU Z KODEM 0 (P1 poz. 19). Do 0.68.0 stało tu
+			 * `WP_CLI::halt( 0 )`, które PORZUCAŁO wszystko, co kontrola już
+			 * zdążyła zebrać, i wszystko, o co jeszcze nie zdążyła zapytać —
+			 * a to są rzeczy od Pluginu 1 NIEZALEŻNE: waluta sklepu, cudze
+			 * ustawienia przestawione instalatorem, dziennik dostaw,
+			 * zamówienia wiszące, sieroty po skasowanych zamówieniach.
+			 * Zmierzone: przy walucie EUR kontrola z Pluginem 1 dawała kod 1
+			 * i nazywała rozjazd, a bez Pluginu 1 — kod 0 i ciszę.
+			 *
+			 * Pomijamy więc DOKŁADNIE JEDNO: pętlę po kursach, bo tylko ona
+			 * potrzebuje danych Pluginu 1.
+			 */
+			WP_CLI::log( 'sprawdz: kontrola rozjazdu POMINIĘTA — nie ma wtyczki „Automatic AI — Sklep" (Plugin 1), więc nie ma z czym porównywać produktów. Reszta kontroli biegnie dalej.' );
 		}
 		if ( class_exists( 'Aai_Sklep_Odczyt' ) && Aai_Platnosci_Tabele::istnieja() ) {
 			foreach ( Aai_Sklep_Odczyt::lista_kursow() as $kurs ) {
@@ -824,6 +894,13 @@ final class Aai_Platnosci_Cli {
 			foreach ( self::duplikaty_uuid() as $blad_uuid ) {
 				$bledy[] = $blad_uuid;
 			}
+			$rezerwacje = self::rezerwacje_wiszace();
+			foreach ( $rezerwacje['bledy'] as $blad_rezerwacji ) {
+				$bledy[] = $blad_rezerwacji;
+			}
+			foreach ( $rezerwacje['info'] as $info_rezerwacji ) {
+				$w_trakcie[] = $info_rezerwacji;
+			}
 			$osierocone = self::osierocone();
 			foreach ( $osierocone['bledy'] as $blad_sieroty ) {
 				$bledy[] = $blad_sieroty;
@@ -832,22 +909,8 @@ final class Aai_Platnosci_Cli {
 				$w_trakcie[] = $info;
 			}
 		}
-		foreach ( self::bledy_dostaw() as $blad_dostawy ) {
-			$bledy[] = $blad_dostawy;
-		}
-		foreach ( self::zamowienia_wiszace() as $blad_wiszacy ) {
-			$bledy[] = $blad_wiszacy;
-		}
-		foreach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {
-			$bledy[] = $blad_sieroty;
-		}
-		$pro = self::tutor_pro();
-		if ( '' !== $pro ) {
-			$bledy[] = $pro;
-		}
-		$blad_kopii = Aai_Platnosci_Komunikaty::ostatni();
-		if ( '' !== $blad_kopii ) {
-			$bledy[] = 'ostatni błąd zgłoszony przez wtyczkę: ' . $blad_kopii;
+		foreach ( self::bledy_poza_kursami() as $blad_poza_kursami ) {
+			$bledy[] = $blad_poza_kursami;
 		}
 		foreach ( $w_trakcie as $info ) {
 			WP_CLI::log( 'sprawdz: ' . $info );
@@ -868,6 +931,114 @@ final class Aai_Platnosci_Cli {
 				array() === $ostrzezenia ? ' (wersje dowiedzione)' : ' (wersje INNE niż dowiedzione — patrz wyżej)'
 			)
 		);
+	}
+
+	/**
+	 * Rozjazdy, które NIE zależą od danych Pluginu 1.
+	 *
+	 * Jedno miejsce, bo woła je i ścieżka pełna, i ta przy wyłączonej
+	 * wtyczce — inaczej wyłączenie jednej wtyczki uciszało kontrole, które
+	 * z nią nie mają nic wspólnego (P1 poz. 19, zmierzone na walucie).
+	 * Każda pozycja sama sprawdza, czy ma o co pytać: ta metoda biega
+	 * także wtedy, gdy brakuje WooCommerce albo Tutora.
+	 *
+	 * Kontrola CZYTA, nigdy nie pisze (L11).
+	 *
+	 * @return string[]
+	 */
+	private static function bledy_poza_kursami(): array {
+		$bledy = array();
+
+		/*
+		 * Ustawienia Woo i Tutora porównujemy TYLKO wtedy, gdy obie wtyczki
+		 * są. Bez nich rozjazd jest SKUTKIEM ich nieobecności, nie usterką:
+		 * wyłączenie WooCommerce zeruje `monetize_by` cudzą mechaniką
+		 * (U1), a kontrola meldowałaby wtedy własną naprawialną awarię tam,
+		 * gdzie jest tylko wyłączone otoczenie. Zmierzone przy P1 poz. 19 —
+		 * pierwsza wersja tej metody zapaliła istniejące sprawdzenie
+		 * „sprawdz bez Woo oddaje kod 0".
+		 */
+		if ( Aai_Platnosci_Zaleznosci::jest_woo() && Aai_Platnosci_Zaleznosci::jest_tutor() ) {
+			foreach ( Aai_Platnosci_Ustawienia::rozjazdy() as $rozjazd_ustawien ) {
+				$bledy[] = $rozjazd_ustawien;
+			}
+		}
+
+		/*
+		 * WALUTA SKLEPU MUSI ZGADZAĆ SIĘ Z TĄ, KTÓRĄ DRUKUJE STRONA.
+		 *
+		 * Strony sprzedażowe Pluginu 1 formatują cenę ze znakiem „zł"
+		 * WPISANYM NA SZTYWNO — w sześciu miejscach, żadne nie pyta
+		 * WooCommerce o walutę. To świadome: katalog ma działać bez Pluginu 2
+		 * i bez Woo. Ceną tej niezależności jest możliwość rozjazdu, więc
+		 * rozjazd musi mieć KONTROLĘ, a nie tylko dobre intencje.
+		 *
+		 * WooCommerce startuje z `USD` i nigdy o to nie pyta. Klient widział
+		 * wtedy „Dołączam za 299,00 zł" na stronie kursu i tę samą liczbę
+		 * z dolarem w kasie, czyli dokładnie tam, gdzie płaci (AUD-WDR-F1-004,
+		 * AUD-FE-F1-002). Nie zmieniamy waluty za właściciela — to ustawienie
+		 * sklepu, nie nasze — ale mówimy o rozjeździe głośno i kodem 1.
+		 */
+		if ( function_exists( 'get_woocommerce_currency' ) ) {
+			$waluta = (string) get_woocommerce_currency();
+
+			if ( 'PLN' !== $waluta ) {
+				$bledy[] = sprintf(
+					'waluta sklepu to %s, a strony kursów drukują ceny w złotych — klient zobaczy inną walutę w kasie niż w ofercie. Napraw: wp option update woocommerce_currency PLN',
+					$waluta
+				);
+			}
+		}
+		/*
+		 * NASZE FILTRY W PLUGINIE 1 MUSZĄ BYĆ PODPIĘTE.
+		 *
+		 * Cena efektywna, treść przycisku i dostępność oferty jadą na
+		 * stronę kursu przez trzy filtry Pluginu 1, a rejestruje je ta
+		 * wtyczka. Gdy rejestracja zniknie (refaktor, wyjątek przy starcie
+		 * złapany osłoną, zmiana nazwy filtru po tamtej stronie), strona
+		 * wraca do ceny katalogowej i do przycisku „kontakt" — sprzedaż
+		 * cichnie, a wszystkie pozostałe kontrole świecą zielono, bo
+		 * produkty, powiązania i dziennik są w porządku.
+		 *
+		 * Pytamy o WŁASNĄ rejestrację, nie o cudzą: gdy Pluginu 1 nie ma,
+		 * pytanie nie ma sensu i nie jest zadawane.
+		 */
+		if ( Aai_Platnosci_Zaleznosci::jest_sklep() ) {
+			foreach ( array(
+				'aai_sklep_cena_kursu'       => 'cena efektywna z WooCommerce',
+				'aai_sklep_cta_kursu'        => 'treść przycisku zakupu',
+				'aai_sklep_dostepnosc_kursu' => 'dostępność oferty w danych strukturalnych',
+			) as $filtr => $po_co ) {
+				if ( false === has_filter( $filtr ) ) {
+					$bledy[] = sprintf(
+						'nikt nie odpowiada na filtr `%s` (%s) — strona kursu pokazuje wtedy stan sprzed Pluginu 2, czyli cenę katalogową i przycisk kontaktu zamiast zakupu.',
+						$filtr,
+						$po_co
+					);
+				}
+			}
+		}
+
+		foreach ( self::bledy_dostaw() as $blad_dostawy ) {
+			$bledy[] = $blad_dostawy;
+		}
+		if ( function_exists( 'wc_get_orders' ) ) {
+			foreach ( self::zamowienia_wiszace() as $blad_wiszacy ) {
+				$bledy[] = $blad_wiszacy;
+			}
+			foreach ( self::sieroty_po_zamowieniach()['bledy'] as $blad_sieroty ) {
+				$bledy[] = $blad_sieroty;
+			}
+		}
+		$pro = self::tutor_pro();
+		if ( '' !== $pro ) {
+			$bledy[] = $pro;
+		}
+		$blad_kopii = Aai_Platnosci_Komunikaty::ostatni();
+		if ( '' !== $blad_kopii ) {
+			$bledy[] = 'ostatni błąd zgłoszony przez wtyczkę: ' . $blad_kopii;
+		}
+		return $bledy;
 	}
 
 	/**
@@ -1003,16 +1174,77 @@ final class Aai_Platnosci_Cli {
 	 */
 	private static function duplikaty_uuid(): array {
 		global $wpdb;
-		$powtorki = $wpdb->get_col(
-			"SELECT pm.meta_value FROM {$wpdb->postmeta} pm
-			JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'product'
-			WHERE pm.meta_key = '_aai_platnosci_kurs_uuid'
-			GROUP BY pm.meta_value HAVING COUNT(*) > 1"
+
+		/*
+		 * PYTAMY O OBA KLUCZE, BO NAPRAWA I WYKRYWANIE STAŁY NA RÓŻNYCH.
+		 *
+		 * Idempotencja tworzenia produktu odnajduje sierotę po
+		 * `_aai_zrodlo_uuid`, a ta kontrola pytała wyłącznie
+		 * o `_aai_platnosci_kurs_uuid`. Duplikat z dwoma znacznikami
+		 * pochodzenia, a jednym kursowym, przechodził więc kodem 0 —
+		 * dopasowanie było już loterią, a nikt tego nie mówił.
+		 */
+		$bledy = array();
+		foreach ( array( '_aai_platnosci_kurs_uuid', '_aai_zrodlo_uuid' ) as $klucz ) {
+			$powtorki = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT pm.meta_value FROM {$wpdb->postmeta} pm
+					JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'product'
+					WHERE pm.meta_key = %s
+					GROUP BY pm.meta_value HAVING COUNT(*) > 1",
+					$klucz
+				)
+			);
+			foreach ( (array) $powtorki as $uuid ) {
+				$bledy[] = sprintf(
+					'DWA produkty z uuid %s (meta %s) — dopasowanie stało się loterią (B4)',
+					(string) $uuid,
+					$klucz
+				);
+			}
+		}
+		return $bledy;
+	}
+
+	/**
+	 * Rezerwacje produktów, których zakładanie się nie domknęło.
+	 *
+	 * Rezerwację otwiera warstwa zapisu tuż przed `WC_Product::save()`
+	 * i zamyka dopiero, gdy powiązanie stoi w naszej tabeli. Wpis, który
+	 * został, znaczy więc jedno: łańcuch przerwał się w środku i gdzieś
+	 * w bazie może leżeć produkt-widmo — wiersz `product` bez powiązania,
+	 * a przy przerwaniu w najgorszym momencie także bez znacznika.
+	 *
+	 * Świeżą rezerwację (do 60 s) meldujemy jako „w trakcie", nie jako
+	 * błąd — tyle samo, ile wynosi okno degradacji przy kopii w Tutorze,
+	 * i z tego samego powodu: przebieg mógł jeszcze nie skończyć.
+	 *
+	 * @return array{bledy:string[], info:string[]}
+	 */
+	private static function rezerwacje_wiszace(): array {
+		$wynik = array(
+			'bledy' => array(),
+			'info'  => array(),
 		);
-		return array_map(
-			static fn( $uuid ) => sprintf( 'DWA produkty z uuid %s — dopasowanie stało się loterią (B4)', (string) $uuid ),
-			$powtorki
-		);
+		if ( ! class_exists( 'Aai_Platnosci_Zapis' ) ) {
+			return $wynik;
+		}
+		foreach ( Aai_Platnosci_Zapis::rezerwacje() as $uuid => $wpis ) {
+			$czas  = isset( $wpis['czas'] ) ? (int) $wpis['czas'] : 0;
+			$tytul = isset( $wpis['tytul'] ) ? (string) $wpis['tytul'] : '';
+			$wiek  = time() - $czas;
+			if ( $czas > 0 && $wiek < 60 ) {
+				$wynik['info'][] = sprintf( 'produkt kursu „%s" zakładany właśnie teraz (%d s temu)', $tytul, $wiek );
+				continue;
+			}
+			$wynik['bledy'][] = sprintf(
+				'zakładanie produktu dla kursu „%s" (uuid %s) przerwało się %s — w bazie może leżeć produkt-widmo bez powiązania. Sprawdź szkice produktów o tym tytule i skasuj zbędny, potem: wp aai-platnosci sync',
+				$tytul,
+				(string) $uuid,
+				$czas > 0 ? sprintf( '%d s temu', $wiek ) : 'w nieznanym momencie'
+			);
+		}
+		return $wynik;
 	}
 
 	/**

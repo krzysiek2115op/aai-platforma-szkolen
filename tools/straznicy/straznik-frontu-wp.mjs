@@ -412,6 +412,224 @@ if (existsSync(join(WTYCZKA, PLIK_SITEMAP)) && existsSync(join(WTYCZKA, PLIK_DOS
   }
 }
 
+/*
+ * PYTANIE O KURSY KLIENTA JEDZIE W OSŁONIE — ODPOWIADA NA NIE CUDZA WTYCZKA.
+ *
+ * `Aai_Sklep_Moje::ma_kursy()` pyta Tutora i naszą bazę, a wynik decyduje
+ * o pozycji „Moje kursy". Menu wstrzykujemy w nagłówek KAŻDEJ strony, więc
+ * rzut stamtąd przerywa całe żądanie.
+ *
+ * ZMIERZONE (rzut wstrzyknięty w `ma_kursy()`): gość dostaje 200, a ZALOGOWANY
+ * KLIENT **HTTP 500 na każdej stronie** — głównej, katalogu, koszyku, KASIE
+ * i własnym koncie. Awaria cudzej wtyczki albo uszkodzona tabela Tutora
+ * zamykają więc sklep dokładnie tym ludziom, którzy już zapłacili albo
+ * właśnie płacą. Po naprawie te same adresy oddają 200 przy tej samej awarii.
+ *
+ * Reguła pyta o ROZSTRZYGNIĘCIE: wywołanie stoi wewnątrz `try … } catch`.
+ * Ma samokontrolę zakresu — brak wywołania w ogóle jest błędem, nie ciszą.
+ */
+{
+  const menuTresc = existsSync(join(WTYCZKA, MENU)) ? czytaj(MENU) : "";
+  const wywolania = [...menuTresc.matchAll(/Aai_Sklep_Moje::ma_kursy\s*\(/g)];
+  if (menuTresc === "") {
+    // brak pliku zgłasza już reguła wyżej
+  } else if (wywolania.length === 0) {
+    bledy.push(
+      `${MENU}: nie znalazłem wywołania Aai_Sklep_Moje::ma_kursy() — reguła o osłonie nie ma czego pilnować, a milcząca reguła jest gorsza niż jej brak.`
+    );
+  } else {
+    const zakresy = [];
+    for (const t of menuTresc.matchAll(/\btry\s*\{/g)) {
+      const c = menuTresc.indexOf("} catch", t.index);
+      if (c !== -1) zakresy.push([t.index, c]);
+    }
+    for (const w of wywolania) {
+      if (!zakresy.some(([o, c]) => w.index > o && w.index < c)) {
+        bledy.push(
+          `${MENU}: Aai_Sklep_Moje::ma_kursy() wołane POZA try/catch. Odpowiada na to cudza wtyczka (Tutor), a menu idzie w nagłówek każdej strony — zmierzone: rzut stamtąd daje zalogowanemu klientowi HTTP 500 na stronie głównej, w katalogu, w koszyku, w KASIE i na jego koncie. Pozycja w menu to wygoda nawigacyjna, nie bramka dostępu: przy awarii ma jej nie być, a witryna ma stać.`
+        );
+      }
+    }
+  }
+}
+
+/** Kod bez komentarzy — reguły celują w ZACHOWANIE, nie w opis. */
+const kodPhp = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+/* SZABLONY NIE ROZSTRZYGAJĄ SAME — ANI O TRASIE, ANI O CUDZEJ WTYCZCE
+   (MAR-A-22, A-23, A-24, A-25).
+
+   Cztery pozycje polowania, wszystkie o tej samej granicy: szablon dostaje
+   GOTOWE dane, a nie chodzi po nie sam. Każda miała inną cenę:
+
+     - `lekcja-odhacz.php` sięgał po `tutor()->nonce_action` — zwykłą
+       WŁAŚCIWOŚĆ obiektu cudzej wtyczki, nie API. Po jej przemianowaniu
+       `wp_nonce_field()` dostaje `null`, drukuje pole o domyślnej nazwie,
+       Tutor odrzuca żądanie — klient klika „Oznacz jako przerobioną"
+       i NIC SIĘ NIE DZIEJE, a HTML wygląda poprawnie, więc żadna bramka
+       tego nie widzi (A-24);
+     - `pasek-lekcji.php` pytał Tutora w PODWÓJNEJ PĘTLI: 82 wywołania na
+       odsłonę przy kursie z 41 lekcjami (A-23);
+     - `katalog.php` wołał warstwę odczytu wprost, więc lista kursów
+       powstawała DWA RAZY na odsłonę — raz dla wyszukiwarki, raz dla
+       człowieka (A-22);
+     - `nie-znaleziono.php` czytał `$_SERVER` i miał korzeń sklepu wpisany
+       literałem (A-25).
+
+   Reguła pyta o zachowanie w KAŻDYM szablonie frontu, nie o nazwy plików —
+   lekcja z 0.65.0, gdzie reguła przypięta do pliku umilkła po refaktorze. */
+{
+  const KATALOG_SZABLONOW = join(WTYCZKA, "szablony");
+  const szablony = [];
+  const zbierz = (k) => {
+    if (!existsSync(k)) return;
+    for (const w of readdirSync(k)) {
+      const s = join(k, w);
+      if (statSync(s).isDirectory()) zbierz(s);
+      else if (w.endsWith(".php")) szablony.push(s);
+    }
+  };
+  zbierz(KATALOG_SZABLONOW);
+
+  if (szablony.length < 20) {
+    bledy.push(
+      `${KATALOG_SZABLONOW}: znalazłem ${szablony.length} szablonów przy oczekiwanych co najmniej 20 — reguła o granicy szablonu przechodziłaby po pustce (samokontrola zakresu).`
+    );
+  }
+
+  for (const plik of szablony) {
+    const t = kodPhp(readFileSync(plik, "utf8"));
+
+    // (a) globalny obiekt cudzej wtyczki — most jest w Aai_Sklep_Tutor.
+    for (const m of t.matchAll(/\btutor\(\)\s*->/g)) {
+      const nr = t.slice(0, m.index).split("\n").length;
+      bledy.push(
+        `${plik}:${nr}: sięga wprost po globalny obiekt Tutora (tutor()->…). To nie jest API, tylko właściwości obiektu — po ich przemianowaniu formularz wyrenderuje się normalnie, a cudza wtyczka odrzuci żądanie: klient kliknie i nic się nie stanie, przy poprawnym HTML-u. Mostem jest Aai_Sklep_Tutor (MAR-A-24).`
+      );
+    }
+
+    // (b) rozstrzyganie trasy z surowego żądania.
+    for (const m of t.matchAll(/\$_SERVER\s*\[/g)) {
+      const nr = t.slice(0, m.index).split("\n").length;
+      bledy.push(
+        `${plik}:${nr}: czyta $_SERVER i sam rozstrzyga o trasie. Ścieżki mieszkają w Aai_Sklep_Trasy (KORZEN, PODSTRONY) — szablon z własnym literałem trasy mówi o starym adresie dzień po jego zmianie (MAR-A-25).`
+      );
+    }
+
+    // (c) pytanie cudzej wtyczki o postęp w pętli.
+    for (const m of t.matchAll(/Aai_Sklep_Lekcja::ukonczona\s*\(/g)) {
+      const nr = t.slice(0, m.index).split("\n").length;
+      bledy.push(
+        `${plik}:${nr}: pyta o ukończenie lekcji z szablonu. Przy kursie z 41 lekcjami to 82 wywołania do cudzej wtyczki na jedną odsłonę, a ich cena zależy w całości od jej implementacji. Policz raz (Aai_Sklep_Lekcja::ukonczone) i podaj gotowe (MAR-A-23).`
+      );
+    }
+
+    // (d) warstwa odczytu wołana z szablonu z pominięciem akcesora z pamięcią.
+    for (const m of t.matchAll(/Aai_Sklep_Odczyt::lista_kursow\s*\(/g)) {
+      const nr = t.slice(0, m.index).split("\n").length;
+      bledy.push(
+        `${plik}:${nr}: woła warstwę odczytu wprost. Tę samą listę pobiera Aai_Sklep_Seo na wp_head, więc odsłona katalogu robi ten sam odczyt dwa razy — a dwa odczyty tej samej rzeczy w jednym żądaniu mogą się rozjechać między wyszukiwarką a człowiekiem. Pytaj Aai_Sklep_Trasy::katalog() (MAR-A-22).`
+      );
+    }
+  }
+}
+
+/* DWA WEJŚCIA DO „MOICH KURSÓW" MAJĄ TĘ SAMĄ REGUŁĘ WIDOCZNOŚCI (A-26).
+
+   Menu motywu pytało `ma_kursy()`, a menu konta WooCommerce dokładało
+   pozycję BEZWARUNKOWO — ta sama klasa stosowała więc własny warunek
+   w jednym ze swoich dwóch wejść. Subskrybent bez kursu, administrator albo
+   klient po anulowanym zamówieniu widział „Moje kursy" jako PIERWSZĄ pozycję
+   konta i trafiał na pustą listę. */
+{
+  const moje = join(WTYCZKA, "includes", "class-aai-sklep-moje.php");
+  if (existsSync(moje)) {
+    const m = kodPhp(readFileSync(moje, "utf8"));
+    const i = m.indexOf("function menu_konta(");
+    if (i < 0) {
+      bledy.push(`${moje}: nie ma menu_konta() — samokontrola zakresu reguły o dwóch wejściach do „Moich kursów" (MAR-A-26).`);
+    } else {
+      const cialo = m.slice(i, m.indexOf("\n\t}", i));
+      if (!/ma_kursy\(\)/.test(cialo)) {
+        bledy.push(
+          `${moje}: menu konta WooCommerce dokłada „Moje kursy" bezwarunkowo, a menu motywu pyta ma_kursy(). Dwa wejścia do tej samej strony z różnymi regułami to dwie prawdy o tym samym — ktoś bez kursu dostaje pozycję prowadzącą na pustą listę (MAR-A-26).`
+        );
+      }
+    }
+  }
+}
+
+/* MOST NONCE'A ODMAWIA, ZAMIAST DRUKOWAĆ PRZYCISK, KTÓRY ZAWIEDZIE (A-24). */
+{
+  const most = join(WTYCZKA, "includes", "class-aai-sklep-tutor.php");
+  if (existsSync(most)) {
+    const m = kodPhp(readFileSync(most, "utf8"));
+    const i = m.indexOf("function pole_nonce_lekcji(");
+    if (i < 0) {
+      bledy.push(`${most}: nie ma pole_nonce_lekcji() — szablon nie ma przez co zapytać o nonce Tutora i wróci do sięgania po globalny obiekt (MAR-A-24).`);
+    } else {
+      const cialo = m.slice(i, m.indexOf("\n\t}", i));
+      if (!/return false;/.test(cialo) || !/''\s*===\s*\$\w+/.test(cialo)) {
+        bledy.push(
+          `${most}: pole_nonce_lekcji() nie odmawia przy braku właściwości Tutora. Musi ODMÓWIĆ, bo pole o domyślnej nazwie daje przycisk, który wygląda poprawnie i po cichu nie działa (MAR-A-24).`
+        );
+      }
+    }
+  }
+}
+
+/* DEAKTYWACJA ZDEJMUJE NASZE REGUŁY, ZAMIAST JE UTRWALAĆ (MAR-A-21).
+
+   ZMIERZONE na żywej instalacji, nie wyczytane z dokumentacji. Hak
+   deaktywacji biegnie w żądaniu, w którym wtyczka była aktywna na starcie,
+   czyli PO `init` — nasze trzy reguły siedzą już wtedy w `$wp_rewrite`.
+   Gołe `flush_rewrite_rules()` regeneruje z niego tablicę i zapisuje ją,
+   więc deaktywacja UTRWALAŁA to, co miała usunąć: po
+   `wp plugin deactivate aai-sklep` w opcji `rewrite_rules` dalej stały
+   nasze trzy wpisy, a `/szkolenia/`, `/szkolenia/<slug>/`
+   i `/szkolenia/moje/` oddawały HTTP 200 ze STRONĄ GŁÓWNĄ zamiast 404 —
+   trzy adresy duplikatu dla wyszukiwarki przy wyłączonej wtyczce.
+   Po naprawie: 0 naszych reguł i uczciwe 404. */
+{
+  const glowny = join(WTYCZKA, "aai-sklep.php");
+  const trasy = join(WTYCZKA, "includes", "class-aai-sklep-trasy.php");
+  if (existsSync(glowny)) {
+    const t = kodPhp(readFileSync(glowny, "utf8"));
+    const i = t.indexOf("register_deactivation_hook(");
+    if (i < 0) {
+      bledy.push(
+        `${glowny}: nie ma register_deactivation_hook — samokontrola zakresu reguły o regułach przepisywania przy deaktywacji (MAR-A-21).`
+      );
+    } else {
+      const cialo = t.slice(i, t.indexOf("\n);", i));
+      if (/\bflush_rewrite_rules\s*\(/.test(cialo)) {
+        bledy.push(
+          `${glowny}: hak deaktywacji woła flush_rewrite_rules(). To NIE zdejmuje naszych reguł, tylko je UTRWALA — hak biegnie po init, więc regeneracja obejmuje reguły tej wtyczki, a wyłączony sklep zostawia trzy adresy oddające 200 ze stroną główną (MAR-A-21).`
+        );
+      }
+      if (!/Aai_Sklep_Trasy::zdejmij_reguly\s*\(/.test(cialo)) {
+        bledy.push(
+          `${glowny}: hak deaktywacji nie zdejmuje reguł przepisywania (brak Aai_Sklep_Trasy::zdejmij_reguly). Bez tego wyłączona wtyczka zostawia własne trasy w wp_options (MAR-A-21).`
+        );
+      }
+    }
+  }
+  if (existsSync(trasy)) {
+    const t = kodPhp(readFileSync(trasy, "utf8"));
+    const i = t.indexOf("function zdejmij_reguly(");
+    if (i < 0) {
+      bledy.push(`${trasy}: nie ma zdejmij_reguly() — hak deaktywacji nie ma czym zdjąć naszych tras (MAR-A-21).`);
+    } else {
+      const cialo = t.slice(i, t.indexOf("\n\t}", i));
+      if (!/delete_option\s*\(\s*'rewrite_rules'\s*\)/.test(cialo)) {
+        bledy.push(
+          `${trasy}: zdejmij_reguly() nie kasuje opcji „rewrite_rules". Tylko skasowanie tablicy każe WordPressowi zbudować ją od nowa BEZ nas; każde jej przepłukanie przy aktywnej wtyczce zapisuje nasze reguły z powrotem (MAR-A-21).`
+        );
+      }
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-frontu-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -419,5 +637,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, widok prywatny bez cache'u, wygaszanie ruchu, slug kursu nie zajmuje naszej podstrony, logowanie klienta nie prowadzi na wp-login, mapa strony wystawia nasze trasy i nie wystawia kopii z Tutora).`
+  `straznik-frontu-wp: front w porządku (${Object.keys(RODZAJE ?? {}).length} rodzajów sekcji z szablonami i polami, kotwice menu na treści, rezerwa pod nagłówek, fixed poza <main>, 301 z /courses/*, widok prywatny bez cache'u, wygaszanie ruchu, slug kursu nie zajmuje naszej podstrony, logowanie klienta nie prowadzi na wp-login, mapa strony wystawia nasze trasy i nie wystawia kopii z Tutora, a szablony nie rozstrzygają same ani o trasie, ani o cudzej wtyczce; deaktywacja zdejmuje nasze reguły, zamiast je utrwalać).`
 );

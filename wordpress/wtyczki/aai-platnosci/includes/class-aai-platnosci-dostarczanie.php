@@ -287,10 +287,16 @@ final class Aai_Platnosci_Dostarczanie {
 			 * cudza wtyczka) tej mety NIE MA, choć Tutor dołożył mu wiersz
 			 * księgowy — dla takiego zamówienia hak wychodził tu bez śladu
 			 * i zostawiał zapis, earning i notatki. Zamówienie złożone
-			 * w całości z naszych kursów (nasza tabela powiązań) jest nasze
+			 * zawierające nasz kurs (nasza tabela powiązań) jest nasze
 			 * niezależnie od tego, czy Tutor zdążył je oznaczyć.
+			 *
+			 * Pytamy `ma_kurs()`, nie `same_kursy()`: do 0.67.0 zamówienie
+			 * MIESZANE (kurs + zwykły produkt) wychodziło tędy bez śladu,
+			 * choć klient dostał za nie dostęp do kursu. Zmierzone: po jego
+			 * skasowaniu zostawał zapis, wiersz `wp_tutor_earnings`
+			 * i 3 notatki wskazujące zamówienie, którego nie ma.
 			 */
-			if ( ! tutor_utils()->is_tutor_order( $id_zamowienia ) && ! self::same_kursy( $zamowienie ) ) {
+			if ( ! tutor_utils()->is_tutor_order( $id_zamowienia ) && ! self::ma_kurs( $zamowienie ) ) {
 				return;
 			}
 
@@ -301,7 +307,40 @@ final class Aai_Platnosci_Dostarczanie {
 					$id_zapisu = (int) ( $zapis['enrolled_id'] ?? 0 );
 
 					if ( $id_zapisu > 0 ) {
+						/*
+						 * ODCZYT PO ZAPISIE, BO CUDZE API NIE ODDAJE WYNIKU.
+						 *
+						 * `course_enrol_status_change()` Tutora robi surowy
+						 * `$wpdb->update` i ODRZUCA jego wynik (Utils.php),
+						 * więc wywołanie „udaje się" zawsze. Odebranie
+						 * dostępu po skasowaniu zamówienia było przez to
+						 * jedyną operacją w tym haku bez żadnej osłony:
+						 * przy nieudanym zapisie klient zachowywał kurs po
+						 * obciążeniu zwrotnym, a nikt się o tym nie
+						 * dowiadywał. Mamy do tego własne narzędzie —
+						 * `status_zapisu()` — napisane dokładnie dlatego,
+						 * że temu zapisowi nie można ufać.
+						 */
 						tutor_utils()->course_enrol_status_change( $id_zapisu, 'cancelled' );
+						/*
+						 * PUSTY STATUS ZNACZY „WPISU JUŻ NIE MA" — a to też
+						 * jest odebranie dostępu, nie awaria. `status_zapisu()`
+						 * czyta bazę wprost, więc dla skasowanego wiersza
+						 * oddaje pusty łańcuch; pierwsza wersja tej asercji
+						 * brała to za porażkę i zapalała kontrolę po KAŻDYM
+						 * przebiegu bramki zwrotów (zmierzone: 1 z 39).
+						 */
+						$status_po = Aai_Platnosci_Zapis::status_zapisu( $id_zapisu );
+						if ( '' !== $status_po && 'cancelled' !== $status_po ) {
+							Aai_Platnosci_Komunikaty::zapisz(
+								sprintf(
+									'NIE UDAŁO SIĘ odebrać dostępu po skasowaniu zamówienia %d: zapis %d dalej ma status „%s". Klient zachowuje kurs — rozstrzygnij ręcznie.',
+									(int) $id_zamowienia,
+									$id_zapisu,
+									$status_po
+								)
+							);
+						}
 					}
 				}
 			}
@@ -324,9 +363,23 @@ final class Aai_Platnosci_Dostarczanie {
 			 * najgłębsza z ryzykiem sprowadzonym do zera, jeśli się da):
 			 */
 
-			// Zamek 1: wyłącznie zamówienie złożone W CAŁOŚCI z naszych kursów.
-			// Zamówienie mieszane ma cudzą księgowość i cudzą historię — zostaje.
-			if ( ! self::same_kursy( $zamowienie ) ) {
+			/*
+			 * Zamek 1: zamówienie musi zawierać CHOĆ JEDEN nasz kurs.
+			 *
+			 * Do 0.67.0 warunek brzmiał „W CAŁOŚCI z naszych kursów"
+			 * i zamówienie MIESZANE wychodziło stąd nietknięte. Zmierzone:
+			 * kurs + zwykły produkt, po skasowaniu zostawał 1 wiersz
+			 * `wp_tutor_earnings` i 3 notatki wskazujące zamówienie,
+			 * którego nie ma — dokładnie ta klasa, którą ten blok zamyka
+			 * dla zamówień jednorodnych.
+			 *
+			 * Rachunek jest ten sam po obu stronach: wiersz księgowy Tutora
+			 * powstaje WYŁĄCZNIE za kurs, a notatki i tak przepadają razem
+			 * z zamówieniem w drugim trybie magazynu Woo. Zamówienia BEZ
+			 * ani jednego naszego kursu nie dotykamy — tam nie mamy nic
+			 * do posprzątania i nic do powiedzenia.
+			 */
+			if ( ! self::ma_kurs( $zamowienie ) ) {
 				return;
 			}
 
@@ -397,6 +450,29 @@ final class Aai_Platnosci_Dostarczanie {
 				)
 			);
 		}
+	}
+
+	/**
+	 * Czy zamówienie zawiera CHOĆ JEDEN nasz kurs.
+	 *
+	 * Odpowiada na inne pytanie niż `same_kursy()` i dlatego jest osobno:
+	 * tamta decyduje, czy wolno zamówienie DOMKNĄĆ (a domykać wolno tylko
+	 * takie, w którym nie ma czego wysłać), ta — czy mamy po nim co
+	 * sprzątać.
+	 *
+	 * @param WC_Order $order Zamówienie.
+	 * @return bool
+	 */
+	private static function ma_kurs( WC_Order $order ): bool {
+		foreach ( $order->get_items() as $pozycja ) {
+			if ( ! $pozycja instanceof WC_Order_Item_Product ) {
+				continue;
+			}
+			if ( Aai_Platnosci_Zapis::czy_produkt_kursu( (int) $pozycja->get_product_id() ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static function same_kursy( WC_Order $order ): bool {

@@ -81,12 +81,18 @@ final class Aai_Sklep_Trasy {
 	private const PODSTRONY = array( Aai_Sklep_Moje::SCIEZKA => 'moje' );
 
 	/**
+	 * Korzeń adresów sklepu — jedno miejsce, z którego biorą go reguły
+	 * przepisywania, składane odnośniki i rozpoznanie żądania (MAR-A-25).
+	 */
+	public const KORZEN = 'szkolenia';
+
+	/**
 	 * Reguły przepisywania. `top` — przed regułami WordPressa, żeby jego
 	 * własne zgadywanie adresu (to ono odsyłało dziś `/szkolenia/<slug>`
 	 * na `/courses/<slug>/`) nie miało już czego zgadywać.
 	 */
 	public static function dodaj_reguly(): void {
-		add_rewrite_rule( '^szkolenia/?$', 'index.php?aai_widok=katalog', 'top' );
+		add_rewrite_rule( '^' . self::KORZEN . '/?$', 'index.php?aai_widok=katalog', 'top' );
 		/*
 		 * KOLEJNOŚĆ MA ZNACZENIE: nasze podstrony muszą być dopasowane ZANIM
 		 * zadziała reguła slugu, inaczej WordPress wziąłby je za adres kursu.
@@ -96,7 +102,7 @@ final class Aai_Sklep_Trasy {
 			add_rewrite_rule( '^' . $sciezka . '/?$', 'index.php?aai_widok=' . $widok, 'top' );
 		}
 		add_rewrite_rule(
-			'^szkolenia/([^/]+)/?$',
+			'^' . self::KORZEN . '/([^/]+)/?$',
 			'index.php?aai_widok=kurs&aai_slug=$matches[1]',
 			'top'
 		);
@@ -118,6 +124,23 @@ final class Aai_Sklep_Trasy {
 	 *
 	 * @return array<int,string>
 	 */
+	/**
+	 * Czy bieżące żądanie celuje w adres sklepu.
+	 *
+	 * JEDNO ŹRÓDŁO ODPOWIEDZI DLA SZABLONU 404 (MAR-A-25). Szablon
+	 * `nie-znaleziono.php` czytał wcześniej surowy `REQUEST_URI` i miał
+	 * korzeń sklepu wpisany literałem — jedyny z 37 szablonów sięgający po
+	 * `$_SERVER` i jedyny z literałem trasy. Po zmianie adresu sklepu ten
+	 * jeden plik mówiłby dalej o starym.
+	 *
+	 * Pytamy o ten sam KORZEŃ, z którego składane są reguły przepisywania,
+	 * więc odpowiedź nie może rozjechać się z tym, co naprawdę obsługujemy.
+	 */
+	public static function zadanie_w_sklepie(): bool {
+		$sciezka = (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH );
+		return str_starts_with( ltrim( $sciezka, '/' ), self::KORZEN );
+	}
+
 	public static function zarezerwowane_slugi(): array {
 		$slugi = array();
 		foreach ( array_keys( self::PODSTRONY ) as $sciezka ) {
@@ -142,6 +165,33 @@ final class Aai_Sklep_Trasy {
 	 * Wymuszenie przepłukania — wołane przy aktywacji wtyczki.
 	 */
 	public static function wymus_przeplukanie(): void {
+		delete_option( self::OPCJA_REGUL );
+	}
+
+	/**
+	 * Zdejmuje nasze reguły przy deaktywacji — ZAMIAST je utrwalać (MAR-A-21).
+	 *
+	 * ZMIERZONE, nie wyczytane. Hak deaktywacji biegnie w żądaniu, w którym
+	 * wtyczka była aktywna na starcie, czyli PO `init` — a nasze trzy reguły
+	 * siedzą już wtedy w `$wp_rewrite`. Gołe `flush_rewrite_rules()`
+	 * regeneruje z niego tablicę i zapisuje do `wp_options`, więc
+	 * deaktywacja UTRWALAŁA to, co miała usunąć: po `wp plugin deactivate
+	 * aai-sklep` w opcji `rewrite_rules` dalej stały nasze trzy wpisy.
+	 *
+	 * Cena była widoczna dla wyszukiwarki: `/szkolenia/`,
+	 * `/szkolenia/<slug>/` i `/szkolenia/moje/` oddawały wtedy **HTTP 200
+	 * ze STRONĄ GŁÓWNĄ** (reguła ustawia naszą zmienną zapytania, nikt jej
+	 * nie obsługuje, WordPress spada na front), zamiast uczciwego 404.
+	 * Trzy adresy z treścią strony głównej to duplikat, nie „wyłączona
+	 * wtyczka".
+	 *
+	 * Dlatego KASUJEMY tablicę zamiast ją przepłukiwać: WordPress zbuduje
+	 * ją od nowa przy następnym żądaniu, już bez nas — bo nas wtedy nie ma.
+	 * Znacznik wersji reguł też idzie, żeby powrót wtyczki przepłukał je
+	 * od zera.
+	 */
+	public static function zdejmij_reguly(): void {
+		delete_option( 'rewrite_rules' );
 		delete_option( self::OPCJA_REGUL );
 	}
 
@@ -222,6 +272,32 @@ final class Aai_Sklep_Trasy {
 	 * `template_redirect` jest pierwszym punktem PO tamtej decyzji, więc
 	 * ustawiony tutaj kod jest ostateczny.
 	 */
+	/**
+	 * Lista kursów katalogu — zapamiętana na czas żądania (MAR-A-22).
+	 *
+	 * Ta sama rzecz, co `kurs()` robi dla strony kursu, i z tego samego
+	 * powodu. Do 0.76.0 katalog wołał warstwę odczytu WPROST, a robi to
+	 * także `Aai_Sklep_Seo::dane_strukturalne()` na `wp_head` — więc każde
+	 * wejście na `/szkolenia` wykonywało ten sam odczyt DWA RAZY.
+	 *
+	 * Dziś obie odpowiedzi są identyczne. Klasa ryzyka jest ta sama, którą
+	 * `Aai_Sklep_Widok::cena_grosze()` świadomie zamknęła pamięcią (K2
+	 * z krytyki P0): dwa odczyty tej samej rzeczy w jednym żądaniu mogą się
+	 * rozjechać między tym, co widzi wyszukiwarka, a tym, co widzi człowiek.
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function katalog(): array {
+		static $kursy  = null;
+		static $pytano = false;
+
+		if ( ! $pytano ) {
+			$pytano = true;
+			$kursy  = Aai_Sklep_Odczyt::lista_kursow();
+		}
+		return (array) $kursy;
+	}
+
 	public static function ustal_odpowiedz(): void {
 		global $wp_query;
 

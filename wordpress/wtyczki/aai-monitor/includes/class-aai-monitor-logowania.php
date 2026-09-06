@@ -260,9 +260,11 @@ final class Aai_Monitor_Logowania {
 	 * dotknie hasła, przy następnej poprawce je zapisze.
 	 *
 	 * CO ZOSTAJE Z WARTOŚCI DOWODOWEJ. Istniejące konto zapisujemy
-	 * dosłownie, bo to sedno pytania „kogo próbowano podszyć". Przy
-	 * nieistniejącym zostaje początek i długość — widać wzorzec ataku
-	 * (`adm…`, `roo…`, `tes…`), nie widać sekretu.
+	 * dosłownie, bo to sedno pytania „kogo próbowano podszyć" — i tam
+	 * sekretu z definicji nie ma. Przy nieistniejącym zostaje SAMA
+	 * DŁUGOŚĆ, bez ani jednego znaku: widać, że ktoś próbuje, i widać
+	 * serię prób, nie widać czego. Powód i cena tej decyzji stoją przy
+	 * samym `return` niżej.
 	 */
 	private static function bezpieczny_login( string $podany ): string {
 		if ( '' === $podany ) {
@@ -272,35 +274,40 @@ final class Aai_Monitor_Logowania {
 			return $podany;
 		}
 		/*
-		 * POCZĄTEK POKAZUJEMY TYLKO WTEDY, GDY WARTOŚĆ MOŻE BYĆ LOGINEM.
+		 * WARTOŚĆ, KTÓRA NIE WSKAZUJE KONTA, NIE ZOSTAWIA ANI JEDNEGO ZNAKU.
 		 *
-		 * Trzy pierwsze znaki pokazują wzorzec ataku (`adm…`, `roo…`, `tes…`)
-		 * i po to ta kolumna istnieje. Ale w pole loginu trafia czasem HASŁO
-		 * — autouzupełnianie, zły układ klawiatury, pomyłka o jedno pole —
-		 * i wtedy te trzy znaki są fragmentem sekretu zapisanym jawnym
-		 * tekstem na 90 dni, w każdej kopii bazy, wbrew zdaniu z polityki
-		 * prywatności („Nie zapisujemy haseł ani ich fragmentów").
+		 * Do 2026-09-05 stał tu warunek KSZTAŁTU: `$podany === sanitize_user(
+		 * $podany, true )` miało odróżnić „to wygląda na login" od „to może być
+		 * sekret", i wtedy pokazywaliśmy trzy pierwsze znaki wzorca ataku
+		 * (`adm…`, `roo…`, `tes…`).
 		 *
-		 * Rozstrzyga KSZTAŁT wartości, nie zgadywanie intencji: login
-		 * WordPressa przechodzi przez `sanitize_user()` w trybie ścisłym bez
-		 * zmiany, bo mieści się w `a-z A-Z 0-9 _ . - @` i spacji. Wartość,
-		 * która tego nie przechodzi (`MojeTajneHaslo#2026`), sekretem być
-		 * może — i wtedy nie zostawiamy z niej ani jednego znaku.
+		 * TO KRYTERIUM BYŁO DEFEKTEM, nie zabezpieczeniem. `sanitize_user()`
+		 * w trybie ścisłym przepuszcza `a-z A-Z 0-9 _ . - @` i spację, czyli
+		 * KAŻDE hasło bez znaku specjalnego. Zmierzone przez prawdziwy
+		 * formularz logowania: `Haslo123` zapisało się jako `Has…(8 znaków)`,
+		 * `MojeTajneHaslo2026` jako `Moj…(18 znaków)`, a `PRIVAUDYT_TajneHaslo123`
+		 * jako `PRI…(23 znaków)` — fragmenty sekretów jawnym tekstem na 90 dni,
+		 * w każdej kopii bazy, widoczne dla każdego z `manage_options`. Wbrew
+		 * zdaniu, które sami drukujemy w polityce prywatności („Nie zapisujemy
+		 * haseł ani ich fragmentów"), i wbrew obietnicy w nagłówku tego pliku.
+		 * A w pole loginu hasło trafia realnie: autouzupełnianie, zły układ
+		 * klawiatury, pomyłka o jedno pole.
+		 *
+		 * KAŻDA WERSJA TEGO WARUNKU JEST ZGADYWANIEM. Nie da się po kształcie
+		 * odróżnić loginu od hasła, bo zbiory znaków się pokrywają — więc
+		 * warunek znika w całości, a nie zostaje zwężony. Zwężony wpuszczałby
+		 * dalej te hasła, których akurat nie przewidzieliśmy.
+		 *
+		 * CO ZOSTAJE Z WARTOŚCI DOWODOWEJ. Wartość wskazująca ISTNIEJĄCE konto
+		 * zapisujemy dosłownie (wyżej) — to sedno pytania „kogo próbowano
+		 * podszyć", i tam sekretu z definicji nie ma. Przy nieistniejącym
+		 * zostaje sama DŁUGOŚĆ: widać, że ktoś próbuje, widać serię, nie widać
+		 * czego. Tracimy wzorzec ataku na nieistniejące loginy — świadomie.
 		 *
 		 * Nie porównujemy z `$_POST['pwd']` — zabrania tego N5 i słusznie:
 		 * kod, który raz dotknie hasła, przy następnej poprawce je zapisze.
 		 */
-		$wyglada_na_login = ( $podany === sanitize_user( $podany, true ) );
-
-		if ( $wyglada_na_login ) {
-			return sprintf(
-				'%s…(%d znaków)',
-				mb_substr( $podany, 0, 3 ),
-				mb_strlen( $podany )
-			);
-		}
-
-		return sprintf( '…(%d znaków, nie jest loginem)', mb_strlen( $podany ) );
+		return sprintf( '…(%d znaków, konto nie istnieje)', mb_strlen( $podany ) );
 	}
 
 	/**

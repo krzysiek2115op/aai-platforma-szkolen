@@ -201,8 +201,23 @@ if (existsSync(WARSTWA_ZAPISU)) {
 
   const zdejmowanie = zapis.match(/function zdejmij_kurs[\s\S]*?\n\tpublic static function/);
   if (zdejmowanie) {
-    const dType = zdejmowanie[0].indexOf("_tutor_course_price_type");
-    const dId = zdejmowanie[0].indexOf("_tutor_course_product_id");
+    /*
+     * MIERZYMY POZYCJĘ WYWOŁANIA ZMIENIAJĄCEGO, NIE NAZWY META.
+     *
+     * Do 0.78.0 reguła brała pierwsze wystąpienie nazwy klucza. Gdy obok
+     * zapisu stanęła jego WERYFIKACJA odczytem (`get_post_meta` z tą samą
+     * nazwą), pierwsze wystąpienie przestało wskazywać zapis — i mutacja
+     * odwracająca kolejność zaczęła przechodzić na zielono. Złapał to
+     * audyt mutacyjny, nie lektura; klasa znana w tym repozytorium jako
+     * „wzorzec na napis zamiast na rozstrzygnięcie".
+     */
+    const dId = zdejmowanie[0].search(/delete_post_meta\([^)]*_tutor_course_product_id/);
+    const dType = zdejmowanie[0].search(/update_post_meta\([^)]*_tutor_course_price_type/);
+    if (dId < 0) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: nie znalazłem odpięcia product_id w zdejmij_kurs() (B2). Samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+      );
+    }
     if (dId >= 0 && dType >= 0 && dId > dType) {
       bledy.push(
         `${WARSTWA_ZAPISU}: ZŁA KOLEJNOŚĆ ZDEJMOWANIA (B2) — przy rozpinaniu pary product_id musi znikać PIERWSZY. Odwrotna kolejność zostawia okno, w którym kurs jest „darmowy", ale wciąż powiązany z produktem.`
@@ -1255,8 +1270,13 @@ if (!existsSync(USTAWIENIA)) {
    wyłącznie zmian statusu, więc jego wiersz księgowy (wp_tutor_earnings) też.
    Sprzątamy je w haku kasowania — pod PIĘCIOMA zamkami, bo ten hak dostaje
    KAŻDY kasowany wpis, a tabele są cudze:
-     (1) wyłącznie zamówienie w 100% z naszych kursów (same_kursy) — mieszane
-         zostaje nietknięte, bo księgowość cudzego produktu nie jest nasza;
+     (1) wyłącznie zamówienie zawierające CHOĆ JEDEN nasz kurs (ma_kurs) —
+         zamówienia bez ani jednego kursu nie dotykamy wcale. Do 0.67.0
+         warunek brzmiał „w 100% z naszych kursów" i przez to zamówienie
+         MIESZANE zostawiało sieroty: zmierzone 1 earning + 3 notatki na
+         zamówienie. Wiersz księgowy Tutora powstaje wyłącznie za kurs,
+         a notatki i tak przepadają z zamówieniem w drugim trybie
+         magazynu Woo — więc sprzątamy je także tam;
      (2) wyłącznie przez publiczne API właścicieli tabel (reguła 44);
      (3) księgowość Tutora TYLKO wtedy, gdy instruktor nie ma ANI JEDNEJ
          wypłaty — skasowany earning po wypłacie zmienia saldo wstecz;
@@ -1289,11 +1309,19 @@ if (!existsSync(USTAWIENIA)) {
       } else if (Number(rej[1]) >= 10) {
         bledy.push(`${dost}: zamowienie_znika zarejestrowane na priorytecie ${rej[1]}. Na 10 Woo (WC_Post_Data::before_delete_order, zarejestrowane wcześniej) KASUJE POZYCJE zamówienia zanim dojdzie do nas — same_kursy() widzi pustkę i hak wychodzi bez sprzątania, bez objawu (zmierzone). Ma być < 10.`);
       }
-      // Zamek 1: odmowa na zamówieniu mieszanym PRZED pierwszym sprzątaniem.
-      const odmowaMieszane = blok.search(/if\s*\(\s*!\s*self::same_kursy\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/);
-      if (odmowaMieszane < 0 || odmowaMieszane > Math.min(earnings, notatki)) {
+      // Zamek 1: odmowa na zamówieniu BEZ naszego kursu PRZED pierwszym
+      // sprzątaniem. Pytamy o `ma_kurs`, nie o `same_kursy` — ta druga
+      // odpowiada na inne pytanie (czy wolno zamówienie DOMKNĄĆ) i użyta
+      // tutaj zostawiała sieroty po każdym zamówieniu mieszanym.
+      const odmowaObcego = blok.search(/if\s*\(\s*!\s*self::ma_kurs\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/);
+      if (odmowaObcego < 0 || odmowaObcego > Math.min(earnings, notatki)) {
         bledy.push(
-          `${dost}: sprzątanie księgowości po skasowanym zamówieniu nie jest poprzedzone odmową na zamówieniu MIESZANYM (if ( ! self::same_kursy(...) ) { return; }). Zamówienie z cudzym produktem ma cudzą księgowość — jej kasowanie to strata cudzych danych bez objawu.`
+          `${dost}: sprzątanie po skasowanym zamówieniu nie jest poprzedzone odmową na zamówieniu BEZ NASZEGO KURSU (if ( ! self::ma_kurs(...) ) { return; }). Ten hak dostaje KAŻDY kasowany wpis — bez tej odmowy kasowałby cudzą księgowość i cudzą historię.`
+        );
+      }
+      if (/if\s*\(\s*!\s*self::same_kursy\s*\([^)]*\)\s*\)\s*\{\s*return\s*;/.test(blok)) {
+        bledy.push(
+          `${dost}: zamek sprzątania wrócił do same_kursy() — a ten warunek jest prawdziwy tylko dla zamówień złożonych WYŁĄCZNIE z kursów. Zamówienie mieszane wychodzi wtedy nietknięte i zostawia wiersz księgowy oraz notatki wskazujące zamówienie, którego nie ma (zmierzone: 1 + 3).`
         );
       }
       // Zamek 3: księgowość Tutora tylko przy zerze wypłat instruktora.
@@ -1366,6 +1394,600 @@ if (!existsSync(USTAWIENIA)) {
   }
 }
 
+/*
+ * PUNKT PRZYWRACANIA CUDZYCH USTAWIEŃ JEST NIENADPISYWALNY.
+ *
+ * Aktywacja przestawia kilkanaście ustawień, które nie należą do tej wtyczki:
+ * dwa klucze `tutor_option`, cztery opcje WooCommerce, status dwóch stron
+ * natywnej kasy Tutora i slugi koszyka oraz kasy. Do 2026-09-05 wartość sprzed
+ * zmiany żyła WYŁĄCZNIE na wyjściu komendy, a deaktywacja cofała jedną z nich.
+ * Klient wyłączający wtyczkę na stałe zostawał z Tutorem w trybie `wc` bez
+ * szwu, który ten tryb obsługiwał.
+ *
+ * CAŁY CIĘŻAR NAPRAWY SIEDZI W JEDNYM WARUNKU: raz zapisanego klucza nie
+ * nadpisujemy NIGDY. Bez niego wystarczy, żeby cokolwiek przestawiło
+ * ustawienie między dwoma przebiegami `napraw()` — aktualizacja Tutora, ręczna
+ * zmiana, cudza wtyczka — a punkt przywracania zapisze wartość Z NASZEJ ERY
+ * jako „zastaną" i przestanie istnieć, NIE DAJĄC ŻADNEGO OBJAWU. Zmierzone:
+ * po zdjęciu warunku punkt przesuwa się z „free" na „wc_subscription", czyli
+ * na wartość, której klient nigdy nie ustawił.
+ *
+ * Reguła pyta o ROZSTRZYGNIĘCIE, nie o nazwę metody ani o komentarz:
+ *   1. istnieje wyjście wcześniejsze zależne od OBECNOŚCI klucza w mapie,
+ *      i stoi PRZED zapisem;
+ *   2. sprawdzenie NIE idzie przez `isset()` — `false`, `''` i `0` to legalne
+ *      wartości zastane, a `isset()` uznałby je za brak i pozwolił nadpisać;
+ *   3. deaktywacja wtyczki NAPRAWDĘ woła przywracanie — punkt przywracania,
+ *      którego nikt nie odczytuje, jest tylko wierszem w bazie.
+ */
+{
+  const PLIK_USTAWIEN = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-ustawienia.php";
+  const PLIK_GLOWNY = "wordpress/wtyczki/aai-platnosci/aai-platnosci.php";
+
+  if (!existsSync(PLIK_USTAWIEN) || !existsSync(PLIK_GLOWNY)) {
+    bledy.push(`${PLIK_USTAWIEN}: nie znalazłem plików wtyczki płatności — reguła o punkcie przywracania nie ma czego sprawdzić.`);
+  } else {
+    const tresc = kod(readFileSync(PLIK_USTAWIEN, "utf8"));
+    const zapis = tresc.match(/function\s+zapamietaj_zastane\s*\([^)]*\)[^{]*\{([\s\S]*?)\n\t\}/);
+
+    if (!zapis) {
+      bledy.push(
+        `${PLIK_USTAWIEN}: nie znalazłem metody zapisującej punkt przywracania (zapamietaj_zastane). Samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+      );
+    } else {
+      const cialo = zapis[1];
+      const pozycjaWyjscia = cialo.search(/array_key_exists\s*\([^)]*\)\s*\)?\s*\{?\s*(?:\n\s*)?return\b/);
+      const pozycjaZapisu = cialo.search(/update_option\s*\(/);
+
+      if (pozycjaWyjscia < 0) {
+        bledy.push(
+          `${PLIK_USTAWIEN}: zapamietaj_zastane() nie wychodzi wcześniej, gdy klucz JUŻ JEST w mapie. Wtedy druga naprawa zapisze jako „zastaną" wartość z NASZEJ ery i punkt przywracania przestanie istnieć — bez żadnego objawu. Cudze ustawienia klienta zostaną wtedy przestawione na zawsze.`
+        );
+      } else if (pozycjaZapisu >= 0 && pozycjaWyjscia > pozycjaZapisu) {
+        bledy.push(
+          `${PLIK_USTAWIEN}: zapamietaj_zastane() sprawdza obecność klucza DOPIERO PO zapisie — kolejność czyni warunek dekoracją.`
+        );
+      }
+      if (/isset\s*\(\s*\$\w+\s*\[/.test(cialo)) {
+        bledy.push(
+          `${PLIK_USTAWIEN}: zapamietaj_zastane() pyta o klucz przez isset(). Zastane „false", "" i 0 są legalnymi wartościami, a isset() uzna je za brak i pozwoli nadpisać punkt przywracania właśnie tam, gdzie klient miał ustawienie wyłączone.`
+        );
+      }
+    }
+
+    if (!/przywroc_stan_zastany\s*\(/.test(kod(readFileSync(PLIK_GLOWNY, "utf8")))) {
+      bledy.push(
+        `${PLIK_GLOWNY}: deaktywacja wtyczki nie przywraca zastanych ustawień. Punkt przywracania, którego nikt nie odczytuje, jest tylko wierszem w bazie — klient zostaje z Tutorem w trybie „wc" bez szwu, który ten tryb obsługiwał.`
+      );
+    }
+  }
+}
+
+/*
+ * DOSTAWA, KTÓREJ NIE DA SIĘ PONOWIĆ, MA DROGĘ WYJŚCIA — I MA POWÓD.
+ *
+ * Kontrola melduje kodem 1 każdą dostawę, która nie doszła do skutku, i podaje
+ * komendę naprawy. Są jednak wpisy, których ponowić NIE DA SIĘ NIGDY —
+ * zmierzone na żywej instalacji: `dostep/<id>` z pustym wynikiem („zdarzenie
+ * »dostep« nie jest mailem — nie ma czego ponawiać") i `mail_konta/<id>` konta,
+ * które skasowano („konto już nie istnieje"). Kontrola świeciła przy nich
+ * czerwono NA ZAWSZE, każąc uruchamiać komendę, która nie mogła pomóc.
+ * A `wp aai-platnosci sprawdz` jest punktem kontrolnym `postaw.sh`, czyli
+ * KROKU ZEROWEGO każdego testu ręcznego — jeden taki wiersz blokował stawianie
+ * środowiska.
+ *
+ * Reguła pilnuje DWÓCH decyzji, które ta droga wyjścia niesie:
+ *   1. kontrola UZNAJE zamknięcie ręczne — bez tego wyjścia nie ma wcale;
+ *   2. zamknięcie WYMAGA powodu — i to jest cała różnica między
+ *      rozstrzygnięciem a zamiataniem pod dywan. Wiersz zostaje w dzienniku
+ *      i ma mówić, co się naprawdę stało.
+ */
+{
+  const PLIK_CLI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php";
+  const PLIK_MAILI = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php";
+
+  if (!existsSync(PLIK_CLI) || !existsSync(PLIK_MAILI)) {
+    bledy.push(`${PLIK_CLI}: nie znalazłem plików komendy i maili — reguła o zamykaniu dostaw nie ma czego sprawdzić.`);
+  } else {
+    const cli = kod(readFileSync(PLIK_CLI, "utf8"));
+    const maile = kod(readFileSync(PLIK_MAILI, "utf8"));
+
+    if (!/function\s+zamkniety_recznie\s*\(/.test(maile)) {
+      bledy.push(
+        `${PLIK_MAILI}: nie ma rozpoznania dostawy zamkniętej ręcznie. Bez niego wpis, którego NIE DA SIĘ ponowić (dostep bez wyniku, mail konta skasowanego), trzyma kontrolę na kodzie 1 na zawsze — a kontrola jest punktem kontrolnym postaw.sh.`
+      );
+    }
+
+    const orzeka = cli.match(/function\s+czy_dostawa_w_porzadku\s*\([^)]*\)[^{]*\{([\s\S]*?)\n\t\}/);
+    if (!orzeka) {
+      bledy.push(
+        `${PLIK_CLI}: nie znalazłem czy_dostawa_w_porzadku() — samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+      );
+    } else if (!/zamkniety_recznie\s*\(/.test(orzeka[1])) {
+      bledy.push(
+        `${PLIK_CLI}: kontrola nie uznaje dostawy zamkniętej ręcznie, więc wpis nie do ponowienia świeci na czerwono na zawsze i blokuje postaw.sh — czyli krok zerowy każdego testu ręcznego.`
+      );
+    }
+
+    const komenda = cli.match(/\$zamknij\s*=[\s\S]*?\n\t\t\}/);
+    if (!komenda) {
+      bledy.push(
+        `${PLIK_CLI}: nie ma komendy zamykającej dostawę ręcznie — kontrola wskazuje wyjście, którego nie ma. Samokontrola zakresu.`
+      );
+      // PYTAMY O ROZSTRZYGNIĘCIE, NIE O SŁOWO. Pierwsza wersja sprawdzała,
+      // czy w bloku pada „powod" i czy jest gdziekolwiek `WP_CLI::error(` —
+      // a oba warunki są spełnione także wtedy, gdy powód dostaje wartość
+      // domyślną i nikt o niego nie pyta (test negatywny przeszedł na
+      // zielono). Pytamy więc o ODMOWĘ przy pustym powodzie.
+    } else if (!/''\s*===\s*\$powod[\s\S]{0,200}?WP_CLI::error\s*\(/.test(komenda[0])) {
+      bledy.push(
+        `${PLIK_CLI}: zamknięcie ręczne nie ODMAWIA przy pustym powodzie. Wtedy przestaje być rozstrzygnięciem, a staje się kasowaniem śladu: wiersz zostaje w dzienniku i ma mówić, DLACZEGO uznano sprawę za załatwioną.`
+      );
+    }
+  }
+}
+
+/*
+ * OKNO PRZERWANIA PRZY ZAKŁADANIU PRODUKTU (P1 poz. 7).
+ *
+ * Wiersz produktu powstaje `wp_insert_post`-em WEWNĄTRZ
+ * `WC_Product::save()`, a meta ustawione `update_meta_data()` lądują
+ * w bazie dopiero `save_meta_data()` — kilkadziesiąt linii dalej.
+ * Przerwanie w tym oknie zostawiało produkt z zerem meta: bez znacznika
+ * idempotencja nie miała czego znaleźć, następny przebieg zakładał
+ * produkt OBOK, a kontrola meldowała kod 0 (wszystko zmierzone).
+ *
+ * Wszystkie cztery reguły niżej pytają o ROZSTRZYGNIĘCIE, nie o napis —
+ * dziewięć nawrotów tamtej pułapki w tym projekcie.
+ */
+{
+  const zapisOkno = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+
+  // Blok tworzenia produktu — od `new WC_Product_Simple()` do chwili,
+  // w której metoda melduje utworzenie.
+  const blok = zapisOkno.match(/new WC_Product_Simple\(\)[\s\S]*?\$w\['produkt_utworzony'\]\s*=\s*1;/);
+  if (!blok) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: nie znalazłem bloku tworzenia produktu (new WC_Product_Simple … produkt_utworzony). Samokontrola zakresu — reguły okna przerwania mierzyłyby pustkę.`
+    );
+  } else {
+    const b = blok[0];
+
+    // (1) Znacznik MUSI jechać hakiem odpalanym w środku wp_insert_post,
+    // na priorytecie niższym niż cokolwiek cudzego.
+    const podpiety = b.match(/add_action\(\s*'save_post_product'\s*,\s*(\$[A-Za-z_]\w*)\s*,\s*1\s*\)/);
+    // Pytamy o POWIĄZANIE zmiennej, nie o sąsiedztwo napisów: nazwa haka
+    // i słowo ZNACZNIK_ZRODLA mogą stać obok siebie w kodzie, który nic
+    // nie zapisuje (to dokładnie ta pułapka, którą ten projekt złapał
+    // dziewięć razy). Sprawdzamy, że callback podpięty pod hak NAPRAWDĘ
+    // pisze znacznik do bazy.
+    const pisze =
+      null !== podpiety &&
+      new RegExp(
+        `\\${podpiety[1]}\\s*=\\s*(static\\s+)?function[\\s\\S]{0,300}?update_post_meta\\s*\\([\\s\\S]{0,120}?ZNACZNIK_ZRODLA`
+      ).test(b);
+    if (!pisze) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: nowy produkt nie dostaje znacznika pochodzenia hakiem 'save_post_product' na priorytecie 1. Meta zapisana przez update_meta_data() ląduje dopiero w save_meta_data(), więc przerwanie zostawia produkt-widmo BEZ znacznika — niewidzialny dla idempotencji i dla kontroli (P1 poz. 7, zmierzone).`
+      );
+    }
+
+    // (2) Hak zdejmowany ZAWSZE — inaczej rzut z dalszej części save()
+    // zostawia go na resztę żądania i oznacza cudzy produkt.
+    if (!/finally\s*\{[\s\S]{0,300}?remove_action\(\s*'save_post_product'/.test(b)) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: hak nadający znacznik nie jest zdejmowany w finally. Rzut z dalszej części save() zostawiłby go na resztę żądania — nasz znacznik siadłby na pierwszym cudzym produkcie zapisanym po nim.`
+      );
+    }
+
+    // (3) Znacznika NIE wolno dokładać równolegle do obiektu: save_meta_data()
+    // uzna go za metę nową (bez meta_id) i dopisze DRUGI wiersz.
+    if (/\$produkt->update_meta_data\(\s*self::ZNACZNIK_ZRODLA/.test(b)) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: znacznik pochodzenia jedzie RÓWNIEŻ przez update_meta_data() na nowym obiekcie. save_meta_data() nie zna wiersza dopisanego hakiem, więc doda drugi o tej samej nazwie — a wtedy produkt_po_znaczniku() widzi „duplikat" tam, gdzie jest jeden produkt.`
+      );
+    }
+
+    // (4) Rezerwacja otwierana PRZED zapisem — po to, żeby przeżyła przerwanie.
+    const przedSave = b.indexOf("rezerwacja_zacznij(");
+    const save = b.indexOf("$produkt->save()");
+    if (przedSave < 0 || save < 0 || przedSave > save) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: rezerwacja „zakładam produkt" nie jest otwierana PRZED $produkt->save(). Cała jej wartość polega na tym, że przeżyje przerwanie — otwarta po zapisie nie odnotuje niczego, gdy zapis padnie.`
+      );
+    }
+  }
+
+  // (5) Rezerwacja zamykana dopiero, gdy powiązanie STOI — nie wcześniej.
+  if (!/powiazanie_ustaw\([\s\S]{0,600}?\}\s*else\s*\{[\s\S]{0,300}?rezerwacja_zamknij\(/.test(zapisOkno)) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: rezerwacja nie jest zamykana w gałęzi udanego powiazanie_ustaw(). Zamknięta wcześniej przestaje pilnować dokładnie tego odcinka, dla którego istnieje; niezamykana wcale — świeci w kontroli na zawsze.`
+    );
+  }
+
+  // (6) Wyszukiwanie sieroty pyta BAZĘ. `wc_get_products()` dokłada tabelę
+  // `wc_product_meta_lookup`, do której wiersz trafia na samym końcu save() —
+  // czyli tą drogą produkt z przerwanego zapisu jest niewidzialny (zmierzone:
+  // przy dwóch produktach ze znacznikiem oddaje jeden).
+  const poZnaczniku = zapisOkno.match(/function produkt_po_znaczniku\([\s\S]*?\n\t\}/);
+  if (!poZnaczniku) {
+    bledy.push(`${WARSTWA_ZAPISU}: nie znalazłem produkt_po_znaczniku() — samokontrola zakresu.`);
+  } else {
+    if (/wc_get_products\s*\(/.test(poZnaczniku[0])) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: produkt_po_znaczniku() szuka przez wc_get_products(). Ta droga odpytuje przez wc_product_meta_lookup, którego wiersz powstaje NA KOŃCU save() — więc nie widzi produktu z przerwanego zapisu, czyli dokładnie tego przypadku, dla którego ta metoda istnieje (P1 poz. 7, zmierzone).`
+      );
+    }
+    if (!/post_type\s*=\s*'product'/.test(poZnaczniku[0])) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: produkt_po_znaczniku() nie zawęża zapytania do post_type = 'product'. Znacznik _aai_zrodlo_uuid nosi też każda kopia kursu w Tutorze (typ courses) — bez tego warunku metoda dopasuje wpis LMS-a jako produkt.`
+      );
+    }
+  }
+}
+
+{
+  const SCIEZKA_CLI = join(KATALOG, "includes", "class-aai-platnosci-cli.php");
+  const cliOkno = kod(readFileSync(SCIEZKA_CLI, "utf8"));
+
+  // (7) Kontrola MUSI widzieć przerwane zakładanie produktu.
+  const wSprawdz = cliOkno.match(/function sprawdz\(\)[\s\S]*?\n\t\}/);
+  if (!wSprawdz) {
+    bledy.push(`${SCIEZKA_CLI}: nie znalazłem sprawdz() — samokontrola zakresu reguły o rezerwacjach.`);
+  } else if (!/rezerwacje_wiszace\(\)/.test(wSprawdz[0])) {
+    bledy.push(
+      `${SCIEZKA_CLI}: kontrola nie pyta o rezerwacje przerwanego zakładania produktu. Bez tego produkt-widmo bez powiązania zostaje w bazie, a sprawdz kończy kodem 0 — zmierzone przed naprawą.`
+    );
+  }
+
+  // (8) Duplikaty po OBU kluczach: naprawa odnajduje sierotę po
+  // `_aai_zrodlo_uuid`, a wykrywanie pytało wyłącznie o `_aai_platnosci_kurs_uuid`.
+  const dup = cliOkno.match(/function duplikaty_uuid\(\)[\s\S]*?\n\t\}/);
+  if (!dup) {
+    bledy.push(`${SCIEZKA_CLI}: nie znalazłem duplikaty_uuid() — samokontrola zakresu.`);
+  } else {
+    for (const klucz of ["_aai_platnosci_kurs_uuid", "_aai_zrodlo_uuid"]) {
+      if (!dup[0].includes(klucz)) {
+        bledy.push(
+          `${SCIEZKA_CLI}: duplikaty_uuid() nie pyta o metę ${klucz}. Wykrywanie duplikatu i odnajdywanie sieroty muszą stać na TYCH SAMYCH kluczach — inaczej dopasowanie jest już loterią, a kontrola milczy.`
+        );
+      }
+    }
+  }
+}
+
+/* WYŁĄCZONA WTYCZKA NIE UCISZA KONTROLI, KTÓRA JEJ NIE DOTYCZY (P1 poz. 19).
+
+   Kontrola ma dwie drogi wyjścia przy niekompletnym otoczeniu i obie kończyły
+   się gołym `halt( 0 )` — a razem z nimi ginęły rzeczy od brakującej wtyczki
+   NIEZALEŻNE: waluta sklepu, cudze ustawienia przestawione instalatorem,
+   dziennik dostaw, zamówienia wiszące, sieroty po skasowanych zamówieniach.
+   Zmierzone: przy walucie EUR kontrola z Pluginem 1 kończyła kodem 1
+   i nazywała rozjazd, a bez Pluginu 1 — kodem 0 i ciszą. */
+{
+  const SCIEZKA_CLI_19 = join(KATALOG, "includes", "class-aai-platnosci-cli.php");
+  const cli19 = kod(readFileSync(SCIEZKA_CLI_19, "utf8"));
+
+  const zbiorcza = cli19.match(/function bledy_poza_kursami\(\)[\s\S]*?\n\t\}/);
+  if (!zbiorcza) {
+    bledy.push(
+      `${SCIEZKA_CLI_19}: nie ma metody zbierającej rozjazdy NIEZALEŻNE od danych Pluginu 1 (bledy_poza_kursami). Bez niej każda droga wyjścia kontroli pyta o co innego, a wyłączenie jednej wtyczki ucisza kontrole, które jej nie dotyczą (P1 poz. 19).`
+    );
+  } else {
+    // Metoda ma naprawdę o coś pytać — samokontrola zakresu.
+    for (const co of ["bledy_dostaw", "sieroty_po_zamowieniach"]) {
+      if (!zbiorcza[0].includes(co)) {
+        bledy.push(
+          `${SCIEZKA_CLI_19}: bledy_poza_kursami() nie pyta o ${co}. Ta metoda jest jedynym miejscem, z którego obie drogi wyjścia kontroli biorą rozjazdy niezależne od kursów — czego tu nie ma, tego nie sprawdza nikt przy wyłączonej wtyczce.`
+        );
+      }
+    }
+    /*
+     * WALUTA: pytamy o ROZSTRZYGNIĘCIE, nie o słowo. Pierwsza wersja tej
+     * reguły sprawdzała, czy w metodzie pada napis „waluta" — a on pada
+     * w komentarzu i w komunikacie, więc mutacja zrywająca porównanie
+     * PRZESZŁA (złapał ją audyt mutacyjny, nie lektura). Ósmy nawrót tej
+     * rodziny w tym projekcie. Sprawdzamy więc, że wartość z
+     * `get_woocommerce_currency()` trafia do zmiennej, KTÓRA jest potem
+     * porównywana z 'PLN'.
+     */
+    const zWoo = zbiorcza[0].match(/(\$\w+)\s*=\s*\(string\)\s*get_woocommerce_currency\(\)/);
+    const porownanie = zWoo && new RegExp(`'PLN'\\s*!==\\s*\\${zWoo[1]}\\b`).test(zbiorcza[0]);
+    if (!porownanie) {
+      bledy.push(
+        `${SCIEZKA_CLI_19}: bledy_poza_kursami() nie porównuje waluty sklepu z PLN (wartość z get_woocommerce_currency() musi trafić do zmiennej, która jest potem sprawdzana). Strony kursów drukują „zł" na sztywno — bez tego porównania klient widzi w kasie inną walutę niż w ofercie, a kontrola milczy.`
+      );
+    }
+  }
+
+  // Droga wyjścia przy brakujących zależnościach MUSI zapytać zbiorczą metodę
+  // i mieć wyjście kodem 1 — pytamy o ROZSTRZYGNIĘCIE (halt 1), nie o napis.
+  const galaz = cli19.match(/\$brak = Aai_Platnosci_Zaleznosci::brakuje\(\);[\s\S]*?WP_CLI::halt\( 0 \);/);
+  if (!galaz) {
+    bledy.push(
+      `${SCIEZKA_CLI_19}: nie znalazłem gałęzi „brakuje zależności" kończącej się halt( 0 ) — samokontrola zakresu reguły o uciszaniu kontroli.`
+    );
+  } else if (!/bledy_poza_kursami\(\)[\s\S]{0,400}?WP_CLI::halt\( 1 \);/.test(galaz[0])) {
+    bledy.push(
+      `${SCIEZKA_CLI_19}: gałąź „brakuje zależności" wychodzi kodem 0, nie pytając wcześniej bledy_poza_kursami() i nie mając wyjścia kodem 1. Wyłączenie JEDNEJ wtyczki ucisza wtedy walutę, dziennik dostaw i sieroty — rzeczy, które z nią nie mają nic wspólnego (P1 poz. 19, zmierzone).`
+    );
+  }
+}
+
+/* ZAPIS, KTÓRY MELDUJE SKUTEK, MUSI GO SPRAWDZIĆ (P4, klasa Z-3…Z-8).
+
+   Sonda polowania policzyła w tej wtyczce 67 miejsc zapisu, z czego 37 bez
+   sprawdzenia wyniku, a 9 meldujących „stan się zmienił" mimo to. Najgorszy
+   przypadek: zdjęcie kursu ze sprzedaży ustawiało `zdjety = 1` bez pytania,
+   czy produkt naprawdę zszedł na `draft` — przy nieudanym zapisie kurs
+   zostawał KUPOWALNY, a komenda meldowała sukces.
+
+   Reguła pilnuje jednej rzeczy: w warstwie zapisu Pluginu 2 nie ma
+   `wp_update_post()` wywołanego „w próżnię". Wynik ma trafić do zmiennej
+   (a co się z nim dzieje dalej, sprawdzają reguły wyżej i bramki). */
+{
+  const ZAPIS_P4 = WARSTWA_ZAPISU;
+  const kodZapisu = kod(readFileSync(ZAPIS_P4, "utf8"));
+  const wszystkie = [...kodZapisu.matchAll(/(^|\n)(\s*)([^\n]*?)wp_update_post\(/g)];
+  if (wszystkie.length === 0) {
+    bledy.push(
+      `${ZAPIS_P4}: nie znalazłem ANI JEDNEGO wp_update_post() — reguła o sprawdzaniu wyniku przechodziłaby po pustce (samokontrola zakresu).`
+    );
+  }
+  for (const m of wszystkie) {
+    const przed = m[3].trim();
+    // Wynik musi iść do zmiennej albo wprost do warunku/zwrotu.
+    if (!/[=(]\s*$|return\s*$|!\s*$/.test(przed)) {
+      const nr = kodZapisu.slice(0, m.index).split("\n").length + (m[1] === "\n" ? 1 : 0);
+      bledy.push(
+        `${ZAPIS_P4}:${nr}: wp_update_post() wywołane bez odebrania wyniku. WordPress oddaje 0 albo WP_Error, gdy zapis nie doszedł (cudzy filtr wp_insert_data, blokada bazy) — a metoda melduje wtedy skutek, którego nie ma. Wzorzec: $w = wp_update_post( …, true ); ! is_wp_error( $w ) && $w > 0.`
+      );
+    }
+  }
+}
+
+/* OSTATNIE OGNIWO SPRZEDAŻY I ODEBRANIA DOSTĘPU MIERZYMY ODCZYTEM (P4, Z-4/Z-8).
+
+   Obie te operacje idą przez API, które NIE ODDAJE użytecznego wyniku:
+   `update_post_meta()` zwraca `false` także wtedy, gdy wartość już była taka
+   sama, a `course_enrol_status_change()` Tutora robi surowy `$wpdb->update`
+   i odrzuca jego wynik. Jedyną uczciwą drogą jest odczyt po zapisie — tak
+   samo, jak pyta kontrola. */
+{
+  const zapisOgniwo = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+  // $komplet rozstrzyga, czy produkt pójdzie na `publish`, czyli czy kurs
+  // da się KUPIĆ. Nie wolno go ustawiać na wiarę po samych zapisach.
+  if (/\$komplet\s*=\s*true\s*;/.test(zapisOgniwo)) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: $komplet ustawiane na sztywno (= true). To ono decyduje, czy produkt idzie na publish, czyli czy kurs da się kupić — a zapis powiązania w Tutorze może zostać zablokowany cudzym filtrem update_post_metadata. Mierz ODCZYTEM po zapisie (get_post_meta), nie wynikiem update_post_meta(), bo ten oddaje false także przy wartości niezmienionej (Z-4).`
+    );
+  }
+  if (!/\$komplet\s*=\s*'paid'\s*===[\s\S]{0,400}?get_post_meta\([\s\S]{0,200}?_tutor_course_product_id/.test(zapisOgniwo)) {
+    bledy.push(
+      `${WARSTWA_ZAPISU}: $komplet nie jest wyprowadzane z ODCZYTU obu mety powiązania w Tutorze. Bez tego produkt staje się kupowalny na słowo honoru, a klient płaci za kurs, którego do_enroll() nie ma czego zapisać (B3).`
+    );
+  }
+
+  const dostOgniwo = join(KATALOG, "includes", "class-aai-platnosci-dostarczanie.php");
+  if (existsSync(dostOgniwo)) {
+    const d = kod(readFileSync(dostOgniwo, "utf8"));
+    if (!/course_enrol_status_change\([\s\S]{0,400}?status_zapisu\(/.test(d)) {
+      bledy.push(
+        `${dostOgniwo}: odebranie dostępu po skasowaniu zamówienia nie jest weryfikowane odczytem (status_zapisu). Tutor odrzuca wynik swojego $wpdb->update, więc wywołanie „udaje się" zawsze — przy nieudanym zapisie klient zachowuje kurs po obciążeniu zwrotnym, a nikt się o tym nie dowiaduje (Z-8).`
+      );
+    }
+  }
+}
+
+/* ZNACZNIK TOŻSAMOŚCI ŚWIEŻEJ OKŁADKI SPRAWDZAMY ODCZYTEM (P4, Z-5).
+
+   `zalacznik_okladki()` rozpoznaje wgraną wcześniej okładkę po DWÓCH
+   metach. Załącznik, któremu ich nie zapisano, jest dla tego pytania
+   NIEWIDZIALNY — więc każda następna synchronizacja wgrywa nową kopię
+   tego samego pliku (`okladka-1.png`, `-2`, `-3`…). Objawu nie ma
+   żadnego: produkt dostaje obrazek, kontrola milczy, rośnie tylko
+   biblioteka mediów właściciela.
+
+   `update_post_meta()` oddaje `false` TAKŻE przy wartości niezmienionej
+   (zmierzone w 0.71.0), więc jedyną uczciwą drogą jest ODCZYT po
+   zapisie. Przy niepowodzeniu świeży załącznik ma zniknąć: brak okładki
+   jest stanem odwracalnym, a sierota-widmo mnoży się przy każdym
+   zapisie. Reguła pyta o ROZSTRZYGNIĘCIE (odczyt obu met i kasowanie
+   w gałęzi porażki), nie o nazwę metody ani o obecność stałych. */
+{
+  const zapisOkladki = kod(readFileSync(WARSTWA_ZAPISU, "utf8"));
+  const odWgraj = zapisOkladki.indexOf("function wgraj_okladke(");
+  if (odWgraj < 0) {
+    // Samokontrola zakresu: bez tej metody reguła przechodziłaby po pustce.
+    if (/wp_insert_attachment\s*\(/.test(zapisOkladki)) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: wtyczka wgrywa załączniki, a nie ma wgraj_okladke() — reguła o znaczniku tożsamości okładki nie ma czego pilnować i przeszłaby po pustce (Z-5).`
+      );
+    }
+  } else {
+    const doKonca = zapisOkladki.slice(odWgraj);
+    const nastepna = doKonca.slice(1).search(/\n\t(?:private|public|protected)\s/);
+    const cialo = nastepna > 0 ? doKonca.slice(0, nastepna + 1) : doKonca;
+
+    // (a) Znaczniki muszą być POTWIERDZONE odczytem — obie mety, nie jedna.
+    const odczyty = [...cialo.matchAll(/get_post_meta\s*\(\s*\(int\)\s*\$id\s*,\s*self::(META_OKLADKA_\w+)/g)].map(
+      (m) => m[1]
+    );
+    if (!odczyty.includes("META_OKLADKA_KURS") || !odczyty.includes("META_OKLADKA_SHA")) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: wgraj_okladke() nie potwierdza ODCZYTEM obu znaczników tożsamości okładki (kurs i sha). Bez nich zalacznik_okladki() nie rozpozna własnego pliku i KAŻDA synchronizacja wgra kolejną kopię okładki — bez jednego objawu, poza puchnącą biblioteką mediów (Z-5).`
+      );
+    }
+    // (b) Nieudany zapis MUSI skasować świeży załącznik i wyjść zerem.
+    if (!/if\s*\(\s*!\s*\$\w+\s*\)\s*\{[\s\S]{0,300}?wp_delete_attachment\s*\(\s*\(int\)\s*\$id\s*,\s*true\s*\)[\s\S]{0,120}?return\s+0\s*;/.test(cialo)) {
+      bledy.push(
+        `${WARSTWA_ZAPISU}: wgraj_okladke() nie sprząta po nieudanym oznaczeniu (brak wp_delete_attachment + return 0 w gałęzi porażki). Nieoznaczony załącznik jest niewidzialny dla wyszukiwania i zostaje w bibliotece na zawsze, a następny zapis kursu doda kolejny (Z-5).`
+      );
+    }
+  }
+}
+
+/* PUSTE ZDANIE O ZGODACH TEŻ MUSI WEJŚĆ DO BLOKU (P4, Z-1).
+
+   Druga połowa reguły 34a, której brakowało. `zdanie()` oddaje PUSTY
+   łańcuch, gdy instalacja nie ma nawet strony polityki prywatności —
+   i właśnie wtedy podmiana jest najbardziej potrzebna, bo WooCommerce
+   drukuje wtedy swoje domyślne zdanie o „Warunkach i zasadach", których
+   w tej instalacji nie ma. Wcześniejsze wyjście z bloku przy pustym
+   tekście oddawało głos cudzej wersji dokładnie w tym przypadku.
+
+   Reguła celuje w ROZSTRZYGNIĘCIE: między odczytem zdania a zejściem
+   w drzewo bloków nie wolno postawić wyjścia zależnego od pustki. */
+{
+  const KASA_Z1 = join(KATALOG, "includes", "class-aai-platnosci-kasa.php");
+  if (existsSync(KASA_Z1)) {
+    const k = kod(readFileSync(KASA_Z1, "utf8"));
+    const od = k.indexOf("function na_bloku(");
+    if (od < 0) {
+      if (/render_block_data/.test(k)) {
+        bledy.push(
+          `${KASA_Z1}: jest filtr render_block_data, a nie ma na_bloku() — reguła o pustym zdaniu zgód pilnowałaby pustki (samokontrola zakresu, Z-1).`
+        );
+      }
+    } else {
+      const doK = k.slice(od);
+      const nast = doK.slice(1).search(/\n\t(?:private|public|protected)\s/);
+      const cialoNaBloku = nast > 0 ? doK.slice(0, nast + 1) : doK;
+      const poZdaniu = cialoNaBloku.slice(cialoNaBloku.indexOf("self::zdanie()"));
+      const doPrzejdz = poZdaniu.slice(0, poZdaniu.indexOf("self::przejdz("));
+      if (/return\s+\$blok\s*;/.test(doPrzejdz)) {
+        bledy.push(
+          `${KASA_Z1}: na_bloku() wychodzi z bloku NIETKNIĘTEGO między odczytem zdania a zejściem w drzewo. Pusty tekst znaczy „nie ma nawet polityki prywatności" — czyli przypadek, w którym podmiana jest najbardziej potrzebna, bo WooCommerce drukuje wtedy zdanie o nieistniejących „Warunkach i zasadach" (Z-1).`
+        );
+      }
+    }
+  }
+}
+
+/* WYŁĄCZONY PLUGIN 1 NIE ODSŁANIA DRUGIEJ STRONY SPRZEDAŻOWEJ (MAR-A-15).
+
+   Produkt kursu jest `publish` i tylko `hidden` w katalogu — a `hidden`
+   chowa go z LIST, własnego adresu nie zamyka. Przekierowanie na naszą
+   stronę sprzedażową kończyło się `return`-em, gdy Pluginu 1 nie było,
+   więc `/product/<slug>/` wracało jako druga strona sprzedażowa w wyglądzie
+   WooCommerce — przy kursie, którego danych ani strony już nie ma
+   (zmierzone: HTTP 200 z tytułem produktu i przyciskiem kupna).
+
+   Nie ma dokąd przekierować, więc adres ma oddać 404. Reguła pyta
+   o ROZSTRZYGNIĘCIE w gałęzi „nie ma Pluginu 1", nie o obecność słowa. */
+{
+  const U = join(KATALOG, "includes", "class-aai-platnosci-ustawienia.php");
+  if (!existsSync(U)) {
+    bledy.push(`${U}: brak klasy ustawień — nie ma czym zamknąć adresu produktu przy wyłączonym Pluginie 1 (MAR-A-15).`);
+  } else {
+    const u = kod(readFileSync(U, "utf8"));
+    const i = u.indexOf("function przekieruj_ze_strony_produktu(");
+    if (i < 0) {
+      bledy.push(`${U}: nie ma przekieruj_ze_strony_produktu() — adres /product/<slug>/ jest drugą stroną sprzedażową w cudzym wyglądzie (MAR-A-15).`);
+    } else {
+      const cialo = u.slice(i, u.indexOf("\n\t}", i));
+      // Gałąź „brak Pluginu 1" musi kończyć się 404, nie gołym return.
+      const m = cialo.match(/if\s*\(\s*!\s*class_exists\(\s*'Aai_Sklep_Odczyt'[\s\S]{0,400}?\n\t\t\t\}/);
+      if (!m) {
+        bledy.push(
+          `${U}: nie widzę gałęzi „brak Pluginu 1" w przekieruj_ze_strony_produktu() — reguła o zamykaniu adresu produktu przechodziłaby po pustce (samokontrola zakresu, MAR-A-15).`
+        );
+      } else if (!/set_404\s*\(\s*\)/.test(m[0]) || !/status_header\(\s*404\s*\)/.test(m[0])) {
+        bledy.push(
+          `${U}: przy wyłączonym Pluginie 1 adres produktu kursu nie oddaje 404 (brak set_404 + status_header w tej gałęzi). Wraca wtedy druga strona sprzedażowa w wyglądzie WooCommerce — stan zamknięty w 0.59.0, wchodzący tylnymi drzwiami (MAR-A-15).`
+        );
+      }
+    }
+  }
+}
+
+/* UDANA SYNCHRONIZACJA UNIEWAŻNIA UWAGĘ OGÓLNĄ (MAR-A-14).
+
+   Aktywacja bez Pluginu 1 zapisuje pod `_ogolny` uwagę „brak Pluginu 1 —
+   nie ma czego synchronizować". Kasowało ją TYLKO ręczne
+   `wp aai-platnosci sync`, więc po powrocie Pluginu 1 kontrola świeciła
+   kodem 1, a kokpit straszył właściciela — przy produktach już
+   opublikowanych i sprzedaży działającej (zmierzone). To ta sama klasa co
+   MAR-A-08 w Pluginie 1: alarm, który nie umie zgasnąć, uczy, żeby mu nie
+   ufać — a ta wtyczka opisała tę wadę u siebie i naprawiła ją dla kluczy
+   kursów, zostawiając klucz ogólny. */
+{
+  const S = join(KATALOG, "includes", "class-aai-platnosci-szew.php");
+  if (!existsSync(S)) {
+    bledy.push(`${S}: brak klasy szwu — samokontrola zakresu reguły o gaszeniu uwagi ogólnej (MAR-A-14).`);
+  } else {
+    const s = kod(readFileSync(S, "utf8"));
+    const i = s.indexOf("function na_zmianie(");
+    if (i < 0) {
+      bledy.push(`${S}: nie ma na_zmianie() — samokontrola zakresu reguły o gaszeniu uwagi ogólnej (MAR-A-14).`);
+    } else {
+      const cialo = s.slice(i, s.indexOf("\n\t}", i));
+      const sukces = cialo.split("} else")[0];
+      // W gałęzi sukcesu gasimy i klucz kursu, i klucz ogólny (wywołanie bez argumentu).
+      if (!/Aai_Platnosci_Komunikaty::wyczysc\(\s*\)/.test(sukces)) {
+        bledy.push(
+          `${S}: udana synchronizacja kursu nie gasi uwagi OGÓLNEJ (brak Komunikaty::wyczysc() bez argumentu w gałęzi sukcesu). Uwaga „brak Pluginu 1 — nie ma czego synchronizować" wisi wtedy po jego powrocie, a kontrola świeci kodem 1 przy działającej sprzedaży (MAR-A-14).`
+        );
+      }
+    }
+  }
+}
+
+/* ————————— zapis dziennika i powiązania ODDAJE swój wynik —————————
+   Zgłoszone z zewnątrz (0.78.0). `dostawa_wynik()` i `powiazanie_usun()`
+   były metodami `void`, które odrzucały wynik zapytania. Zmierzone:
+   przy zablokowanym UPDATE komenda „dostawy --zamknij" meldowała
+   „Success" przy niezmienionym wierszu, a kontrola upominała się o tę
+   dostawę dalej i blokowała postaw.sh. Przy zablokowanym DELETE zostawał
+   wiersz wskazujący produkt kursu, którego już nie ma.
+
+   Reguła pyta o ROZSTRZYGNIĘCIE (typ zwracany i sprawdzenie u wołającego),
+   nie o obecność nazwy — to nawracająca pułapka tego repozytorium. */
+{
+  const zapis = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-zapis.php";
+  const cli = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-cli.php";
+  const maile = "wordpress/wtyczki/aai-platnosci/includes/class-aai-platnosci-maile.php";
+
+  if (existsSync(zapis)) {
+    const z = kod(readFileSync(zapis, "utf8"));
+
+    for (const [metoda, po_co] of [
+      ["dostawa_wynik", "rezultat dostawy nie trafiłby do dziennika, a kontrola upominałaby się o nią w nieskończoność"],
+      ["powiazanie_usun", "zostałby wiersz wskazujący produkt kursu, którego już nie ma"],
+      ["ustaw_znaczniki_produktu", "produkt straciłby znaczniki sterujące domknięciem zamówienia i integracją Tutora"],
+    ]) {
+      const m = z.match(new RegExp(`public static function ${metoda}\\s*\\([^)]*\\)\\s*:\\s*(\\w+)`));
+      if (!m) {
+        bledy.push(
+          `${zapis}: nie znalazłem deklaracji ${metoda}() — samokontrola zakresu: reguła, która nie trafia w mierzony kod, przechodzi PO PUSTCE.`
+        );
+      } else if ("void" === m[1]) {
+        bledy.push(
+          `${zapis}: ${metoda}() jest void, więc nie ma jak powiedzieć, że zapis się nie udał — ${po_co}. Oddaj wynik i potwierdź stan odczytem.`
+        );
+      }
+    }
+  }
+
+  if (existsSync(cli)) {
+    const c = kod(readFileSync(cli, "utf8"));
+    if (/Aai_Platnosci_Zapis::dostawa_wynik\(/.test(c) && !/if\s*\(\s*!\s*Aai_Platnosci_Zapis::dostawa_wynik\(/.test(c)) {
+      bledy.push(
+        `${cli}: ręczne zamknięcie dostawy nie sprawdza, czy zapis doszedł — komenda meldowała wtedy sukces przy niezmienionym wierszu, a kontrola dalej blokowała postaw.sh (zmierzone).`
+      );
+    }
+  }
+
+  if (existsSync(maile)) {
+    const m = kod(readFileSync(maile, "utf8"));
+    if (!/\$zapisany\s*=\s*Aai_Platnosci_Zapis::dostawa_wynik\(/.test(m)) {
+      bledy.push(
+        `${maile}: zapisz_wynik() nie odbiera wyniku dostawa_wynik(). Przy nieudanym zapisie udana wysyłka CZYŚCI komunikat, który dostawa_wynik() postawiła przed chwilą pod tym samym kluczem — naprawa jednej niemej usterki robi drugą.`
+      );
+    }
+  }
+}
+
 if (bledy.length > 0) {
   console.error("straznik-platnosci-wp:");
   for (const b of bledy) console.error(`  - ${b}`);
@@ -1373,5 +1995,5 @@ if (bledy.length > 0) {
 }
 
 console.log(
-  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty)."
+  "straznik-platnosci-wp: szew w porządku (zero własnego AJAX-a i tras, jednokierunkowość wobec Pluginu 1, zero kasowania produktów, cena nigdy metą i nigdy _sale_price, słuchacze z Throwable, produkt tylko z warstwy zapisu, kolejność powiązania B2 w obie strony, produkt rodzi się draft i ukryty, blokada sprzedaży domyślnie zamknięta, filtry ustawień przy include, kontrola nie pisze, zamówienia mieszane nie są domykane, cudze pozycje bez zmian, przycisk pyta o zapis i o kupowalność, stan zamówienia po STATUSIE zapisu, domknięcie na koniec żądania, jedna decyzja o sprzedaży, dostępność nie zależy od oglądającego, mail najwyżej raz i bez hasła, adresat z konta, wysyłka przeżywa shutdown, status zapisu z bazy, mail Woo wraca przy deaktywacji, blokada koszyka nie wywraca kasy i odmawia zakupu nie do dostarczenia, tekst widoczny klientowi w kasie pochodzi z naszej tabeli i jedzie ze slashami, w koszyku zostaje jeden kurs i wszystkie cudze produkty, poczta ma jednego nadawcę bez zabierania głosu cudzym ustawieniom, bramki pytają o zamówienia przez API Woo, nie przez wp_posts, kasa nie powołuje się na nieistniejący regulamin i nie pisze do cudzej treści, odnośnik pozycji koszyka naprawiany PO filtrze Tutora, is_tutor_order() nigdy bez wcześniejszego wc_get_order(), mail 1 pomijany wyłącznie po potwierdzonym mailu 2 i tylko on, powiadomienie admina o zmianie hasła zdjęte, sierota po kursie z kupującymi to błąd kontroli, zdanie o niedziałającej sprzedaży pada tylko wtedy, gdy jest prawdą, pusty uuid nie dopasowuje cudzego wpisu, ścieżka zakupu i produkty poza mapą strony i poza indeksem, żadna nasza wtyczka nie przelicza złożonego zamówienia, skasowane zamówienie sprząta własną księgowość pod zamkami, cudze tabele tylko przez API, kontrola liczy sieroty, punkt przywracania cudzych ustawień jest nienadpisywalny i czytany przy deaktywacji, dostawa nie do ponowienia ma drogę wyjścia z powodem, wyłączona wtyczka nie ucisza kontroli, która jej nie dotyczy, każdy zapis wpisu odbiera swój wynik, kupowalność i odebranie dostępu mierzone odczytem, produkt rodzi się ze znacznikiem nadanym w środku wp_insert_post i pod rezerwacją, a sieroty szukamy w bazie, nie przez wc_get_products, znacznik świeżej okładki potwierdzany odczytem i sprzątany przy porażce, puste zdanie o zgodach też wchodzi do bloku kasy, wyłączony Plugin 1 nie odsłania drugiej strony sprzedażowej, udana synchronizacja gasi uwagę ogólną, a zapis dziennika, powiązania i znaczników oddaje swój wynik i jest sprawdzany przez wołających)."
 );

@@ -29,8 +29,20 @@ if ( ! is_user_logged_in() || ! function_exists( 'tutor' ) ) {
 			<span>Lekcja przerobiona</span>
 		</button>
 	<?php else : ?>
+		<?php
+		/*
+		 * PRZYCISK POWSTAJE DOPIERO PO WYDRUKOWANIU NONCE'A (MAR-A-24).
+		 * Bez niego Tutor odrzuci żądanie w ciszy: klient kliknie, nic się
+		 * nie stanie, a pasek postępu zostanie w miejscu. Wolimy nie
+		 * pokazać przycisku niż pokazać taki, który zawodzi bez objawu.
+		 */
+		ob_start();
+		$nonce_gotowy = Aai_Sklep_Tutor::pole_nonce_lekcji();
+		$pole_nonce   = (string) ob_get_clean();
+		?>
+		<?php if ( $nonce_gotowy ) : ?>
 		<form method="post">
-			<?php wp_nonce_field( tutor()->nonce_action, tutor()->nonce, false ); ?>
+			<?php echo $pole_nonce; // phpcs:ignore WordPress.Security.EscapeOutput — gotowy HTML z wp_nonce_field() ?>
 			<input type="hidden" name="lesson_id" value="<?php echo (int) $dane['post_id']; ?>">
 			<input type="hidden" name="tutor_action" value="tutor_complete_lesson">
 			<button type="submit" class="aai-odhacz" name="complete_lesson_btn" value="complete_lesson">
@@ -38,6 +50,9 @@ if ( ! is_user_logged_in() || ! function_exists( 'tutor' ) ) {
 				<span>Oznacz jako przerobioną</span>
 			</button>
 		</form>
+		<?php else : ?>
+			<p class="aai-odhacz-nota">Odhaczanie lekcji jest chwilowo niedostępne — postęp zapiszesz po odświeżeniu strony.</p>
+		<?php endif; ?>
 	<?php endif; ?>
 	<p class="aai-odhacz-nota">Postęp zapisuje się na Twoim koncie — zobaczysz go na każdym urządzeniu.</p>
 </div>

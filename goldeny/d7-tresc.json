@@ -1,10 +1,10 @@
 {
   "opis": "Golden treści kursów D7 — miary każdego scenariusza. Regeneracja: node tools/straznicy/straznik-goldenu-tresci.mjs --zapisz \"powód\"",
-  "powod": "komplet D7 — 91 scenariuszy (Kurs 1: 41, Kurs 2: 50), po naprawach z przebiegu cytatów modułu 7",
+  "powod": "Uciekniete kreski w kodzie inline wewnatrz tabel (Edit\\|Write): bez tego Markdown liczy je jako granice komorek i GitHub ucinal wiersz. Tresc merytoryczna bez zmian - dodano po jednym znaku ucieczki w trzech wierszach.",
   "poprzednioLekcji": 91,
   "podsumowanie": {
     "lekcje": 91,
-    "bajty": 1337881,
+    "bajty": 1337882,
     "sceny": 506,
     "wierszeZgodnosci": 1917
   },
@@ -157,8 +157,8 @@
       "wierszeZgodnosci": 13
     },
     "tresc-kursow/jak-korzystac-z-claude/modul-4/lekcja-3-hooki.md": {
-      "sha256": "3b62d1745e2ce6f4",
-      "bajty": 6980,
+      "sha256": "6e6111ff0ac7ca17",
+      "bajty": 6981,
       "wiersze": 140,
       "sceny": 5,
       "wierszeZgodnosci": 12

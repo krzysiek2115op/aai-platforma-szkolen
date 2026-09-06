@@ -48,10 +48,10 @@ w repo jako specyfikacja wykonawcza i źródło treści.
 
 | | |
 |---|---|
-| **Wersja** | **0.65.0** |
-| **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). Z **trzech ostatnich kroków** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) zrobione są dwa — SEO (0.60.x) i higiena repo (0.62.0/0.63.0) — plus [schematy draw.io](docs/SCHEMATY.md) (0.64.0). **Audyt końcowy (fala 1) ODBYTY, a jego 33 potwierdzone usterki NAPRAWIONE** (0.65.0, [stan i decyzje](docs/NAPRAWY-PO-AUDYCIE.md)); została fala kontrolna |
+| **Wersja** | **0.78.0** |
+| **Etap** | Prototyp UKOŃCZONY i scalony na `main` (0.37.0, B1–B7 zaliczone). **Etap WordPressa ZAMKNIĘTY**: trzy wtyczki skończone, test całości trzech wtyczek [zaliczony przez właściciela](docs/TEST-CALOSCI-WP.md) i wydany razem z releasem zabezpieczeniowym ([decyzje i plan](docs/ETAP-WP.md)). **Trzy ostatnie kroki** ([plan](docs/PLAN-SEO-HIGIENA-AUDYT.md)) są ZROBIONE: SEO (0.60.x), higiena repo (0.62.0/0.63.0) i audyt końcowy — plus [schematy draw.io](docs/SCHEMATY.md) (0.64.0). **Fala 1 audytu ODBYTA, a z jej 33 potwierdzonych usterek NAPRAWIONE są 32** (0.65.0, [stan i decyzje](docs/NAPRAWY-PO-AUDYCIE.md)); trzydziesta trzecia to treść polityki prywatności — **świadomie u właściciela**, wymaga prawnika. Fala kontrolna domknięta; dalej [naprawy po polowaniu](docs/PLAN-NAPRAW-PO-POLOWANIU.md) |
 | **Wtyczki WordPressa** | `aai-sklep` — W1–W6, `v0.45.0` · `aai-platnosci` — P0–P6, `v0.53.0` · `aai-monitor` — T0–T4, `v0.58.0`. Każda z osobnym testem ręcznym właściciela (W6, P6, T4) — plus test CAŁOŚCI, sprawdzający je razem |
-| **Trzy ostatnie kroki** | 1. SEO — **ZROBIONY** (`0.60.0`, `0.60.1`) · 2. higiena repo — **TRWA** · 3. audyt końcowy — wytyczne poda właściciel |
+| **Trzy ostatnie kroki** | Wszystkie trzy **ZROBIONE**: 1. SEO (`0.60.0`, `0.60.1`) · 2. higiena repo (`0.62.0`, `0.63.0`) · 3. audyt końcowy — fala 1 odbyta, 32 z jej 33 usterek naprawione (`0.65.0`), fala kontrolna domknięta. Dalej idą **naprawy po polowaniu** ([plan P0–P4](docs/PLAN-NAPRAW-PO-POLOWANIU.md)) |
 | **Gałąź domyślna** | `main` — wrócił nią 2026-08-25 razem ze scaleniem ukończonego Pluginu 1 (PR #62, tag `v0.37.0`). Do tego dnia domyślną była `plugin-1-sklep-kursow`, bo `main` stał celowo na 0.3.4 ([PLAN.md §5](docs/PLAN.md): moduł wchodzi na gałąź główną po ukończeniu i akceptacji całości). Gałąź modułu zostaje jako historia — jej drzewo jest identyczne z `main` |
 | **Localhost** | strona główna: `:3000` (klon, tylko podgląd) · Plugin 1: `:3001` (`npm run dev`) |
 | **Podgląd na żywo** | [matthewplugins.github.io/szkolenia-podglad/szkolenia](https://matthewplugins.github.io/szkolenia-podglad/szkolenia) — statyczny eksport katalogu i stron kursów (`npm run deploy:podglad`), **bez kreatora i AJAX-a**, z `noindex` na czas prac. Służy do pomiarów SEO i wydajności narzędziami Google; **oba kursy są kompletne** (73 lekcje), a teksty sprzedażowe zgodne z produktem (0.33.0) — placeholderami zostają wyłącznie opinie, do pierwszych sprzedaży |
@@ -135,7 +135,14 @@ kopii kursów w Tutorze i 73 adresów lekcji zza bramki, produktów Woo
 oddających 301, koszyka, kasy i konta klienta. Zamknięta została też **trzecia
 droga do loginu administratora**: mapa autorów drukowała go wprost, choć
 `/author/<login>/` oddaje 404 od 0.59.0. Podstrona ma wreszcie manifest i
-rastry ikony, więc daje się zainstalować jako skrót z własnym znakiem
+rastry ikony, więc daje się zainstalować jako skrót z własnym znakiem.
+
+**Krok 2 — higiena repo — ZROBIONY** (`0.62.0`, `0.63.0`): repozytorium
+przestało twierdzić, że wydane kroki trwają, a wynik testu całości trzech
+wtyczek trafił wreszcie do repo. **Krok 3 — audyt końcowy — ODBYTY**: fala 1
+potwierdziła dwustronnie 33 usterki kodu, 32 z nich naprawiła wersja `0.65.0`,
+a fala kontrolna sprawdziła te naprawy dział po dziale. Co dalej —
+[plan napraw po polowaniu](docs/PLAN-NAPRAW-PO-POLOWANIU.md).
 
 
 > [!IMPORTANT]
@@ -180,7 +187,7 @@ Drzewo zmierzone, nie przepisane (`git ls-files`; liczby to pliki śledzone
 przez gita):
 
 ```
-wordpress/            135  ← PRODUKT
+wordpress/            136  ← PRODUKT
   wtyczki/                   trzy wtyczki, każda w swoich podfolderach
     aai-sklep/         88    katalog, strony sprzedażowe, kreator, widok lekcji
     aai-monitor/       22    dziennik logowań i pomiar ruchu
@@ -193,7 +200,7 @@ modules/ lib/          34    moduł m1-sklep: kontrakty Zod, odczyt, dyspozytor
 public/                15
 
 tresc-kursow/         331  ← TREŚĆ: 73 lekcje prozy + 91 scenariuszy + zrzuty
-docs/                 140  ← plan, wytyczne, schematy i dziennik każdego kroku
+docs/                 142  ← plan, wytyczne, schematy i dziennik każdego kroku
 tools/                158  ← strażnicy (39), bramki smoke, narzędzia (22)
   straznicy/ smoke/ zrzuty/ podglad-kursow/ seed/
 docs/schematy/          8  ← podglądy SVG siedmiu schematów draw.io
@@ -380,7 +387,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 > [!TIP]
 > Zielona bramka nic nie znaczy, dopóki nie sprawdzisz, że umie zapalić
 > się na czerwono. `node tools/straznicy/audyt-straznikow.mjs` psuje repo na
-> 351 sposobów (mutacje + kontrprzykłady „strażnik ma milczeć”)
+> 452 sposoby (mutacje + kontrprzykłady „strażnik ma milczeć”)
 > i oczekuje właściwej reakcji. Pierwsze uruchomienie znalazło realną
 > dziurę: po wycięciu kroku lint z CI `straznik-ci` dalej był zielony,
 > bo jego wzorzec `eslint` pasował do… filtra ścieżek w nowym jobie
@@ -412,7 +419,7 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | `straznik-obietnic` | pre-commit + CI | strona sprzedażowa obiecująca coś spoza produktu: liczba modułów, lekcji, minut albo zrzutów rozjechana z programem kursu, obietnica wideo w kursie TEKSTOWYM (decyzja 2026-08-19), zawyżona obietnica podzbioru („prompty w N lekcjach”, „N lekcji z pytaniami do wykonawcy”) — klasa wykryta audytem 2026-08-24, gdy publiczny podgląd obiecywał „7 modułów wideo (31 lekcji)” przy 6 modułach i 41 lekcjach |
 | `straznik-sciezek` | pre-commit + CI | adres URL pliku użyty jako ścieżka systemowa: sklejka `file://${process.argv[1]}` i `.pathname` z `new URL(…, import.meta.url)`. W katalogu ze spacją (`Pod strona Szkolenia `) narzędzie milczy z kodem 0 albo nie znajduje własnych plików — tak zamilkł `manifest.mjs`, jedyne źródło prawdy o stanie zrzutów (BLAD-014) |
 | `straznik-schematow` | pre-commit + CI | schematy draw.io rozjeżdżające się z kodem: nazwa klasy na rysunku, której nie ma w kodzie (zmiana nazwy bez poprawki diagramu), klasa w kodzie nieobecna na ŻADNYM schemacie (nowy kod, o którym rysunek milczy), podgląd SVG nieaktualny wobec źródła (porównanie `sha256`, nie dat plików — git dat nie przechowuje) łamanie linii wpisane surowym `<br>`, którego draw.io nie otworzy, oraz **etykietę z pojedynczo uciekłym znacznikiem** — `/szkolenia/<kurs>` renderuje się jako `/szkolenia/`, bo HTML połyka nieznany znacznik, a plik przy tym jest poprawny i eksport kończy się kodem 0. Pilnuje SŁOWNIKA, nie sensu: nie sprawdza, czy strzałka wskazuje właściwą stronę |
-| `straznik-readme` | pre-commit + CI | README kłamiące o stanie repo: strażnik bez wiersza w tabeli (i martwe wiersze), skrypt npm poza sekcją „Skrypty", zła liczba scenariuszy, kotwica spisu treści donikąd — złapał własną nieobecność w tej tabeli przy pierwszym uruchomieniu. **Od 0.62.0 pilnuje też dwóch rzeczy, które przez rok nikomu nie rzuciły się w oczy**: narzędzia `tools/*.mjs` nieobecnego ZARAZEM w README i w `package.json` (cztery z dziewiętnastu były nie do znalezienia, w tym to, które CLAUDE.md każe uruchomić po `git clean`) oraz wiersza tabeli z treścią po zamykającym `|` — GitHub takiego ogona NIE renderuje, więc opis bramki jest dla czytelnika ucięty, a w edytorze wygląda poprawnie |
+| `straznik-readme` | pre-commit + CI | README kłamiące o stanie repo: strażnik bez wiersza w tabeli (i martwe wiersze), skrypt npm poza sekcją „Skrypty", zła liczba scenariuszy, kotwica spisu treści donikąd — złapał własną nieobecność w tej tabeli przy pierwszym uruchomieniu. **Od 0.62.0 pilnuje też dwóch rzeczy, które przez rok nikomu nie rzuciły się w oczy**: narzędzia `tools/*.mjs` nieobecnego ZARAZEM w README i w `package.json` (cztery z dziewiętnastu były nie do znalezienia, w tym to, które CLAUDE.md każe uruchomić po `git clean`) oraz wiersza tabeli z treścią po zamykającym `\|` — GitHub takiego ogona NIE renderuje, więc opis bramki jest dla czytelnika ucięty, a w edytorze wygląda poprawnie |
 | `straznik-wagi-dokumentacji` | pre-commit + CI | masa dokumentacji producentów (55 MB, ~2200 plików) wpuszczona do gita — także przez `git add -f`; git trzyma każdą wersję na stałe, więc pomyłka jest nieodwracalna |
 | `straznik-tresci-lekcji` | pre-commit + CI | materiał kursu wychodzący zza bramki: wspólny odczyt strony wybierający z lekcji `content`/`materials` (wyciek treści 91 lekcji do publicznego HTML-a katalogu i strony sprzedażowej) albo kontrakt `LekcjaKursu` z polem treści; pełny tekst oddaje wyłącznie `trescLekcji()` |
 | `straznik-frontu-wp` | pre-commit + CI | front wtyczki bez ochron, których brak nie objawia się błędem: rodzaj sekcji z kontraktu bez szablonu albo POLE kontraktu, którego żaden szablon nie renderuje (treść wpisana kreatorem, której klient nie zobaczy), sekcja poza listą renderowanych (szablon istnieje, ale nikt go nie woła — i tak samo milczą dane strukturalne), wstrzyknięcie pozycji menu zakotwiczone na klasie Tailwinda zamiast na treści (motyw jest GENEROWANY, więc klasy się zmienią i pozycja zniknie po cichu), brak rezerwy miejsca pod nagłówek `fixed` motywu (72 px, którego motyw pod siebie nie rezerwuje), element `position: fixed` emitowany wewnątrz `<main>` (BLAD-003/004 — przodek z transformacją odbiera mu ekran jako układ odniesienia), brak trwałego 301 z `/courses/*` oraz klasa z animacją bez wygaszenia w `prefers-reduced-motion` |
@@ -431,8 +438,8 @@ każdy plik `straznik-*.mjs` — nowego strażnika nie da się „zapomnieć pod
 | gitleaks (pinowany po SHA-256) | CI | sekrety w całej historii repo |
 | blokada pusha na `main` | pre-push | zmiany na `main` poza PR-em |
 
-CI: cztery joby — strażnicy i skan sekretów chodzą ZAWSZE; „Kod
-aplikacji" (lint → tsc → build) i „Baza" (83 testy na osobnej bazie
+CI: pięć jobów — „Zakres zmian", strażnicy i skan sekretów chodzą ZAWSZE; „Kod
+aplikacji" (lint → tsc → build) i „Baza" (84 testy na osobnej bazie
 `db1_kursy_test`, migracje, build, siedem smoke'ów) tylko gdy zmiana
 dotyka kodu. Rozstrzyga job „Zakres zmian" zwykłym `git diff` — commit
 czysto treściowy (większość commitów D7) nie pali minut na build.
@@ -448,9 +455,19 @@ czysto treściowy (większość commitów D7) nie pali minut na build.
 
 ## SEO i bezpieczeństwo
 
-Stan utrzymywany w [docs/security-checklist.md](docs/security-checklist.md)
-(legenda pięciostanowa: ✅ w kodzie z dowodem / 🟡 częściowo / 🔧 poza
-repo / ⛔ nie dotyczy z powodem / ⏳ etap WP). Skrót:
+Stan w [docs/security-checklist.md](docs/security-checklist.md) (legenda
+pięciostanowa: ✅ w kodzie z dowodem / 🟡 częściowo / 🔧 poza repo / ⛔ nie
+dotyczy z powodem / ⏳ etap WP).
+
+**Ten dokument opisuje PROTOTYP i nie był ruszany od 2026-08-19** — nie ma
+w nim ani jednej wzmianki o trzech wtyczkach WordPressa, WooCommerce ani
+Tutorze, czyli o całym dzisiejszym produkcie. Zostaje jako zapis stanu
+prototypu; aktualne zabezpieczenia wtyczek opisują
+[docs/plugin-2/DIAGRAM.md](docs/plugin-2/DIAGRAM.md),
+[docs/plugin-3/DIAGRAM.md](docs/plugin-3/DIAGRAM.md) i mu-plugin obwodu
+(`wordpress/srodowisko/mu-plugins/aai-obwod.php`), a pilnują ich
+`straznik-obwodu`, `straznik-platnosci-wp` i `straznik-monitora-wp`.
+Skrót poniżej dotyczy prototypu:
 
 | Obszar | Stan | Dowód |
 |---|---|---|
@@ -577,7 +594,7 @@ git config core.hooksPath .githooks   # włącza haki — raz, obowiązkowo
 npm ci                                # zależności (Node 24+)
 cp .env.example .env                  # lokalna konfiguracja (baza, KREATOR_TOKEN)
 npm run db1:migruj                    # migracje + triggery (bazę podniesie pretest)
-npm test                              # 83 testy; sam podnosi kontener bazy
+npm test                              # 84 testy; sam podnosi kontener bazy
 npm run db1:seed                      # program + sekcje sprzedażowe (UWAGA: kasuje kursy)
 npm run dev                           # → http://localhost:3001/szkolenia
 ```
