@@ -47,8 +47,8 @@ poznasz, że masz przed sobą wzorzec, a nie znalezisko.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-logowania.php",
-    "linia": 297,
-    "tresc": "'%s…(%d znaków)',"
+    "linia": 310,
+    "tresc": "return sprintf( '…(%d znaków, konto nie istnieje)', mb_strlen( $podany ) );"
   },
   "dowod": "Format z linii 275 zostawia początek i długość, a nie całą wartość; bez niego sanitize_user w trybie nieścisłym przepuszcza znaki specjalne i cyfry bez zmiany.",
   "klasyfikacja": "przyklad-dydaktyczny",

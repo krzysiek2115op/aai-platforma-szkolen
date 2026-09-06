@@ -5572,3 +5572,121 @@ do 30 linii." Krytyk dostaje ten sam plik i dopisuje pod spodem sekcję
 tokenów, krytyk mniej; 28 agentów ≈ 8–12 mln tokenów, pół dnia zegarowo
 na dwóch torach. Modele wg generatu (`rea-*` Sonnet, krytycy Opus) —
 nie zmieniać bez decyzji właściciela.
+
+---
+
+### FALA KONTROLNA PO 0.78.0 — PROTOKÓŁ PRZEBIEGU (2026-09-06)
+
+**Decyzja właściciela (2026-09-06), dosłownie:** *„po clear puścimy audyt tak
+jak puściliśmy wcześniej 2 fale, czyli ta krótsza, aby sprawdził do cna
+projekt, czy na pewno nie ma tam już błędów"*.
+
+**FORMA: identyczna jak fala kontrolna po 0.65.0** — 14 Pogłębiaczy
+`rea-<KOD>` + 14 krytyków = **28 agentów**, **nośnik B** (bez `status.mjs`
+i `zgloszenie.mjs`, bez nowych zgłoszeń), potokiem, dwa tory środowiskowe.
+Działy audytu (`aud-*`) i role procesowe NIE wchodzą.
+
+**CO SIĘ ZMIENIA WOBEC FALI PO 0.65.0 — a to jest sedno tego zlecenia.**
+Tamta fala odpowiadała na wąskie pytanie „czy 33 wpisy fali 1 są naprawione".
+Ta odpowiada na pytanie właściciela **„czy na pewno nie ma już błędów"**,
+więc ma DWA wejścia, oba obowiązkowe:
+
+| Wejście | Co to jest | Skąd |
+|---|---|---|
+| **W1 — naprawy trzynastu wydań** | wszystko, co weszło od `v0.66.0` do `v0.78.0`: lista z polowania (P0–P4) oraz klasa „zapis melduje sukces" | `CHANGELOG.md` (`main`), sekcje 0.66.0…0.78.0; `docs/PLAN-NAPRAW-PO-POLOWANIU.md`; `audyt/wyniki/polowanie-mariusz/` |
+| **W2 — pełne rundy regresji** | checklista własnej definicji roli, pozycja po pozycji, na ŻYWEJ instalacji — nie tylko wokół napraw | definicja roli `.claude/agents/rea-<KOD>.md` (generat: `node audyt/tools/generuj-agentow.mjs`) |
+
+**Werdykt dla pozycji W1:** NAPRAWIONE / NIENAPRAWIONE / NIE DOTYCZY
+PRODUKTU, każdy z dowodem uruchomieniowym w jednej linii. **Dla W2:**
+wykaz sprawdzonych pozycji z odpowiedzią tak/nie i dowodem; znaleziska
+opisane jako REGRESJA albo NOWE ZNALEZISKO, bez naprawiania (zasada 2).
+
+**KOD PRODUKTU: `main` na `v0.78.0`.** Stan wyjściowy repo: strażnicy
+**39/39**, audyt mutacyjny **452** (450 złapanych, 0 przeoczonych,
+0 martwych), testy 83/83, `npm run check` kod 0, **15/15 bramek WP**
+(dane 30 · front 89 · tutor 49 · lekcja 64 · kreator 102 · panel 55 ·
+płatności 27 · produkty 101 · zakup 60 · zwroty 39 · maile 62 · język 25 ·
+motyw 93 · monitor 184 · seo 172), `wp:sprawdz` 73/73 co do znaku,
+`wp:tutor` 0 różnic, cztery kontrole kod 0. **Każda liczba niższa u roli =
+albo regresja, albo zanieczyszczone środowisko — sprawdzić W TEJ
+KOLEJNOŚCI.**
+
+**KOLEJNOŚĆ PO `/clear` (komenda, nie pamięć):**
+1. `git checkout re-audyt/sektor-re-audytu`; `git merge main` (docs-PR
+   z sekcją 0.78.0 jest już w `main`); niezmiennik sektora:
+   `git diff main --name-only -- . ':!audyt' ':!re-audyt' | wc -l` → **0**.
+2. **Strażnik sektora kod 0 BEZ POTOKU** (`node audyt/tools/straznik-sektora-audytu.mjs`).
+   Gdyby R11 zapalił się na goldenach ról: wzorce ról wskazują LINIE kodu
+   produktu, a ten zmienił się o trzynaście wydań — przekotwiczyć,
+   tak jak przy scaleniu 0.65.0 (`86f186c`).
+3. **`.claude/agents/` (80 definicji) NIE jest w gicie** — to generat.
+   Gdy go brak: `node audyt/tools/generuj-agentow.mjs` NA GAŁĘZI SEKTORA.
+4. **Tor B:** `cd wordpress/srodowisko && STACK_NAZWA=aai_wp_b WP_PORT=8894
+   MAILPIT_PORT=8895 ./postaw.sh` — kod 0; `free -g` przed (≥ 2 GB) i po.
+   Przy pamięci < 1 GB po postawieniu: tor B zdjąć, jechać jednym torem
+   (decyzja orkiestracji, nie właściciela; zapisać w `PRZEBIEG.md`).
+5. **Zrzuty bazowe:** `node audyt/tools/srodowisko.mjs --zrzut=k78-baza`
+   (tor A) i `WP_PORT=8894 … --zrzut=k78-baza-b` (tor B). Prototyp `:3001`
+   (`npm run dev`) tylko przed rolą PROTO — **i po nim `git diff --stat
+   CLAUDE.md`, bo `next dev` ucina ten plik o 2355 linii**.
+6. **Pogłębiacze, kolejność wg wagi zmian w 0.66.0–0.78.0:** BE, BD, INT,
+   ARCH → SEC, PRIV, PERF, FE → QA, REPO, USP → WDR, PROTO, PIK.
+   Tor A i B równolegle, po jednej roli na tor; role czytające wyłącznie
+   kod (REPO, USP, PIK, PROTO bez `:3001`) bez toru. **WDR osobno, na końcu
+   SWOJEGO toru** — `postaw.sh` od zera zanieczyszcza cudze pomiary.
+   Po każdej roli: `--zrzut=k78-<KOD>-po` → `--przywroc=k78-baza` (albo
+   `-b`) → krytyk roli → następna.
+7. Po 14 rolach: `audyt/wyniki/kontrola-0.78.0/WYNIK.md` (tabela zbiorcza,
+   liczby N/M, regresje), `PRZEBIEG.md`, commit na gałęzi sektora, zdanie
+   w CLAUDE.md i README **przez docs-PR do `main`**.
+   **M > 0 → naprawy zwykłą drogą** (gałąź od `main`, PR, zielone CI),
+   NIE w sektorze — sektory nie naprawiają.
+
+**SZABLON POLECENIA DLA POGŁĘBIACZA (identyczny dla 14 ról; zmienia się
+tylko `<KOD>` i tor):**
+„Repozytorium: /home/krzysiek/Pod strona Szkolenia  (katalog kończy się
+SPACJĄ — cytuj ścieżkę). Gałąź `re-audyt/sektor-re-audytu`, kod produktu =
+**0.78.0**. SEKTOR: re-audyt. To jest **FALA KONTROLNA (nośnik B)**, NIE
+fala 1 ani 2: NIE używasz `status.mjs` ani `zgloszenia.mjs`, NIE składasz
+nowych zgłoszeń. Jesteś Pogłębiaczem <KOD>. **Pytanie właściciela brzmi:
+czy w tym projekcie na pewno nie ma już błędów** — więc masz DWA wejścia.
+**W1:** naprawy z wydań `v0.66.0` … `v0.78.0` dotykające twojego zakresu
+(`CHANGELOG.md`, `docs/PLAN-NAPRAW-PO-POLOWANIU.md`,
+`audyt/wyniki/polowanie-mariusz/`) — dla każdej powtórz dowód i orzeknij
+NAPRAWIONE / NIENAPRAWIONE / NIE DOTYCZY PRODUKTU. **W2:** pełne rundy
+regresji wg własnej definicji roli, pozycja po pozycji, tak/nie, dowód.
+Środowisko: tor <A: http://127.0.0.1:8892 | B: http://127.0.0.1:8894>;
+bramki bierz z `WP_ADRES=<adres>`, `srodowisko.mjs` z `WP_PORT=<port>`;
+licz stan przed i po, sprzątaj wyłącznie własne ślady — **po ZNAKACH
+(tytuł `Smoke`, slug `smoke`, login `smoke-`, IP `203.0.113.0/24`), NIGDY
+po zakresie identyfikatorów**. Bramka ubita limitem czasu zostawia kurs,
+produkty i zamówienia, przez co następne padają na CUDZYCH śmieciach —
+takie padnięcie to nie regresja, tylko brud; posprzątaj i powtórz osobno.
+NIE naprawiasz (zasada 2), NIE zgłaszasz spoza zakresu (zasada 3), nie
+czytasz CLAUDE.md. Kody wyjścia mierz BEZ potoku (`| tail`, `| head`
+i `| grep` maskują kod; w zsh `${PIPESTATUS[0]}` jest puste). Wynik zapisz
+do `audyt/wyniki/kontrola-0.78.0/<KOD>.md`: tabela W1 (pozycja → werdykt →
+dowód), sekcja W2 „Rundy regresji" (albo „brak — N pozycji sprawdzonych"),
+sekcja „Niedomknięte" z powodem, komendy i kody wyjścia. Meldunek końcowy
+do 30 linii." Krytyk dostaje ten sam plik i dopisuje pod spodem sekcję
+„Werdykt krytyka: PRZEPUSZCZAM / ODRZUCAM + powód" — nie edytuje treści
+roli.
+
+**CZEGO NIE ZGŁASZAĆ (decyzje właściciela, nie zaległości):** polityka
+prywatności `REA-PRIV-F1-001` (treść prawna, prawnik, „przed pierwszym
+klientem"); lista „przed pierwszym klientem" (bramka płatności, regulamin,
+zgoda w kasie, domena + HTTPS, poczta, `blog_public`); lista wdrożeniowa
+SEO; rozbudowa ekranu monitoringu (odwołana 2026-08-31); e-booki i PDF-y;
+wideo w kursach; mobilny TBT prototypu; gwarancja zwrotu na stronach
+sprzedażowych; estetyka przyjęta przez właściciela (akcent volt, jasne
+zrzuty na ciemnym tle, poświata za kursorem, schematy draw.io).
+
+**LICZBA, KTÓREJ NIE WOLNO POMYLIĆ:** w dzienniku monitoringu na torze A
+leżą **dane dowodowe właściciela z testu T4** (68 logowań, 37 wizyt wraz ze
+śladami bramek). **Nie kasować.** Rosnące `AUTO_INCREMENT` przy zgodnej
+liczbie wierszy to norma, nie regresja.
+
+**Koszt (z fali po 0.65.0, nie szacowany od nowa):** Pogłębiacz 360–630
+tys. tokenów, krytyk mniej; 28 agentów ≈ 8–12 mln tokenów, pół dnia
+zegarowo na dwóch torach. Modele wg generatu (`rea-*` Sonnet, krytycy
+Opus) — nie zmieniać bez decyzji właściciela.

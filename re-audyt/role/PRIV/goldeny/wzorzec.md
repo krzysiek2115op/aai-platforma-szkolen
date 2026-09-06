@@ -42,8 +42,8 @@ a nie dowie się o tym dopiero agent w trakcie pracy.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "wordpress/wtyczki/aai-monitor/includes/class-aai-monitor-logowania.php",
-    "linia": 297,
-    "tresc": "\t\t\t'%s…(%d znaków)',"
+    "linia": 310,
+    "tresc": "\t\treturn sprintf( '…(%d znaków, konto nie istnieje)', mb_strlen( $podany ) );"
   },
   "dowod": "Komenda i jej wynik albo druga linia kodu, która domyka rozumowanie — o TYM SAMYM, o czym mówi stwierdzenie.",
   "klasyfikacja": "przyklad-dydaktyczny",

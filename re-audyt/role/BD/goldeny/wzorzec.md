@@ -42,8 +42,8 @@ a nie dowie się o tym dopiero agent w trakcie pracy.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
-    "linia": 943,
-    "tresc": "\t\t$wpdb->query( 'START TRANSACTION' );"
+    "linia": 1017,
+    "tresc": "\t\tif ( false === $wpdb->query( 'START TRANSACTION' ) ) {"
   },
   "dowod": "Komenda i jej wynik albo druga linia kodu, która domyka rozumowanie — o TYM SAMYM, o czym mówi stwierdzenie.",
   "klasyfikacja": "przyklad-dydaktyczny",

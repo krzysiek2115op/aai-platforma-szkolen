@@ -47,10 +47,10 @@ poznasz, że masz przed sobą wzorzec, a nie znalezisko.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-zapis.php",
-    "linia": 943,
-    "tresc": "$wpdb->query( 'START TRANSACTION' );"
+    "linia": 1017,
+    "tresc": "if ( false === $wpdb->query( 'START TRANSACTION' ) ) {"
   },
-  "dowod": "Linia 943 otwiera transakcję, a instrukcje kasujące i wstawiające stoją poniżej przed COMMIT — zakres transakcji widać po numerach linii.",
+  "dowod": "Linia 1017 otwiera transakcję, a instrukcje kasujące i wstawiające stoją poniżej przed COMMIT — zakres transakcji widać po numerach linii.",
   "klasyfikacja": "przyklad-dydaktyczny",
   "wplyw": "Przerwany zapis zostawia kurs w stanie, którego nie da się odtworzyć, a klient widzi program bez lekcji."
 }

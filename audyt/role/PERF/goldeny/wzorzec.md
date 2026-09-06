@@ -47,7 +47,7 @@ poznasz, że masz przed sobą wzorzec, a nie znalezisko.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-moje.php",
-    "linia": 207,
+    "linia": 236,
     "tresc": "public static function ma_kursy(): bool {"
   },
   "dowod": "Pomiar SAVEQUERIES na trasie katalogu daje 90 zapytań przy dwóch kotwicach menu, a po pamięci na czas żądania 3 — dwie liczby z tej samej trasy.",
@@ -142,7 +142,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-moje.php",
-    "linia": 207,
+    "linia": 236,
     "tresc": "public static function ma_kursy() : bool {"
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",

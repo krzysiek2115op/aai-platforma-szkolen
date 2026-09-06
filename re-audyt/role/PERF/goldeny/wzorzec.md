@@ -42,7 +42,7 @@ a nie dowie się o tym dopiero agent w trakcie pracy.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-moje.php",
-    "linia": 207,
+    "linia": 236,
     "tresc": "\tpublic static function ma_kursy(): bool {"
   },
   "dowod": "Komenda i jej wynik albo druga linia kodu, która domyka rozumowanie — o TYM SAMYM, o czym mówi stwierdzenie.",
@@ -137,7 +137,7 @@ opisu.
   "miejsce": {
     "rodzaj": "linia",
     "plik": "wordpress/wtyczki/aai-sklep/includes/class-aai-sklep-moje.php",
-    "linia": 207,
+    "linia": 236,
     "tresc": "\t */"
   },
   "dowod": "Komenda i jej wynik, które miałyby domykać rozumowanie o tej właśnie linii.",

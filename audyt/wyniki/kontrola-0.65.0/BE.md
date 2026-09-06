@@ -167,7 +167,7 @@ w `AUD-BE-F1-001`.
 | pliki w `uploads` | 1347 | **1347** (log `fatal-errors-*` skasowany) |
 | uprawnienia plików wtyczek | 644 | **644** (przelot 42 plików przywrócony) |
 | `git status --short wordpress/` | czysty | **czysty** |
-| `aai-sklep|aai-platnosci|aai-monitor sprawdz` | kod 0 | **kod 0 / 0 / 0** |
+| `aai-sklep`, `aai-platnosci`, `aai-monitor` — `sprawdz` | kod 0 | **kod 0 / 0 / 0** |
 
 Ślady własne, jawną listą: kurs syntetyczny `dddd0000-0000-4000-8000-00000krytbe1` (+ moduł `…krytbe2`,
 lekcja `…krytbe3`) — utworzony i skasowany `usun_kurs()`; **produktu WooCommerce nie powstało**
