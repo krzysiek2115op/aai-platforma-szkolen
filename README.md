@@ -2,6 +2,19 @@
 
 # Pod strona Szkolenia
 
+> [!IMPORTANT]
+> **To jest publiczna KOPIA POKAZOWA — migawka z 2026-09-07, świadomie
+> nieodświeżana.** Projekt rozwija się dalej w prywatnym
+> `MatthewPlugins/Pod-strona-Szkolenia`; ta kopia ma pokazywać, jak pracuję,
+> a nie nadążać za produkcją. Jeśli data wygląda staro — tak ma być, to nie
+> jest porzucone repozytorium. Decyzja właściciela z 2026-09-07.
+>
+> Co z tego wynika dla liczb: `main` ma tu **612 commitów**, oryginał **668**.
+> Różnica to commity dotykające wyłącznie treści kursów — zniknęły razem z nią.
+> Kodu nie ubyło ani linijki, wszystkie **69 tagów** przeszło w komplecie.
+> Wydań (Releases) nie ma **w żadnym z dwóch repozytoriów** — projekt
+> wersjonuje się tagami gita.
+
 > [!NOTE]
 > **Odwołania do `tresc-kursow/` w tym pliku wskazują na materiał usunięty
 > z repozytorium.** Scenariusze lekcji to sprzedawany produkt — zostały wycięte
