@@ -150,8 +150,11 @@ Gdy dokumentacja działu przekracza **8 MB**, do repozytorium wchodzi:
 - `ZRODLA.md` — źródła, data, zakres i **uzasadnienie cięć**,
 - **skrypt pobierający** (`tools/pobierz-dokumentacje-<dzial>.mjs`),
   idempotentny, z zakresem zapisanym w kodzie,
-- podkatalog `cytowane/` — fragmenty faktycznie przywoływane przez treść,
-  żeby dało się sprawdzić zgodność ze źródłem bez pobierania całości;
+- ~~podkatalog `cytowane/` — fragmenty faktycznie przywoływane przez treść;~~
+  **ZMIENIONE 2026-09-07:** cytaty z cudzej dokumentacji **zostają lokalnie**.
+  W repozytorium publicznym na MIT kopia cudzego tekstu stawia licencję
+  w sprzeczności z zawartością (`BLAD-014`). Zgodność ze źródłem sprawdza
+  się na komplecie odtworzonym skryptem;
 
 a same pliki źródłowe zostają **lokalnie** (`.gitignore`). Sens wytycznej
 jest zachowany: agent nadal pracuje na oryginale, nie na pamięci modelu,

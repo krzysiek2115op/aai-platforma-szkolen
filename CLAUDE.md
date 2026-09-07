@@ -1,5 +1,13 @@
 # Kontekst projektu dla Claude (ładowany automatycznie w każdej sesji)
 
+> [!NOTE]
+> **Odwołania do `tresc-kursow/` w tym pliku wskazują na materiał usunięty
+> z repozytorium.** Scenariusze lekcji to sprzedawany produkt — zostały wycięte
+> z całej historii gita przed upublicznieniem kodu (2026-09-07) i żyją wyłącznie
+> w prywatnym `MatthewPlugins/Pod-strona-Szkolenia`. Nazwy zostawione jako zapis
+> tego, co powstało; linków celowo nie ma, żeby nie prowadziły donikąd.
+
+
 Ten plik to strażnik ciągłości: po /clear lub w nowej sesji NAJPIERW
 przeczytaj wskazane tu dokumenty, potem pracuj. Aktualizuj ten plik
 przy każdym kroku zmieniającym stan projektu (jak README).
@@ -215,9 +223,12 @@ przechodzi po pustce.
   właściciela: strona nie może obiecywać niczego spoza programu, więc
   program musi być ustalony pierwszy.
   (5) treść lekcji — każda ze wskazanym
-  źródłem, zero zmyślania; cytowane fragmenty kopiować do
-  `docs/dokumentacja-techniczna/d7/cytowane/` (ten katalog wchodzi
-  do repo, żeby dało się sprawdzić lekcję bez pobierania 55 MB).
+  źródłem, zero zmyślania; cytowane fragmenty **zostają lokalnie**
+  (~~`docs/dokumentacja-techniczna/d7/cytowane/`~~ — katalog usunięty
+  z repozytorium 2026-09-07, bo to materiał osób trzecich w repo na MIT;
+  uzasadnienie w `docs/dokumentacja-techniczna/d7/ZRODLA.md`).
+  Zgodność lekcji ze źródłem sprawdza się na komplecie odtworzonym
+  przez `node tools/pobierz-dokumentacje-d7.mjs`.
   Wymóg właściciela: kursy **w 100% zgodne
   z programem** — moduły/lekcje to spis treści realnego materiału,
   strona nie obiecuje niczego spoza programu; do tego golden treści
@@ -244,7 +255,7 @@ przechodzi po pustce.
   lekcji/720 min; Kurs 2: 7/50/745 — widać na `/szkolenia`). Scenariusze
   nagrań leżą w `tresc-kursow/<slug>/modul-N/lekcja-M-<temat>.md`, cytaty
   źródłowe w `docs/dokumentacja-techniczna/d7/cytowane/`.
-  **Licznik i historia produkcji: [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md)**
+  **Licznik i historia produkcji: **tresc-kursow/POSTEP.md****
   — Kurs 1 gotowy (41/41), Kurs 2 gotowy (50/50, moduł 7 „Ponad podstawy"
   zamknięty 2026-08-18). Strażnicy 14/14, `straznik-scenariuszy`
   potwierdza 91 scenariuszy.
@@ -612,7 +623,7 @@ przechodzi po pustce.
      docs GitHuba podają starsze brzmienia i w lekcji 2.5 Kursu 2 były
      przez to CZTERY nieprawdziwe komunikaty (`fatal:` zamiast
      `error:`). Rejestr rozjazdów:
-     [tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md](tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md).
+     **tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md**.
      **DECYZJA WŁAŚCICIELA (2026-08-23): na koniec projektu oba kursy
      lądują jako HTML na GitHub Pages, z linkami-podglądami w README** —
      jak dzisiejszy podgląd `/szkolenia`.
@@ -647,7 +658,7 @@ przechodzi po pustce.
      komenda `node tools/zrzuty/manifest.mjs`, nigdy pamięć: **148 z 160 miejsc
      zrobionych** (Kurs 2 komplet 88/88, Kurs 1 60/72). Brief z przepisem,
      pułapkami i prompem startowym: [docs/plugin-1/PRZELOT-ZRZUTOW.md](docs/plugin-1/PRZELOT-ZRZUTOW.md),
-     znaleziska: [tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md](tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md).
+     znaleziska: **tresc-kursow/ZNALEZISKA-PRZELOTU-ZRZUTOW.md**.
      **Dwanaście miejsc zostaje otwartych** i to jest stan docelowy, nie dług:
      dziewięć z DECYZJI właściciela (2026-08-23 — płatne wywołania API i klucz
      w Konsoli: 5 × `api`, 2 × Konsola, strumieniowanie 5.5; oraz aplikacja
@@ -669,7 +680,7 @@ przechodzi po pustce.
      leżała TYLKO w plikach) — baza i pliki zgodne co do znaku.
      **AUDYT KURSÓW ZROBIONY I ZNALEZISKA NAPRAWIONE (2026-08-24, wersja
      0.33.0, gałąź `fix/naprawy-audytu-kursow`).** Zakres audytu ustalił
-     właściciel: tropy z [tresc-kursow/AUDYT-KONCOWY.md](tresc-kursow/AUDYT-KONCOWY.md)
+     właściciel: tropy z **tresc-kursow/AUDYT-KONCOWY.md**
      + prawda o produkcie + domknięcie miejsc na zrzuty; bramki cytatów
      audyt NIE cofa. **Proza okazała się zdrowa** (73 mosty trzymają się co
      do zdania, zero powtórzeń, spójny stan repozytorium czytelnika,

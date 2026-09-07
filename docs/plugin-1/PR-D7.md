@@ -1,5 +1,13 @@
 # Opis PR — Dział 7 (treść obu kursów)
 
+> [!NOTE]
+> **Odwołania do `tresc-kursow/` w tym pliku wskazują na materiał usunięty
+> z repozytorium.** Scenariusze lekcji to sprzedawany produkt — zostały wycięte
+> z całej historii gita przed upublicznieniem kodu (2026-09-07) i żyją wyłącznie
+> w prywatnym `MatthewPlugins/Pod-strona-Szkolenia`. Nazwy zostawione jako zapis
+> tego, co powstało; linków celowo nie ma, żeby nie prowadziły donikąd.
+
+
 > **Dokument historyczny.** PR #22 został otwarty i zmergowany
 > (2026-08-18, tag `v0.21.0` + release) — komendy niżej niczego już
 > nie tworzą, zostają jako zapis tamtej procedury.
@@ -55,7 +63,7 @@ się w kurs.
 Cztery moduły tym trybem (4, 5, 6, 7) i **ani razu nie zaszedł warunek
 powrotu do trybu ręcznego**. Oceny wg czterech sygnałów jakości, koszty
 w tokenach i poprawki wnoszone do kolejnych modułów:
-[`tresc-kursow/POSTEP.md`](../../tresc-kursow/POSTEP.md).
+**`tresc-kursow/POSTEP.md`**.
 
 **Plik cytatów powstaje osobnym przebiegiem PO całym module i jest DRUGĄ
 BRAMKĄ JAKOŚCI**, nie porządkami: autor cytatów szuka zdania w oryginale,

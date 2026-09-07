@@ -1,5 +1,24 @@
 # Źródła dokumentacji — Dział 7 (treść kursów)
 
+> [!IMPORTANT]
+> **Podkatalog `cytowane/` został usunięty z całej historii tego repozytorium
+> (2026-09-07).** Było w nim 41 plików i 719 kB **dosłownych cytatów z oficjalnej
+> dokumentacji GitHuba i Anthropica**.
+>
+> **Powód:** repozytorium jest publiczne i ma licencję MIT, a `README.md`
+> deklaruje MIT plus OFL na fonty — i nic więcej. Cytaty są materiałem osób
+> trzecich, więc licencja repozytorium formalnie obejmowała 719 kB cudzego
+> tekstu. Cytowanie było zrobione porządnie (ścieżki źródłowe, daty pobrania,
+> bloki `>`, weryfikacja dosłowności przez `tools/cytaty-zgodne.mjs`), ale
+> deklaracja licencyjna tego nie odzwierciedlała.
+>
+> **Nic nie zginęło.** Fragmenty leżą lokalnie u właściciela razem z kompletem
+> 2219 plików źródłowych, a `node tools/pobierz-dokumentacje-d7.mjs` odtwarza
+> całość z oryginalnych adresów w ~15 minut.
+>
+> **Na przyszłość:** cytaty trzymamy lokalnie. Weryfikację zgodności lekcji
+> ze źródłem robi się na odtworzonym komplecie, nie na kopii w repozytorium.
+
 Oryginalna dokumentacja pobrana z sieci (WYTYCZNE §7 i N2) jako baza
 merytoryczna treści obu kursów. Każda lekcja kursu wskazuje plik(i)
 źródłowe z tego katalogu — zero zmyślania.
@@ -75,8 +94,9 @@ więc rozszerzenie kursu = dopisanie sekcji i ponowne uruchomienie skryptu.
    (i dopisujemy do tej tabeli), potem piszemy.
 2. Kursy w 100% zgodne z programem: moduły/lekcje = spis treści
    realnego materiału; strona nie obiecuje niczego spoza programu.
-3. Fragmenty faktycznie przywoływane przez lekcje kopiujemy do
-   podkatalogu `cytowane/` — ten JEST w repozytorium, żeby dało się
-   sprawdzić zgodność lekcji ze źródłem bez pobierania 55 MB.
+3. ~~Fragmenty faktycznie przywoływane przez lekcje kopiujemy do
+   podkatalogu `cytowane/` — ten JEST w repozytorium.~~
+   **ZMIENIONE 2026-09-07: `cytowane/` NIE wchodzi już do repozytorium.**
+   Fragmenty zostają lokalnie, razem z resztą źródeł. Powód niżej.
 4. Dokumentacja to migawka z daty pobrania — przy aktualizacji treści
    kursu odświeżyć pliki i datę w tej tabeli.
