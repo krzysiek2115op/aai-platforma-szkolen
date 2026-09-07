@@ -31,9 +31,10 @@
  *     na inny zapis, byle skutek został.
  *  3. Śledzony plik w katalogu masowym — `git add -f` obchodzi `.gitignore`.
  *  4. Przekroczenie budżetu wagi śledzonych plików w
- *     `docs/dokumentacja-techniczna/` — furtką jest podkatalog `cytowane/`
- *     (fragmenty przywoływane przez lekcje) i on ma pozostać fragmentem,
- *     a nie kopią całego manuala wnoszoną tylnymi drzwiami.
+ *     `docs/dokumentacja-techniczna/`. UWAGA: dawną furtką był podkatalog
+ *     `cytowane/`. Od 2026-09-07 furtki NIE MA — katalog usunięto z całej
+ *     historii, bo cudza dokumentacja w repo na MIT stawia licencję
+ *     w sprzeczności z zawartością. Cytaty zostają lokalnie.
  *
  * Użycie: node tools/straznicy/straznik-wagi-dokumentacji.mjs
  */

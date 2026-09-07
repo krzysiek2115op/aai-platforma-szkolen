@@ -1,5 +1,13 @@
 # Plan domknięcia Pluginu 1 — cztery kroki
 
+> [!NOTE]
+> **Odwołania do `tresc-kursow/` w tym pliku wskazują na materiał usunięty
+> z repozytorium.** Scenariusze lekcji to sprzedawany produkt — zostały wycięte
+> z całej historii gita przed upublicznieniem kodu (2026-09-07) i żyją wyłącznie
+> w prywatnym `MatthewPlugins/Pod-strona-Szkolenia`. Nazwy zostawione jako zapis
+> tego, co powstało; linków celowo nie ma, żeby nie prowadziły donikąd.
+
+
 Ustalony z właścicielem 2026-08-19 (przed `/clear`). Kolejność jest
 wiążąca: krok N+1 zaczynamy po odhaczeniu kroku N przez właściciela.
 Po kroku 4 Plugin 1 jest zamknięty.
@@ -188,7 +196,7 @@ otwiera każdy temat osobno:
 
 1. ~~**Audyt kursów**~~ **ZROBIONY I NAPRAWIONY (0.33.0, 2026-08-24).**
    Zakres ustalił właściciel; raport i rozliczenie napraw:
-   [tresc-kursow/AUDYT-KONCOWY.md](../../tresc-kursow/AUDYT-KONCOWY.md).
+   **tresc-kursow/AUDYT-KONCOWY.md**.
    Proza okazała się zdrowa — rozjazd siedział w tekstach sprzedażowych
    (BLAD-015), w seedzie i w narzędziach (BLAD-014, BLAD-016). Publiczny
    podgląd przebudowany za zgodą właściciela.

@@ -2,6 +2,14 @@
 
 # Pod strona Szkolenia
 
+> [!NOTE]
+> **Odwołania do `tresc-kursow/` w tym pliku wskazują na materiał usunięty
+> z repozytorium.** Scenariusze lekcji to sprzedawany produkt — zostały wycięte
+> z całej historii gita przed upublicznieniem kodu (2026-09-07) i żyją wyłącznie
+> w prywatnym `MatthewPlugins/Pod-strona-Szkolenia`. Nazwy zostawione jako zapis
+> tego, co powstało; linków celowo nie ma, żeby nie prowadziły donikąd.
+
+
 **Sklep z kursami dla Automatic AI** (dawniej matthewplugins.pl)
 — podstrona `/szkolenia`: katalog kursów, strony sprzedażowe, płatności
 z dostępem do kursu po opłacie i monitoring. **Trzy wtyczki WordPressa,
@@ -365,7 +373,7 @@ Narzędzia uruchamiane ręcznie:
 | `node tools/smoke/smoke-podglad.ts` | statyczny podgląd: szkic NIE wycieka do publicznych plików, kreator i AJAX nieobecni, `basePath` spójny (buduje sam) |
 | `node tools/pobierz-dokumentacje-d7.mjs` | odtwarza 55 MB dokumentacji źródłowej kursów (jest poza gitem) |
 | `node tools/pobierz-dokumentacje-wp.mjs` | to samo dla etapu WordPressa: 9,6 MB dokumentacji WP, WooCommerce, Tutora i MySQL-a (też poza gitem). **Po `git clean` albo na nowej maszynie uruchom to PRZED pisaniem kodu wtyczki** — pamięć modelu myli wersje API, a w WordPressie różnica między `$wpdb->prepare()` a sklejaniem zapytania to różnica między wtyczką a dziurą w sklepie |
-| `node tools/cytaty-zgodne.mjs <plik-cytatow.md> <katalog-źródeł>` | czy KAŻDY cytat w pliku `cytowane/` stoi DOSŁOWNIE w oryginale. Skleja cały blok `>` w jeden ciąg, bo ciche skróty urywają dopiero OGON zdania i każde zdanie z osobna wygląda wtedy na prawdziwe. Nie jest strażnikiem, bo w CI nie ma źródeł |
+| `node tools/cytaty-zgodne.mjs <plik-cytatow.md> <katalog-źródeł>` | czy KAŻDY cytat w podanym pliku stoi DOSŁOWNIE w oryginale. **Od 2026-09-07 pliki cytatów są lokalne** — katalog `cytowane/` usunięto z repozytorium (materiał osób trzecich w repo na MIT), więc narzędzie uruchamia się na kopii lokalnej. Skleja cały blok `>` w jeden ciąg, bo ciche skróty urywają dopiero OGON zdania i każde zdanie z osobna wygląda wtedy na prawdziwe. Nie jest strażnikiem, bo w CI nie ma źródeł |
 | `node tools/most-lekcji.mjs <proza-poprzednia.md> <proza-następna.md>` | czy most między lekcjami jest PODJĘTY, a nie PRZEPISANY co do znaku (próg 40 znaków wspólnego ciągu). W module 4 Kursu 2 tę usterkę popełniło trzech autorów na sześciu |
 | `node tools/okladki-png.mjs [--sprawdz]` | rasteryzuje okładki kursów do PNG dla koszyka WooCommerce (SVG do biblioteki mediów nie wchodzi — może nieść skrypt). Wymaga `ZRZUTY_RIG`; `--sprawdz` porównuje skróty bez uruchamiania przeglądarki |
 | `node tools/sprawdz-zywy.mjs` | czy ŻYWY adres podglądu oddaje dokładnie ten build, który wysłaliśmy — porównaniem treści bajt w bajt, każdego chunka osobno. Woła go `npm run deploy:podglad`; „wysłałem pliki" to nie to samo co „strona działa" |
@@ -638,7 +646,7 @@ node tools/pobierz-dokumentacje-wp.mjs   # 9,6 MB dokumentacji WP/Woo/Tutora/MyS
 > Po `git clean`, na świeżym klonie i po każdym `/clear` agenta
 > obowiązuje ta sama zasada: najpierw ten przepis, potem praca.
 > Przewodnikiem stanu projektu jest CLAUDE.md (czyta się automatycznie),
-> licznikiem treści — [tresc-kursow/POSTEP.md](tresc-kursow/POSTEP.md).
+> licznikiem treści — **tresc-kursow/POSTEP.md**.
 >
 > Podgląd „wywalił się"? Prawie na pewno nikt go nie uruchomił po
 > restarcie: `npm run db1:up && npm run dev` stawia wszystko z powrotem.

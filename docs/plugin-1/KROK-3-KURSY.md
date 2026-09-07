@@ -1,5 +1,13 @@
 # Krok 3 planu domknięcia — kursy zrobione do końca, w narzędziu
 
+> [!NOTE]
+> **Odwołania do `tresc-kursow/` w tym pliku wskazują na materiał usunięty
+> z repozytorium.** Scenariusze lekcji to sprzedawany produkt — zostały wycięte
+> z całej historii gita przed upublicznieniem kodu (2026-09-07) i żyją wyłącznie
+> w prywatnym `MatthewPlugins/Pod-strona-Szkolenia`. Nazwy zostawione jako zapis
+> tego, co powstało; linków celowo nie ma, żeby nie prowadziły donikąd.
+
+
 Dokument roboczy kroku (wzorem [KROK-2-ZABEZPIECZENIA.md](KROK-2-ZABEZPIECZENIA.md)).
 Podstawa: [PLAN-FINAL-PLUGINU-1.md](PLAN-FINAL-PLUGINU-1.md) („Krok 3") oraz
 decyzje właściciela w [PRODUKCJA-MATERIALU-KROK-3.md](PRODUKCJA-MATERIALU-KROK-3.md).
@@ -303,7 +311,7 @@ pliki, które się zmieniły, więc czaty nie kasują sobie lekcji.
 Pięć lekcji, **77 963 znaki prozy dla klienta**, 164 wiersze zgodności.
 Wgrane `npm run db1:tresc` (5 wgranych, 6 bez zmian). Pełny rozbiór
 przebiegu — cztery sygnały jakości, gatunki usterek, koszt i to, co
-z trybu ma zostać — w [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md),
+z trybu ma zostać — w **tresc-kursow/POSTEP.md**,
 sekcja „Jak wypadł moduł 2 Kursu 1".
 
 Trzy rzeczy, które muszą przetrwać `/clear`:
@@ -398,7 +406,7 @@ Osiem lekcji, **92 453 znaki prozy dla klienta**, 236 wierszy zgodności.
 Wgrane `npm run db1:tresc` (8 wgranych, 11 bez zmian) i **zweryfikowane
 w bazie zapytaniem, nie w logu narzędzia**. Pełny rozbiór — cztery
 sygnały jakości, gatunki usterek, koszt i pułapki narzędziowe — w
-[tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md), sekcja „Jak
+**tresc-kursow/POSTEP.md**, sekcja „Jak
 wypadł moduł 4 Kursu 1".
 
 **Stan po module 4: proza 27 z 91 lekcji.** Kurs 1 ma cztery moduły
@@ -526,7 +534,7 @@ i proza pierwszego modułu Kursu 2. Pisanie prozy przed cięciem groziłoby
 napisaniem lekcji, która wypadnie.
 
 **Wzorzec briefu do wykorzystania:**
-[`tresc-kursow/jak-korzystac-z-claude/modul-4/BRIEF-prozy-modulu.md`](../../tresc-kursow/jak-korzystac-z-claude/modul-4/BRIEF-prozy-modulu.md)
+**`tresc-kursow/jak-korzystac-z-claude/modul-4/BRIEF-prozy-modulu.md`**
 — najbogatszy z dotychczasowych (tabele podziału grubych źródeł, sześć
 postaci zawężenia, procedura budżetu przez pomiar, tabela znalezisk).
 
@@ -775,7 +783,7 @@ OBIE zmiany.
 Worktree `/home/krzysiek/Pod-strona-Szkolenia-modul3`, gałąź
 `feat/tresc-lekcji-modul-3` (od `feat/tresc-lekcji-kursow`). Osiem
 lekcji, trzy fale (3 + 3 + 2). Brief:
-[modul-3/BRIEF-prozy-modulu.md](../../tresc-kursow/jak-korzystac-z-claude/modul-3/BRIEF-prozy-modulu.md).
+**modul-3/BRIEF-prozy-modulu.md**.
 
 ### Co brief modułu 3 wnosi ponad brief modułu 1
 
@@ -844,7 +852,7 @@ Co z tego wynika:
 
 Osiem lekcji, **148 086 znaków prozy**, wgrane `npm run db1:tresc`
 drogą kreatora (8 wgranych, 0 bez zmian). Pełny rozpis lekcji, sygnałów
-jakości i kosztu: [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md),
+jakości i kosztu: **tresc-kursow/POSTEP.md**,
 sekcja „Moduł 3 Kursu 1".
 
 **DECYZJE WŁAŚCICIELA (2026-08-20) o zakresie bramki cytatów:**
@@ -871,9 +879,9 @@ wliczyć w koszt modułu z góry, zamiast decydować po fakcie.
 
 Osiem lekcji, **93 tys. znaków prozy**, wgrane `npm run db1:tresc` drogą
 kreatora. Pełny rozbiór — cztery sygnały jakości, wynik bramki, koszt,
-pięć usterek scenariuszy D7 — w [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md),
+pięć usterek scenariuszy D7 — w **tresc-kursow/POSTEP.md**,
 sekcja „Moduł 5 Kursu 1". Brief:
-[modul-5/BRIEF-prozy-modulu.md](../../tresc-kursow/jak-korzystac-z-claude/modul-5/BRIEF-prozy-modulu.md).
+**modul-5/BRIEF-prozy-modulu.md**.
 
 **Stan prozy: 35 z 91 lekcji** (Kurs 1 kompletny w modułach 1–5; moduł 4
 domknął się równolegle w drugim torze).
@@ -928,7 +936,7 @@ słowniczek kursu, to są gotowe hasła.
 Worktree `/home/krzysiek/Pod-strona-Szkolenia-modul6`, gałąź
 `feat/tresc-lekcji-modul-6` (od `feat/tresc-lekcji-kursow`), port **3010**.
 Pełny rozbiór przebiegu — cztery sygnały jakości, poprawki przepisu, koszty
-i to, co zostaje do zrobienia — w [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md),
+i to, co zostaje do zrobienia — w **tresc-kursow/POSTEP.md**,
 sekcja „Moduł 6 Kursu 1".
 
 **Pięć z sześciu lekcji zamkniętych** (11 483–11 993 znaków, 26–33 wiersze
@@ -957,7 +965,7 @@ cytatów, `straznik-prozy`, wgranie `npm run db1:tresc` na porcie 3010.
 ### KALIBRACJA — WYNIK (2026-08-22): moduł 1 Kursu 2 zamknięty, trzy decyzje czekają
 
 Moduł 1 Kursu 2 gotowy i w bazie (6 lekcji, 64 418 znaków — szczegóły
-w [tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md)). Poniżej to, po co
+w **tresc-kursow/POSTEP.md**). Poniżej to, po co
 kalibracja była robiona: **liczby do trzech decyzji właściciela.**
 
 #### 1. Test A/B Opus kontra Sonnet — JAKOŚĆ NIE DO ODRÓŻNIENIA
@@ -1097,7 +1105,7 @@ w innym, powtórzeń, ciągłości stanu repozytorium czytelnika i mostów
 międzymodułowych. **Nie powtarza bramki cytatów i nie cofa długu 17 lekcji
 Kursu 1.** Druga część decyzji: **tropy zbieramy OD ZARAZ**, przy domykaniu
 każdego modułu, do
-[`tresc-kursow/AUDYT-KONCOWY.md`](../../tresc-kursow/AUDYT-KONCOWY.md) —
+**`tresc-kursow/AUDYT-KONCOWY.md`** —
 jeden wiersz = jedno podejrzenie z adresem, gdzie je sprawdzić. Dotyczy obu
 czatów; plik założył czat A na gałęzi `feat/tresc-k2-modul-2-3`.
 
@@ -1454,7 +1462,7 @@ odtworzenie zajmuje chwilę, bo wszystkie wzorce stoją w briefie modułu.
 
 Sześć lekcji (2.1–2.5 + 2.7), **63 137 znaków** pomiaru kontraktowego,
 w bazie i w repo. Pełne liczby, cztery sygnały jakości, koszty na lekcję
-i wnioski z bramki: **[tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md)**,
+i wnioski z bramki: ****tresc-kursow/POSTEP.md****,
 sekcja „Moduł 2 Kursu 2".
 
 **Weryfikacja dwustronna po wgraniu** (`db1:tresc` bez potoku, kod wyjścia 0):
@@ -1517,7 +1525,7 @@ wygląda w adresach i w komunikatach Gita. **Obowiązuje w module 3.**
 #### NASTĘPNY KROK CZATU A — ZROBIONE 2026-08-23 (zapis historyczny; aktualny stan na końcu dokumentu)
 
 1. ~~**Brief prozy modułu 3**~~ **ZROBIONE 2026-08-22** —
-   [tresc-kursow/jak-uzywac-githuba/modul-3/BRIEF-prozy-modulu.md](../../tresc-kursow/jak-uzywac-githuba/modul-3/BRIEF-prozy-modulu.md)
+   **tresc-kursow/jak-uzywac-githuba/modul-3/BRIEF-prozy-modulu.md**
    (56 kB): trzy klasy usterek z modułu 2, reguła o podręczniku narzędzia,
    sekcja o NADMIARZE ŹRÓDŁA z wiążącą selekcją dla 3.3 (13 sekcji z 25)
    i 3.5 (3 ustawienia rozwinięte z 13), stan czytelnika sprawdzony
@@ -1554,7 +1562,7 @@ pierwotny wzorzec „lekcja o…" wywalał się na dozwolonych odsyłaczach WSTE
 
 Pięć lekcji (3.1–3.3 + 3.5, 3.6), **57 273 znaki** pomiaru kontraktowego,
 w bazie i w repo. Pełne liczby, cztery sygnały jakości i znaleziska:
-**[tresc-kursow/POSTEP.md](../../tresc-kursow/POSTEP.md)**, sekcja
+****tresc-kursow/POSTEP.md****, sekcja
 „Moduł 3 Kursu 2".
 
 **Weryfikacja dwustronna po wgraniu** (`db1:tresc --sprawdz` bez potoku,
@@ -1594,7 +1602,7 @@ to, czego nie da się zrobić w pojedynkę:
 2. **Most 3.6 → 4.1 stoi w prozie co do znaku.** Czat B pisze otwarcie
    modułu 4 pod to zdanie. Nic więcej nie przekazujemy.
 3. **Tropy do audytu końcowego** dopisane do
-   [`tresc-kursow/AUDYT-KONCOWY.md`](../../tresc-kursow/AUDYT-KONCOWY.md)
+   **`tresc-kursow/AUDYT-KONCOWY.md`**
    — pięć nowych, w tym ścieżki kliknięć niesprawdzone wobec żywego
    interfejsu (do przelotu zrzutów) i cudzysłów zamykający.
 
