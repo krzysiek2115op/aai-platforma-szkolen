@@ -6,6 +6,16 @@
 # (2026-09-01): po podłożeniu klucza do smoke-wp-jezyk.mjs skan znalazł
 # 2 zamiast 1 — czyli wyciszenie nie oślepia pliku.
 #
+# ⚠️ PUŁAPKA DRUGA, ZMIERZONA 2026-09-07: FINGERPRINT ZAWIERA SHA COMMITA,
+# więc KAŻDE PRZEPISANIE HISTORII (git-filter-repo, rebase, squash) unieważnia
+# WSZYSTKIE wpisy w tym pliku i skan zapala się na nowo — mimo że nic się nie
+# zmieniło w treści. Zdarzyło się przy usuwaniu katalogu `d7/cytowane/`
+# 2026-09-07: te same dwa pliki, te same reguły, te same linie, nowe SHA.
+# Po każdym przepisaniu historii trzeba przeliczyć odciski:
+#   gitleaks git --no-banner --redact --report-format json \
+#     --report-path /tmp/leaks.json --exit-code 1 .
+# i przepisać wartości pola `Fingerprint` do wpisów niżej.
+#
 # PUŁAPKA POMIARU: fingerprinty różnią się między trybami gitleaksa.
 # Ten plik działa dla `gitleaks git` (tego używa CI, job „Skan sekretów”).
 # Lokalny `gitleaks dir` liczy fingerprint BEZ commita, więc mimo tego wpisu
@@ -18,7 +28,7 @@
 # „Password change” i „Country/Region” jako klucz API. To nazwy pól
 # formularza, nie sekret — plik nie zawiera i nie zawierał żadnych danych
 # uwierzytelniających.
-8d10686d4f18787ada665fa07b6701f56b51078b:tools/smoke/smoke-wp-jezyk.mjs:generic-api-key:101
+f825473222fe2093d7dbbcc3b1285625347d0a2e:tools/smoke/smoke-wp-jezyk.mjs:generic-api-key:101
 
 # ── generic-api-key w audyt/wyniki/kontrola-0.65.0/PRIV.md ────────────────
 # Dział PRIV fali kontrolnej 0.65.0 rozlicza się w raporcie z KAŻDEGO wiersza,
@@ -41,4 +51,4 @@
 # Sesja WooCommerce nie uwierzytelnia konta ani usługi: to koszyk gościa.
 # Gdyby kiedyś doszedł tu wiersz z prawdziwym sekretem, fingerprint jest
 # przypięty do JEDNEGO commita i JEDNEJ linii, więc skan zapali się na nowo.
-fe136732db314c0f56e1ef74605fc4302585ce60:audyt/wyniki/kontrola-0.65.0/PRIV.md:generic-api-key:64
+a13042209af6b4312cb319974c4e040caaa3be94:audyt/wyniki/kontrola-0.65.0/PRIV.md:generic-api-key:64
