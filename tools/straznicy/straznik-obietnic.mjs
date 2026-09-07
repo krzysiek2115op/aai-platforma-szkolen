@@ -44,6 +44,26 @@ import { join } from "node:path";
 const { KURSY_SEED } = await import("../seed/seed-przyklady.ts");
 const KATALOG_TRESCI = "tresc-kursow";
 const bledy = [];
+const pominiete = [];
+
+/**
+ * WARUNEK WSTĘPNY TRZECH KONTROLI (dopisane 2026-09-07).
+ *
+ * Kontrole „N zrzutów”, „prompty w N lekcjach” i „N lekcji z pytaniami”
+ * porównują obietnicę sprzedażową z PROZĄ KURSU w `tresc-kursow/`. W publicznej
+ * kopii pokazowej (`krzysiek2115op/aai-platforma-szkolen`) tej prozy NIE MA
+ * i nie będzie — to sprzedawany produkt, wycięty z całej historii gita przed
+ * upublicznieniem. Bez wejścia te trzy kontrole porównują obietnicę z zerem
+ * i zapalają się ZAWSZE, niezależnie od tego, czy teksty są poprawne.
+ *
+ * Dlatego, gdy prozy danego kursu nie ma, te trzy kontrole są POMIJANE
+ * i wypisane jawnie na końcu — nie wyciszone po cichu. Pozostałe kontrole
+ * (wideo, liczba modułów, liczba lekcji, czas, obietnice w widokach) czytają
+ * `seed-przyklady.ts` i widoki, więc działają BEZ ZMIAN także tutaj.
+ *
+ * W prywatnym oryginale, gdzie proza jest, komplet kontroli działa jak wcześniej
+ * — ten warunek nigdy się tam nie uruchamia.
+ */
 
 /** Frazy TWIERDZĄCE o wideo. Zaprzeczenia („nie jest nagraniem”) są w porządku. */
 const WIDEO = [
@@ -67,6 +87,12 @@ for (const kurs of KURSY_SEED) {
   const minuty = (kurs.modules ?? []).reduce(
     (n, m) => n + m.lessons.reduce((s, l) => s + (l.duration_min ?? 0), 0), 0);
   const proza = prozaKursu(kurs.slug);
+  const mamProze = proza.length > 0;
+  if (!mamProze)
+    pominiete.push(
+      `${kurs.slug}: brak prozy w \`${KATALOG_TRESCI}/${kurs.slug}\` — pomijam kontrole ` +
+      `„liczba zrzutów”, „prompty w N lekcjach” i „N lekcji z pytaniami”. ` +
+      `Pozostałe kontrole tego kursu wykonane normalnie.`);
   const zrzuty = proza.reduce(
     (n, t) => n + (t.replace(/```[\s\S]*?```/g, "").match(/!\[[^\]]*\]\(zrzuty\//g) ?? []).length, 0);
   const zPromptami = proza.filter((t) => /^## Prompty z tej lekcji/m.test(t)).length;
@@ -86,12 +112,14 @@ for (const kurs of KURSY_SEED) {
     // sumy — inaczej „10 lekcji o API” wyglądałoby jak zaniżona liczba lekcji kursu.
     let doSum = tekst;
     for (const [caly, n] of tekst.matchAll(/(\d+)\s+lekcj\w*[^"]{0,80}?pytań do firmy wdrażającej/g)) {
-      if (+n !== zPytaniami)
+      if (mamProze && +n !== zPytaniami)
         bledy.push(`${gdzie}: obiecuje ${n} lekcji z pytaniami do wykonawcy, sekcję „Pytania do wykonawcy” ma ${zPytaniami}.`);
+      // Wycinamy ZAWSZE, także przy pominiętej kontroli — inaczej „10 lekcji
+      // z pytaniami” wpadłoby niżej jako zaniżona liczba lekcji kursu.
       doSum = doSum.replace(caly, "");
     }
     for (const [caly, n] of tekst.matchAll(/prompty w (\d+)\s+lekcjach/gi)) {
-      if (+n !== zPromptami)
+      if (mamProze && +n !== zPromptami)
         bledy.push(`${gdzie}: obiecuje prompty w ${n} lekcjach, sekcję „Prompty z tej lekcji” ma ${zPromptami}.`);
       doSum = doSum.replace(caly, "");
     }
@@ -105,7 +133,7 @@ for (const kurs of KURSY_SEED) {
     }
 
     for (const [, n] of tekst.matchAll(/(\d+)\s+zrzut\w*/g))
-      if (+n !== zrzuty) bledy.push(`${gdzie}: obiecuje ${n} zrzutów, proza kursu ma ${zrzuty}.`);
+      if (mamProze && +n !== zrzuty) bledy.push(`${gdzie}: obiecuje ${n} zrzutów, proza kursu ma ${zrzuty}.`);
 
   }
 }
@@ -155,9 +183,22 @@ for (const plik of PLIKI_WIDOKOW) {
   }
 }
 
+// Pominięcia wypisujemy ZAWSZE i PRZED werdyktem — kontrola, która czegoś nie
+// sprawdziła, ma to powiedzieć głośno. Cicha kontrola jest gorsza niż jej brak,
+// bo daje fałszywe poczucie pokrycia.
+if (pominiete.length > 0) {
+  console.error("straznik-obietnic — KONTROLE POMINIĘTE (brak wejścia):");
+  for (const p of pominiete) console.error(`  ! ${p}`);
+  console.error(
+    "  Powód i uzasadnienie: nagłówek tools/straznicy/straznik-obietnic.mjs.\n" +
+    "  W prywatnym oryginale, gdzie proza kursów istnieje, żadna kontrola nie jest pomijana.");
+}
+
 if (bledy.length > 0) {
   console.error("straznik-obietnic:");
   for (const b of bledy) console.error(`  - ${b}`);
   process.exit(1);
 }
-console.log(`straznik-obietnic: OK (kursów: ${KURSY_SEED.length}, widoków: ${PLIKI_WIDOKOW.length})`);
+console.log(
+  `straznik-obietnic: OK (kursów: ${KURSY_SEED.length}, widoków: ${PLIKI_WIDOKOW.length}` +
+  (pominiete.length > 0 ? `, kursów z pominiętymi kontrolami: ${pominiete.length}` : "") + ")");
